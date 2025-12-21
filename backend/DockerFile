@@ -1,0 +1,14 @@
+FROM php:8.3-cli-alpine
+
+WORKDIR /app
+
+# (Optional) Common extensions you’ll likely want soon for MySQL + curl (OAuth)
+RUN docker-php-ext-install pdo pdo_mysql
+
+# curl is useful for Discord OAuth token exchange
+RUN apk add --no-cache curl
+
+COPY . .
+
+EXPOSE 8080
+CMD ["php", "-S", "0.0.0.0:8080", "-t", "public"]

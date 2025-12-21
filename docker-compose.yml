@@ -1,0 +1,64 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: DockerFile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      # Make Vite bind to 0.0.0.0 inside container
+      - VITE_HOST=0.0.0.0
+      # Point frontend API calls at backend service (inside docker network)
+      - VITE_API_BASE_URL=http://localhost:8080
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: DockerFile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+    environment:
+      # For later DB wiring
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=dice_goblins
+      - DB_USER=dice
+      - DB_PASS=dicepass
+      # CORS allow list (used by PHP code if you choose to read env; optional)
+      - DEV_ALLOWED_ORIGINS=http://localhost:5173
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.4
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=dice_goblins
+      - MYSQL_USER=dice
+      - MYSQL_PASSWORD=dicepass
+      - MYSQL_ROOT_PASSWORD=rootpass
+    volumes:
+      - dicegoblins_mysql:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST=db
+      - PMA_USER=root
+      - PMA_PASSWORD=rootpass
+    depends_on:
+      - db
+
+volumes:
+  dicegoblins_mysql:
