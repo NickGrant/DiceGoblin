@@ -29,6 +29,16 @@ export default class BootScene extends Phaser.Scene {
       const session = await apiClient.getSession();
       authenticated = session.authenticated;
       statusText.setText(authenticated ? "Welcome back…" : "Welcome…");
+
+      this.time.delayedCall(250, () => {
+        if (authenticated) {
+          this.scene.start("HomeScene", { session });
+        } else {
+          this.scene.start("LandingScene", { authenticated: false });
+        }
+      });
+      return;
+
     } catch (err) {
       // If the backend isn't running yet, still let the game proceed.
       statusText.setText("Offline mode (API unavailable)");

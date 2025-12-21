@@ -8,7 +8,7 @@ export type SessionResponse = {
 
 const DEFAULT_API_BASE_URL = "http://localhost:8080";
 
-const API_BASE_URL =
+export const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? DEFAULT_API_BASE_URL;
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -32,5 +32,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const apiClient = {
   async getSession(): Promise<SessionResponse> {
     return request<SessionResponse>("/api/v1/session", { method: "GET" });
+  },
+
+  async logout(): Promise<{ ok: boolean }> {
+    return request<{ ok: boolean }>("/api/v1/auth/logout", { method: "POST" });
   }
 };
+
