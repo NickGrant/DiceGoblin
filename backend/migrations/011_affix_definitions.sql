@@ -1,0 +1,18 @@
+CREATE TABLE IF NOT EXISTS affix_definitions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  slug VARCHAR(64) NOT NULL,
+  name VARCHAR(80) NOT NULL,
+  slot_cost INT NOT NULL DEFAULT 1,
+  stat VARCHAR(32) NOT NULL,
+  op ENUM('flat_add','pct_add') NOT NULL,
+  min_value DECIMAL(10,3) NOT NULL,
+  max_value DECIMAL(10,3) NOT NULL,
+  tags_json JSON NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_affix_def_slug (slug),
+  KEY idx_affix_def_stat (stat)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;

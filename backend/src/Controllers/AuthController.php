@@ -35,138 +35,150 @@ final class AuthController
 
   public function discordCallback(): void
   {
-    $expectedState = $_SESSION['oauth_state'] ?? null;
-    unset($_SESSION['oauth_state']);
+      $expectedState = $_SESSION['oauth_state'] ?? null;
+      unset($_SESSION['oauth_state']);
 
-    $code = $_GET['code'] ?? null;
-    $state = $_GET['state'] ?? null;
-    $error = $_GET['error'] ?? null;
+      $code  = $_GET['code']  ?? null;
+      $state = $_GET['state'] ?? null;
+      $error = $_GET['error'] ?? null;
 
-    if ($error) {
-      $this->redirectWithError('discord_error', (string)$error);
-      return;
-    }
+      if (is_string($error) && $error !== '') {
+          $this->redirectWithError('discord_error', $error);
+          return;
+      }
 
-    if (!$code || !$state || !$expectedState || !hash_equals((string)$expectedState, (string)$state)) {
-      $this->redirectWithError('invalid_state', 'State mismatch');
-      return;
-    }
+      if (!is_string($code) || $code === '' || !is_string($state) || $state === '') {
+          $this->redirectWithError('missing_code_or_state', 'Missing code/state');
+          return;
+      }
 
-    $clientId = Env::require('DISCORD_CLIENT_ID');
-    $clientSecret = Env::require('DISCORD_CLIENT_SECRET');
-    $redirectUri = Env::require('DISCORD_REDIRECT_URI');
+      if (!is_string($expectedState) || !hash_equals($expectedState, $state)) {
+          $this->redirectWithError('invalid_state', 'State mismatch');
+          return;
+      }
 
-    // Exchange code -> access token
-    $tokenResp = Http::postForm(
-      'https://discord.com/api/oauth2/token',
-      [],
-      [
-        'client_id' => $clientId,
-        'client_secret' => $clientSecret,
-        'grant_type' => 'authorization_code',
-        'code' => (string)$code,
-        'redirect_uri' => $redirectUri,
-      ]
-    );
+      $clientId     = Env::require('DISCORD_CLIENT_ID');
+      $clientSecret = Env::require('DISCORD_CLIENT_SECRET');
+      $redirectUri  = Env::require('DISCORD_REDIRECT_URI');
 
-    if ($tokenResp['status'] < 200 || $tokenResp['status'] >= 300) {
-      $this->redirectWithError('token_exchange_failed', $tokenResp['body']);
-      return;
-    }
+      // Exchange code -> access token
+      $tokenResp = Http::postForm(
+          'https://discord.com/api/oauth2/token',
+          [],
+          [
+              'client_id' => $clientId,
+              'client_secret' => $clientSecret,
+              'grant_type' => 'authorization_code',
+              'code' => $code,
+              'redirect_uri' => $redirectUri,
+          ]
+      );
 
-    /** @var array<string, mixed> $tokenJson */
-    $tokenJson = json_decode($tokenResp['body'], true);
-    $accessToken = $tokenJson['access_token'] ?? null;
+      if (($tokenResp['status'] ?? 0) < 200 || ($tokenResp['status'] ?? 0) >= 300) {
+          // Prefer logging $tokenResp['body'] server-side; keep user-facing error short.
+          $this->redirectWithError('token_exchange_failed', 'Token exchange failed');
+          return;
+      }
 
-    if (!$accessToken || !is_string($accessToken)) {
-      $this->redirectWithError('token_missing', 'No access_token in response');
-      return;
-    }
+      $tokenJson = json_decode((string)$tokenResp['body'], true);
+      if (!is_array($tokenJson)) {
+          $this->redirectWithError('token_bad_json', 'Invalid token response');
+          return;
+      }
 
-    // Fetch Discord user identity
-    $meResp = Http::get(
-      'https://discord.com/api/users/@me',
-      [
-        'Authorization' => 'Bearer ' . $accessToken,
-      ]
-    );
+      $accessToken = $tokenJson['access_token'] ?? null;
+      if (!is_string($accessToken) || $accessToken === '') {
+          $this->redirectWithError('token_missing', 'No access_token in response');
+          return;
+      }
 
-    if ($meResp['status'] < 200 || $meResp['status'] >= 300) {
-      $this->redirectWithError('discord_me_failed', $meResp['body']);
-      return;
-    }
+      // Fetch Discord user identity
+      $meResp = Http::get(
+          'https://discord.com/api/users/@me',
+          [
+              'Authorization' => 'Bearer ' . $accessToken,
+          ]
+      );
 
-    /** @var array<string, mixed> $me */
-    $me = json_decode($meResp['body'], true);
+      if (($meResp['status'] ?? 0) < 200 || ($meResp['status'] ?? 0) >= 300) {
+          $this->redirectWithError('discord_me_failed', 'Failed to fetch user profile');
+          return;
+      }
 
-    $discordId = $me['id'] ?? null;
-    if (!$discordId || !is_string($discordId)) {
-      $this->redirectWithError('discord_id_missing', 'No id from Discord');
-      return;
-    }
+      $me = json_decode((string)$meResp['body'], true);
+      if (!is_array($me)) {
+          $this->redirectWithError('discord_me_bad_json', 'Invalid profile response');
+          return;
+      }
 
-    // Determine display name (Discord has changed naming over time; handle best-effort)
-    $globalName = $me['global_name'] ?? null;
-    $username = $me['username'] ?? null;
-    $displayName = is_string($globalName) && $globalName !== ''
-      ? $globalName
-      : (is_string($username) ? $username : 'Goblin');
+      $discordId = $me['id'] ?? null;
+      if (!is_string($discordId) || $discordId === '') {
+          $this->redirectWithError('discord_id_missing', 'No id from Discord');
+          return;
+      }
 
-    $avatarUrl = null;
-    $avatar = $me['avatar'] ?? null;
-    if (is_string($avatar) && $avatar !== '') {
-        $avatarUrl = "https://cdn.discordapp.com/avatars/{$discordId}/{$avatar}.png";
-    }
+      // Determine display name
+      $globalName = $me['global_name'] ?? null;
+      $username   = $me['username'] ?? null;
+      $displayName = (is_string($globalName) && $globalName !== '')
+          ? $globalName
+          : ((is_string($username) && $username !== '') ? $username : 'Goblin');
 
-    $pdo = Db::pdo();
+      // Compute avatar URL once
+      $avatarUrl = null;
+      $avatar = $me['avatar'] ?? null;
+      if (is_string($avatar) && $avatar !== '') {
+          $avatarUrl = "https://cdn.discordapp.com/avatars/{$discordId}/{$avatar}.png";
+      }
 
-    // Upsert by discord_id
-    $stmt = $pdo->prepare(
-    "INSERT INTO users (discord_id, display_name, avatar_url)
-    VALUES (:discord_id, :display_name, :avatar_url)
-    ON DUPLICATE KEY UPDATE
-        display_name = VALUES(display_name),
-        avatar_url = VALUES(avatar_url)"
-    );
+      $pdo = Db::pdo();
 
-    $stmt->execute([
-        ':discord_id' => $discordId,
-        ':display_name' => $displayName,
-        ':avatar_url' => $avatarUrl,
-    ]);
+      // Upsert by discord_id
+      $stmt = $pdo->prepare(
+          "INSERT INTO users (discord_id, display_name, avatar_url)
+          VALUES (:discord_id, :display_name, :avatar_url)
+          ON DUPLICATE KEY UPDATE
+              display_name = VALUES(display_name),
+              avatar_url   = VALUES(avatar_url)"
+      );
 
-    // Fetch local id
-    $stmt2 = $pdo->prepare("SELECT id, display_name, avatar_url FROM users WHERE discord_id = :discord_id LIMIT 1");
-    $stmt2->execute([':discord_id' => $discordId]);
-    $userRow = $stmt2->fetch();
+      $stmt->execute([
+          ':discord_id' => $discordId,
+          ':display_name' => $displayName,
+          ':avatar_url' => $avatarUrl,
+      ]);
 
-    if (!$userRow || !isset($userRow['id'])) {
-        $this->redirectWithError('user_upsert_failed', 'Could not load user after upsert');
-        return;
-    }
-    session_regenerate_id(true);
+      // Fetch local id
+      $stmt2 = $pdo->prepare(
+          "SELECT id, display_name, avatar_url
+          FROM users
+          WHERE discord_id = :discord_id
+          LIMIT 1"
+      );
+      $stmt2->execute([':discord_id' => $discordId]);
+      $userRow = $stmt2->fetch();
 
-    $_SESSION['user_id'] = (string)$userRow['id'];
-    $_SESSION['display_name'] = (string)$userRow['display_name'];
-    if (!empty($userRow['avatar_url'])) {
-        $_SESSION['avatar_url'] = (string)$userRow['avatar_url'];
-    } else {
-        unset($_SESSION['avatar_url']);
-    }
+      if (!is_array($userRow) || !isset($userRow['id'])) {
+          $this->redirectWithError('user_upsert_failed', 'Could not load user after upsert');
+          return;
+      }
 
+      session_regenerate_id(true);
+      $_SESSION['user_id'] = (string)$userRow['id'];
+      $_SESSION['display_name'] = (string)($userRow['display_name'] ?? $displayName);
 
-    // Optional: store avatar URL for UI later
-    $avatar = $me['avatar'] ?? null;
-    if (is_string($avatar) && $avatar !== '') {
-      $_SESSION['avatar_url'] = "https://cdn.discordapp.com/avatars/{$discordId}/{$avatar}.png";
-    } else {
-      unset($_SESSION['avatar_url']);
-    }
+      if (!empty($userRow['avatar_url'])) {
+          $_SESSION['avatar_url'] = (string)$userRow['avatar_url'];
+      } else {
+          unset($_SESSION['avatar_url']);
+      }
 
-    // Redirect back to frontend
-    $frontend = Env::get('FRONTEND_URL', 'http://localhost:5173');
-    header('Location: ' . $frontend . '/', true, 302);
+      $frontend = Env::get('FRONTEND_URL', 'http://localhost:5173');
+      $frontend = str_replace(["\r", "\n"], '', $frontend); // prevent header injection
+
+      header('Location: ' . $frontend . '/', true, 302);
   }
+
 
   public function logout(): void{
     // Unset all session values
@@ -191,20 +203,23 @@ final class AuthController
 
     session_destroy();
     Response::json(['ok' => true]);
-    }
+  }
 
 
   private function redirectWithError(string $code, string $details): void
   {
-    // For MVP we can redirect to frontend with a simple query string.
-    // Later, you can route to a dedicated error screen.
-    $frontend = Env::get('FRONTEND_URL', 'http://localhost:5173');
-    $qs = http_build_query([
-      'auth_error' => $code,
-      // Keep details short; don't leak secrets. This is mainly for dev.
-      'msg' => substr($details, 0, 200),
-    ]);
+      $frontend = Env::get('FRONTEND_URL', 'http://localhost:5173');
+      $frontend = str_replace(["\r", "\n"], '', $frontend);
 
-    header('Location: ' . $frontend . '/?' . $qs, true, 302);
+      $msg = trim(preg_replace('/\s+/', ' ', (string)$details));
+      $msg = substr($msg, 0, 200);
+
+      $qs = http_build_query([
+          'auth_error' => $code,
+          'msg' => $msg,
+      ]);
+
+      header('Location: ' . $frontend . '/?' . $qs, true, 302);
   }
+
 }

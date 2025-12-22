@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS unit_types (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  slug VARCHAR(64) NOT NULL,
+  name VARCHAR(80) NOT NULL,
+  role VARCHAR(32) NOT NULL,
+  base_stats_json JSON NOT NULL,
+  ability_set_json JSON NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_unit_types_slug (slug),
+  KEY idx_unit_types_role (role)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;

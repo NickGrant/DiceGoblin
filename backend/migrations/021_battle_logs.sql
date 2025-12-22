@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS battle_logs (
+  battle_id BIGINT UNSIGNED NOT NULL,
+  log_json JSON NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (battle_id),
+  CONSTRAINT fk_battle_logs_battle
+    FOREIGN KEY (battle_id) REFERENCES battles(id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
