@@ -5,9 +5,10 @@
 1. BootScene
 2. LandingScene (unauthenticated only)
 3. HomeScene
-4. (Future) Region Select
-5. (Future) Map Exploration
-6. (Future) Combat
+4. Region Select
+5. Map Exploration
+6. Combat
+7. Noncombat Encounter
 
 ## BootScene Responsibilities
 - Fetch `/api/v1/session`

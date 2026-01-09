@@ -8,4 +8,4 @@ Key concepts:
 - Benefits for betrayal
 - Shared world manipulation
 
-No direct PvP combat in MVP.
+No multiplayer slated for MVP.
