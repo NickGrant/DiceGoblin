@@ -166,13 +166,13 @@ type CombatLog = {
         type: "phase_start";
         round: number;
         tick: number; // 1..20
-        phase: "player_status" | "enemy_status" | "player_action" | "enemy_action";
+        phase: "player_status" | "enemy_status" | "neutral_status" | "player_action" | "enemy_action" | "neutral_action";
       }
     | {
         type: "status_trigger";
         round: number;
         tick: number;
-        phase: "player_status" | "enemy_status";
+        phase: "player_status" | "enemy_status" | "neutral_status";
         targetUnitId: number;
         statusId: string; // e.g. "poison" | "bolstered" | "sleep"
         stacks?: number;
@@ -185,7 +185,7 @@ type CombatLog = {
         type: "action";
         round: number;
         tick: number;
-        phase: "player_action" | "enemy_action";
+        phase: "player_action" | "enemy_action" | "neutral_action";
         actorUnitId: number;
         abilityId: string; // includes basic attack as an active ability
         targets: number[]; // unitIds
@@ -326,12 +326,11 @@ This section is the authoritative list of scenes and their required inputs/outpu
 **Responsibilities**
 
 * Allow selecting a Region to start a Run.
-* Apply “energy cost” conceptually (even if mocked). 
+* Apply “energy cost”. 
 
 **Allowed side-effects**
 
-* In MVP: none (energy could be client-only placeholder).
-* Later: POST to “start run” endpoint, decrement energy, receive run seed.
+* POST to “start run” endpoint, decrement energy, receive run seed.
 
 **Required input**
 
@@ -349,7 +348,7 @@ This section is the authoritative list of scenes and their required inputs/outpu
 ```ts
 {
   session: SessionState;
-  run: RunState; // created here (or returned from backend)
+  run: RunState; // returned from backend
 }
 ```
 
@@ -417,8 +416,8 @@ This section is the authoritative list of scenes and their required inputs/outpu
 
 **Allowed side-effects**
 
-* None for MVP.
-* Later: telemetry/events, save combat log.
+* POST to "start combat" backend endpoint, generate or retrieve combat log on backend, return combat log
+* Later: telemetry/events.
 
 **Required input**
 
@@ -429,10 +428,6 @@ This section is the authoritative list of scenes and their required inputs/outpu
   encounter: EncounterState; // type must be "combat"
 }
 ```
-
-**Derived state**
-
-* `combat: CombatState` generated in `create()`.
 
 **Output (back to MapExplorationScene)**
 
@@ -469,9 +464,6 @@ This section is the authoritative list of scenes and their required inputs/outpu
 
 * Same as CombatScene
 
-**Derived state**
-
-* Same as CombatScene
 
 **Output (back to MapExplorationScene)**
 
@@ -556,6 +548,126 @@ This section is the authoritative list of scenes and their required inputs/outpu
 }
 ```
 
+---
+
+### WarbandScene
+
+**Responsibilities**
+
+* View units in your warband
+* Act as a gateway to Dice Inventory
+* Return to Home.
+
+**Allowed side-effects**
+
+* None for MVP.
+
+**Required input**
+
+```ts
+{
+  session: SessionState;
+}
+```
+
+**Output**
+
+```ts
+{
+  session: SessionState;
+}
+```
+
+---
+
+### UnitDetailsScene
+
+**Responsibilities**
+
+* View individual unit
+* Handle unit promotion
+* Handle dice equip
+* Return to UnitInventory.
+
+**Allowed side-effects**
+
+* None for MVP.
+
+**Required input**
+
+```ts
+{
+  session: SessionState;
+  unitId: number
+}
+```
+
+**Output**
+
+```ts
+{
+  session: SessionState;
+}
+```
+
+---
+
+### DiceInventoryScene
+
+**Responsibilities**
+
+* Display dice that are available to your warband
+* Return to UnitInventory.
+
+**Allowed side-effects**
+
+* None for MVP.
+
+**Required input**
+
+```ts
+{
+  session: SessionState;
+}
+```
+
+**Output**
+
+```ts
+{
+  session: SessionState;
+}
+```
+
+---
+
+### DiceDetailsScene
+
+**Responsibilities**
+
+* View individual die
+* Return to DiceInventory.
+
+**Allowed side-effects**
+
+* None for MVP.
+
+**Required input**
+
+```ts
+{
+  session: SessionState;
+  diceId: number
+}
+```
+
+**Output**
+
+```ts
+{
+  session: SessionState;
+}
+```
 
 ---
 
@@ -565,16 +677,24 @@ Boot → Landing (unauth)
 Boot → Home (auth)
 Landing → (OAuth redirect) → Boot
 Home → RegionSelect
+Home → WarbandManagement
+WarbandManagement → UnitDetails
+UnitDetails → WarbandManagement
+WarbandManagement → DiceInventory
+DiceInventory → DiceDetails
+DiceDetails → DiceInventory
+DiceInventory → WarbandManagement
 RegionSelect → MapExploration
 MapExploration → Combat
 MapExploration → LootEncounter
 MapExploration → RestEncounter
 MapExploration → BossEncounter
-Combat → MapExploration
+Combat → LootClaim
 LootEncounter → MapExploration
 RestEncounter → MapExploration
-BossEncounter → MapExploration
-MapExploration → Home (run end)
+BossEncounter → LootClaim
+LootClaim -> MapExploration
+MapExploration → Home
 
 Scene list is aligned to the current MVP flow. 
 
@@ -582,8 +702,6 @@ Scene list is aligned to the current MVP flow.
 
 ## Open Questions (track explicitly)
 
-* Do we allow run resume (save state) in MVP?
-* Is RunState generated client-side (seeded) or returned by backend “start run”?
 * What is the minimal ProfileState needed for MVP (warband selection, dice equip, etc.)?
 
 Keep this section up-to-date to prevent silent scope creep.

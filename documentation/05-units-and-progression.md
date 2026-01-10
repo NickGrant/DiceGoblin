@@ -14,8 +14,13 @@ Flavor titles are unit-specific and cosmetic.
 
 ## Gaining Levels
 - Levels are gained by spending XP
-- XP is on a per-unit basis
-- XP is gained at the end of encounters
+- The only way a unit's level goes down is when it gets reset as part of promotion
+- XP needed per level is determined by tier * target level * 50
+
+## Gaining XP
+- XP is tracked on a per unit basis
+- XP is awarded as part of Combat and Boss encounters for any units that participate
+- Awarded XP is determined based on sum of xp_reward from each enemy in the encounter
 
 ## Tier Advancement
 - Combine 3 max-level units to advance tier

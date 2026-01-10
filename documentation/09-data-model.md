@@ -147,10 +147,10 @@ PK:
 
 ---
 
-## 4) Squads, Units, Formation
+## 4) Teams, Units, Formation
 
-### squads
-Player-defined squads.
+### teams
+Player-defined teams.
 
 Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
@@ -177,7 +177,7 @@ Columns:
 - `updated_at` TIMESTAMP
 
 Notes:
-- MVP ability scope: 1 active + up to 2 passives.
+- MVP ability scope: 2 active + up to 2 passives.
 
 ### unit_instances
 An owned unit. This is the player’s persistent progression object.
@@ -197,28 +197,28 @@ Indexes:
 - (`user_id`, `unit_type_id`)
 - (`user_id`, `tier`, `level`)
 
-### squad_units
-Membership of unit instances in a squad.
+### team_units
+Membership of unit instances in a team.
 
 Columns:
-- `squad_id` BIGINT UNSIGNED (FK → squads.id)
+- `team_id` BIGINT UNSIGNED (FK → teams.id)
 - `unit_instance_id` BIGINT UNSIGNED (FK → unit_instances.id)
 - `added_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 
 PK:
-- (`squad_id`, `unit_instance_id`)
+- (`team_id`, `unit_instance_id`)
 
-### squad_formation
+### team_formation
 3×3 placement. Stores which unit is in which cell.
 
 Columns:
-- `squad_id` BIGINT UNSIGNED (FK → squads.id)
+- `team_id` BIGINT UNSIGNED (FK → teams.id)
 - `cell` VARCHAR(2) NOT NULL (e.g., A1..C3)
 - `unit_instance_id` BIGINT UNSIGNED NULL (FK → unit_instances.id)
 - `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 
 PK:
-- (`squad_id`, `cell`)
+- (`team_id`, `cell`)
 
 ---
 
@@ -360,6 +360,7 @@ Columns:
   (frontline/backline/specialty)
 - `base_stats_json` JSON NOT NULL
 - `ability_set_json` JSON NOT NULL
+- `xp_reward` INT NOT NULL DEFAULT 10
 - `tags_json` JSON NULL
 - `created_at` TIMESTAMP
 - `updated_at` TIMESTAMP
@@ -392,7 +393,7 @@ Columns:
 - `user_id` BIGINT UNSIGNED (FK → users.id)
 - `run_id` BIGINT UNSIGNED (FK → region_runs.id)
 - `node_id` BIGINT UNSIGNED (FK → run_nodes.id)
-- `squad_id` BIGINT UNSIGNED (FK → squads.id)
+- `team_id` BIGINT UNSIGNED (FK → teams.id)
 - `rules_version` VARCHAR(32) NOT NULL DEFAULT 'combat_v1'
 - `seed` BIGINT UNSIGNED NOT NULL
 - `status` ENUM('completed','claimed') NOT NULL DEFAULT 'completed'

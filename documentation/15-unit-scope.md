@@ -89,7 +89,7 @@ Promotion costs and outcomes are deterministic.
 ## 7. Abilities Per Unit
 
 Each unit type has:
-- 1 core active ability
+- 2 core active abilities
 - Up to 2 passive traits
 
 No unit exceeds 3 total abilities in MVP.

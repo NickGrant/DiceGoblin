@@ -101,6 +101,10 @@ Each run:
   - Multiple combat encounters
   - A small number of loot and rest nodes
   - Exactly one boss encounter
+- Nodes are structured in a branching shape
+- Nodes become unlocked when any Node with a connecting path is resolved (Victory for combat Nodes or just encountered for other Nodes)
+- The first Node in a run starts unlocked
+- Nodes cannot become locked again
 
 Runs do not span multiple biomes.
 

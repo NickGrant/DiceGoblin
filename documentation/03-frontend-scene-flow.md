@@ -1,6 +1,6 @@
 # Frontend Scene Flow
 
-## Scene Order (MVP)
+## Scene List (MVP)
 
 1. BootScene
 2. LandingScene (unauthenticated only)
@@ -8,7 +8,13 @@
 4. Region Select
 5. Map Exploration
 6. Combat
-7. Noncombat Encounter
+7. Loot
+8. Rest
+9. Boss
+10. Warband Management
+11. Dice Inventory
+12. Dice Details
+13. Unit Details
 
 ## BootScene Responsibilities
 - Fetch `/api/v1/session`

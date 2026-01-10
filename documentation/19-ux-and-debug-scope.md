@@ -29,8 +29,6 @@ The following screens/scenes are required for MVP:
 - Unit Details
 - Dice Inventory
 - Dice Details
-- Equip Dice Flow
-- Promotions (Tier 2 / Tier 3)
 
 Notes:
 - Screen list is considered complete for MVP.
