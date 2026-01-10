@@ -3,15 +3,13 @@
 Dice are the primary progression and customization system.
 
 ## Dice Properties
-- Die size: d4 → d6 → d8 → d10 → d12
+- Die size: d4 → d6 → d8 → d10
 - Bonuses:
   - always active
   - rarity determines number of bonus slots
     - Common : 0
     - Uncommon : 1
     - Rare : 2
-    - Very Rare: 3
-  - Some powerful bonuses cost multiple slots
 
 ## Dice Pools
 - Each unit has a limited dice pool

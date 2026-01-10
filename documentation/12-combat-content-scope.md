@@ -45,6 +45,7 @@ Explicitly Excluded:
 - diceCost: number (0 or greater)
 - speed: number (1-20)
 - type: active | passive
+- order: number
 
 ---
 
@@ -57,7 +58,8 @@ Exactly **three** status effects exist in MVP.
 **Type:** Damage-over-Time (Debuff)
 
 Rules:
-- Deals damage at a fixed interval (e.g., per round or per tick)
+- Deals damage at a fixed interval
+- Triggers when tick % statusSpeed === 0 during Status Phase
 - Damage value is deterministic based on source stats
 - Does not stack; updates duration to greatest between current remaining time and duration of additional effects
 

@@ -31,11 +31,14 @@
 ## Tick Processing Order
 - Player Status Phase
 - Enemy Status Phase
+- Neutral Status Phase
 - Player Action Phase
 - Enemy Action Phase
+- Neutral Action Phase
 
 ## Unit Action Order
-- Units execute basic attack actions after any other actions on that tick
+- Units should act in ascending unitId order
+- Actions occuring on the same tick should execute based on their order property
 
 ## Automation
 - No player-controlled movement during combat

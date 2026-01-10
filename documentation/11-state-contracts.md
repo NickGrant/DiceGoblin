@@ -85,7 +85,7 @@ type RunState = {
   regionId: string;
   seed: number;
   map: {
-    nodes: Array<{ nodeId: string; kind: "combat" | "noncombat" | "boss"; isRevealed: boolean; isCleared: boolean; }>;
+    nodes: Array<{ nodeId: string; kind: "combat" | "rest" | "loot" | "boss"; isRevealed: boolean; isCleared: boolean; }>;
     paths: Array<{ from: string; to: string; isLocked: boolean; }>;
     currentNodeId: string;
   };
@@ -109,7 +109,7 @@ Created when entering an encounter node. Destroyed after resolution.
 type EncounterState = {
   nodeId: string;
   encounterId: string; // deterministic from seed + nodeId, or backend-provided
-  type: "combat" | "noncombat";
+  type: "combat" | "loot" | "rest" | "boss";
   teamRequirements: { minTeams: 0 | 1; maxTeams: 1 | 2 | 3 | 4 };
   selectedTeams: Array<{ teamId: string; unitIds: number[] }>;
 };
@@ -117,7 +117,7 @@ type EncounterState = {
 
 Source of truth:
 
-* Encounter scene (Combat or Noncombat) is the single writer while active.
+* Encounter scene (Combat, Loot, Rest, Boss) is the single writer while active.
 
 ### CombatState 
 
@@ -131,7 +131,7 @@ type CombatState = {
     unitId: number;
     side: "player" | "enemy" | "neutral";
     hp: number;
-    dicePool: Array<{ dieId: string; size: 4|6|8|10|12; bonuses: string[] }>;
+    dicePool: Array<{ dieId: string; size: 4|6|8|10; bonuses: string[] }>;
     position: { r: 0|1|2; c: 0|1|2 };
   }>;
   rng: { seed: number; rollIndex: number };
@@ -189,11 +189,11 @@ type CombatLog = {
         actorUnitId: number;
         abilityId: string; // includes basic attack as an active ability
         targets: number[]; // unitIds
-        diceCost: number; // may be 0 or nore
-        diceConsumed?: Array<{ dieId: string; size: 4|6|8|10|12 }>;
+        diceCost: number; // may be 0 or more
+        diceConsumed?: Array<{ dieId: string; size: 4|6|8|10 }>;
         rolls?: Array<{
           rollIndex: number;      // monotonically increasing within combat
-          dieSize: 4|6|8|10|12;
+          dieSize: 4|6|8|10;
           result: number;         // final rolled face value
           modifierTotal?: number; // if you want to record modifiers explicitly
         }>;
@@ -221,6 +221,7 @@ type CombatLog = {
       }
   >;
 };
+```
 
 ---
 
@@ -381,7 +382,7 @@ This section is the authoritative list of scenes and their required inputs/outpu
 }
 ```
 
-**Output (to CombatScene / NoncombatEncounterScene)**
+**Output (to CombatScene / LootScene / RestScene / BossScene)**
 
 ```ts
 {
@@ -451,13 +452,42 @@ This section is the authoritative list of scenes and their required inputs/outpu
 
 * If `encounter.type !== "combat"`, abort to MapExplorationScene with error.
 
----
 
-### NoncombatEncounterScene
+### BossScene
 
 **Responsibilities**
 
-* Present choice-based outcome (merchant, hazard, shrine, etc.).
+* Extended version of CombatScene
+* Fixed encounter that is the same each run, including special Boss monster
+* Return result to MapExploration.
+
+**Allowed side-effects**
+
+* Same as CombatScene
+
+**Required input**
+
+* Same as CombatScene
+
+**Derived state**
+
+* Same as CombatScene
+
+**Output (back to MapExplorationScene)**
+
+* Same as CombatScene
+
+**Failure modes**
+
+* If `encounter.type !== "boss"`, abort to MapExplorationScene with error.
+
+---
+
+### LootScene
+
+**Responsibilities**
+
+* Present short message and reward loot.
 * Apply run-scoped rewards/costs.
 * Return to MapExploration.
 
@@ -471,7 +501,7 @@ This section is the authoritative list of scenes and their required inputs/outpu
 {
   session: SessionState;
   run: RunState;
-  encounter: EncounterState; // type must be "noncombat"
+  encounter: EncounterState; // type must be "loot"
 }
 ```
 
@@ -485,10 +515,47 @@ This section is the authoritative list of scenes and their required inputs/outpu
     outcome: "success" | "partial" | "fail";
     loot?: Array<{ /* minimal loot */ }>;
     xp?: number;
-    // statusEffects?: ...
   };
 }
 ```
+
+
+### RestScene
+
+**Responsibilities**
+
+* Present short message and heal units.
+* Apply run-scoped rewards/costs.
+* Return to MapExploration.
+
+**Allowed side-effects**
+
+* None for MVP.
+
+**Required input**
+
+```ts
+{
+  session: SessionState;
+  run: RunState;
+  encounter: EncounterState; // type must be "rest"
+}
+```
+
+**Output**
+
+```ts
+{
+  session: SessionState;
+  run: RunState;
+  resolution: {
+    outcome: "success" | "partial" | "fail";
+    loot?: Array<{ /* minimal loot */ }>;
+    xp?: number;
+  };
+}
+```
+
 
 ---
 
@@ -500,9 +567,13 @@ Landing → (OAuth redirect) → Boot
 Home → RegionSelect
 RegionSelect → MapExploration
 MapExploration → Combat
-MapExploration → NoncombatEncounter
+MapExploration → LootEncounter
+MapExploration → RestEncounter
+MapExploration → BossEncounter
 Combat → MapExploration
-NoncombatEncounter → MapExploration
+LootEncounter → MapExploration
+RestEncounter → MapExploration
+BossEncounter → MapExploration
 MapExploration → Home (run end)
 
 Scene list is aligned to the current MVP flow. 

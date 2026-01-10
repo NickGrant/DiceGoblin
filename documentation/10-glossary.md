@@ -112,9 +112,6 @@ A temporary or persistent modifier that alters unit behavior or stats.
 ### Death / Defeat
 The state in which a unit can no longer participate in combat.
 
-### Retreat
-A voluntary disengagement from combat with defined consequences.
-
 ---
 
 ## 5. Entity & Control Terms
