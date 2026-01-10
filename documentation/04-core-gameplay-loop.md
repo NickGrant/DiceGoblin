@@ -10,8 +10,9 @@ The core loop is intentionally short and repeatable.
    - Static "node" encounters mixed in
 4. Boss Encounter (unlocked after map completion)
 5. Loot Rewards
+   - including XP
 6. Advancement Phase
-   - Spend XP
+   - Automatically spend XP to level
    - Equip dice
    - Combine units
 7. Repeat

@@ -12,6 +12,11 @@ Internal-only naming:
 
 Flavor titles are unit-specific and cosmetic.
 
+## Gaining Levels
+- Levels are gained by spending XP
+- XP is on a per-unit basis
+- XP is gained at the end of encounters
+
 ## Tier Advancement
 - Combine 3 max-level units to advance tier
 - Tier advancement:
