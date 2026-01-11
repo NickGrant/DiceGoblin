@@ -39,5 +39,3 @@ Rationale:
 - Vite dev server (frontend)
 - PHP built-in server (backend)
 - MySQL + phpMyAdmin (dev)
-
-Production hosting strategy TBD.

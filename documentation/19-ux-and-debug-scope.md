@@ -103,7 +103,7 @@ Explicitly excluded:
 Unit details must include:
 - Tier, level, XP
 - Equipped dice list (with affixes)
-- Abilities (1 active + up to 2 passives)
+- Abilities (2 active + up to 2 passives)
 
 If a run is active, unit details should also show (read-only):
 - Current run HP

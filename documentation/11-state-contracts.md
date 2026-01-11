@@ -43,7 +43,7 @@ Represents authenticated user identity and session-bound metadata.
 type SessionState = {
   isAuthenticated: boolean;
   user?: {
-    id: number;
+    id: string;
     displayName: string;
     avatarUrl?: string;
   };
@@ -81,7 +81,7 @@ Represents the current run and its exploration progress.
 
 ```ts
 type RunState = {
-  runId: string;          // client-generated UUID OK for MVP
+  runId: string;          // server-generated UUID OK for MVP
   regionId: string;
   seed: number;
   map: {
@@ -98,7 +98,7 @@ type RunState = {
 
 Source of truth:
 
-* Map Exploration scene (single writer) for node/path flags.
+* Backend (single writer) for node/path flags.
 * Seed/region is set at Run start (Region Select / Run setup).
 
 ### EncounterState (ephemeral)
@@ -363,14 +363,14 @@ This section is the authoritative list of scenes and their required inputs/outpu
 **Responsibilities**
 
 * Render the run map (nodes/paths).
-* Control movement between nodes.
-* Mark nodes as revealed/cleared.
+* Interface to request movement between nodes.
+* Interface to mark nodes as revealed/cleared.
 * Choose when to enter an encounter.
 
 **Allowed side-effects**
 
-* None required for MVP.
-* Later: periodic checkpoint saves (if you choose to support resume).
+* GET /api/v1/runs/{run_id}/map
+* POST /api/v1/runs/{run_id}/nodes/{node_id}/resolve
 
 **Required input**
 
@@ -411,7 +411,9 @@ This section is the authoritative list of scenes and their required inputs/outpu
 **Responsibilities**
 
 * Create CombatState from EncounterState + RunState (and selected teams).
-* Resolve automated combat.
+* Show outcome of server-generated combat
+* Allow player to replay combat via combat log
+* Allow player to claim rewards
 * Return result to MapExploration.
 
 **Allowed side-effects**
@@ -587,7 +589,7 @@ This section is the authoritative list of scenes and their required inputs/outpu
 * View individual unit
 * Handle unit promotion
 * Handle dice equip
-* Return to UnitInventory.
+* Return to WarbandScene.
 
 **Allowed side-effects**
 
@@ -673,28 +675,27 @@ This section is the authoritative list of scenes and their required inputs/outpu
 
 ## Transition Matrix (MVP)
 
-Boot → Landing (unauth)
-Boot → Home (auth)
-Landing → (OAuth redirect) → Boot
-Home → RegionSelect
-Home → WarbandManagement
-WarbandManagement → UnitDetails
-UnitDetails → WarbandManagement
-WarbandManagement → DiceInventory
-DiceInventory → DiceDetails
-DiceDetails → DiceInventory
-DiceInventory → WarbandManagement
-RegionSelect → MapExploration
-MapExploration → Combat
-MapExploration → LootEncounter
-MapExploration → RestEncounter
-MapExploration → BossEncounter
-Combat → LootClaim
-LootEncounter → MapExploration
-RestEncounter → MapExploration
-BossEncounter → LootClaim
-LootClaim -> MapExploration
-MapExploration → Home
+BootScene → LandingScene (unauth)
+BootScene → HomeScene (auth)
+LandingScene → (OAuth redirect) → BootScene
+HomeScene → RegionSelectScene
+HomeScene → WarbandScene
+WarbandScene → UnitDetailsScene
+WarbandScene → DiceInventoryScene
+UnitDetailsScene → WarbandScene
+DiceInventoryScene → DiceDetailsScene
+DiceInventoryScene → WarbandScene
+DiceDetailsScene → DiceInventoryScene
+RegionSelectScene → MapExplorationScene
+MapExplorationScene → CombatScene
+MapExplorationScene → LootScene
+MapExplorationScene → RestScene
+MapExplorationScene → BossScene
+MapExplorationScene → HomeScene
+CombatScene → MapExplorationScene
+LootScene → MapExplorationScene
+RestScene → MapExplorationScene
+BossScene → MapExplorationScene
 
 Scene list is aligned to the current MVP flow. 
 

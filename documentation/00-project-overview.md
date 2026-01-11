@@ -10,6 +10,7 @@ The game is PvE-first. There is no direct PvP combat in MVP, but multiplayer int
 - Shared regions
 - Investment/bribery systems
 - Ally and betrayal mechanics
+- PvP is not slated for MVP
 
 The intended tone sits between:
 - **Munchkin** (irreverent, comedic, goblin chaos)
