@@ -310,8 +310,6 @@ This section is the authoritative list of scenes and their required inputs/outpu
 
 **Output**
 
-* To RegionSelectScene:
-
 ```ts
 {
   session: SessionState;
@@ -619,7 +617,7 @@ This section is the authoritative list of scenes and their required inputs/outpu
 **Responsibilities**
 
 * Display dice that are available to your warband
-* Return to UnitInventory.
+* Return to WarbandScene.
 
 **Allowed side-effects**
 
@@ -648,7 +646,7 @@ This section is the authoritative list of scenes and their required inputs/outpu
 **Responsibilities**
 
 * View individual die
-* Return to DiceInventory.
+* Return to DiceInventoryScene.
 
 **Allowed side-effects**
 
@@ -680,11 +678,11 @@ BootScene → HomeScene (auth)
 LandingScene → (OAuth redirect) → BootScene
 HomeScene → RegionSelectScene
 HomeScene → WarbandScene
+HomeScene → DiceInventoryScene
 WarbandScene → UnitDetailsScene
-WarbandScene → DiceInventoryScene
 UnitDetailsScene → WarbandScene
 DiceInventoryScene → DiceDetailsScene
-DiceInventoryScene → WarbandScene
+DiceInventoryScene → HomeScene
 DiceDetailsScene → DiceInventoryScene
 RegionSelectScene → MapExplorationScene
 MapExplorationScene → CombatScene

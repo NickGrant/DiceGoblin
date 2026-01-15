@@ -1,9 +1,14 @@
 export type SessionResponse = {
-  authenticated: boolean;
-  user?: {
-    id: string;
-    display_name?: string | null;
-  };
+  ok: boolean,
+  data: {
+    authenticated: boolean;
+    csrf_token: string;
+    user?: {
+      id: string;
+      display_name?: string | null;
+      avatar_url?: string | null;
+    };
+  }
 };
 
 const DEFAULT_API_BASE_URL = "http://localhost:8080";

@@ -1,6 +1,9 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../game/config";
 import { apiClient, type SessionResponse } from "../services/apiClient";
+import { TEXT_BODY, TEXT_HEADER } from "../const/Text";
+import BackgroundImage from "../components/BackgroundImage";
+import UiButton from "../components/button";
 
 type HomeData = {
   session?: SessionResponse;
@@ -29,26 +32,13 @@ export default class HomeScene extends Phaser.Scene {
 
   create(): void {
     // Defensive: BootScene should only route here when authenticated, but don't crash if it doesn't.
-    const displayName = this.session?.user?.display_name ?? "Goblin";
+    const displayName = this.session?.data.user?.display_name ?? "Goblin";
 
     // Background / frame
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x0b1020, 1);
-
-    // Header
-    this.add
-      .text(GAME_WIDTH / 2, 70, "DICE GOBLINS", {
-        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
-        fontSize: "40px",
-        color: "#e8e8ff"
-      })
-      .setOrigin(0.5);
+    new BackgroundImage(this, 'background_workbench');
 
     this.add
-      .text(GAME_WIDTH / 2, 115, `Welcome, ${displayName}`, {
-        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
-        fontSize: "20px",
-        color: "#b8b8d8"
-      })
+      .text(GAME_WIDTH / 2, 115, `Welcome, ${displayName}`, TEXT_BODY)
       .setOrigin(0.5);
 
     // Hub actions (scenes can be stubs for now; rename scene keys when you implement them)
@@ -89,7 +79,7 @@ export default class HomeScene extends Phaser.Scene {
       const x = gridLeftX + col * colGap;
       const y = gridTopY + row * rowGap;
 
-      const btn = this.createMenuButton(x, y, t.label, t.description, () => {
+      const btn = this.createMenuButton(x, y, t.label, () => {
         this.tryStartScene(t.sceneKey);
       });
 
@@ -205,42 +195,17 @@ export default class HomeScene extends Phaser.Scene {
   private createMenuButton(
     x: number,
     y: number,
-    title: string,
-    description: string,
+    label: string,
     onClick: () => void
-  ): Phaser.GameObjects.Container {
-    const width = 320;
-    const height = 84;
-
-    const bg = this.add
-      .rectangle(0, 0, width, height, 0x1a1a2a, 1)
-      .setStrokeStyle(2, 0x3a3a66, 1);
-
-    const titleText = this.add
-      .text(-width / 2 + 16, -18, title, {
-        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
-        fontSize: "20px",
-        color: "#ffffff"
-      })
-      .setOrigin(0, 0.5);
-
-    const descText = this.add
-      .text(-width / 2 + 16, 16, description, {
-        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
-        fontSize: "14px",
-        color: "#b8b8d8",
-        wordWrap: { width: width - 32 }
-      })
-      .setOrigin(0, 0.5);
-
-    const container = this.add.container(x, y, [bg, titleText, descText]);
-    container.setSize(width, height);
-
-    this.makeInteractive(container, bg, onClick);
-    (container as any)._bg = bg;
-    (container as any)._handler = onClick;
-
-    return container;
+  ): UiButton {
+    return new UiButton({
+      small: true,
+      scene: this,
+      x: x,
+      y: y,
+      label: label,
+      onClick: onClick
+    });
   }
 
   // Your existing button style (slightly refactored to be reusable)
@@ -249,62 +214,14 @@ export default class HomeScene extends Phaser.Scene {
     y: number,
     label: string,
     onClick: () => void
-  ): Phaser.GameObjects.Container {
-    const width = 260;
-    const height = 52;
-
-    const bg = this.add
-      .rectangle(0, 0, width, height, 0x1a1a2a, 1)
-      .setStrokeStyle(2, 0x3a3a66, 1);
-
-    const text = this.add
-      .text(0, 0, label, {
-        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
-        fontSize: "18px",
-        color: "#ffffff"
-      })
-      .setOrigin(0.5);
-
-    const container = this.add.container(x, y, [bg, text]);
-    container.setSize(width, height);
-
-    this.makeInteractive(container, bg, onClick);
-    (container as any)._bg = bg;
-    (container as any)._handler = onClick;
-
-    return container;
-  }
-
-  private makeInteractive(
-    container: Phaser.GameObjects.Container,
-    bg: Phaser.GameObjects.Rectangle,
-    onClick: () => void
-  ): void {
-    const width = container.width || 1;
-    const height = container.height || 1;
-
-    container.setInteractive(
-      new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
-      Phaser.Geom.Rectangle.Contains
-    );
-
-    container.on("pointerover", () => {
-      bg.setFillStyle(0x24243a, 1);
-      this.input.setDefaultCursor("pointer");
-    });
-
-    container.on("pointerout", () => {
-      bg.setFillStyle(0x1a1a2a, 1);
-      this.input.setDefaultCursor("default");
-    });
-
-    container.on("pointerdown", () => {
-      bg.setFillStyle(0x2f2f55, 1);
-    });
-
-    container.on("pointerup", () => {
-      bg.setFillStyle(0x24243a, 1);
-      onClick();
+  ): UiButton {
+    return new UiButton({
+      small: true,
+      scene: this,
+      x: x,
+      y: y,
+      label: label,
+      onClick: onClick
     });
   }
 }

@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import BootScene from "../scenes/BootScene";
 import LandingScene from "../scenes/LandingScene";
 import HomeScene from "../scenes/HomeScene";
+import PreloadScene from "../scenes/PreloadScene";
 
 export const GAME_WIDTH = 960;
 export const GAME_HEIGHT = 540;
@@ -12,9 +13,9 @@ export function createGameConfig(): Phaser.Types.Core.GameConfig {
     parent: "app",
     width: GAME_WIDTH,
     height: GAME_HEIGHT,
-    backgroundColor: "#0b0b0f",
+    backgroundColor: "#1A0E0A",
     pixelArt: false,
     physics: { default: "arcade" },
-    scene: [BootScene, LandingScene, HomeScene]
+    scene: [BootScene, PreloadScene, LandingScene, HomeScene]
   };
 }

@@ -1,5 +1,12 @@
 import Phaser from "phaser";
-import { apiClient } from "../services/apiClient";
+import { apiClient, type SessionResponse } from "../services/apiClient";
+import { TEXT_BODY } from "../const/Text";
+
+type BootResult = {
+  authenticated: boolean;
+  session: SessionResponse | null;
+  offline: boolean;
+};
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -7,48 +14,59 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    // Placeholder for future asset loading.
-    // this.load.image("logo", "assets/logo.png");
+    // Keep this minimal. If you later want a branded loading bar/logo,
+    // load those assets here so PreloadScene can use them immediately.
+    // Example:
+    // this.load.image("loading_bar", "assets/ui/loading_bar.png");
   }
 
-  async create(): Promise<void> {
+  create(): void {
     const centerX = this.cameras.main.centerX;
     const centerY = this.cameras.main.centerY;
 
     const statusText = this.add
-      .text(centerX, centerY, "Loading…", {
-        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial",
-        fontSize: "20px",
-        color: "#ffffff"
-      })
+      .text(centerX, centerY, "Loading…", TEXT_BODY)
       .setOrigin(0.5);
 
-    let authenticated = false;
+    // Do async work without making create() async (Phaser doesn't "await" it).
+    void this.checkSessionAndContinue(statusText);
+  }
+
+  private async checkSessionAndContinue(
+    statusText: Phaser.GameObjects.Text
+  ): Promise<void> {
+    let result: BootResult = {
+      
+      authenticated: false,
+      session: null,
+      offline: false
+    };
 
     try {
       const session = await apiClient.getSession();
-      authenticated = session.authenticated;
-      statusText.setText(authenticated ? "Welcome back…" : "Welcome…");
+      console.log('API session', session, !!session.data.authenticated);
+      result = {
+        authenticated: !!session.data.authenticated,
+        session,
+        offline: false
+      };
 
-      this.time.delayedCall(250, () => {
-        if (authenticated) {
-          this.scene.start("HomeScene", { session });
-        } else {
-          this.scene.start("LandingScene", { authenticated: false });
-        }
-      });
-      return;
+      statusText.setText(result.authenticated ? "Welcome back…" : "Welcome…");
+    } catch {
+      // Backend unavailable; proceed in offline mode
+      result = {
+        authenticated: false,
+        session: null,
+        offline: true
+      };
 
-    } catch (err) {
-      // If the backend isn't running yet, still let the game proceed.
       statusText.setText("Offline mode (API unavailable)");
-      // You can log for debugging:
-      // console.error(err);
     }
 
     // Small delay so the transition is visible.
     this.time.delayedCall(250, () => {
-      this.scene.start("LandingScene", { authenticated });
+      // Always go to PreloadScene next so assets are loaded exactly once.
+      this.scene.start("PreloadScene", result);
     });
   }
 }
