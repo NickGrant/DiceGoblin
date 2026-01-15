@@ -4,6 +4,7 @@ import { apiClient, type SessionResponse } from "../services/apiClient";
 import { TEXT_BODY, TEXT_HEADER } from "../const/Text";
 import BackgroundImage from "../components/BackgroundImage";
 import UiButton from "../components/button";
+import HudPanel from "../components/HudPanel";
 
 type HomeData = {
   session?: SessionResponse;
@@ -37,9 +38,7 @@ export default class HomeScene extends Phaser.Scene {
     // Background / frame
     new BackgroundImage(this, 'background_workbench');
 
-    this.add
-      .text(GAME_WIDTH / 2, 115, `Welcome, ${displayName}`, TEXT_BODY)
-      .setOrigin(0.5);
+    new HudPanel(this, displayName,100,100);
 
     // Hub actions (scenes can be stubs for now; rename scene keys when you implement them)
     const targets: NavTarget[] = [
