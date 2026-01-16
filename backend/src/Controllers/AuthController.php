@@ -147,7 +147,6 @@ final class AuthController
       $services = $this->services();
 
       $userId = $services['userRepo']->upsertUserByDiscordId($discordId, $displayName, $avatarUrl);
-
       session_regenerate_id(true);
 
       // Establish minimal session (only user_id + rotated CSRF token)

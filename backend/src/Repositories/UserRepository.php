@@ -112,11 +112,8 @@ final class UserRepository
       SET `display_name` = ?, `avatar_url` = ?
       WHERE `id` = ?
     ');
+    
     $stmt->execute([$displayName, $avatarUrl, $userId]);
-
-    if ($stmt->rowCount() === 0) {
-      throw new RuntimeException('User not found.');
-    }
   }
 
   /**
@@ -145,7 +142,6 @@ final class UserRepository
       }
 
       $userId = $this->createUser($discordId, $displayName, $avatarUrl);
-
       $this->pdo->commit();
       return $userId;
     } catch (Throwable $e) {
