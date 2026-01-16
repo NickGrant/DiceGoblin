@@ -74,8 +74,8 @@ export default class HudPanel extends Phaser.GameObjects.Container {
   }
 
   private reposition(): void {
-    const marginTop = 12;
-    const marginRight = 24;
+    const marginTop = 24;
+    const marginRight = 12;
 
     this.setPosition(this.scene.scale.width - this.bgW + marginRight, marginTop);
   }
