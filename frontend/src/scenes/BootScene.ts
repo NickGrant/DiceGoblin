@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { apiClient, type SessionResponse } from "../services/apiClient";
 import { TEXT_BODY } from "../const/Text";
 import { RegistrySession } from "../state/RegistrySession";
+import { RegistryEnergy } from "../state/RegistryEnergy";
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -27,7 +28,7 @@ export default class BootScene extends Phaser.Scene {
         isAuthenticated: !!session.data.authenticated,
         user: {
           id: session.data.user?.id || '',
-          displayName: session.data.user?.display_name || 'Goblin',
+          displayName: session.data.user?.display_name || '',
           avatarUrl: session.data.user?.avatar_url || ''
         },
         csrfToken: session.data.csrf_token
@@ -38,7 +39,8 @@ export default class BootScene extends Phaser.Scene {
       RegistrySession.set(this.registry, { isAuthenticated: false });
       statusText.setText("Offline mode (API unavailable)");
     }
-
+    RegistryEnergy.setCurrent(this.registry, 100);
+    RegistryEnergy.setMax(this.registry, 100);
     // Small delay so the transition is visible.
     this.time.delayedCall(250, () => {
       this.scene.start("PreloadScene");

@@ -1,3 +1,5 @@
+import { RegistryEnergy } from "../state/RegistryEnergy";
+
 export type SessionResponse = {
   ok: boolean,
   data: {

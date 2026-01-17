@@ -11,7 +11,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   create(): void {
     new BackgroundImage(this, 'background_workbench');
-    new HudPanel(this, 100, 100);
+    new HudPanel(this);
     new HomeButton(this, {x: 64, y: 52}).setScale(.5);
   }
 }

@@ -17,8 +17,7 @@ export default class HomeScene extends Phaser.Scene {
   create(): void {
     // Background / frame
     new BackgroundImage(this, 'background_workbench');
-
-    new HudPanel(this, 100,100);
+    new HudPanel(this);
 
     new RegionSelect(this, {x: 300,y: 256});
     new WarbandManagement(this,{x: 774, y: 145});

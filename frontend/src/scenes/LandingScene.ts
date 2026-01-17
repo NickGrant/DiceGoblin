@@ -19,7 +19,7 @@ export default class LandingScene extends Phaser.Scene {
       .text(this.cameras.main.centerX, 120, "Let's get started", TEXT_HEADER)
       .setOrigin(0.5);
 
-    if (RegistrySession.get(this.registry)?.isAuthenticated) {
+    if (RegistrySession.isAuthed(this.registry)) {
       this.createButton("Continue", () => {
         this.scene.start("HomeScene");
       });

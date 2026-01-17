@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { TEXT_BODY } from "../const/Text";
 import { RegistrySession } from "../state/RegistrySession";
+import { RegistryEnergy } from "../state/RegistryEnergy";
 
 export default class HudPanel extends Phaser.GameObjects.Container {
   private nameText: Phaser.GameObjects.Text;
@@ -14,17 +15,17 @@ export default class HudPanel extends Phaser.GameObjects.Container {
 
   private bgW = 320;
 
-  constructor(scene: Phaser.Scene, energyCurrent: number, energyMax: number) {
+  constructor(scene: Phaser.Scene) {
     super(scene, 0, 0);
 
     this.width = this.bgW;
     this.height = 128;
 
-    this.energyCurrent = Math.max(0, energyCurrent);
-    this.energyMax = Math.max(1, energyMax);
+    this.energyCurrent = RegistryEnergy.getCurrent(scene.registry);
+    this.energyMax = RegistryEnergy.getMax(scene.registry);
     
     // Name
-    this.nameText = scene.add.text(0, 32, RegistrySession.get(scene.registry)?.user?.displayName.toUpperCase() || '', TEXT_BODY).setOrigin(0,0);
+    this.nameText = scene.add.text(0, 32, RegistrySession.displayName(scene.registry).toUpperCase(), TEXT_BODY).setOrigin(0,0);
     this.nameText.setX(this.bgW - this.nameText.width - 32);
 
     // Energy icon
