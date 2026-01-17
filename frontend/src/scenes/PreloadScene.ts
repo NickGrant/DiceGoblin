@@ -1,22 +1,11 @@
 import Phaser from "phaser";
 import { TEXT_HEADER, TEXT_BODY } from "../const/Text";
-import type { SessionResponse } from "../services/apiClient";
-
-type PreloadData = {
-  authenticated: boolean;
-  session: SessionResponse | null;
-  offline: boolean;
-};
+import { RegistrySession } from "../state/RegistrySession";
 
 export default class PreloadScene extends Phaser.Scene {
-  private dataFromBoot: PreloadData | null = null;
 
   constructor() {
     super({ key: "PreloadScene" });
-  }
-
-  init(data: PreloadData): void {
-    this.dataFromBoot = data;
   }
 
   preload(): void {
@@ -57,18 +46,7 @@ export default class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
-    console.log('!!data', this.dataFromBoot);
-    const boot = this.dataFromBoot ?? {
-      authenticated: false,
-      session: null,
-      offline: false
-    };
-
-    // Route based on auth result (assets are now available globally).
-    if (boot.authenticated && boot.session) {
-      this.scene.start("HomeScene", { session: boot.session, offline: boot.offline });
-    } else {
-      this.scene.start("LandingScene", { authenticated: false, offline: boot.offline });
-    }
+    const nextScene = RegistrySession.get(this.registry)?.isAuthenticated ? 'HomeScene' : 'LandingScene';
+    this.scene.start(nextScene);
   }
 }

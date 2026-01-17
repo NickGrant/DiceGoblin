@@ -1,6 +1,6 @@
 import ClickablePanel, { type ClickablePanelConfig } from "./ClickablePanel";
 
-export default class ClickablePanelRegionSelect extends ClickablePanel {
+export default class RegionSelect extends ClickablePanel {
     constructor (scene: Phaser.Scene, cfg: ClickablePanelConfig) {
         super(scene, {
             ...cfg,

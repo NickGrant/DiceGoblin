@@ -17,6 +17,7 @@
     { "type": "image", "key": "icon_skull", "url": "assets/ui/icons/icon_tile_skull.png"},
     { "type": "image", "key": "icon_question", "url": "assets/ui/icons/icon_tile_question.png"},
     { "type": "image", "key": "icon_dice", "url": "assets/ui/icons/icon_tile_dice.png"},
+    { "type": "image", "key": "icon_home", "url": "assets/ui/icons/icon_tile_home.png"},
     { "type": "image", "key": "icon_energy", "url": "assets/ui/icons/icon_energy.png"}
   ]
 }

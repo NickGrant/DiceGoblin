@@ -1,7 +1,7 @@
-import { TEXT_BUTTON } from "../const/Text";
+import { TEXT_BUTTON } from "../../const/Text";
 import ClickablePanel, { type ClickablePanelConfig } from "./ClickablePanel";
 
-export default class ClickablePanelDiceInventory extends ClickablePanel{
+export default class DiceInventory extends ClickablePanel{
     constructor(scene: Phaser.Scene, cfg: ClickablePanelConfig) {
         super(scene, {
             ...cfg,

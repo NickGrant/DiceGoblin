@@ -7,6 +7,7 @@ export type ClickablePanelConfig = {
   height?: number;
   textureKey?: string;          
   targetSceneKey?: string;      
+  dataToPanel?: Record<string, unknown> // optional panel data
   dataToPass?: Record<string, unknown>; // optional scene data
 };
 
@@ -14,6 +15,7 @@ export default class ClickablePanel extends Phaser.GameObjects.Container {
   private bg: Phaser.GameObjects.Image;
   targetSceneKey = '';
   textureKey = '';
+  dataToPass;
 
   constructor(scene: Phaser.Scene, cfg: ClickablePanelConfig) {
     super(scene, cfg.x, cfg.y);
@@ -25,6 +27,8 @@ export default class ClickablePanel extends Phaser.GameObjects.Container {
     if (cfg.targetSceneKey) {
         this.targetSceneKey = cfg.targetSceneKey;
     }
+
+    this.dataToPass = cfg.dataToPass ?? {};
 
     // Background
     this.bg = scene.add.image(0, 0, this.textureKey).setOrigin(0.5, 0.5);
@@ -39,7 +43,7 @@ export default class ClickablePanel extends Phaser.GameObjects.Container {
     this.bg.on("pointerdown", () => this.bg.setAlpha(0.9));
     this.bg.on("pointerup", () => {
       this.bg.setAlpha(0.95);
-      scene.scene.start(this.targetSceneKey, cfg.dataToPass ?? {});
+      scene.scene.start(this.targetSceneKey, this.dataToPass);
     });
 
     this.add(this.bg);
