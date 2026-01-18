@@ -72,9 +72,8 @@ Whether a run ends due to:
 The following resolution steps occur.
 
 ### 5.1 Unit XP Adjustment
-
 - Any unit that was defeated during the run:
-  - Has its XP reset to the **minimum XP for its current level**
+  - Has its XP reset to 0 (XP is progress-within-current-level)
 - Units that were not defeated retain their XP
 
 No unit loses levels as a result of a failed run.

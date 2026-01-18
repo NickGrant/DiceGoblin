@@ -62,7 +62,14 @@ Represents player-owned progression objects needed for Home/Run start.
 type ProfileState = {
   warband: {
     id: number;
-    units: Array<{ unitId: number; /* minimal summary */ }>;
+    units: Array<{
+      unitId: number;
+      unitTypeId: number;
+      tier: number;
+      level: number;
+      xp: number; // progress-within-current-level
+      maxLevel: number; // from unit type
+    }>;
   };
   inventorySummary: {
     diceCount: number;
@@ -438,7 +445,7 @@ This section is the authoritative list of scenes and their required inputs/outpu
   resolution: {
     outcome: "victory" | "defeat";
     loot?: Array<{ /* minimal loot */ }>;
-    xp?: number;
+    xp_award?: number; // XP awarded per surviving fielded unit (not split); ignored at unit max level
   };
 }
 ```
@@ -506,7 +513,7 @@ This section is the authoritative list of scenes and their required inputs/outpu
   resolution: {
     outcome: "success" | "partial" | "fail";
     loot?: Array<{ /* minimal loot */ }>;
-    xp?: number;
+    xp_award?: number; // XP awarded per surviving fielded unit (not split); ignored at unit max level
   };
 }
 ```
@@ -543,7 +550,6 @@ This section is the authoritative list of scenes and their required inputs/outpu
   resolution: {
     outcome: "success" | "partial" | "fail";
     loot?: Array<{ /* minimal loot */ }>;
-    xp?: number;
   };
 }
 ```

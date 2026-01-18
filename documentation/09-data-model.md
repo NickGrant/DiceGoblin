@@ -173,11 +173,17 @@ Columns:
 - `role` VARCHAR(32) (e.g., `frontline`, `backline`, `support`, `control`)
 - `base_stats_json` JSON NOT NULL
 - `ability_set_json` JSON NOT NULL
+- `max_level` INT NOT NULL
+- `growth_attack_per_ability_per_level` INT NOT NULL
+- `growth_defense_per_ability_per_level` INT NOT NULL
+- `growth_max_hp_per_ability_per_level` INT NOT NULL
 - `created_at` TIMESTAMP
 - `updated_at` TIMESTAMP
 
 Notes:
 - MVP ability scope: 2 active + up to 2 passives.
+- `unit_instances.xp` represents progress-within-current-level (not lifetime XP).
+- Units do not gain XP once `level == unit_types.max_level`.
 
 ### unit_instances
 An owned unit. This is the player’s persistent progression object.
@@ -196,6 +202,11 @@ Columns:
 Indexes:
 - (`user_id`, `unit_type_id`)
 - (`user_id`, `tier`, `level`)
+
+Notes:
+- `xp` is progress within the current level.
+- On level-up, `xp` is reduced by the computed level-up cost (not cumulative thresholds).
+- At max level, XP does not increase.
 
 ### team_units
 Membership of unit instances in a team.
@@ -487,9 +498,5 @@ Run resolution rules are implemented in code, but the schema must support:
 
 On run end:
 - Clear `run_unit_state` for the run
-- Apply XP reset for defeated units (set `unit_instances.xp` to level-min)
+- Apply XP reset for defeated units (set `unit_instances.xp` to 0)
 - Heal/recharge/cleanse is performed by clearing run-scoped state rather than mutating base unit fields
-
----
-
-End of document.

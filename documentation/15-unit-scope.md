@@ -21,6 +21,7 @@ The focus is system validation, not roster breadth.
 - Unit tiers function similarly to Pokémon evolutions
 - Promotions replace the previous unit
 - Promotions reset level to 1 and increase base stat floors
+- Max level is defined per unit type (not global).
 
 ### Tier Support in MVP
 - Tier 1: Enabled
@@ -79,7 +80,8 @@ The MVP unit roster contains **exactly 10 unit types**.
 - Promotions are linear in MVP
 - Branching promotion paths are planned post-MVP
 - Promotion requirements:
-  - Three max-level units of the same tier
+  - Three units of the same tier
+  - Each consumed unit must be at its unit type's `max_level`
   - Tier 3 additionally requires a region-specific item
 
 Promotion costs and outcomes are deterministic.

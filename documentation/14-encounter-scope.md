@@ -25,6 +25,12 @@ Exactly **four** encounter types exist in MVP:
 3. **Rest**
 4. **Boss**
 
+### XP Award Rules (MVP)
+- Combat, Boss, and Loot encounters award XP.
+- Rest encounters do not award XP.
+- XP is awarded to units that were fielded and not defeated (survivors only).
+- Award is not split: all surviving fielded units receive the same XP amount.
+
 ### Explicitly Excluded
 - Merchants
 - Narrative-only encounters

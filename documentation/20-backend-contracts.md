@@ -187,7 +187,9 @@ Success (shape is illustrative; keep stable keys):
         "unit_type_id": "17",
         "name": "Goblin Spear",
         "level": 2,
-        "xp": 40
+        "xp": 40,
+        "max_level": 12,
+        "growth_per_ability_per_level": { "attack": 1, "defense": 1, "max_hp": 2 }
       }
     ],
     "dice": [
@@ -541,6 +543,9 @@ Rules:
 - Claim is a single step.
 - Claim must be **idempotent**.
 - If already claimed, return the same “claimed” result (or a clear status).
+- `xp_total` is the XP award amount per surviving fielded unit (not split).
+- Backend applies XP only to units that were fielded and not defeated.
+- Units at max level do not gain XP (award is ignored for them).
 
 Request:
 ```json
@@ -561,6 +566,15 @@ Success:
     },
     "updated_run_unit_state": [
       { "unit_instance_id": "2001", "hp": 8, "status_effects": [] }
+    ],
+    "xp": {
+      "award_per_unit": 20,
+      "applied_unit_instance_ids": ["2001", "2002"],
+      "ignored_at_cap_unit_instance_ids": ["2009"]
+    },
+    "updated_units": [
+      { "unit_instance_id": "2001", "level": 3, "xp": 5 },
+      { "unit_instance_id": "2002", "level": 2, "xp": 60 }
     ]
   }
 }

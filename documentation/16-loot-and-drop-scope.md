@@ -101,8 +101,18 @@ Rules:
 - Tier 3 items are not guaranteed unless explicitly configured
 
 ---
+## 7. Experience (XP) Rewards
+XP is a deterministic reward from Combat, Boss, and Loot encounters (not a loot-table roll).
 
-## 7. Units as Loot
+Rules:
+- XP awarded is the sum of `xp_reward` for each enemy in the encounter.
+- XP is granted to units that were fielded and not defeated (survivors only).
+- Award is not split: all surviving fielded units receive the same XP amount.
+- Units at max level do not gain XP.
+
+---
+
+## 8. Units as Loot
 
 When a loot roll results in a unit:
 - The unit is generated at Tier 1
@@ -113,7 +123,7 @@ Unit drops are intended to support roster growth, not bypass progression.
 
 ---
 
-## 8. Dice as Loot
+## 9. Dice as Loot
 
 When a loot roll results in a die:
 - Die size and rarity are determined by the loot table
@@ -123,7 +133,7 @@ No dice modification or upgrading occurs at drop time.
 
 ---
 
-## 9. Currency as Loot
+## 10. Currency as Loot
 
 Currency is granted as a flat amount determined by the loot table.
 
@@ -135,7 +145,7 @@ Currency exists solely to support MVP systems that require it.
 
 ---
 
-## 10. Explicit Non-Goals
+## 11. Explicit Non-Goals
 
 The MVP loot system does **not** include:
 - Pity timers
@@ -146,7 +156,7 @@ The MVP loot system does **not** include:
 
 ---
 
-## 11. MVP Validation Criteria
+## 12. MVP Validation Criteria
 
 The loot system is considered MVP-complete when:
 - Loot tables can be tuned without code changes
@@ -157,4 +167,3 @@ The loot system is considered MVP-complete when:
 ---
 
 This document is considered **locked** for MVP unless explicitly revised.
-

@@ -101,9 +101,11 @@ Explicitly excluded:
 ### 6.1 Unit Details
 
 Unit details must include:
-- Tier, level, XP
+- Tier, level, XP (XP is progress within the current level), and max level cap
 - Equipped dice list (with affixes)
 - Abilities (2 active + up to 2 passives)
+- Unit details should display XP progress toward next level when not at max level.
+- At max level, XP progress is hidden or shown as "MAX".
 
 If a run is active, unit details should also show (read-only):
 - Current run HP

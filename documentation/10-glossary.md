@@ -145,10 +145,10 @@ The logic governing decision-making for non-player units.
 ## 6. Progression & Build Terms
 
 ### Level
-A discrete step of progression that increases unit capability.
+A discrete step of progression that increases unit capability; each unit type defines its own max level cap.
 
 ### Experience (XP)
-A resource used to gain levels or progression milestones.
+A per-unit resource used to gain levels. In MVP, `xp` represents progress within the unit’s current level (not lifetime XP) and does not increase once the unit reaches its max level.
 
 ### Stat
 A numeric attribute that influences unit performance.
