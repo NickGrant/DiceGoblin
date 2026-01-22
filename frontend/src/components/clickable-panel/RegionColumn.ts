@@ -6,7 +6,7 @@ export default class ClickablePanelRegionColumn extends ClickablePanel {
     biome: string;
 
 
-    constructor(stage: Phaser.Stage, cfg: ClickablePanelConfig, biome: "mountain" | "swamp") {
+    constructor(stage: Phaser.Scene, cfg: ClickablePanelConfig, biome: "mountain" | "swamp") {
         const dims = biome === 'mountain' ? {width: 1013, height: 1420} : {width: 1016,height: 1382}
         super(stage, {
             ...cfg,

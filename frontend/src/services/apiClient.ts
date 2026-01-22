@@ -57,14 +57,12 @@ export const apiClient = {
 
   async createRun(biome: string): Promise<CreateResponse> {
     this.getSession().then((session) => {
-      console.log('session', session)
       return request<CreateResponse>("/api/v1/runs", { 
         method: "POST", 
         headers: new Headers([['HTTP_X_CSRF_TOKEN', session.data?.csrf_token]]),
         body: JSON.stringify({region_id: biome === 'mountain' ? 1 : 2})
       });
     })
-    
   },
 
 
