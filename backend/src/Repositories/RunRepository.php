@@ -179,26 +179,40 @@ final class RunRepository
    *
    * @return array{run_id:int, node_id_by_index:array<int,int>}
    */
-  public function createRunGraph(int $userId, int $regionId, int|string $seed, array $nodes, array $edges): array
-  {
+  public function createRunGraph(
+    int $userId,
+    int $regionId,
+    int|string $seed,
+    array $nodes,
+    array $edges
+  ): array {
+    $ownsTx = false;
+
     try {
-      $this->pdo->beginTransaction();
+      if (!$this->pdo->inTransaction()) {
+        $this->pdo->beginTransaction();
+        $ownsTx = true;
+      }
 
       $runId = $this->createRun($userId, $regionId, (string)$seed);
 
       $nodeIdByIndex = $this->insertRunNodes($runId, $nodes);
+
       $this->insertRunEdgesByIndex($runId, $nodeIdByIndex, $edges);
 
-      $this->pdo->commit();
+      if ($ownsTx) {
+        $this->pdo->commit();
+      }
 
       return ['run_id' => $runId, 'node_id_by_index' => $nodeIdByIndex];
     } catch (Throwable $e) {
-      if ($this->pdo->inTransaction()) {
+      if ($ownsTx && $this->pdo->inTransaction()) {
         $this->pdo->rollBack();
       }
       throw $e;
     }
   }
+
 
   /**
    * Fetch all run nodes for a run.

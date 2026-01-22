@@ -167,7 +167,7 @@ Errors:
 `GET /api/v1/profile`
 
 Returns a single payload the client can use to hydrate most screens:
-- warband/squad overview
+- warband/team overview
 - owned units
 - owned dice
 - active run summary (if any)
@@ -178,7 +178,7 @@ Success (shape is illustrative; keep stable keys):
 {
   "ok": true,
   "data": {
-    "squads": [
+    "teams": [
       { "id": "10", "name": "Main", "is_active": true }
     ],
     "units": [
@@ -249,29 +249,29 @@ Success:
 
 ---
 
-## 5. Squads (Warband)
+## 5. Teams (Warband)
 
-### 5.1 List Squads
-`GET /api/v1/squads`
+### 5.1 List Teams
+`GET /api/v1/teams`
 
-### 5.2 Create Squad
-`POST /api/v1/squads`
+### 5.2 Create Team
+`POST /api/v1/teams`
 ```json
-{ "name": "New Squad" }
+{ "name": "New Team" }
 ```
 
-### 5.3 Set Active Squad
-`POST /api/v1/squads/:squadId/activate`
+### 5.3 Set Active Team
+`POST /api/v1/teams/:teamId/activate`
 
 Notes:
-- Exactly one active squad per user.
+- Exactly one active team per user.
 
 Errors:
 - `404 not_found`
-- `403 forbidden` if squad not owned
+- `403 forbidden` if team not owned
 
-### 5.4 Update Squad Composition / Formation
-`PUT /api/v1/squads/:squadId/formation`
+### 5.4 Update Team Composition / Formation
+`PUT /api/v1/teams/:teamId/formation`
 
 Request:
 ```json
@@ -368,7 +368,7 @@ Request:
 ```json
 {
   "region_id": "1",
-  "squad_id": "10"
+  "team_id": "10"
 }
 ```
 
@@ -464,7 +464,7 @@ This endpoint is the core of server authority:
 Request:
 ```json
 {
-  "squad_id": "10"
+  "team_id": "10"
 }
 ```
 
@@ -597,7 +597,7 @@ Suggested minimal set:
 ### 12.1 Seeded Run Start
 `POST /api/v1/debug/runs`
 ```json
-{ "region_id": "1", "squad_id": "10", "seed": "12345" }
+{ "region_id": "1", "team_id": "10", "seed": "12345" }
 ```
 
 ### 12.2 Grant Items

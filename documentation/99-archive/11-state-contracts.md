@@ -158,7 +158,7 @@ Append-only log of a single resolved combat. Used to replay combat deterministic
 type CombatLog = {
   combatId: string;
 
-  // Useful for replay + validation; round is 20 ticks (1..20).
+  // Useful for replay + validation; round is 20 ticks (0..19).
   meta: {
     ticksPerRound: 20;
     rng: { seed: number };
@@ -172,7 +172,7 @@ type CombatLog = {
     | {
         type: "phase_start";
         round: number;
-        tick: number; // 1..20
+        tick: number; // 0..19
         phase: "player_status" | "enemy_status" | "neutral_status" | "player_action" | "enemy_action" | "neutral_action";
       }
     | {

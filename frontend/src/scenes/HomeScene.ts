@@ -9,9 +9,15 @@ import WarbandManagement from "../components/clickable-panel/WarbandManagement";
 import DiceInventory from "../components/clickable-panel/DiceInventory";
 
 export default class HomeScene extends Phaser.Scene {
+  _profile = {};
 
   constructor() {
     super({ key: "HomeScene" });
+  }
+
+  async preload() {
+    this._profile = await apiClient.getProfile();
+    console.log(this._profile);
   }
 
   create(): void {

@@ -9,6 +9,7 @@ export type ClickablePanelConfig = {
   targetSceneKey?: string;      
   dataToPanel?: Record<string, unknown> // optional panel data
   dataToPass?: Record<string, unknown>; // optional scene data
+  clickHandler?: any;
 };
 
 export default class ClickablePanel extends Phaser.GameObjects.Container {
@@ -38,16 +39,15 @@ export default class ClickablePanel extends Phaser.GameObjects.Container {
     this.bg.setInteractive({ useHandCursor: true });
 
     // Basic UX states (optional but helpful)
-    this.bg.on("pointerover", () => this.bg.setAlpha(0.95));
+    this.bg.on("pointerover", () => this.bg.setAlpha(0.90));
     this.bg.on("pointerout", () => this.bg.setAlpha(1));
-    this.bg.on("pointerdown", () => this.bg.setAlpha(0.9));
+    this.bg.on("pointerdown", () => this.bg.setAlpha(0.8));
     this.bg.on("pointerup", () => {
-      this.bg.setAlpha(0.95);
-      scene.scene.start(this.targetSceneKey, this.dataToPass);
+      this.bg.setAlpha(0.90);
+      this.handleClick(scene);
     });
 
     this.add(this.bg);
-    
     this.addOverlay();
 
     scene.add.existing(this);
@@ -55,4 +55,20 @@ export default class ClickablePanel extends Phaser.GameObjects.Container {
 
   /** Overload this when extending */
   addOverlay() {}
+
+  /** Overload if needed */
+  handleClick(scene: Phaser.Scene) {
+    scene.scene.start(this.targetSceneKey, this.dataToPass)
+  }
+
+  updateImage(textureKey: string, width?: number, height?: number) {
+    this.textureKey = textureKey;
+    this.bg.setTexture(textureKey);
+    if (width) {
+      this.bg.width = width;
+    }
+    if (height) {
+      this.bg.height = height;
+    }
+  }
 }

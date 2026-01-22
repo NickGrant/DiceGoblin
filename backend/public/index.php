@@ -97,6 +97,8 @@ $router->post('/api/v1/auth/logout', [$auth, 'logout']);
 $router->get('/api/v1/health', [$api, 'health']);
 $router->get('/api/v1/session', [$api, 'session']);
 $router->get('/api/v1/profile', [$api, 'profile']);
+$router->get('/api/v1/runs/current', [$api, 'currentRun']);
+$router->post('/api/v1/runs', [$api, 'createRun']);
 
 // Dispatch
 $router->dispatch();

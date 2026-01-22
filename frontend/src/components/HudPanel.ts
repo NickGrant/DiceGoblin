@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { TEXT_BODY } from "../const/Text";
 import { RegistrySession } from "../state/RegistrySession";
 import { RegistryEnergy } from "../state/RegistryEnergy";
+import { apiClient } from "../services/apiClient";
 
 export default class HudPanel extends Phaser.GameObjects.Container {
   private nameText: Phaser.GameObjects.Text;
@@ -15,14 +16,14 @@ export default class HudPanel extends Phaser.GameObjects.Container {
 
   private bgW = 320;
 
+  private profile;
+
   constructor(scene: Phaser.Scene) {
     super(scene, 0, 0);
+    this.profile = apiClient.getProfile();
 
     this.width = this.bgW;
     this.height = 128;
-
-    this.energyCurrent = RegistryEnergy.getCurrent(scene.registry);
-    this.energyMax = RegistryEnergy.getMax(scene.registry);
     
     // Name
     this.nameText = scene.add.text(0, 32, RegistrySession.displayName(scene.registry).toUpperCase(), TEXT_BODY).setOrigin(0,0);
@@ -56,8 +57,11 @@ export default class HudPanel extends Phaser.GameObjects.Container {
     this.reposition();
     scene.scale.on("resize", this.reposition, this);
 
-    // Initial render
-    this.redrawEnergy();
+    apiClient.getProfile().then((profile) => {
+      this.energyCurrent = profile.data.energy.current;
+      this.energyMax = profile.data.energy.max;
+      this.redrawEnergy();
+    });
   }
 
   override destroy(fromScene?: boolean): void {
@@ -116,26 +120,4 @@ export default class HudPanel extends Phaser.GameObjects.Container {
       this.bar.fillRoundedRect(sx, sy, segW, height, 2);
     }
   }
-}
-
-function addDebugBounds(
-  scene: Phaser.Scene,
-  target: Phaser.GameObjects.GameObject,
-  opts?: { depth?: number; scrollFactor?: boolean }
-) {
-  const g = scene.add.graphics();
-  g.setDepth(opts?.depth ?? 999999);
-  if (opts?.scrollFactor !== false) g.setScrollFactor(0);
-
-  scene.events.on("postupdate", () => {
-    // Works for most renderables: Image, Sprite, Text, Container, etc.
-    const bounds = (target as any).getBounds?.();
-    if (!bounds) return;
-
-    g.clear();
-    g.lineStyle(2, 0x00ff00, 1);
-    g.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
-  });
-
-  return g;
 }

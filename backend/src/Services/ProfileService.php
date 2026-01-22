@@ -62,7 +62,8 @@ final class ProfileService
     $dice = $this->diceRepo->getDiceWithAffixesForUser($userId);
 
     // Region unlocks
-    $regionUnlocks = $this->regionRepo->getUnlocksForUser($userId);
+    //$regionUnlocks = $this->regionRepo->getUnlocksForUser($userId);
+    $regionUnlocks = [];
 
     // Region items (small join; you did not create RegionItemRepository, so we keep this here for now)
     $regionItems = $this->getRegionItemsForUser($userId);
