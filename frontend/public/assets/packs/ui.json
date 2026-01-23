@@ -23,9 +23,9 @@
     { "type": "image", "key": "icon_home", "url": "assets/ui/icons/icon_tile_home.png"},
     { "type": "image", "key": "icon_energy", "url": "assets/ui/icons/icon_energy.png"},
     { "type": "image", "key": "icon_encounter_boss", "url": "assets/ui/icons/icon_encounter_boss.png"},
-    { "type": "image", "key": "icon_encounter_combat", "url": "assets/ui/icons/icon_encounter.png"},
-    { "type": "image", "key": "icon_locked", "url": "assets/ui/icons/icon_encounter_locked.png"},
-    { "type": "image", "key": "icon_loot", "url": "assets/ui/icons/icon_encounter_loot.png"},
-    { "type": "image", "key": "icon_rest", "url": "assets/ui/icons/icon_encounter_rest.png"}
+    { "type": "image", "key": "icon_encounter_combat", "url": "assets/ui/icons/icon_encounter_combat.png"},
+    { "type": "image", "key": "icon_encounter_locked", "url": "assets/ui/icons/icon_encounter_locked.png"},
+    { "type": "image", "key": "icon_encounter_loot", "url": "assets/ui/icons/icon_encounter_loot.png"},
+    { "type": "image", "key": "icon_encounter_rest", "url": "assets/ui/icons/icon_encounter_rest.png"}
   ]
 }

@@ -1,47 +1,33 @@
 import Phaser from "phaser";
 import type { CurrentRunNode } from "../../types/ApiResponse";
-import { TEXT_HEADER } from "../../const/Text";
 
-export type NodeViewConfig = {
-  bgKey?: string; // default: "torn_corner_patch"
-  scale?: number; // default: 0.5 (use 0.75 for bigger nodes)
-  padding?: number; // default: 16
-  lineSpacing?: number; // default: 6
-  textStyle?: Phaser.Types.GameObjects.Text.TextStyle; // optional override
-};
+export type NodeClickHandler = (node: CurrentRunNode) => void;
 
-const DEFAULTS: Required<NodeViewConfig> = {
-  bgKey: "torn_corner_patch",
-  scale: 0.5,
-  padding: 30,
-  lineSpacing: 6,
-  textStyle: {...TEXT_HEADER, fontSize: "14px"},
+export type NodeConfig = {
+  size?: number; // default 32
+  onClick?: NodeClickHandler;
 };
 
 export default class Node extends Phaser.GameObjects.Container {
   private record: CurrentRunNode;
-  private cfg: Required<NodeViewConfig>;
+  private cfg: Required<Omit<NodeConfig, "onClick">> & Pick<NodeConfig, "onClick">;
 
-  private bg!: Phaser.GameObjects.Image;
-  private txtId!: Phaser.GameObjects.Text;
-  private txtType!: Phaser.GameObjects.Text;
-  private txtStatus!: Phaser.GameObjects.Text;
-
-  // For external layout consumers (NodeList).
-  public nodeWidth = 0;
-  public nodeHeight = 0;
+  private icon!: Phaser.GameObjects.Image;
 
   constructor(
     scene: Phaser.Scene,
     x: number,
     y: number,
     record: CurrentRunNode,
-    config: NodeViewConfig = {}
+    config: NodeConfig = {}
   ) {
     super(scene, x, y);
 
     this.record = record;
-    this.cfg = { ...DEFAULTS, ...config };
+    this.cfg = {
+      size: config.size ?? 24,
+      onClick: config.onClick,
+    };
 
     this.build();
     this.refresh();
@@ -54,68 +40,47 @@ export default class Node extends Phaser.GameObjects.Container {
     this.refresh();
   }
 
-  public setScaleFactor(scale: number): void {
-    this.cfg.scale = scale;
-
-    if (this.bg) {
-      this.bg.setScale(scale);
-      this.nodeWidth = this.bg.displayWidth;
-      this.nodeHeight = this.bg.displayHeight;
-      this.setSize(this.nodeWidth, this.nodeHeight);
-    }
-
-    this.layoutText();
-    this.refresh();
-  }
-
   private build(): void {
-    // Background (anchored to top-left within this container)
-    this.bg = this.scene.add.image(0, 0, this.cfg.bgKey).setOrigin(0, 0);
-    this.bg.setScale(this.cfg.scale);
+    //const size = this.cfg.size;
+    const size = 128;
+    const scale = .75;
 
-    this.nodeWidth = this.bg.displayWidth;
-    this.nodeHeight = this.bg.displayHeight;
-    this.setSize(this.nodeWidth, this.nodeHeight);
+    // Icon centered on container origin
+    this.icon = this.scene.add.image(0, 0, "__MISSING__").setOrigin(0.5, 0.5);
+    this.icon.setScale(scale);
 
-    // Text (three lines)
-    this.txtId = this.scene.add.text(0, 0, "", this.cfg.textStyle).setOrigin(0, 0);
-    this.txtType = this.scene.add.text(0, 0, "", this.cfg.textStyle).setOrigin(0, 0);
-    this.txtStatus = this.scene.add.text(0, 0, "", this.cfg.textStyle).setOrigin(0, 0);
+    // Container hit area (64x64 by default)
+    this.setSize(size, size);
+    this.setInteractive({useHandCursor: true});
 
-    this.add([this.bg, this.txtId, this.txtType, this.txtStatus]);
+    this.on("pointerover", () => this.icon.setScale(scale + .05));
+    this.on("pointerout", () => this.icon.setScale(scale));
+    this.on("pointerup", () => {
+      if(this.record.status !== 'locked') {
+        this.cfg.onClick?.(this.record);
+        // Optional event hook if you prefer listening externally:
+        this.emit("node:click", this.record);
+        console.log('clicked-em');
+      }
+    });
 
-    this.layoutText();
-  }
-
-  private layoutText(): void {
-    const p = this.cfg.padding;
-    const lineH = this.txtId.height + this.cfg.lineSpacing;
-
-    this.txtId.setPosition(p, p);
-    this.txtType.setPosition(p, p + lineH);
-    this.txtStatus.setPosition(p, p + lineH * 2);
-
-    // Keep text inside the patch
-    const maxW = Math.max(0, this.nodeWidth - p * 2);
-    this.txtId.setWordWrapWidth(maxW, true);
-    this.txtType.setWordWrapWidth(maxW, true);
-    this.txtStatus.setWordWrapWidth(maxW, true);
+    this.add(this.icon);
   }
 
   private refresh(): void {
-    const { id, node_type, status } = this.record;
+    const textureKey = this.pickTextureKey(this.record);
+    this.icon.setTexture(textureKey);
 
-    this.txtId.setText(`ID: ${id}`);
-    this.txtType.setText(`TYPE: ${String(node_type).toUpperCase()}`);
-    this.txtStatus.setText(`STATUS: ${String(status).toUpperCase()}`);
+    // Slightly dim locked nodes
+    const locked = this.record.status === "locked";
+    this.icon.setAlpha(locked ? 0.65 : 1.0);
+  }
 
-    // Lightweight visual hinting (optional but useful)
-    if (status === "locked") {
-      this.bg.setAlpha(0.65);
-    } else if (status === "cleared") {
-      this.bg.setAlpha(0.85);
-    } else {
-      this.bg.setAlpha(1);
+  private pickTextureKey(node: CurrentRunNode): string {
+    let status = node.status === 'locked' ? 'locked' : 'combat';
+    if(['boss', 'combat', 'loot', 'rest'].indexOf(node.node_type) > -1 && node.status !== 'locked'){
+      status = node.node_type;
     }
+    return `icon_encounter_${status}`;
   }
 }

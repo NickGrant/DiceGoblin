@@ -18,7 +18,7 @@ export default class MapExplorationScene extends Phaser.Scene {
     new HomeButton(this, {x: 64, y: 52}).setScale(.5);
     apiClient.getCurrentRun().then((run) => {
       this._run = run;
-      new NodeList(this,64, 70, this._run?.data.run, this._run?.data.map.nodes);
+      new NodeList(this, 0, 0, this._run?.data.run, this._run?.data.map.nodes);
     })
   }
 }
