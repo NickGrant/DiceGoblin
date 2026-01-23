@@ -87,7 +87,7 @@ export type CurrentRunRecord = {
 };
 
 export type CurrentRunNode = {
-  node_id: string;
+  id: string;
   run_id: string;
   node_index: number;
   node_type: RunNodeType;

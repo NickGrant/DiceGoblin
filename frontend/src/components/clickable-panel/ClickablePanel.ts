@@ -61,14 +61,8 @@ export default class ClickablePanel extends Phaser.GameObjects.Container {
     scene.scene.start(this.targetSceneKey, this.dataToPass)
   }
 
-  updateImage(textureKey: string, width?: number, height?: number) {
+  updateImage(textureKey: string) {
     this.textureKey = textureKey;
     this.bg.setTexture(textureKey);
-    if (width) {
-      this.bg.width = width;
-    }
-    if (height) {
-      this.bg.height = height;
-    }
   }
 }

@@ -13,12 +13,19 @@
     { "type": "image", "key": "column_swamp", "url": "assets/ui/column_swamp.png"},
     { "type": "image", "key": "column_mountain", "url": "assets/ui/column_mountain.png"},
     { "type": "image", "key": "manifest_strip", "url": "assets/ui/manifest_strip.png"},
+    { "type": "image", "key": "torn_corner_patch", "url": "assets/ui/torn_corner_patch.png"},
+
 
     { "type": "image", "key": "icon_wrench", "url": "assets/ui/icons/icon_tile_wrench.png"},
     { "type": "image", "key": "icon_skull", "url": "assets/ui/icons/icon_tile_skull.png"},
     { "type": "image", "key": "icon_question", "url": "assets/ui/icons/icon_tile_question.png"},
     { "type": "image", "key": "icon_dice", "url": "assets/ui/icons/icon_tile_dice.png"},
     { "type": "image", "key": "icon_home", "url": "assets/ui/icons/icon_tile_home.png"},
-    { "type": "image", "key": "icon_energy", "url": "assets/ui/icons/icon_energy.png"}
+    { "type": "image", "key": "icon_energy", "url": "assets/ui/icons/icon_energy.png"},
+    { "type": "image", "key": "icon_encounter_boss", "url": "assets/ui/icons/icon_encounter_boss.png"},
+    { "type": "image", "key": "icon_encounter_combat", "url": "assets/ui/icons/icon_encounter.png"},
+    { "type": "image", "key": "icon_locked", "url": "assets/ui/icons/icon_encounter_locked.png"},
+    { "type": "image", "key": "icon_loot", "url": "assets/ui/icons/icon_encounter_loot.png"},
+    { "type": "image", "key": "icon_rest", "url": "assets/ui/icons/icon_encounter_rest.png"}
   ]
 }

@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { apiClient, type SessionResponse } from "../services/apiClient";
+import { apiClient } from "../services/apiClient";
 import { TEXT_BODY } from "../const/Text";
 import { RegistrySession } from "../state/RegistrySession";
 import { RegistryEnergy } from "../state/RegistryEnergy";

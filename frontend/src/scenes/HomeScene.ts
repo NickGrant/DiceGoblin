@@ -9,19 +9,12 @@ import WarbandManagement from "../components/clickable-panel/WarbandManagement";
 import DiceInventory from "../components/clickable-panel/DiceInventory";
 
 export default class HomeScene extends Phaser.Scene {
-  _profile = {};
 
   constructor() {
     super({ key: "HomeScene" });
   }
 
-  async preload() {
-    this._profile = await apiClient.getProfile();
-    console.log(this._profile);
-  }
-
   create(): void {
-    // Background / frame
     new BackgroundImage(this, 'background_workbench');
     new HudPanel(this);
 
@@ -35,12 +28,12 @@ export default class HomeScene extends Phaser.Scene {
       y: GAME_HEIGHT - 110,
       label: "Log out",
       onClick: async () => {
-      try {
-        await apiClient.logout();
-      } finally {
-        window.location.reload();
+        try {
+          await apiClient.logout();
+        } finally {
+          window.location.reload();
+        }
       }
-    }
     });
   }
 }

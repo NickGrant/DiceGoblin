@@ -1,7 +1,6 @@
 import Phaser from "phaser";
 import { TEXT_BODY } from "../const/Text";
 import { RegistrySession } from "../state/RegistrySession";
-import { RegistryEnergy } from "../state/RegistryEnergy";
 import { apiClient } from "../services/apiClient";
 
 export default class HudPanel extends Phaser.GameObjects.Container {
@@ -16,11 +15,8 @@ export default class HudPanel extends Phaser.GameObjects.Container {
 
   private bgW = 320;
 
-  private profile;
-
   constructor(scene: Phaser.Scene) {
     super(scene, 0, 0);
-    this.profile = apiClient.getProfile();
 
     this.width = this.bgW;
     this.height = 128;
