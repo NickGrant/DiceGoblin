@@ -21,6 +21,7 @@ use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\EnergyService;
 use DiceGoblins\Services\PlayerBootstrapper;
+use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\ProfileService;
 use DiceGoblins\Services\SessionService;
 
@@ -550,12 +551,15 @@ final class ApiController
     $regionRepo = new RegionRepository($pdo);
     $runRepo = new RunRepository($pdo);
 
+
     // Services
     $csrfService = new CsrfService();
+    $grantService = new GrantService();
 
     $bootstrapper = new PlayerBootstrapper(
       $playerStateRepo,
-      $energyRepo
+      $energyRepo,
+      $grantService
     );
 
     $energyService = new EnergyService($energyRepo);
@@ -583,6 +587,7 @@ final class ApiController
       'csrfService' => $csrfService,
       'sessionService' => $sessionService,
       'profileService' => $profileService,
+      'grantService' => $grantService,
       'runRepo' => $runRepo,
       'regionRepo' => $regionRepo,
       'energyRepo' => $energyRepo,

@@ -22,6 +22,7 @@ final class PlayerBootstrapper
   public function __construct(
     private readonly PlayerStateRepository $playerStateRepo,
     private readonly EnergyRepository $energyRepo,
+    private readonly GrantService $grantService,
   ) {}
 
   /**
@@ -38,6 +39,9 @@ final class PlayerBootstrapper
     // Both repositories use idempotent creation patterns (INSERT...ON DUPLICATE KEY UPDATE / existence checks).
     $this->playerStateRepo->ensurePlayerState($userId);
     $this->energyRepo->ensureEnergyState($userId);
+
+    // Provision starter gameplay content exactly once (idempotent via user_grants).
+    $this->grantService->ensureStarterPackGranted($userId);
   }
 
   /**
