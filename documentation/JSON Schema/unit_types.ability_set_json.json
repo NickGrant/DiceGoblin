@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dicegoblins.local/schemas/ability_set.schema.json",
+  "title": "UnitType Ability Set (MVP v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "actives", "passives"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+
+    "actives": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/ActiveAbilityConfig" }
+    },
+
+    "passives": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/PassiveAbilityConfig" }
+    }
+  },
+
+  "$defs": {
+    "IdSlug": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+
+    "JsonValue": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "integer" },
+        { "type": "boolean" },
+        { "type": "null" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/JsonValue" }
+        },
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/JsonValue" }
+        }
+      ]
+    },
+
+    "AbilityParams": {
+      "type": "object",
+      "default": {},
+      "additionalProperties": { "$ref": "#/$defs/JsonValue" }
+    },
+
+    "AbilityTarget": {
+      "type": "string",
+      "enum": [
+        "self",
+
+        "ally_front_prefer",
+        "ally_back_prefer",
+        "ally_lowest_hp_pct",
+        "ally_highest_attack",
+        "ally_random",
+
+        "enemy_front_prefer",
+        "enemy_back_prefer",
+        "enemy_lowest_hp",
+        "enemy_highest_threat",
+        "enemy_random"
+      ]
+    },
+
+    "ActiveAbilityConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slot", "ability_id", "speed", "dice_cost", "order", "target", "params"],
+      "properties": {
+        "slot": {
+          "type": "integer",
+          "enum": [1, 2],
+          "description": "UI slot / selection slot. MVP supports 2 actives."
+        },
+
+        "ability_id": {
+          "$ref": "#/$defs/IdSlug",
+          "description": "Dispatch key into backend ability handler registry."
+        },
+
+        "speed": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Combat tick cadence. Action triggers when tick % speed === 0."
+        },
+
+        "dice_cost": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "How many dice are consumed/required to perform this action."
+        },
+
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Tie-break ordering for actions occurring on the same tick (lower executes first)."
+        },
+
+        "target": {
+          "$ref": "#/$defs/AbilityTarget"
+        },
+
+        "params": {
+          "$ref": "#/$defs/AbilityParams",
+          "description": "Ability-specific tuning knobs. Interpreted only by the matching handler."
+        },
+
+        "tags": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/IdSlug" },
+          "maxItems": 8,
+          "default": [],
+          "description": "Optional categorization for UI/analytics (e.g. melee, ranged, support)."
+        }
+      }
+    },
+
+    "PassiveAbilityConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passive_id", "params"],
+      "properties": {
+        "passive_id": {
+          "$ref": "#/$defs/IdSlug",
+          "description": "Dispatch key into backend passive handler registry."
+        },
+
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "default": 0,
+          "description": "Optional application order for stacking/derived-stat assembly."
+        },
+
+        "params": {
+          "$ref": "#/$defs/AbilityParams",
+          "description": "Passive-specific tuning knobs. Interpreted only by the matching handler."
+        },
+
+        "tags": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/IdSlug" },
+          "maxItems": 8,
+          "default": [],
+          "description": "Optional categorization for UI/analytics."
+        }
+      }
+    }
+  }
+}
