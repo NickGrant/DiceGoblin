@@ -630,6 +630,685 @@ ON DUPLICATE KEY UPDATE
   `max_hp_per_level` = VALUES(`max_hp_per_level`);
 -- END MIGRATION: 30_seed_unit_types.sql
 
+-- BEGIN MIGRATION: 31_seed_enemy_templates.sql
+-- Seed initial enemy templates (Milestone 1)
+-- Factions: kobolds, frogmen
+-- Uses existing AbilityRegistry ability IDs only.
+
+INSERT INTO `enemy_templates` (
+  `slug`,
+  `name`,
+  `tier`,
+  `role`,
+  `base_stats_json`,
+  `ability_set_json`,
+  `xp_reward`,
+  `tags_json`
+)
+VALUES
+  (
+    'kobold_skirmisher',
+    'Kobold Skirmisher',
+    1,
+    'backline',
+    JSON_OBJECT('version', 1, 'attack', 6, 'defense', 2, 'max_hp', 16),
+    JSON_OBJECT(
+      'version', 1,
+      'actives', JSON_ARRAY('basic_attack_ranged', 'aimed_shot'),
+      'passives', JSON_ARRAY('sharpshooter')
+    ),
+    10,
+    JSON_OBJECT('faction', 'kobolds', 'archetype', 'grunt', 'damage_profile', 'ranged')
+  ),
+  (
+    'kobold_shieldbearer',
+    'Kobold Shieldbearer',
+    1,
+    'frontline',
+    JSON_OBJECT('version', 1, 'attack', 3, 'defense', 6, 'max_hp', 26),
+    JSON_OBJECT(
+      'version', 1,
+      'actives', JSON_ARRAY('basic_attack_melee', 'shield_up'),
+      'passives', JSON_ARRAY('thick_hide')
+    ),
+    10,
+    JSON_OBJECT('faction', 'kobolds', 'archetype', 'grunt', 'damage_profile', 'melee')
+  ),
+  (
+    'kobold_sharpshooter',
+    'Kobold Sharpshooter',
+    2,
+    'backline',
+    JSON_OBJECT('version', 1, 'attack', 9, 'defense', 3, 'max_hp', 22),
+    JSON_OBJECT(
+      'version', 1,
+      'actives', JSON_ARRAY('basic_attack_ranged', 'aimed_shot'),
+      'passives', JSON_ARRAY('sharpshooter')
+    ),
+    15,
+    JSON_OBJECT('faction', 'kobolds', 'archetype', 'elite', 'damage_profile', 'ranged')
+  ),
+  (
+    'kobold_warchief',
+    'Kobold Warchief',
+    3,
+    'backline',
+    JSON_OBJECT('version', 1, 'attack', 11, 'defense', 4, 'max_hp', 40),
+    JSON_OBJECT(
+      'version', 1,
+      'actives', JSON_ARRAY('basic_attack_ranged', 'aimed_shot'),
+      'passives', JSON_ARRAY('sharpshooter')
+    ),
+    30,
+    JSON_OBJECT('faction', 'kobolds', 'archetype', 'boss', 'damage_profile', 'ranged')
+  ),
+
+  (
+    'frogman_bruiser',
+    'Frogman Bruiser',
+    1,
+    'frontline',
+    JSON_OBJECT('version', 1, 'attack', 4, 'defense', 5, 'max_hp', 28),
+    JSON_OBJECT(
+      'version', 1,
+      'actives', JSON_ARRAY('basic_attack_melee', 'heavy_strike'),
+      'passives', JSON_ARRAY('thick_hide')
+    ),
+    10,
+    JSON_OBJECT('faction', 'frogmen', 'archetype', 'grunt', 'damage_profile', 'melee')
+  ),
+  (
+    'frogman_spearhunter',
+    'Frogman Spearhunter',
+    1,
+    'frontline',
+    JSON_OBJECT('version', 1, 'attack', 6, 'defense', 4, 'max_hp', 24),
+    JSON_OBJECT(
+      'version', 1,
+      'actives', JSON_ARRAY('basic_attack_melee', 'heavy_strike'),
+      'passives', JSON_ARRAY()
+    ),
+    10,
+    JSON_OBJECT('faction', 'frogmen', 'archetype', 'grunt', 'damage_profile', 'melee')
+  ),
+  (
+    'frogman_wardrummer',
+    'Frogman Wardrummer',
+    2,
+    'support',
+    JSON_OBJECT('version', 1, 'attack', 3, 'defense', 5, 'max_hp', 26),
+    JSON_OBJECT(
+      'version', 1,
+      'actives', JSON_ARRAY('basic_attack_melee', 'bolster_ally'),
+      'passives', JSON_ARRAY()
+    ),
+    15,
+    JSON_OBJECT('faction', 'frogmen', 'archetype', 'elite', 'utility', 'buff')
+  ),
+  (
+    'frogman_bog_tyrant',
+    'Bog Tyrant',
+    3,
+    'frontline',
+    JSON_OBJECT('version', 1, 'attack', 8, 'defense', 7, 'max_hp', 50),
+    JSON_OBJECT(
+      'version', 1,
+      'actives', JSON_ARRAY('basic_attack_melee', 'heavy_strike'),
+      'passives', JSON_ARRAY('thick_hide')
+    ),
+    30,
+    JSON_OBJECT('faction', 'frogmen', 'archetype', 'boss', 'damage_profile', 'melee', 'theme', 'attrition')
+  )
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `tier` = VALUES(`tier`),
+  `role` = VALUES(`role`),
+  `base_stats_json` = VALUES(`base_stats_json`),
+  `ability_set_json` = VALUES(`ability_set_json`),
+  `xp_reward` = VALUES(`xp_reward`),
+  `tags_json` = VALUES(`tags_json`);
+-- END MIGRATION: 31_seed_enemy_templates.sql
+
+-- BEGIN MIGRATION: 32_seed_region_items.sql
+-- Seed region items (Milestone 1)
+-- Ensures required regions exist: mountains, swamps
+-- Region items:
+-- - mountains: roc_egg
+-- - swamps: gator_head
+
+-- 1) Ensure regions exist (FK dependency for region_items.region_id)
+INSERT INTO `regions` (
+  `slug`,
+  `name`,
+  `theme`,
+  `recommended_level`,
+  `energy_cost`,
+  `is_enabled`
+)
+VALUES
+  ('mountains', 'Mountains', 'mountain', 1, 5, 1),
+  ('swamps',    'Swamps',    'swamp',    1, 5, 1)
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `theme` = VALUES(`theme`),
+  `recommended_level` = VALUES(`recommended_level`),
+  `energy_cost` = VALUES(`energy_cost`),
+  `is_enabled` = VALUES(`is_enabled`);
+
+-- 2) Seed region items (boss-drop items)
+INSERT INTO `region_items` (
+  `region_id`,
+  `slug`,
+  `name`
+)
+VALUES
+  (
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
+    'roc_egg',
+    'Roc Egg'
+  ),
+  (
+    (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
+    'gator_head',
+    'Gator Head'
+  )
+ON DUPLICATE KEY UPDATE
+  `region_id` = VALUES(`region_id`),
+  `name` = VALUES(`name`);
+-- END MIGRATION: 32_seed_region_items.sql
+
+-- BEGIN MIGRATION: 33_seed_loot_tables.sql
+-- Seed initial loot tables (Milestone 1)
+-- Table shape: loot_tables(slug, tier ENUM('t1','t2'), entries_json JSON)
+-- Locked loot schema stored in entries_json:
+--   version, description, drops.currency.soft(min/max), drops.dice(chance/rolls/choices[]),
+--   drops.units(chance/pool[]), drops.region_items[] (boss only)
+
+INSERT INTO `loot_tables` (
+  `slug`,
+  `tier`,
+  `entries_json`
+)
+VALUES
+  (
+    'kobold_basic_loot',
+    't1',
+    JSON_OBJECT(
+      'version', 1,
+      'description', 'Standard rewards for kobold combat encounters. Dice and unit drops are optional; no region items.',
+      'drops', JSON_OBJECT(
+        'currency', JSON_OBJECT(
+          'soft', JSON_OBJECT('min', 8, 'max', 12)
+        ),
+        'dice', JSON_OBJECT(
+          'chance', 0.4,
+          'rolls', 1,
+          'choices', JSON_ARRAY(
+            JSON_OBJECT('material', 'cardboard', 'sides', 4, 'weight', 40),
+            JSON_OBJECT('material', 'cardboard', 'sides', 6, 'weight', 30),
+            JSON_OBJECT('material', 'wood',      'sides', 4, 'weight', 20),
+            JSON_OBJECT('material', 'wood',      'sides', 6, 'weight', 10)
+          )
+        ),
+        'units', JSON_OBJECT(
+          'chance', 0.1,
+          'pool', JSON_ARRAY(
+            JSON_OBJECT('unit_type_slug', 'backline_marksman_t1', 'weight', 70),
+            JSON_OBJECT('unit_type_slug', 'support_banner_t1',    'weight', 25),
+            JSON_OBJECT('unit_type_slug', 'control_saboteur_t1',  'weight', 5)
+          )
+        )
+      )
+    )
+  ),
+  (
+    'kobold_boss_loot',
+    't2',
+    JSON_OBJECT(
+      'version', 1,
+      'description', 'Boss rewards for kobold encounters. Includes mountain region item (Roc Egg).',
+      'drops', JSON_OBJECT(
+        'currency', JSON_OBJECT(
+          'soft', JSON_OBJECT('min', 25, 'max', 35)
+        ),
+        'dice', JSON_OBJECT(
+          'chance', 0.85,
+          'rolls', 2,
+          'choices', JSON_ARRAY(
+            JSON_OBJECT('material', 'cardboard', 'sides', 6, 'weight', 20),
+            JSON_OBJECT('material', 'wood',      'sides', 6, 'weight', 35),
+            JSON_OBJECT('material', 'wood',      'sides', 8, 'weight', 25),
+            JSON_OBJECT('material', 'bone',      'sides', 6, 'weight', 10),
+            JSON_OBJECT('material', 'bone',      'sides', 8, 'weight', 10)
+          )
+        ),
+        'units', JSON_OBJECT(
+          'chance', 0.25,
+          'pool', JSON_ARRAY(
+            JSON_OBJECT('unit_type_slug', 'backline_marksman_t1', 'weight', 60),
+            JSON_OBJECT('unit_type_slug', 'support_banner_t1',    'weight', 30),
+            JSON_OBJECT('unit_type_slug', 'control_saboteur_t1',  'weight', 10)
+          )
+        ),
+        'region_items', JSON_ARRAY(
+          JSON_OBJECT('slug', 'roc_egg', 'chance', 0.4)
+        )
+      )
+    )
+  ),
+  (
+    'frogman_basic_loot',
+    't1',
+    JSON_OBJECT(
+      'version', 1,
+      'description', 'Standard rewards for frogman combat encounters. Dice and unit drops are optional; no region items.',
+      'drops', JSON_OBJECT(
+        'currency', JSON_OBJECT(
+          'soft', JSON_OBJECT('min', 8, 'max', 12)
+        ),
+        'dice', JSON_OBJECT(
+          'chance', 0.4,
+          'rolls', 1,
+          'choices', JSON_ARRAY(
+            JSON_OBJECT('material', 'cardboard', 'sides', 4, 'weight', 35),
+            JSON_OBJECT('material', 'cardboard', 'sides', 6, 'weight', 35),
+            JSON_OBJECT('material', 'wood',      'sides', 4, 'weight', 20),
+            JSON_OBJECT('material', 'wood',      'sides', 6, 'weight', 10)
+          )
+        ),
+        'units', JSON_OBJECT(
+          'chance', 0.1,
+          'pool', JSON_ARRAY(
+            JSON_OBJECT('unit_type_slug', 'frontline_bruiser_t1',  'weight', 70),
+            JSON_OBJECT('unit_type_slug', 'frontline_guardian_t1', 'weight', 25),
+            JSON_OBJECT('unit_type_slug', 'control_saboteur_t1',   'weight', 5)
+          )
+        )
+      )
+    )
+  ),
+  (
+    'frogman_boss_loot',
+    't2',
+    JSON_OBJECT(
+      'version', 1,
+      'description', 'Boss rewards for frogman encounters. Includes swamp region item (Gator Head).',
+      'drops', JSON_OBJECT(
+        'currency', JSON_OBJECT(
+          'soft', JSON_OBJECT('min', 25, 'max', 35)
+        ),
+        'dice', JSON_OBJECT(
+          'chance', 0.85,
+          'rolls', 2,
+          'choices', JSON_ARRAY(
+            JSON_OBJECT('material', 'cardboard', 'sides', 6, 'weight', 15),
+            JSON_OBJECT('material', 'wood',      'sides', 6, 'weight', 35),
+            JSON_OBJECT('material', 'wood',      'sides', 8, 'weight', 25),
+            JSON_OBJECT('material', 'bone',      'sides', 6, 'weight', 15),
+            JSON_OBJECT('material', 'bone',      'sides', 8, 'weight', 10)
+          )
+        ),
+        'units', JSON_OBJECT(
+          'chance', 0.25,
+          'pool', JSON_ARRAY(
+            JSON_OBJECT('unit_type_slug', 'frontline_bruiser_t1',  'weight', 60),
+            JSON_OBJECT('unit_type_slug', 'frontline_guardian_t1', 'weight', 30),
+            JSON_OBJECT('unit_type_slug', 'control_saboteur_t1',   'weight', 10)
+          )
+        ),
+        'region_items', JSON_ARRAY(
+          JSON_OBJECT('slug', 'gator_head', 'chance', 0.4)
+        )
+      )
+    )
+  )
+ON DUPLICATE KEY UPDATE
+  `tier` = VALUES(`tier`),
+  `entries_json` = VALUES(`entries_json`);
+-- END MIGRATION: 33_seed_loot_tables.sql
+
+-- BEGIN MIGRATION: 34_seed_encounter_templates.sql
+-- Seed encounter templates (Milestone 1)
+-- Position-aware enemy layout schema:
+-- enemy_set_json.version = 2
+-- enemy_set_json.teams[] = { team_id, label, units[] }
+-- units[] = { enemy_template_slug, pos: { x, y } }
+--
+-- Regions assumed to exist with slugs: 'mountains', 'swamps'
+
+INSERT INTO `encounter_templates` (
+  `slug`,
+  `region_id`,
+  `difficulty_rating`,
+  `enemy_set_json`,
+  `reward_profile_json`
+)
+VALUES
+  -- =========================
+  -- MOUNTAINS (Kobolds)
+  -- =========================
+
+  (
+    'mountains_kobold_combat_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
+    1,
+    JSON_OBJECT(
+      'version', 2,
+      'teams', JSON_ARRAY(
+        JSON_OBJECT(
+          'team_id', 'A',
+          'label', 'Kobold Warband',
+          'units', JSON_ARRAY(
+            JSON_OBJECT('enemy_template_slug', 'kobold_shieldbearer', 'pos', JSON_OBJECT('x', 0, 'y', 1)),
+            JSON_OBJECT('enemy_template_slug', 'kobold_skirmisher',   'pos', JSON_OBJECT('x', 2, 'y', 0)),
+            JSON_OBJECT('enemy_template_slug', 'kobold_skirmisher',   'pos', JSON_OBJECT('x', 2, 'y', 2))
+          )
+        )
+      )
+    ),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
+  ),
+  (
+    'mountains_kobold_combat_2',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
+    2,
+    JSON_OBJECT(
+      'version', 2,
+      'teams', JSON_ARRAY(
+        JSON_OBJECT(
+          'team_id', 'A',
+          'label', 'Kobold Warband',
+          'units', JSON_ARRAY(
+            JSON_OBJECT('enemy_template_slug', 'kobold_shieldbearer', 'pos', JSON_OBJECT('x', 0, 'y', 1)),
+            JSON_OBJECT('enemy_template_slug', 'kobold_skirmisher',   'pos', JSON_OBJECT('x', 2, 'y', 0)),
+            JSON_OBJECT('enemy_template_slug', 'kobold_skirmisher',   'pos', JSON_OBJECT('x', 2, 'y', 2)),
+            JSON_OBJECT('enemy_template_slug', 'kobold_sharpshooter', 'pos', JSON_OBJECT('x', 1, 'y', 0))
+          )
+        )
+      )
+    ),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
+  ),
+  (
+    'mountains_kobold_combat_3',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
+    3,
+    JSON_OBJECT(
+      'version', 2,
+      'teams', JSON_ARRAY(
+        JSON_OBJECT(
+          'team_id', 'A',
+          'label', 'Kobold Warband',
+          'units', JSON_ARRAY(
+            JSON_OBJECT('enemy_template_slug', 'kobold_shieldbearer', 'pos', JSON_OBJECT('x', 0, 'y', 0)),
+            JSON_OBJECT('enemy_template_slug', 'kobold_shieldbearer', 'pos', JSON_OBJECT('x', 0, 'y', 2)),
+            JSON_OBJECT('enemy_template_slug', 'kobold_sharpshooter', 'pos', JSON_OBJECT('x', 2, 'y', 1))
+          )
+        )
+      )
+    ),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
+  ),
+  (
+    'mountains_kobold_boss_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
+    5,
+    JSON_OBJECT(
+      'version', 2,
+      'teams', JSON_ARRAY(
+        JSON_OBJECT(
+          'team_id', 'A',
+          'label', 'Kobold Command',
+          'units', JSON_ARRAY(
+            JSON_OBJECT('enemy_template_slug', 'kobold_warchief',     'pos', JSON_OBJECT('x', 2, 'y', 1)),
+            JSON_OBJECT('enemy_template_slug', 'kobold_sharpshooter', 'pos', JSON_OBJECT('x', 1, 'y', 0)),
+            JSON_OBJECT('enemy_template_slug', 'kobold_skirmisher',   'pos', JSON_OBJECT('x', 2, 'y', 0)),
+            JSON_OBJECT('enemy_template_slug', 'kobold_shieldbearer', 'pos', JSON_OBJECT('x', 0, 'y', 1))
+          )
+        )
+      )
+    ),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'kobold_boss_loot', 'rolls', 1)
+  ),
+
+  -- =========================
+  -- SWAMPS (Frogmen)
+  -- =========================
+
+  (
+    'swamps_frogman_combat_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
+    1,
+    JSON_OBJECT(
+      'version', 2,
+      'teams', JSON_ARRAY(
+        JSON_OBJECT(
+          'team_id', 'A',
+          'label', 'Frogman Hunting Party',
+          'units', JSON_ARRAY(
+            JSON_OBJECT('enemy_template_slug', 'frogman_bruiser',     'pos', JSON_OBJECT('x', 0, 'y', 1)),
+            JSON_OBJECT('enemy_template_slug', 'frogman_bruiser',     'pos', JSON_OBJECT('x', 0, 'y', 2)),
+            JSON_OBJECT('enemy_template_slug', 'frogman_spearhunter', 'pos', JSON_OBJECT('x', 1, 'y', 1))
+          )
+        )
+      )
+    ),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'frogman_basic_loot', 'rolls', 1)
+  ),
+  (
+    'swamps_frogman_combat_2',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
+    2,
+    JSON_OBJECT(
+      'version', 2,
+      'teams', JSON_ARRAY(
+        JSON_OBJECT(
+          'team_id', 'A',
+          'label', 'Frogman Hunting Party',
+          'units', JSON_ARRAY(
+            JSON_OBJECT('enemy_template_slug', 'frogman_bruiser',     'pos', JSON_OBJECT('x', 0, 'y', 1)),
+            JSON_OBJECT('enemy_template_slug', 'frogman_spearhunter', 'pos', JSON_OBJECT('x', 1, 'y', 0)),
+            JSON_OBJECT('enemy_template_slug', 'frogman_spearhunter', 'pos', JSON_OBJECT('x', 1, 'y', 2)),
+            JSON_OBJECT('enemy_template_slug', 'frogman_wardrummer',  'pos', JSON_OBJECT('x', 2, 'y', 1))
+          )
+        )
+      )
+    ),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'frogman_basic_loot', 'rolls', 1)
+  ),
+  (
+    'swamps_frogman_combat_3',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
+    3,
+    JSON_OBJECT(
+      'version', 2,
+      'teams', JSON_ARRAY(
+        JSON_OBJECT(
+          'team_id', 'A',
+          'label', 'Frogman Hunting Party',
+          'units', JSON_ARRAY(
+            JSON_OBJECT('enemy_template_slug', 'frogman_bruiser',    'pos', JSON_OBJECT('x', 0, 'y', 0)),
+            JSON_OBJECT('enemy_template_slug', 'frogman_bruiser',    'pos', JSON_OBJECT('x', 0, 'y', 2)),
+            JSON_OBJECT('enemy_template_slug', 'frogman_wardrummer', 'pos', JSON_OBJECT('x', 2, 'y', 1))
+          )
+        )
+      )
+    ),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'frogman_basic_loot', 'rolls', 1)
+  ),
+  (
+    'swamps_frogman_boss_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
+    5,
+    JSON_OBJECT(
+      'version', 2,
+      'teams', JSON_ARRAY(
+        JSON_OBJECT(
+          'team_id', 'A',
+          'label', 'Bog Court',
+          'units', JSON_ARRAY(
+            JSON_OBJECT('enemy_template_slug', 'frogman_bog_tyrant', 'pos', JSON_OBJECT('x', 0, 'y', 1)),
+            JSON_OBJECT('enemy_template_slug', 'frogman_bruiser',    'pos', JSON_OBJECT('x', 0, 'y', 0)),
+            JSON_OBJECT('enemy_template_slug', 'frogman_bruiser',    'pos', JSON_OBJECT('x', 0, 'y', 2)),
+            JSON_OBJECT('enemy_template_slug', 'frogman_wardrummer', 'pos', JSON_OBJECT('x', 2, 'y', 1))
+          )
+        )
+      )
+    ),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'frogman_boss_loot', 'rolls', 1)
+  )
+ON DUPLICATE KEY UPDATE
+  `region_id` = VALUES(`region_id`),
+  `difficulty_rating` = VALUES(`difficulty_rating`),
+  `enemy_set_json` = VALUES(`enemy_set_json`),
+  `reward_profile_json` = VALUES(`reward_profile_json`);
+-- END MIGRATION: 34_seed_encounter_templates.sql
+
+-- BEGIN MIGRATION: 35_encounter_noncombat_and_descriptions.sql
+-- Add encounter description field + seed non-combat encounters (Milestone 1)
+-- Compatible with MySQL versions that do NOT support: ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...
+
+-- 1) Conditionally add player-facing description text (idempotent)
+SET @col_exists := (
+  SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'encounter_templates'
+    AND COLUMN_NAME = 'description'
+);
+
+SET @ddl := IF(
+  @col_exists = 0,
+  'ALTER TABLE `encounter_templates` ADD COLUMN `description` VARCHAR(255) NOT NULL DEFAULT '''' AFTER `difficulty_rating`;',
+  'SELECT 1;'
+);
+
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 2) Backfill descriptions for existing encounters (from 34_seed_encounter_templates.sql)
+UPDATE `encounter_templates`
+SET `description` = CASE
+  WHEN `slug` LIKE 'mountains\\_kobold\\_boss\\_%' THEN
+    'A warhorn screams through the crags. The kobold command has taken the field.'
+  WHEN `slug` LIKE 'mountains\\_kobold\\_combat\\_%' THEN
+    'Loose stones shift underfoot as a kobold warband scrambles into position.'
+  WHEN `slug` LIKE 'swamps\\_frogman\\_boss\\_%' THEN
+    'The swamp goes still. Something immense rises from the black water.'
+  WHEN `slug` LIKE 'swamps\\_frogman\\_combat\\_%' THEN
+    'Wet reeds part and frogmen emerge—quiet, patient, and hard to kill.'
+  ELSE `description`
+END
+WHERE `description` = '';
+
+-- 3) Seed non-combat encounters: 3 loot + 2 rest per biome
+-- Uses enemy_set_json v2 with empty teams.
+
+INSERT INTO `encounter_templates` (
+  `slug`,
+  `region_id`,
+  `difficulty_rating`,
+  `description`,
+  `enemy_set_json`,
+  `reward_profile_json`
+)
+VALUES
+  -- MOUNTAINS (Kobolds) — LOOT x3
+  (
+    'mountains_kobold_loot_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
+    1,
+    'Before you lies a pile of bones and scraps. Underneath, something glints—salvage worth keeping.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
+    JSON_OBJECT('version', 1, 'type', 'loot', 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
+  ),
+  (
+    'mountains_kobold_loot_2',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
+    2,
+    'A collapsed supply crate is wedged between rocks. Most of it is ruined, but not all.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
+    JSON_OBJECT('version', 1, 'type', 'loot', 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
+  ),
+  (
+    'mountains_kobold_loot_3',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
+    3,
+    'You find a scorched campsite and a half-buried satchel. Whatever happened here, it ended fast.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
+    JSON_OBJECT('version', 1, 'type', 'loot', 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
+  ),
+
+  -- MOUNTAINS (Kobolds) — REST x2
+  (
+    'mountains_kobold_rest_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
+    1,
+    'A sheltered ledge offers a moment to breathe. You patch gear and steady your hands.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
+    JSON_OBJECT('version', 1, 'type', 'rest', 'effect', 'recover')
+  ),
+  (
+    'mountains_kobold_rest_2',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
+    2,
+    'Warm air rises from a crack in the stone. It is not safe, but it is quiet—for now.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
+    JSON_OBJECT('version', 1, 'type', 'rest', 'effect', 'recover')
+  ),
+
+  -- SWAMPS (Frogmen) — LOOT x3
+  (
+    'swamps_frogman_loot_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
+    1,
+    'A waterlogged bundle hangs from a dead branch. Inside: salvage, wrapped tight against the muck.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
+    JSON_OBJECT('version', 1, 'type', 'loot', 'loot_table_slug', 'frogman_basic_loot', 'rolls', 1)
+  ),
+  (
+    'swamps_frogman_loot_2',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
+    2,
+    'You pry open a half-sunk chest. The hinges scream, but the contents are still usable.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
+    JSON_OBJECT('version', 1, 'type', 'loot', 'loot_table_slug', 'frogman_basic_loot', 'rolls', 1)
+  ),
+  (
+    'swamps_frogman_loot_3',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
+    3,
+    'Something is tangled in the reeds—gear left behind in a hurry. You take what you can.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
+    JSON_OBJECT('version', 1, 'type', 'loot', 'loot_table_slug', 'frogman_basic_loot', 'rolls', 1)
+  ),
+
+  -- SWAMPS (Frogmen) — REST x2
+  (
+    'swamps_frogman_rest_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
+    1,
+    'You find a dry patch of ground and hold still long enough to recover. The swamp watches.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
+    JSON_OBJECT('version', 1, 'type', 'rest', 'effect', 'recover')
+  ),
+  (
+    'swamps_frogman_rest_2',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
+    2,
+    'A ring of standing stones breaks the wind and the insects. You rest, but do not sleep.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
+    JSON_OBJECT('version', 1, 'type', 'rest', 'effect', 'recover')
+  )
+ON DUPLICATE KEY UPDATE
+  `region_id` = VALUES(`region_id`),
+  `difficulty_rating` = VALUES(`difficulty_rating`),
+  `description` = VALUES(`description`),
+  `enemy_set_json` = VALUES(`enemy_set_json`),
+  `reward_profile_json` = VALUES(`reward_profile_json`);
+-- END MIGRATION: 35_encounter_noncombat_and_descriptions.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 SET FOREIGN_KEY_CHECKS=1;
 -- END MIGRATION: 99_finalize.sql
