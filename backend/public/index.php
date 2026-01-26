@@ -6,6 +6,8 @@ use DiceGoblins\Core\Env;
 use DiceGoblins\Core\Router;
 use DiceGoblins\Controllers\ApiController;
 use DiceGoblins\Controllers\AuthController;
+use DiceGoblins\Controllers\BattleController;
+use DiceGoblins\Controllers\RunNodeController;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';
 Autoloader::register(__DIR__ . '/../src');
@@ -87,6 +89,8 @@ $router = new Router();
 
 $api = new ApiController();
 $auth = new AuthController();
+$battle = new BattleController();
+$runNode = new RunNodeController();
 
 // Auth
 $router->get('/auth/discord/start', [$auth, 'discordStart']);
@@ -100,6 +104,10 @@ $router->get('/api/v1/profile', [$api, 'profile']);
 $router->get('/api/v1/runs/current', [$api, 'currentRun']);
 $router->post('/api/v1/runs', [$api, 'createRun']);
 $router->get('/api/v1/abilities', [$api, 'abilities']);
+
+$router->post('/api/v1/runs/:runId/nodes/:nodeId/resolve', [$runNode, 'resolveNode']);
+$router->get('/api/v1/battles/:battleId/log',[$battle, 'getBattleLog']);
+$router->post('/api/v1/battles/:battleId/claim',[$battle, 'claimBattle']);
 
 // Dispatch
 $router->dispatch();
