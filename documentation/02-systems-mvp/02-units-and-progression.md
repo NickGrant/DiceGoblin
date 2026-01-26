@@ -47,13 +47,13 @@ Total unit types:
 
 | Role             | Tier 1 | Tier 2 | Tier 3 | Total |
 |------------------|--------|--------|--------|-------|
-| Frontline Melee  | 1      | 1      | 1      | 3     |
+| Frontline Melee  | 2      | 2      | 2      | 6     |
 | Backline Ranged  | 1      | 1      | 1      | 3     |
 | Support          | 1      | 1      | —      | 2     |
 | Control          | 1      | 1      | —      | 2     |
-| **Total**        |        |        |        | **10**|
+| **Total**        |        |        |        | **13**|
 
-The MVP roster contains exactly 10 unit types.
+The MVP roster contains exactly 13 unit types.
 
 ## 5. Abilities per unit type (MVP)
 

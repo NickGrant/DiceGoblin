@@ -70,6 +70,45 @@ export type ProfileResponse = ApiResponse<ProfileData>;
 
 /**
  * ----------------------------------------
+ * GET /api/v1/abilities
+ * ----------------------------------------
+ *
+ * Canonical ability catalog payload (from backend AbilityRegistry::toCatalogPayload()).
+ */
+
+export type AbilityCatalogEntry = {
+  ability_id: string;
+  type: "active" | "passive" | string;
+
+  display_name: string;
+  short_desc: string;
+  icon_key: string;
+
+  tags: string[];
+  default_params: Record<string, unknown>;
+
+  /**
+   * Present for both active and passive (passives include it for stable sorting).
+   */
+  order: number;
+
+  /**
+   * Active-only fields (backend includes these only when type === "active").
+   */
+  speed?: number;
+  dice_cost?: number;
+  default_target?: string | null;
+};
+
+export type AbilityCatalogData = {
+  catalog_version: number;
+  abilities: AbilityCatalogEntry[];
+};
+
+export type AbilityCatalogResponse = ApiResponse<AbilityCatalogData>;
+
+/**
+ * ----------------------------------------
  * GET /api/v1/runs/current
  * ----------------------------------------
  */

@@ -6,12 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:schema": "node ./scripts/build-schema-all.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0"
   },
   "devDependencies": {
+    "strip-comments": "^2.0.1",
     "typescript": "^5.6.3",
     "vite": "^6.0.0"
   }

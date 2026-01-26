@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dice-goblin.local/schemas/unit_types.base_stats_json.json",
+  "title": "unit_types.base_stats_json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "attack", "defense", "max_hp"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version for base stats JSON."
+    },
+    "attack": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Base attack stat at level 1."
+    },
+    "defense": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Base defense stat at level 1."
+    },
+    "max_hp": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Base maximum HP at level 1."
+    }
+  }
+}

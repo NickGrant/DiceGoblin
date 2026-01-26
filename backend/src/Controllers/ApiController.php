@@ -5,6 +5,9 @@ namespace DiceGoblins\Controllers;
 
 use DateTimeImmutable;
 use DateTimeZone;
+
+use DiceGoblins\Combat\Abilities\AbilityRegistry;
+
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Env;
 use DiceGoblins\Core\Response;
@@ -357,6 +360,32 @@ final class ApiController
         $pdo->rollBack();
       }
 
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'server_error',
+          'message' => 'Unexpected error.',
+        ],
+      ], 500);
+    }
+  }
+
+  /**
+   * GET /api/v1/abilities
+   *
+   * Returns the canonical ability catalog (stable IDs, display metadata, and default config).
+   * This is intentionally DB-independent and safe to cache on the client.
+   */
+  public function abilities(): void {
+    try {
+      $registry = new AbilityRegistry();
+      $payload = $registry->toCatalogPayload();
+
+      Response::json([
+        'ok' => true,
+        'data' => $payload,
+      ]);
+    } catch (Throwable $e) {
       Response::json([
         'ok' => false,
         'error' => [

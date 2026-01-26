@@ -16,24 +16,17 @@ final class UnitRepository
   /**
    * Static catalog of unit types.
    *
-   * @return array<int, array{id:string,slug:string,name:string,role:string,base_hp:int,is_enabled:bool}>
+   * @return array<int, array{id:string,slug:string,name:string,role:string}>
    */
-  public function listUnitTypes(bool $onlyEnabled = true): array
+  public function listUnitTypes(): array
   {
-    if ($onlyEnabled) {
-      $stmt = $this->pdo->query('
-        SELECT `id`, `slug`, `name`, `role`, `base_hp`, `is_enabled`
-        FROM `unit_types`
-        WHERE `is_enabled` = 1
-        ORDER BY `id` ASC
-      ');
-    } else {
-      $stmt = $this->pdo->query('
-        SELECT `id`, `slug`, `name`, `role`, `base_hp`, `is_enabled`
-        FROM `unit_types`
-        ORDER BY `id` ASC
-      ');
-    }
+    
+    $stmt = $this->pdo->query('
+      SELECT `id`, `slug`, `name`, `role`
+      FROM `unit_types`
+      ORDER BY `id` ASC
+    ');
+  
 
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -42,20 +35,39 @@ final class UnitRepository
       'slug' => (string)$r['slug'],
       'name' => (string)$r['name'],
       'role' => (string)$r['role'],
-      'base_hp' => (int)$r['base_hp'],
-      'is_enabled' => ((int)$r['is_enabled']) === 1,
     ], $rows);
   }
 
   /**
-   * Get unit types by id (useful for validation without fetching full list).
+   * Get full unit type definition by id.
    *
-   * @return array{id:string,slug:string,name:string,role:string,base_hp:int,is_enabled:bool}|null
+   * @return array{
+   *   id:string,
+   *   slug:string,
+   *   name:string,
+   *   role:string,
+   *   base_stats_json: array<string,mixed>,
+   *   ability_set_json: array<string,mixed>,
+   *   max_level:int,
+   *   growth_attack_per_ability_per_level: float,
+   *   growth_defense_per_ability_per_level: float,
+   *   growth_max_hp_per_ability_per_level: float
+   * }|null
    */
   public function getUnitTypeById(int $unitTypeId): ?array
   {
     $stmt = $this->pdo->prepare('
-      SELECT `id`, `slug`, `name`, `role`, `base_hp`, `is_enabled`
+      SELECT
+        `id`,
+        `slug`,
+        `name`,
+        `role`,
+        `base_stats_json`,
+        `ability_set_json`,
+        `max_level`,
+        `growth_attack_per_ability_per_level`,
+        `growth_defense_per_ability_per_level`,
+        `growth_max_hp_per_ability_per_level`
       FROM `unit_types`
       WHERE `id` = ?
       LIMIT 1
@@ -67,15 +79,37 @@ final class UnitRepository
       return null;
     }
 
+    // In many PDO configs, JSON columns come back as strings; decode defensively.
+    $baseStats = $r['base_stats_json'];
+    if (is_string($baseStats)) {
+      $decoded = json_decode($baseStats, true);
+      $baseStats = is_array($decoded) ? $decoded : [];
+    } elseif (!is_array($baseStats)) {
+      $baseStats = [];
+    }
+
+    $abilitySet = $r['ability_set_json'];
+    if (is_string($abilitySet)) {
+      $decoded = json_decode($abilitySet, true);
+      $abilitySet = is_array($decoded) ? $decoded : [];
+    } elseif (!is_array($abilitySet)) {
+      $abilitySet = [];
+    }
+
     return [
       'id' => (string)$r['id'],
       'slug' => (string)$r['slug'],
       'name' => (string)$r['name'],
       'role' => (string)$r['role'],
-      'base_hp' => (int)$r['base_hp'],
-      'is_enabled' => ((int)$r['is_enabled']) === 1,
+      'base_stats_json' => $baseStats,
+      'ability_set_json' => $abilitySet,
+      'max_level' => (int)$r['max_level'],
+      'growth_attack_per_ability_per_level' => (float)$r['growth_attack_per_ability_per_level'],
+      'growth_defense_per_ability_per_level' => (float)$r['growth_defense_per_ability_per_level'],
+      'growth_max_hp_per_ability_per_level' => (float)$r['growth_max_hp_per_ability_per_level'],
     ];
   }
+
 
   /**
    * Returns all owned unit instances with equipped dice, shaped for GET /api/v1/profile.
@@ -316,7 +350,7 @@ final class UnitRepository
       return [];
     }
 
-    $unitInstanceIds = array_values(array_map(static fn($v): int => (int)$v, $unitInstanceIds));
+    $unitInstanceIds = array_values(array_unique(array_map(static fn($v): int => (int)$v, $unitInstanceIds)));
     $placeholders = implode(',', array_fill(0, count($unitInstanceIds), '?'));
 
     $stmt = $this->pdo->prepare("

@@ -1,0 +1,316 @@
+{
+  "version": 1,
+  "notes": {
+    "scope": "MVP roster source-of-truth for Milestone 1 seeding",
+    "ability_ids_allowed": {
+      "actives": [
+        "basic_attack_melee",
+        "basic_attack_ranged",
+        "heavy_strike",
+        "aimed_shot",
+        "shield_up",
+        "bolster_ally",
+        "poison_stab",
+        "poison_arrow",
+        "sleep_dart"
+      ],
+      "passives": ["thick_hide", "sharpshooter", "toxic_training"]
+    },
+    "conventions": {
+      "tiers": "t1/t2/t3 are promotion steps; you can treat promotion as a slug mapping in code for now",
+      "growth_fields": "growth_*_per_ability_per_level assumes you level by consuming 'ability uses' and apply growth when an ability level increases"
+    }
+  },
+  "unit_types": [
+    {
+      "slug": "frontline_bruiser_t1",
+      "name": "Bruiser",
+      "tier": 1,
+      "role": "frontline",
+      "max_level": 6,
+      "base_stats": { "version": 1, "attack": 5, "defense": 3, "max_hp": 22 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "heavy_strike"],
+        "passives": ["thick_hide"]
+      },
+      "growth": {
+        "attack_per_level": 1,
+        "defense_per_level": 1,
+        "hp_per_level": 2
+      },
+      "promotion_to_slug": "frontline_bruiser_t2"
+    },
+    {
+      "slug": "frontline_bruiser_t2",
+      "name": "Enforcer",
+      "tier": 2,
+      "role": "frontline",
+      "max_level": 10,
+      "base_stats": { "version": 1, "attack": 7, "defense": 5, "max_hp": 30 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "heavy_strike"],
+        "passives": ["thick_hide"]
+      },
+      "growth": {
+        "attack_per_level": 1,
+        "defense_per_level": 1,
+        "hp_per_level": 3
+      },
+      "promotion_to_slug": "frontline_bruiser_t3"
+    },
+    {
+      "slug": "frontline_bruiser_t3",
+      "name": "Juggernaut",
+      "tier": 3,
+      "role": "frontline",
+      "max_level": 14,
+      "base_stats": { "version": 1, "attack": 9, "defense": 7, "max_hp": 40 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "heavy_strike"],
+        "passives": ["thick_hide"]
+      },
+      "growth": {
+        "attack_per_level": 1,
+        "defense_per_level": 2,
+        "hp_per_level": 4
+      },
+      "promotion_to_slug": null
+    },
+
+    {
+      "slug": "frontline_guardian_t1",
+      "name": "Guardian",
+      "tier": 1,
+      "role": "frontline",
+      "max_level": 6,
+      "base_stats": { "version": 1, "attack": 3, "defense": 5, "max_hp": 24 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "shield_up"],
+        "passives": ["thick_hide"]
+      },
+      "growth": {
+        "attack_per_level": 1,
+        "defense_per_level": 2,
+        "hp_per_level": 2
+      },
+      "promotion_to_slug": "frontline_guardian_t2"
+    },
+    {
+      "slug": "frontline_guardian_t2",
+      "name": "Bulwark",
+      "tier": 2,
+      "role": "frontline",
+      "max_level": 10,
+      "base_stats": { "version": 1, "attack": 4, "defense": 7, "max_hp": 32 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "shield_up"],
+        "passives": ["thick_hide"]
+      },
+      "growth": {
+        "attack_per_level": 1,
+        "defense_per_level": 2,
+        "hp_per_level": 3
+      },
+      "promotion_to_slug": "frontline_guardian_t3"
+    },
+    {
+      "slug": "frontline_guardian_t3",
+      "name": "Ironwall",
+      "tier": 3,
+      "role": "frontline",
+      "max_level": 14,
+      "base_stats": { "version": 1, "attack": 5, "defense": 10, "max_hp": 44 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "shield_up"],
+        "passives": ["thick_hide"]
+      },
+      "growth": {
+        "attack_per_level": 1,
+        "defense_per_level": 3,
+        "hp_per_level": 3
+      },
+      "promotion_to_slug": null
+    },
+
+    {
+      "slug": "backline_marksman_t1",
+      "name": "Marksman",
+      "tier": 1,
+      "role": "backline",
+      "max_level": 6,
+      "base_stats": { "version": 1, "attack": 6, "defense": 2, "max_hp": 18 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_ranged", "aimed_shot"],
+        "passives": ["sharpshooter"]
+      },
+      "growth": {
+        "attack_per_level": 2,
+        "defense_per_level": 1,
+        "hp_per_level": 2
+      },
+      "promotion_to_slug": "backline_marksman_t2"
+    },
+    {
+      "slug": "backline_marksman_t2",
+      "name": "Deadeye",
+      "tier": 2,
+      "role": "backline",
+      "max_level": 10,
+      "base_stats": { "version": 1, "attack": 8, "defense": 3, "max_hp": 24 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_ranged", "aimed_shot"],
+        "passives": ["sharpshooter"]
+      },
+      "growth": {
+        "attack_per_level": 2,
+        "defense_per_level": 1,
+        "hp_per_level": 2
+      },
+      "promotion_to_slug": "backline_marksman_t3"
+    },
+    {
+      "slug": "backline_marksman_t3",
+      "name": "Sharpshot",
+      "tier": 3,
+      "role": "backline",
+      "max_level": 14,
+      "base_stats": { "version": 1, "attack": 11, "defense": 4, "max_hp": 32 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_ranged", "aimed_shot"],
+        "passives": ["sharpshooter"]
+      },
+      "growth": {
+        "attack_per_level": 3,
+        "defense_per_level": 1,
+        "hp_per_level": 2
+      },
+      "promotion_to_slug": null
+    },
+
+    {
+      "slug": "support_banner_t1",
+      "name": "Bannerbearer",
+      "tier": 1,
+      "role": "support",
+      "max_level": 8,
+      "base_stats": { "version": 1, "attack": 2, "defense": 4, "max_hp": 20 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "bolster_ally"],
+        "passives": []
+      },
+      "growth": {
+        "attack_per_level": 1,
+        "defense_per_level": 2,
+        "hp_per_level": 2
+      },
+      "promotion_to_slug": "support_banner_t2"
+    },
+    {
+      "slug": "support_banner_t2",
+      "name": "Warcaller",
+      "tier": 2,
+      "role": "support",
+      "max_level": 12,
+      "base_stats": { "version": 1, "attack": 3, "defense": 6, "max_hp": 30 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "bolster_ally"],
+        "passives": []
+      },
+      "growth": {
+        "attack_per_level": 1,
+        "defense_per_level": 2,
+        "hp_per_level": 3
+      },
+      "promotion_to_slug": null
+    },
+
+    {
+      "slug": "control_saboteur_t1",
+      "name": "Saboteur",
+      "tier": 1,
+      "role": "utility",
+      "max_level": 8,
+      "base_stats": { "version": 1, "attack": 4, "defense": 3, "max_hp": 18 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_ranged", "sleep_dart"],
+        "passives": []
+      },
+      "growth": {
+        "attack_per_level": 2,
+        "defense_per_level": 1,
+        "hp_per_level": 2
+      },
+      "promotion_to_slug": "control_saboteur_t2"
+    },
+    {
+      "slug": "control_saboteur_t2",
+      "name": "Trickshot",
+      "tier": 2,
+      "role": "utility",
+      "max_level": 12,
+      "base_stats": { "version": 1, "attack": 6, "defense": 4, "max_hp": 26 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_ranged", "sleep_dart"],
+        "passives": []
+      },
+      "growth": {
+        "attack_per_level": 2,
+        "defense_per_level": 1,
+        "hp_per_level": 3
+      },
+      "promotion_to_slug": null
+    },
+
+    {
+      "slug": "skirmisher_toxic_t1",
+      "name": "Toxic Skirmisher",
+      "tier": 1,
+      "role": "hybrid",
+      "max_level": 10,
+      "base_stats": { "version": 1, "attack": 5, "defense": 2, "max_hp": 20 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "poison_stab"],
+        "passives": ["toxic_training"]
+      },
+      "growth": {
+        "attack_per_level": 2,
+        "defense_per_level": 1,
+        "hp_per_level": 2
+      },
+      "promotion_to_slug": "skirmisher_toxic_t2"
+    },
+    {
+      "slug": "skirmisher_toxic_t2",
+      "name": "Venomblade",
+      "tier": 2,
+      "role": "hybrid",
+      "max_level": 14,
+      "base_stats": { "version": 1, "attack": 7, "defense": 3, "max_hp": 30 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "poison_stab"],
+        "passives": ["toxic_training"]
+      },
+      "growth": {
+        "attack_per_level": 2,
+        "defense_per_level": 1,
+        "hp_per_level": 3
+      },
+      "promotion_to_slug": null
+    }
+  ]
+}
