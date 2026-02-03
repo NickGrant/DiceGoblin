@@ -38,6 +38,12 @@ Exactly **four** encounter types exist in MVP:
 - Environmental hazards
 - Event chains
 
+### Rest Encounters
+- Primary function: Recover
+- Secondary function: Allow editing the active run team snapshot
+  - adjust formation
+  - swap units
+
 ---
 
 ## 3. Biome Scope
@@ -107,6 +113,7 @@ Each run:
   - Multiple combat encounters
   - A small number of loot and rest nodes
   - Exactly one boss encounter
+- Rest nodes are the only nodes where team editing is allowed mid-run
 - Nodes are structured in a branching shape
 - Nodes become unlocked when any Node with a connecting path is resolved (Victory for combat Nodes or just encountered for other Nodes)
 - The first Node in a run starts unlocked

@@ -51,6 +51,8 @@ type RunState = {
     currentNodeId: string;
   };
   resources: { energySpent: number };
+  team: { teamId: string; name: string; isLocked: boolean; formation: ...; unitIds: number[] };
+
 };
 ```
 
@@ -64,7 +66,6 @@ type EncounterState = {
   encounterId: string;
   type: "combat" | "loot" | "rest" | "boss";
   teamRequirements: { minTeams: 0 | 1; maxTeams: 1 | 2 | 3 | 4 };
-  selectedTeams: Array<{ teamId: string; unitIds: number[] }>;
 };
 ```
 
@@ -144,6 +145,9 @@ Output to an encounter scene: `{ session; run; encounter: EncounterState }`.
 ### 4.6 CombatScene
 Allowed side-effects (typical): `POST resolve/obtain CombatLog` and `POST claim rewards`.
 
+Notes:
+- reads run snapshot (formation + run_unit_state)
+
 Required input: `{ session; run; encounter }` where `encounter.type="combat"`.
 
 Output to MapExplorationScene:
@@ -168,12 +172,18 @@ Output to MapExplorationScene: `{ session; run; resolution: { outcome: "success"
 ### 4.9 RestScene
 Allowed side-effects: none in MVP (presentation only once node is resolved).
 
+Notes:
+- may edit run team snapshot
+
 Required input: `{ session; run; encounter }` where `encounter.type="rest"`.
 
 Output to MapExplorationScene: `{ session; run; resolution: { outcome: "success" | "partial" | "fail"; loot?: any[] } }`.
 
 ### 4.10 WarbandScene / UnitDetailsScene / DiceInventoryScene / DiceDetailsScene
 Allowed side-effects: none in MVP.
+
+Notes:
+- WarbandScene edits saved teams
 
 Required inputs are minimal identifiers (e.g., `{ session; unitId }`, `{ session; diceId }`).
 

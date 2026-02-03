@@ -102,6 +102,7 @@ Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
 - `user_id` BIGINT UNSIGNED (FK → users.id)
 - `region_id` BIGINT UNSIGNED (FK → regions.id)
+- `team_id` BIGINT UNSIGNED (FK → teams.id)
 - `seed` BIGINT UNSIGNED NOT NULL
 - `status` ENUM('active','completed','failed','abandoned') NOT NULL DEFAULT 'active'
 - `started_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -115,6 +116,7 @@ Indexes:
 Notes:
 - Exactly one active run is allowed per user (enforced in app logic).
 - Runs remain resumable until `status` is terminal.
+- Records which saved Team was selected at run start (for audit/debug). Run uses run-scoped snapshot for actual state.
 
 ### run_nodes
 Nodes in the run’s map graph.
@@ -258,9 +260,24 @@ Indexes:
 - (`run_id`, `is_defeated`)
 
 Notes:
-- On run start: seed `run_unit_state` for all warband units eligible for the run.
+- On run start: seed `run_unit_state` for units in the selected Team snapshot (and any additional bench rules, if added later).
 - Between nodes: update HP/status/cooldowns based on combat outcomes.
 - On run end (success/fail/abandon): clear `run_unit_state` rows for that run.
+
+### run_team_formation
+
+Columns:
+- run_id BIGINT UNSIGNED (FK → region_runs.id)
+- cell VARCHAR(2) NOT NULL (A1..C3)
+- unit_instance_id BIGINT UNSIGNED NULL (FK → unit_instances.id)
+- updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+PK:
+- (`run_id`, `cell`)
+
+Notes:
+- Seeded at run start from team_formation.
+- May be updated only at Rest nodes.
 
 ---
 

@@ -44,7 +44,7 @@ The encounter state is otherwise unchanged.
 
 ### 3.2 Total Defeat
 
-If the player has **no remaining undefeated units** in their warband:
+If the player has **no remaining undefeated units** in the active run team snapshot:
 
 - The run immediately ends
 - The run is considered failed

@@ -119,11 +119,18 @@ The state in which a unit can no longer participate in combat.
 ### Unit
 A single actor in the game capable of taking actions.
 
-### Warband
-A collection of units managed together by the player.
-
-### Team
+### Teams (Warband)
 A subset of units participating together within an encounter.
+ - referred to in UI as "Warband"
+ - player defined
+ - multiple teams per player
+ - exactly one active run
+ 
+### Formation
+A 3×3 placement grid defining starting positions in combat. Stored on teams (persistent) and also copied into run state (run-scoped).
+
+### Run Team Snapshot
+When a run starts, the selected team’s membership + formation are copied into run-scoped state. Combat reads the run snapshot, not the saved team directly.
 
 ### Player-Controlled Unit
 A unit directly controlled by the player.

@@ -283,6 +283,8 @@ Request:
   ]
 }
 ```
+Notes
+- Updates saved definition only, does not update any current run snapshots
 
 ---
 
@@ -375,6 +377,9 @@ Request:
 Rules:
 - User may have **only one active run** at a time.
 - Run map is generated server-side (seed persisted).
+- On run start, server snapshots  the team's unit membership + formation into run-scoped state.
+- Team is locked for the run; editing is disallowed except for Rest nodes.
+- Combat/encounters reference run-scoped snapshot.
 
 Success:
 ```json
@@ -449,6 +454,32 @@ Success:
   }
 }
 ```
+
+### 8.5 Run Formation
+`PUT /api/v1/runs/:runId/formation`
+
+Request:
+```json
+{
+  "unit_ids": ["2001", "2002"],
+  "formation": [
+    { "unit_id": "2001", "row": 0, "col": 0 },
+    { "unit_id": "2002", "row": 1, "col": 1 }
+  ]
+}
+```
+
+Rules
+- Allowed only if
+  - run is active AND
+  - the player is currently resolving a Rest node (or the active node type is rest) AND
+  - the node is not yet finalized
+- Updates run snapshot only
+
+Errors:
+- `run_not_active`
+- `forbidden`
+- `validation_error`
 
 ---
 
