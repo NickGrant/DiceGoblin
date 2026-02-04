@@ -13,6 +13,7 @@ use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserRepository;
 
 use DiceGoblins\Services\CsrfService;
+use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
 
@@ -215,10 +216,12 @@ final class AuthController
     $energyRepo = new EnergyRepository($pdo);
 
     $csrfService = new CsrfService();
+    $grantService = new GrantService();
 
     $bootstrapper = new PlayerBootstrapper(
       $playerStateRepo,
-      $energyRepo
+      $energyRepo,
+      $grantService
     );
 
     $sessionService = new SessionService(

@@ -1309,6 +1309,36 @@ ON DUPLICATE KEY UPDATE
   `reward_profile_json` = VALUES(`reward_profile_json`);
 -- END MIGRATION: 35_encounter_noncombat_and_descriptions.sql
 
+-- BEGIN MIGRATION: 36_add_unique_dice_definitions_sides_rarity.sql
+ALTER TABLE `dice_definitions`
+  ADD UNIQUE KEY `uq_dice_definitions_sides_rarity` (`sides`, `rarity`);
+-- END MIGRATION: 36_add_unique_dice_definitions_sides_rarity.sql
+
+-- BEGIN MIGRATION: 37_seed_dice_definitions.sql
+INSERT INTO `dice_definitions` (
+  `sides`,
+  `rarity`,
+  `slot_capacity`
+)
+VALUES
+  (4,  'common',   0),
+  (6,  'common',   0),
+  (8,  'common',   0),
+  (10, 'common',   0),
+
+  (4,  'uncommon', 1),
+  (6,  'uncommon', 1),
+  (8,  'uncommon', 1),
+  (10, 'uncommon', 1),
+
+  (4,  'rare',     2),
+  (6,  'rare',     2),
+  (8,  'rare',     2),
+  (10, 'rare',     2)
+ON DUPLICATE KEY UPDATE
+  `slot_capacity` = VALUES(`slot_capacity`);
+-- END MIGRATION: 37_seed_dice_definitions.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 SET FOREIGN_KEY_CHECKS=1;
 -- END MIGRATION: 99_finalize.sql

@@ -27,10 +27,10 @@ final class GrantService
 
   /** @var list<string> */
   private const STARTER_UNIT_TYPE_SLUGS = [
-    't1_frontline',
-    't1_backline',
-    't1_support',
-    't1_control',
+    'frontline_bruiser_t1',
+    'backline_marksman_t1',
+    'support_banner_t1',
+    'control_saboteur_t1',
   ];
 
   /** @var list<array{rarity:string,sides:int,count:int}> */
@@ -50,8 +50,8 @@ final class GrantService
 
     $db->beginTransaction();
     try {
+      
       // 1) Attempt to claim the grant.
-
       $claimed = $this->tryClaimGrant($db, $userId, self::STARTER_GRANT_SLUG);
       if (!$claimed) {
           $db->commit();
@@ -59,7 +59,6 @@ final class GrantService
       }
 
       // 2) Provision starter gameplay content (teams/units/dice/unlocks).
-      // NOTE: PlayerBootstrapper should have already created baseline scaffolding rows.
       $teamId = $this->ensureDefaultTeam($db, $userId);
 
       $this->ensureStartingRegionUnlock($db, $userId, self::STARTING_REGION_SLUG);
@@ -248,6 +247,7 @@ final class GrantService
           ':user_id' => $userId,
           ':def_id' => $defId,
         ]);
+
         $diceInstanceIds[] = (int)$db->lastInsertId();
       }
     }
