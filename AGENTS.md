@@ -61,12 +61,12 @@ This file defines project-specific operating instructions for coding agents work
 - When beginning implementation of an issue, set `status: in-progress` first.
 - After resolving an issue:
   - set `status: complete`,
-  - append a `Resolution:` line (1-2 sentences) at the bottom of that issue entry.
+  - append a `resolution:` line (1-2 sentences) at the bottom of that issue entry.
 - Move completed issue entries into `ISSUES_ARCHIVE.md` and remove them from `ISSUES.md` to keep active context lean.
 - If an issue is reopened:
   - restore it to `ISSUES.md`,
   - keep prior resolution history from archive,
-  - append a new `Resolution:` line after the reopen reason when fixed again.
+  - append a new `resolution:` line after the reopen reason when fixed again.
 - If the user only requests to `reopen` an issue:
   - move it back to `ISSUES.md` with `status: reopened`,
   - do not begin implementing that issue until the user explicitly asks to work issues or fix that item.
