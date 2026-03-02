@@ -1,6 +1,6 @@
 # Game Glossary (Milestone 0)
 
-This document defines the canonical terminology used throughout the game’s design, implementation, and documentation.  
+This document defines the canonical terminology used throughout the game's design, implementation, and documentation.  
 Any term used in code, UI, or design discussions must appear in this glossary.
 
 ---
@@ -20,7 +20,7 @@ A high-level operational state of the game that determines available interaction
 A discrete step within a game mode that structures player and system actions.
 
 ### Core Loop
-The repeating gameplay structure that defines moment-to-moment play, typically: Exploration → Encounter → Resolution → Reward.
+The repeating gameplay structure that defines moment-to-moment play, typically: Exploration -> Encounter -> Resolution -> Reward.
 
 ### Failure State
 A condition that ends the current run unsuccessfully and triggers run termination logic.
@@ -33,7 +33,7 @@ A condition that ends the current run successfully and triggers completion rewar
 ## 2. World & Exploration Terms
 
 ### Map
-The full navigable structure of nodes and paths that define a run’s spatial progression.
+The full navigable structure of nodes and paths that define a run's spatial progression.
 
 ### Node
 A single location on the map that may contain encounters, events, rewards, or narrative elements.
@@ -119,18 +119,18 @@ The state in which a unit can no longer participate in combat.
 ### Unit
 A single actor in the game capable of taking actions.
 
-### Teams (Warband)
+### Squads (Warband)
 A subset of units participating together within an encounter.
  - referred to in UI as "Warband"
  - player defined
- - multiple teams per player
+ - multiple squads per player
  - exactly one active run
  
 ### Formation
-A 3×3 placement grid defining starting positions in combat. Stored on teams (persistent) and also copied into run state (run-scoped).
+A 3x3 placement grid defining starting positions in combat. Stored on squads (persistent) and also copied into run state (run-scoped).
 
 ### Run Team Snapshot
-When a run starts, the selected team’s membership + formation are copied into run-scoped state. Combat reads the run snapshot, not the saved team directly.
+When a run starts, the selected team's membership + formation are copied into run-scoped state. Combat reads the run snapshot, not the saved squad directly.
 
 ### Player-Controlled Unit
 A unit directly controlled by the player.
@@ -155,19 +155,19 @@ The logic governing decision-making for non-player units.
 A discrete step of progression that increases unit capability; each unit type defines its own max level cap.
 
 ### Experience (XP)
-A per-unit resource used to gain levels. In MVP, `xp` represents progress within the unit’s current level (not lifetime XP) and does not increase once the unit reaches its max level.
+A per-unit resource used to gain levels. In MVP, `xp` represents progress within the unit's current level (not lifetime XP) and does not increase once the unit reaches its max level.
 
 ### Stat
 A numeric attribute that influences unit performance.
 
 ### Trait
-A permanent characteristic that defines a unit’s identity or behavior.
+A permanent characteristic that defines a unit's identity or behavior.
 
 ### Talent / Perk
 A selectable progression option that modifies gameplay.
 
 ### Augment
-A modular component that alters or enhances a unit’s capabilities.
+A modular component that alters or enhances a unit's capabilities.
 
 ### Synergy
 A positive interaction between multiple mechanics or systems.
@@ -176,7 +176,7 @@ A positive interaction between multiple mechanics or systems.
 An intentional friction that limits overpowered combinations.
 
 ### Build
-The aggregate configuration of a unit’s traits, talents, stats, and augments.
+The aggregate configuration of a unit's traits, talents, stats, and augments.
 
 ---
 
@@ -192,7 +192,7 @@ A discrete object with mechanical effects.
 A classification indicating item power and drop frequency.
 
 ### Affix / Modifier
-A property that alters an item’s base behavior.
+A property that alters an item's base behavior.
 
 ### Currency
 A spendable resource used in shops or upgrades.
@@ -239,7 +239,7 @@ Contextual information displayed on hover or focus.
 Audio or visual response that communicates the result of actions.
 
 ### Clarity
-The player’s ability to understand cause, effect, and intent.
+The player's ability to understand cause, effect, and intent.
 
 ---
 

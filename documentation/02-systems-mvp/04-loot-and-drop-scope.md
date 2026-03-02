@@ -1,169 +1,126 @@
-# Loot & Drop Scope — MVP
+# Loot and Drop Scope - MVP
 
-This document defines the **authoritative loot generation model** for the Dice Goblins MVP. It specifies how rewards are determined, which reward categories exist, and how Tier 3 promotion items are distributed. Any loot mechanic not explicitly described here is **out of scope** for MVP.
+Status: active  
+Last Updated: 2026-03-02  
+Owner: Systems Design  
+Depends On: `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/03-encounter-scope.md`
 
----
+This document defines the authoritative loot generation model for Dice Goblins MVP. It specifies reward categories, roll structure, and Tier 3 promotion-item sourcing.
 
 ## 1. Design Goals
 
 The MVP loot system must:
-- Provide predictable but flexible reward pacing
-- Support unit and dice acquisition without over-saturation
-- Gate Tier 3 progression through biome-specific boss rewards
-- Remain data-driven and table-based
-
-Loot is intended to reinforce the core loop, not to act as a long-term economy system.
-
----
+- provide predictable but flexible reward pacing
+- support unit and dice acquisition without over-saturation
+- gate Tier 3 progression through biome-specific boss rewards
+- remain data-driven and table-based
 
 ## 2. Loot Tables (Core Model)
 
-All loot is generated via **loot tables**.
+All loot is generated via loot tables.
 
-### Key Principles
-- Encounters do not directly grant items
-- Encounters specify **how many rolls** are made and **which tables** are rolled
-- Loot tables define *what* can be rewarded
-- Encounter definitions define *how much* is rewarded
-
-This separation allows tuning without changing encounter logic.
-
----
+Key principles:
+- encounters do not directly grant items
+- encounters define how many rolls happen and which table tier is used
+- loot tables define what can be rewarded
+- encounter definitions define how much is rewarded
 
 ## 3. Loot Table Tiers
 
-The MVP supports exactly **two loot table tiers**:
-
-- **Tier 1 Loot Table**
-- **Tier 2 Loot Table**
+The MVP supports exactly two loot table tiers:
+- Tier 1
+- Tier 2
 
 No Tier 3 loot table exists in MVP.
 
-### Tier Usage
-- Tier 1 tables represent common, early, or baseline rewards
-- Tier 2 tables represent higher-impact, rarer rewards
-
----
-
 ## 4. Loot Categories (Closed List)
 
-Each loot table may roll from the following categories:
+Each loot table may roll from:
+1. Dice
+2. Units
+3. Currency
 
-1. **Dice**
-2. **Units**
-3. **Currency**
+Explicitly excluded:
+- crafting materials
+- consumables
+- cosmetics
+- meta-progression resources
 
-No other reward categories exist in MVP.
+## 5. Encounter -> Loot Mapping
 
-Explicitly Excluded:
-- Crafting materials
-- Consumables
-- Cosmetics
-- Meta-progression resources
+Each encounter reward combines:
+- loot table tier
+- number of rolls
 
----
-
-## 5. Encounter → Loot Mapping
-
-Each encounter defines its reward as a combination of:
-- Loot table tier
-- Number of rolls
-
-### Example Reward Profiles
-
-- **Easy Reward**:
-  - 1 roll on Tier 1 loot table
-
-- **Medium Reward**:
-  - 2–3 rolls on Tier 1 loot table
-  - *or* 1 roll on Tier 2 loot table
-
-Encounter definitions choose from these patterns; the loot system itself remains agnostic.
-
----
+Example profiles:
+- Easy reward:
+  - 1 roll on Tier 1
+- Medium reward:
+  - 2-3 rolls on Tier 1
+  - or 1 roll on Tier 2
 
 ## 6. Boss Encounter Rewards
 
-Boss encounters follow all standard loot rules, with additional logic.
+Boss encounters follow standard loot rules plus biome-item chance.
 
-### Boss Loot Rules
-- Boss encounters grant normal loot table rolls as defined by the encounter
-- Boss encounters have an additional **percentage chance** to reward a biome-specific Tier 3 promotion item
-
-### Biome-Specific Tier 3 Items
-
-- Mountains Biome: **Roc Egg**
-- Swamps Biome: **Gator Head**
+Biome Tier 3 items:
+- Mountains: Roc Egg
+- Swamps: Gator Head
 
 Rules:
 - Tier 3 items only drop from bosses
-- Tier 3 item drop chance is defined per boss
-- Tier 3 items are not guaranteed unless explicitly configured
+- drop chance is configured per boss
+- not guaranteed unless explicitly configured
 
----
 ## 7. Experience (XP) Rewards
-XP is a deterministic reward from Combat, Boss, and Loot encounters (not a loot-table roll).
+
+XP is deterministic and separate from loot-table item rolls.
 
 Rules:
-- XP awarded is the sum of `xp_reward` for each enemy in the encounter.
-- XP is granted to units that were fielded and not defeated (survivors only).
-- Award is not split: all surviving fielded units receive the same XP amount.
-- Units at max level do not gain XP.
-
----
+- XP is awarded for Combat, Boss, and Loot encounters
+- XP is not awarded for Rest encounters
+- XP awarded equals sum of `xp_reward` for enemies in encounter
+- XP is granted only to fielded surviving units
+- XP is not split; all eligible units get full award
+- units at max level do not gain XP
+- Combat/Boss XP is applied via battle reward-claim flow
+- Loot XP is applied via encounter resolution (non-claim path)
 
 ## 8. Units as Loot
 
-When a loot roll results in a unit:
-- The unit is generated at Tier 1
-- The unit starts at level 1
-- Units do not drop at Tier 2 or Tier 3 in MVP
-
-Unit drops are intended to support roster growth, not bypass progression.
-
----
+When a roll yields a unit:
+- generated at Tier 1
+- starts at level 1
+- no Tier 2/Tier 3 unit drops in MVP
 
 ## 9. Dice as Loot
 
-When a loot roll results in a die:
-- Die size and rarity are determined by the loot table
-- Dice obey all constraints defined in `dice-system-scope.md`
-
-No dice modification or upgrading occurs at drop time.
-
----
+When a roll yields a die:
+- die size and rarity come from loot tables
+- dice obey constraints in `documentation/02-systems-mvp/01-dice-system.md`
+- no drop-time upgrading/modification in MVP
 
 ## 10. Currency as Loot
 
-Currency is granted as a flat amount determined by the loot table.
+Currency is granted as flat amounts from loot tables.
 
 Rules:
-- No scaling based on player state
-- No bonuses or multipliers in MVP
-
-Currency exists solely to support MVP systems that require it.
-
----
+- no player-state scaling
+- no multipliers in MVP
 
 ## 11. Explicit Non-Goals
 
-The MVP loot system does **not** include:
-- Pity timers
-- Drop streak protection
-- Smart loot targeting
-- Inventory limits
-- Player choice during loot resolution
-
----
+The MVP loot system does not include:
+- pity timers
+- drop streak protection
+- smart loot targeting
+- inventory limits
+- player choice during loot resolution
 
 ## 12. MVP Validation Criteria
 
-The loot system is considered MVP-complete when:
-- Loot tables can be tuned without code changes
-- Players reliably gain new units and dice through play
-- Tier 3 promotion items feel rare but achievable
-- Reward pacing feels consistent across runs
-
----
-
-This document is considered **locked** for MVP unless explicitly revised.
+Loot is MVP-complete when:
+- tables can be tuned without code changes
+- players reliably gain units and dice through play
+- Tier 3 items feel rare but achievable
+- reward pacing is consistent across runs

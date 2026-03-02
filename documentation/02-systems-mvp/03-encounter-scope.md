@@ -30,6 +30,9 @@ Exactly **four** encounter types exist in MVP:
 - Rest encounters do not award XP.
 - XP is awarded to units that were fielded and not defeated (survivors only).
 - Award is not split: all surviving fielded units receive the same XP amount.
+- XP application timing:
+  - Combat/Boss XP is applied through reward/claim flow.
+  - Loot encounter XP is deterministic and applied by encounter resolution rules.
 
 ### Explicitly Excluded
 - Merchants
@@ -40,7 +43,7 @@ Exactly **four** encounter types exist in MVP:
 
 ### Rest Encounters
 - Primary function: Recover
-- Secondary function: Allow editing the active run team snapshot
+- Secondary function: Allow editing the active run squad snapshot
   - adjust formation
   - swap units
 
@@ -113,7 +116,7 @@ Each run:
   - Multiple combat encounters
   - A small number of loot and rest nodes
   - Exactly one boss encounter
-- Rest nodes are the only nodes where team editing is allowed mid-run
+- Rest nodes are the only nodes where run-snapshot squad editing is allowed mid-run
 - Nodes are structured in a branching shape
 - Nodes become unlocked when any Node with a connecting path is resolved (Victory for combat Nodes or just encountered for other Nodes)
 - The first Node in a run starts unlocked
@@ -177,4 +180,3 @@ The encounter system is considered MVP-complete when:
 ---
 
 This document is considered **locked** for MVP unless explicitly revised.
-

@@ -44,7 +44,7 @@ The encounter state is otherwise unchanged.
 
 ### 3.2 Total Defeat
 
-If the player has **no remaining undefeated units** in the active run team snapshot:
+If the player has **no remaining undefeated units** in the active run squad snapshot:
 
 - The run immediately ends
 - The run is considered failed
@@ -123,4 +123,3 @@ Run resolution is considered MVP-complete when:
 ---
 
 This document is considered **locked** for MVP unless explicitly revised.
-

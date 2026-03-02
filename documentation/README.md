@@ -55,6 +55,10 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `MILESTONES.md` (active milestone grouping)
   - `ISSUES_ARCHIVE.md` (historical only, on-demand)
   - `documentation/ACTIVE_CONTEXT.md` (current high-signal snapshot)
+- If validating documentation quality and drift:
+  - `documentation/QA_CHECKLIST.md`
+  - `documentation/STYLE_GUIDE.md`
+  - `documentation/CHANGELOG.md`
 
 ## Reference Data Docs
 - `documentation/JSON Schema/unit_types.base_stats_json.json`

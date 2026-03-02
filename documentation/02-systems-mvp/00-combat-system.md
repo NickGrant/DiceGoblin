@@ -188,6 +188,15 @@ Combat is MVP-complete when:
 - Poison damage is visible and understandable in logs
 - Combat outcomes are explainable to players
 
+## 12. Progression Boundary Notes
+
+- Combat determines outcome and authoritative battle logs.
+- XP and loot application are progression-layer concerns defined in:
+  - `documentation/02-systems-mvp/03-encounter-scope.md`
+  - `documentation/02-systems-mvp/04-loot-and-drop-scope.md`
+  - `documentation/02-systems-mvp/06-run-resolution-scope.md`
+- Rest-node squad editing and run-snapshot mutation are outside direct combat resolution.
+
 ---
 
 This document is considered **locked** for MVP unless explicitly revised.

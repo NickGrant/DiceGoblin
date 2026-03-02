@@ -58,3 +58,58 @@ description: |
   - Milestone 6: playability and stability pass
   Close this migration issue once each milestone has concrete tracked child issues.
 Resolution: Introduced `MILESTONES.md` with active milestones and linked issue-title collections for Milestones 2-6, plus `MILESTONES_ARCHIVE.md` for completed milestone history.
+
+---
+title: Align frontend scene/state contract docs with current implemented scene flow
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 7 - Documentation Integrity
+description: |
+  [Role: Technical Product Manager] `documentation/01-architecture/02-frontend-state-and-scene-contracts.md` no longer matches the implemented frontend scene set and current runtime flow. Update scene inventory, contracts, and transition matrix to reflect actual code paths and explicitly label planned scenes.
+Resolution: Rewrote frontend scene/state contract documentation to match configured scenes, current transitions, and explicit planned-not-implemented scene boundaries.
+
+---
+title: Extend style-guide normalization pass to legacy overview and glossary docs
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 7 - Documentation Integrity
+description: |
+  [Role: Senior Developer] `documentation/00-overview/01-core-gameplay-loop.md` and `documentation/00-overview/02-glossary.md` still contain mojibake and stale punctuation despite style policy. Complete repository-wide markdown normalization to satisfy `documentation/STYLE_GUIDE.md`.
+Resolution: Normalized legacy overview/glossary docs to UTF-8-clean text and refreshed core loop wording to match current terminology.
+
+---
+title: Add documentation QA checklist for code-contract drift checks
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 7 - Documentation Integrity
+description: |
+  [Role: QA Lead] Add a repeatable docs QA checklist (route map verification, payload key verification, status-label verification for Implemented vs Planned) and define when it must run to prevent silent drift between code and docs.
+Resolution: Added `documentation/QA_CHECKLIST.md` with repeatable route/payload/scene/terminology verification steps and usage timing.
+
+---
+title: Clarify archive-loading policy for milestone history in AGENTS startup behavior
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 7 - Documentation Integrity
+description: |
+  [Role: Backlog Curator] `AGENTS.md` startup behavior explicitly mentions conditional loading of `ISSUES_ARCHIVE.md` but not `MILESTONES_ARCHIVE.md`. Clarify and align archive-loading policy so both issue and milestone historical context are handled consistently.
+Resolution: Updated startup behavior to explicitly load `MILESTONES_ARCHIVE.md` only when historical milestone context is required.
+
+---
+title: Reconcile combat progression wording across encounter/combat/reward docs
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 7 - Documentation Integrity
+description: |
+  [Role: Combat Systems Reviewer] Review and reconcile progression wording across `documentation/02-systems-mvp/00-combat-system.md`, `03-encounter-scope.md`, `04-loot-and-drop-scope.md`, and `06-run-resolution-scope.md` so XP/reward semantics and mid-run squad-edit constraints are internally consistent.
+Resolution: Reconciled progression boundary and XP timing language across combat/encounter/loot/run-resolution docs and aligned mid-run snapshot editing wording to squad terminology.

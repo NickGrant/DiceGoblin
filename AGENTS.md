@@ -12,6 +12,7 @@ This file defines project-specific operating instructions for coding agents work
   - `MILESTONES.md`
 - Treat these files as active project context for planning and execution.
 - Only read `ISSUES_ARCHIVE.md` when historical context is explicitly needed.
+- Only read `MILESTONES_ARCHIVE.md` when historical milestone context is explicitly needed.
 - If optional files are missing, continue normally and note the gap only when relevant.
 
 ## Startup Verification Checklist
