@@ -146,3 +146,36 @@ milestone: unassigned
 description: |
   [Role: Senior Developer] `TeamController::updateTeam` persists `unit_ids` and formation separately, but there is no invariant check that every `formation.unit_instance_id` exists in the submitted membership. This can produce inconsistent team state. Add validation to reject formation entries for units not present in the target membership set.
 Resolution: Added controller-side invariant enforcement so `updateTeam` rejects formation placements for units missing from submitted `unit_ids` with a validation error.
+
+---
+title: Establish backend API integration test harness (PHPUnit + fixtures)
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 8 - QA Test Backfill and Strategy
+description: |
+  [Role: QA Lead] `backend/` currently has no test runner or integration harness. Add a backend test foundation (composer dev deps, PHPUnit config/bootstrap, isolated test database setup, and fixture helpers) so endpoint regression tests can run deterministically.
+Resolution: Added backend PHPUnit scaffolding (`composer.json`, `phpunit.xml.dist`, bootstrap), reusable transaction-based DB fixture test base, smoke fixture test, and test-runner documentation.
+
+---
+title: Establish frontend interaction test harness for Phaser scenes
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 8 - QA Test Backfill and Strategy
+description: |
+  [Role: QA Lead] `frontend/package.json` has no test script and the repo has no frontend test framework configured. Add a supported harness (e.g., Vitest + environment strategy for scene/component testing) and baseline test utilities for Phaser scene logic.
+Resolution: Added Vitest-based frontend test harness (scripts, config, setup file), installed test dependencies, and verified the new `npm run test` command passes with a baseline smoke test.
+
+---
+title: Create repository testing strategy and verification matrix document
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 8 - QA Test Backfill and Strategy
+description: |
+  [Role: QA Lead] Add `documentation/TESTING_STRATEGY.md` defining test tiers (unit/integration/contract/manual), ownership, execution cadence, minimum required checks per change type, and release-blocking criteria.
+Resolution: Added `documentation/TESTING_STRATEGY.md` and linked it from `documentation/README.md` to codify test tiers, coverage expectations, cadence, and release-blocking criteria.

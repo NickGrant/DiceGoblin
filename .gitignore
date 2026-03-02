@@ -1,4 +1,6 @@
 */node_modules
+backend/vendor
+backend/.phpunit.result.cache
 
 .env
 *-source.zip

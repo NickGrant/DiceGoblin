@@ -57,7 +57,7 @@ status: unstarted
 priority: high
 execution: deferred
 ready: no
-milestone: Milestone 6 - Playability and Stability Pass
+milestone: Milestone 8 - QA Test Backfill and Strategy
 description: |
   [Role: QA Lead] There is no automated verification for new team mutation endpoints (`POST /api/v1/teams`, `POST /api/v1/teams/:teamId/activate`, `PUT /api/v1/teams/:teamId`). Add integration tests covering CSRF rejection, unauthorized access, invalid IDs, cross-user access denial, and successful state transitions.
 
@@ -67,7 +67,7 @@ status: unstarted
 priority: medium
 execution: deferred
 ready: no
-milestone: Milestone 4 - Encounter Flow UI
+milestone: Milestone 8 - QA Test Backfill and Strategy
 description: |
   [Role: QA Lead] Warband scene behavior in `frontend/src/scenes/WarbandManagementScene.ts` currently lacks automated coverage. Add tests for select/place/clear flows, button enabled states, and error/success toast handling around save and create-team actions.
 
@@ -77,7 +77,7 @@ status: unstarted
 priority: high
 execution: deferred
 ready: no
-milestone: Milestone 2 - Server-Side Battle Resolution
+milestone: Milestone 8 - QA Test Backfill and Strategy
 description: |
   [Role: QA Lead] Core progression safety depends on idempotency of `POST /api/v1/runs/:runId/nodes/:nodeId/resolve` and `POST /api/v1/battles/:battleId/claim`. Add regression tests to verify repeated requests do not duplicate battle generation, rewards, or state mutation.
 
@@ -141,5 +141,26 @@ milestone: Milestone 3 - Run Progression and Attrition
 description: |
   Support retrying encounters after partial defeat using remaining undefeated run units, with no extra energy cost, consistent with run resolution scope documentation.
 
+---
+title: Add API contract regression tests for session/profile/run payload invariants
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+milestone: Milestone 8 - QA Test Backfill and Strategy
+description: |
+  [Role: QA Lead] Add regression coverage for `GET /api/v1/session`, `GET /api/v1/profile`, and `GET /api/v1/runs/current` to validate stable response envelope shape, required keys, and key naming used by frontend state bootstrap.
+
+---
+title: Add negative-path integration tests for run creation and mutation CSRF enforcement
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+milestone: Milestone 8 - QA Test Backfill and Strategy
+description: |
+  [Role: QA Lead] Backfill integration tests that assert mutating endpoints reject missing/invalid CSRF tokens and unauthorized sessions, starting with `POST /api/v1/runs` and extending to other mutation routes as shared helpers land.
+
 ### Documentation
+
 

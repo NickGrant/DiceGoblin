@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "preview": "vite preview",
     "db:schema": "node ./scripts/build-schema-all.mjs"
   },
@@ -13,8 +15,10 @@
     "phaser": "^3.90.0"
   },
   "devDependencies": {
+    "jsdom": "^28.1.0",
     "strip-comments": "^2.0.1",
     "typescript": "^5.6.3",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^4.0.18"
   }
 }

@@ -48,7 +48,6 @@ is_current: no
 issues:
   - Replace placeholder run node resolution with deterministic combat engine integration
   - Implement non-placeholder reward and XP application on battle claim
-  - Add idempotency regression tests for run node resolve and battle claim
 description: |
   Deliver deterministic battle resolution and real claim/reward flow with idempotency guarantees.
 
@@ -70,7 +69,6 @@ status: not-started
 execution_window: closed
 is_current: no
 issues:
-  - Add frontend interaction tests for warband placement and save behaviors
 description: |
   Complete encounter-flow UX surfaces and ensure end-to-end playable progression through UI.
 
@@ -90,6 +88,19 @@ status: not-started
 execution_window: closed
 is_current: no
 issues:
-  - Add backend integration tests for team create/activate/update with CSRF and ownership rules
 description: |
   Raise release-readiness confidence with verification coverage and stability hardening.
+
+---
+name: Milestone 8 - QA Test Backfill and Strategy
+status: in-progress
+execution_window: open
+is_current: yes
+issues:
+  - Add backend integration tests for team create/activate/update with CSRF and ownership rules
+  - Add frontend interaction tests for warband placement and save behaviors
+  - Add idempotency regression tests for run node resolve and battle claim
+  - Add API contract regression tests for session/profile/run payload invariants
+  - Add negative-path integration tests for run creation and mutation CSRF enforcement
+description: |
+  Stand up automated QA infrastructure and baseline regression coverage while defining an explicit testing strategy that governs verification expectations for future feature work.

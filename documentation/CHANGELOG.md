@@ -15,3 +15,5 @@
 - Added `documentation/QA_CHECKLIST.md` for repeatable docs drift verification.
 - Normalized legacy overview docs (`01-core-gameplay-loop.md`, `02-glossary.md`) to style-guide compliant text.
 - Reconciled progression wording across combat/encounter/loot/run-resolution docs.
+- Added `documentation/TESTING_STRATEGY.md` to define repository-wide test tiers, verification matrix, and release gates.
+- Updated `documentation/README.md` to include testing-strategy references in documentation quality workflows.
