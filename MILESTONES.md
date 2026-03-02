@@ -57,9 +57,12 @@ name: Milestone 3 - Run Progression and Attrition
 status: not-started
 execution_window: closed
 is_current: no
-issues: []
+issues:
+  - Persist run-scoped unit attrition state across encounters and resume
+  - Implement run failure and abandonment resolution rules
+  - Implement encounter retry flow for partial defeat scenarios
 description: |
-  Track run progression state, attrition persistence, and run-end behavior once related execution issues are added.
+  Track run progression state, attrition persistence, and run-end behavior with explicit retry/failure handling.
 
 ---
 name: Milestone 4 - Encounter Flow UI

@@ -141,5 +141,35 @@ milestone: unassigned
 description: |
   Preferred product terminology is `squads`. Audit and update inconsistent references to `teams` where safe, preserving route/database naming where backward compatibility requires it. Ensure API/docs/client types clearly communicate canonical `squads` wording.
 
+---
+title: Persist run-scoped unit attrition state across encounters and resume
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+milestone: Milestone 3 - Run Progression and Attrition
+description: |
+  Implement and persist run-scoped unit state (HP, cooldowns, status effects, defeated flags) so attrition behavior matches `documentation/02-systems-mvp/05-save-and-resume-scope.md` and survives reconnect/resume.
+
+---
+title: Implement run failure and abandonment resolution rules
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+milestone: Milestone 3 - Run Progression and Attrition
+description: |
+  Implement terminal run resolution (total defeat and abandon) including XP reset rules for defeated units and post-run cleanup/recovery rules defined in `documentation/02-systems-mvp/06-run-resolution-scope.md`.
+
+---
+title: Implement encounter retry flow for partial defeat scenarios
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+milestone: Milestone 3 - Run Progression and Attrition
+description: |
+  Support retrying encounters after partial defeat using remaining undefeated run units, with no extra energy cost, consistent with run resolution scope documentation.
+
 ### Documentation
 

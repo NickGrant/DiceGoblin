@@ -35,7 +35,7 @@
 ## Context Budget Guardrails
 - Keep `AGENTS.md` under ~220 lines.
 - Keep `ROLES.md` under ~180 lines.
-- Keep `ISSUES.md` under ~150 lines (active items only).
+- Keep `ISSUES.md` under ~250 lines (active items only).
 - Keep `MILESTONES.md` under ~120 lines (active items only).
 - Move resolved/historical content to archives immediately.
 
