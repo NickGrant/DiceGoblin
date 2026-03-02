@@ -18,7 +18,7 @@ final class BattleLogRepository
   {
     $stmt = $this->pdo->prepare('
       INSERT INTO `battle_logs` (`battle_id`, `log_json`)
-      VALUES (?, CAST(? AS JSON))
+      VALUES (?, ?)
     ');
     $stmt->execute([$battleId, json_encode($log, JSON_UNESCAPED_SLASHES)]);
   }

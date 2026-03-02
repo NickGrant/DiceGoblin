@@ -18,7 +18,7 @@ final class BattleRewardsRepository
   {
     $stmt = $this->pdo->prepare('
       INSERT INTO `battle_rewards` (`battle_id`, `xp_total`, `currency_soft`, `rewards_json`)
-      VALUES (?, ?, ?, CAST(? AS JSON))
+      VALUES (?, ?, ?, ?)
     ');
     $stmt->execute([
       $battleId,

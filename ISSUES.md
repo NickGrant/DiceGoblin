@@ -52,16 +52,6 @@ description: |
   [Role: Senior Developer] `frontend/src/services/apiClient.ts` currently relies on repeated `as any` coercions for session CSRF access and team response typing. Introduce explicit response interfaces and typed helpers to prevent runtime-shape drift and improve compile-time guarantees.
 
 ---
-title: Add backend integration tests for team create/activate/update with CSRF and ownership rules
-status: in-progress
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 8 - QA Test Backfill and Strategy
-description: |
-  [Role: QA Lead] There is no automated verification for new team mutation endpoints (`POST /api/v1/teams`, `POST /api/v1/teams/:teamId/activate`, `PUT /api/v1/teams/:teamId`). Add integration tests covering CSRF rejection, unauthorized access, invalid IDs, cross-user access denial, and successful state transitions.
-
----
 title: Add frontend interaction tests for warband placement and save behaviors
 status: unstarted
 priority: medium
@@ -70,16 +60,6 @@ ready: no
 milestone: Milestone 8 - QA Test Backfill and Strategy
 description: |
   [Role: QA Lead] Warband scene behavior in `frontend/src/scenes/WarbandManagementScene.ts` currently lacks automated coverage. Add tests for select/place/clear flows, button enabled states, and error/success toast handling around save and create-team actions.
-
----
-title: Add idempotency regression tests for run node resolve and battle claim
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-milestone: Milestone 8 - QA Test Backfill and Strategy
-description: |
-  [Role: QA Lead] Core progression safety depends on idempotency of `POST /api/v1/runs/:runId/nodes/:nodeId/resolve` and `POST /api/v1/battles/:battleId/claim`. Add regression tests to verify repeated requests do not duplicate battle generation, rewards, or state mutation.
 
 ---
 title: Replace placeholder run node resolution with deterministic combat engine integration
@@ -140,16 +120,6 @@ ready: no
 milestone: Milestone 3 - Run Progression and Attrition
 description: |
   Support retrying encounters after partial defeat using remaining undefeated run units, with no extra energy cost, consistent with run resolution scope documentation.
-
----
-title: Add negative-path integration tests for run creation and mutation CSRF enforcement
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-milestone: Milestone 8 - QA Test Backfill and Strategy
-description: |
-  [Role: QA Lead] Backfill integration tests that assert mutating endpoints reject missing/invalid CSRF tokens and unauthorized sessions, starting with `POST /api/v1/runs` and extending to other mutation routes as shared helpers land.
 
 ---
 title: Create Game Designer role focused on playability, appeal, and UX-driven feature sequencing

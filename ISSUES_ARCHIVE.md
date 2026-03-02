@@ -201,3 +201,36 @@ milestone: Milestone 8 - QA Test Backfill and Strategy
 description: |
   [Role: QA Lead] Add regression coverage for `GET /api/v1/session`, `GET /api/v1/profile`, and `GET /api/v1/runs/current` to validate stable response envelope shape, required keys, and key naming used by frontend state bootstrap.
 Resolution: Added runtime API contract validators for session/profile/current-run payloads, wired them into `apiClient`, and added Vitest regression coverage for accepted/rejected contract shapes.
+
+---
+title: Add backend integration tests for team create/activate/update with CSRF and ownership rules
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 8 - QA Test Backfill and Strategy
+description: |
+  [Role: QA Lead] There is no automated verification for new team mutation endpoints (`POST /api/v1/teams`, `POST /api/v1/teams/:teamId/activate`, `PUT /api/v1/teams/:teamId`). Add integration tests covering CSRF rejection, unauthorized access, invalid IDs, cross-user access denial, and successful state transitions.
+Resolution: Added backend integration tests for team mutations at repository and controller layers, covering active-team transitions, ownership denial, and unauthorized/invalid-CSRF rejection for create/activate/update flows.
+
+---
+title: Add negative-path integration tests for run creation and mutation CSRF enforcement
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 8 - QA Test Backfill and Strategy
+description: |
+  [Role: QA Lead] Backfill integration tests that assert mutating endpoints reject missing/invalid CSRF tokens and unauthorized sessions, starting with `POST /api/v1/runs` and extending to other mutation routes as shared helpers land.
+Resolution: Added API controller mutation-security tests for `POST /api/v1/runs` to verify unauthenticated and invalid-CSRF requests are rejected with expected status codes/error contracts.
+
+---
+title: Add idempotency regression tests for run node resolve and battle claim
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 8 - QA Test Backfill and Strategy
+description: |
+  [Role: QA Lead] Core progression safety depends on idempotency of `POST /api/v1/runs/:runId/nodes/:nodeId/resolve` and `POST /api/v1/battles/:battleId/claim`. Add regression tests to verify repeated requests do not duplicate battle generation, rewards, or state mutation.
+Resolution: Added end-to-end idempotency regression coverage that calls resolve/claim twice and verifies no duplicate battle, reward, or log rows; also fixed MariaDB JSON insert compatibility in battle log/reward repositories.

@@ -36,3 +36,54 @@ if (is_file($testEnvPath)) {
     $_SERVER[$key] = $value;
   }
 }
+
+/**
+ * Allow controller tests using Db::pdo() to target the same test database.
+ */
+$testDsn = getenv('TEST_DB_DSN') ?: '';
+if (is_string($testDsn) && str_starts_with($testDsn, 'mysql:')) {
+  $host = null;
+  $port = null;
+  $dbName = null;
+
+  foreach (explode(';', substr($testDsn, strlen('mysql:'))) as $segment) {
+    $parts = explode('=', $segment, 2);
+    if (count($parts) !== 2) {
+      continue;
+    }
+    $k = trim($parts[0]);
+    $v = trim($parts[1]);
+    if ($k === 'host') $host = $v;
+    if ($k === 'port') $port = $v;
+    if ($k === 'dbname') $dbName = $v;
+  }
+
+  $dbUser = getenv('TEST_DB_USER') ?: '';
+  $dbPass = getenv('TEST_DB_PASS') ?: '';
+
+  if ($host !== null) {
+    putenv("DB_HOST=$host");
+    $_ENV['DB_HOST'] = $host;
+    $_SERVER['DB_HOST'] = $host;
+  }
+  if ($port !== null) {
+    putenv("DB_PORT=$port");
+    $_ENV['DB_PORT'] = $port;
+    $_SERVER['DB_PORT'] = $port;
+  }
+  if ($dbName !== null) {
+    putenv("DB_NAME=$dbName");
+    $_ENV['DB_NAME'] = $dbName;
+    $_SERVER['DB_NAME'] = $dbName;
+  }
+  if (is_string($dbUser) && $dbUser !== '') {
+    putenv("DB_USER=$dbUser");
+    $_ENV['DB_USER'] = $dbUser;
+    $_SERVER['DB_USER'] = $dbUser;
+  }
+  if (is_string($dbPass)) {
+    putenv("DB_PASS=$dbPass");
+    $_ENV['DB_PASS'] = $dbPass;
+    $_SERVER['DB_PASS'] = $dbPass;
+  }
+}
