@@ -90,13 +90,3 @@ is_current: no
 issues:
 description: |
   Raise release-readiness confidence with verification coverage and stability hardening.
-
----
-name: Milestone 8 - QA Test Backfill and Strategy
-status: in-progress
-execution_window: open
-is_current: yes
-issues:
-  - Add frontend interaction tests for warband placement and save behaviors
-description: |
-  Stand up automated QA infrastructure and baseline regression coverage while defining an explicit testing strategy that governs verification expectations for future feature work.

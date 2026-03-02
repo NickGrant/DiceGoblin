@@ -1,3 +1,4 @@
+import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";

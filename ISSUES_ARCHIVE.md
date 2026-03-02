@@ -234,3 +234,25 @@ milestone: Milestone 8 - QA Test Backfill and Strategy
 description: |
   [Role: QA Lead] Core progression safety depends on idempotency of `POST /api/v1/runs/:runId/nodes/:nodeId/resolve` and `POST /api/v1/battles/:battleId/claim`. Add regression tests to verify repeated requests do not duplicate battle generation, rewards, or state mutation.
 Resolution: Added end-to-end idempotency regression coverage that calls resolve/claim twice and verifies no duplicate battle, reward, or log rows; also fixed MariaDB JSON insert compatibility in battle log/reward repositories.
+
+---
+title: Add frontend interaction tests for warband placement and save behaviors
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 8 - QA Test Backfill and Strategy
+description: |
+  [Role: QA Lead] Warband scene behavior in `frontend/src/scenes/WarbandManagementScene.ts` currently lacks automated coverage. Add tests for select/place/clear flows, button enabled states, and error/success toast handling around save and create-team actions.
+Resolution: Added targeted Warband scene interaction tests covering select/place/clear behavior and save success/error flows, and made scene module loading test-safe via explicit Phaser import.
+
+---
+title: Create Game Designer role focused on playability, appeal, and UX-driven feature sequencing
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: unassigned
+description: |
+  Define a new `Game Designer` role in `ROLES.md` that evaluates playability and user appeal, with emphasis on UX decisions, game flow quality, and player-centric feature ordering recommendations.
+Resolution: Added a `Game Designer` role definition to `ROLES.md` with explicit goals, constraints, risk tolerance, and communication style centered on UX, flow, and feature sequencing.

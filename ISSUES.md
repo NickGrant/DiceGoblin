@@ -52,16 +52,6 @@ description: |
   [Role: Senior Developer] `frontend/src/services/apiClient.ts` currently relies on repeated `as any` coercions for session CSRF access and team response typing. Introduce explicit response interfaces and typed helpers to prevent runtime-shape drift and improve compile-time guarantees.
 
 ---
-title: Add frontend interaction tests for warband placement and save behaviors
-status: unstarted
-priority: medium
-execution: deferred
-ready: no
-milestone: Milestone 8 - QA Test Backfill and Strategy
-description: |
-  [Role: QA Lead] Warband scene behavior in `frontend/src/scenes/WarbandManagementScene.ts` currently lacks automated coverage. Add tests for select/place/clear flows, button enabled states, and error/success toast handling around save and create-team actions.
-
----
 title: Replace placeholder run node resolution with deterministic combat engine integration
 status: unstarted
 priority: high
@@ -120,16 +110,6 @@ ready: no
 milestone: Milestone 3 - Run Progression and Attrition
 description: |
   Support retrying encounters after partial defeat using remaining undefeated run units, with no extra energy cost, consistent with run resolution scope documentation.
-
----
-title: Create Game Designer role focused on playability, appeal, and UX-driven feature sequencing
-status: unstarted
-priority: medium
-execution: deferred
-ready: no
-milestone: unassigned
-description: |
-  Define a new `Game Designer` role in `ROLES.md` that evaluates playability and user appeal, with emphasis on UX decisions, game flow quality, and player-centric feature ordering recommendations.
 
 ### Documentation
 
