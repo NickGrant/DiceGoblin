@@ -10,6 +10,7 @@
    - `TEST_DB_DSN` (example: `mysql:host=127.0.0.1;port=3306;dbname=dice_goblins_test;charset=utf8mb4`)
    - `TEST_DB_USER`
    - `TEST_DB_PASS`
+   - Recommended local file: `backend/.env.test.local` (loaded automatically by `tests/bootstrap.php`)
 
 ## Run
 - `composer test`

@@ -1,6 +1,8 @@
 */node_modules
 backend/vendor
 backend/.phpunit.result.cache
+backend/.env.test.local
+backend/.env*.local
 
 .env
 *-source.zip

@@ -100,7 +100,6 @@ issues:
   - Add backend integration tests for team create/activate/update with CSRF and ownership rules
   - Add frontend interaction tests for warband placement and save behaviors
   - Add idempotency regression tests for run node resolve and battle claim
-  - Add API contract regression tests for session/profile/run payload invariants
   - Add negative-path integration tests for run creation and mutation CSRF enforcement
 description: |
   Stand up automated QA infrastructure and baseline regression coverage while defining an explicit testing strategy that governs verification expectations for future feature work.

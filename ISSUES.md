@@ -53,10 +53,10 @@ description: |
 
 ---
 title: Add backend integration tests for team create/activate/update with CSRF and ownership rules
-status: unstarted
+status: in-progress
 priority: high
-execution: deferred
-ready: no
+execution: active
+ready: yes
 milestone: Milestone 8 - QA Test Backfill and Strategy
 description: |
   [Role: QA Lead] There is no automated verification for new team mutation endpoints (`POST /api/v1/teams`, `POST /api/v1/teams/:teamId/activate`, `PUT /api/v1/teams/:teamId`). Add integration tests covering CSRF rejection, unauthorized access, invalid IDs, cross-user access denial, and successful state transitions.
@@ -142,16 +142,6 @@ description: |
   Support retrying encounters after partial defeat using remaining undefeated run units, with no extra energy cost, consistent with run resolution scope documentation.
 
 ---
-title: Add API contract regression tests for session/profile/run payload invariants
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-milestone: Milestone 8 - QA Test Backfill and Strategy
-description: |
-  [Role: QA Lead] Add regression coverage for `GET /api/v1/session`, `GET /api/v1/profile`, and `GET /api/v1/runs/current` to validate stable response envelope shape, required keys, and key naming used by frontend state bootstrap.
-
----
 title: Add negative-path integration tests for run creation and mutation CSRF enforcement
 status: unstarted
 priority: high
@@ -160,6 +150,16 @@ ready: no
 milestone: Milestone 8 - QA Test Backfill and Strategy
 description: |
   [Role: QA Lead] Backfill integration tests that assert mutating endpoints reject missing/invalid CSRF tokens and unauthorized sessions, starting with `POST /api/v1/runs` and extending to other mutation routes as shared helpers land.
+
+---
+title: Create Game Designer role focused on playability, appeal, and UX-driven feature sequencing
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+milestone: unassigned
+description: |
+  Define a new `Game Designer` role in `ROLES.md` that evaluates playability and user appeal, with emphasis on UX decisions, game flow quality, and player-centric feature ordering recommendations.
 
 ### Documentation
 

@@ -1,4 +1,9 @@
 import { type CreateResponse, type ProfileResponse, type RunResponse, type SessionResponse } from "../types/ApiResponse";
+import {
+  validateCurrentRunResponse,
+  validateProfileResponse,
+  validateSessionResponse,
+} from "./apiContractValidators";
 
 const DEFAULT_API_BASE_URL = "http://localhost:8080";
 
@@ -51,7 +56,8 @@ function isFresh(fetchedAt: number, now = Date.now()): boolean {
 
 export const apiClient = {
   async getSession(): Promise<SessionResponse> {
-    return request<SessionResponse>("/api/v1/session", { method: "GET" });
+    const response = await request<unknown>("/api/v1/session", { method: "GET" });
+    return validateSessionResponse(response);
   },
 
   async logout(): Promise<{ ok: boolean }> {
@@ -59,7 +65,8 @@ export const apiClient = {
   },
 
   async getCurrentRun(): Promise<RunResponse> {
-    return request<RunResponse>("/api/v1/runs/current", { method: "GET" });
+    const response = await request<unknown>("/api/v1/runs/current", { method: "GET" });
+    return validateCurrentRunResponse(response);
   },
 
   async createRun(biome: string): Promise<CreateResponse> {
@@ -77,7 +84,8 @@ export const apiClient = {
    * Raw call (no caching). Useful for tests or explicit bypass.
    */
   async getProfileRaw(): Promise<ProfileResponse> {
-    return request<ProfileResponse>("/api/v1/profile", { method: "GET" });
+    const response = await request<unknown>("/api/v1/profile", { method: "GET" });
+    return validateProfileResponse(response);
   },
 
   // -----------------------------

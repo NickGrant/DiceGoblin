@@ -190,3 +190,14 @@ milestone: Milestone 8 - QA Test Backfill and Strategy
 description: |
   `npm run build` in `frontend/` currently fails due union-response narrowing issues (`ApiResponse<T>` `.data` access), invalid Phaser typing usage (`Phaser.Stage`), and strict-index typing errors in node placement utilities. Restore green TypeScript build by applying correct guards and type-safe usage.
 Resolution: Added explicit API-response narrowing guards, corrected `HomeButton` constructor typing to `Phaser.Scene`, fixed strict index-safe swapping in `NodeList`, and verified `npm run build` now succeeds.
+
+---
+title: Add API contract regression tests for session/profile/run payload invariants
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 8 - QA Test Backfill and Strategy
+description: |
+  [Role: QA Lead] Add regression coverage for `GET /api/v1/session`, `GET /api/v1/profile`, and `GET /api/v1/runs/current` to validate stable response envelope shape, required keys, and key naming used by frontend state bootstrap.
+Resolution: Added runtime API contract validators for session/profile/current-run payloads, wired them into `apiClient`, and added Vitest regression coverage for accepted/rejected contract shapes.
