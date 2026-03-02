@@ -113,3 +113,36 @@ milestone: Milestone 7 - Documentation Integrity
 description: |
   [Role: Combat Systems Reviewer] Review and reconcile progression wording across `documentation/02-systems-mvp/00-combat-system.md`, `03-encounter-scope.md`, `04-loot-and-drop-scope.md`, and `06-run-resolution-scope.md` so XP/reward semantics and mid-run squad-edit constraints are internally consistent.
 Resolution: Reconciled progression boundary and XP timing language across combat/encounter/loot/run-resolution docs and aligned mid-run snapshot editing wording to squad terminology.
+
+---
+title: Enforce CSRF validation for POST /api/v1/runs
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: unassigned
+description: |
+  `ApiController::createRun` currently has CSRF validation commented out even though mutating endpoints require CSRF by contract. Re-enable CSRF validation and ensure frontend request headers are aligned.
+Resolution: Re-enabled CSRF validation in `ApiController::createRun` and confirmed the frontend run-creation request already sends `X-CSRF-Token`.
+
+---
+title: Enforce strict formation cell validation on team update endpoints
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: unassigned
+description: |
+  [Role: Senior Developer] Team formation cells are currently validated only by non-empty length (`backend/src/Repositories/TeamRepository.php`), which allows invalid values outside the intended 3x3 grid. Restrict accepted cells to canonical values (A1..C3) in backend validation and return `validation_error` for out-of-range cells.
+Resolution: Tightened formation cell validation in `TeamRepository::setFormationCell` to accept only canonical `A1..C3` coordinates and continue returning `validation_error` on invalid inputs.
+
+---
+title: Validate formation unit membership against submitted team unit_ids
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: unassigned
+description: |
+  [Role: Senior Developer] `TeamController::updateTeam` persists `unit_ids` and formation separately, but there is no invariant check that every `formation.unit_instance_id` exists in the submitted membership. This can produce inconsistent team state. Add validation to reject formation entries for units not present in the target membership set.
+Resolution: Added controller-side invariant enforcement so `updateTeam` rejects formation placements for units missing from submitted `unit_ids` with a validation error.

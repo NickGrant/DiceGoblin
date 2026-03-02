@@ -42,26 +42,6 @@ description: |
 ### Functional
 
 ---
-title: Enforce strict formation cell validation on team update endpoints
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-milestone: unassigned
-description: |
-  [Role: Senior Developer] Team formation cells are currently validated only by non-empty length (`backend/src/Repositories/TeamRepository.php`), which allows invalid values outside the intended 3x3 grid. Restrict accepted cells to canonical values (A1..C3) in backend validation and return `validation_error` for out-of-range cells.
-
----
-title: Validate formation unit membership against submitted team unit_ids
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-milestone: unassigned
-description: |
-  [Role: Senior Developer] `TeamController::updateTeam` persists `unit_ids` and formation separately, but there is no invariant check that every `formation.unit_instance_id` exists in the submitted membership. This can produce inconsistent team state. Add validation to reject formation entries for units not present in the target membership set.
-
----
 title: Remove unsafe any-casts from API client team mutation flow
 status: unstarted
 priority: medium
@@ -120,16 +100,6 @@ ready: no
 milestone: Milestone 2 - Server-Side Battle Resolution
 description: |
   [Role: Combat Systems Reviewer] `backend/src/Controllers/BattleController.php` returns placeholder arrays for `updated_run_unit_state`, XP application details, and updated units. Implement real reward/XP application tied to run-scoped unit state and battle outcomes to satisfy progression invariants.
-
----
-title: Enforce CSRF validation for POST /api/v1/runs
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-milestone: unassigned
-description: |
-  `ApiController::createRun` currently has CSRF validation commented out even though mutating endpoints require CSRF by contract. Re-enable CSRF validation and ensure frontend request headers are aligned.
 
 ---
 title: Rename team terminology to squads across frontend, backend, and docs

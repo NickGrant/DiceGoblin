@@ -383,7 +383,7 @@ final class TeamRepository
   public function setFormationCell(int $userId, int $teamId, string $cell, ?int $unitInstanceId): void
   {
     $cell = strtoupper(trim($cell));
-    if ($cell === '' || mb_strlen($cell) > 2) {
+    if (!preg_match('/^[ABC][123]$/', $cell)) {
       throw new RuntimeException('Invalid formation cell.');
     }
 

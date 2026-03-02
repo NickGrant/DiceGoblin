@@ -198,6 +198,10 @@ final class TeamController
     }
 
     $unitIds = array_values(array_unique(array_map(static fn($v): int => (int)$v, $unitIdsRaw)));
+    $unitIdSet = [];
+    foreach ($unitIds as $unitId) {
+      $unitIdSet[$unitId] = true;
+    }
 
     /** @var PDO $pdo */
     $pdo = $svc['pdo'];
@@ -222,6 +226,10 @@ final class TeamController
         $uid = null;
         if ($uidRaw !== null && $uidRaw !== '') {
           $uid = (int)$uidRaw;
+
+          if (!isset($unitIdSet[$uid])) {
+            throw new RuntimeException('formation.unit_instance_id must exist in unit_ids.');
+          }
         }
 
         // Only persist occupied cells; missing cells are treated as empty in UI

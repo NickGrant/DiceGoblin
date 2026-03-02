@@ -213,10 +213,10 @@ final class ApiController
       return;
     }
 
-    // CSRF required for state-changing calls. frontend not sending info correctly
-    // if (!$this->requireCsrf($services['csrfService'])) {
-    //   return;
-    // }
+    // CSRF required for state-changing calls.
+    if (!$this->requireCsrf($services['csrfService'])) {
+      return;
+    }
 
     $body = $this->readJsonBody();
     if ($body === null) {
