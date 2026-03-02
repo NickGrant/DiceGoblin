@@ -1,19 +1,25 @@
 import { type CreateResponse, type ProfileResponse, type RunResponse, type SessionResponse } from "../types/ApiResponse";
 
-
 const DEFAULT_API_BASE_URL = "http://localhost:8080";
 
 export const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? DEFAULT_API_BASE_URL;
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  // Normalize headers so callers can pass either:
+  // - plain object: { "X-CSRF-Token": token }
+  // - Headers: new Headers([["X-CSRF-Token", token]])
+  const headers = new Headers(init.headers ?? undefined);
+
+  // Ensure JSON content-type for JSON bodies (most of your API)
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init.headers ?? {})
-    },
-    credentials: "include"
+    headers,
+    credentials: "include",
   });
 
   if (!res.ok) {
@@ -23,6 +29,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   return (await res.json()) as T;
 }
+
 
 /**
  * Profile caching
@@ -52,25 +59,82 @@ export const apiClient = {
   },
 
   async getCurrentRun(): Promise<RunResponse> {
-    return request<RunResponse>("/api/v1/runs/current", { method: "GET"});
+    return request<RunResponse>("/api/v1/runs/current", { method: "GET" });
   },
 
   async createRun(biome: string): Promise<CreateResponse> {
-    this.getSession().then((session) => {
-      return request<CreateResponse>("/api/v1/runs", { 
-        method: "POST", 
-        headers: new Headers([['HTTP_X_CSRF_TOKEN', session.data?.csrf_token]]),
-        body: JSON.stringify({region_id: biome === 'mountain' ? 1 : 2})
-      });
-    })
-  },
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
 
+    return request<CreateResponse>("/api/v1/runs", {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({ region_id: biome === "mountain" ? 1 : 2 }),
+    });
+  },
 
   /**
    * Raw call (no caching). Useful for tests or explicit bypass.
    */
   async getProfileRaw(): Promise<ProfileResponse> {
     return request<ProfileResponse>("/api/v1/profile", { method: "GET" });
+  },
+
+  // -----------------------------
+  // Teams
+  // -----------------------------
+
+  async createTeam(
+    name: string,
+    makeActive = true
+  ): Promise<{ ok: true; data: { team_id: string } } | { ok: false; error: { code: string; message: string } }> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+
+    const res = await request<{ ok: boolean; data?: any; error?: any }>("/api/v1/teams", {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({ name, make_active: makeActive }),
+    });
+
+    apiClient.invalidateProfileCache();
+    return res as any;
+  },
+
+  async activateTeam(
+    teamId: string
+  ): Promise<{ ok: true; data: {} } | { ok: false; error: { code: string; message: string } }> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+
+    const res = await request<{ ok: boolean; data?: any; error?: any }>(`/api/v1/teams/${teamId}/activate`, {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({}),
+    });
+
+    apiClient.invalidateProfileCache();
+    return res as any;
+  },
+
+  async updateTeam(
+    teamId: string,
+    payload: {
+      unit_ids: string[];
+      formation: Array<{ cell: string; unit_instance_id: string | null }>;
+    }
+  ): Promise<{ ok: true; data: {} } | { ok: false; error: { code: string; message: string } }> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+
+    const res = await request<{ ok: boolean; data?: any; error?: any }>(`/api/v1/teams/${teamId}`, {
+      method: "PUT",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify(payload),
+    });
+
+    apiClient.invalidateProfileCache();
+    return res as any;
   },
 
   /**
@@ -121,5 +185,5 @@ export const apiClient = {
 
   peekProfileCache(): ProfileResponse | null {
     return profileCache?.value ?? null;
-  }
+  },
 };

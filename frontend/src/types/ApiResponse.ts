@@ -46,10 +46,51 @@ export type ProfileActiveRun = {
   ended_at: string | null;
 };
 
+// ----------------------------------------
+// /profile payload helpers
+// ----------------------------------------
+
+export type UnitEquippedDie = {
+  dice_instance_id: string;
+  slot_index: number;
+};
+
+export type UnitRecord = {
+  // Minimum fields used by UnitListPanel + Warband screen
+  id: string;
+  name: string;
+  level: number;
+
+  // Optional (safe while backend stabilizes)
+  unit_type_id?: string;
+  unit_type_name?: string;
+  tier?: number;
+  xp?: number;
+  locked?: boolean;
+  equipped_dice?: UnitEquippedDie[];
+
+  [key: string]: unknown;
+};
+
+export type TeamFormationCell = {
+  cell: string; // "A1".."C3"
+  unit_instance_id: string | null;
+};
+
+export type TeamRecord = {
+  id: string;
+  name: string;
+  is_active: boolean;
+  unit_ids: string[];
+  formation: TeamFormationCell[];
+
+  [key: string]: unknown;
+};
+
 export type ProfileData = {
   server_time_iso: string; // ISO timestamp
-  squads: Array<unknown>;
-  units: Array<unknown>;
+  squads: TeamRecord[];
+  units: UnitRecord[];
   dice: Array<unknown>;
   currency: {
     soft: number;
