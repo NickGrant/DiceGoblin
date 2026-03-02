@@ -47,6 +47,10 @@ Contract:
 If missing/invalid:
 - Return `403 Forbidden` with error code `csrf_invalid`
 
+Known gap:
+- `POST /api/v1/runs` currently has CSRF enforcement temporarily disabled in implementation.
+- Contract requirement remains unchanged: CSRF is required for this endpoint.
+
 ### 1.4 Content Type
 - Request/response JSON:
   - Request header: `Content-Type: application/json`
@@ -105,6 +109,11 @@ Contract:
 - Client may send header: `Idempotency-Key: <uuid>`
 - Backend must also be idempotent **without** the header when it can derive uniqueness from `(user_id, run_id, node_id)` or `battle_id`.
 
+### 1.10 Implementation Status Labels
+- `Implemented`: currently available in backend routes/controllers.
+- `Planned`: target contract shape; not yet fully implemented.
+- Planned sections should not be treated as runtime-available APIs until routes/controllers are added.
+
 ---
 
 ## 2. Auth Endpoints
@@ -131,7 +140,7 @@ Response: **302 Redirect**
 Response: **302 Redirect**
 
 ### 2.3 Logout
-`POST /auth/logout`
+`POST /api/v1/auth/logout` (`Implemented`)
 
 - Destroys server session (or clears session cookie)
 
@@ -183,7 +192,7 @@ Success (shape is illustrative; keep stable keys):
 {
   "ok": true,
   "data": {
-    "teams": [
+    "squads": [
       { "id": "10", "name": "Main", "is_active": true }
     ],
     "units": [
@@ -254,19 +263,19 @@ Success:
 
 ---
 
-## 5. Teams (Warband)
+## 5. Squads (Warband)
 
-### 5.1 List Teams
-`GET /api/v1/teams`
+### 5.1 List Squads
+`GET /api/v1/teams` (`Planned`)
 
-### 5.2 Create Team
-`POST /api/v1/teams`
+### 5.2 Create Squad
+`POST /api/v1/teams` (`Implemented`)
 ```json
-{ "name": "New Team" }
+{ "name": "New Squad" }
 ```
 
-### 5.3 Set Active Team
-`POST /api/v1/teams/:teamId/activate`
+### 5.3 Set Active Squad
+`POST /api/v1/teams/:teamId/activate` (`Implemented`)
 
 Notes:
 - Exactly one active team per user.
@@ -275,21 +284,22 @@ Errors:
 - `404 not_found`
 - `403 forbidden` if team not owned
 
-### 5.4 Update Team Composition / Formation
-`PUT /api/v1/teams/:teamId/formation`
+### 5.4 Update Squad Composition / Formation
+`PUT /api/v1/teams/:teamId` (`Implemented`)
 
 Request:
 ```json
 {
   "unit_ids": ["2001", "2002", "2003"],
   "formation": [
-    { "unit_id": "2001", "row": 0, "col": 1 },
-    { "unit_id": "2002", "row": 1, "col": 0 }
+    { "cell": "A1", "unit_instance_id": "2001" },
+    { "cell": "B2", "unit_instance_id": "2002" },
+    { "cell": "C3", "unit_instance_id": null }
   ]
 }
 ```
 Notes
-- Updates saved definition only, does not update any current run snapshots
+- Updates saved definition only; does not mutate existing run-scoped snapshots.
 
 ---
 
@@ -369,13 +379,22 @@ Success:
 ## 8. Runs, Map, and Nodes
 
 ### 8.1 Start Run
-`POST /api/v1/runs`
+`POST /api/v1/runs` (`Implemented`)
 
 Request:
 ```json
 {
   "region_id": "1",
-  "team_id": "10"
+  "abandon_active": false
+}
+```
+
+Planned extension:
+```json
+{
+  "region_id": "1",
+  "team_id": "10",
+  "abandon_active": false
 }
 ```
 
@@ -402,28 +421,34 @@ Success:
 Errors:
 - `409 conflict` code `run_already_active`
 
-### 8.2 Get Active Run
-`GET /api/v1/runs/active`
+### 8.2 Get Current Run
+`GET /api/v1/runs/current` (`Implemented`)
 
 Success (if active):
 ```json
 {
   "ok": true,
   "data": {
-    "run_id": "777",
-    "region_id": "1",
-    "status": "active"
+    "run": {
+      "run_id": "777",
+      "region_id": "1",
+      "status": "active"
+    },
+    "map": {
+      "nodes": [],
+      "edges": []
+    }
   }
 }
 ```
 
 Success (if none active):
 ```json
-{ "ok": true, "data": { "run_id": null } }
+{ "ok": true, "data": { "run": null, "map": null } }
 ```
 
 ### 8.3 Get Run Map State
-`GET /api/v1/runs/:runId/map`
+`GET /api/v1/runs/:runId/map` (`Planned`)
 
 Returns node list, edges, and current node statuses.
 ```json
@@ -447,7 +472,7 @@ Returns node list, edges, and current node statuses.
 ```
 
 ### 8.4 Abandon Run (Quit)
-`POST /api/v1/runs/:runId/abandon`
+`POST /api/v1/runs/:runId/abandon` (`Planned`)
 
 Success:
 ```json
@@ -461,7 +486,7 @@ Success:
 ```
 
 ### 8.5 Run Formation
-`PUT /api/v1/runs/:runId/formation`
+`PUT /api/v1/runs/:runId/formation` (`Planned`)
 
 Request:
 ```json

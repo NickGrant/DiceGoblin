@@ -12,6 +12,7 @@ Depends On: `ISSUES.md`, `documentation/README.md`
 
 ## Current Focus
 - Keep planning and execution tracking in `ISSUES.md` (worklist deprecated).
+- Track roadmap grouping in `MILESTONES.md`.
 - Close high-priority gameplay correctness gaps:
   - deterministic run node battle resolution
   - non-placeholder reward and XP application
@@ -30,5 +31,6 @@ Depends On: `ISSUES.md`, `documentation/README.md`
 
 ## Working Agreements
 - `ISSUES.md` is active backlog source of truth.
+- `MILESTONES.md` groups issues into delivery milestones.
 - Completed items move to `ISSUES_ARCHIVE.md` immediately.
 - Load archive docs only when historical context is explicitly needed.

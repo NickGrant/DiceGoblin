@@ -40,20 +40,6 @@ description: |
 ### Functional
 
 ---
-title: Align backend API contract doc with implemented endpoints and payloads
-status: unstarted
-priority: high
-description: |
-  [Role: Technical Product Manager] `documentation/01-architecture/03-backend-api-contracts.md` is out of sync with current backend implementation in `backend/public/index.php` and response payload shape in `backend/src/Services/ProfileService.php`. Mismatches include logout path (`/api/v1/auth/logout` vs `/auth/logout`), run endpoint naming (`/api/v1/runs/current` vs `/api/v1/runs/active`), profile key naming (`squads` vs `teams`), and team update path/payload (`PUT /api/v1/teams/:teamId` with cell strings vs `/formation` row/col payload). Update the contract doc and examples to prevent implementation drift.
-
----
-title: Document warband management UX flow and constraints in system docs
-status: unstarted
-priority: medium
-description: |
-  [Role: Technical Product Manager] The newly implemented warband management interaction in `frontend/src/scenes/WarbandManagementScene.ts` is not represented in `documentation/03-ux/` and not clearly linked to `documentation/02-systems-mvp/` scope. Add a concise UX/system contract for selection, placement, clearing, save behavior, and error states so product and implementation remain aligned.
-
----
 title: Enforce strict formation cell validation on team update endpoints
 status: unstarted
 priority: high
@@ -96,19 +82,6 @@ description: |
   [Role: QA Lead] Core progression safety depends on idempotency of `POST /api/v1/runs/:runId/nodes/:nodeId/resolve` and `POST /api/v1/battles/:battleId/claim`. Add regression tests to verify repeated requests do not duplicate battle generation, rewards, or state mutation.
 
 ---
-title: Migrate open roadmap milestones from deprecated worklist into executable backlog
-status: unstarted
-priority: high
-description: |
-  [Migration] `documentation/worklist.md` was deprecated in favor of `ISSUES.md`. Ensure remaining open roadmap scope is represented as active issue batches for:
-  - Milestone 2: server-side battle resolution and rewards/XP completion
-  - Milestone 3: run progression, attrition persistence, and run-end handling
-  - Milestone 4: encounter flow UI (setup, replay, completion)
-  - Milestone 5: unit and dice management depth
-  - Milestone 6: playability and stability pass
-  Close this migration issue once each milestone has concrete tracked child issues.
-
----
 title: Replace placeholder run node resolution with deterministic combat engine integration
 status: unstarted
 priority: high
@@ -121,6 +94,20 @@ status: unstarted
 priority: high
 description: |
   [Role: Combat Systems Reviewer] `backend/src/Controllers/BattleController.php` returns placeholder arrays for `updated_run_unit_state`, XP application details, and updated units. Implement real reward/XP application tied to run-scoped unit state and battle outcomes to satisfy progression invariants.
+
+---
+title: Enforce CSRF validation for POST /api/v1/runs
+status: unstarted
+priority: high
+description: |
+  `ApiController::createRun` currently has CSRF validation commented out even though mutating endpoints require CSRF by contract. Re-enable CSRF validation and ensure frontend request headers are aligned.
+
+---
+title: Rename team terminology to squads across frontend, backend, and docs
+status: unstarted
+priority: medium
+description: |
+  Preferred product terminology is `squads`. Audit and update inconsistent references to `teams` where safe, preserving route/database naming where backward compatibility requires it. Ensure API/docs/client types clearly communicate canonical `squads` wording.
 
 ### Documentation
 

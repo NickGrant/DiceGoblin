@@ -9,6 +9,7 @@
 - `AGENTS.md`
 - `ROLES.md` (if present)
 - `ISSUES.md`
+- `MILESTONES.md` (if present)
 - `README.md`
 - `documentation/README.md`
 - `documentation/ACTIVE_CONTEXT.md` (if present)
@@ -19,6 +20,7 @@
 - `documentation/03-ux/` docs for UX and visual behavior
 - `documentation/JSON Schema/` only when editing schema contracts
 - `ISSUES_ARCHIVE.md` only for historical context and reopened items
+- `MILESTONES_ARCHIVE.md` only for historical context
 
 ## Prefer Excluding From LLM Context
 - `frontend/dist/`
@@ -34,6 +36,7 @@
 - Keep `AGENTS.md` under ~220 lines.
 - Keep `ROLES.md` under ~180 lines.
 - Keep `ISSUES.md` under ~150 lines (active items only).
+- Keep `MILESTONES.md` under ~120 lines (active items only).
 - Move resolved/historical content to archives immediately.
 
 ## Portability Rules

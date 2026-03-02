@@ -9,6 +9,7 @@ This file defines project-specific operating instructions for coding agents work
   - `LLM_CONTEXT.md`
   - `ROLES.md`
   - `ISSUES.md`
+  - `MILESTONES.md`
 - Treat these files as active project context for planning and execution.
 - Only read `ISSUES_ARCHIVE.md` when historical context is explicitly needed.
 - If optional files are missing, continue normally and note the gap only when relevant.
@@ -17,18 +18,21 @@ This file defines project-specific operating instructions for coding agents work
 - Confirm active-control docs exist and are readable:
   - `AGENTS.md`
   - `ISSUES.md`
+  - `MILESTONES.md`
   - `README.md`
 - If present, load:
   - `LLM_CONTEXT.md`
   - `ROLES.md`
 - Validate `ISSUES.md` contains only active statuses (`unstarted`, `in-progress`, `reopened`, `blocked`).
 - Validate active issue entries include `priority` with one of: `low`, `medium`, `high`.
+- Validate `MILESTONES.md` contains only active milestone statuses (`not-started`, `in-progress`, `complete`, `blocked`).
 - If startup docs are missing/stale, continue with best effort and log the gap in the next user update.
 
 ## Instruction Precedence
 - Follow platform/system/developer safety instructions first.
 - Then follow this `AGENTS.md`.
 - Then follow `ROLES.md` and `ISSUES.md`.
+- Then follow `MILESTONES.md`.
 - Then follow user task details.
 
 ## Roles Workflow (`ROLES.md`)
@@ -72,6 +76,16 @@ This file defines project-specific operating instructions for coding agents work
   - do not begin implementing that issue until the user explicitly asks to work issues or fix that item.
 - If the user requests reopen and fix in the same message, reopen then implement immediately.
 
+## Milestones Workflow (`MILESTONES.md`)
+- Treat `MILESTONES.md` as active milestone grouping metadata for issues.
+- If the user asks to add or update a milestone, update `MILESTONES.md` directly.
+- Milestones reference issue titles from `ISSUES.md`; issues can exist without milestones.
+- If a milestone has no issues, it must remain `status: not-started`.
+- When a milestone is completed:
+  - set `status: complete`,
+  - append `Resolution:` (1-2 sentences),
+  - move the completed milestone to `MILESTONES_ARCHIVE.md`.
+
 ## Work Loop
 - For issue execution, follow this loop: select issue -> mark in-progress -> implement -> verify -> update issue status/resolution -> archive if complete.
 - Keep updates short and concrete during multi-issue work.
@@ -100,6 +114,7 @@ This file defines project-specific operating instructions for coding agents work
 - Keep `AGENTS.md` under ~220 lines.
 - Keep `ROLES.md` under ~180 lines.
 - Keep `ISSUES.md` under ~150 lines (active items only).
+- Keep `MILESTONES.md` under ~120 lines (active items only).
 - Prefer archive movement over growing active docs.
 - If a guardrail is exceeded, add/execute a trimming pass before additional feature work.
 

@@ -88,6 +88,8 @@ This repo includes lightweight collaboration control docs:
 - `ROLES.md`
 - `ISSUES.md`
 - `ISSUES_ARCHIVE.md`
+- `MILESTONES.md`
+- `MILESTONES_ARCHIVE.md`
 
 Use `ISSUES.md` for active work only; move completed items to `ISSUES_ARCHIVE.md`.
 

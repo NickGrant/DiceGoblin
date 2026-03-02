@@ -171,3 +171,6 @@ UX/debug scope is MVP-complete when:
 ---
 
 This document is considered **locked** for MVP unless explicitly revised.
+
+Related:
+- Detailed warband interaction contract: `documentation/03-ux/02-warband-management.md`
