@@ -1,7 +1,12 @@
-# Combat System & Content — MVP (Authoritative)
+﻿# Combat System & Content — MVP (Authoritative)
+
+Status: active  
+Last Updated: 2026-03-02  
+Owner: Systems Design  
+Depends On: `documentation/02-systems-mvp/07-combat-math-and-modifiers.md`, `backend/src/Combat/`
 
 This document is the **authoritative specification** for MVP combat rules **and** combat content scope.  
-Numeric constants and formulas are defined in **Combat Math & Modifiers — MVP**.
+Numeric constants and formulas are defined in **Combat Math & Modifiers â€” MVP**.
 
 Any combat mechanic, status effect, or ability behavior not explicitly defined here (or in Combat Math & Modifiers) is **out of scope** for MVP.
 
@@ -20,12 +25,12 @@ The MVP combat system must:
 ## 2. Combat Grid
 
 - Each side has its own fixed **3x3 grid** (Player, Enemy, Neutral if applicable)
-- **No hard blocking**; targeting is not prevented by occupancy (“soft screening”)
+- **No hard blocking**; targeting is not prevented by occupancy (â€œsoft screeningâ€)
 - An occupancy grid is fully derivable from unit positions
 
 ### 2.1 Positions
 - Positions are represented as `{ r: 0|1|2, c: 0|1|2 }`
-- “Front row” and “back row” are defined in **Combat Math & Modifiers — MVP** to prevent orientation ambiguity
+- â€œFront rowâ€ and â€œback rowâ€ are defined in **Combat Math & Modifiers â€” MVP** to prevent orientation ambiguity
 
 ---
 
@@ -41,7 +46,7 @@ Positioning provides systematic advantages/disadvantages:
   - Reduced melee damage taken
   - Ranged/special bonuses are allowed only if explicitly defined by abilities (none are implied)
 
-Numeric multipliers are defined in **Combat Math & Modifiers — MVP**.
+Numeric multipliers are defined in **Combat Math & Modifiers â€” MVP**.
 
 ---
 
@@ -59,8 +64,8 @@ Numeric multipliers are defined in **Combat Math & Modifiers — MVP**.
 `tick % speed === 0`
 
 Examples:
-- Speed 4 triggers at ticks 4, 8, 12, 16, 20 → **5 times per round**
-- Speed 11 triggers at tick 11 only → **1 time per round**
+- Speed 4 triggers at ticks 4, 8, 12, 16, 20 â†’ **5 times per round**
+- Speed 11 triggers at tick 11 only â†’ **1 time per round**
 - Lower speed means **more frequent** actions
 
 ### 4.3 Multi-Trigger / Same Tick
@@ -103,7 +108,7 @@ Within an Action Phase:
 ### 8.1 Abilities per Unit Type
 Each unit type supports:
 - **2 Active Abilities**
-  - One must be the unit’s base attack
+  - One must be the unitâ€™s base attack
   - One must be a specialty action
 - **Up to 2 Passive Abilities**
 
@@ -124,7 +129,7 @@ No unit may exceed **4 total abilities** in MVP.
 
 ### 8.4 Ability Data Contract (MVP-Minimum)
 - `diceCost: number` (0 or greater)
-- `speed: number` (1–20)
+- `speed: number` (1â€“20)
 - `type: "active" | "passive"`
 - `order: number`
 
@@ -186,3 +191,6 @@ Combat is MVP-complete when:
 ---
 
 This document is considered **locked** for MVP unless explicitly revised.
+
+
+
