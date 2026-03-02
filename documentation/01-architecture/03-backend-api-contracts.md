@@ -1,4 +1,4 @@
-﻿# Backend API Contracts — MVP (v1)
+﻿# Backend API Contracts - MVP (v1)
 
 Status: active  
 Last Updated: 2026-03-02  
@@ -21,7 +21,7 @@ In-scope:
 Out-of-scope:
 - Multiplayer/PvP endpoints
 - Admin consoles beyond minimal debug hooks
-- Cross-device conflict resolution beyond â€œone active runâ€
+- Cross-device conflict resolution beyond "one active run"
 
 ---
 
@@ -99,7 +99,7 @@ For list endpoints (if any in MVP):
 ```
 
 ### 1.9 Idempotency
-For actions that must not duplicate side effects (notably â€œresolve nodeâ€ and â€œclaim rewardsâ€), the backend must be idempotent.
+For actions that must not duplicate side effects (notably "resolve node" and "claim rewards"), the backend must be idempotent.
 
 Contract:
 - Client may send header: `Idempotency-Key: <uuid>`
@@ -578,7 +578,7 @@ Success:
 Rules:
 - Claim is a single step.
 - Claim must be **idempotent**.
-- If already claimed, return the same â€œclaimedâ€ result (or a clear status).
+- If already claimed, return the same "claimed" result (or a clear status).
 - `xp_total` is the XP award amount per surviving fielded unit (not split).
 - Backend applies XP only to units that were fielded and not defeated.
 - Units at max level do not gain XP (award is ignored for them).

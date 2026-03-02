@@ -1,4 +1,4 @@
-﻿# Dice Goblins — Project Overview
+﻿# Dice Goblins - Project Overview
 
 Status: active  
 Last Updated: 2026-03-02  

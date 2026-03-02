@@ -10,18 +10,22 @@
 - `ROLES.md` (if present)
 - `ISSUES.md`
 - `README.md`
+- `documentation/README.md`
+- `documentation/ACTIVE_CONTEXT.md` (if present)
 
 ## Include On Demand
-- `documentation/worklist.md` for current planning notes
 - `documentation/01-architecture/` docs for API and system-contract decisions
 - `documentation/02-systems-mvp/` docs for gameplay rules and scope
 - `documentation/03-ux/` docs for UX and visual behavior
+- `documentation/JSON Schema/` only when editing schema contracts
 - `ISSUES_ARCHIVE.md` only for historical context and reopened items
 
 ## Prefer Excluding From LLM Context
 - `frontend/dist/`
 - `frontend/node_modules/`
 - `raw-assets/`
+- `documentation/archive/`
+- `documentation/worklist.md` (deprecated)
 - binary assets (`*.jpg`, `*.png`, audio/video files)
 - generated bundles, maps, and lock output not relevant to the task
 - historical/archive docs unless explicitly needed

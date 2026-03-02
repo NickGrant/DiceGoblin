@@ -95,6 +95,7 @@ priority: high
 description: |
   [Role: QA Lead] Core progression safety depends on idempotency of `POST /api/v1/runs/:runId/nodes/:nodeId/resolve` and `POST /api/v1/battles/:battleId/claim`. Add regression tests to verify repeated requests do not duplicate battle generation, rewards, or state mutation.
 
+---
 title: Migrate open roadmap milestones from deprecated worklist into executable backlog
 status: unstarted
 priority: high
@@ -120,27 +121,6 @@ status: unstarted
 priority: high
 description: |
   [Role: Combat Systems Reviewer] `backend/src/Controllers/BattleController.php` returns placeholder arrays for `updated_run_unit_state`, XP application details, and updated units. Implement real reward/XP application tied to run-scoped unit state and battle outcomes to satisfy progression invariants.
-
----
-title: Add documentation archive lane and wire it into context exclusion rules
-status: unstarted
-priority: medium
-description: |
-  [Backlog Curator Follow-up] Introduce `documentation/archive/` and move superseded planning/decision docs out of active paths. Update `LLM_CONTEXT.md` to explicitly exclude the archive lane by default while allowing on-demand loading for historical context.
-
----
-title: Normalize documentation encoding and style policy
-status: unstarted
-priority: medium
-description: |
-  [Backlog Curator Follow-up] Add explicit documentation standards (UTF-8, punctuation conventions, heading/metadata style, line wrapping) and apply a one-time cleanup pass to eliminate mojibake and formatting drift.
-
----
-title: Add documentation changelog for contract and roadmap edits
-status: unstarted
-priority: low
-description: |
-  [Backlog Curator Follow-up] Create `documentation/CHANGELOG.md` to track major documentation deltas (API contracts, data model changes, scope shifts) so context changes are discoverable without scanning many files.
 
 ### Documentation
 

@@ -1,4 +1,4 @@
-﻿# Dice Goblins — Data Model (MVP)
+﻿# Dice Goblins - Data Model (MVP)
 
 Status: active  
 Last Updated: 2026-03-02  
@@ -11,7 +11,7 @@ Guiding principles:
 - The backend is authoritative; the client is a renderer/controller.
 - Auth is via Discord OAuth; local `users.id` is the stable identity.
 - MVP is PvE-only; no multiplayer systems are implemented.
-- Prefer explicit tables over â€œgod JSON blobs,â€ except for inherently event-like data (e.g., battle logs).
+- Prefer explicit tables over "god JSON blobs," except for inherently event-like data (e.g., battle logs).
 
 Conventions:
 - All tables use `utf8mb4` and InnoDB.
@@ -42,7 +42,7 @@ Columns:
 One row per user. Stores lightweight global progression state.
 
 Columns:
-- `user_id` BIGINT UNSIGNED PK (FK â†’ users.id)
+- `user_id` BIGINT UNSIGNED PK (FK -> users.id)
 - `currency_soft` BIGINT UNSIGNED NOT NULL DEFAULT 0
 - `currency_hard` BIGINT UNSIGNED NOT NULL DEFAULT 0 (unused in MVP)
 - `last_login_at` TIMESTAMP NULL
@@ -53,7 +53,7 @@ Columns:
 Real-world time gating. One row per user.
 
 Columns:
-- `user_id` BIGINT UNSIGNED PK (FK â†’ users.id)
+- `user_id` BIGINT UNSIGNED PK (FK -> users.id)
 - `energy_current` INT NOT NULL
 - `energy_max` INT NOT NULL DEFAULT 50
 - `regen_rate_per_hour` DECIMAL(6,3) NOT NULL DEFAULT 12.000  
@@ -93,21 +93,21 @@ Notes:
 Which regions a user has access to.
 
 Columns:
-- `user_id` BIGINT UNSIGNED (FK â†’ users.id)
-- `region_id` BIGINT UNSIGNED (FK â†’ regions.id)
+- `user_id` BIGINT UNSIGNED (FK -> users.id)
+- `region_id` BIGINT UNSIGNED (FK -> regions.id)
 - `unlocked_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 
 PK:
 - (`user_id`, `region_id`)
 
 ### region_runs
-A single â€œrunâ€ through a region (procedural map instance).
+A single "run" through a region (procedural map instance).
 
 Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `user_id` BIGINT UNSIGNED (FK â†’ users.id)
-- `region_id` BIGINT UNSIGNED (FK â†’ regions.id)
-- `team_id` BIGINT UNSIGNED (FK â†’ teams.id)
+- `user_id` BIGINT UNSIGNED (FK -> users.id)
+- `region_id` BIGINT UNSIGNED (FK -> regions.id)
+- `team_id` BIGINT UNSIGNED (FK -> teams.id)
 - `seed` BIGINT UNSIGNED NOT NULL
 - `status` ENUM('active','completed','failed','abandoned') NOT NULL DEFAULT 'active'
 - `started_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -124,15 +124,15 @@ Notes:
 - Records which saved Team was selected at run start (for audit/debug). Run uses run-scoped snapshot for actual state.
 
 ### run_nodes
-Nodes in the runâ€™s map graph.
+Nodes in the run's map graph.
 
 Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `run_id` BIGINT UNSIGNED (FK â†’ region_runs.id)
+- `run_id` BIGINT UNSIGNED (FK -> region_runs.id)
 - `node_index` INT NOT NULL (0..N-1, stable ordering)
 - `node_type` ENUM('combat','loot','rest','boss') NOT NULL
 - `status` ENUM('locked','available','cleared') NOT NULL DEFAULT 'locked'
-- `encounter_template_id` BIGINT UNSIGNED NULL (FK â†’ encounter_templates.id)
+- `encounter_template_id` BIGINT UNSIGNED NULL (FK -> encounter_templates.id)
 - `meta_json` JSON NULL (node-specific data: labels, modifiers, etc.)
 - `created_at` TIMESTAMP
 - `updated_at` TIMESTAMP
@@ -145,9 +145,9 @@ Indexes:
 Directed edges connecting nodes.
 
 Columns:
-- `run_id` BIGINT UNSIGNED (FK â†’ region_runs.id)
-- `from_node_id` BIGINT UNSIGNED (FK â†’ run_nodes.id)
-- `to_node_id` BIGINT UNSIGNED (FK â†’ run_nodes.id)
+- `run_id` BIGINT UNSIGNED (FK -> region_runs.id)
+- `from_node_id` BIGINT UNSIGNED (FK -> run_nodes.id)
+- `to_node_id` BIGINT UNSIGNED (FK -> run_nodes.id)
 
 PK:
 - (`run_id`, `from_node_id`, `to_node_id`)
@@ -161,7 +161,7 @@ Player-defined teams.
 
 Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `user_id` BIGINT UNSIGNED (FK â†’ users.id)
+- `user_id` BIGINT UNSIGNED (FK -> users.id)
 - `name` VARCHAR(64) NOT NULL
 - `is_active` TINYINT(1) NOT NULL DEFAULT 0
 - `created_at` TIMESTAMP
@@ -193,12 +193,12 @@ Notes:
 - Units do not gain XP once `level == unit_types.max_level`.
 
 ### unit_instances
-An owned unit. This is the playerâ€™s persistent progression object.
+An owned unit. This is the player's persistent progression object.
 
 Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `user_id` BIGINT UNSIGNED (FK â†’ users.id)
-- `unit_type_id` BIGINT UNSIGNED (FK â†’ unit_types.id)
+- `user_id` BIGINT UNSIGNED (FK -> users.id)
+- `unit_type_id` BIGINT UNSIGNED (FK -> unit_types.id)
 - `tier` INT NOT NULL DEFAULT 1
 - `level` INT NOT NULL DEFAULT 1
 - `xp` INT NOT NULL DEFAULT 0
@@ -219,20 +219,20 @@ Notes:
 Membership of unit instances in a team.
 
 Columns:
-- `team_id` BIGINT UNSIGNED (FK â†’ teams.id)
-- `unit_instance_id` BIGINT UNSIGNED (FK â†’ unit_instances.id)
+- `team_id` BIGINT UNSIGNED (FK -> teams.id)
+- `unit_instance_id` BIGINT UNSIGNED (FK -> unit_instances.id)
 - `added_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 
 PK:
 - (`team_id`, `unit_instance_id`)
 
 ### team_formation
-3Ã—3 placement. Stores which unit is in which cell.
+3Ã-3 placement. Stores which unit is in which cell.
 
 Columns:
-- `team_id` BIGINT UNSIGNED (FK â†’ teams.id)
+- `team_id` BIGINT UNSIGNED (FK -> teams.id)
 - `cell` VARCHAR(2) NOT NULL (e.g., A1..C3)
-- `unit_instance_id` BIGINT UNSIGNED NULL (FK â†’ unit_instances.id)
+- `unit_instance_id` BIGINT UNSIGNED NULL (FK -> unit_instances.id)
 - `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 
 PK:
@@ -245,11 +245,11 @@ PK:
 MVP requires persisting attrition across nodes (HP, status effects, rechargeable abilities). This data must be **run-scoped** and must not overwrite the persistent `unit_instances` row.
 
 ### run_unit_state
-Stores a unitâ€™s mutable, within-run condition.
+Stores a unit's mutable, within-run condition.
 
 Columns:
-- `run_id` BIGINT UNSIGNED (FK â†’ region_runs.id)
-- `unit_instance_id` BIGINT UNSIGNED (FK â†’ unit_instances.id)
+- `run_id` BIGINT UNSIGNED (FK -> region_runs.id)
+- `unit_instance_id` BIGINT UNSIGNED (FK -> unit_instances.id)
 - `current_hp` INT NOT NULL
 - `is_defeated` TINYINT(1) NOT NULL DEFAULT 0
 - `cooldowns_json` JSON NOT NULL  
@@ -272,9 +272,9 @@ Notes:
 ### run_team_formation
 
 Columns:
-- run_id BIGINT UNSIGNED (FK â†’ region_runs.id)
+- run_id BIGINT UNSIGNED (FK -> region_runs.id)
 - cell VARCHAR(2) NOT NULL (A1..C3)
-- unit_instance_id BIGINT UNSIGNED NULL (FK â†’ unit_instances.id)
+- unit_instance_id BIGINT UNSIGNED NULL (FK -> unit_instances.id)
 - updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 
 PK:
@@ -289,7 +289,7 @@ Notes:
 ## 6) Dice Inventory & Affixes
 
 ### dice_definitions
-Static dice â€œbase itemsâ€ and rarity rules.
+Static dice "base items" and rarity rules.
 
 Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
@@ -325,8 +325,8 @@ Owned dice.
 
 Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `user_id` BIGINT UNSIGNED (FK â†’ users.id)
-- `dice_definition_id` BIGINT UNSIGNED (FK â†’ dice_definitions.id)
+- `user_id` BIGINT UNSIGNED (FK -> users.id)
+- `dice_definition_id` BIGINT UNSIGNED (FK -> dice_definitions.id)
 - `display_name` VARCHAR(128) NULL
 - `created_at` TIMESTAMP
 - `updated_at` TIMESTAMP
@@ -338,8 +338,8 @@ Indexes:
 Affix rolls attached to a dice instance.
 
 Columns:
-- `dice_instance_id` BIGINT UNSIGNED (FK â†’ dice_instances.id)
-- `affix_definition_id` BIGINT UNSIGNED (FK â†’ affix_definitions.id)
+- `dice_instance_id` BIGINT UNSIGNED (FK -> dice_instances.id)
+- `affix_definition_id` BIGINT UNSIGNED (FK -> affix_definitions.id)
 - `value` DECIMAL(10,3) NOT NULL
 
 PK:
@@ -349,8 +349,8 @@ PK:
 Dice equipped to a unit instance.
 
 Columns:
-- `unit_instance_id` BIGINT UNSIGNED (FK â†’ unit_instances.id)
-- `dice_instance_id` BIGINT UNSIGNED (FK â†’ dice_instances.id)
+- `unit_instance_id` BIGINT UNSIGNED (FK -> unit_instances.id)
+- `dice_instance_id` BIGINT UNSIGNED (FK -> dice_instances.id)
 - `slot_index` INT NOT NULL
 - `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 
@@ -370,7 +370,7 @@ Static definitions of enemy compositions and reward profile.
 Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
 - `slug` VARCHAR(64) UNIQUE
-- `region_id` BIGINT UNSIGNED NULL (FK â†’ regions.id)
+- `region_id` BIGINT UNSIGNED NULL (FK -> regions.id)
 - `difficulty_rating` INT NOT NULL DEFAULT 1
 - `enemy_set_json` JSON NOT NULL
 - `reward_profile_json` JSON NOT NULL  
@@ -423,10 +423,10 @@ A battle instance tied to a run node.
 
 Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `user_id` BIGINT UNSIGNED (FK â†’ users.id)
-- `run_id` BIGINT UNSIGNED (FK â†’ region_runs.id)
-- `node_id` BIGINT UNSIGNED (FK â†’ run_nodes.id)
-- `team_id` BIGINT UNSIGNED (FK â†’ teams.id)
+- `user_id` BIGINT UNSIGNED (FK -> users.id)
+- `run_id` BIGINT UNSIGNED (FK -> region_runs.id)
+- `node_id` BIGINT UNSIGNED (FK -> run_nodes.id)
+- `team_id` BIGINT UNSIGNED (FK -> teams.id)
 - `rules_version` VARCHAR(32) NOT NULL DEFAULT 'combat_v1'
 - `seed` BIGINT UNSIGNED NOT NULL
 - `status` ENUM('completed','claimed') NOT NULL DEFAULT 'completed'
@@ -448,7 +448,7 @@ Notes:
 Stores the combat timeline.
 
 Columns:
-- `battle_id` BIGINT UNSIGNED PK (FK â†’ battles.id)
+- `battle_id` BIGINT UNSIGNED PK (FK -> battles.id)
 - `log_json` JSON NOT NULL
 - `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 
@@ -463,7 +463,7 @@ Notes:
 Stores generated rewards for a battle prior to claiming.
 
 Columns:
-- `battle_id` BIGINT UNSIGNED PK (FK â†’ battles.id)
+- `battle_id` BIGINT UNSIGNED PK (FK -> battles.id)
 - `xp_total` INT NOT NULL DEFAULT 0
 - `currency_soft` INT NOT NULL DEFAULT 0
 - `rewards_json` JSON NOT NULL
@@ -477,7 +477,7 @@ Static definitions of biome-specific Tier 3 promotion items.
 
 Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `region_id` BIGINT UNSIGNED (FK â†’ regions.id)
+- `region_id` BIGINT UNSIGNED (FK -> regions.id)
 - `slug` VARCHAR(64) UNIQUE
 - `name` VARCHAR(80)
 - `created_at` TIMESTAMP
@@ -491,8 +491,8 @@ MVP content examples:
 Inventory of region-specific items.
 
 Columns:
-- `user_id` BIGINT UNSIGNED (FK â†’ users.id)
-- `region_item_id` BIGINT UNSIGNED (FK â†’ region_items.id)
+- `user_id` BIGINT UNSIGNED (FK -> users.id)
+- `region_item_id` BIGINT UNSIGNED (FK -> region_items.id)
 - `quantity` INT NOT NULL DEFAULT 0
 
 PK:
@@ -503,8 +503,8 @@ Record of a promotion event.
 
 Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `user_id` BIGINT UNSIGNED (FK â†’ users.id)
-- `result_unit_instance_id` BIGINT UNSIGNED (FK â†’ unit_instances.id)
+- `user_id` BIGINT UNSIGNED (FK -> users.id)
+- `result_unit_instance_id` BIGINT UNSIGNED (FK -> unit_instances.id)
 - `consumed_units_json` JSON NOT NULL
 - `consumed_region_item_id` BIGINT UNSIGNED NULL
 - `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
