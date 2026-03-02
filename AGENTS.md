@@ -144,6 +144,12 @@ This file defines project-specific operating instructions for coding agents work
 - Complete the clarification loop until requirements are implementation-ready, or document that details are unknown.
 - When requirements are sufficiently defined, update relevant files in `documentation/` to reflect scope, behavior, and delivery impact.
 
+## Current Status Evaluation Workflow
+- If the user asks for `current status evaluation` (or equivalent phrasing), execute `documentation/CURRENT_STATUS_EVALUATION.md`.
+- Treat that workflow as a two-cycle, all-roles backlog quality pass:
+  - cycle 1: top concerns + issue/milestone creation,
+  - cycle 2: cross-role reconciliation and issue/milestone revisions.
+
 ## Editing Rules
 - Keep changes scoped to the requested task.
 - Avoid unrelated refactors unless required to safely complete the task.

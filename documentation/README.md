@@ -57,6 +57,7 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `documentation/ACTIVE_CONTEXT.md` (current high-signal snapshot)
 - If validating documentation quality and drift:
   - `documentation/QA_CHECKLIST.md`
+  - `documentation/CURRENT_STATUS_EVALUATION.md`
   - `documentation/TESTING_STRATEGY.md`
   - `documentation/STYLE_GUIDE.md`
   - `documentation/CHANGELOG.md`

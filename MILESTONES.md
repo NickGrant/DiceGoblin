@@ -78,7 +78,6 @@ status: not-started
 execution_window: closed
 is_current: no
 issues:
-  - Remove unsafe any-casts from API client team mutation flow
 description: |
   Improve unit/dice management depth, robustness, and client contract quality.
 
@@ -90,3 +89,76 @@ is_current: no
 issues:
 description: |
   Raise release-readiness confidence with verification coverage and stability hardening.
+
+---
+name: Milestone 9 - Product and Backlog Governance
+status: not-started
+execution_window: closed
+is_current: no
+issues:
+  - Establish post-QA milestone execution order and current milestone selection policy
+  - Define milestone entry/exit criteria template and apply to active milestones
+  - Add cross-milestone dependency map for run, combat, UX, and QA streams
+  - Add issue dependency metadata for blocked-by relationships
+  - Normalize active issue metadata fields to template standards
+  - Resolve empty milestone placeholders or repopulate with scoped issues
+  - Define backlog triage cadence and status-transition policy
+  - Add automated lint/check for ISSUES and MILESTONES schema consistency
+description: |
+  Tighten roadmap governance, milestone clarity, and backlog hygiene so future delivery lanes stay executable and auditable.
+
+---
+name: Milestone 10 - Engineering Maintainability and Contracts
+status: not-started
+execution_window: closed
+is_current: no
+issues:
+  - Remove unsafe any-casts from API client team mutation flow
+  - Refactor WarbandManagementScene logic into testable state module
+  - Consolidate repeated controller auth/csrf/service bootstrap patterns
+  - Remove nested transaction ownership between controllers and repositories
+  - Introduce stricter typed DTO mapping for profile squad payload assembly
+description: |
+  Reduce technical debt in client/server architecture and enforce stronger typing and maintainability patterns.
+
+---
+name: Milestone 11 - QA Coverage and Automation
+status: not-started
+execution_window: closed
+is_current: no
+issues:
+  - Add backend endpoint contract tests for session/profile/current-run success envelopes
+  - Add end-to-end API integration test for start-run resolve-node claim-battle lifecycle
+  - Add CI workflow to run backend and frontend verification gates
+  - Add frontend apiClient mutation flow tests for CSRF and error handling behavior
+  - Add reusable test DB reset/migration utility for backend integration tests
+description: |
+  Expand automated verification depth and establish repeatable CI-backed confidence gates.
+
+---
+name: Milestone 12 - Combat Determinism and Progression Integrity
+status: not-started
+execution_window: closed
+is_current: no
+issues:
+  - Add deterministic seed derivation strategy for node resolution
+  - Add combat ability-handler regression test suite against canonical rules
+  - Add progression invariants test suite for claim and run-state mutation
+  - Add battle reward economy sanity validation fixtures
+description: |
+  Strengthen combat determinism and progression correctness before higher-level tuning and content expansion. Depends on placeholder-removal implementation in Milestone 2.
+
+---
+name: Milestone 13 - Player Experience and UX Flow
+status: not-started
+execution_window: closed
+is_current: no
+issues:
+  - Add end-to-end player journey document for first-session flow
+  - Add first-session onboarding and objective framing UX spec
+  - Add encounter preview UX for node risk and reward expectations
+  - Add post-battle progression summary UX contract
+  - Define run failure and recovery UX states for partial and total defeat
+  - Create player-value feature ordering model for upcoming milestones
+description: |
+  Improve player-facing flow quality, clarity, and engagement through focused UX and sequencing artifacts.
