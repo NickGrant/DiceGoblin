@@ -25,7 +25,9 @@ This file defines project-specific operating instructions for coding agents work
   - `ROLES.md`
 - Validate `ISSUES.md` contains only active statuses (`unstarted`, `in-progress`, `reopened`, `blocked`).
 - Validate active issue entries include `priority` with one of: `low`, `medium`, `high`.
+- Validate active issue entries include `execution` (`active` | `deferred`) and `ready` (`yes` | `no`).
 - Validate `MILESTONES.md` contains only active milestone statuses (`not-started`, `in-progress`, `complete`, `blocked`).
+- Validate milestone entries use `execution_window` (`open` | `closed`) and `is_current` (`yes` | `no`).
 - If startup docs are missing/stale, continue with best effort and log the gap in the next user update.
 
 ## Instruction Precedence
@@ -60,6 +62,8 @@ This file defines project-specific operating instructions for coding agents work
   - `title`
   - `status`
   - `priority` (`low` | `medium` | `high`)
+  - `execution` (`active` | `deferred`)
+  - `ready` (`yes` | `no`)
   - `description`
 - When adding issues, set `priority` explicitly; if priority is unknown, default to `medium`.
 - When beginning implementation of an issue, set `status: in-progress` first.
@@ -75,12 +79,22 @@ This file defines project-specific operating instructions for coding agents work
   - move it back to `ISSUES.md` with `status: reopened`,
   - do not begin implementing that issue until the user explicitly asks to work issues or fix that item.
 - If the user requests reopen and fix in the same message, reopen then implement immediately.
+- Default auto-execution gate:
+  - only auto-work issues where `execution: active` and `ready: yes`,
+  - and either issue `milestone` is empty/unassigned, or linked milestone is current and open.
+- If issue is linked to a milestone that is not current/open, treat it as planning-only unless user explicitly asks to work it now.
 
 ## Milestones Workflow (`MILESTONES.md`)
 - Treat `MILESTONES.md` as active milestone grouping metadata for issues.
 - If the user asks to add or update a milestone, update `MILESTONES.md` directly.
 - Milestones reference issue titles from `ISSUES.md`; issues can exist without milestones.
 - If a milestone has no issues, it must remain `status: not-started`.
+- Milestones should include:
+  - `execution_window` (`open` | `closed`)
+  - `is_current` (`yes` | `no`)
+- Only one milestone should have `is_current: yes` at a time.
+- Milestone execution gate:
+  - issues mapped to milestones with `execution_window: closed` are not auto-executed.
 - When a milestone is completed:
   - set `status: complete`,
   - append `Resolution:` (1-2 sentences),

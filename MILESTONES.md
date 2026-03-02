@@ -15,6 +15,8 @@
 - Required milestone fields:
   - `name`
   - `status`
+  - `execution_window` (`open` | `closed`)
+  - `is_current` (`yes` | `no`)
   - `issues` (list of issue titles from `ISSUES.md`)
 - Milestone rule:
   - if a milestone has no issues, status must be `not-started`
@@ -29,6 +31,8 @@ Use this block for new milestones:
 ---
 name: <milestone name>
 status: not-started
+execution_window: closed
+is_current: no
 issues:
   - <issue title>
 description: |
@@ -39,6 +43,8 @@ description: |
 ---
 name: Milestone 2 - Server-Side Battle Resolution
 status: not-started
+execution_window: closed
+is_current: no
 issues:
   - Replace placeholder run node resolution with deterministic combat engine integration
   - Implement non-placeholder reward and XP application on battle claim
@@ -49,6 +55,8 @@ description: |
 ---
 name: Milestone 3 - Run Progression and Attrition
 status: not-started
+execution_window: closed
+is_current: no
 issues: []
 description: |
   Track run progression state, attrition persistence, and run-end behavior once related execution issues are added.
@@ -56,6 +64,8 @@ description: |
 ---
 name: Milestone 4 - Encounter Flow UI
 status: not-started
+execution_window: closed
+is_current: no
 issues:
   - Add frontend interaction tests for warband placement and save behaviors
 description: |
@@ -64,6 +74,8 @@ description: |
 ---
 name: Milestone 5 - Unit and Dice Management
 status: not-started
+execution_window: closed
+is_current: no
 issues:
   - Remove unsafe any-casts from API client team mutation flow
 description: |
@@ -72,6 +84,8 @@ description: |
 ---
 name: Milestone 6 - Playability and Stability Pass
 status: not-started
+execution_window: closed
+is_current: no
 issues:
   - Add backend integration tests for team create/activate/update with CSRF and ownership rules
 description: |
