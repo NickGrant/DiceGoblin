@@ -1,8 +1,8 @@
 import ClickablePanel, { type ClickablePanelConfig } from "./clickable-panel/ClickablePanel";
 
 export default class HomeButton extends ClickablePanel {
-    constructor(stage: Phaser.Stage, cfg: ClickablePanelConfig) {
-        super(stage, {
+    constructor(scene: Phaser.Scene, cfg: ClickablePanelConfig) {
+        super(scene, {
             ...cfg,
             targetSceneKey: 'HomeScene',
             textureKey: 'icon_home',

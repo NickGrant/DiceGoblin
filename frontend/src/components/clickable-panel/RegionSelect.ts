@@ -12,7 +12,7 @@ export default class RegionSelect extends ClickablePanel {
         })
 
         apiClient.getProfile().then((profile) => {
-            if (profile.data.active_run) {
+            if (profile.ok && profile.data.active_run) {
                 this.updateImage('panel_continue_run');
                 this.targetSceneKey = 'MapExplorationScene'
                 this.dataToPass = {run_id: profile.data.active_run.run_id}

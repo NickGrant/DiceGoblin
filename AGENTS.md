@@ -117,6 +117,11 @@ This file defines project-specific operating instructions for coding agents work
 ## Verification Requirements
 - After code changes, run relevant tests/builds when available.
 - Report pass/fail status clearly.
+- If any build/test command fails at any point, immediately notify the user in the next update with:
+  - failing command,
+  - error summary (top actionable failures),
+  - whether the failure appears pre-existing or introduced by current changes.
+- Never defer disclosure of known build/test failures until final summary.
 - If a requested verification cannot be run, state why.
 
 ## Doc Hygiene Rule

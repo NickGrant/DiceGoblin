@@ -186,7 +186,11 @@ export default class NodeList extends Phaser.GameObjects.Container {
     // Shuffle positions for more “random” fill order
     for (let i = positions.length - 1; i > 0; i--) {
       const j = Math.floor(rng() * (i + 1));
-      [positions[i], positions[j]] = [positions[j], positions[i]];
+      const left = positions[i];
+      const right = positions[j];
+      if (!left || !right) continue;
+      positions[i] = right;
+      positions[j] = left;
     }
 
     return positions;

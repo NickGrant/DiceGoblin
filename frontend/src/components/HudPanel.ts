@@ -54,6 +54,7 @@ export default class HudPanel extends Phaser.GameObjects.Container {
     scene.scale.on("resize", this.reposition, this);
 
     apiClient.getProfile().then((profile) => {
+      if (!profile.ok) return;
       this.energyCurrent = profile.data.energy.current;
       this.energyMax = profile.data.energy.max;
       this.redrawEnergy();

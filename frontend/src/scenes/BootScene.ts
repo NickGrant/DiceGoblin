@@ -23,6 +23,10 @@ export default class BootScene extends Phaser.Scene {
   ): Promise<void> {
     try {
       const session = await apiClient.getSession();
+      if (!session.ok) {
+        throw new Error(session.error.message);
+      }
+
       RegistrySession.set(this.registry, {
         isAuthenticated: !!session.data.authenticated,
         user: {
