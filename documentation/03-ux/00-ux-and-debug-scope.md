@@ -22,7 +22,7 @@ The following screens/scenes are required for MVP:
 - Home
 - Region Select (Mountains, Swamps)
 - Run Map (Exploration)
-- Encounter Start / Team Select (if applicable)
+- Encounter Start / Squad Select (if applicable)
 - Combat Viewer (live + replay)
 - Loot Claim / Rewards
 - Warband Management (unit list)

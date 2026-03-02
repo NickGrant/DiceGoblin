@@ -107,7 +107,7 @@ describe("WarbandManagementScene interactions", () => {
 
   it("shows error toast when save fails", async () => {
     const scene = new WarbandManagementScene() as any;
-    scene.activeTeam = { id: "11", name: "Alpha", is_active: true, unit_ids: [], formation: [] };
+    scene.activeSquad = { id: "11", name: "Alpha", is_active: true, unit_ids: [], formation: [] };
     scene.editUnitIds = new Set<string>(["u1"]);
     scene.editFormation = {
       A1: "u1", B1: null, C1: null,
@@ -127,7 +127,7 @@ describe("WarbandManagementScene interactions", () => {
 
   it("shows success toast and reloads after save success", async () => {
     const scene = new WarbandManagementScene() as any;
-    scene.activeTeam = { id: "12", name: "Beta", is_active: true, unit_ids: [], formation: [] };
+    scene.activeSquad = { id: "12", name: "Beta", is_active: true, unit_ids: [], formation: [] };
     scene.editUnitIds = new Set<string>(["u2"]);
     scene.editFormation = {
       A1: "u2", B1: null, C1: null,

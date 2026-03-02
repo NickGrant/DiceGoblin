@@ -89,7 +89,7 @@ export const apiClient = {
   },
 
   // -----------------------------
-  // Teams
+  // Squads (backed by /teams routes)
   // -----------------------------
 
   async createTeam(

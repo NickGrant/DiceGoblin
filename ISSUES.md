@@ -72,16 +72,6 @@ description: |
   [Role: Combat Systems Reviewer] `backend/src/Controllers/BattleController.php` returns placeholder arrays for `updated_run_unit_state`, XP application details, and updated units. Implement real reward/XP application tied to run-scoped unit state and battle outcomes to satisfy progression invariants.
 
 ---
-title: Rename team terminology to squads across frontend, backend, and docs
-status: unstarted
-priority: medium
-execution: deferred
-ready: no
-milestone: unassigned
-description: |
-  Preferred product terminology is `squads`. Audit and update inconsistent references to `teams` where safe, preserving route/database naming where backward compatibility requires it. Ensure API/docs/client types clearly communicate canonical `squads` wording.
-
----
 title: Persist run-scoped unit attrition state across encounters and resume
 status: unstarted
 priority: high

@@ -147,7 +147,7 @@ final class RunNodeController
         return;
       }
 
-      // Determine team (defaults to active)
+      // Determine squad selection (defaults to active squad route/table naming remains team_id)
       if ($teamIdInt <= 0) {
         $activeTeam = $svc['teamRepo']->getActiveTeamForUser($userId);
         if ($activeTeam === null) {
@@ -156,7 +156,7 @@ final class RunNodeController
             'ok' => false,
             'error' => [
               'code' => 'validation_error',
-              'message' => 'No active team. Provide team_id.',
+              'message' => 'No active squad. Provide team_id.',
             ],
           ], 400);
           return;

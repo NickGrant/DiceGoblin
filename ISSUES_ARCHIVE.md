@@ -256,3 +256,14 @@ milestone: unassigned
 description: |
   Define a new `Game Designer` role in `ROLES.md` that evaluates playability and user appeal, with emphasis on UX decisions, game flow quality, and player-centric feature ordering recommendations.
 Resolution: Added a `Game Designer` role definition to `ROLES.md` with explicit goals, constraints, risk tolerance, and communication style centered on UX, flow, and feature sequencing.
+
+---
+title: Rename team terminology to squads across frontend, backend, and docs
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: unassigned
+description: |
+  Preferred product terminology is `squads`. Audit and update inconsistent references to `teams` where safe, preserving route/database naming where backward compatibility requires it. Ensure API/docs/client types clearly communicate canonical `squads` wording.
+Resolution: Updated user-facing and documentation terminology to prefer `squads` (including Warband scene labels and architecture/glossary text) while preserving compatibility-critical technical identifiers such as `/api/v1/teams` routes and DB table naming.

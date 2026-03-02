@@ -27,8 +27,8 @@ export default class WarbandManagementScene extends Phaser.Scene {
   private toastText?: Phaser.GameObjects.Text;
 
   private units: UnitRecord[] = [];
-  private teams: TeamRecord[] = [];
-  private activeTeam: TeamRecord | null = null;
+  private squads: TeamRecord[] = [];
+  private activeSquad: TeamRecord | null = null;
 
   // Editing state
   private editUnitIds: Set<string> = new Set();
@@ -47,7 +47,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   private saveButton?: UiButton;
   private clearButton?: UiButton;
-  private createTeamButton?: UiButton;
+  private createSquadButton?: UiButton;
 
   constructor() {
     super({ key: "WarbandManagementScene" });
@@ -79,8 +79,8 @@ export default class WarbandManagementScene extends Phaser.Scene {
       if (!profile.ok) throw new Error(profile.error.message);
 
       this.units = (profile.data.units ?? []) as UnitRecord[];
-      this.teams = (profile.data.squads ?? []) as TeamRecord[];
-      this.activeTeam = this.teams.find((t) => t.is_active) ?? this.teams[0] ?? null;
+      this.squads = (profile.data.squads ?? []) as TeamRecord[];
+      this.activeSquad = this.squads.find((t) => t.is_active) ?? this.squads[0] ?? null;
 
       this.loadingText?.destroy();
       this.loadingText = undefined;
@@ -111,40 +111,40 @@ export default class WarbandManagementScene extends Phaser.Scene {
     this.clearButton?.destroy();
     this.clearButton = undefined;
 
-    this.createTeamButton?.destroy();
-    this.createTeamButton = undefined;
+    this.createSquadButton?.destroy();
+    this.createSquadButton = undefined;
   }
 
   private buildUi(): void {
     this.destroyUi();
 
-    if (!this.activeTeam) {
+    if (!this.activeSquad) {
       this.titleText = this.add
-        .text(480, 160, "No teams found.", {
+        .text(480, 160, "No squads found.", {
           fontFamily: "Arial",
           fontSize: "18px",
           color: "#ffffff",
         })
         .setOrigin(0.5);
 
-      this.createTeamButton = new UiButton({
+      this.createSquadButton = new UiButton({
         scene: this,
         x: 480,
         y: 240,
-        label: "Create Team",
+        label: "Create Squad",
         size: "small",
-        onClick: () => void this.createTeam(),
+        onClick: () => void this.createSquad(),
       });
 
       return;
     }
 
-    // Initialize local edit state from active team
+    // Initialize local edit state from active squad
     this.selectedUnitId = null;
-    this.editUnitIds = new Set(this.activeTeam.unit_ids ?? []);
+    this.editUnitIds = new Set(this.activeSquad.unit_ids ?? []);
     this.editFormation = emptyFormation();
 
-    for (const f of this.activeTeam.formation ?? []) {
+    for (const f of this.activeSquad.formation ?? []) {
       const cell = f.cell as Cell;
       if (CELLS.includes(cell)) {
         this.editFormation[cell] = f.unit_instance_id;
@@ -153,7 +153,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
     // Header
     this.titleText = this.add
-      .text(480, 92, `WARBAND: ${this.activeTeam.name}`, {
+      .text(480, 92, `WARBAND: ${this.activeSquad.name}`, {
         fontFamily: "Arial",
         fontSize: "18px",
         color: "#ffffff",
@@ -346,7 +346,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
   // Persistence
   // ----------------------------
 
-  private async createTeam(): Promise<void> {
+  private async createSquad(): Promise<void> {
     const res = await apiClient.createTeam("My Warband", true);
     if (!res.ok) {
       this.showToast(`Create failed: ${res.error.message}`);
@@ -356,14 +356,14 @@ export default class WarbandManagementScene extends Phaser.Scene {
   }
 
   private async saveTeam(): Promise<void> {
-    if (!this.activeTeam) return;
+    if (!this.activeSquad) return;
 
     const formation: TeamFormationCell[] = CELLS.map((cell) => ({
       cell,
       unit_instance_id: this.editFormation[cell] ?? null,
     }));
 
-    const res = await apiClient.updateTeam(this.activeTeam.id, {
+    const res = await apiClient.updateTeam(this.activeSquad.id, {
       unit_ids: Array.from(this.editUnitIds),
       formation,
     });

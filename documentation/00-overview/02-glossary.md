@@ -67,7 +67,7 @@ The category of encounter, such as combat, puzzle, narrative, hazard, or merchan
 A relative measure of threat used to scale challenge and rewards.
 
 ### Encounter Slots
-The required or allowed number of teams participating in an encounter.
+The required or allowed number of squads participating in an encounter.
 
 ### Resolution
 The outcome of an encounter, such as success, partial success, or failure.
@@ -129,8 +129,8 @@ A subset of units participating together within an encounter.
 ### Formation
 A 3x3 placement grid defining starting positions in combat. Stored on squads (persistent) and also copied into run state (run-scoped).
 
-### Run Team Snapshot
-When a run starts, the selected team's membership + formation are copied into run-scoped state. Combat reads the run snapshot, not the saved squad directly.
+### Run Squad Snapshot
+When a run starts, the selected squad's membership + formation are copied into run-scoped state. Combat reads the run snapshot, not the saved squad directly.
 
 ### Player-Controlled Unit
 A unit directly controlled by the player.

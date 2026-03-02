@@ -62,7 +62,7 @@ Readers:
 
 `WarbandManagementScene` reads `GET /api/v1/profile` and derives local scene state:
 - `units`
-- `squads` (consumed as editable local team state)
+- `squads` (consumed as editable local squad state)
 - active squad selection
 
 ### 4.3 Run Slice (Scene-local)

@@ -70,7 +70,7 @@ npm run db:schema
 - Battles:
   - `GET /api/v1/battles/:battleId/log`
   - `POST /api/v1/battles/:battleId/claim`
-- Teams/warband management:
+- Squads/warband management:
   - `POST /api/v1/teams`
   - `POST /api/v1/teams/:teamId/activate`
   - `PUT /api/v1/teams/:teamId`

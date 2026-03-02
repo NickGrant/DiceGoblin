@@ -54,7 +54,7 @@ style:
 name: QA Lead
 goals:
 - produce reproducible test plans for frontend, backend, and API contracts
-- prioritize regression coverage for active systems (runs, teams, battles)
+- prioritize regression coverage for active systems (runs, squads, battles)
 - convert observed failures into actionable issues with repro steps
 constraints:
 - cannot mark release-ready when blocking checks fail

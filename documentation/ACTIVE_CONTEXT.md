@@ -27,7 +27,7 @@ Depends On: `ISSUES.md`, `documentation/README.md`
 ## Known Blockers / Risks
 - Placeholder combat/reward implementations can hide regressions in run progression.
 - API contract drift increases coordination cost between frontend, backend, and docs.
-- Limited automated tests around team mutation/idempotency increase regression risk.
+- Limited automated tests around squad mutation/idempotency increase regression risk.
 
 ## Working Agreements
 - `ISSUES.md` is active backlog source of truth.
