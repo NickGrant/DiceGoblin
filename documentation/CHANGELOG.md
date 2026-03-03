@@ -36,3 +36,5 @@ Depends On: `documentation/README.md`, `ISSUES.md`
 - Added root workflow command `npm run backlog:validate` via `package.json`.
 - Added CI workflow `.github/workflows/backlog-validation.yml` to validate backlog schema/links on relevant changes.
 - Split deferred planning inventory into `ISSUES_BACKLOG.md` and `MILESTONES_BACKLOG.md` to keep active tracking docs within context guardrails.
+- Consolidated roadmap/dependency/triage governance into `documentation/BACKLOG_OPERATIONS.md` and marked legacy policy docs as compatibility pointers.
+- Removed superseded policy files (`ROADMAP_EXECUTION_POLICY.md`, `BACKLOG_DEPENDENCIES.md`, `BACKLOG_TRIAGE_POLICY.md`) after consolidation into `BACKLOG_OPERATIONS.md`.

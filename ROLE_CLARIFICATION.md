@@ -32,3 +32,7 @@
 - name: Technical Product Manager
   decision: Raised a post-governance issue to select/open the next current milestone after archiving Milestone 9.
   definition: Define whether milestone transition should happen automatically when a current milestone is archived complete, or only on explicit user confirmation.
+
+- name: Technical Product Manager
+  decision: Consolidated three overlapping governance docs into a single canonical backlog-operations source.
+  definition: Clarify TPM authority boundaries for consolidating policy docs directly versus raising consolidation-only issues first.

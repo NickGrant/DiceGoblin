@@ -63,9 +63,7 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `documentation/TESTING_STRATEGY.md`
   - `documentation/STYLE_GUIDE.md`
   - `documentation/CHANGELOG.md`
-  - `documentation/ROADMAP_EXECUTION_POLICY.md`
-  - `documentation/BACKLOG_DEPENDENCIES.md`
-  - `documentation/BACKLOG_TRIAGE_POLICY.md`
+  - `documentation/BACKLOG_OPERATIONS.md`
 
 ## Reference Data Docs
 - `documentation/JSON Schema/unit_types.base_stats_json.json`

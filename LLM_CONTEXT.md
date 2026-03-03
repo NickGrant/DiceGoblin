@@ -16,6 +16,7 @@
 
 ## Include On Demand
 - `ISSUES_BACKLOG.md` and `MILESTONES_BACKLOG.md` for deferred roadmap/planning context
+- `documentation/BACKLOG_OPERATIONS.md` for roadmap/triage/dependency policy decisions
 - `documentation/01-architecture/` docs for API and system-contract decisions
 - `documentation/02-systems-mvp/` docs for gameplay rules and scope
 - `documentation/03-ux/` docs for UX and visual behavior
