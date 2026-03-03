@@ -98,3 +98,31 @@ issues:
 description: |
   Track run progression state, attrition persistence, and run-end behavior with explicit retry/failure handling.
 Resolution: Implemented run-unit-state snapshot/attrition persistence, run fail/abandon cleanup with defeated-unit XP reset, and claimed-defeat encounter retry flow, validated by expanded backend integration coverage (`phpunit`, 17 passing tests).
+---
+name: Milestone 4 - Encounter Flow UI
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Define encounter-flow scene transition matrix and acceptance criteria
+  - Implement run map node state rendering and unlock gating contract
+  - Add frontend interaction tests for encounter transitions and node-status affordances
+  - Define combat viewer event readability contract for desktop and mobile
+  - Specify encounter reward-surface rules by encounter type
+description: |
+  Complete encounter-flow UX surfaces and ensure end-to-end playable progression through UI.
+Resolution: Completed encounter-flow transition/readability/reward contracts, aligned run-map node affordances with backend status semantics, and added frontend interaction tests for node status + transition guards; frontend test/build gates pass outside sandbox (`npm run test`, `npm run build`).
+---
+name: Milestone 5 - Unit and Dice Management
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Define unit and dice management acceptance criteria for MVP information surfaces
+  - Implement typed view-model adapters for unit and dice details payloads
+  - Add regression tests for warband formation editing and bench-membership save invariants
+  - Define promotion and dice-management UX sequencing between runs and rest nodes
+  - Specify dice pool consumption and refresh visualization cues
+description: |
+  Improve unit/dice management depth, robustness, and client contract quality.
+Resolution: Completed unit/dice acceptance criteria, typed client adapters, and regression tests, then finalized UX sequencing and dice pool visualization contracts to lock run-vs-management behavior and combat readability expectations.

@@ -105,6 +105,37 @@ describe("WarbandManagementScene interactions", () => {
     expect(scene.refreshDerivedUiState).toHaveBeenCalledTimes(1);
   });
 
+  it("maps unit row state for highlighted, outlined, and selected flags", () => {
+    const scene = new WarbandManagementScene() as any;
+    scene.editUnitIds = new Set<string>(["u1", "u2"]);
+    scene.editFormation = {
+      A1: "u1", B1: null, C1: null,
+      A2: null, B2: null, C2: null,
+      A3: null, B3: null, C3: null,
+    };
+    scene.selectedUnitId = "u2";
+
+    const placed = scene.getUnitRowState({ id: "u1", name: "Placed", level: 1 });
+    const selected = scene.getUnitRowState({ id: "u2", name: "Selected", level: 1 });
+    const idle = scene.getUnitRowState({ id: "u9", name: "Idle", level: 1 });
+
+    expect(placed).toMatchObject({
+      highlighted: true,
+      outlined: true,
+      badgeText: "PLACED",
+    });
+    expect(selected).toMatchObject({
+      highlighted: true,
+      outlined: false,
+      badgeText: "SELECTED",
+    });
+    expect(idle).toMatchObject({
+      highlighted: false,
+      outlined: false,
+      badgeText: null,
+    });
+  });
+
   it("shows error toast when save fails", async () => {
     const scene = new WarbandManagementScene() as any;
     scene.activeSquad = { id: "11", name: "Alpha", is_active: true, unit_ids: [], formation: [] };
@@ -143,5 +174,32 @@ describe("WarbandManagementScene interactions", () => {
     expect(updateTeamMock).toHaveBeenCalledTimes(1);
     expect(scene.showToast).toHaveBeenCalledWith("Saved!", "#ccffcc");
     expect(scene.loadData).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends full 3x3 formation and preserves bench membership in save payload", async () => {
+    const scene = new WarbandManagementScene() as any;
+    scene.activeSquad = { id: "13", name: "Gamma", is_active: true, unit_ids: [], formation: [] };
+    scene.editUnitIds = new Set<string>(["u1", "uBench"]);
+    scene.editFormation = {
+      A1: "u1", B1: null, C1: null,
+      A2: null, B2: null, C2: null,
+      A3: null, B3: null, C3: null,
+    };
+    scene.showToast = vi.fn();
+    scene.loadData = vi.fn().mockResolvedValue(undefined);
+    updateTeamMock.mockResolvedValue({ ok: true, data: {} });
+
+    await scene.saveTeam();
+
+    const [, payload] = updateTeamMock.mock.calls[0] as [string, any];
+    expect(payload.unit_ids).toEqual(expect.arrayContaining(["u1", "uBench"]));
+    expect(payload.formation).toHaveLength(9);
+    expect(payload.formation).toEqual(
+      expect.arrayContaining([
+        { cell: "A1", unit_instance_id: "u1" },
+        { cell: "B2", unit_instance_id: null },
+        { cell: "C3", unit_instance_id: null },
+      ])
+    );
   });
 });

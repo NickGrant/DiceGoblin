@@ -55,6 +55,13 @@ export type UnitEquippedDie = {
   slot_index: number;
 };
 
+export type UnitAbilityRecord = {
+  ability_id: string;
+  type?: "active" | "passive" | string;
+  display_name?: string;
+  order?: number;
+};
+
 export type UnitRecord = {
   // Minimum fields used by UnitListPanel + Warband screen
   id: string;
@@ -66,8 +73,10 @@ export type UnitRecord = {
   unit_type_name?: string;
   tier?: number;
   xp?: number;
+  max_level?: number;
   locked?: boolean;
   equipped_dice?: UnitEquippedDie[];
+  abilities?: UnitAbilityRecord[];
 
   [key: string]: unknown;
 };
@@ -87,11 +96,28 @@ export type TeamRecord = {
   [key: string]: unknown;
 };
 
+export type DiceAffixRecord = {
+  affix_definition_id: string;
+  value: number;
+};
+
+export type DiceRecord = {
+  id: string;
+  dice_definition_id?: string;
+  display_name?: string | null;
+  rarity?: string;
+  sides?: number;
+  slot_capacity?: number;
+  affixes?: DiceAffixRecord[];
+
+  [key: string]: unknown;
+};
+
 export type ProfileData = {
   server_time_iso: string; // ISO timestamp
   squads: TeamRecord[];
   units: UnitRecord[];
-  dice: Array<unknown>;
+  dice: DiceRecord[];
   currency: {
     soft: number;
     hard: number;

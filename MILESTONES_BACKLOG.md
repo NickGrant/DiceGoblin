@@ -9,44 +9,6 @@
 ## Backlog Milestones
 
 ---
-name: Milestone 4 - Encounter Flow UI
-status: not-started
-execution_window: closed
-is_current: no
-issues:
-  - Define encounter-flow scene transition matrix and acceptance criteria
-  - Implement run map node state rendering and unlock gating contract
-  - Add frontend interaction tests for encounter transitions and node-status affordances
-  - Define combat viewer event readability contract for desktop and mobile
-  - Specify encounter reward-surface rules by encounter type
-description: |
-  Complete encounter-flow UX surfaces and ensure end-to-end playable progression through UI.
-entry_criteria: |
-  * Scene transition matrix and reward-surface expectations are documented.
-  * Upstream server contracts for run/node status payloads are stable enough for UI wiring.
-exit_criteria: |
-  * Encounter flow UI issues and tests are complete and archived.
-  * Node-state affordances and transition guards are validated in frontend verification.
----
-name: Milestone 5 - Unit and Dice Management
-status: not-started
-execution_window: closed
-is_current: no
-issues:
-  - Define unit and dice management acceptance criteria for MVP information surfaces
-  - Implement typed view-model adapters for unit and dice details payloads
-  - Add regression tests for warband formation editing and bench-membership save invariants
-  - Define promotion and dice-management UX sequencing between runs and rest nodes
-  - Specify dice pool consumption and refresh visualization cues
-description: |
-  Improve unit/dice management depth, robustness, and client contract quality.
-entry_criteria: |
-  * Unit/dice detail acceptance criteria and UX sequencing constraints are documented.
-  * Required API contract keys for unit/dice surfaces are stable.
-exit_criteria: |
-  * Unit/dice management issues are complete and archived.
-  * Regression coverage validates formation and bench-membership invariants.
----
 name: Milestone 6 - Playability and Stability Pass
 status: not-started
 execution_window: closed

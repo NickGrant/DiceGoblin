@@ -1,0 +1,31 @@
+{
+  "files": [
+    { "type": "image", "key": "background_concrete", "url": "assets/backgrounds/background_concrete.png" },
+    { "type": "image", "key": "background_desk", "url": "assets/backgrounds/background_desk.png" },
+    { "type": "image", "key": "background_workbench", "url": "assets/backgrounds/background_workbench.png" },
+
+    { "type": "image", "key": "button_background", "url": "assets/ui/button/placard_large.png" },
+    { "type": "image", "key": "button_glow", "url": "assets/ui/button/highlight_glow_rect.png" },
+
+    { "type": "image", "key": "panel_main", "url": "assets/ui/panel_main.png"},
+    { "type": "image", "key": "panel_begin_run", "url": "assets/ui/panel_begin_run.png"},
+    { "type": "image", "key": "panel_continue_run", "url": "assets/ui/panel_continue_run.png"},
+    { "type": "image", "key": "column_swamp", "url": "assets/ui/column_swamp.png"},
+    { "type": "image", "key": "column_mountain", "url": "assets/ui/column_mountain.png"},
+    { "type": "image", "key": "manifest_strip", "url": "assets/ui/manifest_strip.png"},
+    { "type": "image", "key": "torn_corner_patch", "url": "assets/ui/torn_corner_patch.png"},
+
+
+    { "type": "image", "key": "icon_wrench", "url": "assets/ui/icons/icon_tile_wrench.png"},
+    { "type": "image", "key": "icon_skull", "url": "assets/ui/icons/icon_tile_skull.png"},
+    { "type": "image", "key": "icon_question", "url": "assets/ui/icons/icon_tile_question.png"},
+    { "type": "image", "key": "icon_dice", "url": "assets/ui/icons/icon_tile_dice.png"},
+    { "type": "image", "key": "icon_home", "url": "assets/ui/icons/icon_tile_home.png"},
+    { "type": "image", "key": "icon_energy", "url": "assets/ui/icons/icon_energy.png"},
+    { "type": "image", "key": "icon_encounter_boss", "url": "assets/ui/icons/icon_encounter_boss.png"},
+    { "type": "image", "key": "icon_encounter_combat", "url": "assets/ui/icons/icon_encounter_combat.png"},
+    { "type": "image", "key": "icon_encounter_locked", "url": "assets/ui/icons/icon_encounter_locked.png"},
+    { "type": "image", "key": "icon_encounter_loot", "url": "assets/ui/icons/icon_encounter_loot.png"},
+    { "type": "image", "key": "icon_encounter_rest", "url": "assets/ui/icons/icon_encounter_rest.png"}
+  ]
+}

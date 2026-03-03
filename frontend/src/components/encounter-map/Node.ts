@@ -56,11 +56,9 @@ export default class Node extends Phaser.GameObjects.Container {
     this.on("pointerover", () => this.icon.setScale(scale + .05));
     this.on("pointerout", () => this.icon.setScale(scale));
     this.on("pointerup", () => {
-      if(this.record.status !== 'locked') {
+      if (this.record.status === "available") {
         this.cfg.onClick?.(this.record);
-        // Optional event hook if you prefer listening externally:
         this.emit("node:click", this.record);
-        console.log('clicked-em');
       }
     });
 
@@ -71,16 +69,34 @@ export default class Node extends Phaser.GameObjects.Container {
     const textureKey = this.pickTextureKey(this.record);
     this.icon.setTexture(textureKey);
 
-    // Slightly dim locked nodes
-    const locked = this.record.status === "locked";
-    this.icon.setAlpha(locked ? 0.65 : 1.0);
+    const status = this.record.status;
+    const isLocked = status === "locked";
+    const isAvailable = status === "available";
+    const isCleared = status === "cleared";
+
+    this.icon.clearTint();
+    this.icon.setAlpha(isLocked ? 0.55 : 1.0);
+    if (isCleared) {
+      this.icon.setTint(0x8fd38a);
+      this.icon.setAlpha(0.9);
+    }
+
+    this.disableInteractive();
+    if (isAvailable) {
+      this.setInteractive({ useHandCursor: true });
+    }
   }
 
   private pickTextureKey(node: CurrentRunNode): string {
-    let status = node.status === 'locked' ? 'locked' : 'combat';
-    if(['boss', 'combat', 'loot', 'rest'].indexOf(node.node_type) > -1 && node.status !== 'locked'){
-      status = node.node_type;
+    if (node.status === "locked") {
+      return "icon_encounter_locked";
     }
-    return `icon_encounter_${status}`;
+
+    const type = String(node.node_type);
+    if (type === "combat" || type === "loot" || type === "rest" || type === "boss") {
+      return `icon_encounter_${type}`;
+    }
+
+    return "icon_encounter_combat";
   }
 }

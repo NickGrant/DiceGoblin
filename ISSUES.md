@@ -25,7 +25,7 @@
 ## Issue Template
 Use this block for new issues:
 
----
+```yaml
 title: <short summary>
 status: unstarted
 priority: medium
@@ -41,9 +41,9 @@ created: 2026-03-02
 updated: 2026-03-02
 description: |
   <problem, impact, and expected outcome>
+```
 
 ## Active Issues
 
 ### Functional
-
 ### Documentation

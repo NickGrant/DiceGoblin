@@ -554,3 +554,136 @@ updated: 2026-03-03
 description: |
   Support retrying encounters after partial defeat using remaining undefeated run units, with no extra energy cost, consistent with run resolution scope documentation.
 Resolution: Added claimed-defeat retry handling in node resolution: defeated combat nodes remain available, claimed defeat artifacts are replaced on retry attempts, and retry/idempotency behavior is covered by integration tests.
+---
+title: Define encounter-flow scene transition matrix and acceptance criteria
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 4 - Encounter Flow UI
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  [Role: Technical Product Manager] Create a documented transition matrix for Run Map -> Encounter Start -> Combat Viewer -> Loot Claim/Rewards -> Run Map, including allowed transitions, blocked transitions, and acceptance criteria for each node type.
+Resolution: Added `documentation/03-ux/03-encounter-flow-transition-matrix.md` with explicit state transitions, blocked paths, and node-type acceptance criteria for combat, boss, loot, and rest flows.
+
+---
+title: Define combat viewer event readability contract for desktop and mobile
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 4 - Encounter Flow UI
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  [Role: Game Designer] Define readability expectations for combat playback controls, event pacing, and log visibility (including collapsible mobile log behavior) to reduce outcome confusion during replay and skip flows.
+Resolution: Added `documentation/03-ux/04-combat-viewer-readability.md` with desktop/mobile readability constraints, control layout rules, and QA acceptance checks for playback/log clarity.
+
+---
+title: Specify encounter reward-surface rules by encounter type
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 4 - Encounter Flow UI
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  [Role: Combat Systems Reviewer] Document expected reward/XP surface behavior for combat, loot, rest, and boss encounter outcomes so UI presentation stays consistent with MVP encounter and progression rules.
+Resolution: Added `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md` defining encounter-type reward/XP display rules and idempotent claim messaging aligned to MVP progression contracts.
+---
+title: Implement run map node state rendering and unlock gating contract
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 4 - Encounter Flow UI
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  [Role: Senior Developer] Implement and align Run Map UI behavior for node icons and statuses (`locked`, `available`, `cleared`) with documented unlock rules so players can reliably understand progression state.
+Resolution: Updated Run Map node rendering/interaction contracts so only `available` nodes are clickable, `locked` and `cleared` have distinct visual affordances, and node placement follows backend `meta col/row` layout data when present.
+
+---
+title: Add frontend interaction tests for encounter transitions and node-status affordances
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 4 - Encounter Flow UI
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  [Role: QA Lead] Add frontend tests validating encounter scene transitions and node-state rendering behavior for combat/loot/rest/boss flows, including negative-path transition guards.
+Resolution: Added frontend tests for node-status affordances and map transition guards (`Node.test.ts`, `MapExplorationScene.test.ts`), and validated full frontend suite/build pass in unrestricted environment.
+---
+title: Define unit and dice management acceptance criteria for MVP information surfaces
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 5 - Unit and Dice Management
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  [Role: Technical Product Manager] Define acceptance criteria for Unit Details and Dice Details screens (tier/level/xp/max, affix labeling, equipped dice visibility, run-scoped read-only state) to remove ambiguity before implementation.
+Resolution: Added `documentation/03-ux/05-unit-dice-details-acceptance.md` with concrete MVP acceptance criteria for unit/dice details, XP/max-level presentation, affix labeling, and run-scoped read-only overlays.
+---
+title: Implement typed view-model adapters for unit and dice details payloads
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 5 - Unit and Dice Management
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  [Role: Senior Developer] Introduced typed frontend adapters for unit/dice detail payloads to enforce consistent rendering for XP progress, max-level handling, rarity/slot metadata, and conditional affix labels.
+Resolution: Added `frontend/src/adapters/profileViewModels.ts` with typed unit/dice normalization and view-model transforms, wired warband loading through normalized units, and added `frontend/tests/adapters/profileViewModels.test.ts` coverage for max-level XP behavior, affix labeling, and equip-context mapping.
+---
+title: Add regression tests for warband formation editing and bench-membership save invariants
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 5 - Unit and Dice Management
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  [Role: QA Lead] Added regression tests for formation placement/clearing, highlighted vs outlined visual state mapping, and save payload invariants (`unit_ids` plus full 3x3 formation) to protect intentional bench-membership behavior.
+Resolution: Expanded `WarbandManagementScene.test.ts` with row-state mapping coverage and payload assertions ensuring full 3x3 formation persistence plus bench membership retention, and validated with full frontend test/build passes.
+---
+title: Define promotion and dice-management UX sequencing between runs and rest nodes
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 5 - Unit and Dice Management
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  [Role: Game Designer] Documented player-facing sequencing and messaging for when squad edits, promotion actions, and dice management are available (between runs vs rest nodes) to reduce progression friction.
+Resolution: Added `documentation/03-ux/06-promotion-and-dice-management-sequencing.md` defining management availability windows, blocked run-time actions, UI messaging rules, and acceptance criteria for run vs between-run behavior.
+---
+title: Specify dice pool consumption and refresh visualization cues
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 5 - Unit and Dice Management
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  [Role: Combat Systems Reviewer] Specified how dice consumption order (largest-to-smallest) and pool refresh triggers are surfaced in combat logs/UI so players can reason about ability costs and outcomes.
+Resolution: Added `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md` with required log events, HUD cue contract, labeling rules, and edge-case presentation requirements aligned to MVP dice rules.

@@ -8,6 +8,7 @@ import FormationGrid3x3, { type FormationCell, type FormationMap } from "../comp
 import UnitListPanel, { type UnitListRowState } from "../components/UnitListPanel";
 
 import { apiClient } from "../services/apiClient";
+import { adaptUnitRecords } from "../adapters/profileViewModels";
 import type { TeamRecord, UnitRecord, TeamFormationCell } from "../types/ApiResponse";
 
 type Cell = FormationCell;
@@ -78,7 +79,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
       const profile = await apiClient.getProfile({ force: true });
       if (!profile.ok) throw new Error(profile.error.message);
 
-      this.units = (profile.data.units ?? []) as UnitRecord[];
+      this.units = adaptUnitRecords(profile.data.units ?? []);
       this.squads = (profile.data.squads ?? []) as TeamRecord[];
       this.activeSquad = this.squads.find((t) => t.is_active) ?? this.squads[0] ?? null;
 

@@ -29,6 +29,12 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
 8. `documentation/02-systems-mvp/` (combat, progression, encounters)
 9. `documentation/03-ux/` (UX behavior and visual direction)
 10. `documentation/04-multiplayer/` (future-facing systems, non-MVP)
+11. `documentation/03-ux/03-encounter-flow-transition-matrix.md`
+12. `documentation/03-ux/04-combat-viewer-readability.md`
+13. `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
+14. `documentation/03-ux/05-unit-dice-details-acceptance.md`
+15. `documentation/03-ux/06-promotion-and-dice-management-sequencing.md`
+16. `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md`
 
 ## Task-Based Entry Points
 - If changing API routes, payloads, auth, or error contracts:
@@ -45,9 +51,15 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `documentation/02-systems-mvp/03-encounter-scope.md`
   - `documentation/02-systems-mvp/04-loot-and-drop-scope.md`
   - `documentation/02-systems-mvp/06-run-resolution-scope.md`
+  - `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
 - If changing frontend scene state or UX behavior:
   - `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
   - `documentation/03-ux/00-ux-and-debug-scope.md`
+  - `documentation/03-ux/03-encounter-flow-transition-matrix.md`
+  - `documentation/03-ux/04-combat-viewer-readability.md`
+  - `documentation/03-ux/05-unit-dice-details-acceptance.md`
+  - `documentation/03-ux/06-promotion-and-dice-management-sequencing.md`
+  - `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md`
   - `documentation/03-ux/02-warband-management.md`
   - `documentation/03-ux/01-visual-design-guide.md`
 - If planning/triaging work:
