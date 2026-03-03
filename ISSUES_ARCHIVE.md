@@ -513,3 +513,44 @@ updated: 2026-03-02
 description: |
   [Role: Combat Systems Reviewer] `backend/src/Controllers/BattleController.php` returns placeholder arrays for `updated_run_unit_state`, XP application details, and updated units. Implement real reward/XP application tied to run-scoped unit state and battle outcomes to satisfy progression invariants.
 Resolution: Implemented first-claim XP application for eligible squad units, excluded defeated or max-level units, persisted a claim snapshot in `battle_rewards.rewards_json` for idempotent re-claims, and now return real `updated_run_unit_state`/`xp`/`updated_units` payloads.
+---
+title: Persist run-scoped unit attrition state across encounters and resume
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 3 - Run Progression and Attrition
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  Implement and persist run-scoped unit state (HP, cooldowns, status effects, defeated flags) so attrition behavior matches `documentation/02-systems-mvp/05-save-and-resume-scope.md` and survives reconnect/resume.
+Resolution: Added run-start squad snapshot seeding into `run_unit_state`, deterministic attrition mutation on claim, and current-run payload exposure of run-unit-state for resume correctness, with integration coverage for state persistence.
+
+---
+title: Implement run failure and abandonment resolution rules
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 3 - Run Progression and Attrition
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  Implement terminal run resolution (total defeat and abandon) including XP reset rules for defeated units and post-run cleanup/recovery rules defined in `documentation/02-systems-mvp/06-run-resolution-scope.md`.
+Resolution: Implemented `POST /api/v1/runs/:runId/abandon` and total-defeat auto-fail resolution on battle claim, including defeated-unit XP reset and full run-unit-state cleanup (HP restore, cooldown/status clear) validated by integration tests.
+
+---
+title: Implement encounter retry flow for partial defeat scenarios
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 3 - Run Progression and Attrition
+created: 2026-03-02
+updated: 2026-03-03
+description: |
+  Support retrying encounters after partial defeat using remaining undefeated run units, with no extra energy cost, consistent with run resolution scope documentation.
+Resolution: Added claimed-defeat retry handling in node resolution: defeated combat nodes remain available, claimed defeat artifacts are replaced on retry attempts, and retry/idempotency behavior is covered by integration tests.

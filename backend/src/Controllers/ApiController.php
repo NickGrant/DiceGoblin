@@ -169,6 +169,7 @@ final class ApiController
             'nodes' => $services['runRepo']->getRunNodes($runId),
             'edges' => $services['runRepo']->getRunEdges($runId),
           ],
+          'run_unit_state' => $services['runRepo']->getRunUnitState($runId),
         ],
       ]);
     } catch (Throwable $e) {
@@ -310,6 +311,19 @@ final class ApiController
         return;
       }
 
+      $activeTeam = $services['teamRepo']->getActiveTeamForUser($userId);
+      if ($activeTeam === null) {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'validation_error',
+            'message' => 'No active squad found. Create and activate a squad before starting a run.',
+          ],
+        ], 400);
+        return;
+      }
+
       // Spend energy (regen + deduct) under the same transaction.
       $energyCost = (int)$region['energy_cost'];
       $this->consumeEnergyWithRegenInTransaction($services['energyRepo'], $userId, $energyCost);
@@ -318,12 +332,17 @@ final class ApiController
       $seed = random_int(1, 9223372036854775807);
       $graph = $this->generateRunGraph($regionId, (string)$seed);
 
-      $services['runRepo']->createRunGraph(
+      $created = $services['runRepo']->createRunGraph(
         $userId,
         $regionId,
         (string)$seed,
         $graph['nodes'],
         $graph['edges']
+      );
+      $services['runRepo']->seedRunUnitStateFromTeam(
+        (int)$created['run_id'],
+        $userId,
+        (int)$activeTeam['id']
       );
 
       $pdo->commit();
@@ -355,6 +374,102 @@ final class ApiController
           'message' => $msg !== '' ? $msg : 'Invalid request.',
         ],
       ], 400);
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'server_error',
+          'message' => 'Unexpected error.',
+        ],
+      ], 500);
+    }
+  }
+
+  /**
+   * POST /api/v1/runs/:runId/abandon
+   *
+   * Ends an active run as abandoned and applies run-end cleanup rules.
+   */
+  public function abandonRun(?string $runId = null): void
+  {
+    $services = $this->services();
+
+    try {
+      $userId = $services['sessionService']->requireUserId();
+    } catch (Throwable $e) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'unauthorized',
+          'message' => 'No active session.',
+        ],
+      ], 401);
+      return;
+    }
+
+    if (!$this->requireCsrf($services['csrfService'])) {
+      return;
+    }
+
+    $runIdInt = (int)($runId ?? 0);
+    if ($runIdInt <= 0) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'validation_error',
+          'message' => 'runId is required.',
+        ],
+      ], 400);
+      return;
+    }
+
+    /** @var PDO $pdo */
+    $pdo = $services['pdo'];
+
+    try {
+      $pdo->beginTransaction();
+
+      $run = $services['runRepo']->getRunForUser($userId, $runIdInt);
+      if ($run === null) {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'forbidden',
+            'message' => 'Run not found or not owned by user.',
+          ],
+        ], 403);
+        return;
+      }
+
+      if (($run['status'] ?? null) !== 'active') {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'run_not_active',
+            'message' => 'Run is not active.',
+          ],
+        ], 409);
+        return;
+      }
+
+      $services['runRepo']->applyRunEndCleanup($runIdInt, $userId, true);
+      $services['runRepo']->endRun($userId, $runIdInt, 'abandoned');
+
+      $pdo->commit();
+
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'run_id' => (string)$runIdInt,
+          'status' => 'abandoned',
+        ],
+      ]);
     } catch (Throwable $e) {
       if ($pdo->inTransaction()) {
         $pdo->rollBack();

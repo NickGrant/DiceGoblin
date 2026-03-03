@@ -12,8 +12,6 @@ use DiceGoblins\Repositories\BattleRewardsRepository;
 use DiceGoblins\Repositories\EnergyRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunRepository;
-use DiceGoblins\Repositories\TeamRepository;
-use DiceGoblins\Repositories\UnitRepository;
 use DiceGoblins\Repositories\UserRepository;
 
 use DiceGoblins\Services\CsrfService;
@@ -204,7 +202,7 @@ final class BattleController
 
   /**
    * @param array{
-   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,
+   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,seed:string,
    *   xp_total:int,rewards_json:string
    * } $battle
    */
@@ -218,6 +216,7 @@ final class BattleController
     if ($claimSnapshot === null) {
       $claimSnapshot = [
         'updated_run_unit_state' => [],
+        'run_resolution' => null,
         'xp' => [
           'award_per_unit' => (int)$battle['xp_total'],
           'applied_unit_instance_ids' => [],
@@ -236,6 +235,7 @@ final class BattleController
         'status' => 'claimed',
         'rewards' => array_merge(['xp_total' => (int)$battle['xp_total']], $rewards),
         'updated_run_unit_state' => $claimSnapshot['updated_run_unit_state'] ?? [],
+        'run_resolution' => $claimSnapshot['run_resolution'] ?? null,
         'xp' => $claimSnapshot['xp'] ?? [
           'award_per_unit' => (int)$battle['xp_total'],
           'applied_unit_instance_ids' => [],
@@ -250,16 +250,15 @@ final class BattleController
    * @param array{
    *   battleRepo: BattleRepository,
    *   battleRewardsRepo: BattleRewardsRepository,
-   *   runRepo: RunRepository,
-   *   teamRepo: TeamRepository,
-   *   unitRepo: UnitRepository
+   *   runRepo: RunRepository
    * } $svc
    * @param array{
-   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,
+   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,seed:string,
    *   xp_total:int,rewards_json:string
    * } $battle
    * @return array{
-   *   updated_run_unit_state: array<int, array{unit_instance_id:string,hp:int,status_effects:array<int,mixed>}>,
+   *   updated_run_unit_state: array<int, array{unit_instance_id:string,hp:int,is_defeated:bool,status_effects:array<int,mixed>}>,
+   *   run_resolution: array{run_id:string,status:string}|null,
    *   xp: array{
    *     award_per_unit:int,
    *     applied_unit_instance_ids:array<int,string>,
@@ -270,18 +269,33 @@ final class BattleController
    */
   private function applyRewardsAndXp(array $svc, int $userId, array $battle): array
   {
-    $teamId = (int)$battle['team_id'];
     $runId = (int)$battle['run_id'];
+    $battleId = (int)$battle['id'];
+    $battleSeed = (string)$battle['seed'];
     $awardPerUnit = max(0, (int)$battle['xp_total']);
 
-    $teamUnitIds = $this->listTeamUnitIdsForUser($teamId, $userId);
+    $runStateRows = $svc['runRepo']->getRunUnitStateForUpdate($runId);
     $runStateByUnitId = [];
-    foreach ($svc['runRepo']->getRunUnitState($runId) as $row) {
+    foreach ($runStateRows as $row) {
       $runStateByUnitId[(int)$row['unit_instance_id']] = $row;
     }
+    if (count($runStateByUnitId) === 0) {
+      return [
+        'updated_run_unit_state' => [],
+        'run_resolution' => null,
+        'xp' => [
+          'award_per_unit' => $awardPerUnit,
+          'applied_unit_instance_ids' => [],
+          'ignored_at_cap_unit_instance_ids' => [],
+        ],
+        'updated_units' => [],
+      ];
+    }
+
+    $unitMaxHp = $this->getUnitMaxHpByIdsForUser($userId, array_keys($runStateByUnitId));
 
     $eligible = [];
-    foreach ($teamUnitIds as $unitId) {
+    foreach ($runStateByUnitId as $unitId => $state) {
       $state = $runStateByUnitId[$unitId] ?? null;
       if (is_array($state) && !empty($state['is_defeated'])) {
         continue;
@@ -298,6 +312,25 @@ final class BattleController
       if ($unit === null) {
         continue;
       }
+
+      // Attrition state mutation is deterministic from battle seed + unit id.
+      $maxHp = max(1, (int)($unitMaxHp[$unitId] ?? 1));
+      $currentHp = (int)$runStateByUnitId[$unitId]['current_hp'];
+      $lossPct = $this->deterministicLossPercent($battleSeed, $battleId, $unitId, (string)$battle['outcome']);
+      $hpLoss = max(1, (int)floor($maxHp * $lossPct));
+      $newHp = max(0, $currentHp - $hpLoss);
+
+      $runStateByUnitId[$unitId]['current_hp'] = $newHp;
+      $runStateByUnitId[$unitId]['is_defeated'] = $newHp <= 0;
+
+      $svc['runRepo']->upsertRunUnitState(
+        $runId,
+        $unitId,
+        $newHp,
+        $newHp <= 0,
+        (string)$runStateByUnitId[$unitId]['cooldowns_json'],
+        (string)$runStateByUnitId[$unitId]['status_effects_json']
+      );
 
       if ($unit['level'] >= $unit['max_level']) {
         $ignoredAtCap[] = (string)$unitId;
@@ -318,21 +351,43 @@ final class BattleController
     }
 
     $updatedRunState = [];
-    foreach ($eligible as $unitId) {
-      if (!isset($runStateByUnitId[$unitId]) || !is_array($runStateByUnitId[$unitId])) {
-        continue;
-      }
-      $row = $runStateByUnitId[$unitId];
+    foreach ($runStateByUnitId as $unitId => $row) {
       $effects = json_decode((string)$row['status_effects_json'], true);
       $updatedRunState[] = [
         'unit_instance_id' => (string)$unitId,
         'hp' => (int)$row['current_hp'],
+        'is_defeated' => !empty($row['is_defeated']),
         'status_effects' => is_array($effects) ? $effects : [],
       ];
     }
 
+    $runResolution = null;
+    if ((string)$battle['outcome'] === 'defeat') {
+      $remaining = array_filter(
+        $runStateByUnitId,
+        static fn(array $row): bool => !empty($row['current_hp']) && empty($row['is_defeated'])
+      );
+
+      if (count($remaining) === 0) {
+        $svc['runRepo']->applyRunEndCleanup($runId, $userId, true);
+        $svc['runRepo']->endRun($userId, $runId, 'failed');
+        $runResolution = [
+          'run_id' => (string)$runId,
+          'status' => 'failed',
+        ];
+
+        $updatedRunState = array_map(static fn(array $row): array => [
+          'unit_instance_id' => (string)$row['unit_instance_id'],
+          'hp' => (int)$row['current_hp'],
+          'is_defeated' => (bool)$row['is_defeated'],
+          'status_effects' => json_decode((string)$row['status_effects_json'], true) ?: [],
+        ], $svc['runRepo']->getRunUnitState($runId));
+      }
+    }
+
     return [
       'updated_run_unit_state' => $updatedRunState,
+      'run_resolution' => $runResolution,
       'xp' => [
         'award_per_unit' => $awardPerUnit,
         'applied_unit_instance_ids' => $applied,
@@ -349,8 +404,6 @@ final class BattleController
    *   battleLogRepo: BattleLogRepository,
    *   battleRewardsRepo: BattleRewardsRepository,
    *   runRepo: RunRepository,
-   *   teamRepo: TeamRepository,
-   *   unitRepo: UnitRepository,
    *   sessionService: SessionService,
    *   csrfService: CsrfService
    * }
@@ -374,29 +427,65 @@ final class BattleController
       'battleLogRepo' => new BattleLogRepository($pdo),
       'battleRewardsRepo' => new BattleRewardsRepository($pdo),
       'runRepo' => new RunRepository($pdo),
-      'teamRepo' => new TeamRepository($pdo),
-      'unitRepo' => new UnitRepository($pdo),
       'sessionService' => $sessionService,
       'csrfService' => $csrfService,
     ];
   }
 
   /**
+   * @param array<int,int> $unitIds
    * @return array<int,int>
    */
-  private function listTeamUnitIdsForUser(int $teamId, int $userId): array
+  private function getUnitMaxHpByIdsForUser(int $userId, array $unitIds): array
   {
-    $pdo = Db::pdo();
-    $stmt = $pdo->prepare('
-      SELECT tu.`unit_instance_id`
-      FROM `team_units` tu
-      JOIN `unit_instances` ui ON ui.`id` = tu.`unit_instance_id`
-      WHERE tu.`team_id` = ? AND ui.`user_id` = ?
-      ORDER BY tu.`unit_instance_id` ASC
-    ');
-    $stmt->execute([$teamId, $userId]);
+    if (count($unitIds) === 0) {
+      return [];
+    }
 
-    return array_map(static fn($id): int => (int)$id, $stmt->fetchAll(PDO::FETCH_COLUMN));
+    $pdo = Db::pdo();
+    $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
+    $params = array_merge([$userId], array_values($unitIds));
+
+    $stmt = $pdo->prepare("
+      SELECT
+        ui.`id` AS `unit_instance_id`,
+        ui.`level`,
+        ut.`base_stats_json`,
+        ut.`max_hp_per_level`
+      FROM `unit_instances` ui
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE ui.`user_id` = ? AND ui.`id` IN ($placeholders)
+    ");
+    $stmt->execute($params);
+
+    $out = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $baseStats = json_decode((string)$row['base_stats_json'], true);
+      if (!is_array($baseStats)) {
+        $baseStats = [];
+      }
+      $level = max(1, (int)$row['level']);
+      $baseMaxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
+      $maxHpPerLevel = max(0, (int)$row['max_hp_per_level']);
+      $out[(int)$row['unit_instance_id']] = $baseMaxHp + (($level - 1) * $maxHpPerLevel);
+    }
+
+    return $out;
+  }
+
+  private function deterministicLossPercent(string $seed, int $battleId, int $unitId, string $outcome): float
+  {
+    $hash = hash('sha256', $seed . '|' . $battleId . '|' . $unitId);
+    $slice = substr($hash, 0, 4);
+    $roll = ((int)base_convert($slice, 16, 10)) % 100;
+
+    if ($outcome === 'defeat') {
+      // 45% - 95%
+      return (45 + ($roll % 51)) / 100.0;
+    }
+
+    // Victory attrition: 10% - 35%
+    return (10 + ($roll % 26)) / 100.0;
   }
 
   /**

@@ -86,3 +86,15 @@ issues:
 description: |
   Deliver deterministic battle resolution and real claim/reward flow with idempotency guarantees.
 Resolution: Completed deterministic node resolution and non-placeholder claim reward/XP application, with integration verification via full backend test suite (`phpunit`, 13 passing tests including deterministic resolve and idempotent claim XP coverage).
+---
+name: Milestone 3 - Run Progression and Attrition
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Persist run-scoped unit attrition state across encounters and resume
+  - Implement run failure and abandonment resolution rules
+  - Implement encounter retry flow for partial defeat scenarios
+description: |
+  Track run progression state, attrition persistence, and run-end behavior with explicit retry/failure handling.
+Resolution: Implemented run-unit-state snapshot/attrition persistence, run fail/abandon cleanup with defeated-unit XP reset, and claimed-defeat encounter retry flow, validated by expanded backend integration coverage (`phpunit`, 17 passing tests).

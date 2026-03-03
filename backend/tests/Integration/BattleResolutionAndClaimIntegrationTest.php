@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Controllers\BattleController;
+use DiceGoblins\Controllers\ApiController;
 use DiceGoblins\Controllers\RunNodeController;
 use DiceGoblins\Core\Db;
 use PDO;
@@ -197,11 +198,163 @@ final class BattleResolutionAndClaimIntegrationTest extends TestCase
     $this->assertSame('5', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$maxedUnitId]));
     $this->assertSame('0', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$defeatedUnitId]));
 
+    $updatedRunState = is_array($firstData['updated_run_unit_state'] ?? null) ? $firstData['updated_run_unit_state'] : [];
+    $stateByUnit = [];
+    foreach ($updatedRunState as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $stateByUnit[(string)($row['unit_instance_id'] ?? '')] = $row;
+    }
+    $this->assertArrayHasKey((string)$eligibleUnitId, $stateByUnit);
+    $this->assertArrayHasKey((string)$maxedUnitId, $stateByUnit);
+    $this->assertArrayHasKey((string)$defeatedUnitId, $stateByUnit);
+    $this->assertArrayHasKey('is_defeated', $stateByUnit[(string)$eligibleUnitId]);
+
+    $eligibleHp = (int)$this->scalar('SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?', [$runId, $eligibleUnitId]);
+    $maxedHp = (int)$this->scalar('SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?', [$runId, $maxedUnitId]);
+    $defeatedHp = (int)$this->scalar('SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?', [$runId, $defeatedUnitId]);
+    $this->assertLessThan(12, $eligibleHp);
+    $this->assertLessThan(14, $maxedHp);
+    $this->assertSame(0, $defeatedHp);
+
     $rewardsRaw = $this->scalar('SELECT `rewards_json` FROM `battle_rewards` WHERE `battle_id` = ?', [$battleId]);
     $rewards = json_decode((string)$rewardsRaw, true);
     $this->assertIsArray($rewards);
     $this->assertArrayHasKey('claim_snapshot', $rewards);
     $this->assertIsArray($rewards['claim_snapshot']);
+  }
+
+  public function testClaimDefeatWithNoRemainingUnitsFailsRunAndResetsDefeatedXp(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 44556677);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'available');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitA = $this->insertUnit($userId, $unitTypeId, 1, 30);
+    $unitB = $this->insertUnit($userId, $unitTypeId, 1, 40);
+
+    $this->insertTeamUnit($teamId, $unitA);
+    $this->insertTeamUnit($teamId, $unitB);
+    $this->insertRunUnitState($runId, $unitA, 1, false);
+    $this->insertRunUnitState($runId, $unitB, 1, false);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'defeat', 1234567, 60, 3);
+    $this->insertBattleRewards($battleId, 10, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+    ]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new BattleController();
+    $res = $this->invoke(fn() => $controller->claimBattle((string)$battleId));
+    $this->assertSame(200, $res['status']);
+
+    $data = is_array($res['body']['data'] ?? null) ? $res['body']['data'] : [];
+    $runResolution = is_array($data['run_resolution'] ?? null) ? $data['run_resolution'] : [];
+    $this->assertSame('failed', (string)($runResolution['status'] ?? ''));
+
+    $runStatus = (string)$this->scalar('SELECT `status` FROM `region_runs` WHERE `id` = ?', [$runId]);
+    $this->assertSame('failed', $runStatus);
+
+    // Defeated units should have XP reset to 0.
+    $this->assertSame('0', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$unitA]));
+    $this->assertSame('0', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$unitB]));
+
+    // Cleanup should restore HP and clear defeat flags/status state.
+    $stateRows = $this->rows(
+      'SELECT `unit_instance_id`, `current_hp`, `is_defeated`, `cooldowns_json`, `status_effects_json` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_instance_id` ASC',
+      [$runId]
+    );
+    $this->assertCount(2, $stateRows);
+    foreach ($stateRows as $row) {
+      $this->assertSame('0', (string)$row['is_defeated']);
+      $this->assertSame('{}', (string)$row['cooldowns_json']);
+      $this->assertSame('[]', (string)$row['status_effects_json']);
+      $this->assertGreaterThan(0, (int)$row['current_hp']);
+    }
+  }
+
+  public function testAbandonRunEndpointAppliesCleanupAndMarksRunAbandoned(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $runId = $this->insertRun($userId, $regionId, 99887766);
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 15);
+    $this->insertRunUnitState($runId, $unitId, 2, true);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $api = new ApiController();
+    $res = $this->invoke(fn() => $api->abandonRun((string)$runId));
+    $this->assertSame(200, $res['status']);
+    $this->assertSame('abandoned', (string)($res['body']['data']['status'] ?? ''));
+
+    $runStatus = (string)$this->scalar('SELECT `status` FROM `region_runs` WHERE `id` = ?', [$runId]);
+    $this->assertSame('abandoned', $runStatus);
+    $this->assertSame('0', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
+
+    $state = $this->rows(
+      'SELECT `current_hp`, `is_defeated`, `cooldowns_json`, `status_effects_json` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?',
+      [$runId, $unitId]
+    );
+    $this->assertCount(1, $state);
+    $this->assertGreaterThan(0, (int)$state[0]['current_hp']);
+    $this->assertSame('0', (string)$state[0]['is_defeated']);
+    $this->assertSame('{}', (string)$state[0]['cooldowns_json']);
+    $this->assertSame('[]', (string)$state[0]['status_effects_json']);
+  }
+
+  public function testResolveNodeAllowsRetryAfterClaimedDefeat(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 33322211);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'available');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 10, false);
+
+    $oldBattleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'claimed', 'defeat', 111111, 60, 3);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new RunNodeController();
+    $first = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
+    $second = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
+
+    $this->assertSame(200, $first['status']);
+    $this->assertSame(200, $second['status']);
+
+    $newBattleId = (int)($first['body']['data']['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $newBattleId);
+    $this->assertNotSame($oldBattleId, $newBattleId);
+    $this->assertSame($newBattleId, (int)($second['body']['data']['battle']['battle_id'] ?? 0));
+    $this->battleIds[] = $newBattleId;
+
+    $this->assertSame(
+      '0',
+      (string)$this->scalar('SELECT COUNT(*) FROM `battles` WHERE `id` = ?', [$oldBattleId])
+    );
+    $this->assertSame(
+      '1',
+      (string)$this->scalar('SELECT COUNT(*) FROM `battles` WHERE `run_id` = ? AND `node_id` = ?', [$runId, $nodeId])
+    );
   }
 
   /**
@@ -355,6 +508,18 @@ final class BattleResolutionAndClaimIntegrationTest extends TestCase
     $stmt?->execute($params);
     $value = $stmt?->fetchColumn();
     return is_string($value) || is_int($value) ? $value : (string)$value;
+  }
+
+  /**
+   * @param array<int,int|string> $params
+   * @return array<int,array<string,mixed>>
+   */
+  private function rows(string $sql, array $params): array
+  {
+    $stmt = $this->pdo?->prepare($sql);
+    $stmt?->execute($params);
+    $rows = $stmt?->fetchAll(PDO::FETCH_ASSOC);
+    return is_array($rows) ? $rows : [];
   }
 
   /**

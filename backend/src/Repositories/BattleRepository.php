@@ -81,14 +81,14 @@ final class BattleRepository
    * Lock + fetch battle + rewards for claiming (ownership enforced).
    *
    * @return array{
-   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,
+   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,seed:string,
    *   xp_total:int,rewards_json:string
    * }|null
    */
   public function getForClaimForUpdate(int $battleId, int $userId): ?array
   {
     $stmt = $this->pdo->prepare('
-      SELECT b.`id`, b.`status`, b.`outcome`, b.`rules_version`, b.`run_id`, b.`team_id`,
+      SELECT b.`id`, b.`status`, b.`outcome`, b.`rules_version`, b.`run_id`, b.`team_id`, b.`seed`,
              br.`xp_total`, br.`rewards_json`
       FROM `battles` b
       JOIN `battle_rewards` br ON br.`battle_id` = b.`id`
@@ -108,6 +108,7 @@ final class BattleRepository
       'rules_version' => (string)$r['rules_version'],
       'run_id' => (string)$r['run_id'],
       'team_id' => (string)$r['team_id'],
+      'seed' => (string)$r['seed'],
       'xp_total' => (int)$r['xp_total'],
       'rewards_json' => (string)$r['rewards_json'],
     ];
@@ -126,5 +127,35 @@ final class BattleRepository
     $stmt->execute([$battleId, $userId]);
 
     return $stmt->rowCount() > 0;
+  }
+
+  /**
+   * Deletes a battle and its dependent artifacts for retry flows.
+   * Must be called inside an open transaction.
+   */
+  public function deleteBattleForRetry(int $battleId, int $userId): void
+  {
+    $stmt = $this->pdo->prepare('
+      DELETE FROM `battle_rewards`
+      WHERE `battle_id` = ? AND EXISTS (
+        SELECT 1 FROM `battles` b WHERE b.`id` = ? AND b.`user_id` = ?
+      )
+    ');
+    $stmt->execute([$battleId, $battleId, $userId]);
+
+    $stmt = $this->pdo->prepare('
+      DELETE FROM `battle_logs`
+      WHERE `battle_id` = ? AND EXISTS (
+        SELECT 1 FROM `battles` b WHERE b.`id` = ? AND b.`user_id` = ?
+      )
+    ');
+    $stmt->execute([$battleId, $battleId, $userId]);
+
+    $stmt = $this->pdo->prepare('
+      DELETE FROM `battles`
+      WHERE `id` = ? AND `user_id` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([$battleId, $userId]);
   }
 }

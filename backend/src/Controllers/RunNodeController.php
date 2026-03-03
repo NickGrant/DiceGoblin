@@ -181,27 +181,36 @@ final class RunNodeController
       // Idempotency: one battle per (run_id, node_id)
       $existing = $svc['battleRepo']->getByRunNode($runIdInt, $nodeIdInt);
       if ($existing !== null) {
-        $pdo->commit();
-        Response::json([
-          'ok' => true,
-          'data' => [
-            'node' => [
-              'id' => (string)$nodeIdInt,
-              'status' => 'completed',
+        $canRetryClaimedDefeat =
+          (string)$existing['outcome'] === 'defeat'
+          && (string)$existing['status'] === 'claimed'
+          && (string)$node['status'] !== 'cleared';
+
+        if ($canRetryClaimedDefeat) {
+          $svc['battleRepo']->deleteBattleForRetry((int)$existing['id'], $userId);
+        } else {
+          $pdo->commit();
+          Response::json([
+            'ok' => true,
+            'data' => [
+              'node' => [
+                'id' => (string)$nodeIdInt,
+                'status' => (string)($node['status'] === 'cleared' ? 'completed' : 'available'),
+              ],
+              'battle' => [
+                'battle_id' => (string)$existing['id'],
+                'outcome' => (string)$existing['outcome'],
+                'rounds' => (int)$existing['rounds'],
+                'ticks' => (int)$existing['ticks'],
+                'status' => (string)$existing['status'],
+              ],
+              'next' => [
+                'unlocked_node_ids' => $svc['runNodeRepo']->listAvailableNodeIds($runIdInt),
+              ],
             ],
-            'battle' => [
-              'battle_id' => (string)$existing['id'],
-              'outcome' => (string)$existing['outcome'],
-              'rounds' => (int)$existing['rounds'],
-              'ticks' => (int)$existing['ticks'],
-              'status' => (string)$existing['status'],
-            ],
-            'next' => [
-              'unlocked_node_ids' => $svc['runNodeRepo']->listAvailableNodeIds($runIdInt),
-            ],
-          ],
-        ]);
-        return;
+          ]);
+          return;
+        }
       }
 
       $resolution = $svc['resolver']->resolve($userId, $teamIdInt, $run, $node);
@@ -229,16 +238,17 @@ final class RunNodeController
         (array)$resolution['rewards']
       );
 
-      // Mark node cleared in DB
-      $svc['runNodeRepo']->markCleared($runIdInt, $nodeIdInt);
-
-      // Unlock downstream nodes whose prerequisites are satisfied
-      $unlocked = $this->unlockFromNode(
-        $svc['runEdgeRepo'],
-        $svc['runNodeRepo'],
-        $runIdInt,
-        $nodeIdInt
-      );
+      $unlocked = [];
+      if ($outcome === 'victory' || $node['node_type'] !== 'combat') {
+        // Mark node cleared in DB and unlock downstream progression.
+        $svc['runNodeRepo']->markCleared($runIdInt, $nodeIdInt);
+        $unlocked = $this->unlockFromNode(
+          $svc['runEdgeRepo'],
+          $svc['runNodeRepo'],
+          $runIdInt,
+          $nodeIdInt
+        );
+      }
 
       $pdo->commit();
 
@@ -247,7 +257,7 @@ final class RunNodeController
         'data' => [
           'node' => [
             'id' => (string)$nodeIdInt,
-            'status' => 'completed',
+            'status' => ($outcome === 'victory' || $node['node_type'] !== 'combat') ? 'completed' : 'available',
           ],
           'battle' => [
             'battle_id' => (string)$battleId,

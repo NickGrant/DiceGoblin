@@ -433,6 +433,160 @@ final class RunRepository
     $stmt->execute($params);
   }
 
+  /**
+   * Lock and fetch run_unit_state rows for mutation flows.
+   *
+   * @return array<int, array{
+   *   unit_instance_id:string,
+   *   current_hp:int,
+   *   is_defeated:bool,
+   *   cooldowns_json:string,
+   *   status_effects_json:string,
+   *   updated_at:string
+   * }>
+   */
+  public function getRunUnitStateForUpdate(int $runId): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT `unit_instance_id`, `current_hp`, `is_defeated`, `cooldowns_json`, `status_effects_json`, `updated_at`
+      FROM `run_unit_state`
+      WHERE `run_id` = ?
+      ORDER BY `unit_instance_id` ASC
+      FOR UPDATE
+    ');
+    $stmt->execute([$runId]);
+
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    return array_map(static fn(array $r): array => [
+      'unit_instance_id' => (string)$r['unit_instance_id'],
+      'current_hp' => (int)$r['current_hp'],
+      'is_defeated' => ((int)$r['is_defeated']) === 1,
+      'cooldowns_json' => (string)$r['cooldowns_json'],
+      'status_effects_json' => (string)$r['status_effects_json'],
+      'updated_at' => (string)$r['updated_at'],
+    ], $rows);
+  }
+
+  /**
+   * Seed run_unit_state from a squad snapshot at run start.
+   *
+   * Copies all units currently in the team into run-scoped state using
+   * each unit's computed max HP at current level.
+   */
+  public function seedRunUnitStateFromTeam(int $runId, int $userId, int $teamId): void
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT
+        ui.`id` AS `unit_instance_id`,
+        ui.`level`,
+        ut.`base_stats_json`,
+        ut.`max_hp_per_level`
+      FROM `team_units` tu
+      JOIN `unit_instances` ui ON ui.`id` = tu.`unit_instance_id`
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE tu.`team_id` = ? AND ui.`user_id` = ?
+      ORDER BY ui.`id` ASC
+    ');
+    $stmt->execute([$teamId, $userId]);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (count($rows) === 0) {
+      return;
+    }
+
+    $seedRows = [];
+    foreach ($rows as $row) {
+      $baseStatsRaw = $row['base_stats_json'];
+      $baseStats = is_string($baseStatsRaw) ? json_decode($baseStatsRaw, true) : $baseStatsRaw;
+      if (!is_array($baseStats)) {
+        $baseStats = [];
+      }
+
+      $level = max(1, (int)$row['level']);
+      $baseMaxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
+      $maxHpPerLevel = max(0, (int)$row['max_hp_per_level']);
+      $maxHp = $baseMaxHp + (($level - 1) * $maxHpPerLevel);
+
+      $seedRows[] = [
+        'unit_instance_id' => (int)$row['unit_instance_id'],
+        'current_hp' => $maxHp,
+        'is_defeated' => false,
+        'cooldowns_json' => '{}',
+        'status_effects_json' => '[]',
+      ];
+    }
+
+    $this->insertRunUnitStateBulk($runId, $seedRows);
+  }
+
+  /**
+   * Apply run end cleanup rules and optionally reset defeated units XP to 0.
+   *
+   * @return array<int,int> defeated unit ids that had XP reset
+   */
+  public function applyRunEndCleanup(int $runId, int $userId, bool $resetDefeatedXp): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT
+        rus.`unit_instance_id`,
+        rus.`is_defeated`,
+        rus.`current_hp`,
+        ui.`level`,
+        ut.`base_stats_json`,
+        ut.`max_hp_per_level`
+      FROM `run_unit_state` rus
+      JOIN `unit_instances` ui ON ui.`id` = rus.`unit_instance_id`
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE rus.`run_id` = ? AND ui.`user_id` = ?
+      ORDER BY rus.`unit_instance_id` ASC
+      FOR UPDATE
+    ');
+    $stmt->execute([$runId, $userId]);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $defeatedIds = [];
+    foreach ($rows as $row) {
+      $unitId = (int)$row['unit_instance_id'];
+      $wasDefeated = ((int)$row['is_defeated']) === 1 || ((int)$row['current_hp']) <= 0;
+      if ($resetDefeatedXp && $wasDefeated) {
+        $defeatedIds[] = $unitId;
+      }
+
+      $baseStats = json_decode((string)$row['base_stats_json'], true);
+      if (!is_array($baseStats)) {
+        $baseStats = [];
+      }
+      $level = max(1, (int)$row['level']);
+      $baseMaxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
+      $maxHpPerLevel = max(0, (int)$row['max_hp_per_level']);
+      $maxHp = $baseMaxHp + (($level - 1) * $maxHpPerLevel);
+
+      $this->upsertRunUnitState(
+        $runId,
+        $unitId,
+        $maxHp,
+        false,
+        '{}',
+        '[]'
+      );
+    }
+
+    if ($resetDefeatedXp && count($defeatedIds) > 0) {
+      $defeatedIds = array_values(array_unique($defeatedIds));
+      $placeholders = implode(',', array_fill(0, count($defeatedIds), '?'));
+      $params = array_merge([$userId], $defeatedIds);
+      $xpStmt = $this->pdo->prepare("
+        UPDATE `unit_instances`
+        SET `xp` = 0
+        WHERE `user_id` = ? AND `id` IN ($placeholders)
+      ");
+      $xpStmt->execute($params);
+    }
+
+    return $defeatedIds;
+  }
+
   // -----------------------------
   // Internals: graph inserts
   // -----------------------------

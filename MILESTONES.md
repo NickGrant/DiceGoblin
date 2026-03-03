@@ -44,21 +44,3 @@ exit_criteria: |
 ```
 
 ## Active Milestones
-
----
-name: Milestone 3 - Run Progression and Attrition
-status: not-started
-execution_window: closed
-is_current: no
-issues:
-  - Persist run-scoped unit attrition state across encounters and resume
-  - Implement run failure and abandonment resolution rules
-  - Implement encounter retry flow for partial defeat scenarios
-description: |
-  Track run progression state, attrition persistence, and run-end behavior with explicit retry/failure handling.
-entry_criteria: |
-  * Milestone 2 core battle/reward behavior is sufficiently stable for progression coupling.
-  * Run attrition persistence model is documented and implementation-ready.
-exit_criteria: |
-  * Attrition persistence, run failure/abandon logic, and retry rules are complete and archived.
-  * Resume/failure regression behavior matches documented run-resolution scope.
