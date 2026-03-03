@@ -2,6 +2,8 @@
   "name": "dice-goblin-workflow",
   "private": true,
   "scripts": {
-    "backlog:validate": "node scripts/validate-backlog.mjs"
+    "backlog:validate": "node scripts/validate-backlog.mjs",
+    "startup:check": "node scripts/startup-check.mjs",
+    "llm:check": "npm run startup:check && npm run backlog:validate"
   }
 }

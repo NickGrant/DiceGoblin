@@ -101,6 +101,18 @@ From repository root:
 npm run backlog:validate
 ```
 
+## LLM Workflow Commands
+From repository root:
+```bash
+npm run startup:check
+npm run backlog:validate
+npm run llm:check
+```
+
+## Local Skills
+- `skills/backlog-ops/SKILL.md` for issue/milestone lifecycle operations.
+- `skills/startup-verification/SKILL.md` for startup validation workflow.
+
 ## Troubleshooting
 - CORS/session issues: verify `DEV_ALLOWED_ORIGINS` in `backend/.env` and ensure frontend runs on `http://localhost:5173`.
 - Empty/missing data: re-apply `backend/migrations/schema_all.sql` to local DB.

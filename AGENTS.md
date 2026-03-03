@@ -35,6 +35,10 @@ This file defines project-specific operating instructions for coding agents work
 - Validate `MILESTONES.md` contains only active milestone statuses (`not-started`, `in-progress`, `complete`, `blocked`).
 - Validate milestone entries use `execution_window` (`open` | `closed`) and `is_current` (`yes` | `no`).
 - If startup docs are missing/stale, continue with best effort and log the gap in the next user update.
+- Prefer using automation when available:
+  - `npm.cmd run startup:check`
+  - `npm.cmd run backlog:validate`
+  - `npm.cmd run llm:check`
 
 ## Instruction Precedence
 - Follow platform/system/developer safety instructions first.
@@ -180,3 +184,9 @@ This file defines project-specific operating instructions for coding agents work
 - Keep changes scoped to the requested task.
 - Avoid unrelated refactors unless required to safely complete the task.
 - Keep documentation and tests aligned with behavior changes.
+
+## Local Skills
+- Repository-local reusable skills live under `skills/`.
+- Current local skills:
+  - `skills/backlog-ops/SKILL.md`
+  - `skills/startup-verification/SKILL.md`

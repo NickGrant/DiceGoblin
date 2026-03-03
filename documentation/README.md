@@ -57,6 +57,7 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `MILESTONES_BACKLOG.md` (deferred milestone inventory)
   - `ISSUES_ARCHIVE.md` (historical only, on-demand)
   - `documentation/ACTIVE_CONTEXT.md` (current high-signal snapshot)
+  - `documentation/BACKLOG_OPERATIONS.md`
 - If validating documentation quality and drift:
   - `documentation/QA_CHECKLIST.md`
   - `documentation/CURRENT_STATUS_EVALUATION.md`
@@ -74,4 +75,13 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
 - `documentation/worklist.md` was removed on 2026-03-02 after migration to issue/milestone tracking.
 - Active planning and execution tracking now lives in `ISSUES.md` and `MILESTONES.md`.
 - Historical roadmap snapshots remain in git history until archive lanes are introduced.
+
+## LLM Ops References
+- Startup and backlog checks:
+  - `npm run startup:check`
+  - `npm run backlog:validate`
+  - `npm run llm:check`
+- Local reusable skills:
+  - `skills/backlog-ops/SKILL.md`
+  - `skills/startup-verification/SKILL.md`
 
