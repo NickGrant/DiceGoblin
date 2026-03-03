@@ -1,5 +1,11 @@
 # Union Influence System
 
+Status: draft  
+Last Updated: 2026-03-02  
+Owner: Product + Systems Design  
+Depends On: `documentation/04-multiplayer/00-multiplayer-philosophy.md`, `documentation/00-overview/02-glossary.md`
+
+
 ## Overview
 
 The **Union Influence System** is a long‑term, shared‑world meta mechanic intended for v3/v4 of Dice Goblin. It introduces indirect player interaction through economic and social pressure rather than direct PvP.

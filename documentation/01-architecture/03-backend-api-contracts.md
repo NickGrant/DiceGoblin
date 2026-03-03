@@ -114,6 +114,13 @@ Contract:
 - `Planned`: target contract shape; not yet fully implemented.
 - Planned sections should not be treated as runtime-available APIs until routes/controllers are added.
 
+### 1.11 Terminology Compatibility (Squads vs Teams)
+- Product-facing term is `squad`.
+- Compatibility-critical backend identifiers still use `team` in several places:
+  - routes: `/api/v1/teams/*`
+  - persistence model/table naming: `teams`, `team_members`, `team_formations`
+- Frontend and docs should prefer `squad` in user-facing copy while preserving existing `team` route/database identifiers until an explicit compatibility migration is approved.
+
 ---
 
 ## 2. Auth Endpoints

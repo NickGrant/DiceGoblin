@@ -1,0 +1,7 @@
+{
+  "name": "dice-goblin-workflow",
+  "private": true,
+  "scripts": {
+    "backlog:validate": "node scripts/validate-backlog.mjs"
+  }
+}

@@ -1,5 +1,11 @@
 # Game Glossary (Milestone 0)
 
+Status: active  
+Last Updated: 2026-03-02  
+Owner: Product + Engineering  
+Depends On: `documentation/00-overview/01-core-gameplay-loop.md`, `documentation/README.md`
+
+
 This document defines the canonical terminology used throughout the game's design, implementation, and documentation.  
 Any term used in code, UI, or design discussions must appear in this glossary.
 

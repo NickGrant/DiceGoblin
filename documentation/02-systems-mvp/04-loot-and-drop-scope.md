@@ -77,14 +77,13 @@ Rules:
 XP is deterministic and separate from loot-table item rolls.
 
 Rules:
-- XP is awarded for Combat, Boss, and Loot encounters
+- XP is awarded for Combat and Boss encounters
 - XP is not awarded for Rest encounters
 - XP awarded equals sum of `xp_reward` for enemies in encounter
 - XP is granted only to fielded surviving units
 - XP is not split; all eligible units get full award
 - units at max level do not gain XP
 - Combat/Boss XP is applied via battle reward-claim flow
-- Loot XP is applied via encounter resolution (non-claim path)
 
 ## 8. Units as Loot
 

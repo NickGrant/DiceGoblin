@@ -1,5 +1,11 @@
 # Dice Goblins — Visual Style Guide (v1)
 
+Status: active  
+Last Updated: 2026-03-02  
+Owner: UX  
+Depends On: `documentation/03-ux/00-ux-and-debug-scope.md`, `frontend/src/scenes/`
+
+
 This document defines the cohesive visual language for **Dice Goblins** across UI, icons, and key illustrative elements. It is intended to be actionable for implementation (Phaser + HTML shell) and consistent enough for future asset production.
 
 ---

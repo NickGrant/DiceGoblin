@@ -1,5 +1,11 @@
 # Technical Stack Decisions
 
+Status: active  
+Last Updated: 2026-03-02  
+Owner: Engineering  
+Depends On: `README.md`, `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/01-architecture/03-backend-api-contracts.md`
+
+
 These decisions are considered locked for MVP unless explicitly revisited.
 
 ## Frontend

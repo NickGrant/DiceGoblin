@@ -1,5 +1,11 @@
 # Authentication & Session Model
 
+Status: active  
+Last Updated: 2026-03-02  
+Owner: Backend/API  
+Depends On: `backend/public/index.php`, `documentation/01-architecture/03-backend-api-contracts.md`
+
+
 ## Authentication Flow
 1. User clicks "Log in with Discord"
 2. Browser redirects to backend `/auth/discord/start`

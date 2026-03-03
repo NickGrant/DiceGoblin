@@ -1,5 +1,11 @@
 # Save & Resume Scope — MVP
 
+Status: active  
+Last Updated: 2026-03-02  
+Owner: Systems Design + Backend  
+Depends On: `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
+
+
 This document defines the **authoritative persistence, save, and resume rules** for the Dice Goblins MVP. It covers run continuity, combat log replay, and the minimum server-side state required to resume play at any time.
 
 ---

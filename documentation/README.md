@@ -53,6 +53,8 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
 - If planning/triaging work:
   - `ISSUES.md` (active)
   - `MILESTONES.md` (active milestone grouping)
+  - `ISSUES_BACKLOG.md` (deferred planning inventory)
+  - `MILESTONES_BACKLOG.md` (deferred milestone inventory)
   - `ISSUES_ARCHIVE.md` (historical only, on-demand)
   - `documentation/ACTIVE_CONTEXT.md` (current high-signal snapshot)
 - If validating documentation quality and drift:
@@ -61,6 +63,9 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `documentation/TESTING_STRATEGY.md`
   - `documentation/STYLE_GUIDE.md`
   - `documentation/CHANGELOG.md`
+  - `documentation/ROADMAP_EXECUTION_POLICY.md`
+  - `documentation/BACKLOG_DEPENDENCIES.md`
+  - `documentation/BACKLOG_TRIAGE_POLICY.md`
 
 ## Reference Data Docs
 - `documentation/JSON Schema/unit_types.base_stats_json.json`
@@ -68,7 +73,7 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
 - `documentation/unit_list.json`
 
 ## Deprecations
-- `documentation/worklist.md` is deprecated as of 2026-03-02.
+- `documentation/worklist.md` was removed on 2026-03-02 after migration to issue/milestone tracking.
 - Active planning and execution tracking now lives in `ISSUES.md` and `MILESTONES.md`.
 - Historical roadmap snapshots remain in git history until archive lanes are introduced.
 

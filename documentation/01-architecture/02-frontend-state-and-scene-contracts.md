@@ -13,6 +13,7 @@ This document defines the runtime contracts for currently implemented Phaser sce
 2. Backend is source of truth for server-owned state (session, profile, run/map, node resolution, battle logs, claims).
 3. Scene transitions should be explicit and deterministic.
 4. Planned scenes/contracts are documented but not treated as active runtime behavior.
+5. User-facing terminology should prefer `squad`; API compatibility identifiers may still use `team` in route and payload keys.
 
 ## 2. Implemented Scene Set
 

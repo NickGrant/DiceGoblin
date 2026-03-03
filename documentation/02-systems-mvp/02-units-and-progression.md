@@ -1,5 +1,11 @@
 # Units & Progression — MVP (Authoritative)
 
+Status: active  
+Last Updated: 2026-03-02  
+Owner: Systems Design  
+Depends On: `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation/01-architecture/04-data-model.md`
+
+
 This document defines the authoritative MVP unit roster scope and authoritative unit progression rules.
 
 Any unit, role, tier, promotion path, or progression mechanic not listed here is out of scope for MVP.

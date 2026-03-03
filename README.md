@@ -79,7 +79,7 @@ npm run db:schema
 Start with:
 - `documentation/00-overview/00-project-overview.md`
 - `documentation/01-architecture/00-tech-stack.md`
-- `documentation/worklist.md`
+- `documentation/README.md`
 
 ## Agent Workflow Files
 This repo includes lightweight collaboration control docs:
@@ -87,11 +87,19 @@ This repo includes lightweight collaboration control docs:
 - `LLM_CONTEXT.md`
 - `ROLES.md`
 - `ISSUES.md`
+- `ISSUES_BACKLOG.md` (planning/deferred)
 - `ISSUES_ARCHIVE.md`
 - `MILESTONES.md`
+- `MILESTONES_BACKLOG.md` (planning/deferred)
 - `MILESTONES_ARCHIVE.md`
 
 Use `ISSUES.md` for active work only; move completed items to `ISSUES_ARCHIVE.md`.
+
+## Backlog Validation
+From repository root:
+```bash
+npm run backlog:validate
+```
 
 ## Troubleshooting
 - CORS/session issues: verify `DEV_ALLOWED_ORIGINS` in `backend/.env` and ensure frontend runs on `http://localhost:5173`.

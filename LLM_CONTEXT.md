@@ -15,6 +15,7 @@
 - `documentation/ACTIVE_CONTEXT.md` (if present)
 
 ## Include On Demand
+- `ISSUES_BACKLOG.md` and `MILESTONES_BACKLOG.md` for deferred roadmap/planning context
 - `documentation/01-architecture/` docs for API and system-contract decisions
 - `documentation/02-systems-mvp/` docs for gameplay rules and scope
 - `documentation/03-ux/` docs for UX and visual behavior
@@ -27,7 +28,7 @@
 - `frontend/node_modules/`
 - `raw-assets/`
 - `documentation/archive/`
-- `documentation/worklist.md` (deprecated)
+- `ROLE_CLARIFICATION.md` (log file; load only when explicitly requested)
 - binary assets (`*.jpg`, `*.png`, audio/video files)
 - generated bundles, maps, and lock output not relevant to the task
 - historical/archive docs unless explicitly needed
@@ -37,6 +38,7 @@
 - Keep `ROLES.md` under ~180 lines.
 - Keep `ISSUES.md` under ~250 lines (active items only).
 - Keep `MILESTONES.md` under ~120 lines (active items only).
+- Keep `ISSUES_BACKLOG.md` and `MILESTONES_BACKLOG.md` out of default context unless planning requires them.
 - Move resolved/historical content to archives immediately.
 
 ## Portability Rules

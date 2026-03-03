@@ -1,5 +1,11 @@
 # Encounter Scope — MVP
 
+Status: active  
+Last Updated: 2026-03-02  
+Owner: Systems Design  
+Depends On: `documentation/02-systems-mvp/02-units-and-progression.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
+
+
 This document defines the **authoritative encounter, biome, enemy, and run-level scope** for the Dice Goblins MVP. Any encounter type, biome, enemy, or meta-progression system not explicitly defined here is **out of scope** for MVP.
 
 ---
@@ -26,13 +32,12 @@ Exactly **four** encounter types exist in MVP:
 4. **Boss**
 
 ### XP Award Rules (MVP)
-- Combat, Boss, and Loot encounters award XP.
+- Combat and Boss encounters award XP.
 - Rest encounters do not award XP.
 - XP is awarded to units that were fielded and not defeated (survivors only).
 - Award is not split: all surviving fielded units receive the same XP amount.
 - XP application timing:
   - Combat/Boss XP is applied through reward/claim flow.
-  - Loot encounter XP is deterministic and applied by encounter resolution rules.
 
 ### Explicitly Excluded
 - Merchants

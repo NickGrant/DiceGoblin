@@ -1,5 +1,11 @@
 # Combat Math & Modifiers — MVP (Authoritative)
 
+Status: active  
+Last Updated: 2026-03-02  
+Owner: Systems Design  
+Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/02-units-and-progression.md`
+
+
 This document defines the **numeric constants**, **order of operations**, and **damage/stat formulas** for MVP combat.
 
 It is authoritative alongside:

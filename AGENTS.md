@@ -11,6 +11,7 @@ This file defines project-specific operating instructions for coding agents work
   - `ISSUES.md`
   - `MILESTONES.md`
 - Treat these files as active project context for planning and execution.
+- Treat `ISSUES_BACKLOG.md` and `MILESTONES_BACKLOG.md` as planning context loaded on demand.
 - Only read `ISSUES_ARCHIVE.md` when historical context is explicitly needed.
 - Only read `MILESTONES_ARCHIVE.md` when historical milestone context is explicitly needed.
 - If optional files are missing, continue normally and note the gap only when relevant.
@@ -24,6 +25,9 @@ This file defines project-specific operating instructions for coding agents work
 - If present, load:
   - `LLM_CONTEXT.md`
   - `ROLES.md`
+- If present and needed for planning-only work, load:
+  - `ISSUES_BACKLOG.md`
+  - `MILESTONES_BACKLOG.md`
 - Validate `ISSUES.md` contains only active statuses (`unstarted`, `in-progress`, `reopened`, `blocked`).
 - Validate active issue entries include `priority` with one of: `low`, `medium`, `high`.
 - Validate active issue entries include `execution` (`active` | `deferred`) and `ready` (`yes` | `no`).
@@ -53,8 +57,18 @@ This file defines project-specific operating instructions for coding agents work
 - If the user asks to assume `QA Lead`: prioritize reproducible test plans, regression checks, and acceptance criteria validation; log failures as actionable issues with repro steps.
 - If the user asks to assume a role not defined in `ROLES.md`: briefly state the mismatch and fall back to default behavior unless the user clarifies.
 
+## Role Clarification Logging
+- During role-based evaluation or decision making, append to `ROLE_CLARIFICATION.md` when clearer role definition would improve decision quality.
+- Use the required entry format:
+  - `name: <role name>`
+  - `decision: <brief summary of decision made>`
+  - `definition: <aspect of the role to better define>`
+- Treat `ROLE_CLARIFICATION.md` as a log file: do not load it into active context unless the user explicitly asks.
+- After appending, if `ROLE_CLARIFICATION.md` exceeds 500 lines, notify the user immediately.
+
 ## Issues Workflow (`ISSUES.md`)
-- Treat `ISSUES.md` as the source of truth for current active bug/feature status tracking.
+- Treat `ISSUES.md` as the source of truth for current active bug/feature execution tracking.
+- Treat `ISSUES_BACKLOG.md` as deferred planning inventory; promote items into `ISSUES.md` before execution.
 - If the user explicitly asks to add an issue, update `ISSUES.md` directly without additional confirmation prompts.
 - When the user asks to work issues:
   - prioritize items with `status: reopened` first, then `status: in-progress`, then `status: unstarted`, then `status: blocked`,
@@ -84,9 +98,20 @@ This file defines project-specific operating instructions for coding agents work
   - only auto-work issues where `execution: active` and `ready: yes`,
   - and either issue `milestone` is empty/unassigned, or linked milestone is current and open.
 - If issue is linked to a milestone that is not current/open, treat it as planning-only unless user explicitly asks to work it now.
+- Triage cadence:
+  - run a backlog triage pass at least weekly,
+  - run triage when opening/closing a milestone,
+  - run triage after major roadmap/doc-contract updates that can change issue sequencing.
+- Status transition policy:
+  - `unstarted -> in-progress` when active implementation begins,
+  - `in-progress -> blocked` when blocked by unresolved dependency,
+  - `blocked -> in-progress` when blocker clears,
+  - archive as complete after verification and resolution logging,
+  - use `reopened` for previously complete issues that regress.
 
 ## Milestones Workflow (`MILESTONES.md`)
 - Treat `MILESTONES.md` as active milestone grouping metadata for issues.
+- Treat `MILESTONES_BACKLOG.md` as deferred milestone inventory; move milestones into `MILESTONES.md` when opened for execution.
 - If the user asks to add or update a milestone, update `MILESTONES.md` directly.
 - Milestones reference issue titles from `ISSUES.md`; issues can exist without milestones.
 - If a milestone has no issues, it must remain `status: not-started`.

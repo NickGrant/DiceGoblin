@@ -267,3 +267,222 @@ milestone: unassigned
 description: |
   Preferred product terminology is `squads`. Audit and update inconsistent references to `teams` where safe, preserving route/database naming where backward compatibility requires it. Ensure API/docs/client types clearly communicate canonical `squads` wording.
 Resolution: Updated user-facing and documentation terminology to prefer `squads` (including Warband scene labels and architecture/glossary text) while preserving compatibility-critical technical identifiers such as `/api/v1/teams` routes and DB table naming.
+
+---
+title: Establish post-QA milestone execution order and current milestone selection policy
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 9 - Product and Backlog Governance
+description: |
+  [Role: Technical Product Manager] After Milestone 8 completion there is no explicit current/open delivery lane. Define and document milestone execution order, opening rules, and criteria for setting exactly one current milestone to eliminate planning ambiguity.
+Resolution: Added `documentation/ROADMAP_EXECUTION_POLICY.md` with explicit milestone order and open/close/current selection rules, and marked Milestone 9 as `in-progress`, `execution_window: open`, and `is_current: yes`.
+
+---
+title: Define milestone entry/exit criteria template and apply to active milestones
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 9 - Product and Backlog Governance
+description: |
+  [Role: Technical Product Manager] Active milestones list scope but do not consistently define measurable entry/exit gates. Add a concise criteria template and apply it to active milestones to improve delivery predictability.
+Resolution: Added milestone template guidance for `entry_criteria` and `exit_criteria` and applied concrete entry/exit criteria to all active milestones in `MILESTONES.md`.
+
+---
+title: Resolve MVP XP-source contradiction between encounter and progression specs
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 9 - Product and Backlog Governance
+description: |
+  [Cross-Role Reconciliation] `documentation/02-systems-mvp/03-encounter-scope.md` and `documentation/02-systems-mvp/02-units-and-progression.md` currently disagree on whether Loot encounters award XP. Reconcile to one canonical rule and update dependent docs/contracts.
+Resolution: Reconciled to Combat/Boss-only XP in MVP by updating encounter and loot scope docs to remove Loot XP language and align with units/progression rules.
+
+---
+title: Add explicit squads-vs-teams terminology compatibility note in architecture docs
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 9 - Product and Backlog Governance
+description: |
+  [Role: Technical Product Manager] Add a concise compatibility note in architecture docs explaining product term `squad` versus compatibility API routes/fields using `teams`, including where each term is expected.
+Resolution: Added explicit compatibility notes to frontend and backend architecture contract docs clarifying product-facing `squad` terminology versus route/database `team` compatibility identifiers.
+
+---
+title: Remove template-entry parsing ambiguity from active milestones file
+status: complete
+priority: low
+execution: active
+ready: yes
+milestone: Milestone 9 - Product and Backlog Governance
+description: |
+  The in-file Milestone Template block in `MILESTONES.md` can be misread as an active milestone by lightweight validators. Restructure template examples so automated checks and future tooling parse only real active entries.
+Resolution: Replaced the parseable template block with a fenced YAML example so validators can ignore template content while preserving author guidance.
+
+---
+title: Archive or remove deprecated documentation worklist artifact
+status: complete
+priority: low
+execution: active
+ready: yes
+milestone: Milestone 9 - Product and Backlog Governance
+description: |
+  `documentation/worklist.md` is marked deprecated but still present in active docs. Move it to archive or remove it to reduce accidental usage and keep active planning sources unambiguous (`ISSUES.md` + `MILESTONES.md`).
+Resolution: Removed `documentation/worklist.md` from the repository and retained historical recovery through git history.
+
+---
+title: Add cross-milestone dependency map for run, combat, UX, and QA streams
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 9 - Product and Backlog Governance
+description: |
+  [Role: Technical Product Manager] Capture dependency links between Milestones 2/3/10/11/13 so implementation order and blockers are explicit before new feature execution.
+Resolution: Added `documentation/BACKLOG_DEPENDENCIES.md` with explicit cross-milestone dependency mapping and operational dependency rules.
+
+---
+title: Add issue dependency metadata for blocked-by relationships
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 9 - Product and Backlog Governance
+description: |
+  [Cross-Role Reconciliation] Add optional issue-level dependency metadata (`blocked_by` and `enables`) to make cross-milestone sequencing explicit and reduce hidden ordering risk during multi-role planning passes.
+Resolution: Added dependency metadata policy in `documentation/BACKLOG_DEPENDENCIES.md` and updated the issue template with optional `blocked_by` and `enables` fields.
+
+---
+title: Resolve empty milestone placeholders or repopulate with scoped issues
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 9 - Product and Backlog Governance
+description: |
+  [Role: Backlog Curator] Active milestones 4 and 6 currently contain no issues and add planning noise. Either archive them as dormant placeholders or repopulate with concrete scoped issues.
+Resolution: Milestone placeholders were repopulated with scoped issues for Milestones 4-6, and the template block in `MILESTONES.md` was made non-parseable to prevent placeholder confusion.
+
+---
+title: Add automated lint/check for ISSUES and MILESTONES schema consistency
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 9 - Product and Backlog Governance
+description: |
+  [Role: Backlog Curator] Add a lightweight validation script to ensure issue/milestone required fields and allowed enums stay consistent.
+Resolution: Added `scripts/validate-backlog.mjs` to validate required enums, field presence, issue/milestone references, and `is_current` cardinality; script currently passes.
+
+---
+title: Add dependency metadata policy for Milestones 4-6 execution sequencing
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 9 - Product and Backlog Governance
+description: |
+  [Cross-Role Reconciliation] Extend issue dependency guidance with explicit sequencing notes for Milestones 4-6 so UI, systems, and verification tasks can be executed in a predictable order.
+Resolution: Added explicit Milestones 4-6 sequencing policy and readiness rules in `documentation/BACKLOG_DEPENDENCIES.md` to guide execution gating.
+
+---
+title: Normalize active issue metadata fields to template standards
+status: complete
+priority: low
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 9 - Product and Backlog Governance
+created: 2026-03-02
+updated: 2026-03-02
+description: |
+  [Role: Backlog Curator] Active issue entries are inconsistent with template metadata (`owner`, `created`, `updated`). Align active entries with standard fields for easier auditability.
+Resolution: Normalized all active issue entries to include `owner`, `created`, and `updated` fields aligned to the active issue template.
+
+---
+title: Define backlog triage cadence and status-transition policy
+status: complete
+priority: low
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 9 - Product and Backlog Governance
+created: 2026-03-02
+updated: 2026-03-02
+description: |
+  [Role: Backlog Curator] Add an explicit triage cadence and status transition policy (`unstarted`/`in-progress`/`blocked`/`reopened`) to keep issue state trustworthy over time.
+Resolution: Added `documentation/BACKLOG_TRIAGE_POLICY.md` and mirrored triage/status-transition rules in `AGENTS.md` issue workflow guidance.
+
+---
+title: Add required metadata headers to high-impact documentation files
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 9 - Product and Backlog Governance
+created: 2026-03-02
+updated: 2026-03-02
+description: |
+  Multiple active docs are missing style-guide metadata headers (`Status`, `Last Updated`, `Owner`, `Depends On`), including key architecture/systems/ux docs. Normalize metadata across high-impact files so documentation provenance and dependency tracking remain auditable.
+Resolution: Added required metadata headers to the targeted high-impact docs across overview, architecture, systems, UX, multiplayer, and changelog documents.
+
+---
+title: Select and open the next current milestone after Milestone 9 completion
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 14 - Post-Governance Simplification and Readiness
+created: 2026-03-02
+updated: 2026-03-02
+description: |
+  [Role: Technical Product Manager] Milestone 9 is archived complete, but no active milestone is currently marked as current/open. Apply `documentation/ROADMAP_EXECUTION_POLICY.md` to choose and open the next execution lane with explicit rationale.
+Resolution: Set Milestone 2 as the current active lane (`status: in-progress`, `execution_window: open`, `is_current: yes`) to resume highest-priority delivery sequencing.
+
+---
+title: Add a single-command workflow entrypoint for backlog validation
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 14 - Post-Governance Simplification and Readiness
+created: 2026-03-02
+updated: 2026-03-02
+description: |
+  [Role: Senior Developer] `scripts/validate-backlog.mjs` exists but lacks a standardized task-runner entrypoint. Add a simple repository command path and documentation so validation is easy and consistently executed.
+Resolution: Added a root `package.json` script entrypoint (`npm run backlog:validate`) and documented usage in project README.
+
+---
+title: Add CI gate to run backlog schema validation on documentation/backlog changes
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 14 - Post-Governance Simplification and Readiness
+created: 2026-03-02
+updated: 2026-03-02
+description: |
+  [Role: QA Lead] Add CI automation for `scripts/validate-backlog.mjs` (or equivalent) to prevent schema/link drift in `ISSUES.md` and `MILESTONES.md` from merging unnoticed.
+Resolution: Added `.github/workflows/backlog-validation.yml` to run backlog validation on relevant backlog/documentation changes for pull requests and pushes to `main`.
+
+---
+title: Trim active backlog and milestone docs to configured context guardrails
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 14 - Post-Governance Simplification and Readiness
+created: 2026-03-02
+updated: 2026-03-02
+description: |
+  [Role: Backlog Curator] Active docs exceed project guardrails (`ISSUES.md` and `MILESTONES.md` line budgets). Apply a trimming pass (archive movement, concise descriptions, optional split strategy) to restore context efficiency.
+Resolution: Split deferred planning inventory into `ISSUES_BACKLOG.md` and `MILESTONES_BACKLOG.md`, keeping `ISSUES.md` and `MILESTONES.md` focused on active lanes and back under configured line guardrails.

@@ -1,5 +1,11 @@
 # Run Resolution Scope — MVP
 
+Status: active  
+Last Updated: 2026-03-02  
+Owner: Systems Design  
+Depends On: `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation/02-systems-mvp/05-save-and-resume-scope.md`
+
+
 This document defines the **authoritative rules for run failure, retry, abandonment, and post-run cleanup** for the Dice Goblins MVP. Any run outcome or persistence behavior not explicitly defined here is **out of scope** for MVP.
 
 ---

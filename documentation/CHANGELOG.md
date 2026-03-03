@@ -1,4 +1,10 @@
 # Documentation Changelog
+
+Status: active  
+Last Updated: 2026-03-02  
+Owner: Product + Engineering  
+Depends On: `documentation/README.md`, `ISSUES.md`
+
 ----
 
 ## 2026-03-02
@@ -17,3 +23,16 @@
 - Reconciled progression wording across combat/encounter/loot/run-resolution docs.
 - Added `documentation/TESTING_STRATEGY.md` to define repository-wide test tiers, verification matrix, and release gates.
 - Updated `documentation/README.md` to include testing-strategy references in documentation quality workflows.
+- Added `documentation/ROADMAP_EXECUTION_POLICY.md` to define milestone ordering and current/open milestone selection rules.
+- Added `documentation/BACKLOG_DEPENDENCIES.md` for cross-milestone dependency mapping and Milestones 4-6 sequencing policy.
+- Added `documentation/BACKLOG_TRIAGE_POLICY.md` to define triage cadence and status-transition policy.
+- Added optional issue dependency fields (`blocked_by`, `enables`) to the `ISSUES.md` template.
+- Added `scripts/validate-backlog.mjs` for schema and link validation across `ISSUES.md` and `MILESTONES.md`.
+- Reconciled MVP XP wording to Combat/Boss-only in encounter and loot scope docs.
+- Added squads-vs-teams compatibility notes in frontend/backend architecture contract docs.
+- Converted milestone template example to fenced YAML to avoid active-entry parser ambiguity.
+- Removed deprecated `documentation/worklist.md` from active documentation.
+- Added metadata headers to previously missing high-impact docs across overview, architecture, systems, UX, and multiplayer sections.
+- Added root workflow command `npm run backlog:validate` via `package.json`.
+- Added CI workflow `.github/workflows/backlog-validation.yml` to validate backlog schema/links on relevant changes.
+- Split deferred planning inventory into `ISSUES_BACKLOG.md` and `MILESTONES_BACKLOG.md` to keep active tracking docs within context guardrails.

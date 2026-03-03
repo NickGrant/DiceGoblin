@@ -1,5 +1,11 @@
 # UX & Debug Scope — MVP
 
+Status: active  
+Last Updated: 2026-03-02  
+Owner: UX + Frontend  
+Depends On: `documentation/03-ux/02-warband-management.md`, `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
+
+
 This document defines the **authoritative UX surface area and debug/operator tooling** for the Dice Goblins MVP. Any screen, navigation behavior, UI affordance, or debug feature not listed here is **out of scope** for MVP.
 
 ---

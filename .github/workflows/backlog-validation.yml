@@ -1,0 +1,38 @@
+name: Backlog Validation
+
+on:
+  pull_request:
+    paths:
+      - "ISSUES.md"
+      - "MILESTONES.md"
+      - "AGENTS.md"
+      - "documentation/**"
+      - "scripts/validate-backlog.mjs"
+      - ".github/workflows/backlog-validation.yml"
+      - "package.json"
+  push:
+    branches:
+      - main
+    paths:
+      - "ISSUES.md"
+      - "MILESTONES.md"
+      - "AGENTS.md"
+      - "documentation/**"
+      - "scripts/validate-backlog.mjs"
+      - ".github/workflows/backlog-validation.yml"
+      - "package.json"
+
+jobs:
+  validate-backlog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate backlog schema and links
+        run: npm run backlog:validate

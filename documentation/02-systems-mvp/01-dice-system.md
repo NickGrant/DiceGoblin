@@ -1,5 +1,11 @@
 # Dice System — MVP (Authoritative)
 
+Status: active  
+Last Updated: 2026-03-02  
+Owner: Systems Design  
+Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/02-systems-mvp/07-combat-math-and-modifiers.md`
+
+
 This document is the **authoritative specification** of the Dice Goblins dice system for the MVP.  
 Any dice mechanic not explicitly included here is **out of scope** for MVP.
 
