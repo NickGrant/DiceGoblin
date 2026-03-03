@@ -93,6 +93,9 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `npm run startup:check`
   - `npm run backlog:validate`
   - `npm run llm:check`
+  - `npm run docs:lint`
+  - `npm run bundle:check`
+  - `npm run verify:full`
 - Local reusable skills:
   - `skills/backlog-ops/SKILL.md`
   - `skills/startup-verification/SKILL.md`

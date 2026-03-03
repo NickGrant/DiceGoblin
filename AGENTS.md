@@ -147,6 +147,11 @@ This file defines project-specific operating instructions for coding agents work
 ## Verification Requirements
 - After code changes, run relevant tests/builds when available.
 - Report pass/fail status clearly.
+- Minimum pre-commit verification for mixed frontend/backend work:
+  - `npm.cmd run llm:check`
+  - `composer --working-dir=backend test` (or backend equivalent)
+  - `npm --prefix frontend run test`
+  - `npm --prefix frontend run build`
 - If any build/test command fails at any point, immediately notify the user in the next update with:
   - failing command,
   - error summary (top actionable failures),
@@ -184,6 +189,9 @@ This file defines project-specific operating instructions for coding agents work
 - Keep changes scoped to the requested task.
 - Avoid unrelated refactors unless required to safely complete the task.
 - Keep documentation and tests aligned with behavior changes.
+- Treat generated artifacts (`frontend/dist`) as policy-controlled output:
+  - if user requests "commit everything", include generated artifacts;
+  - otherwise prefer source-only commits and call out generated changes separately.
 
 ## Local Skills
 - Repository-local reusable skills live under `skills/`.

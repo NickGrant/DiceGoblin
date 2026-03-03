@@ -1,0 +1,53 @@
+name: Full Verification
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: |
+            frontend/package-lock.json
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: composer
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Install backend dependencies
+        run: composer --working-dir=backend install --no-interaction --no-progress
+
+      - name: Run LLM control checks
+        run: npm run llm:check
+
+      - name: Run documentation lint (warning mode)
+        run: npm run docs:lint
+
+      - name: Run backend tests
+        run: npm run test:backend
+
+      - name: Run frontend tests
+        run: npm run test:frontend
+
+      - name: Build frontend
+        run: npm run build:frontend
+
+      - name: Run bundle size warning check
+        run: npm run bundle:check

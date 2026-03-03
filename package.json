@@ -3,6 +3,12 @@
   "private": true,
   "scripts": {
     "backlog:validate": "node scripts/validate-backlog.mjs",
+    "bundle:check": "node scripts/check-frontend-bundle-size.mjs",
+    "docs:lint": "node scripts/lint-doc-headers.mjs",
+    "test:backend": "composer --working-dir=backend test",
+    "test:frontend": "npm --prefix frontend run test",
+    "build:frontend": "npm --prefix frontend run build",
+    "verify:full": "npm run llm:check && npm run docs:lint && npm run test:backend && npm run test:frontend && npm run build:frontend && npm run bundle:check",
     "startup:check": "node scripts/startup-check.mjs",
     "llm:check": "npm run startup:check && npm run backlog:validate"
   }

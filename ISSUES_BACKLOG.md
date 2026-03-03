@@ -323,3 +323,27 @@ created: 2026-03-02
 updated: 2026-03-02
 description: |
   [Role: QA Lead] Define and execute a focused validation checklist for stale run-state and partial payload recovery scenarios to verify resilience changes before Milestone 6 sign-off.
+---
+title: Reduce frontend production bundle size via scene-level code splitting
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 10 - Engineering Maintainability and Contracts
+created: 2026-03-03
+updated: 2026-03-03
+description: |
+  [Role: Senior Developer] Frontend build currently emits a large primary bundle (~1.5 MB minified warning). Introduce scene-level lazy loading and/or manual chunking strategy to lower initial payload size and keep build warnings actionable.
+---
+title: Document and enforce frontend build-artifact policy for `frontend/dist`
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 11 - QA Coverage and Automation
+created: 2026-03-03
+updated: 2026-03-03
+description: |
+  [Role: Technical Product Manager] Define whether production bundle artifacts must be committed or generated in CI/release flow, then codify the rule in docs and checks to avoid accidental drift between source and shipped assets.
