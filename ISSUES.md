@@ -47,30 +47,6 @@ description: |
 ### Functional
 
 ---
-title: Replace placeholder run node resolution with deterministic combat engine integration
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-owner: unassigned
-milestone: Milestone 2 - Server-Side Battle Resolution
-created: 2026-03-02
-updated: 2026-03-02
-description: |
-  [Role: Combat Systems Reviewer] `backend/src/Controllers/RunNodeController.php` currently uses placeholder battle resolution values and random seed generation instead of actual deterministic simulation logic. Integrate the combat engine pipeline and ensure outcomes/logs are generated from canonical unit, ability, and RNG rules.
----
-title: Implement non-placeholder reward and XP application on battle claim
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-owner: unassigned
-milestone: Milestone 2 - Server-Side Battle Resolution
-created: 2026-03-02
-updated: 2026-03-02
-description: |
-  [Role: Combat Systems Reviewer] `backend/src/Controllers/BattleController.php` returns placeholder arrays for `updated_run_unit_state`, XP application details, and updated units. Implement real reward/XP application tied to run-scoped unit state and battle outcomes to satisfy progression invariants.
----
 title: Persist run-scoped unit attrition state across encounters and resume
 status: unstarted
 priority: high

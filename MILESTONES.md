@@ -46,22 +46,6 @@ exit_criteria: |
 ## Active Milestones
 
 ---
-name: Milestone 2 - Server-Side Battle Resolution
-status: in-progress
-execution_window: open
-is_current: yes
-issues:
-  - Replace placeholder run node resolution with deterministic combat engine integration
-  - Implement non-placeholder reward and XP application on battle claim
-description: |
-  Deliver deterministic battle resolution and real claim/reward flow with idempotency guarantees.
-entry_criteria: |
-  * Milestone 9 governance updates that define sequencing/dependency policy are complete.
-  * Combat and reward placeholder replacement scope is confirmed in active issue definitions.
-exit_criteria: |
-  * Deterministic node resolution and non-placeholder claim reward application issues are complete and archived.
-  * Targeted verification confirms idempotent resolve and claim behavior.
----
 name: Milestone 3 - Run Progression and Attrition
 status: not-started
 execution_window: closed

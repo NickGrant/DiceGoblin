@@ -486,3 +486,30 @@ updated: 2026-03-02
 description: |
   [Role: Backlog Curator] Active docs exceed project guardrails (`ISSUES.md` and `MILESTONES.md` line budgets). Apply a trimming pass (archive movement, concise descriptions, optional split strategy) to restore context efficiency.
 Resolution: Split deferred planning inventory into `ISSUES_BACKLOG.md` and `MILESTONES_BACKLOG.md`, keeping `ISSUES.md` and `MILESTONES.md` focused on active lanes and back under configured line guardrails.
+---
+title: Replace placeholder run node resolution with deterministic combat engine integration
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 2 - Server-Side Battle Resolution
+created: 2026-03-02
+updated: 2026-03-02
+description: |
+  [Role: Combat Systems Reviewer] `backend/src/Controllers/RunNodeController.php` currently uses placeholder battle resolution values and random seed generation instead of actual deterministic simulation logic. Integrate the combat engine pipeline and ensure outcomes/logs are generated from canonical unit, ability, and RNG rules.
+Resolution: Replaced placeholder resolve logic with a deterministic resolver service that derives seed, outcome, rounds/ticks, rewards, and canonical battle log events from persisted run/team/encounter data, then stores those artifacts in battle tables.
+
+---
+title: Implement non-placeholder reward and XP application on battle claim
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 2 - Server-Side Battle Resolution
+created: 2026-03-02
+updated: 2026-03-02
+description: |
+  [Role: Combat Systems Reviewer] `backend/src/Controllers/BattleController.php` returns placeholder arrays for `updated_run_unit_state`, XP application details, and updated units. Implement real reward/XP application tied to run-scoped unit state and battle outcomes to satisfy progression invariants.
+Resolution: Implemented first-claim XP application for eligible squad units, excluded defeated or max-level units, persisted a claim snapshot in `battle_rewards.rewards_json` for idempotent re-claims, and now return real `updated_run_unit_state`/`xp`/`updated_units` payloads.

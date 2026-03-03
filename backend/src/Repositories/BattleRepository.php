@@ -81,14 +81,14 @@ final class BattleRepository
    * Lock + fetch battle + rewards for claiming (ownership enforced).
    *
    * @return array{
-   *   id:string,status:string,outcome:string,rules_version:string,
+   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,
    *   xp_total:int,rewards_json:string
    * }|null
    */
   public function getForClaimForUpdate(int $battleId, int $userId): ?array
   {
     $stmt = $this->pdo->prepare('
-      SELECT b.`id`, b.`status`, b.`outcome`, b.`rules_version`,
+      SELECT b.`id`, b.`status`, b.`outcome`, b.`rules_version`, b.`run_id`, b.`team_id`,
              br.`xp_total`, br.`rewards_json`
       FROM `battles` b
       JOIN `battle_rewards` br ON br.`battle_id` = b.`id`
@@ -106,6 +106,8 @@ final class BattleRepository
       'status' => (string)$r['status'],
       'outcome' => (string)$r['outcome'],
       'rules_version' => (string)$r['rules_version'],
+      'run_id' => (string)$r['run_id'],
+      'team_id' => (string)$r['team_id'],
       'xp_total' => (int)$r['xp_total'],
       'rewards_json' => (string)$r['rewards_json'],
     ];

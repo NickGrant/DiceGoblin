@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Controllers;
 
+use DiceGoblins\Combat\Engine\DeterministicRunNodeResolver;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
 
@@ -203,15 +204,11 @@ final class RunNodeController
         return;
       }
 
-      // Placeholder battle resolution (swap for real deterministic combat engine)
-      $seed = random_int(1, 9223372036854775807);
-      $ticksPerRound = 20;
-
-      $nodeType = $node['node_type'];
-      $rounds = ($nodeType === 'rest' || $nodeType === 'loot') ? 0 : 3;
-      $ticks  = $rounds * $ticksPerRound;
-
-      $outcome = 'victory';
+      $resolution = $svc['resolver']->resolve($userId, $teamIdInt, $run, $node);
+      $seed = (int)$resolution['seed'];
+      $outcome = (string)$resolution['outcome'];
+      $ticks = (int)$resolution['ticks'];
+      $rounds = (int)$resolution['rounds'];
 
       $battleId = $svc['battleRepo']->createCompleted(
         $userId,
@@ -224,29 +221,13 @@ final class RunNodeController
         $rounds
       );
 
-      // Log (placeholder)
-      $svc['battleLogRepo']->insert($battleId, [
-        'meta' => [
-          'ticksPerRound' => $ticksPerRound,
-          'rng' => ['seed' => $seed],
-          'createdAtIso' => gmdate('c'),
-          'version' => 1,
-        ],
-        'events' => [
-          [
-            'type' => 'note',
-            'round' => 0,
-            'tick' => 0,
-            'message' => 'placeholder_resolution',
-          ],
-        ],
-      ]);
-
-      // Rewards row (placeholder)
-      $svc['battleRewardsRepo']->insert($battleId, 0, 0, [
-        'new_dice_instance_ids' => [],
-        'region_items' => [],
-      ]);
+      $svc['battleLogRepo']->insert($battleId, $resolution['log']);
+      $svc['battleRewardsRepo']->insert(
+        $battleId,
+        (int)$resolution['xp_total'],
+        (int)$resolution['currency_soft'],
+        (array)$resolution['rewards']
+      );
 
       // Mark node cleared in DB
       $svc['runNodeRepo']->markCleared($runIdInt, $nodeIdInt);
@@ -333,6 +314,7 @@ final class RunNodeController
    *   battleLogRepo: BattleLogRepository,
    *   battleRewardsRepo: BattleRewardsRepository,
    *   teamRepo: TeamRepository,
+   *   resolver: DeterministicRunNodeResolver,
    *   sessionService: SessionService,
    *   csrfService: CsrfService
    * }
@@ -359,6 +341,7 @@ final class RunNodeController
       'battleLogRepo' => new BattleLogRepository($pdo),
       'battleRewardsRepo' => new BattleRewardsRepository($pdo),
       'teamRepo' => new TeamRepository($pdo),
+      'resolver' => new DeterministicRunNodeResolver($pdo),
       'sessionService' => $sessionService,
       'csrfService' => $csrfService,
     ];

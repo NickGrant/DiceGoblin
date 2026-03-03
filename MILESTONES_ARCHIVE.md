@@ -75,3 +75,14 @@ issues:
 description: |
   Capture role-based simplification and readiness follow-ups discovered after completing milestone governance hardening.
 Resolution: Opened Milestone 2 as the current lane, added local/CI backlog validation entrypoints, and split deferred planning inventory into dedicated backlog files to restore active-doc guardrail compliance.
+---
+name: Milestone 2 - Server-Side Battle Resolution
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Replace placeholder run node resolution with deterministic combat engine integration
+  - Implement non-placeholder reward and XP application on battle claim
+description: |
+  Deliver deterministic battle resolution and real claim/reward flow with idempotency guarantees.
+Resolution: Completed deterministic node resolution and non-placeholder claim reward/XP application, with integration verification via full backend test suite (`phpunit`, 13 passing tests including deterministic resolve and idempotent claim XP coverage).
