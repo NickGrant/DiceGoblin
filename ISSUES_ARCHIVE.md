@@ -979,3 +979,68 @@ updated: 2026-03-04
 description: |
   [Role: Senior Developer] Add resilience handling and explicit user-facing fallback states for partial/late API payloads in active run scenes so transient backend inconsistency does not cascade into broken UI flow.
 Resolution: Updated `MapExplorationScene` to handle stale/partial/error current-run responses with explicit fallback messaging and no crash path, and added regression coverage in `MapExplorationScene.test.ts` for no-run, thrown-request, and error-envelope scenarios.
+---
+title: Implement Rest Management scene with open-edit-finalize workflow
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 16 - Frontend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add a dedicated rest management scene that supports rest open/edit/finalize flow, allows squad edits and dice changes, and returns a per-unit summary (healing and progression deltas) before returning to run map.
+Resolution: Added `RestManagementScene` with open/apply/finalize rest workflow wiring, rest-context dice handoff, summary rendering for progression and healing deltas, and map routing integration from rest nodes.
+---
+title: Implement embedded promotion flow in Unit Details for between-run and rest contexts
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 16 - Frontend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Implement promotion controls directly in Unit Details with correct context gating: enabled between runs and during open rest workflow, disabled in active-run non-rest contexts.
+Resolution: Embedded promotion controls into management flows by adding primary/secondary selection and promote actions in both `WarbandManagementScene` (between-run only) and `RestManagementScene` (rest-context), including client-side compatibility checks and backend-context payloads.
+---
+title: Implement end-of-run summary scene shell for completed failed and abandoned outcomes
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 16 - Frontend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add a shared RunEnd summary shell that renders outcome-specific messaging while always showing rewards, XP/level progression, and surviving/defeated unit breakdown.
+Resolution: Added `RunEndSummaryScene` and wired exit-node flow to call `/runs/:runId/exit` and transition into outcome-based summary messaging with required sections for rewards, progression, survivors, and defeated units.
+---
+title: Implement distinct exit-node visuals and locked-path affordance on run map
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 16 - Frontend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add a visually distinct exit-node treatment (portal/door style) and clear path-lock signaling so the node is visible throughout a run but manually unreachable until boss path unlock.
+Resolution: Updated encounter-map node rendering so exit nodes keep a distinct visual/tint profile across locked, available, and cleared states while preserving availability gating for click interaction.
+---
+title: Wire Dice Inventory screen into active-rest management flow
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 16 - Frontend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Keep Dice Inventory as a dedicated screen and integrate it with rest-management context so allowed dice actions are available during rest and blocked in active-run non-rest contexts.
+Resolution: Expanded `DiceInventoryScene` to load units/dice, support rest-context equip/unequip mutations, and enforce active-run gating when outside rest context, with return-path wiring back to rest management.

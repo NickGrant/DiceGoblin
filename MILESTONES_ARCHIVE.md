@@ -183,3 +183,17 @@ issues:
 description: |
   Raise release-readiness confidence with verification coverage and stability hardening.
 Resolution: Completed Milestone 6 release gate definition, playtest and stale-state validation artifacts, friction-severity triage rubric, encoding cleanup, and frontend run-state fallback hardening with regression tests and full verification gates passing.
+---
+name: Milestone 16 - Frontend Gameplay Completion
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Implement Rest Management scene with open-edit-finalize workflow
+  - Implement embedded promotion flow in Unit Details for between-run and rest contexts
+  - Implement end-of-run summary scene shell for completed failed and abandoned outcomes
+  - Implement distinct exit-node visuals and locked-path affordance on run map
+  - Wire Dice Inventory screen into active-rest management flow
+description: |
+  Complete missing frontend gameplay interfaces and flow wiring so players can execute full run lifecycle interactions with clear summaries and node affordances.
+Resolution: Implemented rest management and run-end frontend flows, embedded promotion and dice mutation actions with rest-context gating, and completed exit-node affordance updates plus API mutation test coverage; TypeScript validation passes while Vite-based test/build commands remain sandbox-blocked (`spawn EPERM`).

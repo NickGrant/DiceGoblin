@@ -181,7 +181,7 @@ export type AbilityCatalogResponse = ApiResponse<AbilityCatalogData>;
  */
 
 export type RunNodeStatus = "available" | "locked" | "cleared" | string;
-export type RunNodeType = "combat" | "loot" | "rest" | "boss" | string;
+export type RunNodeType = "combat" | "loot" | "rest" | "boss" | "exit" | string;
 
 export type CurrentRunRecord = {
   run_id: string;
@@ -224,6 +224,64 @@ export type CurrentRunData = {
 };
 
 export type RunResponse = ApiResponse<CurrentRunData>;
+
+export type RestRunUnitState = {
+  unit_instance_id: string;
+  hp: number;
+  is_defeated: boolean;
+  status_effects: unknown[];
+};
+
+export type RestOpenData = {
+  run_id: string;
+  node_id: string;
+  status: "open" | string;
+  team_id: string;
+  unit_ids: string[];
+  formation: TeamFormationCell[];
+  run_unit_state: RestRunUnitState[];
+};
+
+export type RestFinalizeProgression = {
+  id: string;
+  from_level: number;
+  to_level: number;
+  from_xp: number;
+  to_xp: number;
+};
+
+export type RestFinalizeData = {
+  run_id: string;
+  node: { id: string; status: string };
+  next: { unlocked_node_ids: string[] };
+  progression: RestFinalizeProgression[];
+};
+
+export type RestOpenResponse = ApiResponse<RestOpenData>;
+export type RestStateResponse = ApiResponse<RestOpenData>;
+export type RestFinalizeResponse = ApiResponse<RestFinalizeData>;
+
+export type ExitRunData = {
+  run_id: string;
+  status: string;
+  exit_node_id: string;
+};
+
+export type ExitRunResponse = ApiResponse<ExitRunData>;
+
+export type PromoteUnitData = {
+  unit: { id: string; tier: number; level: number; xp: number };
+  consumed_units: string[];
+};
+
+export type PromoteUnitResponse = ApiResponse<PromoteUnitData>;
+
+export type DiceMutationData = {
+  unit_id: string;
+  equipped_dice: UnitEquippedDie[];
+};
+
+export type DiceMutationResponse = ApiResponse<DiceMutationData>;
 
 /**
  * ----------------------------------------

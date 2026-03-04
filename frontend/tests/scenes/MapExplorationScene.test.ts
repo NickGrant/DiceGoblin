@@ -22,9 +22,11 @@ vi.mock("../../src/components/encounter-map/NodeList", () => ({
 }));
 
 const getCurrentRunMock = vi.fn();
+const exitRunMock = vi.fn();
 vi.mock("../../src/services/apiClient", () => ({
   apiClient: {
     getCurrentRun: (...args: unknown[]) => getCurrentRunMock(...args),
+    exitRun: (...args: unknown[]) => exitRunMock(...args),
   },
 }));
 
@@ -32,6 +34,7 @@ describe("MapExplorationScene transition guards", () => {
   beforeEach(() => {
     nodeListCtor.mockReset();
     getCurrentRunMock.mockReset();
+    exitRunMock.mockReset();
   });
 
   it("does not construct NodeList when no active run exists", async () => {
@@ -86,6 +89,41 @@ describe("MapExplorationScene transition guards", () => {
     expect(scene._fallbackMessage).toBeNull();
   });
 
+  it("routes rest node clicks to RestManagementScene", async () => {
+    const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
+    getCurrentRunMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        run: {
+          run_id: "9",
+          region_id: "1",
+          seed: "rest-seed",
+          status: "active",
+          started_at: "2026-03-04T00:00:00Z",
+          ended_at: null,
+        },
+        map: {
+          nodes: [
+            { id: "501", run_id: "9", node_index: 1, node_type: "rest", status: "available", meta_json: '{"col":1,"row":1}' },
+          ],
+          edges: [],
+        },
+      },
+    });
+
+    const scene = new MapExplorationScene() as any;
+    scene.add = { existing: vi.fn(), text: vi.fn(() => ({ setOrigin: vi.fn() })) };
+    scene.create();
+    await Promise.resolve();
+
+    expect(nodeListCtor).toHaveBeenCalledTimes(1);
+    const config = nodeListCtor.mock.calls[0]?.[5] as { onNodeClick?: (node: any) => void };
+    expect(typeof config.onNodeClick).toBe("function");
+
+    config.onNodeClick?.({ id: "501", node_type: "rest", status: "available" });
+    expect(scene.scene.start).toHaveBeenCalledWith("RestManagementScene", { runId: "9", nodeId: "501" });
+  });
+
   it("shows fallback when current run request throws", async () => {
     const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
     getCurrentRunMock.mockRejectedValueOnce(new Error("contract drift"));
@@ -115,5 +153,42 @@ describe("MapExplorationScene transition guards", () => {
 
     expect(nodeListCtor).toHaveBeenCalledTimes(0);
     expect(scene._fallbackMessage).toBe("Run unavailable: Unexpected error.");
+  });
+
+  it("routes exit node clicks to RunEndSummaryScene after exit call", async () => {
+    const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
+    getCurrentRunMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        run: {
+          run_id: "9",
+          region_id: "1",
+          seed: "exit-seed",
+          status: "active",
+          started_at: "2026-03-04T00:00:00Z",
+          ended_at: null,
+        },
+        map: {
+          nodes: [{ id: "900", run_id: "9", node_index: 9, node_type: "exit", status: "available", meta_json: "{}" }],
+          edges: [],
+        },
+      },
+    });
+    exitRunMock.mockResolvedValueOnce({
+      ok: true,
+      data: { run_id: "9", status: "completed", exit_node_id: "900" },
+    });
+
+    const scene = new MapExplorationScene() as any;
+    scene.add = { existing: vi.fn(), text: vi.fn(() => ({ setOrigin: vi.fn() })) };
+    scene.create();
+    await Promise.resolve();
+
+    const config = nodeListCtor.mock.calls[0]?.[5] as { onNodeClick?: (node: any) => void };
+    config.onNodeClick?.({ id: "900", node_type: "exit", status: "available" });
+    await Promise.resolve();
+
+    expect(exitRunMock).toHaveBeenCalledWith("9");
+    expect(scene.scene.start).toHaveBeenCalledWith("RunEndSummaryScene", expect.objectContaining({ status: "completed" }));
   });
 });

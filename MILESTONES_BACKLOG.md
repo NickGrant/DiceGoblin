@@ -8,26 +8,6 @@
 
 ## Backlog Milestones
 
-name: Milestone 16 - Frontend Gameplay Completion
-status: not-started
-execution_window: closed
-is_current: no
-issues:
-  - Implement Rest Management scene with open-edit-finalize workflow
-  - Implement embedded promotion flow in Unit Details for between-run and rest contexts
-  - Implement end-of-run summary scene shell for completed failed and abandoned outcomes
-  - Implement distinct exit-node visuals and locked-path affordance on run map
-  - Wire Dice Inventory screen into active-rest management flow
-description: |
-  Complete missing frontend gameplay interfaces and flow wiring so players can execute full run lifecycle interactions with clear summaries and node affordances.
-entry_criteria: |
-  * UX and architecture docs define rest management, run-end summary, and exit-node interaction rules.
-  * Backend contracts for rest workflow and exit completion are documented.
-exit_criteria: |
-  * Frontend supports rest management, embedded promotion, and run-end summary behavior.
-  * Exit node visuals/locking cues are implemented and validated.
-  * All milestone issues are complete and archived.
----
 name: Milestone 10 - Engineering Maintainability and Contracts
 status: not-started
 execution_window: closed

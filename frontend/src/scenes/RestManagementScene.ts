@@ -3,55 +3,41 @@ import BackgroundImage from "../components/BackgroundImage";
 import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import UiButton from "../components/Button";
-
 import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
 import UnitListPanel, { type UnitListRowState } from "../components/UnitListPanel";
-
-import { apiClient } from "../services/apiClient";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
-import type { TeamRecord, UnitRecord, TeamFormationCell } from "../types/ApiResponse";
+import { apiClient } from "../services/apiClient";
+import type { TeamFormationCell, UnitRecord, RestRunUnitState } from "../types/ApiResponse";
 
 type Cell = FormationCell;
-
 const CELLS: Cell[] = ["A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"];
 
 function emptyFormation(): FormationMap {
-  return {
-    A1: null, B1: null, C1: null,
-    A2: null, B2: null, C2: null,
-    A3: null, B3: null, C3: null,
-  };
+  return { A1: null, B1: null, C1: null, A2: null, B2: null, C2: null, A3: null, B3: null, C3: null };
 }
 
-export default class WarbandManagementScene extends Phaser.Scene {
+export default class RestManagementScene extends Phaser.Scene {
+  private runId = "";
+  private nodeId = "";
+
   private loadingText?: Phaser.GameObjects.Text;
   private toastText?: Phaser.GameObjects.Text;
+  private summaryText?: Phaser.GameObjects.Text;
 
   private units: UnitRecord[] = [];
-  private squads: TeamRecord[] = [];
-  private activeSquad: TeamRecord | null = null;
-  private hasActiveRun = false;
-
-  // Editing state
+  private runUnitState: RestRunUnitState[] = [];
+  private baselineRunUnitHp: Map<string, number> = new Map();
   private editUnitIds: Set<string> = new Set();
   private editFormation: FormationMap = emptyFormation();
-
-  // Selection state
   private selectedUnitId: string | null = null;
+  private finalized = false;
   private promotionPrimaryId: string | null = null;
   private promotionSecondaryIds: string[] = [];
 
-  // UI
-  private titleText?: Phaser.GameObjects.Text;
-  private tipText1?: Phaser.GameObjects.Text;
-  private tipText2?: Phaser.GameObjects.Text;
-
   private grid?: FormationGrid3x3;
   private unitPanel?: UnitListPanel;
-
-  private saveButton?: UiButton;
-  private clearButton?: UiButton;
-  private createSquadButton?: UiButton;
+  private applyButton?: UiButton;
+  private finalizeButton?: UiButton;
   private setPrimaryButton?: UiButton;
   private addSecondaryButton?: UiButton;
   private clearPromotionButton?: UiButton;
@@ -59,7 +45,12 @@ export default class WarbandManagementScene extends Phaser.Scene {
   private promotionStatusText?: Phaser.GameObjects.Text;
 
   constructor() {
-    super({ key: "WarbandManagementScene" });
+    super({ key: "RestManagementScene" });
+  }
+
+  init(data: { runId?: string; nodeId?: string }): void {
+    this.runId = String(data?.runId ?? "");
+    this.nodeId = String(data?.nodeId ?? "");
   }
 
   create(): void {
@@ -67,140 +58,73 @@ export default class WarbandManagementScene extends Phaser.Scene {
     new HudPanel(this);
     new HomeButton(this, { x: 64, y: 52 }).setScale(0.5);
 
-    this.loadingText = this.add
-      .text(480, 270, "Loading warband…", {
-        fontFamily: "Arial",
-        fontSize: "18px",
-        color: "#ffffff",
-      })
-      .setOrigin(0.5);
+    this.loadingText = this.add.text(480, 70, "Preparing rest...", {
+      fontFamily: "Arial",
+      fontSize: "18px",
+      color: "#ffffff",
+    }).setOrigin(0.5);
+
+    if (!this.runId || !this.nodeId) {
+      this.loadingText.setText("Rest unavailable: missing run context.");
+      return;
+    }
 
     void this.loadData();
   }
 
-  // ----------------------------
-  // Data load + UI build
-  // ----------------------------
-
   private async loadData(): Promise<void> {
     try {
-      const profile = await apiClient.getProfile({ force: true });
+      const [profile, restOpen] = await Promise.all([
+        apiClient.getProfile({ force: true }),
+        apiClient.openRest(this.runId, this.nodeId),
+      ]);
+
       if (!profile.ok) throw new Error(profile.error.message);
+      if (!restOpen.ok) throw new Error(restOpen.error.message);
 
       this.units = adaptUnitRecords(profile.data.units ?? []);
-      this.squads = (profile.data.squads ?? []) as TeamRecord[];
-      this.activeSquad = this.squads.find((t) => t.is_active) ?? this.squads[0] ?? null;
-      this.hasActiveRun = profile.data.active_run !== null;
+      this.runUnitState = restOpen.data.run_unit_state ?? [];
+      this.baselineRunUnitHp = new Map(this.runUnitState.map((s) => [s.unit_instance_id, s.hp]));
+      this.editUnitIds = new Set(restOpen.data.unit_ids ?? []);
+      this.editFormation = emptyFormation();
+      for (const f of restOpen.data.formation ?? []) {
+        const cell = f.cell as Cell;
+        if (CELLS.includes(cell)) {
+          this.editFormation[cell] = f.unit_instance_id;
+        }
+      }
 
       this.loadingText?.destroy();
       this.loadingText = undefined;
-
       this.buildUi();
     } catch (e) {
-      this.loadingText?.setText(`Failed to load.\n${(e as Error).message}`);
+      this.loadingText?.setText(`Rest unavailable.\n${(e as Error).message}`);
     }
-  }
-
-  private destroyUi(): void {
-    this.toastText?.destroy();
-    this.toastText = undefined;
-
-    this.titleText?.destroy();
-    this.tipText1?.destroy();
-    this.tipText2?.destroy();
-
-    this.grid?.destroy();
-    this.grid = undefined;
-
-    this.unitPanel?.destroy();
-    this.unitPanel = undefined;
-
-    this.saveButton?.destroy();
-    this.saveButton = undefined;
-
-    this.clearButton?.destroy();
-    this.clearButton = undefined;
-
-    this.createSquadButton?.destroy();
-    this.createSquadButton = undefined;
-
-    this.setPrimaryButton?.destroy();
-    this.setPrimaryButton = undefined;
-    this.addSecondaryButton?.destroy();
-    this.addSecondaryButton = undefined;
-    this.clearPromotionButton?.destroy();
-    this.clearPromotionButton = undefined;
-    this.promoteButton?.destroy();
-    this.promoteButton = undefined;
-    this.promotionStatusText?.destroy();
-    this.promotionStatusText = undefined;
   }
 
   private buildUi(): void {
-    this.destroyUi();
+    this.add.text(480, 38, "REST MANAGEMENT", {
+      fontFamily: "Arial",
+      fontSize: "20px",
+      color: "#ffffff",
+    }).setOrigin(0.5);
 
-    if (!this.activeSquad) {
-      this.titleText = this.add
-        .text(480, 160, "No squads found.", {
-          fontFamily: "Arial",
-          fontSize: "18px",
-          color: "#ffffff",
-        })
-        .setOrigin(0.5);
-
-      this.createSquadButton = new UiButton({
-        scene: this,
-        x: 480,
-        y: 240,
-        label: "Create Squad",
-        size: "small",
-        onClick: () => void this.createSquad(),
-      });
-
-      return;
-    }
-
-    // Initialize local edit state from active squad
-    this.selectedUnitId = null;
-    this.promotionPrimaryId = null;
-    this.promotionSecondaryIds = [];
-    this.editUnitIds = new Set(this.activeSquad.unit_ids ?? []);
-    this.editFormation = emptyFormation();
-
-    for (const f of this.activeSquad.formation ?? []) {
-      const cell = f.cell as Cell;
-      if (CELLS.includes(cell)) {
-        this.editFormation[cell] = f.unit_instance_id;
-      }
-    }
-
-    // Header
-    this.titleText = this.add
-      .text(480, 92, `WARBAND: ${this.activeSquad.name}`, {
-        fontFamily: "Arial",
-        fontSize: "18px",
-        color: "#ffffff",
-      })
-      .setOrigin(0.5);
-
-    // Unit panel (left)
     this.unitPanel = new UnitListPanel({
       scene: this,
       x: 20,
-      y: 120,
+      y: 90,
       width: 400,
       height: 420,
-      title: "UNITS",
+      title: "RUN SQUAD",
       units: this.units,
       getRowState: (u) => this.getUnitRowState(u),
       onUnitClick: (u) => this.handleUnitClick(u),
     });
 
-    // Formation grid (right)
     this.grid = new FormationGrid3x3({
       scene: this,
       x: 540,
-      y: 170,
+      y: 140,
       formation: this.editFormation,
       selectedCell: null,
       getCellLabel: (cell, unitId) => this.getCellLabel(cell, unitId),
@@ -208,27 +132,47 @@ export default class WarbandManagementScene extends Phaser.Scene {
       onCellDoubleClick: (cell) => this.handleCellDoubleClick(cell),
     });
 
-    // Buttons
-    this.clearButton = new UiButton({
+    this.applyButton = new UiButton({
       scene: this,
-      x: 700,
+      x: 720,
       y: 92,
-      label: "Clear Cell",
+      label: "Apply State",
       size: "tiny",
-      enabled: false,
-      onClick: () => this.clearSelectedCell(),
+      onClick: () => void this.applyRestState(),
     });
 
-    this.saveButton = new UiButton({
+    this.finalizeButton = new UiButton({
       scene: this,
       x: 860,
       y: 92,
-      label: "Save",
+      label: "Finalize Rest",
       size: "tiny",
-      enabled: true,
-      onClick: () => void this.saveTeam(),
+      onClick: () => void this.finalizeRest(),
     });
 
+    this.add.text(30, 525, "Tip: changes apply to run snapshot and saved squad together.", {
+      fontFamily: "Arial",
+      fontSize: "11px",
+      color: "#dddddd",
+    });
+    this.add.text(30, 540, "Use promotion controls for max-level units while rest is open.", {
+      fontFamily: "Arial",
+      fontSize: "11px",
+      color: "#bbbbbb",
+    });
+
+    new UiButton({
+      scene: this,
+      x: 560,
+      y: 92,
+      label: "Manage Dice",
+      size: "tiny",
+      onClick: () => this.scene.start("DiceInventoryScene", {
+        runId: this.runId,
+        nodeId: this.nodeId,
+        returnScene: "RestManagementScene",
+      }),
+    });
     this.setPrimaryButton = new UiButton({
       scene: this,
       x: 560,
@@ -272,49 +216,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
       wordWrap: { width: 290 },
     });
 
-    // Tips
-    this.tipText1 = this.add.text(40, 550, "Tip: click a grid cell, then click a unit.", {
-      fontFamily: "Arial",
-      fontSize: "11px",
-      color: "#dddddd",
-    });
-
-    this.tipText2 = this.add.text(540, 550, "Tip: double-click an occupied cell to clear.", {
-      fontFamily: "Arial",
-      fontSize: "11px",
-      color: "#dddddd",
-    });
-
-    this.refreshDerivedUiState();
-  }
-
-  private showToast(message: string, color = "#ffcccc"): void {
-    this.toastText?.destroy();
-    this.toastText = this.add
-      .text(480, 610, message, {
-        fontFamily: "Arial",
-        fontSize: "12px",
-        color,
-      })
-      .setOrigin(0.5);
-
-    // Auto-clear after a moment
-    this.time.delayedCall(2500, () => {
-      this.toastText?.destroy();
-      this.toastText = undefined;
-    });
-  }
-
-  // ----------------------------
-  // Derived state helpers
-  // ----------------------------
-
-  private getSelectedCell(): Cell | null {
-    return this.grid?.getSelectedCell() ?? null;
-  }
-
-  private isUnitPlaced(unitId: string): boolean {
-    return Object.values(this.editFormation).includes(unitId);
+    this.refreshUi();
   }
 
   private getCellLabel(cell: Cell, unitId: string | null): string {
@@ -323,128 +225,150 @@ export default class WarbandManagementScene extends Phaser.Scene {
     return `${cell}\n${u ? u.name : `Unit ${unitId}`}`;
   }
 
+  private isUnitPlaced(unitId: string): boolean {
+    return Object.values(this.editFormation).includes(unitId);
+  }
+
   private getUnitRowState(u: UnitRecord): UnitListRowState {
     const inTeam = this.editUnitIds.has(u.id);
     const placed = this.isUnitPlaced(u.id);
     const selected = this.selectedUnitId === u.id;
-
     return {
       highlighted: inTeam,
       outlined: placed,
-      disabled: false,
+      disabled: this.finalized,
       badgeText: selected ? "SELECTED" : placed ? "PLACED" : null,
     };
   }
 
-  private refreshDerivedUiState(): void {
-    // Update list row styling
-    this.unitPanel?.refreshRowStates();
-
-    // Update grid labels/selection visuals
+  private refreshUi(): void {
     this.grid?.setFormation(this.editFormation);
-
-    // Clear button enabled when selected cell is occupied
-    const cell = this.getSelectedCell();
-    const occupied = cell ? this.editFormation[cell] !== null : false;
-    this.clearButton?.setEnabled(!!cell && occupied);
+    this.unitPanel?.refreshRowStates();
+    this.applyButton?.setEnabled(!this.finalized);
+    this.finalizeButton?.setEnabled(!this.finalized);
     this.promoteButton?.setEnabled(
-      !this.hasActiveRun && !!this.promotionPrimaryId && this.promotionSecondaryIds.length === 2
+      !this.finalized && !!this.promotionPrimaryId && this.promotionSecondaryIds.length === 2
     );
     this.promotionStatusText?.setText(this.buildPromotionStatusText());
   }
 
-  // ----------------------------
-  // Interaction handlers
-  // ----------------------------
-
   private handleCellClick(cell: Cell): void {
-    // If user has a unit armed, place it
+    if (this.finalized) return;
     if (this.selectedUnitId) {
       this.placeUnitIntoCell(this.selectedUnitId, cell);
       this.selectedUnitId = null;
     }
-    this.refreshDerivedUiState();
+    this.refreshUi();
   }
 
   private handleCellDoubleClick(cell: Cell): void {
-    // Double-click clears (only if occupied and not in "placing mode")
+    if (this.finalized) return;
     if (this.selectedUnitId) return;
     if (this.editFormation[cell] === null) return;
-
     this.editFormation[cell] = null;
-    this.refreshDerivedUiState();
+    this.refreshUi();
   }
 
   private handleUnitClick(u: UnitRecord): void {
-    const cell = this.getSelectedCell();
-
-    if (cell) {
-      // place immediately if a cell is selected
-      this.placeUnitIntoCell(u.id, cell);
+    if (this.finalized) return;
+    const selectedCell = this.grid?.getSelectedCell() ?? null;
+    if (selectedCell) {
+      this.placeUnitIntoCell(u.id, selectedCell);
       this.selectedUnitId = null;
     } else {
-      // arm unit for placement
       this.selectedUnitId = u.id;
     }
-
-    this.refreshDerivedUiState();
+    this.refreshUi();
   }
 
   private placeUnitIntoCell(unitId: string, cell: Cell): void {
-    // Ensure membership includes the unit (bench allowed; we keep membership even if unplaced)
     this.editUnitIds.add(unitId);
-
-    // Uniqueness: unit can only be in one cell
     for (const c of CELLS) {
       if (this.editFormation[c] === unitId) this.editFormation[c] = null;
     }
-
-    // Place into target cell
     this.editFormation[cell] = unitId;
   }
 
-  private clearSelectedCell(): void {
-    const cell = this.getSelectedCell();
-    if (!cell) return;
-    if (this.editFormation[cell] === null) return;
-
-    this.editFormation[cell] = null;
-    this.refreshDerivedUiState();
-  }
-
-  // ----------------------------
-  // Persistence
-  // ----------------------------
-
-  private async createSquad(): Promise<void> {
-    const res = await apiClient.createTeam("My Warband", true);
-    if (!res.ok) {
-      this.showToast(`Create failed: ${res.error.message}`);
-      return;
-    }
-    await this.loadData();
-  }
-
-  private async saveTeam(): Promise<void> {
-    if (!this.activeSquad) return;
-
+  private async applyRestState(): Promise<boolean> {
     const formation: TeamFormationCell[] = CELLS.map((cell) => ({
       cell,
       unit_instance_id: this.editFormation[cell] ?? null,
     }));
-
-    const res = await apiClient.updateTeam(this.activeSquad.id, {
+    const res = await apiClient.updateRestState(this.runId, this.nodeId, {
       unit_ids: Array.from(this.editUnitIds),
       formation,
     });
-
     if (!res.ok) {
-      this.showToast(`Save failed: ${res.error.message}`);
+      this.showToast(`Apply failed: ${res.error.message}`);
+      return false;
+    }
+    this.runUnitState = res.data.run_unit_state ?? this.runUnitState;
+    this.showToast("Rest state saved.", "#ccffcc");
+    return true;
+  }
+
+  private async finalizeRest(): Promise<void> {
+    if (!(await this.applyRestState())) return;
+    const res = await apiClient.finalizeRest(this.runId, this.nodeId);
+    if (!res.ok) {
+      this.showToast(`Finalize failed: ${res.error.message}`);
       return;
     }
 
-    this.showToast("Saved!", "#ccffcc");
-    await this.loadData();
+    this.finalized = true;
+    this.refreshUi();
+
+    const progression = res.data.progression ?? [];
+    const progressionLines = progression.length > 0
+      ? progression.map((p) => `Unit ${p.id}: Lv ${p.from_level} -> ${p.to_level}`)
+      : ["No level/promotion changes."];
+
+    const healingLines = this.runUnitState.map((s) => {
+      const before = this.baselineRunUnitHp.get(s.unit_instance_id) ?? s.hp;
+      const healed = Math.max(0, s.hp - before);
+      return `Unit ${s.unit_instance_id}: healed +${healed} (current HP ${s.hp})`;
+    });
+    const summary = [
+      "END OF REST SUMMARY",
+      "",
+      "Progression:",
+      ...progressionLines,
+      "",
+      "Healing:",
+      ...(healingLines.length > 0 ? healingLines : ["No healing changes."]),
+      "",
+      "Press Continue to return to Run Map.",
+    ].join("\n");
+
+    this.summaryText?.destroy();
+    this.summaryText = this.add.text(30, 555, summary, {
+      fontFamily: "monospace",
+      fontSize: "11px",
+      color: "#f5f5f5",
+      wordWrap: { width: 900 },
+    });
+
+    new UiButton({
+      scene: this,
+      x: 860,
+      y: 510,
+      label: "Continue",
+      size: "tiny",
+      onClick: () => this.scene.start("MapExplorationScene"),
+    });
+  }
+
+  private showToast(message: string, color = "#ffcccc"): void {
+    this.toastText?.destroy();
+    this.toastText = this.add.text(480, 520, message, {
+      fontFamily: "Arial",
+      fontSize: "12px",
+      color,
+    }).setOrigin(0.5);
+    this.time.delayedCall(2500, () => {
+      this.toastText?.destroy();
+      this.toastText = undefined;
+    });
   }
 
   private setPromotionPrimaryFromSelection(): void {
@@ -454,7 +378,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
     }
     this.promotionPrimaryId = this.selectedUnitId;
     this.promotionSecondaryIds = this.promotionSecondaryIds.filter((id) => id !== this.promotionPrimaryId);
-    this.refreshDerivedUiState();
+    this.refreshUi();
   }
 
   private addPromotionSecondaryFromSelection(): void {
@@ -474,6 +398,10 @@ export default class WarbandManagementScene extends Phaser.Scene {
       this.showToast("Secondary must match primary type/tier and be max level.");
       return;
     }
+    if (this.runUnitState.some((s) => s.unit_instance_id === this.selectedUnitId)) {
+      this.showToast("Secondary units from active run snapshot cannot be consumed.");
+      return;
+    }
     if (this.promotionSecondaryIds.includes(this.selectedUnitId)) {
       return;
     }
@@ -481,18 +409,18 @@ export default class WarbandManagementScene extends Phaser.Scene {
       this.promotionSecondaryIds.shift();
     }
     this.promotionSecondaryIds.push(this.selectedUnitId);
-    this.refreshDerivedUiState();
+    this.refreshUi();
   }
 
   private clearPromotionSelection(): void {
     this.promotionPrimaryId = null;
     this.promotionSecondaryIds = [];
-    this.refreshDerivedUiState();
+    this.refreshUi();
   }
 
   private async promoteSelectedUnit(): Promise<void> {
-    if (this.hasActiveRun) {
-      this.showToast("Promotion from Warband is disabled while a run is active.");
+    if (this.finalized) {
+      this.showToast("Rest already finalized.");
       return;
     }
     if (!this.promotionPrimaryId || this.promotionSecondaryIds.length !== 2) {
@@ -502,15 +430,15 @@ export default class WarbandManagementScene extends Phaser.Scene {
     const [secondaryA, secondaryB] = this.promotionSecondaryIds as [string, string];
     const res = await apiClient.promoteUnit(
       this.promotionPrimaryId,
-      [secondaryA, secondaryB]
+      [secondaryA, secondaryB],
+      { runId: this.runId, nodeId: this.nodeId }
     );
     if (!res.ok) {
       this.showToast(`Promote failed: ${res.error.message}`);
       return;
     }
     this.showToast("Promotion applied.", "#ccffcc");
-    this.clearPromotionSelection();
-    await this.loadData();
+    this.scene.restart({ runId: this.runId, nodeId: this.nodeId });
   }
 
   private isPromotionCompatible(primaryId: string, secondaryId: string): boolean {
@@ -534,10 +462,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
     const s2 = this.promotionSecondaryIds[1]
       ? this.unitName(this.promotionSecondaryIds[1])
       : "(none)";
-    const gate = this.hasActiveRun
-      ? "Promotion disabled here while a run is active."
-      : "Promotion available between runs.";
-    return `${p}\nSecondaries: ${s1}, ${s2}\n${gate}`;
+    return `${p}\nSecondaries: ${s1}, ${s2}\nPromotion available while rest is open.`;
   }
 
   private unitName(unitId: string): string {

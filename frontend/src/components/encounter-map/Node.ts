@@ -70,13 +70,23 @@ export default class Node extends Phaser.GameObjects.Container {
     this.icon.setTexture(textureKey);
 
     const status = this.record.status;
+    const isExit = this.record.node_type === "exit";
     const isLocked = status === "locked";
     const isAvailable = status === "available";
     const isCleared = status === "cleared";
 
     this.icon.clearTint();
     this.icon.setAlpha(isLocked ? 0.55 : 1.0);
-    if (isCleared) {
+    if (isExit && isLocked) {
+      this.icon.setTint(0x4f8aa8);
+      this.icon.setAlpha(0.7);
+    } else if (isExit && isAvailable) {
+      this.icon.setTint(0x73f3ff);
+      this.icon.setAlpha(1.0);
+    } else if (isExit && isCleared) {
+      this.icon.setTint(0xa7ffcf);
+      this.icon.setAlpha(0.9);
+    } else if (isCleared) {
       this.icon.setTint(0x8fd38a);
       this.icon.setAlpha(0.9);
     }
@@ -88,6 +98,10 @@ export default class Node extends Phaser.GameObjects.Container {
   }
 
   private pickTextureKey(node: CurrentRunNode): string {
+    if (node.node_type === "exit") {
+      return "icon_encounter_boss";
+    }
+
     if (node.status === "locked") {
       return "icon_encounter_locked";
     }

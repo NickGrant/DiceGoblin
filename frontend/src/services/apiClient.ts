@@ -1,4 +1,15 @@
-import { type CreateResponse, type ProfileResponse, type RunResponse, type SessionResponse } from "../types/ApiResponse";
+import {
+  type CreateResponse,
+  type DiceMutationResponse,
+  type ExitRunResponse,
+  type ProfileResponse,
+  type PromoteUnitResponse,
+  type RestFinalizeResponse,
+  type RestOpenResponse,
+  type RestStateResponse,
+  type RunResponse,
+  type SessionResponse,
+} from "../types/ApiResponse";
 import {
   validateCurrentRunResponse,
   validateProfileResponse,
@@ -86,6 +97,110 @@ export const apiClient = {
   async getProfileRaw(): Promise<ProfileResponse> {
     const response = await request<unknown>("/api/v1/profile", { method: "GET" });
     return validateProfileResponse(response);
+  },
+
+  async exitRun(runId: string): Promise<ExitRunResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    return request<ExitRunResponse>(`/api/v1/runs/${runId}/exit`, {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({}),
+    });
+  },
+
+  async openRest(runId: string, nodeId: string): Promise<RestOpenResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    return request<RestOpenResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/open`, {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({}),
+    });
+  },
+
+  async updateRestState(
+    runId: string,
+    nodeId: string,
+    payload: { unit_ids: string[]; formation: Array<{ cell: string; unit_instance_id: string | null }> }
+  ): Promise<RestStateResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    return request<RestStateResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/state`, {
+      method: "PUT",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async finalizeRest(runId: string, nodeId: string): Promise<RestFinalizeResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    return request<RestFinalizeResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/finalize`, {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({}),
+    });
+  },
+
+  async promoteUnit(
+    primaryUnitId: string,
+    secondaryUnitIds: [string, string],
+    context?: { runId?: string; nodeId?: string }
+  ): Promise<PromoteUnitResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const body: Record<string, unknown> = {
+      primary_unit_instance_id: Number(primaryUnitId),
+      secondary_unit_instance_ids: secondaryUnitIds.map((id) => Number(id)),
+    };
+    if (context?.runId && context?.nodeId) {
+      body.run_id = Number(context.runId);
+      body.node_id = Number(context.nodeId);
+    }
+    return request<PromoteUnitResponse>(`/api/v1/units/${primaryUnitId}/promote`, {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify(body),
+    });
+  },
+
+  async equipDice(
+    unitId: string,
+    diceId: string,
+    context?: { runId?: string; nodeId?: string }
+  ): Promise<DiceMutationResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const body: Record<string, unknown> = { dice_instance_id: Number(diceId) };
+    if (context?.runId && context?.nodeId) {
+      body.run_id = Number(context.runId);
+      body.node_id = Number(context.nodeId);
+    }
+    return request<DiceMutationResponse>(`/api/v1/units/${unitId}/dice/equip`, {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify(body),
+    });
+  },
+
+  async unequipDice(
+    unitId: string,
+    diceId: string,
+    context?: { runId?: string; nodeId?: string }
+  ): Promise<DiceMutationResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const body: Record<string, unknown> = { dice_instance_id: Number(diceId) };
+    if (context?.runId && context?.nodeId) {
+      body.run_id = Number(context.runId);
+      body.node_id = Number(context.nodeId);
+    }
+    return request<DiceMutationResponse>(`/api/v1/units/${unitId}/dice/unequip`, {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify(body),
+    });
   },
 
   // -----------------------------

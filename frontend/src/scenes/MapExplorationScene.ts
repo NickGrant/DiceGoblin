@@ -3,7 +3,7 @@ import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import NodeList from "../components/encounter-map/NodeList";
 import { apiClient } from "../services/apiClient";
-import type { RunResponse } from "../types/ApiResponse";
+import type { CurrentRunNode, RunResponse } from "../types/ApiResponse";
 
 export default class MapExplorationScene extends Phaser.Scene {
   _run: RunResponse | null = null;
@@ -39,9 +39,48 @@ export default class MapExplorationScene extends Phaser.Scene {
       }
 
       this._run = run;
-      new NodeList(this, 0, 0, run.data.run, run.data.map.nodes);
+      new NodeList(this, 0, 0, run.data.run, run.data.map.nodes, {
+        onNodeClick: (node) => this.handleNodeClick(node),
+      });
     } catch {
       this.showFallback("Run data unavailable. Please retry.");
+    }
+  }
+
+  private handleNodeClick(node: CurrentRunNode): void {
+    if (!this._run?.ok || this._run.data.run === null) return;
+    if (node.node_type === "rest") {
+      this.scene.start("RestManagementScene", {
+        runId: this._run.data.run.run_id,
+        nodeId: node.id,
+      });
+      return;
+    }
+    if (node.node_type === "exit") {
+      void this.handleExitNodeClick();
+      return;
+    }
+    this.showFallback(`Node '${node.node_type}' is not wired yet.`);
+  }
+
+  private async handleExitNodeClick(): Promise<void> {
+    if (!this._run?.ok || this._run.data.run === null) return;
+    const runId = this._run.data.run.run_id;
+    try {
+      const exitRes = await apiClient.exitRun(runId);
+      if (!exitRes.ok) {
+        this.showFallback(`Exit failed: ${exitRes.error.message}`);
+        return;
+      }
+      this.scene.start("RunEndSummaryScene", {
+        status: exitRes.data.status,
+        rewards: [],
+        progression: [],
+        survivors: [],
+        defeated: [],
+      });
+    } catch {
+      this.showFallback("Exit unavailable. Please retry.");
     }
   }
 
