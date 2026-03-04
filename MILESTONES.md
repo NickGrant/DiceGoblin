@@ -44,3 +44,19 @@ exit_criteria: |
 ```
 
 ## Active Milestones
+---
+name: Milestone 12 - Combat Determinism and Progression Integrity
+status: in-progress
+execution_window: open
+is_current: yes
+issues:
+  - Add progression invariants test suite for claim and run-state mutation
+  - Add battle reward economy sanity validation fixtures
+description: |
+  Strengthen combat determinism and progression correctness before higher-level tuning and content expansion.
+entry_criteria: |
+  * Milestone 2 placeholder removal is complete or stable enough to attach deterministic coverage.
+  * Canonical combat/progression invariants are documented.
+exit_criteria: |
+  * Determinism and progression-integrity issues are complete and archived.
+  * Regression suites validate deterministic and no-duplication guarantees.

@@ -46,4 +46,28 @@ description: |
 ## Active Issues
 
 ### Functional
+---
+title: Add progression invariants test suite for claim and run-state mutation
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 12 - Combat Determinism and Progression Integrity
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: Combat Systems Reviewer] Add invariant tests verifying XP/reward applications, run-unit state mutation, and no-duplication guarantees across repeated claim/resolve requests.
+---
+title: Add battle reward economy sanity validation fixtures
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 12 - Combat Determinism and Progression Integrity
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: Combat Systems Reviewer] Add fixture-based checks for reward output bounds and consistency to detect extreme or malformed reward payloads during progression work.
 ### Documentation

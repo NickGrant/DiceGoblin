@@ -135,6 +135,41 @@ final class RunBattleIdempotencyTest extends TestCase
     $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM `battle_rewards` WHERE `battle_id` = ?', [$firstBattleId]));
   }
 
+  public function testResolveNodeUsesDeterministicSeedDerivedFromRunAndContext(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'available');
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $runNodeController = new RunNodeController();
+    $resolve = $this->invoke(fn() => $runNodeController->resolveNode((string)$runId, (string)$nodeId));
+
+    $this->assertSame(200, $resolve['status']);
+    $battleId = (int)($resolve['body']['data']['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $battleId);
+    $this->battleIds[] = $battleId;
+
+    $actualSeed = (int)$this->scalar('SELECT `seed` FROM `battles` WHERE `id` = ?', [$battleId]);
+    $runSeed = (string)$this->scalar('SELECT `seed` FROM `region_runs` WHERE `id` = ?', [$runId]);
+
+    $expectedSeed = $this->deriveExpectedSeed(
+      $userId,
+      $runId,
+      $runSeed,
+      $nodeId,
+      $teamId,
+      null
+    );
+
+    $this->assertSame($expectedSeed, $actualSeed);
+  }
+
   /**
    * @return array{status:int,body:array<string,mixed>}
    */
@@ -238,5 +273,29 @@ final class RunBattleIdempotencyTest extends TestCase
     $prop = $ref->getProperty('pdo');
     $prop->setAccessible(true);
     $prop->setValue(null, null);
+  }
+
+  private function deriveExpectedSeed(
+    int $userId,
+    int $runId,
+    string $runSeed,
+    int $nodeId,
+    int $teamId,
+    ?int $encounterTemplateId
+  ): int {
+    $seedKey = sprintf(
+      'seed_v2|user:%d|run:%d|run_seed:%s|node:%d|team:%d|enc:%s',
+      $userId,
+      $runId,
+      $runSeed,
+      $nodeId,
+      $teamId,
+      $encounterTemplateId !== null ? (string)$encounterTemplateId : 'none'
+    );
+
+    $rngState = hash('sha256', $seedKey);
+    $seedHex = substr($rngState, 0, 15);
+    $seed = (int)base_convert($seedHex, 16, 10);
+    return $seed > 0 ? $seed : 1;
   }
 }

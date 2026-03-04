@@ -36,21 +36,14 @@ final class DeterministicRunNodeResolver
     $encounter = $this->loadEncounter($encounterTemplateId);
     $enemyUnits = $encounter['units'];
 
-    $seedKey = sprintf(
-      'run:%s|node:%d|team:%d|enc:%s',
+    ['seed' => $seed, 'rng_state' => $rngState] = $this->deriveSeedContext(
+      $userId,
+      $runId,
       (string)$run['seed'],
       $nodeId,
       $teamId,
-      $encounterTemplateId !== null ? (string)$encounterTemplateId : 'none'
+      $encounterTemplateId
     );
-
-    $seedHex = substr(hash('sha256', $seedKey), 0, 15);
-    $seed = (int)base_convert($seedHex, 16, 10);
-    if ($seed <= 0) {
-      $seed = 1;
-    }
-
-    $rngState = hash('sha256', $seedKey);
     $ticksPerRound = 20;
 
     if ($nodeType === 'rest' || $nodeType === 'loot') {
@@ -116,6 +109,7 @@ final class DeterministicRunNodeResolver
         'meta' => [
           'ticksPerRound' => $ticksPerRound,
           'rng' => ['seed' => $seed],
+          'seed_key_version' => 'v2',
           'createdAtIso' => gmdate('c'),
           'version' => 1,
           'engine' => 'deterministic_v1',
@@ -419,6 +413,42 @@ final class DeterministicRunNodeResolver
     $value = (int)base_convert($slice, 16, 10);
 
     return $value % $maxExclusive;
+  }
+
+  /**
+   * @return array{seed:int,rng_state:string}
+   */
+  private function deriveSeedContext(
+    int $userId,
+    int $runId,
+    string $runSeed,
+    int $nodeId,
+    int $teamId,
+    ?int $encounterTemplateId
+  ): array {
+    $seedKey = sprintf(
+      'seed_v2|user:%d|run:%d|run_seed:%s|node:%d|team:%d|enc:%s',
+      $userId,
+      $runId,
+      $runSeed,
+      $nodeId,
+      $teamId,
+      $encounterTemplateId !== null ? (string)$encounterTemplateId : 'none'
+    );
+
+    $rngState = hash('sha256', $seedKey);
+
+    // Use first 15 hex chars (60 bits) for stable positive seed material.
+    $seedHex = substr($rngState, 0, 15);
+    $seed = (int)base_convert($seedHex, 16, 10);
+    if ($seed <= 0) {
+      $seed = 1;
+    }
+
+    return [
+      'seed' => $seed,
+      'rng_state' => $rngState,
+    ];
   }
 
   /**

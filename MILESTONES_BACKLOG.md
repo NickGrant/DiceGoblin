@@ -67,24 +67,6 @@ exit_criteria: |
   * QA automation issues are complete and archived.
   * Required CI and integration verification gates are green.
 ---
-name: Milestone 12 - Combat Determinism and Progression Integrity
-status: not-started
-execution_window: closed
-is_current: no
-issues:
-  - Add deterministic seed derivation strategy for node resolution
-  - Add combat ability-handler regression test suite against canonical rules
-  - Add progression invariants test suite for claim and run-state mutation
-  - Add battle reward economy sanity validation fixtures
-description: |
-  Strengthen combat determinism and progression correctness before higher-level tuning and content expansion. Depends on placeholder-removal implementation in Milestone 2.
-entry_criteria: |
-  * Milestone 2 placeholder removal is complete or stable enough to attach deterministic coverage.
-  * Canonical combat/progression invariants are documented.
-exit_criteria: |
-  * Determinism and progression-integrity issues are complete and archived.
-  * Regression suites validate deterministic and no-duplication guarantees.
----
 name: Milestone 13 - Player Experience and UX Flow
 status: not-started
 execution_window: closed

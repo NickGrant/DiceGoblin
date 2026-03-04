@@ -687,3 +687,29 @@ updated: 2026-03-03
 description: |
   [Role: Combat Systems Reviewer] Specified how dice consumption order (largest-to-smallest) and pool refresh triggers are surfaced in combat logs/UI so players can reason about ability costs and outcomes.
 Resolution: Added `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md` with required log events, HUD cue contract, labeling rules, and edge-case presentation requirements aligned to MVP dice rules.
+---
+title: Add deterministic seed derivation strategy for node resolution
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 12 - Combat Determinism and Progression Integrity
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: Combat Systems Reviewer] Defined deterministic seed derivation tied to run/node/user context and added regression tests for reproducibility.
+Resolution: Updated `DeterministicRunNodeResolver` to derive `seed_v2` from user/run/run_seed/node/team/encounter context and added integration coverage in `RunBattleIdempotencyTest` asserting the exact derived seed used for battle creation.
+---
+title: Add combat ability-handler regression test suite against canonical rules
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 12 - Combat Determinism and Progression Integrity
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: Combat Systems Reviewer] Added focused regression tests for active/passive ability handlers to prevent hidden combat-rules drift as deterministic engine integration proceeds.
+Resolution: Added `AbilityHandlerRegistryCoverageTest` to assert active/passive handler coverage against canonical ability definitions and duplicate-id rejection behavior, expanding backend regression safety for handler registry integrity.

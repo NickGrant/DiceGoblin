@@ -144,54 +144,6 @@ updated: 2026-03-02
 description: |
   [Role: QA Lead] Integration tests currently assume schema is preloaded manually. Add a repeatable utility for initializing/resetting test DB state from versioned schema artifacts.
 ---
-title: Add deterministic seed derivation strategy for node resolution
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-owner: unassigned
-milestone: Milestone 12 - Combat Determinism and Progression Integrity
-created: 2026-03-02
-updated: 2026-03-02
-description: |
-  [Role: Combat Systems Reviewer] `RunNodeController` currently uses `random_int` for battle seed generation. Define deterministic seed derivation tied to run/node/user context and add regression tests for reproducibility.
----
-title: Add combat ability-handler regression test suite against canonical rules
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-owner: unassigned
-milestone: Milestone 12 - Combat Determinism and Progression Integrity
-created: 2026-03-02
-updated: 2026-03-02
-description: |
-  [Role: Combat Systems Reviewer] Add focused regression tests for active/passive ability handlers to prevent hidden combat-rules drift as deterministic engine integration proceeds.
----
-title: Add progression invariants test suite for claim and run-state mutation
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-owner: unassigned
-milestone: Milestone 12 - Combat Determinism and Progression Integrity
-created: 2026-03-02
-updated: 2026-03-02
-description: |
-  [Role: Combat Systems Reviewer] Add invariant tests verifying XP/reward applications, run-unit state mutation, and no-duplication guarantees across repeated claim/resolve requests.
----
-title: Add battle reward economy sanity validation fixtures
-status: unstarted
-priority: medium
-execution: deferred
-ready: no
-owner: unassigned
-milestone: Milestone 12 - Combat Determinism and Progression Integrity
-created: 2026-03-02
-updated: 2026-03-02
-description: |
-  [Role: Combat Systems Reviewer] Add fixture-based checks for reward output bounds and consistency to detect extreme or malformed reward payloads during progression work.
----
 title: Add first-session onboarding and objective framing UX spec
 status: unstarted
 priority: medium
