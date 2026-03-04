@@ -46,6 +46,7 @@ CREATE TABLE `unit_types` (
   `base_stats_json` JSON NOT NULL,
   `ability_set_json` JSON NOT NULL,
   `max_level` INT NOT NULL,
+  `max_equipped_dice` INT NOT NULL DEFAULT 2,
   `attack_per_level` INT NOT NULL,
   `defense_per_level` INT NOT NULL,
   `max_hp_per_level` INT NOT NULL,

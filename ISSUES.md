@@ -46,53 +46,5 @@ description: |
 ## Active Issues
 
 ### Functional
----
-title: Implement rest workflow endpoints with transactional snapshot and squad sync
-status: unstarted
-priority: high
-execution: active
-ready: yes
-owner: unassigned
-milestone: Milestone 15 - Backend Gameplay Completion
-created: 2026-03-04
-updated: 2026-03-04
-description: |
-  Implement `rest/open`, `rest/state`, and `rest/finalize` APIs so rest nodes support non-consuming edit sessions and atomic dual-write updates to run snapshot + saved squad state.
----
-title: Implement backend auto-level application at rest finalize and run cleanup
-status: unstarted
-priority: high
-execution: active
-ready: yes
-owner: unassigned
-milestone: Milestone 15 - Backend Gameplay Completion
-created: 2026-03-04
-updated: 2026-03-04
-description: |
-  Implement backend-authoritative level-up math execution as an automatic pass on rest finalization and run cleanup, rather than per-claim leveling.
----
-title: Implement manual promotion endpoint with primary-secondary consume semantics
-status: unstarted
-priority: medium
-execution: active
-ready: yes
-owner: unassigned
-milestone: Milestone 15 - Backend Gameplay Completion
-created: 2026-03-04
-updated: 2026-03-04
-description: |
-  Add a promotion API that takes one primary unit id and two distinct secondary unit ids; primary persists/upgrades while secondaries are consumed. Promotion is allowed between runs or during open rest workflow, and must reject ineligible active-run snapshot participants.
----
-title: Expose dice equip and unequip gameplay endpoints with rest-only run constraints
-status: unstarted
-priority: medium
-execution: active
-ready: yes
-owner: unassigned
-milestone: Milestone 15 - Backend Gameplay Completion
-created: 2026-03-04
-updated: 2026-03-04
-description: |
-  Expose backend equip/unequip endpoints that enforce per-unit slot caps and block active-run modifications outside rest workflow.
 
 ### Documentation

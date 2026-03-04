@@ -12,6 +12,7 @@ use DiceGoblins\Core\Router;
 use DiceGoblins\Controllers\ApiController;
 use DiceGoblins\Controllers\AuthController;
 use DiceGoblins\Controllers\BattleController;
+use DiceGoblins\Controllers\GameplayController;
 use DiceGoblins\Controllers\RunNodeController;
 use DiceGoblins\Controllers\TeamController;
 
@@ -96,6 +97,7 @@ $router = new Router();
 $api = new ApiController();
 $auth = new AuthController();
 $battle = new BattleController();
+$gameplay = new GameplayController();
 $runNode = new RunNodeController();
 $team = new TeamController();
 
@@ -112,11 +114,18 @@ $router->get('/api/v1/runs/current', [$api, 'currentRun']);
 $router->post('/api/v1/runs', [$api, 'createRun']);
 $router->post('/api/v1/runs/:runId/abandon', [$api, 'abandonRun']);
 $router->post('/api/v1/runs/:runId/exit', [$api, 'exitRun']);
+$router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/open', [$gameplay, 'openRest']);
+$router->put('/api/v1/runs/:runId/nodes/:nodeId/rest/state', [$gameplay, 'updateRestState']);
+$router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/finalize', [$gameplay, 'finalizeRest']);
 $router->get('/api/v1/abilities', [$api, 'abilities']);
 
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/resolve', [$runNode, 'resolveNode']);
 $router->get('/api/v1/battles/:battleId/log',[$battle, 'getBattleLog']);
 $router->post('/api/v1/battles/:battleId/claim',[$battle, 'claimBattle']);
+// Compatibility-critical identifiers remain `teams` in route keys.
+$router->post('/api/v1/units/:unitInstanceId/promote', [$gameplay, 'promoteUnit']);
+$router->post('/api/v1/units/:unitInstanceId/dice/equip', [$gameplay, 'equipDice']);
+$router->post('/api/v1/units/:unitInstanceId/dice/unequip', [$gameplay, 'unequipDice']);
 
 $router->post('/api/v1/teams', [$team, 'createTeam']);
 $router->post('/api/v1/teams/:teamId/activate', [$team, 'activateTeam']);

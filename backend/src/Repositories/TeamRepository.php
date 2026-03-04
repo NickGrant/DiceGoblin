@@ -449,6 +449,27 @@ final class TeamRepository
     }
   }
 
+  /**
+   * @return array<int,int>
+   */
+  public function getTeamUnitIds(int $userId, int $teamId): array
+  {
+    $team = $this->getTeamForUser($userId, $teamId);
+    if ($team === null) {
+      throw new RuntimeException('Team not found or not owned by user.');
+    }
+
+    $stmt = $this->pdo->prepare('
+      SELECT `unit_instance_id`
+      FROM `team_units`
+      WHERE `team_id` = ?
+      ORDER BY `unit_instance_id` ASC
+    ');
+    $stmt->execute([$teamId]);
+
+    return array_map(static fn($v): int => (int)$v, $stmt->fetchAll(PDO::FETCH_COLUMN));
+  }
+
   // -----------------------------
   // Internals
   // -----------------------------

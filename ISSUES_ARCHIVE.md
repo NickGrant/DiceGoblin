@@ -6,6 +6,62 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Implement rest workflow endpoints with transactional snapshot and squad sync
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 15 - Backend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Implement `rest/open`, `rest/state`, and `rest/finalize` APIs so rest nodes support non-consuming edit sessions and atomic dual-write updates to run snapshot + saved squad state.
+Resolution: Added `rest/open`, `rest/state`, and `rest/finalize` endpoints with run/node ownership validation, transactional synchronization between active squad membership/formation and run snapshot state, and deterministic downstream unlock handling on finalize.
+
+---
+title: Implement backend auto-level application at rest finalize and run cleanup
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 15 - Backend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Implement backend-authoritative level-up math execution as an automatic pass on rest finalization and run cleanup, rather than per-claim leveling.
+Resolution: Introduced run-scoped auto-level application in `RunRepository` and invoked it both at rest finalization and during run-end cleanup paths, with integration tests covering progression updates.
+
+---
+title: Implement manual promotion endpoint with primary-secondary consume semantics
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 15 - Backend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add a promotion API that takes one primary unit id and two distinct secondary unit ids; primary persists/upgrades while secondaries are consumed. Promotion is allowed between runs or during open rest workflow, and must reject ineligible active-run snapshot participants.
+Resolution: Added `POST /api/v1/units/:unitInstanceId/promote` with primary/secondary payload validation, distinct secondary enforcement, max-level eligibility checks, active-run rest-context gating, active-snapshot secondary rejection, and transactional consume/update persistence.
+
+---
+title: Expose dice equip and unequip gameplay endpoints with rest-only run constraints
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 15 - Backend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Expose backend equip/unequip endpoints that enforce per-unit slot caps and block active-run modifications outside rest workflow.
+Resolution: Added gameplay dice mutation routes and controller flow with rest-context enforcement for active-run snapshot units, and extended repository equip logic to enforce a unit-definition `max_equipped_dice` cap.
+
+---
 title: Implement exit-node completion flow and completed run transition
 status: complete
 priority: high

@@ -44,23 +44,3 @@ exit_criteria: |
 ```
 
 ## Active Milestones
-
----
-name: Milestone 15 - Backend Gameplay Completion
-status: in-progress
-execution_window: open
-is_current: yes
-issues:
-  - Implement rest workflow endpoints with transactional snapshot and squad sync
-  - Implement backend auto-level application at rest finalize and run cleanup
-  - Implement manual promotion endpoint with primary-secondary consume semantics
-  - Expose dice equip and unequip gameplay endpoints with rest-only run constraints
-description: |
-  Complete missing backend gameplay functionality so the intended MVP loop can run end-to-end with authoritative state transitions.
-entry_criteria: |
-  * Gameplay contracts for run completion, rest workflow, auto-level, promotion, and equipment restrictions are documented.
-  * Milestone 6 stability documentation is complete.
-exit_criteria: |
-  * Backend supports completed-run transition via exit path and terminal cleanup invariants.
-  * Rest, promotion, and equipment APIs enforce active-run and ownership constraints.
-  * All milestone issues are complete and archived.

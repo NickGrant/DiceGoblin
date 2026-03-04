@@ -208,6 +208,13 @@ final class DiceRepository
         throw new RuntimeException('Dice is already equipped to another unit.');
       }
 
+      $maxEquipped = $this->getUnitMaxEquippedDiceForUpdate($unitInstanceId);
+      $currentCount = $this->countEquippedDiceForUnitForUpdate($unitInstanceId);
+      if ($currentCount >= $maxEquipped) {
+        $this->pdo->rollBack();
+        throw new RuntimeException('Unit has reached max equipped dice capacity.');
+      }
+
       $slotIndex = $this->nextAvailableSlotIndexForUnitForUpdate($unitInstanceId);
 
       $stmt = $this->pdo->prepare('
@@ -336,5 +343,33 @@ final class DiceRepository
       $i++;
     }
     return $i;
+  }
+
+  private function countEquippedDiceForUnitForUpdate(int $unitInstanceId): int
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT COUNT(*)
+      FROM `unit_dice`
+      WHERE `unit_instance_id` = ?
+      FOR UPDATE
+    ');
+    $stmt->execute([$unitInstanceId]);
+    return (int)$stmt->fetchColumn();
+  }
+
+  private function getUnitMaxEquippedDiceForUpdate(int $unitInstanceId): int
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT ut.`max_equipped_dice`
+      FROM `unit_instances` ui
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE ui.`id` = ?
+      LIMIT 1
+      FOR UPDATE
+    ');
+    $stmt->execute([$unitInstanceId]);
+    $value = $stmt->fetchColumn();
+    $maxEquipped = (int)$value;
+    return max(0, $maxEquipped);
   }
 }

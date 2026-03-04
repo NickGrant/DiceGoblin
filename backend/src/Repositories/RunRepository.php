@@ -474,6 +474,26 @@ final class RunRepository
   }
 
   /**
+   * @param array<int,int> $unitInstanceIds
+   */
+  public function deleteRunUnitStateByUnitIds(int $runId, array $unitInstanceIds): void
+  {
+    $unitInstanceIds = array_values(array_unique(array_map(static fn($v): int => (int)$v, $unitInstanceIds)));
+    if (count($unitInstanceIds) === 0) {
+      return;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($unitInstanceIds), '?'));
+    $params = array_merge([$runId], $unitInstanceIds);
+
+    $stmt = $this->pdo->prepare("
+      DELETE FROM `run_unit_state`
+      WHERE `run_id` = ? AND `unit_instance_id` IN ($placeholders)
+    ");
+    $stmt->execute($params);
+  }
+
+  /**
    * Seed run_unit_state from a squad snapshot at run start.
    *
    * Copies all units currently in the team into run-scoped state using
@@ -589,7 +609,74 @@ final class RunRepository
       $xpStmt->execute($params);
     }
 
+    $this->applyAutoLevelForRunUnits($runId, $userId);
+
     return $defeatedIds;
+  }
+
+  /**
+   * Apply backend-authoritative auto-level progression for all units in a run snapshot.
+   *
+   * @return array<int,array{id:string,from_level:int,to_level:int,from_xp:int,to_xp:int}>
+   */
+  public function applyAutoLevelForRunUnits(int $runId, int $userId): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT
+        ui.`id` AS `unit_instance_id`,
+        ui.`tier`,
+        ui.`level`,
+        ui.`xp`,
+        ut.`max_level`
+      FROM `run_unit_state` rus
+      JOIN `unit_instances` ui ON ui.`id` = rus.`unit_instance_id`
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE rus.`run_id` = ? AND ui.`user_id` = ?
+      ORDER BY ui.`id` ASC
+      FOR UPDATE
+    ');
+    $stmt->execute([$runId, $userId]);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $updated = [];
+    foreach ($rows as $row) {
+      $unitId = (int)$row['unit_instance_id'];
+      $tier = max(1, (int)$row['tier']);
+      $level = max(1, (int)$row['level']);
+      $xp = max(0, (int)$row['xp']);
+      $maxLevel = max(1, (int)$row['max_level']);
+
+      $fromLevel = $level;
+      $fromXp = $xp;
+
+      while ($level < $maxLevel) {
+        $xpToNext = $tier * ($level + 1) * 50;
+        if ($xp < $xpToNext) {
+          break;
+        }
+        $xp -= $xpToNext;
+        $level++;
+      }
+
+      if ($level !== $fromLevel || $xp !== $fromXp) {
+        $update = $this->pdo->prepare('
+          UPDATE `unit_instances`
+          SET `level` = ?, `xp` = ?
+          WHERE `id` = ? AND `user_id` = ?
+        ');
+        $update->execute([$level, $xp, $unitId, $userId]);
+
+        $updated[] = [
+          'id' => (string)$unitId,
+          'from_level' => $fromLevel,
+          'to_level' => $level,
+          'from_xp' => $fromXp,
+          'to_xp' => $xp,
+        ];
+      }
+    }
+
+    return $updated;
   }
 
   // -----------------------------

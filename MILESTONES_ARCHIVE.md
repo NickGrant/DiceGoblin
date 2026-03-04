@@ -6,6 +6,22 @@
 - Preserve milestone resolution history without bloating active execution context.
 
 ---
+name: Milestone 15 - Backend Gameplay Completion
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Implement exit-node completion flow and completed run transition
+  - Implement run-end cleanup for completed status while preserving earned XP
+  - Implement rest workflow endpoints with transactional snapshot and squad sync
+  - Implement backend auto-level application at rest finalize and run cleanup
+  - Implement manual promotion endpoint with primary-secondary consume semantics
+  - Expose dice equip and unequip gameplay endpoints with rest-only run constraints
+description: |
+  Complete missing backend gameplay functionality so the intended MVP loop can run end-to-end with authoritative state transitions.
+Resolution: Implemented exit-node run completion, terminal cleanup invariants, rest open/state/finalize workflow, backend auto-level integration, promotion consume semantics, and rest-gated dice mutation endpoints with integration coverage for key success/error paths.
+
+---
 name: Milestone 7 - Documentation Integrity
 status: complete
 execution_window: open
