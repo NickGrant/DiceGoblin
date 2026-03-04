@@ -49,12 +49,15 @@ This file defines project-specific operating instructions for coding agents work
 
 ## Roles Workflow (`ROLES.md`)
 - If the user says `assume role <name>` (or equivalent phrasing), load role definition from `ROLES.md` and apply it.
+- Proactively adopt the best-fit role when evaluating, planning, or reviewing work in a role-specific domain, even if the user did not explicitly request a role.
+- For mixed-domain tasks, run short role-segmented passes instead of forcing a single role across all concerns.
 - Persist the active role until:
   - the user says `drop role`, or
   - the user requests a different role.
 - If a role name is unknown, state that briefly and continue with default behavior.
 - Role guidance must not override higher-priority safety instructions.
 - When a previously active role/persona is no longer in effect, proactively tell the user the role context has been dropped and default behavior is active.
+- In role-driven evaluations, explicitly label which role lens is being used in progress updates and findings.
 
 ## Role Command Patterns
 - If the user asks to assume `Senior Developer`: run a code quality pass focused on bugs, maintainability risks, architecture hygiene, and DRY/KISS opportunities; then either implement requested cleanup or open issues with concrete file-level findings.

@@ -1,7 +1,7 @@
 # Frontend State and Scene Contracts - MVP (Authoritative)
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-04  
 Owner: Frontend  
 Depends On: `frontend/src/game/config.ts`, `frontend/src/scenes/`, `frontend/src/services/apiClient.ts`
 
@@ -34,10 +34,11 @@ The following scenes are documented in broader design scope but are not currentl
 
 - `CombatScene`
 - `LootScene`
-- `RestScene`
+- `RestManagementScene`
 - `BossScene`
 - `UnitDetailsScene`
 - `DiceDetailsScene`
+- `RunEndSummaryScene`
 
 ## 4. Shared State Slices (Current)
 
@@ -148,6 +149,10 @@ Behavior:
 Current scope:
 - presentation shell scene with HUD/home navigation.
 
+Planned extension:
+- remains a dedicated inventory screen (not merged into unit details),
+- participates in rest-management flow for allowed active-run equipment changes.
+
 ## 6. Implemented Transition Matrix
 
 - `BootScene -> PreloadScene`
@@ -162,8 +167,16 @@ Current scope:
 - `DiceInventoryScene -> HomeScene` (home button)
 - `MapExplorationScene -> HomeScene` (home button)
 
+Planned additions:
+- `MapExplorationScene -> RestManagementScene` (select rest node)
+- `RestManagementScene -> MapExplorationScene` (finalize or cancel rest)
+- `MapExplorationScene -> RunEndSummaryScene` (exit/completed, abandon, terminal defeat)
+- `RunEndSummaryScene -> HomeScene|RegionSelectScene` (continue)
+
 ## 7. Known Gaps
 
 - Encounter scene split (`Combat/Loot/Rest/Boss`) is planned but not wired in config.
 - No centralized frontend store for run/profile; state is scene-local.
 - Dedicated unit/dice details scene contracts are planned but not yet implemented.
+- Rest-management and run-end summary scenes are planned but not yet implemented.
+- Unit-details-embedded promotion controls are planned but not yet implemented.

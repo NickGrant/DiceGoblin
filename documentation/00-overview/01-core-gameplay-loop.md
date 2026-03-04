@@ -1,7 +1,7 @@
 # Core Gameplay Loop
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-04  
 Owner: Product  
 Depends On: `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
 
@@ -17,12 +17,13 @@ The core loop is intentionally short and repeatable.
   - about 75% combat encounters
   - static node encounters mixed in
 5. Boss encounter unlocks after map completion.
-6. Loot rewards are applied.
+6. Exit node is always visible on the run map but is only reachable from the boss node path.
+7. Loot rewards are applied.
   - includes deterministic XP from combat/boss encounters (awarded to surviving fielded units)
-7. Advancement phase.
-  - spend XP to level (per unit-type max level caps; no XP accrues at cap)
-  - equip dice
-  - combine units
-8. Repeat.
+8. Advancement phase.
+  - level-up math is backend-authoritative and auto-applied at rest finalization and run cleanup
+  - equip/unequip dice (between runs; during runs only at rest workflow)
+  - promote units manually between runs or during an open rest workflow (primary unit persists, secondary units are consumed)
+9. Repeat.
 
 Energy is a real-world time-gated resource that limits daily progression.

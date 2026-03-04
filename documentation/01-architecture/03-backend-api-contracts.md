@@ -1,7 +1,7 @@
 ﻿# Backend API Contracts - MVP (v1)
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-04  
 Owner: Backend/API  
 Depends On: `backend/public/index.php`, `backend/src/Controllers/`, `backend/src/Services/ProfileService.php`
 
@@ -47,9 +47,8 @@ Contract:
 If missing/invalid:
 - Return `403 Forbidden` with error code `csrf_invalid`
 
-Known gap:
-- `POST /api/v1/runs` currently has CSRF enforcement temporarily disabled in implementation.
-- Contract requirement remains unchanged: CSRF is required for this endpoint.
+Current behavior:
+- `POST /api/v1/runs` requires CSRF token validation.
 
 ### 1.4 Content Type
 - Request/response JSON:
@@ -318,10 +317,11 @@ Notes
 ### 6.2 Promote Unit
 `POST /api/v1/units/:unitInstanceId/promote`
 
-Request (promotion path is data-driven; backend validates inventory + rules):
+Request:
 ```json
 {
-  "promotion_id": "tier3_roc_path"
+  "primary_unit_instance_id": "2001",
+  "secondary_unit_instance_ids": ["2002", "2003"]
 }
 ```
 
@@ -343,9 +343,15 @@ Success:
 }
 ```
 
+Rules:
+- Allowed between runs.
+- Allowed during active runs only while the player is in an open rest workflow for the active run/node.
+- `secondary_unit_instance_ids` must contain two distinct unit ids.
+- Secondary units must not be referenced by an active run snapshot.
+
 Errors:
 - `409 conflict` code `promotion_requirements_not_met`
-- `409 conflict` code `unit_in_active_run` (if MVP forbids promotions mid-run; if allowed, omit)
+- `409 conflict` code `unit_in_active_run`
 
 ---
 
@@ -380,6 +386,11 @@ Success:
 ```json
 { "dice_instance_id": "9001" }
 ```
+
+Rules:
+- During an active run, equipment changes are allowed only within rest workflow.
+- Dice equipped to units in active run snapshots cannot be modified outside rest flow.
+- Backend enforces max equipped dice count per unit definition.
 
 ---
 
@@ -479,7 +490,7 @@ Returns node list, edges, and current node statuses.
 ```
 
 ### 8.4 Abandon Run (Quit)
-`POST /api/v1/runs/:runId/abandon` (`Planned`)
+`POST /api/v1/runs/:runId/abandon` (`Implemented`)
 
 Success:
 ```json
@@ -511,12 +522,44 @@ Rules
   - run is active AND
   - the player is currently resolving a Rest node (or the active node type is rest) AND
   - the node is not yet finalized
-- Updates run snapshot only
+- Updates run snapshot and saved squad together (single transactional write)
 
 Errors:
 - `run_not_active`
 - `forbidden`
 - `validation_error`
+
+### 8.6 Rest Workflow (Planned)
+
+#### Open Rest
+`POST /api/v1/runs/:runId/nodes/:nodeId/rest/open`
+
+Starts a non-consuming rest session.
+
+#### Apply Rest State
+`PUT /api/v1/runs/:runId/nodes/:nodeId/rest/state`
+
+Allows, in one transactional write:
+- formation updates,
+- unit swaps,
+- rest-scoped dice equip/unequip.
+
+All writes are all-or-nothing across run snapshot and saved squad.
+
+#### Finalize Rest
+`POST /api/v1/runs/:runId/nodes/:nodeId/rest/finalize`
+
+Consumes the rest node, runs backend-authoritative auto-level pass, and unlocks downstream nodes.
+
+### 8.7 Exit Node Completion (Planned)
+`POST /api/v1/runs/:runId/exit`
+
+Rules:
+- Exit node is always map-visible.
+- Exit node is only reachable through the boss path.
+- Successful exit transitions run status to `completed`.
+- Run-end cleanup applies for all terminal outcomes (`completed`, `failed`, `abandoned`).
+- Completed runs keep earned XP.
 
 ---
 

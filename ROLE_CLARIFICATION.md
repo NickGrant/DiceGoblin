@@ -36,3 +36,7 @@
 - name: Technical Product Manager
   decision: Consolidated three overlapping governance docs into a single canonical backlog-operations source.
   definition: Clarify TPM authority boundaries for consolidating policy docs directly versus raising consolidation-only issues first.
+
+- name: Game Designer
+  decision: Chose a shared end-of-run summary shell and embedded promotion in unit details while keeping dice inventory as a dedicated screen.
+  definition: Clarify default UI placement rules when a run-scoped context (rest) temporarily enables out-of-run management actions.

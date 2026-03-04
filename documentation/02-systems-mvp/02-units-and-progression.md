@@ -1,7 +1,7 @@
 # Units & Progression — MVP (Authoritative)
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-04  
 Owner: Systems Design  
 Depends On: `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation/01-architecture/04-data-model.md`
 
@@ -108,6 +108,13 @@ Level-up loop:
   - increment `level`
   - recompute `xp_to_next`
 
+### 8.1 Auto-level timing (authoritative)
+- Level-up calculations are backend-authoritative.
+- Auto-level is applied:
+  - when a rest workflow is finalized,
+  - during run cleanup (completed/failed/abandoned).
+- Auto-level is not applied on every battle claim.
+
 ## 9. Promotions (tier advancement)
 
 ### 9.1 Promotion requirement
@@ -118,8 +125,14 @@ To promote from Tier N to Tier N+1:
 
 ### 9.2 Promotion outcome
 
-- The resulting unit is created at the next tier
-- The resulting unit starts at level 1
+- Promotion is a manual action available:
+  - between runs,
+  - or during an open rest workflow in an active run.
+- Request model:
+  - one primary unit id (persisted),
+  - two secondary unit ids (consumed).
+- The primary unit is upgraded to the next tier and reset to level 1.
+- Secondary units are removed.
 
 Power targets (guidance):
 - Tier 2 level 1 is roughly comparable to Tier 1 level 4–5
@@ -128,6 +141,11 @@ Power targets (guidance):
 ### 9.3 Tier 3 special requirement
 
 Tier 3 promotion additionally requires a rare, region-specific item.
+
+### 9.4 Promotion constraints
+- Promotion can occur during active runs only while resolving an open rest workflow.
+- Secondary unit ids must be distinct.
+- All involved units must satisfy promotion qualifications and must not be part of active run snapshots.
 
 ## 10. Explicit non-goals (MVP)
 

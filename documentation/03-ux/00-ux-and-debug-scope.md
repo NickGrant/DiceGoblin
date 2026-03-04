@@ -1,7 +1,7 @@
 # UX & Debug Scope — MVP
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-04  
 Owner: UX + Frontend  
 Depends On: `documentation/03-ux/02-warband-management.md`, `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
 
@@ -31,6 +31,8 @@ The following screens/scenes are required for MVP:
 - Encounter Start / Squad Select (if applicable)
 - Combat Viewer (live + replay)
 - Loot Claim / Rewards
+- Rest Management (active run rest workflow)
+- End of Run Summary (completed / failed / abandoned)
 - Warband Management (unit list)
 - Unit Details
 - Dice Inventory
@@ -38,6 +40,7 @@ The following screens/scenes are required for MVP:
 
 Notes:
 - Screen list is considered complete for MVP.
+- Promotion actions are embedded in Unit Details (not a standalone promotion scene).
 
 ---
 
@@ -91,11 +94,12 @@ The combat viewer must display:
 ## 5. Run Map Information Requirements
 
 The Run Map must display:
-- Node type icons: combat / loot / rest / boss
+- Node type icons: combat / loot / rest / boss / exit
 - Node status: locked / available / cleared
 - Warband condition summary:
   - **Undefeated units / total units**
 - Current energy (current / max)
+- Exit node visual treatment that is distinct from standard combat/loot/rest/boss nodes (for example, portal/door motif).
 
 Explicitly excluded:
 - Displaying run energy cost already paid
@@ -117,6 +121,11 @@ If a run is active, unit details should also show (read-only):
 - Current run HP
 - Current run status effects
 - Defeated flag
+
+Promotion behavior:
+- Promotion CTA is embedded in unit details.
+- Promotion is enabled between runs and during active-run rest workflow.
+- Promotion is disabled in active-run non-rest contexts.
 
 ### 6.2 Dice Details
 
@@ -172,6 +181,8 @@ UX/debug scope is MVP-complete when:
 - Quit/Abandon is accessible from the Run Map only
 - Combat playback is usable for both players (autoplay) and devs (step-through)
 - The Run Map communicates progression and attrition clearly
+- Rest workflow includes a summary surface that shows per-unit healing and progression deltas.
+- Run-end summary uses one shared shell for completed/failed/abandoned outcomes with different messaging.
 - Debug tooling is sufficient to reproduce issues and validate drop/promotion paths
 
 ---

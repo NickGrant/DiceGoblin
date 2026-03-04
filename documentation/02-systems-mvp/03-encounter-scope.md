@@ -48,9 +48,11 @@ Exactly **four** encounter types exist in MVP:
 
 ### Rest Encounters
 - Primary function: Recover
-- Secondary function: Allow editing the active run squad snapshot
+- Secondary function: Allow editing the active run squad snapshot and saved squad
   - adjust formation
   - swap units
+  - equip/unequip dice for units in the active run
+  - finalize with backend-authoritative auto-level application
 
 ---
 
@@ -121,7 +123,15 @@ Each run:
   - Multiple combat encounters
   - A small number of loot and rest nodes
   - Exactly one boss encounter
+- Exit-node rule:
+  - Exit node is always visible on the map.
+  - Exit node has a single inbound path from the boss node.
+  - Exit node cannot be reached manually until the boss path is unlocked.
 - Rest nodes are the only nodes where run-snapshot squad editing is allowed mid-run
+- Rest workflow:
+  - open rest (non-consuming),
+  - apply allowed edits,
+  - finalize rest (consume node, apply auto-level pass, unlock progression).
 - Nodes are structured in a branching shape
 - Nodes become unlocked when any Node with a connecting path is resolved (Victory for combat Nodes or just encountered for other Nodes)
 - The first Node in a run starts unlocked
@@ -177,6 +187,7 @@ The MVP encounter system does **not** include:
 
 The encounter system is considered MVP-complete when:
 - Players can complete full runs in both biomes
+- Run completion uses the exit-node path after boss success and triggers run-end cleanup.
 - Tier 3 promotion items can be earned in each biome
 - Enemy role variety produces distinct combat scenarios
 - Boss encounters feel meaningfully different from normal fights

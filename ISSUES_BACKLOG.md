@@ -155,3 +155,195 @@ created: 2026-03-03
 updated: 2026-03-03
 description: |
   [Role: Senior Developer] Frontend build currently emits a large primary bundle (~1.5 MB minified warning). Introduce scene-level lazy loading and/or manual chunking strategy to lower initial payload size and keep build warnings actionable.
+---
+title: Implement exit-node completion flow and completed run transition
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 15 - Backend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add run-map support for an always-visible exit node that is only reachable through the boss path and implement backend run transition to `completed` when exit is successfully taken.
+---
+title: Implement run-end cleanup for completed status while preserving earned XP
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 15 - Backend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Extend terminal cleanup orchestration so `completed`, `failed`, and `abandoned` all run cleanup, with completed runs preserving earned XP while clearing active run locks and run-scoped transient state.
+---
+title: Implement rest workflow endpoints with transactional snapshot and squad sync
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 15 - Backend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Implement `rest/open`, `rest/state`, and `rest/finalize` APIs so rest nodes support non-consuming edit sessions and atomic dual-write updates to run snapshot + saved squad state.
+---
+title: Implement backend auto-level application at rest finalize and run cleanup
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 15 - Backend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Implement backend-authoritative level-up math execution as an automatic pass on rest finalization and run cleanup, rather than per-claim leveling.
+---
+title: Implement manual promotion endpoint with primary-secondary consume semantics
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 15 - Backend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add a promotion API that takes one primary unit id and two distinct secondary unit ids; primary persists/upgrades while secondaries are consumed. Promotion is allowed between runs or during open rest workflow, and must reject ineligible active-run snapshot participants.
+---
+title: Expose dice equip and unequip gameplay endpoints with rest-only run constraints
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 15 - Backend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Expose backend equip/unequip endpoints that enforce per-unit slot caps and block active-run modifications outside rest workflow.
+---
+title: Implement Rest Management scene with open-edit-finalize workflow
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 16 - Frontend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add a dedicated rest management scene that supports rest open/edit/finalize flow, allows squad edits and dice changes, and returns a per-unit summary (healing and progression deltas) before returning to run map.
+---
+title: Implement embedded promotion flow in Unit Details for between-run and rest contexts
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 16 - Frontend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Implement promotion controls directly in Unit Details with correct context gating: enabled between runs and during open rest workflow, disabled in active-run non-rest contexts.
+---
+title: Implement end-of-run summary scene shell for completed failed and abandoned outcomes
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 16 - Frontend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add a shared RunEnd summary shell that renders outcome-specific messaging while always showing rewards, XP/level progression, and surviving/defeated unit breakdown.
+---
+title: Implement distinct exit-node visuals and locked-path affordance on run map
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 16 - Frontend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add a visually distinct exit-node treatment (portal/door style) and clear path-lock signaling so the node is visible throughout a run but manually unreachable until boss path unlock.
+---
+title: Wire Dice Inventory screen into active-rest management flow
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 16 - Frontend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Keep Dice Inventory as a dedicated screen and integrate it with rest-management context so allowed dice actions are available during rest and blocked in active-run non-rest contexts.
+---
+title: Add create-run domain error branch integration coverage
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+owner: unassigned
+milestone: unassigned
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add backend integration tests for `POST /api/v1/runs` domain-error branches: `run_already_active`, `region_not_found`, `region_disabled`, `region_locked`, missing active squad, and `insufficient_energy` to prevent gameplay regression in run-start gating.
+---
+title: Add resolve-node negative-state branch coverage for ownership and availability rules
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+owner: unassigned
+milestone: unassigned
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add integration coverage for `POST /api/v1/runs/:runId/nodes/:nodeId/resolve` error branches including run-not-active, node locked/unavailable, run ownership mismatch, invalid team ownership, and malformed body handling.
+---
+title: Add claim-battle non-happy-path coverage for claimability and ownership guards
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: unassigned
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add integration tests for `POST /api/v1/battles/:battleId/claim` non-happy-path branches (`battle_not_completed`, forbidden ownership access, and invalid outcome-state guard) to protect claim-state invariants.
+---
+title: Add starter-pack provisioning invariants tests for baseline bootstrap flow
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: unassigned
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add tests for `GrantService` baseline provisioning to verify idempotent starter grants and expected seed-data dependencies (starter region/unit/dice definitions) across clean and pre-seeded test DB states.
+---
+title: Add gameplay-effect tests for canonical active and passive ability handlers
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: unassigned
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Extend combat unit tests beyond handler registry coverage to assert per-ability gameplay effects (damage/buffs/debuffs/targeting semantics) for canonical active and passive handlers.

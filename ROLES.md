@@ -3,6 +3,7 @@
 
 ## How to Use
 - User can request role activation with phrasing like `assume role <name>`.
+- Role activation can also be implicit: when a task clearly belongs to one role's domain, adopt that role proactively and state it in the response.
 - Active role persists until:
   - user says `drop role`, or
   - user requests a different role.
