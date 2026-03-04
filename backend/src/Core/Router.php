@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * File: C:\xampp\htdocs\dice-goblin\backend\src\Core\Router.php
+ * Purpose: Project PHP module.
+ */
+
 namespace DiceGoblins\Core;
 
 use Throwable;

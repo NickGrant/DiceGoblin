@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * File: C:\xampp\htdocs\dice-goblin\backend\src\Combat\Engine\placeholders.php
+ * Purpose: Project PHP module.
+ */
+
 namespace DiceGoblins\Combat\Engine;
 
 use DiceGoblins\Combat\Abilities\AbilityTarget;

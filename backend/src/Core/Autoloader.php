@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * File: C:\xampp\htdocs\dice-goblin\backend\src\Core\Autoloader.php
+ * Purpose: Project PHP module.
+ */
+
 namespace DiceGoblins\Core;
 
 final class Autoloader

@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * File: C:\xampp\htdocs\dice-goblin\backend\src\Combat\Abilities\AbilityTarget.php
+ * Purpose: Project PHP module.
+ */
+
 namespace DiceGoblins\Combat\Abilities;
 
 enum AbilityTarget: string

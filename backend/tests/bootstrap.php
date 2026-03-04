@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * File: C:\xampp\htdocs\dice-goblin\backend\tests\bootstrap.php
+ * Purpose: Project PHP module.
+ */
+
 use DiceGoblins\Core\Autoloader;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';

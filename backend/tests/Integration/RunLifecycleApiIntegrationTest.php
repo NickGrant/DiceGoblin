@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * File: C:\xampp\htdocs\dice-goblin\backend\tests\Integration\RunLifecycleApiIntegrationTest.php
+ * Purpose: Project PHP module.
+ */
+
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Controllers\ApiController;

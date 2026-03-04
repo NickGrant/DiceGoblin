@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * File: C:\xampp\htdocs\dice-goblin\backend\public\index.php
+ * Purpose: Project PHP module.
+ */
+
 use DiceGoblins\Core\Autoloader;
 use DiceGoblins\Core\Env;
 use DiceGoblins\Core\Router;

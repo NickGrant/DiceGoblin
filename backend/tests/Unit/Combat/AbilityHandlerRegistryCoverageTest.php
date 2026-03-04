@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * File: C:\xampp\htdocs\dice-goblin\backend\tests\Unit\Combat\AbilityHandlerRegistryCoverageTest.php
+ * Purpose: Project PHP module.
+ */
+
 namespace DiceGoblins\Tests\Unit\Combat;
 
 require_once __DIR__ . '/../../../src/Combat/Abilities/Handlers/HandlerInterface.php';

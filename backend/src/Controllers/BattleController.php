@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * File: C:\xampp\htdocs\dice-goblin\backend\src\Controllers\BattleController.php
+ * Purpose: Project PHP module.
+ */
+
 namespace DiceGoblins\Controllers;
 
 use DiceGoblins\Core\Db;

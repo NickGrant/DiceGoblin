@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * File: C:\xampp\htdocs\dice-goblin\backend\src\Combat\Abilities\Handlers\Active\BasicAttackMelee.php
+ * Purpose: Project PHP module.
+ */
+
 namespace DiceGoblins\Combat\Abilities\Handlers\Active;
 
 use DiceGoblins\Combat\Abilities\AbilityTarget;
