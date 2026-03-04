@@ -44,21 +44,3 @@ exit_criteria: |
 ```
 
 ## Active Milestones
----
-name: Milestone 11 - QA Coverage and Automation
-status: in-progress
-execution_window: open
-is_current: yes
-issues:
-  - Add backend endpoint contract tests for session/profile/current-run success envelopes
-  - Add end-to-end API integration test for start-run resolve-node claim-battle lifecycle
-  - Add frontend apiClient mutation flow tests for CSRF and error handling behavior
-  - Add reusable test DB reset/migration utility for backend integration tests
-description: |
-  Expand automated verification depth and establish repeatable CI-backed confidence gates.
-entry_criteria: |
-  * Target endpoint and lifecycle contracts for current implementation scope are defined.
-  * Test database setup and harness expectations are documented.
-exit_criteria: |
-  * QA automation issues are complete and archived.
-  * Required CI and integration verification gates are green.

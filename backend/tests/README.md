@@ -14,7 +14,10 @@
 
 ## Run
 - `composer test`
+- Optional DB reset from versioned schema before running integration tests:
+  - `composer test:db:reset`
 
 ## Notes
 - `DatabaseTestCase` wraps each test in a transaction and rolls back after each test.
 - Use SQL fixtures under `backend/tests/Fixtures/`.
+- `composer test:db:reset` reinitializes the test database from `backend/migrations/schema_all.sql`.

@@ -678,7 +678,8 @@ final class ApiController
    *   profileService: ProfileService,
    *   runRepo: RunRepository,
    *   regionRepo: RegionRepository,
-   *   energyRepo: EnergyRepository
+   *   energyRepo: EnergyRepository,
+   *   teamRepo: TeamRepository
    * }
    */
   private function services(): array
@@ -735,6 +736,7 @@ final class ApiController
       'runRepo' => $runRepo,
       'regionRepo' => $regionRepo,
       'energyRepo' => $energyRepo,
+      'teamRepo' => $teamRepo,
     ];
   }
 }

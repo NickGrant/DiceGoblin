@@ -765,3 +765,55 @@ updated: 2026-03-04
 description: |
   [Role: Technical Product Manager] Defined frontend build-artifact handling policy and codified it in workflow guidance/checks to avoid accidental source-vs-artifact drift.
 Resolution: Updated `AGENTS.md` editing rules to explicitly govern when `frontend/dist` artifacts are committed, and added verification workflow/documentation updates that surface artifact and bundle checks consistently.
+---
+title: Add backend endpoint contract tests for session/profile/current-run success envelopes
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 11 - QA Coverage and Automation
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: QA Lead] Frontend contract validators exist, but backend-side regression tests for `GET /api/v1/session`, `GET /api/v1/profile`, and `GET /api/v1/runs/current` success envelopes are missing. Add endpoint-level tests to catch server payload drift at source.
+Resolution: Added `ApiControllerEnvelopeContractTest` covering authenticated `/session`, `/profile`, and `/runs/current` success-envelope contracts, and fixed `EnergyRepository::touchLastRegenAtNow` to avoid false missing-row failures on same-second timestamp touches.
+---
+title: Add end-to-end API integration test for start-run resolve-node claim-battle lifecycle
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 11 - QA Coverage and Automation
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: QA Lead] Add an integration test that validates the full mutating lifecycle (`POST /runs` -> `POST /runs/:runId/nodes/:nodeId/resolve` -> `POST /battles/:battleId/claim`) including status transitions and reward/claim contract stability; coordinate expected assertions with Milestone 2 placeholder-to-real reward/combat changes.
+Resolution: Added `RunLifecycleApiIntegrationTest` to validate lifecycle execution (`/session` bootstrap -> `/runs` -> resolve node -> claim battle), assert `battles.status` transitions (`completed` -> `claimed`), and verify repeated claim responses remain idempotent and contract-stable.
+---
+title: Add frontend apiClient mutation flow tests for CSRF and error handling behavior
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 11 - QA Coverage and Automation
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: QA Lead] Add tests for `createTeam/activateTeam/updateTeam/createRun` mutation flows to validate CSRF sourcing behavior and error propagation semantics in `apiClient`.
+Resolution: Added `frontend/tests/services/apiClient.mutations.test.ts` covering CSRF sourcing for create/activate/update/run mutations and non-2xx error propagation via the shared request helper.
+---
+title: Add reusable test DB reset/migration utility for backend integration tests
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 11 - QA Coverage and Automation
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: QA Lead] Integration tests currently assume schema is preloaded manually. Add a repeatable utility for initializing/resetting test DB state from versioned schema artifacts.
+Resolution: Added `backend/scripts/reset-test-db.php` and composer script `test:db:reset` to rebuild the test database from `backend/migrations/schema_all.sql`, and documented usage in `backend/tests/README.md`.

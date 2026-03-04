@@ -159,7 +159,14 @@ final class EnergyRepository
     $stmt->execute([$userId]);
 
     if ($stmt->rowCount() === 0) {
-      throw new RuntimeException('Energy state row not found.');
+      // MySQL may report 0 affected rows when the timestamp value does not change
+      // (e.g. multiple updates within the same second). Only treat this as an error
+      // when the row is actually missing.
+      $existsStmt = $this->pdo->prepare('SELECT 1 FROM `energy_state` WHERE `user_id` = ? LIMIT 1');
+      $existsStmt->execute([$userId]);
+      if (!$existsStmt->fetchColumn()) {
+        throw new RuntimeException('Energy state row not found.');
+      }
     }
   }
 

@@ -139,3 +139,16 @@ issues:
 description: |
   Strengthen combat determinism and progression correctness before higher-level tuning and content expansion.
 Resolution: Completed deterministic seed derivation hardening, canonical handler coverage regression checks, progression invariant claim tests, and reward economy fixture validation across node types, raising confidence in run/battle integrity behavior.
+---
+name: Milestone 11 - QA Coverage and Automation
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Add backend endpoint contract tests for session/profile/current-run success envelopes
+  - Add end-to-end API integration test for start-run resolve-node claim-battle lifecycle
+  - Add frontend apiClient mutation flow tests for CSRF and error handling behavior
+  - Add reusable test DB reset/migration utility for backend integration tests
+description: |
+  Expand automated verification depth and establish repeatable CI-backed confidence gates.
+Resolution: Completed endpoint contract and lifecycle integration coverage, added frontend mutation CSRF/error tests, and shipped a versioned-schema test DB reset utility (`composer test:db:reset`) with all verification gates green.
