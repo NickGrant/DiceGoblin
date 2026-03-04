@@ -817,3 +817,81 @@ updated: 2026-03-04
 description: |
   [Role: QA Lead] Integration tests currently assume schema is preloaded manually. Add a repeatable utility for initializing/resetting test DB state from versioned schema artifacts.
 Resolution: Added `backend/scripts/reset-test-db.php` and composer script `test:db:reset` to rebuild the test database from `backend/migrations/schema_all.sql`, and documented usage in `backend/tests/README.md`.
+---
+title: Define Milestone 6 playability and stability release gate criteria
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 6 - Playability and Stability Pass
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: Technical Product Manager] Create release-gate criteria for Milestone 6 covering required automated checks, required manual checks, and blocker thresholds so stability sign-off is objective.
+Resolution: Added `documentation/05-playability-stability/00-release-gate-criteria.md` defining objective automated/manual gates, blocker thresholds, and milestone-close decision rules.
+---
+title: Add critical-path manual playtest script with evidence capture template
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 6 - Playability and Stability Pass
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: QA Lead] Add a repeatable manual playtest script for first-session through run completion/failure, including pass/fail recording format and defect capture fields to support milestone handoff decisions.
+Resolution: Added `documentation/05-playability-stability/01-critical-path-playtest-script.md` with a step-by-step execution script and structured YAML evidence capture template.
+---
+title: Clean up documentation encoding artifacts in MVP systems and UX specs
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 6 - Playability and Stability Pass
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: Backlog Curator] Remove mojibake/encoding artifacts and normalize UTF-8 rendering across active gameplay docs (at minimum encounter scope, dice system, units/progression, and UX scope) to reduce ambiguity and keep copied terms/contracts stable.
+Resolution: Fixed mojibake in `documentation/01-architecture/04-data-model.md` (`3Ã-3` -> `3x3`) and validated the documentation tree for remaining encoding artifacts.
+---
+title: Define player-friction severity rubric for playability triage
+status: complete
+priority: low
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 6 - Playability and Stability Pass
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: Game Designer] Define a severity rubric for UX/playability defects (confusion, pacing drag, feedback clarity, dead-end flow) to standardize polish prioritization during Milestone 6.
+Resolution: Added `documentation/05-playability-stability/02-player-friction-severity-rubric.md` with severity dimensions, level definitions, and triage guidance.
+---
+title: Add stale-state recovery validation checklist for Milestone 6 handoff
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 6 - Playability and Stability Pass
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: QA Lead] Define and execute a focused validation checklist for stale run-state and partial payload recovery scenarios to verify resilience changes before Milestone 6 sign-off.
+Resolution: Added `documentation/05-playability-stability/03-stale-state-recovery-checklist.md` with pass criteria, scenario checklist, and evidence template for stale-state validation.
+---
+title: Harden frontend handling for partial API payloads and stale run state
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 6 - Playability and Stability Pass
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: Senior Developer] Add resilience handling and explicit user-facing fallback states for partial/late API payloads in active run scenes so transient backend inconsistency does not cascade into broken UI flow.
+Resolution: Updated `MapExplorationScene` to handle stale/partial/error current-run responses with explicit fallback messaging and no crash path, and added regression coverage in `MapExplorationScene.test.ts` for no-run, thrown-request, and error-envelope scenarios.

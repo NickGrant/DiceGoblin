@@ -152,3 +152,18 @@ issues:
 description: |
   Expand automated verification depth and establish repeatable CI-backed confidence gates.
 Resolution: Completed endpoint contract and lifecycle integration coverage, added frontend mutation CSRF/error tests, and shipped a versioned-schema test DB reset utility (`composer test:db:reset`) with all verification gates green.
+---
+name: Milestone 6 - Playability and Stability Pass
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Define Milestone 6 playability and stability release gate criteria
+  - Add critical-path manual playtest script with evidence capture template
+  - Harden frontend handling for partial API payloads and stale run state
+  - Clean up documentation encoding artifacts in MVP systems and UX specs
+  - Define player-friction severity rubric for playability triage
+  - Add stale-state recovery validation checklist for Milestone 6 handoff
+description: |
+  Raise release-readiness confidence with verification coverage and stability hardening.
+Resolution: Completed Milestone 6 release gate definition, playtest and stale-state validation artifacts, friction-severity triage rubric, encoding cleanup, and frontend run-state fallback hardening with regression tests and full verification gates passing.

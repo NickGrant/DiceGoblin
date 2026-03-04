@@ -8,27 +8,6 @@
 
 ## Backlog Milestones
 
----
-name: Milestone 6 - Playability and Stability Pass
-status: not-started
-execution_window: closed
-is_current: no
-issues:
-  - Define Milestone 6 playability and stability release gate criteria
-  - Add critical-path manual playtest script with evidence capture template
-  - Harden frontend handling for partial API payloads and stale run state
-  - Clean up documentation encoding artifacts in MVP systems and UX specs
-  - Define player-friction severity rubric for playability triage
-  - Add stale-state recovery validation checklist for Milestone 6 handoff
-description: |
-  Raise release-readiness confidence with verification coverage and stability hardening.
-entry_criteria: |
-  * Milestones 4 and 5 have shipped core UX/management behavior needed for stability assessment.
-  * Milestone 6 release-gate criteria are documented and agreed.
-exit_criteria: |
-  * Stability/resilience and playtest evidence issues are complete and archived.
-  * No unresolved high-priority Milestone 6 blockers remain.
----
 name: Milestone 10 - Engineering Maintainability and Contracts
 status: not-started
 execution_window: closed

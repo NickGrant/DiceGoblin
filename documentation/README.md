@@ -29,12 +29,13 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
 8. `documentation/02-systems-mvp/` (combat, progression, encounters)
 9. `documentation/03-ux/` (UX behavior and visual direction)
 10. `documentation/04-multiplayer/` (future-facing systems, non-MVP)
-11. `documentation/03-ux/03-encounter-flow-transition-matrix.md`
-12. `documentation/03-ux/04-combat-viewer-readability.md`
-13. `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
-14. `documentation/03-ux/05-unit-dice-details-acceptance.md`
-15. `documentation/03-ux/06-promotion-and-dice-management-sequencing.md`
-16. `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md`
+11. `documentation/05-playability-stability/` (release-readiness and stability gates)
+12. `documentation/03-ux/03-encounter-flow-transition-matrix.md`
+13. `documentation/03-ux/04-combat-viewer-readability.md`
+14. `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
+15. `documentation/03-ux/05-unit-dice-details-acceptance.md`
+16. `documentation/03-ux/06-promotion-and-dice-management-sequencing.md`
+17. `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md`
 
 ## Task-Based Entry Points
 - If changing API routes, payloads, auth, or error contracts:
@@ -74,6 +75,9 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `documentation/QA_CHECKLIST.md`
   - `documentation/CURRENT_STATUS_EVALUATION.md`
   - `documentation/TESTING_STRATEGY.md`
+  - `documentation/05-playability-stability/00-release-gate-criteria.md`
+  - `documentation/05-playability-stability/01-critical-path-playtest-script.md`
+  - `documentation/05-playability-stability/03-stale-state-recovery-checklist.md`
   - `documentation/STYLE_GUIDE.md`
   - `documentation/CHANGELOG.md`
   - `documentation/BACKLOG_OPERATIONS.md`

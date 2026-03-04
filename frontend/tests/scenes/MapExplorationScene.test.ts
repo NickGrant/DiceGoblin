@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 class FakeScene {
   cameras = { main: { centerX: 480, centerY: 270 } };
@@ -29,16 +29,22 @@ vi.mock("../../src/services/apiClient", () => ({
 }));
 
 describe("MapExplorationScene transition guards", () => {
+  beforeEach(() => {
+    nodeListCtor.mockReset();
+    getCurrentRunMock.mockReset();
+  });
+
   it("does not construct NodeList when no active run exists", async () => {
     const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
     getCurrentRunMock.mockResolvedValueOnce({ ok: true, data: { run: null, map: null } });
     const scene = new MapExplorationScene() as any;
-    scene.add = { existing: vi.fn() };
+    scene.add = { existing: vi.fn(), text: vi.fn(() => ({ setOrigin: vi.fn() })) };
 
     scene.create();
     await Promise.resolve();
 
     expect(nodeListCtor).toHaveBeenCalledTimes(0);
+    expect(scene._fallbackMessage).toBe("No active run. Start one from Regions.");
   });
 
   it("constructs NodeList when current run payload is valid", async () => {
@@ -71,11 +77,43 @@ describe("MapExplorationScene transition guards", () => {
     });
 
     const scene = new MapExplorationScene() as any;
-    scene.add = { existing: vi.fn() };
+    scene.add = { existing: vi.fn(), text: vi.fn(() => ({ setOrigin: vi.fn() })) };
 
     scene.create();
     await Promise.resolve();
 
     expect(nodeListCtor).toHaveBeenCalledTimes(1);
+    expect(scene._fallbackMessage).toBeNull();
+  });
+
+  it("shows fallback when current run request throws", async () => {
+    const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
+    getCurrentRunMock.mockRejectedValueOnce(new Error("contract drift"));
+
+    const scene = new MapExplorationScene() as any;
+    scene.add = { existing: vi.fn(), text: vi.fn(() => ({ setOrigin: vi.fn() })) };
+
+    scene.create();
+    await Promise.resolve();
+
+    expect(nodeListCtor).toHaveBeenCalledTimes(0);
+    expect(scene._fallbackMessage).toBe("Run data unavailable. Please retry.");
+  });
+
+  it("shows fallback when API responds with error envelope", async () => {
+    const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
+    getCurrentRunMock.mockResolvedValueOnce({
+      ok: false,
+      error: { code: "server_error", message: "Unexpected error." },
+    });
+
+    const scene = new MapExplorationScene() as any;
+    scene.add = { existing: vi.fn(), text: vi.fn(() => ({ setOrigin: vi.fn() })) };
+
+    scene.create();
+    await Promise.resolve();
+
+    expect(nodeListCtor).toHaveBeenCalledTimes(0);
+    expect(scene._fallbackMessage).toBe("Run unavailable: Unexpected error.");
   });
 });

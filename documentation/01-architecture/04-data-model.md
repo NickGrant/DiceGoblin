@@ -227,7 +227,7 @@ PK:
 - (`team_id`, `unit_instance_id`)
 
 ### team_formation
-3Ã-3 placement. Stores which unit is in which cell.
+3x3 placement. Stores which unit is in which cell.
 
 Columns:
 - `team_id` BIGINT UNSIGNED (FK -> teams.id)
