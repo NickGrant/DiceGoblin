@@ -225,6 +225,79 @@ final class BattleResolutionAndClaimIntegrationTest extends TestCase
     $this->assertIsArray($rewards['claim_snapshot']);
   }
 
+  public function testClaimBattleMaintainsProgressionInvariantsAcrossRepeatedClaims(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 77889911);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitA = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $unitB = $this->insertUnit($userId, $unitTypeId, 1, 3);
+
+    $this->insertTeamUnit($teamId, $unitA);
+    $this->insertTeamUnit($teamId, $unitB);
+    $this->insertRunUnitState($runId, $unitA, 10, false);
+    $this->insertRunUnitState($runId, $unitB, 8, false);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'victory', 10293847, 60, 3);
+    $this->insertBattleRewards($battleId, 11, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+    ]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new BattleController();
+    $first = $this->invoke(fn() => $controller->claimBattle((string)$battleId));
+    $second = $this->invoke(fn() => $controller->claimBattle((string)$battleId));
+
+    $this->assertSame(200, $first['status']);
+    $this->assertSame(200, $second['status']);
+
+    // XP should be applied exactly once.
+    $this->assertSame('11', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$unitA]));
+    $this->assertSame('14', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$unitB]));
+
+    $stateRows = $this->rows(
+      'SELECT rus.`unit_instance_id`, rus.`current_hp`, rus.`is_defeated`, ui.`level`, ut.`base_stats_json`, ut.`max_hp_per_level`
+       FROM `run_unit_state` rus
+       JOIN `unit_instances` ui ON ui.`id` = rus.`unit_instance_id`
+       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+       WHERE rus.`run_id` = ?
+       ORDER BY rus.`unit_instance_id` ASC',
+      [$runId]
+    );
+
+    $this->assertCount(2, $stateRows);
+    foreach ($stateRows as $row) {
+      $baseStats = json_decode((string)$row['base_stats_json'], true);
+      $this->assertIsArray($baseStats);
+      $level = max(1, (int)$row['level']);
+      $baseMaxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
+      $maxHpPerLevel = max(0, (int)$row['max_hp_per_level']);
+      $maxHp = $baseMaxHp + (($level - 1) * $maxHpPerLevel);
+
+      $hp = (int)$row['current_hp'];
+      $defeated = (int)$row['is_defeated'] === 1;
+
+      // Invariants: no negative HP, no overflow HP, and defeated state matches zero HP.
+      $this->assertGreaterThanOrEqual(0, $hp);
+      $this->assertLessThanOrEqual($maxHp, $hp);
+      $this->assertSame($hp === 0, $defeated);
+    }
+
+    // Claim snapshot should stay stable across repeated claims.
+    $firstData = is_array($first['body']['data'] ?? null) ? $first['body']['data'] : [];
+    $secondData = is_array($second['body']['data'] ?? null) ? $second['body']['data'] : [];
+    $this->assertSame($firstData['xp'] ?? null, $secondData['xp'] ?? null);
+    $this->assertSame($firstData['updated_run_unit_state'] ?? null, $secondData['updated_run_unit_state'] ?? null);
+  }
+
   public function testClaimDefeatWithNoRemainingUnitsFailsRunAndResetsDefeatedXp(): void
   {
     $userId = $this->insertUser();
@@ -355,6 +428,70 @@ final class BattleResolutionAndClaimIntegrationTest extends TestCase
       '1',
       (string)$this->scalar('SELECT COUNT(*) FROM `battles` WHERE `run_id` = ? AND `node_id` = ?', [$runId, $nodeId])
     );
+  }
+
+  public function testResolveNodeRewardEconomyFixturesStayWithinExpectedBounds(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 20260304);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new RunNodeController();
+
+    $restNodeId = $this->insertRunNode($runId, 'rest', 'available');
+    $restRes = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$restNodeId));
+    $this->assertSame(200, $restRes['status']);
+    $restBattleId = (int)($restRes['body']['data']['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $restBattleId);
+    $this->battleIds[] = $restBattleId;
+    [$restXp, $restSoft] = $this->battleRewardTuple($restBattleId);
+    $this->assertSame(0, $restXp);
+    $this->assertSame(0, $restSoft);
+
+    $lootNodeId = $this->insertRunNode($runId, 'loot', 'available');
+    $lootRes = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$lootNodeId));
+    $this->assertSame(200, $lootRes['status']);
+    $lootBattleId = (int)($lootRes['body']['data']['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $lootBattleId);
+    $this->battleIds[] = $lootBattleId;
+    [$lootXp, $lootSoft] = $this->battleRewardTuple($lootBattleId);
+    $this->assertSame(0, $lootXp);
+    $this->assertSame(5, $lootSoft);
+
+    $combatNodeId = $this->insertRunNode($runId, 'combat', 'available');
+    $combatRes = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$combatNodeId));
+    $this->assertSame(200, $combatRes['status']);
+    $combatBattleId = (int)($combatRes['body']['data']['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $combatBattleId);
+    $this->battleIds[] = $combatBattleId;
+    [$combatXp, $combatSoft] = $this->battleRewardTuple($combatBattleId);
+    $outcome = (string)($combatRes['body']['data']['battle']['outcome'] ?? '');
+    $this->assertContains($outcome, ['victory', 'defeat']);
+
+    if ($outcome === 'victory') {
+      $this->assertSame(10, $combatXp);
+      $this->assertGreaterThanOrEqual(3, $combatSoft);
+      $this->assertLessThanOrEqual(7, $combatSoft);
+    } else {
+      $this->assertSame(2, $combatXp);
+      $this->assertSame(0, $combatSoft);
+    }
+
+    // Rewards payload contract sanity.
+    foreach ([$restBattleId, $lootBattleId, $combatBattleId] as $battleId) {
+      $rewardsRaw = (string)$this->scalar('SELECT `rewards_json` FROM `battle_rewards` WHERE `battle_id` = ?', [$battleId]);
+      $rewards = json_decode($rewardsRaw, true);
+      $this->assertIsArray($rewards);
+      $this->assertArrayHasKey('new_dice_instance_ids', $rewards);
+      $this->assertArrayHasKey('region_items', $rewards);
+      $this->assertIsArray($rewards['new_dice_instance_ids']);
+      $this->assertIsArray($rewards['region_items']);
+    }
   }
 
   /**
@@ -520,6 +657,17 @@ final class BattleResolutionAndClaimIntegrationTest extends TestCase
     $stmt?->execute($params);
     $rows = $stmt?->fetchAll(PDO::FETCH_ASSOC);
     return is_array($rows) ? $rows : [];
+  }
+
+  /** @return array{0:int,1:int} */
+  private function battleRewardTuple(int $battleId): array
+  {
+    $row = $this->rows(
+      'SELECT `xp_total`, `currency_soft` FROM `battle_rewards` WHERE `battle_id` = ? LIMIT 1',
+      [$battleId]
+    );
+    $this->assertCount(1, $row);
+    return [(int)$row[0]['xp_total'], (int)$row[0]['currency_soft']];
   }
 
   /**

@@ -714,6 +714,32 @@ description: |
   [Role: Combat Systems Reviewer] Added focused regression tests for active/passive ability handlers to prevent hidden combat-rules drift as deterministic engine integration proceeds.
 Resolution: Added `AbilityHandlerRegistryCoverageTest` to assert active/passive handler coverage against canonical ability definitions and duplicate-id rejection behavior, expanding backend regression safety for handler registry integrity.
 ---
+title: Add progression invariants test suite for claim and run-state mutation
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 12 - Combat Determinism and Progression Integrity
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: Combat Systems Reviewer] Added invariant-focused integration coverage verifying XP application, run-unit-state mutation consistency, and idempotent claim behavior across repeated battle claims.
+Resolution: Expanded `BattleResolutionAndClaimIntegrationTest` with progression invariant assertions for HP bounds, defeated-state consistency, single-application XP behavior, and stable claim snapshots across repeated claims.
+---
+title: Add battle reward economy sanity validation fixtures
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 12 - Combat Determinism and Progression Integrity
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: Combat Systems Reviewer] Added fixture-based reward economy checks across combat/rest/loot node resolutions to detect malformed or out-of-bounds XP/currency payout behavior.
+Resolution: Added reward economy fixture assertions in `BattleResolutionAndClaimIntegrationTest` validating node-type payout contracts (`rest`, `loot`, `combat`), outcome-bounded combat rewards, and canonical rewards payload shape.
+---
 title: Add CI workflow to run backend and frontend verification gates
 status: complete
 priority: high

@@ -47,6 +47,7 @@ entry_criteria: |
 exit_criteria: |
   * Maintainability/typing issues are complete and archived.
   * Contract-sensitive refactors pass regression verification.
+---
 name: Milestone 13 - Player Experience and UX Flow
 status: not-started
 execution_window: closed
@@ -66,19 +67,3 @@ entry_criteria: |
 exit_criteria: |
   * UX flow and sequencing issues are complete and archived.
   * Player-facing docs define end-to-end first-session clarity expectations.
----
-name: Milestone 12 - Combat Determinism and Progression Integrity
-status: in-progress
-execution_window: closed
-is_current: no
-issues:
-  - Add progression invariants test suite for claim and run-state mutation
-  - Add battle reward economy sanity validation fixtures
-description: |
-  Strengthen combat determinism and progression correctness before higher-level tuning and content expansion.
-entry_criteria: |
-  * Milestone 2 placeholder removal is complete or stable enough to attach deterministic coverage.
-  * Canonical combat/progression invariants are documented.
-exit_criteria: |
-  * Determinism and progression-integrity issues are complete and archived.
-  * Regression suites validate deterministic and no-duplication guarantees.

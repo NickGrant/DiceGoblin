@@ -126,3 +126,16 @@ issues:
 description: |
   Improve unit/dice management depth, robustness, and client contract quality.
 Resolution: Completed unit/dice acceptance criteria, typed client adapters, and regression tests, then finalized UX sequencing and dice pool visualization contracts to lock run-vs-management behavior and combat readability expectations.
+---
+name: Milestone 12 - Combat Determinism and Progression Integrity
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Add deterministic seed derivation strategy for node resolution
+  - Add combat ability-handler regression test suite against canonical rules
+  - Add progression invariants test suite for claim and run-state mutation
+  - Add battle reward economy sanity validation fixtures
+description: |
+  Strengthen combat determinism and progression correctness before higher-level tuning and content expansion.
+Resolution: Completed deterministic seed derivation hardening, canonical handler coverage regression checks, progression invariant claim tests, and reward economy fixture validation across node types, raising confidence in run/battle integrity behavior.
