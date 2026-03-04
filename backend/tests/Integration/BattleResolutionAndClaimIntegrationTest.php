@@ -393,6 +393,67 @@ final class BattleResolutionAndClaimIntegrationTest extends TestCase
     $this->assertSame('[]', (string)$state[0]['status_effects_json']);
   }
 
+  public function testExitRunEndpointCompletesRunAndPreservesUnitXp(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $runId = $this->insertRun($userId, $regionId, 44332211);
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 25);
+    $this->insertRunUnitState($runId, $unitId, 2, true);
+    $exitNodeId = $this->insertRunNode($runId, 'exit', 'available');
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $api = new ApiController();
+    $res = $this->invoke(fn() => $api->exitRun((string)$runId));
+    $this->assertSame(200, $res['status']);
+    $this->assertSame('completed', (string)($res['body']['data']['status'] ?? ''));
+    $this->assertSame((string)$exitNodeId, (string)($res['body']['data']['exit_node_id'] ?? ''));
+
+    $runStatus = (string)$this->scalar('SELECT `status` FROM `region_runs` WHERE `id` = ?', [$runId]);
+    $this->assertSame('completed', $runStatus);
+
+    $exitNodeStatus = (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$exitNodeId]);
+    $this->assertSame('cleared', $exitNodeStatus);
+
+    // Completed-run cleanup should preserve earned XP.
+    $this->assertSame('25', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
+
+    $state = $this->rows(
+      'SELECT `current_hp`, `is_defeated`, `cooldowns_json`, `status_effects_json` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?',
+      [$runId, $unitId]
+    );
+    $this->assertCount(1, $state);
+    $this->assertGreaterThan(0, (int)$state[0]['current_hp']);
+    $this->assertSame('0', (string)$state[0]['is_defeated']);
+    $this->assertSame('{}', (string)$state[0]['cooldowns_json']);
+    $this->assertSame('[]', (string)$state[0]['status_effects_json']);
+  }
+
+  public function testExitRunEndpointReturnsConflictWhenExitNodeIsNotAvailable(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $runId = $this->insertRun($userId, $regionId, 88990011);
+    $this->insertRunNode($runId, 'exit', 'locked');
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $api = new ApiController();
+    $res = $this->invoke(fn() => $api->exitRun((string)$runId));
+    $this->assertSame(409, $res['status']);
+    $this->assertSame('run_exit_unavailable', (string)($res['body']['error']['code'] ?? ''));
+
+    $runStatus = (string)$this->scalar('SELECT `status` FROM `region_runs` WHERE `id` = ?', [$runId]);
+    $this->assertSame('active', $runStatus);
+  }
+
   public function testResolveNodeAllowsRetryAfterClaimedDefeat(): void
   {
     $userId = $this->insertUser();

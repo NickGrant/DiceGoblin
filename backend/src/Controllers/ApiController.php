@@ -21,6 +21,7 @@ use DiceGoblins\Repositories\DiceRepository;
 use DiceGoblins\Repositories\EnergyRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RegionRepository;
+use DiceGoblins\Repositories\RunNodeRepository;
 use DiceGoblins\Repositories\RunRepository;
 use DiceGoblins\Repositories\TeamRepository;
 use DiceGoblins\Repositories\UnitRepository;
@@ -491,6 +492,117 @@ final class ApiController
   }
 
   /**
+   * POST /api/v1/runs/:runId/exit
+   *
+   * Completes an active run through the exit node path and applies run-end cleanup.
+   */
+  public function exitRun(?string $runId = null): void
+  {
+    $services = $this->services();
+
+    try {
+      $userId = $services['sessionService']->requireUserId();
+    } catch (Throwable $e) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'unauthorized',
+          'message' => 'No active session.',
+        ],
+      ], 401);
+      return;
+    }
+
+    if (!$this->requireCsrf($services['csrfService'])) {
+      return;
+    }
+
+    $runIdInt = (int)($runId ?? 0);
+    if ($runIdInt <= 0) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'validation_error',
+          'message' => 'runId is required.',
+        ],
+      ], 400);
+      return;
+    }
+
+    /** @var PDO $pdo */
+    $pdo = $services['pdo'];
+
+    try {
+      $pdo->beginTransaction();
+
+      $run = $services['runRepo']->getRunForUser($userId, $runIdInt);
+      if ($run === null) {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'forbidden',
+            'message' => 'Run not found or not owned by user.',
+          ],
+        ], 403);
+        return;
+      }
+
+      if (($run['status'] ?? null) !== 'active') {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'run_not_active',
+            'message' => 'Run is not active.',
+          ],
+        ], 409);
+        return;
+      }
+
+      $exitNode = $services['runNodeRepo']->getFirstByTypeForUpdate($runIdInt, 'exit');
+      if ($exitNode === null || (string)$exitNode['status'] !== 'available') {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'run_exit_unavailable',
+            'message' => 'Exit is not currently available.',
+          ],
+        ], 409);
+        return;
+      }
+
+      $services['runNodeRepo']->markCleared($runIdInt, (int)$exitNode['id']);
+      $services['runRepo']->applyRunEndCleanup($runIdInt, $userId, false);
+      $services['runRepo']->endRun($userId, $runIdInt, 'completed');
+
+      $pdo->commit();
+
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'run_id' => (string)$runIdInt,
+          'status' => 'completed',
+          'exit_node_id' => (string)$exitNode['id'],
+        ],
+      ]);
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'server_error',
+          'message' => 'Unexpected error.',
+        ],
+      ], 500);
+    }
+  }
+
+  /**
    * GET /api/v1/abilities
    *
    * Returns the canonical ability catalog (stable IDs, display metadata, and default config).
@@ -655,6 +767,7 @@ final class ApiController
       ['node_index' => 6, 'node_type' => 'combat', 'status' => 'locked',    'meta' => ['col' => 4, 'row' => 1]],
       ['node_index' => 7, 'node_type' => 'combat', 'status' => 'locked',    'meta' => ['col' => 5, 'row' => 1]],
       ['node_index' => 8, 'node_type' => 'boss',   'status' => 'locked',    'meta' => ['col' => 6, 'row' => 1]],
+      ['node_index' => 9, 'node_type' => 'exit',   'status' => 'locked',    'meta' => ['col' => 7, 'row' => 1]],
     ];
 
     $edges = [
@@ -668,6 +781,7 @@ final class ApiController
       ['from' => 5, 'to' => 6],
       ['from' => 6, 'to' => 7],
       ['from' => 7, 'to' => 8],
+      ['from' => 8, 'to' => 9],
     ];
 
     return ['nodes' => $nodes, 'edges' => $edges];
@@ -682,6 +796,7 @@ final class ApiController
    *   sessionService: SessionService,
    *   profileService: ProfileService,
    *   runRepo: RunRepository,
+   *   runNodeRepo: RunNodeRepository,
    *   regionRepo: RegionRepository,
    *   energyRepo: EnergyRepository,
    *   teamRepo: TeamRepository
@@ -739,6 +854,7 @@ final class ApiController
       'profileService' => $profileService,
       'grantService' => $grantService,
       'runRepo' => $runRepo,
+      'runNodeRepo' => new RunNodeRepository($pdo),
       'regionRepo' => $regionRepo,
       'energyRepo' => $energyRepo,
       'teamRepo' => $teamRepo,

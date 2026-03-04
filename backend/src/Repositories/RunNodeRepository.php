@@ -50,6 +50,41 @@ final class RunNodeRepository
     ];
   }
 
+  /**
+   * Lock + fetch the first node row for a run by node_type.
+   *
+   * @return array{
+   *   id:string,
+   *   run_id:string,
+   *   node_type:string,
+   *   status:string,
+   *   encounter_template_id:?string
+   * }|null
+   */
+  public function getFirstByTypeForUpdate(int $runId, string $nodeType): ?array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT `id`, `run_id`, `node_type`, `status`, `encounter_template_id`
+      FROM `run_nodes`
+      WHERE `run_id` = ? AND `node_type` = ?
+      ORDER BY `node_index` ASC
+      LIMIT 1
+      FOR UPDATE
+    ');
+    $stmt->execute([$runId, $nodeType]);
+
+    $r = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$r) return null;
+
+    return [
+      'id' => (string)$r['id'],
+      'run_id' => (string)$r['run_id'],
+      'node_type' => (string)$r['node_type'],
+      'status' => (string)$r['status'],
+      'encounter_template_id' => $r['encounter_template_id'] !== null ? (string)$r['encounter_template_id'] : null,
+    ];
+  }
+
   public function markCleared(int $runId, int $nodeId): void
   {
     $stmt = $this->pdo->prepare('

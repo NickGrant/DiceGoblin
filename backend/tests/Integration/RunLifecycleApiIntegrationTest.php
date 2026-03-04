@@ -80,6 +80,21 @@ final class RunLifecycleApiIntegrationTest extends TestCase
     $runId = $this->fetchActiveRunId($userId);
     $this->assertGreaterThan(0, $runId);
 
+    $exitNodeCount = (int)$this->scalar(
+      'SELECT COUNT(*) FROM `run_nodes` WHERE `run_id` = ? AND `node_type` = \'exit\'',
+      [$runId]
+    );
+    $this->assertSame(1, $exitNodeCount, 'Run graph should include exactly one visible exit node.');
+
+    $bossToExitEdgeCount = (int)$this->scalar(
+      'SELECT COUNT(*) FROM `run_edges` re
+       JOIN `run_nodes` src ON src.`id` = re.`from_node_id`
+       JOIN `run_nodes` dst ON dst.`id` = re.`to_node_id`
+       WHERE re.`run_id` = ? AND src.`node_type` = \'boss\' AND dst.`node_type` = \'exit\'',
+      [$runId]
+    );
+    $this->assertSame(1, $bossToExitEdgeCount, 'Exit should be reachable only through boss path.');
+
     $nodeId = $this->fetchAvailableNodeId($runId);
     $this->assertGreaterThan(0, $nodeId);
 

@@ -167,7 +167,7 @@ final class RunRepository
    *  [
    *    [
    *      'node_index' => 0,
-   *      'node_type' => 'combat'|'loot'|'rest'|'boss',
+   *      'node_type' => 'combat'|'loot'|'rest'|'boss'|'exit',
    *      'status' => 'locked'|'available'|'cleared' (optional; default locked),
    *      'encounter_template_id' => int|null (optional),
    *      'meta' => array|string|null (optional; will be JSON-encoded if array),
@@ -623,7 +623,7 @@ final class RunRepository
       $status = isset($n['status']) ? (string)$n['status'] : 'locked';
       $encounterTemplateId = $n['encounter_template_id'] ?? null;
 
-      if (!in_array($nodeType, ['combat', 'loot', 'rest', 'boss'], true)) {
+      if (!in_array($nodeType, ['combat', 'loot', 'rest', 'boss', 'exit'], true)) {
         throw new RuntimeException('Invalid node_type: ' . $nodeType);
       }
       if (!in_array($status, ['locked', 'available', 'cleared'], true)) {

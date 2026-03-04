@@ -111,6 +111,7 @@ $router->get('/api/v1/profile', [$api, 'profile']);
 $router->get('/api/v1/runs/current', [$api, 'currentRun']);
 $router->post('/api/v1/runs', [$api, 'createRun']);
 $router->post('/api/v1/runs/:runId/abandon', [$api, 'abandonRun']);
+$router->post('/api/v1/runs/:runId/exit', [$api, 'exitRun']);
 $router->get('/api/v1/abilities', [$api, 'abilities']);
 
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/resolve', [$runNode, 'resolveNode']);

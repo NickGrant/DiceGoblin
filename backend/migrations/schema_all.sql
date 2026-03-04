@@ -256,7 +256,7 @@ CREATE TABLE `run_nodes` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `run_id` BIGINT UNSIGNED NOT NULL,
   `node_index` INT NOT NULL,
-  `node_type` ENUM('combat','loot','rest','boss') NOT NULL,
+  `node_type` ENUM('combat','loot','rest','boss','exit') NOT NULL,
   `status` ENUM('locked','available','cleared') NOT NULL DEFAULT 'locked',
   `encounter_template_id` BIGINT UNSIGNED NULL,
   `meta_json` JSON NULL,

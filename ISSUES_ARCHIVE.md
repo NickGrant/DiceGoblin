@@ -6,6 +6,34 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Implement exit-node completion flow and completed run transition
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 15 - Backend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Add run-map support for an always-visible exit node that is only reachable through the boss path and implement backend run transition to `completed` when exit is successfully taken.
+Resolution: Added explicit `exit` node support to run graph generation, introduced `POST /api/v1/runs/:runId/exit` completion endpoint with validation/cleanup, and blocked exit-node resolution through generic node resolve flow.
+
+---
+title: Implement run-end cleanup for completed status while preserving earned XP
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 15 - Backend Gameplay Completion
+created: 2026-03-04
+updated: 2026-03-04
+description: |
+  Extend terminal cleanup orchestration so `completed`, `failed`, and `abandoned` all run cleanup, with completed runs preserving earned XP while clearing active run locks and run-scoped transient state.
+Resolution: Wired completed-run cleanup into the new exit endpoint using `applyRunEndCleanup(..., false)` so XP is preserved, while existing failed/abandoned flows continue applying terminal cleanup with appropriate XP-reset behavior.
+
+---
 title: Add documentation archive lane and wire it into context exclusion rules
 status: complete
 priority: medium
