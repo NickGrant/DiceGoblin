@@ -47,26 +47,6 @@ entry_criteria: |
 exit_criteria: |
   * Maintainability/typing issues are complete and archived.
   * Contract-sensitive refactors pass regression verification.
----
-name: Milestone 11 - QA Coverage and Automation
-status: not-started
-execution_window: closed
-is_current: no
-issues:
-  - Add backend endpoint contract tests for session/profile/current-run success envelopes
-  - Add end-to-end API integration test for start-run resolve-node claim-battle lifecycle
-  - Add CI workflow to run backend and frontend verification gates
-  - Add frontend apiClient mutation flow tests for CSRF and error handling behavior
-  - Add reusable test DB reset/migration utility for backend integration tests
-description: |
-  Expand automated verification depth and establish repeatable CI-backed confidence gates.
-entry_criteria: |
-  * Target endpoint and lifecycle contracts for current implementation scope are defined.
-  * Test database setup and harness expectations are documented.
-exit_criteria: |
-  * QA automation issues are complete and archived.
-  * Required CI and integration verification gates are green.
----
 name: Milestone 13 - Player Experience and UX Flow
 status: not-started
 execution_window: closed
@@ -86,3 +66,19 @@ entry_criteria: |
 exit_criteria: |
   * UX flow and sequencing issues are complete and archived.
   * Player-facing docs define end-to-end first-session clarity expectations.
+---
+name: Milestone 12 - Combat Determinism and Progression Integrity
+status: in-progress
+execution_window: closed
+is_current: no
+issues:
+  - Add progression invariants test suite for claim and run-state mutation
+  - Add battle reward economy sanity validation fixtures
+description: |
+  Strengthen combat determinism and progression correctness before higher-level tuning and content expansion.
+entry_criteria: |
+  * Milestone 2 placeholder removal is complete or stable enough to attach deterministic coverage.
+  * Canonical combat/progression invariants are documented.
+exit_criteria: |
+  * Determinism and progression-integrity issues are complete and archived.
+  * Regression suites validate deterministic and no-duplication guarantees.

@@ -713,3 +713,29 @@ updated: 2026-03-04
 description: |
   [Role: Combat Systems Reviewer] Added focused regression tests for active/passive ability handlers to prevent hidden combat-rules drift as deterministic engine integration proceeds.
 Resolution: Added `AbilityHandlerRegistryCoverageTest` to assert active/passive handler coverage against canonical ability definitions and duplicate-id rejection behavior, expanding backend regression safety for handler registry integrity.
+---
+title: Add CI workflow to run backend and frontend verification gates
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 11 - QA Coverage and Automation
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: QA Lead] Added CI automation for backend tests, frontend tests/build, and verification gates to enforce consistent regression checks.
+Resolution: Added `.github/workflows/full-verification.yml` to run LLM control checks, backend PHPUnit, frontend Vitest/build, and bundle/doc warning checks on pull requests and main pushes.
+---
+title: Document and enforce frontend build-artifact policy for `frontend/dist`
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 11 - QA Coverage and Automation
+created: 2026-03-03
+updated: 2026-03-04
+description: |
+  [Role: Technical Product Manager] Defined frontend build-artifact handling policy and codified it in workflow guidance/checks to avoid accidental source-vs-artifact drift.
+Resolution: Updated `AGENTS.md` editing rules to explicitly govern when `frontend/dist` artifacts are committed, and added verification workflow/documentation updates that surface artifact and bundle checks consistently.

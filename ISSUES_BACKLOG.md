@@ -84,66 +84,6 @@ updated: 2026-03-02
 description: |
   [Role: Senior Developer] `ProfileService` and repository payload composition rely on broad array shapes. Add explicit DTO mapping/types for response assembly to reduce runtime shape drift.
 ---
-title: Add backend endpoint contract tests for session/profile/current-run success envelopes
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-owner: unassigned
-milestone: Milestone 11 - QA Coverage and Automation
-created: 2026-03-02
-updated: 2026-03-02
-description: |
-  [Role: QA Lead] Frontend contract validators exist, but backend-side regression tests for `GET /api/v1/session`, `GET /api/v1/profile`, and `GET /api/v1/runs/current` success envelopes are missing. Add endpoint-level tests to catch server payload drift at source.
----
-title: Add end-to-end API integration test for start-run resolve-node claim-battle lifecycle
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-owner: unassigned
-milestone: Milestone 11 - QA Coverage and Automation
-created: 2026-03-02
-updated: 2026-03-02
-description: |
-  [Role: QA Lead] Add an integration test that validates the full mutating lifecycle (`POST /runs` -> `POST /runs/:runId/nodes/:nodeId/resolve` -> `POST /battles/:battleId/claim`) including status transitions and reward/claim contract stability; coordinate expected assertions with Milestone 2 placeholder-to-real reward/combat changes.
----
-title: Add CI workflow to run backend and frontend verification gates
-status: unstarted
-priority: high
-execution: deferred
-ready: no
-owner: unassigned
-milestone: Milestone 11 - QA Coverage and Automation
-created: 2026-03-02
-updated: 2026-03-02
-description: |
-  [Role: QA Lead] Verification currently relies on local manual execution. Add CI automation for `composer test`, frontend tests, and frontend build to enforce consistent regression gates.
----
-title: Add frontend apiClient mutation flow tests for CSRF and error handling behavior
-status: unstarted
-priority: medium
-execution: deferred
-ready: no
-owner: unassigned
-milestone: Milestone 11 - QA Coverage and Automation
-created: 2026-03-02
-updated: 2026-03-02
-description: |
-  [Role: QA Lead] Add tests for `createTeam/activateTeam/updateTeam/createRun` mutation flows to validate CSRF sourcing behavior and error propagation semantics in `apiClient`.
----
-title: Add reusable test DB reset/migration utility for backend integration tests
-status: unstarted
-priority: medium
-execution: deferred
-ready: no
-owner: unassigned
-milestone: Milestone 11 - QA Coverage and Automation
-created: 2026-03-02
-updated: 2026-03-02
-description: |
-  [Role: QA Lead] Integration tests currently assume schema is preloaded manually. Add a repeatable utility for initializing/resetting test DB state from versioned schema artifacts.
----
 title: Add first-session onboarding and objective framing UX spec
 status: unstarted
 priority: medium
@@ -276,6 +216,30 @@ updated: 2026-03-02
 description: |
   [Role: QA Lead] Define and execute a focused validation checklist for stale run-state and partial payload recovery scenarios to verify resilience changes before Milestone 6 sign-off.
 ---
+title: Add progression invariants test suite for claim and run-state mutation
+status: unstarted
+priority: high
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 12 - Combat Determinism and Progression Integrity
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: Combat Systems Reviewer] Add invariant tests verifying XP/reward applications, run-unit state mutation, and no-duplication guarantees across repeated claim/resolve requests.
+---
+title: Add battle reward economy sanity validation fixtures
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Milestone 12 - Combat Determinism and Progression Integrity
+created: 2026-03-02
+updated: 2026-03-04
+description: |
+  [Role: Combat Systems Reviewer] Add fixture-based checks for reward output bounds and consistency to detect extreme or malformed reward payloads during progression work.
+---
 title: Reduce frontend production bundle size via scene-level code splitting
 status: unstarted
 priority: medium
@@ -287,15 +251,3 @@ created: 2026-03-03
 updated: 2026-03-03
 description: |
   [Role: Senior Developer] Frontend build currently emits a large primary bundle (~1.5 MB minified warning). Introduce scene-level lazy loading and/or manual chunking strategy to lower initial payload size and keep build warnings actionable.
----
-title: Document and enforce frontend build-artifact policy for `frontend/dist`
-status: unstarted
-priority: medium
-execution: deferred
-ready: no
-owner: unassigned
-milestone: Milestone 11 - QA Coverage and Automation
-created: 2026-03-03
-updated: 2026-03-03
-description: |
-  [Role: Technical Product Manager] Define whether production bundle artifacts must be committed or generated in CI/release flow, then codify the rule in docs and checks to avoid accidental drift between source and shipped assets.
