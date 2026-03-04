@@ -10,16 +10,13 @@ Depends On: `ISSUES.md`, `ISSUES_BACKLOG.md`, `MILESTONES.md`, `MILESTONES_BACKL
 - Define one canonical operations guide for milestone sequencing, issue dependencies, and backlog triage.
 - Reduce policy duplication across roadmap/backlog governance docs.
 
-## Milestone Execution Order
-1. Milestone 2 - Server-Side Battle Resolution
-2. Milestone 3 - Run Progression and Attrition
-3. Milestone 12 - Combat Determinism and Progression Integrity
-4. Milestone 11 - QA Coverage and Automation
-5. Milestone 4 - Encounter Flow UI
-6. Milestone 5 - Unit and Dice Management
-7. Milestone 6 - Playability and Stability Pass
-8. Milestone 10 - Engineering Maintainability and Contracts
-9. Milestone 13 - Player Experience and UX Flow
+## Milestone Execution Order (Open Milestones)
+1. Milestone 15 - Backend Gameplay Completion
+2. Milestone 16 - Frontend Gameplay Completion
+3. Milestone 10 - Engineering Maintainability and Contracts
+4. Milestone 13 - Player Experience and UX Flow
+
+Completed milestones are tracked in `MILESTONES_ARCHIVE.md` and are excluded from active execution order.
 
 ## Current Milestone Rules
 - Exactly one milestone may be `is_current: yes`.
@@ -44,6 +41,8 @@ Depends On: `ISSUES.md`, `ISSUES_BACKLOG.md`, `MILESTONES.md`, `MILESTONES_BACKL
 - Milestone 4 -> Milestones 6, 13
 - Milestone 5 -> Milestones 6, 13
 - Milestone 11 -> Milestones 6, 12
+- Milestone 15 -> Milestones 16, 13
+- Milestone 16 -> Milestone 13
 
 ## Issue Dependency Metadata
 - `blocked_by` and `enables` are optional issue fields.
