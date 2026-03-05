@@ -26,6 +26,8 @@
     { "type": "image", "key": "icon_encounter_combat", "url": "assets/ui/icons/icon_encounter_combat.png"},
     { "type": "image", "key": "icon_encounter_locked", "url": "assets/ui/icons/icon_encounter_locked.png"},
     { "type": "image", "key": "icon_encounter_loot", "url": "assets/ui/icons/icon_encounter_loot.png"},
-    { "type": "image", "key": "icon_encounter_rest", "url": "assets/ui/icons/icon_encounter_rest.png"}
+    { "type": "image", "key": "icon_encounter_rest", "url": "assets/ui/icons/icon_encounter_rest.png"},
+
+    { "type": "atlas", "key": "dice_sheet", "textureURL": "assets/ui/dice/dice_sheet.png", "atlasURL": "assets/ui/dice/dice_sheet.json" }
   ]
 }
