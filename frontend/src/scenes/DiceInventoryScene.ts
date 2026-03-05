@@ -14,6 +14,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
   private runId = "";
   private nodeId = "";
   private returnScene = "HomeScene";
+  private preferredUnitId: string | null = null;
   private mutationAllowed = true;
 
   private units: UnitRecord[] = [];
@@ -29,10 +30,11 @@ export default class DiceInventoryScene extends Phaser.Scene {
     super({ key: "DiceInventoryScene" });
   }
 
-  init(data: { runId?: string; nodeId?: string; returnScene?: string }): void {
+  init(data: { runId?: string; nodeId?: string; returnScene?: string; unitId?: string }): void {
     this.runId = String(data?.runId ?? "");
     this.nodeId = String(data?.nodeId ?? "");
     this.returnScene = String(data?.returnScene ?? "HomeScene");
+    this.preferredUnitId = data?.unitId ? String(data.unitId) : null;
   }
 
   create(): void {
@@ -70,15 +72,16 @@ export default class DiceInventoryScene extends Phaser.Scene {
       wordWrap: { width: layout.content.width - 40 },
     }).setOrigin(0, 0);
 
-    if (inRestContext) {
+    if (inRestContext || this.returnScene !== "HomeScene") {
       new ActionButton({
         scene: this,
         x: buttonX,
         y: layout.buttons.y + 24,
-        label: "Back to Rest",
+        label: inRestContext ? "Back to Rest" : "Back",
         onClick: () => this.scene.start(this.returnScene, {
           runId: this.runId,
           nodeId: this.nodeId,
+          unitId: this.preferredUnitId ?? undefined,
         }),
       });
     }
@@ -133,7 +136,8 @@ export default class DiceInventoryScene extends Phaser.Scene {
     this.dice = adaptDiceDetails(profile.data.dice ?? [], profile.data.units ?? []);
     this.mutationAllowed = this.runId !== "" && this.nodeId !== "" ? true : profile.data.active_run === null;
     if (this.selectedUnitId === null && this.units.length > 0) {
-      this.selectedUnitId = this.units[0]?.id ?? null;
+      const preferred = this.preferredUnitId ? this.units.find((u) => u.id === this.preferredUnitId) : null;
+      this.selectedUnitId = preferred?.id ?? this.units[0]?.id ?? null;
     }
     this.renderUnitPanel();
     this.renderDiceList();

@@ -1,7 +1,7 @@
 # Frontend State and Scene Contracts - MVP (Authoritative)
 
 Status: active  
-Last Updated: 2026-03-04  
+Last Updated: 2026-03-05  
 Owner: Frontend  
 Depends On: `frontend/src/game/config.ts`, `frontend/src/scenes/`, `frontend/src/services/apiClient.ts`
 
@@ -25,8 +25,12 @@ Configured in `frontend/src/game/config.ts`:
 4. `HomeScene`
 5. `RegionSelectScene`
 6. `WarbandManagementScene`
-7. `DiceInventoryScene`
-8. `MapExplorationScene`
+7. `SquadDetailsScene`
+8. `UnitDetailsScene`
+9. `DiceInventoryScene`
+10. `MapExplorationScene`
+11. `RestManagementScene`
+12. `RunEndSummaryScene`
 
 ## 3. Planned (Not Implemented Yet)
 
@@ -34,11 +38,8 @@ The following scenes are documented in broader design scope but are not currentl
 
 - `CombatScene`
 - `LootScene`
-- `RestManagementScene`
 - `BossScene`
-- `UnitDetailsScene`
 - `DiceDetailsScene`
-- `RunEndSummaryScene`
 
 ## 4. Shared State Slices (Current)
 
@@ -137,14 +138,36 @@ Output:
 Allowed side-effects:
 - `GET /api/v1/profile`
 - `POST /api/v1/teams`
-- `POST /api/v1/teams/:teamId/activate`
+
+Behavior:
+- acts as hub screen with two columns:
+  - units list -> opens `UnitDetailsScene`
+  - squad list + actions -> opens `SquadDetailsScene`
+
+### 5.8 SquadDetailsScene
+
+Allowed side-effects:
+- `GET /api/v1/profile`
 - `PUT /api/v1/teams/:teamId`
+- `POST /api/v1/teams/:teamId/activate`
 
 Behavior:
 - edits saved squad membership/formation (not run-scoped snapshot)
 - supports bench membership (`unit_ids` may include unplaced units)
+- supports best-effort squad rename by passing `name` in update payload
 
-### 5.8 DiceInventoryScene
+### 5.9 UnitDetailsScene
+
+Allowed side-effects:
+- `GET /api/v1/profile`
+- `POST /api/v1/units/:unitId/promote`
+
+Behavior:
+- displays unit stats/xp and equipped dice summary
+- manages promotion primary/secondary selection
+- routes to `DiceInventoryScene` for dice equip/unequip flow
+
+### 5.10 DiceInventoryScene
 
 Current scope:
 - presentation shell scene with HUD/home navigation.
@@ -164,8 +187,15 @@ Planned extension:
 - `HomeScene -> DiceInventoryScene`
 - `RegionSelectScene -> MapExplorationScene`
 - `WarbandManagementScene -> HomeScene` (home button)
+- `WarbandManagementScene -> UnitDetailsScene`
+- `WarbandManagementScene -> SquadDetailsScene`
+- `UnitDetailsScene -> DiceInventoryScene` (returnable)
+- `UnitDetailsScene -> WarbandManagementScene`
+- `SquadDetailsScene -> WarbandManagementScene`
 - `DiceInventoryScene -> HomeScene` (home button)
 - `MapExplorationScene -> HomeScene` (home button)
+- `MapExplorationScene -> RestManagementScene`
+- `RunEndSummaryScene -> HomeScene`
 
 Planned additions:
 - `MapExplorationScene -> RestManagementScene` (select rest node)
@@ -175,8 +205,6 @@ Planned additions:
 
 ## 7. Known Gaps
 
-- Encounter scene split (`Combat/Loot/Rest/Boss`) is planned but not wired in config.
+- Encounter scene split (`Combat/Loot/Boss`) is planned but not wired in config.
 - No centralized frontend store for run/profile; state is scene-local.
-- Dedicated unit/dice details scene contracts are planned but not yet implemented.
-- Rest-management and run-end summary scenes are planned but not yet implemented.
-- Unit-details-embedded promotion controls are planned but not yet implemented.
+- Dedicated dice-details scene contract is planned but not yet implemented.

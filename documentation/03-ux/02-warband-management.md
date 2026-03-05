@@ -1,55 +1,68 @@
-# Warband Management UX and System Contract
+# Warband UX Flows and Screen Contracts
 ----
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-05  
 Owner: UX + Frontend  
-Depends On: `frontend/src/scenes/WarbandManagementScene.ts`, `frontend/src/components/FormationGrid3x3.ts`, `frontend/src/components/UnitListPanel.ts`
+Depends On: `frontend/src/scenes/WarbandManagementScene.ts`, `frontend/src/scenes/UnitDetailsScene.ts`, `frontend/src/scenes/SquadDetailsScene.ts`
 
 ## Purpose
-- Define expected UX behavior and system-side assumptions for warband management.
-- Keep frontend interactions and backend squad payload contracts aligned.
+- Define the split warband UX model as two explicit user flows.
+- Keep squad composition and unit progression concerns separate.
 
-## Scope
-- Squad creation from warband scene when no active squad exists.
-- Unit list interactions and formation placement on a 3x3 grid.
-- Save behavior for `unit_ids` membership and `formation` placement payload.
+## Flow Split
+- Flow A: `Unit Details`
+  - entry from Warband hub unit list
+  - shows unit stats/xp, equipped dice summary, and promotion controls
+  - links to `DiceInventoryScene` for equip/unequip actions
+- Flow B: `Squad Details`
+  - entry from Warband hub squad list
+  - edits squad membership + 3x3 formation
+  - supports squad activation and rename attempt
 
-## Interaction Model
-- The formation grid is a fixed 3x3 layout with cells `A1..C3`.
-- User can place units by:
-  - selecting a grid cell then clicking a unit, or
-  - selecting a unit and then clicking a grid cell.
-- Double-click on an occupied cell clears that cell.
-- `Clear Cell` action clears only the currently selected occupied cell.
+## Scene Responsibilities
 
-## Bench Membership (Intentional Current Behavior)
-- A unit may exist in squad `unit_ids` without being placed in formation.
-- This "bench membership" behavior is intentional for current iteration and may be tightened later.
-- Save payload always includes:
-  - full `unit_ids` membership set
-  - full 3x3 `formation` with nulls for empty cells
+### `WarbandManagementScene` (Hub)
+- Two columns:
+  - left: units list (click opens `UnitDetailsScene`)
+  - right: squads list + action list
+- Required squad actions:
+  - open selected squad
+  - add new squad
 
-## Visual State Rules
-- Unit row `highlighted`: unit is in current squad membership.
-- Unit row `outlined`: unit is currently placed in formation.
-- Unit row `badge`: shows `SELECTED` or `PLACED` based on interaction state.
-- `Clear Cell` button is enabled only when selected cell is occupied.
+### `UnitDetailsScene`
+- Shows selected unit:
+  - name
+  - level/max-level
+  - xp
+  - tier
+  - equipped dice summary
+- Promotion controls:
+  - selected unit is primary
+  - choose two compatible secondary units
+  - promotion blocked when active run exists
+- Dice flow:
+  - `Manage Dice` routes to `DiceInventoryScene` with return context
 
-## Error and Success Feedback
-- Load failure: centered error text on scene.
-- Create/save failure: toast message with error text.
-- Save success: short-lived success toast (`Saved!`).
+### `SquadDetailsScene`
+- Shows one selected squad:
+  - editable membership + 3x3 formation
+  - clear selected cell
+  - save squad state
+  - set active squad
+  - rename via prompt + team update payload
+- Navigation:
+  - back to Warband hub
 
 ## Data Contract Notes
-- Profile hydration currently reads squads from `profile.data.squads`.
-- Squad update payload shape:
-```json
-{
-  "unit_ids": ["2001", "2002"],
-  "formation": [
-    { "cell": "A1", "unit_instance_id": "2001" },
-    { "cell": "B1", "unit_instance_id": null }
-  ]
-}
-```
+- Squad persistence uses `PUT /api/v1/teams/:teamId` with:
+  - `unit_ids`
+  - `formation`
+  - optional `name` (best-effort; backend support may vary)
+- Squad activation uses `POST /api/v1/teams/:teamId/activate`.
+- Unit promotion uses `POST /api/v1/units/:unitId/promote`.
+- Dice equip/unequip remains in `DiceInventoryScene`.
+
+## Button Composition Rule
+- Any screen-side action controls should be rendered through `ActionButtonList` when practical.
+- Single standalone actions may still use `ActionButton`.
