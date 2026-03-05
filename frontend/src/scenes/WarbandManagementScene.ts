@@ -3,13 +3,12 @@ import BackgroundImage from "../components/BackgroundImage";
 import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import UnitListPanel from "../components/UnitListPanel";
+import SquadListPanel from "../components/SquadListPanel";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import { apiClient } from "../services/apiClient";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
 import type { TeamRecord, UnitRecord } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
-
-type SquadListRow = UnitRecord & { _squadId: string };
 
 export default class WarbandManagementScene extends Phaser.Scene {
   private loadingText?: Phaser.GameObjects.Text;
@@ -17,10 +16,9 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   private units: UnitRecord[] = [];
   private squads: TeamRecord[] = [];
-  private selectedSquadId: string | null = null;
 
   private unitPanel?: UnitListPanel;
-  private squadPanel?: UnitListPanel;
+  private squadPanel?: SquadListPanel;
 
   constructor() {
     super({ key: "WarbandManagementScene" });
@@ -53,9 +51,6 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
       this.units = adaptUnitRecords(profile.data.units ?? []);
       this.squads = (profile.data.squads ?? []) as TeamRecord[];
-      if (!this.selectedSquadId) {
-        this.selectedSquadId = this.squads.find((s) => s.is_active)?.id ?? this.squads[0]?.id ?? null;
-      }
 
       this.loadingText?.destroy();
       this.loadingText = undefined;
@@ -97,35 +92,14 @@ export default class WarbandManagementScene extends Phaser.Scene {
       maxVisibleRows: 12,
     });
 
-    const squadRows: SquadListRow[] = this.squads.map((s) => ({
-      id: s.id,
-      name: s.name,
-      level: 0,
-      _squadId: s.id,
-    }));
-
     this.squadPanel?.destroy();
-    this.squadPanel = new UnitListPanel({
+    this.squadPanel = new SquadListPanel({
       scene: this,
       x: rightX,
       y: layout.content.y,
-      width: colW,
-      height: 460,
       title: "CURRENT SQUADS",
-      units: squadRows,
-      maxVisibleRows: 12,
-      onUnitClick: (row) => {
-        this.selectedSquadId = (row as SquadListRow)._squadId;
-        this.squadPanel?.refreshRowStates();
-      },
-      getRowState: (row) => {
-        const squadId = (row as SquadListRow)._squadId;
-        const squad = this.squads.find((s) => s.id === squadId);
-        return {
-          highlighted: squadId === this.selectedSquadId,
-          badgeText: squad?.is_active ? "ACTIVE" : squadId === this.selectedSquadId ? "SELECTED" : null,
-        };
-      },
+      squads: this.squads,
+      onSquadClick: (squad) => this.scene.start("SquadDetailsScene", { squadId: squad.id }),
     });
 
     new ActionButtonList({
@@ -135,11 +109,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
       gapY: 5,
       buttons: [
         {
-          label: "Open Squad",
-          onClick: () => this.openSelectedSquad(),
-        },
-        {
-          label: "Add Squad",
+          label: "New Squad",
           onClick: () => void this.createSquad(),
         },
       ],
@@ -166,16 +136,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
       return;
     }
     this.showToast("Squad created.", "#ccffcc");
-    this.selectedSquadId = res.data.team_id;
-    await this.loadData();
-  }
-
-  private openSelectedSquad(): void {
-    if (!this.selectedSquadId) {
-      this.showToast("Select a squad first.");
-      return;
-    }
-    this.scene.start("SquadDetailsScene", { squadId: this.selectedSquadId });
+    this.scene.start("SquadDetailsScene", { squadId: res.data.team_id });
   }
 
   private showToast(message: string, color = "#ffcccc"): void {

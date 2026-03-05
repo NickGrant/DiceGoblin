@@ -13,6 +13,7 @@ use DiceGoblins\Core\Response;
 
 use DiceGoblins\Repositories\EnergyRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
+use DiceGoblins\Repositories\RunRepository;
 use DiceGoblins\Repositories\TeamRepository;
 use DiceGoblins\Repositories\UserRepository;
 
@@ -150,7 +151,7 @@ final class TeamController
 
   /**
    * PUT /api/v1/teams/:teamId
-   * Body: { unit_ids: string[], formation: [{cell:string, unit_instance_id:string|null}] }
+   * Body: { unit_ids: string[], formation: [{cell:string, unit_instance_id:string|null}], name?: string }
    */
   public function updateTeam(?string $teamId = null): void
   {
@@ -190,6 +191,7 @@ final class TeamController
 
     $unitIdsRaw = $body['unit_ids'] ?? null;
     $formationRaw = $body['formation'] ?? null;
+    $nameRaw = $body['name'] ?? null;
 
     if (!is_array($unitIdsRaw) || !is_array($formationRaw)) {
       Response::json([
@@ -216,6 +218,10 @@ final class TeamController
 
       // Replace membership
       $svc['teamRepo']->setTeamUnits($userId, $teamIdInt, $unitIds);
+
+      if ($nameRaw !== null) {
+        $svc['teamRepo']->renameTeam($userId, $teamIdInt, (string)$nameRaw);
+      }
 
       // Replace formation:
       // - clear first
@@ -272,6 +278,75 @@ final class TeamController
     }
   }
 
+  /**
+   * DELETE /api/v1/teams/:teamId
+   */
+  public function deleteTeam(?string $teamId = null): void
+  {
+    $svc = $this->services();
+
+    try {
+      $userId = $svc['sessionService']->requireUserId();
+    } catch (Throwable $e) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'unauthorized',
+          'message' => 'No active session.',
+        ],
+      ], 401);
+      return;
+    }
+
+    if (!$this->requireCsrf($svc['csrfService'])) {
+      return;
+    }
+
+    $teamIdInt = $this->requirePositiveInt($teamId, 'teamId');
+    if ($teamIdInt === null) return;
+
+    try {
+      $team = $svc['teamRepo']->getTeamForUser($userId, $teamIdInt);
+      if ($team === null) {
+        throw new RuntimeException('Team not found or not owned by user.');
+      }
+
+      if ($svc['teamRepo']->countTeamsForUser($userId) <= 1) {
+        throw new RuntimeException('Cannot delete your only squad.');
+      }
+
+      $activeRun = $svc['runRepo']->getActiveRunForUser($userId);
+      if ($activeRun !== null && (bool)$team['is_active']) {
+        throw new RuntimeException('Cannot delete active squad while a run is active.');
+      }
+
+      $svc['teamRepo']->deleteTeam($userId, $teamIdInt);
+
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'team_id' => (string)$teamIdInt,
+        ],
+      ]);
+    } catch (RuntimeException $e) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'validation_error',
+          'message' => $e->getMessage(),
+        ],
+      ], 400);
+    } catch (Throwable $e) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'server_error',
+          'message' => 'Unexpected error.',
+        ],
+      ], 500);
+    }
+  }
+
   // -----------------------------
   // Internals
   // -----------------------------
@@ -292,6 +367,7 @@ final class TeamController
     return [
       'pdo' => $pdo,
       'teamRepo' => new TeamRepository($pdo),
+      'runRepo' => new RunRepository($pdo),
       'sessionService' => $sessionService,
       'csrfService' => $csrfService,
     ];

@@ -25,10 +25,9 @@ Depends On: `frontend/src/scenes/WarbandManagementScene.ts`, `frontend/src/scene
 ### `WarbandManagementScene` (Hub)
 - Two columns:
   - left: units list (click opens `UnitDetailsScene`)
-  - right: squads list + action list
+  - right: squads list (click opens `SquadDetailsScene`) + action list
 - Required squad actions:
-  - open selected squad
-  - add new squad
+  - create new squad (`New Squad`)
 
 ### `UnitDetailsScene`
 - Shows selected unit:
@@ -60,6 +59,7 @@ Depends On: `frontend/src/scenes/WarbandManagementScene.ts`, `frontend/src/scene
   - `formation`
   - optional `name` (best-effort; backend support may vary)
 - Squad activation uses `POST /api/v1/teams/:teamId/activate`.
+- Squad deletion uses `DELETE /api/v1/teams/:teamId` with backend safety gates.
 - Unit promotion uses `POST /api/v1/units/:unitId/promote`.
 - Dice equip/unequip remains in `DiceInventoryScene`.
 

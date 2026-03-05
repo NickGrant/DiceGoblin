@@ -25,6 +25,8 @@ export default class SquadDetailsScene extends Phaser.Scene {
 
   private units: UnitRecord[] = [];
   private squad: TeamRecord | null = null;
+  private squadCount = 0;
+  private hasActiveRun = false;
 
   private editUnitIds: Set<string> = new Set();
   private editFormation: FormationMap = emptyFormation();
@@ -65,6 +67,8 @@ export default class SquadDetailsScene extends Phaser.Scene {
 
       this.units = adaptUnitRecords(profile.data.units ?? []);
       const squads = (profile.data.squads ?? []) as TeamRecord[];
+      this.squadCount = squads.length;
+      this.hasActiveRun = profile.data.active_run !== null;
       this.squad = squads.find((s) => s.id === this.squadId) ?? squads[0] ?? null;
       if (!this.squad) throw new Error("No squads found.");
 
@@ -162,6 +166,14 @@ export default class SquadDetailsScene extends Phaser.Scene {
       label: "Set Active",
       enabled: !this.squad.is_active,
       onClick: () => void this.activateSquad(),
+    });
+    new ActionButton({
+      scene: this,
+      x: actionButtonX,
+      y: layout.buttons.y + 424,
+      label: "Delete Squad",
+      enabled: this.canDeleteSquad(),
+      onClick: () => void this.deleteSquad(),
     });
 
     this.refreshDerivedUiState();
@@ -278,6 +290,31 @@ export default class SquadDetailsScene extends Phaser.Scene {
     }
     this.showToast("Squad set active.", "#ccffcc");
     await this.loadData();
+  }
+
+  private canDeleteSquad(): boolean {
+    if (!this.squad) return false;
+    if (this.squadCount <= 1) return false;
+    if (this.hasActiveRun && this.squad.is_active) return false;
+    return true;
+  }
+
+  private async deleteSquad(): Promise<void> {
+    if (!this.squad) return;
+    if (!this.canDeleteSquad()) {
+      this.showToast("Cannot delete this squad in current state.");
+      return;
+    }
+    const confirm = window.confirm(`Delete squad '${this.squad.name}'?`);
+    if (!confirm) return;
+
+    const res = await apiClient.deleteTeam(this.squad.id);
+    if (!res.ok) {
+      this.showToast(`Delete failed: ${res.error.message}`);
+      return;
+    }
+    this.showToast("Squad deleted.", "#ccffcc");
+    this.scene.start("WarbandManagementScene");
   }
 
   private showToast(message: string, color = "#ffcccc"): void {

@@ -40,6 +40,13 @@ final class TeamRepository
     ], $rows);
   }
 
+  public function countTeamsForUser(int $userId): int
+  {
+    $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `teams` WHERE `user_id` = ?');
+    $stmt->execute([$userId]);
+    return (int)$stmt->fetchColumn();
+  }
+
   /**
    * Returns teams with membership + formation, ready for GET /profile.
    *
@@ -223,6 +230,40 @@ final class TeamRepository
 
     if ($stmt->rowCount() === 0) {
       throw new RuntimeException('Team not found or not owned by user.');
+    }
+  }
+
+  public function deleteTeam(int $userId, int $teamId): void
+  {
+    try {
+      $this->pdo->beginTransaction();
+
+      $team = $this->getTeamForUser($userId, $teamId);
+      if ($team === null) {
+        $this->pdo->rollBack();
+        throw new RuntimeException('Team not found or not owned by user.');
+      }
+
+      $stmt = $this->pdo->prepare('DELETE FROM `team_formation` WHERE `team_id` = ?');
+      $stmt->execute([$teamId]);
+
+      $stmt = $this->pdo->prepare('DELETE FROM `team_units` WHERE `team_id` = ?');
+      $stmt->execute([$teamId]);
+
+      $stmt = $this->pdo->prepare('DELETE FROM `teams` WHERE `id` = ? AND `user_id` = ?');
+      $stmt->execute([$teamId, $userId]);
+
+      if ($stmt->rowCount() === 0) {
+        $this->pdo->rollBack();
+        throw new RuntimeException('Team not found or not owned by user.');
+      }
+
+      $this->pdo->commit();
+    } catch (Throwable $e) {
+      if ($this->pdo->inTransaction()) {
+        $this->pdo->rollBack();
+      }
+      throw $e;
     }
   }
 

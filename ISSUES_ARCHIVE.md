@@ -1099,3 +1099,99 @@ updated: 2026-03-05
 description: |
   Add visual indicators on run map to show which nodes unlock other nodes (e.g., directional/path edges or equivalent relationship markers).
 Resolution: NodeList now renders directional edge lines with arrowheads between graph nodes, visually differentiating unlocked/available paths from locked progression.
+---
+title: Formalize squad rename API contract for /api/v1/teams/:teamId
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Warband UX Split Follow-up
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  Squad rename was exposed in SquadDetailsScene using best-effort payload behavior. Backend contract support and validation needed formalization.
+Resolution: Team update flow now accepts optional `name` on `PUT /api/v1/teams/:teamId`, and backend rename validation is applied through TeamController/TeamRepository.
+
+---
+title: Open squad details directly when clicking squad row in warband hub
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Warband UX Split Follow-up
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  Update WarbandManagementScene so selecting/clicking a squad row immediately navigates to SquadDetailsScene.
+Resolution: Squad rows now route directly to `SquadDetailsScene` on click, removing the extra open-step interaction.
+
+---
+title: Add squad deletion flow with safety gates in SquadDetailsScene
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Warband UX Split Follow-up
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  Add delete squad capability from SquadDetailsScene with constraints around active-run safety and minimum squad count.
+Resolution: Implemented backend `DELETE /api/v1/teams/:teamId` plus frontend delete action with confirmation and enforcement of `not only squad` and `not active squad during active run` rules.
+
+---
+title: Remove Open Squad button from warband hub actions
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Warband UX Split Follow-up
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  Once squad rows open details directly, remove the redundant Open Squad action button from WarbandManagementScene.
+Resolution: Removed Open Squad action from warband hub list and kept direct row navigation as the primary interaction.
+
+---
+title: Rename Add Squad action to New Squad and keep it in warband hub action list
+status: complete
+priority: low
+execution: active
+ready: yes
+owner: unassigned
+milestone: Warband UX Split Follow-up
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  Change the squad-creation action label from `Add Squad` to `New Squad` and keep it in the action button list slot on WarbandManagementScene.
+Resolution: Updated warband hub action label to `New Squad`, preserving its position in the action button list.
+---
+title: Add dedicated SquadListPanel component to replace UnitListPanel casting
+status: complete
+priority: low
+execution: active
+ready: yes
+owner: unassigned
+milestone: Warband UX Split Follow-up
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  Warband hub rendered squads by adapting squad rows into UnitListPanel shape. A squad-specific component was needed.
+Resolution: Added `SquadListPanel` and replaced squad-row casting usage in WarbandManagementScene with dedicated squad rendering behavior.
+
+---
+title: Add metal-strip variant of ActionButton and list component for squad display
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Warband UX Split Follow-up
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  Create a `metal_strip` ActionButton variant and companion list component for squad display on warband hub.
+Resolution: Implemented `MetalActionButton` + `MetalActionButtonList`, wired `metal_strip` asset key, and used the metal list variant for squad rows in warband management.

@@ -211,3 +211,19 @@ description: |
   Resolve major map-screen interaction and readability gaps that currently block
   complete run navigation and player understanding.
 Resolution: Wired combat/loot/boss node resolution from map interactions, added explicit abandon-run action with confirmation, clamped node rendering within scene bounds, and rendered directional unlock-path indicators on the run graph.
+---
+name: Warband UX Split Follow-up
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Formalize squad rename API contract for /api/v1/teams/:teamId
+  - Add dedicated SquadListPanel component to replace UnitListPanel casting
+  - Add metal-strip variant of ActionButton and list component for squad display
+  - Open squad details directly when clicking squad row in warband hub
+  - Add squad deletion flow with safety gates in SquadDetailsScene
+  - Remove Open Squad button from warband hub actions
+  - Rename Add Squad action to New Squad and keep it in warband hub action list
+description: |
+  Complete the post-split warband UX behavior so squad interaction flow is direct, safe, and visually consistent with the button system.
+Resolution: Implemented direct squad click-through, removed redundant open action, renamed new-squad action, added backend-supported delete flow with safety gates, formalized rename contract, and replaced squad rendering with dedicated metal-strip list components.

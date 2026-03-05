@@ -271,6 +271,7 @@ export const apiClient = {
     payload: {
       unit_ids: string[];
       formation: Array<{ cell: string; unit_instance_id: string | null }>;
+      name?: string;
     }
   ): Promise<{ ok: true; data: {} } | { ok: false; error: { code: string; message: string } }> {
     const session = await apiClient.getSession();
@@ -280,6 +281,22 @@ export const apiClient = {
       method: "PUT",
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify(payload),
+    });
+
+    apiClient.invalidateProfileCache();
+    return res as any;
+  },
+
+  async deleteTeam(
+    teamId: string
+  ): Promise<{ ok: true; data: { team_id: string } } | { ok: false; error: { code: string; message: string } }> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+
+    const res = await request<{ ok: boolean; data?: any; error?: any }>(`/api/v1/teams/${teamId}`, {
+      method: "DELETE",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({}),
     });
 
     apiClient.invalidateProfileCache();

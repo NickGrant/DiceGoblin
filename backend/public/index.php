@@ -130,6 +130,7 @@ $router->post('/api/v1/units/:unitInstanceId/dice/unequip', [$gameplay, 'unequip
 $router->post('/api/v1/teams', [$team, 'createTeam']);
 $router->post('/api/v1/teams/:teamId/activate', [$team, 'activateTeam']);
 $router->put('/api/v1/teams/:teamId', [$team, 'updateTeam']);
+$router->delete('/api/v1/teams/:teamId', [$team, 'deleteTeam']);
 
 // Dispatch
 $router->dispatch();

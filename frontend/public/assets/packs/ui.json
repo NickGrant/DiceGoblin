@@ -13,6 +13,7 @@
     { "type": "image", "key": "column_swamp", "url": "assets/ui/column_swamp.png"},
     { "type": "image", "key": "column_mountain", "url": "assets/ui/column_mountain.png"},
     { "type": "image", "key": "manifest_strip", "url": "assets/ui/manifest_strip.png"},
+    { "type": "image", "key": "metal_strip", "url": "assets/ui/metal_strip.png"},
     { "type": "image", "key": "torn_corner_patch", "url": "assets/ui/torn_corner_patch.png"},
 
 

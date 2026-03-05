@@ -46,34 +46,10 @@ exit_criteria: |
 ## Active Milestones
 
 ```yaml
-name: Warband UX Split Follow-up
-status: in-progress
-execution_window: open
-is_current: yes
-issues:
-  - Formalize squad rename API contract for /api/v1/teams/:teamId
-  - Add dedicated SquadListPanel component to replace UnitListPanel casting
-  - Add metal-strip variant of ActionButton and list component for squad display
-  - Open squad details directly when clicking squad row in warband hub
-  - Add squad deletion flow with safety gates in SquadDetailsScene
-  - Remove Open Squad button from warband hub actions
-  - Rename Add Squad action to New Squad and keep it in warband hub action list
-description: |
-  Complete the post-split warband UX behavior so squad interaction flow is
-  direct, safe, and visually consistent with the button system.
-entry_criteria: |
-  * Warband hub, squad details, and unit details screens are available.
-exit_criteria: |
-  * Squad rows open details directly.
-  * Redundant open action is removed and action labels are finalized.
-  * Squad delete/rename behavior is fully validated against backend rules.
-```
-
-```yaml
 name: Frontend Readability and List Scaling
 status: in-progress
 execution_window: open
-is_current: no
+is_current: yes
 issues:
   - Redesign preload scene spacing when hero logo is present
   - Replace management-screen unit lists with 3-column unit card layout

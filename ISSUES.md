@@ -110,10 +110,10 @@ description: |
 
 ```yaml
 title: Open squad details directly when clicking squad row in warband hub
-status: unstarted
+status: in-progress
 priority: high
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Warband UX Split Follow-up
 blocked_by:
@@ -130,10 +130,10 @@ description: |
 
 ```yaml
 title: Add squad deletion flow with safety gates in SquadDetailsScene
-status: unstarted
+status: in-progress
 priority: high
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Warband UX Split Follow-up
 blocked_by:
@@ -151,10 +151,10 @@ description: |
 
 ```yaml
 title: Remove Open Squad button from warband hub actions
-status: unstarted
+status: in-progress
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Warband UX Split Follow-up
 blocked_by:
@@ -170,10 +170,10 @@ description: |
 
 ```yaml
 title: Rename Add Squad action to New Squad and keep it in warband hub action list
-status: unstarted
+status: in-progress
 priority: low
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Warband UX Split Follow-up
 blocked_by:
@@ -364,6 +364,10 @@ description: |
 ```
 
 ### Documentation
+
+
+
+
 
 
 
