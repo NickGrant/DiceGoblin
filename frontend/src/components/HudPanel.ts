@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { TEXT_BODY } from "../const/Text";
 import { RegistrySession } from "../state/RegistrySession";
 import { apiClient } from "../services/apiClient";
+import { getPageLayout } from "../layout/pageLayout";
 
 export default class HudPanel extends Phaser.GameObjects.Container {
   private nameText: Phaser.GameObjects.Text;
@@ -14,35 +15,44 @@ export default class HudPanel extends Phaser.GameObjects.Container {
   private energyMax = 1;
 
   private bgW = 320;
+  private readonly panelHeight = 100;
+  private readonly iconSize = 75;
+  private readonly rightPad = 8;
+  private readonly rowHeight = 37.5;
+  private readonly rightAreaX = this.iconSize + this.rightPad;
+  private readonly rightAreaW = this.bgW - this.rightAreaX;
 
   constructor(scene: Phaser.Scene) {
     super(scene, 0, 0);
 
     this.width = this.bgW;
-    this.height = 128;
-    
-    // Name
-    this.nameText = scene.add.text(0, 32, RegistrySession.displayName(scene.registry).toUpperCase(), TEXT_BODY).setOrigin(0,0);
-    this.nameText.setX(this.bgW - this.nameText.width - 32);
+    this.height = this.panelHeight;
 
-    // Energy icon
-    this.energyIcon = scene.add.image(this.bgW - 64, 0, "icon_energy").setScale(.5, .5).setOrigin(0,0);
+    // Left icon column: fixed 100x100
+    this.energyIcon = scene.add.image(0, 0, "icon_energy").setDisplaySize(this.iconSize, this.iconSize).setOrigin(0, 0);
 
-    // Energy bar (simple)
+    // Top row: energy bars + current/max text
     this.bar = scene.add.graphics();
 
-    // Energy text
+    // Bottom row: left-aligned player name
+    this.nameText = scene.add
+      .text(this.rightAreaX, this.rowHeight + 2, RegistrySession.displayName(scene.registry).toUpperCase(), {
+        ...TEXT_BODY,
+        wordWrap: { width: this.rightAreaW - 8 },
+      })
+      .setOrigin(0, 0);
+
     this.energyText = scene.add
-      .text(this.bgW - 140, 2, "", {
+      .text(this.rightAreaX, 12, "", {
         fontFamily: `"Roboto Condensed", system-ui, -apple-system, Segoe UI, Roboto, Arial`,
         fontSize: "18px",
         color: "#e8e8ff",
         stroke: "#1A0E0A",
         strokeThickness: 3
-      }).setOrigin(0,0);
+      }).setOrigin(0, 0);
 
     // Assemble (order matters)
-    this.add([this.nameText, this.energyIcon, this.bar, this.energyText]);
+    this.add([this.energyIcon, this.bar, this.energyText, this.nameText]);
 
     // Add to scene + HUD behavior
     scene.add.existing(this);
@@ -77,44 +87,45 @@ export default class HudPanel extends Phaser.GameObjects.Container {
   }
 
   private reposition(): void {
-    const marginTop = 24;
-    const marginRight = 12;
-
-    this.setPosition(this.scene.scale.width - this.bgW + marginRight, marginTop);
+    const layout = getPageLayout(this.scene);
+    const x = layout.hud.x + Math.max(0, layout.hud.width - this.bgW);
+    const y = layout.hud.y;
+    this.setPosition(x, y);
   }
 
   private redrawEnergy(): void {
     this.energyText.setText(`${this.energyCurrent} / ${this.energyMax}`);
-
-
-    const x = this.bgW - 302;
-    const y = 14;
-
-    const width = 160;
-    const height = 17;
+    const barX = this.rightAreaX;
+    const barY = 12;
+    const barW = 150;
+    const barH = 22;
     const segments = 10;
     const gap = 4;
 
     const pct = Phaser.Math.Clamp(this.energyCurrent / this.energyMax, 0, 1);
     const filled = Math.round(pct * segments);
-    const segW = (width - (segments - 1) * gap) / segments;
+    const segW = (barW - (segments - 1) * gap) / segments;
 
     this.bar.clear();
 
     // Outline + background
     this.bar.lineStyle(2, 0x1a0e0a, 1);
-    this.bar.strokeRoundedRect(x, y - height / 2, width, height, 3);
+    this.bar.strokeRoundedRect(barX, barY, barW, barH, 3);
 
     this.bar.fillStyle(0x2b1b14, 1);
-    this.bar.fillRoundedRect(x, y - height / 2, width, height, 3);
+    this.bar.fillRoundedRect(barX, barY, barW, barH, 3);
 
     // Segments
     for (let i = 0; i < segments; i++) {
-      const sx = x + i * (segW + gap);
-      const sy = y - height / 2;
+      const sx = barX + i * (segW + gap);
+      const sy = barY;
 
       this.bar.fillStyle(i < filled ? 0xd1a84a : 0x5e1f1b, 1);
-      this.bar.fillRoundedRect(sx, sy, segW, height, 2);
+      this.bar.fillRoundedRect(sx, sy, segW, barH, 2);
     }
+
+    this.energyText.setX(barX + barW + 8);
+    this.energyText.setY(barY + 1);
   }
 }
+

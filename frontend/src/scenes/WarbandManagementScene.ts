@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
-import UiButton from "../components/Button";
+import ActionButton from "../components/clickable-panel/ActionButton";
 
 import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
 import UnitListPanel, { type UnitListRowState } from "../components/UnitListPanel";
@@ -10,6 +10,7 @@ import UnitListPanel, { type UnitListRowState } from "../components/UnitListPane
 import { apiClient } from "../services/apiClient";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
 import type { TeamRecord, UnitRecord, TeamFormationCell } from "../types/ApiResponse";
+import { getPageLayout } from "../layout/pageLayout";
 
 type Cell = FormationCell;
 
@@ -49,13 +50,13 @@ export default class WarbandManagementScene extends Phaser.Scene {
   private grid?: FormationGrid3x3;
   private unitPanel?: UnitListPanel;
 
-  private saveButton?: UiButton;
-  private clearButton?: UiButton;
-  private createSquadButton?: UiButton;
-  private setPrimaryButton?: UiButton;
-  private addSecondaryButton?: UiButton;
-  private clearPromotionButton?: UiButton;
-  private promoteButton?: UiButton;
+  private saveButton?: ActionButton;
+  private clearButton?: ActionButton;
+  private createSquadButton?: ActionButton;
+  private setPrimaryButton?: ActionButton;
+  private addSecondaryButton?: ActionButton;
+  private clearPromotionButton?: ActionButton;
+  private promoteButton?: ActionButton;
   private promotionStatusText?: Phaser.GameObjects.Text;
 
   constructor() {
@@ -65,15 +66,19 @@ export default class WarbandManagementScene extends Phaser.Scene {
   create(): void {
     new BackgroundImage(this, "background_workbench");
     new HudPanel(this);
-    new HomeButton(this, { x: 64, y: 52 }).setScale(0.5);
+    const layout = getPageLayout(this);
+    new HomeButton(this, {
+      x: layout.homeIcon.x,
+      y: layout.homeIcon.y,
+    });
 
     this.loadingText = this.add
-      .text(480, 270, "Loading warband…", {
+      .text(layout.content.x + 16, layout.content.y + 120, "Loading warband...", {
         fontFamily: "Arial",
         fontSize: "18px",
         color: "#ffffff",
       })
-      .setOrigin(0.5);
+      .setOrigin(0, 0);
 
     void this.loadData();
   }
@@ -138,22 +143,23 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   private buildUi(): void {
     this.destroyUi();
+    const layout = getPageLayout(this);
+    const actionButtonX = layout.buttons.x + 10;
 
     if (!this.activeSquad) {
       this.titleText = this.add
-        .text(480, 160, "No squads found.", {
+        .text(layout.content.x + 16, layout.content.y + 16, "No squads found.", {
           fontFamily: "Arial",
           fontSize: "18px",
           color: "#ffffff",
         })
-        .setOrigin(0.5);
+        .setOrigin(0, 0);
 
-      this.createSquadButton = new UiButton({
+      this.createSquadButton = new ActionButton({
         scene: this,
-        x: 480,
-        y: 240,
+        x: actionButtonX,
+        y: layout.buttons.y + 64,
         label: "Create Squad",
-        size: "small",
         onClick: () => void this.createSquad(),
       });
 
@@ -176,18 +182,18 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
     // Header
     this.titleText = this.add
-      .text(480, 92, `WARBAND: ${this.activeSquad.name}`, {
+      .text(layout.content.x + 16, layout.content.y - 34, `WARBAND: ${this.activeSquad.name}`, {
         fontFamily: "Arial",
         fontSize: "18px",
         color: "#ffffff",
       })
-      .setOrigin(0.5);
+      .setOrigin(0, 0);
 
     // Unit panel (left)
     this.unitPanel = new UnitListPanel({
       scene: this,
-      x: 20,
-      y: 120,
+      x: layout.content.x,
+      y: layout.content.y,
       width: 400,
       height: 420,
       title: "UNITS",
@@ -199,8 +205,8 @@ export default class WarbandManagementScene extends Phaser.Scene {
     // Formation grid (right)
     this.grid = new FormationGrid3x3({
       scene: this,
-      x: 540,
-      y: 170,
+      x: layout.content.x + 520,
+      y: layout.content.y + 48,
       formation: this.editFormation,
       selectedCell: null,
       getCellLabel: (cell, unitId) => this.getCellLabel(cell, unitId),
@@ -209,77 +215,71 @@ export default class WarbandManagementScene extends Phaser.Scene {
     });
 
     // Buttons
-    this.clearButton = new UiButton({
+    this.clearButton = new ActionButton({
       scene: this,
-      x: 700,
-      y: 92,
+      x: actionButtonX,
+      y: layout.buttons.y + 24,
       label: "Clear Cell",
-      size: "tiny",
       enabled: false,
       onClick: () => this.clearSelectedCell(),
     });
 
-    this.saveButton = new UiButton({
+    this.saveButton = new ActionButton({
       scene: this,
-      x: 860,
-      y: 92,
+      x: actionButtonX,
+      y: layout.buttons.y + 74,
       label: "Save",
-      size: "tiny",
       enabled: true,
       onClick: () => void this.saveTeam(),
     });
 
-    this.setPrimaryButton = new UiButton({
+    this.setPrimaryButton = new ActionButton({
       scene: this,
-      x: 560,
-      y: 520,
+      x: actionButtonX,
+      y: layout.buttons.y + 154,
       label: "Set Primary",
-      size: "tiny",
       enabled: true,
       onClick: () => this.setPromotionPrimaryFromSelection(),
     });
-    this.addSecondaryButton = new UiButton({
+    this.addSecondaryButton = new ActionButton({
       scene: this,
-      x: 700,
-      y: 520,
+      x: actionButtonX,
+      y: layout.buttons.y + 204,
       label: "Add Secondary",
-      size: "tiny",
       enabled: true,
       onClick: () => this.addPromotionSecondaryFromSelection(),
     });
-    this.clearPromotionButton = new UiButton({
+    this.clearPromotionButton = new ActionButton({
       scene: this,
-      x: 840,
-      y: 520,
+      x: actionButtonX,
+      y: layout.buttons.y + 254,
       label: "Clear Promo",
-      size: "tiny",
       enabled: true,
       onClick: () => this.clearPromotionSelection(),
     });
-    this.promoteButton = new UiButton({
+    this.promoteButton = new ActionButton({
       scene: this,
-      x: 840,
-      y: 550,
+      x: actionButtonX,
+      y: layout.buttons.y + 304,
       label: "Promote",
-      size: "tiny",
       enabled: false,
       onClick: () => void this.promoteSelectedUnit(),
     });
-    this.promotionStatusText = this.add.text(540, 545, "", {
+    this.promotionStatusText = this.add.text(layout.buttons.x + 8, layout.buttons.y + 340, "", {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#dddddd",
-      wordWrap: { width: 290 },
+      wordWrap: { width: layout.buttons.width - 16 },
     });
 
     // Tips
-    this.tipText1 = this.add.text(40, 550, "Tip: click a grid cell, then click a unit.", {
+    this.tipText1 = this.add.text(layout.content.x + 16, layout.content.y + 430, "Tip: click a grid cell, then click a unit.", {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#dddddd",
     });
 
-    this.tipText2 = this.add.text(540, 550, "Tip: double-click an occupied cell to clear.", {
+    this.tipText2 = this.add.text(layout.content.x + 520, layout.content.y + 430, "Tip: double-click an occupied cell to clear.", {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#dddddd",
@@ -290,13 +290,14 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   private showToast(message: string, color = "#ffcccc"): void {
     this.toastText?.destroy();
+    const layout = getPageLayout(this);
     this.toastText = this.add
-      .text(480, 610, message, {
+      .text(layout.content.x + 16, layout.content.y + layout.content.height - 24, message, {
         fontFamily: "Arial",
         fontSize: "12px",
         color,
       })
-      .setOrigin(0.5);
+      .setOrigin(0, 0);
 
     // Auto-clear after a moment
     this.time.delayedCall(2500, () => {
@@ -433,18 +434,23 @@ export default class WarbandManagementScene extends Phaser.Scene {
       unit_instance_id: this.editFormation[cell] ?? null,
     }));
 
-    const res = await apiClient.updateTeam(this.activeSquad.id, {
-      unit_ids: Array.from(this.editUnitIds),
-      formation,
-    });
+    try {
+      const res = await apiClient.updateTeam(this.activeSquad.id, {
+        unit_ids: Array.from(this.editUnitIds),
+        formation,
+      });
 
-    if (!res.ok) {
-      this.showToast(`Save failed: ${res.error.message}`);
-      return;
+      if (!res.ok) {
+        this.showToast(`Save failed: ${res.error.message}`);
+        return;
+      }
+
+      this.showToast("Saved!", "#ccffcc");
+      await this.loadData();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Unexpected save error.";
+      this.showToast(`Save failed: ${message}`);
     }
-
-    this.showToast("Saved!", "#ccffcc");
-    await this.loadData();
   }
 
   private setPromotionPrimaryFromSelection(): void {
@@ -545,3 +551,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
     return unit ? unit.name : `Unit ${unitId}`;
   }
 }
+
+
+
+

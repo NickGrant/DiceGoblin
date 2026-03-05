@@ -2,6 +2,7 @@ import BackgroundImage from "../components/BackgroundImage";
 import ClickablePanelRegionColumn from "../components/clickable-panel/RegionColumn";
 import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
+import { getPageLayout } from "../layout/pageLayout";
 
 
 export default class RegionSelectScene extends Phaser.Scene {
@@ -13,8 +14,17 @@ export default class RegionSelectScene extends Phaser.Scene {
   create(): void {
     new BackgroundImage(this, 'background_concrete');
     new HudPanel(this);
-    new HomeButton(this, {x: 64, y: 52}).setScale(.5);
-    new ClickablePanelRegionColumn(this, {x: 179, y: 305 }, 'mountain').setScale(.3);
-    new ClickablePanelRegionColumn(this, {x: 488, y: 299 }, 'swamp').setScale(.3);
+    const layout = getPageLayout(this);
+    new HomeButton(this, {
+      x: layout.homeIcon.x,
+      y: layout.homeIcon.y,
+    });
+
+    const leftColumnX = layout.content.x + 70;
+    const rightColumnX = layout.content.x + 380;
+    const columnY = layout.content.y + 168;
+    new ClickablePanelRegionColumn(this, { x: leftColumnX, y: columnY }, 'mountain').setScale(.3);
+    new ClickablePanelRegionColumn(this, { x: rightColumnX, y: columnY }, 'swamp').setScale(.3);
   }
 }
+

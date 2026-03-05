@@ -1,12 +1,13 @@
 import BackgroundImage from "../components/BackgroundImage";
 import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
-import UiButton from "../components/Button";
+import ActionButton from "../components/clickable-panel/ActionButton";
 import UnitListPanel, { type UnitListRowState } from "../components/UnitListPanel";
 import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { DiceDetailsViewModel } from "../adapters/profileViewModels";
 import type { UnitRecord } from "../types/ApiResponse";
+import { getPageLayout } from "../layout/pageLayout";
 
 
 export default class DiceInventoryScene extends Phaser.Scene {
@@ -37,40 +38,44 @@ export default class DiceInventoryScene extends Phaser.Scene {
   create(): void {
     new BackgroundImage(this, 'background_workbench');
     new HudPanel(this);
-    new HomeButton(this, {x: 64, y: 52}).setScale(.5);
+    const layout = getPageLayout(this);
+    const buttonX = layout.buttons.x + 10;
+    new HomeButton(this, {
+      x: layout.homeIcon.x,
+      y: layout.homeIcon.y,
+    });
 
     const inRestContext = this.runId !== "" && this.nodeId !== "";
-    this.add.text(480, 92, "DICE INVENTORY", {
+    this.add.text(layout.content.x + 410, layout.content.y - 34, "DICE INVENTORY", {
       fontFamily: "Arial",
       fontSize: "20px",
       color: "#ffffff",
-    }).setOrigin(0.5);
+    }).setOrigin(0, 0);
 
-    this.add.text(480, 136, inRestContext
+    this.add.text(layout.content.x + 410, layout.content.y + 10, inRestContext
       ? `Rest context active (run ${this.runId}, node ${this.nodeId}).`
       : "Out-of-run context.", {
       fontFamily: "Arial",
       fontSize: "12px",
       color: "#dddddd",
-    }).setOrigin(0.5);
+    }).setOrigin(0, 0);
 
-    this.add.text(480, 168, inRestContext
+    this.add.text(layout.content.x + 410, layout.content.y + 42, inRestContext
       ? "Dice changes from this screen should be validated against rest-context backend rules."
       : "Dice changes are available here between runs.", {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#bbbbbb",
       align: "center",
-      wordWrap: { width: 720 },
-    }).setOrigin(0.5);
+      wordWrap: { width: layout.content.width - 40 },
+    }).setOrigin(0, 0);
 
     if (inRestContext) {
-      new UiButton({
+      new ActionButton({
         scene: this,
-        x: 860,
-        y: 92,
+        x: buttonX,
+        y: layout.buttons.y + 24,
         label: "Back to Rest",
-        size: "tiny",
         onClick: () => this.scene.start(this.returnScene, {
           runId: this.runId,
           nodeId: this.nodeId,
@@ -78,44 +83,40 @@ export default class DiceInventoryScene extends Phaser.Scene {
       });
     }
 
-    this.statusText = this.add.text(480, 194, "Loading inventory...", {
+    this.statusText = this.add.text(layout.content.x + 410, layout.content.y + 68, "Loading inventory...", {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#dddddd",
       align: "center",
-      wordWrap: { width: 760 },
-    }).setOrigin(0.5);
+      wordWrap: { width: layout.content.width - 40 },
+    }).setOrigin(0, 0);
 
-    new UiButton({
+    new ActionButton({
       scene: this,
-      x: 560,
-      y: 510,
+      x: buttonX,
+      y: layout.buttons.y + 144,
       label: "Prev Die",
-      size: "tiny",
       onClick: () => this.selectAdjacentDie(-1),
     });
-    new UiButton({
+    new ActionButton({
       scene: this,
-      x: 620,
-      y: 510,
+      x: buttonX,
+      y: layout.buttons.y + 194,
       label: "Next Die",
-      size: "tiny",
       onClick: () => this.selectAdjacentDie(1),
     });
-    new UiButton({
+    new ActionButton({
       scene: this,
-      x: 710,
-      y: 510,
+      x: buttonX,
+      y: layout.buttons.y + 254,
       label: "Equip Selected",
-      size: "tiny",
       onClick: () => void this.equipSelected(),
     });
-    new UiButton({
+    new ActionButton({
       scene: this,
-      x: 850,
-      y: 510,
+      x: buttonX,
+      y: layout.buttons.y + 314,
       label: "Unequip Selected",
-      size: "tiny",
       onClick: () => void this.unequipSelected(),
     });
 
@@ -144,10 +145,11 @@ export default class DiceInventoryScene extends Phaser.Scene {
 
   private renderUnitPanel(): void {
     this.unitPanel?.destroy();
+    const layout = getPageLayout(this);
     this.unitPanel = new UnitListPanel({
       scene: this,
-      x: 20,
-      y: 220,
+      x: layout.content.x,
+      y: layout.content.y + 90,
       width: 380,
       height: 280,
       title: "UNITS",
@@ -196,11 +198,12 @@ export default class DiceInventoryScene extends Phaser.Scene {
     if (this.dice.length === 0) {
       lines.push("No dice available.");
     }
-    this.diceText = this.add.text(430, 220, lines.join("\n"), {
+    const layout = getPageLayout(this);
+    this.diceText = this.add.text(layout.content.x + 410, layout.content.y + 96, lines.join("\n"), {
       fontFamily: "monospace",
       fontSize: "12px",
       color: "#f5f5f5",
-      wordWrap: { width: 500 },
+      wordWrap: { width: Math.max(240, layout.content.width - 430) },
     });
   }
 
@@ -263,14 +266,18 @@ export default class DiceInventoryScene extends Phaser.Scene {
 
   private showToast(message: string, color = "#ffcccc"): void {
     this.toastText?.destroy();
-    this.toastText = this.add.text(480, 530, message, {
+    const layout = getPageLayout(this);
+    this.toastText = this.add.text(layout.content.x + 410, layout.content.y + layout.content.height - 24, message, {
       fontFamily: "Arial",
       fontSize: "12px",
       color,
-    }).setOrigin(0.5);
+    }).setOrigin(0, 0);
     this.time.delayedCall(2000, () => {
       this.toastText?.destroy();
       this.toastText = undefined;
     });
   }
 }
+
+
+

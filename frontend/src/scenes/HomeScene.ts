@@ -1,12 +1,11 @@
 import Phaser from "phaser";
-import { GAME_HEIGHT, GAME_WIDTH } from "../game/config";
 import { apiClient } from "../services/apiClient";
 import BackgroundImage from "../components/BackgroundImage";
-import UiButton from "../components/Button";
+import ActionButton from "../components/clickable-panel/ActionButton";
+import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import HudPanel from "../components/HudPanel";
 import RegionSelect from "../components/clickable-panel/RegionSelect";
-import WarbandManagement from "../components/clickable-panel/WarbandManagement";
-import DiceInventory from "../components/clickable-panel/DiceInventory";
+import { getPageLayout } from "../layout/pageLayout";
 
 export default class HomeScene extends Phaser.Scene {
 
@@ -17,15 +16,34 @@ export default class HomeScene extends Phaser.Scene {
   create(): void {
     new BackgroundImage(this, 'background_workbench');
     new HudPanel(this);
+    const layout = getPageLayout(this);
+    const buttonX = layout.buttons.x + 10;
 
-    new RegionSelect(this, {x: 300,y: 256});
-    new WarbandManagement(this,{x: 774, y: 145});
-    new DiceInventory(this, {x: 774, y: 245});
-    new UiButton({
-      small: true,
+    new RegionSelect(this, {
+      x: layout.content.x + 80,
+      y: layout.content.y + 32
+    });
+    new ActionButtonList({
       scene: this,
-      x: GAME_WIDTH - 166,
-      y: GAME_HEIGHT - 110,
+      x: buttonX,
+      y: layout.buttons.y + 24,
+      buttons: [
+        {
+          label: "Warband",
+          iconKey: "icon_warband",
+          targetSceneKey: "WarbandManagementScene",
+        },
+        {
+          label: "Inventory",
+          iconKey: "icon_inventory",
+          targetSceneKey: "DiceInventoryScene",
+        },
+      ],
+    });
+    new ActionButton({
+      scene: this,
+      x: buttonX,
+      y: layout.buttons.y + layout.buttons.height - 100,
       label: "Log out",
       onClick: async () => {
         try {
@@ -37,3 +55,5 @@ export default class HomeScene extends Phaser.Scene {
     });
   }
 }
+
+

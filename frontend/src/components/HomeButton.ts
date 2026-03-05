@@ -6,8 +6,8 @@ export default class HomeButton extends ClickablePanel {
             ...cfg,
             targetSceneKey: 'HomeScene',
             textureKey: 'icon_home',
-            width: 128,
-            height: 128
+            width: 100,
+            height: 100
         })
     }
 }

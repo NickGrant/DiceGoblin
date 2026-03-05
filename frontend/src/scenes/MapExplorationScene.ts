@@ -1,9 +1,11 @@
+import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import NodeList from "../components/encounter-map/NodeList";
 import { apiClient } from "../services/apiClient";
 import type { CurrentRunNode, RunResponse } from "../types/ApiResponse";
+import { getPageLayout } from "../layout/pageLayout";
 
 export default class MapExplorationScene extends Phaser.Scene {
   _run: RunResponse | null = null;
@@ -16,7 +18,11 @@ export default class MapExplorationScene extends Phaser.Scene {
   create(): void {
     new BackgroundImage(this, 'background_desk');
     new HudPanel(this);
-    new HomeButton(this, {x: 64, y: 52}).setScale(.5);
+    const layout = getPageLayout(this);
+    new HomeButton(this, {
+      x: layout.homeIcon.x,
+      y: layout.homeIcon.y,
+    });
     void this.loadRunState();
   }
 
@@ -39,7 +45,14 @@ export default class MapExplorationScene extends Phaser.Scene {
       }
 
       this._run = run;
+      const layout = getPageLayout(this);
       new NodeList(this, 0, 0, run.data.run, run.data.map.nodes, {
+        scatterRect: new Phaser.Geom.Rectangle(
+          layout.content.x + 36,
+          layout.content.y + 24,
+          Math.max(160, layout.content.width - 72),
+          Math.max(120, layout.content.height - 48)
+        ),
         onNodeClick: (node) => this.handleNodeClick(node),
       });
     } catch {
@@ -89,12 +102,16 @@ export default class MapExplorationScene extends Phaser.Scene {
     const add = (this as Phaser.Scene & { add?: { text?: Function } }).add;
     if (!add || typeof add.text !== "function") return;
 
-    add.text(this.cameras.main.centerX, 96, message, {
+    const layout = getPageLayout(this);
+    const fallback = add.text(layout.content.x, layout.content.y, message, {
       fontFamily: "monospace",
       fontSize: "16px",
       color: "#f5f5f5",
-      align: "center",
-      wordWrap: { width: Math.max(320, this.scale.width - 80) },
-    }).setOrigin(0.5, 0);
+      align: "left",
+      wordWrap: { width: Math.max(320, layout.content.width - 24) },
+    }).setOrigin(0, 0);
+    fallback.setPosition(layout.content.x, layout.content.y);
   }
 }
+
+

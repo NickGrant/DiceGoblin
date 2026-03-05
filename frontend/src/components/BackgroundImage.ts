@@ -7,8 +7,8 @@ export default class BackgroundImage {
   constructor(scene: Phaser.Scene, textureKey: string) {
     this.scene = scene;
 
-    // Centered for "cover" scaling
-    this.image = scene.add.image(0, 0, textureKey);
+    // Top-left anchored for predictable placement math
+    this.image = scene.add.image(0, 0, textureKey).setOrigin(0, 0);
     this.image.setDepth(-1000);
     this.image.setScrollFactor(0);
 
@@ -28,7 +28,7 @@ export default class BackgroundImage {
   }
 
   private resize(width: number, height: number): void {
-    this.image.setPosition(width / 2, height / 2);
+    this.image.setPosition(0, 0);
 
     const scale = Math.max(width / this.image.width, height / this.image.height);
     this.image.setScale(scale);

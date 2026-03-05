@@ -46,7 +46,7 @@ export default class Node extends Phaser.GameObjects.Container {
     const scale = .75;
 
     // Icon centered on container origin
-    this.icon = this.scene.add.image(0, 0, "__MISSING__").setOrigin(0.5, 0.5);
+    this.icon = this.scene.add.image(0, 0, "__MISSING__").setOrigin(0, 0);
     this.icon.setScale(scale);
 
     // Container hit area (64x64 by default)
@@ -114,3 +114,4 @@ export default class Node extends Phaser.GameObjects.Container {
     return "icon_encounter_combat";
   }
 }
+

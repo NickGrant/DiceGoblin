@@ -221,7 +221,7 @@ export default class UnitListPanel extends Phaser.GameObjects.Container {
 
       const bg = this.scene.add
         .rectangle(0, 0, rowW, this.rowH, baseFill, this.colors.rowAlpha)
-        .setOrigin(0, 0.5)
+        .setOrigin(0, 0)
         .setStrokeStyle(1, this.colors.panelStroke, this.colors.strokeAlpha);
 
       const label = this.scene.add
@@ -231,7 +231,7 @@ export default class UnitListPanel extends Phaser.GameObjects.Container {
           color: this.colors.textColor,
           ...(this.textStyle ?? {}),
         })
-        .setOrigin(0, 0.5);
+        .setOrigin(0, 0);
 
       const badge = this.scene.add
         .text(rowW - 8, 0, "", {
@@ -240,7 +240,7 @@ export default class UnitListPanel extends Phaser.GameObjects.Container {
           color: this.colors.badgeColor,
           ...(this.textStyle ?? {}),
         })
-        .setOrigin(1, 0.5);
+        .setOrigin(0, 0);
 
       const hit = this.scene.add.zone(rowW / 2, 0, rowW, this.rowH).setInteractive({ useHandCursor: true });
 
@@ -349,3 +349,4 @@ export default class UnitListPanel extends Phaser.GameObjects.Container {
     super.destroy(fromScene);
   }
 }
+

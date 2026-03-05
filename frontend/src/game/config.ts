@@ -10,8 +10,8 @@ import MapExplorationScene from "../scenes/MapExplorationScene";
 import RestManagementScene from "../scenes/RestManagementScene";
 import RunEndSummaryScene from "../scenes/RunEndSummaryScene";
 
-export const GAME_WIDTH = 960;
-export const GAME_HEIGHT = 540;
+export const GAME_WIDTH = 1280;
+export const GAME_HEIGHT = 720;
 
 export function createGameConfig(): Phaser.Types.Core.GameConfig {
   return {
@@ -19,6 +19,12 @@ export function createGameConfig(): Phaser.Types.Core.GameConfig {
     parent: "app",
     width: GAME_WIDTH,
     height: GAME_HEIGHT,
+    scale: {
+      mode: Phaser.Scale.FIT,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: GAME_WIDTH,
+      height: GAME_HEIGHT,
+    },
     backgroundColor: "#1A0E0A",
     pixelArt: false,
     physics: { default: "arcade" },

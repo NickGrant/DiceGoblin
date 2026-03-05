@@ -28,12 +28,16 @@ export default class ClickablePanelRegionColumn extends ClickablePanel {
 
     override addOverlay(): void {
         const _string = this.dataToPass?.biome === 'mountain' ? 'KOBOLDS' : 'FROGMEN'
+        const dims = this.dataToPass?.biome === 'mountain'
+          ? { width: 1013, height: 1420 }
+          : { width: 1016, height: 1382 };
         const _style = {
             ...TEXT_HEADER,
             fontSize: "128px",
             color: UI_COLORS.parchment
         }
-        const text = this.scene.add.text(0, 300, _string, _style).setOrigin(.5, .5);
+        const text = this.scene.add.text(0, 300, _string, _style).setOrigin(0, 0);
+        text.setPosition((dims.width - text.width) / 2, 300);
         this.add(text);
     }
 }

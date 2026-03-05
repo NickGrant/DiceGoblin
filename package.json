@@ -4,6 +4,7 @@
   "scripts": {
     "backlog:validate": "node scripts/validate-backlog.mjs",
     "bundle:check": "node scripts/check-frontend-bundle-size.mjs",
+    "db:schema": "npm --prefix frontend run db:schema",
     "docs:lint": "node scripts/lint-doc-headers.mjs",
     "test:backend": "composer --working-dir=backend test",
     "test:frontend": "npm --prefix frontend run test",

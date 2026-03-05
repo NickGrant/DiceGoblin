@@ -6,7 +6,8 @@ const FRONTEND_DIR = process.cwd();
 
 // Adjust paths relative to /frontend
 const MIGRATIONS_DIR = path.resolve(FRONTEND_DIR, "../backend/migrations");
-const OUT_FILE = path.resolve(FRONTEND_DIR, "../backend/migrations/schema_all.sql");
+const OUT_ALL_FILE = path.resolve(FRONTEND_DIR, "../backend/migrations/schema_all.sql");
+const OUT_UPDATE_FILE = path.resolve(FRONTEND_DIR, "../backend/migrations/schema_update.sql");
 
 // Match numbered migrations like 001_init.sql, 010-add.sql, etc.
 const MIGRATION_RE = /^(\d+).*\.sql$/i;
@@ -76,8 +77,11 @@ function build() {
     parts.push(`-- END MIGRATION: ${m.name}\n\n`);
   }
 
-  fs.writeFileSync(OUT_FILE, parts.join("").trimEnd() + "\n", "utf8");
-  console.log(`Wrote ${OUT_FILE}`);
+  const output = parts.join("").trimEnd() + "\n";
+  fs.writeFileSync(OUT_ALL_FILE, output, "utf8");
+  fs.writeFileSync(OUT_UPDATE_FILE, output, "utf8");
+  console.log(`Wrote ${OUT_ALL_FILE}`);
+  console.log(`Wrote ${OUT_UPDATE_FILE}`);
 }
 
 build();

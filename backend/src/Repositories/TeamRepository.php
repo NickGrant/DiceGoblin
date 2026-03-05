@@ -338,9 +338,12 @@ final class TeamRepository
   public function setTeamUnits(int $userId, int $teamId, array $unitInstanceIds): void
   {
     $unitInstanceIds = array_values(array_unique(array_map(static fn($v): int => (int)$v, $unitInstanceIds)));
+    $ownsTransaction = !$this->pdo->inTransaction();
 
     try {
-      $this->pdo->beginTransaction();
+      if ($ownsTransaction) {
+        $this->pdo->beginTransaction();
+      }
 
       $this->assertTeamOwnedByUserForUpdate($userId, $teamId);
 
@@ -367,9 +370,11 @@ final class TeamRepository
         $stmt->execute($params);
       }
 
-      $this->pdo->commit();
+      if ($ownsTransaction) {
+        $this->pdo->commit();
+      }
     } catch (Throwable $e) {
-      if ($this->pdo->inTransaction()) {
+      if ($ownsTransaction && $this->pdo->inTransaction()) {
         $this->pdo->rollBack();
       }
       throw $e;
@@ -391,9 +396,12 @@ final class TeamRepository
     if (!preg_match('/^[ABC][123]$/', $cell)) {
       throw new RuntimeException('Invalid formation cell.');
     }
+    $ownsTransaction = !$this->pdo->inTransaction();
 
     try {
-      $this->pdo->beginTransaction();
+      if ($ownsTransaction) {
+        $this->pdo->beginTransaction();
+      }
 
       $this->assertTeamOwnedByUserForUpdate($userId, $teamId);
 
@@ -418,9 +426,11 @@ final class TeamRepository
       ');
       $stmt->execute([$teamId, $cell, $unitInstanceId]);
 
-      $this->pdo->commit();
+      if ($ownsTransaction) {
+        $this->pdo->commit();
+      }
     } catch (Throwable $e) {
-      if ($this->pdo->inTransaction()) {
+      if ($ownsTransaction && $this->pdo->inTransaction()) {
         $this->pdo->rollBack();
       }
       throw $e;
@@ -432,17 +442,23 @@ final class TeamRepository
    */
   public function clearFormation(int $userId, int $teamId): void
   {
+    $ownsTransaction = !$this->pdo->inTransaction();
+
     try {
-      $this->pdo->beginTransaction();
+      if ($ownsTransaction) {
+        $this->pdo->beginTransaction();
+      }
 
       $this->assertTeamOwnedByUserForUpdate($userId, $teamId);
 
       $stmt = $this->pdo->prepare('DELETE FROM `team_formation` WHERE `team_id` = ?');
       $stmt->execute([$teamId]);
 
-      $this->pdo->commit();
+      if ($ownsTransaction) {
+        $this->pdo->commit();
+      }
     } catch (Throwable $e) {
-      if ($this->pdo->inTransaction()) {
+      if ($ownsTransaction && $this->pdo->inTransaction()) {
         $this->pdo->rollBack();
       }
       throw $e;

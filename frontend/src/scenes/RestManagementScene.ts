@@ -2,12 +2,13 @@ import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
-import UiButton from "../components/Button";
+import ActionButton from "../components/clickable-panel/ActionButton";
 import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
 import UnitListPanel, { type UnitListRowState } from "../components/UnitListPanel";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { TeamFormationCell, UnitRecord, RestRunUnitState } from "../types/ApiResponse";
+import { getPageLayout } from "../layout/pageLayout";
 
 type Cell = FormationCell;
 const CELLS: Cell[] = ["A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"];
@@ -36,12 +37,12 @@ export default class RestManagementScene extends Phaser.Scene {
 
   private grid?: FormationGrid3x3;
   private unitPanel?: UnitListPanel;
-  private applyButton?: UiButton;
-  private finalizeButton?: UiButton;
-  private setPrimaryButton?: UiButton;
-  private addSecondaryButton?: UiButton;
-  private clearPromotionButton?: UiButton;
-  private promoteButton?: UiButton;
+  private applyButton?: ActionButton;
+  private finalizeButton?: ActionButton;
+  private setPrimaryButton?: ActionButton;
+  private addSecondaryButton?: ActionButton;
+  private clearPromotionButton?: ActionButton;
+  private promoteButton?: ActionButton;
   private promotionStatusText?: Phaser.GameObjects.Text;
 
   constructor() {
@@ -56,13 +57,17 @@ export default class RestManagementScene extends Phaser.Scene {
   create(): void {
     new BackgroundImage(this, "background_workbench");
     new HudPanel(this);
-    new HomeButton(this, { x: 64, y: 52 }).setScale(0.5);
+    const layout = getPageLayout(this);
+    new HomeButton(this, {
+      x: layout.homeIcon.x,
+      y: layout.homeIcon.y,
+    });
 
-    this.loadingText = this.add.text(480, 70, "Preparing rest...", {
+    this.loadingText = this.add.text(layout.content.x + 16, layout.content.y - 56, "Preparing rest...", {
       fontFamily: "Arial",
       fontSize: "18px",
       color: "#ffffff",
-    }).setOrigin(0.5);
+    }).setOrigin(0, 0);
 
     if (!this.runId || !this.nodeId) {
       this.loadingText.setText("Rest unavailable: missing run context.");
@@ -103,16 +108,18 @@ export default class RestManagementScene extends Phaser.Scene {
   }
 
   private buildUi(): void {
-    this.add.text(480, 38, "REST MANAGEMENT", {
+    const layout = getPageLayout(this);
+    const actionButtonX = layout.buttons.x + 10;
+    this.add.text(layout.content.x + 16, layout.content.y - 56, "REST MANAGEMENT", {
       fontFamily: "Arial",
       fontSize: "20px",
       color: "#ffffff",
-    }).setOrigin(0.5);
+    }).setOrigin(0, 0);
 
     this.unitPanel = new UnitListPanel({
       scene: this,
-      x: 20,
-      y: 90,
+      x: layout.content.x,
+      y: layout.content.y,
       width: 400,
       height: 420,
       title: "RUN SQUAD",
@@ -123,8 +130,8 @@ export default class RestManagementScene extends Phaser.Scene {
 
     this.grid = new FormationGrid3x3({
       scene: this,
-      x: 540,
-      y: 140,
+      x: layout.content.x + 520,
+      y: layout.content.y + 50,
       formation: this.editFormation,
       selectedCell: null,
       getCellLabel: (cell, unitId) => this.getCellLabel(cell, unitId),
@@ -132,88 +139,81 @@ export default class RestManagementScene extends Phaser.Scene {
       onCellDoubleClick: (cell) => this.handleCellDoubleClick(cell),
     });
 
-    this.applyButton = new UiButton({
+    this.applyButton = new ActionButton({
       scene: this,
-      x: 720,
-      y: 92,
+      x: actionButtonX,
+      y: layout.buttons.y + 24,
       label: "Apply State",
-      size: "tiny",
       onClick: () => void this.applyRestState(),
     });
 
-    this.finalizeButton = new UiButton({
+    this.finalizeButton = new ActionButton({
       scene: this,
-      x: 860,
-      y: 92,
+      x: actionButtonX,
+      y: layout.buttons.y + 74,
       label: "Finalize Rest",
-      size: "tiny",
       onClick: () => void this.finalizeRest(),
     });
 
-    this.add.text(30, 525, "Tip: changes apply to run snapshot and saved squad together.", {
+    this.add.text(layout.content.x + 10, layout.content.y + 432, "Tip: changes apply to run snapshot and saved squad together.", {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#dddddd",
     });
-    this.add.text(30, 540, "Use promotion controls for max-level units while rest is open.", {
+    this.add.text(layout.content.x + 10, layout.content.y + 447, "Use promotion controls for max-level units while rest is open.", {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#bbbbbb",
     });
 
-    new UiButton({
+    new ActionButton({
       scene: this,
-      x: 560,
-      y: 92,
+      x: actionButtonX,
+      y: layout.buttons.y + 124,
       label: "Manage Dice",
-      size: "tiny",
       onClick: () => this.scene.start("DiceInventoryScene", {
         runId: this.runId,
         nodeId: this.nodeId,
         returnScene: "RestManagementScene",
       }),
     });
-    this.setPrimaryButton = new UiButton({
+    this.setPrimaryButton = new ActionButton({
       scene: this,
-      x: 560,
-      y: 520,
+      x: actionButtonX,
+      y: layout.buttons.y + 174,
       label: "Set Primary",
-      size: "tiny",
       enabled: true,
       onClick: () => this.setPromotionPrimaryFromSelection(),
     });
-    this.addSecondaryButton = new UiButton({
+    this.addSecondaryButton = new ActionButton({
       scene: this,
-      x: 700,
-      y: 520,
+      x: actionButtonX,
+      y: layout.buttons.y + 224,
       label: "Add Secondary",
-      size: "tiny",
       enabled: true,
       onClick: () => this.addPromotionSecondaryFromSelection(),
     });
-    this.clearPromotionButton = new UiButton({
+    this.clearPromotionButton = new ActionButton({
       scene: this,
-      x: 840,
-      y: 520,
+      x: actionButtonX,
+      y: layout.buttons.y + 274,
       label: "Clear Promo",
-      size: "tiny",
       enabled: true,
       onClick: () => this.clearPromotionSelection(),
     });
-    this.promoteButton = new UiButton({
+    this.promoteButton = new ActionButton({
       scene: this,
-      x: 840,
-      y: 550,
+      x: actionButtonX,
+      y: layout.buttons.y + 324,
       label: "Promote",
-      size: "tiny",
       enabled: false,
       onClick: () => void this.promoteSelectedUnit(),
     });
-    this.promotionStatusText = this.add.text(540, 545, "", {
+    this.promotionStatusText = this.add.text(layout.buttons.x + 8, layout.buttons.y + 350, "", {
       fontFamily: "Arial",
       fontSize: "11px",
       color: "#dddddd",
-      wordWrap: { width: 290 },
+      wordWrap: { width: layout.buttons.width - 16 },
     });
 
     this.refreshUi();
@@ -341,30 +341,31 @@ export default class RestManagementScene extends Phaser.Scene {
     ].join("\n");
 
     this.summaryText?.destroy();
-    this.summaryText = this.add.text(30, 555, summary, {
+    const layout = getPageLayout(this);
+    this.summaryText = this.add.text(layout.content.x + 10, layout.content.y + 460, summary, {
       fontFamily: "monospace",
       fontSize: "11px",
       color: "#f5f5f5",
-      wordWrap: { width: 900 },
+      wordWrap: { width: layout.content.width - 16 },
     });
 
-    new UiButton({
+    new ActionButton({
       scene: this,
-      x: 860,
-      y: 510,
+      x: layout.buttons.x + 10,
+      y: layout.buttons.y + 374,
       label: "Continue",
-      size: "tiny",
       onClick: () => this.scene.start("MapExplorationScene"),
     });
   }
 
   private showToast(message: string, color = "#ffcccc"): void {
     this.toastText?.destroy();
-    this.toastText = this.add.text(480, 520, message, {
+    const layout = getPageLayout(this);
+    this.toastText = this.add.text(layout.content.x + 16, layout.content.y + layout.content.height - 34, message, {
       fontFamily: "Arial",
       fontSize: "12px",
       color,
-    }).setOrigin(0.5);
+    }).setOrigin(0, 0);
     this.time.delayedCall(2500, () => {
       this.toastText?.destroy();
       this.toastText = undefined;
@@ -470,3 +471,6 @@ export default class RestManagementScene extends Phaser.Scene {
     return unit ? unit.name : `Unit ${unitId}`;
   }
 }
+
+
+

@@ -46,7 +46,6 @@ CREATE TABLE `unit_types` (
   `base_stats_json` JSON NOT NULL,
   `ability_set_json` JSON NOT NULL,
   `max_level` INT NOT NULL,
-  `max_equipped_dice` INT NOT NULL DEFAULT 2,
   `attack_per_level` INT NOT NULL,
   `defense_per_level` INT NOT NULL,
   `max_hp_per_level` INT NOT NULL,
@@ -257,7 +256,7 @@ CREATE TABLE `run_nodes` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `run_id` BIGINT UNSIGNED NOT NULL,
   `node_index` INT NOT NULL,
-  `node_type` ENUM('combat','loot','rest','boss','exit') NOT NULL,
+  `node_type` ENUM('combat','loot','rest','boss') NOT NULL,
   `status` ENUM('locked','available','cleared') NOT NULL DEFAULT 'locked',
   `encounter_template_id` BIGINT UNSIGNED NULL,
   `meta_json` JSON NULL,
@@ -1339,6 +1338,16 @@ VALUES
 ON DUPLICATE KEY UPDATE
   `slot_capacity` = VALUES(`slot_capacity`);
 -- END MIGRATION: 37_seed_dice_definitions.sql
+
+-- BEGIN MIGRATION: 38_run_nodes_add_exit_type.sql
+ALTER TABLE `run_nodes`
+  MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit') NOT NULL;
+-- END MIGRATION: 38_run_nodes_add_exit_type.sql
+
+-- BEGIN MIGRATION: 39_unit_types_add_max_equipped_dice.sql
+ALTER TABLE `unit_types`
+  ADD COLUMN `max_equipped_dice` INT NOT NULL DEFAULT 2 AFTER `max_level`;
+-- END MIGRATION: 39_unit_types_add_max_equipped_dice.sql
 
 -- BEGIN MIGRATION: 99_finalize.sql
 SET FOREIGN_KEY_CHECKS=1;

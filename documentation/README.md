@@ -36,6 +36,7 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
 15. `documentation/03-ux/05-unit-dice-details-acceptance.md`
 16. `documentation/03-ux/06-promotion-and-dice-management-sequencing.md`
 17. `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md`
+18. `documentation/03-ux/08-page-layout-zones.md`
 
 ## Task-Based Entry Points
 - If changing API routes, payloads, auth, or error contracts:
@@ -61,6 +62,7 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `documentation/03-ux/05-unit-dice-details-acceptance.md`
   - `documentation/03-ux/06-promotion-and-dice-management-sequencing.md`
   - `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md`
+  - `documentation/03-ux/08-page-layout-zones.md`
   - `documentation/03-ux/02-warband-management.md`
   - `documentation/03-ux/01-visual-design-guide.md`
 - If planning/triaging work:
