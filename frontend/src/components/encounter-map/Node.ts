@@ -4,7 +4,7 @@ import type { CurrentRunNode } from "../../types/ApiResponse";
 export type NodeClickHandler = (node: CurrentRunNode) => void;
 
 export type NodeConfig = {
-  size?: number; // default 32
+  size?: number; // display size in px
   onClick?: NodeClickHandler;
 };
 
@@ -25,7 +25,7 @@ export default class Node extends Phaser.GameObjects.Container {
 
     this.record = record;
     this.cfg = {
-      size: config.size ?? 24,
+      size: config.size ?? 84,
       onClick: config.onClick,
     };
 
@@ -41,20 +41,18 @@ export default class Node extends Phaser.GameObjects.Container {
   }
 
   private build(): void {
-    //const size = this.cfg.size;
-    const size = 128;
-    const scale = .75;
+    const size = this.cfg.size;
 
-    // Icon centered on container origin
-    this.icon = this.scene.add.image(0, 0, "__MISSING__").setOrigin(0, 0);
-    this.icon.setScale(scale);
+    // Icon centered on container origin for robust bounds/clamping math.
+    this.icon = this.scene.add.image(0, 0, "__MISSING__").setOrigin(0.5, 0.5);
+    this.icon.setDisplaySize(size, size);
 
-    // Container hit area (64x64 by default)
+    // Container hit area follows icon size.
     this.setSize(size, size);
-    this.setInteractive({useHandCursor: true});
+    this.setInteractive(new Phaser.Geom.Rectangle(-size / 2, -size / 2, size, size), Phaser.Geom.Rectangle.Contains);
 
-    this.on("pointerover", () => this.icon.setScale(scale + .05));
-    this.on("pointerout", () => this.icon.setScale(scale));
+    this.on("pointerover", () => this.icon.setScale(1.05));
+    this.on("pointerout", () => this.icon.setScale(1));
     this.on("pointerup", () => {
       if (this.record.status === "available") {
         this.cfg.onClick?.(this.record);
@@ -93,7 +91,10 @@ export default class Node extends Phaser.GameObjects.Container {
 
     this.disableInteractive();
     if (isAvailable) {
-      this.setInteractive({ useHandCursor: true });
+      this.setInteractive(new Phaser.Geom.Rectangle(-this.cfg.size / 2, -this.cfg.size / 2, this.cfg.size, this.cfg.size), Phaser.Geom.Rectangle.Contains);
+      if (this.input) {
+        this.input.cursor = "pointer";
+      }
     }
   }
 

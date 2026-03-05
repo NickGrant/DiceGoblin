@@ -128,10 +128,14 @@ Output:
 
 Allowed side-effects:
 - `GET /api/v1/runs/current`
-- node interactions eventually call `POST /api/v1/runs/:runId/nodes/:nodeId/resolve`
+- `POST /api/v1/runs/:runId/nodes/:nodeId/resolve`
+- `POST /api/v1/runs/:runId/abandon`
+- `POST /api/v1/runs/:runId/exit`
 
 Output:
-- currently remains in map flow; planned encounter scenes are not yet active.
+- transitions to `RestManagementScene` for rest nodes
+- transitions to `RunEndSummaryScene` for abandon/exit and terminal run-end states
+- renders directional unlock-path indicators from run graph edges
 
 ### 5.7 WarbandManagementScene
 
@@ -195,16 +199,15 @@ Planned extension:
 - `DiceInventoryScene -> HomeScene` (home button)
 - `MapExplorationScene -> HomeScene` (home button)
 - `MapExplorationScene -> RestManagementScene`
+- `MapExplorationScene -> RunEndSummaryScene` (abandon/exit and terminal state)
 - `RunEndSummaryScene -> HomeScene`
 
 Planned additions:
-- `MapExplorationScene -> RestManagementScene` (select rest node)
 - `RestManagementScene -> MapExplorationScene` (finalize or cancel rest)
-- `MapExplorationScene -> RunEndSummaryScene` (exit/completed, abandon, terminal defeat)
 - `RunEndSummaryScene -> HomeScene|RegionSelectScene` (continue)
 
 ## 7. Known Gaps
 
-- Encounter scene split (`Combat/Loot/Boss`) is planned but not wired in config.
+- Dedicated combat/loot/boss presentation scenes are planned but not wired in config.
 - No centralized frontend store for run/profile; state is scene-local.
 - Dedicated dice-details scene contract is planned but not yet implemented.

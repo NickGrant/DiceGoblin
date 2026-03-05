@@ -269,6 +269,32 @@ export type ExitRunData = {
 
 export type ExitRunResponse = ApiResponse<ExitRunData>;
 
+export type AbandonRunData = {
+  run_id: string;
+  status: string;
+};
+
+export type AbandonRunResponse = ApiResponse<AbandonRunData>;
+
+export type ResolveNodeData = {
+  node: {
+    id: string;
+    status: string;
+  };
+  battle: {
+    battle_id: string;
+    outcome: string;
+    rounds: number;
+    ticks: number;
+    status: string;
+  };
+  next: {
+    unlocked_node_ids: string[];
+  };
+};
+
+export type ResolveNodeResponse = ApiResponse<ResolveNodeData>;
+
 export type PromoteUnitData = {
   unit: { id: string; tier: number; level: number; xp: number };
   consumed_units: string[];

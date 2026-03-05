@@ -197,3 +197,17 @@ issues:
 description: |
   Complete missing frontend gameplay interfaces and flow wiring so players can execute full run lifecycle interactions with clear summaries and node affordances.
 Resolution: Implemented rest management and run-end frontend flows, embedded promotion and dice mutation actions with rest-context gating, and completed exit-node affordance updates plus API mutation test coverage; TypeScript validation passes while Vite-based test/build commands remain sandbox-blocked (`spawn EPERM`).
+---
+name: Run Map UX Completion
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Wire combat node click flow from map screen
+  - Add abandon run action and confirmation flow
+  - Prevent run-map nodes from rendering beyond visible bounds
+  - Show map edge indicators for node unlock paths
+description: |
+  Resolve major map-screen interaction and readability gaps that currently block
+  complete run navigation and player understanding.
+Resolution: Wired combat/loot/boss node resolution from map interactions, added explicit abandon-run action with confirmation, clamped node rendering within scene bounds, and rendered directional unlock-path indicators on the run graph.

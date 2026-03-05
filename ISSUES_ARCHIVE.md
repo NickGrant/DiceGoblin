@@ -1044,3 +1044,58 @@ updated: 2026-03-04
 description: |
   Keep Dice Inventory as a dedicated screen and integrate it with rest-management context so allowed dice actions are available during rest and blocked in active-run non-rest contexts.
 Resolution: Expanded `DiceInventoryScene` to load units/dice, support rest-context equip/unequip mutations, and enforce active-run gating when outside rest context, with return-path wiring back to rest management.
+---
+title: Wire combat node click flow from map screen
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Run Map UX Completion
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  Clicking a combat node currently showed "Node 'combat' is not wired yet". Implement combat-node transition/handling behavior from MapExplorationScene.
+Resolution: Map nodes now call `/api/v1/runs/:runId/nodes/:nodeId/resolve` for combat/loot/boss nodes, surface battle outcome feedback, and refresh progression state after resolution.
+
+---
+title: Add abandon run action and confirmation flow
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Run Map UX Completion
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  Run screen had no abandon-run control. Add an abandon action with clear confirmation and backend call/update behavior.
+Resolution: Added a map-side `Abandon Run` action with confirmation and backend integration to `POST /api/v1/runs/:runId/abandon`, routing successful responses to RunEndSummaryScene.
+
+---
+title: Prevent run-map nodes from rendering beyond visible bounds
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Run Map UX Completion
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  Some map nodes were drawn past the screen edge. Update node scatter/layout bounds and placement logic so all interactive nodes remain fully visible.
+Resolution: Node rendering now uses center-anchored icons with explicit display size and clamped placement bounds tied to node radius, preventing edge overflow.
+
+---
+title: Show map edge indicators for node unlock paths
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Run Map UX Completion
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  Add visual indicators on run map to show which nodes unlock other nodes (e.g., directional/path edges or equivalent relationship markers).
+Resolution: NodeList now renders directional edge lines with arrowheads between graph nodes, visually differentiating unlocked/available paths from locked progression.

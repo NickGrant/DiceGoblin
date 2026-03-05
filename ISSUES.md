@@ -250,10 +250,10 @@ description: |
 
 ```yaml
 title: Wire combat node click flow from map screen
-status: unstarted
+status: in-progress
 priority: high
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Run Map UX Completion
 blocked_by:
@@ -269,10 +269,10 @@ description: |
 
 ```yaml
 title: Add abandon run action and confirmation flow
-status: unstarted
+status: in-progress
 priority: high
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Run Map UX Completion
 blocked_by:
@@ -288,10 +288,10 @@ description: |
 
 ```yaml
 title: Prevent run-map nodes from rendering beyond visible bounds
-status: unstarted
+status: in-progress
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Run Map UX Completion
 blocked_by:
@@ -307,10 +307,10 @@ description: |
 
 ```yaml
 title: Show map edge indicators for node unlock paths
-status: unstarted
+status: in-progress
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Run Map UX Completion
 blocked_by:
@@ -364,4 +364,7 @@ description: |
 ```
 
 ### Documentation
+
+
+
 

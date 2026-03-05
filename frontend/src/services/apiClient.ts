@@ -1,9 +1,11 @@
 import {
+  type AbandonRunResponse,
   type CreateResponse,
   type DiceMutationResponse,
   type ExitRunResponse,
   type ProfileResponse,
   type PromoteUnitResponse,
+  type ResolveNodeResponse,
   type RestFinalizeResponse,
   type RestOpenResponse,
   type RestStateResponse,
@@ -106,6 +108,30 @@ export const apiClient = {
       method: "POST",
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify({}),
+    });
+  },
+
+  async abandonRun(runId: string): Promise<AbandonRunResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    return request<AbandonRunResponse>(`/api/v1/runs/${runId}/abandon`, {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({}),
+    });
+  },
+
+  async resolveRunNode(
+    runId: string,
+    nodeId: string,
+    payload?: { team_id?: string }
+  ): Promise<ResolveNodeResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    return request<ResolveNodeResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/resolve`, {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify(payload ?? {}),
     });
   },
 

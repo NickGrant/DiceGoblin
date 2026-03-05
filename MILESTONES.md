@@ -70,27 +70,6 @@ exit_criteria: |
 ```
 
 ```yaml
-name: Run Map UX Completion
-status: in-progress
-execution_window: open
-is_current: no
-issues:
-  - Wire combat node click flow from map screen
-  - Add abandon run action and confirmation flow
-  - Prevent run-map nodes from rendering beyond visible bounds
-  - Show map edge indicators for node unlock paths
-description: |
-  Resolve major map-screen interaction and readability gaps that currently block
-  complete run navigation and player understanding.
-entry_criteria: |
-  * Map exploration scene is stable and loading run state.
-exit_criteria: |
-  * Combat nodes are wired.
-  * Abandon run path exists.
-  * Nodes stay within bounds and unlock relationships are visible.
-```
-
-```yaml
 name: Frontend Readability and List Scaling
 status: in-progress
 execution_window: open
@@ -111,3 +90,4 @@ exit_criteria: |
   * List systems support scalable display behavior.
   * Dice and unit presentation are upgraded from plain rows to richer layouts.
 ```
+

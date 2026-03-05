@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { CurrentRunNode, CurrentRunRecord } from "../../types/ApiResponse";
+import type { CurrentRunEdge, CurrentRunNode, CurrentRunRecord } from "../../types/ApiResponse";
 import Node, { type NodeClickHandler } from "./Node";
 
 export type NodeListConfig = {
@@ -16,6 +16,7 @@ const DEFAULT_SCATTER_RECT_960x540 = new Phaser.Geom.Rectangle(150, 80, 650, 360
 export default class NodeList extends Phaser.GameObjects.Container {
   private run: CurrentRunRecord;
   private nodes: CurrentRunNode[];
+  private edges: CurrentRunEdge[];
   private cfg: Required<Omit<NodeListConfig, "onNodeClick">> & Pick<NodeListConfig, "onNodeClick">;
   private nodeViews: Node[] = [];
 
@@ -25,14 +26,16 @@ export default class NodeList extends Phaser.GameObjects.Container {
     y: number,
     run: CurrentRunRecord,
     nodes: CurrentRunNode[],
+    edges: CurrentRunEdge[],
     config: NodeListConfig = {}
   ) {
     super(scene, x, y);
 
     this.run = run;
     this.nodes = nodes;
+    this.edges = edges;
 
-    const nodeSize = config.nodeSize ?? 24;
+    const nodeSize = config.nodeSize ?? 84;
     this.cfg = {
       scatterRect: config.scatterRect ?? DEFAULT_SCATTER_RECT_960x540,
       nodeSize,
@@ -46,8 +49,9 @@ export default class NodeList extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
-  public setNodes(nodes: CurrentRunNode[]): void {
+  public setNodes(nodes: CurrentRunNode[], edges: CurrentRunEdge[]): void {
     this.nodes = nodes;
+    this.edges = edges;
     this.render();
   }
 
@@ -56,22 +60,22 @@ export default class NodeList extends Phaser.GameObjects.Container {
     this.nodeViews = [];
 
     if (this.cfg.debugDrawRect) {
-      const g = this.scene.add.graphics();
-      g.lineStyle(2, 0xff00ff, 0.8);
-      g.strokeRect(
+      const dbg = this.scene.add.graphics();
+      dbg.lineStyle(2, 0xff00ff, 0.8);
+      dbg.strokeRect(
         this.cfg.scatterRect.x,
         this.cfg.scatterRect.y,
         this.cfg.scatterRect.width,
         this.cfg.scatterRect.height
       );
-      this.add(g);
+      this.add(dbg);
     }
 
     const rng = makeSeededRng(this.run.seed);
     const rect = this.cfg.scatterRect;
     const half = this.cfg.nodeSize / 2;
-
     const contractPositions = this.buildContractGridPositions(rect, half);
+    const positionsById = new Map<string, { x: number; y: number }>();
 
     this.nodes.forEach((record, idx) => {
       const fallback = {
@@ -80,6 +84,8 @@ export default class NodeList extends Phaser.GameObjects.Container {
       };
 
       const pos = contractPositions[idx] ?? fallback;
+      positionsById.set(String(record.id), pos);
+
       const node = new Node(this.scene, pos.x, pos.y, record, {
         size: this.cfg.nodeSize,
         onClick: this.cfg.onNodeClick,
@@ -89,7 +95,53 @@ export default class NodeList extends Phaser.GameObjects.Container {
       this.add(node);
     });
 
+    this.renderEdges(positionsById);
     this.setSize(this.scene.scale.width, this.scene.scale.height);
+  }
+
+  private renderEdges(positionsById: Map<string, { x: number; y: number }>): void {
+    if (!this.edges.length) return;
+
+    const nodeById = new Map<string, CurrentRunNode>();
+    for (const n of this.nodes) nodeById.set(String(n.id), n);
+
+    const g = this.scene.add.graphics();
+    this.addAt(g, 0);
+
+    for (const edge of this.edges) {
+      const from = positionsById.get(String(edge.from_node_id));
+      const to = positionsById.get(String(edge.to_node_id));
+      if (!from || !to) continue;
+
+      const toNode = nodeById.get(String(edge.to_node_id));
+      const isUnlockedPath = !!toNode && (toNode.status === "available" || toNode.status === "cleared");
+      const color = isUnlockedPath ? 0xf2d489 : 0x5c5c5c;
+      const alpha = isUnlockedPath ? 0.7 : 0.35;
+      const width = isUnlockedPath ? 3 : 2;
+
+      g.lineStyle(width, color, alpha);
+      g.beginPath();
+      g.moveTo(from.x, from.y);
+      g.lineTo(to.x, to.y);
+      g.strokePath();
+
+      const angle = Phaser.Math.Angle.Between(from.x, from.y, to.x, to.y);
+      const arrowSize = 8;
+      const backX = to.x - Math.cos(angle) * 14;
+      const backY = to.y - Math.sin(angle) * 14;
+      const leftX = backX - Math.cos(angle - Math.PI / 2) * arrowSize * 0.5;
+      const leftY = backY - Math.sin(angle - Math.PI / 2) * arrowSize * 0.5;
+      const rightX = backX - Math.cos(angle + Math.PI / 2) * arrowSize * 0.5;
+      const rightY = backY - Math.sin(angle + Math.PI / 2) * arrowSize * 0.5;
+
+      g.fillStyle(color, alpha);
+      g.beginPath();
+      g.moveTo(to.x, to.y);
+      g.lineTo(leftX, leftY);
+      g.lineTo(rightX, rightY);
+      g.closePath();
+      g.fillPath();
+    }
   }
 
   private buildContractGridPositions(
@@ -133,24 +185,16 @@ export default class NodeList extends Phaser.GameObjects.Container {
 
 function extractNodeGrid(node: CurrentRunNode): { col: number; row: number } | null {
   const parse = (meta: unknown): { col: number; row: number } | null => {
-    if (!meta || typeof meta !== "object") {
-      return null;
-    }
-
+    if (!meta || typeof meta !== "object") return null;
     const col = Number((meta as Record<string, unknown>).col);
     const row = Number((meta as Record<string, unknown>).row);
-    if (!Number.isFinite(col) || !Number.isFinite(row)) {
-      return null;
-    }
-
+    if (!Number.isFinite(col) || !Number.isFinite(row)) return null;
     return { col, row };
   };
 
   if (node.meta && typeof node.meta === "object") {
     const fromMeta = parse(node.meta);
-    if (fromMeta) {
-      return fromMeta;
-    }
+    if (fromMeta) return fromMeta;
   }
 
   if (typeof node.meta_json === "string" && node.meta_json.trim() !== "") {
