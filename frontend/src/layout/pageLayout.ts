@@ -17,11 +17,12 @@ export type PageLayout = {
 };
 
 export const PAGE_LAYOUT = {
-  paddingPx: 16,
-  headerHeightPx: 100,
-  columnGapPx: 16,
-  buttonColumnWidthPx: 320,
-  topIconSizePx: 100,
+  paddingPx: 12,
+  topBandHeightPx: 218,
+  columnGapPx: 24,
+  buttonColumnWidthPx: 616,
+  cornerWidthPx: 300,
+  cornerHeightPx: 218,
 } as const;
 
 export function getPageLayout(scene: Phaser.Scene): PageLayout {
@@ -38,27 +39,27 @@ export function getPageLayoutForSize(width: number, height: number): PageLayout 
   };
 
   const header: LayoutRect = {
-    x: safe.x,
-    y: safe.y,
-    width: safe.width,
-    height: PAGE_LAYOUT.headerHeightPx,
+    x: 0,
+    y: 0,
+    width,
+    height: PAGE_LAYOUT.topBandHeightPx,
   };
 
-  const bodyY = header.y + header.height + PAGE_LAYOUT.columnGapPx;
-  const bodyHeight = Math.max(0, safe.y + safe.height - bodyY);
-  const buttonColumnWidth = Math.min(PAGE_LAYOUT.buttonColumnWidthPx, safe.width);
+  const bodyY = header.height;
+  const bodyHeight = Math.max(0, height - pad - bodyY);
+  const buttonColumnWidth = Math.min(PAGE_LAYOUT.buttonColumnWidthPx, Math.max(0, width - pad * 2));
 
   const buttons: LayoutRect = {
-    x: safe.x + safe.width - buttonColumnWidth,
+    x: width - pad - buttonColumnWidth,
     y: bodyY,
     width: buttonColumnWidth,
     height: bodyHeight,
   };
 
   const content: LayoutRect = {
-    x: safe.x,
+    x: pad,
     y: bodyY,
-    width: Math.max(0, safe.width - buttonColumnWidth - PAGE_LAYOUT.columnGapPx),
+    width: Math.max(0, width - pad * 2 - buttonColumnWidth - PAGE_LAYOUT.columnGapPx),
     height: bodyHeight,
   };
 
@@ -66,16 +67,16 @@ export function getPageLayoutForSize(width: number, height: number): PageLayout 
     padding: safe,
     header,
     homeIcon: {
-      x: header.x,
-      y: header.y,
-      width: PAGE_LAYOUT.topIconSizePx,
-      height: PAGE_LAYOUT.topIconSizePx,
+      x: 0,
+      y: 0,
+      width: PAGE_LAYOUT.cornerWidthPx,
+      height: PAGE_LAYOUT.cornerHeightPx,
     },
     hud: {
-      x: header.x + header.width - buttonColumnWidth,
-      y: header.y,
-      width: buttonColumnWidth,
-      height: header.height,
+      x: width - PAGE_LAYOUT.cornerWidthPx,
+      y: 0,
+      width: PAGE_LAYOUT.cornerWidthPx,
+      height: PAGE_LAYOUT.cornerHeightPx,
     },
     content,
     buttons,

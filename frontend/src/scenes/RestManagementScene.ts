@@ -5,6 +5,7 @@ import HudPanel from "../components/HudPanel";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
+import { drawUxDualZones } from "../components/UxZonePanels";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { TeamFormationCell, UnitRecord, RestRunUnitState } from "../types/ApiResponse";
@@ -55,9 +56,15 @@ export default class RestManagementScene extends Phaser.Scene {
   }
 
   create(): void {
-    new BackgroundImage(this, "background_workbench");
+    new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
+    drawUxDualZones(this, {
+      leftTitle: "Manage Warband",
+      rightTitle: "Rest Actions",
+      leftColor: 0x00f6ff,
+      rightColor: 0x00ff72,
+    });
     new HomeButton(this, {
       x: layout.homeIcon.x,
       y: layout.homeIcon.y,

@@ -12,7 +12,7 @@ export default class LandingScene extends Phaser.Scene {
   }
 
   create(): void {
-    new BackgroundImage(this, "background_concrete");
+    new BackgroundImage(this);
 
     const title = this.add.text(0, 120, "Let's get started", TEXT_HEADER).setOrigin(0, 0);
     title.setPosition(this.cameras.main.centerX - title.width / 2, 120);

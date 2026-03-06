@@ -5,6 +5,7 @@ import HudPanel from "../components/HudPanel";
 import UnitCardGrid from "../components/UnitCardGrid";
 import SquadListPanel from "../components/SquadListPanel";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
+import { drawUxDualZones } from "../components/UxZonePanels";
 import { apiClient } from "../services/apiClient";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
 import type { TeamRecord, UnitRecord } from "../types/ApiResponse";
@@ -25,9 +26,15 @@ export default class WarbandManagementScene extends Phaser.Scene {
   }
 
   create(): void {
-    new BackgroundImage(this, "background_workbench");
+    new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
+    drawUxDualZones(this, {
+      leftTitle: "Manage Warband",
+      rightTitle: "Squad Actions",
+      leftColor: 0x00f6ff,
+      rightColor: 0x00ff72,
+    });
     new HomeButton(this, {
       x: layout.homeIcon.x,
       y: layout.homeIcon.y,

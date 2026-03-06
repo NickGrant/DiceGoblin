@@ -4,6 +4,7 @@ import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import NodeList from "../components/encounter-map/NodeList";
+import { drawUxDualZones } from "../components/UxZonePanels";
 import { apiClient } from "../services/apiClient";
 import type { CurrentRunNode, RunResponse } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
@@ -20,9 +21,15 @@ export default class MapExplorationScene extends Phaser.Scene {
   }
 
   create(): void {
-    new BackgroundImage(this, "background_desk");
+    new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
+    drawUxDualZones(this, {
+      leftTitle: "Start a Run",
+      rightTitle: "Run Actions",
+      leftColor: 0x0600ff,
+      rightColor: 0x00ff72,
+    });
     new HomeButton(this, {
       x: layout.homeIcon.x,
       y: layout.homeIcon.y,

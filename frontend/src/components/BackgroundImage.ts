@@ -4,7 +4,7 @@ export default class BackgroundImage {
   private readonly scene: Phaser.Scene;
   private readonly image: Phaser.GameObjects.Image;
 
-  constructor(scene: Phaser.Scene, textureKey: string) {
+  constructor(scene: Phaser.Scene, textureKey = "texture_paper") {
     this.scene = scene;
 
     // Top-left anchored for predictable placement math

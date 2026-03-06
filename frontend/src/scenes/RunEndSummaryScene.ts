@@ -2,6 +2,7 @@ import BackgroundImage from "../components/BackgroundImage";
 import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import ActionButton from "../components/clickable-panel/ActionButton";
+import { drawUxDualZones } from "../components/UxZonePanels";
 import { getPageLayout } from "../layout/pageLayout";
 
 type RunEndSummaryData = {
@@ -24,9 +25,15 @@ export default class RunEndSummaryScene extends Phaser.Scene {
   }
 
   create(): void {
-    new BackgroundImage(this, "background_desk");
+    new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
+    drawUxDualZones(this, {
+      leftTitle: "Run Summary",
+      rightTitle: "Continue",
+      leftColor: 0x0600ff,
+      rightColor: 0x00ff72,
+    });
     new HomeButton(this, {
       x: layout.homeIcon.x,
       y: layout.homeIcon.y,

@@ -4,6 +4,7 @@ import HudPanel from "../components/HudPanel";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
+import { drawUxDualZones } from "../components/UxZonePanels";
 import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { UnitRecord } from "../types/ApiResponse";
@@ -32,9 +33,15 @@ export default class UnitDetailsScene extends Phaser.Scene {
   }
 
   create(): void {
-    new BackgroundImage(this, "background_workbench");
+    new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
+    drawUxDualZones(this, {
+      leftTitle: "Unit Details",
+      rightTitle: "Unit Actions",
+      leftColor: 0x00f6ff,
+      rightColor: 0x00ff72,
+    });
     new HomeButton(this, { x: layout.homeIcon.x, y: layout.homeIcon.y });
 
     this.loadingText = this.add.text(layout.content.x + 16, layout.content.y + 120, "Loading unit details...", {

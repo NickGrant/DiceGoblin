@@ -1,26 +1,18 @@
 import Phaser from "phaser";
-import { TEXT_BODY } from "../const/Text";
-import { RegistrySession } from "../state/RegistrySession";
 import { apiClient } from "../services/apiClient";
 import { getPageLayout } from "../layout/pageLayout";
 
 export default class HudPanel extends Phaser.GameObjects.Container {
-  private nameText: Phaser.GameObjects.Text;
-
+  private cornerBg: Phaser.GameObjects.Image;
   private energyIcon: Phaser.GameObjects.Image;
-  private energyText: Phaser.GameObjects.Text;
-  private bar: Phaser.GameObjects.Graphics;
+  private energyTooltip: Phaser.GameObjects.Text;
 
   private energyCurrent = 0;
   private energyMax = 1;
 
-  private bgW = 320;
-  private readonly panelHeight = 100;
-  private readonly iconSize = 75;
-  private readonly rightPad = 8;
-  private readonly rowHeight = 37.5;
-  private readonly rightAreaX = this.iconSize + this.rightPad;
-  private readonly rightAreaW = this.bgW - this.rightAreaX;
+  private readonly bgW = 300;
+  private readonly panelHeight = 218;
+  private readonly iconSize = 72;
 
   constructor(scene: Phaser.Scene) {
     super(scene, 0, 0);
@@ -28,31 +20,42 @@ export default class HudPanel extends Phaser.GameObjects.Container {
     this.width = this.bgW;
     this.height = this.panelHeight;
 
-    // Left icon column: fixed 100x100
-    this.energyIcon = scene.add.image(0, 0, "icon_energy").setDisplaySize(this.iconSize, this.iconSize).setOrigin(0, 0);
+    this.cornerBg = scene.add
+      .image(0, 0, "ux_corner_right")
+      .setOrigin(0, 0)
+      .setDisplaySize(this.bgW, this.panelHeight);
 
-    // Top row: player name
-    this.nameText = scene.add
-      .text(this.rightAreaX, 4, RegistrySession.displayName(scene.registry).toUpperCase(), {
-        ...TEXT_BODY,
-        wordWrap: { width: this.rightAreaW - 8 },
+    const iconMidX = 226;
+    const iconMidY = 72;
+
+    this.energyIcon = scene.add
+      .image(iconMidX, iconMidY, "icon_energy")
+      .setDisplaySize(this.iconSize, this.iconSize)
+      .setOrigin(0.5, 0.5)
+      .setInteractive();
+
+    this.energyTooltip = scene.add
+      .text(iconMidX - (this.iconSize / 2) - 10, iconMidY, "", {
+        fontFamily: "Arial",
+        fontSize: "14px",
+        color: "#ffffff",
+        backgroundColor: "rgba(0,0,0,0.7)",
+        padding: { left: 6, right: 6, top: 4, bottom: 4 },
       })
-      .setOrigin(0, 0);
+      .setOrigin(1, 0.5)
+      .setVisible(false);
 
-    // Bottom row: energy bars + current/max text
-    this.bar = scene.add.graphics();
+    // Name display intentionally disabled for HUD simplification.
+    // const nameText = scene.add.text(0, 0, RegistrySession.displayName(scene.registry).toUpperCase(), {});
 
-    this.energyText = scene.add
-      .text(this.rightAreaX, 12, "", {
-        fontFamily: `"Roboto Condensed", system-ui, -apple-system, Segoe UI, Roboto, Arial`,
-        fontSize: "18px",
-        color: "#e8e8ff",
-        stroke: "#1A0E0A",
-        strokeThickness: 3
-      }).setOrigin(0, 0);
+    this.energyIcon.on("pointerover", () => {
+      this.energyTooltip.setVisible(true);
+    });
+    this.energyIcon.on("pointerout", () => {
+      this.energyTooltip.setVisible(false);
+    });
 
-    // Assemble (order matters)
-    this.add([this.energyIcon, this.bar, this.energyText, this.nameText]);
+    this.add([this.cornerBg, this.energyIcon, this.energyTooltip]);
 
     // Add to scene + HUD behavior
     scene.add.existing(this);
@@ -67,7 +70,7 @@ export default class HudPanel extends Phaser.GameObjects.Container {
       if (!profile.ok) return;
       this.energyCurrent = profile.data.energy.current;
       this.energyMax = profile.data.energy.max;
-      this.redrawEnergy();
+      this.updateEnergyDisplay();
     });
   }
 
@@ -76,14 +79,12 @@ export default class HudPanel extends Phaser.GameObjects.Container {
     super.destroy(fromScene);
   }
 
-  setUserName(name: string): void {
-    this.nameText.setText(name.toUpperCase());
-  }
+  setUserName(_name: string): void {}
 
   setEnergy(current: number, max?: number): void {
     this.energyCurrent = Math.max(0, current);
     if (typeof max === "number") this.energyMax = Math.max(1, max);
-    this.redrawEnergy();
+    this.updateEnergyDisplay();
   }
 
   private reposition(): void {
@@ -93,38 +94,18 @@ export default class HudPanel extends Phaser.GameObjects.Container {
     this.setPosition(x, y);
   }
 
-  private redrawEnergy(): void {
-    this.energyText.setText(`${this.energyCurrent} / ${this.energyMax}`);
-    const barX = this.rightAreaX;
-    const barY = this.rowHeight + 4;
-    const barW = 150;
-    const barH = 22;
-    const segments = 10;
-    const gap = 4;
+  private updateEnergyDisplay(): void {
+    const pct = Phaser.Math.Clamp(this.energyCurrent / this.energyMax, 0, 1) * 100;
+    const iconKey = this.getEnergyIconKey(pct);
+    this.energyIcon.setTexture(iconKey);
+    this.energyTooltip.setText(`Energy: ${this.energyCurrent} / ${this.energyMax}`);
+  }
 
-    const pct = Phaser.Math.Clamp(this.energyCurrent / this.energyMax, 0, 1);
-    const filled = Math.round(pct * segments);
-    const segW = (barW - (segments - 1) * gap) / segments;
-
-    this.bar.clear();
-
-    // Outline + background
-    this.bar.lineStyle(2, 0x1a0e0a, 1);
-    this.bar.strokeRoundedRect(barX, barY, barW, barH, 3);
-
-    this.bar.fillStyle(0x2b1b14, 1);
-    this.bar.fillRoundedRect(barX, barY, barW, barH, 3);
-
-    // Segments
-    for (let i = 0; i < segments; i++) {
-      const sx = barX + i * (segW + gap);
-      const sy = barY;
-
-      this.bar.fillStyle(i < filled ? 0xd1a84a : 0x5e1f1b, 1);
-      this.bar.fillRoundedRect(sx, sy, segW, barH, 2);
-    }
-
-    this.energyText.setX(barX + barW + 8);
-    this.energyText.setY(barY + 1);
+  private getEnergyIconKey(pct: number): string {
+    if (pct >= 100) return "icon_energy";
+    if (pct >= 75) return "icon_energy_75";
+    if (pct >= 50) return "icon_energy_50";
+    if (pct >= 25) return "icon_energy_25";
+    return "icon_energy_0";
   }
 }

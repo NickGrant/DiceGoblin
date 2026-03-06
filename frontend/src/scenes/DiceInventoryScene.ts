@@ -4,6 +4,7 @@ import HudPanel from "../components/HudPanel";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import DiceCardGrid from "../components/DiceCardGrid";
+import { drawUxDualZones } from "../components/UxZonePanels";
 import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { DiceDetailsViewModel } from "../adapters/profileViewModels";
@@ -39,9 +40,15 @@ export default class DiceInventoryScene extends Phaser.Scene {
   }
 
   create(): void {
-    new BackgroundImage(this, 'background_workbench');
+    new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
+    drawUxDualZones(this, {
+      leftTitle: "Manage Units",
+      rightTitle: "Manage Inventory",
+      leftColor: 0x00f6ff,
+      rightColor: 0x00ff72,
+    });
     const buttonX = layout.buttons.x + 10;
     new HomeButton(this, {
       x: layout.homeIcon.x,

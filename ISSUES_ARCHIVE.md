@@ -1554,3 +1554,79 @@ description: |
   Replace it with an in-game dialog/panel confirmation flow to match scene UX.
 Resolution: Map exploration now uses an in-scene abandon confirmation overlay with Cancel/Abandon actions instead of browser `confirm`, matching the game UI flow.
 
+---
+title: Redo HUD overlay with energy-state icons and hover tooltip
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: unassigned
+created: 2026-03-06
+updated: 2026-03-06
+description: |
+  Replace the HUD energy presentation with icon-state + hover details:
+  - Use `icon_energy` only at 100% energy.
+  - Use `icon_energy_75` for 99%-75%.
+  - Use `icon_energy_50` for 74%-50%.
+  - Use `icon_energy_25` for 49%-25%.
+  - Use `icon_energy_0` below 25%.
+  - On hover over the icon, show tooltip text like `Energy: 50 / 50`.
+  - Comment out name display in HUD.
+  - Remove the current segmented energy bar style display.
+Resolution: Added energy-state icon swapping (100/75/50/25/0 thresholds), hover tooltip with exact energy values, removed segmented energy bar rendering, and disabled HUD name rendering while loading new icon assets from frontend public assets.
+
+---
+title: UI rebuild with new UX kit layout and scene-wide visual contract
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: unassigned
+created: 2026-03-06
+updated: 2026-03-06
+description: |
+  Enact a global UI redesign using assets from `raw-assets/new_ux` and the provided
+  home-scene layout guide image as the reference contract.
+
+  Requirements:
+  - Image source paths start at `raw-assets/new_ux`.
+  - Any image used must be copied into project runtime assets.
+  - Scene background for all scenes must use `textures/paper.png`.
+  - `#e00000` region maps to `ui_kit/corner_left`; home icon renders inside this circle on scenes where home is shown.
+  - `#ff0000` region maps to `ui_kit/corner_right`; energy icon renders inside this circle.
+  - `#0600ff` region is the Start a Run area.
+  - `#00f6ff` region is the Manage Warband area.
+  - `#00ff72` region is the Manage Inventory area.
+  - Each non-corner area must include:
+    - full-width title bar using `textures/red.png`,
+    - 12px margin,
+    - solid color content box matching that area color filling the remaining allotted space.
+  - Clicking anywhere in each non-corner area should navigate to the correct scene.
+
+  Scope includes updating relevant docs, shared layout primitives, and impacted scene implementations.
+Resolution: Delivered the first UX rebuild phase: new UX assets were imported, global paper background and corner treatments were wired, HomeScene was rebuilt to the reference layout, and layout/docs were updated to establish the new contract baseline.
+
+---
+title: Propagate new UX layout system across non-home scenes
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: unassigned
+created: 2026-03-06
+updated: 2026-03-06
+description: |
+  Apply the new UX contract beyond HomeScene so non-home scenes use the same visual structure:
+  - paper background texture,
+  - corner-left home control treatment,
+  - corner-right energy corner treatment,
+  - region framing with full-width red title bars, 12px margins, and solid content fills.
+
+  Scope includes scene-specific zone framing and layout cleanup for:
+  Region Select, Warband Management, Squad Details, Unit Details,
+  Dice Inventory, Map Exploration, Rest Management, and Run End Summary.
+Resolution: Propagated the new UX framing to non-home scenes using shared dual-zone red-title panels, global paper backgrounds, and updated corner/HUD treatments, while keeping existing scene logic and navigation intact.
+
