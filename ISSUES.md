@@ -461,10 +461,10 @@ description: |
 
 ```yaml
 title: Purge and refetch cached player energy after energy-consuming actions
-status: unstarted
+status: in-progress
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: unassigned
 blocked_by:
@@ -481,10 +481,10 @@ description: |
 
 ```yaml
 title: Show frontend blocked-feedback when run start is attempted in locked region
-status: unstarted
+status: in-progress
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Run Map UX Completion
 blocked_by:
@@ -500,10 +500,10 @@ description: |
 
 ```yaml
 title: Replace JavaScript confirm with in-game abandon-run confirmation dialog
-status: unstarted
+status: in-progress
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Run Map UX Completion
 blocked_by:

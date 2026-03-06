@@ -4,6 +4,7 @@ import ClickablePanel, { type ClickablePanelConfig } from "./ClickablePanel";
 
 export default class ClickablePanelRegionColumn extends ClickablePanel {
     biome: string;
+    private feedbackText?: Phaser.GameObjects.Text;
 
 
     constructor(stage: Phaser.Scene, cfg: ClickablePanelConfig, biome: "mountain" | "swamp") {
@@ -20,10 +21,18 @@ export default class ClickablePanelRegionColumn extends ClickablePanel {
     }
 
     override handleClick(scene: Phaser.Scene): void {
-        apiClient.createRun(this.biome).then(() => {
-            console.log('starting scene now guys', this.biome);
-            scene.scene.start(this.targetSceneKey, this.dataToPass);
-        })
+        void (async () => {
+            try {
+                const res = await apiClient.createRun(this.biome);
+                if (!res.ok) {
+                    this.showFeedback(scene, `Cannot start run: ${res.error.message}`, "#ffb3b3");
+                    return;
+                }
+                scene.scene.start(this.targetSceneKey, this.dataToPass);
+            } catch {
+                this.showFeedback(scene, "Cannot start run right now. Please retry.", "#ffb3b3");
+            }
+        })();
     }
 
     override addOverlay(): void {
@@ -39,5 +48,21 @@ export default class ClickablePanelRegionColumn extends ClickablePanel {
         const text = this.scene.add.text(0, 300, _string, _style).setOrigin(0, 0);
         text.setPosition((dims.width - text.width) / 2, 300);
         this.add(text);
+    }
+
+    private showFeedback(scene: Phaser.Scene, message: string, color: string): void {
+        this.feedbackText?.destroy();
+        this.feedbackText = scene.add.text(40, 40, message, {
+            fontFamily: "Arial",
+            fontSize: "18px",
+            color,
+            backgroundColor: "rgba(0,0,0,0.55)",
+            padding: { left: 8, right: 8, top: 6, bottom: 6 },
+            wordWrap: { width: Math.max(280, scene.scale.width - 80) },
+        }).setOrigin(0, 0).setDepth(1000);
+        scene.time.delayedCall(2400, () => {
+            this.feedbackText?.destroy();
+            this.feedbackText = undefined;
+        });
     }
 }

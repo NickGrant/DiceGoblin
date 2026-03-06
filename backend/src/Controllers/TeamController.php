@@ -298,6 +298,17 @@ final class TeamController
       return;
     }
 
+    if ($nameRaw !== null && !is_string($nameRaw)) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'validation_error',
+          'message' => 'name must be a string when provided.',
+        ],
+      ], 400);
+      return;
+    }
+
     if (!$this->requireCsrf($svc['csrfService'])) {
       return;
     }

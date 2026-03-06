@@ -86,11 +86,15 @@ export const apiClient = {
     const session = await apiClient.getSession();
     const csrf = (session as any)?.data?.csrf_token ?? "";
 
-    return request<CreateResponse>("/api/v1/runs", {
+    const res = await request<CreateResponse>("/api/v1/runs", {
       method: "POST",
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify({ region_id: biome === "mountain" ? 1 : 2 }),
     });
+    // Starting a run consumes energy; purge cache and eagerly refetch profile.
+    apiClient.invalidateProfileCache();
+    void apiClient.getProfile({ force: true }).catch(() => {});
+    return res;
   },
 
   /**

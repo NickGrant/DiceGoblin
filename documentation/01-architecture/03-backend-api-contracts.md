@@ -296,6 +296,7 @@ Errors:
 Request:
 ```json
 {
+  "name": "Renamed Squad (optional)",
   "unit_ids": ["2001", "2002", "2003"],
   "formation": [
     { "cell": "A1", "unit_instance_id": "2001" },
@@ -306,6 +307,17 @@ Request:
 ```
 Notes
 - Updates saved definition only; does not mutate existing run-scoped snapshots.
+- `name` is optional. When provided, it must be a string and follows backend team-name rules.
+- Name validation rules:
+  - cannot be empty after trim
+  - max length 64 characters
+
+Errors:
+- `400 validation_error` when:
+  - `unit_ids` or `formation` is missing
+  - `name` is present but not a string
+  - name fails repository validation (empty/too long)
+  - formation includes a unit id not present in `unit_ids`
 
 ---
 

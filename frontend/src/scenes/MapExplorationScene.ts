@@ -13,6 +13,7 @@ export default class MapExplorationScene extends Phaser.Scene {
   private fallbackText?: Phaser.GameObjects.Text;
   private toastText?: Phaser.GameObjects.Text;
   private nodeList?: NodeList;
+  private abandonDialog?: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: "MapExplorationScene" });
@@ -172,10 +173,79 @@ export default class MapExplorationScene extends Phaser.Scene {
 
   private async confirmAbandonRun(): Promise<void> {
     if (!this.runEnvelope?.ok || this.runEnvelope.data.run === null) return;
-    const confirm = window.confirm("Abandon this run? This will end the current run.");
-    if (!confirm) return;
+    if (this.abandonDialog) return;
+    this.showAbandonDialog();
+  }
 
+  private showAbandonDialog(): void {
+    const layout = getPageLayout(this);
+    const dialog = this.add.container(0, 0).setDepth(2000);
+
+    const dimmer = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x000000, 0.55).setOrigin(0, 0);
+    dimmer.setInteractive();
+
+    const panelW = 560;
+    const panelH = 220;
+    const panelX = layout.content.x + Math.max(0, (layout.content.width - panelW) / 2);
+    const panelY = layout.content.y + Math.max(0, (layout.content.height - panelH) / 2);
+    const panel = this.add
+      .rectangle(panelX, panelY, panelW, panelH, 0x171717, 0.95)
+      .setOrigin(0, 0)
+      .setStrokeStyle(2, 0xffffff, 0.3);
+
+    const title = this.add.text(panelX + 20, panelY + 18, "ABANDON RUN?", {
+      fontFamily: "Arial",
+      fontSize: "28px",
+      color: "#ffffff",
+    });
+
+    const body = this.add.text(panelX + 20, panelY + 70, "This will end the current run immediately.", {
+      fontFamily: "Arial",
+      fontSize: "16px",
+      color: "#dddddd",
+      wordWrap: { width: panelW - 40 },
+    });
+
+    const cancelBtn = this.add
+      .rectangle(panelX + 20, panelY + panelH - 58, 180, 40, 0x2a2a2a, 1)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0xffffff, 0.25)
+      .setInteractive({ useHandCursor: true });
+    const cancelTxt = this.add.text(cancelBtn.x + 90, cancelBtn.y + 20, "Cancel", {
+      fontFamily: "Arial",
+      fontSize: "18px",
+      color: "#f0f0f0",
+    }).setOrigin(0.5, 0.5);
+
+    const confirmBtn = this.add
+      .rectangle(panelX + panelW - 200, panelY + panelH - 58, 180, 40, 0x6f1f1f, 1)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0xffffff, 0.25)
+      .setInteractive({ useHandCursor: true });
+    const confirmTxt = this.add.text(confirmBtn.x + 90, confirmBtn.y + 20, "Abandon", {
+      fontFamily: "Arial",
+      fontSize: "18px",
+      color: "#fff0f0",
+    }).setOrigin(0.5, 0.5);
+
+    const close = (): void => {
+      this.abandonDialog?.destroy(true);
+      this.abandonDialog = undefined;
+    };
+
+    cancelBtn.on("pointerdown", () => close());
+    confirmBtn.on("pointerdown", () => {
+      close();
+      void this.executeAbandonRun();
+    });
+
+    dialog.add([dimmer, panel, title, body, cancelBtn, cancelTxt, confirmBtn, confirmTxt]);
+    this.abandonDialog = dialog;
+  }
+
+  private async executeAbandonRun(): Promise<void> {
     try {
+      if (!this.runEnvelope?.ok || this.runEnvelope.data.run === null) return;
       const runId = this.runEnvelope.data.run.run_id;
       const res = await apiClient.abandonRun(runId);
       if (!res.ok) {
