@@ -189,10 +189,10 @@ description: |
 
 ```yaml
 title: Replace management-screen unit lists with 3-column unit card layout
-status: unstarted
+status: in-progress
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Frontend Readability and List Scaling
 blocked_by:
@@ -211,10 +211,10 @@ description: |
 
 ```yaml
 title: Add optional pagination support for unit, dice, and squad lists
-status: unstarted
+status: in-progress
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Frontend Readability and List Scaling
 blocked_by:
@@ -230,10 +230,10 @@ description: |
 
 ```yaml
 title: Redesign preload scene spacing when hero logo is present
-status: unstarted
+status: in-progress
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Frontend Readability and List Scaling
 blocked_by:
@@ -326,10 +326,10 @@ description: |
 
 ```yaml
 title: Replace dice inventory text list with sprite-based dice grid
-status: unstarted
+status: in-progress
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Frontend Readability and List Scaling
 blocked_by:
@@ -346,10 +346,10 @@ description: |
 
 ```yaml
 title: Increase baseline non-button text size across frontend scenes
-status: unstarted
+status: in-progress
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Frontend Readability and List Scaling
 blocked_by:
@@ -361,6 +361,160 @@ updated: 2026-03-05
 description: |
   Most non-button text is currently too small. Perform a typography pass across
   scenes to raise baseline text sizes while preserving layout fit and hierarchy.
+```
+
+```yaml
+title: Reduce home button icon size to match energy icon
+status: unstarted
+priority: low
+execution: deferred
+ready: no
+owner: unassigned
+milestone: UAT HUD and Warband Micro-Polish
+blocked_by:
+  - none
+enables:
+  - Consistent HUD icon sizing and visual balance
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  UAT follow-up: resize the home button icon so it matches the energy icon size
+  in the HUD/header area for consistent visual hierarchy.
+```
+
+```yaml
+title: Swap HUD name and energy rows so player name appears above energy bar
+status: unstarted
+priority: low
+execution: deferred
+ready: no
+owner: unassigned
+milestone: UAT HUD and Warband Micro-Polish
+blocked_by:
+  - none
+enables:
+  - Improved HUD information hierarchy in UAT layout
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  UAT follow-up: in the overlay/HUD panel, swap the vertical order of player
+  name and energy so name is rendered on the top row and the energy bar/value
+  is rendered on the bottom row.
+```
+
+```yaml
+title: Remove "Current squads" label from Warband Management screen
+status: unstarted
+priority: low
+execution: deferred
+ready: no
+owner: unassigned
+milestone: UAT HUD and Warband Micro-Polish
+blocked_by:
+  - none
+enables:
+  - Cleaner Warband Management screen heading hierarchy
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  UAT follow-up: remove the "Current squads" text label from the Warband
+  Management screen.
+```
+
+```yaml
+title: Vertically center squad names and shift text 15px right in Warband Management list
+status: unstarted
+priority: low
+execution: deferred
+ready: no
+owner: unassigned
+milestone: UAT HUD and Warband Micro-Polish
+blocked_by:
+  - none
+enables:
+  - Improved squad row readability and alignment
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  UAT follow-up: adjust squad row label layout so squad names are vertically
+  centered within their background strips and moved 15px to the right.
+```
+
+```yaml
+title: Remove "select a unit..." helper text from Warband Management screen
+status: unstarted
+priority: low
+execution: deferred
+ready: no
+owner: unassigned
+milestone: UAT HUD and Warband Micro-Polish
+blocked_by:
+  - none
+enables:
+  - Reduced text clutter in Warband Management UI
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  UAT follow-up: remove the "select a unit..." helper text from the Warband
+  Management screen.
+```
+
+```yaml
+title: Purge and refetch cached player energy after energy-consuming actions
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: unassigned
+blocked_by:
+  - none
+enables:
+  - Accurate post-action HUD energy state without stale cache
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  After any action that consumes energy, invalidate the frontend-cached player
+  energy value and refetch current profile/session energy so UI state remains
+  authoritative.
+```
+
+```yaml
+title: Show frontend blocked-feedback when run start is attempted in locked region
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Run Map UX Completion
+blocked_by:
+  - none
+enables:
+  - Clear user-facing explanation for locked-region run start attempts
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  When a player attempts to start a run in a region that is not unlocked, show
+  explicit in-game frontend feedback indicating the attempt is blocked and why.
+```
+
+```yaml
+title: Replace JavaScript confirm with in-game abandon-run confirmation dialog
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+owner: unassigned
+milestone: Run Map UX Completion
+blocked_by:
+  - none
+enables:
+  - Consistent in-game UX for run-abandon confirmation flow
+created: 2026-03-05
+updated: 2026-03-05
+description: |
+  Abandon run currently relies on a browser JavaScript confirmation dialog.
+  Replace it with an in-game dialog/panel confirmation flow to match scene UX.
 ```
 
 ### Documentation

@@ -4,7 +4,7 @@ import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
-import UnitListPanel, { type UnitListRowState } from "../components/UnitListPanel";
+import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { TeamFormationCell, UnitRecord, RestRunUnitState } from "../types/ApiResponse";
@@ -36,7 +36,7 @@ export default class RestManagementScene extends Phaser.Scene {
   private promotionSecondaryIds: string[] = [];
 
   private grid?: FormationGrid3x3;
-  private unitPanel?: UnitListPanel;
+  private unitPanel?: UnitCardGrid;
   private applyButton?: ActionButton;
   private finalizeButton?: ActionButton;
   private setPrimaryButton?: ActionButton;
@@ -65,7 +65,7 @@ export default class RestManagementScene extends Phaser.Scene {
 
     this.loadingText = this.add.text(layout.content.x + 16, layout.content.y - 56, "Preparing rest...", {
       fontFamily: "Arial",
-      fontSize: "18px",
+      fontSize: "20px",
       color: "#ffffff",
     }).setOrigin(0, 0);
 
@@ -112,11 +112,11 @@ export default class RestManagementScene extends Phaser.Scene {
     const actionButtonX = layout.buttons.x + 10;
     this.add.text(layout.content.x + 16, layout.content.y - 56, "REST MANAGEMENT", {
       fontFamily: "Arial",
-      fontSize: "20px",
+      fontSize: "22px",
       color: "#ffffff",
     }).setOrigin(0, 0);
 
-    this.unitPanel = new UnitListPanel({
+    this.unitPanel = new UnitCardGrid({
       scene: this,
       x: layout.content.x,
       y: layout.content.y,
@@ -124,8 +124,9 @@ export default class RestManagementScene extends Phaser.Scene {
       height: 420,
       title: "RUN SQUAD",
       units: this.units,
-      getRowState: (u) => this.getUnitRowState(u),
+      getCardState: (u) => this.getUnitRowState(u),
       onUnitClick: (u) => this.handleUnitClick(u),
+      maxVisibleCards: 6,
     });
 
     this.grid = new FormationGrid3x3({
@@ -157,12 +158,12 @@ export default class RestManagementScene extends Phaser.Scene {
 
     this.add.text(layout.content.x + 10, layout.content.y + 432, "Tip: changes apply to run snapshot and saved squad together.", {
       fontFamily: "Arial",
-      fontSize: "11px",
+      fontSize: "13px",
       color: "#dddddd",
     });
     this.add.text(layout.content.x + 10, layout.content.y + 447, "Use promotion controls for max-level units while rest is open.", {
       fontFamily: "Arial",
-      fontSize: "11px",
+      fontSize: "13px",
       color: "#bbbbbb",
     });
 
@@ -211,7 +212,7 @@ export default class RestManagementScene extends Phaser.Scene {
     });
     this.promotionStatusText = this.add.text(layout.buttons.x + 8, layout.buttons.y + 350, "", {
       fontFamily: "Arial",
-      fontSize: "11px",
+      fontSize: "13px",
       color: "#dddddd",
       wordWrap: { width: layout.buttons.width - 16 },
     });
@@ -229,7 +230,7 @@ export default class RestManagementScene extends Phaser.Scene {
     return Object.values(this.editFormation).includes(unitId);
   }
 
-  private getUnitRowState(u: UnitRecord): UnitListRowState {
+  private getUnitRowState(u: UnitRecord): UnitCardState {
     const inTeam = this.editUnitIds.has(u.id);
     const placed = this.isUnitPlaced(u.id);
     const selected = this.selectedUnitId === u.id;
@@ -243,7 +244,7 @@ export default class RestManagementScene extends Phaser.Scene {
 
   private refreshUi(): void {
     this.grid?.setFormation(this.editFormation);
-    this.unitPanel?.refreshRowStates();
+    this.unitPanel?.refreshCardStates();
     this.applyButton?.setEnabled(!this.finalized);
     this.finalizeButton?.setEnabled(!this.finalized);
     this.promoteButton?.setEnabled(
@@ -344,7 +345,7 @@ export default class RestManagementScene extends Phaser.Scene {
     const layout = getPageLayout(this);
     this.summaryText = this.add.text(layout.content.x + 10, layout.content.y + 460, summary, {
       fontFamily: "monospace",
-      fontSize: "11px",
+      fontSize: "13px",
       color: "#f5f5f5",
       wordWrap: { width: layout.content.width - 16 },
     });
@@ -363,7 +364,7 @@ export default class RestManagementScene extends Phaser.Scene {
     const layout = getPageLayout(this);
     this.toastText = this.add.text(layout.content.x + 16, layout.content.y + layout.content.height - 34, message, {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: "13px",
       color,
     }).setOrigin(0, 0);
     this.time.delayedCall(2500, () => {

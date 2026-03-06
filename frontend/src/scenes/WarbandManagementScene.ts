@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
-import UnitListPanel from "../components/UnitListPanel";
+import UnitCardGrid from "../components/UnitCardGrid";
 import SquadListPanel from "../components/SquadListPanel";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import { apiClient } from "../services/apiClient";
@@ -17,7 +17,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
   private units: UnitRecord[] = [];
   private squads: TeamRecord[] = [];
 
-  private unitPanel?: UnitListPanel;
+  private unitPanel?: UnitCardGrid;
   private squadPanel?: SquadListPanel;
 
   constructor() {
@@ -36,7 +36,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
     this.loadingText = this.add
       .text(layout.content.x + 16, layout.content.y + 120, "Loading warband hub...", {
         fontFamily: "Arial",
-        fontSize: "18px",
+        fontSize: "20px",
         color: "#ffffff",
       })
       .setOrigin(0, 0);
@@ -70,17 +70,17 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
     this.add.text(leftX, layout.content.y - 34, "UNITS", {
       fontFamily: "Arial",
-      fontSize: "18px",
+      fontSize: "20px",
       color: "#ffffff",
     });
     this.add.text(rightX, layout.content.y - 34, "SQUADS", {
       fontFamily: "Arial",
-      fontSize: "18px",
+      fontSize: "20px",
       color: "#ffffff",
     });
 
     this.unitPanel?.destroy();
-    this.unitPanel = new UnitListPanel({
+    this.unitPanel = new UnitCardGrid({
       scene: this,
       x: leftX,
       y: layout.content.y,
@@ -89,7 +89,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
       title: "ALL UNITS",
       units: this.units,
       onUnitClick: (u) => this.scene.start("UnitDetailsScene", { unitId: u.id }),
-      maxVisibleRows: 12,
+      maxVisibleCards: 6,
     });
 
     this.squadPanel?.destroy();
@@ -117,12 +117,12 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
     this.add.text(leftX, layout.content.y + 470, "Select a unit to open Unit Details.", {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: "14px",
       color: "#dddddd",
     });
     this.add.text(leftX, layout.content.y + 490, "Unit Details handles stats/xp, promotion, and dice flow.", {
       fontFamily: "Arial",
-      fontSize: "11px",
+      fontSize: "13px",
       color: "#bbbbbb",
     });
   }
@@ -145,7 +145,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
     this.toastText = this.add
       .text(layout.content.x + 16, layout.content.y + layout.content.height - 24, message, {
         fontFamily: "Arial",
-        fontSize: "12px",
+        fontSize: "13px",
         color,
       })
       .setOrigin(0, 0);

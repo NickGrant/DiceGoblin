@@ -4,7 +4,7 @@ import HudPanel from "../components/HudPanel";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
-import UnitListPanel, { type UnitListRowState } from "../components/UnitListPanel";
+import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import { apiClient } from "../services/apiClient";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
 import type { TeamRecord, UnitRecord, TeamFormationCell } from "../types/ApiResponse";
@@ -33,7 +33,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
   private selectedUnitId: string | null = null;
 
   private grid?: FormationGrid3x3;
-  private unitPanel?: UnitListPanel;
+  private unitPanel?: UnitCardGrid;
   private clearButton?: ActionButton;
   private saveButton?: ActionButton;
   private activateButton?: ActionButton;
@@ -54,7 +54,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
 
     this.loadingText = this.add.text(layout.content.x + 16, layout.content.y + 120, "Loading squad details...", {
       fontFamily: "Arial",
-      fontSize: "18px",
+      fontSize: "20px",
       color: "#ffffff",
     });
     void this.loadData();
@@ -95,12 +95,12 @@ export default class SquadDetailsScene extends Phaser.Scene {
     this.titleText?.destroy();
     this.titleText = this.add.text(layout.content.x + 16, layout.content.y - 34, `SQUAD: ${this.squad.name}`, {
       fontFamily: "Arial",
-      fontSize: "18px",
+      fontSize: "20px",
       color: "#ffffff",
     });
 
     this.unitPanel?.destroy();
-    this.unitPanel = new UnitListPanel({
+    this.unitPanel = new UnitCardGrid({
       scene: this,
       x: layout.content.x,
       y: layout.content.y,
@@ -108,8 +108,9 @@ export default class SquadDetailsScene extends Phaser.Scene {
       height: 420,
       title: "UNITS",
       units: this.units,
-      getRowState: (u) => this.getUnitRowState(u),
+      getCardState: (u) => this.getUnitRowState(u),
       onUnitClick: (u) => this.handleUnitClick(u),
+      maxVisibleCards: 6,
     });
 
     this.grid?.destroy();
@@ -189,7 +190,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     return `${cell}\n${u ? u.name : `Unit ${unitId}`}`;
   }
 
-  private getUnitRowState(u: UnitRecord): UnitListRowState {
+  private getUnitRowState(u: UnitRecord): UnitCardState {
     const inTeam = this.editUnitIds.has(u.id);
     const placed = Object.values(this.editFormation).includes(u.id);
     const selected = this.selectedUnitId === u.id;
@@ -201,7 +202,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
   }
 
   private refreshDerivedUiState(): void {
-    this.unitPanel?.refreshRowStates();
+    this.unitPanel?.refreshCardStates();
     this.grid?.setFormation(this.editFormation);
     const cell = this.getSelectedCell();
     const occupied = cell ? this.editFormation[cell] !== null : false;
@@ -322,7 +323,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     const layout = getPageLayout(this);
     this.toastText = this.add.text(layout.content.x + 16, layout.content.y + layout.content.height - 24, message, {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: "13px",
       color,
     });
     this.time.delayedCall(2500, () => {

@@ -3,7 +3,7 @@ import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
-import UnitListPanel, { type UnitListRowState } from "../components/UnitListPanel";
+import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { UnitRecord } from "../types/ApiResponse";
@@ -20,7 +20,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
   private activeRun = false;
   private unit: UnitRecord | null = null;
   private selectedSecondaryIds: string[] = [];
-  private secondaryPanel?: UnitListPanel;
+  private secondaryPanel?: UnitCardGrid;
   private promoteButton?: ActionButton;
 
   constructor() {
@@ -39,7 +39,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
 
     this.loadingText = this.add.text(layout.content.x + 16, layout.content.y + 120, "Loading unit details...", {
       fontFamily: "Arial",
-      fontSize: "18px",
+      fontSize: "20px",
       color: "#ffffff",
     });
 
@@ -87,13 +87,13 @@ export default class UnitDetailsScene extends Phaser.Scene {
       ...(equipped.length > 0 ? equipped.map((d) => `- ${d.displayName}`) : ["- None"]),
     ].join("\n"), {
       fontFamily: "monospace",
-      fontSize: "14px",
+      fontSize: "15px",
       color: "#f5f5f5",
       wordWrap: { width: 420 },
     });
 
     this.secondaryPanel?.destroy();
-    this.secondaryPanel = new UnitListPanel({
+    this.secondaryPanel = new UnitCardGrid({
       scene: this,
       x: layout.content.x + 440,
       y: layout.content.y,
@@ -101,9 +101,9 @@ export default class UnitDetailsScene extends Phaser.Scene {
       height: 420,
       title: "PROMOTION SECONDARIES",
       units: this.units.filter((u) => u.id !== this.unitId),
-      maxVisibleRows: 12,
+      maxVisibleCards: 6,
       onUnitClick: (u) => this.toggleSecondary(u.id),
-      getRowState: (u) => this.secondaryRowState(u),
+      getCardState: (u) => this.secondaryRowState(u),
     });
 
     new ActionButtonList({
@@ -124,7 +124,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
           label: "Clear 2ndaries",
           onClick: () => {
             this.selectedSecondaryIds = [];
-            this.secondaryPanel?.refreshRowStates();
+            this.secondaryPanel?.refreshCardStates();
             this.refreshStatus();
           },
         },
@@ -144,14 +144,14 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.statusText?.destroy();
     this.statusText = this.add.text(layout.content.x + 440, layout.content.y + 432, "", {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: "13px",
       color: "#dddddd",
       wordWrap: { width: 460 },
     });
     this.refreshStatus();
   }
 
-  private secondaryRowState(unit: UnitRecord): UnitListRowState {
+  private secondaryRowState(unit: UnitRecord): UnitCardState {
     const selected = this.selectedSecondaryIds.includes(unit.id);
     const compatible = this.isPromotionCompatible(this.unitId, unit.id);
     return {
@@ -170,7 +170,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
       if (this.selectedSecondaryIds.length === 2) this.selectedSecondaryIds.shift();
       this.selectedSecondaryIds.push(unitId);
     }
-    this.secondaryPanel?.refreshRowStates();
+    this.secondaryPanel?.refreshCardStates();
     this.refreshStatus();
   }
 
@@ -223,7 +223,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     const layout = getPageLayout(this);
     this.toastText = this.add.text(layout.content.x + 16, layout.content.y + layout.content.height - 24, message, {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: "13px",
       color,
     });
     this.time.delayedCall(2500, () => {

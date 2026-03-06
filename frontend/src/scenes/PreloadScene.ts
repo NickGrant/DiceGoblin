@@ -10,37 +10,43 @@ export default class PreloadScene extends Phaser.Scene {
   preload(): void {
     const centerX = this.cameras.main.centerX;
     const centerY = this.cameras.main.centerY;
+    const screenW = this.scale.width;
+    const screenH = this.scale.height;
+    let textBaseY = centerY + 40;
 
     if (this.textures.exists("hero_logo")) {
       const logo = this.add.image(0, 0, "hero_logo").setOrigin(0, 0);
-      const targetW = Math.min(this.scale.width * 0.72, 680);
+      const targetW = Math.min(screenW * 0.62, 560);
       const scale = targetW / logo.width;
       logo.setScale(scale);
-      logo.setPosition((this.scale.width - logo.displayWidth) / 2, Math.max(32, centerY - 250));
+      const logoY = Math.max(20, centerY - 240);
+      logo.setPosition((screenW - logo.displayWidth) / 2, logoY);
+      textBaseY = Math.min(screenH - 170, logoY + logo.displayHeight + 36);
     }
 
     const title = this.add.text(0, 0, "Loading assets...", TEXT_HEADER).setOrigin(0, 0);
     const progressText = this.add.text(0, 0, "0%", TEXT_BODY).setOrigin(0, 0);
     const fileText = this.add.text(0, 0, "", TEXT_BODY).setOrigin(0, 0);
+    fileText.setStyle({ fontSize: "24px" });
 
-    title.setPosition(centerX - title.width / 2, centerY + 40);
-    progressText.setPosition(centerX - progressText.width / 2, centerY + 92);
-    fileText.setPosition(centerX - 240, centerY + 126);
+    title.setPosition(centerX - title.width / 2, textBaseY);
+    progressText.setPosition(centerX - progressText.width / 2, textBaseY + 58);
+    fileText.setPosition(centerX - Math.min(300, fileText.width / 2), textBaseY + 98);
 
     this.load.on(Phaser.Loader.Events.PROGRESS, (value: number) => {
       const pct = Math.round(value * 100);
       progressText.setText(`${pct}%`);
-      progressText.setPosition(centerX - progressText.width / 2, centerY + 92);
+      progressText.setPosition(centerX - progressText.width / 2, textBaseY + 58);
     });
 
     this.load.on(Phaser.Loader.Events.FILE_PROGRESS, (file: Phaser.Loader.File) => {
       fileText.setText(file.key ? `Loading: ${file.key}` : "Loading...");
-      fileText.setPosition(centerX - Math.min(320, fileText.width / 2), centerY + 126);
+      fileText.setPosition(centerX - Math.min(320, fileText.width / 2), textBaseY + 98);
     });
 
     this.load.on(Phaser.Loader.Events.COMPLETE, () => {
       title.setText("Loaded");
-      title.setPosition(centerX - title.width / 2, centerY + 40);
+      title.setPosition(centerX - title.width / 2, textBaseY);
       fileText.setText("");
     });
 

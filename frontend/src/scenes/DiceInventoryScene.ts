@@ -2,7 +2,8 @@ import BackgroundImage from "../components/BackgroundImage";
 import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import ActionButton from "../components/clickable-panel/ActionButton";
-import UnitListPanel, { type UnitListRowState } from "../components/UnitListPanel";
+import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
+import DiceCardGrid from "../components/DiceCardGrid";
 import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { DiceDetailsViewModel } from "../adapters/profileViewModels";
@@ -21,8 +22,8 @@ export default class DiceInventoryScene extends Phaser.Scene {
   private dice: DiceDetailsViewModel[] = [];
   private selectedUnitId: string | null = null;
   private selectedDiceId: string | null = null;
-  private unitPanel?: UnitListPanel;
-  private diceText?: Phaser.GameObjects.Text;
+  private unitPanel?: UnitCardGrid;
+  private diceGrid?: DiceCardGrid;
   private statusText?: Phaser.GameObjects.Text;
   private toastText?: Phaser.GameObjects.Text;
 
@@ -50,7 +51,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
     const inRestContext = this.runId !== "" && this.nodeId !== "";
     this.add.text(layout.content.x + 410, layout.content.y - 34, "DICE INVENTORY", {
       fontFamily: "Arial",
-      fontSize: "20px",
+      fontSize: "22px",
       color: "#ffffff",
     }).setOrigin(0, 0);
 
@@ -58,7 +59,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
       ? `Rest context active (run ${this.runId}, node ${this.nodeId}).`
       : "Out-of-run context.", {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: "14px",
       color: "#dddddd",
     }).setOrigin(0, 0);
 
@@ -66,7 +67,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
       ? "Dice changes from this screen should be validated against rest-context backend rules."
       : "Dice changes are available here between runs.", {
       fontFamily: "Arial",
-      fontSize: "11px",
+      fontSize: "13px",
       color: "#bbbbbb",
       align: "center",
       wordWrap: { width: layout.content.width - 40 },
@@ -88,7 +89,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
 
     this.statusText = this.add.text(layout.content.x + 410, layout.content.y + 68, "Loading inventory...", {
       fontFamily: "Arial",
-      fontSize: "11px",
+      fontSize: "13px",
       color: "#dddddd",
       align: "center",
       wordWrap: { width: layout.content.width - 40 },
@@ -97,28 +98,14 @@ export default class DiceInventoryScene extends Phaser.Scene {
     new ActionButton({
       scene: this,
       x: buttonX,
-      y: layout.buttons.y + 144,
-      label: "Prev Die",
-      onClick: () => this.selectAdjacentDie(-1),
-    });
-    new ActionButton({
-      scene: this,
-      x: buttonX,
-      y: layout.buttons.y + 194,
-      label: "Next Die",
-      onClick: () => this.selectAdjacentDie(1),
-    });
-    new ActionButton({
-      scene: this,
-      x: buttonX,
-      y: layout.buttons.y + 254,
+      y: layout.buttons.y + 244,
       label: "Equip Selected",
       onClick: () => void this.equipSelected(),
     });
     new ActionButton({
       scene: this,
       x: buttonX,
-      y: layout.buttons.y + 314,
+      y: layout.buttons.y + 304,
       label: "Unequip Selected",
       onClick: () => void this.unequipSelected(),
     });
@@ -140,7 +127,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
       this.selectedUnitId = preferred?.id ?? this.units[0]?.id ?? null;
     }
     this.renderUnitPanel();
-    this.renderDiceList();
+    this.renderDiceGrid();
     const modeLabel = this.mutationAllowed
       ? "Dice actions are enabled."
       : "Active run detected outside rest context: dice actions disabled.";
@@ -150,25 +137,25 @@ export default class DiceInventoryScene extends Phaser.Scene {
   private renderUnitPanel(): void {
     this.unitPanel?.destroy();
     const layout = getPageLayout(this);
-    this.unitPanel = new UnitListPanel({
+    this.unitPanel = new UnitCardGrid({
       scene: this,
       x: layout.content.x,
       y: layout.content.y + 90,
       width: 380,
-      height: 280,
+      height: 350,
       title: "UNITS",
       units: this.units,
       onUnitClick: (u) => {
         this.selectedUnitId = u.id;
-        this.unitPanel?.refreshRowStates();
-        this.renderDiceList();
+        this.unitPanel?.refreshCardStates();
+        this.renderDiceGrid();
       },
-      getRowState: (u) => this.getUnitRowState(u),
-      maxVisibleRows: 9,
+      getCardState: (u) => this.getUnitRowState(u),
+      maxVisibleCards: 6,
     });
   }
 
-  private getUnitRowState(unit: UnitRecord): UnitListRowState {
+  private getUnitRowState(unit: UnitRecord): UnitCardState {
     return {
       highlighted: unit.id === this.selectedUnitId,
       disabled: !this.mutationAllowed,
@@ -176,13 +163,8 @@ export default class DiceInventoryScene extends Phaser.Scene {
     };
   }
 
-  private renderDiceList(): void {
-    this.diceText?.destroy();
-    const lines = [
-      "DICE",
-      "Use Prev/Next Die to choose a die.",
-      "",
-    ];
+  private renderDiceGrid(): void {
+    const layout = getPageLayout(this);
     if (this.selectedDiceId === null && this.dice.length > 0) {
       this.selectedDiceId = this.dice[0]?.id ?? null;
     }
@@ -192,32 +174,22 @@ export default class DiceInventoryScene extends Phaser.Scene {
       const selectedDie = this.dice[safeSelected];
       this.selectedDiceId = selectedDie ? selectedDie.id : null;
     }
-    for (let i = 0; i < Math.min(this.dice.length, 12); i += 1) {
-      const die = this.dice[i];
-      if (!die) continue;
-      const marker = die.id === this.selectedDiceId ? ">" : " ";
-      const equipLabel = die.equipped ? ` [Equipped: ${die.equipped.unitName}]` : "";
-      lines.push(`${marker} ${i + 1}. ${die.displayName}${equipLabel}`);
-    }
-    if (this.dice.length === 0) {
-      lines.push("No dice available.");
-    }
-    const layout = getPageLayout(this);
-    this.diceText = this.add.text(layout.content.x + 410, layout.content.y + 96, lines.join("\n"), {
-      fontFamily: "monospace",
-      fontSize: "12px",
-      color: "#f5f5f5",
-      wordWrap: { width: Math.max(240, layout.content.width - 430) },
+    this.diceGrid?.destroy();
+    this.diceGrid = new DiceCardGrid({
+      scene: this,
+      x: layout.content.x + 410,
+      y: layout.content.y + 96,
+      width: Math.max(260, layout.content.width - 430),
+      height: 344,
+      title: "DICE",
+      dice: this.dice,
+      selectedDiceId: this.selectedDiceId,
+      onDiceClick: (die) => {
+        this.selectedDiceId = die.id;
+        this.diceGrid?.setSelectedDiceId(die.id);
+      },
+      maxVisibleCards: 6,
     });
-  }
-
-  private selectAdjacentDie(delta: number): void {
-    if (this.dice.length === 0) return;
-    const currentIndex = Math.max(0, this.dice.findIndex((d) => d.id === this.selectedDiceId));
-    const nextIndex = (currentIndex + delta + this.dice.length) % this.dice.length;
-    const die = this.dice[nextIndex];
-    this.selectedDiceId = die ? die.id : this.selectedDiceId;
-    this.renderDiceList();
   }
 
   private async equipSelected(): Promise<void> {
@@ -273,7 +245,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
     const layout = getPageLayout(this);
     this.toastText = this.add.text(layout.content.x + 410, layout.content.y + layout.content.height - 24, message, {
       fontFamily: "Arial",
-      fontSize: "12px",
+      fontSize: "13px",
       color,
     }).setOrigin(0, 0);
     this.time.delayedCall(2000, () => {
