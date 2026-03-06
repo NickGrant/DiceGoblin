@@ -7,6 +7,8 @@
     { "type": "image", "key": "texture_red", "url": "assets/new_ux/textures/red.png" },
     { "type": "image", "key": "ux_corner_left", "url": "assets/new_ux/ui_kit/corner_left.png" },
     { "type": "image", "key": "ux_corner_right", "url": "assets/new_ux/ui_kit/corner_right.png" },
+    { "type": "image", "key": "ux_start_run", "url": "assets/new_ux/ui_kit/start-run.png" },
+    { "type": "image", "key": "ux_continue_run", "url": "assets/new_ux/ui_kit/continue-run.png" },
 
     { "type": "image", "key": "button_background", "url": "assets/ui/button/placard_large.png" },
     { "type": "image", "key": "button_glow", "url": "assets/ui/button/highlight_glow_rect.png" },

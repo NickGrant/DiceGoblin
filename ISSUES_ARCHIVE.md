@@ -1630,3 +1630,36 @@ description: |
   Dice Inventory, Map Exploration, Rest Management, and Run End Summary.
 Resolution: Propagated the new UX framing to non-home scenes using shared dual-zone red-title panels, global paper backgrounds, and updated corner/HUD treatments, while keeping existing scene logic and navigation intact.
 
+---
+title: Replace Home Start Run content block with start-run image
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: unassigned
+created: 2026-03-06
+updated: 2026-03-06
+description: |
+  HomeScene Start Run panel needs targeted UAT update:
+  - Rename section title from `Start a Run` to `Start Run`.
+  - Replace Start Run content fill with `raw-assets/new_ux/ux_kit/start-run.png`
+    copied into runtime assets, fully replacing the solid color square for that area.
+Resolution: Copied start-run.png into frontend runtime assets, added ux_start_run asset key, renamed the section title to Start Run, and updated HomeScene so the Start Run content area uses the image instead of a solid fill.
+
+---
+title: Extract HomeScene renderNavArea into reusable component
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: unassigned
+created: 2026-03-06
+updated: 2026-03-06
+description: |
+  Move HomeScene `renderNavArea` logic into a dedicated reusable UI component/object.
+  Preserve current behavior: title bar, 12px margin body area, optional image body,
+  full-area click navigation, and support for both image and solid-color content.
+Resolution: Extracted HomeScene area rendering into reusable HomeNavArea component while preserving title bar, margin/body logic, optional image body support, and full-area click navigation behavior.
+

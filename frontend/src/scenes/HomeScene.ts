@@ -1,12 +1,12 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
+import HomeNavArea from "../components/HomeNavArea";
 import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
+import { apiClient } from "../services/apiClient";
 import { getPageLayout, type LayoutRect } from "../layout/pageLayout";
 
-const AREA_MARGIN = 12;
 const AREA_GAP = 12;
-const TITLE_HEIGHT = 56;
 
 export default class HomeScene extends Phaser.Scene {
   constructor() {
@@ -46,44 +46,39 @@ export default class HomeScene extends Phaser.Scene {
       height: Math.max(0, layout.buttons.height - rightTopHeight - AREA_GAP),
     };
 
-    this.renderNavArea(leftArea, "Start a Run", 0x0600ff, "RegionSelectScene");
-    this.renderNavArea(rightTopArea, "Manage Warband", 0x00f6ff, "WarbandManagementScene");
-    this.renderNavArea(rightBottomArea, "Manage Inventory", 0x00ff72, "DiceInventoryScene");
+    void this.renderDynamicRunArea(leftArea);
+    new HomeNavArea({
+      scene: this,
+      area: rightTopArea,
+      title: "Manage Warband",
+      bodyColor: 0x00f6ff,
+      targetSceneKey: "WarbandManagementScene",
+    });
+    new HomeNavArea({
+      scene: this,
+      area: rightBottomArea,
+      title: "Manage Inventory",
+      bodyColor: 0x00ff72,
+      targetSceneKey: "DiceInventoryScene",
+    });
   }
 
-  private renderNavArea(area: LayoutRect, title: string, bodyColor: number, targetSceneKey: string): void {
-    const zone = this.add.zone(area.x + area.width / 2, area.y + area.height / 2, area.width, area.height)
-      .setInteractive({ useHandCursor: true });
-    zone.on("pointerdown", () => this.scene.start(targetSceneKey));
+  private async renderDynamicRunArea(leftArea: LayoutRect): Promise<void> {
+    let hasActiveRun = false;
+    try {
+      const profile = await apiClient.getProfile({ allowStaleOnError: true });
+      hasActiveRun = profile.ok && profile.data.active_run !== null;
+    } catch {
+      hasActiveRun = false;
+    }
 
-    const titleBg = this.add.image(area.x, area.y, "texture_red").setOrigin(0, 0);
-    titleBg.setDisplaySize(area.width, TITLE_HEIGHT);
-    titleBg.setInteractive({ useHandCursor: true });
-    titleBg.on("pointerdown", () => this.scene.start(targetSceneKey));
-
-    this.add.text(area.x + AREA_MARGIN, area.y + 12, title.toUpperCase(), {
-      fontFamily: "Arial",
-      fontSize: "30px",
-      color: "#ffffff",
-      stroke: "#1a1a1a",
-      strokeThickness: 3,
+    new HomeNavArea({
+      scene: this,
+      area: leftArea,
+      title: hasActiveRun ? "Continue Run" : "Start Run",
+      bodyColor: 0x0600ff,
+      targetSceneKey: hasActiveRun ? "MapExplorationScene" : "RegionSelectScene",
+      bodyImageKey: hasActiveRun ? "ux_continue_run" : "ux_start_run",
     });
-
-    const bodyX = area.x + AREA_MARGIN;
-    const bodyY = area.y + TITLE_HEIGHT + AREA_MARGIN;
-    const bodyW = Math.max(0, area.width - AREA_MARGIN * 2);
-    const bodyH = Math.max(0, area.height - TITLE_HEIGHT - AREA_MARGIN * 2);
-
-    const body = this.add.rectangle(bodyX, bodyY, bodyW, bodyH, bodyColor, 1).setOrigin(0, 0);
-    body.setInteractive({ useHandCursor: true });
-    body.on("pointerdown", () => this.scene.start(targetSceneKey));
-
-    this.add.text(bodyX + 12, bodyY + 12, `Open ${title}`, {
-      fontFamily: "Arial",
-      fontSize: "18px",
-      color: "#0c0c0c",
-    });
-
-    this.children.bringToTop(zone);
   }
 }
