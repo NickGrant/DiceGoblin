@@ -97,7 +97,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
       scene: this,
       x: rightX,
       y: layout.content.y,
-      title: "CURRENT SQUADS",
+      title: "",
       squads: this.squads,
       onSquadClick: (squad) => this.scene.start("SquadDetailsScene", { squadId: squad.id }),
     });
@@ -115,11 +115,6 @@ export default class WarbandManagementScene extends Phaser.Scene {
       ],
     });
 
-    this.add.text(leftX, layout.content.y + 470, "Select a unit to open Unit Details.", {
-      fontFamily: "Arial",
-      fontSize: "14px",
-      color: "#dddddd",
-    });
     this.add.text(leftX, layout.content.y + 490, "Unit Details handles stats/xp, promotion, and dice flow.", {
       fontFamily: "Arial",
       fontSize: "13px",

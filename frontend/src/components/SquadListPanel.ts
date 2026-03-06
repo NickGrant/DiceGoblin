@@ -14,6 +14,7 @@ type SquadListPanelConfig = {
 
 export default class SquadListPanel extends Phaser.GameObjects.Container {
   private readonly cfg: SquadListPanelConfig;
+  private readonly hasTitle: boolean;
   private readonly pageSize: number;
   private pageIndex = 0;
   private buttonList?: MetalActionButtonList;
@@ -24,16 +25,19 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
   constructor(cfg: SquadListPanelConfig) {
     super(cfg.scene, cfg.x, cfg.y);
     this.cfg = cfg;
+    this.hasTitle = (cfg.title ?? "").trim().length > 0;
     this.pageSize = Math.max(1, cfg.maxVisibleSquads ?? 5);
 
-    const title = cfg.scene
-      .add.text(0, 0, cfg.title ?? "CURRENT SQUADS", {
-        fontFamily: "Arial",
-        fontSize: "16px",
-        color: "#ffffff",
-      })
-      .setOrigin(0, 0);
-    this.add(title);
+    if (this.hasTitle) {
+      const title = cfg.scene
+        .add.text(0, 0, cfg.title ?? "", {
+          fontFamily: "Arial",
+          fontSize: "16px",
+          color: "#ffffff",
+        })
+        .setOrigin(0, 0);
+      this.add(title);
+    }
 
     this.prevPageText = cfg.scene
       .add.text(0, 410, "< Prev", {
@@ -93,7 +97,7 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
     this.buttonList = new MetalActionButtonList({
       scene: this.cfg.scene,
       x: this.cfg.x,
-      y: this.cfg.y + 24,
+      y: this.cfg.y + (this.hasTitle ? 24 : 0),
       gapY: 5,
       buttons: visibleSquads.map((squad) => ({
         label: squad.is_active ? `${squad.name} [ACTIVE]` : squad.name,

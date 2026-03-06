@@ -31,16 +31,16 @@ export default class HudPanel extends Phaser.GameObjects.Container {
     // Left icon column: fixed 100x100
     this.energyIcon = scene.add.image(0, 0, "icon_energy").setDisplaySize(this.iconSize, this.iconSize).setOrigin(0, 0);
 
-    // Top row: energy bars + current/max text
-    this.bar = scene.add.graphics();
-
-    // Bottom row: left-aligned player name
+    // Top row: player name
     this.nameText = scene.add
-      .text(this.rightAreaX, this.rowHeight + 2, RegistrySession.displayName(scene.registry).toUpperCase(), {
+      .text(this.rightAreaX, 4, RegistrySession.displayName(scene.registry).toUpperCase(), {
         ...TEXT_BODY,
         wordWrap: { width: this.rightAreaW - 8 },
       })
       .setOrigin(0, 0);
+
+    // Bottom row: energy bars + current/max text
+    this.bar = scene.add.graphics();
 
     this.energyText = scene.add
       .text(this.rightAreaX, 12, "", {
@@ -96,7 +96,7 @@ export default class HudPanel extends Phaser.GameObjects.Container {
   private redrawEnergy(): void {
     this.energyText.setText(`${this.energyCurrent} / ${this.energyMax}`);
     const barX = this.rightAreaX;
-    const barY = 12;
+    const barY = this.rowHeight + 4;
     const barW = 150;
     const barH = 22;
     const segments = 10;
@@ -128,4 +128,3 @@ export default class HudPanel extends Phaser.GameObjects.Container {
     this.energyText.setY(barY + 1);
   }
 }
-

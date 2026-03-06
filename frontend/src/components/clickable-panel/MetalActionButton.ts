@@ -54,16 +54,16 @@ export default class MetalActionButton extends ClickablePanel {
       this.add(this.iconObj);
     }
 
-    const labelX = this.iconKey ? 76 : 16;
+    const labelX = this.iconKey ? 91 : 31;
     const labelWidth = MetalActionButton.WIDTH - labelX - 12;
     this.labelObj = this.scene.add
-      .text(labelX, 16, this.labelText.toUpperCase(), {
+      .text(labelX, MetalActionButton.HEIGHT / 2 + 2, this.labelText.toUpperCase(), {
         ...TEXT_BUTTON,
         fontSize: "24px",
         wordWrap: { width: labelWidth },
         ...(this.customTextStyle ?? {}),
       })
-      .setOrigin(0, 0);
+      .setOrigin(0, 0.5);
     this.add(this.labelObj);
   }
 
