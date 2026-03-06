@@ -29,8 +29,8 @@ export default class ClickablePanelRegionColumn extends ClickablePanel {
                     return;
                 }
                 scene.scene.start(this.targetSceneKey, this.dataToPass);
-            } catch {
-                this.showFeedback(scene, "Cannot start run right now. Please retry.", "#ffb3b3");
+            } catch (error) {
+                this.showFeedback(scene, this.getRunStartErrorMessage(error), "#ffb3b3");
             }
         })();
     }
@@ -64,5 +64,28 @@ export default class ClickablePanelRegionColumn extends ClickablePanel {
             this.feedbackText?.destroy();
             this.feedbackText = undefined;
         });
+    }
+
+    private getRunStartErrorMessage(error: unknown): string {
+        const fallback = "Cannot start run right now. Please retry.";
+        const message = error instanceof Error ? error.message : "";
+        const jsonStart = message.indexOf("{");
+        if (jsonStart >= 0) {
+            try {
+                const payload = JSON.parse(message.slice(jsonStart)) as { error?: { code?: string; message?: string } };
+                const code = payload.error?.code ?? "";
+                const detail = payload.error?.message ?? "";
+                if (code === "region_locked") {
+                    return detail ? `Region locked: ${detail}` : "Region locked: this region is not unlocked yet.";
+                }
+                if (detail) {
+                    return `Cannot start run: ${detail}`;
+                }
+            } catch {
+                // Fall through to generic message handling.
+            }
+        }
+
+        return message ? `Cannot start run: ${message}` : fallback;
     }
 }

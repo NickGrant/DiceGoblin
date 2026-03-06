@@ -67,6 +67,11 @@ function isFresh(fetchedAt: number, now = Date.now()): boolean {
   return now - fetchedAt < PROFILE_TTL_MS;
 }
 
+function refreshProfileAfterMutation(): void {
+  apiClient.invalidateProfileCache();
+  void apiClient.getProfile({ force: true }).catch(() => {});
+}
+
 export const apiClient = {
   async getSession(): Promise<SessionResponse> {
     const response = await request<unknown>("/api/v1/session", { method: "GET" });
@@ -92,8 +97,7 @@ export const apiClient = {
       body: JSON.stringify({ region_id: biome === "mountain" ? 1 : 2 }),
     });
     // Starting a run consumes energy; purge cache and eagerly refetch profile.
-    apiClient.invalidateProfileCache();
-    void apiClient.getProfile({ force: true }).catch(() => {});
+    refreshProfileAfterMutation();
     return res;
   },
 
@@ -132,11 +136,14 @@ export const apiClient = {
   ): Promise<ResolveNodeResponse> {
     const session = await apiClient.getSession();
     const csrf = (session as any)?.data?.csrf_token ?? "";
-    return request<ResolveNodeResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/resolve`, {
+    const res = await request<ResolveNodeResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/resolve`, {
       method: "POST",
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify(payload ?? {}),
     });
+    // Node resolution may consume energy; keep HUD/profile energy in sync.
+    refreshProfileAfterMutation();
+    return res;
   },
 
   async openRest(runId: string, nodeId: string): Promise<RestOpenResponse> {
