@@ -1,11 +1,18 @@
 # Documentation Changelog
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-05  
 Owner: Product + Engineering  
 Depends On: `documentation/README.md`, `ISSUES.md`
 
 ----
+
+## 2026-03-05
+- Added `documentation/enemy_list.json` as JSON reference data for seeded enemy templates.
+- Added `documentation/06-character-profiles/PROFILE_TEMPLATE.md` to standardize creative profile entries.
+- Updated `documentation/README.md` to include character-profile and enemy-list documentation entry points.
+- Updated `documentation/06-character-profiles/00-overview.md` for encoding cleanup, filename corrections, and explicit "creative reference only" scope.
+- Added metadata headers to all character profile docs and template so `docs:lint` remains clean.
 
 ## 2026-03-02
 - Added `documentation/README.md` as docs index and task-based entrypoint map.

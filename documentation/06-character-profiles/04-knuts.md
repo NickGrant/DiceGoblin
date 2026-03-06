@@ -1,10 +1,39 @@
+Status: active
+Last Updated: 2026-03-05
+Owner: Creative + Product
+Depends On: `documentation/06-character-profiles/00-overview.md`, `documentation/06-character-profiles/PROFILE_TEMPLATE.md`
+
+----
+
 Name: Knuts
 Type: Goblin
-Role: Banner Bearer
+Role: Bannerbearer
 Image: 04-knuts.jpg
 
-Appearance: A male goblin with a powerful, heavily muscled build, similar to Gobi in size and stature. His head features a topknot of coarse, black hair tied with a leather cord, and a small section of braid on the side. He possesses the distinctive glowing orange eyes and his expression remains steadfast.
+Appearance: A heavily muscled male goblin with a steadfast expression, dark coarse topknot, and orange eyes.
 
-Armor: His entire armor set is heavy, deeply pitted, rust-covered iron plate, bolted directly with visible rivets. Large, hand-painted weathered red star and chevron/hazard stripe patterns are visible across the armor. He wears a chainmail vest beneath and a distressed leather tunic. He also wears crude tire-tread sandals.
+Armor/Clothing: Heavy rusted plate with painted hazard and sun motifs over chainmail and distressed leather, plus tire-tread sandals.
 
-Equipment: In one hand, he firmly grips a large, gnarled wooden staff topped with a sharply faceted clear gemstone. Below the gemstone dangles a large, tattered burlap banner with a crudely painted 'hazard star' and 'SUN' sunburst motif. In his other hand, he carries a large automotive tire shield with a bold 'SUN' motif stenciled onto it. His multi-wrench tool and simple bone dagger are tucked into his utility belt.
+Equipment: Gnarled banner staff topped with gemstone and tattered burlap standard, reinforced tire shield, and utility-belt tools.
+
+Gameplay Role Fantasy: Durable support anchor that strengthens allies while holding formation.
+
+Silhouette and Readability Cues: Tall staff-and-banner profile, large off-hand shield mass, thick torso armor, grounded stance.
+
+Ability Telegraph Cues: Visible banner raise and hold before bolster effects, shield set posture before defensive actions.
+
+Threat Priority Cue: If left active, he amplifies enemy survivability and extends frontline uptime.
+
+Portrait/UI Requirements:
+- Portrait crop safe zone: face, banner top, and shield edge should be visible.
+- Icon readability: preserve banner silhouette and star/sun motif contrast.
+- Contrast notes: gemstone and painted motif highlights should stay readable on dark backgrounds.
+
+Art Prompt Summary:
+- Muscular goblin support leader with heavy rusted plate.
+- Carries gemstone-topped banner staff and tire shield.
+- Hazard stripe and sun/star symbols on armor and banner.
+- Chainmail and distressed leather underlayers.
+- Confident, steadfast battlefield posture.
+- Industrial scavenger style with command presence.
+

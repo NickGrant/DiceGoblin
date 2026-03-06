@@ -1,16 +1,39 @@
+Status: active
+Last Updated: 2026-03-05
+Owner: Creative + Product
+Depends On: `documentation/06-character-profiles/00-overview.md`, `documentation/06-character-profiles/PROFILE_TEMPLATE.md`
+
+----
+
 Name: Mallow
 Type: Goblin
 Role: Sporewitch
 Image: 05-mallow.jpg
 
-Appearance: A female goblin, physically shorter and more hunched than the others, giving her a "withered crone" silhouette. Her skin is a pale, sickly green, and she is noticeably gaunt. Patches of bracket fungus and small colorful mushrooms (red caps and pale stalks) sprout directly from her skin, particularly along her shoulders and forearms. Her eyes are a sunken, glowing orange.
+Appearance: A short, hunched female goblin with gaunt features, pale green skin, and fungal growths along shoulders and forearms.
 
-Clothing/Armor: She is almost entirely shrouded in a tattered, heavy burlap cloak with an oversized, pointed hood that hides most of her face. The cloak is held together by thick, crude stitching and industrial wire. Hanging from her neck and stitched into her cloak are "charms" made of drilled-through dice (d6s and d20s) and rusted washers. She wears simple, grimy wraps around her feet and legs.
+Armor/Clothing: Oversized tattered burlap cloak with heavy stitching and wire bindings, charm clusters made from drilled dice and rusted washers, grimy lower wraps.
 
-Equipment:
+Equipment: Blight-staff with faceted gem and fungal growth, plague-cauldron made from repurposed drum, and belt daggers with toxic residue.
 
-The Blight-Staff: A gnarled wooden branch topped with a large, sharply faceted clear gemstone. Clusters of fungi grow around the base of the gem, and several small, glowing alchemy vials (neon green and purple) are tied to the staff with electrical wire.
+Gameplay Role Fantasy: Attrition-focused controller that weakens enemies through persistent status pressure.
 
-The Cauldron of Plagues: She often carries (or stands near) a repurposed metal chemical drum used as a cauldron, featuring bolted-on gears and a tripod base made of industrial rebar.
+Silhouette and Readability Cues: Distinct hunched cloak shape, fungal protrusions, staff top glow, and trailing cauldron/ritual props.
 
-Belt: Her belt features a "multi-wrench" tool and several "Hexing Daggers"—scrap metal blades dipped in glowing, toxic residues.
+Ability Telegraph Cues: Staff channel pose with rising spores before debuffs, cauldron agitation cues before area effects.
+
+Threat Priority Cue: Prolonged fights favor her; unresolved status pressure compounds quickly.
+
+Portrait/UI Requirements:
+- Portrait crop safe zone: hooded face, fungal shoulder growth, and staff head should remain visible.
+- Icon readability: keep fungal color accents and gem glow readable in small portraits.
+- Contrast notes: cloak value range should avoid blending into dark backgrounds.
+
+Art Prompt Summary:
+- Hunched goblin spore mystic with fungal growth motifs.
+- Burlap cloak, wire repairs, and cursed scavenger charms.
+- Blight-staff with gemstone and bioluminescent vials.
+- Industrial-plague visual blend with toxic alchemy cues.
+- Worn, eerie silhouette with ritual gear.
+- Debuff-focused battlefield presence.
+

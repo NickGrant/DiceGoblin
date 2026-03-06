@@ -1,10 +1,39 @@
+Status: active
+Last Updated: 2026-03-05
+Owner: Creative + Product
+Depends On: `documentation/06-character-profiles/00-overview.md`, `documentation/06-character-profiles/PROFILE_TEMPLATE.md`
+
+----
+
 Name: Wrens
 Type: Goblin
 Role: Marksman
 Image: 03-wrens.jpg
 
-Appearance: A tall, thin female goblin, with lean green skin and complex tape wraps on her limbs. She possesses the distinctive glowing orange eyes and a wide, open-mouthed grin that prominently features her large, sharp, human-like teeth. Her hair is a messy topknot with multiple braids and metal bead accents.
+Appearance: A tall, lean female goblin with glowing orange eyes, layered tape wraps, braided hair accents, and a sharp grin.
 
-Armor: Her 'Junk Armor' chest piece and pauldrons are cobbled together from flattened, rusty tin cans (some with generic 'NUTS' and 'BEANS' text, partial license plates like 'DICE', 'GOBI', and '4-WAY' from Gobi's design) and scrap metal, all bolted and wired together, covering her torso and shoulders. She wears a tattered burlap loincloth and simple wrapped cloth shorts, with crude tire-tread sandals.
+Armor/Clothing: Junk-armor chest and pauldrons from flattened cans and scrap metal over cloth and burlap layers with tire-tread sandals.
 
-Equipment: Her multi-wrench tool and simple bone dagger are tucked into her utility belt. Her main weapon is a repeating crossbow meticulously built from salvaged bicycle parts, gears, chain links, and wire.
+Equipment: Repeating crossbow made from bicycle salvage, plus utility belt tools including a multi-wrench and backup dagger.
+
+Gameplay Role Fantasy: Consistent ranged damage dealer with strong line pressure.
+
+Silhouette and Readability Cues: Tall lean frame, long ranged-weapon outline, layered shoulder scrap, upright aiming posture.
+
+Ability Telegraph Cues: Draw-and-hold aiming pose before high-impact shots, short reset motion between rapid bolts.
+
+Threat Priority Cue: Sustained ranged output can quickly punish exposed or low-defense units.
+
+Portrait/UI Requirements:
+- Portrait crop safe zone: head, shoulders, and crossbow receiver should be visible.
+- Icon readability: keep crossbow silhouette and hazard-yellow accents readable at small size.
+- Contrast notes: protect bright facial highlights so expression remains legible on dark scenes.
+
+Art Prompt Summary:
+- Tall, lean goblin marksman with scavenged ranged gear.
+- Repeating crossbow built from bike parts and wire.
+- Rusted can armor and taped utility look.
+- Orange eyes and confident predatory grin.
+- Industrial scrap aesthetic with asymmetrical armor layers.
+- Ready-to-fire stance focused on precision.
+

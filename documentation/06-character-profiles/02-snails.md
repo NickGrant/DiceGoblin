@@ -1,10 +1,39 @@
+Status: active
+Last Updated: 2026-03-05
+Owner: Creative + Product
+Depends On: `documentation/06-character-profiles/00-overview.md`, `documentation/06-character-profiles/PROFILE_TEMPLATE.md`
+
+----
+
 Name: Snails
 Type: Goblin
 Role: Saboteur
 Image: 02-snails.jpg
 
-Appearance: A female goblin, smaller and more dextrous than Gobi. Her features are ferocious, with predatory orange-yellow eyes, visible fangs showing in a scowl, and an intense gaze. Her hair is a messy topknot of coarse black hair with a braid on the side. Her pose is dynamic and slightly crouched, predatory, as if ready to spring into action. Multiple small silver rings pierce her large pointed ears.
+Appearance: A smaller, agile female goblin with predatory posture, orange-yellow eyes, visible fangs, and a messy topknot with side braid and ear rings.
 
-Armor: Her armor is a unique patchwork of overlapping sections of flattened, rusty car parts (e.g., partial fenders and grille sections) bolted and wired together, covering her torso and shoulders. Her left shoulder is covered by an off-kilter assembly of old bicycle parts, including gears and chain links, held by a leather strap. One shoulder pauldron is explicitly made from flattened tin cans, with one clearly labeled 'SNAILS'. Her utility belt is heavily loaded with multiple small, glowing glass vials of pink, green, and blue liquids, as well as various small tool pouches, some labeled with hand-drawn hazard star stencils. She wears a tattered burlap loincloth over a pair of simple wrapped cloth shorts and crude tire-tread sandals. Both hands are heavily wrapped in masking tape.
+Armor/Clothing: Patchwork torso armor from rusted car parts and bicycle components, taped hands, burlap and cloth layers, utility belt loaded with glowing vials and tool pouches.
 
-Equipment: She is depicted holding a cluster of dynamite sticks crudely bound with electrical wire and a small detonator box with a stenciled hazard symbol. She also carries a repeating crossbow made from salvaged bicycle parts, gears, and wire.
+Equipment: Dynamite bundle with hand detonator plus a repeating crossbow assembled from salvaged gears, chain links, and wire.
+
+Gameplay Role Fantasy: Mobile disruption unit that applies pressure through explosives and precision sabotage.
+
+Silhouette and Readability Cues: Crouched spring-ready pose, vial-heavy belt profile, asymmetrical shoulder gear, compact crossbow frame.
+
+Ability Telegraph Cues: Visible priming motion and spark cues for explosives, aiming pause for precision shots.
+
+Threat Priority Cue: Left unchecked, she creates burst windows and destabilizes safe positioning.
+
+Portrait/UI Requirements:
+- Portrait crop safe zone: face, explosive hand, and top vials should be visible.
+- Icon readability: keep glowing vial colors and detonator silhouette clear.
+- Contrast notes: ensure vial glow remains readable against rusty and dark backdrops.
+
+Art Prompt Summary:
+- Agile female goblin saboteur with scavenged armor.
+- Dynamic crouched stance and fierce expression.
+- Glowing alchemy vials and taped hands.
+- Holds wired dynamite and crude detonator box.
+- Salvage-tech repeating crossbow with chain and gears.
+- Hazard-star graffiti and industrial junk aesthetic.
+

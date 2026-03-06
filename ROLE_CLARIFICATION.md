@@ -40,3 +40,11 @@
 - name: Game Designer
   decision: Chose a shared end-of-run summary shell and embedded promotion in unit details while keeping dice inventory as a dedicated screen.
   definition: Clarify default UI placement rules when a run-scoped context (rest) temporarily enables out-of-run management actions.
+
+- name: Technical Product Manager
+  decision: Recommended index/changelog cross-link updates for character profiles while deferring large taxonomy refactors.
+  definition: Clarify whether character profiles are treated as implementation-authoritative design docs or optional creative reference material.
+
+- name: Game Designer
+  decision: Recommended expanding profile entries with gameplay-facing readability cues and combat identity constraints.
+  definition: Define the minimum required gameplay metadata per character profile (silhouette role cues, animation hooks, and ability telegraph notes).

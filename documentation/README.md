@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-05  
 Owner: Product + Engineering  
 Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
 
@@ -30,13 +30,14 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
 9. `documentation/03-ux/` (UX behavior and visual direction)
 10. `documentation/04-multiplayer/` (future-facing systems, non-MVP)
 11. `documentation/05-playability-stability/` (release-readiness and stability gates)
-12. `documentation/03-ux/03-encounter-flow-transition-matrix.md`
-13. `documentation/03-ux/04-combat-viewer-readability.md`
-14. `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
-15. `documentation/03-ux/05-unit-dice-details-acceptance.md`
-16. `documentation/03-ux/06-promotion-and-dice-management-sequencing.md`
-17. `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md`
-18. `documentation/03-ux/08-page-layout-zones.md`
+12. `documentation/06-character-profiles/00-overview.md` (creative reference only)
+13. `documentation/03-ux/03-encounter-flow-transition-matrix.md`
+14. `documentation/03-ux/04-combat-viewer-readability.md`
+15. `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
+16. `documentation/03-ux/05-unit-dice-details-acceptance.md`
+17. `documentation/03-ux/06-promotion-and-dice-management-sequencing.md`
+18. `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md`
+19. `documentation/03-ux/08-page-layout-zones.md`
 
 ## Task-Based Entry Points
 - If changing API routes, payloads, auth, or error contracts:
@@ -83,11 +84,17 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `documentation/STYLE_GUIDE.md`
   - `documentation/CHANGELOG.md`
   - `documentation/BACKLOG_OPERATIONS.md`
+- If creating/reviewing visual character direction for art generation:
+  - `documentation/06-character-profiles/00-overview.md`
+  - `documentation/06-character-profiles/PROFILE_TEMPLATE.md`
+  - `documentation/06-character-profiles/*.md`
 
 ## Reference Data Docs
 - `documentation/JSON Schema/unit_types.base_stats_json.json`
 - `documentation/JSON Schema/unit_types.ability_set_json.json`
 - `documentation/unit_list.json`
+- `documentation/enemy_list.json`
+- `documentation/06-character-profiles/00-overview.md` (creative reference lane)
 
 ## Deprecations
 - `documentation/worklist.md` was removed on 2026-03-02 after migration to issue/milestone tracking.

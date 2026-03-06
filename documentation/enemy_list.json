@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "notes": {
+    "scope": "MVP enemy roster source-of-truth for Milestone 1 seeding",
+    "ability_ids_allowed": {
+      "actives": [
+        "basic_attack_melee",
+        "basic_attack_ranged",
+        "heavy_strike",
+        "aimed_shot",
+        "shield_up",
+        "bolster_ally"
+      ],
+      "passives": ["thick_hide", "sharpshooter"]
+    },
+    "conventions": {
+      "tier_meaning": "tier 1=grunt, tier 2=elite, tier 3=boss",
+      "tags": "lightweight metadata for faction/archetype/theme and combat profile hints"
+    }
+  },
+  "enemy_templates": [
+    {
+      "slug": "kobold_skirmisher",
+      "name": "Kobold Skirmisher",
+      "tier": 1,
+      "role": "backline",
+      "base_stats": { "version": 1, "attack": 6, "defense": 2, "max_hp": 16 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_ranged", "aimed_shot"],
+        "passives": ["sharpshooter"]
+      },
+      "xp_reward": 10,
+      "tags": {
+        "faction": "kobolds",
+        "archetype": "grunt",
+        "damage_profile": "ranged"
+      }
+    },
+    {
+      "slug": "kobold_shieldbearer",
+      "name": "Kobold Shieldbearer",
+      "tier": 1,
+      "role": "frontline",
+      "base_stats": { "version": 1, "attack": 3, "defense": 6, "max_hp": 26 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "shield_up"],
+        "passives": ["thick_hide"]
+      },
+      "xp_reward": 10,
+      "tags": {
+        "faction": "kobolds",
+        "archetype": "grunt",
+        "damage_profile": "melee"
+      }
+    },
+    {
+      "slug": "kobold_sharpshooter",
+      "name": "Kobold Sharpshooter",
+      "tier": 2,
+      "role": "backline",
+      "base_stats": { "version": 1, "attack": 9, "defense": 3, "max_hp": 22 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_ranged", "aimed_shot"],
+        "passives": ["sharpshooter"]
+      },
+      "xp_reward": 15,
+      "tags": {
+        "faction": "kobolds",
+        "archetype": "elite",
+        "damage_profile": "ranged"
+      }
+    },
+    {
+      "slug": "kobold_warchief",
+      "name": "Kobold Warchief",
+      "tier": 3,
+      "role": "backline",
+      "base_stats": { "version": 1, "attack": 11, "defense": 4, "max_hp": 40 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_ranged", "aimed_shot"],
+        "passives": ["sharpshooter"]
+      },
+      "xp_reward": 30,
+      "tags": {
+        "faction": "kobolds",
+        "archetype": "boss",
+        "damage_profile": "ranged"
+      }
+    },
+    {
+      "slug": "frogman_bruiser",
+      "name": "Frogman Bruiser",
+      "tier": 1,
+      "role": "frontline",
+      "base_stats": { "version": 1, "attack": 4, "defense": 5, "max_hp": 28 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "heavy_strike"],
+        "passives": ["thick_hide"]
+      },
+      "xp_reward": 10,
+      "tags": {
+        "faction": "frogmen",
+        "archetype": "grunt",
+        "damage_profile": "melee"
+      }
+    },
+    {
+      "slug": "frogman_spearhunter",
+      "name": "Frogman Spearhunter",
+      "tier": 1,
+      "role": "frontline",
+      "base_stats": { "version": 1, "attack": 6, "defense": 4, "max_hp": 24 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "heavy_strike"],
+        "passives": []
+      },
+      "xp_reward": 10,
+      "tags": {
+        "faction": "frogmen",
+        "archetype": "grunt",
+        "damage_profile": "melee"
+      }
+    },
+    {
+      "slug": "frogman_wardrummer",
+      "name": "Frogman Wardrummer",
+      "tier": 2,
+      "role": "support",
+      "base_stats": { "version": 1, "attack": 3, "defense": 5, "max_hp": 26 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "bolster_ally"],
+        "passives": []
+      },
+      "xp_reward": 15,
+      "tags": {
+        "faction": "frogmen",
+        "archetype": "elite",
+        "utility": "buff"
+      }
+    },
+    {
+      "slug": "frogman_bog_tyrant",
+      "name": "Bog Tyrant",
+      "tier": 3,
+      "role": "frontline",
+      "base_stats": { "version": 1, "attack": 8, "defense": 7, "max_hp": 50 },
+      "ability_set": {
+        "version": 1,
+        "actives": ["basic_attack_melee", "heavy_strike"],
+        "passives": ["thick_hide"]
+      },
+      "xp_reward": 30,
+      "tags": {
+        "faction": "frogmen",
+        "archetype": "boss",
+        "damage_profile": "melee",
+        "theme": "attrition"
+      }
+    }
+  ]
+}
