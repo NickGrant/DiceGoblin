@@ -17,30 +17,10 @@ exit_criteria: |
   * Non-rest node handling no longer duplicates resolve logic inside `MapExplorationScene`.
   * Resolution outcomes use one unified scene/flow with consistent messaging and return behavior.
 ---
-name: Milestone 15 - Build UX Rebuild Component Library
-status: in-progress
-execution_window: open
-is_current: yes
-issues:
-  - Implement core layout shell components from 03-component-specifications
-  - Implement reusable navigation components from 03-component-specifications
-  - Implement shared list framework with loading, error, and pagination states
-  - Implement standardized action controls and button variants from component spec
-  - Implement HUD and feedback utility components from component spec
-  - Add component-level test coverage and usage examples for UX rebuild library
-description: |
-  Build the reusable component library defined in `documentation/07-ux-rebuild/03-component-specifications.md` so scenes can migrate to consistent UI primitives.
-entry_criteria: |
-  * Component specification document is accepted as implementation baseline.
-  * Asset dependencies for base component visuals are available in runtime assets.
-exit_criteria: |
-  * Specified core components are implemented and test-covered.
-  * Components are ready for scene-by-scene migration without ad hoc UI duplication.
----
 name: Milestone 16 - Scene Migration to UX Rebuild Components
 status: not-started
-execution_window: closed
-is_current: no
+execution_window: open
+is_current: yes
 issues:
   - Migrate HomeScene to standardized UX rebuild components
   - Migrate RegionSelectScene and MapExplorationScene to shared component library

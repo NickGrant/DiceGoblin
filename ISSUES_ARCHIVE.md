@@ -1759,3 +1759,86 @@ updated: 2026-03-07
 description: |
   Implement a single UI outcome surface for node resolution states (including clear retry/failure messaging) so non-rest encounters use consistent player feedback and action prompts.
 Resolution: Added a single node outcome surface in `NodeResolutionScene` covering success, defeat, exit, and error/retry states with consistent action affordances.
+---
+title: Implement core layout shell components from 03-component-specifications
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 15 - Build UX Rebuild Component Library
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Build foundational reusable layout shell components defined in `documentation/07-ux-rebuild/03-component-specifications.md` (page frame, title bands, section containers, shared spacing rules).
+Resolution: Added `ContentAreaFrame`, enhanced `SectionTitleBar` fallback behavior, and introduced tested layout body-rect logic for consistent title/body shell composition.
+
+---
+title: Implement reusable navigation components from 03-component-specifications
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 15 - Build UX Rebuild Component Library
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Implement standardized navigation components (home affordance, scene navigation panels, and navigation action variants) defined by the UX rebuild component specifications.
+Resolution: Added reusable navigation primitives (`HomeNavigationPanel`, `HomeCornerButton`, `RegionSelectionPanel`) and wired `HomeNavArea` to the shared panel implementation.
+
+---
+title: Implement shared list framework with loading, error, and pagination states
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 15 - Build UX Rebuild Component Library
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Create a reusable list foundation component that supports loading/failure/empty states and optional pagination controls, then expose extension points for name-link lists and grid lists.
+Resolution: Implemented `ListContainer` state orchestration plus `NameLinkListVariant` and `GridListVariant`, with shared pagination/list-state helpers for consistent loading/empty/error handling.
+
+---
+title: Implement standardized action controls and button variants from component spec
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 15 - Build UX Rebuild Component Library
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Implement shared action controls (primary, accept/reject, icon+text variants, grouped button lists) to eliminate divergent button implementations across scenes.
+Resolution: Added semantic `AcceptButton` and `RejectButton` variants and extended `ActionButtonList` to support intent-driven button type selection.
+
+---
+title: Implement HUD and feedback utility components from component spec
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 15 - Build UX Rebuild Component Library
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Implement reusable HUD and feedback components (energy/status tooltip surfaces, toast/inline feedback wrappers, confirmation/dialog primitives) per component specification.
+Resolution: Added reusable `Tooltip`, `ToastMessage`, and `ConfirmationDialog` components and integrated HUD energy-tier icon logic through a shared helper (`resolveEnergyTierIcon`).
+
+---
+title: Add component-level test coverage and usage examples for UX rebuild library
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 15 - Build UX Rebuild Component Library
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Add tests and concise usage examples for new reusable components to ensure expected behavior and reduce integration ambiguity during scene migration.
+Resolution: Added unit tests for list-state, layout-body sizing, and HUD energy-tier logic and authored `documentation/07-ux-rebuild/05-component-library-usage.md` with integration snippets.

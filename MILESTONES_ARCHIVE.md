@@ -288,3 +288,24 @@ exit_criteria: |
   * No mojibake patterns remain in project-authored markdown.
   * Automated docs lint warns/fails on known corruption patterns.
 Resolution: Completed documentation integrity sweep, validated internal markdown links and renamed-path references, and added lint-time encoding-corruption detection to prevent recurrence.
+---
+name: Milestone 15 - Build UX Rebuild Component Library
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Implement core layout shell components from 03-component-specifications
+  - Implement reusable navigation components from 03-component-specifications
+  - Implement shared list framework with loading, error, and pagination states
+  - Implement standardized action controls and button variants from component spec
+  - Implement HUD and feedback utility components from component spec
+  - Add component-level test coverage and usage examples for UX rebuild library
+description: |
+  Build the reusable component library defined in `documentation/07-ux-rebuild/03-component-specifications.md` so scenes can migrate to consistent UI primitives.
+entry_criteria: |
+  * Component specification document is accepted as implementation baseline.
+  * Asset dependencies for base component visuals are available in runtime assets.
+exit_criteria: |
+  * Specified core components are implemented and test-covered.
+  * Components are ready for scene-by-scene migration without ad hoc UI duplication.
+Resolution: Implemented reusable layout/navigation/list/action/HUD-feedback primitives, added component-level behavior tests and usage guidance, and prepared Milestone 16 migration work on an open current execution window.

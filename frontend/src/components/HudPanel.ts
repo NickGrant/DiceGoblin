@@ -1,11 +1,22 @@
 import Phaser from "phaser";
 import { apiClient } from "../services/apiClient";
 import { getPageLayout } from "../layout/pageLayout";
+import Tooltip from "./feedback/Tooltip";
+
+export function resolveEnergyTierIcon(current: number, max: number): string {
+  const safeMax = Math.max(1, max);
+  const pct = Phaser.Math.Clamp(current / safeMax, 0, 1) * 100;
+  if (pct >= 100) return "icon_energy";
+  if (pct >= 75) return "icon_energy_75";
+  if (pct >= 50) return "icon_energy_50";
+  if (pct >= 25) return "icon_energy_25";
+  return "icon_energy_0";
+}
 
 export default class HudPanel extends Phaser.GameObjects.Container {
   private cornerBg: Phaser.GameObjects.Image;
   private energyIcon: Phaser.GameObjects.Image;
-  private energyTooltip: Phaser.GameObjects.Text;
+  private energyTooltip: Tooltip;
 
   private energyCurrent = 0;
   private energyMax = 1;
@@ -34,26 +45,20 @@ export default class HudPanel extends Phaser.GameObjects.Container {
       .setOrigin(0.5, 0.5)
       .setInteractive();
 
-    this.energyTooltip = scene.add
-      .text(iconMidX - (this.iconSize / 2) - 10, iconMidY, "", {
-        fontFamily: "Arial",
-        fontSize: "14px",
-        color: "#ffffff",
-        backgroundColor: "rgba(0,0,0,0.7)",
-        padding: { left: 6, right: 6, top: 4, bottom: 4 },
-      })
-      .setOrigin(1, 0.5)
-      .setVisible(false);
+    this.energyTooltip = new Tooltip({
+      scene,
+      x: iconMidX - (this.iconSize / 2) - 10,
+      y: iconMidY,
+      text: "",
+      placement: "left",
+      visible: false,
+    });
 
     // Name display intentionally disabled for HUD simplification.
     // const nameText = scene.add.text(0, 0, RegistrySession.displayName(scene.registry).toUpperCase(), {});
 
-    this.energyIcon.on("pointerover", () => {
-      this.energyTooltip.setVisible(true);
-    });
-    this.energyIcon.on("pointerout", () => {
-      this.energyTooltip.setVisible(false);
-    });
+    this.energyIcon.on("pointerover", () => this.energyTooltip.show());
+    this.energyIcon.on("pointerout", () => this.energyTooltip.hide());
 
     this.add([this.cornerBg, this.energyIcon, this.energyTooltip]);
 
@@ -95,17 +100,8 @@ export default class HudPanel extends Phaser.GameObjects.Container {
   }
 
   private updateEnergyDisplay(): void {
-    const pct = Phaser.Math.Clamp(this.energyCurrent / this.energyMax, 0, 1) * 100;
-    const iconKey = this.getEnergyIconKey(pct);
+    const iconKey = resolveEnergyTierIcon(this.energyCurrent, this.energyMax);
     this.energyIcon.setTexture(iconKey);
     this.energyTooltip.setText(`Energy: ${this.energyCurrent} / ${this.energyMax}`);
-  }
-
-  private getEnergyIconKey(pct: number): string {
-    if (pct >= 100) return "icon_energy";
-    if (pct >= 75) return "icon_energy_75";
-    if (pct >= 50) return "icon_energy_50";
-    if (pct >= 25) return "icon_energy_25";
-    return "icon_energy_0";
   }
 }

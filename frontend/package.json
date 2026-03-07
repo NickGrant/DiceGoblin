@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "npm exec vitest -- run",
+    "test:watch": "npm exec vitest --",
     "preview": "vite preview",
     "db:schema": "node ./scripts/build-schema-all.mjs"
   },
