@@ -6,3 +6,6 @@ backend/.env*.local
 
 .env
 *-source.zip
+artifacts/bundles/backend.zip
+artifacts/bundles/documentation.zip
+artifacts/bundles/frontend.zip

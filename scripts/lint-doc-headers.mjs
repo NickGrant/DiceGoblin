@@ -6,7 +6,7 @@ const docsRoot = path.join(root, "documentation");
 const requiredHeaders = ["Status:", "Last Updated:", "Owner:", "Depends On:"];
 const excludes = new Set([
   "documentation/archive",
-  "documentation/JSON Schema",
+  "documentation/08-json-schema",
 ]);
 
 function walk(dir, out = []) {

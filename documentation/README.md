@@ -90,8 +90,8 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `documentation/06-character-profiles/*.md`
 
 ## Reference Data Docs
-- `documentation/JSON Schema/unit_types.base_stats_json.json`
-- `documentation/JSON Schema/unit_types.ability_set_json.json`
+- `documentation/08-json-schema/unit_types.base_stats_json.json`
+- `documentation/08-json-schema/unit_types.ability_set_json.json`
 - `documentation/unit_list.json`
 - `documentation/enemy_list.json`
 - `documentation/06-character-profiles/00-overview.md` (creative reference lane)

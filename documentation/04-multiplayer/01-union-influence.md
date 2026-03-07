@@ -1,16 +1,15 @@
 # Union Influence System
 
-Status: draft  
-Last Updated: 2026-03-02  
+Status: future  
+Last Updated: 2026-03-07  
 Owner: Product + Systems Design  
-Depends On: `documentation/04-multiplayer/00-multiplayer-philosophy.md`, `documentation/00-overview/02-glossary.md`
-
+Depends On: `documentation/04-multiplayer/00-multiplayer-philosophy.md`, `documentation/00-overview/00-project-overview.md`
 
 ## Overview
 
-The **Union Influence System** is a long‑term, shared‑world meta mechanic intended for v3/v4 of Dice Goblin. It introduces indirect player interaction through economic and social pressure rather than direct PvP.
+The **Union Influence System** is a long-term, shared-world meta mechanic intended for v3/v4 of Dice Goblin. It introduces indirect player interaction through economic and social pressure rather than direct PvP.
 
-Players influence fictional **trade unions** by investing resources for personal gain. As unions gain power, they unlock **new options** for the entire shard while subtly distorting the economy for everyone else. The result is a cold‑war‑style dynamic: cooperation, rivalry, favoritism, and resentment without hard blockers or player‑to‑player attacks.
+Players influence fictional **trade unions** by investing resources for personal gain. As unions gain power, they unlock **new options** for the entire shard while subtly distorting the economy for everyone else. The result is a cold-war-style dynamic: cooperation, rivalry, favoritism, and resentment without hard blockers or player-to-player attacks.
 
 This system is designed to:
 
@@ -23,7 +22,7 @@ This system is designed to:
 
 ## Design Pillars
 
-The Union Influence System adheres to the following non‑negotiable principles:
+The Union Influence System adheres to the following principles:
 
 * **No Hard Lockouts** – Nothing is ever removed or blocked; only availability and efficiency shift.
 * **Indirect Harm Only** – Players never directly target or attack other players.
@@ -33,11 +32,28 @@ The Union Influence System adheres to the following non‑negotiable principles:
 
 ---
 
+## Shard Scope
+
+Union influence operates at the **shard level**, not globally across all players.
+
+A shard represents a shared-world economic simulation containing roughly **~100 active players**. All union meters, thresholds, and unlocks apply only within that shard.
+
+Shard segmentation allows the system to:
+
+* Preserve meaningful player impact
+* Prevent influence dilution at large scale
+* Allow independent seasonal outcomes
+* Support shard merges or splits if population changes
+
+Players do not directly choose their shard. Shards are assigned and managed by the system.
+
+---
+
 ## Unions
 
 ### Definition
 
-A **Union** is a fictional trade organization representing a segment of the world economy (logistics, crafting, magic labor, transport, etc.). Unions are not NPCs, player guilds, or ideological factions. They exist to control **how options appear**, not whether they exist.
+A **Union** is a fictional trade organization representing a segment of the world economy (logistics, crafting, magical labor, transport, etc.). Unions are not NPCs, player guilds, or ideological factions. They exist to control **how options appear**, not whether they exist.
 
 ### Key Properties
 
@@ -59,7 +75,7 @@ Unions do **not**:
 
 Players may choose to:
 
-* Invest gold or a meta‑currency into one or more unions
+* Invest gold or a meta-currency into one or more unions
 * Call in favors or sponsor union activity
 * Align softly with unions for efficiency or prestige
 
@@ -70,7 +86,21 @@ Reasons to invest:
 * Access to better or more consistent options
 * Social visibility or notoriety
 
-Participation is **optional but tempting**. Players who ignore the system experience only mild, reversible friction.
+Participation is **optional but tempting**.
+
+---
+
+## Baseline World Pressure
+
+Union influence affects the shard economy globally.
+
+Even players who never invest in unions experience minor economic distortions such as:
+
+* Slight shifts in option availability
+* Pricing pressure
+* Supply bias toward dominant unions
+
+These effects are intentionally **mild and reversible**. Participation in the system allows players to influence these pressures rather than avoid them entirely.
 
 ---
 
@@ -78,22 +108,28 @@ Participation is **optional but tempting**. Players who ignore the system experi
 
 Unions exist in a web of **rivalries**.
 
-* Supporting one union increases its influence
-* Rival unions experience **soft suppression** as a result
+Supporting one union increases its influence and applies **soft suppression** to rival unions.
 
-Suppression effects include:
+### Rival Standing Effects
 
-* Slower influence gain
-* Higher effective cost to reach thresholds
-* Delayed unlock timing
+When a player invests in a union:
 
-Rivalries are:
+* Their standing with that union increases
+* Their standing with rival unions decreases
 
-* Publicly visible
-* Asymmetric where appropriate
-* Reset each season
+This represents economic competition rather than ideological conflict.
 
-Rivalry never removes unlocked options or blocks access.
+Rival standing penalties are **soft and reversible**. They influence investment efficiency and threshold progress but never block participation.
+
+### Suppression Effects
+
+Suppression may appear as:
+
+* Slower influence gain for rival unions
+* Higher effective investment costs
+* Delayed threshold timing
+
+Suppression **never removes unlocked options or blocks access**.
 
 ---
 
@@ -115,7 +151,7 @@ Thresholds reset at season end.
 | ------ | ------------ | ------------------------------- |
 | Tier 1 | Onboarding   | Expected to unlock most seasons |
 | Tier 2 | Competitive  | Primary source of shard tension |
-| Tier 3 | Aspirational | Rare, season‑defining unlock    |
+| Tier 3 | Aspirational | Rare, season-defining unlock    |
 
 ---
 
@@ -127,9 +163,9 @@ Valid option examples:
 
 * New shop categories or item pools
 * Additional reroll or refinement choices
-* New contract, bargain, or risk‑reward offers
+* New contract, bargain, or risk-reward offers
 * Alternate crafting or modification paths
-* Preview, forecasting, or manipulation tools
+* Preview or forecasting tools
 
 Invalid option examples:
 
@@ -139,32 +175,7 @@ Invalid option examples:
 
 Design heuristic:
 
-> “Players can do a new thing” — not “players are better at the old thing.”
-
----
-
-## World Effects & Social Tension
-
-As union influence grows:
-
-* Economic conditions subtly distort
-* Availability shifts across the shard
-* Rival unions lag behind
-
-All effects are:
-
-* Gradual
-* Predictable
-* Recoverable
-
-The system creates:
-
-* Public enemies
-* Free riders
-* Coordinators
-* Saboteurs
-
-All without direct confrontation.
+> Players gain the ability to **do a new thing**, not become stronger at existing actions.
 
 ---
 
@@ -178,10 +189,26 @@ Players should always be able to see:
 
 Players should never see:
 
-* Exact per‑player investment amounts
+* Exact per-player investment amounts
 * Precise contribution breakdowns
 
-This preserves social ambiguity while maintaining trust.
+This preserves social ambiguity while maintaining system transparency.
+
+---
+
+## Influence Scaling
+
+Union influence scaling may be adjusted depending on shard population.
+
+During early development or low population periods:
+
+* Individual player contributions may carry greater influence
+* Threshold values may be reduced
+
+As shard populations grow, scaling should be adjusted so that:
+
+* Individual impact remains meaningful
+* No single player can dominate union progress
 
 ---
 
@@ -197,17 +224,17 @@ Optional seasonal summaries may include:
 
 * Most influential union
 * Closest missed threshold
-* Major contributors (anonymized or opt‑in)
+* Major contributors (anonymized or opt-in)
 
 ---
 
-## Long‑Term Intent
+## Long-Term Intent
 
-The Union Influence System is designed as a **modular pressure layer**:
+The Union Influence System is designed as a **modular pressure layer**.
 
-* It does not affect core combat balance
-* It can be tuned via numbers alone
-* It can be disabled, revised, or themed per season
+* It does not directly affect combat balance
+* It can be tuned primarily through numeric thresholds
+* It can be themed or adjusted per season
 
 Its purpose is to give Dice Goblin a distinctive identity as:
 
@@ -218,7 +245,7 @@ Its purpose is to give Dice Goblin a distinctive identity as:
 ## Versioning & Scope
 
 * **Target Version:** v3 / v4
-* **Dependencies:** None (meta‑system)
+* **Dependencies:** None (meta-system)
 * **Risk Level:** Low
 * **Primary Audience:** Veteran players
 

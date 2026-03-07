@@ -20,7 +20,7 @@
 - `documentation/01-architecture/` docs for API and system-contract decisions
 - `documentation/02-systems-mvp/` docs for gameplay rules and scope
 - `documentation/03-ux/` docs for UX and visual behavior
-- `documentation/JSON Schema/` only when editing schema contracts
+- `documentation/08-json-schema/` only when editing schema contracts
 - `ISSUES_ARCHIVE.md` only for historical context and reopened items
 - `MILESTONES_ARCHIVE.md` only for historical context
 

@@ -4,7 +4,7 @@
 Status: active  
 Last Updated: 2026-03-06  
 Owner: UX + Frontend  
-Depends On: `documentation/ux rebuild/01-all-up-component-list.md`
+Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
 
 ## Purpose
 - Map component usage scene-by-scene to define required composition targets.
