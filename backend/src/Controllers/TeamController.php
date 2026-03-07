@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Controllers;
 
+use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
 
@@ -22,12 +23,13 @@ use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
 
-use PDO;
 use RuntimeException;
 use Throwable;
 
 final class TeamController
 {
+  use RequiresCsrf;
+
   /**
    * POST /api/v1/teams
    * Body: { name: string, make_active?: bool }
@@ -205,59 +207,21 @@ final class TeamController
     }
 
     $unitIds = array_values(array_unique(array_map(static fn($v): int => (int)$v, $unitIdsRaw)));
-    $unitIdSet = [];
-    foreach ($unitIds as $unitId) {
-      $unitIdSet[$unitId] = true;
-    }
-
-    /** @var PDO $pdo */
-    $pdo = $svc['pdo'];
 
     try {
-      $pdo->beginTransaction();
-
-      // Replace membership
-      $svc['teamRepo']->setTeamUnits($userId, $teamIdInt, $unitIds);
-
-      if ($nameRaw !== null) {
-        $svc['teamRepo']->renameTeam($userId, $teamIdInt, (string)$nameRaw);
-      }
-
-      // Replace formation:
-      // - clear first
-      // - set only non-null placements
-      $svc['teamRepo']->clearFormation($userId, $teamIdInt);
-
-      foreach ($formationRaw as $row) {
-        if (!is_array($row)) continue;
-
-        $cell = (string)($row['cell'] ?? '');
-        $uidRaw = $row['unit_instance_id'] ?? null;
-
-        $uid = null;
-        if ($uidRaw !== null && $uidRaw !== '') {
-          $uid = (int)$uidRaw;
-
-          if (!isset($unitIdSet[$uid])) {
-            throw new RuntimeException('formation.unit_instance_id must exist in unit_ids.');
-          }
-        }
-
-        // Only persist occupied cells; missing cells are treated as empty in UI
-        if ($uid !== null) {
-          $svc['teamRepo']->setFormationCell($userId, $teamIdInt, $cell, $uid);
-        }
-      }
-
-      $pdo->commit();
+      $svc['teamRepo']->updateTeamConfiguration(
+        $userId,
+        $teamIdInt,
+        $unitIds,
+        $formationRaw,
+        $nameRaw !== null ? (string)$nameRaw : null
+      );
 
       Response::json([
         'ok' => true,
         'data' => (object)[],
       ]);
     } catch (RuntimeException $e) {
-      if ($pdo->inTransaction()) $pdo->rollBack();
-
       Response::json([
         'ok' => false,
         'error' => [
@@ -266,8 +230,6 @@ final class TeamController
         ],
       ], 400);
     } catch (Throwable $e) {
-      if ($pdo->inTransaction()) $pdo->rollBack();
-
       Response::json([
         'ok' => false,
         'error' => [
@@ -295,17 +257,6 @@ final class TeamController
           'message' => 'No active session.',
         ],
       ], 401);
-      return;
-    }
-
-    if ($nameRaw !== null && !is_string($nameRaw)) {
-      Response::json([
-        'ok' => false,
-        'error' => [
-          'code' => 'validation_error',
-          'message' => 'name must be a string when provided.',
-        ],
-      ], 400);
       return;
     }
 
@@ -365,22 +316,14 @@ final class TeamController
   private function services(): array
   {
     $pdo = Db::pdo();
-
-    $userRepo = new UserRepository($pdo);
-    $playerStateRepo = new PlayerStateRepository($pdo);
-    $energyRepo = new EnergyRepository($pdo);
-
-    $csrfService = new CsrfService();
-    $grantService = new GrantService();
-    $bootstrapper = new PlayerBootstrapper($playerStateRepo, $energyRepo, $grantService);
-    $sessionService = new SessionService($userRepo, $csrfService, $bootstrapper);
+    $core = ControllerServiceFactory::buildCore($pdo);
 
     return [
       'pdo' => $pdo,
       'teamRepo' => new TeamRepository($pdo),
       'runRepo' => new RunRepository($pdo),
-      'sessionService' => $sessionService,
-      'csrfService' => $csrfService,
+      'sessionService' => $core['sessionService'],
+      'csrfService' => $core['csrfService'],
     ];
   }
 
@@ -396,24 +339,6 @@ final class TeamController
     if (!is_array($decoded)) return null;
 
     return $decoded;
-  }
-
-  private function requireCsrf(CsrfService $csrfService): bool
-  {
-    $provided = $csrfService->extractProvidedToken();
-
-    if (!$csrfService->validateToken($provided)) {
-      Response::json([
-        'ok' => false,
-        'error' => [
-          'code' => 'csrf_invalid',
-          'message' => 'Invalid CSRF token.',
-        ],
-      ], 403);
-      return false;
-    }
-
-    return true;
   }
 
   private function requirePositiveInt(?string $raw, string $field): ?int

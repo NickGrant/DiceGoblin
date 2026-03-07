@@ -11,6 +11,10 @@ import {
   type RestStateResponse,
   type RunResponse,
   type SessionResponse,
+  type TeamActivateResponse,
+  type TeamCreateResponse,
+  type TeamDeleteResponse,
+  type TeamUpdateResponse,
 } from "../types/ApiResponse";
 import {
   validateCurrentRunResponse,
@@ -71,6 +75,16 @@ function refreshProfileAfterMutation(): void {
   apiClient.invalidateProfileCache();
   void apiClient.getProfile({ force: true }).catch(() => {});
 }
+
+function csrfFromSession(session: SessionResponse): string {
+  return session.ok ? session.data.csrf_token : "";
+}
+
+type TeamUpdatePayload = {
+  unit_ids: string[];
+  formation: Array<{ cell: string; unit_instance_id: string | null }>;
+  name?: string;
+};
 
 export const apiClient = {
   async getSession(): Promise<SessionResponse> {
@@ -247,71 +261,67 @@ export const apiClient = {
   async createTeam(
     name: string,
     makeActive = true
-  ): Promise<{ ok: true; data: { team_id: string } } | { ok: false; error: { code: string; message: string } }> {
+  ): Promise<TeamCreateResponse> {
     const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const csrf = csrfFromSession(session);
 
-    const res = await request<{ ok: boolean; data?: any; error?: any }>("/api/v1/teams", {
+    const res = await request<TeamCreateResponse>("/api/v1/teams", {
       method: "POST",
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify({ name, make_active: makeActive }),
     });
 
     apiClient.invalidateProfileCache();
-    return res as any;
+    return res;
   },
 
   async activateTeam(
     teamId: string
-  ): Promise<{ ok: true; data: {} } | { ok: false; error: { code: string; message: string } }> {
+  ): Promise<TeamActivateResponse> {
     const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const csrf = csrfFromSession(session);
 
-    const res = await request<{ ok: boolean; data?: any; error?: any }>(`/api/v1/teams/${teamId}/activate`, {
+    const res = await request<TeamActivateResponse>(`/api/v1/teams/${teamId}/activate`, {
       method: "POST",
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify({}),
     });
 
     apiClient.invalidateProfileCache();
-    return res as any;
+    return res;
   },
 
   async updateTeam(
     teamId: string,
-    payload: {
-      unit_ids: string[];
-      formation: Array<{ cell: string; unit_instance_id: string | null }>;
-      name?: string;
-    }
-  ): Promise<{ ok: true; data: {} } | { ok: false; error: { code: string; message: string } }> {
+    payload: TeamUpdatePayload
+  ): Promise<TeamUpdateResponse> {
     const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const csrf = csrfFromSession(session);
 
-    const res = await request<{ ok: boolean; data?: any; error?: any }>(`/api/v1/teams/${teamId}`, {
+    const res = await request<TeamUpdateResponse>(`/api/v1/teams/${teamId}`, {
       method: "PUT",
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify(payload),
     });
 
     apiClient.invalidateProfileCache();
-    return res as any;
+    return res;
   },
 
   async deleteTeam(
     teamId: string
-  ): Promise<{ ok: true; data: { team_id: string } } | { ok: false; error: { code: string; message: string } }> {
+  ): Promise<TeamDeleteResponse> {
     const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const csrf = csrfFromSession(session);
 
-    const res = await request<{ ok: boolean; data?: any; error?: any }>(`/api/v1/teams/${teamId}`, {
+    const res = await request<TeamDeleteResponse>(`/api/v1/teams/${teamId}`, {
       method: "DELETE",
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify({}),
     });
 
     apiClient.invalidateProfileCache();
-    return res as any;
+    return res;
   },
 
   /**

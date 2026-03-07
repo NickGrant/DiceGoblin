@@ -38,6 +38,12 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
 17. `documentation/03-ux/06-promotion-and-dice-management-sequencing.md`
 18. `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md`
 19. `documentation/03-ux/08-page-layout-zones.md`
+20. `documentation/03-ux/09-first-session-player-journey.md`
+21. `documentation/03-ux/10-first-session-onboarding-and-objective-framing.md`
+22. `documentation/03-ux/11-encounter-preview-risk-reward.md`
+23. `documentation/03-ux/12-post-battle-progression-summary-contract.md`
+24. `documentation/03-ux/13-run-failure-and-recovery-ux-states.md`
+25. `documentation/03-ux/14-player-value-feature-ordering-model.md`
 
 ## Task-Based Entry Points
 - If changing API routes, payloads, auth, or error contracts:
@@ -64,6 +70,12 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `documentation/03-ux/06-promotion-and-dice-management-sequencing.md`
   - `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md`
   - `documentation/03-ux/08-page-layout-zones.md`
+  - `documentation/03-ux/09-first-session-player-journey.md`
+  - `documentation/03-ux/10-first-session-onboarding-and-objective-framing.md`
+  - `documentation/03-ux/11-encounter-preview-risk-reward.md`
+  - `documentation/03-ux/12-post-battle-progression-summary-contract.md`
+  - `documentation/03-ux/13-run-failure-and-recovery-ux-states.md`
+  - `documentation/03-ux/14-player-value-feature-ordering-model.md`
   - `documentation/03-ux/02-warband-management.md`
   - `documentation/03-ux/01-visual-design-guide.md`
 - If planning/triaging work:

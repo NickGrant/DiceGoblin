@@ -5,11 +5,15 @@ import UnitCardGrid from "../components/UnitCardGrid";
 import SquadListPanel from "../components/SquadListPanel";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import { apiClient } from "../services/apiClient";
-import { adaptUnitRecords } from "../adapters/profileViewModels";
 import type { TeamRecord, UnitRecord } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
 import HomeCornerButton from "../components/navigation/HomeCornerButton";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
+import {
+  computeWarbandColumns,
+  deriveWarbandHubState,
+  normalizeNewSquadName,
+} from "./warbandManagementState";
 
 export default class WarbandManagementScene extends Phaser.Scene {
   private loadingText?: Phaser.GameObjects.Text;
@@ -70,10 +74,9 @@ export default class WarbandManagementScene extends Phaser.Scene {
   private async loadData(): Promise<void> {
     try {
       const profile = await apiClient.getProfile({ force: true });
-      if (!profile.ok) throw new Error(profile.error.message);
-
-      this.units = adaptUnitRecords(profile.data.units ?? []);
-      this.squads = (profile.data.squads ?? []) as TeamRecord[];
+      const state = deriveWarbandHubState(profile);
+      this.units = state.units;
+      this.squads = state.squads;
 
       this.loadingText?.destroy();
       this.loadingText = undefined;
@@ -86,10 +89,10 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   private buildUi(): void {
     const layout = getPageLayout(this);
-    const splitGap = 24;
-    const colW = Math.floor((layout.content.width - splitGap) / 2);
-    const leftX = layout.content.x;
-    const rightX = leftX + colW + splitGap;
+    const columns = computeWarbandColumns(layout.content.x, layout.content.width);
+    const leftX = columns.leftX;
+    const rightX = columns.rightX;
+    const colW = columns.columnWidth;
 
     this.add.text(leftX, layout.content.y - 34, "UNITS", {
       fontFamily: "Arial",
@@ -146,7 +149,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
   }
 
   private async createSquad(): Promise<void> {
-    const name = window.prompt("New squad name:", "New Squad")?.trim();
+    const name = normalizeNewSquadName(window.prompt("New squad name:", "New Squad"));
     if (!name) return;
     const res = await apiClient.createTeam(name, false);
     if (!res.ok) {

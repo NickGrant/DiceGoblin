@@ -1,0 +1,1 @@
+{"version":3,"file":"index-AJ1w5Kq2.js","sources":["../../src/main.ts"],"sourcesContent":["import Phaser from \"phaser\";\r\nimport { createGameConfig } from \"./game/config\";\r\n\r\nnew Phaser.Game(createGameConfig());\r\n"],"names":["Phaser","createGameConfig"],"mappings":"k2BAGA,IAAIA,EAAO,KAAKC,GAAkB"}

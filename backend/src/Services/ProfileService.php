@@ -26,6 +26,7 @@ final class ProfileService
   public function __construct(
     private readonly PlayerBootstrapper $bootstrapper,
     private readonly EnergyService $energyService,
+    private readonly ProfileDtoMapper $profileDtoMapper,
 
     private readonly PlayerStateRepository $playerStateRepo,
     private readonly TeamRepository $teamRepo,
@@ -76,25 +77,17 @@ final class ProfileService
     // Active run (if any)
     $activeRun = $this->runRepo->getActiveRunForUser($userId);
 
-    return [
-      'server_time_iso' => $this->nowIsoUtc(),
-
-      // Core profile slices
-      'squads' => $teams,
-      'units' => $units,
-      'dice' => $dice,
-
-      // Meta progression
-      'currency' => $currency,
-      'energy' => $energy,
-
-      // Unlocks / inventory
-      'region_unlocks' => $regionUnlocks,
-      'region_items' => $regionItems,
-
-      // Run
-      'active_run' => $activeRun,
-    ];
+    return $this->profileDtoMapper->mapProfilePayload(
+      $this->nowIsoUtc(),
+      $teams,
+      $units,
+      $dice,
+      $currency,
+      $energy,
+      $regionUnlocks,
+      $regionItems,
+      $activeRun
+    );
   }
 
   // -----------------------------

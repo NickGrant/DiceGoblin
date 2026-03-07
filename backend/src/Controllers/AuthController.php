@@ -215,29 +215,11 @@ final class AuthController
   private function services(): array
   {
     $pdo = Db::pdo();
-
-    $userRepo = new UserRepository($pdo);
-    $playerStateRepo = new PlayerStateRepository($pdo);
-    $energyRepo = new EnergyRepository($pdo);
-
-    $csrfService = new CsrfService();
-    $grantService = new GrantService();
-
-    $bootstrapper = new PlayerBootstrapper(
-      $playerStateRepo,
-      $energyRepo,
-      $grantService
-    );
-
-    $sessionService = new SessionService(
-      $userRepo,
-      $csrfService,
-      $bootstrapper
-    );
+    $core = ControllerServiceFactory::buildCore($pdo);
 
     return [
-      'userRepo' => $userRepo,
-      'sessionService' => $sessionService,
+      'userRepo' => $core['userRepo'],
+      'sessionService' => $core['sessionService'],
     ];
   }
 

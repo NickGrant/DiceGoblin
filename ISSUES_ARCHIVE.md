@@ -1936,3 +1936,170 @@ updated: 2026-03-07
 description: |
   Add focused tests validating scene routing, payload handling, supported node-type behavior, and run-end branching after node resolution consolidation.
 Resolution: Added focused `NodeResolutionScene` regression coverage for payload handling, exit vs non-exit resolution paths, map-return and run-summary branching, and verified consolidated routing behavior with passing frontend test/build gates.
+---
+title: Add end-to-end player journey document for first-session flow
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 13 - Player Experience and UX Flow
+created: 2026-03-02
+updated: 2026-03-07
+description: |
+  [Role: Technical Product Manager] Document the canonical player journey from session bootstrap to first run completion/claim, including failure states and expected UX touchpoints, to align sequencing decisions across roles.
+Resolution: Added `documentation/03-ux/09-first-session-player-journey.md` covering first-session flow stages, touchpoints, and success criteria.
+
+---
+title: Add first-session onboarding and objective framing UX spec
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 13 - Player Experience and UX Flow
+created: 2026-03-02
+updated: 2026-03-07
+description: |
+  [Role: Game Designer] Define onboarding messaging and immediate goals from first login through first run start to reduce confusion and increase early-session engagement.
+Resolution: Added `documentation/03-ux/10-first-session-onboarding-and-objective-framing.md` with stage-specific objective framing and onboarding acceptance criteria.
+
+---
+title: Add encounter preview UX for node risk and reward expectations
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 13 - Player Experience and UX Flow
+created: 2026-03-02
+updated: 2026-03-07
+description: |
+  [Role: Game Designer] Add UX support for encounter preview information (node intent, risk/reward hints) before commitment to improve perceived agency and flow clarity.
+Resolution: Added `documentation/03-ux/11-encounter-preview-risk-reward.md` defining preview model, surface contract, and copy constraints.
+
+---
+title: Add post-battle progression summary UX contract
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 13 - Player Experience and UX Flow
+created: 2026-03-02
+updated: 2026-03-07
+description: |
+  [Role: Game Designer] Define post-battle summary UX (XP gains, rewards, squad changes, next-step prompt) to strengthen player feedback loops.
+Resolution: Added `documentation/03-ux/12-post-battle-progression-summary-contract.md` with required sections, scene contract, and continuation expectations.
+
+---
+title: Define run failure and recovery UX states for partial and total defeat
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 13 - Player Experience and UX Flow
+created: 2026-03-02
+updated: 2026-03-07
+description: |
+  [Role: Game Designer] Specify UX flows for partial defeat retry and total failure outcomes so recovery behavior feels intentional and understandable.
+Resolution: Added `documentation/03-ux/13-run-failure-and-recovery-ux-states.md` defining failure-state UX expectations and recovery guidance.
+
+---
+title: Create player-value feature ordering model for upcoming milestones
+status: complete
+priority: low
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 13 - Player Experience and UX Flow
+created: 2026-03-02
+updated: 2026-03-07
+description: |
+  [Role: Game Designer] Define a player-value prioritization rubric (clarity, engagement, retention impact) to guide sequencing decisions across non-combat and combat-adjacent features.
+Resolution: Added `documentation/03-ux/14-player-value-feature-ordering-model.md` with scoring rubric and backlog triage usage.
+
+---
+title: Remove unsafe any-casts from API client team mutation flow
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 10 - Engineering Maintainability and Contracts
+created: 2026-03-02
+updated: 2026-03-07
+description: |
+  [Role: Senior Developer] `frontend/src/services/apiClient.ts` currently relies on repeated `as any` coercions for session CSRF access and team response typing. Introduce explicit response interfaces and typed helpers to prevent runtime-shape drift and improve compile-time guarantees.
+Resolution: Added explicit team mutation response types and a typed CSRF token helper in `apiClient`, and removed `any` payload coercion from squad update flow.
+
+---
+title: Refactor WarbandManagementScene logic into testable state module
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 10 - Engineering Maintainability and Contracts
+created: 2026-03-02
+updated: 2026-03-07
+description: |
+  [Role: Senior Developer] `frontend/src/scenes/WarbandManagementScene.ts` contains significant state/interaction logic mixed with rendering orchestration. Extract placement/save state transitions into a pure module to reduce scene complexity and improve test coverage quality.
+Resolution: Extracted Warband hub state derivation, layout column math, and new-squad name normalization into `warbandManagementState`, with dedicated unit tests for each behavior.
+
+---
+title: Reduce frontend production bundle size via scene-level code splitting
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 10 - Engineering Maintainability and Contracts
+created: 2026-03-03
+updated: 2026-03-07
+description: |
+  [Role: Senior Developer] Frontend build currently emits a large primary bundle (~1.5 MB minified warning). Introduce scene-level lazy loading and/or manual chunking strategy to lower initial payload size and keep build warnings actionable.
+Resolution: Added deterministic Rollup manual chunking for scene/ui/data/phaser bundles; entry chunk dropped to sub-1 KB while preserving current scene wiring and passing frontend tests/build.
+
+---
+title: Consolidate repeated controller auth/csrf/service bootstrap patterns
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 10 - Engineering Maintainability and Contracts
+created: 2026-03-02
+updated: 2026-03-07
+description: |
+  [Role: Senior Developer] API controllers repeatedly construct services and duplicate auth/CSRF handling patterns. Introduce shared helpers/base patterns to reduce drift and improve maintainability.
+Resolution: Added shared `ControllerServiceFactory` for auth/bootstrap graph construction and `RequiresCsrf` controller concern, then migrated API/Auth/Battle/Gameplay/RunNode/Team controllers to use the shared patterns.
+
+---
+title: Remove nested transaction ownership between controllers and repositories
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 10 - Engineering Maintainability and Contracts
+created: 2026-03-02
+updated: 2026-03-07
+description: |
+  [Role: Senior Developer] Several flows nest controller-level and repository-level transactions. Define clear transaction ownership boundaries to avoid hidden rollback/commit edge cases and simplify reasoning about persistence behavior.
+Resolution: Added `TeamRepository::updateTeamConfiguration()` as single-owner transactional orchestration and updated `TeamController::updateTeam()` to delegate to it, removing controller-managed transaction nesting.
+
+---
+title: Introduce stricter typed DTO mapping for profile squad payload assembly
+status: complete
+priority: low
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 10 - Engineering Maintainability and Contracts
+created: 2026-03-02
+updated: 2026-03-07
+description: |
+  [Role: Senior Developer] `ProfileService` and repository payload composition rely on broad array shapes. Add explicit DTO mapping/types for response assembly to reduce runtime shape drift.
+Resolution: Introduced `ProfileDtoMapper` and routed profile payload assembly through typed mapping methods, including normalized squad/formation shaping before API response output.

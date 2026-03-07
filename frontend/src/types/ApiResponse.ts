@@ -309,6 +309,17 @@ export type DiceMutationData = {
 
 export type DiceMutationResponse = ApiResponse<DiceMutationData>;
 
+export type TeamCreateData = {
+  team_id: string;
+};
+
+export type TeamMutationData = Record<string, never>;
+
+export type TeamCreateResponse = ApiResponse<TeamCreateData>;
+export type TeamActivateResponse = ApiResponse<TeamMutationData>;
+export type TeamUpdateResponse = ApiResponse<TeamMutationData>;
+export type TeamDeleteResponse = ApiResponse<TeamCreateData>;
+
 /**
  * ----------------------------------------
  * POST /api/v1/runs

@@ -287,7 +287,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     };
     if (nameOverride) payload.name = nameOverride;
 
-    const res = await apiClient.updateTeam(this.squad.id, payload as any);
+    const res = await apiClient.updateTeam(this.squad.id, payload);
     if (!res.ok) {
       this.showToast(`Save failed: ${res.error.message}`);
       return;

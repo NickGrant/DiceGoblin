@@ -12,6 +12,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 
 use DiceGoblins\Combat\Abilities\AbilityRegistry;
+use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Env;
@@ -32,6 +33,7 @@ use DiceGoblins\Services\EnergyService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\ProfileService;
+use DiceGoblins\Services\ProfileDtoMapper;
 use DiceGoblins\Services\SessionService;
 
 use PDO;
@@ -40,6 +42,8 @@ use Throwable;
 
 final class ApiController
 {
+  use RequiresCsrf;
+
   /**
    * GET /health
    */
@@ -657,24 +661,6 @@ final class ApiController
     return $decoded;
   }
 
-  private function requireCsrf(CsrfService $csrfService): bool
-  {
-    $provided = $csrfService->extractProvidedToken();
-
-    if (!$csrfService->validateToken($provided)) {
-      Response::json([
-        'ok' => false,
-        'error' => [
-          'code' => 'csrf_invalid',
-          'message' => 'Invalid CSRF token.',
-        ],
-      ], 403);
-      return false;
-    }
-
-    return true;
-  }
-
   /**
    * -----------------------------
    * Domain helpers
@@ -805,39 +791,21 @@ final class ApiController
   private function services(): array
   {
     $pdo = Db::pdo();
-
-    // Repositories
-    $userRepo = new UserRepository($pdo);
-    $playerStateRepo = new PlayerStateRepository($pdo);
-    $energyRepo = new EnergyRepository($pdo);
+    $core = ControllerServiceFactory::buildCore($pdo);
+    $playerStateRepo = $core['playerStateRepo'];
+    $energyRepo = $core['energyRepo'];
     $teamRepo = new TeamRepository($pdo);
     $unitRepo = new UnitRepository($pdo);
     $diceRepo = new DiceRepository($pdo);
     $regionRepo = new RegionRepository($pdo);
     $runRepo = new RunRepository($pdo);
 
-
-    // Services
-    $csrfService = new CsrfService();
-    $grantService = new GrantService();
-
-    $bootstrapper = new PlayerBootstrapper(
-      $playerStateRepo,
-      $energyRepo,
-      $grantService
-    );
-
     $energyService = new EnergyService($energyRepo);
 
-    $sessionService = new SessionService(
-      $userRepo,
-      $csrfService,
-      $bootstrapper
-    );
-
     $profileService = new ProfileService(
-      $bootstrapper,
+      $core['bootstrapper'],
       $energyService,
+      new ProfileDtoMapper(),
       $playerStateRepo,
       $teamRepo,
       $unitRepo,
@@ -849,10 +817,10 @@ final class ApiController
 
     return [
       'pdo' => $pdo,
-      'csrfService' => $csrfService,
-      'sessionService' => $sessionService,
+      'csrfService' => $core['csrfService'],
+      'sessionService' => $core['sessionService'],
       'profileService' => $profileService,
-      'grantService' => $grantService,
+      'grantService' => $core['grantService'],
       'runRepo' => $runRepo,
       'runNodeRepo' => new RunNodeRepository($pdo),
       'regionRepo' => $regionRepo,

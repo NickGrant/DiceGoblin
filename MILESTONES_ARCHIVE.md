@@ -346,3 +346,46 @@ exit_criteria: |
   * Non-rest node handling no longer duplicates resolve logic inside `MapExplorationScene`.
   * Resolution outcomes use one unified scene/flow with consistent messaging and return behavior.
 Resolution: Added dedicated regression coverage for consolidated non-rest node-resolution behavior and validated routing/payload/run-end branching with fully passing frontend tests and build checks.
+---
+name: Milestone 13 - Player Experience and UX Flow
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Add end-to-end player journey document for first-session flow
+  - Add first-session onboarding and objective framing UX spec
+  - Add encounter preview UX for node risk and reward expectations
+  - Add post-battle progression summary UX contract
+  - Define run failure and recovery UX states for partial and total defeat
+  - Create player-value feature ordering model for upcoming milestones
+description: |
+  Improve player-facing flow quality, clarity, and engagement through focused UX and sequencing artifacts.
+entry_criteria: |
+  * Core progression flow from Milestones 2-6 is functionally available for UX refinement.
+  * Player journey and onboarding scope boundaries are documented.
+exit_criteria: |
+  * UX flow and sequencing issues are complete and archived.
+  * Player-facing docs define end-to-end first-session clarity expectations.
+Resolution: Delivered first-session journey/onboarding, encounter preview, post-battle summary, failure/recovery state, and player-value sequencing docs, then linked UX index references for ongoing planning/execution use.
+
+---
+name: Milestone 10 - Engineering Maintainability and Contracts
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Remove unsafe any-casts from API client team mutation flow
+  - Refactor WarbandManagementScene logic into testable state module
+  - Consolidate repeated controller auth/csrf/service bootstrap patterns
+  - Remove nested transaction ownership between controllers and repositories
+  - Introduce stricter typed DTO mapping for profile squad payload assembly
+  - Reduce frontend production bundle size via scene-level code splitting
+description: |
+  Reduce technical debt in client/server architecture and enforce stronger typing and maintainability patterns.
+entry_criteria: |
+  * Milestones 2/3/4/5/6 scope has stabilized enough to avoid high churn during refactors.
+  * API/scene contract docs are current enough to guide safe maintainability work.
+exit_criteria: |
+  * Maintainability/typing issues are complete and archived.
+  * Contract-sensitive refactors pass regression verification.
+Resolution: Completed typed frontend squad mutation contracts, extracted testable warband hub state logic, introduced shared backend controller bootstrap/CSRF patterns, centralized team update transaction ownership in repository orchestration, and added typed profile DTO mapping via `ProfileDtoMapper`.

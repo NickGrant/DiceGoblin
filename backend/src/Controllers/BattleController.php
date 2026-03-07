@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Controllers;
 
+use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
 
@@ -29,6 +30,8 @@ use Throwable;
 
 final class BattleController
 {
+  use RequiresCsrf;
+
   /**
    * GET /api/v1/battles/:battleId/log
    */
@@ -416,15 +419,7 @@ final class BattleController
   private function services(): array
   {
     $pdo = Db::pdo();
-
-    $userRepo = new UserRepository($pdo);
-    $playerStateRepo = new PlayerStateRepository($pdo);
-    $energyRepo = new EnergyRepository($pdo);
-
-    $csrfService = new CsrfService();
-    $grantService = new GrantService();
-    $bootstrapper = new PlayerBootstrapper($playerStateRepo, $energyRepo, $grantService);
-    $sessionService = new SessionService($userRepo, $csrfService, $bootstrapper);
+    $core = ControllerServiceFactory::buildCore($pdo);
 
     return [
       'pdo' => $pdo,
@@ -432,8 +427,8 @@ final class BattleController
       'battleLogRepo' => new BattleLogRepository($pdo),
       'battleRewardsRepo' => new BattleRewardsRepository($pdo),
       'runRepo' => new RunRepository($pdo),
-      'sessionService' => $sessionService,
-      'csrfService' => $csrfService,
+      'sessionService' => $core['sessionService'],
+      'csrfService' => $core['csrfService'],
     ];
   }
 
@@ -529,24 +524,6 @@ final class BattleController
       WHERE `id` = ? AND `user_id` = ?
     ');
     $stmt->execute([$deltaXp, $unitInstanceId, $userId]);
-  }
-
-  private function requireCsrf(CsrfService $csrfService): bool
-  {
-    $provided = $csrfService->extractProvidedToken();
-
-    if (!$csrfService->validateToken($provided)) {
-      Response::json([
-        'ok' => false,
-        'error' => [
-          'code' => 'csrf_invalid',
-          'message' => 'Invalid CSRF token.',
-        ],
-      ], 403);
-      return false;
-    }
-
-    return true;
   }
 
   private function requirePositiveInt(?string $raw, string $field): ?int

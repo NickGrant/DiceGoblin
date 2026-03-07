@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Controllers;
 
 use DiceGoblins\Combat\Engine\DeterministicRunNodeResolver;
+use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
 
@@ -33,6 +34,8 @@ use Throwable;
 
 final class RunNodeController
 {
+  use RequiresCsrf;
+
   /**
    * POST /api/v1/runs/:runId/nodes/:nodeId/resolve
    *
@@ -349,15 +352,7 @@ final class RunNodeController
   private function services(): array
   {
     $pdo = Db::pdo();
-
-    $userRepo = new UserRepository($pdo);
-    $playerStateRepo = new PlayerStateRepository($pdo);
-    $energyRepo = new EnergyRepository($pdo);
-
-    $csrfService = new CsrfService();
-    $grantService = new GrantService();
-    $bootstrapper = new PlayerBootstrapper($playerStateRepo, $energyRepo, $grantService);
-    $sessionService = new SessionService($userRepo, $csrfService, $bootstrapper);
+    $core = ControllerServiceFactory::buildCore($pdo);
 
     return [
       'pdo' => $pdo,
@@ -369,27 +364,9 @@ final class RunNodeController
       'battleRewardsRepo' => new BattleRewardsRepository($pdo),
       'teamRepo' => new TeamRepository($pdo),
       'resolver' => new DeterministicRunNodeResolver($pdo),
-      'sessionService' => $sessionService,
-      'csrfService' => $csrfService,
+      'sessionService' => $core['sessionService'],
+      'csrfService' => $core['csrfService'],
     ];
-  }
-
-  private function requireCsrf(CsrfService $csrfService): bool
-  {
-    $provided = $csrfService->extractProvidedToken();
-
-    if (!$csrfService->validateToken($provided)) {
-      Response::json([
-        'ok' => false,
-        'error' => [
-          'code' => 'csrf_invalid',
-          'message' => 'Invalid CSRF token.',
-        ],
-      ], 403);
-      return false;
-    }
-
-    return true;
   }
 
   /**

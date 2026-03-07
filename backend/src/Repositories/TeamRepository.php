@@ -507,6 +507,68 @@ final class TeamRepository
   }
 
   /**
+   * Atomically replace team membership, optional name, and occupied formation cells.
+   *
+   * @param array<int,int> $unitInstanceIds
+   * @param array<int,array{cell:string,unit_instance_id:mixed}> $formationRows
+   */
+  public function updateTeamConfiguration(
+    int $userId,
+    int $teamId,
+    array $unitInstanceIds,
+    array $formationRows,
+    ?string $name = null
+  ): void {
+    $unitInstanceIds = array_values(array_unique(array_map(static fn($v): int => (int)$v, $unitInstanceIds)));
+    $unitSet = [];
+    foreach ($unitInstanceIds as $uid) {
+      $unitSet[$uid] = true;
+    }
+
+    $ownsTransaction = !$this->pdo->inTransaction();
+
+    try {
+      if ($ownsTransaction) {
+        $this->pdo->beginTransaction();
+      }
+
+      $this->setTeamUnits($userId, $teamId, $unitInstanceIds);
+
+      if ($name !== null) {
+        $this->renameTeam($userId, $teamId, $name);
+      }
+
+      $this->clearFormation($userId, $teamId);
+
+      foreach ($formationRows as $row) {
+        $cell = (string)($row['cell'] ?? '');
+        $uidRaw = $row['unit_instance_id'] ?? null;
+
+        $uid = null;
+        if ($uidRaw !== null && $uidRaw !== '') {
+          $uid = (int)$uidRaw;
+          if (!isset($unitSet[$uid])) {
+            throw new RuntimeException('formation.unit_instance_id must exist in unit_ids.');
+          }
+        }
+
+        if ($uid !== null) {
+          $this->setFormationCell($userId, $teamId, $cell, $uid);
+        }
+      }
+
+      if ($ownsTransaction) {
+        $this->pdo->commit();
+      }
+    } catch (Throwable $e) {
+      if ($ownsTransaction && $this->pdo->inTransaction()) {
+        $this->pdo->rollBack();
+      }
+      throw $e;
+    }
+  }
+
+  /**
    * @return array<int,int>
    */
   public function getTeamUnitIds(int $userId, int $teamId): array

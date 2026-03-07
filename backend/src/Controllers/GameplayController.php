@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Controllers;
 
+use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
 use DiceGoblins\Repositories\DiceRepository;
@@ -23,6 +24,8 @@ use Throwable;
 
 final class GameplayController
 {
+  use RequiresCsrf;
+
   public function openRest(?string $runId = null, ?string $nodeId = null): void
   {
     $svc = $this->services();
@@ -690,16 +693,6 @@ final class GameplayController
     return is_array($decoded) ? $decoded : null;
   }
 
-  private function requireCsrf(CsrfService $csrfService): bool
-  {
-    $provided = $csrfService->extractProvidedToken();
-    if (!$csrfService->validateToken($provided)) {
-      Response::json(['ok' => false, 'error' => ['code' => 'csrf_invalid', 'message' => 'Invalid CSRF token.']], 403);
-      return false;
-    }
-    return true;
-  }
-
   private function requirePositiveInt(?string $raw, string $field): ?int
   {
     $v = (int)($raw ?? 0);
@@ -713,18 +706,12 @@ final class GameplayController
   private function services(): array
   {
     $pdo = Db::pdo();
-    $userRepo = new UserRepository($pdo);
-    $playerStateRepo = new PlayerStateRepository($pdo);
-    $energyRepo = new EnergyRepository($pdo);
-    $csrfService = new CsrfService();
-    $grantService = new GrantService();
-    $bootstrapper = new PlayerBootstrapper($playerStateRepo, $energyRepo, $grantService);
-    $sessionService = new SessionService($userRepo, $csrfService, $bootstrapper);
+    $core = ControllerServiceFactory::buildCore($pdo);
 
     return [
       'pdo' => $pdo,
-      'sessionService' => $sessionService,
-      'csrfService' => $csrfService,
+      'sessionService' => $core['sessionService'],
+      'csrfService' => $core['csrfService'],
       'runRepo' => new RunRepository($pdo),
       'runNodeRepo' => new RunNodeRepository($pdo),
       'runEdgeRepo' => new RunEdgeRepository($pdo),
