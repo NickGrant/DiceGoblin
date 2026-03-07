@@ -63,6 +63,7 @@ This file defines project-specific operating instructions for coding agents work
 - If the user asks to assume `Senior Developer`: run a code quality pass focused on bugs, maintainability risks, architecture hygiene, and DRY/KISS opportunities; then either implement requested cleanup or open issues with concrete file-level findings.
 - If the user asks to assume `Technical Product Manager`: audit `ISSUES.md`, roadmap docs, and supporting documentation for clarity, prioritization, and gaps; then propose or apply documentation/issue updates.
 - If the user asks to assume `QA Lead`: prioritize reproducible test plans, regression checks, and acceptance criteria validation; log failures as actionable issues with repro steps.
+- If the user asks to assume `Asset Librarian`: run an asset hygiene pass focused on naming consistency, folder organization, duplicate detection, missing required assets, and unreferenced assets; then either apply safe non-destructive cleanup updates or open issues with concrete file-level findings.
 - If the user asks to assume a role not defined in `ROLES.md`: briefly state the mismatch and fall back to default behavior unless the user clarifies.
 
 ## Role Clarification Logging

@@ -48,3 +48,26 @@
 - name: Game Designer
   decision: Recommended expanding profile entries with gameplay-facing readability cues and combat identity constraints.
   definition: Define the minimum required gameplay metadata per character profile (silhouette role cues, animation hooks, and ability telegraph notes).
+- name: Technical Product Manager
+  decision: Recommended collapsing list-related specs into a single ListContainer + two render variants.
+  definition: Clarify when TPM should enforce a canonical component taxonomy versus preserving scene-specific component naming for faster onboarding.
+
+- name: Senior Developer
+  decision: Recommended Accept/Reject inherit from a shared button base with style/intent overrides instead of separate standalone specs.
+  definition: Define preferred OOP policy for UI components (inheritance-first vs composition-first) to avoid inconsistent refactor direction.
+
+- name: QA Lead
+  decision: Flagged missing per-component acceptance criteria and state-transition expectations (loading->ready->error) in specs.
+  definition: Define minimum testability metadata required in component specs (state matrix, critical paths, failure behavior).
+
+- name: Backlog Curator
+  decision: Recommended adding explicit spec versioning and status fields per component group to prevent drift across docs.
+  definition: Clarify whether UX rebuild docs should be treated as active execution artifacts or planning references for archive timing rules.
+
+- name: Combat Systems Reviewer
+  decision: Flagged that run-map and summary components need explicit combat-state contracts (outcome labels, unlock semantics).
+  definition: Define how deep Combat Systems Reviewer should go into UX component contracts when mechanics are user-visible.
+
+- name: Game Designer
+  decision: Flagged missing interaction-intent metadata (player goal, emotional target, readability priority) per component.
+  definition: Define required player-experience fields in component specs to distinguish functional correctness from UX quality.
