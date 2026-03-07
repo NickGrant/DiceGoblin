@@ -2103,3 +2103,73 @@ updated: 2026-03-07
 description: |
   [Role: Senior Developer] `ProfileService` and repository payload composition rely on broad array shapes. Add explicit DTO mapping/types for response assembly to reduce runtime shape drift.
 Resolution: Introduced `ProfileDtoMapper` and routed profile payload assembly through typed mapping methods, including normalized squad/formation shaping before API response output.
+
+---
+title: Add create-run domain error branch integration coverage
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: unassigned
+created: 2026-03-04
+updated: 2026-03-07
+description: |
+  Add backend integration tests for `POST /api/v1/runs` domain-error branches: `run_already_active`, `region_not_found`, `region_disabled`, `region_locked`, missing active squad, and `insufficient_energy` to prevent gameplay regression in run-start gating.
+Resolution: Added `ApiControllerCreateRunDomainErrorsTest` covering all listed create-run domain error branches and fixed an uncovered repository edge case where unchanged energy updates incorrectly threw missing-row errors.
+
+---
+title: Add resolve-node negative-state branch coverage for ownership and availability rules
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: unassigned
+created: 2026-03-04
+updated: 2026-03-07
+description: |
+  Add integration coverage for `POST /api/v1/runs/:runId/nodes/:nodeId/resolve` error branches including run-not-active, node locked/unavailable, run ownership mismatch, invalid team ownership, and malformed body handling.
+Resolution: Added `RunNodeControllerNegativeStateBranchesTest` for run-not-active, locked node, ownership mismatch, and invalid team ownership branches; also aligned request-body parsing with existing controllers by adding `$_POST` fallback for empty request bodies.
+
+---
+title: Add claim-battle non-happy-path coverage for claimability and ownership guards
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: unassigned
+created: 2026-03-04
+updated: 2026-03-07
+description: |
+  Add integration tests for `POST /api/v1/battles/:battleId/claim` non-happy-path branches (`battle_not_completed`, forbidden ownership access, and invalid outcome-state guard) to protect claim-state invariants.
+Resolution: Added `BattleControllerClaimNegativeBranchesTest` covering `battle_not_completed`, ownership-forbidden claim attempts, and invalid-outcome guard behavior.
+
+---
+title: Add starter-pack provisioning invariants tests for baseline bootstrap flow
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: unassigned
+created: 2026-03-04
+updated: 2026-03-07
+description: |
+  Add tests for `GrantService` baseline provisioning to verify idempotent starter grants and expected seed-data dependencies (starter region/unit/dice definitions) across clean and pre-seeded test DB states.
+Resolution: Added `GrantServiceStarterPackInvariantsTest` with seed-dependency assertions plus idempotent and pre-seeded-user provisioning invariants.
+
+---
+title: Add gameplay-effect tests for canonical active and passive ability handlers
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: unassigned
+created: 2026-03-04
+updated: 2026-03-07
+description: |
+  Extend combat unit tests beyond handler registry coverage to assert per-ability gameplay effects (damage/buffs/debuffs/targeting semantics) for canonical active and passive handlers.
+Resolution: Added `AbilityHandlerEffectsTest` with active handler interaction assertions (targeting/damage/status calls) and passive derived-stat mutation assertions, and made `CombatContext` extendable for test spies.

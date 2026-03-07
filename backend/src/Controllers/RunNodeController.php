@@ -378,7 +378,12 @@ final class RunNodeController
     if ($raw === false) return null;
 
     $raw = trim($raw);
-    if ($raw === '') return [];
+    if ($raw === '') {
+      if (isset($_POST) && is_array($_POST) && count($_POST) > 0) {
+        return $_POST;
+      }
+      return [];
+    }
 
     $decoded = json_decode($raw, true);
     return is_array($decoded) ? $decoded : null;

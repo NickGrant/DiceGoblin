@@ -650,6 +650,9 @@ final class ApiController
 
     $raw = trim($raw);
     if ($raw === '') {
+      if (isset($_POST) && is_array($_POST) && count($_POST) > 0) {
+        return $_POST;
+      }
       return [];
     }
 

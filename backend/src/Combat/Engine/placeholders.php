@@ -28,7 +28,7 @@ final class DerivedStats
     ) {}
 }
 
-final class CombatContext
+class CombatContext
 {
     public function chooseTarget(UnitRef $actor, AbilityTarget $target): ?UnitRef
     {
