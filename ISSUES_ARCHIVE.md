@@ -1923,3 +1923,16 @@ updated: 2026-03-07
 description: |
   Update scene/component mapping docs to show final adopted components and note any intentionally deferred scene-specific exceptions.
 Resolution: Updated scene-component mapping documentation with Milestone 16 adoption coverage and current migration status.
+---
+title: Add regression coverage for consolidated non-rest node resolution flow
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 14 - Run Node Resolution Consolidation
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Add focused tests validating scene routing, payload handling, supported node-type behavior, and run-end branching after node resolution consolidation.
+Resolution: Added focused `NodeResolutionScene` regression coverage for payload handling, exit vs non-exit resolution paths, map-return and run-summary branching, and verified consolidated routing behavior with passing frontend test/build gates.
