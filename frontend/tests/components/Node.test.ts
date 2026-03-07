@@ -54,11 +54,22 @@ vi.mock("phaser", () => {
       Container: FakeContainer,
       Image: FakeImage,
     },
+    Geom: {
+      Rectangle: class {
+        constructor(
+          public x: number,
+          public y: number,
+          public width: number,
+          public height: number
+        ) {}
+      },
+    },
   };
 
   return {
     default: fakePhaser,
     GameObjects: fakePhaser.GameObjects,
+    Geom: fakePhaser.Geom,
   };
 });
 
@@ -71,6 +82,7 @@ function makeScene() {
     scale: 1,
     tint: null as number | null,
     setOrigin() { return this; },
+    setDisplaySize() { return this; },
     setScale(v: number) { this.scale = v; return this; },
     setTexture(key: string) { this.textureKey = key; return this; },
     setAlpha(v: number) { this.alpha = v; return this; },

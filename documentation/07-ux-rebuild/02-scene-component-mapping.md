@@ -2,12 +2,16 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-06  
+Last Updated: 2026-03-07  
 Owner: UX + Frontend  
 Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
 
 ## Purpose
 - Map component usage scene-by-scene to define required composition targets.
+
+## Adoption Status (Milestone 16)
+- Implemented: `HomeScene`, `RegionSelectScene`, `MapExplorationScene`, `NodeResolutionScene`, `WarbandManagementScene`, `SquadDetailsScene`, `UnitDetailsScene`, `DiceInventoryScene`, `RestManagementScene`, `RunEndSummaryScene`
+- Remaining migration work: remove/trim duplicated scene-local control patterns as follow-up cleanup during final milestone wrap.
 
 ## Scene Mapping
 - `LandingScene`
@@ -44,6 +48,15 @@ Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
   - Section title bar
   - Content area frame
   - Error state panel/text
+
+- `NodeResolutionScene`
+  - Generic action button
+  - Confirmation dialog (accept/reject pattern)
+  - Toast/status feedback message
+  - Home corner button
+  - HUD energy corner widget
+  - Section title bar
+  - Content area frame
 
 - `WarbandManagementScene`
   - Grid list variant

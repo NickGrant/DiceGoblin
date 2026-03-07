@@ -1,10 +1,10 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
-import HomeNavArea from "../components/HomeNavArea";
-import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import { apiClient } from "../services/apiClient";
 import { getPageLayout, type LayoutRect } from "../layout/pageLayout";
+import HomeCornerButton from "../components/navigation/HomeCornerButton";
+import HomeNavigationPanel from "../components/navigation/HomeNavigationPanel";
 
 const AREA_GAP = 12;
 
@@ -17,10 +17,7 @@ export default class HomeScene extends Phaser.Scene {
     new BackgroundImage(this);
     const layout = getPageLayout(this);
 
-    new HomeButton(this, {
-      x: layout.homeIcon.x,
-      y: layout.homeIcon.y,
-    });
+    new HomeCornerButton({ scene: this, x: layout.homeIcon.x, y: layout.homeIcon.y });
 
     new HudPanel(this);
 
@@ -47,16 +44,16 @@ export default class HomeScene extends Phaser.Scene {
     };
 
     void this.renderDynamicRunArea(leftArea);
-    new HomeNavArea({
+    new HomeNavigationPanel({
       scene: this,
-      area: rightTopArea,
+      areaRect: rightTopArea,
       title: "Manage Warband",
       bodyColor: 0x00f6ff,
       targetSceneKey: "WarbandManagementScene",
     });
-    new HomeNavArea({
+    new HomeNavigationPanel({
       scene: this,
-      area: rightBottomArea,
+      areaRect: rightBottomArea,
       title: "Manage Inventory",
       bodyColor: 0x00ff72,
       targetSceneKey: "DiceInventoryScene",
@@ -72,9 +69,9 @@ export default class HomeScene extends Phaser.Scene {
       hasActiveRun = false;
     }
 
-    new HomeNavArea({
+    new HomeNavigationPanel({
       scene: this,
-      area: leftArea,
+      areaRect: leftArea,
       title: hasActiveRun ? "Continue Run" : "Start Run",
       bodyColor: 0x0600ff,
       targetSceneKey: hasActiveRun ? "MapExplorationScene" : "RegionSelectScene",

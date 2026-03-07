@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveEnergyTierIcon } from "./HudPanel";
+import { resolveEnergyTierIcon } from "./hudEnergy";
 
 describe("HudPanel", () => {
   it("maps energy percentages to icon tiers", () => {

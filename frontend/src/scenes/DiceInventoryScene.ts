@@ -1,15 +1,15 @@
 import BackgroundImage from "../components/BackgroundImage";
-import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import DiceCardGrid from "../components/DiceCardGrid";
-import { drawUxDualZones } from "../components/UxZonePanels";
 import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { DiceDetailsViewModel } from "../adapters/profileViewModels";
 import type { UnitRecord } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
+import HomeCornerButton from "../components/navigation/HomeCornerButton";
+import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
 
 export default class DiceInventoryScene extends Phaser.Scene {
@@ -43,14 +43,29 @@ export default class DiceInventoryScene extends Phaser.Scene {
     new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
-    drawUxDualZones(this, {
-      leftTitle: "Manage Units",
-      rightTitle: "Manage Inventory",
-      leftColor: 0x00f6ff,
-      rightColor: 0x00ff72,
+    const contentFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.content.x,
+      y: layout.content.y,
+      width: layout.content.width,
+      height: layout.content.height,
+      title: "Manage Units",
+      bodyColor: 0x00f6ff,
     });
+    contentFrame.setDepth(-800);
+    const actionsFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.buttons.x,
+      y: layout.buttons.y,
+      width: layout.buttons.width,
+      height: layout.buttons.height,
+      title: "Manage Inventory",
+      bodyColor: 0x00ff72,
+    });
+    actionsFrame.setDepth(-800);
     const buttonX = layout.buttons.x + 10;
-    new HomeButton(this, {
+    new HomeCornerButton({
+      scene: this,
       x: layout.homeIcon.x,
       y: layout.homeIcon.y,
     });

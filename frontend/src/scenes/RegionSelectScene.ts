@@ -1,12 +1,16 @@
+import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
-import ClickablePanelRegionColumn from "../components/clickable-panel/RegionColumn";
-import HomeButton from "../components/HomeButton";
+import ToastMessage from "../components/feedback/ToastMessage";
 import HudPanel from "../components/HudPanel";
-import { drawUxDualZones } from "../components/UxZonePanels";
 import { getPageLayout } from "../layout/pageLayout";
+import HomeCornerButton from "../components/navigation/HomeCornerButton";
+import RegionSelectionPanel from "../components/navigation/RegionSelectionPanel";
+import ContentAreaFrame from "../components/layout/ContentAreaFrame";
+import { apiClient } from "../services/apiClient";
 
 
 export default class RegionSelectScene extends Phaser.Scene {
+  private toast?: ToastMessage;
 
   constructor() {
     super({ key: "RegionSelectScene" });
@@ -16,22 +20,99 @@ export default class RegionSelectScene extends Phaser.Scene {
     new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
-    drawUxDualZones(this, {
-      leftTitle: "Choose Region",
-      rightTitle: "Region Intel",
-      leftColor: 0x0600ff,
-      rightColor: 0x00f6ff,
-    });
-    new HomeButton(this, {
+    new HomeCornerButton({
+      scene: this,
       x: layout.homeIcon.x,
       y: layout.homeIcon.y,
     });
 
-    const leftColumnX = layout.content.x + 70;
-    const rightColumnX = layout.content.x + 380;
-    const columnY = layout.content.y + 168;
-    new ClickablePanelRegionColumn(this, { x: leftColumnX, y: columnY }, 'mountain').setScale(.3);
-    new ClickablePanelRegionColumn(this, { x: rightColumnX, y: columnY }, 'swamp').setScale(.3);
+    const contentFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.content.x,
+      y: layout.content.y,
+      width: layout.content.width,
+      height: layout.content.height,
+      title: "Choose Region",
+      bodyColor: 0x0600ff,
+    });
+    contentFrame.setDepth(-800);
+
+    const intelFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.buttons.x,
+      y: layout.buttons.y,
+      width: layout.buttons.width,
+      height: layout.buttons.height,
+      title: "Region Intel",
+      bodyColor: 0x00f6ff,
+    });
+    intelFrame.setDepth(-800);
+
+    this.add.text(layout.buttons.x + 24, layout.buttons.y + 90, "Select a region to start a run.", {
+      fontFamily: "Arial",
+      fontSize: "24px",
+      color: "#111111",
+      wordWrap: { width: layout.buttons.width - 48 },
+    });
+
+    const gap = 24;
+    const panelWidth = Math.floor((layout.content.width - gap * 3) / 2);
+    const panelHeight = Math.max(200, layout.content.height - 200);
+    const panelY = layout.content.y + 90;
+
+    new RegionSelectionPanel({
+      scene: this,
+      x: layout.content.x + gap,
+      y: panelY,
+      width: panelWidth,
+      height: panelHeight,
+      regionId: "mountain",
+      label: "Mountain",
+      textureKey: "column_mountain",
+      locked: false,
+      onSelect: async () => this.startRun("mountain"),
+      onLockedSelect: () => this.showFeedback("Region locked."),
+    });
+
+    new RegionSelectionPanel({
+      scene: this,
+      x: layout.content.x + gap * 2 + panelWidth,
+      y: panelY,
+      width: panelWidth,
+      height: panelHeight,
+      regionId: "swamp",
+      label: "Swamp",
+      textureKey: "column_swamp",
+      locked: false,
+      onSelect: async () => this.startRun("swamp"),
+      onLockedSelect: () => this.showFeedback("Region locked."),
+    });
+  }
+
+  private async startRun(regionId: "mountain" | "swamp"): Promise<void> {
+    try {
+      const res = await apiClient.createRun(regionId);
+      if (!res.ok) {
+        this.showFeedback(`Cannot start run: ${res.error.message}`);
+        return;
+      }
+      this.scene.start("MapExplorationScene");
+    } catch (error) {
+      const fallback = "Cannot start run right now. Please retry.";
+      this.showFeedback(error instanceof Error ? error.message : fallback);
+    }
+  }
+
+  private showFeedback(message: string): void {
+    this.toast?.destroy();
+    this.toast = new ToastMessage({
+      scene: this,
+      x: 24,
+      y: this.scale.height - 84,
+      message,
+      severity: "warning",
+      durationMs: 2600,
+    });
   }
 }
 

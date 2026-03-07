@@ -309,3 +309,24 @@ exit_criteria: |
   * Specified core components are implemented and test-covered.
   * Components are ready for scene-by-scene migration without ad hoc UI duplication.
 Resolution: Implemented reusable layout/navigation/list/action/HUD-feedback primitives, added component-level behavior tests and usage guidance, and prepared Milestone 16 migration work on an open current execution window.
+---
+name: Milestone 16 - Scene Migration to UX Rebuild Components
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Migrate HomeScene to standardized UX rebuild components
+  - Migrate RegionSelectScene and MapExplorationScene to shared component library
+  - Migrate warband management scenes to shared list/action components
+  - Migrate inventory, rest, and run summary scenes to shared component library
+  - Remove superseded scene-local UI implementations after migration
+  - Update UX rebuild docs to reflect final component adoption per scene
+description: |
+  Migrate existing scenes onto the shared UX rebuild component library and retire superseded local UI implementations.
+entry_criteria: |
+  * Milestone 15 component implementations are available and verified.
+  * Scene migration order and UX acceptance expectations are defined.
+exit_criteria: |
+  * Target scenes use shared components as primary UI implementation path.
+  * Legacy duplicated scene-local UI code is removed or explicitly deprecated.
+Resolution: Completed scene-by-scene migration to shared layout/navigation/feedback primitives, removed superseded scene-local wrappers, and validated frontend build + test gates with all tests passing.

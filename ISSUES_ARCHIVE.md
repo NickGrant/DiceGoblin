@@ -1842,3 +1842,84 @@ updated: 2026-03-07
 description: |
   Add tests and concise usage examples for new reusable components to ensure expected behavior and reduce integration ambiguity during scene migration.
 Resolution: Added unit tests for list-state, layout-body sizing, and HUD energy-tier logic and authored `documentation/07-ux-rebuild/05-component-library-usage.md` with integration snippets.
+---
+title: Migrate HomeScene to standardized UX rebuild components
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 16 - Scene Migration to UX Rebuild Components
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Refactor `HomeScene` to use the new shared component library for navigation areas, headers, and interaction surfaces while preserving start/continue run behavior.
+Resolution: HomeScene now uses `HomeCornerButton` and `HomeNavigationPanel` directly, preserving start/continue run routing while removing scene-level dependency on legacy wrapper components.
+---
+title: Migrate RegionSelectScene and MapExplorationScene to shared component library
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 16 - Scene Migration to UX Rebuild Components
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Replace scene-specific UI implementations in `RegionSelectScene` and `MapExplorationScene` with standardized components and shared interaction patterns.
+Resolution: RegionSelect and MapExploration now use shared `ContentAreaFrame` layout shells, `HomeCornerButton`, and shared feedback/dialog components (`ToastMessage`, `ConfirmationDialog`) while preserving run start/map flow behaviors.
+---
+title: Migrate warband management scenes to shared list/action components
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 16 - Scene Migration to UX Rebuild Components
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Refactor `WarbandManagementScene`, `SquadDetailsScene`, and `UnitDetailsScene` to use unified list, card-grid, and action control components from the UX rebuild library.
+Resolution: Migrated warband scenes to shared layout shell components (`ContentAreaFrame`, `HomeCornerButton`) while preserving list/card/action behavior and scene transitions.
+
+---
+title: Migrate inventory, rest, and run summary scenes to shared component library
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 16 - Scene Migration to UX Rebuild Components
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Refactor `DiceInventoryScene`, `RestManagementScene`, and `RunEndSummaryScene` to standardized layout, list, and feedback components to reduce UI drift.
+Resolution: Migrated inventory/rest/run-summary scene shells to shared UX rebuild primitives and kept existing gameplay interactions intact.
+
+---
+title: Remove superseded scene-local UI implementations after migration
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 16 - Scene Migration to UX Rebuild Components
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Delete or deprecate duplicated scene-local UI code that is replaced by shared components, ensuring imports and references are cleaned up.
+Resolution: Removed superseded `UxZonePanels` and `HomeNavArea` implementations and updated scene imports to rely on shared component-library primitives.
+
+---
+title: Update UX rebuild docs to reflect final component adoption per scene
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 16 - Scene Migration to UX Rebuild Components
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Update scene/component mapping docs to show final adopted components and note any intentionally deferred scene-specific exceptions.
+Resolution: Updated scene-component mapping documentation with Milestone 16 adoption coverage and current migration status.

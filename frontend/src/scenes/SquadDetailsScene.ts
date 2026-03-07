@@ -1,15 +1,15 @@
 import BackgroundImage from "../components/BackgroundImage";
-import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
-import { drawUxDualZones } from "../components/UxZonePanels";
 import { apiClient } from "../services/apiClient";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
 import type { TeamRecord, UnitRecord, TeamFormationCell } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
+import HomeCornerButton from "../components/navigation/HomeCornerButton";
+import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
 type Cell = FormationCell;
 const CELLS: Cell[] = ["A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"];
@@ -51,13 +51,27 @@ export default class SquadDetailsScene extends Phaser.Scene {
     new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
-    drawUxDualZones(this, {
-      leftTitle: "Squad Details",
-      rightTitle: "Squad Actions",
-      leftColor: 0x00f6ff,
-      rightColor: 0x00ff72,
+    const contentFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.content.x,
+      y: layout.content.y,
+      width: layout.content.width,
+      height: layout.content.height,
+      title: "Squad Details",
+      bodyColor: 0x00f6ff,
     });
-    new HomeButton(this, { x: layout.homeIcon.x, y: layout.homeIcon.y });
+    contentFrame.setDepth(-800);
+    const actionsFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.buttons.x,
+      y: layout.buttons.y,
+      width: layout.buttons.width,
+      height: layout.buttons.height,
+      title: "Squad Actions",
+      bodyColor: 0x00ff72,
+    });
+    actionsFrame.setDepth(-800);
+    new HomeCornerButton({ scene: this, x: layout.homeIcon.x, y: layout.homeIcon.y });
 
     this.loadingText = this.add.text(layout.content.x + 16, layout.content.y + 120, "Loading squad details...", {
       fontFamily: "Arial",

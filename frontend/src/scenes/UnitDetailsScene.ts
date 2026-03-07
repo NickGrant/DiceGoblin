@@ -1,14 +1,14 @@
 import BackgroundImage from "../components/BackgroundImage";
-import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
-import { drawUxDualZones } from "../components/UxZonePanels";
 import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { UnitRecord } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
+import HomeCornerButton from "../components/navigation/HomeCornerButton";
+import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
 export default class UnitDetailsScene extends Phaser.Scene {
   private unitId = "";
@@ -36,13 +36,27 @@ export default class UnitDetailsScene extends Phaser.Scene {
     new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
-    drawUxDualZones(this, {
-      leftTitle: "Unit Details",
-      rightTitle: "Unit Actions",
-      leftColor: 0x00f6ff,
-      rightColor: 0x00ff72,
+    const contentFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.content.x,
+      y: layout.content.y,
+      width: layout.content.width,
+      height: layout.content.height,
+      title: "Unit Details",
+      bodyColor: 0x00f6ff,
     });
-    new HomeButton(this, { x: layout.homeIcon.x, y: layout.homeIcon.y });
+    contentFrame.setDepth(-800);
+    const actionsFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.buttons.x,
+      y: layout.buttons.y,
+      width: layout.buttons.width,
+      height: layout.buttons.height,
+      title: "Unit Actions",
+      bodyColor: 0x00ff72,
+    });
+    actionsFrame.setDepth(-800);
+    new HomeCornerButton({ scene: this, x: layout.homeIcon.x, y: layout.homeIcon.y });
 
     this.loadingText = this.add.text(layout.content.x + 16, layout.content.y + 120, "Loading unit details...", {
       fontFamily: "Arial",

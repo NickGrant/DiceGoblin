@@ -1,15 +1,15 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
-import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import UnitCardGrid from "../components/UnitCardGrid";
 import SquadListPanel from "../components/SquadListPanel";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
-import { drawUxDualZones } from "../components/UxZonePanels";
 import { apiClient } from "../services/apiClient";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
 import type { TeamRecord, UnitRecord } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
+import HomeCornerButton from "../components/navigation/HomeCornerButton";
+import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
 export default class WarbandManagementScene extends Phaser.Scene {
   private loadingText?: Phaser.GameObjects.Text;
@@ -29,13 +29,29 @@ export default class WarbandManagementScene extends Phaser.Scene {
     new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
-    drawUxDualZones(this, {
-      leftTitle: "Manage Warband",
-      rightTitle: "Squad Actions",
-      leftColor: 0x00f6ff,
-      rightColor: 0x00ff72,
+    const contentFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.content.x,
+      y: layout.content.y,
+      width: layout.content.width,
+      height: layout.content.height,
+      title: "Manage Warband",
+      bodyColor: 0x00f6ff,
     });
-    new HomeButton(this, {
+    contentFrame.setDepth(-800);
+    const actionsFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.buttons.x,
+      y: layout.buttons.y,
+      width: layout.buttons.width,
+      height: layout.buttons.height,
+      title: "Squad Actions",
+      bodyColor: 0x00ff72,
+    });
+    actionsFrame.setDepth(-800);
+
+    new HomeCornerButton({
+      scene: this,
       x: layout.homeIcon.x,
       y: layout.homeIcon.y,
     });

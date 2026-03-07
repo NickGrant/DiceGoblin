@@ -1,21 +1,23 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
-import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import NodeList from "../components/encounter-map/NodeList";
-import { drawUxDualZones } from "../components/UxZonePanels";
+import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 import { apiClient } from "../services/apiClient";
 import type { CurrentRunNode, RunResponse } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
 import { isNodeResolutionType } from "./nodeResolutionFlow";
+import HomeCornerButton from "../components/navigation/HomeCornerButton";
+import ConfirmationDialog from "../components/feedback/ConfirmationDialog";
+import ToastMessage from "../components/feedback/ToastMessage";
 
 export default class MapExplorationScene extends Phaser.Scene {
   private runEnvelope: RunResponse | null = null;
   private fallbackText?: Phaser.GameObjects.Text;
-  private toastText?: Phaser.GameObjects.Text;
+  private toast?: ToastMessage;
   private nodeList?: NodeList;
-  private abandonDialog?: Phaser.GameObjects.Container;
+  private abandonDialog?: ConfirmationDialog;
   private incomingResolutionMessage = "";
   private incomingResolutionColor = "#ffd89e";
 
@@ -32,13 +34,31 @@ export default class MapExplorationScene extends Phaser.Scene {
     new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
-    drawUxDualZones(this, {
-      leftTitle: "Start a Run",
-      rightTitle: "Run Actions",
-      leftColor: 0x0600ff,
-      rightColor: 0x00ff72,
+
+    const runFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.content.x,
+      y: layout.content.y,
+      width: layout.content.width,
+      height: layout.content.height,
+      title: "Run Map",
+      bodyColor: 0x0600ff,
     });
-    new HomeButton(this, {
+    runFrame.setDepth(-800);
+
+    const actionsFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.buttons.x,
+      y: layout.buttons.y,
+      width: layout.buttons.width,
+      height: layout.buttons.height,
+      title: "Run Actions",
+      bodyColor: 0x00ff72,
+    });
+    actionsFrame.setDepth(-800);
+
+    new HomeCornerButton({
+      scene: this,
       x: layout.homeIcon.x,
       y: layout.homeIcon.y,
     });
@@ -145,69 +165,21 @@ export default class MapExplorationScene extends Phaser.Scene {
   }
 
   private showAbandonDialog(): void {
-    const layout = getPageLayout(this);
-    const dialog = this.add.container(0, 0).setDepth(2000);
-
-    const dimmer = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x000000, 0.55).setOrigin(0, 0);
-    dimmer.setInteractive();
-
-    const panelW = 560;
-    const panelH = 220;
-    const panelX = layout.content.x + Math.max(0, (layout.content.width - panelW) / 2);
-    const panelY = layout.content.y + Math.max(0, (layout.content.height - panelH) / 2);
-    const panel = this.add
-      .rectangle(panelX, panelY, panelW, panelH, 0x171717, 0.95)
-      .setOrigin(0, 0)
-      .setStrokeStyle(2, 0xffffff, 0.3);
-
-    const title = this.add.text(panelX + 20, panelY + 18, "ABANDON RUN?", {
-      fontFamily: "Arial",
-      fontSize: "28px",
-      color: "#ffffff",
+    this.abandonDialog = new ConfirmationDialog({
+      scene: this,
+      title: "ABANDON RUN?",
+      message: "This will end the current run immediately.",
+      acceptLabel: "Abandon",
+      rejectLabel: "Cancel",
+      onReject: () => {
+        this.abandonDialog = undefined;
+      },
+      onAccept: async () => {
+        this.abandonDialog?.close();
+        this.abandonDialog = undefined;
+        await this.executeAbandonRun();
+      },
     });
-
-    const body = this.add.text(panelX + 20, panelY + 70, "This will end the current run immediately.", {
-      fontFamily: "Arial",
-      fontSize: "16px",
-      color: "#dddddd",
-      wordWrap: { width: panelW - 40 },
-    });
-
-    const cancelBtn = this.add
-      .rectangle(panelX + 20, panelY + panelH - 58, 180, 40, 0x2a2a2a, 1)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0xffffff, 0.25)
-      .setInteractive({ useHandCursor: true });
-    const cancelTxt = this.add.text(cancelBtn.x + 90, cancelBtn.y + 20, "Cancel", {
-      fontFamily: "Arial",
-      fontSize: "18px",
-      color: "#f0f0f0",
-    }).setOrigin(0.5, 0.5);
-
-    const confirmBtn = this.add
-      .rectangle(panelX + panelW - 200, panelY + panelH - 58, 180, 40, 0x6f1f1f, 1)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0xffffff, 0.25)
-      .setInteractive({ useHandCursor: true });
-    const confirmTxt = this.add.text(confirmBtn.x + 90, confirmBtn.y + 20, "Abandon", {
-      fontFamily: "Arial",
-      fontSize: "18px",
-      color: "#fff0f0",
-    }).setOrigin(0.5, 0.5);
-
-    const close = (): void => {
-      this.abandonDialog?.destroy(true);
-      this.abandonDialog = undefined;
-    };
-
-    cancelBtn.on("pointerdown", () => close());
-    confirmBtn.on("pointerdown", () => {
-      close();
-      void this.executeAbandonRun();
-    });
-
-    dialog.add([dimmer, panel, title, body, cancelBtn, cancelTxt, confirmBtn, confirmTxt]);
-    this.abandonDialog = dialog;
   }
 
   private async executeAbandonRun(): Promise<void> {
@@ -234,8 +206,8 @@ export default class MapExplorationScene extends Phaser.Scene {
   private clearMessages(): void {
     this.fallbackText?.destroy();
     this.fallbackText = undefined;
-    this.toastText?.destroy();
-    this.toastText = undefined;
+    this.toast?.destroy();
+    this.toast = undefined;
   }
 
   private showFallback(message: string): void {
@@ -251,17 +223,16 @@ export default class MapExplorationScene extends Phaser.Scene {
   }
 
   private showToast(message: string, color = "#ffcccc"): void {
-    this.toastText?.destroy();
+    this.toast?.destroy();
     const layout = getPageLayout(this);
-    this.toastText = this.add.text(layout.content.x + 8, layout.content.y + layout.content.height - 24, message, {
-      fontFamily: "Arial",
-      fontSize: "12px",
-      color,
-      wordWrap: { width: layout.content.width - 16 },
-    });
-    this.time.delayedCall(2800, () => {
-      this.toastText?.destroy();
-      this.toastText = undefined;
+    const severity = color === "#ffd89e" ? "info" : "warning";
+    this.toast = new ToastMessage({
+      scene: this,
+      x: layout.content.x + 12,
+      y: layout.content.y + layout.content.height - 60,
+      message,
+      severity,
+      durationMs: 2800,
     });
   }
 }

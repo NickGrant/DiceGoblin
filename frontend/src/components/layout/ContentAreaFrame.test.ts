@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveContentFrameBodyRect } from "./ContentAreaFrame";
+import { resolveContentFrameBodyRect } from "./contentAreaMath";
 
 describe("ContentAreaFrame", () => {
   it("uses edge-to-edge body dimensions when image mode is enabled", () => {

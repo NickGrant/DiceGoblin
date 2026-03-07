@@ -2,16 +2,7 @@ import Phaser from "phaser";
 import { apiClient } from "../services/apiClient";
 import { getPageLayout } from "../layout/pageLayout";
 import Tooltip from "./feedback/Tooltip";
-
-export function resolveEnergyTierIcon(current: number, max: number): string {
-  const safeMax = Math.max(1, max);
-  const pct = Phaser.Math.Clamp(current / safeMax, 0, 1) * 100;
-  if (pct >= 100) return "icon_energy";
-  if (pct >= 75) return "icon_energy_75";
-  if (pct >= 50) return "icon_energy_50";
-  if (pct >= 25) return "icon_energy_25";
-  return "icon_energy_0";
-}
+import { resolveEnergyTierIcon } from "./hudEnergy";
 
 export default class HudPanel extends Phaser.GameObjects.Container {
   private cornerBg: Phaser.GameObjects.Image;

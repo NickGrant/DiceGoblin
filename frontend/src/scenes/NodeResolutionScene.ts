@@ -1,11 +1,11 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
-import HomeButton from "../components/HomeButton";
 import HudPanel from "../components/HudPanel";
 import ActionButton from "../components/clickable-panel/ActionButton";
-import { drawUxDualZones } from "../components/UxZonePanels";
 import { apiClient } from "../services/apiClient";
 import { getPageLayout } from "../layout/pageLayout";
+import HomeCornerButton from "../components/navigation/HomeCornerButton";
+import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 import {
   deriveSummaryStatus,
   formatUnlockedNodes,
@@ -46,13 +46,28 @@ export default class NodeResolutionScene extends Phaser.Scene {
     new BackgroundImage(this);
     new HudPanel(this);
     const layout = getPageLayout(this);
-    drawUxDualZones(this, {
-      leftTitle: "Resolve Node",
-      rightTitle: "Node Actions",
-      leftColor: 0x0600ff,
-      rightColor: 0x00ff72,
+    const contentFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.content.x,
+      y: layout.content.y,
+      width: layout.content.width,
+      height: layout.content.height,
+      title: "Resolve Node",
+      bodyColor: 0x0600ff,
     });
-    new HomeButton(this, {
+    contentFrame.setDepth(-800);
+    const actionsFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.buttons.x,
+      y: layout.buttons.y,
+      width: layout.buttons.width,
+      height: layout.buttons.height,
+      title: "Node Actions",
+      bodyColor: 0x00ff72,
+    });
+    actionsFrame.setDepth(-800);
+    new HomeCornerButton({
+      scene: this,
       x: layout.homeIcon.x,
       y: layout.homeIcon.y,
     });

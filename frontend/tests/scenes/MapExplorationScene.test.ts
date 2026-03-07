@@ -1,20 +1,38 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-class FakeScene {
-  cameras = { main: { centerX: 480, centerY: 270 } };
-  scale = { width: 960, height: 640 };
-  scene = { start: vi.fn() };
-}
-
-(globalThis as any).Phaser = { Scene: FakeScene };
+vi.mock("phaser", () => {
+  class FakeScene {
+    cameras = { main: { centerX: 480, centerY: 270 } };
+    scale = { width: 960, height: 640 };
+    scene = { start: vi.fn() };
+  }
+  class Rectangle {
+    constructor(public x: number, public y: number, public width: number, public height: number) {}
+  }
+  return {
+    default: { Scene: FakeScene, Geom: { Rectangle } },
+    Scene: FakeScene,
+    Geom: { Rectangle },
+  };
+});
 
 vi.mock("../../src/components/BackgroundImage", () => ({ default: class {} }));
-vi.mock("../../src/components/HomeButton", () => ({ default: class { setScale() { return this; } } }));
+vi.mock("../../src/components/navigation/HomeCornerButton", () => ({ default: class {} }));
 vi.mock("../../src/components/HudPanel", () => ({ default: class {} }));
+vi.mock("../../src/components/layout/ContentAreaFrame", () => ({ default: class { setDepth() { return this; } } }));
+vi.mock("../../src/components/clickable-panel/ActionButtonList", () => ({ default: class {} }));
+vi.mock("../../src/components/feedback/ToastMessage", () => ({ default: class { destroy() {} } }));
+vi.mock("../../src/components/feedback/ConfirmationDialog", () => ({
+  default: class {
+    constructor(_cfg: unknown) {}
+    close() {}
+  },
+}));
 
 const nodeListCtor = vi.fn();
 vi.mock("../../src/components/encounter-map/NodeList", () => ({
   default: class {
+    destroy() {}
     constructor(...args: unknown[]) {
       nodeListCtor(...args);
     }
@@ -22,32 +40,50 @@ vi.mock("../../src/components/encounter-map/NodeList", () => ({
 }));
 
 const getCurrentRunMock = vi.fn();
-const exitRunMock = vi.fn();
+const abandonRunMock = vi.fn();
 vi.mock("../../src/services/apiClient", () => ({
   apiClient: {
     getCurrentRun: (...args: unknown[]) => getCurrentRunMock(...args),
-    exitRun: (...args: unknown[]) => exitRunMock(...args),
+    abandonRun: (...args: unknown[]) => abandonRunMock(...args),
   },
 }));
+
+function makeSceneAdd() {
+  return {
+    existing: vi.fn(),
+    text: vi.fn((x: number, y: number, message: string) => ({
+      x,
+      y,
+      message,
+      setOrigin: vi.fn(() => ({ x, y, message })),
+      destroy: vi.fn(),
+    })),
+  };
+}
 
 describe("MapExplorationScene transition guards", () => {
   beforeEach(() => {
     nodeListCtor.mockReset();
     getCurrentRunMock.mockReset();
-    exitRunMock.mockReset();
+    abandonRunMock.mockReset();
   });
 
   it("does not construct NodeList when no active run exists", async () => {
     const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
     getCurrentRunMock.mockResolvedValueOnce({ ok: true, data: { run: null, map: null } });
     const scene = new MapExplorationScene() as any;
-    scene.add = { existing: vi.fn(), text: vi.fn(() => ({ setOrigin: vi.fn() })) };
+    scene.add = makeSceneAdd();
 
     scene.create();
     await Promise.resolve();
 
     expect(nodeListCtor).toHaveBeenCalledTimes(0);
-    expect(scene._fallbackMessage).toBe("No active run. Start one from Regions.");
+    expect(scene.add.text).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Number),
+      "No active run. Start one from Regions.",
+      expect.any(Object)
+    );
   });
 
   it("constructs NodeList when current run payload is valid", async () => {
@@ -80,13 +116,12 @@ describe("MapExplorationScene transition guards", () => {
     });
 
     const scene = new MapExplorationScene() as any;
-    scene.add = { existing: vi.fn(), text: vi.fn(() => ({ setOrigin: vi.fn() })) };
+    scene.add = makeSceneAdd();
 
     scene.create();
     await Promise.resolve();
 
     expect(nodeListCtor).toHaveBeenCalledTimes(1);
-    expect(scene._fallbackMessage).toBeNull();
   });
 
   it("routes rest node clicks to RestManagementScene", async () => {
@@ -103,24 +138,19 @@ describe("MapExplorationScene transition guards", () => {
           ended_at: null,
         },
         map: {
-          nodes: [
-            { id: "501", run_id: "9", node_index: 1, node_type: "rest", status: "available", meta_json: '{"col":1,"row":1}' },
-          ],
+          nodes: [{ id: "501", run_id: "9", node_index: 1, node_type: "rest", status: "available", meta_json: '{"col":1,"row":1}' }],
           edges: [],
         },
       },
     });
 
     const scene = new MapExplorationScene() as any;
-    scene.add = { existing: vi.fn(), text: vi.fn(() => ({ setOrigin: vi.fn() })) };
+    scene.add = makeSceneAdd();
     scene.create();
     await Promise.resolve();
 
-    expect(nodeListCtor).toHaveBeenCalledTimes(1);
-    const config = nodeListCtor.mock.calls[0]?.[5] as { onNodeClick?: (node: any) => void };
-    expect(typeof config.onNodeClick).toBe("function");
-
-    config.onNodeClick?.({ id: "501", node_type: "rest", status: "available" });
+    const config = nodeListCtor.mock.calls[0]?.[6] as { onNodeClick?: (node: any) => Promise<void> };
+    await config.onNodeClick?.({ id: "501", node_type: "rest", status: "available" });
     expect(scene.scene.start).toHaveBeenCalledWith("RestManagementScene", { runId: "9", nodeId: "501" });
   });
 
@@ -129,13 +159,18 @@ describe("MapExplorationScene transition guards", () => {
     getCurrentRunMock.mockRejectedValueOnce(new Error("contract drift"));
 
     const scene = new MapExplorationScene() as any;
-    scene.add = { existing: vi.fn(), text: vi.fn(() => ({ setOrigin: vi.fn() })) };
+    scene.add = makeSceneAdd();
 
     scene.create();
     await Promise.resolve();
 
     expect(nodeListCtor).toHaveBeenCalledTimes(0);
-    expect(scene._fallbackMessage).toBe("Run data unavailable. Please retry.");
+    expect(scene.add.text).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Number),
+      "Run data unavailable. Please retry.",
+      expect.any(Object)
+    );
   });
 
   it("shows fallback when API responds with error envelope", async () => {
@@ -146,16 +181,21 @@ describe("MapExplorationScene transition guards", () => {
     });
 
     const scene = new MapExplorationScene() as any;
-    scene.add = { existing: vi.fn(), text: vi.fn(() => ({ setOrigin: vi.fn() })) };
+    scene.add = makeSceneAdd();
 
     scene.create();
     await Promise.resolve();
 
     expect(nodeListCtor).toHaveBeenCalledTimes(0);
-    expect(scene._fallbackMessage).toBe("Run unavailable: Unexpected error.");
+    expect(scene.add.text).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Number),
+      "Run unavailable: Unexpected error.",
+      expect.any(Object)
+    );
   });
 
-  it("routes exit node clicks to RunEndSummaryScene after exit call", async () => {
+  it("routes exit node clicks to NodeResolutionScene", async () => {
     const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
     getCurrentRunMock.mockResolvedValueOnce({
       ok: true,
@@ -174,21 +214,18 @@ describe("MapExplorationScene transition guards", () => {
         },
       },
     });
-    exitRunMock.mockResolvedValueOnce({
-      ok: true,
-      data: { run_id: "9", status: "completed", exit_node_id: "900" },
-    });
 
     const scene = new MapExplorationScene() as any;
-    scene.add = { existing: vi.fn(), text: vi.fn(() => ({ setOrigin: vi.fn() })) };
+    scene.add = makeSceneAdd();
     scene.create();
     await Promise.resolve();
 
-    const config = nodeListCtor.mock.calls[0]?.[5] as { onNodeClick?: (node: any) => void };
-    config.onNodeClick?.({ id: "900", node_type: "exit", status: "available" });
-    await Promise.resolve();
-
-    expect(exitRunMock).toHaveBeenCalledWith("9");
-    expect(scene.scene.start).toHaveBeenCalledWith("RunEndSummaryScene", expect.objectContaining({ status: "completed" }));
+    const config = nodeListCtor.mock.calls[0]?.[6] as { onNodeClick?: (node: any) => Promise<void> };
+    await config.onNodeClick?.({ id: "900", node_type: "exit", status: "available" });
+    expect(scene.scene.start).toHaveBeenCalledWith("NodeResolutionScene", {
+      runId: "9",
+      nodeId: "900",
+      nodeType: "exit",
+    });
   });
 });
