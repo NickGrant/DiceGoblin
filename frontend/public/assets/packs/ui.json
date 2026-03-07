@@ -1,45 +1,141 @@
 {
-  "files": [
-    { "type": "image", "key": "background_concrete", "url": "assets/backgrounds/background_concrete.png" },
-    { "type": "image", "key": "background_desk", "url": "assets/backgrounds/background_desk.png" },
-    { "type": "image", "key": "background_workbench", "url": "assets/backgrounds/background_workbench.png" },
-    { "type": "image", "key": "texture_paper", "url": "assets/new_ux/textures/paper.png" },
-    { "type": "image", "key": "texture_red", "url": "assets/new_ux/textures/red.png" },
-    { "type": "image", "key": "ux_corner_left", "url": "assets/new_ux/ui_kit/corner_left.png" },
-    { "type": "image", "key": "ux_corner_right", "url": "assets/new_ux/ui_kit/corner_right.png" },
-    { "type": "image", "key": "ux_start_run", "url": "assets/new_ux/ui_kit/start-run.png" },
-    { "type": "image", "key": "ux_continue_run", "url": "assets/new_ux/ui_kit/continue-run.png" },
-
-    { "type": "image", "key": "button_background", "url": "assets/ui/button/placard_large.png" },
-    { "type": "image", "key": "button_glow", "url": "assets/ui/button/highlight_glow_rect.png" },
-
-    { "type": "image", "key": "panel_main", "url": "assets/ui/panel_main.png"},
-    { "type": "image", "key": "panel_begin_run", "url": "assets/ui/panel_begin_run.png"},
-    { "type": "image", "key": "panel_continue_run", "url": "assets/ui/panel_continue_run.png"},
-    { "type": "image", "key": "column_swamp", "url": "assets/ui/column_swamp.png"},
-    { "type": "image", "key": "column_mountain", "url": "assets/ui/column_mountain.png"},
-    { "type": "image", "key": "manifest_strip", "url": "assets/ui/manifest_strip.png"},
-    { "type": "image", "key": "metal_strip", "url": "assets/ui/metal_strip.png"},
-    { "type": "image", "key": "torn_corner_patch", "url": "assets/ui/torn_corner_patch.png"},
-
-
-    { "type": "image", "key": "icon_wrench", "url": "assets/ui/icons/icon_tile_wrench.png"},
-    { "type": "image", "key": "icon_question", "url": "assets/ui/icons/icon_tile_question.png"},
-    { "type": "image", "key": "icon_home", "url": "assets/ui/icons/icon_home.png"},
-    { "type": "image", "key": "icon_warband", "url": "assets/ui/icons/icon_warband.png"},
-    { "type": "image", "key": "icon_inventory", "url": "assets/ui/icons/icon_inventory.png"},
-    { "type": "image", "key": "icon_energy", "url": "assets/ui/icons/icon_energy.png"},
-    { "type": "image", "key": "icon_energy_75", "url": "assets/ui/icons/icon_energy_75.png"},
-    { "type": "image", "key": "icon_energy_50", "url": "assets/ui/icons/icon_energy_50.png"},
-    { "type": "image", "key": "icon_energy_25", "url": "assets/ui/icons/icon_energy_25.png"},
-    { "type": "image", "key": "icon_energy_0", "url": "assets/ui/icons/icon_energy_0.png"},
-    { "type": "image", "key": "icon_encounter_boss", "url": "assets/ui/icons/icon_encounter_boss.png"},
-    { "type": "image", "key": "icon_encounter_combat", "url": "assets/ui/icons/icon_encounter_combat.png"},
-    { "type": "image", "key": "icon_encounter_locked", "url": "assets/ui/icons/icon_encounter_locked.png"},
-    { "type": "image", "key": "icon_encounter_loot", "url": "assets/ui/icons/icon_encounter_loot.png"},
-    { "type": "image", "key": "icon_encounter_rest", "url": "assets/ui/icons/icon_encounter_rest.png"},
-
-    { "type": "atlas", "key": "icons_core_sheet", "textureURL": "assets/ui/icons/icons_core_sheet.png", "atlasURL": "assets/ui/icons/icons_core_sheet.json" },
-    { "type": "atlas", "key": "dice_sheet", "textureURL": "assets/ui/dice/dice_sheet.png", "atlasURL": "assets/ui/dice/dice_sheet.json" }
-  ]
+    "files":  [
+                  {
+                      "type":  "image",
+                      "key":  "texture_paper",
+                      "url":  "assets/ui/textures/paper.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "texture_red",
+                      "url":  "assets/ui/textures/red.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "ux_corner_left",
+                      "url":  "assets/ui/ux_kit/corner_left.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "ux_corner_right",
+                      "url":  "assets/ui/ux_kit/corner_right.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "ux_start_run",
+                      "url":  "assets/ui/ux_kit/start_run.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "ux_continue_run",
+                      "url":  "assets/ui/ux_kit/continue_run.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "panel_begin_run",
+                      "url":  "assets/ui/panel_begin_run.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "panel_continue_run",
+                      "url":  "assets/ui/panel_continue_run.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "column_swamp",
+                      "url":  "assets/ui/column_swamp.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "column_mountain",
+                      "url":  "assets/ui/column_mountain.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "manifest_strip",
+                      "url":  "assets/ui/manifest_strip.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "metal_strip",
+                      "url":  "assets/ui/metal_strip.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_home",
+                      "url":  "assets/ui/icons/icon_home.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_warband",
+                      "url":  "assets/ui/icons/icon_warband.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_inventory",
+                      "url":  "assets/ui/icons/icon_inventory.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_energy",
+                      "url":  "assets/ui/icons/icon_energy.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_energy_75",
+                      "url":  "assets/ui/icons/icon_energy_75.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_energy_50",
+                      "url":  "assets/ui/icons/icon_energy_50.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_energy_25",
+                      "url":  "assets/ui/icons/icon_energy_25.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_energy_0",
+                      "url":  "assets/ui/icons/icon_energy_0.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_encounter_boss",
+                      "url":  "assets/ui/icons/icon_encounter_boss.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_encounter_combat",
+                      "url":  "assets/ui/icons/icon_encounter_combat.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_encounter_locked",
+                      "url":  "assets/ui/icons/icon_encounter_locked.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_encounter_loot",
+                      "url":  "assets/ui/icons/icon_encounter_loot.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_encounter_rest",
+                      "url":  "assets/ui/icons/icon_encounter_rest.png"
+                  },
+                  {
+                      "type":  "atlas",
+                      "key":  "icons_core_sheet",
+                      "textureURL":  "assets/ui/icons/icons_core_sheet.png",
+                      "atlasURL":  "assets/ui/icons/icons_core_sheet.json"
+                  },
+                  {
+                      "type":  "atlas",
+                      "key":  "dice_sheet",
+                      "textureURL":  "assets/ui/dice/dice_sheet.png",
+                      "atlasURL":  "assets/ui/dice/dice_sheet.json"
+                  }
+              ]
 }
