@@ -3,9 +3,9 @@
 Active milestones only. Move completed entries to `MILESTONES_ARCHIVE.md`.
 
 name: Milestone 14 - Run Node Resolution Consolidation
-status: in-progress
+status: blocked
 execution_window: open
-is_current: yes
+is_current: no
 issues:
   - Add regression coverage for consolidated non-rest node resolution flow
 description: |
@@ -18,9 +18,9 @@ exit_criteria: |
   * Resolution outcomes use one unified scene/flow with consistent messaging and return behavior.
 ---
 name: Milestone 15 - Build UX Rebuild Component Library
-status: not-started
-execution_window: closed
-is_current: no
+status: in-progress
+execution_window: open
+is_current: yes
 issues:
   - Implement core layout shell components from 03-component-specifications
   - Implement reusable navigation components from 03-component-specifications
@@ -56,5 +56,3 @@ entry_criteria: |
 exit_criteria: |
   * Target scenes use shared components as primary UI implementation path.
   * Legacy duplicated scene-local UI code is removed or explicitly deprecated.
-
-

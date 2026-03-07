@@ -15,72 +15,78 @@ updated: 2026-03-07
 description: |
   Add focused tests validating scene routing, payload handling, supported node-type behavior, and run-end branching after node resolution consolidation.
   Blocked note: frontend vitest/vite execution currently fails in this environment with `spawn EPERM`, preventing automated execution of the new tests until that is resolved.
+
 ---
 title: Implement core layout shell components from 03-component-specifications
-status: unstarted
+status: in-progress
 priority: high
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Milestone 15 - Build UX Rebuild Component Library
 created: 2026-03-07
 updated: 2026-03-07
 description: |
   Build foundational reusable layout shell components defined in `documentation/07-ux-rebuild/03-component-specifications.md` (page frame, title bands, section containers, shared spacing rules).
+
 ---
 title: Implement reusable navigation components from 03-component-specifications
 status: unstarted
 priority: high
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Milestone 15 - Build UX Rebuild Component Library
 created: 2026-03-07
 updated: 2026-03-07
 description: |
   Implement standardized navigation components (home affordance, scene navigation panels, and navigation action variants) defined by the UX rebuild component specifications.
+
 ---
 title: Implement shared list framework with loading, error, and pagination states
 status: unstarted
 priority: high
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Milestone 15 - Build UX Rebuild Component Library
 created: 2026-03-07
 updated: 2026-03-07
 description: |
   Create a reusable list foundation component that supports loading/failure/empty states and optional pagination controls, then expose extension points for name-link lists and grid lists.
+
 ---
 title: Implement standardized action controls and button variants from component spec
 status: unstarted
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Milestone 15 - Build UX Rebuild Component Library
 created: 2026-03-07
 updated: 2026-03-07
 description: |
   Implement shared action controls (primary, accept/reject, icon+text variants, grouped button lists) to eliminate divergent button implementations across scenes.
+
 ---
 title: Implement HUD and feedback utility components from component spec
 status: unstarted
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Milestone 15 - Build UX Rebuild Component Library
 created: 2026-03-07
 updated: 2026-03-07
 description: |
   Implement reusable HUD and feedback components (energy/status tooltip surfaces, toast/inline feedback wrappers, confirmation/dialog primitives) per component specification.
+
 ---
 title: Add component-level test coverage and usage examples for UX rebuild library
 status: unstarted
 priority: medium
-execution: deferred
-ready: no
+execution: active
+ready: yes
 owner: unassigned
 milestone: Milestone 15 - Build UX Rebuild Component Library
 created: 2026-03-07
@@ -100,6 +106,7 @@ created: 2026-03-07
 updated: 2026-03-07
 description: |
   Refactor `HomeScene` to use the new shared component library for navigation areas, headers, and interaction surfaces while preserving start/continue run behavior.
+
 ---
 title: Migrate RegionSelectScene and MapExplorationScene to shared component library
 status: unstarted
@@ -112,6 +119,7 @@ created: 2026-03-07
 updated: 2026-03-07
 description: |
   Replace scene-specific UI implementations in `RegionSelectScene` and `MapExplorationScene` with standardized components and shared interaction patterns.
+
 ---
 title: Migrate warband management scenes to shared list/action components
 status: unstarted
@@ -124,6 +132,7 @@ created: 2026-03-07
 updated: 2026-03-07
 description: |
   Refactor `WarbandManagementScene`, `SquadDetailsScene`, and `UnitDetailsScene` to use unified list, card-grid, and action control components from the UX rebuild library.
+
 ---
 title: Migrate inventory, rest, and run summary scenes to shared component library
 status: unstarted
@@ -136,6 +145,7 @@ created: 2026-03-07
 updated: 2026-03-07
 description: |
   Refactor `DiceInventoryScene`, `RestManagementScene`, and `RunEndSummaryScene` to standardized layout, list, and feedback components to reduce UI drift.
+
 ---
 title: Remove superseded scene-local UI implementations after migration
 status: unstarted
@@ -148,6 +158,7 @@ created: 2026-03-07
 updated: 2026-03-07
 description: |
   Delete or deprecate duplicated scene-local UI code that is replaced by shared components, ensuring imports and references are cleaned up.
+
 ---
 title: Update UX rebuild docs to reflect final component adoption per scene
 status: unstarted
@@ -160,7 +171,3 @@ created: 2026-03-07
 updated: 2026-03-07
 description: |
   Update scene/component mapping docs to show final adopted components and note any intentionally deferred scene-specific exceptions.
-
-
-
-
