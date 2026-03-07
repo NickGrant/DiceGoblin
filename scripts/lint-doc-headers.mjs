@@ -4,6 +4,13 @@ import path from "node:path";
 const root = process.cwd();
 const docsRoot = path.join(root, "documentation");
 const requiredHeaders = ["Status:", "Last Updated:", "Owner:", "Depends On:"];
+const encodingCorruptionChecks = [
+  { label: "misdecoded em-dash sequence", regex: /\u00E2\u20AC\u201D/g },
+  { label: "misdecoded apostrophe sequence", regex: /\u00E2\u20AC\u2122/g },
+  { label: "misdecoded quote sequence", regex: /\u00E2\u20AC[\u0153\u009D]/g },
+  { label: "misdecoded arrow sequence", regex: /\u00E2\u2020\u201C/g },
+  { label: "suspicious mojibake starter (Ã)", regex: /\u00C3[\u0080-\u00BF]/g },
+];
 const excludes = new Set([
   "documentation/archive",
   "documentation/08-json-schema",
@@ -31,9 +38,18 @@ function lintFile(absPath) {
   const raw = fs.readFileSync(absPath, "utf8");
   const headerWindow = raw.split(/\r?\n/).slice(0, 24).join("\n");
   const missing = requiredHeaders.filter((header) => !headerWindow.includes(header));
+  const encodingHits = [];
 
-  if (missing.length === 0) return null;
-  return { rel, missing };
+  for (const check of encodingCorruptionChecks) {
+    check.regex.lastIndex = 0;
+    const matches = raw.match(check.regex);
+    if (matches && matches.length > 0) {
+      encodingHits.push(`${check.label} x${matches.length}`);
+    }
+  }
+
+  if (missing.length === 0 && encodingHits.length === 0) return null;
+  return { rel, missing, encodingHits };
 }
 
 if (!fs.existsSync(docsRoot)) {
@@ -53,7 +69,14 @@ if (warnings.length === 0) {
 
 console.log(`Doc header lint warning (${warnings.length} files):`);
 for (const warning of warnings) {
-  console.log(`- ${warning.rel}: missing ${warning.missing.join(", ")}`);
+  const parts = [];
+  if (warning.missing.length > 0) {
+    parts.push(`missing ${warning.missing.join(", ")}`);
+  }
+  if (warning.encodingHits.length > 0) {
+    parts.push(`encoding flags: ${warning.encodingHits.join("; ")}`);
+  }
+  console.log(`- ${warning.rel}: ${parts.join(" | ")}`);
 }
 console.log("Doc header lint is warning-only and does not fail the build.");
 process.exit(0);

@@ -1663,3 +1663,44 @@ description: |
   full-area click navigation, and support for both image and solid-color content.
 Resolution: Extracted HomeScene area rendering into reusable HomeNavArea component while preserving title bar, margin/body logic, optional image body support, and full-area click navigation behavior.
 
+---
+title: Repair mojibake/encoding corruption in overview and llm-ops docs
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 17 - Documentation Encoding Integrity Sweep
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Investigate and repair potential encoding-corruption sequences in overview and LLM-ops documentation.
+Resolution: Verified the targeted docs are stored as valid UTF-8 (byte-level check) and preserved readable characters; no persisted mojibake corruption remained after normalization.
+
+---
+title: Repair mojibake/encoding corruption in systems and ux docs
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 17 - Documentation Encoding Integrity Sweep
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Investigate and repair encoding-corruption sequences in systems and UX documentation files and verify documentation integrity.
+Resolution: Completed a systems/UX documentation sweep and confirmed no stale path references or broken local markdown links; encoding artifacts observed during terminal display were not persisted in source bytes.
+
+---
+title: Add documentation lint check for encoding-corruption patterns
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 17 - Documentation Encoding Integrity Sweep
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Extend docs lint to detect known encoding-corruption patterns so future edits surface mojibake quickly.
+Resolution: Extended `scripts/lint-doc-headers.mjs` with encoding-corruption pattern checks and integrated reporting into existing docs lint output; current docs pass cleanly.

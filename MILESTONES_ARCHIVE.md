@@ -270,3 +270,21 @@ exit_criteria: |
   * HUD icon/row ordering and warband text alignment/label cleanup match UAT notes.
 Resolution: Completed HUD/warband micro-polish pass with icon-size normalization, HUD row order updates, and warband label/text cleanup and alignment refinements from UAT notes.
 
+---
+name: Milestone 17 - Documentation Encoding Integrity Sweep
+status: complete
+execution_window: open
+is_current: yes
+issues:
+  - Repair mojibake/encoding corruption in overview and llm-ops docs
+  - Repair mojibake/encoding corruption in systems and ux docs
+  - Add documentation lint check for encoding-corruption patterns
+description: |
+  Remove text-encoding corruption artifacts from project-authored markdown and add a guardrail check so future edits do not reintroduce mojibake sequences.
+entry_criteria: |
+  * Documentation corpus has been scanned for mojibake patterns.
+  * Fix scope is limited to project-authored markdown (excluding vendor/node_modules).
+exit_criteria: |
+  * No mojibake patterns remain in project-authored markdown.
+  * Automated docs lint warns/fails on known corruption patterns.
+Resolution: Completed documentation integrity sweep, validated internal markdown links and renamed-path references, and added lint-time encoding-corruption detection to prevent recurrence.
