@@ -1704,3 +1704,58 @@ updated: 2026-03-07
 description: |
   Extend docs lint to detect known encoding-corruption patterns so future edits surface mojibake quickly.
 Resolution: Extended `scripts/lint-doc-headers.mjs` with encoding-corruption pattern checks and integrated reporting into existing docs lint output; current docs pass cleanly.
+---
+title: Create unified Node Resolution Scene for non-rest run nodes
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 14 - Run Node Resolution Consolidation
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Create a dedicated `NodeResolutionScene` to handle `combat`, `loot`, `boss`, and `exit` node resolution flows so map navigation and resolution UX are centralized outside `MapExplorationScene`.
+Resolution: Implemented `NodeResolutionScene` with a unified resolve/exit flow, shared outcome messaging, retry handling, and deterministic navigation to either run summary or map continuation.
+
+---
+title: Route map node clicks through centralized node-resolution navigation contract
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 14 - Run Node Resolution Consolidation
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Refactor `MapExplorationScene` click handlers so non-rest nodes route into the new resolution scene with a consistent payload contract (`runId`, `nodeId`, `nodeType`) and predictable return behavior.
+Resolution: Refactored `MapExplorationScene` to route supported non-rest node types through `NodeResolutionScene` using `{ runId, nodeId, nodeType }` payload and return-to-map messaging.
+
+---
+title: Move non-rest resolve/exit API orchestration out of MapExplorationScene
+status: complete
+priority: high
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 14 - Run Node Resolution Consolidation
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Relocate resolve/exit request orchestration and outcome branching from `MapExplorationScene` into a dedicated controller flow used by the new node-resolution scene.
+Resolution: Removed direct resolve/exit orchestration from `MapExplorationScene`; API calls and outcome branching now execute inside `NodeResolutionScene`.
+
+---
+title: Define unified node outcome surface for victory, defeat, claim, and errors
+status: complete
+priority: medium
+execution: active
+ready: yes
+owner: unassigned
+milestone: Milestone 14 - Run Node Resolution Consolidation
+created: 2026-03-07
+updated: 2026-03-07
+description: |
+  Implement a single UI outcome surface for node resolution states (including clear retry/failure messaging) so non-rest encounters use consistent player feedback and action prompts.
+Resolution: Added a single node outcome surface in `NodeResolutionScene` covering success, defeat, exit, and error/retry states with consistent action affordances.

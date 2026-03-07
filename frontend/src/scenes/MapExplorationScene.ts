@@ -8,6 +8,7 @@ import { drawUxDualZones } from "../components/UxZonePanels";
 import { apiClient } from "../services/apiClient";
 import type { CurrentRunNode, RunResponse } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
+import { isNodeResolutionType } from "./nodeResolutionFlow";
 
 export default class MapExplorationScene extends Phaser.Scene {
   private runEnvelope: RunResponse | null = null;
@@ -15,9 +16,16 @@ export default class MapExplorationScene extends Phaser.Scene {
   private toastText?: Phaser.GameObjects.Text;
   private nodeList?: NodeList;
   private abandonDialog?: Phaser.GameObjects.Container;
+  private incomingResolutionMessage = "";
+  private incomingResolutionColor = "#ffd89e";
 
   constructor() {
     super({ key: "MapExplorationScene" });
+  }
+
+  init(data: { resolutionMessage?: string; resolutionColor?: string } = {}): void {
+    this.incomingResolutionMessage = String(data.resolutionMessage ?? "");
+    this.incomingResolutionColor = String(data.resolutionColor ?? "#ffd89e");
   }
 
   create(): void {
@@ -51,6 +59,11 @@ export default class MapExplorationScene extends Phaser.Scene {
         },
       ],
     });
+
+    if (this.incomingResolutionMessage) {
+      this.showToast(this.incomingResolutionMessage, this.incomingResolutionColor);
+      this.incomingResolutionMessage = "";
+    }
 
     void this.loadRunState();
   }
@@ -112,70 +125,17 @@ export default class MapExplorationScene extends Phaser.Scene {
       return;
     }
 
-    if (node.node_type === "exit") {
-      await this.handleExitNodeClick(runId);
-      return;
-    }
-
-    if (node.node_type === "combat" || node.node_type === "loot" || node.node_type === "boss") {
-      await this.handleResolveNodeClick(runId, node.id);
+    const nodeType = String(node.node_type);
+    if (isNodeResolutionType(nodeType)) {
+      this.scene.start("NodeResolutionScene", {
+        runId,
+        nodeId: node.id,
+        nodeType,
+      });
       return;
     }
 
     this.showFallback(`Node '${node.node_type}' is not supported.`);
-  }
-
-  private async handleResolveNodeClick(runId: string, nodeId: string): Promise<void> {
-    try {
-      const resolveRes = await apiClient.resolveRunNode(runId, nodeId);
-      if (!resolveRes.ok) {
-        this.showFallback(`Resolve failed: ${resolveRes.error.message}`);
-        return;
-      }
-
-      const unlocked = resolveRes.data.next.unlocked_node_ids;
-      const unlockedMsg = unlocked.length > 0 ? ` Unlocked: ${unlocked.join(", ")}.` : "";
-      this.showToast(
-        `Node resolved (${resolveRes.data.battle.outcome}).${unlockedMsg}`,
-        resolveRes.data.battle.outcome === "victory" ? "#ccffcc" : "#ffd89e"
-      );
-
-      const refreshed = await apiClient.getCurrentRun();
-      if (refreshed.ok && refreshed.data.run === null) {
-        const status = resolveRes.data.battle.outcome === "defeat" ? "failed" : "completed";
-        this.scene.start("RunEndSummaryScene", {
-          status,
-          rewards: [],
-          progression: [],
-          survivors: [],
-          defeated: [],
-        });
-        return;
-      }
-
-      await this.loadRunState();
-    } catch {
-      this.showFallback("Node resolve unavailable. Please retry.");
-    }
-  }
-
-  private async handleExitNodeClick(runId: string): Promise<void> {
-    try {
-      const exitRes = await apiClient.exitRun(runId);
-      if (!exitRes.ok) {
-        this.showFallback(`Exit failed: ${exitRes.error.message}`);
-        return;
-      }
-      this.scene.start("RunEndSummaryScene", {
-        status: exitRes.data.status,
-        rewards: [],
-        progression: [],
-        survivors: [],
-        defeated: [],
-      });
-    } catch {
-      this.showFallback("Exit unavailable. Please retry.");
-    }
   }
 
   private async confirmAbandonRun(): Promise<void> {

@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-04  
+Last Updated: 2026-03-07  
 Owner: Product + Frontend  
 Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/02-systems-mvp/03-encounter-scope.md`
 
@@ -13,22 +13,25 @@ Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts
 
 ## States
 - `RunMap`: map exploration and node selection.
+- `NodeResolution` (implemented): unified non-rest node resolution and outcome surface.
 - `EncounterStart` (planned): pre-encounter summary/confirmation surface.
 - `CombatViewer` (planned): combat log playback surface.
 - `RewardSurface` (planned): claim and summary surface.
-- `RestManagement` (planned): rest edit/finalize management surface.
-- `RunEnd` (planned): end-of-run summary surface for failed/abandoned/completed outcomes.
+- `RestManagement` (implemented): rest edit/finalize management surface.
+- `RunEnd` (implemented): end-of-run summary surface for failed/abandoned/completed outcomes.
 
 ## Transition Matrix
 | From | Trigger | To | Allowed | Notes |
 | --- | --- | --- | --- | --- |
-| RunMap | Click `available` node (`combat`) | EncounterStart | yes | Encounter data must exist for node. |
-| RunMap | Click `available` node (`boss`) | EncounterStart | yes | Same as combat with boss styling/metadata. |
-| RunMap | Click `available` node (`loot`) | RewardSurface | yes | Non-combat immediate reward surface. |
+| RunMap | Click `available` node (`combat`) | NodeResolution | yes | Uses unified non-rest resolution scene. |
+| RunMap | Click `available` node (`boss`) | NodeResolution | yes | Same routing path as combat with boss metadata. |
+| RunMap | Click `available` node (`loot`) | NodeResolution | yes | Non-combat resolve path handled by unified scene. |
 | RunMap | Click `available` node (`rest`) | RestManagement | yes | Rest opens dedicated management scene. |
-| RunMap | Click `available` node (`exit`) | RunEnd | yes | Allowed only when boss path is cleared/unlocked. |
+| RunMap | Click `available` node (`exit`) | NodeResolution | yes | Unified scene calls exit endpoint and branches to summary. |
 | RunMap | Click `locked` node | RunMap | blocked | No API mutation allowed. |
 | RunMap | Click `cleared` node | RunMap | blocked | Optional replay affordance only, no progression mutation. |
+| NodeResolution | Non-terminal resolve outcome | RunMap | yes | Returns to map with resolution feedback message. |
+| NodeResolution | Terminal resolve/exit outcome | RunEnd | yes | Opens shared run-end summary shell. |
 | EncounterStart | Confirm start | CombatViewer | yes | Applies to combat/boss nodes only. |
 | EncounterStart | Cancel | RunMap | yes | Node remains `available`. |
 | CombatViewer | Resolve complete | RewardSurface | yes | Uses stored server outcome/log only. |
@@ -44,6 +47,7 @@ Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts
 
 ## Blocked Transition Rules
 - No direct `RunMap -> CombatViewer` transition; encounter start gate is required for combat/boss.
+- Non-rest nodes route through `NodeResolution` before any terminal branching.
 - No `CombatViewer -> RunMap` before resolution payload is finalized.
 - No mutation calls on `locked`/`cleared` node interactions.
 - No direct `RunMap -> RunEnd` via exit until boss path is unlocked.
@@ -52,18 +56,18 @@ Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts
 ## Node-Type Acceptance Criteria
 
 ### Combat
-- Selecting an `available` combat node enters encounter flow and eventually yields `RewardSurface`.
+- Selecting an `available` combat node enters `NodeResolution`.
 - On victory, node status becomes `cleared` and downstream unlock checks execute.
 - On defeat with remaining undefeated run units, node remains `available` and retry is possible without energy cost.
 - On total defeat, run transitions to `failed` terminal state.
 
 ### Boss
-- Follows combat transition rules.
+- Follows combat transition rules through `NodeResolution`.
 - Uses boss encounter metadata/presentation and boss reward profile in reward surface.
 
 ### Loot
-- Selecting an `available` loot node bypasses combat and opens reward surface.
-- Claim completes node as `cleared` and returns to Run Map.
+- Selecting an `available` loot node resolves through `NodeResolution`.
+- Resolution completes node as `cleared` and returns to Run Map when non-terminal.
 - No combat replay controls are shown.
 
 ### Rest
@@ -77,7 +81,7 @@ Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts
 ### Exit
 - Exit node is always map-visible and uses a visually distinct presentation.
 - Exit node remains unreachable until boss path is unlocked.
-- Selecting unlocked exit transitions run to `completed` and opens `RunEnd` summary shell.
+- Selecting unlocked exit transitions through `NodeResolution` and then opens `RunEnd` summary shell.
 
 ### RunEnd Summary
 - Uses one shared shell for completed, failed, and abandoned outcomes with outcome-specific messaging.

@@ -1,7 +1,7 @@
 # Frontend State and Scene Contracts - MVP (Authoritative)
 
 Status: active  
-Last Updated: 2026-03-05  
+Last Updated: 2026-03-07  
 Owner: Frontend  
 Depends On: `frontend/src/game/config.ts`, `frontend/src/scenes/`, `frontend/src/services/apiClient.ts`
 
@@ -29,8 +29,9 @@ Configured in `frontend/src/game/config.ts`:
 8. `UnitDetailsScene`
 9. `DiceInventoryScene`
 10. `MapExplorationScene`
-11. `RestManagementScene`
-12. `RunEndSummaryScene`
+11. `NodeResolutionScene`
+12. `RestManagementScene`
+13. `RunEndSummaryScene`
 
 ## 3. Planned (Not Implemented Yet)
 
@@ -128,13 +129,12 @@ Output:
 
 Allowed side-effects:
 - `GET /api/v1/runs/current`
-- `POST /api/v1/runs/:runId/nodes/:nodeId/resolve`
 - `POST /api/v1/runs/:runId/abandon`
-- `POST /api/v1/runs/:runId/exit`
 
 Output:
 - transitions to `RestManagementScene` for rest nodes
-- transitions to `RunEndSummaryScene` for abandon/exit and terminal run-end states
+- transitions to `NodeResolutionScene` for non-rest node resolution (`combat|loot|boss|exit`)
+- transitions to `RunEndSummaryScene` for abandon and terminal run-end states
 - renders directional unlock-path indicators from run graph edges
 
 ### 5.7 WarbandManagementScene
@@ -180,6 +180,19 @@ Planned extension:
 - remains a dedicated inventory screen (not merged into unit details),
 - participates in rest-management flow for allowed active-run equipment changes.
 
+### 5.11 NodeResolutionScene
+
+Allowed side-effects:
+- `POST /api/v1/runs/:runId/nodes/:nodeId/resolve` for `combat|loot|boss`
+- `POST /api/v1/runs/:runId/exit` for `exit`
+- `GET /api/v1/runs/current` to decide map-return vs terminal summary
+
+Behavior:
+- shows unified node-resolution outcome surface for non-rest nodes
+- supports retry from error state
+- routes to `RunEndSummaryScene` on terminal outcomes
+- routes back to `MapExplorationScene` for non-terminal outcomes with resolution feedback
+
 ## 6. Implemented Transition Matrix
 
 - `BootScene -> PreloadScene`
@@ -199,7 +212,10 @@ Planned extension:
 - `DiceInventoryScene -> HomeScene` (home button)
 - `MapExplorationScene -> HomeScene` (home button)
 - `MapExplorationScene -> RestManagementScene`
-- `MapExplorationScene -> RunEndSummaryScene` (abandon/exit and terminal state)
+- `MapExplorationScene -> NodeResolutionScene` (`combat|loot|boss|exit`)
+- `MapExplorationScene -> RunEndSummaryScene` (abandon and terminal state)
+- `NodeResolutionScene -> MapExplorationScene` (non-terminal outcome)
+- `NodeResolutionScene -> RunEndSummaryScene` (terminal outcome)
 - `RunEndSummaryScene -> HomeScene`
 
 Planned additions:
@@ -208,6 +224,6 @@ Planned additions:
 
 ## 7. Known Gaps
 
-- Dedicated combat/loot/boss presentation scenes are planned but not wired in config.
+- Dedicated combat replay/viewer scenes are still planned but not wired in config.
 - No centralized frontend store for run/profile; state is scene-local.
 - Dedicated dice-details scene contract is planned but not yet implemented.

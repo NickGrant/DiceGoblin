@@ -3,14 +3,10 @@
 Active milestones only. Move completed entries to `MILESTONES_ARCHIVE.md`.
 
 name: Milestone 14 - Run Node Resolution Consolidation
-status: not-started
-execution_window: closed
-is_current: no
+status: in-progress
+execution_window: open
+is_current: yes
 issues:
-  - Create unified Node Resolution Scene for non-rest run nodes
-  - Route map node clicks through centralized node-resolution navigation contract
-  - Move non-rest resolve/exit API orchestration out of MapExplorationScene
-  - Define unified node outcome surface for victory, defeat, claim, and errors
   - Add regression coverage for consolidated non-rest node resolution flow
 description: |
   Consolidate non-rest node resolution behavior into a dedicated flow so map exploration focuses on navigation while resolution UX and API orchestration stay centralized and consistent.
@@ -60,4 +56,5 @@ entry_criteria: |
 exit_criteria: |
   * Target scenes use shared components as primary UI implementation path.
   * Legacy duplicated scene-local UI code is removed or explicitly deprecated.
+
 
