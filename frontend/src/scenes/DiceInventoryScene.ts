@@ -1,5 +1,5 @@
 import BackgroundImage from "../components/BackgroundImage";
-import HudPanel from "../components/HudPanel";
+import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import DiceCardGrid from "../components/DiceCardGrid";
@@ -8,7 +8,6 @@ import { apiClient } from "../services/apiClient";
 import type { DiceDetailsViewModel } from "../adapters/profileViewModels";
 import type { UnitRecord } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
-import HomeCornerButton from "../components/navigation/HomeCornerButton";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
 
@@ -41,7 +40,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
 
   create(): void {
     new BackgroundImage(this);
-    new HudPanel(this);
+    mountBottomCommandStrip(this);
     const layout = getPageLayout(this);
     const contentFrame = new ContentAreaFrame({
       scene: this,
@@ -64,12 +63,6 @@ export default class DiceInventoryScene extends Phaser.Scene {
     });
     actionsFrame.setDepth(-800);
     const buttonX = layout.buttons.x + 10;
-    new HomeCornerButton({
-      scene: this,
-      x: layout.homeIcon.x,
-      y: layout.homeIcon.y,
-    });
-
     const inRestContext = this.runId !== "" && this.nodeId !== "";
     this.add.text(layout.content.x + 410, layout.content.y - 34, "DICE INVENTORY", {
       fontFamily: "Arial",
@@ -276,6 +269,10 @@ export default class DiceInventoryScene extends Phaser.Scene {
     });
   }
 }
+
+
+
+
 
 
 

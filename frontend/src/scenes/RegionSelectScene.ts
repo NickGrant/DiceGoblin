@@ -1,9 +1,8 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import ToastMessage from "../components/feedback/ToastMessage";
-import HudPanel from "../components/HudPanel";
+import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import { getPageLayout } from "../layout/pageLayout";
-import HomeCornerButton from "../components/navigation/HomeCornerButton";
 import RegionSelectionPanel from "../components/navigation/RegionSelectionPanel";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 import { apiClient } from "../services/apiClient";
@@ -18,14 +17,8 @@ export default class RegionSelectScene extends Phaser.Scene {
 
   create(): void {
     new BackgroundImage(this);
-    new HudPanel(this);
+    mountBottomCommandStrip(this);
     const layout = getPageLayout(this);
-    new HomeCornerButton({
-      scene: this,
-      x: layout.homeIcon.x,
-      y: layout.homeIcon.y,
-    });
-
     const contentFrame = new ContentAreaFrame({
       scene: this,
       x: layout.content.x,
@@ -115,4 +108,8 @@ export default class RegionSelectScene extends Phaser.Scene {
     });
   }
 }
+
+
+
+
 

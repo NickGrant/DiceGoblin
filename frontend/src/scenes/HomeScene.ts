@@ -1,9 +1,8 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
-import HudPanel from "../components/HudPanel";
+import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import { apiClient } from "../services/apiClient";
 import { getPageLayout, type LayoutRect } from "../layout/pageLayout";
-import HomeCornerButton from "../components/navigation/HomeCornerButton";
 import HomeNavigationPanel from "../components/navigation/HomeNavigationPanel";
 
 const AREA_GAP = 12;
@@ -16,10 +15,7 @@ export default class HomeScene extends Phaser.Scene {
   create(): void {
     new BackgroundImage(this);
     const layout = getPageLayout(this);
-
-    new HomeCornerButton({ scene: this, x: layout.homeIcon.x, y: layout.homeIcon.y });
-
-    new HudPanel(this);
+    mountBottomCommandStrip(this);
 
     const leftArea: LayoutRect = {
       x: layout.content.x,
@@ -79,3 +75,7 @@ export default class HomeScene extends Phaser.Scene {
     });
   }
 }
+
+
+
+

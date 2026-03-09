@@ -1,5 +1,5 @@
 import BackgroundImage from "../components/BackgroundImage";
-import HudPanel from "../components/HudPanel";
+import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
@@ -7,7 +7,6 @@ import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModel
 import { apiClient } from "../services/apiClient";
 import type { UnitRecord } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
-import HomeCornerButton from "../components/navigation/HomeCornerButton";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
 export default class UnitDetailsScene extends Phaser.Scene {
@@ -34,7 +33,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
 
   create(): void {
     new BackgroundImage(this);
-    new HudPanel(this);
+    mountBottomCommandStrip(this);
     const layout = getPageLayout(this);
     const contentFrame = new ContentAreaFrame({
       scene: this,
@@ -56,8 +55,6 @@ export default class UnitDetailsScene extends Phaser.Scene {
       bodyColor: 0x00ff72,
     });
     actionsFrame.setDepth(-800);
-    new HomeCornerButton({ scene: this, x: layout.homeIcon.x, y: layout.homeIcon.y });
-
     this.loadingText = this.add.text(layout.content.x + 16, layout.content.y + 120, "Loading unit details...", {
       fontFamily: "Arial",
       fontSize: "20px",
@@ -253,3 +250,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     });
   }
 }
+
+
+
+

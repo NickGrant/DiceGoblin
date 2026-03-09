@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
-import HudPanel from "../components/HudPanel";
+import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import NodeList from "../components/encounter-map/NodeList";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
@@ -8,7 +8,6 @@ import { apiClient } from "../services/apiClient";
 import type { CurrentRunNode, RunResponse } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
 import { isNodeResolutionType } from "./nodeResolutionFlow";
-import HomeCornerButton from "../components/navigation/HomeCornerButton";
 import ConfirmationDialog from "../components/feedback/ConfirmationDialog";
 import ToastMessage from "../components/feedback/ToastMessage";
 
@@ -32,7 +31,7 @@ export default class MapExplorationScene extends Phaser.Scene {
 
   create(): void {
     new BackgroundImage(this);
-    new HudPanel(this);
+    mountBottomCommandStrip(this);
     const layout = getPageLayout(this);
 
     const runFrame = new ContentAreaFrame({
@@ -56,13 +55,6 @@ export default class MapExplorationScene extends Phaser.Scene {
       bodyColor: 0x00ff72,
     });
     actionsFrame.setDepth(-800);
-
-    new HomeCornerButton({
-      scene: this,
-      x: layout.homeIcon.x,
-      y: layout.homeIcon.y,
-    });
-
     new ActionButtonList({
       scene: this,
       x: layout.buttons.x + 10,
@@ -236,3 +228,7 @@ export default class MapExplorationScene extends Phaser.Scene {
     });
   }
 }
+
+
+
+

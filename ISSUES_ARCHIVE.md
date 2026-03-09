@@ -6,6 +6,15 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Implement global Bottom Command Strip and remove top-corner HUD
+status: complete
+priority: high
+execution: active
+ready: yes
+description: Build a shared Bottom Command Strip component using `raw-assets/elements/base_bar.png`, `raw-assets/icons/icon_warband.png`, `raw-assets/icons/icon_inventory.png`, and `raw-assets/icons/icon_logout.png`; render it at bottom-center across scenes currently using `HudPanel` and remove top-corner HUD component usage.
+Resolution: Added a reusable `BottomCommandStrip` component, wired it into all scenes that previously mounted top-corner HUD widgets, removed corner component usage from scene composition, and loaded/copy-mapped the new bar/logout assets into runtime pack paths.
+
+---
 title: Implement rest workflow endpoints with transactional snapshot and squad sync
 status: complete
 priority: high

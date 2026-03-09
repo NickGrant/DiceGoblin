@@ -1,13 +1,12 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
-import HudPanel from "../components/HudPanel";
+import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import UnitCardGrid from "../components/UnitCardGrid";
 import SquadListPanel from "../components/SquadListPanel";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import { apiClient } from "../services/apiClient";
 import type { TeamRecord, UnitRecord } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
-import HomeCornerButton from "../components/navigation/HomeCornerButton";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 import {
   computeWarbandColumns,
@@ -31,7 +30,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   create(): void {
     new BackgroundImage(this);
-    new HudPanel(this);
+    mountBottomCommandStrip(this);
     const layout = getPageLayout(this);
     const contentFrame = new ContentAreaFrame({
       scene: this,
@@ -53,13 +52,6 @@ export default class WarbandManagementScene extends Phaser.Scene {
       bodyColor: 0x00ff72,
     });
     actionsFrame.setDepth(-800);
-
-    new HomeCornerButton({
-      scene: this,
-      x: layout.homeIcon.x,
-      y: layout.homeIcon.y,
-    });
-
     this.loadingText = this.add
       .text(layout.content.x + 16, layout.content.y + 120, "Loading warband hub...", {
         fontFamily: "Arial",
@@ -176,3 +168,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
     });
   }
 }
+
+
+
+

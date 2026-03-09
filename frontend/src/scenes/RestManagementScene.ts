@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
-import HudPanel from "../components/HudPanel";
+import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
@@ -8,7 +8,6 @@ import { adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { TeamFormationCell, UnitRecord, RestRunUnitState } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
-import HomeCornerButton from "../components/navigation/HomeCornerButton";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
 type Cell = FormationCell;
@@ -57,7 +56,7 @@ export default class RestManagementScene extends Phaser.Scene {
 
   create(): void {
     new BackgroundImage(this);
-    new HudPanel(this);
+    mountBottomCommandStrip(this);
     const layout = getPageLayout(this);
     const contentFrame = new ContentAreaFrame({
       scene: this,
@@ -79,12 +78,6 @@ export default class RestManagementScene extends Phaser.Scene {
       bodyColor: 0x00ff72,
     });
     actionsFrame.setDepth(-800);
-    new HomeCornerButton({
-      scene: this,
-      x: layout.homeIcon.x,
-      y: layout.homeIcon.y,
-    });
-
     this.loadingText = this.add.text(layout.content.x + 16, layout.content.y - 56, "Preparing rest...", {
       fontFamily: "Arial",
       fontSize: "20px",
@@ -494,6 +487,10 @@ export default class RestManagementScene extends Phaser.Scene {
     return unit ? unit.name : `Unit ${unitId}`;
   }
 }
+
+
+
+
 
 
 

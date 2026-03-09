@@ -1,8 +1,7 @@
 import BackgroundImage from "../components/BackgroundImage";
-import HudPanel from "../components/HudPanel";
+import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import { getPageLayout } from "../layout/pageLayout";
-import HomeCornerButton from "../components/navigation/HomeCornerButton";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
 type RunEndSummaryData = {
@@ -26,7 +25,7 @@ export default class RunEndSummaryScene extends Phaser.Scene {
 
   create(): void {
     new BackgroundImage(this);
-    new HudPanel(this);
+    mountBottomCommandStrip(this);
     const layout = getPageLayout(this);
     const contentFrame = new ContentAreaFrame({
       scene: this,
@@ -48,12 +47,6 @@ export default class RunEndSummaryScene extends Phaser.Scene {
       bodyColor: 0x00ff72,
     });
     actionsFrame.setDepth(-800);
-    new HomeCornerButton({
-      scene: this,
-      x: layout.homeIcon.x,
-      y: layout.homeIcon.y,
-    });
-
     const status = this.payload.status ?? "completed";
     const statusLabel = String(status).toUpperCase();
     const outcomeMessage = status === "completed"
@@ -117,6 +110,10 @@ export default class RunEndSummaryScene extends Phaser.Scene {
     });
   }
 }
+
+
+
+
 
 
 
