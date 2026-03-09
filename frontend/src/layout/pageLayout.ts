@@ -10,8 +10,7 @@ export type LayoutRect = {
 export type PageLayout = {
   padding: LayoutRect;
   header: LayoutRect;
-  homeIcon: LayoutRect;
-  hud: LayoutRect;
+  bottomStrip: LayoutRect;
   content: LayoutRect;
   buttons: LayoutRect;
 };
@@ -21,8 +20,9 @@ export const PAGE_LAYOUT = {
   topBandHeightPx: 218,
   columnGapPx: 24,
   buttonColumnWidthPx: 616,
-  cornerWidthPx: 300,
-  cornerHeightPx: 218,
+  bottomStripHeightPx: 96,
+  bottomStripBottomPaddingPx: 10,
+  bottomStripTopGapPx: 12,
 } as const;
 
 export function getPageLayout(scene: Phaser.Scene): PageLayout {
@@ -46,7 +46,11 @@ export function getPageLayoutForSize(width: number, height: number): PageLayout 
   };
 
   const bodyY = header.height;
-  const bodyHeight = Math.max(0, height - pad - bodyY);
+  const reservedBottomHeight =
+    PAGE_LAYOUT.bottomStripHeightPx +
+    PAGE_LAYOUT.bottomStripBottomPaddingPx +
+    PAGE_LAYOUT.bottomStripTopGapPx;
+  const bodyHeight = Math.max(0, height - pad - bodyY - reservedBottomHeight);
   const buttonColumnWidth = Math.min(PAGE_LAYOUT.buttonColumnWidthPx, Math.max(0, width - pad * 2));
 
   const buttons: LayoutRect = {
@@ -63,21 +67,17 @@ export function getPageLayoutForSize(width: number, height: number): PageLayout 
     height: bodyHeight,
   };
 
+  const bottomStrip: LayoutRect = {
+    x: pad,
+    y: height - PAGE_LAYOUT.bottomStripBottomPaddingPx - PAGE_LAYOUT.bottomStripHeightPx,
+    width: Math.max(0, width - pad * 2),
+    height: PAGE_LAYOUT.bottomStripHeightPx,
+  };
+
   return {
     padding: safe,
     header,
-    homeIcon: {
-      x: 0,
-      y: 0,
-      width: PAGE_LAYOUT.cornerWidthPx,
-      height: PAGE_LAYOUT.cornerHeightPx,
-    },
-    hud: {
-      x: width - PAGE_LAYOUT.cornerWidthPx,
-      y: 0,
-      width: PAGE_LAYOUT.cornerWidthPx,
-      height: PAGE_LAYOUT.cornerHeightPx,
-    },
+    bottomStrip,
     content,
     buttons,
   };

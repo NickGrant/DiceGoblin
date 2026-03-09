@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-07  
+Last Updated: 2026-03-09  
 Owner: Frontend
 Depends On: `documentation/07-ux-rebuild/03-component-specifications.md`
 
@@ -75,7 +75,7 @@ new ActionButtonList({
 
 ## HUD + Feedback
 ```ts
-new HudPanel(this);
+mountBottomCommandStrip(this);
 
 new ConfirmationDialog({
   scene: this,

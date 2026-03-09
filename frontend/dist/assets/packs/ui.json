@@ -12,16 +12,6 @@
                   },
                   {
                       "type":  "image",
-                      "key":  "ux_corner_left",
-                      "url":  "assets/ui/ux_kit/corner_left.png"
-                  },
-                  {
-                      "type":  "image",
-                      "key":  "ux_corner_right",
-                      "url":  "assets/ui/ux_kit/corner_right.png"
-                  },
-                  {
-                      "type":  "image",
                       "key":  "ux_start_run",
                       "url":  "assets/ui/ux_kit/start_run.png"
                   },

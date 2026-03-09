@@ -1,38 +1,38 @@
 import type Phaser from "phaser";
 import { TEXT_BODY } from "../const/Text";
+import IconButton from "./IconButton";
+import { getPageLayout } from "../layout/pageLayout";
 import { apiClient } from "../services/apiClient";
 import { RegistrySession } from "../state/RegistrySession";
 
 const ICON_SIZE = 40;
 const BAR_TARGET_WIDTH = 960;
-const BAR_BOTTOM_PADDING = 10;
-const MIN_BAR_WIDTH = 620;
+const MIN_BAR_WIDTH = 320;
 const BAR_HEIGHT = 96;
 const ENERGY_LABEL_FALLBACK = "ENERGY: -- / --";
 
 export function mountBottomCommandStrip(scene: Phaser.Scene): void {
-  const addApi = (scene as unknown as { add?: { image?: unknown; text?: unknown; zone?: unknown } }).add;
+  const addApi = (scene as unknown as {
+    add?: { image?: unknown; text?: unknown; zone?: unknown; rectangle?: unknown; existing?: unknown };
+  }).add;
   if (!addApi) return;
   if (typeof addApi.image !== "function") return;
   if (typeof addApi.text !== "function") return;
   if (typeof addApi.zone !== "function") return;
+  if (typeof addApi.rectangle !== "function") return;
+  if (typeof addApi.existing !== "function") return;
   new BottomCommandStrip(scene);
 }
 
 export default class BottomCommandStrip {
   private readonly scene: Phaser.Scene;
   private readonly barBg: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
-  private readonly warbandIcon: Phaser.GameObjects.Image;
-  private readonly warbandText: Phaser.GameObjects.Text;
-  private readonly inventoryIcon: Phaser.GameObjects.Image;
-  private readonly inventoryText: Phaser.GameObjects.Text;
-  private readonly logoutIcon: Phaser.GameObjects.Image;
-  private readonly logoutText: Phaser.GameObjects.Text;
+  private readonly homeButton: IconButton;
+  private readonly warbandButton: IconButton;
+  private readonly inventoryButton: IconButton;
+  private readonly logoutButton: IconButton;
   private readonly playerNameText: Phaser.GameObjects.Text;
   private readonly energyText: Phaser.GameObjects.Text;
-  private readonly warbandHit: Phaser.GameObjects.Zone;
-  private readonly inventoryHit: Phaser.GameObjects.Zone;
-  private readonly logoutHit: Phaser.GameObjects.Zone;
   private barWidth = BAR_TARGET_WIDTH;
   private centerX = 0;
   private centerY = 0;
@@ -43,34 +43,48 @@ export default class BottomCommandStrip {
     const hasBaseBar = scene.textures?.exists?.("base_bar") ?? false;
     this.barBg = scene.add.image(0, 0, hasBaseBar ? "base_bar" : "manifest_strip").setOrigin(0.5, 0.5);
 
-    this.warbandIcon = scene.add.image(0, 0, "icon_warband").setDisplaySize(ICON_SIZE, ICON_SIZE).setOrigin(0.5, 0.5);
-    this.warbandText = this.createActionText("WARBAND");
-    this.inventoryIcon = scene.add.image(0, 0, "icon_inventory").setDisplaySize(ICON_SIZE, ICON_SIZE).setOrigin(0.5, 0.5);
-    this.inventoryText = this.createActionText("DICE");
+    this.homeButton = new IconButton({
+      scene,
+      iconKey: "icon_home",
+      tooltipText: "Home",
+      iconSize: ICON_SIZE,
+      onClick: () => scene.scene.start("HomeScene"),
+    });
+    this.warbandButton = new IconButton({
+      scene,
+      iconKey: "icon_warband",
+      tooltipText: "Warband",
+      iconSize: ICON_SIZE,
+      onClick: () => scene.scene.start("WarbandManagementScene"),
+    });
+    this.inventoryButton = new IconButton({
+      scene,
+      iconKey: "icon_inventory",
+      tooltipText: "Dice Inventory",
+      iconSize: ICON_SIZE,
+      onClick: () => scene.scene.start("DiceInventoryScene"),
+    });
     this.energyText = scene.add.text(0, 0, ENERGY_LABEL_FALLBACK, {
       ...TEXT_BODY,
       fontSize: "20px",
       color: "#F3EFE0",
       strokeThickness: 0,
       shadow: undefined,
-    }).setOrigin(0, 0.5);
-    this.logoutIcon = scene.add.image(0, 0, "icon_logout").setDisplaySize(ICON_SIZE, ICON_SIZE).setOrigin(0.5, 0.5);
-    this.logoutText = this.createActionText("LOGOUT");
+    }).setOrigin(0.5, 0.5);
+    this.logoutButton = new IconButton({
+      scene,
+      iconKey: "icon_logout",
+      tooltipText: "Logout",
+      iconSize: ICON_SIZE,
+      onClick: () => void this.handleLogout(),
+    });
     this.playerNameText = scene.add.text(0, 0, this.resolvePlayerName(), {
       ...TEXT_BODY,
       fontSize: "20px",
-      color: "#F3EFE0",
+      color: "#23272A",
       strokeThickness: 0,
       shadow: undefined,
-    }).setOrigin(1, 0.5);
-
-    this.warbandHit = scene.add.zone(0, 0, 170, 52).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
-    this.inventoryHit = scene.add.zone(0, 0, 170, 52).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
-    this.logoutHit = scene.add.zone(0, 0, 170, 52).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
-
-    this.bindAction(this.warbandIcon, this.warbandText, this.warbandHit, () => scene.scene.start("WarbandManagementScene"));
-    this.bindAction(this.inventoryIcon, this.inventoryText, this.inventoryHit, () => scene.scene.start("DiceInventoryScene"));
-    this.bindAction(this.logoutIcon, this.logoutText, this.logoutHit, () => void this.handleLogout());
+    }).setOrigin(0, 0.5);
 
     this.setLayerProps();
     this.reposition();
@@ -84,75 +98,33 @@ export default class BottomCommandStrip {
   private destroy(): void {
     this.scene.scale.off("resize", this.reposition, this);
     this.barBg.destroy();
-    this.warbandIcon.destroy();
-    this.warbandText.destroy();
-    this.inventoryIcon.destroy();
-    this.inventoryText.destroy();
-    this.logoutIcon.destroy();
-    this.logoutText.destroy();
+    this.homeButton.destroy();
+    this.warbandButton.destroy();
+    this.inventoryButton.destroy();
+    this.logoutButton.destroy();
     this.playerNameText.destroy();
     this.energyText.destroy();
-    this.warbandHit.destroy();
-    this.inventoryHit.destroy();
-    this.logoutHit.destroy();
   }
 
   private setLayerProps(): void {
-    const all = [
-      this.barBg,
-      this.warbandIcon,
-      this.warbandText,
-      this.inventoryIcon,
-      this.inventoryText,
-      this.energyText,
-      this.logoutIcon,
-      this.logoutText,
-      this.playerNameText,
-      this.warbandHit,
-      this.inventoryHit,
-      this.logoutHit,
-    ];
+    const all = [this.barBg, this.energyText, this.playerNameText];
 
     all.forEach((obj) => {
       obj.setScrollFactor(0);
       obj.setDepth(100000);
     });
-  }
-
-  private createActionText(label: string): Phaser.GameObjects.Text {
-    return this.scene.add.text(0, 0, label, {
-      ...TEXT_BODY,
-      fontSize: "20px",
-      color: "#F3EFE0",
-      strokeThickness: 0,
-      shadow: undefined,
-      letterSpacing: 1,
-    }).setOrigin(0, 0.5);
-  }
-
-  private bindAction(
-    icon: Phaser.GameObjects.Image,
-    label: Phaser.GameObjects.Text,
-    hit: Phaser.GameObjects.Zone,
-    onClick: () => void
-  ): void {
-    hit.on("pointerover", () => {
-      icon.setAlpha(0.9);
-      label.setAlpha(0.9);
-    });
-    hit.on("pointerout", () => {
-      icon.setAlpha(1);
-      label.setAlpha(1);
-    });
-    hit.on("pointerup", onClick);
+    this.homeButton.setScrollFactor(0).setDepth(100000);
+    this.warbandButton.setScrollFactor(0).setDepth(100000);
+    this.inventoryButton.setScrollFactor(0).setDepth(100000);
+    this.logoutButton.setScrollFactor(0).setDepth(100000);
   }
 
   private reposition(): void {
-    const width = this.scene.scale.width;
-    const height = this.scene.scale.height;
-    this.barWidth = Math.max(MIN_BAR_WIDTH, Math.min(BAR_TARGET_WIDTH, Math.floor(width * 0.82)));
-    this.centerX = width / 2;
-    this.centerY = height - BAR_BOTTOM_PADDING - BAR_HEIGHT / 2;
+    const layout = getPageLayout(this.scene);
+    const targetWidth = Math.floor(layout.bottomStrip.width * 0.9);
+    this.barWidth = Math.max(MIN_BAR_WIDTH, Math.min(BAR_TARGET_WIDTH, targetWidth));
+    this.centerX = layout.bottomStrip.x + layout.bottomStrip.width / 2;
+    this.centerY = layout.bottomStrip.y + layout.bottomStrip.height / 2;
 
     const bgObj = this.barBg as unknown as { setDisplaySize?: (w: number, h: number) => void; setSize?: (w: number, h: number) => void };
     if (typeof bgObj.setDisplaySize === "function") bgObj.setDisplaySize(this.barWidth, BAR_HEIGHT);
@@ -163,26 +135,29 @@ export default class BottomCommandStrip {
   }
 
   private layoutChildren(): void {
-    const leftStart = this.centerX - this.barWidth / 2 + 36;
-    const rightEnd = this.centerX + this.barWidth / 2 - 28;
+    const leftEdge = this.centerX - this.barWidth / 2;
+    const rightEdge = this.centerX + this.barWidth / 2;
     const y = this.centerY;
+    const iconAndNameY = y - 10;
+    const energyY = y + 3;
 
-    this.warbandIcon.setPosition(leftStart, y);
-    this.warbandText.setPosition(leftStart + 28, y);
-    this.warbandHit.setPosition(leftStart + 56, y);
+    const leftPanelLeft = leftEdge + this.barWidth * 0.035;
+    const leftPanelRight = this.centerX - this.barWidth * 0.185;
+    const leftPanelWidth = Math.max(1, leftPanelRight - leftPanelLeft);
+    const homeX = leftPanelLeft + leftPanelWidth * 0.14;
+    const warbandX = leftPanelLeft + leftPanelWidth * 0.41;
+    const inventoryX = leftPanelLeft + leftPanelWidth * 0.68;
+    this.homeButton.setPosition(homeX, iconAndNameY);
+    this.warbandButton.setPosition(warbandX, iconAndNameY);
+    this.inventoryButton.setPosition(inventoryX, iconAndNameY);
 
-    const invX = leftStart + 200;
-    this.inventoryIcon.setPosition(invX, y);
-    this.inventoryText.setPosition(invX + 28, y);
-    this.inventoryHit.setPosition(invX + 56, y);
+    this.energyText.setPosition(this.centerX, energyY);
 
-    this.energyText.setPosition(invX + 190, y);
-
-    const logoutIconX = rightEnd - 220;
-    this.logoutIcon.setPosition(logoutIconX, y);
-    this.logoutText.setPosition(logoutIconX + 28, y);
-    this.logoutHit.setPosition(logoutIconX + 56, y);
-    this.playerNameText.setPosition(rightEnd, y);
+    const rightPanelLeft = this.centerX + this.barWidth * 0.15;
+    const rightPanelRight = rightEdge - this.barWidth * 0.035;
+    const logoutX = rightPanelRight - this.barWidth * 0.045;
+    this.playerNameText.setPosition(rightPanelLeft + 8, iconAndNameY);
+    this.logoutButton.setPosition(logoutX, iconAndNameY);
   }
 
   private async handleLogout(): Promise<void> {
