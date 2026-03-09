@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-07  
+Last Updated: 2026-03-08  
 Owner: UX + Frontend  
 Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
 
@@ -23,15 +23,13 @@ Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
   - Home navigation panel (Start Run/Continue Run instance)
   - Home navigation panel (Warband instance)
   - Home navigation panel (Inventory instance)
-  - Home corner button
-  - HUD energy corner widget
+  - Bottom command strip (split left/right)
   - Section title bar
   - Content area frame
 
 - `RegionSelectScene`
   - Region selection card/panel
-  - Home corner button
-  - HUD energy corner widget
+  - Bottom command strip (split left/right)
   - Section title bar
   - Content area frame
   - Error state panel/text
@@ -43,8 +41,7 @@ Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
   - Run action list
   - Confirmation dialog (accept/reject pattern)
   - Toast/status feedback message
-  - Home corner button
-  - HUD energy corner widget
+  - Bottom command strip (split left/right)
   - Section title bar
   - Content area frame
   - Error state panel/text
@@ -53,8 +50,7 @@ Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
   - Generic action button
   - Confirmation dialog (accept/reject pattern)
   - Toast/status feedback message
-  - Home corner button
-  - HUD energy corner widget
+  - Bottom command strip (split left/right)
   - Section title bar
   - Content area frame
 
@@ -64,8 +60,7 @@ Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
   - List container
   - Generic action button
   - Toast/status feedback message
-  - Home corner button
-  - HUD energy corner widget
+  - Bottom command strip (split left/right)
   - Section title bar
   - Content area frame
 
@@ -76,8 +71,7 @@ Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
   - Generic action button
   - Confirmation dialog (accept/reject pattern)
   - Toast/status feedback message
-  - Home corner button
-  - HUD energy corner widget
+  - Bottom command strip (split left/right)
   - Section title bar
   - Content area frame
 
@@ -87,8 +81,7 @@ Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
   - Promotion selection controls
   - Generic action button
   - Toast/status feedback message
-  - Home corner button
-  - HUD energy corner widget
+  - Bottom command strip (split left/right)
   - Section title bar
   - Content area frame
 
@@ -97,8 +90,7 @@ Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
   - List container
   - Generic action button
   - Toast/status feedback message
-  - Home corner button
-  - HUD energy corner widget
+  - Bottom command strip (split left/right)
   - Section title bar
   - Content area frame
 
@@ -110,15 +102,14 @@ Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
   - Generic action button
   - Rest summary panel
   - Toast/status feedback message
-  - Home corner button
-  - HUD energy corner widget
+  - Bottom command strip (split left/right)
   - Section title bar
   - Content area frame
 
 - `RunEndSummaryScene`
   - End-of-run summary panel
   - Generic action button
-  - Home corner button
-  - HUD energy corner widget
+  - Bottom command strip (split left/right)
   - Section title bar
   - Content area frame
+

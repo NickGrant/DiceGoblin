@@ -1,7 +1,7 @@
 # Dice Goblins — Master Context Document
 
 Status: reference  
-Last Updated: 2026-03-07  
+Last Updated: 2026-03-08  
 Owner: Product + Engineering  
 Depends On: `documentation/00-overview/00-project-overview.md`, `documentation/01-architecture/00-tech-stack.md`
 
@@ -205,20 +205,20 @@ Tracks owned resources and equipment.
 
 ## Visual Direction
 
-Dice Goblins uses a **propaganda-inspired goblin military aesthetic**.
+Dice Goblins uses a **harsh handmade propaganda diorama aesthetic** for its UI and visual framing.
 
 Visual influences include:
 
-- Soviet propaganda posters
-- industrial war imagery
-- stencil typography
-- worn metal and paint textures
+- authoritarian wartime bureaucracy
+- constructed tabletop paper-craft
+- distressed analog production marks (ink bleed, stamp spread, adhesive wear)
+- stencil-forward command labeling and registry surfaces
 
 The tone should communicate:
 
 - militant organization
-- harsh battlefield atmosphere
-- stylized goblin aggression
+- tactical oppression
+- improvised but severe goblin administration
 
 ---
 

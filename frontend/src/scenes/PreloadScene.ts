@@ -8,6 +8,8 @@ export default class PreloadScene extends Phaser.Scene {
   }
 
   preload(): void {
+    this.renderBackground();
+
     const centerX = this.cameras.main.centerX;
     const centerY = this.cameras.main.centerY;
     const screenW = this.scale.width;
@@ -56,6 +58,14 @@ export default class PreloadScene extends Phaser.Scene {
   create(): void {
     const nextScene = RegistrySession.get(this.registry)?.isAuthenticated ? "HomeScene" : "LandingScene";
     this.scene.start(nextScene);
+  }
+
+  private renderBackground(): void {
+    if (!this.textures.exists("texture_paper")) return;
+    const bg = this.add.image(0, 0, "texture_paper").setOrigin(0, 0);
+    const scale = Math.max(this.scale.width / bg.width, this.scale.height / bg.height);
+    bg.setScale(scale);
+    bg.setDepth(-1000);
   }
 }
 

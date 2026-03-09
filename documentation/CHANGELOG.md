@@ -1,11 +1,22 @@
 # Documentation Changelog
 
 Status: active  
-Last Updated: 2026-03-05  
+Last Updated: 2026-03-08  
 Owner: Product + Engineering  
 Depends On: `documentation/README.md`, `ISSUES.md`
 
 ----
+
+## 2026-03-08
+- Rewrote `documentation/03-ux/01-visual-design-guide.md` as the single canonical visual style source and removed conflicting parallel style direction.
+- Updated `documentation/07-ux-rebuild/04-art-direction-guidelines.md` to align rebuild implementation guidance with the canonical style, locked palette, and updated typography system.
+- Updated `documentation/03-ux/08-page-layout-zones.md` to clarify that overlay color keys are layout/debug references, not canonical art palette tokens.
+- Updated `documentation/00-overview/03-master-context-document.md` visual direction language to match the canonical propaganda diorama art direction.
+- Added `documentation/07-ux-rebuild/06-master-ui-asset-list.md` as the component-first master UI asset inventory with dice-only carry-forward policy.
+- Updated UX docs to replace top-corner home/energy controls with a global bottom split command strip contract (left: warband/dice/energy, right: logout/player name).
+- Updated `documentation/07-ux-rebuild/01-all-up-component-list.md`, `02-scene-component-mapping.md`, and `03-component-specifications.md` to model the bottom command strip as a shared global component.
+- Updated `documentation/07-ux-rebuild/06-master-ui-asset-list.md` and `07-asset-review-draft.md` to replace corner module assets with bottom command strip asset families.
+- Added `documentation/07-ux-rebuild/08-missing-asset-descriptions-and-prompts.md` with per-asset descriptions and generation prompts for all missing non-dice assets.
 
 ## 2026-03-05
 - Added `documentation/enemy_list.json` as JSON reference data for seeded enemy templates.

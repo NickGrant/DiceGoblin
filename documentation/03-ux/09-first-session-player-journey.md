@@ -2,7 +2,7 @@
 ----
 
 Status: active
-Last Updated: 2026-03-07
+Last Updated: 2026-03-08
 Owner: Product + UX
 Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/03-ux/03-encounter-flow-transition-matrix.md`
 
@@ -17,7 +17,9 @@ Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts
 
 2. Home orientation (`HomeScene`)
 - User sees three primary choices: `Start/Continue Run`, `Manage Warband`, `Manage Inventory`.
-- Energy state and home affordance are always visible in the corner HUD.
+- A persistent bottom command strip is visible:
+  - left segment: `Manage Warband`, `Manage Dice`, current energy level
+  - right segment: `Logout`, player name
 
 3. Pre-run setup (`WarbandManagementScene` and `SquadDetailsScene`)
 - Player confirms at least one usable squad.

@@ -1,80 +1,94 @@
 # UX Rebuild - Art Direction Guidelines
 ----
 
-Status: active  
-Last Updated: 2026-03-06  
-Owner: UX + Art + Frontend  
+Status: active
+Last Updated: 2026-03-08
+Owner: UX + Art + Frontend
 Depends On: `documentation/03-ux/01-visual-design-guide.md`, `documentation/03-ux/08-page-layout-zones.md`
 
 ## Purpose
-- Capture current visual direction for the UX rebuild in implementation-ready form.
-- Keep art generation and UI implementation aligned while redesign iteration is active.
+- Translate the canonical visual style into implementation-ready rebuild guidance.
+- Keep scene composition, component styling, and asset production aligned.
 
-## Core Style Direction
-- Tone: devious + whimsical, with a salvage-shop / propaganda-signage feel.
-- Visual language: worn printed materials, hazard placards, riveted corners, stencil-forward motifs.
-- Readability priority: bold hierarchy first, texture/noise second.
+## Core Rebuild Direction
+- Tone: grim, tactical, improvised, and slightly absurd.
+- Visual language: militarized propaganda diorama built from distressed paper-craft materials.
+- Readability: hierarchy and interaction clarity take priority over decoration.
 
-## Current Rebuild Layout Aesthetic
-- Global scene background: `new_ux/textures/paper.png`.
-- Section title bars: `new_ux/textures/red.png`.
-- Corner treatments:
-  - top-left: `new_ux/ui_kit/corner_left.png` (home icon inside circle)
-  - top-right: `new_ux/ui_kit/corner_right.png` (energy icon inside circle)
-- Home scene key body images:
-  - Start/Continue run panel image (state-based)
-  - Warband and Inventory sections remain panel-framed with section-specific content treatment
+## Rebuild Asset Baseline
+- Global scene background: `new_ux/textures/paper.png`
+- Section title bars: `new_ux/textures/red.png`
+- Global control treatment:
+  - bottom split command strip with distinct left and right visual segments
+  - left segment contains warband link, dice link, and energy display
+  - right segment contains logout action and player-name display
 
-## Color Direction
-- Foundational neutrals:
-  - Deep brown background tones for contrast anchors
-  - Ink-brown text over pure black where possible
-- Rebuild overlay zones (layout guidance colors):
-  - `#0600ff` run-focused section
-  - `#00f6ff` warband-focused section
-  - `#00ff72` inventory-focused section
-- Rule: preserve one dominant accent per section; avoid rainbow noise in a single panel.
+## Color Direction (Locked)
+Primary UI palette tokens:
+- Stark Cream: `#F3EFE0`
+- Revolutionary Red: `#B91C1C`
+- Cold Slate: `#4F5A65`
+- Dirty Teal: `#006F7A`
+- Deep Charcoal: `#23272A`
 
-## Typography Direction
-- Display/Headers/CTA labels: stencil-style family (current: Saira Stencil One in legacy guide).
-- Body/support text: condensed sans (current: Roboto Condensed in legacy guide).
-- Text hierarchy:
-  - section titles must remain highly legible over textured title bars
-  - helper text should remain readable at gameplay distance
+Optional accents:
+- Drab Olive: `#5E6B3C`
+- Dirty Brass: `#8A6D3B`
+- Smoked Gray: `#6B7075`
+
+Usage rules:
+- Keep color use restrained and tactical.
+- Use red as the strongest action/alert emphasis.
+- Avoid bright playful color combinations.
+
+## Typography Direction (Updated)
+- Display/Headers/CTA labels: `Big Shoulders Stencil Text` (fallback: `Saira Stencil One`)
+- Body/support text: `IBM Plex Sans Condensed` (fallback: `Roboto Condensed`)
+
+Typography rules:
+- Command labels and major headers should be uppercase.
+- Preserve readability over textured surfaces.
+- Allow subtle print imperfections, not heavy distortion.
 
 ## Texture and Surface Rules
-- Distress should cluster on edges/corners, not over critical text.
-- Body content images should feel printed/applied onto paper rather than floating UI chrome.
-- Avoid high-gloss, sci-fi gradients, or clean fantasy filigree.
-
-## Iconography Direction
-- Icons should read as stencil/signage marks at small sizes.
-- Energy icon set is state-driven and must stay visually consistent across tiers (`100`, `75`, `50`, `25`, `0`).
-- Home icon should remain clear and centered in the corner-left circular socket.
+- Show physical assembly cues: layered paperboard, tape wear, ink bleed, pinning/fastener details.
+- Distress must cluster on edges and corners.
+- Keep content zones clean enough for high-contrast text and icon legibility.
+- Avoid glossy, sci-fi, polished fantasy, or toy-like surfaces.
 
 ## Component-Level Visual Rules
-- Home Navigation Panel:
-  - image-backed variants should render flush under title bar
-  - image body width must match title bar width
+- Home navigation panel:
+  - image-backed variants render flush beneath title bars
+  - body width matches title bar width
+- Bottom command strip:
+  - full-width anchored bar with clear left/right segmentation
+  - left side prioritizes utility links and resource readout
+  - right side prioritizes account identity and exit action
 - List surfaces:
-  - Name/Link lists: strong row contrast and simple labels
-  - Grid lists: consistent card bounds, icon/image-first readability
+  - clear row segmentation and high contrast for scanability
+  - utilitarian registry look over decorative cards
 - Buttons:
-  - shared base button behavior; Accept/Reject as semantic style variants
+  - use stamped-order feel for decisive actions
+  - Accept/Reject remain semantic variants of shared base behavior
+
+## Iconography Direction
+- Icons should read as stencil-signage marks at small sizes.
+- Keep forms bold, simple, and procedural.
+- If energy is represented with icons, tiers (`100`, `75`, `50`, `25`, `0`) must remain visually consistent as one family.
 
 ## Asset Pipeline Rules
 - Source lane: `raw-assets/new_ux/`
 - Runtime lane: `frontend/public/assets/new_ux/`
-- Any newly used art must be copied to runtime lane and registered in `frontend/public/assets/packs/ui.json`.
-- Do not bind scene logic directly to raw asset paths.
+- Copy any newly used art to runtime lane and register in `frontend/public/assets/packs/ui.json`.
+- Do not bind runtime scene logic directly to raw asset paths.
 
-## Do / Don’t
+## Do / Don't
 ### Do
-- Keep silhouettes bold and interaction zones obvious.
-- Favor clear section framing and consistent corner anchoring.
-- Reuse shared textures/frames before introducing new decorative one-offs.
+- Keep silhouettes strong and modular.
+- Prioritize practical usability and tactical severity.
+- Reuse shared textures/frames before adding one-off motifs.
 
-### Don’t
-- Introduce competing art motifs per scene.
-- Add noise that reduces button/label readability.
-- Mix unrelated visual themes (high fantasy / sci-fi / neon UI) into rebuild surfaces.
+### Don't
+- Mix unrelated themes per scene.
+- Over-distress controls until labels become hard to read.
+- Introduce cute/mascot-like or playful toy presentation.

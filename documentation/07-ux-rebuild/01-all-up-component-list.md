@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-06  
+Last Updated: 2026-03-08  
 Owner: UX + Frontend
 Depends On: `documentation/03-ux/08-page-layout-zones.md`, `documentation/07-ux-rebuild/02-scene-component-mapping.md`
 
@@ -12,8 +12,7 @@ Depends On: `documentation/03-ux/08-page-layout-zones.md`, `documentation/07-ux-
 
 ## Component Inventory
 - Home navigation panel
-- Home corner button
-- HUD energy corner widget
+- Bottom command strip (split left/right)
 - Region selection card/panel
 - Run map graph surface
 - Run node visual (`combat`, `loot`, `rest`, `boss`, `exit`)

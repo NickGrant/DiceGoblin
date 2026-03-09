@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-06  
+Last Updated: 2026-03-08  
 Owner: UX + Frontend  
 Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
 
@@ -46,29 +46,22 @@ Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
 - Player Goal: Quickly recognize and enter desired top-level flow.
 - Description: Reusable home-panel component used for run, warband, and inventory entry.
 
-### Home Corner Button
-- Name: Home Corner Button
-- Category: Navigation
-- Inputs (Required Data): `position`, `targetSceneKey`
-- Extends/Composes: Extends clickable panel base; composes home icon.
-- Functionality: Returns user to HomeScene from any scene where shown.
-- States: `default`, `hover`, `disabled`
-- Acceptance Criteria: Button is visible in top-left corner and routes to Home on click.
-- Failure Behavior: If icon missing, keep corner plate interactive with fallback label.
-- Player Goal: Reliable escape hatch to primary navigation.
-- Description: Standardized corner-home affordance.
-
-### HUD Energy Corner Widget
-- Name: HUD Energy Corner Widget
-- Category: Status Display
-- Inputs (Required Data): `energyCurrent`, `energyMax`
-- Extends/Composes: Composes corner plate, energy icon, tooltip.
-- Functionality: Displays energy tier icon and hover tooltip `Energy: current / max`.
-- States: `loading`, `ready`, `error(stale)`
-- Acceptance Criteria: Icon tier matches threshold rules; tooltip value matches current state.
-- Failure Behavior: On profile fetch failure, keep last known value and fallback icon.
-- Player Goal: Read current energy at a glance, inspect exact value on demand.
-- Description: Global corner-right session/run energy widget.
+### Bottom Command Strip (Split Left/Right)
+- Name: Bottom Command Strip
+- Category: Global Navigation + Status
+- Inputs (Required Data): `playerName`, `energyCurrent`, `energyMax`, link callbacks (`warband`, `dice`, `logout`)
+- Extends/Composes: Composes shared strip shell plus two visual segments (`left`, `right`).
+- Functionality: Provides persistent authenticated-session controls at screen bottom.
+- States: `loading`, `ready`, `error(stale)`, `disabled(action-scoped)`
+- Acceptance Criteria:
+  - Left segment always shows links to Warband and Dice plus current energy value.
+  - Right segment always shows Logout action and current player name.
+  - Strip remains anchored to bottom on resize.
+- Failure Behavior:
+  - If profile fetch fails, preserve last known name/energy and keep strip interactive where safe.
+  - If logout mutation fails, show inline feedback without collapsing strip.
+- Player Goal: Access account/navigation controls and resource state without scanning corners.
+- Description: Replaces legacy corner-home and corner-energy widgets with one split global strip.
 
 ### Region Selection Card/Panel
 - Name: Region Selection Card/Panel

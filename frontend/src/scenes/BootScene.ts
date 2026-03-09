@@ -10,9 +10,12 @@ export default class BootScene extends Phaser.Scene {
 
   preload(): void {
     this.load.image("hero_logo", "/assets/hero_logo.png");
+    this.load.image("texture_paper", "/assets/ui/textures/paper.png");
   }
 
   create(): void {
+    this.renderBackground();
+
     const statusText = this.add
       .text(this.cameras.main.centerX, this.cameras.main.centerY, "Loading...", TEXT_BODY)
       .setOrigin(0, 0);
@@ -58,6 +61,14 @@ export default class BootScene extends Phaser.Scene {
       this.cameras.main.centerX - text.width / 2,
       this.cameras.main.centerY - text.height / 2
     );
+  }
+
+  private renderBackground(): void {
+    if (!this.textures.exists("texture_paper")) return;
+    const bg = this.add.image(0, 0, "texture_paper").setOrigin(0, 0);
+    const scale = Math.max(this.scale.width / bg.width, this.scale.height / bg.height);
+    bg.setScale(scale);
+    bg.setDepth(-1000);
   }
 }
 
