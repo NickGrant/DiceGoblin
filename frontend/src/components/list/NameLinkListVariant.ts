@@ -34,7 +34,7 @@ export default class NameLinkListVariant<T> extends Phaser.GameObjects.Container
 
       const text = cfg.scene.add
         .text(10, y + 8, row.label, {
-          fontFamily: "Arial",
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
           fontSize: "16px",
           color: row.disabled ? "#999999" : "#f0f0f0",
           wordWrap: { width: Math.max(0, cfg.width - 20) },
@@ -56,3 +56,4 @@ export default class NameLinkListVariant<T> extends Phaser.GameObjects.Container
     cfg.scene.add.existing(this);
   }
 }
+

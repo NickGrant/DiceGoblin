@@ -41,7 +41,7 @@ export default class MapExplorationScene extends Phaser.Scene {
       width: layout.content.width,
       height: layout.content.height,
       title: "Run Map",
-      bodyColor: 0x0600ff,
+      bodyColor: 0x23272a,
     });
     runFrame.setDepth(-800);
 
@@ -52,7 +52,7 @@ export default class MapExplorationScene extends Phaser.Scene {
       width: layout.buttons.width,
       height: layout.buttons.height,
       title: "Run Actions",
-      bodyColor: 0x00ff72,
+      bodyColor: 0x006f7a,
     });
     actionsFrame.setDepth(-800);
     new ActionButtonList({
@@ -228,6 +228,7 @@ export default class MapExplorationScene extends Phaser.Scene {
     });
   }
 }
+
 
 
 

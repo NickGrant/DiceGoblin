@@ -44,14 +44,14 @@ export default class HomeScene extends Phaser.Scene {
       scene: this,
       areaRect: rightTopArea,
       title: "Manage Warband",
-      bodyColor: 0x00f6ff,
+      bodyColor: 0x4f5a65,
       targetSceneKey: "WarbandManagementScene",
     });
     new HomeNavigationPanel({
       scene: this,
       areaRect: rightBottomArea,
       title: "Manage Inventory",
-      bodyColor: 0x00ff72,
+      bodyColor: 0x006f7a,
       targetSceneKey: "DiceInventoryScene",
     });
   }
@@ -69,12 +69,13 @@ export default class HomeScene extends Phaser.Scene {
       scene: this,
       areaRect: leftArea,
       title: hasActiveRun ? "Continue Run" : "Start Run",
-      bodyColor: 0x0600ff,
+      bodyColor: 0x23272a,
       targetSceneKey: hasActiveRun ? "MapExplorationScene" : "RegionSelectScene",
       bodyImageKey: hasActiveRun ? "ux_continue_run" : "ux_start_run",
     });
   }
 }
+
 
 
 

@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { apiClient } from "../services/apiClient";
 import { TEXT_BODY } from "../const/Text";
 import { RegistrySession } from "../state/RegistrySession";
+import BackgroundImage from "../components/BackgroundImage";
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -14,7 +15,7 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.renderBackground();
+    new BackgroundImage(this);
 
     const statusText = this.add
       .text(this.cameras.main.centerX, this.cameras.main.centerY, "Loading...", TEXT_BODY)
@@ -63,14 +64,8 @@ export default class BootScene extends Phaser.Scene {
     );
   }
 
-  private renderBackground(): void {
-    if (!this.textures.exists("texture_paper")) return;
-    const bg = this.add.image(0, 0, "texture_paper").setOrigin(0, 0);
-    const scale = Math.max(this.scale.width / bg.width, this.scale.height / bg.height);
-    bg.setScale(scale);
-    bg.setDepth(-1000);
-  }
 }
+
 
 
 

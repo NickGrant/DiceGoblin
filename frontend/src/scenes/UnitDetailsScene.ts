@@ -42,7 +42,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
       width: layout.content.width,
       height: layout.content.height,
       title: "Unit Details",
-      bodyColor: 0x00f6ff,
+      bodyColor: 0x4f5a65,
     });
     contentFrame.setDepth(-800);
     const actionsFrame = new ContentAreaFrame({
@@ -52,11 +52,11 @@ export default class UnitDetailsScene extends Phaser.Scene {
       width: layout.buttons.width,
       height: layout.buttons.height,
       title: "Unit Actions",
-      bodyColor: 0x00ff72,
+      bodyColor: 0x006f7a,
     });
     actionsFrame.setDepth(-800);
     this.loadingText = this.add.text(layout.content.x + 16, layout.content.y + 120, "Loading unit details...", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "20px",
       color: "#ffffff",
     });
@@ -161,7 +161,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
 
     this.statusText?.destroy();
     this.statusText = this.add.text(layout.content.x + 440, layout.content.y + 432, "", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#dddddd",
       wordWrap: { width: 460 },
@@ -240,7 +240,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.toastText?.destroy();
     const layout = getPageLayout(this);
     this.toastText = this.add.text(layout.content.x + 16, layout.content.y + layout.content.height - 24, message, {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color,
     });
@@ -250,6 +250,8 @@ export default class UnitDetailsScene extends Phaser.Scene {
     });
   }
 }
+
+
 
 
 

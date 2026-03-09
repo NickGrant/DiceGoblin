@@ -26,7 +26,7 @@ export default class RegionSelectScene extends Phaser.Scene {
       width: layout.content.width,
       height: layout.content.height,
       title: "Choose Region",
-      bodyColor: 0x0600ff,
+      bodyColor: 0x23272a,
     });
     contentFrame.setDepth(-800);
 
@@ -37,12 +37,12 @@ export default class RegionSelectScene extends Phaser.Scene {
       width: layout.buttons.width,
       height: layout.buttons.height,
       title: "Region Intel",
-      bodyColor: 0x00f6ff,
+      bodyColor: 0x4f5a65,
     });
     intelFrame.setDepth(-800);
 
     this.add.text(layout.buttons.x + 24, layout.buttons.y + 90, "Select a region to start a run.", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "24px",
       color: "#111111",
       wordWrap: { width: layout.buttons.width - 48 },
@@ -108,6 +108,8 @@ export default class RegionSelectScene extends Phaser.Scene {
     });
   }
 }
+
+
 
 
 

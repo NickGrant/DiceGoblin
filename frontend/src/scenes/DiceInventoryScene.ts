@@ -49,7 +49,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
       width: layout.content.width,
       height: layout.content.height,
       title: "Manage Units",
-      bodyColor: 0x00f6ff,
+      bodyColor: 0x4f5a65,
     });
     contentFrame.setDepth(-800);
     const actionsFrame = new ContentAreaFrame({
@@ -59,13 +59,13 @@ export default class DiceInventoryScene extends Phaser.Scene {
       width: layout.buttons.width,
       height: layout.buttons.height,
       title: "Manage Inventory",
-      bodyColor: 0x00ff72,
+      bodyColor: 0x006f7a,
     });
     actionsFrame.setDepth(-800);
     const buttonX = layout.buttons.x + 10;
     const inRestContext = this.runId !== "" && this.nodeId !== "";
     this.add.text(layout.content.x + 410, layout.content.y - 34, "DICE INVENTORY", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "22px",
       color: "#ffffff",
     }).setOrigin(0, 0);
@@ -73,7 +73,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
     this.add.text(layout.content.x + 410, layout.content.y + 10, inRestContext
       ? `Rest context active (run ${this.runId}, node ${this.nodeId}).`
       : "Out-of-run context.", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "14px",
       color: "#dddddd",
     }).setOrigin(0, 0);
@@ -81,7 +81,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
     this.add.text(layout.content.x + 410, layout.content.y + 42, inRestContext
       ? "Dice changes from this screen should be validated against rest-context backend rules."
       : "Dice changes are available here between runs.", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#bbbbbb",
       align: "center",
@@ -103,7 +103,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
     }
 
     this.statusText = this.add.text(layout.content.x + 410, layout.content.y + 68, "Loading inventory...", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#dddddd",
       align: "center",
@@ -259,7 +259,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
     this.toastText?.destroy();
     const layout = getPageLayout(this);
     this.toastText = this.add.text(layout.content.x + 410, layout.content.y + layout.content.height - 24, message, {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color,
     }).setOrigin(0, 0);
@@ -269,6 +269,8 @@ export default class DiceInventoryScene extends Phaser.Scene {
     });
   }
 }
+
+
 
 
 

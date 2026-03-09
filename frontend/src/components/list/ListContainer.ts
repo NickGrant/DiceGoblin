@@ -115,7 +115,7 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
 
   private renderMessage(text: string): void {
     const message = this.cfg.scene.add.text(PAD, PAD, text, {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "16px",
       color: "#dddddd",
       wordWrap: { width: Math.max(0, this.cfg.width - PAD * 2) },
@@ -127,7 +127,7 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
   private renderRetry(): void {
     const retry = this.cfg.scene.add
       .text(PAD, PAD + 30, "Retry", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "15px",
         color: "#ffffff",
       })
@@ -141,7 +141,7 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
     const y = this.cfg.height - PAGINATION_HEIGHT;
     this.prevText = this.cfg.scene.add
       .text(PAD, y, "< Prev", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#d6d6d6",
       })
@@ -149,14 +149,14 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
       .setInteractive({ useHandCursor: true });
     this.nextText = this.cfg.scene.add
       .text(this.cfg.width - PAD, y, "Next >", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#d6d6d6",
       })
       .setOrigin(1, 0)
       .setInteractive({ useHandCursor: true });
     this.pageText = this.cfg.scene.add.text(this.cfg.width / 2, y, `Page ${pagination.pageIndex + 1}/${pagination.totalPages}`, {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#cccccc",
     }).setOrigin(0.5, 0);
@@ -188,3 +188,4 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
     this.dynamicChildren = [];
   }
 }
+

@@ -30,7 +30,7 @@ new HomeNavigationPanel({
   areaRect: layout.buttons,
   title: "Manage Warband",
   targetSceneKey: "WarbandManagementScene",
-  bodyColor: 0x00f6ff,
+  bodyColor: 0x4f5a65, // Cold Slate
 });
 ```
 

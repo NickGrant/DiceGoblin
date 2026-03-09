@@ -2,35 +2,24 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-09  
 Owner: Product + Engineering  
-Depends On: `ISSUES.md`, `documentation/README.md`
+Depends On: `ISSUES.md`, `MILESTONES.md`, `documentation/README.md`
 
 ## Purpose
-- Provide a fast, high-signal view of current priorities and blockers.
-- Minimize startup context loading for coding sessions.
+- Fast startup snapshot for current delivery focus.
 
 ## Current Focus
-- Keep planning and execution tracking in `ISSUES.md` (worklist deprecated).
-- Track roadmap grouping in `MILESTONES.md`.
-- Close high-priority gameplay correctness gaps:
-  - deterministic run node battle resolution
-  - non-placeholder reward and XP application
-- Reduce doc/code drift:
-  - align API contract docs with implemented backend routes and payloads
+- Execute from `ISSUES.md` and `MILESTONES.md` only.
+- Keep API contracts and UX docs aligned with implementation.
+- Prioritize deterministic run flow and progression correctness.
 
-## Top Priorities
-1. Implement deterministic combat engine integration in node resolution flow.
-2. Implement real reward + XP application on battle claim.
-3. Align backend API contract docs and warband UX/system docs with current implementation.
+## Key Risks
+- Placeholder gameplay logic masking regressions.
+- API/doc contract drift between backend and frontend.
+- Sparse regression coverage around state mutation paths.
 
-## Known Blockers / Risks
-- Placeholder combat/reward implementations can hide regressions in run progression.
-- API contract drift increases coordination cost between frontend, backend, and docs.
-- Limited automated tests around squad mutation/idempotency increase regression risk.
-
-## Working Agreements
-- `ISSUES.md` is active backlog source of truth.
-- `MILESTONES.md` groups issues into delivery milestones.
-- Completed items move to `ISSUES_ARCHIVE.md` immediately.
-- Load archive docs only when historical context is explicitly needed.
+## Working Agreement
+- Active execution: `ISSUES.md`, `MILESTONES.md`.
+- Deferred planning: backlog files.
+- Historical context: archive files on demand.

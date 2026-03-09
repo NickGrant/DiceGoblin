@@ -39,7 +39,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
       width: layout.content.width,
       height: layout.content.height,
       title: "Manage Warband",
-      bodyColor: 0x00f6ff,
+      bodyColor: 0x4f5a65,
     });
     contentFrame.setDepth(-800);
     const actionsFrame = new ContentAreaFrame({
@@ -49,12 +49,12 @@ export default class WarbandManagementScene extends Phaser.Scene {
       width: layout.buttons.width,
       height: layout.buttons.height,
       title: "Squad Actions",
-      bodyColor: 0x00ff72,
+      bodyColor: 0x006f7a,
     });
     actionsFrame.setDepth(-800);
     this.loadingText = this.add
       .text(layout.content.x + 16, layout.content.y + 120, "Loading warband hub...", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "20px",
         color: "#ffffff",
       })
@@ -87,12 +87,12 @@ export default class WarbandManagementScene extends Phaser.Scene {
     const colW = columns.columnWidth;
 
     this.add.text(leftX, layout.content.y - 34, "UNITS", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "20px",
       color: "#ffffff",
     });
     this.add.text(rightX, layout.content.y - 34, "SQUADS", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "20px",
       color: "#ffffff",
     });
@@ -134,7 +134,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
     });
 
     this.add.text(leftX, layout.content.y + 490, "Unit Details handles stats/xp, promotion, and dice flow.", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#bbbbbb",
     });
@@ -157,7 +157,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
     const layout = getPageLayout(this);
     this.toastText = this.add
       .text(layout.content.x + 16, layout.content.y + layout.content.height - 24, message, {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color,
       })
@@ -168,6 +168,8 @@ export default class WarbandManagementScene extends Phaser.Scene {
     });
   }
 }
+
+
 
 
 

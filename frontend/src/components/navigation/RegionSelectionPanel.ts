@@ -51,7 +51,7 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
 
     this.labelText = cfg.scene.add
       .text(16, 16, cfg.label.toUpperCase(), {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "28px",
         color: "#f0f0f0",
       })
@@ -60,7 +60,7 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
     if (this.locked) {
       this.lockText = cfg.scene.add
         .text(16, Math.max(24, cfg.height - 34), "LOCKED", {
-          fontFamily: "Arial",
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
           fontSize: "18px",
           color: "#ffb3b3",
         })
@@ -73,3 +73,4 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
     cfg.scene.add.existing(this);
   }
 }
+

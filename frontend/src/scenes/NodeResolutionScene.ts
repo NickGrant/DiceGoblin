@@ -52,7 +52,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       width: layout.content.width,
       height: layout.content.height,
       title: "Resolve Node",
-      bodyColor: 0x0600ff,
+      bodyColor: 0x23272a,
     });
     contentFrame.setDepth(-800);
     const actionsFrame = new ContentAreaFrame({
@@ -62,12 +62,12 @@ export default class NodeResolutionScene extends Phaser.Scene {
       width: layout.buttons.width,
       height: layout.buttons.height,
       title: "Node Actions",
-      bodyColor: 0x00ff72,
+      bodyColor: 0x006f7a,
     });
     actionsFrame.setDepth(-800);
     this.statusText = this.add
       .text(layout.content.x + 16, layout.content.y + 12, "Resolving node...", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "24px",
         color: "#ffffff",
       })
@@ -84,7 +84,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
     this.errorText = this.add
       .text(layout.content.x + 16, layout.content.y + layout.content.height - 28, "", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#ffb3b3",
         wordWrap: { width: Math.max(300, layout.content.width - 32) },
@@ -221,6 +221,8 @@ export default class NodeResolutionScene extends Phaser.Scene {
     this.scene.start("MapExplorationScene");
   }
 }
+
+
 
 
 

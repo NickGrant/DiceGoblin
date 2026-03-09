@@ -43,7 +43,7 @@ export default class ClickablePanelRegionColumn extends ClickablePanel {
         const _style = {
             ...TEXT_HEADER,
             fontSize: "128px",
-            color: UI_COLORS.parchment
+            color: UI_COLORS.starkCream
         }
         const text = this.scene.add.text(0, 300, _string, _style).setOrigin(0, 0);
         text.setPosition((dims.width - text.width) / 2, 300);
@@ -53,7 +53,7 @@ export default class ClickablePanelRegionColumn extends ClickablePanel {
     private showFeedback(scene: Phaser.Scene, message: string, color: string): void {
         this.feedbackText?.destroy();
         this.feedbackText = scene.add.text(40, 40, message, {
-            fontFamily: "Arial",
+            fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
             fontSize: "18px",
             color,
             backgroundColor: "rgba(0,0,0,0.55)",

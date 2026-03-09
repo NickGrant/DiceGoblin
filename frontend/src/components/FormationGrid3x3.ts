@@ -152,7 +152,7 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
 
       const text = this.scene.add
         .text(x + 8, y + 8, this.makeCellLabel(cell), {
-          fontFamily: "Arial",
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
           fontSize: "12px",
           color: this.colors.text,
           wordWrap: { width: this.cellSize - 16 },
@@ -279,3 +279,4 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
     super.destroy(fromScene);
   }
 }
+

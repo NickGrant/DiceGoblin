@@ -38,3 +38,4 @@ export function normalizeNewSquadName(rawName: string | null | undefined): strin
   const normalized = (rawName ?? "").trim();
   return normalized.length > 0 ? normalized : null;
 }
+

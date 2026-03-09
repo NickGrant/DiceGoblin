@@ -35,7 +35,7 @@ export default class SectionTitleBar extends Phaser.GameObjects.Container {
     }
 
     this.label = cfg.scene.add.text(12, 12, cfg.title.toUpperCase(), {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "30px",
       color: "#ffffff",
       stroke: "#1a1a1a",
@@ -47,3 +47,4 @@ export default class SectionTitleBar extends Phaser.GameObjects.Container {
     cfg.scene.add.existing(this);
   }
 }
+

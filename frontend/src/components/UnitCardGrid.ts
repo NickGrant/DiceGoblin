@@ -98,7 +98,7 @@ export default class UnitCardGrid extends Phaser.GameObjects.Container {
 
     this.titleText = this.scene.add
       .text(this.pad, this.pad - 2, title, {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "16px",
         color: "#ffffff",
       })
@@ -107,7 +107,7 @@ export default class UnitCardGrid extends Phaser.GameObjects.Container {
     const pagerY = this.panelH - this.pad - 2;
     this.prevPageText = this.scene.add
       .text(this.pad, pagerY, "< Prev", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#d6d6d6",
       })
@@ -116,7 +116,7 @@ export default class UnitCardGrid extends Phaser.GameObjects.Container {
 
     this.pageLabelText = this.scene.add
       .text(this.panelW / 2, pagerY, "Page 1/1", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#cfcfcf",
       })
@@ -124,7 +124,7 @@ export default class UnitCardGrid extends Phaser.GameObjects.Container {
 
     this.nextPageText = this.scene.add
       .text(this.panelW - this.pad, pagerY, "Next >", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#d6d6d6",
       })
@@ -187,7 +187,7 @@ export default class UnitCardGrid extends Phaser.GameObjects.Container {
       const level = typeof unit.level === "number" ? unit.level : 1;
       const levelText = this.scene.add
         .text(cardW - 10, cardW - 10, `Lv ${level}`, {
-          fontFamily: "Arial",
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
           fontSize: "12px",
           color: "#fff2c9",
           backgroundColor: "rgba(0,0,0,0.45)",
@@ -197,7 +197,7 @@ export default class UnitCardGrid extends Phaser.GameObjects.Container {
 
       const nameText = this.scene.add
         .text(cardW / 2, cardW + 4, unit.name ?? `Unit ${unit.id}`, {
-          fontFamily: "Arial",
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
           fontSize: "13px",
           color: "#f0f0f0",
           align: "center",
@@ -207,7 +207,7 @@ export default class UnitCardGrid extends Phaser.GameObjects.Container {
 
       const badgeText = this.scene.add
         .text(8, 8, "", {
-          fontFamily: "Arial",
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
           fontSize: "11px",
           color: "#ffe07e",
           backgroundColor: "rgba(0,0,0,0.55)",
@@ -307,3 +307,4 @@ export default class UnitCardGrid extends Phaser.GameObjects.Container {
     super.destroy(fromScene);
   }
 }
+

@@ -31,7 +31,7 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
     if (this.hasTitle) {
       const title = cfg.scene
         .add.text(0, 0, cfg.title ?? "", {
-          fontFamily: "Arial",
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
           fontSize: "16px",
           color: "#ffffff",
         })
@@ -41,7 +41,7 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
 
     this.prevPageText = cfg.scene
       .add.text(0, 410, "< Prev", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#d6d6d6",
       })
@@ -50,7 +50,7 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
 
     this.pageLabelText = cfg.scene
       .add.text(150, 410, "Page 1/1", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#cfcfcf",
       })
@@ -58,7 +58,7 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
 
     this.nextPageText = cfg.scene
       .add.text(300, 410, "Next >", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#d6d6d6",
       })
@@ -115,3 +115,4 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
     this.pageLabelText?.setText(`Page ${this.pageIndex + 1}/${totalPages}`);
   }
 }
+

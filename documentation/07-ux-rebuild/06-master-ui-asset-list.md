@@ -2,29 +2,23 @@
 ----
 
 Status: active
-Last Updated: 2026-03-08
+Last Updated: 2026-03-09
 Owner: UX + Art + Frontend
 Depends On: `documentation/03-ux/01-visual-design-guide.md`, `frontend/src/components/`, `frontend/public/assets/packs/ui.json`
 
 ## Purpose
-- Define the master UI asset list from shared component dependencies, not scene-by-scene one-offs.
-- Preserve only approved carry-forward assets during the style reset.
+- Define the master UI asset inventory by component family.
+- Keep this file implementation-focused and concise.
 
 ## Carry-Forward Decision
 Carry forward now:
 - `dice_sheet` atlas (all dice faces/frames)
+- active runtime UI assets currently registered in `frontend/public/assets/packs/ui.json` and used by scenes/components
 
-Do not carry forward (replace/re-author):
-- all non-dice UI textures, panel art, icons, and column/panel body art currently registered in `ui.json`
-
-## Shared Component Dependency Map
-This map shows where OOP/shared behavior will drive asset reuse.
+## Shared Component Families
 
 ### `ClickablePanel` family
-Base component:
-- `ClickablePanel`
-
-Inheritors/wrappers that share panel texture behavior:
+- Shared wrappers:
 - `ActionButton` (`manifest_strip`)
 - `AcceptButton` (inherits `ActionButton`)
 - `RejectButton` (inherits `ActionButton`)
@@ -34,17 +28,13 @@ Inheritors/wrappers that share panel texture behavior:
 - `RegionSelectionPanel` (defaults to `manifest_strip` via embedded `ClickablePanel`)
 
 ### `ContentAreaFrame` family
-Base composition:
-- `ContentAreaFrame` + `SectionTitleBar`
-
-Shared texture dependencies:
+- Shared composition: `ContentAreaFrame` + `SectionTitleBar`
+- Shared dependencies:
 - title texture fallback key: `texture_red`
 - optional body image keys injected by scenes: `ux_start_run`, `ux_continue_run`
 
 ### Bottom command strip family
-- New shared component target: persistent bottom strip split into left/right segments
-- Left segment content: warband link, dice link, current energy level
-- Right segment content: logout action, player name
+- Shared global strip (left: `home/warband/dice/energy`, right: `logout/player-name`)
 
 ### Encounter map family
 - `Node`: `icon_encounter_boss`, `icon_encounter_locked`, `icon_encounter_combat`, `icon_encounter_loot`, `icon_encounter_rest`, plus `icon_encounter_boss` for exit fallback
@@ -57,7 +47,7 @@ Shared texture dependencies:
 - `BackgroundImage`: `texture_paper`
 
 ## Current Runtime UI Keys (For Replacement Planning)
-Non-dice keys currently in `frontend/public/assets/packs/ui.json` and referenced by components/scenes:
+Current non-dice keys in `frontend/public/assets/packs/ui.json`:
 - `texture_paper`
 - `texture_red`
 - `ux_start_run`
@@ -68,9 +58,11 @@ Non-dice keys currently in `frontend/public/assets/packs/ui.json` and referenced
 - `column_mountain`
 - `manifest_strip`
 - `metal_strip`
+- `base_bar`
 - `icon_home`
 - `icon_warband`
 - `icon_inventory`
+- `icon_logout`
 - `icon_energy`
 - `icon_energy_75`
 - `icon_energy_50`
@@ -83,15 +75,10 @@ Non-dice keys currently in `frontend/public/assets/packs/ui.json` and referenced
 - `icon_encounter_rest`
 - `icons_core_sheet`
 
-Carry-forward key:
+Carry-forward dice key:
 - `dice_sheet`
 
-Deprecated for replacement planning (do not recreate in new direction):
-- `ux_corner_left`
-- `ux_corner_right`
-
-## Master Asset List (New Art Required)
-This is the component-first production list to author next.
+## Target Asset Set (Next Authoring Pass)
 
 ### A) Structural Surfaces
 - `bg_paper_base`
@@ -126,6 +113,7 @@ This is the component-first production list to author next.
 - `column_region_swamp_base`
 
 ### F) Navigation/Status Icons (Non-Dice)
+- `icon_home_registry`
 - `icon_warband_registry`
 - `icon_inventory_registry`
 - `icon_logout_registry`
@@ -146,12 +134,7 @@ This is the component-first production list to author next.
 ### H) Carry-Forward Dice
 - `dice_sheet` atlas and all existing dice frames
 
-## Naming/Reuse Rules
+## Naming Rules
 - Prefer component-family names over scene-specific names.
-- Add state suffixes (`_base`, `_hover`, `_pressed`, `_disabled`) only where interaction states are explicitly visual.
-- Reuse one key across all inheriting classes when behavior is shared (`ClickablePanel` family first).
-
-## Next Pass
-- Add required pixel dimensions per key (derived from component constants and layout contracts).
-- Mark each key as: `required-now`, `optional`, or `defer`.
-- Map each key to first consumer component and validation scene.
+- Use state suffixes (`_base`, `_hover`, `_pressed`, `_disabled`) only when distinct visual states exist.
+- Reuse asset keys across inheriting component families.

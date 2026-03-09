@@ -138,7 +138,7 @@ export default class UnitListPanel extends Phaser.GameObjects.Container {
 
     this.titleText = this.scene.add
       .text(this.panelX + this.pad, this.panelY + this.pad - 2, title, {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "16px",
         color: this.colors.titleColor,
         ...(this.textStyle ?? {}),
@@ -148,7 +148,7 @@ export default class UnitListPanel extends Phaser.GameObjects.Container {
     const pagerY = this.panelH - this.pad - 10;
     this.prevPageText = this.scene.add
       .text(this.panelX + this.pad, pagerY, "< Prev", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#d6d6d6",
       })
@@ -157,7 +157,7 @@ export default class UnitListPanel extends Phaser.GameObjects.Container {
 
     this.pageLabelText = this.scene.add
       .text(this.panelX + this.panelW / 2, pagerY, "Page 1/1", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#cfcfcf",
       })
@@ -165,7 +165,7 @@ export default class UnitListPanel extends Phaser.GameObjects.Container {
 
     this.nextPageText = this.scene.add
       .text(this.panelX + this.panelW - this.pad, pagerY, "Next >", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#d6d6d6",
       })
@@ -212,7 +212,7 @@ export default class UnitListPanel extends Phaser.GameObjects.Container {
 
       const label = this.scene.add
         .text(8, 0, this.getDefaultLabel(unit), {
-          fontFamily: "Arial",
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
           fontSize: "14px",
           color: this.colors.textColor,
           ...(this.textStyle ?? {}),
@@ -221,7 +221,7 @@ export default class UnitListPanel extends Phaser.GameObjects.Container {
 
       const badge = this.scene.add
         .text(rowW - 8, 0, "", {
-          fontFamily: "Arial",
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
           fontSize: "12px",
           color: this.colors.badgeColor,
           ...(this.textStyle ?? {}),
@@ -347,3 +347,4 @@ export default class UnitListPanel extends Phaser.GameObjects.Container {
     super.destroy(fromScene);
   }
 }
+

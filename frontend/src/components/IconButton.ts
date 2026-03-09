@@ -29,9 +29,9 @@ export default class IconButton {
     this.icon = cfg.scene.add.image(0, 0, cfg.iconKey).setDisplaySize(iconSize, iconSize).setOrigin(0.5, 0.5);
     this.hit = cfg.scene.add.zone(0, 0, hitWidth, hitHeight).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
     this.tooltip = cfg.scene.add.text(0, 0, cfg.tooltipText, {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "14px",
-      color: "#ffffff",
+      color: "#F3EFE0",
       backgroundColor: "rgba(0,0,0,0.78)",
       padding: { left: 6, right: 6, top: 4, bottom: 4 },
     }).setOrigin(0.5, 1).setVisible(false);

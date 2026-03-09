@@ -71,7 +71,7 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
 
     const title = this.cfg.scene
       .add.text(this.pad, this.pad - 2, this.cfg.title ?? "DICE", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "16px",
         color: "#ffffff",
       })
@@ -80,7 +80,7 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
     const pagerY = this.cfg.height - this.pad - 2;
     this.prevPageText = this.cfg.scene
       .add.text(this.pad, pagerY, "< Prev", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#d6d6d6",
       })
@@ -89,7 +89,7 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
 
     this.pageLabelText = this.cfg.scene
       .add.text(this.cfg.width / 2, pagerY, "Page 1/1", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#cfcfcf",
       })
@@ -97,7 +97,7 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
 
     this.nextPageText = this.cfg.scene
       .add.text(this.cfg.width - this.pad, pagerY, "Next >", {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#d6d6d6",
       })
@@ -155,7 +155,7 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
 
       const title = this.cfg.scene.add
         .text(x + cardW / 2, y + cardW + 2, die.displayName, {
-          fontFamily: "Arial",
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
           fontSize: "12px",
           color: "#f0f0f0",
           align: "center",
@@ -165,7 +165,7 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
 
       const sub = this.cfg.scene.add
         .text(x + cardW / 2, y + cardH - 14, die.equipped ? `Equipped: ${die.equipped.unitName}` : die.rarity, {
-          fontFamily: "Arial",
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
           fontSize: "11px",
           color: die.equipped ? "#ccffcc" : "#c8c8c8",
           align: "center",
@@ -218,3 +218,4 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
     return this;
   }
 }
+

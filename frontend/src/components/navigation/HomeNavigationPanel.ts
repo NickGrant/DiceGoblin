@@ -32,7 +32,7 @@ export default class HomeNavigationPanel extends Phaser.GameObjects.Container {
       width: cfg.areaRect.width,
       height: cfg.areaRect.height,
       title: cfg.title,
-      bodyColor: cfg.bodyColor ?? 0x202020,
+      bodyColor: cfg.bodyColor ?? 0x23272a,
       bodyImageKey: cfg.bodyImageKey,
       useImageEdgeToEdge: true,
     });
@@ -40,9 +40,9 @@ export default class HomeNavigationPanel extends Phaser.GameObjects.Container {
 
     if (!cfg.bodyImageKey || !cfg.scene.textures.exists(cfg.bodyImageKey)) {
       this.fallbackLabel = cfg.scene.add.text(24, 84, `Open ${cfg.title}`, {
-        fontFamily: "Arial",
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "18px",
-        color: "#111111",
+        color: "#23272A",
       });
       this.add(this.fallbackLabel);
     }

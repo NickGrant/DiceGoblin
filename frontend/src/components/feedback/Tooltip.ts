@@ -20,7 +20,7 @@ export default class Tooltip extends Phaser.GameObjects.Container {
     super(cfg.scene, cfg.x, cfg.y);
 
     this.label = cfg.scene.add.text(0, 0, cfg.text, {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "14px",
       color: "#ffffff",
       padding: { left: 6, right: 6, top: 4, bottom: 4 },
@@ -78,3 +78,4 @@ export default class Tooltip extends Phaser.GameObjects.Container {
     this.label.setPosition(offsetX + 2, offsetY + 2);
   }
 }
+

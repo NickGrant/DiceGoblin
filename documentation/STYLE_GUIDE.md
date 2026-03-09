@@ -2,35 +2,30 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-09  
 Owner: Product + Engineering  
 Depends On: `documentation/README.md`
 
 ## Purpose
-- Keep project docs machine-readable, consistent, and low-noise for both humans and LLM workflows.
+- Keep docs consistent, compact, and machine-readable.
 
 ## Encoding and Characters
-- Use UTF-8 encoding for markdown files.
-- Prefer plain ASCII punctuation for portability:
-  - use `-` instead of en/em dashes
-  - use `->` instead of arrow glyphs
-  - use straight quotes (`"` and `'`) instead of curly quotes
-- Avoid mojibake artifacts (for example `-`, `->`, `"`).
+- UTF-8 for markdown files.
+- Prefer ASCII punctuation (`-`, `->`, straight quotes).
+- Avoid mojibake artifacts.
 
 ## Required Metadata (High-Impact Docs)
-High-impact docs should include:
-- `Status` (`active`, `draft`, `deprecated`, `superseded`)
+- `Status`
 - `Last Updated` (YYYY-MM-DD)
 - `Owner`
 - `Depends On`
 
-## Structure Conventions
-- Start with purpose/scope before detailed content.
-- Keep headings short and predictable.
-- Prefer concise sections over long narrative blocks.
-- Keep references to source-of-truth files explicit.
+## Structure Rules
+- Start with purpose/scope.
+- Prefer short sections and direct references to source-of-truth docs.
+- Avoid duplicated policy text; reference canonical docs instead.
 
-## Backlog and Change Hygiene
-- Track active work in `ISSUES.md`.
-- Move completed issue entries to `ISSUES_ARCHIVE.md`.
-- Record major documentation contract/roadmap changes in `documentation/CHANGELOG.md`.
+## Hygiene Rules
+- Active work in `ISSUES.md` and `MILESTONES.md`.
+- Archive completed items promptly.
+- Record major doc contract changes in `documentation/CHANGELOG.md`.

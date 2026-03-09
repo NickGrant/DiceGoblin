@@ -65,7 +65,7 @@ export default class RestManagementScene extends Phaser.Scene {
       width: layout.content.width,
       height: layout.content.height,
       title: "Manage Warband",
-      bodyColor: 0x00f6ff,
+      bodyColor: 0x4f5a65,
     });
     contentFrame.setDepth(-800);
     const actionsFrame = new ContentAreaFrame({
@@ -75,11 +75,11 @@ export default class RestManagementScene extends Phaser.Scene {
       width: layout.buttons.width,
       height: layout.buttons.height,
       title: "Rest Actions",
-      bodyColor: 0x00ff72,
+      bodyColor: 0x006f7a,
     });
     actionsFrame.setDepth(-800);
     this.loadingText = this.add.text(layout.content.x + 16, layout.content.y - 56, "Preparing rest...", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "20px",
       color: "#ffffff",
     }).setOrigin(0, 0);
@@ -126,7 +126,7 @@ export default class RestManagementScene extends Phaser.Scene {
     const layout = getPageLayout(this);
     const actionButtonX = layout.buttons.x + 10;
     this.add.text(layout.content.x + 16, layout.content.y - 56, "REST MANAGEMENT", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "22px",
       color: "#ffffff",
     }).setOrigin(0, 0);
@@ -172,12 +172,12 @@ export default class RestManagementScene extends Phaser.Scene {
     });
 
     this.add.text(layout.content.x + 10, layout.content.y + 432, "Tip: changes apply to run snapshot and saved squad together.", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#dddddd",
     });
     this.add.text(layout.content.x + 10, layout.content.y + 447, "Use promotion controls for max-level units while rest is open.", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#bbbbbb",
     });
@@ -226,7 +226,7 @@ export default class RestManagementScene extends Phaser.Scene {
       onClick: () => void this.promoteSelectedUnit(),
     });
     this.promotionStatusText = this.add.text(layout.buttons.x + 8, layout.buttons.y + 350, "", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#dddddd",
       wordWrap: { width: layout.buttons.width - 16 },
@@ -378,7 +378,7 @@ export default class RestManagementScene extends Phaser.Scene {
     this.toastText?.destroy();
     const layout = getPageLayout(this);
     this.toastText = this.add.text(layout.content.x + 16, layout.content.y + layout.content.height - 34, message, {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color,
     }).setOrigin(0, 0);
@@ -487,6 +487,8 @@ export default class RestManagementScene extends Phaser.Scene {
     return unit ? unit.name : `Unit ${unitId}`;
   }
 }
+
+
 
 
 

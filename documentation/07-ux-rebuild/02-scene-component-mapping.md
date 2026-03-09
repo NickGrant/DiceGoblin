@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-08  
+Last Updated: 2026-03-09  
 Owner: UX + Frontend  
 Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
 
@@ -11,7 +11,7 @@ Depends On: `documentation/07-ux-rebuild/01-all-up-component-list.md`
 
 ## Adoption Status (Milestone 16)
 - Implemented: `HomeScene`, `RegionSelectScene`, `MapExplorationScene`, `NodeResolutionScene`, `WarbandManagementScene`, `SquadDetailsScene`, `UnitDetailsScene`, `DiceInventoryScene`, `RestManagementScene`, `RunEndSummaryScene`
-- Remaining migration work: remove/trim duplicated scene-local control patterns as follow-up cleanup during final milestone wrap.
+- Implemented shared global shell: unified `BackgroundImage`, split `BottomCommandStrip`, `ContentAreaFrame`, and locked typography/palette usage.
 
 ## Scene Mapping
 - `LandingScene`

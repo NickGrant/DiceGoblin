@@ -34,7 +34,7 @@ export default class RunEndSummaryScene extends Phaser.Scene {
       width: layout.content.width,
       height: layout.content.height,
       title: "Run Summary",
-      bodyColor: 0x0600ff,
+      bodyColor: 0x23272a,
     });
     contentFrame.setDepth(-800);
     const actionsFrame = new ContentAreaFrame({
@@ -44,7 +44,7 @@ export default class RunEndSummaryScene extends Phaser.Scene {
       width: layout.buttons.width,
       height: layout.buttons.height,
       title: "Continue",
-      bodyColor: 0x00ff72,
+      bodyColor: 0x006f7a,
     });
     actionsFrame.setDepth(-800);
     const status = this.payload.status ?? "completed";
@@ -57,18 +57,18 @@ export default class RunEndSummaryScene extends Phaser.Scene {
     const statusColor = status === "completed" ? "#a7ffcf" : status === "failed" ? "#ffb2b2" : "#ffd89e";
 
     this.add.text(layout.content.x + 16, layout.content.y - 44, "END OF RUN SUMMARY", {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "22px",
       color: "#ffffff",
     }).setOrigin(0, 0);
 
     this.add.text(layout.content.x + 16, layout.content.y - 10, statusLabel, {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "16px",
       color: statusColor,
     }).setOrigin(0, 0);
     this.add.text(layout.content.x + 16, layout.content.y + 16, outcomeMessage, {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "12px",
       color: "#dddddd",
       align: "left",
@@ -110,6 +110,8 @@ export default class RunEndSummaryScene extends Phaser.Scene {
     });
   }
 }
+
+
 
 
 

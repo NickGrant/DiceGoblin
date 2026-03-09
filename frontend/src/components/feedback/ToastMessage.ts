@@ -26,7 +26,7 @@ export default class ToastMessage extends Phaser.GameObjects.Container {
 
     const severity = cfg.severity ?? "info";
     const label = cfg.scene.add.text(0, 0, cfg.message, {
-      fontFamily: "Arial",
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "14px",
       color: "#ffffff",
       wordWrap: { width: 420 },
@@ -53,3 +53,4 @@ export default class ToastMessage extends Phaser.GameObjects.Container {
     super.destroy(fromScene);
   }
 }
+

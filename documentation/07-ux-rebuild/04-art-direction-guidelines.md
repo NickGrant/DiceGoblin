@@ -2,7 +2,7 @@
 ----
 
 Status: active
-Last Updated: 2026-03-08
+Last Updated: 2026-03-09
 Owner: UX + Art + Frontend
 Depends On: `documentation/03-ux/01-visual-design-guide.md`, `documentation/03-ux/08-page-layout-zones.md`
 
@@ -16,12 +16,13 @@ Depends On: `documentation/03-ux/01-visual-design-guide.md`, `documentation/03-u
 - Readability: hierarchy and interaction clarity take priority over decoration.
 
 ## Rebuild Asset Baseline
-- Global scene background: `new_ux/textures/paper.png`
-- Section title bars: `new_ux/textures/red.png`
+- Global scene background: `assets/ui/textures/paper.png` (`texture_paper`)
+- Section title bars: `assets/ui/textures/red.png` (`texture_red`)
 - Global control treatment:
   - bottom split command strip with distinct left and right visual segments
   - left segment contains warband link, dice link, and energy display
   - right segment contains logout action and player-name display
+  - left segment icon order: home, warband, dice
 
 ## Color Direction (Locked)
 Primary UI palette tokens:
@@ -49,6 +50,7 @@ Typography rules:
 - Command labels and major headers should be uppercase.
 - Preserve readability over textured surfaces.
 - Allow subtle print imperfections, not heavy distortion.
+- Current frontend implementation should use these families in `frontend/src/const/Text.ts` and font loading in `frontend/index.html`.
 
 ## Texture and Surface Rules
 - Show physical assembly cues: layered paperboard, tape wear, ink bleed, pinning/fastener details.
@@ -77,8 +79,8 @@ Typography rules:
 - If energy is represented with icons, tiers (`100`, `75`, `50`, `25`, `0`) must remain visually consistent as one family.
 
 ## Asset Pipeline Rules
-- Source lane: `raw-assets/new_ux/`
-- Runtime lane: `frontend/public/assets/new_ux/`
+- Source lane: `raw-assets/`
+- Runtime lane: `frontend/public/assets/ui/`
 - Copy any newly used art to runtime lane and register in `frontend/public/assets/packs/ui.json`.
 - Do not bind runtime scene logic directly to raw asset paths.
 

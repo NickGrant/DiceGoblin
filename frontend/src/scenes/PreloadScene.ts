@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { TEXT_BODY, TEXT_HEADER } from "../const/Text";
 import { RegistrySession } from "../state/RegistrySession";
+import BackgroundImage from "../components/BackgroundImage";
 
 export default class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -8,7 +9,7 @@ export default class PreloadScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.renderBackground();
+    new BackgroundImage(this);
 
     const centerX = this.cameras.main.centerX;
     const centerY = this.cameras.main.centerY;
@@ -59,15 +60,8 @@ export default class PreloadScene extends Phaser.Scene {
     const nextScene = RegistrySession.get(this.registry)?.isAuthenticated ? "HomeScene" : "LandingScene";
     this.scene.start(nextScene);
   }
-
-  private renderBackground(): void {
-    if (!this.textures.exists("texture_paper")) return;
-    const bg = this.add.image(0, 0, "texture_paper").setOrigin(0, 0);
-    const scale = Math.max(this.scale.width / bg.width, this.scale.height / bg.height);
-    bg.setScale(scale);
-    bg.setDepth(-1000);
-  }
 }
+
 
 
 
