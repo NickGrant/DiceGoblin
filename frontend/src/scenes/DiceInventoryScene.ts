@@ -3,6 +3,8 @@ import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import DiceCardGrid from "../components/DiceCardGrid";
+import { getDebugSceneConfig } from "../debug/debugScene";
+import { getDebugProfileFixture } from "../debug/debugFixtures";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
@@ -11,6 +13,9 @@ import type { UnitRecord } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
+const FRAME_BODY_TOP_OFFSET = 74;
+const FRAME_BODY_BOTTOM_PADDING = 18;
+const ACTION_BODY_TOP_OFFSET = 72;
 
 export default class DiceInventoryScene extends Phaser.Scene {
   private runId = "";
@@ -65,13 +70,22 @@ export default class DiceInventoryScene extends Phaser.Scene {
     actionsFrame.setDepth(-800);
     const buttonX = layout.buttons.x + 10;
     const inRestContext = this.runId !== "" && this.nodeId !== "";
-    this.add.text(layout.content.x + 410, layout.content.y - 34, "DICE INVENTORY", {
+    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
+    const bodyHeight = Math.max(240, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
+    const unitPanelWidth = Math.max(250, Math.floor(layout.content.width * 0.34));
+    const panelGap = 16;
+    const dicePanelX = layout.content.x + unitPanelWidth + panelGap;
+    const dicePanelWidth = Math.max(280, layout.content.width - unitPanelWidth - panelGap);
+
+    this.add.text(layout.content.x + 16, bodyTop, inRestContext
+      ? "Rest inventory context"
+      : "Between-run inventory context", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "22px",
+      fontSize: "16px",
       color: "#ffffff",
     }).setOrigin(0, 0);
 
-    this.add.text(layout.content.x + 410, layout.content.y + 10, inRestContext
+    this.add.text(dicePanelX, bodyTop, inRestContext
       ? `Rest context active (run ${this.runId}, node ${this.nodeId}).`
       : "Out-of-run context.", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
@@ -79,21 +93,20 @@ export default class DiceInventoryScene extends Phaser.Scene {
       color: "#dddddd",
     }).setOrigin(0, 0);
 
-    this.add.text(layout.content.x + 410, layout.content.y + 42, inRestContext
+    this.add.text(dicePanelX, bodyTop + 22, inRestContext
       ? "Dice changes from this screen should be validated against rest-context backend rules."
       : "Dice changes are available here between runs.", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#bbbbbb",
-      align: "center",
-      wordWrap: { width: layout.content.width - 40 },
+      wordWrap: { width: dicePanelWidth - 12 },
     }).setOrigin(0, 0);
 
     if (inRestContext || this.returnScene !== "HomeScene") {
       new ActionButton({
         scene: this,
         x: buttonX,
-        y: layout.buttons.y + 24,
+        y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
         label: inRestContext ? "Back to Rest" : "Back",
         onClick: () => this.scene.start(this.returnScene, {
           runId: this.runId,
@@ -103,25 +116,24 @@ export default class DiceInventoryScene extends Phaser.Scene {
       });
     }
 
-    this.statusText = this.add.text(layout.content.x + 410, layout.content.y + 68, "Loading inventory...", {
+    this.statusText = this.add.text(dicePanelX, bodyTop + 48, "Loading inventory...", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#dddddd",
-      align: "center",
-      wordWrap: { width: layout.content.width - 40 },
+      wordWrap: { width: dicePanelWidth - 12 },
     }).setOrigin(0, 0);
 
     new ActionButton({
       scene: this,
       x: buttonX,
-      y: layout.buttons.y + 244,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 84,
       label: "Equip Selected",
       onClick: () => void this.equipSelected(),
     });
     new ActionButton({
       scene: this,
       x: buttonX,
-      y: layout.buttons.y + 304,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 140,
       label: "Unequip Selected",
       onClick: () => void this.unequipSelected(),
     });
@@ -130,7 +142,13 @@ export default class DiceInventoryScene extends Phaser.Scene {
   }
 
   private async loadData(): Promise<void> {
-    const profile = await apiClient.getProfile({ force: true });
+    const profile = await apiClient.getProfile({ force: true }).catch(() => {
+      const debugConfig = getDebugSceneConfig();
+      if (!debugConfig.enabled) {
+        throw new Error("Failed to fetch");
+      }
+      return getDebugProfileFixture();
+    });
     if (!profile.ok) {
       this.setStatus(`Profile unavailable: ${profile.error.message}`);
       markDebugSceneReady(this, { state: "error" });
@@ -159,12 +177,15 @@ export default class DiceInventoryScene extends Phaser.Scene {
   private renderUnitPanel(): void {
     this.unitPanel?.destroy();
     const layout = getPageLayout(this);
+    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
+    const bodyHeight = Math.max(240, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
+    const unitPanelWidth = Math.max(250, Math.floor(layout.content.width * 0.34));
     this.unitPanel = new UnitCardGrid({
       scene: this,
       x: layout.content.x,
-      y: layout.content.y + 90,
-      width: 380,
-      height: 350,
+      y: bodyTop,
+      width: unitPanelWidth,
+      height: bodyHeight,
       title: "UNITS",
       units: this.units,
       onUnitClick: (u) => {
@@ -187,6 +208,12 @@ export default class DiceInventoryScene extends Phaser.Scene {
 
   private renderDiceGrid(): void {
     const layout = getPageLayout(this);
+    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
+    const bodyHeight = Math.max(240, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
+    const unitPanelWidth = Math.max(250, Math.floor(layout.content.width * 0.34));
+    const panelGap = 16;
+    const dicePanelX = layout.content.x + unitPanelWidth + panelGap;
+    const dicePanelWidth = Math.max(280, layout.content.width - unitPanelWidth - panelGap);
     if (this.selectedDiceId === null && this.dice.length > 0) {
       this.selectedDiceId = this.dice[0]?.id ?? null;
     }
@@ -199,18 +226,18 @@ export default class DiceInventoryScene extends Phaser.Scene {
     this.diceGrid?.destroy();
     this.diceGrid = new DiceCardGrid({
       scene: this,
-      x: layout.content.x + 410,
-      y: layout.content.y + 96,
-      width: Math.max(260, layout.content.width - 430),
-      height: 344,
+      x: dicePanelX,
+      y: bodyTop + 66,
+      width: dicePanelWidth,
+      height: Math.max(220, bodyHeight - 66),
       title: "DICE",
       dice: this.dice,
       selectedDiceId: this.selectedDiceId,
+      maxVisibleCards: 3,
       onDiceClick: (die) => {
         this.selectedDiceId = die.id;
         this.diceGrid?.setSelectedDiceId(die.id);
       },
-      maxVisibleCards: 6,
     });
   }
 
@@ -265,7 +292,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
   private showToast(message: string, color = "#ffcccc"): void {
     this.toastText?.destroy();
     const layout = getPageLayout(this);
-    this.toastText = this.add.text(layout.content.x + 410, layout.content.y + layout.content.height - 24, message, {
+    this.toastText = this.add.text(layout.content.x + 16, layout.content.y + layout.content.height - 24, message, {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color,

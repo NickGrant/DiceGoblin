@@ -35,7 +35,7 @@ export default class NodeList extends Phaser.GameObjects.Container {
     this.nodes = nodes;
     this.edges = edges;
 
-    const nodeSize = config.nodeSize ?? 84;
+    const nodeSize = config.nodeSize ?? 64;
     this.cfg = {
       scatterRect: config.scatterRect ?? DEFAULT_SCATTER_RECT_960x540,
       nodeSize,

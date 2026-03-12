@@ -100,7 +100,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
   private buildUi(): void {
     const layout = getPageLayout(this);
     const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
-    const bodyHeight = Math.max(220, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
+    const bodyHeight = Math.max(240, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
     const columns = computeWarbandColumns(layout.content.x, layout.content.width);
     const leftX = columns.leftX;
     const rightX = columns.rightX;
@@ -116,7 +116,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
       title: "ALL UNITS",
       units: this.units,
       onUnitClick: (u) => this.scene.start("UnitDetailsScene", { unitId: u.id }),
-      maxVisibleCards: 6,
+      maxVisibleCards: 3,
     });
 
     this.squadPanel?.destroy();

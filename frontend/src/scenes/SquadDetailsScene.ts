@@ -127,7 +127,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     const layout = getPageLayout(this);
     const actionButtonX = layout.buttons.x + 10;
     const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
-    const bodyHeight = Math.max(250, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
+    const bodyHeight = Math.max(260, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
     const gridWidth = 308;
     const gridX = layout.content.x + layout.content.width - 12 - gridWidth;
     const unitPanelWidth = Math.max(280, gridX - layout.content.x - 24);
@@ -147,14 +147,14 @@ export default class SquadDetailsScene extends Phaser.Scene {
       units: this.units,
       getCardState: (u) => this.getUnitRowState(u),
       onUnitClick: (u) => this.handleUnitClick(u),
-      maxVisibleCards: 6,
+      maxVisibleCards: 3,
     });
 
     this.grid?.destroy();
     this.grid = new FormationGrid3x3({
       scene: this,
       x: gridX,
-      y: bodyTop + 8,
+      y: bodyTop,
       formation: this.editFormation,
       selectedCell: null,
       getCellLabel: (cell, unitId) => this.getCellLabel(cell, unitId),

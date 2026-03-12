@@ -29,15 +29,14 @@ export default class LandingScene extends Phaser.Scene {
       });
     }
 
-    const footer = this.add.text(0, GAME_HEIGHT - 24, "MVP build", TEXT_BODY).setOrigin(0, 0);
-    footer.setPosition(this.cameras.main.centerX - footer.width / 2, GAME_HEIGHT - 24);
+    const footer = this.add.text(this.cameras.main.centerX, GAME_HEIGHT - 28, "MVP build", TEXT_BODY).setOrigin(0.5, 1);
     markDebugSceneReady(this);
   }
 
   private createButton(label: string, onClick: () => void): ActionButton {
     return new ActionButton({
       scene: this,
-      x: this.cameras.main.centerX - 150,
+      x: this.cameras.main.centerX - 140,
       y: 280,
       label,
       onClick,

@@ -20,10 +20,12 @@ type ActionButtonListConfig = {
 export default class ActionButtonList extends Phaser.GameObjects.Container {
   private readonly buttons: ActionButton[] = [];
   private readonly gapY: number;
+  private static readonly BUTTON_HEIGHT = 64;
+  private static readonly BUTTON_WIDTH = 280;
 
   constructor(cfg: ActionButtonListConfig) {
     super(cfg.scene, cfg.x, cfg.y);
-    this.gapY = cfg.gapY ?? 25;
+    this.gapY = cfg.gapY ?? 16;
 
     let offsetY = 0;
     for (const buttonCfg of cfg.buttons) {
@@ -35,10 +37,10 @@ export default class ActionButtonList extends Phaser.GameObjects.Container {
       });
       this.buttons.push(button);
       this.add(button);
-      offsetY += 75 + this.gapY;
+      offsetY += ActionButtonList.BUTTON_HEIGHT + this.gapY;
     }
 
-    this.setSize(300, Math.max(0, offsetY - this.gapY));
+    this.setSize(ActionButtonList.BUTTON_WIDTH, Math.max(0, offsetY - this.gapY));
     cfg.scene.add.existing(this);
   }
 

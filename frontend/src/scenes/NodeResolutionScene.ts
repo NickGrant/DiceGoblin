@@ -2,6 +2,8 @@ import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
+import { getDebugSceneConfig } from "../debug/debugScene";
+import { getDebugResolvedNodeFixture } from "../debug/debugFixtures";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { apiClient } from "../services/apiClient";
 import { getPageLayout } from "../layout/pageLayout";
@@ -12,6 +14,10 @@ import {
   isNodeResolutionType,
   type NodeResolutionType,
 } from "./nodeResolutionFlow";
+
+const ACTION_BODY_TOP_OFFSET = 72;
+const CONTENT_BODY_TOP_OFFSET = 74;
+const CONTENT_BODY_BOTTOM_PADDING = 22;
 
 type NodeResolutionSceneData = {
   runId?: string;
@@ -40,6 +46,12 @@ export default class NodeResolutionScene extends Phaser.Scene {
     this.nodeId = String(data?.nodeId ?? "");
     const typeValue = String(data?.nodeType ?? "");
     this.nodeType = isNodeResolutionType(typeValue) ? typeValue : null;
+    const debugConfig = getDebugSceneConfig();
+    if (debugConfig.enabled) {
+      if (!this.runId) this.runId = "91";
+      if (!this.nodeId) this.nodeId = "502";
+      if (!this.nodeType) this.nodeType = "combat";
+    }
   }
 
   create(): void {
@@ -67,7 +79,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
     });
     actionsFrame.setDepth(-800);
     this.statusText = this.add
-      .text(layout.content.x + 16, layout.content.y + 12, "Resolving node...", {
+      .text(layout.content.x + 16, layout.content.y + CONTENT_BODY_TOP_OFFSET, "Resolving node...", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "24px",
         color: "#ffffff",
@@ -75,7 +87,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       .setOrigin(0, 0);
 
     this.detailText = this.add
-      .text(layout.content.x + 16, layout.content.y + 56, "", {
+      .text(layout.content.x + 16, layout.content.y + CONTENT_BODY_TOP_OFFSET + 40, "", {
         fontFamily: "monospace",
         fontSize: "14px",
         color: "#e8e8e8",
@@ -84,18 +96,18 @@ export default class NodeResolutionScene extends Phaser.Scene {
       .setOrigin(0, 0);
 
     this.errorText = this.add
-      .text(layout.content.x + 16, layout.content.y + layout.content.height - 28, "", {
+      .text(layout.content.x + 16, layout.content.y + layout.content.height - CONTENT_BODY_BOTTOM_PADDING - 12, "", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#ffb3b3",
         wordWrap: { width: Math.max(300, layout.content.width - 32) },
       })
-      .setOrigin(0, 0);
+      .setOrigin(0, 1);
 
     this.actionButton = new ActionButton({
       scene: this,
       x: layout.buttons.x + 10,
-      y: layout.buttons.y + 24,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
       label: "Resolving...",
       enabled: false,
       onClick: () => this.actionHandler?.(),
@@ -153,7 +165,13 @@ export default class NodeResolutionScene extends Phaser.Scene {
         return;
       }
 
-      const resolveRes = await apiClient.resolveRunNode(this.runId, this.nodeId);
+      const resolveRes = await apiClient.resolveRunNode(this.runId, this.nodeId).catch(() => {
+        const debugConfig = getDebugSceneConfig();
+        if (!debugConfig.enabled) {
+          throw new Error("Failed to resolve");
+        }
+        return getDebugResolvedNodeFixture();
+      });
       if (!resolveRes.ok) {
         this.showError(`Resolve failed: ${resolveRes.error.message}`);
         this.configureButton("Retry", true, () => {

@@ -5,6 +5,9 @@ import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
+const FRAME_BODY_TOP_OFFSET = 74;
+const ACTION_BODY_TOP_OFFSET = 72;
+
 type RunEndSummaryData = {
   status?: "completed" | "failed" | "abandoned" | string;
   rewards?: string[];
@@ -49,6 +52,7 @@ export default class RunEndSummaryScene extends Phaser.Scene {
     });
     actionsFrame.setDepth(-800);
     const status = this.payload.status ?? "completed";
+    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
     const statusLabel = String(status).toUpperCase();
     const outcomeMessage = status === "completed"
       ? "Run complete. Rewards have been granted."
@@ -57,18 +61,12 @@ export default class RunEndSummaryScene extends Phaser.Scene {
         : "Run ended early. Current progression has been recorded.";
     const statusColor = status === "completed" ? "#a7ffcf" : status === "failed" ? "#ffb2b2" : "#ffd89e";
 
-    this.add.text(layout.content.x + 16, layout.content.y - 44, "END OF RUN SUMMARY", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "22px",
-      color: "#ffffff",
-    }).setOrigin(0, 0);
-
-    this.add.text(layout.content.x + 16, layout.content.y - 10, statusLabel, {
+    this.add.text(layout.content.x + 16, bodyTop, statusLabel, {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "16px",
       color: statusColor,
     }).setOrigin(0, 0);
-    this.add.text(layout.content.x + 16, layout.content.y + 16, outcomeMessage, {
+    this.add.text(layout.content.x + 16, bodyTop + 24, outcomeMessage, {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "12px",
       color: "#dddddd",
@@ -95,7 +93,7 @@ export default class RunEndSummaryScene extends Phaser.Scene {
       ...(defeated.length > 0 ? defeated : ["- None"]),
     ];
 
-    this.add.text(layout.content.x + 16, layout.content.y + 54, lines.join("\n"), {
+    this.add.text(layout.content.x + 16, bodyTop + 68, lines.join("\n"), {
       fontFamily: "monospace",
       fontSize: "13px",
       color: "#f5f5f5",
@@ -105,7 +103,7 @@ export default class RunEndSummaryScene extends Phaser.Scene {
     new ActionButton({
       scene: this,
       x: layout.buttons.x + 10,
-      y: layout.buttons.y + 24,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
       label: "Continue",
       onClick: () => this.scene.start("HomeScene"),
     });

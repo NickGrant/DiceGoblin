@@ -4,6 +4,8 @@ import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import NodeList from "../components/encounter-map/NodeList";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
+import { getDebugSceneConfig } from "../debug/debugScene";
+import { getDebugRunFixture } from "../debug/debugFixtures";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { apiClient } from "../services/apiClient";
 import type { CurrentRunNode, RunResponse } from "../types/ApiResponse";
@@ -11,6 +13,10 @@ import { getPageLayout } from "../layout/pageLayout";
 import { isNodeResolutionType } from "./nodeResolutionFlow";
 import ConfirmationDialog from "../components/feedback/ConfirmationDialog";
 import ToastMessage from "../components/feedback/ToastMessage";
+
+const ACTION_BODY_TOP_OFFSET = 72;
+const CONTENT_BODY_TOP_OFFSET = 74;
+const CONTENT_BODY_BOTTOM_PADDING = 20;
 
 export default class MapExplorationScene extends Phaser.Scene {
   private runEnvelope: RunResponse | null = null;
@@ -59,7 +65,7 @@ export default class MapExplorationScene extends Phaser.Scene {
     new ActionButtonList({
       scene: this,
       x: layout.buttons.x + 10,
-      y: layout.buttons.y + 24,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
       gapY: 5,
       buttons: [
         {
@@ -87,7 +93,13 @@ export default class MapExplorationScene extends Phaser.Scene {
     this.nodeList = undefined;
 
     try {
-      const run = await apiClient.getCurrentRun();
+      const run = await apiClient.getCurrentRun().catch(() => {
+        const debugConfig = getDebugSceneConfig();
+        if (!debugConfig.enabled) {
+          throw new Error("Failed to fetch");
+        }
+        return getDebugRunFixture();
+      });
       if (!run.ok) {
         this.showFallback(`Run unavailable: ${run.error.message}`);
         return;
@@ -115,12 +127,12 @@ export default class MapExplorationScene extends Phaser.Scene {
         run.data.map.edges,
         {
           scatterRect: new Phaser.Geom.Rectangle(
-            layout.content.x + 48,
-            layout.content.y + 48,
-            Math.max(200, layout.content.width - 96),
-            Math.max(180, layout.content.height - 96)
+            layout.content.x + 24,
+            layout.content.y + CONTENT_BODY_TOP_OFFSET,
+            Math.max(220, layout.content.width - 48),
+            Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - CONTENT_BODY_BOTTOM_PADDING)
           ),
-          nodeSize: 84,
+          nodeSize: 64,
           onNodeClick: (node) => this.handleNodeClick(node),
         }
       );
@@ -210,12 +222,12 @@ export default class MapExplorationScene extends Phaser.Scene {
   private showFallback(message: string): void {
     this.fallbackText?.destroy();
     const layout = getPageLayout(this);
-    this.fallbackText = this.add.text(layout.content.x, layout.content.y, message, {
+    this.fallbackText = this.add.text(layout.content.x + 16, layout.content.y + CONTENT_BODY_TOP_OFFSET, message, {
       fontFamily: "monospace",
       fontSize: "16px",
       color: "#f5f5f5",
       align: "left",
-      wordWrap: { width: Math.max(320, layout.content.width - 24) },
+      wordWrap: { width: Math.max(320, layout.content.width - 32) },
     }).setOrigin(0, 0);
     markDebugSceneReady(this, { state: "fallback", message });
   }

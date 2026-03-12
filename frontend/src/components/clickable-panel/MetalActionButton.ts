@@ -13,9 +13,9 @@ type MetalActionButtonConfig = Omit<ClickablePanelConfig, "width" | "height" | "
 };
 
 export default class MetalActionButton extends ClickablePanel {
-  private static readonly WIDTH = 300;
-  private static readonly HEIGHT = 75;
-  private static readonly ICON_SIZE = 60;
+  private static readonly WIDTH = 280;
+  private static readonly HEIGHT = 64;
+  private static readonly ICON_SIZE = 50;
 
   private labelObj?: Phaser.GameObjects.Text;
   private iconObj?: Phaser.GameObjects.Image;
@@ -54,12 +54,12 @@ export default class MetalActionButton extends ClickablePanel {
       this.add(this.iconObj);
     }
 
-    const labelX = this.iconKey ? 91 : 31;
+    const labelX = this.iconKey ? 78 : 24;
     const labelWidth = MetalActionButton.WIDTH - labelX - 12;
     this.labelObj = this.scene.add
       .text(labelX, MetalActionButton.HEIGHT / 2 + 2, this.labelText.toUpperCase(), {
         ...TEXT_BUTTON,
-        fontSize: "24px",
+        fontSize: "21px",
         wordWrap: { width: labelWidth },
         ...(this.customTextStyle ?? {}),
       })

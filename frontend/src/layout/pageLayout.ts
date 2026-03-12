@@ -17,9 +17,9 @@ export type PageLayout = {
 
 export const PAGE_LAYOUT = {
   paddingPx: 12,
-  topBandHeightPx: 218,
-  columnGapPx: 24,
-  buttonColumnWidthPx: 616,
+  topBandHeightPx: 172,
+  columnGapPx: 18,
+  buttonColumnWidthPx: 312,
   bottomStripHeightPx: 96,
   bottomStripBottomPaddingPx: 10,
   bottomStripTopGapPx: 12,

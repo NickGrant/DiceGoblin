@@ -1,7 +1,11 @@
 import type {
+  CurrentRunData,
+  ResolveNodeResponse,
   DiceRecord,
   ProfileData,
   ProfileResponse,
+  RestOpenResponse,
+  RunResponse,
   TeamRecord,
   UnitRecord,
 } from "../types/ApiResponse";
@@ -83,4 +87,78 @@ export function getDebugProfileFixture(): ProfileResponse {
   };
 
   return { ok: true, data };
+}
+
+export function getDebugRunFixture(): RunResponse {
+  const data: CurrentRunData = {
+    run: {
+      run_id: "91",
+      region_id: "1",
+      seed: "debug-seed",
+      status: "active",
+      started_at: "2026-03-12T11:00:00Z",
+      ended_at: null,
+    },
+    map: {
+      nodes: [
+        { id: "501", run_id: "91", node_index: 0, node_type: "combat", status: "cleared", meta_json: '{"col":0,"row":0}' },
+        { id: "502", run_id: "91", node_index: 1, node_type: "loot", status: "available", meta_json: '{"col":1,"row":0}' },
+        { id: "503", run_id: "91", node_index: 2, node_type: "rest", status: "available", meta_json: '{"col":1,"row":1}' },
+        { id: "504", run_id: "91", node_index: 3, node_type: "boss", status: "locked", meta_json: '{"col":2,"row":1}' },
+        { id: "505", run_id: "91", node_index: 4, node_type: "exit", status: "locked", meta_json: '{"col":3,"row":1}' },
+      ],
+      edges: [
+        { edge_id: "e1", run_id: "91", from_node_id: "501", to_node_id: "502" },
+        { edge_id: "e2", run_id: "91", from_node_id: "502", to_node_id: "503" },
+        { edge_id: "e3", run_id: "91", from_node_id: "503", to_node_id: "504" },
+        { edge_id: "e4", run_id: "91", from_node_id: "504", to_node_id: "505" },
+      ],
+    },
+  };
+
+  return { ok: true, data };
+}
+
+export function getDebugRestFixture(): RestOpenResponse {
+  return {
+    ok: true,
+    data: {
+      run_id: "91",
+      node_id: "503",
+      status: "open",
+      team_id: "1",
+      unit_ids: ["1", "2", "3", "4"],
+      formation: [
+        { cell: "A1", unit_instance_id: "1" },
+        { cell: "B1", unit_instance_id: "2" },
+        { cell: "A2", unit_instance_id: "3" },
+        { cell: "B2", unit_instance_id: "4" },
+      ],
+      run_unit_state: [
+        { unit_instance_id: "1", hp: 18, is_defeated: false, status_effects: [] },
+        { unit_instance_id: "2", hp: 14, is_defeated: false, status_effects: [] },
+        { unit_instance_id: "3", hp: 11, is_defeated: false, status_effects: [] },
+        { unit_instance_id: "4", hp: 9, is_defeated: false, status_effects: [] },
+      ],
+    },
+  };
+}
+
+export function getDebugResolvedNodeFixture(): ResolveNodeResponse {
+  return {
+    ok: true,
+    data: {
+      node: { id: "502", status: "cleared" },
+      battle: {
+        battle_id: "b-77",
+        outcome: "victory",
+        rounds: 4,
+        ticks: 23,
+        status: "complete",
+      },
+      next: {
+        unlocked_node_ids: ["503"],
+      },
+    },
+  };
 }

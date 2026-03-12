@@ -13,10 +13,10 @@ type ActionButtonConfig = Omit<ClickablePanelConfig, "width" | "height" | "textu
 };
 
 export default class ActionButton extends ClickablePanel {
-  private static readonly WIDTH = 300;
-  private static readonly HEIGHT = 75;
-  private static readonly ICON_SIZE = 100;
-  private static readonly ICON_OVERFLOW = 12.5;
+  private static readonly WIDTH = 280;
+  private static readonly HEIGHT = 64;
+  private static readonly ICON_SIZE = 82;
+  private static readonly ICON_OVERFLOW = 8;
 
   private labelObj?: Phaser.GameObjects.Text;
   private iconObj?: Phaser.GameObjects.Image;
@@ -61,9 +61,9 @@ export default class ActionButton extends ClickablePanel {
       : ActionButton.WIDTH - 24;
 
     this.labelObj = this.scene.add
-      .text(labelX, 20, this.labelText.toUpperCase(), {
+      .text(labelX, this.iconKey ? 14 : 16, this.labelText.toUpperCase(), {
         ...TEXT_BUTTON,
-        fontSize: "30px",
+        fontSize: "24px",
         wordWrap: { width: labelWidth },
         ...(this.customTextStyle ?? {}),
       })

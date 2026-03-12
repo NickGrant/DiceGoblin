@@ -41,7 +41,7 @@ export default class UnitCardGrid extends Phaser.GameObjects.Container {
   private readonly pagerH = 22;
   private readonly cols = 3;
   private readonly gapX = 10;
-  private readonly gapY = 10;
+  private readonly gapY = 8;
 
   private readonly onUnitClick?: (unit: UnitRecord) => void;
   private getCardState?: (unit: UnitRecord) => UnitCardState;
@@ -85,7 +85,7 @@ export default class UnitCardGrid extends Phaser.GameObjects.Container {
   }
 
   private getCardW(): number {
-    return Math.floor((this.panelW - this.pad * 2 - this.gapX * (this.cols - 1)) / this.cols);
+    return Math.min(132, Math.floor((this.panelW - this.pad * 2 - this.gapX * (this.cols - 1)) / this.cols));
   }
 
   private buildPanel(title: string): void {

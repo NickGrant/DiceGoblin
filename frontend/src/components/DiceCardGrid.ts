@@ -30,7 +30,7 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
   private readonly pagerH = 22;
   private readonly cols = 3;
   private readonly gapX = 10;
-  private readonly gapY = 10;
+  private readonly gapY = 8;
 
   private readonly pageSize: number;
   private pageIndex = 0;
@@ -60,7 +60,7 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
   }
 
   private getCardW(): number {
-    return Math.floor((this.cfg.width - this.pad * 2 - this.gapX * (this.cols - 1)) / this.cols);
+    return Math.min(120, Math.floor((this.cfg.width - this.pad * 2 - this.gapX * (this.cols - 1)) / this.cols));
   }
 
   private buildPanel(): void {

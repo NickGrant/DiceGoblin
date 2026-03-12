@@ -25,7 +25,7 @@ export default class Node extends Phaser.GameObjects.Container {
 
     this.record = record;
     this.cfg = {
-      size: config.size ?? 84,
+      size: config.size ?? 64,
       onClick: config.onClick,
     };
 
@@ -51,7 +51,7 @@ export default class Node extends Phaser.GameObjects.Container {
     this.setSize(size, size);
     this.setInteractive(new Phaser.Geom.Rectangle(-size / 2, -size / 2, size, size), Phaser.Geom.Rectangle.Contains);
 
-    this.on("pointerover", () => this.icon.setScale(1.05));
+    this.on("pointerover", () => this.icon.setScale(1.03));
     this.on("pointerout", () => this.icon.setScale(1));
     this.on("pointerup", () => {
       if (this.record.status === "available") {
@@ -66,6 +66,7 @@ export default class Node extends Phaser.GameObjects.Container {
   private refresh(): void {
     const textureKey = this.pickTextureKey(this.record);
     this.icon.setTexture(textureKey);
+    this.icon.setDisplaySize(this.cfg.size, this.cfg.size);
 
     const status = this.record.status;
     const isExit = this.record.node_type === "exit";
