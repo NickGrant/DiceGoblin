@@ -4,6 +4,8 @@ import ActionButton from "../components/clickable-panel/ActionButton";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
+import { getDebugSceneConfig } from "../debug/debugScene";
+import { getDebugProfileFixture } from "../debug/debugFixtures";
 import { apiClient } from "../services/apiClient";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
 import type { TeamRecord, UnitRecord, TeamFormationCell } from "../types/ApiResponse";
@@ -17,6 +19,10 @@ const CELLS: Cell[] = ["A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"];
 function emptyFormation(): FormationMap {
   return { A1: null, B1: null, C1: null, A2: null, B2: null, C2: null, A3: null, B3: null, C3: null };
 }
+
+const FRAME_BODY_TOP_OFFSET = 74;
+const FRAME_BODY_BOTTOM_PADDING = 18;
+const ACTION_BODY_TOP_OFFSET = 64;
 
 export default class SquadDetailsScene extends Phaser.Scene {
   private squadId = "";
@@ -81,7 +87,13 @@ export default class SquadDetailsScene extends Phaser.Scene {
 
   private async loadData(): Promise<void> {
     try {
-      const profile = await apiClient.getProfile({ force: true });
+      const profile = await apiClient.getProfile({ force: true }).catch(() => {
+        const debugConfig = getDebugSceneConfig();
+        if (!debugConfig.enabled) {
+          throw new Error("Failed to fetch");
+        }
+        return getDebugProfileFixture();
+      });
       if (!profile.ok) throw new Error(profile.error.message);
 
       this.units = adaptUnitRecords(profile.data.units ?? []);
@@ -114,22 +126,23 @@ export default class SquadDetailsScene extends Phaser.Scene {
   private buildUi(): void {
     const layout = getPageLayout(this);
     const actionButtonX = layout.buttons.x + 10;
+    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
+    const bodyHeight = Math.max(250, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
+    const gridWidth = 308;
+    const gridX = layout.content.x + layout.content.width - 12 - gridWidth;
+    const unitPanelWidth = Math.max(280, gridX - layout.content.x - 24);
     if (!this.squad) return;
 
     this.titleText?.destroy();
-    this.titleText = this.add.text(layout.content.x + 16, layout.content.y - 34, `SQUAD: ${this.squad.name}`, {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "20px",
-      color: "#ffffff",
-    });
+    this.titleText = undefined;
 
     this.unitPanel?.destroy();
     this.unitPanel = new UnitCardGrid({
       scene: this,
       x: layout.content.x,
-      y: layout.content.y,
-      width: 400,
-      height: 420,
+      y: bodyTop,
+      width: unitPanelWidth,
+      height: bodyHeight,
       title: "UNITS",
       units: this.units,
       getCardState: (u) => this.getUnitRowState(u),
@@ -140,8 +153,8 @@ export default class SquadDetailsScene extends Phaser.Scene {
     this.grid?.destroy();
     this.grid = new FormationGrid3x3({
       scene: this,
-      x: layout.content.x + 520,
-      y: layout.content.y + 48,
+      x: gridX,
+      y: bodyTop + 8,
       formation: this.editFormation,
       selectedCell: null,
       getCellLabel: (cell, unitId) => this.getCellLabel(cell, unitId),
@@ -155,7 +168,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     new ActionButtonList({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + 24,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
       gapY: 5,
       buttons: [
         {
@@ -172,7 +185,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     this.clearButton = new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + 184,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 104,
       label: "Clear Cell",
       enabled: false,
       onClick: () => this.clearSelectedCell(),
@@ -180,14 +193,14 @@ export default class SquadDetailsScene extends Phaser.Scene {
     this.saveButton = new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + 264,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 156,
       label: "Save Squad",
       onClick: () => void this.saveTeam(),
     });
     this.activateButton = new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + 344,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 208,
       label: "Set Active",
       enabled: !this.squad.is_active,
       onClick: () => void this.activateSquad(),
@@ -195,7 +208,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + 424,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 260,
       label: "Delete Squad",
       enabled: this.canDeleteSquad(),
       onClick: () => void this.deleteSquad(),

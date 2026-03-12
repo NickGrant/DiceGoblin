@@ -201,7 +201,7 @@ async function captureScene(options) {
     const browser = await chromium.launch();
     try {
       const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-      await page.goto(captureUrl, { waitUntil: "networkidle", timeout: options.timeoutMs });
+      await page.goto(captureUrl, { waitUntil: "load", timeout: options.timeoutMs });
       await page.waitForFunction(
         () => {
           const debugState = window.__DG_DEBUG__;
@@ -213,6 +213,7 @@ async function captureScene(options) {
             debugState.readyScene === debugState.requestedScene
           );
         },
+        undefined,
         { timeout: options.timeoutMs }
       );
 

@@ -63,6 +63,7 @@ goals:
 - deliver maintainable, efficient, and well-tested code
 - reduce complexity through DRY/KISS/OOP refactors where high value
 - keep documentation/comments aligned with implementation intent
+- use deterministic scene-capture/debug tools when inspecting or explaining frontend scene behavior
 constraints:
 - cannot create features that are not already documented/approved
 - cannot enact major UX/UI direction changes without user confirmation
@@ -83,6 +84,7 @@ goals:
 - produce reproducible test plans for frontend, backend, and API contracts
 - prioritize regression coverage for active systems (runs, squads, battles)
 - convert observed failures into actionable issues with repro steps
+- use deterministic scene screenshots when visual evidence or repeatable scene inspection improves bug reports or acceptance validation
 constraints:
 - cannot mark release-ready when blocking checks fail
 - cannot skip verification when risk is high without explicit user approval

@@ -88,6 +88,12 @@ This repo includes lightweight collaboration control docs:
 - `ROLES.md`
 - `ISSUES.md`
 - `ISSUES_BACKLOG.md` (planning/deferred)
+
+## Local Skills
+- `skills/backlog-ops/SKILL.md` for issue/milestone lifecycle operations.
+- `skills/startup-verification/SKILL.md` for startup validation workflow.
+- `skills/scene-screenshot/SKILL.md` for deterministic Phaser scene screenshots through the debug scene loader and capture command.
+- `skills/ux-scene-review/SKILL.md` for iterative UX review loops on scenes using screenshot capture, code fixes, and QA review.
 - `ISSUES_ARCHIVE.md`
 - `MILESTONES.md`
 - `MILESTONES_BACKLOG.md` (planning/deferred)
@@ -115,6 +121,8 @@ npm run verify:full
 ## Local Skills
 - `skills/backlog-ops/SKILL.md` for issue/milestone lifecycle operations.
 - `skills/startup-verification/SKILL.md` for startup validation workflow.
+- `skills/scene-screenshot/SKILL.md` for deterministic Phaser scene screenshots through the debug scene loader and capture command.
+- `skills/ux-scene-review/SKILL.md` for iterative UX review loops on scenes using screenshot capture, code fixes, and QA review.
 
 ## Troubleshooting
 - CORS/session issues: verify `DEV_ALLOWED_ORIGINS` in `backend/.env` and ensure frontend runs on `http://localhost:5173`.

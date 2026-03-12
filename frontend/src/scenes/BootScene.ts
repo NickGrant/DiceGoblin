@@ -40,9 +40,7 @@ export default class BootScene extends Phaser.Scene {
       statusText.setText("Debug bootstrap...");
       this.centerText(statusText);
       markDebugSceneReady(this, { mode: "debug-bootstrap" });
-      this.time.delayedCall(50, () => {
-        this.scene.start("PreloadScene");
-      });
+      this.scene.start("PreloadScene");
       return;
     }
 

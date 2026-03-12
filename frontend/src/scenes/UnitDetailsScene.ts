@@ -3,12 +3,18 @@ import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
+import { getDebugSceneConfig } from "../debug/debugScene";
+import { getDebugProfileFixture } from "../debug/debugFixtures";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { UnitRecord } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
+
+const FRAME_BODY_TOP_OFFSET = 74;
+const FRAME_BODY_BOTTOM_PADDING = 18;
+const ACTION_BODY_TOP_OFFSET = 76;
 
 export default class UnitDetailsScene extends Phaser.Scene {
   private unitId = "";
@@ -67,7 +73,13 @@ export default class UnitDetailsScene extends Phaser.Scene {
 
   private async loadData(): Promise<void> {
     try {
-      const profile = await apiClient.getProfile({ force: true });
+      const profile = await apiClient.getProfile({ force: true }).catch(() => {
+        const debugConfig = getDebugSceneConfig();
+        if (!debugConfig.enabled) {
+          throw new Error("Failed to fetch");
+        }
+        return getDebugProfileFixture();
+      });
       if (!profile.ok) throw new Error(profile.error.message);
 
       this.units = adaptUnitRecords(profile.data.units ?? []);
@@ -92,6 +104,11 @@ export default class UnitDetailsScene extends Phaser.Scene {
   private buildUi(rawDice: unknown[], rawUnits: unknown[]): void {
     const layout = getPageLayout(this);
     const buttonX = layout.buttons.x + 10;
+    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
+    const bodyHeight = Math.max(250, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
+    const secondaryPanelWidth = 260;
+    const secondaryPanelX = layout.content.x + layout.content.width - 12 - secondaryPanelWidth;
+    const detailsWidth = Math.max(260, secondaryPanelX - layout.content.x - 24);
     if (!this.unit) return;
 
     const diceVm = adaptDiceDetails(rawDice as any, rawUnits as any);
@@ -101,7 +118,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     const tier = typeof this.unit.tier === "number" ? this.unit.tier : 1;
 
     this.detailsText?.destroy();
-    this.detailsText = this.add.text(layout.content.x + 16, layout.content.y, [
+    this.detailsText = this.add.text(layout.content.x + 16, bodyTop, [
       `UNIT: ${this.unit.name}`,
       `Level: ${this.unit.level} / ${max}`,
       `XP: ${xp}`,
@@ -119,10 +136,10 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.secondaryPanel?.destroy();
     this.secondaryPanel = new UnitCardGrid({
       scene: this,
-      x: layout.content.x + 440,
-      y: layout.content.y,
-      width: 460,
-      height: 420,
+      x: secondaryPanelX,
+      y: bodyTop,
+      width: secondaryPanelWidth,
+      height: bodyHeight,
       title: "PROMOTION SECONDARIES",
       units: this.units.filter((u) => u.id !== this.unitId),
       maxVisibleCards: 6,
@@ -133,7 +150,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     new ActionButtonList({
       scene: this,
       x: buttonX,
-      y: layout.buttons.y + 24,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
       gapY: 5,
       buttons: [
         { label: "Back", onClick: () => this.scene.start("WarbandManagementScene") },
@@ -159,18 +176,18 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.promoteButton = new ActionButton({
       scene: this,
       x: buttonX,
-      y: layout.buttons.y + 284,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 180,
       label: "Promote Unit",
       enabled: !this.activeRun && this.selectedSecondaryIds.length === 2,
       onClick: () => void this.promoteUnit(),
     });
 
     this.statusText?.destroy();
-    this.statusText = this.add.text(layout.content.x + 440, layout.content.y + 432, "", {
+    this.statusText = this.add.text(layout.content.x + 16, bodyTop + bodyHeight - 64, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#dddddd",
-      wordWrap: { width: 460 },
+      wordWrap: { width: detailsWidth },
     });
     this.refreshStatus();
   }

@@ -45,7 +45,9 @@ export default class RegionSelectScene extends Phaser.Scene {
     this.add.text(layout.buttons.x + 24, layout.buttons.y + 90, "Select a region to start a run.", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "24px",
-      color: "#111111",
+      color: "#f2f2f2",
+      stroke: "#1a1a1a",
+      strokeThickness: 2,
       wordWrap: { width: layout.buttons.width - 48 },
     });
 

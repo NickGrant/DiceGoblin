@@ -14,3 +14,6 @@
 - `scene-screenshot`
   - File: `skills/scene-screenshot/SKILL.md`
   - Use for deterministic Phaser scene screenshots through the local debug scene loader and capture command.
+- `ux-scene-review`
+  - File: `skills/ux-scene-review/SKILL.md`
+  - Use for iterative scene review loops that combine screenshot capture, Senior Developer fixes, and QA screenshot review.

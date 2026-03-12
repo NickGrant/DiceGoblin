@@ -1,0 +1,4 @@
+interface:
+  display_name: "UX Scene Review"
+  short_description: "Run iterative scene screenshot and UI review loops."
+  default_prompt: "Perform a UX scene review using screenshot capture, Senior Developer fixes, and QA review cycles."

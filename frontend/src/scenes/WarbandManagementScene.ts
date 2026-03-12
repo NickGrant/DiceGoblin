@@ -4,6 +4,8 @@ import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import UnitCardGrid from "../components/UnitCardGrid";
 import SquadListPanel from "../components/SquadListPanel";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
+import { getDebugSceneConfig } from "../debug/debugScene";
+import { getDebugProfileFixture } from "../debug/debugFixtures";
 import { apiClient } from "../services/apiClient";
 import type { TeamRecord, UnitRecord } from "../types/ApiResponse";
 import { markDebugSceneReady } from "../debug/debugHooks";
@@ -14,6 +16,10 @@ import {
   deriveWarbandHubState,
   normalizeNewSquadName,
 } from "./warbandManagementState";
+
+const FRAME_BODY_TOP_OFFSET = 74;
+const FRAME_BODY_BOTTOM_PADDING = 18;
+const ACTION_BODY_TOP_OFFSET = 76;
 
 export default class WarbandManagementScene extends Phaser.Scene {
   private loadingText?: Phaser.GameObjects.Text;
@@ -66,7 +72,13 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   private async loadData(): Promise<void> {
     try {
-      const profile = await apiClient.getProfile({ force: true });
+      const profile = await apiClient.getProfile({ force: true }).catch(() => {
+        const debugConfig = getDebugSceneConfig();
+        if (!debugConfig.enabled) {
+          throw new Error("Failed to fetch");
+        }
+        return getDebugProfileFixture();
+      });
       const state = deriveWarbandHubState(profile);
       this.units = state.units;
       this.squads = state.squads;
@@ -87,29 +99,20 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   private buildUi(): void {
     const layout = getPageLayout(this);
+    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
+    const bodyHeight = Math.max(220, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
     const columns = computeWarbandColumns(layout.content.x, layout.content.width);
     const leftX = columns.leftX;
     const rightX = columns.rightX;
     const colW = columns.columnWidth;
 
-    this.add.text(leftX, layout.content.y - 34, "UNITS", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "20px",
-      color: "#ffffff",
-    });
-    this.add.text(rightX, layout.content.y - 34, "SQUADS", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "20px",
-      color: "#ffffff",
-    });
-
     this.unitPanel?.destroy();
     this.unitPanel = new UnitCardGrid({
       scene: this,
       x: leftX,
-      y: layout.content.y,
+      y: bodyTop,
       width: colW,
-      height: 460,
+      height: bodyHeight,
       title: "ALL UNITS",
       units: this.units,
       onUnitClick: (u) => this.scene.start("UnitDetailsScene", { unitId: u.id }),
@@ -120,16 +123,17 @@ export default class WarbandManagementScene extends Phaser.Scene {
     this.squadPanel = new SquadListPanel({
       scene: this,
       x: rightX,
-      y: layout.content.y,
+      y: bodyTop,
       title: "",
       squads: this.squads,
       onSquadClick: (squad) => this.scene.start("SquadDetailsScene", { squadId: squad.id }),
+      maxVisibleSquads: 3,
     });
 
     new ActionButtonList({
       scene: this,
-      x: rightX,
-      y: layout.content.y + 470,
+      x: layout.buttons.x + 10,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
       gapY: 5,
       buttons: [
         {
@@ -137,12 +141,6 @@ export default class WarbandManagementScene extends Phaser.Scene {
           onClick: () => void this.createSquad(),
         },
       ],
-    });
-
-    this.add.text(leftX, layout.content.y + 490, "Unit Details handles stats/xp, promotion, and dice flow.", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "13px",
-      color: "#bbbbbb",
     });
   }
 

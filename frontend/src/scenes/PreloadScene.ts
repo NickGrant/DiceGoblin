@@ -60,6 +60,11 @@ export default class PreloadScene extends Phaser.Scene {
 
   create(): void {
     const debugConfig = getDebugSceneConfig();
+    if (debugConfig.enabled && debugConfig.targetSceneKey === "PreloadScene") {
+      markDebugSceneReady(this, { nextScene: "PreloadScene" });
+      return;
+    }
+
     const nextScene =
       debugConfig.enabled && debugConfig.targetSceneKey
         ? debugConfig.targetSceneKey

@@ -145,6 +145,7 @@ This file defines project-specific operating instructions for coding agents work
 
 ## Verification Matrix
 - Frontend/Phaser behavior changes: run relevant frontend tests/build and perform a brief manual UX sanity check.
+  - When a scene-specific visual review or reproducible UI artifact would help, use the local scene screenshot workflow (`skills/scene-screenshot/SKILL.md`) and attach/call out the captured scene state.
 - Backend/PHP API changes: run targeted endpoint validation and check JSON response contract behavior.
 - Data/schema changes: validate migration order and verify required seed/artifact files exist.
 
@@ -202,3 +203,5 @@ This file defines project-specific operating instructions for coding agents work
 - Current local skills:
   - `skills/backlog-ops/SKILL.md`
   - `skills/startup-verification/SKILL.md`
+  - `skills/scene-screenshot/SKILL.md`
+  - `skills/ux-scene-review/SKILL.md`

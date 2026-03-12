@@ -59,3 +59,10 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
 - `npm run startup:check`
 - `npm run backlog:validate`
 - `npm run llm:check`
+
+## Local Automation
+- Scene screenshot capture:
+  - `skills/scene-screenshot/SKILL.md`
+  - `npm run capture:scene -- --scene <scene>`
+- UX scene review loops:
+  - `skills/ux-scene-review/SKILL.md`
