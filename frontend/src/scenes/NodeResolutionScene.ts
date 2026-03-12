@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
+import { markDebugSceneReady } from "../debug/debugHooks";
 import { apiClient } from "../services/apiClient";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
@@ -107,6 +108,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
     if (!this.nodeType || !this.runId || !this.nodeId) {
       this.showError("Node resolution unavailable: missing run context.");
       this.configureButton("Back to Map", true, () => this.returnToMap());
+      markDebugSceneReady(this, { state: "error" });
       return;
     }
 
@@ -147,6 +149,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
             defeated: [],
           });
         });
+        markDebugSceneReady(this, { state: "exit-resolved", status });
         return;
       }
 
@@ -157,6 +160,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
           this.hasResolved = false;
           void this.resolveNode();
         });
+        markDebugSceneReady(this, { state: "error" });
         return;
       }
 
@@ -186,6 +190,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
             defeated: [],
           });
         });
+        markDebugSceneReady(this, { state: "terminal", outcome });
         return;
       }
 
@@ -195,12 +200,14 @@ export default class NodeResolutionScene extends Phaser.Scene {
           resolutionColor: outcome === "victory" ? "#ccffcc" : "#ffd89e",
         });
       });
+      markDebugSceneReady(this, { state: "resolved", outcome });
     } catch {
       this.showError("Node resolution unavailable. Please retry.");
       this.configureButton("Retry", true, () => {
         this.hasResolved = false;
         void this.resolveNode();
       });
+      markDebugSceneReady(this, { state: "error" });
     }
   }
 

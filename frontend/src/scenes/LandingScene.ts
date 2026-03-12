@@ -3,6 +3,7 @@ import { GAME_HEIGHT } from "../game/config";
 import { API_BASE_URL } from "../services/apiClient";
 import { TEXT_BODY, TEXT_HEADER } from "../const/Text";
 import BackgroundImage from "../components/BackgroundImage";
+import { markDebugSceneReady } from "../debug/debugHooks";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import { RegistrySession } from "../state/RegistrySession";
 
@@ -30,6 +31,7 @@ export default class LandingScene extends Phaser.Scene {
 
     const footer = this.add.text(0, GAME_HEIGHT - 24, "MVP build", TEXT_BODY).setOrigin(0, 0);
     footer.setPosition(this.cameras.main.centerX - footer.width / 2, GAME_HEIGHT - 24);
+    markDebugSceneReady(this);
   }
 
   private createButton(label: string, onClick: () => void): ActionButton {

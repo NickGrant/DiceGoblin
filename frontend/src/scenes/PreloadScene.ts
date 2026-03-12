@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 import { TEXT_BODY, TEXT_HEADER } from "../const/Text";
+import { markDebugSceneReady } from "../debug/debugHooks";
+import { getDebugSceneConfig } from "../debug/debugScene";
 import { RegistrySession } from "../state/RegistrySession";
 import BackgroundImage from "../components/BackgroundImage";
 
@@ -57,7 +59,20 @@ export default class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
-    const nextScene = RegistrySession.get(this.registry)?.isAuthenticated ? "HomeScene" : "LandingScene";
+    const debugConfig = getDebugSceneConfig();
+    const nextScene =
+      debugConfig.enabled && debugConfig.targetSceneKey
+        ? debugConfig.targetSceneKey
+        : RegistrySession.get(this.registry)?.isAuthenticated
+          ? "HomeScene"
+          : "LandingScene";
+
+    markDebugSceneReady(this, { nextScene });
+    if (debugConfig.enabled && debugConfig.targetSceneKey) {
+      this.scene.start(nextScene, debugConfig.sceneData);
+      return;
+    }
+
     this.scene.start(nextScene);
   }
 }

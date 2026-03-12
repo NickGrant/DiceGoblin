@@ -4,6 +4,7 @@ import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
+import { markDebugSceneReady } from "../debug/debugHooks";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { TeamFormationCell, UnitRecord, RestRunUnitState } from "../types/ApiResponse";
@@ -117,8 +118,14 @@ export default class RestManagementScene extends Phaser.Scene {
       this.loadingText?.destroy();
       this.loadingText = undefined;
       this.buildUi();
+      markDebugSceneReady(this, {
+        runId: this.runId,
+        nodeId: this.nodeId,
+        unitCount: this.units.length,
+      });
     } catch (e) {
       this.loadingText?.setText(`Rest unavailable.\n${(e as Error).message}`);
+      markDebugSceneReady(this, { state: "error" });
     }
   }
 

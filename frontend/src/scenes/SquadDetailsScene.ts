@@ -7,6 +7,7 @@ import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import { apiClient } from "../services/apiClient";
 import { adaptUnitRecords } from "../adapters/profileViewModels";
 import type { TeamRecord, UnitRecord, TeamFormationCell } from "../types/ApiResponse";
+import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
@@ -100,8 +101,13 @@ export default class SquadDetailsScene extends Phaser.Scene {
       this.loadingText?.destroy();
       this.loadingText = undefined;
       this.buildUi();
+      markDebugSceneReady(this, {
+        squadId: this.squad.id,
+        unitCount: this.units.length,
+      });
     } catch (e) {
       this.loadingText?.setText(`Failed to load.\n${(e as Error).message}`);
+      markDebugSceneReady(this, { state: "error" });
     }
   }
 

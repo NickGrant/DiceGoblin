@@ -14,6 +14,7 @@ This document defines the runtime contracts for currently implemented Phaser sce
 3. Scene transitions should be explicit and deterministic.
 4. Planned scenes/contracts are documented but not treated as active runtime behavior.
 5. User-facing terminology should prefer `squad`; API compatibility identifiers may still use `team` in route and payload keys.
+6. Debug-only scene entry is allowed through `debugScene` URL params for deterministic local screenshots and review workflows.
 
 ## 2. Implemented Scene Set
 
@@ -227,3 +228,12 @@ Planned additions:
 - Dedicated combat replay/viewer scenes are still planned but not wired in config.
 - No centralized frontend store for run/profile; state is scene-local.
 - Dedicated dice-details scene contract is planned but not yet implemented.
+
+## 8. Debug Scene Loader
+
+The frontend supports a debug-only scene override for local review workflows.
+
+- `debugScene=<scene key or alias>` routes from `PreloadScene` directly to the requested scene.
+- `debugAuth=authenticated|guest|live` controls whether boot injects a debug registry session or uses the normal backend session check.
+- `debugSceneData=<json object>` passes scene init payload for scenes that require identifiers such as `unitId`, `squadId`, `runId`, or `nodeId`.
+- A window-level readiness marker (`window.__DG_DEBUG__`) is updated when a scene finishes its initial render/load phase so automation can wait before capturing screenshots.

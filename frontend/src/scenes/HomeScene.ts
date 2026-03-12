@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
+import { markDebugSceneReady } from "../debug/debugHooks";
 import { apiClient } from "../services/apiClient";
 import { getPageLayout, type LayoutRect } from "../layout/pageLayout";
 import HomeNavigationPanel from "../components/navigation/HomeNavigationPanel";
@@ -46,6 +47,7 @@ export default class HomeScene extends Phaser.Scene {
       targetSceneKey: hasActiveRun ? "MapExplorationScene" : "RegionSelectScene",
       bodyImageKey,
     });
+    markDebugSceneReady(this, { hasActiveRun });
   }
 
   private resolveRunPanelArea(contentArea: LayoutRect, bodyImageKey: string): LayoutRect {

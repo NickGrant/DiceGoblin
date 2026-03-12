@@ -1,6 +1,7 @@
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
+import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
@@ -108,6 +109,7 @@ export default class RunEndSummaryScene extends Phaser.Scene {
       label: "Continue",
       onClick: () => this.scene.start("HomeScene"),
     });
+    markDebugSceneReady(this, { status });
   }
 }
 

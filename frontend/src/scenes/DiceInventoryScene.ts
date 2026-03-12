@@ -3,6 +3,7 @@ import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import DiceCardGrid from "../components/DiceCardGrid";
+import { markDebugSceneReady } from "../debug/debugHooks";
 import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { DiceDetailsViewModel } from "../adapters/profileViewModels";
@@ -132,6 +133,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
     const profile = await apiClient.getProfile({ force: true });
     if (!profile.ok) {
       this.setStatus(`Profile unavailable: ${profile.error.message}`);
+      markDebugSceneReady(this, { state: "error" });
       return;
     }
     this.units = adaptUnitRecords(profile.data.units ?? []);
@@ -147,6 +149,11 @@ export default class DiceInventoryScene extends Phaser.Scene {
       ? "Dice actions are enabled."
       : "Active run detected outside rest context: dice actions disabled.";
     this.setStatus(modeLabel);
+    markDebugSceneReady(this, {
+      units: this.units.length,
+      dice: this.dice.length,
+      mutationAllowed: this.mutationAllowed,
+    });
   }
 
   private renderUnitPanel(): void {

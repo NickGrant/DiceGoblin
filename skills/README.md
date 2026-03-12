@@ -11,3 +11,6 @@
 - `startup-verification`
   - File: `skills/startup-verification/SKILL.md`
   - Use for startup context and backlog-schema verification checks.
+- `scene-screenshot`
+  - File: `skills/scene-screenshot/SKILL.md`
+  - Use for deterministic Phaser scene screenshots through the local debug scene loader and capture command.

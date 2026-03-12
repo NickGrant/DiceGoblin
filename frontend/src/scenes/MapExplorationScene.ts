@@ -4,6 +4,7 @@ import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import NodeList from "../components/encounter-map/NodeList";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
+import { markDebugSceneReady } from "../debug/debugHooks";
 import { apiClient } from "../services/apiClient";
 import type { CurrentRunNode, RunResponse } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
@@ -123,6 +124,10 @@ export default class MapExplorationScene extends Phaser.Scene {
           onNodeClick: (node) => this.handleNodeClick(node),
         }
       );
+      markDebugSceneReady(this, {
+        runId: run.data.run.run_id,
+        nodeCount: run.data.map.nodes.length,
+      });
     } catch {
       this.showFallback("Run data unavailable. Please retry.");
     }
@@ -212,6 +217,7 @@ export default class MapExplorationScene extends Phaser.Scene {
       align: "left",
       wordWrap: { width: Math.max(320, layout.content.width - 24) },
     }).setOrigin(0, 0);
+    markDebugSceneReady(this, { state: "fallback", message });
   }
 
   private showToast(message: string, color = "#ffcccc"): void {

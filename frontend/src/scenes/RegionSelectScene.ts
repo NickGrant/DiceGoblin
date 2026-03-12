@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import ToastMessage from "../components/feedback/ToastMessage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
+import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import RegionSelectionPanel from "../components/navigation/RegionSelectionPanel";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
@@ -80,6 +81,8 @@ export default class RegionSelectScene extends Phaser.Scene {
       onSelect: async () => this.startRun("swamp"),
       onLockedSelect: () => this.showFeedback("Region locked."),
     });
+
+    markDebugSceneReady(this);
   }
 
   private async startRun(regionId: "mountain" | "swamp"): Promise<void> {

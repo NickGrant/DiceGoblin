@@ -3,6 +3,8 @@ import { apiClient } from "../services/apiClient";
 import { TEXT_BODY } from "../const/Text";
 import { RegistrySession } from "../state/RegistrySession";
 import BackgroundImage from "../components/BackgroundImage";
+import { markDebugSceneReady, reportDebugError } from "../debug/debugHooks";
+import { buildDebugSession, getDebugSceneConfig } from "../debug/debugScene";
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
@@ -28,6 +30,22 @@ export default class BootScene extends Phaser.Scene {
   private async checkSessionAndContinue(
     statusText: Phaser.GameObjects.Text
   ): Promise<void> {
+    const debugConfig = getDebugSceneConfig();
+    if (debugConfig.enabled && debugConfig.skipSessionCheck) {
+      const debugSession = buildDebugSession(debugConfig);
+      if (debugSession) {
+        RegistrySession.set(this.registry, debugSession);
+      }
+
+      statusText.setText("Debug bootstrap...");
+      this.centerText(statusText);
+      markDebugSceneReady(this, { mode: "debug-bootstrap" });
+      this.time.delayedCall(50, () => {
+        this.scene.start("PreloadScene");
+      });
+      return;
+    }
+
     try {
       const session = await apiClient.getSession();
       if (!session.ok) {
@@ -50,8 +68,10 @@ export default class BootScene extends Phaser.Scene {
       RegistrySession.set(this.registry, { isAuthenticated: false });
       statusText.setText("Offline mode (API unavailable)");
       this.centerText(statusText);
+      reportDebugError("BootScene session request failed; continuing in offline mode.");
     }
 
+    markDebugSceneReady(this, { mode: "session-bootstrap" });
     this.time.delayedCall(250, () => {
       this.scene.start("PreloadScene");
     });

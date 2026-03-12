@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scene Screenshot"
+  short_description: "Capture a specific Phaser scene by query param for review."
+  default_prompt: "Capture a screenshot of a specific Dice Goblins scene using the local capture workflow."

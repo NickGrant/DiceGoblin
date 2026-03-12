@@ -1,4 +1,6 @@
+/node_modules
 */node_modules
+
 backend/vendor
 backend/.phpunit.result.cache
 backend/.env.test.local
@@ -9,3 +11,4 @@ backend/.env*.local
 artifacts/bundles/backend.zip
 artifacts/bundles/documentation.zip
 artifacts/bundles/frontend.zip
+artifacts/screenshots/

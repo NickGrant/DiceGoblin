@@ -6,6 +6,7 @@ import SquadListPanel from "../components/SquadListPanel";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import { apiClient } from "../services/apiClient";
 import type { TeamRecord, UnitRecord } from "../types/ApiResponse";
+import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 import {
@@ -74,8 +75,13 @@ export default class WarbandManagementScene extends Phaser.Scene {
       this.loadingText = undefined;
 
       this.buildUi();
+      markDebugSceneReady(this, {
+        units: this.units.length,
+        squads: this.squads.length,
+      });
     } catch (e) {
       this.loadingText?.setText(`Failed to load.\n${(e as Error).message}`);
+      markDebugSceneReady(this, { state: "error" });
     }
   }
 

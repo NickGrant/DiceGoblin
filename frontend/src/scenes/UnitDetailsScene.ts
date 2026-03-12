@@ -3,6 +3,7 @@ import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
+import { markDebugSceneReady } from "../debug/debugHooks";
 import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { UnitRecord } from "../types/ApiResponse";
@@ -78,8 +79,13 @@ export default class UnitDetailsScene extends Phaser.Scene {
       this.loadingText?.destroy();
       this.loadingText = undefined;
       this.buildUi(profile.data.dice ?? [], profile.data.units ?? []);
+      markDebugSceneReady(this, {
+        unitId: this.unitId,
+        activeRun: this.activeRun,
+      });
     } catch (e) {
       this.loadingText?.setText(`Failed to load.\n${(e as Error).message}`);
+      markDebugSceneReady(this, { state: "error" });
     }
   }
 
