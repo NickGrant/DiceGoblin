@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { TEXT_LIST_ROW, UI_TEXT_COLORS } from "../../const/Text";
 
 export type NameLinkListItem<T> = {
   item: T;
@@ -34,9 +35,8 @@ export default class NameLinkListVariant<T> extends Phaser.GameObjects.Container
 
       const text = cfg.scene.add
         .text(10, y + 8, row.label, {
-          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-          fontSize: "16px",
-          color: row.disabled ? "#999999" : "#f0f0f0",
+          ...TEXT_LIST_ROW,
+          color: row.disabled ? UI_TEXT_COLORS.onDarkDisabled : UI_TEXT_COLORS.onDarkPrimary,
           wordWrap: { width: Math.max(0, cfg.width - 20) },
         })
         .setOrigin(0, 0);

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { TEXT_CAPTION_ON_DARK } from "../../const/Text";
 
 export type ToastSeverity = "info" | "success" | "warning" | "error";
 
@@ -26,9 +27,7 @@ export default class ToastMessage extends Phaser.GameObjects.Container {
 
     const severity = cfg.severity ?? "info";
     const label = cfg.scene.add.text(0, 0, cfg.message, {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "14px",
-      color: "#ffffff",
+      ...TEXT_CAPTION_ON_DARK,
       wordWrap: { width: 420 },
       padding: { left: 8, right: 8, top: 6, bottom: 6 },
     }).setOrigin(0, 0);

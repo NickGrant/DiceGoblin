@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import AcceptButton from "../clickable-panel/AcceptButton";
 import RejectButton from "../clickable-panel/RejectButton";
+import { TEXT_OVERLAY_BODY, TEXT_OVERLAY_TITLE } from "../../const/Text";
 
 export type ConfirmationDialogConfig = {
   scene: Phaser.Scene;
@@ -42,15 +43,11 @@ export default class ConfirmationDialog extends Phaser.GameObjects.Container {
       .setStrokeStyle(2, 0xffffff, 0.25);
 
     this.titleText = cfg.scene.add.text(left + 20, top + 18, cfg.title, {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "30px",
-      color: "#ffffff",
+      ...TEXT_OVERLAY_TITLE,
     }).setOrigin(0, 0);
 
     this.messageText = cfg.scene.add.text(left + 20, top + 66, cfg.message, {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "18px",
-      color: "#dddddd",
+      ...TEXT_OVERLAY_BODY,
       wordWrap: { width: width - 40 },
     }).setOrigin(0, 0);
 

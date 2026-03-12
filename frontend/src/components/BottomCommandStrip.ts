@@ -10,17 +10,16 @@ const BAR_TARGET_WIDTH = 960;
 const MIN_BAR_WIDTH = 320;
 const BAR_HEIGHT = 96;
 const ENERGY_LABEL_FALLBACK = "ENERGY: -- / --";
+const STRIP_DEPTH = 100000;
 
 export function mountBottomCommandStrip(scene: Phaser.Scene): void {
   const addApi = (scene as unknown as {
-    add?: { image?: unknown; text?: unknown; zone?: unknown; rectangle?: unknown; existing?: unknown };
+    add?: { image?: unknown; text?: unknown; zone?: unknown };
   }).add;
   if (!addApi) return;
   if (typeof addApi.image !== "function") return;
   if (typeof addApi.text !== "function") return;
   if (typeof addApi.zone !== "function") return;
-  if (typeof addApi.rectangle !== "function") return;
-  if (typeof addApi.existing !== "function") return;
   new BottomCommandStrip(scene);
 }
 
@@ -111,12 +110,12 @@ export default class BottomCommandStrip {
 
     all.forEach((obj) => {
       obj.setScrollFactor(0);
-      obj.setDepth(100000);
+      obj.setDepth(STRIP_DEPTH);
     });
-    this.homeButton.setScrollFactor(0).setDepth(100000);
-    this.warbandButton.setScrollFactor(0).setDepth(100000);
-    this.inventoryButton.setScrollFactor(0).setDepth(100000);
-    this.logoutButton.setScrollFactor(0).setDepth(100000);
+    this.homeButton.setScrollFactor(0).setDepth(STRIP_DEPTH);
+    this.warbandButton.setScrollFactor(0).setDepth(STRIP_DEPTH);
+    this.inventoryButton.setScrollFactor(0).setDepth(STRIP_DEPTH);
+    this.logoutButton.setScrollFactor(0).setDepth(STRIP_DEPTH);
   }
 
   private reposition(): void {

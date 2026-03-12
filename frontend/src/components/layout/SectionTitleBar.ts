@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { TEXT_OVERLAY_TITLE } from "../../const/Text";
 
 export type SectionTitleBarConfig = {
   scene: Phaser.Scene;
@@ -35,9 +36,7 @@ export default class SectionTitleBar extends Phaser.GameObjects.Container {
     }
 
     this.label = cfg.scene.add.text(12, 12, cfg.title.toUpperCase(), {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "30px",
-      color: "#ffffff",
+      ...TEXT_OVERLAY_TITLE,
       stroke: "#1a1a1a",
       strokeThickness: 3,
       ...(cfg.textStyle ?? {}),

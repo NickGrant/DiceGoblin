@@ -1,4 +1,5 @@
 import type Phaser from "phaser";
+import { TEXT_CAPTION_ON_DARK, UI_COLORS } from "../const/Text";
 
 export type IconButtonConfig = {
   scene: Phaser.Scene;
@@ -18,8 +19,6 @@ export default class IconButton {
   private readonly icon: Phaser.GameObjects.Image;
   private readonly hit: Phaser.GameObjects.Zone;
   private readonly tooltip: Phaser.GameObjects.Text;
-  private x = 0;
-  private y = 0;
 
   constructor(cfg: IconButtonConfig) {
     const iconSize = cfg.iconSize ?? DEFAULT_ICON_SIZE;
@@ -29,9 +28,8 @@ export default class IconButton {
     this.icon = cfg.scene.add.image(0, 0, cfg.iconKey).setDisplaySize(iconSize, iconSize).setOrigin(0.5, 0.5);
     this.hit = cfg.scene.add.zone(0, 0, hitWidth, hitHeight).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
     this.tooltip = cfg.scene.add.text(0, 0, cfg.tooltipText, {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "14px",
-      color: "#F3EFE0",
+      ...TEXT_CAPTION_ON_DARK,
+      color: UI_COLORS.starkCream,
       backgroundColor: "rgba(0,0,0,0.78)",
       padding: { left: 6, right: 6, top: 4, bottom: 4 },
     }).setOrigin(0.5, 1).setVisible(false);
@@ -48,8 +46,6 @@ export default class IconButton {
   }
 
   setPosition(x: number, y: number): this {
-    this.x = x;
-    this.y = y;
     this.icon.setPosition(x, y);
     this.hit.setPosition(x, y);
     this.tooltip.setPosition(x, y - 26);

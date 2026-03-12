@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { TEXT_CAPTION_ON_DARK } from "../../const/Text";
 
 export type TooltipPlacement = "left" | "right" | "top" | "bottom";
 
@@ -20,9 +21,7 @@ export default class Tooltip extends Phaser.GameObjects.Container {
     super(cfg.scene, cfg.x, cfg.y);
 
     this.label = cfg.scene.add.text(0, 0, cfg.text, {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "14px",
-      color: "#ffffff",
+      ...TEXT_CAPTION_ON_DARK,
       padding: { left: 6, right: 6, top: 4, bottom: 4 },
     }).setOrigin(0, 0);
 

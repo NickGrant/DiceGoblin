@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { TEXT_LIST_ACTION, TEXT_LIST_MESSAGE, TEXT_LIST_META, UI_TEXT_COLORS } from "../../const/Text";
 import {
   computePagination,
   deriveListState,
@@ -115,9 +116,7 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
 
   private renderMessage(text: string): void {
     const message = this.cfg.scene.add.text(PAD, PAD, text, {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "16px",
-      color: "#dddddd",
+      ...TEXT_LIST_MESSAGE,
       wordWrap: { width: Math.max(0, this.cfg.width - PAD * 2) },
     });
     this.dynamicChildren.push(message);
@@ -127,9 +126,7 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
   private renderRetry(): void {
     const retry = this.cfg.scene.add
       .text(PAD, PAD + 30, "Retry", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "15px",
-        color: "#ffffff",
+        ...TEXT_LIST_ACTION,
       })
       .setInteractive({ useHandCursor: true });
     retry.on("pointerdown", () => this.cfg.onRetry?.());
@@ -141,24 +138,19 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
     const y = this.cfg.height - PAGINATION_HEIGHT;
     this.prevText = this.cfg.scene.add
       .text(PAD, y, "< Prev", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "13px",
-        color: "#d6d6d6",
+        ...TEXT_LIST_META,
       })
       .setOrigin(0, 0)
       .setInteractive({ useHandCursor: true });
     this.nextText = this.cfg.scene.add
       .text(this.cfg.width - PAD, y, "Next >", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "13px",
-        color: "#d6d6d6",
+        ...TEXT_LIST_META,
       })
       .setOrigin(1, 0)
       .setInteractive({ useHandCursor: true });
     this.pageText = this.cfg.scene.add.text(this.cfg.width / 2, y, `Page ${pagination.pageIndex + 1}/${pagination.totalPages}`, {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "13px",
-      color: "#cccccc",
+      ...TEXT_LIST_META,
+      color: UI_TEXT_COLORS.onDarkMuted,
     }).setOrigin(0.5, 0);
 
     this.prevText.setAlpha(pagination.canPrev ? 1 : 0.35);
