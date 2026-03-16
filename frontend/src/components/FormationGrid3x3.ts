@@ -87,6 +87,7 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
 
   private cellRects: Record<FormationCell, Phaser.GameObjects.Rectangle> = {} as any;
   private cellTexts: Record<FormationCell, Phaser.GameObjects.Text> = {} as any;
+  private cellIcons: Record<FormationCell, Phaser.GameObjects.Image> = {} as any;
 
   constructor(cfg: FormationGrid3x3Config) {
     super(cfg.scene, cfg.x, cfg.y);
@@ -160,12 +161,20 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
         })
         .setOrigin(0, 0);
 
+      const icon = this.scene.add
+        .image(x + this.cellSize / 2, y + this.cellSize / 2, "icon_warband")
+        .setDisplaySize(Math.min(this.cellSize - 34, 64), Math.min(this.cellSize - 34, 64))
+        .setOrigin(0.5, 0.5)
+        .setVisible(false)
+        .setAlpha(0.9);
+
       rect.on("pointerdown", () => this.handleCellPointerDown(cell));
 
       this.cellRects[cell] = rect;
       this.cellTexts[cell] = text;
+      this.cellIcons[cell] = icon;
 
-      this.add([rect, text]);
+      this.add([rect, icon, text]);
     }
 
     this.refreshHighlightsAndLabels();
@@ -204,13 +213,34 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
     for (const cell of CELLS) {
       const rect = this.cellRects[cell];
       const txt = this.cellTexts[cell];
+      const icon = this.cellIcons[cell];
+
+      if (!rect || !txt || !icon) {
+        continue;
+      }
+
+      const occupied = this.formation[cell] !== null;
 
       const isSelected = this.selectedCell === cell;
+      const strokeColor = isSelected
+        ? this.colors.selectedStroke
+        : occupied
+          ? 0xffcc00
+          : this.colors.stroke;
+      const strokeAlpha = isSelected
+        ? this.colors.selectedStrokeAlpha
+        : occupied
+          ? 0.75
+          : this.colors.strokeAlpha;
+
+      rect.setFillStyle(occupied ? 0x1c2428 : this.colors.cellFill, occupied ? 0.98 : this.colors.cellFillAlpha);
       rect.setStrokeStyle(
         2,
-        isSelected ? this.colors.selectedStroke : this.colors.stroke,
-        isSelected ? this.colors.selectedStrokeAlpha : this.colors.strokeAlpha
+        strokeColor,
+        strokeAlpha
       );
+
+      icon.setVisible(occupied);
 
       txt.setText(this.makeCellLabel(cell));
     }

@@ -155,6 +155,18 @@ export function getDebugResolvedNodeFixture(): ResolveNodeResponse {
         rounds: 4,
         ticks: 23,
         status: "complete",
+        log: {
+          meta: {
+            engine: "deterministic_v1",
+            run_id: "91",
+            node_id: "502",
+          },
+          events: [
+            { type: "battle_start" },
+            { type: "turn_start", round: 1 },
+            { type: "battle_end", outcome: "victory" },
+          ],
+        },
       },
       next: {
         unlocked_node_ids: ["503"],

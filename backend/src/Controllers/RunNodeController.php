@@ -47,7 +47,7 @@ final class RunNodeController
    *    "ok": true,
    *    "data": {
    *      "node": { "id": "300", "status": "completed" },
-   *      "battle": { "battle_id": "555", "outcome": "victory", "rounds": 3, "ticks": 60, "status": "completed" },
+  *      "battle": { "battle_id": "555", "outcome": "victory", "rounds": 3, "ticks": 60, "status": "completed", "log": { "meta": {}, "events": [] } },
    *      "next": { "unlocked_node_ids": ["301"] }
    *    }
    *  }
@@ -209,6 +209,7 @@ final class RunNodeController
         if ($canRetryClaimedDefeat) {
           $svc['battleRepo']->deleteBattleForRetry((int)$existing['id'], $userId);
         } else {
+          $existingLog = $svc['battleLogRepo']->getForUser((int)$existing['id'], $userId);
           $pdo->commit();
           Response::json([
             'ok' => true,
@@ -223,6 +224,7 @@ final class RunNodeController
                 'rounds' => (int)$existing['rounds'],
                 'ticks' => (int)$existing['ticks'],
                 'status' => (string)$existing['status'],
+                'log' => $this->decodeLogJson($existingLog['log_json'] ?? null),
               ],
               'next' => [
                 'unlocked_node_ids' => $svc['runNodeRepo']->listAvailableNodeIds($runIdInt),
@@ -285,6 +287,7 @@ final class RunNodeController
             'rounds' => $rounds,
             'ticks' => $ticks,
             'status' => 'completed',
+            'log' => $resolution['log'],
           ],
           'next' => [
             'unlocked_node_ids' => array_map('strval', $unlocked),
@@ -307,7 +310,27 @@ final class RunNodeController
   }
 
   /**
-   * Unlock nodes reachable from fromNodeId if all prerequisites are cleared.
+   * @return array<string,mixed>|null
+   */
+  private function decodeLogJson(mixed $logJson): ?array
+  {
+    if (!is_string($logJson) || $logJson === '') {
+      return null;
+    }
+
+    $decoded = json_decode($logJson, true);
+    if (!is_array($decoded)) {
+      return null;
+    }
+
+    return $decoded;
+  }
+
+  /**
+   * Unlock direct downstream nodes once this node is cleared.
+   *
+   * Progression rule is OR-based for converging paths: clearing any connected
+   * parent unlocks the child node.
    *
    * @return array<int,int>
    */
@@ -321,11 +344,6 @@ final class RunNodeController
 
     $unlocked = [];
     foreach ($toIds as $toId) {
-      $blocked = $edges->countUnclearedPrerequisites($runId, $toId);
-      if ($blocked !== 0) {
-        continue;
-      }
-
       if ($nodes->setAvailableIfLocked($runId, $toId)) {
         $unlocked[] = $toId;
       }

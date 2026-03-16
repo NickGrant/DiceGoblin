@@ -23,6 +23,18 @@ function emptyFormation(): FormationMap {
 const FRAME_BODY_TOP_OFFSET = 74;
 const FRAME_BODY_BOTTOM_PADDING = 18;
 const ACTION_BODY_TOP_OFFSET = 64;
+const FRAME_TITLE_HEIGHT = 56;
+const FRAME_MARGIN = 12;
+const CONTENT_INSET = 10;
+const CONTENT_COLUMN_GAP = 12;
+const ACTION_PANEL_PADDING = 14;
+const ACTION_TOP_GAP = 14;
+const ACTION_BUTTON_STEP = 64;
+const ACTION_BUTTON_GAP = 12;
+const UNIT_CARD_WIDTH = 132;
+const UNIT_PANEL_PADDING = 12;
+const UNIT_PANEL_WIDTH = UNIT_CARD_WIDTH * 3 + UNIT_PANEL_PADDING * 4;
+const GRID_SIZE = 308;
 
 export default class SquadDetailsScene extends Phaser.Scene {
   private squadId = "";
@@ -125,12 +137,24 @@ export default class SquadDetailsScene extends Phaser.Scene {
 
   private buildUi(): void {
     const layout = getPageLayout(this);
-    const actionButtonX = layout.buttons.x + 10;
-    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
-    const bodyHeight = Math.max(260, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
-    const gridWidth = 308;
-    const gridX = layout.content.x + layout.content.width - 12 - gridWidth;
-    const unitPanelWidth = Math.max(280, gridX - layout.content.x - 24);
+    const contentBodyX = layout.content.x + FRAME_MARGIN + CONTENT_INSET;
+    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + CONTENT_INSET;
+    const contentBodyWidth = Math.max(280, layout.content.width - (FRAME_MARGIN + CONTENT_INSET) * 2);
+    const contentBodyHeight = Math.max(220, layout.content.height - FRAME_TITLE_HEIGHT - (FRAME_MARGIN + CONTENT_INSET) * 2);
+
+    const unitPanelWidth = Math.min(UNIT_PANEL_WIDTH, Math.max(280, contentBodyWidth - GRID_SIZE - CONTENT_COLUMN_GAP));
+    const unitPanelX = contentBodyX;
+    const unitPanelY = contentBodyY;
+
+    const rightAreaX = unitPanelX + unitPanelWidth + CONTENT_COLUMN_GAP;
+    const rightAreaWidth = Math.max(200, contentBodyX + contentBodyWidth - rightAreaX);
+    const gridX = rightAreaX + Math.max(0, Math.floor((rightAreaWidth - GRID_SIZE) / 2));
+    const gridY = contentBodyY + Math.max(0, Math.floor((contentBodyHeight - GRID_SIZE) / 2));
+
+    const actionBodyX = layout.buttons.x + FRAME_MARGIN + ACTION_PANEL_PADDING;
+    const actionBodyY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + ACTION_TOP_GAP;
+    const actionBodyWidth = Math.max(280, layout.buttons.width - (FRAME_MARGIN + ACTION_PANEL_PADDING) * 2);
+    const actionButtonX = actionBodyX + Math.max(0, Math.floor((actionBodyWidth - 280) / 2));
     if (!this.squad) return;
 
     this.titleText?.destroy();
@@ -139,10 +163,10 @@ export default class SquadDetailsScene extends Phaser.Scene {
     this.unitPanel?.destroy();
     this.unitPanel = new UnitCardGrid({
       scene: this,
-      x: layout.content.x,
-      y: bodyTop,
+      x: unitPanelX,
+      y: unitPanelY,
       width: unitPanelWidth,
-      height: bodyHeight,
+      height: contentBodyHeight,
       title: "UNITS",
       units: this.units,
       getCardState: (u) => this.getUnitRowState(u),
@@ -154,7 +178,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     this.grid = new FormationGrid3x3({
       scene: this,
       x: gridX,
-      y: bodyTop,
+      y: gridY,
       formation: this.editFormation,
       selectedCell: null,
       getCellLabel: (cell, unitId) => this.getCellLabel(cell, unitId),
@@ -168,8 +192,8 @@ export default class SquadDetailsScene extends Phaser.Scene {
     new ActionButtonList({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
-      gapY: 5,
+      y: actionBodyY,
+      gapY: ACTION_BUTTON_GAP,
       buttons: [
         {
           label: "Back",
@@ -185,7 +209,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     this.clearButton = new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 104,
+      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 2,
       label: "Clear Cell",
       enabled: false,
       onClick: () => this.clearSelectedCell(),
@@ -193,14 +217,14 @@ export default class SquadDetailsScene extends Phaser.Scene {
     this.saveButton = new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 156,
+      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 3,
       label: "Save Squad",
       onClick: () => void this.saveTeam(),
     });
     this.activateButton = new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 208,
+      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 4,
       label: "Set Active",
       enabled: !this.squad.is_active,
       onClick: () => void this.activateSquad(),
@@ -208,7 +232,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 260,
+      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 5,
       label: "Delete Squad",
       enabled: this.canDeleteSquad(),
       onClick: () => void this.deleteSquad(),

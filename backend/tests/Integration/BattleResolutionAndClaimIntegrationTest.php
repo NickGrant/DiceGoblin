@@ -526,6 +526,41 @@ final class BattleResolutionAndClaimIntegrationTest extends TestCase
     $this->assertLessThan(120, $u1Xp);
   }
 
+  public function testFinalizeRestUnlocksConvergingChildWhenAnyParentClears(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 919191);
+
+    $restNodeId = $this->insertRunNode($runId, 'rest', 'available');
+    $otherParentNodeId = $this->insertRunNode($runId, 'combat', 'locked');
+    $sharedNextNodeId = $this->insertRunNode($runId, 'combat', 'locked');
+
+    $this->insertRunEdge($runId, $restNodeId, $sharedNextNodeId);
+    $this->insertRunEdge($runId, $otherParentNodeId, $sharedNextNodeId);
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 8, false);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+    $_POST = [];
+
+    $gameplay = new GameplayController();
+    $finalizeRes = $this->invoke(fn() => $gameplay->finalizeRest((string)$runId, (string)$restNodeId));
+
+    $this->assertSame(200, $finalizeRes['status'], json_encode($finalizeRes['body']));
+    $unlockedNodeIds = $finalizeRes['body']['data']['next']['unlocked_node_ids'] ?? [];
+    $this->assertContains((string)$sharedNextNodeId, is_array($unlockedNodeIds) ? $unlockedNodeIds : []);
+
+    $sharedStatus = (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$sharedNextNodeId]);
+    $this->assertSame('available', $sharedStatus);
+  }
+
   public function testPromotionAndDiceEndpointsRequireRestContextDuringActiveRun(): void
   {
     $userId = $this->insertUser();

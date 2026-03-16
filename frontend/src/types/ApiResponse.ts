@@ -287,6 +287,11 @@ export type ResolveNodeData = {
     rounds: number;
     ticks: number;
     status: string;
+    log: {
+      meta?: Record<string, unknown>;
+      events?: Array<Record<string, unknown>>;
+      [key: string]: unknown;
+    } | null;
   };
   next: {
     unlocked_node_ids: string[];

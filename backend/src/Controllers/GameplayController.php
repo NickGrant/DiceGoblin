@@ -420,10 +420,6 @@ final class GameplayController
     $toIds = $edges->getToNodeIdsFrom($runId, $fromNodeId);
     $unlocked = [];
     foreach ($toIds as $toId) {
-      $blocked = $edges->countUnclearedPrerequisites($runId, $toId);
-      if ($blocked !== 0) {
-        continue;
-      }
       if ($nodes->setAvailableIfLocked($runId, $toId)) {
         $unlocked[] = $toId;
       }

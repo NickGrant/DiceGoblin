@@ -10,6 +10,7 @@ import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 import {
   deriveSummaryStatus,
+  formatBattleLogSummary,
   formatUnlockedNodes,
   isNodeResolutionType,
   type NodeResolutionType,
@@ -184,6 +185,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
       const outcome = resolveRes.data.battle.outcome;
       const unlockedMsg = formatUnlockedNodes(resolveRes.data.next.unlocked_node_ids);
+      const battleLogLines = formatBattleLogSummary(resolveRes.data.battle.log);
       this.statusText?.setText(`Node resolved: ${String(outcome).toUpperCase()}`);
       this.detailText?.setText([
         `Battle id: ${resolveRes.data.battle.battle_id}`,
@@ -191,6 +193,8 @@ export default class NodeResolutionScene extends Phaser.Scene {
         `Rounds: ${resolveRes.data.battle.rounds}`,
         `Ticks: ${resolveRes.data.battle.ticks}`,
         unlockedMsg,
+        "",
+        ...battleLogLines,
       ].join("\n"));
 
       const refreshed = await apiClient.getCurrentRun();

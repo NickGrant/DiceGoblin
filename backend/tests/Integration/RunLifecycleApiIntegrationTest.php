@@ -107,6 +107,8 @@ final class RunLifecycleApiIntegrationTest extends TestCase
     $battleId = (int)($battle['battle_id'] ?? 0);
     $this->assertGreaterThan(0, $battleId);
     $this->assertContains((string)($battle['outcome'] ?? ''), ['victory', 'defeat']);
+    $this->assertIsArray($battle['log'] ?? null);
+    $this->assertIsArray($battle['log']['events'] ?? null);
 
     $statusAfterResolve = (string)$this->scalar('SELECT `status` FROM `battles` WHERE `id` = ?', [$battleId]);
     $this->assertSame('completed', $statusAfterResolve);
