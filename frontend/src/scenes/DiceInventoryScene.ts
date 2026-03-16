@@ -1,36 +1,36 @@
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
-import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
+import ActionButtonList from "../components/clickable-panel/ActionButtonList";
 import DiceCardGrid from "../components/DiceCardGrid";
 import { getDebugSceneConfig } from "../debug/debugScene";
 import { getDebugProfileFixture } from "../debug/debugFixtures";
 import { markDebugSceneReady } from "../debug/debugHooks";
-import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
+import { adaptDiceDetails } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
 import type { DiceDetailsViewModel } from "../adapters/profileViewModels";
-import type { UnitRecord } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
-const FRAME_BODY_TOP_OFFSET = 74;
-const FRAME_BODY_BOTTOM_PADDING = 18;
-const ACTION_BODY_TOP_OFFSET = 72;
+const FRAME_TITLE_HEIGHT = 56;
+const FRAME_MARGIN = 12;
+const ACTION_PANEL_PADDING = 14;
+const ACTION_CONTENT_GAP = 14;
+const ACTION_BUTTON_WIDTH = 280;
+const ACTION_BUTTON_GAP = 18;
 
 export default class DiceInventoryScene extends Phaser.Scene {
   private runId = "";
   private nodeId = "";
   private returnScene = "HomeScene";
-  private preferredUnitId: string | null = null;
-  private mutationAllowed = true;
 
-  private units: UnitRecord[] = [];
   private dice: DiceDetailsViewModel[] = [];
-  private selectedUnitId: string | null = null;
   private selectedDiceId: string | null = null;
-  private unitPanel?: UnitCardGrid;
   private diceGrid?: DiceCardGrid;
-  private statusText?: Phaser.GameObjects.Text;
+  private actionButtonList?: ActionButtonList;
+  private viewEquippedUnitButton?: ActionButton;
+  private actionSummaryUiObjects: Phaser.GameObjects.GameObject[] = [];
+  private actionSummaryText?: Phaser.GameObjects.Text;
   private toastText?: Phaser.GameObjects.Text;
 
   constructor() {
@@ -41,7 +41,6 @@ export default class DiceInventoryScene extends Phaser.Scene {
     this.runId = String(data?.runId ?? "");
     this.nodeId = String(data?.nodeId ?? "");
     this.returnScene = String(data?.returnScene ?? "HomeScene");
-    this.preferredUnitId = data?.unitId ? String(data.unitId) : null;
   }
 
   create(): void {
@@ -54,7 +53,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
       y: layout.content.y,
       width: layout.content.width,
       height: layout.content.height,
-      title: "Manage Units",
+      title: "Dice Inventory",
       bodyColor: 0x4f5a65,
     });
     contentFrame.setDepth(-800);
@@ -68,75 +67,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
       bodyColor: 0x006f7a,
     });
     actionsFrame.setDepth(-800);
-    const buttonX = layout.buttons.x + 10;
-    const inRestContext = this.runId !== "" && this.nodeId !== "";
-    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
-    const bodyHeight = Math.max(240, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
-    const unitPanelWidth = Math.max(250, Math.floor(layout.content.width * 0.34));
-    const panelGap = 16;
-    const dicePanelX = layout.content.x + unitPanelWidth + panelGap;
-    const dicePanelWidth = Math.max(280, layout.content.width - unitPanelWidth - panelGap);
-
-    this.add.text(layout.content.x + 16, bodyTop, inRestContext
-      ? "Rest inventory context"
-      : "Between-run inventory context", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "16px",
-      color: "#ffffff",
-    }).setOrigin(0, 0);
-
-    this.add.text(dicePanelX, bodyTop, inRestContext
-      ? `Rest context active (run ${this.runId}, node ${this.nodeId}).`
-      : "Out-of-run context.", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "14px",
-      color: "#dddddd",
-    }).setOrigin(0, 0);
-
-    this.add.text(dicePanelX, bodyTop + 22, inRestContext
-      ? "Dice changes from this screen should be validated against rest-context backend rules."
-      : "Dice changes are available here between runs.", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "13px",
-      color: "#bbbbbb",
-      wordWrap: { width: dicePanelWidth - 12 },
-    }).setOrigin(0, 0);
-
-    if (inRestContext || this.returnScene !== "HomeScene") {
-      new ActionButton({
-        scene: this,
-        x: buttonX,
-        y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
-        label: inRestContext ? "Back to Rest" : "Back",
-        onClick: () => this.scene.start(this.returnScene, {
-          runId: this.runId,
-          nodeId: this.nodeId,
-          unitId: this.preferredUnitId ?? undefined,
-        }),
-      });
-    }
-
-    this.statusText = this.add.text(dicePanelX, bodyTop + 48, "Loading inventory...", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "13px",
-      color: "#dddddd",
-      wordWrap: { width: dicePanelWidth - 12 },
-    }).setOrigin(0, 0);
-
-    new ActionButton({
-      scene: this,
-      x: buttonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 84,
-      label: "Equip Selected",
-      onClick: () => void this.equipSelected(),
-    });
-    new ActionButton({
-      scene: this,
-      x: buttonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 140,
-      label: "Unequip Selected",
-      onClick: () => void this.unequipSelected(),
-    });
+    this.buildActionColumn();
 
     void this.loadData();
   }
@@ -150,70 +81,31 @@ export default class DiceInventoryScene extends Phaser.Scene {
       return getDebugProfileFixture();
     });
     if (!profile.ok) {
-      this.setStatus(`Profile unavailable: ${profile.error.message}`);
+      this.showToast(`Profile unavailable: ${profile.error.message}`);
       markDebugSceneReady(this, { state: "error" });
       return;
     }
-    this.units = adaptUnitRecords(profile.data.units ?? []);
     this.dice = adaptDiceDetails(profile.data.dice ?? [], profile.data.units ?? []);
-    this.mutationAllowed = this.runId !== "" && this.nodeId !== "" ? true : profile.data.active_run === null;
-    if (this.selectedUnitId === null && this.units.length > 0) {
-      const preferred = this.preferredUnitId ? this.units.find((u) => u.id === this.preferredUnitId) : null;
-      this.selectedUnitId = preferred?.id ?? this.units[0]?.id ?? null;
+    if (this.selectedDiceId === null && this.dice.length > 0) {
+      this.selectedDiceId = this.dice[0]?.id ?? null;
     }
-    this.renderUnitPanel();
     this.renderDiceGrid();
-    const modeLabel = this.mutationAllowed
-      ? "Dice actions are enabled."
-      : "Active run detected outside rest context: dice actions disabled.";
-    this.setStatus(modeLabel);
+    this.refreshActionSummary();
     markDebugSceneReady(this, {
-      units: this.units.length,
       dice: this.dice.length,
-      mutationAllowed: this.mutationAllowed,
+      selectedDiceId: this.selectedDiceId,
     });
-  }
-
-  private renderUnitPanel(): void {
-    this.unitPanel?.destroy();
-    const layout = getPageLayout(this);
-    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
-    const bodyHeight = Math.max(240, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
-    const unitPanelWidth = Math.max(250, Math.floor(layout.content.width * 0.34));
-    this.unitPanel = new UnitCardGrid({
-      scene: this,
-      x: layout.content.x,
-      y: bodyTop,
-      width: unitPanelWidth,
-      height: bodyHeight,
-      title: "UNITS",
-      units: this.units,
-      onUnitClick: (u) => {
-        this.selectedUnitId = u.id;
-        this.unitPanel?.refreshCardStates();
-        this.renderDiceGrid();
-      },
-      getCardState: (u) => this.getUnitRowState(u),
-      maxVisibleCards: 6,
-    });
-  }
-
-  private getUnitRowState(unit: UnitRecord): UnitCardState {
-    return {
-      highlighted: unit.id === this.selectedUnitId,
-      disabled: !this.mutationAllowed,
-      badgeText: unit.id === this.selectedUnitId ? "SELECTED" : null,
-    };
   }
 
   private renderDiceGrid(): void {
     const layout = getPageLayout(this);
-    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
-    const bodyHeight = Math.max(240, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
-    const unitPanelWidth = Math.max(250, Math.floor(layout.content.width * 0.34));
-    const panelGap = 16;
-    const dicePanelX = layout.content.x + unitPanelWidth + panelGap;
-    const dicePanelWidth = Math.max(280, layout.content.width - unitPanelWidth - panelGap);
+    const contentBodyX = layout.content.x + FRAME_MARGIN;
+    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN;
+    const contentBodyWidth = Math.max(280, layout.content.width - FRAME_MARGIN * 2);
+    const contentBodyHeight = Math.max(240, layout.content.height - FRAME_TITLE_HEIGHT - FRAME_MARGIN * 2);
+
+    const dicePanelX = contentBodyX;
+    const dicePanelWidth = Math.max(280, contentBodyWidth);
     if (this.selectedDiceId === null && this.dice.length > 0) {
       this.selectedDiceId = this.dice[0]?.id ?? null;
     }
@@ -227,66 +119,126 @@ export default class DiceInventoryScene extends Phaser.Scene {
     this.diceGrid = new DiceCardGrid({
       scene: this,
       x: dicePanelX,
-      y: bodyTop + 66,
+      y: contentBodyY,
       width: dicePanelWidth,
-      height: Math.max(220, bodyHeight - 66),
+      height: contentBodyHeight,
       title: "DICE",
       dice: this.dice,
       selectedDiceId: this.selectedDiceId,
-      maxVisibleCards: 3,
       onDiceClick: (die) => {
         this.selectedDiceId = die.id;
         this.diceGrid?.setSelectedDiceId(die.id);
+        this.refreshActionSummary();
       },
     });
   }
 
-  private async equipSelected(): Promise<void> {
-    if (!this.mutationAllowed) {
-      this.showToast("Equip blocked outside rest while run is active.");
+  private openEquippedUnit(): void {
+    const selectedDie = this.selectedDiceId
+      ? this.dice.find((die) => die.id === this.selectedDiceId)
+      : null;
+    const equippedUnitId = selectedDie?.equipped?.unitId;
+    if (!equippedUnitId) {
+      this.showToast("Selected die is not equipped.");
       return;
     }
-    if (!this.selectedUnitId || !this.selectedDiceId) {
-      this.showToast("Select a unit and die.");
-      return;
-    }
-    const res = await apiClient.equipDice(
-      this.selectedUnitId,
-      this.selectedDiceId,
-      this.runId && this.nodeId ? { runId: this.runId, nodeId: this.nodeId } : undefined
-    );
-    if (!res.ok) {
-      this.showToast(`Equip failed: ${res.error.message}`);
-      return;
-    }
-    this.showToast("Die equipped.", "#ccffcc");
-    await this.loadData();
+
+    this.scene.start("UnitDetailsScene", { unitId: equippedUnitId });
   }
 
-  private async unequipSelected(): Promise<void> {
-    if (!this.mutationAllowed) {
-      this.showToast("Unequip blocked outside rest while run is active.");
-      return;
+  private buildActionColumn(): void {
+    const layout = getPageLayout(this);
+    const actionsBodyX = layout.buttons.x + FRAME_MARGIN;
+    const actionsBodyY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN;
+    const actionsBodyWidth = Math.max(280, layout.buttons.width - FRAME_MARGIN * 2);
+    const actionsBodyHeight = Math.max(220, layout.buttons.height - FRAME_TITLE_HEIGHT - FRAME_MARGIN * 2);
+    const inRestContext = this.runId !== "" && this.nodeId !== "";
+
+    this.clearActionSummaryUi();
+    const summaryCardX = actionsBodyX + ACTION_PANEL_PADDING;
+    const summaryCardY = actionsBodyY + ACTION_PANEL_PADDING;
+    const summaryCardWidth = Math.max(120, actionsBodyWidth - ACTION_PANEL_PADDING * 2);
+    const summaryCardHeight = Math.min(230, Math.max(140, Math.floor(actionsBodyHeight * 0.48)));
+    const summaryCard = this.add
+      .rectangle(summaryCardX, summaryCardY, summaryCardWidth, summaryCardHeight, 0x0f2024, 0.56)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8db8bc, 0.45);
+    this.actionSummaryUiObjects.push(summaryCard);
+
+    this.actionSummaryText = this.add
+      .text(summaryCardX + 12, summaryCardY + 10, "INVENTORY SUMMARY\nLoading...", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "18px",
+        color: "#e7f4f5",
+        lineSpacing: 9,
+        wordWrap: { width: Math.max(120, summaryCardWidth - 24) },
+      })
+      .setOrigin(0, 0);
+    this.actionSummaryUiObjects.push(this.actionSummaryText);
+
+    const actionButtonX = actionsBodyX + Math.max(0, Math.floor((actionsBodyWidth - ACTION_BUTTON_WIDTH) / 2));
+    const actionButtonY = summaryCardY + summaryCardHeight + ACTION_CONTENT_GAP;
+
+    this.actionButtonList?.destroy();
+    this.viewEquippedUnitButton?.destroy();
+    const buttons = [] as Array<{ label: string; onClick: () => void }>;
+    if (inRestContext || this.returnScene !== "HomeScene") {
+      buttons.push({
+        label: inRestContext ? "Back to Rest" : "Back",
+        onClick: () => this.scene.start(this.returnScene, {
+          runId: this.runId,
+          nodeId: this.nodeId,
+        }),
+      });
     }
-    if (!this.selectedUnitId || !this.selectedDiceId) {
-      this.showToast("Select a unit and die.");
-      return;
-    }
-    const res = await apiClient.unequipDice(
-      this.selectedUnitId,
-      this.selectedDiceId,
-      this.runId && this.nodeId ? { runId: this.runId, nodeId: this.nodeId } : undefined
-    );
-    if (!res.ok) {
-      this.showToast(`Unequip failed: ${res.error.message}`);
-      return;
-    }
-    this.showToast("Die unequipped.", "#ccffcc");
-    await this.loadData();
+
+    this.actionButtonList = new ActionButtonList({
+      scene: this,
+      x: actionButtonX,
+      y: actionButtonY,
+      gapY: ACTION_BUTTON_GAP,
+      buttons,
+    });
+
+    const listHeight = buttons.length > 0
+      ? buttons.length * 64 + (buttons.length - 1) * ACTION_BUTTON_GAP
+      : 0;
+    const equippedButtonY = actionButtonY + listHeight + (buttons.length > 0 ? ACTION_BUTTON_GAP : 0);
+    this.viewEquippedUnitButton = new ActionButton({
+      scene: this,
+      x: actionButtonX,
+      y: equippedButtonY,
+      label: "View Equipped Unit",
+      enabled: false,
+      onClick: () => this.openEquippedUnit(),
+    });
   }
 
-  private setStatus(message: string): void {
-    this.statusText?.setText(message);
+  private refreshActionSummary(): void {
+    if (!this.actionSummaryText) {
+      return;
+    }
+
+    const selectedDie = this.selectedDiceId
+      ? this.dice.find((die) => die.id === this.selectedDiceId)
+      : null;
+    const equippedUnitName = selectedDie?.equipped?.unitName ?? "None";
+    this.actionSummaryText.setText([
+      "INVENTORY SUMMARY",
+      `Dice: ${this.dice.length}`,
+      `Selected Die: ${selectedDie?.displayName ?? "None"}`,
+      `Equipped To: ${equippedUnitName}`,
+    ].join("\n"));
+
+    this.viewEquippedUnitButton?.setEnabled(Boolean(selectedDie?.equipped?.unitId));
+  }
+
+  private clearActionSummaryUi(): void {
+    for (const uiObject of this.actionSummaryUiObjects) {
+      uiObject.destroy();
+    }
+    this.actionSummaryUiObjects = [];
+    this.actionSummaryText = undefined;
   }
 
   private showToast(message: string, color = "#ffcccc"): void {

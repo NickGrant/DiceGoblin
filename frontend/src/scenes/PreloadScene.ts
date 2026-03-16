@@ -5,6 +5,8 @@ import { getDebugSceneConfig } from "../debug/debugScene";
 import { RegistrySession } from "../state/RegistrySession";
 import BackgroundImage from "../components/BackgroundImage";
 
+const TITLE_Y_OFFSET = -22;
+
 export default class PreloadScene extends Phaser.Scene {
   constructor() {
     super({ key: "PreloadScene" });
@@ -34,7 +36,7 @@ export default class PreloadScene extends Phaser.Scene {
     const fileText = this.add.text(0, 0, "", TEXT_BODY).setOrigin(0, 0);
     fileText.setStyle({ fontSize: "24px" });
 
-    title.setPosition(centerX - title.width / 2, textBaseY);
+    title.setPosition(centerX - title.width / 2, textBaseY + TITLE_Y_OFFSET);
     progressText.setPosition(centerX - progressText.width / 2, textBaseY + 58);
     fileText.setPosition(centerX - Math.min(300, fileText.width / 2), textBaseY + 98);
 
@@ -51,7 +53,7 @@ export default class PreloadScene extends Phaser.Scene {
 
     this.load.on(Phaser.Loader.Events.COMPLETE, () => {
       title.setText("Loaded");
-      title.setPosition(centerX - title.width / 2, textBaseY);
+      title.setPosition(centerX - title.width / 2, textBaseY + TITLE_Y_OFFSET);
       fileText.setText("");
     });
 

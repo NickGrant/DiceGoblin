@@ -60,7 +60,7 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
   }
 
   private getCardW(): number {
-    return Math.min(120, Math.floor((this.cfg.width - this.pad * 2 - this.gapX * (this.cols - 1)) / this.cols));
+    return Math.min(136, Math.floor((this.cfg.width - this.pad * 2 - this.gapX * (this.cols - 1)) / this.cols));
   }
 
   private buildPanel(): void {

@@ -6,15 +6,22 @@ type SquadListPanelConfig = {
   scene: Phaser.Scene;
   x: number;
   y: number;
+  width: number;
+  height: number;
   title?: string;
   squads: TeamRecord[];
   onSquadClick: (squad: TeamRecord) => void;
   maxVisibleSquads?: number;
+  buttonGapY?: number;
 };
 
 export default class SquadListPanel extends Phaser.GameObjects.Container {
+  private static readonly BUTTON_WIDTH = 280;
   private readonly cfg: SquadListPanelConfig;
   private readonly hasTitle: boolean;
+  private readonly panelWidth: number;
+  private readonly panelHeight: number;
+  private readonly buttonGapY: number;
   private readonly pageSize: number;
   private pageIndex = 0;
   private buttonList?: MetalActionButtonList;
@@ -26,7 +33,19 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
     super(cfg.scene, cfg.x, cfg.y);
     this.cfg = cfg;
     this.hasTitle = (cfg.title ?? "").trim().length > 0;
-    this.pageSize = Math.max(1, cfg.maxVisibleSquads ?? 5);
+    this.panelWidth = cfg.width;
+    this.panelHeight = cfg.height;
+    this.buttonGapY = Math.max(0, cfg.buttonGapY ?? 8);
+
+    if (cfg.maxVisibleSquads && cfg.maxVisibleSquads > 0) {
+      this.pageSize = Math.max(1, cfg.maxVisibleSquads);
+    } else {
+      const titleOffset = this.hasTitle ? 24 : 0;
+      const pagerTopOffset = 30;
+      const availableHeight = Math.max(64, this.panelHeight - titleOffset - pagerTopOffset);
+      const rowHeight = 64 + this.buttonGapY;
+      this.pageSize = Math.max(1, Math.floor((availableHeight + this.buttonGapY) / rowHeight));
+    }
 
     if (this.hasTitle) {
       const title = cfg.scene
@@ -39,8 +58,9 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
       this.add(title);
     }
 
+    const pagerY = this.panelHeight - 22;
     this.prevPageText = cfg.scene
-      .add.text(0, 410, "< Prev", {
+      .add.text(0, pagerY, "< Prev", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#d6d6d6",
@@ -49,7 +69,7 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
       .setInteractive({ useHandCursor: true });
 
     this.pageLabelText = cfg.scene
-      .add.text(150, 410, "Page 1/1", {
+      .add.text(this.panelWidth / 2, pagerY, "Page 1/1", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#cfcfcf",
@@ -57,7 +77,7 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
       .setOrigin(0.5, 0);
 
     this.nextPageText = cfg.scene
-      .add.text(300, 410, "Next >", {
+      .add.text(this.panelWidth, pagerY, "Next >", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#d6d6d6",
@@ -94,11 +114,15 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
     const start = this.pageIndex * this.pageSize;
     const visibleSquads = this.cfg.squads.slice(start, start + this.pageSize);
 
+    const titleOffset = this.hasTitle ? 24 : 0;
+    const buttonListY = this.cfg.y + titleOffset;
+    const buttonListX = this.cfg.x + Math.max(0, Math.floor((this.panelWidth - SquadListPanel.BUTTON_WIDTH) / 2));
+
     this.buttonList = new MetalActionButtonList({
       scene: this.cfg.scene,
-      x: this.cfg.x,
-      y: this.cfg.y + (this.hasTitle ? 24 : 0),
-      gapY: 5,
+      x: buttonListX,
+      y: buttonListY,
+      gapY: this.buttonGapY,
       buttons: visibleSquads.map((squad) => ({
         label: squad.is_active ? `${squad.name} [ACTIVE]` : squad.name,
         onClick: () => this.cfg.onSquadClick(squad),

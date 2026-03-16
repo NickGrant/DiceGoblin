@@ -2,12 +2,14 @@ import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import ActionButton from "../components/clickable-panel/ActionButton";
 import ActionButtonList from "../components/clickable-panel/ActionButtonList";
+import DiceCardGrid from "../components/DiceCardGrid";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import { getDebugSceneConfig } from "../debug/debugScene";
 import { getDebugProfileFixture } from "../debug/debugFixtures";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
 import { apiClient } from "../services/apiClient";
+import type { DiceDetailsViewModel } from "../adapters/profileViewModels";
 import type { UnitRecord } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
@@ -24,11 +26,16 @@ export default class UnitDetailsScene extends Phaser.Scene {
   private statusText?: Phaser.GameObjects.Text;
 
   private units: UnitRecord[] = [];
+  private dice: DiceDetailsViewModel[] = [];
+  private selectedDiceId: string | null = null;
   private activeRun = false;
   private unit: UnitRecord | null = null;
   private selectedSecondaryIds: string[] = [];
   private secondaryPanel?: UnitCardGrid;
+  private dicePanel?: DiceCardGrid;
   private promoteButton?: ActionButton;
+  private equipDiceButton?: ActionButton;
+  private unequipDiceButton?: ActionButton;
 
   constructor() {
     super({ key: "UnitDetailsScene" });
@@ -112,7 +119,14 @@ export default class UnitDetailsScene extends Phaser.Scene {
     if (!this.unit) return;
 
     const diceVm = adaptDiceDetails(rawDice as any, rawUnits as any);
+    this.dice = diceVm;
     const equipped = diceVm.filter((d) => d.equipped?.unitId === this.unit?.id);
+    const selectedStillExists = this.selectedDiceId
+      ? diceVm.some((die) => die.id === this.selectedDiceId)
+      : false;
+    if (!selectedStillExists) {
+      this.selectedDiceId = equipped[0]?.id ?? diceVm[0]?.id ?? null;
+    }
     const xp = typeof this.unit.xp === "number" ? this.unit.xp : 0;
     const max = typeof this.unit.max_level === "number" ? this.unit.max_level : "?";
     const tier = typeof this.unit.tier === "number" ? this.unit.tier : 1;
@@ -155,13 +169,6 @@ export default class UnitDetailsScene extends Phaser.Scene {
       buttons: [
         { label: "Back", onClick: () => this.scene.start("WarbandManagementScene") },
         {
-          label: "Manage Dice",
-          onClick: () => this.scene.start("DiceInventoryScene", {
-            returnScene: "UnitDetailsScene",
-            unitId: this.unitId,
-          }),
-        },
-        {
           label: "Clear 2ndaries",
           onClick: () => {
             this.selectedSecondaryIds = [];
@@ -176,10 +183,48 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.promoteButton = new ActionButton({
       scene: this,
       x: buttonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 180,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 148,
       label: "Promote Unit",
       enabled: !this.activeRun && this.selectedSecondaryIds.length === 2,
       onClick: () => void this.promoteUnit(),
+    });
+
+    this.equipDiceButton?.destroy();
+    this.unequipDiceButton?.destroy();
+    this.equipDiceButton = new ActionButton({
+      scene: this,
+      x: buttonX,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 216,
+      label: "Equip Selected Die",
+      enabled: false,
+      onClick: () => void this.equipSelectedDie(),
+    });
+    this.unequipDiceButton = new ActionButton({
+      scene: this,
+      x: buttonX,
+      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 272,
+      label: "Unequip Selected Die",
+      enabled: false,
+      onClick: () => void this.unequipSelectedDie(),
+    });
+
+    this.dicePanel?.destroy();
+    const dicePanelY = layout.buttons.y + ACTION_BODY_TOP_OFFSET + 344;
+    const dicePanelHeight = Math.max(180, layout.buttons.height - (dicePanelY - layout.buttons.y) - 14);
+    this.dicePanel = new DiceCardGrid({
+      scene: this,
+      x: layout.buttons.x + 10,
+      y: dicePanelY,
+      width: layout.buttons.width - 20,
+      height: dicePanelHeight,
+      title: "DICE",
+      dice: this.dice,
+      selectedDiceId: this.selectedDiceId,
+      onDiceClick: (die) => {
+        this.selectedDiceId = die.id;
+        this.dicePanel?.setSelectedDiceId(die.id);
+        this.refreshStatus();
+      },
     });
 
     this.statusText?.destroy();
@@ -252,11 +297,94 @@ export default class UnitDetailsScene extends Phaser.Scene {
     const secondaries = this.selectedSecondaryIds.length > 0
       ? this.selectedSecondaryIds.map((id) => this.units.find((u) => u.id === id)?.name ?? id).join(", ")
       : "(none)";
+    const selectedDie = this.getSelectedDie();
+    const diceStatus = selectedDie
+      ? (selectedDie.equipped?.unitId === this.unitId
+          ? `${selectedDie.displayName} equipped on this unit.`
+          : selectedDie.equipped
+            ? `${selectedDie.displayName} equipped on ${selectedDie.equipped.unitName}.`
+            : `${selectedDie.displayName} not equipped.`)
+      : "No die selected.";
     const gate = this.activeRun
       ? "Promotion disabled while an active run exists."
       : "Select two compatible max-level units as secondaries.";
-    this.statusText?.setText(`Primary: ${this.unit?.name ?? this.unitId}\nSecondaries: ${secondaries}\n${gate}`);
+    this.statusText?.setText(`Primary: ${this.unit?.name ?? this.unitId}\nSecondaries: ${secondaries}\nDice: ${diceStatus}\n${gate}`);
     this.promoteButton?.setEnabled(!this.activeRun && this.selectedSecondaryIds.length === 2);
+    this.refreshDiceActionButtons();
+  }
+
+  private getSelectedDie(): DiceDetailsViewModel | null {
+    if (!this.selectedDiceId) {
+      return null;
+    }
+    return this.dice.find((die) => die.id === this.selectedDiceId) ?? null;
+  }
+
+  private refreshDiceActionButtons(): void {
+    const selectedDie = this.getSelectedDie();
+    const canMutateDice = !this.activeRun;
+    const canEquip = Boolean(selectedDie && canMutateDice && !selectedDie.equipped);
+    const canUnequip = Boolean(
+      selectedDie &&
+      canMutateDice &&
+      selectedDie.equipped &&
+      selectedDie.equipped.unitId === this.unitId
+    );
+
+    this.equipDiceButton?.setEnabled(canEquip);
+    this.unequipDiceButton?.setEnabled(canUnequip);
+  }
+
+  private async equipSelectedDie(): Promise<void> {
+    if (this.activeRun) {
+      this.showToast("Dice changes unavailable while an active run exists.");
+      return;
+    }
+
+    const selectedDie = this.getSelectedDie();
+    if (!selectedDie) {
+      this.showToast("Select a die first.");
+      return;
+    }
+    if (selectedDie.equipped) {
+      this.showToast(`Die already equipped on ${selectedDie.equipped.unitName}.`);
+      return;
+    }
+
+    const res = await apiClient.equipDice(this.unitId, selectedDie.id);
+    if (!res.ok) {
+      this.showToast(`Equip failed: ${res.error.message}`);
+      return;
+    }
+
+    this.showToast("Die equipped.", "#ccffcc");
+    await this.loadData();
+  }
+
+  private async unequipSelectedDie(): Promise<void> {
+    if (this.activeRun) {
+      this.showToast("Dice changes unavailable while an active run exists.");
+      return;
+    }
+
+    const selectedDie = this.getSelectedDie();
+    if (!selectedDie) {
+      this.showToast("Select a die first.");
+      return;
+    }
+    if (!selectedDie.equipped || selectedDie.equipped.unitId !== this.unitId) {
+      this.showToast("Selected die is not equipped on this unit.");
+      return;
+    }
+
+    const res = await apiClient.unequipDice(this.unitId, selectedDie.id);
+    if (!res.ok) {
+      this.showToast(`Unequip failed: ${res.error.message}`);
+      return;
+    }
+
+    this.showToast("Die unequipped.", "#ccffcc");
+    await this.loadData();
   }
 
   private showToast(message: string, color = "#ffcccc"): void {

@@ -17,13 +17,17 @@ import {
   normalizeNewSquadName,
 } from "./warbandManagementState";
 
-const FRAME_BODY_TOP_OFFSET = 74;
-const FRAME_BODY_BOTTOM_PADDING = 18;
-const ACTION_BODY_TOP_OFFSET = 76;
+const FRAME_TITLE_HEIGHT = 56;
+const FRAME_MARGIN = 12;
+const PANEL_COLUMN_GAP = 16;
+const ACTION_PANEL_PADDING = 14;
+const ACTION_CONTENT_GAP = 14;
+const ACTION_BUTTON_WIDTH = 280;
 
 export default class WarbandManagementScene extends Phaser.Scene {
   private loadingText?: Phaser.GameObjects.Text;
   private toastText?: Phaser.GameObjects.Text;
+  private summaryUiObjects: Phaser.GameObjects.GameObject[] = [];
 
   private units: UnitRecord[] = [];
   private squads: TeamRecord[] = [];
@@ -99,42 +103,84 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   private buildUi(): void {
     const layout = getPageLayout(this);
-    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
-    const bodyHeight = Math.max(240, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
-    const columns = computeWarbandColumns(layout.content.x, layout.content.width);
+    const contentBodyX = layout.content.x + FRAME_MARGIN;
+    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN;
+    const contentBodyWidth = Math.max(280, layout.content.width - FRAME_MARGIN * 2);
+    const contentBodyHeight = Math.max(240, layout.content.height - FRAME_TITLE_HEIGHT - FRAME_MARGIN * 2);
+
+    const actionsBodyX = layout.buttons.x + FRAME_MARGIN;
+    const actionsBodyY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN;
+    const actionsBodyWidth = Math.max(280, layout.buttons.width - FRAME_MARGIN * 2);
+    const actionsBodyHeight = Math.max(220, layout.buttons.height - FRAME_TITLE_HEIGHT - FRAME_MARGIN * 2);
+
+    const columns = computeWarbandColumns(contentBodyX, contentBodyWidth, PANEL_COLUMN_GAP);
     const leftX = columns.leftX;
     const rightX = columns.rightX;
     const colW = columns.columnWidth;
+
+    this.clearSummaryUi();
 
     this.unitPanel?.destroy();
     this.unitPanel = new UnitCardGrid({
       scene: this,
       x: leftX,
-      y: bodyTop,
+      y: contentBodyY,
       width: colW,
-      height: bodyHeight,
+      height: contentBodyHeight,
       title: "ALL UNITS",
       units: this.units,
       onUnitClick: (u) => this.scene.start("UnitDetailsScene", { unitId: u.id }),
-      maxVisibleCards: 3,
     });
 
     this.squadPanel?.destroy();
     this.squadPanel = new SquadListPanel({
       scene: this,
       x: rightX,
-      y: bodyTop,
+      y: contentBodyY,
+      width: colW,
+      height: contentBodyHeight,
       title: "",
       squads: this.squads,
       onSquadClick: (squad) => this.scene.start("SquadDetailsScene", { squadId: squad.id }),
-      maxVisibleSquads: 3,
     });
+
+    const activeSquad = this.squads.find((squad) => squad.is_active);
+    const summaryLines = [
+      "WARBAND SUMMARY",
+      `Units: ${this.units.length}`,
+      `Squads: ${this.squads.length}`,
+      `Active: ${activeSquad?.name ?? "None"}`,
+    ];
+
+    const summaryCardX = actionsBodyX + ACTION_PANEL_PADDING;
+    const summaryCardY = actionsBodyY + ACTION_PANEL_PADDING;
+    const summaryCardWidth = Math.max(120, actionsBodyWidth - ACTION_PANEL_PADDING * 2);
+    const summaryCardHeight = Math.min(210, Math.max(120, Math.floor(actionsBodyHeight * 0.45)));
+    const summaryCard = this.add
+      .rectangle(summaryCardX, summaryCardY, summaryCardWidth, summaryCardHeight, 0x0f2024, 0.56)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8db8bc, 0.45);
+
+    const summaryText = this.add
+      .text(summaryCardX + 12, summaryCardY + 10, summaryLines.join("\n"), {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "19px",
+        color: "#e7f4f5",
+        lineSpacing: 10,
+        wordWrap: { width: Math.max(120, summaryCardWidth - 24) },
+      })
+      .setOrigin(0, 0);
+    this.summaryUiObjects.push(summaryCard, summaryText);
+
+    const actionButtonY = summaryCardY + summaryCardHeight + ACTION_CONTENT_GAP;
+    const actionButtonX =
+      actionsBodyX + Math.max(0, Math.floor((actionsBodyWidth - ACTION_BUTTON_WIDTH) / 2));
 
     new ActionButtonList({
       scene: this,
-      x: layout.buttons.x + 10,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
-      gapY: 5,
+      x: actionButtonX,
+      y: actionButtonY,
+      gapY: 10,
       buttons: [
         {
           label: "New Squad",
@@ -170,6 +216,13 @@ export default class WarbandManagementScene extends Phaser.Scene {
       this.toastText?.destroy();
       this.toastText = undefined;
     });
+  }
+
+  private clearSummaryUi(): void {
+    for (const uiObject of this.summaryUiObjects) {
+      uiObject.destroy();
+    }
+    this.summaryUiObjects = [];
   }
 }
 
