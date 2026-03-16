@@ -22,7 +22,18 @@ function emptyFormation(): FormationMap {
 
 const FRAME_BODY_TOP_OFFSET = 74;
 const FRAME_BODY_BOTTOM_PADDING = 18;
-const ACTION_BODY_TOP_OFFSET = 12;
+const FRAME_TITLE_HEIGHT = 56;
+const FRAME_MARGIN = 12;
+const CONTENT_INSET = 10;
+const CONTENT_COLUMN_GAP = 12;
+const ACTION_PANEL_PADDING = 14;
+const ACTION_TOP_GAP = 14;
+const ACTION_BUTTON_STEP = 64;
+const ACTION_BUTTON_GAP = 12;
+const UNIT_CARD_WIDTH = 132;
+const UNIT_PANEL_PADDING = 12;
+const UNIT_PANEL_WIDTH = UNIT_CARD_WIDTH * 3 + UNIT_PANEL_PADDING * 4;
+const GRID_SIZE = 308;
 
 export default class RestManagementScene extends Phaser.Scene {
   private runId = "";
@@ -154,18 +165,31 @@ export default class RestManagementScene extends Phaser.Scene {
 
   private buildUi(): void {
     const layout = getPageLayout(this);
-    const actionButtonX = layout.buttons.x + 10;
-    const bodyTop = layout.content.y + FRAME_BODY_TOP_OFFSET;
-    const bodyHeight = Math.max(260, layout.content.height - FRAME_BODY_TOP_OFFSET - FRAME_BODY_BOTTOM_PADDING);
-    const gridWidth = 308;
-    const gridX = layout.content.x + layout.content.width - 12 - gridWidth;
-    const unitPanelWidth = Math.max(280, gridX - layout.content.x - 24);
+    const contentBodyX = layout.content.x + FRAME_MARGIN + CONTENT_INSET;
+    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + CONTENT_INSET;
+    const contentBodyWidth = Math.max(280, layout.content.width - (FRAME_MARGIN + CONTENT_INSET) * 2);
+    const contentBodyHeight = Math.max(220, layout.content.height - FRAME_TITLE_HEIGHT - (FRAME_MARGIN + CONTENT_INSET) * 2);
+
+    const unitPanelWidth = Math.min(UNIT_PANEL_WIDTH, Math.max(280, contentBodyWidth - GRID_SIZE - CONTENT_COLUMN_GAP));
+    const unitPanelX = contentBodyX;
+    const unitPanelY = contentBodyY;
+
+    const rightAreaX = unitPanelX + unitPanelWidth + CONTENT_COLUMN_GAP;
+    const rightAreaWidth = Math.max(200, contentBodyX + contentBodyWidth - rightAreaX);
+    const gridX = rightAreaX + Math.max(0, Math.floor((rightAreaWidth - GRID_SIZE) / 2));
+    const gridY = contentBodyY + Math.max(0, Math.floor((contentBodyHeight - GRID_SIZE) / 2));
+
+    const actionBodyX = layout.buttons.x + FRAME_MARGIN + ACTION_PANEL_PADDING;
+    const actionBodyY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + ACTION_TOP_GAP;
+    const actionBodyWidth = Math.max(280, layout.buttons.width - (FRAME_MARGIN + ACTION_PANEL_PADDING) * 2);
+    const actionButtonX = actionBodyX + Math.max(0, Math.floor((actionBodyWidth - 280) / 2));
+
     this.unitPanel = new UnitCardGrid({
       scene: this,
-      x: layout.content.x,
-      y: bodyTop,
+      x: unitPanelX,
+      y: unitPanelY,
       width: unitPanelWidth,
-      height: bodyHeight,
+      height: contentBodyHeight,
       title: "RUN SQUAD",
       units: this.units,
       getCardState: (u) => this.getUnitRowState(u),
@@ -176,7 +200,7 @@ export default class RestManagementScene extends Phaser.Scene {
     this.grid = new FormationGrid3x3({
       scene: this,
       x: gridX,
-      y: bodyTop,
+      y: gridY,
       formation: this.editFormation,
       selectedCell: null,
       getCellLabel: (cell, unitId) => this.getCellLabel(cell, unitId),
@@ -187,7 +211,7 @@ export default class RestManagementScene extends Phaser.Scene {
     this.applyButton = new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
+      y: actionBodyY,
       label: "Apply State",
       onClick: () => void this.applyRestState(),
     });
@@ -195,26 +219,15 @@ export default class RestManagementScene extends Phaser.Scene {
     this.finalizeButton = new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 56,
+      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP),
       label: "Finalize Rest",
       onClick: () => void this.finalizeRest(),
-    });
-
-    this.add.text(layout.content.x + 10, layout.content.y + layout.content.height - 80, "Tip: changes apply to run snapshot and saved squad together.", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "13px",
-      color: "#dddddd",
-    });
-    this.add.text(layout.content.x + 10, layout.content.y + layout.content.height - 60, "Use promotion controls for max-level units while rest is open.", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "13px",
-      color: "#bbbbbb",
     });
 
     new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 112,
+      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 2,
       label: "Manage Dice",
       onClick: () => this.scene.start("DiceInventoryScene", {
         runId: this.runId,
@@ -225,7 +238,7 @@ export default class RestManagementScene extends Phaser.Scene {
     this.setPrimaryButton = new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 168,
+      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 3,
       label: "Set Primary",
       enabled: true,
       onClick: () => this.setPromotionPrimaryFromSelection(),
@@ -233,7 +246,7 @@ export default class RestManagementScene extends Phaser.Scene {
     this.addSecondaryButton = new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 224,
+      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 4,
       label: "Add Secondary",
       enabled: true,
       onClick: () => this.addPromotionSecondaryFromSelection(),
@@ -241,7 +254,7 @@ export default class RestManagementScene extends Phaser.Scene {
     this.clearPromotionButton = new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 280,
+      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 5,
       label: "Clear Promo",
       enabled: true,
       onClick: () => this.clearPromotionSelection(),
@@ -249,16 +262,16 @@ export default class RestManagementScene extends Phaser.Scene {
     this.promoteButton = new ActionButton({
       scene: this,
       x: actionButtonX,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 336,
+      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 6,
       label: "Promote",
       enabled: false,
       onClick: () => void this.promoteSelectedUnit(),
     });
-    this.promotionStatusText = this.add.text(layout.buttons.x + 8, layout.buttons.y + ACTION_BODY_TOP_OFFSET + 402, "", {
+    this.promotionStatusText = this.add.text(actionBodyX, actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 7, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#dddddd",
-      wordWrap: { width: layout.buttons.width - 16 },
+      wordWrap: { width: actionBodyWidth },
     });
 
     this.refreshUi();
@@ -394,10 +407,14 @@ export default class RestManagementScene extends Phaser.Scene {
       wordWrap: { width: layout.content.width - 16 },
     });
 
+    const actionBodyX = layout.buttons.x + FRAME_MARGIN + ACTION_PANEL_PADDING;
+    const actionBodyY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + ACTION_TOP_GAP;
+    const actionBodyWidth = Math.max(280, layout.buttons.width - (FRAME_MARGIN + ACTION_PANEL_PADDING) * 2);
+
     new ActionButton({
       scene: this,
-      x: layout.buttons.x + 10,
-      y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 392,
+      x: actionBodyX + Math.max(0, Math.floor((actionBodyWidth - 280) / 2)),
+      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 7,
       label: "Continue",
       onClick: () => this.scene.start("MapExplorationScene"),
     });
@@ -508,7 +525,7 @@ export default class RestManagementScene extends Phaser.Scene {
     const s2 = this.promotionSecondaryIds[1]
       ? this.unitName(this.promotionSecondaryIds[1])
       : "(none)";
-    return `${p}\nSecondaries: ${s1}, ${s2}\nPromotion available while rest is open.`;
+    return `${p}\nSecondaries: ${s1}, ${s2}`;
   }
 
   private unitName(unitId: string): string {

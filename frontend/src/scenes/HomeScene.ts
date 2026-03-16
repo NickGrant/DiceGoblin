@@ -38,7 +38,7 @@ export default class HomeScene extends Phaser.Scene {
     }
 
     const bodyImageKey = hasActiveRun ? "ux_continue_run" : "ux_start_run";
-    const areaRect = this.resolveRunPanelArea(contentArea, bodyImageKey);
+    const areaRect = this.resolveRunPanelArea(contentArea, "ux_start_run");
     new HomeNavigationPanel({
       scene: this,
       areaRect,
