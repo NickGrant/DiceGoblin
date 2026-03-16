@@ -136,11 +136,13 @@ export const apiClient = {
   async abandonRun(runId: string): Promise<AbandonRunResponse> {
     const session = await apiClient.getSession();
     const csrf = (session as any)?.data?.csrf_token ?? "";
-    return request<AbandonRunResponse>(`/api/v1/runs/${runId}/abandon`, {
+    const res = await request<AbandonRunResponse>(`/api/v1/runs/${runId}/abandon`, {
       method: "POST",
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify({}),
     });
+    refreshProfileAfterMutation();
+    return res;
   },
 
   async resolveRunNode(

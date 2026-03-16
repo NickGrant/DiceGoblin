@@ -174,12 +174,14 @@ export default class NodeResolutionScene extends Phaser.Scene {
         return getDebugResolvedNodeFixture();
       });
       if (!resolveRes.ok) {
-        this.showError(`Resolve failed: ${resolveRes.error.message}`);
-        this.configureButton("Retry", true, () => {
-          this.hasResolved = false;
-          void this.resolveNode();
-        });
-        markDebugSceneReady(this, { state: "error" });
+        const reason = String(resolveRes.error.message ?? "Unknown error");
+        if (/no enemies/i.test(reason)) {
+          await this.handleNoEnemiesResolution(reason);
+          return;
+        }
+        this.showError(`Resolve failed: ${reason}`);
+        this.configureButton("Back to Map", true, () => this.returnToMap());
+        markDebugSceneReady(this, { state: "error", reason });
         return;
       }
 
@@ -225,12 +227,43 @@ export default class NodeResolutionScene extends Phaser.Scene {
       markDebugSceneReady(this, { state: "resolved", outcome });
     } catch {
       this.showError("Node resolution unavailable. Please retry.");
-      this.configureButton("Retry", true, () => {
-        this.hasResolved = false;
-        void this.resolveNode();
-      });
+      this.configureButton("Back to Map", true, () => this.returnToMap());
       markDebugSceneReady(this, { state: "error" });
     }
+  }
+
+  private async handleNoEnemiesResolution(reason: string): Promise<void> {
+    this.statusText?.setText("Node resolved: NO ENEMIES");
+    this.detailText?.setText([
+      "Encounter resolved without battle.",
+      `Reason: ${reason}`,
+      "Returning to map will show updated node state.",
+    ].join("\n"));
+    this.showError(`Reason: ${reason}`);
+
+    try {
+      const refreshed = await apiClient.getCurrentRun();
+      if (refreshed.ok && refreshed.data.map?.nodes) {
+        const node = refreshed.data.map.nodes.find((candidate) => String(candidate.id) === this.nodeId);
+        if (node && String(node.status) === "cleared") {
+          this.detailText?.setText([
+            "Encounter resolved without battle.",
+            `Reason: ${reason}`,
+            "Node status is now cleared.",
+          ].join("\n"));
+        }
+      }
+    } catch {
+      // Fallback to reason-only message when refresh is unavailable.
+    }
+
+    this.configureButton("Back to Map", true, () => {
+      this.scene.start("MapExplorationScene", {
+        resolutionMessage: `Node ${this.nodeId} resolved: ${reason}`,
+        resolutionColor: "#ffd89e",
+      });
+    });
+    markDebugSceneReady(this, { state: "resolved-no-enemies", reason });
   }
 
   private configureButton(label: string, enabled: boolean, onClick: () => void): void {

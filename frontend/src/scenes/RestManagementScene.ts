@@ -376,47 +376,19 @@ export default class RestManagementScene extends Phaser.Scene {
     this.finalized = true;
     this.refreshUi();
 
-    const progression = res.data.progression ?? [];
-    const progressionLines = progression.length > 0
-      ? progression.map((p) => `Unit ${p.id}: Lv ${p.from_level} -> ${p.to_level}`)
-      : ["No level/promotion changes."];
-
-    const healingLines = this.runUnitState.map((s) => {
+    const progressionCount = (res.data.progression ?? []).length;
+    const healedUnits = this.runUnitState.filter((s) => {
       const before = this.baselineRunUnitHp.get(s.unit_instance_id) ?? s.hp;
-      const healed = Math.max(0, s.hp - before);
-      return `Unit ${s.unit_instance_id}: healed +${healed} (current HP ${s.hp})`;
-    });
-    const summary = [
-      "END OF REST SUMMARY",
-      "",
-      "Progression:",
-      ...progressionLines,
-      "",
-      "Healing:",
-      ...(healingLines.length > 0 ? healingLines : ["No healing changes."]),
-      "",
-      "Press Continue to return to Run Map.",
-    ].join("\n");
-
-    this.summaryText?.destroy();
-    const layout = getPageLayout(this);
-    this.summaryText = this.add.text(layout.content.x + 10, layout.content.y + layout.content.height - 180, summary, {
-      fontFamily: "monospace",
-      fontSize: "13px",
-      color: "#f5f5f5",
-      wordWrap: { width: layout.content.width - 16 },
-    });
-
-    const actionBodyX = layout.buttons.x + FRAME_MARGIN + ACTION_PANEL_PADDING;
-    const actionBodyY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + ACTION_TOP_GAP;
-    const actionBodyWidth = Math.max(280, layout.buttons.width - (FRAME_MARGIN + ACTION_PANEL_PADDING) * 2);
-
-    new ActionButton({
-      scene: this,
-      x: actionBodyX + Math.max(0, Math.floor((actionBodyWidth - 280) / 2)),
-      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 7,
-      label: "Continue",
-      onClick: () => this.scene.start("MapExplorationScene"),
+      return s.hp > before;
+    }).length;
+    const summaryParts = [
+      "Rest finalized.",
+      `${healedUnits} unit${healedUnits === 1 ? "" : "s"} healed`,
+      `${progressionCount} progression update${progressionCount === 1 ? "" : "s"}`,
+    ];
+    this.scene.start("MapExplorationScene", {
+      resolutionMessage: summaryParts.join(" - "),
+      resolutionColor: "#ccffcc",
     });
   }
 

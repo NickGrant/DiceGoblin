@@ -211,7 +211,7 @@ export default class MapExplorationScene extends Phaser.Scene {
       title: "ABANDON RUN?",
       message: "This will end the current run immediately.",
       acceptLabel: "Abandon",
-      rejectLabel: "Cancel",
+      rejectLabel: "Stay",
       onReject: () => {
         this.abandonDialog = undefined;
       },

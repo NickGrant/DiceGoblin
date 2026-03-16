@@ -51,10 +51,23 @@ export default class ConfirmationDialog extends Phaser.GameObjects.Container {
       wordWrap: { width: width - 40 },
     }).setOrigin(0, 0);
 
+    const buttonWidth = 280;
+    const buttonGap = 16;
+    const sideBySide = width >= buttonWidth * 2 + buttonGap + 40;
+    const rowY = top + height - 95;
+    const stackedTopY = top + height - 164;
+    const stackedBottomY = top + height - 86;
+    const leftButtonX = sideBySide
+      ? left + 20
+      : left + Math.max(0, Math.floor((width - buttonWidth) / 2));
+    const rightButtonX = sideBySide
+      ? left + width - buttonWidth - 20
+      : leftButtonX;
+
     this.acceptButton = new AcceptButton({
       scene: cfg.scene,
-      x: left + 20,
-      y: top + height - 95,
+      x: leftButtonX,
+      y: sideBySide ? rowY : stackedTopY,
       label: cfg.acceptLabel ?? "Accept",
       onClick: () => {
         void cfg.onAccept();
@@ -62,8 +75,8 @@ export default class ConfirmationDialog extends Phaser.GameObjects.Container {
     });
     this.rejectButton = new RejectButton({
       scene: cfg.scene,
-      x: left + width - 320,
-      y: top + height - 95,
+      x: rightButtonX,
+      y: sideBySide ? rowY : stackedBottomY,
       label: cfg.rejectLabel ?? "Cancel",
       onClick: () => {
         cfg.onReject();

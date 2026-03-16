@@ -11,6 +11,7 @@ import type { TeamRecord, UnitRecord } from "../types/ApiResponse";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
+import ConfirmationDialog from "../components/feedback/ConfirmationDialog";
 import {
   computeWarbandColumns,
   deriveWarbandHubState,
@@ -34,6 +35,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   private unitPanel?: UnitCardGrid;
   private squadPanel?: SquadListPanel;
+  private createSquadDialog?: ConfirmationDialog;
 
   constructor() {
     super({ key: "WarbandManagementScene" });
@@ -191,8 +193,28 @@ export default class WarbandManagementScene extends Phaser.Scene {
   }
 
   private async createSquad(): Promise<void> {
-    const name = normalizeNewSquadName(window.prompt("New squad name:", "New Squad"));
+    if (this.createSquadDialog) return;
+    const name = normalizeNewSquadName("New Squad");
     if (!name) return;
+
+    this.createSquadDialog = new ConfirmationDialog({
+      scene: this,
+      title: "CREATE NEW SQUAD?",
+      message: `Create a new squad named '${name}'?`,
+      acceptLabel: "Create",
+      rejectLabel: "Cancel",
+      onReject: () => {
+        this.createSquadDialog = undefined;
+      },
+      onAccept: async () => {
+        this.createSquadDialog?.close();
+        this.createSquadDialog = undefined;
+        await this.executeCreateSquad(name);
+      },
+    });
+  }
+
+  private async executeCreateSquad(name: string): Promise<void> {
     const res = await apiClient.createTeam(name, false);
     if (!res.ok) {
       this.showToast(`Create failed: ${res.error.message}`);
