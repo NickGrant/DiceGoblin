@@ -61,6 +61,12 @@ function makeSceneAdd() {
   };
 }
 
+async function flushSceneTasks(ticks = 4): Promise<void> {
+  for (let i = 0; i < ticks; i += 1) {
+    await Promise.resolve();
+  }
+}
+
 describe("MapExplorationScene transition guards", () => {
   beforeEach(() => {
     nodeListCtor.mockReset();
@@ -75,7 +81,7 @@ describe("MapExplorationScene transition guards", () => {
     scene.add = makeSceneAdd();
 
     scene.create();
-    await Promise.resolve();
+    await flushSceneTasks();
 
     expect(nodeListCtor).toHaveBeenCalledTimes(0);
     expect(scene.add.text).toHaveBeenCalledWith(
@@ -119,7 +125,7 @@ describe("MapExplorationScene transition guards", () => {
     scene.add = makeSceneAdd();
 
     scene.create();
-    await Promise.resolve();
+    await flushSceneTasks();
 
     expect(nodeListCtor).toHaveBeenCalledTimes(1);
   });
@@ -147,7 +153,7 @@ describe("MapExplorationScene transition guards", () => {
     const scene = new MapExplorationScene() as any;
     scene.add = makeSceneAdd();
     scene.create();
-    await Promise.resolve();
+    await flushSceneTasks();
 
     const config = nodeListCtor.mock.calls[0]?.[6] as { onNodeClick?: (node: any) => Promise<void> };
     await config.onNodeClick?.({ id: "501", node_type: "rest", status: "available" });
@@ -162,7 +168,7 @@ describe("MapExplorationScene transition guards", () => {
     scene.add = makeSceneAdd();
 
     scene.create();
-    await Promise.resolve();
+    await flushSceneTasks();
 
     expect(nodeListCtor).toHaveBeenCalledTimes(0);
     expect(scene.add.text).toHaveBeenCalledWith(
@@ -184,13 +190,48 @@ describe("MapExplorationScene transition guards", () => {
     scene.add = makeSceneAdd();
 
     scene.create();
-    await Promise.resolve();
+    await flushSceneTasks();
 
     expect(nodeListCtor).toHaveBeenCalledTimes(0);
     expect(scene.add.text).toHaveBeenCalledWith(
       expect.any(Number),
       expect.any(Number),
       "Run unavailable: Unexpected error.",
+      expect.any(Object)
+    );
+  });
+
+  it("shows fallback when map node payload contains unsupported node states/types", async () => {
+    const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
+    getCurrentRunMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        run: {
+          run_id: "12",
+          region_id: "1",
+          seed: "invalid-map-seed",
+          status: "active",
+          started_at: "2026-03-04T00:00:00Z",
+          ended_at: null,
+        },
+        map: {
+          nodes: [{ id: "x1", run_id: "12", node_index: 0, node_type: "unknown", status: "broken", meta_json: "{}" }],
+          edges: [],
+        },
+      },
+    });
+
+    const scene = new MapExplorationScene() as any;
+    scene.add = makeSceneAdd();
+
+    scene.create();
+    await flushSceneTasks();
+
+    expect(nodeListCtor).toHaveBeenCalledTimes(0);
+    expect(scene.add.text).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Number),
+      "Run map payload is invalid. Please refresh or restart run.",
       expect.any(Object)
     );
   });
@@ -218,7 +259,7 @@ describe("MapExplorationScene transition guards", () => {
     const scene = new MapExplorationScene() as any;
     scene.add = makeSceneAdd();
     scene.create();
-    await Promise.resolve();
+    await flushSceneTasks();
 
     const config = nodeListCtor.mock.calls[0]?.[6] as { onNodeClick?: (node: any) => Promise<void> };
     await config.onNodeClick?.({ id: "900", node_type: "exit", status: "available" });
@@ -227,5 +268,42 @@ describe("MapExplorationScene transition guards", () => {
       nodeId: "900",
       nodeType: "exit",
     });
+  });
+
+  it("does not route locked node clicks and shows explanatory fallback", async () => {
+    const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
+    getCurrentRunMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        run: {
+          run_id: "9",
+          region_id: "1",
+          seed: "locked-seed",
+          status: "active",
+          started_at: "2026-03-04T00:00:00Z",
+          ended_at: null,
+        },
+        map: {
+          nodes: [{ id: "x9", run_id: "9", node_index: 4, node_type: "combat", status: "locked", meta_json: "{}" }],
+          edges: [],
+        },
+      },
+    });
+
+    const scene = new MapExplorationScene() as any;
+    scene.add = makeSceneAdd();
+    scene.create();
+    await flushSceneTasks();
+
+    const config = nodeListCtor.mock.calls[0]?.[6] as { onNodeClick?: (node: any) => Promise<void> };
+    await config.onNodeClick?.({ id: "x9", node_type: "combat", status: "locked" });
+
+    expect(scene.scene.start).not.toHaveBeenCalledWith("NodeResolutionScene", expect.anything());
+    expect(scene.add.text).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.any(Number),
+      "Node 'x9' is locked and cannot be selected.",
+      expect.any(Object)
+    );
   });
 });

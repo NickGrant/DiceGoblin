@@ -22,8 +22,9 @@ export default class IconButton {
 
   constructor(cfg: IconButtonConfig) {
     const iconSize = cfg.iconSize ?? DEFAULT_ICON_SIZE;
-    const hitWidth = cfg.hitWidth ?? DEFAULT_HIT_WIDTH;
-    const hitHeight = cfg.hitHeight ?? DEFAULT_HIT_HEIGHT;
+    // Keep hitbox at least as large as the rendered icon to avoid partial click zones.
+    const hitWidth = Math.max(iconSize, cfg.hitWidth ?? DEFAULT_HIT_WIDTH);
+    const hitHeight = Math.max(iconSize, cfg.hitHeight ?? DEFAULT_HIT_HEIGHT);
 
     this.icon = cfg.scene.add.image(0, 0, cfg.iconKey).setDisplaySize(iconSize, iconSize).setOrigin(0.5, 0.5);
     this.hit = cfg.scene.add.zone(0, 0, hitWidth, hitHeight).setOrigin(0.5, 0.5).setInteractive({ useHandCursor: true });
@@ -35,14 +36,23 @@ export default class IconButton {
     }).setOrigin(0.5, 1).setVisible(false);
 
     this.hit.on("pointerover", () => {
-      this.icon.setAlpha(0.9);
+      // Tint-on-hover is more stable than scale-based hover feedback.
+      this.icon.setTint(0xf3efe0);
       this.tooltip.setVisible(true);
     });
     this.hit.on("pointerout", () => {
       this.icon.setAlpha(1);
+      this.icon.clearTint();
       this.tooltip.setVisible(false);
     });
-    this.hit.on("pointerup", cfg.onClick);
+    this.hit.on("pointerdown", () => {
+      this.icon.setAlpha(0.85);
+    });
+    this.hit.on("pointerup", () => {
+      this.icon.setAlpha(1);
+      this.icon.setTint(0xf3efe0);
+      cfg.onClick();
+    });
   }
 
   setPosition(x: number, y: number): this {

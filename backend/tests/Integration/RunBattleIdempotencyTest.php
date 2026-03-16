@@ -162,6 +162,8 @@ final class RunBattleIdempotencyTest extends TestCase
 
     $actualSeed = (int)$this->scalar('SELECT `seed` FROM `battles` WHERE `id` = ?', [$battleId]);
     $runSeed = (string)$this->scalar('SELECT `seed` FROM `region_runs` WHERE `id` = ?', [$runId]);
+    $encounterTemplateIdRaw = $this->scalar('SELECT `encounter_template_id` FROM `run_nodes` WHERE `id` = ?', [$nodeId]);
+    $encounterTemplateId = (string)$encounterTemplateIdRaw !== '' ? (int)$encounterTemplateIdRaw : null;
 
     $expectedSeed = $this->deriveExpectedSeed(
       $userId,
@@ -169,7 +171,7 @@ final class RunBattleIdempotencyTest extends TestCase
       $runSeed,
       $nodeId,
       $teamId,
-      null
+      $encounterTemplateId
     );
 
     $this->assertSame($expectedSeed, $actualSeed);
@@ -237,14 +239,41 @@ final class RunBattleIdempotencyTest extends TestCase
 
   private function insertRunNode(int $runId, string $nodeType, string $status): int
   {
+    $encounterTemplateId = $this->pickEncounterTemplateIdForNodeType($nodeType);
+
     $stmt = $this->pdo?->prepare('
       INSERT INTO `run_nodes` (`run_id`, `node_index`, `node_type`, `status`, `encounter_template_id`, `meta_json`)
-      VALUES (?, 1, ?, ?, NULL, NULL)
+      VALUES (?, 1, ?, ?, ?, NULL)
     ');
-    $stmt?->execute([$runId, $nodeType, $status]);
+    $stmt?->execute([$runId, $nodeType, $status, $encounterTemplateId]);
     $id = (int)$this->pdo?->lastInsertId();
     $this->nodeIds[] = $id;
     return $id;
+  }
+
+  private function pickEncounterTemplateIdForNodeType(string $nodeType): ?int
+  {
+    $slugPattern = match ($nodeType) {
+      'combat' => '%_combat_%',
+      'boss' => '%_boss_%',
+      'loot' => '%_loot_%',
+      'rest' => '%_rest_%',
+      default => null,
+    };
+
+    if ($slugPattern === null) {
+      return null;
+    }
+
+    $stmt = $this->pdo?->prepare('SELECT `id` FROM `encounter_templates` WHERE `slug` LIKE ? ORDER BY `id` ASC LIMIT 1');
+    $stmt?->execute([$slugPattern]);
+    $value = $stmt?->fetchColumn();
+
+    if ($value === false || $value === null || $value === '') {
+      return null;
+    }
+
+    return (int)$value;
   }
 
   /**

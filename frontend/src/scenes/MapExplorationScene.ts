@@ -17,6 +17,8 @@ import ToastMessage from "../components/feedback/ToastMessage";
 const ACTION_BODY_TOP_OFFSET = 72;
 const CONTENT_BODY_TOP_OFFSET = 74;
 const CONTENT_BODY_BOTTOM_PADDING = 20;
+const MAP_NODE_TYPES = new Set(["combat", "loot", "rest", "boss", "exit"]);
+const MAP_NODE_STATUSES = new Set(["locked", "available", "cleared"]);
 
 export default class MapExplorationScene extends Phaser.Scene {
   private runEnvelope: RunResponse | null = null;
@@ -115,6 +117,18 @@ export default class MapExplorationScene extends Phaser.Scene {
         return;
       }
 
+      const nodes = run.data.map.nodes.filter((node) => this.isValidMapNode(node));
+      if (nodes.length === 0) {
+        this.showFallback("Run map payload is invalid. Please refresh or restart run.");
+        return;
+      }
+
+      const edges = run.data.map.edges.filter((edge) => {
+        const from = String(edge.from_node_id ?? "").trim();
+        const to = String(edge.to_node_id ?? "").trim();
+        return from.length > 0 && to.length > 0;
+      });
+
       this.runEnvelope = run;
 
       const layout = getPageLayout(this);
@@ -123,8 +137,8 @@ export default class MapExplorationScene extends Phaser.Scene {
         0,
         0,
         run.data.run,
-        run.data.map.nodes,
-        run.data.map.edges,
+        nodes,
+        edges,
         {
           scatterRect: new Phaser.Geom.Rectangle(
             layout.content.x + 24,
@@ -138,15 +152,33 @@ export default class MapExplorationScene extends Phaser.Scene {
       );
       markDebugSceneReady(this, {
         runId: run.data.run.run_id,
-        nodeCount: run.data.map.nodes.length,
+        nodeCount: nodes.length,
       });
     } catch {
       this.showFallback("Run data unavailable. Please retry.");
     }
   }
 
+  private isValidMapNode(node: CurrentRunNode): boolean {
+    const nodeType = String(node.node_type ?? "").trim();
+    const status = String(node.status ?? "").trim();
+    if (!MAP_NODE_TYPES.has(nodeType)) {
+      return false;
+    }
+    if (!MAP_NODE_STATUSES.has(status)) {
+      return false;
+    }
+    return true;
+  }
+
   private async handleNodeClick(node: CurrentRunNode): Promise<void> {
     if (!this.runEnvelope?.ok || this.runEnvelope.data.run === null) return;
+
+    if (String(node.status ?? "") !== "available") {
+      this.showFallback(`Node '${node.id}' is ${String(node.status)} and cannot be selected.`);
+      return;
+    }
+
     const runId = this.runEnvelope.data.run.run_id;
 
     if (node.node_type === "rest") {

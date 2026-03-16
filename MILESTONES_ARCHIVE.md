@@ -6,6 +6,24 @@
 - Preserve milestone resolution history without bloating active execution context.
 
 ---
+name: Encounter Map Resolution and UX Hardening
+status: complete
+execution_window: open
+is_current: yes
+  - Align encounter map node-state contract across backend and frontend
+  - Stabilize encounter map node placement and edge readability
+  - Finalize encounter map interaction flow for combat, rest, and exit nodes
+  - Harden map fallback and stale-run recovery messaging
+  - Add encounter map frontend regression tests for NodeList construction and transitions
+  - Add node-resolution scene regression tests for action-state transitions
+  - Fix icon click hitboxes for consistent full-icon interaction
+  - Replace icon resize hover effect with improved hover state feedback
+description: |
+  Consolidate encounter-map behavior, contracts, and UX reliability so run navigation,
+  node resolution entry points, and map readability are stable before the next gameplay
+  resolution pass.
+
+---
 name: Milestone 15 - Backend Gameplay Completion
 status: complete
 execution_window: open
@@ -23,7 +41,6 @@ Resolution: Implemented exit-node run completion, terminal cleanup invariants, r
 
 ---
 name: Milestone 7 - Documentation Integrity
-status: complete
 execution_window: open
 is_current: yes
 issues:
@@ -39,7 +56,6 @@ Resolution: Completed documentation drift pass across architecture/overview/syst
 ---
 name: Milestone 8 - QA Test Backfill and Strategy
 status: complete
-execution_window: open
 is_current: yes
 issues:
   - Establish backend API integration test harness (PHPUnit + fixtures)
@@ -54,7 +70,6 @@ description: |
   Stand up automated QA infrastructure and baseline regression coverage while defining an explicit testing strategy that governs verification expectations for future feature work.
 Resolution: Completed QA harness setup across backend/frontend, added API contract and endpoint mutation security coverage, validated resolve/claim idempotency behavior, and documented repository-wide testing strategy.
 
----
 name: Milestone 9 - Product and Backlog Governance
 status: complete
 execution_window: open
@@ -72,7 +87,6 @@ issues:
   - Resolve MVP XP-source contradiction between encounter and progression specs
   - Add explicit squads-vs-teams terminology compatibility note in architecture docs
   - Add required metadata headers to high-impact documentation files
-  - Remove template-entry parsing ambiguity from active milestones file
   - Archive or remove deprecated documentation worklist artifact
 description: |
   Tighten roadmap governance, milestone clarity, and backlog hygiene so future delivery lanes stay executable and auditable.
@@ -96,7 +110,6 @@ name: Milestone 2 - Server-Side Battle Resolution
 status: complete
 execution_window: open
 is_current: yes
-issues:
   - Replace placeholder run node resolution with deterministic combat engine integration
   - Implement non-placeholder reward and XP application on battle claim
 description: |

@@ -30,6 +30,7 @@ use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
 
 use PDO;
+use RuntimeException;
 use Throwable;
 
 final class RunNodeController
@@ -235,7 +236,29 @@ final class RunNodeController
         }
       }
 
-      $resolution = $svc['resolver']->resolve($userId, $teamIdInt, $run, $node);
+      try {
+        $resolution = $svc['resolver']->resolve($userId, $teamIdInt, $run, $node);
+      } catch (RuntimeException $e) {
+        if ($e->getMessage() !== 'combat_no_enemies') {
+          throw $e;
+        }
+
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'combat_no_enemies',
+            'message' => 'Combat encounter has no enemies and was aborted.',
+            'details' => [
+              'run_id' => (string)$runIdInt,
+              'node_id' => (string)$nodeIdInt,
+              'rounds' => 0,
+              'ticks' => 0,
+            ],
+          ],
+        ], 409);
+        return;
+      }
       $seed = (int)$resolution['seed'];
       $outcome = (string)$resolution['outcome'];
       $ticks = (int)$resolution['ticks'];

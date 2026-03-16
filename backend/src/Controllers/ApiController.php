@@ -741,6 +741,7 @@ final class ApiController
   {
     $seedInt = (int)(is_numeric($seed) ? $seed : crc32($seed));
     mt_srand($seedInt ^ ($regionId * 2654435761));
+    $templatePools = $this->loadEncounterTemplatePools($regionId);
 
     $midA = (mt_rand(0, 1) === 0) ? 'loot' : 'rest';
     $midB = ($midA === 'loot') ? 'rest' : 'loot';
@@ -759,6 +760,17 @@ final class ApiController
       ['node_index' => 9, 'node_type' => 'exit',   'status' => 'locked',    'meta' => ['col' => 7, 'row' => 1]],
     ];
 
+    foreach ($nodes as &$node) {
+      $nodeType = (string)$node['node_type'];
+      if (!isset($templatePools[$nodeType]) || count($templatePools[$nodeType]) === 0) {
+        continue;
+      }
+
+      $pool = $templatePools[$nodeType];
+      $node['encounter_template_id'] = $pool[mt_rand(0, count($pool) - 1)];
+    }
+    unset($node);
+
     $edges = [
       ['from' => 0, 'to' => 1],
       ['from' => 0, 'to' => 2],
@@ -774,6 +786,54 @@ final class ApiController
     ];
 
     return ['nodes' => $nodes, 'edges' => $edges];
+  }
+
+  /**
+   * @return array{combat:array<int,int>,boss:array<int,int>,loot:array<int,int>,rest:array<int,int>}
+   */
+  private function loadEncounterTemplatePools(int $regionId): array
+  {
+    /** @var PDO $pdo */
+    $pdo = Db::pdo();
+
+    $stmt = $pdo->prepare('SELECT `id`, `slug`, `reward_profile_json` FROM `encounter_templates` WHERE `region_id` = ? ORDER BY `id` ASC');
+    $stmt->execute([$regionId]);
+
+    $pools = [
+      'combat' => [],
+      'boss' => [],
+      'loot' => [],
+      'rest' => [],
+    ];
+
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $id = (int)$row['id'];
+      $slug = (string)$row['slug'];
+
+      $rewardType = null;
+      $rewardProfile = json_decode((string)($row['reward_profile_json'] ?? ''), true);
+      if (is_array($rewardProfile) && isset($rewardProfile['type'])) {
+        $rewardType = (string)$rewardProfile['type'];
+      }
+
+      if (str_contains($slug, '_boss_')) {
+        $pools['boss'][] = $id;
+        continue;
+      }
+      if (str_contains($slug, '_combat_')) {
+        $pools['combat'][] = $id;
+        continue;
+      }
+      if ($rewardType === 'loot' || str_contains($slug, '_loot_')) {
+        $pools['loot'][] = $id;
+        continue;
+      }
+      if ($rewardType === 'rest' || str_contains($slug, '_rest_')) {
+        $pools['rest'][] = $id;
+      }
+    }
+
+    return $pools;
   }
 
   /**

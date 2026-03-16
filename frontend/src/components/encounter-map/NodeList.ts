@@ -76,15 +76,13 @@ export default class NodeList extends Phaser.GameObjects.Container {
     const half = this.cfg.nodeSize / 2;
     const contractPositions = this.buildContractGridPositions(rect, half);
     const positionsById = new Map<string, { x: number; y: number }>();
+    const occupied: Array<{ x: number; y: number }> = [];
 
     this.nodes.forEach((record, idx) => {
-      const fallback = {
-        x: lerp(rect.x + half, rect.x + rect.width - half, rng()),
-        y: lerp(rect.y + half, rect.y + rect.height - half, rng()),
-      };
-
-      const pos = contractPositions[idx] ?? fallback;
+      const preferred = contractPositions[idx] ?? this.makeFallbackPosition(rect, half, rng);
+      const pos = this.placeWithSeparation(preferred, occupied, rect, half, rng);
       positionsById.set(String(record.id), pos);
+      occupied.push(pos);
 
       const node = new Node(this.scene, pos.x, pos.y, record, {
         size: this.cfg.nodeSize,
@@ -97,6 +95,54 @@ export default class NodeList extends Phaser.GameObjects.Container {
 
     this.renderEdges(positionsById);
     this.setSize(this.scene.scale.width, this.scene.scale.height);
+  }
+
+  private makeFallbackPosition(
+    rect: Phaser.Geom.Rectangle,
+    half: number,
+    rng: () => number
+  ): { x: number; y: number } {
+    return {
+      x: lerp(rect.x + half, rect.x + rect.width - half, rng()),
+      y: lerp(rect.y + half, rect.y + rect.height - half, rng()),
+    };
+  }
+
+  private placeWithSeparation(
+    preferred: { x: number; y: number },
+    occupied: Array<{ x: number; y: number }>,
+    rect: Phaser.Geom.Rectangle,
+    half: number,
+    rng: () => number
+  ): { x: number; y: number } {
+    const minDistSq = this.cfg.minSeparation * this.cfg.minSeparation;
+    const isFarEnough = (candidate: { x: number; y: number }): boolean => {
+      for (const point of occupied) {
+        const dx = point.x - candidate.x;
+        const dy = point.y - candidate.y;
+        if ((dx * dx) + (dy * dy) < minDistSq) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    const clampedPreferred = {
+      x: Phaser.Math.Clamp(preferred.x, rect.x + half, rect.x + rect.width - half),
+      y: Phaser.Math.Clamp(preferred.y, rect.y + half, rect.y + rect.height - half),
+    };
+    if (isFarEnough(clampedPreferred)) {
+      return clampedPreferred;
+    }
+
+    for (let attempt = 0; attempt < this.cfg.maxAttemptsPerNode; attempt += 1) {
+      const candidate = this.makeFallbackPosition(rect, half, rng);
+      if (isFarEnough(candidate)) {
+        return candidate;
+      }
+    }
+
+    return clampedPreferred;
   }
 
   private renderEdges(positionsById: Map<string, { x: number; y: number }>): void {

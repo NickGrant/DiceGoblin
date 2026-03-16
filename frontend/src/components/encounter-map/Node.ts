@@ -13,6 +13,8 @@ export default class Node extends Phaser.GameObjects.Container {
   private cfg: Required<Omit<NodeConfig, "onClick">> & Pick<NodeConfig, "onClick">;
 
   private icon!: Phaser.GameObjects.Image;
+  private hoverHalo!: Phaser.GameObjects.Image;
+  private isHovered = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -43,6 +45,13 @@ export default class Node extends Phaser.GameObjects.Container {
   private build(): void {
     const size = this.cfg.size;
 
+    this.hoverHalo = this.scene.add.image(0, 0, "__MISSING__").setOrigin(0.5, 0.5);
+    this.hoverHalo
+      .setDisplaySize(Math.floor(size * 1.2), Math.floor(size * 1.2))
+      .setAlpha(0.22)
+      .setTint(0xfff1b8)
+      .setVisible(false);
+
     // Icon centered on container origin for robust bounds/clamping math.
     this.icon = this.scene.add.image(0, 0, "__MISSING__").setOrigin(0.5, 0.5);
     this.icon.setDisplaySize(size, size);
@@ -51,8 +60,14 @@ export default class Node extends Phaser.GameObjects.Container {
     this.setSize(size, size);
     this.setInteractive(new Phaser.Geom.Rectangle(-size / 2, -size / 2, size, size), Phaser.Geom.Rectangle.Contains);
 
-    this.on("pointerover", () => this.icon.setScale(1.03));
-    this.on("pointerout", () => this.icon.setScale(1));
+    this.on("pointerover", () => {
+      this.isHovered = true;
+      this.updateHoverState();
+    });
+    this.on("pointerout", () => {
+      this.isHovered = false;
+      this.updateHoverState();
+    });
     this.on("pointerup", () => {
       if (this.record.status === "available") {
         this.cfg.onClick?.(this.record);
@@ -60,11 +75,14 @@ export default class Node extends Phaser.GameObjects.Container {
       }
     });
 
+    this.add(this.hoverHalo);
     this.add(this.icon);
   }
 
   private refresh(): void {
     const textureKey = this.pickTextureKey(this.record);
+    this.hoverHalo.setTexture(textureKey);
+    this.hoverHalo.setDisplaySize(Math.floor(this.cfg.size * 1.2), Math.floor(this.cfg.size * 1.2));
     this.icon.setTexture(textureKey);
     this.icon.setDisplaySize(this.cfg.size, this.cfg.size);
 
@@ -97,6 +115,15 @@ export default class Node extends Phaser.GameObjects.Container {
         this.input.cursor = "pointer";
       }
     }
+
+    this.updateHoverState();
+  }
+
+  private updateHoverState(): void {
+    const isAvailable = this.record.status === "available";
+    const showHalo = isAvailable && this.isHovered;
+    this.hoverHalo.setVisible(showHalo);
+    this.icon.setAlpha(showHalo ? 0.92 : 1);
   }
 
   private pickTextureKey(node: CurrentRunNode): string {

@@ -8,6 +8,7 @@ vi.mock("phaser", () => {
     public alpha = 1;
     public scale = 1;
     public tint: number | null = null;
+    public visible = true;
 
     setOrigin(): this { return this; }
     setScale(v: number): this { this.scale = v; return this; }
@@ -15,6 +16,8 @@ vi.mock("phaser", () => {
     setAlpha(v: number): this { this.alpha = v; return this; }
     clearTint(): this { this.tint = null; return this; }
     setTint(v: number): this { this.tint = v; return this; }
+    setDisplaySize(): this { return this; }
+    setVisible(v: boolean): this { this.visible = v; return this; }
   }
 
   class FakeContainer {
@@ -81,6 +84,7 @@ function makeScene() {
     alpha: 1,
     scale: 1,
     tint: null as number | null,
+    visible: true,
     setOrigin() { return this; },
     setDisplaySize() { return this; },
     setScale(v: number) { this.scale = v; return this; },
@@ -88,6 +92,7 @@ function makeScene() {
     setAlpha(v: number) { this.alpha = v; return this; },
     clearTint() { this.tint = null; return this; },
     setTint(v: number) { this.tint = v; return this; },
+    setVisible(v: boolean) { this.visible = v; return this; },
   }));
   return {
     add: {

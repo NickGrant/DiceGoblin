@@ -156,6 +156,30 @@ final class RunNodeControllerNegativeStateBranchesTest extends TestCase
     $this->assertSame('validation_error', (string)($res['body']['error']['code'] ?? ''));
   }
 
+  public function testResolveNodeFailsFastWhenCombatEncounterHasNoEnemies(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $this->insertTeam($userId, true);
+    $runId = $this->insertRun($userId, $regionId, 'active');
+    $nodeId = $this->insertRunNode($runId, 'combat', 'available');
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new RunNodeController();
+    $res = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
+
+    $this->assertSame(409, $res['status']);
+    $this->assertSame('combat_no_enemies', (string)($res['body']['error']['code'] ?? ''));
+    $this->assertSame(0, (int)($res['body']['error']['details']['ticks'] ?? -1));
+    $this->assertSame(0, (int)($res['body']['error']['details']['rounds'] ?? -1));
+
+    $battleCount = (int)$this->scalar('SELECT COUNT(*) FROM `battles` WHERE `run_id` = ? AND `node_id` = ?', [$runId, $nodeId]);
+    $this->assertSame(0, $battleCount);
+  }
+
   /**
    * @return array{status:int,body:array<string,mixed>}
    */
@@ -225,6 +249,18 @@ final class RunNodeControllerNegativeStateBranchesTest extends TestCase
     $id = (int)$this->pdo?->lastInsertId();
     $this->nodeIds[] = $id;
     return $id;
+  }
+
+  /**
+   * @param array<int,int|string> $params
+   * @return int|string
+   */
+  private function scalar(string $sql, array $params): int|string
+  {
+    $stmt = $this->pdo?->prepare($sql);
+    $stmt?->execute($params);
+    $value = $stmt?->fetchColumn();
+    return is_string($value) || is_int($value) ? $value : (string)$value;
   }
 
   /**

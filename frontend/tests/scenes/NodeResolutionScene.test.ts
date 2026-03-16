@@ -73,6 +73,12 @@ function makeSceneAdd() {
   };
 }
 
+async function flushSceneTasks(ticks = 5): Promise<void> {
+  for (let i = 0; i < ticks; i += 1) {
+    await Promise.resolve();
+  }
+}
+
 describe("NodeResolutionScene", () => {
   beforeEach(() => {
     resolveRunNodeMock.mockReset();
@@ -88,7 +94,7 @@ describe("NodeResolutionScene", () => {
     scene.init({});
 
     scene.create();
-    await Promise.resolve();
+    await flushSceneTasks();
 
     const action = MockActionButton.instances[0];
     expect(action?.label).toBe("Back to Map");
@@ -101,7 +107,7 @@ describe("NodeResolutionScene", () => {
     resolveRunNodeMock.mockResolvedValueOnce({
       ok: true,
       data: {
-        battle: { battle_id: "b-1", outcome: "victory", rounds: 3, ticks: 12 },
+        battle: { battle_id: "b-1", outcome: "victory", rounds: 3, ticks: 12, status: "complete", log: null },
         next: { unlocked_node_ids: ["n2"] },
       },
     });
@@ -112,8 +118,7 @@ describe("NodeResolutionScene", () => {
     scene.init({ runId: "run-1", nodeId: "n1", nodeType: "combat" });
 
     scene.create();
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushSceneTasks();
 
     expect(resolveRunNodeMock).toHaveBeenCalledWith("run-1", "n1");
     const action = MockActionButton.instances[0];
@@ -130,7 +135,7 @@ describe("NodeResolutionScene", () => {
     resolveRunNodeMock.mockResolvedValueOnce({
       ok: true,
       data: {
-        battle: { battle_id: "b-2", outcome: "defeat", rounds: 2, ticks: 8 },
+        battle: { battle_id: "b-2", outcome: "defeat", rounds: 2, ticks: 8, status: "complete", log: null },
         next: { unlocked_node_ids: [] },
       },
     });
@@ -141,8 +146,7 @@ describe("NodeResolutionScene", () => {
     scene.init({ runId: "run-2", nodeId: "n9", nodeType: "boss" });
 
     scene.create();
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushSceneTasks();
 
     const action = MockActionButton.instances[0];
     expect(action?.label).toBe("Continue");
@@ -164,7 +168,7 @@ describe("NodeResolutionScene", () => {
     scene.init({ runId: "run-3", nodeId: "exit-1", nodeType: "exit" });
 
     scene.create();
-    await Promise.resolve();
+    await flushSceneTasks();
 
     expect(exitRunMock).toHaveBeenCalledWith("run-3");
     const action = MockActionButton.instances[0];

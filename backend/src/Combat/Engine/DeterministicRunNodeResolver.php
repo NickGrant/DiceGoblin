@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Combat\Engine;
 
 use PDO;
+use RuntimeException;
 
 final class DeterministicRunNodeResolver
 {
@@ -40,6 +41,10 @@ final class DeterministicRunNodeResolver
     $playerUnits = $this->loadPlayerUnits($userId, $teamId);
     $encounter = $this->loadEncounter($encounterTemplateId);
     $enemyUnits = $encounter['units'];
+
+    if (($nodeType === 'combat' || $nodeType === 'boss') && count($enemyUnits) === 0) {
+      throw new RuntimeException('combat_no_enemies');
+    }
 
     ['seed' => $seed, 'rng_state' => $rngState] = $this->deriveSeedContext(
       $userId,

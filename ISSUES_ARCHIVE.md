@@ -6,6 +6,128 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Ensure encounter template is applied when creating battles
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Combat Resolution Integrity and Error Handling
+description: |
+  Fix battle setup so selected encounter templates are correctly propagated into battle
+  generation and runtime resolution context.
+resolution: Updated run graph generation to assign encounter template ids per node type/region and added regression coverage asserting non-exit nodes are template-backed.
+
+---
+title: Fail fast on combat encounters with zero enemies and end at 0 ticks
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Combat Resolution Integrity and Error Handling
+description: |
+  When a combat encounter resolves with no spawned enemies, trigger an explicit error
+  state and terminate immediately with zero ticks to prevent invalid battle progression.
+resolution: Added resolver-level combat/boss zero-enemy guard and controller-level `combat_no_enemies` 409 response with zero-round/zero-tick details, plus negative-path integration coverage.
+
+---
+title: Align encounter map node-state contract across backend and frontend
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Encounter Map Resolution and UX Hardening
+description: |
+  Reconcile node status and type handling between backend run-map payloads and frontend
+  map rendering logic so locked/available/cleared states and node-type routing remain
+  consistent for combat, rest, boss, and exit nodes.
+resolution: Added map payload node/edge validation and node-type/status filtering before render, with explicit invalid-payload fallback messaging and regression coverage.
+
+---
+title: Stabilize encounter map node placement and edge readability
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Encounter Map Resolution and UX Hardening
+description: |
+  Improve NodeList placement and graph readability so nodes do not overlap, remain within
+  visible bounds, and preserve clear path/edge legibility under varying map shapes.
+resolution: Implemented separation-aware node placement in NodeList that applies minimum distance constraints and bounded fallback retries for readable, non-overlapping map layouts.
+
+---
+title: Finalize encounter map interaction flow for combat, rest, and exit nodes
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Encounter Map Resolution and UX Hardening
+description: |
+  Ensure node click behavior consistently routes to the expected scene flows (combat/node
+  resolution, rest management, and exit completion) and returns to map with correct
+  post-resolution context messaging.
+resolution: Locked interaction flow with regression coverage for rest/exit routing plus explicit non-available-node click rejection and user-facing feedback.
+
+---
+title: Harden map fallback and stale-run recovery messaging
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Encounter Map Resolution and UX Hardening
+description: |
+  Improve user-facing fallback behavior when current-run payloads are missing, stale,
+  or unavailable so map recovery paths are explicit and do not dead-end scene flow.
+resolution: Expanded fallback handling for unavailable run envelopes and invalid map payloads with deterministic user messaging and scene-level regression assertions.
+
+---
+title: Add encounter map frontend regression tests for NodeList construction and transitions
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Encounter Map Resolution and UX Hardening
+description: |
+  Repair and expand map-scene regression coverage for NodeList instantiation, fallback
+  rendering, and node click transition guards to prevent map-flow regressions.
+resolution: Stabilized scene-test async timing with shared flush helpers and updated map-scene tests to assert NodeList construction and transition behavior reliably.
+
+---
+title: Add node-resolution scene regression tests for action-state transitions
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Encounter Map Resolution and UX Hardening
+description: |
+  Add or update NodeResolutionScene tests to verify action-button state transitions
+  (Resolving -> Back to Map/Continue) and terminal/non-terminal navigation behaviors.
+resolution: Updated node-resolution tests for current response shape and async execution flow, restoring coverage for missing-context, non-terminal, terminal, and exit resolution transitions.
+
+---
+title: Fix icon click hitboxes for consistent full-icon interaction
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Encounter Map Resolution and UX Hardening
+description: |
+  Adjust interactive hit areas so icon controls are fully and consistently clickable
+  across scenes, matching the visible icon footprint instead of partial hotspots.
+resolution: Enforced icon hit areas to be at least icon-sized and standardized press/release handling so full icon controls are consistently clickable.
+
+---
+title: Replace icon resize hover effect with improved hover state feedback
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Encounter Map Resolution and UX Hardening
+description: |
+  Implement a clearer hover-state treatment for icon controls that avoids scale/resize
+  jitter while preserving strong affordance and visual consistency.
+resolution: Replaced resize-based hover behavior with stable tint/halo hover feedback in icon controls and encounter nodes, eliminating hover-size jitter.
+
+---
 title: Implement global Bottom Command Strip and remove top-corner HUD
 status: complete
 priority: high

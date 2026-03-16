@@ -95,6 +95,12 @@ final class RunLifecycleApiIntegrationTest extends TestCase
     );
     $this->assertSame(1, $bossToExitEdgeCount, 'Exit should be reachable only through boss path.');
 
+    $nonExitWithoutTemplate = (int)$this->scalar(
+      'SELECT COUNT(*) FROM `run_nodes` WHERE `run_id` = ? AND `node_type` != \'exit\' AND `encounter_template_id` IS NULL',
+      [$runId]
+    );
+    $this->assertSame(0, $nonExitWithoutTemplate, 'All generated non-exit nodes should carry an encounter template id.');
+
     $nodeId = $this->fetchAvailableNodeId($runId);
     $this->assertGreaterThan(0, $nodeId);
 
