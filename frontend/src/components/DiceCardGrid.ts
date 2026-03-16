@@ -184,9 +184,9 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
     const prevEnabled = canPage && this.pageIndex > 0;
     const nextEnabled = canPage && this.pageIndex < pageCount - 1;
     this.pageLabelText?.setText(`Page ${this.pageIndex + 1}/${pageCount}`);
-    this.pageLabelText?.setAlpha(canPage ? 1 : 0.55);
-    this.prevPageText?.setAlpha(prevEnabled ? 1 : 0.35);
-    this.nextPageText?.setAlpha(nextEnabled ? 1 : 0.35);
+    this.pageLabelText?.setAlpha(1);
+    this.prevPageText?.setAlpha(prevEnabled ? 1 : 0.55);
+    this.nextPageText?.setAlpha(nextEnabled ? 1 : 0.55);
   }
 
   private pickFrame(die: DiceDetailsViewModel): string {

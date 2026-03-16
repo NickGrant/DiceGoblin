@@ -15,6 +15,11 @@ export type ClickablePanelConfig = {
 };
 
 export default class ClickablePanel extends Phaser.GameObjects.Container {
+  private static readonly ENABLED_IDLE_ALPHA = 0.9;
+  private static readonly ENABLED_HOVER_ALPHA = 0.9;
+  private static readonly ENABLED_PRESSED_ALPHA = 0.8;
+  private static readonly DISABLED_ALPHA = 0.55;
+
   protected bg: Phaser.GameObjects.Image;
   targetSceneKey = '';
   textureKey = '';
@@ -47,16 +52,16 @@ export default class ClickablePanel extends Phaser.GameObjects.Container {
     // Basic UX states (optional but helpful)
     this.bg.on("pointerover", () => {
       if (!this.enabled) return;
-      this.bg.setAlpha(0.90);
+      this.bg.setAlpha(ClickablePanel.ENABLED_HOVER_ALPHA);
     });
-    this.bg.on("pointerout", () => this.bg.setAlpha(this.enabled ? 1 : 0.55));
+    this.bg.on("pointerout", () => this.bg.setAlpha(this.enabled ? ClickablePanel.ENABLED_IDLE_ALPHA : ClickablePanel.DISABLED_ALPHA));
     this.bg.on("pointerdown", () => {
       if (!this.enabled) return;
-      this.bg.setAlpha(0.8);
+      this.bg.setAlpha(ClickablePanel.ENABLED_PRESSED_ALPHA);
     });
     this.bg.on("pointerup", () => {
       if (!this.enabled) return;
-      this.bg.setAlpha(0.90);
+      this.bg.setAlpha(ClickablePanel.ENABLED_HOVER_ALPHA);
       this.handleClick(scene);
     });
 
@@ -88,12 +93,13 @@ export default class ClickablePanel extends Phaser.GameObjects.Container {
 
   setEnabled(enabled: boolean): this {
     this.enabled = enabled;
-    this.setAlpha(enabled ? 1 : 0.55);
+    this.setAlpha(enabled ? 1 : ClickablePanel.DISABLED_ALPHA);
+    this.bg.setAlpha(enabled ? ClickablePanel.ENABLED_IDLE_ALPHA : ClickablePanel.DISABLED_ALPHA);
     if (enabled) {
       this.bg.setInteractive({ useHandCursor: true });
     } else {
       this.bg.disableInteractive();
-      this.bg.setAlpha(0.55);
+      this.bg.setAlpha(ClickablePanel.DISABLED_ALPHA);
     }
     return this;
   }
