@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import ToastMessage from "../components/feedback/ToastMessage";
-import ActionButton from "../components/clickable-panel/ActionButton";
+import SharedActionButton from "../components/clickable-panel/SharedActionButton";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
@@ -47,7 +47,7 @@ export default class RegionSelectScene extends Phaser.Scene {
   private intelTitleText?: Phaser.GameObjects.Text;
   private intelBodyText?: Phaser.GameObjects.Text;
   private intelHintText?: Phaser.GameObjects.Text;
-  private startRunButton?: ActionButton;
+  private startRunButton?: SharedActionButton;
 
   constructor() {
     super({ key: "RegionSelectScene" });
@@ -136,7 +136,7 @@ export default class RegionSelectScene extends Phaser.Scene {
       wordWrap: { width: layout.buttons.width - 48 },
     });
 
-    this.startRunButton = new ActionButton({
+    this.startRunButton = new SharedActionButton({
       scene: this,
       x: layout.buttons.x + Math.max(0, Math.floor((layout.buttons.width - 280) / 2)),
       y: layout.buttons.y + layout.buttons.height - 92,

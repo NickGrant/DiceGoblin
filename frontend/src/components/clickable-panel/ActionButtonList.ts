@@ -1,11 +1,7 @@
-import Phaser from "phaser";
-import ActionButton from "./ActionButton";
-import AcceptButton from "./AcceptButton";
-import RejectButton from "./RejectButton";
+import type Phaser from "phaser";
+import UnifiedButtonList, { type UnifiedButtonListItem } from "./UnifiedButtonList";
 
-type ActionButtonConfig = ConstructorParameters<typeof ActionButton>[0];
-
-export type ActionButtonListItem = Omit<ActionButtonConfig, "scene" | "x" | "y"> & {
+export type ActionButtonListItem = Omit<UnifiedButtonListItem, "variant"> & {
   buttonType?: "default" | "accept" | "reject";
 };
 
@@ -17,40 +13,18 @@ type ActionButtonListConfig = {
   gapY?: number;
 };
 
-export default class ActionButtonList extends Phaser.GameObjects.Container {
-  private readonly buttons: ActionButton[] = [];
-  private readonly gapY: number;
-  private static readonly BUTTON_HEIGHT = 64;
-  private static readonly BUTTON_WIDTH = 280;
-
+export default class ActionButtonList extends UnifiedButtonList {
   constructor(cfg: ActionButtonListConfig) {
-    super(cfg.scene, cfg.x, cfg.y);
-    this.gapY = cfg.gapY ?? 16;
-
-    let offsetY = 0;
-    for (const buttonCfg of cfg.buttons) {
-      const button = this.createButton({
-        ...buttonCfg,
-        scene: cfg.scene,
-        x: 0,
-        y: offsetY,
-      });
-      this.buttons.push(button);
-      this.add(button);
-      offsetY += ActionButtonList.BUTTON_HEIGHT + this.gapY;
-    }
-
-    this.setSize(ActionButtonList.BUTTON_WIDTH, Math.max(0, offsetY - this.gapY));
-    cfg.scene.add.existing(this);
-  }
-
-  public getButtons(): ActionButton[] {
-    return this.buttons;
-  }
-
-  private createButton(cfg: ActionButtonConfig & { buttonType?: "default" | "accept" | "reject" }): ActionButton {
-    if (cfg.buttonType === "accept") return new AcceptButton(cfg);
-    if (cfg.buttonType === "reject") return new RejectButton(cfg);
-    return new ActionButton(cfg);
+    super({
+      scene: cfg.scene,
+      x: cfg.x,
+      y: cfg.y,
+      gapY: cfg.gapY,
+      buttons: cfg.buttons.map((button) => ({
+        ...button,
+        variant: button.buttonType ?? "default",
+      })),
+      defaultVariant: "default",
+    });
   }
 }

@@ -1,7 +1,7 @@
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
-import ActionButton from "../components/clickable-panel/ActionButton";
-import ActionButtonList from "../components/clickable-panel/ActionButtonList";
+import SharedActionButton from "../components/clickable-panel/SharedActionButton";
+import UnifiedButtonList from "../components/clickable-panel/UnifiedButtonList";
 import DiceCardGrid from "../components/DiceCardGrid";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import { getDebugSceneConfig } from "../debug/debugScene";
@@ -50,9 +50,9 @@ export default class UnitDetailsScene extends Phaser.Scene {
   private fusionSecondaryIds: Array<string | null> = Array(REQUIRED_FUSION_UNITS).fill(null);
   private secondaryPanel?: UnitCardGrid;
   private dicePanel?: DiceCardGrid;
-  private promoteButton?: ActionButton;
-  private equipDiceButton?: ActionButton;
-  private unequipSlotButton?: ActionButton;
+  private promoteButton?: SharedActionButton;
+  private equipDiceButton?: SharedActionButton;
+  private unequipSlotButton?: SharedActionButton;
   private layoutUiObjects: Phaser.GameObjects.GameObject[] = [];
   private equipSlotBorders: Phaser.GameObjects.Rectangle[] = [];
   private equipSlotLabels: Phaser.GameObjects.Text[] = [];
@@ -279,7 +279,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
 
     const buttonX = actionsBodyX + Math.max(0, Math.floor((actionsBodyWidth - 280) / 2));
     const topActionY = actionsBodyY + 14;
-    new ActionButtonList({
+    new UnifiedButtonList({
       scene: this,
       x: buttonX,
       y: topActionY,
@@ -301,7 +301,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     });
 
     this.promoteButton?.destroy();
-    this.promoteButton = new ActionButton({
+    this.promoteButton = new SharedActionButton({
       scene: this,
       x: buttonX,
       y: topActionY + 150,
@@ -312,7 +312,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
 
     this.equipDiceButton?.destroy();
     this.unequipSlotButton?.destroy();
-    this.equipDiceButton = new ActionButton({
+    this.equipDiceButton = new SharedActionButton({
       scene: this,
       x: buttonX,
       y: topActionY + 216,
@@ -320,7 +320,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
       enabled: false,
       onClick: () => void this.equipSelectedDie(),
     });
-    this.unequipSlotButton = new ActionButton({
+    this.unequipSlotButton = new SharedActionButton({
       scene: this,
       x: buttonX,
       y: topActionY + 282,

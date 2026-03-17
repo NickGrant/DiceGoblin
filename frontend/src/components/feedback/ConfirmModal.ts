@@ -1,5 +1,4 @@
-import AcceptButton from "../clickable-panel/AcceptButton";
-import RejectButton from "../clickable-panel/RejectButton";
+import SharedActionButton from "../clickable-panel/SharedActionButton";
 import BaseModal, { type BaseModalConfig } from "./BaseModal";
 
 export type ConfirmModalConfig = BaseModalConfig & {
@@ -10,8 +9,8 @@ export type ConfirmModalConfig = BaseModalConfig & {
 };
 
 export default class ConfirmModal extends BaseModal {
-  protected readonly acceptButton: AcceptButton;
-  protected readonly rejectButton: RejectButton;
+  protected readonly acceptButton: SharedActionButton;
+  protected readonly rejectButton: SharedActionButton;
   protected readonly cfg: ConfirmModalConfig;
 
   constructor(cfg: ConfirmModalConfig) {
@@ -19,20 +18,22 @@ export default class ConfirmModal extends BaseModal {
     this.cfg = cfg;
 
     const layout = this.getButtonLayout();
-    this.acceptButton = new AcceptButton({
+    this.acceptButton = new SharedActionButton({
       scene: this.sceneRef,
       x: layout.leftButtonX,
       y: layout.sideBySide ? layout.rowY : layout.stackedTopY,
       label: cfg.acceptLabel ?? "Accept",
+      variant: "accept",
       onClick: () => {
         void this.handleAccept();
       },
     });
-    this.rejectButton = new RejectButton({
+    this.rejectButton = new SharedActionButton({
       scene: this.sceneRef,
       x: layout.rightButtonX,
       y: layout.sideBySide ? layout.rowY : layout.stackedBottomY,
       label: cfg.rejectLabel ?? "Cancel",
+      variant: "reject",
       onClick: () => {
         this.handleReject();
       },

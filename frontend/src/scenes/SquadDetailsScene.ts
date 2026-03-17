@@ -1,7 +1,7 @@
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
-import ActionButton from "../components/clickable-panel/ActionButton";
-import ActionButtonList from "../components/clickable-panel/ActionButtonList";
+import SharedActionButton from "../components/clickable-panel/SharedActionButton";
+import UnifiedButtonList from "../components/clickable-panel/UnifiedButtonList";
 import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import { getDebugSceneConfig } from "../debug/debugScene";
@@ -58,9 +58,9 @@ export default class SquadDetailsScene extends Phaser.Scene {
 
   private grid?: FormationGrid3x3;
   private unitPanel?: UnitCardGrid;
-  private clearButton?: ActionButton;
-  private saveButton?: ActionButton;
-  private activateButton?: ActionButton;
+  private clearButton?: SharedActionButton;
+  private saveButton?: SharedActionButton;
+  private activateButton?: SharedActionButton;
   private renameDialog?: InputModal;
 
   constructor() {
@@ -195,7 +195,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     this.clearButton?.destroy();
     this.saveButton?.destroy();
     this.activateButton?.destroy();
-    new ActionButtonList({
+    new UnifiedButtonList({
       scene: this,
       x: actionButtonX,
       y: actionBodyY,
@@ -212,7 +212,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
       ],
     });
 
-    this.clearButton = new ActionButton({
+    this.clearButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 2,
@@ -220,14 +220,14 @@ export default class SquadDetailsScene extends Phaser.Scene {
       enabled: false,
       onClick: () => this.clearSelectedCell(),
     });
-    this.saveButton = new ActionButton({
+    this.saveButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 3,
       label: "Save Squad",
       onClick: () => void this.saveTeam(),
     });
-    this.activateButton = new ActionButton({
+    this.activateButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 4,
@@ -235,7 +235,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
       enabled: !this.squad.is_active,
       onClick: () => void this.activateSquad(),
     });
-    new ActionButton({
+    new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 5,

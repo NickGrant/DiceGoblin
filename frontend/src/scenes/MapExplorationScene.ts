@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
-import ActionButtonList from "../components/clickable-panel/ActionButtonList";
+import UnifiedButtonList from "../components/clickable-panel/UnifiedButtonList";
 import NodeList from "../components/encounter-map/NodeList";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 import { getDebugSceneConfig } from "../debug/debugScene";
@@ -64,7 +64,7 @@ export default class MapExplorationScene extends Phaser.Scene {
       bodyColor: 0x006f7a,
     });
     actionsFrame.setDepth(-800);
-    new ActionButtonList({
+    new UnifiedButtonList({
       scene: this,
       x: layout.buttons.x + 10,
       y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,

@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { TeamRecord } from "../types/ApiResponse";
-import MetalActionButtonList from "./clickable-panel/MetalActionButtonList";
+import UnifiedButtonList from "./clickable-panel/UnifiedButtonList";
 
 type SquadListPanelConfig = {
   scene: Phaser.Scene;
@@ -24,7 +24,7 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
   private readonly buttonGapY: number;
   private readonly pageSize: number;
   private pageIndex = 0;
-  private buttonList?: MetalActionButtonList;
+  private buttonList?: UnifiedButtonList;
   private prevPageText?: Phaser.GameObjects.Text;
   private nextPageText?: Phaser.GameObjects.Text;
   private pageLabelText?: Phaser.GameObjects.Text;
@@ -118,11 +118,12 @@ export default class SquadListPanel extends Phaser.GameObjects.Container {
     const buttonListY = this.cfg.y + titleOffset;
     const buttonListX = this.cfg.x + Math.max(0, Math.floor((this.panelWidth - SquadListPanel.BUTTON_WIDTH) / 2));
 
-    this.buttonList = new MetalActionButtonList({
+    this.buttonList = new UnifiedButtonList({
       scene: this.cfg.scene,
       x: buttonListX,
       y: buttonListY,
       gapY: this.buttonGapY,
+      defaultVariant: "metal",
       buttons: visibleSquads.map((squad) => ({
         label: squad.is_active ? `${squad.name} [ACTIVE]` : squad.name,
         onClick: () => this.cfg.onSquadClick(squad),

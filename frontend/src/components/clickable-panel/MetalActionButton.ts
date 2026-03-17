@@ -1,74 +1,12 @@
-import type Phaser from "phaser";
-import { TEXT_BUTTON } from "../../const/Text";
-import ClickablePanel, { type ClickablePanelConfig } from "./ClickablePanel";
+import SharedActionButton from "./SharedActionButton";
 
-type MetalActionButtonConfig = Omit<ClickablePanelConfig, "width" | "height" | "textureKey" | "targetSceneKey" | "clickHandler"> & {
-  scene: Phaser.Scene;
-  label: string;
-  iconKey?: string;
-  onClick?: () => void;
-  targetSceneKey?: string;
-  dataToPass?: Record<string, unknown>;
-  textStyle?: Phaser.Types.GameObjects.Text.TextStyle;
-};
+type MetalActionButtonConfig = ConstructorParameters<typeof SharedActionButton>[0];
 
-export default class MetalActionButton extends ClickablePanel {
-  private static readonly WIDTH = 280;
-  private static readonly HEIGHT = 64;
-  private static readonly ICON_SIZE = 50;
-
-  private labelObj?: Phaser.GameObjects.Text;
-  private iconObj?: Phaser.GameObjects.Image;
-  private readonly labelText: string;
-  private readonly iconKey?: string;
-  private readonly customTextStyle?: Phaser.Types.GameObjects.Text.TextStyle;
-
+export default class MetalActionButton extends SharedActionButton {
   constructor(cfg: MetalActionButtonConfig) {
-    const labelText = cfg.label;
-    const iconKey = cfg.iconKey;
-    const customTextStyle = cfg.textStyle;
-    super(cfg.scene, {
+    super({
       ...cfg,
-      width: MetalActionButton.WIDTH,
-      height: MetalActionButton.HEIGHT,
-      textureKey: "metal_strip",
-      targetSceneKey: cfg.targetSceneKey,
-      dataToPass: cfg.dataToPass,
-      clickHandler: cfg.onClick ?? null,
-      enabled: cfg.enabled ?? true,
-      deferOverlay: true,
+      variant: "metal",
     });
-
-    this.labelText = labelText;
-    this.iconKey = iconKey;
-    this.customTextStyle = customTextStyle;
-    this.addOverlay();
-  }
-
-  override addOverlay(): void {
-    if (this.iconKey) {
-      this.iconObj = this.scene.add
-        .image(8, 8, this.iconKey)
-        .setDisplaySize(MetalActionButton.ICON_SIZE, MetalActionButton.ICON_SIZE)
-        .setOrigin(0, 0);
-      this.add(this.iconObj);
-    }
-
-    const labelX = this.iconKey ? 78 : 24;
-    const labelWidth = MetalActionButton.WIDTH - labelX - 12;
-    this.labelObj = this.scene.add
-      .text(labelX, MetalActionButton.HEIGHT / 2 + 2, this.labelText.toUpperCase(), {
-        ...TEXT_BUTTON,
-        fontSize: "21px",
-        wordWrap: { width: labelWidth },
-        ...(this.customTextStyle ?? {}),
-      })
-      .setOrigin(0, 0.5);
-    this.add(this.labelObj);
-  }
-
-  setText(text: string): this {
-    this.labelObj?.setText(text.toUpperCase());
-    return this;
   }
 }

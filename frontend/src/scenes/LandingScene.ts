@@ -4,7 +4,7 @@ import { API_BASE_URL } from "../services/apiClient";
 import { TEXT_BODY, TEXT_HEADER } from "../const/Text";
 import BackgroundImage from "../components/BackgroundImage";
 import { markDebugSceneReady } from "../debug/debugHooks";
-import ActionButton from "../components/clickable-panel/ActionButton";
+import SharedActionButton from "../components/clickable-panel/SharedActionButton";
 import { RegistrySession } from "../state/RegistrySession";
 
 export default class LandingScene extends Phaser.Scene {
@@ -33,8 +33,8 @@ export default class LandingScene extends Phaser.Scene {
     markDebugSceneReady(this);
   }
 
-  private createButton(label: string, onClick: () => void): ActionButton {
-    return new ActionButton({
+  private createButton(label: string, onClick: () => void): SharedActionButton {
+    return new SharedActionButton({
       scene: this,
       x: this.cameras.main.centerX - 140,
       y: 280,

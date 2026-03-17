@@ -3,7 +3,7 @@ import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import UnitCardGrid from "../components/UnitCardGrid";
 import SquadListPanel from "../components/SquadListPanel";
-import ActionButtonList from "../components/clickable-panel/ActionButtonList";
+import UnifiedButtonList from "../components/clickable-panel/UnifiedButtonList";
 import { getDebugSceneConfig } from "../debug/debugScene";
 import { getDebugProfileFixture } from "../debug/debugFixtures";
 import { apiClient } from "../services/apiClient";
@@ -179,7 +179,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
     const actionButtonX =
       actionsBodyX + Math.max(0, Math.floor((actionsBodyWidth - ACTION_BUTTON_WIDTH) / 2));
 
-    new ActionButtonList({
+    new UnifiedButtonList({
       scene: this,
       x: actionButtonX,
       y: actionButtonY,

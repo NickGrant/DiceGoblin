@@ -1,6 +1,6 @@
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
-import ActionButton from "../components/clickable-panel/ActionButton";
+import SharedActionButton from "../components/clickable-panel/SharedActionButton";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
@@ -100,7 +100,7 @@ export default class RunEndSummaryScene extends Phaser.Scene {
       wordWrap: { width: layout.content.width - 32 },
     });
 
-    new ActionButton({
+    new SharedActionButton({
       scene: this,
       x: layout.buttons.x + 10,
       y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,

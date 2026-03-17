@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
-import ActionButton from "../components/clickable-panel/ActionButton";
+import SharedActionButton from "../components/clickable-panel/SharedActionButton";
 import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import { getDebugSceneConfig } from "../debug/debugScene";
@@ -55,12 +55,12 @@ export default class RestManagementScene extends Phaser.Scene {
 
   private grid?: FormationGrid3x3;
   private unitPanel?: UnitCardGrid;
-  private applyButton?: ActionButton;
-  private finalizeButton?: ActionButton;
-  private setPrimaryButton?: ActionButton;
-  private addSecondaryButton?: ActionButton;
-  private clearPromotionButton?: ActionButton;
-  private promoteButton?: ActionButton;
+  private applyButton?: SharedActionButton;
+  private finalizeButton?: SharedActionButton;
+  private setPrimaryButton?: SharedActionButton;
+  private addSecondaryButton?: SharedActionButton;
+  private clearPromotionButton?: SharedActionButton;
+  private promoteButton?: SharedActionButton;
   private promotionStatusText?: Phaser.GameObjects.Text;
 
   constructor() {
@@ -208,7 +208,7 @@ export default class RestManagementScene extends Phaser.Scene {
       onCellDoubleClick: (cell) => this.handleCellDoubleClick(cell),
     });
 
-    this.applyButton = new ActionButton({
+    this.applyButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY,
@@ -216,7 +216,7 @@ export default class RestManagementScene extends Phaser.Scene {
       onClick: () => void this.applyRestState(),
     });
 
-    this.finalizeButton = new ActionButton({
+    this.finalizeButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP),
@@ -224,7 +224,7 @@ export default class RestManagementScene extends Phaser.Scene {
       onClick: () => void this.finalizeRest(),
     });
 
-    new ActionButton({
+    new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 2,
@@ -235,7 +235,7 @@ export default class RestManagementScene extends Phaser.Scene {
         returnScene: "RestManagementScene",
       }),
     });
-    this.setPrimaryButton = new ActionButton({
+    this.setPrimaryButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 3,
@@ -243,7 +243,7 @@ export default class RestManagementScene extends Phaser.Scene {
       enabled: true,
       onClick: () => this.setPromotionPrimaryFromSelection(),
     });
-    this.addSecondaryButton = new ActionButton({
+    this.addSecondaryButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 4,
@@ -251,7 +251,7 @@ export default class RestManagementScene extends Phaser.Scene {
       enabled: true,
       onClick: () => this.addPromotionSecondaryFromSelection(),
     });
-    this.clearPromotionButton = new ActionButton({
+    this.clearPromotionButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 5,
@@ -259,7 +259,7 @@ export default class RestManagementScene extends Phaser.Scene {
       enabled: true,
       onClick: () => this.clearPromotionSelection(),
     });
-    this.promoteButton = new ActionButton({
+    this.promoteButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 6,

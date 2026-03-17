@@ -1,7 +1,7 @@
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
-import ActionButton from "../components/clickable-panel/ActionButton";
-import ActionButtonList from "../components/clickable-panel/ActionButtonList";
+import SharedActionButton from "../components/clickable-panel/SharedActionButton";
+import UnifiedButtonList from "../components/clickable-panel/UnifiedButtonList";
 import DiceCardGrid from "../components/DiceCardGrid";
 import { getDebugSceneConfig } from "../debug/debugScene";
 import { getDebugProfileFixture } from "../debug/debugFixtures";
@@ -27,8 +27,8 @@ export default class DiceInventoryScene extends Phaser.Scene {
   private dice: DiceDetailsViewModel[] = [];
   private selectedDiceId: string | null = null;
   private diceGrid?: DiceCardGrid;
-  private actionButtonList?: ActionButtonList;
-  private viewEquippedUnitButton?: ActionButton;
+  private actionButtonList?: UnifiedButtonList;
+  private viewEquippedUnitButton?: SharedActionButton;
   private actionSummaryUiObjects: Phaser.GameObjects.GameObject[] = [];
   private actionSummaryText?: Phaser.GameObjects.Text;
   private toastText?: Phaser.GameObjects.Text;
@@ -192,7 +192,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
       });
     }
 
-    this.actionButtonList = new ActionButtonList({
+    this.actionButtonList = new UnifiedButtonList({
       scene: this,
       x: actionButtonX,
       y: actionButtonY,
@@ -204,7 +204,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
       ? buttons.length * 64 + (buttons.length - 1) * ACTION_BUTTON_GAP
       : 0;
     const equippedButtonY = actionButtonY + listHeight + (buttons.length > 0 ? ACTION_BUTTON_GAP : 0);
-    this.viewEquippedUnitButton = new ActionButton({
+    this.viewEquippedUnitButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: equippedButtonY,

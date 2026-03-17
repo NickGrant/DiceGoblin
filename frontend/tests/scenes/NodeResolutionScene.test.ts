@@ -45,7 +45,7 @@ class MockActionButton {
   }
 }
 
-vi.mock("../../src/components/clickable-panel/ActionButton", () => ({
+vi.mock("../../src/components/clickable-panel/SharedActionButton", () => ({
   default: MockActionButton,
 }));
 

@@ -1,7 +1,7 @@
-import ActionButton from "./ActionButton";
+import SharedActionButton from "./SharedActionButton";
 import { type ClickablePanelConfig } from "./ClickablePanel";
 
-export default class DiceInventory extends ActionButton {
+export default class DiceInventory extends SharedActionButton {
     constructor(scene: Phaser.Scene, cfg: ClickablePanelConfig) {
         super({
             scene,

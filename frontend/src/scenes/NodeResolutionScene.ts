@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
-import ActionButton from "../components/clickable-panel/ActionButton";
+import SharedActionButton from "../components/clickable-panel/SharedActionButton";
 import { getDebugSceneConfig } from "../debug/debugScene";
 import { getDebugResolvedNodeFixture } from "../debug/debugFixtures";
 import { markDebugSceneReady } from "../debug/debugHooks";
@@ -31,7 +31,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
   private nodeId = "";
   private nodeType: NodeResolutionType | null = null;
   private hasResolved = false;
-  private actionButton?: ActionButton;
+  private actionButton?: SharedActionButton;
   private actionHandler: (() => void) | null = null;
 
   private statusText?: Phaser.GameObjects.Text;
@@ -105,7 +105,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       })
       .setOrigin(0, 1);
 
-    this.actionButton = new ActionButton({
+    this.actionButton = new SharedActionButton({
       scene: this,
       x: layout.buttons.x + 10,
       y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,

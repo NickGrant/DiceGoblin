@@ -1,15 +1,12 @@
-import ActionButton from "./ActionButton";
+import SharedActionButton from "./SharedActionButton";
 
-type AcceptButtonConfig = Omit<ConstructorParameters<typeof ActionButton>[0], "textStyle">;
+type AcceptButtonConfig = Omit<ConstructorParameters<typeof SharedActionButton>[0], "textStyle" | "variant">;
 
-export default class AcceptButton extends ActionButton {
+export default class AcceptButton extends SharedActionButton {
   constructor(cfg: AcceptButtonConfig) {
     super({
       ...cfg,
-      textStyle: {
-        color: "#1f2f1f",
-        stroke: "rgba(206,255,206,0.55)",
-      },
+      variant: "accept",
     });
   }
 }
