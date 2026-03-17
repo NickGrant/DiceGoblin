@@ -3,7 +3,12 @@ import type { ProfileResponse, RunResponse, SessionResponse } from "../types/Api
 type RecordValue = Record<string, unknown>;
 
 const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+const SQL_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
 const TOKEN_RE = /^[A-Za-z0-9._-]{6,}$/;
+
+function isRunTimestamp(value: string): boolean {
+  return ISO_TIMESTAMP_RE.test(value) || SQL_TIMESTAMP_RE.test(value);
+}
 
 function isRecord(value: unknown): value is RecordValue {
   return typeof value === "object" && value !== null;
@@ -125,11 +130,11 @@ export function validateCurrentRunResponse(value: unknown): RunResponse {
     if (typeof data.run.status !== "string") {
       throw new Error("Invalid /api/v1/runs/current response: run.status must be string.");
     }
-    if (typeof data.run.started_at !== "string" || !ISO_TIMESTAMP_RE.test(data.run.started_at)) {
-      throw new Error("Invalid /api/v1/runs/current response: run.started_at must be ISO-8601 UTC.");
+    if (typeof data.run.started_at !== "string" || !isRunTimestamp(data.run.started_at)) {
+      throw new Error("Invalid /api/v1/runs/current response: run.started_at must be ISO-8601 UTC or SQL datetime.");
     }
-    if (data.run.ended_at !== null && (typeof data.run.ended_at !== "string" || !ISO_TIMESTAMP_RE.test(data.run.ended_at))) {
-      throw new Error("Invalid /api/v1/runs/current response: run.ended_at must be ISO-8601 UTC|null.");
+    if (data.run.ended_at !== null && (typeof data.run.ended_at !== "string" || !isRunTimestamp(data.run.ended_at))) {
+      throw new Error("Invalid /api/v1/runs/current response: run.ended_at must be ISO-8601 UTC, SQL datetime, or null.");
     }
   }
 

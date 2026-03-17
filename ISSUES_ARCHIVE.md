@@ -2784,3 +2784,23 @@ ready: yes
 milestone: Milestone 28 - UAT Dialog and Interaction Hardening
 description: Reorder Unit Details action buttons to match on-screen flow order: Back, die controls, then promotion controls.
 resolution: Reordered Unit Details actions to display `Back`, then die controls (`Equip Selected Die`, `Unequip Slot Die`), followed by promotion controls (`Clear Fusion`, `Promote Unit`).
+
+---
+title: Use fit-based dice card columns instead of stretching cards
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Dice inventory should determine how many cards fit per row from available width and target card dimensions, rather than stretching a fixed column count.
+resolution: Updated `DiceCardGrid` to derive column count from available content width and min/max card width constraints, then compute page capacity from those fit-based metrics to prevent stretched fixed-column cards.
+
+---
+title: Accept backend run timestamp format in current-run validator
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Fix frontend contract validation for `/api/v1/runs/current` so valid backend timestamps in `YYYY-MM-DD HH:MM:SS` format do not trigger "Run data unavailable" fallback.
+resolution: Updated `validateCurrentRunResponse` to accept SQL datetime (`YYYY-MM-DD HH:MM:SS`) in run timestamps in addition to ISO-8601 UTC, and added regression coverage for this payload format.

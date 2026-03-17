@@ -17,9 +17,9 @@ type DiceCardGridConfig = {
   maxVisibleCards?: number;
 };
 
-const DEFAULT_COLUMNS = 3;
 const CARD_GAP_X = 10;
 const CARD_GAP_Y = 8;
+const MIN_CARD_WIDTH = 86;
 const MAX_CARD_WIDTH = 112;
 const CARD_FOOTER_HEIGHT = 42;
 
@@ -74,16 +74,18 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
           disabled: false,
         }));
 
+        const { columns, cardHeight } = this.resolveGridMetrics(contentWidth);
+
         const variant = new GridListVariant<DiceDetailsViewModel>({
           scene,
           x: contentX,
           y: contentY,
           width: contentWidth,
           height: contentHeight,
-          columns: DEFAULT_COLUMNS,
+          columns,
           gapX: CARD_GAP_X,
           gapY: CARD_GAP_Y,
-          cardHeight: this.getCardHeight(contentWidth),
+          cardHeight,
           items: mappedItems,
           onSelect,
           cardRenderer: ({ scene: cardScene, item, x, y, width, height, selected }) => {
@@ -136,11 +138,11 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
         if (this.maxVisibleCards && this.maxVisibleCards > 0) {
           return this.maxVisibleCards;
         }
-        const cardHeight = this.getCardHeight(contentWidth);
+        const { columns, cardHeight } = this.resolveGridMetrics(contentWidth);
         return GridListVariant.computeVisibleCapacity({
           width: contentWidth,
           height: contentHeight,
-          columns: DEFAULT_COLUMNS,
+          columns,
           gapY: CARD_GAP_Y,
           cardHeight,
         });
@@ -181,9 +183,24 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
     });
   }
 
-  private getCardHeight(contentWidth: number): number {
-    const cardWidth = Math.min(MAX_CARD_WIDTH, Math.floor((contentWidth - CARD_GAP_X * (DEFAULT_COLUMNS - 1)) / DEFAULT_COLUMNS));
-    return cardWidth + CARD_FOOTER_HEIGHT;
+  private resolveGridMetrics(contentWidth: number): { columns: number; cardHeight: number } {
+    const safeWidth = Math.max(1, contentWidth);
+    const minColumnsForMaxWidth = Math.max(
+      1,
+      Math.ceil((safeWidth + CARD_GAP_X) / (MAX_CARD_WIDTH + CARD_GAP_X))
+    );
+    const maxColumnsForMinWidth = Math.max(
+      1,
+      Math.floor((safeWidth + CARD_GAP_X) / (MIN_CARD_WIDTH + CARD_GAP_X))
+    );
+    const columns = minColumnsForMaxWidth > maxColumnsForMinWidth
+      ? maxColumnsForMinWidth
+      : minColumnsForMaxWidth;
+    const cardWidth = Math.floor((safeWidth - CARD_GAP_X * (columns - 1)) / columns);
+    return {
+      columns,
+      cardHeight: cardWidth + CARD_FOOTER_HEIGHT,
+    };
   }
 
   private pickFrame(die: DiceDetailsViewModel): string {

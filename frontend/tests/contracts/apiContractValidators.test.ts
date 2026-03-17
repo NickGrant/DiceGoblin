@@ -121,6 +121,41 @@ describe("API contract validators", () => {
     expect(validateCurrentRunResponse(payload)).toEqual(payload);
   });
 
+  it("accepts current-run payload with SQL datetime timestamps", () => {
+    const payload = {
+      ok: true,
+      data: {
+        run: {
+          run_id: "22",
+          region_id: "1",
+          seed: "3204285623163886471",
+          status: "active",
+          started_at: "2026-03-17 15:13:35",
+          ended_at: null,
+        },
+        map: {
+          nodes: [
+            {
+              id: "211",
+              run_id: "22",
+              node_index: 0,
+              node_type: "combat",
+              status: "available",
+            },
+          ],
+          edges: [
+            {
+              from_node_id: "211",
+              to_node_id: "212",
+            },
+          ],
+        },
+      },
+    };
+
+    expect(validateCurrentRunResponse(payload)).toEqual(payload);
+  });
+
   it("rejects current-run payload with malformed map contract", () => {
     const payload = {
       ok: true,
@@ -145,21 +180,16 @@ describe("API contract validators", () => {
           region_id: "1",
           seed: "123",
           status: "active",
-          started_at: "2026-03-02 00:00:00",
+          started_at: "03/02/2026 00:00:00",
           ended_at: null,
         },
         map: {
-          nodes: [
-            {
-              id: "n1",
-              node_type: "combat",
-            },
-          ],
+          nodes: [],
           edges: [],
         },
       },
     };
 
-    expect(() => validateCurrentRunResponse(payload)).toThrow("ISO-8601 UTC");
+    expect(() => validateCurrentRunResponse(payload)).toThrow("ISO-8601 UTC or SQL datetime");
   });
 });
