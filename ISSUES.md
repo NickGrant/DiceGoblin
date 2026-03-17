@@ -1,25 +1,6 @@
 # ISSUES FILE
 ----
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
-
-title: Differentiate dialog cursor color and spacing
-status: unstarted
-priority: medium
-execution: active
-ready: yes
-milestone: Milestone 28 - UAT Dialog and Interaction Hardening
-description: Update dialog input cursor styling to use a gray color distinct from input text and increase horizontal spacing between the typed character and cursor by 2px.
-
----
-title: Block deletion of active squad in all states
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 28 - UAT Dialog and Interaction Hardening
-description: Prevent deleting the currently active squad regardless of run state and ensure delete action remains disabled when selected squad is active.
-
----
 title: Reduce oversized dice cards in list surfaces
 status: unstarted
 priority: high

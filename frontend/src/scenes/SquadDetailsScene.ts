@@ -397,7 +397,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
   private canDeleteSquad(): boolean {
     if (!this.squad) return false;
     if (this.squadCount <= 1) return false;
-    if (this.hasActiveRun && this.squad.is_active) return false;
+    if (this.squad.is_active) return false;
     return true;
   }
 

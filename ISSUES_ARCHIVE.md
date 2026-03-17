@@ -2714,3 +2714,23 @@ ready: yes
 milestone: Milestone 28 - UAT Dialog and Interaction Hardening
 description: Replace the squad deletion browser confirm flow with in-game shared modal and button primitives, and validate this UAT lane as part of replacing remaining JavaScript-native dialogs.
 resolution: Replaced `window.confirm` in `SquadDetailsScene` with a shared `ConfirmModal` using in-game button variants (`Delete`/`Cancel`) so the delete-squad flow no longer uses browser-native dialogs.
+
+---
+title: Differentiate dialog cursor color and spacing
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Update dialog input cursor styling to use a gray color distinct from input text and increase horizontal spacing between the typed character and cursor by 2px.
+resolution: Updated `InputModal` to render the cursor as a separate gray caret element and offset its position by 2px from the measured input text boundary.
+
+---
+title: Block deletion of active squad in all states
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Prevent deleting the currently active squad regardless of run state and ensure delete action remains disabled when selected squad is active.
+resolution: Tightened `SquadDetailsScene.canDeleteSquad` to always block active squad deletion (independent of run state), preserving delete only for non-active squads when more than one squad exists.
