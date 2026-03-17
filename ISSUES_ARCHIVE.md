@@ -6,6 +6,16 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Add modal regression tests for lifecycle and input behavior
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 21 - Reusable Modal Architecture
+description: Add tests for open/close lifecycle, keyboard attach/detach, cancel/confirm behavior, and input editing/validation edge cases across ConfirmModal and InputModal.
+resolution: Added modal lifecycle/input regression coverage in `frontend/tests/components/InputModal.test.ts` for keyboard listener attach/detach, character filtering and submit behavior, and escape-driven cancel/close semantics.
+
+---
 title: Distinguish locked region appearance in choose region
 status: complete
 priority: medium

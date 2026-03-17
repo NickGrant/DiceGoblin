@@ -37,12 +37,3 @@ execution: active
 ready: yes
 milestone: Milestone 21 - Reusable Modal Architecture
 description: Replace direct ConfirmationDialog usages in map, warband, and squad scenes with BaseModal-derived variants and remove duplicate layout logic.
-
----
-title: Add modal regression tests for lifecycle and input behavior
-status: unstarted
-priority: medium
-execution: active
-ready: yes
-milestone: Milestone 21 - Reusable Modal Architecture
-description: Add tests for open/close lifecycle, keyboard attach/detach, cancel/confirm behavior, and input editing/validation edge cases across ConfirmModal and InputModal.
