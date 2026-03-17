@@ -50,6 +50,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
   private fusionSecondaryIds: Array<string | null> = Array(REQUIRED_FUSION_UNITS).fill(null);
   private secondaryPanel?: UnitCardGrid;
   private dicePanel?: DiceCardGrid;
+  private clearFusionButton?: SharedActionButton;
   private promoteButton?: SharedActionButton;
   private equipDiceButton?: SharedActionButton;
   private unequipSlotButton?: SharedActionButton;
@@ -286,25 +287,26 @@ export default class UnitDetailsScene extends Phaser.Scene {
       gapY: ACTION_BUTTON_GAP,
       buttons: [
         { label: "Back", onClick: () => this.scene.start("WarbandManagementScene") },
-        {
-          label: "Clear Fusion",
-          onClick: () => {
-            this.fusionSecondaryIds = Array(REQUIRED_FUSION_UNITS).fill(null);
-            this.selectedFusionSlotIndex = 0;
-            this.secondaryPanel?.refreshCardStates();
-            this.refreshFusionSlotUi();
-            this.refreshStatus();
-            this.refreshActionButtons();
-          },
-        },
       ],
+    });
+
+    this.clearFusionButton?.destroy();
+    this.clearFusionButton = new SharedActionButton({
+      scene: this,
+      x: buttonX,
+      y: topActionY + 216,
+      label: "Clear Fusion",
+      enabled: false,
+      onClick: () => {
+        this.clearFusionSelections();
+      },
     });
 
     this.promoteButton?.destroy();
     this.promoteButton = new SharedActionButton({
       scene: this,
       x: buttonX,
-      y: topActionY + 150,
+      y: topActionY + 282,
       label: "Promote Unit",
       enabled: false,
       onClick: () => void this.promoteUnit(),
@@ -315,7 +317,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.equipDiceButton = new SharedActionButton({
       scene: this,
       x: buttonX,
-      y: topActionY + 216,
+      y: topActionY + 84,
       label: "Equip Selected Die",
       enabled: false,
       onClick: () => void this.equipSelectedDie(),
@@ -323,7 +325,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.unequipSlotButton = new SharedActionButton({
       scene: this,
       x: buttonX,
-      y: topActionY + 282,
+      y: topActionY + 150,
       label: "Unequip Slot Die",
       enabled: false,
       onClick: () => void this.unequipSelectedSlotDie(),
@@ -392,7 +394,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     const slotY = y;
     const gap = 10;
     const bandWidth = REQUIRED_FUSION_UNITS * FUSION_SLOT_SIZE + (REQUIRED_FUSION_UNITS - 1) * gap;
-    const startX = x + Math.max(0, Math.floor((width - bandWidth) / 2));
+    const startX = x;
 
     for (let i = 0; i < REQUIRED_FUSION_UNITS; i += 1) {
       const slotX = startX + i * (FUSION_SLOT_SIZE + gap);
@@ -560,11 +562,22 @@ export default class UnitDetailsScene extends Phaser.Scene {
     const canEquip = Boolean(canMutateDice && this.selectedEquipSlotIndex !== null && selectedDie && !dieEquippedElsewhere);
     const canUnequip = Boolean(canMutateDice && selectedSlotDie);
     const selectedSecondaries = this.fusionSecondaryIds.filter((id): id is string => Boolean(id));
+    const canClearFusion = selectedSecondaries.length > 0;
     const canPromote = !this.activeRun && selectedSecondaries.length === REQUIRED_FUSION_UNITS;
 
     this.equipDiceButton?.setEnabled(canEquip);
     this.unequipSlotButton?.setEnabled(canUnequip);
+    this.clearFusionButton?.setEnabled(canClearFusion);
     this.promoteButton?.setEnabled(canPromote);
+  }
+
+  private clearFusionSelections(): void {
+    this.fusionSecondaryIds = Array(REQUIRED_FUSION_UNITS).fill(null);
+    this.selectedFusionSlotIndex = 0;
+    this.secondaryPanel?.refreshCardStates();
+    this.refreshFusionSlotUi();
+    this.refreshStatus();
+    this.refreshActionButtons();
   }
 
   private async equipSelectedDie(): Promise<void> {
@@ -754,6 +767,8 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.equipSlotIcons = [];
     this.fusionSlotBorders = [];
     this.fusionSlotLabels = [];
+    this.clearFusionButton?.destroy();
+    this.clearFusionButton = undefined;
   }
 
   private showToast(message: string, color = "#ffcccc"): void {

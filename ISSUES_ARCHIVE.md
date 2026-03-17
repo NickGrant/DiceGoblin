@@ -2754,3 +2754,33 @@ ready: yes
 milestone: Milestone 28 - UAT Dialog and Interaction Hardening
 description: Re-enable list panel background and border visuals where recently removed so list regions regain clear structure and contrast.
 resolution: Restored a shared framed list surface in `ListContainer` by adding background fill and border stroke so list regions regain visible panel structure.
+
+---
+title: Left align promotion boxes in unit details
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Align promotion selection/action boxes to the left edge in Unit Details to match expected layout alignment.
+resolution: Updated fusion slot layout in `UnitDetailsScene` to anchor promotion boxes from the left edge instead of centering them in the promotion slot area.
+
+---
+title: Disable clear fusion when fusion slots are empty
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Disable the clear fusion action in Unit Details when no units are placed in fusion slots.
+resolution: Reworked `Clear Fusion` into a stateful shared button and now disable it whenever no secondary units are currently assigned to fusion slots.
+
+---
+title: Reorder unit details action buttons to visual flow
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Reorder Unit Details action buttons to match on-screen flow order: Back, die controls, then promotion controls.
+resolution: Reordered Unit Details actions to display `Back`, then die controls (`Equip Selected Die`, `Unequip Slot Die`), followed by promotion controls (`Clear Fusion`, `Promote Unit`).
