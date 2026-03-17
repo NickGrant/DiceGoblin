@@ -2834,3 +2834,13 @@ ready: yes
 milestone: Milestone 28 - UAT Dialog and Interaction Hardening
 description: Ensure resolve-node UI renders all available event entries and fields (unit, ability, and outcome) without dropping intermediate events.
 resolution: Updated `formatBattleLogSummary` to iterate all events (no truncation) and emit structured lines containing side, actor, target, ability, and outcome fields for every action event.
+
+---
+title: Redesign node resolution layout with team log and enemy grids
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Update Node Resolution screen layout to show player team as a 3x3 grid on the left, a central scrolling text event log panel, and one or more enemy 3x3 grids on the right depending on battle composition.
+resolution: Refactored `NodeResolutionScene` to render a three-column resolution surface with ally 3x3 grid on the left, central event log panel, and one-or-more enemy 3x3 grids on the right based on participant count from battle-log metadata.

@@ -9,7 +9,6 @@ execution_window: open
 is_current: yes
 issues:
 	- Capture additional UAT findings for milestone 28
-	- Redesign node resolution layout with team log and enemy grids
 description: |
 	Track user-acceptance hardening items focused on replacing browser-native dialogs
 	with shared in-game modal and button components and validating interaction polish.

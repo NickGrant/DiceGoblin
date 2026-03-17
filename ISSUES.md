@@ -10,14 +10,3 @@ execution: active
 ready: yes
 milestone: Milestone 28 - UAT Dialog and Interaction Hardening
 description: Keep Milestone 28 open for upcoming UAT findings and convert new verified findings into actionable implementation issues.
-
----
-title: Enrich battle event log with action outcomes
-title: Expose complete resolve-node events in frontend
-title: Redesign node resolution layout with team log and enemy grids
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 28 - UAT Dialog and Interaction Hardening
-description: Update Node Resolution screen layout to show player team as a 3x3 grid on the left, a central scrolling text event log panel, and one or more enemy 3x3 grids on the right depending on battle composition.

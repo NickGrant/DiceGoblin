@@ -55,13 +55,22 @@ vi.mock("../../src/services/apiClient", () => ({
 function makeSceneAdd() {
   return {
     existing: vi.fn(),
-    text: vi.fn((_x: number, _y: number, _message: string) => ({
-      setOrigin: vi.fn(() => ({
-        setText: vi.fn(),
-      })),
-      setText: vi.fn(),
-      destroy: vi.fn(),
-    })),
+    rectangle: vi.fn(() => {
+      const rectObj = {
+        setOrigin: vi.fn(() => rectObj),
+        setStrokeStyle: vi.fn(() => rectObj),
+        destroy: vi.fn(),
+      };
+      return rectObj;
+    }),
+    text: vi.fn((_x: number, _y: number, _message: string) => {
+      const textObj = {
+        setOrigin: vi.fn(() => textObj),
+        setText: vi.fn(() => textObj),
+        destroy: vi.fn(),
+      };
+      return textObj;
+    }),
   };
 }
 
