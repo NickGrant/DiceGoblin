@@ -15,6 +15,7 @@ import ConfirmationDialog from "../components/feedback/ConfirmationDialog";
 import {
   computeWarbandColumns,
   deriveWarbandHubState,
+  SQUAD_NAME_ALLOWED_CHARACTER_PATTERN,
   normalizeNewSquadName,
 } from "./warbandManagementState";
 
@@ -194,23 +195,38 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   private async createSquad(): Promise<void> {
     if (this.createSquadDialog) return;
-    const name = normalizeNewSquadName("New Squad");
-    if (!name) return;
+    let enteredName = "New Squad";
 
     this.createSquadDialog = new ConfirmationDialog({
       scene: this,
       title: "CREATE NEW SQUAD?",
-      message: `Create a new squad named '${name}'?`,
+      message: "Enter a squad name and confirm.",
       acceptLabel: "Create",
       rejectLabel: "Cancel",
+      input: {
+        initialValue: "New Squad",
+        placeholder: "New Squad",
+        maxLength: 24,
+        allowedCharacterPattern: SQUAD_NAME_ALLOWED_CHARACTER_PATTERN,
+      },
+      onAcceptInput: (value) => {
+        enteredName = value;
+      },
       onReject: () => {
         this.createSquadDialog = undefined;
       },
       onAccept: async () => {
         this.createSquadDialog?.close();
         this.createSquadDialog = undefined;
+        const name = normalizeNewSquadName(enteredName);
+        if (!name) {
+          this.showToast("Name must use letters, numbers, spaces, or [].-");
+          return;
+        }
         await this.executeCreateSquad(name);
       },
+      width: 620,
+      height: 320,
     });
   }
 

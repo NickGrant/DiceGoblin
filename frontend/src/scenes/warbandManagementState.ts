@@ -13,6 +13,9 @@ export type WarbandHubState = {
   squads: TeamRecord[];
 };
 
+export const SQUAD_NAME_ALLOWED_CHARACTER_PATTERN = /[A-Za-z0-9\[\].\- ]/;
+export const SQUAD_NAME_ALLOWED_FULL_PATTERN = /^[A-Za-z0-9\[\].\- ]+$/;
+
 export function deriveWarbandHubState(profile: ProfileResponse): WarbandHubState {
   if (!profile.ok) {
     throw new Error(profile.error.message);
@@ -36,6 +39,8 @@ export function computeWarbandColumns(contentX: number, contentWidth: number, sp
 
 export function normalizeNewSquadName(rawName: string | null | undefined): string | null {
   const normalized = (rawName ?? "").trim();
-  return normalized.length > 0 ? normalized : null;
+  if (normalized.length === 0) return null;
+  if (!SQUAD_NAME_ALLOWED_FULL_PATTERN.test(normalized)) return null;
+  return normalized;
 }
 

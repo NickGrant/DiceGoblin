@@ -12,6 +12,11 @@ import type { TeamRecord, UnitRecord, TeamFormationCell } from "../types/ApiResp
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
+import ConfirmationDialog from "../components/feedback/ConfirmationDialog";
+import {
+  SQUAD_NAME_ALLOWED_CHARACTER_PATTERN,
+  normalizeNewSquadName,
+} from "./warbandManagementState";
 
 type Cell = FormationCell;
 const CELLS: Cell[] = ["A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"];
@@ -56,6 +61,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
   private clearButton?: ActionButton;
   private saveButton?: ActionButton;
   private activateButton?: ActionButton;
+  private renameDialog?: ConfirmationDialog;
 
   constructor() {
     super({ key: "SquadDetailsScene" });
@@ -338,9 +344,41 @@ export default class SquadDetailsScene extends Phaser.Scene {
 
   private async renameSquad(): Promise<void> {
     if (!this.squad) return;
-    const nextName = window.prompt("Rename squad:", this.squad.name)?.trim();
-    if (!nextName || nextName === this.squad.name) return;
-    await this.saveTeam(nextName);
+    if (this.renameDialog) return;
+    let enteredName = this.squad.name;
+
+    this.renameDialog = new ConfirmationDialog({
+      scene: this,
+      title: "RENAME SQUAD",
+      message: "Enter a new squad name.",
+      acceptLabel: "Rename",
+      rejectLabel: "Cancel",
+      input: {
+        initialValue: this.squad.name,
+        placeholder: this.squad.name,
+        maxLength: 24,
+        allowedCharacterPattern: SQUAD_NAME_ALLOWED_CHARACTER_PATTERN,
+      },
+      onAcceptInput: (value) => {
+        enteredName = value;
+      },
+      onReject: () => {
+        this.renameDialog = undefined;
+      },
+      onAccept: async () => {
+        this.renameDialog?.close();
+        this.renameDialog = undefined;
+        const nextName = normalizeNewSquadName(enteredName);
+        if (!nextName) {
+          this.showToast("Name must use letters, numbers, spaces, or [].-");
+          return;
+        }
+        if (nextName === this.squad?.name) return;
+        await this.saveTeam(nextName);
+      },
+      width: 620,
+      height: 320,
+    });
   }
 
   private async activateSquad(): Promise<void> {
