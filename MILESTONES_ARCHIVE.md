@@ -6,6 +6,85 @@
 - Preserve milestone resolution history without bloating active execution context.
 
 ---
+name: Milestone 24 - Backend Test Infrastructure De-duplication
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Extract shared backend integration test base class
+  - Consolidate backend fixture insertion helpers into reusable factories
+  - Centralize backend cascading cleanup utilities
+description: |
+  Reduce backend integration-test boilerplate by standardizing setup, fixture
+  factories, and teardown utilities in shared infrastructure so tests are shorter,
+  clearer, and easier to extend.
+Resolution: Consolidated backend integration suites onto shared support infrastructure (`IntegrationTestCase`) with common setup/fixture/cleanup behavior, reducing duplication across endpoint tests.
+
+---
+name: Milestone 23 - ListContainer Normalization and Grid Fill Rules
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Define ListContainer layout contract and card geometry constants
+  - Implement deterministic fill-first wrapping algorithm in ListContainer
+  - Ensure pagination visibility and non-overlap guarantees
+  - Migrate all list-rendering components to ListContainer extension model
+  - Add list layout regression tests for wrap and padding invariants
+description: |
+  Standardize list rendering around ListContainer so card grids fill available
+  space predictably, preserve consistent padding, and keep pagination controls clear
+  of content overlap.
+Resolution: Completed list-contract and layout normalization, deterministic grid wrapping, pagination-lane reservation, component migrations to shared list primitives, and targeted list-layout regression coverage.
+
+---
+name: Milestone 22 - Unified Button and ButtonList System
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Define unified button architecture with variant tokens
+  - Implement SharedButton with action accept reject and metal variants
+  - Build UnifiedButtonList replacing existing list wrappers
+  - Migrate scenes and components to shared button primitives
+  - Add button layout regression tests and sizing invariants
+description: |
+  Consolidate button primitives into one variant-driven base implementation and a
+  single list wrapper to enforce consistent dimensions, spacing, and visual rhythm
+  across all action surfaces.
+Resolution: Completed shared button/token architecture and unified list wrapper, migrated scene surfaces to common button primitives, and stabilized action-surface behavior with regression coverage.
+
+---
+name: Milestone 21 - Reusable Modal Architecture
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Define modal abstraction contract and migration plan
+  - Implement BaseModal and yes/no confirmation variant
+  - Implement InputModal by extending confirmation modal
+  - Migrate existing modal call sites to new modal hierarchy
+  - Add modal regression tests for lifecycle and input behavior
+description: |
+  Normalize modal behavior under a composable base class so confirmation and input
+  flows share layout, lifecycle, and interaction rules while reducing duplicated
+  scene-level dialog wiring.
+Resolution: Completed modal hierarchy standardization (`BaseModal`/`ConfirmModal`/`InputModal`), migrated call sites to shared modal surfaces, and added modal lifecycle/input regression tests.
+
+---
+name: Milestone 18 - Run UI Layout Consistency Pass
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Continue run panel sizing mismatch with start run
+  - Rest screen layout pass for squad and controls
+description: |
+  Normalize run-adjacent panel sizing and rest-scene composition so UI density,
+  spacing, and hierarchy are consistent with the current visual baseline.
+Resolution: Completed run-panel sizing alignment and rest-scene layout consistency pass in frontend scenes with associated UI behavior updates.
+
+---
 name: Milestone 20 - Region Select UX and Readability
 status: complete
 execution_window: open

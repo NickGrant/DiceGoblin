@@ -6,6 +6,196 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Continue run panel sizing mismatch with start run
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 18 - Run UI Layout Consistency Pass
+description: Continue run panel should match the start run panel dimensions and layout; start run is currently the correct reference.
+resolution: Updated run panel sizing behavior in `HomeScene` so continue/start presentation uses consistent panel-area sizing with the same baseline image geometry contract.
+
+---
+title: Rest screen layout pass for squad and controls
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 18 - Run UI Layout Consistency Pass
+description: Apply the same layout improvements used on squad details to rest screen, including a smaller unit list, better grid positioning, improved button spacing/positioning, and removal of helper text in the bottom column and bottom-left area.
+resolution: Reworked `RestManagementScene` composition and spacing to align with squad-screen layout conventions and tightened control placement/visual density for run-rest editing flow.
+
+---
+title: Define modal abstraction contract and migration plan
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 21 - Reusable Modal Architecture
+description: Define BaseModal API and composition model (backdrop, frame, title, body, action row, keyboard lifecycle, close semantics) with concrete migration plan for current ConfirmationDialog and input-enabled modal flows.
+resolution: Implemented modal contract via `BaseModal`, `ConfirmModal`, and `InputModal` with shared layout surfaces, callback lifecycle, and close semantics replacing ad hoc scene-local modal composition.
+
+---
+title: Implement BaseModal and yes/no confirmation variant
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 21 - Reusable Modal Architecture
+description: Implement reusable BaseModal and ConfirmModal variant for standard yes/no actions with shared sizing, spacing, button alignment, and callback behavior.
+resolution: Added `BaseModal` foundation and `ConfirmModal` yes/no variant with standardized geometry, action-row placement, and accept/reject callback flow.
+
+---
+title: Implement InputModal by extending confirmation modal
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 21 - Reusable Modal Architecture
+description: Extend modal stack with InputModal that reuses confirmation action surface while adding typed input, caret editing, allowed-character filtering, and enter/escape handling.
+resolution: Added `InputModal` on top of `ConfirmModal` with keyboard-managed input editing, caret movement, filtering, and enter/escape action handling.
+
+---
+title: Migrate existing modal call sites to new modal hierarchy
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 21 - Reusable Modal Architecture
+description: Replace direct ConfirmationDialog usages in map, warband, and squad scenes with BaseModal-derived variants and remove duplicate layout logic.
+resolution: Migrated map/warband/squad modal call sites to `ConfirmModal`/`InputModal` and retained `ConfirmationDialog` as compatibility wrapper over `InputModal` to avoid scene-level duplication.
+
+---
+title: Define unified button architecture with variant tokens
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 22 - Unified Button and ButtonList System
+description: Define SharedButton base API and variant token map that absorbs ActionButton, AcceptButton, RejectButton, and MetalActionButton with consistent baseline dimensions and spacing rules.
+resolution: Centralized button style/geometry tokens in `SharedActionButton` and aligned variant rendering for default/accept/reject/metal styles.
+
+---
+title: Implement SharedButton with action accept reject and metal variants
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 22 - Unified Button and ButtonList System
+description: Implement single reusable button class with style variants, optional icon support, and unified text layout while preserving existing interaction behavior.
+resolution: Implemented `SharedActionButton` as the primary reusable action control with variant support and standardized interaction feedback.
+
+---
+title: Build UnifiedButtonList replacing existing list wrappers
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 22 - Unified Button and ButtonList System
+description: Replace ActionButtonList and MetalActionButtonList with one list container that supports variant-per-row configuration and consistent vertical rhythm.
+resolution: Added `UnifiedButtonList` and refactored list-wrapper composition to use a single variant-aware action-list primitive.
+
+---
+title: Migrate scenes and components to shared button primitives
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 22 - Unified Button and ButtonList System
+description: Migrate map, dice, squad, warband, unit, and modal action surfaces to SharedButton and UnifiedButtonList, then remove legacy wrappers.
+resolution: Updated map/dice/squad/warband/unit/modal surfaces to shared button primitives and retired duplicated scene-local action-control usage.
+
+---
+title: Add button layout regression tests and sizing invariants
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 22 - Unified Button and ButtonList System
+description: Add tests validating consistent button sizing, variant rendering hooks, list spacing, and no-overlap guarantees in constrained panels.
+resolution: Added/updated scene-level regressions covering button-driven interaction behavior and layout stability across migrated surfaces.
+
+---
+title: Define ListContainer layout contract and card geometry constants
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 23 - ListContainer Normalization and Grid Fill Rules
+description: Define canonical ListContainer contract with optional title zone, consistent outer padding, dice-card-sized item geometry, and reserved pagination/footer space.
+resolution: Introduced shared list layout contract and constants in `ListContainer`/`listContainerLayout` for predictable title/content/pagination spacing.
+
+---
+title: Implement deterministic fill-first wrapping algorithm in ListContainer
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 23 - ListContainer Normalization and Grid Fill Rules
+description: Update ListContainer/GridListVariant to fill horizontal space item-by-item before wrapping rows, maximizing occupied area without overflow in either axis.
+resolution: Implemented deterministic grid wrapping in `GridListVariant` and connected list pagination sizing through `ListContainer` visible-capacity math.
+
+---
+title: Ensure pagination visibility and non-overlap guarantees
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 23 - ListContainer Normalization and Grid Fill Rules
+description: Reserve pagination lane consistently so next/prev controls and page indicators are never covered by list content at any viewport size.
+resolution: Reserved pagination lane in `ListContainer` with explicit content-height calculations and page-control placement guarantees.
+
+---
+title: Migrate all list-rendering components to ListContainer extension model
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 23 - ListContainer Normalization and Grid Fill Rules
+description: Audit and migrate UnitListPanel, SquadListPanel, dice list surfaces, and other list UI components so all list rendering pipelines compose through ListContainer.
+resolution: Migrated `UnitCardGrid`, `DiceCardGrid`, and `SquadListPanel` to `ListContainer`/`GridListVariant` composition model.
+
+---
+title: Add list layout regression tests for wrap and padding invariants
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 23 - ListContainer Normalization and Grid Fill Rules
+description: Add tests for card wrapping boundaries, title/header offset behavior, stable outer padding, pagination visibility, and deterministic ordering during page changes.
+resolution: Added list-layout regression tests in `GridListVariant.test.ts` and `ListContainerLayout.test.ts` covering wrap and spacing invariants.
+
+---
+title: Extract shared backend integration test base class
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 24 - Backend Test Infrastructure De-duplication
+description: Create IntegrationTestCase extending DatabaseTestCase to centralize PDO/session bootstrap, teardown, and common test harness setup currently duplicated across backend integration tests.
+resolution: Added shared `backend/tests/Support/IntegrationTestCase.php` and adopted it across backend integration test suites.
+
+---
+title: Consolidate backend fixture insertion helpers into reusable factories
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 24 - Backend Test Infrastructure De-duplication
+description: Move duplicated insertUser/insertTeam/insertRun/insertRegion helper logic into shared fixtures or base helpers and migrate existing test classes to use them.
+resolution: Consolidated common integration fixture bootstrapping through shared support-layer helpers used by endpoint integration suites.
+
+---
+title: Centralize backend cascading cleanup utilities
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 24 - Backend Test Infrastructure De-duplication
+description: Introduce shared cleanup helpers for run, battle, and team artifact teardown paths across backend integration tests to reduce repetition and improve consistency.
+resolution: Centralized cleanup/reset behavior in shared integration-test infrastructure and removed duplicated teardown orchestration from endpoint suites.
+
+---
 title: Add modal regression tests for lifecycle and input behavior
 status: complete
 priority: medium
