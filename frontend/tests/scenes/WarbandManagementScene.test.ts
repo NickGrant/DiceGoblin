@@ -3,33 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 let lastDialogConfig: any = null;
 
 vi.mock("phaser", () => {
-  class FakeScene {
-    registry = {};
-    cameras = { main: { centerX: 480, centerY: 270 } };
-    add = {
-      text: vi.fn(() => ({ setOrigin: vi.fn(() => ({ destroy: vi.fn(), setText: vi.fn() })) })),
-    };
-    time = { delayedCall: vi.fn() };
-    scale = { on: vi.fn(), off: vi.fn(), width: 960, height: 640 };
-    scene = { start: vi.fn() };
-  }
-
-  class FakeContainer {
-    constructor(_scene?: unknown, _x?: number, _y?: number) {}
-    add() { return this; }
-    setSize() { return this; }
-    setInteractive() { return this; }
-    setOrigin() { return this; }
-    setScrollFactor() { return this; }
-    setDepth() { return this; }
-    destroy() {}
-  }
-
-  return {
-    default: { Scene: FakeScene, GameObjects: { Container: FakeContainer } },
-    Scene: FakeScene,
-    GameObjects: { Container: FakeContainer },
-  };
+  return import("../utils/phaserSceneFixtures").then(({ buildPhaserMock }) =>
+    buildPhaserMock({ includeContainer: true })
+  );
 });
 
 vi.mock("../../src/components/BackgroundImage", () => ({ default: class {} }));

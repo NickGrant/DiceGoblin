@@ -84,4 +84,29 @@ describe("profileViewModels adapters", () => {
     expect(first.affixes[1]!.label).toBe("Empty");
     expect(first.affixes[2]!.label).toBe("Empty");
   });
+
+  it("sanitizes malformed numeric and nested equipped-dice data", () => {
+    const units = adaptUnitRecords([
+      {
+        id: "u99",
+        level: -4,
+        xp: -10,
+        tier: -2,
+        equipped_dice: [
+          { dice_instance_id: "", slot_index: 1 },
+          { dice_instance_id: "d5", slot_index: -8 },
+          { bad: true },
+        ],
+      },
+    ]);
+
+    expect(units).toHaveLength(1);
+    expect(units[0]).toMatchObject({
+      id: "u99",
+      level: 0,
+      xp: 0,
+      tier: 0,
+      equipped_dice: [{ dice_instance_id: "d5", slot_index: 0 }],
+    });
+  });
 });

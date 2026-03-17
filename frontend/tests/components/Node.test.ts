@@ -177,4 +177,52 @@ describe("Node affordances", () => {
     expect(icon.textureKey).toBe("icon_encounter_loot");
     expect(icon.tint).toBe(0x8fd38a);
   });
+
+  it("falls back unknown node types to combat texture and applies exit tint variants", () => {
+    const scene = makeScene();
+
+    const node = new Node(scene, 0, 0, {
+      id: "2",
+      run_id: "2",
+      node_index: 0,
+      node_type: "mystery",
+      status: "available",
+    } as any);
+
+    const icon = (node as any).icon as {
+      textureKey: string;
+      tint: number | null;
+      alpha: number;
+    };
+    expect(icon.textureKey).toBe("icon_encounter_combat");
+
+    node.setRecord({
+      id: "2",
+      run_id: "2",
+      node_index: 0,
+      node_type: "exit",
+      status: "locked",
+    } as any);
+    expect(icon.textureKey).toBe("icon_encounter_boss");
+    expect(icon.tint).toBe(0x4f8aa8);
+
+    node.setRecord({
+      id: "2",
+      run_id: "2",
+      node_index: 0,
+      node_type: "exit",
+      status: "available",
+    } as any);
+    expect(icon.tint).toBe(0x73f3ff);
+
+    node.setRecord({
+      id: "2",
+      run_id: "2",
+      node_index: 0,
+      node_type: "exit",
+      status: "cleared",
+    } as any);
+    expect(icon.tint).toBe(0xa7ffcf);
+    expect(icon.alpha).toBe(1);
+  });
 });

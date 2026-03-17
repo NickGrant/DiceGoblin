@@ -20,24 +20,9 @@ final class RunLifecycleApiIntegrationTest extends IntegrationTestCase
     return 'Set TEST_DB_DSN to run lifecycle integration tests.';
   }
 
-  public function testStartRunResolveNodeAndClaimBattleLifecycleContracts(): void
+  public function testCreateRunBuildsExpectedGraphContracts(): void
   {
-    $userId = $this->insertUser('qa_lifecycle', 'QA Lifecycle');
-    $_SESSION['user_id'] = $userId;
-    $_SESSION['csrf_token'] = 'valid_csrf';
-    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-
-    $apiController = new ApiController();
-    $sessionRes = $this->invoke(fn() => $apiController->session());
-    $this->assertSame(200, $sessionRes['status'], json_encode($sessionRes['body']));
-    $this->assertSame(true, $sessionRes['body']['ok'] ?? null);
-    $this->assertSame(true, $sessionRes['body']['data']['authenticated'] ?? null);
-
-    $createRes = $this->invoke(fn() => $apiController->createRun());
-    $this->assertSame(200, $createRes['status'], json_encode($createRes['body']));
-    $this->assertSame(true, $createRes['body']['ok'] ?? null);
-
-    $runId = $this->fetchActiveRunId($userId);
+    [$userId, $runId] = $this->startRunForAuthenticatedUser();
     $this->assertGreaterThan(0, $runId);
 
     $exitNodeCount = (int)$this->scalar(
@@ -60,6 +45,11 @@ final class RunLifecycleApiIntegrationTest extends IntegrationTestCase
       [$runId]
     );
     $this->assertSame(0, $nonExitWithoutTemplate, 'All generated non-exit nodes should carry an encounter template id.');
+  }
+
+  public function testResolveNodeReturnsBattleContractAndMarksBattleCompleted(): void
+  {
+    [, $runId] = $this->startRunForAuthenticatedUser();
 
     $nodeId = $this->fetchAvailableNodeId($runId);
     $this->assertGreaterThan(0, $nodeId);
@@ -78,6 +68,21 @@ final class RunLifecycleApiIntegrationTest extends IntegrationTestCase
 
     $statusAfterResolve = (string)$this->scalar('SELECT `status` FROM `battles` WHERE `id` = ?', [$battleId]);
     $this->assertSame('completed', $statusAfterResolve);
+  }
+
+  public function testClaimBattleIsIdempotentAndTransitionsBattleToClaimed(): void
+  {
+    [, $runId] = $this->startRunForAuthenticatedUser();
+
+    $nodeId = $this->fetchAvailableNodeId($runId);
+    $this->assertGreaterThan(0, $nodeId);
+
+    $runNodeController = new RunNodeController();
+    $resolveRes = $this->invoke(fn() => $runNodeController->resolveNode((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $resolveRes['status'], json_encode($resolveRes['body']));
+    $battle = is_array($resolveRes['body']['data']['battle'] ?? null) ? $resolveRes['body']['data']['battle'] : [];
+    $battleId = (int)($battle['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $battleId);
 
     $battleController = new BattleController();
     $firstClaim = $this->invoke(fn() => $battleController->claimBattle((string)$battleId));
@@ -104,6 +109,28 @@ final class RunLifecycleApiIntegrationTest extends IntegrationTestCase
     $this->assertContains($runStatus, ['active', 'completed', 'failed', 'abandoned']);
   }
 
+  /** @return array{0:int,1:int} */
+  private function startRunForAuthenticatedUser(): array
+  {
+    $userId = $this->insertUser('qa_lifecycle', 'QA Lifecycle');
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $apiController = new ApiController();
+    $sessionRes = $this->invoke(fn() => $apiController->session());
+    $this->assertSame(200, $sessionRes['status'], json_encode($sessionRes['body']));
+    $this->assertSame(true, $sessionRes['body']['ok'] ?? null);
+    $this->assertSame(true, $sessionRes['body']['data']['authenticated'] ?? null);
+
+    $createRes = $this->invoke(fn() => $apiController->createRun());
+    $this->assertSame(200, $createRes['status'], json_encode($createRes['body']));
+    $this->assertSame(true, $createRes['body']['ok'] ?? null);
+
+    $runId = $this->fetchActiveRunId($userId);
+    return [$userId, $runId];
+  }
+
   private function fetchActiveRunId(int $userId): int
   {
     return (int)$this->scalar(
@@ -119,5 +146,4 @@ final class RunLifecycleApiIntegrationTest extends IntegrationTestCase
       [$runId]
     );
   }
-
 }

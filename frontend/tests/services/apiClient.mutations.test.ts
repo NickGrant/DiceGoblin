@@ -7,6 +7,12 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function expectCsrfHeader(fetchMock: ReturnType<typeof vi.mocked<typeof fetch>>, callIndex: number, token: string): RequestInit {
+  const init = fetchMock.mock.calls[callIndex]?.[1] as RequestInit;
+  expect(new Headers(init.headers).get("X-CSRF-Token")).toBe(token);
+  return init;
+}
+
 describe("apiClient mutation flows", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -51,9 +57,7 @@ describe("apiClient mutation flows", () => {
       })
     );
 
-    const secondCallInit = fetchMock.mock.calls[1]?.[1] as RequestInit;
-    const headers = new Headers(secondCallInit.headers);
-    expect(headers.get("X-CSRF-Token")).toBe("csrf_run");
+    expectCsrfHeader(fetchMock, 1, "csrf_run");
   });
 
   it("createTeam sends CSRF header and mutation payload", async () => {
@@ -76,9 +80,7 @@ describe("apiClient mutation flows", () => {
 
     expect(response).toEqual({ ok: true, data: { team_id: "77" } });
 
-    const secondCallInit = fetchMock.mock.calls[1]?.[1] as RequestInit;
-    const headers = new Headers(secondCallInit.headers);
-    expect(headers.get("X-CSRF-Token")).toBe("csrf_team_create");
+    const secondCallInit = expectCsrfHeader(fetchMock, 1, "csrf_team_create");
     expect(secondCallInit.method).toBe("POST");
     expect(secondCallInit.body).toBe(JSON.stringify({ name: "My Squad", make_active: true }));
   });
@@ -119,14 +121,10 @@ describe("apiClient mutation flows", () => {
       ],
     });
 
-    const activateInit = fetchMock.mock.calls[1]?.[1] as RequestInit;
-    const activateHeaders = new Headers(activateInit.headers);
-    expect(activateHeaders.get("X-CSRF-Token")).toBe("csrf_activate");
+    const activateInit = expectCsrfHeader(fetchMock, 1, "csrf_activate");
     expect(activateInit.method).toBe("POST");
 
-    const updateInit = fetchMock.mock.calls[3]?.[1] as RequestInit;
-    const updateHeaders = new Headers(updateInit.headers);
-    expect(updateHeaders.get("X-CSRF-Token")).toBe("csrf_update");
+    const updateInit = expectCsrfHeader(fetchMock, 3, "csrf_update");
     expect(updateInit.method).toBe("PUT");
     expect(updateInit.body).toBe(
       JSON.stringify({
@@ -182,16 +180,13 @@ describe("apiClient mutation flows", () => {
     await apiClient.updateRestState("1", "10", { unit_ids: ["11"], formation: [] });
     await apiClient.finalizeRest("1", "10");
 
-    const openInit = fetchMock.mock.calls[1]?.[1] as RequestInit;
-    expect(new Headers(openInit.headers).get("X-CSRF-Token")).toBe("csrf_rest");
+    const openInit = expectCsrfHeader(fetchMock, 1, "csrf_rest");
     expect(openInit.method).toBe("POST");
 
-    const stateInit = fetchMock.mock.calls[3]?.[1] as RequestInit;
-    expect(new Headers(stateInit.headers).get("X-CSRF-Token")).toBe("csrf_rest2");
+    const stateInit = expectCsrfHeader(fetchMock, 3, "csrf_rest2");
     expect(stateInit.method).toBe("PUT");
 
-    const finalizeInit = fetchMock.mock.calls[5]?.[1] as RequestInit;
-    expect(new Headers(finalizeInit.headers).get("X-CSRF-Token")).toBe("csrf_rest3");
+    const finalizeInit = expectCsrfHeader(fetchMock, 5, "csrf_rest3");
     expect(finalizeInit.method).toBe("POST");
   });
 
@@ -210,8 +205,7 @@ describe("apiClient mutation flows", () => {
     await apiClient.equipDice("11", "55", { runId: "44", nodeId: "7" });
     await apiClient.unequipDice("11", "55", { runId: "44", nodeId: "7" });
 
-    const promoteInit = fetchMock.mock.calls[1]?.[1] as RequestInit;
-    expect(new Headers(promoteInit.headers).get("X-CSRF-Token")).toBe("csrf_promote");
+    const promoteInit = expectCsrfHeader(fetchMock, 1, "csrf_promote");
     expect(promoteInit.body).toBe(JSON.stringify({
       primary_unit_instance_id: 11,
       secondary_unit_instance_ids: [12, 13],
@@ -219,12 +213,10 @@ describe("apiClient mutation flows", () => {
       node_id: 7,
     }));
 
-    const equipInit = fetchMock.mock.calls[3]?.[1] as RequestInit;
-    expect(new Headers(equipInit.headers).get("X-CSRF-Token")).toBe("csrf_equip");
+    const equipInit = expectCsrfHeader(fetchMock, 3, "csrf_equip");
     expect(equipInit.body).toBe(JSON.stringify({ dice_instance_id: 55, run_id: 44, node_id: 7 }));
 
-    const unequipInit = fetchMock.mock.calls[5]?.[1] as RequestInit;
-    expect(new Headers(unequipInit.headers).get("X-CSRF-Token")).toBe("csrf_unequip");
+    const unequipInit = expectCsrfHeader(fetchMock, 5, "csrf_unequip");
     expect(unequipInit.body).toBe(JSON.stringify({ dice_instance_id: 55, run_id: 44, node_id: 7 }));
   });
 });
