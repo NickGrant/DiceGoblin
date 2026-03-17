@@ -6,6 +6,166 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Mark no-enemies node resolved and show reason
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 19 - Run Flow and Recovery UX
+description: In no-enemies error state, mark node as resolved and display the error reason to the player.
+resolution: Hardened no-enemies reason detection to match API codes such as `combat_no_enemies`, routed the scene through resolved-state handling, and added no-enemies regression coverage in `frontend/tests/scenes/NodeResolutionScene.test.ts`.
+
+---
+title: Fix abandon run confirmation button overlap
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 19 - Run Flow and Recovery UX
+description: Abandon run confirmation dialog buttons overlap and need corrected sizing/positioning.
+resolution: Set explicit abandon confirmation modal dimensions in `MapExplorationScene` so button layout consistently uses non-overlapping placement and added assertions in `frontend/tests/scenes/MapExplorationScene.test.ts`.
+
+---
+title: Replace create squad native dialog with styled modal
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 19 - Run Flow and Recovery UX
+description: Create squad should use an in-game styled dialog instead of a JavaScript native dialog.
+resolution: Verified create-squad flow uses `InputModal` rather than browser-native prompts and retained regression coverage for accept/reject/error/success paths in `frontend/tests/scenes/WarbandManagementScene.test.ts`.
+
+---
+title: Refresh home screen state immediately after abandon
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 19 - Run Flow and Recovery UX
+description: Home screen should immediately refresh action card state after abandoning a run so Continue Run is replaced by Start Run without requiring manual refresh.
+resolution: Updated `HomeScene` to force a fresh profile fetch before deciding Start vs Continue panel state and added regression coverage in `frontend/tests/scenes/HomeScene.test.ts`.
+
+---
+title: Auto-return to map after finalize rest
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 19 - Run Flow and Recovery UX
+description: Finalizing rest should immediately transition back to map without requiring a separate Continue click.
+resolution: Confirmed `RestManagementScene.finalizeRest` immediately routes to `MapExplorationScene` after successful finalize and added dedicated scene regression coverage in `frontend/tests/scenes/RestManagementScene.test.ts`.
+
+---
+title: Add back to map action on resolve node
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 19 - Run Flow and Recovery UX
+description: Resolve node screen should include an explicit Back to map button.
+resolution: Verified node resolution flow exposes explicit `Back to Map` actions for missing-context, non-terminal, and retry/error states, with routing assertions already covered by `frontend/tests/scenes/NodeResolutionScene.test.ts`.
+
+---
+title: Rename abandon dialog options to abandon and stay
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 19 - Run Flow and Recovery UX
+description: Abandon run dialog options should be Abandon and Stay, where Stay behaves as cancel.
+resolution: Confirmed map abandon confirmation uses `Abandon` and `Stay` labels and added regression coverage for modal config labels in `frontend/tests/scenes/MapExplorationScene.test.ts`.
+
+---
+title: Introduce shared Phaser scene mock fixtures
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 26 - Frontend Scene Test Harness Consolidation
+description: Build reusable test fixtures for FakeScene/FakeContainer/input hooks used by scene tests and remove duplicated inline mock blocks across test files.
+resolution: Added reusable Phaser test fixtures in `frontend/tests/utils/phaserSceneFixtures.ts` and migrated scene tests to shared fake scene/container geometry mocks.
+
+---
+title: Parameterize repetitive frontend scene error-path tests
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 26 - Frontend Scene Test Harness Consolidation
+description: Convert repetitive fallback/error-case tests into table-driven variants to reduce boilerplate and preserve coverage of each distinct error source.
+resolution: Reworked repetitive map-scene fallback coverage into table-driven cases while preserving expected message assertions for thrown-request and error-envelope branches.
+
+---
+title: Consolidate frontend mutation CSRF assertion patterns
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 26 - Frontend Scene Test Harness Consolidation
+description: Reduce duplicated mutation CSRF/header assertions via shared helpers or parameterized test utilities while preserving endpoint-specific behavior checks.
+resolution: Introduced shared `expectCsrfHeader` assertion helper in mutation tests and applied it across run/team/rest/promotion/dice mutation paths.
+
+---
+title: Enforce richer contract-format assertions in frontend validators
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 27 - Assertion Depth and Contract Fidelity
+description: Expand validator tests to assert format-level constraints such as timestamp shape, token-like fields, and numeric domain boundaries.
+resolution: Added timestamp/token format and energy-domain boundary enforcement in contract validators plus expanded test coverage for malformed format/value cases.
+
+---
+title: Add payload-shape assertions to scene routing tests
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 27 - Assertion Depth and Contract Fidelity
+description: Ensure scene.start assertions validate payload structure and keys, not only destination scene names.
+resolution: Strengthened scene routing tests to assert required payload key sets for map-resolution and run-summary navigation payloads instead of destination-name-only checks.
+
+---
+title: Expand adapter and component edge-case coverage
+status: complete
+priority: low
+execution: active
+ready: yes
+milestone: Milestone 27 - Assertion Depth and Contract Fidelity
+description: Add targeted edge-case tests for adapter normalization and stateful component behavior to increase confidence in malformed-input handling.
+resolution: Added adapter sanitization coverage for malformed numeric/nested equipped-dice records and component coverage for unknown node-type fallback plus exit-tint state variants.
+
+---
+title: Split battle claim mega-test into focused concern tests
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 25 - Backend Test Cohesion and Signal Quality
+description: Refactor long multi-concern battle resolution and claim tests into narrower units for XP application, defeat handling, max-level constraints, and idempotency behavior.
+resolution: Split the 985-line battle integration mega-test into focused suites for node resolution, claim progression, and run cleanup/rest flows, and extracted shared DB fixture helpers into `BattleFlowIntegrationCase`.
+
+---
+title: Refactor lifecycle integration test into scenario-focused cases
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 25 - Backend Test Cohesion and Signal Quality
+description: Split end-to-end run lifecycle tests that currently combine auth/run/node/claim concerns into scenario-specific tests with targeted assertions and clearer failure diagnostics.
+resolution: Refactored lifecycle coverage into separate create-run graph, resolve-node contract, and claim idempotency tests backed by a shared authenticated run bootstrap helper.
+
+---
+title: Strengthen backend contract tests beyond status-only checks
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 25 - Backend Test Cohesion and Signal Quality
+description: Expand endpoint envelope assertions to verify response shape and required keys consistently instead of relying mainly on HTTP status and ok flags.
+resolution: Added reusable success-envelope shape assertions and expanded endpoint contract checks for required payload keys/types (session/profile/current-run) aligned to actual API field names.
+
+---
 title: Ensure encounter template is applied when creating battles
 status: complete
 priority: high

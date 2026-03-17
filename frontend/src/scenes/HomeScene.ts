@@ -31,7 +31,7 @@ export default class HomeScene extends Phaser.Scene {
   private async renderDynamicRunArea(contentArea: LayoutRect): Promise<void> {
     let hasActiveRun = false;
     try {
-      const profile = await apiClient.getProfile({ allowStaleOnError: true });
+      const profile = await apiClient.getProfile({ force: true, allowStaleOnError: true });
       hasActiveRun = profile.ok && profile.data.active_run !== null;
     } catch {
       hasActiveRun = false;

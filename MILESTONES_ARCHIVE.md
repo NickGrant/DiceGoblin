@@ -6,6 +6,65 @@
 - Preserve milestone resolution history without bloating active execution context.
 
 ---
+name: Milestone 19 - Run Flow and Recovery UX
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Mark no-enemies node resolved and show reason
+  - Fix abandon run confirmation button overlap
+  - Replace create squad native dialog with styled modal
+  - Refresh home screen state immediately after abandon
+description: |
+  Improve run-state transitions, error recovery messaging, and dialog consistency
+  so player flow remains continuous and clearly recoverable across node resolution
+  and abandonment paths.
+Resolution: Hardened no-enemies resolution handling against API reason-code variants, stabilized abandon confirmation modal sizing to prevent overlap, verified styled create-squad modal usage, and forced fresh home-state profile fetch after abandon with added regression coverage.
+
+---
+name: Milestone 26 - Frontend Scene Test Harness Consolidation
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Introduce shared Phaser scene mock fixtures
+  - Parameterize repetitive frontend scene error-path tests
+  - Consolidate frontend mutation CSRF assertion patterns
+description: |
+  Normalize frontend test harness patterns to reduce duplicated mocks and repetitive
+  test scaffolding while preserving scene behavior and API mutation coverage.
+Resolution: Consolidated scene test doubles into shared Phaser fixtures, converted repetitive map-scene fallback assertions to table-driven coverage, and centralized mutation CSRF header assertions with helper utilities.
+
+---
+name: Milestone 27 - Assertion Depth and Contract Fidelity
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Enforce richer contract-format assertions in frontend validators
+  - Add payload-shape assertions to scene routing tests
+  - Expand adapter and component edge-case coverage
+description: |
+  Increase test signal quality by asserting payload shape and format fidelity across
+  frontend contracts, scene transitions, and adapter/component edge cases.
+Resolution: Added validator enforcement for token/timestamp/range formats, strengthened scene routing payload-shape assertions, and expanded adapter/component malformed-input edge-case coverage.
+
+---
+name: Milestone 25 - Backend Test Cohesion and Signal Quality
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Split battle claim mega-test into focused concern tests
+  - Refactor lifecycle integration test into scenario-focused cases
+  - Strengthen backend contract tests beyond status-only checks
+description: |
+  Improve backend test diagnosability and value by splitting multi-concern tests
+  into focused scenarios and deepening assertions to validate response contracts,
+  not just status flags.
+Resolution: Split the monolithic battle/lifecycle integration coverage into focused suites with a shared battle fixture base and strengthened endpoint envelope contract assertions, with backend verification green.
+
+---
 name: Encounter Map Resolution and UX Hardening
 status: complete
 execution_window: open

@@ -1,19 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("phaser", () => {
-  class FakeScene {
-    cameras = { main: { centerX: 480, centerY: 270 } };
-    scale = { width: 960, height: 640 };
-    scene = { start: vi.fn() };
-  }
-  class Rectangle {
-    constructor(public x: number, public y: number, public width: number, public height: number) {}
-  }
-  return {
-    default: { Scene: FakeScene, Geom: { Rectangle } },
-    Scene: FakeScene,
-    Geom: { Rectangle },
-  };
+  return import("../utils/phaserSceneFixtures").then(({ buildPhaserMock }) =>
+    buildPhaserMock({ includeRectangle: true })
+  );
 });
 
 vi.mock("../../src/components/BackgroundImage", () => ({ default: class {} }));
@@ -22,9 +12,12 @@ vi.mock("../../src/components/HudPanel", () => ({ default: class {} }));
 vi.mock("../../src/components/layout/ContentAreaFrame", () => ({ default: class { setDepth() { return this; } } }));
 vi.mock("../../src/components/clickable-panel/UnifiedButtonList", () => ({ default: class {} }));
 vi.mock("../../src/components/feedback/ToastMessage", () => ({ default: class { destroy() {} } }));
+let confirmModalConfig: any;
 vi.mock("../../src/components/feedback/ConfirmModal", () => ({
   default: class {
-    constructor(_cfg: unknown) {}
+    constructor(cfg: unknown) {
+      confirmModalConfig = cfg;
+    }
     close() {}
   },
 }));
@@ -72,6 +65,7 @@ describe("MapExplorationScene transition guards", () => {
     nodeListCtor.mockReset();
     getCurrentRunMock.mockReset();
     abandonRunMock.mockReset();
+    confirmModalConfig = undefined;
   });
 
   it("does not construct NodeList when no active run exists", async () => {
@@ -161,44 +155,47 @@ describe("MapExplorationScene transition guards", () => {
   });
 
   it("shows fallback when current run request throws", async () => {
-    const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
-    getCurrentRunMock.mockRejectedValueOnce(new Error("contract drift"));
+    const cases: Array<{
+      label: string;
+      arrange: () => void;
+      expectedMessage: string;
+    }> = [
+      {
+        label: "request throws",
+        arrange: () => getCurrentRunMock.mockRejectedValueOnce(new Error("contract drift")),
+        expectedMessage: "Run data unavailable. Please retry.",
+      },
+      {
+        label: "error envelope",
+        arrange: () =>
+          getCurrentRunMock.mockResolvedValueOnce({
+            ok: false,
+            error: { code: "server_error", message: "Unexpected error." },
+          }),
+        expectedMessage: "Run unavailable: Unexpected error.",
+      },
+    ];
 
-    const scene = new MapExplorationScene() as any;
-    scene.add = makeSceneAdd();
+    for (const testCase of cases) {
+      nodeListCtor.mockReset();
+      getCurrentRunMock.mockReset();
+      testCase.arrange();
 
-    scene.create();
-    await flushSceneTasks();
+      const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
+      const scene = new MapExplorationScene() as any;
+      scene.add = makeSceneAdd();
 
-    expect(nodeListCtor).toHaveBeenCalledTimes(0);
-    expect(scene.add.text).toHaveBeenCalledWith(
-      expect.any(Number),
-      expect.any(Number),
-      "Run data unavailable. Please retry.",
-      expect.any(Object)
-    );
-  });
+      scene.create();
+      await flushSceneTasks();
 
-  it("shows fallback when API responds with error envelope", async () => {
-    const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
-    getCurrentRunMock.mockResolvedValueOnce({
-      ok: false,
-      error: { code: "server_error", message: "Unexpected error." },
-    });
-
-    const scene = new MapExplorationScene() as any;
-    scene.add = makeSceneAdd();
-
-    scene.create();
-    await flushSceneTasks();
-
-    expect(nodeListCtor).toHaveBeenCalledTimes(0);
-    expect(scene.add.text).toHaveBeenCalledWith(
-      expect.any(Number),
-      expect.any(Number),
-      "Run unavailable: Unexpected error.",
-      expect.any(Object)
-    );
+      expect(nodeListCtor, testCase.label).toHaveBeenCalledTimes(0);
+      expect(scene.add.text, testCase.label).toHaveBeenCalledWith(
+        expect.any(Number),
+        expect.any(Number),
+        testCase.expectedMessage,
+        expect.any(Object)
+      );
+    }
   });
 
   it("shows fallback when map node payload contains unsupported node states/types", async () => {
@@ -305,5 +302,34 @@ describe("MapExplorationScene transition guards", () => {
       "Node 'x9' is locked and cannot be selected.",
       expect.any(Object)
     );
+  });
+
+  it("uses abandon and stay labels in abandon confirmation", async () => {
+    const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");
+    const scene = new MapExplorationScene() as any;
+
+    scene.runEnvelope = {
+      ok: true,
+      data: {
+        run: {
+          run_id: "9",
+          region_id: "1",
+          seed: "s",
+          status: "active",
+          started_at: "2026-03-04T00:00:00Z",
+          ended_at: null,
+        },
+      },
+    };
+
+    await scene.confirmAbandonRun();
+
+    expect(confirmModalConfig).toMatchObject({
+      title: "ABANDON RUN?",
+      width: 640,
+      height: 320,
+      acceptLabel: "Abandon",
+      rejectLabel: "Stay",
+    });
   });
 });

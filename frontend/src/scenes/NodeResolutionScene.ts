@@ -175,7 +175,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       });
       if (!resolveRes.ok) {
         const reason = String(resolveRes.error.message ?? "Unknown error");
-        if (/no enemies/i.test(reason)) {
+        if (/no[\s_-]*enemies/i.test(reason)) {
           await this.handleNoEnemiesResolution(reason);
           return;
         }

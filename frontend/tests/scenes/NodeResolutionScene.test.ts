@@ -1,15 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("phaser", () => {
-  class FakeScene {
-    cameras = { main: { centerX: 480, centerY: 270 } };
-    scale = { width: 960, height: 640 };
-    scene = { start: vi.fn() };
-  }
-  return {
-    default: { Scene: FakeScene },
-    Scene: FakeScene,
-  };
+  return import("../utils/phaserSceneFixtures").then(({ buildPhaserMock }) => buildPhaserMock());
 });
 
 vi.mock("../../src/components/BackgroundImage", () => ({ default: class {} }));
@@ -73,6 +65,15 @@ function makeSceneAdd() {
   };
 }
 
+function expectObjectPayloadKeys(value: unknown, keys: string[]): void {
+  expect(value).toBeTypeOf("object");
+  expect(value).not.toBeNull();
+  const payload = value as Record<string, unknown>;
+  for (const key of keys) {
+    expect(payload).toHaveProperty(key);
+  }
+}
+
 async function flushSceneTasks(ticks = 5): Promise<void> {
   for (let i = 0; i < ticks; i += 1) {
     await Promise.resolve();
@@ -124,10 +125,11 @@ describe("NodeResolutionScene", () => {
     const action = MockActionButton.instances[0];
     expect(action?.label).toBe("Back to Map");
     action?.trigger();
-    expect(scene.scene.start).toHaveBeenCalledWith("MapExplorationScene", expect.objectContaining({
-      resolutionMessage: expect.stringContaining("Node n1 resolved (victory)."),
-      resolutionColor: "#ccffcc",
-    }));
+    expect(scene.scene.start).toHaveBeenCalledWith("MapExplorationScene", expect.any(Object));
+    const routePayload = scene.scene.start.mock.calls.at(-1)?.[1];
+    expectObjectPayloadKeys(routePayload, ["resolutionMessage", "resolutionColor"]);
+    expect((routePayload as Record<string, unknown>).resolutionMessage).toEqual(expect.stringContaining("Node n1 resolved (victory)."));
+    expect((routePayload as Record<string, unknown>).resolutionColor).toBe("#ccffcc");
   });
 
   it("routes resolved terminal nodes to run summary", async () => {
@@ -151,9 +153,10 @@ describe("NodeResolutionScene", () => {
     const action = MockActionButton.instances[0];
     expect(action?.label).toBe("Continue");
     action?.trigger();
-    expect(scene.scene.start).toHaveBeenCalledWith("RunEndSummaryScene", expect.objectContaining({
-      status: "failed",
-    }));
+    expect(scene.scene.start).toHaveBeenCalledWith("RunEndSummaryScene", expect.any(Object));
+    const summaryPayload = scene.scene.start.mock.calls.at(-1)?.[1];
+    expectObjectPayloadKeys(summaryPayload, ["status", "rewards", "progression", "survivors", "defeated"]);
+    expect((summaryPayload as Record<string, unknown>).status).toBe("failed");
   });
 
   it("handles exit resolution and routes to run summary", async () => {
@@ -174,8 +177,41 @@ describe("NodeResolutionScene", () => {
     const action = MockActionButton.instances[0];
     expect(action?.label).toBe("Continue");
     action?.trigger();
-    expect(scene.scene.start).toHaveBeenCalledWith("RunEndSummaryScene", expect.objectContaining({
-      status: "completed",
-    }));
+    expect(scene.scene.start).toHaveBeenCalledWith("RunEndSummaryScene", expect.any(Object));
+    const summaryPayload = scene.scene.start.mock.calls.at(-1)?.[1];
+    expectObjectPayloadKeys(summaryPayload, ["status", "rewards", "progression", "survivors", "defeated"]);
+    expect((summaryPayload as Record<string, unknown>).status).toBe("completed");
+  });
+
+  it("marks no-enemies resolution and routes back to map with reason", async () => {
+    const { default: NodeResolutionScene } = await import("../../src/scenes/NodeResolutionScene");
+    resolveRunNodeMock.mockResolvedValueOnce({
+      ok: false,
+      error: { message: "combat_no_enemies" },
+    });
+    getCurrentRunMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        run: { run_id: "run-4" },
+        map: {
+          nodes: [{ id: "n10", status: "cleared" }],
+        },
+      },
+    });
+
+    const scene = new NodeResolutionScene() as any;
+    scene.add = makeSceneAdd();
+    scene.init({ runId: "run-4", nodeId: "n10", nodeType: "combat" });
+
+    scene.create();
+    await flushSceneTasks();
+
+    const action = MockActionButton.instances[0];
+    expect(action?.label).toBe("Back to Map");
+    action?.trigger();
+    expect(scene.scene.start).toHaveBeenCalledWith("MapExplorationScene", {
+      resolutionMessage: "Node n10 resolved: combat_no_enemies",
+      resolutionColor: "#ffd89e",
+    });
   });
 });
