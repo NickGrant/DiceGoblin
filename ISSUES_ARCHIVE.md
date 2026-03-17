@@ -2804,3 +2804,13 @@ ready: yes
 milestone: Milestone 28 - UAT Dialog and Interaction Hardening
 description: Fix frontend contract validation for `/api/v1/runs/current` so valid backend timestamps in `YYYY-MM-DD HH:MM:SS` format do not trigger "Run data unavailable" fallback.
 resolution: Updated `validateCurrentRunResponse` to accept SQL datetime (`YYYY-MM-DD HH:MM:SS`) in run timestamps in addition to ISO-8601 UTC, and added regression coverage for this payload format.
+
+---
+title: Prevent resolve-node hang after retrying lost encounter
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Fix run flow so clicking a previously lost encounter node again does not hang on "Resolving node" and always returns a resolved-state UX path.
+resolution: Added request timeout protection and explicit retry-state recovery in `NodeResolutionScene` so unresolved resolve/refresh calls transition from "Resolving..." to a retry action instead of remaining stuck.

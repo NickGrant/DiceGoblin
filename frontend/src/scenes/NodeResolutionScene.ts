@@ -19,6 +19,7 @@ import {
 const ACTION_BODY_TOP_OFFSET = 72;
 const CONTENT_BODY_TOP_OFFSET = 74;
 const CONTENT_BODY_BOTTOM_PADDING = 22;
+const RESOLVE_TIMEOUT_MS = 12_000;
 
 type NodeResolutionSceneData = {
   runId?: string;
@@ -37,6 +38,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
   private statusText?: Phaser.GameObjects.Text;
   private detailText?: Phaser.GameObjects.Text;
   private errorText?: Phaser.GameObjects.Text;
+  private resolveTimeoutMs = RESOLVE_TIMEOUT_MS;
 
   constructor() {
     super({ key: "NodeResolutionScene" });
@@ -130,6 +132,9 @@ export default class NodeResolutionScene extends Phaser.Scene {
     }
     this.hasResolved = true;
     this.clearError();
+    this.configureButton("Resolving...", false, () => {
+      // Intentionally disabled during active resolve.
+    });
 
     try {
       if (this.nodeType === "exit") {
@@ -166,7 +171,15 @@ export default class NodeResolutionScene extends Phaser.Scene {
         return;
       }
 
-      const resolveRes = await apiClient.resolveRunNode(this.runId, this.nodeId).catch(() => {
+      const resolveRes = await this.withTimeout(
+        apiClient.resolveRunNode(this.runId, this.nodeId),
+        this.resolveTimeoutMs,
+        "resolve-node"
+      ).catch((error: unknown) => {
+        const message = (error as Error)?.message ?? "";
+        if (/timeout/i.test(message)) {
+          throw error;
+        }
         const debugConfig = getDebugSceneConfig();
         if (!debugConfig.enabled) {
           throw new Error("Failed to resolve");
@@ -199,7 +212,11 @@ export default class NodeResolutionScene extends Phaser.Scene {
         ...battleLogLines,
       ].join("\n"));
 
-      const refreshed = await apiClient.getCurrentRun();
+      const refreshed = await this.withTimeout(
+        apiClient.getCurrentRun(),
+        this.resolveTimeoutMs,
+        "refresh-current-run"
+      );
       if (refreshed.ok && refreshed.data.run === null) {
         const status = deriveSummaryStatus({
           nodeType: this.nodeType,
@@ -225,11 +242,39 @@ export default class NodeResolutionScene extends Phaser.Scene {
         });
       });
       markDebugSceneReady(this, { state: "resolved", outcome });
-    } catch {
-      this.showError("Node resolution unavailable. Please retry.");
-      this.configureButton("Back to Map", true, () => this.returnToMap());
+    } catch (error) {
+      const message = (error as Error)?.message ?? "";
+      const timedOut = /timeout/i.test(message);
+      this.hasResolved = false;
+      if (timedOut) {
+        this.showError("Resolution timed out. Retry or return to map.");
+        this.configureButton("Retry Resolve", true, () => {
+          this.hasResolved = false;
+          void this.resolveNode();
+        });
+      } else {
+        this.showError("Node resolution unavailable. Please retry.");
+        this.configureButton("Back to Map", true, () => this.returnToMap());
+      }
       markDebugSceneReady(this, { state: "error" });
     }
+  }
+
+  private withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`${label} timeout`));
+      }, timeoutMs);
+      promise
+        .then((value) => {
+          clearTimeout(timer);
+          resolve(value);
+        })
+        .catch((error: unknown) => {
+          clearTimeout(timer);
+          reject(error);
+        });
+    });
   }
 
   private async handleNoEnemiesResolution(reason: string): Promise<void> {

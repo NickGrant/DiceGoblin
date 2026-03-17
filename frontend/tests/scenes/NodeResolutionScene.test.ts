@@ -214,4 +214,21 @@ describe("NodeResolutionScene", () => {
       resolutionColor: "#ffd89e",
     });
   });
+
+  it("recovers from resolve timeout without leaving the action button stuck", async () => {
+    const { default: NodeResolutionScene } = await import("../../src/scenes/NodeResolutionScene");
+    resolveRunNodeMock.mockImplementationOnce(() => new Promise(() => {}));
+
+    const scene = new NodeResolutionScene() as any;
+    scene.add = makeSceneAdd();
+    scene.init({ runId: "run-5", nodeId: "n11", nodeType: "combat" });
+    scene.resolveTimeoutMs = 5;
+
+    scene.create();
+    await new Promise((resolve) => setTimeout(resolve, 25));
+
+    const action = MockActionButton.instances[0];
+    expect(action?.label).toBe("Retry Resolve");
+    expect(action?.enabled).toBe(true);
+  });
 });
