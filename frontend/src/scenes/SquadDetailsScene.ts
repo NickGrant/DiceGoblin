@@ -13,6 +13,7 @@ import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 import InputModal from "../components/feedback/InputModal";
+import ConfirmModal from "../components/feedback/ConfirmModal";
 import {
   SQUAD_NAME_ALLOWED_CHARACTER_PATTERN,
   normalizeNewSquadName,
@@ -62,6 +63,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
   private saveButton?: SharedActionButton;
   private activateButton?: SharedActionButton;
   private renameDialog?: InputModal;
+  private deleteDialog?: ConfirmModal;
 
   constructor() {
     super({ key: "SquadDetailsScene" });
@@ -405,16 +407,34 @@ export default class SquadDetailsScene extends Phaser.Scene {
       this.showToast("Cannot delete this squad in current state.");
       return;
     }
-    const confirm = window.confirm(`Delete squad '${this.squad.name}'?`);
-    if (!confirm) return;
+    if (this.deleteDialog) return;
 
-    const res = await apiClient.deleteTeam(this.squad.id);
-    if (!res.ok) {
-      this.showToast(`Delete failed: ${res.error.message}`);
-      return;
-    }
-    this.showToast("Squad deleted.", "#ccffcc");
-    this.scene.start("WarbandManagementScene");
+    const squadId = this.squad.id;
+    const squadName = this.squad.name;
+    this.deleteDialog = new ConfirmModal({
+      scene: this,
+      title: "DELETE SQUAD?",
+      message: `Delete squad '${squadName}'? This cannot be undone.`,
+      acceptLabel: "Delete",
+      rejectLabel: "Cancel",
+      width: 620,
+      height: 320,
+      onReject: () => {
+        this.deleteDialog = undefined;
+      },
+      onAccept: async () => {
+        this.deleteDialog?.close();
+        this.deleteDialog = undefined;
+
+        const res = await apiClient.deleteTeam(squadId);
+        if (!res.ok) {
+          this.showToast(`Delete failed: ${res.error.message}`);
+          return;
+        }
+        this.showToast("Squad deleted.", "#ccffcc");
+        this.scene.start("WarbandManagementScene");
+      },
+    });
   }
 
   private showToast(message: string, color = "#ffcccc"): void {

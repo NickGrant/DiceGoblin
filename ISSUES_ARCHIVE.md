@@ -2704,3 +2704,13 @@ updated: 2026-03-07
 description: |
   Extend combat unit tests beyond handler registry coverage to assert per-ability gameplay effects (damage/buffs/debuffs/targeting semantics) for canonical active and passive handlers.
 Resolution: Added `AbilityHandlerEffectsTest` with active handler interaction assertions (targeting/damage/status calls) and passive derived-stat mutation assertions, and made `CombatContext` extendable for test spies.
+
+---
+title: Replace Delete Squad native confirm with shared modal controls
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Replace the squad deletion browser confirm flow with in-game shared modal and button primitives, and validate this UAT lane as part of replacing remaining JavaScript-native dialogs.
+resolution: Replaced `window.confirm` in `SquadDetailsScene` with a shared `ConfirmModal` using in-game button variants (`Delete`/`Cancel`) so the delete-squad flow no longer uses browser-native dialogs.
