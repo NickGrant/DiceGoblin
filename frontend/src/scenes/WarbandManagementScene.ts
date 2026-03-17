@@ -11,7 +11,7 @@ import type { TeamRecord, UnitRecord } from "../types/ApiResponse";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
-import ConfirmationDialog from "../components/feedback/ConfirmationDialog";
+import InputModal from "../components/feedback/InputModal";
 import {
   computeWarbandColumns,
   deriveWarbandHubState,
@@ -36,7 +36,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   private unitPanel?: UnitCardGrid;
   private squadPanel?: SquadListPanel;
-  private createSquadDialog?: ConfirmationDialog;
+  private createSquadDialog?: InputModal;
 
   constructor() {
     super({ key: "WarbandManagementScene" });
@@ -197,7 +197,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
     if (this.createSquadDialog) return;
     let enteredName = "New Squad";
 
-    this.createSquadDialog = new ConfirmationDialog({
+    this.createSquadDialog = new InputModal({
       scene: this,
       title: "CREATE NEW SQUAD?",
       message: "Enter a squad name and confirm.",

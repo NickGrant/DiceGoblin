@@ -22,7 +22,7 @@ vi.mock("../../src/components/HudPanel", () => ({ default: class {} }));
 vi.mock("../../src/components/layout/ContentAreaFrame", () => ({ default: class { setDepth() { return this; } } }));
 vi.mock("../../src/components/clickable-panel/ActionButtonList", () => ({ default: class {} }));
 vi.mock("../../src/components/feedback/ToastMessage", () => ({ default: class { destroy() {} } }));
-vi.mock("../../src/components/feedback/ConfirmationDialog", () => ({
+vi.mock("../../src/components/feedback/ConfirmModal", () => ({
   default: class {
     constructor(_cfg: unknown) {}
     close() {}

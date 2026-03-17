@@ -38,7 +38,7 @@ vi.mock("../../src/components/HudPanel", () => ({ default: class {} }));
 vi.mock("../../src/components/UnitCardGrid", () => ({ default: class { destroy() {} } }));
 vi.mock("../../src/components/SquadListPanel", () => ({ default: class { destroy() {} } }));
 vi.mock("../../src/components/clickable-panel/ActionButtonList", () => ({ default: class {} }));
-vi.mock("../../src/components/feedback/ConfirmationDialog", () => ({
+vi.mock("../../src/components/feedback/InputModal", () => ({
   default: class {
     constructor(cfg: unknown) {
       lastDialogConfig = cfg;

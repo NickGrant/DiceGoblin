@@ -11,7 +11,7 @@ import { apiClient } from "../services/apiClient";
 import type { CurrentRunNode, RunResponse } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
 import { isNodeResolutionType } from "./nodeResolutionFlow";
-import ConfirmationDialog from "../components/feedback/ConfirmationDialog";
+import ConfirmModal from "../components/feedback/ConfirmModal";
 import ToastMessage from "../components/feedback/ToastMessage";
 
 const ACTION_BODY_TOP_OFFSET = 72;
@@ -25,7 +25,7 @@ export default class MapExplorationScene extends Phaser.Scene {
   private fallbackText?: Phaser.GameObjects.Text;
   private toast?: ToastMessage;
   private nodeList?: NodeList;
-  private abandonDialog?: ConfirmationDialog;
+  private abandonDialog?: ConfirmModal;
   private incomingResolutionMessage = "";
   private incomingResolutionColor = "#ffd89e";
 
@@ -206,7 +206,7 @@ export default class MapExplorationScene extends Phaser.Scene {
   }
 
   private showAbandonDialog(): void {
-    this.abandonDialog = new ConfirmationDialog({
+    this.abandonDialog = new ConfirmModal({
       scene: this,
       title: "ABANDON RUN?",
       message: "This will end the current run immediately.",

@@ -12,7 +12,7 @@ import type { TeamRecord, UnitRecord, TeamFormationCell } from "../types/ApiResp
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
-import ConfirmationDialog from "../components/feedback/ConfirmationDialog";
+import InputModal from "../components/feedback/InputModal";
 import {
   SQUAD_NAME_ALLOWED_CHARACTER_PATTERN,
   normalizeNewSquadName,
@@ -61,7 +61,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
   private clearButton?: ActionButton;
   private saveButton?: ActionButton;
   private activateButton?: ActionButton;
-  private renameDialog?: ConfirmationDialog;
+  private renameDialog?: InputModal;
 
   constructor() {
     super({ key: "SquadDetailsScene" });
@@ -347,7 +347,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     if (this.renameDialog) return;
     let enteredName = this.squad.name;
 
-    this.renameDialog = new ConfirmationDialog({
+    this.renameDialog = new InputModal({
       scene: this,
       title: "RENAME SQUAD",
       message: "Enter a new squad name.",
