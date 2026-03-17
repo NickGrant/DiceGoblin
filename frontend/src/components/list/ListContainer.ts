@@ -6,6 +6,7 @@ import {
   type ListLoadState,
   type PaginationResult,
 } from "./listState";
+import { resolveListContentLayout } from "./listContainerLayout";
 
 export type ListRenderPayload<T> = {
   scene: Phaser.Scene;
@@ -14,6 +15,7 @@ export type ListRenderPayload<T> = {
   contentX: number;
   contentY: number;
   contentWidth: number;
+  contentHeight: number;
   onSelect?: (item: T) => void;
 };
 
@@ -29,13 +31,17 @@ export type ListContainerConfig<T> = {
   pageSize?: number;
   pageIndex?: number;
   renderItems: (payload: ListRenderPayload<T>) => Phaser.GameObjects.GameObject[];
+  getPageSize?: (params: { contentWidth: number; contentHeight: number }) => number;
   onSelect?: (item: T) => void;
   onRetry?: () => void;
   emptyMessage?: string;
+  title?: string;
 };
 
 const PAD = 12;
-const PAGINATION_HEIGHT = 28;
+const TITLE_HEIGHT = 24;
+const CONTENT_GAP = 8;
+const PAGINATION_HEIGHT = 22;
 
 export default class ListContainer<T> extends Phaser.GameObjects.Container {
   private readonly cfg: ListContainerConfig<T>;
@@ -44,6 +50,7 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
   private prevText?: Phaser.GameObjects.Text;
   private nextText?: Phaser.GameObjects.Text;
   private pageText?: Phaser.GameObjects.Text;
+  private titleText?: Phaser.GameObjects.Text;
   private dynamicChildren: Phaser.GameObjects.GameObject[] = [];
 
   constructor(cfg: ListContainerConfig<T>) {
@@ -62,7 +69,7 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
     pageIndex?: number;
     pageSize?: number;
   }): this {
-    if (params.items) this.cfg.items = params.items;
+    if (params.items !== undefined) this.cfg.items = params.items;
     if (params.loadState) this.cfg.loadState = params.loadState;
     if (typeof params.errorMessage === "string") this.cfg.errorMessage = params.errorMessage;
     if (typeof params.pageIndex === "number") this.pageIndex = Math.max(0, params.pageIndex);
@@ -74,19 +81,40 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
   private render(): void {
     this.clearDynamic();
     this.removePagination();
+    this.removeTitle();
+
+    const hasTitle = (this.cfg.title ?? "").trim().length > 0;
+    if (hasTitle) {
+      this.titleText = this.cfg.scene.add.text(PAD, PAD - 2, this.cfg.title ?? "", {
+        ...TEXT_LIST_META,
+        color: UI_TEXT_COLORS.onDarkHigh,
+        fontSize: "16px",
+      }).setOrigin(0, 0);
+      this.add(this.titleText);
+    }
+
+    const { contentX, contentY, contentWidth, contentHeight } = resolveListContentLayout({
+      width: this.cfg.width,
+      height: this.cfg.height,
+      hasTitle,
+    });
+
+    if (this.cfg.getPageSize) {
+      this.pageSize = Math.max(1, this.cfg.getPageSize({ contentWidth, contentHeight }));
+    }
 
     const state = deriveListState(this.cfg.loadState, this.cfg.items.length);
     if (state === "loading") {
-      this.renderMessage("Loading...");
+      this.renderMessage("Loading...", contentX, contentY, contentWidth);
       return;
     }
     if (state === "error") {
-      this.renderMessage(this.cfg.errorMessage ?? "Unable to load list.");
-      if (this.cfg.onRetry) this.renderRetry();
+      this.renderMessage(this.cfg.errorMessage ?? "Unable to load list.", contentX, contentY, contentWidth);
+      if (this.cfg.onRetry) this.renderRetry(contentX, contentY);
       return;
     }
     if (state === "empty") {
-      this.renderMessage(this.cfg.emptyMessage ?? "No items found.");
+      this.renderMessage(this.cfg.emptyMessage ?? "No items found.", contentX, contentY, contentWidth);
       return;
     }
 
@@ -97,14 +125,14 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
     this.pageIndex = pagination.pageIndex;
 
     const visible = this.cfg.items.slice(pagination.start, pagination.end);
-    const contentWidth = Math.max(0, this.cfg.width - PAD * 2);
     const rendered = this.cfg.renderItems({
       scene: this.cfg.scene,
       parent: this as Phaser.GameObjects.Container,
       items: visible,
-      contentX: PAD,
-      contentY: PAD,
+      contentX,
+      contentY,
       contentWidth,
+      contentHeight,
       onSelect: this.cfg.onSelect,
     });
     this.dynamicChildren.push(...rendered);
@@ -114,18 +142,18 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
     }
   }
 
-  private renderMessage(text: string): void {
-    const message = this.cfg.scene.add.text(PAD, PAD, text, {
+  private renderMessage(text: string, x: number, y: number, width: number): void {
+    const message = this.cfg.scene.add.text(x, y, text, {
       ...TEXT_LIST_MESSAGE,
-      wordWrap: { width: Math.max(0, this.cfg.width - PAD * 2) },
+      wordWrap: { width: Math.max(0, width) },
     });
     this.dynamicChildren.push(message);
     this.add(message);
   }
 
-  private renderRetry(): void {
+  private renderRetry(x: number, y: number): void {
     const retry = this.cfg.scene.add
-      .text(PAD, PAD + 30, "Retry", {
+      .text(x, y + 30, "Retry", {
         ...TEXT_LIST_ACTION,
       })
       .setInteractive({ useHandCursor: true });
@@ -135,7 +163,7 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
   }
 
   private renderPagination(pagination: PaginationResult): void {
-    const y = this.cfg.height - PAGINATION_HEIGHT;
+    const y = this.cfg.height - PAGINATION_HEIGHT - PAD;
     this.prevText = this.cfg.scene.add
       .text(PAD, y, "< Prev", {
         ...TEXT_LIST_META,
@@ -173,6 +201,11 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
     this.prevText = undefined;
     this.nextText = undefined;
     this.pageText = undefined;
+  }
+
+  private removeTitle(): void {
+    this.titleText?.destroy();
+    this.titleText = undefined;
   }
 
   private clearDynamic(): void {

@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import type { TeamRecord } from "../types/ApiResponse";
+import SharedActionButton from "./clickable-panel/SharedActionButton";
 import UnifiedButtonList from "./clickable-panel/UnifiedButtonList";
+import ListContainer from "./list/ListContainer";
 
 type SquadListPanelConfig = {
   scene: Phaser.Scene;
@@ -16,128 +18,90 @@ type SquadListPanelConfig = {
 };
 
 export default class SquadListPanel extends Phaser.GameObjects.Container {
-  private static readonly BUTTON_WIDTH = 280;
-  private readonly cfg: SquadListPanelConfig;
-  private readonly hasTitle: boolean;
+  private static readonly METAL_BUTTON_METRICS = SharedActionButton.getVariantMetrics("metal");
+  private readonly sceneRef: Phaser.Scene;
   private readonly panelWidth: number;
   private readonly panelHeight: number;
+  private readonly title: string;
+  private readonly onSquadClick: (squad: TeamRecord) => void;
+  private squads: TeamRecord[];
+  private readonly maxVisibleSquads?: number;
   private readonly buttonGapY: number;
-  private readonly pageSize: number;
   private pageIndex = 0;
-  private buttonList?: UnifiedButtonList;
-  private prevPageText?: Phaser.GameObjects.Text;
-  private nextPageText?: Phaser.GameObjects.Text;
-  private pageLabelText?: Phaser.GameObjects.Text;
+  private listContainer: ListContainer<TeamRecord>;
 
   constructor(cfg: SquadListPanelConfig) {
     super(cfg.scene, cfg.x, cfg.y);
-    this.cfg = cfg;
-    this.hasTitle = (cfg.title ?? "").trim().length > 0;
+
+    this.sceneRef = cfg.scene;
     this.panelWidth = cfg.width;
     this.panelHeight = cfg.height;
+    this.title = cfg.title ?? "";
+    this.onSquadClick = cfg.onSquadClick;
+    this.squads = cfg.squads;
+    this.maxVisibleSquads = cfg.maxVisibleSquads;
     this.buttonGapY = Math.max(0, cfg.buttonGapY ?? 8);
 
-    if (cfg.maxVisibleSquads && cfg.maxVisibleSquads > 0) {
-      this.pageSize = Math.max(1, cfg.maxVisibleSquads);
-    } else {
-      const titleOffset = this.hasTitle ? 24 : 0;
-      const pagerTopOffset = 30;
-      const availableHeight = Math.max(64, this.panelHeight - titleOffset - pagerTopOffset);
-      const rowHeight = 64 + this.buttonGapY;
-      this.pageSize = Math.max(1, Math.floor((availableHeight + this.buttonGapY) / rowHeight));
-    }
+    this.listContainer = new ListContainer<TeamRecord>({
+      scene: this.sceneRef,
+      x: 0,
+      y: 0,
+      width: this.panelWidth,
+      height: this.panelHeight,
+      title: this.title,
+      items: this.squads,
+      loadState: "ready",
+      pageIndex: this.pageIndex,
+      renderItems: ({ scene, parent, items, contentX, contentY, contentWidth }) => {
+        const buttonListX = contentX + Math.max(
+          0,
+          Math.floor((contentWidth - SquadListPanel.METAL_BUTTON_METRICS.listWidth) / 2),
+        );
 
-    if (this.hasTitle) {
-      const title = cfg.scene
-        .add.text(0, 0, cfg.title ?? "", {
-          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-          fontSize: "16px",
-          color: "#ffffff",
-        })
-        .setOrigin(0, 0);
-      this.add(title);
-    }
+        const buttonList = new UnifiedButtonList({
+          scene,
+          x: buttonListX,
+          y: contentY,
+          gapY: this.buttonGapY,
+          defaultVariant: "metal",
+          buttons: items.map((squad) => ({
+            label: squad.is_active ? `${squad.name} [ACTIVE]` : squad.name,
+            onClick: () => this.onSquadClick(squad),
+          })),
+        });
 
-    const pagerY = this.panelHeight - 22;
-    this.prevPageText = cfg.scene
-      .add.text(0, pagerY, "< Prev", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "13px",
-        color: "#d6d6d6",
-      })
-      .setOrigin(0, 0)
-      .setInteractive({ useHandCursor: true });
+        parent.add(buttonList);
+        return [buttonList];
+      },
+      getPageSize: ({ contentHeight }) => {
+        if (this.maxVisibleSquads && this.maxVisibleSquads > 0) {
+          return this.maxVisibleSquads;
+        }
 
-    this.pageLabelText = cfg.scene
-      .add.text(this.panelWidth / 2, pagerY, "Page 1/1", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "13px",
-        color: "#cfcfcf",
-      })
-      .setOrigin(0.5, 0);
+        const rowHeight = SquadListPanel.METAL_BUTTON_METRICS.listRowHeight;
+        return Math.max(1, Math.floor((contentHeight + this.buttonGapY) / (rowHeight + this.buttonGapY)));
+      },
+      emptyMessage: "No squads found.",
+    });
 
-    this.nextPageText = cfg.scene
-      .add.text(this.panelWidth, pagerY, "Next >", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "13px",
-        color: "#d6d6d6",
-      })
-      .setOrigin(1, 0)
-      .setInteractive({ useHandCursor: true });
-
-    this.prevPageText.on("pointerdown", () => this.setPage(this.pageIndex - 1));
-    this.nextPageText.on("pointerdown", () => this.setPage(this.pageIndex + 1));
-
-    this.add([this.prevPageText, this.pageLabelText, this.nextPageText]);
-    this.renderPage();
+    this.add(this.listContainer);
 
     cfg.scene.add.existing(this);
   }
 
   public setSquads(squads: TeamRecord[]): this {
-    this.cfg.squads = squads;
+    this.squads = squads;
     this.pageIndex = 0;
-    this.renderPage();
+    this.syncList();
     return this;
   }
 
-  private setPage(pageIndex: number): void {
-    const totalPages = Math.max(1, Math.ceil(this.cfg.squads.length / this.pageSize));
-    this.pageIndex = Phaser.Math.Clamp(pageIndex, 0, totalPages - 1);
-    this.renderPage();
-  }
-
-  private renderPage(): void {
-    this.buttonList?.destroy();
-
-    const totalPages = Math.max(1, Math.ceil(this.cfg.squads.length / this.pageSize));
-    const start = this.pageIndex * this.pageSize;
-    const visibleSquads = this.cfg.squads.slice(start, start + this.pageSize);
-
-    const titleOffset = this.hasTitle ? 24 : 0;
-    const buttonListY = this.cfg.y + titleOffset;
-    const buttonListX = this.cfg.x + Math.max(0, Math.floor((this.panelWidth - SquadListPanel.BUTTON_WIDTH) / 2));
-
-    this.buttonList = new UnifiedButtonList({
-      scene: this.cfg.scene,
-      x: buttonListX,
-      y: buttonListY,
-      gapY: this.buttonGapY,
-      defaultVariant: "metal",
-      buttons: visibleSquads.map((squad) => ({
-        label: squad.is_active ? `${squad.name} [ACTIVE]` : squad.name,
-        onClick: () => this.cfg.onSquadClick(squad),
-      })),
+  private syncList(): void {
+    this.listContainer.updateState({
+      items: this.squads,
+      loadState: "ready",
+      pageIndex: this.pageIndex,
     });
-
-    const canPage = this.cfg.squads.length > this.pageSize;
-    const prevEnabled = canPage && this.pageIndex > 0;
-    const nextEnabled = canPage && this.pageIndex < totalPages - 1;
-
-    this.prevPageText?.setAlpha(prevEnabled ? 1 : 0.35);
-    this.nextPageText?.setAlpha(nextEnabled ? 1 : 0.35);
-    this.pageLabelText?.setAlpha(canPage ? 1 : 0.55);
-    this.pageLabelText?.setText(`Page ${this.pageIndex + 1}/${totalPages}`);
   }
 }
 

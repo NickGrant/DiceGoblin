@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { computeGridVisibleCapacity } from "./gridListMath";
 
 export type GridCardRenderer<T> = (params: {
   scene: Phaser.Scene;
@@ -22,6 +23,7 @@ export type GridListVariantConfig<T> = {
   x: number;
   y: number;
   width: number;
+  height?: number;
   items: GridListItem<T>[];
   columns?: number;
   gapX?: number;
@@ -32,6 +34,21 @@ export type GridListVariantConfig<T> = {
 };
 
 export default class GridListVariant<T> extends Phaser.GameObjects.Container {
+  public static computeVisibleCapacity(params: {
+    width: number;
+    height: number;
+    columns?: number;
+    gapY?: number;
+    cardHeight: number;
+  }): number {
+    return computeGridVisibleCapacity({
+      height: params.height,
+      columns: params.columns,
+      gapY: params.gapY,
+      cardHeight: params.cardHeight,
+    });
+  }
+
   constructor(cfg: GridListVariantConfig<T>) {
     super(cfg.scene, cfg.x, cfg.y);
 
@@ -40,9 +57,20 @@ export default class GridListVariant<T> extends Phaser.GameObjects.Container {
     const gapY = cfg.gapY ?? 10;
     const cardW = Math.floor((cfg.width - gapX * (columns - 1)) / columns);
     const cardH = cfg.cardHeight ?? cardW;
+    const visibleCapacity = typeof cfg.height === "number"
+      ? GridListVariant.computeVisibleCapacity({
+        width: cfg.width,
+        height: cfg.height,
+        columns,
+        gapY,
+        cardHeight: cardH,
+      })
+      : cfg.items.length;
 
-    for (let i = 0; i < cfg.items.length; i += 1) {
-      const row = cfg.items[i];
+    const visibleItems = cfg.items.slice(0, Math.max(0, visibleCapacity));
+
+    for (let i = 0; i < visibleItems.length; i += 1) {
+      const row = visibleItems[i];
       if (!row) continue;
       const col = i % columns;
       const line = Math.floor(i / columns);
@@ -72,6 +100,10 @@ export default class GridListVariant<T> extends Phaser.GameObjects.Container {
       }
       this.add(hit);
     }
+
+    const renderedRows = Math.max(1, Math.ceil(visibleItems.length / columns));
+    const renderedHeight = renderedRows * cardH + Math.max(0, renderedRows - 1) * gapY;
+    this.setSize(cfg.width, renderedHeight);
 
     cfg.scene.add.existing(this);
   }
