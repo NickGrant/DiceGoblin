@@ -2814,3 +2814,23 @@ ready: yes
 milestone: Milestone 28 - UAT Dialog and Interaction Hardening
 description: Fix run flow so clicking a previously lost encounter node again does not hang on "Resolving node" and always returns a resolved-state UX path.
 resolution: Added request timeout protection and explicit retry-state recovery in `NodeResolutionScene` so unresolved resolve/refresh calls transition from "Resolving..." to a retry action instead of remaining stuck.
+
+---
+title: Enrich battle event log with action outcomes
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Expand event log payload and presentation to include outcome details such as damage dealt, statuses applied, and other action results.
+resolution: Extended deterministic resolver action events with `damage`, `target_hp_after`, `outcome`, and `status_applied` fields and updated frontend log formatting to render these outcomes explicitly.
+
+---
+title: Expose complete resolve-node events in frontend
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Ensure resolve-node UI renders all available event entries and fields (unit, ability, and outcome) without dropping intermediate events.
+resolution: Updated `formatBattleLogSummary` to iterate all events (no truncation) and emit structured lines containing side, actor, target, ability, and outcome fields for every action event.

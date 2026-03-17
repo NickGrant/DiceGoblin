@@ -60,15 +60,66 @@ export function formatBattleLogSummary(
     return lines;
   }
 
-  for (const event of events.slice(0, 8)) {
-    const type = typeof event.type === "string" ? event.type : "event";
-    lines.push(`- ${type}`);
-  }
-  if (events.length > 8) {
-    lines.push(`...and ${events.length - 8} more.`);
+  for (const event of events) {
+    lines.push(`- ${formatBattleEventLine(event)}`);
   }
 
   return lines;
+}
+
+function formatBattleEventLine(event: Record<string, unknown>): string {
+  const type = typeof event.type === "string" ? event.type : "event";
+  const round = typeof event.round === "number" ? event.round : null;
+  const tick = typeof event.tick === "number" ? event.tick : null;
+  const prefix = `${type}${round !== null ? ` r${round}` : ""}${tick !== null ? ` t${tick}` : ""}`;
+
+  if (type === "action") {
+    const side = typeof event.side === "string" ? event.side : "unknown";
+    const actor = typeof event.actor_unit_instance_id === "string"
+      ? `unit ${event.actor_unit_instance_id}`
+      : typeof event.actor_enemy_slug === "string"
+        ? `enemy ${event.actor_enemy_slug}`
+        : "unknown actor";
+    const target = typeof event.target_unit_instance_id === "string"
+      ? `unit ${event.target_unit_instance_id}`
+      : typeof event.target_enemy_slug === "string"
+        ? `enemy ${event.target_enemy_slug}`
+        : "unknown target";
+    const ability = typeof event.ability_id === "string" ? event.ability_id : "unknown_ability";
+    const damage = typeof event.damage === "number" ? event.damage : null;
+    const outcome = typeof event.outcome === "string" ? event.outcome : null;
+    const status = typeof event.status_applied === "string" ? event.status_applied : null;
+    const hpAfter = typeof event.target_hp_after === "number" ? event.target_hp_after : null;
+
+    const parts = [
+      `${prefix}: [${side}] ${actor} -> ${target}`,
+      `ability=${ability}`,
+    ];
+    if (damage !== null) parts.push(`damage=${damage}`);
+    if (outcome) parts.push(`outcome=${outcome}`);
+    if (hpAfter !== null) parts.push(`hp_after=${hpAfter}`);
+    if (status) parts.push(`status=${status}`);
+    return parts.join(" | ");
+  }
+
+  if (type === "battle_end") {
+    const outcome = typeof event.outcome === "string" ? event.outcome : "unknown";
+    return `${prefix}: outcome=${outcome}`;
+  }
+
+  if (type === "battle_start") {
+    const playerCount = typeof event.player_unit_count === "number" ? event.player_unit_count : "?";
+    const enemyCount = typeof event.enemy_unit_count === "number" ? event.enemy_unit_count : "?";
+    return `${prefix}: player_units=${playerCount}, enemy_units=${enemyCount}`;
+  }
+
+  if (type === "phase_start") {
+    const phase = typeof event.phase === "string" ? event.phase : "phase";
+    return `${prefix}: ${phase}`;
+  }
+
+  const message = typeof event.message === "string" ? event.message : null;
+  return message ? `${prefix}: ${message}` : prefix;
 }
 
 

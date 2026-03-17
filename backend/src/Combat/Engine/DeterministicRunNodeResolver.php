@@ -358,6 +358,14 @@ final class DeterministicRunNodeResolver
     }
 
     $state = $rngState;
+    $playerHp = [];
+    foreach ($playerUnits as $unit) {
+      $playerHp[(string)$unit['id']] = (int)$unit['max_hp'];
+    }
+    $enemyHp = [];
+    foreach ($enemyUnits as $unit) {
+      $enemyHp[(string)$unit['id']] = (int)$unit['max_hp'];
+    }
 
     for ($round = 1; $round <= $rounds; $round++) {
       $roundStartTick = (($round - 1) * $ticksPerRound) + 1;
@@ -380,7 +388,16 @@ final class DeterministicRunNodeResolver
         'actor_unit_instance_id' => (string)$playerActor['id'],
         'target_enemy_slug' => (string)$enemyTarget['id'],
         'ability_id' => $playerAbility,
+        ...$this->deriveActionOutcome(
+          $state,
+          (int)$playerActor['attack'],
+          (int)$enemyTarget['defense'],
+          (int)($enemyHp[(string)$enemyTarget['id']] ?? (int)$enemyTarget['max_hp']),
+          $playerAbility
+        ),
       ];
+      $enemyTargetId = (string)$enemyTarget['id'];
+      $enemyHp[$enemyTargetId] = (int)($events[array_key_last($events)]['target_hp_after'] ?? $enemyHp[$enemyTargetId]);
 
       $enemyActor = $enemyUnits[$this->nextInt($state, count($enemyUnits))];
       $playerTarget = $playerUnits[$this->nextInt($state, count($playerUnits))];
@@ -394,10 +411,64 @@ final class DeterministicRunNodeResolver
         'actor_enemy_slug' => (string)$enemyActor['id'],
         'target_unit_instance_id' => (string)$playerTarget['id'],
         'ability_id' => $enemyAbility,
+        ...$this->deriveActionOutcome(
+          $state,
+          (int)$enemyActor['attack'],
+          (int)$playerTarget['defense'],
+          (int)($playerHp[(string)$playerTarget['id']] ?? (int)$playerTarget['max_hp']),
+          $enemyAbility
+        ),
       ];
+      $playerTargetId = (string)$playerTarget['id'];
+      $playerHp[$playerTargetId] = (int)($events[array_key_last($events)]['target_hp_after'] ?? $playerHp[$playerTargetId]);
     }
 
     return $events;
+  }
+
+  /**
+   * @return array{damage:int,target_hp_after:int,outcome:string,status_applied:?string}
+   */
+  private function deriveActionOutcome(
+    string &$state,
+    int $attackerAttack,
+    int $targetDefense,
+    int $targetHp,
+    string $abilityId,
+  ): array {
+    $variance = $this->nextInt($state, 5) - 2;
+    $rawDamage = (int)floor(($attackerAttack * 0.65) - ($targetDefense * 0.35)) + $variance;
+    $damage = max(1, $rawDamage);
+    $nextHp = max(0, $targetHp - $damage);
+    $status = $this->pickStatusEffect($state, $abilityId);
+
+    return [
+      'damage' => $damage,
+      'target_hp_after' => $nextHp,
+      'outcome' => $nextHp <= 0 ? 'defeated' : 'hit',
+      'status_applied' => $status,
+    ];
+  }
+
+  private function pickStatusEffect(string &$state, string $abilityId): ?string
+  {
+    $ability = strtolower($abilityId);
+    if (str_contains($ability, 'poison')) {
+      return 'poison';
+    }
+    if (str_contains($ability, 'sleep')) {
+      return 'sleep';
+    }
+    if (str_contains($ability, 'shield')) {
+      return 'guard_up';
+    }
+
+    // Low deterministic chance to apply bleed on generic attacks.
+    if ($this->nextInt($state, 10) === 0) {
+      return 'bleed';
+    }
+
+    return null;
   }
 
   /**
