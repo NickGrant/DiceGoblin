@@ -2734,3 +2734,23 @@ ready: yes
 milestone: Milestone 28 - UAT Dialog and Interaction Hardening
 description: Prevent deleting the currently active squad regardless of run state and ensure delete action remains disabled when selected squad is active.
 resolution: Tightened `SquadDetailsScene.canDeleteSquad` to always block active squad deletion (independent of run state), preserving delete only for non-active squads when more than one squad exists.
+
+---
+title: Reduce oversized dice cards in list surfaces
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Decrease dice card visual size in list/grid containers to restore intended density and avoid oversized card presentation.
+resolution: Reduced shared dice-card sizing in `DiceCardGrid` by lowering maximum card width and portrait render size so dice-list surfaces present denser, less oversized cards.
+
+---
+title: Restore list background and border framing
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Re-enable list panel background and border visuals where recently removed so list regions regain clear structure and contrast.
+resolution: Restored a shared framed list surface in `ListContainer` by adding background fill and border stroke so list regions regain visible panel structure.

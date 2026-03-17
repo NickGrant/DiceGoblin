@@ -20,6 +20,8 @@ type DiceCardGridConfig = {
 const DEFAULT_COLUMNS = 3;
 const CARD_GAP_X = 10;
 const CARD_GAP_Y = 8;
+const MAX_CARD_WIDTH = 112;
+const CARD_FOOTER_HEIGHT = 42;
 
 const RARITY_TO_MATERIAL: Record<string, "cardboard" | "wood" | "bone" | "metal" | "gemstone"> = {
   common: "cardboard",
@@ -99,7 +101,7 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
 
             const sprite = cardScene.add
               .image(width / 2, 6 + (width - 12) / 2, DICE_ATLAS_KEY, this.pickFrame(item))
-              .setDisplaySize(Math.min(width - 20, 84), Math.min(width - 20, 84))
+              .setDisplaySize(Math.min(width - 20, 68), Math.min(width - 20, 68))
               .setOrigin(0.5, 0.5);
 
             const title = cardScene.add
@@ -180,8 +182,8 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
   }
 
   private getCardHeight(contentWidth: number): number {
-    const cardWidth = Math.min(136, Math.floor((contentWidth - CARD_GAP_X * (DEFAULT_COLUMNS - 1)) / DEFAULT_COLUMNS));
-    return cardWidth + 46;
+    const cardWidth = Math.min(MAX_CARD_WIDTH, Math.floor((contentWidth - CARD_GAP_X * (DEFAULT_COLUMNS - 1)) / DEFAULT_COLUMNS));
+    return cardWidth + CARD_FOOTER_HEIGHT;
   }
 
   private pickFrame(die: DiceDetailsViewModel): string {

@@ -8,8 +8,6 @@ status: in-progress
 execution_window: open
 is_current: yes
 issues:
-	- Reduce oversized dice cards in list surfaces
-	- Restore list background and border framing
 	- Left align promotion boxes in unit details
 	- Disable clear fusion when fusion slots are empty
 	- Reorder unit details action buttons to visual flow

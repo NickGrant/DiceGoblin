@@ -1,22 +1,6 @@
 # ISSUES FILE
 ----
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
-title: Reduce oversized dice cards in list surfaces
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 28 - UAT Dialog and Interaction Hardening
-description: Decrease dice card visual size in list/grid containers to restore intended density and avoid oversized card presentation.
-
----
-title: Restore list background and border framing
-status: unstarted
-priority: medium
-execution: active
-ready: yes
-milestone: Milestone 28 - UAT Dialog and Interaction Hardening
-description: Re-enable list panel background and border visuals where recently removed so list regions regain clear structure and contrast.
 
 ---
 title: Left align promotion boxes in unit details

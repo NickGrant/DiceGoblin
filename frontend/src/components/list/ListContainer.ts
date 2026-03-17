@@ -47,6 +47,7 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
   private readonly cfg: ListContainerConfig<T>;
   private pageIndex: number;
   private pageSize: number;
+  private readonly frameBackground: Phaser.GameObjects.Rectangle;
   private prevText?: Phaser.GameObjects.Text;
   private nextText?: Phaser.GameObjects.Text;
   private pageText?: Phaser.GameObjects.Text;
@@ -58,6 +59,11 @@ export default class ListContainer<T> extends Phaser.GameObjects.Container {
     this.cfg = cfg;
     this.pageIndex = Math.max(0, cfg.pageIndex ?? 0);
     this.pageSize = Math.max(1, cfg.pageSize ?? 9);
+    this.frameBackground = cfg.scene.add
+      .rectangle(0, 0, cfg.width, cfg.height, 0x0f1a1f, 0.54)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8db8bc, 0.38);
+    this.add(this.frameBackground);
     cfg.scene.add.existing(this);
     this.render();
   }
