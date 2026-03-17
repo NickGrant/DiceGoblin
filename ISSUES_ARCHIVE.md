@@ -6,6 +6,46 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Distinguish locked region appearance in choose region
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 20 - Region Select UX and Readability
+description: Locked regions in choose region should have a clearly different visual appearance from unlocked regions.
+resolution: Added locked-state overlay and lock label treatment in `RegionSelectionPanel` with stateful visual toggling and selection behavior retained.
+
+---
+title: Improve region title readability and placement
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 20 - Region Select UX and Readability
+description: Region titles should be larger, centered, and rendered over a transparent black background to separate text from image content.
+resolution: Updated region panel label composition with centered large title text over a transparent black title band for stronger contrast against region imagery.
+
+---
+title: Require double-click to start unlocked region
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 20 - Region Select UX and Readability
+description: Starting an unlocked region should require double-click confirmation.
+resolution: Added double-click activation threshold logic in `RegionSelectionPanel` and covered it with regression tests in `frontend/tests/components/RegionSelectionPanel.test.ts`.
+
+---
+title: Set choose region default selection and intel CTA
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 20 - Region Select UX and Readability
+description: Choose region should default to mountains selected with mountains info in region intel and a Start run button at the bottom; unlocked regions should still be selectable with single-click.
+resolution: Ensured default selection initializes to mountains and refreshes region intel with a bottom-aligned Start Run CTA, while preserving single-click selection and double-click start semantics.
+
+---
 title: Mark no-enemies node resolved and show reason
 status: complete
 priority: high

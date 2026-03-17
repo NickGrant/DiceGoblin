@@ -6,6 +6,21 @@
 - Preserve milestone resolution history without bloating active execution context.
 
 ---
+name: Milestone 20 - Region Select UX and Readability
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Distinguish locked region appearance in choose region
+  - Improve region title readability and placement
+  - Require double-click to start unlocked region
+  - Set choose region default selection and intel CTA
+description: |
+  Refine region-select readability and interaction model with clearer lock states,
+  stronger title contrast, and a deliberate selection/start flow.
+Resolution: Completed locked-vs-unlocked visual differentiation, improved title contrast and placement, enforced double-click activation for unlocked regions, and verified default mountains selection with Intel panel Start Run CTA behavior.
+
+---
 name: Milestone 19 - Run Flow and Recovery UX
 status: complete
 execution_window: open
