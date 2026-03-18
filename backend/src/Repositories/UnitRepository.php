@@ -126,6 +126,13 @@ final class UnitRepository
    *   tier:int,
    *   level:int,
    *   xp:int,
+    *   max_level:int,
+    *   max_tier:int,
+    *   total_attack:int,
+    *   total_defense:int,
+    *   max_hp:int,
+    *   current_hp:int,
+    *   xp_to_next_level:int,
    *   locked:bool,
    *   equipped_dice: array<int, array{dice_instance_id:string,slot_index:int}>
    * }>
@@ -138,6 +145,11 @@ final class UnitRepository
         ui.`id`,
         ui.`unit_type_id`,
         ut.`name` AS `unit_type_name`,
+        ut.`base_stats_json`,
+        ut.`max_level`,
+        ut.`attack_per_level`,
+        ut.`defense_per_level`,
+        ut.`max_hp_per_level`,
         ui.`tier`,
         ui.`level`,
         ui.`xp`,
@@ -163,13 +175,41 @@ final class UnitRepository
     $out = [];
     foreach ($unitRows as $u) {
       $uid = (string)$u['id'];
+      $level = max(1, (int)$u['level']);
+      $tier = max(1, (int)$u['tier']);
+      $xp = max(0, (int)$u['xp']);
+      $maxLevel = max(1, (int)$u['max_level']);
+
+      $baseStatsRaw = $u['base_stats_json'];
+      if (is_string($baseStatsRaw)) {
+        $decodedStats = json_decode($baseStatsRaw, true);
+        $baseStatsRaw = is_array($decodedStats) ? $decodedStats : [];
+      }
+      $baseStats = is_array($baseStatsRaw) ? $baseStatsRaw : [];
+      $levelScale = $level - 1;
+      $baseAttack = max(1, (int)($baseStats['attack'] ?? 1));
+      $baseDefense = max(0, (int)($baseStats['defense'] ?? 0));
+      $baseMaxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
+
+      $totalAttack = max(1, $baseAttack + (max(0, (int)$u['attack_per_level']) * $levelScale));
+      $totalDefense = max(0, $baseDefense + (max(0, (int)$u['defense_per_level']) * $levelScale));
+      $maxHp = max(1, $baseMaxHp + (max(0, (int)$u['max_hp_per_level']) * $levelScale));
+      $xpToNext = $level >= $maxLevel ? 0 : max(0, ($tier * ($level + 1) * 50) - $xp);
+
       $out[] = [
         'id' => $uid,
         'unit_type_id' => (string)$u['unit_type_id'],
         'name' => (string)$u['unit_type_name'], // convenience; catalog still exists separately
-        'tier' => (int)$u['tier'],
-        'level' => (int)$u['level'],
-        'xp' => (int)$u['xp'],
+        'tier' => $tier,
+        'level' => $level,
+        'xp' => $xp,
+        'max_level' => $maxLevel,
+        'max_tier' => 3,
+        'total_attack' => $totalAttack,
+        'total_defense' => $totalDefense,
+        'max_hp' => $maxHp,
+        'current_hp' => $maxHp,
+        'xp_to_next_level' => $xpToNext,
         'locked' => ((int)$u['locked']) === 1,
         'equipped_dice' => $equippedByUnit[$uid] ?? [],
       ];

@@ -74,6 +74,12 @@ export type UnitRecord = {
   tier?: number;
   xp?: number;
   max_level?: number;
+  max_tier?: number;
+  total_attack?: number;
+  total_defense?: number;
+  max_hp?: number;
+  current_hp?: number;
+  xp_to_next_level?: number;
   locked?: boolean;
   equipped_dice?: UnitEquippedDie[];
   abilities?: UnitAbilityRecord[];

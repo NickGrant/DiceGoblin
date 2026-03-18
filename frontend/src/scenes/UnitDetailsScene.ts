@@ -178,6 +178,12 @@ export default class UnitDetailsScene extends Phaser.Scene {
     const max = typeof this.unit.max_level === "number" ? this.unit.max_level : "?";
     const xp = typeof this.unit.xp === "number" ? this.unit.xp : 0;
     const tier = typeof this.unit.tier === "number" ? this.unit.tier : 1;
+    const maxTier = typeof this.unit.max_tier === "number" ? this.unit.max_tier : 3;
+    const totalAttack = typeof this.unit.total_attack === "number" ? this.unit.total_attack : "?";
+    const totalDefense = typeof this.unit.total_defense === "number" ? this.unit.total_defense : "?";
+    const currentHp = typeof this.unit.current_hp === "number" ? this.unit.current_hp : "?";
+    const maxHp = typeof this.unit.max_hp === "number" ? this.unit.max_hp : "?";
+    const xpToNext = typeof this.unit.xp_to_next_level === "number" ? this.unit.xp_to_next_level : null;
 
     const portraitHeight = Math.max(96, Math.floor(topContentH * 0.45));
     const statsHeight = Math.max(96, contentBodyHeight - portraitHeight - SECTION_GAP);
@@ -206,8 +212,11 @@ export default class UnitDetailsScene extends Phaser.Scene {
       .text(statsX + 10, statsY + 10, [
         `Unit: ${this.unit.name}`,
         `Level: ${this.unit.level} / ${max}`,
-        `XP: ${xp}`,
-        `Tier: ${tier}`,
+        `XP: ${xp}${xpToNext !== null ? ` (${xpToNext} to next)` : ""}`,
+        `Tier: ${tier} / ${maxTier}`,
+        `HP: ${currentHp} / ${maxHp}`,
+        `ATK: ${totalAttack}`,
+        `DEF: ${totalDefense}`,
       ].join("\n"), {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "17px",

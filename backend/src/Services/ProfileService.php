@@ -76,6 +76,9 @@ final class ProfileService
 
     // Active run (if any)
     $activeRun = $this->runRepo->getActiveRunForUser($userId);
+    if ($activeRun !== null) {
+      $units = $this->applyActiveRunUnitHealth($units, (int)$activeRun['run_id'], $userId);
+    }
 
     return $this->profileDtoMapper->mapProfilePayload(
       $this->nowIsoUtc(),
@@ -124,5 +127,51 @@ final class ProfileService
       'region_item_id' => (string)$r['region_item_slug'], // slug is the client-facing id
       'quantity' => (int)$r['quantity'],
     ], $rows);
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $units
+   * @return array<int,array<string,mixed>>
+   */
+  private function applyActiveRunUnitHealth(array $units, int $runId, int $userId): array
+  {
+    if (count($units) === 0) {
+      return $units;
+    }
+
+    $stmt = $this->pdo->prepare(' 
+      SELECT rus.`unit_instance_id`, rus.`current_hp`, rus.`is_defeated`
+      FROM `run_unit_state` rus
+      JOIN `unit_instances` ui ON ui.`id` = rus.`unit_instance_id`
+      WHERE rus.`run_id` = ? AND ui.`user_id` = ?
+    ');
+    $stmt->execute([$runId, $userId]);
+
+    $hpByUnitId = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $id = (string)$row['unit_instance_id'];
+      $hpByUnitId[$id] = [
+        'hp' => max(0, (int)$row['current_hp']),
+        'is_defeated' => ((int)$row['is_defeated']) === 1,
+      ];
+    }
+
+    if (count($hpByUnitId) === 0) {
+      return $units;
+    }
+
+    foreach ($units as &$unit) {
+      $unitId = (string)($unit['id'] ?? '');
+      if ($unitId === '' || !isset($hpByUnitId[$unitId])) {
+        continue;
+      }
+      $snapshot = $hpByUnitId[$unitId];
+      $maxHp = max(1, (int)($unit['max_hp'] ?? 1));
+      $currentHp = $snapshot['is_defeated'] ? 0 : min($maxHp, (int)$snapshot['hp']);
+      $unit['current_hp'] = $currentHp;
+    }
+    unset($unit);
+
+    return $units;
   }
 }

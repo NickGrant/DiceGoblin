@@ -49,6 +49,7 @@ type ParticipantView = {
   id: string;
   display: string;
   maxHp: number;
+  pos: { x: number; y: number } | null;
 };
 
 type UnitStatusSnapshot = Record<string, FormationStatusIndicator[]>;
@@ -481,6 +482,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       allyUnits.map((unit, index) => ({
         id: unit.id,
         display: String(index + 1),
+        pos: unit.pos,
         hpPercent: this.readHpPercent(unit.id, unit.maxHp, hpSnapshot),
         statuses: statusSnapshot[unit.id] ?? [],
       }))
@@ -494,6 +496,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       enemyUnits.map((unit) => ({
         id: unit.id,
         display: this.shortenEnemyLabel(unit.display),
+        pos: unit.pos,
         hpPercent: this.readHpPercent(unit.id, unit.maxHp, hpSnapshot),
         statuses: statusSnapshot[unit.id] ?? [],
       }))
@@ -653,14 +656,20 @@ export default class NodeResolutionScene extends Phaser.Scene {
     y: number,
     width: number,
     height: number,
-    entries: Array<{ id: string; display: string; hpPercent: number; statuses: FormationStatusIndicator[] }>
+    entries: Array<{
+      id: string;
+      display: string;
+      pos: { x: number; y: number } | null;
+      hpPercent: number;
+      statuses: FormationStatusIndicator[];
+    }>
   ): void {
     const gap = 6;
     const cellByWidth = Math.floor((width - gap * 2) / 3);
     const cellByHeight = Math.floor((height - gap * 2) / 3);
     const cellSize = Math.max(28, Math.min(cellByWidth, cellByHeight));
 
-    const formation = this.buildFormationMap(entries.map((entry) => entry.id));
+    const formation = this.buildFormationMap(entries.map((entry) => ({ id: entry.id, pos: entry.pos })));
     const labelsById = new Map(entries.map((entry) => [entry.id, entry.display] as const));
     const hpById = new Map(entries.map((entry) => [entry.id, entry.hpPercent] as const));
     const statusesById = new Map(entries.map((entry) => [entry.id, entry.statuses] as const));
@@ -697,17 +706,49 @@ export default class NodeResolutionScene extends Phaser.Scene {
     this.resolutionUiObjects.push(grid);
   }
 
-  private buildFormationMap(labels: string[]): Partial<FormationMap> {
+  private buildFormationMap(entries: Array<{ id: string; pos: { x: number; y: number } | null }>): Partial<FormationMap> {
     const cells: Array<keyof FormationMap> = ["A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"];
     const formation: Partial<FormationMap> = {};
-    for (let i = 0; i < cells.length; i += 1) {
-      const cell = cells[i];
-      if (!cell) {
+    const assignedIds = new Set<string>();
+
+    for (const entry of entries) {
+      const cell = this.posToCell(entry.pos);
+      if (!cell || assignedIds.has(entry.id)) {
         continue;
       }
-      formation[cell] = labels[i] ? labels[i] : null;
+      if (!formation[cell]) {
+        formation[cell] = entry.id;
+        assignedIds.add(entry.id);
+      }
     }
+
+    for (const entry of entries) {
+      if (assignedIds.has(entry.id)) {
+        continue;
+      }
+      const openCell = cells.find((cell) => !formation[cell]);
+      if (!openCell) {
+        break;
+      }
+      formation[openCell] = entry.id;
+      assignedIds.add(entry.id);
+    }
+
     return formation;
+  }
+
+  private posToCell(pos: { x: number; y: number } | null): keyof FormationMap | null {
+    if (!pos || !Number.isFinite(pos.x) || !Number.isFinite(pos.y)) {
+      return null;
+    }
+
+    const x = Math.max(0, Math.min(2, Math.floor(pos.x)));
+    const y = Math.max(0, Math.min(2, Math.floor(pos.y)));
+    const col = ["A", "B", "C"][x] ?? null;
+    if (!col) {
+      return null;
+    }
+    return `${col}${y + 1}` as keyof FormationMap;
   }
 
   private extractParticipants(
@@ -736,9 +777,27 @@ export default class NodeResolutionScene extends Phaser.Scene {
         id,
         display: side === "player" ? id : this.prettifyEnemySlug(id),
         maxHp: Number.isFinite(maxHp) && maxHp > 0 ? maxHp : 1,
+        pos: this.readParticipantPos(record),
       });
     }
     return units;
+  }
+
+  private readParticipantPos(record: Record<string, unknown>): { x: number; y: number } | null {
+    const raw = record.pos;
+    if (!raw || typeof raw !== "object") {
+      return null;
+    }
+    const pos = raw as Record<string, unknown>;
+    const x = typeof pos.x === "number" ? pos.x : Number(pos.x ?? NaN);
+    const y = typeof pos.y === "number" ? pos.y : Number(pos.y ?? NaN);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      return null;
+    }
+    return {
+      x: Math.max(0, Math.min(2, Math.floor(x))),
+      y: Math.max(0, Math.min(2, Math.floor(y))),
+    };
   }
 
   private extractEventsForTick(log: BattleLog, tick: number): Array<Record<string, unknown>> {
@@ -1012,7 +1071,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
   private buildTickSummaryLines(summary: ResolutionSummary, tickEvents: Array<Record<string, unknown>>): string[] {
     const lines: string[] = [];
-    lines.push(`Battle ${summary.battleId} | ${summary.outcome.toUpperCase()}`);
+    lines.push(`Battle ${summary.battleId} :: ${summary.outcome.toUpperCase()}`);
     lines.push(`Round/Tick: ${this.describeRoundTick(this.selectedTick, summary.rounds, summary.ticks)}`);
     lines.push(summary.unlockedMsg);
     lines.push("");
@@ -1022,9 +1081,9 @@ export default class NodeResolutionScene extends Phaser.Scene {
       return lines;
     }
 
-    lines.push("Events on selected tick:");
+    lines.push(`Events on tick ${this.selectedTick}:`);
     tickEvents.forEach((event, index) => {
-      lines.push(`${index + 1}. ${this.formatFriendlyEvent(event)}`);
+      lines.push(`${index + 1}) ${this.formatFriendlyEvent(event)}`);
     });
     return lines;
   }
@@ -1043,7 +1102,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
   private formatFriendlyEvent(event: Record<string, unknown>): string {
     const type = String(event.type ?? "event");
     if (type === "phase_start") {
-      return `Round ${event.round ?? "?"} start.`;
+      return `Round ${event.round ?? "?"} starts.`;
     }
     if (type === "battle_start") {
       return "Battle started.";
@@ -1055,7 +1114,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       return String(event.message ?? type);
     }
 
-    const side = String(event.side ?? "unknown");
+    const side = String(event.side ?? "unknown").toUpperCase();
     const actor = typeof event.actor_unit_instance_id === "string"
       ? `Ally ${event.actor_unit_instance_id}`
       : typeof event.actor_enemy_slug === "string"
@@ -1066,14 +1125,41 @@ export default class NodeResolutionScene extends Phaser.Scene {
       : typeof event.target_enemy_slug === "string"
         ? this.prettifyEnemySlug(event.target_enemy_slug)
         : "Unknown target";
-    const ability = String(event.ability_id ?? "ability");
+    const ability = this.prettifyAbilityId(String(event.ability_id ?? "ability"));
     const diceOutcome = typeof event.dice_outcome === "string" ? event.dice_outcome : "";
-    const abilityOutcome = typeof event.ability_outcome === "string" ? event.ability_outcome : "";
+    const damage = typeof event.damage === "number" ? Math.max(0, Math.floor(event.damage)) : null;
+    const targetHp = typeof event.target_hp_after === "number"
+      ? Math.max(0, Math.floor(event.target_hp_after))
+      : null;
+    const status = typeof event.status_applied === "string" && event.status_applied.trim() !== ""
+      ? event.status_applied.trim()
+      : null;
+    const statusDuration = typeof event.status_duration_rounds === "number"
+      ? Math.max(0, Math.floor(event.status_duration_rounds))
+      : null;
 
-    const parts = [`[${side.toUpperCase()}] ${actor} used ${ability} on ${target}`];
-    if (diceOutcome) parts.push(`Dice: ${diceOutcome}`);
-    if (abilityOutcome) parts.push(`Result: ${abilityOutcome}`);
+    const parts = [`[${side}] ${actor} -> ${target} using ${ability}`];
+    if (damage !== null) {
+      parts.push(`DMG ${damage}`);
+    }
+    if (targetHp !== null) {
+      parts.push(`HP ${targetHp}`);
+    }
+    if (status) {
+      parts.push(statusDuration && statusDuration > 0 ? `Status ${status} (${statusDuration}r)` : `Status ${status}`);
+    }
+    if (diceOutcome) {
+      parts.push(`Dice ${diceOutcome}`);
+    }
     return parts.join(" | ");
+  }
+
+  private prettifyAbilityId(abilityId: string): string {
+    return abilityId
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
   private computeHpSnapshot(log: BattleLog, upToTick: number): Record<string, number> {

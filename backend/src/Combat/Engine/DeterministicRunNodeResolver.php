@@ -147,6 +147,10 @@ final class DeterministicRunNodeResolver
           'participants' => [
             'player' => array_map(static fn(array $u): array => [
               'unit_instance_id' => (string)$u['id'],
+              'pos' => [
+                'x' => (int)$u['pos']['x'],
+                'y' => (int)$u['pos']['y'],
+              ],
               'attack' => (int)$u['attack'],
               'defense' => (int)$u['defense'],
               'max_hp' => (int)$u['max_hp'],
@@ -154,6 +158,10 @@ final class DeterministicRunNodeResolver
             ], $playerUnits),
             'enemy' => array_map(static fn(array $u): array => [
               'slug' => (string)$u['id'],
+              'pos' => [
+                'x' => (int)$u['pos']['x'],
+                'y' => (int)$u['pos']['y'],
+              ],
               'attack' => (int)$u['attack'],
               'defense' => (int)$u['defense'],
               'max_hp' => (int)$u['max_hp'],
@@ -167,7 +175,15 @@ final class DeterministicRunNodeResolver
   }
 
   /**
-   * @return array<int, array{id:string,attack:int,defense:int,max_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>}>
+   * @return array<int, array{
+   *   id:string,
+   *   pos:array{x:int,y:int},
+   *   attack:int,
+   *   defense:int,
+   *   max_hp:int,
+   *   abilities:array<int,string>,
+   *   dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>
+   * }>
    */
   private function loadPlayerUnits(int $userId, int $teamId): array
   {
@@ -179,10 +195,14 @@ final class DeterministicRunNodeResolver
         ut.`ability_set_json`,
         ut.`attack_per_level`,
         ut.`defense_per_level`,
-        ut.`max_hp_per_level`
+        ut.`max_hp_per_level`,
+        tf.`cell` AS `formation_cell`
       FROM `team_units` tu
       JOIN `unit_instances` ui ON ui.`id` = tu.`unit_instance_id`
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      LEFT JOIN `team_formation` tf
+        ON tf.`team_id` = tu.`team_id`
+       AND tf.`unit_instance_id` = ui.`id`
       WHERE tu.`team_id` = ? AND ui.`user_id` = ?
       ORDER BY ui.`id` ASC
     ');
@@ -190,6 +210,7 @@ final class DeterministicRunNodeResolver
 
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $units = [];
+    $fallbackIndex = 0;
 
     foreach ($rows as $row) {
       $baseStats = $this->decodeJsonObject($row['base_stats_json']);
@@ -200,9 +221,15 @@ final class DeterministicRunNodeResolver
       $attack = max(1, (int)($baseStats['attack'] ?? 1) + ((int)$row['attack_per_level'] * $levelScale));
       $defense = max(0, (int)($baseStats['defense'] ?? 0) + ((int)$row['defense_per_level'] * $levelScale));
       $maxHp = max(1, (int)($baseStats['max_hp'] ?? 1) + ((int)$row['max_hp_per_level'] * $levelScale));
+      $pos = $this->cellToPos((string)($row['formation_cell'] ?? ''));
+      if (!is_array($pos)) {
+        $pos = $this->defaultPosForIndex($fallbackIndex);
+      }
+      $fallbackIndex++;
 
       $units[] = [
         'id' => (string)$row['unit_instance_id'],
+        'pos' => $pos,
         'attack' => $attack,
         'defense' => $defense,
         'max_hp' => $maxHp,
@@ -245,7 +272,7 @@ final class DeterministicRunNodeResolver
   }
 
   /**
-   * @return array{difficulty_rating:int,units:array<int,array{id:string,attack:int,defense:int,max_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,xp_reward:int}>}
+    * @return array{difficulty_rating:int,units:array<int,array{id:string,pos:array{x:int,y:int},attack:int,defense:int,max_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,xp_reward:int}>}
    */
   private function loadEncounter(?int $encounterTemplateId): array
   {
@@ -273,7 +300,7 @@ final class DeterministicRunNodeResolver
     }
 
     $enemySet = $this->decodeJsonObject($template['enemy_set_json']);
-    $slugs = [];
+    $enemyEntries = [];
     $teams = $enemySet['teams'] ?? [];
     if (is_array($teams)) {
       foreach ($teams as $team) {
@@ -290,19 +317,24 @@ final class DeterministicRunNodeResolver
           }
           $slug = (string)($unit['enemy_template_slug'] ?? '');
           if ($slug !== '') {
-            $slugs[] = $slug;
+            $pos = $this->normalizeEncounterPos($unit['pos'] ?? null);
+            $enemyEntries[] = [
+              'slug' => $slug,
+              'pos' => $pos,
+            ];
           }
         }
       }
     }
 
-    if (count($slugs) === 0) {
+    if (count($enemyEntries) === 0) {
       return [
         'difficulty_rating' => (int)$template['difficulty_rating'],
         'units' => [],
       ];
     }
 
+    $slugs = array_map(static fn(array $entry): string => (string)$entry['slug'], $enemyEntries);
     $uniqueSlugs = array_values(array_unique($slugs));
     $placeholders = implode(',', array_fill(0, count($uniqueSlugs), '?'));
 
@@ -315,17 +347,25 @@ final class DeterministicRunNodeResolver
     }
 
     $units = [];
-    foreach ($slugs as $slug) {
+    $slugCounts = [];
+    foreach ($enemyEntries as $entry) {
+      $slug = (string)($entry['slug'] ?? '');
       $row = $enemyBySlug[$slug] ?? null;
       if (!is_array($row)) {
         continue;
       }
 
+      $slugCount = (int)($slugCounts[$slug] ?? 0) + 1;
+      $slugCounts[$slug] = $slugCount;
+      $instanceId = $slugCount > 1 ? ($slug . '#' . $slugCount) : $slug;
+      $pos = $this->normalizeEncounterPos($entry['pos'] ?? null);
+
       $baseStats = $this->decodeJsonObject($row['base_stats_json']);
       $abilitySet = $this->decodeJsonObject($row['ability_set_json']);
 
       $units[] = [
-        'id' => $slug,
+        'id' => $instanceId,
+        'pos' => $pos,
         'attack' => max(1, (int)($baseStats['attack'] ?? 1)),
         'defense' => max(0, (int)($baseStats['defense'] ?? 0)),
         'max_hp' => max(1, (int)($baseStats['max_hp'] ?? 1)),
@@ -342,6 +382,67 @@ final class DeterministicRunNodeResolver
     return [
       'difficulty_rating' => max(1, (int)$template['difficulty_rating']),
       'units' => $units,
+    ];
+  }
+
+  /**
+   * @return array{x:int,y:int}|null
+   */
+  private function cellToPos(string $cell): ?array
+  {
+    $value = strtoupper(trim($cell));
+    if (!preg_match('/^[ABC][123]$/', $value)) {
+      return null;
+    }
+
+    $x = ord($value[0]) - ord('A');
+    $y = ((int)$value[1]) - 1;
+    if ($x < 0 || $x > 2 || $y < 0 || $y > 2) {
+      return null;
+    }
+
+    return ['x' => $x, 'y' => $y];
+  }
+
+  /**
+   * @return array{x:int,y:int}
+   */
+  private function defaultPosForIndex(int $index): array
+  {
+    $positions = [
+      ['x' => 0, 'y' => 0],
+      ['x' => 1, 'y' => 0],
+      ['x' => 2, 'y' => 0],
+      ['x' => 0, 'y' => 1],
+      ['x' => 1, 'y' => 1],
+      ['x' => 2, 'y' => 1],
+      ['x' => 0, 'y' => 2],
+      ['x' => 1, 'y' => 2],
+      ['x' => 2, 'y' => 2],
+    ];
+
+    $safeIndex = $index % count($positions);
+    return $positions[$safeIndex] ?? ['x' => 1, 'y' => 1];
+  }
+
+  /**
+   * @return array{x:int,y:int}
+   */
+  private function normalizeEncounterPos(mixed $rawPos): array
+  {
+    $default = ['x' => 1, 'y' => 1];
+    if (!is_array($rawPos)) {
+      return $default;
+    }
+
+    $xRaw = $rawPos['x'] ?? null;
+    $yRaw = $rawPos['y'] ?? null;
+    $x = is_numeric($xRaw) ? (int)$xRaw : 1;
+    $y = is_numeric($yRaw) ? (int)$yRaw : 1;
+
+    return [
+      'x' => max(0, min(2, $x)),
+      'y' => max(0, min(2, $y)),
     ];
   }
 

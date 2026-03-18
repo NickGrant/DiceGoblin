@@ -133,6 +133,24 @@ function adaptUnitRecord(raw: unknown): UnitRecord | null {
     max_level: typeof raw.max_level === "number" && Number.isFinite(raw.max_level)
       ? Math.max(1, Math.floor(raw.max_level))
       : undefined,
+    max_tier: typeof raw.max_tier === "number" && Number.isFinite(raw.max_tier)
+      ? Math.max(1, Math.floor(raw.max_tier))
+      : undefined,
+    total_attack: typeof raw.total_attack === "number" && Number.isFinite(raw.total_attack)
+      ? Math.max(0, Math.floor(raw.total_attack))
+      : undefined,
+    total_defense: typeof raw.total_defense === "number" && Number.isFinite(raw.total_defense)
+      ? Math.max(0, Math.floor(raw.total_defense))
+      : undefined,
+    max_hp: typeof raw.max_hp === "number" && Number.isFinite(raw.max_hp)
+      ? Math.max(1, Math.floor(raw.max_hp))
+      : undefined,
+    current_hp: typeof raw.current_hp === "number" && Number.isFinite(raw.current_hp)
+      ? Math.max(0, Math.floor(raw.current_hp))
+      : undefined,
+    xp_to_next_level: typeof raw.xp_to_next_level === "number" && Number.isFinite(raw.xp_to_next_level)
+      ? Math.max(0, Math.floor(raw.xp_to_next_level))
+      : undefined,
     equipped_dice: normalizeEquippedDice(raw.equipped_dice),
     abilities: normalizeAbilityRecords(raw.abilities),
   };
@@ -264,7 +282,11 @@ function normalizeXpProgress(unit: UnitRecord): number | null {
   const xp = toNonNegativeInt(unit.xp, 0);
   const xpToNext = toNonNegativeInt((unit as Record<string, unknown>).xp_to_next_level, 0);
   if (xpToNext <= 0) return null;
-  return Math.max(0, Math.min(1, xp / xpToNext));
+  const levelSegmentTotal = xp + xpToNext;
+  if (levelSegmentTotal <= 0) {
+    return null;
+  }
+  return Math.max(0, Math.min(1, xp / levelSegmentTotal));
 }
 
 function isConditionalAffix(id: string): boolean {
