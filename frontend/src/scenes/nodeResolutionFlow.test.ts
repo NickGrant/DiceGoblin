@@ -44,10 +44,14 @@ describe("nodeResolutionFlow", () => {
           actor_unit_instance_id: "1",
           target_enemy_slug: "goblin_archer",
           ability_id: "poison_stab",
+          dice_used: [{ kind: "unit", dice_instance_id: "7", sides: 6 }],
+          dice_outcome: "dice#7 rolled d6 = 5",
           damage: 6,
           outcome: "hit",
           target_hp_after: 11,
           status_applied: "poison",
+          status_duration_rounds: 3,
+          ability_outcome: "6 damage dealt, poison applied for 3 rounds",
         },
         { type: "battle_end", round: 3, tick: 60, outcome: "victory" },
       ],
@@ -55,8 +59,11 @@ describe("nodeResolutionFlow", () => {
 
     expect(lines).toContain("Events: 3");
     expect(lines.some((line) => line.includes("ability=poison_stab"))).toBe(true);
+    expect(lines.some((line) => line.includes("dice=#7(d6)"))).toBe(true);
+    expect(lines.some((line) => line.includes("dice_outcome=dice#7 rolled d6 = 5"))).toBe(true);
     expect(lines.some((line) => line.includes("damage=6"))).toBe(true);
-    expect(lines.some((line) => line.includes("status=poison"))).toBe(true);
+    expect(lines.some((line) => line.includes("status=poison(3r)"))).toBe(true);
+    expect(lines.some((line) => line.includes("ability_outcome=6 damage dealt, poison applied for 3 rounds"))).toBe(true);
     expect(lines.some((line) => line.includes("outcome=victory"))).toBe(true);
   });
 });

@@ -6,6 +6,31 @@
 - Preserve milestone resolution history without bloating active execution context.
 
 ---
+name: Milestone 29 - Run Node Resolution Action Scheduling
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Fix run node action scheduler so all units act per tick speeds
+description: |
+  Correct deterministic run-node combat action timing so event generation follows
+  per-ability speed ticks across all living units rather than limiting each round
+  to one sampled action per side.
+Resolution: Completed deterministic per-tick action scheduling across all living units using active-ability speeds, removed passive abilities from action event emission, and validated with backend integration coverage.
+
+---
+name: Milestone 28 - UAT Dialog and Interaction Hardening
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Capture additional UAT findings for milestone 28
+description: |
+  Track user-acceptance hardening items focused on replacing browser-native dialogs
+  with shared in-game modal and button components and validating interaction polish.
+Resolution: Completed the UAT hardening wave, including dialog/button alignment and node-resolution UX refinements, then closed the milestone intake placeholder.
+
+---
 name: Milestone 24 - Backend Test Infrastructure De-duplication
 status: complete
 execution_window: open

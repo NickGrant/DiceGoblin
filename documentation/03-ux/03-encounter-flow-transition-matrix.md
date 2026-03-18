@@ -38,8 +38,7 @@ Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts
 | CombatViewer | Skip/exit before completion | CombatViewer | blocked | No early exit to prevent state ambiguity. |
 | RewardSurface | Claim complete and node victory/non-combat | RunMap | yes | Node becomes `cleared`; unlock check runs. |
 | RewardSurface | Claim boss victory | RunMap | yes | Boss node clears and unlocks path to exit node. |
-| RewardSurface | Claim complete with combat defeat and remaining units | RunMap | yes | Node remains `available` for retry. |
-| RewardSurface | Claim complete with total defeat | RunEnd | yes | Run status becomes `failed`. |
+| RewardSurface | Claim complete with combat/boss defeat | RunEnd | yes | Any defeat is terminal for current MVP behavior; run status becomes `failed`. |
 | RestManagement | Finalize rest | RunMap | yes | Shows per-unit rest summary before return. |
 | RestManagement | Cancel rest edits | RunMap | yes | No rest consumption, no mutations persisted. |
 | RunMap | Abandon run action | RunEnd | yes | Run status becomes `abandoned`. |
@@ -58,8 +57,7 @@ Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts
 ### Combat
 - Selecting an `available` combat node enters `NodeResolution`.
 - On victory, node status becomes `cleared` and downstream unlock checks execute.
-- On defeat with remaining undefeated run units, node remains `available` and retry is possible without energy cost.
-- On total defeat, run transitions to `failed` terminal state.
+- On any defeat, run transitions immediately to `failed` terminal state.
 
 ### Boss
 - Follows combat transition rules through `NodeResolution`.

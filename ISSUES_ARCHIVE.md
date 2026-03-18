@@ -6,6 +6,26 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Fix run node action scheduler so all units act per tick speeds
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 29 - Run Node Resolution Action Scheduling
+description: Replace per-round single-action sampling with deterministic tick-based scheduling so each living unit can execute each active ability at its configured speed while excluding passive abilities from action events.
+resolution: Replaced fixed two-action-per-round generation with deterministic per-tick scheduling based on active-ability speed for all living units, excluded passive abilities from action events, and added backend integration coverage for multi-action round behavior.
+
+---
+title: Capture additional UAT findings for milestone 28
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Keep Milestone 28 open for upcoming UAT findings and convert new verified findings into actionable implementation issues.
+resolution: Closed the intake placeholder after completing and archiving the final Milestone 28 UAT implementation items.
+
+---
 title: Refine node resolution grids and scrollable log
 status: complete
 priority: high

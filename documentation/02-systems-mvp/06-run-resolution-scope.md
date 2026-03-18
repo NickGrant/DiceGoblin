@@ -15,7 +15,6 @@ This document defines the **authoritative rules for run failure, retry, abandonm
 The MVP run resolution system must:
 - Encourage tactical attrition and decision-making
 - Avoid hard punishment spirals
-- Allow recovery from partial failure without trivializing encounters
 - Clearly define when a run ends and what state is reset
 
 Run resolution is intended to reinforce resource management within a run, not long-term meta progression.
@@ -34,26 +33,13 @@ This makes attrition a core consideration during exploration.
 
 ---
 
-## 3. Encounter Failure & Retry Rules
+## 3. Encounter Failure Rules
 
-### 3.1 Partial Defeat
-
-If all units participating in an encounter are defeated **but the player has remaining undefeated units in their warband**:
-
-- The encounter may be retried
-- No additional energy cost is applied
-- The player may attempt the encounter using only their remaining units
-
-The encounter state is otherwise unchanged.
-
----
-
-### 3.2 Total Defeat
-
-If the player has **no remaining undefeated units** in the active run squad snapshot:
+For current MVP behavior, any combat or boss encounter outcome of `defeat` is treated as terminal:
 
 - The run immediately ends
 - The run is considered failed
+- No encounter retries are allowed within that run
 
 No further encounters may be attempted.
 
@@ -72,7 +58,7 @@ Abandonment exists to prevent soft-locks or unwinnable states.
 ## 5. Run End Outcomes (Unified Resolution)
 
 Whether a run ends due to:
-- Total defeat
+- Combat/boss defeat
 - Player abandonment
 
 The following resolution steps occur.

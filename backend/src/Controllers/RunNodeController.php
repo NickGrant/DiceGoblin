@@ -283,8 +283,16 @@ final class RunNodeController
         (array)$resolution['rewards']
       );
 
+      $isCombatLikeNode = ((string)$node['node_type'] === 'combat' || (string)$node['node_type'] === 'boss');
+      $runFailed = $isCombatLikeNode && $outcome === 'defeat';
+
+      if ($runFailed) {
+        $svc['runRepo']->applyRunEndCleanup($runIdInt, $userId, true);
+        $svc['runRepo']->endRun($userId, $runIdInt, 'failed');
+      }
+
       $unlocked = [];
-      if ($outcome === 'victory' || $node['node_type'] !== 'combat') {
+      if (!$runFailed && ($outcome === 'victory' || $node['node_type'] !== 'combat')) {
         // Mark node cleared in DB and unlock downstream progression.
         $svc['runNodeRepo']->markCleared($runIdInt, $nodeIdInt);
         $unlocked = $this->unlockFromNode(
@@ -302,7 +310,9 @@ final class RunNodeController
         'data' => [
           'node' => [
             'id' => (string)$nodeIdInt,
-            'status' => ($outcome === 'victory' || $node['node_type'] !== 'combat') ? 'completed' : 'available',
+            'status' => $runFailed
+              ? 'failed'
+              : (($outcome === 'victory' || $node['node_type'] !== 'combat') ? 'completed' : 'available'),
           ],
           'battle' => [
             'battle_id' => (string)$battleId,

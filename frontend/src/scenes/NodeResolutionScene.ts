@@ -10,23 +10,48 @@ import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 import {
   deriveSummaryStatus,
-  formatBattleLogSummary,
   formatUnlockedNodes,
   isNodeResolutionType,
   type NodeResolutionType,
 } from "./nodeResolutionFlow";
-import FormationGrid3x3, { type FormationMap } from "../components/FormationGrid3x3";
+import FormationGrid3x3, {
+  type FormationMap,
+  type FormationStatusIndicator,
+} from "../components/FormationGrid3x3";
 
 const ACTION_BODY_TOP_OFFSET = 72;
 const CONTENT_BODY_TOP_OFFSET = 74;
 const CONTENT_BODY_BOTTOM_PADDING = 22;
 const RESOLVE_TIMEOUT_MS = 12_000;
+const TICK_AUTOPLAY_STEP_MS = 2_500;
 
 type NodeResolutionSceneData = {
   runId?: string;
   nodeId?: string;
   nodeType?: string;
 };
+
+type BattleLog = {
+  meta?: Record<string, unknown>;
+  events?: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+} | null;
+
+type ResolutionSummary = {
+  battleId: string;
+  outcome: string;
+  rounds: number;
+  ticks: number;
+  unlockedMsg: string;
+};
+
+type ParticipantView = {
+  id: string;
+  display: string;
+  maxHp: number;
+};
+
+type UnitStatusSnapshot = Record<string, FormationStatusIndicator[]>;
 
 export default class NodeResolutionScene extends Phaser.Scene {
   private runId = "";
@@ -44,7 +69,12 @@ export default class NodeResolutionScene extends Phaser.Scene {
   private logMaskGraphics?: Phaser.GameObjects.Graphics;
   private logViewport: { x: number; y: number; width: number; height: number } | null = null;
   private logScrollOffset = 0;
+  private selectedTick = 0;
+  private latestLog: BattleLog = null;
+  private latestSummary: ResolutionSummary | null = null;
   private wheelHandlerRegistered = false;
+  private tickPlaybackActive = false;
+  private tickPlaybackTimer?: Phaser.Time.TimerEvent;
 
   constructor() {
     super({ key: "NodeResolutionScene" });
@@ -130,6 +160,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
           if (this.input && typeof this.input.off === "function") {
             this.input.off("wheel", this.handleLogWheel, this);
           }
+          this.stopTickPlayback();
           this.wheelHandlerRegistered = false;
         });
       }
@@ -219,17 +250,18 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
       const outcome = resolveRes.data.battle.outcome;
       const unlockedMsg = formatUnlockedNodes(resolveRes.data.next.unlocked_node_ids);
-      const battleLogLines = formatBattleLogSummary(resolveRes.data.battle.log);
       this.statusText?.setText(`Node resolved: ${String(outcome).toUpperCase()}`);
-      this.renderResolutionPanels(resolveRes.data.battle.log, [
-        `Battle id: ${resolveRes.data.battle.battle_id}`,
-        `Outcome: ${outcome}`,
-        `Rounds: ${resolveRes.data.battle.rounds}`,
-        `Ticks: ${resolveRes.data.battle.ticks}`,
-        unlockedMsg,
-        "",
-        ...battleLogLines,
-      ]);
+      try {
+        this.renderResolutionPanels(resolveRes.data.battle.log, {
+          battleId: String(resolveRes.data.battle.battle_id),
+          outcome,
+          rounds: Number(resolveRes.data.battle.rounds),
+          ticks: Number(resolveRes.data.battle.ticks),
+          unlockedMsg,
+        });
+      } catch {
+        this.detailText?.setText("Battle details unavailable.");
+      }
 
       const refreshed = await this.withTimeout(
         apiClient.getCurrentRun(),
@@ -298,11 +330,17 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
   private async handleNoEnemiesResolution(reason: string): Promise<void> {
     this.statusText?.setText("Node resolved: NO ENEMIES");
-    this.renderResolutionPanels(null, [
-      "Encounter resolved without battle.",
-      `Reason: ${reason}`,
-      "Returning to map will show updated node state.",
-    ]);
+    try {
+      this.renderResolutionPanels(null, {
+        battleId: "n/a",
+        outcome: "no_enemies",
+        rounds: 0,
+        ticks: 0,
+        unlockedMsg: "Encounter resolved without combat.",
+      });
+    } catch {
+      this.detailText?.setText("Encounter resolved without combat.");
+    }
     this.showError(`Reason: ${reason}`);
 
     try {
@@ -310,11 +348,17 @@ export default class NodeResolutionScene extends Phaser.Scene {
       if (refreshed.ok && refreshed.data.map?.nodes) {
         const node = refreshed.data.map.nodes.find((candidate) => String(candidate.id) === this.nodeId);
         if (node && String(node.status) === "cleared") {
-          this.renderResolutionPanels(null, [
-            "Encounter resolved without battle.",
-            `Reason: ${reason}`,
-            "Node status is now cleared.",
-          ]);
+          try {
+            this.renderResolutionPanels(null, {
+              battleId: "n/a",
+              outcome: "no_enemies",
+              rounds: 0,
+              ticks: 0,
+              unlockedMsg: "Encounter resolved without combat. Node status is now cleared.",
+            });
+          } catch {
+            this.detailText?.setText("Encounter resolved without combat. Node status is now cleared.");
+          }
         }
       }
     } catch {
@@ -348,18 +392,44 @@ export default class NodeResolutionScene extends Phaser.Scene {
   }
 
   private renderResolutionPanels(
-    log: { meta?: Record<string, unknown>; events?: Array<Record<string, unknown>>; [key: string]: unknown } | null,
-    centerLines: string[]
+    log: BattleLog,
+    summary: ResolutionSummary,
+    selectedTickOverride?: number,
   ): void {
+    this.latestLog = log;
+    this.latestSummary = summary;
     this.clearResolutionPanels();
     const layout = getPageLayout(this);
     const contentX = layout.content.x + 16;
     const contentY = layout.content.y + CONTENT_BODY_TOP_OFFSET + 38;
     const contentWidth = Math.max(300, layout.content.width - 32);
     const contentHeight = Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - CONTENT_BODY_BOTTOM_PADDING - 24);
+    const sliderHeight = 76;
+    const bodyY = contentY + sliderHeight;
+    const bodyHeight = Math.max(120, contentHeight - sliderHeight - 6);
+
+    const maxTick = this.deriveObservedMaxTick(log, Math.max(0, summary.ticks));
+    const selectableTicks = this.getNonEmptyTicks(log, maxTick);
+    const defaultTick = this.deriveDefaultTick(log);
+    const desiredTick = selectedTickOverride ?? (this.selectedTick !== 0 ? this.selectedTick : defaultTick);
+    const clampedTick = Phaser.Math.Clamp(desiredTick, 0, maxTick);
+    this.selectedTick = this.coerceTickToSelectable(clampedTick, selectableTicks, maxTick);
+
+    const sliderInset = 10;
+    this.renderTickSlider(
+      contentX + sliderInset,
+      contentY,
+      Math.max(140, contentWidth - sliderInset * 2),
+      sliderHeight - 8,
+      maxTick,
+      this.selectedTick,
+      log
+    );
+
     const gap = 14;
-    const leftWidth = Math.max(190, Math.floor(contentWidth * 0.28));
-    const rightWidth = Math.max(220, Math.floor(contentWidth * 0.31));
+    const sideWidth = Math.max(180, Math.floor((contentWidth - gap * 2) / 3));
+    const leftWidth = sideWidth;
+    const rightWidth = sideWidth;
     const centerWidth = Math.max(220, contentWidth - leftWidth - rightWidth - gap * 2);
 
     const leftX = contentX;
@@ -367,52 +437,69 @@ export default class NodeResolutionScene extends Phaser.Scene {
     const rightX = centerX + centerWidth + gap;
 
     const centerPanel = this.add
-      .rectangle(centerX, contentY, centerWidth, contentHeight, 0x7c1018, 0.4)
+      .rectangle(centerX, bodyY, centerWidth, bodyHeight, 0x7c1018, 0.4)
       .setOrigin(0, 0)
       .setStrokeStyle(1, 0xff7c88, 0.75);
 
     const allyTitle = this.add
-      .text(leftX + 8, contentY + 8, "ALLIES", {
+      .text(leftX + 8, bodyY + 8, "ALLIES", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "16px",
         color: "#f4f4f4",
       })
       .setOrigin(0, 0);
     const enemyTitle = this.add
-      .text(rightX + 8, contentY + 8, "ENEMIES", {
+      .text(rightX + 8, bodyY + 8, "ENEMIES", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "16px",
         color: "#f4f4f4",
       })
       .setOrigin(0, 0);
 
-    const allyEntries = this.extractParticipantLabels(log, "player", 9);
-    this.createFormationGrid(leftX + 10, contentY + 34, leftWidth - 20, Math.min(contentHeight - 44, 220), allyEntries);
+    const allyUnits = this.extractParticipants(log, "player", 9);
+    const enemyUnits = this.extractParticipants(log, "enemy", 9);
+    const hpSnapshot = this.computeHpSnapshot(log, this.selectedTick);
+    const selectedRound = this.resolveRoundNumber(log, this.selectedTick);
+    const statusSnapshot = this.computeStatusSnapshot(log, this.selectedTick, selectedRound);
 
-    const enemyEntries = this.extractParticipantLabels(log, "enemy", 99);
-    const enemyGroups = Math.max(1, Math.ceil(enemyEntries.length / 9));
-    const enemyGroupGap = 12;
-    const enemyGridHeight = Math.floor((contentHeight - 44 - enemyGroupGap * (enemyGroups - 1)) / enemyGroups);
-    for (let i = 0; i < enemyGroups; i += 1) {
-      const groupEntries = enemyEntries.slice(i * 9, (i + 1) * 9);
-      this.createFormationGrid(
-        rightX + 10,
-        contentY + 34 + i * (enemyGridHeight + enemyGroupGap),
-        rightWidth - 20,
-        enemyGridHeight,
-        groupEntries
-      );
-    }
+    this.createFormationGrid(
+      leftX + 10,
+      bodyY + 34,
+      leftWidth - 20,
+      bodyHeight - 44,
+      allyUnits.map((unit, index) => ({
+        id: unit.id,
+        display: String(index + 1),
+        hpPercent: this.readHpPercent(unit.id, unit.maxHp, hpSnapshot),
+        statuses: statusSnapshot[unit.id] ?? [],
+      }))
+    );
+
+    this.createFormationGrid(
+      rightX + 10,
+      bodyY + 34,
+      rightWidth - 20,
+      bodyHeight - 44,
+      enemyUnits.map((unit) => ({
+        id: unit.id,
+        display: this.shortenEnemyLabel(unit.display),
+        hpPercent: this.readHpPercent(unit.id, unit.maxHp, hpSnapshot),
+        statuses: statusSnapshot[unit.id] ?? [],
+      }))
+    );
 
     this.detailText?.destroy();
     const viewportX = centerX + 10;
-    const viewportY = contentY + 10;
+    const viewportY = bodyY + 10;
     const viewportWidth = Math.max(120, centerWidth - 20);
-    const viewportHeight = Math.max(80, contentHeight - 20);
+    const viewportHeight = Math.max(80, bodyHeight - 20);
     this.logViewport = { x: viewportX, y: viewportY, width: viewportWidth, height: viewportHeight };
 
+    const tickEvents = this.extractEventsForTick(log, this.selectedTick);
+    const summaryLines = this.buildTickSummaryLines(summary, tickEvents);
+
     this.detailText = this.add
-      .text(viewportX, viewportY, centerLines.join("\n"), {
+      .text(viewportX, viewportY, summaryLines.join("\n"), {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#ffe6ea",
@@ -433,19 +520,139 @@ export default class NodeResolutionScene extends Phaser.Scene {
     this.resolutionUiObjects.push(centerPanel, allyTitle, enemyTitle, this.detailText, this.logMaskGraphics);
   }
 
+  private renderTickSlider(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    maxTick: number,
+    selectedTick: number,
+    log: BattleLog,
+  ): void {
+    const sliderTitle = this.add
+      .text(x, y, `Tick ${selectedTick}/${maxTick}`, {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "16px",
+        color: "#f1f1f1",
+      })
+      .setOrigin(0, 0);
+    this.resolutionUiObjects.push(sliderTitle);
+
+    const playbackButtonWidth = 74;
+    const playbackButtonHeight = 24;
+    const playbackButtonX = x + width - playbackButtonWidth;
+    const playbackButtonY = y;
+    const playbackButtonBg = this.add
+      .rectangle(
+        playbackButtonX,
+        playbackButtonY,
+        playbackButtonWidth,
+        playbackButtonHeight,
+        this.tickPlaybackActive ? 0x386f45 : 0x3b414f,
+        0.95,
+      )
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0xffffff, 0.35);
+    const playbackButtonLabel = this.add
+      .text(playbackButtonX + playbackButtonWidth / 2, playbackButtonY + playbackButtonHeight / 2, this.tickPlaybackActive ? "Pause" : "Play", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "13px",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5, 0.5);
+    this.resolutionUiObjects.push(playbackButtonBg, playbackButtonLabel);
+
+    (playbackButtonBg as unknown as { setInteractive?: (config?: unknown) => unknown }).setInteractive?.({ useHandCursor: true });
+    (playbackButtonBg as unknown as { on?: (event: string, cb: (...args: unknown[]) => void) => unknown }).on?.("pointerdown", () => {
+      this.toggleTickPlayback(maxTick, log);
+    });
+
+    const trackY = y + 34;
+    const track = this.add
+      .rectangle(x, trackY, width, 8, 0x2a2f36, 0.9)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0xffffff, 0.25);
+    this.resolutionUiObjects.push(track);
+
+    const setTickFromPointerX = (pointerX: number): void => {
+      if (maxTick <= 0 || !this.latestSummary) {
+        return;
+      }
+      const selectableTicks = this.getNonEmptyTicks(log, maxTick);
+      const ratio = Phaser.Math.Clamp((pointerX - x) / Math.max(1, width), 0, 1);
+      const nextTick = this.coerceTickToSelectable(Math.round(ratio * maxTick), selectableTicks, maxTick);
+      if (nextTick === this.selectedTick) {
+        return;
+      }
+      this.renderResolutionPanels(this.latestLog, this.latestSummary, nextTick);
+    };
+
+    (track as unknown as { setInteractive?: (config?: unknown) => unknown }).setInteractive?.({ useHandCursor: true });
+    (track as unknown as { on?: (event: string, cb: (...args: unknown[]) => void) => unknown }).on?.("pointerdown", (...args: unknown[]) => {
+      const pointer = args[0] as Phaser.Input.Pointer;
+      setTickFromPointerX(pointer.x);
+    });
+    (track as unknown as { on?: (event: string, cb: (...args: unknown[]) => void) => unknown }).on?.("pointermove", (...args: unknown[]) => {
+      const pointer = args[0] as Phaser.Input.Pointer;
+      if (pointer.isDown) {
+        setTickFromPointerX(pointer.x);
+      }
+    });
+
+    if (maxTick > 0) {
+      const selectableTicks = this.getNonEmptyTicks(log, maxTick);
+      for (const tick of selectableTicks) {
+        const ratio = tick / maxTick;
+        const tickX = x + Math.round(ratio * width);
+        const stop = this.add.rectangle(tickX, trackY - 3, 2, 14, 0xaeb5c2, 0.45).setOrigin(0.5, 0);
+        this.resolutionUiObjects.push(stop);
+      }
+    }
+
+    const roundStartTicks = this.extractRoundStartTicks(log);
+    for (const roundTick of roundStartTicks) {
+      if (maxTick <= 0 || roundTick < 0 || roundTick > maxTick) {
+        continue;
+      }
+      const ratio = roundTick / maxTick;
+      const markerX = x + Math.round(ratio * width);
+      const marker = this.add.rectangle(markerX, trackY - 10, 3, 24, 0xffd35b, 0.85).setOrigin(0.5, 0);
+      this.resolutionUiObjects.push(marker);
+    }
+
+    const handleX = maxTick > 0 ? x + Math.round((selectedTick / maxTick) * width) : x;
+    const handle = this.add
+      .rectangle(handleX, trackY - 6, 10, 20, 0xffffff, 0.95)
+      .setOrigin(0.5, 0)
+      .setStrokeStyle(1, 0x1a1a1a, 0.7);
+    this.resolutionUiObjects.push(handle);
+
+    const helpText = this.add
+      .text(x, y + height - 12, "Gold markers denote round starts", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "12px",
+        color: "#d9d9d9",
+      })
+      .setOrigin(0, 1);
+    this.resolutionUiObjects.push(helpText);
+  }
+
   private createFormationGrid(
     x: number,
     y: number,
     width: number,
     height: number,
-    labels: string[]
+    entries: Array<{ id: string; display: string; hpPercent: number; statuses: FormationStatusIndicator[] }>
   ): void {
     const gap = 6;
     const cellByWidth = Math.floor((width - gap * 2) / 3);
     const cellByHeight = Math.floor((height - gap * 2) / 3);
     const cellSize = Math.max(28, Math.min(cellByWidth, cellByHeight));
 
-    const formation = this.buildFormationMap(labels);
+    const formation = this.buildFormationMap(entries.map((entry) => entry.id));
+    const labelsById = new Map(entries.map((entry) => [entry.id, entry.display] as const));
+    const hpById = new Map(entries.map((entry) => [entry.id, entry.hpPercent] as const));
+    const statusesById = new Map(entries.map((entry) => [entry.id, entry.statuses] as const));
     const grid = new FormationGrid3x3({
       scene: this,
       x,
@@ -454,9 +661,17 @@ export default class NodeResolutionScene extends Phaser.Scene {
       gap,
       formation,
       selectedCell: null,
-      getCellLabel: (cell, unitId) => {
+      getCellLabel: (_cell, unitId) => {
         if (!unitId) return "";
-        return String(unitId);
+        return labelsById.get(String(unitId)) ?? String(unitId);
+      },
+      getCellHpPercent: (_cell, unitId) => {
+        if (!unitId) return null;
+        return hpById.get(String(unitId)) ?? null;
+      },
+      getCellStatusIndicators: (_cell, unitId) => {
+        if (!unitId) return [];
+        return statusesById.get(String(unitId)) ?? [];
       },
       colors: {
         cellFill: 0x0f0f0f,
@@ -484,11 +699,11 @@ export default class NodeResolutionScene extends Phaser.Scene {
     return formation;
   }
 
-  private extractParticipantLabels(
-    log: { meta?: Record<string, unknown>; [key: string]: unknown } | null,
+  private extractParticipants(
+    log: BattleLog,
     side: "player" | "enemy",
     max: number
-  ): string[] {
+  ): ParticipantView[] {
     const participants = log
       && typeof log.meta === "object"
       && log.meta !== null
@@ -497,16 +712,406 @@ export default class NodeResolutionScene extends Phaser.Scene {
       ? ((log.meta as Record<string, unknown>).participants as Record<string, unknown>)
       : null;
     const list = participants && Array.isArray(participants[side]) ? participants[side] : [];
-    const labels: string[] = [];
+    const units: ParticipantView[] = [];
     for (const entry of list.slice(0, max)) {
       if (!entry || typeof entry !== "object") continue;
       const record = entry as Record<string, unknown>;
-      const id = side === "player"
+      const id = String(side === "player"
         ? String(record.unit_instance_id ?? "unit")
-        : String(record.slug ?? "enemy");
-      labels.push(id);
+        : String(record.slug ?? "enemy"));
+      const maxHpRaw = record.max_hp;
+      const maxHp = typeof maxHpRaw === "number" ? maxHpRaw : Number(maxHpRaw ?? 1);
+      units.push({
+        id,
+        display: side === "player" ? id : this.prettifyEnemySlug(id),
+        maxHp: Number.isFinite(maxHp) && maxHp > 0 ? maxHp : 1,
+      });
     }
-    return labels;
+    return units;
+  }
+
+  private extractEventsForTick(log: BattleLog, tick: number): Array<Record<string, unknown>> {
+    if (!log || !Array.isArray(log.events)) {
+      return [];
+    }
+
+    return log.events.filter((event): event is Record<string, unknown> => {
+      if (!event || typeof event !== "object") return false;
+      const eventTick = typeof event.tick === "number" ? event.tick : Number(event.tick ?? -1);
+      return Number.isFinite(eventTick) && eventTick === tick;
+    });
+  }
+
+  private extractRoundStartTicks(log: BattleLog): number[] {
+    if (!log || !Array.isArray(log.events)) {
+      return [];
+    }
+
+    const ticks: number[] = [];
+    for (const event of log.events) {
+      if (!event || typeof event !== "object") continue;
+      const rec = event as Record<string, unknown>;
+      if (rec.type !== "phase_start" || rec.phase !== "round_start") continue;
+      const tick = typeof rec.tick === "number" ? rec.tick : Number(rec.tick ?? -1);
+      if (Number.isFinite(tick) && tick >= 0) {
+        ticks.push(tick);
+      }
+    }
+    return ticks;
+  }
+
+  private resolveRoundNumber(log: BattleLog, selectedTick: number): number {
+    const starts = this.extractRoundStartTicks(log).sort((a, b) => a - b);
+    if (starts.length === 0) {
+      return 0;
+    }
+
+    let round = 1;
+    for (let i = 0; i < starts.length; i += 1) {
+      const startTick = starts[i];
+      if (typeof startTick !== "number") {
+        continue;
+      }
+      if (selectedTick >= startTick) {
+        round = i + 1;
+      }
+    }
+
+    return round;
+  }
+
+  private computeStatusSnapshot(log: BattleLog, upToTick: number, selectedRound: number): UnitStatusSnapshot {
+    const snapshot: Record<string, Record<string, number>> = {};
+    if (!log || !Array.isArray(log.events) || selectedRound <= 0) {
+      return {};
+    }
+
+    const roundStarts = this.extractRoundStartTicks(log).sort((a, b) => a - b);
+
+    for (const raw of log.events) {
+      if (!raw || typeof raw !== "object") continue;
+      const event = raw as Record<string, unknown>;
+      if (String(event.type ?? "") !== "action") continue;
+
+      const tick = typeof event.tick === "number" ? event.tick : Number(event.tick ?? NaN);
+      if (!Number.isFinite(tick) || tick > upToTick) continue;
+
+      const status = typeof event.status_applied === "string" ? event.status_applied : null;
+      const durationRaw = event.status_duration_rounds;
+      const duration = typeof durationRaw === "number" ? durationRaw : Number(durationRaw ?? NaN);
+      if (!status || !Number.isFinite(duration) || duration <= 0) continue;
+
+      const enemyTarget = typeof event.target_enemy_slug === "string" ? event.target_enemy_slug : null;
+      const allyTarget = typeof event.target_unit_instance_id === "string" ? event.target_unit_instance_id : null;
+      const targetId = enemyTarget ?? allyTarget;
+      if (!targetId) continue;
+
+      const eventRoundRaw = event.round;
+      const eventRound = typeof eventRoundRaw === "number"
+        ? eventRoundRaw
+        : this.resolveRoundByTick(Number(tick), roundStarts);
+      if (!Number.isFinite(eventRound) || eventRound <= 0) continue;
+
+      const elapsedRounds = Math.max(0, selectedRound - eventRound);
+      const remaining = Math.floor(duration - elapsedRounds);
+      if (remaining <= 0) continue;
+
+      if (!snapshot[targetId]) {
+        snapshot[targetId] = {};
+      }
+      snapshot[targetId][status.toLowerCase()] = remaining;
+    }
+
+    const indicators: UnitStatusSnapshot = {};
+    for (const [unitId, statuses] of Object.entries(snapshot)) {
+      indicators[unitId] = Object.entries(statuses)
+        .slice(0, 3)
+        .map(([status, remaining]) => ({
+          label: String(remaining),
+          color: this.getStatusColor(status),
+        }));
+    }
+    return indicators;
+  }
+
+  private resolveRoundByTick(tick: number, roundStarts: number[]): number {
+    if (!Number.isFinite(tick) || roundStarts.length === 0) {
+      return 0;
+    }
+
+    let round = 1;
+    for (let i = 0; i < roundStarts.length; i += 1) {
+      const startTick = roundStarts[i];
+      if (typeof startTick !== "number") {
+        continue;
+      }
+      if (tick >= startTick) {
+        round = i + 1;
+      }
+    }
+    return round;
+  }
+
+  private getStatusColor(status: string): number {
+    const normalized = status.toLowerCase();
+    if (normalized.includes("poison")) return 0x55b35f;
+    if (normalized.includes("burn")) return 0xc87938;
+    if (normalized.includes("bleed")) return 0xbf4a4a;
+    if (normalized.includes("stun")) return 0xb58ad6;
+    if (normalized.includes("slow")) return 0x4f85bf;
+    return 0x6a798f;
+  }
+
+  private getNonEmptyTicks(log: BattleLog, maxTick: number): number[] {
+    if (!log || !Array.isArray(log.events) || maxTick <= 0) {
+      return [];
+    }
+
+    const uniqueTicks = new Set<number>();
+    for (const raw of log.events) {
+      if (!raw || typeof raw !== "object") continue;
+      const event = raw as Record<string, unknown>;
+      const tick = typeof event.tick === "number" ? event.tick : Number(event.tick ?? NaN);
+      if (!Number.isFinite(tick) || tick < 0 || tick > maxTick) continue;
+      uniqueTicks.add(Math.floor(tick));
+    }
+
+    return Array.from(uniqueTicks).sort((a, b) => a - b);
+  }
+
+  private deriveObservedMaxTick(log: BattleLog, fallbackMaxTick: number): number {
+    if (!log || !Array.isArray(log.events)) {
+      return fallbackMaxTick;
+    }
+
+    let maxObservedTick = 0;
+    for (const raw of log.events) {
+      if (!raw || typeof raw !== "object") continue;
+      const event = raw as Record<string, unknown>;
+      const tick = typeof event.tick === "number" ? event.tick : Number(event.tick ?? NaN);
+      if (!Number.isFinite(tick) || tick < 0) continue;
+      maxObservedTick = Math.max(maxObservedTick, Math.floor(tick));
+    }
+
+    return maxObservedTick > 0 ? maxObservedTick : fallbackMaxTick;
+  }
+
+  private coerceTickToSelectable(targetTick: number, selectableTicks: number[], maxTick: number): number {
+    if (selectableTicks.length === 0) {
+      return Phaser.Math.Clamp(targetTick, 0, maxTick);
+    }
+
+    let bestTick = selectableTicks[0] ?? 0;
+    let bestDistance = Math.abs(bestTick - targetTick);
+    for (const tick of selectableTicks) {
+      const distance = Math.abs(tick - targetTick);
+      if (distance < bestDistance) {
+        bestTick = tick;
+        bestDistance = distance;
+      }
+    }
+
+    return bestTick;
+  }
+
+  private findNextNonEmptyTick(nonEmptyTicks: number[], currentTick: number): number | null {
+    if (nonEmptyTicks.length === 0) {
+      return null;
+    }
+
+    const firstTick = nonEmptyTicks[0];
+    if (typeof firstTick !== "number") {
+      return null;
+    }
+
+    const exactIndex = nonEmptyTicks.indexOf(currentTick);
+    if (exactIndex >= 0) {
+      const wrapped = nonEmptyTicks[(exactIndex + 1) % nonEmptyTicks.length];
+      return typeof wrapped === "number" ? wrapped : firstTick;
+    }
+
+    for (const tick of nonEmptyTicks) {
+      if (tick > currentTick) {
+        return tick;
+      }
+    }
+
+    return firstTick;
+  }
+
+  private toggleTickPlayback(maxTick: number, log: BattleLog): void {
+    if (this.tickPlaybackActive) {
+      this.stopTickPlayback();
+      if (this.latestSummary) {
+        this.renderResolutionPanels(this.latestLog, this.latestSummary, this.selectedTick);
+      }
+      return;
+    }
+
+    const ticks = this.getNonEmptyTicks(log, maxTick);
+    if (ticks.length === 0 || !this.latestSummary) {
+      return;
+    }
+
+    this.tickPlaybackActive = true;
+    this.tickPlaybackTimer?.destroy();
+    this.tickPlaybackTimer = this.time.addEvent({
+      delay: TICK_AUTOPLAY_STEP_MS,
+      callback: () => {
+        if (!this.tickPlaybackActive || !this.latestSummary) {
+          return;
+        }
+        const currentTicks = this.getNonEmptyTicks(this.latestLog, Math.max(0, this.latestSummary.ticks));
+        const nextTick = this.findNextNonEmptyTick(currentTicks, this.selectedTick);
+        if (nextTick === null) {
+          this.stopTickPlayback();
+          return;
+        }
+        this.renderResolutionPanels(this.latestLog, this.latestSummary, nextTick);
+      },
+      loop: true,
+    });
+
+    this.renderResolutionPanels(this.latestLog, this.latestSummary, this.selectedTick);
+  }
+
+  private stopTickPlayback(): void {
+    this.tickPlaybackActive = false;
+    this.tickPlaybackTimer?.destroy();
+    this.tickPlaybackTimer = undefined;
+  }
+
+  private deriveDefaultTick(log: BattleLog): number {
+    if (!log || !Array.isArray(log.events)) {
+      return 0;
+    }
+
+    for (const event of log.events) {
+      if (!event || typeof event !== "object") continue;
+      const rec = event as Record<string, unknown>;
+      if (rec.type !== "action") continue;
+      const tick = typeof rec.tick === "number" ? rec.tick : Number(rec.tick ?? 0);
+      if (Number.isFinite(tick)) {
+        return Math.max(0, tick);
+      }
+    }
+
+    return 0;
+  }
+
+  private buildTickSummaryLines(summary: ResolutionSummary, tickEvents: Array<Record<string, unknown>>): string[] {
+    const lines: string[] = [];
+    lines.push(`Battle ${summary.battleId} | ${summary.outcome.toUpperCase()}`);
+    lines.push(`Round/Tick: ${this.describeRoundTick(this.selectedTick, summary.rounds, summary.ticks)}`);
+    lines.push(summary.unlockedMsg);
+    lines.push("");
+
+    if (tickEvents.length === 0) {
+      lines.push("No events on this tick.");
+      return lines;
+    }
+
+    lines.push("Events on selected tick:");
+    tickEvents.forEach((event, index) => {
+      lines.push(`${index + 1}. ${this.formatFriendlyEvent(event)}`);
+    });
+    return lines;
+  }
+
+  private describeRoundTick(selectedTick: number, rounds: number, ticks: number): string {
+    if (rounds <= 0 || ticks <= 0) {
+      return `t${selectedTick}`;
+    }
+
+    const ticksPerRound = Math.max(1, Math.floor(ticks / rounds));
+    const round = Math.min(rounds, Math.max(1, Math.floor((Math.max(1, selectedTick) - 1) / ticksPerRound) + 1));
+    const inRoundTick = ((Math.max(1, selectedTick) - 1) % ticksPerRound) + 1;
+    return `r${round} t${inRoundTick} (abs ${selectedTick})`;
+  }
+
+  private formatFriendlyEvent(event: Record<string, unknown>): string {
+    const type = String(event.type ?? "event");
+    if (type === "phase_start") {
+      return `Round ${event.round ?? "?"} start.`;
+    }
+    if (type === "battle_start") {
+      return "Battle started.";
+    }
+    if (type === "battle_end") {
+      return `Battle ended: ${String(event.outcome ?? "unknown")}.`;
+    }
+    if (type !== "action") {
+      return String(event.message ?? type);
+    }
+
+    const side = String(event.side ?? "unknown");
+    const actor = typeof event.actor_unit_instance_id === "string"
+      ? `Ally ${event.actor_unit_instance_id}`
+      : typeof event.actor_enemy_slug === "string"
+        ? this.prettifyEnemySlug(event.actor_enemy_slug)
+        : "Unknown actor";
+    const target = typeof event.target_unit_instance_id === "string"
+      ? `Ally ${event.target_unit_instance_id}`
+      : typeof event.target_enemy_slug === "string"
+        ? this.prettifyEnemySlug(event.target_enemy_slug)
+        : "Unknown target";
+    const ability = String(event.ability_id ?? "ability");
+    const diceOutcome = typeof event.dice_outcome === "string" ? event.dice_outcome : "";
+    const abilityOutcome = typeof event.ability_outcome === "string" ? event.ability_outcome : "";
+
+    const parts = [`[${side.toUpperCase()}] ${actor} used ${ability} on ${target}`];
+    if (diceOutcome) parts.push(`Dice: ${diceOutcome}`);
+    if (abilityOutcome) parts.push(`Result: ${abilityOutcome}`);
+    return parts.join(" | ");
+  }
+
+  private computeHpSnapshot(log: BattleLog, upToTick: number): Record<string, number> {
+    const snapshot: Record<string, number> = {};
+    const participants = this.extractParticipants(log, "player", 99).concat(this.extractParticipants(log, "enemy", 99));
+    participants.forEach((participant) => {
+      snapshot[participant.id] = participant.maxHp;
+    });
+
+    if (!log || !Array.isArray(log.events)) {
+      return snapshot;
+    }
+
+    for (const raw of log.events) {
+      if (!raw || typeof raw !== "object") continue;
+      const event = raw as Record<string, unknown>;
+      if (String(event.type ?? "") !== "action") continue;
+      const tick = typeof event.tick === "number" ? event.tick : Number(event.tick ?? 0);
+      if (!Number.isFinite(tick) || tick > upToTick) continue;
+      const hpAfterRaw = event.target_hp_after;
+      const hpAfter = typeof hpAfterRaw === "number" ? hpAfterRaw : Number(hpAfterRaw ?? NaN);
+      if (!Number.isFinite(hpAfter)) continue;
+
+      const enemyTarget = typeof event.target_enemy_slug === "string" ? event.target_enemy_slug : null;
+      const allyTarget = typeof event.target_unit_instance_id === "string" ? event.target_unit_instance_id : null;
+      const targetId = enemyTarget ?? allyTarget;
+      if (!targetId) continue;
+      snapshot[targetId] = Math.max(0, hpAfter);
+    }
+
+    return snapshot;
+  }
+
+  private readHpPercent(id: string, maxHp: number, snapshot: Record<string, number>): number {
+    const hp = snapshot[id] ?? maxHp;
+    if (maxHp <= 0) return 0;
+    return Phaser.Math.Clamp(hp / maxHp, 0, 1);
+  }
+
+  private prettifyEnemySlug(slug: string): string {
+    return String(slug)
+      .split("_")
+      .filter((part) => part.length > 0)
+      .map((part) => part[0]?.toUpperCase() + part.slice(1))
+      .join(" ");
+  }
+
+  private shortenEnemyLabel(label: string): string {
+    return label.length <= 14 ? label : `${label.slice(0, 12)}..`;
   }
 
   private clearResolutionPanels(): void {

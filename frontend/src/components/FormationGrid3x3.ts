@@ -3,6 +3,11 @@ import Phaser from "phaser";
 export type FormationCell = "A1" | "B1" | "C1" | "A2" | "B2" | "C2" | "A3" | "B3" | "C3";
 export type FormationMap = Record<FormationCell, string | null>;
 
+export type FormationStatusIndicator = {
+  label: string | number;
+  color: number;
+};
+
 export type FormationGrid3x3Config = {
   scene: Phaser.Scene;
   x: number; // top-left
@@ -27,6 +32,21 @@ export type FormationGrid3x3Config = {
    * Keep it cheap; this is called when cells refresh.
    */
   getCellLabel?: (cell: FormationCell, unitId: string | null) => string;
+
+  /**
+   * Optional HP percentage hook for rendering a bottom HP bar on occupied cells.
+   * Return null/undefined for no bar.
+   */
+  getCellHpPercent?: (cell: FormationCell, unitId: string | null) => number | null | undefined;
+
+  /**
+   * Optional status chips (top-right) for occupied cells.
+   * Each chip uses a solid color and short label text, e.g. remaining rounds.
+   */
+  getCellStatusIndicators?: (
+    cell: FormationCell,
+    unitId: string | null
+  ) => FormationStatusIndicator[] | null | undefined;
 
   /**
    * Double click threshold in ms (default 320)
@@ -80,6 +100,11 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
   private readonly onCellClick?: (cell: FormationCell) => void;
   private readonly onCellDoubleClick?: (cell: FormationCell) => void;
   private readonly getCellLabel?: (cell: FormationCell, unitId: string | null) => string;
+  private readonly getCellHpPercent?: (cell: FormationCell, unitId: string | null) => number | null | undefined;
+  private readonly getCellStatusIndicators?: (
+    cell: FormationCell,
+    unitId: string | null
+  ) => FormationStatusIndicator[] | null | undefined;
 
   private readonly doubleClickMs: number;
   private lastClickAtMs = 0;
@@ -88,6 +113,9 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
   private cellRects: Record<FormationCell, Phaser.GameObjects.Rectangle> = {} as any;
   private cellTexts: Record<FormationCell, Phaser.GameObjects.Text> = {} as any;
   private cellIcons: Record<FormationCell, Phaser.GameObjects.Image> = {} as any;
+  private cellHpBg: Record<FormationCell, Phaser.GameObjects.Rectangle> = {} as any;
+  private cellHpFill: Record<FormationCell, Phaser.GameObjects.Rectangle> = {} as any;
+  private cellStatusContainers: Record<FormationCell, Phaser.GameObjects.Container> = {} as any;
 
   constructor(cfg: FormationGrid3x3Config) {
     super(cfg.scene, cfg.x, cfg.y);
@@ -112,6 +140,8 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
     this.onCellClick = cfg.onCellClick;
     this.onCellDoubleClick = cfg.onCellDoubleClick;
     this.getCellLabel = cfg.getCellLabel;
+    this.getCellHpPercent = cfg.getCellHpPercent;
+    this.getCellStatusIndicators = cfg.getCellStatusIndicators;
 
     // Initialize formation map
     this.formation = {} as FormationMap;
@@ -168,13 +198,30 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
         .setVisible(false)
         .setAlpha(0.9);
 
+      const hpBg = this.scene.add
+        .rectangle(x + 6, y + this.cellSize - 10, this.cellSize - 12, 6, 0x2a2a2a, 0.9)
+        .setOrigin(0, 0)
+        .setVisible(false);
+
+      const hpFill = this.scene.add
+        .rectangle(x + 6, y + this.cellSize - 10, this.cellSize - 12, 6, 0x60d26b, 0.95)
+        .setOrigin(0, 0)
+        .setVisible(false);
+
+      const statusContainer = this.scene.add
+        .container(0, 0)
+        .setVisible(false);
+
       rect.on("pointerdown", () => this.handleCellPointerDown(cell));
 
       this.cellRects[cell] = rect;
       this.cellTexts[cell] = text;
       this.cellIcons[cell] = icon;
+      this.cellHpBg[cell] = hpBg;
+      this.cellHpFill[cell] = hpFill;
+      this.cellStatusContainers[cell] = statusContainer;
 
-      this.add([rect, icon, text]);
+      this.add([rect, icon, hpBg, hpFill, statusContainer, text]);
     }
 
     this.refreshHighlightsAndLabels();
@@ -214,8 +261,11 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
       const rect = this.cellRects[cell];
       const txt = this.cellTexts[cell];
       const icon = this.cellIcons[cell];
+      const hpBg = this.cellHpBg[cell];
+      const hpFill = this.cellHpFill[cell];
+      const statusContainer = this.cellStatusContainers[cell];
 
-      if (!rect || !txt || !icon) {
+      if (!rect || !txt || !icon || !hpBg || !hpFill || !statusContainer) {
         continue;
       }
 
@@ -242,8 +292,69 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
 
       icon.setVisible(occupied);
 
+      const hpPercentRaw = this.getCellHpPercent?.(cell, this.formation[cell]);
+      const hpPercent = typeof hpPercentRaw === "number"
+        ? Phaser.Math.Clamp(hpPercentRaw, 0, 1)
+        : null;
+      const showHp = occupied && hpPercent !== null;
+      hpBg.setVisible(showHp);
+      hpFill.setVisible(showHp);
+      if (showHp && hpPercent !== null) {
+        const totalBarWidth = this.cellSize - 12;
+        hpFill.setDisplaySize(Math.max(1, Math.round(totalBarWidth * hpPercent)), 6);
+      }
+
+      this.refreshCellStatusIndicators(cell, statusContainer, occupied);
+
       txt.setText(this.makeCellLabel(cell));
     }
+  }
+
+  private refreshCellStatusIndicators(
+    cell: FormationCell,
+    container: Phaser.GameObjects.Container,
+    occupied: boolean
+  ): void {
+    container.removeAll(true);
+
+    if (!occupied) {
+      container.setVisible(false);
+      return;
+    }
+
+    const indicators = this.getCellStatusIndicators?.(cell, this.formation[cell]) ?? [];
+    if (!Array.isArray(indicators) || indicators.length === 0) {
+      container.setVisible(false);
+      return;
+    }
+
+    const chipSize = 14;
+    const chipGap = 3;
+    const maxChips = 3;
+    const visibleIndicators = indicators.slice(0, maxChips);
+
+    visibleIndicators.forEach((indicator, index) => {
+      const label = String(indicator.label ?? "").slice(0, 2);
+      const chipX = this.cellSize - 6 - (index + 1) * chipSize - index * chipGap;
+      const chipY = 6;
+
+      const bg = this.scene.add
+        .rectangle(chipX, chipY, chipSize, chipSize, indicator.color, 0.95)
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, 0x101010, 0.8);
+      const txt = this.scene.add
+        .text(chipX + chipSize / 2, chipY + chipSize / 2, label, {
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+          fontSize: "9px",
+          color: "#ffffff",
+          align: "center",
+        })
+        .setOrigin(0.5, 0.5);
+
+      container.add([bg, txt]);
+    });
+
+    container.setVisible(true);
   }
 
   // ---------------------------

@@ -30,11 +30,17 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $second = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
 
     $this->assertSame(200, $first['status']);
-    $this->assertSame(200, $second['status']);
 
     $battleId = (int)($first['body']['data']['battle']['battle_id'] ?? 0);
     $this->assertGreaterThan(0, $battleId);
-    $this->assertSame($battleId, (int)($second['body']['data']['battle']['battle_id'] ?? 0));
+    $firstOutcome = (string)($first['body']['data']['battle']['outcome'] ?? '');
+    if ($firstOutcome === 'defeat') {
+      $this->assertSame(409, $second['status']);
+      $this->assertSame('run_not_active', (string)($second['body']['error']['code'] ?? ''));
+    } else {
+      $this->assertSame(200, $second['status']);
+      $this->assertSame($battleId, (int)($second['body']['data']['battle']['battle_id'] ?? 0));
+    }
 
     $logRaw = $this->scalar('SELECT `log_json` FROM `battle_logs` WHERE `battle_id` = ?', [$battleId]);
     $log = json_decode((string)$logRaw, true);
@@ -81,12 +87,18 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $second = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
 
     $this->assertSame(200, $first['status']);
-    $this->assertSame(200, $second['status']);
 
     $newBattleId = (int)($first['body']['data']['battle']['battle_id'] ?? 0);
     $this->assertGreaterThan(0, $newBattleId);
     $this->assertNotSame($oldBattleId, $newBattleId);
-    $this->assertSame($newBattleId, (int)($second['body']['data']['battle']['battle_id'] ?? 0));
+    $newOutcome = (string)($first['body']['data']['battle']['outcome'] ?? '');
+    if ($newOutcome === 'defeat') {
+      $this->assertSame(409, $second['status']);
+      $this->assertSame('run_not_active', (string)($second['body']['error']['code'] ?? ''));
+    } else {
+      $this->assertSame(200, $second['status']);
+      $this->assertSame($newBattleId, (int)($second['body']['data']['battle']['battle_id'] ?? 0));
+    }
 
     $this->assertSame(
       '0',
@@ -156,5 +168,101 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
       $this->assertIsArray($rewards['new_dice_instance_ids']);
       $this->assertIsArray($rewards['region_items']);
     }
+  }
+
+  public function testResolveNodeSchedulesMultipleRoundActionsAndExcludesPassives(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 90909090);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'available');
+
+    $unitTypeRows = $this->rows('SELECT `id` FROM `unit_types` ORDER BY `id` ASC LIMIT 2', []);
+    $this->assertCount(2, $unitTypeRows);
+
+    foreach ($unitTypeRows as $row) {
+      $unitId = $this->insertUnit($userId, (int)$row['id'], 1, 0);
+      $this->insertTeamUnit($teamId, $unitId);
+      $this->insertRunUnitState($runId, $unitId, 20, false);
+    }
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new RunNodeController();
+    $response = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $response['status']);
+
+    $battleId = (int)($response['body']['data']['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $battleId);
+
+    $logRaw = $this->scalar('SELECT `log_json` FROM `battle_logs` WHERE `battle_id` = ?', [$battleId]);
+    $log = json_decode((string)$logRaw, true);
+    $this->assertIsArray($log);
+
+    $events = is_array($log['events'] ?? null) ? $log['events'] : [];
+
+    $roundOneActions = array_values(array_filter(
+      $events,
+      static fn($event): bool => is_array($event)
+        && (string)($event['type'] ?? '') === 'action'
+        && (int)($event['round'] ?? 0) === 1
+    ));
+
+    $this->assertGreaterThan(
+      2,
+      count($roundOneActions),
+      'Round one should schedule more than one action per side when multiple units and active abilities are present.'
+    );
+
+    $roundOneTickSet = [];
+    foreach ($roundOneActions as $event) {
+      $tick = (int)($event['tick'] ?? 0);
+      $roundOneTickSet[$tick] = true;
+
+      $abilityId = (string)($event['ability_id'] ?? '');
+      $this->assertNotContains(
+        $abilityId,
+        ['thick_hide', 'sharpshooter', 'toxic_training'],
+        'Passive abilities must never be emitted as action events.'
+      );
+
+      $this->assertIsArray($event['dice_used'] ?? null, 'Action events must include dice_used metadata.');
+      $this->assertIsArray($event['dice_rolls'] ?? null, 'Action events must include dice_rolls metadata.');
+      $this->assertIsString($event['dice_outcome'] ?? null, 'Action events must include dice_outcome summary.');
+      $this->assertIsString($event['ability_outcome'] ?? null, 'Action events must include ability_outcome summary.');
+    }
+
+    $this->assertGreaterThan(2, count($roundOneTickSet), 'Round one should contain action ticks beyond the previous fixed two-tick cadence.');
+  }
+
+  public function testResolveNodeDefeatEndsRunImmediately(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 12121212);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'available');
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new RunNodeController();
+    $response = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $response['status']);
+
+    $battle = $response['body']['data']['battle'] ?? [];
+    $outcome = (string)($battle['outcome'] ?? '');
+    $this->assertSame('defeat', $outcome);
+
+    $this->assertSame('failed', (string)($response['body']['data']['node']['status'] ?? ''));
+
+    $runRow = $this->rows('SELECT `status`, `ended_at` FROM `region_runs` WHERE `id` = ? LIMIT 1', [$runId]);
+    $this->assertCount(1, $runRow);
+    $this->assertSame('failed', (string)$runRow[0]['status']);
+    $this->assertNotNull($runRow[0]['ended_at']);
   }
 }

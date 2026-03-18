@@ -89,16 +89,26 @@ function formatBattleEventLine(event: Record<string, unknown>): string {
     const damage = typeof event.damage === "number" ? event.damage : null;
     const outcome = typeof event.outcome === "string" ? event.outcome : null;
     const status = typeof event.status_applied === "string" ? event.status_applied : null;
+    const statusDuration = typeof event.status_duration_rounds === "number" ? event.status_duration_rounds : null;
     const hpAfter = typeof event.target_hp_after === "number" ? event.target_hp_after : null;
+    const diceOutcome = typeof event.dice_outcome === "string" ? event.dice_outcome : null;
+    const abilityOutcome = typeof event.ability_outcome === "string" ? event.ability_outcome : null;
+    const diceUsedSummary = formatDiceUsed(event.dice_used);
 
     const parts = [
       `${prefix}: [${side}] ${actor} -> ${target}`,
       `ability=${ability}`,
     ];
+    if (diceUsedSummary) parts.push(`dice=${diceUsedSummary}`);
+    if (diceOutcome) parts.push(`dice_outcome=${diceOutcome}`);
     if (damage !== null) parts.push(`damage=${damage}`);
     if (outcome) parts.push(`outcome=${outcome}`);
     if (hpAfter !== null) parts.push(`hp_after=${hpAfter}`);
-    if (status) parts.push(`status=${status}`);
+    if (status) {
+      const statusText = statusDuration !== null ? `${status}(${statusDuration}r)` : status;
+      parts.push(`status=${statusText}`);
+    }
+    if (abilityOutcome) parts.push(`ability_outcome=${abilityOutcome}`);
     return parts.join(" | ");
   }
 
@@ -120,6 +130,35 @@ function formatBattleEventLine(event: Record<string, unknown>): string {
 
   const message = typeof event.message === "string" ? event.message : null;
   return message ? `${prefix}: ${message}` : prefix;
+}
+
+function formatDiceUsed(value: unknown): string | null {
+  if (!Array.isArray(value) || value.length === 0) {
+    return null;
+  }
+
+  const labels: string[] = [];
+  for (const die of value) {
+    if (typeof die !== "object" || die === null) continue;
+    const sides = typeof (die as Record<string, unknown>).sides === "number"
+      ? (die as Record<string, unknown>).sides
+      : null;
+    const instanceId = typeof (die as Record<string, unknown>).dice_instance_id === "string"
+      ? (die as Record<string, unknown>).dice_instance_id
+      : null;
+    const kind = typeof (die as Record<string, unknown>).kind === "string"
+      ? (die as Record<string, unknown>).kind
+      : "die";
+
+    if (sides === null) continue;
+    labels.push(instanceId ? `#${instanceId}(d${sides})` : `${kind}(d${sides})`);
+  }
+
+  if (labels.length === 0) {
+    return null;
+  }
+
+  return labels.join(",");
 }
 
 

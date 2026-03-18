@@ -36,11 +36,18 @@ final class RunBattleIdempotencyTest extends IntegrationTestCase
     $secondResolve = $this->invoke(fn() => $runNodeController->resolveNode((string)$runId, (string)$nodeId));
 
     $this->assertSame(200, $firstResolve['status']);
-    $this->assertSame(200, $secondResolve['status']);
     $firstBattleId = (int)($firstResolve['body']['data']['battle']['battle_id'] ?? 0);
-    $secondBattleId = (int)($secondResolve['body']['data']['battle']['battle_id'] ?? 0);
+    $firstOutcome = (string)($firstResolve['body']['data']['battle']['outcome'] ?? '');
     $this->assertGreaterThan(0, $firstBattleId);
-    $this->assertSame($firstBattleId, $secondBattleId);
+
+    if ($firstOutcome === 'defeat') {
+      $this->assertSame(409, $secondResolve['status']);
+      $this->assertSame('run_not_active', (string)($secondResolve['body']['error']['code'] ?? ''));
+    } else {
+      $this->assertSame(200, $secondResolve['status']);
+      $secondBattleId = (int)($secondResolve['body']['data']['battle']['battle_id'] ?? 0);
+      $this->assertSame($firstBattleId, $secondBattleId);
+    }
 
     $battleCount = (int)$this->scalar('SELECT COUNT(*) FROM `battles` WHERE `run_id` = ? AND `node_id` = ?', [$runId, $nodeId]);
     $rewardCount = (int)$this->scalar('SELECT COUNT(*) FROM `battle_rewards` WHERE `battle_id` = ?', [$firstBattleId]);
