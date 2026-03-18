@@ -23,7 +23,7 @@ const ACTION_BODY_TOP_OFFSET = 72;
 const CONTENT_BODY_TOP_OFFSET = 74;
 const CONTENT_BODY_BOTTOM_PADDING = 22;
 const RESOLVE_TIMEOUT_MS = 12_000;
-const TICK_AUTOPLAY_STEP_MS = 2_500;
+const TICK_AUTOPLAY_STEP_MS = 1_200;
 
 type NodeResolutionSceneData = {
   runId?: string;
@@ -43,6 +43,12 @@ type ResolutionSummary = {
   rounds: number;
   ticks: number;
   unlockedMsg: string;
+  encounterDescription?: string;
+};
+
+type ClaimSummary = {
+  rewards: string[];
+  progression: string[];
 };
 
 type ParticipantView = {
@@ -76,6 +82,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
   private wheelHandlerRegistered = false;
   private tickPlaybackActive = false;
   private tickPlaybackTimer?: Phaser.Time.TimerEvent;
+  private hoverHpTooltip?: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "NodeResolutionScene" });
@@ -217,7 +224,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
         this.configureButton("Continue", true, () => {
           this.scene.start("RunEndSummaryScene", {
             status,
-            rewards: [],
+            rewards: ["- No rewards from exit node"],
             progression: [],
             survivors: [],
             defeated: [],
@@ -256,11 +263,21 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
       const outcome = resolveRes.data.battle.outcome;
       const battleId = String(resolveRes.data.battle.battle_id);
-      await this.withTimeout(
+      const claimRes = await this.withTimeout(
         apiClient.claimBattleRewards(battleId),
         this.resolveTimeoutMs,
         "claim-battle"
-      ).catch(() => null);
+      );
+      if (!claimRes.ok) {
+        this.showError(`Reward claim failed: ${claimRes.error.message}`);
+        this.configureButton("Retry Resolve", true, () => {
+          this.hasResolved = false;
+          void this.resolveNode();
+        });
+        return;
+      }
+
+      const claimSummary = this.buildClaimSummary(claimRes.data as Record<string, unknown>);
       const unlockedMsg = formatUnlockedNodes(resolveRes.data.next.unlocked_node_ids);
       this.statusText?.setText(`Node resolved: ${String(outcome).toUpperCase()}`);
       try {
@@ -270,6 +287,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
           rounds: Number(resolveRes.data.battle.rounds),
           ticks: Number(resolveRes.data.battle.ticks),
           unlockedMsg,
+          encounterDescription: this.readEncounterDescription(resolveRes.data.battle.log),
         });
       } catch {
         this.detailText?.setText("Battle details unavailable.");
@@ -288,8 +306,8 @@ export default class NodeResolutionScene extends Phaser.Scene {
         this.configureButton("Continue", true, () => {
           this.scene.start("RunEndSummaryScene", {
             status,
-            rewards: [],
-            progression: [],
+            rewards: claimSummary.rewards,
+            progression: claimSummary.progression,
             survivors: [],
             defeated: [],
           });
@@ -299,8 +317,11 @@ export default class NodeResolutionScene extends Phaser.Scene {
       }
 
       this.configureButton("Back to Map", true, () => {
+        const rewardTeaser = claimSummary.rewards.find((line) => !line.startsWith("-")) ?? "";
         this.scene.start("MapExplorationScene", {
-          resolutionMessage: `Node ${this.nodeId} resolved (${outcome}). ${unlockedMsg}`,
+          resolutionMessage: rewardTeaser
+            ? `Node ${this.nodeId} resolved (${outcome}). ${rewardTeaser}`
+            : `Node ${this.nodeId} resolved (${outcome}).`,
           resolutionColor: outcome === "victory" ? "#ccffcc" : "#ffd89e",
         });
       });
@@ -421,11 +442,8 @@ export default class NodeResolutionScene extends Phaser.Scene {
     const bodyHeight = Math.max(120, contentHeight - sliderHeight - 6);
 
     const maxTick = this.deriveObservedMaxTick(log, Math.max(0, summary.ticks));
-    const selectableTicks = this.getNonEmptyTicks(log, maxTick);
-    const defaultTick = this.deriveDefaultTick(log);
-    const desiredTick = selectedTickOverride ?? (this.selectedTick !== 0 ? this.selectedTick : defaultTick);
-    const clampedTick = Phaser.Math.Clamp(desiredTick, 0, maxTick);
-    this.selectedTick = this.coerceTickToSelectable(clampedTick, selectableTicks, maxTick);
+    const desiredTick = selectedTickOverride ?? 0;
+    this.selectedTick = Phaser.Math.Clamp(desiredTick, 0, maxTick);
 
     const sliderInset = 10;
     this.renderTickSlider(
@@ -473,6 +491,8 @@ export default class NodeResolutionScene extends Phaser.Scene {
     const hpSnapshot = this.computeHpSnapshot(log, this.selectedTick);
     const selectedRound = this.resolveRoundNumber(log, this.selectedTick);
     const statusSnapshot = this.computeStatusSnapshot(log, this.selectedTick, selectedRound);
+    const actedThisTick = this.computeActorsForTick(log, this.selectedTick);
+    const damageThisTick = this.computeDamageForTick(log, this.selectedTick);
 
     this.createFormationGrid(
       leftX + 10,
@@ -483,8 +503,12 @@ export default class NodeResolutionScene extends Phaser.Scene {
         id: unit.id,
         display: String(index + 1),
         pos: unit.pos,
+        currentHp: this.readCurrentHp(unit.id, unit.maxHp, hpSnapshot),
+        maxHp: unit.maxHp,
         hpPercent: this.readHpPercent(unit.id, unit.maxHp, hpSnapshot),
         statuses: statusSnapshot[unit.id] ?? [],
+        attacked: actedThisTick.has(unit.id),
+        damageTaken: damageThisTick.get(unit.id) ?? 0,
       }))
     );
 
@@ -497,8 +521,12 @@ export default class NodeResolutionScene extends Phaser.Scene {
         id: unit.id,
         display: this.shortenEnemyLabel(unit.display),
         pos: unit.pos,
+        currentHp: this.readCurrentHp(unit.id, unit.maxHp, hpSnapshot),
+        maxHp: unit.maxHp,
         hpPercent: this.readHpPercent(unit.id, unit.maxHp, hpSnapshot),
         statuses: statusSnapshot[unit.id] ?? [],
+        attacked: actedThisTick.has(unit.id),
+        damageTaken: damageThisTick.get(unit.id) ?? 0,
       }))
     );
 
@@ -592,9 +620,8 @@ export default class NodeResolutionScene extends Phaser.Scene {
       if (maxTick <= 0 || !this.latestSummary) {
         return;
       }
-      const selectableTicks = this.getNonEmptyTicks(log, maxTick);
       const ratio = Phaser.Math.Clamp((pointerX - x) / Math.max(1, width), 0, 1);
-      const nextTick = this.coerceTickToSelectable(Math.round(ratio * maxTick), selectableTicks, maxTick);
+      const nextTick = Phaser.Math.Clamp(Math.round(ratio * maxTick), 0, maxTick);
       if (nextTick === this.selectedTick) {
         return;
       }
@@ -660,8 +687,12 @@ export default class NodeResolutionScene extends Phaser.Scene {
       id: string;
       display: string;
       pos: { x: number; y: number } | null;
+      currentHp: number;
+      maxHp: number;
       hpPercent: number;
       statuses: FormationStatusIndicator[];
+      attacked: boolean;
+      damageTaken: number;
     }>
   ): void {
     const gap = 6;
@@ -671,8 +702,11 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
     const formation = this.buildFormationMap(entries.map((entry) => ({ id: entry.id, pos: entry.pos })));
     const labelsById = new Map(entries.map((entry) => [entry.id, entry.display] as const));
+    const hpTextById = new Map(entries.map((entry) => [entry.id, `${entry.currentHp}/${entry.maxHp}`] as const));
     const hpById = new Map(entries.map((entry) => [entry.id, entry.hpPercent] as const));
     const statusesById = new Map(entries.map((entry) => [entry.id, entry.statuses] as const));
+    const attackedById = new Map(entries.map((entry) => [entry.id, entry.attacked] as const));
+    const damageById = new Map(entries.map((entry) => [entry.id, entry.damageTaken] as const));
     const grid = new FormationGrid3x3({
       scene: this,
       x,
@@ -680,7 +714,23 @@ export default class NodeResolutionScene extends Phaser.Scene {
       cellSize,
       gap,
       formation,
+      allowSelection: false,
       selectedCell: null,
+      onCellHover: (_cell, unitId, pointer) => {
+        if (!unitId) {
+          this.hideHoverHpTooltip();
+          return;
+        }
+        const hpText = hpTextById.get(String(unitId));
+        if (!hpText) {
+          this.hideHoverHpTooltip();
+          return;
+        }
+        this.showHoverHpTooltip(pointer.x, pointer.y, `HP ${hpText}`);
+      },
+      onCellOut: () => {
+        this.hideHoverHpTooltip();
+      },
       getCellLabel: (_cell, unitId) => {
         if (!unitId) return "";
         return labelsById.get(String(unitId)) ?? String(unitId);
@@ -693,6 +743,16 @@ export default class NodeResolutionScene extends Phaser.Scene {
         if (!unitId) return [];
         return statusesById.get(String(unitId)) ?? [];
       },
+      getCellOutlineColor: (_cell, unitId) => {
+        if (!unitId) return null;
+        return attackedById.get(String(unitId)) ? 0xffd35b : null;
+      },
+      getCellDamageText: (_cell, unitId) => {
+        if (!unitId) return null;
+        const damage = damageById.get(String(unitId)) ?? 0;
+        if (damage <= 0) return null;
+        return `-${damage}`;
+      },
       colors: {
         cellFill: 0x0f0f0f,
         cellFillAlpha: 0.88,
@@ -704,6 +764,32 @@ export default class NodeResolutionScene extends Phaser.Scene {
       },
     });
     this.resolutionUiObjects.push(grid);
+  }
+
+  private showHoverHpTooltip(x: number, y: number, text: string): void {
+    if (!this.hoverHpTooltip) {
+      this.hoverHpTooltip = this.add
+        .text(0, 0, text, {
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+          fontSize: "12px",
+          color: "#ffffff",
+          backgroundColor: "#10151b",
+          padding: { x: 6, y: 3 },
+        })
+        .setOrigin(0, 1)
+        .setDepth(2500)
+        .setVisible(false);
+      this.resolutionUiObjects.push(this.hoverHpTooltip);
+    }
+
+    this.hoverHpTooltip
+      .setText(text)
+      .setPosition(x + 10, y - 8)
+      .setVisible(true);
+  }
+
+  private hideHoverHpTooltip(): void {
+    this.hoverHpTooltip?.setVisible(false);
   }
 
   private buildFormationMap(entries: Array<{ id: string; pos: { x: number; y: number } | null }>): Partial<FormationMap> {
@@ -1071,10 +1157,10 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
   private buildTickSummaryLines(summary: ResolutionSummary, tickEvents: Array<Record<string, unknown>>): string[] {
     const lines: string[] = [];
-    lines.push(`Battle ${summary.battleId} :: ${summary.outcome.toUpperCase()}`);
-    lines.push(`Round/Tick: ${this.describeRoundTick(this.selectedTick, summary.rounds, summary.ticks)}`);
-    lines.push(summary.unlockedMsg);
-    lines.push("");
+    if (summary.encounterDescription && summary.encounterDescription.trim() !== "") {
+      lines.push(`Encounter: ${summary.encounterDescription}`);
+      lines.push("");
+    }
 
     if (tickEvents.length === 0) {
       lines.push("No events on this tick.");
@@ -1086,17 +1172,6 @@ export default class NodeResolutionScene extends Phaser.Scene {
       lines.push(`${index + 1}) ${this.formatFriendlyEvent(event)}`);
     });
     return lines;
-  }
-
-  private describeRoundTick(selectedTick: number, rounds: number, ticks: number): string {
-    if (rounds <= 0 || ticks <= 0) {
-      return `t${selectedTick}`;
-    }
-
-    const ticksPerRound = Math.max(1, Math.floor(ticks / rounds));
-    const round = Math.min(rounds, Math.max(1, Math.floor((Math.max(1, selectedTick) - 1) / ticksPerRound) + 1));
-    const inRoundTick = ((Math.max(1, selectedTick) - 1) % ticksPerRound) + 1;
-    return `r${round} t${inRoundTick} (abs ${selectedTick})`;
   }
 
   private formatFriendlyEvent(event: Record<string, unknown>): string {
@@ -1162,6 +1237,114 @@ export default class NodeResolutionScene extends Phaser.Scene {
       .replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
+  private computeActorsForTick(log: BattleLog, tick: number): Set<string> {
+    const actors = new Set<string>();
+    if (!log || !Array.isArray(log.events)) {
+      return actors;
+    }
+
+    for (const raw of log.events) {
+      if (!raw || typeof raw !== "object") continue;
+      const event = raw as Record<string, unknown>;
+      if (String(event.type ?? "") !== "action") continue;
+      const eventTick = typeof event.tick === "number" ? event.tick : Number(event.tick ?? NaN);
+      if (!Number.isFinite(eventTick) || eventTick !== tick) continue;
+
+      const actor = typeof event.actor_unit_instance_id === "string"
+        ? event.actor_unit_instance_id
+        : typeof event.actor_enemy_slug === "string"
+          ? event.actor_enemy_slug
+          : null;
+      if (actor) {
+        actors.add(actor);
+      }
+    }
+
+    return actors;
+  }
+
+  private computeDamageForTick(log: BattleLog, tick: number): Map<string, number> {
+    const damageById = new Map<string, number>();
+    if (!log || !Array.isArray(log.events)) {
+      return damageById;
+    }
+
+    for (const raw of log.events) {
+      if (!raw || typeof raw !== "object") continue;
+      const event = raw as Record<string, unknown>;
+      if (String(event.type ?? "") !== "action") continue;
+      const eventTick = typeof event.tick === "number" ? event.tick : Number(event.tick ?? NaN);
+      if (!Number.isFinite(eventTick) || eventTick !== tick) continue;
+
+      const damageRaw = event.damage;
+      const damage = typeof damageRaw === "number" ? damageRaw : Number(damageRaw ?? NaN);
+      if (!Number.isFinite(damage) || damage <= 0) continue;
+
+      const target = typeof event.target_unit_instance_id === "string"
+        ? event.target_unit_instance_id
+        : typeof event.target_enemy_slug === "string"
+          ? event.target_enemy_slug
+          : null;
+      if (!target) continue;
+
+      const accumulated = damageById.get(target) ?? 0;
+      damageById.set(target, accumulated + Math.max(0, Math.floor(damage)));
+    }
+
+    return damageById;
+  }
+
+  private readCurrentHp(id: string, maxHp: number, snapshot: Record<string, number>): number {
+    const hp = snapshot[id];
+    if (typeof hp !== "number" || !Number.isFinite(hp)) {
+      return Math.max(0, Math.floor(maxHp));
+    }
+    return Math.max(0, Math.floor(hp));
+  }
+
+  private readEncounterDescription(log: BattleLog): string {
+    if (!log || typeof log.meta !== "object" || log.meta === null) {
+      return "";
+    }
+    const description = (log.meta as Record<string, unknown>).encounter_description;
+    return typeof description === "string" ? description : "";
+  }
+
+  private buildClaimSummary(data: Record<string, unknown>): ClaimSummary {
+    const rewardsRaw = (data.rewards ?? {}) as Record<string, unknown>;
+    const xpTotal = Number(rewardsRaw.xp_total ?? 0);
+    const soft = Number(rewardsRaw.currency_soft ?? 0);
+
+    const rewardLines: string[] = [];
+    if (Number.isFinite(soft) && soft > 0) {
+      rewardLines.push(`Soft Currency +${Math.floor(soft)}`);
+    }
+    if (Number.isFinite(xpTotal) && xpTotal > 0) {
+      rewardLines.push(`Unit XP Award +${Math.floor(xpTotal)} each`);
+    }
+    if (rewardLines.length === 0) {
+      rewardLines.push("- No rewards recorded");
+    }
+
+    const progressionRaw = Array.isArray(data.updated_units) ? data.updated_units : [];
+    const progressionLines = progressionRaw
+      .map((unit): string | null => {
+        if (!unit || typeof unit !== "object") return null;
+        const rec = unit as Record<string, unknown>;
+        const id = typeof rec.id === "string" ? rec.id : String(rec.id ?? "");
+        const level = typeof rec.level === "number" ? rec.level : Number(rec.level ?? NaN);
+        const xp = typeof rec.xp === "number" ? rec.xp : Number(rec.xp ?? NaN);
+        if (!id || !Number.isFinite(level) || !Number.isFinite(xp)) return null;
+        return `Unit ${id}: L${Math.floor(level)} (${Math.floor(xp)} XP)`;
+      })
+      .filter((line): line is string => line !== null);
+
+    return {
+      rewards: rewardLines,
+      progression: progressionLines,
+    };
+  }
+
   private computeHpSnapshot(log: BattleLog, upToTick: number): Record<string, number> {
     const snapshot: Record<string, number> = {};
     const participants = this.extractParticipants(log, "player", 99).concat(this.extractParticipants(log, "enemy", 99));
@@ -1212,10 +1395,12 @@ export default class NodeResolutionScene extends Phaser.Scene {
   }
 
   private clearResolutionPanels(): void {
+    this.hideHoverHpTooltip();
     for (const obj of this.resolutionUiObjects) {
       obj.destroy();
     }
     this.resolutionUiObjects = [];
+    this.hoverHpTooltip = undefined;
     this.logMaskGraphics = undefined;
     this.logViewport = null;
     this.logScrollOffset = 0;

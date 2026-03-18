@@ -28,6 +28,17 @@ export type FormationGrid3x3Config = {
   onCellDoubleClick?: (cell: FormationCell) => void;
 
   /**
+   * Optional hover events used by read-only views.
+   */
+  onCellHover?: (cell: FormationCell, unitId: string | null, pointer: Phaser.Input.Pointer) => void;
+  onCellOut?: (cell: FormationCell, unitId: string | null) => void;
+
+  /**
+   * Allow cell selection/click behavior (default true).
+   */
+  allowSelection?: boolean;
+
+  /**
    * Optional label generator. If not provided, the grid shows `cell` and "(Empty)" / unitId.
    * Keep it cheap; this is called when cells refresh.
    */
@@ -47,6 +58,17 @@ export type FormationGrid3x3Config = {
     cell: FormationCell,
     unitId: string | null
   ) => FormationStatusIndicator[] | null | undefined;
+
+  /**
+   * Optional stroke override for tactical emphasis (e.g. acted this tick).
+   * Return null/undefined to use default stroke behavior.
+   */
+  getCellOutlineColor?: (cell: FormationCell, unitId: string | null) => number | null | undefined;
+
+  /**
+   * Optional damage indicator text for this cell (e.g. "-12").
+   */
+  getCellDamageText?: (cell: FormationCell, unitId: string | null) => string | null | undefined;
 
   /**
    * Double click threshold in ms (default 320)
@@ -99,12 +121,17 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
 
   private readonly onCellClick?: (cell: FormationCell) => void;
   private readonly onCellDoubleClick?: (cell: FormationCell) => void;
+  private readonly onCellHover?: (cell: FormationCell, unitId: string | null, pointer: Phaser.Input.Pointer) => void;
+  private readonly onCellOut?: (cell: FormationCell, unitId: string | null) => void;
+  private readonly allowSelection: boolean;
   private readonly getCellLabel?: (cell: FormationCell, unitId: string | null) => string;
   private readonly getCellHpPercent?: (cell: FormationCell, unitId: string | null) => number | null | undefined;
   private readonly getCellStatusIndicators?: (
     cell: FormationCell,
     unitId: string | null
   ) => FormationStatusIndicator[] | null | undefined;
+  private readonly getCellOutlineColor?: (cell: FormationCell, unitId: string | null) => number | null | undefined;
+  private readonly getCellDamageText?: (cell: FormationCell, unitId: string | null) => string | null | undefined;
 
   private readonly doubleClickMs: number;
   private lastClickAtMs = 0;
@@ -116,6 +143,7 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
   private cellHpBg: Record<FormationCell, Phaser.GameObjects.Rectangle> = {} as any;
   private cellHpFill: Record<FormationCell, Phaser.GameObjects.Rectangle> = {} as any;
   private cellStatusContainers: Record<FormationCell, Phaser.GameObjects.Container> = {} as any;
+  private cellDamageTexts: Record<FormationCell, Phaser.GameObjects.Text> = {} as any;
 
   constructor(cfg: FormationGrid3x3Config) {
     super(cfg.scene, cfg.x, cfg.y);
@@ -139,9 +167,14 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
 
     this.onCellClick = cfg.onCellClick;
     this.onCellDoubleClick = cfg.onCellDoubleClick;
+    this.onCellHover = cfg.onCellHover;
+    this.onCellOut = cfg.onCellOut;
+    this.allowSelection = cfg.allowSelection ?? true;
     this.getCellLabel = cfg.getCellLabel;
     this.getCellHpPercent = cfg.getCellHpPercent;
     this.getCellStatusIndicators = cfg.getCellStatusIndicators;
+    this.getCellOutlineColor = cfg.getCellOutlineColor;
+    this.getCellDamageText = cfg.getCellDamageText;
 
     // Initialize formation map
     this.formation = {} as FormationMap;
@@ -212,7 +245,25 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
         .container(0, 0)
         .setVisible(false);
 
-      rect.on("pointerdown", () => this.handleCellPointerDown(cell));
+      const damageText = this.scene.add
+        .text(x + 6, y + this.cellSize - 22, "", {
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+          fontSize: "11px",
+          color: "#ff8f8f",
+          fontStyle: "bold",
+        })
+        .setOrigin(0, 0)
+        .setVisible(false);
+
+      if (this.allowSelection) {
+        rect.on("pointerdown", () => this.handleCellPointerDown(cell));
+      }
+      rect.on("pointerover", (pointer: Phaser.Input.Pointer) => {
+        this.onCellHover?.(cell, this.formation[cell], pointer);
+      });
+      rect.on("pointerout", () => {
+        this.onCellOut?.(cell, this.formation[cell]);
+      });
 
       this.cellRects[cell] = rect;
       this.cellTexts[cell] = text;
@@ -220,8 +271,9 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
       this.cellHpBg[cell] = hpBg;
       this.cellHpFill[cell] = hpFill;
       this.cellStatusContainers[cell] = statusContainer;
+      this.cellDamageTexts[cell] = damageText;
 
-      this.add([rect, icon, hpBg, hpFill, statusContainer, text]);
+      this.add([rect, icon, hpBg, hpFill, statusContainer, damageText, text]);
     }
 
     this.refreshHighlightsAndLabels();
@@ -264,8 +316,9 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
       const hpBg = this.cellHpBg[cell];
       const hpFill = this.cellHpFill[cell];
       const statusContainer = this.cellStatusContainers[cell];
+      const damageText = this.cellDamageTexts[cell];
 
-      if (!rect || !txt || !icon || !hpBg || !hpFill || !statusContainer) {
+      if (!rect || !txt || !icon || !hpBg || !hpFill || !statusContainer || !damageText) {
         continue;
       }
 
@@ -283,11 +336,15 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
           ? 0.75
           : this.colors.strokeAlpha;
 
+      const outlineOverride = this.getCellOutlineColor?.(cell, this.formation[cell]);
+      const finalStrokeColor = outlineOverride ?? strokeColor;
+      const finalStrokeAlpha = outlineOverride != null ? 0.95 : strokeAlpha;
+
       rect.setFillStyle(occupied ? 0x1c2428 : this.colors.cellFill, occupied ? 0.98 : this.colors.cellFillAlpha);
       rect.setStrokeStyle(
         2,
-        strokeColor,
-        strokeAlpha
+        finalStrokeColor,
+        finalStrokeAlpha
       );
 
       icon.setVisible(occupied);
@@ -306,6 +363,13 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
 
       this.refreshCellStatusIndicators(cell, statusContainer, occupied);
 
+      const damageLabel = this.getCellDamageText?.(cell, this.formation[cell]);
+      const showDamage = occupied && typeof damageLabel === "string" && damageLabel.trim() !== "";
+      damageText.setVisible(showDamage);
+      if (showDamage) {
+        damageText.setText(damageLabel as string);
+      }
+
       txt.setText(this.makeCellLabel(cell));
     }
   }
@@ -316,6 +380,11 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
     occupied: boolean
   ): void {
     container.removeAll(true);
+
+    const { row, col } = cellToRowCol(cell);
+    const cellX = col * (this.cellSize + this.gap);
+    const cellY = row * (this.cellSize + this.gap);
+    container.setPosition(cellX, cellY);
 
     if (!occupied) {
       container.setVisible(false);
@@ -416,6 +485,7 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
     // Ensure interactive objects are destroyed properly
     for (const cell of CELLS) {
       this.cellRects[cell]?.removeAllListeners();
+      this.onCellOut?.(cell, this.formation[cell]);
     }
     super.destroy(fromScene);
   }

@@ -122,6 +122,19 @@ final class DeterministicRunNodeResolver
       'new_dice_instance_ids' => [],
       'region_items' => [],
     ];
+    if ($nodeType === 'loot') {
+      $lootTableSlug = isset($encounter['reward_profile']['loot_table_slug'])
+        ? (string)$encounter['reward_profile']['loot_table_slug']
+        : '';
+      $rolls = isset($encounter['reward_profile']['rolls'])
+        ? max(1, (int)$encounter['reward_profile']['rolls'])
+        : 1;
+      $rewards['loot_node'] = [
+        'loot_table_slug' => $lootTableSlug,
+        'rolls' => $rolls,
+        'currency_soft' => $currencySoft,
+      ];
+    }
 
     return [
       'seed' => $seed,
@@ -143,6 +156,7 @@ final class DeterministicRunNodeResolver
           'node_id' => $nodeId,
           'node_type' => $nodeType,
           'encounter_template_id' => $encounterTemplateId,
+          'encounter_description' => (string)($encounter['description'] ?? ''),
           'difficulty_rating' => (int)$encounter['difficulty_rating'],
           'participants' => [
             'player' => array_map(static fn(array $u): array => [
@@ -272,19 +286,21 @@ final class DeterministicRunNodeResolver
   }
 
   /**
-    * @return array{difficulty_rating:int,units:array<int,array{id:string,pos:array{x:int,y:int},attack:int,defense:int,max_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,xp_reward:int}>}
+     * @return array{difficulty_rating:int,description:string,reward_profile:array<string,mixed>,units:array<int,array{id:string,pos:array{x:int,y:int},attack:int,defense:int,max_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,xp_reward:int}>}
    */
   private function loadEncounter(?int $encounterTemplateId): array
   {
     if ($encounterTemplateId === null) {
       return [
         'difficulty_rating' => 1,
+          'description' => '',
+          'reward_profile' => [],
         'units' => [],
       ];
     }
 
     $stmt = $this->pdo->prepare('
-      SELECT `difficulty_rating`, `enemy_set_json`
+        SELECT `difficulty_rating`, `description`, `enemy_set_json`, `reward_profile_json`
       FROM `encounter_templates`
       WHERE `id` = ?
       LIMIT 1
@@ -295,9 +311,14 @@ final class DeterministicRunNodeResolver
     if (!is_array($template)) {
       return [
         'difficulty_rating' => 1,
+        'description' => '',
+        'reward_profile' => [],
         'units' => [],
       ];
     }
+
+    $description = trim((string)($template['description'] ?? ''));
+    $rewardProfile = $this->decodeJsonObject($template['reward_profile_json'] ?? null);
 
     $enemySet = $this->decodeJsonObject($template['enemy_set_json']);
     $enemyEntries = [];
@@ -330,6 +351,8 @@ final class DeterministicRunNodeResolver
     if (count($enemyEntries) === 0) {
       return [
         'difficulty_rating' => (int)$template['difficulty_rating'],
+        'description' => $description,
+        'reward_profile' => $rewardProfile,
         'units' => [],
       ];
     }
@@ -381,6 +404,8 @@ final class DeterministicRunNodeResolver
 
     return [
       'difficulty_rating' => max(1, (int)$template['difficulty_rating']),
+      'description' => $description,
+      'reward_profile' => $rewardProfile,
       'units' => $units,
     ];
   }
