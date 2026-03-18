@@ -300,6 +300,26 @@ export type ResolveNodeData = {
 
 export type ResolveNodeResponse = ApiResponse<ResolveNodeData>;
 
+export type BattleClaimData = {
+  battle_id: string;
+  status: string;
+  rewards: {
+    xp_total?: number;
+    currency_soft?: number;
+    [key: string]: unknown;
+  };
+  updated_run_unit_state?: RestRunUnitState[];
+  run_resolution?: { run_id: string; status: string } | null;
+  xp?: {
+    award_per_unit: number;
+    applied_unit_instance_ids: string[];
+    ignored_at_cap_unit_instance_ids: string[];
+  };
+  updated_units?: Array<{ id: string; xp: number; level: number }>;
+};
+
+export type BattleClaimResponse = ApiResponse<BattleClaimData>;
+
 export type PromoteUnitData = {
   unit: { id: string; tier: number; level: number; xp: number };
   consumed_units: string[];

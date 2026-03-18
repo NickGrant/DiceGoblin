@@ -87,14 +87,14 @@ final class BattleRepository
    *
    * @return array{
    *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,seed:string,
-   *   xp_total:int,rewards_json:string
+   *   xp_total:int,currency_soft:int,rewards_json:string
    * }|null
    */
   public function getForClaimForUpdate(int $battleId, int $userId): ?array
   {
     $stmt = $this->pdo->prepare('
       SELECT b.`id`, b.`status`, b.`outcome`, b.`rules_version`, b.`run_id`, b.`team_id`, b.`seed`,
-             br.`xp_total`, br.`rewards_json`
+             br.`xp_total`, br.`currency_soft`, br.`rewards_json`
       FROM `battles` b
       JOIN `battle_rewards` br ON br.`battle_id` = b.`id`
       WHERE b.`id` = ? AND b.`user_id` = ?
@@ -115,6 +115,7 @@ final class BattleRepository
       'team_id' => (string)$r['team_id'],
       'seed' => (string)$r['seed'],
       'xp_total' => (int)$r['xp_total'],
+      'currency_soft' => (int)$r['currency_soft'],
       'rewards_json' => (string)$r['rewards_json'],
     ];
   }

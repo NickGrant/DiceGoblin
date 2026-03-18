@@ -211,7 +211,7 @@ final class BattleController
   /**
    * @param array{
    *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,seed:string,
-   *   xp_total:int,rewards_json:string
+    *   xp_total:int,currency_soft:int,rewards_json:string
    * } $battle
    */
   private function respondClaimed(int $battleIdInt, array $battle, ?array $claimSnapshot): void
@@ -230,6 +230,9 @@ final class BattleController
           'applied_unit_instance_ids' => [],
           'ignored_at_cap_unit_instance_ids' => [],
         ],
+        'currency' => [
+          'soft_awarded' => max(0, (int)($battle['currency_soft'] ?? 0)),
+        ],
         'updated_units' => [],
       ];
     }
@@ -241,7 +244,10 @@ final class BattleController
       'data' => [
         'battle_id' => (string)$battleIdInt,
         'status' => 'claimed',
-        'rewards' => array_merge(['xp_total' => (int)$battle['xp_total']], $rewards),
+        'rewards' => array_merge([
+          'xp_total' => (int)$battle['xp_total'],
+          'currency_soft' => max(0, (int)($battle['currency_soft'] ?? 0)),
+        ], $rewards),
         'updated_run_unit_state' => $claimSnapshot['updated_run_unit_state'] ?? [],
         'run_resolution' => $claimSnapshot['run_resolution'] ?? null,
         'xp' => $claimSnapshot['xp'] ?? [
@@ -258,11 +264,12 @@ final class BattleController
    * @param array{
    *   battleRepo: BattleRepository,
    *   battleRewardsRepo: BattleRewardsRepository,
-   *   runRepo: RunRepository
+    *   runRepo: RunRepository,
+    *   playerStateRepo: PlayerStateRepository
    * } $svc
    * @param array{
    *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,seed:string,
-   *   xp_total:int,rewards_json:string
+    *   xp_total:int,currency_soft:int,rewards_json:string
    * } $battle
    * @return array{
    *   updated_run_unit_state: array<int, array{unit_instance_id:string,hp:int,is_defeated:bool,status_effects:array<int,mixed>}>,
@@ -271,7 +278,8 @@ final class BattleController
    *     award_per_unit:int,
    *     applied_unit_instance_ids:array<int,string>,
    *     ignored_at_cap_unit_instance_ids:array<int,string>
-   *   },
+  *   },
+  *   currency: array{soft_awarded:int},
    *   updated_units: array<int, array{id:string,xp:int,level:int}>
    * }
    */
@@ -281,6 +289,7 @@ final class BattleController
     $battleId = (int)$battle['id'];
     $battleSeed = (string)$battle['seed'];
     $awardPerUnit = max(0, (int)$battle['xp_total']);
+    $softCurrencyAward = max(0, (int)($battle['currency_soft'] ?? 0));
 
     $runStateRows = $svc['runRepo']->getRunUnitStateForUpdate($runId);
     $runStateByUnitId = [];
@@ -296,8 +305,21 @@ final class BattleController
           'applied_unit_instance_ids' => [],
           'ignored_at_cap_unit_instance_ids' => [],
         ],
+        'currency' => [
+          'soft_awarded' => $softCurrencyAward,
+        ],
         'updated_units' => [],
       ];
+    }
+
+    if ($softCurrencyAward > 0) {
+      $svc['playerStateRepo']->ensurePlayerState($userId);
+      $playerState = $svc['playerStateRepo']->getPlayerStateForUpdate($userId);
+      if (is_array($playerState)) {
+        $nextSoft = max(0, (int)$playerState['currency_soft'] + $softCurrencyAward);
+        $nextHard = max(0, (int)$playerState['currency_hard']);
+        $svc['playerStateRepo']->setCurrency($userId, $nextSoft, $nextHard);
+      }
     }
 
     $unitMaxHp = $this->getUnitMaxHpByIdsForUser($userId, array_keys($runStateByUnitId));
@@ -401,6 +423,9 @@ final class BattleController
         'applied_unit_instance_ids' => $applied,
         'ignored_at_cap_unit_instance_ids' => $ignoredAtCap,
       ],
+      'currency' => [
+        'soft_awarded' => $softCurrencyAward,
+      ],
       'updated_units' => $updatedUnits,
     ];
   }
@@ -412,6 +437,7 @@ final class BattleController
    *   battleLogRepo: BattleLogRepository,
    *   battleRewardsRepo: BattleRewardsRepository,
    *   runRepo: RunRepository,
+  *   playerStateRepo: PlayerStateRepository,
    *   sessionService: SessionService,
    *   csrfService: CsrfService
    * }
@@ -427,6 +453,7 @@ final class BattleController
       'battleLogRepo' => new BattleLogRepository($pdo),
       'battleRewardsRepo' => new BattleRewardsRepository($pdo),
       'runRepo' => new RunRepository($pdo),
+      'playerStateRepo' => new PlayerStateRepository($pdo),
       'sessionService' => $core['sessionService'],
       'csrfService' => $core['csrfService'],
     ];

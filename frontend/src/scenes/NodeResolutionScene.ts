@@ -81,6 +81,11 @@ export default class NodeResolutionScene extends Phaser.Scene {
   }
 
   init(data: NodeResolutionSceneData): void {
+    this.hasResolved = false;
+    this.stopTickPlayback();
+    this.selectedTick = 0;
+    this.latestLog = null;
+    this.latestSummary = null;
     this.runId = String(data?.runId ?? "");
     this.nodeId = String(data?.nodeId ?? "");
     const typeValue = String(data?.nodeType ?? "");
@@ -249,11 +254,17 @@ export default class NodeResolutionScene extends Phaser.Scene {
       }
 
       const outcome = resolveRes.data.battle.outcome;
+      const battleId = String(resolveRes.data.battle.battle_id);
+      await this.withTimeout(
+        apiClient.claimBattleRewards(battleId),
+        this.resolveTimeoutMs,
+        "claim-battle"
+      ).catch(() => null);
       const unlockedMsg = formatUnlockedNodes(resolveRes.data.next.unlocked_node_ids);
       this.statusText?.setText(`Node resolved: ${String(outcome).toUpperCase()}`);
       try {
         this.renderResolutionPanels(resolveRes.data.battle.log, {
-          battleId: String(resolveRes.data.battle.battle_id),
+          battleId,
           outcome,
           rounds: Number(resolveRes.data.battle.rounds),
           ticks: Number(resolveRes.data.battle.ticks),

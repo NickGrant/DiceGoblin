@@ -1,5 +1,6 @@
 import {
   type AbandonRunResponse,
+  type BattleClaimResponse,
   type CreateResponse,
   type DiceMutationResponse,
   type ExitRunResponse,
@@ -158,6 +159,18 @@ export const apiClient = {
       body: JSON.stringify(payload ?? {}),
     });
     // Node resolution may consume energy; keep HUD/profile energy in sync.
+    refreshProfileAfterMutation();
+    return res;
+  },
+
+  async claimBattleRewards(battleId: string): Promise<BattleClaimResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const res = await request<BattleClaimResponse>(`/api/v1/battles/${battleId}/claim`, {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({}),
+    });
     refreshProfileAfterMutation();
     return res;
   },

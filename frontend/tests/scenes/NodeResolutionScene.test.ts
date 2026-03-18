@@ -50,11 +50,13 @@ vi.mock("../../src/components/clickable-panel/SharedActionButton", () => ({
 const resolveRunNodeMock = vi.fn();
 const getCurrentRunMock = vi.fn();
 const exitRunMock = vi.fn();
+const claimBattleRewardsMock = vi.fn();
 vi.mock("../../src/services/apiClient", () => ({
   apiClient: {
     resolveRunNode: (...args: unknown[]) => resolveRunNodeMock(...args),
     getCurrentRun: (...args: unknown[]) => getCurrentRunMock(...args),
     exitRun: (...args: unknown[]) => exitRunMock(...args),
+    claimBattleRewards: (...args: unknown[]) => claimBattleRewardsMock(...args),
   },
 }));
 
@@ -108,11 +110,22 @@ async function flushSceneTasks(ticks = 5): Promise<void> {
   }
 }
 
+async function waitForActionLabel(label: string, maxAttempts = 60): Promise<void> {
+  for (let i = 0; i < maxAttempts; i += 1) {
+    if (MockActionButton.instances[0]?.label === label) {
+      return;
+    }
+    await Promise.resolve();
+  }
+}
+
 describe("NodeResolutionScene", () => {
   beforeEach(() => {
     resolveRunNodeMock.mockReset();
     getCurrentRunMock.mockReset();
     exitRunMock.mockReset();
+    claimBattleRewardsMock.mockReset();
+    claimBattleRewardsMock.mockResolvedValue({ ok: true, data: { battle_id: "b-claim", status: "claimed", rewards: {} } });
     MockActionButton.instances = [];
   });
 
@@ -148,6 +161,7 @@ describe("NodeResolutionScene", () => {
 
     scene.create();
     await flushSceneTasks();
+    await waitForActionLabel("Back to Map");
 
     expect(resolveRunNodeMock).toHaveBeenCalledWith("run-1", "n1");
     const action = MockActionButton.instances[0];
@@ -177,6 +191,7 @@ describe("NodeResolutionScene", () => {
 
     scene.create();
     await flushSceneTasks();
+    await waitForActionLabel("Continue");
 
     const action = MockActionButton.instances[0];
     expect(action?.label).toBe("Continue");

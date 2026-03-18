@@ -58,7 +58,7 @@ export default class Node extends Phaser.GameObjects.Container {
 
     // Container hit area follows icon size.
     this.setSize(size, size);
-    this.setInteractive(new Phaser.Geom.Rectangle(-size / 2, -size / 2, size, size), Phaser.Geom.Rectangle.Contains);
+    this.setInteractive(new Phaser.Geom.Rectangle(0, 0, size, size), Phaser.Geom.Rectangle.Contains);
 
     this.on("pointerover", () => {
       this.isHovered = true;
@@ -110,7 +110,7 @@ export default class Node extends Phaser.GameObjects.Container {
 
     this.disableInteractive();
     if (isAvailable) {
-      this.setInteractive(new Phaser.Geom.Rectangle(-this.cfg.size / 2, -this.cfg.size / 2, this.cfg.size, this.cfg.size), Phaser.Geom.Rectangle.Contains);
+      this.setInteractive(new Phaser.Geom.Rectangle(0, 0, this.cfg.size, this.cfg.size), Phaser.Geom.Rectangle.Contains);
       if (this.input) {
         this.input.cursor = "pointer";
       }

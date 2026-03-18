@@ -179,7 +179,6 @@ export default class SquadDetailsScene extends Phaser.Scene {
       units: this.units,
       getCardState: (u) => this.getUnitRowState(u),
       onUnitClick: (u) => this.handleUnitClick(u),
-      maxVisibleCards: 3,
     });
 
     this.grid?.destroy();
