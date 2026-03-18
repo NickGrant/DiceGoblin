@@ -15,6 +15,7 @@ import {
   isNodeResolutionType,
   type NodeResolutionType,
 } from "./nodeResolutionFlow";
+import FormationGrid3x3, { type FormationMap } from "../components/FormationGrid3x3";
 
 const ACTION_BODY_TOP_OFFSET = 72;
 const CONTENT_BODY_TOP_OFFSET = 74;
@@ -40,6 +41,10 @@ export default class NodeResolutionScene extends Phaser.Scene {
   private errorText?: Phaser.GameObjects.Text;
   private resolutionUiObjects: Phaser.GameObjects.GameObject[] = [];
   private resolveTimeoutMs = RESOLVE_TIMEOUT_MS;
+  private logMaskGraphics?: Phaser.GameObjects.Graphics;
+  private logViewport: { x: number; y: number; width: number; height: number } | null = null;
+  private logScrollOffset = 0;
+  private wheelHandlerRegistered = false;
 
   constructor() {
     super({ key: "NodeResolutionScene" });
@@ -116,6 +121,19 @@ export default class NodeResolutionScene extends Phaser.Scene {
       enabled: false,
       onClick: () => this.actionHandler?.(),
     });
+
+    if (!this.wheelHandlerRegistered && this.input && typeof this.input.on === "function") {
+      this.input.on("wheel", this.handleLogWheel, this);
+      this.wheelHandlerRegistered = true;
+      if (this.events && typeof this.events.once === "function") {
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+          if (this.input && typeof this.input.off === "function") {
+            this.input.off("wheel", this.handleLogWheel, this);
+          }
+          this.wheelHandlerRegistered = false;
+        });
+      }
+    }
 
     void this.resolveNode();
   }
@@ -348,36 +366,28 @@ export default class NodeResolutionScene extends Phaser.Scene {
     const centerX = leftX + leftWidth + gap;
     const rightX = centerX + centerWidth + gap;
 
-    const leftPanel = this.add
-      .rectangle(leftX, contentY, leftWidth, contentHeight, 0x1d6c35, 0.32)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0xa0d7ae, 0.7);
     const centerPanel = this.add
       .rectangle(centerX, contentY, centerWidth, contentHeight, 0x7c1018, 0.4)
       .setOrigin(0, 0)
       .setStrokeStyle(1, 0xff7c88, 0.75);
-    const rightPanel = this.add
-      .rectangle(rightX, contentY, rightWidth, contentHeight, 0x242e86, 0.34)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0xaeb6ff, 0.7);
 
     const allyTitle = this.add
       .text(leftX + 8, contentY + 8, "ALLIES", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "16px",
-        color: "#ddffe5",
+        color: "#f4f4f4",
       })
       .setOrigin(0, 0);
     const enemyTitle = this.add
       .text(rightX + 8, contentY + 8, "ENEMIES", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "16px",
-        color: "#e4e8ff",
+        color: "#f4f4f4",
       })
       .setOrigin(0, 0);
 
     const allyEntries = this.extractParticipantLabels(log, "player", 9);
-    this.drawGrid(leftX + 10, contentY + 34, leftWidth - 20, Math.min(contentHeight - 44, 220), allyEntries, 0x2ca84a, "#e8fff0");
+    this.createFormationGrid(leftX + 10, contentY + 34, leftWidth - 20, Math.min(contentHeight - 44, 220), allyEntries);
 
     const enemyEntries = this.extractParticipantLabels(log, "enemy", 99);
     const enemyGroups = Math.max(1, Math.ceil(enemyEntries.length / 9));
@@ -385,66 +395,93 @@ export default class NodeResolutionScene extends Phaser.Scene {
     const enemyGridHeight = Math.floor((contentHeight - 44 - enemyGroupGap * (enemyGroups - 1)) / enemyGroups);
     for (let i = 0; i < enemyGroups; i += 1) {
       const groupEntries = enemyEntries.slice(i * 9, (i + 1) * 9);
-      this.drawGrid(
+      this.createFormationGrid(
         rightX + 10,
         contentY + 34 + i * (enemyGridHeight + enemyGroupGap),
         rightWidth - 20,
         enemyGridHeight,
-        groupEntries,
-        0x4651d0,
-        "#f0f2ff"
+        groupEntries
       );
     }
 
     this.detailText?.destroy();
+    const viewportX = centerX + 10;
+    const viewportY = contentY + 10;
+    const viewportWidth = Math.max(120, centerWidth - 20);
+    const viewportHeight = Math.max(80, contentHeight - 20);
+    this.logViewport = { x: viewportX, y: viewportY, width: viewportWidth, height: viewportHeight };
+
     this.detailText = this.add
-      .text(centerX + 10, contentY + 8, centerLines.join("\n"), {
+      .text(viewportX, viewportY, centerLines.join("\n"), {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "13px",
         color: "#ffe6ea",
         lineSpacing: 4,
-        wordWrap: { width: Math.max(140, centerWidth - 20) },
+        wordWrap: { width: Math.max(120, viewportWidth) },
       })
       .setOrigin(0, 0);
 
-    this.resolutionUiObjects.push(leftPanel, centerPanel, rightPanel, allyTitle, enemyTitle, this.detailText);
+    this.logScrollOffset = 0;
+    this.detailText.setY(viewportY);
+    this.logMaskGraphics?.destroy();
+    this.logMaskGraphics = this.add.graphics();
+    this.logMaskGraphics.fillStyle(0xffffff, 1);
+    this.logMaskGraphics.fillRect(viewportX, viewportY, viewportWidth, viewportHeight);
+    this.logMaskGraphics.visible = false;
+    this.detailText.setMask(this.logMaskGraphics.createGeometryMask());
+
+    this.resolutionUiObjects.push(centerPanel, allyTitle, enemyTitle, this.detailText, this.logMaskGraphics);
   }
 
-  private drawGrid(
+  private createFormationGrid(
     x: number,
     y: number,
     width: number,
     height: number,
-    labels: string[],
-    fillColor: number,
-    textColorHex: string
+    labels: string[]
   ): void {
-    const columns = 3;
-    const rows = 3;
     const gap = 6;
-    const cellW = Math.max(32, Math.floor((width - gap * (columns - 1)) / columns));
-    const cellH = Math.max(28, Math.floor((height - gap * (rows - 1)) / rows));
+    const cellByWidth = Math.floor((width - gap * 2) / 3);
+    const cellByHeight = Math.floor((height - gap * 2) / 3);
+    const cellSize = Math.max(28, Math.min(cellByWidth, cellByHeight));
 
-    for (let i = 0; i < columns * rows; i += 1) {
-      const col = i % columns;
-      const row = Math.floor(i / columns);
-      const cellX = x + col * (cellW + gap);
-      const cellY = y + row * (cellH + gap);
-      const label = labels[i] ?? "";
-      const box = this.add
-        .rectangle(cellX, cellY, cellW, cellH, fillColor, label ? 0.46 : 0.16)
-        .setOrigin(0, 0)
-        .setStrokeStyle(1, 0xffffff, 0.65);
-      const text = this.add
-        .text(cellX + 4, cellY + 4, label, {
-          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-          fontSize: "11px",
-          color: textColorHex,
-          wordWrap: { width: Math.max(20, cellW - 8) },
-        })
-        .setOrigin(0, 0);
-      this.resolutionUiObjects.push(box, text);
+    const formation = this.buildFormationMap(labels);
+    const grid = new FormationGrid3x3({
+      scene: this,
+      x,
+      y,
+      cellSize,
+      gap,
+      formation,
+      selectedCell: null,
+      getCellLabel: (cell, unitId) => {
+        if (!unitId) return "";
+        return String(unitId);
+      },
+      colors: {
+        cellFill: 0x0f0f0f,
+        cellFillAlpha: 0.88,
+        stroke: 0xffffff,
+        strokeAlpha: 0.55,
+        selectedStroke: 0xffffff,
+        selectedStrokeAlpha: 0.55,
+        text: "#f2f2f2",
+      },
+    });
+    this.resolutionUiObjects.push(grid);
+  }
+
+  private buildFormationMap(labels: string[]): Partial<FormationMap> {
+    const cells: Array<keyof FormationMap> = ["A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"];
+    const formation: Partial<FormationMap> = {};
+    for (let i = 0; i < cells.length; i += 1) {
+      const cell = cells[i];
+      if (!cell) {
+        continue;
+      }
+      formation[cell] = labels[i] ? labels[i] : null;
     }
+    return formation;
   }
 
   private extractParticipantLabels(
@@ -477,6 +514,37 @@ export default class NodeResolutionScene extends Phaser.Scene {
       obj.destroy();
     }
     this.resolutionUiObjects = [];
+    this.logMaskGraphics = undefined;
+    this.logViewport = null;
+    this.logScrollOffset = 0;
+  }
+
+  private handleLogWheel(
+    pointer: Phaser.Input.Pointer,
+    _gameObjects: Phaser.GameObjects.GameObject[],
+    _deltaX: number,
+    deltaY: number
+  ): void {
+    if (!this.logViewport || !this.detailText) {
+      return;
+    }
+    const withinX = pointer.x >= this.logViewport.x && pointer.x <= this.logViewport.x + this.logViewport.width;
+    const withinY = pointer.y >= this.logViewport.y && pointer.y <= this.logViewport.y + this.logViewport.height;
+    if (!withinX || !withinY) {
+      return;
+    }
+
+    const textBounds = this.detailText.getBounds();
+    const maxScroll = Math.max(0, textBounds.height - this.logViewport.height);
+    if (maxScroll <= 0) {
+      this.logScrollOffset = 0;
+      this.detailText.setY(this.logViewport.y);
+      return;
+    }
+
+    const direction = deltaY > 0 ? 1 : -1;
+    this.logScrollOffset = Phaser.Math.Clamp(this.logScrollOffset + direction * 24, 0, maxScroll);
+    this.detailText.setY(this.logViewport.y - this.logScrollOffset);
   }
 }
 

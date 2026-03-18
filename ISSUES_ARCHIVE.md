@@ -6,6 +6,16 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Refine node resolution grids and scrollable log
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 28 - UAT Dialog and Interaction Hardening
+description: Remove ally/enemy color panel fills, reuse `FormationGrid3x3` for node resolution unit/enemy grids, and make the center event log scrollable when content exceeds viewport height.
+resolution: Updated `NodeResolutionScene` to render ally/enemy formations via shared `FormationGrid3x3`, removed side-panel color fills in favor of neutral cards, and added masked mouse-wheel scrolling for long center event logs.
+
+---
 title: Continue run panel sizing mismatch with start run
 status: complete
 priority: medium

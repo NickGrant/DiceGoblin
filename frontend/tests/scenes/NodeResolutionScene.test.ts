@@ -8,6 +8,12 @@ vi.mock("../../src/components/BackgroundImage", () => ({ default: class {} }));
 vi.mock("../../src/components/navigation/HomeCornerButton", () => ({ default: class {} }));
 vi.mock("../../src/components/HudPanel", () => ({ default: class {} }));
 vi.mock("../../src/components/layout/ContentAreaFrame", () => ({ default: class { setDepth() { return this; } } }));
+vi.mock("../../src/components/FormationGrid3x3", () => ({
+  default: class {
+    constructor(_cfg: unknown) {}
+    destroy() {}
+  },
+}));
 
 class MockActionButton {
   static instances: MockActionButton[] = [];
@@ -63,10 +69,23 @@ function makeSceneAdd() {
       };
       return rectObj;
     }),
+    graphics: vi.fn(() => {
+      const graphicsObj = {
+        fillStyle: vi.fn(() => graphicsObj),
+        fillRect: vi.fn(() => graphicsObj),
+        createGeometryMask: vi.fn(() => ({})),
+        destroy: vi.fn(),
+        visible: true,
+      };
+      return graphicsObj;
+    }),
     text: vi.fn((_x: number, _y: number, _message: string) => {
       const textObj = {
         setOrigin: vi.fn(() => textObj),
         setText: vi.fn(() => textObj),
+        setMask: vi.fn(() => textObj),
+        setY: vi.fn(() => textObj),
+        getBounds: vi.fn(() => ({ height: 120 })),
         destroy: vi.fn(),
       };
       return textObj;
