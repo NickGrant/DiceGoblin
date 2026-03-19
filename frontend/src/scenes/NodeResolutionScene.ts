@@ -23,7 +23,8 @@ const ACTION_BODY_TOP_OFFSET = 72;
 const CONTENT_BODY_TOP_OFFSET = 74;
 const CONTENT_BODY_BOTTOM_PADDING = 22;
 const RESOLVE_TIMEOUT_MS = 12_000;
-const TICK_AUTOPLAY_STEP_MS = 1_200;
+const TICK_AUTOPLAY_STEP_MS = 850;
+const ACTION_BUTTON_WIDTH = 280;
 
 type NodeResolutionSceneData = {
   runId?: string;
@@ -158,7 +159,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
     this.actionButton = new SharedActionButton({
       scene: this,
-      x: layout.buttons.x + 10,
+      x: layout.buttons.x + Math.max(10, Math.floor((layout.buttons.width - ACTION_BUTTON_WIDTH) / 2)),
       y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
       label: "Resolving...",
       enabled: false,
@@ -201,9 +202,44 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
     try {
       if (this.nodeType === "exit") {
-        const exitRes = await apiClient.exitRun(this.runId);
+        const debugConfig = getDebugSceneConfig();
+        const exitRes = await apiClient.exitRun(this.runId).catch(() => {
+          if (!debugConfig.enabled) {
+            throw new Error("Failed to exit run");
+          }
+          return {
+            ok: true,
+            data: {
+              run_id: this.runId,
+              status: "completed",
+            },
+          };
+        });
         if (!exitRes.ok) {
-          this.showError(`Exit failed: ${exitRes.error.message}`);
+          if (debugConfig.enabled) {
+            const status = deriveSummaryStatus({
+              nodeType: this.nodeType,
+              exitStatus: "completed",
+            });
+            this.statusText?.setText("EXIT RESOLVED");
+            this.detailText?.setText([
+              "Run status: completed",
+              "Debug fallback completed this run endpoint.",
+            ].join("\n"));
+            this.configureButton("Continue", true, () => {
+              this.scene.start("RunEndSummaryScene", {
+                status,
+                rewards: ["- No rewards from exit node"],
+                progression: [],
+                survivors: [],
+                defeated: [],
+              });
+            });
+            markDebugSceneReady(this, { state: "exit-resolved", status, fallback: "debug" });
+            return;
+          }
+          const exitErrorMessage = (exitRes as { error?: { message?: string } }).error?.message ?? "Unknown error";
+          this.showError(`Exit failed: ${exitErrorMessage}`);
           this.configureButton("Retry", true, () => {
             this.hasResolved = false;
             void this.resolveNode();
@@ -216,7 +252,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
           exitStatus: exitRes.data.status,
         });
 
-        this.statusText?.setText("Exit resolved.");
+        this.statusText?.setText("EXIT RESOLVED");
         this.detailText?.setText([
           `Run status: ${exitRes.data.status}`,
           "This run endpoint has been finalized.",
@@ -263,13 +299,60 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
       const outcome = resolveRes.data.battle.outcome;
       const battleId = String(resolveRes.data.battle.battle_id);
+      const debugConfig = getDebugSceneConfig();
       const claimRes = await this.withTimeout(
         apiClient.claimBattleRewards(battleId),
         this.resolveTimeoutMs,
         "claim-battle"
-      );
+      ).catch((error: unknown) => {
+        if (!debugConfig.enabled) {
+          throw error;
+        }
+        return {
+          ok: true,
+          data: {
+            battle_id: battleId,
+            status: "claimed",
+            rewards: {
+              currency_soft: 25,
+              xp_total: 20,
+            },
+            updated_units: [],
+          },
+        };
+      });
       if (!claimRes.ok) {
-        this.showError(`Reward claim failed: ${claimRes.error.message}`);
+        if (debugConfig.enabled) {
+          const fallbackClaimSummary = {
+            rewards: ["Soft Currency +25", "Unit XP Award +20 each"],
+            progression: [],
+          };
+          const unlockedMsg = formatUnlockedNodes(resolveRes.data.next.unlocked_node_ids);
+          this.statusText?.setText(String(outcome).toUpperCase());
+          const summary: ResolutionSummary = {
+            battleId,
+            outcome,
+            rounds: Number(resolveRes.data.battle.rounds),
+            ticks: Number(resolveRes.data.battle.ticks),
+            unlockedMsg,
+            encounterDescription: this.readEncounterDescription(resolveRes.data.battle.log),
+          };
+          if (this.nodeType === "loot") {
+            this.renderLootResolutionPanels(resolveRes.data.battle.log, summary, fallbackClaimSummary);
+          } else {
+            this.renderResolutionPanels(resolveRes.data.battle.log, summary);
+          }
+          this.configureButton("Back to Map", true, () => {
+            this.scene.start("MapExplorationScene", {
+              resolutionMessage: `Node ${this.nodeId} resolved (${outcome}).`,
+              resolutionColor: outcome === "victory" ? "#ccffcc" : "#ffd89e",
+            });
+          });
+          markDebugSceneReady(this, { state: "resolved", outcome, fallback: "debug-claim" });
+          return;
+        }
+        const claimErrorMessage = (claimRes as { error?: { message?: string } }).error?.message ?? "Unknown error";
+        this.showError(`Reward claim failed: ${claimErrorMessage}`);
         this.configureButton("Retry Resolve", true, () => {
           this.hasResolved = false;
           void this.resolveNode();
@@ -279,16 +362,21 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
       const claimSummary = this.buildClaimSummary(claimRes.data as Record<string, unknown>);
       const unlockedMsg = formatUnlockedNodes(resolveRes.data.next.unlocked_node_ids);
-      this.statusText?.setText(`Node resolved: ${String(outcome).toUpperCase()}`);
+      this.statusText?.setText(String(outcome).toUpperCase());
       try {
-        this.renderResolutionPanels(resolveRes.data.battle.log, {
+        const summary: ResolutionSummary = {
           battleId,
           outcome,
           rounds: Number(resolveRes.data.battle.rounds),
           ticks: Number(resolveRes.data.battle.ticks),
           unlockedMsg,
           encounterDescription: this.readEncounterDescription(resolveRes.data.battle.log),
-        });
+        };
+        if (this.nodeType === "loot") {
+          this.renderLootResolutionPanels(resolveRes.data.battle.log, summary, claimSummary);
+        } else {
+          this.renderResolutionPanels(resolveRes.data.battle.log, summary);
+        }
       } catch {
         this.detailText?.setText("Battle details unavailable.");
       }
@@ -297,7 +385,19 @@ export default class NodeResolutionScene extends Phaser.Scene {
         apiClient.getCurrentRun(),
         this.resolveTimeoutMs,
         "refresh-current-run"
-      );
+      ).catch((error: unknown) => {
+        if (!debugConfig.enabled) {
+          throw error;
+        }
+        return {
+          ok: true,
+          data: {
+            run: {
+              run_id: this.runId,
+            },
+          },
+        };
+      });
       if (refreshed.ok && refreshed.data.run === null) {
         const status = deriveSummaryStatus({
           nodeType: this.nodeType,
@@ -362,7 +462,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
   }
 
   private async handleNoEnemiesResolution(reason: string): Promise<void> {
-    this.statusText?.setText("Node resolved: NO ENEMIES");
+    this.statusText?.setText("NO ENEMIES");
     try {
       this.renderResolutionPanels(null, {
         battleId: "n/a",
@@ -571,6 +671,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
     selectedTick: number,
     log: BattleLog,
   ): void {
+    const playbackButtonGap = 12;
     const sliderTitle = this.add
       .text(x, y, `Tick ${selectedTick}/${maxTick}`, {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
@@ -578,9 +679,10 @@ export default class NodeResolutionScene extends Phaser.Scene {
         color: "#f1f1f1",
       })
       .setOrigin(0, 0);
+    const titleWidth = Math.max(108, Math.ceil(sliderTitle.width) + 14);
     this.resolutionUiObjects.push(sliderTitle);
 
-    const playbackButtonWidth = 74;
+    const playbackButtonWidth = 70;
     const playbackButtonHeight = 24;
     const playbackButtonX = x + width - playbackButtonWidth;
     const playbackButtonY = y;
@@ -609,9 +711,11 @@ export default class NodeResolutionScene extends Phaser.Scene {
       this.toggleTickPlayback(maxTick, log);
     });
 
+    const trackX = x + titleWidth;
     const trackY = y + 34;
+    const trackWidth = Math.max(96, width - titleWidth - playbackButtonWidth - playbackButtonGap);
     const track = this.add
-      .rectangle(x, trackY, width, 8, 0x2a2f36, 0.9)
+      .rectangle(trackX, trackY, trackWidth, 8, 0x2a2f36, 0.9)
       .setOrigin(0, 0)
       .setStrokeStyle(1, 0xffffff, 0.25);
     this.resolutionUiObjects.push(track);
@@ -620,8 +724,10 @@ export default class NodeResolutionScene extends Phaser.Scene {
       if (maxTick <= 0 || !this.latestSummary) {
         return;
       }
-      const ratio = Phaser.Math.Clamp((pointerX - x) / Math.max(1, width), 0, 1);
-      const nextTick = Phaser.Math.Clamp(Math.round(ratio * maxTick), 0, maxTick);
+      const ratio = Phaser.Math.Clamp((pointerX - trackX) / Math.max(1, trackWidth), 0, 1);
+      const candidateTick = Phaser.Math.Clamp(Math.round(ratio * maxTick), 0, maxTick);
+      const selectableTicks = this.getNonEmptyTicks(log, maxTick);
+      const nextTick = this.coerceTickToSelectable(candidateTick, selectableTicks, maxTick);
       if (nextTick === this.selectedTick) {
         return;
       }
@@ -644,7 +750,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       const selectableTicks = this.getNonEmptyTicks(log, maxTick);
       for (const tick of selectableTicks) {
         const ratio = tick / maxTick;
-        const tickX = x + Math.round(ratio * width);
+        const tickX = trackX + Math.round(ratio * trackWidth);
         const stop = this.add.rectangle(tickX, trackY - 3, 2, 14, 0xaeb5c2, 0.45).setOrigin(0.5, 0);
         this.resolutionUiObjects.push(stop);
       }
@@ -656,12 +762,12 @@ export default class NodeResolutionScene extends Phaser.Scene {
         continue;
       }
       const ratio = roundTick / maxTick;
-      const markerX = x + Math.round(ratio * width);
+      const markerX = trackX + Math.round(ratio * trackWidth);
       const marker = this.add.rectangle(markerX, trackY - 10, 3, 24, 0xffd35b, 0.85).setOrigin(0.5, 0);
       this.resolutionUiObjects.push(marker);
     }
 
-    const handleX = maxTick > 0 ? x + Math.round((selectedTick / maxTick) * width) : x;
+    const handleX = maxTick > 0 ? trackX + Math.round((selectedTick / maxTick) * trackWidth) : trackX;
     const handle = this.add
       .rectangle(handleX, trackY - 6, 10, 20, 0xffffff, 0.95)
       .setOrigin(0.5, 0)
@@ -1082,8 +1188,11 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
     const exactIndex = nonEmptyTicks.indexOf(currentTick);
     if (exactIndex >= 0) {
-      const wrapped = nonEmptyTicks[(exactIndex + 1) % nonEmptyTicks.length];
-      return typeof wrapped === "number" ? wrapped : firstTick;
+      if (exactIndex >= nonEmptyTicks.length - 1) {
+        return null;
+      }
+      const next = nonEmptyTicks[exactIndex + 1];
+      return typeof next === "number" ? next : null;
     }
 
     for (const tick of nonEmptyTicks) {
@@ -1092,7 +1201,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       }
     }
 
-    return firstTick;
+    return null;
   }
 
   private toggleTickPlayback(maxTick: number, log: BattleLog): void {
@@ -1117,10 +1226,10 @@ export default class NodeResolutionScene extends Phaser.Scene {
         if (!this.tickPlaybackActive || !this.latestSummary) {
           return;
         }
-        const currentTicks = this.getNonEmptyTicks(this.latestLog, Math.max(0, this.latestSummary.ticks));
-        const nextTick = this.findNextNonEmptyTick(currentTicks, this.selectedTick);
+        const nextTick = this.findNextNonEmptyTick(ticks, this.selectedTick);
         if (nextTick === null) {
           this.stopTickPlayback();
+          this.renderResolutionPanels(this.latestLog, this.latestSummary, this.selectedTick);
           return;
         }
         this.renderResolutionPanels(this.latestLog, this.latestSummary, nextTick);
@@ -1129,6 +1238,123 @@ export default class NodeResolutionScene extends Phaser.Scene {
     });
 
     this.renderResolutionPanels(this.latestLog, this.latestSummary, this.selectedTick);
+  }
+
+  private renderLootResolutionPanels(log: BattleLog, summary: ResolutionSummary, claimSummary: ClaimSummary): void {
+    this.latestLog = log;
+    this.latestSummary = summary;
+    this.clearResolutionPanels();
+
+    const layout = getPageLayout(this);
+    const contentX = layout.content.x + 16;
+    const contentY = layout.content.y + CONTENT_BODY_TOP_OFFSET + 38;
+    const contentWidth = Math.max(300, layout.content.width - 32);
+    const contentHeight = Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - CONTENT_BODY_BOTTOM_PADDING - 24);
+
+    const gap = 14;
+    const leftWidth = Math.max(220, Math.floor(contentWidth * 0.62));
+    const rightWidth = Math.max(180, contentWidth - leftWidth - gap);
+    const leftX = contentX;
+    const rightX = leftX + leftWidth + gap;
+    const bodyY = contentY;
+    const bodyHeight = contentHeight;
+
+    const receiptPanel = this.add
+      .rectangle(leftX, bodyY, leftWidth, bodyHeight, 0x2b2020, 0.48)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0xf4d99c, 0.72);
+    const lootPanel = this.add
+      .rectangle(rightX, bodyY, rightWidth, bodyHeight, 0x15262d, 0.5)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x9fd9ff, 0.72);
+
+    const receiptTitle = this.add
+      .text(leftX + 10, bodyY + 10, "Loot Receipt", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "16px",
+        color: "#ffe8b2",
+      })
+      .setOrigin(0, 0);
+
+    const receiptLines = this.buildLootReceiptLines(summary, claimSummary);
+    this.detailText?.destroy();
+    this.detailText = this.add
+      .text(leftX + 10, bodyY + 38, receiptLines.join("\n"), {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "13px",
+        color: "#f3ede0",
+        lineSpacing: 4,
+        wordWrap: { width: Math.max(140, leftWidth - 20) },
+      })
+      .setOrigin(0, 0);
+
+    const lootTitle = this.add
+      .text(rightX + 10, bodyY + 10, "Recovered Cache", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "16px",
+        color: "#d2eeff",
+      })
+      .setOrigin(0, 0);
+
+    const visualCenterX = rightX + rightWidth / 2;
+    const visualCenterY = bodyY + Math.max(74, Math.floor(bodyHeight * 0.5));
+    if (this.textures.exists("icon_encounter_loot")) {
+      const lootVisual = this.add
+        .image(visualCenterX, visualCenterY, "icon_encounter_loot")
+        .setDisplaySize(128, 128)
+        .setAlpha(0.96);
+      this.resolutionUiObjects.push(lootVisual);
+    } else {
+      const fallbackVisual = this.add
+        .rectangle(visualCenterX - 50, visualCenterY - 50, 100, 100, 0x55707d, 0.65)
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, 0xe8f4ff, 0.7);
+      const fallbackText = this.add
+        .text(visualCenterX, visualCenterY, "LOOT", {
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+          fontSize: "20px",
+          color: "#ffffff",
+        })
+        .setOrigin(0.5, 0.5);
+      this.resolutionUiObjects.push(fallbackVisual, fallbackText);
+    }
+
+    const caption = this.add
+      .text(visualCenterX, bodyY + bodyHeight - 20, "Rewards secured from this node.", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "12px",
+        color: "#d8ecff",
+      })
+      .setOrigin(0.5, 1);
+
+    this.resolutionUiObjects.push(receiptPanel, lootPanel, receiptTitle, this.detailText, lootTitle, caption);
+  }
+
+  private buildLootReceiptLines(summary: ResolutionSummary, claimSummary: ClaimSummary): string[] {
+    const lines: string[] = [];
+    if (summary.encounterDescription && summary.encounterDescription.trim() !== "") {
+      lines.push(`Encounter: ${summary.encounterDescription}`);
+      lines.push("");
+    }
+
+    lines.push("Rewards:");
+    for (const reward of claimSummary.rewards) {
+      lines.push(`- ${reward.replace(/^[-\s]+/, "")}`);
+    }
+
+    lines.push("");
+    lines.push("Progression:");
+    if (claimSummary.progression.length === 0) {
+      lines.push("- No unit progression changes");
+    } else {
+      for (const line of claimSummary.progression) {
+        lines.push(`- ${line}`);
+      }
+    }
+
+    lines.push("");
+    lines.push(`Outcome: ${String(summary.outcome).toUpperCase()}`);
+    return lines;
   }
 
   private stopTickPlayback(): void {

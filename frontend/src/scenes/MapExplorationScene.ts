@@ -15,6 +15,7 @@ import ConfirmModal from "../components/feedback/ConfirmModal";
 import ToastMessage from "../components/feedback/ToastMessage";
 
 const ACTION_BODY_TOP_OFFSET = 72;
+const ACTION_BUTTON_WIDTH = 280;
 const CONTENT_BODY_TOP_OFFSET = 74;
 const CONTENT_BODY_BOTTOM_PADDING = 20;
 const MAP_NODE_TYPES = new Set(["combat", "loot", "rest", "boss", "exit"]);
@@ -64,9 +65,11 @@ export default class MapExplorationScene extends Phaser.Scene {
       bodyColor: 0x006f7a,
     });
     actionsFrame.setDepth(-800);
+    const actionButtonX =
+      layout.buttons.x + Math.max(10, Math.floor((layout.buttons.width - ACTION_BUTTON_WIDTH) / 2));
     new UnifiedButtonList({
       scene: this,
-      x: layout.buttons.x + 10,
+      x: actionButtonX,
       y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
       gapY: 5,
       buttons: [

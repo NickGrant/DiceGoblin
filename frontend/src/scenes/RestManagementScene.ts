@@ -28,8 +28,8 @@ const CONTENT_INSET = 10;
 const CONTENT_COLUMN_GAP = 12;
 const ACTION_PANEL_PADDING = 14;
 const ACTION_TOP_GAP = 14;
-const ACTION_BUTTON_STEP = 64;
-const ACTION_BUTTON_GAP = 12;
+const ACTION_BUTTON_STEP = 56;
+const ACTION_BUTTON_GAP = 8;
 const UNIT_CARD_WIDTH = 132;
 const UNIT_PANEL_PADDING = 12;
 const UNIT_PANEL_WIDTH = UNIT_CARD_WIDTH * 3 + UNIT_PANEL_PADDING * 4;
@@ -267,11 +267,11 @@ export default class RestManagementScene extends Phaser.Scene {
       enabled: false,
       onClick: () => void this.promoteSelectedUnit(),
     });
-    this.promotionStatusText = this.add.text(actionBodyX, actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 7, "", {
+    this.promotionStatusText = this.add.text(actionButtonX, actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 7, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#dddddd",
-      wordWrap: { width: actionBodyWidth },
+      wordWrap: { width: 280 },
     });
 
     this.refreshUi();

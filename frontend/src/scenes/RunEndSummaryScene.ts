@@ -7,6 +7,7 @@ import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
 const FRAME_BODY_TOP_OFFSET = 74;
 const ACTION_BODY_TOP_OFFSET = 72;
+const ACTION_BUTTON_WIDTH = 280;
 
 type RunEndSummaryData = {
   status?: "completed" | "failed" | "abandoned" | string;
@@ -93,16 +94,23 @@ export default class RunEndSummaryScene extends Phaser.Scene {
       ...(defeated.length > 0 ? defeated : ["- None"]),
     ];
 
-    this.add.text(layout.content.x + 16, bodyTop + 68, lines.join("\n"), {
-      fontFamily: "monospace",
-      fontSize: "13px",
+    const summaryPanelY = bodyTop + 66;
+    const summaryPanelHeight = Math.max(120, layout.content.height - FRAME_BODY_TOP_OFFSET - 90);
+    const summaryPanel = this.add
+      .rectangle(layout.content.x + 12, summaryPanelY, layout.content.width - 24, summaryPanelHeight, 0x14181b, 0.56)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8ea1af, 0.4);
+    this.add.text(layout.content.x + 20, summaryPanelY + 12, lines.join("\n"), {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "12px",
       color: "#f5f5f5",
-      wordWrap: { width: layout.content.width - 32 },
+      lineSpacing: 4,
+      wordWrap: { width: layout.content.width - 40 },
     });
 
     new SharedActionButton({
       scene: this,
-      x: layout.buttons.x + 10,
+      x: layout.buttons.x + Math.max(10, Math.floor((layout.buttons.width - ACTION_BUTTON_WIDTH) / 2)),
       y: layout.buttons.y + ACTION_BODY_TOP_OFFSET,
       label: "Continue",
       onClick: () => this.scene.start("HomeScene"),
