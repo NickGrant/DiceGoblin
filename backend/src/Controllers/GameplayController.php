@@ -26,6 +26,9 @@ final class GameplayController
 {
   use RequiresCsrf;
 
+  private const REST_STORE_BASIC_UNIT_COST = 30;
+  private const REST_STORE_BASIC_DICE_COST = 20;
+
   public function openRest(?string $runId = null, ?string $nodeId = null): void
   {
     $svc = $this->services();
@@ -227,6 +230,7 @@ final class GameplayController
         return;
       }
 
+      $this->healRunUnitsAtRest($pdo, $runIdInt, $userId);
       $svc['runNodeRepo']->markCleared($runIdInt, $nodeIdInt);
       $unlocked = $this->unlockFromNode($svc['runEdgeRepo'], $svc['runNodeRepo'], $runIdInt, $nodeIdInt);
       $progression = $svc['runRepo']->applyAutoLevelForRunUnits($runIdInt, $userId);
@@ -241,6 +245,95 @@ final class GameplayController
           'progression' => $progression,
         ],
       ]);
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+      Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
+    }
+  }
+
+  public function purchaseRestStore(?string $runId = null, ?string $nodeId = null): void
+  {
+    $svc = $this->services();
+    $userId = $this->requireUserId($svc['sessionService']);
+    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+      return;
+    }
+
+    $runIdInt = $this->requirePositiveInt($runId, 'runId');
+    $nodeIdInt = $this->requirePositiveInt($nodeId, 'nodeId');
+    if ($runIdInt === null || $nodeIdInt === null) {
+      return;
+    }
+
+    $body = $this->readJsonBody();
+    if ($body === null) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
+      return;
+    }
+    $itemType = trim((string)($body['item_type'] ?? ''));
+    if (!in_array($itemType, ['basic_unit', 'basic_dice'], true)) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'item_type must be basic_unit or basic_dice.']], 400);
+      return;
+    }
+
+    /** @var PDO $pdo */
+    $pdo = $svc['pdo'];
+    try {
+      $pdo->beginTransaction();
+      $run = $this->requireActiveOwnedRun($svc['runRepo'], $userId, $runIdInt);
+      if ($run === null) {
+        $pdo->rollBack();
+        return;
+      }
+      $node = $this->requireAvailableRestNode($svc['runNodeRepo'], $runIdInt, $nodeIdInt);
+      if ($node === null) {
+        $pdo->rollBack();
+        return;
+      }
+
+      $svc['playerStateRepo']->ensurePlayerState($userId);
+      $state = $svc['playerStateRepo']->getPlayerStateForUpdate($userId);
+      if (!is_array($state)) {
+        $pdo->rollBack();
+        Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Player state unavailable.']], 500);
+        return;
+      }
+
+      $cost = $itemType === 'basic_unit' ? self::REST_STORE_BASIC_UNIT_COST : self::REST_STORE_BASIC_DICE_COST;
+      $currentSoft = max(0, (int)$state['currency_soft']);
+      if ($currentSoft < $cost) {
+        $pdo->rollBack();
+        Response::json(['ok' => false, 'error' => ['code' => 'insufficient_currency', 'message' => 'Not enough soft currency.']], 409);
+        return;
+      }
+
+      $nextSoft = $currentSoft - $cost;
+      $svc['playerStateRepo']->setCurrency($userId, $nextSoft, max(0, (int)$state['currency_hard']));
+
+      $purchaseData = $itemType === 'basic_unit'
+        ? $this->createBasicStoreUnit($pdo, $userId)
+        : $this->createBasicStoreDice($pdo, $userId);
+
+      $pdo->commit();
+
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'run_id' => (string)$runIdInt,
+          'node_id' => (string)$nodeIdInt,
+          'item_type' => $itemType,
+          'cost' => $cost,
+          'currency_soft' => $nextSoft,
+          'purchase' => $purchaseData,
+        ],
+      ]);
+    } catch (RuntimeException $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => $e->getMessage()]], 400);
     } catch (Throwable $e) {
       if ($pdo->inTransaction()) {
         $pdo->rollBack();
@@ -674,6 +767,84 @@ final class GameplayController
     return $out;
   }
 
+  private function healRunUnitsAtRest(PDO $pdo, int $runId, int $userId): void
+  {
+    $stmt = $pdo->prepare(' 
+      SELECT
+        rus.`unit_instance_id`,
+        ui.`level`,
+        ut.`base_stats_json`,
+        ut.`max_hp_per_level`
+      FROM `run_unit_state` rus
+      JOIN `unit_instances` ui ON ui.`id` = rus.`unit_instance_id`
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE rus.`run_id` = ? AND ui.`user_id` = ?
+      FOR UPDATE
+    ');
+    $stmt->execute([$runId, $userId]);
+
+    $upsert = $pdo->prepare(' 
+      INSERT INTO `run_unit_state` (`run_id`, `unit_instance_id`, `current_hp`, `is_defeated`, `cooldowns_json`, `status_effects_json`)
+      VALUES (?, ?, ?, 0, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        `current_hp` = VALUES(`current_hp`),
+        `is_defeated` = VALUES(`is_defeated`),
+        `cooldowns_json` = VALUES(`cooldowns_json`),
+        `status_effects_json` = VALUES(`status_effects_json`)
+    ');
+
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $baseStats = json_decode((string)$row['base_stats_json'], true);
+      if (!is_array($baseStats)) {
+        $baseStats = [];
+      }
+      $level = max(1, (int)$row['level']);
+      $baseMaxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
+      $maxHpPerLevel = max(0, (int)$row['max_hp_per_level']);
+      $maxHp = $baseMaxHp + (($level - 1) * $maxHpPerLevel);
+      $upsert->execute([$runId, (int)$row['unit_instance_id'], $maxHp, '{}', '[]']);
+    }
+  }
+
+  /** @return array{unit_instance_id:string,unit_type_slug:string,tier:int,level:int} */
+  private function createBasicStoreUnit(PDO $pdo, int $userId): array
+  {
+    $typeStmt = $pdo->query('SELECT `id`, `slug` FROM `unit_types` ORDER BY `id` ASC LIMIT 1');
+    $type = $typeStmt->fetch(PDO::FETCH_ASSOC);
+    if (!is_array($type)) {
+      throw new RuntimeException('No unit types are available for store purchases.');
+    }
+
+    $insert = $pdo->prepare('INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `tier`, `level`, `xp`, `locked`) VALUES (?, ?, 1, 1, 0, 0)');
+    $insert->execute([$userId, (int)$type['id']]);
+
+    return [
+      'unit_instance_id' => (string)$pdo->lastInsertId(),
+      'unit_type_slug' => (string)$type['slug'],
+      'tier' => 1,
+      'level' => 1,
+    ];
+  }
+
+  /** @return array{dice_instance_id:string,rarity:string,sides:int} */
+  private function createBasicStoreDice(PDO $pdo, int $userId): array
+  {
+    $defStmt = $pdo->query('SELECT `id`, `rarity`, `sides` FROM `dice_definitions` ORDER BY `id` ASC LIMIT 1');
+    $def = $defStmt->fetch(PDO::FETCH_ASSOC);
+    if (!is_array($def)) {
+      throw new RuntimeException('No dice definitions are available for store purchases.');
+    }
+
+    $insert = $pdo->prepare('INSERT INTO `dice_instances` (`user_id`, `dice_definition_id`, `display_name`) VALUES (?, ?, NULL)');
+    $insert->execute([$userId, (int)$def['id']]);
+
+    return [
+      'dice_instance_id' => (string)$pdo->lastInsertId(),
+      'rarity' => (string)$def['rarity'],
+      'sides' => max(2, (int)$def['sides']),
+    ];
+  }
+
   private function readJsonBody(): ?array
   {
     $raw = file_get_contents('php://input');
@@ -713,6 +884,7 @@ final class GameplayController
       'runEdgeRepo' => new RunEdgeRepository($pdo),
       'teamRepo' => new TeamRepository($pdo),
       'diceRepo' => new DiceRepository($pdo),
+      'playerStateRepo' => new PlayerStateRepository($pdo),
     ];
   }
 }

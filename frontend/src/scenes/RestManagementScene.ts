@@ -14,7 +14,7 @@ import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
 type Cell = FormationCell;
-const CELLS: Cell[] = ["A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"];
+const CELLS: Cell[] = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"];
 
 function emptyFormation(): FormationMap {
   return { A1: null, B1: null, C1: null, A2: null, B2: null, C2: null, A3: null, B3: null, C3: null };
@@ -50,18 +50,14 @@ export default class RestManagementScene extends Phaser.Scene {
   private editFormation: FormationMap = emptyFormation();
   private selectedUnitId: string | null = null;
   private finalized = false;
-  private promotionPrimaryId: string | null = null;
-  private promotionSecondaryIds: string[] = [];
 
   private grid?: FormationGrid3x3;
   private unitPanel?: UnitCardGrid;
   private applyButton?: SharedActionButton;
   private finalizeButton?: SharedActionButton;
-  private setPrimaryButton?: SharedActionButton;
-  private addSecondaryButton?: SharedActionButton;
-  private clearPromotionButton?: SharedActionButton;
-  private promoteButton?: SharedActionButton;
-  private promotionStatusText?: Phaser.GameObjects.Text;
+  private buyUnitButton?: SharedActionButton;
+  private buyDiceButton?: SharedActionButton;
+  private storeStatusText?: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "RestManagementScene" });
@@ -235,39 +231,23 @@ export default class RestManagementScene extends Phaser.Scene {
         returnScene: "RestManagementScene",
       }),
     });
-    this.setPrimaryButton = new SharedActionButton({
+    this.buyUnitButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 3,
-      label: "Set Primary",
+      label: `Buy Basic Unit (${30})`,
       enabled: true,
-      onClick: () => this.setPromotionPrimaryFromSelection(),
+      onClick: () => void this.purchaseStoreItem("basic_unit"),
     });
-    this.addSecondaryButton = new SharedActionButton({
+    this.buyDiceButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
       y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 4,
-      label: "Add Secondary",
+      label: `Buy Basic Dice (${20})`,
       enabled: true,
-      onClick: () => this.addPromotionSecondaryFromSelection(),
+      onClick: () => void this.purchaseStoreItem("basic_dice"),
     });
-    this.clearPromotionButton = new SharedActionButton({
-      scene: this,
-      x: actionButtonX,
-      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 5,
-      label: "Clear Promo",
-      enabled: true,
-      onClick: () => this.clearPromotionSelection(),
-    });
-    this.promoteButton = new SharedActionButton({
-      scene: this,
-      x: actionButtonX,
-      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 6,
-      label: "Promote",
-      enabled: false,
-      onClick: () => void this.promoteSelectedUnit(),
-    });
-    this.promotionStatusText = this.add.text(actionButtonX, actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 7, "", {
+    this.storeStatusText = this.add.text(actionButtonX, actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 5, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#dddddd",
@@ -304,10 +284,9 @@ export default class RestManagementScene extends Phaser.Scene {
     this.unitPanel?.refreshCardStates();
     this.applyButton?.setEnabled(!this.finalized);
     this.finalizeButton?.setEnabled(!this.finalized);
-    this.promoteButton?.setEnabled(
-      !this.finalized && !!this.promotionPrimaryId && this.promotionSecondaryIds.length === 2
-    );
-    this.promotionStatusText?.setText(this.buildPromotionStatusText());
+    this.buyUnitButton?.setEnabled(!this.finalized);
+    this.buyDiceButton?.setEnabled(!this.finalized);
+    this.storeStatusText?.setText("Rest Store: Basic Unit 30 | Basic Dice 20");
   }
 
   private handleCellClick(cell: Cell): void {
@@ -406,103 +385,23 @@ export default class RestManagementScene extends Phaser.Scene {
     });
   }
 
-  private setPromotionPrimaryFromSelection(): void {
-    if (!this.selectedUnitId) {
-      this.showToast("Select a unit first.");
-      return;
-    }
-    this.promotionPrimaryId = this.selectedUnitId;
-    this.promotionSecondaryIds = this.promotionSecondaryIds.filter((id) => id !== this.promotionPrimaryId);
-    this.refreshUi();
-  }
-
-  private addPromotionSecondaryFromSelection(): void {
-    if (!this.selectedUnitId) {
-      this.showToast("Select a unit first.");
-      return;
-    }
-    if (!this.promotionPrimaryId) {
-      this.showToast("Set a primary unit first.");
-      return;
-    }
-    if (this.selectedUnitId === this.promotionPrimaryId) {
-      this.showToast("Primary unit cannot be a secondary.");
-      return;
-    }
-    if (!this.isPromotionCompatible(this.promotionPrimaryId, this.selectedUnitId)) {
-      this.showToast("Secondary must match primary type/tier and be max level.");
-      return;
-    }
-    if (this.runUnitState.some((s) => s.unit_instance_id === this.selectedUnitId)) {
-      this.showToast("Secondary units from active run snapshot cannot be consumed.");
-      return;
-    }
-    if (this.promotionSecondaryIds.includes(this.selectedUnitId)) {
-      return;
-    }
-    if (this.promotionSecondaryIds.length === 2) {
-      this.promotionSecondaryIds.shift();
-    }
-    this.promotionSecondaryIds.push(this.selectedUnitId);
-    this.refreshUi();
-  }
-
-  private clearPromotionSelection(): void {
-    this.promotionPrimaryId = null;
-    this.promotionSecondaryIds = [];
-    this.refreshUi();
-  }
-
-  private async promoteSelectedUnit(): Promise<void> {
+  private async purchaseStoreItem(itemType: "basic_unit" | "basic_dice"): Promise<void> {
     if (this.finalized) {
       this.showToast("Rest already finalized.");
       return;
     }
-    if (!this.promotionPrimaryId || this.promotionSecondaryIds.length !== 2) {
-      this.showToast("Set one primary and two secondary units.");
-      return;
-    }
-    const [secondaryA, secondaryB] = this.promotionSecondaryIds as [string, string];
-    const res = await apiClient.promoteUnit(
-      this.promotionPrimaryId,
-      [secondaryA, secondaryB],
-      { runId: this.runId, nodeId: this.nodeId }
-    );
+    const res = await apiClient.purchaseRestStoreItem(this.runId, this.nodeId, itemType);
     if (!res.ok) {
-      this.showToast(`Promote failed: ${res.error.message}`);
+      this.showToast(`Store purchase failed: ${res.error.message}`);
       return;
     }
-    this.showToast("Promotion applied.", "#ccffcc");
+
+    const purchase = res.data.purchase;
+    const itemLabel = itemType === "basic_unit"
+      ? `Unit ${(purchase as { unit_instance_id?: string }).unit_instance_id ?? ""}`
+      : `Dice ${(purchase as { dice_instance_id?: string }).dice_instance_id ?? ""}`;
+    this.showToast(`Purchased ${itemLabel}.`, "#ccffcc");
     this.scene.restart({ runId: this.runId, nodeId: this.nodeId });
-  }
-
-  private isPromotionCompatible(primaryId: string, secondaryId: string): boolean {
-    const primary = this.units.find((u) => u.id === primaryId);
-    const secondary = this.units.find((u) => u.id === secondaryId);
-    if (!primary || !secondary) return false;
-    if ((primary.unit_type_id ?? null) !== (secondary.unit_type_id ?? null)) return false;
-    if ((primary.tier ?? 1) !== (secondary.tier ?? 1)) return false;
-    const maxPrimary = typeof primary.max_level === "number" ? primary.max_level : null;
-    const maxSecondary = typeof secondary.max_level === "number" ? secondary.max_level : null;
-    if (maxPrimary !== null && primary.level < maxPrimary) return false;
-    if (maxSecondary !== null && secondary.level < maxSecondary) return false;
-    return true;
-  }
-
-  private buildPromotionStatusText(): string {
-    const p = this.promotionPrimaryId ? `Primary: ${this.unitName(this.promotionPrimaryId)}` : "Primary: (none)";
-    const s1 = this.promotionSecondaryIds[0]
-      ? this.unitName(this.promotionSecondaryIds[0])
-      : "(none)";
-    const s2 = this.promotionSecondaryIds[1]
-      ? this.unitName(this.promotionSecondaryIds[1])
-      : "(none)";
-    return `${p}\nSecondaries: ${s1}, ${s2}`;
-  }
-
-  private unitName(unitId: string): string {
-    const unit = this.units.find((u) => u.id === unitId);
-    return unit ? unit.name : `Unit ${unitId}`;
   }
 }
 

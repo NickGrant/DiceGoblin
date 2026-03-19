@@ -287,7 +287,6 @@ final class BattleController
   {
     $runId = (int)$battle['run_id'];
     $battleId = (int)$battle['id'];
-    $battleSeed = (string)$battle['seed'];
     $awardPerUnit = max(0, (int)$battle['xp_total']);
     $softCurrencyAward = max(0, (int)($battle['currency_soft'] ?? 0));
 
@@ -322,7 +321,83 @@ final class BattleController
       }
     }
 
-    $unitMaxHp = $this->getUnitMaxHpByIdsForUser($userId, array_keys($runStateByUnitId));
+    $hpAfterBattle = [];
+    foreach ($runStateByUnitId as $unitId => $row) {
+      $hpAfterBattle[$unitId] = max(0, (int)$row['current_hp']);
+    }
+    $usedBattleLog = false;
+
+    $logRow = $svc['battleLogRepo']->getForUser($battleId, $userId);
+    $log = is_array($logRow) ? json_decode((string)($logRow['log_json'] ?? ''), true) : null;
+    if (is_array($log)) {
+      $players = $log['meta']['participants']['player'] ?? null;
+      if (is_array($players)) {
+        foreach ($players as $participant) {
+          if (!is_array($participant)) {
+            continue;
+          }
+          $unitId = (int)($participant['unit_instance_id'] ?? 0);
+          if ($unitId <= 0 || !array_key_exists($unitId, $hpAfterBattle)) {
+            continue;
+          }
+          $startHp = isset($participant['current_hp'])
+            ? (int)$participant['current_hp']
+            : (int)($participant['max_hp'] ?? $hpAfterBattle[$unitId]);
+          $hpAfterBattle[$unitId] = max(0, $startHp);
+        }
+      }
+
+      $events = $log['events'] ?? null;
+      if (is_array($events)) {
+        foreach ($events as $event) {
+          if (!is_array($event) || (string)($event['type'] ?? '') !== 'action') {
+            continue;
+          }
+          $targetUnitId = (int)($event['target_unit_instance_id'] ?? 0);
+          if ($targetUnitId <= 0 || !array_key_exists($targetUnitId, $hpAfterBattle)) {
+            continue;
+          }
+          if (!isset($event['target_hp_after']) || !is_numeric($event['target_hp_after'])) {
+            continue;
+          }
+          $hpAfterBattle[$targetUnitId] = max(0, (int)$event['target_hp_after']);
+          $usedBattleLog = true;
+        }
+      }
+    }
+
+    if (!$usedBattleLog) {
+      $unitMaxHp = $this->getUnitMaxHpByIdsForUser($userId, array_keys($runStateByUnitId));
+      $battleSeed = (string)$battle['seed'];
+      foreach ($runStateByUnitId as $unitId => $row) {
+        $maxHp = max(1, (int)($unitMaxHp[$unitId] ?? 1));
+        $currentHp = max(0, (int)$row['current_hp']);
+        $lossPct = $this->deterministicLossPercent($battleSeed, $battleId, $unitId, (string)$battle['outcome']);
+        $hpLoss = max(1, (int)floor($maxHp * $lossPct));
+        $hpAfterBattle[$unitId] = max(0, $currentHp - $hpLoss);
+      }
+    }
+
+    foreach ($runStateByUnitId as $unitId => $state) {
+      $currentHp = isset($hpAfterBattle[$unitId])
+        ? max(0, (int)$hpAfterBattle[$unitId])
+        : max(0, (int)$state['current_hp']);
+      $isDefeated = $currentHp <= 0;
+
+      $runStateByUnitId[$unitId]['current_hp'] = $currentHp;
+      $runStateByUnitId[$unitId]['is_defeated'] = $isDefeated;
+      $runStateByUnitId[$unitId]['cooldowns_json'] = '{}';
+      $runStateByUnitId[$unitId]['status_effects_json'] = '[]';
+
+      $svc['runRepo']->upsertRunUnitState(
+        $runId,
+        $unitId,
+        $currentHp,
+        $isDefeated,
+        '{}',
+        '[]'
+      );
+    }
 
     $eligible = [];
     foreach ($runStateByUnitId as $unitId => $state) {
@@ -342,25 +417,6 @@ final class BattleController
       if ($unit === null) {
         continue;
       }
-
-      // Attrition state mutation is deterministic from battle seed + unit id.
-      $maxHp = max(1, (int)($unitMaxHp[$unitId] ?? 1));
-      $currentHp = (int)$runStateByUnitId[$unitId]['current_hp'];
-      $lossPct = $this->deterministicLossPercent($battleSeed, $battleId, $unitId, (string)$battle['outcome']);
-      $hpLoss = max(1, (int)floor($maxHp * $lossPct));
-      $newHp = max(0, $currentHp - $hpLoss);
-
-      $runStateByUnitId[$unitId]['current_hp'] = $newHp;
-      $runStateByUnitId[$unitId]['is_defeated'] = $newHp <= 0;
-
-      $svc['runRepo']->upsertRunUnitState(
-        $runId,
-        $unitId,
-        $newHp,
-        $newHp <= 0,
-        (string)$runStateByUnitId[$unitId]['cooldowns_json'],
-        (string)$runStateByUnitId[$unitId]['status_effects_json']
-      );
 
       if ($unit['level'] >= $unit['max_level']) {
         $ignoredAtCap[] = (string)$unitId;

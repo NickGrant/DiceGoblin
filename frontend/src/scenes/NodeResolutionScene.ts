@@ -899,7 +899,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
   }
 
   private buildFormationMap(entries: Array<{ id: string; pos: { x: number; y: number } | null }>): Partial<FormationMap> {
-    const cells: Array<keyof FormationMap> = ["A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"];
+    const cells: Array<keyof FormationMap> = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"];
     const formation: Partial<FormationMap> = {};
     const assignedIds = new Set<string>();
 
@@ -936,11 +936,11 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
     const x = Math.max(0, Math.min(2, Math.floor(pos.x)));
     const y = Math.max(0, Math.min(2, Math.floor(pos.y)));
-    const col = ["A", "B", "C"][x] ?? null;
-    if (!col) {
+    const row = ["A", "B", "C"][y] ?? null;
+    if (!row) {
       return null;
     }
-    return `${col}${y + 1}` as keyof FormationMap;
+    return `${row}${x + 1}` as keyof FormationMap;
   }
 
   private extractParticipants(
@@ -1540,6 +1540,12 @@ export default class NodeResolutionScene extends Phaser.Scene {
     const rewardsRaw = (data.rewards ?? {}) as Record<string, unknown>;
     const xpTotal = Number(rewardsRaw.xp_total ?? 0);
     const soft = Number(rewardsRaw.currency_soft ?? 0);
+    const unitIds = Array.isArray(rewardsRaw.new_unit_instance_ids)
+      ? rewardsRaw.new_unit_instance_ids.map((id) => String(id))
+      : [];
+    const diceIds = Array.isArray(rewardsRaw.new_dice_instance_ids)
+      ? rewardsRaw.new_dice_instance_ids.map((id) => String(id))
+      : [];
 
     const rewardLines: string[] = [];
     if (Number.isFinite(soft) && soft > 0) {
@@ -1547,6 +1553,12 @@ export default class NodeResolutionScene extends Phaser.Scene {
     }
     if (Number.isFinite(xpTotal) && xpTotal > 0) {
       rewardLines.push(`Unit XP Award +${Math.floor(xpTotal)} each`);
+    }
+    if (unitIds.length > 0) {
+      rewardLines.push(`New Units: ${unitIds.map((id) => `#${id}`).join(", ")}`);
+    }
+    if (diceIds.length > 0) {
+      rewardLines.push(`New Dice: ${diceIds.map((id) => `#${id}`).join(", ")}`);
     }
     if (rewardLines.length === 0) {
       rewardLines.push("- No rewards recorded");

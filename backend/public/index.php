@@ -116,6 +116,7 @@ $router->post('/api/v1/runs/:runId/abandon', [$api, 'abandonRun']);
 $router->post('/api/v1/runs/:runId/exit', [$api, 'exitRun']);
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/open', [$gameplay, 'openRest']);
 $router->put('/api/v1/runs/:runId/nodes/:nodeId/rest/state', [$gameplay, 'updateRestState']);
+$router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/store/purchase', [$gameplay, 'purchaseRestStore']);
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/finalize', [$gameplay, 'finalizeRest']);
 $router->get('/api/v1/abilities', [$api, 'abilities']);
 

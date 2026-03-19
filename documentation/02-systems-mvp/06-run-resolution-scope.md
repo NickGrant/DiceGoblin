@@ -26,8 +26,14 @@ Run resolution is intended to reinforce resource management within a run, not lo
 ### 2.1 Between-Encounter Persistence
 
 - Units **do not automatically heal** between nodes in a run
-- HP, cooldowns, and status effects persist across encounters
+- HP persists across encounters and is applied as the starting HP for the next combat
+- Cooldowns and status effects are cleared after each combat resolves
 - Rest encounters are the primary means of recovery
+
+On rest finalize:
+- all run-snapshot units are fully healed,
+- defeated flags are cleared,
+- cooldowns and status effects are reset.
 
 This makes attrition a core consideration during exploration.
 

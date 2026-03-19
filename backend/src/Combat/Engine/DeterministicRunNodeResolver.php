@@ -40,7 +40,7 @@ final class DeterministicRunNodeResolver
     $nodeType = (string)$node['node_type'];
     $encounterTemplateId = $node['encounter_template_id'] !== null ? (int)$node['encounter_template_id'] : null;
 
-    $playerUnits = $this->loadPlayerUnits($userId, $teamId);
+    $playerUnits = $this->loadPlayerUnits($userId, $teamId, $runId);
     $encounter = $this->loadEncounter($encounterTemplateId);
     $enemyUnits = $encounter['units'];
 
@@ -120,7 +120,10 @@ final class DeterministicRunNodeResolver
 
     $rewards = [
       'new_dice_instance_ids' => [],
+      'new_unit_instance_ids' => [],
       'region_items' => [],
+      'dice_grants' => [],
+      'unit_grants' => [],
     ];
     if ($nodeType === 'loot') {
       $lootTableSlug = isset($encounter['reward_profile']['loot_table_slug'])
@@ -134,6 +137,38 @@ final class DeterministicRunNodeResolver
         'rolls' => $rolls,
         'currency_soft' => $currencySoft,
       ];
+    }
+
+    if ($outcome === 'victory' && in_array($nodeType, ['combat', 'boss', 'loot'], true)) {
+      $unitRoll = $this->nextInt($rngState, 100);
+      $diceRoll = $this->nextInt($rngState, 100);
+      $grantUnit = $nodeType === 'loot' ? ($unitRoll < 55) : ($unitRoll < 20);
+      $grantDice = $nodeType === 'loot' ? ($diceRoll < 80) : ($diceRoll < 35);
+
+      if ($nodeType === 'loot' && !$grantUnit && !$grantDice) {
+        $grantDice = true;
+      }
+
+      if ($grantUnit) {
+        $unitSlug = $this->pickUnitTypeSlug($rngState);
+        if ($unitSlug !== null) {
+          $rewards['unit_grants'][] = [
+            'unit_type_slug' => $unitSlug,
+            'tier' => 1,
+            'level' => 1,
+          ];
+        }
+      }
+
+      if ($grantDice) {
+        $diceSpec = $this->pickDiceDefinitionSpec($rngState);
+        if ($diceSpec !== null) {
+          $rewards['dice_grants'][] = [
+            'rarity' => (string)$diceSpec['rarity'],
+            'sides' => (int)$diceSpec['sides'],
+          ];
+        }
+      }
     }
 
     return [
@@ -168,6 +203,7 @@ final class DeterministicRunNodeResolver
               'attack' => (int)$u['attack'],
               'defense' => (int)$u['defense'],
               'max_hp' => (int)$u['max_hp'],
+              'current_hp' => (int)$u['current_hp'],
               'abilities' => $u['abilities'],
             ], $playerUnits),
             'enemy' => array_map(static fn(array $u): array => [
@@ -194,12 +230,13 @@ final class DeterministicRunNodeResolver
    *   pos:array{x:int,y:int},
    *   attack:int,
    *   defense:int,
-   *   max_hp:int,
+  *   max_hp:int,
+  *   current_hp:int,
    *   abilities:array<int,string>,
    *   dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>
    * }>
    */
-  private function loadPlayerUnits(int $userId, int $teamId): array
+  private function loadPlayerUnits(int $userId, int $teamId, int $runId): array
   {
     $stmt = $this->pdo->prepare('
       SELECT
@@ -210,17 +247,21 @@ final class DeterministicRunNodeResolver
         ut.`attack_per_level`,
         ut.`defense_per_level`,
         ut.`max_hp_per_level`,
-        tf.`cell` AS `formation_cell`
+        tf.`cell` AS `formation_cell`,
+        rus.`current_hp` AS `run_current_hp`
       FROM `team_units` tu
       JOIN `unit_instances` ui ON ui.`id` = tu.`unit_instance_id`
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
       LEFT JOIN `team_formation` tf
         ON tf.`team_id` = tu.`team_id`
        AND tf.`unit_instance_id` = ui.`id`
+      LEFT JOIN `run_unit_state` rus
+        ON rus.`run_id` = ?
+       AND rus.`unit_instance_id` = ui.`id`
       WHERE tu.`team_id` = ? AND ui.`user_id` = ?
       ORDER BY ui.`id` ASC
     ');
-    $stmt->execute([$teamId, $userId]);
+    $stmt->execute([$runId, $teamId, $userId]);
 
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $units = [];
@@ -235,6 +276,9 @@ final class DeterministicRunNodeResolver
       $attack = max(1, (int)($baseStats['attack'] ?? 1) + ((int)$row['attack_per_level'] * $levelScale));
       $defense = max(0, (int)($baseStats['defense'] ?? 0) + ((int)$row['defense_per_level'] * $levelScale));
       $maxHp = max(1, (int)($baseStats['max_hp'] ?? 1) + ((int)$row['max_hp_per_level'] * $levelScale));
+      $currentHp = $row['run_current_hp'] !== null
+        ? max(0, min($maxHp, (int)$row['run_current_hp']))
+        : $maxHp;
       $pos = $this->cellToPos((string)($row['formation_cell'] ?? ''));
       if (!is_array($pos)) {
         $pos = $this->defaultPosForIndex($fallbackIndex);
@@ -247,6 +291,7 @@ final class DeterministicRunNodeResolver
         'attack' => $attack,
         'defense' => $defense,
         'max_hp' => $maxHp,
+        'current_hp' => $currentHp,
         'abilities' => $this->flattenActiveAbilityIds($abilitySet),
         'dice_pool' => [],
       ];
@@ -420,8 +465,9 @@ final class DeterministicRunNodeResolver
       return null;
     }
 
-    $x = ord($value[0]) - ord('A');
-    $y = ((int)$value[1]) - 1;
+    // Front depth is horizontal (right side). Cell digit controls x-depth.
+    $x = ((int)$value[1]) - 1;
+    $y = ord($value[0]) - ord('A');
     if ($x < 0 || $x > 2 || $y < 0 || $y > 2) {
       return null;
     }
@@ -436,13 +482,13 @@ final class DeterministicRunNodeResolver
   {
     $positions = [
       ['x' => 0, 'y' => 0],
-      ['x' => 1, 'y' => 0],
-      ['x' => 2, 'y' => 0],
       ['x' => 0, 'y' => 1],
-      ['x' => 1, 'y' => 1],
-      ['x' => 2, 'y' => 1],
       ['x' => 0, 'y' => 2],
+      ['x' => 1, 'y' => 0],
+      ['x' => 1, 'y' => 1],
       ['x' => 1, 'y' => 2],
+      ['x' => 2, 'y' => 0],
+      ['x' => 2, 'y' => 1],
       ['x' => 2, 'y' => 2],
     ];
 
@@ -508,7 +554,7 @@ final class DeterministicRunNodeResolver
   }
 
   /**
-   * @param array<int, array{id:string,attack:int,defense:int,max_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>}> $playerUnits
+  * @param array<int, array{id:string,attack:int,defense:int,max_hp:int,current_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>}> $playerUnits
    * @param array<int, array{id:string,attack:int,defense:int,max_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>}> $enemyUnits
    * @return array{events:array<int, array<string,mixed>>,ended_round:int,ended_tick:int,player_alive:bool,enemy_alive:bool}
    */
@@ -549,7 +595,7 @@ final class DeterministicRunNodeResolver
     $playerSchedules = [];
     foreach ($playerUnits as $unit) {
       $unitId = (string)$unit['id'];
-      $playerHp[$unitId] = (int)$unit['max_hp'];
+      $playerHp[$unitId] = max(0, min((int)$unit['max_hp'], (int)$unit['current_hp']));
       $playerById[$unitId] = $unit;
       $playerSchedules[$unitId] = $this->buildActiveAbilitySchedule((array)$unit['abilities'], $abilityRegistry);
     }
@@ -1025,5 +1071,41 @@ final class DeterministicRunNodeResolver
 
     $out = array_values(array_unique($out));
     return $out;
+  }
+
+  private function pickUnitTypeSlug(string &$state): ?string
+  {
+    $stmt = $this->pdo->query('SELECT `slug` FROM `unit_types` ORDER BY `id` ASC');
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (count($rows) === 0) {
+      return null;
+    }
+
+    $index = $this->nextInt($state, count($rows));
+    $slug = (string)($rows[$index]['slug'] ?? '');
+    return $slug !== '' ? $slug : null;
+  }
+
+  /**
+   * @return array{rarity:string,sides:int}|null
+   */
+  private function pickDiceDefinitionSpec(string &$state): ?array
+  {
+    $stmt = $this->pdo->query('SELECT `rarity`, `sides` FROM `dice_definitions` ORDER BY `id` ASC');
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (count($rows) === 0) {
+      return null;
+    }
+
+    $index = $this->nextInt($state, count($rows));
+    $row = $rows[$index] ?? null;
+    if (!is_array($row)) {
+      return null;
+    }
+
+    return [
+      'rarity' => (string)($row['rarity'] ?? 'common'),
+      'sides' => max(2, (int)($row['sides'] ?? 6)),
+    ];
   }
 }

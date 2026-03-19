@@ -31,10 +31,9 @@ Depends On: `documentation/03-ux/02-warband-management.md`, `documentation/03-ux
 
 ### Rest Node (Within Active Run)
 - Allowed:
-  - Full out-of-run management action set:
-    - squad membership and formation updates,
-    - promotion,
-    - dice equip/unequip.
+  - Squad membership and formation updates.
+  - Dice equip/unequip.
+  - Rest store purchases using soft currency (basic unit and basic dice).
   - Rest-specific recovery effects.
 - Contract:
   - Rest uses explicit workflow: `open -> edit -> finalize`.
@@ -44,7 +43,7 @@ Depends On: `documentation/03-ux/02-warband-management.md`, `documentation/03-ux
 ## Sequencing Rules
 - Promotion checks are evaluated:
   - between runs,
-  - and during open rest workflow.
+  - and are not available during active-run rest workflow.
 - Dice management changes are blocked in active run outside rest workflow.
 - Unit-details surface is the canonical entry for promotion actions.
 
@@ -58,7 +57,7 @@ Depends On: `documentation/03-ux/02-warband-management.md`, `documentation/03-ux
 ## Acceptance Criteria
 - Promotion CTA is visible in unit details:
   - enabled between runs,
-  - enabled at rest,
+  - disabled at rest,
   - disabled in active-run non-rest context.
 - Dice management actions are available between runs and at rest only.
 - Rest UI includes explicit `Finalize Rest` action and summary of changes:

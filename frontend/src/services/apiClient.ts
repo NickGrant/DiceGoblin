@@ -9,6 +9,7 @@ import {
   type ResolveNodeResponse,
   type RestFinalizeResponse,
   type RestOpenResponse,
+  type RestStorePurchaseResponse,
   type RestStateResponse,
   type RunResponse,
   type SessionResponse,
@@ -207,6 +208,22 @@ export const apiClient = {
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify({}),
     });
+  },
+
+  async purchaseRestStoreItem(
+    runId: string,
+    nodeId: string,
+    itemType: "basic_unit" | "basic_dice"
+  ): Promise<RestStorePurchaseResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const res = await request<RestStorePurchaseResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/store/purchase`, {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({ item_type: itemType }),
+    });
+    refreshProfileAfterMutation();
+    return res;
   },
 
   async promoteUnit(

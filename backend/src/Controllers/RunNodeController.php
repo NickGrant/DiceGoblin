@@ -263,6 +263,17 @@ final class RunNodeController
       $outcome = (string)$resolution['outcome'];
       $ticks = (int)$resolution['ticks'];
       $rounds = (int)$resolution['rounds'];
+      $resolvedRewards = is_array($resolution['rewards'] ?? null) ? $resolution['rewards'] : [];
+      $grantedUnitIds = $this->materializeUnitGrants($pdo, $userId, $resolvedRewards);
+      $grantedDiceIds = $this->materializeDiceGrants($pdo, $userId, $resolvedRewards);
+      if (count($grantedUnitIds) > 0) {
+        $existing = is_array($resolvedRewards['new_unit_instance_ids'] ?? null) ? $resolvedRewards['new_unit_instance_ids'] : [];
+        $resolvedRewards['new_unit_instance_ids'] = array_values(array_unique(array_map('strval', array_merge($existing, $grantedUnitIds))));
+      }
+      if (count($grantedDiceIds) > 0) {
+        $existing = is_array($resolvedRewards['new_dice_instance_ids'] ?? null) ? $resolvedRewards['new_dice_instance_ids'] : [];
+        $resolvedRewards['new_dice_instance_ids'] = array_values(array_unique(array_map('strval', array_merge($existing, $grantedDiceIds))));
+      }
 
       $battleId = $svc['battleRepo']->createCompleted(
         $userId,
@@ -280,7 +291,7 @@ final class RunNodeController
         $battleId,
         (int)$resolution['xp_total'],
         (int)$resolution['currency_soft'],
-        (array)$resolution['rewards']
+        $resolvedRewards
       );
 
       $isCombatLikeNode = ((string)$node['node_type'] === 'combat' || (string)$node['node_type'] === 'boss');
@@ -454,5 +465,77 @@ final class RunNodeController
       return null;
     }
     return $v;
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   * @return array<int,string>
+   */
+  private function materializeUnitGrants(PDO $pdo, int $userId, array $rewards): array
+  {
+    $unitGrants = $rewards['unit_grants'] ?? null;
+    if (!is_array($unitGrants) || count($unitGrants) === 0) {
+      return [];
+    }
+
+    $created = [];
+    foreach ($unitGrants as $grant) {
+      if (!is_array($grant)) {
+        continue;
+      }
+      $slug = trim((string)($grant['unit_type_slug'] ?? ''));
+      if ($slug === '') {
+        continue;
+      }
+
+      $typeStmt = $pdo->prepare('SELECT `id` FROM `unit_types` WHERE `slug` = ? LIMIT 1');
+      $typeStmt->execute([$slug]);
+      $unitTypeId = (int)$typeStmt->fetchColumn();
+      if ($unitTypeId <= 0) {
+        continue;
+      }
+
+      $tier = max(1, min(3, (int)($grant['tier'] ?? 1)));
+      $level = max(1, (int)($grant['level'] ?? 1));
+      $insert = $pdo->prepare('INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `tier`, `level`, `xp`, `locked`) VALUES (?, ?, ?, ?, 0, 0)');
+      $insert->execute([$userId, $unitTypeId, $tier, $level]);
+      $created[] = (string)$pdo->lastInsertId();
+    }
+
+    return $created;
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   * @return array<int,string>
+   */
+  private function materializeDiceGrants(PDO $pdo, int $userId, array $rewards): array
+  {
+    $diceGrants = $rewards['dice_grants'] ?? null;
+    if (!is_array($diceGrants) || count($diceGrants) === 0) {
+      return [];
+    }
+
+    $created = [];
+    foreach ($diceGrants as $grant) {
+      if (!is_array($grant)) {
+        continue;
+      }
+      $rarity = trim((string)($grant['rarity'] ?? 'common'));
+      $sides = max(2, (int)($grant['sides'] ?? 6));
+
+      $defStmt = $pdo->prepare('SELECT `id` FROM `dice_definitions` WHERE `rarity` = ? AND `sides` = ? ORDER BY `id` ASC LIMIT 1');
+      $defStmt->execute([$rarity, $sides]);
+      $definitionId = (int)$defStmt->fetchColumn();
+      if ($definitionId <= 0) {
+        continue;
+      }
+
+      $insert = $pdo->prepare('INSERT INTO `dice_instances` (`user_id`, `dice_definition_id`, `display_name`) VALUES (?, ?, NULL)');
+      $insert->execute([$userId, $definitionId]);
+      $created[] = (string)$pdo->lastInsertId();
+    }
+
+    return $created;
   }
 }

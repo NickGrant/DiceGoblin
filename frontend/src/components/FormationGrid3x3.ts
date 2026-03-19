@@ -101,12 +101,12 @@ export type FormationGrid3x3Config = {
   selectedCell?: FormationCell | null;
 };
 
-const CELLS: FormationCell[] = ["A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"];
+const CELLS: FormationCell[] = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"];
 
 function cellToRowCol(cell: FormationCell): { row: number; col: number } {
-  const colChar = cell[0] || 'A'; // A..C
-  const rowChar = cell[1] || '1'; // 1..3
-  return { col: colChar.charCodeAt(0) - 65, row: parseInt(rowChar, 10) - 1 };
+  const rowChar = cell[0] || 'A'; // A..C (top to bottom lanes)
+  const colChar = cell[1] || '1'; // 1..3 (back to front depth)
+  return { col: parseInt(colChar, 10) - 1, row: rowChar.charCodeAt(0) - 65 };
 }
 
 export default class FormationGrid3x3 extends Phaser.GameObjects.Container {

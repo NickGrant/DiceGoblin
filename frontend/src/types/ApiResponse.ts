@@ -267,6 +267,28 @@ export type RestOpenResponse = ApiResponse<RestOpenData>;
 export type RestStateResponse = ApiResponse<RestOpenData>;
 export type RestFinalizeResponse = ApiResponse<RestFinalizeData>;
 
+export type RestStorePurchaseData = {
+  run_id: string;
+  node_id: string;
+  item_type: "basic_unit" | "basic_dice";
+  cost: number;
+  currency_soft: number;
+  purchase:
+    | {
+        unit_instance_id: string;
+        unit_type_slug: string;
+        tier: number;
+        level: number;
+      }
+    | {
+        dice_instance_id: string;
+        rarity: string;
+        sides: number;
+      };
+};
+
+export type RestStorePurchaseResponse = ApiResponse<RestStorePurchaseData>;
+
 export type ExitRunData = {
   run_id: string;
   status: string;
@@ -312,6 +334,8 @@ export type BattleClaimData = {
   rewards: {
     xp_total?: number;
     currency_soft?: number;
+    new_unit_instance_ids?: string[];
+    new_dice_instance_ids?: string[];
     [key: string]: unknown;
   };
   updated_run_unit_state?: RestRunUnitState[];

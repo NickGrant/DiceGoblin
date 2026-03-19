@@ -37,13 +37,13 @@ When multiple modifiers apply, resolve in this order:
 ## 2. Grid Orientation and Position Definitions
 
 ### 2.1 Player Side Orientation
-- Player front row is `r = 0`
-- Player back row is `r = 2`
+- Player front is on the **right side** of the 3x3 grid (`x = 2`)
+- Player back is on the **left side** of the 3x3 grid (`x = 0`)
 
 ### 2.2 Enemy Side Orientation
 To avoid mirrored confusion, “front/back” is defined **relative to side**:
-- Enemy front row is also `r = 0` (closest to the enemy’s frontline)
-- Enemy back row is `r = 2`
+- Enemy front is also `x = 2` (closest to that side’s frontline)
+- Enemy back is `x = 0`
 
 If your UI renders enemies upside-down or mirrored, it must still map to this convention in the simulation/log.
 
