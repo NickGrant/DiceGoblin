@@ -105,8 +105,8 @@ const CELLS: FormationCell[] = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", 
 
 function cellToRowCol(cell: FormationCell): { row: number; col: number } {
   const rowChar = cell[0] || 'A'; // A..C (top to bottom lanes)
-  const colChar = cell[1] || '1'; // 1..3 (back to front depth)
-  return { col: parseInt(colChar, 10) - 1, row: rowChar.charCodeAt(0) - 65 };
+  const colChar = cell[1] || '1'; // 1..3 (front to back depth)
+  return { col: 3 - parseInt(colChar, 10), row: rowChar.charCodeAt(0) - 65 };
 }
 
 export default class FormationGrid3x3 extends Phaser.GameObjects.Container {

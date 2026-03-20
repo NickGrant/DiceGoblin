@@ -940,7 +940,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
     if (!row) {
       return null;
     }
-    return `${row}${x + 1}` as keyof FormationMap;
+    return `${row}${3 - x}` as keyof FormationMap;
   }
 
   private extractParticipants(

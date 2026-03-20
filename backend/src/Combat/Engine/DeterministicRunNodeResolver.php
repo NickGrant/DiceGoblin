@@ -465,8 +465,8 @@ final class DeterministicRunNodeResolver
       return null;
     }
 
-    // Front depth is horizontal (right side). Cell digit controls x-depth.
-    $x = ((int)$value[1]) - 1;
+    // Front depth is horizontal (right side). Cell digit 1 is the front-most slot.
+    $x = 3 - (int)$value[1];
     $y = ord($value[0]) - ord('A');
     if ($x < 0 || $x > 2 || $y < 0 || $y > 2) {
       return null;
@@ -481,15 +481,15 @@ final class DeterministicRunNodeResolver
   private function defaultPosForIndex(int $index): array
   {
     $positions = [
-      ['x' => 0, 'y' => 0],
-      ['x' => 0, 'y' => 1],
-      ['x' => 0, 'y' => 2],
-      ['x' => 1, 'y' => 0],
-      ['x' => 1, 'y' => 1],
-      ['x' => 1, 'y' => 2],
       ['x' => 2, 'y' => 0],
       ['x' => 2, 'y' => 1],
       ['x' => 2, 'y' => 2],
+      ['x' => 1, 'y' => 0],
+      ['x' => 1, 'y' => 1],
+      ['x' => 1, 'y' => 2],
+      ['x' => 0, 'y' => 0],
+      ['x' => 0, 'y' => 1],
+      ['x' => 0, 'y' => 2],
     ];
 
     $safeIndex = $index % count($positions);
