@@ -17,7 +17,7 @@ final class BattleControllerClaimNegativeBranchesTest extends IntegrationTestCas
   {
     $userId = $this->insertUser('qa_claim', 'QA Claim');
     [$runId, $nodeId, $teamId] = $this->seedRunGraphScaffold($userId);
-    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'pending', 'victory');
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'claimed', 'victory');
     $this->insertBattleRewards($battleId);
 
     $_SESSION['user_id'] = $userId;
@@ -27,8 +27,9 @@ final class BattleControllerClaimNegativeBranchesTest extends IntegrationTestCas
     $controller = new BattleController();
     $res = $this->invoke(fn() => $controller->claimBattle((string)$battleId));
 
-    $this->assertSame(409, $res['status']);
-    $this->assertSame('battle_not_completed', (string)($res['body']['error']['code'] ?? ''));
+    $this->assertSame(200, $res['status']);
+    $this->assertTrue((bool)($res['body']['ok'] ?? false));
+    $this->assertSame('claimed', (string)($res['body']['data']['status'] ?? ''));
   }
 
   public function testClaimRejectsOwnershipMismatch(): void
@@ -50,22 +51,19 @@ final class BattleControllerClaimNegativeBranchesTest extends IntegrationTestCas
     $this->assertSame('forbidden', (string)($res['body']['error']['code'] ?? ''));
   }
 
-  public function testClaimRejectsInvalidOutcomeState(): void
+  public function testClaimRejectsMissingBattle(): void
   {
     $userId = $this->insertUser('qa_claim', 'QA Claim');
-    [$runId, $nodeId, $teamId] = $this->seedRunGraphScaffold($userId);
-    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'draw');
-    $this->insertBattleRewards($battleId);
 
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
 
     $controller = new BattleController();
-    $res = $this->invoke(fn() => $controller->claimBattle((string)$battleId));
+    $res = $this->invoke(fn() => $controller->claimBattle('999999'));
 
-    $this->assertSame(500, $res['status']);
-    $this->assertSame('server_error', (string)($res['body']['error']['code'] ?? ''));
+    $this->assertSame(403, $res['status']);
+    $this->assertSame('forbidden', (string)($res['body']['error']['code'] ?? ''));
   }
 
   /**

@@ -3,6 +3,12 @@ import {
   type BattleClaimResponse,
   type CreateResponse,
   type DiceMutationResponse,
+  type DebugCatalogResponse,
+  type DebugCurrencyGrantResponse,
+  type DebugGrantDieResponse,
+  type DebugGrantRegionItemResponse,
+  type DebugGrantUnitResponse,
+  type DebugResetAccountResponse,
   type ExitRunResponse,
   type ProfileResponse,
   type PromoteUnitResponse,
@@ -353,6 +359,70 @@ export const apiClient = {
     });
 
     apiClient.invalidateProfileCache();
+    return res;
+  },
+
+  async getDebugCatalog(): Promise<DebugCatalogResponse> {
+    return request<DebugCatalogResponse>("/api/v1/debug/catalog", { method: "GET" });
+  },
+
+  async grantDebugCurrency(soft: number, hard = 0): Promise<DebugCurrencyGrantResponse> {
+    const session = await apiClient.getSession();
+    const csrf = csrfFromSession(session);
+    const res = await request<DebugCurrencyGrantResponse>("/api/v1/debug/grant/currency", {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({ soft, hard }),
+    });
+    refreshProfileAfterMutation();
+    return res;
+  },
+
+  async grantDebugUnit(unitTypeSlug: string, count = 1): Promise<DebugGrantUnitResponse> {
+    const session = await apiClient.getSession();
+    const csrf = csrfFromSession(session);
+    const res = await request<DebugGrantUnitResponse>("/api/v1/debug/grant/unit", {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({ unit_type_slug: unitTypeSlug, count }),
+    });
+    refreshProfileAfterMutation();
+    return res;
+  },
+
+  async grantDebugDie(sides: number, rarity: string, count = 1): Promise<DebugGrantDieResponse> {
+    const session = await apiClient.getSession();
+    const csrf = csrfFromSession(session);
+    const res = await request<DebugGrantDieResponse>("/api/v1/debug/grant/dice", {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({ sides, rarity, count }),
+    });
+    refreshProfileAfterMutation();
+    return res;
+  },
+
+  async grantDebugRegionItem(regionItemSlug: string, quantity = 1): Promise<DebugGrantRegionItemResponse> {
+    const session = await apiClient.getSession();
+    const csrf = csrfFromSession(session);
+    const res = await request<DebugGrantRegionItemResponse>("/api/v1/debug/grant/region-item", {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({ region_item_slug: regionItemSlug, quantity }),
+    });
+    refreshProfileAfterMutation();
+    return res;
+  },
+
+  async resetDebugAccount(): Promise<DebugResetAccountResponse> {
+    const session = await apiClient.getSession();
+    const csrf = csrfFromSession(session);
+    const res = await request<DebugResetAccountResponse>("/api/v1/debug/reset-account", {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({}),
+    });
+    refreshProfileAfterMutation();
     return res;
   },
 

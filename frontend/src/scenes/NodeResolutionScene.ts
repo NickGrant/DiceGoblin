@@ -3,6 +3,7 @@ import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import SharedActionButton from "../components/clickable-panel/SharedActionButton";
 import { getDebugSceneConfig } from "../debug/debugScene";
+import { isDevPanelEnabled } from "../debug/devFlags";
 import { getDebugResolvedNodeFixture } from "../debug/debugFixtures";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { apiClient } from "../services/apiClient";
@@ -24,6 +25,7 @@ const CONTENT_BODY_TOP_OFFSET = 74;
 const CONTENT_BODY_BOTTOM_PADDING = 22;
 const RESOLVE_TIMEOUT_MS = 12_000;
 const TICK_AUTOPLAY_STEP_MS = 850;
+const TICK_PLAYBACK_SPEEDS = [1, 2, 4] as const;
 const ACTION_BUTTON_WIDTH = 280;
 
 type NodeResolutionSceneData = {
@@ -67,6 +69,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
   private nodeType: NodeResolutionType | null = null;
   private hasResolved = false;
   private actionButton?: SharedActionButton;
+  private debugBattleLogButton?: SharedActionButton;
   private actionHandler: (() => void) | null = null;
 
   private statusText?: Phaser.GameObjects.Text;
@@ -83,6 +86,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
   private wheelHandlerRegistered = false;
   private tickPlaybackActive = false;
   private tickPlaybackTimer?: Phaser.Time.TimerEvent;
+  private playbackSpeedMultiplier: (typeof TICK_PLAYBACK_SPEEDS)[number] = 1;
   private hoverHpTooltip?: Phaser.GameObjects.Text;
 
   constructor() {
@@ -95,6 +99,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
     this.selectedTick = 0;
     this.latestLog = null;
     this.latestSummary = null;
+    this.playbackSpeedMultiplier = 1;
     this.runId = String(data?.runId ?? "");
     this.nodeId = String(data?.nodeId ?? "");
     const typeValue = String(data?.nodeType ?? "");
@@ -165,6 +170,16 @@ export default class NodeResolutionScene extends Phaser.Scene {
       enabled: false,
       onClick: () => this.actionHandler?.(),
     });
+    if (isDevPanelEnabled()) {
+      this.debugBattleLogButton = new SharedActionButton({
+        scene: this,
+        x: layout.buttons.x + Math.max(10, Math.floor((layout.buttons.width - ACTION_BUTTON_WIDTH) / 2)),
+        y: layout.buttons.y + ACTION_BODY_TOP_OFFSET + 76,
+        label: "Copy Battle Log",
+        enabled: false,
+        onClick: () => void this.copyBattleLogToClipboard(),
+      });
+    }
 
     if (!this.wheelHandlerRegistered && this.input && typeof this.input.on === "function") {
       this.input.on("wheel", this.handleLogWheel, this);
@@ -537,13 +552,15 @@ export default class NodeResolutionScene extends Phaser.Scene {
     const contentY = layout.content.y + CONTENT_BODY_TOP_OFFSET + 38;
     const contentWidth = Math.max(300, layout.content.width - 32);
     const contentHeight = Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - CONTENT_BODY_BOTTOM_PADDING - 24);
-    const sliderHeight = 76;
+    const sliderHeight = 90;
     const bodyY = contentY + sliderHeight;
     const bodyHeight = Math.max(120, contentHeight - sliderHeight - 6);
 
     const maxTick = this.deriveObservedMaxTick(log, Math.max(0, summary.ticks));
-    const desiredTick = selectedTickOverride ?? 0;
+    const defaultTick = this.deriveDefaultTick(log);
+    const desiredTick = selectedTickOverride ?? (this.selectedTick > 0 ? this.selectedTick : defaultTick);
     this.selectedTick = Phaser.Math.Clamp(desiredTick, 0, maxTick);
+    this.debugBattleLogButton?.setEnabled(Boolean(log));
 
     const sliderInset = 10;
     this.renderTickSlider(
@@ -671,7 +688,36 @@ export default class NodeResolutionScene extends Phaser.Scene {
     selectedTick: number,
     log: BattleLog,
   ): void {
-    const playbackButtonGap = 12;
+    const selectableTicks = this.getNonEmptyTicks(log, maxTick);
+    const timelineTicks = selectableTicks.length > 0 ? selectableTicks : [0];
+    const controlY = y + 26;
+    const trackY = y + 58;
+    const trackHeight = 8;
+    const controlGap = 8;
+    const makeControl = (
+      buttonX: number,
+      buttonWidth: number,
+      label: string,
+      active: boolean,
+      onClick: () => void,
+    ): number => {
+      const bg = this.add
+        .rectangle(buttonX, controlY, buttonWidth, 24, active ? 0x587286 : 0x3b414f, 0.95)
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, 0xffffff, 0.28)
+        .setInteractive({ useHandCursor: true });
+      const text = this.add
+        .text(buttonX + buttonWidth / 2, controlY + 12, label, {
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+          fontSize: "12px",
+          color: "#ffffff",
+        })
+        .setOrigin(0.5, 0.5);
+      bg.on("pointerdown", () => onClick());
+      this.resolutionUiObjects.push(bg, text);
+      return buttonX + buttonWidth + controlGap;
+    };
+
     const sliderTitle = this.add
       .text(x, y, `Tick ${selectedTick}/${maxTick}`, {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
@@ -679,58 +725,75 @@ export default class NodeResolutionScene extends Phaser.Scene {
         color: "#f1f1f1",
       })
       .setOrigin(0, 0);
-    const titleWidth = Math.max(108, Math.ceil(sliderTitle.width) + 14);
     this.resolutionUiObjects.push(sliderTitle);
 
-    const playbackButtonWidth = 70;
-    const playbackButtonHeight = 24;
-    const playbackButtonX = x + width - playbackButtonWidth;
-    const playbackButtonY = y;
-    const playbackButtonBg = this.add
-      .rectangle(
-        playbackButtonX,
-        playbackButtonY,
-        playbackButtonWidth,
-        playbackButtonHeight,
-        this.tickPlaybackActive ? 0x386f45 : 0x3b414f,
-        0.95,
-      )
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0xffffff, 0.35);
-    const playbackButtonLabel = this.add
-      .text(playbackButtonX + playbackButtonWidth / 2, playbackButtonY + playbackButtonHeight / 2, this.tickPlaybackActive ? "Pause" : "Play", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "13px",
-        color: "#ffffff",
-      })
-      .setOrigin(0.5, 0.5);
-    this.resolutionUiObjects.push(playbackButtonBg, playbackButtonLabel);
-
-    (playbackButtonBg as unknown as { setInteractive?: (config?: unknown) => unknown }).setInteractive?.({ useHandCursor: true });
-    (playbackButtonBg as unknown as { on?: (event: string, cb: (...args: unknown[]) => void) => unknown }).on?.("pointerdown", () => {
+    let nextControlX = x;
+    nextControlX = makeControl(nextControlX, 48, "Prev", false, () => {
+      this.stepSelectableTick(timelineTicks, -1);
+    });
+    nextControlX = makeControl(nextControlX, 58, this.tickPlaybackActive ? "Pause" : "Play", this.tickPlaybackActive, () => {
       this.toggleTickPlayback(maxTick, log);
     });
+    nextControlX = makeControl(nextControlX, 48, "Next", false, () => {
+      this.stepSelectableTick(timelineTicks, 1);
+    });
+    nextControlX = makeControl(nextControlX, 58, "Skip", false, () => {
+      const finalTick = timelineTicks[timelineTicks.length - 1] ?? 0;
+      if (this.latestSummary) {
+        this.stopTickPlayback();
+        this.renderResolutionPanels(this.latestLog, this.latestSummary, finalTick);
+      }
+    });
 
-    const trackX = x + titleWidth;
-    const trackY = y + 34;
-    const trackWidth = Math.max(96, width - titleWidth - playbackButtonWidth - playbackButtonGap);
+    let speedX = x + width - 150;
+    for (const speed of TICK_PLAYBACK_SPEEDS) {
+      const isActive = this.playbackSpeedMultiplier === speed;
+      const currentSpeed = speed;
+      const bg = this.add
+        .rectangle(speedX, y, 42, 22, isActive ? 0x386f45 : 0x3b414f, 0.95)
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, 0xffffff, 0.25)
+        .setInteractive({ useHandCursor: true });
+      const text = this.add
+        .text(speedX + 21, y + 11, `${speed}x`, {
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+          fontSize: "12px",
+          color: "#ffffff",
+        })
+        .setOrigin(0.5, 0.5);
+      bg.on("pointerdown", () => this.setPlaybackSpeed(currentSpeed, maxTick, log));
+      this.resolutionUiObjects.push(bg, text);
+      speedX += 48;
+    }
+
+    const trackX = nextControlX + 8;
+    const trackWidth = Math.max(120, width - (trackX - x));
     const track = this.add
-      .rectangle(trackX, trackY, trackWidth, 8, 0x2a2f36, 0.9)
+      .rectangle(trackX, trackY, trackWidth, trackHeight, 0x2a2f36, 0.9)
       .setOrigin(0, 0)
       .setStrokeStyle(1, 0xffffff, 0.25);
     this.resolutionUiObjects.push(track);
 
+    const positionForTick = (tick: number): number => {
+      if (timelineTicks.length <= 1) {
+        return trackX;
+      }
+      const index = Math.max(0, timelineTicks.indexOf(tick));
+      const ratio = index / Math.max(1, timelineTicks.length - 1);
+      return trackX + Math.round(ratio * trackWidth);
+    };
+
     const setTickFromPointerX = (pointerX: number): void => {
-      if (maxTick <= 0 || !this.latestSummary) {
+      if (!this.latestSummary) {
         return;
       }
       const ratio = Phaser.Math.Clamp((pointerX - trackX) / Math.max(1, trackWidth), 0, 1);
-      const candidateTick = Phaser.Math.Clamp(Math.round(ratio * maxTick), 0, maxTick);
-      const selectableTicks = this.getNonEmptyTicks(log, maxTick);
-      const nextTick = this.coerceTickToSelectable(candidateTick, selectableTicks, maxTick);
+      const candidateIndex = Math.round(ratio * Math.max(0, timelineTicks.length - 1));
+      const nextTick = timelineTicks[Math.max(0, Math.min(candidateIndex, timelineTicks.length - 1))] ?? 0;
       if (nextTick === this.selectedTick) {
         return;
       }
+      this.stopTickPlayback();
       this.renderResolutionPanels(this.latestLog, this.latestSummary, nextTick);
     };
 
@@ -746,11 +809,9 @@ export default class NodeResolutionScene extends Phaser.Scene {
       }
     });
 
-    if (maxTick > 0) {
-      const selectableTicks = this.getNonEmptyTicks(log, maxTick);
-      for (const tick of selectableTicks) {
-        const ratio = tick / maxTick;
-        const tickX = trackX + Math.round(ratio * trackWidth);
+    if (timelineTicks.length > 0) {
+      for (const tick of timelineTicks) {
+        const tickX = positionForTick(tick);
         const stop = this.add.rectangle(tickX, trackY - 3, 2, 14, 0xaeb5c2, 0.45).setOrigin(0.5, 0);
         this.resolutionUiObjects.push(stop);
       }
@@ -758,16 +819,16 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
     const roundStartTicks = this.extractRoundStartTicks(log);
     for (const roundTick of roundStartTicks) {
-      if (maxTick <= 0 || roundTick < 0 || roundTick > maxTick) {
+      if (roundTick < 0 || roundTick > maxTick) {
         continue;
       }
-      const ratio = roundTick / maxTick;
-      const markerX = trackX + Math.round(ratio * trackWidth);
+      const compactTick = this.coerceTickToSelectable(roundTick, timelineTicks, maxTick);
+      const markerX = positionForTick(compactTick);
       const marker = this.add.rectangle(markerX, trackY - 10, 3, 24, 0xffd35b, 0.85).setOrigin(0.5, 0);
       this.resolutionUiObjects.push(marker);
     }
 
-    const handleX = maxTick > 0 ? trackX + Math.round((selectedTick / maxTick) * trackWidth) : trackX;
+    const handleX = positionForTick(selectedTick);
     const handle = this.add
       .rectangle(handleX, trackY - 6, 10, 20, 0xffffff, 0.95)
       .setOrigin(0.5, 0)
@@ -775,7 +836,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
     this.resolutionUiObjects.push(handle);
 
     const helpText = this.add
-      .text(x, y + height - 12, "Gold markers denote round starts", {
+      .text(x, y + height - 12, "Compact timeline view. Gold markers denote round starts.", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "12px",
         color: "#d9d9d9",
@@ -1221,7 +1282,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
     this.tickPlaybackActive = true;
     this.tickPlaybackTimer?.destroy();
     this.tickPlaybackTimer = this.time.addEvent({
-      delay: TICK_AUTOPLAY_STEP_MS,
+      delay: this.getAutoplayDelayMs(),
       callback: () => {
         if (!this.tickPlaybackActive || !this.latestSummary) {
           return;
@@ -1238,6 +1299,31 @@ export default class NodeResolutionScene extends Phaser.Scene {
     });
 
     this.renderResolutionPanels(this.latestLog, this.latestSummary, this.selectedTick);
+  }
+
+  private stepSelectableTick(nonEmptyTicks: number[], delta: -1 | 1): void {
+    if (!this.latestSummary || nonEmptyTicks.length === 0) {
+      return;
+    }
+
+    const exactIndex = nonEmptyTicks.indexOf(this.selectedTick);
+    const baseIndex = exactIndex >= 0 ? exactIndex : 0;
+    const nextIndex = Phaser.Math.Clamp(baseIndex + delta, 0, nonEmptyTicks.length - 1);
+    const nextTick = nonEmptyTicks[nextIndex] ?? this.selectedTick;
+    this.stopTickPlayback();
+    this.renderResolutionPanels(this.latestLog, this.latestSummary, nextTick);
+  }
+
+  private setPlaybackSpeed(multiplier: (typeof TICK_PLAYBACK_SPEEDS)[number], maxTick: number, log: BattleLog): void {
+    this.playbackSpeedMultiplier = multiplier;
+    if (this.tickPlaybackActive) {
+      this.stopTickPlayback();
+      this.toggleTickPlayback(maxTick, log);
+      return;
+    }
+    if (this.latestSummary) {
+      this.renderResolutionPanels(this.latestLog, this.latestSummary, this.selectedTick);
+    }
   }
 
   private renderLootResolutionPanels(log: BattleLog, summary: ResolutionSummary, claimSummary: ClaimSummary): void {
@@ -1385,19 +1471,46 @@ export default class NodeResolutionScene extends Phaser.Scene {
     const lines: string[] = [];
     if (summary.encounterDescription && summary.encounterDescription.trim() !== "") {
       lines.push(`Encounter: ${summary.encounterDescription}`);
-      lines.push("");
     }
 
     if (tickEvents.length === 0) {
+      if (lines.length > 0) {
+        lines.push(`Tick ${this.selectedTick}`);
+      }
       lines.push("No events on this tick.");
       return lines;
     }
 
+    if (lines.length > 0) {
+      lines.push(`Tick ${this.selectedTick}`);
+    }
     lines.push(`Events on tick ${this.selectedTick}:`);
     tickEvents.forEach((event, index) => {
       lines.push(`${index + 1}) ${this.formatFriendlyEvent(event)}`);
     });
     return lines;
+  }
+
+  private getAutoplayDelayMs(): number {
+    return Math.max(160, Math.round(TICK_AUTOPLAY_STEP_MS / this.playbackSpeedMultiplier));
+  }
+
+  private async copyBattleLogToClipboard(): Promise<void> {
+    if (!this.latestLog) {
+      this.showError("No battle log available to copy.");
+      return;
+    }
+
+    try {
+      const clipboard = typeof navigator !== "undefined" ? navigator.clipboard : undefined;
+      if (!clipboard || typeof clipboard.writeText !== "function") {
+        throw new Error("Clipboard access is unavailable in this browser.");
+      }
+      await clipboard.writeText(JSON.stringify(this.latestLog, null, 2));
+      this.showError("Battle log copied to clipboard.");
+    } catch (error) {
+      this.showError(error instanceof Error ? error.message : "Failed to copy battle log.");
+    }
   }
 
   private formatFriendlyEvent(event: Record<string, unknown>): string {
@@ -1672,9 +1785,4 @@ export default class NodeResolutionScene extends Phaser.Scene {
     this.detailText.setY(this.logViewport.y - this.logScrollOffset);
   }
 }
-
-
-
-
-
 

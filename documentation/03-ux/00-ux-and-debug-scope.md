@@ -36,11 +36,11 @@ The following screens/scenes are required for MVP:
 - Warband Management (unit list)
 - Unit Details
 - Dice Inventory
-- Dice Details
 
 Notes:
 - Screen list is considered complete for MVP.
 - Promotion actions are embedded in Unit Details (not a standalone promotion scene).
+- Dedicated `DiceDetailsScene` is deferred; MVP dice detail inspection is satisfied through the Dice Inventory detail affordance.
 
 ---
 
@@ -127,9 +127,11 @@ Promotion behavior:
 - Promotion is enabled between runs and during active-run rest workflow.
 - Promotion is disabled in active-run non-rest contexts.
 
-### 6.2 Dice Details
+### 6.2 Dice Inventory Detail Affordance
 
-Dice details must include:
+The MVP does not require a dedicated dice-details scene.
+
+Instead, the Dice Inventory surface must expose:
 - Die size (d4–d10)
 - Rarity (common/uncommon/rare)
 - Slot capacity
@@ -154,11 +156,12 @@ When enabled, the UI may display:
 
 ### 7.3 Dev Panel Actions
 
-When enabled, the dev panel supports:
+When enabled, the dev tooling supports:
 - Grant currency
 - Grant a die (choose sides + rarity)
 - Grant a unit (choose `unit_type`)
 - Force boss region-item drop (for Tier 3 testing)
+- Reset account to fresh baseline
 - Export battle log JSON (copy to clipboard)
 
 ---

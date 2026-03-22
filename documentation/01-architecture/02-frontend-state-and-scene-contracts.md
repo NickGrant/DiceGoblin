@@ -5,7 +5,7 @@ Last Updated: 2026-03-07
 Owner: Frontend  
 Depends On: `frontend/src/game/config.ts`, `frontend/src/scenes/`, `frontend/src/services/apiClient.ts`
 
-This document defines the runtime contracts for currently implemented Phaser scenes and clearly labels planned scenes that are not yet wired.
+This document defines the runtime contracts for currently implemented Phaser scenes and clearly labels deferred scenes that are not yet wired.
 
 ## 1. Core Principles
 
@@ -33,15 +33,15 @@ Configured in `frontend/src/game/config.ts`:
 11. `NodeResolutionScene`
 12. `RestManagementScene`
 13. `RunEndSummaryScene`
+14. `DevPanelScene` (debug-only when env-enabled)
 
 ## 3. Planned (Not Implemented Yet)
 
-The following scenes are documented in broader design scope but are not currently in scene config:
+The following scenes are deferred or design-only and are not currently in scene config:
 
 - `CombatScene`
 - `LootScene`
 - `BossScene`
-- `DiceDetailsScene`
 
 ## 4. Shared State Slices (Current)
 
@@ -117,6 +117,7 @@ Output:
 - navigates to `RegionSelectScene`
 - navigates to `WarbandManagementScene`
 - navigates to `DiceInventoryScene`
+- when dev tooling is env-enabled, exposes entry to `DevPanelScene`
 
 ### 5.5 RegionSelectScene
 
@@ -190,9 +191,26 @@ Allowed side-effects:
 
 Behavior:
 - shows unified node-resolution outcome surface for non-rest nodes
+- exposes compact replay controls for play/pause, previous/next event, 1x/2x/4x speed, and skip-to-outcome
+- in dev mode, supports copying the current battle log JSON to clipboard
 - supports retry from error state
 - routes to `RunEndSummaryScene` on terminal outcomes
 - routes back to `MapExplorationScene` for non-terminal outcomes with resolution feedback
+
+### 5.12 DevPanelScene
+
+Allowed side-effects:
+- `GET /api/v1/debug/catalog`
+- `POST /api/v1/debug/grant/currency`
+- `POST /api/v1/debug/grant/unit`
+- `POST /api/v1/debug/grant/dice`
+- `POST /api/v1/debug/grant/region-item`
+- `POST /api/v1/debug/reset-account`
+
+Behavior:
+- debug-only operator surface gated by environment flag
+- supports grant and reset flows for local verification/UAT
+- reflects current profile counts after mutations
 
 ## 6. Implemented Transition Matrix
 
@@ -218,6 +236,7 @@ Behavior:
 - `NodeResolutionScene -> MapExplorationScene` (non-terminal outcome)
 - `NodeResolutionScene -> RunEndSummaryScene` (terminal outcome)
 - `RunEndSummaryScene -> HomeScene`
+- `HomeScene -> DevPanelScene` (debug-only)
 
 Planned additions:
 - `RestManagementScene -> MapExplorationScene` (finalize or cancel rest)
@@ -227,7 +246,7 @@ Planned additions:
 
 - Dedicated combat replay/viewer scenes are still planned but not wired in config.
 - No centralized frontend store for run/profile; state is scene-local.
-- Dedicated dice-details scene contract is planned but not yet implemented.
+- Dedicated dice-details scene is intentionally deferred; MVP dice inspection currently lives in Dice Inventory.
 
 ## 8. Debug Scene Loader
 

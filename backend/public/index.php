@@ -12,6 +12,7 @@ use DiceGoblins\Core\Router;
 use DiceGoblins\Controllers\ApiController;
 use DiceGoblins\Controllers\AuthController;
 use DiceGoblins\Controllers\BattleController;
+use DiceGoblins\Controllers\DebugController;
 use DiceGoblins\Controllers\GameplayController;
 use DiceGoblins\Controllers\RunNodeController;
 use DiceGoblins\Controllers\TeamController;
@@ -97,6 +98,7 @@ $router = new Router();
 $api = new ApiController();
 $auth = new AuthController();
 $battle = new BattleController();
+$debug = new DebugController();
 $gameplay = new GameplayController();
 $runNode = new RunNodeController();
 $team = new TeamController();
@@ -119,6 +121,13 @@ $router->put('/api/v1/runs/:runId/nodes/:nodeId/rest/state', [$gameplay, 'update
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/store/purchase', [$gameplay, 'purchaseRestStore']);
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/finalize', [$gameplay, 'finalizeRest']);
 $router->get('/api/v1/abilities', [$api, 'abilities']);
+// Debug / dev-only endpoints
+$router->get('/api/v1/debug/catalog', [$debug, 'catalog']);
+$router->post('/api/v1/debug/grant/currency', [$debug, 'grantCurrency']);
+$router->post('/api/v1/debug/grant/unit', [$debug, 'grantUnit']);
+$router->post('/api/v1/debug/grant/dice', [$debug, 'grantDice']);
+$router->post('/api/v1/debug/grant/region-item', [$debug, 'grantRegionItem']);
+$router->post('/api/v1/debug/reset-account', [$debug, 'resetAccount']);
 
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/resolve', [$runNode, 'resolveNode']);
 $router->get('/api/v1/battles/:battleId/log',[$battle, 'getBattleLog']);

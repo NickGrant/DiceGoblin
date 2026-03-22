@@ -1,7 +1,9 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
+import SharedActionButton from "../components/clickable-panel/SharedActionButton";
 import { markDebugSceneReady } from "../debug/debugHooks";
+import { isDevPanelEnabled } from "../debug/devFlags";
 import { apiClient } from "../services/apiClient";
 import { getPageLayout, type LayoutRect } from "../layout/pageLayout";
 import HomeNavigationPanel from "../components/navigation/HomeNavigationPanel";
@@ -25,7 +27,24 @@ export default class HomeScene extends Phaser.Scene {
       height: layout.content.height,
     };
 
+    this.renderDevPanelButton(layout);
     void this.renderDynamicRunArea(contentArea);
+  }
+
+  private renderDevPanelButton(layout: ReturnType<typeof getPageLayout>): void {
+    if (!isDevPanelEnabled()) {
+      return;
+    }
+
+    new SharedActionButton({
+      scene: this,
+      x: layout.buttons.x + Math.max(10, Math.floor((layout.buttons.width - 280) / 2)),
+      y: layout.buttons.y + 74,
+      label: "Dev Panel",
+      onClick: () => {
+        this.scene.start("DevPanelScene");
+      },
+    });
   }
 
   private async renderDynamicRunArea(contentArea: LayoutRect): Promise<void> {
@@ -72,7 +91,6 @@ export default class HomeScene extends Phaser.Scene {
     };
   }
 }
-
 
 
 

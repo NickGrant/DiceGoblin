@@ -6,6 +6,22 @@
 - Preserve milestone resolution history without bloating active execution context.
 
 ---
+name: MVP Closeout Tooling and Combat UX
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Complete combat viewer playback controls and tighten timeline spacing
+  - Build dev panel and account reset tooling
+  - Fix backend battle claim negative-branch coverage
+  - Align MVP docs with shipped UX scope
+description: |
+  Close the remaining MVP-closeout gaps by finishing combat replay controls,
+  adding debug/operator tooling and account reset support, repairing the backend
+  claim test lane, and aligning docs to the actual shipped scope.
+Resolution: Completed the combat replay control pass, added debug grant/reset tooling with a dedicated dev panel, repaired the backend negative-branch test lane, and updated MVP docs to match the shipped scope with dedicated dice-details explicitly deferred.
+
+---
 name: Milestone 29 - Run Node Resolution Action Scheduling
 status: complete
 execution_window: open

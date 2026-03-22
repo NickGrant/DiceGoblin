@@ -391,3 +391,47 @@ export type TeamDeleteResponse = ApiResponse<TeamCreateData>;
  */
 export type CreateRunData = Record<string, never>;
 export type CreateResponse = ApiResponse<CreateRunData>;
+
+export type DebugUnitTypeRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  role: string;
+};
+
+export type DebugDiceDefinition = {
+  id: string;
+  sides: number;
+  rarity: string;
+  slot_capacity: number;
+};
+
+export type DebugRegionItemRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  region_slug: string;
+  region_name: string;
+};
+
+export type DebugCatalogData = {
+  unit_types: DebugUnitTypeRecord[];
+  dice_definitions: DebugDiceDefinition[];
+  region_items: DebugRegionItemRecord[];
+};
+
+export type DebugCatalogResponse = ApiResponse<DebugCatalogData>;
+export type DebugCurrencyGrantResponse = ApiResponse<{ currency: { soft: number; hard: number } }>;
+export type DebugGrantUnitResponse = ApiResponse<{ granted_units: Array<{ id: string; unit_type_slug: string }> }>;
+export type DebugGrantDieResponse = ApiResponse<{ granted_dice: Array<{ id: string; sides: number; rarity: string }> }>;
+export type DebugGrantRegionItemResponse = ApiResponse<{ region_item: { region_item_slug: string; quantity: number } }>;
+export type DebugResetAccountResponse = ApiResponse<{
+  reset: {
+    user_id: string;
+    squads: number;
+    units: number;
+    dice: number;
+    region_unlocks: number;
+    active_run: boolean;
+  };
+}>;

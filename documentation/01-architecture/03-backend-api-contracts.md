@@ -732,19 +732,41 @@ All debug endpoints:
 - MUST be disabled in production (or gated behind env flag / admin allowlist).
 - MUST not mutate real economy unless explicitly desired.
 
-Suggested minimal set:
+Current minimal set:
 
-### 12.1 Seeded Run Start
-`POST /api/v1/debug/runs`
+### 12.1 Debug Catalog
+`GET /api/v1/debug/catalog`
+
+Returns available unit types, dice definitions, and region items for debug tooling.
+
+### 12.2 Grant Currency
+`POST /api/v1/debug/grant/currency`
 ```json
-{ "region_id": "1", "team_id": "10", "seed": "12345" }
+{ "soft": 500, "hard": 0 }
 ```
 
-### 12.2 Grant Items
-`POST /api/v1/debug/grant`
+### 12.3 Grant Unit
+`POST /api/v1/debug/grant/unit`
 ```json
-{ "region_item_id": "roc_egg", "quantity": 5 }
+{ "unit_type_slug": "frontline_bruiser_t1", "count": 1 }
 ```
+
+### 12.4 Grant Die
+`POST /api/v1/debug/grant/dice`
+```json
+{ "sides": 8, "rarity": "rare", "count": 1 }
+```
+
+### 12.5 Grant Region Item
+`POST /api/v1/debug/grant/region-item`
+```json
+{ "region_item_slug": "roc_egg", "quantity": 1 }
+```
+
+### 12.6 Reset Account
+`POST /api/v1/debug/reset-account`
+
+Resets user-owned progress to fresh-account baseline while preserving the user identity/session.
 
 ---
 

@@ -1,4 +1,4 @@
-# Unit and Dice Details Acceptance Criteria - MVP
+# Unit Details and Dice Inventory Acceptance Criteria - MVP
 ----
 
 Status: active  
@@ -7,7 +7,7 @@ Owner: Product + UX + Frontend
 Depends On: `documentation/02-systems-mvp/02-units-and-progression.md`, `documentation/02-systems-mvp/01-dice-system.md`, `documentation/03-ux/02-warband-management.md`
 
 ## Purpose
-- Define concrete acceptance criteria for Unit Details and Dice Details MVP surfaces.
+- Define concrete acceptance criteria for Unit Details and Dice Inventory MVP surfaces.
 - Remove ambiguity before implementation of typed view-model adapters and detailed UI panels.
 
 ## Unit Details Acceptance Criteria
@@ -36,7 +36,7 @@ Depends On: `documentation/02-systems-mvp/02-units-and-progression.md`, `documen
 - Missing optional fields must degrade gracefully (fallback text) and never crash scene rendering.
 - Unknown ability IDs should render a safe fallback label while preserving row structure.
 
-## Dice Details Acceptance Criteria
+## Dice Inventory Detail Acceptance Criteria
 
 ### Required Fields
 - Die size (`d4`..`d10`).
@@ -53,6 +53,10 @@ Depends On: `documentation/02-systems-mvp/02-units-and-progression.md`, `documen
 - Surface must indicate whether die is equipped and to which unit/slot when available.
 - If not equipped, show inventory-only state without implying hidden assignment.
 
+### Presentation Scope
+- Dedicated `DiceDetailsScene` is deferred.
+- MVP acceptance is satisfied when the dice inventory provides a stable hover/focus/tap detail presentation with the required fields.
+
 ## Shared UX Criteria
 - Desktop and mobile layouts preserve readability of all required fields.
 - No hidden critical data behind hover-only affordances on mobile.
@@ -65,5 +69,5 @@ Depends On: `documentation/02-systems-mvp/02-units-and-progression.md`, `documen
 
 ## QA Sign-off Checks
 - Unit details render correctly for: low-level, mid-level, max-level, and defeated-in-run units.
-- Dice details render correctly for: no affixes, mixed affix sets, and conditional affix entries.
+- Dice inventory detail affordance renders correctly for: no affixes, mixed affix sets, and conditional affix entries.
 - Screens remain stable when backend omits non-required optional fields.

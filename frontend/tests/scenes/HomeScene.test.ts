@@ -8,6 +8,11 @@ vi.mock("phaser", () => {
 
 vi.mock("../../src/components/BackgroundImage", () => ({ default: class {} }));
 vi.mock("../../src/components/BottomCommandStrip", () => ({ mountBottomCommandStrip: vi.fn() }));
+vi.mock("../../src/components/clickable-panel/SharedActionButton", () => ({
+  default: class {
+    constructor(_cfg: unknown) {}
+  },
+}));
 
 const homePanelCtor = vi.fn();
 vi.mock("../../src/components/navigation/HomeNavigationPanel", () => ({

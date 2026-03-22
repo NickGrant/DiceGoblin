@@ -14,6 +14,7 @@ export const DEBUG_SCENE_KEYS = [
   "NodeResolutionScene",
   "RestManagementScene",
   "RunEndSummaryScene",
+  "DevPanelScene",
 ] as const;
 
 export type DebugSceneKey = (typeof DEBUG_SCENE_KEYS)[number];
@@ -59,6 +60,8 @@ for (const [alias, key] of [
   ["rest", "RestManagementScene"],
   ["summary", "RunEndSummaryScene"],
   ["runsummary", "RunEndSummaryScene"],
+  ["devpanel", "DevPanelScene"],
+  ["dev", "DevPanelScene"],
 ] as const) {
   SCENE_ALIAS_MAP.set(alias, key);
 }

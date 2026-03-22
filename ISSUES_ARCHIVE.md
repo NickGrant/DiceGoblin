@@ -6,6 +6,46 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Complete combat viewer playback controls and tighten timeline spacing
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: MVP Closeout Tooling and Combat UX
+description: Update `NodeResolutionScene` so combat playback feels compact and usable. Remove excess empty timeline spacing, add visible controls for play/pause, 1x/2x/4x speed, previous/next event, and skip-to-outcome, and keep the result readable on desktop.
+resolution: Reworked `NodeResolutionScene` to use a compact event-beat timeline, added visible playback controls for previous/play-next/skip and 1x/2x/4x speeds, and added dev-mode battle-log clipboard export while keeping the existing node-resolution flow green in tests.
+
+---
+title: Build dev panel and account reset tooling
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: MVP Closeout Tooling and Combat UX
+description: Implement debug-only operator tooling gated by environment flags. Include grant currency, grant die, grant unit, force boss item drop, export battle log JSON, and reset-account support for fresh-account UAT.
+resolution: Added backend debug grant/reset endpoints, a `DevToolsService`, Docker/frontend flag wiring, a new `DevPanelScene`, and integration coverage for grant/reset behavior; battle-log export now also exists directly in the combat viewer under dev mode.
+
+---
+title: Fix backend battle claim negative-branch coverage
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: MVP Closeout Tooling and Combat UX
+description: Repair `BattleControllerClaimNegativeBranchesTest` so it exercises real controller error paths without inserting enum-invalid battle states that fail at the database layer before controller logic runs.
+resolution: Replaced enum-invalid fixture setup with reachable claimed/missing-battle branches, keeping the controller coverage meaningful and allowing the full backend PHPUnit suite to go green.
+
+---
+title: Align MVP docs with shipped UX scope
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: MVP Closeout Tooling and Combat UX
+description: Update architecture and UX docs to match validated runtime behavior, document the new dev/reset tooling, clarify what truly remains for MVP, and remove `DiceDetailsScene` from the current MVP-required surface for now.
+resolution: Updated frontend/backend/UX contracts to document the shipped debug tooling, compact combat controls, deferred dedicated dice-details scene, and the current MVP surface more accurately.
+
+---
 title: Fix defeat battle claim server error
 status: complete
 priority: high
