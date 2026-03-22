@@ -220,4 +220,52 @@ final class BattleClaimProgressionIntegrationTest extends BattleFlowIntegrationC
       $this->assertGreaterThan(0, (int)$row['current_hp']);
     }
   }
+
+  public function testClaimAlreadyFailedDefeatBattleReturnsStablePayload(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 88990011, 'failed');
+    $nodeId = $this->insertRunNode($runId, 'boss', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitA = $this->insertUnit($userId, $unitTypeId, 1, 12);
+    $unitB = $this->insertUnit($userId, $unitTypeId, 1, 9);
+
+    $this->insertTeamUnit($teamId, $unitA);
+    $this->insertTeamUnit($teamId, $unitB);
+    $this->insertRunUnitState($runId, $unitA, 15, false);
+    $this->insertRunUnitState($runId, $unitB, 13, false);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'defeat', 445566, 20, 1);
+    $this->insertBattleRewards($battleId, 10, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+    ]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new BattleController();
+    $first = $this->invoke(fn() => $controller->claimBattle((string)$battleId));
+    $second = $this->invoke(fn() => $controller->claimBattle((string)$battleId));
+
+    $this->assertSame(200, $first['status']);
+    $this->assertSame(200, $second['status']);
+
+    $firstData = is_array($first['body']['data'] ?? null) ? $first['body']['data'] : [];
+    $secondData = is_array($second['body']['data'] ?? null) ? $second['body']['data'] : [];
+    $this->assertSame($firstData, $secondData);
+    $this->assertSame('claimed', (string)($firstData['status'] ?? ''));
+
+    $runResolution = is_array($firstData['run_resolution'] ?? null) ? $firstData['run_resolution'] : [];
+    $this->assertSame('failed', (string)($runResolution['status'] ?? ''));
+
+    $this->assertSame('failed', (string)$this->scalar('SELECT `status` FROM `region_runs` WHERE `id` = ?', [$runId]));
+    $this->assertSame('claimed', (string)$this->scalar('SELECT `status` FROM `battles` WHERE `id` = ?', [$battleId]));
+    $this->assertSame('12', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$unitA]));
+    $this->assertSame('9', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$unitB]));
+  }
 }

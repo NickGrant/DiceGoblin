@@ -13,20 +13,25 @@ export type RegionSelectionPanelConfig = {
   onSelect: (regionId: string) => void;
   onActivate?: (regionId: string) => void | Promise<void>;
   onLockedSelect?: (regionId: string) => void;
+  onUnavailableSelect?: (regionId: string) => void;
   textureKey?: string;
 };
 
 export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
   private locked: boolean;
+  private startable = true;
   private readonly regionId: string;
   private readonly onSelect: (regionId: string) => void;
   private readonly onActivate?: (regionId: string) => void | Promise<void>;
   private readonly onLockedSelect?: (regionId: string) => void;
+  private readonly onUnavailableSelect?: (regionId: string) => void;
   private readonly panel: ClickablePanel;
   private readonly labelText: Phaser.GameObjects.Text;
   private readonly titleBackground: Phaser.GameObjects.Rectangle;
   private readonly lockOverlay: Phaser.GameObjects.Rectangle;
   private readonly lockText: Phaser.GameObjects.Text;
+  private readonly unavailableOverlay: Phaser.GameObjects.Rectangle;
+  private readonly unavailableText: Phaser.GameObjects.Text;
   private readonly selectionOutline: Phaser.GameObjects.Rectangle;
   private readonly panelWidth: number;
   private readonly panelHeight: number;
@@ -41,6 +46,7 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
     this.onSelect = cfg.onSelect;
     this.onActivate = cfg.onActivate;
     this.onLockedSelect = cfg.onLockedSelect;
+    this.onUnavailableSelect = cfg.onUnavailableSelect;
 
     this.panel = new ClickablePanel(cfg.scene, {
       x: 0,
@@ -52,6 +58,11 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
         if (this.locked) {
           this.onSelect(this.regionId);
           this.onLockedSelect?.(this.regionId);
+          return;
+        }
+        if (!this.startable) {
+          this.onSelect(this.regionId);
+          this.onUnavailableSelect?.(this.regionId);
           return;
         }
         const now = Date.now();
@@ -92,6 +103,22 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
       })
       .setOrigin(0.5, 1);
 
+    this.unavailableOverlay = cfg.scene.add
+      .rectangle(0, cfg.height - 94, cfg.width, 94, 0x1a0f0f, 0.62)
+      .setOrigin(0, 0)
+      .setVisible(false);
+
+    this.unavailableText = cfg.scene.add
+      .text(Math.floor(cfg.width / 2), cfg.height - 26, "NEED MORE ENERGY", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "22px",
+        color: "#ffd6a8",
+        stroke: "#2f1710",
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5, 1)
+      .setVisible(false);
+
     this.selectionOutline = cfg.scene.add
       .rectangle(0, 0, cfg.width, cfg.height)
       .setOrigin(0, 0)
@@ -103,6 +130,8 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
     this.add(this.labelText);
     this.add(this.lockOverlay);
     this.add(this.lockText);
+    this.add(this.unavailableOverlay);
+    this.add(this.unavailableText);
     this.add(this.selectionOutline);
     cfg.scene.add.existing(this);
     this.applyLockedState();
@@ -119,6 +148,13 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
     return this;
   }
 
+  setStartable(startable: boolean, unavailableLabel = "NEED MORE ENERGY"): this {
+    this.startable = startable;
+    this.unavailableText.setText(unavailableLabel.toUpperCase());
+    this.applyLockedState();
+    return this;
+  }
+
   isLocked(): boolean {
     return this.locked;
   }
@@ -126,7 +162,9 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
   private applyLockedState(): void {
     this.lockOverlay.setVisible(this.locked);
     this.lockText.setVisible(this.locked);
-    this.panel.setAlpha(this.locked ? 0.78 : 1);
+    const showUnavailable = !this.locked && !this.startable;
+    this.unavailableOverlay.setVisible(showUnavailable);
+    this.unavailableText.setVisible(showUnavailable);
+    this.panel.setAlpha(this.locked ? 0.78 : (showUnavailable ? 0.9 : 1));
   }
 }
-

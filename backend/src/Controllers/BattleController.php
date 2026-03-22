@@ -236,6 +236,7 @@ final class BattleController
         'updated_units' => [],
       ];
     }
+    $claimSnapshot['updated_run_unit_state'] = $this->normalizeUpdatedRunUnitState($claimSnapshot['updated_run_unit_state'] ?? []);
 
     unset($rewards['claim_snapshot']);
 
@@ -289,6 +290,8 @@ final class BattleController
     $battleId = (int)$battle['id'];
     $awardPerUnit = max(0, (int)$battle['xp_total']);
     $softCurrencyAward = max(0, (int)($battle['currency_soft'] ?? 0));
+    $run = $svc['runRepo']->getRunForUser($userId, $runId);
+    $runAlreadyEnded = is_array($run) && (string)($run['status'] ?? '') !== 'active';
 
     $runStateRows = $svc['runRepo']->getRunUnitStateForUpdate($runId);
     $runStateByUnitId = [];
@@ -319,6 +322,25 @@ final class BattleController
         $nextHard = max(0, (int)$playerState['currency_hard']);
         $svc['playerStateRepo']->setCurrency($userId, $nextSoft, $nextHard);
       }
+    }
+
+    if ($runAlreadyEnded && (string)$battle['outcome'] === 'defeat') {
+      return [
+        'updated_run_unit_state' => $this->formatRunUnitStateSnapshot($runStateByUnitId),
+        'run_resolution' => [
+          'run_id' => (string)$runId,
+          'status' => (string)($run['status'] ?? 'failed'),
+        ],
+        'xp' => [
+          'award_per_unit' => $awardPerUnit,
+          'applied_unit_instance_ids' => [],
+          'ignored_at_cap_unit_instance_ids' => [],
+        ],
+        'currency' => [
+          'soft_awarded' => $softCurrencyAward,
+        ],
+        'updated_units' => [],
+      ];
     }
 
     $hpAfterBattle = [];
@@ -436,16 +458,7 @@ final class BattleController
       ];
     }
 
-    $updatedRunState = [];
-    foreach ($runStateByUnitId as $unitId => $row) {
-      $effects = json_decode((string)$row['status_effects_json'], true);
-      $updatedRunState[] = [
-        'unit_instance_id' => (string)$unitId,
-        'hp' => (int)$row['current_hp'],
-        'is_defeated' => !empty($row['is_defeated']),
-        'status_effects' => is_array($effects) ? $effects : [],
-      ];
-    }
+    $updatedRunState = $this->formatRunUnitStateSnapshot($runStateByUnitId);
 
     $runResolution = null;
     if ((string)$battle['outcome'] === 'defeat') {
@@ -484,6 +497,58 @@ final class BattleController
       ],
       'updated_units' => $updatedUnits,
     ];
+  }
+
+  /**
+   * @param array<int,array{
+   *   unit_instance_id:string,
+   *   current_hp:int,
+   *   is_defeated:bool,
+   *   status_effects_json:string
+   * }> $runStateByUnitId
+   * @return array<int,array{unit_instance_id:string,hp:int,is_defeated:bool,status_effects:array<int,mixed>}>
+   */
+  private function formatRunUnitStateSnapshot(array $runStateByUnitId): array
+  {
+    $snapshot = [];
+    foreach ($runStateByUnitId as $unitId => $row) {
+      $effects = json_decode((string)$row['status_effects_json'], true);
+      $snapshot[] = [
+        'unit_instance_id' => (string)$unitId,
+        'hp' => (int)$row['current_hp'],
+        'is_defeated' => !empty($row['is_defeated']),
+        'status_effects' => is_array($effects) ? $effects : [],
+      ];
+    }
+
+    return $snapshot;
+  }
+
+  /**
+   * @param mixed $rows
+   * @return array<int,array{unit_instance_id:string,hp:int,is_defeated:bool,status_effects:array<int,mixed>}>
+   */
+  private function normalizeUpdatedRunUnitState(mixed $rows): array
+  {
+    if (!is_array($rows)) {
+      return [];
+    }
+
+    $normalized = [];
+    foreach ($rows as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $effects = $row['status_effects'] ?? [];
+      $normalized[] = [
+        'unit_instance_id' => (string)($row['unit_instance_id'] ?? ''),
+        'hp' => (int)($row['hp'] ?? 0),
+        'is_defeated' => !empty($row['is_defeated']),
+        'status_effects' => is_array($effects) ? $effects : [],
+      ];
+    }
+
+    return $normalized;
   }
 
   /**

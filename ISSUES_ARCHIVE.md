@@ -6,6 +6,26 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Fix defeat battle claim server error
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: unassigned
+description: `POST /api/v1/battles/:battleId/claim` returns `server_error` for defeat outcomes encountered at run end. Reproduced on March 21, 2026 during local autoplay in Docker after run `44` failed on boss node `439` and battle `165` was left in `completed/defeat` state because the claim path crashed while victory claims continued to work normally. Fix the backend claim flow so defeat battles can be claimed idempotently and return a stable payload instead of a 500.
+resolution: Updated `BattleController` to treat already-ended defeat runs as stable claimable states, normalized repeated claim payload ordering for idempotency, added integration coverage, and verified live claiming on battle `165` now returns `200`.
+
+---
+title: Improve out-of-energy run start UX
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: unassigned
+description: Starting a run while the player lacks enough energy has poor UX. The run-start controls do not present a disabled or unavailable state before interaction, and the current error message is rendered in a way that overlaps existing UI elements. Add a clear disabled/blocked presentation for unavailable run starts, surface the energy requirement more clearly, and ensure any feedback/error message is placed in a dedicated readable area that does not collide with surrounding interface elements.
+resolution: Reworked `RegionSelectScene` and `RegionSelectionPanel` so energy-gated regions show blocked state before interaction, the Start Run button disables with explicit energy copy, and feedback is rendered inside the intel panel rather than overlapping the HUD.
+
+---
 title: Fix run node action scheduler so all units act per tick speeds
 status: complete
 priority: high
