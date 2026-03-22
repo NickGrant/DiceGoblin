@@ -230,10 +230,16 @@ final class DeterministicRunNodeResolver
    *   pos:array{x:int,y:int},
    *   attack:int,
    *   defense:int,
-  *   max_hp:int,
-  *   current_hp:int,
+   *   max_hp:int,
+   *   current_hp:int,
    *   abilities:array<int,string>,
-   *   dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>
+   *   combat_affixes:array{damage_flat:int,below_half_bonus:float},
+   *   dice_pool:array<int,array{
+   *     kind:string,
+   *     dice_instance_id:?string,
+   *     sides:int,
+   *     affixes:array<int,array{slug:string,value:float}>
+   *   }>
    * }>
    */
   private function loadPlayerUnits(int $userId, int $teamId, int $runId): array
@@ -293,6 +299,10 @@ final class DeterministicRunNodeResolver
         'max_hp' => $maxHp,
         'current_hp' => $currentHp,
         'abilities' => $this->flattenActiveAbilityIds($abilitySet),
+        'combat_affixes' => [
+          'damage_flat' => 0,
+          'below_half_bonus' => 0.0,
+        ],
         'dice_pool' => [],
       ];
     }
@@ -303,27 +313,41 @@ final class DeterministicRunNodeResolver
 
     $unitIds = array_map(static fn(array $u): int => (int)$u['id'], $units);
     $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
-    $diceStmt = $this->pdo->prepare("\n      SELECT\n        ud.`unit_instance_id`,\n        ud.`dice_instance_id`,\n        dd.`sides`\n      FROM `unit_dice` ud\n      JOIN `dice_instances` di ON di.`id` = ud.`dice_instance_id`\n      JOIN `dice_definitions` dd ON dd.`id` = di.`dice_definition_id`\n      WHERE ud.`unit_instance_id` IN ($placeholders)\n      ORDER BY ud.`unit_instance_id` ASC, ud.`slot_index` ASC\n    ");
+    $diceStmt = $this->pdo->prepare("\n      SELECT\n        ud.`unit_instance_id`,\n        ud.`dice_instance_id`,\n        dd.`sides`,\n        ad.`slug` AS `affix_slug`,\n        dia.`value` AS `affix_value`\n      FROM `unit_dice` ud\n      JOIN `dice_instances` di ON di.`id` = ud.`dice_instance_id`\n      JOIN `dice_definitions` dd ON dd.`id` = di.`dice_definition_id`\n      LEFT JOIN `dice_instance_affixes` dia ON dia.`dice_instance_id` = di.`id`\n      LEFT JOIN `affix_definitions` ad ON ad.`id` = dia.`affix_definition_id`\n      WHERE ud.`unit_instance_id` IN ($placeholders)\n      ORDER BY ud.`unit_instance_id` ASC, ud.`slot_index` ASC, ad.`id` ASC\n    ");
     $diceStmt->execute($unitIds);
 
     $diceByUnitId = [];
     foreach ($diceStmt->fetchAll(PDO::FETCH_ASSOC) as $diceRow) {
       $unitId = (string)$diceRow['unit_instance_id'];
       $diceByUnitId[$unitId] ??= [];
-      $diceByUnitId[$unitId][] = [
-        'kind' => 'unit',
-        'dice_instance_id' => (string)$diceRow['dice_instance_id'],
-        'sides' => max(2, (int)$diceRow['sides']),
-      ];
+      $diceInstanceId = (string)$diceRow['dice_instance_id'];
+      $diceKey = $unitId . ':' . $diceInstanceId;
+      if (!isset($diceByUnitId[$unitId][$diceKey])) {
+        $diceByUnitId[$unitId][$diceKey] = [
+          'kind' => 'unit',
+          'dice_instance_id' => $diceInstanceId,
+          'sides' => max(2, (int)$diceRow['sides']),
+          'affixes' => [],
+        ];
+      }
+      $affixSlug = trim((string)($diceRow['affix_slug'] ?? ''));
+      if ($affixSlug !== '') {
+        $diceByUnitId[$unitId][$diceKey]['affixes'][] = [
+          'slug' => $affixSlug,
+          'value' => (float)($diceRow['affix_value'] ?? 0),
+        ];
+      }
     }
 
     foreach ($units as &$unit) {
       $unitId = (string)$unit['id'];
-      $unit['dice_pool'] = $diceByUnitId[$unitId] ?? [[
+      $unit['dice_pool'] = array_values($diceByUnitId[$unitId] ?? [[
         'kind' => 'fallback',
         'dice_instance_id' => null,
         'sides' => 6,
-      ]];
+        'affixes' => [],
+      ]]);
+      $this->applyPassiveDiceAffixesToUnit($unit);
     }
     unset($unit);
 
@@ -554,7 +578,7 @@ final class DeterministicRunNodeResolver
   }
 
   /**
-  * @param array<int, array{id:string,attack:int,defense:int,max_hp:int,current_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>}> $playerUnits
+  * @param array<int, array{id:string,attack:int,defense:int,max_hp:int,current_hp:int,abilities:array<int,string>,combat_affixes:array{damage_flat:int,below_half_bonus:float},dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int,affixes:array<int,array{slug:string,value:float}>}>}> $playerUnits
    * @param array<int, array{id:string,attack:int,defense:int,max_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>}> $enemyUnits
    * @return array{events:array<int, array<string,mixed>>,ended_round:int,ended_tick:int,player_alive:bool,enemy_alive:bool}
    */
@@ -669,8 +693,11 @@ final class DeterministicRunNodeResolver
               (int)$playerActor['attack'],
               (int)$enemyTarget['defense'],
               (int)($enemyHp[$enemyTargetId] ?? (int)$enemyTarget['max_hp']),
+              (int)$enemyTarget['max_hp'],
               $abilityId,
               (int)$dice['dice_modifier'],
+              (array)($playerActor['combat_affixes'] ?? ['damage_flat' => 0, 'below_half_bonus' => 0.0]),
+              $dice,
               $abilityRegistry,
             );
 
@@ -733,8 +760,11 @@ final class DeterministicRunNodeResolver
               (int)$enemyActor['attack'],
               (int)$playerTarget['defense'],
               (int)($playerHp[$playerTargetId] ?? (int)$playerTarget['max_hp']),
+              (int)$playerTarget['max_hp'],
               $abilityId,
               (int)$dice['dice_modifier'],
+              ['damage_flat' => 0, 'below_half_bonus' => 0.0],
+              $dice,
               $abilityRegistry,
             );
 
@@ -852,19 +882,40 @@ final class DeterministicRunNodeResolver
   }
 
   /**
-   * @return array{damage:int,target_hp_after:int,outcome:string,status_applied:?string,status_duration_rounds:?int,ability_outcome:string}
+   * @param array{damage_flat:int,below_half_bonus:float} $combatAffixes
+   * @param array{dice_used:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,dice_rolls:array<int,array{sides:int,roll:int}>,dice_outcome:string,dice_modifier:int,explode_triggered:bool} $diceContext
+   * @return array{damage:int,target_hp_after:int,outcome:string,status_applied:?string,status_duration_rounds:?int,ability_outcome:string,affix_outcome:?string}
    */
   private function deriveActionOutcome(
     string &$state,
     int $attackerAttack,
     int $targetDefense,
     int $targetHp,
+    int $targetMaxHp,
     string $abilityId,
     int $diceModifier,
+    array $combatAffixes,
+    array $diceContext,
     AbilityRegistry $abilityRegistry,
   ): array {
     $variance = $this->nextInt($state, 5) - 2;
     $rawDamage = (int)floor(($attackerAttack * 0.65) - ($targetDefense * 0.35)) + $variance + $diceModifier;
+    $rawDamage += max(0, (int)($combatAffixes['damage_flat'] ?? 0));
+
+    $affixOutcomeParts = [];
+    if (((int)($combatAffixes['damage_flat'] ?? 0)) > 0) {
+      $affixOutcomeParts[] = sprintf('+%d attack damage', (int)$combatAffixes['damage_flat']);
+    }
+    if (($diceContext['explode_triggered'] ?? false) === true) {
+      $affixOutcomeParts[] = 'explode triggered';
+    }
+
+    $belowHalfBonus = (float)($combatAffixes['below_half_bonus'] ?? 0.0);
+    if ($belowHalfBonus > 0 && $targetMaxHp > 0 && $targetHp < (int)ceil($targetMaxHp / 2)) {
+      $rawDamage = (int)floor($rawDamage * (1 + $belowHalfBonus));
+      $affixOutcomeParts[] = sprintf('execute below half x%s', rtrim(rtrim(number_format(1 + $belowHalfBonus, 2, '.', ''), '0'), '.'));
+    }
+
     $damage = max(1, $rawDamage);
     $nextHp = max(0, $targetHp - $damage);
     $status = $this->pickStatusEffect($state, $abilityId);
@@ -890,16 +941,18 @@ final class DeterministicRunNodeResolver
       'status_applied' => $status,
       'status_duration_rounds' => $statusDuration,
       'ability_outcome' => implode(', ', $abilityOutcomeParts),
+      'affix_outcome' => count($affixOutcomeParts) > 0 ? implode(', ', $affixOutcomeParts) : null,
     ];
   }
 
   /**
-   * @param array<int,array{kind:string,dice_instance_id:?string,sides:int}> $dicePool
+   * @param array<int,array{kind:string,dice_instance_id:?string,sides:int,affixes?:array<int,array{slug:string,value:float}>}> $dicePool
    * @return array{
    *   dice_used:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,
    *   dice_rolls:array<int,array{sides:int,roll:int}>,
    *   dice_outcome:string,
-   *   dice_modifier:int
+   *   dice_modifier:int,
+   *   explode_triggered:bool
    * }
    */
   private function rollActionDice(string &$state, array $dicePool, string $abilityId, string $side): array
@@ -910,12 +963,33 @@ final class DeterministicRunNodeResolver
         'kind' => $side === 'enemy' ? 'enemy_virtual' : 'fallback',
         'dice_instance_id' => null,
         'sides' => 6,
+        'affixes' => [],
       ]];
     }
 
     $die = $pool[$this->nextInt($state, count($pool))];
     $sides = max(2, (int)($die['sides'] ?? 6));
     $roll = 1 + $this->nextInt($state, $sides);
+    $explodeTriggered = false;
+    $diceRolls = [[
+      'sides' => $sides,
+      'roll' => $roll,
+    ]];
+    $rollTotal = $roll;
+
+    foreach ((array)($die['affixes'] ?? []) as $affix) {
+      $slug = strtolower(trim((string)($affix['slug'] ?? '')));
+      if ($slug === 'explode_once' && $roll === $sides) {
+        $explodeTriggered = true;
+        $extraRoll = 1 + $this->nextInt($state, $sides);
+        $diceRolls[] = [
+          'sides' => $sides,
+          'roll' => $extraRoll,
+        ];
+        $rollTotal += $extraRoll;
+        break;
+      }
+    }
 
     $diceUsed = [[
       'kind' => (string)($die['kind'] ?? 'unknown'),
@@ -926,15 +1000,71 @@ final class DeterministicRunNodeResolver
     $diceLabel = $diceUsed[0]['dice_instance_id'] !== null
       ? sprintf('dice#%s', $diceUsed[0]['dice_instance_id'])
       : sprintf('%s_%s_die', $side, $abilityId);
+    $rollLabel = implode(' + ', array_map(
+      static fn(array $entry): string => (string)$entry['roll'],
+      $diceRolls
+    ));
 
     return [
       'dice_used' => $diceUsed,
-      'dice_rolls' => [[
-        'sides' => $sides,
-        'roll' => $roll,
-      ]],
-      'dice_outcome' => sprintf('%s rolled d%d = %d', $diceLabel, $sides, $roll),
-      'dice_modifier' => $roll - (int)ceil($sides / 2),
+      'dice_rolls' => $diceRolls,
+      'dice_outcome' => $explodeTriggered
+        ? sprintf('%s rolled d%d = %s (explode => %d)', $diceLabel, $sides, $rollLabel, $rollTotal)
+        : sprintf('%s rolled d%d = %d', $diceLabel, $sides, $roll),
+      'dice_modifier' => $rollTotal - (int)ceil($sides / 2),
+      'explode_triggered' => $explodeTriggered,
+    ];
+  }
+
+  /**
+   * @param array{
+   *   attack:int,
+   *   defense:int,
+   *   max_hp:int,
+   *   current_hp:int,
+   *   combat_affixes:array{damage_flat:int,below_half_bonus:float},
+   *   dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int,affixes:array<int,array{slug:string,value:float}>}>
+   * } $unit
+   */
+  private function applyPassiveDiceAffixesToUnit(array &$unit): void
+  {
+    $attackFlat = 0;
+    $defenseFlat = 0;
+    $attackPct = 0.0;
+    $defensePct = 0.0;
+    $damageFlat = 0;
+    $belowHalfBonus = 0.0;
+
+    foreach ((array)($unit['dice_pool'] ?? []) as $die) {
+      foreach ((array)($die['affixes'] ?? []) as $affix) {
+        $slug = strtolower(trim((string)($affix['slug'] ?? '')));
+        $value = (float)($affix['value'] ?? 0);
+        switch ($slug) {
+          case 'atk_plus':
+            $attackFlat += (int)floor($value);
+            $damageFlat += (int)floor($value);
+            break;
+          case 'guard_plus':
+            $defenseFlat += (int)floor($value);
+            break;
+          case 'precision_plus':
+            $attackPct += $value;
+            break;
+          case 'bulwark_plus':
+            $defensePct += $value;
+            break;
+          case 'execute_below_half':
+            $belowHalfBonus = max($belowHalfBonus, $value);
+            break;
+        }
+      }
+    }
+
+    $unit['attack'] = max(1, (int)floor(((int)$unit['attack'] + $attackFlat) * (1 + $attackPct)));
+    $unit['defense'] = max(0, (int)floor(((int)$unit['defense'] + $defenseFlat) * (1 + $defensePct)));
+    $unit['combat_affixes'] = [
+      'damage_flat' => $damageFlat,
+      'below_half_bonus' => $belowHalfBonus,
     ];
   }
 

@@ -54,7 +54,16 @@ final class DiceRepository
    *   rarity:string,
    *   sides:int,
    *   slot_capacity:int,
-   *   affixes: array<int, array{affix_definition_id:string,value:float}>
+   *   affix_slots:int,
+   *   affixes: array<int, array{
+   *     affix_definition_id:string,
+   *     affix_slug:string,
+   *     name:string,
+   *     rarity:string,
+   *     kind:string,
+   *     description:string,
+   *     value:float
+   *   }>
    * }>
    */
   public function getDiceWithAffixesForUser(int $userId): array
@@ -96,6 +105,7 @@ final class DiceRepository
         'rarity' => (string)$d['rarity'],
         'sides' => (int)$d['sides'],
         'slot_capacity' => (int)$d['slot_capacity'],
+        'affix_slots' => (int)$d['slot_capacity'],
         'affixes' => $affixesByDice[$did] ?? [],
       ];
     }
@@ -104,7 +114,15 @@ final class DiceRepository
   }
 
   /**
-   * @return array<string, array<int, array{affix_definition_id:string,value:float}>>
+   * @return array<string, array<int, array{
+   *   affix_definition_id:string,
+   *   affix_slug:string,
+   *   name:string,
+   *   rarity:string,
+   *   kind:string,
+   *   description:string,
+   *   value:float
+   * }>>
    */
   public function getAffixesForDiceInstanceIds(array $diceInstanceIds): array
   {
@@ -117,10 +135,19 @@ final class DiceRepository
 
     $placeholders = implode(',', array_fill(0, count($diceInstanceIds), '?'));
     $stmt = $this->pdo->prepare("
-      SELECT `dice_instance_id`, `affix_definition_id`, `value`
-      FROM `dice_instance_affixes`
+      SELECT
+        dia.`dice_instance_id`,
+        dia.`affix_definition_id`,
+        dia.`value`,
+        ad.`slug`,
+        ad.`name`,
+        ad.`rarity`,
+        ad.`behavior_kind`,
+        ad.`description`
+      FROM `dice_instance_affixes` dia
+      JOIN `affix_definitions` ad ON ad.`id` = dia.`affix_definition_id`
       WHERE `dice_instance_id` IN ($placeholders)
-      ORDER BY `dice_instance_id` ASC
+      ORDER BY `dice_instance_id` ASC, ad.`id` ASC
     ");
     $stmt->execute($diceInstanceIds);
 
@@ -134,6 +161,11 @@ final class DiceRepository
       }
       $byDice[$dId][] = [
         'affix_definition_id' => (string)$r['affix_definition_id'],
+        'affix_slug' => (string)$r['slug'],
+        'name' => (string)$r['name'],
+        'rarity' => (string)$r['rarity'],
+        'kind' => (string)$r['behavior_kind'],
+        'description' => (string)$r['description'],
         'value' => (float)$r['value'],
       ];
     }

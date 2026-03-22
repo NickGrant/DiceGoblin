@@ -1349,6 +1349,123 @@ ALTER TABLE `unit_types`
   ADD COLUMN `max_equipped_dice` INT NOT NULL DEFAULT 2 AFTER `max_level`;
 -- END MIGRATION: 39_unit_types_add_max_equipped_dice.sql
 
+-- BEGIN MIGRATION: 40_affix_rarity_and_metadata.sql
+ALTER TABLE `dice_definitions`
+  MODIFY COLUMN `rarity` ENUM('common','uncommon','rare','epic','legendary') NOT NULL;
+
+ALTER TABLE `affix_definitions`
+  ADD COLUMN `rarity` ENUM('common','uncommon','rare','epic','legendary') NOT NULL DEFAULT 'common' AFTER `name`,
+  ADD COLUMN `behavior_kind` ENUM('passive','triggered') NOT NULL DEFAULT 'passive' AFTER `op`,
+  ADD COLUMN `description` VARCHAR(255) NOT NULL DEFAULT '' AFTER `max_value`,
+  ADD KEY `ix_affix_definitions_rarity` (`rarity`);
+-- END MIGRATION: 40_affix_rarity_and_metadata.sql
+
+-- BEGIN MIGRATION: 41_seed_affix_definitions.sql
+INSERT INTO `affix_definitions` (
+  `slug`,
+  `name`,
+  `rarity`,
+  `slot_cost`,
+  `stat`,
+  `op`,
+  `behavior_kind`,
+  `min_value`,
+  `max_value`,
+  `description`,
+  `tags_json`
+)
+VALUES
+  (
+    'atk_plus',
+    'Atk+',
+    'common',
+    1,
+    'damage',
+    'flat_add',
+    'passive',
+    1.000,
+    1.000,
+    '+1 damage on attack rolls.',
+    JSON_ARRAY('starter_pool', 'combat')
+  ),
+  (
+    'guard_plus',
+    'Guard+',
+    'common',
+    1,
+    'defense',
+    'flat_add',
+    'passive',
+    1.000,
+    1.000,
+    '+1 defense while this die is equipped.',
+    JSON_ARRAY('starter_pool', 'combat')
+  ),
+  (
+    'bulwark_plus',
+    'Bulwark',
+    'uncommon',
+    1,
+    'defense',
+    'pct_add',
+    'passive',
+    0.100,
+    0.100,
+    '+10% defense while this die is equipped.',
+    JSON_ARRAY('starter_pool', 'combat')
+  ),
+  (
+    'precision_plus',
+    'Precision',
+    'uncommon',
+    1,
+    'attack',
+    'pct_add',
+    'passive',
+    0.100,
+    0.100,
+    '+10% attack while this die is equipped.',
+    JSON_ARRAY('starter_pool', 'combat')
+  ),
+  (
+    'execute_below_half',
+    'Execute',
+    'rare',
+    1,
+    'damage',
+    'conditional',
+    'triggered',
+    0.150,
+    0.150,
+    'When the target is below 50% HP, deal 15% more damage.',
+    JSON_ARRAY('starter_pool', 'combat', 'conditional')
+  ),
+  (
+    'explode_once',
+    'Explode',
+    'rare',
+    1,
+    'dice_roll',
+    'conditional',
+    'triggered',
+    1.000,
+    1.000,
+    'When this die rolls max, roll again once and combine the result.',
+    JSON_ARRAY('starter_pool', 'combat', 'conditional')
+  )
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `rarity` = VALUES(`rarity`),
+  `slot_cost` = VALUES(`slot_cost`),
+  `stat` = VALUES(`stat`),
+  `op` = VALUES(`op`),
+  `behavior_kind` = VALUES(`behavior_kind`),
+  `min_value` = VALUES(`min_value`),
+  `max_value` = VALUES(`max_value`),
+  `description` = VALUES(`description`),
+  `tags_json` = VALUES(`tags_json`);
+-- END MIGRATION: 41_seed_affix_definitions.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 SET FOREIGN_KEY_CHECKS=1;
 -- END MIGRATION: 99_finalize.sql

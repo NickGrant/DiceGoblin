@@ -25,6 +25,7 @@ use DiceGoblins\Repositories\TeamRepository;
 use DiceGoblins\Repositories\UserRepository;
 
 use DiceGoblins\Services\CsrfService;
+use DiceGoblins\Services\DiceAffixService;
 use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
@@ -533,7 +534,9 @@ final class RunNodeController
 
       $insert = $pdo->prepare('INSERT INTO `dice_instances` (`user_id`, `dice_definition_id`, `display_name`) VALUES (?, ?, NULL)');
       $insert->execute([$userId, $definitionId]);
-      $created[] = (string)$pdo->lastInsertId();
+      $diceInstanceId = (int)$pdo->lastInsertId();
+      (new DiceAffixService($pdo))->assignAffixesToDiceInstance($diceInstanceId);
+      $created[] = (string)$diceInstanceId;
     }
 
     return $created;

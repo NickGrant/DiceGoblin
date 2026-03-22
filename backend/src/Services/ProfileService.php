@@ -26,6 +26,7 @@ final class ProfileService
   public function __construct(
     private readonly PlayerBootstrapper $bootstrapper,
     private readonly EnergyService $energyService,
+    private readonly DiceAffixService $diceAffixService,
     private readonly ProfileDtoMapper $profileDtoMapper,
 
     private readonly PlayerStateRepository $playerStateRepo,
@@ -65,6 +66,7 @@ final class ProfileService
     $units = $this->unitRepo->getUnitsWithEquippedDiceForUser($userId);
 
     // Dice inventory (with affixes + base definition data)
+    $this->diceAffixService->ensureAffixesForUser($userId);
     $dice = $this->diceRepo->getDiceWithAffixesForUser($userId);
 
     // Region unlocks

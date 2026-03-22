@@ -104,6 +104,11 @@ export type TeamRecord = {
 
 export type DiceAffixRecord = {
   affix_definition_id: string;
+  affix_slug?: string;
+  name?: string;
+  rarity?: string;
+  kind?: "passive" | "triggered" | string;
+  description?: string;
   value: number;
 };
 
@@ -114,6 +119,7 @@ export type DiceRecord = {
   rarity?: string;
   sides?: number;
   slot_capacity?: number;
+  affix_slots?: number;
   affixes?: DiceAffixRecord[];
 
   [key: string]: unknown;

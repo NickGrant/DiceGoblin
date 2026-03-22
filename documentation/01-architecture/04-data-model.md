@@ -1,7 +1,7 @@
 ﻿# Dice Goblins - Data Model (MVP)
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-21  
 Owner: Backend/Data  
 Depends On: `backend/migrations/schema_all.sql`, `backend/src/Repositories/`
 
@@ -295,9 +295,9 @@ Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
 - `sides` INT NOT NULL  
   (MVP: 4, 6, 8, 10)
-- `rarity` ENUM('common','uncommon','rare') NOT NULL
+- `rarity` ENUM('common','uncommon','rare','epic','legendary') NOT NULL
 - `slot_capacity` INT NOT NULL  
-  (MVP: common 0, uncommon 1, rare 2)
+  (MVP ladder: common 0, uncommon 1, rare 2, epic 3, legendary 4)
 - `created_at` TIMESTAMP
 - `updated_at` TIMESTAMP
 
@@ -308,17 +308,22 @@ Columns:
 - `id` BIGINT UNSIGNED PK AUTO_INCREMENT
 - `slug` VARCHAR(64) UNIQUE
 - `name` VARCHAR(80)
+- `rarity` ENUM('common','uncommon','rare','epic','legendary') NOT NULL
+- `behavior_kind` ENUM('passive','triggered') NOT NULL
 - `slot_cost` INT NOT NULL DEFAULT 1
 - `stat` VARCHAR(32) NOT NULL
 - `op` ENUM('flat_add','pct_add','conditional') NOT NULL
 - `min_value` DECIMAL(10,3) NOT NULL
 - `max_value` DECIMAL(10,3) NOT NULL
+- `description` VARCHAR(255) NOT NULL
 - `tags_json` JSON NULL
 - `created_at` TIMESTAMP
 - `updated_at` TIMESTAMP
 
 Notes:
-- MVP affix set is closed by scope: flat/% for atk/def/hp, flat fire/ice, and two conditionals.
+- MVP affix set is closed by scope for the first release: `Atk+`, `Guard+`, `Bulwark+`, `Precision+`, `Execute`, and `Explode`.
+- Affix rarity may not exceed the rarity of the parent die.
+- Affixes are assigned once on dice creation and backfilled for existing local dice inventories.
 
 ### dice_instances
 Owned dice.

@@ -1,0 +1,103 @@
+INSERT INTO `affix_definitions` (
+  `slug`,
+  `name`,
+  `rarity`,
+  `slot_cost`,
+  `stat`,
+  `op`,
+  `behavior_kind`,
+  `min_value`,
+  `max_value`,
+  `description`,
+  `tags_json`
+)
+VALUES
+  (
+    'atk_plus',
+    'Atk+',
+    'common',
+    1,
+    'damage',
+    'flat_add',
+    'passive',
+    1.000,
+    1.000,
+    '+1 damage on attack rolls.',
+    JSON_ARRAY('starter_pool', 'combat')
+  ),
+  (
+    'guard_plus',
+    'Guard+',
+    'common',
+    1,
+    'defense',
+    'flat_add',
+    'passive',
+    1.000,
+    1.000,
+    '+1 defense while this die is equipped.',
+    JSON_ARRAY('starter_pool', 'combat')
+  ),
+  (
+    'bulwark_plus',
+    'Bulwark',
+    'uncommon',
+    1,
+    'defense',
+    'pct_add',
+    'passive',
+    0.100,
+    0.100,
+    '+10% defense while this die is equipped.',
+    JSON_ARRAY('starter_pool', 'combat')
+  ),
+  (
+    'precision_plus',
+    'Precision',
+    'uncommon',
+    1,
+    'attack',
+    'pct_add',
+    'passive',
+    0.100,
+    0.100,
+    '+10% attack while this die is equipped.',
+    JSON_ARRAY('starter_pool', 'combat')
+  ),
+  (
+    'execute_below_half',
+    'Execute',
+    'rare',
+    1,
+    'damage',
+    'conditional',
+    'triggered',
+    0.150,
+    0.150,
+    'When the target is below 50% HP, deal 15% more damage.',
+    JSON_ARRAY('starter_pool', 'combat', 'conditional')
+  ),
+  (
+    'explode_once',
+    'Explode',
+    'rare',
+    1,
+    'dice_roll',
+    'conditional',
+    'triggered',
+    1.000,
+    1.000,
+    'When this die rolls max, roll again once and combine the result.',
+    JSON_ARRAY('starter_pool', 'combat', 'conditional')
+  )
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `rarity` = VALUES(`rarity`),
+  `slot_cost` = VALUES(`slot_cost`),
+  `stat` = VALUES(`stat`),
+  `op` = VALUES(`op`),
+  `behavior_kind` = VALUES(`behavior_kind`),
+  `min_value` = VALUES(`min_value`),
+  `max_value` = VALUES(`max_value`),
+  `description` = VALUES(`description`),
+  `tags_json` = VALUES(`tags_json`);

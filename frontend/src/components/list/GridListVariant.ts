@@ -30,6 +30,8 @@ export type GridListVariantConfig<T> = {
   gapY?: number;
   cardHeight?: number;
   onSelect?: (item: T) => void;
+  onHover?: (item: T) => void;
+  onHoverEnd?: (item: T) => void;
   cardRenderer: GridCardRenderer<T>;
 };
 
@@ -97,6 +99,8 @@ export default class GridListVariant<T> extends Phaser.GameObjects.Container {
       if (!disabled && cfg.onSelect) {
         hit.setInteractive({ useHandCursor: true });
         hit.on("pointerdown", () => cfg.onSelect?.(row.item));
+        hit.on("pointerover", () => cfg.onHover?.(row.item));
+        hit.on("pointerout", () => cfg.onHoverEnd?.(row.item));
       }
       this.add(hit);
     }

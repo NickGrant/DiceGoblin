@@ -29,6 +29,7 @@ use DiceGoblins\Repositories\UnitRepository;
 use DiceGoblins\Repositories\UserRepository;
 
 use DiceGoblins\Services\CsrfService;
+use DiceGoblins\Services\DiceAffixService;
 use DiceGoblins\Services\EnergyService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\GrantService;
@@ -868,6 +869,7 @@ final class ApiController
     $profileService = new ProfileService(
       $core['bootstrapper'],
       $energyService,
+      new DiceAffixService($pdo),
       new ProfileDtoMapper(),
       $playerStateRepo,
       $teamRepo,

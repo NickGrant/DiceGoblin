@@ -1,7 +1,7 @@
 # Dice System — MVP (Authoritative)
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-21  
 Owner: Systems Design  
 Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/02-systems-mvp/07-combat-math-and-modifiers.md`
 
@@ -38,6 +38,8 @@ The MVP dice system must:
 - Common
 - Uncommon
 - Rare
+- Epic
+- Legendary
 
 ### 2.4 Bonus Slot Capacity (by Rarity)
 
@@ -46,10 +48,14 @@ The MVP dice system must:
 | Common   | 0           |
 | Uncommon | 1           |
 | Rare     | 2           |
+| Epic     | 3           |
+| Legendary| 4           |
 
 Notes:
 - Slots only control **affix capacity**.
-- Rarity has no other mechanics in MVP.
+- The rarity ladder is fixed for MVP: each rarity above `common` adds exactly one slot.
+- A die may only roll affixes whose rarity is less than or equal to the die rarity.
+- Affixes are rolled once when the die is created and never rerolled or edited afterward.
 
 ---
 
@@ -57,44 +63,20 @@ Notes:
 
 ### 3.1 Global Rules
 - All MVP affixes cost **exactly 1 slot**
-- Affixes are **always-on**
-- Affixes must be surfaced in logs/UI in a player-readable way (name + value)
+- The affix pool is fixed for the first playable version
+- Affixes must be surfaced in logs/UI in a player-readable way (name, rarity, kind, value/effect)
 
-### 3.2 Flat Stat Affixes (Always-On)
-- +Attack (flat)
-- +Defense (flat)
-- +HP (flat)
-
-### 3.3 Percent Stat Affixes (Always-On)
-- +Attack %
-- +Defense %
-- +HP %
-
-### 3.4 Elemental Flat Damage (Always-On)
-- +Fire Damage (flat)
-- +Ice Damage (flat)
+### 3.2 Fixed MVP Affix Pool
+- `Atk+` | `common` | `passive` | `+1 damage on attack rolls`
+- `Guard+` | `common` | `passive` | `+1 defense`
+- `Bulwark+` | `uncommon` | `passive` | `+10% defense`
+- `Precision+` | `uncommon` | `passive` | `+10% attack`
+- `Execute` | `rare` | `triggered` | `+15% damage when target is below 50% HP`
+- `Explode` | `rare` | `triggered` | `When this die rolls max, roll it again once and combine`
 
 Notes:
-- No percent elemental damage
-- No elemental interactions (burn, freeze, etc.) in MVP
-
-### 3.5 Conditional Affixes (Always-On, Conditional Trigger)
-- Bonus damage on **max die roll**
-- Bonus damage when **target is below 50% HP**
-
-Notes:
-- Conditions are evaluated per hit
-- Conditions are deterministic and visible in combat logs
-
-### 3.6 Total MVP Affix Count
-
-| Category          | Count |
-|------------------|-------|
-| Flat stats        | 3     |
-| Percent stats     | 3     |
-| Elemental flat    | 2     |
-| Conditional       | 2     |
-| **Total**         | **10**|
+- `Explode` can trigger at most once per action roll.
+- The first version does not include rerolling, affix crafting, or mutable affix loadouts.
 
 ---
 
@@ -141,7 +123,7 @@ The MVP dice system does **not** include:
 The dice system is MVP-complete when:
 - Dice size progression is felt but not dominant
 - Flat vs percent stats both have clear use cases
-- Conditional affixes create visible spikes in damage
+- Triggered affixes create visible spikes in damage
 - Players can understand variance via combat logs
 
 ---

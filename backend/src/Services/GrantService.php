@@ -45,6 +45,8 @@ final class GrantService
     ['rarity' => 'uncommon', 'sides' => 6, 'count' => 1],
   ];
 
+  private ?DiceAffixService $diceAffixService = null;
+
   public function ensureStarterPackGranted(int $userId): void
   {
     if ($userId <= 0) {
@@ -52,6 +54,7 @@ final class GrantService
     }
 
     $db = Db::pdo();
+    $this->diceAffixService ??= new DiceAffixService($db);
 
     $db->beginTransaction();
     try {
@@ -253,7 +256,9 @@ final class GrantService
           ':def_id' => $defId,
         ]);
 
-        $diceInstanceIds[] = (int)$db->lastInsertId();
+        $diceInstanceId = (int)$db->lastInsertId();
+        $this->diceAffixService?->assignAffixesToDiceInstance($diceInstanceId);
+        $diceInstanceIds[] = $diceInstanceId;
       }
     }
 

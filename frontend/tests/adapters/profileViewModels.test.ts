@@ -52,7 +52,15 @@ describe("profileViewModels adapters", () => {
           slot_capacity: 2,
           affix_slots: 3,
           affixes: [
-            { affix_definition_id: "crit_percent_if_full_hp", value: 0.15 },
+            {
+              affix_definition_id: "crit_percent_if_full_hp",
+              affix_slug: "explode_once",
+              name: "Explode",
+              rarity: "rare",
+              kind: "triggered",
+              description: "Roll again once on max and combine.",
+              value: 0.15,
+            },
           ],
         },
       ],
@@ -79,8 +87,11 @@ describe("profileViewModels adapters", () => {
         slotIndex: 1,
       },
     });
-    expect(first.affixes[0]!.label).toContain("(Conditional)");
-    expect(first.affixes[0]!.kind).toBe("percent");
+    expect(first.affixes[0]!.label).toBe("Explode");
+    expect(first.affixes[0]!.rarity).toBe("rare");
+    expect(first.affixes[0]!.kind).toBe("flat");
+    expect(first.affixes[0]!.kindLabel).toBe("Triggered");
+    expect(first.affixes[0]!.description).toContain("Roll again once");
     expect(first.affixes[1]!.label).toBe("Empty");
     expect(first.affixes[2]!.label).toBe("Empty");
   });

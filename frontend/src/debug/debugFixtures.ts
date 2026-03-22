@@ -62,10 +62,81 @@ const FIXTURE_SQUADS: TeamRecord[] = [
 ];
 
 const FIXTURE_DICE: DiceRecord[] = [
-  { id: "101", display_name: "Rust D6", rarity: "common", sides: 6, slot_capacity: 1, affixes: [] },
-  { id: "102", display_name: "Marrow D8", rarity: "rare", sides: 8, slot_capacity: 2, affixes: [] },
-  { id: "103", display_name: "Cinder D10", rarity: "epic", sides: 10, slot_capacity: 2, affixes: [] },
-  { id: "104", display_name: "Bogglass D12", rarity: "uncommon", sides: 12, slot_capacity: 1, affixes: [] },
+  {
+    id: "101",
+    display_name: "Rust D6",
+    rarity: "common",
+    sides: 6,
+    slot_capacity: 0,
+    affix_slots: 0,
+    affixes: [],
+  },
+  {
+    id: "102",
+    display_name: "Marrow D8",
+    rarity: "rare",
+    sides: 8,
+    slot_capacity: 2,
+    affix_slots: 2,
+    affixes: [
+      {
+        affix_definition_id: "1",
+        affix_slug: "atk_plus",
+        name: "Atk+",
+        rarity: "common",
+        kind: "passive",
+        description: "+1 damage on attack rolls",
+        value: 1,
+      },
+      {
+        affix_definition_id: "6",
+        affix_slug: "explode_once",
+        name: "Explode",
+        rarity: "rare",
+        kind: "triggered",
+        description: "When this die rolls max, roll again once and combine.",
+        value: 1,
+      },
+    ],
+  },
+  {
+    id: "103",
+    display_name: "Cinder D10",
+    rarity: "epic",
+    sides: 10,
+    slot_capacity: 3,
+    affix_slots: 3,
+    affixes: [
+      {
+        affix_definition_id: "4",
+        affix_slug: "precision_plus",
+        name: "Precision+",
+        rarity: "uncommon",
+        kind: "passive",
+        description: "+10% attack",
+        value: 0.1,
+      },
+    ],
+  },
+  {
+    id: "104",
+    display_name: "Bogglass D12",
+    rarity: "uncommon",
+    sides: 12,
+    slot_capacity: 1,
+    affix_slots: 1,
+    affixes: [
+      {
+        affix_definition_id: "2",
+        affix_slug: "guard_plus",
+        name: "Guard+",
+        rarity: "common",
+        kind: "passive",
+        description: "+1 defense",
+        value: 1,
+      },
+    ],
+  },
 ];
 
 export function getDebugProfileFixture(): ProfileResponse {

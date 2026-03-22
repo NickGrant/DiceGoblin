@@ -31,6 +31,24 @@ description: |
 Resolution: Completed the UAT hardening wave, including dialog/button alignment and node-resolution UX refinements, then closed the milestone intake placeholder.
 
 ---
+name: Milestone 30 - Dice Affix Generation and Inventory UX
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Define dice affix rules fixed pool and contract updates
+  - Add backend affix data model seed data and existing-dice backfill path
+  - Implement rarity-based immutable affix assignment on dice creation
+  - Surface dice affixes in profile payloads and inventory hover details
+  - Add dice inventory sorting and filtering controls
+description: |
+  Introduce the first playable dice-affix system end to end by defining rarity-based
+  affix counts and caps, seeding a fixed starter affix pool, assigning immutable
+  affixes when dice are created, and exposing affix details plus inventory
+  filtering/sorting in the frontend so acquired dice are understandable to players.
+Resolution: Completed the first end-to-end dice-affix implementation across schema, backend generation/backfill, combat usage, profile contracts, and Dice Inventory UX with screenshot-backed UI validation.
+
+---
 name: Milestone 24 - Backend Test Infrastructure De-duplication
 status: complete
 execution_window: open

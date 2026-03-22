@@ -110,6 +110,65 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
     $this->assertSame(4, $teamUnitCount);
   }
 
+  public function testEnsureStarterPackAssignsImmutableAffixesWithinRarityBounds(): void
+  {
+    $userId = $this->insertUser();
+    $service = new GrantService();
+
+    $service->ensureStarterPackGranted($userId);
+
+    $rows = $this->pdo?->query(
+      "SELECT
+         di.`id`,
+         dd.`rarity`,
+         dd.`slot_capacity`,
+         COUNT(dia.`affix_definition_id`) AS `affix_count`
+       FROM `dice_instances` di
+       JOIN `dice_definitions` dd ON dd.`id` = di.`dice_definition_id`
+       LEFT JOIN `dice_instance_affixes` dia ON dia.`dice_instance_id` = di.`id`
+       WHERE di.`user_id` = {$userId}
+       GROUP BY di.`id`, dd.`rarity`, dd.`slot_capacity`
+       ORDER BY di.`id` ASC"
+    )?->fetchAll(PDO::FETCH_ASSOC) ?? [];
+
+    $this->assertCount(7, $rows);
+
+    foreach ($rows as $row) {
+      $this->assertSame((int)$row['slot_capacity'], (int)$row['affix_count']);
+    }
+
+    $violations = (int)$this->scalar(
+      "SELECT COUNT(*)
+       FROM `dice_instance_affixes` dia
+       JOIN `dice_instances` di ON di.`id` = dia.`dice_instance_id`
+       JOIN `dice_definitions` dd ON dd.`id` = di.`dice_definition_id`
+       JOIN `affix_definitions` ad ON ad.`id` = dia.`affix_definition_id`
+       WHERE di.`user_id` = ?
+         AND (
+           CASE ad.`rarity`
+             WHEN 'common' THEN 0
+             WHEN 'uncommon' THEN 1
+             WHEN 'rare' THEN 2
+             WHEN 'epic' THEN 3
+             WHEN 'legendary' THEN 4
+             ELSE 99
+           END
+         ) > (
+           CASE dd.`rarity`
+             WHEN 'common' THEN 0
+             WHEN 'uncommon' THEN 1
+             WHEN 'rare' THEN 2
+             WHEN 'epic' THEN 3
+             WHEN 'legendary' THEN 4
+             ELSE -1
+           END
+         )",
+      [$userId]
+    );
+
+    $this->assertSame(0, $violations);
+  }
+
   private function insertUser(): int
   {
     $token = bin2hex(random_bytes(6));

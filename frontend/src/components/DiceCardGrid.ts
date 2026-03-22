@@ -14,6 +14,8 @@ type DiceCardGridConfig = {
   dice: DiceDetailsViewModel[];
   selectedDiceId?: string | null;
   onDiceClick?: (die: DiceDetailsViewModel) => void;
+  onDiceHover?: (die: DiceDetailsViewModel) => void;
+  onDiceHoverEnd?: (die: DiceDetailsViewModel) => void;
   maxVisibleCards?: number;
 };
 
@@ -37,6 +39,8 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
   private readonly panelH: number;
   private readonly title: string;
   private readonly onDiceClick?: (die: DiceDetailsViewModel) => void;
+  private readonly onDiceHover?: (die: DiceDetailsViewModel) => void;
+  private readonly onDiceHoverEnd?: (die: DiceDetailsViewModel) => void;
 
   private dice: DiceDetailsViewModel[] = [];
   private selectedDiceId: string | null = null;
@@ -53,6 +57,8 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
     this.panelH = cfg.height;
     this.title = cfg.title ?? "DICE";
     this.onDiceClick = cfg.onDiceClick;
+    this.onDiceHover = cfg.onDiceHover;
+    this.onDiceHoverEnd = cfg.onDiceHoverEnd;
     this.maxVisibleCards = cfg.maxVisibleCards;
     this.dice = cfg.dice;
     this.selectedDiceId = cfg.selectedDiceId ?? null;
@@ -88,6 +94,8 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
           cardHeight,
           items: mappedItems,
           onSelect,
+          onHover: (die) => this.onDiceHover?.(die),
+          onHoverEnd: (die) => this.onDiceHoverEnd?.(die),
           cardRenderer: ({ scene: cardScene, item, x, y, width, height, selected }) => {
             const card = cardScene.add.container(x, y);
 
@@ -117,13 +125,20 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
               .setOrigin(0.5, 0);
 
             const subtitle = cardScene.add
-              .text(width / 2, height - 14, item.equipped ? `Equipped: ${item.equipped.unitName}` : item.rarity, {
+              .text(
+                width / 2,
+                height - 14,
+                item.equipped
+                  ? `Equipped: ${item.equipped.unitName}`
+                  : `${item.rarity} • ${item.affixes.filter((affix) => !affix.empty).length} affix`,
+                {
                 fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
                 fontSize: "11px",
                 color: item.equipped ? "#ccffcc" : "#c8c8c8",
                 align: "center",
                 wordWrap: { width: width - 8 },
-              })
+                }
+              )
               .setOrigin(0.5, 0.5);
 
             card.add([bg, portraitBg, sprite, title, subtitle]);

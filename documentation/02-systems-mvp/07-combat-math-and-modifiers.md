@@ -1,7 +1,7 @@
 # Combat Math & Modifiers — MVP (Authoritative)
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-03-21  
 Owner: Systems Design  
 Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/02-units-and-progression.md`
 
@@ -92,10 +92,9 @@ Assume the engine can compute:
 
 ### 4.2 Dice Affix Contributions
 Dice affixes contribute either:
-- flat bonuses: `attackFlat`, `defenseFlat`, `hpFlat`
-- percent bonuses: `attackPct`, `defensePct`, `hpPct`
-- flat elemental damage: `fireFlat`, `iceFlat`
-- conditional flags: `onMaxRoll`, `onTargetBelowHalf`
+- flat bonuses: `attackFlat`, `defenseFlat`, `damageFlat`
+- percent bonuses: `attackPct`, `defensePct`
+- conditional flags: `explodeOnce`, `onTargetBelowHalf`
 
 ### 4.3 Status Contributions (MVP)
 Statuses may contribute:
@@ -109,17 +108,15 @@ Compute for each stat:
 1) Add flats:
 - `attackPrePct = baseAttack + attackFlat`
 - `defensePrePct = baseDefense + defenseFlat`
-- `hpPrePct = baseMaxHp + hpFlat`
+- `damageFlat` is stored as a hit-level bonus and does not change the sheet attack stat
 
 2) Sum percent modifiers (dice + statuses):
 - `attackPctTotal = attackPct`  
 - `defensePctTotal = defensePct + bolsteredDefensePct`  
-- `hpPctTotal = hpPct`
 
 3) Apply percent (floor):
 - `attackTotal = floor(attackPrePct * (1 + attackPctTotal))`
 - `defenseTotal = floor(defensePrePct * (1 + defensePctTotal))`
-- `maxHpTotal  = floor(hpPrePct * (1 + hpPctTotal))`
 
 Notes:
 - Percent values are expressed as decimals (e.g., 0.10 for +10%).
@@ -138,9 +135,12 @@ When an action executes with `diceCost = N`:
 If `diceCost = 0`:
 - `rollTotal = 0`
 
-### 5.2 “Max Roll” Condition
-The conditional affix “Bonus damage on max die roll” triggers if:
-- At least one consumed die result equals its die size (e.g., a d8 rolling 8)
+### 5.2 "Max Roll" Condition
+The triggered affix `Explode` triggers if:
+- The first die result equals its die size (for example, a d8 rolling 8)
+- The same die is rolled one extra time
+- The extra roll is added to the original roll total
+- The extra roll cannot trigger `Explode` again
 
 ---
 
@@ -162,23 +162,15 @@ For a damaging action, define:
 ### 6.3 Defense Mitigation
 `physicalPostDefense = max(0, physicalPreDefense - defenseTotal)`
 
-### 6.4 Elemental Flat Damage
-If the attacker has dice affixes that add elemental flat damage:
-- `elementalFlat = fireFlat + iceFlat`
+### 6.4 Conditional Bonus Damage (MVP Defaults)
+Two triggered affixes exist; define their effects here.
 
-In MVP:
-- Elemental flat damage **bypasses Defense** (it is added after mitigation)
-- Elemental damage has no interactions (no burn/freeze)
-
-### 6.5 Conditional Bonus Damage (MVP Defaults)
-Two conditional affixes exist; define their effects here.
-
-#### A) Bonus Damage on Max Roll
+#### A) Explode
 If triggered:
-- `bonusMaxRoll = floor(rollTotal * 0.25)`
+- `rollTotal = firstRoll + extraRoll`
 
 Else:
-- `bonusMaxRoll = 0`
+- `rollTotal = firstRoll`
 
 #### B) Bonus Damage vs Target Below 50% HP
 If target current HP is strictly below half of max:
@@ -201,7 +193,7 @@ Determine two multipliers:
 Compute per target:
 
 1) Sum components:
-`raw = physicalPostDefense + elementalFlat + bonusMaxRoll`
+`raw = physicalPostDefense + damageFlat`
 
 2) Apply conditional multiplier:
 `raw2 = floor(raw * belowHalfMultiplier)`
@@ -217,7 +209,7 @@ Compute per target:
 For each damage event, logs should be able to reflect:
 - dice consumed + roll results
 - final damage amount
-- whether max-roll condition triggered
+- whether `Explode` triggered
 - whether below-half multiplier applied
 
 You may either log the intermediate values or provide a `notes` string.

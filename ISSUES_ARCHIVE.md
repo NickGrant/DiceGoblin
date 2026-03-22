@@ -76,6 +76,56 @@ description: Implement reusable BaseModal and ConfirmModal variant for standard 
 resolution: Added `BaseModal` foundation and `ConfirmModal` yes/no variant with standardized geometry, action-row placement, and accept/reject callback flow.
 
 ---
+title: Define dice affix rules fixed pool and contract updates
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 30 - Dice Affix Generation and Inventory UX
+description: Document the first-version dice affix system across gameplay, API, and data-model docs, including rarity-to-affix-count rules, the rule that affix rarity cannot exceed dice rarity, the fixed starter affix pool, immutable assignment-on-creation behavior, and the frontend contract for exposing affixes on dice inventory surfaces.
+resolution: Updated the dice-system, combat-math, API-contract, and data-model docs to lock the rarity ladder (`common=0` and +1 affix per rarity tier after that), the fixed starter affix pool, immutable assignment rules, and the richer frontend payload contract.
+
+---
+title: Add backend affix data model seed data and existing-dice backfill path
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 30 - Dice Affix Generation and Inventory UX
+description: Add the backend persistence and seed-data support required for dice affixes, including affix definitions with rarity metadata, any join/ownership records needed on dice instances, SQL/schema updates, and a safe path for existing local dice inventories to receive valid affixes consistent with their current rarity.
+resolution: Added affix metadata/schema migrations, seeded the fixed first-version affix pool, regenerated `schema_all.sql`, and added a deterministic backfill service so existing owned dice receive valid affixes by rarity.
+
+---
+title: Implement rarity-based immutable affix assignment on dice creation
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 30 - Dice Affix Generation and Inventory UX
+description: Update dice creation/reward flows so new dice roll a fixed number of affixes based on rarity, never exceed the die rarity with selected affixes, draw only from the starter affix pool, and remain immutable after creation; cover the behavior with deterministic backend tests.
+resolution: Wired deterministic affix assignment into starter grants, loot grants, rest-store dice creation, and profile backfill, then added backend integration tests proving rarity-slot counts and affix-rarity caps hold.
+
+---
+title: Surface dice affixes in profile payloads and inventory hover details
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 30 - Dice Affix Generation and Inventory UX
+description: Ensure profile and related frontend payloads expose affix details needed for UI rendering, then update the Dice Inventory screen so hovering a die reveals its affixes with enough metadata to show name, rarity, trigger/passive type, and effect text.
+resolution: Extended the profile dice payload with affix metadata, updated frontend adapters/types, and added an affix-details panel in Dice Inventory that reflects hover/selection with name, rarity, trigger type, and effect text.
+
+---
+title: Add dice inventory sorting and filtering controls
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 30 - Dice Affix Generation and Inventory UX
+description: Extend the Dice Inventory screen with usable sorting and filtering controls for die size, rarity, and equipped state while preserving existing inventory interactions and making it practical to find newly rolled affix combinations.
+resolution: Added compact Dice Inventory controls for sorting plus size/rarity/equipped filtering, validated the scene layout with deterministic screenshot capture, and kept the controls fully visible within the action panel.
+
+---
 title: Implement InputModal by extending confirmation modal
 status: complete
 priority: high

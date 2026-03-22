@@ -28,6 +28,9 @@ export type UnitDetailsViewModel = {
 export type DiceAffixViewModel = {
   id: string;
   label: string;
+  rarity: string;
+  kindLabel: string;
+  description: string;
   valueLabel: string;
   kind: "flat" | "percent";
   conditional: boolean;
@@ -168,6 +171,7 @@ function adaptDiceRecord(raw: unknown): DiceRecord | null {
     rarity: nonEmptyString(raw.rarity) ?? "common",
     sides: toNonNegativeInt(raw.sides, 0),
     slot_capacity: toNonNegativeInt(raw.slot_capacity, 0),
+    affix_slots: toNonNegativeInt(raw.affix_slots, toNonNegativeInt(raw.slot_capacity, 0)),
     affixes: normalizeDiceAffixRecords(raw.affixes),
   };
 }
@@ -229,15 +233,36 @@ function normalizeAbilities(value: unknown): { active: UnitAbilityViewModel[]; p
   return { active, passive };
 }
 
-function normalizeDiceAffixRecords(value: unknown): Array<{ affix_definition_id: string; value: number }> {
+function normalizeDiceAffixRecords(value: unknown): Array<{
+  affix_definition_id: string;
+  affix_slug?: string;
+  name?: string;
+  rarity?: string;
+  kind?: string;
+  description?: string;
+  value: number;
+}> {
   if (!Array.isArray(value)) return [];
-  const out: Array<{ affix_definition_id: string; value: number }> = [];
+  const out: Array<{
+    affix_definition_id: string;
+    affix_slug?: string;
+    name?: string;
+    rarity?: string;
+    kind?: string;
+    description?: string;
+    value: number;
+  }> = [];
   for (const item of value) {
     if (!isRecord(item)) continue;
     const affixId = nonEmptyString(item.affix_definition_id);
     if (!affixId) continue;
     out.push({
       affix_definition_id: affixId,
+      affix_slug: nonEmptyString(item.affix_slug) ?? undefined,
+      name: nonEmptyString(item.name) ?? undefined,
+      rarity: nonEmptyString(item.rarity)?.toLowerCase() ?? undefined,
+      kind: nonEmptyString(item.kind)?.toLowerCase() ?? undefined,
+      description: nonEmptyString(item.description) ?? undefined,
       value: typeof item.value === "number" && Number.isFinite(item.value) ? item.value : 0,
     });
   }
@@ -247,15 +272,19 @@ function normalizeDiceAffixRecords(value: unknown): Array<{ affix_definition_id:
 function normalizeAffixes(die: DiceRecord): DiceAffixViewModel[] {
   const raw = normalizeDiceAffixRecords(die.affixes);
   const affixes: DiceAffixViewModel[] = raw.map((affix): DiceAffixViewModel => {
-    const conditional = isConditionalAffix(affix.affix_definition_id);
-    const percent = isPercentAffix(affix.affix_definition_id);
+    const sourceId = affix.affix_slug ?? affix.affix_definition_id;
+    const conditional = (affix.kind ?? "") === "triggered" || isConditionalAffix(sourceId);
+    const percent = isPercentAffix(sourceId);
     const valueLabel = percent
       ? `${formatNumber(affix.value * 100)}%`
       : formatNumber(affix.value);
 
     return {
       id: affix.affix_definition_id,
-      label: `${labelFromId(affix.affix_definition_id)}${conditional ? " (Conditional)" : ""}`,
+      label: affix.name ?? labelFromId(sourceId),
+      rarity: affix.rarity ?? "common",
+      kindLabel: conditional ? "Triggered" : "Passive",
+      description: affix.description ?? "No description available.",
       valueLabel,
       kind: percent ? "percent" : "flat",
       conditional,
@@ -268,6 +297,9 @@ function normalizeAffixes(die: DiceRecord): DiceAffixViewModel[] {
     affixes.push({
       id: `empty_${i}`,
       label: "Empty",
+      rarity: "none",
+      kindLabel: "Empty",
+      description: "No affix assigned.",
       valueLabel: "-",
       kind: "flat",
       conditional: false,
@@ -294,7 +326,7 @@ function isConditionalAffix(id: string): boolean {
 }
 
 function isPercentAffix(id: string): boolean {
-  return /(pct|percent|_mult|_ratio|_rate)/i.test(id);
+  return /(pct|percent|_mult|_ratio|_rate|precision|bulwark)/i.test(id);
 }
 
 function labelFromId(id: string): string {

@@ -1,7 +1,7 @@
 ﻿# Backend API Contracts - MVP (v1)
 
 Status: active  
-Last Updated: 2026-03-04  
+Last Updated: 2026-03-21  
 Owner: Backend/API  
 Depends On: `backend/public/index.php`, `backend/src/Controllers/`, `backend/src/Services/ProfileService.php`
 
@@ -216,9 +216,21 @@ Success (shape is illustrative; keep stable keys):
       {
         "id": "9001",
         "dice_definition_id": "5",
-        "rarity": "uncommon",
+        "rarity": "rare",
         "sides": 6,
-        "affixes": [{ "affix_definition_id": "12", "tier": 1 }]
+        "slot_capacity": 2,
+        "affix_slots": 2,
+        "affixes": [
+          {
+            "affix_definition_id": "12",
+            "affix_slug": "atk_plus",
+            "name": "Atk+",
+            "rarity": "common",
+            "kind": "passive",
+            "description": "+1 damage on attack rolls",
+            "value": 1
+          }
+        ]
       }
     ],
     "region_items": [
@@ -232,6 +244,11 @@ Success (shape is illustrative; keep stable keys):
   }
 }
 ```
+
+Dice contract notes:
+- `slot_capacity` and `affix_slots` follow the fixed rarity ladder: `common=0`, `uncommon=1`, `rare=2`, `epic=3`, `legendary=4`
+- The backend assigns affixes when a die is created and preserves them immutably afterward
+- An affix's `rarity` must never exceed the parent die `rarity`
 
 ---
 
