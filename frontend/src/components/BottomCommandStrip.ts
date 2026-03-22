@@ -11,6 +11,13 @@ const MIN_BAR_WIDTH = 320;
 const BAR_HEIGHT = 96;
 const ENERGY_LABEL_FALLBACK = "ENERGY: -- / --";
 const STRIP_DEPTH = 100000;
+const NAV_BUTTONS = [
+  { key: "homeButton", iconKey: "icon_home", tooltipText: "Home", targetScene: "HomeScene" },
+  { key: "warbandButton", iconKey: "icon_warband", tooltipText: "Warband", targetScene: "WarbandManagementScene" },
+  { key: "inventoryButton", iconKey: "icon_inventory", tooltipText: "Dice Inventory", targetScene: "DiceInventoryScene" },
+] as const;
+
+type NavButtonKey = (typeof NAV_BUTTONS)[number]["key"];
 
 export function mountBottomCommandStrip(scene: Phaser.Scene): void {
   const addApi = (scene as unknown as {
@@ -42,27 +49,9 @@ export default class BottomCommandStrip {
     const hasBaseBar = scene.textures?.exists?.("base_bar") ?? false;
     this.barBg = scene.add.image(0, 0, hasBaseBar ? "base_bar" : "manifest_strip").setOrigin(0.5, 0.5);
 
-    this.homeButton = new IconButton({
-      scene,
-      iconKey: "icon_home",
-      tooltipText: "Home",
-      iconSize: ICON_SIZE,
-      onClick: () => scene.scene.start("HomeScene"),
-    });
-    this.warbandButton = new IconButton({
-      scene,
-      iconKey: "icon_warband",
-      tooltipText: "Warband",
-      iconSize: ICON_SIZE,
-      onClick: () => scene.scene.start("WarbandManagementScene"),
-    });
-    this.inventoryButton = new IconButton({
-      scene,
-      iconKey: "icon_inventory",
-      tooltipText: "Dice Inventory",
-      iconSize: ICON_SIZE,
-      onClick: () => scene.scene.start("DiceInventoryScene"),
-    });
+    this.homeButton = this.createNavButton("homeButton");
+    this.warbandButton = this.createNavButton("warbandButton");
+    this.inventoryButton = this.createNavButton("inventoryButton");
     this.energyText = scene.add.text(0, 0, ENERGY_LABEL_FALLBACK, {
       ...TEXT_BODY,
       fontSize: "20px",
@@ -116,6 +105,21 @@ export default class BottomCommandStrip {
     this.warbandButton.setScrollFactor(0).setDepth(STRIP_DEPTH);
     this.inventoryButton.setScrollFactor(0).setDepth(STRIP_DEPTH);
     this.logoutButton.setScrollFactor(0).setDepth(STRIP_DEPTH);
+  }
+
+  private createNavButton(buttonKey: NavButtonKey): IconButton {
+    const config = NAV_BUTTONS.find((button) => button.key === buttonKey);
+    if (!config) {
+      throw new Error(`Unknown nav button: ${buttonKey}`);
+    }
+
+    return new IconButton({
+      scene: this.scene,
+      iconKey: config.iconKey,
+      tooltipText: config.tooltipText,
+      iconSize: ICON_SIZE,
+      onClick: () => this.scene.scene.start(config.targetScene),
+    });
   }
 
   private reposition(): void {

@@ -77,31 +77,6 @@
                   },
                   {
                       "type":  "image",
-                      "key":  "icon_energy",
-                      "url":  "assets/ui/icons/icon_energy.png"
-                  },
-                  {
-                      "type":  "image",
-                      "key":  "icon_energy_75",
-                      "url":  "assets/ui/icons/icon_energy_75.png"
-                  },
-                  {
-                      "type":  "image",
-                      "key":  "icon_energy_50",
-                      "url":  "assets/ui/icons/icon_energy_50.png"
-                  },
-                  {
-                      "type":  "image",
-                      "key":  "icon_energy_25",
-                      "url":  "assets/ui/icons/icon_energy_25.png"
-                  },
-                  {
-                      "type":  "image",
-                      "key":  "icon_energy_0",
-                      "url":  "assets/ui/icons/icon_energy_0.png"
-                  },
-                  {
-                      "type":  "image",
                       "key":  "icon_encounter_boss",
                       "url":  "assets/ui/icons/icon_encounter_boss.png"
                   },
@@ -124,12 +99,6 @@
                       "type":  "image",
                       "key":  "icon_encounter_rest",
                       "url":  "assets/ui/icons/icon_encounter_rest.png"
-                  },
-                  {
-                      "type":  "atlas",
-                      "key":  "icons_core_sheet",
-                      "textureURL":  "assets/ui/icons/icons_core_sheet.png",
-                      "atlasURL":  "assets/ui/icons/icons_core_sheet.json"
                   },
                   {
                       "type":  "atlas",
