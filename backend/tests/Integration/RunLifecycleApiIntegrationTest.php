@@ -113,9 +113,12 @@ final class RunLifecycleApiIntegrationTest extends IntegrationTestCase
   private function startRunForAuthenticatedUser(): array
   {
     $userId = $this->insertUser('qa_lifecycle', 'QA Lifecycle');
+    $farmRegionId = (int)$this->scalar("SELECT `id` FROM `regions` WHERE `slug` = 'the_farm' LIMIT 1", []);
+    $this->assertGreaterThan(0, $farmRegionId, 'the_farm must be seeded in the test database.');
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+    $_POST = ['region_id' => (string)$farmRegionId];
 
     $apiController = new ApiController();
     $sessionRes = $this->invoke(fn() => $apiController->session());

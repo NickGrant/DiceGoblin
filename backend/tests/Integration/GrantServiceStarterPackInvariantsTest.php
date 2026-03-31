@@ -49,7 +49,9 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
 
   public function testStarterPackSeedDependenciesExist(): void
   {
+    $farm = (int)$this->scalar("SELECT COUNT(*) FROM `regions` WHERE `slug` = 'the_farm'");
     $mountains = (int)$this->scalar("SELECT COUNT(*) FROM `regions` WHERE `slug` = 'mountains'");
+    $this->assertGreaterThan(0, $farm);
     $this->assertGreaterThan(0, $mountains);
 
     $unitTypeCount = (int)$this->scalar(
@@ -82,7 +84,7 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
     $unitCount = (int)$this->scalar("SELECT COUNT(*) FROM `unit_instances` WHERE `user_id` = ?", [$userId]);
     $diceCount = (int)$this->scalar("SELECT COUNT(*) FROM `dice_instances` WHERE `user_id` = ?", [$userId]);
     $unlockCount = (int)$this->scalar(
-      "SELECT COUNT(*) FROM `region_unlocks` ru JOIN `regions` r ON r.`id` = ru.`region_id` WHERE ru.`user_id` = ? AND r.`slug` = 'mountains'",
+      "SELECT COUNT(*) FROM `region_unlocks` ru JOIN `regions` r ON r.`id` = ru.`region_id` WHERE ru.`user_id` = ? AND r.`slug` = 'the_farm'",
       [$userId]
     );
 
