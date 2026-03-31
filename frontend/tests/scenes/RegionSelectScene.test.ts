@@ -113,11 +113,39 @@ describe("RegionSelectScene", () => {
     await Promise.resolve();
 
     expect(getProfileMock).toHaveBeenCalledWith({ force: true, allowStaleOnError: true });
-    expect(buttonSetText).toHaveBeenLastCalledWith("Need 5 Energy");
+    expect(buttonSetText).toHaveBeenLastCalledWith("Need 3 Energy");
     expect(buttonSetEnabled).toHaveBeenLastCalledWith(false);
-    expect(panelSetStartable).toHaveBeenCalledWith(false, "Need 5 Energy");
+    expect(panelSetStartable).toHaveBeenCalledWith(false, "Need 3 Energy");
 
     await scene.startRun("mountain");
     expect(createRunMock).not.toHaveBeenCalled();
+  });
+
+  it("treats profile region_unlock rows as unlocked even without explicit boolean flags", async () => {
+    const { default: RegionSelectScene } = await import("../../src/scenes/RegionSelectScene");
+
+    getProfileMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        energy: { current: 8, max: 50 },
+        region_unlocks: [
+          { region_id: 1, region_slug: "mountains", unlocked_at: "2026-03-31 00:00:00" },
+          { region_id: 2, region_slug: "swamps", unlocked_at: "2026-03-31 00:00:00" },
+        ],
+      },
+    });
+
+    const scene = new RegionSelectScene() as any;
+    scene.add = {
+      text: vi.fn(() => buildTextObject()),
+      rectangle: vi.fn(() => buildRectangleObject()),
+    };
+    scene.scale = { width: 960, height: 640 };
+    scene.scene = { start: vi.fn() };
+
+    scene.create();
+    await Promise.resolve();
+
+    expect(panelSetLocked).toHaveBeenCalledWith(false);
   });
 });

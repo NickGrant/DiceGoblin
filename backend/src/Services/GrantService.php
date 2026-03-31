@@ -28,7 +28,8 @@ final class GrantService
   private const STARTER_GRANT_SLUG = 'starter_pack_v1';
 
   // --- Starter pack policy (adjust to your seed data) ---
-  private const STARTING_REGION_SLUG = 'mountains';
+  /** @var list<string> */
+  private const STARTING_REGION_SLUGS = ['the_farm'];
 
   /** @var list<string> */
   private const STARTER_UNIT_TYPE_SLUGS = [
@@ -58,6 +59,9 @@ final class GrantService
 
     $db->beginTransaction();
     try {
+      foreach (self::STARTING_REGION_SLUGS as $regionSlug) {
+        $this->ensureStartingRegionUnlock($db, $userId, $regionSlug);
+      }
       
       // 1) Attempt to claim the grant.
       $claimed = $this->tryClaimGrant($db, $userId, self::STARTER_GRANT_SLUG);
@@ -68,8 +72,6 @@ final class GrantService
 
       // 2) Provision starter gameplay content (teams/units/dice/unlocks).
       $teamId = $this->ensureDefaultTeam($db, $userId);
-
-      $this->ensureStartingRegionUnlock($db, $userId, self::STARTING_REGION_SLUG);
 
       $unitInstanceIds = $this->createStarterUnits($db, $userId, self::STARTER_UNIT_TYPE_SLUGS);
       $this->addUnitsToTeam($db, $teamId, $unitInstanceIds);

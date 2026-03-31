@@ -6,6 +6,16 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Establish dice valuation and allow selling unequipped inventory dice
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: Replace one-off dice pricing with a backend-authoritative valuation model that scales by die size, die rarity, affix count, and affix rarity, then expose that value in profile data and allow players to sell unequipped dice from the inventory screen for half value.
+resolution: Added a shared backend dice valuation formula, exposed `value` and `sell_value` in profile dice payloads, updated the shop and daily deal to use the same pricing rules, and added an inventory sell action that only permits unequipped dice at half value.
+
+---
 title: Complete combat viewer playback controls and tighten timeline spacing
 status: complete
 priority: high

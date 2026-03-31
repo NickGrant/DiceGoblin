@@ -341,7 +341,7 @@ final class ApiController
 
       // Create run + graph.
       $seed = random_int(1, 9223372036854775807);
-      $graph = $this->generateRunGraph($regionId, (string)$seed);
+      $graph = $this->generateRunGraph($regionId, (string)$region['slug'], (string)$seed);
 
       $created = $services['runRepo']->createRunGraph(
         $userId,
@@ -581,6 +581,7 @@ final class ApiController
       $services['runNodeRepo']->markCleared($runIdInt, (int)$exitNode['id']);
       $services['runRepo']->applyRunEndCleanup($runIdInt, $userId, false);
       $services['runRepo']->endRun($userId, $runIdInt, 'completed');
+      $this->unlockNextRegionOnSuccessfulCompletion($services['regionRepo'], $userId, (int)($run['region_id'] ?? 0));
 
       $pdo->commit();
 
@@ -738,10 +739,13 @@ final class ApiController
    *
    * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>}
    */
-  private function generateRunGraph(int $regionId, string $seed): array
+  private function generateRunGraph(int $regionId, string $regionSlug, string $seed): array
   {
     $seedInt = (int)(is_numeric($seed) ? $seed : crc32($seed));
     mt_srand($seedInt ^ ($regionId * 2654435761));
+    if ($regionSlug === 'the_farm') {
+      return $this->generateFarmRunGraph($regionId);
+    }
     $templatePools = $this->loadEncounterTemplatePools($regionId);
 
     $midA = (mt_rand(0, 1) === 0) ? 'loot' : 'rest';
@@ -790,6 +794,35 @@ final class ApiController
   }
 
   /**
+   * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>}
+   */
+  private function generateFarmRunGraph(int $regionId): array
+  {
+    $templateIds = $this->loadEncounterTemplateIdsBySlug($regionId, [
+      'the_farm_mud_combat_1',
+      'the_farm_loot_1',
+      'the_farm_rest_1',
+      'the_farm_mud_boss_1',
+    ]);
+
+    return [
+      'nodes' => [
+        ['node_index' => 0, 'node_type' => 'combat', 'status' => 'available', 'encounter_template_id' => $templateIds['the_farm_mud_combat_1'] ?? null, 'meta' => ['col' => 0, 'row' => 1]],
+        ['node_index' => 1, 'node_type' => 'loot', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_loot_1'] ?? null, 'meta' => ['col' => 1, 'row' => 1]],
+        ['node_index' => 2, 'node_type' => 'rest', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_rest_1'] ?? null, 'meta' => ['col' => 2, 'row' => 1]],
+        ['node_index' => 3, 'node_type' => 'boss', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_mud_boss_1'] ?? null, 'meta' => ['col' => 3, 'row' => 1]],
+        ['node_index' => 4, 'node_type' => 'exit', 'status' => 'locked', 'meta' => ['col' => 4, 'row' => 1]],
+      ],
+      'edges' => [
+        ['from' => 0, 'to' => 1],
+        ['from' => 1, 'to' => 2],
+        ['from' => 2, 'to' => 3],
+        ['from' => 3, 'to' => 4],
+      ],
+    ];
+  }
+
+  /**
    * @return array{combat:array<int,int>,boss:array<int,int>,loot:array<int,int>,rest:array<int,int>}
    */
   private function loadEncounterTemplatePools(int $regionId): array
@@ -835,6 +868,65 @@ final class ApiController
     }
 
     return $pools;
+  }
+
+  /**
+   * @param array<int,string> $slugs
+   * @return array<string,int>
+   */
+  private function loadEncounterTemplateIdsBySlug(int $regionId, array $slugs): array
+  {
+    if (count($slugs) === 0) {
+      return [];
+    }
+
+    /** @var PDO $pdo */
+    $pdo = Db::pdo();
+    $placeholders = implode(',', array_fill(0, count($slugs), '?'));
+    $params = array_merge([$regionId], $slugs);
+    $stmt = $pdo->prepare("
+      SELECT `id`, `slug`
+      FROM `encounter_templates`
+      WHERE `region_id` = ? AND `slug` IN ($placeholders)
+      ORDER BY `id` ASC
+    ");
+    $stmt->execute($params);
+
+    $map = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $map[(string)$row['slug']] = (int)$row['id'];
+    }
+
+    return $map;
+  }
+
+  private function unlockNextRegionOnSuccessfulCompletion(RegionRepository $regionRepo, int $userId, int $completedRegionId): void
+  {
+    if ($completedRegionId <= 0) {
+      return;
+    }
+
+    $completedRegion = $regionRepo->getRegionById($completedRegionId);
+    if ($completedRegion === null) {
+      return;
+    }
+
+    $nextSlug = match ((string)$completedRegion['slug']) {
+      'the_farm' => 'mountains',
+      'mountains' => 'swamps',
+      default => null,
+    };
+
+    if ($nextSlug === null) {
+      return;
+    }
+
+    $nextRegion = $regionRepo->getRegionBySlug($nextSlug);
+    if ($nextRegion === null || !$nextRegion['is_enabled']) {
+      return;
+    }
+
+    $regionRepo->unlockRegion($userId, (int)$nextRegion['id']);
   }
 
   /**

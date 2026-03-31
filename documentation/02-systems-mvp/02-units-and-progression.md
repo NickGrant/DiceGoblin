@@ -131,7 +131,8 @@ To promote from Tier N to Tier N+1:
 - Request model:
   - one primary unit id (persisted),
   - two secondary unit ids (consumed).
-- The primary unit is upgraded to the next tier and reset to level 1.
+- The primary unit changes into the next tier's unit type and resets to level 1.
+- Promotion follows the authored family slug chain (for example `*_t1 -> *_t2 -> *_t3`) rather than only incrementing a stored tier value.
 - Secondary units are removed.
 
 Power targets (guidance):
@@ -146,6 +147,10 @@ Tier 3 promotion additionally requires a rare, region-specific item.
 - Promotion can occur during active runs only while resolving an open rest workflow.
 - Secondary unit ids must be distinct.
 - All involved units must satisfy promotion qualifications and must not be part of active run snapshots.
+
+### 9.5 Reward pool restriction
+- Unit rewards from combat, loot, and baseline shop stock should currently pull only from Tier 1 unit types.
+- Higher-tier units enter player ownership through promotion, not direct reward grants.
 
 ## 10. Explicit non-goals (MVP)
 

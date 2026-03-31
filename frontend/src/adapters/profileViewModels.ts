@@ -43,6 +43,8 @@ export type DiceDetailsViewModel = {
   sizeLabel: string;
   rarity: string;
   slotCapacity: number;
+  value: number;
+  sellValue: number;
   affixes: DiceAffixViewModel[];
   equipped: {
     unitId: string;
@@ -115,6 +117,8 @@ export function adaptDiceDetails(rawDice: unknown[], rawUnits: unknown[]): DiceD
         sizeLabel: `d${toNonNegativeInt(die.sides, 0)}`,
         rarity: nonEmptyString(die.rarity)?.toLowerCase() ?? "common",
         slotCapacity: toNonNegativeInt(die.slot_capacity, 0),
+        value: toNonNegativeInt(die.value, 0),
+        sellValue: toNonNegativeInt(die.sell_value, 0),
         affixes,
         equipped: equippedIndex.get(die.id) ?? null,
       };
@@ -172,6 +176,8 @@ function adaptDiceRecord(raw: unknown): DiceRecord | null {
     sides: toNonNegativeInt(raw.sides, 0),
     slot_capacity: toNonNegativeInt(raw.slot_capacity, 0),
     affix_slots: toNonNegativeInt(raw.affix_slots, toNonNegativeInt(raw.slot_capacity, 0)),
+    value: toNonNegativeInt(raw.value, 0),
+    sell_value: toNonNegativeInt(raw.sell_value, 0),
     affixes: normalizeDiceAffixRecords(raw.affixes),
   };
 }

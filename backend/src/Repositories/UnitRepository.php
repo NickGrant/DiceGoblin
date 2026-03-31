@@ -144,6 +144,7 @@ final class UnitRepository
       SELECT
         ui.`id`,
         ui.`unit_type_id`,
+        ut.`slug` AS `unit_type_slug`,
         ut.`name` AS `unit_type_name`,
         ut.`base_stats_json`,
         ut.`max_level`,
@@ -166,6 +167,8 @@ final class UnitRepository
       return [];
     }
 
+    $maxTierByFamily = $this->loadMaxTierByFamily();
+
     $unitIds = array_map(static fn(array $r): int => (int)$r['id'], $unitRows);
 
     // 2) Equipped dice for those units
@@ -179,6 +182,8 @@ final class UnitRepository
       $tier = max(1, (int)$u['tier']);
       $xp = max(0, (int)$u['xp']);
       $maxLevel = max(1, (int)$u['max_level']);
+      $familySlug = $this->unitFamilySlug((string)($u['unit_type_slug'] ?? ''));
+      $maxTier = $familySlug !== null ? ($maxTierByFamily[$familySlug] ?? 1) : 1;
 
       $baseStatsRaw = $u['base_stats_json'];
       if (is_string($baseStatsRaw)) {
@@ -204,7 +209,7 @@ final class UnitRepository
         'level' => $level,
         'xp' => $xp,
         'max_level' => $maxLevel,
-        'max_tier' => 3,
+        'max_tier' => max(1, $maxTier),
         'total_attack' => $totalAttack,
         'total_defense' => $totalDefense,
         'max_hp' => $maxHp,
@@ -473,5 +478,37 @@ final class UnitRepository
       'level' => (int)$r['level'],
       'locked' => (int)$r['locked'],
     ];
+  }
+
+  /**
+   * @return array<string,int>
+   */
+  private function loadMaxTierByFamily(): array
+  {
+    $stmt = $this->pdo->query('SELECT `slug` FROM `unit_types` ORDER BY `id` ASC');
+    $map = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $family = $this->unitFamilySlug((string)($row['slug'] ?? ''));
+      $tier = $this->unitTierFromSlug((string)($row['slug'] ?? ''));
+      if ($family === null || $tier === null) {
+        continue;
+      }
+      $map[$family] = max($map[$family] ?? 1, $tier);
+    }
+    return $map;
+  }
+
+  private function unitFamilySlug(string $slug): ?string
+  {
+    return preg_match('/^(.*)_t\d+$/', $slug, $matches) === 1
+      ? (string)$matches[1]
+      : null;
+  }
+
+  private function unitTierFromSlug(string $slug): ?int
+  {
+    return preg_match('/_t(\d+)$/', $slug, $matches) === 1
+      ? max(1, (int)$matches[1])
+      : null;
   }
 }

@@ -120,6 +120,8 @@ export type DiceRecord = {
   sides?: number;
   slot_capacity?: number;
   affix_slots?: number;
+  value?: number;
+  sell_value?: number;
   affixes?: DiceAffixRecord[];
 
   [key: string]: unknown;
@@ -356,6 +358,76 @@ export type BattleClaimData = {
 
 export type BattleClaimResponse = ApiResponse<BattleClaimData>;
 
+export type ShopDiceItem = {
+  product_id: string;
+  label: string;
+  rarity: string;
+  sides: number;
+  cost: number;
+};
+
+export type ShopUnitItem = {
+  product_id: string;
+  unit_type_slug: string;
+  name: string;
+  role: string;
+  cost: number;
+};
+
+export type ShopDailyDeal = {
+  product_id: string;
+  shop_date: string;
+  sides: number;
+  rarity: string;
+  cost: number;
+  is_purchased: boolean;
+  affix: {
+    slug: string;
+    name: string;
+    description: string;
+    rarity: string;
+    value: number;
+  };
+};
+
+export type ShopCatalogData = {
+  server_date: string;
+  currency_soft: number;
+  basic_dice: ShopDiceItem[];
+  basic_units: ShopUnitItem[];
+  daily_deal: ShopDailyDeal | null;
+};
+
+export type ShopCatalogResponse = ApiResponse<ShopCatalogData>;
+
+export type ShopPurchaseData = {
+  item_type: "basic_unit" | "basic_dice" | "daily_deal";
+  product_id: string;
+  cost: number;
+  currency_soft: number;
+  purchase:
+    | {
+        unit_instance_id: string;
+        unit_type_slug: string;
+        tier: number;
+        level: number;
+      }
+    | {
+        dice_instance_id: string;
+        rarity: string;
+        sides: number;
+        affix?: {
+          slug: string;
+          name: string;
+          description: string;
+          rarity: string;
+          value: number;
+        };
+      };
+};
+
+export type ShopPurchaseResponse = ApiResponse<ShopPurchaseData>;
+
 export type PromoteUnitData = {
   unit: { id: string; tier: number; level: number; xp: number };
   consumed_units: string[];
@@ -369,6 +441,14 @@ export type DiceMutationData = {
 };
 
 export type DiceMutationResponse = ApiResponse<DiceMutationData>;
+
+export type DiceSellData = {
+  dice_id: string;
+  sell_value: number;
+  currency_soft: number;
+};
+
+export type DiceSellResponse = ApiResponse<DiceSellData>;
 
 export type TeamCreateData = {
   team_id: string;

@@ -118,7 +118,57 @@ The MVP dice system does **not** include:
 
 ---
 
-## 6. MVP Validation Criteria
+## 6. Economy Valuation
+
+Dice value is backend-authoritative and is used for shop pricing visibility, inventory display, and sell payouts.
+
+### 6.1 Base Value by Size
+
+| Size | Base Value |
+|------|------------|
+| d4   | 12         |
+| d6   | 18         |
+| d8   | 28         |
+| d10  | 34         |
+| d12  | 42         |
+| d20  | 60         |
+
+### 6.2 Die Rarity Bonus
+
+Apply this once per die:
+
+| Die Rarity | Added Multiplier |
+|------------|------------------|
+| common     | 0.00             |
+| uncommon   | 0.15             |
+| rare       | 0.35             |
+| epic       | 0.65             |
+| legendary  | 0.90             |
+
+### 6.3 Affix Premiums
+
+Add one premium per rolled affix:
+
+| Affix Rarity | Added Multiplier |
+|--------------|------------------|
+| common       | 0.70             |
+| uncommon     | 0.85             |
+| rare         | 1.00             |
+| epic         | 1.25             |
+| legendary    | 1.50             |
+
+### 6.4 Final Formula
+
+`value = round(base_size_value * (1 + die_rarity_bonus + sum(all affix premiums)))`
+
+Notes:
+- Common shop dice use their base value because they have no affixes.
+- The daily deal remains an uncommon die with an uncommon affix, so it prices cleanly at 2x the matching common die size.
+- Selling an unequipped die returns `floor(value / 2)` soft currency.
+
+---
+
+## 7. MVP Validation Criteria
 
 The dice system is MVP-complete when:
 - Dice size progression is felt but not dominant

@@ -57,6 +57,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
   private diceGrid?: DiceCardGrid;
   private actionButtonList?: UnifiedButtonList;
   private viewEquippedUnitButton?: SharedActionButton;
+  private sellDiceButton?: SharedActionButton;
   private compactControlObjects: Phaser.GameObjects.GameObject[] = [];
   private sortButtonText?: Phaser.GameObjects.Text;
   private sizeFilterButtonText?: Phaser.GameObjects.Text;
@@ -66,6 +67,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
   private actionSummaryText?: Phaser.GameObjects.Text;
   private hoverDetailsText?: Phaser.GameObjects.Text;
   private toastText?: Phaser.GameObjects.Text;
+  private sellInFlight = false;
 
   constructor() {
     super({ key: "DiceInventoryScene" });
@@ -182,9 +184,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
   }
 
   private openEquippedUnit(): void {
-    const selectedDie = this.selectedDiceId
-      ? this.dice.find((die) => die.id === this.selectedDiceId)
-      : null;
+    const selectedDie = this.getSelectedDie();
     const equippedUnitId = selectedDie?.equipped?.unitId;
     if (!equippedUnitId) {
       this.showToast("Selected die is not equipped.");
@@ -192,6 +192,47 @@ export default class DiceInventoryScene extends Phaser.Scene {
     }
 
     this.scene.start("UnitDetailsScene", { unitId: equippedUnitId });
+  }
+
+  private async sellSelectedDie(): Promise<void> {
+    const selectedDie = this.getSelectedDie();
+    if (!selectedDie) {
+      this.showToast("Select a die to sell.");
+      return;
+    }
+    if (selectedDie.equipped) {
+      this.showToast("Unequip this die before selling it.");
+      return;
+    }
+    if (this.sellInFlight) {
+      return;
+    }
+
+    this.sellInFlight = true;
+    this.sellDiceButton?.setEnabled(false);
+    this.sellDiceButton?.setText(`Selling (${selectedDie.sellValue})`);
+
+    try {
+      const response = await apiClient.sellDice(selectedDie.id);
+      if (!response.ok) {
+        this.showToast(`Sell failed: ${response.error.message}`);
+        return;
+      }
+
+      this.dice = this.dice.filter((die) => die.id !== selectedDie.id);
+      const visibleDice = this.getVisibleDice();
+      this.selectedDiceId = visibleDice[0]?.id ?? this.dice[0]?.id ?? null;
+      this.hoveredDiceId = null;
+      this.renderDiceGrid();
+      this.refreshActionSummary();
+      this.showToast(`Sold ${selectedDie.displayName} for ${response.data.sell_value}.`, "#d8ffd6");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unexpected error.";
+      this.showToast(`Sell failed: ${message}`);
+    } finally {
+      this.sellInFlight = false;
+      this.refreshActionSummary();
+    }
   }
 
   private buildActionColumn(): void {
@@ -248,6 +289,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
 
     this.actionButtonList?.destroy();
     this.viewEquippedUnitButton?.destroy();
+    this.sellDiceButton?.destroy();
     this.clearCompactControls();
 
     const buttons = [] as Array<{ label: string; onClick: () => void }>;
@@ -282,7 +324,20 @@ export default class DiceInventoryScene extends Phaser.Scene {
       onClick: () => this.openEquippedUnit(),
     });
 
-    const controlsStartY = equippedButtonY + 64 + ACTION_BUTTON_GAP;
+    const sellButtonY = equippedButtonY + 64 + ACTION_BUTTON_GAP;
+    this.sellDiceButton = new SharedActionButton({
+      scene: this,
+      x: actionButtonX,
+      y: sellButtonY,
+      label: "Sell Die",
+      enabled: false,
+      variant: "reject",
+      onClick: () => {
+        void this.sellSelectedDie();
+      },
+    });
+
+    const controlsStartY = sellButtonY + 64 + ACTION_BUTTON_GAP;
     const controlWidth = Math.floor((ACTION_BUTTON_WIDTH - 12) / 2);
     const controlHeight = 44;
     const controlGapX = 12;
@@ -340,9 +395,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
     }
 
     const visibleDice = this.getVisibleDice();
-    const selectedDie = this.selectedDiceId
-      ? visibleDice.find((die) => die.id === this.selectedDiceId) ?? this.dice.find((die) => die.id === this.selectedDiceId)
-      : null;
+    const selectedDie = this.getSelectedDie();
     const hoveredDie = this.hoveredDiceId
       ? visibleDice.find((die) => die.id === this.hoveredDiceId) ?? this.dice.find((die) => die.id === this.hoveredDiceId)
       : null;
@@ -354,10 +407,14 @@ export default class DiceInventoryScene extends Phaser.Scene {
       `Dice: ${visibleDice.length} / ${this.dice.length}`,
       `Selected Die: ${selectedDie?.displayName ?? "None"}`,
       `Equipped To: ${equippedUnitName}`,
+      `Value: ${selectedDie?.value ?? 0}`,
+      `Sell Price: ${selectedDie?.sellValue ?? 0}`,
     ].join("\n"));
 
     this.hoverDetailsText.setText(this.buildHoverDetails(detailDie, hoveredDie !== null));
     this.viewEquippedUnitButton?.setEnabled(Boolean(selectedDie?.equipped?.unitId));
+    this.sellDiceButton?.setEnabled(Boolean(selectedDie) && !selectedDie?.equipped && !this.sellInFlight);
+    this.sellDiceButton?.setText(selectedDie ? `Sell (${selectedDie.sellValue})` : "Sell Die");
     this.refreshControlButtonLabels();
   }
 
@@ -492,6 +549,16 @@ export default class DiceInventoryScene extends Phaser.Scene {
     const currentIndex = values.indexOf(current);
     const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % values.length;
     return values[nextIndex] ?? values[0]!;
+  }
+
+  private getSelectedDie(): DiceDetailsViewModel | null {
+    if (!this.selectedDiceId) {
+      return null;
+    }
+
+    return this.getVisibleDice().find((die) => die.id === this.selectedDiceId)
+      ?? this.dice.find((die) => die.id === this.selectedDiceId)
+      ?? null;
   }
 
   private buildHoverDetails(die: DiceDetailsViewModel | null, hovered: boolean): string {

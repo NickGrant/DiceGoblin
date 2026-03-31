@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Repositories;
 
+use DiceGoblins\Services\DiceValuationService;
 use PDO;
 use PDOException;
 use RuntimeException;
@@ -55,6 +56,8 @@ final class DiceRepository
    *   sides:int,
    *   slot_capacity:int,
    *   affix_slots:int,
+   *   value:int,
+   *   sell_value:int,
    *   affixes: array<int, array{
    *     affix_definition_id:string,
    *     affix_slug:string,
@@ -106,6 +109,16 @@ final class DiceRepository
         'sides' => (int)$d['sides'],
         'slot_capacity' => (int)$d['slot_capacity'],
         'affix_slots' => (int)$d['slot_capacity'],
+        'value' => DiceValuationService::calculateValue(
+          (int)$d['sides'],
+          (string)$d['rarity'],
+          $affixesByDice[$did] ?? []
+        ),
+        'sell_value' => DiceValuationService::calculateSellValue(
+          (int)$d['sides'],
+          (string)$d['rarity'],
+          $affixesByDice[$did] ?? []
+        ),
         'affixes' => $affixesByDice[$did] ?? [],
       ];
     }
@@ -375,6 +388,93 @@ final class DiceRepository
       $i++;
     }
     return $i;
+  }
+
+  /**
+   * @return array{
+   *   id:string,
+   *   dice_definition_id:string,
+   *   display_name:?string,
+   *   rarity:string,
+   *   sides:int,
+   *   slot_capacity:int,
+   *   affix_slots:int,
+   *   value:int,
+   *   sell_value:int,
+   *   affixes: array<int, array{
+   *     affix_definition_id:string,
+   *     affix_slug:string,
+   *     name:string,
+   *     rarity:string,
+   *     kind:string,
+   *     description:string,
+   *     value:float
+   *   }>
+   * }|null
+   */
+  public function getDiceWithAffixesForUserByIdForUpdate(int $userId, int $diceInstanceId): ?array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT
+        di.`id`,
+        di.`dice_definition_id`,
+        di.`display_name`,
+        dd.`rarity`,
+        dd.`sides`,
+        dd.`slot_capacity`
+      FROM `dice_instances` di
+      JOIN `dice_definitions` dd ON dd.`id` = di.`dice_definition_id`
+      WHERE di.`user_id` = ? AND di.`id` = ?
+      LIMIT 1
+      FOR UPDATE
+    ');
+    $stmt->execute([$userId, $diceInstanceId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!is_array($row)) {
+      return null;
+    }
+
+    $affixes = $this->getAffixesForDiceInstanceIds([$diceInstanceId])[(string)$diceInstanceId] ?? [];
+
+    return [
+      'id' => (string)$row['id'],
+      'dice_definition_id' => (string)$row['dice_definition_id'],
+      'display_name' => $row['display_name'] !== null ? (string)$row['display_name'] : null,
+      'rarity' => (string)$row['rarity'],
+      'sides' => (int)$row['sides'],
+      'slot_capacity' => (int)$row['slot_capacity'],
+      'affix_slots' => (int)$row['slot_capacity'],
+      'value' => DiceValuationService::calculateValue((int)$row['sides'], (string)$row['rarity'], $affixes),
+      'sell_value' => DiceValuationService::calculateSellValue((int)$row['sides'], (string)$row['rarity'], $affixes),
+      'affixes' => $affixes,
+    ];
+  }
+
+  public function isDiceEquippedForUpdate(int $diceInstanceId): bool
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT 1
+      FROM `unit_dice`
+      WHERE `dice_instance_id` = ?
+      LIMIT 1
+      FOR UPDATE
+    ');
+    $stmt->execute([$diceInstanceId]);
+
+    return (bool)$stmt->fetchColumn();
+  }
+
+  public function deleteOwnedDiceInstance(int $userId, int $diceInstanceId): void
+  {
+    $deleteAffixes = $this->pdo->prepare('DELETE FROM `dice_instance_affixes` WHERE `dice_instance_id` = ?');
+    $deleteAffixes->execute([$diceInstanceId]);
+
+    $deleteDice = $this->pdo->prepare('DELETE FROM `dice_instances` WHERE `user_id` = ? AND `id` = ? LIMIT 1');
+    $deleteDice->execute([$userId, $diceInstanceId]);
+
+    if ($deleteDice->rowCount() < 1) {
+      throw new RuntimeException('Dice not found or not owned by user.');
+    }
   }
 
   private function countEquippedDiceForUnitForUpdate(int $unitInstanceId): int

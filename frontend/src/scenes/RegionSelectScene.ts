@@ -8,7 +8,7 @@ import RegionSelectionPanel from "../components/navigation/RegionSelectionPanel"
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 import { apiClient } from "../services/apiClient";
 
-type RegionId = "mountain" | "swamp";
+type RegionId = "farm" | "mountain" | "swamp";
 
 type RegionDefinition = {
   id: RegionId;
@@ -21,6 +21,15 @@ type RegionDefinition = {
 };
 
 const REGION_DEFINITIONS: RegionDefinition[] = [
+  {
+    id: "farm",
+    label: "The Farm",
+    textureKey: "column_mountain",
+    regionDbId: 3,
+    energyCost: 3,
+    intelTitle: "THE FARM",
+    intelDescription: "Short guided route with pig-only encounters. Best place to learn formation, rewards, and rest flow.",
+  },
   {
     id: "mountain",
     label: "Mountains",
@@ -42,8 +51,8 @@ const REGION_DEFINITIONS: RegionDefinition[] = [
 ];
 
 export default class RegionSelectScene extends Phaser.Scene {
-  private selectedRegionId: RegionId = "mountain";
-  private unlockedRegions = new Set<RegionId>(["mountain"]);
+  private selectedRegionId: RegionId = "farm";
+  private unlockedRegions = new Set<RegionId>(["farm"]);
   private regionPanels = new Map<RegionId, RegionSelectionPanel>();
   private intelTitleText?: Phaser.GameObjects.Text;
   private intelBodyText?: Phaser.GameObjects.Text;
@@ -85,9 +94,9 @@ export default class RegionSelectScene extends Phaser.Scene {
 
     this.buildIntelPanel();
 
-    const gap = 24;
-    const panelWidth = Math.floor((layout.content.width - gap * 3) / 2);
-    const panelHeight = Math.max(200, layout.content.height - 200);
+    const gap = 18;
+    const panelWidth = Math.floor((layout.content.width - gap * 4) / 3);
+    const panelHeight = Math.max(240, Math.min(380, layout.content.height - 160));
     const panelY = layout.content.y + 90;
 
     REGION_DEFINITIONS.forEach((region, index) => {
@@ -100,7 +109,7 @@ export default class RegionSelectScene extends Phaser.Scene {
         regionId: region.id,
         label: region.label,
         textureKey: region.textureKey,
-        locked: region.id !== "mountain",
+        locked: region.id !== "farm",
         onSelect: (regionId) => this.selectRegion(regionId as RegionId),
         onActivate: async (regionId) => this.startRun(regionId as RegionId),
         onLockedSelect: () => this.showFeedback("Region locked."),
@@ -109,7 +118,7 @@ export default class RegionSelectScene extends Phaser.Scene {
       this.regionPanels.set(region.id, panel);
     });
 
-    this.selectRegion("mountain");
+    this.selectRegion("farm");
     void this.loadRegionUnlocks();
 
     markDebugSceneReady(this);
@@ -177,7 +186,7 @@ export default class RegionSelectScene extends Phaser.Scene {
       const profile = await apiClient.getProfile({ force: true, allowStaleOnError: true });
       if (!profile.ok) {
         this.currentEnergy = null;
-        this.applyUnlockedRegions(new Set<RegionId>(["mountain"]));
+        this.applyUnlockedRegions(new Set<RegionId>(["farm"]));
         return;
       }
       this.currentEnergy = {
@@ -187,7 +196,7 @@ export default class RegionSelectScene extends Phaser.Scene {
       this.applyUnlockedRegions(this.inferUnlockedRegions(profile.data.region_unlocks ?? []));
     } catch {
       this.currentEnergy = null;
-      this.applyUnlockedRegions(new Set<RegionId>(["mountain"]));
+      this.applyUnlockedRegions(new Set<RegionId>(["farm"]));
     }
   }
 
@@ -200,20 +209,23 @@ export default class RegionSelectScene extends Phaser.Scene {
   }
 
   private inferUnlockedRegions(entries: unknown[]): Set<RegionId> {
-    const unlocked = new Set<RegionId>(["mountain"]);
+    const unlocked = new Set<RegionId>(["farm"]);
     for (const entry of entries) {
       if (!entry || typeof entry !== "object") continue;
       const record = entry as Record<string, unknown>;
+      const numericId = Number(record.region_id ?? record.id ?? Number.NaN);
+      const slug = String(record.region_slug ?? record.slug ?? "").toLowerCase();
       const unlockedFlag =
         record.unlocked === true ||
         record.is_unlocked === true ||
-        String(record.status ?? "").toLowerCase() === "unlocked";
+        String(record.status ?? "").toLowerCase() === "unlocked" ||
+        typeof record.unlocked_at === "string" ||
+        Number.isFinite(numericId) ||
+        slug.length > 0;
       if (!unlockedFlag) continue;
-
-      const numericId = Number(record.region_id ?? record.id ?? Number.NaN);
-      const slug = String(record.region_slug ?? record.slug ?? "").toLowerCase();
-      if (numericId === 2 || slug === "swamp") unlocked.add("swamp");
-      if (numericId === 1 || slug === "mountain") unlocked.add("mountain");
+      if (numericId === 3 || slug === "the_farm" || slug === "farm") unlocked.add("farm");
+      if (numericId === 2 || slug === "swamp" || slug === "swamps") unlocked.add("swamp");
+      if (numericId === 1 || slug === "mountain" || slug === "mountains") unlocked.add("mountain");
     }
     return unlocked;
   }
@@ -284,7 +296,8 @@ export default class RegionSelectScene extends Phaser.Scene {
     }
 
     try {
-      const res = await apiClient.createRun(regionId);
+      const region = REGION_DEFINITIONS.find((entry) => entry.id === regionId);
+      const res = await apiClient.createRun(region?.regionDbId ?? 1);
       if (!res.ok) {
         this.showFeedback(this.resolveRunStartErrorMessage(regionId, res.error.message));
         return;

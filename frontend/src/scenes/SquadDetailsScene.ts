@@ -64,6 +64,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
   private activateButton?: SharedActionButton;
   private renameDialog?: InputModal;
   private deleteDialog?: ConfirmModal;
+  private facingGuideText?: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "SquadDetailsScene" });
@@ -192,6 +193,13 @@ export default class SquadDetailsScene extends Phaser.Scene {
       onCellClick: (cell) => this.handleCellClick(cell),
       onCellDoubleClick: (cell) => this.handleCellDoubleClick(cell),
     });
+
+    this.facingGuideText?.destroy();
+    this.facingGuideText = this.add.text(gridX, gridY - 34, "Back (Left)  <- Formation ->  Front (Right)", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "16px",
+      color: "#f2f2f2",
+    }).setOrigin(0, 0);
 
     this.clearButton?.destroy();
     this.saveButton?.destroy();

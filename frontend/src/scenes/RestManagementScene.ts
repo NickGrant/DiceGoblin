@@ -204,6 +204,12 @@ export default class RestManagementScene extends Phaser.Scene {
       onCellDoubleClick: (cell) => this.handleCellDoubleClick(cell),
     });
 
+    this.add.text(gridX, gridY - 34, "Back (Left)  <- Formation ->  Front (Right)", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "16px",
+      color: "#f2f2f2",
+    }).setOrigin(0, 0);
+
     this.applyButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,

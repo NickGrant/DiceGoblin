@@ -19,7 +19,7 @@ describe("apiClient mutation flows", () => {
     vi.stubGlobal("fetch", vi.fn());
   });
 
-  it("createRun uses session CSRF token and biome-to-region mapping", async () => {
+  it("createRun uses session CSRF token and posts the provided region id", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock
       .mockResolvedValueOnce(
@@ -35,7 +35,7 @@ describe("apiClient mutation flows", () => {
       .mockResolvedValueOnce(jsonResponse({ ok: true }));
 
     const { apiClient } = await import("../../src/services/apiClient");
-    const response = await apiClient.createRun("mountain");
+    const response = await apiClient.createRun(3);
     expect(response).toEqual({ ok: true });
 
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -53,7 +53,7 @@ describe("apiClient mutation flows", () => {
       expect.objectContaining({
         method: "POST",
         credentials: "include",
-        body: JSON.stringify({ region_id: 1 }),
+        body: JSON.stringify({ region_id: 3 }),
       })
     );
 
@@ -218,5 +218,30 @@ describe("apiClient mutation flows", () => {
 
     const unequipInit = expectCsrfHeader(fetchMock, 5, "csrf_unequip");
     expect(unequipInit.body).toBe(JSON.stringify({ dice_instance_id: 55, run_id: 44, node_id: 7 }));
+  });
+
+  it("shop endpoints include csrf for purchases and leave catalog as a plain get", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { currency_soft: 25, basic_dice: [], basic_units: [], daily_deal: null } }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { authenticated: true, csrf_token: "csrf_shop" } }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { item_type: "daily_deal", product_id: "daily_deal", cost: 24, currency_soft: 1, purchase: {} } }));
+
+    const { apiClient } = await import("../../src/services/apiClient");
+    await apiClient.getShopCatalog();
+    await apiClient.purchaseShopItem("daily_deal", "daily_deal");
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://localhost:8080/api/v1/shop",
+      expect.objectContaining({
+        method: "GET",
+        credentials: "include",
+      })
+    );
+
+    const purchaseInit = expectCsrfHeader(fetchMock, 2, "csrf_shop");
+    expect(purchaseInit.method).toBe("POST");
+    expect(purchaseInit.body).toBe(JSON.stringify({ item_type: "daily_deal", product_id: "daily_deal" }));
   });
 });

@@ -28,6 +28,7 @@ export default class HomeScene extends Phaser.Scene {
     };
 
     this.renderDevPanelButton(layout);
+    this.renderShopButton(layout);
     void this.renderDynamicRunArea(contentArea);
   }
 
@@ -43,6 +44,18 @@ export default class HomeScene extends Phaser.Scene {
       label: "Dev Panel",
       onClick: () => {
         this.scene.start("DevPanelScene");
+      },
+    });
+  }
+
+  private renderShopButton(layout: ReturnType<typeof getPageLayout>): void {
+    new SharedActionButton({
+      scene: this,
+      x: layout.buttons.x + Math.max(10, Math.floor((layout.buttons.width - 280) / 2)),
+      y: layout.buttons.y + 148,
+      label: "Shop",
+      onClick: () => {
+        this.scene.start("ShopScene");
       },
     });
   }
@@ -91,7 +104,6 @@ export default class HomeScene extends Phaser.Scene {
     };
   }
 }
-
 
 
 

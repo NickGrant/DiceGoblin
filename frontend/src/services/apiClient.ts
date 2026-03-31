@@ -2,6 +2,7 @@ import {
   type AbandonRunResponse,
   type BattleClaimResponse,
   type CreateResponse,
+  type DiceSellResponse,
   type DiceMutationResponse,
   type DebugCatalogResponse,
   type DebugCurrencyGrantResponse,
@@ -19,6 +20,8 @@ import {
   type RestStateResponse,
   type RunResponse,
   type SessionResponse,
+  type ShopCatalogResponse,
+  type ShopPurchaseResponse,
   type TeamActivateResponse,
   type TeamCreateResponse,
   type TeamDeleteResponse,
@@ -109,14 +112,14 @@ export const apiClient = {
     return validateCurrentRunResponse(response);
   },
 
-  async createRun(biome: string): Promise<CreateResponse> {
+  async createRun(regionId: number): Promise<CreateResponse> {
     const session = await apiClient.getSession();
     const csrf = (session as any)?.data?.csrf_token ?? "";
 
     const res = await request<CreateResponse>("/api/v1/runs", {
       method: "POST",
       headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({ region_id: biome === "mountain" ? 1 : 2 }),
+      body: JSON.stringify({ region_id: regionId }),
     });
     // Starting a run consumes energy; purge cache and eagerly refetch profile.
     refreshProfileAfterMutation();
@@ -190,6 +193,25 @@ export const apiClient = {
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify({}),
     });
+  },
+
+  async getShopCatalog(): Promise<ShopCatalogResponse> {
+    return request<ShopCatalogResponse>("/api/v1/shop", { method: "GET" });
+  },
+
+  async purchaseShopItem(
+    itemType: "basic_unit" | "basic_dice" | "daily_deal",
+    productId = ""
+  ): Promise<ShopPurchaseResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const res = await request<ShopPurchaseResponse>("/api/v1/shop/purchase", {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({ item_type: itemType, product_id: productId }),
+    });
+    refreshProfileAfterMutation();
+    return res;
   },
 
   async updateRestState(
@@ -290,6 +312,18 @@ export const apiClient = {
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify(body),
     });
+  },
+
+  async sellDice(diceId: string): Promise<DiceSellResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const res = await request<DiceSellResponse>(`/api/v1/dice/${diceId}/sell`, {
+      method: "POST",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({}),
+    });
+    refreshProfileAfterMutation();
+    return res;
   },
 
   // -----------------------------

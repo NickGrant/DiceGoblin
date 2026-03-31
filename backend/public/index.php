@@ -15,6 +15,7 @@ use DiceGoblins\Controllers\BattleController;
 use DiceGoblins\Controllers\DebugController;
 use DiceGoblins\Controllers\GameplayController;
 use DiceGoblins\Controllers\RunNodeController;
+use DiceGoblins\Controllers\ShopController;
 use DiceGoblins\Controllers\TeamController;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';
@@ -101,6 +102,7 @@ $battle = new BattleController();
 $debug = new DebugController();
 $gameplay = new GameplayController();
 $runNode = new RunNodeController();
+$shop = new ShopController();
 $team = new TeamController();
 
 // Auth
@@ -112,6 +114,8 @@ $router->post('/api/v1/auth/logout', [$auth, 'logout']);
 $router->get('/api/v1/health', [$api, 'health']);
 $router->get('/api/v1/session', [$api, 'session']);
 $router->get('/api/v1/profile', [$api, 'profile']);
+$router->get('/api/v1/shop', [$shop, 'catalog']);
+$router->post('/api/v1/shop/purchase', [$shop, 'purchase']);
 $router->get('/api/v1/runs/current', [$api, 'currentRun']);
 $router->post('/api/v1/runs', [$api, 'createRun']);
 $router->post('/api/v1/runs/:runId/abandon', [$api, 'abandonRun']);
@@ -136,6 +140,7 @@ $router->post('/api/v1/battles/:battleId/claim',[$battle, 'claimBattle']);
 $router->post('/api/v1/units/:unitInstanceId/promote', [$gameplay, 'promoteUnit']);
 $router->post('/api/v1/units/:unitInstanceId/dice/equip', [$gameplay, 'equipDice']);
 $router->post('/api/v1/units/:unitInstanceId/dice/unequip', [$gameplay, 'unequipDice']);
+$router->post('/api/v1/dice/:diceInstanceId/sell', [$gameplay, 'sellDice']);
 
 $router->post('/api/v1/teams', [$team, 'createTeam']);
 $router->post('/api/v1/teams/:teamId/activate', [$team, 'activateTeam']);

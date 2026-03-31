@@ -84,8 +84,10 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
     this.labelText = cfg.scene.add
       .text(Math.floor(cfg.width / 2), 20, cfg.label.toUpperCase(), {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "36px",
+        fontSize: cfg.width < 260 ? "28px" : "36px",
         color: "#f0f0f0",
+        wordWrap: { width: cfg.width - 48 },
+        align: "center",
       })
       .setOrigin(0.5, 0);
 

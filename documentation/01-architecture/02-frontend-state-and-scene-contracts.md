@@ -1,7 +1,7 @@
 # Frontend State and Scene Contracts - MVP (Authoritative)
 
 Status: active  
-Last Updated: 2026-03-07  
+Last Updated: 2026-03-30  
 Owner: Frontend  
 Depends On: `frontend/src/game/config.ts`, `frontend/src/scenes/`, `frontend/src/services/apiClient.ts`
 
@@ -33,7 +33,8 @@ Configured in `frontend/src/game/config.ts`:
 11. `NodeResolutionScene`
 12. `RestManagementScene`
 13. `RunEndSummaryScene`
-14. `DevPanelScene` (debug-only when env-enabled)
+14. `ShopScene`
+15. `DevPanelScene` (debug-only when env-enabled)
 
 ## 3. Planned (Not Implemented Yet)
 
@@ -117,12 +118,17 @@ Output:
 - navigates to `RegionSelectScene`
 - navigates to `WarbandManagementScene`
 - navigates to `DiceInventoryScene`
+- navigates to `ShopScene`
 - when dev tooling is env-enabled, exposes entry to `DevPanelScene`
 
 ### 5.5 RegionSelectScene
 
 Allowed side-effects:
 - via clickable region panel, starts run creation flow (`POST /api/v1/runs`) through client service
+
+Behavior:
+- presents `The Farm` as the fixed tutorial route: `combat -> loot -> rest -> boss -> exit`
+- keeps formation messaging aligned with combat by treating left as `Back` and right as `Front`
 
 Output:
 - transitions to `MapExplorationScene` after run start/navigation path.
@@ -161,6 +167,7 @@ Behavior:
 - edits saved squad membership/formation (not run-scoped snapshot)
 - supports bench membership (`unit_ids` may include unplaced units)
 - supports best-effort squad rename by passing `name` in update payload
+- displays a formation guide labeling left as `Back` and right as `Front`
 
 ### 5.9 UnitDetailsScene
 
@@ -212,6 +219,17 @@ Behavior:
 - supports grant and reset flows for local verification/UAT
 - reflects current profile counts after mutations
 
+### 5.13 ShopScene
+
+Allowed side-effects:
+- `GET /api/v1/shop`
+- `POST /api/v1/shop/purchase`
+
+Behavior:
+- exposes between-run currency spending for common d4-d10 dice and Tier 1 units
+- shows a server-day daily deal that persists until the next day or until purchased
+- returns to `HomeScene` through a dedicated back action
+
 ## 6. Implemented Transition Matrix
 
 - `BootScene -> PreloadScene`
@@ -221,6 +239,7 @@ Behavior:
 - `HomeScene -> RegionSelectScene`
 - `HomeScene -> WarbandManagementScene`
 - `HomeScene -> DiceInventoryScene`
+- `HomeScene -> ShopScene`
 - `RegionSelectScene -> MapExplorationScene`
 - `WarbandManagementScene -> HomeScene` (home button)
 - `WarbandManagementScene -> UnitDetailsScene`
@@ -236,6 +255,7 @@ Behavior:
 - `NodeResolutionScene -> MapExplorationScene` (non-terminal outcome)
 - `NodeResolutionScene -> RunEndSummaryScene` (terminal outcome)
 - `RunEndSummaryScene -> HomeScene`
+- `ShopScene -> HomeScene`
 - `HomeScene -> DevPanelScene` (debug-only)
 
 Planned additions:

@@ -249,6 +249,8 @@ Dice contract notes:
 - `slot_capacity` and `affix_slots` follow the fixed rarity ladder: `common=0`, `uncommon=1`, `rare=2`, `epic=3`, `legendary=4`
 - The backend assigns affixes when a die is created and preserves them immutably afterward
 - An affix's `rarity` must never exceed the parent die `rarity`
+- `value` is the backend-authoritative full valuation for the die
+- `sell_value` is the backend-authoritative vendor payout and is always `floor(value / 2)`
 
 ---
 
@@ -420,6 +422,31 @@ Rules:
 - During an active run, equipment changes are allowed only within rest workflow.
 - Dice equipped to units in active run snapshots cannot be modified outside rest flow.
 - Backend enforces max equipped dice count per unit definition.
+
+### 7.4 Sell Unequipped Dice
+`POST /api/v1/dice/:diceInstanceId/sell`
+
+Request:
+```json
+{}
+```
+
+Success:
+```json
+{
+  "ok": true,
+  "data": {
+    "dice_id": "9001",
+    "sell_value": 17,
+    "currency_soft": 64
+  }
+}
+```
+
+Rules:
+- Only owned dice may be sold.
+- Only unequipped dice may be sold.
+- The backend recalculates value/sell value inside the transaction; the client must not send pricing.
 
 ---
 

@@ -51,6 +51,8 @@ describe("profileViewModels adapters", () => {
           rarity: "Rare",
           slot_capacity: 2,
           affix_slots: 3,
+          value: 88,
+          sell_value: 44,
           affixes: [
             {
               affix_definition_id: "crit_percent_if_full_hp",
@@ -81,6 +83,8 @@ describe("profileViewModels adapters", () => {
       sizeLabel: "d8",
       rarity: "rare",
       slotCapacity: 2,
+      value: 88,
+      sellValue: 44,
       equipped: {
         unitId: "u1",
         unitName: "Goblin Archer",

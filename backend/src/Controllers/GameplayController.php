@@ -414,16 +414,17 @@ final class GameplayController
       }
 
       $newTier = ((int)$first['tier']) + 1;
-      if ($newTier > 3) {
+      $promotionTarget = $this->findPromotionTargetType($pdo, (int)$first['unit_type_id'], $newTier);
+      if (!is_array($promotionTarget)) {
         throw new RuntimeException('promotion_requirements_not_met');
       }
 
       $update = $pdo->prepare('
         UPDATE `unit_instances`
-        SET `tier` = ?, `level` = 1, `xp` = 0
+        SET `unit_type_id` = ?, `tier` = ?, `level` = 1, `xp` = 0
         WHERE `id` = ? AND `user_id` = ?
       ');
-      $update->execute([$newTier, $primaryId, $userId]);
+      $update->execute([(int)$promotionTarget['id'], $newTier, $primaryId, $userId]);
 
       $this->detachAndDeleteUnits($pdo, $userId, $secondaryIds);
 
@@ -463,6 +464,72 @@ final class GameplayController
   public function unequipDice(?string $unitInstanceId = null): void
   {
     $this->handleDiceMutation($unitInstanceId, false);
+  }
+
+  public function sellDice(?string $diceInstanceId = null): void
+  {
+    $svc = $this->services();
+    $userId = $this->requireUserId($svc['sessionService']);
+    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+      return;
+    }
+
+    $diceId = $this->requirePositiveInt($diceInstanceId, 'diceInstanceId');
+    if ($diceId === null) {
+      return;
+    }
+
+    /** @var PDO $pdo */
+    $pdo = $svc['pdo'];
+    try {
+      $pdo->beginTransaction();
+
+      $dice = $svc['diceRepo']->getDiceWithAffixesForUserByIdForUpdate($userId, $diceId);
+      if (!is_array($dice)) {
+        $pdo->rollBack();
+        Response::json(['ok' => false, 'error' => ['code' => 'not_found', 'message' => 'Dice not found.']], 404);
+        return;
+      }
+
+      if ($svc['diceRepo']->isDiceEquippedForUpdate($diceId)) {
+        $pdo->rollBack();
+        Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Equipped dice cannot be sold.']], 400);
+        return;
+      }
+
+      $svc['playerStateRepo']->ensurePlayerState($userId);
+      $state = $svc['playerStateRepo']->getPlayerStateForUpdate($userId);
+      if (!is_array($state)) {
+        $pdo->rollBack();
+        Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Player state unavailable.']], 500);
+        return;
+      }
+
+      $sellValue = max(1, (int)($dice['sell_value'] ?? 0));
+      $nextSoft = max(0, (int)$state['currency_soft']) + $sellValue;
+      $svc['playerStateRepo']->setCurrency($userId, $nextSoft, max(0, (int)$state['currency_hard']));
+      $svc['diceRepo']->deleteOwnedDiceInstance($userId, $diceId);
+
+      $pdo->commit();
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'dice_id' => (string)$diceId,
+          'sell_value' => $sellValue,
+          'currency_soft' => $nextSoft,
+        ],
+      ]);
+    } catch (RuntimeException $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => $e->getMessage()]], 400);
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+      Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
+    }
   }
 
   private function handleDiceMutation(?string $unitInstanceId, bool $isEquip): void
@@ -626,6 +693,38 @@ final class GameplayController
       }
     }
     return $out;
+  }
+
+  /**
+   * @return array{id:string,slug:string}|null
+   */
+  private function findPromotionTargetType(PDO $pdo, int $currentUnitTypeId, int $targetTier): ?array
+  {
+    $stmt = $pdo->prepare('SELECT `id`, `slug` FROM `unit_types` WHERE `id` = ? LIMIT 1');
+    $stmt->execute([$currentUnitTypeId]);
+    $currentType = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!is_array($currentType)) {
+      return null;
+    }
+
+    $slug = trim((string)($currentType['slug'] ?? ''));
+    if (!preg_match('/^(.*)_t(\d+)$/', $slug, $matches)) {
+      return null;
+    }
+
+    $family = trim((string)($matches[1] ?? ''));
+    if ($family === '') {
+      return null;
+    }
+    $targetSlug = $family . '_t' . $targetTier;
+
+    $targetStmt = $pdo->prepare('SELECT `id`, `slug` FROM `unit_types` WHERE `slug` = ? LIMIT 1');
+    $targetStmt->execute([$targetSlug]);
+    $target = $targetStmt->fetch(PDO::FETCH_ASSOC);
+    return is_array($target) ? [
+      'id' => (string)$target['id'],
+      'slug' => (string)$target['slug'],
+    ] : null;
   }
 
   private function detachAndDeleteUnits(PDO $pdo, int $userId, array $unitIds): void
@@ -810,7 +909,7 @@ final class GameplayController
   /** @return array{unit_instance_id:string,unit_type_slug:string,tier:int,level:int} */
   private function createBasicStoreUnit(PDO $pdo, int $userId): array
   {
-    $typeStmt = $pdo->query('SELECT `id`, `slug` FROM `unit_types` ORDER BY `id` ASC LIMIT 1');
+    $typeStmt = $pdo->query("SELECT `id`, `slug` FROM `unit_types` WHERE RIGHT(`slug`, 3) = '_t1' ORDER BY `id` ASC LIMIT 1");
     $type = $typeStmt->fetch(PDO::FETCH_ASSOC);
     if (!is_array($type)) {
       throw new RuntimeException('No unit types are available for store purchases.');

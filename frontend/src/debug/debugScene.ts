@@ -14,6 +14,7 @@ export const DEBUG_SCENE_KEYS = [
   "NodeResolutionScene",
   "RestManagementScene",
   "RunEndSummaryScene",
+  "ShopScene",
   "DevPanelScene",
 ] as const;
 
@@ -58,6 +59,7 @@ for (const [alias, key] of [
   ["map", "MapExplorationScene"],
   ["node", "NodeResolutionScene"],
   ["rest", "RestManagementScene"],
+  ["shop", "ShopScene"],
   ["summary", "RunEndSummaryScene"],
   ["runsummary", "RunEndSummaryScene"],
   ["devpanel", "DevPanelScene"],

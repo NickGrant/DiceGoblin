@@ -675,8 +675,13 @@ final class DeterministicRunNodeResolver
               break 3;
             }
 
-            $enemyTargetId = $aliveEnemyIds[$this->nextInt($state, count($aliveEnemyIds))];
-            $enemyTarget = $enemyById[$enemyTargetId] ?? null;
+              $enemyTargetId = $this->chooseTargetId(
+                $state,
+                $aliveEnemyIds,
+                $enemyById,
+                (string)($ability['target'] ?? 'enemy_front_prefer')
+              );
+              $enemyTarget = $enemyById[$enemyTargetId] ?? null;
             if (!is_array($enemyTarget)) {
               continue;
             }
@@ -694,12 +699,14 @@ final class DeterministicRunNodeResolver
               (int)$enemyTarget['defense'],
               (int)($enemyHp[$enemyTargetId] ?? (int)$enemyTarget['max_hp']),
               (int)$enemyTarget['max_hp'],
-              $abilityId,
-              (int)$dice['dice_modifier'],
-              (array)($playerActor['combat_affixes'] ?? ['damage_flat' => 0, 'below_half_bonus' => 0.0]),
-              $dice,
-              $abilityRegistry,
-            );
+                $abilityId,
+                (int)$dice['dice_modifier'],
+                (array)($playerActor['combat_affixes'] ?? ['damage_flat' => 0, 'below_half_bonus' => 0.0]),
+                $dice,
+                (array)($playerActor['pos'] ?? ['x' => 1, 'y' => 1]),
+                (array)($enemyTarget['pos'] ?? ['x' => 1, 'y' => 1]),
+                $abilityRegistry,
+              );
 
             $events[] = [
               'type' => 'action',
@@ -742,8 +749,13 @@ final class DeterministicRunNodeResolver
               break 3;
             }
 
-            $playerTargetId = $alivePlayerIds[$this->nextInt($state, count($alivePlayerIds))];
-            $playerTarget = $playerById[$playerTargetId] ?? null;
+              $playerTargetId = $this->chooseTargetId(
+                $state,
+                $alivePlayerIds,
+                $playerById,
+                (string)($ability['target'] ?? 'enemy_front_prefer')
+              );
+              $playerTarget = $playerById[$playerTargetId] ?? null;
             if (!is_array($playerTarget)) {
               continue;
             }
@@ -761,12 +773,14 @@ final class DeterministicRunNodeResolver
               (int)$playerTarget['defense'],
               (int)($playerHp[$playerTargetId] ?? (int)$playerTarget['max_hp']),
               (int)$playerTarget['max_hp'],
-              $abilityId,
-              (int)$dice['dice_modifier'],
-              ['damage_flat' => 0, 'below_half_bonus' => 0.0],
-              $dice,
-              $abilityRegistry,
-            );
+                $abilityId,
+                (int)$dice['dice_modifier'],
+                ['damage_flat' => 0, 'below_half_bonus' => 0.0],
+                $dice,
+                (array)($enemyActor['pos'] ?? ['x' => 1, 'y' => 1]),
+                (array)($playerTarget['pos'] ?? ['x' => 1, 'y' => 1]),
+                $abilityRegistry,
+              );
 
             $events[] = [
               'type' => 'action',
@@ -808,7 +822,7 @@ final class DeterministicRunNodeResolver
 
   /**
    * @param array<int,string> $abilityIds
-   * @return array<int,array{ability_id:string,speed:int}>
+   * @return array<int,array{ability_id:string,speed:int,target:string}>
    */
   private function buildActiveAbilitySchedule(array $abilityIds, AbilityRegistry $registry): array
   {
@@ -827,6 +841,7 @@ final class DeterministicRunNodeResolver
       $scheduleById[$id] = [
         'ability_id' => $id,
         'speed' => (int)$def->speed,
+        'target' => $def->defaultTarget?->value ?? 'enemy_front_prefer',
       ];
     }
 
@@ -834,6 +849,7 @@ final class DeterministicRunNodeResolver
       $scheduleById['basic_attack_melee'] = [
         'ability_id' => 'basic_attack_melee',
         'speed' => 4,
+        'target' => 'enemy_front_prefer',
       ];
     }
 
@@ -882,8 +898,106 @@ final class DeterministicRunNodeResolver
   }
 
   /**
+   * @param array<int,string> $aliveIds
+   * @param array<string,array<string,mixed>> $unitsById
+   */
+  private function chooseTargetId(string &$state, array $aliveIds, array $unitsById, string $targetPreference): string
+  {
+    if (count($aliveIds) <= 1) {
+      return (string)($aliveIds[0] ?? '');
+    }
+
+    $preferFront = str_contains($targetPreference, 'front');
+    $preferBack = str_contains($targetPreference, 'back');
+    if (!$preferFront && !$preferBack) {
+      return (string)$aliveIds[$this->nextInt($state, count($aliveIds))];
+    }
+
+    usort($aliveIds, function (string $a, string $b) use ($unitsById, $preferFront): int {
+      $unitA = $unitsById[$a] ?? [];
+      $unitB = $unitsById[$b] ?? [];
+      $posA = is_array($unitA['pos'] ?? null) ? $unitA['pos'] : ['x' => 1, 'y' => 1];
+      $posB = is_array($unitB['pos'] ?? null) ? $unitB['pos'] : ['x' => 1, 'y' => 1];
+
+      $cmpX = $preferFront
+        ? ((int)$posB['x'] <=> (int)$posA['x'])
+        : ((int)$posA['x'] <=> (int)$posB['x']);
+      if ($cmpX !== 0) {
+        return $cmpX;
+      }
+
+      $cmpY = ((int)$posA['y'] <=> (int)$posB['y']);
+      if ($cmpY !== 0) {
+        return $cmpY;
+      }
+
+      return strcmp($a, $b);
+    });
+
+    $firstUnit = $unitsById[$aliveIds[0]] ?? [];
+    $firstPos = is_array($firstUnit['pos'] ?? null) ? $firstUnit['pos'] : ['x' => 1, 'y' => 1];
+    $bestX = (int)$firstPos['x'];
+    $preferredIds = array_values(array_filter($aliveIds, function (string $id) use ($unitsById, $bestX): bool {
+      $unit = $unitsById[$id] ?? [];
+      $pos = is_array($unit['pos'] ?? null) ? $unit['pos'] : ['x' => 1, 'y' => 1];
+      return (int)$pos['x'] === $bestX;
+    }));
+
+    return (string)$preferredIds[$this->nextInt($state, count($preferredIds))];
+  }
+
+  /**
+   * @param array{x:int,y:int} $attackerPos
+   * @param array{x:int,y:int} $targetPos
+   */
+  private function resolvePositionMultiplier(
+    string $abilityId,
+    array $attackerPos,
+    array $targetPos,
+    AbilityRegistry $abilityRegistry
+  ): float {
+    if (!$abilityRegistry->has($abilityId)) {
+      return 1.0;
+    }
+
+    $def = $abilityRegistry->get($abilityId);
+    $isMelee = in_array('melee', $def->tags, true);
+    $multiplier = 1.0;
+
+    if ($isMelee && $this->isFrontRow($attackerPos)) {
+      $multiplier *= 1.10;
+    }
+    if ($this->isFrontRow($targetPos)) {
+      $multiplier *= 1.10;
+    }
+    if ($isMelee && $this->isBackRow($targetPos)) {
+      $multiplier *= 0.90;
+    }
+
+    return $multiplier;
+  }
+
+  /**
+   * @param array{x:int,y:int} $pos
+   */
+  private function isFrontRow(array $pos): bool
+  {
+    return ((int)($pos['x'] ?? 1)) >= 2;
+  }
+
+  /**
+   * @param array{x:int,y:int} $pos
+   */
+  private function isBackRow(array $pos): bool
+  {
+    return ((int)($pos['x'] ?? 1)) <= 0;
+  }
+
+  /**
    * @param array{damage_flat:int,below_half_bonus:float} $combatAffixes
    * @param array{dice_used:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,dice_rolls:array<int,array{sides:int,roll:int}>,dice_outcome:string,dice_modifier:int,explode_triggered:bool} $diceContext
+   * @param array{x:int,y:int} $attackerPos
+   * @param array{x:int,y:int} $targetPos
    * @return array{damage:int,target_hp_after:int,outcome:string,status_applied:?string,status_duration_rounds:?int,ability_outcome:string,affix_outcome:?string}
    */
   private function deriveActionOutcome(
@@ -896,6 +1010,8 @@ final class DeterministicRunNodeResolver
     int $diceModifier,
     array $combatAffixes,
     array $diceContext,
+    array $attackerPos,
+    array $targetPos,
     AbilityRegistry $abilityRegistry,
   ): array {
     $variance = $this->nextInt($state, 5) - 2;
@@ -914,6 +1030,12 @@ final class DeterministicRunNodeResolver
     if ($belowHalfBonus > 0 && $targetMaxHp > 0 && $targetHp < (int)ceil($targetMaxHp / 2)) {
       $rawDamage = (int)floor($rawDamage * (1 + $belowHalfBonus));
       $affixOutcomeParts[] = sprintf('execute below half x%s', rtrim(rtrim(number_format(1 + $belowHalfBonus, 2, '.', ''), '0'), '.'));
+    }
+
+    $positionMultiplier = $this->resolvePositionMultiplier($abilityId, $attackerPos, $targetPos, $abilityRegistry);
+    if (abs($positionMultiplier - 1.0) > 0.0001) {
+      $rawDamage = (int)floor($rawDamage * $positionMultiplier);
+      $affixOutcomeParts[] = sprintf('position x%s', rtrim(rtrim(number_format($positionMultiplier, 2, '.', ''), '0'), '.'));
     }
 
     $damage = max(1, $rawDamage);
@@ -1205,7 +1327,7 @@ final class DeterministicRunNodeResolver
 
   private function pickUnitTypeSlug(string &$state): ?string
   {
-    $stmt = $this->pdo->query('SELECT `slug` FROM `unit_types` ORDER BY `id` ASC');
+    $stmt = $this->pdo->query("SELECT `slug` FROM `unit_types` WHERE RIGHT(`slug`, 3) = '_t1' ORDER BY `id` ASC");
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     if (count($rows) === 0) {
       return null;

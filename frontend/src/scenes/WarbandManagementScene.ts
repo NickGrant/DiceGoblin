@@ -186,6 +186,10 @@ export default class WarbandManagementScene extends Phaser.Scene {
       gapY: 10,
       buttons: [
         {
+          label: "Shop",
+          onClick: () => this.scene.start("ShopScene"),
+        },
+        {
           label: "New Squad",
           onClick: () => void this.createSquad(),
         },
@@ -263,7 +267,6 @@ export default class WarbandManagementScene extends Phaser.Scene {
     this.summaryUiObjects = [];
   }
 }
-
 
 
 

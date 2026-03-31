@@ -13,6 +13,7 @@ import RestManagementScene from "../scenes/RestManagementScene";
 import RunEndSummaryScene from "../scenes/RunEndSummaryScene";
 import NodeResolutionScene from "../scenes/NodeResolutionScene";
 import DevPanelScene from "../scenes/DevPanelScene";
+import ShopScene from "../scenes/ShopScene";
 
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
@@ -34,7 +35,7 @@ export function createGameConfig(): Phaser.Types.Core.GameConfig {
     physics: { default: "arcade" },
     scene: [
       BootScene, PreloadScene, LandingScene, HomeScene, RegionSelectScene, 
-      WarbandManagementScene, SquadDetailsScene, UnitDetailsScene, DiceInventoryScene, MapExplorationScene, NodeResolutionScene, RestManagementScene, RunEndSummaryScene, DevPanelScene
+      WarbandManagementScene, SquadDetailsScene, UnitDetailsScene, DiceInventoryScene, MapExplorationScene, NodeResolutionScene, RestManagementScene, RunEndSummaryScene, ShopScene, DevPanelScene
     ]
   };
 }
