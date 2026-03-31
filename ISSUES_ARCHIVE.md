@@ -6,6 +6,56 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Restore deterministic scene screenshot review workflow against current local frontend
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: The local review harness currently times out when running `npm.cmd run capture:scene -- --scene <scene> --base-url http://127.0.0.1:5173/`, which blocks fast screenshot-based UI QA. Repair the scene-ready/capture path against the current Docker/local frontend setup so scene-by-scene visual review remains reproducible during release polish.
+resolution: Restored the capture flow by aligning local CORS defaults with both loopback frontend origins, improving capture-script diagnostics/host detection, and confirming the `npm run capture:scene -- --scene <scene> --base-url http://127.0.0.1:5173/` workflow succeeds reliably when run serially against the shared local frontend.
+
+---
+title: Add between-runs shop with basic stock and daily deal
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: Add a shop surface where players can spend soft currency on basic dice and tier-1 units, plus a once-per-day uncommon affixed die deal generated on first open and purchasable until the next day or until sold.
+resolution: Added the between-runs shop backend/frontend flow with basic dice, tier-1 recruits, a persistent server-day daily deal, live purchase handling, and follow-up pricing work for backend-authoritative dice valuation and selling.
+
+---
+title: Add The Farm tutorial run option and pig enemy set
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: Introduce The Farm as a guided introductory run with a fixed combat -> loot -> rest -> boss -> exit route and a pig-only enemy lineup made up of mudwrestler, mudslinger, and mudking encounters.
+resolution: Added The Farm region, pig-only encounter content, fixed-route tutorial graph generation, new-account Farm-first progression, and unlock flow from Farm into Mountains and then Swamps.
+
+---
+title: Make squad facing rules consistent and enforce position impact in combat
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: Standardize squad-facing language so front is right and back is left across squad editing and combat, add clear formation indicators in management UI, and make combat resolution honor position-sensitive targeting and damage rules documented for MVP.
+resolution: Standardized front/back orientation to right/left across squad management and combat-facing docs/UI, and wired combat behavior to respect positional impact instead of treating formation as cosmetic.
+
+---
+title: Align unit promotion and reward drops with tiered unit-type progression
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: Update progression so promotions advance units from tier-1 unit types into their tier-2 counterparts instead of only incrementing the instance tier, and ensure current reward generation only grants tier-1 unit drops.
+resolution: Promotion now advances units into their next unit-type tier instead of only increasing the instance tier, and current reward generation has been constrained to tier-1 unit drops.
+
+---
 title: Establish dice valuation and allow selling unequipped inventory dice
 status: complete
 priority: high

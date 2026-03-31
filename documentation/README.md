@@ -64,5 +64,6 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
 - Scene screenshot capture:
   - `skills/scene-screenshot/SKILL.md`
   - `npm run capture:scene -- --scene <scene>`
+  - Run captures serially against the local frontend when using `--base-url`
 - UX scene review loops:
   - `skills/ux-scene-review/SKILL.md`

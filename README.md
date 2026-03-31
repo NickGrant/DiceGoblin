@@ -45,7 +45,7 @@ If you need to reset local env values:
 2. Verify these dev defaults:
 - `APP_URL=http://localhost:8080`
 - `FRONTEND_URL=http://localhost:5173`
-- `DEV_ALLOWED_ORIGINS=http://localhost:5173`
+- `DEV_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173`
 - DB host/user/pass match `docker-compose.yml`
 
 ## Frontend Commands
@@ -125,6 +125,7 @@ npm run verify:full
 - `skills/ux-scene-review/SKILL.md` for iterative UX review loops on scenes using screenshot capture, code fixes, and QA review.
 
 ## Troubleshooting
-- CORS/session issues: verify `DEV_ALLOWED_ORIGINS` in `backend/.env` and ensure frontend runs on `http://localhost:5173`.
+- CORS/session issues: verify `DEV_ALLOWED_ORIGINS` in `backend/.env` includes both `http://localhost:5173` and `http://127.0.0.1:5173`.
+- Scene screenshot capture: run `npm run capture:scene -- --scene <scene> --base-url http://127.0.0.1:5173/` one capture at a time against the shared local frontend.
 - Empty/missing data: re-apply `backend/migrations/schema_all.sql` to local DB.
 - Frontend cannot reach backend: verify `VITE_API_BASE_URL` and that backend is listening on `:8080`.

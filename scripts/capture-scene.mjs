@@ -138,6 +138,10 @@ async function ensureOutputPath(outputPath) {
   await mkdir(path.dirname(outputPath), { recursive: true });
 }
 
+async function readDebugState(page) {
+  return page.evaluate(() => window.__DG_DEBUG__ ?? null).catch(() => null);
+}
+
 async function waitForHttp(url, timeoutMs) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
@@ -154,6 +158,15 @@ async function waitForHttp(url, timeoutMs) {
   }
 
   throw new Error(`Timed out waiting for frontend at ${url}`);
+}
+
+async function isHttpAvailable(url, timeoutMs = 1000) {
+  try {
+    await waitForHttp(url, timeoutMs);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function startDevServer(options) {
@@ -187,8 +200,14 @@ async function captureScene(options) {
     options.output || path.join("artifacts", "screenshots", `${sanitizeName(options.scene)}.png`);
   const baseUrl = options.baseUrl || `http://${options.host}:${options.port}/`;
   const captureUrl = createCaptureUrl(options);
-  const shouldStartServer = !options.useExistingServer && !options.baseUrl;
+  const shouldStartServer = !options.useExistingServer && !options.baseUrl && !(await isHttpAvailable(baseUrl));
   let serverProcess = null;
+  /** @type {string[]} */
+  const pageErrors = [];
+  /** @type {string[]} */
+  const requestFailures = [];
+  /** @type {string[]} */
+  const consoleMessages = [];
 
   try {
     if (shouldStartServer) {
@@ -201,21 +220,61 @@ async function captureScene(options) {
     const browser = await chromium.launch();
     try {
       const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+      page.on("pageerror", (error) => {
+        pageErrors.push(error instanceof Error ? error.message : String(error));
+      });
+      page.on("requestfailed", (request) => {
+        requestFailures.push(`${request.url()} :: ${request.failure()?.errorText ?? "unknown failure"}`);
+      });
+      page.on("console", (message) => {
+        consoleMessages.push(`${message.type()}: ${message.text()}`);
+      });
       await page.goto(captureUrl, { waitUntil: "load", timeout: options.timeoutMs });
-      await page.waitForFunction(
-        () => {
-          const debugState = window.__DG_DEBUG__;
-          return (
-            !!debugState &&
+      try {
+        const startedAt = Date.now();
+        let debugState = null;
+        while (Date.now() - startedAt < options.timeoutMs) {
+          debugState = await readDebugState(page);
+          if (
+            debugState &&
             debugState.ready === true &&
             typeof debugState.readyScene === "string" &&
             typeof debugState.requestedScene === "string" &&
             debugState.readyScene === debugState.requestedScene
-          );
-        },
-        undefined,
-        { timeout: options.timeoutMs }
-      );
+          ) {
+            break;
+          }
+
+          await page.waitForTimeout(100);
+        }
+
+        if (
+          !debugState ||
+          debugState.ready !== true ||
+          typeof debugState.readyScene !== "string" ||
+          typeof debugState.requestedScene !== "string" ||
+          debugState.readyScene !== debugState.requestedScene
+        ) {
+          throw new Error(`Timed out waiting for debug scene '${options.scene}' to become ready.`);
+        }
+      } catch (error) {
+        const debugState = await readDebugState(page);
+        const diagnostics = [
+          `Capture URL: ${captureUrl}`,
+          `Debug state: ${JSON.stringify(debugState)}`,
+        ];
+        if (pageErrors.length > 0) {
+          diagnostics.push(`Page errors: ${pageErrors.join(" | ")}`);
+        }
+        if (requestFailures.length > 0) {
+          diagnostics.push(`Request failures: ${requestFailures.join(" | ")}`);
+        }
+        if (consoleMessages.length > 0) {
+          diagnostics.push(`Recent console: ${consoleMessages.slice(-12).join(" | ")}`);
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error([message, ...diagnostics].join("\n"));
+      }
 
       if (options.settleMs > 0) {
         await page.waitForTimeout(options.settleMs);
