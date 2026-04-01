@@ -137,9 +137,9 @@ export default class UnitDetailsScene extends Phaser.Scene {
   private buildUi(rawDice: unknown[], rawUnits: unknown[]): void {
     const layout = getPageLayout(this);
     const contentBodyX = layout.content.x + FRAME_MARGIN + CONTENT_INSET;
-    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + CONTENT_INSET;
+    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + CONTENT_INSET + 78;
     const contentBodyWidth = Math.max(320, layout.content.width - (FRAME_MARGIN + CONTENT_INSET) * 2);
-    const contentBodyHeight = Math.max(280, layout.content.height - FRAME_TITLE_HEIGHT - (FRAME_MARGIN + CONTENT_INSET) * 2);
+    const contentBodyHeight = Math.max(280, layout.content.height - FRAME_TITLE_HEIGHT - (FRAME_MARGIN + CONTENT_INSET) * 2 - 78);
 
     const actionsBodyX = layout.buttons.x + FRAME_MARGIN;
     const actionsBodyY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN;
@@ -169,6 +169,24 @@ export default class UnitDetailsScene extends Phaser.Scene {
     const fusionCandidatesW = dicePanelW;
 
     if (!this.unit) return;
+
+    const overviewLabel = this.add
+      .text(layout.content.x + 24, layout.content.y + 88, "UNIT LOADOUT", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "20px",
+        color: "#f0d38a",
+      })
+      .setOrigin(0, 0);
+    const overviewBody = this.add
+      .text(layout.content.x + 24, layout.content.y + 118, "Review current stats, equip better dice, and queue promotion fodder from the lower candidate list.", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "22px",
+        color: "#eef4f5",
+        lineSpacing: 8,
+        wordWrap: { width: layout.content.width - 48 },
+      })
+      .setOrigin(0, 0);
+    this.layoutUiObjects.push(overviewLabel, overviewBody);
 
     const diceVm = adaptDiceDetails(rawDice as any, rawUnits as any);
     this.dice = diceVm;
@@ -289,10 +307,30 @@ export default class UnitDetailsScene extends Phaser.Scene {
 
     const buttonX = actionsBodyX + Math.max(0, Math.floor((actionsBodyWidth - 280) / 2));
     const topActionY = actionsBodyY + 14;
+    const actionSummaryCard = this.add
+      .rectangle(actionsBodyX + 12, topActionY, actionsBodyWidth - 24, 116, 0x0f2024, 0.58)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8db8bc, 0.32);
+    const actionSummaryText = this.add
+      .text(actionsBodyX + 24, topActionY + 12, [
+        `${this.unit.name}`,
+        `Level ${this.unit.level} | Tier ${tier}/${maxTier}`,
+        `ATK ${totalAttack} | DEF ${totalDefense} | HP ${currentHp}/${maxHp}`,
+        this.activeRun ? "Active run: loadout changes affect the current push." : "No active run: safe time to rebuild this unit."
+      ].join("\n"), {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "17px",
+        color: "#e7f4f5",
+        lineSpacing: 6,
+        wordWrap: { width: actionsBodyWidth - 48 },
+      })
+      .setOrigin(0, 0);
+    this.layoutUiObjects.push(actionSummaryCard, actionSummaryText);
+
     new UnifiedButtonList({
       scene: this,
       x: buttonX,
-      y: topActionY,
+      y: topActionY + 132,
       gapY: ACTION_BUTTON_GAP,
       buttons: [
         { label: "Back", onClick: () => this.scene.start("WarbandManagementScene") },
@@ -303,7 +341,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.clearFusionButton = new SharedActionButton({
       scene: this,
       x: buttonX,
-      y: topActionY + 216,
+      y: topActionY + 348,
       label: "Clear Fusion",
       enabled: false,
       onClick: () => {
@@ -315,7 +353,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.promoteButton = new SharedActionButton({
       scene: this,
       x: buttonX,
-      y: topActionY + 282,
+      y: topActionY + 414,
       label: "Promote Unit",
       enabled: false,
       onClick: () => void this.promoteUnit(),
@@ -326,7 +364,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.equipDiceButton = new SharedActionButton({
       scene: this,
       x: buttonX,
-      y: topActionY + 84,
+      y: topActionY + 216,
       label: "Equip Selected Die",
       enabled: false,
       onClick: () => void this.equipSelectedDie(),
@@ -334,7 +372,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.unequipSlotButton = new SharedActionButton({
       scene: this,
       x: buttonX,
-      y: topActionY + 150,
+      y: topActionY + 282,
       label: "Unequip Slot Die",
       enabled: false,
       onClick: () => void this.unequipSelectedSlotDie(),

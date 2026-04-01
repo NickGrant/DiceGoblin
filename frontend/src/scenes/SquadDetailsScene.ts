@@ -65,6 +65,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
   private renameDialog?: InputModal;
   private deleteDialog?: ConfirmModal;
   private facingGuideText?: Phaser.GameObjects.Text;
+  private overviewUiObjects: Phaser.GameObjects.GameObject[] = [];
 
   constructor() {
     super({ key: "SquadDetailsScene" });
@@ -147,9 +148,9 @@ export default class SquadDetailsScene extends Phaser.Scene {
   private buildUi(): void {
     const layout = getPageLayout(this);
     const contentBodyX = layout.content.x + FRAME_MARGIN + CONTENT_INSET;
-    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + CONTENT_INSET;
+    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + CONTENT_INSET + 106;
     const contentBodyWidth = Math.max(280, layout.content.width - (FRAME_MARGIN + CONTENT_INSET) * 2);
-    const contentBodyHeight = Math.max(220, layout.content.height - FRAME_TITLE_HEIGHT - (FRAME_MARGIN + CONTENT_INSET) * 2);
+    const contentBodyHeight = Math.max(220, layout.content.height - FRAME_TITLE_HEIGHT - (FRAME_MARGIN + CONTENT_INSET) * 2 - 106);
 
     const unitPanelWidth = Math.min(UNIT_PANEL_WIDTH, Math.max(280, contentBodyWidth - GRID_SIZE - CONTENT_COLUMN_GAP));
     const unitPanelX = contentBodyX;
@@ -165,6 +166,26 @@ export default class SquadDetailsScene extends Phaser.Scene {
     const actionBodyWidth = Math.max(280, layout.buttons.width - (FRAME_MARGIN + ACTION_PANEL_PADDING) * 2);
     const actionButtonX = actionBodyX + Math.max(0, Math.floor((actionBodyWidth - 280) / 2));
     if (!this.squad) return;
+
+    this.clearOverviewUi();
+
+    const overviewLabel = this.add
+      .text(layout.content.x + 24, layout.content.y + 88, "FORMATION EDIT", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "20px",
+        color: "#f0d38a",
+      })
+      .setOrigin(0, 0);
+    const overviewBody = this.add
+      .text(layout.content.x + 24, layout.content.y + 118, `${this.squad.name} can field up to nine slots. Put durable bodies on the right-front, fragile support on the left-back, then save before leaving the screen.`, {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "19px",
+        color: "#eef4f5",
+        lineSpacing: 6,
+        wordWrap: { width: layout.content.width - 48 },
+      })
+      .setOrigin(0, 0);
+    this.overviewUiObjects.push(overviewLabel, overviewBody);
 
     this.titleText?.destroy();
     this.titleText = undefined;
@@ -197,9 +218,29 @@ export default class SquadDetailsScene extends Phaser.Scene {
     this.facingGuideText?.destroy();
     this.facingGuideText = this.add.text(gridX, gridY - 34, "Back (Left)  <- Formation ->  Front (Right)", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "16px",
-      color: "#f2f2f2",
+      fontSize: "17px",
+      color: "#f2e0b8",
     }).setOrigin(0, 0);
+
+    const squadSummaryCard = this.add
+      .rectangle(actionBodyX, actionBodyY, actionBodyWidth, 108, 0x102125, 0.65)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8db8bc, 0.3);
+    const squadSummaryText = this.add
+      .text(actionBodyX + 12, actionBodyY + 12, [
+        `Squad: ${this.squad.name}`,
+        `Units in squad: ${this.editUnitIds.size}`,
+        `Status: ${this.squad.is_active ? "Active squad" : "Reserve squad"}`,
+        this.hasActiveRun ? "Run in progress: changes should stay intentional." : "No active run: safe time to reorganize."
+      ].join("\n"), {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "18px",
+        color: "#e7f4f5",
+        lineSpacing: 7,
+        wordWrap: { width: actionBodyWidth - 24 },
+      })
+      .setOrigin(0, 0);
+    this.overviewUiObjects.push(squadSummaryCard, squadSummaryText);
 
     this.clearButton?.destroy();
     this.saveButton?.destroy();
@@ -207,7 +248,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     new UnifiedButtonList({
       scene: this,
       x: actionButtonX,
-      y: actionBodyY,
+      y: actionBodyY + 126,
       gapY: ACTION_BUTTON_GAP,
       buttons: [
         {
@@ -224,7 +265,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     this.clearButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
-      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 2,
+      y: actionBodyY + 126 + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 2,
       label: "Clear Cell",
       enabled: false,
       onClick: () => this.clearSelectedCell(),
@@ -232,14 +273,14 @@ export default class SquadDetailsScene extends Phaser.Scene {
     this.saveButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
-      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 3,
+      y: actionBodyY + 126 + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 3,
       label: "Save Squad",
       onClick: () => void this.saveTeam(),
     });
     this.activateButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
-      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 4,
+      y: actionBodyY + 126 + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 4,
       label: "Set Active",
       enabled: !this.squad.is_active,
       onClick: () => void this.activateSquad(),
@@ -247,7 +288,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
     new SharedActionButton({
       scene: this,
       x: actionButtonX,
-      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 5,
+      y: actionBodyY + 126 + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 5,
       label: "Delete Squad",
       enabled: this.canDeleteSquad(),
       onClick: () => void this.deleteSquad(),
@@ -456,6 +497,13 @@ export default class SquadDetailsScene extends Phaser.Scene {
       this.toastText?.destroy();
       this.toastText = undefined;
     });
+  }
+
+  private clearOverviewUi(): void {
+    for (const uiObject of this.overviewUiObjects) {
+      uiObject.destroy();
+    }
+    this.overviewUiObjects = [];
   }
 }
 

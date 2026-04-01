@@ -16,6 +16,7 @@ type RegionDefinition = {
   textureKey: string;
   regionDbId: number;
   energyCost: number;
+  routeLabel: string;
   intelTitle: string;
   intelDescription: string;
 };
@@ -27,6 +28,7 @@ const REGION_DEFINITIONS: RegionDefinition[] = [
     textureKey: "column_mountain",
     regionDbId: 3,
     energyCost: 3,
+    routeLabel: "Tutorial Route | 5 Nodes",
     intelTitle: "THE FARM",
     intelDescription: "Short guided route with pig-only encounters. Best place to learn formation, rewards, and rest flow.",
   },
@@ -36,6 +38,7 @@ const REGION_DEFINITIONS: RegionDefinition[] = [
     textureKey: "column_mountain",
     regionDbId: 1,
     energyCost: 5,
+    routeLabel: "Early Route | Standard Length",
     intelTitle: "MOUNTAINS",
     intelDescription: "Steady enemy pacing with dependable rewards. Recommended baseline route for early runs.",
   },
@@ -45,6 +48,7 @@ const REGION_DEFINITIONS: RegionDefinition[] = [
     textureKey: "column_swamp",
     regionDbId: 2,
     energyCost: 5,
+    routeLabel: "Advanced Route | High Attrition",
     intelTitle: "SWAMP",
     intelDescription: "Higher-risk encounters and unstable attrition. Best attempted after core warband upgrades.",
   },
@@ -59,6 +63,8 @@ export default class RegionSelectScene extends Phaser.Scene {
   private intelHintText?: Phaser.GameObjects.Text;
   private statusTitleText?: Phaser.GameObjects.Text;
   private statusBodyText?: Phaser.GameObjects.Text;
+  private energyTitleText?: Phaser.GameObjects.Text;
+  private energyBodyText?: Phaser.GameObjects.Text;
   private startRunButton?: SharedActionButton;
   private currentEnergy: { current: number; max: number } | null = null;
 
@@ -94,10 +100,29 @@ export default class RegionSelectScene extends Phaser.Scene {
 
     this.buildIntelPanel();
 
+    this.add
+      .text(layout.content.x + 26, layout.content.y + 88, "CHOOSE THE NEXT ROUTE", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "20px",
+        color: "#f0d38a",
+      })
+      .setOrigin(0, 0);
+
+    this.add
+      .text(layout.content.x + 26, layout.content.y + 118, "The Farm teaches the loop. Mountains are the baseline. Swamp is where mistakes get expensive.", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "28px",
+        color: "#f1f4f6",
+        stroke: "#11181d",
+        strokeThickness: 3,
+        wordWrap: { width: layout.content.width - 52 },
+      })
+      .setOrigin(0, 0);
+
     const gap = 18;
     const panelWidth = Math.floor((layout.content.width - gap * 4) / 3);
-    const panelHeight = Math.max(240, Math.min(380, layout.content.height - 160));
-    const panelY = layout.content.y + 90;
+    const panelHeight = Math.max(220, Math.min(260, layout.content.height - 310));
+    const panelY = layout.content.y + 196;
 
     REGION_DEFINITIONS.forEach((region, index) => {
       const panel = new RegionSelectionPanel({
@@ -114,8 +139,28 @@ export default class RegionSelectScene extends Phaser.Scene {
         onActivate: async (regionId) => this.startRun(regionId as RegionId),
         onLockedSelect: () => this.showFeedback("Region locked."),
         onUnavailableSelect: (regionId) => this.showFeedback(this.buildInsufficientEnergyMessage(regionId as RegionId)),
+        footerLabel: `${region.routeLabel} | ${region.energyCost} Energy`,
       });
       this.regionPanels.set(region.id, panel);
+    });
+
+    this.add
+      .rectangle(layout.content.x + 18, layout.content.y + layout.content.height - 126, layout.content.width - 36, 88, 0x12191e, 0.94)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0xbfa06a, 0.25);
+
+    this.energyTitleText = this.add.text(layout.content.x + 36, layout.content.y + layout.content.height - 136, "", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "18px",
+      color: "#d7c18e",
+    });
+
+    this.energyBodyText = this.add.text(layout.content.x + 36, layout.content.y + layout.content.height - 100, "", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "18px",
+      color: "#f1f4f6",
+      wordWrap: { width: layout.content.width - 72 },
+      lineSpacing: 4,
     });
 
     this.selectRegion("farm");
@@ -128,29 +173,29 @@ export default class RegionSelectScene extends Phaser.Scene {
     const layout = getPageLayout(this);
     this.intelTitleText = this.add.text(layout.buttons.x + 24, layout.buttons.y + 90, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "36px",
+      fontSize: "34px",
       color: "#f2f2f2",
       stroke: "#1a1a1a",
       strokeThickness: 3,
       wordWrap: { width: layout.buttons.width - 48 },
     });
 
-    this.intelBodyText = this.add.text(layout.buttons.x + 24, layout.buttons.y + 146, "", {
+    this.intelBodyText = this.add.text(layout.buttons.x + 24, layout.buttons.y + 144, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "22px",
+      fontSize: "21px",
       color: "#e8edf1",
-      lineSpacing: 8,
+      lineSpacing: 10,
       wordWrap: { width: layout.buttons.width - 48 },
     });
 
-    this.intelHintText = this.add.text(layout.buttons.x + 24, layout.buttons.y + layout.buttons.height - 150, "", {
+    this.intelHintText = this.add.text(layout.buttons.x + 24, layout.buttons.y + layout.buttons.height - 188, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "18px",
       color: "#b9d0d6",
       wordWrap: { width: layout.buttons.width - 48 },
     });
 
-    const statusBoxY = layout.buttons.y + layout.buttons.height - 244;
+    const statusBoxY = layout.buttons.y + layout.buttons.height - 286;
     this.add.rectangle(layout.buttons.x + 20, statusBoxY, layout.buttons.width - 40, 92, 0x1e252b, 0.92)
       .setOrigin(0, 0)
       .setStrokeStyle(1, 0xb9d0d6, 0.2);
@@ -175,7 +220,7 @@ export default class RegionSelectScene extends Phaser.Scene {
     this.startRunButton = new SharedActionButton({
       scene: this,
       x: layout.buttons.x + Math.max(0, Math.floor((layout.buttons.width - 280) / 2)),
-      y: layout.buttons.y + layout.buttons.height - 92,
+      y: layout.buttons.y + layout.buttons.height - 104,
       label: "Start Run",
       onClick: () => void this.startRun(this.selectedRegionId),
     });
@@ -279,6 +324,15 @@ export default class RegionSelectScene extends Phaser.Scene {
           : this.currentEnergy !== null
             ? `Current energy: ${this.currentEnergy.current}/${this.currentEnergy.max}. Run cost: ${selected.energyCost}.`
             : `Run cost: ${selected.energyCost} energy.`
+    );
+
+    this.energyTitleText?.setText("Selected Route");
+    this.energyBodyText?.setText(
+      !isUnlocked
+        ? `${selected.label} is still locked. Clear the previous route to open it.`
+        : this.currentEnergy !== null
+          ? `${selected.routeLabel}. Cost ${selected.energyCost}. Energy ${this.currentEnergy.current}/${this.currentEnergy.max}.`
+          : `${selected.routeLabel}. Cost ${selected.energyCost} energy.`
     );
 
     this.startRunButton?.setText(startButtonLabel).setEnabled(isUnlocked && canAffordSelected !== false);

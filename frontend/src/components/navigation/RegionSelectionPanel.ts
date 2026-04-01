@@ -15,6 +15,7 @@ export type RegionSelectionPanelConfig = {
   onLockedSelect?: (regionId: string) => void;
   onUnavailableSelect?: (regionId: string) => void;
   textureKey?: string;
+  footerLabel?: string;
 };
 
 export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
@@ -33,6 +34,8 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
   private readonly unavailableOverlay: Phaser.GameObjects.Rectangle;
   private readonly unavailableText: Phaser.GameObjects.Text;
   private readonly selectionOutline: Phaser.GameObjects.Rectangle;
+  private readonly footerBackground: Phaser.GameObjects.Rectangle;
+  private readonly footerText: Phaser.GameObjects.Text;
   private readonly panelWidth: number;
   private readonly panelHeight: number;
   private lastSelectAt = 0;
@@ -121,6 +124,22 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
       .setOrigin(0.5, 1)
       .setVisible(false);
 
+    this.footerBackground = cfg.scene.add
+      .rectangle(14, cfg.height - 58, cfg.width - 28, 40, 0x0b1114, 0.62)
+      .setOrigin(0, 0);
+
+    this.footerText = cfg.scene.add
+      .text(Math.floor(cfg.width / 2), cfg.height - 39, cfg.footerLabel?.toUpperCase() ?? "", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "18px",
+        color: "#f2e0b8",
+        stroke: "#0d0d0d",
+        strokeThickness: 2,
+        wordWrap: { width: cfg.width - 40 },
+        align: "center",
+      })
+      .setOrigin(0.5, 0.5);
+
     this.selectionOutline = cfg.scene.add
       .rectangle(0, 0, cfg.width, cfg.height)
       .setOrigin(0, 0)
@@ -134,6 +153,8 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
     this.add(this.lockText);
     this.add(this.unavailableOverlay);
     this.add(this.unavailableText);
+    this.add(this.footerBackground);
+    this.add(this.footerText);
     this.add(this.selectionOutline);
     cfg.scene.add.existing(this);
     this.applyLockedState();

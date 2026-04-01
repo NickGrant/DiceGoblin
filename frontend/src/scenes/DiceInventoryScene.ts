@@ -64,6 +64,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
   private rarityFilterButtonText?: Phaser.GameObjects.Text;
   private equippedFilterButtonText?: Phaser.GameObjects.Text;
   private actionSummaryUiObjects: Phaser.GameObjects.GameObject[] = [];
+  private contentSummaryUiObjects: Phaser.GameObjects.GameObject[] = [];
   private actionSummaryText?: Phaser.GameObjects.Text;
   private hoverDetailsText?: Phaser.GameObjects.Text;
   private toastText?: Phaser.GameObjects.Text;
@@ -136,9 +137,9 @@ export default class DiceInventoryScene extends Phaser.Scene {
   private renderDiceGrid(): void {
     const layout = getPageLayout(this);
     const contentBodyX = layout.content.x + FRAME_MARGIN;
-    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN;
+    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + 100;
     const contentBodyWidth = Math.max(280, layout.content.width - FRAME_MARGIN * 2);
-    const contentBodyHeight = Math.max(240, layout.content.height - FRAME_TITLE_HEIGHT - FRAME_MARGIN * 2);
+    const contentBodyHeight = Math.max(240, layout.content.height - FRAME_TITLE_HEIGHT - FRAME_MARGIN * 2 - 100);
 
     const dicePanelX = contentBodyX;
     const dicePanelWidth = Math.max(280, contentBodyWidth);
@@ -154,6 +155,25 @@ export default class DiceInventoryScene extends Phaser.Scene {
     } else {
       this.selectedDiceId = null;
     }
+
+    this.clearContentSummaryUi();
+    const inventoryLabel = this.add
+      .text(layout.content.x + 24, layout.content.y + 88, "INVENTORY READ", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "20px",
+        color: "#f0d38a",
+      })
+      .setOrigin(0, 0);
+    const inventoryBody = this.add
+      .text(layout.content.x + 24, layout.content.y + 118, "Sort for the best die, inspect affixes on hover, and sell only unequipped pieces when you need currency.", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "18px",
+        color: "#eef4f5",
+        lineSpacing: 6,
+        wordWrap: { width: layout.content.width - 48 },
+      })
+      .setOrigin(0, 0);
+    this.contentSummaryUiObjects.push(inventoryLabel, inventoryBody);
 
     this.diceGrid?.destroy();
     this.diceGrid = new DiceCardGrid({
@@ -247,7 +267,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
     const summaryCardX = actionsBodyX + ACTION_PANEL_PADDING;
     const summaryCardY = actionsBodyY + ACTION_PANEL_PADDING;
     const summaryCardWidth = Math.max(120, actionsBodyWidth - ACTION_PANEL_PADDING * 2);
-    const summaryCardHeight = Math.min(180, Math.max(118, Math.floor(actionsBodyHeight * 0.24)));
+    const summaryCardHeight = Math.min(180, Math.max(132, Math.floor(actionsBodyHeight * 0.27)));
     const summaryCard = this.add
       .rectangle(summaryCardX, summaryCardY, summaryCardWidth, summaryCardHeight, 0x0f2024, 0.56)
       .setOrigin(0, 0)
@@ -257,16 +277,16 @@ export default class DiceInventoryScene extends Phaser.Scene {
     this.actionSummaryText = this.add
       .text(summaryCardX + 12, summaryCardY + 10, "INVENTORY SUMMARY\nLoading...", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "18px",
+        fontSize: "16px",
         color: "#e7f4f5",
-        lineSpacing: 9,
+        lineSpacing: 7,
         wordWrap: { width: Math.max(120, summaryCardWidth - 24) },
       })
       .setOrigin(0, 0);
     this.actionSummaryUiObjects.push(this.actionSummaryText);
 
     const hoverCardY = summaryCardY + summaryCardHeight + 12;
-    const hoverCardHeight = 150;
+    const hoverCardHeight = 118;
     const hoverCard = this.add
       .rectangle(summaryCardX, hoverCardY, summaryCardWidth, hoverCardHeight, 0x10292e, 0.62)
       .setOrigin(0, 0)
@@ -276,9 +296,9 @@ export default class DiceInventoryScene extends Phaser.Scene {
     this.hoverDetailsText = this.add
       .text(summaryCardX + 12, hoverCardY + 10, "AFFIX DETAILS\nHover a die to inspect its affixes.", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "14px",
+        fontSize: "13px",
         color: "#e2f8fa",
-        lineSpacing: 5,
+        lineSpacing: 4,
         wordWrap: { width: Math.max(120, summaryCardWidth - 24) },
       })
       .setOrigin(0, 0);
@@ -405,10 +425,9 @@ export default class DiceInventoryScene extends Phaser.Scene {
     this.actionSummaryText.setText([
       "INVENTORY SUMMARY",
       `Dice: ${visibleDice.length} / ${this.dice.length}`,
-      `Selected Die: ${selectedDie?.displayName ?? "None"}`,
-      `Equipped To: ${equippedUnitName}`,
-      `Value: ${selectedDie?.value ?? 0}`,
-      `Sell Price: ${selectedDie?.sellValue ?? 0}`,
+      `Selected: ${selectedDie?.displayName ?? "None"}`,
+      `Equipped: ${equippedUnitName}`,
+      `Sell: ${selectedDie?.sellValue ?? 0}`,
     ].join("\n"));
 
     this.hoverDetailsText.setText(this.buildHoverDetails(detailDie, hoveredDie !== null));
@@ -426,6 +445,13 @@ export default class DiceInventoryScene extends Phaser.Scene {
     this.actionSummaryText = undefined;
     this.hoverDetailsText = undefined;
     this.clearCompactControls();
+  }
+
+  private clearContentSummaryUi(): void {
+    for (const uiObject of this.contentSummaryUiObjects) {
+      uiObject.destroy();
+    }
+    this.contentSummaryUiObjects = [];
   }
 
   private createCompactControlButton(
@@ -566,12 +592,15 @@ export default class DiceInventoryScene extends Phaser.Scene {
       return "AFFIX DETAILS\nHover a die to inspect its affixes.";
     }
 
-    const affixLines = die.affixes.map((affix) => {
+    const affixLines = die.affixes.slice(0, 2).map((affix) => {
       if (affix.empty) {
         return "Empty Slot";
       }
-      return `${affix.label} | ${affix.rarity.toUpperCase()} | ${affix.kindLabel}\n${affix.valueLabel} | ${affix.description}`;
+      return `${affix.label} | ${affix.rarity.toUpperCase()}\n${affix.valueLabel}`;
     });
+    if (die.affixes.length > 2) {
+      affixLines.push(`+${die.affixes.length - 2} more affix entries`);
+    }
 
     return [
       hovered ? "AFFIX DETAILS (HOVER)" : "AFFIX DETAILS",

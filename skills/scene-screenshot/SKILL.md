@@ -38,7 +38,7 @@ npm run capture:scene -- --scene map --base-url http://127.0.0.1:5173/
 ## Rules
 
 - Prefer the root capture command over ad hoc Playwright snippets so the URL params and ready signal stay consistent.
-- Run capture commands one at a time when multiple scenes need review against the same local frontend.
+- Do not run capture commands in parallel. Run them one at a time, especially when multiple scenes need review against the same local frontend session.
 - When a scene loads async data, let the command wait for the scene-ready flag and use `--settle-ms` if the visual state needs a little extra time.
 - If capture depends on the live backend, confirm `backend/.env` allows both `http://localhost:5173` and `http://127.0.0.1:5173` in `DEV_ALLOWED_ORIGINS`.
 - If the scene requires live API-backed state, point the command at the running local frontend/backend instead of inventing mock navigation steps.

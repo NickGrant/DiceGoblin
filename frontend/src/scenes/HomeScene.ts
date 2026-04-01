@@ -7,6 +7,8 @@ import { isDevPanelEnabled } from "../debug/devFlags";
 import { apiClient } from "../services/apiClient";
 import { getPageLayout, type LayoutRect } from "../layout/pageLayout";
 import HomeNavigationPanel from "../components/navigation/HomeNavigationPanel";
+import ContentAreaFrame from "../components/layout/ContentAreaFrame";
+import { TEXT_BODY, TEXT_HEADER } from "../const/Text";
 
 const HOME_PANEL_TITLE_HEIGHT = 56;
 
@@ -20,6 +22,17 @@ export default class HomeScene extends Phaser.Scene {
     const layout = getPageLayout(this);
     mountBottomCommandStrip(this);
 
+    const actionsFrame = new ContentAreaFrame({
+      scene: this,
+      x: layout.buttons.x,
+      y: layout.buttons.y,
+      width: layout.buttons.width,
+      height: layout.buttons.height,
+      title: "Camp Actions",
+      bodyColor: 0x344046,
+    });
+    actionsFrame.setDepth(-700);
+
     const contentArea: LayoutRect = {
       x: layout.content.x,
       y: layout.content.y,
@@ -27,9 +40,33 @@ export default class HomeScene extends Phaser.Scene {
       height: layout.content.height,
     };
 
+    this.renderCampIntro(contentArea);
     this.renderDevPanelButton(layout);
     this.renderShopButton(layout);
     void this.renderDynamicRunArea(contentArea);
+  }
+
+  private renderCampIntro(contentArea: LayoutRect): void {
+    this.add
+      .rectangle(contentArea.x + 18, contentArea.y + 84, contentArea.width - 36, 86, 0x121a1f, 0.82)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0xcaa860, 0.18);
+    this.add
+      .text(contentArea.x + 24, contentArea.y + 86, "CAMP OVERVIEW", {
+        ...TEXT_BODY,
+        fontSize: "18px",
+        color: "#f0d38a",
+      })
+      .setOrigin(0, 0);
+
+    this.add
+      .text(contentArea.x + 24, contentArea.y + 112, "Choose the next run, then use the side actions to prep between expeditions.", {
+        ...TEXT_HEADER,
+        fontSize: "20px",
+        color: "#f0f4f5",
+        wordWrap: { width: contentArea.width - 80 },
+      })
+      .setOrigin(0, 0);
   }
 
   private renderDevPanelButton(layout: ReturnType<typeof getPageLayout>): void {
@@ -40,7 +77,7 @@ export default class HomeScene extends Phaser.Scene {
     new SharedActionButton({
       scene: this,
       x: layout.buttons.x + Math.max(10, Math.floor((layout.buttons.width - 280) / 2)),
-      y: layout.buttons.y + 74,
+      y: layout.buttons.y + 278,
       label: "Dev Panel",
       onClick: () => {
         this.scene.start("DevPanelScene");
@@ -49,10 +86,22 @@ export default class HomeScene extends Phaser.Scene {
   }
 
   private renderShopButton(layout: ReturnType<typeof getPageLayout>): void {
+    this.add
+      .text(layout.buttons.x + 24, layout.buttons.y + 90, "Spend soft currency on early dice, starter recruits, and the daily deal before the next run.", {
+        ...TEXT_BODY,
+        fontSize: "19px",
+        color: "#eef3f4",
+        stroke: "#11181d",
+        strokeThickness: 1,
+        lineSpacing: 6,
+        wordWrap: { width: layout.buttons.width - 48 },
+      })
+      .setOrigin(0, 0);
+
     new SharedActionButton({
       scene: this,
       x: layout.buttons.x + Math.max(10, Math.floor((layout.buttons.width - 280) / 2)),
-      y: layout.buttons.y + 148,
+      y: layout.buttons.y + 190,
       label: "Shop",
       onClick: () => {
         this.scene.start("ShopScene");
@@ -84,9 +133,9 @@ export default class HomeScene extends Phaser.Scene {
 
   private resolveRunPanelArea(contentArea: LayoutRect, bodyImageKey: string): LayoutRect {
     const fallbackWidth = contentArea.width;
-    const fallbackHeight = contentArea.height;
+    const fallbackHeight = Math.max(0, contentArea.height - 178);
     if (!this.textures.exists(bodyImageKey)) {
-      return { ...contentArea, width: fallbackWidth, height: fallbackHeight };
+      return { ...contentArea, y: contentArea.y + 178, width: fallbackWidth, height: fallbackHeight };
     }
 
     const source = this.textures.get(bodyImageKey).getSourceImage() as { width?: number; height?: number } | undefined;
@@ -98,12 +147,9 @@ export default class HomeScene extends Phaser.Scene {
 
     return {
       x: contentArea.x + Math.floor((contentArea.width - panelWidth) / 2),
-      y: contentArea.y + Math.floor((contentArea.height - panelHeight) / 2),
+      y: contentArea.y + 178 + Math.max(0, Math.floor((fallbackHeight - panelHeight) / 2)),
       width: panelWidth,
       height: panelHeight,
     };
   }
 }
-
-
-

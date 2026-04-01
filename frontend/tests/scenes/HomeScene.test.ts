@@ -8,6 +8,7 @@ vi.mock("phaser", () => {
 
 vi.mock("../../src/components/BackgroundImage", () => ({ default: class {} }));
 vi.mock("../../src/components/BottomCommandStrip", () => ({ mountBottomCommandStrip: vi.fn() }));
+vi.mock("../../src/components/layout/ContentAreaFrame", () => ({ default: class { setDepth() { return this; } } }));
 vi.mock("../../src/components/clickable-panel/SharedActionButton", () => ({
   default: class {
     constructor(_cfg: unknown) {}
@@ -46,6 +47,15 @@ describe("HomeScene", () => {
 
     const scene = new HomeScene() as any;
     scene.textures = { exists: vi.fn().mockReturnValue(false) };
+    scene.add = {
+      rectangle: vi.fn(() => ({
+        setOrigin: vi.fn().mockReturnThis(),
+        setStrokeStyle: vi.fn().mockReturnThis(),
+      })),
+      text: vi.fn(() => ({
+        setOrigin: vi.fn().mockReturnThis(),
+      })),
+    };
 
     scene.create();
     await Promise.resolve();

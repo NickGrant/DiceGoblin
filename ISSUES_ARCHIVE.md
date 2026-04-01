@@ -6,6 +6,16 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Polish first-session presentation across landing home and region select
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: Improve the first-release visual impression and clarity of the onboarding/start-run surfaces. Focus on `LandingScene`, `HomeScene`, and `RegionSelectScene` so they better match the visual style guide, use available space intentionally, communicate primary actions more clearly, and feel less like debug-era scaffolding before the first external player wave.
+resolution: Rebuilt the landing, home, and region-select surfaces with stronger hierarchy, clearer primary/secondary actions, and route-selection messaging that better explains the early progression path while keeping the underlying flow unchanged.
+
+---
 title: Restore deterministic scene screenshot review workflow against current local frontend
 status: complete
 priority: high

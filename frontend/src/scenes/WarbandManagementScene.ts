@@ -107,9 +107,9 @@ export default class WarbandManagementScene extends Phaser.Scene {
   private buildUi(): void {
     const layout = getPageLayout(this);
     const contentBodyX = layout.content.x + FRAME_MARGIN;
-    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN;
+    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + 102;
     const contentBodyWidth = Math.max(280, layout.content.width - FRAME_MARGIN * 2);
-    const contentBodyHeight = Math.max(240, layout.content.height - FRAME_TITLE_HEIGHT - FRAME_MARGIN * 2);
+    const contentBodyHeight = Math.max(240, layout.content.height - FRAME_TITLE_HEIGHT - FRAME_MARGIN * 2 - 102);
 
     const actionsBodyX = layout.buttons.x + FRAME_MARGIN;
     const actionsBodyY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN;
@@ -122,6 +122,24 @@ export default class WarbandManagementScene extends Phaser.Scene {
     const colW = columns.columnWidth;
 
     this.clearSummaryUi();
+
+    const headerText = this.add
+      .text(layout.content.x + 24, layout.content.y + 88, "ROSTER AND SQUADS", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "20px",
+        color: "#f0d38a",
+      })
+      .setOrigin(0, 0);
+    const subheadText = this.add
+      .text(layout.content.x + 24, layout.content.y + 118, "Review every unit on the left, keep squads readable on the right, and jump into details when a recruit needs equipment or promotion work.", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "19px",
+        color: "#eef4f5",
+        lineSpacing: 6,
+        wordWrap: { width: layout.content.width - 48 },
+      })
+      .setOrigin(0, 0);
+    this.summaryUiObjects.push(headerText, subheadText);
 
     this.unitPanel?.destroy();
     this.unitPanel = new UnitCardGrid({
@@ -153,6 +171,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
       `Units: ${this.units.length}`,
       `Squads: ${this.squads.length}`,
       `Active: ${activeSquad?.name ?? "None"}`,
+      "Tip: open a unit for dice and promotion details.",
     ];
 
     const summaryCardX = actionsBodyX + ACTION_PANEL_PADDING;
@@ -175,7 +194,24 @@ export default class WarbandManagementScene extends Phaser.Scene {
       .setOrigin(0, 0);
     this.summaryUiObjects.push(summaryCard, summaryText);
 
-    const actionButtonY = summaryCardY + summaryCardHeight + ACTION_CONTENT_GAP;
+    const helperCardY = summaryCardY + summaryCardHeight + 12;
+    const helperCardHeight = 74;
+    const helperCard = this.add
+      .rectangle(summaryCardX, helperCardY, summaryCardWidth, helperCardHeight, 0x0b191d, 0.66)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8db8bc, 0.28);
+    const helperText = this.add
+      .text(summaryCardX + 12, helperCardY + 10, "Recommended flow:\n1. Check roster\n2. Open squad\n3. Save changes", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "15px",
+        color: "#dff0f2",
+        lineSpacing: 4,
+        wordWrap: { width: Math.max(120, summaryCardWidth - 24) },
+      })
+      .setOrigin(0, 0);
+    this.summaryUiObjects.push(helperCard, helperText);
+
+    const actionButtonY = helperCardY + helperCardHeight + ACTION_CONTENT_GAP;
     const actionButtonX =
       actionsBodyX + Math.max(0, Math.floor((actionsBodyWidth - ACTION_BUTTON_WIDTH) / 2));
 
@@ -267,8 +303,5 @@ export default class WarbandManagementScene extends Phaser.Scene {
     this.summaryUiObjects = [];
   }
 }
-
-
-
 
 
