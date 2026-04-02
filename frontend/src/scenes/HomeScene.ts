@@ -57,7 +57,7 @@ export default class HomeScene extends Phaser.Scene {
     this.add.text(
       safe.x + textInset + columnWidth + columnGap,
       safe.y + 22,
-      "Warband and Inventory are your management spaces, and Shop is where you spend currency between expeditions.",
+      "Warband and Inventory are your management spaces, and Shop is where you spend teeth between expeditions.",
       {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "25px",

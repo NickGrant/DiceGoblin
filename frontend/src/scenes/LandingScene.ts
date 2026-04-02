@@ -10,7 +10,7 @@ import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 
 const INTRO_COPY =
-  "Build a scrappy warband, push through hostile routes, and come home with dice, recruits, and just enough coin to make the next run possible.";
+  "Build a scrappy warband, push through hostile routes, and come home with dice, recruits, and enough teeth to make the next run possible.";
 const ACCOUNT_COPY = "Discord login keeps your warband and run progress tied to one account.";
 const RETURNING_COPY = "Your account is ready. Head back to camp and choose the next route.";
 
@@ -166,7 +166,7 @@ export default class LandingScene extends Phaser.Scene {
       },
       {
         title: "Rewards",
-        body: "Bring back currency, dice, and new bodies to improve the next expedition.",
+        body: "Bring back teeth, dice, and new bodies to improve the next expedition.",
       },
     ];
 
@@ -210,5 +210,4 @@ export default class LandingScene extends Phaser.Scene {
     });
   }
 }
-
 

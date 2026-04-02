@@ -7,6 +7,7 @@ const STRIP_DEPTH = 100000;
 const STRIP_WIDTH = 980;
 const STRIP_HEIGHT = 84;
 const ICON_SIZE = 40;
+const RESOURCE_ICON_SIZE = 16;
 const ENERGY_COLOR = "#00e015";
 const CURRENCY_COLOR = "#e0d300";
 const PLAYER_NAME_COLOR = "#23272A";
@@ -41,7 +42,9 @@ export default class BottomCommandStrip {
   private readonly stripBackground: Phaser.GameObjects.Image;
   private readonly navButtons: StripButton[];
   private readonly logoutButton: StripButton;
+  private readonly energyIcon?: Phaser.GameObjects.Image;
   private readonly energyText: Phaser.GameObjects.Text;
+  private readonly teethIcon?: Phaser.GameObjects.Image;
   private readonly currencyText: Phaser.GameObjects.Text;
   private readonly playerNameText: Phaser.GameObjects.Text;
 
@@ -59,16 +62,22 @@ export default class BottomCommandStrip {
       fallbackColor: 0xe09d70,
     });
 
+    this.energyIcon = scene.textures.exists("icon_energy_small")
+      ? scene.add.image(0, 0, "icon_energy_small").setOrigin(0.5, 0.5).setDisplaySize(RESOURCE_ICON_SIZE, RESOURCE_ICON_SIZE)
+      : undefined;
     this.energyText = scene.add.text(0, 0, "-- / --", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "18px",
       color: ENERGY_COLOR,
-    }).setOrigin(0.5, 0.5);
+    }).setOrigin(0, 0.5);
+    this.teethIcon = scene.textures.exists("icon_tooth_small")
+      ? scene.add.image(0, 0, "icon_tooth_small").setOrigin(0.5, 0.5).setDisplaySize(RESOURCE_ICON_SIZE, RESOURCE_ICON_SIZE)
+      : undefined;
     this.currencyText = scene.add.text(0, 0, "0", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "18px",
       color: CURRENCY_COLOR,
-    }).setOrigin(0.5, 0.5);
+    }).setOrigin(0, 0.5);
     this.playerNameText = scene.add.text(0, 0, this.resolvePlayerName(), {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "20px",
@@ -88,7 +97,9 @@ export default class BottomCommandStrip {
   private destroy(): void {
     this.scene.scale.off("resize", this.reposition, this);
     this.stripBackground.destroy();
+    this.energyIcon?.destroy();
     this.energyText.destroy();
+    this.teethIcon?.destroy();
     this.currencyText.destroy();
     this.playerNameText.destroy();
     this.destroyStripButton(this.logoutButton);
@@ -100,7 +111,9 @@ export default class BottomCommandStrip {
   private setLayerProps(): void {
     const objects: Array<{ setScrollFactor: (factor: number) => unknown; setDepth: (depth: number) => unknown }> = [
       this.stripBackground,
+      ...(this.energyIcon ? [this.energyIcon] : []),
       this.energyText,
+      ...(this.teethIcon ? [this.teethIcon] : []),
       this.currencyText,
       this.playerNameText,
       ...this.navButtons.flatMap((button) => [button.visual, button.hitZone, button.tooltip]),
@@ -191,8 +204,10 @@ export default class BottomCommandStrip {
     }
 
     const textY = top + 29;
-    this.energyText.setPosition(left + 439, textY);
-    this.currencyText.setPosition(left + 521, textY);
+    this.energyIcon?.setPosition(left + 413, textY);
+    this.energyText.setPosition(left + 425, textY);
+    this.teethIcon?.setPosition(left + 503, textY);
+    this.currencyText.setPosition(left + 515, textY);
     this.playerNameText.setPosition(left + 684, textY);
 
     const logoutX = left + 878;

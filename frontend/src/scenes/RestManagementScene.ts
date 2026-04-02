@@ -437,7 +437,7 @@ export default class RestManagementScene extends Phaser.Scene {
     }
     const res = await apiClient.purchaseRestStoreItem(this.runId, this.nodeId, itemType);
     if (!res.ok) {
-      this.showToast(`Store purchase failed: ${res.error.message}`);
+      this.showToast(`Store purchase failed: ${this.toPlayerFacingMessage(res.error.message)}`);
       return;
     }
 
@@ -447,6 +447,12 @@ export default class RestManagementScene extends Phaser.Scene {
       : `Dice ${(purchase as { dice_instance_id?: string }).dice_instance_id ?? ""}`;
     this.showToast(`Purchased ${itemLabel}.`, "#ccffcc");
     this.scene.restart({ runId: this.runId, nodeId: this.nodeId });
+  }
+
+  private toPlayerFacingMessage(message: string): string {
+    return message
+      .replace(/soft currency/gi, "teeth")
+      .replace(/\bcurrency\b/gi, "teeth");
   }
 
   private clearOverviewUi(): void {

@@ -17,6 +17,7 @@ export default class ShopScene extends Phaser.Scene {
   private static readonly ROW_BORDER = 0x6f838f;
   private static readonly BUY_BG = 0xb8873a;
   private static readonly BUY_BG_HOVER = 0xd29b42;
+  private static readonly TOOTH_ICON_SIZE = 34;
 
   constructor() {
     super({ key: "ShopScene" });
@@ -96,7 +97,15 @@ export default class ShopScene extends Phaser.Scene {
     const dailyY = contentY + topSectionHeight + 16;
     const dailyHeight = Math.max(78, layout.content.height - (dailyY - layout.content.y) - 18);
 
-    const title = this.add.text(contentX, contentY, `Currency: ${catalog.currency_soft}`, {
+    if (this.textures.exists("icon_tooth_large")) {
+      const toothIcon = this.add
+        .image(contentX + 18, contentY + 20, "icon_tooth_large")
+        .setOrigin(0.5, 0.5)
+        .setDisplaySize(ShopScene.TOOTH_ICON_SIZE, ShopScene.TOOTH_ICON_SIZE);
+      this.contentObjects.push(toothIcon);
+    }
+
+    const title = this.add.text(contentX + 44, contentY, `Teeth: ${catalog.currency_soft}`, {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "25px",
       color: "#f5f5f5",
@@ -156,7 +165,7 @@ export default class ShopScene extends Phaser.Scene {
         y: rowY,
         width,
         title: item.label,
-        subtitle: `Cost ${item.cost}`,
+        subtitle: `${item.cost} teeth`,
         buttonLabel: "Buy",
         onClick: () => void this.purchase("basic_dice", item.product_id),
       });
@@ -173,7 +182,7 @@ export default class ShopScene extends Phaser.Scene {
         y: rowY,
         width,
         title: item.name,
-        subtitle: `${roleLabel}  |  Cost ${item.cost}`,
+        subtitle: `${roleLabel}  |  ${item.cost} teeth`,
         buttonLabel: "Hire",
         onClick: () => void this.purchase("basic_unit", item.product_id),
       });
@@ -205,7 +214,7 @@ export default class ShopScene extends Phaser.Scene {
       stroke: "#1b2228",
       strokeThickness: 2,
     });
-    const offerMeta = this.add.text(startX, startY + 34, `Cost ${daily.cost}  |  ${daily.shop_date}`, {
+    const offerMeta = this.add.text(startX, startY + 34, `${daily.cost} teeth  |  ${daily.shop_date}`, {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "15px",
       color: "#dbe4e8",
@@ -310,8 +319,14 @@ export default class ShopScene extends Phaser.Scene {
       this.showToast("Purchase complete.", "#ccffcc");
       await this.loadShop();
     } catch (error) {
-      this.showToast(error instanceof Error ? error.message : "Purchase failed.");
+      this.showToast(this.toPlayerFacingMessage(error instanceof Error ? error.message : "Purchase failed."));
     }
+  }
+
+  private toPlayerFacingMessage(message: string): string {
+    return message
+      .replace(/soft currency/gi, "teeth")
+      .replace(/\bcurrency\b/gi, "teeth");
   }
 
   private showToast(message: string, color = "#ffcccc"): void {

@@ -77,6 +77,26 @@
                   },
                   {
                       "type":  "image",
+                      "key":  "icon_energy_small",
+                      "url":  "assets/ui/icons/energy_16.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_energy_large",
+                      "url":  "assets/ui/icons/energy_64.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_tooth_small",
+                      "url":  "assets/ui/icons/tooth_16.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_tooth_large",
+                      "url":  "assets/ui/icons/tooth_64.png"
+                  },
+                  {
+                      "type":  "image",
                       "key":  "icon_encounter_boss",
                       "url":  "assets/ui/icons/icon_encounter_boss.png"
                   },

@@ -165,7 +165,7 @@ export default class InventoryScene extends Phaser.Scene {
       })
       .setOrigin(0, 0);
     const inventoryBody = this.add
-      .text(layout.content.x + 24, layout.content.y + 118, "Sort for the best die, inspect affixes on hover, and sell only unequipped pieces when you need currency.", {
+      .text(layout.content.x + 24, layout.content.y + 118, "Sort for the best die, inspect affixes on hover, and sell only unequipped pieces when you need more teeth.", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "18px",
         color: "#eef4f5",
@@ -245,7 +245,7 @@ export default class InventoryScene extends Phaser.Scene {
       this.hoveredDiceId = null;
       this.renderDiceGrid();
       this.refreshActionSummary();
-      this.showToast(`Sold ${selectedDie.displayName} for ${response.data.sell_value}.`, "#d8ffd6");
+      this.showToast(`Sold ${selectedDie.displayName} for ${response.data.sell_value} teeth.`, "#d8ffd6");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unexpected error.";
       this.showToast(`Sell failed: ${message}`);
@@ -427,7 +427,7 @@ export default class InventoryScene extends Phaser.Scene {
       `Dice: ${visibleDice.length} / ${this.dice.length}`,
       `Selected: ${selectedDie?.displayName ?? "None"}`,
       `Equipped: ${equippedUnitName}`,
-      `Sell: ${selectedDie?.sellValue ?? 0}`,
+      `Sell Value: ${selectedDie?.sellValue ?? 0} teeth`,
     ].join("\n"));
 
     this.hoverDetailsText.setText(this.buildHoverDetails(detailDie, hoveredDie !== null));

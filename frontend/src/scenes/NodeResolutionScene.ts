@@ -393,7 +393,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       if (!claimRes.ok) {
         if (debugConfig.enabled) {
           const fallbackClaimSummary = {
-            rewards: ["Soft Currency +25", "Unit XP Award +20 each"],
+            rewards: ["Teeth +25", "Unit XP Award +20 each"],
             progression: [],
           };
           const unlockedMsg = formatUnlockedNodes(resolveRes.data.next.unlocked_node_ids);
@@ -1789,7 +1789,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
     const rewardLines: string[] = [];
     if (Number.isFinite(soft) && soft > 0) {
-      rewardLines.push(`Soft Currency +${Math.floor(soft)}`);
+      rewardLines.push(`Teeth +${Math.floor(soft)}`);
     }
     if (Number.isFinite(xpTotal) && xpTotal > 0) {
       rewardLines.push(`Unit XP Award +${Math.floor(xpTotal)} each`);

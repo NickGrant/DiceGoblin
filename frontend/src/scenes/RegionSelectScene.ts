@@ -65,6 +65,7 @@ export default class RegionSelectScene extends Phaser.Scene {
   private statusBodyText?: Phaser.GameObjects.Text;
   private energyTitleText?: Phaser.GameObjects.Text;
   private energyBodyText?: Phaser.GameObjects.Text;
+  private energyInfoIcon?: Phaser.GameObjects.Image;
   private startRunButton?: SharedActionButton;
   private currentEnergy: { current: number; max: number } | null = null;
 
@@ -139,7 +140,7 @@ export default class RegionSelectScene extends Phaser.Scene {
         onActivate: async (regionId) => this.startRun(regionId as RegionId),
         onLockedSelect: () => this.showFeedback("Region locked."),
         onUnavailableSelect: (regionId) => this.showFeedback(this.buildInsufficientEnergyMessage(regionId as RegionId)),
-        footerLabel: `${region.routeLabel} | ${region.energyCost} Energy`,
+        footerLabel: `${region.routeLabel} | ${region.energyCost} energy`,
       });
       this.regionPanels.set(region.id, panel);
     });
@@ -149,13 +150,20 @@ export default class RegionSelectScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setStrokeStyle(1, 0xbfa06a, 0.25);
 
-    this.energyTitleText = this.add.text(layout.content.x + 36, layout.content.y + layout.content.height - 136, "", {
+    this.energyInfoIcon = this.hasTexture("icon_energy_large")
+      ? this.add
+          .image(layout.content.x + 60, layout.content.y + layout.content.height - 82, "icon_energy_large")
+          .setOrigin(0.5, 0.5)
+          .setDisplaySize(38, 38)
+      : undefined;
+
+    this.energyTitleText = this.add.text(layout.content.x + 90, layout.content.y + layout.content.height - 136, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "18px",
       color: "#d7c18e",
     });
 
-    this.energyBodyText = this.add.text(layout.content.x + 36, layout.content.y + layout.content.height - 100, "", {
+    this.energyBodyText = this.add.text(layout.content.x + 90, layout.content.y + layout.content.height - 100, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "18px",
       color: "#f1f4f6",
@@ -224,6 +232,11 @@ export default class RegionSelectScene extends Phaser.Scene {
       label: "Start Run",
       onClick: () => void this.startRun(this.selectedRegionId),
     });
+  }
+
+  private hasTexture(key: string): boolean {
+    const textures = (this as Phaser.Scene & { textures?: { exists?: (textureKey: string) => boolean } }).textures;
+    return typeof textures?.exists === "function" && textures.exists(key);
   }
 
   private async loadRegionUnlocks(): Promise<void> {
