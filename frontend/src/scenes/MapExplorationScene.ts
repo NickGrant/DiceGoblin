@@ -137,6 +137,9 @@ export default class MapExplorationScene extends Phaser.Scene {
       this.runEnvelope = run;
 
       const layout = getPageLayout(this);
+      const availableCount = nodes.filter((node) => String(node.status) === "available").length;
+      const clearedCount = nodes.filter((node) => String(node.status) === "cleared").length;
+      const lockedCount = nodes.filter((node) => String(node.status) === "locked").length;
       const overviewLabel = this.add
         .text(layout.content.x + 24, layout.content.y + 84, "ROUTE OVERVIEW", {
           fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
@@ -153,7 +156,40 @@ export default class MapExplorationScene extends Phaser.Scene {
           wordWrap: { width: layout.content.width - 48 },
         })
         .setOrigin(0, 0);
-      this.overviewUiObjects.push(overviewLabel, overviewBody);
+      const chipObjects: Phaser.GameObjects.GameObject[] = [];
+      if (typeof (this.add as unknown as { rectangle?: unknown }).rectangle === "function") {
+        const chipY = layout.content.y + 160;
+        const chipGap = 12;
+        const chipWidth = Math.floor((layout.content.width - 48 - chipGap * 2) / 3);
+        const chipConfigs = [
+          { label: "Available", value: availableCount, stroke: 0x8bdfe0 },
+          { label: "Cleared", value: clearedCount, stroke: 0x99e09c },
+          { label: "Locked", value: lockedCount, stroke: 0xffd89e },
+        ];
+        chipConfigs.forEach((chip, index) => {
+          const chipX = layout.content.x + 24 + index * (chipWidth + chipGap);
+          const card = this.add
+            .rectangle(chipX, chipY, chipWidth, 54, 0x11181d, 0.55)
+            .setOrigin(0, 0)
+            .setStrokeStyle(1, chip.stroke, 0.5);
+          const label = this.add
+            .text(chipX + 12, chipY + 9, chip.label.toUpperCase(), {
+              fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+              fontSize: "13px",
+              color: "#dfe8ea",
+            })
+            .setOrigin(0, 0);
+          const value = this.add
+            .text(chipX + 12, chipY + 27, String(chip.value), {
+              fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+              fontSize: "18px",
+              color: "#ffffff",
+            })
+            .setOrigin(0, 0);
+          chipObjects.push(card, label, value);
+        });
+      }
+      this.overviewUiObjects.push(overviewLabel, overviewBody, ...chipObjects);
 
       this.nodeList = new NodeList(
         this,
@@ -165,9 +201,9 @@ export default class MapExplorationScene extends Phaser.Scene {
         {
           scatterRect: new Phaser.Geom.Rectangle(
             layout.content.x + 24,
-            layout.content.y + CONTENT_BODY_TOP_OFFSET + 64,
+            layout.content.y + CONTENT_BODY_TOP_OFFSET + 126,
             Math.max(220, layout.content.width - 48),
-            Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - CONTENT_BODY_BOTTOM_PADDING - 64)
+            Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - CONTENT_BODY_BOTTOM_PADDING - 126)
           ),
           nodeSize: 64,
           onNodeClick: (node) => this.handleNodeClick(node),
@@ -310,7 +346,5 @@ export default class MapExplorationScene extends Phaser.Scene {
     });
   }
 }
-
-
 
 

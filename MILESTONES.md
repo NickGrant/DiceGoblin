@@ -8,8 +8,8 @@ status: in-progress
 execution_window: open
 is_current: yes
 issues:
-  - Redesign home shell and rename inventory/currency surfaces
   - Tighten run-map combat-result and run-summary readability
+  - Rework rest management scene readability and structure
   - Record first-release manual gate evidence and release checklist
 description: |
   Convert the gameplay-complete MVP into a first-release-ready build by polishing the

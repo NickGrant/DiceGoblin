@@ -3,22 +3,22 @@
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
 ---
-title: Redesign home shell and rename inventory/currency surfaces
-status: in-progress
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 31 - First Release UI Polish and Release Prep
-description: Rebuild the home screen around the new color-block layout, update the persistent bottom navigation shell to match the new structure, rename Dice Inventory to Inventory across scene/file/reference surfaces, and remove player-facing hard-currency language in favor of a single currency label.
-
----
 title: Tighten run-map combat-result and run-summary readability
 status: in-progress
 priority: medium
 execution: active
 ready: yes
 milestone: Milestone 31 - First Release UI Polish and Release Prep
-description: Do a readability and layout pass on `MapExplorationScene`, `NodeResolutionScene`, `RestManagementScene`, and `RunEndSummaryScene` to improve moment-to-moment comprehension. Prioritize stronger hierarchy for run condition and outcomes, more polished summary presentation, and better perceived continuity between map, combat result, rest, and end-of-run states.
+description: Do a readability and layout pass on `MapExplorationScene`, `NodeResolutionScene`, and `RunEndSummaryScene` to improve moment-to-moment comprehension. Prioritize stronger hierarchy for run condition and outcomes, more polished summary presentation, and better perceived continuity between map, combat result, and end-of-run states.
+
+---
+title: Rework rest management scene readability and structure
+status: unstarted
+priority: medium
+execution: deferred
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: Do a more substantial presentation and layout pass on `RestManagementScene`. The current rest flow is functional, but the scene still needs dedicated readability, spacing, and action-hierarchy work before it feels release-ready.
 
 ---
 title: Record first-release manual gate evidence and release checklist

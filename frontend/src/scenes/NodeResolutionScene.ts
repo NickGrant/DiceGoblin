@@ -23,6 +23,8 @@ import FormationGrid3x3, {
 const ACTION_BODY_TOP_OFFSET = 72;
 const CONTENT_BODY_TOP_OFFSET = 74;
 const CONTENT_BODY_BOTTOM_PADDING = 22;
+const STATUS_CARD_HEIGHT = 88;
+const RESOLUTION_BODY_TOP_GAP = 24;
 const RESOLVE_TIMEOUT_MS = 12_000;
 const TICK_AUTOPLAY_STEP_MS = 850;
 const TICK_PLAYBACK_SPEEDS = [1, 2, 4] as const;
@@ -75,6 +77,8 @@ export default class NodeResolutionScene extends Phaser.Scene {
   private statusText?: Phaser.GameObjects.Text;
   private detailText?: Phaser.GameObjects.Text;
   private errorText?: Phaser.GameObjects.Text;
+  private statusCard?: Phaser.GameObjects.Rectangle;
+  private errorCard?: Phaser.GameObjects.Rectangle;
   private resolutionUiObjects: Phaser.GameObjects.GameObject[] = [];
   private resolveTimeoutMs = RESOLVE_TIMEOUT_MS;
   private logMaskGraphics?: Phaser.GameObjects.Graphics;
@@ -136,31 +140,71 @@ export default class NodeResolutionScene extends Phaser.Scene {
       bodyColor: 0x006f7a,
     });
     actionsFrame.setDepth(-800);
+    this.statusCard = this.add
+      .rectangle(
+        layout.content.x + 12,
+        layout.content.y + CONTENT_BODY_TOP_OFFSET,
+        layout.content.width - 24,
+        STATUS_CARD_HEIGHT,
+        0x173136,
+        0.6
+      )
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8ea1af, 0.42);
     this.statusText = this.add
-      .text(layout.content.x + 16, layout.content.y + CONTENT_BODY_TOP_OFFSET, "Resolving node...", {
+      .text(layout.content.x + 26, layout.content.y + CONTENT_BODY_TOP_OFFSET + 12, "Resolving node...", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "24px",
+        fontSize: "26px",
         color: "#ffffff",
       })
       .setOrigin(0, 0);
 
     this.detailText = this.add
-      .text(layout.content.x + 16, layout.content.y + CONTENT_BODY_TOP_OFFSET + 40, "", {
-        fontFamily: "monospace",
-        fontSize: "14px",
-        color: "#e8e8e8",
-        wordWrap: { width: Math.max(300, layout.content.width - 32) },
+      .text(layout.content.x + 26, layout.content.y + CONTENT_BODY_TOP_OFFSET + 46, "", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "16px",
+        color: "#e6eff0",
+        lineSpacing: 5,
+        wordWrap: { width: Math.max(300, layout.content.width - 52) },
       })
       .setOrigin(0, 0);
 
+    this.errorCard = this.add
+      .rectangle(
+        layout.content.x + 12,
+        layout.content.y + layout.content.height - CONTENT_BODY_BOTTOM_PADDING - 58,
+        layout.content.width - 24,
+        46,
+        0x48262a,
+        0.78
+      )
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0xd2858a, 0.5);
+    if (this.errorCard && "setVisible" in this.errorCard && typeof this.errorCard.setVisible === "function") {
+      this.errorCard.setVisible(false);
+    }
     this.errorText = this.add
-      .text(layout.content.x + 16, layout.content.y + layout.content.height - CONTENT_BODY_BOTTOM_PADDING - 12, "", {
+      .text(layout.content.x + 26, layout.content.y + layout.content.height - CONTENT_BODY_BOTTOM_PADDING - 35, "", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "13px",
+        fontSize: "14px",
         color: "#ffb3b3",
-        wordWrap: { width: Math.max(300, layout.content.width - 32) },
+        wordWrap: { width: Math.max(300, layout.content.width - 52) },
       })
-      .setOrigin(0, 1);
+      .setOrigin(0, 0.5);
+
+    this.setStatusBanner(
+      "Resolving node...",
+      "Stand by while the encounter resolves. Battle details, rewards, and unlocked route updates will appear here."
+    );
+    this.renderStatePlaceholder(
+      "Preparing encounter report",
+      [
+        `Run ${this.runId || "?"} | Node ${this.nodeId || "?"} | ${String(this.nodeType ?? "unknown").toUpperCase()}`,
+        "If the encounter takes too long, you can retry the resolution from the action panel.",
+      ],
+      0x89dfe0,
+      0x13262d
+    );
 
     this.actionButton = new SharedActionButton({
       scene: this,
@@ -200,6 +244,13 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
   private async resolveNode(): Promise<void> {
     if (!this.nodeType || !this.runId || !this.nodeId) {
+      this.setStatusBanner("Missing run context", "This node cannot resolve without an active run and node reference.");
+      this.renderStatePlaceholder(
+        "Resolution unavailable",
+        ["Return to the map or reopen the run from Home to refresh the encounter context."],
+        0xffb2b2,
+        0x341d22
+      );
       this.showError("Node resolution unavailable: missing run context.");
       this.configureButton("Back to Map", true, () => this.returnToMap());
       markDebugSceneReady(this, { state: "error" });
@@ -211,6 +262,10 @@ export default class NodeResolutionScene extends Phaser.Scene {
     }
     this.hasResolved = true;
     this.clearError();
+    this.setStatusBanner(
+      `Resolving ${String(this.nodeType).toUpperCase()} node`,
+      `Run ${this.runId} | Node ${this.nodeId}. Building battle results and reward summary now.`
+    );
     this.configureButton("Resolving...", false, () => {
       // Intentionally disabled during active resolve.
     });
@@ -236,11 +291,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
               nodeType: this.nodeType,
               exitStatus: "completed",
             });
-            this.statusText?.setText("EXIT RESOLVED");
-            this.detailText?.setText([
-              "Run status: completed",
-              "Debug fallback completed this run endpoint.",
-            ].join("\n"));
+            this.setStatusBanner("Exit resolved", "Run status: completed. Debug fallback completed this exit endpoint.");
             this.configureButton("Continue", true, () => {
               this.scene.start("RunEndSummaryScene", {
                 status,
@@ -267,11 +318,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
           exitStatus: exitRes.data.status,
         });
 
-        this.statusText?.setText("EXIT RESOLVED");
-        this.detailText?.setText([
-          `Run status: ${exitRes.data.status}`,
-          "This run endpoint has been finalized.",
-        ].join("\n"));
+        this.setStatusBanner("Exit resolved", `Run status: ${exitRes.data.status}. This run endpoint has been finalized.`);
         this.configureButton("Continue", true, () => {
           this.scene.start("RunEndSummaryScene", {
             status,
@@ -306,6 +353,13 @@ export default class NodeResolutionScene extends Phaser.Scene {
           await this.handleNoEnemiesResolution(reason);
           return;
         }
+        this.setStatusBanner("Resolution failed", "The encounter could not be resolved cleanly. You can retry or return to the map.");
+        this.renderStatePlaceholder(
+          "Encounter report unavailable",
+          ["No battle report was produced for this node.", "Use Retry Resolve to attempt the server call again."],
+          0xffb2b2,
+          0x341d22
+        );
         this.showError(`Resolve failed: ${reason}`);
         this.configureButton("Back to Map", true, () => this.returnToMap());
         markDebugSceneReady(this, { state: "error", reason });
@@ -343,7 +397,10 @@ export default class NodeResolutionScene extends Phaser.Scene {
             progression: [],
           };
           const unlockedMsg = formatUnlockedNodes(resolveRes.data.next.unlocked_node_ids);
-          this.statusText?.setText(String(outcome).toUpperCase());
+          this.setStatusBanner(
+            String(outcome).toUpperCase(),
+            `Battle ${battleId} resolved in ${Number(resolveRes.data.battle.rounds)} rounds and ${Number(resolveRes.data.battle.ticks)} ticks.`
+          );
           const summary: ResolutionSummary = {
             battleId,
             outcome,
@@ -366,6 +423,13 @@ export default class NodeResolutionScene extends Phaser.Scene {
           markDebugSceneReady(this, { state: "resolved", outcome, fallback: "debug-claim" });
           return;
         }
+        this.setStatusBanner("Rewards unavailable", "The battle finished, but the reward claim step failed. Retry the encounter resolution to resync the reward state.");
+        this.renderStatePlaceholder(
+          "Reward claim failed",
+          ["No reward receipt could be generated for this encounter.", "Retry Resolve will attempt the claim step again."],
+          0xffd89e,
+          0x352d1a
+        );
         const claimErrorMessage = (claimRes as { error?: { message?: string } }).error?.message ?? "Unknown error";
         this.showError(`Reward claim failed: ${claimErrorMessage}`);
         this.configureButton("Retry Resolve", true, () => {
@@ -377,7 +441,10 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
       const claimSummary = this.buildClaimSummary(claimRes.data as Record<string, unknown>);
       const unlockedMsg = formatUnlockedNodes(resolveRes.data.next.unlocked_node_ids);
-      this.statusText?.setText(String(outcome).toUpperCase());
+      this.setStatusBanner(
+        String(outcome).toUpperCase(),
+        `Battle ${battleId} resolved in ${Number(resolveRes.data.battle.rounds)} rounds and ${Number(resolveRes.data.battle.ticks)} ticks. ${unlockedMsg}`
+      );
       try {
         const summary: ResolutionSummary = {
           battleId,
@@ -446,12 +513,26 @@ export default class NodeResolutionScene extends Phaser.Scene {
       const timedOut = /timeout/i.test(message);
       this.hasResolved = false;
       if (timedOut) {
+        this.setStatusBanner("Resolution timed out", "The encounter took too long to respond. Retry to rebuild the battle report or return to the map.");
+        this.renderStatePlaceholder(
+          "Encounter report timed out",
+          ["No timeline was returned before the timeout window expired.", "Retry Resolve will request the report again."],
+          0xffd89e,
+          0x352d1a
+        );
         this.showError("Resolution timed out. Retry or return to map.");
         this.configureButton("Retry Resolve", true, () => {
           this.hasResolved = false;
           void this.resolveNode();
         });
       } else {
+        this.setStatusBanner("Node resolution unavailable", "The encounter report could not be loaded. Return to the map or retry the node resolution.");
+        this.renderStatePlaceholder(
+          "Encounter unavailable",
+          ["The game could not load a readable battle report for this node."],
+          0xffb2b2,
+          0x341d22
+        );
         this.showError("Node resolution unavailable. Please retry.");
         this.configureButton("Back to Map", true, () => this.returnToMap());
       }
@@ -477,7 +558,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
   }
 
   private async handleNoEnemiesResolution(reason: string): Promise<void> {
-    this.statusText?.setText("NO ENEMIES");
+    this.setStatusBanner("No enemies", "This encounter resolved without combat.");
     try {
       this.renderResolutionPanels(null, {
         battleId: "n/a",
@@ -528,15 +609,61 @@ export default class NodeResolutionScene extends Phaser.Scene {
   }
 
   private showError(message: string): void {
+    if (this.errorCard && "setVisible" in this.errorCard && typeof this.errorCard.setVisible === "function") {
+      this.errorCard.setVisible(true);
+    }
     this.errorText?.setText(message);
   }
 
   private clearError(): void {
+    if (this.errorCard && "setVisible" in this.errorCard && typeof this.errorCard.setVisible === "function") {
+      this.errorCard.setVisible(false);
+    }
     this.errorText?.setText("");
+  }
+
+  private setStatusBanner(title: string, detail: string): void {
+    this.statusText?.setText(title);
+    this.detailText?.setText(detail);
   }
 
   private returnToMap(): void {
     this.scene.start("MapExplorationScene");
+  }
+
+  private renderStatePlaceholder(title: string, bodyLines: string[], accentColor: number, panelColor: number): void {
+    this.clearResolutionPanels();
+    const layout = getPageLayout(this);
+    const cardX = layout.content.x + 24;
+    const cardY = layout.content.y + CONTENT_BODY_TOP_OFFSET + STATUS_CARD_HEIGHT + RESOLUTION_BODY_TOP_GAP;
+    const cardWidth = Math.max(260, layout.content.width - 48);
+    const cardHeight = Math.max(150, layout.content.height - CONTENT_BODY_TOP_OFFSET - STATUS_CARD_HEIGHT - CONTENT_BODY_BOTTOM_PADDING - 96);
+
+    const card = this.add
+      .rectangle(cardX, cardY, cardWidth, cardHeight, panelColor, 0.62)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, accentColor, 0.6);
+    const accent = this.add
+      .rectangle(cardX + 16, cardY + 18, 6, cardHeight - 36, accentColor, 0.9)
+      .setOrigin(0, 0);
+    const titleText = this.add
+      .text(cardX + 34, cardY + 18, title, {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "22px",
+        color: "#f1f4f5",
+      })
+      .setOrigin(0, 0);
+    const bodyText = this.add
+      .text(cardX + 34, cardY + 54, bodyLines.join("\n"), {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "18px",
+        color: "#d9e3e5",
+        lineSpacing: 8,
+        wordWrap: { width: cardWidth - 58 },
+      })
+      .setOrigin(0, 0);
+
+    this.resolutionUiObjects.push(card, accent, titleText, bodyText);
   }
 
   private renderResolutionPanels(
@@ -549,9 +676,9 @@ export default class NodeResolutionScene extends Phaser.Scene {
     this.clearResolutionPanels();
     const layout = getPageLayout(this);
     const contentX = layout.content.x + 16;
-    const contentY = layout.content.y + CONTENT_BODY_TOP_OFFSET + 38;
+    const contentY = layout.content.y + CONTENT_BODY_TOP_OFFSET + STATUS_CARD_HEIGHT + RESOLUTION_BODY_TOP_GAP;
     const contentWidth = Math.max(300, layout.content.width - 32);
-    const contentHeight = Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - CONTENT_BODY_BOTTOM_PADDING - 24);
+    const contentHeight = Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - STATUS_CARD_HEIGHT - CONTENT_BODY_BOTTOM_PADDING - 72);
     const sliderHeight = 90;
     const bodyY = contentY + sliderHeight;
     const bodyHeight = Math.max(120, contentHeight - sliderHeight - 6);
@@ -1333,9 +1460,9 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
     const layout = getPageLayout(this);
     const contentX = layout.content.x + 16;
-    const contentY = layout.content.y + CONTENT_BODY_TOP_OFFSET + 38;
+    const contentY = layout.content.y + CONTENT_BODY_TOP_OFFSET + STATUS_CARD_HEIGHT + RESOLUTION_BODY_TOP_GAP;
     const contentWidth = Math.max(300, layout.content.width - 32);
-    const contentHeight = Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - CONTENT_BODY_BOTTOM_PADDING - 24);
+    const contentHeight = Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - STATUS_CARD_HEIGHT - CONTENT_BODY_BOTTOM_PADDING - 72);
 
     const gap = 14;
     const leftWidth = Math.max(220, Math.floor(contentWidth * 0.62));
@@ -1785,4 +1912,3 @@ export default class NodeResolutionScene extends Phaser.Scene {
     this.detailText.setY(this.logViewport.y - this.logScrollOffset);
   }
 }
-

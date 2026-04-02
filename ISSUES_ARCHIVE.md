@@ -6,6 +6,16 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Redesign home shell and rename inventory/currency surfaces
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: Rebuild the home screen around the new color-block layout, update the persistent bottom navigation shell to match the new structure, rename Dice Inventory to Inventory across scene/file/reference surfaces, and remove player-facing hard-currency language in favor of a single currency label.
+resolution: Rebuilt the home shell around the new block-based layout, updated the persistent bottom strip to use the new navigation and player-readout structure, renamed Dice Inventory to Inventory across scene/reference surfaces, and removed player-facing hard-currency language in favor of a single currency label.
+
+---
 title: Polish first-session presentation across landing home and region select
 status: complete
 priority: high

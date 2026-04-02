@@ -8,6 +8,7 @@ import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 const FRAME_BODY_TOP_OFFSET = 74;
 const ACTION_BODY_TOP_OFFSET = 72;
 const ACTION_BUTTON_WIDTH = 280;
+const CHIP_GAP = 12;
 
 type RunEndSummaryData = {
   status?: "completed" | "failed" | "abandoned" | string;
@@ -84,6 +85,32 @@ export default class RunEndSummaryScene extends Phaser.Scene {
     const survivors = this.payload.survivors ?? [];
     const defeated = this.payload.defeated ?? [];
 
+    const chips = [
+      { label: "Rewards", value: rewards.length, accent: "#8bdfe0" },
+      { label: "Progression", value: progression.length, accent: "#99e09c" },
+      { label: "Survivors", value: survivors.length, accent: "#00e015" },
+      { label: "Defeated", value: defeated.length, accent: "#ffb2b2" },
+    ];
+    const chipWidth = Math.floor((layout.content.width - 24 - CHIP_GAP * (chips.length - 1)) / chips.length);
+    chips.forEach((chip, index) => {
+      const chipX = layout.content.x + 12 + index * (chipWidth + CHIP_GAP);
+      const chipY = bodyTop + 88;
+      this.add
+        .rectangle(chipX, chipY, chipWidth, 58, 0x14181b, 0.66)
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(chip.accent).color, 0.5);
+      this.add.text(chipX + 12, chipY + 9, chip.label.toUpperCase(), {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "13px",
+        color: chip.accent,
+      }).setOrigin(0, 0);
+      this.add.text(chipX + 12, chipY + 28, String(chip.value), {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "20px",
+        color: "#f5f5f5",
+      }).setOrigin(0, 0);
+    });
+
     const leftLines = [
       "Rewards",
       ...(rewards.length > 0 ? rewards : ["- None"]),
@@ -99,8 +126,8 @@ export default class RunEndSummaryScene extends Phaser.Scene {
       ...(defeated.length > 0 ? defeated : ["- None"]),
     ];
 
-    const summaryPanelY = bodyTop + 90;
-    const summaryPanelHeight = Math.max(120, layout.content.height - FRAME_BODY_TOP_OFFSET - 114);
+    const summaryPanelY = bodyTop + 158;
+    const summaryPanelHeight = Math.max(120, layout.content.height - FRAME_BODY_TOP_OFFSET - 182);
     const gap = 16;
     const panelWidth = Math.floor((layout.content.width - 24 - gap) / 2);
     const leftPanel = this.add
@@ -111,6 +138,16 @@ export default class RunEndSummaryScene extends Phaser.Scene {
       .rectangle(layout.content.x + 12 + panelWidth + gap, summaryPanelY, panelWidth, summaryPanelHeight, 0x14181b, 0.56)
       .setOrigin(0, 0)
       .setStrokeStyle(1, 0x8ea1af, 0.4);
+    this.add.text(layout.content.x + 24, summaryPanelY - 24, "Rewards and Progression", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "16px",
+      color: "#f0d38a",
+    }).setOrigin(0, 0);
+    this.add.text(layout.content.x + 24 + panelWidth + gap, summaryPanelY - 24, "Warband Outcome", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "16px",
+      color: "#f0d38a",
+    }).setOrigin(0, 0);
     this.add.text(layout.content.x + 24, summaryPanelY + 14, leftLines.join("\n"), {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "15px",

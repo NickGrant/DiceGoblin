@@ -194,6 +194,7 @@ This file defines project-specific operating instructions for coding agents work
 - Keep changes scoped to the requested task.
 - Avoid unrelated refactors unless required to safely complete the task.
 - Keep documentation and tests aligned with behavior changes.
+- In this Windows PowerShell environment, do not chain commands with `&&`; run sequential commands as separate shell invocations.
 - Treat generated artifacts (`frontend/dist`) as policy-controlled output:
   - if user requests "commit everything", include generated artifacts;
   - otherwise prefer source-only commits and call out generated changes separately.
