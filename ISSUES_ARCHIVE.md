@@ -3054,3 +3054,12 @@ ready: yes
 milestone: Milestone 28 - UAT Dialog and Interaction Hardening
 description: Update Node Resolution screen layout to show player team as a 3x3 grid on the left, a central scrolling text event log panel, and one or more enemy 3x3 grids on the right depending on battle composition.
 resolution: Refactored `NodeResolutionScene` to render a three-column resolution surface with ally 3x3 grid on the left, central event log panel, and one-or-more enemy 3x3 grids on the right based on participant count from battle-log metadata.
+---
+title: Improve warband unit and dice management readability for first release
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: Rework the management surfaces to be clearer and more presentable for first-release players. Focus on `WarbandManagementScene`, `SquadDetailsScene`, `UnitDetailsScene`, and `DiceInventoryScene` so summary hierarchy, dense data presentation, action discoverability, and affix/equipment readability all feel intentional rather than purely functional.
+resolution: Reworked the management scenes with screenshot-driven layout passes so the warband, squad, unit, and dice screens now present clearer headers, action summaries, and less collision-prone controls for first-release players.

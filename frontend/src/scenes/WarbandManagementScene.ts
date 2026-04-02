@@ -107,9 +107,9 @@ export default class WarbandManagementScene extends Phaser.Scene {
   private buildUi(): void {
     const layout = getPageLayout(this);
     const contentBodyX = layout.content.x + FRAME_MARGIN;
-    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + 102;
+    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + 94;
     const contentBodyWidth = Math.max(280, layout.content.width - FRAME_MARGIN * 2);
-    const contentBodyHeight = Math.max(240, layout.content.height - FRAME_TITLE_HEIGHT - FRAME_MARGIN * 2 - 102);
+    const contentBodyHeight = Math.max(240, layout.content.height - FRAME_TITLE_HEIGHT - FRAME_MARGIN * 2 - 94);
 
     const actionsBodyX = layout.buttons.x + FRAME_MARGIN;
     const actionsBodyY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN;
@@ -160,7 +160,7 @@ export default class WarbandManagementScene extends Phaser.Scene {
       y: contentBodyY,
       width: colW,
       height: contentBodyHeight,
-      title: "",
+      title: "SQUADS",
       squads: this.squads,
       onSquadClick: (squad) => this.scene.start("SquadDetailsScene", { squadId: squad.id }),
     });
@@ -171,13 +171,13 @@ export default class WarbandManagementScene extends Phaser.Scene {
       `Units: ${this.units.length}`,
       `Squads: ${this.squads.length}`,
       `Active: ${activeSquad?.name ?? "None"}`,
-      "Tip: open a unit for dice and promotion details.",
+      "Tip: open a unit for dice and promotion work.",
     ];
 
     const summaryCardX = actionsBodyX + ACTION_PANEL_PADDING;
     const summaryCardY = actionsBodyY + ACTION_PANEL_PADDING;
     const summaryCardWidth = Math.max(120, actionsBodyWidth - ACTION_PANEL_PADDING * 2);
-    const summaryCardHeight = Math.min(210, Math.max(120, Math.floor(actionsBodyHeight * 0.45)));
+    const summaryCardHeight = Math.min(186, Math.max(116, Math.floor(actionsBodyHeight * 0.38)));
     const summaryCard = this.add
       .rectangle(summaryCardX, summaryCardY, summaryCardWidth, summaryCardHeight, 0x0f2024, 0.56)
       .setOrigin(0, 0)
@@ -195,15 +195,15 @@ export default class WarbandManagementScene extends Phaser.Scene {
     this.summaryUiObjects.push(summaryCard, summaryText);
 
     const helperCardY = summaryCardY + summaryCardHeight + 12;
-    const helperCardHeight = 74;
+    const helperCardHeight = 88;
     const helperCard = this.add
       .rectangle(summaryCardX, helperCardY, summaryCardWidth, helperCardHeight, 0x0b191d, 0.66)
       .setOrigin(0, 0)
       .setStrokeStyle(1, 0x8db8bc, 0.28);
     const helperText = this.add
-      .text(summaryCardX + 12, helperCardY + 10, "Recommended flow:\n1. Check roster\n2. Open squad\n3. Save changes", {
+      .text(summaryCardX + 12, helperCardY + 10, "Recommended flow:\n1. Review units\n2. Open squad\n3. Save changes", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "15px",
+        fontSize: "14px",
         color: "#dff0f2",
         lineSpacing: 4,
         wordWrap: { width: Math.max(120, summaryCardWidth - 24) },
@@ -303,5 +303,4 @@ export default class WarbandManagementScene extends Phaser.Scene {
     this.summaryUiObjects = [];
   }
 }
-
 

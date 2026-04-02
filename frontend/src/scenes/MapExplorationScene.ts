@@ -27,6 +27,7 @@ export default class MapExplorationScene extends Phaser.Scene {
   private toast?: ToastMessage;
   private nodeList?: NodeList;
   private abandonDialog?: ConfirmModal;
+  private overviewUiObjects: Phaser.GameObjects.GameObject[] = [];
   private incomingResolutionMessage = "";
   private incomingResolutionColor = "#ffd89e";
 
@@ -94,6 +95,7 @@ export default class MapExplorationScene extends Phaser.Scene {
 
   private async loadRunState(): Promise<void> {
     this.clearMessages();
+    this.clearOverviewUi();
     this.nodeList?.destroy();
     this.nodeList = undefined;
 
@@ -135,6 +137,24 @@ export default class MapExplorationScene extends Phaser.Scene {
       this.runEnvelope = run;
 
       const layout = getPageLayout(this);
+      const overviewLabel = this.add
+        .text(layout.content.x + 24, layout.content.y + 84, "ROUTE OVERVIEW", {
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+          fontSize: "20px",
+          color: "#f0d38a",
+        })
+        .setOrigin(0, 0);
+      const overviewBody = this.add
+        .text(layout.content.x + 24, layout.content.y + 114, "Select the glowing available node to keep the run moving. Cleared nodes stay behind you, locked nodes open when the route advances.", {
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+          fontSize: "18px",
+          color: "#eef4f5",
+          lineSpacing: 6,
+          wordWrap: { width: layout.content.width - 48 },
+        })
+        .setOrigin(0, 0);
+      this.overviewUiObjects.push(overviewLabel, overviewBody);
+
       this.nodeList = new NodeList(
         this,
         0,
@@ -145,9 +165,9 @@ export default class MapExplorationScene extends Phaser.Scene {
         {
           scatterRect: new Phaser.Geom.Rectangle(
             layout.content.x + 24,
-            layout.content.y + CONTENT_BODY_TOP_OFFSET,
+            layout.content.y + CONTENT_BODY_TOP_OFFSET + 64,
             Math.max(220, layout.content.width - 48),
-            Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - CONTENT_BODY_BOTTOM_PADDING)
+            Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - CONTENT_BODY_BOTTOM_PADDING - 64)
           ),
           nodeSize: 64,
           onNodeClick: (node) => this.handleNodeClick(node),
@@ -256,6 +276,13 @@ export default class MapExplorationScene extends Phaser.Scene {
     this.toast = undefined;
   }
 
+  private clearOverviewUi(): void {
+    for (const uiObject of this.overviewUiObjects) {
+      uiObject.destroy();
+    }
+    this.overviewUiObjects = [];
+  }
+
   private showFallback(message: string): void {
     this.fallbackText?.destroy();
     const layout = getPageLayout(this);
@@ -283,7 +310,6 @@ export default class MapExplorationScene extends Phaser.Scene {
     });
   }
 }
-
 
 
 

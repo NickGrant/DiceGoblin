@@ -3,17 +3,8 @@
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
 ---
-title: Improve warband unit and dice management readability for first release
-status: in-progress
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 31 - First Release UI Polish and Release Prep
-description: Rework the management surfaces to be clearer and more presentable for first-release players. Focus on `WarbandManagementScene`, `SquadDetailsScene`, `UnitDetailsScene`, and `DiceInventoryScene` so summary hierarchy, dense data presentation, action discoverability, and affix/equipment readability all feel intentional rather than purely functional.
-
----
 title: Tighten run-map combat-result and run-summary readability
-status: unstarted
+status: in-progress
 priority: medium
 execution: active
 ready: yes

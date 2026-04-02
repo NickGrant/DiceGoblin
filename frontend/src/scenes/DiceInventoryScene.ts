@@ -137,9 +137,9 @@ export default class DiceInventoryScene extends Phaser.Scene {
   private renderDiceGrid(): void {
     const layout = getPageLayout(this);
     const contentBodyX = layout.content.x + FRAME_MARGIN;
-    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + 100;
+    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + 92;
     const contentBodyWidth = Math.max(280, layout.content.width - FRAME_MARGIN * 2);
-    const contentBodyHeight = Math.max(240, layout.content.height - FRAME_TITLE_HEIGHT - FRAME_MARGIN * 2 - 100);
+    const contentBodyHeight = Math.max(240, layout.content.height - FRAME_TITLE_HEIGHT - FRAME_MARGIN * 2 - 92);
 
     const dicePanelX = contentBodyX;
     const dicePanelWidth = Math.max(280, contentBodyWidth);
@@ -267,7 +267,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
     const summaryCardX = actionsBodyX + ACTION_PANEL_PADDING;
     const summaryCardY = actionsBodyY + ACTION_PANEL_PADDING;
     const summaryCardWidth = Math.max(120, actionsBodyWidth - ACTION_PANEL_PADDING * 2);
-    const summaryCardHeight = Math.min(180, Math.max(132, Math.floor(actionsBodyHeight * 0.27)));
+    const summaryCardHeight = Math.min(164, Math.max(120, Math.floor(actionsBodyHeight * 0.24)));
     const summaryCard = this.add
       .rectangle(summaryCardX, summaryCardY, summaryCardWidth, summaryCardHeight, 0x0f2024, 0.56)
       .setOrigin(0, 0)
@@ -286,7 +286,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
     this.actionSummaryUiObjects.push(this.actionSummaryText);
 
     const hoverCardY = summaryCardY + summaryCardHeight + 12;
-    const hoverCardHeight = 118;
+    const hoverCardHeight = 104;
     const hoverCard = this.add
       .rectangle(summaryCardX, hoverCardY, summaryCardWidth, hoverCardHeight, 0x10292e, 0.62)
       .setOrigin(0, 0)
@@ -359,7 +359,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
 
     const controlsStartY = sellButtonY + 64 + ACTION_BUTTON_GAP;
     const controlWidth = Math.floor((ACTION_BUTTON_WIDTH - 12) / 2);
-    const controlHeight = 44;
+    const controlHeight = 40;
     const controlGapX = 12;
     const controlGapY = 10;
     this.sortButtonText = this.createCompactControlButton(
@@ -469,11 +469,13 @@ export default class DiceInventoryScene extends Phaser.Scene {
     const text = this.add
       .text(x + 8, y + (height / 2), label, {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "14px",
+        fontSize: "13px",
         color: "#3e2b16",
+        align: "center",
         wordWrap: { width: width - 16 },
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(0.5, 0.5)
+      .setPosition(x + width / 2, y + height / 2);
     const zone = this.add.zone(x + (width / 2), y + (height / 2), width, height)
       .setOrigin(0.5, 0.5)
       .setInteractive({ useHandCursor: true });
@@ -498,10 +500,10 @@ export default class DiceInventoryScene extends Phaser.Scene {
   }
 
   private refreshControlButtonLabels(): void {
-    this.sortButtonText?.setText(`Sort\n${SORT_LABELS[this.sortMode]}`);
-    this.sizeFilterButtonText?.setText(`Size\n${this.sizeFilter.toUpperCase()}`);
-    this.rarityFilterButtonText?.setText(`Rarity\n${this.rarityFilter.toUpperCase()}`);
-    this.equippedFilterButtonText?.setText(`Equipped\n${this.equippedFilter.toUpperCase()}`);
+    this.sortButtonText?.setText(`Sort: ${SORT_LABELS[this.sortMode]}`);
+    this.sizeFilterButtonText?.setText(`Size: ${this.sizeFilter.toUpperCase()}`);
+    this.rarityFilterButtonText?.setText(`Rarity: ${this.rarityFilter.toUpperCase()}`);
+    this.equippedFilterButtonText?.setText(`Equipped: ${this.equippedFilter.toUpperCase()}`);
   }
 
   private syncDiceFilters(): void {

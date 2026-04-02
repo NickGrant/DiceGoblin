@@ -62,17 +62,21 @@ export default class RunEndSummaryScene extends Phaser.Scene {
         : "Run ended early. Current progression has been recorded.";
     const statusColor = status === "completed" ? "#a7ffcf" : status === "failed" ? "#ffb2b2" : "#ffd89e";
 
-    this.add.text(layout.content.x + 16, bodyTop, statusLabel, {
+    const heroCard = this.add
+      .rectangle(layout.content.x + 12, bodyTop, layout.content.width - 24, 74, 0x173136, 0.58)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8ea1af, 0.42);
+    this.add.text(layout.content.x + 24, bodyTop + 10, statusLabel, {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "16px",
+      fontSize: "24px",
       color: statusColor,
     }).setOrigin(0, 0);
-    this.add.text(layout.content.x + 16, bodyTop + 24, outcomeMessage, {
+    this.add.text(layout.content.x + 24, bodyTop + 42, outcomeMessage, {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "12px",
+      fontSize: "15px",
       color: "#dddddd",
       align: "left",
-      wordWrap: { width: layout.content.width - 32 },
+      wordWrap: { width: layout.content.width - 48 },
     }).setOrigin(0, 0);
 
     const rewards = this.payload.rewards ?? [];
@@ -80,32 +84,46 @@ export default class RunEndSummaryScene extends Phaser.Scene {
     const survivors = this.payload.survivors ?? [];
     const defeated = this.payload.defeated ?? [];
 
-    const lines = [
-      "Rewards:",
+    const leftLines = [
+      "Rewards",
       ...(rewards.length > 0 ? rewards : ["- None"]),
       "",
-      "XP / Level Progression:",
+      "XP / Level Progression",
       ...(progression.length > 0 ? progression : ["- No progression changes recorded"]),
-      "",
-      "Surviving Units:",
+    ];
+    const rightLines = [
+      "Surviving Units",
       ...(survivors.length > 0 ? survivors : ["- None"]),
       "",
-      "Defeated Units:",
+      "Defeated Units",
       ...(defeated.length > 0 ? defeated : ["- None"]),
     ];
 
-    const summaryPanelY = bodyTop + 66;
-    const summaryPanelHeight = Math.max(120, layout.content.height - FRAME_BODY_TOP_OFFSET - 90);
-    const summaryPanel = this.add
-      .rectangle(layout.content.x + 12, summaryPanelY, layout.content.width - 24, summaryPanelHeight, 0x14181b, 0.56)
+    const summaryPanelY = bodyTop + 90;
+    const summaryPanelHeight = Math.max(120, layout.content.height - FRAME_BODY_TOP_OFFSET - 114);
+    const gap = 16;
+    const panelWidth = Math.floor((layout.content.width - 24 - gap) / 2);
+    const leftPanel = this.add
+      .rectangle(layout.content.x + 12, summaryPanelY, panelWidth, summaryPanelHeight, 0x14181b, 0.56)
       .setOrigin(0, 0)
       .setStrokeStyle(1, 0x8ea1af, 0.4);
-    this.add.text(layout.content.x + 20, summaryPanelY + 12, lines.join("\n"), {
+    const rightPanel = this.add
+      .rectangle(layout.content.x + 12 + panelWidth + gap, summaryPanelY, panelWidth, summaryPanelHeight, 0x14181b, 0.56)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8ea1af, 0.4);
+    this.add.text(layout.content.x + 24, summaryPanelY + 14, leftLines.join("\n"), {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "12px",
+      fontSize: "15px",
       color: "#f5f5f5",
-      lineSpacing: 4,
-      wordWrap: { width: layout.content.width - 40 },
+      lineSpacing: 5,
+      wordWrap: { width: panelWidth - 24 },
+    });
+    this.add.text(layout.content.x + 24 + panelWidth + gap, summaryPanelY + 14, rightLines.join("\n"), {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "15px",
+      color: "#f5f5f5",
+      lineSpacing: 5,
+      wordWrap: { width: panelWidth - 24 },
     });
 
     new SharedActionButton({
@@ -115,6 +133,9 @@ export default class RunEndSummaryScene extends Phaser.Scene {
       label: "Continue",
       onClick: () => this.scene.start("HomeScene"),
     });
+    void heroCard;
+    void leftPanel;
+    void rightPanel;
     markDebugSceneReady(this, { status });
   }
 }

@@ -8,7 +8,6 @@ status: in-progress
 execution_window: open
 is_current: yes
 issues:
-  - Improve warband unit and dice management readability for first release
   - Tighten run-map combat-result and run-summary readability
   - Record first-release manual gate evidence and release checklist
 description: |
@@ -20,7 +19,7 @@ description: |
 ---
 
 name: Milestone 32 - Core Systems Validation and Balance
-status: unstarted
+status: not-started
 execution_window: open
 is_current: no
 issues:
@@ -38,7 +37,7 @@ description: |
 ---
 
 name: Milestone 33 - Economy and System Validation
-status: unstarted
+status: not-started
 execution_window: open
 is_current: no
 issues:
@@ -52,7 +51,7 @@ description: |
 ---
 
 name: Milestone 34 - Onboarding and First Session Clarity
-status: unstarted
+status: not-started
 execution_window: open
 is_current: no
 issues:
@@ -66,7 +65,7 @@ description: |
 ---
 
 name: Milestone 35 - Feedback and UX Clarity
-status: unstarted
+status: not-started
 execution_window: open
 is_current: no
 issues:
@@ -80,7 +79,7 @@ description: |
 ---
 
 name: Milestone 36 - Pre Release Validation
-status: unstarted
+status: not-started
 execution_window: open
 is_current: no
 issues:

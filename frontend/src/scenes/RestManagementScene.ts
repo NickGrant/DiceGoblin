@@ -58,6 +58,7 @@ export default class RestManagementScene extends Phaser.Scene {
   private buyUnitButton?: SharedActionButton;
   private buyDiceButton?: SharedActionButton;
   private storeStatusText?: Phaser.GameObjects.Text;
+  private overviewUiObjects: Phaser.GameObjects.GameObject[] = [];
 
   constructor() {
     super({ key: "RestManagementScene" });
@@ -161,10 +162,11 @@ export default class RestManagementScene extends Phaser.Scene {
 
   private buildUi(): void {
     const layout = getPageLayout(this);
+    this.clearOverviewUi();
     const contentBodyX = layout.content.x + FRAME_MARGIN + CONTENT_INSET;
-    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + CONTENT_INSET;
+    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + CONTENT_INSET + 88;
     const contentBodyWidth = Math.max(280, layout.content.width - (FRAME_MARGIN + CONTENT_INSET) * 2);
-    const contentBodyHeight = Math.max(220, layout.content.height - FRAME_TITLE_HEIGHT - (FRAME_MARGIN + CONTENT_INSET) * 2);
+    const contentBodyHeight = Math.max(220, layout.content.height - FRAME_TITLE_HEIGHT - (FRAME_MARGIN + CONTENT_INSET) * 2 - 88);
 
     const unitPanelWidth = Math.min(UNIT_PANEL_WIDTH, Math.max(280, contentBodyWidth - GRID_SIZE - CONTENT_COLUMN_GAP));
     const unitPanelX = contentBodyX;
@@ -179,6 +181,43 @@ export default class RestManagementScene extends Phaser.Scene {
     const actionBodyY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + ACTION_TOP_GAP;
     const actionBodyWidth = Math.max(280, layout.buttons.width - (FRAME_MARGIN + ACTION_PANEL_PADDING) * 2);
     const actionButtonX = actionBodyX + Math.max(0, Math.floor((actionBodyWidth - 280) / 2));
+
+    const overviewLabel = this.add
+      .text(layout.content.x + 24, layout.content.y + 88, "REST PHASE", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "20px",
+        color: "#f0d38a",
+      })
+      .setOrigin(0, 0);
+    const overviewBody = this.add
+      .text(layout.content.x + 24, layout.content.y + 118, "Reposition the run squad, buy a quick upgrade if needed, then lock in the rest stop before returning to the map.", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "18px",
+        color: "#eef4f5",
+        lineSpacing: 6,
+        wordWrap: { width: layout.content.width - 48 },
+      })
+      .setOrigin(0, 0);
+    this.overviewUiObjects.push(overviewLabel, overviewBody);
+
+    const summaryCard = this.add
+      .rectangle(actionBodyX, actionBodyY, actionBodyWidth, 94, 0x102125, 0.65)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8db8bc, 0.3);
+    const summaryText = this.add
+      .text(actionBodyX + 12, actionBodyY + 10, [
+        `Rest node: ${this.nodeId}`,
+        `Units in squad: ${this.editUnitIds.size}`,
+        this.finalized ? "Status: finalized" : "Status: planning phase",
+      ].join("\n"), {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "17px",
+        color: "#e7f4f5",
+        lineSpacing: 6,
+        wordWrap: { width: actionBodyWidth - 24 },
+      })
+      .setOrigin(0, 0);
+    this.overviewUiObjects.push(summaryCard, summaryText);
 
     this.unitPanel = new UnitCardGrid({
       scene: this,
@@ -213,7 +252,7 @@ export default class RestManagementScene extends Phaser.Scene {
     this.applyButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
-      y: actionBodyY,
+      y: actionBodyY + 112,
       label: "Apply State",
       onClick: () => void this.applyRestState(),
     });
@@ -221,7 +260,7 @@ export default class RestManagementScene extends Phaser.Scene {
     this.finalizeButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
-      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP),
+      y: actionBodyY + 112 + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP),
       label: "Finalize Rest",
       onClick: () => void this.finalizeRest(),
     });
@@ -229,7 +268,7 @@ export default class RestManagementScene extends Phaser.Scene {
     new SharedActionButton({
       scene: this,
       x: actionButtonX,
-      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 2,
+      y: actionBodyY + 112 + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 2,
       label: "Manage Dice",
       onClick: () => this.scene.start("DiceInventoryScene", {
         runId: this.runId,
@@ -240,7 +279,7 @@ export default class RestManagementScene extends Phaser.Scene {
     this.buyUnitButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
-      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 3,
+      y: actionBodyY + 112 + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 3,
       label: `Buy Basic Unit (${30})`,
       enabled: true,
       onClick: () => void this.purchaseStoreItem("basic_unit"),
@@ -248,12 +287,12 @@ export default class RestManagementScene extends Phaser.Scene {
     this.buyDiceButton = new SharedActionButton({
       scene: this,
       x: actionButtonX,
-      y: actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 4,
+      y: actionBodyY + 112 + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 4,
       label: `Buy Basic Dice (${20})`,
       enabled: true,
       onClick: () => void this.purchaseStoreItem("basic_dice"),
     });
-    this.storeStatusText = this.add.text(actionButtonX, actionBodyY + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 5, "", {
+    this.storeStatusText = this.add.text(actionButtonX, actionBodyY + 112 + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 5, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color: "#dddddd",
@@ -408,6 +447,13 @@ export default class RestManagementScene extends Phaser.Scene {
       : `Dice ${(purchase as { dice_instance_id?: string }).dice_instance_id ?? ""}`;
     this.showToast(`Purchased ${itemLabel}.`, "#ccffcc");
     this.scene.restart({ runId: this.runId, nodeId: this.nodeId });
+  }
+
+  private clearOverviewUi(): void {
+    for (const uiObject of this.overviewUiObjects) {
+      uiObject.destroy();
+    }
+    this.overviewUiObjects = [];
   }
 }
 

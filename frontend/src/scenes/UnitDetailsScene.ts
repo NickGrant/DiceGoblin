@@ -136,6 +136,8 @@ export default class UnitDetailsScene extends Phaser.Scene {
 
   private buildUi(rawDice: unknown[], rawUnits: unknown[]): void {
     const layout = getPageLayout(this);
+    this.clearDynamicUi();
+
     const contentBodyX = layout.content.x + FRAME_MARGIN + CONTENT_INSET;
     const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + CONTENT_INSET + 78;
     const contentBodyWidth = Math.max(320, layout.content.width - (FRAME_MARGIN + CONTENT_INSET) * 2);
@@ -190,7 +192,6 @@ export default class UnitDetailsScene extends Phaser.Scene {
 
     const diceVm = adaptDiceDetails(rawDice as any, rawUnits as any);
     this.dice = diceVm;
-    this.clearDynamicUi();
     this.syncLocalSelections(diceVm);
 
     const max = typeof this.unit.max_level === "number" ? this.unit.max_level : "?";
