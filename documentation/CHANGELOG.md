@@ -11,6 +11,7 @@ Depends On: `documentation/README.md`, `ISSUES.md`
 - Added `documentation/05-playability-stability/02-first-release-manual-gate-evidence.md` to capture the Milestone 31 manual gate evidence for fresh-account bootstrap, successful run, failed run, resume continuity, and reset-account validation.
 - Added `documentation/05-playability-stability/03-first-release-checklist.md` to turn the final release-prep requirements into an explicit closeout checklist, including the required debug-tooling release toggles.
 - Closed the Milestone 31 run-flow readability issue after the map, node-resolution, and run-summary polish pass.
+- Closed Milestone 31 and opened Milestone 32 as the current execution lane after moving the larger `RestManagementScene` redesign into deferred backlog follow-up.
 
 ## 2026-03-08
 - Rewrote `documentation/03-ux/01-visual-design-guide.md` as the single canonical visual style source and removed conflicting parallel style direction.

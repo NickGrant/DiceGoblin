@@ -2,26 +2,10 @@
 ----
 Active milestones only. Move completed entries to `MILESTONES_ARCHIVE.md`.
 
----
-name: Milestone 31 - First Release UI Polish and Release Prep
+name: Milestone 32 - Core Systems Validation and Balance
 status: in-progress
 execution_window: open
 is_current: yes
-issues:
-  - Rework rest management scene readability and structure
-  - Record first-release manual gate evidence and release checklist
-description: |
-  Convert the gameplay-complete MVP into a first-release-ready build by polishing the
-  most player-visible UI surfaces, restoring screenshot-driven review automation, and
-  capturing the final manual release evidence and operational checklist needed before
-  inviting the first round of external users.
-
----
-
-name: Milestone 32 - Core Systems Validation and Balance
-status: not-started
-execution_window: open
-is_current: no
 issues:
   - Verify unit promotion changes type abilities and growth correctly
   - Add automated test coverage for promotion transformation correctness

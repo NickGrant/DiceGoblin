@@ -6,6 +6,25 @@
 - Preserve milestone resolution history without bloating active execution context.
 
 ---
+name: Milestone 31 - First Release UI Polish and Release Prep
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Tighten run-map combat-result and run-summary readability
+  - Restore deterministic scene screenshot review workflow against current local frontend
+  - Improve warband unit and dice management readability for first release
+  - Polish first-session presentation across landing home and region select
+  - Redesign home shell and rename inventory/currency surfaces
+  - Record first-release manual gate evidence and release checklist
+description: |
+  Convert the gameplay-complete MVP into a first-release-ready build by polishing the
+  most player-visible UI surfaces, restoring screenshot-driven review automation, and
+  capturing the final manual release evidence and operational checklist needed before
+  inviting the first round of external users.
+Resolution: Completed the first-release polish lane by stabilizing screenshot review, tightening the highest-visibility scenes, capturing manual release evidence, and documenting the explicit release checklist; the remaining rest-scene redesign was intentionally deferred into backlog follow-up work.
+
+---
 name: MVP Closeout Tooling and Combat UX
 status: complete
 execution_window: open

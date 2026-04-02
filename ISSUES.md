@@ -3,14 +3,6 @@
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
 ---
-title: Rework rest management scene readability and structure
-status: unstarted
-priority: medium
-execution: deferred
-ready: yes
-milestone: Milestone 31 - First Release UI Polish and Release Prep
-description: Do a more substantial presentation and layout pass on `RestManagementScene`. The current rest flow is functional, but the scene still needs dedicated readability, spacing, and action-hierarchy work before it feels release-ready.
-
 title: Verify unit promotion changes type abilities and growth correctly
 status: unstarted
 priority: high
