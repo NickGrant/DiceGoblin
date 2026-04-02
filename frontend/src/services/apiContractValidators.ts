@@ -79,8 +79,11 @@ export function validateProfileResponse(value: unknown): ProfileResponse {
   if (!Array.isArray(data.units) || !Array.isArray(data.dice)) {
     throw new Error("Invalid /api/v1/profile response: data.units and data.dice must be arrays.");
   }
-  if (!isRecord(data.currency) || typeof data.currency.soft !== "number" || typeof data.currency.hard !== "number") {
-    throw new Error("Invalid /api/v1/profile response: data.currency.soft/hard must be numbers.");
+  if (!isRecord(data.currency) || typeof data.currency.soft !== "number") {
+    throw new Error("Invalid /api/v1/profile response: data.currency.soft must be number.");
+  }
+  if ("hard" in data.currency && typeof data.currency.hard !== "number") {
+    throw new Error("Invalid /api/v1/profile response: data.currency.hard must be number when present.");
   }
   if (
     !isRecord(data.energy)

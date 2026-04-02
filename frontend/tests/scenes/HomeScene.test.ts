@@ -8,21 +8,6 @@ vi.mock("phaser", () => {
 
 vi.mock("../../src/components/BackgroundImage", () => ({ default: class {} }));
 vi.mock("../../src/components/BottomCommandStrip", () => ({ mountBottomCommandStrip: vi.fn() }));
-vi.mock("../../src/components/layout/ContentAreaFrame", () => ({ default: class { setDepth() { return this; } } }));
-vi.mock("../../src/components/clickable-panel/SharedActionButton", () => ({
-  default: class {
-    constructor(_cfg: unknown) {}
-  },
-}));
-
-const homePanelCtor = vi.fn();
-vi.mock("../../src/components/navigation/HomeNavigationPanel", () => ({
-  default: class {
-    constructor(cfg: unknown) {
-      homePanelCtor(cfg);
-    }
-  },
-}));
 
 const getProfileMock = vi.fn();
 vi.mock("../../src/services/apiClient", () => ({
@@ -33,7 +18,6 @@ vi.mock("../../src/services/apiClient", () => ({
 
 describe("HomeScene", () => {
   beforeEach(() => {
-    homePanelCtor.mockReset();
     getProfileMock.mockReset();
   });
 
@@ -46,21 +30,28 @@ describe("HomeScene", () => {
     });
 
     const scene = new HomeScene() as any;
-    scene.textures = { exists: vi.fn().mockReturnValue(false) };
     scene.add = {
       rectangle: vi.fn(() => ({
         setOrigin: vi.fn().mockReturnThis(),
-        setStrokeStyle: vi.fn().mockReturnThis(),
+        setAlpha: vi.fn().mockReturnThis(),
       })),
       text: vi.fn(() => ({
         setOrigin: vi.fn().mockReturnThis(),
+        setVisible: vi.fn().mockReturnThis(),
+      })),
+      zone: vi.fn(() => ({
+        setOrigin: vi.fn().mockReturnThis(),
+        setInteractive: vi.fn().mockReturnThis(),
+        on: vi.fn().mockReturnThis(),
       })),
     };
+    scene.scene = { start: vi.fn() };
 
     scene.create();
     await Promise.resolve();
 
     expect(getProfileMock).toHaveBeenCalledWith({ force: true, allowStaleOnError: true });
-    expect(homePanelCtor).toHaveBeenCalledTimes(1);
+    expect(scene.add.rectangle).toHaveBeenCalled();
+    expect(scene.add.zone).toHaveBeenCalledTimes(5);
   });
 });

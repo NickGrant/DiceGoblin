@@ -7,7 +7,7 @@ import RegionSelectScene from "../scenes/RegionSelectScene";
 import WarbandManagementScene from "../scenes/WarbandManagementScene";
 import SquadDetailsScene from "../scenes/SquadDetailsScene";
 import UnitDetailsScene from "../scenes/UnitDetailsScene";
-import DiceInventoryScene from "../scenes/DiceInventoryScene";
+import InventoryScene from "../scenes/InventoryScene";
 import MapExplorationScene from "../scenes/MapExplorationScene";
 import RestManagementScene from "../scenes/RestManagementScene";
 import RunEndSummaryScene from "../scenes/RunEndSummaryScene";
@@ -35,7 +35,7 @@ export function createGameConfig(): Phaser.Types.Core.GameConfig {
     physics: { default: "arcade" },
     scene: [
       BootScene, PreloadScene, LandingScene, HomeScene, RegionSelectScene, 
-      WarbandManagementScene, SquadDetailsScene, UnitDetailsScene, DiceInventoryScene, MapExplorationScene, NodeResolutionScene, RestManagementScene, RunEndSummaryScene, ShopScene, DevPanelScene
+      WarbandManagementScene, SquadDetailsScene, UnitDetailsScene, InventoryScene, MapExplorationScene, NodeResolutionScene, RestManagementScene, RunEndSummaryScene, ShopScene, DevPanelScene
     ]
   };
 }

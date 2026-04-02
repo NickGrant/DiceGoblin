@@ -8,6 +8,7 @@ status: in-progress
 execution_window: open
 is_current: yes
 issues:
+  - Redesign home shell and rename inventory/currency surfaces
   - Tighten run-map combat-result and run-summary readability
   - Record first-release manual gate evidence and release checklist
 description: |

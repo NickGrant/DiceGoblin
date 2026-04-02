@@ -16,13 +16,13 @@ export type PageLayout = {
 };
 
 export const PAGE_LAYOUT = {
-  paddingPx: 12,
-  topBandHeightPx: 12,
-  columnGapPx: 18,
+  paddingPx: 10,
+  topBandHeightPx: 10,
+  columnGapPx: 10,
   buttonColumnWidthPx: 312,
-  bottomStripHeightPx: 96,
-  bottomStripBottomPaddingPx: 10,
-  bottomStripTopGapPx: 12,
+  bottomStripHeightPx: 84,
+  bottomStripBottomPaddingPx: 0,
+  bottomStripTopGapPx: 10,
 } as const;
 
 export function getPageLayout(scene: Phaser.Scene): PageLayout {

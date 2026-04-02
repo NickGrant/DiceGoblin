@@ -96,7 +96,7 @@ export default class ShopScene extends Phaser.Scene {
     const dailyY = contentY + topSectionHeight + 16;
     const dailyHeight = Math.max(78, layout.content.height - (dailyY - layout.content.y) - 18);
 
-    const title = this.add.text(contentX, contentY, `Soft Currency: ${catalog.currency_soft}`, {
+    const title = this.add.text(contentX, contentY, `Currency: ${catalog.currency_soft}`, {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "25px",
       color: "#f5f5f5",

@@ -3,6 +3,15 @@
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
 ---
+title: Redesign home shell and rename inventory/currency surfaces
+status: in-progress
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: Rebuild the home screen around the new color-block layout, update the persistent bottom navigation shell to match the new structure, rename Dice Inventory to Inventory across scene/file/reference surfaces, and remove player-facing hard-currency language in favor of a single currency label.
+
+---
 title: Tighten run-map combat-result and run-summary readability
 status: in-progress
 priority: medium

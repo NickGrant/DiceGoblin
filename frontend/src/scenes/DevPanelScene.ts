@@ -77,8 +77,8 @@ export default class DevPanelScene extends Phaser.Scene {
     let buttonY = layout.buttons.y + ACTION_BODY_TOP_OFFSET;
 
     const buttons: Array<{ label: string; onClick: () => void }> = [
-      { label: "+100 Soft", onClick: () => void this.grantCurrency(100) },
-      { label: "+500 Soft", onClick: () => void this.grantCurrency(500) },
+      { label: "+100 Currency", onClick: () => void this.grantCurrency(100) },
+      { label: "+500 Currency", onClick: () => void this.grantCurrency(500) },
       { label: "Grant Unit", onClick: () => void this.grantSelectedUnit() },
       { label: "Grant Die", onClick: () => void this.grantSelectedDie() },
       { label: "Grant Boss Drop", onClick: () => void this.grantSelectedRegionItem() },
@@ -248,7 +248,7 @@ export default class DevPanelScene extends Phaser.Scene {
       return ["Loading profile..."];
     }
 
-    lines.push(`Currency: ${profile.currency.soft} soft / ${profile.currency.hard} hard`);
+    lines.push(`Currency: ${profile.currency.soft}`);
     lines.push(`Energy: ${profile.energy.current} / ${profile.energy.max}`);
     lines.push(`Squads: ${profile.squads.length}`);
     lines.push(`Units: ${profile.units.length}`);
@@ -293,14 +293,14 @@ export default class DevPanelScene extends Phaser.Scene {
   }
 
   private async grantCurrency(soft: number): Promise<void> {
-    this.setStatus(`Granting ${soft} soft...`);
+    this.setStatus(`Granting ${soft} currency...`);
     try {
       const res = await apiClient.grantDebugCurrency(soft, 0);
       if (!res.ok) {
         this.setStatus(res.error.message, true);
         return;
       }
-      this.setStatus(`Soft currency updated to ${res.data.currency.soft}.`);
+      this.setStatus(`Currency updated to ${res.data.currency.soft}.`);
       await this.loadData();
     } catch (error) {
       this.setStatus(error instanceof Error ? error.message : "Failed to grant currency.", true);

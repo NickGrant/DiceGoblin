@@ -1,16 +1,26 @@
 import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
-import SharedActionButton from "../components/clickable-panel/SharedActionButton";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { isDevPanelEnabled } from "../debug/devFlags";
 import { apiClient } from "../services/apiClient";
 import { getPageLayout, type LayoutRect } from "../layout/pageLayout";
-import HomeNavigationPanel from "../components/navigation/HomeNavigationPanel";
-import ContentAreaFrame from "../components/layout/ContentAreaFrame";
-import { TEXT_BODY, TEXT_HEADER } from "../const/Text";
 
-const HOME_PANEL_TITLE_HEIGHT = 56;
+const PANEL_GAP = 10;
+const WELCOME_COLOR = 0x99e09c;
+const START_RUN_COLOR = 0x8bdfe0;
+const WARBAND_COLOR = 0x02e0c8;
+const SHOP_COLOR = 0xc903e0;
+const INVENTORY_COLOR = 0x3a00e0;
+const DEV_COLOR = 0x678387;
+
+type HomePanelConfig = {
+  rect: LayoutRect;
+  color: number;
+  tooltip: string;
+  enabled?: boolean;
+  onClick: () => void;
+};
 
 export default class HomeScene extends Phaser.Scene {
   constructor() {
@@ -19,97 +29,46 @@ export default class HomeScene extends Phaser.Scene {
 
   create(): void {
     new BackgroundImage(this);
-    const layout = getPageLayout(this);
     mountBottomCommandStrip(this);
 
-    const actionsFrame = new ContentAreaFrame({
-      scene: this,
-      x: layout.buttons.x,
-      y: layout.buttons.y,
-      width: layout.buttons.width,
-      height: layout.buttons.height,
-      title: "Camp Actions",
-      bodyColor: 0x344046,
-    });
-    actionsFrame.setDepth(-700);
-
-    const contentArea: LayoutRect = {
-      x: layout.content.x,
-      y: layout.content.y,
-      width: layout.content.width,
-      height: layout.content.height,
-    };
-
-    this.renderCampIntro(contentArea);
-    this.renderDevPanelButton(layout);
-    this.renderShopButton(layout);
-    void this.renderDynamicRunArea(contentArea);
+    this.renderWelcomeBand();
+    void this.renderNavigationPanels();
   }
 
-  private renderCampIntro(contentArea: LayoutRect): void {
-    this.add
-      .rectangle(contentArea.x + 18, contentArea.y + 84, contentArea.width - 36, 86, 0x121a1f, 0.82)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0xcaa860, 0.18);
-    this.add
-      .text(contentArea.x + 24, contentArea.y + 86, "CAMP OVERVIEW", {
-        ...TEXT_BODY,
-        fontSize: "18px",
-        color: "#f0d38a",
-      })
-      .setOrigin(0, 0);
+  private renderWelcomeBand(): void {
+    const layout = getPageLayout(this);
+    const safe = layout.padding;
+    const welcomeHeight = 128;
+    // Missing dedicated home hero asset: use the requested color block until the art pass lands.
+    this.add.rectangle(safe.x, safe.y, safe.width, welcomeHeight, WELCOME_COLOR, 1).setOrigin(0, 0);
 
-    this.add
-      .text(contentArea.x + 24, contentArea.y + 112, "Choose the next run, then use the side actions to prep between expeditions.", {
-        ...TEXT_HEADER,
-        fontSize: "20px",
-        color: "#f0f4f5",
-        wordWrap: { width: contentArea.width - 80 },
-      })
-      .setOrigin(0, 0);
+    const textInset = 24;
+    const columnGap = 32;
+    const columnWidth = Math.floor((safe.width - textInset * 2 - columnGap) / 2);
+
+    this.add.text(safe.x + textInset, safe.y + 22, "Welcome back to camp. Pick the next route, then use the side panels to prep your squad between runs.", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "25px",
+      color: "#17341d",
+      wordWrap: { width: columnWidth },
+      lineSpacing: 7,
+    }).setOrigin(0, 0);
+
+    this.add.text(
+      safe.x + textInset + columnWidth + columnGap,
+      safe.y + 22,
+      "Warband and Inventory are your management spaces, and Shop is where you spend currency between expeditions.",
+      {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "25px",
+        color: "#17341d",
+        wordWrap: { width: columnWidth },
+        lineSpacing: 7,
+      }
+    ).setOrigin(0, 0);
   }
 
-  private renderDevPanelButton(layout: ReturnType<typeof getPageLayout>): void {
-    if (!isDevPanelEnabled()) {
-      return;
-    }
-
-    new SharedActionButton({
-      scene: this,
-      x: layout.buttons.x + Math.max(10, Math.floor((layout.buttons.width - 280) / 2)),
-      y: layout.buttons.y + 278,
-      label: "Dev Panel",
-      onClick: () => {
-        this.scene.start("DevPanelScene");
-      },
-    });
-  }
-
-  private renderShopButton(layout: ReturnType<typeof getPageLayout>): void {
-    this.add
-      .text(layout.buttons.x + 24, layout.buttons.y + 90, "Spend soft currency on early dice, starter recruits, and the daily deal before the next run.", {
-        ...TEXT_BODY,
-        fontSize: "19px",
-        color: "#eef3f4",
-        stroke: "#11181d",
-        strokeThickness: 1,
-        lineSpacing: 6,
-        wordWrap: { width: layout.buttons.width - 48 },
-      })
-      .setOrigin(0, 0);
-
-    new SharedActionButton({
-      scene: this,
-      x: layout.buttons.x + Math.max(10, Math.floor((layout.buttons.width - 280) / 2)),
-      y: layout.buttons.y + 190,
-      label: "Shop",
-      onClick: () => {
-        this.scene.start("ShopScene");
-      },
-    });
-  }
-
-  private async renderDynamicRunArea(contentArea: LayoutRect): Promise<void> {
+  private async renderNavigationPanels(): Promise<void> {
     let hasActiveRun = false;
     try {
       const profile = await apiClient.getProfile({ force: true, allowStaleOnError: true });
@@ -118,38 +77,127 @@ export default class HomeScene extends Phaser.Scene {
       hasActiveRun = false;
     }
 
-    const bodyImageKey = hasActiveRun ? "ux_continue_run" : "ux_start_run";
-    const areaRect = this.resolveRunPanelArea(contentArea, "ux_start_run");
-    new HomeNavigationPanel({
-      scene: this,
-      areaRect,
-      title: hasActiveRun ? "Continue Run" : "Start Run",
-      bodyColor: 0x23272a,
-      targetSceneKey: hasActiveRun ? "MapExplorationScene" : "RegionSelectScene",
-      bodyImageKey,
+    const panels = this.resolvePanelRects();
+    this.createPanel({
+      rect: panels.startRun,
+      color: START_RUN_COLOR,
+      tooltip: hasActiveRun ? "Continue Run" : "Start Run",
+      onClick: () => this.scene.start(hasActiveRun ? "MapExplorationScene" : "RegionSelectScene"),
     });
+    this.createPanel({
+      rect: panels.warband,
+      color: WARBAND_COLOR,
+      tooltip: "Warband",
+      onClick: () => this.scene.start("WarbandManagementScene"),
+    });
+    this.createPanel({
+      rect: panels.shop,
+      color: SHOP_COLOR,
+      tooltip: "Shop",
+      onClick: () => this.scene.start("ShopScene"),
+    });
+    this.createPanel({
+      rect: panels.inventory,
+      color: INVENTORY_COLOR,
+      tooltip: "Inventory",
+      onClick: () => this.scene.start("InventoryScene"),
+    });
+    this.createPanel({
+      rect: panels.dev,
+      color: DEV_COLOR,
+      tooltip: isDevPanelEnabled() ? "Dev Panel" : "Dev Panel Disabled",
+      enabled: isDevPanelEnabled(),
+      onClick: () => this.scene.start("DevPanelScene"),
+    });
+
     markDebugSceneReady(this, { hasActiveRun });
   }
 
-  private resolveRunPanelArea(contentArea: LayoutRect, bodyImageKey: string): LayoutRect {
-    const fallbackWidth = contentArea.width;
-    const fallbackHeight = Math.max(0, contentArea.height - 178);
-    if (!this.textures.exists(bodyImageKey)) {
-      return { ...contentArea, y: contentArea.y + 178, width: fallbackWidth, height: fallbackHeight };
-    }
-
-    const source = this.textures.get(bodyImageKey).getSourceImage() as { width?: number; height?: number } | undefined;
-    const naturalBodyWidth = source?.width ?? fallbackWidth;
-    const naturalBodyHeight = source?.height ?? Math.max(0, fallbackHeight - HOME_PANEL_TITLE_HEIGHT);
-
-    const panelWidth = Math.min(naturalBodyWidth, contentArea.width);
-    const panelHeight = Math.min(naturalBodyHeight + HOME_PANEL_TITLE_HEIGHT, contentArea.height);
+  private resolvePanelRects(): Record<"startRun" | "warband" | "shop" | "inventory" | "dev", LayoutRect> {
+    const layout = getPageLayout(this);
+    const safe = layout.padding;
+    const welcomeHeight = 128;
+    const rowY = safe.y + welcomeHeight + PANEL_GAP;
+    const rowHeight = layout.bottomStrip.y - rowY - PANEL_GAP;
+    const leftWidth = Math.floor((safe.width - PANEL_GAP) * 0.495);
+    const rightWidth = safe.width - leftWidth - PANEL_GAP;
+    const cardHeight = Math.floor((rowHeight - PANEL_GAP) / 2);
+    const smallWidth = Math.floor((rightWidth - PANEL_GAP) / 2);
+    const rightX = safe.x + leftWidth + PANEL_GAP;
+    const bottomY = rowY + cardHeight + PANEL_GAP;
 
     return {
-      x: contentArea.x + Math.floor((contentArea.width - panelWidth) / 2),
-      y: contentArea.y + 178 + Math.max(0, Math.floor((fallbackHeight - panelHeight) / 2)),
-      width: panelWidth,
-      height: panelHeight,
+      startRun: {
+        x: safe.x,
+        y: rowY,
+        width: leftWidth,
+        height: rowHeight,
+      },
+      warband: {
+        x: rightX,
+        y: rowY,
+        width: smallWidth,
+        height: cardHeight,
+      },
+      shop: {
+        x: rightX + smallWidth + PANEL_GAP,
+        y: rowY,
+        width: smallWidth,
+        height: cardHeight,
+      },
+      inventory: {
+        x: rightX,
+        y: bottomY,
+        width: smallWidth,
+        height: cardHeight,
+      },
+      dev: {
+        x: rightX + smallWidth + PANEL_GAP,
+        y: bottomY,
+        width: smallWidth,
+        height: cardHeight,
+      },
     };
+  }
+
+  private createPanel(config: HomePanelConfig): void {
+    // Missing destination card art: use the requested placeholder block until the home asset set is generated.
+    const disabledAlpha = 1;
+    const panel = this.add.rectangle(config.rect.x, config.rect.y, config.rect.width, config.rect.height, config.color, config.enabled === false ? disabledAlpha : 1).setOrigin(0, 0);
+    const hitZone = this.add.zone(config.rect.x, config.rect.y, config.rect.width, config.rect.height)
+      .setOrigin(0, 0)
+      .setInteractive({ useHandCursor: config.enabled !== false });
+    const tooltip = this.add.text(config.rect.x + config.rect.width / 2, config.rect.y + config.rect.height / 2, config.tooltip, {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "18px",
+      color: "#ffffff",
+      backgroundColor: "#22131b",
+      padding: { left: 8, right: 8, top: 6, bottom: 6 },
+    }).setOrigin(0.5, 0.5).setVisible(false);
+
+    hitZone.on("pointerover", () => {
+      if (config.enabled === false) {
+        return;
+      }
+      panel.setAlpha(0.84);
+      tooltip.setVisible(true);
+    });
+    hitZone.on("pointerout", () => {
+      panel.setAlpha(config.enabled === false ? disabledAlpha : 1);
+      tooltip.setVisible(false);
+    });
+    hitZone.on("pointerdown", () => {
+      if (config.enabled === false) {
+        return;
+      }
+      panel.setAlpha(0.7);
+    });
+    hitZone.on("pointerup", () => {
+      if (config.enabled === false) {
+        return;
+      }
+      panel.setAlpha(0.84);
+      config.onClick();
+    });
   }
 }

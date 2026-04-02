@@ -270,7 +270,7 @@ export default class RestManagementScene extends Phaser.Scene {
       x: actionButtonX,
       y: actionBodyY + 112 + (ACTION_BUTTON_STEP + ACTION_BUTTON_GAP) * 2,
       label: "Manage Dice",
-      onClick: () => this.scene.start("DiceInventoryScene", {
+      onClick: () => this.scene.start("InventoryScene", {
         runId: this.runId,
         nodeId: this.nodeId,
         returnScene: "RestManagementScene",

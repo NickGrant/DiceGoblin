@@ -15,7 +15,7 @@ describe("warbandManagementState", () => {
         squads: [{ id: "1", name: "Main", is_active: true, unit_ids: ["11"], formation: [] }],
         units: [{ id: "11", name: "Bruiser", level: 1 }],
         dice: [],
-        currency: { soft: 0, hard: 0 },
+        currency: { soft: 0 },
         energy: { current: 50, max: 50, regen_rate_per_hour: 1, last_regen_at: "2026-03-07T00:00:00.000Z" },
         region_unlocks: [],
         region_items: [],

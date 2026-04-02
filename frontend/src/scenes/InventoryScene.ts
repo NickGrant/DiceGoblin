@@ -42,7 +42,7 @@ const RARITY_SORT_VALUE: Record<string, number> = {
   legendary: 4,
 };
 
-export default class DiceInventoryScene extends Phaser.Scene {
+export default class InventoryScene extends Phaser.Scene {
   private runId = "";
   private nodeId = "";
   private returnScene = "HomeScene";
@@ -71,7 +71,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
   private sellInFlight = false;
 
   constructor() {
-    super({ key: "DiceInventoryScene" });
+    super({ key: "InventoryScene" });
   }
 
   init(data: { runId?: string; nodeId?: string; returnScene?: string; unitId?: string }): void {
@@ -90,7 +90,7 @@ export default class DiceInventoryScene extends Phaser.Scene {
       y: layout.content.y,
       width: layout.content.width,
       height: layout.content.height,
-      title: "Dice Inventory",
+      title: "Inventory",
       bodyColor: 0x4f5a65,
     });
     contentFrame.setDepth(-800);

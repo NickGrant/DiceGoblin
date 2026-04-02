@@ -145,7 +145,7 @@ export function getDebugProfileFixture(): ProfileResponse {
     squads: FIXTURE_SQUADS,
     units: FIXTURE_UNITS,
     dice: FIXTURE_DICE,
-    currency: { soft: 1200, hard: 25 },
+    currency: { soft: 1200 },
     energy: {
       current: 8,
       max: 12,
