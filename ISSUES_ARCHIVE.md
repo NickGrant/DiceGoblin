@@ -6,6 +6,16 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Tighten run-map combat-result and run-summary readability
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: Do a readability and layout pass on `MapExplorationScene`, `NodeResolutionScene`, and `RunEndSummaryScene` to improve moment-to-moment comprehension. Prioritize stronger hierarchy for run condition and outcomes, more polished summary presentation, and better perceived continuity between map, combat result, and end-of-run states.
+resolution: Reworked the map, node-resolution, and run-summary screens with screenshot-driven layout passes so route state, combat outcomes, and end-of-run summaries present clearer status hierarchy, faster-read overview cues, and less empty/dead space in failure or fallback states.
+
+---
 title: Redesign home shell and rename inventory/currency surfaces
 status: complete
 priority: high

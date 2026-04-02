@@ -3,15 +3,6 @@
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
 ---
-title: Tighten run-map combat-result and run-summary readability
-status: in-progress
-priority: medium
-execution: active
-ready: yes
-milestone: Milestone 31 - First Release UI Polish and Release Prep
-description: Do a readability and layout pass on `MapExplorationScene`, `NodeResolutionScene`, and `RunEndSummaryScene` to improve moment-to-moment comprehension. Prioritize stronger hierarchy for run condition and outcomes, more polished summary presentation, and better perceived continuity between map, combat result, and end-of-run states.
-
----
 title: Rework rest management scene readability and structure
 status: unstarted
 priority: medium
