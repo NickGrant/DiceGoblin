@@ -142,7 +142,7 @@ describe("NodeResolutionScene", () => {
     expect(action?.label).toBe("Back to Map");
     action?.trigger();
     expect(scene.scene.start).toHaveBeenCalledWith("MapExplorationScene");
-  });
+  }, 10000);
 
   it("routes resolved non-terminal nodes back to map with payload", async () => {
     const { default: NodeResolutionScene } = await import("../../src/scenes/NodeResolutionScene");

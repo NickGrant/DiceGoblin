@@ -8,7 +8,6 @@ status: in-progress
 execution_window: open
 is_current: yes
 issues:
-  - Tighten run-map combat-result and run-summary readability
   - Rework rest management scene readability and structure
   - Record first-release manual gate evidence and release checklist
 description: |

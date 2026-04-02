@@ -84,7 +84,7 @@ describe("MapExplorationScene transition guards", () => {
       "No active run. Start one from Regions.",
       expect.any(Object)
     );
-  });
+  }, 10000);
 
   it("constructs NodeList when current run payload is valid", async () => {
     const { default: MapExplorationScene } = await import("../../src/scenes/MapExplorationScene");

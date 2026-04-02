@@ -11,17 +11,6 @@ ready: yes
 milestone: Milestone 31 - First Release UI Polish and Release Prep
 description: Do a more substantial presentation and layout pass on `RestManagementScene`. The current rest flow is functional, but the scene still needs dedicated readability, spacing, and action-hierarchy work before it feels release-ready.
 
----
-title: Record first-release manual gate evidence and release checklist
-status: unstarted
-priority: medium
-execution: active
-ready: yes
-milestone: Milestone 31 - First Release UI Polish and Release Prep
-description: Capture the manual release evidence required by `documentation/05-playability-stability/00-release-gate-criteria.md` and turn the final pre-release steps into an explicit checklist. Include fresh-account bootstrap, successful run, failed run, resume continuity, reset-account validation, release configuration checks for disabled debug tooling, and release-note/changelog prep.
-
----
-
 title: Verify unit promotion changes type abilities and growth correctly
 status: unstarted
 priority: high

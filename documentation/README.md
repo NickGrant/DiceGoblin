@@ -47,6 +47,8 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `documentation/TESTING_STRATEGY.md`
   - `documentation/05-playability-stability/00-release-gate-criteria.md`
   - `documentation/05-playability-stability/01-critical-path-playtest-script.md`
+  - `documentation/05-playability-stability/02-first-release-manual-gate-evidence.md`
+  - `documentation/05-playability-stability/03-first-release-checklist.md`
   - `documentation/CHANGELOG.md`
 
 ## Reference Data

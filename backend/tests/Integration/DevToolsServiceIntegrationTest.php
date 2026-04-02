@@ -64,7 +64,8 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $this->setEnergy($userId, 9, 50);
     $service->grantCurrency($userId, 120, 0);
     $service->grantUnits($userId, 'frontline_bruiser_t1', 1);
-    $service->grantDice($userId, 6, 'rare', 1);
+    $dice = $service->grantDice($userId, 6, 'rare', 1);
+    $grantedDiceId = (int) ($dice[0]['id'] ?? 0);
 
     $nodeStmt = $this->pdo?->prepare(
       "INSERT INTO `run_nodes` (`run_id`, `node_index`, `node_type`, `status`, `encounter_template_id`, `meta_json`) VALUES (?, 1, 'combat', 'available', NULL, NULL)"
@@ -84,6 +85,12 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     );
     $rewardStmt?->execute([$battleId]);
 
+    $dealStmt = $this->pdo?->prepare(
+      'INSERT INTO `shop_daily_deals` (`user_id`, `shop_date`, `dice_definition_id`, `affix_definition_id`, `affix_value`, `purchased_dice_instance_id`)
+       VALUES (?, ?, ?, ?, ?, ?)'
+    );
+    $dealStmt?->execute([$userId, '2026-04-01', 10, 1, 1.0, $grantedDiceId]);
+
     $reset = $service->resetAccount($userId);
 
     $this->assertSame((string) $userId, $reset['user_id']);
@@ -94,6 +101,7 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $this->assertSame(1, $reset['region_unlocks']);
     $this->assertSame(0, (int) $this->scalar("SELECT COUNT(*) FROM `region_runs` WHERE `user_id` = ? AND `status` = 'active'", [$userId]));
     $this->assertSame(0, (int) $this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame(0, (int) $this->scalar('SELECT COUNT(*) FROM `shop_daily_deals` WHERE `user_id` = ?', [$userId]));
   }
 
   private function makeService(): DevToolsService

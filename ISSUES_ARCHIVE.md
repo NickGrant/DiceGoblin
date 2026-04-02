@@ -6,6 +6,16 @@
 - Preserve prior context and resolution notes without bloating active execution context.
 
 ---
+title: Record first-release manual gate evidence and release checklist
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 31 - First Release UI Polish and Release Prep
+description: Capture the manual release evidence required by `documentation/05-playability-stability/00-release-gate-criteria.md` and turn the final pre-release steps into an explicit checklist. Include fresh-account bootstrap, successful run, failed run, resume continuity, reset-account validation, release configuration checks for disabled debug tooling, and release-note/changelog prep.
+resolution: Captured live manual gate evidence against the Docker backend for reset/bootstrap, successful and failed runs, and resume continuity; fixed the reset-account `shop_daily_deals` cleanup regression; and added explicit first-release checklist docs plus release-toggle notes for debug-only tooling.
+
+---
 title: Tighten run-map combat-result and run-summary readability
 status: complete
 priority: medium

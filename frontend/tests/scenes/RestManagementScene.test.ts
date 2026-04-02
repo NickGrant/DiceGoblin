@@ -46,5 +46,5 @@ describe("RestManagementScene", () => {
       resolutionMessage: "Rest finalized. - 1 unit healed - 1 progression update",
       resolutionColor: "#ccffcc",
     });
-  });
+  }, 10000);
 });

@@ -254,6 +254,7 @@ final class DevToolsService
       'DELETE dia FROM `dice_instance_affixes` dia JOIN `dice_instances` di ON di.`id` = dia.`dice_instance_id` WHERE di.`user_id` = ?',
       [$userId]
     );
+    $this->execDelete('DELETE FROM `shop_daily_deals` WHERE `user_id` = ?', [$userId]);
 
     $this->execDelete('DELETE FROM `unit_promotions` WHERE `user_id` = ?', [$userId]);
     $this->execDelete('DELETE FROM `user_region_items` WHERE `user_id` = ?', [$userId]);
