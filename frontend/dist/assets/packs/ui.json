@@ -42,6 +42,21 @@
                   },
                   {
                       "type":  "image",
+                      "key":  "region_farm_badge",
+                      "url":  "assets/ui/biome/farm_badge.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "region_mountain_badge",
+                      "url":  "assets/ui/biome/mountain_badge.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "region_swamp_badge",
+                      "url":  "assets/ui/biome/swamp_badge.png"
+                  },
+                  {
+                      "type":  "image",
                       "key":  "manifest_strip",
                       "url":  "assets/ui/manifest_strip.png"
                   },

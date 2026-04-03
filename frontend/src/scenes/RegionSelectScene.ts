@@ -6,6 +6,7 @@ import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import RegionSelectionPanel from "../components/navigation/RegionSelectionPanel";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
+import { resolveContentFrameBodyRect } from "../components/layout/contentAreaMath";
 import { apiClient } from "../services/apiClient";
 
 type RegionId = "farm" | "mountain" | "swamp";
@@ -25,7 +26,7 @@ const REGION_DEFINITIONS: RegionDefinition[] = [
   {
     id: "farm",
     label: "The Farm",
-    textureKey: "column_mountain",
+    textureKey: "region_farm_badge",
     regionDbId: 3,
     energyCost: 3,
     routeLabel: "Tutorial Route | 5 Nodes",
@@ -35,7 +36,7 @@ const REGION_DEFINITIONS: RegionDefinition[] = [
   {
     id: "mountain",
     label: "Mountains",
-    textureKey: "column_mountain",
+    textureKey: "region_mountain_badge",
     regionDbId: 1,
     energyCost: 5,
     routeLabel: "Early Route | Standard Length",
@@ -45,7 +46,7 @@ const REGION_DEFINITIONS: RegionDefinition[] = [
   {
     id: "swamp",
     label: "Swamp",
-    textureKey: "column_swamp",
+    textureKey: "region_swamp_badge",
     regionDbId: 2,
     energyCost: 5,
     routeLabel: "Advanced Route | High Attrition",
@@ -55,17 +56,19 @@ const REGION_DEFINITIONS: RegionDefinition[] = [
 ];
 
 export default class RegionSelectScene extends Phaser.Scene {
+  private static readonly FRAME_MARGIN = 10;
+  private static readonly REGION_TILE_SIZE = 288;
+  private static readonly REGION_TILE_GAP = 10;
+  private static readonly FRAME_TITLE_HEIGHT = 56;
+  private static readonly INNER_PADDING = 10;
+  private static readonly COLUMN_BOTTOM_EXTENSION = 10;
   private selectedRegionId: RegionId = "farm";
   private unlockedRegions = new Set<RegionId>(["farm"]);
   private regionPanels = new Map<RegionId, RegionSelectionPanel>();
   private intelTitleText?: Phaser.GameObjects.Text;
   private intelBodyText?: Phaser.GameObjects.Text;
-  private intelHintText?: Phaser.GameObjects.Text;
-  private statusTitleText?: Phaser.GameObjects.Text;
-  private statusBodyText?: Phaser.GameObjects.Text;
-  private energyTitleText?: Phaser.GameObjects.Text;
-  private energyBodyText?: Phaser.GameObjects.Text;
-  private energyInfoIcon?: Phaser.GameObjects.Image;
+  private intelEnergyIcon?: Phaser.GameObjects.Image;
+  private intelEnergyText?: Phaser.GameObjects.Text;
   private startRunButton?: SharedActionButton;
   private currentEnergy: { current: number; max: number } | null = null;
 
@@ -82,8 +85,9 @@ export default class RegionSelectScene extends Phaser.Scene {
       x: layout.content.x,
       y: layout.content.y,
       width: layout.content.width,
-      height: layout.content.height,
+      height: layout.content.height + RegionSelectScene.COLUMN_BOTTOM_EXTENSION,
       title: "Choose Region",
+      marginPx: RegionSelectScene.FRAME_MARGIN,
       bodyColor: 0x23272a,
     });
     contentFrame.setDepth(-800);
@@ -93,45 +97,34 @@ export default class RegionSelectScene extends Phaser.Scene {
       x: layout.buttons.x,
       y: layout.buttons.y,
       width: layout.buttons.width,
-      height: layout.buttons.height,
+      height: layout.buttons.height + RegionSelectScene.COLUMN_BOTTOM_EXTENSION,
       title: "Region Intel",
+      marginPx: RegionSelectScene.FRAME_MARGIN,
       bodyColor: 0x4f5a65,
     });
     intelFrame.setDepth(-800);
 
     this.buildIntelPanel();
 
-    this.add
-      .text(layout.content.x + 26, layout.content.y + 88, "CHOOSE THE NEXT ROUTE", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "20px",
-        color: "#f0d38a",
-      })
-      .setOrigin(0, 0);
-
-    this.add
-      .text(layout.content.x + 26, layout.content.y + 118, "The Farm teaches the loop. Mountains are the baseline. Swamp is where mistakes get expensive.", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "28px",
-        color: "#f1f4f6",
-        stroke: "#11181d",
-        strokeThickness: 3,
-        wordWrap: { width: layout.content.width - 52 },
-      })
-      .setOrigin(0, 0);
-
-    const gap = 18;
-    const panelWidth = Math.floor((layout.content.width - gap * 4) / 3);
-    const panelHeight = Math.max(220, Math.min(260, layout.content.height - 310));
-    const panelY = layout.content.y + 196;
+    const contentBody = resolveContentFrameBodyRect({
+      width: layout.content.width,
+      height: layout.content.height + RegionSelectScene.COLUMN_BOTTOM_EXTENSION,
+      titleHeight: RegionSelectScene.FRAME_TITLE_HEIGHT,
+      marginPx: RegionSelectScene.FRAME_MARGIN,
+    });
+    const contentBodyX = layout.content.x + contentBody.x;
+    const contentBodyY = layout.content.y + contentBody.y;
+    const contentBodyHeight = contentBody.height;
+    const panelX = contentBodyX + RegionSelectScene.INNER_PADDING;
+    const panelY = contentBodyY + RegionSelectScene.INNER_PADDING;
 
     REGION_DEFINITIONS.forEach((region, index) => {
       const panel = new RegionSelectionPanel({
         scene: this,
-        x: layout.content.x + gap + (panelWidth + gap) * index,
+        x: panelX + (RegionSelectScene.REGION_TILE_SIZE + RegionSelectScene.REGION_TILE_GAP) * index,
         y: panelY,
-        width: panelWidth,
-        height: panelHeight,
+        width: RegionSelectScene.REGION_TILE_SIZE,
+        height: RegionSelectScene.REGION_TILE_SIZE,
         regionId: region.id,
         label: region.label,
         textureKey: region.textureKey,
@@ -140,35 +133,16 @@ export default class RegionSelectScene extends Phaser.Scene {
         onActivate: async (regionId) => this.startRun(regionId as RegionId),
         onLockedSelect: () => this.showFeedback("Region locked."),
         onUnavailableSelect: (regionId) => this.showFeedback(this.buildInsufficientEnergyMessage(regionId as RegionId)),
-        footerLabel: `${region.routeLabel} | ${region.energyCost} energy`,
       });
       this.regionPanels.set(region.id, panel);
     });
 
-    this.add
-      .rectangle(layout.content.x + 18, layout.content.y + layout.content.height - 126, layout.content.width - 36, 88, 0x12191e, 0.94)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0xbfa06a, 0.25);
-
-    this.energyInfoIcon = this.hasTexture("icon_energy_large")
-      ? this.add
-          .image(layout.content.x + 60, layout.content.y + layout.content.height - 82, "icon_energy_large")
-          .setOrigin(0.5, 0.5)
-          .setDisplaySize(38, 38)
-      : undefined;
-
-    this.energyTitleText = this.add.text(layout.content.x + 90, layout.content.y + layout.content.height - 136, "", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "18px",
-      color: "#d7c18e",
-    });
-
-    this.energyBodyText = this.add.text(layout.content.x + 90, layout.content.y + layout.content.height - 100, "", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "18px",
-      color: "#f1f4f6",
-      wordWrap: { width: layout.content.width - 72 },
-      lineSpacing: 4,
+    this.startRunButton = new SharedActionButton({
+      scene: this,
+      x: contentBodyX + RegionSelectScene.INNER_PADDING,
+      y: contentBodyY + contentBodyHeight - 64 - RegionSelectScene.INNER_PADDING,
+      label: "Start Run",
+      onClick: () => void this.startRun(this.selectedRegionId),
     });
 
     this.selectRegion("farm");
@@ -179,64 +153,40 @@ export default class RegionSelectScene extends Phaser.Scene {
 
   private buildIntelPanel(): void {
     const layout = getPageLayout(this);
-    this.intelTitleText = this.add.text(layout.buttons.x + 24, layout.buttons.y + 90, "", {
+    const headerX = layout.buttons.x + 24;
+    const headerCenterY = layout.buttons.y + 118;
+
+    this.intelTitleText = this.add.text(headerX, headerCenterY, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "34px",
       color: "#f2f2f2",
       stroke: "#1a1a1a",
       strokeThickness: 3,
-      wordWrap: { width: layout.buttons.width - 48 },
-    });
+      wordWrap: { width: layout.buttons.width - 120 },
+    }).setOrigin(0, 0.5);
 
-    this.intelBodyText = this.add.text(layout.buttons.x + 24, layout.buttons.y + 144, "", {
+    if (this.hasTexture("icon_energy_large")) {
+      this.intelEnergyIcon = this.add
+        .image(layout.buttons.x + layout.buttons.width - 54, headerCenterY, "icon_energy_large")
+        .setOrigin(0.5, 0.5)
+        .setDisplaySize(24, 24);
+    }
+
+    this.intelEnergyText = this.add.text(layout.buttons.x + layout.buttons.width - 38, headerCenterY, "", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "24px",
+      color: "#f0d38a",
+      stroke: "#1a1a1a",
+      strokeThickness: 2,
+    }).setOrigin(0, 0.5);
+
+    this.intelBodyText = this.add.text(layout.buttons.x + 24, layout.buttons.y + 162, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "21px",
       color: "#e8edf1",
       lineSpacing: 10,
       wordWrap: { width: layout.buttons.width - 48 },
     });
-
-    this.intelHintText = this.add.text(layout.buttons.x + 24, layout.buttons.y + layout.buttons.height - 188, "", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "18px",
-      color: "#b9d0d6",
-      wordWrap: { width: layout.buttons.width - 48 },
-    });
-
-    const statusBoxY = layout.buttons.y + layout.buttons.height - 286;
-    this.add.rectangle(layout.buttons.x + 20, statusBoxY, layout.buttons.width - 40, 92, 0x1e252b, 0.92)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0xb9d0d6, 0.2);
-
-    this.statusTitleText = this.add.text(layout.buttons.x + 36, statusBoxY + 14, "", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "22px",
-      color: "#f2f2f2",
-      stroke: "#1a1a1a",
-      strokeThickness: 3,
-      wordWrap: { width: layout.buttons.width - 72 },
-    });
-
-    this.statusBodyText = this.add.text(layout.buttons.x + 36, statusBoxY + 42, "", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "18px",
-      color: "#dbe4e8",
-      lineSpacing: 4,
-      wordWrap: { width: layout.buttons.width - 72 },
-    });
-
-    this.startRunButton = new SharedActionButton({
-      scene: this,
-      x: layout.buttons.x + Math.max(0, Math.floor((layout.buttons.width - 280) / 2)),
-      y: layout.buttons.y + layout.buttons.height - 104,
-      label: "Start Run",
-      onClick: () => void this.startRun(this.selectedRegionId),
-    });
-  }
-
-  private hasTexture(key: string): boolean {
-    const textures = (this as Phaser.Scene & { textures?: { exists?: (textureKey: string) => boolean } }).textures;
-    return typeof textures?.exists === "function" && textures.exists(key);
   }
 
   private async loadRegionUnlocks(): Promise<void> {
@@ -256,6 +206,11 @@ export default class RegionSelectScene extends Phaser.Scene {
       this.currentEnergy = null;
       this.applyUnlockedRegions(new Set<RegionId>(["farm"]));
     }
+  }
+
+  private hasTexture(key: string): boolean {
+    const textures = (this as Phaser.Scene & { textures?: { exists?: (textureKey: string) => boolean } }).textures;
+    return typeof textures?.exists === "function" && textures.exists(key);
   }
 
   private applyUnlockedRegions(unlocked: Set<RegionId>): void {
@@ -313,42 +268,42 @@ export default class RegionSelectScene extends Phaser.Scene {
         : "Start Run";
 
     this.intelTitleText?.setText(selected.intelTitle);
+    this.intelEnergyText?.setText(String(selected.energyCost));
     this.intelBodyText?.setText(selected.intelDescription);
-    this.intelHintText?.setText(
-      !isUnlocked
-        ? "This region is locked. Progress through available regions to unlock it."
-        : canAffordSelected === false
-          ? `You need ${selected.energyCost} energy to start this run. Wait for regen or return after recovering energy.`
-          : "Single-click a region to inspect. Double-click the region card or press Start Run to begin."
-    );
-
-    this.statusTitleText?.setText(
-      !isUnlocked
-        ? "Region Locked"
-        : canAffordSelected === false
-          ? "Insufficient Energy"
-          : "Ready"
-    );
-    this.statusBodyText?.setText(
-      !isUnlocked
-        ? "This region cannot be launched yet."
-        : canAffordSelected === false
-          ? this.buildInsufficientEnergyMessage(selected.id)
-          : this.currentEnergy !== null
-            ? `Current energy: ${this.currentEnergy.current}/${this.currentEnergy.max}. Run cost: ${selected.energyCost}.`
-            : `Run cost: ${selected.energyCost} energy.`
-    );
-
-    this.energyTitleText?.setText("Selected Route");
-    this.energyBodyText?.setText(
-      !isUnlocked
-        ? `${selected.label} is still locked. Clear the previous route to open it.`
-        : this.currentEnergy !== null
-          ? `${selected.routeLabel}. Cost ${selected.energyCost}. Energy ${this.currentEnergy.current}/${this.currentEnergy.max}.`
-          : `${selected.routeLabel}. Cost ${selected.energyCost} energy.`
-    );
+    this.layoutIntelHeader();
 
     this.startRunButton?.setText(startButtonLabel).setEnabled(isUnlocked && canAffordSelected !== false);
+  }
+
+  private layoutIntelHeader(): void {
+    if (!this.intelTitleText || !this.intelEnergyText) {
+      return;
+    }
+
+    const layout = getPageLayout(this);
+    const titleRight = this.intelTitleText.x + this.intelTitleText.width;
+    const maxIconX = layout.buttons.x + layout.buttons.width - 54;
+    const desiredIconX = titleRight + 20;
+    const iconX = Math.min(desiredIconX, maxIconX);
+
+    this.setObjectPosition(this.intelEnergyIcon, iconX, this.intelTitleText.y);
+    this.setObjectPosition(this.intelEnergyText, iconX + 14, this.intelTitleText.y);
+  }
+
+  private setObjectPosition(
+    object: { setPosition?: (x: number, y: number) => unknown; x?: number; y?: number } | undefined,
+    x: number,
+    y: number,
+  ): void {
+    if (!object) {
+      return;
+    }
+    if (typeof object.setPosition === "function") {
+      object.setPosition(x, y);
+      return;
+    }
+    object.x = x;
+    object.y = y;
   }
 
   private async startRun(regionId: RegionId): Promise<void> {
@@ -378,8 +333,7 @@ export default class RegionSelectScene extends Phaser.Scene {
   }
 
   private showFeedback(message: string): void {
-    this.statusTitleText?.setText("Run Start Blocked");
-    this.statusBodyText?.setText(message);
+    void message;
   }
 
   private canAffordRegionById(regionId: RegionId): boolean | null {

@@ -27,15 +27,13 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
   private readonly onLockedSelect?: (regionId: string) => void;
   private readonly onUnavailableSelect?: (regionId: string) => void;
   private readonly panel: ClickablePanel;
-  private readonly labelText: Phaser.GameObjects.Text;
-  private readonly titleBackground: Phaser.GameObjects.Rectangle;
   private readonly lockOverlay: Phaser.GameObjects.Rectangle;
   private readonly lockText: Phaser.GameObjects.Text;
   private readonly unavailableOverlay: Phaser.GameObjects.Rectangle;
   private readonly unavailableText: Phaser.GameObjects.Text;
   private readonly selectionOutline: Phaser.GameObjects.Rectangle;
-  private readonly footerBackground: Phaser.GameObjects.Rectangle;
-  private readonly footerText: Phaser.GameObjects.Text;
+  private readonly footerBackground?: Phaser.GameObjects.Rectangle;
+  private readonly footerText?: Phaser.GameObjects.Text;
   private readonly panelWidth: number;
   private readonly panelHeight: number;
   private lastSelectAt = 0;
@@ -80,20 +78,6 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
     });
     this.panel.setAlpha(1);
 
-    this.titleBackground = cfg.scene.add
-      .rectangle(14, 12, cfg.width - 28, 52, 0x000000, 0.45)
-      .setOrigin(0, 0);
-
-    this.labelText = cfg.scene.add
-      .text(Math.floor(cfg.width / 2), 20, cfg.label.toUpperCase(), {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: cfg.width < 260 ? "28px" : "36px",
-        color: "#f0f0f0",
-        wordWrap: { width: cfg.width - 48 },
-        align: "center",
-      })
-      .setOrigin(0.5, 0);
-
     this.lockOverlay = cfg.scene.add
       .rectangle(0, 0, cfg.width, cfg.height, 0x0b1114, 0.5)
       .setOrigin(0, 0);
@@ -124,21 +108,23 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
       .setOrigin(0.5, 1)
       .setVisible(false);
 
-    this.footerBackground = cfg.scene.add
-      .rectangle(14, cfg.height - 58, cfg.width - 28, 40, 0x0b1114, 0.62)
-      .setOrigin(0, 0);
+    if (cfg.footerLabel) {
+      this.footerBackground = cfg.scene.add
+        .rectangle(14, cfg.height - 58, cfg.width - 28, 40, 0x0b1114, 0.62)
+        .setOrigin(0, 0);
 
-    this.footerText = cfg.scene.add
-      .text(Math.floor(cfg.width / 2), cfg.height - 39, cfg.footerLabel?.toUpperCase() ?? "", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "18px",
-        color: "#f2e0b8",
-        stroke: "#0d0d0d",
-        strokeThickness: 2,
-        wordWrap: { width: cfg.width - 40 },
-        align: "center",
-      })
-      .setOrigin(0.5, 0.5);
+      this.footerText = cfg.scene.add
+        .text(Math.floor(cfg.width / 2), cfg.height - 39, cfg.footerLabel.toUpperCase(), {
+          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+          fontSize: "18px",
+          color: "#f2e0b8",
+          stroke: "#0d0d0d",
+          strokeThickness: 2,
+          wordWrap: { width: cfg.width - 40 },
+          align: "center",
+        })
+        .setOrigin(0.5, 0.5);
+    }
 
     this.selectionOutline = cfg.scene.add
       .rectangle(0, 0, cfg.width, cfg.height)
@@ -147,14 +133,16 @@ export default class RegionSelectionPanel extends Phaser.GameObjects.Container {
       .setVisible(false);
 
     this.add(this.panel);
-    this.add(this.titleBackground);
-    this.add(this.labelText);
     this.add(this.lockOverlay);
     this.add(this.lockText);
     this.add(this.unavailableOverlay);
     this.add(this.unavailableText);
-    this.add(this.footerBackground);
-    this.add(this.footerText);
+    if (this.footerBackground) {
+      this.add(this.footerBackground);
+    }
+    if (this.footerText) {
+      this.add(this.footerText);
+    }
     this.add(this.selectionOutline);
     cfg.scene.add.existing(this);
     this.applyLockedState();
