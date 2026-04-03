@@ -16,7 +16,7 @@ const NAV_BUTTONS = [
   { key: "home", tooltipText: "Home", targetScene: "HomeScene", iconKey: "icon_home", fallbackColor: 0x1683ff },
   { key: "warband", tooltipText: "Warband", targetScene: "WarbandManagementScene", iconKey: "icon_warband", fallbackColor: 0x02e0c8 },
   { key: "inventory", tooltipText: "Inventory", targetScene: "InventoryScene", iconKey: "icon_inventory", fallbackColor: 0x3a00e0 },
-  { key: "shop", tooltipText: "Shop", targetScene: "ShopScene", fallbackColor: 0xc903e0 },
+  { key: "shop", tooltipText: "Shop", targetScene: "ShopScene", iconKey: "icon_shop", fallbackColor: 0xc903e0 },
 ] as const;
 
 type StripButton = {
@@ -51,8 +51,7 @@ export default class BottomCommandStrip {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
 
-    const backgroundKey = scene.textures.exists("base_bar") ? "base_bar" : "manifest_strip";
-    this.stripBackground = scene.add.image(0, 0, backgroundKey).setOrigin(0.5, 0.5);
+    this.stripBackground = scene.add.image(0, 0, "base_bar").setOrigin(0.5, 0.5);
 
     this.navButtons = NAV_BUTTONS.map((config) => this.createStripButton(config));
     this.logoutButton = this.createStripButton({
@@ -192,23 +191,23 @@ export default class BottomCommandStrip {
     this.stripBackground.setPosition(centerX, centerY).setDisplaySize(STRIP_WIDTH, STRIP_HEIGHT);
 
     const navTop = top + 14;
-    const navSlots = [left + 59, left + 129, left + 199, left + 269];
+    const navSlots = [left + 70, left + 145, left + 215, left + 290];
 
     for (let index = 0; index < this.navButtons.length; index += 1) {
       const button = this.navButtons[index];
       if (!button) continue;
-      const x = navSlots[index] ?? (left + 59 + index * 70);
+      const x = navSlots[index] ?? (left + 70 + index * 75);
       button.visual.setPosition(x, navTop);
       button.hitZone.setPosition(x, navTop);
       button.tooltip.setPosition(x + ICON_SIZE / 2, navTop - 8);
     }
 
-    const textY = top + 29;
-    this.energyIcon?.setPosition(left + 413, textY);
-    this.energyText.setPosition(left + 425, textY);
-    this.teethIcon?.setPosition(left + 503, textY);
-    this.currencyText.setPosition(left + 515, textY);
-    this.playerNameText.setPosition(left + 684, textY);
+    const textY = top + 42;
+    this.energyIcon?.setPosition(centerX - 74, textY);
+    this.energyText.setPosition(centerX - 65, textY);
+    this.teethIcon?.setPosition(centerX + 15, textY);
+    this.currencyText.setPosition(centerX + 31, textY);
+    this.playerNameText.setPosition(centerX + 154, textY - 8);
 
     const logoutX = left + 878;
     const logoutY = top + 14;

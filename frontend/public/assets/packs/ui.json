@@ -57,6 +57,31 @@
                   },
                   {
                       "type":  "image",
+                      "key":  "banner_background",
+                      "url":  "assets/ui/banner_background.jpg"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "home_panel_start_run",
+                      "url":  "assets/ui/panels/home_start_run.jpg"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "home_panel_warband",
+                      "url":  "assets/ui/panels/home_warband.jpg"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "home_panel_shop",
+                      "url":  "assets/ui/panels/home_shop.jpg"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "home_panel_inventory",
+                      "url":  "assets/ui/panels/home_inventory.jpg"
+                  },
+                  {
+                      "type":  "image",
                       "key":  "icon_home",
                       "url":  "assets/ui/icons/icon_home.png"
                   },
@@ -69,6 +94,16 @@
                       "type":  "image",
                       "key":  "icon_inventory",
                       "url":  "assets/ui/icons/icon_inventory.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_shop",
+                      "url":  "assets/ui/icons/icon_shop.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "icon_discord",
+                      "url":  "assets/ui/icons/icon_discord.png"
                   },
                   {
                       "type":  "image",

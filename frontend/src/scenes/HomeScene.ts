@@ -19,6 +19,7 @@ type HomePanelConfig = {
   color: number;
   tooltip: string;
   enabled?: boolean;
+  textureKey?: string;
   onClick: () => void;
 };
 
@@ -37,21 +38,47 @@ export default class HomeScene extends Phaser.Scene {
 
   private renderWelcomeBand(): void {
     const layout = getPageLayout(this);
+    const pad = layout.padding.x;
     const safe = layout.padding;
     const welcomeHeight = 128;
-    // Missing dedicated home hero asset: use the requested color block until the art pass lands.
-    this.add.rectangle(safe.x, safe.y, safe.width, welcomeHeight, WELCOME_COLOR, 1).setOrigin(0, 0);
+    const hasBannerTexture = typeof this.textures?.exists === "function" && this.textures.exists("banner_background");
+    if (hasBannerTexture) {
+      this.add.image(0, safe.y, "banner_background")
+        .setOrigin(0, 0)
+        .setDisplaySize(this.scale.width, welcomeHeight);
+    } else {
+      // Missing welcome banner asset: use the requested color block until the art pass lands.
+      this.add.rectangle(0, safe.y, this.scale.width, welcomeHeight, WELCOME_COLOR, 1).setOrigin(0, 0);
+    }
+    this.add.rectangle(0, safe.y, this.scale.width, welcomeHeight, 0x111111, 0.34).setOrigin(0, 0);
 
     const textInset = 24;
     const columnGap = 32;
-    const columnWidth = Math.floor((safe.width - textInset * 2 - columnGap) / 2);
-
-    this.add.text(safe.x + textInset, safe.y + 22, "Welcome back to camp. Pick the next route, then use the side panels to prep your squad between runs.", {
+    const textBandWidth = this.scale.width - pad * 2;
+    const columnWidth = Math.floor((textBandWidth - textInset * 2 - columnGap) / 2);
+    const textStyle = {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "25px",
-      color: "#17341d",
-      wordWrap: { width: columnWidth },
+      color: "#f8f1de",
+      stroke: "#121212",
+      strokeThickness: 4,
+      shadow: { color: "#000000", blur: 2, fill: true, offsetX: 0, offsetY: 2 },
       lineSpacing: 7,
+    } as const;
+
+    this.add.text(safe.x + textInset, safe.y + 18, "Welcome Back to Camp", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "30px",
+      color: "#f8f1de",
+      stroke: "#121212",
+      strokeThickness: 5,
+      shadow: { color: "#000000", blur: 2, fill: true, offsetX: 0, offsetY: 2 },
+      wordWrap: { width: columnWidth },
+    }).setOrigin(0, 0);
+
+    this.add.text(safe.x + textInset, safe.y + 58, "Prep your squad, then start a run and go raid.", {
+      ...textStyle,
+      wordWrap: { width: columnWidth },
     }).setOrigin(0, 0);
 
     this.add.text(
@@ -59,11 +86,8 @@ export default class HomeScene extends Phaser.Scene {
       safe.y + 22,
       "Warband and Inventory are your management spaces, and Shop is where you spend teeth between expeditions.",
       {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "25px",
-        color: "#17341d",
+        ...textStyle,
         wordWrap: { width: columnWidth },
-        lineSpacing: 7,
       }
     ).setOrigin(0, 0);
   }
@@ -82,24 +106,28 @@ export default class HomeScene extends Phaser.Scene {
       rect: panels.startRun,
       color: START_RUN_COLOR,
       tooltip: hasActiveRun ? "Continue Run" : "Start Run",
+      textureKey: "home_panel_start_run",
       onClick: () => this.scene.start(hasActiveRun ? "MapExplorationScene" : "RegionSelectScene"),
     });
     this.createPanel({
       rect: panels.warband,
       color: WARBAND_COLOR,
       tooltip: "Warband",
+      textureKey: "home_panel_warband",
       onClick: () => this.scene.start("WarbandManagementScene"),
     });
     this.createPanel({
       rect: panels.shop,
       color: SHOP_COLOR,
       tooltip: "Shop",
+      textureKey: "home_panel_shop",
       onClick: () => this.scene.start("ShopScene"),
     });
     this.createPanel({
       rect: panels.inventory,
       color: INVENTORY_COLOR,
       tooltip: "Inventory",
+      textureKey: "home_panel_inventory",
       onClick: () => this.scene.start("InventoryScene"),
     });
     this.createPanel({
@@ -161,29 +189,42 @@ export default class HomeScene extends Phaser.Scene {
   }
 
   private createPanel(config: HomePanelConfig): void {
-    // Missing destination card art: use the requested placeholder block until the home asset set is generated.
     const disabledAlpha = 1;
-    const panel = this.add.rectangle(config.rect.x, config.rect.y, config.rect.width, config.rect.height, config.color, config.enabled === false ? disabledAlpha : 1).setOrigin(0, 0);
+    const hasTexture = typeof this.textures?.exists === "function" && !!config.textureKey && this.textures.exists(config.textureKey);
+    const panel = hasTexture
+      ? this.add.image(config.rect.x, config.rect.y, config.textureKey!)
+        .setOrigin(0, 0)
+        .setDisplaySize(config.rect.width, config.rect.height)
+        .setAlpha(config.enabled === false ? disabledAlpha : 1)
+      // Missing destination card art: use the requested placeholder block until the home asset set is generated.
+      : this.add.rectangle(config.rect.x, config.rect.y, config.rect.width, config.rect.height, config.color, config.enabled === false ? disabledAlpha : 1).setOrigin(0, 0);
+    const hoverOverlay = this.add.rectangle(config.rect.x, config.rect.y, config.rect.width, config.rect.height, 0x000000, 0.38)
+      .setOrigin(0, 0)
+      .setVisible(false);
     const hitZone = this.add.zone(config.rect.x, config.rect.y, config.rect.width, config.rect.height)
       .setOrigin(0, 0)
       .setInteractive({ useHandCursor: config.enabled !== false });
     const tooltip = this.add.text(config.rect.x + config.rect.width / 2, config.rect.y + config.rect.height / 2, config.tooltip, {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "18px",
+      fontSize: config.rect.width > 400 ? "34px" : "24px",
       color: "#ffffff",
-      backgroundColor: "#22131b",
-      padding: { left: 8, right: 8, top: 6, bottom: 6 },
+      stroke: "#111111",
+      strokeThickness: 4,
+      align: "center",
+      wordWrap: { width: config.rect.width - 48 },
     }).setOrigin(0.5, 0.5).setVisible(false);
 
     hitZone.on("pointerover", () => {
       if (config.enabled === false) {
         return;
       }
-      panel.setAlpha(0.84);
+      panel.setAlpha(0.96);
+      hoverOverlay.setVisible(true);
       tooltip.setVisible(true);
     });
     hitZone.on("pointerout", () => {
       panel.setAlpha(config.enabled === false ? disabledAlpha : 1);
+      hoverOverlay.setVisible(false);
       tooltip.setVisible(false);
     });
     hitZone.on("pointerdown", () => {
@@ -191,12 +232,14 @@ export default class HomeScene extends Phaser.Scene {
         return;
       }
       panel.setAlpha(0.7);
+      hoverOverlay.setVisible(true);
     });
     hitZone.on("pointerup", () => {
       if (config.enabled === false) {
         return;
       }
-      panel.setAlpha(0.84);
+      panel.setAlpha(0.96);
+      hoverOverlay.setVisible(true);
       config.onClick();
     });
   }

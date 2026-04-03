@@ -30,10 +30,19 @@ describe("HomeScene", () => {
     });
 
     const scene = new HomeScene() as any;
+    scene.textures = {
+      exists: vi.fn((key: string) => key !== "home_panel_dev"),
+    };
     scene.add = {
+      image: vi.fn(() => ({
+        setOrigin: vi.fn().mockReturnThis(),
+        setDisplaySize: vi.fn().mockReturnThis(),
+        setAlpha: vi.fn().mockReturnThis(),
+      })),
       rectangle: vi.fn(() => ({
         setOrigin: vi.fn().mockReturnThis(),
         setAlpha: vi.fn().mockReturnThis(),
+        setVisible: vi.fn().mockReturnThis(),
       })),
       text: vi.fn(() => ({
         setOrigin: vi.fn().mockReturnThis(),
@@ -51,6 +60,7 @@ describe("HomeScene", () => {
     await Promise.resolve();
 
     expect(getProfileMock).toHaveBeenCalledWith({ force: true, allowStaleOnError: true });
+    expect(scene.add.image).toHaveBeenCalledTimes(5);
     expect(scene.add.rectangle).toHaveBeenCalled();
     expect(scene.add.zone).toHaveBeenCalledTimes(5);
   });
