@@ -7,9 +7,8 @@ const STRIP_DEPTH = 100000;
 const STRIP_WIDTH = 980;
 const STRIP_HEIGHT = 84;
 const ICON_SIZE = 40;
-const RESOURCE_ICON_SIZE = 16;
-const ENERGY_COLOR = "#00e015";
-const CURRENCY_COLOR = "#e0d300";
+const RESOURCE_ICON_SIZE = 24;
+const TEXT_COLOR = "#EDEDC5";
 const PLAYER_NAME_COLOR = "#23272A";
 
 const NAV_BUTTONS = [
@@ -61,21 +60,21 @@ export default class BottomCommandStrip {
       fallbackColor: 0xe09d70,
     });
 
-    this.energyIcon = scene.textures.exists("icon_energy_small")
-      ? scene.add.image(0, 0, "icon_energy_small").setOrigin(0.5, 0.5).setDisplaySize(RESOURCE_ICON_SIZE, RESOURCE_ICON_SIZE)
+    this.energyIcon = scene.textures.exists("icon_energy_large")
+      ? scene.add.image(0, 0, "icon_energy_large").setOrigin(0.5, 0.5).setDisplaySize(RESOURCE_ICON_SIZE, RESOURCE_ICON_SIZE)
       : undefined;
     this.energyText = scene.add.text(0, 0, "-- / --", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "18px",
-      color: ENERGY_COLOR,
+      fontSize: "22px",
+      color: TEXT_COLOR,
     }).setOrigin(0, 0.5);
-    this.teethIcon = scene.textures.exists("icon_tooth_small")
-      ? scene.add.image(0, 0, "icon_tooth_small").setOrigin(0.5, 0.5).setDisplaySize(RESOURCE_ICON_SIZE, RESOURCE_ICON_SIZE)
+    this.teethIcon = scene.textures.exists("icon_tooth_large")
+      ? scene.add.image(0, 0, "icon_tooth_large").setOrigin(0.5, 0.5).setDisplaySize(RESOURCE_ICON_SIZE, RESOURCE_ICON_SIZE)
       : undefined;
     this.currencyText = scene.add.text(0, 0, "0", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "18px",
-      color: CURRENCY_COLOR,
+      fontSize: "22px",
+      color: TEXT_COLOR,
     }).setOrigin(0, 0.5);
     this.playerNameText = scene.add.text(0, 0, this.resolvePlayerName(), {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
@@ -142,8 +141,8 @@ export default class BottomCommandStrip {
     const tooltip = this.scene.add.text(0, 0, config.tooltipText, {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "14px",
-      color: "#ffffff",
-      backgroundColor: "#22131b",
+      color: TEXT_COLOR,
+      backgroundColor: PLAYER_NAME_COLOR,
       padding: { left: 6, right: 6, top: 4, bottom: 4 },
     }).setOrigin(0.5, 1).setVisible(false);
 
@@ -190,7 +189,7 @@ export default class BottomCommandStrip {
 
     this.stripBackground.setPosition(centerX, centerY).setDisplaySize(STRIP_WIDTH, STRIP_HEIGHT);
 
-    const navTop = top + 14;
+    const navTop = top + 13;
     const navSlots = [left + 70, left + 145, left + 215, left + 290];
 
     for (let index = 0; index < this.navButtons.length; index += 1) {
@@ -202,18 +201,17 @@ export default class BottomCommandStrip {
       button.tooltip.setPosition(x + ICON_SIZE / 2, navTop - 8);
     }
 
-    const textY = top + 42;
-    this.energyIcon?.setPosition(centerX - 74, textY);
-    this.energyText.setPosition(centerX - 65, textY);
-    this.teethIcon?.setPosition(centerX + 15, textY);
-    this.currencyText.setPosition(centerX + 31, textY);
-    this.playerNameText.setPosition(centerX + 154, textY - 8);
+    const textY = top + 44;
+    this.energyIcon?.setPosition(centerX - 85, textY + 2);
+    this.energyText.setPosition(centerX - 72, textY);
+    this.teethIcon?.setPosition(centerX + 34, textY + 2);
+    this.currencyText.setPosition(centerX + 49, textY);
+    this.playerNameText.setPosition(centerX + 154, textY - 10);
 
     const logoutX = left + 878;
-    const logoutY = top + 14;
-    this.logoutButton.visual.setPosition(logoutX, logoutY);
-    this.logoutButton.hitZone.setPosition(logoutX, logoutY);
-    this.logoutButton.tooltip.setPosition(logoutX + ICON_SIZE / 2, logoutY - 8);
+    this.logoutButton.visual.setPosition(logoutX, navTop);
+    this.logoutButton.hitZone.setPosition(logoutX, navTop);
+    this.logoutButton.tooltip.setPosition(logoutX + ICON_SIZE / 2, navTop - 8);
   }
 
   private async handleLogout(): Promise<void> {
