@@ -74,7 +74,7 @@ export default class NodeList extends Phaser.GameObjects.Container {
     const rng = makeSeededRng(this.run.seed);
     const rect = this.cfg.scatterRect;
     const half = this.cfg.nodeSize / 2;
-    const contractPositions = this.buildContractGridPositions(rect, half);
+    const contractPositions = this.buildContractGridPositions(rect, half, rng);
     const positionsById = new Map<string, { x: number; y: number }>();
     const occupied: Array<{ x: number; y: number }> = [];
 
@@ -192,7 +192,8 @@ export default class NodeList extends Phaser.GameObjects.Container {
 
   private buildContractGridPositions(
     rect: Phaser.Geom.Rectangle,
-    half: number
+    half: number,
+    rng: () => number
   ): Array<{ x: number; y: number } | null> {
     const extracted = this.nodes.map((node) => extractNodeGrid(node));
     if (extracted.some((meta) => meta === null)) {
@@ -207,20 +208,32 @@ export default class NodeList extends Phaser.GameObjects.Container {
     const minRow = Math.min(...rows);
     const maxRow = Math.max(...rows);
 
-    return concrete.map((meta) => {
+    return concrete.map((meta, index) => {
       const colSpan = Math.max(1, maxCol - minCol);
       const rowSpan = Math.max(1, maxRow - minRow);
       const colNorm = (meta.col - minCol) / colSpan;
       const rowNorm = (meta.row - minRow) / rowSpan;
+      const xNorm = Phaser.Math.Clamp(
+        colNorm + ((rng() - 0.5) * 0.045) + ((rowNorm - 0.5) * 0.035),
+        0.08,
+        0.92
+      );
+      const yWave = Math.sin((colNorm * Math.PI * 1.15) + (rng() * 0.8)) * 0.08;
+      const yStagger = ((index % 2 === 0) ? -1 : 1) * (0.04 + (rng() * 0.035));
+      const yNorm = Phaser.Math.Clamp(
+        0.5 + ((rowNorm - 0.5) * 0.3) + yWave + yStagger,
+        0.18,
+        0.82
+      );
 
       return {
         x: Phaser.Math.Clamp(
-          lerp(rect.x + half, rect.x + rect.width - half, colNorm),
+          lerp(rect.x + half, rect.x + rect.width - half, xNorm),
           rect.x + half,
           rect.x + rect.width - half
         ),
         y: Phaser.Math.Clamp(
-          lerp(rect.y + half, rect.y + rect.height - half, rowNorm),
+          lerp(rect.y + half, rect.y + rect.height - half, yNorm),
           rect.y + half,
           rect.y + rect.height - half
         ),

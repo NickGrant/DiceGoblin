@@ -57,6 +57,21 @@
                   },
                   {
                       "type":  "image",
+                      "key":  "region_farm_map",
+                      "url":  "assets/ui/biome/farm.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "region_mountain_map",
+                      "url":  "assets/ui/biome/mountain.png"
+                  },
+                  {
+                      "type":  "image",
+                      "key":  "region_swamp_map",
+                      "url":  "assets/ui/biome/swamp.png"
+                  },
+                  {
+                      "type":  "image",
                       "key":  "manifest_strip",
                       "url":  "assets/ui/manifest_strip.png"
                   },

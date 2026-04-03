@@ -10,14 +10,18 @@ import { markDebugSceneReady } from "../debug/debugHooks";
 import { apiClient } from "../services/apiClient";
 import type { CurrentRunNode, RunResponse } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
+import { resolveContentFrameBodyRect } from "../components/layout/contentAreaMath";
 import { isNodeResolutionType } from "./nodeResolutionFlow";
 import ConfirmModal from "../components/feedback/ConfirmModal";
 import ToastMessage from "../components/feedback/ToastMessage";
 
 const ACTION_BODY_TOP_OFFSET = 72;
 const ACTION_BUTTON_WIDTH = 280;
-const CONTENT_BODY_TOP_OFFSET = 74;
-const CONTENT_BODY_BOTTOM_PADDING = 20;
+const FRAME_TITLE_HEIGHT = 56;
+const FRAME_MARGIN = 10;
+const BODY_INNER_PADDING = 10;
+const OVERVIEW_CHIP_HEIGHT = 54;
+const OVERVIEW_CHIP_GAP = 10;
 const MAP_NODE_TYPES = new Set(["combat", "loot", "rest", "boss", "exit"]);
 const MAP_NODE_STATUSES = new Set(["locked", "available", "cleared"]);
 
@@ -137,39 +141,33 @@ export default class MapExplorationScene extends Phaser.Scene {
       this.runEnvelope = run;
 
       const layout = getPageLayout(this);
+      const contentBody = resolveContentFrameBodyRect({
+        width: layout.content.width,
+        height: layout.content.height,
+        titleHeight: FRAME_TITLE_HEIGHT,
+        marginPx: FRAME_MARGIN,
+      });
+      const contentBodyX = layout.content.x + contentBody.x;
+      const contentBodyY = layout.content.y + contentBody.y;
+      const contentBodyWidth = contentBody.width;
+      const contentBodyHeight = contentBody.height;
       const availableCount = nodes.filter((node) => String(node.status) === "available").length;
       const clearedCount = nodes.filter((node) => String(node.status) === "cleared").length;
       const lockedCount = nodes.filter((node) => String(node.status) === "locked").length;
-      const overviewLabel = this.add
-        .text(layout.content.x + 24, layout.content.y + 84, "ROUTE OVERVIEW", {
-          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-          fontSize: "20px",
-          color: "#f0d38a",
-        })
-        .setOrigin(0, 0);
-      const overviewBody = this.add
-        .text(layout.content.x + 24, layout.content.y + 114, "Select the glowing available node to keep the run moving. Cleared nodes stay behind you, locked nodes open when the route advances.", {
-          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-          fontSize: "18px",
-          color: "#eef4f5",
-          lineSpacing: 6,
-          wordWrap: { width: layout.content.width - 48 },
-        })
-        .setOrigin(0, 0);
       const chipObjects: Phaser.GameObjects.GameObject[] = [];
+      const chipY = contentBodyY + BODY_INNER_PADDING;
+      const chipGap = OVERVIEW_CHIP_GAP;
+      const chipWidth = Math.floor((contentBodyWidth - BODY_INNER_PADDING * 2 - chipGap * 2) / 3);
       if (typeof (this.add as unknown as { rectangle?: unknown }).rectangle === "function") {
-        const chipY = layout.content.y + 160;
-        const chipGap = 12;
-        const chipWidth = Math.floor((layout.content.width - 48 - chipGap * 2) / 3);
         const chipConfigs = [
           { label: "Available", value: availableCount, stroke: 0x8bdfe0 },
           { label: "Cleared", value: clearedCount, stroke: 0x99e09c },
           { label: "Locked", value: lockedCount, stroke: 0xffd89e },
         ];
         chipConfigs.forEach((chip, index) => {
-          const chipX = layout.content.x + 24 + index * (chipWidth + chipGap);
+          const chipX = contentBodyX + BODY_INNER_PADDING + index * (chipWidth + chipGap);
           const card = this.add
-            .rectangle(chipX, chipY, chipWidth, 54, 0x11181d, 0.55)
+            .rectangle(chipX, chipY, chipWidth, OVERVIEW_CHIP_HEIGHT, 0x11181d, 0.55)
             .setOrigin(0, 0)
             .setStrokeStyle(1, chip.stroke, 0.5);
           const label = this.add
@@ -189,7 +187,17 @@ export default class MapExplorationScene extends Phaser.Scene {
           chipObjects.push(card, label, value);
         });
       }
-      this.overviewUiObjects.push(overviewLabel, overviewBody, ...chipObjects);
+      const mapBackdropRect = new Phaser.Geom.Rectangle(
+        contentBodyX + BODY_INNER_PADDING,
+        chipY + OVERVIEW_CHIP_HEIGHT + OVERVIEW_CHIP_GAP,
+        contentBodyWidth - BODY_INNER_PADDING * 2,
+        contentBodyHeight - BODY_INNER_PADDING * 2 - OVERVIEW_CHIP_HEIGHT - OVERVIEW_CHIP_GAP
+      );
+      const backdrop = this.createMapBackdrop(run.data.run.region_id, mapBackdropRect);
+      this.overviewUiObjects.push(...chipObjects);
+      if (backdrop) {
+        this.overviewUiObjects.push(backdrop);
+      }
 
       this.nodeList = new NodeList(
         this,
@@ -200,10 +208,10 @@ export default class MapExplorationScene extends Phaser.Scene {
         edges,
         {
           scatterRect: new Phaser.Geom.Rectangle(
-            layout.content.x + 24,
-            layout.content.y + CONTENT_BODY_TOP_OFFSET + 126,
-            Math.max(220, layout.content.width - 48),
-            Math.max(180, layout.content.height - CONTENT_BODY_TOP_OFFSET - CONTENT_BODY_BOTTOM_PADDING - 126)
+            mapBackdropRect.x + 26,
+            mapBackdropRect.y + 24,
+            Math.max(220, mapBackdropRect.width - 52),
+            Math.max(180, mapBackdropRect.height - 48)
           ),
           nodeSize: 64,
           onNodeClick: (node) => this.handleNodeClick(node),
@@ -216,6 +224,33 @@ export default class MapExplorationScene extends Phaser.Scene {
     } catch {
       this.showFallback("Run data unavailable. Please retry.");
     }
+  }
+
+  private createMapBackdrop(regionId: string, rect: Phaser.Geom.Rectangle): Phaser.GameObjects.GameObject | undefined {
+    const addApi = this.add as unknown as {
+      image?: (x: number, y: number, key: string) => Phaser.GameObjects.Image;
+      rectangle?: (x: number, y: number, width: number, height: number, color?: number, alpha?: number) => Phaser.GameObjects.Rectangle;
+    };
+    const textureKey = this.resolveRegionMapTextureKey(regionId);
+    if (textureKey && typeof addApi.image === "function" && this.hasTexture(textureKey)) {
+      return addApi.image(rect.x, rect.y, textureKey).setOrigin(0, 0).setDisplaySize(rect.width, rect.height);
+    }
+    if (typeof addApi.rectangle === "function") {
+      return addApi.rectangle(rect.x, rect.y, rect.width, rect.height, 0x182026, 0.9).setOrigin(0, 0);
+    }
+    return undefined;
+  }
+
+  private resolveRegionMapTextureKey(regionId: string): string | null {
+    if (regionId === "3") return "region_farm_map";
+    if (regionId === "1") return "region_mountain_map";
+    if (regionId === "2") return "region_swamp_map";
+    return null;
+  }
+
+  private hasTexture(key: string): boolean {
+    const textures = (this as Phaser.Scene & { textures?: { exists?: (textureKey: string) => boolean } }).textures;
+    return typeof textures?.exists === "function" && textures.exists(key);
   }
 
   private isValidMapNode(node: CurrentRunNode): boolean {
@@ -322,7 +357,7 @@ export default class MapExplorationScene extends Phaser.Scene {
   private showFallback(message: string): void {
     this.fallbackText?.destroy();
     const layout = getPageLayout(this);
-    this.fallbackText = this.add.text(layout.content.x + 16, layout.content.y + CONTENT_BODY_TOP_OFFSET, message, {
+    this.fallbackText = this.add.text(layout.content.x + 16, layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + 16, message, {
       fontFamily: "monospace",
       fontSize: "16px",
       color: "#f5f5f5",
@@ -346,5 +381,4 @@ export default class MapExplorationScene extends Phaser.Scene {
     });
   }
 }
-
 
