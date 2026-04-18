@@ -29,6 +29,8 @@ use DiceGoblins\Services\DiceAffixService;
 use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
+use DiceGoblins\Services\UnitLoadoutService;
+use DiceGoblins\Services\UnitNameGenerator;
 
 use PDO;
 use RuntimeException;
@@ -498,9 +500,11 @@ final class RunNodeController
 
       $tier = max(1, min(3, (int)($grant['tier'] ?? 1)));
       $level = max(1, (int)($grant['level'] ?? 1));
-      $insert = $pdo->prepare('INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `tier`, `level`, `xp`, `locked`) VALUES (?, ?, ?, ?, 0, 0)');
-      $insert->execute([$userId, $unitTypeId, $tier, $level]);
-      $created[] = (string)$pdo->lastInsertId();
+      $insert = $pdo->prepare('INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `display_name`, `tier`, `level`, `xp`, `locked`) VALUES (?, ?, ?, ?, ?, 0, 0)');
+      $insert->execute([$userId, $unitTypeId, (new UnitNameGenerator())->generate(), $tier, $level]);
+      $unitInstanceId = (int)$pdo->lastInsertId();
+      (new UnitLoadoutService($pdo))->initializeUnit($unitInstanceId, $unitTypeId);
+      $created[] = (string)$unitInstanceId;
     }
 
     return $created;

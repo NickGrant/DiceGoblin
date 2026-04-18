@@ -62,6 +62,9 @@ final class ProfileService
     // Squads/Teams (membership + formation)
     $teams = $this->teamRepo->getTeamsWithMembershipAndFormationForUser($userId);
 
+    // Backfill the new loadout state for legacy units during the transition.
+    (new UnitLoadoutService($this->pdo))->ensureStateForUser($userId);
+
     // Units (with equipped dice)
     $units = $this->unitRepo->getUnitsWithEquippedDiceForUser($userId);
 

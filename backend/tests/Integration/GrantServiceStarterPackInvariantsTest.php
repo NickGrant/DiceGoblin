@@ -60,9 +60,14 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
     $this->assertSame(4, $unitTypeCount);
 
     $diceDefs = (int)$this->scalar(
-      "SELECT COUNT(*) FROM `dice_definitions` WHERE (`rarity` = 'common' AND `sides` IN (4,6)) OR (`rarity` = 'uncommon' AND `sides` = 6)"
+      "SELECT COUNT(*) FROM `dice_definitions` WHERE `rarity` = 'common' AND `sides` = 4"
     );
-    $this->assertGreaterThanOrEqual(3, $diceDefs);
+    $this->assertGreaterThanOrEqual(1, $diceDefs);
+
+    $enemyLoadouts = (int)$this->scalar(
+      "SELECT COUNT(*) FROM `enemy_templates` WHERE `equipped_abilities_json` IS NOT NULL"
+    );
+    $this->assertGreaterThan(0, $enemyLoadouts);
   }
 
   public function testEnsureStarterPackGrantedIsIdempotentForCleanUser(): void
@@ -91,8 +96,38 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
     $this->assertSame(1, $teamCount);
     $this->assertSame(1, $activeTeams);
     $this->assertSame(4, $unitCount);
-    $this->assertSame(7, $diceCount);
+    $this->assertSame(5, $diceCount);
     $this->assertSame(1, $unlockCount);
+
+    $namedUnits = (int)$this->scalar(
+      "SELECT COUNT(*) FROM `unit_instances` WHERE `user_id` = ? AND `display_name` IS NOT NULL AND `display_name` <> ''",
+      [$userId]
+    );
+    $this->assertSame(4, $namedUnits);
+
+    $unlockedAbilities = (int)$this->scalar(
+      "SELECT COUNT(*) FROM `unit_instance_unlocked_abilities` uia
+       JOIN `unit_instances` ui ON ui.`id` = uia.`unit_instance_id`
+       WHERE ui.`user_id` = ?",
+      [$userId]
+    );
+    $this->assertGreaterThanOrEqual(8, $unlockedAbilities);
+
+    $equippedAbilities = (int)$this->scalar(
+      "SELECT COUNT(*) FROM `unit_instance_equipped_abilities` uea
+       JOIN `unit_instances` ui ON ui.`id` = uea.`unit_instance_id`
+       WHERE ui.`user_id` = ?",
+      [$userId]
+    );
+    $this->assertSame(8, $equippedAbilities);
+
+    $abilityDice = (int)$this->scalar(
+      "SELECT COUNT(*) FROM `unit_ability_dice` uad
+       JOIN `unit_instances` ui ON ui.`id` = uad.`unit_instance_id`
+       WHERE ui.`user_id` = ?",
+      [$userId]
+    );
+    $this->assertSame(5, $abilityDice);
   }
 
   public function testEnsureStarterPackUsesExistingActiveTeamWithoutCreatingAnother(): void
@@ -133,7 +168,7 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
        ORDER BY di.`id` ASC"
     )?->fetchAll(PDO::FETCH_ASSOC) ?? [];
 
-    $this->assertCount(7, $rows);
+    $this->assertCount(5, $rows);
 
     foreach ($rows as $row) {
       $this->assertSame((int)$row['slot_capacity'], (int)$row['affix_count']);
@@ -220,6 +255,9 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
     $this->execDelete("DELETE FROM `region_runs` WHERE `user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE tf FROM `team_formation` tf JOIN `teams` t ON t.`id` = tf.`team_id` WHERE t.`user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE tu FROM `team_units` tu JOIN `teams` t ON t.`id` = tu.`team_id` WHERE t.`user_id` IN ($placeholders)", $userIds);
+    $this->execDelete("DELETE uad FROM `unit_ability_dice` uad JOIN `unit_instances` ui ON ui.`id` = uad.`unit_instance_id` WHERE ui.`user_id` IN ($placeholders)", $userIds);
+    $this->execDelete("DELETE uea FROM `unit_instance_equipped_abilities` uea JOIN `unit_instances` ui ON ui.`id` = uea.`unit_instance_id` WHERE ui.`user_id` IN ($placeholders)", $userIds);
+    $this->execDelete("DELETE uua FROM `unit_instance_unlocked_abilities` uua JOIN `unit_instances` ui ON ui.`id` = uua.`unit_instance_id` WHERE ui.`user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE ud FROM `unit_dice` ud JOIN `unit_instances` ui ON ui.`id` = ud.`unit_instance_id` WHERE ui.`user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE dia FROM `dice_instance_affixes` dia JOIN `dice_instances` di ON di.`id` = dia.`dice_instance_id` WHERE di.`user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE FROM `user_grants` WHERE `user_id` IN ($placeholders)", $userIds);

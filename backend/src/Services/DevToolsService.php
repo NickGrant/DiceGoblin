@@ -14,6 +14,9 @@ use Throwable;
 
 final class DevToolsService
 {
+  private ?UnitLoadoutService $unitLoadoutService = null;
+  private ?UnitNameGenerator $unitNameGenerator = null;
+
   public function __construct(
     private readonly PDO $pdo,
     private readonly PlayerBootstrapper $bootstrapper,
@@ -97,7 +100,16 @@ final class DevToolsService
 
     $granted = [];
     for ($i = 0; $i < $count; $i += 1) {
-      $unitId = $this->unitRepo->createUnitInstance($userId, $unitTypeId, 1, 1, 0, false);
+      $unitId = $this->unitRepo->createUnitInstance(
+        $userId,
+        $unitTypeId,
+        1,
+        1,
+        0,
+        false,
+        $this->getUnitNameGenerator()->generate()
+      );
+      $this->getUnitLoadoutService()->initializeUnit($unitId, $unitTypeId);
       $granted[] = [
         'id' => (string) $unitId,
         'unit_type_slug' => $unitTypeSlug,
@@ -322,5 +334,17 @@ final class DevToolsService
     $stmt->execute([$slug]);
     $value = $stmt->fetchColumn();
     return $value === false ? null : (int) $value;
+  }
+
+  private function getUnitLoadoutService(): UnitLoadoutService
+  {
+    $this->unitLoadoutService ??= new UnitLoadoutService($this->pdo);
+    return $this->unitLoadoutService;
+  }
+
+  private function getUnitNameGenerator(): UnitNameGenerator
+  {
+    $this->unitNameGenerator ??= new UnitNameGenerator();
+    return $this->unitNameGenerator;
   }
 }

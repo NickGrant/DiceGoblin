@@ -19,6 +19,8 @@ use DiceGoblins\Services\DiceAffixService;
 use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
+use DiceGoblins\Services\UnitLoadoutService;
+use DiceGoblins\Services\UnitNameGenerator;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -915,11 +917,14 @@ final class GameplayController
       throw new RuntimeException('No unit types are available for store purchases.');
     }
 
-    $insert = $pdo->prepare('INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `tier`, `level`, `xp`, `locked`) VALUES (?, ?, 1, 1, 0, 0)');
-    $insert->execute([$userId, (int)$type['id']]);
+    $unitTypeId = (int)$type['id'];
+    $insert = $pdo->prepare('INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `display_name`, `tier`, `level`, `xp`, `locked`) VALUES (?, ?, ?, 1, 1, 0, 0)');
+    $insert->execute([$userId, $unitTypeId, (new UnitNameGenerator())->generate()]);
+    $unitInstanceId = (int)$pdo->lastInsertId();
+    (new UnitLoadoutService($pdo))->initializeUnit($unitInstanceId, $unitTypeId);
 
     return [
-      'unit_instance_id' => (string)$pdo->lastInsertId(),
+      'unit_instance_id' => (string)$unitInstanceId,
       'unit_type_slug' => (string)$type['slug'],
       'tier' => 1,
       'level' => 1,

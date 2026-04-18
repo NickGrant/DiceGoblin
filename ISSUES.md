@@ -2,34 +2,6 @@
 ----
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
----
-title: Add unit naming and ability-loadout persistence schema
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 37 - Ability Loadout Rework Foundations
-description: Add the first-pass schema and persistence support for player-facing unit names, unlocked abilities, equipped ability order, and ability-slot dice binding. This issue establishes the authoritative persistence layer the rework needs before combat and UX can be updated safely.
-
----
-title: Seed starter units with default abilities and common d4 slot assignments
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 37 - Ability Loadout Rework Foundations
-description: Update account bootstrap and starter-grant flows so initial player units receive generated names, default equipped abilities, and common d4 dice assigned into their starter ability slots. The goal is to make the first playable state valid under the new system.
-
----
-title: Author enemy equipped-loadout definitions for cumulative scheduling
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 37 - Ability Loadout Rework Foundations
-description: Extend enemy template definitions so each enemy type owns a shared equipped ability order for combat scheduling. This must land before the combat engine can switch enemies onto the new timing model.
-
----
 title: Add backend validators for ability equip budget and slot legality
 status: unstarted
 priority: medium

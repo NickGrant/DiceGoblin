@@ -14,20 +14,10 @@ use PDOException;
 use RuntimeException;
 use Throwable;
 
-/**
- * GrantService provisions one-time (or versioned) grants for a user in an idempotent way.
- *
- * Contract:
- * - Safe to call on every request.
- * - Uses user_grants unique(user_id, grant_slug) to prevent double-granting under concurrency.
- * - Runs all provisioning in a single transaction.
- */
 final class GrantService
 {
-  // Version this so you can ship starter_pack_v2 later without touching existing users.
   private const STARTER_GRANT_SLUG = 'starter_pack_v1';
 
-  // --- Starter pack policy (adjust to your seed data) ---
   /** @var list<string> */
   private const STARTING_REGION_SLUGS = ['the_farm'];
 
@@ -39,14 +29,9 @@ final class GrantService
     'control_saboteur_t1',
   ];
 
-  /** @var list<array{rarity:string,sides:int,count:int}> */
-  private const STARTER_DICE_SPECS = [
-    ['rarity' => 'common',   'sides' => 6, 'count' => 4],
-    ['rarity' => 'common',   'sides' => 4, 'count' => 2],
-    ['rarity' => 'uncommon', 'sides' => 6, 'count' => 1],
-  ];
-
   private ?DiceAffixService $diceAffixService = null;
+  private ?UnitLoadoutService $unitLoadoutService = null;
+  private ?UnitNameGenerator $unitNameGenerator = null;
 
   public function ensureStarterPackGranted(int $userId): void
   {
@@ -56,30 +41,33 @@ final class GrantService
 
     $db = Db::pdo();
     $this->diceAffixService ??= new DiceAffixService($db);
+    $this->unitLoadoutService ??= new UnitLoadoutService($db);
+    $this->unitNameGenerator ??= new UnitNameGenerator();
 
     $db->beginTransaction();
     try {
       foreach (self::STARTING_REGION_SLUGS as $regionSlug) {
         $this->ensureStartingRegionUnlock($db, $userId, $regionSlug);
       }
-      
-      // 1) Attempt to claim the grant.
+
       $claimed = $this->tryClaimGrant($db, $userId, self::STARTER_GRANT_SLUG);
       if (!$claimed) {
-          $db->commit();
-          return;
+        $db->commit();
+        return;
       }
 
-      // 2) Provision starter gameplay content (teams/units/dice/unlocks).
       $teamId = $this->ensureDefaultTeam($db, $userId);
 
-      $unitInstanceIds = $this->createStarterUnits($db, $userId, self::STARTER_UNIT_TYPE_SLUGS);
+      $starterUnits = $this->createStarterUnits($db, $userId, self::STARTER_UNIT_TYPE_SLUGS);
+      $unitInstanceIds = array_map(
+        static fn(array $unit): int => (int)$unit['unit_instance_id'],
+        $starterUnits
+      );
       $this->addUnitsToTeam($db, $teamId, $unitInstanceIds);
 
-      $diceInstanceIds = $this->createStarterDice($db, $userId, self::STARTER_DICE_SPECS);
-
-      // Optional: equip one die per unit in slot 0 to avoid an “empty” first combat.
-      $this->equipStarterDice($db, $unitInstanceIds, $diceInstanceIds);
+      $starterAbilityTargets = $this->buildStarterAbilityTargets($starterUnits);
+      $diceInstanceIds = $this->createStarterDice($db, $userId, count($starterAbilityTargets));
+      $this->assignStarterDice($db, $starterAbilityTargets, $diceInstanceIds);
 
       $db->commit();
     } catch (Throwable $e) {
@@ -90,7 +78,7 @@ final class GrantService
     }
   }
 
-  private function insertGrantRowOrNoop(PDO $db, int $userId, string $slug): void
+  private function tryClaimGrant(PDO $db, int $userId, string $slug): bool
   {
     $stmt = $db->prepare(
       "INSERT INTO user_grants (user_id, grant_slug, meta_json)
@@ -99,43 +87,17 @@ final class GrantService
 
     try {
       $stmt->execute([':user_id' => $userId, ':slug' => $slug]);
+      return true;
     } catch (PDOException $e) {
-      // Duplicate key: already granted -> no-op.
       if ($e->getCode() === '23000') {
-        // Important: do NOT keep transaction open; caller expects us to return cleanly.
-        $db->commit();
-        // Throw a sentinel? No. Just exit early.
-        // The caller's transaction is already committed here.
-        // Return so ensureStarterPackGranted ends immediately.
-        return;
+        return false;
       }
       throw $e;
     }
-
-    // If we successfully inserted, continue provisioning.
   }
-
-    private function tryClaimGrant(PDO $db, int $userId, string $slug): bool
-    {
-        $stmt = $db->prepare(
-            "INSERT INTO user_grants (user_id, grant_slug, meta_json)
-            VALUES (:user_id, :slug, JSON_OBJECT('source', 'PlayerBootstrapper.ensureBaseline'))"
-        );
-
-        try {
-            $stmt->execute([':user_id' => $userId, ':slug' => $slug]);
-            return true; // we claimed it
-        } catch (PDOException $e) {
-            if ($e->getCode() === '23000') {
-            return false; // already claimed
-            }
-            throw $e;
-        }
-    }
 
   private function ensureDefaultTeam(PDO $db, int $userId): int
   {
-    // Prefer an existing active team if one exists.
     $stmt = $db->prepare(
       "SELECT id, is_active
        FROM teams
@@ -148,8 +110,6 @@ final class GrantService
 
     if ($row) {
       $teamId = (int)$row['id'];
-
-      // Ensure it's active and de-activate others (optional but keeps invariants clean).
       if ((int)$row['is_active'] !== 1) {
         $db->prepare("UPDATE teams SET is_active = 0 WHERE user_id = :user_id")
           ->execute([':user_id' => $userId]);
@@ -161,7 +121,6 @@ final class GrantService
       return $teamId;
     }
 
-    // Otherwise create a default team.
     $db->prepare(
       "INSERT INTO teams (user_id, name, is_active)
        VALUES (:user_id, 'Main', 1)"
@@ -186,10 +145,13 @@ final class GrantService
     ]);
   }
 
-  /** @param list<string> $unitTypeSlugs @return list<int> */
+  /**
+   * @param list<string> $unitTypeSlugs
+   * @return list<array{unit_instance_id:int,unit_type_id:int}>
+   */
   private function createStarterUnits(PDO $db, int $userId, array $unitTypeSlugs): array
   {
-    $unitInstanceIds = [];
+    $starterUnits = [];
 
     foreach ($unitTypeSlugs as $slug) {
       $unitTypeId = $this->getUnitTypeIdBySlug($db, $slug);
@@ -198,17 +160,24 @@ final class GrantService
       }
 
       $db->prepare(
-        "INSERT INTO unit_instances (user_id, unit_type_id, tier, level, xp, locked)
-         VALUES (:user_id, :unit_type_id, 1, 1, 0, 0)"
+        "INSERT INTO unit_instances (user_id, unit_type_id, display_name, tier, level, xp, locked)
+         VALUES (:user_id, :unit_type_id, :display_name, 1, 1, 0, 0)"
       )->execute([
         ':user_id' => $userId,
         ':unit_type_id' => $unitTypeId,
+        ':display_name' => $this->unitNameGenerator?->generate(),
       ]);
 
-      $unitInstanceIds[] = (int)$db->lastInsertId();
+      $unitInstanceId = (int)$db->lastInsertId();
+      $this->unitLoadoutService?->initializeUnit($unitInstanceId, $unitTypeId);
+
+      $starterUnits[] = [
+        'unit_instance_id' => $unitInstanceId,
+        'unit_type_id' => $unitTypeId,
+      ];
     }
 
-    return $unitInstanceIds;
+    return $starterUnits;
   }
 
   /** @param list<int> $unitInstanceIds */
@@ -231,61 +200,93 @@ final class GrantService
     }
   }
 
-  /**
-   * @param list<array{rarity:string,sides:int,count:int}> $diceSpecs
-   * @return list<int>
-   */
-  private function createStarterDice(PDO $db, int $userId, array $diceSpecs): array
+  /** @return list<int> */
+  private function createStarterDice(PDO $db, int $userId, int $count): array
   {
     $diceInstanceIds = [];
+    if ($count <= 0) {
+      return $diceInstanceIds;
+    }
+
+    $defId = $this->getDiceDefinitionId($db, 4, 'common');
+    if ($defId === null) {
+      throw new RuntimeException("Starter pack config invalid: missing common d4 dice definition.");
+    }
 
     $insert = $db->prepare(
       "INSERT INTO dice_instances (user_id, dice_definition_id, display_name)
        VALUES (:user_id, :def_id, NULL)"
     );
 
-    foreach ($diceSpecs as $spec) {
-      $defId = $this->getDiceDefinitionId($db, $spec['sides'], $spec['rarity']);
-      if ($defId === null) {
-        throw new RuntimeException(
-          "Starter pack config invalid: missing dice_definition for rarity='{$spec['rarity']}' sides={$spec['sides']}."
-        );
-      }
+    for ($i = 0; $i < $count; $i++) {
+      $insert->execute([
+        ':user_id' => $userId,
+        ':def_id' => $defId,
+      ]);
 
-      for ($i = 0; $i < (int)$spec['count']; $i++) {
-        $insert->execute([
-          ':user_id' => $userId,
-          ':def_id' => $defId,
-        ]);
-
-        $diceInstanceId = (int)$db->lastInsertId();
-        $this->diceAffixService?->assignAffixesToDiceInstance($diceInstanceId);
-        $diceInstanceIds[] = $diceInstanceId;
-      }
+      $diceInstanceId = (int)$db->lastInsertId();
+      $this->diceAffixService?->assignAffixesToDiceInstance($diceInstanceId);
+      $diceInstanceIds[] = $diceInstanceId;
     }
 
     return $diceInstanceIds;
   }
 
-  /** @param list<int> $unitInstanceIds @param list<int> $diceInstanceIds */
-  private function equipStarterDice(PDO $db, array $unitInstanceIds, array $diceInstanceIds): void
+  /**
+   * @param list<array{unit_instance_id:int,unit_type_id:int}> $starterUnits
+   * @return list<array{unit_instance_id:int,ability_id:string,ability_slot_index:int,legacy_slot_index:int}>
+   */
+  private function buildStarterAbilityTargets(array $starterUnits): array
   {
-    if (!$unitInstanceIds || !$diceInstanceIds) {
+    $targets = [];
+
+    foreach ($starterUnits as $starterUnit) {
+      $legacySlotIndex = 0;
+      $slots = $this->unitLoadoutService?->listDefaultAbilityDiceSlotsForUnitType((int)$starterUnit['unit_type_id']) ?? [];
+      foreach ($slots as $slot) {
+        $targets[] = [
+          'unit_instance_id' => (int)$starterUnit['unit_instance_id'],
+          'ability_id' => (string)$slot['ability_id'],
+          'ability_slot_index' => (int)$slot['slot_index'],
+          'legacy_slot_index' => $legacySlotIndex++,
+        ];
+      }
+    }
+
+    return $targets;
+  }
+
+  /**
+   * @param list<array{unit_instance_id:int,ability_id:string,ability_slot_index:int,legacy_slot_index:int}> $starterAbilityTargets
+   * @param list<int> $diceInstanceIds
+   */
+  private function assignStarterDice(PDO $db, array $starterAbilityTargets, array $diceInstanceIds): void
+  {
+    if (!$starterAbilityTargets || !$diceInstanceIds) {
       return;
     }
 
-    $n = min(count($unitInstanceIds), count($diceInstanceIds));
-
-    $stmt = $db->prepare(
+    $legacyStmt = $db->prepare(
       "INSERT IGNORE INTO unit_dice (unit_instance_id, dice_instance_id, slot_index)
        VALUES (:unit_id, :dice_id, :slot_index)"
     );
 
+    $n = min(count($starterAbilityTargets), count($diceInstanceIds));
     for ($i = 0; $i < $n; $i++) {
-      $stmt->execute([
-        ':unit_id' => (int)$unitInstanceIds[$i],
-        ':dice_id' => (int)$diceInstanceIds[$i],
-        ':slot_index' => 0,
+      $target = $starterAbilityTargets[$i];
+      $diceId = (int)$diceInstanceIds[$i];
+
+      $this->unitLoadoutService?->assignDieToAbilitySlot(
+        (int)$target['unit_instance_id'],
+        (string)$target['ability_id'],
+        (int)$target['ability_slot_index'],
+        $diceId
+      );
+
+      $legacyStmt->execute([
+        ':unit_id' => (int)$target['unit_instance_id'],
+        ':dice_id' => $diceId,
+        ':slot_index' => (int)$target['legacy_slot_index'],
       ]);
     }
   }

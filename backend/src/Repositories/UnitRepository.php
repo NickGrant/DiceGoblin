@@ -151,6 +151,7 @@ final class UnitRepository
         ut.`attack_per_level`,
         ut.`defense_per_level`,
         ut.`max_hp_per_level`,
+        ui.`display_name`,
         ui.`tier`,
         ui.`level`,
         ui.`xp`,
@@ -173,6 +174,9 @@ final class UnitRepository
 
     // 2) Equipped dice for those units
     $equippedByUnit = $this->getEquippedDiceForUnitIds($unitIds);
+    $unlockedAbilitiesByUnit = $this->getUnlockedAbilitiesForUnitIds($unitIds);
+    $equippedAbilitiesByUnit = $this->getEquippedAbilitiesForUnitIds($unitIds);
+    $abilityDiceByUnit = $this->getAbilityDiceBindingsForUnitIds($unitIds);
 
     // 3) Merge
     $out = [];
@@ -205,6 +209,8 @@ final class UnitRepository
         'id' => $uid,
         'unit_type_id' => (string)$u['unit_type_id'],
         'name' => (string)$u['unit_type_name'], // convenience; catalog still exists separately
+        'display_name' => $u['display_name'] !== null ? (string)$u['display_name'] : (string)$u['unit_type_name'],
+        'unit_type_name' => (string)$u['unit_type_name'],
         'tier' => $tier,
         'level' => $level,
         'xp' => $xp,
@@ -217,6 +223,9 @@ final class UnitRepository
         'xp_to_next_level' => $xpToNext,
         'locked' => ((int)$u['locked']) === 1,
         'equipped_dice' => $equippedByUnit[$uid] ?? [],
+        'unlocked_abilities' => $unlockedAbilitiesByUnit[$uid] ?? [],
+        'equipped_abilities' => $equippedAbilitiesByUnit[$uid] ?? [],
+        'ability_dice' => $abilityDiceByUnit[$uid] ?? [],
       ];
     }
 
@@ -280,6 +289,7 @@ final class UnitRepository
     int $level = 1,
     int $xp = 0,
     bool $locked = false,
+    ?string $displayName = null,
   ): int {
     if ($tier < 1) {
       throw new RuntimeException('Tier must be >= 1.');
@@ -292,10 +302,10 @@ final class UnitRepository
     }
 
     $stmt = $this->pdo->prepare('
-      INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `tier`, `level`, `xp`, `locked`)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `display_name`, `tier`, `level`, `xp`, `locked`)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     ');
-    $stmt->execute([$userId, $unitTypeId, $tier, $level, $xp, $locked ? 1 : 0]);
+    $stmt->execute([$userId, $unitTypeId, $displayName, $tier, $level, $xp, $locked ? 1 : 0]);
 
     return (int)$this->pdo->lastInsertId();
   }
@@ -447,6 +457,107 @@ final class UnitRepository
       'dice_instance_id' => (string)$r['dice_instance_id'],
       'slot_index' => (int)$r['slot_index'],
     ], $rows);
+  }
+
+  /**
+   * @param array<int,int> $unitInstanceIds
+   * @return array<string, list<string>>
+   */
+  public function getUnlockedAbilitiesForUnitIds(array $unitInstanceIds): array
+  {
+    if (count($unitInstanceIds) === 0) {
+      return [];
+    }
+
+    $unitInstanceIds = array_values(array_unique(array_map(static fn($v): int => (int)$v, $unitInstanceIds)));
+    $placeholders = implode(',', array_fill(0, count($unitInstanceIds), '?'));
+
+    $stmt = $this->pdo->prepare("
+      SELECT `unit_instance_id`, `ability_id`
+      FROM `unit_instance_unlocked_abilities`
+      WHERE `unit_instance_id` IN ($placeholders)
+      ORDER BY `unit_instance_id` ASC, `created_at` ASC, `ability_id` ASC
+    ");
+    $stmt->execute($unitInstanceIds);
+
+    $byUnit = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $unitId = (string)$row['unit_instance_id'];
+      $byUnit[$unitId] ??= [];
+      $byUnit[$unitId][] = (string)$row['ability_id'];
+    }
+
+    return $byUnit;
+  }
+
+  /**
+   * @param array<int,int> $unitInstanceIds
+   * @return array<string, array<int, array{ability_id:string,equip_order:int,speed_cost:int}>>
+   */
+  public function getEquippedAbilitiesForUnitIds(array $unitInstanceIds): array
+  {
+    if (count($unitInstanceIds) === 0) {
+      return [];
+    }
+
+    $unitInstanceIds = array_values(array_unique(array_map(static fn($v): int => (int)$v, $unitInstanceIds)));
+    $placeholders = implode(',', array_fill(0, count($unitInstanceIds), '?'));
+
+    $stmt = $this->pdo->prepare("
+      SELECT `unit_instance_id`, `ability_id`, `equip_order`, `speed_cost`
+      FROM `unit_instance_equipped_abilities`
+      WHERE `unit_instance_id` IN ($placeholders)
+      ORDER BY `unit_instance_id` ASC, `equip_order` ASC, `id` ASC
+    ");
+    $stmt->execute($unitInstanceIds);
+
+    $byUnit = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $unitId = (string)$row['unit_instance_id'];
+      $byUnit[$unitId] ??= [];
+      $byUnit[$unitId][] = [
+        'ability_id' => (string)$row['ability_id'],
+        'equip_order' => (int)$row['equip_order'],
+        'speed_cost' => (int)$row['speed_cost'],
+      ];
+    }
+
+    return $byUnit;
+  }
+
+  /**
+   * @param array<int,int> $unitInstanceIds
+   * @return array<string, array<int, array{ability_id:string,slot_index:int,dice_instance_id:string}>>
+   */
+  public function getAbilityDiceBindingsForUnitIds(array $unitInstanceIds): array
+  {
+    if (count($unitInstanceIds) === 0) {
+      return [];
+    }
+
+    $unitInstanceIds = array_values(array_unique(array_map(static fn($v): int => (int)$v, $unitInstanceIds)));
+    $placeholders = implode(',', array_fill(0, count($unitInstanceIds), '?'));
+
+    $stmt = $this->pdo->prepare("
+      SELECT `unit_instance_id`, `ability_id`, `slot_index`, `dice_instance_id`
+      FROM `unit_ability_dice`
+      WHERE `unit_instance_id` IN ($placeholders)
+      ORDER BY `unit_instance_id` ASC, `ability_id` ASC, `slot_index` ASC
+    ");
+    $stmt->execute($unitInstanceIds);
+
+    $byUnit = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $unitId = (string)$row['unit_instance_id'];
+      $byUnit[$unitId] ??= [];
+      $byUnit[$unitId][] = [
+        'ability_id' => (string)$row['ability_id'],
+        'slot_index' => (int)$row['slot_index'],
+        'dice_instance_id' => (string)$row['dice_instance_id'],
+      ];
+    }
+
+    return $byUnit;
   }
 
   // -----------------------------
