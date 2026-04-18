@@ -30,6 +30,34 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->assertSame('Mudjaw', (string)$this->scalar('SELECT `display_name` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
   }
 
+  public function testPromotionOptionsEndpointReturnsChainAndSidewaysBranches(): void
+  {
+    $userId = $this->insertUser('promotion_options_case', 'Promotion Options User');
+    [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    $unitId = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
+    (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $bruiserTypeId);
+
+    $_SESSION['user_id'] = $userId;
+
+    $controller = new GameplayController();
+    $response = $this->invoke(fn() => $controller->getPromotionOptions((string)$unitId));
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $options = $response['body']['data']['options'] ?? null;
+    $this->assertIsArray($options);
+    $this->assertGreaterThanOrEqual(4, count($options));
+    $this->assertSame('chain', (string)($options[0]['mode'] ?? ''));
+    $this->assertSame('Bruiser', (string)($options[0]['branch_unit_type_name'] ?? ''));
+    $this->assertSame('Enforcer', (string)($options[0]['target_unit_type_name'] ?? ''));
+
+    $branchNames = array_map(static fn(array $row): string => (string)($row['branch_unit_type_name'] ?? ''), $options);
+    $targetNames = array_map(static fn(array $row): string => (string)($row['target_unit_type_name'] ?? ''), $options);
+    $this->assertContains('Guardian', $branchNames);
+    $this->assertContains('Bulwark', $targetNames);
+    $this->assertContains('Bannerbearer', $branchNames);
+    $this->assertContains('Warcaller', $targetNames);
+  }
+
   public function testReplaceEquippedAbilitiesEndpointReturnsUpdatedOrderedLoadout(): void
   {
     $userId = $this->insertUser('loadout_case', 'Loadout User');
@@ -66,6 +94,48 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->assertCount(3, $stored);
     $this->assertSame('heavy_strike', (string)$stored[2]['ability_id']);
     $this->assertGreaterThan(0, (int)$stored[0]['speed_cost']);
+  }
+
+  public function testPromoteUnitEndpointHonorsSelectedDestinationAndUnlocksNewBranchAbilities(): void
+  {
+    $userId = $this->insertUser('promotion_destination_case', 'Promotion Destination User');
+    [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    [$bannerTargetTypeId, ] = $this->loadUnitType('support_banner_t2');
+    $primaryId = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
+    $secondaryA = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
+    $secondaryB = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
+
+    $loadout = new UnitLoadoutService($this->pdo);
+    $loadout->initializeUnit($primaryId, $bruiserTypeId);
+    $loadout->initializeUnit($secondaryA, $bruiserTypeId);
+    $loadout->initializeUnit($secondaryB, $bruiserTypeId);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+    $_POST = [
+      'primary_unit_instance_id' => (string)$primaryId,
+      'secondary_unit_instance_ids' => [(string)$secondaryA, (string)$secondaryB],
+      'destination_unit_type_id' => (string)$bannerTargetTypeId,
+    ];
+
+    $controller = new GameplayController();
+    $response = $this->invoke(fn() => $controller->promoteUnit((string)$primaryId));
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $this->assertSame((string)$bannerTargetTypeId, (string)($response['body']['data']['destination']['target_unit_type_id'] ?? ''));
+    $this->assertSame(
+      (string)$bannerTargetTypeId,
+      (string)$this->scalar('SELECT `unit_type_id` FROM `unit_instances` WHERE `id` = ?', [$primaryId])
+    );
+
+    $unlockedAbilities = $this->rows(
+      'SELECT `ability_id` FROM `unit_instance_unlocked_abilities` WHERE `unit_instance_id` = ? ORDER BY `ability_id` ASC',
+      [$primaryId]
+    );
+    $abilityIds = array_map(static fn(array $row): string => (string)$row['ability_id'], $unlockedAbilities);
+    $this->assertContains('heavy_strike', $abilityIds);
+    $this->assertContains('bolster_ally', $abilityIds);
   }
 
   public function testReplaceEquippedAbilitiesEndpointRequiresRestContextForActiveRunUnits(): void
