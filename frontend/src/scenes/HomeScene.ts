@@ -106,7 +106,7 @@ export default class HomeScene extends Phaser.Scene {
       rect: panels.startRun,
       color: START_RUN_COLOR,
       tooltip: hasActiveRun ? "Continue Run" : "Start Run",
-      textureKey: "home_panel_start_run",
+      textureKey: hasActiveRun ? "home_panel_continue_run" : "home_panel_start_run",
       onClick: () => this.scene.start(hasActiveRun ? "MapExplorationScene" : "RegionSelectScene"),
     });
     this.createPanel({

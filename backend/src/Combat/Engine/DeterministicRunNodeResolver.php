@@ -234,6 +234,7 @@ final class DeterministicRunNodeResolver
    *   current_hp:int,
    *   abilities:array<int,string>,
    *   combat_affixes:array{damage_flat:int,below_half_bonus:float},
+   *   max_equipped_dice:int,
    *   dice_pool:array<int,array{
    *     kind:string,
    *     dice_instance_id:?string,
@@ -253,6 +254,7 @@ final class DeterministicRunNodeResolver
         ut.`attack_per_level`,
         ut.`defense_per_level`,
         ut.`max_hp_per_level`,
+        ut.`max_equipped_dice`,
         tf.`cell` AS `formation_cell`,
         rus.`current_hp` AS `run_current_hp`
       FROM `team_units` tu
@@ -303,6 +305,7 @@ final class DeterministicRunNodeResolver
           'damage_flat' => 0,
           'below_half_bonus' => 0.0,
         ],
+        'max_equipped_dice' => max(1, (int)($row['max_equipped_dice'] ?? 2)),
         'dice_pool' => [],
       ];
     }
@@ -341,12 +344,18 @@ final class DeterministicRunNodeResolver
 
     foreach ($units as &$unit) {
       $unitId = (string)$unit['id'];
-      $unit['dice_pool'] = array_values($diceByUnitId[$unitId] ?? [[
-        'kind' => 'fallback',
-        'dice_instance_id' => null,
-        'sides' => 6,
-        'affixes' => [],
-      ]]);
+      $equippedDice = array_values($diceByUnitId[$unitId] ?? []);
+      $emptySlotCount = max(0, ((int)($unit['max_equipped_dice'] ?? 1)) - count($equippedDice));
+      for ($i = 0; $i < $emptySlotCount; $i++) {
+        $equippedDice[] = [
+          'kind' => 'empty_slot',
+          'dice_instance_id' => null,
+          'sides' => 1,
+          'affixes' => [],
+        ];
+      }
+
+      $unit['dice_pool'] = $equippedDice;
       $this->applyPassiveDiceAffixesToUnit($unit);
     }
     unset($unit);
@@ -1084,13 +1093,13 @@ final class DeterministicRunNodeResolver
       $pool = [[
         'kind' => $side === 'enemy' ? 'enemy_virtual' : 'fallback',
         'dice_instance_id' => null,
-        'sides' => 6,
+        'sides' => $side === 'enemy' ? 6 : 1,
         'affixes' => [],
       ]];
     }
 
     $die = $pool[$this->nextInt($state, count($pool))];
-    $sides = max(2, (int)($die['sides'] ?? 6));
+    $sides = max(1, (int)($die['sides'] ?? ($side === 'enemy' ? 6 : 1)));
     $roll = 1 + $this->nextInt($state, $sides);
     $explodeTriggered = false;
     $diceRolls = [[

@@ -97,6 +97,11 @@
                   },
                   {
                       "type":  "image",
+                      "key":  "home_panel_continue_run",
+                      "url":  "assets/ui/panels/home_continue_run.jpg"
+                  },
+                  {
+                      "type":  "image",
                       "key":  "home_panel_warband",
                       "url":  "assets/ui/panels/home_warband.jpg"
                   },

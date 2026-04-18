@@ -238,6 +238,54 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertGreaterThan(2, count($roundOneTickSet), 'Round one should contain action ticks beyond the previous fixed two-tick cadence.');
   }
 
+  public function testResolveNodeUsesD1FallbackForPlayerEmptyDiceSlots(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 45454545);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'available');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 20, false);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new RunNodeController();
+    $response = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $response['status']);
+
+    $battleId = (int)($response['body']['data']['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $battleId);
+
+    $logRaw = $this->scalar('SELECT `log_json` FROM `battle_logs` WHERE `battle_id` = ?', [$battleId]);
+    $log = json_decode((string)$logRaw, true);
+    $this->assertIsArray($log);
+    $events = is_array($log['events'] ?? null) ? $log['events'] : [];
+
+    $playerAction = null;
+    foreach ($events as $event) {
+      if (is_array($event) && (string)($event['type'] ?? '') === 'action' && (string)($event['side'] ?? '') === 'player') {
+        $playerAction = $event;
+        break;
+      }
+    }
+
+    $this->assertIsArray($playerAction, 'Expected at least one player action event.');
+    $diceUsed = is_array($playerAction['dice_used'] ?? null) ? $playerAction['dice_used'] : [];
+    $diceRolls = is_array($playerAction['dice_rolls'] ?? null) ? $playerAction['dice_rolls'] : [];
+    $this->assertNotSame([], $diceUsed);
+    $this->assertNotSame([], $diceRolls);
+    $this->assertSame('empty_slot', (string)($diceUsed[0]['kind'] ?? ''));
+    $this->assertSame(1, (int)($diceUsed[0]['sides'] ?? 0));
+    $this->assertSame(1, (int)($diceRolls[0]['sides'] ?? 0));
+    $this->assertSame(1, (int)($diceRolls[0]['roll'] ?? 0));
+  }
+
   public function testResolveNodeDefeatEndsRunImmediately(): void
   {
     $userId = $this->insertUser();

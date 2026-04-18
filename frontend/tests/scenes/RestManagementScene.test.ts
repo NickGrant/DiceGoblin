@@ -21,6 +21,33 @@ vi.mock("../../src/services/apiClient", () => ({
 }));
 
 describe("RestManagementScene", () => {
+  it("resets finalized state when reopened with new rest context", async () => {
+    const { default: RestManagementScene } = await import("../../src/scenes/RestManagementScene");
+
+    const scene = new RestManagementScene() as any;
+    scene.finalized = true;
+    scene.selectedUnitId = "u-old";
+    scene.editUnitIds = new Set(["u-old"]);
+    scene.editFormation = { A1: "u-old" };
+    scene.runUnitState = [{ unit_instance_id: "u-old", hp: 1 }];
+    scene.baselineRunUnitHp = new Map([["u-old", 1]]);
+
+    scene.init({ runId: "10", nodeId: "700" });
+
+    expect(scene.runId).toBe("10");
+    expect(scene.nodeId).toBe("700");
+    expect(scene.finalized).toBe(false);
+    expect(scene.selectedUnitId).toBeNull();
+    expect(scene.editUnitIds.size).toBe(0);
+    expect(scene.editFormation).toEqual({
+      A1: null, B1: null, C1: null,
+      A2: null, B2: null, C2: null,
+      A3: null, B3: null, C3: null,
+    });
+    expect(scene.runUnitState).toEqual([]);
+    expect(scene.baselineRunUnitHp.size).toBe(0);
+  });
+
   it("returns to map immediately after finalize rest", async () => {
     const { default: RestManagementScene } = await import("../../src/scenes/RestManagementScene");
 

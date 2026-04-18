@@ -67,6 +67,12 @@ export default class RestManagementScene extends Phaser.Scene {
   init(data: { runId?: string; nodeId?: string }): void {
     this.runId = String(data?.runId ?? "");
     this.nodeId = String(data?.nodeId ?? "");
+    this.finalized = false;
+    this.selectedUnitId = null;
+    this.editUnitIds = new Set();
+    this.editFormation = emptyFormation();
+    this.runUnitState = [];
+    this.baselineRunUnitHp = new Map();
     const debugConfig = getDebugSceneConfig();
     if (debugConfig.enabled) {
       if (!this.runId) this.runId = "91";
