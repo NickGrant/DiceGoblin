@@ -42,6 +42,53 @@ describe("profileViewModels adapters", () => {
     expect(vm.abilities.passive.map((a) => a.label)).toEqual(["Guard Stance"]);
   });
 
+  it("adapts equipped loadout budget and ability-slot dice using catalog metadata", () => {
+    const vms = adaptUnitDetails(
+      [
+        {
+          id: "u7",
+          name: "Mudjaw",
+          unit_type_name: "Bruiser",
+          level: 2,
+          xp: 10,
+          max_level: 5,
+          unlocked_abilities: [
+            { ability_id: "basic_attack_melee" },
+            { ability_id: "heavy_strike" },
+            { ability_id: "guard_stance" },
+          ],
+          equipped_abilities: [
+            { ability_id: "basic_attack_melee", equip_order: 0, speed_cost: 4 },
+            { ability_id: "heavy_strike", equip_order: 1, speed_cost: 8 },
+          ],
+          ability_dice: [
+            { ability_id: "heavy_strike", slot_index: 0, dice_instance_id: "d9" },
+          ],
+        },
+      ],
+      [
+        { ability_id: "basic_attack_melee", type: "active", display_name: "Basic Attack", order: 10, speed: 4, dice_cost: 0, short_desc: "", icon_key: "", tags: [], default_params: {} },
+        { ability_id: "heavy_strike", type: "active", display_name: "Heavy Strike", order: 20, speed: 8, dice_cost: 1, short_desc: "", icon_key: "", tags: [], default_params: {} },
+        { ability_id: "guard_stance", type: "passive", display_name: "Guard Stance", order: 30, short_desc: "", icon_key: "", tags: [], default_params: {} },
+      ]
+    );
+
+    const vm = vms[0]!;
+    expect(vm.loadoutBudget).toEqual({ used: 12, max: 20, remaining: 8 });
+    expect(vm.unlockedAbilities.map((ability) => ability.id)).toEqual([
+      "basic_attack_melee",
+      "heavy_strike",
+      "guard_stance",
+    ]);
+    expect(vm.equippedLoadout).toHaveLength(2);
+    expect(vm.equippedLoadout[1]).toMatchObject({
+      abilityId: "heavy_strike",
+      speedCost: 8,
+      diceCost: 1,
+      slots: [{ slotIndex: 0, diceInstanceId: "d9" }],
+    });
+  });
+
   it("adapts dice details with equip context, affix labels, and empty slots", () => {
     const dice = adaptDiceDetails(
       [
@@ -98,6 +145,30 @@ describe("profileViewModels adapters", () => {
     expect(first.affixes[0]!.description).toContain("Roll again once");
     expect(first.affixes[1]!.label).toBe("Empty");
     expect(first.affixes[2]!.label).toBe("Empty");
+  });
+
+  it("prefers ability-slot equip context over legacy unit-pool context", () => {
+    const dice = adaptDiceDetails(
+      [
+        { id: "d2", sides: 4, rarity: "common", slot_capacity: 0, affix_slots: 0, affixes: [] },
+      ],
+      [
+        {
+          id: "u2",
+          name: "Bogblade",
+          level: 1,
+          equipped_dice: [{ dice_instance_id: "d2", slot_index: 0 }],
+          ability_dice: [{ ability_id: "heavy_strike", slot_index: 0, dice_instance_id: "d2" }],
+        },
+      ]
+    );
+
+    expect(dice[0]?.equipped).toMatchObject({
+      unitId: "u2",
+      unitName: "Bogblade",
+      slotIndex: 0,
+      abilityId: "heavy_strike",
+    });
   });
 
   it("sanitizes malformed numeric and nested equipped-dice data", () => {

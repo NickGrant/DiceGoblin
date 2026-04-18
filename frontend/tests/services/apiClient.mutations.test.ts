@@ -346,4 +346,21 @@ describe("apiClient mutation flows", () => {
     expect(purchaseInit.method).toBe("POST");
     expect(purchaseInit.body).toBe(JSON.stringify({ item_type: "daily_deal", product_id: "daily_deal" }));
   });
+
+  it("ability catalog stays a plain get without csrf bootstrap", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true, data: { catalog_version: 1, abilities: [] } }));
+
+    const { apiClient } = await import("../../src/services/apiClient");
+    const response = await apiClient.getAbilityCatalog();
+
+    expect(response).toEqual({ ok: true, data: { catalog_version: 1, abilities: [] } });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/abilities",
+      expect.objectContaining({
+        method: "GET",
+        credentials: "include",
+      })
+    );
+  });
 });

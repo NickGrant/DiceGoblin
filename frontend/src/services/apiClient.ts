@@ -1,6 +1,7 @@
 import {
   type AbandonRunResponse,
   type AbilitySlotDiceMutationResponse,
+  type AbilityCatalogResponse,
   type BattleClaimResponse,
   type CreateResponse,
   type DiceSellResponse,
@@ -113,6 +114,10 @@ export const apiClient = {
   async getCurrentRun(): Promise<RunResponse> {
     const response = await request<unknown>("/api/v1/runs/current", { method: "GET" });
     return validateCurrentRunResponse(response);
+  },
+
+  async getAbilityCatalog(): Promise<AbilityCatalogResponse> {
+    return request<AbilityCatalogResponse>("/api/v1/abilities", { method: "GET" });
   },
 
   async createRun(regionId: number): Promise<CreateResponse> {

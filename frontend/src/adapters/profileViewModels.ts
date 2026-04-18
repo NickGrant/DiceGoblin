@@ -1,4 +1,13 @@
-import type { DiceRecord, UnitAbilityRecord, UnitEquippedDie, UnitRecord } from "../types/ApiResponse";
+import type {
+  AbilityCatalogEntry,
+  DiceRecord,
+  UnitAbilityDieRecord,
+  UnitAbilityRecord,
+  UnitEquippedAbilityRecord,
+  UnitEquippedDie,
+  UnitRecord,
+  UnitUnlockedAbilityRecord,
+} from "../types/ApiResponse";
 
 export type UnitAbilityViewModel = {
   id: string;
@@ -23,6 +32,27 @@ export type UnitDetailsViewModel = {
     active: UnitAbilityViewModel[];
     passive: UnitAbilityViewModel[];
   };
+  unlockedAbilities: UnitAbilityViewModel[];
+  equippedLoadout: UnitEquippedAbilityViewModel[];
+  loadoutBudget: {
+    used: number;
+    max: number;
+    remaining: number;
+  };
+};
+
+export type UnitAbilitySlotViewModel = {
+  slotIndex: number;
+  diceInstanceId: string | null;
+};
+
+export type UnitEquippedAbilityViewModel = {
+  abilityId: string;
+  label: string;
+  equipOrder: number;
+  speedCost: number;
+  diceCost: number;
+  slots: UnitAbilitySlotViewModel[];
 };
 
 export type DiceAffixViewModel = {
@@ -50,6 +80,7 @@ export type DiceDetailsViewModel = {
     unitId: string;
     unitName: string;
     slotIndex: number;
+    abilityId?: string;
   } | null;
 };
 
@@ -59,7 +90,8 @@ export function adaptUnitRecords(rawUnits: unknown[]): UnitRecord[] {
     .filter((unit): unit is UnitRecord => unit !== null);
 }
 
-export function adaptUnitDetails(rawUnits: unknown[]): UnitDetailsViewModel[] {
+export function adaptUnitDetails(rawUnits: unknown[], rawCatalog: AbilityCatalogEntry[] = []): UnitDetailsViewModel[] {
+  const catalog = indexAbilityCatalog(rawCatalog);
   return adaptUnitRecords(rawUnits).map((unit) => {
     const xp = toNonNegativeInt(unit.xp, 0);
     const maxLevel = typeof unit.max_level === "number" && Number.isFinite(unit.max_level)
@@ -74,6 +106,9 @@ export function adaptUnitDetails(rawUnits: unknown[]): UnitDetailsViewModel[] {
     }));
 
     const abilityBuckets = normalizeAbilities(unit.abilities);
+    const unlockedAbilities = normalizeUnlockedAbilities(unit.unlocked_abilities, catalog);
+    const equippedLoadout = normalizeEquippedLoadout(unit.equipped_abilities, unit.ability_dice, catalog);
+    const usedBudget = equippedLoadout.reduce((sum, entry) => sum + entry.speedCost, 0);
 
     return {
       id: unit.id,
@@ -88,16 +123,32 @@ export function adaptUnitDetails(rawUnits: unknown[]): UnitDetailsViewModel[] {
       xpProgressRatio: isMaxLevel ? null : normalizeXpProgress(unit),
       equippedDice,
       abilities: abilityBuckets,
+      unlockedAbilities,
+      equippedLoadout,
+      loadoutBudget: {
+        used: usedBudget,
+        max: 20,
+        remaining: Math.max(0, 20 - usedBudget),
+      },
     };
   });
 }
 
 export function adaptDiceDetails(rawDice: unknown[], rawUnits: unknown[]): DiceDetailsViewModel[] {
   const units = adaptUnitRecords(rawUnits);
-  const equippedIndex = new Map<string, { unitId: string; unitName: string; slotIndex: number }>();
+  const equippedIndex = new Map<string, { unitId: string; unitName: string; slotIndex: number; abilityId?: string }>();
 
   for (const unit of units) {
+    for (const equipped of normalizeAbilityDiceRecords(unit.ability_dice)) {
+      equippedIndex.set(equipped.dice_instance_id, {
+        unitId: unit.id,
+        unitName: unit.name,
+        slotIndex: equipped.slot_index,
+        abilityId: equipped.ability_id,
+      });
+    }
     for (const equipped of normalizeEquippedDice(unit.equipped_dice)) {
+      if (equippedIndex.has(equipped.dice_instance_id)) continue;
       equippedIndex.set(equipped.dice_instance_id, {
         unitId: unit.id,
         unitName: unit.name,
@@ -160,6 +211,9 @@ function adaptUnitRecord(raw: unknown): UnitRecord | null {
       : undefined,
     equipped_dice: normalizeEquippedDice(raw.equipped_dice),
     abilities: normalizeAbilityRecords(raw.abilities),
+    unlocked_abilities: normalizeUnlockedAbilityRecords(raw.unlocked_abilities),
+    equipped_abilities: normalizeEquippedAbilityRecords(raw.equipped_abilities),
+    ability_dice: normalizeAbilityDiceRecords(raw.ability_dice),
   };
 }
 
@@ -214,6 +268,55 @@ function normalizeAbilityRecords(value: unknown): UnitAbilityRecord[] {
   return out;
 }
 
+function normalizeUnlockedAbilityRecords(value: unknown): UnitUnlockedAbilityRecord[] {
+  if (!Array.isArray(value)) return [];
+  const out: UnitUnlockedAbilityRecord[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) continue;
+    const abilityId = nonEmptyString(item.ability_id);
+    if (!abilityId) continue;
+    out.push({ ability_id: abilityId });
+  }
+  return out;
+}
+
+function normalizeEquippedAbilityRecords(value: unknown): UnitEquippedAbilityRecord[] {
+  if (!Array.isArray(value)) return [];
+  const out: UnitEquippedAbilityRecord[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) continue;
+    const abilityId = nonEmptyString(item.ability_id);
+    if (!abilityId) continue;
+    out.push({
+      ability_id: abilityId,
+      equip_order: toNonNegativeInt(item.equip_order, out.length),
+      speed_cost: toNonNegativeInt(item.speed_cost, 0),
+    });
+  }
+  return out.sort((a, b) => a.equip_order - b.equip_order || a.ability_id.localeCompare(b.ability_id));
+}
+
+function normalizeAbilityDiceRecords(value: unknown): UnitAbilityDieRecord[] {
+  if (!Array.isArray(value)) return [];
+  const out: UnitAbilityDieRecord[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) continue;
+    const abilityId = nonEmptyString(item.ability_id);
+    const diceId = nonEmptyString(item.dice_instance_id);
+    if (!abilityId || !diceId) continue;
+    out.push({
+      ability_id: abilityId,
+      slot_index: toNonNegativeInt(item.slot_index, 0),
+      dice_instance_id: diceId,
+    });
+  }
+  return out.sort((a, b) =>
+    a.ability_id.localeCompare(b.ability_id)
+    || a.slot_index - b.slot_index
+    || a.dice_instance_id.localeCompare(b.dice_instance_id)
+  );
+}
+
 function normalizeAbilities(value: unknown): { active: UnitAbilityViewModel[]; passive: UnitAbilityViewModel[] } {
   const raw = normalizeAbilityRecords(value);
   const active: UnitAbilityViewModel[] = [];
@@ -237,6 +340,70 @@ function normalizeAbilities(value: unknown): { active: UnitAbilityViewModel[]; p
   active.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
   passive.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
   return { active, passive };
+}
+
+function normalizeUnlockedAbilities(
+  value: unknown,
+  catalog: Map<string, AbilityCatalogEntry>,
+): UnitAbilityViewModel[] {
+  const raw = normalizeUnlockedAbilityRecords(value);
+  return raw
+    .map((ability, index): UnitAbilityViewModel => {
+      const catalogEntry = catalog.get(ability.ability_id);
+      return {
+        id: ability.ability_id,
+        label: catalogEntry?.display_name ?? labelFromId(ability.ability_id),
+        type: catalogEntry?.type === "passive" ? "passive" : "active",
+        order: typeof catalogEntry?.order === "number" ? catalogEntry.order : index,
+      };
+    })
+    .sort((a, b) => a.type.localeCompare(b.type) || a.order - b.order || a.label.localeCompare(b.label));
+}
+
+function normalizeEquippedLoadout(
+  equippedAbilitiesValue: unknown,
+  abilityDiceValue: unknown,
+  catalog: Map<string, AbilityCatalogEntry>,
+): UnitEquippedAbilityViewModel[] {
+  const equippedAbilities = normalizeEquippedAbilityRecords(equippedAbilitiesValue);
+  const abilityDice = normalizeAbilityDiceRecords(abilityDiceValue);
+  const diceByAbility = new Map<string, Map<number, string>>();
+
+  for (const entry of abilityDice) {
+    const bySlot = diceByAbility.get(entry.ability_id) ?? new Map<number, string>();
+    bySlot.set(entry.slot_index, entry.dice_instance_id);
+    diceByAbility.set(entry.ability_id, bySlot);
+  }
+
+  return equippedAbilities.map((ability) => {
+    const catalogEntry = catalog.get(ability.ability_id);
+    const diceCost = Math.max(0, Number(catalogEntry?.dice_cost ?? 0));
+    const slots: UnitAbilitySlotViewModel[] = [];
+    for (let slotIndex = 0; slotIndex < diceCost; slotIndex += 1) {
+      slots.push({
+        slotIndex,
+        diceInstanceId: diceByAbility.get(ability.ability_id)?.get(slotIndex) ?? null,
+      });
+    }
+    return {
+      abilityId: ability.ability_id,
+      label: catalogEntry?.display_name ?? labelFromId(ability.ability_id),
+      equipOrder: ability.equip_order,
+      speedCost: ability.speed_cost,
+      diceCost,
+      slots,
+    };
+  });
+}
+
+function indexAbilityCatalog(rawCatalog: AbilityCatalogEntry[]): Map<string, AbilityCatalogEntry> {
+  const map = new Map<string, AbilityCatalogEntry>();
+  for (const entry of rawCatalog) {
+    const abilityId = nonEmptyString(entry?.ability_id);
+    if (!abilityId) continue;
+    map.set(abilityId, entry);
+  }
+  return map;
 }
 
 function normalizeDiceAffixRecords(value: unknown): Array<{
