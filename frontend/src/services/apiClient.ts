@@ -1,5 +1,6 @@
 import {
   type AbandonRunResponse,
+  type AbilitySlotDiceMutationResponse,
   type BattleClaimResponse,
   type CreateResponse,
   type DiceSellResponse,
@@ -307,6 +308,51 @@ export const apiClient = {
     }
     const res = await request<ReplaceEquippedAbilitiesResponse>(`/api/v1/units/${unitId}/loadout`, {
       method: "PUT",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify(body),
+    });
+    refreshProfileAfterMutation();
+    return res;
+  },
+
+  async assignAbilitySlotDie(
+    unitId: string,
+    abilityId: string,
+    slotIndex: number,
+    diceId: string,
+    context?: { runId?: string; nodeId?: string }
+  ): Promise<AbilitySlotDiceMutationResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const body: Record<string, unknown> = { dice_instance_id: Number(diceId) };
+    if (context?.runId && context?.nodeId) {
+      body.run_id = Number(context.runId);
+      body.node_id = Number(context.nodeId);
+    }
+    const res = await request<AbilitySlotDiceMutationResponse>(`/api/v1/units/${unitId}/abilities/${abilityId}/slots/${slotIndex}/dice`, {
+      method: "PUT",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify(body),
+    });
+    refreshProfileAfterMutation();
+    return res;
+  },
+
+  async clearAbilitySlotDie(
+    unitId: string,
+    abilityId: string,
+    slotIndex: number,
+    context?: { runId?: string; nodeId?: string }
+  ): Promise<AbilitySlotDiceMutationResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const body: Record<string, unknown> = {};
+    if (context?.runId && context?.nodeId) {
+      body.run_id = Number(context.runId);
+      body.node_id = Number(context.nodeId);
+    }
+    const res = await request<AbilitySlotDiceMutationResponse>(`/api/v1/units/${unitId}/abilities/${abilityId}/slots/${slotIndex}/dice`, {
+      method: "DELETE",
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify(body),
     });

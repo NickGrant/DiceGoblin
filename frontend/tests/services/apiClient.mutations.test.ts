@@ -273,6 +273,55 @@ describe("apiClient mutation flows", () => {
     }));
   });
 
+  it("ability-slot dice mutation methods include csrf and optional rest context", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { authenticated: true, csrf_token: "csrf_assign_slot" } }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { unit_id: "11", ability_dice: [] } }))
+      .mockResolvedValueOnce(jsonResponse({
+        ok: true,
+        data: {
+          server_time_iso: "2026-03-12T12:00:00Z",
+          squads: [],
+          units: [],
+          dice: [],
+          currency: { soft: 0 },
+          energy: { current: 5, max: 5, regen_rate_per_hour: 0, last_regen_at: "2026-03-12T12:00:00Z" },
+          region_unlocks: [],
+          region_items: [],
+          active_run: null,
+        },
+      }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { authenticated: true, csrf_token: "csrf_clear_slot" } }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { unit_id: "11", ability_dice: [] } }))
+      .mockResolvedValueOnce(jsonResponse({
+        ok: true,
+        data: {
+          server_time_iso: "2026-03-12T12:00:00Z",
+          squads: [],
+          units: [],
+          dice: [],
+          currency: { soft: 0 },
+          energy: { current: 5, max: 5, regen_rate_per_hour: 0, last_regen_at: "2026-03-12T12:00:00Z" },
+          region_unlocks: [],
+          region_items: [],
+          active_run: null,
+        },
+      }));
+
+    const { apiClient } = await import("../../src/services/apiClient");
+    await apiClient.assignAbilitySlotDie("11", "heavy_strike", 0, "55", { runId: "44", nodeId: "7" });
+    await apiClient.clearAbilitySlotDie("11", "heavy_strike", 0, { runId: "44", nodeId: "7" });
+
+    const assignInit = expectCsrfHeader(fetchMock, 1, "csrf_assign_slot");
+    expect(assignInit.method).toBe("PUT");
+    expect(assignInit.body).toBe(JSON.stringify({ dice_instance_id: 55, run_id: 44, node_id: 7 }));
+
+    const clearInit = expectCsrfHeader(fetchMock, 4, "csrf_clear_slot");
+    expect(clearInit.method).toBe("DELETE");
+    expect(clearInit.body).toBe(JSON.stringify({ run_id: 44, node_id: 7 }));
+  });
+
   it("shop endpoints include csrf for purchases and leave catalog as a plain get", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock

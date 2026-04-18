@@ -140,6 +140,8 @@ $router->post('/api/v1/battles/:battleId/claim',[$battle, 'claimBattle']);
 $router->post('/api/v1/units/:unitInstanceId/promote', [$gameplay, 'promoteUnit']);
 $router->patch('/api/v1/units/:unitInstanceId/name', [$gameplay, 'renameUnit']);
 $router->put('/api/v1/units/:unitInstanceId/loadout', [$gameplay, 'replaceEquippedAbilities']);
+$router->put('/api/v1/units/:unitInstanceId/abilities/:abilityId/slots/:slotIndex/dice', [$gameplay, 'assignAbilitySlotDie']);
+$router->delete('/api/v1/units/:unitInstanceId/abilities/:abilityId/slots/:slotIndex/dice', [$gameplay, 'clearAbilitySlotDie']);
 $router->post('/api/v1/units/:unitInstanceId/dice/equip', [$gameplay, 'equipDice']);
 $router->post('/api/v1/units/:unitInstanceId/dice/unequip', [$gameplay, 'unequipDice']);
 $router->post('/api/v1/dice/:diceInstanceId/sell', [$gameplay, 'sellDice']);

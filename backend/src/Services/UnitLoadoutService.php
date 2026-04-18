@@ -95,6 +95,19 @@ final class UnitLoadoutService
     $stmt->execute([$unitInstanceId, $abilityId, $slotIndex, $diceInstanceId]);
   }
 
+  public function clearAbilitySlotDie(int $unitInstanceId, string $abilityId, int $slotIndex): void
+  {
+    $this->loadUnitContext($unitInstanceId);
+    $this->assertAbilityUnlockedForUnit($unitInstanceId, $abilityId);
+    $this->assertAbilitySlotLegal($abilityId, $slotIndex);
+
+    $stmt = $this->pdo->prepare('
+      DELETE FROM `unit_ability_dice`
+      WHERE `unit_instance_id` = ? AND `ability_id` = ? AND `slot_index` = ?
+    ');
+    $stmt->execute([$unitInstanceId, $abilityId, $slotIndex]);
+  }
+
   /**
    * @param list<string> $abilityIds
    */

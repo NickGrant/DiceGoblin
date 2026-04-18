@@ -475,6 +475,13 @@ export type ReplaceEquippedAbilitiesData = {
 
 export type ReplaceEquippedAbilitiesResponse = ApiResponse<ReplaceEquippedAbilitiesData>;
 
+export type AbilitySlotDiceMutationData = {
+  unit_id: string;
+  ability_dice: UnitAbilityDieRecord[];
+};
+
+export type AbilitySlotDiceMutationResponse = ApiResponse<AbilitySlotDiceMutationData>;
+
 export type DiceSellData = {
   dice_id: string;
   sell_value: number;

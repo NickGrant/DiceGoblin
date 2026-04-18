@@ -559,6 +559,16 @@ final class GameplayController
     }
   }
 
+  public function assignAbilitySlotDie(?string $unitInstanceId = null, ?string $abilityId = null, ?string $slotIndex = null): void
+  {
+    $this->handleAbilitySlotDiceMutation($unitInstanceId, $abilityId, $slotIndex, true);
+  }
+
+  public function clearAbilitySlotDie(?string $unitInstanceId = null, ?string $abilityId = null, ?string $slotIndex = null): void
+  {
+    $this->handleAbilitySlotDiceMutation($unitInstanceId, $abilityId, $slotIndex, false);
+  }
+
   public function sellDice(?string $diceInstanceId = null): void
   {
     $svc = $this->services();
@@ -661,6 +671,68 @@ final class GameplayController
       Response::json([
         'ok' => true,
         'data' => ['unit_id' => (string)$unitId, 'equipped_dice' => $equipped],
+      ]);
+    } catch (RuntimeException $e) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => $e->getMessage()]], 400);
+    } catch (Throwable $e) {
+      Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
+    }
+  }
+
+  private function handleAbilitySlotDiceMutation(?string $unitInstanceId, ?string $abilityId, ?string $slotIndex, bool $isAssign): void
+  {
+    $svc = $this->services();
+    $userId = $this->requireUserId($svc['sessionService']);
+    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+      return;
+    }
+
+    $unitId = $this->requirePositiveInt($unitInstanceId, 'unitInstanceId');
+    if ($unitId === null) {
+      return;
+    }
+
+    $normalizedAbilityId = trim((string)($abilityId ?? ''));
+    if ($normalizedAbilityId === '') {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'abilityId is required.']], 400);
+      return;
+    }
+
+    $slotIndexInt = $this->requireNonNegativeInt($slotIndex, 'slotIndex');
+    if ($slotIndexInt === null) {
+      return;
+    }
+
+    $body = $this->readJsonBody();
+    if ($body === null) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
+      return;
+    }
+
+    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId, $body)) {
+      Response::json(['ok' => false, 'error' => ['code' => 'run_rest_context_required', 'message' => 'Active run equipment changes are allowed only during rest workflow.']], 409);
+      return;
+    }
+
+    try {
+      if ($isAssign) {
+        $diceId = (int)($body['dice_instance_id'] ?? 0);
+        if ($diceId <= 0) {
+          Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'dice_instance_id is required.']], 400);
+          return;
+        }
+        $svc['unitLoadoutService']->assignDieToAbilitySlot($unitId, $normalizedAbilityId, $slotIndexInt, $diceId);
+      } else {
+        $svc['unitLoadoutService']->clearAbilitySlotDie($unitId, $normalizedAbilityId, $slotIndexInt);
+      }
+
+      $abilityDiceByUnit = $svc['unitRepo']->getAbilityDiceBindingsForUnitIds([$unitId]);
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'unit_id' => (string)$unitId,
+          'ability_dice' => $abilityDiceByUnit[(string)$unitId] ?? [],
+        ],
       ]);
     } catch (RuntimeException $e) {
       Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => $e->getMessage()]], 400);
@@ -1066,6 +1138,16 @@ final class GameplayController
       return null;
     }
     return $v;
+  }
+
+  private function requireNonNegativeInt(?string $raw, string $field): ?int
+  {
+    if ($raw === null || $raw === '' || !preg_match('/^\d+$/', $raw)) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => "{$field} is required."]], 400);
+      return null;
+    }
+
+    return (int)$raw;
   }
 
   private function services(): array

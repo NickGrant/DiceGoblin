@@ -3,7 +3,7 @@
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
 title: Add unit details support for renaming, loadout order, and ability-slot dice editing
-status: unstarted
+status: in-progress
 priority: high
 execution: active
 ready: yes

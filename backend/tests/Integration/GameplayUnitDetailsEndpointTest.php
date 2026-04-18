@@ -102,6 +102,76 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->assertSame(200, $allowed['status'], json_encode($allowed['body']));
   }
 
+  public function testAbilitySlotDiceEndpointsAssignAndClearBinding(): void
+  {
+    $userId = $this->insertUser('slot_dice_case', 'Slot Dice User');
+    [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $unitTypeId);
+    $diceId = $this->insertDiceInstance($userId, $this->pickAnyDiceDefinitionId());
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new GameplayController();
+
+    $_POST = ['dice_instance_id' => (string)$diceId];
+    $assign = $this->invoke(fn() => $controller->assignAbilitySlotDie((string)$unitId, 'heavy_strike', '0'));
+    $this->assertSame(200, $assign['status'], json_encode($assign['body']));
+    $abilityDice = $assign['body']['data']['ability_dice'] ?? null;
+    $this->assertIsArray($abilityDice);
+    $this->assertTrue(
+      count(array_filter($abilityDice, static fn(array $row): bool => (string)$row['ability_id'] === 'heavy_strike' && (int)$row['slot_index'] === 0 && (string)$row['dice_instance_id'] === (string)$diceId)) === 1
+    );
+
+    $_POST = [];
+    $clear = $this->invoke(fn() => $controller->clearAbilitySlotDie((string)$unitId, 'heavy_strike', '0'));
+    $this->assertSame(200, $clear['status'], json_encode($clear['body']));
+    $this->assertSame(
+      '0',
+      (string)$this->scalar(
+        'SELECT COUNT(*) FROM `unit_ability_dice` WHERE `unit_instance_id` = ? AND `ability_id` = ? AND `slot_index` = 0',
+        [$unitId, 'heavy_strike']
+      )
+    );
+  }
+
+  public function testAbilitySlotDiceAssignRequiresRestContextForActiveRunUnits(): void
+  {
+    $userId = $this->insertUser('slot_dice_rest', 'Slot Dice Rest User');
+    [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $unitTypeId);
+    $diceId = $this->insertDiceInstance($userId, $this->pickAnyDiceDefinitionId());
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 757575);
+    $restNodeId = $this->insertRunNode($runId, 'rest', 'available');
+
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 10, false);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new GameplayController();
+
+    $_POST = ['dice_instance_id' => (string)$diceId];
+    $blocked = $this->invoke(fn() => $controller->assignAbilitySlotDie((string)$unitId, 'heavy_strike', '0'));
+    $this->assertSame(409, $blocked['status']);
+    $this->assertSame('run_rest_context_required', (string)($blocked['body']['error']['code'] ?? ''));
+
+    $_POST = [
+      'dice_instance_id' => (string)$diceId,
+      'run_id' => (string)$runId,
+      'node_id' => (string)$restNodeId,
+    ];
+    $allowed = $this->invoke(fn() => $controller->assignAbilitySlotDie((string)$unitId, 'heavy_strike', '0'));
+    $this->assertSame(200, $allowed['status'], json_encode($allowed['body']));
+  }
+
   /**
    * @return array{0:int,1:string}
    */
