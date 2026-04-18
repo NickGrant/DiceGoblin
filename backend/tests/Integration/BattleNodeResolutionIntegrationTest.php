@@ -181,11 +181,22 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $unitTypeRows = $this->rows('SELECT `id` FROM `unit_types` ORDER BY `id` ASC LIMIT 2', []);
     $this->assertCount(2, $unitTypeRows);
 
+    $equippedUnitIds = [];
     foreach ($unitTypeRows as $row) {
       $unitId = $this->insertUnit($userId, (int)$row['id'], 1, 0);
       $this->insertTeamUnit($teamId, $unitId);
       $this->insertRunUnitState($runId, $unitId, 20, false);
+      $equippedUnitIds[] = $unitId;
     }
+
+    $equipStmt = $this->pdo->prepare('
+      INSERT INTO `unit_instance_equipped_abilities` (`unit_instance_id`, `ability_id`, `equip_order`, `speed_cost`)
+      VALUES (?, ?, ?, ?)
+    ');
+    $equipStmt->execute([$equippedUnitIds[0], 'basic_attack_melee', 0, 4]);
+    $equipStmt->execute([$equippedUnitIds[0], 'heavy_strike', 1, 8]);
+    $equipStmt->execute([$equippedUnitIds[1], 'heavy_strike', 0, 8]);
+    $equipStmt->execute([$equippedUnitIds[1], 'basic_attack_melee', 1, 4]);
 
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
@@ -246,7 +257,7 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $runId = $this->insertRun($userId, $regionId, 81818181);
     $nodeId = $this->insertRunNode($runId, 'combat', 'available');
 
-    $stmt = $this->pdo->prepare("SELECT `id` FROM `unit_types` WHERE `slug` = 'frontliner_bruiser_t1' LIMIT 1");
+    $stmt = $this->pdo->prepare("SELECT `id` FROM `unit_types` WHERE `slug` = 'frontline_bruiser_t1' LIMIT 1");
     $stmt->execute();
     $unitTypeId = (int)$stmt->fetchColumn();
     $this->assertGreaterThan(0, $unitTypeId);
@@ -305,10 +316,20 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $runId = $this->insertRun($userId, $regionId, 45454545);
     $nodeId = $this->insertRunNode($runId, 'combat', 'available');
 
-    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $stmt = $this->pdo->prepare("SELECT `id` FROM `unit_types` WHERE `slug` = 'frontline_bruiser_t1' LIMIT 1");
+    $stmt->execute();
+    $unitTypeId = (int)$stmt->fetchColumn();
+    $this->assertGreaterThan(0, $unitTypeId);
+
     $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
     $this->insertTeamUnit($teamId, $unitId);
     $this->insertRunUnitState($runId, $unitId, 20, false);
+
+    $equipStmt = $this->pdo->prepare('
+      INSERT INTO `unit_instance_equipped_abilities` (`unit_instance_id`, `ability_id`, `equip_order`, `speed_cost`)
+      VALUES (?, ?, ?, ?)
+    ');
+    $equipStmt->execute([$unitId, 'heavy_strike', 0, 8]);
 
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
@@ -343,6 +364,95 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame(1, (int)($diceUsed[0]['sides'] ?? 0));
     $this->assertSame(1, (int)($diceRolls[0]['sides'] ?? 0));
     $this->assertSame(1, (int)($diceRolls[0]['roll'] ?? 0));
+  }
+
+  public function testResolveNodeUsesBoundAbilityDiceInsteadOfLegacyUnitPool(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 56565656);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'available');
+
+    $stmt = $this->pdo->prepare("SELECT `id` FROM `unit_types` WHERE `slug` = 'frontline_bruiser_t1' LIMIT 1");
+    $stmt->execute();
+    $unitTypeId = (int)$stmt->fetchColumn();
+    $this->assertGreaterThan(0, $unitTypeId);
+
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 20, false);
+
+    $equipStmt = $this->pdo->prepare('
+      INSERT INTO `unit_instance_equipped_abilities` (`unit_instance_id`, `ability_id`, `equip_order`, `speed_cost`)
+      VALUES (?, ?, ?, ?)
+    ');
+    $equipStmt->execute([$unitId, 'heavy_strike', 0, 8]);
+
+    $diceDefStmt = $this->pdo->prepare("SELECT `id` FROM `dice_definitions` WHERE `rarity` = 'common' AND `sides` = 4 LIMIT 1");
+    $diceDefStmt->execute();
+    $d4DefinitionId = (int)$diceDefStmt->fetchColumn();
+    $this->assertGreaterThan(0, $d4DefinitionId);
+
+    $insertDice = $this->pdo->prepare('INSERT INTO `dice_instances` (`user_id`, `dice_definition_id`, `display_name`) VALUES (?, ?, NULL)');
+    $insertDice->execute([$userId, $d4DefinitionId]);
+    $boundDiceId = (int)$this->pdo->lastInsertId();
+
+    $insertBinding = $this->pdo->prepare('
+      INSERT INTO `unit_ability_dice` (`unit_instance_id`, `ability_id`, `slot_index`, `dice_instance_id`)
+      VALUES (?, ?, ?, ?)
+    ');
+    $insertBinding->execute([$unitId, 'heavy_strike', 0, $boundDiceId]);
+
+    $legacyD6DefStmt = $this->pdo->prepare("SELECT `id` FROM `dice_definitions` WHERE `rarity` = 'common' AND `sides` = 6 LIMIT 1");
+    $legacyD6DefStmt->execute();
+    $d6DefinitionId = (int)$legacyD6DefStmt->fetchColumn();
+    $this->assertGreaterThan(0, $d6DefinitionId);
+
+    $insertDice->execute([$userId, $d6DefinitionId]);
+    $legacyDiceId = (int)$this->pdo->lastInsertId();
+
+    $insertLegacyUnitDie = $this->pdo->prepare('
+      INSERT INTO `unit_dice` (`unit_instance_id`, `dice_instance_id`, `slot_index`)
+      VALUES (?, ?, ?)
+    ');
+    $insertLegacyUnitDie->execute([$unitId, $legacyDiceId, 0]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new RunNodeController();
+    $response = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $response['status']);
+
+    $battleId = (int)($response['body']['data']['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $battleId);
+
+    $logRaw = $this->scalar('SELECT `log_json` FROM `battle_logs` WHERE `battle_id` = ?', [$battleId]);
+    $log = json_decode((string)$logRaw, true);
+    $this->assertIsArray($log);
+    $events = is_array($log['events'] ?? null) ? $log['events'] : [];
+
+    $heavyStrikeAction = null;
+    foreach ($events as $event) {
+      if (
+        is_array($event)
+        && (string)($event['type'] ?? '') === 'action'
+        && (string)($event['side'] ?? '') === 'player'
+        && (string)($event['actor_unit_instance_id'] ?? '') === (string)$unitId
+        && (string)($event['ability_id'] ?? '') === 'heavy_strike'
+      ) {
+        $heavyStrikeAction = $event;
+        break;
+      }
+    }
+
+    $this->assertIsArray($heavyStrikeAction, 'Expected a heavy_strike action event.');
+    $diceUsed = is_array($heavyStrikeAction['dice_used'] ?? null) ? $heavyStrikeAction['dice_used'] : [];
+    $this->assertCount(1, $diceUsed);
+    $this->assertSame((string)$boundDiceId, (string)($diceUsed[0]['dice_instance_id'] ?? ''));
+    $this->assertSame(4, (int)($diceUsed[0]['sides'] ?? 0));
   }
 
   public function testResolveNodeDefeatEndsRunImmediately(): void

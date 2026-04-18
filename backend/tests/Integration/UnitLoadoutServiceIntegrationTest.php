@@ -13,7 +13,7 @@ final class UnitLoadoutServiceIntegrationTest extends IntegrationTestCase
   public function testReplaceEquippedAbilitiesRejectsOverBudgetList(): void
   {
     $userId = $this->seedStarterUser();
-    $unitId = $this->loadStarterUnitId($userId, 'frontliner_bruiser_t1');
+    $unitId = $this->loadStarterUnitId($userId, 'frontline_bruiser_t1');
 
     $service = new UnitLoadoutService($this->pdo);
 
@@ -25,7 +25,7 @@ final class UnitLoadoutServiceIntegrationTest extends IntegrationTestCase
   public function testReplaceEquippedAbilitiesRejectsLockedAbility(): void
   {
     $userId = $this->seedStarterUser();
-    $unitId = $this->loadStarterUnitId($userId, 'frontliner_bruiser_t1');
+    $unitId = $this->loadStarterUnitId($userId, 'frontline_bruiser_t1');
 
     $service = new UnitLoadoutService($this->pdo);
 
@@ -37,7 +37,7 @@ final class UnitLoadoutServiceIntegrationTest extends IntegrationTestCase
   public function testReplaceEquippedAbilitiesAllowsDuplicateAbilitiesWithinBudget(): void
   {
     $userId = $this->seedStarterUser();
-    $unitId = $this->loadStarterUnitId($userId, 'frontliner_bruiser_t1');
+    $unitId = $this->loadStarterUnitId($userId, 'frontline_bruiser_t1');
 
     $service = new UnitLoadoutService($this->pdo);
     $service->replaceEquippedAbilities($unitId, ['basic_attack_melee', 'basic_attack_melee', 'basic_attack_melee']);
@@ -58,7 +58,7 @@ final class UnitLoadoutServiceIntegrationTest extends IntegrationTestCase
   public function testAssignDieToAbilitySlotRejectsInvalidSlotIndex(): void
   {
     $userId = $this->seedStarterUser();
-    $unitId = $this->loadStarterUnitId($userId, 'frontliner_bruiser_t1');
+    $unitId = $this->loadStarterUnitId($userId, 'frontline_bruiser_t1');
     $diceId = $this->loadOwnedUnboundDiceId($userId);
 
     $service = new UnitLoadoutService($this->pdo);
@@ -72,7 +72,7 @@ final class UnitLoadoutServiceIntegrationTest extends IntegrationTestCase
   {
     $firstUserId = $this->seedStarterUser('loadout_a');
     $secondUserId = $this->seedStarterUser('loadout_b');
-    $unitId = $this->loadStarterUnitId($firstUserId, 'frontliner_bruiser_t1');
+    $unitId = $this->loadStarterUnitId($firstUserId, 'frontline_bruiser_t1');
     $foreignDiceId = $this->loadOwnedUnboundDiceId($secondUserId);
 
     $service = new UnitLoadoutService($this->pdo);

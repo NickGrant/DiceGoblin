@@ -29,6 +29,9 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $currency = $service->grantCurrency($userId, 250, 0);
     $this->assertSame(250, $currency['soft']);
 
+    $baselineUnitCount = (int) $this->scalar('SELECT COUNT(*) FROM `unit_instances` WHERE `user_id` = ?', [$userId]);
+    $baselineDiceCount = (int) $this->scalar('SELECT COUNT(*) FROM `dice_instances` WHERE `user_id` = ?', [$userId]);
+
     $units = $service->grantUnits($userId, 'frontline_bruiser_t1', 2);
     $this->assertCount(2, $units);
 
@@ -46,8 +49,8 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
       [$userId]
     );
 
-    $this->assertGreaterThanOrEqual(6, $unitCount);
-    $this->assertGreaterThanOrEqual(8, $diceCount);
+    $this->assertSame($baselineUnitCount + 2, $unitCount);
+    $this->assertSame($baselineDiceCount + 1, $diceCount);
     $this->assertGreaterThanOrEqual(1, $affixCount);
   }
 
@@ -93,12 +96,19 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
 
     $reset = $service->resetAccount($userId);
 
+    $baselineUserId = $this->insertUser('qa_devbaseline', 'QA Dev Baseline');
+    $service->grantCurrency($baselineUserId, 1, 0);
+    $baselineSquads = (int) $this->scalar('SELECT COUNT(*) FROM `teams` WHERE `user_id` = ?', [$baselineUserId]);
+    $baselineUnits = (int) $this->scalar('SELECT COUNT(*) FROM `unit_instances` WHERE `user_id` = ?', [$baselineUserId]);
+    $baselineDice = (int) $this->scalar('SELECT COUNT(*) FROM `dice_instances` WHERE `user_id` = ?', [$baselineUserId]);
+    $baselineUnlocks = (int) $this->scalar('SELECT COUNT(*) FROM `region_unlocks` WHERE `user_id` = ?', [$baselineUserId]);
+
     $this->assertSame((string) $userId, $reset['user_id']);
     $this->assertFalse($reset['active_run']);
-    $this->assertSame(1, $reset['squads']);
-    $this->assertSame(4, $reset['units']);
-    $this->assertSame(7, $reset['dice']);
-    $this->assertSame(1, $reset['region_unlocks']);
+    $this->assertSame($baselineSquads, $reset['squads']);
+    $this->assertSame($baselineUnits, $reset['units']);
+    $this->assertSame($baselineDice, $reset['dice']);
+    $this->assertSame($baselineUnlocks, $reset['region_unlocks']);
     $this->assertSame(0, (int) $this->scalar("SELECT COUNT(*) FROM `region_runs` WHERE `user_id` = ? AND `status` = 'active'", [$userId]));
     $this->assertSame(0, (int) $this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
     $this->assertSame(0, (int) $this->scalar('SELECT COUNT(*) FROM `shop_daily_deals` WHERE `user_id` = ?', [$userId]));

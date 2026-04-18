@@ -36,9 +36,12 @@ if (is_file($testEnvPath)) {
       continue;
     }
 
-    putenv("$key=$value");
-    $_ENV[$key] = $value;
-    $_SERVER[$key] = $value;
+    $existingValue = getenv($key);
+    if ($existingValue === false) {
+      putenv("$key=$value");
+      $_ENV[$key] = $value;
+      $_SERVER[$key] = $value;
+    }
   }
 }
 

@@ -24,7 +24,7 @@ final class Db
     $port = Env::get('DB_PORT', '3306');
     $db   = Env::require('DB_NAME');
     $user = Env::require('DB_USER');
-    $pass = Env::require('DB_PASS');
+    $pass = Env::get('DB_PASS', '');
 
     $dsn = "mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4";
     $pdo = new PDO($dsn, $user, $pass, [

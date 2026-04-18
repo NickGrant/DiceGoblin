@@ -7,7 +7,6 @@ status: in-progress
 execution_window: open
 is_current: yes
 issues:
-  - Replace pooled combat dice resolution with ability-slot reads
   - Expand battle logs for equipped ability instances and slot traces
 description: |
   Replace the old modulo scheduler and pooled-dice combat model with cumulative

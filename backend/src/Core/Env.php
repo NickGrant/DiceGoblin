@@ -63,6 +63,16 @@ final class Env
       return self::$values[$key];
     }
 
+    if (array_key_exists($key, $_ENV)) {
+      $envValue = $_ENV[$key];
+      return is_string($envValue) ? $envValue : $default;
+    }
+
+    if (array_key_exists($key, $_SERVER)) {
+      $serverValue = $_SERVER[$key];
+      return is_string($serverValue) ? $serverValue : $default;
+    }
+
     $env = getenv($key);
     if ($env !== false) {
       return $env;

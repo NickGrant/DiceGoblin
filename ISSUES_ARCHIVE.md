@@ -56,3 +56,13 @@ ready: yes
 milestone: Milestone 38 - Combat Scheduler and Resolution Rewrite
 description: Replace modulo-based combat timing with cumulative once-per-round equipped ability scheduling for both player units and enemies. This includes preserving deterministic same-tick ordering and updating battle resolution to use equipped instances rather than implicit type defaults.
 resolution: Updated the deterministic combat engine to read ordered equipped abilities for players and authored enemy equipped loadouts, then schedule each active once per round at its cumulative trigger tick. Added coverage for cumulative tick behavior and kept legacy ability-set fallback behavior in place for transitional data.
+
+---
+title: Replace pooled combat dice resolution with ability-slot reads
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 38 - Combat Scheduler and Resolution Rewrite
+description: Remove shared unit-dice-pool combat behavior and resolve all combat rolls from authored ability slots. Empty slots must deterministically contribute 1 and repeated equips of the same base ability must reuse the same slot configuration.
+resolution: Combat rolls now read ordered ability-slot bindings for player units, use deterministic empty-slot d1 fallback per authored slot, and ignore legacy pooled unit dice during action resolution. Backend integration coverage was updated for slot-driven timing, bound-die precedence, starter-baseline expectations, and blank-password local test environments.

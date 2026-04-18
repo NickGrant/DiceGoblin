@@ -2,15 +2,6 @@
 ----
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
-title: Replace pooled combat dice resolution with ability-slot reads
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 38 - Combat Scheduler and Resolution Rewrite
-description: Remove shared unit-dice-pool combat behavior and resolve all combat rolls from authored ability slots. Empty slots must deterministically contribute 1 and repeated equips of the same base ability must reuse the same slot configuration.
-
----
 title: Expand battle logs for equipped ability instances and slot traces
 status: unstarted
 priority: medium
