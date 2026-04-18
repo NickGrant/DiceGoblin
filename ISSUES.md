@@ -6,7 +6,7 @@ title: Add unit details support for renaming, loadout order, and ability-slot di
 status: unstarted
 priority: high
 execution: active
-ready: no
+ready: yes
 milestone: Milestone 39 - Unit Details and Promotion UX
 description: Rework UnitDetailsScene and supporting contracts so players can rename units, edit equipped ability order, manage ability-slot dice, and see their current 20-point budget usage.
 

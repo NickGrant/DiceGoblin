@@ -76,3 +76,13 @@ ready: yes
 milestone: Milestone 38 - Combat Scheduler and Resolution Rewrite
 description: Update battle logs and combat payloads so testers can understand equipped ability instance timing, slot values, and empty-slot contributions under the new model.
 resolution: Action events now include equipped ability instance order, loadout source, per-slot trace objects, and readable slot-trace summaries while preserving the older dice summary fields for compatibility. The node-resolution frontend summary now surfaces the new instance and slot trace details so testers can read cumulative timing and empty-slot behavior directly from the battle log.
+
+---
+title: Add unit details rename and loadout mutation endpoints
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 39 - Unit Details and Promotion UX
+description: Add backend endpoints and frontend client contracts for renaming units and replacing equipped ability order from Unit Details. This creates the mutation layer the scene rewrite will need before it can stop relying on legacy unit-wide dice APIs.
+resolution: Added authenticated gameplay endpoints for renaming units and replacing equipped ability order, surfaced the response contracts through the frontend API client/types, and added backend plus frontend mutation coverage for the new unit-details contract layer.

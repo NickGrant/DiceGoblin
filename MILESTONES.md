@@ -3,7 +3,7 @@
 Active milestones only. Move completed entries to `MILESTONES_ARCHIVE.md`.
 
 name: Milestone 39 - Unit Details and Promotion UX
-status: not-started
+status: in-progress
 execution_window: open
 is_current: yes
 issues:

@@ -13,6 +13,8 @@ import {
   type ExitRunResponse,
   type ProfileResponse,
   type PromoteUnitResponse,
+  type RenameUnitResponse,
+  type ReplaceEquippedAbilitiesResponse,
   type ResolveNodeResponse,
   type RestFinalizeResponse,
   type RestOpenResponse,
@@ -274,6 +276,42 @@ export const apiClient = {
       headers: new Headers([["X-CSRF-Token", csrf]]),
       body: JSON.stringify(body),
     });
+  },
+
+  async renameUnit(
+    unitId: string,
+    displayName: string
+  ): Promise<RenameUnitResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const res = await request<RenameUnitResponse>(`/api/v1/units/${unitId}/name`, {
+      method: "PATCH",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify({ display_name: displayName }),
+    });
+    refreshProfileAfterMutation();
+    return res;
+  },
+
+  async replaceEquippedAbilities(
+    unitId: string,
+    abilityIds: string[],
+    context?: { runId?: string; nodeId?: string }
+  ): Promise<ReplaceEquippedAbilitiesResponse> {
+    const session = await apiClient.getSession();
+    const csrf = (session as any)?.data?.csrf_token ?? "";
+    const body: Record<string, unknown> = { ability_ids: abilityIds };
+    if (context?.runId && context?.nodeId) {
+      body.run_id = Number(context.runId);
+      body.node_id = Number(context.nodeId);
+    }
+    const res = await request<ReplaceEquippedAbilitiesResponse>(`/api/v1/units/${unitId}/loadout`, {
+      method: "PUT",
+      headers: new Headers([["X-CSRF-Token", csrf]]),
+      body: JSON.stringify(body),
+    });
+    refreshProfileAfterMutation();
+    return res;
   },
 
   async equipDice(

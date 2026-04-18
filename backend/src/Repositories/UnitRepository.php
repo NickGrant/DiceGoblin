@@ -208,7 +208,7 @@ final class UnitRepository
       $out[] = [
         'id' => $uid,
         'unit_type_id' => (string)$u['unit_type_id'],
-        'name' => (string)$u['unit_type_name'], // convenience; catalog still exists separately
+        'name' => $u['display_name'] !== null ? (string)$u['display_name'] : (string)$u['unit_type_name'],
         'display_name' => $u['display_name'] !== null ? (string)$u['display_name'] : (string)$u['unit_type_name'],
         'unit_type_name' => (string)$u['unit_type_name'],
         'tier' => $tier,
@@ -354,6 +354,25 @@ final class UnitRepository
       WHERE `id` = ? AND `user_id` = ?
     ');
     $stmt->execute([$tier, $unitInstanceId, $userId]);
+
+    if ($stmt->rowCount() === 0) {
+      throw new RuntimeException('Unit not found or not owned by user.');
+    }
+  }
+
+  public function renameUnit(int $userId, int $unitInstanceId, string $displayName): void
+  {
+    $displayName = trim($displayName);
+    if ($displayName === '') {
+      throw new RuntimeException('display_name is required.');
+    }
+
+    $stmt = $this->pdo->prepare('
+      UPDATE `unit_instances`
+      SET `display_name` = ?
+      WHERE `id` = ? AND `user_id` = ?
+    ');
+    $stmt->execute([$displayName, $unitInstanceId, $userId]);
 
     if ($stmt->rowCount() === 0) {
       throw new RuntimeException('Unit not found or not owned by user.');

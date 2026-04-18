@@ -62,6 +62,22 @@ export type UnitAbilityRecord = {
   order?: number;
 };
 
+export type UnitUnlockedAbilityRecord = {
+  ability_id: string;
+};
+
+export type UnitEquippedAbilityRecord = {
+  ability_id: string;
+  equip_order: number;
+  speed_cost: number;
+};
+
+export type UnitAbilityDieRecord = {
+  ability_id: string;
+  slot_index: number;
+  dice_instance_id: string;
+};
+
 export type UnitRecord = {
   // Minimum fields used by UnitListPanel + Warband screen
   id: string;
@@ -83,6 +99,9 @@ export type UnitRecord = {
   locked?: boolean;
   equipped_dice?: UnitEquippedDie[];
   abilities?: UnitAbilityRecord[];
+  unlocked_abilities?: UnitUnlockedAbilityRecord[];
+  equipped_abilities?: UnitEquippedAbilityRecord[];
+  ability_dice?: UnitAbilityDieRecord[];
 
   [key: string]: unknown;
 };
@@ -441,6 +460,20 @@ export type DiceMutationData = {
 };
 
 export type DiceMutationResponse = ApiResponse<DiceMutationData>;
+
+export type RenameUnitData = {
+  unit_id: string;
+  display_name: string;
+};
+
+export type RenameUnitResponse = ApiResponse<RenameUnitData>;
+
+export type ReplaceEquippedAbilitiesData = {
+  unit_id: string;
+  equipped_abilities: UnitEquippedAbilityRecord[];
+};
+
+export type ReplaceEquippedAbilitiesResponse = ApiResponse<ReplaceEquippedAbilitiesData>;
 
 export type DiceSellData = {
   dice_id: string;

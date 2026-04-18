@@ -220,6 +220,59 @@ describe("apiClient mutation flows", () => {
     expect(unequipInit.body).toBe(JSON.stringify({ dice_instance_id: 55, run_id: 44, node_id: 7 }));
   });
 
+  it("unit detail mutation methods include csrf and optional rest context", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { authenticated: true, csrf_token: "csrf_rename" } }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { unit_id: "11", display_name: "Mudjaw" } }))
+      .mockResolvedValueOnce(jsonResponse({
+        ok: true,
+        data: {
+          server_time_iso: "2026-03-12T12:00:00Z",
+          squads: [],
+          units: [],
+          dice: [],
+          currency: { soft: 0 },
+          energy: { current: 5, max: 5, regen_rate_per_hour: 0, last_regen_at: "2026-03-12T12:00:00Z" },
+          region_unlocks: [],
+          region_items: [],
+          active_run: null,
+        },
+      }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { authenticated: true, csrf_token: "csrf_loadout" } }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { unit_id: "11", equipped_abilities: [] } }))
+      .mockResolvedValueOnce(jsonResponse({
+        ok: true,
+        data: {
+          server_time_iso: "2026-03-12T12:00:00Z",
+          squads: [],
+          units: [],
+          dice: [],
+          currency: { soft: 0 },
+          energy: { current: 5, max: 5, regen_rate_per_hour: 0, last_regen_at: "2026-03-12T12:00:00Z" },
+          region_unlocks: [],
+          region_items: [],
+          active_run: null,
+        },
+      }));
+
+    const { apiClient } = await import("../../src/services/apiClient");
+    await apiClient.renameUnit("11", "Mudjaw");
+    await apiClient.replaceEquippedAbilities("11", ["basic_attack_melee", "heavy_strike"], { runId: "44", nodeId: "7" });
+
+    const renameInit = expectCsrfHeader(fetchMock, 1, "csrf_rename");
+    expect(renameInit.method).toBe("PATCH");
+    expect(renameInit.body).toBe(JSON.stringify({ display_name: "Mudjaw" }));
+
+    const loadoutInit = expectCsrfHeader(fetchMock, 4, "csrf_loadout");
+    expect(loadoutInit.method).toBe("PUT");
+    expect(loadoutInit.body).toBe(JSON.stringify({
+      ability_ids: ["basic_attack_melee", "heavy_strike"],
+      run_id: 44,
+      node_id: 7,
+    }));
+  });
+
   it("shop endpoints include csrf for purchases and leave catalog as a plain get", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock

@@ -13,6 +13,7 @@ use DiceGoblins\Repositories\RunEdgeRepository;
 use DiceGoblins\Repositories\RunNodeRepository;
 use DiceGoblins\Repositories\RunRepository;
 use DiceGoblins\Repositories\TeamRepository;
+use DiceGoblins\Repositories\UnitRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\DiceAffixService;
@@ -468,6 +469,96 @@ final class GameplayController
     $this->handleDiceMutation($unitInstanceId, false);
   }
 
+  public function renameUnit(?string $unitInstanceId = null): void
+  {
+    $svc = $this->services();
+    $userId = $this->requireUserId($svc['sessionService']);
+    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+      return;
+    }
+
+    $unitId = $this->requirePositiveInt($unitInstanceId, 'unitInstanceId');
+    if ($unitId === null) {
+      return;
+    }
+
+    $body = $this->readJsonBody();
+    if ($body === null) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
+      return;
+    }
+
+    $displayName = trim((string)($body['display_name'] ?? ''));
+    if ($displayName === '' || mb_strlen($displayName) > 32) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'display_name must be 1-32 characters.']], 400);
+      return;
+    }
+
+    try {
+      $svc['unitRepo']->renameUnit($userId, $unitId, $displayName);
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'unit_id' => (string)$unitId,
+          'display_name' => $displayName,
+        ],
+      ]);
+    } catch (RuntimeException $e) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => $e->getMessage()]], 400);
+    } catch (Throwable $e) {
+      Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
+    }
+  }
+
+  public function replaceEquippedAbilities(?string $unitInstanceId = null): void
+  {
+    $svc = $this->services();
+    $userId = $this->requireUserId($svc['sessionService']);
+    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+      return;
+    }
+
+    $unitId = $this->requirePositiveInt($unitInstanceId, 'unitInstanceId');
+    if ($unitId === null) {
+      return;
+    }
+
+    $body = $this->readJsonBody();
+    if ($body === null) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
+      return;
+    }
+
+    $abilityIdsRaw = $body['ability_ids'] ?? null;
+    if (!is_array($abilityIdsRaw)) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'ability_ids must be an array.']], 400);
+      return;
+    }
+
+    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId, $body)) {
+      Response::json(['ok' => false, 'error' => ['code' => 'run_rest_context_required', 'message' => 'Active run loadout changes are allowed only during rest workflow.']], 409);
+      return;
+    }
+
+    $abilityIds = array_values(array_map(static fn($value): string => trim((string)$value), $abilityIdsRaw));
+
+    try {
+      $svc['unitLoadoutService']->replaceEquippedAbilities($unitId, $abilityIds);
+      $equippedByUnit = $svc['unitRepo']->getEquippedAbilitiesForUnitIds([$unitId]);
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'unit_id' => (string)$unitId,
+          'equipped_abilities' => $equippedByUnit[(string)$unitId] ?? [],
+        ],
+      ]);
+    } catch (RuntimeException $e) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => $e->getMessage()]], 400);
+    } catch (Throwable $e) {
+      Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
+    }
+  }
+
   public function sellDice(?string $diceInstanceId = null): void
   {
     $svc = $this->services();
@@ -557,7 +648,7 @@ final class GameplayController
       return;
     }
 
-    if (!$this->assertDiceMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId, $body)) {
+    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId, $body)) {
       Response::json(['ok' => false, 'error' => ['code' => 'run_rest_context_required', 'message' => 'Active run equipment changes are allowed only during rest workflow.']], 409);
       return;
     }
@@ -658,7 +749,7 @@ final class GameplayController
     return (bool)$stmt->fetchColumn();
   }
 
-  private function assertDiceMutationContextAllowed(PDO $pdo, RunRepository $runRepo, int $userId, int $unitId, array $body): bool
+  private function assertUnitMutationContextAllowed(PDO $pdo, RunRepository $runRepo, int $userId, int $unitId, array $body): bool
   {
     $activeRun = $runRepo->getActiveRunForUser($userId);
     if ($activeRun === null) {
@@ -990,8 +1081,10 @@ final class GameplayController
       'runNodeRepo' => new RunNodeRepository($pdo),
       'runEdgeRepo' => new RunEdgeRepository($pdo),
       'teamRepo' => new TeamRepository($pdo),
+      'unitRepo' => new UnitRepository($pdo),
       'diceRepo' => new DiceRepository($pdo),
       'playerStateRepo' => new PlayerStateRepository($pdo),
+      'unitLoadoutService' => new UnitLoadoutService($pdo),
     ];
   }
 }
