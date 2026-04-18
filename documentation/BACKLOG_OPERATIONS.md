@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-09  
+Last Updated: 2026-04-18  
 Owner: Product + Engineering + QA  
 Depends On: `ISSUES.md`, `ISSUES_BACKLOG.md`, `MILESTONES.md`, `MILESTONES_BACKLOG.md`, `AGENTS.md`
 
@@ -10,10 +10,10 @@ Depends On: `ISSUES.md`, `ISSUES_BACKLOG.md`, `MILESTONES.md`, `MILESTONES_BACKL
 - Canonical policy for issue/milestone sequencing and triage.
 
 ## Active Milestone Order
-1. Milestone 15 - Backend Gameplay Completion
-2. Milestone 16 - Frontend Gameplay Completion
-3. Milestone 10 - Engineering Maintainability and Contracts
-4. Milestone 13 - Player Experience and UX Flow
+1. Milestone 37 - Ability Loadout Rework Foundations
+2. Milestone 38 - Combat Scheduler and Resolution Rewrite
+3. Milestone 39 - Unit Details and Promotion UX
+4. Milestone 40 - Rework Normalization Pass
 
 ## Core Rules
 - Exactly one milestone may be `is_current: yes`.

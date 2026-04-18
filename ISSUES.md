@@ -3,180 +3,118 @@
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
 ---
-title: Verify unit promotion changes type abilities and growth correctly
+title: Add unit naming and ability-loadout persistence schema
 status: unstarted
 priority: high
 execution: active
 ready: yes
-milestone: Milestone 32 - Core Systems Validation and Balance
-description: Validate that unit promotion correctly transforms the unit according to design intent. Promotion should change unit type slug, update abilities, reset stats, and apply new growth scaling. This is currently implemented but untested and is a critical progression mechanic.
+milestone: Milestone 37 - Ability Loadout Rework Foundations
+description: Add the first-pass schema and persistence support for player-facing unit names, unlocked abilities, equipped ability order, and ability-slot dice binding. This issue establishes the authoritative persistence layer the rework needs before combat and UX can be updated safely.
 
 ---
-
-title: Add automated test coverage for promotion transformation correctness
+title: Seed starter units with default abilities and common d4 slot assignments
 status: unstarted
 priority: high
 execution: active
 ready: yes
-milestone: Milestone 32 - Core Systems Validation and Balance
-description: Extend backend tests to validate that promotion correctly changes unit type, ability set, and stat scaling. Current tests validate success but not correctness of transformation, leaving risk of silent progression bugs.
+milestone: Milestone 37 - Ability Loadout Rework Foundations
+description: Update account bootstrap and starter-grant flows so initial player units receive generated names, default equipped abilities, and common d4 dice assigned into their starter ability slots. The goal is to make the first playable state valid under the new system.
 
 ---
-
-title: Enable and validate promotion access in rest flow and UI states
+title: Author enemy equipped-loadout definitions for cumulative scheduling
 status: unstarted
 priority: high
 execution: active
 ready: yes
-milestone: Milestone 32 - Core Systems Validation and Balance
-description: Ensure promotion is available in all intended player flows, especially during rest phases. The current UI may block promotion during active runs without clearly exposing the valid interaction window.
+milestone: Milestone 37 - Ability Loadout Rework Foundations
+description: Extend enemy template definitions so each enemy type owns a shared equipped ability order for combat scheduling. This must land before the combat engine can switch enemies onto the new timing model.
 
 ---
-
-title: Validate positioning impact produces meaningful tactical differences
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 32 - Core Systems Validation and Balance
-description: Confirm that frontline and backline positioning meaningfully affect combat outcomes. Current implementation applies modifiers, but needs validation that outcomes are noticeable, consistent, and aligned with intended tactical depth.
-
----
-
-title: Evaluate and tune early game difficulty curve using beginner area
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 32 - Core Systems Validation and Balance
-description: Use the new beginner area to ensure early gameplay is consistently winnable and teaches systems effectively. Current experience risks being too punishing before players understand mechanics.
-
----
-
-title: Reduce late game snowballing and ensure difficulty scaling
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 32 - Core Systems Validation and Balance
-description: Address runaway power growth where early success leads to trivial combat. Introduce scaling or friction to maintain challenge and preserve meaningful testing conditions.
-
----
-
-title: Validate shop transaction safety and edge case handling
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 33 - Economy and System Validation
-description: Verify all shop operations (buy unit, buy dice, daily deal, sell dice) handle edge cases correctly including insufficient funds, invalid items, duplicate purchases, and state consistency after transactions.
-
----
-
-title: Validate dice selling restrictions and economic impact
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 33 - Economy and System Validation
-description: Ensure players cannot sell equipped or invalid dice and that sell values are correct. Confirm no exploit loops exist that allow infinite or degenerate currency generation.
-
----
-
-title: Balance currency earn and spend loop for meaningful decisions
+title: Add backend validators for ability equip budget and slot legality
 status: unstarted
 priority: medium
 execution: active
 ready: yes
-milestone: Milestone 33 - Economy and System Validation
-description: Tune currency flow so players consistently face meaningful decisions between saving, upgrading, and purchasing. Avoid both scarcity frustration and excess trivialization.
+milestone: Milestone 37 - Ability Loadout Rework Foundations
+description: Add server-side validation for the 20-point ability budget, duplicate ability equips, and legality of ability-slot dice assignments. This creates the contract enforcement needed for later UI and API work.
 
 ---
-
-title: Add guided onboarding prompts for first session player flow
+title: Rewrite combat scheduler to use cumulative equipped ability timing
 status: unstarted
 priority: high
 execution: active
-ready: yes
-milestone: Milestone 34 - Onboarding and First Session Clarity
-description: Introduce lightweight guidance to direct players through their first session including first combat, reward collection, and progression steps. Current tutorial area lacks explicit direction.
+ready: no
+milestone: Milestone 38 - Combat Scheduler and Resolution Rewrite
+description: Replace modulo-based combat timing with cumulative once-per-round equipped ability scheduling for both player units and enemies. This includes preserving deterministic same-tick ordering and updating battle resolution to use equipped instances rather than implicit type defaults.
 
 ---
-
-title: Add dynamic next-step guidance across core scenes
+title: Replace pooled combat dice resolution with ability-slot reads
 status: unstarted
 priority: high
 execution: active
-ready: yes
-milestone: Milestone 34 - Onboarding and First Session Clarity
-description: Provide contextual guidance indicating what the player should do next across home, map, and management scenes to prevent confusion or inactivity.
+ready: no
+milestone: Milestone 38 - Combat Scheduler and Resolution Rewrite
+description: Remove shared unit-dice-pool combat behavior and resolve all combat rolls from authored ability slots. Empty slots must deterministically contribute 1 and repeated equips of the same base ability must reuse the same slot configuration.
 
 ---
-
-title: Ensure all core systems are introduced during early gameplay
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 34 - Onboarding and First Session Clarity
-description: Ensure players interact with combat, rewards, promotion, dice, and shop systems within early gameplay to support effective testing and understanding.
-
----
-
-title: Fix run summary completeness for survivors defeated and rewards
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 35 - Feedback and UX Clarity
-description: Ensure run summaries accurately reflect survivors, defeated units, and rewards. Current summaries may display incomplete or empty data, reducing player trust.
-
----
-
-title: Improve battle outcome clarity and player understanding
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 35 - Feedback and UX Clarity
-description: Improve visibility into why a battle was won or lost by surfacing key contributing factors such as positioning, abilities, and damage interactions.
-
----
-
-title: Improve reward presentation clarity and perceived impact
+title: Expand battle logs for equipped ability instances and slot traces
 status: unstarted
 priority: medium
 execution: active
-ready: yes
-milestone: Milestone 35 - Feedback and UX Clarity
-description: Ensure rewards are clearly communicated and that players understand what changed as a result of combat or progression.
+ready: no
+milestone: Milestone 38 - Combat Scheduler and Resolution Rewrite
+description: Update battle logs and combat payloads so testers can understand equipped ability instance timing, slot values, and empty-slot contributions under the new model.
 
 ---
-
-title: Execute full internal playtest loop across all core systems
+title: Add unit details support for renaming, loadout order, and ability-slot dice editing
 status: unstarted
 priority: high
 execution: active
-ready: yes
-milestone: Milestone 36 - Pre Release Validation
-description: Perform multiple complete runs covering win, loss, resume, shop usage, promotion, and reset scenarios to identify integration issues across systems.
+ready: no
+milestone: Milestone 39 - Unit Details and Promotion UX
+description: Rework UnitDetailsScene and supporting contracts so players can rename units, edit equipped ability order, manage ability-slot dice, and see their current 20-point budget usage.
 
 ---
+title: Update inventory flows to target ability-slot equips instead of unit pools
+status: unstarted
+priority: medium
+execution: active
+ready: no
+milestone: Milestone 39 - Unit Details and Promotion UX
+description: Change dice inventory interactions so equips and unequips target a specific unit ability slot rather than a generic per-unit dice pool. This includes showing where dice are currently bound.
 
-title: Validate save and load reliability across sessions and states
+---
+title: Rework promotion flow for cumulative abilities and sideways destinations
 status: unstarted
 priority: high
 execution: active
-ready: yes
-milestone: Milestone 36 - Pre Release Validation
-description: Confirm that all player progress persists correctly across reloads and that no data corruption or state loss occurs.
+ready: no
+milestone: Milestone 39 - Unit Details and Promotion UX
+description: Update promotion backend and UI flows so units retain cumulative ability catalogs and can choose either the next chain destination or an eligible sideways destination at the tier being exited.
 
 ---
-
-title: Identify and resolve progression blocking scenarios
+title: Normalize rework migrations after schema stabilizes
 status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 36 - Pre Release Validation
-description: Ensure players can always progress or recover from failure states and are not trapped in unwinnable or undefined conditions.
+priority: medium
+execution: deferred
+ready: no
+milestone: Milestone 40 - Rework Normalization Pass
+description: Compact transitional migration history once the rework schema is stable and remove no-longer-needed compatibility structures related to pooled dice and interim loadout persistence.
+
+---
+title: Consolidate legacy combat and loadout test fixtures
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+milestone: Milestone 40 - Rework Normalization Pass
+description: Refactor or remove tests and fixtures that preserve old modulo-scheduler or pooled-dice assumptions, replacing them with shared builders for the new unit and enemy loadout model.
+
+---
+title: Refactor repeated scene layout and styling after rework UI lands
+status: unstarted
+priority: low
+execution: deferred
+ready: no
+milestone: Milestone 40 - Rework Normalization Pass
+description: Review repeated scene panel layout, typography, and style logic after the ability-loadout UI is implemented and consolidate the patterns into clearer shared helpers or components.

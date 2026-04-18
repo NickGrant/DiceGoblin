@@ -1,205 +1,149 @@
-﻿# Combat System & Content - MVP (Authoritative)
+# Combat System - MVP (Authoritative Rework Contract)
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-04-18  
 Owner: Systems Design  
-Depends On: `documentation/02-systems-mvp/07-combat-math-and-modifiers.md`, `backend/src/Combat/`
+Depends On: `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/02-units-and-progression.md`, `documentation/02-systems-mvp/07-combat-math-and-modifiers.md`, `backend/src/Combat/`
 
-This document is the **authoritative specification** for MVP combat rules **and** combat content scope.  
-Numeric constants and formulas are defined in **Combat Math & Modifiers - MVP**.
-
-Any combat mechanic, status effect, or ability behavior not explicitly defined here (or in Combat Math & Modifiers) is **out of scope** for MVP.
-
----
+This document is the authoritative combat contract for the current rework lane.  
+Numeric formulas remain defined in `07-combat-math-and-modifiers.md`.
 
 ## 1. Design Goals
 
 The MVP combat system must:
-- Validate automated, deterministic combat resolution
-- Exercise frontline vs backline positioning
-- Support build expression through dice and abilities
-- Remain readable through logs and UI
-
----
+- remain deterministic and replayable
+- preserve tactical value in 3x3 positioning
+- make ability loadout order a meaningful combat input
+- make dice choice matter through ability slots rather than a shared pool
+- keep combat logs readable enough to explain timing and slot resolution
 
 ## 2. Combat Grid
 
-- Each side has its own fixed **3x3 grid** (Player, Enemy, Neutral if applicable)
-- **No hard blocking**; targeting is not prevented by occupancy ("soft screening")
-- An occupancy grid is fully derivable from unit positions
+- Each side uses a fixed 3x3 grid.
+- Positions are represented as `{ r: 0|1|2, c: 0|1|2 }`.
+- Soft screening remains in effect.
+- Front-row and back-row numeric modifiers remain defined in `07-combat-math-and-modifiers.md`.
 
-### 2.1 Positions
-- Positions are represented as `{ r: 0|1|2, c: 0|1|2 }`
-- "Front row" and "back row" are defined in **Combat Math & Modifiers - MVP** to prevent orientation ambiguity
+## 3. Round, Tick, and Scheduling
 
----
+### 3.1 Timeline
+- A round is exactly 20 ticks.
+- Tick index is 1 through 20 inclusive.
+- Combat still resolves by ordered phases on each tick.
 
-## 3. Positioning Effects (Rules)
-
-Positioning provides systematic advantages/disadvantages:
-
-- **Front Row**
-  - Increased melee damage dealt
-  - Increased damage received
-
-- **Back Row**
-  - Reduced melee damage taken
-  - Ranged/special bonuses are allowed only if explicitly defined by abilities (none are implied)
-
-Numeric multipliers are defined in **Combat Math & Modifiers - MVP**.
-
----
-
-## 4. Round / Tick / Speed
-
-### 4.1 Timeline
-- **Speed** range: `1..20`
-- A **round** is exactly **20 ticks**
-- Tick index is **1..20** (inclusive)
-
-### 4.2 Trigger Rule
-- Abilities and some status effects have a **speed** value
-- An item triggers on a tick when:
-
-`tick % speed === 0`
+### 3.2 Equipped Ability Scheduling
+- Units act through equipped ability instances, not through all authored abilities on their type.
+- Each equipped ability instance fires at most once per round.
+- Trigger timing is determined by cumulative loadout order.
+- For a unit with equipped ability speeds `[a, b, c]`, the firing ticks are:
+  - first ability: `a`
+  - second ability: `a + b`
+  - third ability: `a + b + c`
+- An equipped ability only fires if its cumulative tick is 20 or less.
+- The schedule resets at the start of the next round.
 
 Examples:
-- Speed 4 triggers at ticks 4, 8, 12, 16, 20 -> **5 times per round**
-- Speed 11 triggers at tick 11 only -> **1 time per round**
-- Lower speed means **more frequent** actions
+- Loadout `6, 6, 8` fires at ticks `6, 12, 20`
+- Loadout `8, 6, 6` fires at ticks `8, 14, 20`
+- Loadout `6, 6, 6` fires at ticks `6, 12, 18`
 
-### 4.3 Multi-Trigger / Same Tick
-- Multiple actions can execute on the same tick
-- If a unit dies, it performs **no further actions**, including actions later in the same tick
+### 3.3 Player and Enemy Parity
+- Player units and enemies use the same cumulative scheduling model.
+- Enemy loadouts are authored per enemy type in data.
+- All enemies of the same type use the same authored equipped-ability order.
+- No per-enemy-instance combat loadout customization exists in MVP.
 
----
-
-## 5. Tick Processing Order (Per Tick)
+## 4. Tick Processing Order
 
 For each tick, phases execute in this exact order:
+1. Player Status Phase
+2. Enemy Status Phase
+3. Neutral Status Phase
+4. Player Action Phase
+5. Enemy Action Phase
+6. Neutral Action Phase
 
-1) Player Status Phase  
-2) Enemy Status Phase  
-3) Neutral Status Phase  
-4) Player Action Phase  
-5) Enemy Action Phase  
-6) Neutral Action Phase  
+## 5. Same-Tick Ordering Rules
 
----
+- Multiple actions may resolve on the same tick.
+- Within an action phase, units act in ascending `unitId` order unless a later combat-contract revision explicitly changes that rule.
+- If one unit has multiple equipped ability instances on the same tick, they resolve in equipped order.
+- A dead unit performs no further actions, including actions later in the same tick.
 
-## 6. Unit Action Order
+## 6. Ability Scope
 
-Within an Action Phase:
-- Units act in ascending `unitId` order
-- If multiple actions occur on the same tick, they execute by their `order` property (ascending)
+### 6.1 Authored Ability Catalog
+- Unit types still author the abilities a unit can gain across its promotion path.
+- Enemy types author the abilities they can use plus the equipped order they will use in combat.
 
----
+### 6.2 Combat Participation Rule
+- Combat-relevant abilities must be equipped to participate in scheduling.
+- Unequipped abilities do not fire.
+- Duplicate equips are allowed if the unit remains within the equip budget defined in `02-units-and-progression.md`.
 
-## 7. Automation & Determinism
+### 6.3 Ability Data Needs
+Each combat ability must define enough metadata to resolve:
+- speed
+- point cost
+- slot count
+- slot-resolution mode
+- targeting behavior
+- effect semantics
+- whether it is equip-eligible
 
-- No player-controlled movement during combat in MVP
-- Units decide actions based on internal logic
-- Combat resolution is deterministic aside from dice rolls (which must be reproducible via seed + roll index in logs)
+## 7. Dice Resolution in Combat
 
----
+- Combat no longer consumes from a shared per-unit dice pool.
+- Dice are resolved from ability slots.
+- Empty slots always resolve as `1`.
+- If an ability rolls multiple slots separately, slot order is authoritative.
+- If the same base ability is equipped multiple times, every copy uses the same configured slot assignments for that base ability.
 
-## 8. Ability Scope (MVP)
+## 8. Positioning Effects
 
-### 8.1 Abilities per Unit Type
-Each unit type supports:
-- **2 Active Abilities**
-  - One must be the unit's base attack
-  - One must be a specialty action
-- **Up to 2 Passive Abilities**
+- Front-row and back-row modifiers remain part of combat.
+- Positioning still affects offensive and defensive outcomes as defined in `07-combat-math-and-modifiers.md`.
+- This rework changes timing and dice binding, not the existence of positioning as a tactical layer.
 
-No unit may exceed **4 total abilities** in MVP.
+## 9. Status Effects
 
-### 8.2 Enabled Ability Categories
-- Direct damage abilities
-- Defensive/self-buff abilities
-- Simple debuff application abilities
+The closed MVP status list remains:
+- Poison
+- Bolstered
+- Sleep
 
-### 8.3 Explicitly Excluded
-- Summoning
-- Terrain modification
-- Ability chains/combos
-- Multi-step or choice-driven abilities
-- Area-of-effect abilities
-- Reaction-based abilities
+Global rules:
+- statuses are evaluated server-side
+- status applications, ticks, and removals are logged
+- status timing still resolves in status phases
+- no resistance, immunity, or cleanse systems are added by this rework
 
-### 8.4 Ability Data Contract (MVP-Minimum)
-- `diceCost: number` (0 or greater)
-- `speed: number` (1-20)
-- `type: "active" | "passive"`
-- `order: number`
+Any further status redesign is out of scope for this combat rework unless explicitly documented elsewhere.
 
-Optional properties (recommended for clarity):
-- `tags: string[]` (e.g., `["melee"]`, `["ranged"]`, `["special"]`)
-- `targeting: ...` (single-target rules live with the ability definition)
+## 10. Battle Logs and Readability
 
----
+Battle logs must remain readable enough to explain:
+- which equipped ability instance fired
+- on which tick it fired
+- which slot values were used
+- when an empty slot contributed `1`
+- whether the action came from a player loadout or an enemy authored loadout
 
-## 9. Status Effects (Closed List)
+## 11. Explicit Non-Goals
 
-Exactly **three** status effects exist in MVP.
+This combat rework does not add:
+- reaction systems
+- terrain systems
+- summoning
+- multiplayer combat rules
+- per-enemy-instance scripted loadout overrides
 
-### 9.1 Poison (Damage-over-Time Debuff)
-Rules:
-- Deals damage at a fixed interval
-- Triggers when `tick % statusSpeed === 0` during the Status Phase
-- Damage value is deterministic based on source stats (see Combat Math & Modifiers)
-- Does not stack; on re-apply, duration becomes the **max** of current remaining and new duration
+## 12. MVP Validation Criteria
 
-### 9.2 Bolstered (Defensive Buff)
-Rules:
-- Increases Defense by a percentage (see Combat Math & Modifiers)
-- Does not stack; strongest instance applies
-- Duration-based
-
-### 9.3 Sleep (Control Debuff / Disable)
-Rules:
-- Prevents the affected unit from acting
-- Ends immediately when the unit takes damage
-- Also ends when duration expires
-- Does not stack; on re-apply, duration becomes the **max** of current remaining and new duration
-- Unit does **not** participate in the tick where Sleep ends (see Combat Math & Modifiers for timing)
-
----
-
-## 10. Global Status Rules (MVP)
-
-- Evaluated server-side
-- All applications, ticks, and removals are logged
-- Status effects may not modify dice behavior in MVP
-- No resistance, immunity, or cleansing systems exist in MVP
-- Each status application includes:
-  - `statusSpeed`
-  - `durationRounds`
-- Status effects can trigger multiple times per round based on speed
-
----
-
-## 11. MVP Validation Criteria
-
-Combat is MVP-complete when:
-- All three statuses can be applied and resolved correctly
-- Sleep reliably prevents actions and ends on damage
-- Bolstered meaningfully changes time-to-kill
-- Poison damage is visible and understandable in logs
-- Combat outcomes are explainable to players
-
-## 12. Progression Boundary Notes
-
-- Combat determines outcome and authoritative battle logs.
-- XP and loot application are progression-layer concerns defined in:
-  - `documentation/02-systems-mvp/03-encounter-scope.md`
-  - `documentation/02-systems-mvp/04-loot-and-drop-scope.md`
-  - `documentation/02-systems-mvp/06-run-resolution-scope.md`
-- Rest-node squad editing and run-snapshot mutation are outside direct combat resolution.
-
----
-
-This document is considered **locked** for MVP unless explicitly revised.
-
-
-
+Combat is correct for this rework when:
+- a 20-tick round reproduces the documented cumulative scheduling examples exactly
+- equipped abilities fire once per round based on cumulative order rather than modulo triggers
+- player units and enemy units both follow the same scheduling model
+- repeated copies of the same equipped ability reuse the same base-ability slot configuration
+- empty slots visibly and deterministically resolve as `1`
+- combat logs make timing and slot usage understandable to testers

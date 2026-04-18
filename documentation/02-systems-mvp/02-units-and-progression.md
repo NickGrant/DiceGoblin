@@ -1,169 +1,141 @@
-# Units & Progression — MVP (Authoritative)
+# Units and Progression - MVP (Authoritative Rework Contract)
 
 Status: active  
-Last Updated: 2026-03-04  
+Last Updated: 2026-04-18  
 Owner: Systems Design  
-Depends On: `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation/01-architecture/04-data-model.md`
+Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/01-architecture/04-data-model.md`
 
+This document defines the authoritative MVP unit, loadout, naming, and promotion rules for the current rework lane.
 
-This document defines the authoritative MVP unit roster scope and authoritative unit progression rules.
+## 1. Design Goals
 
-Any unit, role, tier, promotion path, or progression mechanic not listed here is out of scope for MVP.
+The unit system must:
+- preserve tier-based progression
+- make unit identity persist across promotions
+- let players shape combat through ability loadouts and ability-slot dice
+- keep the roster understandable despite branching promotion choices
 
-## 1. Design goals
+## 2. Tier Model
 
-The MVP unit system must:
-- Validate tier-based progression (Tier 1 to Tier 3)
-- Exercise frontline vs backline positioning
-- Support core combat roles
-- Minimize content overhead while validating the full loop
+- Tier 1, Tier 2, and Tier 3 remain enabled.
+- Promotion always advances a unit by one tier.
+- Existing tier caps and promotion requirements remain in force.
+- Promotion no longer discards the unit's accumulated ability history.
 
-## 2. Tier model
+## 3. Unit Identity
 
-- Tiers function similarly to evolution
-- Promotions replace the previous unit; the result is a new unit instance
-- Promotions reset level to 1 and increase base stat floors
-- Each unit type defines its own max level
+Each persistent unit instance now owns:
+- its current unit type
+- level and xp state
+- player-facing name
+- cumulative unlocked ability catalog
+- equipped combat loadout
+- ability-slot dice configuration
+- promotion path history
 
-Enabled tiers in MVP:
-- Tier 1: enabled
-- Tier 2: enabled
-- Tier 3: enabled
+Names are player-facing labels only and must not be used as system identifiers.
 
-## 3. Supported roles (closed list)
+## 4. Ability Catalog and Loadout Rules
 
-1) Frontline Melee (Tank or Bruiser)
-2) Backline Ranged (DPS)
-3) Support
-4) Control
+### 4.1 Unlocked Ability Catalog
+- Unit types still author ability packages.
+- A unit's accessible combat catalog is cumulative across its promotion path.
+- Tier 2 units retain Tier 1 abilities and gain the selected Tier 2 package.
+- Tier 3 units retain Tier 1 and Tier 2 abilities and gain the selected Tier 3 package.
 
-No hybrid or branching roles in MVP.
+### 4.2 Equipped Combat Loadout
+- Units equip abilities for combat resolution.
+- Each unit has a 20-point equip budget.
+- An ability's equip cost is exactly equal to its speed.
+- Duplicate equips are allowed.
+- No separate hard cap on number of equipped abilities exists beyond the 20-point budget.
 
-## 4. MVP roster scope (exact counts)
+### 4.3 Ability Dice Configuration
+- Dice are equipped onto the unit's base ability definitions.
+- If a unit equips the same ability multiple times, all copies use the same configured slots for that base ability.
+- Empty slots always resolve as `1`.
 
-Promotion targets:
-- One Frontline Melee chain: Tier 1 → Tier 2 → Tier 3
-- One Backline Ranged chain: Tier 1 → Tier 2 → Tier 3
+## 5. Starter Unit Rules
 
-Tier 2 cap:
-- One Support chain: Tier 1 → Tier 2 (caps at Tier 2)
-- One Control chain: Tier 1 → Tier 2 (caps at Tier 2)
+- Initial player units must be seeded with a default equipped ability loadout.
+- All starter-equipped ability slots must begin with common `d4` dice.
+- Starter units should present a valid playable baseline rather than a blank configuration problem.
 
-Total unit types:
+## 6. Levels and Growth
 
-| Role             | Tier 1 | Tier 2 | Tier 3 | Total |
-|------------------|--------|--------|--------|-------|
-| Frontline Melee  | 2      | 2      | 2      | 6     |
-| Backline Ranged  | 1      | 1      | 1      | 3     |
-| Support          | 1      | 1      | —      | 2     |
-| Control          | 1      | 1      | —      | 2     |
-| **Total**        |        |        |        | **13**|
+- Each unit type defines `max_level`.
+- Units stop gaining XP at max level.
+- Unit types continue to define growth for attack, defense, and max HP.
+- Derived stats are recalculated whenever level or unit type changes.
 
-The MVP roster contains exactly 13 unit types.
+## 7. XP Rules
 
-## 5. Abilities per unit type (MVP)
+### 7.1 Sources
+- XP is awarded only from combat and boss encounters in MVP.
+- Loot and rest nodes do not directly award XP.
 
-Each unit type has:
-- 2 active abilities
-  - one must be the unit’s base attack
-  - one must be a specialty action
-- up to 2 passive traits
+### 7.2 Recipients
+- A unit participates if it was fielded in the battle and survives to battle end.
+- Participating surviving units receive the same encounter XP award.
+- Units at max level ignore awarded XP.
 
-No unit exceeds 4 total abilities in MVP.
+### 7.3 Level-Up Timing
+- Level-up resolution remains backend-authoritative.
+- Auto-level remains tied to rest finalization and run cleanup, not immediate post-battle claim.
 
-## 6. Levels and stat growth
+## 8. Promotion Rules
 
-- Each unit type defines `max_level`
-- Units do not gain XP once they reach max level
-- UnitType defines per-level growth for `attack`, `defense`, `max_hp`
-
-Derived stats are recalculated whenever level changes.
-
-## 7. Gaining XP (MVP)
-
-### 7.1 XP sources
-
-XP is awarded only for Combat and Boss encounters in MVP.
-Loot and Rest nodes do not award XP.
-
-### 7.2 Who receives XP
-
-A unit participates if it was fielded in the battle and is not defeated at battle end.
-All participating surviving units receive the same XP award.
-
-The award is the sum of `xp_reward` for each enemy in the encounter.
-If a unit is at max level, the award is ignored for that unit.
-
-## 8. Spending XP (level-up math)
-
-XP is tracked per unit as progress-within-current-level.
-
-For a unit at tier `T` and level `L`, XP to advance from `L → L+1`:
-
-`xp_to_next = T * (L + 1) * 50`
-
-Level-up loop:
-- While `level < max_level` and `xp >= xp_to_next`:
-  - subtract `xp_to_next`
-  - increment `level`
-  - recompute `xp_to_next`
-
-### 8.1 Auto-level timing (authoritative)
-- Level-up calculations are backend-authoritative.
-- Auto-level is applied:
-  - when a rest workflow is finalized,
-  - during run cleanup (completed/failed/abandoned).
-- Auto-level is not applied on every battle claim.
-
-## 9. Promotions (tier advancement)
-
-### 9.1 Promotion requirement
-
+### 8.1 Base Requirement
 To promote from Tier N to Tier N+1:
-- Combine 3 units of the same unit type at the same tier
-- Each consumed unit must be at its unit type’s max level
+- combine 3 units of the same current type and tier
+- each consumed unit must be at max level
 
-### 9.2 Promotion outcome
+### 8.2 Promotion Outcome
+- The promoted primary unit persists as the continuing identity.
+- The unit changes into the selected next-tier destination.
+- Level resets to 1.
+- Secondary units are consumed.
+- Tier 3 promotion still requires the authored rare region item.
 
-- Promotion is a manual action available:
-  - between runs,
-  - or during an open rest workflow in an active run.
-- Request model:
-  - one primary unit id (persisted),
-  - two secondary unit ids (consumed).
-- The primary unit changes into the next tier's unit type and resets to level 1.
-- Promotion follows the authored family slug chain (for example `*_t1 -> *_t2 -> *_t3`) rather than only incrementing a stored tier value.
-- Secondary units are removed.
+### 8.3 Destination Options
+On promotion, the player may:
+- follow the authored next step in the current chain, or
+- promote sideways into another eligible type at the tier being exited
 
-Power targets (guidance):
-- Tier 2 level 1 is roughly comparable to Tier 1 level 4–5
-- Tier 3 level 1 is below Tier 1 max; Tier 3 scales via higher cap and growth
+Eligibility rule:
+- sideways options are limited by the path the unit has actually traveled
+- a unit cannot jump into later branches it has not earned through prior promotion choices
 
-### 9.3 Tier 3 special requirement
+### 8.4 Ability Inheritance
+- Promotion preserves all previously accumulated abilities.
+- The destination type adds its authored package on top of the inherited catalog.
 
-Tier 3 promotion additionally requires a rare, region-specific item.
+## 9. Naming Rules
 
-### 9.4 Promotion constraints
-- Promotion can occur during active runs only while resolving an open rest workflow.
-- Secondary unit ids must be distinct.
-- All involved units must satisfy promotion qualifications and must not be part of active run snapshots.
+- Units receive generated names when created.
+- Players may rename units from `UnitDetailsScene`.
+- Duplicate names are allowed.
+- Names are not referenced by combat, persistence, promotion, or API identity rules.
 
-### 9.5 Reward pool restriction
-- Unit rewards from combat, loot, and baseline shop stock should currently pull only from Tier 1 unit types.
-- Higher-tier units enter player ownership through promotion, not direct reward grants.
+## 10. Roster Scope
 
-## 10. Explicit non-goals (MVP)
+The existing MVP roster count remains in scope unless a later content doc explicitly changes it.
+This rework changes how units fight and progress, not the approved roster size by itself.
 
-The MVP unit system does not include:
-- Branching promotion paths
-- Hybrid roles
-- Unit-specific dice restrictions
-- Cosmetic variants tied to mechanics
+## 11. Explicit Non-Goals
 
-## 11. MVP validation criteria
+This rework does not add:
+- uniqueness enforcement for names
+- cosmetic naming rewards
+- promotion skipping across tiers
+- per-instance enemy customization
+- direct warband-hub editing of every unit system without entering unit details
 
-Units and progression are MVP-complete when:
-- A player can promote at least one unit to Tier 2
-- A player can attempt a Tier 3 promotion
-- Frontline and backline positioning materially affects outcomes
-- Support and Control provide non-damage value
+## 12. MVP Validation Criteria
+
+The unit and progression system is correct for this rework when:
+- units can equip duplicate abilities within a 20-point budget
+- cumulative unlocked abilities persist across promotions
+- sideways promotion only allows authored eligible branches
+- player-facing names persist and remain non-systemic labels
+- starter units begin with default equipped abilities and common `d4` slot assignments

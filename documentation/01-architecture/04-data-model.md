@@ -1,531 +1,234 @@
-﻿# Dice Goblins - Data Model (MVP)
+# Dice Goblins - Data Model (Authoritative Rework Contract)
 
 Status: active  
-Last Updated: 2026-03-21  
+Last Updated: 2026-04-18  
 Owner: Backend/Data  
-Depends On: `backend/migrations/schema_all.sql`, `backend/src/Repositories/`
+Depends On: `backend/migrations/schema_all.sql`, `documentation/02-systems-mvp/00-combat-system.md`, `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/02-units-and-progression.md`
 
-This document defines the canonical MySQL data model for the Dice Goblins MVP.
+This document defines the canonical target data model for the current combat/loadout rework.  
+Implementation may land incrementally, but new schema and migration work should move toward this contract rather than the superseded pooled-dice model.
 
-Guiding principles:
-- The backend is authoritative; the client is a renderer/controller.
-- Auth is via Discord OAuth; local `users.id` is the stable identity.
-- MVP is PvE-only; no multiplayer systems are implemented.
-- Prefer explicit tables over "god JSON blobs," except for inherently event-like data (e.g., battle logs).
+## 1. Guiding Principles
 
-Conventions:
-- All tables use `utf8mb4` and InnoDB.
-- Primary keys are numeric `BIGINT UNSIGNED` unless noted.
-- Timestamps: `created_at`, `updated_at` whenever the table is mutable.
-- Where appropriate: unique keys enforce invariants (e.g., `discord_id`).
+- The backend is authoritative.
+- Player-facing names are labels, not identifiers.
+- Combat inputs must be persistable and replayable.
+- Prefer explicit relational structures over broad JSON where the data must be edited, validated, or migrated.
+- Enemy combat behavior should be data-authored per enemy type, not hand-scripted per enemy instance.
 
----
+## 2. Stable Global Tables
 
-## 1) Users & Identity
+These areas remain structurally stable for the rework:
+- `users`
+- `player_state`
+- `energy_state`
+- `regions`
+- `region_unlocks`
+- `region_runs`
+- `run_nodes`
+- `run_edges`
+- `teams`
+- `team_units`
+- `team_formation`
+- `run_unit_state`
+- `run_team_formation`
+- `encounter_templates`
+- `loot_tables`
+- `battles`
+- `battle_logs`
+- `battle_rewards`
+- `region_items`
+- `user_region_items`
 
-### users
-Stores the local user identity linked to Discord.
+They may need minor contract updates, but they are not the primary focus of the rework.
+
+## 3. Unit Types and Enemy Types
+
+### 3.1 unit_types
+`unit_types` remain the authored source of:
+- role
+- base stats
+- per-level growth
+- max level
+- authored ability packages by tier/path
+
+`ability_set_json` should no longer be interpreted as "everything this unit auto-uses in combat."
+It should represent authored ability packages that feed:
+- unlocked ability inheritance
+- default equipped starter or migration loadouts where applicable
+
+### 3.2 enemy_templates
+`enemy_templates` remain the authored source of:
+- base stats
+- role
+- xp reward
+- ability catalog
+
+Enemy definitions must additionally own an authored equipped-ability order for combat scheduling.
+All enemies of one enemy type use that same authored loadout.
+
+Recommended contract:
+- keep `ability_set_json` for authored enemy ability catalog
+- add explicit equipped-loadout storage, either:
+  - `equipped_abilities_json`, or
+  - a normalized child table if editing/reporting needs justify it
+
+## 4. Unit Instances
+
+### 4.1 unit_instances
+`unit_instances` remain the player's persistent unit object and should additionally own:
+- `display_name`
+- persistent current type reference
+- tier
+- level
+- xp
+- any locking/protection flags
+
+`unit_instances` should no longer be treated as fully defined by `unit_type_id` plus `unit_dice`.
+The unit now also owns combat-configuration state.
+
+### 4.2 Promotion Path History
+Promotion history must be queryable well enough to validate sideways promotion eligibility.
+
+This can be represented by:
+- richer `unit_promotions` history, or
+- explicit path-history state on `unit_instances`, or
+- both
+
+Whatever shape is chosen must support validation without relying on player-facing names or lossy inference.
+
+## 5. Ability Persistence
+
+The schema now needs to distinguish three layers:
+1. authored ability packages on unit types
+2. cumulative unlocked abilities on unit instances
+3. ordered equipped abilities on unit instances
+
+Recommended normalized shape:
+
+### unit_instance_unlocked_abilities
+Stores which base abilities a unit has access to.
 
 Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `discord_id` VARCHAR(32) UNIQUE (snowflake)
-- `display_name` VARCHAR(128)
-- `avatar_url` VARCHAR(255) NULL
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
+- `unit_instance_id`
+- `ability_slug` or `ability_id`
+- `source_tier`
+- `source_unit_type_id`
+- `created_at`
 
----
-
-## 2) Player State
-
-### player_state
-One row per user. Stores lightweight global progression state.
+### unit_instance_equipped_abilities
+Stores ordered loadout entries.
 
 Columns:
-- `user_id` BIGINT UNSIGNED PK (FK -> users.id)
-- `currency_soft` BIGINT UNSIGNED NOT NULL DEFAULT 0
-- `currency_hard` BIGINT UNSIGNED NOT NULL DEFAULT 0 (unused in MVP)
-- `last_login_at` TIMESTAMP NULL
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-### energy_state
-Real-world time gating. One row per user.
-
-Columns:
-- `user_id` BIGINT UNSIGNED PK (FK -> users.id)
-- `energy_current` INT NOT NULL
-- `energy_max` INT NOT NULL DEFAULT 50
-- `regen_rate_per_hour` DECIMAL(6,3) NOT NULL DEFAULT 12.000  
-  (1 energy per 5 minutes)
-- `last_regen_at` TIMESTAMP NOT NULL
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
+- `id`
+- `unit_instance_id`
+- `ability_slug` or `ability_id`
+- `equip_order`
+- `speed_cost`
+- `created_at`
+- `updated_at`
 
 Notes:
-- Regen is computed server-side on read/write using `last_regen_at`.
-- MVP pacing: max 50 energy, runs cost 5 energy (see `regions.energy_cost`).
+- duplicate rows are allowed for duplicate equips
+- equip budget validation should happen server-side
 
----
+## 6. Dice Inventory and Ability-Slot Binding
 
-## 3) Regions (Biomes), Unlocks, Runs, Maps
+### 6.1 dice_definitions
+Still defines:
+- sides
+- rarity
+- slot capacity
 
-In MVP, each **biome is represented as a region**.
+### 6.2 affix_definitions
+Still defines the fixed MVP affix pool and authored affix metadata.
 
-### regions
-Static region definitions.
+### 6.3 dice_instances
+Still represents player-owned dice.
 
+### 6.4 ability-slot binding
+The old `unit_dice` contract is superseded.
+
+The canonical target model is a binding from unit + base ability + slot index to die instance.
+
+Recommended shape:
+
+### unit_ability_dice
 Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `slug` VARCHAR(64) UNIQUE (e.g., `mountains`, `swamps`)
-- `name` VARCHAR(80)
-- `theme` VARCHAR(80) (e.g., `kobolds`, `frogmen`)
-- `recommended_level` INT NOT NULL DEFAULT 1
-- `energy_cost` INT NOT NULL DEFAULT 5
-- `is_enabled` TINYINT(1) NOT NULL DEFAULT 1
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-Notes:
-- MVP includes exactly two regions/biomes: Mountains (kobolds) and Swamps (frogmen).
-
-### region_unlocks
-Which regions a user has access to.
-
-Columns:
-- `user_id` BIGINT UNSIGNED (FK -> users.id)
-- `region_id` BIGINT UNSIGNED (FK -> regions.id)
-- `unlocked_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+- `unit_instance_id`
+- `ability_slug` or `ability_id`
+- `slot_index`
+- `dice_instance_id`
+- `created_at`
+- `updated_at`
 
 PK:
-- (`user_id`, `region_id`)
-
-### region_runs
-A single "run" through a region (procedural map instance).
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `user_id` BIGINT UNSIGNED (FK -> users.id)
-- `region_id` BIGINT UNSIGNED (FK -> regions.id)
-- `team_id` BIGINT UNSIGNED (FK -> teams.id)
-- `seed` BIGINT UNSIGNED NOT NULL
-- `status` ENUM('active','completed','failed','abandoned') NOT NULL DEFAULT 'active'
-- `started_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-- `ended_at` TIMESTAMP NULL
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-Indexes:
-- (`user_id`, `status`)
+- (`unit_instance_id`, `ability_slug` or `ability_id`, `slot_index`)
 
 Notes:
-- Exactly one active run is allowed per user (enforced in app logic).
-- Runs remain resumable until `status` is terminal.
-- Records which saved Team was selected at run start (for audit/debug). Run uses run-scoped snapshot for actual state.
-
-### run_nodes
-Nodes in the run's map graph.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `run_id` BIGINT UNSIGNED (FK -> region_runs.id)
-- `node_index` INT NOT NULL (0..N-1, stable ordering)
-- `node_type` ENUM('combat','loot','rest','boss') NOT NULL
-- `status` ENUM('locked','available','cleared') NOT NULL DEFAULT 'locked'
-- `encounter_template_id` BIGINT UNSIGNED NULL (FK -> encounter_templates.id)
-- `meta_json` JSON NULL (node-specific data: labels, modifiers, etc.)
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-Indexes:
-- (`run_id`, `node_index`) UNIQUE
-- (`run_id`, `status`)
-
-### run_edges
-Directed edges connecting nodes.
-
-Columns:
-- `run_id` BIGINT UNSIGNED (FK -> region_runs.id)
-- `from_node_id` BIGINT UNSIGNED (FK -> run_nodes.id)
-- `to_node_id` BIGINT UNSIGNED (FK -> run_nodes.id)
-
-PK:
-- (`run_id`, `from_node_id`, `to_node_id`)
-
----
-
-## 4) Teams, Units, Formation
-
-### teams
-Player-defined teams.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `user_id` BIGINT UNSIGNED (FK -> users.id)
-- `name` VARCHAR(64) NOT NULL
-- `is_active` TINYINT(1) NOT NULL DEFAULT 0
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-Indexes:
-- (`user_id`, `is_active`)
-
-### unit_types
-Static unit archetypes.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `slug` VARCHAR(64) UNIQUE
-- `name` VARCHAR(80)
-- `role` VARCHAR(32) (e.g., `frontline`, `backline`, `support`, `control`)
-- `base_stats_json` JSON NOT NULL
-- `ability_set_json` JSON NOT NULL
-- `max_level` INT NOT NULL
-- `growth_attack_per_ability_per_level` INT NOT NULL
-- `growth_defense_per_ability_per_level` INT NOT NULL
-- `growth_max_hp_per_ability_per_level` INT NOT NULL
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-Notes:
-- MVP ability scope: 2 active + up to 2 passives.
-- `unit_instances.xp` represents progress-within-current-level (not lifetime XP).
-- Units do not gain XP once `level == unit_types.max_level`.
-
-### unit_instances
-An owned unit. This is the player's persistent progression object.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `user_id` BIGINT UNSIGNED (FK -> users.id)
-- `unit_type_id` BIGINT UNSIGNED (FK -> unit_types.id)
-- `tier` INT NOT NULL DEFAULT 1
-- `level` INT NOT NULL DEFAULT 1
-- `xp` INT NOT NULL DEFAULT 0
-- `locked` TINYINT(1) NOT NULL DEFAULT 0
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-Indexes:
-- (`user_id`, `unit_type_id`)
-- (`user_id`, `tier`, `level`)
-
-Notes:
-- `xp` is progress within the current level.
-- On level-up, `xp` is reduced by the computed level-up cost (not cumulative thresholds).
-- At max level, XP does not increase.
-
-### team_units
-Membership of unit instances in a team.
-
-Columns:
-- `team_id` BIGINT UNSIGNED (FK -> teams.id)
-- `unit_instance_id` BIGINT UNSIGNED (FK -> unit_instances.id)
-- `added_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-
-PK:
-- (`team_id`, `unit_instance_id`)
-
-### team_formation
-3x3 placement. Stores which unit is in which cell.
-
-Columns:
-- `team_id` BIGINT UNSIGNED (FK -> teams.id)
-- `cell` VARCHAR(2) NOT NULL (e.g., A1..C3)
-- `unit_instance_id` BIGINT UNSIGNED NULL (FK -> unit_instances.id)
-- `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-
-PK:
-- (`team_id`, `cell`)
-
----
-
-## 5) Run-Scoped Unit State (Save/Resume)
-
-MVP requires persisting attrition across nodes (HP, status effects, rechargeable abilities). This data must be **run-scoped** and must not overwrite the persistent `unit_instances` row.
-
-### run_unit_state
-Stores a unit's mutable, within-run condition.
-
-Columns:
-- `run_id` BIGINT UNSIGNED (FK -> region_runs.id)
-- `unit_instance_id` BIGINT UNSIGNED (FK -> unit_instances.id)
-- `current_hp` INT NOT NULL
-- `is_defeated` TINYINT(1) NOT NULL DEFAULT 0
-- `cooldowns_json` JSON NOT NULL  
-  (rechargeable ability cooldown counters / flags)
-- `status_effects_json` JSON NOT NULL  
-  (e.g., poison/bolstered/sleep with remaining duration)
-- `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-
-PK:
-- (`run_id`, `unit_instance_id`)
-
-Indexes:
-- (`run_id`, `is_defeated`)
-
-Notes:
-- On run start: seed `run_unit_state` for units in the selected Team snapshot (and any additional bench rules, if added later).
-- Between nodes: update HP/status/cooldowns based on combat outcomes.
-- On run end (success/fail/abandon): clear `run_unit_state` rows for that run.
-
-### run_team_formation
-
-Columns:
-- run_id BIGINT UNSIGNED (FK -> region_runs.id)
-- cell VARCHAR(2) NOT NULL (A1..C3)
-- unit_instance_id BIGINT UNSIGNED NULL (FK -> unit_instances.id)
-- updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-
-PK:
-- (`run_id`, `cell`)
-
-Notes:
-- Seeded at run start from team_formation.
-- May be updated only at Rest nodes.
-
----
-
-## 6) Dice Inventory & Affixes
-
-### dice_definitions
-Static dice "base items" and rarity rules.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `sides` INT NOT NULL  
-  (MVP: 4, 6, 8, 10)
-- `rarity` ENUM('common','uncommon','rare','epic','legendary') NOT NULL
-- `slot_capacity` INT NOT NULL  
-  (MVP ladder: common 0, uncommon 1, rare 2, epic 3, legendary 4)
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-### affix_definitions
-Static affixes that can appear on dice.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `slug` VARCHAR(64) UNIQUE
-- `name` VARCHAR(80)
-- `rarity` ENUM('common','uncommon','rare','epic','legendary') NOT NULL
-- `behavior_kind` ENUM('passive','triggered') NOT NULL
-- `slot_cost` INT NOT NULL DEFAULT 1
-- `stat` VARCHAR(32) NOT NULL
-- `op` ENUM('flat_add','pct_add','conditional') NOT NULL
-- `min_value` DECIMAL(10,3) NOT NULL
-- `max_value` DECIMAL(10,3) NOT NULL
-- `description` VARCHAR(255) NOT NULL
-- `tags_json` JSON NULL
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-Notes:
-- MVP affix set is closed by scope for the first release: `Atk+`, `Guard+`, `Bulwark+`, `Precision+`, `Execute`, and `Explode`.
-- Affix rarity may not exceed the rarity of the parent die.
-- Affixes are assigned once on dice creation and backfilled for existing local dice inventories.
-
-### dice_instances
-Owned dice.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `user_id` BIGINT UNSIGNED (FK -> users.id)
-- `dice_definition_id` BIGINT UNSIGNED (FK -> dice_definitions.id)
-- `display_name` VARCHAR(128) NULL
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-Indexes:
-- (`user_id`, `dice_definition_id`)
-
-### dice_instance_affixes
-Affix rolls attached to a dice instance.
-
-Columns:
-- `dice_instance_id` BIGINT UNSIGNED (FK -> dice_instances.id)
-- `affix_definition_id` BIGINT UNSIGNED (FK -> affix_definitions.id)
-- `value` DECIMAL(10,3) NOT NULL
-
-PK:
-- (`dice_instance_id`, `affix_definition_id`)
-
-### unit_dice
-Dice equipped to a unit instance.
-
-Columns:
-- `unit_instance_id` BIGINT UNSIGNED (FK -> unit_instances.id)
-- `dice_instance_id` BIGINT UNSIGNED (FK -> dice_instances.id)
-- `slot_index` INT NOT NULL
-- `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-
-PK:
-- (`unit_instance_id`, `dice_instance_id`)
-
-Indexes:
-- (`unit_instance_id`, `slot_index`) UNIQUE
-
----
-
-## 7) Encounters, Enemies, Loot Tables
-
-### encounter_templates
-Static definitions of enemy compositions and reward profile.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `slug` VARCHAR(64) UNIQUE
-- `region_id` BIGINT UNSIGNED NULL (FK -> regions.id)
-- `difficulty_rating` INT NOT NULL DEFAULT 1
-- `enemy_set_json` JSON NOT NULL
-- `reward_profile_json` JSON NOT NULL  
-  (e.g., {"tier":"t1","rolls":1} or {"tier":"t1","rolls_min":2,"rolls_max":3} or {"tier":"t2","rolls":1})
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-Notes:
-- Reward mapping is data-driven and can be tuned without code changes.
-
-### enemy_templates
-Static enemy archetypes.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `slug` VARCHAR(64) UNIQUE
-- `name` VARCHAR(80)
-- `tier` INT NOT NULL DEFAULT 1
-- `role` VARCHAR(32) NOT NULL  
-  (frontline/backline/specialty)
-- `base_stats_json` JSON NOT NULL
-- `ability_set_json` JSON NOT NULL
-- `xp_reward` INT NOT NULL DEFAULT 10
-- `tags_json` JSON NULL
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-### loot_tables
-Defines rollable loot pools.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `slug` VARCHAR(64) UNIQUE  
-  (e.g., `loot_t1`, `loot_t2`)
-- `tier` ENUM('t1','t2') NOT NULL
-- `entries_json` JSON NOT NULL
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-Notes:
-- `entries_json` stores weighted category + payload definitions (dice/unit/currency).
-- Tier 3 items are handled by boss logic, not table tiers.
-
----
-
-## 8) Battles & Logs (Server-authoritative combat)
-
-### battles
-A battle instance tied to a run node.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `user_id` BIGINT UNSIGNED (FK -> users.id)
-- `run_id` BIGINT UNSIGNED (FK -> region_runs.id)
-- `node_id` BIGINT UNSIGNED (FK -> run_nodes.id)
-- `team_id` BIGINT UNSIGNED (FK -> teams.id)
-- `rules_version` VARCHAR(32) NOT NULL DEFAULT 'combat_v1'
-- `seed` BIGINT UNSIGNED NOT NULL
-- `status` ENUM('completed','claimed') NOT NULL DEFAULT 'completed'
-- `outcome` ENUM('victory','defeat') NOT NULL
-- `ticks` INT NOT NULL
-- `rounds` INT NOT NULL
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-Indexes:
-- (`run_id`, `node_id`) UNIQUE
-- (`user_id`, `created_at`)
-
-Notes:
-- Combat is resolved exactly once per node; UI replay uses stored logs.
-- A round is exactly 20 ticks
-
-### battle_logs
-Stores the combat timeline.
-
-Columns:
-- `battle_id` BIGINT UNSIGNED PK (FK -> battles.id)
-- `log_json` JSON NOT NULL
-- `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-
-Notes:
-- log_json should make sure to store round, tick, and phase.
-- events in log_json should be stored in execution order
----
-
-## 9) Rewards, Region Items, Promotions
-
-### battle_rewards
-Stores generated rewards for a battle prior to claiming.
-
-Columns:
-- `battle_id` BIGINT UNSIGNED PK (FK -> battles.id)
-- `xp_total` INT NOT NULL DEFAULT 0
-- `currency_soft` INT NOT NULL DEFAULT 0
-- `rewards_json` JSON NOT NULL
-- `created_at` TIMESTAMP
-
-Notes:
-- Claim endpoint reads and applies this once.
-
-### region_items
-Static definitions of biome-specific Tier 3 promotion items.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `region_id` BIGINT UNSIGNED (FK -> regions.id)
-- `slug` VARCHAR(64) UNIQUE
-- `name` VARCHAR(80)
-- `created_at` TIMESTAMP
-- `updated_at` TIMESTAMP
-
-MVP content examples:
-- Mountains: `roc_egg` (Roc Egg)
-- Swamps: `gator_head` (Gator Head)
-
-### user_region_items
-Inventory of region-specific items.
-
-Columns:
-- `user_id` BIGINT UNSIGNED (FK -> users.id)
-- `region_item_id` BIGINT UNSIGNED (FK -> region_items.id)
-- `quantity` INT NOT NULL DEFAULT 0
-
-PK:
-- (`user_id`, `region_item_id`)
-
-### unit_promotions
-Record of a promotion event.
-
-Columns:
-- `id` BIGINT UNSIGNED PK AUTO_INCREMENT
-- `user_id` BIGINT UNSIGNED (FK -> users.id)
-- `result_unit_instance_id` BIGINT UNSIGNED (FK -> unit_instances.id)
-- `consumed_units_json` JSON NOT NULL
-- `consumed_region_item_id` BIGINT UNSIGNED NULL
-- `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-
----
-
-## 10) Notes on Run Resolution (Schema Implications)
-
-Run resolution rules are implemented in code, but the schema must support:
-- Attrition persistence (handled by `run_unit_state`)
-- Terminal run outcomes (`region_runs.status` includes `failed` and `abandoned`)
-- Idempotent battle reward claiming (`battles.status = claimed`)
-
-On run end:
-- Clear `run_unit_state` for the run
-- Apply XP reset for defeated units (set `unit_instances.xp` to 0)
-- Heal/recharge/cleanse is performed by clearing run-scoped state rather than mutating base unit fields
+- this table binds dice to the base ability configuration
+- repeated equipped copies of the same ability all read from the same slot rows
+- absent rows are interpreted as empty slots that resolve as `1`
 
+## 7. Starter Unit Seeding
 
+Initial unit grants must seed:
+- generated display names
+- default unlocked abilities
+- default equipped ability order
+- common `d4` dice into all starter ability slots
+
+This should be handled in bootstrap or account-seed logic, not as implicit frontend-only setup.
+
+## 8. Battles and Logs
+
+`battles` remain the authoritative battle record.
+
+`battle_logs.log_json` must now be able to explain:
+- equipped ability instance fired
+- cumulative tick scheduling
+- slot values consumed
+- empty-slot `1` contribution
+- enemy authored loadout participation
+
+The old pooled-dice combat interpretation should not appear in new logs.
+
+## 9. Rewards and Promotions
+
+`unit_promotions` should retain enough detail to explain:
+- source unit
+- consumed units
+- destination type
+- optional region item consumption
+- promotion path used
+
+This history is important both for player support/debugging and sideways-promotion eligibility.
+
+## 10. Migration Expectations
+
+The rework requires explicit migration treatment for:
+- existing `unit_dice` rows
+- existing authored unit ability data
+- existing enemy template combat definitions
+- existing starter grant logic
+- active runs or resumable battle snapshots
+
+Recommended migration stance:
+- treat active runs as incompatible unless a clear snapshot migration is implemented
+- convert legacy unit-dice assignments into base-ability slot assignments deterministically where possible
+- author enemy equipped-loadout data before enabling the new scheduler
+
+## 11. Normalization Guidance
+
+As implementation lands, prefer normalization over further drift:
+- compact legacy migration history into a smaller set of canonical migrations once the rework stabilizes
+- avoid growing parallel pooled-dice and ability-slot schemas long-term
+- keep test fixtures aligned to the new normalized model instead of preserving legacy abstractions indefinitely
+
+## 12. Explicitly Superseded Model
+
+The following model is no longer canonical:
+- unit-scoped combat dice pools
+- combat consumption ordering from a shared pool
+- enemy scheduling driven only by modulo speed triggers
+- promotion as ability replacement instead of cumulative inheritance

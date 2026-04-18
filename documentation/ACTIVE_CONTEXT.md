@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-09  
+Last Updated: 2026-04-18  
 Owner: Product + Engineering  
 Depends On: `ISSUES.md`, `MILESTONES.md`, `documentation/README.md`
 
@@ -12,12 +12,12 @@ Depends On: `ISSUES.md`, `MILESTONES.md`, `documentation/README.md`
 ## Current Focus
 - Execute from `ISSUES.md` and `MILESTONES.md` only.
 - Keep API contracts and UX docs aligned with implementation.
-- Prioritize deterministic run flow and progression correctness.
+- Prioritize the ability-loadout, cumulative scheduler, promotion, and naming rework.
 
 ## Key Risks
-- Placeholder gameplay logic masking regressions.
-- API/doc contract drift between backend and frontend.
-- Sparse regression coverage around state mutation paths.
+- API/doc drift while old and new combat models coexist during rollout.
+- Migration complexity around unit dice, loadouts, and active runs.
+- Sparse regression coverage around new persistence and scheduler behavior.
 
 ## Working Agreement
 - Active execution: `ISSUES.md`, `MILESTONES.md`.
