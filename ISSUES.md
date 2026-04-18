@@ -2,15 +2,6 @@
 ----
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
-title: Expand battle logs for equipped ability instances and slot traces
-status: unstarted
-priority: medium
-execution: active
-ready: yes
-milestone: Milestone 38 - Combat Scheduler and Resolution Rewrite
-description: Update battle logs and combat payloads so testers can understand equipped ability instance timing, slot values, and empty-slot contributions under the new model.
-
----
 title: Add unit details support for renaming, loadout order, and ability-slot dice editing
 status: unstarted
 priority: high

@@ -41,10 +41,13 @@ describe("nodeResolutionFlow", () => {
           round: 1,
           tick: 5,
           side: "player",
+          loadout_source: "equipped",
           actor_unit_instance_id: "1",
           target_enemy_slug: "goblin_archer",
           ability_id: "poison_stab",
+          ability_instance_index: 2,
           dice_used: [{ kind: "unit", dice_instance_id: "7", sides: 6 }],
+          slot_trace_summary: "slot1=#7(d6) => 5 (mod +2)",
           dice_outcome: "dice#7 rolled d6 = 5",
           damage: 6,
           outcome: "hit",
@@ -59,7 +62,10 @@ describe("nodeResolutionFlow", () => {
 
     expect(lines).toContain("Events: 3");
     expect(lines.some((line) => line.includes("ability=poison_stab"))).toBe(true);
+    expect(lines.some((line) => line.includes("ability_instance=2"))).toBe(true);
+    expect(lines.some((line) => line.includes("loadout=equipped"))).toBe(true);
     expect(lines.some((line) => line.includes("dice=#7(d6)"))).toBe(true);
+    expect(lines.some((line) => line.includes("slots=slot1=#7(d6) => 5 (mod +2)"))).toBe(true);
     expect(lines.some((line) => line.includes("dice_outcome=dice#7 rolled d6 = 5"))).toBe(true);
     expect(lines.some((line) => line.includes("damage=6"))).toBe(true);
     expect(lines.some((line) => line.includes("status=poison(3r)"))).toBe(true);
@@ -67,5 +73,4 @@ describe("nodeResolutionFlow", () => {
     expect(lines.some((line) => line.includes("outcome=victory"))).toBe(true);
   });
 });
-
 

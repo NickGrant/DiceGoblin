@@ -86,12 +86,15 @@ function formatBattleEventLine(event: Record<string, unknown>): string {
         ? `enemy ${event.target_enemy_slug}`
         : "unknown target";
     const ability = typeof event.ability_id === "string" ? event.ability_id : "unknown_ability";
+    const abilityInstanceIndex = typeof event.ability_instance_index === "number" ? event.ability_instance_index : null;
+    const loadoutSource = typeof event.loadout_source === "string" ? event.loadout_source : null;
     const damage = typeof event.damage === "number" ? event.damage : null;
     const outcome = typeof event.outcome === "string" ? event.outcome : null;
     const status = typeof event.status_applied === "string" ? event.status_applied : null;
     const statusDuration = typeof event.status_duration_rounds === "number" ? event.status_duration_rounds : null;
     const hpAfter = typeof event.target_hp_after === "number" ? event.target_hp_after : null;
     const diceOutcome = typeof event.dice_outcome === "string" ? event.dice_outcome : null;
+    const slotTraceSummary = typeof event.slot_trace_summary === "string" ? event.slot_trace_summary : null;
     const abilityOutcome = typeof event.ability_outcome === "string" ? event.ability_outcome : null;
     const diceUsedSummary = formatDiceUsed(event.dice_used);
 
@@ -99,7 +102,10 @@ function formatBattleEventLine(event: Record<string, unknown>): string {
       `${prefix}: [${side}] ${actor} -> ${target}`,
       `ability=${ability}`,
     ];
+    if (abilityInstanceIndex !== null) parts.push(`ability_instance=${abilityInstanceIndex}`);
+    if (loadoutSource) parts.push(`loadout=${loadoutSource}`);
     if (diceUsedSummary) parts.push(`dice=${diceUsedSummary}`);
+    if (slotTraceSummary) parts.push(`slots=${slotTraceSummary}`);
     if (diceOutcome) parts.push(`dice_outcome=${diceOutcome}`);
     if (damage !== null) parts.push(`damage=${damage}`);
     if (outcome) parts.push(`outcome=${outcome}`);
@@ -160,5 +166,4 @@ function formatDiceUsed(value: unknown): string | null {
 
   return labels.join(",");
 }
-
 

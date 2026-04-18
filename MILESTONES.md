@@ -2,22 +2,10 @@
 ----
 Active milestones only. Move completed entries to `MILESTONES_ARCHIVE.md`.
 
-name: Milestone 38 - Combat Scheduler and Resolution Rewrite
-status: in-progress
-execution_window: open
-is_current: yes
-issues:
-  - Expand battle logs for equipped ability instances and slot traces
-description: |
-  Replace the old modulo scheduler and pooled-dice combat model with cumulative
-  equipped-ability timing and slot-driven resolution for both players and enemies.
-
----
-
 name: Milestone 39 - Unit Details and Promotion UX
 status: not-started
 execution_window: open
-is_current: no
+is_current: yes
 issues:
   - Add unit details support for renaming, loadout order, and ability-slot dice editing
   - Update inventory flows to target ability-slot equips instead of unit pools

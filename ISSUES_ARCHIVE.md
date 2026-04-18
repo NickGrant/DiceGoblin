@@ -66,3 +66,13 @@ ready: yes
 milestone: Milestone 38 - Combat Scheduler and Resolution Rewrite
 description: Remove shared unit-dice-pool combat behavior and resolve all combat rolls from authored ability slots. Empty slots must deterministically contribute 1 and repeated equips of the same base ability must reuse the same slot configuration.
 resolution: Combat rolls now read ordered ability-slot bindings for player units, use deterministic empty-slot d1 fallback per authored slot, and ignore legacy pooled unit dice during action resolution. Backend integration coverage was updated for slot-driven timing, bound-die precedence, starter-baseline expectations, and blank-password local test environments.
+
+---
+title: Expand battle logs for equipped ability instances and slot traces
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 38 - Combat Scheduler and Resolution Rewrite
+description: Update battle logs and combat payloads so testers can understand equipped ability instance timing, slot values, and empty-slot contributions under the new model.
+resolution: Action events now include equipped ability instance order, loadout source, per-slot trace objects, and readable slot-trace summaries while preserving the older dice summary fields for compatibility. The node-resolution frontend summary now surfaces the new instance and slot trace details so testers can read cumulative timing and empty-slot behavior directly from the battle log.

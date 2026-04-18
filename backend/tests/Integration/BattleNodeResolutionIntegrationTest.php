@@ -240,8 +240,12 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
         'Passive abilities must never be emitted as action events.'
       );
 
+      $this->assertIsInt($event['ability_instance_index'] ?? null, 'Action events must include equipped ability instance order.');
+      $this->assertIsString($event['loadout_source'] ?? null, 'Action events must include loadout source metadata.');
       $this->assertIsArray($event['dice_used'] ?? null, 'Action events must include dice_used metadata.');
       $this->assertIsArray($event['dice_rolls'] ?? null, 'Action events must include dice_rolls metadata.');
+      $this->assertIsArray($event['slot_traces'] ?? null, 'Action events must include per-slot trace metadata.');
+      $this->assertIsString($event['slot_trace_summary'] ?? null, 'Action events must include slot trace summary.');
       $this->assertIsString($event['dice_outcome'] ?? null, 'Action events must include dice_outcome summary.');
       $this->assertIsString($event['ability_outcome'] ?? null, 'Action events must include ability_outcome summary.');
     }
@@ -360,10 +364,15 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $diceRolls = is_array($playerAction['dice_rolls'] ?? null) ? $playerAction['dice_rolls'] : [];
     $this->assertNotSame([], $diceUsed);
     $this->assertNotSame([], $diceRolls);
+    $slotTraces = is_array($playerAction['slot_traces'] ?? null) ? $playerAction['slot_traces'] : [];
+    $this->assertCount(1, $slotTraces);
     $this->assertSame('empty_slot', (string)($diceUsed[0]['kind'] ?? ''));
     $this->assertSame(1, (int)($diceUsed[0]['sides'] ?? 0));
     $this->assertSame(1, (int)($diceRolls[0]['sides'] ?? 0));
     $this->assertSame(1, (int)($diceRolls[0]['roll'] ?? 0));
+    $this->assertSame(0, (int)($slotTraces[0]['slot_index'] ?? -1));
+    $this->assertSame(true, (bool)($slotTraces[0]['empty_slot'] ?? false));
+    $this->assertStringContainsString('slot1=empty_slot(d1) => 1 (mod +0)', (string)($playerAction['slot_trace_summary'] ?? ''));
   }
 
   public function testResolveNodeUsesBoundAbilityDiceInsteadOfLegacyUnitPool(): void
@@ -450,9 +459,13 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
 
     $this->assertIsArray($heavyStrikeAction, 'Expected a heavy_strike action event.');
     $diceUsed = is_array($heavyStrikeAction['dice_used'] ?? null) ? $heavyStrikeAction['dice_used'] : [];
+    $slotTraces = is_array($heavyStrikeAction['slot_traces'] ?? null) ? $heavyStrikeAction['slot_traces'] : [];
     $this->assertCount(1, $diceUsed);
+    $this->assertCount(1, $slotTraces);
     $this->assertSame((string)$boundDiceId, (string)($diceUsed[0]['dice_instance_id'] ?? ''));
     $this->assertSame(4, (int)($diceUsed[0]['sides'] ?? 0));
+    $this->assertSame((string)$boundDiceId, (string)($slotTraces[0]['dice_instance_id'] ?? ''));
+    $this->assertSame(false, (bool)($slotTraces[0]['empty_slot'] ?? true));
   }
 
   public function testResolveNodeDefeatEndsRunImmediately(): void

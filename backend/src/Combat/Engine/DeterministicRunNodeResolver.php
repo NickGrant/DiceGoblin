@@ -752,11 +752,15 @@ final class DeterministicRunNodeResolver
               'round' => $round,
               'tick' => $tick,
               'side' => 'player',
+              'loadout_source' => 'equipped',
               'actor_unit_instance_id' => $playerActorId,
               'target_enemy_slug' => $enemyTargetId,
               'ability_id' => $abilityId,
+              'ability_instance_index' => ((int)($ability['equip_order'] ?? 0)) + 1,
               'dice_used' => $dice['dice_used'],
               'dice_rolls' => $dice['dice_rolls'],
+              'slot_traces' => $dice['slot_traces'],
+              'slot_trace_summary' => $dice['slot_trace_summary'],
               'dice_outcome' => $dice['dice_outcome'],
               ...$outcome,
             ];
@@ -826,11 +830,15 @@ final class DeterministicRunNodeResolver
               'round' => $round,
               'tick' => $tick,
               'side' => 'enemy',
+              'loadout_source' => 'enemy_authored',
               'actor_enemy_slug' => $enemyActorId,
               'target_unit_instance_id' => $playerTargetId,
               'ability_id' => $abilityId,
+              'ability_instance_index' => ((int)($ability['equip_order'] ?? 0)) + 1,
               'dice_used' => $dice['dice_used'],
               'dice_rolls' => $dice['dice_rolls'],
+              'slot_traces' => $dice['slot_traces'],
+              'slot_trace_summary' => $dice['slot_trace_summary'],
               'dice_outcome' => $dice['dice_outcome'],
               ...$outcome,
             ];
@@ -1187,6 +1195,17 @@ final class DeterministicRunNodeResolver
    * @return array{
    *   dice_used:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,
    *   dice_rolls:array<int,array{sides:int,roll:int}>,
+   *   slot_traces:array<int,array{
+   *     slot_index:int,
+   *     kind:string,
+   *     dice_instance_id:?string,
+   *     sides:int,
+   *     rolls:array<int,array{sides:int,roll:int}>,
+   *     roll_total:int,
+   *     modifier:int,
+   *     empty_slot:bool
+   *   }>,
+   *   slot_trace_summary:string,
    *   dice_outcome:string,
    *   dice_modifier:int,
    *   explode_triggered:bool
@@ -1199,6 +1218,8 @@ final class DeterministicRunNodeResolver
       return [
         'dice_used' => [],
         'dice_rolls' => [],
+        'slot_traces' => [],
+        'slot_trace_summary' => 'no slots used',
         'dice_outcome' => sprintf('%s_%s used no dice', $side, $abilityId),
         'dice_modifier' => 0,
         'explode_triggered' => false,
@@ -1207,7 +1228,9 @@ final class DeterministicRunNodeResolver
 
     $diceUsed = [];
     $diceRolls = [];
+    $slotTraces = [];
     $diceOutcomeParts = [];
+    $slotTraceParts = [];
     $explodeTriggered = false;
     $modifier = 0;
 
@@ -1243,14 +1266,35 @@ final class DeterministicRunNodeResolver
         $diceRolls[] = $entry;
       }
 
-      $modifier += $rollTotal - (int)ceil($sides / 2);
+      $slotModifier = $rollTotal - (int)ceil($sides / 2);
+      $modifier += $slotModifier;
       $diceLabel = $diceUsed[$index]['dice_instance_id'] !== null
         ? sprintf('dice#%s', $diceUsed[$index]['dice_instance_id'])
         : sprintf('%s_%s_slot_%d', $side, $abilityId, $index + 1);
+      $slotLabel = $diceUsed[$index]['dice_instance_id'] !== null
+        ? sprintf('#%s(d%d)', $diceUsed[$index]['dice_instance_id'], $sides)
+        : sprintf('%s(d%d)', (string)$diceUsed[$index]['kind'], $sides);
       $rollLabel = implode(' + ', array_map(
         static fn(array $entry): string => (string)$entry['roll'],
         $rollEntries
       ));
+      $slotTraces[] = [
+        'slot_index' => $index,
+        'kind' => (string)$diceUsed[$index]['kind'],
+        'dice_instance_id' => $diceUsed[$index]['dice_instance_id'],
+        'sides' => $sides,
+        'rolls' => $rollEntries,
+        'roll_total' => $rollTotal,
+        'modifier' => $slotModifier,
+        'empty_slot' => (string)$diceUsed[$index]['kind'] === 'empty_slot',
+      ];
+      $slotTraceParts[] = sprintf(
+        'slot%d=%s => %s (mod %+d)',
+        $index + 1,
+        $slotLabel,
+        $rollLabel,
+        $slotModifier
+      );
       $diceOutcomeParts[] = count($rollEntries) > 1
         ? sprintf('%s rolled d%d = %s (explode => %d)', $diceLabel, $sides, $rollLabel, $rollTotal)
         : sprintf('%s rolled d%d = %d', $diceLabel, $sides, $roll);
@@ -1259,6 +1303,8 @@ final class DeterministicRunNodeResolver
     return [
       'dice_used' => $diceUsed,
       'dice_rolls' => $diceRolls,
+      'slot_traces' => $slotTraces,
+      'slot_trace_summary' => implode('; ', $slotTraceParts),
       'dice_outcome' => implode('; ', $diceOutcomeParts),
       'dice_modifier' => $modifier,
       'explode_triggered' => $explodeTriggered,

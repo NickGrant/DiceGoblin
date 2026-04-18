@@ -26,3 +26,22 @@ Resolution: |
   implementation. Backend integration verification remained partially blocked by
   the local test database refusing connections, but the milestone's source,
   backlog, and syntax checks were completed.
+
+---
+
+name: Milestone 38 - Combat Scheduler and Resolution Rewrite
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Replace pooled combat dice resolution with ability-slot reads
+  - Expand battle logs for equipped ability instances and slot traces
+description: |
+  Replace the old modulo scheduler and pooled-dice combat model with cumulative
+  equipped-ability timing and slot-driven resolution for both players and enemies.
+Resolution: |
+  Completed the combat-engine transition to cumulative equipped-ability scheduling,
+  slot-driven action dice reads, deterministic empty-slot fallback, and richer
+  battle-log traces for equipped ability instances and slot usage. Backend and
+  frontend verification passed, while a temporary reset/test parallelization mishap
+  was resolved by rerunning backend integration tests sequentially.
