@@ -86,3 +86,13 @@ ready: yes
 milestone: Milestone 39 - Unit Details and Promotion UX
 description: Add backend endpoints and frontend client contracts for renaming units and replacing equipped ability order from Unit Details. This creates the mutation layer the scene rewrite will need before it can stop relying on legacy unit-wide dice APIs.
 resolution: Added authenticated gameplay endpoints for renaming units and replacing equipped ability order, surfaced the response contracts through the frontend API client/types, and added backend plus frontend mutation coverage for the new unit-details contract layer.
+
+---
+title: Add unit details support for renaming, loadout order, and ability-slot dice editing
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 39 - Unit Details and Promotion UX
+description: Rework UnitDetailsScene and supporting contracts so players can rename units, edit equipped ability order, manage ability-slot dice, and see their current 20-point budget usage.
+resolution: Rebuilt UnitDetailsScene around the new unit-details view models so players can rename units, reorder equipped abilities, assign or clear ability-slot dice, and read their current 20-point loadout budget in one screen. Added debug catalog/profile coverage for the new scene data shape and verified the updated frontend build and test suite.

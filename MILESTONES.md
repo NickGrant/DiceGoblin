@@ -7,7 +7,6 @@ status: in-progress
 execution_window: open
 is_current: yes
 issues:
-  - Add unit details support for renaming, loadout order, and ability-slot dice editing
   - Update inventory flows to target ability-slot equips instead of unit pools
   - Rework promotion flow for cumulative abilities and sideways destinations
 description: |

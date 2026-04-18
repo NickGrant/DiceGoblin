@@ -1,30 +1,38 @@
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import SharedActionButton from "../components/clickable-panel/SharedActionButton";
-import UnifiedButtonList from "../components/clickable-panel/UnifiedButtonList";
 import DiceCardGrid from "../components/DiceCardGrid";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
-import { getDebugSceneConfig } from "../debug/debugScene";
-import { getDebugProfileFixture } from "../debug/debugFixtures";
-import { markDebugSceneReady } from "../debug/debugHooks";
-import { adaptDiceDetails, adaptUnitRecords } from "../adapters/profileViewModels";
-import { apiClient } from "../services/apiClient";
-import type { DiceDetailsViewModel } from "../adapters/profileViewModels";
-import type { UnitRecord } from "../types/ApiResponse";
-import { getPageLayout } from "../layout/pageLayout";
+import InputModal from "../components/feedback/InputModal";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 import { DICE_ATLAS_KEY, getDiceFrameName } from "../assets/diceAtlas";
+import {
+  adaptDiceDetails,
+  adaptUnitDetails,
+  adaptUnitRecords,
+  type DiceDetailsViewModel,
+  type UnitDetailsViewModel,
+  type UnitEquippedAbilityViewModel,
+} from "../adapters/profileViewModels";
+import { getDebugSceneConfig } from "../debug/debugScene";
+import { getDebugAbilityCatalogFixture, getDebugProfileFixture } from "../debug/debugFixtures";
+import { markDebugSceneReady } from "../debug/debugHooks";
+import { getPageLayout } from "../layout/pageLayout";
+import { apiClient } from "../services/apiClient";
+import type { UnitRecord } from "../types/ApiResponse";
+import { SQUAD_NAME_ALLOWED_CHARACTER_PATTERN } from "./warbandManagementState";
 
 const FRAME_TITLE_HEIGHT = 56;
 const FRAME_MARGIN = 12;
+const CONTENT_INSET = 10;
 const SECTION_GAP = 12;
 const ACTION_BUTTON_GAP = 10;
-const DICE_SLOT_SIZE = 72;
-const FUSION_SLOT_SIZE = 72;
-const REQUIRED_FUSION_UNITS = 2;
+const SLOT_SIZE = 72;
 const SLOT_ICON_SIZE = 46;
-const CONTENT_INSET = 10;
-const SLOT_TOP_PADDING = 8;
+const REQUIRED_FUSION_UNITS = 2;
+const ABILITY_ROW_HEIGHT = 38;
+const ABILITY_LIST_HEIGHT = 164;
+const SIDEBAR_BUTTON_WIDTH = 280;
 
 const RARITY_TO_MATERIAL: Record<string, "cardboard" | "wood" | "bone" | "metal" | "gemstone"> = {
   common: "cardboard",
@@ -34,32 +42,49 @@ const RARITY_TO_MATERIAL: Record<string, "cardboard" | "wood" | "bone" | "metal"
   legendary: "gemstone",
 };
 
+function normalizeUnitName(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > 32) return null;
+  return SQUAD_NAME_ALLOWED_CHARACTER_PATTERN.test(trimmed) ? trimmed : null;
+}
+
 export default class UnitDetailsScene extends Phaser.Scene {
   private unitId = "";
   private loadingText?: Phaser.GameObjects.Text;
   private toastText?: Phaser.GameObjects.Text;
-  private statusText?: Phaser.GameObjects.Text;
+  private renameDialog?: InputModal;
 
-  private units: UnitRecord[] = [];
+  private rawUnits: UnitRecord[] = [];
+  private unitDetails: UnitDetailsViewModel[] = [];
+  private unit: UnitDetailsViewModel | null = null;
+  private rawUnit: UnitRecord | null = null;
   private dice: DiceDetailsViewModel[] = [];
   private selectedDiceId: string | null = null;
-  private selectedEquipSlotIndex: number | null = 0;
-  private selectedFusionSlotIndex: number | null = 0;
+  private selectedLoadoutIndex = 0;
+  private selectedAbilitySlotIndex = 0;
   private activeRun = false;
-  private unit: UnitRecord | null = null;
   private fusionSecondaryIds: Array<string | null> = Array(REQUIRED_FUSION_UNITS).fill(null);
-  private secondaryPanel?: UnitCardGrid;
+  private selectedFusionSlotIndex = 0;
+
+  private layoutUiObjects: Phaser.GameObjects.GameObject[] = [];
   private dicePanel?: DiceCardGrid;
-  private clearFusionButton?: SharedActionButton;
-  private promoteButton?: SharedActionButton;
+  private secondaryPanel?: UnitCardGrid;
+  private moveUpButton?: SharedActionButton;
+  private moveDownButton?: SharedActionButton;
+  private renameButton?: SharedActionButton;
   private equipDiceButton?: SharedActionButton;
   private unequipSlotButton?: SharedActionButton;
-  private layoutUiObjects: Phaser.GameObjects.GameObject[] = [];
-  private equipSlotBorders: Phaser.GameObjects.Rectangle[] = [];
-  private equipSlotLabels: Phaser.GameObjects.Text[] = [];
-  private equipSlotIcons: Phaser.GameObjects.Image[] = [];
+  private clearFusionButton?: SharedActionButton;
+  private promoteButton?: SharedActionButton;
+  private loadoutRowBorders: Phaser.GameObjects.Rectangle[] = [];
+  private loadoutRowTexts: Phaser.GameObjects.Text[] = [];
+  private abilitySlotBorders: Phaser.GameObjects.Rectangle[] = [];
+  private abilitySlotLabels: Phaser.GameObjects.Text[] = [];
+  private abilitySlotIcons: Phaser.GameObjects.Image[] = [];
   private fusionSlotBorders: Phaser.GameObjects.Rectangle[] = [];
   private fusionSlotLabels: Phaser.GameObjects.Text[] = [];
+  private unitSummaryText?: Phaser.GameObjects.Text;
+  private helperText?: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "UnitDetailsScene" });
@@ -73,7 +98,8 @@ export default class UnitDetailsScene extends Phaser.Scene {
     new BackgroundImage(this);
     mountBottomCommandStrip(this);
     const layout = getPageLayout(this);
-    const contentFrame = new ContentAreaFrame({
+
+    new ContentAreaFrame({
       scene: this,
       x: layout.content.x,
       y: layout.content.y,
@@ -81,9 +107,9 @@ export default class UnitDetailsScene extends Phaser.Scene {
       height: layout.content.height,
       title: "Unit Details",
       bodyColor: 0x4f5a65,
-    });
-    contentFrame.setDepth(-800);
-    const actionsFrame = new ContentAreaFrame({
+    }).setDepth(-800);
+
+    new ContentAreaFrame({
       scene: this,
       x: layout.buttons.x,
       y: layout.buttons.y,
@@ -91,8 +117,8 @@ export default class UnitDetailsScene extends Phaser.Scene {
       height: layout.buttons.height,
       title: "Unit Actions",
       bodyColor: 0x006f7a,
-    });
-    actionsFrame.setDepth(-800);
+    }).setDepth(-800);
+
     this.loadingText = this.add.text(layout.content.x + 16, layout.content.y + 120, "Loading unit details...", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "20px",
@@ -104,410 +130,334 @@ export default class UnitDetailsScene extends Phaser.Scene {
 
   private async loadData(): Promise<void> {
     try {
+      const debugConfig = getDebugSceneConfig();
       const profile = await apiClient.getProfile({ force: true }).catch(() => {
-        const debugConfig = getDebugSceneConfig();
-        if (!debugConfig.enabled) {
-          throw new Error("Failed to fetch");
-        }
+        if (!debugConfig.enabled) throw new Error("Failed to fetch");
         return getDebugProfileFixture();
       });
       if (!profile.ok) throw new Error(profile.error.message);
 
-      this.units = adaptUnitRecords(profile.data.units ?? []);
+      const abilityCatalog = await apiClient.getAbilityCatalog().catch(() => {
+        if (!debugConfig.enabled) throw new Error("Failed to fetch ability catalog");
+        return getDebugAbilityCatalogFixture();
+      });
+      if (!abilityCatalog.ok) throw new Error(abilityCatalog.error.message);
+
+      this.rawUnits = adaptUnitRecords(profile.data.units ?? []);
+      this.unitDetails = adaptUnitDetails(profile.data.units ?? [], abilityCatalog.data.abilities ?? []);
       this.activeRun = profile.data.active_run !== null;
-      this.unit = this.units.find((u) => u.id === this.unitId) ?? this.units[0] ?? null;
-      if (!this.unit) throw new Error("No units found.");
+      this.unit = this.unitDetails.find((unit) => unit.id === this.unitId) ?? this.unitDetails[0] ?? null;
+      this.rawUnit = this.rawUnits.find((unit) => unit.id === this.unitId) ?? this.rawUnits[0] ?? null;
+      if (!this.unit || !this.rawUnit) throw new Error("No units found.");
+
       this.unitId = this.unit.id;
+      this.dice = adaptDiceDetails(profile.data.dice ?? [], profile.data.units ?? []);
+      this.syncSelections();
 
       this.loadingText?.destroy();
       this.loadingText = undefined;
-      const diceVm = adaptDiceDetails(profile.data.dice ?? [], profile.data.units ?? []);
-      this.syncLocalSelections(diceVm);
-      this.buildUi(profile.data.dice ?? [], profile.data.units ?? []);
+      this.buildUi();
+
       markDebugSceneReady(this, {
         unitId: this.unitId,
         activeRun: this.activeRun,
+        loadoutCount: this.unit.equippedLoadout.length,
       });
-    } catch (e) {
-      this.loadingText?.setText(`Failed to load.\n${(e as Error).message}`);
+    } catch (error) {
+      this.loadingText?.setText(`Failed to load.\n${(error as Error).message}`);
       markDebugSceneReady(this, { state: "error" });
     }
   }
 
-  private buildUi(rawDice: unknown[], rawUnits: unknown[]): void {
+  private buildUi(): void {
     const layout = getPageLayout(this);
     this.clearDynamicUi();
+    if (!this.unit || !this.rawUnit) return;
 
-    const contentBodyX = layout.content.x + FRAME_MARGIN + CONTENT_INSET;
-    const contentBodyY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + CONTENT_INSET + 78;
-    const contentBodyWidth = Math.max(320, layout.content.width - (FRAME_MARGIN + CONTENT_INSET) * 2);
-    const contentBodyHeight = Math.max(280, layout.content.height - FRAME_TITLE_HEIGHT - (FRAME_MARGIN + CONTENT_INSET) * 2 - 78);
+    const contentX = layout.content.x + FRAME_MARGIN + CONTENT_INSET;
+    const contentY = layout.content.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN + CONTENT_INSET;
+    const contentWidth = Math.max(320, layout.content.width - (FRAME_MARGIN + CONTENT_INSET) * 2);
+    const contentHeight = Math.max(320, layout.content.height - FRAME_TITLE_HEIGHT - (FRAME_MARGIN + CONTENT_INSET) * 2);
+    const sidebarX = layout.buttons.x + FRAME_MARGIN;
+    const sidebarY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN;
+    const sidebarWidth = Math.max(220, layout.buttons.width - FRAME_MARGIN * 2);
 
-    const actionsBodyX = layout.buttons.x + FRAME_MARGIN;
-    const actionsBodyY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN;
-    const actionsBodyWidth = Math.max(280, layout.buttons.width - FRAME_MARGIN * 2);
+    const leftColumnWidth = 210;
+    const rightColumnX = contentX + leftColumnWidth + SECTION_GAP;
+    const rightColumnWidth = Math.max(280, contentWidth - leftColumnWidth - SECTION_GAP);
+    const promotionHeight = 178;
+    const topSectionHeight = Math.max(230, contentHeight - promotionHeight - SECTION_GAP);
+    const dicePanelHeight = Math.max(112, topSectionHeight - ABILITY_LIST_HEIGHT - SLOT_SIZE - SECTION_GAP * 2 - 38);
 
-    const leftColumnW = Math.max(130, Math.floor(contentBodyWidth * 0.22));
-    const rightAreaX = contentBodyX + leftColumnW + SECTION_GAP;
-    const rightAreaW = Math.max(280, contentBodyWidth - leftColumnW - SECTION_GAP);
+    const summaryBg = this.add.rectangle(contentX, contentY, leftColumnWidth, topSectionHeight, 0x20323a, 0.72)
+      .setOrigin(0, 0).setStrokeStyle(1, 0x8db8bc, 0.45);
+    const portrait = this.add.image(contentX + leftColumnWidth / 2, contentY + 56, "icon_warband")
+      .setDisplaySize(96, 96).setAlpha(0.9);
+    this.unitSummaryText = this.add.text(contentX + 12, contentY + 116, "", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "17px",
+      color: "#eef4f5",
+      lineSpacing: 6,
+      wordWrap: { width: leftColumnWidth - 24 },
+    }).setOrigin(0, 0);
+    this.helperText = this.add.text(contentX + 12, contentY + topSectionHeight - 56, "", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "14px",
+      color: "#d6e7e8",
+      wordWrap: { width: leftColumnWidth - 24 },
+    }).setOrigin(0, 0);
+    this.layoutUiObjects.push(summaryBg, portrait, this.unitSummaryText, this.helperText);
 
-    const sectionHeaderH = 20;
-    const sharedSectionH = Math.max(140, Math.floor((contentBodyHeight - SECTION_GAP) / 2));
-    const topRowY = contentBodyY;
-    const topRowH = sharedSectionH;
-    const topContentY = topRowY + sectionHeaderH;
-    const topContentH = Math.max(80, topRowH - sectionHeaderH);
-    const bottomRowY = contentBodyY + sharedSectionH + SECTION_GAP;
-    const bottomRowH = sharedSectionH;
-    const bottomContentY = bottomRowY + sectionHeaderH;
-    const bottomContentH = Math.max(80, bottomRowH - sectionHeaderH);
+    const loadoutLabel = this.add.text(rightColumnX + 2, contentY, "EQUIPPED LOADOUT", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "16px",
+      color: "#f0f0f0",
+    }).setOrigin(0, 0);
+    this.layoutUiObjects.push(loadoutLabel);
+    this.buildLoadoutRows(rightColumnX, contentY + 24, rightColumnWidth);
 
-    const slotColumnW = Math.max(190, Math.min(260, Math.floor(rightAreaW * 0.38)));
-    const dicePanelX = rightAreaX + slotColumnW + SECTION_GAP;
-    const dicePanelW = Math.max(220, rightAreaW - slotColumnW - SECTION_GAP);
-
-    const fusionSlotAreaW = slotColumnW;
-    const fusionCandidatesX = dicePanelX;
-    const fusionCandidatesW = dicePanelW;
-
-    if (!this.unit) return;
-
-    const overviewLabel = this.add
-      .text(layout.content.x + 24, layout.content.y + 88, "UNIT LOADOUT", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "20px",
-        color: "#f0d38a",
-      })
-      .setOrigin(0, 0);
-    const overviewBody = this.add
-      .text(layout.content.x + 24, layout.content.y + 118, "Review current stats, equip better dice, and queue promotion fodder from the lower candidate list.", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "22px",
-        color: "#eef4f5",
-        lineSpacing: 8,
-        wordWrap: { width: layout.content.width - 48 },
-      })
-      .setOrigin(0, 0);
-    this.layoutUiObjects.push(overviewLabel, overviewBody);
-
-    const diceVm = adaptDiceDetails(rawDice as any, rawUnits as any);
-    this.dice = diceVm;
-    this.syncLocalSelections(diceVm);
-
-    const max = typeof this.unit.max_level === "number" ? this.unit.max_level : "?";
-    const xp = typeof this.unit.xp === "number" ? this.unit.xp : 0;
-    const tier = typeof this.unit.tier === "number" ? this.unit.tier : 1;
-    const maxTier = typeof this.unit.max_tier === "number" ? this.unit.max_tier : 3;
-    const totalAttack = typeof this.unit.total_attack === "number" ? this.unit.total_attack : "?";
-    const totalDefense = typeof this.unit.total_defense === "number" ? this.unit.total_defense : "?";
-    const currentHp = typeof this.unit.current_hp === "number" ? this.unit.current_hp : "?";
-    const maxHp = typeof this.unit.max_hp === "number" ? this.unit.max_hp : "?";
-    const xpToNext = typeof this.unit.xp_to_next_level === "number" ? this.unit.xp_to_next_level : null;
-
-    const portraitHeight = Math.max(96, Math.floor(topContentH * 0.45));
-    const statsHeight = Math.max(96, contentBodyHeight - portraitHeight - SECTION_GAP);
-
-    const portraitBg = this.add
-      .rectangle(contentBodyX, contentBodyY, leftColumnW, portraitHeight, 0x1f2b32, 0.72)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0x8db8bc, 0.45);
-    const portraitIcon = this.add
-      .image(contentBodyX + leftColumnW / 2, contentBodyY + portraitHeight / 2, "icon_warband")
-      .setDisplaySize(
-        Math.min(100, leftColumnW - 26, portraitHeight - 26),
-        Math.min(100, leftColumnW - 26, portraitHeight - 26)
-      )
-      .setAlpha(0.88);
-    this.layoutUiObjects.push(portraitBg, portraitIcon);
-
-    const statsX = contentBodyX;
-    const statsY = contentBodyY + portraitHeight + SECTION_GAP;
-    const statsW = leftColumnW;
-    const statsBg = this.add
-      .rectangle(statsX, statsY, statsW, statsHeight, 0x20323a, 0.72)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0x8db8bc, 0.45);
-    const statsText = this.add
-      .text(statsX + 10, statsY + 10, [
-        `Unit: ${this.unit.name}`,
-        `Level: ${this.unit.level} / ${max}`,
-        `XP: ${xp}${xpToNext !== null ? ` (${xpToNext} to next)` : ""}`,
-        `Tier: ${tier} / ${maxTier}`,
-        `HP: ${currentHp} / ${maxHp}`,
-        `ATK: ${totalAttack}`,
-        `DEF: ${totalDefense}`,
-      ].join("\n"), {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "17px",
-        color: "#f0f3f4",
-        lineSpacing: 5,
-        wordWrap: { width: Math.max(100, statsW - 20) },
-      })
-      .setOrigin(0, 0);
-    this.layoutUiObjects.push(statsBg, statsText);
-
-    const equippedLabel = this.add
-      .text(rightAreaX + 2, topRowY, "EQUIPPED DICE", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "16px",
-        color: "#f0f0f0",
-      })
-      .setOrigin(0, 0);
-    this.layoutUiObjects.push(equippedLabel);
-
-    this.buildEquipSlots(rightAreaX, topContentY + SLOT_TOP_PADDING, slotColumnW);
-
-    this.secondaryPanel?.destroy();
-    this.secondaryPanel = undefined;
-
-    this.dicePanel?.destroy();
-    this.dicePanel = undefined;
+    const slotsLabel = this.add.text(rightColumnX + 2, contentY + ABILITY_LIST_HEIGHT + SECTION_GAP, "ABILITY SLOTS", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "16px",
+      color: "#f0f0f0",
+    }).setOrigin(0, 0);
+    this.layoutUiObjects.push(slotsLabel);
+    this.buildAbilitySlots(rightColumnX, contentY + ABILITY_LIST_HEIGHT + SECTION_GAP + 24, rightColumnWidth);
 
     this.dicePanel = new DiceCardGrid({
       scene: this,
-      x: dicePanelX,
-      y: topContentY + 2,
-      width: dicePanelW,
-      height: topContentH - 2,
-      title: "",
+      x: rightColumnX,
+      y: contentY + ABILITY_LIST_HEIGHT + SLOT_SIZE + SECTION_GAP * 2 + 32,
+      width: rightColumnWidth,
+      height: dicePanelHeight,
+      title: "AVAILABLE DICE",
       dice: this.getSelectableDice(),
       selectedDiceId: this.selectedDiceId,
       maxVisibleCards: 3,
       onDiceClick: (die) => {
         this.selectedDiceId = die.id;
         this.dicePanel?.setSelectedDiceId(die.id);
-        this.refreshStatus();
-        this.refreshActionButtons();
+        this.refreshUi();
       },
     });
     this.layoutUiObjects.push(this.dicePanel);
 
-    const promotionLabel = this.add
-      .text(rightAreaX + 2, bottomRowY, "UNIT PROMOTION", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "16px",
-        color: "#f0f0f0",
-      })
-      .setOrigin(0, 0);
+    const promotionY = contentY + topSectionHeight + SECTION_GAP;
+    const promotionLabel = this.add.text(contentX + 2, promotionY, "PROMOTION MATERIAL", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "16px",
+      color: "#f0f0f0",
+    }).setOrigin(0, 0);
     this.layoutUiObjects.push(promotionLabel);
+    this.buildFusionSlots(contentX, promotionY + 24);
 
     this.secondaryPanel = new UnitCardGrid({
       scene: this,
-      x: fusionCandidatesX,
-      y: bottomContentY,
-      width: fusionCandidatesW,
-      height: bottomContentH,
-      title: "",
+      x: contentX + 180,
+      y: promotionY + 24,
+      width: contentWidth - 180,
+      height: promotionHeight - 24,
+      title: "PROMOTION CANDIDATES",
       units: this.getFusionCandidates(),
-      onUnitClick: (u) => this.assignFusionSecondary(u.id),
-      getCardState: (u) => this.candidateRowState(u),
+      onUnitClick: (unit) => this.assignFusionSecondary(unit.id),
+      getCardState: (unit) => this.candidateRowState(unit),
     });
     this.layoutUiObjects.push(this.secondaryPanel);
 
-    this.buildFusionSlots(rightAreaX, bottomContentY + SLOT_TOP_PADDING, fusionSlotAreaW);
-
-    const buttonX = actionsBodyX + Math.max(0, Math.floor((actionsBodyWidth - 280) / 2));
-    const topActionY = actionsBodyY + 14;
-    const actionSummaryCard = this.add
-      .rectangle(actionsBodyX + 12, topActionY, actionsBodyWidth - 24, 116, 0x0f2024, 0.58)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0x8db8bc, 0.32);
-    const actionSummaryText = this.add
-      .text(actionsBodyX + 24, topActionY + 12, [
-        `${this.unit.name}`,
-        `Level ${this.unit.level} | Tier ${tier}/${maxTier}`,
-        `ATK ${totalAttack} | DEF ${totalDefense} | HP ${currentHp}/${maxHp}`,
-        this.activeRun ? "Active run: loadout changes affect the current push." : "No active run: safe time to rebuild this unit."
-      ].join("\n"), {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "17px",
-        color: "#e7f4f5",
-        lineSpacing: 6,
-        wordWrap: { width: actionsBodyWidth - 48 },
-      })
-      .setOrigin(0, 0);
-    this.layoutUiObjects.push(actionSummaryCard, actionSummaryText);
-
-    new UnifiedButtonList({
-      scene: this,
-      x: buttonX,
-      y: topActionY + 132,
-      gapY: ACTION_BUTTON_GAP,
-      buttons: [
-        { label: "Back", onClick: () => this.scene.start("WarbandManagementScene") },
-      ],
-    });
-
-    this.clearFusionButton?.destroy();
-    this.clearFusionButton = new SharedActionButton({
-      scene: this,
-      x: buttonX,
-      y: topActionY + 348,
-      label: "Clear Fusion",
-      enabled: false,
-      onClick: () => {
-        this.clearFusionSelections();
-      },
-    });
-
-    this.promoteButton?.destroy();
-    this.promoteButton = new SharedActionButton({
-      scene: this,
-      x: buttonX,
-      y: topActionY + 414,
-      label: "Promote Unit",
-      enabled: false,
-      onClick: () => void this.promoteUnit(),
-    });
-
-    this.equipDiceButton?.destroy();
-    this.unequipSlotButton?.destroy();
-    this.equipDiceButton = new SharedActionButton({
-      scene: this,
-      x: buttonX,
-      y: topActionY + 216,
-      label: "Equip Selected Die",
-      enabled: false,
-      onClick: () => void this.equipSelectedDie(),
-    });
-    this.unequipSlotButton = new SharedActionButton({
-      scene: this,
-      x: buttonX,
-      y: topActionY + 282,
-      label: "Unequip Slot Die",
-      enabled: false,
-      onClick: () => void this.unequipSelectedSlotDie(),
-    });
-
-    this.statusText?.destroy();
-    this.statusText = undefined;
-
-    this.refreshStatus();
-    this.refreshEquipSlotUi();
-    this.refreshFusionSlotUi();
-    this.refreshActionButtons();
+    this.buildSidebar(sidebarX, sidebarY, sidebarWidth);
+    this.refreshUi();
   }
 
-  private buildEquipSlots(x: number, y: number, width: number): void {
-    const slotCount = this.getDiceSlotCount();
-    this.equipSlotBorders = [];
-    this.equipSlotLabels = [];
-    this.equipSlotIcons = [];
-
-    const slotsY = y;
-    const gap = 10;
-    const startX = x;
-
-    for (let i = 0; i < slotCount; i += 1) {
-      const slotX = startX + i * (DICE_SLOT_SIZE + gap);
-      const border = this.add
-        .rectangle(slotX, slotsY, DICE_SLOT_SIZE, DICE_SLOT_SIZE, 0x1c2b31, 0.8)
-        .setOrigin(0, 0)
-        .setStrokeStyle(1, 0x8db8bc, 0.48)
-        .setInteractive({ useHandCursor: true });
+  private buildLoadoutRows(x: number, y: number, width: number): void {
+    this.loadoutRowBorders = [];
+    this.loadoutRowTexts = [];
+    const visibleRows = Math.min(4, Math.max(1, this.unit?.equippedLoadout.length ?? 1));
+    for (let index = 0; index < visibleRows; index += 1) {
+      const top = y + index * (ABILITY_ROW_HEIGHT + 4);
+      const border = this.add.rectangle(x, top, width, ABILITY_ROW_HEIGHT, 0x142127, 0.88)
+        .setOrigin(0, 0).setStrokeStyle(1, 0x8db8bc, 0.32).setInteractive({ useHandCursor: true });
       border.on("pointerdown", () => {
-        this.selectedEquipSlotIndex = i;
-        this.refreshEquipSlotUi();
-        this.refreshActionButtons();
-        this.refreshStatus();
+        this.selectedLoadoutIndex = index;
+        this.selectedAbilitySlotIndex = 0;
+        this.refreshUi();
       });
+      const text = this.add.text(x + 12, top + 8, "", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "18px",
+        color: "#eef4f5",
+        wordWrap: { width: width - 24 },
+      }).setOrigin(0, 0);
+      this.loadoutRowBorders.push(border);
+      this.loadoutRowTexts.push(text);
+      this.layoutUiObjects.push(border, text);
+    }
+  }
 
-      const label = this.add
-        .text(slotX + DICE_SLOT_SIZE / 2, slotsY + DICE_SLOT_SIZE - 14, "Empty", {
-          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-          fontSize: "12px",
-          color: "#d6d6d6",
-          align: "center",
-          wordWrap: { width: DICE_SLOT_SIZE - 12 },
-        })
-        .setOrigin(0.5, 0.5);
+  private buildAbilitySlots(x: number, y: number, width: number): void {
+    const selectedAbility = this.getSelectedLoadoutEntry();
+    const slotCount = Math.max(0, selectedAbility?.diceCost ?? 0);
+    if (!selectedAbility || slotCount === 0) {
+      const label = this.add.text(x + 6, y + 16, "This ability has no die slots.", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "16px",
+        color: "#d6e7e8",
+      });
+      this.abilitySlotLabels.push(label);
+      this.layoutUiObjects.push(label);
+      return;
+    }
 
-      const icon = this.add
-        .image(slotX + DICE_SLOT_SIZE / 2, slotsY + 22, DICE_ATLAS_KEY, "cardboard_d6")
-        .setDisplaySize(SLOT_ICON_SIZE, SLOT_ICON_SIZE)
-        .setVisible(false)
-        .setAlpha(0.96);
-
-      this.equipSlotBorders.push(border);
-      this.equipSlotLabels.push(label);
-      this.equipSlotIcons.push(icon);
+    const totalWidth = slotCount * SLOT_SIZE + Math.max(0, slotCount - 1) * 10;
+    const startX = x + Math.max(0, Math.floor((width - totalWidth) / 2));
+    for (let slotIndex = 0; slotIndex < slotCount; slotIndex += 1) {
+      const slotX = startX + slotIndex * (SLOT_SIZE + 10);
+      const border = this.add.rectangle(slotX, y, SLOT_SIZE, SLOT_SIZE, 0x1c2b31, 0.82)
+        .setOrigin(0, 0).setStrokeStyle(1, 0x8db8bc, 0.48).setInteractive({ useHandCursor: true });
+      border.on("pointerdown", () => {
+        this.selectedAbilitySlotIndex = slotIndex;
+        this.refreshUi();
+      });
+      const icon = this.add.image(slotX + SLOT_SIZE / 2, y + 24, DICE_ATLAS_KEY, "cardboard_d6")
+        .setDisplaySize(SLOT_ICON_SIZE, SLOT_ICON_SIZE).setVisible(false);
+      const label = this.add.text(slotX + SLOT_SIZE / 2, y + SLOT_SIZE - 14, "", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "12px",
+        color: "#eef4f5",
+        align: "center",
+        wordWrap: { width: SLOT_SIZE - 10 },
+      }).setOrigin(0.5, 0.5);
+      this.abilitySlotBorders.push(border);
+      this.abilitySlotIcons.push(icon);
+      this.abilitySlotLabels.push(label);
       this.layoutUiObjects.push(border, icon, label);
     }
   }
 
-  private buildFusionSlots(x: number, y: number, width: number): void {
+  private buildFusionSlots(x: number, y: number): void {
     this.fusionSlotBorders = [];
     this.fusionSlotLabels = [];
-
-    const slotY = y;
-    const gap = 10;
-    const bandWidth = REQUIRED_FUSION_UNITS * FUSION_SLOT_SIZE + (REQUIRED_FUSION_UNITS - 1) * gap;
-    const startX = x;
-
-    for (let i = 0; i < REQUIRED_FUSION_UNITS; i += 1) {
-      const slotX = startX + i * (FUSION_SLOT_SIZE + gap);
-      const border = this.add
-        .rectangle(slotX, slotY, FUSION_SLOT_SIZE, FUSION_SLOT_SIZE, 0x3b331e, 0.76)
-        .setOrigin(0, 0)
-        .setStrokeStyle(1, 0xe0b85a, 0.62)
-        .setInteractive({ useHandCursor: true });
+    for (let index = 0; index < REQUIRED_FUSION_UNITS; index += 1) {
+      const slotX = x + index * (SLOT_SIZE + 10);
+      const border = this.add.rectangle(slotX, y, SLOT_SIZE, SLOT_SIZE, 0x3b331e, 0.76)
+        .setOrigin(0, 0).setStrokeStyle(1, 0xe0b85a, 0.62).setInteractive({ useHandCursor: true });
       border.on("pointerdown", () => {
-        this.selectedFusionSlotIndex = i;
-        this.refreshFusionSlotUi();
+        this.selectedFusionSlotIndex = index;
+        this.refreshUi();
       });
-
-      const label = this.add
-        .text(slotX + FUSION_SLOT_SIZE / 2, slotY + FUSION_SLOT_SIZE / 2, "Empty", {
-          fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-          fontSize: "13px",
-          color: "#f3dca6",
-          align: "center",
-          wordWrap: { width: FUSION_SLOT_SIZE - 10 },
-        })
-        .setOrigin(0.5, 0.5);
-
+      const label = this.add.text(slotX + SLOT_SIZE / 2, y + SLOT_SIZE / 2, "Empty", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "13px",
+        color: "#f3dca6",
+        align: "center",
+        wordWrap: { width: SLOT_SIZE - 10 },
+      }).setOrigin(0.5, 0.5);
       this.fusionSlotBorders.push(border);
       this.fusionSlotLabels.push(label);
       this.layoutUiObjects.push(border, label);
     }
   }
 
-  private refreshEquipSlotUi(): void {
-    const bySlot = this.getUnitEquippedDiceBySlot();
-    for (let i = 0; i < this.equipSlotBorders.length; i += 1) {
-      const border = this.equipSlotBorders[i];
-      const label = this.equipSlotLabels[i];
-      const icon = this.equipSlotIcons[i];
-      if (!border || !label || !icon) {
-        continue;
-      }
-      const die = bySlot.get(i) ?? null;
-      const selected = this.selectedEquipSlotIndex === i;
+  private buildSidebar(x: number, y: number, width: number): void {
+    const summaryCard = this.add.rectangle(x + 12, y + 14, width - 24, 156, 0x0f2024, 0.58)
+      .setOrigin(0, 0).setStrokeStyle(1, 0x8db8bc, 0.32);
+    this.layoutUiObjects.push(summaryCard);
 
-      border.setStrokeStyle(2, selected ? 0xd7eef0 : 0x8db8bc, selected ? 0.95 : 0.48);
-      label.setText(die ? die.sizeLabel.toUpperCase() : "Empty");
-      label.setColor(die ? "#ecf6ff" : "#d6d6d6");
-      if (die) {
-        icon.setFrame(this.pickDieFrame(die));
-        icon.setVisible(true);
-      } else {
-        icon.setVisible(false);
-      }
-    }
+    const buttonX = x + Math.max(0, Math.floor((width - SIDEBAR_BUTTON_WIDTH) / 2));
+    const firstButtonY = y + 188;
+    this.renameButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY, label: "Rename Unit", enabled: true, onClick: () => void this.openRenameDialog() });
+    this.moveUpButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 66, label: "Move Ability Up", enabled: false, onClick: () => void this.reorderSelectedAbility(-1) });
+    this.moveDownButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 132, label: "Move Ability Down", enabled: false, onClick: () => void this.reorderSelectedAbility(1) });
+    this.equipDiceButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 198, label: "Equip Selected Die", enabled: false, onClick: () => void this.assignSelectedDie() });
+    this.unequipSlotButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 264, label: "Clear Slot Die", enabled: false, onClick: () => void this.clearSelectedSlotDie() });
+    this.clearFusionButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 330, label: "Clear Promotion", enabled: false, onClick: () => this.clearFusionSelections() });
+    this.promoteButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 396, label: "Promote Unit", enabled: false, onClick: () => void this.promoteUnit() });
+    const backButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 462, label: "Back", onClick: () => this.scene.start("WarbandManagementScene") });
 
-    this.refreshDiceSelectionGrid();
+    this.layoutUiObjects.push(
+      this.renameButton,
+      this.moveUpButton,
+      this.moveDownButton,
+      this.equipDiceButton,
+      this.unequipSlotButton,
+      this.clearFusionButton,
+      this.promoteButton,
+      backButton,
+    );
   }
 
-  private refreshFusionSlotUi(): void {
-    for (let i = 0; i < this.fusionSlotBorders.length; i += 1) {
-      const border = this.fusionSlotBorders[i];
-      const label = this.fusionSlotLabels[i];
-      if (!border || !label) {
-        continue;
+  private refreshUi(): void {
+    this.syncSelections();
+    const expectedSlotCount = this.getSelectedLoadoutEntry()?.diceCost ?? 0;
+    if (expectedSlotCount !== this.abilitySlotBorders.length) {
+      this.buildUi();
+      return;
+    }
+    this.refreshLoadoutRows();
+    this.refreshAbilitySlots();
+    this.refreshFusionSlots();
+    this.refreshSidebarSummary();
+    this.refreshDicePanel();
+    this.refreshActionButtons();
+    this.secondaryPanel?.refreshCardStates();
+  }
+
+  private refreshLoadoutRows(): void {
+    const loadout = this.unit?.equippedLoadout ?? [];
+    this.loadoutRowBorders.forEach((border, index) => {
+      const entry = loadout[index];
+      const text = this.loadoutRowTexts[index];
+      if (!entry || !text) {
+        border.setVisible(false);
+        if (text) {
+          text.setVisible(false);
+        }
+        return;
       }
-      const unitId = this.fusionSecondaryIds[i] ?? null;
-      const unitName = unitId ? this.units.find((u) => u.id === unitId)?.name ?? `Unit ${unitId}` : "Empty";
-      const selected = this.selectedFusionSlotIndex === i;
+      const selected = index === this.selectedLoadoutIndex;
+      border.setVisible(true);
+      text.setVisible(true);
+      border.setStrokeStyle(2, selected ? 0xffcc00 : 0x8db8bc, selected ? 0.82 : 0.32);
+      text.setText(`${index + 1}. ${entry.label.toUpperCase()}   SPD ${entry.speedCost}   ${entry.diceCost > 0 ? `SLOTS ${entry.diceCost}` : "NO DICE"}`);
+      text.setColor(selected ? "#fff4c2" : "#eef4f5");
+    });
+  }
+
+  private refreshAbilitySlots(): void {
+    const selectedAbility = this.getSelectedLoadoutEntry();
+    if (!selectedAbility || selectedAbility.diceCost === 0) {
+      if (this.abilitySlotLabels[0]) {
+        this.abilitySlotLabels[0].setText("This ability has no die slots.");
+        this.abilitySlotLabels[0].setColor("#d6e7e8");
+      }
+      return;
+    }
+    for (let index = 0; index < this.abilitySlotBorders.length; index += 1) {
+      const dieId = selectedAbility.slots[index]?.diceInstanceId ?? null;
+      const die = dieId ? this.dice.find((candidate) => candidate.id === dieId) ?? null : null;
+      const selected = index === this.selectedAbilitySlotIndex;
+      this.abilitySlotBorders[index]?.setStrokeStyle(2, selected ? 0xd7eef0 : 0x8db8bc, selected ? 0.95 : 0.48);
+      this.abilitySlotLabels[index]?.setText(die ? die.sizeLabel.toUpperCase() : "Empty");
+      this.abilitySlotLabels[index]?.setColor(die ? "#ecf6ff" : "#d6d6d6");
+      if (die) {
+        this.abilitySlotIcons[index]?.setFrame(this.pickDieFrame(die));
+        this.abilitySlotIcons[index]?.setVisible(true);
+      } else {
+        this.abilitySlotIcons[index]?.setVisible(false);
+      }
+    }
+  }
+
+  private refreshFusionSlots(): void {
+    for (let index = 0; index < this.fusionSlotBorders.length; index += 1) {
+      const border = this.fusionSlotBorders[index];
+      const label = this.fusionSlotLabels[index];
+      if (!border || !label) continue;
+
+      const unitId = this.fusionSecondaryIds[index] ?? null;
+      const unitName = unitId
+        ? this.rawUnits.find((candidate) => candidate.id === unitId)?.name ?? `Unit ${unitId}`
+        : "Empty";
+      const selected = index === this.selectedFusionSlotIndex;
 
       border.setStrokeStyle(2, selected ? 0xf2e3b5 : 0xe0b85a, selected ? 0.95 : 0.62);
       label.setText(unitName);
@@ -515,18 +465,261 @@ export default class UnitDetailsScene extends Phaser.Scene {
     }
   }
 
+  private refreshSidebarSummary(): void {
+    if (!this.unitSummaryText || !this.helperText || !this.unit) return;
+
+    this.unitSummaryText.setText(this.buildSummaryText());
+    const selectedAbility = this.getSelectedLoadoutEntry();
+    const selectedSlotDie = this.getSelectedSlotDie();
+    const selectedDie = this.getSelectedDie();
+    const selectedFusions = this.fusionSecondaryIds.filter((id): id is string => Boolean(id));
+
+    this.helperText.setText([
+      selectedAbility
+        ? `Loadout: ${selectedAbility.label} (${selectedAbility.speedCost} pts)`
+        : "Loadout: none selected",
+      selectedAbility && selectedAbility.diceCost > 0
+        ? `Slot ${this.selectedAbilitySlotIndex + 1}: ${selectedSlotDie?.displayName ?? "Empty"}`
+        : "This ability does not consume dice.",
+      selectedDie
+        ? `Picked die: ${selectedDie.displayName}${selectedDie.equipped ? ` on ${selectedDie.equipped.unitName}` : ""}`
+        : "Pick a die from the pool to assign it.",
+      selectedFusions.length > 0
+        ? `Promotion fodder: ${selectedFusions.length}/${REQUIRED_FUSION_UNITS}`
+        : "Select promotion fodder below when ready.",
+    ].join("\n"));
+  }
+
+  private refreshDicePanel(): void {
+    const selectable = this.getSelectableDice();
+    if (this.selectedDiceId && !selectable.some((die) => die.id === this.selectedDiceId)) {
+      this.selectedDiceId = selectable[0]?.id ?? null;
+    }
+    this.dicePanel?.setDice(selectable, this.selectedDiceId);
+  }
+
+  private refreshActionButtons(): void {
+    const selectedAbility = this.getSelectedLoadoutEntry();
+    const selectedDie = this.getSelectedDie();
+    const selectedSlotDie = this.getSelectedSlotDie();
+    const selectedFusions = this.fusionSecondaryIds.filter((id): id is string => Boolean(id));
+
+    this.renameButton?.setEnabled(true);
+    this.moveUpButton?.setEnabled(Boolean(selectedAbility && this.selectedLoadoutIndex > 0));
+    this.moveDownButton?.setEnabled(Boolean(
+      selectedAbility
+      && this.unit
+      && this.selectedLoadoutIndex < this.unit.equippedLoadout.length - 1,
+    ));
+    this.equipDiceButton?.setEnabled(Boolean(
+      selectedAbility
+      && selectedAbility.diceCost > 0
+      && selectedDie
+      && (!selectedDie.equipped || selectedDie.equipped.unitId === this.unitId),
+    ));
+    this.unequipSlotButton?.setEnabled(Boolean(selectedAbility && selectedAbility.diceCost > 0 && selectedSlotDie));
+    this.clearFusionButton?.setEnabled(selectedFusions.length > 0);
+    this.promoteButton?.setEnabled(!this.activeRun && selectedFusions.length === REQUIRED_FUSION_UNITS);
+  }
+
+  private getSelectedLoadoutEntry(): UnitEquippedAbilityViewModel | null {
+    if (!this.unit) return null;
+    return this.unit.equippedLoadout[this.selectedLoadoutIndex] ?? null;
+  }
+
+  private getSelectedDie(): DiceDetailsViewModel | null {
+    if (!this.selectedDiceId) return null;
+    return this.dice.find((die) => die.id === this.selectedDiceId) ?? null;
+  }
+
+  private getSelectedSlotDie(): DiceDetailsViewModel | null {
+    const selectedAbility = this.getSelectedLoadoutEntry();
+    if (!selectedAbility) return null;
+    const dieId = selectedAbility.slots[this.selectedAbilitySlotIndex]?.diceInstanceId ?? null;
+    return dieId ? this.dice.find((die) => die.id === dieId) ?? null : null;
+  }
+
+  private getSelectableDice(): DiceDetailsViewModel[] {
+    return this.dice.filter((die) => !die.equipped || die.equipped.unitId === this.unitId);
+  }
+
+  private buildSummaryText(): string {
+    if (!this.unit || !this.rawUnit) return "";
+
+    const activeAbilities = this.unit.unlockedAbilities.filter((ability) => ability.type === "active").length;
+    const passiveAbilities = this.unit.unlockedAbilities.filter((ability) => ability.type === "passive").length;
+    const totalAttack = typeof this.rawUnit.total_attack === "number" ? this.rawUnit.total_attack : "?";
+    const totalDefense = typeof this.rawUnit.total_defense === "number" ? this.rawUnit.total_defense : "?";
+    const hpCurrent = typeof this.rawUnit.current_hp === "number" ? this.rawUnit.current_hp : "?";
+    const hpMax = typeof this.rawUnit.max_hp === "number" ? this.rawUnit.max_hp : "?";
+    const xpToNext = typeof this.rawUnit.xp_to_next_level === "number" ? this.rawUnit.xp_to_next_level : null;
+
+    return [
+      this.unit.name,
+      `${this.unit.roleLabel}  T${this.unit.tier}  LV ${this.unit.level}${this.unit.maxLevel ? `/${this.unit.maxLevel}` : ""}`,
+      `HP ${hpCurrent}/${hpMax}  ATK ${totalAttack}  DEF ${totalDefense}`,
+      `Loadout ${this.unit.loadoutBudget.used}/${this.unit.loadoutBudget.max} pts`,
+      `Abilities ${activeAbilities} active / ${passiveAbilities} passive`,
+      this.unit.isMaxLevel ? "XP MAX" : `XP ${this.unit.xp}${xpToNext !== null ? ` (${xpToNext} to next)` : ""}`,
+    ].join("\n");
+  }
+
+  private syncSelections(): void {
+    if (!this.unit) return;
+
+    const loadoutLength = this.unit.equippedLoadout.length;
+    if (loadoutLength === 0) {
+      this.selectedLoadoutIndex = 0;
+      this.selectedAbilitySlotIndex = 0;
+    } else {
+      this.selectedLoadoutIndex = Math.max(0, Math.min(this.selectedLoadoutIndex, loadoutLength - 1));
+      const selectedAbility = this.unit.equippedLoadout[this.selectedLoadoutIndex];
+      const slotCount = selectedAbility?.diceCost ?? 0;
+      this.selectedAbilitySlotIndex = slotCount > 0
+        ? Math.max(0, Math.min(this.selectedAbilitySlotIndex, slotCount - 1))
+        : 0;
+    }
+
+    const selectableDice = this.getSelectableDice();
+    if (!this.selectedDiceId || !selectableDice.some((die) => die.id === this.selectedDiceId)) {
+      this.selectedDiceId = selectableDice[0]?.id ?? null;
+    }
+
+    const compatibleIds = new Set(this.getFusionCandidates().map((unit) => unit.id));
+    this.fusionSecondaryIds = this.fusionSecondaryIds.map((unitId) => (unitId && compatibleIds.has(unitId) ? unitId : null));
+    this.selectedFusionSlotIndex = Math.max(0, Math.min(this.selectedFusionSlotIndex, REQUIRED_FUSION_UNITS - 1));
+  }
+
+  private async openRenameDialog(): Promise<void> {
+    this.renameDialog?.close();
+    if (!this.unit) return;
+
+    this.renameDialog = new InputModal({
+      scene: this,
+      title: "Rename Unit",
+      message: "Give this unit a player-facing label. Names are cosmetic and can be changed later.",
+      acceptLabel: "Save",
+      rejectLabel: "Cancel",
+      onAccept: () => {
+        this.renameDialog?.close();
+      },
+      onReject: () => {
+        this.renameDialog?.close();
+      },
+      onAcceptInput: async (value) => {
+        const normalized = normalizeUnitName(value);
+        if (!normalized) {
+          throw new Error("Use 1-32 valid characters.");
+        }
+        const response = await apiClient.renameUnit(this.unitId, normalized);
+        if (!response.ok) {
+          throw new Error(response.error.message);
+        }
+        this.showToast("Unit renamed.", "#ccffcc");
+        await this.loadData();
+      },
+      input: {
+        initialValue: this.unit.name,
+        placeholder: "Unit name",
+        maxLength: 32,
+        allowedCharacterPattern: SQUAD_NAME_ALLOWED_CHARACTER_PATTERN,
+      },
+    });
+  }
+
+  private async reorderSelectedAbility(direction: -1 | 1): Promise<void> {
+    if (!this.unit) return;
+    const targetIndex = this.selectedLoadoutIndex + direction;
+    if (targetIndex < 0 || targetIndex >= this.unit.equippedLoadout.length) return;
+
+    const abilityIds = this.unit.equippedLoadout.map((entry) => entry.abilityId);
+    const [moved] = abilityIds.splice(this.selectedLoadoutIndex, 1);
+    if (!moved) {
+      return;
+    }
+    abilityIds.splice(targetIndex, 0, moved);
+
+    const response = await apiClient.replaceEquippedAbilities(this.unitId, abilityIds);
+    if (!response.ok) {
+      this.showToast(`Loadout update failed: ${response.error.message}`);
+      return;
+    }
+
+    this.selectedLoadoutIndex = targetIndex;
+    this.showToast("Loadout order updated.", "#ccffcc");
+    await this.loadData();
+  }
+
+  private async assignSelectedDie(): Promise<void> {
+    const selectedAbility = this.getSelectedLoadoutEntry();
+    const selectedDie = this.getSelectedDie();
+    if (!selectedAbility || selectedAbility.diceCost === 0) {
+      this.showToast("Selected ability has no die slots.");
+      return;
+    }
+    if (!selectedDie) {
+      this.showToast("Select a die first.");
+      return;
+    }
+    if (selectedDie.equipped && selectedDie.equipped.unitId !== this.unitId) {
+      this.showToast(`Die already equipped on ${selectedDie.equipped.unitName}.`);
+      return;
+    }
+
+    const response = await apiClient.assignAbilitySlotDie(
+      this.unitId,
+      selectedAbility.abilityId,
+      this.selectedAbilitySlotIndex,
+      selectedDie.id,
+    );
+    if (!response.ok) {
+      this.showToast(`Die equip failed: ${response.error.message}`);
+      return;
+    }
+
+    this.showToast("Die assigned to ability slot.", "#ccffcc");
+    await this.loadData();
+  }
+
+  private async clearSelectedSlotDie(): Promise<void> {
+    const selectedAbility = this.getSelectedLoadoutEntry();
+    const selectedSlotDie = this.getSelectedSlotDie();
+    if (!selectedAbility || selectedAbility.diceCost === 0) {
+      this.showToast("Selected ability has no die slots.");
+      return;
+    }
+    if (!selectedSlotDie) {
+      this.showToast("Selected slot is already empty.");
+      return;
+    }
+
+    const response = await apiClient.clearAbilitySlotDie(
+      this.unitId,
+      selectedAbility.abilityId,
+      this.selectedAbilitySlotIndex,
+    );
+    if (!response.ok) {
+      this.showToast(`Clear slot failed: ${response.error.message}`);
+      return;
+    }
+
+    this.showToast("Slot cleared.", "#ccffcc");
+    await this.loadData();
+  }
+
   private candidateRowState(unit: UnitRecord): UnitCardState {
     const selected = this.fusionSecondaryIds.includes(unit.id);
     return {
       highlighted: selected,
-      disabled: this.activeRun,
+      outlined: selected || this.selectedFusionSlotIndex >= 0,
+      disabled: !this.isPromotionCompatible(this.unitId, unit.id),
       badgeText: selected ? "SELECTED" : null,
     };
   }
 
   private assignFusionSecondary(unitId: string): void {
-    if (this.activeRun) return;
     if (!this.isPromotionCompatible(this.unitId, unitId)) {
+      this.showToast("This unit is not valid promotion material.");
       return;
     }
 
@@ -534,240 +727,70 @@ export default class UnitDetailsScene extends Phaser.Scene {
     if (existingIndex >= 0) {
       this.fusionSecondaryIds[existingIndex] = null;
       this.selectedFusionSlotIndex = existingIndex;
-      this.secondaryPanel?.refreshCardStates();
-      this.refreshFusionSlotUi();
-      this.refreshStatus();
-      this.refreshActionButtons();
+      this.refreshUi();
       return;
     }
 
-    const targetIndex = this.selectedFusionSlotIndex !== null
-      ? this.selectedFusionSlotIndex
-      : this.fusionSecondaryIds.findIndex((id) => id === null);
-    const safeIndex = targetIndex >= 0 ? targetIndex : 0;
+    const targetIndex = this.fusionSecondaryIds.findIndex((id) => id === null);
+    const safeIndex = targetIndex >= 0 ? targetIndex : this.selectedFusionSlotIndex;
     this.fusionSecondaryIds[safeIndex] = unitId;
-    this.selectedFusionSlotIndex = (safeIndex + 1) % REQUIRED_FUSION_UNITS;
-
-    this.secondaryPanel?.refreshCardStates();
-    this.refreshFusionSlotUi();
-    this.refreshStatus();
-    this.refreshActionButtons();
-  }
-
-  private async promoteUnit(): Promise<void> {
-    if (this.activeRun) {
-      this.showToast("Promotion unavailable while a run is active.");
-      return;
-    }
-    const selectedSecondaries = this.fusionSecondaryIds.filter((id): id is string => Boolean(id));
-    if (selectedSecondaries.length !== REQUIRED_FUSION_UNITS) {
-      this.showToast("Select two compatible secondaries.");
-      return;
-    }
-
-    const [a, b] = selectedSecondaries as [string, string];
-    const res = await apiClient.promoteUnit(this.unitId, [a, b]);
-    if (!res.ok) {
-      this.showToast(`Promote failed: ${res.error.message}`);
-      return;
-    }
-    this.showToast("Promotion applied.", "#ccffcc");
-    this.fusionSecondaryIds = Array(REQUIRED_FUSION_UNITS).fill(null);
-    this.selectedFusionSlotIndex = 0;
-    await this.loadData();
-  }
-
-  private isPromotionCompatible(primaryId: string, secondaryId: string): boolean {
-    const primary = this.units.find((u) => u.id === primaryId);
-    const secondary = this.units.find((u) => u.id === secondaryId);
-    if (!primary || !secondary) return false;
-    if ((primary.unit_type_id ?? null) !== (secondary.unit_type_id ?? null)) return false;
-    if ((primary.tier ?? 1) !== (secondary.tier ?? 1)) return false;
-    const maxPrimary = typeof primary.max_level === "number" ? primary.max_level : null;
-    const maxSecondary = typeof secondary.max_level === "number" ? secondary.max_level : null;
-    if (maxPrimary !== null && primary.level < maxPrimary) return false;
-    if (maxSecondary !== null && secondary.level < maxSecondary) return false;
-    return true;
-  }
-
-  private refreshStatus(): void {
-    this.refreshActionButtons();
-  }
-
-  private getSelectedDie(): DiceDetailsViewModel | null {
-    if (!this.selectedDiceId) {
-      return null;
-    }
-    return this.dice.find((die) => die.id === this.selectedDiceId) ?? null;
-  }
-
-  private refreshActionButtons(): void {
-    const selectedDie = this.getSelectedDie();
-    const canMutateDice = !this.activeRun;
-    const selectedSlotDie = this.getSelectedSlotDie();
-
-    const dieEquippedElsewhere = Boolean(selectedDie?.equipped && selectedDie.equipped.unitId !== this.unitId);
-    const canEquip = Boolean(canMutateDice && this.selectedEquipSlotIndex !== null && selectedDie && !dieEquippedElsewhere);
-    const canUnequip = Boolean(canMutateDice && selectedSlotDie);
-    const selectedSecondaries = this.fusionSecondaryIds.filter((id): id is string => Boolean(id));
-    const canClearFusion = selectedSecondaries.length > 0;
-    const canPromote = !this.activeRun && selectedSecondaries.length === REQUIRED_FUSION_UNITS;
-
-    this.equipDiceButton?.setEnabled(canEquip);
-    this.unequipSlotButton?.setEnabled(canUnequip);
-    this.clearFusionButton?.setEnabled(canClearFusion);
-    this.promoteButton?.setEnabled(canPromote);
+    this.selectedFusionSlotIndex = Math.min(REQUIRED_FUSION_UNITS - 1, safeIndex + 1);
+    this.refreshUi();
   }
 
   private clearFusionSelections(): void {
     this.fusionSecondaryIds = Array(REQUIRED_FUSION_UNITS).fill(null);
     this.selectedFusionSlotIndex = 0;
-    this.secondaryPanel?.refreshCardStates();
-    this.refreshFusionSlotUi();
-    this.refreshStatus();
-    this.refreshActionButtons();
-  }
-
-  private async equipSelectedDie(): Promise<void> {
-    if (this.activeRun) {
-      this.showToast("Dice changes unavailable while an active run exists.");
-      return;
-    }
-
-    if (this.selectedEquipSlotIndex === null) {
-      this.showToast("Select a target dice slot first.");
-      return;
-    }
-
-    const selectedDie = this.getSelectedDie();
-    if (!selectedDie) {
-      this.showToast("Select a die first.");
-      return;
-    }
-
-    if (selectedDie.equipped && selectedDie.equipped.unitId !== this.unitId) {
-      this.showToast(`Die already equipped on ${selectedDie.equipped.unitName}.`);
-      return;
-    }
-
-    const slotDie = this.getSelectedSlotDie();
-    if (slotDie && slotDie.id !== selectedDie.id) {
-      const clearSlot = await apiClient.unequipDice(this.unitId, slotDie.id);
-      if (!clearSlot.ok) {
-        this.showToast(`Unequip existing slot die failed: ${clearSlot.error.message}`);
-        return;
-      }
-    }
-
-    if (selectedDie.equipped && selectedDie.equipped.unitId === this.unitId && slotDie?.id !== selectedDie.id) {
-      const clearOld = await apiClient.unequipDice(this.unitId, selectedDie.id);
-      if (!clearOld.ok) {
-        this.showToast(`Move failed: ${clearOld.error.message}`);
-        return;
-      }
-    }
-
-    const res = await apiClient.equipDice(this.unitId, selectedDie.id);
-    if (!res.ok) {
-      this.showToast(`Equip failed: ${res.error.message}`);
-      return;
-    }
-
-    this.showToast("Die equipped.", "#ccffcc");
-    await this.loadData();
-  }
-
-  private async unequipSelectedSlotDie(): Promise<void> {
-    if (this.activeRun) {
-      this.showToast("Dice changes unavailable while an active run exists.");
-      return;
-    }
-
-    if (this.selectedEquipSlotIndex === null) {
-      this.showToast("Select a slot first.");
-      return;
-    }
-
-    const slotDie = this.getSelectedSlotDie();
-    if (!slotDie) {
-      this.showToast("Selected slot is already empty.");
-      return;
-    }
-
-    const res = await apiClient.unequipDice(this.unitId, slotDie.id);
-    if (!res.ok) {
-      this.showToast(`Unequip failed: ${res.error.message}`);
-      return;
-    }
-
-    this.showToast("Die unequipped.", "#ccffcc");
-    await this.loadData();
-  }
-
-  private getSelectedSlotDie(): DiceDetailsViewModel | null {
-    if (this.selectedEquipSlotIndex === null) {
-      return null;
-    }
-    return this.getUnitEquippedDiceBySlot().get(this.selectedEquipSlotIndex) ?? null;
-  }
-
-  private getDiceSlotCount(): number {
-    if (!this.unit) {
-      return 2;
-    }
-
-    const explicit = Number((this.unit as Record<string, unknown>).max_equipped_dice ?? 0);
-    if (Number.isFinite(explicit) && explicit > 0) {
-      return Math.max(1, Math.floor(explicit));
-    }
-
-    const equipped = Array.isArray(this.unit.equipped_dice) ? this.unit.equipped_dice : [];
-    const maxSlotIndex = equipped.reduce((max, item) => {
-      const slotIndex = Number(item?.slot_index ?? -1);
-      return Number.isFinite(slotIndex) ? Math.max(max, slotIndex) : max;
-    }, -1);
-
-    return Math.max(2, maxSlotIndex + 1);
-  }
-
-  private getUnitEquippedDiceBySlot(): Map<number, DiceDetailsViewModel> {
-    const map = new Map<number, DiceDetailsViewModel>();
-    if (!this.unit || !Array.isArray(this.unit.equipped_dice)) {
-      return map;
-    }
-
-    for (const equipped of this.unit.equipped_dice) {
-      const slotIndex = Number(equipped.slot_index);
-      if (!Number.isFinite(slotIndex) || slotIndex < 0) {
-        continue;
-      }
-      const die = this.dice.find((candidate) => candidate.id === String(equipped.dice_instance_id));
-      if (die) {
-        map.set(slotIndex, die);
-      }
-    }
-
-    return map;
+    this.refreshUi();
   }
 
   private getFusionCandidates(): UnitRecord[] {
-    return this.units.filter((u) => u.id !== this.unitId && this.isPromotionCompatible(this.unitId, u.id));
+    return this.rawUnits.filter((unit) => unit.id !== this.unitId);
   }
 
-  private getSelectableDice(): DiceDetailsViewModel[] {
-    return this.dice.filter((die) => !die.equipped);
+  private isPromotionCompatible(primaryId: string, secondaryId: string): boolean {
+    const primary = this.rawUnits.find((unit) => unit.id === primaryId);
+    const secondary = this.rawUnits.find((unit) => unit.id === secondaryId);
+    if (!primary || !secondary) return false;
+    if (primary.id === secondary.id) return false;
+    if ((primary.unit_type_id ?? "") !== (secondary.unit_type_id ?? "")) return false;
+    if ((primary.tier ?? 1) !== (secondary.tier ?? 1)) return false;
+
+    const primaryMaxLevel = typeof primary.max_level === "number" ? primary.max_level : null;
+    const secondaryMaxLevel = typeof secondary.max_level === "number" ? secondary.max_level : null;
+    if (primaryMaxLevel !== null && primary.level < primaryMaxLevel) return false;
+    if (secondaryMaxLevel !== null && secondary.level < secondaryMaxLevel) return false;
+    return true;
   }
 
-  private refreshDiceSelectionGrid(): void {
-    if (!this.dicePanel) {
+  private async promoteUnit(): Promise<void> {
+    if (this.activeRun) {
+      this.showToast("Promotion is still disabled during active runs.");
       return;
     }
 
-    const selectable = this.getSelectableDice();
-    if (this.selectedDiceId && !selectable.some((die) => die.id === this.selectedDiceId)) {
-      this.selectedDiceId = selectable[0]?.id ?? null;
+    const selectedSecondaries = this.fusionSecondaryIds.filter((id): id is string => Boolean(id));
+    if (selectedSecondaries.length !== REQUIRED_FUSION_UNITS) {
+      this.showToast("Select two compatible promotion units.");
+      return;
     }
-    this.dicePanel.setDice(selectable, this.selectedDiceId);
+
+    const [secondaryA, secondaryB] = selectedSecondaries;
+    if (!secondaryA || !secondaryB) {
+      this.showToast("Select two compatible promotion units.");
+      return;
+    }
+
+    const response = await apiClient.promoteUnit(this.unitId, [secondaryA, secondaryB]);
+    if (!response.ok) {
+      this.showToast(`Promotion failed: ${response.error.message}`);
+      return;
+    }
+
+    this.showToast("Promotion applied.", "#ccffcc");
+    this.fusionSecondaryIds = Array(REQUIRED_FUSION_UNITS).fill(null);
+    this.selectedFusionSlotIndex = 0;
+    await this.loadData();
   }
 
   private pickDieFrame(die: DiceDetailsViewModel): string {
@@ -781,61 +804,44 @@ export default class UnitDetailsScene extends Phaser.Scene {
     return atlas.has(frame) ? frame : "cardboard_d6";
   }
 
-  private syncLocalSelections(diceVm: DiceDetailsViewModel[]): void {
-    this.dice = diceVm;
-
-    const selectable = this.getSelectableDice();
-    const selectedStillExists = this.selectedDiceId
-      ? selectable.some((die) => die.id === this.selectedDiceId)
-      : false;
-    if (!selectedStillExists) {
-      this.selectedDiceId = selectable[0]?.id ?? null;
-    }
-
-    const slotCount = this.getDiceSlotCount();
-    if (this.selectedEquipSlotIndex === null || this.selectedEquipSlotIndex >= slotCount) {
-      this.selectedEquipSlotIndex = 0;
-    }
-
-    const compatibleIds = new Set(this.getFusionCandidates().map((u) => u.id));
-    this.fusionSecondaryIds = this.fusionSecondaryIds.map((id) => (id && compatibleIds.has(id) ? id : null));
-
-    if (this.selectedFusionSlotIndex !== null && this.selectedFusionSlotIndex >= REQUIRED_FUSION_UNITS) {
-      this.selectedFusionSlotIndex = 0;
-    }
-  }
-
   private clearDynamicUi(): void {
     for (const obj of this.layoutUiObjects) {
       obj.destroy();
     }
     this.layoutUiObjects = [];
-    this.equipSlotBorders = [];
-    this.equipSlotLabels = [];
-    this.equipSlotIcons = [];
+    this.loadoutRowBorders = [];
+    this.loadoutRowTexts = [];
+    this.abilitySlotBorders = [];
+    this.abilitySlotLabels = [];
+    this.abilitySlotIcons = [];
     this.fusionSlotBorders = [];
     this.fusionSlotLabels = [];
-    this.clearFusionButton?.destroy();
+    this.dicePanel?.destroy();
+    this.dicePanel = undefined;
+    this.secondaryPanel?.destroy();
+    this.secondaryPanel = undefined;
+    this.renameButton = undefined;
+    this.moveUpButton = undefined;
+    this.moveDownButton = undefined;
+    this.equipDiceButton = undefined;
+    this.unequipSlotButton = undefined;
     this.clearFusionButton = undefined;
+    this.promoteButton = undefined;
+    this.unitSummaryText = undefined;
+    this.helperText = undefined;
   }
 
   private showToast(message: string, color = "#ffcccc"): void {
     this.toastText?.destroy();
     const layout = getPageLayout(this);
-    this.toastText = this.add.text(layout.content.x + 16, layout.content.y + layout.content.height - 24, message, {
+    this.toastText = this.add.text(layout.content.x + 18, layout.content.y + layout.content.height - 22, message, {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "13px",
       color,
-    });
+    }).setOrigin(0, 1);
     this.time.delayedCall(2500, () => {
       this.toastText?.destroy();
       this.toastText = undefined;
     });
   }
 }
-
-
-
-
-
-

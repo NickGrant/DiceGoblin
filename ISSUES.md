@@ -2,20 +2,11 @@
 ----
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
-title: Add unit details support for renaming, loadout order, and ability-slot dice editing
-status: in-progress
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 39 - Unit Details and Promotion UX
-description: Rework UnitDetailsScene and supporting contracts so players can rename units, edit equipped ability order, manage ability-slot dice, and see their current 20-point budget usage.
-
----
 title: Update inventory flows to target ability-slot equips instead of unit pools
-status: unstarted
+status: in-progress
 priority: medium
 execution: active
-ready: no
+ready: yes
 milestone: Milestone 39 - Unit Details and Promotion UX
 description: Change dice inventory interactions so equips and unequips target a specific unit ability slot rather than a generic per-unit dice pool. This includes showing where dice are currently bound.
 

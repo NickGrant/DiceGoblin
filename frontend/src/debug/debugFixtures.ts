@@ -1,4 +1,5 @@
 import type {
+  AbilityCatalogResponse,
   CurrentRunData,
   ResolveNodeResponse,
   DiceRecord,
@@ -11,9 +12,24 @@ import type {
 } from "../types/ApiResponse";
 
 const FIXTURE_UNITS: UnitRecord[] = [
-  { id: "1", name: "Bogblade", level: 8, unit_type_id: "rogue", unit_type_name: "Skirmisher", tier: 1, xp: 180, max_level: 10, equipped_dice: [{ dice_instance_id: "101", slot_index: 0 }] },
-  { id: "2", name: "Grizzle Hex", level: 10, unit_type_id: "shaman", unit_type_name: "Hexer", tier: 1, xp: 260, max_level: 10, equipped_dice: [{ dice_instance_id: "102", slot_index: 0 }] },
-  { id: "3", name: "Rivet Fang", level: 9, unit_type_id: "brute", unit_type_name: "Bruiser", tier: 1, xp: 210, max_level: 10 },
+  {
+    id: "1", name: "Bogblade", level: 8, unit_type_id: "rogue", unit_type_name: "Skirmisher", tier: 1, xp: 180, max_level: 10,
+    unlocked_abilities: [{ ability_id: "basic_attack_melee" }, { ability_id: "poison_stab" }],
+    equipped_abilities: [{ ability_id: "basic_attack_melee", equip_order: 0, speed_cost: 4 }, { ability_id: "poison_stab", equip_order: 1, speed_cost: 10 }],
+    ability_dice: [{ ability_id: "poison_stab", slot_index: 0, dice_instance_id: "101" }],
+  },
+  {
+    id: "2", name: "Grizzle Hex", level: 10, unit_type_id: "shaman", unit_type_name: "Hexer", tier: 1, xp: 260, max_level: 10,
+    unlocked_abilities: [{ ability_id: "basic_attack_ranged" }, { ability_id: "bolster_ally" }],
+    equipped_abilities: [{ ability_id: "basic_attack_ranged", equip_order: 0, speed_cost: 4 }, { ability_id: "bolster_ally", equip_order: 1, speed_cost: 10 }],
+    ability_dice: [{ ability_id: "bolster_ally", slot_index: 0, dice_instance_id: "102" }],
+  },
+  {
+    id: "3", name: "Rivet Fang", level: 9, unit_type_id: "brute", unit_type_name: "Bruiser", tier: 1, xp: 210, max_level: 10,
+    unlocked_abilities: [{ ability_id: "basic_attack_melee" }, { ability_id: "heavy_strike" }, { ability_id: "shield_up" }],
+    equipped_abilities: [{ ability_id: "basic_attack_melee", equip_order: 0, speed_cost: 4 }, { ability_id: "heavy_strike", equip_order: 1, speed_cost: 8 }, { ability_id: "shield_up", equip_order: 2, speed_cost: 10 }],
+    ability_dice: [{ ability_id: "heavy_strike", slot_index: 0, dice_instance_id: "103" }],
+  },
   { id: "4", name: "Murk Scout", level: 7, unit_type_id: "rogue", unit_type_name: "Skirmisher", tier: 1, xp: 130, max_level: 10 },
   { id: "5", name: "Tallow Priest", level: 10, unit_type_id: "shaman", unit_type_name: "Hexer", tier: 1, xp: 255, max_level: 10 },
   { id: "6", name: "Scrap Banner", level: 6, unit_type_id: "brute", unit_type_name: "Bruiser", tier: 1, xp: 90, max_level: 10 },
@@ -158,6 +174,23 @@ export function getDebugProfileFixture(): ProfileResponse {
   };
 
   return { ok: true, data };
+}
+
+export function getDebugAbilityCatalogFixture(): AbilityCatalogResponse {
+  return {
+    ok: true,
+    data: {
+      catalog_version: 1,
+      abilities: [
+        { ability_id: "basic_attack_melee", type: "active", display_name: "Basic Attack", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 10, speed: 4, dice_cost: 0, default_target: "enemy_front" },
+        { ability_id: "basic_attack_ranged", type: "active", display_name: "Basic Shot", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 10, speed: 4, dice_cost: 0, default_target: "enemy_back" },
+        { ability_id: "heavy_strike", type: "active", display_name: "Heavy Strike", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 20, speed: 8, dice_cost: 1, default_target: "enemy_front" },
+        { ability_id: "shield_up", type: "active", display_name: "Shield Up", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 5, speed: 10, dice_cost: 1, default_target: "self" },
+        { ability_id: "bolster_ally", type: "active", display_name: "Bolster Ally", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 5, speed: 10, dice_cost: 1, default_target: "ally" },
+        { ability_id: "poison_stab", type: "active", display_name: "Poison Stab", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 15, speed: 10, dice_cost: 1, default_target: "enemy_front" },
+      ],
+    },
+  };
 }
 
 export function getDebugRunFixture(): RunResponse {
