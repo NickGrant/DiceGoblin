@@ -96,3 +96,13 @@ ready: yes
 milestone: Milestone 39 - Unit Details and Promotion UX
 description: Rework UnitDetailsScene and supporting contracts so players can rename units, edit equipped ability order, manage ability-slot dice, and see their current 20-point budget usage.
 resolution: Rebuilt UnitDetailsScene around the new unit-details view models so players can rename units, reorder equipped abilities, assign or clear ability-slot dice, and read their current 20-point loadout budget in one screen. Added debug catalog/profile coverage for the new scene data shape and verified the updated frontend build and test suite.
+
+---
+title: Update inventory flows to target ability-slot equips instead of unit pools
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 39 - Unit Details and Promotion UX
+description: Change dice inventory interactions so equips and unequips target a specific unit ability slot rather than a generic per-unit dice pool. This includes showing where dice are currently bound.
+resolution: Removed the unused pooled-dice mutation client surface from the frontend and updated inventory dice presentation so equipped dice now show their unit, bound ability, and slot context. Frontend tests, build, and backlog validation all passed after the cleanup.

@@ -7,7 +7,6 @@ status: in-progress
 execution_window: open
 is_current: yes
 issues:
-  - Update inventory flows to target ability-slot equips instead of unit pools
   - Rework promotion flow for cumulative abilities and sideways destinations
 description: |
   Bring the player-facing management surfaces into alignment with the new combat

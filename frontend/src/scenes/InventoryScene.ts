@@ -42,6 +42,14 @@ const RARITY_SORT_VALUE: Record<string, number> = {
   legendary: 4,
 };
 
+function labelFromId(id: string): string {
+  return id
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export default class InventoryScene extends Phaser.Scene {
   private runId = "";
   private nodeId = "";
@@ -420,13 +428,13 @@ export default class InventoryScene extends Phaser.Scene {
       ? visibleDice.find((die) => die.id === this.hoveredDiceId) ?? this.dice.find((die) => die.id === this.hoveredDiceId)
       : null;
     const detailDie = hoveredDie ?? selectedDie ?? null;
-    const equippedUnitName = selectedDie?.equipped?.unitName ?? "None";
+    const equippedBinding = this.describeEquippedBinding(selectedDie);
 
     this.actionSummaryText.setText([
       "INVENTORY SUMMARY",
       `Dice: ${visibleDice.length} / ${this.dice.length}`,
       `Selected: ${selectedDie?.displayName ?? "None"}`,
-      `Equipped: ${equippedUnitName}`,
+      `Bound: ${equippedBinding}`,
       `Sell Value: ${selectedDie?.sellValue ?? 0} teeth`,
     ].join("\n"));
 
@@ -607,8 +615,22 @@ export default class InventoryScene extends Phaser.Scene {
     return [
       hovered ? "AFFIX DETAILS (HOVER)" : "AFFIX DETAILS",
       `${die.displayName} | ${die.sizeLabel.toUpperCase()} | ${die.rarity.toUpperCase()}`,
+      `Bound: ${this.describeEquippedBinding(die)}`,
       ...affixLines,
     ].join("\n");
+  }
+
+  private describeEquippedBinding(die: DiceDetailsViewModel | null): string {
+    if (!die?.equipped) {
+      return "Unequipped";
+    }
+
+    const slotLabel = `slot ${die.equipped.slotIndex + 1}`;
+    if (!die.equipped.abilityId) {
+      return `${die.equipped.unitName} (${slotLabel})`;
+    }
+
+    return `${die.equipped.unitName} • ${labelFromId(die.equipped.abilityId)} ${slotLabel}`;
   }
 
   private showToast(message: string, color = "#ffcccc"): void {

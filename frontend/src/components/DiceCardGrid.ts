@@ -33,6 +33,27 @@ const RARITY_TO_MATERIAL: Record<string, "cardboard" | "wood" | "bone" | "metal"
   legendary: "gemstone",
 };
 
+function labelFromId(id: string): string {
+  return id
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatEquippedLabel(die: DiceDetailsViewModel): string {
+  if (!die.equipped) {
+    return `${die.rarity} • ${die.affixes.filter((affix) => !affix.empty).length} affix`;
+  }
+
+  const slotLabel = `S${die.equipped.slotIndex + 1}`;
+  if (die.equipped.abilityId) {
+    return `${die.equipped.unitName} • ${labelFromId(die.equipped.abilityId)} ${slotLabel}`;
+  }
+
+  return `${die.equipped.unitName} • ${slotLabel}`;
+}
+
 export default class DiceCardGrid extends Phaser.GameObjects.Container {
   private readonly sceneRef: Phaser.Scene;
   private readonly panelW: number;
@@ -125,20 +146,13 @@ export default class DiceCardGrid extends Phaser.GameObjects.Container {
               .setOrigin(0.5, 0);
 
             const subtitle = cardScene.add
-              .text(
-                width / 2,
-                height - 14,
-                item.equipped
-                  ? `Equipped: ${item.equipped.unitName}`
-                  : `${item.rarity} • ${item.affixes.filter((affix) => !affix.empty).length} affix`,
-                {
+              .text(width / 2, height - 14, formatEquippedLabel(item), {
                 fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-                fontSize: "11px",
+                fontSize: "10px",
                 color: item.equipped ? "#ccffcc" : "#c8c8c8",
                 align: "center",
                 wordWrap: { width: width - 8 },
-                }
-              )
+              })
               .setOrigin(0.5, 0.5);
 
             card.add([bg, portraitBg, sprite, title, subtitle]);

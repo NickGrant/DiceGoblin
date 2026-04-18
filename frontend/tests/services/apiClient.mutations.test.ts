@@ -190,20 +190,14 @@ describe("apiClient mutation flows", () => {
     expect(finalizeInit.method).toBe("POST");
   });
 
-  it("promotion and dice mutation methods include rest context when provided", async () => {
+  it("promotion mutation methods include rest context when provided", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock
       .mockResolvedValueOnce(jsonResponse({ ok: true, data: { authenticated: true, csrf_token: "csrf_promote" } }))
-      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { unit: { id: "11", tier: 2, level: 1, xp: 0 }, consumed_units: ["12", "13"] } }))
-      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { authenticated: true, csrf_token: "csrf_equip" } }))
-      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { unit_id: "11", equipped_dice: [] } }))
-      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { authenticated: true, csrf_token: "csrf_unequip" } }))
-      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { unit_id: "11", equipped_dice: [] } }));
+      .mockResolvedValueOnce(jsonResponse({ ok: true, data: { unit: { id: "11", tier: 2, level: 1, xp: 0 }, consumed_units: ["12", "13"] } }));
 
     const { apiClient } = await import("../../src/services/apiClient");
     await apiClient.promoteUnit("11", ["12", "13"], { runId: "44", nodeId: "7" });
-    await apiClient.equipDice("11", "55", { runId: "44", nodeId: "7" });
-    await apiClient.unequipDice("11", "55", { runId: "44", nodeId: "7" });
 
     const promoteInit = expectCsrfHeader(fetchMock, 1, "csrf_promote");
     expect(promoteInit.body).toBe(JSON.stringify({
@@ -212,12 +206,6 @@ describe("apiClient mutation flows", () => {
       run_id: 44,
       node_id: 7,
     }));
-
-    const equipInit = expectCsrfHeader(fetchMock, 3, "csrf_equip");
-    expect(equipInit.body).toBe(JSON.stringify({ dice_instance_id: 55, run_id: 44, node_id: 7 }));
-
-    const unequipInit = expectCsrfHeader(fetchMock, 5, "csrf_unequip");
-    expect(unequipInit.body).toBe(JSON.stringify({ dice_instance_id: 55, run_id: 44, node_id: 7 }));
   });
 
   it("unit detail mutation methods include csrf and optional rest context", async () => {

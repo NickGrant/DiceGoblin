@@ -2,20 +2,11 @@
 ----
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
-title: Update inventory flows to target ability-slot equips instead of unit pools
-status: in-progress
-priority: medium
-execution: active
-ready: yes
-milestone: Milestone 39 - Unit Details and Promotion UX
-description: Change dice inventory interactions so equips and unequips target a specific unit ability slot rather than a generic per-unit dice pool. This includes showing where dice are currently bound.
-
----
 title: Rework promotion flow for cumulative abilities and sideways destinations
-status: unstarted
+status: in-progress
 priority: high
 execution: active
-ready: no
+ready: yes
 milestone: Milestone 39 - Unit Details and Promotion UX
 description: Update promotion backend and UI flows so units retain cumulative ability catalogs and can choose either the next chain destination or an eligible sideways destination at the tier being exited.
 

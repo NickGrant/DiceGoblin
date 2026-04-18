@@ -454,13 +454,6 @@ export type PromoteUnitData = {
 
 export type PromoteUnitResponse = ApiResponse<PromoteUnitData>;
 
-export type DiceMutationData = {
-  unit_id: string;
-  equipped_dice: UnitEquippedDie[];
-};
-
-export type DiceMutationResponse = ApiResponse<DiceMutationData>;
-
 export type RenameUnitData = {
   unit_id: string;
   display_name: string;
