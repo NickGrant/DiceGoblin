@@ -316,6 +316,26 @@ final class DeterministicRunNodeResolver
 
     $unitIds = array_map(static fn(array $u): int => (int)$u['id'], $units);
     $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
+    $equippedAbilityStmt = $this->pdo->prepare("
+      SELECT `unit_instance_id`, `ability_id`
+      FROM `unit_instance_equipped_abilities`
+      WHERE `unit_instance_id` IN ($placeholders)
+      ORDER BY `unit_instance_id` ASC, `equip_order` ASC, `id` ASC
+    ");
+    $equippedAbilityStmt->execute($unitIds);
+
+    $equippedAbilityIdsByUnit = [];
+    foreach ($equippedAbilityStmt->fetchAll(PDO::FETCH_ASSOC) as $abilityRow) {
+      $unitId = (string)$abilityRow['unit_instance_id'];
+      $abilityId = trim((string)($abilityRow['ability_id'] ?? ''));
+      if ($abilityId === '') {
+        continue;
+      }
+
+      $equippedAbilityIdsByUnit[$unitId] ??= [];
+      $equippedAbilityIdsByUnit[$unitId][] = $abilityId;
+    }
+
     $diceStmt = $this->pdo->prepare("\n      SELECT\n        ud.`unit_instance_id`,\n        ud.`dice_instance_id`,\n        dd.`sides`,\n        ad.`slug` AS `affix_slug`,\n        dia.`value` AS `affix_value`\n      FROM `unit_dice` ud\n      JOIN `dice_instances` di ON di.`id` = ud.`dice_instance_id`\n      JOIN `dice_definitions` dd ON dd.`id` = di.`dice_definition_id`\n      LEFT JOIN `dice_instance_affixes` dia ON dia.`dice_instance_id` = di.`id`\n      LEFT JOIN `affix_definitions` ad ON ad.`id` = dia.`affix_definition_id`\n      WHERE ud.`unit_instance_id` IN ($placeholders)\n      ORDER BY ud.`unit_instance_id` ASC, ud.`slot_index` ASC, ad.`id` ASC\n    ");
     $diceStmt->execute($unitIds);
 
@@ -344,6 +364,11 @@ final class DeterministicRunNodeResolver
 
     foreach ($units as &$unit) {
       $unitId = (string)$unit['id'];
+      $equippedAbilityIds = $equippedAbilityIdsByUnit[$unitId] ?? [];
+      if (count($equippedAbilityIds) > 0) {
+        $unit['abilities'] = $equippedAbilityIds;
+      }
+
       $equippedDice = array_values($diceByUnitId[$unitId] ?? []);
       $emptySlotCount = max(0, ((int)($unit['max_equipped_dice'] ?? 1)) - count($equippedDice));
       for ($i = 0; $i < $emptySlotCount; $i++) {
@@ -439,7 +464,7 @@ final class DeterministicRunNodeResolver
     $uniqueSlugs = array_values(array_unique($slugs));
     $placeholders = implode(',', array_fill(0, count($uniqueSlugs), '?'));
 
-    $stmt = $this->pdo->prepare("\n      SELECT `slug`, `base_stats_json`, `ability_set_json`, `xp_reward`\n      FROM `enemy_templates`\n      WHERE `slug` IN ($placeholders)\n    ");
+    $stmt = $this->pdo->prepare("\n      SELECT `slug`, `base_stats_json`, `ability_set_json`, `equipped_abilities_json`, `xp_reward`\n      FROM `enemy_templates`\n      WHERE `slug` IN ($placeholders)\n    ");
     $stmt->execute($uniqueSlugs);
 
     $enemyBySlug = [];
@@ -463,6 +488,7 @@ final class DeterministicRunNodeResolver
 
       $baseStats = $this->decodeJsonObject($row['base_stats_json']);
       $abilitySet = $this->decodeJsonObject($row['ability_set_json']);
+      $equippedAbilityIds = $this->decodeAbilityIdList($row['equipped_abilities_json'] ?? null);
 
       $units[] = [
         'id' => $instanceId,
@@ -470,7 +496,7 @@ final class DeterministicRunNodeResolver
         'attack' => max(1, (int)($baseStats['attack'] ?? 1)),
         'defense' => max(0, (int)($baseStats['defense'] ?? 0)),
         'max_hp' => max(1, (int)($baseStats['max_hp'] ?? 1)),
-        'abilities' => $this->flattenActiveAbilityIds($abilitySet),
+        'abilities' => count($equippedAbilityIds) > 0 ? $equippedAbilityIds : $this->flattenActiveAbilityIds($abilitySet),
         'dice_pool' => [[
           'kind' => 'enemy_virtual',
           'dice_instance_id' => null,
@@ -673,8 +699,8 @@ final class DeterministicRunNodeResolver
           }
 
           foreach ($playerSchedules[$playerActorId] ?? [] as $ability) {
-            $speed = (int)$ability['speed'];
-            if ($speed <= 0 || ($tickOffset % $speed) !== 0) {
+            $triggerTick = (int)($ability['trigger_tick'] ?? 0);
+            if ($triggerTick <= 0 || $tickOffset !== $triggerTick) {
               continue;
             }
 
@@ -747,8 +773,8 @@ final class DeterministicRunNodeResolver
           }
 
           foreach ($enemySchedules[$enemyActorId] ?? [] as $ability) {
-            $speed = (int)$ability['speed'];
-            if ($speed <= 0 || ($tickOffset % $speed) !== 0) {
+            $triggerTick = (int)($ability['trigger_tick'] ?? 0);
+            if ($triggerTick <= 0 || $tickOffset !== $triggerTick) {
               continue;
             }
 
@@ -831,11 +857,12 @@ final class DeterministicRunNodeResolver
 
   /**
    * @param array<int,string> $abilityIds
-   * @return array<int,array{ability_id:string,speed:int,target:string}>
+   * @return array<int,array{ability_id:string,speed:int,target:string,trigger_tick:int,equip_order:int}>
    */
   private function buildActiveAbilitySchedule(array $abilityIds, AbilityRegistry $registry): array
   {
-    $scheduleById = [];
+    $schedule = [];
+    $cumulativeTick = 0;
     foreach ($abilityIds as $abilityId) {
       $id = trim((string)$abilityId);
       if ($id === '' || !$registry->has($id)) {
@@ -847,29 +874,37 @@ final class DeterministicRunNodeResolver
         continue;
       }
 
-      $scheduleById[$id] = [
+      $cumulativeTick += (int)$def->speed;
+      if ($cumulativeTick > 20) {
+        continue;
+      }
+
+      $schedule[] = [
         'ability_id' => $id,
         'speed' => (int)$def->speed,
         'target' => $def->defaultTarget?->value ?? 'enemy_front_prefer',
+        'trigger_tick' => $cumulativeTick,
+        'equip_order' => count($schedule),
       ];
     }
 
-    if (count($scheduleById) === 0) {
-      $scheduleById['basic_attack_melee'] = [
+    if (count($schedule) === 0) {
+      $schedule[] = [
         'ability_id' => 'basic_attack_melee',
         'speed' => 4,
         'target' => 'enemy_front_prefer',
+        'trigger_tick' => 4,
+        'equip_order' => 0,
       ];
     }
 
-    $schedule = array_values($scheduleById);
     usort($schedule, static function (array $a, array $b): int {
-      $speedCmp = ((int)$a['speed']) <=> ((int)$b['speed']);
-      if ($speedCmp !== 0) {
-        return $speedCmp;
+      $tickCmp = ((int)$a['trigger_tick']) <=> ((int)$b['trigger_tick']);
+      if ($tickCmp !== 0) {
+        return $tickCmp;
       }
 
-      return strcmp((string)$a['ability_id'], (string)$b['ability_id']);
+      return ((int)$a['equip_order']) <=> ((int)$b['equip_order']);
     });
 
     return $schedule;
@@ -1331,6 +1366,32 @@ final class DeterministicRunNodeResolver
     }
 
     $out = array_values(array_unique($out));
+    return $out;
+  }
+
+  /**
+   * @param mixed $abilityListRaw
+   * @return array<int,string>
+   */
+  private function decodeAbilityIdList(mixed $abilityListRaw): array
+  {
+    if (is_string($abilityListRaw)) {
+      $decoded = json_decode($abilityListRaw, true);
+      $abilityListRaw = is_array($decoded) ? $decoded : [];
+    }
+
+    if (!is_array($abilityListRaw)) {
+      return [];
+    }
+
+    $out = [];
+    foreach ($abilityListRaw as $abilityId) {
+      $id = trim((string)$abilityId);
+      if ($id !== '') {
+        $out[] = $id;
+      }
+    }
+
     return $out;
   }
 

@@ -2,15 +2,6 @@
 ----
 Active issues only. Move completed entries to `ISSUES_ARCHIVE.md`.
 
-title: Rewrite combat scheduler to use cumulative equipped ability timing
-status: unstarted
-priority: high
-execution: active
-ready: yes
-milestone: Milestone 38 - Combat Scheduler and Resolution Rewrite
-description: Replace modulo-based combat timing with cumulative once-per-round equipped ability scheduling for both player units and enemies. This includes preserving deterministic same-tick ordering and updating battle resolution to use equipped instances rather than implicit type defaults.
-
----
 title: Replace pooled combat dice resolution with ability-slot reads
 status: unstarted
 priority: high

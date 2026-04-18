@@ -3,11 +3,10 @@
 Active milestones only. Move completed entries to `MILESTONES_ARCHIVE.md`.
 
 name: Milestone 38 - Combat Scheduler and Resolution Rewrite
-status: not-started
+status: in-progress
 execution_window: open
 is_current: yes
 issues:
-  - Rewrite combat scheduler to use cumulative equipped ability timing
   - Replace pooled combat dice resolution with ability-slot reads
   - Expand battle logs for equipped ability instances and slot traces
 description: |

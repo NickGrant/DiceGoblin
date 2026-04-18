@@ -238,6 +238,65 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertGreaterThan(2, count($roundOneTickSet), 'Round one should contain action ticks beyond the previous fixed two-tick cadence.');
   }
 
+  public function testResolveNodeUsesCumulativeEquippedAbilityTicks(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 81818181);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'available');
+
+    $stmt = $this->pdo->prepare("SELECT `id` FROM `unit_types` WHERE `slug` = 'frontliner_bruiser_t1' LIMIT 1");
+    $stmt->execute();
+    $unitTypeId = (int)$stmt->fetchColumn();
+    $this->assertGreaterThan(0, $unitTypeId);
+
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 20, false);
+
+    $equipStmt = $this->pdo->prepare('
+      INSERT INTO `unit_instance_equipped_abilities` (`unit_instance_id`, `ability_id`, `equip_order`, `speed_cost`)
+      VALUES (?, ?, ?, ?)
+    ');
+    $equipStmt->execute([$unitId, 'basic_attack_melee', 0, 4]);
+    $equipStmt->execute([$unitId, 'heavy_strike', 1, 8]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new RunNodeController();
+    $response = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $response['status']);
+
+    $battleId = (int)($response['body']['data']['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $battleId);
+
+    $logRaw = $this->scalar('SELECT `log_json` FROM `battle_logs` WHERE `battle_id` = ?', [$battleId]);
+    $log = json_decode((string)$logRaw, true);
+    $this->assertIsArray($log);
+    $events = is_array($log['events'] ?? null) ? $log['events'] : [];
+
+    $playerRoundOneTicks = [];
+    foreach ($events as $event) {
+      if (
+        is_array($event)
+        && (string)($event['type'] ?? '') === 'action'
+        && (string)($event['side'] ?? '') === 'player'
+        && (string)($event['actor_unit_instance_id'] ?? '') === (string)$unitId
+        && (int)($event['round'] ?? 0) === 1
+      ) {
+        $playerRoundOneTicks[] = (int)($event['tick'] ?? 0);
+      }
+    }
+
+    $this->assertContains(4, $playerRoundOneTicks);
+    $this->assertContains(12, $playerRoundOneTicks);
+    $this->assertNotContains(8, $playerRoundOneTicks, 'The second equipped ability should fire at cumulative tick 12, not at its raw speed tick.');
+    $this->assertNotContains(16, $playerRoundOneTicks, 'Equipped abilities should fire once per round rather than on speed multiples.');
+  }
+
   public function testResolveNodeUsesD1FallbackForPlayerEmptyDiceSlots(): void
   {
     $userId = $this->insertUser();

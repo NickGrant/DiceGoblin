@@ -46,3 +46,13 @@ ready: yes
 milestone: Milestone 37 - Ability Loadout Rework Foundations
 description: Add server-side validation for the 20-point ability budget, duplicate ability equips, and legality of ability-slot dice assignments. This creates the contract enforcement needed for later UI and API work.
 resolution: Added shared loadout-service validation for equip budget enforcement, duplicate ability equips within budget, unlocked-ability checks, slot-index legality, and dice ownership/binding conflicts. Added integration coverage for the new rules, with syntax checks passing and DB-backed PHPUnit still blocked by the local MySQL test database refusing connections.
+
+---
+title: Rewrite combat scheduler to use cumulative equipped ability timing
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 38 - Combat Scheduler and Resolution Rewrite
+description: Replace modulo-based combat timing with cumulative once-per-round equipped ability scheduling for both player units and enemies. This includes preserving deterministic same-tick ordering and updating battle resolution to use equipped instances rather than implicit type defaults.
+resolution: Updated the deterministic combat engine to read ordered equipped abilities for players and authored enemy equipped loadouts, then schedule each active once per round at its cumulative trigger tick. Added coverage for cumulative tick behavior and kept legacy ability-set fallback behavior in place for transitional data.
