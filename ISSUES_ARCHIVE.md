@@ -36,3 +36,13 @@ ready: yes
 milestone: Milestone 37 - Ability Loadout Rework Foundations
 description: Extend enemy template definitions so each enemy type owns a shared equipped ability order for combat scheduling. This must land before the combat engine can switch enemies onto the new timing model.
 resolution: Added enemy equipped-loadout persistence and a seed migration that mirrors current authored active abilities into ordered enemy loadouts. This gives the combat rewrite a stable enemy contract without requiring per-enemy instance customization.
+
+---
+title: Add backend validators for ability equip budget and slot legality
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Milestone 37 - Ability Loadout Rework Foundations
+description: Add server-side validation for the 20-point ability budget, duplicate ability equips, and legality of ability-slot dice assignments. This creates the contract enforcement needed for later UI and API work.
+resolution: Added shared loadout-service validation for equip budget enforcement, duplicate ability equips within budget, unlocked-ability checks, slot-index legality, and dice ownership/binding conflicts. Added integration coverage for the new rules, with syntax checks passing and DB-backed PHPUnit still blocked by the local MySQL test database refusing connections.

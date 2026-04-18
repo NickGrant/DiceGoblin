@@ -9,6 +9,8 @@ use RuntimeException;
 
 final class UnitLoadoutService
 {
+  private const MAX_EQUIP_BUDGET = 20;
+
   public function __construct(
     private readonly PDO $pdo,
     private readonly AbilityRegistry $abilityRegistry = new AbilityRegistry(),
@@ -77,6 +79,12 @@ final class UnitLoadoutService
 
   public function assignDieToAbilitySlot(int $unitInstanceId, string $abilityId, int $slotIndex, int $diceInstanceId): void
   {
+    $context = $this->loadUnitContext($unitInstanceId);
+    $this->assertAbilityUnlockedForUnit($unitInstanceId, $abilityId);
+    $this->assertAbilitySlotLegal($abilityId, $slotIndex);
+    $this->assertDiceOwnedByUser((int)$context['user_id'], $diceInstanceId);
+    $this->assertDiceBindingAvailable($unitInstanceId, $abilityId, $slotIndex, $diceInstanceId);
+
     $stmt = $this->pdo->prepare('
       INSERT INTO `unit_ability_dice` (`unit_instance_id`, `ability_id`, `slot_index`, `dice_instance_id`)
       VALUES (?, ?, ?, ?)
@@ -85,6 +93,52 @@ final class UnitLoadoutService
         `updated_at` = CURRENT_TIMESTAMP
     ');
     $stmt->execute([$unitInstanceId, $abilityId, $slotIndex, $diceInstanceId]);
+  }
+
+  /**
+   * @param list<string> $abilityIds
+   */
+  public function replaceEquippedAbilities(int $unitInstanceId, array $abilityIds): void
+  {
+    $this->loadUnitContext($unitInstanceId);
+    $normalizedAbilityIds = [];
+    foreach ($abilityIds as $abilityId) {
+      $normalizedAbilityId = trim((string)$abilityId);
+      if ($normalizedAbilityId === '') {
+        continue;
+      }
+
+      $this->assertAbilityUnlockedForUnit($unitInstanceId, $normalizedAbilityId);
+      $speedCost = $this->speedCostForAbility($normalizedAbilityId);
+      if ($speedCost <= 0) {
+        throw new RuntimeException('Only active abilities with a positive speed cost can be equipped.');
+      }
+
+      $normalizedAbilityIds[] = $normalizedAbilityId;
+    }
+
+    $totalBudget = array_sum(array_map(fn(string $abilityId): int => $this->speedCostForAbility($abilityId), $normalizedAbilityIds));
+    if ($totalBudget > self::MAX_EQUIP_BUDGET) {
+      throw new RuntimeException('Equipped abilities exceed the 20-point speed budget.');
+    }
+
+    $startedTransaction = !$this->pdo->inTransaction();
+    if ($startedTransaction) {
+      $this->pdo->beginTransaction();
+    }
+    try {
+      $deleteStmt = $this->pdo->prepare('DELETE FROM `unit_instance_equipped_abilities` WHERE `unit_instance_id` = ?');
+      $deleteStmt->execute([$unitInstanceId]);
+      $this->insertEquippedAbilities($unitInstanceId, $normalizedAbilityIds);
+      if ($startedTransaction) {
+        $this->pdo->commit();
+      }
+    } catch (\Throwable $e) {
+      if ($startedTransaction && $this->pdo->inTransaction()) {
+        $this->pdo->rollBack();
+      }
+      throw $e;
+    }
   }
 
   /**
@@ -125,14 +179,7 @@ final class UnitLoadoutService
       return;
     }
 
-    $insertEquipped = $this->pdo->prepare('
-      INSERT INTO `unit_instance_equipped_abilities` (`unit_instance_id`, `ability_id`, `equip_order`, `speed_cost`)
-      VALUES (?, ?, ?, ?)
-    ');
-    foreach ($defaultEquipped as $index => $abilityId) {
-      $speedCost = $this->speedCostForAbility($abilityId);
-      $insertEquipped->execute([$unitInstanceId, $abilityId, $index, $speedCost]);
-    }
+    $this->replaceEquippedAbilities($unitInstanceId, $defaultEquipped);
   }
 
   /**
@@ -220,6 +267,122 @@ final class UnitLoadoutService
 
     $definition = $this->abilityRegistry->get($abilityId);
     return max(0, (int)($definition->diceCost ?? 0));
+  }
+
+  /**
+   * @param list<string> $abilityIds
+   */
+  private function insertEquippedAbilities(int $unitInstanceId, array $abilityIds): void
+  {
+    if (count($abilityIds) === 0) {
+      return;
+    }
+
+    $insertEquipped = $this->pdo->prepare('
+      INSERT INTO `unit_instance_equipped_abilities` (`unit_instance_id`, `ability_id`, `equip_order`, `speed_cost`)
+      VALUES (?, ?, ?, ?)
+    ');
+    foreach ($abilityIds as $index => $abilityId) {
+      $speedCost = $this->speedCostForAbility($abilityId);
+      $insertEquipped->execute([$unitInstanceId, $abilityId, $index, $speedCost]);
+    }
+  }
+
+  /**
+   * @return array{unit_instance_id:int,user_id:int,unit_type_id:int}
+   */
+  private function loadUnitContext(int $unitInstanceId): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT `id` AS `unit_instance_id`, `user_id`, `unit_type_id`
+      FROM `unit_instances`
+      WHERE `id` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([$unitInstanceId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!is_array($row)) {
+      throw new RuntimeException('Unit not found for loadout update.');
+    }
+
+    return [
+      'unit_instance_id' => (int)$row['unit_instance_id'],
+      'user_id' => (int)$row['user_id'],
+      'unit_type_id' => (int)$row['unit_type_id'],
+    ];
+  }
+
+  private function assertAbilityUnlockedForUnit(int $unitInstanceId, string $abilityId): void
+  {
+    if (!$this->abilityRegistry->has($abilityId)) {
+      throw new RuntimeException("Unknown ability '{$abilityId}'.");
+    }
+
+    $stmt = $this->pdo->prepare('
+      SELECT 1
+      FROM `unit_instance_unlocked_abilities`
+      WHERE `unit_instance_id` = ? AND `ability_id` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([$unitInstanceId, $abilityId]);
+    if (!$stmt->fetchColumn()) {
+      throw new RuntimeException("Ability '{$abilityId}' is not unlocked for this unit.");
+    }
+  }
+
+  private function assertAbilitySlotLegal(string $abilityId, int $slotIndex): void
+  {
+    if ($slotIndex < 0) {
+      throw new RuntimeException('Ability slot index must be zero or greater.');
+    }
+
+    $slotCount = $this->slotCountForAbility($abilityId);
+    if ($slotCount <= 0) {
+      throw new RuntimeException("Ability '{$abilityId}' does not accept dice slot assignments.");
+    }
+
+    if ($slotIndex >= $slotCount) {
+      throw new RuntimeException("Ability slot index '{$slotIndex}' exceeds the configured slot count.");
+    }
+  }
+
+  private function assertDiceOwnedByUser(int $userId, int $diceInstanceId): void
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT 1
+      FROM `dice_instances`
+      WHERE `id` = ? AND `user_id` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([$diceInstanceId, $userId]);
+    if (!$stmt->fetchColumn()) {
+      throw new RuntimeException('Dice must be owned by the same user as the target unit.');
+    }
+  }
+
+  private function assertDiceBindingAvailable(int $unitInstanceId, string $abilityId, int $slotIndex, int $diceInstanceId): void
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT `unit_instance_id`, `ability_id`, `slot_index`
+      FROM `unit_ability_dice`
+      WHERE `dice_instance_id` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([$diceInstanceId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!is_array($row)) {
+      return;
+    }
+
+    if (
+      (int)$row['unit_instance_id'] === $unitInstanceId
+      && (string)$row['ability_id'] === $abilityId
+      && (int)$row['slot_index'] === $slotIndex
+    ) {
+      return;
+    }
+
+    throw new RuntimeException('Dice is already assigned to another ability slot.');
   }
 
   private function tierFromSlug(string $unitTypeSlug): int

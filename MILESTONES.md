@@ -2,26 +2,10 @@
 ----
 Active milestones only. Move completed entries to `MILESTONES_ARCHIVE.md`.
 
-name: Milestone 37 - Ability Loadout Rework Foundations
-status: in-progress
-execution_window: open
-is_current: yes
-issues:
-  - Add unit naming and ability-loadout persistence schema
-  - Seed starter units with default abilities and common d4 slot assignments
-  - Author enemy equipped-loadout definitions for cumulative scheduling
-  - Add backend validators for ability equip budget and slot legality
-description: |
-  Establish the schema, authored data, and starter-state foundations required for
-  the ability-loadout rework. This milestone creates the persistence and content
-  contracts that later combat and UX slices will depend on.
-
----
-
 name: Milestone 38 - Combat Scheduler and Resolution Rewrite
 status: not-started
 execution_window: open
-is_current: no
+is_current: yes
 issues:
   - Rewrite combat scheduler to use cumulative equipped ability timing
   - Replace pooled combat dice resolution with ability-slot reads
