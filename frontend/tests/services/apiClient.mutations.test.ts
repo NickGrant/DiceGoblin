@@ -197,7 +197,7 @@ describe("apiClient mutation flows", () => {
       .mockResolvedValueOnce(jsonResponse({ ok: true, data: { unit: { id: "11", tier: 2, level: 1, xp: 0 }, consumed_units: ["12", "13"] } }));
 
     const { apiClient } = await import("../../src/services/apiClient");
-    await apiClient.promoteUnit("11", ["12", "13"], { runId: "44", nodeId: "7" });
+    await apiClient.promoteUnit("11", ["12", "13"], { runId: "44", nodeId: "7", destinationUnitTypeId: "21" });
 
     const promoteInit = expectCsrfHeader(fetchMock, 1, "csrf_promote");
     expect(promoteInit.body).toBe(JSON.stringify({
@@ -205,7 +205,25 @@ describe("apiClient mutation flows", () => {
       secondary_unit_instance_ids: [12, 13],
       run_id: 44,
       node_id: 7,
+      destination_unit_type_id: 21,
     }));
+  });
+
+  it("promotion options stay a plain get without csrf bootstrap", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true, data: { unit_id: "11", current_tier: 1, options: [] } }));
+
+    const { apiClient } = await import("../../src/services/apiClient");
+    const response = await apiClient.getPromotionOptions("11");
+
+    expect(response).toEqual({ ok: true, data: { unit_id: "11", current_tier: 1, options: [] } });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/api/v1/units/11/promotion-options",
+      expect.objectContaining({
+        method: "GET",
+        credentials: "include",
+      })
+    );
   });
 
   it("unit detail mutation methods include csrf and optional rest context", async () => {

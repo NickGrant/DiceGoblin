@@ -19,7 +19,7 @@ import { getDebugAbilityCatalogFixture, getDebugProfileFixture } from "../debug/
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import { apiClient } from "../services/apiClient";
-import type { UnitRecord } from "../types/ApiResponse";
+import type { PromotionOptionRecord, UnitRecord } from "../types/ApiResponse";
 import { SQUAD_NAME_ALLOWED_CHARACTER_PATTERN } from "./warbandManagementState";
 
 const FRAME_TITLE_HEIGHT = 56;
@@ -65,6 +65,8 @@ export default class UnitDetailsScene extends Phaser.Scene {
   private activeRun = false;
   private fusionSecondaryIds: Array<string | null> = Array(REQUIRED_FUSION_UNITS).fill(null);
   private selectedFusionSlotIndex = 0;
+  private promotionOptions: PromotionOptionRecord[] = [];
+  private selectedPromotionOptionIndex = 0;
 
   private layoutUiObjects: Phaser.GameObjects.GameObject[] = [];
   private dicePanel?: DiceCardGrid;
@@ -85,6 +87,9 @@ export default class UnitDetailsScene extends Phaser.Scene {
   private fusionSlotLabels: Phaser.GameObjects.Text[] = [];
   private unitSummaryText?: Phaser.GameObjects.Text;
   private helperText?: Phaser.GameObjects.Text;
+  private promotionOptionButtonBg?: Phaser.GameObjects.Rectangle;
+  private promotionOptionButtonText?: Phaser.GameObjects.Text;
+  private promotionOptionButtonZone?: Phaser.GameObjects.Zone;
 
   constructor() {
     super({ key: "UnitDetailsScene" });
@@ -150,8 +155,16 @@ export default class UnitDetailsScene extends Phaser.Scene {
       this.rawUnit = this.rawUnits.find((unit) => unit.id === this.unitId) ?? this.rawUnits[0] ?? null;
       if (!this.unit || !this.rawUnit) throw new Error("No units found.");
 
-      this.unitId = this.unit.id;
+      const currentUnit = this.unit;
+      this.unitId = currentUnit.id;
+      const promotionOptions = await apiClient.getPromotionOptions(this.unitId).catch(() => {
+        if (!debugConfig.enabled) throw new Error("Failed to fetch promotion options");
+        return { ok: true as const, data: { unit_id: this.unitId, current_tier: currentUnit.tier, options: this.buildDebugPromotionOptions() } };
+      });
+      if (!promotionOptions.ok) throw new Error(promotionOptions.error.message);
+
       this.dice = adaptDiceDetails(profile.data.dice ?? [], profile.data.units ?? []);
+      this.promotionOptions = promotionOptions.data.options ?? [];
       this.syncSelections();
 
       this.loadingText?.destroy();
@@ -362,6 +375,29 @@ export default class UnitDetailsScene extends Phaser.Scene {
       .setOrigin(0, 0).setStrokeStyle(1, 0x8db8bc, 0.32);
     this.layoutUiObjects.push(summaryCard);
 
+    this.promotionOptionButtonBg = this.add.rectangle(x + 24, y + 114, width - 48, 42, 0xf2ead8, 0.92)
+      .setOrigin(0, 0).setStrokeStyle(2, 0x7a5f39, 0.85);
+    this.promotionOptionButtonText = this.add.text(x + width / 2, y + 135, "", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "14px",
+      color: "#3e2b16",
+      align: "center",
+      wordWrap: { width: width - 64 },
+    }).setOrigin(0.5, 0.5);
+    this.promotionOptionButtonZone = this.add.zone(x + width / 2, y + 135, width - 48, 42)
+      .setOrigin(0.5, 0.5)
+      .setInteractive({ useHandCursor: true });
+    this.promotionOptionButtonZone.on("pointerdown", () => {
+      if (this.promotionOptions.length <= 1) {
+        return;
+      }
+      this.selectedPromotionOptionIndex = (this.selectedPromotionOptionIndex + 1) % this.promotionOptions.length;
+      this.refreshUi();
+    });
+    this.promotionOptionButtonZone.on("pointerover", () => this.promotionOptionButtonBg?.setFillStyle(0xfff2cf, 1));
+    this.promotionOptionButtonZone.on("pointerout", () => this.promotionOptionButtonBg?.setFillStyle(0xf2ead8, 0.92));
+    this.layoutUiObjects.push(this.promotionOptionButtonBg, this.promotionOptionButtonText, this.promotionOptionButtonZone);
+
     const buttonX = x + Math.max(0, Math.floor((width - SIDEBAR_BUTTON_WIDTH) / 2));
     const firstButtonY = y + 188;
     this.renameButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY, label: "Rename Unit", enabled: true, onClick: () => void this.openRenameDialog() });
@@ -473,6 +509,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     const selectedSlotDie = this.getSelectedSlotDie();
     const selectedDie = this.getSelectedDie();
     const selectedFusions = this.fusionSecondaryIds.filter((id): id is string => Boolean(id));
+    const selectedPromotion = this.getSelectedPromotionOption();
 
     this.helperText.setText([
       selectedAbility
@@ -484,10 +521,24 @@ export default class UnitDetailsScene extends Phaser.Scene {
       selectedDie
         ? `Picked die: ${selectedDie.displayName}${selectedDie.equipped ? ` on ${selectedDie.equipped.unitName}` : ""}`
         : "Pick a die from the pool to assign it.",
+      selectedPromotion
+        ? `Promotion path: ${selectedPromotion.mode === "chain" ? "Chain" : "Sideways"} to ${selectedPromotion.target_unit_type_name}`
+        : "Promotion path: unavailable",
       selectedFusions.length > 0
         ? `Promotion fodder: ${selectedFusions.length}/${REQUIRED_FUSION_UNITS}`
         : "Select promotion fodder below when ready.",
     ].join("\n"));
+
+    if (this.promotionOptionButtonBg && this.promotionOptionButtonText) {
+      const hasOptions = this.promotionOptions.length > 0;
+      this.promotionOptionButtonBg.setAlpha(hasOptions ? 1 : 0.45);
+      this.promotionOptionButtonText.setText(
+        hasOptions
+          ? `DESTINATION: ${selectedPromotion?.target_unit_type_name.toUpperCase() ?? "UNKNOWN"}${this.promotionOptions.length > 1 ? "  (CLICK TO CYCLE)" : ""}`
+          : "NO PROMOTION DESTINATIONS"
+      );
+      this.promotionOptionButtonText.setColor(hasOptions ? "#3e2b16" : "#7c7c7c");
+    }
   }
 
   private refreshDicePanel(): void {
@@ -503,6 +554,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     const selectedDie = this.getSelectedDie();
     const selectedSlotDie = this.getSelectedSlotDie();
     const selectedFusions = this.fusionSecondaryIds.filter((id): id is string => Boolean(id));
+    const selectedPromotion = this.getSelectedPromotionOption();
 
     this.renameButton?.setEnabled(true);
     this.moveUpButton?.setEnabled(Boolean(selectedAbility && this.selectedLoadoutIndex > 0));
@@ -519,7 +571,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
     ));
     this.unequipSlotButton?.setEnabled(Boolean(selectedAbility && selectedAbility.diceCost > 0 && selectedSlotDie));
     this.clearFusionButton?.setEnabled(selectedFusions.length > 0);
-    this.promoteButton?.setEnabled(!this.activeRun && selectedFusions.length === REQUIRED_FUSION_UNITS);
+    this.promoteButton?.setEnabled(!this.activeRun && selectedFusions.length === REQUIRED_FUSION_UNITS && Boolean(selectedPromotion));
   }
 
   private getSelectedLoadoutEntry(): UnitEquippedAbilityViewModel | null {
@@ -541,6 +593,10 @@ export default class UnitDetailsScene extends Phaser.Scene {
 
   private getSelectableDice(): DiceDetailsViewModel[] {
     return this.dice.filter((die) => !die.equipped || die.equipped.unitId === this.unitId);
+  }
+
+  private getSelectedPromotionOption(): PromotionOptionRecord | null {
+    return this.promotionOptions[this.selectedPromotionOptionIndex] ?? null;
   }
 
   private buildSummaryText(): string {
@@ -588,6 +644,11 @@ export default class UnitDetailsScene extends Phaser.Scene {
     const compatibleIds = new Set(this.getFusionCandidates().map((unit) => unit.id));
     this.fusionSecondaryIds = this.fusionSecondaryIds.map((unitId) => (unitId && compatibleIds.has(unitId) ? unitId : null));
     this.selectedFusionSlotIndex = Math.max(0, Math.min(this.selectedFusionSlotIndex, REQUIRED_FUSION_UNITS - 1));
+    if (this.promotionOptions.length === 0) {
+      this.selectedPromotionOptionIndex = 0;
+    } else {
+      this.selectedPromotionOptionIndex = Math.max(0, Math.min(this.selectedPromotionOptionIndex, this.promotionOptions.length - 1));
+    }
   }
 
   private async openRenameDialog(): Promise<void> {
@@ -774,6 +835,11 @@ export default class UnitDetailsScene extends Phaser.Scene {
       this.showToast("Select two compatible promotion units.");
       return;
     }
+    const selectedPromotion = this.getSelectedPromotionOption();
+    if (!selectedPromotion) {
+      this.showToast("No promotion destination is available.");
+      return;
+    }
 
     const [secondaryA, secondaryB] = selectedSecondaries;
     if (!secondaryA || !secondaryB) {
@@ -781,16 +847,40 @@ export default class UnitDetailsScene extends Phaser.Scene {
       return;
     }
 
-    const response = await apiClient.promoteUnit(this.unitId, [secondaryA, secondaryB]);
+    const response = await apiClient.promoteUnit(this.unitId, [secondaryA, secondaryB], {
+      destinationUnitTypeId: selectedPromotion.target_unit_type_id,
+    });
     if (!response.ok) {
       this.showToast(`Promotion failed: ${response.error.message}`);
       return;
     }
 
-    this.showToast("Promotion applied.", "#ccffcc");
+    this.showToast(`Promotion applied: ${selectedPromotion.target_unit_type_name}.`, "#ccffcc");
     this.fusionSecondaryIds = Array(REQUIRED_FUSION_UNITS).fill(null);
     this.selectedFusionSlotIndex = 0;
     await this.loadData();
+  }
+
+  private buildDebugPromotionOptions(): PromotionOptionRecord[] {
+    const tier = this.rawUnit?.tier ?? 1;
+    const role = this.unit?.roleLabel ?? this.rawUnit?.unit_type_name ?? "Unit";
+    if (tier >= 3) {
+      return [];
+    }
+
+    const nextTier = tier + 1;
+    return [
+      {
+        branch_unit_type_id: this.rawUnit?.unit_type_id ?? "debug_chain",
+        branch_unit_type_slug: this.rawUnit?.unit_type_id ?? "debug_chain",
+        branch_unit_type_name: role,
+        target_unit_type_id: `${this.rawUnit?.unit_type_id ?? "debug_chain"}_t${nextTier}`,
+        target_unit_type_slug: `${this.rawUnit?.unit_type_id ?? "debug_chain"}_t${nextTier}`,
+        target_unit_type_name: `${role} T${nextTier}`,
+        target_tier: nextTier,
+        mode: "chain",
+      },
+    ];
   }
 
   private pickDieFrame(die: DiceDetailsViewModel): string {
@@ -829,6 +919,9 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.promoteButton = undefined;
     this.unitSummaryText = undefined;
     this.helperText = undefined;
+    this.promotionOptionButtonBg = undefined;
+    this.promotionOptionButtonText = undefined;
+    this.promotionOptionButtonZone = undefined;
   }
 
   private showToast(message: string, color = "#ffcccc"): void {

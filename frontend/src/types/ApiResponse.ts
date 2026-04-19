@@ -447,9 +447,29 @@ export type ShopPurchaseData = {
 
 export type ShopPurchaseResponse = ApiResponse<ShopPurchaseData>;
 
+export type PromotionOptionRecord = {
+  branch_unit_type_id: string;
+  branch_unit_type_slug: string;
+  branch_unit_type_name: string;
+  target_unit_type_id: string;
+  target_unit_type_slug: string;
+  target_unit_type_name: string;
+  target_tier: number;
+  mode: "chain" | "sideways" | string;
+};
+
+export type PromotionOptionsData = {
+  unit_id: string;
+  current_tier: number;
+  options: PromotionOptionRecord[];
+};
+
+export type PromotionOptionsResponse = ApiResponse<PromotionOptionsData>;
+
 export type PromoteUnitData = {
   unit: { id: string; tier: number; level: number; xp: number };
   consumed_units: string[];
+  destination?: PromotionOptionRecord;
 };
 
 export type PromoteUnitResponse = ApiResponse<PromoteUnitData>;

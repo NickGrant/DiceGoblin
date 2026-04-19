@@ -14,6 +14,7 @@ import {
   type ExitRunResponse,
   type ProfileResponse,
   type PromoteUnitResponse,
+  type PromotionOptionsResponse,
   type RenameUnitResponse,
   type ReplaceEquippedAbilitiesResponse,
   type ResolveNodeResponse,
@@ -261,10 +262,14 @@ export const apiClient = {
     return res;
   },
 
+  async getPromotionOptions(unitId: string): Promise<PromotionOptionsResponse> {
+    return request<PromotionOptionsResponse>(`/api/v1/units/${unitId}/promotion-options`, { method: "GET" });
+  },
+
   async promoteUnit(
     primaryUnitId: string,
     secondaryUnitIds: [string, string],
-    context?: { runId?: string; nodeId?: string }
+    context?: { runId?: string; nodeId?: string; destinationUnitTypeId?: string }
   ): Promise<PromoteUnitResponse> {
     const session = await apiClient.getSession();
     const csrf = (session as any)?.data?.csrf_token ?? "";
@@ -275,6 +280,9 @@ export const apiClient = {
     if (context?.runId && context?.nodeId) {
       body.run_id = Number(context.runId);
       body.node_id = Number(context.nodeId);
+    }
+    if (context?.destinationUnitTypeId) {
+      body.destination_unit_type_id = Number(context.destinationUnitTypeId);
     }
     return request<PromoteUnitResponse>(`/api/v1/units/${primaryUnitId}/promote`, {
       method: "POST",
