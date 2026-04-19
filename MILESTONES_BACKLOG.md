@@ -78,3 +78,19 @@ issues:
 description: |
   Deferred full validation milestone to be reopened after the ability-loadout
   rework and its follow-up cleanup pass are complete.
+
+---
+
+name: Milestone 40 - Rework Normalization Pass
+status: not-started
+execution_window: closed
+is_current: no
+issues:
+  - Normalize rework migrations after schema stabilizes
+  - Consolidate legacy combat and loadout test fixtures
+  - Refactor repeated scene layout and styling after rework UI lands
+description: |
+  Deferred cleanup milestone for migration compaction, legacy test consolidation,
+  and shared UI/layout refactors after the rework is functionally complete. This
+  milestone is intentionally held in backlog until the next evaluation confirms
+  the post-rework normalization order.

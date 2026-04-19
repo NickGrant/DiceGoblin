@@ -181,3 +181,30 @@ execution: deferred
 ready: yes
 milestone: Milestone 36 - Pre Release Validation
 description: Ensure players can always progress or recover from failure states and are not trapped in unwinnable or undefined conditions. This will be revisited after the reworked run, combat, and promotion flows land.
+
+---
+title: Normalize rework migrations after schema stabilizes
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+milestone: Milestone 40 - Rework Normalization Pass
+description: Compact transitional migration history once the rework schema is stable and remove no-longer-needed compatibility structures related to pooled dice and interim loadout persistence.
+
+---
+title: Consolidate legacy combat and loadout test fixtures
+status: unstarted
+priority: medium
+execution: deferred
+ready: no
+milestone: Milestone 40 - Rework Normalization Pass
+description: Refactor or remove tests and fixtures that preserve old modulo-scheduler or pooled-dice assumptions, replacing them with shared builders for the new unit and enemy loadout model.
+
+---
+title: Refactor repeated scene layout and styling after rework UI lands
+status: unstarted
+priority: low
+execution: deferred
+ready: no
+milestone: Milestone 40 - Rework Normalization Pass
+description: Review repeated scene panel layout, typography, and style logic after the ability-loadout UI is implemented and consolidate the patterns into clearer shared helpers or components.

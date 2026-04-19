@@ -45,3 +45,21 @@ Resolution: |
   battle-log traces for equipped ability instances and slot usage. Backend and
   frontend verification passed, while a temporary reset/test parallelization mishap
   was resolved by rerunning backend integration tests sequentially.
+
+---
+
+name: Milestone 39 - Unit Details and Promotion UX
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Rework promotion flow for cumulative abilities and sideways destinations
+description: |
+  Bring the player-facing management surfaces into alignment with the new combat
+  model by centering unit details, slot-based dice editing, renaming, and the new
+  promotion flow.
+Resolution: |
+  Completed the Unit Details surface so players can rename units, reorder equipped
+  abilities, edit ability-slot dice, and choose eligible promotion destinations from
+  the cumulative promotion model. Frontend tests/build, backend PHPUnit, and backlog
+  validation all passed with the destination-aware promotion UX wired end to end.

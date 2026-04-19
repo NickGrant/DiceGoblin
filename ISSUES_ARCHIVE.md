@@ -106,3 +106,13 @@ ready: yes
 milestone: Milestone 39 - Unit Details and Promotion UX
 description: Change dice inventory interactions so equips and unequips target a specific unit ability slot rather than a generic per-unit dice pool. This includes showing where dice are currently bound.
 resolution: Removed the unused pooled-dice mutation client surface from the frontend and updated inventory dice presentation so equipped dice now show their unit, bound ability, and slot context. Frontend tests, build, and backlog validation all passed after the cleanup.
+
+---
+title: Rework promotion flow for cumulative abilities and sideways destinations
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Milestone 39 - Unit Details and Promotion UX
+description: Update promotion backend and UI flows so units retain cumulative ability catalogs and can choose either the next chain destination or an eligible sideways destination at the tier being exited.
+resolution: Added promotion-option reads and destination-aware promotion execution to UnitDetailsScene, including a lightweight destination selector wired to the new backend contract. Frontend tests/build, backend PHPUnit, and backlog validation all passed after the promotion UX was connected end to end.
