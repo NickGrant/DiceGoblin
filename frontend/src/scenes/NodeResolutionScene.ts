@@ -15,6 +15,17 @@ import {
   isNodeResolutionType,
   type NodeResolutionType,
 } from "./nodeResolutionFlow";
+import {
+  buildClaimSummary,
+  buildLootReceiptLines,
+  buildTickSummaryLines,
+  deriveDefaultTick,
+  prettifyEnemySlug,
+  shortenEnemyLabel,
+  type BattleLog,
+  type ClaimSummary,
+  type ResolutionSummary,
+} from "./nodeResolutionPresentation";
 import FormationGrid3x3, {
   type FormationMap,
   type FormationStatusIndicator,
@@ -34,26 +45,6 @@ type NodeResolutionSceneData = {
   runId?: string;
   nodeId?: string;
   nodeType?: string;
-};
-
-type BattleLog = {
-  meta?: Record<string, unknown>;
-  events?: Array<Record<string, unknown>>;
-  [key: string]: unknown;
-} | null;
-
-type ResolutionSummary = {
-  battleId: string;
-  outcome: string;
-  rounds: number;
-  ticks: number;
-  unlockedMsg: string;
-  encounterDescription?: string;
-};
-
-type ClaimSummary = {
-  rewards: string[];
-  progression: string[];
 };
 
 type ParticipantView = {
@@ -439,7 +430,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
         return;
       }
 
-      const claimSummary = this.buildClaimSummary(claimRes.data as Record<string, unknown>);
+      const claimSummary = buildClaimSummary(claimRes.data as Record<string, unknown>);
       const unlockedMsg = formatUnlockedNodes(resolveRes.data.next.unlocked_node_ids);
       this.setStatusBanner(
         String(outcome).toUpperCase(),
@@ -684,7 +675,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
     const bodyHeight = Math.max(120, contentHeight - sliderHeight - 6);
 
     const maxTick = this.deriveObservedMaxTick(log, Math.max(0, summary.ticks));
-    const defaultTick = this.deriveDefaultTick(log);
+    const defaultTick = deriveDefaultTick(log);
     const desiredTick = selectedTickOverride ?? (this.selectedTick > 0 ? this.selectedTick : defaultTick);
     this.selectedTick = Phaser.Math.Clamp(desiredTick, 0, maxTick);
     this.debugBattleLogButton?.setEnabled(Boolean(log));
@@ -763,7 +754,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       bodyHeight - 44,
       enemyUnits.map((unit) => ({
         id: unit.id,
-        display: this.shortenEnemyLabel(unit.display),
+        display: shortenEnemyLabel(unit.display),
         pos: unit.pos,
         currentHp: this.readCurrentHp(unit.id, unit.maxHp, hpSnapshot),
         maxHp: unit.maxHp,
@@ -1155,7 +1146,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       const maxHp = typeof maxHpRaw === "number" ? maxHpRaw : Number(maxHpRaw ?? 1);
       units.push({
         id,
-        display: side === "player" ? id : this.prettifyEnemySlug(id),
+        display: side === "player" ? id : prettifyEnemySlug(id),
         maxHp: Number.isFinite(maxHp) && maxHp > 0 ? maxHp : 1,
         pos: this.readParticipantPos(record),
       });
@@ -1489,7 +1480,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       })
       .setOrigin(0, 0);
 
-    const receiptLines = this.buildLootReceiptLines(summary, claimSummary);
+    const receiptLines = buildLootReceiptLines(summary, claimSummary);
     this.detailText?.destroy();
     this.detailText = this.add
       .text(leftX + 10, bodyY + 38, receiptLines.join("\n"), {
@@ -1543,79 +1534,14 @@ export default class NodeResolutionScene extends Phaser.Scene {
     this.resolutionUiObjects.push(receiptPanel, lootPanel, receiptTitle, this.detailText, lootTitle, caption);
   }
 
-  private buildLootReceiptLines(summary: ResolutionSummary, claimSummary: ClaimSummary): string[] {
-    const lines: string[] = [];
-    if (summary.encounterDescription && summary.encounterDescription.trim() !== "") {
-      lines.push(`Encounter: ${summary.encounterDescription}`);
-      lines.push("");
-    }
-
-    lines.push("Rewards:");
-    for (const reward of claimSummary.rewards) {
-      lines.push(`- ${reward.replace(/^[-\s]+/, "")}`);
-    }
-
-    lines.push("");
-    lines.push("Progression:");
-    if (claimSummary.progression.length === 0) {
-      lines.push("- No unit progression changes");
-    } else {
-      for (const line of claimSummary.progression) {
-        lines.push(`- ${line}`);
-      }
-    }
-
-    lines.push("");
-    lines.push(`Outcome: ${String(summary.outcome).toUpperCase()}`);
-    return lines;
-  }
-
   private stopTickPlayback(): void {
     this.tickPlaybackActive = false;
     this.tickPlaybackTimer?.destroy();
     this.tickPlaybackTimer = undefined;
   }
 
-  private deriveDefaultTick(log: BattleLog): number {
-    if (!log || !Array.isArray(log.events)) {
-      return 0;
-    }
-
-    for (const event of log.events) {
-      if (!event || typeof event !== "object") continue;
-      const rec = event as Record<string, unknown>;
-      if (rec.type !== "action") continue;
-      const tick = typeof rec.tick === "number" ? rec.tick : Number(rec.tick ?? 0);
-      if (Number.isFinite(tick)) {
-        return Math.max(0, tick);
-      }
-    }
-
-    return 0;
-  }
-
   private buildTickSummaryLines(summary: ResolutionSummary, tickEvents: Array<Record<string, unknown>>): string[] {
-    const lines: string[] = [];
-    if (summary.encounterDescription && summary.encounterDescription.trim() !== "") {
-      lines.push(`Encounter: ${summary.encounterDescription}`);
-    }
-
-    if (tickEvents.length === 0) {
-      if (lines.length > 0) {
-        lines.push(`Tick ${this.selectedTick}`);
-      }
-      lines.push("No events on this tick.");
-      return lines;
-    }
-
-    if (lines.length > 0) {
-      lines.push(`Tick ${this.selectedTick}`);
-    }
-    lines.push(`Events on tick ${this.selectedTick}:`);
-    tickEvents.forEach((event, index) => {
-      lines.push(`${index + 1}) ${this.formatFriendlyEvent(event)}`);
-    });
-    return lines;
+    return buildTickSummaryLines(summary, this.selectedTick, tickEvents);
   }
 
   private getAutoplayDelayMs(): number {
@@ -1638,69 +1564,6 @@ export default class NodeResolutionScene extends Phaser.Scene {
     } catch (error) {
       this.showError(error instanceof Error ? error.message : "Failed to copy battle log.");
     }
-  }
-
-  private formatFriendlyEvent(event: Record<string, unknown>): string {
-    const type = String(event.type ?? "event");
-    if (type === "phase_start") {
-      return `Round ${event.round ?? "?"} starts.`;
-    }
-    if (type === "battle_start") {
-      return "Battle started.";
-    }
-    if (type === "battle_end") {
-      return `Battle ended: ${String(event.outcome ?? "unknown")}.`;
-    }
-    if (type !== "action") {
-      return String(event.message ?? type);
-    }
-
-    const side = String(event.side ?? "unknown").toUpperCase();
-    const actor = typeof event.actor_unit_instance_id === "string"
-      ? `Ally ${event.actor_unit_instance_id}`
-      : typeof event.actor_enemy_slug === "string"
-        ? this.prettifyEnemySlug(event.actor_enemy_slug)
-        : "Unknown actor";
-    const target = typeof event.target_unit_instance_id === "string"
-      ? `Ally ${event.target_unit_instance_id}`
-      : typeof event.target_enemy_slug === "string"
-        ? this.prettifyEnemySlug(event.target_enemy_slug)
-        : "Unknown target";
-    const ability = this.prettifyAbilityId(String(event.ability_id ?? "ability"));
-    const diceOutcome = typeof event.dice_outcome === "string" ? event.dice_outcome : "";
-    const damage = typeof event.damage === "number" ? Math.max(0, Math.floor(event.damage)) : null;
-    const targetHp = typeof event.target_hp_after === "number"
-      ? Math.max(0, Math.floor(event.target_hp_after))
-      : null;
-    const status = typeof event.status_applied === "string" && event.status_applied.trim() !== ""
-      ? event.status_applied.trim()
-      : null;
-    const statusDuration = typeof event.status_duration_rounds === "number"
-      ? Math.max(0, Math.floor(event.status_duration_rounds))
-      : null;
-
-    const parts = [`[${side}] ${actor} -> ${target} using ${ability}`];
-    if (damage !== null) {
-      parts.push(`DMG ${damage}`);
-    }
-    if (targetHp !== null) {
-      parts.push(`HP ${targetHp}`);
-    }
-    if (status) {
-      parts.push(statusDuration && statusDuration > 0 ? `Status ${status} (${statusDuration}r)` : `Status ${status}`);
-    }
-    if (diceOutcome) {
-      parts.push(`Dice ${diceOutcome}`);
-    }
-    return parts.join(" | ");
-  }
-
-  private prettifyAbilityId(abilityId: string): string {
-    return abilityId
-      .replace(/[_-]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
   private computeActorsForTick(log: BattleLog, tick: number): Set<string> {
@@ -1776,53 +1639,6 @@ export default class NodeResolutionScene extends Phaser.Scene {
     return typeof description === "string" ? description : "";
   }
 
-  private buildClaimSummary(data: Record<string, unknown>): ClaimSummary {
-    const rewardsRaw = (data.rewards ?? {}) as Record<string, unknown>;
-    const xpTotal = Number(rewardsRaw.xp_total ?? 0);
-    const soft = Number(rewardsRaw.currency_soft ?? 0);
-    const unitIds = Array.isArray(rewardsRaw.new_unit_instance_ids)
-      ? rewardsRaw.new_unit_instance_ids.map((id) => String(id))
-      : [];
-    const diceIds = Array.isArray(rewardsRaw.new_dice_instance_ids)
-      ? rewardsRaw.new_dice_instance_ids.map((id) => String(id))
-      : [];
-
-    const rewardLines: string[] = [];
-    if (Number.isFinite(soft) && soft > 0) {
-      rewardLines.push(`Teeth +${Math.floor(soft)}`);
-    }
-    if (Number.isFinite(xpTotal) && xpTotal > 0) {
-      rewardLines.push(`Unit XP Award +${Math.floor(xpTotal)} each`);
-    }
-    if (unitIds.length > 0) {
-      rewardLines.push(`New Units: ${unitIds.map((id) => `#${id}`).join(", ")}`);
-    }
-    if (diceIds.length > 0) {
-      rewardLines.push(`New Dice: ${diceIds.map((id) => `#${id}`).join(", ")}`);
-    }
-    if (rewardLines.length === 0) {
-      rewardLines.push("- No rewards recorded");
-    }
-
-    const progressionRaw = Array.isArray(data.updated_units) ? data.updated_units : [];
-    const progressionLines = progressionRaw
-      .map((unit): string | null => {
-        if (!unit || typeof unit !== "object") return null;
-        const rec = unit as Record<string, unknown>;
-        const id = typeof rec.id === "string" ? rec.id : String(rec.id ?? "");
-        const level = typeof rec.level === "number" ? rec.level : Number(rec.level ?? NaN);
-        const xp = typeof rec.xp === "number" ? rec.xp : Number(rec.xp ?? NaN);
-        if (!id || !Number.isFinite(level) || !Number.isFinite(xp)) return null;
-        return `Unit ${id}: L${Math.floor(level)} (${Math.floor(xp)} XP)`;
-      })
-      .filter((line): line is string => line !== null);
-
-    return {
-      rewards: rewardLines,
-      progression: progressionLines,
-    };
-  }
-
   private computeHpSnapshot(log: BattleLog, upToTick: number): Record<string, number> {
     const snapshot: Record<string, number> = {};
     const participants = this.extractParticipants(log, "player", 99).concat(this.extractParticipants(log, "enemy", 99));
@@ -1858,18 +1674,6 @@ export default class NodeResolutionScene extends Phaser.Scene {
     const hp = snapshot[id] ?? maxHp;
     if (maxHp <= 0) return 0;
     return Phaser.Math.Clamp(hp / maxHp, 0, 1);
-  }
-
-  private prettifyEnemySlug(slug: string): string {
-    return String(slug)
-      .split("_")
-      .filter((part) => part.length > 0)
-      .map((part) => part[0]?.toUpperCase() + part.slice(1))
-      .join(" ");
-  }
-
-  private shortenEnemyLabel(label: string): string {
-    return label.length <= 14 ? label : `${label.slice(0, 12)}..`;
   }
 
   private clearResolutionPanels(): void {

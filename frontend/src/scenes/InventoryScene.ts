@@ -11,6 +11,24 @@ import { apiClient } from "../services/apiClient";
 import type { DiceDetailsViewModel } from "../adapters/profileViewModels";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
+import {
+  EQUIPPED_FILTER_ORDER,
+  RARITY_FILTER_ORDER,
+  SIZE_FILTER_ORDER,
+  SORT_LABELS,
+  SORT_ORDER,
+  buildHoverDetails,
+  cycleValue,
+  describeEquippedBinding,
+  getSelectedDie,
+  getVisibleDice,
+  labelFromId,
+  resolveSelectedDiceId,
+  type DiceEquippedFilter,
+  type DiceRarityFilter,
+  type DiceSizeFilter,
+  type DiceSortMode,
+} from "./inventoryState";
 
 const FRAME_TITLE_HEIGHT = 56;
 const FRAME_MARGIN = 12;
@@ -18,37 +36,6 @@ const ACTION_PANEL_PADDING = 14;
 const ACTION_CONTENT_GAP = 14;
 const ACTION_BUTTON_WIDTH = 280;
 const ACTION_BUTTON_GAP = 18;
-
-type DiceSortMode = "rarity" | "size" | "equipped";
-type DiceSizeFilter = "all" | "d4" | "d6" | "d8" | "d10" | "d12" | "d20";
-type DiceRarityFilter = "all" | "common" | "uncommon" | "rare" | "epic" | "legendary";
-type DiceEquippedFilter = "all" | "equipped" | "unequipped";
-
-const SORT_LABELS: Record<DiceSortMode, string> = {
-  rarity: "Rarity",
-  size: "Size",
-  equipped: "Equipped",
-};
-
-const SIZE_FILTER_ORDER: DiceSizeFilter[] = ["all", "d4", "d6", "d8", "d10", "d12", "d20"];
-const RARITY_FILTER_ORDER: DiceRarityFilter[] = ["all", "common", "uncommon", "rare", "epic", "legendary"];
-const EQUIPPED_FILTER_ORDER: DiceEquippedFilter[] = ["all", "equipped", "unequipped"];
-const SORT_ORDER: DiceSortMode[] = ["rarity", "size", "equipped"];
-const RARITY_SORT_VALUE: Record<string, number> = {
-  common: 0,
-  uncommon: 1,
-  rare: 2,
-  epic: 3,
-  legendary: 4,
-};
-
-function labelFromId(id: string): string {
-  return id
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
 
 export default class InventoryScene extends Phaser.Scene {
   private runId = "";
@@ -132,7 +119,7 @@ export default class InventoryScene extends Phaser.Scene {
     }
     this.dice = adaptDiceDetails(profile.data.dice ?? [], profile.data.units ?? []);
     if (this.selectedDiceId === null && this.dice.length > 0) {
-      this.selectedDiceId = this.getVisibleDice()[0]?.id ?? this.dice[0]?.id ?? null;
+      this.selectedDiceId = resolveSelectedDiceId(this.dice, this.getVisibleDice(), this.selectedDiceId);
     }
     this.renderDiceGrid();
     this.refreshActionSummary();
@@ -152,17 +139,7 @@ export default class InventoryScene extends Phaser.Scene {
     const dicePanelX = contentBodyX;
     const dicePanelWidth = Math.max(280, contentBodyWidth);
     const visibleDice = this.getVisibleDice();
-    if (this.selectedDiceId === null && visibleDice.length > 0) {
-      this.selectedDiceId = visibleDice[0]?.id ?? null;
-    }
-    const selectedIndex = visibleDice.findIndex((die) => die.id === this.selectedDiceId);
-    const safeSelected = selectedIndex >= 0 ? selectedIndex : 0;
-    if (visibleDice.length > 0) {
-      const selectedDie = visibleDice[safeSelected];
-      this.selectedDiceId = selectedDie ? selectedDie.id : null;
-    } else {
-      this.selectedDiceId = null;
-    }
+    this.selectedDiceId = resolveSelectedDiceId(this.dice, visibleDice, this.selectedDiceId);
 
     this.clearContentSummaryUi();
     const inventoryLabel = this.add
@@ -249,7 +226,7 @@ export default class InventoryScene extends Phaser.Scene {
 
       this.dice = this.dice.filter((die) => die.id !== selectedDie.id);
       const visibleDice = this.getVisibleDice();
-      this.selectedDiceId = visibleDice[0]?.id ?? this.dice[0]?.id ?? null;
+      this.selectedDiceId = resolveSelectedDiceId(this.dice, visibleDice, this.selectedDiceId);
       this.hoveredDiceId = null;
       this.renderDiceGrid();
       this.refreshActionSummary();
@@ -428,7 +405,7 @@ export default class InventoryScene extends Phaser.Scene {
       ? visibleDice.find((die) => die.id === this.hoveredDiceId) ?? this.dice.find((die) => die.id === this.hoveredDiceId)
       : null;
     const detailDie = hoveredDie ?? selectedDie ?? null;
-    const equippedBinding = this.describeEquippedBinding(selectedDie);
+    const equippedBinding = describeEquippedBinding(selectedDie);
 
     this.actionSummaryText.setText([
       "INVENTORY SUMMARY",
@@ -438,7 +415,7 @@ export default class InventoryScene extends Phaser.Scene {
       `Sell Value: ${selectedDie?.sellValue ?? 0} teeth`,
     ].join("\n"));
 
-    this.hoverDetailsText.setText(this.buildHoverDetails(detailDie, hoveredDie !== null));
+    this.hoverDetailsText.setText(buildHoverDetails(detailDie, hoveredDie !== null));
     this.viewEquippedUnitButton?.setEnabled(Boolean(selectedDie?.equipped?.unitId));
     this.sellDiceButton?.setEnabled(Boolean(selectedDie) && !selectedDie?.equipped && !this.sellInFlight);
     this.sellDiceButton?.setText(selectedDie ? `Sell (${selectedDie.sellValue})` : "Sell Die");
@@ -516,85 +493,27 @@ export default class InventoryScene extends Phaser.Scene {
 
   private syncDiceFilters(): void {
     const visibleDice = this.getVisibleDice();
-    if (visibleDice.length === 0) {
-      this.selectedDiceId = null;
-    } else if (!visibleDice.some((die) => die.id === this.selectedDiceId)) {
-      this.selectedDiceId = visibleDice[0]?.id ?? null;
-    }
+    this.selectedDiceId = resolveSelectedDiceId(this.dice, visibleDice, this.selectedDiceId);
     this.hoveredDiceId = null;
     this.renderDiceGrid();
     this.refreshActionSummary();
   }
 
   private getVisibleDice(): DiceDetailsViewModel[] {
-    return [...this.dice]
-      .filter((die) => this.matchesFilters(die))
-      .sort((a, b) => this.compareDice(a, b));
-  }
-
-  private matchesFilters(die: DiceDetailsViewModel): boolean {
-    if (this.sizeFilter !== "all" && die.sizeLabel.toLowerCase() !== this.sizeFilter) {
-      return false;
-    }
-    if (this.rarityFilter !== "all" && die.rarity.toLowerCase() !== this.rarityFilter) {
-      return false;
-    }
-    if (this.equippedFilter === "equipped" && !die.equipped) {
-      return false;
-    }
-    if (this.equippedFilter === "unequipped" && die.equipped) {
-      return false;
-    }
-    return true;
-  }
-
-  private compareDice(a: DiceDetailsViewModel, b: DiceDetailsViewModel): number {
-    if (this.sortMode === "equipped") {
-      const equippedDelta = Number(Boolean(b.equipped)) - Number(Boolean(a.equipped));
-      if (equippedDelta !== 0) {
-        return equippedDelta;
-      }
-    }
-    if (this.sortMode === "size") {
-      const sizeDelta = this.sizeValue(b.sizeLabel) - this.sizeValue(a.sizeLabel);
-      if (sizeDelta !== 0) {
-        return sizeDelta;
-      }
-    }
-    if (this.sortMode === "rarity" || this.sortMode === "equipped") {
-      const rarityDelta = (RARITY_SORT_VALUE[b.rarity] ?? -1) - (RARITY_SORT_VALUE[a.rarity] ?? -1);
-      if (rarityDelta !== 0) {
-        return rarityDelta;
-      }
-    }
-    if (this.sortMode === "rarity") {
-      const sizeDelta = this.sizeValue(b.sizeLabel) - this.sizeValue(a.sizeLabel);
-      if (sizeDelta !== 0) {
-        return sizeDelta;
-      }
-    }
-    return a.displayName.localeCompare(b.displayName);
-  }
-
-  private sizeValue(sizeLabel: string): number {
-    const raw = Number(sizeLabel.replace(/[^0-9]/g, ""));
-    return Number.isFinite(raw) ? raw : 0;
+    return getVisibleDice(this.dice, {
+      sortMode: this.sortMode,
+      sizeFilter: this.sizeFilter,
+      rarityFilter: this.rarityFilter,
+      equippedFilter: this.equippedFilter,
+    });
   }
 
   private cycleValue<T extends string>(values: readonly T[], current: T): T {
-    const currentIndex = values.indexOf(current);
-    const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % values.length;
-    return values[nextIndex] ?? values[0]!;
+    return cycleValue(values, current);
   }
 
   private getSelectedDie(): DiceDetailsViewModel | null {
-    if (!this.selectedDiceId) {
-      return null;
-    }
-
-    return this.getVisibleDice().find((die) => die.id === this.selectedDiceId)
-      ?? this.dice.find((die) => die.id === this.selectedDiceId)
-      ?? null;
+    return getSelectedDie(this.dice, this.getVisibleDice(), this.selectedDiceId);
   }
 
   private buildHoverDetails(die: DiceDetailsViewModel | null, hovered: boolean): string {
