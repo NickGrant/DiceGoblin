@@ -24,6 +24,7 @@ use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
+use DiceGoblins\Services\UnitProgressionService;
 
 use PDO;
 use Throwable;
@@ -606,16 +607,14 @@ final class BattleController
     ");
     $stmt->execute($params);
 
+    $progression = new UnitProgressionService();
     $out = [];
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-      $baseStats = json_decode((string)$row['base_stats_json'], true);
-      if (!is_array($baseStats)) {
-        $baseStats = [];
-      }
-      $level = max(1, (int)$row['level']);
-      $baseMaxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
-      $maxHpPerLevel = max(0, (int)$row['max_hp_per_level']);
-      $out[(int)$row['unit_instance_id']] = $baseMaxHp + (($level - 1) * $maxHpPerLevel);
+      $out[(int)$row['unit_instance_id']] = $progression->maxHpForLevel(
+        $row['base_stats_json'],
+        (int)$row['level'],
+        (int)$row['max_hp_per_level']
+      );
     }
 
     return $out;

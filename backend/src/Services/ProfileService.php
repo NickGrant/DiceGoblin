@@ -24,9 +24,7 @@ final class ProfileService
   private PDO $pdo;
 
   public function __construct(
-    private readonly PlayerBootstrapper $bootstrapper,
     private readonly EnergyService $energyService,
-    private readonly DiceAffixService $diceAffixService,
     private readonly ProfileDtoMapper $profileDtoMapper,
 
     private readonly PlayerStateRepository $playerStateRepo,
@@ -50,8 +48,6 @@ final class ProfileService
    */
   public function getProfile(int $userId): array
   {
-    // Ensure the minimum state exists for a logged-in user.
-    $this->bootstrapper->ensureBaseline($userId);
 
     // Apply regen as part of profile hydration so the client always sees “fresh” energy.
     $energy = $this->energyService->regenIfNeeded($userId);
@@ -62,14 +58,11 @@ final class ProfileService
     // Squads/Teams (membership + formation)
     $teams = $this->teamRepo->getTeamsWithMembershipAndFormationForUser($userId);
 
-    // Backfill the new loadout state for legacy units during the transition.
-    (new UnitLoadoutService($this->pdo))->ensureStateForUser($userId);
 
     // Units (with equipped dice)
     $units = $this->unitRepo->getUnitsWithEquippedDiceForUser($userId);
 
     // Dice inventory (with affixes + base definition data)
-    $this->diceAffixService->ensureAffixesForUser($userId);
     $dice = $this->diceRepo->getDiceWithAffixesForUser($userId);
 
     // Region unlocks

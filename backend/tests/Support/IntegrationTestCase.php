@@ -58,14 +58,28 @@ abstract class IntegrationTestCase extends TestCase
   }
 
   /**
+   * @param array<string,mixed> $body
+   */
+  protected function setJsonBody(array $body): void
+  {
+    $_POST = [];
+    $_SERVER['DICE_GOBLINS_TEST_RAW_BODY'] = (string)json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+  }
+
+  /**
    * @return array{status:int,body:array<string,mixed>}
    */
   protected function invoke(callable $fn): array
   {
     http_response_code(200);
     ob_start();
-    $fn();
-    $raw = (string)ob_get_clean();
+    try {
+      $fn();
+      $raw = (string)ob_get_clean();
+    } finally {
+      $_POST = [];
+      unset($_SERVER['DICE_GOBLINS_TEST_RAW_BODY']);
+    }
 
     $decoded = json_decode($raw, true);
     return [
@@ -226,6 +240,7 @@ abstract class IntegrationTestCase extends TestCase
     $_SESSION = [];
     $_POST = [];
     $_SERVER['HTTP_X_CSRF_TOKEN'] = '';
+    unset($_SERVER['DICE_GOBLINS_TEST_RAW_BODY']);
     http_response_code(200);
   }
 

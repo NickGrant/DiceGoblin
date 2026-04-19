@@ -17,6 +17,7 @@ use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Env;
 use DiceGoblins\Core\Response;
+use DiceGoblins\Http\JsonRequestBody;
 
 use DiceGoblins\Repositories\DiceRepository;
 use DiceGoblins\Repositories\EnergyRepository;
@@ -36,6 +37,8 @@ use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\ProfileService;
 use DiceGoblins\Services\ProfileDtoMapper;
 use DiceGoblins\Services\SessionService;
+use DiceGoblins\Services\UnitLoadoutService;
+use DiceGoblins\Services\UserDataSyncService;
 
 use PDO;
 use RuntimeException;
@@ -117,6 +120,7 @@ final class ApiController
     }
 
     try {
+      $services['userDataSyncService']->syncForUser($userId);
       $data = $services['profileService']->getProfile($userId);
 
       Response::json([
@@ -645,25 +649,7 @@ final class ApiController
    */
   private function readJsonBody(): ?array
   {
-    $raw = file_get_contents('php://input');
-    if ($raw === false) {
-      return null;
-    }
-
-    $raw = trim($raw);
-    if ($raw === '') {
-      if (isset($_POST) && is_array($_POST) && count($_POST) > 0) {
-        return $_POST;
-      }
-      return [];
-    }
-
-    $decoded = json_decode($raw, true);
-    if (!is_array($decoded)) {
-      return null;
-    }
-
-    return $decoded;
+    return JsonRequestBody::decode();
   }
 
   /**
@@ -936,6 +922,7 @@ final class ApiController
    *   pdo: PDO,
    *   csrfService: CsrfService,
    *   sessionService: SessionService,
+   *   userDataSyncService: UserDataSyncService,
    *   profileService: ProfileService,
    *   runRepo: RunRepository,
    *   runNodeRepo: RunNodeRepository,
@@ -957,11 +944,11 @@ final class ApiController
     $runRepo = new RunRepository($pdo);
 
     $energyService = new EnergyService($energyRepo);
+    $diceAffixService = new DiceAffixService($pdo);
+    $unitLoadoutService = new UnitLoadoutService($pdo);
 
     $profileService = new ProfileService(
-      $core['bootstrapper'],
       $energyService,
-      new DiceAffixService($pdo),
       new ProfileDtoMapper(),
       $playerStateRepo,
       $teamRepo,
@@ -976,6 +963,11 @@ final class ApiController
       'pdo' => $pdo,
       'csrfService' => $core['csrfService'],
       'sessionService' => $core['sessionService'],
+      'userDataSyncService' => new UserDataSyncService(
+        $core['bootstrapper'],
+        $unitLoadoutService,
+        $diceAffixService
+      ),
       'profileService' => $profileService,
       'grantService' => $core['grantService'],
       'runRepo' => $runRepo,

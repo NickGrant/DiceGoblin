@@ -10,6 +10,7 @@ namespace DiceGoblins\Combat\Engine;
 
 use DiceGoblins\Combat\Abilities\AbilityRegistry;
 use DiceGoblins\Combat\Abilities\AbilityType;
+use DiceGoblins\Services\UnitProgressionService;
 use PDO;
 use RuntimeException;
 
@@ -279,16 +280,16 @@ final class DeterministicRunNodeResolver
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $units = [];
     $fallbackIndex = 0;
+    $progression = new UnitProgressionService();
 
     foreach ($rows as $row) {
       $baseStats = $this->decodeJsonObject($row['base_stats_json']);
       $abilitySet = $this->decodeJsonObject($row['ability_set_json']);
       $level = max(1, (int)$row['level']);
-      $levelScale = $level - 1;
 
-      $attack = max(1, (int)($baseStats['attack'] ?? 1) + ((int)$row['attack_per_level'] * $levelScale));
-      $defense = max(0, (int)($baseStats['defense'] ?? 0) + ((int)$row['defense_per_level'] * $levelScale));
-      $maxHp = max(1, (int)($baseStats['max_hp'] ?? 1) + ((int)$row['max_hp_per_level'] * $levelScale));
+      $attack = $progression->totalAttackForLevel($baseStats, $level, (int)$row['attack_per_level']);
+      $defense = $progression->totalDefenseForLevel($baseStats, $level, (int)$row['defense_per_level']);
+      $maxHp = $progression->maxHpForLevel($baseStats, $level, (int)$row['max_hp_per_level']);
       $currentHp = $row['run_current_hp'] !== null
         ? max(0, min($maxHp, (int)$row['run_current_hp']))
         : $maxHp;

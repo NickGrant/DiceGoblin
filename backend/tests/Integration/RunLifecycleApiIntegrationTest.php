@@ -118,7 +118,6 @@ final class RunLifecycleApiIntegrationTest extends IntegrationTestCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = ['region_id' => (string)$farmRegionId];
 
     $apiController = new ApiController();
     $sessionRes = $this->invoke(fn() => $apiController->session());
@@ -126,6 +125,7 @@ final class RunLifecycleApiIntegrationTest extends IntegrationTestCase
     $this->assertSame(true, $sessionRes['body']['ok'] ?? null);
     $this->assertSame(true, $sessionRes['body']['data']['authenticated'] ?? null);
 
+    $this->setJsonBody(['region_id' => (string)$farmRegionId]);
     $createRes = $this->invoke(fn() => $apiController->createRun());
     $this->assertSame(200, $createRes['status'], json_encode($createRes['body']));
     $this->assertSame(true, $createRes['body']['ok'] ?? null);

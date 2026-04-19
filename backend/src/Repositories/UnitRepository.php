@@ -9,14 +9,20 @@ declare(strict_types=1);
 namespace DiceGoblins\Repositories;
 
 use PDO;
+use DiceGoblins\Services\UnitProgressionService;
 use RuntimeException;
 use Throwable;
 
 final class UnitRepository
 {
+  private UnitProgressionService $unitProgression;
+
   public function __construct(
     private readonly PDO $pdo,
-  ) {}
+    ?UnitProgressionService $unitProgression = null,
+  ) {
+    $this->unitProgression = $unitProgression ?? new UnitProgressionService();
+  }
 
   /**
    * Static catalog of unit types.
@@ -189,21 +195,22 @@ final class UnitRepository
       $familySlug = $this->unitFamilySlug((string)($u['unit_type_slug'] ?? ''));
       $maxTier = $familySlug !== null ? ($maxTierByFamily[$familySlug] ?? 1) : 1;
 
-      $baseStatsRaw = $u['base_stats_json'];
-      if (is_string($baseStatsRaw)) {
-        $decodedStats = json_decode($baseStatsRaw, true);
-        $baseStatsRaw = is_array($decodedStats) ? $decodedStats : [];
-      }
-      $baseStats = is_array($baseStatsRaw) ? $baseStatsRaw : [];
-      $levelScale = $level - 1;
-      $baseAttack = max(1, (int)($baseStats['attack'] ?? 1));
-      $baseDefense = max(0, (int)($baseStats['defense'] ?? 0));
-      $baseMaxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
-
-      $totalAttack = max(1, $baseAttack + (max(0, (int)$u['attack_per_level']) * $levelScale));
-      $totalDefense = max(0, $baseDefense + (max(0, (int)$u['defense_per_level']) * $levelScale));
-      $maxHp = max(1, $baseMaxHp + (max(0, (int)$u['max_hp_per_level']) * $levelScale));
-      $xpToNext = $level >= $maxLevel ? 0 : max(0, ($tier * ($level + 1) * 50) - $xp);
+      $totalAttack = $this->unitProgression->totalAttackForLevel(
+        $u['base_stats_json'],
+        $level,
+        (int)$u['attack_per_level']
+      );
+      $totalDefense = $this->unitProgression->totalDefenseForLevel(
+        $u['base_stats_json'],
+        $level,
+        (int)$u['defense_per_level']
+      );
+      $maxHp = $this->unitProgression->maxHpForLevel(
+        $u['base_stats_json'],
+        $level,
+        (int)$u['max_hp_per_level']
+      );
+      $xpToNext = $this->unitProgression->xpToNextLevel($tier, $level, $maxLevel, $xp);
 
       $out[] = [
         'id' => $uid,

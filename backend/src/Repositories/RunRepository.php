@@ -9,14 +9,20 @@ declare(strict_types=1);
 namespace DiceGoblins\Repositories;
 
 use PDO;
+use DiceGoblins\Services\UnitProgressionService;
 use RuntimeException;
 use Throwable;
 
 final class RunRepository
 {
+  private UnitProgressionService $unitProgression;
+
   public function __construct(
     private readonly PDO $pdo,
-  ) {}
+    ?UnitProgressionService $unitProgression = null,
+  ) {
+    $this->unitProgression = $unitProgression ?? new UnitProgressionService();
+  }
 
   /**
    * Get the user's active run (if any).
@@ -522,16 +528,12 @@ final class RunRepository
 
     $seedRows = [];
     foreach ($rows as $row) {
-      $baseStatsRaw = $row['base_stats_json'];
-      $baseStats = is_string($baseStatsRaw) ? json_decode($baseStatsRaw, true) : $baseStatsRaw;
-      if (!is_array($baseStats)) {
-        $baseStats = [];
-      }
-
       $level = max(1, (int)$row['level']);
-      $baseMaxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
-      $maxHpPerLevel = max(0, (int)$row['max_hp_per_level']);
-      $maxHp = $baseMaxHp + (($level - 1) * $maxHpPerLevel);
+      $maxHp = $this->unitProgression->maxHpForLevel(
+        $row['base_stats_json'],
+        $level,
+        (int)$row['max_hp_per_level']
+      );
 
       $seedRows[] = [
         'unit_instance_id' => (int)$row['unit_instance_id'],
@@ -578,14 +580,12 @@ final class RunRepository
         $defeatedIds[] = $unitId;
       }
 
-      $baseStats = json_decode((string)$row['base_stats_json'], true);
-      if (!is_array($baseStats)) {
-        $baseStats = [];
-      }
       $level = max(1, (int)$row['level']);
-      $baseMaxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
-      $maxHpPerLevel = max(0, (int)$row['max_hp_per_level']);
-      $maxHp = $baseMaxHp + (($level - 1) * $maxHpPerLevel);
+      $maxHp = $this->unitProgression->maxHpForLevel(
+        $row['base_stats_json'],
+        $level,
+        (int)$row['max_hp_per_level']
+      );
 
       $this->upsertRunUnitState(
         $runId,
@@ -649,14 +649,7 @@ final class RunRepository
       $fromLevel = $level;
       $fromXp = $xp;
 
-      while ($level < $maxLevel) {
-        $xpToNext = $tier * ($level + 1) * 50;
-        if ($xp < $xpToNext) {
-          break;
-        }
-        $xp -= $xpToNext;
-        $level++;
-      }
+      ['level' => $level, 'xp' => $xp] = $this->unitProgression->resolveAutoLevel($tier, $level, $xp, $maxLevel);
 
       if ($level !== $fromLevel || $xp !== $fromXp) {
         $update = $this->pdo->prepare('

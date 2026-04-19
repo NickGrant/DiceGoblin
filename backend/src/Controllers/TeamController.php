@@ -11,6 +11,7 @@ namespace DiceGoblins\Controllers;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
+use DiceGoblins\Http\JsonRequestBody;
 
 use DiceGoblins\Repositories\EnergyRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
@@ -329,16 +330,7 @@ final class TeamController
 
   private function readJsonBody(): ?array
   {
-    $raw = file_get_contents('php://input');
-    if ($raw === false) return null;
-
-    $raw = trim($raw);
-    if ($raw === '') return [];
-
-    $decoded = json_decode($raw, true);
-    if (!is_array($decoded)) return null;
-
-    return $decoded;
+    return JsonRequestBody::decode();
   }
 
   private function requirePositiveInt(?string $raw, string $field): ?int

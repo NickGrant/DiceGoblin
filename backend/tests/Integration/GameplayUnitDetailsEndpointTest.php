@@ -19,7 +19,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = ['display_name' => 'Mudjaw'];
+    $this->setJsonBody(['display_name' => 'Mudjaw']);
 
     $controller = new GameplayController();
     $response = $this->invoke(fn() => $controller->renameUnit((string)$unitId));
@@ -68,9 +68,9 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = [
+    $this->setJsonBody([
       'ability_ids' => ['basic_attack_melee', 'basic_attack_melee', 'heavy_strike'],
-    ];
+    ]);
 
     $controller = new GameplayController();
     $response = $this->invoke(fn() => $controller->replaceEquippedAbilities((string)$unitId));
@@ -113,11 +113,11 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = [
+    $this->setJsonBody([
       'primary_unit_instance_id' => (string)$primaryId,
       'secondary_unit_instance_ids' => [(string)$secondaryA, (string)$secondaryB],
       'destination_unit_type_id' => (string)$bannerTargetTypeId,
-    ];
+    ]);
 
     $controller = new GameplayController();
     $response = $this->invoke(fn() => $controller->promoteUnit((string)$primaryId));
@@ -158,16 +158,16 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
 
     $controller = new GameplayController();
 
-    $_POST = ['ability_ids' => ['basic_attack_melee', 'heavy_strike']];
+    $this->setJsonBody(['ability_ids' => ['basic_attack_melee', 'heavy_strike']]);
     $blocked = $this->invoke(fn() => $controller->replaceEquippedAbilities((string)$unitId));
     $this->assertSame(409, $blocked['status']);
     $this->assertSame('run_rest_context_required', (string)($blocked['body']['error']['code'] ?? ''));
 
-    $_POST = [
+    $this->setJsonBody([
       'ability_ids' => ['basic_attack_melee', 'heavy_strike'],
       'run_id' => (string)$runId,
       'node_id' => (string)$restNodeId,
-    ];
+    ]);
     $allowed = $this->invoke(fn() => $controller->replaceEquippedAbilities((string)$unitId));
     $this->assertSame(200, $allowed['status'], json_encode($allowed['body']));
   }
@@ -186,7 +186,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
 
     $controller = new GameplayController();
 
-    $_POST = ['dice_instance_id' => (string)$diceId];
+    $this->setJsonBody(['dice_instance_id' => (string)$diceId]);
     $assign = $this->invoke(fn() => $controller->assignAbilitySlotDie((string)$unitId, 'heavy_strike', '0'));
     $this->assertSame(200, $assign['status'], json_encode($assign['body']));
     $abilityDice = $assign['body']['data']['ability_dice'] ?? null;
@@ -195,7 +195,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
       count(array_filter($abilityDice, static fn(array $row): bool => (string)$row['ability_id'] === 'heavy_strike' && (int)$row['slot_index'] === 0 && (string)$row['dice_instance_id'] === (string)$diceId)) === 1
     );
 
-    $_POST = [];
+    $this->setJsonBody([]);
     $clear = $this->invoke(fn() => $controller->clearAbilitySlotDie((string)$unitId, 'heavy_strike', '0'));
     $this->assertSame(200, $clear['status'], json_encode($clear['body']));
     $this->assertSame(
@@ -228,16 +228,16 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
 
     $controller = new GameplayController();
 
-    $_POST = ['dice_instance_id' => (string)$diceId];
+    $this->setJsonBody(['dice_instance_id' => (string)$diceId]);
     $blocked = $this->invoke(fn() => $controller->assignAbilitySlotDie((string)$unitId, 'heavy_strike', '0'));
     $this->assertSame(409, $blocked['status']);
     $this->assertSame('run_rest_context_required', (string)($blocked['body']['error']['code'] ?? ''));
 
-    $_POST = [
+    $this->setJsonBody([
       'dice_instance_id' => (string)$diceId,
       'run_id' => (string)$runId,
       'node_id' => (string)$restNodeId,
-    ];
+    ]);
     $allowed = $this->invoke(fn() => $controller->assignAbilitySlotDie((string)$unitId, 'heavy_strike', '0'));
     $this->assertSame(200, $allowed['status'], json_encode($allowed['body']));
   }

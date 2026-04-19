@@ -6,6 +6,7 @@ namespace DiceGoblins\Controllers;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
+use DiceGoblins\Http\JsonRequestBody;
 use DiceGoblins\Repositories\DiceRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RegionRepository;
@@ -313,16 +314,7 @@ final class DebugController
    */
   private function readJsonBody(): ?array
   {
-    $raw = file_get_contents('php://input');
-    if ($raw === false) {
-      return null;
-    }
-    if (trim($raw) === '') {
-      return [];
-    }
-
-    $data = json_decode($raw, true);
-    return is_array($data) ? $data : null;
+    return JsonRequestBody::decode();
   }
 
   private function respondUnauthorized(): void

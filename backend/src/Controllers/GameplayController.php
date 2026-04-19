@@ -6,6 +6,7 @@ namespace DiceGoblins\Controllers;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
+use DiceGoblins\Http\JsonRequestBody;
 use DiceGoblins\Repositories\DiceRepository;
 use DiceGoblins\Repositories\EnergyRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
@@ -22,6 +23,7 @@ use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Services\UnitNameGenerator;
+use DiceGoblins\Services\UnitProgressionService;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -1228,16 +1230,14 @@ final class GameplayController
     $stmt->execute($params);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    $progression = new UnitProgressionService();
     $out = [];
     foreach ($rows as $row) {
-      $base = json_decode((string)$row['base_stats_json'], true);
-      if (!is_array($base)) {
-        $base = [];
-      }
-      $level = max(1, (int)$row['level']);
-      $baseMaxHp = max(1, (int)($base['max_hp'] ?? 1));
-      $per = max(0, (int)$row['max_hp_per_level']);
-      $maxHp = $baseMaxHp + (($level - 1) * $per);
+      $maxHp = $progression->maxHpForLevel(
+        $row['base_stats_json'],
+        (int)$row['level'],
+        (int)$row['max_hp_per_level']
+      );
       $out[] = [
         'unit_instance_id' => (int)$row['unit_instance_id'],
         'current_hp' => $maxHp,
@@ -1275,15 +1275,13 @@ final class GameplayController
         `status_effects_json` = VALUES(`status_effects_json`)
     ');
 
+    $progression = new UnitProgressionService();
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-      $baseStats = json_decode((string)$row['base_stats_json'], true);
-      if (!is_array($baseStats)) {
-        $baseStats = [];
-      }
-      $level = max(1, (int)$row['level']);
-      $baseMaxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
-      $maxHpPerLevel = max(0, (int)$row['max_hp_per_level']);
-      $maxHp = $baseMaxHp + (($level - 1) * $maxHpPerLevel);
+      $maxHp = $progression->maxHpForLevel(
+        $row['base_stats_json'],
+        (int)$row['level'],
+        (int)$row['max_hp_per_level']
+      );
       $upsert->execute([$runId, (int)$row['unit_instance_id'], $maxHp, '{}', '[]']);
     }
   }
@@ -1334,17 +1332,7 @@ final class GameplayController
 
   private function readJsonBody(): ?array
   {
-    $raw = file_get_contents('php://input');
-    if ($raw === false) return null;
-    $raw = trim($raw);
-    if ($raw === '') {
-      if (isset($_POST) && is_array($_POST) && count($_POST) > 0) {
-        return $_POST;
-      }
-      return [];
-    }
-    $decoded = json_decode($raw, true);
-    return is_array($decoded) ? $decoded : null;
+    return JsonRequestBody::decode();
   }
 
   private function requirePositiveInt(?string $raw, string $field): ?int

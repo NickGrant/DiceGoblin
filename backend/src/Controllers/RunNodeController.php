@@ -12,6 +12,7 @@ use DiceGoblins\Combat\Engine\DeterministicRunNodeResolver;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
+use DiceGoblins\Http\JsonRequestBody;
 
 use DiceGoblins\Repositories\BattleLogRepository;
 use DiceGoblins\Repositories\BattleRepository;
@@ -439,19 +440,7 @@ final class RunNodeController
    */
   private function readJsonBody(): ?array
   {
-    $raw = file_get_contents('php://input');
-    if ($raw === false) return null;
-
-    $raw = trim($raw);
-    if ($raw === '') {
-      if (isset($_POST) && is_array($_POST) && count($_POST) > 0) {
-        return $_POST;
-      }
-      return [];
-    }
-
-    $decoded = json_decode($raw, true);
-    return is_array($decoded) ? $decoded : null;
+    return JsonRequestBody::decode();
   }
 
   private function requirePositiveInt(?string $raw, string $field): ?int

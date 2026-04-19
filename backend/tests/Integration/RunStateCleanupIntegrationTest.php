@@ -131,19 +131,19 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = [];
+    $this->setJsonBody([]);
 
     $gameplay = new GameplayController();
     $openRes = $this->invoke(fn() => $gameplay->openRest((string)$runId, (string)$restNodeId));
     $this->assertSame(200, $openRes['status']);
 
-    $_POST = [
+    $this->setJsonBody([
       'unit_ids' => [(string)$u1, (string)$u3],
       'formation' => [
         ['cell' => 'A1', 'unit_instance_id' => (string)$u1],
         ['cell' => 'B1', 'unit_instance_id' => (string)$u3],
       ],
-    ];
+    ]);
     $stateRes = $this->invoke(fn() => $gameplay->updateRestState((string)$runId, (string)$restNodeId));
     $this->assertSame(200, $stateRes['status'], json_encode($stateRes['body']));
 
@@ -153,7 +153,7 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $runUnits = $this->rows('SELECT `unit_instance_id` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_instance_id` ASC', [$runId]);
     $this->assertSame([(string)$u1, (string)$u3], array_map(static fn(array $r): string => (string)$r['unit_instance_id'], $runUnits));
 
-    $_POST = [];
+    $this->setJsonBody([]);
     $finalizeRes = $this->invoke(fn() => $gameplay->finalizeRest((string)$runId, (string)$restNodeId));
     $this->assertSame(200, $finalizeRes['status'], json_encode($finalizeRes['body']));
 
@@ -190,7 +190,7 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = [];
+    $this->setJsonBody([]);
 
     $gameplay = new GameplayController();
     $finalizeRes = $this->invoke(fn() => $gameplay->finalizeRest((string)$runId, (string)$restNodeId));
@@ -228,36 +228,36 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
 
     $gameplay = new GameplayController();
 
-    $_POST = ['dice_instance_id' => (string)$diceId];
+    $this->setJsonBody(['dice_instance_id' => (string)$diceId]);
     $equipBlocked = $this->invoke(fn() => $gameplay->equipDice((string)$primary));
     $this->assertSame(409, $equipBlocked['status']);
     $this->assertSame('run_rest_context_required', (string)($equipBlocked['body']['error']['code'] ?? ''));
 
-    $_POST = [
+    $this->setJsonBody([
       'dice_instance_id' => (string)$diceId,
       'run_id' => (string)$runId,
       'node_id' => (string)$restNodeId,
-    ];
+    ]);
     $equipOk = $this->invoke(fn() => $gameplay->equipDice((string)$primary));
     $this->assertSame(200, $equipOk['status'], json_encode($equipOk['body']));
 
-    $_POST = [
+    $this->setJsonBody([
       'primary_unit_instance_id' => (string)$primary,
       'secondary_unit_instance_ids' => [(string)$secondaryA, (string)$secondaryB],
       'run_id' => (string)$runId,
       'node_id' => (string)$restNodeId,
-    ];
+    ]);
     $promoteBlocked = $this->invoke(fn() => $gameplay->promoteUnit((string)$primary));
     $this->assertSame(409, $promoteBlocked['status']);
     $this->assertSame('unit_in_active_run', (string)($promoteBlocked['body']['error']['code'] ?? ''));
 
     $this->rows('DELETE FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?', [$runId, $secondaryA]);
-    $_POST = [
+    $this->setJsonBody([
       'primary_unit_instance_id' => (string)$primary,
       'secondary_unit_instance_ids' => [(string)$secondaryA, (string)$secondaryB],
       'run_id' => (string)$runId,
       'node_id' => (string)$restNodeId,
-    ];
+    ]);
     $promoteOk = $this->invoke(fn() => $gameplay->promoteUnit((string)$primary));
     $this->assertSame(200, $promoteOk['status'], json_encode($promoteOk['body']));
 

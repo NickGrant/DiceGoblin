@@ -25,7 +25,7 @@ final class ApiControllerCreateRunDomainErrorsTest extends IntegrationTestCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = ['region_id' => (string)$regionId];
+    $this->setJsonBody(['region_id' => (string)$regionId]);
 
     $api = new ApiController();
     $res = $this->invoke(fn() => $api->createRun());
@@ -43,7 +43,7 @@ final class ApiControllerCreateRunDomainErrorsTest extends IntegrationTestCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = ['region_id' => '999999'];
+    $this->setJsonBody(['region_id' => '999999']);
 
     $api = new ApiController();
     $res = $this->invoke(fn() => $api->createRun());
@@ -62,7 +62,7 @@ final class ApiControllerCreateRunDomainErrorsTest extends IntegrationTestCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = ['region_id' => (string)$regionId];
+    $this->setJsonBody(['region_id' => (string)$regionId]);
 
     $api = new ApiController();
     $res = $this->invoke(fn() => $api->createRun());
@@ -81,7 +81,7 @@ final class ApiControllerCreateRunDomainErrorsTest extends IntegrationTestCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = ['region_id' => (string)$regionId];
+    $this->setJsonBody(['region_id' => (string)$regionId]);
 
     $api = new ApiController();
     $res = $this->invoke(fn() => $api->createRun());
@@ -100,7 +100,7 @@ final class ApiControllerCreateRunDomainErrorsTest extends IntegrationTestCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = ['region_id' => (string)$regionId];
+    $this->setJsonBody(['region_id' => (string)$regionId]);
 
     $api = new ApiController();
     $res = $this->invoke(fn() => $api->createRun());
@@ -123,7 +123,7 @@ final class ApiControllerCreateRunDomainErrorsTest extends IntegrationTestCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = ['region_id' => (string)$regionId];
+    $this->setJsonBody(['region_id' => (string)$regionId]);
 
     $api = new ApiController();
     $res = $this->invoke(fn() => $api->createRun());

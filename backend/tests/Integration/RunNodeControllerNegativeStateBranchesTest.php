@@ -84,7 +84,7 @@ final class RunNodeControllerNegativeStateBranchesTest extends IntegrationTestCa
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $_POST = ['team_id' => (string)$otherTeamId];
+    $this->setJsonBody(['team_id' => (string)$otherTeamId]);
 
     $controller = new RunNodeController();
     $res = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
