@@ -4,7 +4,7 @@
 Status: active  
 Last Updated: 2026-03-09  
 Owner: Product + Engineering + QA  
-Depends On: `documentation/TESTING_STRATEGY.md`, `ISSUES.md`, `MILESTONES.md`
+Depends On: `documentation/TESTING_STRATEGY.md`, `agent/ISSUES.md`, `agent/MILESTONES.md`
 
 ## Purpose
 - Define objective release-readiness criteria for Milestone 6.

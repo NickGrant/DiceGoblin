@@ -4,7 +4,7 @@
 Status: active  
 Last Updated: 2026-03-04  
 Owner: Design + Product  
-Depends On: `documentation/03-ux/00-ux-and-debug-scope.md`, `ISSUES.md`
+Depends On: `documentation/03-ux/00-ux-and-debug-scope.md`, `agent/ISSUES.md`
 
 ## Purpose
 - Standardize severity assignment for UX and playability defects.

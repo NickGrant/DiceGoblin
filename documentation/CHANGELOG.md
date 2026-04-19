@@ -1,11 +1,16 @@
 # Documentation Changelog
 
 Status: active  
-Last Updated: 2026-03-08  
+Last Updated: 2026-04-18  
 Owner: Product + Engineering  
-Depends On: `documentation/README.md`, `ISSUES.md`
+Depends On: `documentation/README.md`, `agent/ISSUES.md`
 
 ----
+
+## 2026-04-18
+- Split agent workflow and backlog-control docs out of `documentation/` into `agent/` so game documentation and agent instructions are no longer mixed together.
+- Slimmed `README.md` to point readers to `documentation/README.md` for game docs and `agent/README.md` for agent workflow, removing duplicated command and skills sections.
+- Refined `documentation/README.md` so it indexes only `documentation/` content and points agent-ops readers back to `AGENTS.md` and `agent/README.md`.
 
 ## 2026-04-01
 - Added `documentation/05-playability-stability/02-first-release-manual-gate-evidence.md` to capture the Milestone 31 manual gate evidence for fresh-account bootstrap, successful run, failed run, resume continuity, and reset-account validation.

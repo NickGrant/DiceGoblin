@@ -26,6 +26,6 @@ Depends On: `documentation/README.md`
 - Avoid duplicated policy text; reference canonical docs instead.
 
 ## Hygiene Rules
-- Active work in `ISSUES.md` and `MILESTONES.md`.
+- Active work in `agent/ISSUES.md` and `agent/MILESTONES.md`.
 - Archive completed items promptly.
 - Record major doc contract changes in `documentation/CHANGELOG.md`.

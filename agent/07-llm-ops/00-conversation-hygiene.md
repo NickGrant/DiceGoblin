@@ -3,7 +3,7 @@
 Status: active  
 Last Updated: 2026-03-07  
 Owner: Product + LLM Ops  
-Depends On: `AGENTS.md`, `documentation/ACTIVE_CONTEXT.md`
+Depends On: `AGENTS.md`, `agent/ACTIVE_CONTEXT.md`
 
 When using a single long-running conversation for development work, it is important to prevent ideas from mixing together unintentionally. The following structure helps maintain clarity.
 

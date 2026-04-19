@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const issuesPath = path.join(root, "ISSUES.md");
-const milestonesPath = path.join(root, "MILESTONES.md");
+const issuesPath = path.join(root, "agent", "ISSUES.md");
+const milestonesPath = path.join(root, "agent", "MILESTONES.md");
 
 const allowedIssueStatus = new Set(["unstarted", "in-progress", "reopened", "blocked"]);
 const allowedPriority = new Set(["low", "medium", "high"]);
@@ -55,8 +55,8 @@ function fail(errors) {
 
 const errors = [];
 
-if (!fs.existsSync(issuesPath)) errors.push("Missing ISSUES.md");
-if (!fs.existsSync(milestonesPath)) errors.push("Missing MILESTONES.md");
+if (!fs.existsSync(issuesPath)) errors.push("Missing agent/ISSUES.md");
+if (!fs.existsSync(milestonesPath)) errors.push("Missing agent/MILESTONES.md");
 if (errors.length) fail(errors);
 
 const issuesRaw = fs.readFileSync(issuesPath, "utf8");

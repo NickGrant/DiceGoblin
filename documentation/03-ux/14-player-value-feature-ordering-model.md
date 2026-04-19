@@ -4,7 +4,7 @@
 Status: active
 Last Updated: 2026-03-07
 Owner: Product + Game Design
-Depends On: `ISSUES.md`, `MILESTONES.md`, `documentation/03-ux/09-first-session-player-journey.md`
+Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `documentation/03-ux/09-first-session-player-journey.md`
 
 ## Purpose
 - Provide a repeatable rubric for ordering upcoming features by player impact.

@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const required = ["AGENTS.md", "ISSUES.md", "MILESTONES.md", "README.md"];
-const optional = ["LLM_CONTEXT.md", "ROLES.md", "ISSUES_BACKLOG.md", "MILESTONES_BACKLOG.md"];
+const required = ["AGENTS.md", "agent/ISSUES.md", "agent/MILESTONES.md", "README.md"];
+const optional = ["agent/LLM_CONTEXT.md", "agent/ROLES.md", "agent/ISSUES_BACKLOG.md", "agent/MILESTONES_BACKLOG.md"];
 
 const issueStatus = new Set(["unstarted", "in-progress", "reopened", "blocked"]);
 const issuePriority = new Set(["low", "medium", "high"]);
@@ -42,7 +42,7 @@ for (const rel of optional) {
   if (!readFileSafe(rel)) warnings.push(`Optional doc not present: ${rel}`);
 }
 
-const issuesRaw = readFileSafe("ISSUES.md");
+const issuesRaw = readFileSafe("agent/ISSUES.md");
 if (issuesRaw) {
   const blocks = parseBlocks(issuesRaw, "title");
   for (const b of blocks) {
@@ -52,14 +52,14 @@ if (issuesRaw) {
     const execution = getField(b, "execution");
     const ready = getField(b, "ready");
 
-    if (!status || !issueStatus.has(status)) errors.push(`ISSUES.md: invalid status for "${title}": ${status}`);
-    if (!priority || !issuePriority.has(priority)) errors.push(`ISSUES.md: invalid priority for "${title}": ${priority}`);
-    if (!execution || !issueExecution.has(execution)) errors.push(`ISSUES.md: invalid execution for "${title}": ${execution}`);
-    if (!ready || !issueReady.has(ready)) errors.push(`ISSUES.md: invalid ready for "${title}": ${ready}`);
+    if (!status || !issueStatus.has(status)) errors.push(`agent/ISSUES.md: invalid status for "${title}": ${status}`);
+    if (!priority || !issuePriority.has(priority)) errors.push(`agent/ISSUES.md: invalid priority for "${title}": ${priority}`);
+    if (!execution || !issueExecution.has(execution)) errors.push(`agent/ISSUES.md: invalid execution for "${title}": ${execution}`);
+    if (!ready || !issueReady.has(ready)) errors.push(`agent/ISSUES.md: invalid ready for "${title}": ${ready}`);
   }
 }
 
-const milestonesRaw = readFileSafe("MILESTONES.md");
+const milestonesRaw = readFileSafe("agent/MILESTONES.md");
 if (milestonesRaw) {
   const blocks = parseBlocks(milestonesRaw, "name");
   let currentYes = 0;
@@ -71,12 +71,12 @@ if (milestonesRaw) {
     const window = getField(b, "execution_window");
     const current = getField(b, "is_current");
 
-    if (!status || !milestoneStatus.has(status)) errors.push(`MILESTONES.md: invalid status for "${name}": ${status}`);
-    if (!window || !milestoneWindow.has(window)) errors.push(`MILESTONES.md: invalid execution_window for "${name}": ${window}`);
-    if (!current || !milestoneCurrent.has(current)) errors.push(`MILESTONES.md: invalid is_current for "${name}": ${current}`);
+    if (!status || !milestoneStatus.has(status)) errors.push(`agent/MILESTONES.md: invalid status for "${name}": ${status}`);
+    if (!window || !milestoneWindow.has(window)) errors.push(`agent/MILESTONES.md: invalid execution_window for "${name}": ${window}`);
+    if (!current || !milestoneCurrent.has(current)) errors.push(`agent/MILESTONES.md: invalid is_current for "${name}": ${current}`);
     if (current === "yes") currentYes += 1;
   }
-  if (currentYes > 1) errors.push("MILESTONES.md: more than one milestone has is_current: yes");
+  if (currentYes > 1) errors.push("agent/MILESTONES.md: more than one milestone has is_current: yes");
 }
 
 if (warnings.length) {

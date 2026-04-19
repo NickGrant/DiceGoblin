@@ -11,7 +11,8 @@ Dice Goblins is a browser-based tactical RPG/roguelite prototype built with a Ph
 ## Repository Layout
 - `frontend/` Phaser game client
 - `backend/` PHP API, repositories, services, and migrations
-- `documentation/` design, architecture, and systems specs
+- `documentation/` game design, architecture, systems, and UX docs
+- `agent/` agent workflow, backlog, role, and evaluation docs
 - `raw-assets/` source art assets
 
 ## Prerequisites
@@ -81,33 +82,12 @@ Start with:
 - `documentation/01-architecture/00-tech-stack.md`
 - `documentation/README.md`
 
-## Agent Workflow Files
-This repo includes lightweight collaboration control docs:
-- `AGENTS.md`
-- `LLM_CONTEXT.md`
-- `ROLES.md`
-- `ISSUES.md`
-- `ISSUES_BACKLOG.md` (planning/deferred)
+## Agent Workflow
+- `AGENTS.md` is the root entrypoint for coding agents.
+- `agent/README.md` is the index for agent-specific workflow files.
+- `agent/ISSUES.md` and `agent/MILESTONES.md` are the active execution sources of truth.
 
-## Local Skills
-- `skills/backlog-ops/SKILL.md` for issue/milestone lifecycle operations.
-- `skills/startup-verification/SKILL.md` for startup validation workflow.
-- `skills/scene-screenshot/SKILL.md` for deterministic Phaser scene screenshots through the debug scene loader and capture command.
-- `skills/ux-scene-review/SKILL.md` for iterative UX review loops on scenes using screenshot capture, code fixes, and QA review.
-- `ISSUES_ARCHIVE.md`
-- `MILESTONES.md`
-- `MILESTONES_BACKLOG.md` (planning/deferred)
-- `MILESTONES_ARCHIVE.md`
-
-Use `ISSUES.md` for active work only; move completed items to `ISSUES_ARCHIVE.md`.
-
-## Backlog Validation
-From repository root:
-```bash
-npm run backlog:validate
-```
-
-## LLM Workflow Commands
+## Workflow Commands
 From repository root:
 ```bash
 npm run startup:check

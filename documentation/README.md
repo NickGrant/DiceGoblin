@@ -4,18 +4,20 @@
 Status: active  
 Last Updated: 2026-04-18  
 Owner: Product + Engineering  
-Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
+Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
 ## Purpose
-- Single entrypoint for project docs.
-- Fast mapping from task type to canonical documents.
+- Single entrypoint for game and project documentation under `documentation/`.
+- Fast mapping from task type to canonical game-facing docs.
 
-## Canonical Execution Sources
-- `AGENTS.md`
-- `ISSUES.md`
-- `MILESTONES.md`
+## Scope
+- This index is for `documentation/` content only.
+- Agent workflow, backlog control, and execution policy live in `AGENTS.md` and `agent/README.md`.
+
+## Canonical Project Sources
 - `documentation/01-architecture/03-backend-api-contracts.md`
 - `documentation/01-architecture/04-data-model.md`
+- `documentation/03-ux/01-visual-design-guide.md`
 
 ## Suggested Read Order
 1. `documentation/00-overview/00-project-overview.md`
@@ -42,11 +44,7 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
   - `documentation/02-systems-mvp/07-combat-math-and-modifiers.md`
   - `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
   - `documentation/02-systems-mvp/09-ability-loadout-combat-rework-plan.md`
-- Planning/triage:
-  - `ISSUES.md`, `MILESTONES.md`
-  - `ISSUES_BACKLOG.md`, `MILESTONES_BACKLOG.md`
-  - `documentation/BACKLOG_OPERATIONS.md`
-  - `documentation/ACTIVE_CONTEXT.md`
+- Planning/design:
   - `documentation/03-ux/15-ability-loadout-and-unit-naming-plan.md`
   - `documentation/00-overview/01-rework-normalization-pass.md`
 - Verification/release:
@@ -63,10 +61,10 @@ Depends On: `README.md`, `ISSUES.md`, `AGENTS.md`
 - `documentation/unit_list.json`
 - `documentation/enemy_list.json`
 
-## LLM Ops
-- `npm run startup:check`
-- `npm run backlog:validate`
-- `npm run llm:check`
+## Related Indexes
+- Agent workflow and backlog docs:
+  - `AGENTS.md`
+  - `agent/README.md`
 
 ## Local Automation
 - Scene screenshot capture:

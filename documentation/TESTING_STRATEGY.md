@@ -4,7 +4,7 @@
 Status: active  
 Last Updated: 2026-03-09  
 Owner: QA + Engineering  
-Depends On: `ISSUES.md`, `MILESTONES.md`, `AGENTS.md`
+Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `AGENTS.md`
 
 ## Purpose
 - Define minimum verification requirements by change type.
