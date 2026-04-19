@@ -21,6 +21,18 @@ import { getPageLayout } from "../layout/pageLayout";
 import { apiClient } from "../services/apiClient";
 import type { PromotionOptionRecord, UnitRecord } from "../types/ApiResponse";
 import { SQUAD_NAME_ALLOWED_CHARACTER_PATTERN } from "./warbandManagementState";
+import {
+  assignFusionSecondarySelection,
+  buildUnitSummaryText,
+  clearFusionSelections,
+  getFusionCandidates,
+  getSelectableDice,
+  getSelectedLoadoutEntry,
+  getSelectedPromotionOption,
+  isPromotionCompatible,
+  REQUIRED_FUSION_UNITS,
+  resolveUnitDetailsSelections,
+} from "./unitDetailsState";
 
 const FRAME_TITLE_HEIGHT = 56;
 const FRAME_MARGIN = 12;
@@ -29,7 +41,6 @@ const SECTION_GAP = 12;
 const ACTION_BUTTON_GAP = 10;
 const SLOT_SIZE = 72;
 const SLOT_ICON_SIZE = 46;
-const REQUIRED_FUSION_UNITS = 2;
 const ABILITY_ROW_HEIGHT = 38;
 const ABILITY_LIST_HEIGHT = 164;
 const SIDEBAR_BUTTON_WIDTH = 280;
@@ -575,8 +586,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
   }
 
   private getSelectedLoadoutEntry(): UnitEquippedAbilityViewModel | null {
-    if (!this.unit) return null;
-    return this.unit.equippedLoadout[this.selectedLoadoutIndex] ?? null;
+    return getSelectedLoadoutEntry(this.unit, this.selectedLoadoutIndex);
   }
 
   private getSelectedDie(): DiceDetailsViewModel | null {
@@ -592,63 +602,40 @@ export default class UnitDetailsScene extends Phaser.Scene {
   }
 
   private getSelectableDice(): DiceDetailsViewModel[] {
-    return this.dice.filter((die) => !die.equipped || die.equipped.unitId === this.unitId);
+    return getSelectableDice(this.dice, this.unitId);
   }
 
   private getSelectedPromotionOption(): PromotionOptionRecord | null {
-    return this.promotionOptions[this.selectedPromotionOptionIndex] ?? null;
+    return getSelectedPromotionOption(this.promotionOptions, this.selectedPromotionOptionIndex);
   }
 
   private buildSummaryText(): string {
-    if (!this.unit || !this.rawUnit) return "";
-
-    const activeAbilities = this.unit.unlockedAbilities.filter((ability) => ability.type === "active").length;
-    const passiveAbilities = this.unit.unlockedAbilities.filter((ability) => ability.type === "passive").length;
-    const totalAttack = typeof this.rawUnit.total_attack === "number" ? this.rawUnit.total_attack : "?";
-    const totalDefense = typeof this.rawUnit.total_defense === "number" ? this.rawUnit.total_defense : "?";
-    const hpCurrent = typeof this.rawUnit.current_hp === "number" ? this.rawUnit.current_hp : "?";
-    const hpMax = typeof this.rawUnit.max_hp === "number" ? this.rawUnit.max_hp : "?";
-    const xpToNext = typeof this.rawUnit.xp_to_next_level === "number" ? this.rawUnit.xp_to_next_level : null;
-
-    return [
-      this.unit.name,
-      `${this.unit.roleLabel}  T${this.unit.tier}  LV ${this.unit.level}${this.unit.maxLevel ? `/${this.unit.maxLevel}` : ""}`,
-      `HP ${hpCurrent}/${hpMax}  ATK ${totalAttack}  DEF ${totalDefense}`,
-      `Loadout ${this.unit.loadoutBudget.used}/${this.unit.loadoutBudget.max} pts`,
-      `Abilities ${activeAbilities} active / ${passiveAbilities} passive`,
-      this.unit.isMaxLevel ? "XP MAX" : `XP ${this.unit.xp}${xpToNext !== null ? ` (${xpToNext} to next)` : ""}`,
-    ].join("\n");
+    return buildUnitSummaryText(this.unit, this.rawUnit);
   }
 
   private syncSelections(): void {
-    if (!this.unit) return;
+    const nextState = resolveUnitDetailsSelections({
+      unit: this.unit,
+      rawUnits: this.rawUnits,
+      dice: this.dice,
+      unitId: this.unitId,
+      promotionOptions: this.promotionOptions,
+      state: {
+        selectedLoadoutIndex: this.selectedLoadoutIndex,
+        selectedAbilitySlotIndex: this.selectedAbilitySlotIndex,
+        selectedDiceId: this.selectedDiceId,
+        fusionSecondaryIds: this.fusionSecondaryIds,
+        selectedFusionSlotIndex: this.selectedFusionSlotIndex,
+        selectedPromotionOptionIndex: this.selectedPromotionOptionIndex,
+      },
+    });
 
-    const loadoutLength = this.unit.equippedLoadout.length;
-    if (loadoutLength === 0) {
-      this.selectedLoadoutIndex = 0;
-      this.selectedAbilitySlotIndex = 0;
-    } else {
-      this.selectedLoadoutIndex = Math.max(0, Math.min(this.selectedLoadoutIndex, loadoutLength - 1));
-      const selectedAbility = this.unit.equippedLoadout[this.selectedLoadoutIndex];
-      const slotCount = selectedAbility?.diceCost ?? 0;
-      this.selectedAbilitySlotIndex = slotCount > 0
-        ? Math.max(0, Math.min(this.selectedAbilitySlotIndex, slotCount - 1))
-        : 0;
-    }
-
-    const selectableDice = this.getSelectableDice();
-    if (!this.selectedDiceId || !selectableDice.some((die) => die.id === this.selectedDiceId)) {
-      this.selectedDiceId = selectableDice[0]?.id ?? null;
-    }
-
-    const compatibleIds = new Set(this.getFusionCandidates().map((unit) => unit.id));
-    this.fusionSecondaryIds = this.fusionSecondaryIds.map((unitId) => (unitId && compatibleIds.has(unitId) ? unitId : null));
-    this.selectedFusionSlotIndex = Math.max(0, Math.min(this.selectedFusionSlotIndex, REQUIRED_FUSION_UNITS - 1));
-    if (this.promotionOptions.length === 0) {
-      this.selectedPromotionOptionIndex = 0;
-    } else {
-      this.selectedPromotionOptionIndex = Math.max(0, Math.min(this.selectedPromotionOptionIndex, this.promotionOptions.length - 1));
-    }
+    this.selectedLoadoutIndex = nextState.selectedLoadoutIndex;
+    this.selectedAbilitySlotIndex = nextState.selectedAbilitySlotIndex;
+    this.selectedDiceId = nextState.selectedDiceId;
+    this.fusionSecondaryIds = nextState.fusionSecondaryIds;
+    this.selectedFusionSlotIndex = nextState.selectedFusionSlotIndex;
+    this.selectedPromotionOptionIndex = nextState.selectedPromotionOptionIndex;
   }
 
   private async openRenameDialog(): Promise<void> {
@@ -784,44 +771,25 @@ export default class UnitDetailsScene extends Phaser.Scene {
       return;
     }
 
-    const existingIndex = this.fusionSecondaryIds.findIndex((id) => id === unitId);
-    if (existingIndex >= 0) {
-      this.fusionSecondaryIds[existingIndex] = null;
-      this.selectedFusionSlotIndex = existingIndex;
-      this.refreshUi();
-      return;
-    }
-
-    const targetIndex = this.fusionSecondaryIds.findIndex((id) => id === null);
-    const safeIndex = targetIndex >= 0 ? targetIndex : this.selectedFusionSlotIndex;
-    this.fusionSecondaryIds[safeIndex] = unitId;
-    this.selectedFusionSlotIndex = Math.min(REQUIRED_FUSION_UNITS - 1, safeIndex + 1);
+    const nextState = assignFusionSecondarySelection(this.fusionSecondaryIds, this.selectedFusionSlotIndex, unitId);
+    this.fusionSecondaryIds = nextState.fusionSecondaryIds;
+    this.selectedFusionSlotIndex = nextState.selectedFusionSlotIndex;
     this.refreshUi();
   }
 
   private clearFusionSelections(): void {
-    this.fusionSecondaryIds = Array(REQUIRED_FUSION_UNITS).fill(null);
-    this.selectedFusionSlotIndex = 0;
+    const nextState = clearFusionSelections();
+    this.fusionSecondaryIds = nextState.fusionSecondaryIds;
+    this.selectedFusionSlotIndex = nextState.selectedFusionSlotIndex;
     this.refreshUi();
   }
 
   private getFusionCandidates(): UnitRecord[] {
-    return this.rawUnits.filter((unit) => unit.id !== this.unitId);
+    return getFusionCandidates(this.rawUnits, this.unitId);
   }
 
   private isPromotionCompatible(primaryId: string, secondaryId: string): boolean {
-    const primary = this.rawUnits.find((unit) => unit.id === primaryId);
-    const secondary = this.rawUnits.find((unit) => unit.id === secondaryId);
-    if (!primary || !secondary) return false;
-    if (primary.id === secondary.id) return false;
-    if ((primary.unit_type_id ?? "") !== (secondary.unit_type_id ?? "")) return false;
-    if ((primary.tier ?? 1) !== (secondary.tier ?? 1)) return false;
-
-    const primaryMaxLevel = typeof primary.max_level === "number" ? primary.max_level : null;
-    const secondaryMaxLevel = typeof secondary.max_level === "number" ? secondary.max_level : null;
-    if (primaryMaxLevel !== null && primary.level < primaryMaxLevel) return false;
-    if (secondaryMaxLevel !== null && secondary.level < secondaryMaxLevel) return false;
-    return true;
+    return isPromotionCompatible(this.rawUnits, primaryId, secondaryId);
   }
 
   private async promoteUnit(): Promise<void> {
