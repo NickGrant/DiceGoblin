@@ -67,6 +67,42 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function getCsrfToken(): Promise<string> {
+  const session = await apiClient.getSession();
+  return csrfFromSession(session);
+}
+
+async function requestWithCsrf<T>(
+  path: string,
+  method: NonNullable<RequestInit["method"]>,
+  body: unknown,
+): Promise<T> {
+  const csrf = await getCsrfToken();
+
+  return request<T>(path, {
+    method,
+    headers: new Headers([["X-CSRF-Token", csrf]]),
+    body: JSON.stringify(body),
+  });
+}
+
+async function mutateWithCsrf<T>(
+  path: string,
+  method: NonNullable<RequestInit["method"]>,
+  body: unknown,
+  options?: { refreshProfile?: boolean; invalidateProfile?: boolean },
+): Promise<T> {
+  const response = await requestWithCsrf<T>(path, method, body);
+
+  if (options?.refreshProfile) {
+    refreshProfileAfterMutation();
+  } else if (options?.invalidateProfile) {
+    apiClient.invalidateProfileCache();
+  }
+
+  return response;
+}
+
 
 /**
  * Profile caching
@@ -121,16 +157,13 @@ export const apiClient = {
   },
 
   async createRun(regionId: number): Promise<CreateResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
-
-    const res = await request<CreateResponse>("/api/v1/runs", {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({ region_id: regionId }),
-    });
+    const res = await mutateWithCsrf<CreateResponse>(
+      "/api/v1/runs",
+      "POST",
+      { region_id: regionId },
+      { refreshProfile: true }
+    );
     // Starting a run consumes energy; purge cache and eagerly refetch profile.
-    refreshProfileAfterMutation();
     return res;
   },
 
@@ -143,25 +176,11 @@ export const apiClient = {
   },
 
   async exitRun(runId: string): Promise<ExitRunResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
-    return request<ExitRunResponse>(`/api/v1/runs/${runId}/exit`, {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({}),
-    });
+    return requestWithCsrf<ExitRunResponse>(`/api/v1/runs/${runId}/exit`, "POST", {});
   },
 
   async abandonRun(runId: string): Promise<AbandonRunResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
-    const res = await request<AbandonRunResponse>(`/api/v1/runs/${runId}/abandon`, {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({}),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<AbandonRunResponse>(`/api/v1/runs/${runId}/abandon`, "POST", {}, { refreshProfile: true });
   },
 
   async resolveRunNode(
@@ -169,38 +188,22 @@ export const apiClient = {
     nodeId: string,
     payload?: { team_id?: string }
   ): Promise<ResolveNodeResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
-    const res = await request<ResolveNodeResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/resolve`, {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify(payload ?? {}),
-    });
+    const res = await mutateWithCsrf<ResolveNodeResponse>(
+      `/api/v1/runs/${runId}/nodes/${nodeId}/resolve`,
+      "POST",
+      payload ?? {},
+      { refreshProfile: true }
+    );
     // Node resolution may consume energy; keep HUD/profile energy in sync.
-    refreshProfileAfterMutation();
     return res;
   },
 
   async claimBattleRewards(battleId: string): Promise<BattleClaimResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
-    const res = await request<BattleClaimResponse>(`/api/v1/battles/${battleId}/claim`, {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({}),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<BattleClaimResponse>(`/api/v1/battles/${battleId}/claim`, "POST", {}, { refreshProfile: true });
   },
 
   async openRest(runId: string, nodeId: string): Promise<RestOpenResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
-    return request<RestOpenResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/open`, {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({}),
-    });
+    return requestWithCsrf<RestOpenResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/open`, "POST", {});
   },
 
   async getShopCatalog(): Promise<ShopCatalogResponse> {
@@ -211,15 +214,12 @@ export const apiClient = {
     itemType: "basic_unit" | "basic_dice" | "daily_deal",
     productId = ""
   ): Promise<ShopPurchaseResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
-    const res = await request<ShopPurchaseResponse>("/api/v1/shop/purchase", {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({ item_type: itemType, product_id: productId }),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<ShopPurchaseResponse>(
+      "/api/v1/shop/purchase",
+      "POST",
+      { item_type: itemType, product_id: productId },
+      { refreshProfile: true }
+    );
   },
 
   async updateRestState(
@@ -227,23 +227,11 @@ export const apiClient = {
     nodeId: string,
     payload: { unit_ids: string[]; formation: Array<{ cell: string; unit_instance_id: string | null }> }
   ): Promise<RestStateResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
-    return request<RestStateResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/state`, {
-      method: "PUT",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify(payload),
-    });
+    return requestWithCsrf<RestStateResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/state`, "PUT", payload);
   },
 
   async finalizeRest(runId: string, nodeId: string): Promise<RestFinalizeResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
-    return request<RestFinalizeResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/finalize`, {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({}),
-    });
+    return requestWithCsrf<RestFinalizeResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/finalize`, "POST", {});
   },
 
   async purchaseRestStoreItem(
@@ -251,15 +239,12 @@ export const apiClient = {
     nodeId: string,
     itemType: "basic_unit" | "basic_dice"
   ): Promise<RestStorePurchaseResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
-    const res = await request<RestStorePurchaseResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/store/purchase`, {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({ item_type: itemType }),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<RestStorePurchaseResponse>(
+      `/api/v1/runs/${runId}/nodes/${nodeId}/rest/store/purchase`,
+      "POST",
+      { item_type: itemType },
+      { refreshProfile: true }
+    );
   },
 
   async getPromotionOptions(unitId: string): Promise<PromotionOptionsResponse> {
@@ -271,8 +256,6 @@ export const apiClient = {
     secondaryUnitIds: [string, string],
     context?: { runId?: string; nodeId?: string; destinationUnitTypeId?: string }
   ): Promise<PromoteUnitResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
     const body: Record<string, unknown> = {
       primary_unit_instance_id: Number(primaryUnitId),
       secondary_unit_instance_ids: secondaryUnitIds.map((id) => Number(id)),
@@ -284,26 +267,19 @@ export const apiClient = {
     if (context?.destinationUnitTypeId) {
       body.destination_unit_type_id = Number(context.destinationUnitTypeId);
     }
-    return request<PromoteUnitResponse>(`/api/v1/units/${primaryUnitId}/promote`, {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify(body),
-    });
+    return requestWithCsrf<PromoteUnitResponse>(`/api/v1/units/${primaryUnitId}/promote`, "POST", body);
   },
 
   async renameUnit(
     unitId: string,
     displayName: string
   ): Promise<RenameUnitResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
-    const res = await request<RenameUnitResponse>(`/api/v1/units/${unitId}/name`, {
-      method: "PATCH",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({ display_name: displayName }),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<RenameUnitResponse>(
+      `/api/v1/units/${unitId}/name`,
+      "PATCH",
+      { display_name: displayName },
+      { refreshProfile: true }
+    );
   },
 
   async replaceEquippedAbilities(
@@ -311,20 +287,17 @@ export const apiClient = {
     abilityIds: string[],
     context?: { runId?: string; nodeId?: string }
   ): Promise<ReplaceEquippedAbilitiesResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
     const body: Record<string, unknown> = { ability_ids: abilityIds };
     if (context?.runId && context?.nodeId) {
       body.run_id = Number(context.runId);
       body.node_id = Number(context.nodeId);
     }
-    const res = await request<ReplaceEquippedAbilitiesResponse>(`/api/v1/units/${unitId}/loadout`, {
-      method: "PUT",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify(body),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<ReplaceEquippedAbilitiesResponse>(
+      `/api/v1/units/${unitId}/loadout`,
+      "PUT",
+      body,
+      { refreshProfile: true }
+    );
   },
 
   async assignAbilitySlotDie(
@@ -334,20 +307,17 @@ export const apiClient = {
     diceId: string,
     context?: { runId?: string; nodeId?: string }
   ): Promise<AbilitySlotDiceMutationResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
     const body: Record<string, unknown> = { dice_instance_id: Number(diceId) };
     if (context?.runId && context?.nodeId) {
       body.run_id = Number(context.runId);
       body.node_id = Number(context.nodeId);
     }
-    const res = await request<AbilitySlotDiceMutationResponse>(`/api/v1/units/${unitId}/abilities/${abilityId}/slots/${slotIndex}/dice`, {
-      method: "PUT",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify(body),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<AbilitySlotDiceMutationResponse>(
+      `/api/v1/units/${unitId}/abilities/${abilityId}/slots/${slotIndex}/dice`,
+      "PUT",
+      body,
+      { refreshProfile: true }
+    );
   },
 
   async clearAbilitySlotDie(
@@ -356,32 +326,21 @@ export const apiClient = {
     slotIndex: number,
     context?: { runId?: string; nodeId?: string }
   ): Promise<AbilitySlotDiceMutationResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
     const body: Record<string, unknown> = {};
     if (context?.runId && context?.nodeId) {
       body.run_id = Number(context.runId);
       body.node_id = Number(context.nodeId);
     }
-    const res = await request<AbilitySlotDiceMutationResponse>(`/api/v1/units/${unitId}/abilities/${abilityId}/slots/${slotIndex}/dice`, {
-      method: "DELETE",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify(body),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<AbilitySlotDiceMutationResponse>(
+      `/api/v1/units/${unitId}/abilities/${abilityId}/slots/${slotIndex}/dice`,
+      "DELETE",
+      body,
+      { refreshProfile: true }
+    );
   },
 
   async sellDice(diceId: string): Promise<DiceSellResponse> {
-    const session = await apiClient.getSession();
-    const csrf = (session as any)?.data?.csrf_token ?? "";
-    const res = await request<DiceSellResponse>(`/api/v1/dice/${diceId}/sell`, {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({}),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<DiceSellResponse>(`/api/v1/dice/${diceId}/sell`, "POST", {}, { refreshProfile: true });
   },
 
   // -----------------------------
@@ -392,66 +351,46 @@ export const apiClient = {
     name: string,
     makeActive = true
   ): Promise<TeamCreateResponse> {
-    const session = await apiClient.getSession();
-    const csrf = csrfFromSession(session);
-
-    const res = await request<TeamCreateResponse>("/api/v1/teams", {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({ name, make_active: makeActive }),
-    });
-
-    apiClient.invalidateProfileCache();
-    return res;
+    return mutateWithCsrf<TeamCreateResponse>(
+      "/api/v1/teams",
+      "POST",
+      { name, make_active: makeActive },
+      { invalidateProfile: true }
+    );
   },
 
   async activateTeam(
     teamId: string
   ): Promise<TeamActivateResponse> {
-    const session = await apiClient.getSession();
-    const csrf = csrfFromSession(session);
-
-    const res = await request<TeamActivateResponse>(`/api/v1/teams/${teamId}/activate`, {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({}),
-    });
-
-    apiClient.invalidateProfileCache();
-    return res;
+    return mutateWithCsrf<TeamActivateResponse>(
+      `/api/v1/teams/${teamId}/activate`,
+      "POST",
+      {},
+      { invalidateProfile: true }
+    );
   },
 
   async updateTeam(
     teamId: string,
     payload: TeamUpdatePayload
   ): Promise<TeamUpdateResponse> {
-    const session = await apiClient.getSession();
-    const csrf = csrfFromSession(session);
-
-    const res = await request<TeamUpdateResponse>(`/api/v1/teams/${teamId}`, {
-      method: "PUT",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify(payload),
-    });
-
-    apiClient.invalidateProfileCache();
-    return res;
+    return mutateWithCsrf<TeamUpdateResponse>(
+      `/api/v1/teams/${teamId}`,
+      "PUT",
+      payload,
+      { invalidateProfile: true }
+    );
   },
 
   async deleteTeam(
     teamId: string
   ): Promise<TeamDeleteResponse> {
-    const session = await apiClient.getSession();
-    const csrf = csrfFromSession(session);
-
-    const res = await request<TeamDeleteResponse>(`/api/v1/teams/${teamId}`, {
-      method: "DELETE",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({}),
-    });
-
-    apiClient.invalidateProfileCache();
-    return res;
+    return mutateWithCsrf<TeamDeleteResponse>(
+      `/api/v1/teams/${teamId}`,
+      "DELETE",
+      {},
+      { invalidateProfile: true }
+    );
   },
 
   async getDebugCatalog(): Promise<DebugCatalogResponse> {
@@ -459,63 +398,48 @@ export const apiClient = {
   },
 
   async grantDebugCurrency(soft: number, hard = 0): Promise<DebugCurrencyGrantResponse> {
-    const session = await apiClient.getSession();
-    const csrf = csrfFromSession(session);
-    const res = await request<DebugCurrencyGrantResponse>("/api/v1/debug/grant/currency", {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({ soft, hard }),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<DebugCurrencyGrantResponse>(
+      "/api/v1/debug/grant/currency",
+      "POST",
+      { soft, hard },
+      { refreshProfile: true }
+    );
   },
 
   async grantDebugUnit(unitTypeSlug: string, count = 1): Promise<DebugGrantUnitResponse> {
-    const session = await apiClient.getSession();
-    const csrf = csrfFromSession(session);
-    const res = await request<DebugGrantUnitResponse>("/api/v1/debug/grant/unit", {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({ unit_type_slug: unitTypeSlug, count }),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<DebugGrantUnitResponse>(
+      "/api/v1/debug/grant/unit",
+      "POST",
+      { unit_type_slug: unitTypeSlug, count },
+      { refreshProfile: true }
+    );
   },
 
   async grantDebugDie(sides: number, rarity: string, count = 1): Promise<DebugGrantDieResponse> {
-    const session = await apiClient.getSession();
-    const csrf = csrfFromSession(session);
-    const res = await request<DebugGrantDieResponse>("/api/v1/debug/grant/dice", {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({ sides, rarity, count }),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<DebugGrantDieResponse>(
+      "/api/v1/debug/grant/dice",
+      "POST",
+      { sides, rarity, count },
+      { refreshProfile: true }
+    );
   },
 
   async grantDebugRegionItem(regionItemSlug: string, quantity = 1): Promise<DebugGrantRegionItemResponse> {
-    const session = await apiClient.getSession();
-    const csrf = csrfFromSession(session);
-    const res = await request<DebugGrantRegionItemResponse>("/api/v1/debug/grant/region-item", {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({ region_item_slug: regionItemSlug, quantity }),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<DebugGrantRegionItemResponse>(
+      "/api/v1/debug/grant/region-item",
+      "POST",
+      { region_item_slug: regionItemSlug, quantity },
+      { refreshProfile: true }
+    );
   },
 
   async resetDebugAccount(): Promise<DebugResetAccountResponse> {
-    const session = await apiClient.getSession();
-    const csrf = csrfFromSession(session);
-    const res = await request<DebugResetAccountResponse>("/api/v1/debug/reset-account", {
-      method: "POST",
-      headers: new Headers([["X-CSRF-Token", csrf]]),
-      body: JSON.stringify({}),
-    });
-    refreshProfileAfterMutation();
-    return res;
+    return mutateWithCsrf<DebugResetAccountResponse>(
+      "/api/v1/debug/reset-account",
+      "POST",
+      {},
+      { refreshProfile: true }
+    );
   },
 
   /**
