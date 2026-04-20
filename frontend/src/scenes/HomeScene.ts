@@ -66,7 +66,7 @@ export default class HomeScene extends Phaser.Scene {
       lineSpacing: 7,
     } as const;
 
-    this.add.text(safe.x + textInset, safe.y + 18, "Welcome Back to Camp", {
+    this.add.text(safe.x + textInset, safe.y + 18, "Welcome Back to HQ", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "30px",
       color: "#f8f1de",

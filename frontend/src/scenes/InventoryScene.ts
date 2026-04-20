@@ -149,16 +149,7 @@ export default class InventoryScene extends Phaser.Scene {
         color: "#f0d38a",
       })
       .setOrigin(0, 0);
-    const inventoryBody = this.add
-      .text(layout.content.x + 24, layout.content.y + 118, "Sort for the best die, inspect affixes on hover, and sell only unequipped pieces when you need more teeth.", {
-        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-        fontSize: "18px",
-        color: "#eef4f5",
-        lineSpacing: 6,
-        wordWrap: { width: layout.content.width - 48 },
-      })
-      .setOrigin(0, 0);
-    this.contentSummaryUiObjects.push(inventoryLabel, inventoryBody);
+    this.contentSummaryUiObjects.push(inventoryLabel);
 
     this.diceGrid?.destroy();
     this.diceGrid = new DiceCardGrid({
