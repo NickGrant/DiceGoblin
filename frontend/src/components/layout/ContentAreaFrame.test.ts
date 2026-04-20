@@ -8,7 +8,7 @@ describe("ContentAreaFrame", () => {
       height: 400,
       titleHeight: 56,
       marginPx: 12,
-      bodyImageKey: "ux_start_run",
+      bodyImageKey: "home_panel_start_run",
       useImageEdgeToEdge: true,
     });
     expect(rect).toEqual({

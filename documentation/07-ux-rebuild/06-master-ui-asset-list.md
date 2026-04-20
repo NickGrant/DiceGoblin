@@ -2,7 +2,7 @@
 ----
 
 Status: active
-Last Updated: 2026-03-09
+Last Updated: 2026-04-19
 Owner: UX + Art + Frontend
 Depends On: `documentation/03-ux/01-visual-design-guide.md`, `frontend/src/components/`, `frontend/public/assets/packs/ui.json`
 
@@ -23,15 +23,13 @@ Carry forward now:
 - `AcceptButton` (inherits `ActionButton`)
 - `RejectButton` (inherits `ActionButton`)
 - `MetalActionButton` (`metal_strip`)
-- `RegionSelect` (`panel_begin_run`, `panel_continue_run`)
-- `ClickablePanelRegionColumn` (`column_mountain`, `column_swamp`)
 - `RegionSelectionPanel` (defaults to `manifest_strip` via embedded `ClickablePanel`)
 
 ### `ContentAreaFrame` family
 - Shared composition: `ContentAreaFrame` + `SectionTitleBar`
 - Shared dependencies:
 - title texture fallback key: `texture_red`
-- optional body image keys injected by scenes: `ux_start_run`, `ux_continue_run`
+- optional body image keys injected by scenes when needed
 
 ### Bottom command strip family
 - Shared global strip (left: `home/warband/dice/energy`, right: `logout/player-name`)
@@ -50,30 +48,34 @@ Carry forward now:
 Current non-dice keys in `frontend/public/assets/packs/ui.json`:
 - `texture_paper`
 - `texture_red`
-- `ux_start_run`
-- `ux_continue_run`
-- `panel_begin_run`
-- `panel_continue_run`
-- `column_swamp`
-- `column_mountain`
+- `region_farm_badge`
+- `region_mountain_badge`
+- `region_swamp_badge`
+- `region_farm_map`
+- `region_mountain_map`
+- `region_swamp_map`
 - `manifest_strip`
 - `metal_strip`
 - `base_bar`
+- `banner_background`
+- `home_panel_start_run`
+- `home_panel_continue_run`
+- `home_panel_warband`
+- `home_panel_shop`
+- `home_panel_inventory`
 - `icon_home`
 - `icon_warband`
 - `icon_inventory`
+- `icon_shop`
+- `icon_discord`
 - `icon_logout`
-- `icon_energy`
-- `icon_energy_75`
-- `icon_energy_50`
-- `icon_energy_25`
-- `icon_energy_0`
+- `icon_energy_large`
+- `icon_tooth_large`
 - `icon_encounter_boss`
 - `icon_encounter_combat`
 - `icon_encounter_locked`
 - `icon_encounter_loot`
 - `icon_encounter_rest`
-- `icons_core_sheet`
 
 Carry-forward dice key:
 - `dice_sheet`

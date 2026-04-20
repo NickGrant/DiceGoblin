@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-09  
+Last Updated: 2026-04-19  
 Owner: Frontend
 Depends On: `documentation/07-ux-rebuild/03-component-specifications.md`
 
@@ -18,7 +18,7 @@ const section = new ContentAreaFrame({
   width: layout.content.width,
   height: layout.content.height,
   title: "Start Run",
-  bodyImageKey: "ux_start_run",
+  bodyImageKey: "home_panel_start_run",
   useImageEdgeToEdge: true,
 });
 ```

@@ -12,36 +12,6 @@
                   },
                   {
                       "type":  "image",
-                      "key":  "ux_start_run",
-                      "url":  "assets/ui/ux_kit/start_run.png"
-                  },
-                  {
-                      "type":  "image",
-                      "key":  "ux_continue_run",
-                      "url":  "assets/ui/ux_kit/continue_run.png"
-                  },
-                  {
-                      "type":  "image",
-                      "key":  "panel_begin_run",
-                      "url":  "assets/ui/panel_begin_run.png"
-                  },
-                  {
-                      "type":  "image",
-                      "key":  "panel_continue_run",
-                      "url":  "assets/ui/panel_continue_run.png"
-                  },
-                  {
-                      "type":  "image",
-                      "key":  "column_swamp",
-                      "url":  "assets/ui/column_swamp.png"
-                  },
-                  {
-                      "type":  "image",
-                      "key":  "column_mountain",
-                      "url":  "assets/ui/column_mountain.png"
-                  },
-                  {
-                      "type":  "image",
                       "key":  "region_farm_badge",
                       "url":  "assets/ui/biome/farm_badge.png"
                   },
