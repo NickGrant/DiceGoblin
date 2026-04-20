@@ -1587,6 +1587,16 @@ SET `equipped_abilities_json` = JSON_OBJECT(
 WHERE `equipped_abilities_json` IS NULL;
 -- END MIGRATION: 45_seed_enemy_equipped_loadouts.sql
 
+-- BEGIN MIGRATION: 46_multi_cell_unit_footprints.sql
+UPDATE `enemy_templates`
+SET `base_stats_json` = JSON_SET(
+  COALESCE(`base_stats_json`, JSON_OBJECT()),
+  '$.formation',
+  JSON_OBJECT('w', 2, 'h', 2)
+)
+WHERE JSON_UNQUOTE(JSON_EXTRACT(`tags_json`, '$.archetype')) = 'boss';
+-- END MIGRATION: 46_multi_cell_unit_footprints.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 SET FOREIGN_KEY_CHECKS=1;
 -- END MIGRATION: 99_finalize.sql

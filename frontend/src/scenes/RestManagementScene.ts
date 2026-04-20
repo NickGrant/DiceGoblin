@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import SharedActionButton from "../components/clickable-panel/SharedActionButton";
-import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
+import FormationGrid3x3, { type FormationCell } from "../components/FormationGrid3x3";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import { getDebugSceneConfig } from "../debug/debugScene";
 import { getDebugProfileFixture, getDebugRestFixture } from "../debug/debugFixtures";
@@ -12,13 +12,20 @@ import { apiClient } from "../services/apiClient";
 import type { TeamFormationCell, UnitRecord, RestRunUnitState } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
+import {
+  canPlaceUnitAt,
+  clearUnitFromFormation,
+  emptyFormationMap,
+  formationMapToRows,
+  formationRowsToMap,
+  isAnchorCell,
+  placeUnitAt,
+  type FormationOccupancyMap,
+  unitFootprint,
+} from "../utils/formationGeometry";
 
 type Cell = FormationCell;
 const CELLS: Cell[] = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"];
-
-function emptyFormation(): FormationMap {
-  return { A1: null, B1: null, C1: null, A2: null, B2: null, C2: null, A3: null, B3: null, C3: null };
-}
 
 const FRAME_BODY_TOP_OFFSET = 74;
 const FRAME_BODY_BOTTOM_PADDING = 18;
@@ -47,7 +54,7 @@ export default class RestManagementScene extends Phaser.Scene {
   private runUnitState: RestRunUnitState[] = [];
   private baselineRunUnitHp: Map<string, number> = new Map();
   private editUnitIds: Set<string> = new Set();
-  private editFormation: FormationMap = emptyFormation();
+  private editFormation: FormationOccupancyMap = emptyFormationMap();
   private selectedUnitId: string | null = null;
   private finalized = false;
 
@@ -70,7 +77,7 @@ export default class RestManagementScene extends Phaser.Scene {
     this.finalized = false;
     this.selectedUnitId = null;
     this.editUnitIds = new Set();
-    this.editFormation = emptyFormation();
+    this.editFormation = emptyFormationMap();
     this.runUnitState = [];
     this.baselineRunUnitHp = new Map();
     const debugConfig = getDebugSceneConfig();
@@ -144,13 +151,7 @@ export default class RestManagementScene extends Phaser.Scene {
       this.runUnitState = restOpen.data.run_unit_state ?? [];
       this.baselineRunUnitHp = new Map(this.runUnitState.map((s) => [s.unit_instance_id, s.hp]));
       this.editUnitIds = new Set(restOpen.data.unit_ids ?? []);
-      this.editFormation = emptyFormation();
-      for (const f of restOpen.data.formation ?? []) {
-        const cell = f.cell as Cell;
-        if (CELLS.includes(cell)) {
-          this.editFormation[cell] = f.unit_instance_id;
-        }
-      }
+      this.editFormation = formationRowsToMap(restOpen.data.formation ?? []);
 
       this.loadingText?.destroy();
       this.loadingText = undefined;
@@ -245,6 +246,7 @@ export default class RestManagementScene extends Phaser.Scene {
       formation: this.editFormation,
       selectedCell: null,
       getCellLabel: (cell, unitId) => this.getCellLabel(cell, unitId),
+      getCellShowIcon: (cell, unitId) => !!unitId && isAnchorCell(this.editFormation, unitId, cell),
       onCellClick: (cell) => this.handleCellClick(cell),
       onCellDoubleClick: (cell) => this.handleCellDoubleClick(cell),
     });
@@ -310,6 +312,7 @@ export default class RestManagementScene extends Phaser.Scene {
 
   private getCellLabel(cell: Cell, unitId: string | null): string {
     if (!unitId) return `${cell}\n(Empty)`;
+    if (!isAnchorCell(this.editFormation, unitId, cell)) return "";
     const u = this.units.find((x) => x.id === unitId);
     return `${cell}\n${u ? u.name : `Unit ${unitId}`}`;
   }
@@ -352,8 +355,9 @@ export default class RestManagementScene extends Phaser.Scene {
   private handleCellDoubleClick(cell: Cell): void {
     if (this.finalized) return;
     if (this.selectedUnitId) return;
-    if (this.editFormation[cell] === null) return;
-    this.editFormation[cell] = null;
+    const unitId = this.editFormation[cell];
+    if (unitId === null) return;
+    this.editFormation = clearUnitFromFormation(this.editFormation, unitId);
     this.refreshUi();
   }
 
@@ -371,17 +375,22 @@ export default class RestManagementScene extends Phaser.Scene {
 
   private placeUnitIntoCell(unitId: string, cell: Cell): void {
     this.editUnitIds.add(unitId);
-    for (const c of CELLS) {
-      if (this.editFormation[c] === unitId) this.editFormation[c] = null;
+    const unit = this.units.find((candidate) => candidate.id === unitId);
+    const footprint = unitFootprint(unit);
+    if (!canPlaceUnitAt(this.editFormation, unitId, cell, footprint)) {
+      this.showToast("That unit footprint does not fit there.");
+      return;
     }
-    this.editFormation[cell] = unitId;
+    const nextFormation = placeUnitAt(this.editFormation, unitId, cell, footprint);
+    if (!nextFormation) {
+      this.showToast("That unit footprint does not fit there.");
+      return;
+    }
+    this.editFormation = nextFormation;
   }
 
   private async applyRestState(): Promise<boolean> {
-    const formation: TeamFormationCell[] = CELLS.map((cell) => ({
-      cell,
-      unit_instance_id: this.editFormation[cell] ?? null,
-    }));
+    const formation: TeamFormationCell[] = formationMapToRows(this.editFormation);
     const res = await apiClient.updateRestState(this.runId, this.nodeId, {
       unit_ids: Array.from(this.editUnitIds),
       formation,

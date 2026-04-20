@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Repositories;
 
 use PDO;
+use DiceGoblins\Support\FormationGeometry;
 use RuntimeException;
 use Throwable;
 
@@ -434,7 +435,7 @@ final class TeamRepository
   public function setFormationCell(int $userId, int $teamId, string $cell, ?int $unitInstanceId): void
   {
     $cell = strtoupper(trim($cell));
-    if (!preg_match('/^[ABC][123]$/', $cell)) {
+    if (!FormationGeometry::isValidCell($cell)) {
       throw new RuntimeException('Invalid formation cell.');
     }
     $ownsTransaction = !$this->pdo->inTransaction();
@@ -449,10 +450,9 @@ final class TeamRepository
       if ($unitInstanceId !== null) {
         $this->assertUnitOwnedByUserForUpdate($userId, $unitInstanceId);
 
-        // Ensure unit is not placed in multiple cells within the same team.
+        // Keep the legacy helper single-cell oriented for existing callers.
         $stmt = $this->pdo->prepare('
-          UPDATE `team_formation`
-          SET `unit_instance_id` = NULL
+          DELETE FROM `team_formation`
           WHERE `team_id` = ? AND `unit_instance_id` = ?
         ');
         $stmt->execute([$teamId, $unitInstanceId]);
@@ -540,22 +540,8 @@ final class TeamRepository
 
       $this->clearFormation($userId, $teamId);
 
-      foreach ($formationRows as $row) {
-        $cell = (string)($row['cell'] ?? '');
-        $uidRaw = $row['unit_instance_id'] ?? null;
-
-        $uid = null;
-        if ($uidRaw !== null && $uidRaw !== '') {
-          $uid = (int)$uidRaw;
-          if (!isset($unitSet[$uid])) {
-            throw new RuntimeException('formation.unit_instance_id must exist in unit_ids.');
-          }
-        }
-
-        if ($uid !== null) {
-          $this->setFormationCell($userId, $teamId, $cell, $uid);
-        }
-      }
+      $normalizedFormation = $this->normalizeFormationRowsForTeam($userId, $unitSet, $formationRows);
+      $this->insertFormationRows($teamId, $normalizedFormation);
 
       if ($ownsTransaction) {
         $this->pdo->commit();
@@ -622,6 +608,129 @@ final class TeamRepository
 
     if (!(bool)$stmt->fetchColumn()) {
       throw new RuntimeException('Unit not found or not owned by user.');
+    }
+  }
+
+  /**
+   * @param array<int,true> $unitSet
+   * @param array<int,array{cell:string,unit_instance_id:mixed}> $formationRows
+   * @return array<int,array{cell:string,unit_instance_id:int}>
+   */
+  private function normalizeFormationRowsForTeam(int $userId, array $unitSet, array $formationRows): array
+  {
+    $footprintsByUnit = $this->loadFootprintsForUserUnits($userId, array_keys($unitSet));
+    $cellsByUnit = [];
+    $occupiedByCell = [];
+
+    foreach ($formationRows as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+
+      $cell = strtoupper(trim((string)($row['cell'] ?? '')));
+      if (!FormationGeometry::isValidCell($cell)) {
+        throw new RuntimeException('Invalid formation cell.');
+      }
+
+      $uidRaw = $row['unit_instance_id'] ?? null;
+      if ($uidRaw === null || $uidRaw === '') {
+        continue;
+      }
+
+      $unitId = (int)$uidRaw;
+      if (!isset($unitSet[$unitId])) {
+        throw new RuntimeException('formation.unit_instance_id must exist in unit_ids.');
+      }
+
+      if (isset($occupiedByCell[$cell]) && $occupiedByCell[$cell] !== $unitId) {
+        throw new RuntimeException('Formation cells cannot overlap.');
+      }
+
+      $occupiedByCell[$cell] = $unitId;
+      $cellsByUnit[$unitId] ??= [];
+      $cellsByUnit[$unitId][$cell] = true;
+    }
+
+    $normalized = [];
+    foreach ($cellsByUnit as $unitId => $cellSet) {
+      $cells = array_keys($cellSet);
+      sort($cells);
+      $anchorCell = FormationGeometry::anchorCellForCells($cells);
+      if ($anchorCell === null) {
+        continue;
+      }
+
+      $expectedCells = FormationGeometry::footprintCells(
+        $anchorCell,
+        $footprintsByUnit[(int)$unitId] ?? ['w' => 1, 'h' => 1]
+      );
+      if ($expectedCells !== $cells) {
+        throw new RuntimeException('Formation cells must match the unit footprint rectangle.');
+      }
+
+      foreach ($expectedCells as $cell) {
+        $normalized[] = [
+          'cell' => $cell,
+          'unit_instance_id' => (int)$unitId,
+        ];
+      }
+    }
+
+    usort($normalized, static function (array $a, array $b): int {
+      return strcmp($a['cell'], $b['cell']);
+    });
+
+    return $normalized;
+  }
+
+  /**
+   * @param array<int,int> $unitIds
+   * @return array<int,array{w:int,h:int}>
+   */
+  private function loadFootprintsForUserUnits(int $userId, array $unitIds): array
+  {
+    $unitIds = array_values(array_unique(array_map(static fn($value): int => (int)$value, $unitIds)));
+    if (count($unitIds) === 0) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
+    $params = array_merge([$userId], $unitIds);
+    $stmt = $this->pdo->prepare("
+      SELECT ui.`id` AS `unit_instance_id`, ut.`base_stats_json`
+      FROM `unit_instances` ui
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE ui.`user_id` = ? AND ui.`id` IN ($placeholders)
+    ");
+    $stmt->execute($params);
+
+    $footprints = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $baseStats = $row['base_stats_json'];
+      if (is_string($baseStats)) {
+        $decoded = json_decode($baseStats, true);
+        $baseStats = is_array($decoded) ? $decoded : [];
+      } elseif (!is_array($baseStats)) {
+        $baseStats = [];
+      }
+
+      $footprints[(int)$row['unit_instance_id']] = FormationGeometry::footprintFromStats($baseStats);
+    }
+
+    return $footprints;
+  }
+
+  /**
+   * @param array<int,array{cell:string,unit_instance_id:int}> $rows
+   */
+  private function insertFormationRows(int $teamId, array $rows): void
+  {
+    foreach ($rows as $row) {
+      $stmt = $this->pdo->prepare('
+        INSERT INTO `team_formation` (`team_id`, `cell`, `unit_instance_id`)
+        VALUES (?, ?, ?)
+      ');
+      $stmt->execute([$teamId, $row['cell'], $row['unit_instance_id']]);
     }
   }
 }

@@ -30,6 +30,13 @@ import FormationGrid3x3, {
   type FormationMap,
   type FormationStatusIndicator,
 } from "../components/FormationGrid3x3";
+import {
+  anchorCellForCells,
+  isAnchorCell,
+  occupiedCellsFromAnchor,
+  type FormationCellId,
+  type FormationFootprint,
+} from "../utils/formationGeometry";
 
 const ACTION_BODY_TOP_OFFSET = 72;
 const CONTENT_BODY_TOP_OFFSET = 74;
@@ -52,6 +59,7 @@ type ParticipantView = {
   display: string;
   maxHp: number;
   pos: { x: number; y: number } | null;
+  formation: FormationFootprint;
 };
 
 type UnitStatusSnapshot = Record<string, FormationStatusIndicator[]>;
@@ -738,6 +746,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
         id: unit.id,
         display: String(index + 1),
         pos: unit.pos,
+        formation: unit.formation,
         currentHp: this.readCurrentHp(unit.id, unit.maxHp, hpSnapshot),
         maxHp: unit.maxHp,
         hpPercent: this.readHpPercent(unit.id, unit.maxHp, hpSnapshot),
@@ -756,6 +765,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
         id: unit.id,
         display: shortenEnemyLabel(unit.display),
         pos: unit.pos,
+        formation: unit.formation,
         currentHp: this.readCurrentHp(unit.id, unit.maxHp, hpSnapshot),
         maxHp: unit.maxHp,
         hpPercent: this.readHpPercent(unit.id, unit.maxHp, hpSnapshot),
@@ -975,6 +985,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       currentHp: number;
       maxHp: number;
       hpPercent: number;
+      formation: FormationFootprint;
       statuses: FormationStatusIndicator[];
       attacked: boolean;
       damageTaken: number;
@@ -985,13 +996,23 @@ export default class NodeResolutionScene extends Phaser.Scene {
     const cellByHeight = Math.floor((height - gap * 2) / 3);
     const cellSize = Math.max(28, Math.min(cellByWidth, cellByHeight));
 
-    const formation = this.buildFormationMap(entries.map((entry) => ({ id: entry.id, pos: entry.pos })));
+    const formation = this.buildFormationMap(entries.map((entry) => ({ id: entry.id, pos: entry.pos, formation: entry.formation })));
     const labelsById = new Map(entries.map((entry) => [entry.id, entry.display] as const));
     const hpTextById = new Map(entries.map((entry) => [entry.id, `${entry.currentHp}/${entry.maxHp}`] as const));
     const hpById = new Map(entries.map((entry) => [entry.id, entry.hpPercent] as const));
     const statusesById = new Map(entries.map((entry) => [entry.id, entry.statuses] as const));
     const attackedById = new Map(entries.map((entry) => [entry.id, entry.attacked] as const));
     const damageById = new Map(entries.map((entry) => [entry.id, entry.damageTaken] as const));
+    const anchorByUnitId = new Map<string, FormationCellId>();
+    for (const entry of entries) {
+      const placedCells = Object.entries(formation)
+        .filter(([, unitId]) => unitId === entry.id)
+        .map(([cell]) => cell as FormationCellId);
+      const anchor = anchorCellForCells(placedCells);
+      if (anchor) {
+        anchorByUnitId.set(entry.id, anchor);
+      }
+    }
     const grid = new FormationGrid3x3({
       scene: this,
       x,
@@ -1018,14 +1039,18 @@ export default class NodeResolutionScene extends Phaser.Scene {
       },
       getCellLabel: (_cell, unitId) => {
         if (!unitId) return "";
+        if (anchorByUnitId.get(String(unitId)) !== _cell) return "";
         return labelsById.get(String(unitId)) ?? String(unitId);
       },
+      getCellShowIcon: (_cell, unitId) => !!unitId && anchorByUnitId.get(String(unitId)) === _cell,
       getCellHpPercent: (_cell, unitId) => {
         if (!unitId) return null;
+        if (anchorByUnitId.get(String(unitId)) !== _cell) return null;
         return hpById.get(String(unitId)) ?? null;
       },
       getCellStatusIndicators: (_cell, unitId) => {
         if (!unitId) return [];
+        if (anchorByUnitId.get(String(unitId)) !== _cell) return [];
         return statusesById.get(String(unitId)) ?? [];
       },
       getCellOutlineColor: (_cell, unitId) => {
@@ -1034,6 +1059,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
       },
       getCellDamageText: (_cell, unitId) => {
         if (!unitId) return null;
+        if (anchorByUnitId.get(String(unitId)) !== _cell) return null;
         const damage = damageById.get(String(unitId)) ?? 0;
         if (damage <= 0) return null;
         return `-${damage}`;
@@ -1077,7 +1103,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
     this.hoverHpTooltip?.setVisible(false);
   }
 
-  private buildFormationMap(entries: Array<{ id: string; pos: { x: number; y: number } | null }>): Partial<FormationMap> {
+  private buildFormationMap(entries: Array<{ id: string; pos: { x: number; y: number } | null; formation: FormationFootprint }>): Partial<FormationMap> {
     const cells: Array<keyof FormationMap> = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"];
     const formation: Partial<FormationMap> = {};
     const assignedIds = new Set<string>();
@@ -1087,8 +1113,15 @@ export default class NodeResolutionScene extends Phaser.Scene {
       if (!cell || assignedIds.has(entry.id)) {
         continue;
       }
-      if (!formation[cell]) {
-        formation[cell] = entry.id;
+      const occupiedCells = occupiedCellsFromAnchor(cell as FormationCellId, entry.formation);
+      if (!occupiedCells) {
+        continue;
+      }
+      const canOccupy = occupiedCells.every((occupiedCell) => !formation[occupiedCell]);
+      if (canOccupy) {
+        for (const occupiedCell of occupiedCells) {
+          formation[occupiedCell] = entry.id;
+        }
         assignedIds.add(entry.id);
       }
     }
@@ -1097,11 +1130,20 @@ export default class NodeResolutionScene extends Phaser.Scene {
       if (assignedIds.has(entry.id)) {
         continue;
       }
-      const openCell = cells.find((cell) => !formation[cell]);
+      const openCell = cells.find((cell) => {
+        const occupiedCells = occupiedCellsFromAnchor(cell as FormationCellId, entry.formation);
+        return occupiedCells !== null && occupiedCells.every((occupiedCell) => !formation[occupiedCell]);
+      });
       if (!openCell) {
         break;
       }
-      formation[openCell] = entry.id;
+      const occupiedCells = occupiedCellsFromAnchor(openCell as FormationCellId, entry.formation);
+      if (!occupiedCells) {
+        continue;
+      }
+      for (const occupiedCell of occupiedCells) {
+        formation[occupiedCell] = entry.id;
+      }
       assignedIds.add(entry.id);
     }
 
@@ -1149,9 +1191,24 @@ export default class NodeResolutionScene extends Phaser.Scene {
         display: side === "player" ? id : prettifyEnemySlug(id),
         maxHp: Number.isFinite(maxHp) && maxHp > 0 ? maxHp : 1,
         pos: this.readParticipantPos(record),
+        formation: this.readParticipantFormation(record),
       });
     }
     return units;
+  }
+
+  private readParticipantFormation(record: Record<string, unknown>): FormationFootprint {
+    const raw = record.formation;
+    if (!raw || typeof raw !== "object") {
+      return { w: 1, h: 1 };
+    }
+    const formation = raw as Record<string, unknown>;
+    const width = typeof formation.w === "number" ? formation.w : Number(formation.w ?? NaN);
+    const height = typeof formation.h === "number" ? formation.h : Number(formation.h ?? NaN);
+    return {
+      w: Number.isFinite(width) ? Math.max(1, Math.min(3, Math.floor(width))) : 1,
+      h: Number.isFinite(height) ? Math.max(1, Math.min(3, Math.floor(height))) : 1,
+    };
   }
 
   private readParticipantPos(record: Record<string, unknown>): { x: number; y: number } | null {

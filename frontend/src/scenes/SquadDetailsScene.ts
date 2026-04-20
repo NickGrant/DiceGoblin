@@ -2,7 +2,7 @@ import BackgroundImage from "../components/BackgroundImage";
 import { mountBottomCommandStrip } from "../components/BottomCommandStrip";
 import SharedActionButton from "../components/clickable-panel/SharedActionButton";
 import UnifiedButtonList from "../components/clickable-panel/UnifiedButtonList";
-import FormationGrid3x3, { type FormationCell, type FormationMap } from "../components/FormationGrid3x3";
+import FormationGrid3x3, { type FormationCell } from "../components/FormationGrid3x3";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import { getDebugSceneConfig } from "../debug/debugScene";
 import { getDebugProfileFixture } from "../debug/debugFixtures";
@@ -18,13 +18,21 @@ import {
   SQUAD_NAME_ALLOWED_CHARACTER_PATTERN,
   normalizeNewSquadName,
 } from "./warbandManagementState";
+import {
+  anchorCellForUnit,
+  canPlaceUnitAt,
+  clearUnitFromFormation,
+  emptyFormationMap,
+  formationMapToRows,
+  formationRowsToMap,
+  isAnchorCell,
+  placeUnitAt,
+  type FormationOccupancyMap,
+  unitFootprint,
+} from "../utils/formationGeometry";
 
 type Cell = FormationCell;
 const CELLS: Cell[] = ["A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"];
-
-function emptyFormation(): FormationMap {
-  return { A1: null, B1: null, C1: null, A2: null, B2: null, C2: null, A3: null, B3: null, C3: null };
-}
 
 const FRAME_BODY_TOP_OFFSET = 74;
 const FRAME_BODY_BOTTOM_PADDING = 18;
@@ -54,7 +62,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
   private hasActiveRun = false;
 
   private editUnitIds: Set<string> = new Set();
-  private editFormation: FormationMap = emptyFormation();
+  private editFormation: FormationOccupancyMap = emptyFormationMap();
   private selectedUnitId: string | null = null;
 
   private grid?: FormationGrid3x3;
@@ -126,11 +134,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
       if (!this.squad) throw new Error("No squads found.");
 
       this.editUnitIds = new Set(this.squad.unit_ids ?? []);
-      this.editFormation = emptyFormation();
-      for (const f of this.squad.formation ?? []) {
-        const cell = f.cell as Cell;
-        if (CELLS.includes(cell)) this.editFormation[cell] = f.unit_instance_id;
-      }
+      this.editFormation = formationRowsToMap(this.squad.formation ?? []);
 
       this.loadingText?.destroy();
       this.loadingText = undefined;
@@ -211,6 +215,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
       formation: this.editFormation,
       selectedCell: null,
       getCellLabel: (cell, unitId) => this.getCellLabel(cell, unitId),
+      getCellShowIcon: (cell, unitId) => !!unitId && isAnchorCell(this.editFormation, unitId, cell),
       onCellClick: (cell) => this.handleCellClick(cell),
       onCellDoubleClick: (cell) => this.handleCellDoubleClick(cell),
     });
@@ -303,6 +308,7 @@ export default class SquadDetailsScene extends Phaser.Scene {
 
   private getCellLabel(cell: Cell, unitId: string | null): string {
     if (!unitId) return `${cell}\n(Empty)`;
+    if (!isAnchorCell(this.editFormation, unitId, cell)) return "";
     const u = this.units.find((x) => x.id === unitId);
     return `${cell}\n${u ? u.name : `Unit ${unitId}`}`;
   }
@@ -336,8 +342,9 @@ export default class SquadDetailsScene extends Phaser.Scene {
 
   private handleCellDoubleClick(cell: Cell): void {
     if (this.selectedUnitId) return;
-    if (this.editFormation[cell] === null) return;
-    this.editFormation[cell] = null;
+    const unitId = this.editFormation[cell];
+    if (unitId === null) return;
+    this.editFormation = clearUnitFromFormation(this.editFormation, unitId);
     this.refreshDerivedUiState();
   }
 
@@ -354,25 +361,30 @@ export default class SquadDetailsScene extends Phaser.Scene {
 
   private placeUnitIntoCell(unitId: string, cell: Cell): void {
     this.editUnitIds.add(unitId);
-    for (const c of CELLS) {
-      if (this.editFormation[c] === unitId) this.editFormation[c] = null;
+    const unit = this.units.find((candidate) => candidate.id === unitId);
+    const footprint = unitFootprint(unit);
+    if (!canPlaceUnitAt(this.editFormation, unitId, cell, footprint)) {
+      this.showToast("That unit footprint does not fit there.");
+      return;
     }
-    this.editFormation[cell] = unitId;
+    const nextFormation = placeUnitAt(this.editFormation, unitId, cell, footprint);
+    if (!nextFormation) {
+      this.showToast("That unit footprint does not fit there.");
+      return;
+    }
+    this.editFormation = nextFormation;
   }
 
   private clearSelectedCell(): void {
     const cell = this.getSelectedCell();
     if (!cell || this.editFormation[cell] === null) return;
-    this.editFormation[cell] = null;
+    this.editFormation = clearUnitFromFormation(this.editFormation, this.editFormation[cell] as string);
     this.refreshDerivedUiState();
   }
 
   private async saveTeam(nameOverride?: string): Promise<void> {
     if (!this.squad) return;
-    const formation: TeamFormationCell[] = CELLS.map((cell) => ({
-      cell,
-      unit_instance_id: this.editFormation[cell] ?? null,
-    }));
+    const formation: TeamFormationCell[] = formationMapToRows(this.editFormation);
     const payload: {
       unit_ids: string[];
       formation: TeamFormationCell[];

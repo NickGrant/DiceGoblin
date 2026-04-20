@@ -97,6 +97,8 @@ export type UnitRecord = {
   current_hp?: number;
   xp_to_next_level?: number;
   locked?: boolean;
+  formation_width?: number;
+  formation_height?: number;
   equipped_dice?: UnitEquippedDie[];
   abilities?: UnitAbilityRecord[];
   unlocked_abilities?: UnitUnlockedAbilityRecord[];

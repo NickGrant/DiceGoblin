@@ -123,6 +123,40 @@ final class TeamRepositoryIntegrationTest extends TestCase
     $this->repo()->setTeamUnits($userId, $teamId, [$otherUsersUnit]);
   }
 
+  public function testUpdateTeamConfigurationAllowsMultiCellRectanglesForLargeUnits(): void
+  {
+    $userId = $this->insertUser();
+    $teamId = $this->repo()->createTeam($userId, 'Large Unit Team', true);
+    $this->teamIds[] = $teamId;
+
+    $largeUnit = $this->insertUnitInstance($userId, 2, 2);
+    $supportUnit = $this->insertUnitInstance($userId);
+
+    $this->repo()->updateTeamConfiguration(
+      $userId,
+      $teamId,
+      [$largeUnit, $supportUnit],
+      [
+        ['cell' => 'A1', 'unit_instance_id' => $largeUnit],
+        ['cell' => 'A2', 'unit_instance_id' => $largeUnit],
+        ['cell' => 'B1', 'unit_instance_id' => $largeUnit],
+        ['cell' => 'B2', 'unit_instance_id' => $largeUnit],
+        ['cell' => 'C3', 'unit_instance_id' => $supportUnit],
+      ]
+    );
+
+    $profileTeams = $this->repo()->getTeamsWithMembershipAndFormationForUser($userId);
+    $this->assertCount(1, $profileTeams);
+    $formation = $profileTeams[0]['formation'];
+    $cellsForLargeUnit = array_values(array_map(
+      static fn(array $row): string => (string)$row['cell'],
+      array_filter($formation, static fn(array $row): bool => $row['unit_instance_id'] === (string)$largeUnit)
+    ));
+    sort($cellsForLargeUnit);
+
+    $this->assertSame(['A1', 'A2', 'B1', 'B2'], $cellsForLargeUnit);
+  }
+
   private function repo(): TeamRepository
   {
     if ($this->repo === null) {
@@ -155,7 +189,7 @@ final class TeamRepositoryIntegrationTest extends TestCase
     return $id;
   }
 
-  private function insertUnitType(): int
+  private function insertUnitType(int $formationWidth = 1, int $formationHeight = 1): int
   {
     $token = bin2hex(random_bytes(6));
     $stmt = $this->pdo?->prepare('
@@ -167,7 +201,12 @@ final class TeamRepositoryIntegrationTest extends TestCase
       "qa_unit_$token",
       "QA Unit $token",
       'fighter',
-      json_encode(['attack' => 5, 'defense' => 3, 'max_hp' => 20], JSON_THROW_ON_ERROR),
+      json_encode([
+        'attack' => 5,
+        'defense' => 3,
+        'max_hp' => 20,
+        'formation' => ['w' => $formationWidth, 'h' => $formationHeight],
+      ], JSON_THROW_ON_ERROR),
       json_encode(['active' => [], 'passive' => []], JSON_THROW_ON_ERROR),
     ]);
     $id = (int)$this->pdo?->lastInsertId();
@@ -175,9 +214,9 @@ final class TeamRepositoryIntegrationTest extends TestCase
     return $id;
   }
 
-  private function insertUnitInstance(int $userId): int
+  private function insertUnitInstance(int $userId, int $formationWidth = 1, int $formationHeight = 1): int
   {
-    $unitTypeId = $this->insertUnitType();
+    $unitTypeId = $this->insertUnitType($formationWidth, $formationHeight);
     $stmt = $this->pdo?->prepare('
       INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `tier`, `level`, `xp`, `locked`)
       VALUES (?, ?, 1, 1, 0, 0)

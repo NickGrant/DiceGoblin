@@ -152,9 +152,13 @@ final class GameplayController
       }
       $teamId = (int)$activeTeam['id'];
 
-      $this->assertUnitsOwnedByUserForUpdate($pdo, $userId, $unitIds);
-      $this->replaceTeamMembership($pdo, $teamId, $unitIds);
-      $this->replaceTeamFormation($pdo, $teamId, $unitIds, $formationRaw);
+      $svc['teamRepo']->updateTeamConfiguration(
+        $userId,
+        $teamId,
+        $unitIds,
+        $formationRaw,
+        null
+      );
 
       $existingState = $svc['runRepo']->getRunUnitStateForUpdate($runIdInt);
       $existingIds = array_map(static fn(array $r): int => (int)$r['unit_instance_id'], $existingState);

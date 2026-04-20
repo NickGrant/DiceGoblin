@@ -71,6 +71,11 @@ export type FormationGrid3x3Config = {
   getCellDamageText?: (cell: FormationCell, unitId: string | null) => string | null | undefined;
 
   /**
+   * Optional occupant icon visibility override per cell.
+   */
+  getCellShowIcon?: (cell: FormationCell, unitId: string | null) => boolean | null | undefined;
+
+  /**
    * Double click threshold in ms (default 320)
    */
   doubleClickMs?: number;
@@ -132,6 +137,7 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
   ) => FormationStatusIndicator[] | null | undefined;
   private readonly getCellOutlineColor?: (cell: FormationCell, unitId: string | null) => number | null | undefined;
   private readonly getCellDamageText?: (cell: FormationCell, unitId: string | null) => string | null | undefined;
+  private readonly getCellShowIcon?: (cell: FormationCell, unitId: string | null) => boolean | null | undefined;
 
   private readonly doubleClickMs: number;
   private lastClickAtMs = 0;
@@ -175,6 +181,7 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
     this.getCellStatusIndicators = cfg.getCellStatusIndicators;
     this.getCellOutlineColor = cfg.getCellOutlineColor;
     this.getCellDamageText = cfg.getCellDamageText;
+    this.getCellShowIcon = cfg.getCellShowIcon;
 
     // Initialize formation map
     this.formation = {} as FormationMap;
@@ -347,7 +354,8 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
         finalStrokeAlpha
       );
 
-      icon.setVisible(occupied);
+      const showIcon = occupied && (this.getCellShowIcon?.(cell, this.formation[cell]) ?? true);
+      icon.setVisible(showIcon);
 
       const hpPercentRaw = this.getCellHpPercent?.(cell, this.formation[cell]);
       const hpPercent = typeof hpPercentRaw === "number"

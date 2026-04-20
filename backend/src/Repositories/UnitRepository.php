@@ -10,6 +10,7 @@ namespace DiceGoblins\Repositories;
 
 use PDO;
 use DiceGoblins\Services\UnitProgressionService;
+use DiceGoblins\Support\FormationGeometry;
 use RuntimeException;
 use Throwable;
 
@@ -211,6 +212,9 @@ final class UnitRepository
         (int)$u['max_hp_per_level']
       );
       $xpToNext = $this->unitProgression->xpToNextLevel($tier, $level, $maxLevel, $xp);
+      $footprint = FormationGeometry::footprintFromStats(
+        is_array($u['base_stats_json']) ? $u['base_stats_json'] : []
+      );
 
       $out[] = [
         'id' => $uid,
@@ -229,6 +233,8 @@ final class UnitRepository
         'current_hp' => $maxHp,
         'xp_to_next_level' => $xpToNext,
         'locked' => ((int)$u['locked']) === 1,
+        'formation_width' => $footprint['w'],
+        'formation_height' => $footprint['h'],
         'equipped_dice' => $equippedByUnit[$uid] ?? [],
         'unlocked_abilities' => $unlockedAbilitiesByUnit[$uid] ?? [],
         'equipped_abilities' => $equippedAbilitiesByUnit[$uid] ?? [],

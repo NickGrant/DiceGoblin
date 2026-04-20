@@ -11,11 +11,15 @@ namespace DiceGoblins\Combat\Engine;
 use DiceGoblins\Combat\Abilities\AbilityRegistry;
 use DiceGoblins\Combat\Abilities\AbilityType;
 use DiceGoblins\Services\UnitProgressionService;
+use DiceGoblins\Support\FormationGeometry;
 use PDO;
 use RuntimeException;
 
 final class DeterministicRunNodeResolver
 {
+  /** @var array<string,bool> */
+  private array $schemaPresenceCache = [];
+
   public function __construct(private readonly PDO $pdo)
   {
   }
@@ -201,6 +205,10 @@ final class DeterministicRunNodeResolver
                 'x' => (int)$u['pos']['x'],
                 'y' => (int)$u['pos']['y'],
               ],
+              'formation' => [
+                'w' => (int)$u['formation']['w'],
+                'h' => (int)$u['formation']['h'],
+              ],
               'attack' => (int)$u['attack'],
               'defense' => (int)$u['defense'],
               'max_hp' => (int)$u['max_hp'],
@@ -212,6 +220,10 @@ final class DeterministicRunNodeResolver
               'pos' => [
                 'x' => (int)$u['pos']['x'],
                 'y' => (int)$u['pos']['y'],
+              ],
+              'formation' => [
+                'w' => (int)$u['formation']['w'],
+                'h' => (int)$u['formation']['h'],
               ],
               'attack' => (int)$u['attack'],
               'defense' => (int)$u['defense'],
@@ -229,6 +241,7 @@ final class DeterministicRunNodeResolver
    * @return array<int, array{
    *   id:string,
    *   pos:array{x:int,y:int},
+   *   formation:array{w:int,h:int},
    *   attack:int,
    *   defense:int,
    *   max_hp:int,
@@ -261,14 +274,10 @@ final class DeterministicRunNodeResolver
         ut.`defense_per_level`,
         ut.`max_hp_per_level`,
         ut.`max_equipped_dice`,
-        tf.`cell` AS `formation_cell`,
         rus.`current_hp` AS `run_current_hp`
       FROM `team_units` tu
       JOIN `unit_instances` ui ON ui.`id` = tu.`unit_instance_id`
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
-      LEFT JOIN `team_formation` tf
-        ON tf.`team_id` = tu.`team_id`
-       AND tf.`unit_instance_id` = ui.`id`
       LEFT JOIN `run_unit_state` rus
         ON rus.`run_id` = ?
        AND rus.`unit_instance_id` = ui.`id`
@@ -278,6 +287,7 @@ final class DeterministicRunNodeResolver
     $stmt->execute([$runId, $teamId, $userId]);
 
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $formationCellsByUnit = $this->loadTeamFormationCellsByUnit($teamId);
     $units = [];
     $fallbackIndex = 0;
     $progression = new UnitProgressionService();
@@ -290,10 +300,14 @@ final class DeterministicRunNodeResolver
       $attack = $progression->totalAttackForLevel($baseStats, $level, (int)$row['attack_per_level']);
       $defense = $progression->totalDefenseForLevel($baseStats, $level, (int)$row['defense_per_level']);
       $maxHp = $progression->maxHpForLevel($baseStats, $level, (int)$row['max_hp_per_level']);
+      $footprint = FormationGeometry::footprintFromStats($baseStats);
       $currentHp = $row['run_current_hp'] !== null
         ? max(0, min($maxHp, (int)$row['run_current_hp']))
         : $maxHp;
-      $pos = $this->cellToPos((string)($row['formation_cell'] ?? ''));
+      $anchorCell = FormationGeometry::anchorCellForCells(
+        $formationCellsByUnit[(string)$row['unit_instance_id']] ?? []
+      );
+      $pos = $this->cellToPos((string)($anchorCell ?? ''));
       if (!is_array($pos)) {
         $pos = $this->defaultPosForIndex($fallbackIndex);
       }
@@ -302,6 +316,7 @@ final class DeterministicRunNodeResolver
       $units[] = [
         'id' => (string)$row['unit_instance_id'],
         'pos' => $pos,
+        'formation' => $footprint,
         'attack' => $attack,
         'defense' => $defense,
         'max_hp' => $maxHp,
@@ -322,55 +337,59 @@ final class DeterministicRunNodeResolver
 
     $unitIds = array_map(static fn(array $u): int => (int)$u['id'], $units);
     $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
-    $equippedAbilityStmt = $this->pdo->prepare("
-      SELECT `unit_instance_id`, `ability_id`
-      FROM `unit_instance_equipped_abilities`
-      WHERE `unit_instance_id` IN ($placeholders)
-      ORDER BY `unit_instance_id` ASC, `equip_order` ASC, `id` ASC
-    ");
-    $equippedAbilityStmt->execute($unitIds);
-
     $equippedAbilityIdsByUnit = [];
-    foreach ($equippedAbilityStmt->fetchAll(PDO::FETCH_ASSOC) as $abilityRow) {
-      $unitId = (string)$abilityRow['unit_instance_id'];
-      $abilityId = trim((string)($abilityRow['ability_id'] ?? ''));
-      if ($abilityId === '') {
-        continue;
+    if ($this->schemaHasTable('unit_instance_equipped_abilities')) {
+      $equippedAbilityStmt = $this->pdo->prepare("
+        SELECT `unit_instance_id`, `ability_id`
+        FROM `unit_instance_equipped_abilities`
+        WHERE `unit_instance_id` IN ($placeholders)
+        ORDER BY `unit_instance_id` ASC, `equip_order` ASC, `id` ASC
+      ");
+      $equippedAbilityStmt->execute($unitIds);
+
+      foreach ($equippedAbilityStmt->fetchAll(PDO::FETCH_ASSOC) as $abilityRow) {
+        $unitId = (string)$abilityRow['unit_instance_id'];
+        $abilityId = trim((string)($abilityRow['ability_id'] ?? ''));
+        if ($abilityId === '') {
+          continue;
+        }
+
+        $equippedAbilityIdsByUnit[$unitId] ??= [];
+        $equippedAbilityIdsByUnit[$unitId][] = $abilityId;
       }
-
-      $equippedAbilityIdsByUnit[$unitId] ??= [];
-      $equippedAbilityIdsByUnit[$unitId][] = $abilityId;
     }
-
-    $diceStmt = $this->pdo->prepare("\n      SELECT\n        uad.`unit_instance_id`,\n        uad.`ability_id`,\n        uad.`slot_index`,\n        uad.`dice_instance_id`,\n        dd.`sides`,\n        ad.`slug` AS `affix_slug`,\n        dia.`value` AS `affix_value`\n      FROM `unit_ability_dice` uad\n      JOIN `dice_instances` di ON di.`id` = uad.`dice_instance_id`\n      JOIN `dice_definitions` dd ON dd.`id` = di.`dice_definition_id`\n      LEFT JOIN `dice_instance_affixes` dia ON dia.`dice_instance_id` = di.`id`\n      LEFT JOIN `affix_definitions` ad ON ad.`id` = dia.`affix_definition_id`\n      WHERE uad.`unit_instance_id` IN ($placeholders)\n      ORDER BY uad.`unit_instance_id` ASC, uad.`ability_id` ASC, uad.`slot_index` ASC, ad.`id` ASC\n    ");
-    $diceStmt->execute($unitIds);
 
     $diceByUnitAbility = [];
     $passiveDiceByUnitId = [];
-    foreach ($diceStmt->fetchAll(PDO::FETCH_ASSOC) as $diceRow) {
-      $unitId = (string)$diceRow['unit_instance_id'];
-      $abilityId = trim((string)($diceRow['ability_id'] ?? ''));
-      $slotIndex = (int)($diceRow['slot_index'] ?? 0);
-      $diceInstanceId = (string)$diceRow['dice_instance_id'];
-      $diceKey = $unitId . ':' . $abilityId . ':' . $slotIndex . ':' . $diceInstanceId;
-      if (!isset($diceByUnitAbility[$unitId][$abilityId][$slotIndex][$diceKey])) {
-        $die = [
-          'kind' => 'unit',
-          'dice_instance_id' => $diceInstanceId,
-          'sides' => max(2, (int)$diceRow['sides']),
-          'affixes' => [],
-        ];
-        $diceByUnitAbility[$unitId][$abilityId][$slotIndex][$diceKey] = $die;
-        $passiveDiceByUnitId[$unitId][$diceInstanceId] = $die;
-      }
-      $affixSlug = trim((string)($diceRow['affix_slug'] ?? ''));
-      if ($affixSlug !== '') {
-        $affix = [
-          'slug' => $affixSlug,
-          'value' => (float)($diceRow['affix_value'] ?? 0),
-        ];
-        $diceByUnitAbility[$unitId][$abilityId][$slotIndex][$diceKey]['affixes'][] = $affix;
-        $passiveDiceByUnitId[$unitId][$diceInstanceId]['affixes'][] = $affix;
+    if ($this->schemaHasTable('unit_ability_dice')) {
+      $diceStmt = $this->pdo->prepare("\n        SELECT\n          uad.`unit_instance_id`,\n          uad.`ability_id`,\n          uad.`slot_index`,\n          uad.`dice_instance_id`,\n          dd.`sides`,\n          ad.`slug` AS `affix_slug`,\n          dia.`value` AS `affix_value`\n        FROM `unit_ability_dice` uad\n        JOIN `dice_instances` di ON di.`id` = uad.`dice_instance_id`\n        JOIN `dice_definitions` dd ON dd.`id` = di.`dice_definition_id`\n        LEFT JOIN `dice_instance_affixes` dia ON dia.`dice_instance_id` = di.`id`\n        LEFT JOIN `affix_definitions` ad ON ad.`id` = dia.`affix_definition_id`\n        WHERE uad.`unit_instance_id` IN ($placeholders)\n        ORDER BY uad.`unit_instance_id` ASC, uad.`ability_id` ASC, uad.`slot_index` ASC, ad.`id` ASC\n      ");
+      $diceStmt->execute($unitIds);
+
+      foreach ($diceStmt->fetchAll(PDO::FETCH_ASSOC) as $diceRow) {
+        $unitId = (string)$diceRow['unit_instance_id'];
+        $abilityId = trim((string)($diceRow['ability_id'] ?? ''));
+        $slotIndex = (int)($diceRow['slot_index'] ?? 0);
+        $diceInstanceId = (string)$diceRow['dice_instance_id'];
+        $diceKey = $unitId . ':' . $abilityId . ':' . $slotIndex . ':' . $diceInstanceId;
+        if (!isset($diceByUnitAbility[$unitId][$abilityId][$slotIndex][$diceKey])) {
+          $die = [
+            'kind' => 'unit',
+            'dice_instance_id' => $diceInstanceId,
+            'sides' => max(2, (int)$diceRow['sides']),
+            'affixes' => [],
+          ];
+          $diceByUnitAbility[$unitId][$abilityId][$slotIndex][$diceKey] = $die;
+          $passiveDiceByUnitId[$unitId][$diceInstanceId] = $die;
+        }
+        $affixSlug = trim((string)($diceRow['affix_slug'] ?? ''));
+        if ($affixSlug !== '') {
+          $affix = [
+            'slug' => $affixSlug,
+            'value' => (float)($diceRow['affix_value'] ?? 0),
+          ];
+          $diceByUnitAbility[$unitId][$abilityId][$slotIndex][$diceKey]['affixes'][] = $affix;
+          $passiveDiceByUnitId[$unitId][$diceInstanceId]['affixes'][] = $affix;
+        }
       }
     }
 
@@ -398,7 +417,30 @@ final class DeterministicRunNodeResolver
   }
 
   /**
-     * @return array{difficulty_rating:int,description:string,reward_profile:array<string,mixed>,units:array<int,array{id:string,pos:array{x:int,y:int},attack:int,defense:int,max_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,xp_reward:int}>}
+   * @return array<string,list<string>>
+   */
+  private function loadTeamFormationCellsByUnit(int $teamId): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT `cell`, `unit_instance_id`
+      FROM `team_formation`
+      WHERE `team_id` = ? AND `unit_instance_id` IS NOT NULL
+      ORDER BY `cell` ASC
+    ');
+    $stmt->execute([$teamId]);
+
+    $cellsByUnit = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $unitId = (string)$row['unit_instance_id'];
+      $cellsByUnit[$unitId] ??= [];
+      $cellsByUnit[$unitId][] = (string)$row['cell'];
+    }
+
+    return $cellsByUnit;
+  }
+
+  /**
+     * @return array{difficulty_rating:int,description:string,reward_profile:array<string,mixed>,units:array<int,array{id:string,pos:array{x:int,y:int},formation:array{w:int,h:int},attack:int,defense:int,max_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,xp_reward:int}>}
    */
   private function loadEncounter(?int $encounterTemplateId): array
   {
@@ -473,7 +515,10 @@ final class DeterministicRunNodeResolver
     $uniqueSlugs = array_values(array_unique($slugs));
     $placeholders = implode(',', array_fill(0, count($uniqueSlugs), '?'));
 
-    $stmt = $this->pdo->prepare("\n      SELECT `slug`, `base_stats_json`, `ability_set_json`, `equipped_abilities_json`, `xp_reward`\n      FROM `enemy_templates`\n      WHERE `slug` IN ($placeholders)\n    ");
+    $equippedAbilitySelect = $this->schemaHasColumn('enemy_templates', 'equipped_abilities_json')
+      ? '`equipped_abilities_json`'
+      : 'NULL AS `equipped_abilities_json`';
+    $stmt = $this->pdo->prepare("\n      SELECT `slug`, `base_stats_json`, `ability_set_json`, {$equippedAbilitySelect}, `xp_reward`\n      FROM `enemy_templates`\n      WHERE `slug` IN ($placeholders)\n    ");
     $stmt->execute($uniqueSlugs);
 
     $enemyBySlug = [];
@@ -496,12 +541,14 @@ final class DeterministicRunNodeResolver
       $pos = $this->normalizeEncounterPos($entry['pos'] ?? null);
 
       $baseStats = $this->decodeJsonObject($row['base_stats_json']);
+      $footprint = FormationGeometry::footprintFromStats($baseStats);
       $abilitySet = $this->decodeJsonObject($row['ability_set_json']);
       $equippedAbilityIds = $this->decodeAbilityIdList($row['equipped_abilities_json'] ?? null);
 
       $units[] = [
         'id' => $instanceId,
         'pos' => $pos,
+        'formation' => $footprint,
         'attack' => max(1, (int)($baseStats['attack'] ?? 1)),
         'defense' => max(0, (int)($baseStats['defense'] ?? 0)),
         'max_hp' => max(1, (int)($baseStats['max_hp'] ?? 1)),
@@ -745,6 +792,8 @@ final class DeterministicRunNodeResolver
                 $dice,
                 (array)($playerActor['pos'] ?? ['x' => 1, 'y' => 1]),
                 (array)($enemyTarget['pos'] ?? ['x' => 1, 'y' => 1]),
+                (array)($playerActor['formation'] ?? ['w' => 1, 'h' => 1]),
+                (array)($enemyTarget['formation'] ?? ['w' => 1, 'h' => 1]),
                 $abilityRegistry,
               );
 
@@ -823,6 +872,8 @@ final class DeterministicRunNodeResolver
                 $dice,
                 (array)($enemyActor['pos'] ?? ['x' => 1, 'y' => 1]),
                 (array)($playerTarget['pos'] ?? ['x' => 1, 'y' => 1]),
+                (array)($enemyActor['formation'] ?? ['w' => 1, 'h' => 1]),
+                (array)($playerTarget['formation'] ?? ['w' => 1, 'h' => 1]),
                 $abilityRegistry,
               );
 
@@ -973,17 +1024,19 @@ final class DeterministicRunNodeResolver
     usort($aliveIds, function (string $a, string $b) use ($unitsById, $preferFront): int {
       $unitA = $unitsById[$a] ?? [];
       $unitB = $unitsById[$b] ?? [];
-      $posA = is_array($unitA['pos'] ?? null) ? $unitA['pos'] : ['x' => 1, 'y' => 1];
-      $posB = is_array($unitB['pos'] ?? null) ? $unitB['pos'] : ['x' => 1, 'y' => 1];
+      $profileA = $this->combatPositionProfile($unitA);
+      $profileB = $this->combatPositionProfile($unitB);
+      $primaryA = $preferFront ? $profileA['front_x'] : $profileA['back_x'];
+      $primaryB = $preferFront ? $profileB['front_x'] : $profileB['back_x'];
 
-      $cmpX = $preferFront
-        ? ((int)$posB['x'] <=> (int)$posA['x'])
-        : ((int)$posA['x'] <=> (int)$posB['x']);
-      if ($cmpX !== 0) {
-        return $cmpX;
+      $cmpPrimary = $preferFront
+        ? ($primaryB <=> $primaryA)
+        : ($primaryA <=> $primaryB);
+      if ($cmpPrimary !== 0) {
+        return $cmpPrimary;
       }
 
-      $cmpY = ((int)$posA['y'] <=> (int)$posB['y']);
+      $cmpY = ($profileA['top_y'] <=> $profileB['top_y']);
       if ($cmpY !== 0) {
         return $cmpY;
       }
@@ -992,12 +1045,12 @@ final class DeterministicRunNodeResolver
     });
 
     $firstUnit = $unitsById[$aliveIds[0]] ?? [];
-    $firstPos = is_array($firstUnit['pos'] ?? null) ? $firstUnit['pos'] : ['x' => 1, 'y' => 1];
-    $bestX = (int)$firstPos['x'];
-    $preferredIds = array_values(array_filter($aliveIds, function (string $id) use ($unitsById, $bestX): bool {
+    $firstProfile = $this->combatPositionProfile($firstUnit);
+    $bestX = $preferFront ? $firstProfile['front_x'] : $firstProfile['back_x'];
+    $preferredIds = array_values(array_filter($aliveIds, function (string $id) use ($unitsById, $bestX, $preferFront): bool {
       $unit = $unitsById[$id] ?? [];
-      $pos = is_array($unit['pos'] ?? null) ? $unit['pos'] : ['x' => 1, 'y' => 1];
-      return (int)$pos['x'] === $bestX;
+      $profile = $this->combatPositionProfile($unit);
+      return ($preferFront ? $profile['front_x'] : $profile['back_x']) === $bestX;
     }));
 
     return (string)$preferredIds[$this->nextInt($state, count($preferredIds))];
@@ -1006,11 +1059,15 @@ final class DeterministicRunNodeResolver
   /**
    * @param array{x:int,y:int} $attackerPos
    * @param array{x:int,y:int} $targetPos
+   * @param array{w:int,h:int} $attackerFormation
+   * @param array{w:int,h:int} $targetFormation
    */
   private function resolvePositionMultiplier(
     string $abilityId,
     array $attackerPos,
     array $targetPos,
+    array $attackerFormation,
+    array $targetFormation,
     AbilityRegistry $abilityRegistry
   ): float {
     if (!$abilityRegistry->has($abilityId)) {
@@ -1021,13 +1078,13 @@ final class DeterministicRunNodeResolver
     $isMelee = in_array('melee', $def->tags, true);
     $multiplier = 1.0;
 
-    if ($isMelee && $this->isFrontRow($attackerPos)) {
+    if ($isMelee && $this->isFrontRow($attackerPos, $attackerFormation)) {
       $multiplier *= 1.10;
     }
-    if ($this->isFrontRow($targetPos)) {
+    if ($this->isFrontRow($targetPos, $targetFormation)) {
       $multiplier *= 1.10;
     }
-    if ($isMelee && $this->isBackRow($targetPos)) {
+    if ($isMelee && $this->isBackRow($targetPos, $targetFormation)) {
       $multiplier *= 0.90;
     }
 
@@ -1036,18 +1093,28 @@ final class DeterministicRunNodeResolver
 
   /**
    * @param array{x:int,y:int} $pos
+   * @param array{w:int,h:int} $formation
    */
-  private function isFrontRow(array $pos): bool
+  private function isFrontRow(array $pos, array $formation): bool
   {
-    return ((int)($pos['x'] ?? 1)) >= 2;
+    $profile = $this->combatPositionProfile([
+      'pos' => $pos,
+      'formation' => $formation,
+    ]);
+    return $profile['front_x'] >= 2;
   }
 
   /**
    * @param array{x:int,y:int} $pos
+   * @param array{w:int,h:int} $formation
    */
-  private function isBackRow(array $pos): bool
+  private function isBackRow(array $pos, array $formation): bool
   {
-    return ((int)($pos['x'] ?? 1)) <= 0;
+    $profile = $this->combatPositionProfile([
+      'pos' => $pos,
+      'formation' => $formation,
+    ]);
+    return $profile['back_x'] <= 0;
   }
 
   /**
@@ -1055,6 +1122,8 @@ final class DeterministicRunNodeResolver
    * @param array{dice_used:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,dice_rolls:array<int,array{sides:int,roll:int}>,dice_outcome:string,dice_modifier:int,explode_triggered:bool} $diceContext
    * @param array{x:int,y:int} $attackerPos
    * @param array{x:int,y:int} $targetPos
+   * @param array{w:int,h:int} $attackerFormation
+   * @param array{w:int,h:int} $targetFormation
    * @return array{damage:int,target_hp_after:int,outcome:string,status_applied:?string,status_duration_rounds:?int,ability_outcome:string,affix_outcome:?string}
    */
   private function deriveActionOutcome(
@@ -1069,6 +1138,8 @@ final class DeterministicRunNodeResolver
     array $diceContext,
     array $attackerPos,
     array $targetPos,
+    array $attackerFormation,
+    array $targetFormation,
     AbilityRegistry $abilityRegistry,
   ): array {
     $variance = $this->nextInt($state, 5) - 2;
@@ -1089,7 +1160,14 @@ final class DeterministicRunNodeResolver
       $affixOutcomeParts[] = sprintf('execute below half x%s', rtrim(rtrim(number_format(1 + $belowHalfBonus, 2, '.', ''), '0'), '.'));
     }
 
-    $positionMultiplier = $this->resolvePositionMultiplier($abilityId, $attackerPos, $targetPos, $abilityRegistry);
+    $positionMultiplier = $this->resolvePositionMultiplier(
+      $abilityId,
+      $attackerPos,
+      $targetPos,
+      $attackerFormation,
+      $targetFormation,
+      $abilityRegistry
+    );
     if (abs($positionMultiplier - 1.0) > 0.0001) {
       $rawDamage = (int)floor($rawDamage * $positionMultiplier);
       $affixOutcomeParts[] = sprintf('position x%s', rtrim(rtrim(number_format($positionMultiplier, 2, '.', ''), '0'), '.'));
@@ -1122,6 +1200,60 @@ final class DeterministicRunNodeResolver
       'ability_outcome' => implode(', ', $abilityOutcomeParts),
       'affix_outcome' => count($affixOutcomeParts) > 0 ? implode(', ', $affixOutcomeParts) : null,
     ];
+  }
+
+  /**
+   * @param array<string,mixed> $unit
+   * @return array{front_x:int,back_x:int,top_y:int,bottom_y:int}
+   */
+  private function combatPositionProfile(array $unit): array
+  {
+    $pos = is_array($unit['pos'] ?? null) ? $unit['pos'] : ['x' => 1, 'y' => 1];
+    $formation = is_array($unit['formation'] ?? null) ? $unit['formation'] : ['w' => 1, 'h' => 1];
+    $positions = $this->combatOccupiedPositions($pos, $formation);
+
+    $frontX = max(array_map(static fn(array $cell): int => (int)$cell['x'], $positions));
+    $backX = min(array_map(static fn(array $cell): int => (int)$cell['x'], $positions));
+    $topY = min(array_map(static fn(array $cell): int => (int)$cell['y'], $positions));
+    $bottomY = max(array_map(static fn(array $cell): int => (int)$cell['y'], $positions));
+
+    return [
+      'front_x' => $frontX,
+      'back_x' => $backX,
+      'top_y' => $topY,
+      'bottom_y' => $bottomY,
+    ];
+  }
+
+  /**
+   * @param array{x:int,y:int} $pos
+   * @param array{w:int,h:int} $formation
+   * @return list<array{x:int,y:int}>
+   */
+  private function combatOccupiedPositions(array $pos, array $formation): array
+  {
+    $anchorX = max(0, min(2, (int)($pos['x'] ?? 1)));
+    $anchorY = max(0, min(2, (int)($pos['y'] ?? 1)));
+    $width = max(1, min(3, (int)($formation['w'] ?? 1)));
+    $height = max(1, min(3, (int)($formation['h'] ?? 1)));
+    $positions = [];
+
+    for ($rowOffset = 0; $rowOffset < $height; $rowOffset += 1) {
+      for ($colOffset = 0; $colOffset < $width; $colOffset += 1) {
+        $x = $anchorX - $colOffset;
+        $y = $anchorY + $rowOffset;
+        if ($x < 0 || $x > 2 || $y < 0 || $y > 2) {
+          continue;
+        }
+        $positions[] = ['x' => $x, 'y' => $y];
+      }
+    }
+
+    if (count($positions) === 0) {
+      return [['x' => $anchorX, 'y' => $anchorY]];
+    }
+
+    return $positions;
   }
 
   /**
@@ -1514,15 +1646,66 @@ final class DeterministicRunNodeResolver
       return [];
     }
 
+    if (array_key_exists('active', $abilityListRaw) || array_key_exists('actives', $abilityListRaw)) {
+      $nested = $abilityListRaw['active'] ?? $abilityListRaw['actives'] ?? [];
+      return $this->decodeAbilityIdList($nested);
+    }
+
     $out = [];
     foreach ($abilityListRaw as $abilityId) {
+      if (is_array($abilityId)) {
+        foreach ($this->decodeAbilityIdList($abilityId) as $nestedId) {
+          $out[] = $nestedId;
+        }
+        continue;
+      }
+
       $id = trim((string)$abilityId);
       if ($id !== '') {
         $out[] = $id;
       }
     }
 
-    return $out;
+    return array_values(array_unique($out));
+  }
+
+  private function schemaHasTable(string $table): bool
+  {
+    $cacheKey = 'table:' . $table;
+    if (array_key_exists($cacheKey, $this->schemaPresenceCache)) {
+      return $this->schemaPresenceCache[$cacheKey];
+    }
+
+    $stmt = $this->pdo->prepare('
+      SELECT COUNT(*)
+      FROM INFORMATION_SCHEMA.TABLES
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+    ');
+    $stmt->execute([$table]);
+    $exists = ((int)$stmt->fetchColumn()) > 0;
+    $this->schemaPresenceCache[$cacheKey] = $exists;
+    return $exists;
+  }
+
+  private function schemaHasColumn(string $table, string $column): bool
+  {
+    $cacheKey = 'column:' . $table . ':' . $column;
+    if (array_key_exists($cacheKey, $this->schemaPresenceCache)) {
+      return $this->schemaPresenceCache[$cacheKey];
+    }
+
+    $stmt = $this->pdo->prepare('
+      SELECT COUNT(*)
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+        AND COLUMN_NAME = ?
+    ');
+    $stmt->execute([$table, $column]);
+    $exists = ((int)$stmt->fetchColumn()) > 0;
+    $this->schemaPresenceCache[$cacheKey] = $exists;
+    return $exists;
   }
 
   private function pickUnitTypeSlug(string &$state): ?string
