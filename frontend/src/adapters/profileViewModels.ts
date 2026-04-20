@@ -147,14 +147,6 @@ export function adaptDiceDetails(rawDice: unknown[], rawUnits: unknown[]): DiceD
         abilityId: equipped.ability_id,
       });
     }
-    for (const equipped of normalizeEquippedDice(unit.equipped_dice)) {
-      if (equippedIndex.has(equipped.dice_instance_id)) continue;
-      equippedIndex.set(equipped.dice_instance_id, {
-        unitId: unit.id,
-        unitName: unit.name,
-        slotIndex: equipped.slot_index,
-      });
-    }
   }
 
   return rawDice
@@ -377,7 +369,7 @@ function normalizeEquippedLoadout(
 
   return equippedAbilities.map((ability) => {
     const catalogEntry = catalog.get(ability.ability_id);
-    const diceCost = Math.max(0, Number(catalogEntry?.dice_cost ?? 0));
+    const diceCost = resolveAbilityDiceCost(catalogEntry);
     const slots: UnitAbilitySlotViewModel[] = [];
     for (let slotIndex = 0; slotIndex < diceCost; slotIndex += 1) {
       slots.push({
@@ -394,6 +386,15 @@ function normalizeEquippedLoadout(
       slots,
     };
   });
+}
+
+function resolveAbilityDiceCost(catalogEntry: AbilityCatalogEntry | undefined): number {
+  const rawCost = Number(catalogEntry?.dice_cost ?? 0);
+  if (Number.isFinite(rawCost) && rawCost >= 0) {
+    return Math.max(0, Math.floor(rawCost));
+  }
+
+  return 0;
 }
 
 function indexAbilityCatalog(rawCatalog: AbilityCatalogEntry[]): Map<string, AbilityCatalogEntry> {

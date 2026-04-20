@@ -5,6 +5,7 @@ import DiceCardGrid from "../components/DiceCardGrid";
 import UnitCardGrid, { type UnitCardState } from "../components/UnitCardGrid";
 import InputModal from "../components/feedback/InputModal";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
+import SceneTabStrip from "../components/navigation/SceneTabStrip";
 import { DICE_ATLAS_KEY, getDiceFrameName } from "../assets/diceAtlas";
 import {
   adaptDiceDetails,
@@ -38,12 +39,17 @@ const FRAME_TITLE_HEIGHT = 56;
 const FRAME_MARGIN = 12;
 const CONTENT_INSET = 10;
 const SECTION_GAP = 12;
-const ACTION_BUTTON_GAP = 10;
 const SLOT_SIZE = 72;
 const SLOT_ICON_SIZE = 46;
 const ABILITY_ROW_HEIGHT = 38;
-const ABILITY_LIST_HEIGHT = 164;
 const SIDEBAR_BUTTON_WIDTH = 280;
+const TAB_HEIGHT = 38;
+const SUMMARY_COLUMN_WIDTH = 238;
+const BUTTON_STEP = 66;
+const LOADOUT_LIST_HEIGHT = 176;
+const AVAILABLE_ABILITY_ROW_HEIGHT = 34;
+const DESTINATION_PANEL_HEIGHT = 86;
+const FUSION_SECTION_HEIGHT = 120;
 
 const RARITY_TO_MATERIAL: Record<string, "cardboard" | "wood" | "bone" | "metal" | "gemstone"> = {
   common: "cardboard",
@@ -53,14 +59,26 @@ const RARITY_TO_MATERIAL: Record<string, "cardboard" | "wood" | "bone" | "metal"
   legendary: "gemstone",
 };
 
+type UnitDetailsTabId = "loadout" | "promotion";
+
 function normalizeUnitName(value: string): string | null {
   const trimmed = value.trim();
   if (trimmed.length === 0 || trimmed.length > 32) return null;
   return SQUAD_NAME_ALLOWED_CHARACTER_PATTERN.test(trimmed) ? trimmed : null;
 }
 
+function readDebugInitialTab(): UnitDetailsTabId | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const value = new URLSearchParams(window.location.search).get("debugInitialTab");
+  return value === "promotion" ? "promotion" : value === "loadout" ? "loadout" : null;
+}
+
 export default class UnitDetailsScene extends Phaser.Scene {
   private unitId = "";
+  private activeTab: UnitDetailsTabId = "loadout";
   private loadingText?: Phaser.GameObjects.Text;
   private toastText?: Phaser.GameObjects.Text;
   private renameDialog?: InputModal;
@@ -80,15 +98,16 @@ export default class UnitDetailsScene extends Phaser.Scene {
   private selectedPromotionOptionIndex = 0;
 
   private layoutUiObjects: Phaser.GameObjects.GameObject[] = [];
+  private tabStrip?: SceneTabStrip<UnitDetailsTabId>;
   private dicePanel?: DiceCardGrid;
   private secondaryPanel?: UnitCardGrid;
-  private moveUpButton?: SharedActionButton;
-  private moveDownButton?: SharedActionButton;
   private renameButton?: SharedActionButton;
+  private removeAbilityButton?: SharedActionButton;
   private equipDiceButton?: SharedActionButton;
   private unequipSlotButton?: SharedActionButton;
   private clearFusionButton?: SharedActionButton;
   private promoteButton?: SharedActionButton;
+  private backButton?: SharedActionButton;
   private loadoutRowBorders: Phaser.GameObjects.Rectangle[] = [];
   private loadoutRowTexts: Phaser.GameObjects.Text[] = [];
   private abilitySlotBorders: Phaser.GameObjects.Rectangle[] = [];
@@ -98,16 +117,21 @@ export default class UnitDetailsScene extends Phaser.Scene {
   private fusionSlotLabels: Phaser.GameObjects.Text[] = [];
   private unitSummaryText?: Phaser.GameObjects.Text;
   private helperText?: Phaser.GameObjects.Text;
+  private actionSummaryText?: Phaser.GameObjects.Text;
   private promotionOptionButtonBg?: Phaser.GameObjects.Rectangle;
   private promotionOptionButtonText?: Phaser.GameObjects.Text;
   private promotionOptionButtonZone?: Phaser.GameObjects.Zone;
+  private loadoutRowBaseY = 0;
 
   constructor() {
     super({ key: "UnitDetailsScene" });
   }
 
-  init(data: { unitId?: string }): void {
+  init(data: { unitId?: string; tab?: UnitDetailsTabId }): void {
     this.unitId = String(data?.unitId ?? "");
+    this.activeTab = data?.tab === "promotion"
+      ? "promotion"
+      : readDebugInitialTab() ?? "loadout";
   }
 
   create(): void {
@@ -151,17 +175,23 @@ export default class UnitDetailsScene extends Phaser.Scene {
         if (!debugConfig.enabled) throw new Error("Failed to fetch");
         return getDebugProfileFixture();
       });
-      if (!profile.ok) throw new Error(profile.error.message);
+      const resolvedProfile = profile.ok || !debugConfig.enabled
+        ? profile
+        : getDebugProfileFixture();
+      if (!resolvedProfile.ok) throw new Error(resolvedProfile.error.message);
 
       const abilityCatalog = await apiClient.getAbilityCatalog().catch(() => {
         if (!debugConfig.enabled) throw new Error("Failed to fetch ability catalog");
         return getDebugAbilityCatalogFixture();
       });
-      if (!abilityCatalog.ok) throw new Error(abilityCatalog.error.message);
+      const resolvedAbilityCatalog = abilityCatalog.ok || !debugConfig.enabled
+        ? abilityCatalog
+        : getDebugAbilityCatalogFixture();
+      if (!resolvedAbilityCatalog.ok) throw new Error(resolvedAbilityCatalog.error.message);
 
-      this.rawUnits = adaptUnitRecords(profile.data.units ?? []);
-      this.unitDetails = adaptUnitDetails(profile.data.units ?? [], abilityCatalog.data.abilities ?? []);
-      this.activeRun = profile.data.active_run !== null;
+      this.rawUnits = adaptUnitRecords(resolvedProfile.data.units ?? []);
+      this.unitDetails = adaptUnitDetails(resolvedProfile.data.units ?? [], resolvedAbilityCatalog.data.abilities ?? []);
+      this.activeRun = resolvedProfile.data.active_run !== null;
       this.unit = this.unitDetails.find((unit) => unit.id === this.unitId) ?? this.unitDetails[0] ?? null;
       this.rawUnit = this.rawUnits.find((unit) => unit.id === this.unitId) ?? this.rawUnits[0] ?? null;
       if (!this.unit || !this.rawUnit) throw new Error("No units found.");
@@ -172,10 +202,13 @@ export default class UnitDetailsScene extends Phaser.Scene {
         if (!debugConfig.enabled) throw new Error("Failed to fetch promotion options");
         return { ok: true as const, data: { unit_id: this.unitId, current_tier: currentUnit.tier, options: this.buildDebugPromotionOptions() } };
       });
-      if (!promotionOptions.ok) throw new Error(promotionOptions.error.message);
+      const resolvedPromotionOptions = promotionOptions.ok || !debugConfig.enabled
+        ? promotionOptions
+        : { ok: true as const, data: { unit_id: this.unitId, current_tier: currentUnit.tier, options: this.buildDebugPromotionOptions() } };
+      if (!resolvedPromotionOptions.ok) throw new Error(resolvedPromotionOptions.error.message);
 
-      this.dice = adaptDiceDetails(profile.data.dice ?? [], profile.data.units ?? []);
-      this.promotionOptions = promotionOptions.data.options ?? [];
+      this.dice = adaptDiceDetails(resolvedProfile.data.dice ?? [], resolvedProfile.data.units ?? []);
+      this.promotionOptions = resolvedPromotionOptions.data.options ?? [];
       this.syncSelections();
 
       this.loadingText?.destroy();
@@ -206,101 +239,215 @@ export default class UnitDetailsScene extends Phaser.Scene {
     const sidebarY = layout.buttons.y + FRAME_TITLE_HEIGHT + FRAME_MARGIN;
     const sidebarWidth = Math.max(220, layout.buttons.width - FRAME_MARGIN * 2);
 
-    const leftColumnWidth = 210;
-    const rightColumnX = contentX + leftColumnWidth + SECTION_GAP;
-    const rightColumnWidth = Math.max(280, contentWidth - leftColumnWidth - SECTION_GAP);
-    const promotionHeight = 178;
-    const topSectionHeight = Math.max(230, contentHeight - promotionHeight - SECTION_GAP);
-    const dicePanelHeight = Math.max(112, topSectionHeight - ABILITY_LIST_HEIGHT - SLOT_SIZE - SECTION_GAP * 2 - 38);
+    this.tabStrip = new SceneTabStrip<UnitDetailsTabId>({
+      scene: this,
+      x: contentX,
+      y: contentY,
+      width: Math.min(contentWidth, 360),
+      height: TAB_HEIGHT,
+      activeId: this.activeTab,
+      tabs: [
+        { id: "loadout", label: "Loadout" },
+        { id: "promotion", label: "Promotion" },
+      ],
+      onChange: (tabId) => {
+        this.activeTab = tabId;
+        this.buildUi();
+      },
+    });
+    this.layoutUiObjects.push(this.tabStrip);
 
-    const summaryBg = this.add.rectangle(contentX, contentY, leftColumnWidth, topSectionHeight, 0x20323a, 0.72)
-      .setOrigin(0, 0).setStrokeStyle(1, 0x8db8bc, 0.45);
-    const portrait = this.add.image(contentX + leftColumnWidth / 2, contentY + 56, "icon_warband")
-      .setDisplaySize(96, 96).setAlpha(0.9);
-    this.unitSummaryText = this.add.text(contentX + 12, contentY + 116, "", {
+    const bodyY = contentY + TAB_HEIGHT + SECTION_GAP;
+    const bodyHeight = Math.max(220, contentHeight - TAB_HEIGHT - SECTION_GAP);
+    const summaryWidth = Math.min(SUMMARY_COLUMN_WIDTH, Math.max(210, Math.floor(contentWidth * 0.28)));
+    const mainX = contentX + summaryWidth + SECTION_GAP;
+    const mainWidth = Math.max(280, contentWidth - summaryWidth - SECTION_GAP);
+
+    this.buildSummaryColumn(contentX, bodyY, summaryWidth, bodyHeight);
+    if (this.activeTab === "loadout") {
+      this.buildLoadoutPanel(mainX, bodyY, mainWidth, bodyHeight);
+    } else {
+      this.buildPromotionPanel(mainX, bodyY, mainWidth, bodyHeight);
+    }
+    this.buildSidebar(sidebarX, sidebarY, sidebarWidth);
+    this.refreshUi();
+  }
+
+  private buildSummaryColumn(x: number, y: number, width: number, height: number): void {
+    const summaryBg = this.add.rectangle(x, y, width, height, 0x20323a, 0.72)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8db8bc, 0.45);
+    const portrait = this.add.image(x + width / 2, y + 60, "icon_warband")
+      .setDisplaySize(98, 98)
+      .setAlpha(0.9);
+    this.unitSummaryText = this.add.text(x + 14, y + 122, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "17px",
       color: "#eef4f5",
       lineSpacing: 6,
-      wordWrap: { width: leftColumnWidth - 24 },
+      wordWrap: { width: width - 28 },
     }).setOrigin(0, 0);
-    this.helperText = this.add.text(contentX + 12, contentY + topSectionHeight - 56, "", {
+    this.helperText = this.add.text(x + 14, y + height - 132, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "14px",
       color: "#d6e7e8",
-      wordWrap: { width: leftColumnWidth - 24 },
+      lineSpacing: 5,
+      wordWrap: { width: width - 28 },
     }).setOrigin(0, 0);
     this.layoutUiObjects.push(summaryBg, portrait, this.unitSummaryText, this.helperText);
+  }
 
-    const loadoutLabel = this.add.text(rightColumnX + 2, contentY, "EQUIPPED LOADOUT", {
+  private buildLoadoutPanel(x: number, y: number, width: number, height: number): void {
+    const loadoutLabel = this.add.text(x + 2, y, "LOADOUT ORDER", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "16px",
       color: "#f0f0f0",
     }).setOrigin(0, 0);
     this.layoutUiObjects.push(loadoutLabel);
-    this.buildLoadoutRows(rightColumnX, contentY + 24, rightColumnWidth);
+    this.buildLoadoutRows(x, y + 24, width);
 
-    const slotsLabel = this.add.text(rightColumnX + 2, contentY + ABILITY_LIST_HEIGHT + SECTION_GAP, "ABILITY SLOTS", {
+    const slotsY = y + LOADOUT_LIST_HEIGHT;
+    const slotsLabel = this.add.text(x + 2, slotsY, "ABILITY SLOTS", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "16px",
       color: "#f0f0f0",
     }).setOrigin(0, 0);
     this.layoutUiObjects.push(slotsLabel);
-    this.buildAbilitySlots(rightColumnX, contentY + ABILITY_LIST_HEIGHT + SECTION_GAP + 24, rightColumnWidth);
+    this.buildAbilitySlots(x, slotsY + 24, width);
 
+    const bottomY = slotsY + 112;
+    const bottomHeight = Math.max(164, height - (bottomY - y));
+    const availableWidth = Math.max(210, Math.floor(width * 0.42));
+    const diceWidth = Math.max(220, width - availableWidth - SECTION_GAP);
+
+    this.buildAvailableAbilitiesPanel(x, bottomY, availableWidth, bottomHeight);
     this.dicePanel = new DiceCardGrid({
       scene: this,
-      x: rightColumnX,
-      y: contentY + ABILITY_LIST_HEIGHT + SLOT_SIZE + SECTION_GAP * 2 + 32,
-      width: rightColumnWidth,
-      height: dicePanelHeight,
+      x: x + availableWidth + SECTION_GAP,
+      y: bottomY,
+      width: diceWidth,
+      height: bottomHeight,
       title: "AVAILABLE DICE",
       dice: this.getSelectableDice(),
       selectedDiceId: this.selectedDiceId,
-      maxVisibleCards: 3,
       onDiceClick: (die) => {
         this.selectedDiceId = die.id;
         this.dicePanel?.setSelectedDiceId(die.id);
         this.refreshUi();
       },
+      maxVisibleCards: 4,
     });
     this.layoutUiObjects.push(this.dicePanel);
+  }
 
-    const promotionY = contentY + topSectionHeight + SECTION_GAP;
-    const promotionLabel = this.add.text(contentX + 2, promotionY, "PROMOTION MATERIAL", {
+  private buildPromotionPanel(x: number, y: number, width: number, height: number): void {
+    const destinationLabel = this.add.text(x + 2, y, "PROMOTION DESTINATION", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "16px",
       color: "#f0f0f0",
     }).setOrigin(0, 0);
-    this.layoutUiObjects.push(promotionLabel);
-    this.buildFusionSlots(contentX, promotionY + 24);
+    this.layoutUiObjects.push(destinationLabel);
 
+    this.promotionOptionButtonBg = this.add.rectangle(x, y + 26, width, DESTINATION_PANEL_HEIGHT, 0x132328, 0.78)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0xe0b85a, 0.5);
+    this.promotionOptionButtonText = this.add.text(x + width / 2, y + 26 + DESTINATION_PANEL_HEIGHT / 2, "", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "18px",
+      color: "#f4ebd4",
+      align: "center",
+      wordWrap: { width: width - 32 },
+    }).setOrigin(0.5, 0.5);
+    this.promotionOptionButtonZone = this.add.zone(x + width / 2, y + 26 + DESTINATION_PANEL_HEIGHT / 2, width, DESTINATION_PANEL_HEIGHT)
+      .setOrigin(0.5, 0.5)
+      .setInteractive({ useHandCursor: true });
+    this.promotionOptionButtonZone.on("pointerdown", () => {
+      if (this.promotionOptions.length <= 1) {
+        return;
+      }
+      this.selectedPromotionOptionIndex = (this.selectedPromotionOptionIndex + 1) % this.promotionOptions.length;
+      this.refreshUi();
+    });
+    this.promotionOptionButtonZone.on("pointerover", () => this.promotionOptionButtonBg?.setFillStyle(0x18343b, 0.9));
+    this.promotionOptionButtonZone.on("pointerout", () => this.promotionOptionButtonBg?.setFillStyle(0x132328, 0.78));
+    this.layoutUiObjects.push(this.promotionOptionButtonBg, this.promotionOptionButtonText, this.promotionOptionButtonZone);
+
+    const fusionLabelY = y + 26 + DESTINATION_PANEL_HEIGHT + SECTION_GAP;
+    const fusionLabel = this.add.text(x + 2, fusionLabelY, "REQUIRED MATERIAL", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "16px",
+      color: "#f0f0f0",
+    }).setOrigin(0, 0);
+    this.layoutUiObjects.push(fusionLabel);
+    this.buildFusionSlots(x, fusionLabelY + 24);
+
+    const candidatesY = y + 26 + DESTINATION_PANEL_HEIGHT + FUSION_SECTION_HEIGHT;
+    const candidatesHeight = Math.max(160, height - (candidatesY - y));
     this.secondaryPanel = new UnitCardGrid({
       scene: this,
-      x: contentX + 180,
-      y: promotionY + 24,
-      width: contentWidth - 180,
-      height: promotionHeight - 24,
-      title: "PROMOTION CANDIDATES",
+      x,
+      y: candidatesY,
+      width,
+      height: candidatesHeight,
+      title: "COMPATIBLE UNITS",
       units: this.getFusionCandidates(),
       onUnitClick: (unit) => this.assignFusionSecondary(unit.id),
       getCardState: (unit) => this.candidateRowState(unit),
+      maxVisibleCards: 8,
+      columns: 4,
+      maxCardWidth: 96,
+      footerHeight: 34,
+      gapX: 8,
+      gapY: 8,
     });
     this.layoutUiObjects.push(this.secondaryPanel);
-
-    this.buildSidebar(sidebarX, sidebarY, sidebarWidth);
-    this.refreshUi();
   }
 
   private buildLoadoutRows(x: number, y: number, width: number): void {
     this.loadoutRowBorders = [];
     this.loadoutRowTexts = [];
+    this.loadoutRowBaseY = y;
     const visibleRows = Math.min(4, Math.max(1, this.unit?.equippedLoadout.length ?? 1));
     for (let index = 0; index < visibleRows; index += 1) {
-      const top = y + index * (ABILITY_ROW_HEIGHT + 4);
+      const top = y + index * (ABILITY_ROW_HEIGHT + 6);
+      let didDrag = false;
       const border = this.add.rectangle(x, top, width, ABILITY_ROW_HEIGHT, 0x142127, 0.88)
-        .setOrigin(0, 0).setStrokeStyle(1, 0x8db8bc, 0.32).setInteractive({ useHandCursor: true });
-      border.on("pointerdown", () => {
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, 0x8db8bc, 0.32)
+        .setDepth(1)
+        .setInteractive({ useHandCursor: true });
+      this.input.setDraggable(border);
+      border.on("dragstart", () => {
+        didDrag = false;
+        border.setDepth(30);
+      });
+      border.on("drag", (_pointer: unknown, _dragX: number, dragY: number) => {
+        if (!didDrag && Math.abs(dragY - top) < 10) {
+          return;
+        }
+        didDrag = true;
+        border.y = dragY;
+        const text = this.loadoutRowTexts[index];
+        if (text) {
+          text.y = dragY + 8;
+          text.setDepth(31);
+        }
+      });
+      border.on("dragend", async () => {
+        const targetIndex = this.resolveLoadoutDropIndex(border.y);
+        this.restoreLoadoutRowVisual(index);
+        if (didDrag && targetIndex !== index) {
+          await this.reorderAbilityTo(index, targetIndex);
+          return;
+        }
+        this.selectedLoadoutIndex = index;
+        this.selectedAbilitySlotIndex = 0;
+        this.refreshUi();
+      });
+      border.on("pointerup", () => {
+        if (didDrag) {
+          return;
+        }
         this.selectedLoadoutIndex = index;
         this.selectedAbilitySlotIndex = 0;
         this.refreshUi();
@@ -310,7 +457,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
         fontSize: "18px",
         color: "#eef4f5",
         wordWrap: { width: width - 24 },
-      }).setOrigin(0, 0);
+      }).setOrigin(0, 0).setDepth(2);
       this.loadoutRowBorders.push(border);
       this.loadoutRowTexts.push(text);
       this.layoutUiObjects.push(border, text);
@@ -318,6 +465,10 @@ export default class UnitDetailsScene extends Phaser.Scene {
   }
 
   private buildAbilitySlots(x: number, y: number, width: number): void {
+    this.abilitySlotBorders = [];
+    this.abilitySlotLabels = [];
+    this.abilitySlotIcons = [];
+
     const selectedAbility = this.getSelectedLoadoutEntry();
     const slotCount = Math.max(0, selectedAbility?.diceCost ?? 0);
     if (!selectedAbility || slotCount === 0) {
@@ -331,18 +482,24 @@ export default class UnitDetailsScene extends Phaser.Scene {
       return;
     }
 
-    const totalWidth = slotCount * SLOT_SIZE + Math.max(0, slotCount - 1) * 10;
-    const startX = x + Math.max(0, Math.floor((width - totalWidth) / 2));
+    const startX = x + 8;
+    const rowWidth = SLOT_SIZE + 10;
     for (let slotIndex = 0; slotIndex < slotCount; slotIndex += 1) {
-      const slotX = startX + slotIndex * (SLOT_SIZE + 10);
+      const slotX = startX + slotIndex * rowWidth;
+      if (slotX + SLOT_SIZE > x + width) {
+        break;
+      }
       const border = this.add.rectangle(slotX, y, SLOT_SIZE, SLOT_SIZE, 0x1c2b31, 0.82)
-        .setOrigin(0, 0).setStrokeStyle(1, 0x8db8bc, 0.48).setInteractive({ useHandCursor: true });
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, 0x8db8bc, 0.48)
+        .setInteractive({ useHandCursor: true });
       border.on("pointerdown", () => {
         this.selectedAbilitySlotIndex = slotIndex;
         this.refreshUi();
       });
       const icon = this.add.image(slotX + SLOT_SIZE / 2, y + 24, DICE_ATLAS_KEY, "cardboard_d6")
-        .setDisplaySize(SLOT_ICON_SIZE, SLOT_ICON_SIZE).setVisible(false);
+        .setDisplaySize(SLOT_ICON_SIZE, SLOT_ICON_SIZE)
+        .setVisible(false);
       const label = this.add.text(slotX + SLOT_SIZE / 2, y + SLOT_SIZE - 14, "", {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "12px",
@@ -357,13 +514,68 @@ export default class UnitDetailsScene extends Phaser.Scene {
     }
   }
 
+  private buildAvailableAbilitiesPanel(x: number, y: number, width: number, height: number): void {
+    const panel = this.add.rectangle(x, y, width, height, 0x0f1a1f, 0.54)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0x8db8bc, 0.38);
+    const title = this.add.text(x + 12, y + 8, "AVAILABLE ABILITIES", {
+      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+      fontSize: "16px",
+      color: "#f0f0f0",
+    }).setOrigin(0, 0);
+    this.layoutUiObjects.push(panel, title);
+
+    const abilities = this.unit?.unlockedAbilities.filter((ability) => ability.type === "active") ?? [];
+    abilities.slice(0, Math.max(1, Math.floor((height - 36) / AVAILABLE_ABILITY_ROW_HEIGHT))).forEach((ability, index) => {
+      const rowY = y + 32 + index * AVAILABLE_ABILITY_ROW_HEIGHT;
+      const row = this.add.rectangle(x + 8, rowY, width - 16, AVAILABLE_ABILITY_ROW_HEIGHT - 4, 0x142127, 0.88)
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, 0x8db8bc, 0.26)
+        .setInteractive({ useHandCursor: true });
+      const label = this.add.text(x + 18, rowY + 6, `${ability.label.toUpperCase()}  + ADD`, {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "16px",
+        color: "#eef4f5",
+        wordWrap: { width: width - 36 },
+      }).setOrigin(0, 0);
+      row.on("pointerdown", () => void this.addAbilityToLoadout(ability.id));
+      this.layoutUiObjects.push(row, label);
+    });
+  }
+
+  private resolveLoadoutDropIndex(currentY: number): number {
+    const rowStep = ABILITY_ROW_HEIGHT + 6;
+    const relativeY = currentY - this.loadoutRowBaseY;
+    return Math.max(0, Math.min(this.loadoutRowBorders.length - 1, Math.round(relativeY / rowStep)));
+  }
+
+  private resetLoadoutRowPositions(): void {
+    const rowStep = ABILITY_ROW_HEIGHT + 6;
+    this.loadoutRowBorders.forEach((border, index) => {
+      border.y = this.loadoutRowBaseY + index * rowStep;
+      border.setDepth(1);
+    });
+    this.loadoutRowTexts.forEach((text, index) => {
+      text.y = this.loadoutRowBaseY + index * rowStep + 8;
+      text.setDepth(2);
+    });
+  }
+
+  private restoreLoadoutRowVisual(index: number): void {
+    this.resetLoadoutRowPositions();
+    this.loadoutRowBorders[index]?.setDepth(1);
+    this.loadoutRowTexts[index]?.setDepth(2);
+  }
+
   private buildFusionSlots(x: number, y: number): void {
     this.fusionSlotBorders = [];
     this.fusionSlotLabels = [];
     for (let index = 0; index < REQUIRED_FUSION_UNITS; index += 1) {
-      const slotX = x + index * (SLOT_SIZE + 10);
+      const slotX = x + index * (SLOT_SIZE + 12);
       const border = this.add.rectangle(slotX, y, SLOT_SIZE, SLOT_SIZE, 0x3b331e, 0.76)
-        .setOrigin(0, 0).setStrokeStyle(1, 0xe0b85a, 0.62).setInteractive({ useHandCursor: true });
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, 0xe0b85a, 0.62)
+        .setInteractive({ useHandCursor: true });
       border.on("pointerdown", () => {
         this.selectedFusionSlotIndex = index;
         this.refreshUi();
@@ -382,68 +594,95 @@ export default class UnitDetailsScene extends Phaser.Scene {
   }
 
   private buildSidebar(x: number, y: number, width: number): void {
-    const summaryCard = this.add.rectangle(x + 12, y + 14, width - 24, 156, 0x0f2024, 0.58)
-      .setOrigin(0, 0).setStrokeStyle(1, 0x8db8bc, 0.32);
-    this.layoutUiObjects.push(summaryCard);
-
-    this.promotionOptionButtonBg = this.add.rectangle(x + 24, y + 114, width - 48, 42, 0xf2ead8, 0.92)
-      .setOrigin(0, 0).setStrokeStyle(2, 0x7a5f39, 0.85);
-    this.promotionOptionButtonText = this.add.text(x + width / 2, y + 135, "", {
-      fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
-      fontSize: "14px",
-      color: "#3e2b16",
-      align: "center",
-      wordWrap: { width: width - 64 },
-    }).setOrigin(0.5, 0.5);
-    this.promotionOptionButtonZone = this.add.zone(x + width / 2, y + 135, width - 48, 42)
-      .setOrigin(0.5, 0.5)
-      .setInteractive({ useHandCursor: true });
-    this.promotionOptionButtonZone.on("pointerdown", () => {
-      if (this.promotionOptions.length <= 1) {
-        return;
-      }
-      this.selectedPromotionOptionIndex = (this.selectedPromotionOptionIndex + 1) % this.promotionOptions.length;
-      this.refreshUi();
-    });
-    this.promotionOptionButtonZone.on("pointerover", () => this.promotionOptionButtonBg?.setFillStyle(0xfff2cf, 1));
-    this.promotionOptionButtonZone.on("pointerout", () => this.promotionOptionButtonBg?.setFillStyle(0xf2ead8, 0.92));
-    this.layoutUiObjects.push(this.promotionOptionButtonBg, this.promotionOptionButtonText, this.promotionOptionButtonZone);
-
     const buttonX = x + Math.max(0, Math.floor((width - SIDEBAR_BUTTON_WIDTH) / 2));
-    const firstButtonY = y + 188;
-    this.renameButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY, label: "Rename Unit", enabled: true, onClick: () => void this.openRenameDialog() });
-    this.moveUpButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 66, label: "Move Ability Up", enabled: false, onClick: () => void this.reorderSelectedAbility(-1) });
-    this.moveDownButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 132, label: "Move Ability Down", enabled: false, onClick: () => void this.reorderSelectedAbility(1) });
-    this.equipDiceButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 198, label: "Equip Selected Die", enabled: false, onClick: () => void this.assignSelectedDie() });
-    this.unequipSlotButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 264, label: "Clear Slot Die", enabled: false, onClick: () => void this.clearSelectedSlotDie() });
-    this.clearFusionButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 330, label: "Clear Promotion", enabled: false, onClick: () => this.clearFusionSelections() });
-    this.promoteButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 396, label: "Promote Unit", enabled: false, onClick: () => void this.promoteUnit() });
-    const backButton = new SharedActionButton({ scene: this, x: buttonX, y: firstButtonY + 462, label: "Back", onClick: () => this.scene.start("WarbandManagementScene") });
+    const firstButtonY = y + 18;
 
-    this.layoutUiObjects.push(
-      this.renameButton,
-      this.moveUpButton,
-      this.moveDownButton,
-      this.equipDiceButton,
-      this.unequipSlotButton,
-      this.clearFusionButton,
-      this.promoteButton,
-      backButton,
-    );
+    if (this.activeTab === "loadout") {
+      this.renameButton = new SharedActionButton({
+        scene: this,
+        x: buttonX,
+        y: firstButtonY,
+        label: "Rename Unit",
+        enabled: true,
+        onClick: () => void this.openRenameDialog(),
+      });
+      this.removeAbilityButton = new SharedActionButton({
+        scene: this,
+        x: buttonX,
+        y: firstButtonY + BUTTON_STEP,
+        label: "Remove Ability",
+        enabled: false,
+        onClick: () => void this.removeSelectedAbility(),
+      });
+      this.equipDiceButton = new SharedActionButton({
+        scene: this,
+        x: buttonX,
+        y: firstButtonY + BUTTON_STEP * 2,
+        label: "Equip Selected Die",
+        enabled: false,
+        onClick: () => void this.assignSelectedDie(),
+      });
+      this.unequipSlotButton = new SharedActionButton({
+        scene: this,
+        x: buttonX,
+        y: firstButtonY + BUTTON_STEP * 3,
+        label: "Clear Slot Die",
+        enabled: false,
+        onClick: () => void this.clearSelectedSlotDie(),
+      });
+      this.layoutUiObjects.push(
+        this.renameButton,
+        this.removeAbilityButton,
+        this.equipDiceButton,
+        this.unequipSlotButton,
+      );
+    } else {
+      this.clearFusionButton = new SharedActionButton({
+        scene: this,
+        x: buttonX,
+        y: firstButtonY,
+        label: "Clear Promotion",
+        enabled: false,
+        onClick: () => this.clearFusionSelections(),
+      });
+      this.promoteButton = new SharedActionButton({
+        scene: this,
+        x: buttonX,
+        y: firstButtonY + BUTTON_STEP,
+        label: "Promote Unit",
+        enabled: false,
+        onClick: () => void this.promoteUnit(),
+      });
+      this.layoutUiObjects.push(this.clearFusionButton, this.promoteButton);
+    }
+
+    this.backButton = new SharedActionButton({
+      scene: this,
+      x: buttonX,
+      y: firstButtonY + (this.activeTab === "loadout" ? BUTTON_STEP * 4 : BUTTON_STEP * 2),
+      label: "Back",
+      onClick: () => this.scene.start("WarbandManagementScene"),
+    });
+    this.layoutUiObjects.push(this.backButton);
   }
 
   private refreshUi(): void {
     this.syncSelections();
-    const expectedSlotCount = this.getSelectedLoadoutEntry()?.diceCost ?? 0;
-    if (expectedSlotCount !== this.abilitySlotBorders.length) {
-      this.buildUi();
-      return;
+    if (this.activeTab === "loadout") {
+      const expectedSlotCount = this.getSelectedLoadoutEntry()?.diceCost ?? 0;
+      if (expectedSlotCount !== this.abilitySlotBorders.length) {
+        this.buildUi();
+        return;
+      }
     }
+
     this.refreshLoadoutRows();
     this.refreshAbilitySlots();
     this.refreshFusionSlots();
+    this.refreshSummaryText();
     this.refreshSidebarSummary();
     this.refreshDicePanel();
+    this.refreshPromotionDestination();
     this.refreshActionButtons();
     this.secondaryPanel?.refreshCardStates();
   }
@@ -453,11 +692,13 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.loadoutRowBorders.forEach((border, index) => {
       const entry = loadout[index];
       const text = this.loadoutRowTexts[index];
-      if (!entry || !text) {
+      if (!text) {
         border.setVisible(false);
-        if (text) {
-          text.setVisible(false);
-        }
+        return;
+      }
+      if (!entry) {
+        border.setVisible(false);
+        text.setVisible(false);
         return;
       }
       const selected = index === this.selectedLoadoutIndex;
@@ -512,44 +753,77 @@ export default class UnitDetailsScene extends Phaser.Scene {
     }
   }
 
-  private refreshSidebarSummary(): void {
+  private refreshSummaryText(): void {
     if (!this.unitSummaryText || !this.helperText || !this.unit) return;
 
     this.unitSummaryText.setText(this.buildSummaryText());
     const selectedAbility = this.getSelectedLoadoutEntry();
     const selectedSlotDie = this.getSelectedSlotDie();
     const selectedDie = this.getSelectedDie();
-    const selectedFusions = this.fusionSecondaryIds.filter((id): id is string => Boolean(id));
     const selectedPromotion = this.getSelectedPromotionOption();
+    const selectedFusions = this.fusionSecondaryIds.filter((id): id is string => Boolean(id));
 
-    this.helperText.setText([
-      selectedAbility
-        ? `Loadout: ${selectedAbility.label} (${selectedAbility.speedCost} pts)`
-        : "Loadout: none selected",
-      selectedAbility && selectedAbility.diceCost > 0
-        ? `Slot ${this.selectedAbilitySlotIndex + 1}: ${selectedSlotDie?.displayName ?? "Empty"}`
-        : "This ability does not consume dice.",
-      selectedDie
-        ? `Picked die: ${selectedDie.displayName}${selectedDie.equipped ? ` on ${selectedDie.equipped.unitName}` : ""}`
-        : "Pick a die from the pool to assign it.",
-      selectedPromotion
-        ? `Promotion path: ${selectedPromotion.mode === "chain" ? "Chain" : "Sideways"} to ${selectedPromotion.target_unit_type_name}`
-        : "Promotion path: unavailable",
-      selectedFusions.length > 0
-        ? `Promotion fodder: ${selectedFusions.length}/${REQUIRED_FUSION_UNITS}`
-        : "Select promotion fodder below when ready.",
-    ].join("\n"));
+    const helperLines = this.activeTab === "loadout"
+      ? [
+          selectedAbility
+            ? `Selected: ${selectedAbility.label} (${selectedAbility.speedCost} speed)`
+            : "Select a loadout row to inspect it.",
+          "Drag equipped abilities to reorder. Click an available ability to add another copy.",
+          selectedAbility && selectedAbility.diceCost > 0
+            ? `Slot ${this.selectedAbilitySlotIndex + 1}: ${selectedSlotDie?.displayName ?? "Empty"}`
+            : "This ability does not consume dice.",
+          selectedDie
+            ? `Ready die: ${selectedDie.displayName}${selectedDie.equipped ? ` on ${selectedDie.equipped.unitName}` : ""}`
+            : "Choose a die from the pool to equip.",
+        ]
+      : [
+          selectedPromotion
+            ? `Path: ${selectedPromotion.mode === "chain" ? "Chain" : "Sideways"} to ${selectedPromotion.target_unit_type_name}`
+            : "No promotion destination is available.",
+          `Material selected: ${selectedFusions.length}/${REQUIRED_FUSION_UNITS}`,
+          this.activeRun
+            ? "Promotion is locked during active runs."
+            : "Pick two compatible units to promote.",
+        ];
+    this.helperText.setText(helperLines.join("\n"));
+  }
 
-    if (this.promotionOptionButtonBg && this.promotionOptionButtonText) {
-      const hasOptions = this.promotionOptions.length > 0;
-      this.promotionOptionButtonBg.setAlpha(hasOptions ? 1 : 0.45);
-      this.promotionOptionButtonText.setText(
-        hasOptions
-          ? `DESTINATION: ${selectedPromotion?.target_unit_type_name.toUpperCase() ?? "UNKNOWN"}${this.promotionOptions.length > 1 ? "  (CLICK TO CYCLE)" : ""}`
-          : "NO PROMOTION DESTINATIONS"
-      );
-      this.promotionOptionButtonText.setColor(hasOptions ? "#3e2b16" : "#7c7c7c");
+  private refreshSidebarSummary(): void {
+    if (!this.actionSummaryText || !this.unit) {
+      return;
     }
+
+    const selectedAbility = this.getSelectedLoadoutEntry();
+    const selectedPromotion = this.getSelectedPromotionOption();
+    const selectedFusions = this.fusionSecondaryIds.filter((id): id is string => Boolean(id));
+
+    this.actionSummaryText.setText(this.activeTab === "loadout"
+      ? [
+          "LOADOUT EDITING",
+          selectedAbility ? selectedAbility.label : "No ability selected",
+          selectedAbility ? `${selectedAbility.diceCost} slots • ${selectedAbility.speedCost} speed` : "Select an equipped ability row.",
+        ].join("\n")
+      : [
+          "PROMOTION WORKFLOW",
+          selectedPromotion ? selectedPromotion.target_unit_type_name : "No destination",
+          `${selectedFusions.length}/${REQUIRED_FUSION_UNITS} material units selected`,
+        ].join("\n"));
+  }
+
+  private refreshPromotionDestination(): void {
+    if (!this.promotionOptionButtonBg || !this.promotionOptionButtonText) {
+      return;
+    }
+
+    const selectedPromotion = this.getSelectedPromotionOption();
+    const hasOptions = this.promotionOptions.length > 0;
+    this.promotionOptionButtonBg.setAlpha(hasOptions ? 1 : 0.45);
+    this.promotionOptionButtonText.setText(
+      hasOptions
+        ? `${selectedPromotion?.target_unit_type_name.toUpperCase() ?? "UNKNOWN"}${this.promotionOptions.length > 1 ? "\nCLICK TO CYCLE DESTINATIONS" : "\nREADY WHEN MATERIAL IS FILLED"}`
+        : "NO PROMOTION DESTINATIONS"
+    );
+    this.promotionOptionButtonText.setColor(hasOptions ? "#f4ebd4" : "#9ba6a7");
   }
 
   private refreshDicePanel(): void {
@@ -567,13 +841,8 @@ export default class UnitDetailsScene extends Phaser.Scene {
     const selectedFusions = this.fusionSecondaryIds.filter((id): id is string => Boolean(id));
     const selectedPromotion = this.getSelectedPromotionOption();
 
-    this.renameButton?.setEnabled(true);
-    this.moveUpButton?.setEnabled(Boolean(selectedAbility && this.selectedLoadoutIndex > 0));
-    this.moveDownButton?.setEnabled(Boolean(
-      selectedAbility
-      && this.unit
-      && this.selectedLoadoutIndex < this.unit.equippedLoadout.length - 1,
-    ));
+    this.renameButton?.setEnabled(this.activeTab === "loadout");
+    this.removeAbilityButton?.setEnabled(Boolean(this.unit && selectedAbility && this.unit.equippedLoadout.length > 1));
     this.equipDiceButton?.setEnabled(Boolean(
       selectedAbility
       && selectedAbility.diceCost > 0
@@ -679,22 +948,75 @@ export default class UnitDetailsScene extends Phaser.Scene {
     if (!this.unit) return;
     const targetIndex = this.selectedLoadoutIndex + direction;
     if (targetIndex < 0 || targetIndex >= this.unit.equippedLoadout.length) return;
+    await this.reorderAbilityTo(this.selectedLoadoutIndex, targetIndex);
+  }
 
+  private async reorderAbilityTo(fromIndex: number, targetIndex: number): Promise<void> {
+    if (!this.unit || fromIndex === targetIndex) return;
+
+    const previousLoadout = [...this.unit.equippedLoadout];
     const abilityIds = this.unit.equippedLoadout.map((entry) => entry.abilityId);
-    const [moved] = abilityIds.splice(this.selectedLoadoutIndex, 1);
+    const [moved] = abilityIds.splice(fromIndex, 1);
     if (!moved) {
       return;
     }
     abilityIds.splice(targetIndex, 0, moved);
+    const [movedEntry] = this.unit.equippedLoadout.splice(fromIndex, 1);
+    if (!movedEntry) {
+      return;
+    }
+    this.unit.equippedLoadout.splice(targetIndex, 0, movedEntry);
+    this.selectedLoadoutIndex = targetIndex;
+    this.selectedAbilitySlotIndex = 0;
+    this.refreshUi();
 
     const response = await apiClient.replaceEquippedAbilities(this.unitId, abilityIds);
     if (!response.ok) {
+      this.unit.equippedLoadout = previousLoadout;
+      this.selectedLoadoutIndex = fromIndex;
+      this.selectedAbilitySlotIndex = 0;
+      this.refreshUi();
       this.showToast(`Loadout update failed: ${response.error.message}`);
       return;
     }
 
-    this.selectedLoadoutIndex = targetIndex;
     this.showToast("Loadout order updated.", "#ccffcc");
+    await this.loadData();
+  }
+
+  private async addAbilityToLoadout(abilityId: string): Promise<void> {
+    if (!this.unit) return;
+    const abilityIds = this.unit.equippedLoadout.map((entry) => entry.abilityId);
+    abilityIds.push(abilityId);
+
+    const response = await apiClient.replaceEquippedAbilities(this.unitId, abilityIds);
+    if (!response.ok) {
+      this.showToast(`Add ability failed: ${response.error.message}`);
+      return;
+    }
+
+    this.selectedLoadoutIndex = abilityIds.length - 1;
+    this.selectedAbilitySlotIndex = 0;
+    this.showToast("Ability added to loadout.", "#ccffcc");
+    await this.loadData();
+  }
+
+  private async removeSelectedAbility(): Promise<void> {
+    if (!this.unit || this.unit.equippedLoadout.length <= 1) {
+      return;
+    }
+
+    const abilityIds = this.unit.equippedLoadout.map((entry) => entry.abilityId);
+    abilityIds.splice(this.selectedLoadoutIndex, 1);
+    const response = await apiClient.replaceEquippedAbilities(this.unitId, abilityIds);
+    if (!response.ok) {
+      this.showToast(`Remove ability failed: ${response.error.message}`);
+      return;
+    }
+
+    this.selectedLoadoutIndex = Math.max(0, Math.min(this.selectedLoadoutIndex, abilityIds.length - 1));
+    this.selectedAbilitySlotIndex = 0;
+    this.showToast("Ability removed from loadout.", "#ccffcc");
     await this.loadData();
   }
 
@@ -867,6 +1189,7 @@ export default class UnitDetailsScene extends Phaser.Scene {
       obj.destroy();
     }
     this.layoutUiObjects = [];
+    this.tabStrip = undefined;
     this.loadoutRowBorders = [];
     this.loadoutRowTexts = [];
     this.abilitySlotBorders = [];
@@ -879,14 +1202,15 @@ export default class UnitDetailsScene extends Phaser.Scene {
     this.secondaryPanel?.destroy();
     this.secondaryPanel = undefined;
     this.renameButton = undefined;
-    this.moveUpButton = undefined;
-    this.moveDownButton = undefined;
+    this.removeAbilityButton = undefined;
     this.equipDiceButton = undefined;
     this.unequipSlotButton = undefined;
     this.clearFusionButton = undefined;
     this.promoteButton = undefined;
+    this.backButton = undefined;
     this.unitSummaryText = undefined;
     this.helperText = undefined;
+    this.actionSummaryText = undefined;
     this.promotionOptionButtonBg = undefined;
     this.promotionOptionButtonText = undefined;
     this.promotionOptionButtonZone = undefined;

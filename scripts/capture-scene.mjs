@@ -21,6 +21,7 @@ function parseArgs(argv) {
     displayName: "Debug Goblin",
     userId: "debug-user",
     sceneData: "{}",
+    initialTab: "",
     settleMs: DEFAULT_SETTLE_MS,
     timeoutMs: DEFAULT_WAIT_TIMEOUT_MS,
     useExistingServer: false,
@@ -68,6 +69,10 @@ function parseArgs(argv) {
         options.sceneData = next ?? "{}";
         index += 1;
         break;
+      case "--initial-tab":
+        options.initialTab = next ?? "";
+        index += 1;
+        break;
       case "--settle-ms":
         options.settleMs = Number.parseInt(next ?? `${DEFAULT_SETTLE_MS}`, 10);
         index += 1;
@@ -112,6 +117,7 @@ Options:
   --display-name <name>     Debug display name for authenticated mode
   --user-id <id>            Debug user id for authenticated mode
   --scene-data <json>       JSON object passed to scene init/create
+  --initial-tab <tab>       Optional debugInitialTab query value for tabbed scenes
   --settle-ms <ms>          Extra wait after the scene signals ready (default: ${DEFAULT_SETTLE_MS})
   --timeout-ms <ms>         Overall timeout waiting for app and scene readiness
   --full-page               Capture full page instead of viewport only
@@ -127,6 +133,9 @@ function createCaptureUrl(options) {
   url.searchParams.set("debugUserId", options.userId);
   url.searchParams.set("debugSceneData", options.sceneData);
   url.searchParams.set("debugSettleMs", `${options.settleMs}`);
+  if (options.initialTab) {
+    url.searchParams.set("debugInitialTab", options.initialTab);
+  }
   return url.toString();
 }
 

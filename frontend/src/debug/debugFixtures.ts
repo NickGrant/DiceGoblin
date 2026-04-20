@@ -182,8 +182,8 @@ export function getDebugAbilityCatalogFixture(): AbilityCatalogResponse {
     data: {
       catalog_version: 1,
       abilities: [
-        { ability_id: "basic_attack_melee", type: "active", display_name: "Basic Attack", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 10, speed: 4, dice_cost: 0, default_target: "enemy_front" },
-        { ability_id: "basic_attack_ranged", type: "active", display_name: "Basic Shot", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 10, speed: 4, dice_cost: 0, default_target: "enemy_back" },
+        { ability_id: "basic_attack_melee", type: "active", display_name: "Basic Attack", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 10, speed: 4, dice_cost: 1, default_target: "enemy_front" },
+        { ability_id: "basic_attack_ranged", type: "active", display_name: "Basic Shot", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 10, speed: 4, dice_cost: 1, default_target: "enemy_back" },
         { ability_id: "heavy_strike", type: "active", display_name: "Heavy Strike", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 20, speed: 8, dice_cost: 1, default_target: "enemy_front" },
         { ability_id: "shield_up", type: "active", display_name: "Shield Up", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 5, speed: 10, dice_cost: 1, default_target: "self" },
         { ability_id: "bolster_ally", type: "active", display_name: "Bolster Ally", short_desc: "", icon_key: "", tags: [], default_params: {}, order: 5, speed: 10, dice_cost: 1, default_target: "ally" },

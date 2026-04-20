@@ -6,7 +6,7 @@ import SquadListPanel from "../components/SquadListPanel";
 import { getDebugSceneConfig } from "../debug/debugScene";
 import { getDebugProfileFixture } from "../debug/debugFixtures";
 import { apiClient } from "../services/apiClient";
-import type { DiceRecord, TeamRecord, UnitRecord } from "../types/ApiResponse";
+import type { TeamRecord, UnitRecord } from "../types/ApiResponse";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { getPageLayout } from "../layout/pageLayout";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
@@ -34,7 +34,6 @@ export default class WarbandManagementScene extends Phaser.Scene {
 
   private units: UnitRecord[] = [];
   private squads: TeamRecord[] = [];
-  private diceVisualsById = new Map<string, Pick<DiceRecord, "rarity" | "sides">>();
 
   private unitPanel?: UnitCardGrid;
   private squadPanel?: SquadListPanel;
@@ -91,7 +90,6 @@ export default class WarbandManagementScene extends Phaser.Scene {
       const state = deriveWarbandHubState(profile);
       this.units = state.units;
       this.squads = state.squads;
-      this.diceVisualsById = this.buildDiceVisualMap(profile.ok ? profile.data.dice ?? [] : []);
 
       this.loadingText?.destroy();
       this.loadingText = undefined;
@@ -151,7 +149,6 @@ export default class WarbandManagementScene extends Phaser.Scene {
       height: innerContentHeight,
       title: "ALL UNITS",
       units: this.units,
-      diceVisualsById: this.diceVisualsById,
       getCardState: (unit) => this.getUnitCardState(unit),
       onUnitClick: (u) => this.scene.start("UnitDetailsScene", { unitId: u.id }),
     });
@@ -272,20 +269,6 @@ export default class WarbandManagementScene extends Phaser.Scene {
       width: 620,
       height: 320,
     });
-  }
-
-  private buildDiceVisualMap(dice: DiceRecord[]): Map<string, Pick<DiceRecord, "rarity" | "sides">> {
-    const map = new Map<string, Pick<DiceRecord, "rarity" | "sides">>();
-    for (const die of dice) {
-      if (!die?.id) {
-        continue;
-      }
-      map.set(String(die.id), {
-        rarity: die.rarity,
-        sides: die.sides,
-      });
-    }
-    return map;
   }
 
   private getUnitCardState(unit: UnitRecord): { cornerColor: number; cornerAlpha: number } {

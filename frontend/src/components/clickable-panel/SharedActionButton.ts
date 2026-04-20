@@ -2,7 +2,7 @@ import type Phaser from "phaser";
 import { TEXT_BUTTON } from "../../const/Text";
 import ClickablePanel, { type ClickablePanelConfig } from "./ClickablePanel";
 
-export type SharedButtonVariant = "default" | "accept" | "reject" | "metal";
+export type SharedButtonVariant = "default" | "accept" | "reject" | "metal" | "compact";
 
 type SharedActionButtonConfig = Omit<
   ClickablePanelConfig,
@@ -108,6 +108,22 @@ const VARIANT_TOKENS: Record<SharedButtonVariant, VariantTokens> = {
     fontSize: "21px",
     listRowHeight: 75,
     listWidth: 300,
+  },
+  compact: {
+    textureKey: "metal_strip",
+    width: 180,
+    height: 54,
+    iconSize: 0,
+    iconX: 0,
+    iconY: 0,
+    labelXWithIcon: 18,
+    labelXWithoutIcon: 18,
+    labelYWithIcon: 27,
+    labelYWithoutIcon: 27,
+    labelOriginY: 0.5,
+    fontSize: "18px",
+    listRowHeight: 58,
+    listWidth: 180,
   },
 };
 

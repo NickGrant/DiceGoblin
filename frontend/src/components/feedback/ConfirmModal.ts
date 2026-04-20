@@ -17,13 +17,18 @@ export default class ConfirmModal extends BaseModal {
     super(cfg);
     this.cfg = cfg;
 
-    const layout = this.getButtonLayout();
+    const buttonMetrics = SharedActionButton.getVariantMetrics("compact");
+    const layout = this.getButtonLayout(buttonMetrics.width, 16);
     this.acceptButton = new SharedActionButton({
       scene: this.sceneRef,
       x: layout.leftButtonX,
       y: layout.sideBySide ? layout.rowY : layout.stackedTopY,
       label: cfg.acceptLabel ?? "Accept",
-      variant: "accept",
+      variant: "compact",
+      textStyle: {
+        color: "#1f2f1f",
+        stroke: "rgba(206,255,206,0.55)",
+      },
       onClick: () => {
         void this.handleAccept();
       },
@@ -33,7 +38,11 @@ export default class ConfirmModal extends BaseModal {
       x: layout.rightButtonX,
       y: layout.sideBySide ? layout.rowY : layout.stackedBottomY,
       label: cfg.rejectLabel ?? "Cancel",
-      variant: "reject",
+      variant: "compact",
+      textStyle: {
+        color: "#3b1f1f",
+        stroke: "rgba(255,206,206,0.65)",
+      },
       onClick: () => {
         this.handleReject();
       },

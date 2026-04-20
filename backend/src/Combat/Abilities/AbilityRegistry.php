@@ -120,7 +120,7 @@ final class AbilityRegistry
             AbilityDefinition::active(
                 abilityId: 'basic_attack_melee',
                 speed: 4,
-                diceCost: 0,
+                diceCost: 1,
                 order: 10,
                 defaultTarget: AbilityTarget::EnemyFrontPrefer,
                 displayName: 'Basic Attack (Melee)',
@@ -132,7 +132,7 @@ final class AbilityRegistry
             AbilityDefinition::active(
                 abilityId: 'basic_attack_ranged',
                 speed: 4,
-                diceCost: 0,
+                diceCost: 1,
                 order: 10,
                 defaultTarget: AbilityTarget::EnemyBackPrefer,
                 displayName: 'Basic Attack (Ranged)',
