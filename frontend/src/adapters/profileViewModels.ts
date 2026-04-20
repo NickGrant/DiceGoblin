@@ -14,6 +14,8 @@ export type UnitAbilityViewModel = {
   label: string;
   type: "active" | "passive";
   order: number;
+  speedCost: number;
+  diceCost: number;
 };
 
 export type UnitDetailsViewModel = {
@@ -105,7 +107,7 @@ export function adaptUnitDetails(rawUnits: unknown[], rawCatalog: AbilityCatalog
       slotIndex: entry.slot_index,
     }));
 
-    const abilityBuckets = normalizeAbilities(unit.abilities);
+    const abilityBuckets = normalizeAbilities(unit.abilities, catalog);
     const unlockedAbilities = normalizeUnlockedAbilities(unit.unlocked_abilities, catalog);
     const equippedLoadout = normalizeEquippedLoadout(unit.equipped_abilities, unit.ability_dice, catalog);
     const usedBudget = equippedLoadout.reduce((sum, entry) => sum + entry.speedCost, 0);
@@ -309,18 +311,30 @@ function normalizeAbilityDiceRecords(value: unknown): UnitAbilityDieRecord[] {
   );
 }
 
-function normalizeAbilities(value: unknown): { active: UnitAbilityViewModel[]; passive: UnitAbilityViewModel[] } {
+function normalizeAbilities(
+  value: unknown,
+  catalog: Map<string, AbilityCatalogEntry>,
+): { active: UnitAbilityViewModel[]; passive: UnitAbilityViewModel[] } {
   const raw = normalizeAbilityRecords(value);
   const active: UnitAbilityViewModel[] = [];
   const passive: UnitAbilityViewModel[] = [];
   let fallbackOrder = 0;
 
   for (const ability of raw) {
+    const catalogEntry = catalog.get(ability.ability_id);
     const mapped: UnitAbilityViewModel = {
       id: ability.ability_id,
-      label: nonEmptyString(ability.display_name) ?? labelFromId(ability.ability_id),
-      type: ability.type === "passive" ? "passive" : "active",
-      order: typeof ability.order === "number" && Number.isFinite(ability.order) ? ability.order : fallbackOrder++,
+      label: nonEmptyString(ability.display_name) ?? catalogEntry?.display_name ?? labelFromId(ability.ability_id),
+      type: ability.type === "passive" || catalogEntry?.type === "passive" ? "passive" : "active",
+      order: typeof ability.order === "number" && Number.isFinite(ability.order)
+        ? ability.order
+        : typeof catalogEntry?.order === "number"
+          ? catalogEntry.order
+          : fallbackOrder++,
+      speedCost: typeof catalogEntry?.speed === "number" && Number.isFinite(catalogEntry.speed)
+        ? Math.max(0, Math.floor(catalogEntry.speed))
+        : 0,
+      diceCost: resolveAbilityDiceCost(catalogEntry),
     };
     if (mapped.type === "passive") {
       passive.push(mapped);
@@ -347,6 +361,10 @@ function normalizeUnlockedAbilities(
         label: catalogEntry?.display_name ?? labelFromId(ability.ability_id),
         type: catalogEntry?.type === "passive" ? "passive" : "active",
         order: typeof catalogEntry?.order === "number" ? catalogEntry.order : index,
+        speedCost: typeof catalogEntry?.speed === "number" && Number.isFinite(catalogEntry.speed)
+          ? Math.max(0, Math.floor(catalogEntry.speed))
+          : 0,
+        diceCost: resolveAbilityDiceCost(catalogEntry),
       };
     })
     .sort((a, b) => a.type.localeCompare(b.type) || a.order - b.order || a.label.localeCompare(b.label));

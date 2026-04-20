@@ -39,8 +39,8 @@ function makeUnitDetails(overrides: Partial<UnitDetailsViewModel> = {}): UnitDet
     equippedDice: [],
     abilities: { active: [], passive: [] },
     unlockedAbilities: [
-      { id: "a1", label: "Strike", type: "active", order: 1 },
-      { id: "p1", label: "Guard", type: "passive", order: 2 },
+      { id: "a1", label: "Strike", type: "active", order: 1, speedCost: 6, diceCost: 2 },
+      { id: "p1", label: "Guard", type: "passive", order: 2, speedCost: 0, diceCost: 0 },
     ],
     equippedLoadout: [
       {

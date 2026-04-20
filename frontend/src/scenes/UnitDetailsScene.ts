@@ -27,6 +27,7 @@ import {
   buildUnitSummaryText,
   clearFusionSelections,
   getFusionCandidates,
+  getLoadoutAbilityCandidates,
   getSelectableDice,
   getSelectedLoadoutEntry,
   getSelectedPromotionOption,
@@ -525,20 +526,34 @@ export default class UnitDetailsScene extends Phaser.Scene {
     }).setOrigin(0, 0);
     this.layoutUiObjects.push(panel, title);
 
-    const abilities = this.unit?.unlockedAbilities.filter((ability) => ability.type === "active") ?? [];
+    const abilities = this.getLoadoutAbilityCandidates();
+    if (abilities.length === 0) {
+      const emptyLabel = this.add.text(x + 12, y + 42, "No active abilities are available for this unit yet.", {
+        fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
+        fontSize: "15px",
+        color: "#d6e7e8",
+        wordWrap: { width: width - 24 },
+      }).setOrigin(0, 0);
+      this.layoutUiObjects.push(emptyLabel);
+      return;
+    }
+
     abilities.slice(0, Math.max(1, Math.floor((height - 36) / AVAILABLE_ABILITY_ROW_HEIGHT))).forEach((ability, index) => {
       const rowY = y + 32 + index * AVAILABLE_ABILITY_ROW_HEIGHT;
+      const canAfford = ability.speedCost <= (this.unit?.loadoutBudget.remaining ?? 0);
       const row = this.add.rectangle(x + 8, rowY, width - 16, AVAILABLE_ABILITY_ROW_HEIGHT - 4, 0x142127, 0.88)
         .setOrigin(0, 0)
-        .setStrokeStyle(1, 0x8db8bc, 0.26)
-        .setInteractive({ useHandCursor: true });
-      const label = this.add.text(x + 18, rowY + 6, `${ability.label.toUpperCase()}  + ADD`, {
+        .setStrokeStyle(1, canAfford ? 0x8db8bc : 0x7d5a5a, canAfford ? 0.26 : 0.3);
+      const label = this.add.text(x + 18, rowY + 6, `${ability.label.toUpperCase()}  ${canAfford ? "+ ADD" : `NEEDS ${ability.speedCost} PTS`}`, {
         fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
         fontSize: "16px",
-        color: "#eef4f5",
+        color: canAfford ? "#eef4f5" : "#cbb5b5",
         wordWrap: { width: width - 36 },
       }).setOrigin(0, 0);
-      row.on("pointerdown", () => void this.addAbilityToLoadout(ability.id));
+      if (canAfford) {
+        row.setInteractive({ useHandCursor: true });
+        row.on("pointerdown", () => void this.addAbilityToLoadout(ability.id));
+      }
       this.layoutUiObjects.push(row, label);
     });
   }
@@ -872,6 +887,10 @@ export default class UnitDetailsScene extends Phaser.Scene {
 
   private getSelectableDice(): DiceDetailsViewModel[] {
     return getSelectableDice(this.dice, this.unitId);
+  }
+
+  private getLoadoutAbilityCandidates() {
+    return getLoadoutAbilityCandidates(this.unit);
   }
 
   private getSelectedPromotionOption(): PromotionOptionRecord | null {

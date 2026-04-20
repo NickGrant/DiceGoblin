@@ -339,8 +339,41 @@ final class UnitLoadoutService
     ');
     $stmt->execute([$unitInstanceId, $abilityId]);
     if (!$stmt->fetchColumn()) {
+      if ($this->backfillAuthoredAbilityUnlock($unitInstanceId, $abilityId)) {
+        return;
+      }
       throw new RuntimeException("Ability '{$abilityId}' is not unlocked for this unit.");
     }
+  }
+
+  private function backfillAuthoredAbilityUnlock(int $unitInstanceId, string $abilityId): bool
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT ui.`unit_type_id`, ut.`slug` AS `unit_type_slug`, ut.`ability_set_json`
+      FROM `unit_instances` ui
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE ui.`id` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([$unitInstanceId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!is_array($row)) {
+      return false;
+    }
+
+    $abilitySet = $this->decodeAbilitySet($row['ability_set_json'] ?? null);
+    if (!in_array($abilityId, $this->catalogAbilities($abilitySet), true)) {
+      return false;
+    }
+
+    $sourceTier = $this->tierFromSlug((string)($row['unit_type_slug'] ?? ''));
+    $insert = $this->pdo->prepare('
+      INSERT IGNORE INTO `unit_instance_unlocked_abilities` (`unit_instance_id`, `ability_id`, `source_tier`, `source_unit_type_id`)
+      VALUES (?, ?, ?, ?)
+    ');
+    $insert->execute([$unitInstanceId, $abilityId, $sourceTier, (int)$row['unit_type_id']]);
+
+    return true;
   }
 
   private function assertAbilitySlotLegal(string $abilityId, int $slotIndex): void

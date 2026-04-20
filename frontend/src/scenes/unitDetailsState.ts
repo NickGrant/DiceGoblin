@@ -1,4 +1,4 @@
-import type { DiceDetailsViewModel, UnitDetailsViewModel, UnitEquippedAbilityViewModel } from "../adapters/profileViewModels";
+import type { DiceDetailsViewModel, UnitAbilityViewModel, UnitDetailsViewModel, UnitEquippedAbilityViewModel } from "../adapters/profileViewModels";
 import type { PromotionOptionRecord, UnitRecord } from "../types/ApiResponse";
 
 export const REQUIRED_FUSION_UNITS = 2;
@@ -17,6 +17,44 @@ export function getSelectableDice(
   unitId: string,
 ): DiceDetailsViewModel[] {
   return dice.filter((die) => !die.equipped || die.equipped.unitId === unitId);
+}
+
+export function getLoadoutAbilityCandidates(unit: UnitDetailsViewModel | null): UnitAbilityViewModel[] {
+  if (!unit) {
+    return [];
+  }
+
+  const byId = new Map<string, UnitAbilityViewModel>();
+  const sources = [
+    ...unit.unlockedAbilities.filter((ability) => ability.type === "active"),
+    ...unit.abilities.active,
+    ...unit.equippedLoadout.map((entry, index): UnitAbilityViewModel => ({
+      id: entry.abilityId,
+      label: entry.label,
+      type: "active",
+      order: index,
+      speedCost: entry.speedCost,
+      diceCost: entry.diceCost,
+    })),
+  ];
+
+  for (const ability of sources) {
+    const existing = byId.get(ability.id);
+    if (!existing) {
+      byId.set(ability.id, ability);
+      continue;
+    }
+
+    byId.set(ability.id, {
+      ...existing,
+      label: existing.label || ability.label,
+      order: Math.min(existing.order, ability.order),
+      speedCost: existing.speedCost > 0 ? existing.speedCost : ability.speedCost,
+      diceCost: existing.diceCost > 0 ? existing.diceCost : ability.diceCost,
+    });
+  }
+
+  return [...byId.values()].sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
 }
 
 export function getFusionCandidates(units: UnitRecord[], unitId: string): UnitRecord[] {

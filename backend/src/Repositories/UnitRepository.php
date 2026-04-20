@@ -154,6 +154,7 @@ final class UnitRepository
         ut.`slug` AS `unit_type_slug`,
         ut.`name` AS `unit_type_name`,
         ut.`base_stats_json`,
+        ut.`ability_set_json`,
         ut.`max_level`,
         ut.`attack_per_level`,
         ut.`defense_per_level`,
@@ -215,6 +216,7 @@ final class UnitRepository
       $footprint = FormationGeometry::footprintFromStats(
         is_array($u['base_stats_json']) ? $u['base_stats_json'] : []
       );
+      $authoredAbilities = $this->abilitySetToAbilityRecords($u['ability_set_json'] ?? null);
 
       $out[] = [
         'id' => $uid,
@@ -236,6 +238,7 @@ final class UnitRepository
         'formation_width' => $footprint['w'],
         'formation_height' => $footprint['h'],
         'equipped_dice' => $equippedByUnit[$uid] ?? [],
+        'abilities' => $authoredAbilities,
         'unlocked_abilities' => $unlockedAbilitiesByUnit[$uid] ?? [],
         'equipped_abilities' => $equippedAbilitiesByUnit[$uid] ?? [],
         'ability_dice' => $abilityDiceByUnit[$uid] ?? [],
@@ -520,6 +523,43 @@ final class UnitRepository
     }
 
     return $byUnit;
+  }
+
+  /**
+   * @param mixed $abilitySetRaw
+   * @return array<int,array{ability_id:string,type:string}>
+   */
+  private function abilitySetToAbilityRecords(mixed $abilitySetRaw): array
+  {
+    $abilitySet = [];
+    if (is_string($abilitySetRaw)) {
+      $decoded = json_decode($abilitySetRaw, true);
+      $abilitySet = is_array($decoded) ? $decoded : [];
+    } elseif (is_array($abilitySetRaw)) {
+      $abilitySet = $abilitySetRaw;
+    }
+
+    $records = [];
+    foreach (['actives' => 'active', 'passives' => 'passive'] as $bucket => $type) {
+      $values = $abilitySet[$bucket] ?? [];
+      if (!is_array($values)) {
+        continue;
+      }
+
+      foreach ($values as $value) {
+        $abilityId = trim((string)$value);
+        if ($abilityId === '') {
+          continue;
+        }
+
+        $records[] = [
+          'ability_id' => $abilityId,
+          'type' => $type,
+        ];
+      }
+    }
+
+    return $records;
   }
 
   /**
