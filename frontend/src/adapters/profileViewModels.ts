@@ -179,6 +179,7 @@ function adaptUnitRecord(raw: unknown): UnitRecord | null {
     ...raw,
     id,
     name: nonEmptyString(raw.name) ?? `Unit ${id}`,
+    unit_type_slug: nonEmptyString(raw.unit_type_slug) ?? undefined,
     level: toNonNegativeInt(raw.level, 1),
     xp: toNonNegativeInt(raw.xp, 0),
     tier: toNonNegativeInt(raw.tier, 1),

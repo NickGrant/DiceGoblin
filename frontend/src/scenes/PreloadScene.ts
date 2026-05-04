@@ -4,6 +4,7 @@ import { markDebugSceneReady } from "../debug/debugHooks";
 import { getDebugSceneConfig } from "../debug/debugScene";
 import { RegistrySession } from "../state/RegistrySession";
 import BackgroundImage from "../components/BackgroundImage";
+import { preloadUnitPortraits } from "../assets/unitPortraits";
 
 const TITLE_Y_OFFSET = -22;
 
@@ -58,6 +59,7 @@ export default class PreloadScene extends Phaser.Scene {
     });
 
     this.load.pack("ui", "/assets/packs/ui.json");
+    preloadUnitPortraits(this);
   }
 
   create(): void {
@@ -83,7 +85,6 @@ export default class PreloadScene extends Phaser.Scene {
     this.scene.start(nextScene);
   }
 }
-
 
 
 

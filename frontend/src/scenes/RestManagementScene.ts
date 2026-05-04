@@ -23,6 +23,7 @@ import {
   type FormationOccupancyMap,
   unitFootprint,
 } from "../utils/formationGeometry";
+import { resolveUnitPortraitKey } from "../assets/unitPortraits";
 
 type Cell = FormationCell;
 const CELLS: Cell[] = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"];
@@ -247,6 +248,10 @@ export default class RestManagementScene extends Phaser.Scene {
       selectedCell: null,
       getCellLabel: (cell, unitId) => this.getCellLabel(cell, unitId),
       getCellShowIcon: (cell, unitId) => !!unitId && isAnchorCell(this.editFormation, unitId, cell),
+      getCellPortraitKey: (_cell, unitId) => {
+        const unit = this.units.find((candidate) => candidate.id === unitId);
+        return resolveUnitPortraitKey(unit?.unit_type_slug, unit?.unit_type_name);
+      },
       onCellClick: (cell) => this.handleCellClick(cell),
       onCellDoubleClick: (cell) => this.handleCellDoubleClick(cell),
     });

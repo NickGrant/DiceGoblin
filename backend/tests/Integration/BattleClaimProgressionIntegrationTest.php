@@ -168,6 +168,88 @@ final class BattleClaimProgressionIntegrationTest extends BattleFlowIntegrationC
     $this->assertSame($firstData['updated_run_unit_state'] ?? null, $secondData['updated_run_unit_state'] ?? null);
   }
 
+  public function testClaimBattleReturnsTypedRewardLabelsAndRunWideSummary(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 99118822);
+    $firstNodeId = $this->insertRunNode($runId, 'combat', 'cleared');
+    $secondNodeId = $this->insertRunNode($runId, 'boss', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 12, false);
+
+    $unitTypeRow = $this->rows('SELECT `slug`, `name` FROM `unit_types` WHERE `id` = ? LIMIT 1', [$unitTypeId]);
+    $this->assertCount(1, $unitTypeRow);
+    $rewardedUnitSlug = (string)$unitTypeRow[0]['slug'];
+    $rewardedUnitName = (string)$unitTypeRow[0]['name'];
+
+    $diceDefinitionRow = $this->rows(
+      "SELECT `id`, `rarity`, `sides` FROM `dice_definitions` WHERE `rarity` = 'rare' AND `sides` = 6 ORDER BY `id` ASC LIMIT 1",
+      []
+    );
+    $this->assertCount(1, $diceDefinitionRow);
+    $rewardedDiceDefinitionId = (int)$diceDefinitionRow[0]['id'];
+    $rewardedDiceId = $this->insertDiceInstance($userId, $rewardedDiceDefinitionId);
+
+    $claimedBattleId = $this->insertBattle($userId, $runId, $firstNodeId, $teamId, 'claimed', 'victory', 10101010, 40, 2);
+    $this->insertBattleRewards($claimedBattleId, 10, 7, [
+      'unit_grants' => [
+        ['unit_type_slug' => $rewardedUnitSlug, 'tier' => 1, 'level' => 1],
+      ],
+      'new_unit_instance_ids' => [],
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'claim_snapshot' => [
+        'updated_run_unit_state' => [
+          ['unit_instance_id' => (string)$unitId, 'hp' => 10, 'is_defeated' => false, 'status_effects' => []],
+        ],
+        'run_resolution' => null,
+        'xp' => [
+          'award_per_unit' => 10,
+          'applied_unit_instance_ids' => [(string)$unitId],
+          'ignored_at_cap_unit_instance_ids' => [],
+        ],
+        'currency' => ['soft_awarded' => 7],
+        'updated_units' => [
+          ['id' => (string)$unitId, 'xp' => 10, 'level' => 1, 'name' => $rewardedUnitName],
+        ],
+      ],
+    ]);
+
+    $currentBattleId = $this->insertBattle($userId, $runId, $secondNodeId, $teamId, 'completed', 'victory', 20202020, 60, 3);
+    $this->insertBattleRewards($currentBattleId, 12, 5, [
+      'new_unit_instance_ids' => [],
+      'new_dice_instance_ids' => [(string)$rewardedDiceId],
+      'dice_grants' => [
+        ['rarity' => 'rare', 'sides' => 6],
+      ],
+      'region_items' => [],
+    ]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new BattleController();
+    $res = $this->invoke(fn() => $controller->claimBattle((string)$currentBattleId));
+    $this->assertSame(200, $res['status']);
+
+    $data = is_array($res['body']['data'] ?? null) ? $res['body']['data'] : [];
+    $rewards = is_array($data['rewards'] ?? null) ? $data['rewards'] : [];
+    $runSummary = is_array($data['run_summary'] ?? null) ? $data['run_summary'] : [];
+
+    $this->assertSame(['bone d6'], $rewards['new_dice_labels'] ?? null);
+    $this->assertIsArray($runSummary['rewards'] ?? null);
+    $this->assertContains('Teeth +12', $runSummary['rewards'] ?? []);
+    $this->assertContains(sprintf('New Units: %s', $rewardedUnitName), $runSummary['rewards'] ?? []);
+    $this->assertContains('New Dice: bone d6', $runSummary['rewards'] ?? []);
+    $this->assertContains(sprintf('%s +22 XP', $rewardedUnitName), $runSummary['progression'] ?? []);
+  }
+
   public function testClaimDefeatWithNoRemainingUnitsFailsRunAndResetsDefeatedXp(): void
   {
     $userId = $this->insertUser();
@@ -202,6 +284,9 @@ final class BattleClaimProgressionIntegrationTest extends BattleFlowIntegrationC
     $data = is_array($res['body']['data'] ?? null) ? $res['body']['data'] : [];
     $runResolution = is_array($data['run_resolution'] ?? null) ? $data['run_resolution'] : [];
     $this->assertSame('failed', (string)($runResolution['status'] ?? ''));
+    $runSummary = is_array($data['run_summary'] ?? null) ? $data['run_summary'] : [];
+    $this->assertSame([], $runSummary['survivors'] ?? null);
+    $this->assertCount(2, $runSummary['defeated'] ?? []);
 
     $runStatus = (string)$this->scalar('SELECT `status` FROM `region_runs` WHERE `id` = ?', [$runId]);
     $this->assertSame('failed', $runStatus);

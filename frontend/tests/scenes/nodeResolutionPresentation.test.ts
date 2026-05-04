@@ -27,23 +27,23 @@ describe("nodeResolutionPresentation", () => {
       rewards: {
         currency_soft: 15,
         xp_total: 9,
-        new_unit_instance_ids: ["u-2"],
-        new_dice_instance_ids: ["d-4", "d-7"],
+        new_unit_labels: ["Bannerbearer"],
+        new_dice_labels: ["bone d6", "wood d4"],
       },
       updated_units: [
-        { id: "u-1", level: 3, xp: 18 },
-        { id: "u-2", level: 2, xp: 7 },
+        { id: "u-1", level: 3, xp: 18, name: "Knuts" },
+        { id: "u-2", level: 2, xp: 7, name: "Bannerbearer" },
       ],
     })).toEqual({
       rewards: [
         "Teeth +15",
         "Unit XP Award +9 each",
-        "New Units: #u-2",
-        "New Dice: #d-4, #d-7",
+        "New Units: Bannerbearer",
+        "New Dice: bone d6, wood d4",
       ],
       progression: [
-        "Unit u-1: L3 (18 XP)",
-        "Unit u-2: L2 (7 XP)",
+        "Knuts: L3 (18 XP)",
+        "Bannerbearer: L2 (7 XP)",
       ],
     });
   });

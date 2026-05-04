@@ -158,11 +158,13 @@ export function buildClaimSummary(data: Record<string, unknown>): ClaimSummary {
   const rewardsRaw = (data.rewards ?? {}) as Record<string, unknown>;
   const xpTotal = Number(rewardsRaw.xp_total ?? 0);
   const soft = Number(rewardsRaw.currency_soft ?? 0);
-  const unitIds = Array.isArray(rewardsRaw.new_unit_instance_ids)
-    ? rewardsRaw.new_unit_instance_ids.map((id) => String(id))
-    : [];
-  const diceIds = Array.isArray(rewardsRaw.new_dice_instance_ids)
-    ? rewardsRaw.new_dice_instance_ids.map((id) => String(id))
+  const unitLabels = Array.isArray(rewardsRaw.new_unit_labels)
+    ? rewardsRaw.new_unit_labels.map((label) => String(label).trim()).filter((label) => label !== "")
+    : Array.isArray(rewardsRaw.new_unit_instance_ids)
+      ? rewardsRaw.new_unit_instance_ids.map((id) => `#${String(id)}`)
+      : [];
+  const diceLabels = Array.isArray(rewardsRaw.new_dice_labels)
+    ? rewardsRaw.new_dice_labels.map((label) => String(label).trim()).filter((label) => label !== "")
     : [];
 
   const rewardLines: string[] = [];
@@ -172,11 +174,11 @@ export function buildClaimSummary(data: Record<string, unknown>): ClaimSummary {
   if (Number.isFinite(xpTotal) && xpTotal > 0) {
     rewardLines.push(`Unit XP Award +${Math.floor(xpTotal)} each`);
   }
-  if (unitIds.length > 0) {
-    rewardLines.push(`New Units: ${unitIds.map((id) => `#${id}`).join(", ")}`);
+  if (unitLabels.length > 0) {
+    rewardLines.push(`New Units: ${unitLabels.join(", ")}`);
   }
-  if (diceIds.length > 0) {
-    rewardLines.push(`New Dice: ${diceIds.map((id) => `#${id}`).join(", ")}`);
+  if (diceLabels.length > 0) {
+    rewardLines.push(`New Dice: ${diceLabels.join(", ")}`);
   }
   if (rewardLines.length === 0) {
     rewardLines.push("- No rewards recorded");
@@ -191,7 +193,8 @@ export function buildClaimSummary(data: Record<string, unknown>): ClaimSummary {
       const level = typeof rec.level === "number" ? rec.level : Number(rec.level ?? NaN);
       const xp = typeof rec.xp === "number" ? rec.xp : Number(rec.xp ?? NaN);
       if (!id || !Number.isFinite(level) || !Number.isFinite(xp)) return null;
-      return `Unit ${id}: L${Math.floor(level)} (${Math.floor(xp)} XP)`;
+      const unitName = typeof rec.name === "string" && rec.name.trim() !== "" ? rec.name.trim() : `Unit ${id}`;
+      return `${unitName}: L${Math.floor(level)} (${Math.floor(xp)} XP)`;
     })
     .filter((line): line is string => line !== null);
 

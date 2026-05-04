@@ -26,6 +26,7 @@ import {
   type ClaimSummary,
   type ResolutionSummary,
 } from "./nodeResolutionPresentation";
+import type { RunSummaryPayload } from "../types/ApiResponse";
 import FormationGrid3x3, {
   type FormationMap,
   type FormationStatusIndicator,
@@ -281,6 +282,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
             data: {
               run_id: this.runId,
               status: "completed",
+              run_summary: undefined,
             },
           };
         });
@@ -319,12 +321,13 @@ export default class NodeResolutionScene extends Phaser.Scene {
 
         this.setStatusBanner("Exit resolved", `Run status: ${exitRes.data.status}. This run endpoint has been finalized.`);
         this.configureButton("Continue", true, () => {
+          const runSummary = this.normalizeRunSummary(exitRes.data.run_summary);
           this.scene.start("RunEndSummaryScene", {
             status,
-            rewards: ["- No rewards from exit node"],
-            progression: [],
-            survivors: [],
-            defeated: [],
+            rewards: runSummary?.rewards ?? ["- No rewards from exit node"],
+            progression: runSummary?.progression ?? [],
+            survivors: runSummary?.survivors ?? [],
+            defeated: runSummary?.defeated ?? [],
           });
         });
         markDebugSceneReady(this, { state: "exit-resolved", status });
@@ -386,6 +389,7 @@ export default class NodeResolutionScene extends Phaser.Scene {
               xp_total: 20,
             },
             updated_units: [],
+            run_summary: undefined,
           },
         };
       });
@@ -485,12 +489,13 @@ export default class NodeResolutionScene extends Phaser.Scene {
           outcome,
         });
         this.configureButton("Continue", true, () => {
+          const runSummary = this.normalizeRunSummary(claimRes.data.run_summary);
           this.scene.start("RunEndSummaryScene", {
             status,
-            rewards: claimSummary.rewards,
-            progression: claimSummary.progression,
-            survivors: [],
-            defeated: [],
+            rewards: runSummary?.rewards ?? claimSummary.rewards,
+            progression: runSummary?.progression ?? claimSummary.progression,
+            survivors: runSummary?.survivors ?? [],
+            defeated: runSummary?.defeated ?? [],
           });
         });
         markDebugSceneReady(this, { state: "terminal", outcome });
@@ -1694,6 +1699,18 @@ export default class NodeResolutionScene extends Phaser.Scene {
     }
     const description = (log.meta as Record<string, unknown>).encounter_description;
     return typeof description === "string" ? description : "";
+  }
+
+  private normalizeRunSummary(summary: unknown): RunSummaryPayload | null {
+    if (!summary || typeof summary !== "object") {
+      return null;
+    }
+    const rec = summary as Record<string, unknown>;
+    const rewards = Array.isArray(rec.rewards) ? rec.rewards.map((line) => String(line)) : [];
+    const progression = Array.isArray(rec.progression) ? rec.progression.map((line) => String(line)) : [];
+    const survivors = Array.isArray(rec.survivors) ? rec.survivors.map((line) => String(line)) : [];
+    const defeated = Array.isArray(rec.defeated) ? rec.defeated.map((line) => String(line)) : [];
+    return { rewards, progression, survivors, defeated };
   }
 
   private computeHpSnapshot(log: BattleLog, upToTick: number): Record<string, number> {

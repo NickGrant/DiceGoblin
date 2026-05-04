@@ -39,6 +39,7 @@ use DiceGoblins\Services\ProfileDtoMapper;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Services\UserDataSyncService;
+use DiceGoblins\Support\RunSummaryBuilder;
 
 use PDO;
 use RuntimeException;
@@ -475,6 +476,7 @@ final class ApiController
 
       $services['runRepo']->applyRunEndCleanup($runIdInt, $userId, true);
       $services['runRepo']->endRun($userId, $runIdInt, 'abandoned');
+      $runSummary = (new RunSummaryBuilder($pdo))->buildRunSummary($userId, $runIdInt);
 
       $pdo->commit();
 
@@ -483,6 +485,7 @@ final class ApiController
         'data' => [
           'run_id' => (string)$runIdInt,
           'status' => 'abandoned',
+          'run_summary' => $runSummary,
         ],
       ]);
     } catch (Throwable $e) {
@@ -586,6 +589,7 @@ final class ApiController
       $services['runRepo']->applyRunEndCleanup($runIdInt, $userId, false);
       $services['runRepo']->endRun($userId, $runIdInt, 'completed');
       $this->unlockNextRegionOnSuccessfulCompletion($services['regionRepo'], $userId, (int)($run['region_id'] ?? 0));
+      $runSummary = (new RunSummaryBuilder($pdo))->buildRunSummary($userId, $runIdInt);
 
       $pdo->commit();
 
@@ -595,6 +599,7 @@ final class ApiController
           'run_id' => (string)$runIdInt,
           'status' => 'completed',
           'exit_node_id' => (string)$exitNode['id'],
+          'run_summary' => $runSummary,
         ],
       ]);
     } catch (Throwable $e) {

@@ -221,6 +221,7 @@ final class UnitRepository
       $out[] = [
         'id' => $uid,
         'unit_type_id' => (string)$u['unit_type_id'],
+        'unit_type_slug' => (string)($u['unit_type_slug'] ?? ''),
         'name' => $u['display_name'] !== null ? (string)$u['display_name'] : (string)$u['unit_type_name'],
         'display_name' => $u['display_name'] !== null ? (string)$u['display_name'] : (string)$u['unit_type_name'],
         'unit_type_name' => (string)$u['unit_type_name'],

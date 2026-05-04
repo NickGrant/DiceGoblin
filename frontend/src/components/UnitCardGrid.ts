@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import type { UnitRecord } from "../types/ApiResponse";
 import GridListVariant, { type GridListItem } from "./list/GridListVariant";
 import ListContainer from "./list/ListContainer";
+import { fitPortraitImage, resolveUnitPortraitKey } from "../assets/unitPortraits";
 
 export type UnitCardState = {
   highlighted?: boolean;
@@ -135,9 +136,14 @@ export default class UnitCardGrid extends Phaser.GameObjects.Container {
 
             const portraitIcon = cardScene.add
               .image(width / 2, 6 + (width - 12) / 2, "icon_warband")
-              .setDisplaySize(Math.min(width - 26, 70), Math.min(width - 26, 70))
               .setOrigin(0.5, 0.5)
               .setAlpha(0.9);
+            fitPortraitImage(
+              portraitIcon,
+              resolveUnitPortraitKey(item.unit_type_slug, item.unit_type_name),
+              Math.min(width - 26, 70),
+              Math.min(width - 26, 70),
+            );
 
             const level = typeof item.level === "number" ? item.level : 1;
             const levelText = cardScene.add

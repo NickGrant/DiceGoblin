@@ -176,6 +176,20 @@ describe("NodeResolutionScene", () => {
 
   it("routes resolved terminal nodes to run summary", async () => {
     const { default: NodeResolutionScene } = await import("../../src/scenes/NodeResolutionScene");
+    claimBattleRewardsMock.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        battle_id: "b-claim",
+        status: "claimed",
+        rewards: {},
+        run_summary: {
+          rewards: ["Teeth +22", "New Dice: bone d6"],
+          progression: ["Knuts +20 XP"],
+          survivors: ["Knuts"],
+          defeated: [],
+        },
+      },
+    });
     resolveRunNodeMock.mockResolvedValueOnce({
       ok: true,
       data: {
@@ -200,13 +214,23 @@ describe("NodeResolutionScene", () => {
     const summaryPayload = scene.scene.start.mock.calls.at(-1)?.[1];
     expectObjectPayloadKeys(summaryPayload, ["status", "rewards", "progression", "survivors", "defeated"]);
     expect((summaryPayload as Record<string, unknown>).status).toBe("failed");
+    expect((summaryPayload as Record<string, unknown>).rewards).toEqual(["Teeth +22", "New Dice: bone d6"]);
   });
 
   it("handles exit resolution and routes to run summary", async () => {
     const { default: NodeResolutionScene } = await import("../../src/scenes/NodeResolutionScene");
     exitRunMock.mockResolvedValueOnce({
       ok: true,
-      data: { run_id: "run-3", status: "completed" },
+      data: {
+        run_id: "run-3",
+        status: "completed",
+        run_summary: {
+          rewards: ["Teeth +31"],
+          progression: ["Knuts +30 XP"],
+          survivors: ["Knuts", "Mallow"],
+          defeated: [],
+        },
+      },
     });
 
     const scene = new NodeResolutionScene() as any;
@@ -224,6 +248,7 @@ describe("NodeResolutionScene", () => {
     const summaryPayload = scene.scene.start.mock.calls.at(-1)?.[1];
     expectObjectPayloadKeys(summaryPayload, ["status", "rewards", "progression", "survivors", "defeated"]);
     expect((summaryPayload as Record<string, unknown>).status).toBe("completed");
+    expect((summaryPayload as Record<string, unknown>).progression).toEqual(["Knuts +30 XP"]);
   });
 
   it("marks no-enemies resolution and routes back to map with reason", async () => {

@@ -25,6 +25,7 @@ use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\UnitProgressionService;
+use DiceGoblins\Support\RunSummaryBuilder;
 
 use PDO;
 use Throwable;
@@ -163,7 +164,7 @@ final class BattleController
       // Idempotent: already claimed
       if ($battle['status'] === 'claimed') {
         $pdo->commit();
-        $this->respondClaimed($battleIdInt, $battle, null);
+        $this->respondClaimed($battleIdInt, $battle, null, $pdo, $userId);
         return;
       }
 
@@ -193,7 +194,7 @@ final class BattleController
 
       $pdo->commit();
       $battle['rewards_json'] = json_encode($rewards, JSON_UNESCAPED_SLASHES);
-      $this->respondClaimed($battleIdInt, $battle, $claimSnapshot);
+      $this->respondClaimed($battleIdInt, $battle, $claimSnapshot, $pdo, $userId);
     } catch (Throwable $e) {
       if ($pdo->inTransaction()) {
         $pdo->rollBack();
@@ -215,7 +216,7 @@ final class BattleController
     *   xp_total:int,currency_soft:int,rewards_json:string
    * } $battle
    */
-  private function respondClaimed(int $battleIdInt, array $battle, ?array $claimSnapshot): void
+  private function respondClaimed(int $battleIdInt, array $battle, ?array $claimSnapshot, PDO $pdo, int $userId): void
   {
     $rewards = json_decode($battle['rewards_json'], true);
     if (!is_array($rewards)) $rewards = [];
@@ -238,8 +239,20 @@ final class BattleController
       ];
     }
     $claimSnapshot['updated_run_unit_state'] = $this->normalizeUpdatedRunUnitState($claimSnapshot['updated_run_unit_state'] ?? []);
+    $summaryBuilder = new RunSummaryBuilder($pdo);
+    $rewardLabels = $summaryBuilder->buildBattleRewardLabels($userId, $rewards);
+    $runSummary = $summaryBuilder->buildRunSummary(
+      $userId,
+      (int)$battle['run_id'],
+      is_array($claimSnapshot['terminal_run_unit_state'] ?? null)
+        ? $claimSnapshot['terminal_run_unit_state']
+        : ($claimSnapshot['updated_run_unit_state'] ?? null)
+    );
 
     unset($rewards['claim_snapshot']);
+    $rewards = array_merge($rewards, $rewardLabels);
+
+    $updatedUnits = $this->normalizeUpdatedUnits($claimSnapshot['updated_units'] ?? []);
 
     Response::json([
       'ok' => true,
@@ -257,7 +270,8 @@ final class BattleController
           'applied_unit_instance_ids' => [],
           'ignored_at_cap_unit_instance_ids' => [],
         ],
-        'updated_units' => $claimSnapshot['updated_units'] ?? [],
+        'updated_units' => $updatedUnits,
+        'run_summary' => $runSummary,
       ],
     ]);
   }
@@ -275,6 +289,7 @@ final class BattleController
    * } $battle
    * @return array{
    *   updated_run_unit_state: array<int, array{unit_instance_id:string,hp:int,is_defeated:bool,status_effects:array<int,mixed>}>,
+   *   terminal_run_unit_state?: array<int, array{unit_instance_id:string,hp:int,is_defeated:bool,status_effects:array<int,mixed>}>,
    *   run_resolution: array{run_id:string,status:string}|null,
    *   xp: array{
    *     award_per_unit:int,
@@ -282,7 +297,7 @@ final class BattleController
    *     ignored_at_cap_unit_instance_ids:array<int,string>
   *   },
   *   currency: array{soft_awarded:int},
-   *   updated_units: array<int, array{id:string,xp:int,level:int}>
+   *   updated_units: array<int, array{id:string,xp:int,level:int,name:string}>
    * }
    */
   private function applyRewardsAndXp(array $svc, int $userId, array $battle): array
@@ -456,6 +471,7 @@ final class BattleController
         'id' => (string)$unitId,
         'xp' => (int)$unit['xp'],
         'level' => (int)$unit['level'],
+        'name' => (string)$unit['name'],
       ];
     }
 
@@ -469,6 +485,7 @@ final class BattleController
       );
 
       if (count($remaining) === 0) {
+        $terminalRunState = $this->formatRunUnitStateSnapshot($runStateByUnitId);
         $svc['runRepo']->applyRunEndCleanup($runId, $userId, true);
         $svc['runRepo']->endRun($userId, $runId, 'failed');
         $runResolution = [
@@ -482,6 +499,21 @@ final class BattleController
           'is_defeated' => (bool)$row['is_defeated'],
           'status_effects' => json_decode((string)$row['status_effects_json'], true) ?: [],
         ], $svc['runRepo']->getRunUnitState($runId));
+
+        return [
+          'updated_run_unit_state' => $updatedRunState,
+          'terminal_run_unit_state' => $terminalRunState,
+          'run_resolution' => $runResolution,
+          'xp' => [
+            'award_per_unit' => $awardPerUnit,
+            'applied_unit_instance_ids' => $applied,
+            'ignored_at_cap_unit_instance_ids' => $ignoredAtCap,
+          ],
+          'currency' => [
+            'soft_awarded' => $softCurrencyAward,
+          ],
+          'updated_units' => $updatedUnits,
+        ];
       }
     }
 
@@ -546,6 +578,32 @@ final class BattleController
         'hp' => (int)($row['hp'] ?? 0),
         'is_defeated' => !empty($row['is_defeated']),
         'status_effects' => is_array($effects) ? $effects : [],
+      ];
+    }
+
+    return $normalized;
+  }
+
+  /**
+   * @param mixed $rows
+   * @return array<int,array{id:string,xp:int,level:int,name:string}>
+   */
+  private function normalizeUpdatedUnits(mixed $rows): array
+  {
+    if (!is_array($rows)) {
+      return [];
+    }
+
+    $normalized = [];
+    foreach ($rows as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $normalized[] = [
+        'id' => (string)($row['id'] ?? ''),
+        'xp' => (int)($row['xp'] ?? 0),
+        'level' => (int)($row['level'] ?? 0),
+        'name' => (string)($row['name'] ?? ''),
       ];
     }
 
@@ -636,13 +694,13 @@ final class BattleController
   }
 
   /**
-   * @return array{xp:int,level:int,max_level:int}|null
+   * @return array{xp:int,level:int,max_level:int,name:string}|null
    */
   private function lockUnitProgress(int $userId, int $unitInstanceId): ?array
   {
     $pdo = Db::pdo();
     $stmt = $pdo->prepare('
-      SELECT ui.`xp`, ui.`level`, ut.`max_level`
+      SELECT ui.`xp`, ui.`level`, ui.`display_name`, ut.`name` AS `unit_type_name`, ut.`max_level`
       FROM `unit_instances` ui
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
       WHERE ui.`id` = ? AND ui.`user_id` = ?
@@ -659,6 +717,9 @@ final class BattleController
       'xp' => (int)$row['xp'],
       'level' => (int)$row['level'],
       'max_level' => (int)$row['max_level'],
+      'name' => trim((string)($row['display_name'] ?? '')) !== ''
+        ? (string)$row['display_name']
+        : (string)($row['unit_type_name'] ?? ('Unit ' . $unitInstanceId)),
     ];
   }
 

@@ -76,6 +76,11 @@ export type FormationGrid3x3Config = {
   getCellShowIcon?: (cell: FormationCell, unitId: string | null) => boolean | null | undefined;
 
   /**
+   * Optional texture override for occupied cell portraits.
+   */
+  getCellPortraitKey?: (cell: FormationCell, unitId: string | null) => string | null | undefined;
+
+  /**
    * Double click threshold in ms (default 320)
    */
   doubleClickMs?: number;
@@ -138,6 +143,7 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
   private readonly getCellOutlineColor?: (cell: FormationCell, unitId: string | null) => number | null | undefined;
   private readonly getCellDamageText?: (cell: FormationCell, unitId: string | null) => string | null | undefined;
   private readonly getCellShowIcon?: (cell: FormationCell, unitId: string | null) => boolean | null | undefined;
+  private readonly getCellPortraitKey?: (cell: FormationCell, unitId: string | null) => string | null | undefined;
 
   private readonly doubleClickMs: number;
   private lastClickAtMs = 0;
@@ -182,6 +188,7 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
     this.getCellOutlineColor = cfg.getCellOutlineColor;
     this.getCellDamageText = cfg.getCellDamageText;
     this.getCellShowIcon = cfg.getCellShowIcon;
+    this.getCellPortraitKey = cfg.getCellPortraitKey;
 
     // Initialize formation map
     this.formation = {} as FormationMap;
@@ -356,6 +363,25 @@ export default class FormationGrid3x3 extends Phaser.GameObjects.Container {
 
       const showIcon = occupied && (this.getCellShowIcon?.(cell, this.formation[cell]) ?? true);
       icon.setVisible(showIcon);
+      if (showIcon) {
+        const portraitKey = this.getCellPortraitKey?.(cell, this.formation[cell]) ?? "icon_warband";
+        if (this.scene.textures.exists(portraitKey)) {
+          icon.setTexture(portraitKey);
+        } else {
+          icon.setTexture("icon_warband");
+        }
+        const maxSize = Math.min(this.cellSize - 34, 64);
+        icon.setScale(1);
+        const scale = Math.min(
+          maxSize / Math.max(1, icon.width),
+          maxSize / Math.max(1, icon.height),
+          1,
+        );
+        icon.setDisplaySize(
+          Math.max(1, Math.round(icon.width * scale)),
+          Math.max(1, Math.round(icon.height * scale)),
+        );
+      }
 
       const hpPercentRaw = this.getCellHpPercent?.(cell, this.formation[cell]);
       const hpPercent = typeof hpPercentRaw === "number"

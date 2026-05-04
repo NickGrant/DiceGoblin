@@ -30,6 +30,7 @@ import {
   type FormationOccupancyMap,
   unitFootprint,
 } from "../utils/formationGeometry";
+import { resolveUnitPortraitKey } from "../assets/unitPortraits";
 
 type Cell = FormationCell;
 const CELLS: Cell[] = ["A1", "B1", "C1", "A2", "B2", "C2", "A3", "B3", "C3"];
@@ -216,6 +217,10 @@ export default class SquadDetailsScene extends Phaser.Scene {
       selectedCell: null,
       getCellLabel: (cell, unitId) => this.getCellLabel(cell, unitId),
       getCellShowIcon: (cell, unitId) => !!unitId && isAnchorCell(this.editFormation, unitId, cell),
+      getCellPortraitKey: (_cell, unitId) => {
+        const unit = this.units.find((candidate) => candidate.id === unitId);
+        return resolveUnitPortraitKey(unit?.unit_type_slug, unit?.unit_type_name);
+      },
       onCellClick: (cell) => this.handleCellClick(cell),
       onCellDoubleClick: (cell) => this.handleCellDoubleClick(cell),
     });

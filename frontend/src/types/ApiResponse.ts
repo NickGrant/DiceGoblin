@@ -86,6 +86,7 @@ export type UnitRecord = {
 
   // Optional (safe while backend stabilizes)
   unit_type_id?: string;
+  unit_type_slug?: string;
   unit_type_name?: string;
   tier?: number;
   xp?: number;
@@ -267,6 +268,13 @@ export type RestRunUnitState = {
   status_effects: unknown[];
 };
 
+export type RunSummaryPayload = {
+  rewards: string[];
+  progression: string[];
+  survivors: string[];
+  defeated: string[];
+};
+
 export type RestOpenData = {
   run_id: string;
   node_id: string;
@@ -322,6 +330,7 @@ export type ExitRunData = {
   run_id: string;
   status: string;
   exit_node_id: string;
+  run_summary?: RunSummaryPayload;
 };
 
 export type ExitRunResponse = ApiResponse<ExitRunData>;
@@ -329,6 +338,7 @@ export type ExitRunResponse = ApiResponse<ExitRunData>;
 export type AbandonRunData = {
   run_id: string;
   status: string;
+  run_summary?: RunSummaryPayload;
 };
 
 export type AbandonRunResponse = ApiResponse<AbandonRunData>;
@@ -365,6 +375,8 @@ export type BattleClaimData = {
     currency_soft?: number;
     new_unit_instance_ids?: string[];
     new_dice_instance_ids?: string[];
+    new_unit_labels?: string[];
+    new_dice_labels?: string[];
     [key: string]: unknown;
   };
   updated_run_unit_state?: RestRunUnitState[];
@@ -374,7 +386,8 @@ export type BattleClaimData = {
     applied_unit_instance_ids: string[];
     ignored_at_cap_unit_instance_ids: string[];
   };
-  updated_units?: Array<{ id: string; xp: number; level: number }>;
+  updated_units?: Array<{ id: string; xp: number; level: number; name?: string }>;
+  run_summary?: RunSummaryPayload;
 };
 
 export type BattleClaimResponse = ApiResponse<BattleClaimData>;

@@ -8,7 +8,7 @@ import { getDebugSceneConfig } from "../debug/debugScene";
 import { getDebugRunFixture } from "../debug/debugFixtures";
 import { markDebugSceneReady } from "../debug/debugHooks";
 import { apiClient } from "../services/apiClient";
-import type { CurrentRunNode, RunResponse } from "../types/ApiResponse";
+import type { CurrentRunNode, RunResponse, RunSummaryPayload } from "../types/ApiResponse";
 import { getPageLayout } from "../layout/pageLayout";
 import { resolveContentFrameBodyRect } from "../components/layout/contentAreaMath";
 import { isNodeResolutionType } from "./nodeResolutionFlow";
@@ -328,12 +328,13 @@ export default class MapExplorationScene extends Phaser.Scene {
         this.showFallback(`Abandon failed: ${res.error.message}`);
         return;
       }
+      const runSummary = this.normalizeRunSummary(res.data.run_summary);
       this.scene.start("RunEndSummaryScene", {
         status: res.data.status,
-        rewards: [],
-        progression: [],
-        survivors: [],
-        defeated: [],
+        rewards: runSummary?.rewards ?? [],
+        progression: runSummary?.progression ?? [],
+        survivors: runSummary?.survivors ?? [],
+        defeated: runSummary?.defeated ?? [],
       });
     } catch {
       this.showFallback("Abandon unavailable. Please retry.");
@@ -380,5 +381,17 @@ export default class MapExplorationScene extends Phaser.Scene {
       durationMs: 2800,
     });
   }
-}
 
+  private normalizeRunSummary(summary: unknown): RunSummaryPayload | null {
+    if (!summary || typeof summary !== "object") {
+      return null;
+    }
+    const rec = summary as Record<string, unknown>;
+    return {
+      rewards: Array.isArray(rec.rewards) ? rec.rewards.map((line) => String(line)) : [],
+      progression: Array.isArray(rec.progression) ? rec.progression.map((line) => String(line)) : [],
+      survivors: Array.isArray(rec.survivors) ? rec.survivors.map((line) => String(line)) : [],
+      defeated: Array.isArray(rec.defeated) ? rec.defeated.map((line) => String(line)) : [],
+    };
+  }
+}

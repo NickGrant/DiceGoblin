@@ -7,6 +7,7 @@ import InputModal from "../components/feedback/InputModal";
 import ContentAreaFrame from "../components/layout/ContentAreaFrame";
 import SceneTabStrip from "../components/navigation/SceneTabStrip";
 import { DICE_ATLAS_KEY, getDiceFrameName } from "../assets/diceAtlas";
+import { fitPortraitImage, resolveUnitPortraitKey } from "../assets/unitPortraits";
 import {
   adaptDiceDetails,
   adaptUnitDetails,
@@ -279,8 +280,13 @@ export default class UnitDetailsScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setStrokeStyle(1, 0x8db8bc, 0.45);
     const portrait = this.add.image(x + width / 2, y + 60, "icon_warband")
-      .setDisplaySize(98, 98)
       .setAlpha(0.9);
+    fitPortraitImage(
+      portrait,
+      resolveUnitPortraitKey(this.rawUnit?.unit_type_slug, this.rawUnit?.unit_type_name),
+      98,
+      98,
+    );
     this.unitSummaryText = this.add.text(x + 14, y + 122, "", {
       fontFamily: '"IBM Plex Sans Condensed", "Roboto Condensed", Arial',
       fontSize: "17px",
