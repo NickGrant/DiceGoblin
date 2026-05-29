@@ -1,21 +1,21 @@
 # Angular Frontend Architecture Plan
 
-Status: active-transition  
+Status: active  
 Last Updated: 2026-05-29  
 Owner: Frontend  
-Depends On: `frontend/src/game/config.ts`, `frontend/src/scenes/`, `frontend/src/services/apiClient.ts`, `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/07-ux-rebuild/01-all-up-component-list.md`
+Depends On: `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/01-architecture/06-angular-component-service-inventory.md`, `documentation/07-ux-rebuild/01-all-up-component-list.md`
 
 ## Purpose
 
-This document defines the target architecture for moving Dice Goblins from a Phaser-owned UI application to an Angular-owned application shell that embeds Phaser only where canvas rendering is still the right tool.
+This document defines the active Angular frontend architecture for Dice Goblins and the remaining boundaries where Phaser may still be useful.
 
 The PHP API remains the source of truth for session, profile, run, battle, shop, squad, unit, dice, reward, and debug state.
 
 ## Current Position
 
-The legacy frontend was a TypeScript, Vite, and Phaser application. The first Angular migration slice now owns the application shell, login route, home route, region route, warband route, and shared bottom-strip layout in `frontend/`.
+The active frontend is the Angular application in `frontend/`, which owns the authenticated shell, login route, home route, region route, warband route, dice route, shop route, debug route, run map, node resolution, rest flow, and run summary.
 
-The target frontend should move application flow, routing, data orchestration, forms, lists, dialogs, accessibility, and persistent shell UI into Angular.
+Angular now owns application flow, routing, data orchestration, forms, lists, dialogs, accessibility, and persistent shell UI.
 
 ## Ownership Boundary
 
@@ -31,15 +31,13 @@ Angular owns:
 - accessible keyboard navigation and focus management
 - debug/operator panels that do not require canvas rendering
 
-Phaser owns:
+Phaser is retained for:
 
-- combat playback and future battle visualization
-- battle event timeline animation
-- sprite-heavy board or grid rendering
-- optional run-map canvas if the map becomes animated, pannable, or visually dense
-- deterministic screenshot/capture workflows until Angular equivalents exist
+- future combat playback and battle visualization if reintroduced
+- future sprite-heavy board or grid rendering if a canvas surface becomes justified
+- deterministic screenshot/capture workflows for explicitly Phaser-hosted surfaces
 
-Phaser should not own ordinary page composition, CRUD-style management UI, modal forms, list/grid browsing, or primary routing.
+Phaser does not own ordinary page composition, CRUD-style management UI, modal forms, list/grid browsing, or primary routing in the active frontend.
 
 ## Proposed Angular Layers
 
@@ -100,7 +98,7 @@ Facades expose view-ready state and commands. Components should not assemble raw
 
 ## Routing Model
 
-Recommended initial Angular routes:
+Active Angular routes:
 
 - `/login` -> landing/login
 - `/home` -> home navigation
@@ -116,7 +114,7 @@ Recommended initial Angular routes:
 - `/shop` -> shop
 - `/debug` -> debug panel, environment-gated
 
-The previous Phaser scene names remain useful as migration labels, but Angular route names should describe player intent rather than engine scenes.
+Angular route names describe player intent rather than engine scenes.
 
 ## Phaser Integration Model
 
@@ -138,15 +136,20 @@ Recommended bridge services:
 
 The host should create a Phaser instance when mounted, destroy it when the route/component is removed, pass immutable input snapshots into Phaser, and receive Phaser events through a small bridge.
 
-## Migration Strategy
+## Current Delivery State
 
-1. Preserve the current implementation in a legacy branch.
-2. Add Angular architecture and migration inventory documents.
-3. Create an Angular shell in a follow-up implementation task.
-4. Port non-combat Phaser UI scenes to Angular route pages.
-5. Keep the backend API stable during frontend migration.
-6. Keep Phaser combat and playback isolated behind Angular host components.
-7. Retire Phaser-only management scenes after their Angular equivalents are validated.
+Completed:
+
+1. Angular application shell and authenticated HUD layout.
+2. Route coverage for login, home, regions, warband, unit details, squad details, dice, shop, run map, node resolution, rest, run summary, and debug.
+3. Angular-owned services for session, profile, run, rest, shop, unit, dice, squad, and debug flows.
+4. Angular DOM/SVG run-map rendering.
+5. Region progression coverage for Farm, Mountains, and Swamps.
+
+Still open:
+
+1. Rich battle playback/presentation inside node resolution.
+2. Optional Angular-specific screenshot/review workflow if additional route-level tooling is needed.
 
 ## Recommended Phaser Retention Decision
 
@@ -158,11 +161,11 @@ Keep Phaser for:
 - sprite-heavy effects
 - deterministic visual capture while still useful
 
-Evaluate Angular DOM/SVG versus Phaser for:
+Angular already owns:
 
 - run map graph surface
-- encounter node visuals
-- animated reward reveal moments
+- encounter node action routing
+- management, inventory, and summary surfaces
 
 Move to Angular:
 
@@ -183,21 +186,10 @@ Move to Angular:
 
 - Duplicating state between Angular and Phaser can create stale UI.
 - Reusing current Phaser component names directly in Angular can preserve poor boundaries.
-- A full UI rewrite can regress working flows, so migration should proceed route by route.
 - Canvas-hosted views need explicit teardown to avoid duplicate Phaser games and leaked listeners.
 
 ## Open Decisions
 
-- Whether the run map should be Angular/SVG or Phaser canvas.
-- Whether battle playback is a standalone route or embedded inside node resolution.
+- Whether battle playback should be a standalone route, embedded node panel, or Phaser host inside the current node resolution page.
 - Whether Angular state should stay on signals plus thin services or move toward fuller route facades.
-- Whether screenshot capture remains Phaser-only or gains Angular route screenshot support.
-
-## Implemented First Slice
-
-- Angular 20 LTS workspace generated in `frontend/`.
-- Angular CLI selected as the frontend dev/build tool.
-- Bootstrap 5 grid and utility classes adopted through global styles.
-- Shared Angular shell implemented with persistent bottom command strip and HUD.
-- Initial routes implemented for `/login`, `/home`, `/regions`, `/warband`, `/dice`, `/shop`, and `/debug`.
-- Existing backend cookie/session behavior preserved through a small `ApiHttpService` using `credentials: "include"`.
+- Whether screenshot capture should gain Angular route-specific support.

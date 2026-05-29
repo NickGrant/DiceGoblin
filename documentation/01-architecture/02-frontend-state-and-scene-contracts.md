@@ -1,18 +1,18 @@
-# Frontend State and Scene Contracts - Legacy Phaser Current State
+# Frontend State and Scene Contracts - Legacy Phaser Reference
 
-Status: legacy-current-state  
-Last Updated: 2026-05-28  
+Status: legacy-reference  
+Last Updated: 2026-05-29  
 Owner: Frontend  
 Depends On: `frontend/src/game/config.ts`, `frontend/src/scenes/`, `frontend/src/services/apiClient.ts`, `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/01-architecture/06-angular-component-service-inventory.md`
 
-This document defines the runtime contracts for the currently implemented Phaser frontend before the Angular migration. It is no longer the target architecture for new frontend work.
+This document defines the legacy Phaser runtime contracts that were used as the behavioral reference during the Angular rebuild. It is not the active frontend architecture for current implementation work.
 
 Target Angular frontend ownership is defined in:
 
 - `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
 - `documentation/01-architecture/06-angular-component-service-inventory.md`
 
-Use this document to understand existing behavior, migration parity requirements, and legacy scene responsibilities.
+Use this document to understand legacy behavior, parity requirements, and historical scene responsibilities.
 
 ## 1. Core Principles
 
@@ -54,7 +54,7 @@ The following scenes are deferred or design-only and are not currently in scene 
 
 Do not add these as full application scenes as part of the Angular migration unless there is a specific decision to retain the experience in Phaser. Prefer Angular pages with Phaser host components for canvas-owned playback/rendering.
 
-## 4. Shared State Slices (Current Legacy Phaser)
+## 4. Shared State Slices (Legacy Phaser)
 
 ### 4.1 Session Slice
 
@@ -76,7 +76,7 @@ Legacy readers:
 
 - `PreloadScene`, `LandingScene`.
 
-Angular migration target:
+Current Angular owner:
 
 - Angular session service/facade owns bootstrap and exposes session state to route components and Phaser hosts.
 
@@ -88,7 +88,7 @@ Angular migration target:
 - `squads` (consumed as editable local squad state)
 - active squad selection
 
-Angular migration target:
+Current Angular owner:
 
 - `ProfileService`, `WarbandFacade`, `SquadDetailsFacade`, and `UnitDetailsFacade` own profile-derived state for page components.
 
@@ -96,7 +96,7 @@ Angular migration target:
 
 `MapExplorationScene` reads `GET /api/v1/runs/current` and stores current run payload scene-locally for node rendering.
 
-Angular migration target:
+Current Angular owner:
 
 - `RunService`, `RunMapFacade`, `NodeResolutionFacade`, and `RestManagementFacade` own run-derived state for page components and Phaser hosts.
 
@@ -113,7 +113,7 @@ Output:
 
 - starts `PreloadScene`.
 
-Angular migration target:
+Current Angular equivalent:
 
 - Replace with Angular app/session initialization and routing decisions.
 
@@ -132,7 +132,7 @@ Output:
 - if authenticated -> `HomeScene`
 - else -> `LandingScene`
 
-Angular migration target:
+Current Angular equivalent:
 
 - Replace ordinary app preload with Angular shell/loading state.
 - Keep Phaser asset loading only inside Phaser host components that require canvas assets.
@@ -151,7 +151,7 @@ Output:
 
 - authenticated users can continue to `HomeScene`.
 
-Angular migration target:
+Current Angular equivalent:
 
 - `/login` route and `LandingPageComponent`.
 
@@ -169,7 +169,7 @@ Output:
 - navigates to `ShopScene`
 - when dev tooling is env-enabled, exposes entry to `DevPanelScene`
 
-Angular migration target:
+Current Angular equivalent:
 
 - `/home` route and `HomePageComponent`.
 
@@ -188,9 +188,9 @@ Output:
 
 - transitions to `MapExplorationScene` after run start/navigation path.
 
-Angular migration target:
+Current Angular equivalent:
 
-- `/regions` route and `RegionSelectPageComponent`.
+- `/regions` route and `RegionsPageComponent`.
 
 ### 5.6 MapExplorationScene
 
@@ -206,7 +206,7 @@ Output:
 - transitions to `RunEndSummaryScene` for abandon and terminal run-end states
 - renders directional unlock-path indicators from run graph edges
 
-Angular migration target:
+Current Angular equivalent:
 
 - `/run/map` route and `RunMapPageComponent`.
 - Evaluate DOM/SVG first. Retain Phaser through `RunMapCanvasHostComponent` only if canvas rendering is justified.
@@ -224,7 +224,7 @@ Behavior:
   - units list -> opens `UnitDetailsScene`
   - squad list + actions -> opens `SquadDetailsScene`
 
-Angular migration target:
+Current Angular equivalent:
 
 - `/warband` route and `WarbandPageComponent`.
 
@@ -243,7 +243,7 @@ Behavior:
 - supports best-effort squad rename by passing `name` in update payload
 - displays a formation guide labeling left as `Back` and right as `Front`
 
-Angular migration target:
+Current Angular equivalent:
 
 - `/warband/squads/:squadId` route and `SquadDetailsPageComponent`.
 
@@ -260,24 +260,21 @@ Behavior:
 - manages promotion primary/secondary selection
 - routes to `DiceInventoryScene` for dice equip/unequip flow
 
-Angular migration target:
+Current Angular equivalent:
 
 - `/warband/units/:unitId` route and `UnitDetailsPageComponent`.
 
 ### 5.10 DiceInventoryScene
 
-Current scope:
+Legacy scope:
 
-- presentation shell scene with HUD/home navigation.
+- dedicated inventory screen with HUD/home navigation
+- supports sell flows and unit-context equip/unequip navigation
+- participates in rest-management flow for allowed active-run equipment changes
 
-Planned extension:
+Current Angular equivalent:
 
-- remains a dedicated inventory screen (not merged into unit details),
-- participates in rest-management flow for allowed active-run equipment changes.
-
-Angular migration target:
-
-- `/dice` route and `DiceInventoryPageComponent`.
+- `/dice` route and `DicePageComponent`.
 
 ### 5.11 NodeResolutionScene
 
@@ -296,9 +293,9 @@ Behavior:
 - routes to `RunEndSummaryScene` on terminal outcomes
 - routes back to `MapExplorationScene` for non-terminal outcomes with resolution feedback
 
-Angular migration target:
+Current Angular equivalent:
 
-- `/run/node/:nodeId` route and `NodeResolutionPageComponent`.
+- `/run/node/:nodeId` route and `RunNodePageComponent`.
 - Keep battle playback in Phaser through `CombatPlaybackHostComponent` if canvas animation remains valuable.
 - Keep result/outcome controls in Angular.
 
@@ -319,7 +316,7 @@ Behavior:
 - supports grant and reset flows for local verification/UAT
 - reflects current profile counts after mutations
 
-Angular migration target:
+Current Angular equivalent:
 
 - `/debug` route and `DebugPageComponent`.
 
@@ -336,7 +333,7 @@ Behavior:
 - shows a server-day daily deal that persists until the next day or until purchased
 - returns to `HomeScene` through a dedicated back action
 
-Angular migration target:
+Current Angular equivalent:
 
 - `/shop` route and `ShopPageComponent`.
 

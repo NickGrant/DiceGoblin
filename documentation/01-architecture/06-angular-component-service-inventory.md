@@ -1,13 +1,13 @@
 # Angular Component and Service Inventory
 
-Status: proposed  
-Last Updated: 2026-05-28  
+Status: active  
+Last Updated: 2026-05-29  
 Owner: Frontend  
-Depends On: `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/07-ux-rebuild/01-all-up-component-list.md`, `documentation/07-ux-rebuild/02-scene-component-mapping.md`
+Depends On: `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/07-ux-rebuild/01-all-up-component-list.md`
 
 ## Purpose
 
-This inventory translates the existing Phaser scene/component structure into a target Angular component and service map.
+This inventory describes the active Angular frontend component and service map, plus the remaining optional Phaser reintegration points.
 
 This is an architecture inventory only. It does not require final visual styling.
 
@@ -19,15 +19,15 @@ This is an architecture inventory only. It does not require final visual styling
 | `PreloadScene` | Angular + asset services | preload/splash state in shell | Partial | Keep Phaser asset loading only for Phaser-hosted experiences. |
 | `LandingScene` | Angular | `/login`, `LandingPageComponent` | No | OAuth/login page is normal DOM UI. |
 | `HomeScene` | Angular | `/home`, `HomePageComponent` | No | Navigation cards and HUD should be Angular components. |
-| `RegionSelectScene` | Angular | `/regions`, `RegionSelectPageComponent` | No | Region cards and run start actions are DOM UI. |
+| `RegionSelectScene` | Angular | `/regions`, `RegionsPageComponent` | No | Region cards and run start actions are DOM UI. |
 | `MapExplorationScene` | Angular initially | `/run/map`, `RunMapPageComponent` | Maybe | Prefer Angular/SVG first; use Phaser only if animation/pan complexity requires it. |
-| `NodeResolutionScene` | Angular shell + Phaser playback | `/run/node/:nodeId`, `NodeResolutionPageComponent` | Yes, for battle playback | Outcome panels are Angular; battle playback can be Phaser-hosted. |
-| `RestManagementScene` | Angular | `/run/rest/:nodeId`, `RestManagementPageComponent` | No | Form/list/formation management should be Angular. |
-| `RunEndSummaryScene` | Angular | `/run/summary`, `RunEndSummaryPageComponent` | No | Summary/reward results are DOM UI. |
+| `NodeResolutionScene` | Angular shell + Phaser playback | `/run/node/:nodeId`, `RunNodePageComponent` | Yes, for battle playback | Outcome panels are Angular; battle playback can be Phaser-hosted. |
+| `RestManagementScene` | Angular | `/run/rest/:nodeId`, `RunRestPageComponent` | No | Form/list/formation management should be Angular. |
+| `RunEndSummaryScene` | Angular | `/run/summary`, `RunSummaryPageComponent` | No | Summary/reward results are DOM UI. |
 | `WarbandManagementScene` | Angular | `/warband`, `WarbandPageComponent` | No | List/grid management should be Angular. |
 | `SquadDetailsScene` | Angular | `/warband/squads/:squadId`, `SquadDetailsPageComponent` | No | Formation grid is feasible as DOM grid. |
 | `UnitDetailsScene` | Angular | `/warband/units/:unitId`, `UnitDetailsPageComponent` | No | Details, promotion, equip navigation are Angular UI. |
-| `DiceInventoryScene` | Angular | `/dice`, `DiceInventoryPageComponent` | No | Dice grid/filter/actions are Angular UI. |
+| `DiceInventoryScene` | Angular | `/dice`, `DicePageComponent` | No | Dice grid/filter/actions are Angular UI. |
 | `ShopScene` | Angular | `/shop`, `ShopPageComponent` | No | Catalog and purchase UI are Angular. |
 | `DevPanelScene` | Angular | `/debug`, `DebugPageComponent` | No | Debug operator actions do not need canvas. |
 
@@ -99,15 +99,15 @@ This is an architecture inventory only. It does not require final visual styling
 
 - `LandingPageComponent`
 - `HomePageComponent`
-- `RegionSelectPageComponent`
+- `RegionsPageComponent`
 - `RunMapPageComponent`
-- `NodeResolutionPageComponent`
-- `RestManagementPageComponent`
-- `RunEndSummaryPageComponent`
+- `RunNodePageComponent`
+- `RunRestPageComponent`
+- `RunSummaryPageComponent`
 - `WarbandPageComponent`
 - `SquadDetailsPageComponent`
 - `UnitDetailsPageComponent`
-- `DiceInventoryPageComponent`
+- `DicePageComponent`
 - `ShopPageComponent`
 - `DebugPageComponent`
 
@@ -183,20 +183,17 @@ frontend/src/app/
     scenes/
 ```
 
-## First Implementation Slice
+## Current Implementation Notes
 
-The smallest useful Angular architecture slice is:
+Implemented now:
 
 1. Angular app bootstraps successfully.
-2. Router provides `/login`, `/home`, `/regions`, and `/warband` placeholder pages.
-3. App shell renders persistent page frame and HUD placeholders.
+2. Router provides the active gameplay and management route set, not placeholder pages.
+3. App shell renders the active persistent HUD and page frame.
 4. API services preserve current base URL and credential behavior.
-5. Current Phaser app remains available behind a temporary `/legacy-phaser` route or by keeping the legacy branch as behavioral reference.
+5. No Phaser-owned route exists in the active Angular app.
 
-## Non-Goals for the First Slice
+Still not complete:
 
-- Pixel-perfect visuals.
-- Complete route parity.
 - Full battle playback migration.
-- Backend API changes.
-- Final state-management library decision beyond keeping facades as the public page boundary.
+- Final state-management library decision beyond keeping services and page-owned state as the public page boundary.

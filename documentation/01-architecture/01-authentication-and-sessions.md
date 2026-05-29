@@ -1,7 +1,7 @@
 # Authentication & Session Model
 
 Status: active  
-Last Updated: 2026-05-28  
+Last Updated: 2026-05-29  
 Owner: Backend/API  
 Depends On: `backend/public/index.php`, `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
 
@@ -39,8 +39,4 @@ Depends On: `backend/public/index.php`, `documentation/01-architecture/03-backen
 
 The frontend startup/session layer is the only application layer that should directly query `/api/v1/session`.
 
-During the Angular migration, this responsibility moves from the legacy Phaser `BootScene` to an Angular session service, initializer, or route guard. Page components and Phaser-hosted renderers should consume session state through the Angular frontend state layer rather than each querying the session endpoint independently.
-
-## Legacy Note
-
-Before the Angular migration, `BootScene` owned session bootstrap and all other Phaser scenes trusted session data passed from that scene. That behavior remains the reference for the legacy Phaser branch, but it is not the target ownership model for new Angular work.
+That responsibility lives in the Angular session/bootstrap layer. Page components and any future Phaser-hosted renderers should consume session state through the Angular frontend state layer rather than each querying the session endpoint independently.

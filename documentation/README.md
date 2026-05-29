@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-05-28  
+Last Updated: 2026-05-29  
 Owner: Product + Engineering  
 Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
@@ -10,7 +10,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
 - Single entrypoint for game and project documentation under `documentation/`.
 - Fast mapping from task type to canonical game-facing docs.
-- Identify current Angular migration sources versus legacy Phaser reference docs.
+- Identify the current Angular architecture docs and the canonical route/state/component references.
 
 ## Scope
 
@@ -33,13 +33,12 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 3. `documentation/01-architecture/00-tech-stack.md`
 4. `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
 5. `documentation/01-architecture/06-angular-component-service-inventory.md`
-6. `documentation/01-architecture/02-frontend-state-and-scene-contracts.md` (legacy Phaser behavior reference)
-7. `documentation/01-architecture/03-backend-api-contracts.md`
-8. `documentation/01-architecture/04-data-model.md`
-9. `documentation/02-systems-mvp/` (all)
-10. `documentation/03-ux/` (all)
-11. `documentation/05-playability-stability/` (release validation)
-12. `documentation/07-ux-rebuild/` (visual/component migration lane)
+6. `documentation/01-architecture/03-backend-api-contracts.md`
+7. `documentation/01-architecture/04-data-model.md`
+8. `documentation/02-systems-mvp/` (all)
+9. `documentation/03-ux/` (all)
+10. `documentation/05-playability-stability/` (release validation)
+11. `documentation/07-ux-rebuild/` (visual/component design lane)
 
 ## Task Entry Points
 
@@ -53,9 +52,6 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/01-architecture/06-angular-component-service-inventory.md`
   - `documentation/03-ux/`
   - `documentation/07-ux-rebuild/`
-- Legacy Phaser behavior or migration parity checks:
-  - `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
-  - `documentation/07-ux-rebuild/02-scene-component-mapping.md`
 - Combat/reward/progression changes:
   - `documentation/02-systems-mvp/00-combat-system.md`
   - `documentation/02-systems-mvp/01-dice-system.md`
@@ -89,11 +85,11 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
 ## Local Automation
 
-- Phaser scene screenshot capture:
+- Screenshot capture:
   - `skills/scene-screenshot/SKILL.md`
   - `npm run capture:scene -- --scene <scene>`
   - Run captures serially against the local frontend when using `--base-url`
-  - Treat this as legacy/Phaser-host automation unless the target route explicitly embeds a Phaser host.
+  - Use route-appropriate capture tooling when the target surface is not Phaser-hosted.
 - UX scene review loops:
   - `skills/ux-scene-review/SKILL.md`
-  - Useful for legacy Phaser scene review; Angular route review should define its own screenshot/review workflow when implemented.
+  - Use this only when the reviewed surface still depends on scene-style capture workflows.
