@@ -8,61 +8,62 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
 ## Purpose
 
-- Single entrypoint for game and project documentation under `documentation/`.
-- Fast mapping from task type to canonical game-facing docs.
-- Identify the current Angular architecture docs and the canonical route/state/component references.
+- Provide one clear entrypoint for how Dice Goblins works.
+- Point each major question at a single canonical document.
+- Keep planning history and implementation notes out of the main gameplay read path.
 
 ## Scope
 
-- This index is for `documentation/` content only.
-- Agent workflow, backlog control, and execution policy live in `AGENTS.md` and `agent/README.md`.
+- This index covers the active `documentation/` set.
+- Agent workflow, backlog policy, and execution rules live in `AGENTS.md` and `agent/README.md`.
 
-## Canonical Project Sources
-
-- `documentation/01-architecture/00-tech-stack.md`
-- `documentation/01-architecture/03-backend-api-contracts.md`
-- `documentation/01-architecture/04-data-model.md`
-- `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
-- `documentation/01-architecture/06-angular-component-service-inventory.md`
-- `documentation/03-ux/01-visual-design-guide.md`
-
-## Suggested Read Order
+## Recommended Read Order
 
 1. `documentation/00-overview/00-project-overview.md`
-2. `documentation/00-overview/01-rework-normalization-pass.md`
-3. `documentation/01-architecture/00-tech-stack.md`
-4. `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
-5. `documentation/01-architecture/06-angular-component-service-inventory.md`
+2. `documentation/00-overview/01-core-gameplay-loop.md`
+3. `documentation/00-overview/02-glossary.md`
+4. `documentation/01-architecture/00-tech-stack.md`
+5. `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
 6. `documentation/01-architecture/03-backend-api-contracts.md`
 7. `documentation/01-architecture/04-data-model.md`
-8. `documentation/02-systems-mvp/` (all)
-9. `documentation/03-ux/` (all)
-10. `documentation/05-playability-stability/` (release validation)
-11. `documentation/07-ux-rebuild/` (visual/component design lane)
+8. `documentation/02-systems-mvp/` docs relevant to the system being changed
+9. `documentation/03-ux/` docs relevant to the player flow being changed
+10. `documentation/05-playability-stability/` for release validation
 
-## Task Entry Points
+## Canonical Docs By Topic
 
-- Backend/API changes:
-  - `documentation/01-architecture/03-backend-api-contracts.md`
-  - `documentation/01-architecture/01-authentication-and-sessions.md`
-  - `documentation/01-architecture/04-data-model.md`
-- Frontend Angular route/state/component changes:
+- What the game is:
+  - `documentation/00-overview/00-project-overview.md`
+  - `documentation/00-overview/01-core-gameplay-loop.md`
+  - `documentation/00-overview/02-glossary.md`
+- Frontend and API architecture:
   - `documentation/01-architecture/00-tech-stack.md`
+  - `documentation/01-architecture/01-authentication-and-sessions.md`
+  - `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
+  - `documentation/01-architecture/03-backend-api-contracts.md`
+  - `documentation/01-architecture/04-data-model.md`
   - `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
   - `documentation/01-architecture/06-angular-component-service-inventory.md`
-  - `documentation/03-ux/`
-  - `documentation/07-ux-rebuild/`
-- Combat/reward/progression changes:
+- Gameplay systems:
   - `documentation/02-systems-mvp/00-combat-system.md`
   - `documentation/02-systems-mvp/01-dice-system.md`
   - `documentation/02-systems-mvp/02-units-and-progression.md`
+  - `documentation/02-systems-mvp/03-encounter-scope.md`
+  - `documentation/02-systems-mvp/04-loot-and-drop-scope.md`
+  - `documentation/02-systems-mvp/05-save-and-resume-scope.md`
+  - `documentation/02-systems-mvp/06-run-resolution-scope.md`
   - `documentation/02-systems-mvp/07-combat-math-and-modifiers.md`
   - `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
-  - `documentation/02-systems-mvp/09-ability-loadout-combat-rework-plan.md`
-- Planning/design:
-  - `documentation/03-ux/15-ability-loadout-and-unit-naming-plan.md`
-  - `documentation/00-overview/01-rework-normalization-pass.md`
-- Verification/release:
+- Player-facing UX:
+  - `documentation/03-ux/00-ux-and-debug-scope.md`
+  - `documentation/03-ux/01-visual-design-guide.md`
+  - `documentation/03-ux/02-warband-management.md`
+  - `documentation/03-ux/03-encounter-flow-transition-matrix.md`
+  - `documentation/03-ux/04-combat-viewer-readability.md`
+  - `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md`
+  - `documentation/03-ux/08-page-layout-zones.md`
+  - `documentation/03-ux/09-first-session-player-journey.md`
+- Verification and release:
   - `documentation/TESTING_STRATEGY.md`
   - `documentation/05-playability-stability/00-release-gate-criteria.md`
   - `documentation/05-playability-stability/01-critical-path-playtest-script.md`
@@ -70,26 +71,41 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/05-playability-stability/03-first-release-checklist.md`
   - `documentation/CHANGELOG.md`
 
+## Task Entry Points
+
+- Backend/API changes:
+  - `documentation/01-architecture/01-authentication-and-sessions.md`
+  - `documentation/01-architecture/03-backend-api-contracts.md`
+  - `documentation/01-architecture/04-data-model.md`
+- Frontend route/state/component changes:
+  - `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
+  - `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
+  - `documentation/01-architecture/06-angular-component-service-inventory.md`
+  - `documentation/03-ux/`
+- Warband, squads, units, and dice:
+  - `documentation/02-systems-mvp/01-dice-system.md`
+  - `documentation/02-systems-mvp/02-units-and-progression.md`
+  - `documentation/03-ux/02-warband-management.md`
+- Runs, encounters, loot, and summaries:
+  - `documentation/02-systems-mvp/03-encounter-scope.md`
+  - `documentation/02-systems-mvp/04-loot-and-drop-scope.md`
+  - `documentation/02-systems-mvp/06-run-resolution-scope.md`
+  - `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
+  - `documentation/03-ux/03-encounter-flow-transition-matrix.md`
+- Onboarding and first-session flow:
+  - `documentation/03-ux/09-first-session-player-journey.md`
+
 ## Reference Data
 
 - `documentation/08-json-schema/unit_types.base_stats_json.json`
 - `documentation/08-json-schema/unit_types.ability_set_json.json`
-- `documentation/unit_list.json`
-- `documentation/enemy_list.json`
 
 ## Related Indexes
 
-- Agent workflow and backlog docs:
-  - `AGENTS.md`
-  - `agent/README.md`
+- `AGENTS.md`
+- `agent/README.md`
 
-## Local Automation
+## Tooling Notes
 
-- Screenshot capture:
-  - `skills/scene-screenshot/SKILL.md`
-  - `npm run capture:scene -- --scene <scene>`
-  - Run captures serially against the local frontend when using `--base-url`
-  - Use route-appropriate capture tooling when the target surface is not Phaser-hosted.
-- UX scene review loops:
-  - `skills/ux-scene-review/SKILL.md`
-  - Use this only when the reviewed surface still depends on scene-style capture workflows.
+- Use screenshot or route-capture tooling only when visual verification is required.
+- Keep review checklists and temporary audit notes out of the canonical gameplay path.

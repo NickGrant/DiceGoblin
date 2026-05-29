@@ -71,7 +71,7 @@ Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/0
 - Units should have player-facing names.
 - Names are labels only and must not be used as system identifiers.
 - Duplicate names are allowed.
-- Players rename units from `UnitDetailsScene`.
+- Players rename units from the unit-details screen.
 - Units should receive generated names at creation time.
 - Name generation only needs enough variety to support a few hundred distinct-feeling names.
 
@@ -194,7 +194,7 @@ Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/0
 ## Frontend and UX Impact Plan
 
 ### Warband / Unit Details
-- `UnitDetailsScene` becomes the main place for:
+- The unit-details screen becomes the main place for:
   - unit renaming
   - viewing cumulative unlocked abilities
   - equipping ordered combat loadout
@@ -243,7 +243,7 @@ Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/0
 - Add migration scripts for legacy units and dice.
 
 ### Phase 2. Unit Details / Management UX
-- Rework `UnitDetailsScene` around:
+- Rework the unit-details screen around:
   - naming
   - loadout order
   - ability costs

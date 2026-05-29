@@ -1,370 +1,276 @@
-# Frontend State and Scene Contracts - Legacy Phaser Reference
+# Frontend Route and State Contracts
 
-Status: legacy-reference  
+Status: active  
 Last Updated: 2026-05-29  
 Owner: Frontend  
-Depends On: `frontend/src/game/config.ts`, `frontend/src/scenes/`, `frontend/src/services/apiClient.ts`, `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/01-architecture/06-angular-component-service-inventory.md`
+Depends On: `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/01-architecture/06-angular-component-service-inventory.md`
 
-This document defines the legacy Phaser runtime contracts that were used as the behavioral reference during the Angular rebuild. It is not the active frontend architecture for current implementation work.
+## Purpose
 
-Target Angular frontend ownership is defined in:
+- Define the active frontend behavior contract in player-facing terms.
+- Identify which Angular routes own each major game surface.
+- Keep shared state boundaries explicit between session, profile, run, and debug concerns.
 
-- `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
-- `documentation/01-architecture/06-angular-component-service-inventory.md`
+## Core Principles
 
-Use this document to understand legacy behavior, parity requirements, and historical scene responsibilities.
+1. The Angular application owns primary routing, shell UI, forms, lists, and management flows.
+2. The backend is authoritative for session, profile, run state, rewards, battle outcomes, and purchases.
+3. Frontend route names should describe player intent rather than implementation details.
+4. User-facing copy should prefer `squad`; backend compatibility may still use `team` in endpoints and payloads.
+5. Page components should consume view-ready state from services or facades instead of assembling raw API payloads inline.
 
-## 1. Core Principles
+## Shared State Slices
 
-1. In the legacy Phaser frontend, `BootScene` is the auth/session bootstrap gate.
-2. Backend is source of truth for server-owned state (session, profile, run/map, node resolution, battle logs, claims).
-3. Legacy scene transitions should remain explicit and deterministic while the Phaser implementation is still active.
-4. Planned scenes/contracts are documented but not treated as active runtime behavior.
-5. User-facing terminology should prefer `squad`; API compatibility identifiers may still use `team` in route and payload keys.
-6. Debug-only scene entry is allowed through `debugScene` URL params for deterministic local screenshots and review workflows.
-7. For new Angular work, route/page/facade contracts supersede scene contracts except where Phaser is explicitly retained as an embedded renderer.
+### Session
 
-## 2. Implemented Legacy Scene Set
+Owned by the session layer and initialized at app startup.
 
-Configured in `frontend/src/game/config.ts`:
+Includes:
 
-1. `BootScene`
-2. `PreloadScene`
-3. `LandingScene`
-4. `HomeScene`
-5. `RegionSelectScene`
-6. `WarbandManagementScene`
-7. `SquadDetailsScene`
-8. `UnitDetailsScene`
-9. `DiceInventoryScene`
-10. `MapExplorationScene`
-11. `NodeResolutionScene`
-12. `RestManagementScene`
-13. `RunEndSummaryScene`
-14. `ShopScene`
-15. `DevPanelScene` (debug-only when env-enabled)
+- authenticated state
+- player identity
+- CSRF or session metadata needed for API mutations
 
-## 3. Planned Legacy Phaser Scenes (Not Implemented Yet)
+Primary consumers:
 
-The following scenes are deferred or design-only and are not currently in scene config:
+- login route
+- authenticated shell
+- logout action
 
-- `CombatScene`
-- `LootScene`
-- `BossScene`
+### Profile
 
-Do not add these as full application scenes as part of the Angular migration unless there is a specific decision to retain the experience in Phaser. Prefer Angular pages with Phaser host components for canvas-owned playback/rendering.
+Owned by profile-facing services and refreshed after major mutations.
 
-## 4. Shared State Slices (Legacy Phaser)
+Includes:
 
-### 4.1 Session Slice
-
-Stored in registry via `RegistrySession`.
-
-```ts
-{
-  isAuthenticated: boolean,
-  user?: { id: string; displayName: string; avatarUrl?: string },
-  csrfToken?: string
-}
-```
-
-Legacy writers:
-
-- `BootScene` writes from `GET /api/v1/session`.
-
-Legacy readers:
-
-- `PreloadScene`, `LandingScene`.
-
-Current Angular owner:
-
-- Angular session service/facade owns bootstrap and exposes session state to route components and Phaser hosts.
-
-### 4.2 Profile Slice (Scene-local, not globally centralized)
-
-`WarbandManagementScene` reads `GET /api/v1/profile` and derives local scene state:
-
-- `units`
-- `squads` (consumed as editable local squad state)
+- currency
+- energy
+- units
+- squads
+- dice inventory
+- region unlocks
 - active squad selection
 
-Current Angular owner:
+Primary consumers:
 
-- `ProfileService`, `WarbandFacade`, `SquadDetailsFacade`, and `UnitDetailsFacade` own profile-derived state for page components.
+- home
+- warband
+- unit details
+- squad details
+- dice
+- shop
+- debug
 
-### 4.3 Run Slice (Scene-local)
+### Run
 
-`MapExplorationScene` reads `GET /api/v1/runs/current` and stores current run payload scene-locally for node rendering.
+Owned by run-facing services and route-local state for the active run loop.
 
-Current Angular owner:
+Includes:
 
-- `RunService`, `RunMapFacade`, `NodeResolutionFacade`, and `RestManagementFacade` own run-derived state for page components and Phaser hosts.
+- active run summary
+- node graph and statuses
+- current node context
+- run-scoped unit state
+- rest summary data
+- terminal summary data
 
-## 5. Implemented Legacy Scene Contracts
+Primary consumers:
 
-### 5.1 BootScene
+- home
+- regions
+- run map
+- node resolution
+- rest management
+- run summary
 
-Allowed side-effects:
+### Debug
 
-- `GET /api/v1/session`
-- write session state into registry
+Owned by debug tooling and only exposed when the environment allows it.
 
-Output:
+Includes:
 
-- starts `PreloadScene`.
+- grantable currencies, dice, units, and region items
+- reset account action
+- dev-only inspection helpers
 
-Current Angular equivalent:
+## Route Contracts
 
-- Replace with Angular app/session initialization and routing decisions.
+### `/login`
 
-### 5.2 PreloadScene
+Purpose:
 
-Allowed side-effects:
+- unauthenticated entrypoint
+- login or continue surface
 
-- asset pack loading
+Allowed behavior:
 
-Input:
+- request session state
+- redirect authenticated users into the app shell
+- initiate the configured login flow
 
-- reads `RegistrySession`.
+### `/home`
 
-Output:
+Purpose:
 
-- if authenticated -> `HomeScene`
-- else -> `LandingScene`
+- authenticated landing page
+- high-level hub for run, warband, dice, shop, and debug access
 
-Current Angular equivalent:
+Allowed behavior:
 
-- Replace ordinary app preload with Angular shell/loading state.
-- Keep Phaser asset loading only inside Phaser host components that require canvas assets.
+- show current energy and currency
+- show start-run or continue-run affordance depending on active run state
+- allow logout
 
-### 5.3 LandingScene
+### `/regions`
 
-Allowed side-effects:
+Purpose:
 
-- OAuth redirect to `/auth/discord/start` (unauth path)
+- region selection before a run
 
-Input:
+Allowed behavior:
 
-- reads `RegistrySession`.
+- show unlocked and locked regions
+- start a run for an unlocked region
+- provide blocked feedback for unavailable regions
 
-Output:
+### `/warband`
 
-- authenticated users can continue to `HomeScene`.
+Purpose:
 
-Current Angular equivalent:
+- warband management hub
 
-- `/login` route and `LandingPageComponent`.
+Allowed behavior:
 
-### 5.4 HomeScene
+- show unit list and squad list side by side
+- create squads
+- route into unit and squad detail flows
 
-Allowed side-effects:
+### `/warband/units/:unitId`
 
-- `POST /api/v1/auth/logout`
+Purpose:
 
-Output:
+- unit inspection and editing surface
 
-- navigates to `RegionSelectScene`
-- navigates to `WarbandManagementScene`
-- navigates to `DiceInventoryScene`
-- navigates to `ShopScene`
-- when dev tooling is env-enabled, exposes entry to `DevPanelScene`
+Allowed behavior:
 
-Current Angular equivalent:
+- show unit identity, stats, XP, promotion state, and equipped dice
+- support promotion when allowed
+- route into dice management for equip or unequip actions
+- show run-scoped read-only overlay when a run is active
 
-- `/home` route and `HomePageComponent`.
+### `/warband/squads/:squadId`
 
-### 5.5 RegionSelectScene
+Purpose:
 
-Allowed side-effects:
+- saved squad editing surface
 
-- via clickable region panel, starts run creation flow (`POST /api/v1/runs`) through client service
+Allowed behavior:
 
-Behavior:
+- edit squad name
+- edit membership
+- edit 3x3 formation
+- activate squad
+- persist changes through team endpoints
 
-- presents `The Farm` as the fixed tutorial route: `combat -> loot -> rest -> boss -> exit`
-- keeps formation messaging aligned with combat by treating left as `Back` and right as `Front`
+### `/dice`
 
-Output:
+Purpose:
 
-- transitions to `MapExplorationScene` after run start/navigation path.
+- dice inventory and management surface
 
-Current Angular equivalent:
+Allowed behavior:
 
-- `/regions` route and `RegionsPageComponent`.
+- browse owned dice
+- sell unequipped dice
+- equip or unequip in unit-context flows
+- show where equipped dice are assigned
 
-### 5.6 MapExplorationScene
+### `/shop`
 
-Allowed side-effects:
+Purpose:
 
-- `GET /api/v1/runs/current`
-- `POST /api/v1/runs/:runId/abandon`
+- between-run economy surface
 
-Output:
+Allowed behavior:
 
-- transitions to `RestManagementScene` for rest nodes
-- transitions to `NodeResolutionScene` for non-rest node resolution (`combat|loot|boss|exit`)
-- transitions to `RunEndSummaryScene` for abandon and terminal run-end states
-- renders directional unlock-path indicators from run graph edges
+- load shop catalog
+- purchase units or dice
+- show daily deal
+- disable unavailable or unaffordable purchases
 
-Current Angular equivalent:
+### `/run/map`
 
-- `/run/map` route and `RunMapPageComponent`.
-- Evaluate DOM/SVG first. Retain Phaser through `RunMapCanvasHostComponent` only if canvas rendering is justified.
+Purpose:
 
-### 5.7 WarbandManagementScene
+- active run traversal surface
 
-Allowed side-effects:
+Allowed behavior:
 
-- `GET /api/v1/profile`
-- `POST /api/v1/teams`
+- load current run graph
+- render node statuses and unlock paths
+- allow selection of available nodes only
+- abandon the run with confirmation
 
-Behavior:
+### `/run/node/:nodeId`
 
-- acts as hub screen with two columns:
-  - units list -> opens `UnitDetailsScene`
-  - squad list + actions -> opens `SquadDetailsScene`
+Purpose:
 
-Current Angular equivalent:
+- unified non-rest node resolution surface
 
-- `/warband` route and `WarbandPageComponent`.
+Allowed behavior:
 
-### 5.8 SquadDetailsScene
+- resolve combat, loot, boss, and exit nodes
+- show immediate outcome, rewards, and next-step action
+- branch back to map or into terminal summary
+- present battle playback details when that surface exists
 
-Allowed side-effects:
+### `/run/rest/:nodeId`
 
-- `GET /api/v1/profile`
-- `PUT /api/v1/teams/:teamId`
-- `POST /api/v1/teams/:teamId/activate`
+Purpose:
 
-Behavior:
+- run-scoped rest workflow
 
-- edits saved squad membership/formation (not run-scoped snapshot)
-- supports bench membership (`unit_ids` may include unplaced units)
-- supports best-effort squad rename by passing `name` in update payload
-- displays a formation guide labeling left as `Back` and right as `Front`
+Allowed behavior:
 
-Current Angular equivalent:
+- open rest state
+- allow the management actions supported during rest
+- finalize rest and return to the map with summary feedback
 
-- `/warband/squads/:squadId` route and `SquadDetailsPageComponent`.
+### `/run/summary`
 
-### 5.9 UnitDetailsScene
+Purpose:
 
-Allowed side-effects:
+- terminal run summary for completed, failed, or abandoned runs
 
-- `GET /api/v1/profile`
-- `POST /api/v1/units/:unitId/promote`
+Allowed behavior:
 
-Behavior:
+- show outcome
+- show rewards and progression
+- show survivors and defeated units
+- return player to home
 
-- displays unit stats/xp and equipped dice summary
-- manages promotion primary/secondary selection
-- routes to `DiceInventoryScene` for dice equip/unequip flow
+### `/debug`
 
-Current Angular equivalent:
+Purpose:
 
-- `/warband/units/:unitId` route and `UnitDetailsPageComponent`.
+- environment-gated operator surface
 
-### 5.10 DiceInventoryScene
+Allowed behavior:
 
-Legacy scope:
+- grant resources and content for testing
+- reset account state
+- inspect available debug catalog data
 
-- dedicated inventory screen with HUD/home navigation
-- supports sell flows and unit-context equip/unequip navigation
-- participates in rest-management flow for allowed active-run equipment changes
+## Navigation Rules
 
-Current Angular equivalent:
+- unauthenticated users remain on `/login`
+- authenticated users enter the shell and can reach `/home`
+- if an active run exists, home should offer continue-run behavior
+- non-rest run nodes route through `/run/node/:nodeId`
+- rest nodes route through `/run/rest/:nodeId`
+- terminal run outcomes route through `/run/summary`
 
-- `/dice` route and `DicePageComponent`.
+## Current Gap
 
-### 5.11 NodeResolutionScene
-
-Allowed side-effects:
-
-- `POST /api/v1/runs/:runId/nodes/:nodeId/resolve` for `combat|loot|boss`
-- `POST /api/v1/runs/:runId/exit` for `exit`
-- `GET /api/v1/runs/current` to decide map-return vs terminal summary
-
-Behavior:
-
-- shows unified node-resolution outcome surface for non-rest nodes
-- exposes compact replay controls for play/pause, previous/next event, 1x/2x/4x speed, and skip-to-outcome
-- in dev mode, supports copying the current battle log JSON to clipboard
-- supports retry from error state
-- routes to `RunEndSummaryScene` on terminal outcomes
-- routes back to `MapExplorationScene` for non-terminal outcomes with resolution feedback
-
-Current Angular equivalent:
-
-- `/run/node/:nodeId` route and `RunNodePageComponent`.
-- Keep battle playback in Phaser through `CombatPlaybackHostComponent` if canvas animation remains valuable.
-- Keep result/outcome controls in Angular.
-
-### 5.12 DevPanelScene
-
-Allowed side-effects:
-
-- `GET /api/v1/debug/catalog`
-- `POST /api/v1/debug/grant/currency`
-- `POST /api/v1/debug/grant/unit`
-- `POST /api/v1/debug/grant/dice`
-- `POST /api/v1/debug/grant/region-item`
-- `POST /api/v1/debug/reset-account`
-
-Behavior:
-
-- debug-only operator surface gated by environment flag
-- supports grant and reset flows for local verification/UAT
-- reflects current profile counts after mutations
-
-Current Angular equivalent:
-
-- `/debug` route and `DebugPageComponent`.
-
-### 5.13 ShopScene
-
-Allowed side-effects:
-
-- `GET /api/v1/shop`
-- `POST /api/v1/shop/purchase`
-
-Behavior:
-
-- exposes between-run currency spending for common d4-d10 dice and Tier 1 units
-- shows a server-day daily deal that persists until the next day or until purchased
-- returns to `HomeScene` through a dedicated back action
-
-Current Angular equivalent:
-
-- `/shop` route and `ShopPageComponent`.
-
-## 6. Implemented Legacy Transition Matrix
-
-- `BootScene -> PreloadScene`
-- `PreloadScene -> HomeScene` (authed)
-- `PreloadScene -> LandingScene` (not authed)
-- `LandingScene -> HomeScene` (continue path when authed)
-- `HomeScene -> RegionSelectScene`
-- `HomeScene -> WarbandManagementScene`
-- `HomeScene -> DiceInventoryScene`
-- `HomeScene -> ShopScene`
-- `RegionSelectScene -> MapExplorationScene`
-- `WarbandManagementScene -> HomeScene` (home button)
-- `WarbandManagementScene -> UnitDetailsScene`
-- `WarbandManagementScene -> SquadDetailsScene`
-- `UnitDetailsScene -> DiceInventoryScene` (returnable)
-- `UnitDetailsScene -> WarbandManagementScene`
-- `SquadDetailsScene -> WarbandManagementScene`
-- `DiceInventoryScene -> HomeScene` (home button)
-- `MapExplorationScene -> HomeScene` (home button)
-- `MapExplorationScene -> RestManagementScene`
-- `MapExplorationScene -> NodeResolutionScene` (`combat|loot|boss|exit`)
-- `MapExplorationScene -> RunEndSummaryScene` (abandon and terminal state)
-- `NodeResolutionScene -> MapExplorationScene` (non-terminal outcome)
-- `NodeResolutionScene -> RunEndSummaryScene` (terminal outcome)
-- `RunEndSummaryScene -> HomeScene`
-- `ShopScene -> HomeScene`
-- `HomeScene -> DevPanelScene` (debug-only)
-
-## 7. Migration Use
-
-When implementing Angular pages, use this document to preserve legacy behavior and route parity. Do not treat Phaser scenes as the preferred implementation unit for new UI unless the Angular frontend architecture plan explicitly assigns that surface to Phaser.
+- Rich battle playback presentation is the main remaining frontend depth gap.
+- Node resolution still owns the outcome contract either way, so battle playback should remain an embedded concern rather than a separate application shell.

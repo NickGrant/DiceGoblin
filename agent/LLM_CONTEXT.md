@@ -28,7 +28,6 @@
 - `frontend/dist/`
 - `frontend/node_modules/`
 - `raw-assets/`
-- `documentation/archive/`
 - `agent/ROLE_CLARIFICATION.md` (log file; load only when explicitly requested)
 - binary assets (`*.jpg`, `*.png`, audio/video files)
 - generated bundles, maps, and lock output not relevant to the task

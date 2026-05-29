@@ -46,6 +46,41 @@ These colors are layout/debug references only, not canonical UI art palette toke
   - right: Logout action, player name
 - Non-home scenes keep the shared dual-zone framing pattern (`content` + `buttons`) above the bottom strip.
 
+## Shared Component Inventory
+Shared layout/system components:
+- Home navigation panel
+- Bottom command strip
+- Section title bar
+- Content area frame
+- List container
+- Name/link list
+- Grid list
+- Formation grid
+- Generic action button
+- Accept button
+- Reject button
+- Confirmation dialog
+- Toast/status feedback
+- Tooltip
+- Rest summary panel
+- Run-end summary panel
+
+Run flow components:
+- Region selection card
+- Run map graph surface
+- Run node visual
+- Run node-edge/unlock indicator
+- Run action list
+
+## Shared Interaction Rules
+- List surfaces should normalize `loading`, `ready`, `empty`, and `error` states.
+- Accept and Reject actions should be semantic variants of the same shared button behavior.
+- Authenticated screens should keep the shared shell treatment consistent even when page content changes.
+- Region selection should preserve inline feedback when a start action is blocked or fails.
+- Run map invalid payloads should fail into a readable page-level fallback rather than silently breaking.
+- Unknown node or icon variants should render a generic fallback instead of an empty surface.
+- Invalid formation placements should be blocked with immediate user feedback.
+
 ## Implementation Notes
 - Use `getPageLayout(scene)` to derive canonical content and bottom-strip bounds.
 - Bottom strip must be anchored to screen bottom edges on resize.

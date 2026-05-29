@@ -3,49 +3,55 @@
 Status: active  
 Last Updated: 2026-05-29  
 Owner: Frontend  
-Depends On: `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/01-architecture/06-angular-component-service-inventory.md`, `documentation/07-ux-rebuild/01-all-up-component-list.md`
+Depends On: `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/01-architecture/06-angular-component-service-inventory.md`, `documentation/03-ux/08-page-layout-zones.md`
 
 ## Purpose
 
-This document defines the active Angular frontend architecture for Dice Goblins and the remaining boundaries where Phaser may still be useful.
+This document defines the active Angular frontend architecture for Dice Goblins and the narrow situations where Phaser still makes sense.
 
-The PHP API remains the source of truth for session, profile, run, battle, shop, squad, unit, dice, reward, and debug state.
+The PHP API is the source of truth for session, profile, run, battle, shop, squad, unit, dice, reward, and debug state.
 
-## Current Position
+## Frontend Ownership
 
-The active frontend is the Angular application in `frontend/`, which owns the authenticated shell, login route, home route, region route, warband route, dice route, shop route, debug route, run map, node resolution, rest flow, and run summary.
+The active frontend is the Angular application in `frontend/`.
 
-Angular now owns application flow, routing, data orchestration, forms, lists, dialogs, accessibility, and persistent shell UI.
+Angular owns:
+
+- authenticated and unauthenticated shell flow
+- login, home, region, warband, dice, shop, debug, run map, node resolution, rest, and run summary routes
+- routing and navigation
+- forms, lists, dialogs, HUD, and ordinary page composition
+- API orchestration and state facades
 
 ## Ownership Boundary
 
 Angular owns:
 
 - application routing and page navigation
-- startup/session checks
+- startup and session checks
 - persistent app shell and page layout
 - API orchestration and state facades
 - menus and management views
-- forms, validation, dialogs, toasts, and loading/error states
+- forms, validation, dialogs, toasts, and loading or error states
 - reusable UI components
 - accessible keyboard navigation and focus management
-- debug/operator panels that do not require canvas rendering
+- debug and operator panels that do not require canvas rendering
 
-Phaser is retained for:
+Phaser is reserved for:
 
-- future combat playback and battle visualization if reintroduced
-- future sprite-heavy board or grid rendering if a canvas surface becomes justified
-- deterministic screenshot/capture workflows for explicitly Phaser-hosted surfaces
+- battle playback and battle visualization if reintroduced
+- sprite-heavy board or grid rendering if a canvas surface becomes justified
+- deterministic screenshot or capture workflows for explicitly Phaser-hosted surfaces
 
-Phaser does not own ordinary page composition, CRUD-style management UI, modal forms, list/grid browsing, or primary routing in the active frontend.
+Phaser does not own ordinary page composition, CRUD-style management UI, modal forms, list browsing, or primary routing.
 
-## Proposed Angular Layers
+## Angular Layers
 
 ### App Shell
 
 The shell wraps all authenticated and unauthenticated pages.
 
-Likely Angular pieces:
+Likely pieces:
 
 - `AppComponent`
 - `AppShellComponent`
@@ -60,7 +66,7 @@ Likely Angular pieces:
 
 ### API and State Layer
 
-The existing monolithic frontend API client should become smaller domain services and route-facing facades.
+The frontend uses domain services and route-facing facades instead of one oversized API client.
 
 Core services:
 
@@ -100,31 +106,31 @@ Facades expose view-ready state and commands. Components should not assemble raw
 
 Active Angular routes:
 
-- `/login` -> landing/login
-- `/home` -> home navigation
-- `/regions` -> region selection
-- `/run/map` -> run map
-- `/run/node/:nodeId` -> node resolution shell
-- `/run/rest/:nodeId` -> rest management
-- `/run/summary` -> run end summary
-- `/warband` -> warband management
-- `/warband/squads/:squadId` -> squad details
-- `/warband/units/:unitId` -> unit details
-- `/dice` -> dice inventory
-- `/shop` -> shop
-- `/debug` -> debug panel, environment-gated
+- `/login`
+- `/home`
+- `/regions`
+- `/run/map`
+- `/run/node/:nodeId`
+- `/run/rest/:nodeId`
+- `/run/summary`
+- `/warband`
+- `/warband/squads/:squadId`
+- `/warband/units/:unitId`
+- `/dice`
+- `/shop`
+- `/debug`
 
 Angular route names describe player intent rather than engine scenes.
 
 ## Phaser Integration Model
 
-Angular should own the lifecycle of Phaser instances. Phaser should be mounted inside explicit Angular host components rather than instantiated as the entire app.
+Angular owns the lifecycle of Phaser instances. Phaser mounts inside explicit Angular host components rather than booting the entire app.
 
 Recommended hosts:
 
 - `PhaserCanvasHostComponent`
 - `CombatPlaybackHostComponent`
-- `RunMapCanvasHostComponent`, only if map rendering stays canvas-based
+- `RunMapCanvasHostComponent`, only if map rendering becomes canvas-based
 - `SceneCaptureHostComponent`, debug-only if needed
 
 Recommended bridge services:
@@ -132,64 +138,27 @@ Recommended bridge services:
 - `PhaserGameFactoryService`
 - `PhaserEventBridgeService`
 - `BattlePlaybackBridgeService`
-- `RunMapBridgeService`, only if the run map remains canvas-based
+- `RunMapBridgeService`, only if the run map becomes canvas-based
 
-The host should create a Phaser instance when mounted, destroy it when the route/component is removed, pass immutable input snapshots into Phaser, and receive Phaser events through a small bridge.
+The host should create a Phaser instance when mounted, destroy it when the route or component is removed, pass immutable input snapshots into Phaser, and receive Phaser events through a small bridge.
 
-## Current Delivery State
+## Practical Retention Rule
 
-Completed:
+Keep Phaser only when a surface benefits materially from canvas rendering.
 
-1. Angular application shell and authenticated HUD layout.
-2. Route coverage for login, home, regions, warband, unit details, squad details, dice, shop, run map, node resolution, rest, run summary, and debug.
-3. Angular-owned services for session, profile, run, rest, shop, unit, dice, squad, and debug flows.
-4. Angular DOM/SVG run-map rendering.
-5. Region progression coverage for Farm, Mountains, and Swamps.
+The strongest current candidate is:
 
-Still open:
+- battle playback inside node resolution
 
-1. Rich battle playback/presentation inside node resolution.
-2. Optional Angular-specific screenshot/review workflow if additional route-level tooling is needed.
+Everything else in the current app belongs in Angular first.
 
-## Recommended Phaser Retention Decision
-
-Keep Phaser for:
-
-- battle/combat playback
-- battle log timeline visualization
-- animated grid/unit positioning
-- sprite-heavy effects
-- deterministic visual capture while still useful
-
-Angular already owns:
-
-- run map graph surface
-- encounter node action routing
-- management, inventory, and summary surfaces
-
-Move to Angular:
-
-- landing/login
-- home
-- region selection
-- warband management
-- squad details
-- unit details
-- dice inventory
-- rest management
-- run end summary
-- shop
-- dev/debug panel
-- modals, confirmations, toasts, list/grid shells, and command strips
-
-## Risks
+## Architecture Risks
 
 - Duplicating state between Angular and Phaser can create stale UI.
-- Reusing current Phaser component names directly in Angular can preserve poor boundaries.
-- Canvas-hosted views need explicit teardown to avoid duplicate Phaser games and leaked listeners.
+- Reusing old scene vocabulary inside Angular components can preserve weak boundaries.
+- Canvas-hosted views need explicit teardown to avoid duplicate Phaser instances and leaked listeners.
 
-## Open Decisions
+## Scope Note
 
-- Whether battle playback should be a standalone route, embedded node panel, or Phaser host inside the current node resolution page.
-- Whether Angular state should stay on signals plus thin services or move toward fuller route facades.
-- Whether screenshot capture should gain Angular route-specific support.
+- Angular owns the active game shell and route set today.
+- Rich battle playback remains the main open presentation refinement area.

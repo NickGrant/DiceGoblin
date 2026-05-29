@@ -89,6 +89,25 @@ Interaction language:
 - buttons should feel mechanically decisive (pressed/slammed)
 - status changes should feel procedural and official
 
+## Shared Shell Treatment
+- Global page background should use the paper texture family.
+- Major section title bars should use the red texture family.
+- The authenticated shell should keep one persistent bottom command strip with distinct left and right segments.
+- Left strip segment should prioritize primary utility links and energy.
+- Right strip segment should prioritize player identity and logout/exit action.
+
+## Iconography Direction
+- Icons should read as stencil-signage marks at small sizes.
+- Keep forms bold, simple, and procedural.
+- Encounter node icons should remain visually consistent as one family across combat, loot, rest, boss, and exit states.
+- Resource icon families should remain internally consistent across sizes and HUD contexts.
+
+## Asset Pipeline Rules
+- Source art lane: `raw-assets/`
+- Runtime UI lane: `frontend/public/assets/ui/`
+- Runtime logic should bind only to runtime asset paths and registered keys, not raw source paths.
+- Reuse shared textures, frames, and icon families before introducing one-off motif assets.
+
 ## Negative Constraints
 Do not introduce:
 - cute characters, cartoon faces, mascots
@@ -99,6 +118,19 @@ Do not introduce:
 - soft toy-like proportions
 - scrapbook whimsy
 - photorealistic 3D rendered look
+
+## Practical Do / Don't
+### Do
+- Keep silhouettes strong and modular.
+- Prioritize tactical readability over decorative density.
+- Keep distress clustered on edges and corners, not over labels and controls.
+- Favor registry-like rows, panels, and command surfaces over playful card treatments.
+
+### Don't
+- Mix unrelated visual themes between screens.
+- Over-distress controls until labels become hard to read.
+- Introduce cute mascot-like or toy-like presentation.
+- Depend on ad hoc assets when an existing shared family can cover the need.
 
 ## Scene/Application Guidance
 - Preserve strong hierarchy and practical readability over decoration.

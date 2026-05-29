@@ -2,43 +2,80 @@
 ----
 
 Status: active
-Last Updated: 2026-03-08
+Last Updated: 2026-05-29
 Owner: Product + UX
 Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/03-ux/03-encounter-flow-transition-matrix.md`
 
 ## Purpose
+
 - Define the canonical first-session path from login to first completed run.
-- Align onboarding, scene transitions, and feedback expectations across UX and implementation.
+- Keep onboarding, objective framing, and first-run feedback aligned.
+
+## Onboarding Goal
+
+A new player should quickly understand:
+
+- what they are trying to do
+- where to prepare their squad
+- how a run progresses
+- why rewards and progression matter
+
+The first-session objective is simple:
+
+- start and finish a run
 
 ## Journey Stages
-1. Session bootstrap (`LandingScene`)
-- Show clear CTA to continue/start.
-- On success, route to `HomeScene`.
 
-2. Home orientation (`HomeScene`)
-- User sees three primary choices: `Start/Continue Run`, `Manage Warband`, `Manage Inventory`.
-- A persistent bottom command strip is visible:
-  - left segment: `Manage Warband`, `Manage Dice`, current energy level
-  - right segment: `Logout`, player name
+### 1. Login
 
-3. Pre-run setup (`WarbandManagementScene` and `SquadDetailsScene`)
+- Show one clear continue or sign-in action.
+- If the player is already authenticated, route directly into the app.
+
+### 2. Home Orientation
+
+- Make the primary run action the most obvious choice.
+- Show that warband and dice management exist as preparation surfaces.
+- Reinforce that energy and currency are persistent resources.
+
+Suggested framing:
+
+- primary objective: start or continue a run
+- secondary objective: adjust squad and dice before committing
+
+### 3. Warband Preparation
+
 - Player confirms at least one usable squad.
-- If composition changes are made, success/failure feedback is shown immediately.
+- Squad purpose should be explained plainly: squads determine who enters a run and where they start.
+- Success or failure feedback should be immediate after edits.
 
-4. Run start (`RegionSelectScene`)
-- Player selects region and gets immediate blocked feedback if unavailable.
-- Successful run start routes to `MapExplorationScene`.
+### 4. Region Selection
 
-5. Run progression (`MapExplorationScene` -> `NodeResolutionScene`/`RestManagementScene`)
-- Player chooses nodes and sees clear unlock path progression.
-- Non-rest nodes resolve through `NodeResolutionScene`.
-- Rest nodes allow roster and progression adjustments.
+- Player chooses an unlocked region.
+- Locked-region feedback should explain why the region is blocked and what unlocks it.
+- Region choice should imply differences in encounter tone or pacing without overwhelming detail.
 
-6. Run closure (`RunEndSummaryScene`)
-- Show outcome, rewards, progression, survivors/defeated units.
-- Continue routes back to `HomeScene`.
+### 5. Run Progression
+
+- Player chooses available nodes and sees clear path progression.
+- Map affordances should explain:
+  - rest means management and recovery
+  - other nodes mean encounter resolution
+- Node previews should help decision-making without revealing exact outcomes.
+
+### 6. Run Closure
+
+- Show outcome, rewards, progression, and squad impact.
+- Return the player to home with a clear sense of what improved and what to do next.
+
+## Messaging Rules
+
+- Do not rely on hidden rules or external knowledge at critical moments.
+- Blocked states should always explain the next step.
+- Objective framing should stay short and action-oriented.
+- The player should always know whether they are preparing, resolving, or collecting outcomes.
 
 ## First-Session Success Criteria
-- User can reach first run completion without leaving game flow.
-- Every blocking state includes explicit feedback and next-step clarity.
-- Core loop value is visible: decision -> encounter -> outcome -> progression.
+
+- The player can reach first run completion without leaving the main game flow.
+- Every blocking state includes clear feedback.
+- The value of the loop is visible: prepare -> choose -> resolve -> progress -> repeat.

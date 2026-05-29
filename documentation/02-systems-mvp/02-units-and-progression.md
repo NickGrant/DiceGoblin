@@ -113,7 +113,7 @@ Eligibility rule:
 ## 9. Naming Rules
 
 - Units receive generated names when created.
-- Players may rename units from `UnitDetailsScene`.
+- Players may rename units from the unit-details screen.
 - Duplicate names are allowed.
 - Names are not referenced by combat, persistence, promotion, or API identity rules.
 

@@ -3,33 +3,32 @@
 Status: active  
 Last Updated: 2026-05-29  
 Owner: Frontend  
-Depends On: `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/07-ux-rebuild/01-all-up-component-list.md`
+Depends On: `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/03-ux/08-page-layout-zones.md`
 
 ## Purpose
 
-This inventory describes the active Angular frontend component and service map, plus the remaining optional Phaser reintegration points.
+This inventory describes the active Angular frontend component and service map, plus the optional Phaser host points that still make sense.
 
-This is an architecture inventory only. It does not require final visual styling.
+This is an architecture inventory only. It does not define final visual styling.
 
-## Existing Phaser Scene Disposition
+## Route Ownership Inventory
 
-| Current Phaser scene | Target owner | Angular route/component target | Phaser retained? | Notes |
+| Player Surface | Owner | Angular route/component target | Phaser retained? | Notes |
 |---|---|---|---|---|
-| `BootScene` | Angular | startup/session initializer | No | Replace with app initialization and route guards. |
-| `PreloadScene` | Angular + asset services | preload/splash state in shell | Partial | Keep Phaser asset loading only for Phaser-hosted experiences. |
-| `LandingScene` | Angular | `/login`, `LandingPageComponent` | No | OAuth/login page is normal DOM UI. |
-| `HomeScene` | Angular | `/home`, `HomePageComponent` | No | Navigation cards and HUD should be Angular components. |
-| `RegionSelectScene` | Angular | `/regions`, `RegionsPageComponent` | No | Region cards and run start actions are DOM UI. |
-| `MapExplorationScene` | Angular initially | `/run/map`, `RunMapPageComponent` | Maybe | Prefer Angular/SVG first; use Phaser only if animation/pan complexity requires it. |
-| `NodeResolutionScene` | Angular shell + Phaser playback | `/run/node/:nodeId`, `RunNodePageComponent` | Yes, for battle playback | Outcome panels are Angular; battle playback can be Phaser-hosted. |
-| `RestManagementScene` | Angular | `/run/rest/:nodeId`, `RunRestPageComponent` | No | Form/list/formation management should be Angular. |
-| `RunEndSummaryScene` | Angular | `/run/summary`, `RunSummaryPageComponent` | No | Summary/reward results are DOM UI. |
-| `WarbandManagementScene` | Angular | `/warband`, `WarbandPageComponent` | No | List/grid management should be Angular. |
-| `SquadDetailsScene` | Angular | `/warband/squads/:squadId`, `SquadDetailsPageComponent` | No | Formation grid is feasible as DOM grid. |
-| `UnitDetailsScene` | Angular | `/warband/units/:unitId`, `UnitDetailsPageComponent` | No | Details, promotion, equip navigation are Angular UI. |
-| `DiceInventoryScene` | Angular | `/dice`, `DicePageComponent` | No | Dice grid/filter/actions are Angular UI. |
-| `ShopScene` | Angular | `/shop`, `ShopPageComponent` | No | Catalog and purchase UI are Angular. |
-| `DevPanelScene` | Angular | `/debug`, `DebugPageComponent` | No | Debug operator actions do not need canvas. |
+| Startup and session bootstrap | Angular | app initialization, session services, route guards | No | Startup flow is app-owned. |
+| Login | Angular | `/login`, `LandingPageComponent` | No | Ordinary DOM UI. |
+| Home | Angular | `/home`, `HomePageComponent` | No | Navigation cards and HUD are Angular components. |
+| Region selection | Angular | `/regions`, `RegionsPageComponent` | No | Region cards and run start actions are DOM UI. |
+| Run map | Angular | `/run/map`, `RunMapPageComponent` | Maybe | Prefer Angular/SVG first; use Phaser only if animation or pan complexity justifies it. |
+| Node resolution | Angular shell + optional Phaser playback | `/run/node/:nodeId`, `RunNodePageComponent` | Yes, if battle playback returns | Outcome panels are Angular; battle playback can be Phaser-hosted. |
+| Rest management | Angular | `/run/rest/:nodeId`, `RunRestPageComponent` | No | Form, list, and formation management stay Angular. |
+| Run summary | Angular | `/run/summary`, `RunSummaryPageComponent` | No | Summary and reward results are DOM UI. |
+| Warband hub | Angular | `/warband`, `WarbandPageComponent` | No | List and grid management stay Angular. |
+| Squad details | Angular | `/warband/squads/:squadId`, `SquadDetailsPageComponent` | No | Formation grid is a DOM grid. |
+| Unit details | Angular | `/warband/units/:unitId`, `UnitDetailsPageComponent` | No | Details, promotion, and equip navigation are Angular UI. |
+| Dice inventory | Angular | `/dice`, `DicePageComponent` | No | Dice grid and actions are Angular UI. |
+| Shop | Angular | `/shop`, `ShopPageComponent` | No | Catalog and purchase UI are Angular. |
+| Debug panel | Angular | `/debug`, `DebugPageComponent` | No | Debug operator actions do not need canvas. |
 
 ## Angular Shared Layout Components
 
@@ -37,13 +36,13 @@ This is an architecture inventory only. It does not require final visual styling
 - `GameShellComponent`: authenticated game frame.
 - `AuthShellComponent`: unauthenticated frame.
 - `PageFrameComponent`: title, subtitle, content area, and background treatment.
-- `ContentAreaFrameComponent`: Angular replacement for Phaser content area frame.
-- `SectionTitleBarComponent`: title/subtitle header.
+- `ContentAreaFrameComponent`: shared framed content surface.
+- `SectionTitleBarComponent`: title and subtitle header.
 - `BottomCommandStripComponent`: persistent command region.
 - `HudComponent`: top-level HUD composition.
 - `HomeButtonComponent`: persistent home navigation.
 - `EnergyIndicatorComponent`: energy display and regen hint.
-- `CurrencyIndicatorComponent`: teeth/currency display.
+- `CurrencyIndicatorComponent`: currency display.
 - `LoadingStateComponent`: consistent pending state.
 - `ErrorStateComponent`: retryable error state.
 - `EmptyStateComponent`: no-data state.
@@ -51,9 +50,9 @@ This is an architecture inventory only. It does not require final visual styling
 ## Angular Feedback Components
 
 - `ActionButtonComponent`: generic action button.
-- `AcceptButtonComponent`: accept/confirm action variant.
-- `RejectButtonComponent`: reject/cancel action variant.
-- `ConfirmationDialogComponent`: accept/reject confirmation pattern.
+- `AcceptButtonComponent`: accept or confirm action variant.
+- `RejectButtonComponent`: reject or cancel action variant.
+- `ConfirmationDialogComponent`: accept or reject confirmation pattern.
 - `InputDialogComponent`: text entry modal pattern.
 - `ToastComponent`: transient status feedback.
 - `TooltipComponent`: contextual help.
@@ -61,32 +60,32 @@ This is an architecture inventory only. It does not require final visual styling
 
 ## Angular List and Card Components
 
-- `ListContainerComponent`: loading/empty/error/content shell.
+- `ListContainerComponent`: loading, empty, error, and content shell.
 - `NameLinkListComponent`: squads and similar simple row links.
 - `GridListComponent`: generic card-grid shell.
 - `UnitCardComponent`: unit summary card.
 - `UnitGridComponent`: unit cards with selection state.
 - `DiceCardComponent`: dice summary card.
-- `DiceGridComponent`: dice cards with selection/filter state.
+- `DiceGridComponent`: dice cards with selection or filter state.
 - `SquadListComponent`: squad list and active state.
 - `RegionCardComponent`: region selection card.
 - `ShopProductCardComponent`: shop item purchase card.
 
 ## Angular Game-Domain Components
 
-- `HomeNavigationPanelComponent`: start/continue, warband, inventory, shop navigation.
+- `HomeNavigationPanelComponent`: start or continue, warband, inventory, and shop navigation.
 - `RegionSelectionPanelComponent`: region availability and start-run call to action.
 - `RunMapComponent`: current run graph surface.
-- `RunNodeComponent`: combat/loot/rest/boss/exit node visual.
-- `RunEdgeComponent`: path/unlock indicator if map is DOM/SVG.
-- `RunActionListComponent`: abandon/refresh/continue actions.
-- `FormationGridComponent`: 3x3 formation editor/viewer.
+- `RunNodeComponent`: combat, loot, rest, boss, and exit node visual.
+- `RunEdgeComponent`: path or unlock indicator when the map is DOM or SVG.
+- `RunActionListComponent`: abandon, refresh, and continue actions.
+- `FormationGridComponent`: 3x3 formation editor or viewer.
 - `FormationCellComponent`: individual formation slot.
-- `PromotionSelectionComponent`: primary/secondary promotion controls.
+- `PromotionSelectionComponent`: promotion controls.
 - `RestSummaryPanelComponent`: rest state summary.
-- `RunEndSummaryPanelComponent`: end-of-run rewards/outcome.
+- `RunEndSummaryPanelComponent`: end-of-run rewards and outcome.
 - `BattleOutcomePanelComponent`: battle result, rewards, and claim actions.
-- `BattleTimelineControlsComponent`: play/pause/step/speed/skip controls.
+- `BattleTimelineControlsComponent`: play, pause, step, speed, and skip controls.
 
 ## Phaser Host Components
 
@@ -113,10 +112,10 @@ This is an architecture inventory only. It does not require final visual styling
 
 ## Core Services
 
-- `ApiHttpService`: shared HTTP/envelope handling.
+- `ApiHttpService`: shared HTTP and envelope handling.
 - `SessionService`: session bootstrap and logout.
 - `ProfileService`: profile retrieval, refresh, and cache invalidation.
-- `RunService`: current run, create run, abandon run, exit run.
+- `RunService`: current run, create run, abandon run, and exit run.
 - `NodeResolutionService`: resolve non-rest nodes and normalize outcomes.
 - `BattleService`: battle log and claim operations.
 - `SquadService`: create, update, activate, and delete squads.
@@ -124,7 +123,7 @@ This is an architecture inventory only. It does not require final visual styling
 - `DiceService`: inventory, equip, unequip, mutation, and sell commands.
 - `ShopService`: shop catalog and purchase commands.
 - `RestService`: open, update, and finalize rest state.
-- `DebugService`: local debug catalog/grant/reset operations.
+- `DebugService`: local debug catalog, grant, and reset operations.
 - `AssetUrlService`: central browser asset path handling.
 - `NavigationIntentService`: maps domain events to route transitions.
 
@@ -149,9 +148,9 @@ This is an architecture inventory only. It does not require final visual styling
 - `PhaserGameFactoryService`: creates configured Phaser game instances for host components.
 - `PhaserEventBridgeService`: typed event bridge between Angular and Phaser.
 - `BattlePlaybackBridgeService`: converts battle logs into renderer-friendly playback snapshots and commands.
-- `RunMapBridgeService`: optional adapter if the run map remains Phaser-rendered.
+- `RunMapBridgeService`: optional adapter if the run map becomes Phaser-rendered.
 
-## Recommended Initial Angular Module/Folder Shape
+## Recommended Initial Angular Module or Folder Shape
 
 ```text
 frontend/src/app/
@@ -183,17 +182,7 @@ frontend/src/app/
     scenes/
 ```
 
-## Current Implementation Notes
+## Scope Note
 
-Implemented now:
-
-1. Angular app bootstraps successfully.
-2. Router provides the active gameplay and management route set, not placeholder pages.
-3. App shell renders the active persistent HUD and page frame.
-4. API services preserve current base URL and credential behavior.
-5. No Phaser-owned route exists in the active Angular app.
-
-Still not complete:
-
-- Full battle playback migration.
-- Final state-management library decision beyond keeping services and page-owned state as the public page boundary.
+- The Angular route, shell, and management surfaces are the active frontend.
+- Rich battle playback remains the main optional Phaser reintegration point.

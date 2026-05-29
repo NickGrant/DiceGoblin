@@ -1,15 +1,15 @@
 # Dice Goblins
 
-Dice Goblins is a browser-based tactical RPG/roguelite prototype built with an Angular application shell, selective Phaser retention for canvas-owned experiences, and a PHP API backend.
+Dice Goblins is a browser-based tactical RPG/roguelite prototype built with an Angular frontend and a PHP API backend.
 
 ## Tech Stack
-- Frontend: Angular 20, TypeScript, Bootstrap grid/utilities, Phaser 3 for retained canvas surfaces
+- Frontend: Angular 20, TypeScript, Bootstrap grid/utilities, Phaser 3 only for optional canvas-hosted playback surfaces
 - Backend: PHP 8.3 (built-in server)
 - Database: MySQL 8.4
 - Local orchestration: Docker Compose
 
 ## Repository Layout
-- `frontend/` Angular frontend shell and future Phaser host surfaces
+- `frontend/` Angular frontend application
 - `backend/` PHP API, repositories, services, and migrations
 - `documentation/` game design, architecture, systems, and UX docs
 - `agent/` agent workflow, backlog, role, and evaluation docs

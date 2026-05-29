@@ -32,9 +32,8 @@ body {
   font-family: 'IBM Plex Sans Condensed', 'Roboto Condensed', Arial, sans-serif;
   color: var(--dg-charcoal);
   background:
-    linear-gradient(rgba(35, 39, 42, 0.2), rgba(35, 39, 42, 0.2)),
+    linear-gradient(rgba(35, 39, 42, 0.1), rgba(35, 39, 42, 0.5)),
     url('/assets/ui/textures/paper.png');
-  background-size: 320px 320px;
 }
 
 h1,

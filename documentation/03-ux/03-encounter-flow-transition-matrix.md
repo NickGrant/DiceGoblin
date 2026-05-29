@@ -1,102 +1,132 @@
-# Encounter Flow Transition Matrix - MVP
+# Run, Encounter, Rest, and Summary UX Contract
 ----
 
 Status: active  
-Last Updated: 2026-03-07  
+Last Updated: 2026-05-29  
 Owner: Product + Frontend  
-Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/02-systems-mvp/03-encounter-scope.md`
+Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
 
 ## Purpose
-- Define the canonical encounter flow from Run Map through encounter resolution and return.
-- Make allowed and blocked transitions explicit for each encounter type.
-- Provide acceptance criteria that implementation and QA can validate against.
 
-## States
-- `RunMap`: map exploration and node selection.
-- `NodeResolution` (implemented): unified non-rest node resolution and outcome surface.
-- `EncounterStart` (planned): pre-encounter summary/confirmation surface.
-- `CombatViewer` (planned): combat log playback surface.
-- `RewardSurface` (planned): claim and summary surface.
-- `RestManagement` (implemented): rest edit/finalize management surface.
-- `RunEnd` (implemented): end-of-run summary surface for failed/abandoned/completed outcomes.
+- Define the canonical player flow during an active run.
+- Keep run map, node resolution, rest, and run-end behavior in one place.
+- Document the preview, reward, failure, and recovery expectations that shape the run experience.
+
+## Active Run Surfaces
+
+- Run map:
+  - choose the next available node
+- Node resolution:
+  - resolve combat, boss, loot, and exit nodes
+- Rest management:
+  - handle the run-scoped rest workflow
+- Run summary:
+  - present completed, failed, or abandoned outcomes
 
 ## Transition Matrix
+
 | From | Trigger | To | Allowed | Notes |
 | --- | --- | --- | --- | --- |
-| RunMap | Click `available` node (`combat`) | NodeResolution | yes | Uses unified non-rest resolution scene. |
-| RunMap | Click `available` node (`boss`) | NodeResolution | yes | Same routing path as combat with boss metadata. |
-| RunMap | Click `available` node (`loot`) | NodeResolution | yes | Non-combat resolve path handled by unified scene. |
-| RunMap | Click `available` node (`rest`) | RestManagement | yes | Rest opens dedicated management scene. |
-| RunMap | Click `available` node (`exit`) | NodeResolution | yes | Unified scene calls exit endpoint and branches to summary. |
-| RunMap | Click `locked` node | RunMap | blocked | No API mutation allowed. |
-| RunMap | Click `cleared` node | RunMap | blocked | Optional replay affordance only, no progression mutation. |
-| NodeResolution | Non-terminal resolve outcome | RunMap | yes | Returns to map with resolution feedback message. |
-| NodeResolution | Terminal resolve/exit outcome | RunEnd | yes | Opens shared run-end summary shell. |
-| EncounterStart | Confirm start | CombatViewer | yes | Applies to combat/boss nodes only. |
-| EncounterStart | Cancel | RunMap | yes | Node remains `available`. |
-| CombatViewer | Resolve complete | RewardSurface | yes | Uses stored server outcome/log only. |
-| CombatViewer | Skip/exit before completion | CombatViewer | blocked | No early exit to prevent state ambiguity. |
-| RewardSurface | Claim complete and node victory/non-combat | RunMap | yes | Node becomes `cleared`; unlock check runs. |
-| RewardSurface | Claim boss victory | RunMap | yes | Boss node clears and unlocks path to exit node. |
-| RewardSurface | Claim complete with combat/boss defeat | RunEnd | yes | Any defeat is terminal for current MVP behavior; run status becomes `failed`. |
-| RestManagement | Finalize rest | RunMap | yes | Shows per-unit rest summary before return. |
-| RestManagement | Cancel rest edits | RunMap | yes | No rest consumption, no mutations persisted. |
-| RunMap | Abandon run action | RunEnd | yes | Run status becomes `abandoned`. |
-| RunEnd | Continue | Home/RegionSelect | yes | No return to active run. |
+| Run map | Click available `combat` node | Node resolution | yes | Unified non-rest route. |
+| Run map | Click available `boss` node | Node resolution | yes | Same route with boss metadata. |
+| Run map | Click available `loot` node | Node resolution | yes | Non-combat outcome surface. |
+| Run map | Click available `rest` node | Rest management | yes | Dedicated rest workflow. |
+| Run map | Click available `exit` node | Node resolution | yes | Exit resolves then branches to summary. |
+| Run map | Click locked node | Run map | blocked | No mutation allowed. |
+| Run map | Click cleared node | Run map | blocked | Cleared nodes are informational only. |
+| Node resolution | Non-terminal outcome | Run map | yes | Return to map with feedback. |
+| Node resolution | Terminal outcome | Run summary | yes | Shared terminal shell. |
+| Rest management | Finalize rest | Run map | yes | Apply backend-authoritative updates and return. |
+| Rest management | Cancel rest edits | Run map | yes | No rest consumption. |
+| Run map | Abandon run | Run summary | yes | Requires explicit confirmation. |
+| Run summary | Continue | Home | yes | Active run is over. |
 
-## Blocked Transition Rules
-- No direct `RunMap -> CombatViewer` transition; encounter start gate is required for combat/boss.
-- Non-rest nodes route through `NodeResolution` before any terminal branching.
-- No `CombatViewer -> RunMap` before resolution payload is finalized.
-- No mutation calls on `locked`/`cleared` node interactions.
-- No direct `RunMap -> RunEnd` via exit until boss path is unlocked.
-- No post-claim return to an active run after terminal `failed`/`abandoned`/`completed` outcome.
+## Run Map Contract
 
-## Node-Type Acceptance Criteria
+The run map must communicate:
 
-### Combat
-- Selecting an `available` combat node enters `NodeResolution`.
-- On victory, node status becomes `cleared` and downstream unlock checks execute.
-- On any defeat, run transitions immediately to `failed` terminal state.
+- node type
+- node status: locked, available, or cleared
+- unlock paths
+- current warband condition
+- distinct exit-node treatment
 
-### Boss
-- Follows combat transition rules through `NodeResolution`.
-- Uses boss encounter metadata/presentation and boss reward profile in reward surface.
+The map should also provide a compact preview surface for actionable nodes.
 
-### Loot
-- Selecting an `available` loot node resolves through `NodeResolution`.
-- Resolution completes node as `cleared` and returns to Run Map when non-terminal.
-- No combat replay controls are shown.
+Preview content should communicate:
 
-### Rest
-- Selecting an `available` rest node opens `RestManagement`.
-- Rest management supports out-of-run actions in one place:
-  - squad/formation edits,
-  - promotion from unit details,
-  - dice equip/unequip.
-- Finalize shows summary of healed units and progression deltas (level/promotion), then returns to Run Map.
+- node type
+- qualitative risk
+- qualitative reward intent
+- unlock-path relationship when useful
 
-### Exit
-- Exit node is always map-visible and uses a visually distinct presentation.
-- Exit node remains unreachable until boss path is unlocked.
-- Selecting unlocked exit transitions through `NodeResolution` and then opens `RunEnd` summary shell.
+Preview content should not expose:
 
-### RunEnd Summary
-- Uses one shared shell for completed, failed, and abandoned outcomes with outcome-specific messaging.
-- Summary content includes:
-  - rewards,
-  - XP/level progression,
-  - surviving/defeated unit breakdown.
-- Summary does not include recommendations/next-step prompts.
+- exact combat outcomes
+- exact loot rolls
+- hidden unrevealed future state
 
-## Contract Checks
-- `GET /api/v1/runs/current` must provide node statuses that match UI affordances (`locked|available|cleared`).
-- `POST /api/v1/runs/:runId/nodes/:nodeId/resolve` must be idempotent for non-retry cases.
-- `POST /api/v1/battles/:battleId/claim` must be idempotent and return run-resolution metadata when terminal.
-- `POST /api/v1/runs/:runId/exit` must return terminal summary payload for completed runs.
+## Node Resolution Contract
 
-## Out of Scope
-- Cinematic branching transitions.
-- Mid-combat reconnect resume to an in-progress simulation.
-- Multi-encounter queueing.
-- Post-run recommendations/next-step hints in run-end summary.
+Node resolution is the unified non-rest outcome surface.
+
+It should:
+
+- restate the selected node intent before or during resolve
+- clearly show result state
+- show rewards or an explicit no-reward fallback
+- provide one primary next-step action
+- branch back to map or forward to summary without ambiguity
+
+For combat or boss outcomes, the surface may also include battle playback. If playback exists, it must stay subordinate to the outcome contract rather than becoming a separate navigation layer.
+
+## Rest Management Contract
+
+Rest is the only supported active-run management window.
+
+The flow is:
+
+- open
+- inspect or edit allowed run-scoped management state
+- finalize or cancel
+
+Finalize should summarize:
+
+- healing or recovery effects
+- progression deltas
+- any approved roster or equipment changes
+
+## Run Summary Contract
+
+Run summary uses one shared shell for:
+
+- completed
+- failed
+- abandoned
+
+Every summary should include:
+
+- outcome
+- rewards
+- progression
+- survivor and defeated-unit impact
+- one clear return action
+
+## Failure and Recovery Rules
+
+- Defeat outcomes must clearly state whether the run continues or ends.
+- Terminal failure uses distinct messaging from abandonment and completion.
+- Abandonment must be clearly player-initiated and confirmed.
+- Retry language should only appear when a true retry path exists.
+
+## Shared UX Rules
+
+- Blocked actions should remain visible but clearly unavailable.
+- Error states should keep the player oriented and offer the next sensible action.
+- Messaging should be short, concrete, and specific about what changed.
+- Reward and progression terminology should match backend payload semantics.
+
+## Current Scope Note
+
+- The route and branching contract is active now.
+- Rich battle playback remains the main presentation layer still open for refinement.
