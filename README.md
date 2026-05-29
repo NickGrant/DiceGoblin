@@ -1,15 +1,15 @@
 # Dice Goblins
 
-Dice Goblins is a browser-based tactical RPG/roguelite prototype built with a Phaser frontend and a PHP API backend.
+Dice Goblins is a browser-based tactical RPG/roguelite prototype built with an Angular application shell, selective Phaser retention for canvas-owned experiences, and a PHP API backend.
 
 ## Tech Stack
-- Frontend: TypeScript, Vite, Phaser 3
+- Frontend: Angular 20, TypeScript, Bootstrap grid/utilities, Phaser 3 for retained canvas surfaces
 - Backend: PHP 8.3 (built-in server)
 - Database: MySQL 8.4
 - Local orchestration: Docker Compose
 
 ## Repository Layout
-- `frontend/` Phaser game client
+- `frontend/` Angular frontend shell and future Phaser host surfaces
 - `backend/` PHP API, repositories, services, and migrations
 - `documentation/` game design, architecture, systems, and UX docs
 - `agent/` agent workflow, backlog, role, and evaluation docs
@@ -55,8 +55,7 @@ From `frontend/`:
 npm install
 npm run dev
 npm run build
-npm run preview
-npm run db:schema
+npm run test -- --watch=false --browsers=ChromeHeadless
 ```
 
 ## API Surface (Current Core)
@@ -108,4 +107,4 @@ npm run verify:full
 - CORS/session issues: verify `DEV_ALLOWED_ORIGINS` in `backend/.env` includes both `http://localhost:5173` and `http://127.0.0.1:5173`.
 - Scene screenshot capture: run `npm run capture:scene -- --scene <scene> --base-url http://127.0.0.1:5173/` one capture at a time against the shared local frontend.
 - Empty/missing data: re-apply `backend/migrations/schema_all.sql` to local DB.
-- Frontend cannot reach backend: verify `VITE_API_BASE_URL` and that backend is listening on `:8080`.
+- Frontend cannot reach backend: verify the backend is listening on `:8080` and, if needed, inject a runtime API base URL via `window.__DICE_GOBLIN_CONFIG__.apiBaseUrl`.

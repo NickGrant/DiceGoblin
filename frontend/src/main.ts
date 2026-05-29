@@ -1,7 +1,6 @@
-import Phaser from "phaser";
-import { createGameConfig } from "./game/config";
-import { initializeDebugHooks } from "./debug/debugHooks";
-import { getDebugSceneConfig } from "./debug/debugScene";
+import { bootstrapApplication } from '@angular/platform-browser';
+import { appConfig } from './app/app.config';
+import { App } from './app/app';
 
-initializeDebugHooks(getDebugSceneConfig());
-new Phaser.Game(createGameConfig());
+bootstrapApplication(App, appConfig)
+  .catch((err) => console.error(err));

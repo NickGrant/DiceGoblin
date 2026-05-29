@@ -1,0 +1,41 @@
+.route-frame__eyebrow {
+  margin: 0 0 0.4rem;
+  color: #f4b38b;
+}
+
+.region-card {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  min-height: 360px;
+  border: 2px solid rgba(35, 39, 42, 0.22);
+  background: rgba(243, 239, 224, 0.7);
+  overflow: hidden;
+}
+
+.region-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.region-card__body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 1.4rem;
+}
+
+.route-sidebar ul {
+  padding-left: 1.15rem;
+}
+
+@media (max-width: 991.98px) {
+  .region-card {
+    grid-template-columns: 1fr;
+  }
+
+  .region-card img {
+    min-height: 220px;
+  }
+}

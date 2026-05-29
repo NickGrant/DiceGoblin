@@ -1,0 +1,54 @@
+<section class="dg-page-frame route-frame">
+  <div class="dg-title-bar p-3 p-md-4">
+    <p class="route-frame__eyebrow dg-stencil">Route / Warband</p>
+    <h1 class="mb-2">Warband Management</h1>
+    <p class="mb-0">Review your units and saved squads.</p>
+  </div>
+
+  <div class="p-3 p-md-4">
+    <div class="row g-4">
+      <div class="col-xl-7">
+        <div class="dg-card p-3 p-md-4 h-100">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="m-0 dg-stencil">Units</h2>
+            <span class="dg-chip">{{ profile().unitCount || units.length }} Registered</span>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-sm-6" *ngFor="let unit of units">
+              <article class="dg-card dg-card-muted warband-tile p-3">
+                <span class="warband-tile__tag">Unit Record</span>
+                <h3 class="h5 mt-2 mb-1">{{ unit }}</h3>
+                <p class="mb-0">Coming soon.</p>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-5">
+        <div class="dg-card p-3 p-md-4 h-100">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="m-0 dg-stencil">Squads</h2>
+            <span class="dg-chip">{{ profile().squadCount || squads.length }} Saved</span>
+          </div>
+
+          <div class="vstack gap-3">
+            <article class="squad-row" *ngFor="let squad of squads; let index = index">
+              <div>
+                <strong>{{ squad }}</strong>
+                <p class="mb-0">{{ index === 0 ? 'Active squad.' : 'Saved squad.' }}</p>
+              </div>
+              <button class="dg-command-btn" type="button" disabled>Coming Soon</button>
+            </article>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2 mt-4">
+            <button class="dg-command-btn dg-command-btn--primary" type="button" disabled>Create Squad</button>
+            <button class="dg-command-btn dg-command-btn--teal" type="button" disabled>Activate Squad</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

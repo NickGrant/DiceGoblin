@@ -1,7 +1,7 @@
 # Technical Stack Decisions
 
 Status: active  
-Last Updated: 2026-05-28  
+Last Updated: 2026-05-29  
 Owner: Engineering  
 Depends On: `README.md`, `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/01-architecture/06-angular-component-service-inventory.md`, `documentation/01-architecture/03-backend-api-contracts.md`
 
@@ -12,8 +12,10 @@ These decisions are considered active for the Angular migration unless explicitl
 Target frontend stack:
 
 - Angular
+- Angular CLI application builder and dev server
 - TypeScript
 - Angular Router
+- Bootstrap 5 grid and utility classes for layout scaffolding
 - Angular-owned application shell, page composition, forms, lists, dialogs, HUD, and state facades
 - Phaser 3 embedded only through Angular host components for canvas/gameplay surfaces
 
@@ -65,5 +67,5 @@ Current/dev infrastructure:
 
 Migration note:
 
-- The frontend dev/build tooling may change as Angular is introduced.
-- Any change from Vite-only tooling to Angular CLI or a hybrid build must be documented before implementation work begins.
+- The frontend now uses Angular CLI in `frontend/`, still served on port `5173` for local and Docker parity.
+- Runtime asset delivery continues through `frontend/public/assets`.

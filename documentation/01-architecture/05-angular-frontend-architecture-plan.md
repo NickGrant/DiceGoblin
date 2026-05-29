@@ -1,7 +1,7 @@
 # Angular Frontend Architecture Plan
 
-Status: proposed  
-Last Updated: 2026-05-28  
+Status: active-transition  
+Last Updated: 2026-05-29  
 Owner: Frontend  
 Depends On: `frontend/src/game/config.ts`, `frontend/src/scenes/`, `frontend/src/services/apiClient.ts`, `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/07-ux-rebuild/01-all-up-component-list.md`
 
@@ -13,7 +13,7 @@ The PHP API remains the source of truth for session, profile, run, battle, shop,
 
 ## Current Position
 
-The current frontend is a TypeScript, Vite, and Phaser application. Phaser currently owns application boot, scene transitions, menu screens, management screens, map presentation, node resolution, feedback UI, and debug tooling.
+The legacy frontend was a TypeScript, Vite, and Phaser application. The first Angular migration slice now owns the application shell, login route, home route, region route, warband route, and shared bottom-strip layout in `frontend/`.
 
 The target frontend should move application flow, routing, data orchestration, forms, lists, dialogs, accessibility, and persistent shell UI into Angular.
 
@@ -190,6 +190,14 @@ Move to Angular:
 
 - Whether the run map should be Angular/SVG or Phaser canvas.
 - Whether battle playback is a standalone route or embedded inside node resolution.
-- Whether Angular state should use RxJS services, signals, NgRx, or a facade-only pattern.
-- Whether the repo remains Vite-based or moves fully to Angular CLI tooling.
+- Whether Angular state should stay on signals plus thin services or move toward fuller route facades.
 - Whether screenshot capture remains Phaser-only or gains Angular route screenshot support.
+
+## Implemented First Slice
+
+- Angular 20 LTS workspace generated in `frontend/`.
+- Angular CLI selected as the frontend dev/build tool.
+- Bootstrap 5 grid and utility classes adopted through global styles.
+- Shared Angular shell implemented with persistent bottom command strip and HUD.
+- Initial routes implemented for `/login`, `/home`, `/regions`, `/warband`, `/dice`, `/shop`, and `/debug`.
+- Existing backend cookie/session behavior preserved through a small `ApiHttpService` using `credentials: "include"`.

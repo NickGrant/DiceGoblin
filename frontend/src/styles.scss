@@ -1,0 +1,139 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
+:root {
+  --dg-cream: #f3efe0;
+  --dg-red: #b91c1c;
+  --dg-slate: #4f5a65;
+  --dg-teal: #006f7a;
+  --dg-charcoal: #23272a;
+  --dg-olive: #5e6b3c;
+  --dg-brass: #8a6d3b;
+  --dg-shadow: rgba(18, 18, 18, 0.5);
+  --dg-card-shadow: 0 14px 28px rgba(0, 0, 0, 0.32);
+  --dg-frame-border: rgba(35, 39, 42, 0.72);
+  --dg-frame-fill: rgba(243, 239, 224, 0.9);
+  --dg-content-fill: rgba(243, 239, 224, 0.95);
+  --dg-muted-fill: rgba(79, 90, 101, 0.15);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'IBM Plex Sans Condensed', 'Roboto Condensed', Arial, sans-serif;
+  color: var(--dg-charcoal);
+  background:
+    linear-gradient(rgba(35, 39, 42, 0.2), rgba(35, 39, 42, 0.2)),
+    url('/assets/ui/textures/paper.png');
+  background-size: 320px 320px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+.dg-stencil {
+  font-family: 'Big Shoulders Stencil Text', 'Saira Stencil One', Impact, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+}
+
+.dg-page-frame {
+  position: relative;
+  border: 2px solid var(--dg-frame-border);
+  background: linear-gradient(180deg, rgba(243, 239, 224, 0.9), rgba(232, 228, 210, 0.94));
+  box-shadow: var(--dg-card-shadow);
+  overflow: hidden;
+}
+
+.dg-title-bar {
+  color: var(--dg-cream);
+  background:
+    linear-gradient(rgba(35, 39, 42, 0.2), rgba(35, 39, 42, 0.2)),
+    url('/assets/ui/textures/red.png');
+  background-size: 180px 180px;
+  border-bottom: 2px solid rgba(35, 39, 42, 0.5);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.dg-command-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0.75rem 1.1rem;
+  border: 2px solid rgba(35, 39, 42, 0.78);
+  background: linear-gradient(180deg, #f6f1e4 0%, #e2dbc6 100%);
+  color: var(--dg-charcoal);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  box-shadow: 0 6px 0 rgba(35, 39, 42, 0.28);
+}
+
+.dg-command-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 0 rgba(35, 39, 42, 0.3);
+}
+
+.dg-command-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 3px 0 rgba(35, 39, 42, 0.3);
+}
+
+.dg-command-btn--primary {
+  background: linear-gradient(180deg, #d14337 0%, #8f1717 100%);
+  color: var(--dg-cream);
+}
+
+.dg-command-btn--teal {
+  background: linear-gradient(180deg, #0d7d88 0%, #03535b 100%);
+  color: var(--dg-cream);
+}
+
+.dg-command-btn--muted {
+  background: linear-gradient(180deg, #66717d 0%, #414950 100%);
+  color: var(--dg-cream);
+}
+
+.dg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid rgba(35, 39, 42, 0.2);
+  background: rgba(243, 239, 224, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+}
+
+.dg-card {
+  border: 2px solid rgba(35, 39, 42, 0.2);
+  background: rgba(243, 239, 224, 0.88);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.12);
+}
+
+.dg-card-muted {
+  background: rgba(79, 90, 101, 0.08);
+}
