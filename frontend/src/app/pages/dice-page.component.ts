@@ -4,11 +4,14 @@ import { ActivatedRoute } from '@angular/router';
 import { DiceRecord } from '../core/models/api.models';
 import { DiceService } from '../core/services/dice.service';
 import { SessionService } from '../core/services/session.service';
+import { DgAlertComponent } from '../shared/ui/dg-alert.component';
+import { DgCommandBtnDirective } from '../shared/ui/dg-command-btn.directive';
+import { DgPageFrameComponent } from '../shared/ui/dg-page-frame.component';
 
 @Component({
   selector: 'app-dice-page',
   standalone: true,
-  imports: [NgFor, NgIf],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, NgFor, NgIf],
   templateUrl: './dice-page.component.html',
   styleUrl: './dice-page.component.scss',
 })

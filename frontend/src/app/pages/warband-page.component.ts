@@ -3,11 +3,14 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SessionService } from '../core/services/session.service';
 import { SquadService } from '../core/services/squad.service';
+import { DgAlertComponent } from '../shared/ui/dg-alert.component';
+import { DgCommandBtnDirective } from '../shared/ui/dg-command-btn.directive';
+import { DgPageFrameComponent } from '../shared/ui/dg-page-frame.component';
 
 @Component({
   selector: 'app-warband-page',
   standalone: true,
-  imports: [NgFor, NgIf, RouterLink],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, NgFor, NgIf, RouterLink],
   templateUrl: './warband-page.component.html',
   styleUrl: './warband-page.component.scss',
 })

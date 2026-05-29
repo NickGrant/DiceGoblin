@@ -3,11 +3,14 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DebugCatalogData } from '../core/models/api.models';
 import { DebugService } from '../core/services/debug.service';
+import { DgAlertComponent } from '../shared/ui/dg-alert.component';
+import { DgCommandBtnDirective } from '../shared/ui/dg-command-btn.directive';
+import { DgPageFrameComponent } from '../shared/ui/dg-page-frame.component';
 
 @Component({
   selector: 'app-debug-page',
   standalone: true,
-  imports: [FormsModule, NgFor, NgIf],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule, NgFor, NgIf],
   templateUrl: './debug-page.component.html',
   styleUrl: './debug-page.component.scss',
 })

@@ -6,13 +6,16 @@ import { TeamFormationCell, RestOpenData } from '../core/models/api.models';
 import { RestService } from '../core/services/rest.service';
 import { RunService } from '../core/services/run.service';
 import { SessionService } from '../core/services/session.service';
+import { DgAlertComponent } from '../shared/ui/dg-alert.component';
+import { DgCommandBtnDirective } from '../shared/ui/dg-command-btn.directive';
+import { DgPageFrameComponent } from '../shared/ui/dg-page-frame.component';
 
 const REST_FORMATION_CELLS = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'];
 
 @Component({
   selector: 'app-run-rest-page',
   standalone: true,
-  imports: [FormsModule, NgFor, NgIf, RouterLink],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule, NgFor, NgIf, RouterLink],
   templateUrl: './run-rest-page.component.html',
   styleUrl: './run-rest-page.component.scss',
 })

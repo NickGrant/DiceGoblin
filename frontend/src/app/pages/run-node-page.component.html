@@ -1,48 +1,40 @@
-<section class="dg-page-frame route-frame">
-  <div class="dg-title-bar p-3 p-md-4">
-    <p class="route-frame__eyebrow dg-stencil">Route / Run / Node</p>
-    <h1 class="mb-2">Node {{ nodeId }}</h1>
-    <p class="mb-0">Resolve the encounter and claim rewards.</p>
+<dg-page-frame eyebrow="Route / Run / Node" [title]="'Node ' + nodeId" subtitle="Resolve the encounter and claim rewards.">
+  <div class="vstack gap-2 mb-3" *ngIf="loading() || error()">
+    <dg-alert *ngIf="loading()">Loading node...</dg-alert>
+    <dg-alert tone="error" *ngIf="error()">{{ error() }}</dg-alert>
   </div>
 
-  <div class="p-3 p-md-4">
-    <div class="vstack gap-2 mb-3" *ngIf="loading() || error()">
-      <div class="dg-alert" *ngIf="loading()">Loading node...</div>
-      <div class="dg-alert dg-alert--error" *ngIf="error()">{{ error() }}</div>
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="dg-card p-3 h-100">
+        <ng-container *ngIf="result(); else resolvePrompt">
+          <h2 class="dg-stencil mb-3">Battle Result</h2>
+          <p class="mb-2">Outcome: {{ result()!.battle.outcome }}</p>
+          <p class="mb-2">Rounds: {{ result()!.battle.rounds }} · Ticks: {{ result()!.battle.ticks }}</p>
+          <p class="mb-3">Battle details coming soon.</p>
+          <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
+            {{ busy() ? 'Working...' : 'Claim Rewards' }}
+          </button>
+        </ng-container>
+        <ng-template #resolvePrompt>
+          <h2 class="dg-stencil mb-3">Encounter Ready</h2>
+          <button dgCommandBtn="primary" type="button" (click)="resolveNode()" [disabled]="busy() || loading()">
+            {{ busy() ? 'Resolving...' : 'Resolve Node' }}
+          </button>
+        </ng-template>
+      </div>
     </div>
 
-    <div class="row g-4">
-      <div class="col-lg-8">
-        <div class="dg-card p-3 h-100">
-          <ng-container *ngIf="result(); else resolvePrompt">
-            <h2 class="dg-stencil mb-3">Battle Result</h2>
-            <p class="mb-2">Outcome: {{ result()!.battle.outcome }}</p>
-            <p class="mb-2">Rounds: {{ result()!.battle.rounds }} · Ticks: {{ result()!.battle.ticks }}</p>
-            <p class="mb-3">Battle details coming soon.</p>
-            <button class="dg-command-btn dg-command-btn--primary" type="button" (click)="claimRewards()" [disabled]="busy()">
-              {{ busy() ? 'Working...' : 'Claim Rewards' }}
-            </button>
-          </ng-container>
-          <ng-template #resolvePrompt>
-            <h2 class="dg-stencil mb-3">Encounter Ready</h2>
-            <button class="dg-command-btn dg-command-btn--primary" type="button" (click)="resolveNode()" [disabled]="busy() || loading()">
-              {{ busy() ? 'Resolving...' : 'Resolve Node' }}
-            </button>
-          </ng-template>
-        </div>
-      </div>
-
-      <div class="col-lg-4">
-        <div class="dg-card p-3 h-100">
-          <h3 class="dg-stencil">Status</h3>
-          <p class="mb-0" *ngIf="result(); else pendingState">
-            {{ result()!.node.status }} · {{ result()!.next.unlocked_node_ids.length }} node(s) unlocked
-          </p>
-          <ng-template #pendingState>
-            <p class="mb-0">Waiting for resolution.</p>
-          </ng-template>
-        </div>
+    <div class="col-lg-4">
+      <div class="dg-card p-3 h-100">
+        <h3 class="dg-stencil">Status</h3>
+        <p class="mb-0" *ngIf="result(); else pendingState">
+          {{ result()!.node.status }} · {{ result()!.next.unlocked_node_ids.length }} node(s) unlocked
+        </p>
+        <ng-template #pendingState>
+          <p class="mb-0">Waiting for resolution.</p>
+        </ng-template>
       </div>
     </div>
   </div>
-</section>
+</dg-page-frame>

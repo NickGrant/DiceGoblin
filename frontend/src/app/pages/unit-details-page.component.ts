@@ -6,11 +6,14 @@ import { DiceService } from '../core/services/dice.service';
 import { SessionService } from '../core/services/session.service';
 import { UnitService } from '../core/services/unit.service';
 import { PromotionOptionRecord, UnitRecord } from '../core/models/api.models';
+import { DgAlertComponent } from '../shared/ui/dg-alert.component';
+import { DgCommandBtnDirective } from '../shared/ui/dg-command-btn.directive';
+import { DgPageFrameComponent } from '../shared/ui/dg-page-frame.component';
 
 @Component({
   selector: 'app-unit-details-page',
   standalone: true,
-  imports: [FormsModule, NgFor, NgIf, RouterLink],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule, NgFor, NgIf, RouterLink],
   templateUrl: './unit-details-page.component.html',
   styleUrl: './unit-details-page.component.scss',
 })

@@ -4,6 +4,9 @@ import { Router } from '@angular/router';
 import { RunService } from '../core/services/run.service';
 import { SessionService } from '../core/services/session.service';
 import { RegionUnlockRecord } from '../core/models/api.models';
+import { DgAlertComponent } from '../shared/ui/dg-alert.component';
+import { DgCommandBtnDirective } from '../shared/ui/dg-command-btn.directive';
+import { DgPageFrameComponent } from '../shared/ui/dg-page-frame.component';
 
 type RegionCard = {
   slug: string;
@@ -52,7 +55,7 @@ const REGION_CARDS: RegionCard[] = [
 @Component({
   selector: 'app-regions-page',
   standalone: true,
-  imports: [DatePipe, NgClass, NgFor, NgIf],
+  imports: [DatePipe, DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, NgClass, NgFor, NgIf],
   templateUrl: './regions-page.component.html',
   styleUrl: './regions-page.component.scss',
 })

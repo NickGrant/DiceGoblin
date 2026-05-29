@@ -2,11 +2,14 @@ import { NgFor, NgIf } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { ShopCatalogData } from '../core/models/api.models';
 import { ShopService } from '../core/services/shop.service';
+import { DgAlertComponent } from '../shared/ui/dg-alert.component';
+import { DgCommandBtnDirective } from '../shared/ui/dg-command-btn.directive';
+import { DgPageFrameComponent } from '../shared/ui/dg-page-frame.component';
 
 @Component({
   selector: 'app-shop-page',
   standalone: true,
-  imports: [NgFor, NgIf],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, NgFor, NgIf],
   templateUrl: './shop-page.component.html',
   styleUrl: './shop-page.component.scss',
 })

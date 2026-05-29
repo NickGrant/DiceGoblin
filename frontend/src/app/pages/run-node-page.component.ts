@@ -3,11 +3,14 @@ import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ResolveNodeData } from '../core/models/api.models';
 import { RunService } from '../core/services/run.service';
+import { DgAlertComponent } from '../shared/ui/dg-alert.component';
+import { DgCommandBtnDirective } from '../shared/ui/dg-command-btn.directive';
+import { DgPageFrameComponent } from '../shared/ui/dg-page-frame.component';
 
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
-  imports: [NgIf],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, NgIf],
   templateUrl: './run-node-page.component.html',
   styleUrl: './run-node-page.component.scss',
 })

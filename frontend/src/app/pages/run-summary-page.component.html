@@ -1,37 +1,29 @@
-<section class="dg-page-frame route-frame">
-  <div class="dg-title-bar p-3 p-md-4">
-    <p class="route-frame__eyebrow dg-stencil">Route / Run / Summary</p>
-    <h1 class="mb-2">{{ summary()?.title || 'Run Summary' }}</h1>
-    <p class="mb-0">Review the outcome and return to camp.</p>
-  </div>
-
-  <div class="p-3 p-md-4">
-    <div class="row g-4" *ngIf="summary(); else noSummary">
-      <div class="col-lg-6">
-        <div class="dg-card p-3 h-100">
-          <h2 class="dg-stencil mb-3">Rewards</h2>
-          <ul class="mb-0" *ngIf="summary()!.rewards.length; else emptyRewards">
-            <li *ngFor="let item of summary()!.rewards">{{ item }}</li>
-          </ul>
-          <ng-template #emptyRewards>
-            <p class="mb-0">No rewards recorded.</p>
-          </ng-template>
-        </div>
-      </div>
-
-      <div class="col-lg-6">
-        <div class="dg-card p-3 h-100">
-          <h2 class="dg-stencil mb-3">Outcome</h2>
-          <p class="mb-2">Status: {{ summary()!.status }}</p>
-          <p class="mb-2">Survivors: {{ summary()!.survivors.join(', ') || 'None listed' }}</p>
-          <p class="mb-3">Defeated: {{ summary()!.defeated.join(', ') || 'None listed' }}</p>
-          <a class="dg-command-btn dg-command-btn--primary" routerLink="/home">Return Home</a>
-        </div>
+<dg-page-frame eyebrow="Route / Run / Summary" [title]="summary()?.title || 'Run Summary'" subtitle="Review the outcome and return to camp.">
+  <div class="row g-4" *ngIf="summary(); else noSummary">
+    <div class="col-lg-6">
+      <div class="dg-card p-3 h-100">
+        <h2 class="dg-stencil mb-3">Rewards</h2>
+        <ul class="mb-0" *ngIf="summary()!.rewards.length; else emptyRewards">
+          <li *ngFor="let item of summary()!.rewards">{{ item }}</li>
+        </ul>
+        <ng-template #emptyRewards>
+          <p class="mb-0">No rewards recorded.</p>
+        </ng-template>
       </div>
     </div>
 
-    <ng-template #noSummary>
-      <div class="dg-alert">No run summary available.</div>
-    </ng-template>
+    <div class="col-lg-6">
+      <div class="dg-card p-3 h-100">
+        <h2 class="dg-stencil mb-3">Outcome</h2>
+        <p class="mb-2">Status: {{ summary()!.status }}</p>
+        <p class="mb-2">Survivors: {{ summary()!.survivors.join(', ') || 'None listed' }}</p>
+        <p class="mb-3">Defeated: {{ summary()!.defeated.join(', ') || 'None listed' }}</p>
+        <a dgCommandBtn="primary" routerLink="/home">Return Home</a>
+      </div>
+    </div>
   </div>
-</section>
+
+  <ng-template #noSummary>
+    <dg-alert>No run summary available.</dg-alert>
+  </ng-template>
+</dg-page-frame>

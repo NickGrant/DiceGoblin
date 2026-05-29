@@ -5,13 +5,16 @@ import { ActivatedRoute } from '@angular/router';
 import { TeamFormationCell } from '../core/models/api.models';
 import { SessionService } from '../core/services/session.service';
 import { SquadService } from '../core/services/squad.service';
+import { DgAlertComponent } from '../shared/ui/dg-alert.component';
+import { DgCommandBtnDirective } from '../shared/ui/dg-command-btn.directive';
+import { DgPageFrameComponent } from '../shared/ui/dg-page-frame.component';
 
 const FORMATION_CELLS = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'];
 
 @Component({
   selector: 'app-squad-details-page',
   standalone: true,
-  imports: [FormsModule, NgFor, NgIf],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule, NgFor, NgIf],
   templateUrl: './squad-details-page.component.html',
   styleUrl: './squad-details-page.component.scss',
 })

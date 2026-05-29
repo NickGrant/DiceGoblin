@@ -1,65 +1,60 @@
-<section class="dg-page-frame route-frame" *ngIf="squad() as squad; else missingSquad">
-  <div class="dg-title-bar p-3 p-md-4">
-    <p class="route-frame__eyebrow dg-stencil">Route / Warband / Squad</p>
-    <h1 class="mb-2">{{ squad.name }}</h1>
-    <p class="mb-0">{{ squad.is_active ? 'Active squad.' : 'Saved squad.' }}</p>
+<dg-page-frame
+  *ngIf="squad() as squad; else missingSquad"
+  eyebrow="Route / Warband / Squad"
+  [title]="squad.name"
+  [subtitle]="squad.is_active ? 'Active squad.' : 'Saved squad.'"
+>
+  <div class="vstack gap-2 mb-3" *ngIf="error() || message()">
+    <dg-alert tone="error" *ngIf="error()">{{ error() }}</dg-alert>
+    <dg-alert tone="success" *ngIf="message()">{{ message() }}</dg-alert>
   </div>
 
-  <div class="p-3 p-md-4">
-    <div class="vstack gap-2 mb-3" *ngIf="error() || message()">
-      <div class="dg-alert dg-alert--error" *ngIf="error()">{{ error() }}</div>
-      <div class="dg-alert dg-alert--success" *ngIf="message()">{{ message() }}</div>
-    </div>
+  <div class="row g-4">
+    <div class="col-xl-5">
+      <div class="dg-card p-3 h-100">
+        <h2 class="dg-stencil mb-3">Membership</h2>
+        <label class="form-label">Squad Name</label>
+        <input class="dg-input mb-3" [(ngModel)]="name" />
 
-    <div class="row g-4">
-      <div class="col-xl-5">
-        <div class="dg-card p-3 h-100">
-          <h2 class="dg-stencil mb-3">Membership</h2>
-          <label class="form-label">Squad Name</label>
-          <input class="dg-input mb-3" [(ngModel)]="name" />
-
-          <div class="vstack gap-2">
-            <label class="promote-row" *ngFor="let unit of availableUnits()">
-              <input type="checkbox" [checked]="selectedUnitIds.has(unit.id)" (change)="toggleUnit(unit.id)" />
-              <span>{{ unit.name }} · {{ unit.unit_type_name || unit.unit_type_slug }}</span>
-            </label>
-          </div>
+        <div class="vstack gap-2">
+          <label class="promote-row" *ngFor="let unit of availableUnits()">
+            <input type="checkbox" [checked]="selectedUnitIds.has(unit.id)" (change)="toggleUnit(unit.id)" />
+            <span>{{ unit.name }} · {{ unit.unit_type_name || unit.unit_type_slug }}</span>
+          </label>
         </div>
       </div>
+    </div>
 
-      <div class="col-xl-7">
-        <div class="dg-card p-3 h-100">
-          <h2 class="dg-stencil mb-3">Formation</h2>
-          <div class="formation-grid">
-            <label class="formation-cell" *ngFor="let cell of formationCells">
-              <span>{{ cell }}</span>
-              <select class="dg-select" [ngModel]="formationAssignments.get(cell) ?? ''" (ngModelChange)="setCell(cell, $event)">
-                <option value="">Empty</option>
-                <option *ngFor="let unit of availableUnits()" [value]="unit.id" [disabled]="!selectedUnitIds.has(unit.id)">
-                  {{ unit.name }}
-                </option>
-              </select>
-            </label>
-          </div>
+    <div class="col-xl-7">
+      <div class="dg-card p-3 h-100">
+        <h2 class="dg-stencil mb-3">Formation</h2>
+        <div class="formation-grid">
+          <label class="formation-cell" *ngFor="let cell of formationCells">
+            <span>{{ cell }}</span>
+            <select class="dg-select" [ngModel]="formationAssignments.get(cell) ?? ''" (ngModelChange)="setCell(cell, $event)">
+              <option value="">Empty</option>
+              <option *ngFor="let unit of availableUnits()" [value]="unit.id" [disabled]="!selectedUnitIds.has(unit.id)">
+                {{ unit.name }}
+              </option>
+            </select>
+          </label>
+        </div>
 
-          <div class="d-flex flex-wrap gap-2 mt-4">
-            <button class="dg-command-btn dg-command-btn--primary" type="button" (click)="save()" [disabled]="saving()">
-              {{ saving() ? 'Saving...' : 'Save Squad' }}
-            </button>
-            <button class="dg-command-btn dg-command-btn--teal" type="button" (click)="activate()" [disabled]="saving() || squad.is_active">
-              {{ squad.is_active ? 'Active' : 'Activate Squad' }}
-            </button>
-          </div>
+        <div class="d-flex flex-wrap gap-2 mt-4">
+          <button dgCommandBtn="primary" type="button" (click)="save()" [disabled]="saving()">
+            {{ saving() ? 'Saving...' : 'Save Squad' }}
+          </button>
+          <button dgCommandBtn="teal" type="button" (click)="activate()" [disabled]="saving() || squad.is_active">
+            {{ squad.is_active ? 'Active' : 'Activate Squad' }}
+          </button>
         </div>
       </div>
     </div>
   </div>
-</section>
+</dg-page-frame>
 
 <ng-template #missingSquad>
-  <section class="dg-page-frame route-frame">
-    <div class="p-3 p-md-4">
-      <div class="dg-alert dg-alert--error">Squad not found.</div>
-    </div>
-  </section>
+  <dg-page-frame [showHeader]="false">
+    <dg-alert tone="error">Squad not found.</dg-alert>
+  </dg-page-frame>
 </ng-template>

@@ -1,92 +1,87 @@
-<section class="dg-page-frame route-frame" *ngIf="unit() as unit; else missingUnit">
-  <div class="dg-title-bar p-3 p-md-4">
-    <p class="route-frame__eyebrow dg-stencil">Route / Warband / Unit</p>
-    <h1 class="mb-2">{{ unit.name }}</h1>
-    <p class="mb-0">{{ unit.unit_type_name || unit.unit_type_slug || 'Unit' }} · Level {{ unit.level }}</p>
+<dg-page-frame
+  *ngIf="unit() as unit; else missingUnit"
+  eyebrow="Route / Warband / Unit"
+  [title]="unit.name"
+  [subtitle]="(unit.unit_type_name || unit.unit_type_slug || 'Unit') + ' · Level ' + unit.level"
+>
+  <div class="vstack gap-2 mb-3" *ngIf="error() || message()">
+    <dg-alert tone="error" *ngIf="error()">{{ error() }}</dg-alert>
+    <dg-alert tone="success" *ngIf="message()">{{ message() }}</dg-alert>
   </div>
 
-  <div class="p-3 p-md-4">
-    <div class="vstack gap-2 mb-3" *ngIf="error() || message()">
-      <div class="dg-alert dg-alert--error" *ngIf="error()">{{ error() }}</div>
-      <div class="dg-alert dg-alert--success" *ngIf="message()">{{ message() }}</div>
+  <div class="row g-4">
+    <div class="col-xl-6">
+      <div class="dg-card p-3 h-100">
+        <h2 class="dg-stencil mb-3">Stats</h2>
+        <div class="dg-meta-list mb-3">
+          <span class="dg-chip">Tier {{ unit.tier || 1 }}</span>
+          <span class="dg-chip">XP {{ unit.xp || 0 }}</span>
+          <span class="dg-chip">Attack {{ unit.total_attack || 0 }}</span>
+          <span class="dg-chip">Defense {{ unit.total_defense || 0 }}</span>
+          <span class="dg-chip">HP {{ unit.current_hp || unit.max_hp || 0 }}/{{ unit.max_hp || 0 }}</span>
+        </div>
+
+        <label class="form-label">Display Name</label>
+        <div class="d-flex gap-2">
+          <input class="dg-input" [(ngModel)]="renameValue" />
+          <button dgCommandBtn type="button" (click)="renameUnit()" [disabled]="busy()">Save</button>
+        </div>
+
+        <h3 class="dg-stencil mt-4 mb-3">Equipped Dice</h3>
+        <div class="vstack gap-2" *ngIf="(unit.equipped_dice?.length || 0) > 0; else noEquippedDice">
+          <article class="equip-row" *ngFor="let die of unit.equipped_dice">
+            <span>Die {{ die.dice_instance_id }} · Slot {{ die.slot_index + 1 }}</span>
+            <button dgCommandBtn type="button" (click)="unequipDice(die.dice_instance_id)" [disabled]="busy()">Unequip</button>
+          </article>
+        </div>
+        <ng-template #noEquippedDice>
+          <dg-alert class="mb-3">No dice equipped.</dg-alert>
+        </ng-template>
+
+        <a
+          dgCommandBtn="teal"
+          [routerLink]="['/dice']"
+          [queryParams]="{ unitId: unit.id, mode: 'equip', runId: runId, nodeId: nodeId }"
+        >
+          Manage Dice
+        </a>
+      </div>
     </div>
 
-    <div class="row g-4">
-      <div class="col-xl-6">
-        <div class="dg-card p-3 h-100">
-          <h2 class="dg-stencil mb-3">Stats</h2>
-          <div class="dg-meta-list mb-3">
-            <span class="dg-chip">Tier {{ unit.tier || 1 }}</span>
-            <span class="dg-chip">XP {{ unit.xp || 0 }}</span>
-            <span class="dg-chip">Attack {{ unit.total_attack || 0 }}</span>
-            <span class="dg-chip">Defense {{ unit.total_defense || 0 }}</span>
-            <span class="dg-chip">HP {{ unit.current_hp || unit.max_hp || 0 }}/{{ unit.max_hp || 0 }}</span>
-          </div>
+    <div class="col-xl-6">
+      <div class="dg-card p-3 h-100">
+        <h2 class="dg-stencil mb-3">Promotion</h2>
+        <p class="mb-3">Choose two matching units to consume.</p>
 
-          <label class="form-label">Display Name</label>
-          <div class="d-flex gap-2">
-            <input class="dg-input" [(ngModel)]="renameValue" />
-            <button class="dg-command-btn" type="button" (click)="renameUnit()" [disabled]="busy()">Save</button>
-          </div>
+        <label class="form-label" *ngIf="promotionOptions().length">Destination</label>
+        <select class="dg-select mb-3" [(ngModel)]="selectedDestination" *ngIf="promotionOptions().length">
+          <option *ngFor="let option of promotionOptions()" [value]="option.target_unit_type_id">
+            {{ option.target_unit_type_name }} · {{ option.mode }}
+          </option>
+        </select>
 
-          <h3 class="dg-stencil mt-4 mb-3">Equipped Dice</h3>
-          <div class="vstack gap-2" *ngIf="(unit.equipped_dice?.length || 0) > 0; else noEquippedDice">
-            <article class="equip-row" *ngFor="let die of unit.equipped_dice">
-              <span>Die {{ die.dice_instance_id }} · Slot {{ die.slot_index + 1 }}</span>
-              <button class="dg-command-btn" type="button" (click)="unequipDice(die.dice_instance_id)" [disabled]="busy()">Unequip</button>
-            </article>
-          </div>
-          <ng-template #noEquippedDice>
-            <div class="dg-alert mb-3">No dice equipped.</div>
-          </ng-template>
-
-          <a
-            class="dg-command-btn dg-command-btn--teal"
-            [routerLink]="['/dice']"
-            [queryParams]="{ unitId: unit.id, mode: 'equip', runId: runId, nodeId: nodeId }"
-          >
-            Manage Dice
-          </a>
+        <div class="vstack gap-2 mb-3">
+          <label class="promote-row" *ngFor="let candidate of units()">
+            <input
+              type="checkbox"
+              [checked]="selectedSecondaries().includes(candidate.id)"
+              [disabled]="candidate.id === unit.id || busy()"
+              (change)="toggleSecondary(candidate.id)"
+            />
+            <span>{{ candidate.name }} · {{ candidate.unit_type_name || candidate.unit_type_slug }}</span>
+          </label>
         </div>
-      </div>
 
-      <div class="col-xl-6">
-        <div class="dg-card p-3 h-100">
-          <h2 class="dg-stencil mb-3">Promotion</h2>
-          <p class="mb-3">Choose two matching units to consume.</p>
-
-          <label class="form-label" *ngIf="promotionOptions().length">Destination</label>
-          <select class="dg-select mb-3" [(ngModel)]="selectedDestination" *ngIf="promotionOptions().length">
-            <option *ngFor="let option of promotionOptions()" [value]="option.target_unit_type_id">
-              {{ option.target_unit_type_name }} · {{ option.mode }}
-            </option>
-          </select>
-
-          <div class="vstack gap-2 mb-3">
-            <label class="promote-row" *ngFor="let candidate of units()">
-              <input
-                type="checkbox"
-                [checked]="selectedSecondaries().includes(candidate.id)"
-                [disabled]="candidate.id === unit.id || busy()"
-                (change)="toggleSecondary(candidate.id)"
-              />
-              <span>{{ candidate.name }} · {{ candidate.unit_type_name || candidate.unit_type_slug }}</span>
-            </label>
-          </div>
-
-          <button class="dg-command-btn dg-command-btn--primary" type="button" (click)="promoteUnit()" [disabled]="busy() || promotionOptions().length === 0">
-            {{ busy() ? 'Working...' : 'Promote' }}
-          </button>
-        </div>
+        <button dgCommandBtn="primary" type="button" (click)="promoteUnit()" [disabled]="busy() || promotionOptions().length === 0">
+          {{ busy() ? 'Working...' : 'Promote' }}
+        </button>
       </div>
     </div>
   </div>
-</section>
+</dg-page-frame>
 
 <ng-template #missingUnit>
-  <section class="dg-page-frame route-frame">
-    <div class="p-3 p-md-4">
-      <div class="dg-alert dg-alert--error">Unit not found.</div>
-    </div>
-  </section>
+  <dg-page-frame [showHeader]="false">
+    <dg-alert tone="error">Unit not found.</dg-alert>
+  </dg-page-frame>
 </ng-template>
