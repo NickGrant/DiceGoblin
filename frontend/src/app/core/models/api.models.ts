@@ -122,6 +122,18 @@ export type DiceRecord = {
   [key: string]: unknown;
 };
 
+export type RegionUnlockRecord = {
+  region_id: string;
+  region_slug: string;
+  region_name: string;
+  unlocked_at: string;
+};
+
+export type RegionItemRecord = {
+  region_item_id: string;
+  quantity: number;
+};
+
 export type ProfileData = {
   server_time_iso: string;
   squads: TeamRecord[];
@@ -137,8 +149,8 @@ export type ProfileData = {
     regen_rate_per_hour?: number;
     last_regen_at?: string;
   };
-  region_unlocks: Array<unknown>;
-  region_items: Array<unknown>;
+  region_unlocks: RegionUnlockRecord[];
+  region_items: RegionItemRecord[];
   active_run: ProfileActiveRun | null;
 };
 

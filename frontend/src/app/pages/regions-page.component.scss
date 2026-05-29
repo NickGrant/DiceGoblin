@@ -12,6 +12,14 @@
   overflow: hidden;
 }
 
+.region-card--locked {
+  opacity: 0.82;
+}
+
+.region-card--locked img {
+  filter: grayscale(0.5) saturate(0.7);
+}
+
 .region-card img {
   width: 100%;
   height: 100%;

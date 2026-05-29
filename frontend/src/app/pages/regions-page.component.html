@@ -13,36 +13,70 @@
 
     <div class="row g-4">
       <div class="col-xl-8">
-        <article class="region-card">
-          <img src="/assets/ui/biome/farm.png" alt="" />
-          <div class="region-card__body">
-            <span class="dg-chip">Tutorial Route</span>
-            <h2 class="mt-3 mb-2">The Farm</h2>
-            <p>Combat, loot, rest, boss, then exit.</p>
-            <div class="d-flex flex-wrap gap-2">
-              <button
-                type="button"
-                class="dg-command-btn dg-command-btn--primary"
-                (click)="startFarmRun()"
-                [disabled]="isStarting() || hasActiveRun()"
-              >
-                {{ isStarting() ? 'Starting...' : 'Start Run' }}
-              </button>
-              <button type="button" class="dg-command-btn" (click)="continueRun()" [disabled]="!hasActiveRun()">
-                Continue Run
-              </button>
+        <div class="vstack gap-4">
+          <article class="region-card" *ngFor="let region of regions()" [ngClass]="{ 'region-card--locked': !region.isUnlocked }">
+            <img [src]="'/assets/ui/biome/' + region.theme + '.png'" alt="" />
+            <div class="region-card__body">
+              <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="dg-chip">{{ region.pathSummary }}</span>
+                <span class="dg-chip">Energy {{ region.energyCost }}</span>
+                <span class="dg-chip">Level {{ region.recommendedLevel }}</span>
+                <span class="dg-chip" *ngIf="isActiveRegion(region.regionId)">Current Run</span>
+                <span class="dg-chip" *ngIf="!region.isUnlocked">Locked</span>
+              </div>
+
+              <h2 class="mt-3 mb-2">{{ region.name }}</h2>
+              <p class="mb-1">{{ region.summary }}</p>
+              <p class="mb-0" *ngIf="region.isUnlocked; else lockedHint">
+                Unlocked {{ unlockRecord(region.slug)?.unlocked_at | date: 'mediumDate' }}.
+              </p>
+              <ng-template #lockedHint>
+                <p class="mb-0">{{ region.unlockHint }}</p>
+              </ng-template>
+
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                <button
+                  type="button"
+                  class="dg-command-btn dg-command-btn--primary"
+                  (click)="startRegionRun(region.regionId, region.slug)"
+                  [disabled]="isStarting() || hasActiveRun() || !region.isUnlocked"
+                >
+                  {{
+                    startingSlug() === region.slug
+                      ? 'Starting...'
+                      : region.isUnlocked
+                        ? 'Start Run'
+                        : 'Locked'
+                  }}
+                </button>
+                <button type="button" class="dg-command-btn" (click)="continueRun()" [disabled]="!hasActiveRun()">
+                  Continue Run
+                </button>
+              </div>
             </div>
-          </div>
-        </article>
+          </article>
+        </div>
       </div>
 
       <div class="col-xl-4">
         <aside class="dg-card route-sidebar p-3">
           <h3 class="dg-stencil">Status</h3>
-          <p class="mb-2">The Farm is the currently available route.</p>
+          <p class="mb-2">{{ unlockedRegionCount() }} region{{ unlockedRegionCount() === 1 ? '' : 's' }} unlocked.</p>
           <p class="mb-0" [ngClass]="{ 'text-danger': !hasActiveRun() }">
             {{ hasActiveRun() ? 'An active run can be continued from the map.' : 'No active run in progress.' }}
           </p>
+
+          <hr />
+
+          <h4 class="dg-stencil h6">Region Items</h4>
+          <ul class="mb-0" *ngIf="(profileData()?.region_items?.length ?? 0) > 0; else noRegionItems">
+            <li *ngFor="let item of profileData()?.region_items">
+              {{ item.region_item_id }} x{{ item.quantity }}
+            </li>
+          </ul>
+          <ng-template #noRegionItems>
+            <p class="mb-0">No region boss trophies collected yet.</p>
+          </ng-template>
         </aside>
       </div>
     </div>
