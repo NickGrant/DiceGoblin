@@ -17,5 +17,5 @@ export class HomePageComponent {
   readonly hasActiveRun = this.sessionService.hasActiveRun;
   readonly devPanelEnabled = isDevPanelEnabled();
   readonly primaryLabel = computed(() => (this.hasActiveRun() ? 'Continue Run' : 'Start Run'));
-  readonly primaryRoute = computed(() => (this.hasActiveRun() ? '/regions' : '/regions'));
+  readonly primaryRoute = computed(() => (this.hasActiveRun() ? '/run/map' : '/regions'));
 }

@@ -19,6 +19,12 @@
   background: rgba(243, 239, 224, 0.68);
 }
 
+.warband-tile h3,
+.squad-row strong {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 @media (max-width: 575.98px) {
   .squad-row {
     flex-direction: column;

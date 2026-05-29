@@ -1,0 +1,16 @@
+.shop-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem;
+  border: 2px solid rgba(35, 39, 42, 0.12);
+  background: rgba(243, 239, 224, 0.72);
+}
+
+@media (max-width: 575.98px) {
+  .shop-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

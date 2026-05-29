@@ -1,0 +1,97 @@
+<section class="dg-page-frame route-frame">
+  <div class="dg-title-bar p-3 p-md-4">
+    <p class="route-frame__eyebrow dg-stencil">Route / Dice</p>
+    <h1 class="mb-2">Dice Inventory</h1>
+    <p class="mb-0">
+      <span *ngIf="selectedUnit(); else inventorySummary">
+        Assign dice for {{ selectedUnit()!.name }}.
+      </span>
+      <ng-template #inventorySummary>Review owned dice and sell unused pieces.</ng-template>
+    </p>
+  </div>
+
+  <div class="p-3 p-md-4">
+    <div class="vstack gap-2 mb-3" *ngIf="error() || message() || selectedUnit()">
+      <div class="dg-alert dg-alert--error" *ngIf="error()">{{ error() }}</div>
+      <div class="dg-alert dg-alert--success" *ngIf="message()">{{ message() }}</div>
+      <div class="dg-alert" *ngIf="selectedUnit()">
+        {{ mode() === 'equip' ? 'Choose a die to equip or remove.' : 'Inventory view.' }}
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-xl-8">
+        <div class="row g-3" *ngIf="dice().length; else noDice">
+          <div class="col-md-6" *ngFor="let die of dice()">
+            <article class="dg-card p-3 h-100">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div>
+                  <span class="dice-rarity">{{ die.rarity || 'common' }}</span>
+                  <h2 class="h5 mt-2 mb-1">{{ die.display_name || ('d' + (die.sides || 6)) }}</h2>
+                  <p class="mb-2">d{{ die.sides || 6 }} · Sell {{ die.sell_value || 0 }}</p>
+                </div>
+                <span class="dg-chip">ID {{ die.id }}</span>
+              </div>
+
+              <p class="mb-2" *ngIf="equippedUnitName(die.id); else looseDie">
+                Equipped by {{ equippedUnitName(die.id) }}.
+              </p>
+              <ng-template #looseDie>
+                <p class="mb-2">Unequipped.</p>
+              </ng-template>
+
+              <ul class="dg-list-reset small mb-3" *ngIf="die.affixes?.length">
+                <li *ngFor="let affix of die.affixes">
+                  {{ affix.name || affix.affix_slug || 'Affix' }} · {{ affix.value }}
+                </li>
+              </ul>
+
+              <div class="d-flex flex-wrap gap-2 mt-auto">
+                <button
+                  class="dg-command-btn dg-command-btn--teal"
+                  type="button"
+                  *ngIf="selectedUnit()"
+                  (click)="toggleEquip(die)"
+                  [disabled]="busyDiceId() === die.id || (isEquippedAnywhere(die.id) && !isEquippedToSelectedUnit(die.id))"
+                >
+                  {{
+                    busyDiceId() === die.id
+                      ? 'Working...'
+                      : isEquippedToSelectedUnit(die.id)
+                        ? 'Unequip'
+                        : 'Equip'
+                  }}
+                </button>
+                <button
+                  class="dg-command-btn"
+                  type="button"
+                  (click)="sellDice(die)"
+                  [disabled]="busyDiceId() === die.id || isEquippedAnywhere(die.id)"
+                >
+                  {{ busyDiceId() === die.id ? 'Working...' : 'Sell' }}
+                </button>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-4">
+        <aside class="dg-card p-3 h-100">
+          <h3 class="dg-stencil">Status</h3>
+          <p class="mb-2">{{ dice().length }} dice owned.</p>
+          <p class="mb-0" *ngIf="selectedUnit(); else defaultStatus">
+            Managing equipment for {{ selectedUnit()!.name }}.
+          </p>
+          <ng-template #defaultStatus>
+            <p class="mb-0">Select a unit from the warband to equip dice directly.</p>
+          </ng-template>
+        </aside>
+      </div>
+    </div>
+
+    <ng-template #noDice>
+      <div class="dg-alert">No dice available.</div>
+    </ng-template>
+  </div>
+</section>

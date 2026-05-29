@@ -137,3 +137,55 @@ button {
 .dg-card-muted {
   background: rgba(79, 90, 101, 0.08);
 }
+
+.dg-command-btn:disabled,
+.dg-command-btn[disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: 0 6px 0 rgba(35, 39, 42, 0.18);
+}
+
+.dg-input,
+.dg-select,
+.dg-textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 0.7rem 0.85rem;
+  border: 2px solid rgba(35, 39, 42, 0.3);
+  background: rgba(255, 252, 246, 0.95);
+  color: var(--dg-charcoal);
+}
+
+.dg-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.dg-alert {
+  padding: 0.9rem 1rem;
+  border: 2px solid rgba(35, 39, 42, 0.2);
+  background: rgba(243, 239, 224, 0.9);
+}
+
+.dg-alert--error {
+  border-color: rgba(185, 28, 28, 0.45);
+  background: rgba(185, 28, 28, 0.12);
+}
+
+.dg-alert--success {
+  border-color: rgba(0, 111, 122, 0.4);
+  background: rgba(0, 111, 122, 0.1);
+}
+
+.dg-meta-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.dg-list-reset {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

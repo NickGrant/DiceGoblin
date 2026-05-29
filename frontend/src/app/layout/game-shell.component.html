@@ -50,7 +50,7 @@
     <div class="status-row" *ngIf="isLoading() || error()">
       <div class="dg-card status-card" [ngClass]="{ 'status-card--error': !!error() }">
         <strong class="dg-stencil">{{ error() ? 'Comms Disrupted' : 'Loading Registry Data' }}</strong>
-        <span>{{ error() || 'Hydrating session and profile state from the PHP API.' }}</span>
+        <span>{{ error() || 'Syncing camp records.' }}</span>
       </div>
     </div>
 

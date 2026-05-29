@@ -1,0 +1,17 @@
+.formation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.formation-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+@media (max-width: 767.98px) {
+  .formation-grid {
+    grid-template-columns: 1fr;
+  }
+}
