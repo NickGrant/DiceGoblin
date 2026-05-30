@@ -64,6 +64,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/03-ux/08-page-layout-zones.md`
   - `documentation/03-ux/09-first-session-player-journey.md`
 - Verification and release:
+  - `documentation/ENGINEERING_STANDARDS.md`
   - `documentation/TESTING_STRATEGY.md`
   - `documentation/05-playability-stability/00-release-gate-criteria.md`
   - `documentation/05-playability-stability/01-critical-path-playtest-script.md`
@@ -78,6 +79,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/01-architecture/03-backend-api-contracts.md`
   - `documentation/01-architecture/04-data-model.md`
 - Frontend route/state/component changes:
+  - `documentation/ENGINEERING_STANDARDS.md`
   - `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
   - `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
   - `documentation/01-architecture/06-angular-component-service-inventory.md`

@@ -1,18 +1,18 @@
 import { Routes } from '@angular/router';
-import { GameShellComponent } from './layout/game-shell.component';
-import { DebugPageComponent } from './pages/debug-page.component';
-import { DicePageComponent } from './pages/dice-page.component';
-import { LandingPageComponent } from './pages/landing-page.component';
-import { HomePageComponent } from './pages/home-page.component';
-import { RegionsPageComponent } from './pages/regions-page.component';
-import { RunMapPageComponent } from './pages/run-map-page.component';
-import { RunNodePageComponent } from './pages/run-node-page.component';
-import { RunRestPageComponent } from './pages/run-rest-page.component';
-import { RunSummaryPageComponent } from './pages/run-summary-page.component';
-import { ShopPageComponent } from './pages/shop-page.component';
-import { SquadDetailsPageComponent } from './pages/squad-details-page.component';
-import { UnitDetailsPageComponent } from './pages/unit-details-page.component';
-import { WarbandPageComponent } from './pages/warband-page.component';
+import { GameShellComponent } from './layout/game-shell/game-shell.component';
+import { DebugPageComponent } from './pages/debug-page/debug-page.component';
+import { DicePageComponent } from './pages/dice-page/dice-page.component';
+import { LandingPageComponent } from './pages/landing-page/landing-page.component';
+import { HomePageComponent } from './pages/home-page/home-page.component';
+import { RegionsPageComponent } from './pages/regions-page/regions-page.component';
+import { RunMapPageComponent } from './pages/run-map-page/run-map-page.component';
+import { RunNodePageComponent } from './pages/run-node-page/run-node-page.component';
+import { RunRestPageComponent } from './pages/run-rest-page/run-rest-page.component';
+import { RunSummaryPageComponent } from './pages/run-summary-page/run-summary-page.component';
+import { ShopPageComponent } from './pages/shop-page/shop-page.component';
+import { SquadDetailsPageComponent } from './pages/squad-details-page/squad-details-page.component';
+import { UnitDetailsPageComponent } from './pages/unit-details-page/unit-details-page.component';
+import { WarbandPageComponent } from './pages/warband-page/warband-page.component';
 
 export const routes: Routes = [
   {
@@ -43,3 +43,4 @@ export const routes: Routes = [
     redirectTo: 'home',
   },
 ];
+

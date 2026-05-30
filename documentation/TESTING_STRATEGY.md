@@ -2,9 +2,9 @@
 ----
 
 Status: active  
-Last Updated: 2026-03-09  
+Last Updated: 2026-05-29  
 Owner: QA + Engineering  
-Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `AGENTS.md`
+Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `AGENTS.md`, `documentation/ENGINEERING_STANDARDS.md`
 
 ## Purpose
 - Define minimum verification requirements by change type.
@@ -30,6 +30,16 @@ Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `AGENTS.md`
 - Documentation-only changes:
   - `npm run llm:check` and reference consistency review
 
+## Coverage Expectations
+- New logic should ship with automated verification at the service, component, or integration level that owns that behavior.
+- Bug fixes should add regression coverage when the issue can be automated.
+- Presentational-only changes may rely on screenshot/manual verification if behavior and state handling did not change.
+- High-risk flows should not rely on manual verification alone:
+  - session bootstrap
+  - run progression
+  - purchases and inventory mutations
+  - squad/unit mutation flows
+
 ## Release Blocking
 - Blocking:
   - failed required tests/build checks
@@ -40,6 +50,7 @@ Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `AGENTS.md`
   - minor wording/formatting drift
 
 ## References
+- `documentation/ENGINEERING_STANDARDS.md`
 - `documentation/01-architecture/03-backend-api-contracts.md`
 - `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
 - `documentation/05-playability-stability/00-release-gate-criteria.md`

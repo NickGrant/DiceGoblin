@@ -8,6 +8,9 @@ Depends On: `documentation/README.md`, `agent/ISSUES.md`
 ----
 
 ## 2026-05-29
+- Added `documentation/ENGINEERING_STANDARDS.md` as the canonical coding standards reference for test coverage, SCSS, HTML, TypeScript, and architecture expectations.
+- Expanded `documentation/TESTING_STRATEGY.md` with explicit coverage expectations and when manual verification is acceptable.
+- Updated `documentation/README.md` to include the engineering standards doc in the active documentation path.
 - Consolidated the overview, frontend-contract, warband UX, run UX, and first-session docs so each topic has one canonical active document.
 - Removed outdated planning and migration leftovers from the active documentation path, including the old master-context overview and split UX contract shards.
 - Reframed the architecture docs around the current Angular frontend instead of legacy scene ownership language.

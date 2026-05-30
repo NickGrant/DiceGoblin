@@ -1,0 +1,38 @@
+<header class="game-shell__hud">
+  <div class="hud-shell">
+    <div class="hud-shell__group hud-shell__group--nav">
+      <a class="hud-icon-link" routerLink="/home" routerLinkActive="is-active" aria-label="Home">
+        <img src="/assets/ui/icons/icon_home.png" alt="" />
+      </a>
+      <a class="hud-icon-link" routerLink="/warband" routerLinkActive="is-active" aria-label="Warband">
+        <img src="/assets/ui/icons/icon_warband.png" alt="" />
+      </a>
+      <a class="hud-icon-link" routerLink="/dice" routerLinkActive="is-active" aria-label="Inventory">
+        <img src="/assets/ui/icons/icon_inventory.png" alt="" />
+      </a>
+      <a class="hud-icon-link" routerLink="/shop" routerLinkActive="is-active" aria-label="Shop">
+        <img src="/assets/ui/icons/icon_shop.png" alt="" />
+      </a>
+    </div>
+
+    <div class="hud-shell__group hud-shell__group--stats">
+      <span class="hud-stat">
+        <img src="/assets/ui/icons/energy_16.png" alt="" />
+        <span>{{ profile().energyCurrent }} / {{ profile().energyMax }}</span>
+      </span>
+
+      <span class="hud-stat">
+        <img src="/assets/ui/icons/tooth_16.png" alt="" />
+        <span>{{ profile().softCurrency }}</span>
+      </span>
+    </div>
+
+    <div class="hud-shell__group hud-shell__group--player">
+      <div class="hud-player">
+        <span class="hud-player__label dg-stencil">Commander</span>
+        <span class="hud-player__name">{{ session().displayName }}</span>
+      </div>
+      <button class="hud-logout" type="button" (click)="logout()">Logout</button>
+    </div>
+  </div>
+</header>
