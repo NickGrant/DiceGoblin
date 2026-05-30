@@ -10,12 +10,15 @@ class SessionServiceStub {
     {
       id: 's1',
       name: 'Alpha',
-      unit_ids: ['u1'],
-      formation: [],
+      unit_ids: ['u1', 'u2'],
+      formation: [{ cell: 'A1', unit_instance_id: 'u1' }],
       is_active: false,
     },
   ] as any[]);
-  readonly units = signal([{ id: 'u1', name: 'Fang' }] as any[]);
+  readonly units = signal([
+    { id: 'u1', name: 'Fang' },
+    { id: 'u2', name: 'Moss' },
+  ] as any[]);
 }
 
 class SquadServiceStub {
@@ -43,7 +46,78 @@ describe('SquadDetailsPageComponent', () => {
     await fixture.componentInstance.save();
 
     const squadService = TestBed.inject(SquadService) as unknown as SquadServiceStub;
-    expect(squadService.updateTeam).toHaveBeenCalled();
+    expect(squadService.updateTeam).toHaveBeenCalledWith(
+      's1',
+      jasmine.objectContaining({
+        name: 'Alpha',
+        unit_ids: ['u1', 'u2'],
+      }),
+    );
     expect(fixture.componentInstance.message()).toBe('Squad saved.');
+  });
+
+  it('clears formation assignments for units removed from the squad', async () => {
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.toggleUnit('u1');
+    await fixture.componentInstance.save();
+
+    const squadService = TestBed.inject(SquadService) as unknown as SquadServiceStub;
+    const [, payload] = squadService.updateTeam.calls.mostRecent().args as [string, any];
+    const a1 = payload.formation.find((entry: any) => entry.cell === 'A1');
+
+    expect(payload.unit_ids).toEqual(['u2']);
+    expect(a1.unit_instance_id).toBeNull();
+  });
+
+  it('hydrates local editor state when the squad arrives after component creation', async () => {
+    class DelayedSessionServiceStub {
+      readonly squads = signal([] as any[]);
+      readonly units = signal([{ id: 'u1', name: 'Fang' }] as any[]);
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: DelayedSessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    const sessionService = TestBed.inject(SessionService) as unknown as DelayedSessionServiceStub;
+    fixture.detectChanges();
+
+    sessionService.squads.set([
+      {
+        id: 's1',
+        name: 'Late Squad',
+        unit_ids: ['u1'],
+        formation: [{ cell: 'B2', unit_instance_id: 'u1' }],
+        is_active: false,
+      },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.name).toBe('Late Squad');
+    expect(fixture.componentInstance.selectedUnitIds.has('u1')).toBeTrue();
+    expect(fixture.componentInstance.formationAssignments.get('B2')).toBe('u1');
   });
 });

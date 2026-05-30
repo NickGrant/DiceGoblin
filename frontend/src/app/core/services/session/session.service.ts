@@ -1,4 +1,5 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   ProfileData,
   ProfileResponse,
@@ -31,6 +32,7 @@ const DEFAULT_PROFILE: ProfileViewModel = {
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
+  private readonly router = inject(Router);
   private readonly sessionState = signal(DEFAULT_SESSION);
   private readonly profileState = signal(DEFAULT_PROFILE);
   private readonly profileDataState = signal<ProfileData | null>(null);
@@ -95,9 +97,11 @@ export class SessionService {
       // Keep local shell usable even if the backend logout call fails.
     }
 
+    this.initialized = false;
     this.sessionState.set(DEFAULT_SESSION);
     this.profileState.set(DEFAULT_PROFILE);
     this.profileDataState.set(null);
+    await this.router.navigateByUrl('/login');
   }
 
   async refreshProfile(options?: { force?: boolean }): Promise<void> {

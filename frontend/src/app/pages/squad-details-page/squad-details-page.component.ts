@@ -1,5 +1,5 @@
 import { NgFor, NgIf } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { TeamFormationCell } from '../../core/models/api.models';
@@ -22,6 +22,7 @@ export class SquadDetailsPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly sessionService = inject(SessionService);
   private readonly squadService = inject(SquadService);
+  private readonly hydratedSquadId = signal<string | null>(null);
 
   readonly squadId = this.route.snapshot.paramMap.get('squadId') ?? '';
   readonly squad = computed(() => this.sessionService.squads().find((team) => team.id === this.squadId) ?? null);
@@ -39,16 +40,37 @@ export class SquadDetailsPageComponent {
     ]),
   );
 
+  constructor() {
+    effect(() => {
+      const squad = this.squad();
+      if (!squad || this.hydratedSquadId() === squad.id) {
+        return;
+      }
+
+      this.name = squad.name;
+      this.selectedUnitIds = new Set(squad.unit_ids);
+      this.formationAssignments = new Map(
+        FORMATION_CELLS.map((cell) => [
+          cell,
+          squad.formation.find((entry) => entry.cell === cell)?.unit_instance_id ?? null,
+        ]),
+      );
+      this.hydratedSquadId.set(squad.id);
+    });
+  }
+
   toggleUnit(unitId: string): void {
     if (this.selectedUnitIds.has(unitId)) {
       this.selectedUnitIds.delete(unitId);
+      this.clearFormationAssignmentsForUnit(unitId);
     } else {
       this.selectedUnitIds.add(unitId);
     }
   }
 
   setCell(cell: string, value: string): void {
-    this.formationAssignments.set(cell, value || null);
+    const nextValue = value && this.selectedUnitIds.has(value) ? value : null;
+    this.formationAssignments.set(cell, nextValue);
   }
 
   formationForSave(): TeamFormationCell[] {
@@ -100,6 +122,14 @@ export class SquadDetailsPageComponent {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  private clearFormationAssignmentsForUnit(unitId: string): void {
+    this.formationAssignments.forEach((assignedUnitId, cell) => {
+      if (assignedUnitId === unitId) {
+        this.formationAssignments.set(cell, null);
+      }
+    });
   }
 
   protected readonly formationCells = FORMATION_CELLS;

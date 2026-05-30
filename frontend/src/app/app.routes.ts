@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authChildGuard, authGuard } from './core/guards/auth/auth.guard';
 import { GameShellComponent } from './layout/game-shell/game-shell.component';
 import { DebugPageComponent } from './pages/debug-page/debug-page.component';
 import { DicePageComponent } from './pages/dice-page/dice-page.component';
@@ -22,6 +23,8 @@ export const routes: Routes = [
   {
     path: '',
     component: GameShellComponent,
+    canActivate: [authGuard],
+    canActivateChild: [authChildGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: HomePageComponent },

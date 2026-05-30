@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { ApiHttpService } from '../api-http/api-http.service';
 import { ProfileService } from '../profile/profile.service';
 import { SessionService } from './session.service';
@@ -7,16 +8,20 @@ describe('SessionService', () => {
   let service: SessionService;
   let apiHttp: jasmine.SpyObj<ApiHttpService>;
   let profileService: jasmine.SpyObj<ProfileService>;
+  let router: jasmine.SpyObj<Router>;
 
   beforeEach(() => {
     apiHttp = jasmine.createSpyObj<ApiHttpService>('ApiHttpService', ['get', 'post']);
     profileService = jasmine.createSpyObj<ProfileService>('ProfileService', ['getProfile', 'invalidateProfileCache']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
+    router.navigateByUrl.and.resolveTo(true);
 
     TestBed.configureTestingModule({
       providers: [
         SessionService,
         { provide: ApiHttpService, useValue: apiHttp },
         { provide: ProfileService, useValue: profileService },
+        { provide: Router, useValue: router },
       ],
     });
 
@@ -76,5 +81,6 @@ describe('SessionService', () => {
 
     expect(service.session().displayName).toBe('Visitor');
     expect(service.profile().softCurrency).toBe(0);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
   });
 });

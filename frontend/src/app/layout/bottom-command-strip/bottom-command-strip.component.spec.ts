@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter, Router } from '@angular/router';
+import { provideRouter } from '@angular/router';
 import { BottomCommandStripComponent } from './bottom-command-strip.component';
 import { SessionService } from '../../core/services/session/session.service';
 
@@ -19,7 +19,6 @@ class SessionServiceStub {
 }
 
 describe('BottomCommandStripComponent', () => {
-  let router: Router;
   let sessionService: SessionServiceStub;
 
   beforeEach(async () => {
@@ -34,7 +33,6 @@ describe('BottomCommandStripComponent', () => {
       ],
     }).compileComponents();
 
-    router = TestBed.inject(Router);
     sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
   });
 
@@ -49,9 +47,7 @@ describe('BottomCommandStripComponent', () => {
     expect(compiled.textContent).toContain('93');
   });
 
-  it('logs out and routes to login when the logout button is clicked', async () => {
-    spyOn(router, 'navigateByUrl').and.resolveTo(true);
-
+  it('delegates logout to the session service when the logout button is clicked', async () => {
     const fixture = TestBed.createComponent(BottomCommandStripComponent);
     fixture.detectChanges();
 
@@ -60,6 +56,5 @@ describe('BottomCommandStripComponent', () => {
     await fixture.whenStable();
 
     expect(sessionService.logout).toHaveBeenCalled();
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
   });
 });
