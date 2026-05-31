@@ -1,7 +1,11 @@
-.landing-shell {
+:host {
   min-height: 100vh;
   display: flex;
   align-items: center;
+}
+
+section {
+  padding: 20px;
 }
 
 .landing-frame {
@@ -10,20 +14,9 @@
     url('/assets/ui/banner_background.jpg');
   background-size: cover;
   color: var(--dg-cream);
-}
-
-.landing-copy,
-.landing-poster {
-  min-height: 540px;
-}
-
-.landing-copy {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 1rem;
-  padding: clamp(2rem, 5vw, 4rem);
-  background: rgba(35, 39, 42, 0.72);
+  text-shadow: 1px 1px 5px var(--dg-charcoal);
+  font-size: 1.2em;
+  padding: 20px 0;
 }
 
 .landing-kicker {
@@ -31,26 +24,10 @@
   color: #f4b38b;
 }
 
-.landing-copy h1 {
-  margin: 0;
-  font-size: clamp(2.8rem, 7vw, 5.8rem);
-  line-height: 0.92;
-}
 
-.landing-body {
-  max-width: 36rem;
-  font-size: 1.2rem;
-}
-
-.landing-poster {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  background: rgba(243, 239, 224, 0.08);
-}
-
-.landing-poster img {
+img {
+  align-self: center;
+  margin: 0 auto;
   width: min(100%, 320px);
   filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.35));
 }

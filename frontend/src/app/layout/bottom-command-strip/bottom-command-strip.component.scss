@@ -9,18 +9,22 @@
 }
 
 .hud-shell {
-  position: relative;
+  display: flex;
   width: min(1280px, calc(100vw - 2rem));
+  align-items: center;
+  justify-content: space-between;
   aspect-ratio: 1506 / 203;
   background: url('/assets/ui/elements/base_bar.png') center / 100% 100% no-repeat;
+  padding: 20px 70px 50px;
 }
 
 .hud-shell__group {
   display: flex;
   align-items: center;
   min-height: 0;
-  position: absolute;
-  top: 50%;
+  width: 400px;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .hud-icon-link {
@@ -95,26 +99,18 @@
 }
 
 .hud-shell__group--nav {
-  left: 4.2%;
-  width: 24.5%;
-  justify-content: space-between;
   gap: 0;
-  transform: translateY(-50%);
 }
 
 .hud-shell__group--stats {
-  left: 50%;
-  gap: clamp(1rem, 1.8vw, 1.75rem);
-  transform: translate(-49%, -42%);
+  width: 300px;
+  justify-content: space-around;
+  align-self: end;
+  transform: translateY(-15px);
 }
 
 .hud-shell__group--player {
-  right: 5.4%;
-  width: 31%;
-  align-items: center;
-  justify-content: space-between;
   gap: 1rem;
-  transform: translateY(-52%);
 }
 
 @media (max-width: 900px) {
@@ -125,31 +121,12 @@
   .hud-shell {
     width: calc(100vw - 1rem);
   }
-
-  .hud-shell__group--nav {
-    left: 2.2%;
-    width: 24%;
-  }
-
-  .hud-shell__group--player {
-    right: 2.7%;
-    width: 31%;
-  }
 }
 
 @media (max-width: 640px) {
   .hud-shell__group--nav {
     left: 1.5%;
     width: 25%;
-  }
-
-  .hud-shell__group--stats {
-    gap: 0.5rem;
-  }
-
-  .hud-shell__group--player {
-    right: 2%;
-    width: 34%;
   }
 
   .hud-player__label {

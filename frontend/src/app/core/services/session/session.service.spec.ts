@@ -32,6 +32,7 @@ describe('SessionService', () => {
     apiHttp.get.and.resolveTo({
       ok: true,
       data: {
+        authenticated: true,
         csrf_token: 'csrf',
         user: { id: 4, display_name: 'Nick' },
       },
@@ -63,6 +64,21 @@ describe('SessionService', () => {
 
     expect(service.session().isAuthenticated).toBeFalse();
     expect(service.profile().activeRunId).toBeNull();
+  });
+
+  it('treats ok session responses with authenticated false as anonymous', async () => {
+    apiHttp.get.and.resolveTo({
+      ok: true,
+      data: {
+        authenticated: false,
+      },
+    } as any);
+
+    await service.refresh();
+
+    expect(service.session().isAuthenticated).toBeFalse();
+    expect(service.session().displayName).toBe('Visitor');
+    expect(profileService.getProfile).not.toHaveBeenCalled();
   });
 
   it('stores a readable error when refresh throws', async () => {

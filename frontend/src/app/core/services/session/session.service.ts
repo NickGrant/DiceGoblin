@@ -73,9 +73,10 @@ export class SessionService {
 
     try {
       const session = await this.apiHttp.get<SessionResponse>('/api/v1/session');
-      this.sessionState.set(this.mapSession(session));
+      const mappedSession = this.mapSession(session);
+      this.sessionState.set(mappedSession);
 
-      if (session.ok) {
+      if (mappedSession.isAuthenticated) {
         const profile = await this.profileService.getProfile();
         this.profileDataState.set(profile.ok ? profile.data : null);
         this.profileState.set(this.mapProfile(profile));
@@ -118,7 +119,7 @@ export class SessionService {
   }
 
   private mapSession(session: SessionResponse): SessionViewModel {
-    if (!session.ok) {
+    if (!session.ok || session.data?.authenticated !== true) {
       return DEFAULT_SESSION;
     }
 
