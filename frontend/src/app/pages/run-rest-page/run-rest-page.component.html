@@ -1,4 +1,8 @@
-<dg-page-frame eyebrow="Route / Run / Rest" title="Rest Node" subtitle="Heal up, adjust the squad, and buy emergency supplies.">
+<dg-page-frame
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Run', route: '/run/map' }, { label: 'Rest' }]"
+  title="Rest Node"
+  subtitle="Heal up, adjust the squad, and buy emergency supplies."
+>
   @if (loading() || error() || message()) {
   <div class="vstack gap-2 mb-3">
     @if (loading()) {

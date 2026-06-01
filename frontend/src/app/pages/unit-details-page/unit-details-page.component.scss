@@ -1,3 +1,9 @@
+.dg-meta-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
 .equip-row,
 .promote-row {
   display: flex;

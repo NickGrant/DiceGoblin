@@ -64,16 +64,6 @@ button {
   overflow: hidden;
 }
 
-.dg-title-bar {
-  color: var(--dg-cream);
-  background:
-    linear-gradient(rgba(35, 39, 42, 0.2), rgba(35, 39, 42, 0.2)),
-    url('/assets/ui/textures/red.png');
-  background-size: cover;
-  border-bottom: 2px solid rgba(35, 39, 42, 0.5);
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
-}
-
 .dg-command-btn {
   display: inline-flex;
   align-items: center;
@@ -172,28 +162,6 @@ button {
 .dg-textarea {
   min-height: 120px;
   resize: vertical;
-}
-
-.dg-alert {
-  padding: 0.9rem 1rem;
-  border: 2px solid rgba(35, 39, 42, 0.2);
-  background: rgba(243, 239, 224, 0.9);
-}
-
-.dg-alert--error {
-  border-color: rgba(185, 28, 28, 0.45);
-  background: rgba(185, 28, 28, 0.12);
-}
-
-.dg-alert--success {
-  border-color: rgba(0, 111, 122, 0.4);
-  background: rgba(0, 111, 122, 0.1);
-}
-
-.dg-meta-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
 }
 
 .dg-list-reset {

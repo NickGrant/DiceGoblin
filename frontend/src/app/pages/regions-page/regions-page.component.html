@@ -1,4 +1,8 @@
-<dg-page-frame eyebrow="Route / Regions" title="Region Selection" subtitle="Choose where the warband marches next.">
+<dg-page-frame
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Regions' }]"
+  title="Region Selection"
+  subtitle="Choose where the warband marches next."
+>
   @if (message() || error()) {
   <div class="mb-3 vstack gap-2">
     @if (message()) {

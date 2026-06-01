@@ -1,4 +1,8 @@
-<dg-page-frame eyebrow="Route / Run / Summary" [title]="summary()?.title || 'Run Summary'" subtitle="Review the outcome and return to camp.">
+<dg-page-frame
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Run Summary' }]"
+  [title]="summary()?.title || 'Run Summary'"
+  subtitle="Review the outcome and return to camp."
+>
   @if (summary()) {
   <div class="row g-4">
     <div class="col-lg-6">

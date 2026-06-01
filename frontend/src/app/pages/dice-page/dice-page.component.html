@@ -1,5 +1,5 @@
 <dg-page-frame
-  eyebrow="Route / Dice"
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Inventory' }]"
   title="Dice Inventory"
   [subtitle]="selectedUnit() ? 'Assign dice for ' + selectedUnit()!.name + '.' : 'Review owned dice and sell unused pieces.'"
 >

@@ -1,6 +1,6 @@
 @if (unit(); as unit) {
 <dg-page-frame
-  eyebrow="Route / Warband / Unit"
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Warband', route: '/warband' }, { label: 'Unit' }]"
   [title]="unit.name"
   [subtitle]="(unit.unit_type_name || unit.unit_type_slug || 'Unit') + ' · Level ' + unit.level"
 >

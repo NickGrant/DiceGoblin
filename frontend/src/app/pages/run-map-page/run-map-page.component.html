@@ -1,4 +1,8 @@
-<dg-page-frame eyebrow="Route / Run / Map" title="Current Run" subtitle="Plot the next node and keep the squad moving.">
+<dg-page-frame
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Run' }]"
+  title="Current Run"
+  subtitle="Plot the next node and keep the squad moving."
+>
   @if (loading() || error() || run()) {
   <div class="vstack gap-2 mb-3">
     @if (loading()) {

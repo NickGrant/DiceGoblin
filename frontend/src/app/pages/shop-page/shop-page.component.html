@@ -1,4 +1,8 @@
-<dg-page-frame eyebrow="Route / Shop" title="Shop" subtitle="Spend teeth on recruits, dice, and the Daily Deal.">
+<dg-page-frame
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Shop' }]"
+  title="Shop"
+  subtitle="Spend teeth on recruits, dice, and the Daily Deal."
+>
   @if (error() || message()) {
     <div class="vstack gap-2 mb-3">
       @if (error()) { <dg-alert tone="error">{{ error() }}</dg-alert> }

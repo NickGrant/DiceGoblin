@@ -1,4 +1,8 @@
-<dg-page-frame eyebrow="Route / Run / Node" [title]="'Node ' + nodeId" subtitle="Resolve the encounter and claim rewards.">
+<dg-page-frame
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Run', route: '/run/map' }, { label: 'Node' }]"
+  [title]="'Node ' + nodeId"
+  subtitle="Resolve the encounter and claim rewards."
+>
   @if (loading() || error()) {
   <div class="vstack gap-2 mb-3">
     @if (loading()) {

@@ -1,6 +1,6 @@
 @if (squad(); as squad) {
 <dg-page-frame
-  eyebrow="Route / Warband / Squad"
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Warband', route: '/warband' }, { label: 'Squad' }]"
   [title]="squad.name"
   [subtitle]="squad.is_active ? 'Active squad.' : 'Saved squad.'"
 >

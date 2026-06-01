@@ -1,0 +1,62 @@
+:host {
+  display: block;
+}
+
+.dg-title-bar {
+  color: var(--dg-cream);
+  background:
+    linear-gradient(rgba(35, 39, 42, 0.2), rgba(35, 39, 42, 0.2)),
+    url('/assets/ui/textures/red.png');
+  background-size: cover;
+  border-bottom: 2px solid rgba(35, 39, 42, 0.5);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.route-frame__eyebrow,
+.route-frame__breadcrumb-list {
+  margin: 0 0 0.45rem;
+}
+
+.route-frame__eyebrow {
+  color: #f4b38b;
+}
+
+.route-frame__breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0;
+  list-style: none;
+}
+
+.route-frame__breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.route-frame__breadcrumb-item:not(:last-child)::after {
+  content: '/';
+  color: rgba(243, 239, 224, 0.7);
+  font-weight: 700;
+}
+
+.route-frame__breadcrumb-link,
+.route-frame__breadcrumb-current {
+  font-size: 0.95rem;
+}
+
+.route-frame__breadcrumb-link {
+  color: #f4b38b;
+  text-decoration: none;
+}
+
+.route-frame__breadcrumb-link:hover {
+  color: #fff0d3;
+  text-decoration: underline;
+}
+
+.route-frame__breadcrumb-current {
+  color: rgba(243, 239, 224, 0.92);
+}

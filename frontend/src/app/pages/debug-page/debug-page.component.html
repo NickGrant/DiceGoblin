@@ -1,4 +1,8 @@
-<dg-page-frame eyebrow="Route / Debug" title="Debug Panel" subtitle="Grant resources and inspect catalog entries.">
+<dg-page-frame
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Debug' }]"
+  title="Debug Panel"
+  subtitle="Grant resources and inspect catalog entries."
+>
   @if (error() || message() || loading()) {
   <div class="vstack gap-2 mb-3">
     @if (error()) {
