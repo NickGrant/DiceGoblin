@@ -1,18 +1,14 @@
-<div class="game-shell">
-  <div class="game-shell__grain"></div>
-
-  <main class="game-shell__main container-xl px-3 px-md-4">
-    @if (isLoading() || error()) {
+<main class="container-xl px-3 px-md-4">
+  @if (isLoading() || error()) {
     <div class="status-row">
       <div class="dg-card status-card" [class.status-card--error]="!!error()">
         <strong class="dg-stencil">{{ error() ? 'Comms Disrupted' : 'Loading Registry Data' }}</strong>
         <span>{{ error() || 'Syncing camp records.' }}</span>
       </div>
     </div>
-    }
+  }
 
-    <router-outlet></router-outlet>
-  </main>
+  <router-outlet></router-outlet>
+</main>
 
-  <app-bottom-command-strip></app-bottom-command-strip>
-</div>
+<app-bottom-command-strip></app-bottom-command-strip>

@@ -1,23 +1,6 @@
-.game-shell {
-  position: relative;
+:host {
   min-height: 100vh;
   padding: 0.75rem 0 195px;
-  overflow: hidden;
-}
-
-.game-shell__grain {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-    radial-gradient(circle at top left, rgba(185, 28, 28, 0.16), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(0, 111, 122, 0.14), transparent 24%);
-}
-
-.game-shell__main {
-  position: relative;
-  z-index: 1;
 }
 
 .status-row {
@@ -34,10 +17,4 @@
 .status-card--error {
   border-color: rgba(185, 28, 28, 0.5);
   background: rgba(185, 28, 28, 0.1);
-}
-
-@media (max-width: 991.98px) {
-  .game-shell {
-    padding-bottom: 11.5rem;
-  }
 }
