@@ -1,16 +1,25 @@
 <dg-page-frame eyebrow="Route / Run / Map" title="Current Run" subtitle="Plot the next node and keep the squad moving.">
-  <div class="vstack gap-2 mb-3" *ngIf="loading() || error() || run()">
-    <dg-alert *ngIf="loading()">Loading run map...</dg-alert>
-    <dg-alert tone="error" *ngIf="error()">{{ error() }}</dg-alert>
-    <dg-alert *ngIf="run()">Run {{ run()!.run_id }} · {{ run()!.status }}</dg-alert>
+  @if (loading() || error() || run()) {
+  <div class="vstack gap-2 mb-3">
+    @if (loading()) {
+    <dg-alert>Loading run map...</dg-alert>
+    }
+    @if (error()) {
+    <dg-alert tone="error">{{ error() }}</dg-alert>
+    }
+    @if (run()) {
+    <dg-alert>Run {{ run()!.run_id }} · {{ run()!.status }}</dg-alert>
+    }
   </div>
+  }
 
-  <div class="row g-4" *ngIf="run(); else noRun">
+  @if (run()) {
+  <div class="row g-4">
     <div class="col-xl-8">
       <div class="dg-card p-3">
         <svg class="run-map" viewBox="0 0 1200 320" preserveAspectRatio="xMidYMid meet">
+          @for (edge of edges(); track edge.edge_id) {
           <line
-            *ngFor="let edge of edges()"
             [attr.x1]="edgeX(edge.from_node_id)"
             [attr.y1]="edgeY(edge.from_node_id)"
             [attr.x2]="edgeX(edge.to_node_id)"
@@ -19,7 +28,9 @@
             stroke-width="6"
             stroke-linecap="round"
           ></line>
-          <g *ngFor="let node of nodes()">
+          }
+          @for (node of nodes(); track node.id) {
+          <g>
             <circle
               [attr.cx]="nodeX(node)"
               [attr.cy]="nodeY(node)"
@@ -30,6 +41,7 @@
               {{ node.node_type | uppercase }}
             </text>
           </g>
+          }
         </svg>
       </div>
     </div>
@@ -38,28 +50,21 @@
       <div class="dg-card p-3 h-100">
         <h2 class="dg-stencil mb-3">Nodes</h2>
         <div class="vstack gap-2">
-          <button
-            dgCommandBtn
-            type="button"
-            *ngFor="let node of nodes()"
-            (click)="openNode(node)"
-            [disabled]="node.status !== 'available' || working()"
-          >
+          @for (node of nodes(); track node.id) {
+          <button dgCommandBtn type="button" (click)="openNode(node)" [disabled]="node.status !== 'available' || working()">
             {{ node.node_type }} · {{ node.status }}
           </button>
+          }
         </div>
 
         <div class="d-flex flex-wrap gap-2 mt-4">
           <button dgCommandBtn="muted" type="button" (click)="load()">Refresh</button>
-          <button dgCommandBtn="primary" type="button" (click)="abandonRun()" [disabled]="working()">
-            Abandon Run
-          </button>
+          <button dgCommandBtn="primary" type="button" (click)="abandonRun()" [disabled]="working()">Abandon Run</button>
         </div>
       </div>
     </div>
   </div>
-
-  <ng-template #noRun>
-    <dg-alert>No active run.</dg-alert>
-  </ng-template>
+  } @else {
+  <dg-alert>No active run.</dg-alert>
+  }
 </dg-page-frame>

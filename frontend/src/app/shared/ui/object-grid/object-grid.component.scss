@@ -1,0 +1,12 @@
+.object-grid__pager {
+  flex-wrap: wrap;
+}
+
+.object-grid__page-label {
+  min-width: 8rem;
+  text-align: center;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dg-slate);
+}

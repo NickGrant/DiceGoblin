@@ -1,4 +1,3 @@
-import { NgFor, NgIf } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -15,7 +14,7 @@ const REST_FORMATION_CELLS = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C
 @Component({
   selector: 'app-run-rest-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule, NgFor, NgIf, RouterLink],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule, RouterLink],
   templateUrl: './run-rest-page.component.html',
   styleUrl: './run-rest-page.component.scss',
 })

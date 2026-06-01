@@ -1,4 +1,4 @@
-import { NgFor, NgIf, UpperCasePipe } from '@angular/common';
+import { UpperCasePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CurrentRunData, CurrentRunNode } from '../../core/models/api.models';
@@ -10,7 +10,7 @@ import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-fram
 @Component({
   selector: 'app-run-map-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, NgFor, NgIf, UpperCasePipe],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, UpperCasePipe],
   templateUrl: './run-map-page.component.html',
   styleUrl: './run-map-page.component.scss',
 })

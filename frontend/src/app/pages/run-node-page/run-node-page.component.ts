@@ -1,4 +1,3 @@
-import { NgIf } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ResolveNodeData } from '../../core/models/api.models';
@@ -10,7 +9,7 @@ import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-fram
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, NgIf],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent],
   templateUrl: './run-node-page.component.html',
   styleUrl: './run-node-page.component.scss',
 })

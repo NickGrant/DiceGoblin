@@ -1,4 +1,3 @@
-import { NgFor, NgIf } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -14,7 +13,7 @@ const FORMATION_CELLS = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'];
 @Component({
   selector: 'app-squad-details-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule, NgFor, NgIf],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule],
   templateUrl: './squad-details-page.component.html',
   styleUrl: './squad-details-page.component.scss',
 })

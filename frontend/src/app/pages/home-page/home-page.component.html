@@ -1,16 +1,9 @@
 <section class="dg-page-frame home-frame">
   <div class="home-banner">
     <div class="row g-4 align-items-start">
-      <div class="col-lg-6">
+      <div class="col-lg-8">
         <p class="home-banner__eyebrow dg-stencil">Welcome Back to HQ</p>
         <h1>Prep the warband, then send them raiding.</h1>
-      </div>
-      <div class="col-lg-6">
-        <div class="home-banner__status d-flex flex-wrap gap-2">
-          <span class="dg-chip">Active Squad: {{ profile().activeSquadName || 'Not Assigned' }}</span>
-          <span class="dg-chip">Units: {{ profile().unitCount }}</span>
-          <span class="dg-chip">Squads: {{ profile().squadCount }}</span>
-        </div>
       </div>
     </div>
   </div>
@@ -59,7 +52,7 @@
           <div class="col-sm-6">
             <a
               class="home-card home-card--small"
-              [ngClass]="{ 'is-disabled': !devPanelEnabled }"
+              [class.is-disabled]="!devPanelEnabled"
               [routerLink]="devPanelEnabled ? '/debug' : '/home'"
             >
               <div class="home-card__image home-card__image--dev"></div>

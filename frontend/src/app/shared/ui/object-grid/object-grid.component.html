@@ -1,0 +1,19 @@
+@if (objects().length) {
+  <div class="row g-3">
+    @for (object of pagedObjects(); track trackByObject($index, object)) {
+    <div [class]="columnClasses()">
+      <ng-container *ngComponentOutlet="objectComponent(); inputs: buildInputs(object)"></ng-container>
+    </div>
+    }
+  </div>
+
+  @if (totalPages() > 1) {
+  <div class="object-grid__pager d-flex justify-content-center align-items-center gap-2 mt-4">
+    <button dgCommandBtn type="button" (click)="previousPage()" [disabled]="currentPage() === 1">Previous</button>
+    <span class="object-grid__page-label">Page {{ currentPage() }} / {{ totalPages() }}</span>
+    <button dgCommandBtn type="button" (click)="nextPage()" [disabled]="currentPage() === totalPages()">Next</button>
+  </div>
+  }
+} @else {
+  <dg-alert>{{ emptyMessage() }}</dg-alert>
+}

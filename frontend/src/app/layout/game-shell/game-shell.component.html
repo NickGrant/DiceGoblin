@@ -2,12 +2,14 @@
   <div class="game-shell__grain"></div>
 
   <main class="game-shell__main container-xl px-3 px-md-4">
-    <div class="status-row" *ngIf="isLoading() || error()">
-      <div class="dg-card status-card" [ngClass]="{ 'status-card--error': !!error() }">
+    @if (isLoading() || error()) {
+    <div class="status-row">
+      <div class="dg-card status-card" [class.status-card--error]="!!error()">
         <strong class="dg-stencil">{{ error() ? 'Comms Disrupted' : 'Loading Registry Data' }}</strong>
         <span>{{ error() || 'Syncing camp records.' }}</span>
       </div>
     </div>
+    }
 
     <router-outlet></router-outlet>
   </main>

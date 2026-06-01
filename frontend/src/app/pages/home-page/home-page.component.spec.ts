@@ -49,7 +49,7 @@ describe('HomePageComponent', () => {
 
     expect(compiled.textContent).toContain('Start Run');
     expect(compiled.textContent).toContain('Choose your next route.');
-    expect(compiled.textContent).toContain('Active Squad: Alpha Squad');
+    expect(compiled.textContent).not.toContain('Active Squad: Alpha Squad');
     expect(component.primaryRoute()).toBe('/regions');
     expect(component.primaryLabel()).toBe('Start Run');
   });

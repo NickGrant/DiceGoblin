@@ -1,5 +1,4 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { NgClass, NgIf } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { SessionService } from '../../core/services/session/session.service';
 import { BottomCommandStripComponent } from '../bottom-command-strip/bottom-command-strip.component';
@@ -7,7 +6,7 @@ import { BottomCommandStripComponent } from '../bottom-command-strip/bottom-comm
 @Component({
   selector: 'app-game-shell',
   standalone: true,
-  imports: [BottomCommandStripComponent, NgClass, NgIf, RouterOutlet],
+  imports: [BottomCommandStripComponent, RouterOutlet],
   templateUrl: './game-shell.component.html',
   styleUrl: './game-shell.component.scss',
 })

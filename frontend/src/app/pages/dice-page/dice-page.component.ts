@@ -1,4 +1,3 @@
-import { NgFor, NgIf } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DiceRecord } from '../../core/models/api.models';
@@ -6,12 +5,14 @@ import { DiceService } from '../../core/services/dice/dice.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
+import { DiceGridObjectComponent } from '../../shared/ui/dice-grid-object/dice-grid-object.component';
 import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { ObjectGridComponent } from '../../shared/ui/object-grid/object-grid.component';
 
 @Component({
   selector: 'app-dice-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, NgFor, NgIf],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, ObjectGridComponent],
   templateUrl: './dice-page.component.html',
   styleUrl: './dice-page.component.scss',
 })
@@ -32,6 +33,15 @@ export class DicePageComponent {
   readonly busyDiceId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
+  readonly diceObjectComponent = DiceGridObjectComponent;
+
+  readonly diceObjectInputs = (object: unknown): Record<string, unknown> => {
+    const die = object as DiceRecord;
+    const equippedUnitName = this.equippedUnitName(die.id);
+    return {
+      statusText: equippedUnitName ? `Equipped by ${equippedUnitName}.` : 'Unequipped.',
+    };
+  };
 
   isEquippedAnywhere(diceId: string): boolean {
     return this.sessionService

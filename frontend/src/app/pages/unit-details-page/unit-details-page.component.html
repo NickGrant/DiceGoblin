@@ -1,13 +1,19 @@
+@if (unit(); as unit) {
 <dg-page-frame
-  *ngIf="unit() as unit; else missingUnit"
   eyebrow="Route / Warband / Unit"
   [title]="unit.name"
   [subtitle]="(unit.unit_type_name || unit.unit_type_slug || 'Unit') + ' · Level ' + unit.level"
 >
-  <div class="vstack gap-2 mb-3" *ngIf="error() || message()">
-    <dg-alert tone="error" *ngIf="error()">{{ error() }}</dg-alert>
-    <dg-alert tone="success" *ngIf="message()">{{ message() }}</dg-alert>
+  @if (error() || message()) {
+  <div class="vstack gap-2 mb-3">
+    @if (error()) {
+    <dg-alert tone="error">{{ error() }}</dg-alert>
+    }
+    @if (message()) {
+    <dg-alert tone="success">{{ message() }}</dg-alert>
+    }
   </div>
+  }
 
   <div class="row g-4">
     <div class="col-xl-6">
@@ -28,15 +34,18 @@
         </div>
 
         <h3 class="dg-stencil mt-4 mb-3">Equipped Dice</h3>
-        <div class="vstack gap-2" *ngIf="(unit.equipped_dice?.length || 0) > 0; else noEquippedDice">
-          <article class="equip-row" *ngFor="let die of unit.equipped_dice">
+        @if ((unit.equipped_dice?.length || 0) > 0) {
+        <div class="vstack gap-2">
+          @for (die of unit.equipped_dice; track die.dice_instance_id) {
+          <article class="equip-row">
             <span>Die {{ die.dice_instance_id }} · Slot {{ die.slot_index + 1 }}</span>
             <button dgCommandBtn type="button" (click)="unequipDice(die.dice_instance_id)" [disabled]="busy()">Unequip</button>
           </article>
+          }
         </div>
-        <ng-template #noEquippedDice>
-          <dg-alert class="mb-3">No dice equipped.</dg-alert>
-        </ng-template>
+        } @else {
+        <dg-alert class="mb-3">No dice equipped.</dg-alert>
+        }
 
         <a
           dgCommandBtn="teal"
@@ -53,15 +62,18 @@
         <h2 class="dg-stencil mb-3">Promotion</h2>
         <p class="mb-3">Choose two matching units to consume.</p>
 
-        <label class="form-label" *ngIf="promotionOptions().length">Destination</label>
-        <select class="dg-select mb-3" [(ngModel)]="selectedDestination" *ngIf="promotionOptions().length">
-          <option *ngFor="let option of promotionOptions()" [value]="option.target_unit_type_id">
-            {{ option.target_unit_type_name }} · {{ option.mode }}
-          </option>
+        @if (promotionOptions().length) {
+        <label class="form-label">Destination</label>
+        <select class="dg-select mb-3" [(ngModel)]="selectedDestination">
+          @for (option of promotionOptions(); track option.target_unit_type_id) {
+          <option [value]="option.target_unit_type_id">{{ option.target_unit_type_name }} · {{ option.mode }}</option>
+          }
         </select>
+        }
 
         <div class="vstack gap-2 mb-3">
-          <label class="promote-row" *ngFor="let candidate of units()">
+          @for (candidate of units(); track candidate.id) {
+          <label class="promote-row">
             <input
               type="checkbox"
               [checked]="selectedSecondaries().includes(candidate.id)"
@@ -70,6 +82,7 @@
             />
             <span>{{ candidate.name }} · {{ candidate.unit_type_name || candidate.unit_type_slug }}</span>
           </label>
+          }
         </div>
 
         <button dgCommandBtn="primary" type="button" (click)="promoteUnit()" [disabled]="busy() || promotionOptions().length === 0">
@@ -79,9 +92,8 @@
     </div>
   </div>
 </dg-page-frame>
-
-<ng-template #missingUnit>
-  <dg-page-frame [showHeader]="false">
-    <dg-alert tone="error">Unit not found.</dg-alert>
-  </dg-page-frame>
-</ng-template>
+} @else {
+<dg-page-frame [showHeader]="false">
+  <dg-alert tone="error">Unit not found.</dg-alert>
+</dg-page-frame>
+}

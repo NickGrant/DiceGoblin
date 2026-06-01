@@ -1,11 +1,20 @@
 <dg-page-frame eyebrow="Route / Debug" title="Debug Panel" subtitle="Grant resources and inspect catalog entries.">
-  <div class="vstack gap-2 mb-3" *ngIf="error() || message() || loading()">
-    <dg-alert tone="error" *ngIf="error()">{{ error() }}</dg-alert>
-    <dg-alert tone="success" *ngIf="message()">{{ message() }}</dg-alert>
-    <dg-alert *ngIf="loading()">Loading debug catalog...</dg-alert>
+  @if (error() || message() || loading()) {
+  <div class="vstack gap-2 mb-3">
+    @if (error()) {
+    <dg-alert tone="error">{{ error() }}</dg-alert>
+    }
+    @if (message()) {
+    <dg-alert tone="success">{{ message() }}</dg-alert>
+    }
+    @if (loading()) {
+    <dg-alert>Loading debug catalog...</dg-alert>
+    }
   </div>
+  }
 
-  <div class="row g-4" *ngIf="catalog() as catalog">
+  @if (catalog(); as catalog) {
+  <div class="row g-4">
     <div class="col-lg-6">
       <div class="dg-card p-3 h-100">
         <h2 class="dg-stencil mb-3">Grants</h2>
@@ -19,7 +28,9 @@
           <div>
             <label class="form-label">Unit</label>
             <select class="dg-select" [(ngModel)]="selectedUnitSlug">
-              <option *ngFor="let item of catalog.unit_types" [value]="item.slug">{{ item.name }}</option>
+              @for (item of catalog.unit_types; track item.id) {
+              <option [value]="item.slug">{{ item.name }}</option>
+              }
             </select>
           </div>
           <button dgCommandBtn type="button" (click)="grantUnit()" [disabled]="busy()">Grant Unit</button>
@@ -28,7 +39,9 @@
             <div class="col-sm-6">
               <label class="form-label">Dice Sides</label>
               <select class="dg-select" [(ngModel)]="selectedSides">
-                <option *ngFor="let item of catalog.dice_definitions" [ngValue]="item.sides">d{{ item.sides }}</option>
+                @for (item of catalog.dice_definitions; track item.id) {
+                <option [ngValue]="item.sides">d{{ item.sides }}</option>
+                }
               </select>
             </div>
             <div class="col-sm-6">
@@ -45,7 +58,9 @@
           <div>
             <label class="form-label">Region Item</label>
             <select class="dg-select" [(ngModel)]="selectedRegionItem">
-              <option *ngFor="let item of catalog.region_items" [value]="item.slug">{{ item.name }}</option>
+              @for (item of catalog.region_items; track item.id) {
+              <option [value]="item.slug">{{ item.name }}</option>
+              }
             </select>
           </div>
           <button dgCommandBtn type="button" (click)="grantRegionItem()" [disabled]="busy()">Grant Item</button>
@@ -64,4 +79,5 @@
       </div>
     </div>
   </div>
+  }
 </dg-page-frame>

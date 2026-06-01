@@ -75,6 +75,11 @@ Depends On: `documentation/TESTING_STRATEGY.md`, `documentation/01-architecture/
 ## HTML Standards
 - Keep templates declarative and readable.
 - Move transformation logic out of templates and into component fields, computed values, or helper methods.
+- Prefer Angular built-in control flow:
+  - `@if`
+  - `@for`
+  - `@switch`
+- Do not introduce new `*ngIf` or `*ngFor` usage unless a third-party integration specifically requires the legacy directive form.
 - Prefer semantic elements when they improve meaning:
   - `button` for actions
   - `a` for navigation
@@ -90,6 +95,7 @@ Depends On: `documentation/TESTING_STRATEGY.md`, `documentation/01-architecture/
 - Prefer typed contracts over `any`.
 - Keep data mapping and mutation logic in services or clearly owned page-level state, not scattered across templates.
 - Use Angular signals/computed state for local reactive state in the current frontend architecture.
+- Prefer signal-based component APIs for new shared primitives and local UI state over decorator-era patterns when practical.
 - Prefer `inject()` in standalone Angular code for consistency with the existing codebase.
 - Keep component classes focused on view state and orchestration.
 - Services should own:
@@ -123,6 +129,8 @@ Depends On: `documentation/TESTING_STRATEGY.md`, `documentation/01-architecture/
 - Do not let templates assemble backend payloads.
 - Keep session/profile refresh behavior centralized instead of reimplemented per page.
 - Reuse shared primitives before duplicating frame, alert, or command-button patterns.
+- Prefer Angular CDK primitives when they materially improve accessibility, focus management, overlays, drag/drop, portals, or large-list rendering.
+- Do not add CDK abstractions where native HTML plus the current shared primitives already cover the need cleanly.
 - Introduce a new shared component only when:
   - the structure is repeated
   - the naming is stable

@@ -1,31 +1,41 @@
 <dg-page-frame eyebrow="Route / Regions" title="Region Selection" subtitle="Choose where the warband marches next.">
-  <div class="mb-3 vstack gap-2" *ngIf="message() || error()">
-    <dg-alert tone="success" *ngIf="message()">{{ message() }}</dg-alert>
-    <dg-alert tone="error" *ngIf="error()">{{ error() }}</dg-alert>
+  @if (message() || error()) {
+  <div class="mb-3 vstack gap-2">
+    @if (message()) {
+    <dg-alert tone="success">{{ message() }}</dg-alert>
+    }
+    @if (error()) {
+    <dg-alert tone="error">{{ error() }}</dg-alert>
+    }
   </div>
+  }
 
   <div class="row g-4">
     <div class="col-xl-8">
       <div class="vstack gap-4">
-        <article class="region-card" *ngFor="let region of regions()" [ngClass]="{ 'region-card--locked': !region.isUnlocked }">
+        @for (region of regions(); track region.slug) {
+        <article class="region-card" [class.region-card--locked]="!region.isUnlocked">
           <img [src]="'/assets/ui/biome/' + region.theme + '.png'" alt="" />
           <div class="region-card__body">
             <div class="d-flex flex-wrap gap-2 align-items-center">
               <span class="dg-chip">{{ region.pathSummary }}</span>
               <span class="dg-chip">Energy {{ region.energyCost }}</span>
               <span class="dg-chip">Level {{ region.recommendedLevel }}</span>
-              <span class="dg-chip" *ngIf="isActiveRegion(region.regionId)">Current Run</span>
-              <span class="dg-chip" *ngIf="!region.isUnlocked">Locked</span>
+              @if (isActiveRegion(region.regionId)) {
+              <span class="dg-chip">Current Run</span>
+              }
+              @if (!region.isUnlocked) {
+              <span class="dg-chip">Locked</span>
+              }
             </div>
 
             <h2 class="mt-3 mb-2">{{ region.name }}</h2>
             <p class="mb-1">{{ region.summary }}</p>
-            <p class="mb-0" *ngIf="region.isUnlocked; else lockedHint">
-              Unlocked {{ unlockRecord(region.slug)?.unlocked_at | date: 'mediumDate' }}.
-            </p>
-            <ng-template #lockedHint>
-              <p class="mb-0">{{ region.unlockHint }}</p>
-            </ng-template>
+            @if (region.isUnlocked) {
+            <p class="mb-0">Unlocked {{ unlockRecord(region.slug)?.unlocked_at | date: 'mediumDate' }}.</p>
+            } @else {
+            <p class="mb-0">{{ region.unlockHint }}</p>
+            }
 
             <div class="d-flex flex-wrap gap-2 mt-2">
               <button
@@ -48,6 +58,7 @@
             </div>
           </div>
         </article>
+        }
       </div>
     </div>
 
@@ -55,21 +66,22 @@
       <aside class="dg-card route-sidebar p-3">
         <h3 class="dg-stencil">Status</h3>
         <p class="mb-2">{{ unlockedRegionCount() }} region{{ unlockedRegionCount() === 1 ? '' : 's' }} unlocked.</p>
-        <p class="mb-0" [ngClass]="{ 'text-danger': !hasActiveRun() }">
+        <p class="mb-0" [class.text-danger]="!hasActiveRun()">
           {{ hasActiveRun() ? 'An active run can be continued from the map.' : 'No active run in progress.' }}
         </p>
 
         <hr />
 
         <h4 class="dg-stencil h6">Region Items</h4>
-        <ul class="mb-0" *ngIf="(profileData()?.region_items?.length ?? 0) > 0; else noRegionItems">
-          <li *ngFor="let item of profileData()?.region_items">
-            {{ item.region_item_id }} x{{ item.quantity }}
-          </li>
+        @if ((profileData()?.region_items?.length ?? 0) > 0) {
+        <ul class="mb-0">
+          @for (item of profileData()?.region_items ?? []; track item.region_item_id) {
+          <li>{{ item.region_item_id }} x{{ item.quantity }}</li>
+          }
         </ul>
-        <ng-template #noRegionItems>
-          <p class="mb-0">No region boss trophies collected yet.</p>
-        </ng-template>
+        } @else {
+        <p class="mb-0">No region boss trophies collected yet.</p>
+        }
       </aside>
     </div>
   </div>

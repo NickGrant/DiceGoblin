@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { DatePipe, NgClass, NgFor, NgIf } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
@@ -55,7 +55,7 @@ const REGION_CARDS: RegionCard[] = [
 @Component({
   selector: 'app-regions-page',
   standalone: true,
-  imports: [DatePipe, DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, NgClass, NgFor, NgIf],
+  imports: [DatePipe, DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent],
   templateUrl: './regions-page.component.html',
   styleUrl: './regions-page.component.scss',
 })

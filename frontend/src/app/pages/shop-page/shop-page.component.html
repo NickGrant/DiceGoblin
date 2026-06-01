@@ -1,83 +1,104 @@
 <dg-page-frame eyebrow="Route / Shop" title="Shop" subtitle="Spend teeth on fresh recruits, basic dice, and the daily deal.">
-  <div class="vstack gap-2 mb-3" *ngIf="error() || message() || catalog()">
-    <dg-alert tone="error" *ngIf="error()">{{ error() }}</dg-alert>
-    <dg-alert tone="success" *ngIf="message()">{{ message() }}</dg-alert>
-    <dg-alert *ngIf="catalog()">Soft Currency: {{ catalog()!.currency_soft }}</dg-alert>
+  @if (error() || message() || catalog()) {
+  <div class="vstack gap-2 mb-3">
+    @if (error()) {
+    <dg-alert tone="error">{{ error() }}</dg-alert>
+    }
+    @if (message()) {
+    <dg-alert tone="success">{{ message() }}</dg-alert>
+    }
+    @if (catalog()) {
+    <dg-alert>Soft Currency: {{ catalog()!.currency_soft }}</dg-alert>
+    }
   </div>
+  }
 
-  <dg-alert *ngIf="loading()">Loading shop...</dg-alert>
+  @if (loading()) {
+  <dg-alert>Loading shop...</dg-alert>
+  }
 
-  <div class="row g-4" *ngIf="catalog() as catalog">
+  @if (catalog()) {
+  <div class="row g-4">
     <div class="col-xl-4">
       <div class="dg-card p-3 h-100">
         <h2 class="dg-stencil mb-3">Basic Dice</h2>
-        <div class="vstack gap-3">
-          <article class="shop-row" *ngFor="let item of catalog.basic_dice">
-            <div>
-              <strong>{{ item.label }}</strong>
-              <p class="mb-0">{{ item.rarity }} · Cost {{ item.cost }}</p>
-            </div>
-            <button
-              dgCommandBtn
-              type="button"
-              (click)="purchase('basic_dice', item.product_id)"
-              [disabled]="busyKey() === ('basic_dice:' + item.product_id) || !canAfford(item.cost)"
-            >
-              {{ busyKey() === ('basic_dice:' + item.product_id) ? 'Buying...' : 'Buy' }}
-            </button>
-          </article>
-        </div>
+        <dg-object-grid
+          [objects]="basicDiceGridObjects()"
+          [objectComponent]="shopDiceObjectComponent"
+          [footerTemplate]="basicDiceActions"
+          [pageSize]="3"
+          columnClasses="col-12"
+          emptyMessage="No basic dice available."
+        />
       </div>
     </div>
 
     <div class="col-xl-4">
       <div class="dg-card p-3 h-100">
         <h2 class="dg-stencil mb-3">Tier 1 Units</h2>
-        <div class="vstack gap-3">
-          <article class="shop-row" *ngFor="let item of catalog.basic_units">
-            <div>
-              <strong>{{ item.name }}</strong>
-              <p class="mb-0">{{ item.role }} · Cost {{ item.cost }}</p>
-            </div>
-            <button
-              dgCommandBtn
-              type="button"
-              (click)="purchase('basic_unit', item.product_id)"
-              [disabled]="busyKey() === ('basic_unit:' + item.product_id) || !canAfford(item.cost)"
-            >
-              {{ busyKey() === ('basic_unit:' + item.product_id) ? 'Buying...' : 'Buy' }}
-            </button>
-          </article>
-        </div>
+        <dg-object-grid
+          [objects]="basicUnitGridObjects()"
+          [objectComponent]="shopUnitObjectComponent"
+          [footerTemplate]="basicUnitActions"
+          [pageSize]="3"
+          columnClasses="col-12"
+          emptyMessage="No recruits available."
+        />
       </div>
     </div>
 
     <div class="col-xl-4">
       <div class="dg-card p-3 h-100">
         <h2 class="dg-stencil mb-3">Daily Deal</h2>
-        <ng-container *ngIf="catalog.daily_deal as deal; else noDeal">
-          <p class="mb-2">d{{ deal.sides }} {{ deal.rarity }} die.</p>
-          <p class="mb-2">{{ deal.affix.name }} · {{ deal.affix.description }}</p>
-          <p class="mb-3">Cost {{ deal.cost }}</p>
-          <button
-            dgCommandBtn="primary"
-            type="button"
-            (click)="purchase('daily_deal')"
-            [disabled]="busyKey() === 'daily_deal:' || deal.is_purchased || !canAfford(deal.cost)"
-          >
-            {{
-              busyKey() === 'daily_deal:'
-                ? 'Buying...'
-                : deal.is_purchased
-                  ? 'Purchased'
-                  : 'Buy Deal'
-            }}
-          </button>
-        </ng-container>
-        <ng-template #noDeal>
-          <p class="mb-0">No daily deal available.</p>
-        </ng-template>
+        <dg-object-grid
+          [objects]="dailyDealGridObjects()"
+          [objectComponent]="shopDiceObjectComponent"
+          [footerTemplate]="dailyDealActions"
+          [pageSize]="1"
+          columnClasses="col-12"
+          emptyMessage="No daily deal available."
+        />
       </div>
     </div>
   </div>
+  }
 </dg-page-frame>
+
+<ng-template #basicDiceActions let-item>
+  <button
+    dgCommandBtn
+    type="button"
+    (click)="purchase('basic_dice', item.id)"
+    [disabled]="busyKey() === ('basic_dice:' + item.id) || !canAfford(item.cost)"
+  >
+    {{ busyKey() === ('basic_dice:' + item.id) ? 'Buying...' : 'Buy' }}
+  </button>
+</ng-template>
+
+<ng-template #basicUnitActions let-item>
+  <button
+    dgCommandBtn
+    type="button"
+    (click)="purchase('basic_unit', item.id)"
+    [disabled]="busyKey() === ('basic_unit:' + item.id) || !canAfford(item.cost)"
+  >
+    {{ busyKey() === ('basic_unit:' + item.id) ? 'Buying...' : 'Buy' }}
+  </button>
+</ng-template>
+
+<ng-template #dailyDealActions let-item>
+  <button
+    dgCommandBtn="primary"
+    type="button"
+    (click)="purchase('daily_deal')"
+    [disabled]="busyKey() === 'daily_deal:' || catalog()?.daily_deal?.is_purchased || !canAfford(item.cost)"
+  >
+    {{
+      busyKey() === 'daily_deal:'
+        ? 'Buying...'
+        : catalog()?.daily_deal?.is_purchased
+          ? 'Purchased'
+          : 'Buy Deal'
+    }}
+  </button>
+</ng-template>

@@ -1,15 +1,23 @@
-import { NgFor, NgIf } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
-import { ShopCatalogData } from '../../core/models/api.models';
+import { Component, computed, inject, signal } from '@angular/core';
+import { ShopCatalogData, ShopDailyDeal, ShopDiceItem, ShopUnitItem } from '../../core/models/api.models';
 import { ShopService } from '../../core/services/shop/shop.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { ObjectGridComponent } from '../../shared/ui/object-grid/object-grid.component';
+import {
+  ShopDiceGridObjectComponent,
+  ShopDiceGridObjectRecord,
+} from '../../shared/ui/shop-dice-grid-object/shop-dice-grid-object.component';
+import {
+  ShopUnitGridObjectComponent,
+  ShopUnitGridObjectRecord,
+} from '../../shared/ui/shop-unit-grid-object/shop-unit-grid-object.component';
 
 @Component({
   selector: 'app-shop-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, NgFor, NgIf],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, ObjectGridComponent],
   templateUrl: './shop-page.component.html',
   styleUrl: './shop-page.component.scss',
 })
@@ -21,6 +29,18 @@ export class ShopPageComponent {
   readonly busyKey = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
+  readonly shopDiceObjectComponent = ShopDiceGridObjectComponent;
+  readonly shopUnitObjectComponent = ShopUnitGridObjectComponent;
+  readonly basicDiceGridObjects = computed(() =>
+    (this.catalog()?.basic_dice ?? []).map((item) => this.mapBasicDiceItem(item)),
+  );
+  readonly basicUnitGridObjects = computed(() =>
+    (this.catalog()?.basic_units ?? []).map((item) => this.mapBasicUnitItem(item)),
+  );
+  readonly dailyDealGridObjects = computed(() => {
+    const deal = this.catalog()?.daily_deal;
+    return deal ? [this.mapDailyDealItem(deal)] : [];
+  });
 
   constructor() {
     void this.loadCatalog();
@@ -66,5 +86,40 @@ export class ShopPageComponent {
   canAfford(cost: number): boolean {
     return (this.catalog()?.currency_soft ?? 0) >= cost;
   }
-}
 
+  private mapBasicDiceItem(item: ShopDiceItem): ShopDiceGridObjectRecord {
+    return {
+      id: item.product_id,
+      label: item.label,
+      rarity: item.rarity,
+      sides: item.sides,
+      cost: item.cost,
+      detailLines: ['Basic stock die', `Purchase for ${item.cost} teeth`],
+      tag: 'Basic Dice',
+    };
+  }
+
+  private mapDailyDealItem(item: ShopDailyDeal): ShopDiceGridObjectRecord {
+    return {
+      id: item.product_id,
+      label: item.affix.name,
+      rarity: item.rarity,
+      sides: item.sides,
+      cost: item.cost,
+      detailLines: [item.affix.description, `Affix value ${item.affix.value}`],
+      tag: 'Daily Deal',
+    };
+  }
+
+  private mapBasicUnitItem(item: ShopUnitItem): ShopUnitGridObjectRecord {
+    return {
+      id: item.product_id,
+      name: item.name,
+      role: item.role,
+      cost: item.cost,
+      unitTypeSlug: item.unit_type_slug,
+      tierLabel: 'Tier 1',
+      tag: 'Recruit',
+    };
+  }
+}

@@ -1,0 +1,15 @@
+<article class="dg-card dg-card-muted shop-unit-grid-object p-3 h-100">
+  <span class="shop-unit-grid-object__tag">{{ object().tag || 'Recruit' }}</span>
+  <h2 class="h5 mt-2 mb-1">{{ object().name }}</h2>
+  <p class="mb-2">{{ object().role }} · {{ object().tierLabel }}</p>
+  <p class="mb-3">Type {{ object().unitTypeSlug }} · Cost {{ object().cost }}</p>
+
+  @if (footerTemplate(); as footerTemplate) {
+  <div class="d-flex flex-wrap gap-2 mt-auto">
+    <ng-container
+      [ngTemplateOutlet]="footerTemplate"
+      [ngTemplateOutletContext]="{ $implicit: footerContext() || object() }"
+    />
+  </div>
+  }
+</article>

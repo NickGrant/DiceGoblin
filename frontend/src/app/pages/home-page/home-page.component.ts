@@ -1,5 +1,4 @@
 import { Component, computed, inject } from '@angular/core';
-import { NgClass } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { SessionService } from '../../core/services/session/session.service';
 import { isDevPanelEnabled } from '../../core/config/runtime-config';
@@ -7,7 +6,7 @@ import { isDevPanelEnabled } from '../../core/config/runtime-config';
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [NgClass, RouterLink],
+  imports: [RouterLink],
   templateUrl: './home-page.component.html',
   styleUrl: './home-page.component.scss',
 })

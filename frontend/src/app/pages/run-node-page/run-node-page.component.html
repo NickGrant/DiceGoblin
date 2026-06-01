@@ -1,39 +1,43 @@
 <dg-page-frame eyebrow="Route / Run / Node" [title]="'Node ' + nodeId" subtitle="Resolve the encounter and claim rewards.">
-  <div class="vstack gap-2 mb-3" *ngIf="loading() || error()">
-    <dg-alert *ngIf="loading()">Loading node...</dg-alert>
-    <dg-alert tone="error" *ngIf="error()">{{ error() }}</dg-alert>
+  @if (loading() || error()) {
+  <div class="vstack gap-2 mb-3">
+    @if (loading()) {
+    <dg-alert>Loading node...</dg-alert>
+    }
+    @if (error()) {
+    <dg-alert tone="error">{{ error() }}</dg-alert>
+    }
   </div>
+  }
 
   <div class="row g-4">
     <div class="col-lg-8">
       <div class="dg-card p-3 h-100">
-        <ng-container *ngIf="result(); else resolvePrompt">
-          <h2 class="dg-stencil mb-3">Battle Result</h2>
-          <p class="mb-2">Outcome: {{ result()!.battle.outcome }}</p>
-          <p class="mb-2">Rounds: {{ result()!.battle.rounds }} · Ticks: {{ result()!.battle.ticks }}</p>
-          <p class="mb-3">Battle details coming soon.</p>
-          <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
-            {{ busy() ? 'Working...' : 'Claim Rewards' }}
-          </button>
-        </ng-container>
-        <ng-template #resolvePrompt>
-          <h2 class="dg-stencil mb-3">Encounter Ready</h2>
-          <button dgCommandBtn="primary" type="button" (click)="resolveNode()" [disabled]="busy() || loading()">
-            {{ busy() ? 'Resolving...' : 'Resolve Node' }}
-          </button>
-        </ng-template>
+        @if (result()) {
+        <h2 class="dg-stencil mb-3">Battle Result</h2>
+        <p class="mb-2">Outcome: {{ result()!.battle.outcome }}</p>
+        <p class="mb-2">Rounds: {{ result()!.battle.rounds }} · Ticks: {{ result()!.battle.ticks }}</p>
+        <p class="mb-3">Battle details coming soon.</p>
+        <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
+          {{ busy() ? 'Working...' : 'Claim Rewards' }}
+        </button>
+        } @else {
+        <h2 class="dg-stencil mb-3">Encounter Ready</h2>
+        <button dgCommandBtn="primary" type="button" (click)="resolveNode()" [disabled]="busy() || loading()">
+          {{ busy() ? 'Resolving...' : 'Resolve Node' }}
+        </button>
+        }
       </div>
     </div>
 
     <div class="col-lg-4">
       <div class="dg-card p-3 h-100">
         <h3 class="dg-stencil">Status</h3>
-        <p class="mb-0" *ngIf="result(); else pendingState">
-          {{ result()!.node.status }} · {{ result()!.next.unlocked_node_ids.length }} node(s) unlocked
-        </p>
-        <ng-template #pendingState>
-          <p class="mb-0">Waiting for resolution.</p>
-        </ng-template>
+        @if (result()) {
+        <p class="mb-0">{{ result()!.node.status }} · {{ result()!.next.unlocked_node_ids.length }} node(s) unlocked</p>
+        } @else {
+        <p class="mb-0">Waiting for resolution.</p>
+        }
       </div>
     </div>
   </div>

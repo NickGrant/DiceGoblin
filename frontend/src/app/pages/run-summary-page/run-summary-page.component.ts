@@ -1,4 +1,3 @@
-import { NgFor, NgIf } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { RunService } from '../../core/services/run/run.service';
@@ -9,7 +8,7 @@ import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-fram
 @Component({
   selector: 'app-run-summary-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, NgFor, NgIf, RouterLink],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, RouterLink],
   templateUrl: './run-summary-page.component.html',
   styleUrl: './run-summary-page.component.scss',
 })

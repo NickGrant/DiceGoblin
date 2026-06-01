@@ -1,9 +1,17 @@
 <dg-page-frame eyebrow="Route / Warband" title="Warband Management" subtitle="Review your units and saved squads.">
-  <div class="vstack gap-2 mb-3" *ngIf="error() || message() || activeRun()">
-    <dg-alert tone="error" *ngIf="error()">{{ error() }}</dg-alert>
-    <dg-alert tone="success" *ngIf="message()">{{ message() }}</dg-alert>
-    <dg-alert *ngIf="activeRun()">Run changes that affect active units require a rest node.</dg-alert>
+  @if (error() || message() || activeRun()) {
+  <div class="vstack gap-2 mb-3">
+    @if (error()) {
+    <dg-alert tone="error">{{ error() }}</dg-alert>
+    }
+    @if (message()) {
+    <dg-alert tone="success">{{ message() }}</dg-alert>
+    }
+    @if (activeRun()) {
+    <dg-alert>Run changes that affect active units require a rest node.</dg-alert>
+    }
   </div>
+  }
 
   <div class="row g-4">
     <div class="col-xl-7">
@@ -13,25 +21,17 @@
           <span class="dg-chip">{{ profile().unitCount }} Registered</span>
         </div>
 
-        <div class="row g-3" *ngIf="units().length; else noUnits">
-          <div class="col-sm-6" *ngFor="let unit of units()">
-            <article class="dg-card dg-card-muted warband-tile p-3">
-              <span class="warband-tile__tag">Unit Record</span>
-              <h3 class="h5 mt-2 mb-1">{{ unit.name }}</h3>
-              <p class="mb-2">
-                {{ unit.unit_type_name || unit.unit_type_slug || 'Unit' }} · Level {{ unit.level }}
-                <span *ngIf="unit.tier">· Tier {{ unit.tier }}</span>
-              </p>
-              <div class="d-flex flex-wrap gap-2">
-                <a dgCommandBtn [routerLink]="['/warband/units', unit.id]">Details</a>
-                <a dgCommandBtn="teal" [routerLink]="['/dice']" [queryParams]="{ unitId: unit.id, mode: 'equip' }">Dice</a>
-              </div>
-            </article>
-          </div>
-        </div>
+        <dg-object-grid
+          [objects]="units()"
+          [objectComponent]="unitObjectComponent"
+          [footerTemplate]="unitActions"
+          emptyMessage="No units available."
+          columnClasses="col-sm-6"
+        />
 
-        <ng-template #noUnits>
-          <dg-alert>No units available.</dg-alert>
+        <ng-template #unitActions let-unit>
+          <a dgCommandBtn [routerLink]="['/warband/units', unit.id]">Details</a>
+          <a dgCommandBtn="teal" [routerLink]="['/dice']" [queryParams]="{ unitId: unit.id, mode: 'equip' }">Dice</a>
         </ng-template>
       </div>
     </div>
@@ -43,8 +43,10 @@
           <span class="dg-chip">{{ profile().squadCount }} Saved</span>
         </div>
 
-        <div class="vstack gap-3" *ngIf="squads().length; else noSquads">
-          <article class="squad-row" *ngFor="let squad of squads()">
+        @if (squads().length) {
+        <div class="vstack gap-3">
+          @for (squad of squads(); track squad.id) {
+          <article class="squad-row">
             <div>
               <strong>{{ squad.name }}</strong>
               <p class="mb-0">{{ squad.unit_ids.length }} units{{ squad.is_active ? ' · Active squad' : '' }}</p>
@@ -61,17 +63,17 @@
               </button>
             </div>
           </article>
+          }
         </div>
+        } @else {
+        <dg-alert>No squads available.</dg-alert>
+        }
 
         <div class="d-flex flex-wrap gap-2 mt-4">
           <button dgCommandBtn="primary" type="button" (click)="createSquad()" [disabled]="isSaving()">
             {{ isSaving() ? 'Saving...' : 'Create Squad' }}
           </button>
         </div>
-
-        <ng-template #noSquads>
-          <dg-alert>No squads available.</dg-alert>
-        </ng-template>
       </div>
     </div>
   </div>

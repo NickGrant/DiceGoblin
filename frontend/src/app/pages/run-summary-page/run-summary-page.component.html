@@ -1,14 +1,18 @@
 <dg-page-frame eyebrow="Route / Run / Summary" [title]="summary()?.title || 'Run Summary'" subtitle="Review the outcome and return to camp.">
-  <div class="row g-4" *ngIf="summary(); else noSummary">
+  @if (summary()) {
+  <div class="row g-4">
     <div class="col-lg-6">
       <div class="dg-card p-3 h-100">
         <h2 class="dg-stencil mb-3">Rewards</h2>
-        <ul class="mb-0" *ngIf="summary()!.rewards.length; else emptyRewards">
-          <li *ngFor="let item of summary()!.rewards">{{ item }}</li>
+        @if (summary()!.rewards.length) {
+        <ul class="mb-0">
+          @for (item of summary()!.rewards; track item) {
+          <li>{{ item }}</li>
+          }
         </ul>
-        <ng-template #emptyRewards>
-          <p class="mb-0">No rewards recorded.</p>
-        </ng-template>
+        } @else {
+        <p class="mb-0">No rewards recorded.</p>
+        }
       </div>
     </div>
 
@@ -22,8 +26,7 @@
       </div>
     </div>
   </div>
-
-  <ng-template #noSummary>
-    <dg-alert>No run summary available.</dg-alert>
-  </ng-template>
+  } @else {
+  <dg-alert>No run summary available.</dg-alert>
+  }
 </dg-page-frame>

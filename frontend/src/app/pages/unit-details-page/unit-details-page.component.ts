@@ -1,4 +1,3 @@
-import { NgFor, NgIf } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -13,7 +12,7 @@ import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-fram
 @Component({
   selector: 'app-unit-details-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule, NgFor, NgIf, RouterLink],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule, RouterLink],
   templateUrl: './unit-details-page.component.html',
   styleUrl: './unit-details-page.component.scss',
 })
