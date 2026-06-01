@@ -1,15 +1,9 @@
-.shop-unit-grid-object {
-  min-height: 200px;
-}
+article {
+  padding: 1rem 1rem 1.5rem;
+  height: 100%;
 
-.shop-unit-grid-object__tag {
-  font-size: 0.74rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--dg-slate);
-}
-
-.shop-unit-grid-object h2 {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  h2 {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
 }

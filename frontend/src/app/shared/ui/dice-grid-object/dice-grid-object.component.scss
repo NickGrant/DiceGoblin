@@ -2,6 +2,21 @@
   min-height: 240px;
 }
 
+.dice-grid-object__sprite-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 132px;
+  min-width: 132px;
+}
+
+.dice-grid-object__sprite {
+  width: 132px;
+  height: 132px;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.2));
+}
+
 .dice-grid-object__rarity {
   text-transform: uppercase;
   letter-spacing: 0.08em;

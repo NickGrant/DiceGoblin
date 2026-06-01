@@ -62,7 +62,8 @@ describe('ShopPageComponent', () => {
     expect(component.catalog()?.currency_soft).toBe(20);
     expect(component.canAfford(10)).toBeTrue();
     expect(component.canAfford(30)).toBeFalse();
-    expect(compiled.textContent).toContain('Starter d6');
+    expect(compiled.textContent).toContain('d6 · Common');
+    expect(compiled.textContent).not.toContain('Starter d6');
     expect(compiled.textContent).toContain('Goblin Bruiser');
     expect(compiled.textContent).toContain('Sharp');
   });

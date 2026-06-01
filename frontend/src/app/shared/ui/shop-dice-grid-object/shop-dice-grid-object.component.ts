@@ -1,5 +1,6 @@
-import { NgTemplateOutlet } from '@angular/common';
-import { Component } from '@angular/core';
+import { NgTemplateOutlet, TitleCasePipe } from '@angular/common';
+import { Component, computed } from '@angular/core';
+import { resolveDiceArtStyles } from '../dice-art/dice-art';
 import { GridObjectComponent } from '../grid-object/grid-object.component';
 
 export interface ShopDiceGridObjectRecord {
@@ -9,14 +10,15 @@ export interface ShopDiceGridObjectRecord {
   sides: number;
   cost: number;
   detailLines: string[];
-  tag?: string;
 }
 
 @Component({
   selector: 'dg-shop-dice-grid-object',
   standalone: true,
-  imports: [NgTemplateOutlet],
+  imports: [NgTemplateOutlet, TitleCasePipe],
   templateUrl: './shop-dice-grid-object.component.html',
   styleUrl: './shop-dice-grid-object.component.scss',
 })
-export class ShopDiceGridObjectComponent extends GridObjectComponent<ShopDiceGridObjectRecord> {}
+export class ShopDiceGridObjectComponent extends GridObjectComponent<ShopDiceGridObjectRecord> {
+  readonly artStyles = computed(() => resolveDiceArtStyles(this.object().rarity, this.object().sides, 116));
+}

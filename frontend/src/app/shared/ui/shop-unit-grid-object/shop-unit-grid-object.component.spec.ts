@@ -13,9 +13,7 @@ describe('ShopUnitGridObjectComponent', () => {
       name: 'Goblin Bruiser',
       role: 'Frontline',
       cost: 20,
-      unitTypeSlug: 'goblin_bruiser',
       tierLabel: 'Tier 1',
-      tag: 'Recruit',
     });
     fixture.detectChanges();
 
@@ -23,6 +21,5 @@ describe('ShopUnitGridObjectComponent', () => {
     expect(compiled.textContent).toContain('Goblin Bruiser');
     expect(compiled.textContent).toContain('Frontline');
     expect(compiled.textContent).toContain('Tier 1');
-    expect(compiled.textContent).toContain('Cost 20');
   });
 });

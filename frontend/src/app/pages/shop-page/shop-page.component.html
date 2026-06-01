@@ -1,48 +1,23 @@
-<dg-page-frame eyebrow="Route / Shop" title="Shop" subtitle="Spend teeth on fresh recruits, basic dice, and the daily deal.">
-  @if (error() || message() || catalog()) {
-  <div class="vstack gap-2 mb-3">
-    @if (error()) {
-    <dg-alert tone="error">{{ error() }}</dg-alert>
-    }
-    @if (message()) {
-    <dg-alert tone="success">{{ message() }}</dg-alert>
-    }
-    @if (catalog()) {
-    <dg-alert>Soft Currency: {{ catalog()!.currency_soft }}</dg-alert>
-    }
-  </div>
+<dg-page-frame eyebrow="Route / Shop" title="Shop" subtitle="Spend teeth on recruits, dice, and the Daily Deal.">
+  @if (error() || message()) {
+    <div class="vstack gap-2 mb-3">
+      @if (error()) { <dg-alert tone="error">{{ error() }}</dg-alert> }
+      @if (message()) { <dg-alert tone="success">{{ message() }}</dg-alert> }
+    </div>
   }
-
-  @if (loading()) {
-  <dg-alert>Loading shop...</dg-alert>
-  }
-
+  @if (loading()) { <dg-alert>Loading shop...</dg-alert> }
   @if (catalog()) {
   <div class="row g-4">
-    <div class="col-xl-4">
+    <div class="col-xl-8">
       <div class="dg-card p-3 h-100">
-        <h2 class="dg-stencil mb-3">Basic Dice</h2>
+        <h2 class="dg-stencil mb-3">Starter Dice</h2>
         <dg-object-grid
           [objects]="basicDiceGridObjects()"
           [objectComponent]="shopDiceObjectComponent"
           [footerTemplate]="basicDiceActions"
-          [pageSize]="3"
-          columnClasses="col-12"
-          emptyMessage="No basic dice available."
-        />
-      </div>
-    </div>
-
-    <div class="col-xl-4">
-      <div class="dg-card p-3 h-100">
-        <h2 class="dg-stencil mb-3">Tier 1 Units</h2>
-        <dg-object-grid
-          [objects]="basicUnitGridObjects()"
-          [objectComponent]="shopUnitObjectComponent"
-          [footerTemplate]="basicUnitActions"
-          [pageSize]="3"
-          columnClasses="col-12"
-          emptyMessage="No recruits available."
+          [pageSize]="4"
+          columnClasses="col-3"
+          emptyMessage="Go with what you got, no dice available."
         />
       </div>
     </div>
@@ -60,6 +35,20 @@
         />
       </div>
     </div>
+
+    <div class="col-12">
+      <div class="dg-card p-3 h-100">
+        <h2 class="dg-stencil mb-3">Fresh Meat</h2>
+        <dg-object-grid
+          [objects]="basicUnitGridObjects()"
+          [objectComponent]="shopUnitObjectComponent"
+          [footerTemplate]="basicUnitActions"
+          [pageSize]="4"
+          columnClasses="col-3"
+          emptyMessage="No recruits available."
+        />
+      </div>
+    </div>
   </div>
   }
 </dg-page-frame>
@@ -67,6 +56,7 @@
 <ng-template #basicDiceActions let-item>
   <button
     dgCommandBtn
+    [teethCost]="item.cost"
     type="button"
     (click)="purchase('basic_dice', item.id)"
     [disabled]="busyKey() === ('basic_dice:' + item.id) || !canAfford(item.cost)"
@@ -78,6 +68,7 @@
 <ng-template #basicUnitActions let-item>
   <button
     dgCommandBtn
+    [teethCost]="item.cost"
     type="button"
     (click)="purchase('basic_unit', item.id)"
     [disabled]="busyKey() === ('basic_unit:' + item.id) || !canAfford(item.cost)"
@@ -89,6 +80,7 @@
 <ng-template #dailyDealActions let-item>
   <button
     dgCommandBtn="primary"
+    [teethCost]="item.cost"
     type="button"
     (click)="purchase('daily_deal')"
     [disabled]="busyKey() === 'daily_deal:' || catalog()?.daily_deal?.is_purchased || !canAfford(item.cost)"

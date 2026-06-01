@@ -15,14 +15,15 @@ describe('ShopDiceGridObjectComponent', () => {
       sides: 6,
       cost: 15,
       detailLines: ['Basic stock die', 'Purchase for 15 teeth'],
-      tag: 'Basic Dice',
     });
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    const sprite = compiled.querySelector('.shop-dice-grid-object__sprite') as HTMLElement;
     expect(compiled.textContent).toContain('Starter d6');
-    expect(compiled.textContent).toContain('common');
-    expect(compiled.textContent).toContain('Cost 15');
+    expect(compiled.textContent).toContain('Common');
     expect(compiled.textContent).toContain('Basic stock die');
+    expect(sprite.style.backgroundImage).toContain('dice_sheet.png');
+    expect(sprite.style.backgroundPosition).toContain('-116px -116px');
   });
 });

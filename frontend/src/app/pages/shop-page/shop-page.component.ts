@@ -90,12 +90,11 @@ export class ShopPageComponent {
   private mapBasicDiceItem(item: ShopDiceItem): ShopDiceGridObjectRecord {
     return {
       id: item.product_id,
-      label: item.label,
+      label: '',
       rarity: item.rarity,
       sides: item.sides,
       cost: item.cost,
-      detailLines: ['Basic stock die', `Purchase for ${item.cost} teeth`],
-      tag: 'Basic Dice',
+      detailLines: [],
     };
   }
 
@@ -106,8 +105,7 @@ export class ShopPageComponent {
       rarity: item.rarity,
       sides: item.sides,
       cost: item.cost,
-      detailLines: [item.affix.description, `Affix value ${item.affix.value}`],
-      tag: 'Daily Deal',
+      detailLines: [item.affix.description],
     };
   }
 
@@ -117,9 +115,7 @@ export class ShopPageComponent {
       name: item.name,
       role: item.role,
       cost: item.cost,
-      unitTypeSlug: item.unit_type_slug,
       tierLabel: 'Tier 1',
-      tag: 'Recruit',
     };
   }
 }

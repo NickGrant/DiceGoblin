@@ -6,7 +6,7 @@ import { DgCommandBtnDirective } from './dg-command-btn.directive';
   standalone: true,
   imports: [DgCommandBtnDirective],
   template: `
-    <button dgCommandBtn="primary" class="primary-btn">Action</button>
+    <button dgCommandBtn="primary" class="primary-btn" [teethCost]="15">Action</button>
     <a dgCommandBtn="muted" class="muted-link">Link</a>
   `,
 })
@@ -23,10 +23,14 @@ describe('DgCommandBtnDirective', () => {
 
     const primary = fixture.nativeElement.querySelector('.primary-btn') as HTMLElement;
     const muted = fixture.nativeElement.querySelector('.muted-link') as HTMLElement;
+    const cost = primary.querySelector('.dg-command-btn__cost') as HTMLElement;
+    const icon = primary.querySelector('.dg-command-btn__cost-icon') as HTMLImageElement;
 
     expect(primary.classList.contains('dg-command-btn')).toBeTrue();
     expect(primary.classList.contains('dg-command-btn--primary')).toBeTrue();
     expect(muted.classList.contains('dg-command-btn')).toBeTrue();
     expect(muted.classList.contains('dg-command-btn--muted')).toBeTrue();
+    expect(cost.textContent).toContain('15');
+    expect(icon.getAttribute('src')).toContain('tooth_16.png');
   });
 });

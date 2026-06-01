@@ -33,9 +33,12 @@ describe('DiceGridObjectComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    const sprite = compiled.querySelector('.dice-grid-object__sprite') as HTMLElement;
     expect(compiled.textContent).toContain('Stone Die');
     expect(compiled.textContent).toContain('d8');
     expect(compiled.textContent).toContain('Equipped by Fang.');
     expect(compiled.textContent).toContain('heavy');
+    expect(sprite.style.backgroundImage).toContain('dice_sheet.png');
+    expect(sprite.style.backgroundPosition).toContain('-264px');
   });
 });

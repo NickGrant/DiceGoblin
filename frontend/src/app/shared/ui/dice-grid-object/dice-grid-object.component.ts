@@ -1,6 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, input } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 import { DiceRecord } from '../../../core/models/api.models';
+import { resolveDiceArtStyles } from '../dice-art/dice-art';
 import { GridObjectComponent } from '../grid-object/grid-object.component';
 
 @Component({
@@ -12,4 +13,5 @@ import { GridObjectComponent } from '../grid-object/grid-object.component';
 })
 export class DiceGridObjectComponent extends GridObjectComponent<DiceRecord> {
   readonly statusText = input('Unequipped.');
+  readonly artStyles = computed(() => resolveDiceArtStyles(this.object().rarity, this.object().sides, 132));
 }

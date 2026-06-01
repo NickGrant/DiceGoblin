@@ -69,7 +69,7 @@ button {
   background:
     linear-gradient(rgba(35, 39, 42, 0.2), rgba(35, 39, 42, 0.2)),
     url('/assets/ui/textures/red.png');
-  background-size: 180px 180px;
+  background-size: cover;
   border-bottom: 2px solid rgba(35, 39, 42, 0.5);
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
 }
@@ -88,6 +88,19 @@ button {
   letter-spacing: 0.08em;
   transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
   box-shadow: 0 6px 0 rgba(35, 39, 42, 0.28);
+}
+
+.dg-command-btn__cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.dg-command-btn__cost-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
 .dg-command-btn:hover {
