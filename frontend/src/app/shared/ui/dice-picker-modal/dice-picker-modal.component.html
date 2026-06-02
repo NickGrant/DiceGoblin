@@ -1,0 +1,59 @@
+@if (open()) {
+  <div class="dice-picker-backdrop" (click)="close()">
+    <section
+      class="dice-picker-modal dg-card p-3 p-lg-4"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="'Dice picker for ' + slotLabel()"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="dice-picker-modal__header">
+        <div>
+          <h2 class="dg-stencil mb-1">Dice Picker</h2>
+          <p class="mb-0">{{ slotLabel() }}</p>
+        </div>
+        <button dgCommandBtn="muted" type="button" (click)="close()" [disabled]="busy()">Close</button>
+      </div>
+
+      <div class="dice-picker-modal__current">
+        @if (selectedDie(); as die) {
+          <p class="mb-0">Current choice: d{{ die.sides }} · {{ die.rarity | titlecase }}</p>
+        } @else {
+          <p class="mb-0">Current choice: No Choice</p>
+        }
+      </div>
+
+      <div class="dice-picker-modal__clear mb-3">
+        <button
+          class="dice-picker-modal__empty-slot"
+          type="button"
+          (click)="choose(null)"
+          [disabled]="busy()"
+        >
+          <span class="dice-picker-modal__empty-slot-icon">x</span>
+          <span class="dg-stencil">No Choice</span>
+        </button>
+      </div>
+
+      <dg-object-grid
+        [objects]="dice()"
+        [objectComponent]="diceObjectComponent"
+        [footerTemplate]="diceActions"
+        emptyMessage="No dice available for this slot."
+        columnClasses="col-3"
+        [pageSize]="8"
+      />
+
+      <ng-template #diceActions let-die>
+        <button
+          dgCommandBtn
+          type="button"
+          (click)="choose(die.id)"
+          [disabled]="busy()"
+        >
+          {{ selectedDiceId() === die.id ? 'Selected' : 'Choose' }}
+        </button>
+      </ng-template>
+    </section>
+  </div>
+}

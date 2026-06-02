@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { By } from '@angular/platform-browser';
+import { RouterLink, provideRouter } from '@angular/router';
 import { WarbandPageComponent } from './warband-page.component';
 import { SessionService } from '../../core/services/session/session.service';
 import { SquadService } from '../../core/services/squad/squad.service';
@@ -51,5 +52,19 @@ describe('WarbandPageComponent', () => {
 
     expect(squadService.activateTeam).toHaveBeenCalledWith('1');
     expect(fixture.componentInstance.message()).toBe('Active squad updated.');
+  });
+
+  it('uses unit cards as details links without unit action buttons', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const unitLinkDebug = fixture.debugElement
+      .queryAll(By.directive(RouterLink))
+      .find((element) => element.nativeElement.textContent?.includes('Fang'));
+
+    expect(unitLinkDebug).toBeDefined();
+    expect(unitLinkDebug!.injector.get(RouterLink).href).toContain('/warband/units/u1');
+    expect(host.textContent).not.toContain('Dice');
   });
 });

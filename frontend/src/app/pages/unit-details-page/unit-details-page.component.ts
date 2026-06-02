@@ -1,26 +1,97 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+  CdkDrag,
+  CdkDragDrop,
+  CdkDragHandle,
+  CdkDropList,
+  moveItemInArray,
+} from '@angular/cdk/drag-drop';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { DiceService } from '../../core/services/dice/dice.service';
+import { ActivatedRoute } from '@angular/router';
+import {
+  DiceRecord,
+  PromotionOptionRecord,
+  UnitAbilityDieRecord,
+  UnitRecord,
+} from '../../core/models/api.models';
+import { AbilityCatalogService } from '../../core/services/ability-catalog/ability-catalog.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { UnitService } from '../../core/services/unit/unit.service';
-import { PromotionOptionRecord, UnitRecord } from '../../core/models/api.models';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
+import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { DicePickerModalComponent } from '../../shared/ui/dice-picker-modal/dice-picker-modal.component';
+
+type AbilitySlotViewModel = {
+  abilityId: string;
+  displayName: string;
+  shortDesc: string;
+  speedCost: number;
+  diceCost: number;
+  copyCount: number;
+  slots: Array<{
+    slotIndex: number;
+    die: DiceRecord | null;
+  }>;
+};
+
+type AbilityLoadoutViewModel = {
+  abilityId: string;
+  displayName: string;
+  shortDesc: string;
+  type: 'active' | 'passive' | string;
+  speed: number;
+  diceCost: number;
+  equippedCount: number;
+};
+
+type LoadoutBarViewModel = {
+  instanceKey: string;
+  abilityId: string;
+  displayName: string;
+  speed: number;
+  diceCost: number;
+  heightPx: number;
+};
+
+type PickerState = {
+  abilityId: string;
+  abilityName: string;
+  slotIndex: number;
+};
+
+type DiceAssignmentRecord = {
+  unitId: string;
+  abilityId: string;
+  slotIndex: number;
+  diceId: string;
+};
 
 @Component({
   selector: 'app-unit-details-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule, RouterLink],
+  imports: [
+    CdkDrag,
+    CdkDragHandle,
+    CdkDropList,
+    DgAlertComponent,
+    DgCommandBtnDirective,
+    DgPageFrameComponent,
+    DicePickerModalComponent,
+    FormsModule,
+  ],
   templateUrl: './unit-details-page.component.html',
   styleUrl: './unit-details-page.component.scss',
 })
 export class UnitDetailsPageComponent {
+  private static readonly LOADOUT_SPEED_BUDGET = 20;
+  private static readonly LOADOUT_PIXEL_PER_SPEED = 15;
+
   private readonly route = inject(ActivatedRoute);
   private readonly sessionService = inject(SessionService);
   private readonly unitService = inject(UnitService);
-  private readonly diceService = inject(DiceService);
+  private readonly abilityCatalogService = inject(AbilityCatalogService);
 
   readonly unitId = this.route.snapshot.paramMap.get('unitId') ?? '';
   readonly runId = this.route.snapshot.queryParamMap.get('runId') ?? undefined;
@@ -29,18 +100,181 @@ export class UnitDetailsPageComponent {
     () => this.sessionService.units().find((entry) => entry.id === this.unitId) ?? null,
   );
   readonly units = this.sessionService.units;
+  readonly dice = this.sessionService.dice;
   readonly promotionOptions = signal<PromotionOptionRecord[]>([]);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
   readonly busy = signal(false);
+  readonly busySlotKey = signal<string | null>(null);
   readonly selectedSecondaries = signal<string[]>([]);
   readonly selectedDestination = signal<string>('');
+  readonly activeTab = signal<'stats' | 'abilities' | 'promotion'>('stats');
+  readonly pendingEquippedAbilityIds = signal<string[]>([]);
+  readonly savingLoadout = signal(false);
+  readonly pickerState = signal<PickerState | null>(null);
+  readonly abilityCatalogError = this.abilityCatalogService.error;
+  readonly abilityCatalog = this.abilityCatalogService.abilityMap;
+  readonly unlockedAbilityIds = computed(() => this.unit()?.unlocked_abilities?.map((ability) => ability.ability_id) ?? []);
+  readonly learnedAbilities = computed<AbilityLoadoutViewModel[]>(() => {
+    const unit = this.unit();
+    if (!unit) {
+      return [];
+    }
+
+    const authoredAbilityIds = (unit.abilities ?? [])
+      .map((ability) => this.normalizeAbilityId(ability.ability_id))
+      .filter((abilityId): abilityId is string => abilityId !== null);
+    const unlockedAbilityIds = this.unlockedAbilityIds()
+      .map((abilityId) => this.normalizeAbilityId(abilityId))
+      .filter((abilityId): abilityId is string => abilityId !== null);
+    const learnedIds = Array.from(new Set([...authoredAbilityIds, ...unlockedAbilityIds]));
+
+    return learnedIds.map((abilityId) => {
+      const abilityMeta = this.abilityCatalog().get(abilityId);
+      const authoredRecord = unit.abilities?.find((ability) => ability.ability_id === abilityId);
+      return {
+        abilityId,
+        displayName: abilityMeta?.display_name ?? this.humanizeAbilityId(abilityId),
+        shortDesc: abilityMeta?.short_desc ?? 'No description available.',
+        type: abilityMeta?.type ?? authoredRecord?.type ?? 'active',
+        speed: abilityMeta?.speed ?? 0,
+        diceCost: Math.max(0, abilityMeta?.dice_cost ?? 0),
+        equippedCount: this.pendingEquippedAbilityIds().filter((entry) => entry === abilityId).length,
+      };
+    });
+  });
+  readonly learnedActiveAbilities = computed(() =>
+    this.learnedAbilities()
+      .filter((ability) => ability.type === 'active')
+      .sort((left, right) => left.displayName.localeCompare(right.displayName)),
+  );
+  readonly learnedPassiveAbilities = computed(() =>
+    this.learnedAbilities()
+      .filter((ability) => ability.type !== 'active')
+      .sort((left, right) => left.displayName.localeCompare(right.displayName)),
+  );
+  readonly totalEquippedSpeed = computed(() =>
+    this.pendingEquippedAbilityIds().reduce(
+      (total, abilityId) => total + (this.abilityCatalog().get(abilityId)?.speed ?? 0),
+      0,
+    ),
+  );
+  readonly loadoutHeightPx = computed(
+    () => UnitDetailsPageComponent.LOADOUT_SPEED_BUDGET * UnitDetailsPageComponent.LOADOUT_PIXEL_PER_SPEED,
+  );
+  readonly canSaveLoadout = computed(() => {
+    const current = (this.unit()?.equipped_abilities ?? []).map((ability) => ability.ability_id);
+    const next = this.pendingEquippedAbilityIds();
+    return current.length !== next.length || current.some((abilityId, index) => next[index] !== abilityId);
+  });
+  readonly totalLoadoutDiceSlots = computed(() =>
+    this.configurableAbilitySlots().reduce((total, ability) => total + ability.diceCost, 0),
+  );
+  readonly loadoutBars = computed<LoadoutBarViewModel[]>(() =>
+    this.pendingEquippedAbilityIds().map((abilityId, index) => {
+      const ability = this.learnedAbilities().find((entry) => entry.abilityId === abilityId);
+      const speed = Math.max(0, ability?.speed ?? this.abilityCatalog().get(abilityId)?.speed ?? 0);
+      return {
+        instanceKey: `${abilityId}:${index}`,
+        abilityId,
+        displayName: ability?.displayName ?? this.humanizeAbilityId(abilityId),
+        speed,
+        diceCost: Math.max(0, ability?.diceCost ?? this.abilityCatalog().get(abilityId)?.dice_cost ?? 0),
+        heightPx: speed * UnitDetailsPageComponent.LOADOUT_PIXEL_PER_SPEED,
+      };
+    }),
+  );
+  readonly configurableAbilitySlots = computed<AbilitySlotViewModel[]>(() => {
+    return this.learnedActiveAbilities().map((ability) => {
+      const abilityId = ability.abilityId;
+      const abilityMeta = this.abilityCatalog().get(abilityId);
+      const speedCost = abilityMeta?.speed ?? 0;
+      const diceCost = Math.max(0, abilityMeta?.dice_cost ?? 0);
+
+      return {
+        abilityId,
+        displayName: abilityMeta?.display_name ?? this.humanizeAbilityId(abilityId),
+        shortDesc: abilityMeta?.short_desc ?? 'Configure dice used when this ability resolves.',
+        speedCost,
+        diceCost,
+        copyCount: this.pendingEquippedAbilityIds().filter((entry) => entry === abilityId).length,
+        slots: Array.from({ length: diceCost }, (_unused, slotIndex) => ({
+          slotIndex,
+          die: this.findDice(this.findUnitAbilityBinding(this.unit(), abilityId, slotIndex)?.dice_instance_id ?? null),
+        })),
+      };
+    }).filter((ability) => ability.diceCost > 0);
+  });
+  readonly eligiblePromotionCandidates = computed(() => {
+    const unit = this.unit();
+    if (!unit) {
+      return [];
+    }
+
+    return this.units().filter((candidate) => {
+      if (candidate.id === unit.id) {
+        return false;
+      }
+
+      return (
+        candidate.unit_type_id === unit.unit_type_id &&
+        candidate.tier === unit.tier &&
+        (candidate.level ?? 0) >= (candidate.max_level ?? Number.MAX_SAFE_INTEGER)
+      );
+    });
+  });
+  readonly pickerAvailableDice = computed(() => {
+    const pickerState = this.pickerState();
+    if (!pickerState) {
+      return [];
+    }
+
+    return this.dice().filter((die) => {
+      const assignment = this.findDiceAssignment(die.id);
+      if (!assignment) {
+        return true;
+      }
+
+      return (
+        assignment.unitId === this.unitId &&
+        assignment.abilityId === pickerState.abilityId &&
+        assignment.slotIndex === pickerState.slotIndex
+      );
+    });
+  });
+  readonly pickerSelectedDiceId = computed(
+    () =>
+      this.findUnitAbilityBinding(
+        this.unit(),
+        this.pickerState()?.abilityId ?? '',
+        this.pickerState()?.slotIndex ?? -1,
+      )?.dice_instance_id ?? null,
+  );
+  readonly pickerSlotLabel = computed(() => {
+    const pickerState = this.pickerState();
+    if (!pickerState) {
+      return '';
+    }
+
+    return `${pickerState.abilityName} · Slot ${pickerState.slotIndex + 1}`;
+  });
+  readonly pickerBusy = computed(
+    () =>
+      !!this.pickerState() &&
+      this.busySlotKey() === this.slotKey(this.pickerState()!.abilityId, this.pickerState()!.slotIndex),
+  );
 
   renameValue = '';
 
   constructor() {
     this.renameValue = this.unit()?.name ?? '';
     void this.loadPromotionOptions();
+    void this.abilityCatalogService.load();
+    effect(() => {
+      this.pendingEquippedAbilityIds.set(
+        (this.unit()?.equipped_abilities ?? []).map((ability) => ability.ability_id),
+      );
+    });
   }
 
   async loadPromotionOptions(): Promise<void> {
@@ -67,6 +301,97 @@ export class UnitDetailsPageComponent {
       next.add(unitId);
     }
     this.selectedSecondaries.set(Array.from(next));
+  }
+
+  setActiveTab(tab: 'stats' | 'abilities' | 'promotion'): void {
+    this.activeTab.set(tab);
+  }
+
+  addAbilityToLoadout(abilityId: string, insertIndex?: number): void {
+    const ability = this.learnedAbilities().find((entry) => entry.abilityId === abilityId)
+      ?? this.abilityCatalog().get(abilityId);
+    if (!ability || ability.type !== 'active') {
+      return;
+    }
+
+    const nextTotal = this.totalEquippedSpeed() + (ability.speed ?? 0);
+    if (nextTotal > UnitDetailsPageComponent.LOADOUT_SPEED_BUDGET) {
+      this.error.set('Equipped abilities cannot exceed the 20-point speed budget.');
+      return;
+    }
+
+    this.error.set(null);
+    this.pendingEquippedAbilityIds.update((current) => {
+      const next = [...current];
+      const targetIndex =
+        insertIndex === undefined ? next.length : Math.max(0, Math.min(insertIndex, next.length));
+      next.splice(targetIndex, 0, abilityId);
+      return next;
+    });
+  }
+
+  removeAbilityFromLoadout(indexOrAbilityId: number | string): void {
+    if (typeof indexOrAbilityId === 'number') {
+      this.pendingEquippedAbilityIds.update((current) =>
+        current.filter((_entry, index) => index !== indexOrAbilityId),
+      );
+      return;
+    }
+
+    let removed = false;
+    this.pendingEquippedAbilityIds.update((current) =>
+      current.filter((entry) => {
+        if (!removed && entry === indexOrAbilityId) {
+          removed = true;
+          return false;
+        }
+        return true;
+      }),
+    );
+  }
+
+  handleLoadoutDrop(
+    event: CdkDragDrop<
+      LoadoutBarViewModel[],
+      LoadoutBarViewModel[] | AbilityLoadoutViewModel[],
+      LoadoutBarViewModel | AbilityLoadoutViewModel
+    >,
+  ): void {
+    if (event.previousContainer === event.container) {
+      const next = [...this.pendingEquippedAbilityIds()];
+      moveItemInArray(next, event.previousIndex, event.currentIndex);
+      this.pendingEquippedAbilityIds.set(next);
+      return;
+    }
+
+    const droppedAbility = event.item.data as AbilityLoadoutViewModel | undefined;
+    if (!droppedAbility) {
+      return;
+    }
+
+    this.addAbilityToLoadout(droppedAbility.abilityId, event.currentIndex);
+  }
+
+  async saveLoadout(): Promise<void> {
+    this.savingLoadout.set(true);
+    this.error.set(null);
+    this.message.set(null);
+    try {
+      const response = await this.unitService.replaceEquippedAbilities(
+        this.unitId,
+        this.pendingEquippedAbilityIds(),
+        { runId: this.runId, nodeId: this.nodeId },
+      );
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+      this.message.set('Combat loadout updated.');
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to save loadout.');
+    } finally {
+      this.savingLoadout.set(false);
+    }
   }
 
   async renameUnit(): Promise<void> {
@@ -121,25 +446,126 @@ export class UnitDetailsPageComponent {
     }
   }
 
-  async unequipDice(diceId: string): Promise<void> {
-    this.busy.set(true);
+  openDicePicker(abilityId: string, abilityName: string, slotIndex: number): void {
+    this.pickerState.set({ abilityId, abilityName, slotIndex });
+  }
+
+  diceArtStyles(die: DiceRecord | null): ReturnType<typeof resolveDiceArtStyles> | null {
+    if (!die) {
+      return null;
+    }
+
+    return resolveDiceArtStyles(die.rarity, die.sides, 64);
+  }
+
+  abilitySlotsFor(abilityId: string): AbilitySlotViewModel | null {
+    return this.configurableAbilitySlots().find((entry) => entry.abilityId === abilityId) ?? null;
+  }
+
+  closeDicePicker(): void {
+    if (this.pickerBusy()) {
+      return;
+    }
+
+    this.pickerState.set(null);
+  }
+
+  isSlotBusy(abilityId: string, slotIndex: number): boolean {
+    return this.busySlotKey() === this.slotKey(abilityId, slotIndex);
+  }
+
+  async applyDiceSelection(diceId: string | null): Promise<void> {
+    const pickerState = this.pickerState();
+    if (!pickerState) {
+      return;
+    }
+
+    this.busySlotKey.set(this.slotKey(pickerState.abilityId, pickerState.slotIndex));
     this.error.set(null);
     this.message.set(null);
     try {
-      const response = await this.diceService.unequipDice(this.unitId, diceId, {
-        runId: this.runId,
-        nodeId: this.nodeId,
-      });
+      const response = diceId
+        ? await this.unitService.assignAbilitySlotDie(
+            this.unitId,
+            pickerState.abilityId,
+            pickerState.slotIndex,
+            diceId,
+            { runId: this.runId, nodeId: this.nodeId },
+          )
+        : await this.unitService.clearAbilitySlotDie(this.unitId, pickerState.abilityId, pickerState.slotIndex, {
+            runId: this.runId,
+            nodeId: this.nodeId,
+          });
       if (!response.ok) {
         this.error.set(response.error.message);
         return;
       }
-      this.message.set('Die unequipped.');
+
+      this.message.set(diceId ? 'Die assigned to slot.' : 'Slot cleared.');
+      this.pickerState.set(null);
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Unable to unequip die.');
+      this.error.set(error instanceof Error ? error.message : 'Unable to update slot.');
     } finally {
-      this.busy.set(false);
+      this.busySlotKey.set(null);
     }
+  }
+
+  private findUnitAbilityBinding(
+    unit: UnitRecord | null,
+    abilityId: string,
+    slotIndex: number,
+  ): UnitAbilityDieRecord | null {
+    if (!unit) {
+      return null;
+    }
+
+    return (
+      unit.ability_dice?.find(
+        (binding) => binding.ability_id === abilityId && binding.slot_index === slotIndex,
+      ) ?? null
+    );
+  }
+
+  private findDice(diceId: string | null): DiceRecord | null {
+    if (!diceId) {
+      return null;
+    }
+
+    return this.dice().find((die) => die.id === diceId) ?? null;
+  }
+
+  private findDiceAssignment(diceId: string): DiceAssignmentRecord | null {
+    for (const unit of this.units()) {
+      for (const binding of unit.ability_dice ?? []) {
+        if (binding.dice_instance_id === diceId) {
+          return {
+            unitId: unit.id,
+            abilityId: binding.ability_id,
+            slotIndex: binding.slot_index,
+            diceId,
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private humanizeAbilityId(abilityId: string): string {
+    return abilityId
+      .split('_')
+      .filter((segment) => segment.length)
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(' ');
+  }
+
+  private normalizeAbilityId(abilityId: unknown): string | null {
+    const normalized = typeof abilityId === 'string' ? abilityId.trim() : '';
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  private slotKey(abilityId: string, slotIndex: number): string {
+    return `${abilityId}:${slotIndex}`;
   }
 }
 

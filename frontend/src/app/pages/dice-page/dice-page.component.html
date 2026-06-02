@@ -1,9 +1,9 @@
 <dg-page-frame
   [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Inventory' }]"
   title="Dice Inventory"
-  [subtitle]="selectedUnit() ? 'Assign dice for ' + selectedUnit()!.name + '.' : 'Review owned dice and sell unused pieces.'"
+  subtitle="Review owned dice and sell unused pieces."
 >
-  @if (error() || message() || selectedUnit()) {
+  @if (error() || message()) {
   <div class="vstack gap-2 mb-3">
     @if (error()) {
     <dg-alert tone="error">{{ error() }}</dg-alert>
@@ -11,63 +11,29 @@
     @if (message()) {
     <dg-alert tone="success">{{ message() }}</dg-alert>
     }
-    @if (selectedUnit()) {
-    <dg-alert>
-      {{ mode() === 'equip' ? 'Choose a die to equip or remove.' : 'Inventory view.' }}
-    </dg-alert>
-    }
   </div>
   }
 
   <div class="row g-4">
-    <div class="col-xl-8">
+    <div class="col-12">
       <dg-object-grid
         [objects]="dice()"
         [objectComponent]="diceObjectComponent"
-        [objectInputs]="diceObjectInputs"
         [footerTemplate]="diceActions"
         emptyMessage="No dice available."
-        columnClasses="col-md-6"
+        columnClasses="col-3"
+        [pageSize]="8"
       />
 
       <ng-template #diceActions let-die>
-        @if (selectedUnit()) {
-        <button
-          dgCommandBtn="teal"
-          type="button"
-          (click)="toggleEquip(die)"
-          [disabled]="busyDiceId() === die.id || (isEquippedAnywhere(die.id) && !isEquippedToSelectedUnit(die.id))"
-        >
-          {{
-            busyDiceId() === die.id
-              ? 'Working...'
-              : isEquippedToSelectedUnit(die.id)
-                ? 'Unequip'
-                : 'Equip'
-          }}
-        </button>
-        }
-        <button
-          dgCommandBtn
-          type="button"
-          (click)="sellDice(die)"
-          [disabled]="busyDiceId() === die.id || isEquippedAnywhere(die.id)"
-        >
-          {{ busyDiceId() === die.id ? 'Working...' : 'Sell' }}
-        </button>
-      </ng-template>
-    </div>
-
-    <div class="col-xl-4">
-      <aside class="dg-card p-3 h-100">
-        <h3 class="dg-stencil">Status</h3>
-        <p class="mb-2">{{ dice().length }} dice owned.</p>
-        @if (selectedUnit()) {
-        <p class="mb-0">Managing equipment for {{ selectedUnit()!.name }}.</p>
+        @if (equippedUnit(die.id); as unit) {
+          <a dgCommandBtn="primary" [routerLink]="['/warband/units', unit.id]">View {{ unit.name }}</a>
         } @else {
-        <p class="mb-0">Select a unit from the warband to equip dice directly.</p>
+          <button dgCommandBtn type="button" [teethCost]="die.sell_value" (click)="sellDice(die)" [disabled]="busyDiceId() === die.id">
+            {{ busyDiceId() === die.id ? 'Working...' : 'Sell' }}
+          </button>
         }
-      </aside>
+      </ng-template>
     </div>
   </div>
 </dg-page-frame>

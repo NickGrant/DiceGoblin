@@ -11,7 +11,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
 {
   public function testRenameUnitEndpointUpdatesDisplayName(): void
   {
-    $userId = $this->insertUser('rename_case', 'Rename User');
+    $userId = $this->insertUser('rename', 'Rename User');
     [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
     $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
     (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $unitTypeId);
@@ -32,7 +32,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
 
   public function testPromotionOptionsEndpointReturnsChainAndSidewaysBranches(): void
   {
-    $userId = $this->insertUser('promotion_options_case', 'Promotion Options User');
+    $userId = $this->insertUser('promo_opts', 'Promotion Options User');
     [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
     $unitId = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
     (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $bruiserTypeId);
@@ -60,7 +60,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
 
   public function testReplaceEquippedAbilitiesEndpointReturnsUpdatedOrderedLoadout(): void
   {
-    $userId = $this->insertUser('loadout_case', 'Loadout User');
+    $userId = $this->insertUser('loadout', 'Loadout User');
     [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
     $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
     (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $unitTypeId);
@@ -98,7 +98,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
 
   public function testPromoteUnitEndpointHonorsSelectedDestinationAndUnlocksNewBranchAbilities(): void
   {
-    $userId = $this->insertUser('promotion_destination_case', 'Promotion Destination User');
+    $userId = $this->insertUser('promo_dest', 'Promotion Destination User');
     [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
     [$bannerTargetTypeId, ] = $this->loadUnitType('support_banner_t2');
     $primaryId = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
@@ -140,7 +140,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
 
   public function testReplaceEquippedAbilitiesEndpointRequiresRestContextForActiveRunUnits(): void
   {
-    $userId = $this->insertUser('loadout_rest_case', 'Loadout Rest User');
+    $userId = $this->insertUser('load_rest', 'Loadout Rest User');
     [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
     $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
     (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $unitTypeId);
@@ -174,7 +174,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
 
   public function testAbilitySlotDiceEndpointsAssignAndClearBinding(): void
   {
-    $userId = $this->insertUser('slot_dice_case', 'Slot Dice User');
+    $userId = $this->insertUser('slotdice', 'Slot Dice User');
     [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
     $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
     (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $unitTypeId);
@@ -207,9 +207,48 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     );
   }
 
+  public function testAbilitySlotDiceAssignAllowsUnlockedActiveAbilityOutsideCurrentLoadout(): void
+  {
+    $userId = $this->insertUser('slot_ool', 'Outside Loadout User');
+    [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $loadout = new UnitLoadoutService($this->pdo);
+    $loadout->initializeUnit($unitId, $unitTypeId);
+    $loadout->replaceEquippedAbilities($unitId, ['basic_attack_melee', 'basic_attack_melee']);
+    $diceId = $this->insertDiceInstance($userId, $this->pickAnyDiceDefinitionId());
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new GameplayController();
+
+    $this->setJsonBody(['dice_instance_id' => (string)$diceId]);
+    $assign = $this->invoke(fn() => $controller->assignAbilitySlotDie((string)$unitId, 'heavy_strike', '0'));
+
+    $this->assertSame(200, $assign['status'], json_encode($assign['body']));
+    $this->assertSame(
+      ['basic_attack_melee', 'basic_attack_melee'],
+      array_map(
+        static fn(array $row): string => (string)$row['ability_id'],
+        $this->rows(
+          'SELECT `ability_id` FROM `unit_instance_equipped_abilities` WHERE `unit_instance_id` = ? ORDER BY `equip_order` ASC, `id` ASC',
+          [$unitId]
+        )
+      )
+    );
+    $this->assertSame(
+      '1',
+      (string)$this->scalar(
+        'SELECT COUNT(*) FROM `unit_ability_dice` WHERE `unit_instance_id` = ? AND `ability_id` = ? AND `slot_index` = 0 AND `dice_instance_id` = ?',
+        [$unitId, 'heavy_strike', $diceId]
+      )
+    );
+  }
+
   public function testAbilitySlotDiceAssignRequiresRestContextForActiveRunUnits(): void
   {
-    $userId = $this->insertUser('slot_dice_rest', 'Slot Dice Rest User');
+    $userId = $this->insertUser('slotrest', 'Slot Dice Rest User');
     [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
     $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
     (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $unitTypeId);

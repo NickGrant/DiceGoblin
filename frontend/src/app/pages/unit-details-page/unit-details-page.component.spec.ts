@@ -1,18 +1,69 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
-import { UnitDetailsPageComponent } from './unit-details-page.component';
-import { DiceService } from '../../core/services/dice/dice.service';
+import { AbilityCatalogService } from '../../core/services/ability-catalog/ability-catalog.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { UnitService } from '../../core/services/unit/unit.service';
+import { UnitDetailsPageComponent } from './unit-details-page.component';
 
 class SessionServiceStub {
   readonly units = signal([
     {
       id: 'u1',
       name: 'Fang',
-      equipped_dice: [{ dice_instance_id: 'd1' }],
+      unit_type_id: 'wolf-1',
+      unit_type_name: 'Wolf',
+      tier: 1,
+      level: 3,
+      max_level: 3,
+      abilities: [
+        { ability_id: 'heavy_strike', type: 'active' },
+        { ability_id: 'guard', type: 'active' },
+        { ability_id: 'thick_hide', type: 'passive' },
+      ],
+      unlocked_abilities: [
+        { ability_id: 'heavy_strike' },
+        { ability_id: 'guard' },
+        { ability_id: 'thick_hide' },
+      ],
+      equipped_abilities: [
+        { ability_id: 'heavy_strike', equip_order: 0, speed_cost: 4 },
+        { ability_id: 'heavy_strike', equip_order: 1, speed_cost: 4 },
+      ],
+      ability_dice: [{ ability_id: 'heavy_strike', slot_index: 0, dice_instance_id: 'd1' }],
     },
+    {
+      id: 'u2',
+      name: 'Moss',
+      unit_type_id: 'wolf-1',
+      tier: 1,
+      level: 3,
+      max_level: 3,
+      ability_dice: [{ ability_id: 'guard', slot_index: 0, dice_instance_id: 'd3' }],
+    },
+    {
+      id: 'u3',
+      name: 'Twig',
+      unit_type_id: 'wolf-1',
+      tier: 1,
+      level: 2,
+      max_level: 3,
+      ability_dice: [],
+    },
+    {
+      id: 'u4',
+      name: 'Bramble',
+      unit_type_id: 'fox-1',
+      tier: 1,
+      level: 3,
+      max_level: 3,
+      ability_dice: [],
+    },
+  ] as any[]);
+  readonly dice = signal([
+    { id: 'd1', rarity: 'rare', sides: 8, affixes: [] },
+    { id: 'd2', rarity: 'common', sides: 4, affixes: [] },
+    { id: 'd3', rarity: 'epic', sides: 10, affixes: [] },
   ] as any[]);
 }
 
@@ -20,25 +71,73 @@ class UnitServiceStub {
   getPromotionOptions = jasmine.createSpy('getPromotionOptions').and.resolveTo({
     ok: true,
     data: {
-      options: [{ target_unit_type_id: 'dest-1' }],
+      options: [{ target_unit_type_id: 'dest-1', target_unit_type_name: 'Dire Wolf', mode: 'chain' }],
     },
   });
   renameUnit = jasmine.createSpy('renameUnit').and.resolveTo({ ok: true });
   promoteUnit = jasmine.createSpy('promoteUnit').and.resolveTo({ ok: true });
+  replaceEquippedAbilities = jasmine.createSpy('replaceEquippedAbilities').and.resolveTo({ ok: true });
+  assignAbilitySlotDie = jasmine.createSpy('assignAbilitySlotDie').and.resolveTo({ ok: true });
+  clearAbilitySlotDie = jasmine.createSpy('clearAbilitySlotDie').and.resolveTo({ ok: true });
 }
 
-class DiceServiceStub {
-  unequipDice = jasmine.createSpy('unequipDice').and.resolveTo({ ok: true });
+class AbilityCatalogServiceStub {
+  readonly abilities = signal([
+    {
+      ability_id: 'heavy_strike',
+      type: 'active',
+      display_name: 'Heavy Strike',
+      short_desc: 'Hit one target hard.',
+      icon_key: 'heavy_strike',
+      tags: [],
+      default_params: {},
+      order: 1,
+      speed: 4,
+      dice_cost: 2,
+      default_target: 'enemy_front',
+    },
+    {
+      ability_id: 'guard',
+      type: 'active',
+      display_name: 'Guard',
+      short_desc: 'Raise defense.',
+      icon_key: 'guard',
+      tags: [],
+      default_params: {},
+      order: 2,
+      speed: 3,
+      dice_cost: 1,
+      default_target: 'self',
+    },
+    {
+      ability_id: 'thick_hide',
+      type: 'passive',
+      display_name: 'Thick Hide',
+      short_desc: 'Passive defense bonus.',
+      icon_key: 'thick_hide',
+      tags: [],
+      default_params: {},
+      order: 3,
+      speed: undefined,
+      dice_cost: undefined,
+      default_target: null,
+    },
+  ] as any[]);
+  readonly error = signal<string | null>(null);
+  readonly abilityMap = signal(
+    new Map(this.abilities().map((ability) => [ability.ability_id, ability])),
+  );
+  load = jasmine.createSpy('load').and.resolveTo();
 }
 
 describe('UnitDetailsPageComponent', () => {
-  it('loads promotion options on startup and can rename a unit', async () => {
+  async function createComponent() {
     await TestBed.configureTestingModule({
       imports: [UnitDetailsPageComponent],
       providers: [
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: UnitService, useClass: UnitServiceStub },
-        { provide: DiceService, useClass: DiceServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -54,13 +153,146 @@ describe('UnitDetailsPageComponent', () => {
     const fixture = TestBed.createComponent(UnitDetailsPageComponent);
     await fixture.whenStable();
     fixture.detectChanges();
+    return fixture;
+  }
+
+  it('loads promotion options on startup and can rename a unit', async () => {
+    const fixture = await createComponent();
 
     fixture.componentInstance.renameValue = 'Rex';
     await fixture.componentInstance.renameUnit();
 
     const unitService = TestBed.inject(UnitService) as unknown as UnitServiceStub;
+    const abilityCatalog = TestBed.inject(AbilityCatalogService) as unknown as AbilityCatalogServiceStub;
     expect(unitService.getPromotionOptions).toHaveBeenCalledWith('u1');
     expect(unitService.renameUnit).toHaveBeenCalledWith('u1', 'Rex');
+    expect(abilityCatalog.load).toHaveBeenCalled();
     expect(fixture.componentInstance.message()).toBe('Unit renamed.');
+  });
+
+  it('builds tabbed stats, learned abilities, and filtered promotion candidates', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+
+    expect(component.activeTab()).toBe('stats');
+    component.setActiveTab('abilities');
+    expect(component.learnedActiveAbilities().map((ability) => ability.abilityId)).toEqual(['guard', 'heavy_strike']);
+    expect(component.learnedPassiveAbilities().map((ability) => ability.abilityId)).toEqual(['thick_hide']);
+    component.setActiveTab('promotion');
+    expect(component.eligiblePromotionCandidates().map((unit) => unit.id)).toEqual(['u2']);
+  });
+
+  it('builds slot editors from learned active abilities and filters picker dice to free or current-slot dice', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+
+    const slotsByAbilityId = new Map(
+      component.configurableAbilitySlots().map((slotGroup) => [slotGroup.abilityId, slotGroup]),
+    );
+
+    expect(slotsByAbilityId.get('heavy_strike')).toEqual(
+      jasmine.objectContaining({
+        abilityId: 'heavy_strike',
+        displayName: 'Heavy Strike',
+        diceCost: 2,
+        copyCount: 2,
+      }),
+    );
+    expect(slotsByAbilityId.get('guard')).toEqual(
+      jasmine.objectContaining({
+        abilityId: 'guard',
+        displayName: 'Guard',
+        diceCost: 1,
+        copyCount: 0,
+      }),
+    );
+    expect(slotsByAbilityId.get('heavy_strike')?.slots[0].die?.id).toBe('d1');
+    expect(slotsByAbilityId.get('heavy_strike')?.slots[1].die).toBeNull();
+    expect(slotsByAbilityId.get('guard')?.slots[0].die).toBeNull();
+
+    component.openDicePicker('heavy_strike', 'Heavy Strike', 0);
+    expect(component.pickerAvailableDice().map((die) => die.id)).toEqual(['d1', 'd2']);
+  });
+
+  it('edits and saves the combat loadout through unit service', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const unitService = TestBed.inject(UnitService) as unknown as UnitServiceStub;
+
+    component.addAbilityToLoadout('guard');
+    expect(component.pendingEquippedAbilityIds()).toEqual(['heavy_strike', 'heavy_strike', 'guard']);
+    expect(component.totalEquippedSpeed()).toBe(11);
+
+    component.removeAbilityFromLoadout('heavy_strike');
+    expect(component.pendingEquippedAbilityIds()).toEqual(['heavy_strike', 'guard']);
+
+    await component.saveLoadout();
+    expect(unitService.replaceEquippedAbilities).toHaveBeenCalledWith('u1', ['heavy_strike', 'guard'], {
+      runId: undefined,
+      nodeId: undefined,
+    });
+  });
+
+  it('adds and reorders loadout bars through drop events', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+
+    component.handleLoadoutDrop({
+      previousContainer: { data: component.learnedActiveAbilities() },
+      container: { data: component.loadoutBars() },
+      previousIndex: 0,
+      currentIndex: 1,
+      item: { data: component.learnedActiveAbilities()[0] },
+    } as any);
+    expect(component.pendingEquippedAbilityIds()).toEqual(['heavy_strike', 'guard', 'heavy_strike']);
+
+    const sharedContainer = { data: component.loadoutBars() };
+    component.handleLoadoutDrop({
+      previousContainer: sharedContainer,
+      container: sharedContainer,
+      previousIndex: 2,
+      currentIndex: 0,
+      item: { data: component.loadoutBars()[2] },
+    } as any);
+    expect(component.pendingEquippedAbilityIds()).toEqual(['heavy_strike', 'heavy_strike', 'guard']);
+  });
+
+  it('allows dice editing for learned active abilities even when they are not in the current loadout', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const unitService = TestBed.inject(UnitService) as unknown as UnitServiceStub;
+
+    component.openDicePicker('guard', 'Guard', 0);
+    expect(component.pickerState()).toEqual({
+      abilityId: 'guard',
+      abilityName: 'Guard',
+      slotIndex: 0,
+    });
+
+    await component.applyDiceSelection('d2');
+    expect(unitService.assignAbilitySlotDie).toHaveBeenCalledWith('u1', 'guard', 0, 'd2', {
+      runId: undefined,
+      nodeId: undefined,
+    });
+  });
+
+  it('assigns and clears ability-slot dice through unit service', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const unitService = TestBed.inject(UnitService) as unknown as UnitServiceStub;
+
+    component.openDicePicker('heavy_strike', 'Heavy Strike', 1);
+    await component.applyDiceSelection('d2');
+    expect(unitService.assignAbilitySlotDie).toHaveBeenCalledWith('u1', 'heavy_strike', 1, 'd2', {
+      runId: undefined,
+      nodeId: undefined,
+    });
+
+    component.openDicePicker('heavy_strike', 'Heavy Strike', 0);
+    await component.applyDiceSelection(null);
+    expect(unitService.clearAbilitySlotDie).toHaveBeenCalledWith('u1', 'heavy_strike', 0, {
+      runId: undefined,
+      nodeId: undefined,
+    });
   });
 });

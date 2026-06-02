@@ -2,7 +2,7 @@
 <dg-page-frame
   [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Warband', route: '/warband' }, { label: 'Unit' }]"
   [title]="unit.name"
-  [subtitle]="(unit.unit_type_name || unit.unit_type_slug || 'Unit') + ' · Level ' + unit.level"
+  [subtitle]="(unit.unit_type_name || unit.unit_type_slug || 'Unit') + ' - Level ' + unit.level"
 >
   @if (error() || message()) {
   <div class="vstack gap-2 mb-3">
@@ -15,82 +15,235 @@
   </div>
   }
 
-  <div class="row g-4">
-    <div class="col-xl-6">
-      <div class="dg-card p-3 h-100">
-        <h2 class="dg-stencil mb-3">Stats</h2>
-        <div class="dg-meta-list mb-3">
-          <span class="dg-chip">Tier {{ unit.tier || 1 }}</span>
-          <span class="dg-chip">XP {{ unit.xp || 0 }}</span>
-          <span class="dg-chip">Attack {{ unit.total_attack || 0 }}</span>
-          <span class="dg-chip">Defense {{ unit.total_defense || 0 }}</span>
-          <span class="dg-chip">HP {{ unit.current_hp || unit.max_hp || 0 }}/{{ unit.max_hp || 0 }}</span>
-        </div>
+  <nav class="unit-tabs mb-4" aria-label="Unit details tabs">
+    <button [dgCommandBtn]="activeTab() === 'stats' ? 'primary' : 'muted'" type="button" (click)="setActiveTab('stats')">
+      Stats
+    </button>
+    <button [dgCommandBtn]="activeTab() === 'abilities' ? 'primary' : 'muted'" type="button" (click)="setActiveTab('abilities')">
+      Abilities
+    </button>
+    <button [dgCommandBtn]="activeTab() === 'promotion' ? 'primary' : 'muted'" type="button" (click)="setActiveTab('promotion')">
+      Promotion
+    </button>
+  </nav>
 
+  @if (activeTab() === 'stats') {
+  <section class="dg-card p-3 p-lg-4">
+    <h2 class="dg-stencil mb-3">Stats</h2>
+    <div class="dg-meta-list mb-4">
+      <span class="dg-chip">Tier {{ unit.tier || 1 }}</span>
+      <span class="dg-chip">Level {{ unit.level }}</span>
+      <span class="dg-chip">XP {{ unit.xp || 0 }}</span>
+      <span class="dg-chip">Max Level {{ unit.max_level || 0 }}</span>
+      <span class="dg-chip">Attack {{ unit.total_attack || 0 }}</span>
+      <span class="dg-chip">Defense {{ unit.total_defense || 0 }}</span>
+      <span class="dg-chip">HP {{ unit.current_hp || unit.max_hp || 0 }}/{{ unit.max_hp || 0 }}</span>
+      <span class="dg-chip">Footprint {{ unit.formation_width || 1 }}x{{ unit.formation_height || 1 }}</span>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-xl-7">
         <label class="form-label">Display Name</label>
         <div class="d-flex gap-2">
           <input class="dg-input" [(ngModel)]="renameValue" />
           <button dgCommandBtn type="button" (click)="renameUnit()" [disabled]="busy()">Save</button>
         </div>
+      </div>
+      <div class="col-xl-5">
+        <div class="unit-summary">
+          <h3 class="dg-stencil mb-2">Summary</h3>
+          <p class="mb-2">Learned abilities: {{ learnedAbilities().length }}</p>
+          <p class="mb-2">Equipped combat abilities: {{ pendingEquippedAbilityIds().length }}</p>
+          <p class="mb-0">Configurable active dice slots: {{ totalLoadoutDiceSlots() }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  }
 
-        <h3 class="dg-stencil mt-4 mb-3">Equipped Dice</h3>
-        @if ((unit.equipped_dice?.length || 0) > 0) {
-        <div class="vstack gap-2">
-          @for (die of unit.equipped_dice; track die.dice_instance_id) {
-          <article class="equip-row">
-            <span>Die {{ die.dice_instance_id }} · Slot {{ die.slot_index + 1 }}</span>
-            <button dgCommandBtn type="button" (click)="unequipDice(die.dice_instance_id)" [disabled]="busy()">Unequip</button>
+  @if (activeTab() === 'abilities') {
+  <div class="row g-4">
+    <div class="col-xl-6">
+      <section class="dg-card p-3 p-lg-4 h-100">
+        <h2 class="dg-stencil mb-3">Learned Abilities</h2>
+
+        @if (abilityCatalogError()) {
+        <dg-alert tone="error" class="mb-3">{{ abilityCatalogError() }}</dg-alert>
+        }
+
+        @if (learnedActiveAbilities().length) {
+        <div
+          class="vstack gap-2 mb-4"
+          cdkDropList
+          id="learned-ability-list"
+          [cdkDropListData]="learnedActiveAbilities()"
+          [cdkDropListConnectedTo]="['combat-loadout-lane']"
+          [cdkDropListSortingDisabled]="true"
+        >
+          @for (ability of learnedActiveAbilities(); track ability.abilityId) {
+          <article class="ability-list-card ability-list-card--draggable" cdkDrag [cdkDragData]="ability">
+            <div class="ability-list-card__content" cdkDragHandle>
+              <h3 class="dg-stencil mb-1">{{ ability.displayName }}</h3>
+              <p class="mb-2 small">{{ ability.shortDesc }}</p>
+              <div class="ability-list-card__footer">
+                <span class="ability-speed-badge">Speed {{ ability.speed }}</span>
+              </div>
+            </div>
+
+            @if (ability.diceCost > 0 && abilitySlotsFor(ability.abilityId); as abilitySlots) {
+            <div class="ability-inline-slots" [class.ability-inline-slots--solo]="abilitySlots.slots.length === 1">
+              @for (slot of abilitySlots.slots; track slot.slotIndex) {
+              <button
+                class="ability-inline-slot"
+                type="button"
+                (click)="openDicePicker(ability.abilityId, ability.displayName, slot.slotIndex)"
+                [disabled]="isSlotBusy(ability.abilityId, slot.slotIndex)"
+                [attr.aria-label]="ability.displayName + ' slot ' + (slot.slotIndex + 1)"
+              >
+                @if (slot.die; as die) {
+                @if (diceArtStyles(die); as artStyles) {
+                <span
+                  class="ability-inline-slot__art"
+                  [style.background-image]="artStyles.backgroundImage"
+                  [style.background-position]="artStyles.backgroundPosition"
+                  [style.background-size]="artStyles.backgroundSize"
+                ></span>
+                }
+                } @else {
+                <span class="ability-inline-slot__empty"></span>
+                }
+              </button>
+              }
+            </div>
+            }
           </article>
           }
         </div>
         } @else {
-        <dg-alert class="mb-3">No dice equipped.</dg-alert>
+        <dg-alert>No active abilities learned yet.</dg-alert>
         }
 
-        <a
-          dgCommandBtn="teal"
-          [routerLink]="['/dice']"
-          [queryParams]="{ unitId: unit.id, mode: 'equip', runId: runId, nodeId: nodeId }"
-        >
-          Manage Dice
-        </a>
-      </div>
+        @if (learnedPassiveAbilities().length) {
+        <h3 class="dg-stencil mb-3">Passive Abilities</h3>
+        <div class="vstack gap-2">
+          @for (ability of learnedPassiveAbilities(); track ability.abilityId) {
+          <article class="ability-list-card ability-list-card--passive">
+            <div>
+              <h3 class="dg-stencil mb-1">{{ ability.displayName }}</h3>
+              <p class="mb-0 small">{{ ability.shortDesc }}</p>
+            </div>
+            <span class="dg-chip">Passive</span>
+          </article>
+          }
+        </div>
+        }
+      </section>
     </div>
 
     <div class="col-xl-6">
-      <div class="dg-card p-3 h-100">
-        <h2 class="dg-stencil mb-3">Promotion</h2>
-        <p class="mb-3">Choose two matching units to consume.</p>
+      <section class="dg-card p-3 p-lg-4 h-100">
+        <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+          <div>
+            <h2 class="dg-stencil mb-1">Combat Loadout</h2>
+            <p class="mb-0">Drag active abilities into the fixed 20-point execution lane.</p>
+          </div>
+          <span class="dg-chip">Budget {{ totalEquippedSpeed() }} / 20</span>
+        </div>
 
-        @if (promotionOptions().length) {
-        <label class="form-label">Destination</label>
-        <select class="dg-select mb-3" [(ngModel)]="selectedDestination">
-          @for (option of promotionOptions(); track option.target_unit_type_id) {
-          <option [value]="option.target_unit_type_id">{{ option.target_unit_type_name }} · {{ option.mode }}</option>
+        <div
+          class="loadout-lane"
+          cdkDropList
+          id="combat-loadout-lane"
+          [cdkDropListData]="loadoutBars()"
+          [cdkDropListConnectedTo]="['learned-ability-list']"
+          (cdkDropListDropped)="handleLoadoutDrop($event)"
+          [style.height.px]="loadoutHeightPx()"
+        >
+          @if (loadoutBars().length) {
+          @for (bar of loadoutBars(); track bar.instanceKey) {
+          <article class="loadout-bar" cdkDrag [cdkDragData]="bar" [style.height.px]="bar.heightPx">
+            <div class="loadout-bar__content">
+              <span class="loadout-bar__name">{{ bar.displayName }}</span>
+              <button
+                class="loadout-bar__remove"
+                type="button"
+                aria-label="Remove ability"
+                (click)="removeAbilityFromLoadout($index)"
+              >
+                x
+              </button>
+            </div>
+          </article>
           }
-        </select>
-        }
-
-        <div class="vstack gap-2 mb-3">
-          @for (candidate of units(); track candidate.id) {
-          <label class="promote-row">
-            <input
-              type="checkbox"
-              [checked]="selectedSecondaries().includes(candidate.id)"
-              [disabled]="candidate.id === unit.id || busy()"
-              (change)="toggleSecondary(candidate.id)"
-            />
-            <span>{{ candidate.name }} · {{ candidate.unit_type_name || candidate.unit_type_slug }}</span>
-          </label>
+          } @else {
+          <div class="loadout-lane__empty">
+            <span class="dg-stencil">Drop Active Abilities Here</span>
+          </div>
           }
         </div>
 
-        <button dgCommandBtn="primary" type="button" (click)="promoteUnit()" [disabled]="busy() || promotionOptions().length === 0">
-          {{ busy() ? 'Working...' : 'Promote' }}
-        </button>
-      </div>
+        <div class="d-flex justify-content-end mt-3">
+          <button dgCommandBtn="primary" type="button" (click)="saveLoadout()" [disabled]="savingLoadout() || !canSaveLoadout()">
+            {{ savingLoadout() ? 'Working...' : 'Save Loadout' }}
+          </button>
+        </div>
+      </section>
     </div>
   </div>
+  }
+
+  @if (activeTab() === 'promotion') {
+  <section class="dg-card p-3 p-lg-4">
+    <h2 class="dg-stencil mb-3">Promotion</h2>
+    <p class="mb-3">Choose two max-level units of the same current type to consume.</p>
+
+    @if (promotionOptions().length) {
+    <label class="form-label">Destination</label>
+    <select class="dg-select mb-3" [(ngModel)]="selectedDestination">
+      @for (option of promotionOptions(); track option.target_unit_type_id) {
+      <option [value]="option.target_unit_type_id">{{ option.target_unit_type_name }} - {{ option.mode }}</option>
+      }
+    </select>
+    }
+
+    @if (eligiblePromotionCandidates().length) {
+    <div class="vstack gap-2 mb-3">
+      @for (candidate of eligiblePromotionCandidates(); track candidate.id) {
+      <label class="promote-row">
+        <input
+          type="checkbox"
+          [checked]="selectedSecondaries().includes(candidate.id)"
+          [disabled]="busy()"
+          (change)="toggleSecondary(candidate.id)"
+        />
+        <span>{{ candidate.name }} - Level {{ candidate.level }} / {{ candidate.max_level }}</span>
+      </label>
+      }
+    </div>
+    } @else {
+    <dg-alert>No eligible merge units available.</dg-alert>
+    }
+
+    <button
+      dgCommandBtn="primary"
+      type="button"
+      (click)="promoteUnit()"
+      [disabled]="busy() || promotionOptions().length === 0 || selectedSecondaries().length !== 2"
+    >
+      {{ busy() ? 'Working...' : 'Promote' }}
+    </button>
+  </section>
+  }
+
+  <dg-dice-picker-modal
+    [open]="!!pickerState()"
+    [slotLabel]="pickerSlotLabel()"
+    [dice]="pickerAvailableDice()"
+    [selectedDiceId]="pickerSelectedDiceId()"
+    [busy]="pickerBusy()"
+    (dismissed)="closeDicePicker()"
+    (selected)="applyDiceSelection($event)"
+  />
 </dg-page-frame>
 } @else {
 <dg-page-frame [showHeader]="false">

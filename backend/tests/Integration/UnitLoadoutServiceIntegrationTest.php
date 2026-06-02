@@ -82,6 +82,36 @@ final class UnitLoadoutServiceIntegrationTest extends IntegrationTestCase
     $service->assignDieToAbilitySlot($unitId, 'heavy_strike', 0, $foreignDiceId);
   }
 
+  public function testAssignDieToAbilitySlotAllowsUnlockedActiveAbilityOutsideCurrentLoadout(): void
+  {
+    $userId = $this->seedStarterUser();
+    $unitId = $this->loadStarterUnitId($userId, 'frontline_bruiser_t1');
+    $diceId = $this->insertDiceInstance($userId, $this->pickAnyDiceDefinitionId());
+
+    $service = new UnitLoadoutService($this->pdo);
+    $service->replaceEquippedAbilities($unitId, ['basic_attack_melee', 'basic_attack_melee']);
+    $service->assignDieToAbilitySlot($unitId, 'heavy_strike', 0, $diceId);
+
+    $equippedAbilityIds = array_map(
+      static fn(array $row): string => (string)$row['ability_id'],
+      $this->rows(
+        'SELECT `ability_id` FROM `unit_instance_equipped_abilities` WHERE `unit_instance_id` = ? ORDER BY `equip_order` ASC, `id` ASC',
+        [$unitId]
+      )
+    );
+
+    $binding = $this->rows(
+      'SELECT `ability_id`, `slot_index`, `dice_instance_id` FROM `unit_ability_dice` WHERE `unit_instance_id` = ? AND `ability_id` = ?',
+      [$unitId, 'heavy_strike']
+    );
+
+    $this->assertSame(['basic_attack_melee', 'basic_attack_melee'], $equippedAbilityIds);
+    $this->assertCount(1, $binding);
+    $this->assertSame('heavy_strike', (string)$binding[0]['ability_id']);
+    $this->assertSame(0, (int)$binding[0]['slot_index']);
+    $this->assertSame($diceId, (int)$binding[0]['dice_instance_id']);
+  }
+
   private function seedStarterUser(string $prefix = 'loadout_user'): int
   {
     $userId = $this->insertUser($prefix, 'Loadout User');
@@ -114,5 +144,33 @@ final class UnitLoadoutServiceIntegrationTest extends IntegrationTestCase
     ');
     $stmt->execute([$userId]);
     return (int)$stmt->fetchColumn();
+  }
+
+  private function pickAnyDiceDefinitionId(): int
+  {
+    $stmt = $this->pdo->query('SELECT `id` FROM `dice_definitions` ORDER BY `id` ASC LIMIT 1');
+    return (int)$stmt->fetchColumn();
+  }
+
+  private function insertDiceInstance(int $userId, int $diceDefinitionId): int
+  {
+    $stmt = $this->pdo->prepare('
+      INSERT INTO `dice_instances` (`user_id`, `dice_definition_id`, `display_name`)
+      VALUES (?, ?, NULL)
+    ');
+    $stmt->execute([$userId, $diceDefinitionId]);
+    return (int)$this->pdo->lastInsertId();
+  }
+
+  /**
+   * @param array<int,int|string> $params
+   * @return array<int,array<string,mixed>>
+   */
+  private function rows(string $sql, array $params): array
+  {
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    return is_array($rows) ? $rows : [];
   }
 }

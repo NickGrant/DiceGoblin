@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { UnitGridObjectComponent } from './unit-grid-object.component';
 
 @Component({
@@ -23,6 +24,7 @@ describe('UnitGridObjectComponent', () => {
   it('renders unit details', async () => {
     await TestBed.configureTestingModule({
       imports: [HostComponent],
+      providers: [provideRouter([])],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(HostComponent);
@@ -33,5 +35,6 @@ describe('UnitGridObjectComponent', () => {
     expect(compiled.textContent).toContain('Goblin');
     expect(compiled.textContent).toContain('Level 3');
     expect(compiled.textContent).toContain('Tier 2');
+    expect(compiled.querySelector('a')?.getAttribute('href')).toContain('/warband/units/u1');
   });
 });

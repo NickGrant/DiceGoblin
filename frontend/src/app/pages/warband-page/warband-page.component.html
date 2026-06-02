@@ -28,15 +28,9 @@
         <dg-object-grid
           [objects]="units()"
           [objectComponent]="unitObjectComponent"
-          [footerTemplate]="unitActions"
           emptyMessage="No units available."
           columnClasses="col-sm-6"
         />
-
-        <ng-template #unitActions let-unit>
-          <a dgCommandBtn [routerLink]="['/warband/units', unit.id]">Details</a>
-          <a dgCommandBtn="teal" [routerLink]="['/dice']" [queryParams]="{ unitId: unit.id, mode: 'equip' }">Dice</a>
-        </ng-template>
       </div>
     </div>
 

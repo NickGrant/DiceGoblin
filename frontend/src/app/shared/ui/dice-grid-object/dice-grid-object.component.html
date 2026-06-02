@@ -1,42 +1,25 @@
-<article class="dg-card dice-grid-object p-3 h-100">
-  <div class="d-flex align-items-start gap-3">
-    <div class="dice-grid-object__sprite-frame flex-shrink-0">
-      <div
-        class="dice-grid-object__sprite"
-        [style.background-image]="artStyles().backgroundImage"
-        [style.background-position]="artStyles().backgroundPosition"
-        [style.background-size]="artStyles().backgroundSize"
-      ></div>
-    </div>
+<div
+  class="sprite"
+  [style.background-image]="artStyles().backgroundImage"
+  [style.background-position]="artStyles().backgroundPosition"
+  [style.background-size]="artStyles().backgroundSize"
+></div>
 
-    <div class="flex-grow-1">
-      <div class="d-flex justify-content-between align-items-start gap-2">
-        <div>
-          <span class="dice-grid-object__rarity">{{ object().rarity || 'common' }}</span>
-          <h2 class="h5 mt-2 mb-1">{{ object().display_name || ('d' + (object().sides || 6)) }}</h2>
-          <p class="mb-2">d{{ object().sides || 6 }} · Sell {{ object().sell_value || 0 }}</p>
-        </div>
-        <span class="dg-chip">ID {{ object().id }}</span>
-      </div>
+<p class="mb-2">d{{ object().sides }} · {{ object().rarity | titlecase }}</p>
 
-      <p class="mb-2">{{ statusText() }}</p>
+@if (object().affixes?.length) {
+  <ul class="dg-list-reset small mb-3">
+    @for (affix of object().affixes; track affix.affix_definition_id) {
+      <li>{{ affix.name || affix.affix_slug || 'Affix' }} · {{ affix.value }}</li>
+    }
+  </ul>
+}
 
-      @if (object().affixes?.length) {
-      <ul class="dg-list-reset small mb-3">
-        @for (affix of object().affixes; track affix.affix_definition_id) {
-        <li>{{ affix.name || affix.affix_slug || 'Affix' }} · {{ affix.value }}</li>
-        }
-      </ul>
-      }
-
-      @if (footerTemplate(); as footerTemplate) {
-      <div class="d-flex flex-wrap gap-2 mt-auto">
-        <ng-container
-          [ngTemplateOutlet]="footerTemplate"
-          [ngTemplateOutletContext]="{ $implicit: footerContext() || object() }"
-        />
-      </div>
-      }
-    </div>
+@if (footerTemplate(); as footerTemplate) {
+  <div class="d-flex flex-wrap gap-2 mt-auto">
+    <ng-container
+      [ngTemplateOutlet]="footerTemplate"
+      [ngTemplateOutletContext]="{ $implicit: footerContext() || object() }"
+    />
   </div>
-</article>
+}

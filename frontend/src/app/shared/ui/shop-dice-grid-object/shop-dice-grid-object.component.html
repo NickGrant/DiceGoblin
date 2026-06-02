@@ -1,16 +1,14 @@
 <div
-  class="shop-dice-grid-object__sprite"
+  class="sprite"
   [style.background-image]="artStyles().backgroundImage"
   [style.background-position]="artStyles().backgroundPosition"
   [style.background-size]="artStyles().backgroundSize"
 ></div>
 
-<div>
-  @if (object().label) {
-    <h2 class="h5 mt-2 mb-1">{{ object().label }}</h2>
-  }
-  <p class="mb-2">d{{ object().sides }} · {{ object().rarity | titlecase }}</p>
-</div>
+@if (object().label) {
+  <h2 class="h5 mt-2 mb-1">{{ object().label }}</h2>
+}
+<p class="mb-2">d{{ object().sides }} · {{ object().rarity | titlecase }}</p>
 
 @if (object().detailLines.length) {
   <ul class="dg-list-reset small mb-3">
