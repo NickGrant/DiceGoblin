@@ -43,27 +43,23 @@ describe('UnitService', () => {
     expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
   });
 
-  it('includes promotion and rest context in promoteUnit payloads', async () => {
+  it('sends promotion payloads without run context', async () => {
     apiHttp.postWithCsrf.and.resolveTo({ ok: true } as any);
 
-    await service.promoteUnit('1', ['2', '3'], '4', { runId: '5', nodeId: '6' });
+    await service.promoteUnit('1', ['2', '3'], '4');
 
     expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/units/1/promote', {
       primary_unit_instance_id: 1,
       secondary_unit_instance_ids: [2, 3],
       destination_unit_type_id: 4,
-      run_id: 5,
-      node_id: 6,
     });
   });
 
-  it('clears an ability slot die with context and refreshes profile', async () => {
+  it('clears an ability slot die and refreshes profile', async () => {
     apiHttp.deleteWithCsrf.and.resolveTo({ ok: true } as any);
 
-    await service.clearAbilitySlotDie('1', 'ability-7', 2, { runId: '8' });
+    await service.clearAbilitySlotDie('1', 'ability-7', 2);
 
-    expect(apiHttp.deleteWithCsrf).toHaveBeenCalledWith('/api/v1/units/1/abilities/ability-7/slots/2/dice', {
-      run_id: 8,
-    });
+    expect(apiHttp.deleteWithCsrf).toHaveBeenCalledWith('/api/v1/units/1/abilities/ability-7/slots/2/dice', {});
   });
 });

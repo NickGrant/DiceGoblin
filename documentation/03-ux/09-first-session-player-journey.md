@@ -2,7 +2,7 @@
 ----
 
 Status: active
-Last Updated: 2026-05-29
+Last Updated: 2026-06-02
 Owner: Product + UX
 Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/03-ux/03-encounter-flow-transition-matrix.md`
 
@@ -58,7 +58,7 @@ Suggested framing:
 
 - Player chooses available nodes and sees clear path progression.
 - Map affordances should explain:
-  - rest means management and recovery
+  - rest means recovery
   - other nodes mean encounter resolution
 - Node previews should help decision-making without revealing exact outcomes.
 

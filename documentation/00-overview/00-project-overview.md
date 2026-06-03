@@ -1,7 +1,7 @@
 # Dice Goblins - Project Overview
 
 Status: active  
-Last Updated: 2026-05-29  
+Last Updated: 2026-06-02  
 Owner: Product  
 Depends On: `documentation/00-overview/01-core-gameplay-loop.md`, `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation/03-ux/01-visual-design-guide.md`
 
@@ -55,7 +55,7 @@ The active MVP focuses on:
 - unit details, promotion, and dice equipment
 - region selection
 - run map traversal
-- node resolution, rest management, and run-end summary
+- node resolution, rest recovery, and run-end summary
 - shop and debug tooling
 
 The MVP is PvE-first. Direct PvP combat is not part of the active scope.

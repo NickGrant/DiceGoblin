@@ -227,10 +227,7 @@ describe('UnitDetailsPageComponent', () => {
     expect(component.pendingEquippedAbilityIds()).toEqual(['heavy_strike', 'guard']);
 
     await component.saveLoadout();
-    expect(unitService.replaceEquippedAbilities).toHaveBeenCalledWith('u1', ['heavy_strike', 'guard'], {
-      runId: undefined,
-      nodeId: undefined,
-    });
+    expect(unitService.replaceEquippedAbilities).toHaveBeenCalledWith('u1', ['heavy_strike', 'guard']);
   });
 
   it('adds and reorders loadout bars through drop events', async () => {
@@ -270,10 +267,7 @@ describe('UnitDetailsPageComponent', () => {
     });
 
     await component.applyDiceSelection('d2');
-    expect(unitService.assignAbilitySlotDie).toHaveBeenCalledWith('u1', 'guard', 0, 'd2', {
-      runId: undefined,
-      nodeId: undefined,
-    });
+    expect(unitService.assignAbilitySlotDie).toHaveBeenCalledWith('u1', 'guard', 0, 'd2');
   });
 
   it('assigns and clears ability-slot dice through unit service', async () => {
@@ -283,16 +277,10 @@ describe('UnitDetailsPageComponent', () => {
 
     component.openDicePicker('heavy_strike', 'Heavy Strike', 1);
     await component.applyDiceSelection('d2');
-    expect(unitService.assignAbilitySlotDie).toHaveBeenCalledWith('u1', 'heavy_strike', 1, 'd2', {
-      runId: undefined,
-      nodeId: undefined,
-    });
+    expect(unitService.assignAbilitySlotDie).toHaveBeenCalledWith('u1', 'heavy_strike', 1, 'd2');
 
     component.openDicePicker('heavy_strike', 'Heavy Strike', 0);
     await component.applyDiceSelection(null);
-    expect(unitService.clearAbilitySlotDie).toHaveBeenCalledWith('u1', 'heavy_strike', 0, {
-      runId: undefined,
-      nodeId: undefined,
-    });
+    expect(unitService.clearAbilitySlotDie).toHaveBeenCalledWith('u1', 'heavy_strike', 0);
   });
 });

@@ -17,13 +17,10 @@ use DiceGoblins\Repositories\TeamRepository;
 use DiceGoblins\Repositories\UnitRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\CsrfService;
-use DiceGoblins\Services\DiceAffixService;
-use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\PromotionService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\UnitLoadoutService;
-use DiceGoblins\Services\UnitNameGenerator;
 use DiceGoblins\Services\UnitProgressionService;
 use PDO;
 use RuntimeException;
@@ -32,9 +29,6 @@ use Throwable;
 final class GameplayController
 {
   use RequiresCsrf;
-
-  private const REST_STORE_BASIC_UNIT_COST = 30;
-  private const REST_STORE_BASIC_DICE_COST = 20;
 
   public function openRest(?string $runId = null, ?string $nodeId = null): void
   {
@@ -65,19 +59,6 @@ final class GameplayController
         return;
       }
 
-      $activeTeam = $svc['teamRepo']->getActiveTeamForUser($userId);
-      if ($activeTeam === null) {
-        $pdo->rollBack();
-        Response::json([
-          'ok' => false,
-          'error' => ['code' => 'validation_error', 'message' => 'No active squad found.'],
-        ], 400);
-        return;
-      }
-
-      $teamId = (int)$activeTeam['id'];
-      $teamUnits = $svc['teamRepo']->getTeamUnitIds($userId, $teamId);
-      $formation = $this->loadTeamFormation($pdo, $teamId);
       $runState = $svc['runRepo']->getRunUnitState($runIdInt);
 
       $pdo->commit();
@@ -87,123 +68,9 @@ final class GameplayController
           'run_id' => (string)$runIdInt,
           'node_id' => (string)$nodeIdInt,
           'status' => 'open',
-          'team_id' => (string)$teamId,
-          'unit_ids' => array_map('strval', $teamUnits),
-          'formation' => $formation,
           'run_unit_state' => $runState,
         ],
       ]);
-    } catch (Throwable $e) {
-      if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-      }
-      Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
-    }
-  }
-
-  public function updateRestState(?string $runId = null, ?string $nodeId = null): void
-  {
-    $svc = $this->services();
-    $userId = $this->requireUserId($svc['sessionService']);
-    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
-      return;
-    }
-
-    $runIdInt = $this->requirePositiveInt($runId, 'runId');
-    $nodeIdInt = $this->requirePositiveInt($nodeId, 'nodeId');
-    if ($runIdInt === null || $nodeIdInt === null) {
-      return;
-    }
-
-    $body = $this->readJsonBody();
-    if ($body === null) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
-      return;
-    }
-
-    $unitIdsRaw = $body['unit_ids'] ?? null;
-    $formationRaw = $body['formation'] ?? null;
-    if (!is_array($unitIdsRaw) || !is_array($formationRaw)) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'unit_ids and formation are required.']], 400);
-      return;
-    }
-    $unitIds = array_values(array_unique(array_map(static fn($v): int => (int)$v, $unitIdsRaw)));
-
-    /** @var PDO $pdo */
-    $pdo = $svc['pdo'];
-    try {
-      $pdo->beginTransaction();
-      $run = $this->requireActiveOwnedRun($svc['runRepo'], $userId, $runIdInt);
-      if ($run === null) {
-        $pdo->rollBack();
-        return;
-      }
-      $node = $this->requireAvailableRestNode($svc['runNodeRepo'], $runIdInt, $nodeIdInt);
-      if ($node === null) {
-        $pdo->rollBack();
-        return;
-      }
-
-      $activeTeam = $svc['teamRepo']->getActiveTeamForUser($userId);
-      if ($activeTeam === null) {
-        $pdo->rollBack();
-        Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'No active squad found.']], 400);
-        return;
-      }
-      $teamId = (int)$activeTeam['id'];
-
-      $svc['teamRepo']->updateTeamConfiguration(
-        $userId,
-        $teamId,
-        $unitIds,
-        $formationRaw,
-        null
-      );
-
-      $existingState = $svc['runRepo']->getRunUnitStateForUpdate($runIdInt);
-      $existingIds = array_map(static fn(array $r): int => (int)$r['unit_instance_id'], $existingState);
-      $existingSet = array_fill_keys($existingIds, true);
-      $targetSet = array_fill_keys($unitIds, true);
-
-      $toRemove = [];
-      foreach ($existingIds as $uid) {
-        if (!isset($targetSet[$uid])) {
-          $toRemove[] = $uid;
-        }
-      }
-      if (count($toRemove) > 0) {
-        $svc['runRepo']->deleteRunUnitStateByUnitIds($runIdInt, $toRemove);
-      }
-
-      $toAdd = [];
-      foreach ($unitIds as $uid) {
-        if (!isset($existingSet[$uid])) {
-          $toAdd[] = $uid;
-        }
-      }
-      if (count($toAdd) > 0) {
-        $svc['runRepo']->insertRunUnitStateBulk($runIdInt, $this->buildRunUnitSeedRows($pdo, $userId, $toAdd));
-      }
-
-      $runState = $svc['runRepo']->getRunUnitState($runIdInt);
-      $pdo->commit();
-
-      Response::json([
-        'ok' => true,
-        'data' => [
-          'run_id' => (string)$runIdInt,
-          'node_id' => (string)$nodeIdInt,
-          'team_id' => (string)$teamId,
-          'unit_ids' => array_map('strval', $unitIds),
-          'formation' => $this->loadTeamFormation($pdo, $teamId),
-          'run_unit_state' => $runState,
-        ],
-      ]);
-    } catch (RuntimeException $e) {
-      if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-      }
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => $e->getMessage()]], 400);
     } catch (Throwable $e) {
       if ($pdo->inTransaction()) {
         $pdo->rollBack();
@@ -256,95 +123,6 @@ final class GameplayController
           'progression' => $progression,
         ],
       ]);
-    } catch (Throwable $e) {
-      if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-      }
-      Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
-    }
-  }
-
-  public function purchaseRestStore(?string $runId = null, ?string $nodeId = null): void
-  {
-    $svc = $this->services();
-    $userId = $this->requireUserId($svc['sessionService']);
-    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
-      return;
-    }
-
-    $runIdInt = $this->requirePositiveInt($runId, 'runId');
-    $nodeIdInt = $this->requirePositiveInt($nodeId, 'nodeId');
-    if ($runIdInt === null || $nodeIdInt === null) {
-      return;
-    }
-
-    $body = $this->readJsonBody();
-    if ($body === null) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
-      return;
-    }
-    $itemType = trim((string)($body['item_type'] ?? ''));
-    if (!in_array($itemType, ['basic_unit', 'basic_dice'], true)) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'item_type must be basic_unit or basic_dice.']], 400);
-      return;
-    }
-
-    /** @var PDO $pdo */
-    $pdo = $svc['pdo'];
-    try {
-      $pdo->beginTransaction();
-      $run = $this->requireActiveOwnedRun($svc['runRepo'], $userId, $runIdInt);
-      if ($run === null) {
-        $pdo->rollBack();
-        return;
-      }
-      $node = $this->requireAvailableRestNode($svc['runNodeRepo'], $runIdInt, $nodeIdInt);
-      if ($node === null) {
-        $pdo->rollBack();
-        return;
-      }
-
-      $svc['playerStateRepo']->ensurePlayerState($userId);
-      $state = $svc['playerStateRepo']->getPlayerStateForUpdate($userId);
-      if (!is_array($state)) {
-        $pdo->rollBack();
-        Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Player state unavailable.']], 500);
-        return;
-      }
-
-      $cost = $itemType === 'basic_unit' ? self::REST_STORE_BASIC_UNIT_COST : self::REST_STORE_BASIC_DICE_COST;
-      $currentSoft = max(0, (int)$state['currency_soft']);
-      if ($currentSoft < $cost) {
-        $pdo->rollBack();
-        Response::json(['ok' => false, 'error' => ['code' => 'insufficient_currency', 'message' => 'Not enough soft currency.']], 409);
-        return;
-      }
-
-      $nextSoft = $currentSoft - $cost;
-      $svc['playerStateRepo']->setCurrency($userId, $nextSoft, max(0, (int)$state['currency_hard']));
-
-      $purchaseData = $itemType === 'basic_unit'
-        ? $this->createBasicStoreUnit($pdo, $userId)
-        : $this->createBasicStoreDice($pdo, $userId);
-
-      $pdo->commit();
-
-      Response::json([
-        'ok' => true,
-        'data' => [
-          'run_id' => (string)$runIdInt,
-          'node_id' => (string)$nodeIdInt,
-          'item_type' => $itemType,
-          'cost' => $cost,
-          'currency_soft' => $nextSoft,
-          'purchase' => $purchaseData,
-        ],
-      ]);
-    } catch (RuntimeException $e) {
-      if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-      }
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => $e->getMessage()]], 400);
     } catch (Throwable $e) {
       if ($pdo->inTransaction()) {
         $pdo->rollBack();
@@ -419,11 +197,11 @@ final class GameplayController
 
     $activeRun = $svc['runRepo']->getActiveRunForUser($userId);
     if ($activeRun !== null) {
-      if (!$this->hasValidRestContextForRun($svc['pdo'], $userId, (int)$activeRun['run_id'], $body)) {
-        Response::json(['ok' => false, 'error' => ['code' => 'run_rest_context_required', 'message' => 'Active-run promotion is only allowed during rest workflow.']], 409);
+      $activeRunId = (int)$activeRun['run_id'];
+      if ($this->isUnitInRunSnapshot($svc['pdo'], $activeRunId, $primaryId)) {
+        Response::json(['ok' => false, 'error' => ['code' => 'unit_in_active_run', 'message' => 'Units in an active run cannot be promoted.']], 409);
         return;
       }
-      $activeRunId = (int)$activeRun['run_id'];
       foreach ($secondaryIds as $sid) {
         if ($this->isUnitInRunSnapshot($svc['pdo'], $activeRunId, $sid)) {
           Response::json(['ok' => false, 'error' => ['code' => 'unit_in_active_run', 'message' => 'Secondary units in active run snapshot cannot be consumed.']], 409);
@@ -543,8 +321,8 @@ final class GameplayController
       return;
     }
 
-    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId, $body)) {
-      Response::json(['ok' => false, 'error' => ['code' => 'run_rest_context_required', 'message' => 'Active run loadout changes are allowed only during rest workflow.']], 409);
+    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId)) {
+      Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
       return;
     }
 
@@ -666,8 +444,8 @@ final class GameplayController
       return;
     }
 
-    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId, $body)) {
-      Response::json(['ok' => false, 'error' => ['code' => 'run_rest_context_required', 'message' => 'Active run equipment changes are allowed only during rest workflow.']], 409);
+    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId)) {
+      Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
       return;
     }
 
@@ -717,8 +495,8 @@ final class GameplayController
       return;
     }
 
-    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId, $body)) {
-      Response::json(['ok' => false, 'error' => ['code' => 'run_rest_context_required', 'message' => 'Active run equipment changes are allowed only during rest workflow.']], 409);
+    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId)) {
+      Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
       return;
     }
 
@@ -799,25 +577,6 @@ final class GameplayController
     return $node;
   }
 
-  private function hasValidRestContextForRun(PDO $pdo, int $userId, int $activeRunId, array $body): bool
-  {
-    $ctxRunId = (int)($body['run_id'] ?? 0);
-    $ctxNodeId = (int)($body['node_id'] ?? 0);
-    if ($ctxRunId !== $activeRunId || $ctxNodeId <= 0) {
-      return false;
-    }
-    $stmt = $pdo->prepare('
-      SELECT rn.`id`
-      FROM `run_nodes` rn
-      JOIN `region_runs` rr ON rr.`id` = rn.`run_id`
-      WHERE rn.`id` = ? AND rn.`run_id` = ? AND rr.`user_id` = ? AND rr.`status` = \'active\'
-        AND rn.`node_type` = \'rest\' AND rn.`status` = \'available\'
-      LIMIT 1
-    ');
-    $stmt->execute([$ctxNodeId, $ctxRunId, $userId]);
-    return (bool)$stmt->fetchColumn();
-  }
-
   private function isUnitInRunSnapshot(PDO $pdo, int $runId, int $unitId): bool
   {
     $stmt = $pdo->prepare('
@@ -829,123 +588,14 @@ final class GameplayController
     return (bool)$stmt->fetchColumn();
   }
 
-  private function assertUnitMutationContextAllowed(PDO $pdo, RunRepository $runRepo, int $userId, int $unitId, array $body): bool
+  private function assertUnitMutationContextAllowed(PDO $pdo, RunRepository $runRepo, int $userId, int $unitId): bool
   {
     $activeRun = $runRepo->getActiveRunForUser($userId);
     if ($activeRun === null) {
       return true;
     }
     $activeRunId = (int)$activeRun['run_id'];
-    if (!$this->isUnitInRunSnapshot($pdo, $activeRunId, $unitId)) {
-      return true;
-    }
-    return $this->hasValidRestContextForRun($pdo, $userId, $activeRunId, $body);
-  }
-
-  private function loadTeamFormation(PDO $pdo, int $teamId): array
-  {
-    $stmt = $pdo->prepare('
-      SELECT `cell`, `unit_instance_id`
-      FROM `team_formation`
-      WHERE `team_id` = ?
-      ORDER BY `cell` ASC
-    ');
-    $stmt->execute([$teamId]);
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    return array_map(static fn(array $r): array => [
-      'cell' => (string)$r['cell'],
-      'unit_instance_id' => $r['unit_instance_id'] !== null ? (string)$r['unit_instance_id'] : null,
-    ], $rows);
-  }
-
-  private function assertUnitsOwnedByUserForUpdate(PDO $pdo, int $userId, array $unitIds): void
-  {
-    foreach ($unitIds as $uid) {
-      $stmt = $pdo->prepare('SELECT 1 FROM `unit_instances` WHERE `id` = ? AND `user_id` = ? LIMIT 1 FOR UPDATE');
-      $stmt->execute([$uid, $userId]);
-      if (!(bool)$stmt->fetchColumn()) {
-        throw new RuntimeException('unit_ids must contain only owned units.');
-      }
-    }
-  }
-
-  private function replaceTeamMembership(PDO $pdo, int $teamId, array $unitIds): void
-  {
-    $stmt = $pdo->prepare('DELETE FROM `team_units` WHERE `team_id` = ?');
-    $stmt->execute([$teamId]);
-    if (count($unitIds) === 0) {
-      return;
-    }
-    $valuesSql = [];
-    $params = [];
-    foreach ($unitIds as $uid) {
-      $valuesSql[] = '(?, ?)';
-      $params[] = $teamId;
-      $params[] = $uid;
-    }
-    $sql = 'INSERT INTO `team_units` (`team_id`, `unit_instance_id`) VALUES ' . implode(',', $valuesSql);
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-  }
-
-  private function replaceTeamFormation(PDO $pdo, int $teamId, array $unitIds, array $formationRaw): void
-  {
-    $unitSet = array_fill_keys($unitIds, true);
-    $stmt = $pdo->prepare('DELETE FROM `team_formation` WHERE `team_id` = ?');
-    $stmt->execute([$teamId]);
-    foreach ($formationRaw as $row) {
-      if (!is_array($row)) {
-        continue;
-      }
-      $cell = strtoupper(trim((string)($row['cell'] ?? '')));
-      if (!preg_match('/^[ABC][123]$/', $cell)) {
-        throw new RuntimeException('Invalid formation cell.');
-      }
-      $uidRaw = $row['unit_instance_id'] ?? null;
-      $uid = ($uidRaw !== null && $uidRaw !== '') ? (int)$uidRaw : null;
-      if ($uid !== null && !isset($unitSet[$uid])) {
-        throw new RuntimeException('formation.unit_instance_id must exist in unit_ids.');
-      }
-      if ($uid !== null) {
-        $insert = $pdo->prepare('INSERT INTO `team_formation` (`team_id`, `cell`, `unit_instance_id`) VALUES (?, ?, ?)');
-        $insert->execute([$teamId, $cell, $uid]);
-      }
-    }
-  }
-
-  private function buildRunUnitSeedRows(PDO $pdo, int $userId, array $unitIds): array
-  {
-    if (count($unitIds) === 0) {
-      return [];
-    }
-    $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
-    $params = array_merge([$userId], $unitIds);
-    $stmt = $pdo->prepare("
-      SELECT ui.`id` AS `unit_instance_id`, ui.`level`, ut.`base_stats_json`, ut.`max_hp_per_level`
-      FROM `unit_instances` ui
-      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
-      WHERE ui.`user_id` = ? AND ui.`id` IN ($placeholders)
-    ");
-    $stmt->execute($params);
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    $progression = new UnitProgressionService();
-    $out = [];
-    foreach ($rows as $row) {
-      $maxHp = $progression->maxHpForLevel(
-        $row['base_stats_json'],
-        (int)$row['level'],
-        (int)$row['max_hp_per_level']
-      );
-      $out[] = [
-        'unit_instance_id' => (int)$row['unit_instance_id'],
-        'current_hp' => $maxHp,
-        'is_defeated' => false,
-        'cooldowns_json' => '{}',
-        'status_effects_json' => '[]',
-      ];
-    }
-    return $out;
+    return !$this->isUnitInRunSnapshot($pdo, $activeRunId, $unitId);
   }
 
   private function healRunUnitsAtRest(PDO $pdo, int $runId, int $userId): void
@@ -983,50 +633,6 @@ final class GameplayController
       );
       $upsert->execute([$runId, (int)$row['unit_instance_id'], $maxHp, '{}', '[]']);
     }
-  }
-
-  /** @return array{unit_instance_id:string,unit_type_slug:string,tier:int,level:int} */
-  private function createBasicStoreUnit(PDO $pdo, int $userId): array
-  {
-    $typeStmt = $pdo->query("SELECT `id`, `slug` FROM `unit_types` WHERE RIGHT(`slug`, 3) = '_t1' ORDER BY `id` ASC LIMIT 1");
-    $type = $typeStmt->fetch(PDO::FETCH_ASSOC);
-    if (!is_array($type)) {
-      throw new RuntimeException('No unit types are available for store purchases.');
-    }
-
-    $unitTypeId = (int)$type['id'];
-    $insert = $pdo->prepare('INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `display_name`, `tier`, `level`, `xp`, `locked`) VALUES (?, ?, ?, 1, 1, 0, 0)');
-    $insert->execute([$userId, $unitTypeId, (new UnitNameGenerator())->generate()]);
-    $unitInstanceId = (int)$pdo->lastInsertId();
-    (new UnitLoadoutService($pdo))->initializeUnit($unitInstanceId, $unitTypeId);
-
-    return [
-      'unit_instance_id' => (string)$unitInstanceId,
-      'unit_type_slug' => (string)$type['slug'],
-      'tier' => 1,
-      'level' => 1,
-    ];
-  }
-
-  /** @return array{dice_instance_id:string,rarity:string,sides:int} */
-  private function createBasicStoreDice(PDO $pdo, int $userId): array
-  {
-    $defStmt = $pdo->query('SELECT `id`, `rarity`, `sides` FROM `dice_definitions` ORDER BY `id` ASC LIMIT 1');
-    $def = $defStmt->fetch(PDO::FETCH_ASSOC);
-    if (!is_array($def)) {
-      throw new RuntimeException('No dice definitions are available for store purchases.');
-    }
-
-    $insert = $pdo->prepare('INSERT INTO `dice_instances` (`user_id`, `dice_definition_id`, `display_name`) VALUES (?, ?, NULL)');
-    $insert->execute([$userId, (int)$def['id']]);
-    $diceInstanceId = (int)$pdo->lastInsertId();
-    (new DiceAffixService($pdo))->assignAffixesToDiceInstance($diceInstanceId);
-
-    return [
-      'dice_instance_id' => (string)$diceInstanceId,
-      'rarity' => (string)$def['rarity'],
-      'sides' => max(2, (int)$def['sides']),
-    ];
   }
 
   private function readJsonBody(): ?array

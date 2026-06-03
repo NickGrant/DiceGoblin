@@ -48,11 +48,7 @@ Exactly **four** encounter types exist in MVP:
 
 ### Rest Encounters
 - Primary function: Recover
-- Secondary function: Allow editing the active run squad snapshot and saved squad
-  - adjust formation
-  - swap units
-  - equip/unequip dice for units in the active run
-  - finalize with backend-authoritative auto-level application
+- Finalize with backend-authoritative healing and auto-level application
 
 ---
 
@@ -127,11 +123,9 @@ Each run:
   - Exit node is always visible on the map.
   - Exit node has a single inbound path from the boss node.
   - Exit node cannot be reached manually until the boss path is unlocked.
-- Rest nodes are the only nodes where run-snapshot squad editing is allowed mid-run
 - Rest workflow:
   - open rest (non-consuming),
-  - apply allowed edits,
-  - finalize rest (consume node, apply auto-level pass, unlock progression).
+  - finalize rest (heal run units, consume node, apply auto-level pass, unlock progression).
 - Nodes are structured in a branching shape
 - Nodes become unlocked when any Node with a connecting path is resolved (Victory for combat Nodes or just encountered for other Nodes)
 - The first Node in a run starts unlocked

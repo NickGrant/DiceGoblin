@@ -1,7 +1,7 @@
 # Angular Component and Service Inventory
 
 Status: active  
-Last Updated: 2026-05-29  
+Last Updated: 2026-06-02  
 Owner: Frontend  
 Depends On: `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/03-ux/08-page-layout-zones.md`
 
@@ -21,7 +21,7 @@ This is an architecture inventory only. It does not define final visual styling.
 | Region selection | Angular | `/regions`, `RegionsPageComponent` | No | Region cards and run start actions are DOM UI. |
 | Run map | Angular | `/run/map`, `RunMapPageComponent` | Maybe | Prefer Angular/SVG first; use Phaser only if animation or pan complexity justifies it. |
 | Node resolution | Angular shell + optional Phaser playback | `/run/node/:nodeId`, `RunNodePageComponent` | Yes, if battle playback returns | Outcome panels are Angular; battle playback can be Phaser-hosted. |
-| Rest management | Angular | `/run/rest/:nodeId`, `RunRestPageComponent` | No | Form, list, and formation management stay Angular. |
+| Rest recovery | Angular | `/run/rest/:nodeId`, `RunRestPageComponent` | No | Healing and finalize controls stay Angular. |
 | Run summary | Angular | `/run/summary`, `RunSummaryPageComponent` | No | Summary and reward results are DOM UI. |
 | Warband hub | Angular | `/warband`, `WarbandPageComponent` | No | List and grid management stay Angular. |
 | Squad details | Angular | `/warband/squads/:squadId`, `SquadDetailsPageComponent` | No | Formation grid is a DOM grid. |
@@ -82,7 +82,7 @@ This is an architecture inventory only. It does not define final visual styling.
 - `FormationGridComponent`: 3x3 formation editor or viewer.
 - `FormationCellComponent`: individual formation slot.
 - `PromotionSelectionComponent`: promotion controls.
-- `RestSummaryPanelComponent`: rest state summary.
+- `RestSummaryPanelComponent`: rest recovery summary.
 - `RunEndSummaryPanelComponent`: end-of-run rewards and outcome.
 - `BattleOutcomePanelComponent`: battle result, rewards, and claim actions.
 - `BattleTimelineControlsComponent`: play, pause, step, speed, and skip controls.
@@ -115,14 +115,13 @@ This is an architecture inventory only. It does not define final visual styling.
 - `ApiHttpService`: shared HTTP and envelope handling.
 - `SessionService`: session bootstrap and logout.
 - `ProfileService`: profile retrieval, refresh, and cache invalidation.
-- `RunService`: current run, create run, abandon run, and exit run.
+- `RunService`: current run, create run, abandon run, exit run, open rest, and finalize rest.
 - `NodeResolutionService`: resolve non-rest nodes and normalize outcomes.
 - `BattleService`: battle log and claim operations.
 - `SquadService`: create, update, activate, and delete squads.
 - `UnitService`: unit detail helpers and promotion commands.
 - `DiceService`: inventory, equip, unequip, mutation, and sell commands.
 - `ShopService`: shop catalog and purchase commands.
-- `RestService`: open, update, and finalize rest state.
 - `DebugService`: local debug catalog, grant, and reset operations.
 - `AssetUrlService`: central browser asset path handling.
 - `NavigationIntentService`: maps domain events to route transitions.
@@ -134,7 +133,7 @@ This is an architecture inventory only. It does not define final visual styling.
 - `RegionSelectFacade`
 - `RunMapFacade`
 - `NodeResolutionFacade`
-- `RestManagementFacade`
+- `RestRecoveryFacade`
 - `RunEndSummaryFacade`
 - `WarbandFacade`
 - `SquadDetailsFacade`
@@ -170,7 +169,7 @@ frontend/src/app/
     regions/
     run-map/
     node-resolution/
-    rest-management/
+    rest-recovery/
     run-summary/
     warband/
     dice-inventory/

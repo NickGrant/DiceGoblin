@@ -138,7 +138,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->assertContains('bolster_ally', $abilityIds);
   }
 
-  public function testReplaceEquippedAbilitiesEndpointRequiresRestContextForActiveRunUnits(): void
+  public function testReplaceEquippedAbilitiesEndpointRejectsActiveRunUnitsEvenWithRestContext(): void
   {
     $userId = $this->insertUser('load_rest', 'Loadout Rest User');
     [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
@@ -161,15 +161,16 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->setJsonBody(['ability_ids' => ['basic_attack_melee', 'heavy_strike']]);
     $blocked = $this->invoke(fn() => $controller->replaceEquippedAbilities((string)$unitId));
     $this->assertSame(409, $blocked['status']);
-    $this->assertSame('run_rest_context_required', (string)($blocked['body']['error']['code'] ?? ''));
+    $this->assertSame('active_run_unit_locked', (string)($blocked['body']['error']['code'] ?? ''));
 
     $this->setJsonBody([
       'ability_ids' => ['basic_attack_melee', 'heavy_strike'],
       'run_id' => (string)$runId,
       'node_id' => (string)$restNodeId,
     ]);
-    $allowed = $this->invoke(fn() => $controller->replaceEquippedAbilities((string)$unitId));
-    $this->assertSame(200, $allowed['status'], json_encode($allowed['body']));
+    $stillBlocked = $this->invoke(fn() => $controller->replaceEquippedAbilities((string)$unitId));
+    $this->assertSame(409, $stillBlocked['status']);
+    $this->assertSame('active_run_unit_locked', (string)($stillBlocked['body']['error']['code'] ?? ''));
   }
 
   public function testAbilitySlotDiceEndpointsAssignAndClearBinding(): void
@@ -246,7 +247,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     );
   }
 
-  public function testAbilitySlotDiceAssignRequiresRestContextForActiveRunUnits(): void
+  public function testAbilitySlotDiceAssignRejectsActiveRunUnitsEvenWithRestContext(): void
   {
     $userId = $this->insertUser('slotrest', 'Slot Dice Rest User');
     [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
@@ -270,15 +271,16 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->setJsonBody(['dice_instance_id' => (string)$diceId]);
     $blocked = $this->invoke(fn() => $controller->assignAbilitySlotDie((string)$unitId, 'heavy_strike', '0'));
     $this->assertSame(409, $blocked['status']);
-    $this->assertSame('run_rest_context_required', (string)($blocked['body']['error']['code'] ?? ''));
+    $this->assertSame('active_run_unit_locked', (string)($blocked['body']['error']['code'] ?? ''));
 
     $this->setJsonBody([
       'dice_instance_id' => (string)$diceId,
       'run_id' => (string)$runId,
       'node_id' => (string)$restNodeId,
     ]);
-    $allowed = $this->invoke(fn() => $controller->assignAbilitySlotDie((string)$unitId, 'heavy_strike', '0'));
-    $this->assertSame(200, $allowed['status'], json_encode($allowed['body']));
+    $stillBlocked = $this->invoke(fn() => $controller->assignAbilitySlotDie((string)$unitId, 'heavy_strike', '0'));
+    $this->assertSame(409, $stillBlocked['status']);
+    $this->assertSame('active_run_unit_locked', (string)($stillBlocked['body']['error']['code'] ?? ''));
   }
 
   /**

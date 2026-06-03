@@ -12,7 +12,7 @@
     <dg-alert tone="success">{{ message() }}</dg-alert>
     }
     @if (activeRun()) {
-    <dg-alert>Run changes that affect active units require a rest node.</dg-alert>
+    <dg-alert>Units in the active run cannot be changed until the run ends.</dg-alert>
     }
   </div>
   }
@@ -22,9 +22,7 @@
       <div class="dg-card p-3 p-md-4 h-100">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h2 class="m-0 dg-stencil">Units</h2>
-          <span class="dg-chip">{{ profile().unitCount }} Registered</span>
         </div>
-
         <dg-object-grid
           [objects]="units()"
           [objectComponent]="unitObjectComponent"
@@ -38,7 +36,6 @@
       <div class="dg-card p-3 p-md-4 h-100">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h2 class="m-0 dg-stencil">Squads</h2>
-          <span class="dg-chip">{{ profile().squadCount }} Saved</span>
         </div>
 
         @if (squads().length) {

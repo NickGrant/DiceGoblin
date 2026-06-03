@@ -94,8 +94,6 @@ export class UnitDetailsPageComponent {
   private readonly abilityCatalogService = inject(AbilityCatalogService);
 
   readonly unitId = this.route.snapshot.paramMap.get('unitId') ?? '';
-  readonly runId = this.route.snapshot.queryParamMap.get('runId') ?? undefined;
-  readonly nodeId = this.route.snapshot.queryParamMap.get('nodeId') ?? undefined;
   readonly unit = computed<UnitRecord | null>(
     () => this.sessionService.units().find((entry) => entry.id === this.unitId) ?? null,
   );
@@ -380,7 +378,6 @@ export class UnitDetailsPageComponent {
       const response = await this.unitService.replaceEquippedAbilities(
         this.unitId,
         this.pendingEquippedAbilityIds(),
-        { runId: this.runId, nodeId: this.nodeId },
       );
       if (!response.ok) {
         this.error.set(response.error.message);
@@ -430,7 +427,6 @@ export class UnitDetailsPageComponent {
         this.unitId,
         [this.selectedSecondaries()[0], this.selectedSecondaries()[1]],
         this.selectedDestination() || undefined,
-        { runId: this.runId, nodeId: this.nodeId },
       );
       if (!response.ok) {
         this.error.set(response.error.message);
@@ -490,12 +486,8 @@ export class UnitDetailsPageComponent {
             pickerState.abilityId,
             pickerState.slotIndex,
             diceId,
-            { runId: this.runId, nodeId: this.nodeId },
           )
-        : await this.unitService.clearAbilitySlotDie(this.unitId, pickerState.abilityId, pickerState.slotIndex, {
-            runId: this.runId,
-            nodeId: this.nodeId,
-          });
+        : await this.unitService.clearAbilitySlotDie(this.unitId, pickerState.abilityId, pickerState.slotIndex);
       if (!response.ok) {
         this.error.set(response.error.message);
         return;

@@ -1,13 +1,13 @@
 ﻿# Backend API Contracts - MVP (v1)
 
 Status: active  
-Last Updated: 2026-03-21  
+Last Updated: 2026-06-02  
 Owner: Backend/API  
 Depends On: `backend/public/index.php`, `backend/src/Controllers/`, `backend/src/Services/ProfileService.php`
 
 ## 0. Purpose and Scope
 
-This document defines the **HTTP contract** between the Dice Goblins frontend (Phaser) and backend (PHP) for MVP.
+This document defines the **HTTP contract** between the Dice Goblins frontend and backend (PHP) for MVP.
 
 In-scope:
 - Discord OAuth login and cookie-backed sessions
@@ -376,7 +376,7 @@ Success:
 
 Rules:
 - Allowed between runs.
-- Allowed during active runs only while the player is in an open rest workflow for the active run/node.
+- Units in an active run snapshot cannot be promoted until the run ends.
 - `secondary_unit_instance_ids` must contain two distinct unit ids.
 - Secondary units must not be referenced by an active run snapshot.
 
@@ -419,8 +419,7 @@ Success:
 ```
 
 Rules:
-- During an active run, equipment changes are allowed only within rest workflow.
-- Dice equipped to units in active run snapshots cannot be modified outside rest flow.
+- Dice equipped to units in active run snapshots cannot be modified until the run ends.
 - Backend enforces max equipped dice count per unit definition.
 
 ### 7.4 Sell Unequipped Dice
@@ -476,7 +475,7 @@ Rules:
 - User may have **only one active run** at a time.
 - Run map is generated server-side (seed persisted).
 - On run start, server snapshots  the team's unit membership + formation into run-scoped state.
-- Team is locked for the run; editing is disallowed except for Rest nodes.
+- Team is locked for the run; editing is disallowed until the run ends.
 - Combat/encounters reference run-scoped snapshot.
 
 Success:
@@ -559,55 +558,44 @@ Success:
 }
 ```
 
-### 8.5 Run Formation
-`PUT /api/v1/runs/:runId/formation` (`Planned`)
+### 8.5 Rest Recovery
 
-Request:
+#### Open Rest
+`POST /api/v1/runs/:runId/nodes/:nodeId/rest/open` (`Implemented`)
+
+Returns the current run-unit recovery state without consuming the node.
+
+Success:
 ```json
 {
-  "unit_ids": ["2001", "2002"],
-  "formation": [
-    { "unit_id": "2001", "row": 0, "col": 0 },
-    { "unit_id": "2002", "row": 1, "col": 1 }
-  ]
+  "ok": true,
+  "data": {
+    "run_id": "777",
+    "node_id": "300",
+    "status": "open",
+    "run_unit_state": [
+      {
+        "unit_instance_id": "2001",
+        "hp": 8,
+        "is_defeated": false,
+        "status_effects": [],
+        "cooldowns": {}
+      }
+    ]
+  }
 }
 ```
 
-Rules
-- Allowed only if
-  - run is active AND
-  - the player is currently resolving a Rest node (or the active node type is rest) AND
-  - the node is not yet finalized
-- Updates run snapshot and saved squad together (single transactional write)
-
-Errors:
-- `run_not_active`
-- `forbidden`
-- `validation_error`
-
-### 8.6 Rest Workflow (Planned)
-
-#### Open Rest
-`POST /api/v1/runs/:runId/nodes/:nodeId/rest/open`
-
-Starts a non-consuming rest session.
-
-#### Apply Rest State
-`PUT /api/v1/runs/:runId/nodes/:nodeId/rest/state`
-
-Allows, in one transactional write:
-- formation updates,
-- unit swaps,
-- rest-scoped dice equip/unequip.
-
-All writes are all-or-nothing across run snapshot and saved squad.
-
 #### Finalize Rest
-`POST /api/v1/runs/:runId/nodes/:nodeId/rest/finalize`
+`POST /api/v1/runs/:runId/nodes/:nodeId/rest/finalize` (`Implemented`)
 
-Consumes the rest node, runs backend-authoritative auto-level pass, and unlocks downstream nodes.
+Fully heals run units, clears defeated flags/status/cooldowns, consumes the rest node, runs the backend-authoritative auto-level pass, and unlocks downstream nodes.
 
-### 8.7 Exit Node Completion (Planned)
+Rules:
+- Rest does not allow squad membership, formation, promotion, dice, or combat-loadout changes.
+- Units captured in an active run snapshot remain locked for persistent mutations until the run ends.
+
+### 8.6 Exit Node Completion (Planned)
 `POST /api/v1/runs/:runId/exit`
 
 Rules:

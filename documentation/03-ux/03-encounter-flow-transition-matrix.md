@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-05-29  
+Last Updated: 2026-06-02  
 Owner: Product + Frontend  
 Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
 
@@ -18,8 +18,8 @@ Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts
   - choose the next available node
 - Node resolution:
   - resolve combat, boss, loot, and exit nodes
-- Rest management:
-  - handle the run-scoped rest workflow
+- Rest recovery:
+  - heal run units and continue the map
 - Run summary:
   - present completed, failed, or abandoned outcomes
 
@@ -30,14 +30,13 @@ Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts
 | Run map | Click available `combat` node | Node resolution | yes | Unified non-rest route. |
 | Run map | Click available `boss` node | Node resolution | yes | Same route with boss metadata. |
 | Run map | Click available `loot` node | Node resolution | yes | Non-combat outcome surface. |
-| Run map | Click available `rest` node | Rest management | yes | Dedicated rest workflow. |
+| Run map | Click available `rest` node | Rest recovery | yes | Dedicated recovery flow. |
 | Run map | Click available `exit` node | Node resolution | yes | Exit resolves then branches to summary. |
 | Run map | Click locked node | Run map | blocked | No mutation allowed. |
 | Run map | Click cleared node | Run map | blocked | Cleared nodes are informational only. |
 | Node resolution | Non-terminal outcome | Run map | yes | Return to map with feedback. |
 | Node resolution | Terminal outcome | Run summary | yes | Shared terminal shell. |
-| Rest management | Finalize rest | Run map | yes | Apply backend-authoritative updates and return. |
-| Rest management | Cancel rest edits | Run map | yes | No rest consumption. |
+| Rest recovery | Rest | Run map | yes | Heal run units, consume the node, and return. |
 | Run map | Abandon run | Run summary | yes | Requires explicit confirmation. |
 | Run summary | Continue | Home | yes | Active run is over. |
 
@@ -80,21 +79,27 @@ It should:
 
 For combat or boss outcomes, the surface may also include battle playback. If playback exists, it must stay subordinate to the outcome contract rather than becoming a separate navigation layer.
 
-## Rest Management Contract
+## Rest Recovery Contract
 
-Rest is the only supported active-run management window.
+Rest is a recovery node, not a roster or loadout management window.
 
 The flow is:
 
 - open
-- inspect or edit allowed run-scoped management state
-- finalize or cancel
+- inspect current run-unit recovery state
+- rest
 
 Finalize should summarize:
 
 - healing or recovery effects
 - progression deltas
-- any approved roster or equipment changes
+
+Rest does not allow:
+
+- squad changes
+- formation changes
+- promotion
+- dice or loadout changes
 
 ## Run Summary Contract
 

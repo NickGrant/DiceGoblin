@@ -1,7 +1,7 @@
 # Angular Frontend Architecture Plan
 
 Status: active  
-Last Updated: 2026-05-29  
+Last Updated: 2026-06-02  
 Owner: Frontend  
 Depends On: `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/01-architecture/06-angular-component-service-inventory.md`, `documentation/03-ux/08-page-layout-zones.md`
 
@@ -80,7 +80,6 @@ Core services:
 - `UnitService`
 - `DiceService`
 - `ShopService`
-- `RestService`
 - `DebugService`
 
 Route-facing facades:
@@ -95,7 +94,7 @@ Route-facing facades:
 - `SquadDetailsFacade`
 - `UnitDetailsFacade`
 - `DiceInventoryFacade`
-- `RestManagementFacade`
+- `RestRecoveryFacade`
 - `RunEndSummaryFacade`
 - `ShopFacade`
 - `DebugFacade`

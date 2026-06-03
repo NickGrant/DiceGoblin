@@ -7,7 +7,6 @@ import {
   ResolveNodeResponse,
   RestFinalizeResponse,
   RestOpenResponse,
-  RestStateResponse,
   RunResponse,
 } from '../../models/api.models';
 import { ApiHttpService } from '../api-http/api-http.service';
@@ -98,14 +97,6 @@ export class RunService {
 
   openRest(runId: string, nodeId: string): Promise<RestOpenResponse> {
     return this.apiHttp.postWithCsrf<RestOpenResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/open`, {});
-  }
-
-  updateRestState(
-    runId: string,
-    nodeId: string,
-    payload: { unit_ids: string[]; formation: Array<{ cell: string; unit_instance_id: string | null }> },
-  ): Promise<RestStateResponse> {
-    return this.apiHttp.putWithCsrf<RestStateResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/rest/state`, payload);
   }
 
   async finalizeRest(runId: string, nodeId: string): Promise<RestFinalizeResponse> {

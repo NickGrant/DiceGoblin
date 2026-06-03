@@ -1,7 +1,7 @@
 # Frontend Route and State Contracts
 
 Status: active  
-Last Updated: 2026-05-29  
+Last Updated: 2026-06-02  
 Owner: Frontend  
 Depends On: `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/01-architecture/06-angular-component-service-inventory.md`
 
@@ -80,7 +80,7 @@ Primary consumers:
 - regions
 - run map
 - node resolution
-- rest management
+- rest recovery
 - run summary
 
 ### Debug
@@ -228,12 +228,12 @@ Allowed behavior:
 
 Purpose:
 
-- run-scoped rest workflow
+- run-scoped rest recovery
 
 Allowed behavior:
 
 - open rest state
-- allow the management actions supported during rest
+- show the units that will recover
 - finalize rest and return to the map with summary feedback
 
 ### `/run/summary`

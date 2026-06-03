@@ -1,7 +1,7 @@
 # UX & Debug Scope - MVP
 
 Status: active  
-Last Updated: 2026-05-29  
+Last Updated: 2026-06-02  
 Owner: UX + Frontend  
 Depends On: `documentation/03-ux/02-warband-management.md`, `documentation/03-ux/03-encounter-flow-transition-matrix.md`, `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
 
@@ -25,7 +25,7 @@ The active MVP includes:
 - shop
 - run map
 - node resolution
-- rest management
+- rest recovery
 - run summary
 - debug panel when environment-enabled
 
@@ -41,7 +41,7 @@ The active MVP includes:
 - The app should use explicit route-to-route progression rather than hidden nested flows.
 - Home is the primary hub outside an active run.
 - Abandon run is only offered from the run map.
-- Rest is the only active-run management window.
+- Rest is a recovery stop during an active run.
 - Terminal outcomes always resolve through the shared run summary shell.
 
 ## Information Requirements

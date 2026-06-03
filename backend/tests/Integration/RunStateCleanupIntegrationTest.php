@@ -108,7 +108,7 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $this->assertSame('active', $runStatus);
   }
 
-  public function testRestWorkflowStateFinalizeAndAutoLevel(): void
+  public function testRestWorkflowHealsFinalizeAndAutoLevel(): void
   {
     $userId = $this->insertUser();
     $regionId = $this->insertRegion();
@@ -122,11 +122,10 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $levelForPromo = min($maxLevel, 1);
     $u1 = $this->insertUnit($userId, $unitTypeId, $levelForPromo, 120);
     $u2 = $this->insertUnit($userId, $unitTypeId, $levelForPromo, 0);
-    $u3 = $this->insertUnit($userId, $unitTypeId, $levelForPromo, 0);
     $this->insertTeamUnit($teamId, $u1);
     $this->insertTeamUnit($teamId, $u2);
     $this->insertRunUnitState($runId, $u1, 8, false);
-    $this->insertRunUnitState($runId, $u2, 8, false);
+    $this->insertRunUnitState($runId, $u2, 1, true);
 
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
@@ -136,22 +135,8 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $gameplay = new GameplayController();
     $openRes = $this->invoke(fn() => $gameplay->openRest((string)$runId, (string)$restNodeId));
     $this->assertSame(200, $openRes['status']);
-
-    $this->setJsonBody([
-      'unit_ids' => [(string)$u1, (string)$u3],
-      'formation' => [
-        ['cell' => 'A1', 'unit_instance_id' => (string)$u1],
-        ['cell' => 'B1', 'unit_instance_id' => (string)$u3],
-      ],
-    ]);
-    $stateRes = $this->invoke(fn() => $gameplay->updateRestState((string)$runId, (string)$restNodeId));
-    $this->assertSame(200, $stateRes['status'], json_encode($stateRes['body']));
-
-    $teamUnits = $this->rows('SELECT `unit_instance_id` FROM `team_units` WHERE `team_id` = ? ORDER BY `unit_instance_id` ASC', [$teamId]);
-    $this->assertSame([(string)$u1, (string)$u3], array_map(static fn(array $r): string => (string)$r['unit_instance_id'], $teamUnits));
-
-    $runUnits = $this->rows('SELECT `unit_instance_id` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_instance_id` ASC', [$runId]);
-    $this->assertSame([(string)$u1, (string)$u3], array_map(static fn(array $r): string => (string)$r['unit_instance_id'], $runUnits));
+    $this->assertArrayNotHasKey('formation', $openRes['body']['data']);
+    $this->assertArrayNotHasKey('unit_ids', $openRes['body']['data']);
 
     $this->setJsonBody([]);
     $finalizeRes = $this->invoke(fn() => $gameplay->finalizeRest((string)$runId, (string)$restNodeId));
@@ -161,6 +146,16 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $this->assertSame('cleared', $restStatus);
     $nextStatus = (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$nextNodeId]);
     $this->assertSame('available', $nextStatus);
+
+    $runUnits = $this->rows(
+      'SELECT `unit_instance_id`, `current_hp`, `is_defeated` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_instance_id` ASC',
+      [$runId]
+    );
+    $this->assertSame([(string)$u1, (string)$u2], array_map(static fn(array $r): string => (string)$r['unit_instance_id'], $runUnits));
+    $this->assertGreaterThan(8, (int)$runUnits[0]['current_hp']);
+    $this->assertGreaterThan(1, (int)$runUnits[1]['current_hp']);
+    $this->assertSame(0, (int)$runUnits[0]['is_defeated']);
+    $this->assertSame(0, (int)$runUnits[1]['is_defeated']);
 
     $u1Level = (int)$this->scalar('SELECT `level` FROM `unit_instances` WHERE `id` = ?', [$u1]);
     $u1Xp = (int)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$u1]);
@@ -203,7 +198,7 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $this->assertSame('available', $sharedStatus);
   }
 
-  public function testPromotionAndDiceEndpointsRequireRestContextDuringActiveRun(): void
+  public function testPromotionAndDiceEndpointsRejectActiveRunUnitsEvenWithRestContext(): void
   {
     $userId = $this->insertUser();
     $regionId = $this->insertRegion();
@@ -231,15 +226,16 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $this->setJsonBody(['dice_instance_id' => (string)$diceId]);
     $equipBlocked = $this->invoke(fn() => $gameplay->equipDice((string)$primary));
     $this->assertSame(409, $equipBlocked['status']);
-    $this->assertSame('run_rest_context_required', (string)($equipBlocked['body']['error']['code'] ?? ''));
+    $this->assertSame('active_run_unit_locked', (string)($equipBlocked['body']['error']['code'] ?? ''));
 
     $this->setJsonBody([
       'dice_instance_id' => (string)$diceId,
       'run_id' => (string)$runId,
       'node_id' => (string)$restNodeId,
     ]);
-    $equipOk = $this->invoke(fn() => $gameplay->equipDice((string)$primary));
-    $this->assertSame(200, $equipOk['status'], json_encode($equipOk['body']));
+    $equipStillBlocked = $this->invoke(fn() => $gameplay->equipDice((string)$primary));
+    $this->assertSame(409, $equipStillBlocked['status']);
+    $this->assertSame('active_run_unit_locked', (string)($equipStillBlocked['body']['error']['code'] ?? ''));
 
     $this->setJsonBody([
       'primary_unit_instance_id' => (string)$primary,
@@ -251,17 +247,14 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $this->assertSame(409, $promoteBlocked['status']);
     $this->assertSame('unit_in_active_run', (string)($promoteBlocked['body']['error']['code'] ?? ''));
 
-    $this->rows('DELETE FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?', [$runId, $secondaryA]);
     $this->setJsonBody([
       'primary_unit_instance_id' => (string)$primary,
       'secondary_unit_instance_ids' => [(string)$secondaryA, (string)$secondaryB],
       'run_id' => (string)$runId,
       'node_id' => (string)$restNodeId,
     ]);
-    $promoteOk = $this->invoke(fn() => $gameplay->promoteUnit((string)$primary));
-    $this->assertSame(200, $promoteOk['status'], json_encode($promoteOk['body']));
-
-    $primaryTier = (int)$this->scalar('SELECT `tier` FROM `unit_instances` WHERE `id` = ?', [$primary]);
-    $this->assertSame(2, $primaryTier);
+    $promoteStillBlocked = $this->invoke(fn() => $gameplay->promoteUnit((string)$primary));
+    $this->assertSame(409, $promoteStillBlocked['status']);
+    $this->assertSame('unit_in_active_run', (string)($promoteStillBlocked['body']['error']['code'] ?? ''));
   }
 }

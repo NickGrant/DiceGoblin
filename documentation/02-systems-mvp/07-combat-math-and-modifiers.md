@@ -48,7 +48,7 @@ To avoid mirrored confusion, “front/back” is defined **relative to side**:
 If your UI renders enemies upside-down or mirrored, it must still map to this convention in the simulation/log.
 
 ### 2.3 Squad editing convention
-- Squad editing, rest formation editing, and combat simulation all use the same orientation.
+- Squad editing and combat simulation use the same orientation.
 - In player-facing formation screens, the left side is `Back` and the right side is `Front`.
 - Formation help text should reinforce this so squad setup matches combat playback.
 

@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-05-29  
+Last Updated: 2026-06-02  
 Owner: UX + Frontend  
 Depends On: `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/02-units-and-progression.md`, `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
 
@@ -140,8 +140,7 @@ The UI must support:
 Promotion availability rules:
 
 - enabled between runs when requirements are met
-- disabled during active-run non-rest contexts
-- disabled during rest unless the backend explicitly supports it
+- disabled for units in an active run
 
 ## Management Windows
 
@@ -154,7 +153,7 @@ Allowed:
 - dice equip and unequip
 - dice selling
 
-### During Active Run Outside Rest
+### During Active Run
 
 Allowed:
 
@@ -168,17 +167,7 @@ Blocked:
 
 Messaging:
 
-- explain that management changes are only available outside runs or in the supported rest workflow
-
-### During Rest
-
-Allowed only if the rest workflow supports it:
-
-- squad and formation updates
-- dice equip and unequip
-- other run-scoped adjustments defined by the backend
-
-Finalize should summarize any applied changes before returning the player to the map.
+- explain that active-run units cannot be changed until the run ends
 
 ## Shared UX Rules
 
