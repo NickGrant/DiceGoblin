@@ -16,7 +16,22 @@ class HostComponent {
     id: 'd1',
     rarity: 'rare',
     sides: 8,
-    affixes: [{ affix_definition_id: 'a1', affix_slug: 'heavy', value: 2 }],
+    affixes: [
+      {
+        affix_definition_id: 'a1',
+        affix_slug: 'guard',
+        name: 'Guard',
+        description: 'Gain block when this die resolves.',
+        value: 2,
+      },
+      {
+        affix_definition_id: 'a2',
+        affix_slug: 'bulwark',
+        name: 'Bulwark',
+        description: 'Increase defense by 1.',
+        value: 1,
+      },
+    ],
   };
 }
 
@@ -33,7 +48,9 @@ describe('DiceGridObjectComponent', () => {
     const sprite = compiled.querySelector('.sprite') as HTMLElement;
     expect(compiled.textContent).toContain('d8');
     expect(compiled.textContent).toContain('Rare');
-    expect(compiled.textContent).toContain('heavy');
+    expect(compiled.textContent).toContain('Guard + Bulwark');
+    expect(compiled.textContent).toContain('Gain block when this die resolves.');
+    expect(compiled.textContent).toContain('Increase defense by 1.');
     expect(sprite.style.backgroundImage).toContain('dice_sheet.png');
     expect(sprite.style.backgroundPosition).toContain('-264px');
   });

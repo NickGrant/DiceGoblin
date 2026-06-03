@@ -8,11 +8,17 @@
 <p class="mb-2">d{{ object().sides }} · {{ object().rarity | titlecase }}</p>
 
 @if (object().affixes?.length) {
-  <ul class="dg-list-reset small mb-3">
-    @for (affix of object().affixes; track affix.affix_definition_id) {
-      <li>{{ affix.name || affix.affix_slug || 'Affix' }} · {{ affix.value }}</li>
-    }
-  </ul>
+  @if (affixLabel()) {
+    <h2 class="h6 mt-2 mb-1">{{ affixLabel() }}</h2>
+  }
+
+  @if (affixDescriptions().length) {
+    <ul class="dg-list-reset small mb-3">
+      @for (description of affixDescriptions(); track description) {
+        <li>{{ description }}</li>
+      }
+    </ul>
+  }
 }
 
 @if (footerTemplate(); as footerTemplate) {
