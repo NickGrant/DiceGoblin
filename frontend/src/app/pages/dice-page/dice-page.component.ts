@@ -1,10 +1,19 @@
+import { TitleCasePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DiceRecord } from '../../core/models/api.models';
 import { DiceService } from '../../core/services/dice/dice.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
+import {
+  buildDiceRarityOptions,
+  buildDiceSizeOptions,
+  DiceEquipFilter,
+  DiceSortOption,
+  filterAndSortDice,
+} from '../../shared/ui/dice-display/dice-display.utils';
 import { DiceGridObjectComponent } from '../../shared/ui/dice-grid-object/dice-grid-object.component';
 import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
 import { ObjectGridComponent } from '../../shared/ui/object-grid/object-grid.component';
@@ -12,7 +21,7 @@ import { ObjectGridComponent } from '../../shared/ui/object-grid/object-grid.com
 @Component({
   selector: 'app-dice-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, ObjectGridComponent, RouterLink],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule, ObjectGridComponent, RouterLink, TitleCasePipe],
   templateUrl: './dice-page.component.html',
   styleUrl: './dice-page.component.scss',
 })
@@ -26,6 +35,21 @@ export class DicePageComponent {
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
   readonly diceObjectComponent = DiceGridObjectComponent;
+  readonly selectedSize = signal<number | null>(null);
+  readonly selectedRarity = signal<string | null>(null);
+  readonly selectedEquipFilter = signal<DiceEquipFilter>('all');
+  readonly selectedSort = signal<DiceSortOption>('size-asc');
+  readonly sizeOptions = computed(() => buildDiceSizeOptions(this.dice()));
+  readonly rarityOptions = computed(() => buildDiceRarityOptions(this.dice()));
+  readonly filteredDice = computed(() =>
+    filterAndSortDice(this.dice(), {
+      selectedSize: this.selectedSize(),
+      selectedRarity: this.selectedRarity(),
+      equipFilter: this.selectedEquipFilter(),
+      sort: this.selectedSort(),
+      isEquipped: (diceId) => this.isEquippedAnywhere(diceId),
+    }),
+  );
 
   isEquippedAnywhere(diceId: string): boolean {
     return this.sessionService
@@ -56,6 +80,22 @@ export class DicePageComponent {
     } finally {
       this.busyDiceId.set(null);
     }
+  }
+
+  updateSize(value: string): void {
+    this.selectedSize.set(value ? Number(value) : null);
+  }
+
+  updateRarity(value: string): void {
+    this.selectedRarity.set(value || null);
+  }
+
+  updateEquipFilter(value: DiceEquipFilter): void {
+    this.selectedEquipFilter.set(value);
+  }
+
+  updateSort(value: DiceSortOption): void {
+    this.selectedSort.set(value);
   }
 }
 

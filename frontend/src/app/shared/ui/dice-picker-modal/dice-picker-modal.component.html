@@ -23,7 +23,70 @@
         }
       </div>
 
-      <div class="dice-picker-modal__clear mb-3">
+      <section class="dice-picker-modal__controls dg-card p-3 mb-3">
+        <div class="row g-3 align-items-end">
+          <div class="col-sm-4">
+            <label class="form-label" for="modal-dice-size-filter">Size</label>
+            <select
+              id="modal-dice-size-filter"
+              class="dg-select"
+              [ngModel]="selectedSize() ?? ''"
+              (ngModelChange)="updateSize($event)"
+            >
+              <option value="">All sizes</option>
+              @for (size of sizeOptions(); track size) {
+                <option [value]="size">d{{ size }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="col-sm-4">
+            <label class="form-label" for="modal-dice-rarity-filter">Rarity</label>
+            <select
+              id="modal-dice-rarity-filter"
+              class="dg-select"
+              [ngModel]="selectedRarity() ?? ''"
+              (ngModelChange)="updateRarity($event)"
+            >
+              <option value="">All rarities</option>
+              @for (rarity of rarityOptions(); track rarity) {
+                <option [value]="rarity">{{ rarity | titlecase }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="col-sm-4">
+            <label class="form-label" for="modal-dice-sort">Sort</label>
+            <select
+              id="modal-dice-sort"
+              class="dg-select"
+              [ngModel]="selectedSort()"
+              (ngModelChange)="updateSort($event)"
+            >
+              <option value="size-asc">Size: Small to Large</option>
+              <option value="size-desc">Size: Large to Small</option>
+              <option value="rarity-asc">Rarity: Common to Legendary</option>
+              <option value="rarity-desc">Rarity: Legendary to Common</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="dice-picker-modal__results mb-0 mt-3">
+          Showing {{ filteredDice().length }} of {{ dice().length }} dice.
+        </p>
+      </section>
+
+      <dg-object-grid
+        [objects]="filteredDice()"
+        [objectComponent]="diceObjectComponent"
+        [footerTemplate]="diceActions"
+        [leadingTemplate]="noneTile"
+        emptyMessage="No dice available for this slot."
+        columnClasses="col-3"
+        [pageSize]="8"
+      />
+
+      <ng-template #noneTile>
         <button
           class="dice-picker-modal__empty-slot"
           type="button"
@@ -31,18 +94,9 @@
           [disabled]="busy()"
         >
           <span class="dice-picker-modal__empty-slot-icon">x</span>
-          <span class="dg-stencil">No Choice</span>
+          <span class="dg-stencil">None</span>
         </button>
-      </div>
-
-      <dg-object-grid
-        [objects]="dice()"
-        [objectComponent]="diceObjectComponent"
-        [footerTemplate]="diceActions"
-        emptyMessage="No dice available for this slot."
-        columnClasses="col-3"
-        [pageSize]="8"
-      />
+      </ng-template>
 
       <ng-template #diceActions let-die>
         <button

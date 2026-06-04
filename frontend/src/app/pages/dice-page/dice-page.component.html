@@ -16,8 +16,75 @@
 
   <div class="row g-4">
     <div class="col-12">
+      <section class="dice-page__controls dg-card p-3 mb-3">
+        <div class="row g-3 align-items-end">
+          <div class="col-sm-6 col-lg-3">
+            <label class="form-label" for="dice-size-filter">Size</label>
+            <select
+              id="dice-size-filter"
+              class="dg-select"
+              [ngModel]="selectedSize() ?? ''"
+              (ngModelChange)="updateSize($event)"
+            >
+              <option value="">All sizes</option>
+              @for (size of sizeOptions(); track size) {
+                <option [value]="size">d{{ size }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="col-sm-6 col-lg-3">
+            <label class="form-label" for="dice-rarity-filter">Rarity</label>
+            <select
+              id="dice-rarity-filter"
+              class="dg-select"
+              [ngModel]="selectedRarity() ?? ''"
+              (ngModelChange)="updateRarity($event)"
+            >
+              <option value="">All rarities</option>
+              @for (rarity of rarityOptions(); track rarity) {
+                <option [value]="rarity">{{ rarity | titlecase }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="col-sm-6 col-lg-3">
+            <label class="form-label" for="dice-equip-filter">Equip State</label>
+            <select
+              id="dice-equip-filter"
+              class="dg-select"
+              [ngModel]="selectedEquipFilter()"
+              (ngModelChange)="updateEquipFilter($event)"
+            >
+              <option value="all">All dice</option>
+              <option value="equipped">Equipped only</option>
+              <option value="unequipped">Unequipped only</option>
+            </select>
+          </div>
+
+          <div class="col-sm-6 col-lg-3">
+            <label class="form-label" for="dice-sort">Sort</label>
+            <select
+              id="dice-sort"
+              class="dg-select"
+              [ngModel]="selectedSort()"
+              (ngModelChange)="updateSort($event)"
+            >
+              <option value="size-asc">Size: Small to Large</option>
+              <option value="size-desc">Size: Large to Small</option>
+              <option value="rarity-asc">Rarity: Common to Legendary</option>
+              <option value="rarity-desc">Rarity: Legendary to Common</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="dice-page__results mb-0 mt-3">
+          Showing {{ filteredDice().length }} of {{ dice().length }} dice.
+        </p>
+      </section>
+
       <dg-object-grid
-        [objects]="dice()"
+        [objects]="filteredDice()"
         [objectComponent]="diceObjectComponent"
         [footerTemplate]="diceActions"
         emptyMessage="No dice available."

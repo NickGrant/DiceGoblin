@@ -20,8 +20,9 @@ class SessionServiceStub {
     },
   ] as any[]);
   readonly dice = signal([
-    { id: 'd1', sell_value: 12 },
-    { id: 'd2', sell_value: 8 },
+    { id: 'd1', sell_value: 12, sides: 8, rarity: 'rare' },
+    { id: 'd2', sell_value: 8, sides: 4, rarity: 'common' },
+    { id: 'd3', sell_value: 15, sides: 10, rarity: 'epic' },
   ] as any[]);
 }
 
@@ -48,7 +49,27 @@ describe('DicePageComponent', () => {
     expect(component.isEquippedAnywhere('d1')).toBeTrue();
     expect(component.equippedUnit('d1')).toEqual({ id: 'u1', name: 'Fang' });
     expect(component.equippedUnit('d2')).toBeNull();
-    expect(component.dice().map((die) => die.id)).toEqual(['d1', 'd2']);
+    expect(component.dice().map((die) => die.id)).toEqual(['d1', 'd2', 'd3']);
+  });
+
+  it('filters by equip state, size, and rarity and sorts by rarity', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+
+    component.updateEquipFilter('unequipped');
+    expect(component.filteredDice().map((die) => die.id)).toEqual(['d2', 'd3']);
+
+    component.updateSize('10');
+    expect(component.filteredDice().map((die) => die.id)).toEqual(['d3']);
+
+    component.updateSize('');
+    component.updateRarity('common');
+    expect(component.filteredDice().map((die) => die.id)).toEqual(['d2']);
+
+    component.updateRarity('');
+    component.updateEquipFilter('all');
+    component.updateSort('rarity-desc');
+    expect(component.filteredDice().map((die) => die.id)).toEqual(['d3', 'd1', 'd2']);
   });
 
   it('shows a unit link for equipped dice and keeps sell for unequipped dice', async () => {
@@ -74,8 +95,9 @@ describe('DicePageComponent', () => {
   it('does not expose legacy equip controls in inventory mode', async () => {
     const fixture = await createComponent();
     const host: HTMLElement = fixture.nativeElement;
+    const buttonLabels = Array.from(host.querySelectorAll('button')).map((button) => button.textContent?.trim() ?? '');
 
-    expect(host.textContent).not.toContain('Unequip');
-    expect(host.textContent).not.toContain('Equip');
+    expect(buttonLabels).not.toContain('Unequip');
+    expect(buttonLabels).not.toContain('Equip');
   });
 });

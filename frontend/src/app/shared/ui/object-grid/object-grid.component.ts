@@ -1,12 +1,12 @@
-import { NgComponentOutlet } from '@angular/common';
-import { Component, Type, computed, effect, input, signal } from '@angular/core';
+import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
+import { Component, TemplateRef, Type, computed, effect, input, signal } from '@angular/core';
 import { DgAlertComponent } from '../dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../dg-command-btn/dg-command-btn.directive';
 
 @Component({
   selector: 'dg-object-grid',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, NgComponentOutlet],
+  imports: [DgAlertComponent, DgCommandBtnDirective, NgComponentOutlet, NgTemplateOutlet],
   templateUrl: './object-grid.component.html',
   styleUrl: './object-grid.component.scss',
 })
@@ -15,17 +15,25 @@ export class ObjectGridComponent {
   readonly objectComponent = input.required<Type<unknown>>();
   readonly objectInputs = input<((object: unknown) => Record<string, unknown>) | null>(null);
   readonly footerTemplate = input<unknown | null>(null);
+  readonly leadingTemplate = input<TemplateRef<unknown> | null>(null);
+  readonly leadingContext = input<unknown>(null);
   readonly emptyMessage = input('Nothing available.');
   readonly pageSize = input(6);
   readonly columnClasses = input('col-md-6');
 
   readonly currentPage = signal(1);
+  readonly objectsPerPage = computed(() => {
+    const reservedSlots = this.leadingTemplate() ? 1 : 0;
+    return Math.max(1, this.pageSize() - reservedSlots);
+  });
+  readonly hasLeadingTile = computed(() => this.leadingTemplate() !== null);
+  readonly hasVisibleContent = computed(() => this.objects().length > 0 || this.hasLeadingTile());
   readonly totalPages = computed(() => {
-    const size = Math.max(1, this.pageSize());
+    const size = this.objectsPerPage();
     return Math.max(1, Math.ceil(this.objects().length / size));
   });
   readonly pagedObjects = computed(() => {
-    const size = Math.max(1, this.pageSize());
+    const size = this.objectsPerPage();
     const start = (this.currentPage() - 1) * size;
     return this.objects().slice(start, start + size);
   });

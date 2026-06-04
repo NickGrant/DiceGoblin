@@ -37,14 +37,19 @@
   background: rgba(243, 239, 224, 0.72);
 }
 
-.dice-picker-modal__clear {
-  display: flex;
-  justify-content: center;
+.dice-picker-modal__controls {
+  background: linear-gradient(180deg, rgba(246, 241, 228, 0.96), rgba(232, 228, 210, 0.92));
+}
+
+.dice-picker-modal__results {
+  color: rgba(35, 39, 42, 0.72);
+  font-size: 0.95rem;
 }
 
 .dice-picker-modal__empty-slot {
-  width: min(240px, 100%);
-  min-height: 112px;
+  width: 100%;
+  min-height: 100%;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -53,6 +58,8 @@
   border: 2px dashed rgba(35, 39, 42, 0.4);
   background: rgba(255, 252, 246, 0.95);
   color: var(--dg-charcoal);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .dice-picker-modal__empty-slot-icon {
