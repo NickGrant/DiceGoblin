@@ -1,19 +1,75 @@
-.dg-meta-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
 .unit-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
 
+.unit-stats-panel,
 .unit-summary {
   padding: 1rem;
   border: 2px solid rgba(35, 39, 42, 0.12);
   background: rgba(243, 239, 224, 0.72);
+}
+
+.unit-summary--portrait {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+}
+
+.unit-portrait {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.unit-portrait--empty {
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(35, 39, 42, 0.25);
+  background: rgba(255, 252, 246, 0.65);
+  color: rgba(35, 39, 42, 0.58);
+  text-align: center;
+}
+
+.unit-stats-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.unit-stats-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 8rem) 1fr;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(35, 39, 42, 0.12);
+}
+
+.unit-stats-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.unit-stats-row dt,
+.unit-stats-row dd {
+  margin: 0;
+}
+
+.unit-stats-row dt {
+  font-family: 'Big Shoulders Stencil Text', 'Saira Stencil One', Impact, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.unit-stats-row dd {
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .promote-row {
@@ -191,6 +247,11 @@
 }
 
 @media (max-width: 991px) {
+  .unit-stats-row {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+
   .ability-list-card,
   .promote-row {
     flex-direction: column;

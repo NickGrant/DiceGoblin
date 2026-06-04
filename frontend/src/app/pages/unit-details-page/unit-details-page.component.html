@@ -29,32 +29,59 @@
 
   @if (activeTab() === 'stats') {
   <section class="dg-card p-3 p-lg-4">
-    <h2 class="dg-stencil mb-3">Stats</h2>
-    <div class="dg-meta-list mb-4">
-      <span class="dg-chip">Tier {{ unit.tier || 1 }}</span>
-      <span class="dg-chip">Level {{ unit.level }}</span>
-      <span class="dg-chip">XP {{ unit.xp || 0 }}</span>
-      <span class="dg-chip">Max Level {{ unit.max_level || 0 }}</span>
-      <span class="dg-chip">Attack {{ unit.total_attack || 0 }}</span>
-      <span class="dg-chip">Defense {{ unit.total_defense || 0 }}</span>
-      <span class="dg-chip">HP {{ unit.current_hp || unit.max_hp || 0 }}/{{ unit.max_hp || 0 }}</span>
-      <span class="dg-chip">Footprint {{ unit.formation_width || 1 }}x{{ unit.formation_height || 1 }}</span>
-    </div>
-
     <div class="row g-4">
-      <div class="col-xl-7">
-        <label class="form-label">Display Name</label>
-        <div class="d-flex gap-2">
-          <input class="dg-input" [(ngModel)]="renameValue" />
-          <button dgCommandBtn type="button" (click)="renameUnit()" [disabled]="busy()">Save</button>
+      <div class="col-xl-6">
+        <div class="vstack gap-3">
+          <div class="unit-summary">
+            <label class="form-label">Display Name</label>
+            <div class="d-flex gap-2">
+              <input class="dg-input" [(ngModel)]="renameValue" />
+              <button dgCommandBtn type="button" (click)="renameUnit()" [disabled]="busy()">Save</button>
+            </div>
+          </div>
+
+          <div class="unit-summary unit-summary--portrait">
+            @if (unitPortraitUrl() && !portraitLoadFailed()) {
+              <img
+                class="unit-portrait"
+                [src]="unitPortraitUrl()!"
+                [alt]="unitTypeLabel() + ' portrait'"
+                (error)="handlePortraitError()"
+              />
+            } @else {
+              <div class="unit-portrait unit-portrait--empty">
+                <span class="dg-stencil">Portrait Pending</span>
+              </div>
+            }
+          </div>
         </div>
       </div>
-      <div class="col-xl-5">
-        <div class="unit-summary">
-          <h3 class="dg-stencil mb-2">Summary</h3>
-          <p class="mb-2">Learned abilities: {{ learnedAbilities().length }}</p>
-          <p class="mb-2">Equipped combat abilities: {{ pendingEquippedAbilityIds().length }}</p>
-          <p class="mb-0">Configurable active dice slots: {{ totalLoadoutDiceSlots() }}</p>
+
+      <div class="col-xl-6">
+        <h2 class="dg-stencil mb-3">Stats</h2>
+        <div class="unit-stats-panel">
+          <dl class="unit-stats-list mb-0">
+            <div class="unit-stats-row">
+              <dt>Tier</dt>
+              <dd>{{ tierRomanNumeral() }}</dd>
+            </div>
+            <div class="unit-stats-row">
+              <dt>Level</dt>
+              <dd>{{ unit.level }}/{{ unit.max_level || 0 }} ({{ unitTypeLabel() }})</dd>
+            </div>
+            <div class="unit-stats-row">
+              <dt>HP</dt>
+              <dd>{{ unit.current_hp || unit.max_hp || 0 }}/{{ unit.max_hp || 0 }}</dd>
+            </div>
+            <div class="unit-stats-row">
+              <dt>Attack</dt>
+              <dd>{{ unit.total_attack || 0 }}</dd>
+            </div>
+            <div class="unit-stats-row">
+              <dt>Defense</dt>
+              <dd>{{ unit.total_defense || 0 }}</dd>
+            </div>
+          </dl>
         </div>
       </div>
     </div>

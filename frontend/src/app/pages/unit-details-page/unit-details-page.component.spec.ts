@@ -11,8 +11,9 @@ class SessionServiceStub {
     {
       id: 'u1',
       name: 'Fang',
-      unit_type_id: 'wolf-1',
-      unit_type_name: 'Wolf',
+      unit_type_id: 'goblin-bruiser-1',
+      unit_type_slug: 'frontline_bruiser_t1',
+      unit_type_name: 'Goblin Bruiser',
       tier: 1,
       level: 3,
       max_level: 3,
@@ -35,7 +36,9 @@ class SessionServiceStub {
     {
       id: 'u2',
       name: 'Moss',
-      unit_type_id: 'wolf-1',
+      unit_type_id: 'goblin-bruiser-1',
+      unit_type_slug: 'frontline_bruiser_t1',
+      unit_type_name: 'Goblin Bruiser',
       tier: 1,
       level: 3,
       max_level: 3,
@@ -44,7 +47,9 @@ class SessionServiceStub {
     {
       id: 'u3',
       name: 'Twig',
-      unit_type_id: 'wolf-1',
+      unit_type_id: 'goblin-bruiser-1',
+      unit_type_slug: 'frontline_bruiser_t1',
+      unit_type_name: 'Goblin Bruiser',
       tier: 1,
       level: 2,
       max_level: 3,
@@ -173,8 +178,19 @@ describe('UnitDetailsPageComponent', () => {
   it('builds tabbed stats, learned abilities, and filtered promotion candidates', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
+    const host: HTMLElement = fixture.nativeElement;
 
     expect(component.activeTab()).toBe('stats');
+    expect(component.tierRomanNumeral()).toBe('I');
+    expect(host.textContent).toContain('Tier');
+    expect(host.textContent).toContain('I');
+    expect(host.textContent).toContain('3/3 (Goblin Bruiser)');
+    expect(host.textContent).toContain('Attack');
+    expect(host.textContent).toContain('Defense');
+    expect(fixture.nativeElement.querySelector('.unit-portrait')?.getAttribute('src')).toContain(
+      '/assets/ui/portraits/goblin_bruiser.png',
+    );
+
     component.setActiveTab('abilities');
     expect(component.learnedActiveAbilities().map((ability) => ability.abilityId)).toEqual(['guard', 'heavy_strike']);
     expect(component.learnedPassiveAbilities().map((ability) => ability.abilityId)).toEqual(['thick_hide']);
