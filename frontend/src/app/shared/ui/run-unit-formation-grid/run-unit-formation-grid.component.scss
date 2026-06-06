@@ -1,0 +1,71 @@
+.run-unit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.run-unit-grid__card {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 140px;
+  padding: 1rem;
+  border: 2px solid rgba(35, 39, 42, 0.12);
+  background: rgba(243, 239, 224, 0.72);
+}
+
+.run-unit-grid__card--empty {
+  justify-content: center;
+  align-items: center;
+  border-style: dashed;
+  color: rgba(35, 39, 42, 0.45);
+  background: rgba(79, 90, 101, 0.06);
+}
+
+.run-unit-grid__card--defeated {
+  border-color: rgba(143, 23, 23, 0.35);
+  background: rgba(185, 28, 28, 0.08);
+}
+
+.run-unit-grid__cell {
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: rgba(35, 39, 42, 0.58);
+}
+
+.run-unit-grid__content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  flex: 1 1 auto;
+}
+
+.run-unit-grid__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.run-unit-grid__empty {
+  min-height: 72px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 991.98px) {
+  .run-unit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767.98px) {
+  .run-unit-grid {
+    grid-template-columns: 1fr;
+  }
+}

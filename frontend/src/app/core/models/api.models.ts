@@ -213,9 +213,13 @@ export type CurrentRunMap = {
 
 export type RestRunUnitState = {
   unit_instance_id: string;
-  hp: number;
+  hp?: number;
+  current_hp?: number;
   is_defeated: boolean;
   status_effects: unknown[];
+  cooldowns_json?: string;
+  status_effects_json?: string;
+  updated_at?: string;
 };
 
 export type CurrentRunData = {

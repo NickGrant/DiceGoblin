@@ -30,17 +30,7 @@
     </div>
 
     @if (restingUnits().length) {
-    <div class="rest-unit-list">
-      @for (entry of restingUnits(); track entry.unit_instance_id) {
-      <article class="rest-unit-row">
-        <div>
-          <h3 class="dg-stencil mb-1">{{ entry.unit?.name || 'Unit ' + entry.unit_instance_id }}</h3>
-          <p class="mb-0">{{ entry.unit?.unit_type_name || entry.unit?.unit_type_slug || 'Run unit' }}</p>
-        </div>
-        <span class="dg-chip">Current HP {{ entry.hp }}</span>
-      </article>
-      }
-    </div>
+    <dg-run-unit-formation-grid [cells]="formationGrid()" />
     } @else {
     <dg-alert>No run units found for this rest.</dg-alert>
     }

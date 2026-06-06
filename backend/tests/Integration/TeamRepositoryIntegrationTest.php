@@ -123,6 +123,19 @@ final class TeamRepositoryIntegrationTest extends TestCase
     $this->repo()->setTeamUnits($userId, $teamId, [$otherUsersUnit]);
   }
 
+  public function testRenameTeamAllowsSavingSameNameWithoutThrowing(): void
+  {
+    $userId = $this->insertUser();
+    $teamId = $this->repo()->createTeam($userId, 'Main', true);
+    $this->teamIds[] = $teamId;
+
+    $this->repo()->renameTeam($userId, $teamId, 'Main');
+
+    $team = $this->repo()->getTeamForUser($userId, $teamId);
+    $this->assertNotNull($team);
+    $this->assertSame('Main', $team['name']);
+  }
+
   public function testUpdateTeamConfigurationAllowsMultiCellRectanglesForLargeUnits(): void
   {
     $userId = $this->insertUser();

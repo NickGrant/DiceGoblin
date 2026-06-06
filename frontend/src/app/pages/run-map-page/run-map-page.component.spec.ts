@@ -2,17 +2,46 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RunMapPageComponent } from './run-map-page.component';
 import { RunService } from '../../core/services/run/run.service';
+import { SessionService } from '../../core/services/session/session.service';
 
 class RunServiceStub {
   getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
     ok: true,
     data: {
-      run: { run_id: 'run-1' },
-      map: { nodes: [], edges: [] },
+      run: { run_id: 'run-1', status: 'active' },
+      map: {
+        nodes: [
+          { id: 'n1', node_index: 0, node_type: 'combat', status: 'available' },
+          { id: 'n2', node_index: 1, node_type: 'exit', status: 'locked' },
+        ],
+        edges: [],
+      },
+      run_unit_state: [
+        { unit_instance_id: 'u1', current_hp: 6, is_defeated: false, status_effects: [] },
+        { unit_instance_id: 'u2', current_hp: 0, is_defeated: true, status_effects: [] },
+      ],
     },
   });
   abandonRun = jasmine.createSpy('abandonRun').and.resolveTo({ ok: true });
   exitRun = jasmine.createSpy('exitRun').and.resolveTo({ ok: true });
+}
+
+class SessionServiceStub {
+  readonly units = () => [
+    { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', max_hp: 10 },
+    { id: 'u2', name: 'Moss', unit_type_name: 'Guardian', max_hp: 12 },
+  ] as any[];
+  readonly activeSquad = () =>
+    ({
+      id: 's1',
+      name: 'Alpha',
+      is_active: true,
+      unit_ids: ['u1', 'u2'],
+      formation: [
+        { cell: 'A1', unit_instance_id: 'u1' },
+        { cell: 'B2', unit_instance_id: 'u2' },
+      ],
+    }) as any;
 }
 
 describe('RunMapPageComponent', () => {
@@ -22,6 +51,7 @@ describe('RunMapPageComponent', () => {
       providers: [
         provideRouter([]),
         { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
       ],
     }).compileComponents();
 
@@ -31,6 +61,10 @@ describe('RunMapPageComponent', () => {
 
     expect(fixture.componentInstance.run()?.run_id).toBe('run-1');
     expect(fixture.componentInstance.loading()).toBeFalse();
+    expect(fixture.componentInstance.iconForNodeType('combat')).toContain('icon_encounter_combat.png');
+    expect(fixture.componentInstance.iconForNodeType('exit')).toContain('icon_home.png');
+    expect(fixture.componentInstance.formationGrid().length).toBe(9);
+    expect(fixture.componentInstance.formationGrid().find((cell) => cell.cell === 'A1')?.entry?.currentHp).toBe(6);
   });
 
   it('navigates to summary after abandoning a run', async () => {
@@ -39,6 +73,7 @@ describe('RunMapPageComponent', () => {
       providers: [
         provideRouter([]),
         { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
       ],
     }).compileComponents();
 

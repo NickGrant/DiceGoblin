@@ -1,0 +1,27 @@
+<div class="run-unit-grid">
+  @for (cell of cells(); track cell.cell) {
+  <article class="run-unit-grid__card" [class.run-unit-grid__card--empty]="!cell.entry" [class.run-unit-grid__card--defeated]="cell.entry?.defeated">
+    <span class="run-unit-grid__cell dg-stencil">{{ cell.cell }}</span>
+
+    @if (cell.entry; as entry) {
+    <div class="run-unit-grid__content">
+      <div>
+        <h3 class="dg-stencil mb-1">{{ entry.unit?.name || 'Unit ' + entry.unit_instance_id }}</h3>
+        <p class="mb-0">{{ entry.unit?.unit_type_name || entry.unit?.unit_type_slug || 'Run unit' }}</p>
+      </div>
+
+      <div class="run-unit-grid__meta">
+        <span class="dg-chip">HP {{ entry.currentHp }}/{{ entry.maxHp }}</span>
+        @if (entry.defeated) {
+        <span class="dg-chip">Defeated</span>
+        }
+      </div>
+    </div>
+    } @else {
+    <div class="run-unit-grid__empty">
+      <span>Empty</span>
+    </div>
+    }
+  </article>
+  }
+</div>

@@ -14,8 +14,8 @@ class SessionServiceStub {
   readonly profileData = signal<any>({
     active_run: null,
     region_unlocks: [
-      { region_id: '1', region_slug: 'the_farm' },
-      { region_id: '2', region_slug: 'mountains' },
+      { region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' },
+      { region_id: '2', region_slug: 'mountains', unlocked_at: '2026-06-02T00:00:00Z' },
     ],
   });
 }
@@ -44,6 +44,7 @@ describe('RegionsPageComponent', () => {
 
     const component = fixture.componentInstance;
     expect(component.unlockedRegionCount()).toBe(2);
+    expect(component.currentRegion()?.slug).toBe('the_farm');
     expect(component.regions().find((region) => region.slug === 'mountains')?.isUnlocked).toBeTrue();
     expect(component.regions().find((region) => region.slug === 'swamps')?.isUnlocked).toBeFalse();
   });
@@ -57,5 +58,31 @@ describe('RegionsPageComponent', () => {
 
     expect(runService.createRun).toHaveBeenCalledWith(2);
     expect(router.navigateByUrl).toHaveBeenCalledWith('/run/map');
+  });
+
+  it('shows continue run only for the currently displayed active region', async () => {
+    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    sessionService.hasActiveRun.set(true);
+    sessionService.profileData.set({
+      active_run: { region_id: '2' },
+      region_unlocks: [
+        { region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' },
+        { region_id: '2', region_slug: 'mountains', unlocked_at: '2026-06-02T00:00:00Z' },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(RegionsPageComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    expect(component.currentRegionActionLabel()).toBe('Start Run');
+    expect(component.currentRegionActionDisabled()).toBeTrue();
+
+    component.goToRegion(1);
+    fixture.detectChanges();
+
+    expect(component.currentRegion()?.slug).toBe('mountains');
+    expect(component.currentRegionActionLabel()).toBe('Continue Run');
+    expect(component.currentRegionActionDisabled()).toBeFalse();
   });
 });

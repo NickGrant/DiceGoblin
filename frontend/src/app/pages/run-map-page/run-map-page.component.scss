@@ -1,10 +1,45 @@
-.run-map {
-  width: 100%;
-  min-height: 280px;
+.run-map-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem;
 }
 
-.run-map__label {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+.run-map {
+  min-width: 100%;
+  min-height: 280px;
+  display: block;
+}
+
+.run-map__node {
+  cursor: default;
+  outline: none;
+}
+
+.run-map__node--available {
+  cursor: pointer;
+}
+
+.run-map__node--available circle {
+  stroke: rgba(243, 239, 224, 0.9);
+  stroke-width: 3;
+  transition: transform 140ms ease, stroke-width 140ms ease;
+}
+
+.run-map__node--available:hover circle,
+.run-map__node--available:focus circle {
+  stroke-width: 5;
+}
+
+.run-map-page__legend-icon {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.run-map-page__legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 60px;
 }

@@ -230,7 +230,10 @@ final class TeamRepository
     $stmt->execute([$name, $teamId, $userId]);
 
     if ($stmt->rowCount() === 0) {
-      throw new RuntimeException('Team not found or not owned by user.');
+      $team = $this->getTeamForUser($userId, $teamId);
+      if ($team === null) {
+        throw new RuntimeException('Team not found or not owned by user.');
+      }
     }
   }
 

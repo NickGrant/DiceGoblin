@@ -14,79 +14,85 @@
   </div>
   }
 
-  <div class="row g-4">
-    <div class="col-xl-8">
-      <div class="vstack gap-4">
-        @for (region of regions(); track region.slug) {
-        <article class="region-card" [class.region-card--locked]="!region.isUnlocked">
-          <img [src]="'/assets/ui/biome/' + region.theme + '.png'" alt="" />
-          <div class="region-card__body">
-            <div class="d-flex flex-wrap gap-2 align-items-center">
-              <span class="dg-chip">{{ region.pathSummary }}</span>
-              <span class="dg-chip">Energy {{ region.energyCost }}</span>
-              <span class="dg-chip">Level {{ region.recommendedLevel }}</span>
-              @if (isActiveRegion(region.regionId)) {
-              <span class="dg-chip">Current Run</span>
-              }
-              @if (!region.isUnlocked) {
-              <span class="dg-chip">Locked</span>
+  @if (currentRegion(); as region) {
+  <section class="region-carousel">
+    <article class="region-card" [class.region-card--locked]="!region.isUnlocked">
+      <button
+        class="region-carousel__arrow region-carousel__arrow--prev"
+        type="button"
+        aria-label="Previous region"
+        (click)="previousRegion()"
+      >
+        <span aria-hidden="true">‹</span>
+      </button>
+
+      <img [src]="'/assets/ui/biome/' + region.theme + '.png'" alt="" />
+      <div class="region-card__body">
+        <div class="region-card__chips d-flex flex-wrap gap-2 align-items-center">
+          <span class="dg-chip">{{ region.pathSummary }}</span>
+          <span class="dg-chip region-card__energy-chip">
+            <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
+            {{ region.energyCost }}
+          </span>
+          @if (isActiveRegion(region.regionId)) {
+          <span class="dg-chip">Current Run</span>
+          }
+          @if (!region.isUnlocked) {
+          <span class="dg-chip">Locked</span>
+          }
+        </div>
+
+        <div class="region-card__footer row g-3 align-items-stretch">
+          <div class="col-lg-9">
+            <div class="region-card__content">
+              <h2 class="mb-2">{{ region.name }}</h2>
+              <p class="mb-1">{{ region.summary }}</p>
+              @if (region.isUnlocked) {
+              <p class="mb-0">Unlocked {{ unlockRecord(region.slug)?.unlocked_at | date: 'mediumDate' }}.</p>
+              } @else {
+              <p class="mb-0">{{ region.unlockHint }}</p>
               }
             </div>
+          </div>
 
-            <h2 class="mt-3 mb-2">{{ region.name }}</h2>
-            <p class="mb-1">{{ region.summary }}</p>
-            @if (region.isUnlocked) {
-            <p class="mb-0">Unlocked {{ unlockRecord(region.slug)?.unlocked_at | date: 'mediumDate' }}.</p>
-            } @else {
-            <p class="mb-0">{{ region.unlockHint }}</p>
-            }
-
-            <div class="d-flex flex-wrap gap-2 mt-2">
+          <div class="col-lg-3">
+            <div class="region-card__action">
               <button
                 type="button"
                 dgCommandBtn="primary"
-                (click)="startRegionRun(region.regionId, region.slug)"
-                [disabled]="isStarting() || hasActiveRun() || !region.isUnlocked"
+                (click)="activateCurrentRegion()"
+                [disabled]="currentRegionActionDisabled()"
               >
-                {{
-                  startingSlug() === region.slug
-                    ? 'Starting...'
-                    : region.isUnlocked
-                      ? 'Start Run'
-                      : 'Locked'
-                }}
-              </button>
-              <button type="button" dgCommandBtn (click)="continueRun()" [disabled]="!hasActiveRun()">
-                Continue Run
+                {{ currentRegionActionLabel() }}
               </button>
             </div>
           </div>
-        </article>
-        }
+        </div>
       </div>
+
+      <button
+        class="region-carousel__arrow region-carousel__arrow--next"
+        type="button"
+        aria-label="Next region"
+        (click)="nextRegion()"
+      >
+        <span aria-hidden="true">›</span>
+      </button>
+    </article>
+
+    <div class="region-carousel__dots" aria-label="Region selection">
+      @for (entry of regions(); track entry.slug; let index = $index) {
+      <button
+        class="region-carousel__dot"
+        type="button"
+        [class.region-carousel__dot--active]="currentRegionIndex() === index"
+        [attr.aria-label]="'Show ' + entry.name"
+        (click)="goToRegion(index)"
+      >
+        <span class="visually-hidden">{{ entry.name }}</span>
+      </button>
+      }
     </div>
-
-    <div class="col-xl-4">
-      <aside class="dg-card route-sidebar p-3">
-        <h3 class="dg-stencil">Status</h3>
-        <p class="mb-2">{{ unlockedRegionCount() }} region{{ unlockedRegionCount() === 1 ? '' : 's' }} unlocked.</p>
-        <p class="mb-0" [class.text-danger]="!hasActiveRun()">
-          {{ hasActiveRun() ? 'An active run can be continued from the map.' : 'No active run in progress.' }}
-        </p>
-
-        <hr />
-
-        <h4 class="dg-stencil h6">Region Items</h4>
-        @if ((profileData()?.region_items?.length ?? 0) > 0) {
-        <ul class="mb-0">
-          @for (item of profileData()?.region_items ?? []; track item.region_item_id) {
-          <li>{{ item.region_item_id }} x{{ item.quantity }}</li>
-          }
-        </ul>
-        } @else {
-        <p class="mb-0">No region boss trophies collected yet.</p>
-        }
-      </aside>
-    </div>
-  </div>
+  </section>
+  }
 </dg-page-frame>

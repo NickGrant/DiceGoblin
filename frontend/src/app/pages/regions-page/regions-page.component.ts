@@ -70,6 +70,7 @@ export class RegionsPageComponent {
   readonly startingSlug = signal<string | null>(null);
   readonly message = signal<string | null>(null);
   readonly error = signal<string | null>(null);
+  readonly currentRegionIndex = signal(0);
   readonly regions = computed(() => {
     const unlocks = this.profileData()?.region_unlocks ?? [];
     return REGION_CARDS.map((region) => {
@@ -82,6 +83,43 @@ export class RegionsPageComponent {
     });
   });
   readonly unlockedRegionCount = computed(() => this.regions().filter((region) => region.isUnlocked).length);
+  readonly currentRegion = computed(() => this.regions()[this.currentRegionIndex()] ?? null);
+  readonly currentRegionActionLabel = computed(() => {
+    const region = this.currentRegion();
+    if (!region) {
+      return 'Start Run';
+    }
+
+    if (this.startingSlug() === region.slug) {
+      return 'Starting...';
+    }
+
+    if (this.isActiveRegion(region.regionId)) {
+      return 'Continue Run';
+    }
+
+    return 'Start Run';
+  });
+  readonly currentRegionActionDisabled = computed(() => {
+    const region = this.currentRegion();
+    if (!region) {
+      return true;
+    }
+
+    if (this.startingSlug() === region.slug) {
+      return true;
+    }
+
+    if (!region.isUnlocked) {
+      return true;
+    }
+
+    if (this.isActiveRegion(region.regionId)) {
+      return false;
+    }
+
+    return this.isStarting() || this.hasActiveRun();
+  });
 
   isActiveRegion(regionId: string | null): boolean {
     return this.profileData()?.active_run?.region_id === regionId;
@@ -116,6 +154,43 @@ export class RegionsPageComponent {
 
   async continueRun(): Promise<void> {
     await this.router.navigateByUrl('/run/map');
+  }
+
+  previousRegion(): void {
+    this.currentRegionIndex.update((index) => {
+      const count = this.regions().length;
+      return count > 0 ? (index - 1 + count) % count : 0;
+    });
+  }
+
+  nextRegion(): void {
+    this.currentRegionIndex.update((index) => {
+      const count = this.regions().length;
+      return count > 0 ? (index + 1) % count : 0;
+    });
+  }
+
+  goToRegion(index: number): void {
+    const count = this.regions().length;
+    if (index < 0 || index >= count) {
+      return;
+    }
+
+    this.currentRegionIndex.set(index);
+  }
+
+  async activateCurrentRegion(): Promise<void> {
+    const region = this.currentRegion();
+    if (!region) {
+      return;
+    }
+
+    if (this.isActiveRegion(region.regionId)) {
+      await this.continueRun();
+      return;
+    }
+
+    await this.startRegionRun(region.regionId, region.slug);
   }
 
   unlockRecord(regionSlug: string): RegionUnlockRecord | null {
