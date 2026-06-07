@@ -25,10 +25,13 @@ export class SquadDetailsPageComponent {
 
   readonly squadId = this.route.snapshot.paramMap.get('squadId') ?? '';
   readonly squad = computed(() => this.sessionService.squads().find((team) => team.id === this.squadId) ?? null);
+  readonly activeRun = computed(() => this.sessionService.profileData()?.active_run ?? null);
+  readonly activeSquad = this.sessionService.activeSquad;
   readonly availableUnits = this.sessionService.units;
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
+  readonly squadLocked = computed(() => !!this.activeRun() && this.activeSquad()?.id === this.squadId);
 
   name = this.squad()?.name ?? '';
   selectedUnitIds = new Set(this.squad()?.unit_ids ?? []);
@@ -59,6 +62,10 @@ export class SquadDetailsPageComponent {
   }
 
   toggleUnit(unitId: string): void {
+    if (this.squadLocked()) {
+      return;
+    }
+
     if (this.selectedUnitIds.has(unitId)) {
       this.selectedUnitIds.delete(unitId);
       this.clearFormationAssignmentsForUnit(unitId);
@@ -68,6 +75,10 @@ export class SquadDetailsPageComponent {
   }
 
   setCell(cell: string, value: string): void {
+    if (this.squadLocked()) {
+      return;
+    }
+
     const nextValue = value && this.selectedUnitIds.has(value) ? value : null;
     this.formationAssignments.set(cell, nextValue);
   }
@@ -80,7 +91,7 @@ export class SquadDetailsPageComponent {
   }
 
   async save(): Promise<void> {
-    if (!this.squad()) {
+    if (!this.squad() || this.squadLocked()) {
       return;
     }
 
@@ -106,6 +117,10 @@ export class SquadDetailsPageComponent {
   }
 
   async activate(): Promise<void> {
+    if (this.squadLocked() || this.activeRun()) {
+      return;
+    }
+
     this.saving.set(true);
     this.error.set(null);
     this.message.set(null);

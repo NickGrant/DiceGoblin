@@ -166,6 +166,7 @@ final class ProfileService
       $maxHp = max(1, (int)($unit['max_hp'] ?? 1));
       $currentHp = $snapshot['is_defeated'] ? 0 : min($maxHp, (int)$snapshot['hp']);
       $unit['current_hp'] = $currentHp;
+      $unit['locked'] = true;
     }
     unset($unit);
 

@@ -97,6 +97,11 @@ export class UnitDetailsPageComponent {
   readonly unit = computed<UnitRecord | null>(
     () => this.sessionService.units().find((entry) => entry.id === this.unitId) ?? null,
   );
+  readonly activeSquad = this.sessionService.activeSquad;
+  readonly hasActiveRun = this.sessionService.hasActiveRun;
+  readonly unitLocked = computed(
+    () => !!this.unit()?.locked || (this.hasActiveRun() && !!this.activeSquad()?.unit_ids?.includes(this.unitId)),
+  );
   readonly units = this.sessionService.units;
   readonly dice = this.sessionService.dice;
   readonly promotionOptions = signal<PromotionOptionRecord[]>([]);
@@ -304,6 +309,10 @@ export class UnitDetailsPageComponent {
   }
 
   toggleSecondary(unitId: string): void {
+    if (this.unitLocked()) {
+      return;
+    }
+
     const next = new Set(this.selectedSecondaries());
     if (next.has(unitId)) {
       next.delete(unitId);
@@ -318,6 +327,10 @@ export class UnitDetailsPageComponent {
   }
 
   addAbilityToLoadout(abilityId: string, insertIndex?: number): void {
+    if (this.unitLocked()) {
+      return;
+    }
+
     const ability = this.learnedAbilities().find((entry) => entry.abilityId === abilityId)
       ?? this.abilityCatalog().get(abilityId);
     if (!ability || ability.type !== 'active') {
@@ -341,6 +354,10 @@ export class UnitDetailsPageComponent {
   }
 
   removeAbilityFromLoadout(indexOrAbilityId: number | string): void {
+    if (this.unitLocked()) {
+      return;
+    }
+
     if (typeof indexOrAbilityId === 'number') {
       this.pendingEquippedAbilityIds.update((current) =>
         current.filter((_entry, index) => index !== indexOrAbilityId),
@@ -367,6 +384,10 @@ export class UnitDetailsPageComponent {
       LoadoutBarViewModel | AbilityLoadoutViewModel
     >,
   ): void {
+    if (this.unitLocked()) {
+      return;
+    }
+
     if (event.previousContainer === event.container) {
       const next = [...this.pendingEquippedAbilityIds()];
       moveItemInArray(next, event.previousIndex, event.currentIndex);
@@ -383,6 +404,10 @@ export class UnitDetailsPageComponent {
   }
 
   async saveLoadout(): Promise<void> {
+    if (this.unitLocked()) {
+      return;
+    }
+
     this.savingLoadout.set(true);
     this.error.set(null);
     this.message.set(null);
@@ -404,7 +429,7 @@ export class UnitDetailsPageComponent {
   }
 
   async renameUnit(): Promise<void> {
-    if (!this.renameValue.trim()) {
+    if (!this.renameValue.trim() || this.unitLocked()) {
       return;
     }
 
@@ -426,6 +451,10 @@ export class UnitDetailsPageComponent {
   }
 
   async promoteUnit(): Promise<void> {
+    if (this.unitLocked()) {
+      return;
+    }
+
     if (this.selectedSecondaries().length !== 2) {
       this.error.set('Choose two units to consume.');
       return;
@@ -455,6 +484,10 @@ export class UnitDetailsPageComponent {
   }
 
   openDicePicker(abilityId: string, abilityName: string, slotIndex: number): void {
+    if (this.unitLocked()) {
+      return;
+    }
+
     this.pickerState.set({ abilityId, abilityName, slotIndex });
   }
 
@@ -484,7 +517,7 @@ export class UnitDetailsPageComponent {
 
   async applyDiceSelection(diceId: string | null): Promise<void> {
     const pickerState = this.pickerState();
-    if (!pickerState) {
+    if (!pickerState || this.unitLocked()) {
       return;
     }
 

@@ -6,6 +6,7 @@ import {
   DebugGrantRegionItemResponse,
   DebugGrantUnitResponse,
   DebugResetAccountResponse,
+  DebugSetUnitLevelResponse,
 } from '../../models/api.models';
 import { ApiHttpService } from '../api-http/api-http.service';
 import { SessionService } from '../session/session.service';
@@ -50,6 +51,15 @@ export class DebugService {
     const response = await this.apiHttp.postWithCsrf<DebugGrantRegionItemResponse>('/api/v1/debug/grant/region-item', {
       region_item_slug: regionItemSlug,
       quantity,
+    });
+    await this.sessionService.refreshProfile({ force: true });
+    return response;
+  }
+
+  async setUnitLevel(unitInstanceId: string, level: number): Promise<DebugSetUnitLevelResponse> {
+    const response = await this.apiHttp.postWithCsrf<DebugSetUnitLevelResponse>('/api/v1/debug/units/set-level', {
+      unit_instance_id: unitInstanceId,
+      level,
     });
     await this.sessionService.refreshProfile({ force: true });
     return response;

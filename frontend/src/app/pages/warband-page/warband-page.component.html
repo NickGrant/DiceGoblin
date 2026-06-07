@@ -12,7 +12,7 @@
     <dg-alert tone="success">{{ message() }}</dg-alert>
     }
     @if (activeRun()) {
-    <dg-alert>Units in the active run cannot be changed until the run ends.</dg-alert>
+    <dg-alert>Active-run squads and units are read-only until the run ends.</dg-alert>
     }
   </div>
   }
@@ -45,6 +45,9 @@
             <div>
               <strong>{{ squad.name }}</strong>
               <p class="mb-0">{{ squad.unit_ids.length }} units{{ squad.is_active ? ' · Active squad' : '' }}</p>
+              @if (squadLockMessage(squad.id); as lockMessage) {
+              <p class="squad-row__lock mb-0">{{ lockMessage }}</p>
+              }
             </div>
             <div class="d-flex flex-wrap gap-2">
               <a dgCommandBtn [routerLink]="['/warband/squads', squad.id]">Details</a>
@@ -52,7 +55,7 @@
                 dgCommandBtn="teal"
                 type="button"
                 (click)="activateSquad(squad.id)"
-                [disabled]="squad.is_active || isSaving()"
+                [disabled]="squad.is_active || isSaving() || !!activeRun()"
               >
                 {{ squad.is_active ? 'Active' : 'Activate' }}
               </button>

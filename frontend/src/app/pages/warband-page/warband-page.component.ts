@@ -23,10 +23,19 @@ export class WarbandPageComponent {
   readonly squads = this.sessionService.squads;
   readonly units = this.sessionService.units;
   readonly activeRun = computed(() => this.sessionService.profileData()?.active_run ?? null);
+  readonly activeSquad = this.sessionService.activeSquad;
   readonly isSaving = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
   readonly unitObjectComponent = UnitGridObjectComponent;
+
+  isSquadLocked(teamId: string): boolean {
+    return !!this.activeRun() && this.activeSquad()?.id === teamId;
+  }
+
+  squadLockMessage(teamId: string): string | null {
+    return this.isSquadLocked(teamId) ? 'Locked while this squad is committed to the active run.' : null;
+  }
 
   async createSquad(): Promise<void> {
     this.error.set(null);
@@ -48,6 +57,10 @@ export class WarbandPageComponent {
   }
 
   async activateSquad(teamId: string): Promise<void> {
+    if (this.activeRun()) {
+      return;
+    }
+
     this.error.set(null);
     this.message.set(null);
     this.isSaving.set(true);

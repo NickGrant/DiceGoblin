@@ -68,6 +68,24 @@
             </select>
           </div>
           <button dgCommandBtn type="button" (click)="grantRegionItem()" [disabled]="busy()">Grant Item</button>
+
+          <div class="row g-2">
+            <div class="col-sm-8">
+              <label class="form-label">Owned Unit</label>
+              <select class="dg-select" [(ngModel)]="selectedOwnedUnitId" (ngModelChange)="syncOwnedUnitLevel()">
+                @for (item of catalog.owned_units; track item.id) {
+                <option [value]="item.id">{{ item.name }} ({{ item.unit_type_slug }})</option>
+                }
+              </select>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label">Level</label>
+              <input class="dg-input" type="number" min="1" [(ngModel)]="selectedOwnedUnitLevel" />
+            </div>
+          </div>
+          <button dgCommandBtn type="button" (click)="setUnitLevel()" [disabled]="busy() || !catalog.owned_units.length">
+            Set Unit Level
+          </button>
         </div>
       </div>
     </div>

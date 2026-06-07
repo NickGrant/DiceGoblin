@@ -17,6 +17,7 @@ class HostComponent {
     unit_type_name: 'Goblin',
     level: 3,
     tier: 2,
+    locked: false,
   };
 }
 
@@ -36,5 +37,19 @@ describe('UnitGridObjectComponent', () => {
     expect(compiled.textContent).toContain('Level 3');
     expect(compiled.textContent).toContain('Tier 2');
     expect(compiled.querySelector('a')?.getAttribute('href')).toContain('/warband/units/u1');
+  });
+
+  it('renders a lock badge for run-locked units', async () => {
+    await TestBed.configureTestingModule({
+      imports: [HostComponent],
+      providers: [provideRouter([])],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.unit.locked = true;
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Locked In Run');
   });
 });

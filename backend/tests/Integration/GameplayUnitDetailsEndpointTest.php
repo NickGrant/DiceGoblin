@@ -138,6 +138,63 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->assertContains('bolster_ally', $abilityIds);
   }
 
+  public function testPromotionBackfillsCurrentCatalogBeforeTypeSwapAndKeepsEquippedAbilitiesValid(): void
+  {
+    $userId = $this->insertUser('promo_backfill', 'Promotion Backfill User');
+    [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    [$deadeyeTypeId, ] = $this->loadUnitType('backline_marksman_t2');
+    $primaryId = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
+    $secondaryA = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
+    $secondaryB = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
+
+    $loadout = new UnitLoadoutService($this->pdo);
+    $loadout->initializeUnit($primaryId, $bruiserTypeId);
+    $loadout->initializeUnit($secondaryA, $bruiserTypeId);
+    $loadout->initializeUnit($secondaryB, $bruiserTypeId);
+    $loadout->replaceEquippedAbilities($primaryId, ['basic_attack_melee', 'heavy_strike']);
+
+    $deleteUnlocked = $this->pdo->prepare('DELETE FROM `unit_instance_unlocked_abilities` WHERE `unit_instance_id` = ?');
+    $deleteUnlocked->execute([$primaryId]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+    $this->setJsonBody([
+      'primary_unit_instance_id' => (string)$primaryId,
+      'secondary_unit_instance_ids' => [(string)$secondaryA, (string)$secondaryB],
+      'destination_unit_type_id' => (string)$deadeyeTypeId,
+    ]);
+
+    $controller = new GameplayController();
+    $response = $this->invoke(fn() => $controller->promoteUnit((string)$primaryId));
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+
+    $unlockedAbilityIds = array_map(
+      static fn(array $row): string => (string)$row['ability_id'],
+      $this->rows(
+        'SELECT `ability_id` FROM `unit_instance_unlocked_abilities` WHERE `unit_instance_id` = ? ORDER BY `ability_id` ASC',
+        [$primaryId]
+      )
+    );
+    $equippedAbilityIds = array_map(
+      static fn(array $row): string => (string)$row['ability_id'],
+      $this->rows(
+        'SELECT `ability_id` FROM `unit_instance_equipped_abilities` WHERE `unit_instance_id` = ? ORDER BY `equip_order` ASC, `id` ASC',
+        [$primaryId]
+      )
+    );
+
+    $this->assertContains('heavy_strike', $unlockedAbilityIds);
+    $this->assertContains('thick_hide', $unlockedAbilityIds);
+    $this->assertContains('aimed_shot', $unlockedAbilityIds);
+    $this->assertContains('sharpshooter', $unlockedAbilityIds);
+    $this->assertSame(['basic_attack_melee', 'heavy_strike'], $equippedAbilityIds);
+    foreach ($equippedAbilityIds as $abilityId) {
+      $this->assertContains($abilityId, $unlockedAbilityIds);
+    }
+  }
+
   public function testReplaceEquippedAbilitiesEndpointRejectsActiveRunUnitsEvenWithRestContext(): void
   {
     $userId = $this->insertUser('load_rest', 'Loadout Rest User');

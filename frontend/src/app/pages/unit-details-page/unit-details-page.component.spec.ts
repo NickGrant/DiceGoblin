@@ -17,6 +17,7 @@ class SessionServiceStub {
       tier: 1,
       level: 3,
       max_level: 3,
+      locked: false,
       abilities: [
         { ability_id: 'heavy_strike', type: 'active' },
         { ability_id: 'guard', type: 'active' },
@@ -42,6 +43,7 @@ class SessionServiceStub {
       tier: 1,
       level: 3,
       max_level: 3,
+      locked: false,
       ability_dice: [{ ability_id: 'guard', slot_index: 0, dice_instance_id: 'd3' }],
     },
     {
@@ -53,15 +55,29 @@ class SessionServiceStub {
       tier: 1,
       level: 2,
       max_level: 3,
+      locked: false,
       ability_dice: [],
     },
     {
       id: 'u4',
       name: 'Bramble',
       unit_type_id: 'fox-1',
+      locked: false,
       tier: 1,
       level: 3,
       max_level: 3,
+      ability_dice: [],
+    },
+    {
+      id: 'u5',
+      name: 'Radley',
+      unit_type_id: 'support-banner-1',
+      unit_type_slug: 'support_banner_t1',
+      unit_type_name: 'Bannerbearer',
+      tier: 1,
+      level: 3,
+      max_level: 3,
+      locked: false,
       ability_dice: [],
     },
   ] as any[]);
@@ -70,6 +86,8 @@ class SessionServiceStub {
     { id: 'd2', rarity: 'common', sides: 4, affixes: [] },
     { id: 'd3', rarity: 'epic', sides: 10, affixes: [] },
   ] as any[]);
+  readonly activeSquad = signal({ id: 's1', unit_ids: ['u1'] } as any);
+  readonly hasActiveRun = signal(false);
 }
 
 class UnitServiceStub {
@@ -298,5 +316,69 @@ describe('UnitDetailsPageComponent', () => {
     component.openDicePicker('heavy_strike', 'Heavy Strike', 0);
     await component.applyDiceSelection(null);
     expect(unitService.clearAbilitySlotDie).toHaveBeenCalledWith('u1', 'heavy_strike', 0);
+  });
+
+  it('shows a lock message and blocks mutations for units locked by the active run', async () => {
+    const fixture = await createComponent();
+    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    const unitService = TestBed.inject(UnitService) as unknown as UnitServiceStub;
+
+    sessionService.units.set(
+      sessionService.units().map((unit) => (unit.id === 'u1' ? { ...unit, locked: true } : unit)) as any[],
+    );
+    fixture.detectChanges();
+
+    fixture.componentInstance.renameValue = 'Rex';
+    await fixture.componentInstance.renameUnit();
+    fixture.componentInstance.addAbilityToLoadout('guard');
+    await fixture.componentInstance.saveLoadout();
+    fixture.componentInstance.openDicePicker('guard', 'Guard', 0);
+    await fixture.componentInstance.promoteUnit();
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.textContent).toContain('This unit is locked by the active run and cannot be modified until the run ends.');
+    expect(fixture.componentInstance.unitLocked()).toBeTrue();
+    expect(unitService.renameUnit).not.toHaveBeenCalledWith('u1', 'Rex');
+    expect(unitService.replaceEquippedAbilities).not.toHaveBeenCalled();
+    expect(unitService.promoteUnit).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.pickerState()).toBeNull();
+  });
+
+  it('treats active-squad units as locked during an active run even before the locked flag refreshes', async () => {
+    const fixture = await createComponent();
+    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+
+    sessionService.hasActiveRun.set(true);
+    sessionService.activeSquad.set({ id: 's1', unit_ids: ['u1'] } as any);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.unitLocked()).toBeTrue();
+  });
+
+  it('maps bannerbearer unit slugs to the copied portrait asset name', async () => {
+    await TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [UnitDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: UnitService, useClass: UnitServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              paramMap: convertToParamMap({ unitId: 'u5' }),
+              queryParamMap: convertToParamMap({}),
+            },
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(UnitDetailsPageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.unitPortraitUrl()).toBe('/assets/ui/portraits/goblin_banner.png');
   });
 });

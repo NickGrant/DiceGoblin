@@ -4,13 +4,16 @@
   [title]="unit.name"
   [subtitle]="(unit.unit_type_name || unit.unit_type_slug || 'Unit') + ' - Level ' + unit.level"
 >
-  @if (error() || message()) {
+  @if (error() || message() || unitLocked()) {
   <div class="vstack gap-2 mb-3">
     @if (error()) {
     <dg-alert tone="error">{{ error() }}</dg-alert>
     }
     @if (message()) {
     <dg-alert tone="success">{{ message() }}</dg-alert>
+    }
+    @if (unitLocked()) {
+    <dg-alert>This unit is locked by the active run and cannot be modified until the run ends.</dg-alert>
     }
   </div>
   }
@@ -35,8 +38,8 @@
           <div class="unit-summary">
             <label class="form-label">Display Name</label>
             <div class="d-flex gap-2">
-              <input class="dg-input" [(ngModel)]="renameValue" />
-              <button dgCommandBtn type="button" (click)="renameUnit()" [disabled]="busy()">Save</button>
+              <input class="dg-input" [(ngModel)]="renameValue" [disabled]="unitLocked()" />
+              <button dgCommandBtn type="button" (click)="renameUnit()" [disabled]="busy() || unitLocked()">Save</button>
             </div>
           </div>
 
@@ -106,9 +109,10 @@
           [cdkDropListData]="learnedActiveAbilities()"
           [cdkDropListConnectedTo]="['combat-loadout-lane']"
           [cdkDropListSortingDisabled]="true"
+          [cdkDropListDisabled]="unitLocked()"
         >
           @for (ability of learnedActiveAbilities(); track ability.abilityId) {
-          <article class="ability-list-card ability-list-card--draggable" cdkDrag [cdkDragData]="ability">
+          <article class="ability-list-card ability-list-card--draggable" cdkDrag [cdkDragData]="ability" [cdkDragDisabled]="unitLocked()">
             <div class="ability-list-card__content" cdkDragHandle>
               <h3 class="dg-stencil mb-1">{{ ability.displayName }}</h3>
               <p class="mb-2 small">{{ ability.shortDesc }}</p>
@@ -124,7 +128,7 @@
                 class="ability-inline-slot"
                 type="button"
                 (click)="openDicePicker(ability.abilityId, ability.displayName, slot.slotIndex)"
-                [disabled]="isSlotBusy(ability.abilityId, slot.slotIndex)"
+                [disabled]="isSlotBusy(ability.abilityId, slot.slotIndex) || unitLocked()"
                 [attr.aria-label]="ability.displayName + ' slot ' + (slot.slotIndex + 1)"
               >
                 @if (slot.die; as die) {
@@ -183,12 +187,13 @@
           id="combat-loadout-lane"
           [cdkDropListData]="loadoutBars()"
           [cdkDropListConnectedTo]="['learned-ability-list']"
+          [cdkDropListDisabled]="unitLocked()"
           (cdkDropListDropped)="handleLoadoutDrop($event)"
           [style.height.px]="loadoutHeightPx()"
         >
           @if (loadoutBars().length) {
           @for (bar of loadoutBars(); track bar.instanceKey) {
-          <article class="loadout-bar" cdkDrag [cdkDragData]="bar" [style.height.px]="bar.heightPx">
+          <article class="loadout-bar" cdkDrag [cdkDragData]="bar" [cdkDragDisabled]="unitLocked()" [style.height.px]="bar.heightPx">
             <div class="loadout-bar__content">
               <span class="loadout-bar__name">{{ bar.displayName }}</span>
               <button
@@ -196,6 +201,7 @@
                 type="button"
                 aria-label="Remove ability"
                 (click)="removeAbilityFromLoadout($index)"
+                [disabled]="unitLocked()"
               >
                 x
               </button>
@@ -210,7 +216,12 @@
         </div>
 
         <div class="d-flex justify-content-end mt-3">
-          <button dgCommandBtn="primary" type="button" (click)="saveLoadout()" [disabled]="savingLoadout() || !canSaveLoadout()">
+          <button
+            dgCommandBtn="primary"
+            type="button"
+            (click)="saveLoadout()"
+            [disabled]="savingLoadout() || !canSaveLoadout() || unitLocked()"
+          >
             {{ savingLoadout() ? 'Working...' : 'Save Loadout' }}
           </button>
         </div>
@@ -240,7 +251,7 @@
         <input
           type="checkbox"
           [checked]="selectedSecondaries().includes(candidate.id)"
-          [disabled]="busy()"
+          [disabled]="busy() || unitLocked()"
           (change)="toggleSecondary(candidate.id)"
         />
         <span>{{ candidate.name }} - Level {{ candidate.level }} / {{ candidate.max_level }}</span>
@@ -255,7 +266,7 @@
       dgCommandBtn="primary"
       type="button"
       (click)="promoteUnit()"
-      [disabled]="busy() || promotionOptions().length === 0 || selectedSecondaries().length !== 2"
+      [disabled]="busy() || promotionOptions().length === 0 || selectedSecondaries().length !== 2 || unitLocked()"
     >
       {{ busy() ? 'Working...' : 'Promote' }}
     </button>

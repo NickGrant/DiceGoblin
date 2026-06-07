@@ -51,4 +51,17 @@ describe('DebugService', () => {
     expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/debug/reset-account', {});
     expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
   });
+
+  it('sets a unit level and refreshes profile', async () => {
+    const response = { ok: true } as any;
+    apiHttp.postWithCsrf.and.resolveTo(response);
+
+    await service.setUnitLevel('7', 6);
+
+    expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/debug/units/set-level', {
+      unit_instance_id: '7',
+      level: 6,
+    });
+    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
+  });
 });

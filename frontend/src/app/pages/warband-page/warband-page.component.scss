@@ -13,6 +13,12 @@
   letter-spacing: 0.04em;
 }
 
+.squad-row__lock {
+  margin-top: 0.35rem;
+  color: var(--dg-red, #8f1717);
+  font-size: 0.9rem;
+}
+
 @media (max-width: 575.98px) {
   .squad-row {
     flex-direction: column;

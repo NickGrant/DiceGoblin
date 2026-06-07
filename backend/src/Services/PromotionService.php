@@ -162,6 +162,11 @@ final class PromotionService
       throw new RuntimeException('promotion_requirements_not_met');
     }
 
+    // Persist the unit's current authored package before swapping types so
+    // promotions preserve cumulative ability history even for older rows that
+    // never had their unlocked catalog fully backfilled.
+    $this->unitLoadoutService->ensureUnlockedCatalogForUnit($primaryId);
+
     $update = $this->pdo->prepare('
       UPDATE `unit_instances`
       SET `unit_type_id` = ?, `tier` = ?, `level` = 1, `xp` = 0

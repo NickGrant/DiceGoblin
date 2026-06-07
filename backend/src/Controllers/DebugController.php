@@ -36,7 +36,7 @@ final class DebugController
       $svc['sessionService']->requireUserId();
       Response::json([
         'ok' => true,
-        'data' => $svc['devTools']->getCatalog(),
+        'data' => $svc['devTools']->getCatalog($svc['sessionService']->requireUserId()),
       ]);
     } catch (Throwable $e) {
       $this->respondUnauthorized();
@@ -279,6 +279,62 @@ final class DebugController
       ]);
     } catch (Throwable $e) {
       $this->respondServerError();
+    }
+  }
+
+  public function setUnitLevel(): void
+  {
+    $svc = $this->services();
+    if (!$svc['devTools']->isEnabled()) {
+      $this->respondDisabled();
+      return;
+    }
+
+    try {
+      $userId = $svc['sessionService']->requireUserId();
+    } catch (Throwable $e) {
+      $this->respondUnauthorized();
+      return;
+    }
+
+    if (!$this->requireCsrf($svc['csrfService'])) {
+      return;
+    }
+
+    $body = $this->readJsonBody();
+    if ($body === null) {
+      $this->respondInvalidBody();
+      return;
+    }
+
+    $unitId = (int)($body['unit_instance_id'] ?? 0);
+    $level = (int)($body['level'] ?? 0);
+    if ($unitId <= 0 || $level <= 0) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'validation_error',
+          'message' => 'unit_instance_id and level are required.',
+        ],
+      ], 400);
+      return;
+    }
+
+    try {
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'unit' => $svc['devTools']->setUnitLevel($userId, $unitId, $level),
+        ],
+      ]);
+    } catch (Throwable $e) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'validation_error',
+          'message' => $e->getMessage() !== '' ? $e->getMessage() : 'Unable to update unit level.',
+        ],
+      ], 400);
     }
   }
 

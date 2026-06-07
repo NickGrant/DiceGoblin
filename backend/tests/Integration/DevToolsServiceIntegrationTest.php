@@ -114,6 +114,21 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $this->assertSame(0, (int) $this->scalar('SELECT COUNT(*) FROM `shop_daily_deals` WHERE `user_id` = ?', [$userId]));
   }
 
+  public function testSetUnitLevelClampsToOwnedUnitMaxLevel(): void
+  {
+    $userId = $this->insertUser('qa_devlevel', 'QA DevLevel');
+    $service = $this->makeService();
+    $grantedUnits = $service->grantUnits($userId, 'frontline_bruiser_t1', 1);
+    $unitId = (int)($grantedUnits[0]['id'] ?? 0);
+
+    $updated = $service->setUnitLevel($userId, $unitId, 99);
+
+    $this->assertSame((string)$unitId, $updated['id']);
+    $this->assertSame(6, $updated['level']);
+    $this->assertSame(6, $updated['max_level']);
+    $this->assertSame(6, (int)$this->scalar('SELECT `level` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
+  }
+
   private function makeService(): DevToolsService
   {
     $playerStateRepo = new PlayerStateRepository($this->pdo);

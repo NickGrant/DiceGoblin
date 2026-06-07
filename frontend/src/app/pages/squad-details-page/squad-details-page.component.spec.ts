@@ -16,9 +16,11 @@ class SessionServiceStub {
     },
   ] as any[]);
   readonly units = signal([
-    { id: 'u1', name: 'Fang' },
-    { id: 'u2', name: 'Moss' },
+    { id: 'u1', name: 'Fang', locked: false },
+    { id: 'u2', name: 'Moss', locked: false },
   ] as any[]);
+  readonly profileData = signal({ active_run: null } as any);
+  readonly activeSquad = signal(null as any);
 }
 
 class SquadServiceStub {
@@ -87,6 +89,8 @@ describe('SquadDetailsPageComponent', () => {
     class DelayedSessionServiceStub {
       readonly squads = signal([] as any[]);
       readonly units = signal([{ id: 'u1', name: 'Fang' }] as any[]);
+      readonly profileData = signal({ active_run: null } as any);
+      readonly activeSquad = signal(null as any);
     }
 
     await TestBed.configureTestingModule({
@@ -119,5 +123,47 @@ describe('SquadDetailsPageComponent', () => {
     expect(fixture.componentInstance.name).toBe('Late Squad');
     expect(fixture.componentInstance.selectedUnitIds.has('u1')).toBeTrue();
     expect(fixture.componentInstance.formationAssignments.get('B2')).toBe('u1');
+  });
+
+  it('shows a lock message and blocks squad mutations during an active run', async () => {
+    class LockedSessionServiceStub extends SessionServiceStub {
+      override readonly squads = signal([
+        {
+          id: 's1',
+          name: 'Alpha',
+          unit_ids: ['u1', 'u2'],
+          formation: [{ cell: 'A1', unit_instance_id: 'u1' }],
+          is_active: true,
+        },
+      ] as any[]);
+      override readonly profileData = signal({ active_run: { run_id: '9' } } as any);
+      override readonly activeSquad = signal(this.squads()[0] as any);
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: LockedSessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    fixture.detectChanges();
+
+    await fixture.componentInstance.save();
+    await fixture.componentInstance.activate();
+
+    const squadService = TestBed.inject(SquadService) as unknown as SquadServiceStub;
+    const host: HTMLElement = fixture.nativeElement;
+
+    expect(host.textContent).toContain('This active squad is locked while its run is in progress.');
+    expect(fixture.componentInstance.squadLocked()).toBeTrue();
+    expect(squadService.updateTeam).not.toHaveBeenCalled();
+    expect(squadService.activateTeam).not.toHaveBeenCalled();
   });
 });

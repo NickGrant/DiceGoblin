@@ -44,10 +44,11 @@ final class DevToolsService
    * @return array{
    *   unit_types: array<int, array{id:string,slug:string,name:string,role:string}>,
    *   dice_definitions: array<int, array{id:string,sides:int,rarity:string,slot_capacity:int}>,
-   *   region_items: array<int, array{id:string,slug:string,name:string,region_slug:string,region_name:string}>
+   *   region_items: array<int, array{id:string,slug:string,name:string,region_slug:string,region_name:string}>,
+   *   owned_units: array<int, array{id:string,name:string,unit_type_slug:string,level:int,max_level:int}>
    * }
    */
-  public function getCatalog(): array
+  public function getCatalog(int $userId): array
   {
     $stmt = $this->pdo->query('
       SELECT
@@ -69,10 +70,35 @@ final class DevToolsService
       'region_name' => (string) $row['region_name'],
     ], $stmt->fetchAll(PDO::FETCH_ASSOC));
 
+    $ownedUnitsStmt = $this->pdo->prepare('
+      SELECT
+        ui.`id`,
+        ui.`display_name`,
+        ui.`level`,
+        ut.`slug` AS `unit_type_slug`,
+        ut.`name` AS `unit_type_name`,
+        ut.`max_level`
+      FROM `unit_instances` ui
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE ui.`user_id` = ?
+      ORDER BY ui.`id` ASC
+    ');
+    $ownedUnitsStmt->execute([$userId]);
+    $ownedUnits = array_map(static fn(array $row): array => [
+      'id' => (string)$row['id'],
+      'name' => trim((string)($row['display_name'] ?? '')) !== ''
+        ? (string)$row['display_name']
+        : (string)$row['unit_type_name'],
+      'unit_type_slug' => (string)$row['unit_type_slug'],
+      'level' => (int)$row['level'],
+      'max_level' => (int)$row['max_level'],
+    ], $ownedUnitsStmt->fetchAll(PDO::FETCH_ASSOC));
+
     return [
       'unit_types' => $this->unitRepo->listUnitTypes(),
       'dice_definitions' => $this->diceRepo->listDiceDefinitions(),
       'region_items' => $regionItems,
+      'owned_units' => $ownedUnits,
     ];
   }
 
@@ -221,6 +247,34 @@ final class DevToolsService
       'dice' => $this->countRows('dice_instances', 'user_id', $userId),
       'region_unlocks' => $this->countRows('region_unlocks', 'user_id', $userId),
       'active_run' => $this->hasActiveRun($userId),
+    ];
+  }
+
+  /**
+   * @return array{id:string,level:int,max_level:int}
+   */
+  public function setUnitLevel(int $userId, int $unitId, int $level): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT ut.`max_level`
+      FROM `unit_instances` ui
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE ui.`id` = ? AND ui.`user_id` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([$unitId, $userId]);
+    $maxLevel = $stmt->fetchColumn();
+    if ($maxLevel === false) {
+      throw new RuntimeException('Unit not found or not owned by user.');
+    }
+
+    $normalizedLevel = max(1, min((int)$maxLevel, $level));
+    $this->unitRepo->setUnitLevel($userId, $unitId, $normalizedLevel);
+
+    return [
+      'id' => (string)$unitId,
+      'level' => $normalizedLevel,
+      'max_level' => (int)$maxLevel,
     ];
   }
 

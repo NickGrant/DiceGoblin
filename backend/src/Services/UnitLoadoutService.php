@@ -50,6 +50,24 @@ final class UnitLoadoutService
     $this->initializeUnitFromRow($row);
   }
 
+  public function ensureUnlockedCatalogForUnit(int $unitInstanceId): void
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT ui.`id` AS `unit_instance_id`, ui.`unit_type_id`, ut.`slug` AS `unit_type_slug`, ut.`ability_set_json`
+      FROM `unit_instances` ui
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE ui.`id` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([$unitInstanceId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!is_array($row)) {
+      throw new RuntimeException('Unit not found for unlocked ability sync.');
+    }
+
+    $this->insertUnlockedCatalogFromRow($row);
+  }
+
   /**
    * @return list<array{ability_id:string,slot_index:int}>
    */
@@ -167,18 +185,7 @@ final class UnitLoadoutService
     }
 
     $abilitySet = $this->decodeAbilitySet($row['ability_set_json'] ?? null);
-    $sourceTier = $this->tierFromSlug($unitTypeSlug);
-    $catalog = $this->catalogAbilities($abilitySet);
-
-    if (count($catalog) > 0) {
-      $insertUnlocked = $this->pdo->prepare('
-        INSERT IGNORE INTO `unit_instance_unlocked_abilities` (`unit_instance_id`, `ability_id`, `source_tier`, `source_unit_type_id`)
-        VALUES (?, ?, ?, ?)
-      ');
-      foreach ($catalog as $abilityId) {
-        $insertUnlocked->execute([$unitInstanceId, $abilityId, $sourceTier, $unitTypeId]);
-      }
-    }
+    $this->insertUnlockedCatalogFromRow($row);
 
     $countStmt = $this->pdo->prepare('SELECT COUNT(*) FROM `unit_instance_equipped_abilities` WHERE `unit_instance_id` = ?');
     $countStmt->execute([$unitInstanceId]);
@@ -193,6 +200,34 @@ final class UnitLoadoutService
     }
 
     $this->replaceEquippedAbilities($unitInstanceId, $defaultEquipped);
+  }
+
+  /**
+   * @param array<string,mixed> $row
+   */
+  private function insertUnlockedCatalogFromRow(array $row): void
+  {
+    $unitInstanceId = (int)($row['unit_instance_id'] ?? 0);
+    $unitTypeId = (int)($row['unit_type_id'] ?? 0);
+    $unitTypeSlug = (string)($row['unit_type_slug'] ?? '');
+    if ($unitInstanceId <= 0 || $unitTypeId <= 0 || $unitTypeSlug === '') {
+      throw new RuntimeException('Invalid unit row for unlocked ability sync.');
+    }
+
+    $abilitySet = $this->decodeAbilitySet($row['ability_set_json'] ?? null);
+    $sourceTier = $this->tierFromSlug($unitTypeSlug);
+    $catalog = $this->catalogAbilities($abilitySet);
+    if (count($catalog) === 0) {
+      return;
+    }
+
+    $insertUnlocked = $this->pdo->prepare('
+      INSERT IGNORE INTO `unit_instance_unlocked_abilities` (`unit_instance_id`, `ability_id`, `source_tier`, `source_unit_type_id`)
+      VALUES (?, ?, ?, ?)
+    ');
+    foreach ($catalog as $abilityId) {
+      $insertUnlocked->execute([$unitInstanceId, $abilityId, $sourceTier, $unitTypeId]);
+    }
   }
 
   /**

@@ -27,6 +27,15 @@
   color: var(--dg-slate);
 }
 
+.unit-grid-object__lock {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dg-red, #8f1717);
+}
+
 .unit-grid-object h2 {
   text-transform: uppercase;
   letter-spacing: 0.04em;

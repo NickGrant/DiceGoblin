@@ -9,8 +9,9 @@ import { SquadService } from '../../core/services/squad/squad.service';
 class SessionServiceStub {
   readonly profile = signal({ activeSquadName: 'Alpha' });
   readonly squads = signal([{ id: '1', name: 'Alpha', is_active: true, unit_ids: ['u1'] }]);
-  readonly units = signal([{ id: 'u1', name: 'Fang' }]);
+  readonly units = signal([{ id: 'u1', name: 'Fang', locked: false }]);
   readonly profileData = signal({ active_run: null });
+  readonly activeSquad = signal({ id: '1', name: 'Alpha', is_active: true, unit_ids: ['u1'] } as any);
 }
 
 class SquadServiceStub {
@@ -66,5 +67,20 @@ describe('WarbandPageComponent', () => {
     expect(unitLinkDebug).toBeDefined();
     expect(unitLinkDebug!.injector.get(RouterLink).href).toContain('/warband/units/u1');
     expect(host.textContent).not.toContain('Dice');
+  });
+
+  it('marks the active squad as locked during an active run and disables activation changes', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    sessionService.profileData.set({ active_run: { run_id: '9' } } as any);
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const activateButton = Array.from(host.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Active'),
+    ) as HTMLButtonElement | undefined;
+
+    expect(host.textContent).toContain('Locked while this squad is committed to the active run.');
+    expect(activateButton?.disabled).toBeTrue();
   });
 });
