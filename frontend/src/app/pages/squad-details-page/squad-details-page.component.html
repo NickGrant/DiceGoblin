@@ -61,7 +61,12 @@
             >
               <option value="">Empty</option>
               @for (unit of availableUnits(); track unit.id) {
-              <option [value]="unit.id" [disabled]="!selectedUnitIds.has(unit.id) || !!unit.locked">{{ unit.name }}</option>
+              <option
+                [value]="unit.id"
+                [disabled]="!selectedUnitIds.has(unit.id) || !!unit.locked || isUnitAssignedElsewhere(cell, unit.id)"
+              >
+                {{ unit.name }}
+              </option>
               }
             </select>
           </label>

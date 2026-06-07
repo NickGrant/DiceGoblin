@@ -497,7 +497,7 @@ final class UnitRepository
 
   /**
    * @param array<int,int> $unitInstanceIds
-   * @return array<string, list<string>>
+   * @return array<string, array<int, array{ability_id:string}>>
    */
   public function getUnlockedAbilitiesForUnitIds(array $unitInstanceIds): array
   {
@@ -520,7 +520,9 @@ final class UnitRepository
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
       $unitId = (string)$row['unit_instance_id'];
       $byUnit[$unitId] ??= [];
-      $byUnit[$unitId][] = (string)$row['ability_id'];
+      $byUnit[$unitId][] = [
+        'ability_id' => (string)$row['ability_id'],
+      ];
     }
 
     return $byUnit;

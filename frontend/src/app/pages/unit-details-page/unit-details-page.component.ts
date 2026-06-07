@@ -326,6 +326,12 @@ export class UnitDetailsPageComponent {
     this.activeTab.set(tab);
   }
 
+  promotionOptionLabel(option: PromotionOptionRecord): string {
+    const primaryName =
+      option.mode === 'sideways' ? option.branch_unit_type_name : option.target_unit_type_name;
+    return `${primaryName} - ${option.mode}`;
+  }
+
   addAbilityToLoadout(abilityId: string, insertIndex?: number): void {
     if (this.unitLocked()) {
       return;

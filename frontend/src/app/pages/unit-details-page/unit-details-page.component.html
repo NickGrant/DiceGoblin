@@ -239,7 +239,7 @@
     <label class="form-label">Destination</label>
     <select class="dg-select mb-3" [(ngModel)]="selectedDestination">
       @for (option of promotionOptions(); track option.target_unit_type_id) {
-      <option [value]="option.target_unit_type_id">{{ option.target_unit_type_name }} - {{ option.mode }}</option>
+      <option [value]="option.target_unit_type_id">{{ promotionOptionLabel(option) }}</option>
       }
     </select>
     }

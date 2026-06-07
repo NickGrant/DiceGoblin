@@ -188,6 +188,126 @@ final class DeterministicRunNodeResolverFormationIntegrationTest extends Integra
     }
   }
 
+  public function testResolveTargetsAlliesForSupportAbilitiesWithoutDealingDamage(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 69696969);
+
+    $supportUnitSlug = 'qa-support-unit-' . bin2hex(random_bytes(4));
+    $frontlineUnitSlug = 'qa-frontline-unit-' . bin2hex(random_bytes(4));
+    $enemySlug = 'qa-support-target-enemy-' . bin2hex(random_bytes(4));
+    $encounterSlug = 'qa-support-target-encounter-' . bin2hex(random_bytes(4));
+    $supportUnitTypeId = null;
+    $frontlineUnitTypeId = null;
+    $supportUnitId = null;
+    $frontlineUnitId = null;
+    $encounterId = null;
+
+    try {
+      $supportUnitTypeId = $this->insertUnitType(
+        $supportUnitSlug,
+        [
+          'attack' => 5,
+          'defense' => 2,
+          'max_hp' => 20,
+        ],
+        ['bolster_ally']
+      );
+      $frontlineUnitTypeId = $this->insertUnitType(
+        $frontlineUnitSlug,
+        [
+          'attack' => 9,
+          'defense' => 2,
+          'max_hp' => 24,
+        ],
+        ['basic_attack_melee']
+      );
+
+      $supportUnitId = $this->insertUnitInstance($userId, $supportUnitTypeId);
+      $frontlineUnitId = $this->insertUnitInstance($userId, $frontlineUnitTypeId);
+      $this->insertTeamUnitRow($teamId, $supportUnitId);
+      $this->insertTeamUnitRow($teamId, $frontlineUnitId);
+      $this->insertRunUnitStateRow($runId, $supportUnitId, 20);
+      $this->insertRunUnitStateRow($runId, $frontlineUnitId, 8);
+
+      $this->insertEnemyTemplate(
+        $enemySlug,
+        [
+          'attack' => 5,
+          'defense' => 1,
+          'max_hp' => 20,
+          'formation' => ['w' => 1, 'h' => 1],
+        ],
+        ['basic_attack_melee']
+      );
+      $encounterId = $this->insertEncounterTemplate(
+        $encounterSlug,
+        $regionId,
+        [
+          'teams' => [[
+            'units' => [[
+              'enemy_template_slug' => $enemySlug,
+              'pos' => ['x' => 2, 'y' => 1],
+            ]],
+          ]],
+        ]
+      );
+
+      $resolver = new DeterministicRunNodeResolver($this->pdo);
+      $result = $resolver->resolve(
+        $userId,
+        $teamId,
+        ['id' => (string)$runId, 'seed' => '69696969'],
+        ['id' => '1', 'node_type' => 'combat', 'encounter_template_id' => (string)$encounterId]
+      );
+
+      $log = is_array($result['log'] ?? null) ? $result['log'] : [];
+      $events = is_array($log['events'] ?? null) ? $log['events'] : [];
+
+      $supportAction = null;
+      foreach ($events as $event) {
+        if (
+          is_array($event)
+          && (string)($event['type'] ?? '') === 'action'
+          && (string)($event['side'] ?? '') === 'player'
+          && (string)($event['actor_unit_instance_id'] ?? '') === (string)$supportUnitId
+          && (string)($event['ability_id'] ?? '') === 'bolster_ally'
+        ) {
+          $supportAction = $event;
+          break;
+        }
+      }
+
+      $this->assertIsArray($supportAction, 'Expected a bolster ally action event.');
+      $this->assertSame((string)$frontlineUnitId, (string)($supportAction['target_unit_instance_id'] ?? ''));
+      $this->assertArrayNotHasKey('target_enemy_slug', $supportAction);
+      $this->assertSame(0, (int)($supportAction['damage'] ?? -1));
+      $this->assertSame(8, (int)($supportAction['target_hp_after'] ?? -1));
+      $this->assertSame('buffed', (string)($supportAction['outcome'] ?? ''));
+      $this->assertSame('bolstered', (string)($supportAction['status_applied'] ?? ''));
+      $this->assertStringContainsString('bolstered applied', (string)($supportAction['ability_outcome'] ?? ''));
+    } finally {
+      $this->cleanupResolverFixture(
+        $runId,
+        $teamId,
+        $supportUnitId,
+        $supportUnitTypeId,
+        $encounterId,
+        [$enemySlug]
+      );
+      if ($frontlineUnitId !== null) {
+        $this->pdo->prepare('DELETE FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?')->execute([$runId, $frontlineUnitId]);
+        $this->pdo->prepare('DELETE FROM `team_units` WHERE `team_id` = ? AND `unit_instance_id` = ?')->execute([$teamId, $frontlineUnitId]);
+        $this->pdo->prepare('DELETE FROM `unit_instances` WHERE `id` = ?')->execute([$frontlineUnitId]);
+      }
+      if ($frontlineUnitTypeId !== null) {
+        $this->pdo->prepare('DELETE FROM `unit_types` WHERE `id` = ?')->execute([$frontlineUnitTypeId]);
+      }
+    }
+  }
+
   /**
    * @param array<int,array<string,mixed>> $events
    * @return array<string,mixed>|null

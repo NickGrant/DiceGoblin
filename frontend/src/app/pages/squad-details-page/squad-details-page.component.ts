@@ -80,7 +80,20 @@ export class SquadDetailsPageComponent {
     }
 
     const nextValue = value && this.selectedUnitIds.has(value) ? value : null;
+    if (nextValue) {
+      this.clearFormationAssignmentsForUnit(nextValue, cell);
+    }
     this.formationAssignments.set(cell, nextValue);
+  }
+
+  isUnitAssignedElsewhere(cell: string, unitId: string): boolean {
+    for (const [assignedCell, assignedUnitId] of this.formationAssignments.entries()) {
+      if (assignedCell !== cell && assignedUnitId === unitId) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   formationForSave(): TeamFormationCell[] {
@@ -138,9 +151,9 @@ export class SquadDetailsPageComponent {
     }
   }
 
-  private clearFormationAssignmentsForUnit(unitId: string): void {
+  private clearFormationAssignmentsForUnit(unitId: string, exceptCell?: string): void {
     this.formationAssignments.forEach((assignedUnitId, cell) => {
-      if (assignedUnitId === unitId) {
+      if (assignedUnitId === unitId && cell !== exceptCell) {
         this.formationAssignments.set(cell, null);
       }
     });

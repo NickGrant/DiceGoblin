@@ -756,44 +756,53 @@ final class DeterministicRunNodeResolver
               continue;
             }
 
-            $aliveEnemyIds = $this->aliveUnitIds($enemyHp);
-            if (count($aliveEnemyIds) === 0) {
+            $abilityId = (string)$ability['ability_id'];
+            $targetPreference = (string)($ability['target'] ?? 'enemy_front_prefer');
+            $isSupportAbility = $this->isSupportTargetPreference($targetPreference);
+            $targetPoolHp = $isSupportAbility ? $playerHp : $enemyHp;
+            $targetPoolUnits = $isSupportAbility ? $playerById : $enemyById;
+            $targetKey = $isSupportAbility ? 'target_unit_instance_id' : 'target_enemy_slug';
+            $aliveTargetIds = $this->aliveUnitIds($targetPoolHp);
+            if (count($aliveTargetIds) === 0) {
               $combatOver = true;
               break 3;
             }
 
-              $enemyTargetId = $this->chooseTargetId(
-                $state,
-                $aliveEnemyIds,
-                $enemyById,
-                (string)($ability['target'] ?? 'enemy_front_prefer')
-              );
-              $enemyTarget = $enemyById[$enemyTargetId] ?? null;
-            if (!is_array($enemyTarget)) {
+            $targetId = $this->chooseTargetId(
+              $state,
+              $aliveTargetIds,
+              $targetPoolUnits,
+              $targetPreference,
+              $playerActorId,
+              $targetPoolHp
+            );
+            $targetUnit = $targetPoolUnits[$targetId] ?? null;
+            if (!is_array($targetUnit)) {
               continue;
             }
 
-            $abilityId = (string)$ability['ability_id'];
             $dice = $this->rollActionDice(
               $state,
               $this->resolvePlayerActionDiceSlots($playerActor, $abilityId),
               $abilityId,
               'player'
             );
-            $outcome = $this->deriveActionOutcome(
-              $state,
-              (int)$playerActor['attack'],
-              (int)$enemyTarget['defense'],
-              (int)($enemyHp[$enemyTargetId] ?? (int)$enemyTarget['max_hp']),
-              (int)$enemyTarget['max_hp'],
+            $outcome = $isSupportAbility
+              ? $this->deriveSupportOutcome($abilityRegistry, $abilityId, $targetId, $playerHp, $targetUnit)
+              : $this->deriveActionOutcome(
+                $state,
+                (int)$playerActor['attack'],
+                (int)$targetUnit['defense'],
+                (int)($enemyHp[$targetId] ?? (int)$targetUnit['max_hp']),
+                (int)$targetUnit['max_hp'],
                 $abilityId,
                 (int)$dice['dice_modifier'],
                 (array)($playerActor['combat_affixes'] ?? ['damage_flat' => 0, 'below_half_bonus' => 0.0]),
                 $dice,
                 (array)($playerActor['pos'] ?? ['x' => 1, 'y' => 1]),
-                (array)($enemyTarget['pos'] ?? ['x' => 1, 'y' => 1]),
+                (array)($targetUnit['pos'] ?? ['x' => 1, 'y' => 1]),
                 (array)($playerActor['formation'] ?? ['w' => 1, 'h' => 1]),
-                (array)($enemyTarget['formation'] ?? ['w' => 1, 'h' => 1]),
+                (array)($targetUnit['formation'] ?? ['w' => 1, 'h' => 1]),
                 $abilityRegistry,
               );
 
@@ -804,7 +813,7 @@ final class DeterministicRunNodeResolver
               'side' => 'player',
               'loadout_source' => 'equipped',
               'actor_unit_instance_id' => $playerActorId,
-              'target_enemy_slug' => $enemyTargetId,
+              $targetKey => $targetId,
               'ability_id' => $abilityId,
               'ability_instance_index' => ((int)($ability['equip_order'] ?? 0)) + 1,
               'dice_used' => $dice['dice_used'],
@@ -814,7 +823,9 @@ final class DeterministicRunNodeResolver
               'dice_outcome' => $dice['dice_outcome'],
               ...$outcome,
             ];
-            $enemyHp[$enemyTargetId] = (int)$outcome['target_hp_after'];
+            if (!$isSupportAbility) {
+              $enemyHp[$targetId] = (int)$outcome['target_hp_after'];
+            }
             $lastRound = $round;
             $lastTick = $tick;
             if ($this->countLivingUnits($enemyHp) === 0) {
@@ -836,44 +847,53 @@ final class DeterministicRunNodeResolver
               continue;
             }
 
-            $alivePlayerIds = $this->aliveUnitIds($playerHp);
-            if (count($alivePlayerIds) === 0) {
+            $abilityId = (string)$ability['ability_id'];
+            $targetPreference = (string)($ability['target'] ?? 'enemy_front_prefer');
+            $isSupportAbility = $this->isSupportTargetPreference($targetPreference);
+            $targetPoolHp = $isSupportAbility ? $enemyHp : $playerHp;
+            $targetPoolUnits = $isSupportAbility ? $enemyById : $playerById;
+            $targetKey = $isSupportAbility ? 'target_enemy_slug' : 'target_unit_instance_id';
+            $aliveTargetIds = $this->aliveUnitIds($targetPoolHp);
+            if (count($aliveTargetIds) === 0) {
               $combatOver = true;
               break 3;
             }
 
-              $playerTargetId = $this->chooseTargetId(
-                $state,
-                $alivePlayerIds,
-                $playerById,
-                (string)($ability['target'] ?? 'enemy_front_prefer')
-              );
-              $playerTarget = $playerById[$playerTargetId] ?? null;
-            if (!is_array($playerTarget)) {
+            $targetId = $this->chooseTargetId(
+              $state,
+              $aliveTargetIds,
+              $targetPoolUnits,
+              $targetPreference,
+              $enemyActorId,
+              $targetPoolHp
+            );
+            $targetUnit = $targetPoolUnits[$targetId] ?? null;
+            if (!is_array($targetUnit)) {
               continue;
             }
 
-            $abilityId = (string)$ability['ability_id'];
             $dice = $this->rollActionDice(
               $state,
               $this->resolveEnemyActionDiceSlots($abilityId),
               $abilityId,
               'enemy'
             );
-            $outcome = $this->deriveActionOutcome(
-              $state,
-              (int)$enemyActor['attack'],
-              (int)$playerTarget['defense'],
-              (int)($playerHp[$playerTargetId] ?? (int)$playerTarget['max_hp']),
-              (int)$playerTarget['max_hp'],
+            $outcome = $isSupportAbility
+              ? $this->deriveSupportOutcome($abilityRegistry, $abilityId, $targetId, $enemyHp, $targetUnit)
+              : $this->deriveActionOutcome(
+                $state,
+                (int)$enemyActor['attack'],
+                (int)$targetUnit['defense'],
+                (int)($playerHp[$targetId] ?? (int)$targetUnit['max_hp']),
+                (int)$targetUnit['max_hp'],
                 $abilityId,
                 (int)$dice['dice_modifier'],
                 ['damage_flat' => 0, 'below_half_bonus' => 0.0],
                 $dice,
                 (array)($enemyActor['pos'] ?? ['x' => 1, 'y' => 1]),
-                (array)($playerTarget['pos'] ?? ['x' => 1, 'y' => 1]),
+                (array)($targetUnit['pos'] ?? ['x' => 1, 'y' => 1]),
                 (array)($enemyActor['formation'] ?? ['w' => 1, 'h' => 1]),
-                (array)($playerTarget['formation'] ?? ['w' => 1, 'h' => 1]),
+                (array)($targetUnit['formation'] ?? ['w' => 1, 'h' => 1]),
                 $abilityRegistry,
               );
 
@@ -884,7 +904,7 @@ final class DeterministicRunNodeResolver
               'side' => 'enemy',
               'loadout_source' => 'enemy_authored',
               'actor_enemy_slug' => $enemyActorId,
-              'target_unit_instance_id' => $playerTargetId,
+              $targetKey => $targetId,
               'ability_id' => $abilityId,
               'ability_instance_index' => ((int)($ability['equip_order'] ?? 0)) + 1,
               'dice_used' => $dice['dice_used'],
@@ -894,7 +914,9 @@ final class DeterministicRunNodeResolver
               'dice_outcome' => $dice['dice_outcome'],
               ...$outcome,
             ];
-            $playerHp[$playerTargetId] = (int)$outcome['target_hp_after'];
+            if (!$isSupportAbility) {
+              $playerHp[$targetId] = (int)$outcome['target_hp_after'];
+            }
             $lastRound = $round;
             $lastTick = $tick;
             if ($this->countLivingUnits($playerHp) === 0) {
@@ -1009,10 +1031,38 @@ final class DeterministicRunNodeResolver
    * @param array<int,string> $aliveIds
    * @param array<string,array<string,mixed>> $unitsById
    */
-  private function chooseTargetId(string &$state, array $aliveIds, array $unitsById, string $targetPreference): string
+  private function chooseTargetId(
+    string &$state,
+    array $aliveIds,
+    array $unitsById,
+    string $targetPreference,
+    ?string $actorId = null,
+    array $currentHpByUnitId = []
+  ): string
   {
+    if ($targetPreference === 'self' && $actorId !== null && in_array($actorId, $aliveIds, true)) {
+      return $actorId;
+    }
+
     if (count($aliveIds) <= 1) {
       return (string)($aliveIds[0] ?? '');
+    }
+
+    if ($targetPreference === 'ally_lowest_hp_pct') {
+      $bestId = (string)$aliveIds[0];
+      $bestRatio = 2.0;
+      foreach ($aliveIds as $unitId) {
+        $unit = $unitsById[$unitId] ?? [];
+        $currentHp = max(0, (int)($currentHpByUnitId[$unitId] ?? ($unit['current_hp'] ?? 0)));
+        $maxHp = max(1, (int)($unit['max_hp'] ?? 1));
+        $ratio = $currentHp / $maxHp;
+        if ($ratio < $bestRatio) {
+          $bestId = (string)$unitId;
+          $bestRatio = $ratio;
+        }
+      }
+
+      return $bestId;
     }
 
     $preferFront = str_contains($targetPreference, 'front');
@@ -1054,6 +1104,11 @@ final class DeterministicRunNodeResolver
     }));
 
     return (string)$preferredIds[$this->nextInt($state, count($preferredIds))];
+  }
+
+  private function isSupportTargetPreference(string $targetPreference): bool
+  {
+    return $targetPreference === 'self' || str_starts_with($targetPreference, 'ally_');
   }
 
   /**
@@ -1199,6 +1254,42 @@ final class DeterministicRunNodeResolver
       'status_duration_rounds' => $statusDuration,
       'ability_outcome' => implode(', ', $abilityOutcomeParts),
       'affix_outcome' => count($affixOutcomeParts) > 0 ? implode(', ', $affixOutcomeParts) : null,
+    ];
+  }
+
+  /**
+   * @param array<string,int> $currentHpByUnitId
+   * @param array<string,mixed> $targetUnit
+   * @return array{damage:int,target_hp_after:int,outcome:string,status_applied:?string,status_duration_rounds:?int,ability_outcome:string,affix_outcome:?string}
+   */
+  private function deriveSupportOutcome(
+    AbilityRegistry $abilityRegistry,
+    string $abilityId,
+    string $targetId,
+    array $currentHpByUnitId,
+    array $targetUnit
+  ): array {
+    $status = $this->supportStatusEffect($abilityId);
+    $statusDuration = $this->deriveStatusDurationRounds($abilityRegistry, $abilityId, $status);
+    $targetHp = (int)($currentHpByUnitId[$targetId] ?? (int)($targetUnit['max_hp'] ?? 0));
+
+    $abilityOutcomeParts = [];
+    if ($status !== null) {
+      $abilityOutcomeParts[] = $statusDuration !== null
+        ? sprintf('%s applied for %d rounds', $status, $statusDuration)
+        : sprintf('%s applied', $status);
+    } else {
+      $abilityOutcomeParts[] = 'support effect applied';
+    }
+
+    return [
+      'damage' => 0,
+      'target_hp_after' => $targetHp,
+      'outcome' => 'buffed',
+      'status_applied' => $status,
+      'status_duration_rounds' => $statusDuration,
+      'ability_outcome' => implode(', ', $abilityOutcomeParts),
+      'affix_outcome' => null,
     ];
   }
 
@@ -1525,19 +1616,29 @@ final class DeterministicRunNodeResolver
   private function pickStatusEffect(string &$state, string $abilityId): ?string
   {
     $ability = strtolower($abilityId);
+    if (str_contains($ability, 'bolster') || str_contains($ability, 'shield')) {
+      return 'bolstered';
+    }
     if (str_contains($ability, 'poison')) {
       return 'poison';
     }
     if (str_contains($ability, 'sleep')) {
       return 'sleep';
     }
-    if (str_contains($ability, 'shield')) {
-      return 'guard_up';
-    }
 
     // Low deterministic chance to apply bleed on generic attacks.
     if ($this->nextInt($state, 10) === 0) {
       return 'bleed';
+    }
+
+    return null;
+  }
+
+  private function supportStatusEffect(string $abilityId): ?string
+  {
+    $ability = strtolower($abilityId);
+    if (str_contains($ability, 'bolster') || str_contains($ability, 'shield')) {
+      return 'bolstered';
     }
 
     return null;

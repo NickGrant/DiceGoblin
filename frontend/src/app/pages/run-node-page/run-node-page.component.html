@@ -20,8 +20,49 @@
         @if (result()) {
         <h2 class="dg-stencil mb-3">Battle Result</h2>
         <p class="mb-2">Outcome: {{ result()!.battle.outcome }}</p>
-        <p class="mb-2">Rounds: {{ result()!.battle.rounds }} · Ticks: {{ result()!.battle.ticks }}</p>
-        <p class="mb-3">Battle details coming soon.</p>
+        <p class="mb-2">Rounds: {{ result()!.battle.rounds }} | Ticks: {{ result()!.battle.ticks }}</p>
+        @if (abilityCatalogError()) {
+        <dg-alert tone="error" class="mb-3">{{ abilityCatalogError() }}</dg-alert>
+        }
+
+        <div class="battle-log mb-3">
+          <div class="battle-log__header">
+            <h3 class="dg-stencil mb-0">Battle Log</h3>
+            <span class="dg-chip">{{ actionLog().length }} action(s)</span>
+          </div>
+
+          @if (actionLog().length) {
+          <div class="battle-log__table-wrap">
+            <table class="battle-log__table">
+              <thead>
+                <tr>
+                  <th>Tick</th>
+                  <th>Unit</th>
+                  <th>Ability</th>
+                  <th>Dice Rolled</th>
+                  <th>Target</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (entry of actionLog(); track $index) {
+                <tr>
+                  <td>R{{ entry.round }} T{{ entry.tick }}</td>
+                  <td>{{ entry.actorName }}</td>
+                  <td>{{ entry.abilityName }}</td>
+                  <td>{{ entry.diceSummary }}</td>
+                  <td>{{ entry.targetName }}</td>
+                  <td>{{ entry.resultSummary }}</td>
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          } @else {
+          <p class="mb-0">No action events were captured for this node.</p>
+          }
+        </div>
+
         <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
           {{ busy() ? 'Working...' : 'Claim Rewards' }}
         </button>
@@ -38,7 +79,7 @@
       <div class="dg-card p-3 h-100">
         <h3 class="dg-stencil">Status</h3>
         @if (result()) {
-        <p class="mb-0">{{ result()!.node.status }} · {{ result()!.next.unlocked_node_ids.length }} node(s) unlocked</p>
+        <p class="mb-0">{{ result()!.node.status }} | {{ result()!.next.unlocked_node_ids.length }} node(s) unlocked</p>
         } @else {
         <p class="mb-0">Waiting for resolution.</p>
         }

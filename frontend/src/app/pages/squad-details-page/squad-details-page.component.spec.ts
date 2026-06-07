@@ -125,6 +125,30 @@ describe('SquadDetailsPageComponent', () => {
     expect(fixture.componentInstance.formationAssignments.get('B2')).toBe('u1');
   });
 
+  it('moves a unit out of its previous formation slot when assigned to a new one', async () => {
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.setCell('B2', 'u1');
+
+    expect(fixture.componentInstance.formationAssignments.get('A1')).toBeNull();
+    expect(fixture.componentInstance.formationAssignments.get('B2')).toBe('u1');
+    expect(fixture.componentInstance.isUnitAssignedElsewhere('A1', 'u1')).toBeTrue();
+    expect(fixture.componentInstance.isUnitAssignedElsewhere('B2', 'u1')).toBeFalse();
+  });
+
   it('shows a lock message and blocks squad mutations during an active run', async () => {
     class LockedSessionServiceStub extends SessionServiceStub {
       override readonly squads = signal([

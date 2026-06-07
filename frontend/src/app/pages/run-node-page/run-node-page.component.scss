@@ -1,3 +1,41 @@
 :host {
   display: block;
 }
+
+.battle-log {
+  border: 1px solid rgba(16, 24, 40, 0.14);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.battle-log__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.battle-log__table-wrap {
+  overflow-x: auto;
+}
+
+.battle-log__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 920px;
+}
+
+.battle-log__table th,
+.battle-log__table td {
+  padding: 0.75rem;
+  border-top: 1px solid rgba(16, 24, 40, 0.12);
+  text-align: left;
+  vertical-align: top;
+}
+
+.battle-log__table thead th {
+  border-top: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

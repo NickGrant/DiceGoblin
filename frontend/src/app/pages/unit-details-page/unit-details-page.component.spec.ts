@@ -94,7 +94,28 @@ class UnitServiceStub {
   getPromotionOptions = jasmine.createSpy('getPromotionOptions').and.resolveTo({
     ok: true,
     data: {
-      options: [{ target_unit_type_id: 'dest-1', target_unit_type_name: 'Dire Wolf', mode: 'chain' }],
+      options: [
+        {
+          branch_unit_type_id: 'bruiser-1',
+          branch_unit_type_slug: 'frontline_bruiser_t1',
+          branch_unit_type_name: 'Bruiser',
+          target_unit_type_id: 'dest-1',
+          target_unit_type_slug: 'frontline_bruiser_t2',
+          target_unit_type_name: 'Enforcer',
+          target_tier: 2,
+          mode: 'chain',
+        },
+        {
+          branch_unit_type_id: 'guardian-1',
+          branch_unit_type_slug: 'frontline_guardian_t1',
+          branch_unit_type_name: 'Guardian',
+          target_unit_type_id: 'dest-2',
+          target_unit_type_slug: 'frontline_guardian_t2',
+          target_unit_type_name: 'Bulwark',
+          target_tier: 2,
+          mode: 'sideways',
+        },
+      ],
     },
   });
   renameUnit = jasmine.createSpy('renameUnit').and.resolveTo({ ok: true });
@@ -214,6 +235,8 @@ describe('UnitDetailsPageComponent', () => {
     expect(component.learnedPassiveAbilities().map((ability) => ability.abilityId)).toEqual(['thick_hide']);
     component.setActiveTab('promotion');
     expect(component.eligiblePromotionCandidates().map((unit) => unit.id)).toEqual(['u2']);
+    expect(component.promotionOptionLabel(component.promotionOptions()[0])).toBe('Enforcer - chain');
+    expect(component.promotionOptionLabel(component.promotionOptions()[1])).toBe('Guardian - sideways');
   });
 
   it('builds slot editors from learned active abilities and filters picker dice to free or current-slot dice', async () => {
