@@ -20,6 +20,7 @@ class RunServiceStub {
         rounds: 2,
         ticks: 12,
         status: 'completed',
+        reward_preview: null,
         log: {
           events: [
             {
@@ -191,5 +192,66 @@ describe('RunNodePageComponent', () => {
     expect(host.textContent).toContain('Bolster Ally');
     expect(host.textContent).toContain('Bogwort');
     expect(host.textContent).toContain('bolstered applied for 2 rounds');
+  });
+
+  it('shows a treasure-focused reward summary for loot nodes', async () => {
+    const lootRunService = new RunServiceStub();
+    lootRunService.resolveNode.and.resolveTo({
+      ok: true,
+      data: {
+        node: { id: 'n1', status: 'cleared' },
+        battle: {
+          battle_id: 'b2',
+          outcome: 'victory',
+          rounds: 0,
+          ticks: 0,
+          status: 'completed',
+          reward_preview: {
+            node_type: 'loot',
+            xp_total: 0,
+            currency_soft: 5,
+            new_unit_labels: ['Warcaller'],
+            new_dice_labels: ['bone d6'],
+          },
+          log: {
+            meta: { node_type: 'loot' },
+            events: [],
+          },
+        },
+        next: { unlocked_node_ids: ['n2', 'n3'] },
+      },
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: lootRunService },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+    await fixture.componentInstance.resolveNode();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.isLootNode()).toBeTrue();
+    expect(fixture.componentInstance.lootRewards()).toEqual({
+      teeth: 5,
+      diceLabels: ['bone d6'],
+      unitLabels: ['Warcaller'],
+    });
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.textContent).toContain('Treasure Found');
+    expect(host.textContent).toContain('bone d6');
+    expect(host.textContent).toContain('Warcaller');
+    expect(host.textContent).not.toContain('Battle Log');
   });
 });

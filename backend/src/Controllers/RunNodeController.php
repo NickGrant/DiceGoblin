@@ -32,6 +32,7 @@ use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Services\UnitNameGenerator;
+use DiceGoblins\Support\RunSummaryBuilder;
 
 use PDO;
 use RuntimeException;
@@ -215,6 +216,7 @@ final class RunNodeController
           $svc['battleRepo']->deleteBattleForRetry((int)$existing['id'], $userId);
         } else {
           $existingLog = $svc['battleLogRepo']->getForUser((int)$existing['id'], $userId);
+          $existingRewards = $svc['battleRewardsRepo']->getForBattle((int)$existing['id']);
           $pdo->commit();
           Response::json([
             'ok' => true,
@@ -230,6 +232,12 @@ final class RunNodeController
                 'ticks' => (int)$existing['ticks'],
                 'status' => (string)$existing['status'],
                 'log' => $this->decodeLogJson($existingLog['log_json'] ?? null),
+                'reward_preview' => $this->buildRewardPreview(
+                  $pdo,
+                  $userId,
+                  (string)($node['node_type'] ?? ''),
+                  $existingRewards
+                ),
               ],
               'next' => [
                 'unlocked_node_ids' => $svc['runNodeRepo']->listAvailableNodeIds($runIdInt),
@@ -297,6 +305,16 @@ final class RunNodeController
         (int)$resolution['currency_soft'],
         $resolvedRewards
       );
+      $rewardPreview = $this->buildRewardPreview(
+        $pdo,
+        $userId,
+        (string)($node['node_type'] ?? ''),
+        [
+          'xp_total' => (int)$resolution['xp_total'],
+          'currency_soft' => (int)$resolution['currency_soft'],
+          'rewards_json' => json_encode($resolvedRewards, JSON_UNESCAPED_SLASHES),
+        ]
+      );
 
       $isCombatLikeNode = ((string)$node['node_type'] === 'combat' || (string)$node['node_type'] === 'boss');
       $runFailed = $isCombatLikeNode && $outcome === 'defeat';
@@ -336,6 +354,7 @@ final class RunNodeController
             'ticks' => $ticks,
             'status' => 'completed',
             'log' => $resolution['log'],
+            'reward_preview' => $rewardPreview,
           ],
           'next' => [
             'unlocked_node_ids' => array_map('strval', $unlocked),
@@ -372,6 +391,39 @@ final class RunNodeController
     }
 
     return $decoded;
+  }
+
+  /**
+   * @param array{xp_total:int,currency_soft:int,rewards_json:string}|null $rewardRow
+   * @return array{
+   *   node_type:string,
+   *   xp_total:int,
+   *   currency_soft:int,
+   *   new_unit_labels:array<int,string>,
+   *   new_dice_labels:array<int,string>
+   * }|null
+   */
+  private function buildRewardPreview(PDO $pdo, int $userId, string $nodeType, ?array $rewardRow): ?array
+  {
+    if ($rewardRow === null) {
+      return null;
+    }
+
+    $rewards = json_decode((string)($rewardRow['rewards_json'] ?? ''), true);
+    if (!is_array($rewards)) {
+      $rewards = [];
+    }
+
+    $summaryBuilder = new RunSummaryBuilder($pdo);
+    $labels = $summaryBuilder->buildBattleRewardLabels($userId, $rewards);
+
+    return [
+      'node_type' => $nodeType,
+      'xp_total' => max(0, (int)($rewardRow['xp_total'] ?? 0)),
+      'currency_soft' => max(0, (int)($rewardRow['currency_soft'] ?? 0)),
+      'new_unit_labels' => array_values(is_array($labels['new_unit_labels'] ?? null) ? $labels['new_unit_labels'] : []),
+      'new_dice_labels' => array_values(is_array($labels['new_dice_labels'] ?? null) ? $labels['new_dice_labels'] : []),
+    ];
   }
 
   /**

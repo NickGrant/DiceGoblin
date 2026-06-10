@@ -2,6 +2,48 @@
   display: block;
 }
 
+.loot-node__hero {
+  padding: 1rem;
+  border: 1px solid rgba(16, 24, 40, 0.14);
+  background:
+    linear-gradient(135deg, rgba(164, 116, 27, 0.16), rgba(255, 248, 220, 0.7)),
+    rgba(255, 255, 255, 0.6);
+}
+
+.loot-node__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.loot-node__stat,
+.loot-node__block {
+  border: 1px solid rgba(16, 24, 40, 0.14);
+  background: rgba(255, 255, 255, 0.58);
+  padding: 0.9rem 1rem;
+}
+
+.loot-node__stat strong {
+  display: block;
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+
+.loot-node__label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.loot-node__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .battle-log {
   border: 1px solid rgba(16, 24, 40, 0.14);
   background: rgba(255, 255, 255, 0.58);
@@ -38,4 +80,10 @@
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+@media (max-width: 767.98px) {
+  .loot-node__summary {
+    grid-template-columns: 1fr;
+  }
 }

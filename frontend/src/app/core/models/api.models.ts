@@ -290,6 +290,13 @@ export type ResolveNodeData = {
     rounds: number;
     ticks: number;
     status: string;
+    reward_preview?: {
+      node_type: string;
+      xp_total: number;
+      currency_soft: number;
+      new_unit_labels: string[];
+      new_dice_labels: string[];
+    } | null;
     log: {
       meta?: Record<string, unknown>;
       events?: Array<Record<string, unknown>>;

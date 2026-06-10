@@ -137,6 +137,11 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame(200, $lootRes['status']);
     $lootBattleId = (int)($lootRes['body']['data']['battle']['battle_id'] ?? 0);
     $this->assertGreaterThan(0, $lootBattleId);
+    $lootPreview = $lootRes['body']['data']['battle']['reward_preview'] ?? null;
+    $this->assertIsArray($lootPreview);
+    $this->assertSame('loot', (string)($lootPreview['node_type'] ?? ''));
+    $this->assertSame(0, (int)($lootPreview['xp_total'] ?? -1));
+    $this->assertSame(5, (int)($lootPreview['currency_soft'] ?? -1));
     [$lootXp, $lootSoft] = $this->battleRewardTuple($lootBattleId);
     $this->assertSame(0, $lootXp);
     $this->assertSame(5, $lootSoft);

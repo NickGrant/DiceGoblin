@@ -18,6 +18,12 @@ type BattleLogActionViewModel = {
   resultSummary: string;
 };
 
+type LootRewardSummary = {
+  teeth: number;
+  diceLabels: string[];
+  unitLabels: string[];
+};
+
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
@@ -40,6 +46,28 @@ export class RunNodePageComponent {
   readonly error = signal<string | null>(null);
   readonly abilityCatalogError = this.abilityCatalogService.error;
   readonly abilityCatalog = this.abilityCatalogService.abilityMap;
+  readonly resolvedNodeType = computed(() => {
+    const previewType = this.result()?.battle.reward_preview?.node_type;
+    if (typeof previewType === 'string' && previewType.length > 0) {
+      return previewType;
+    }
+
+    const metaNodeType = this.result()?.battle.log?.meta?.['node_type'];
+    return typeof metaNodeType === 'string' ? metaNodeType : 'combat';
+  });
+  readonly isLootNode = computed(() => this.resolvedNodeType() === 'loot');
+  readonly lootRewards = computed<LootRewardSummary | null>(() => {
+    const preview = this.result()?.battle.reward_preview;
+    if (!preview || this.resolvedNodeType() !== 'loot') {
+      return null;
+    }
+
+    return {
+      teeth: this.numberValue(preview.currency_soft),
+      diceLabels: Array.isArray(preview.new_dice_labels) ? preview.new_dice_labels : [],
+      unitLabels: Array.isArray(preview.new_unit_labels) ? preview.new_unit_labels : [],
+    };
+  });
   readonly actionLog = computed<BattleLogActionViewModel[]>(() => {
     const log = this.result()?.battle.log;
     const events = Array.isArray(log?.events) ? log.events : [];

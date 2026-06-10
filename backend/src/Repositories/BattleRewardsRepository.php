@@ -49,4 +49,29 @@ final class BattleRewardsRepository
       $battleId,
     ]);
   }
+
+  /**
+   * @return array{xp_total:int,currency_soft:int,rewards_json:string}|null
+   */
+  public function getForBattle(int $battleId): ?array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT `xp_total`, `currency_soft`, `rewards_json`
+      FROM `battle_rewards`
+      WHERE `battle_id` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([$battleId]);
+
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$row) {
+      return null;
+    }
+
+    return [
+      'xp_total' => (int)$row['xp_total'],
+      'currency_soft' => (int)$row['currency_soft'],
+      'rewards_json' => (string)$row['rewards_json'],
+    ];
+  }
 }
