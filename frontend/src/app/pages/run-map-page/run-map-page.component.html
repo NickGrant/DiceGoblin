@@ -16,65 +16,67 @@
 
   @if (run()) {
   <div class="vstack gap-4">
-    <div class="dg-card p-3">
-      <div class="run-map-scroll">
-        <svg
-          class="run-map"
-          [attr.viewBox]="'0 0 ' + mapWidth() + ' 320'"
-          preserveAspectRatio="xMinYMid meet"
-          [style.width.px]="mapWidth()"
-        >
-          @for (edge of edges(); track edge.edge_id) {
-          <line
-            [attr.x1]="edgeX(edge.from_node_id)"
-            [attr.y1]="edgeY(edge.from_node_id)"
-            [attr.x2]="edgeX(edge.to_node_id)"
-            [attr.y2]="edgeY(edge.to_node_id)"
-            stroke="rgba(35,39,42,0.45)"
-            stroke-width="6"
-            stroke-linecap="round"
-          ></line>
-          }
-          @for (node of nodes(); track node.id) {
-          <g
-            class="run-map__node"
-            [class.run-map__node--available]="node.status === 'available'"
-            [class.run-map__node--disabled]="node.status !== 'available'"
-            role="button"
-            [attr.tabindex]="node.status === 'available' ? 0 : -1"
-            [attr.aria-label]="nodeTypeLabel(node.node_type) + ' node ' + node.status"
-            (click)="openNode(node)"
-            (keydown.enter)="openNode(node)"
-            (keydown.space)="openNode(node); $event.preventDefault()"
+    <div class="row g-4 align-items-stretch">
+      <div class="col-xl-9">
+        <div class="dg-card p-3 h-100 run-map-shell">
+          <div
+            class="run-map-scroll"
+            [style.background-image]="mapBackgroundUrl() ? 'linear-gradient(rgba(12, 16, 18, 0.38), rgba(12, 16, 18, 0.6)), url(' + mapBackgroundUrl() + ')' : null"
           >
-            <circle
-              [attr.cx]="nodeX(node)"
-              [attr.cy]="nodeY(node)"
-              r="34"
-              [attr.fill]="node.status === 'available' ? '#b91c1c' : (node.status === 'cleared' ? '#006f7a' : '#9ea6ad')"
-            ></circle>
-            <image
-              [attr.href]="iconForNode(node)"
-              [attr.x]="nodeX(node) - 30"
-              [attr.y]="nodeY(node) - 30"
-              width="60"
-              height="60"
-              preserveAspectRatio="xMidYMid meet"
-            ></image>
-          </g>
-          }
-        </svg>
-      </div>
-    </div>
-
-    <div class="row g-4">
-      <div class="col-xl-3">
-        <aside class="dg-card p-3 h-100">
-          <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-            <h2 class="dg-stencil mb-0">Legend</h2>
-            <button dgCommandBtn="primary" type="button" (click)="abandonRun()" [disabled]="working()">Abandon Run</button>
+            <svg
+              class="run-map"
+              [attr.viewBox]="'0 0 ' + mapWidth() + ' 320'"
+              preserveAspectRatio="xMinYMid meet"
+              [style.width.px]="mapWidth()"
+            >
+              @for (edge of edges(); track edge.edge_id) {
+              <line
+                [attr.x1]="edgeX(edge.from_node_id)"
+                [attr.y1]="edgeY(edge.from_node_id)"
+                [attr.x2]="edgeX(edge.to_node_id)"
+                [attr.y2]="edgeY(edge.to_node_id)"
+                stroke="rgba(35,39,42,0.45)"
+                stroke-width="6"
+                stroke-linecap="round"
+              ></line>
+              }
+              @for (node of nodes(); track node.id) {
+              <g
+                class="run-map__node"
+                [class.run-map__node--available]="node.status === 'available'"
+                [class.run-map__node--disabled]="node.status !== 'available'"
+                role="button"
+                [attr.tabindex]="node.status === 'available' ? 0 : -1"
+                [attr.aria-label]="nodeTypeLabel(node.node_type) + ' node ' + node.status"
+                (click)="openNode(node)"
+                (keydown.enter)="openNode(node)"
+                (keydown.space)="openNode(node); $event.preventDefault()"
+              >
+                <circle
+                  [attr.cx]="nodeX(node)"
+                  [attr.cy]="nodeY(node)"
+                  r="34"
+                  [attr.fill]="node.status === 'available' ? '#b91c1c' : (node.status === 'cleared' ? '#006f7a' : '#9ea6ad')"
+                ></circle>
+                <image
+                  [attr.href]="iconForNode(node)"
+                  [attr.x]="nodeX(node) - 30"
+                  [attr.y]="nodeY(node) - 30"
+                  width="60"
+                  height="60"
+                  preserveAspectRatio="xMidYMid meet"
+                ></image>
+              </g>
+              }
+            </svg>
           </div>
-          <div class="vstack gap-2">
+        </div>
+      </div>
+
+      <div class="col-xl-3">
+        <aside class="dg-card p-3 h-100 d-flex flex-column">
+          <h2 class="dg-stencil">Legend</h2>
+          <div class="vstack gap-2 mb-3">
             @for (entry of legendEntries(); track entry.type) {
             <div class="run-map-page__legend-row">
               <img class="run-map-page__legend-icon" [src]="entry.icon" alt="" aria-hidden="true" />
@@ -82,10 +84,15 @@
             </div>
             }
           </div>
+          <button dgCommandBtn="primary" type="button" (click)="abandonRun()" [disabled]="working()" class="w-100 mt-auto">
+            Abandon Run
+          </button>
         </aside>
       </div>
+    </div>
 
-      <div class="col-xl-9">
+    <div class="row g-4">
+      <div class="col-12">
         <div class="dg-card p-3 h-100">
           <dg-run-unit-formation-grid [cells]="formationGrid()" />
         </div>

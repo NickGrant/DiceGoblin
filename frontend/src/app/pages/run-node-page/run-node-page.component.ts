@@ -8,6 +8,8 @@ import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
 
+const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss', 'loot']);
+
 type BattleLogActionViewModel = {
   round: number;
   tick: number;
@@ -32,6 +34,11 @@ type LootRewardSummary = {
   styleUrl: './run-node-page.component.scss',
 })
 export class RunNodePageComponent {
+  private static readonly BATTLE_TITLE = 'BATTLE!';
+  private static readonly LOOT_TITLE = 'A respectable acquisition of wealth';
+  private static readonly BATTLE_SUBTITLE = 'Several goblins have volunteered to be an educational example.';
+  private static readonly LOOT_SUBTITLE = 'No heroism required, just strong knees and stronger pockets.';
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly runService = inject(RunService);
@@ -44,6 +51,8 @@ export class RunNodePageComponent {
   readonly loading = signal(true);
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
+  readonly nodeType = signal<string | null>(null);
+  readonly shouldAutoResolve = computed(() => AUTO_RESOLVE_NODE_TYPES.has(this.nodeType() ?? ''));
   readonly abilityCatalogError = this.abilityCatalogService.error;
   readonly abilityCatalog = this.abilityCatalogService.abilityMap;
   readonly resolvedNodeType = computed(() => {
@@ -56,6 +65,26 @@ export class RunNodePageComponent {
     return typeof metaNodeType === 'string' ? metaNodeType : 'combat';
   });
   readonly isLootNode = computed(() => this.resolvedNodeType() === 'loot');
+  readonly pageTitle = computed(() => {
+    if (this.isLootNode() || this.nodeType() === 'loot') {
+      return RunNodePageComponent.LOOT_TITLE;
+    }
+
+    if (this.shouldAutoResolve()) {
+      return RunNodePageComponent.BATTLE_TITLE;
+    }
+
+    return `Node ${this.nodeId}`;
+  });
+  readonly pageSubtitle = computed(() => {
+    if (!this.result()) {
+      return '';
+    }
+
+    return this.isLootNode()
+      ? RunNodePageComponent.LOOT_SUBTITLE
+      : RunNodePageComponent.BATTLE_SUBTITLE;
+  });
   readonly lootRewards = computed<LootRewardSummary | null>(() => {
     const preview = this.result()?.battle.reward_preview;
     if (!preview || this.resolvedNodeType() !== 'loot') {
@@ -97,13 +126,21 @@ export class RunNodePageComponent {
 
   async loadRun(): Promise<void> {
     this.loading.set(true);
+    this.error.set(null);
     try {
       const current = await this.runService.getCurrentRun();
       if (!current.ok || !current.data.run) {
         this.error.set(current.ok ? 'No active run.' : current.error.message);
         return;
       }
+
+      const currentNode = current.data.map?.nodes.find((node) => node.id === this.nodeId) ?? null;
+      this.nodeType.set(currentNode?.node_type ?? null);
       this.runId.set(current.data.run.run_id);
+
+      if (currentNode && AUTO_RESOLVE_NODE_TYPES.has(currentNode.node_type)) {
+        await this.resolveNode();
+      }
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to load node.');
     } finally {

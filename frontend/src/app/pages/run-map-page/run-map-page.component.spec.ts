@@ -8,7 +8,7 @@ class RunServiceStub {
   getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
     ok: true,
     data: {
-      run: { run_id: 'run-1', status: 'active' },
+      run: { run_id: 'run-1', region_id: '1', status: 'active' },
       map: {
         nodes: [
           { id: 'n1', node_index: 0, node_type: 'combat', status: 'available' },
@@ -27,6 +27,11 @@ class RunServiceStub {
 }
 
 class SessionServiceStub {
+  readonly profileData = () =>
+    ({
+      active_run: { run_id: 'run-1', region_id: '1' },
+      region_unlocks: [{ region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' }],
+    }) as any;
   readonly units = () => [
     { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', max_hp: 10 },
     { id: 'u2', name: 'Moss', unit_type_name: 'Guardian', max_hp: 12 },
@@ -63,6 +68,7 @@ describe('RunMapPageComponent', () => {
     expect(fixture.componentInstance.loading()).toBeFalse();
     expect(fixture.componentInstance.iconForNodeType('combat')).toContain('icon_encounter_combat.png');
     expect(fixture.componentInstance.iconForNodeType('exit')).toContain('icon_home.png');
+    expect(fixture.componentInstance.mapBackgroundUrl()).toBe('/assets/ui/biome/farm.png');
     expect(fixture.componentInstance.formationGrid().length).toBe(9);
     expect(fixture.componentInstance.formationGrid().find((cell) => cell.cell === 'A1')?.entry?.currentHp).toBe(6);
   });

@@ -8,7 +8,13 @@ import { SessionService } from '../../core/services/session/session.service';
 class RunServiceStub {
   getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
     ok: true,
-    data: { run: { run_id: 'run-1' } },
+    data: {
+      run: { run_id: 'run-1' },
+      map: {
+        nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'combat', status: 'available' }],
+        edges: [],
+      },
+    },
   });
   resolveNode = jasmine.createSpy('resolveNode').and.resolveTo({
     ok: true,
@@ -120,6 +126,63 @@ describe('RunNodePageComponent', () => {
     expect(fixture.componentInstance.runId()).toBe('run-1');
   });
 
+  it('auto-resolves combat nodes on first load', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+
+    const runService = TestBed.inject(RunService) as unknown as RunServiceStub;
+    expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', 'n1');
+    expect(fixture.componentInstance.result()?.battle.battle_id).toBe('b1');
+    expect(fixture.componentInstance.pageTitle()).toBe('BATTLE!');
+    expect(fixture.componentInstance.pageSubtitle()).toBe(
+      'Several goblins have volunteered to be an educational example.',
+    );
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.textContent).not.toContain('Resolve Node');
+  });
+
+  it('uses an empty subtitle while a battle node is still loading', async () => {
+    const deferredResolve = new Promise<any>(() => {});
+    const runService = new RunServiceStub();
+    runService.resolveNode.and.returnValue(deferredResolve);
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: runService },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    fixture.detectChanges();
+    await Promise.resolve();
+
+    expect(fixture.componentInstance.pageTitle()).toBe('BATTLE!');
+    expect(fixture.componentInstance.pageSubtitle()).toBe('');
+  });
+
   it('routes back to the map after claiming non-terminal rewards', async () => {
     await TestBed.configureTestingModule({
       imports: [RunNodePageComponent],
@@ -139,7 +202,6 @@ describe('RunNodePageComponent', () => {
     spyOn(router, 'navigateByUrl').and.resolveTo(true);
     const fixture = TestBed.createComponent(RunNodePageComponent);
     await fixture.whenStable();
-    await fixture.componentInstance.resolveNode();
     await fixture.componentInstance.claimRewards();
 
     expect(router.navigateByUrl).toHaveBeenCalledWith('/run/map');
@@ -162,7 +224,6 @@ describe('RunNodePageComponent', () => {
 
     const fixture = TestBed.createComponent(RunNodePageComponent);
     await fixture.whenStable();
-    await fixture.componentInstance.resolveNode();
     fixture.detectChanges();
 
     expect(fixture.componentInstance.actionLog()).toEqual([
@@ -196,6 +257,16 @@ describe('RunNodePageComponent', () => {
 
   it('shows a treasure-focused reward summary for loot nodes', async () => {
     const lootRunService = new RunServiceStub();
+    lootRunService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: 'run-1' },
+        map: {
+          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'loot', status: 'available' }],
+          edges: [],
+        },
+      },
+    });
     lootRunService.resolveNode.and.resolveTo({
       ok: true,
       data: {
@@ -238,7 +309,6 @@ describe('RunNodePageComponent', () => {
 
     const fixture = TestBed.createComponent(RunNodePageComponent);
     await fixture.whenStable();
-    await fixture.componentInstance.resolveNode();
     fixture.detectChanges();
 
     expect(fixture.componentInstance.isLootNode()).toBeTrue();
@@ -247,6 +317,10 @@ describe('RunNodePageComponent', () => {
       diceLabels: ['bone d6'],
       unitLabels: ['Warcaller'],
     });
+    expect(fixture.componentInstance.pageTitle()).toBe('A respectable acquisition of wealth');
+    expect(fixture.componentInstance.pageSubtitle()).toBe(
+      'No heroism required, just strong knees and stronger pockets.',
+    );
 
     const host: HTMLElement = fixture.nativeElement;
     expect(host.textContent).toContain('Treasure Found');

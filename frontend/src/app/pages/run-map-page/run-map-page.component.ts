@@ -9,6 +9,11 @@ import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-fram
 import { RunUnitFormationGridComponent } from '../../shared/ui/run-unit-formation-grid/run-unit-formation-grid.component';
 
 const FORMATION_CELLS = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'] as const;
+const REGION_THEME_BY_SLUG: Record<string, string> = {
+  the_farm: 'farm',
+  mountains: 'mountain',
+  swamps: 'swamp',
+};
 
 @Component({
   selector: 'app-run-map-page',
@@ -39,9 +44,21 @@ export class RunMapPageComponent {
   readonly edges = computed(() => this.runData()?.map?.edges ?? []);
   readonly run = computed(() => this.runData()?.run ?? null);
   readonly activeSquad = this.sessionService.activeSquad;
+  readonly mapBackgroundUrl = computed(() => {
+    const regionId = this.run()?.region_id ?? this.sessionService.profileData()?.active_run?.region_id ?? null;
+    if (!regionId) {
+      return null;
+    }
+
+    const regionSlug = this.sessionService
+      .profileData()
+      ?.region_unlocks.find((entry) => entry.region_id === regionId)?.region_slug;
+    const theme = regionSlug ? REGION_THEME_BY_SLUG[regionSlug] : null;
+    return theme ? `/assets/ui/biome/${theme}.png` : null;
+  });
   readonly mapWidth = computed(() => {
     const maxIndex = this.nodes().reduce((highest, node) => Math.max(highest, node.node_index), 0);
-    return Math.max(1200, 240 + maxIndex * 140);
+    return Math.max(920, 240 + maxIndex * 120);
   });
   readonly legendEntries = computed(() => [
     { type: 'combat', label: 'Combat', icon: this.iconForNodeType('combat') },

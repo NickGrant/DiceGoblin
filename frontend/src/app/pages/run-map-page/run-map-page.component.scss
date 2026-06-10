@@ -1,12 +1,23 @@
+.run-map-shell {
+  overflow: hidden;
+}
+
 .run-map-scroll {
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 0.5rem;
+  border-radius: 1rem;
+  background-color: rgba(22, 30, 32, 0.92);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  padding: 1rem;
+  min-height: 320px;
 }
 
 .run-map {
   min-width: 100%;
-  min-height: 280px;
+  min-height: 288px;
   display: block;
 }
 
