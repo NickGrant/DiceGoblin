@@ -33,9 +33,11 @@ describe('UnitGridObjectComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Fang');
+    expect(compiled.textContent).toContain('II');
     expect(compiled.textContent).toContain('Goblin');
     expect(compiled.textContent).toContain('Level 3');
-    expect(compiled.textContent).toContain('Tier 2');
+    expect(compiled.textContent).not.toContain('Tier 2');
+    expect(compiled.textContent).not.toContain('Unit Record');
     expect(compiled.querySelector('a')?.getAttribute('href')).toContain('/warband/units/u1');
   });
 

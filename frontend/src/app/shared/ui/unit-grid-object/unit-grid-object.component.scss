@@ -40,3 +40,17 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+.unit-grid-object__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.unit-grid-object__tier {
+  flex-shrink: 0;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--dg-charcoal);
+}
