@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, UrlTree } from '@angular/router';
-import { authChildGuard, authGuard } from './auth.guard';
+import { authChildGuard, authGuard, guestGuard } from './auth.guard';
 import { SessionService } from '../../services/session/session.service';
 
 describe('authGuard', () => {
@@ -48,5 +48,27 @@ describe('authGuard', () => {
     const result = await TestBed.runInInjectionContext(() => authChildGuard({} as any, {} as any));
 
     expect(result).toBeTrue();
+  });
+
+  it('allows guests onto /login', async () => {
+    sessionService.initialize.and.resolveTo();
+    sessionService.session.and.returnValue({ isAuthenticated: false } as any);
+
+    const result = await TestBed.runInInjectionContext(() => guestGuard({} as any, {} as any));
+
+    expect(sessionService.initialize).toHaveBeenCalled();
+    expect(result).toBeTrue();
+  });
+
+  it('redirects authenticated users away from /login to /home', async () => {
+    const redirectTree = {} as UrlTree;
+    sessionService.initialize.and.resolveTo();
+    sessionService.session.and.returnValue({ isAuthenticated: true } as any);
+    router.createUrlTree.and.returnValue(redirectTree);
+
+    const result = await TestBed.runInInjectionContext(() => guestGuard({} as any, {} as any));
+
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/home']);
+    expect(result).toBe(redirectTree);
   });
 });
