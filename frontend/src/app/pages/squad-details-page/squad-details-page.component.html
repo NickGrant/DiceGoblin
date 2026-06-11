@@ -18,68 +18,80 @@
   </div>
   }
 
-  <div class="row g-4">
-    <div class="col-xl-5">
+  <div class="row g-4" cdkDropListGroup>
+    <div class="col-xl-4">
       <div class="dg-card p-3 h-100">
-        <h2 class="dg-stencil mb-3">Membership</h2>
+        <h2 class="dg-stencil mb-3">Squad Setup</h2>
         <label class="form-label">Squad Name</label>
         <input class="dg-input mb-3" [(ngModel)]="name" [disabled]="squadLocked()" />
+        <button 
+          dgCommandBtn="primary" 
+          type="button" 
+          (click)="save()" 
+          [disabled]="saving() || squadLocked()"
+          class="mb-4"
+        >
+          {{ saving() ? 'Saving...' : 'Save Squad' }}
+        </button>
 
-        <div class="vstack gap-2">
-          @for (unit of availableUnits(); track unit.id) {
-          <label class="promote-row">
-            <input
-              type="checkbox"
-              [checked]="selectedUnitIds.has(unit.id)"
-              [disabled]="squadLocked() || !!unit.locked"
-              (change)="toggleUnit(unit.id)"
-            />
-            <span>
-              {{ unit.name }} · {{ unit.unit_type_name || unit.unit_type_slug }}
+        <section>
+          <h3 class="h6 dg-stencil">Available Units</h3>
+          <div
+            class="unit-pool"
+            cdkDropList
+            [id]="availableDropId"
+            [cdkDropListDisabled]="squadLocked()"
+            (cdkDropListDropped)="dropUnit($event, { type: 'available' })"
+          >
+            @for (unit of availablePoolUnits(); track unit.id) {
+            <article class="unit-pool__card" cdkDrag [cdkDragData]="unit.id" [cdkDragDisabled]="squadLocked() || !!unit.locked">
+              <div>
+                <strong>{{ unit.name }}</strong>
+                <p class="mb-0">{{ unit.unit_type_name || unit.unit_type_slug || 'Unit' }} Level {{ unit.level }}</p>
+              </div>
               @if (unit.locked) {
-              <span class="squad-lock-note">· Locked in run</span>
+              <span class="squad-lock-note">Locked in run</span>
               }
-            </span>
-          </label>
-          }
-        </div>
+            </article>
+            } @empty {
+            <div class="unit-pool__empty">All available units are already in this squad.</div>
+            }
+          </div>
+        </section>
       </div>
     </div>
 
-    <div class="col-xl-7">
+    <div class="col-xl-8">
       <div class="dg-card p-3 h-100">
-        <h2 class="dg-stencil mb-3">Formation</h2>
-        <div class="formation-grid">
-          @for (cell of formationCells; track cell) {
-          <label class="formation-cell">
-            <span>{{ cell }}</span>
-            <select
-              class="dg-select"
-              [ngModel]="formationAssignments.get(cell) ?? ''"
-              [disabled]="squadLocked()"
-              (ngModelChange)="setCell(cell, $event)"
-            >
-              <option value="">Empty</option>
-              @for (unit of availableUnits(); track unit.id) {
-              <option
-                [value]="unit.id"
-                [disabled]="!selectedUnitIds.has(unit.id) || !!unit.locked || isUnitAssignedElsewhere(cell, unit.id)"
-              >
-                {{ unit.name }}
-              </option>
-              }
-            </select>
-          </label>
-          }
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h2 class="dg-stencil m-0">Formation</h2>
+          <div class="formation-axis mb-3 w-25" aria-hidden="true">
+            <span class="dg-stencil">Back</span>
+            <span class="formation-axis__arrow"></span>
+            <span class="dg-stencil">Front</span>
+          </div>
         </div>
 
-        <div class="d-flex flex-wrap gap-2 mt-4">
-          <button dgCommandBtn="primary" type="button" (click)="save()" [disabled]="saving() || squadLocked()">
-            {{ saving() ? 'Saving...' : 'Save Squad' }}
-          </button>
-          <button dgCommandBtn="teal" type="button" (click)="activate()" [disabled]="saving() || squad.is_active || !!activeRun()">
-            {{ squad.is_active ? 'Active' : 'Activate Squad' }}
-          </button>
+        <div class="formation-grid">
+          @for (cell of formationCells; track cell) {
+          <div
+            class="formation-cell"
+            [class.formation-cell--occupied]="!!unitForCell(cell)"
+            cdkDropList
+            [id]="dropListIdForCell(cell)"
+            [cdkDropListDisabled]="squadLocked()"
+            (cdkDropListDropped)="dropUnit($event, { type: 'cell', cell })"
+          >
+            @if (unitForCell(cell); as unit) {
+              <article class="formation-unit" cdkDrag [cdkDragData]="unit.id" [cdkDragDisabled]="squadLocked() || !!unit.locked">
+                <strong>{{ unit.name }}</strong>
+                <p class="mb-0">{{ unit.unit_type_name || unit.unit_type_slug || 'Unit' }} {{ unit.level }}</p>
+              </article>
+            } @else {
+              <div class="formation-cell__empty">Drop unit</div>
+            }
+          </div>
+          }
         </div>
       </div>
     </div>

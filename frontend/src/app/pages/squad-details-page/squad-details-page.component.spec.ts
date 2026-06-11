@@ -16,8 +16,9 @@ class SessionServiceStub {
     },
   ] as any[]);
   readonly units = signal([
-    { id: 'u1', name: 'Fang', locked: false },
-    { id: 'u2', name: 'Moss', locked: false },
+    { id: 'u1', name: 'Fang', level: 3, unit_type_name: 'Guardian', locked: false },
+    { id: 'u2', name: 'Moss', level: 2, unit_type_name: 'Bruiser', locked: false },
+    { id: 'u3', name: 'Rivet', level: 1, unit_type_name: 'Scout', locked: false },
   ] as any[]);
   readonly profileData = signal({ active_run: null } as any);
   readonly activeSquad = signal(null as any);
@@ -25,7 +26,13 @@ class SessionServiceStub {
 
 class SquadServiceStub {
   updateTeam = jasmine.createSpy('updateTeam').and.resolveTo({ ok: true });
-  activateTeam = jasmine.createSpy('activateTeam').and.resolveTo({ ok: true });
+}
+
+function buildDropEvent(previousId: string, unitId: string): any {
+  return {
+    previousContainer: { id: previousId },
+    item: { data: unitId },
+  };
 }
 
 describe('SquadDetailsPageComponent', () => {
@@ -52,13 +59,13 @@ describe('SquadDetailsPageComponent', () => {
       's1',
       jasmine.objectContaining({
         name: 'Alpha',
-        unit_ids: ['u1', 'u2'],
+        unit_ids: ['u1'],
       }),
     );
     expect(fixture.componentInstance.message()).toBe('Squad saved.');
   });
 
-  it('clears formation assignments for units removed from the squad', async () => {
+  it('removes units from membership when dropped back to the available pool', async () => {
     await TestBed.configureTestingModule({
       imports: [SquadDetailsPageComponent],
       providers: [
@@ -74,21 +81,21 @@ describe('SquadDetailsPageComponent', () => {
     const fixture = TestBed.createComponent(SquadDetailsPageComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.toggleUnit('u1');
+    fixture.componentInstance.dropUnit(buildDropEvent('formation-cell-A1', 'u1'), { type: 'available' });
     await fixture.componentInstance.save();
 
     const squadService = TestBed.inject(SquadService) as unknown as SquadServiceStub;
     const [, payload] = squadService.updateTeam.calls.mostRecent().args as [string, any];
     const a1 = payload.formation.find((entry: any) => entry.cell === 'A1');
 
-    expect(payload.unit_ids).toEqual(['u2']);
+    expect(payload.unit_ids).toEqual([]);
     expect(a1.unit_instance_id).toBeNull();
   });
 
   it('hydrates local editor state when the squad arrives after component creation', async () => {
     class DelayedSessionServiceStub {
       readonly squads = signal([] as any[]);
-      readonly units = signal([{ id: 'u1', name: 'Fang' }] as any[]);
+      readonly units = signal([{ id: 'u1', name: 'Fang', level: 3, unit_type_name: 'Guardian' }] as any[]);
       readonly profileData = signal({ active_run: null } as any);
       readonly activeSquad = signal(null as any);
     }
@@ -121,11 +128,10 @@ describe('SquadDetailsPageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.name).toBe('Late Squad');
-    expect(fixture.componentInstance.selectedUnitIds.has('u1')).toBeTrue();
     expect(fixture.componentInstance.formationAssignments.get('B2')).toBe('u1');
   });
 
-  it('moves a unit out of its previous formation slot when assigned to a new one', async () => {
+  it('moves a unit out of its previous formation slot when dropped into a new one', async () => {
     await TestBed.configureTestingModule({
       imports: [SquadDetailsPageComponent],
       providers: [
@@ -141,12 +147,31 @@ describe('SquadDetailsPageComponent', () => {
     const fixture = TestBed.createComponent(SquadDetailsPageComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.setCell('B2', 'u1');
+    fixture.componentInstance.dropUnit(buildDropEvent('formation-cell-A1', 'u1'), { type: 'cell', cell: 'B2' });
 
     expect(fixture.componentInstance.formationAssignments.get('A1')).toBeNull();
     expect(fixture.componentInstance.formationAssignments.get('B2')).toBe('u1');
-    expect(fixture.componentInstance.isUnitAssignedElsewhere('A1', 'u1')).toBeTrue();
-    expect(fixture.componentInstance.isUnitAssignedElsewhere('B2', 'u1')).toBeFalse();
+  });
+
+  it('adds available units directly into formation via drag and drop', async () => {
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.dropUnit(buildDropEvent('available-drop', 'u3'), { type: 'cell', cell: 'C3' });
+
+    expect(fixture.componentInstance.formationAssignments.get('C3')).toBe('u3');
   });
 
   it('shows a lock message and blocks squad mutations during an active run', async () => {
@@ -179,15 +204,16 @@ describe('SquadDetailsPageComponent', () => {
     const fixture = TestBed.createComponent(SquadDetailsPageComponent);
     fixture.detectChanges();
 
+    fixture.componentInstance.dropUnit(buildDropEvent('available-drop', 'u3'), { type: 'cell', cell: 'B2' });
     await fixture.componentInstance.save();
-    await fixture.componentInstance.activate();
-
     const squadService = TestBed.inject(SquadService) as unknown as SquadServiceStub;
     const host: HTMLElement = fixture.nativeElement;
 
     expect(host.textContent).toContain('This active squad is locked while its run is in progress.');
+    expect(host.textContent).toContain('Back');
+    expect(host.textContent).toContain('Front');
     expect(fixture.componentInstance.squadLocked()).toBeTrue();
+    expect(fixture.componentInstance.formationAssignments.get('B2')).toBeNull();
     expect(squadService.updateTeam).not.toHaveBeenCalled();
-    expect(squadService.activateTeam).not.toHaveBeenCalled();
   });
 });

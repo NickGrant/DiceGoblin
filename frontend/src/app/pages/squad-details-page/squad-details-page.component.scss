@@ -1,3 +1,81 @@
+.formation-help {
+  font-size: 0.82rem;
+  color: var(--dg-text-muted-strong);
+}
+
+.formation-axis {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--dg-border-subtle);
+  background: rgba(243, 239, 224, 0.55);
+}
+
+.formation-axis__arrow {
+  flex: 1 1 auto;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(35, 39, 42, 0.18), rgba(35, 39, 42, 0.7));
+  position: relative;
+}
+
+.formation-axis__arrow::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid rgba(35, 39, 42, 0.7);
+  border-right: 2px solid rgba(35, 39, 42, 0.7);
+  transform: rotate(45deg);
+}
+
+.unit-pool {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 160px;
+  padding: 0.85rem;
+  border: 2px dashed rgba(35, 39, 42, 0.22);
+  background: rgba(255, 252, 246, 0.65);
+}
+
+.unit-pool__card,
+.formation-unit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem 0.95rem;
+  border: 2px solid var(--dg-border-subtle);
+  background: rgba(243, 239, 224, 0.8);
+  cursor: grab;
+}
+
+.unit-pool__card strong,
+.formation-unit strong {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.unit-pool__card.cdk-drag-disabled,
+.formation-unit.cdk-drag-disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.unit-pool__empty,
+.formation-cell__empty {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(35, 39, 42, 0.22);
+  color: rgba(35, 39, 42, 0.58);
+  text-align: center;
+  padding: 0.75rem;
+}
+
 .formation-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -7,7 +85,22 @@
 .formation-cell {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.6rem;
+  min-height: 154px;
+  padding: 0.85rem;
+  border: 2px dashed rgba(35, 39, 42, 0.22);
+  background: rgba(243, 239, 224, 0.42);
+  justify-content: center;
+}
+
+.formation-cell--occupied {
+  border-style: solid;
+  background: rgba(243, 239, 224, 0.72);
+}
+
+.formation-cell__label {
+  font-size: 0.8rem;
+  color: var(--dg-text-muted);
 }
 
 .squad-lock-note {
