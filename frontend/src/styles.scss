@@ -1,3 +1,4 @@
+@use 'styles/surfaces';
 @import 'bootstrap/dist/css/bootstrap.min.css';
 
 :root {
@@ -8,12 +9,33 @@
   --dg-charcoal: #23272a;
   --dg-olive: #5e6b3c;
   --dg-brass: #8a6d3b;
+  --dg-accent-warm: #f4b38b;
+  --dg-accent-warm-bright: #fff0d3;
   --dg-shadow: rgba(18, 18, 18, 0.5);
   --dg-card-shadow: 0 14px 28px rgba(0, 0, 0, 0.32);
   --dg-frame-border: rgba(35, 39, 42, 0.72);
   --dg-frame-fill: rgba(243, 239, 224, 0.9);
   --dg-content-fill: rgba(243, 239, 224, 0.95);
   --dg-muted-fill: rgba(79, 90, 101, 0.15);
+  --dg-border-subtle: rgba(35, 39, 42, 0.12);
+  --dg-border-soft: rgba(35, 39, 42, 0.2);
+  --dg-text-muted: rgba(35, 39, 42, 0.58);
+  --dg-text-muted-strong: rgba(35, 39, 42, 0.72);
+  --dg-text-on-dark-muted: rgba(243, 239, 224, 0.92);
+  --dg-text-on-dark-soft: rgba(243, 239, 224, 0.7);
+  --dg-cream-strong: #fff7e7;
+  --dg-overlay-dark-soft: rgba(35, 39, 42, 0.2);
+  --dg-overlay-dark-strong: rgba(35, 39, 42, 0.36);
+  --dg-overlay-dark-fade: rgba(35, 39, 42, 0.04);
+  --dg-panel-dark: rgba(24, 26, 28, 0.78);
+  --dg-surface-banner-image-default: url('/assets/ui/banner_background.jpg');
+  --dg-surface-banner-eyebrow: var(--dg-accent-warm);
+  --dg-surface-banner-overlay-strong: var(--dg-overlay-dark-strong);
+  --dg-surface-banner-overlay-soft: var(--dg-overlay-dark-fade);
+  --dg-surface-banner-panel: var(--dg-panel-dark);
+  --dg-media-card-border-strong: rgba(35, 39, 42, 0.66);
+  --dg-media-card-overlay-strong: rgba(18, 18, 18, 0.9);
+  --dg-media-card-shadow-strong: 0 18px 28px rgba(0, 0, 0, 0.16);
 }
 
 *,
