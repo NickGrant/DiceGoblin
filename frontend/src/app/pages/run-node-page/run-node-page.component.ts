@@ -13,17 +13,29 @@ const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss', 'loot']);
 type BattleLogActionViewModel = {
   round: number;
   tick: number;
+  side: string;
   actorName: string;
   abilityName: string;
   diceSummary: string;
   targetName: string;
   resultSummary: string;
+  resultSegments: BattleLogResultSegmentViewModel[];
 };
 
 type LootRewardSummary = {
   teeth: number;
   diceLabels: string[];
   unitLabels: string[];
+};
+
+type BattleLogResultSegmentViewModel = {
+  text: string;
+  tooltip: string | null;
+};
+
+type ConditionDefinition = {
+  aliases: string[];
+  tooltip: string;
 };
 
 @Component({
@@ -38,6 +50,24 @@ export class RunNodePageComponent {
   private static readonly LOOT_TITLE = 'A respectable acquisition of wealth';
   private static readonly BATTLE_SUBTITLE = 'Several goblins have volunteered to be an educational example.';
   private static readonly LOOT_SUBTITLE = 'No heroism required, just strong knees and stronger pockets.';
+  private static readonly CONDITION_DEFINITIONS: ConditionDefinition[] = [
+    {
+      aliases: ['poisoned', 'poison'],
+      tooltip: 'Poison deals damage during status phases. It does not stack, and reapplying it refreshes duration.',
+    },
+    {
+      aliases: ['bleeding', 'bleed'],
+      tooltip: 'Bleeding increases damage received for a limited duration.',
+    },
+    {
+      aliases: ['bolstered', 'bolster'],
+      tooltip: 'Bolstered is a defensive buff that increases Defense by a percentage for a limited duration.',
+    },
+    {
+      aliases: ['sleep', 'sleeping', 'asleep'],
+      tooltip: 'Sleep prevents a unit from acting until it expires or the unit takes damage.',
+    },
+  ];
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -85,6 +115,14 @@ export class RunNodePageComponent {
       ? RunNodePageComponent.LOOT_SUBTITLE
       : RunNodePageComponent.BATTLE_SUBTITLE;
   });
+  readonly unlockedNodeCount = computed(() => this.result()?.next.unlocked_node_ids.length ?? 0);
+  readonly claimButtonLabel = computed(() => {
+    if (this.busy()) {
+      return 'Working...';
+    }
+
+    return this.isLootNode() ? 'Claim Treasure' : 'Claim Rewards';
+  });
   readonly lootRewards = computed<LootRewardSummary | null>(() => {
     const preview = this.result()?.battle.reward_preview;
     if (!preview || this.resolvedNodeType() !== 'loot') {
@@ -107,17 +145,22 @@ export class RunNodePageComponent {
         const round = this.numberValue(event['round']);
         const tick = this.numberValue(event['tick']);
         const abilityId = this.stringValue(event['ability_id']);
+        const resultParts = this.resultParts(event);
         return {
           round,
           tick,
+          side: this.stringValue(event['side']) || 'player',
           actorName: this.resolveActorName(event),
           abilityName: this.resolveAbilityName(abilityId),
           diceSummary: this.describeDice(event),
           targetName: this.resolveTargetName(event),
-          resultSummary: this.describeResult(event),
+          resultSummary: resultParts.join(' | '),
+          resultSegments: this.buildResultSegments(resultParts),
         };
       });
   });
+  readonly battleOutcomeLabel = computed(() => this.humanizeId(this.result()?.battle.outcome ?? 'pending'));
+  readonly battleStatusLabel = computed(() => this.humanizeId(this.result()?.battle.status ?? 'pending'));
 
   constructor() {
     void this.abilityCatalogService.load();
@@ -256,7 +299,11 @@ export class RunNodePageComponent {
       .join(' | ');
   }
 
-  private describeResult(event: Record<string, unknown>): string {
+  isEnemyAction(entry: BattleLogActionViewModel): boolean {
+    return entry.side === 'enemy';
+  }
+
+  private resultParts(event: Record<string, unknown>): string[] {
     const parts = [
       this.stringValue(event['ability_outcome']),
       this.stringValue(event['affix_outcome']),
@@ -267,12 +314,64 @@ export class RunNodePageComponent {
       parts.push(`target HP ${hpAfter}`);
     }
 
-    return parts.join(' | ') || this.humanizeId(this.stringValue(event['outcome']) || 'resolved');
+    return parts.length ? parts : [this.humanizeId(this.stringValue(event['outcome']) || 'resolved')];
+  }
+
+  private buildResultSegments(parts: string[]): BattleLogResultSegmentViewModel[] {
+    return parts.flatMap((part, index) => {
+      const segments = this.parseConditionSegments(part);
+      if (index === parts.length - 1) {
+        return segments;
+      }
+
+      return [...segments, { text: ' | ', tooltip: null }];
+    });
+  }
+
+  private parseConditionSegments(value: string): BattleLogResultSegmentViewModel[] {
+    const matches = RunNodePageComponent.CONDITION_DEFINITIONS.flatMap((definition) =>
+      definition.aliases.flatMap((alias) => {
+        const pattern = new RegExp(`\\b${this.escapeRegex(alias)}\\b`, 'gi');
+        return Array.from(value.matchAll(pattern)).map((match) => ({
+          start: match.index ?? 0,
+          end: (match.index ?? 0) + match[0].length,
+          text: match[0],
+          tooltip: definition.tooltip,
+        }));
+      }),
+    ).sort((left, right) => left.start - right.start || right.end - left.end);
+
+    const filteredMatches = matches.filter((match, index) => {
+      const previous = matches[index - 1];
+      return !previous || match.start >= previous.end;
+    });
+
+    if (!filteredMatches.length) {
+      return [{ text: value, tooltip: null }];
+    }
+
+    const segments: BattleLogResultSegmentViewModel[] = [];
+    let cursor = 0;
+
+    for (const match of filteredMatches) {
+      if (match.start > cursor) {
+        segments.push({ text: value.slice(cursor, match.start), tooltip: null });
+      }
+
+      segments.push({ text: match.text, tooltip: match.tooltip });
+      cursor = match.end;
+    }
+
+    if (cursor < value.length) {
+      segments.push({ text: value.slice(cursor), tooltip: null });
+    }
+
+    return segments;
   }
 
   private humanizeId(value: string): string {
     return value
-      .split(/[_#]/g)
+      .split(/[_#\s-]/g)
       .filter((segment) => segment.length)
       .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
       .join(' ');
@@ -284,6 +383,10 @@ export class RunNodePageComponent {
 
   private numberValue(value: unknown): number {
     return typeof value === 'number' ? value : (typeof value === 'string' && value !== '' ? Number(value) : 0);
+  }
+
+  private escapeRegex(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 }
 

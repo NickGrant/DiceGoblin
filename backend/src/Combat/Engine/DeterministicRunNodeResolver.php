@@ -704,26 +704,31 @@ final class DeterministicRunNodeResolver
     $playerHp = [];
     $playerById = [];
     $playerSchedules = [];
+    $playerStatuses = [];
     foreach ($playerUnits as $unit) {
       $unitId = (string)$unit['id'];
       $playerHp[$unitId] = max(0, min((int)$unit['max_hp'], (int)$unit['current_hp']));
       $playerById[$unitId] = $unit;
       $playerSchedules[$unitId] = $this->buildActiveAbilitySchedule((array)$unit['abilities'], $abilityRegistry);
+      $playerStatuses[$unitId] = [];
     }
 
     $enemyHp = [];
     $enemyById = [];
     $enemySchedules = [];
+    $enemyStatuses = [];
     foreach ($enemyUnits as $unit) {
       $unitId = (string)$unit['id'];
       $enemyHp[$unitId] = (int)$unit['max_hp'];
       $enemyById[$unitId] = $unit;
       $enemySchedules[$unitId] = $this->buildActiveAbilitySchedule((array)$unit['abilities'], $abilityRegistry);
+      $enemyStatuses[$unitId] = [];
     }
 
     $combatOver = false;
     $lastRound = 0;
     $lastTick = 0;
+    $sleepBlockedUntilTick = [];
 
     for ($round = 1; $round <= $rounds; $round++) {
       $roundStartTick = (($round - 1) * $ticksPerRound) + 1;
@@ -743,10 +748,52 @@ final class DeterministicRunNodeResolver
         }
 
         $tick = $roundStartTick + ($tickOffset - 1);
+        $this->processStatusPhase(
+          $events,
+          'player',
+          $round,
+          $tick,
+          $playerHp,
+          $playerById,
+          $playerStatuses,
+          $sleepBlockedUntilTick
+        );
+        $lastTick = $tick;
+        if ($this->countLivingUnits($playerHp) === 0 || $this->countLivingUnits($enemyHp) === 0) {
+          $combatOver = true;
+          break;
+        }
+
+        $this->processStatusPhase(
+          $events,
+          'enemy',
+          $round,
+          $tick,
+          $enemyHp,
+          $enemyById,
+          $enemyStatuses,
+          $sleepBlockedUntilTick
+        );
+        $lastTick = $tick;
+        if ($this->countLivingUnits($playerHp) === 0 || $this->countLivingUnits($enemyHp) === 0) {
+          $combatOver = true;
+          break;
+        }
 
         foreach ($playerUnits as $playerActor) {
           $playerActorId = (string)$playerActor['id'];
           if (($playerHp[$playerActorId] ?? 0) <= 0) {
+            continue;
+          }
+          if ($this->isUnitAsleepForTick($playerStatuses, $sleepBlockedUntilTick, $playerActorId, $tick)) {
+            $events[] = [
+              'type' => 'action_skipped',
+              'round' => $round,
+              'tick' => $tick,
+              'side' => 'player',
+              'actor_unit_instance_id' => $playerActorId,
+              'reason' => 'sleep',
+            ];
             continue;
           }
 
@@ -788,7 +835,7 @@ final class DeterministicRunNodeResolver
               'player'
             );
             $outcome = $isSupportAbility
-              ? $this->deriveSupportOutcome($abilityRegistry, $abilityId, $targetId, $playerHp, $targetUnit)
+              ? $this->deriveSupportOutcome($abilityRegistry, $abilityId, $targetId, $playerHp, $targetUnit, $dice)
               : $this->deriveActionOutcome(
                 $state,
                 (int)$playerActor['attack'],
@@ -799,11 +846,13 @@ final class DeterministicRunNodeResolver
                 (int)$dice['dice_modifier'],
                 (array)($playerActor['combat_affixes'] ?? ['damage_flat' => 0, 'below_half_bonus' => 0.0]),
                 $dice,
+                (array)($enemyStatuses[$targetId] ?? []),
                 (array)($playerActor['pos'] ?? ['x' => 1, 'y' => 1]),
                 (array)($targetUnit['pos'] ?? ['x' => 1, 'y' => 1]),
                 (array)($playerActor['formation'] ?? ['w' => 1, 'h' => 1]),
                 (array)($targetUnit['formation'] ?? ['w' => 1, 'h' => 1]),
                 $abilityRegistry,
+                (int)$playerActor['attack'],
               );
 
             $events[] = [
@@ -823,8 +872,15 @@ final class DeterministicRunNodeResolver
               'dice_outcome' => $dice['dice_outcome'],
               ...$outcome,
             ];
+            $this->applyOutcomeStatus(
+              $enemyStatuses,
+              $targetId,
+              $outcome,
+              $tick,
+            );
             if (!$isSupportAbility) {
               $enemyHp[$targetId] = (int)$outcome['target_hp_after'];
+              $this->clearSleepOnDamage($enemyStatuses, $sleepBlockedUntilTick, $targetId, $tick, (int)$outcome['damage']);
             }
             $lastRound = $round;
             $lastTick = $tick;
@@ -838,6 +894,17 @@ final class DeterministicRunNodeResolver
         foreach ($enemyUnits as $enemyActor) {
           $enemyActorId = (string)$enemyActor['id'];
           if (($enemyHp[$enemyActorId] ?? 0) <= 0) {
+            continue;
+          }
+          if ($this->isUnitAsleepForTick($enemyStatuses, $sleepBlockedUntilTick, $enemyActorId, $tick)) {
+            $events[] = [
+              'type' => 'action_skipped',
+              'round' => $round,
+              'tick' => $tick,
+              'side' => 'enemy',
+              'actor_enemy_slug' => $enemyActorId,
+              'reason' => 'sleep',
+            ];
             continue;
           }
 
@@ -879,7 +946,7 @@ final class DeterministicRunNodeResolver
               'enemy'
             );
             $outcome = $isSupportAbility
-              ? $this->deriveSupportOutcome($abilityRegistry, $abilityId, $targetId, $enemyHp, $targetUnit)
+              ? $this->deriveSupportOutcome($abilityRegistry, $abilityId, $targetId, $enemyHp, $targetUnit, $dice)
               : $this->deriveActionOutcome(
                 $state,
                 (int)$enemyActor['attack'],
@@ -890,11 +957,13 @@ final class DeterministicRunNodeResolver
                 (int)$dice['dice_modifier'],
                 ['damage_flat' => 0, 'below_half_bonus' => 0.0],
                 $dice,
+                (array)($playerStatuses[$targetId] ?? []),
                 (array)($enemyActor['pos'] ?? ['x' => 1, 'y' => 1]),
                 (array)($targetUnit['pos'] ?? ['x' => 1, 'y' => 1]),
                 (array)($enemyActor['formation'] ?? ['w' => 1, 'h' => 1]),
                 (array)($targetUnit['formation'] ?? ['w' => 1, 'h' => 1]),
                 $abilityRegistry,
+                (int)$enemyActor['attack'],
               );
 
             $events[] = [
@@ -914,8 +983,15 @@ final class DeterministicRunNodeResolver
               'dice_outcome' => $dice['dice_outcome'],
               ...$outcome,
             ];
+            $this->applyOutcomeStatus(
+              $playerStatuses,
+              $targetId,
+              $outcome,
+              $tick,
+            );
             if (!$isSupportAbility) {
               $playerHp[$targetId] = (int)$outcome['target_hp_after'];
+              $this->clearSleepOnDamage($playerStatuses, $sleepBlockedUntilTick, $targetId, $tick, (int)$outcome['damage']);
             }
             $lastRound = $round;
             $lastTick = $tick;
@@ -925,11 +1001,16 @@ final class DeterministicRunNodeResolver
             }
           }
         }
+
       }
 
       if ($combatOver) {
         break;
       }
+
+      $roundEndTick = $roundStartTick + $ticksPerRound - 1;
+      $this->tickStatusDurations($events, 'player', $round, $roundEndTick, $playerStatuses);
+      $this->tickStatusDurations($events, 'enemy', $round, $roundEndTick, $enemyStatuses);
     }
 
     return [
@@ -1179,7 +1260,8 @@ final class DeterministicRunNodeResolver
    * @param array{x:int,y:int} $targetPos
    * @param array{w:int,h:int} $attackerFormation
    * @param array{w:int,h:int} $targetFormation
-   * @return array{damage:int,target_hp_after:int,outcome:string,status_applied:?string,status_duration_rounds:?int,ability_outcome:string,affix_outcome:?string}
+   * @param array<string,array<string,mixed>> $targetStatuses
+   * @return array{damage:int,target_hp_after:int,outcome:string,status_applied:?string,status_duration_rounds:?int,ability_outcome:string,affix_outcome:?string,status_params?:array<string,mixed>}
    */
   private function deriveActionOutcome(
     string &$state,
@@ -1191,17 +1273,23 @@ final class DeterministicRunNodeResolver
     int $diceModifier,
     array $combatAffixes,
     array $diceContext,
+    array $targetStatuses,
     array $attackerPos,
     array $targetPos,
     array $attackerFormation,
     array $targetFormation,
     AbilityRegistry $abilityRegistry,
+    int $statusSourceAttack,
   ): array {
+    $effectiveDefense = $this->effectiveDefenseWithStatuses($targetDefense, $targetStatuses);
     $variance = $this->nextInt($state, 5) - 2;
-    $rawDamage = (int)floor(($attackerAttack * 0.65) - ($targetDefense * 0.35)) + $variance + $diceModifier;
+    $rawDamage = (int)floor(($attackerAttack * 0.65) - ($effectiveDefense * 0.35)) + $variance + $diceModifier;
     $rawDamage += max(0, (int)($combatAffixes['damage_flat'] ?? 0));
 
     $affixOutcomeParts = [];
+    if ($effectiveDefense !== $targetDefense) {
+      $affixOutcomeParts[] = sprintf('defense buffed to %d', $effectiveDefense);
+    }
     if (((int)($combatAffixes['damage_flat'] ?? 0)) > 0) {
       $affixOutcomeParts[] = sprintf('+%d attack damage', (int)$combatAffixes['damage_flat']);
     }
@@ -1228,10 +1316,23 @@ final class DeterministicRunNodeResolver
       $affixOutcomeParts[] = sprintf('position x%s', rtrim(rtrim(number_format($positionMultiplier, 2, '.', ''), '0'), '.'));
     }
 
+    $damageTakenMultiplier = $this->damageTakenMultiplierFromStatuses($targetStatuses);
+    if (abs($damageTakenMultiplier - 1.0) > 0.0001) {
+      $rawDamage = (int)floor($rawDamage * $damageTakenMultiplier);
+      $affixOutcomeParts[] = sprintf('bleeding x%s', rtrim(rtrim(number_format($damageTakenMultiplier, 2, '.', ''), '0'), '.'));
+    }
+
     $damage = max(1, $rawDamage);
     $nextHp = max(0, $targetHp - $damage);
     $status = $this->pickStatusEffect($state, $abilityId);
-    $statusDuration = $this->deriveStatusDurationRounds($abilityRegistry, $abilityId, $status);
+    $statusApplication = $this->deriveStatusApplication(
+      $abilityRegistry,
+      $abilityId,
+      $status,
+      $diceContext,
+      $statusSourceAttack
+    );
+    $statusDuration = $statusApplication['duration_rounds'];
     $outcome = $nextHp <= 0 ? 'defeated' : 'hit';
 
     $abilityOutcomeParts = [sprintf('%d damage dealt', $damage)];
@@ -1252,6 +1353,7 @@ final class DeterministicRunNodeResolver
       'outcome' => $outcome,
       'status_applied' => $status,
       'status_duration_rounds' => $statusDuration,
+      'status_params' => $statusApplication['params'],
       'ability_outcome' => implode(', ', $abilityOutcomeParts),
       'affix_outcome' => count($affixOutcomeParts) > 0 ? implode(', ', $affixOutcomeParts) : null,
     ];
@@ -1260,17 +1362,26 @@ final class DeterministicRunNodeResolver
   /**
    * @param array<string,int> $currentHpByUnitId
    * @param array<string,mixed> $targetUnit
-   * @return array{damage:int,target_hp_after:int,outcome:string,status_applied:?string,status_duration_rounds:?int,ability_outcome:string,affix_outcome:?string}
+   * @param array{dice_used:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,dice_rolls:array<int,array{sides:int,roll:int}>,slot_traces?:array<int,array<string,mixed>>,dice_outcome:string,dice_modifier:int,explode_triggered:bool} $diceContext
+   * @return array{damage:int,target_hp_after:int,outcome:string,status_applied:?string,status_duration_rounds:?int,ability_outcome:string,affix_outcome:?string,status_params?:array<string,mixed>}
    */
   private function deriveSupportOutcome(
     AbilityRegistry $abilityRegistry,
     string $abilityId,
     string $targetId,
     array $currentHpByUnitId,
-    array $targetUnit
+    array $targetUnit,
+    array $diceContext,
   ): array {
     $status = $this->supportStatusEffect($abilityId);
-    $statusDuration = $this->deriveStatusDurationRounds($abilityRegistry, $abilityId, $status);
+    $statusApplication = $this->deriveStatusApplication(
+      $abilityRegistry,
+      $abilityId,
+      $status,
+      $diceContext,
+      0
+    );
+    $statusDuration = $statusApplication['duration_rounds'];
     $targetHp = (int)($currentHpByUnitId[$targetId] ?? (int)($targetUnit['max_hp'] ?? 0));
 
     $abilityOutcomeParts = [];
@@ -1288,9 +1399,303 @@ final class DeterministicRunNodeResolver
       'outcome' => 'buffed',
       'status_applied' => $status,
       'status_duration_rounds' => $statusDuration,
+      'status_params' => $statusApplication['params'],
       'ability_outcome' => implode(', ', $abilityOutcomeParts),
       'affix_outcome' => null,
     ];
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $events
+   * @param array<string,int> $hpByUnitId
+   * @param array<string,array<string,mixed>> $unitsById
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<string,int> $sleepBlockedUntilTick
+   */
+  private function processStatusPhase(
+    array &$events,
+    string $side,
+    int $round,
+    int $tick,
+    array &$hpByUnitId,
+    array $unitsById,
+    array &$statusMap,
+    array &$sleepBlockedUntilTick
+  ): void {
+    $events[] = [
+      'type' => 'phase_start',
+      'round' => $round,
+      'tick' => $tick,
+      'phase' => sprintf('%s_status', $side),
+    ];
+
+    foreach ($hpByUnitId as $unitId => $currentHp) {
+      if ((int)$currentHp <= 0) {
+        continue;
+      }
+
+      $statuses = $statusMap[$unitId] ?? [];
+      if (!isset($statuses['poison'])) {
+        continue;
+      }
+
+      $poison = is_array($statuses['poison']) ? $statuses['poison'] : [];
+      $statusSpeed = max(1, (int)($poison['params']['status_speed'] ?? 5));
+      if ($tick % $statusSpeed !== 0) {
+        continue;
+      }
+
+      $unit = $unitsById[$unitId] ?? null;
+      if (!is_array($unit)) {
+        continue;
+      }
+
+      $sourceAttack = max(1, (int)($poison['params']['source_attack'] ?? 1));
+      $damageRatio = max(0.0, (float)($poison['params']['poison_damage_ratio'] ?? 0.2));
+      $damage = max(1, (int)floor($sourceAttack * $damageRatio));
+      $damage = (int)floor($damage * $this->specialFrontTakenMultiplier($unit));
+      $damage = (int)floor($damage * $this->damageTakenMultiplierFromStatuses($statuses));
+      $damage = max(1, $damage);
+
+      $nextHp = max(0, (int)$currentHp - $damage);
+      $hpByUnitId[$unitId] = $nextHp;
+      $this->clearSleepOnDamage($statusMap, $sleepBlockedUntilTick, (string)$unitId, $tick, $damage);
+
+      $events[] = [
+        'type' => 'status_tick',
+        'round' => $round,
+        'tick' => $tick,
+        'side' => $side,
+        $side === 'player' ? 'actor_unit_instance_id' : 'actor_enemy_slug' => (string)$unitId,
+        'status_id' => 'poison',
+        'damage' => $damage,
+        'target_hp_after' => $nextHp,
+        'outcome' => $nextHp <= 0 ? 'defeated' : 'ticked',
+        'ability_outcome' => sprintf('poison dealt %d damage', $damage),
+      ];
+    }
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $events
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   */
+  private function tickStatusDurations(array &$events, string $side, int $round, int $tick, array &$statusMap): void
+  {
+    foreach ($statusMap as $unitId => &$statuses) {
+      foreach ($statuses as $statusId => &$statusState) {
+        $remaining = (int)($statusState['duration_rounds'] ?? 0);
+        if ($remaining <= 0) {
+          continue;
+        }
+
+        $remaining -= 1;
+        $statusState['duration_rounds'] = $remaining;
+        if ($remaining <= 0) {
+          unset($statuses[$statusId]);
+          $events[] = [
+            'type' => 'status_expired',
+            'round' => $round,
+            'tick' => $tick,
+            'side' => $side,
+            $side === 'player' ? 'actor_unit_instance_id' : 'actor_enemy_slug' => (string)$unitId,
+            'status_id' => $statusId,
+          ];
+        }
+      }
+      unset($statusState);
+    }
+    unset($statuses);
+  }
+
+  /**
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array{status_applied?:mixed,status_duration_rounds?:mixed,status_params?:mixed} $outcome
+   */
+  private function applyOutcomeStatus(array &$statusMap, string $targetId, array $outcome, int $tick): void
+  {
+    $statusId = isset($outcome['status_applied']) ? (string)$outcome['status_applied'] : '';
+    if ($statusId === '') {
+      return;
+    }
+
+    $duration = (int)($outcome['status_duration_rounds'] ?? 0);
+    $params = is_array($outcome['status_params'] ?? null) ? $outcome['status_params'] : [];
+    $this->applyStatusState($statusMap, $targetId, $statusId, $duration, $params, $tick);
+  }
+
+  /**
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<string,mixed> $params
+   */
+  private function applyStatusState(
+    array &$statusMap,
+    string $unitId,
+    string $statusId,
+    int $durationRounds,
+    array $params,
+    int $tick
+  ): void {
+    $durationRounds = max(1, $durationRounds);
+    $current = $statusMap[$unitId][$statusId] ?? null;
+    if (!is_array($current)) {
+      $statusMap[$unitId][$statusId] = [
+        'duration_rounds' => $durationRounds,
+        'params' => $params,
+        'applied_tick' => $tick,
+      ];
+      return;
+    }
+
+    $statusMap[$unitId][$statusId]['duration_rounds'] = max($durationRounds, (int)($current['duration_rounds'] ?? 0));
+    $statusMap[$unitId][$statusId]['applied_tick'] = $tick;
+
+    if ($statusId === 'bolstered') {
+      $existing = (float)($current['params']['defense_pct'] ?? 0.0);
+      $next = max($existing, (float)($params['defense_pct'] ?? 0.0));
+      $statusMap[$unitId][$statusId]['params'] = ['defense_pct' => $next];
+      return;
+    }
+
+    if ($statusId === 'bleeding') {
+      $existing = (float)($current['params']['damage_taken_pct'] ?? 0.0);
+      $next = max($existing, (float)($params['damage_taken_pct'] ?? 0.0));
+      $statusMap[$unitId][$statusId]['params'] = ['damage_taken_pct' => $next];
+      return;
+    }
+
+    $statusMap[$unitId][$statusId]['params'] = array_replace(
+      is_array($current['params'] ?? null) ? $current['params'] : [],
+      $params
+    );
+  }
+
+  /**
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<string,int> $sleepBlockedUntilTick
+   */
+  private function clearSleepOnDamage(
+    array &$statusMap,
+    array &$sleepBlockedUntilTick,
+    string $targetId,
+    int $tick,
+    int $damage
+  ): void {
+    if ($damage <= 0 || !isset($statusMap[$targetId]['sleep'])) {
+      return;
+    }
+
+    unset($statusMap[$targetId]['sleep']);
+    $sleepBlockedUntilTick[$targetId] = max($tick, (int)($sleepBlockedUntilTick[$targetId] ?? 0));
+  }
+
+  /**
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<string,int> $sleepBlockedUntilTick
+   */
+  private function isUnitAsleepForTick(array $statusMap, array $sleepBlockedUntilTick, string $unitId, int $tick): bool
+  {
+    if (((int)($sleepBlockedUntilTick[$unitId] ?? 0)) >= $tick) {
+      return true;
+    }
+
+    return isset($statusMap[$unitId]['sleep']);
+  }
+
+  /**
+   * @param array<string,array<string,mixed>> $targetStatuses
+   */
+  private function effectiveDefenseWithStatuses(int $targetDefense, array $targetStatuses): int
+  {
+    $bolsteredPct = (float)($targetStatuses['bolstered']['params']['defense_pct'] ?? 0.0);
+    if ($bolsteredPct <= 0) {
+      return $targetDefense;
+    }
+
+    return max(0, (int)floor($targetDefense * (1 + $bolsteredPct)));
+  }
+
+  /**
+   * @param array<string,array<string,mixed>> $targetStatuses
+   */
+  private function damageTakenMultiplierFromStatuses(array $targetStatuses): float
+  {
+    return 1.0 + max(0.0, (float)($targetStatuses['bleeding']['params']['damage_taken_pct'] ?? 0.0));
+  }
+
+  /**
+   * @param array<string,mixed> $unit
+   */
+  private function specialFrontTakenMultiplier(array $unit): float
+  {
+    $profile = $this->combatPositionProfile($unit);
+    return $profile['front_x'] >= 2 ? 1.10 : 1.0;
+  }
+
+  /**
+   * @param array{slot_traces?:array<int,array<string,mixed>>,dice_rolls?:array<int,array{sides:int,roll:int}>} $diceContext
+   * @return array{duration_rounds:?int,params:array<string,mixed>}
+   */
+  private function deriveStatusApplication(
+    AbilityRegistry $abilityRegistry,
+    string $abilityId,
+    ?string $status,
+    array $diceContext,
+    int $sourceAttack
+  ): array {
+    if ($status === null) {
+      return ['duration_rounds' => null, 'params' => []];
+    }
+
+    $duration = $this->deriveStatusDurationRounds($abilityRegistry, $abilityId, $status);
+    $params = $abilityRegistry->has($abilityId) ? (array)$abilityRegistry->get($abilityId)->defaultParams : [];
+    $rollTotal = $this->diceRollTotal($diceContext);
+
+    return match ($status) {
+      'bolstered' => [
+        'duration_rounds' => $duration,
+        'params' => ['defense_pct' => 0.20 + ($rollTotal * 0.01)],
+      ],
+      'bleeding' => [
+        'duration_rounds' => $duration,
+        'params' => ['damage_taken_pct' => 0.20 + ($rollTotal * 0.01)],
+      ],
+      'poison' => [
+        'duration_rounds' => $duration,
+        'params' => [
+          'poison_damage_ratio' => (float)($params['poison_damage_ratio'] ?? 0.2),
+          'status_speed' => (int)($params['status_speed'] ?? 5),
+          'source_attack' => max(1, $sourceAttack),
+        ],
+      ],
+      default => [
+        'duration_rounds' => $duration,
+        'params' => [],
+      ],
+    };
+  }
+
+  /**
+   * @param array{slot_traces?:array<int,array<string,mixed>>,dice_rolls?:array<int,array{sides:int,roll:int}>} $diceContext
+   */
+  private function diceRollTotal(array $diceContext): int
+  {
+    $slotTraces = is_array($diceContext['slot_traces'] ?? null) ? $diceContext['slot_traces'] : [];
+    if (count($slotTraces) > 0) {
+      $total = 0;
+      foreach ($slotTraces as $trace) {
+        $total += (int)($trace['roll_total'] ?? 0);
+      }
+      return max(0, $total);
+    }
+
+    $diceRolls = is_array($diceContext['dice_rolls'] ?? null) ? $diceContext['dice_rolls'] : [];
+    $total = 0;
+    foreach ($diceRolls as $entry) {
+      $total += (int)($entry['roll'] ?? 0);
+    }
+
+    return max(0, $total);
   }
 
   /**
@@ -1607,7 +2012,7 @@ final class DeterministicRunNodeResolver
     return match ($status) {
       'sleep' => 2,
       'poison' => 3,
-      'bleed' => 2,
+      'bleeding' => 2,
       'guard_up' => 2,
       default => null,
     };
@@ -1626,9 +2031,9 @@ final class DeterministicRunNodeResolver
       return 'sleep';
     }
 
-    // Low deterministic chance to apply bleed on generic attacks.
+    // Low deterministic chance to apply bleeding on generic attacks.
     if ($this->nextInt($state, 10) === 0) {
-      return 'bleed';
+      return 'bleeding';
     }
 
     return null;

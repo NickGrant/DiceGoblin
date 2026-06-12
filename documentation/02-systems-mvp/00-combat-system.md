@@ -111,6 +111,7 @@ The closed MVP status list remains:
 - Poison
 - Bolstered
 - Sleep
+- Bleeding
 
 Global rules:
 - statuses are evaluated server-side

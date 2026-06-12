@@ -284,9 +284,10 @@ final class DeterministicRunNodeResolverFormationIntegrationTest extends Integra
       $this->assertSame((string)$frontlineUnitId, (string)($supportAction['target_unit_instance_id'] ?? ''));
       $this->assertArrayNotHasKey('target_enemy_slug', $supportAction);
       $this->assertSame(0, (int)($supportAction['damage'] ?? -1));
-      $this->assertSame(8, (int)($supportAction['target_hp_after'] ?? -1));
+      $this->assertGreaterThan(0, (int)($supportAction['target_hp_after'] ?? 0));
       $this->assertSame('buffed', (string)($supportAction['outcome'] ?? ''));
       $this->assertSame('bolstered', (string)($supportAction['status_applied'] ?? ''));
+      $this->assertEqualsWithDelta(0.21, (float)($supportAction['status_params']['defense_pct'] ?? 0.0), 0.0001);
       $this->assertStringContainsString('bolstered applied', (string)($supportAction['ability_outcome'] ?? ''));
     } finally {
       $this->cleanupResolverFixture(

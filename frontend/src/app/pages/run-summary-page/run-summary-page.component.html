@@ -4,29 +4,108 @@
   subtitle="Review the outcome and return to camp."
 >
   @if (summary()) {
+  <section class="run-summary-hero dg-card p-3 p-lg-4 mb-4">
+    <div>
+      <p class="run-summary-hero__eyebrow dg-stencil">Run Complete</p>
+      <h2 class="dg-stencil mb-2">{{ statusLabel() }}</h2>
+      <p class="mb-0">The dust settles here. Review what the warband earned, who made it out, and what this run added to camp.</p>
+    </div>
+    <a dgCommandBtn="primary" routerLink="/home">Return Home</a>
+  </section>
+
+  <div class="run-summary-stats mb-4">
+    <div class="run-summary-stat">
+      <span class="run-summary-stat__label">Rewards</span>
+      <strong>{{ rewardCount() }}</strong>
+    </div>
+    <div class="run-summary-stat">
+      <span class="run-summary-stat__label">Progression</span>
+      <strong>{{ progressionCount() }}</strong>
+    </div>
+    <div class="run-summary-stat">
+      <span class="run-summary-stat__label">Survivors</span>
+      <strong>{{ survivorCount() }}</strong>
+    </div>
+    <div class="run-summary-stat">
+      <span class="run-summary-stat__label">Defeated</span>
+      <strong>{{ defeatedCount() }}</strong>
+    </div>
+  </div>
+
   <div class="row g-4">
-    <div class="col-lg-6">
+    <div class="col-xl-7">
       <div class="dg-card p-3 h-100">
         <h2 class="dg-stencil mb-3">Rewards</h2>
         @if (summary()!.rewards.length) {
-        <ul class="mb-0">
+        <div class="run-summary-chips">
           @for (item of summary()!.rewards; track item) {
-          <li>{{ item }}</li>
+          <span class="dg-chip">{{ item }}</span>
           }
-        </ul>
+        </div>
         } @else {
         <p class="mb-0">No rewards recorded.</p>
         }
       </div>
     </div>
 
-    <div class="col-lg-6">
+    <div class="col-xl-5">
       <div class="dg-card p-3 h-100">
         <h2 class="dg-stencil mb-3">Outcome</h2>
-        <p class="mb-2">Status: {{ summary()!.status }}</p>
-        <p class="mb-2">Survivors: {{ summary()!.survivors.join(', ') || 'None listed' }}</p>
-        <p class="mb-3">Defeated: {{ summary()!.defeated.join(', ') || 'None listed' }}</p>
-        <a dgCommandBtn="primary" routerLink="/home">Return Home</a>
+        <div class="run-summary-outcome">
+          <div>
+            <span class="run-summary-outcome__label">Status</span>
+            <p class="mb-0">{{ statusLabel() }}</p>
+          </div>
+          <div>
+            <span class="run-summary-outcome__label">Title</span>
+            <p class="mb-0">{{ summary()!.title }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-7">
+      <div class="dg-card p-3 h-100">
+        <h2 class="dg-stencil mb-3">Progression</h2>
+        @if (summary()!.progression.length) {
+        <ul class="run-summary-list dg-list-reset">
+          @for (item of summary()!.progression; track item) {
+          <li>{{ item }}</li>
+          }
+        </ul>
+        } @else {
+        <p class="mb-0">No progression milestones recorded.</p>
+        }
+      </div>
+    </div>
+
+    <div class="col-xl-5">
+      <div class="run-summary-roster">
+        <div class="dg-card p-3">
+          <h2 class="dg-stencil mb-3">Survivors</h2>
+          @if (summary()!.survivors.length) {
+          <ul class="run-summary-list dg-list-reset">
+            @for (unit of summary()!.survivors; track unit) {
+            <li>{{ unit }}</li>
+            }
+          </ul>
+          } @else {
+          <p class="mb-0">No survivors listed.</p>
+          }
+        </div>
+
+        <div class="dg-card p-3">
+          <h2 class="dg-stencil mb-3">Defeated</h2>
+          @if (summary()!.defeated.length) {
+          <ul class="run-summary-list dg-list-reset">
+            @for (unit of summary()!.defeated; track unit) {
+            <li>{{ unit }}</li>
+            }
+          </ul>
+          } @else {
+          <p class="mb-0">No defeated units listed.</p>
+          }
+        </div>
       </div>
     </div>
   </div>

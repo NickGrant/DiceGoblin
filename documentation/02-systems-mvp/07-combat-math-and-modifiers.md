@@ -78,6 +78,7 @@ Notes:
 - Poison duration: `POISON_DEFAULT_DURATION_ROUNDS = 2`
 - Bolstered duration: `BOLSTERED_DEFAULT_DURATION_ROUNDS = 2`
 - Sleep duration: `SLEEP_DEFAULT_DURATION_ROUNDS = 1`
+- Bleeding duration: `BLEEDING_DEFAULT_DURATION_ROUNDS = 2`
 
 (Abilities may override.)
 
@@ -104,6 +105,7 @@ Dice affixes contribute either:
 ### 4.3 Status Contributions (MVP)
 Statuses may contribute:
 - `bolsteredDefensePct` (percent)
+- `bleedingDamageTakenPct` (percent)
 
 No other status changes stats in MVP.
 
@@ -245,6 +247,7 @@ Type: Defensive buff
 
 Effect:
 - Increases Defense by a percentage: `bolsteredDefensePct`
+- Current resolver default formula: `0.20 + (rollTotal * 0.01)`
 
 Stacking:
 - Does not stack
@@ -253,7 +256,21 @@ Stacking:
 Duration:
 - Duration-based; expires after duration rounds
 
-### 7.3 Sleep
+### 7.3 Bleeding
+Type: Vulnerability debuff
+
+Effect:
+- Increases damage received by a percentage: `bleedingDamageTakenPct`
+- Current resolver default formula: `0.20 + (rollTotal * 0.01)`
+
+Stacking:
+- Does not stack
+- Strongest instance applies (largest percent)
+
+Duration:
+- Duration-based; expires after duration rounds
+
+### 7.4 Sleep
 Type: Control debuff (disable)
 
 Effect:
