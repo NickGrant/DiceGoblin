@@ -1,7 +1,8 @@
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { TeamFormationCell } from '../../core/models/api.models';
+import { TeamFormationCell, UnitRecord } from '../../core/models/api.models';
 import { SessionService } from '../../core/services/session/session.service';
 import { SquadService } from '../../core/services/squad/squad.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
@@ -9,11 +10,17 @@ import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command
 import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
 
 const FORMATION_CELLS = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'];
+const AVAILABLE_DROP_ID = 'available-drop';
+const CELL_DROP_PREFIX = 'formation-cell-';
+
+type DropTarget =
+  | { type: 'available' }
+  | { type: 'cell'; cell: string };
 
 @Component({
   selector: 'app-squad-details-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, DragDropModule, FormsModule],
   templateUrl: './squad-details-page.component.html',
   styleUrl: './squad-details-page.component.scss',
 })
@@ -34,7 +41,6 @@ export class SquadDetailsPageComponent {
   readonly squadLocked = computed(() => !!this.activeRun() && this.activeSquad()?.id === this.squadId);
 
   name = this.squad()?.name ?? '';
-  selectedUnitIds = new Set(this.squad()?.unit_ids ?? []);
   formationAssignments = new Map<string, string | null>(
     FORMATION_CELLS.map((cell) => [
       cell,
@@ -50,7 +56,6 @@ export class SquadDetailsPageComponent {
       }
 
       this.name = squad.name;
-      this.selectedUnitIds = new Set(squad.unit_ids);
       this.formationAssignments = new Map(
         FORMATION_CELLS.map((cell) => [
           cell,
@@ -61,39 +66,41 @@ export class SquadDetailsPageComponent {
     });
   }
 
-  toggleUnit(unitId: string): void {
+  dropUnit(event: CdkDragDrop<unknown>, target: DropTarget): void {
     if (this.squadLocked()) {
       return;
     }
 
-    if (this.selectedUnitIds.has(unitId)) {
-      this.selectedUnitIds.delete(unitId);
-      this.clearFormationAssignmentsForUnit(unitId);
-    } else {
-      this.selectedUnitIds.add(unitId);
-    }
-  }
-
-  setCell(cell: string, value: string): void {
-    if (this.squadLocked()) {
+    const unitId = String(event.item.data ?? '');
+    const unit = this.unitById(unitId);
+    if (!unit || unit.locked) {
       return;
     }
 
-    const nextValue = value && this.selectedUnitIds.has(value) ? value : null;
-    if (nextValue) {
-      this.clearFormationAssignmentsForUnit(nextValue, cell);
+    const source = this.targetFromDropListId(event.previousContainer.id);
+    if (!source || this.isSameTarget(source, target)) {
+      return;
     }
-    this.formationAssignments.set(cell, nextValue);
+
+    if (target.type === 'available') {
+      this.removeUnitFromSquad(unitId);
+      return;
+    }
+
+    this.placeUnitInCell(unitId, target.cell, source.type === 'cell' ? source.cell : null);
   }
 
-  isUnitAssignedElsewhere(cell: string, unitId: string): boolean {
-    for (const [assignedCell, assignedUnitId] of this.formationAssignments.entries()) {
-      if (assignedCell !== cell && assignedUnitId === unitId) {
-        return true;
-      }
-    }
+  unitById(unitId: string): UnitRecord | null {
+    return this.availableUnits().find((unit) => unit.id === unitId) ?? null;
+  }
 
-    return false;
+  availablePoolUnits(): UnitRecord[] {
+    return this.availableUnits().filter((unit) => !this.findAssignedCellForUnit(unit.id));
+  }
+
+  unitForCell(cell: string): UnitRecord | null {
+    const unitId = this.formationAssignments.get(cell) ?? null;
+    return unitId ? this.unitById(unitId) : null;
   }
 
   formationForSave(): TeamFormationCell[] {
@@ -101,6 +108,20 @@ export class SquadDetailsPageComponent {
       cell,
       unit_instance_id: this.formationAssignments.get(cell) ?? null,
     }));
+  }
+
+  selectedUnitIdsForSave(): string[] {
+    return Array.from(
+      new Set(
+        FORMATION_CELLS
+          .map((cell) => this.formationAssignments.get(cell) ?? null)
+          .filter((unitId): unitId is string => !!unitId),
+      ),
+    );
+  }
+
+  dropListIdForCell(cell: string): string {
+    return `${CELL_DROP_PREFIX}${cell}`;
   }
 
   async save(): Promise<void> {
@@ -114,7 +135,7 @@ export class SquadDetailsPageComponent {
     try {
       const response = await this.squadService.updateTeam(this.squadId, {
         name: this.name.trim() || this.squad()!.name,
-        unit_ids: Array.from(this.selectedUnitIds),
+        unit_ids: this.selectedUnitIdsForSave(),
         formation: this.formationForSave(),
       });
       if (!response.ok) {
@@ -129,26 +150,56 @@ export class SquadDetailsPageComponent {
     }
   }
 
-  async activate(): Promise<void> {
-    if (this.squadLocked() || this.activeRun()) {
+  private removeUnitFromSquad(unitId: string): void {
+    this.clearFormationAssignmentsForUnit(unitId);
+  }
+
+  private placeUnitInCell(unitId: string, targetCell: string, sourceCell: string | null): void {
+    const previousCell = this.findAssignedCellForUnit(unitId);
+    const displacedUnitId = this.formationAssignments.get(targetCell) ?? null;
+
+    if (previousCell === targetCell) {
       return;
     }
 
-    this.saving.set(true);
-    this.error.set(null);
-    this.message.set(null);
-    try {
-      const response = await this.squadService.activateTeam(this.squadId);
-      if (!response.ok) {
-        this.error.set(response.error.message);
-        return;
-      }
-      this.message.set('Squad activated.');
-    } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Unable to activate squad.');
-    } finally {
-      this.saving.set(false);
+    if (previousCell) {
+      this.formationAssignments.set(previousCell, null);
     }
+
+    this.clearFormationAssignmentsForUnit(unitId, targetCell);
+    this.formationAssignments.set(targetCell, unitId);
+
+    if (displacedUnitId && displacedUnitId !== unitId && sourceCell && sourceCell !== targetCell) {
+      this.formationAssignments.set(sourceCell, displacedUnitId);
+    }
+  }
+
+  private findAssignedCellForUnit(unitId: string): string | null {
+    for (const [cell, assignedUnitId] of this.formationAssignments.entries()) {
+      if (assignedUnitId === unitId) {
+        return cell;
+      }
+    }
+
+    return null;
+  }
+
+  private targetFromDropListId(id: string): DropTarget | null {
+    if (id === AVAILABLE_DROP_ID) {
+      return { type: 'available' };
+    }
+
+    if (id.startsWith(CELL_DROP_PREFIX)) {
+      return { type: 'cell', cell: id.slice(CELL_DROP_PREFIX.length) };
+    }
+
+    return null;
+  }
+
+  private isSameTarget(source: DropTarget, target: DropTarget): boolean {
+    return source.type === target.type && source.type !== 'cell'
+      ? true
+      : source.type === 'cell' && target.type === 'cell' && source.cell === target.cell;
   }
 
   private clearFormationAssignmentsForUnit(unitId: string, exceptCell?: string): void {
@@ -159,6 +210,6 @@ export class SquadDetailsPageComponent {
     });
   }
 
+  protected readonly availableDropId = AVAILABLE_DROP_ID;
   protected readonly formationCells = FORMATION_CELLS;
 }
-

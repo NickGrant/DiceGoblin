@@ -9,23 +9,15 @@ section {
 }
 
 .landing-frame {
-  background:
-    linear-gradient(rgba(35, 39, 42, 0.28), rgba(35, 39, 42, 0.04)),
-    url('/assets/ui/banner_background.jpg');
-  background-size: cover;
-  color: var(--dg-cream);
-  text-shadow: 1px 1px 5px var(--dg-charcoal);
+  --dg-surface-banner-overlay-start: rgba(35, 39, 42, 0.28);
+  --dg-surface-banner-overlay-end: rgba(35, 39, 42, 0.04);
+  --dg-surface-banner-padding: 20px 0;
+
   font-size: 1.2em;
-  padding: 20px 0;
+  text-shadow: 1px 1px 5px var(--dg-charcoal);
 }
 
-.landing-kicker {
-  margin: 0;
-  color: #f4b38b;
-}
-
-
-img {
+.landing-logo {
   align-self: center;
   margin: 0 auto;
   width: min(100%, 320px);

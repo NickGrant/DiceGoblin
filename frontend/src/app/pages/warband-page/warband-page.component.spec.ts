@@ -55,6 +55,24 @@ describe('WarbandPageComponent', () => {
     expect(fixture.componentInstance.message()).toBe('Active squad updated.');
   });
 
+  it('renders squad cards as details links with a separate active toggle', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const squadLinkDebug = fixture.debugElement
+      .queryAll(By.directive(RouterLink))
+      .find((element) => element.nativeElement.textContent?.includes('Alpha'));
+    const toggle = host.querySelector('.squad-card__toggle') as HTMLButtonElement | null;
+
+    expect(squadLinkDebug).toBeDefined();
+    expect(squadLinkDebug!.injector.get(RouterLink).href).toContain('/warband/squads/1');
+    expect(toggle).not.toBeNull();
+    expect(host.textContent).not.toContain('Details');
+    expect(host.textContent).not.toContain('Activate');
+    expect(host.textContent).not.toContain('Active squad');
+  });
+
   it('uses unit cards as details links without unit action buttons', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
@@ -67,20 +85,28 @@ describe('WarbandPageComponent', () => {
     expect(unitLinkDebug).toBeDefined();
     expect(unitLinkDebug!.injector.get(RouterLink).href).toContain('/warband/units/u1');
     expect(host.textContent).not.toContain('Dice');
+    expect(host.textContent).not.toContain('Unit Record');
   });
 
-  it('marks the active squad as locked during an active run and disables activation changes', () => {
+  it('marks the active squad as locked during an active run and disables squad toggles', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
     sessionService.profileData.set({ active_run: { run_id: '9' } } as any);
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
-    const activateButton = Array.from(host.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('Active'),
-    ) as HTMLButtonElement | undefined;
+    const toggle = host.querySelector('.squad-card__toggle') as HTMLButtonElement | null;
 
     expect(host.textContent).toContain('Locked while this squad is committed to the active run.');
-    expect(activateButton?.disabled).toBeTrue();
+    expect(toggle?.disabled).toBeTrue();
+  });
+
+  it('shows more units per page in the expanded layout', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    const objectGrid = fixture.debugElement.query(By.css('dg-object-grid'));
+
+    expect(objectGrid.componentInstance.pageSize()).toBe(9);
   });
 });

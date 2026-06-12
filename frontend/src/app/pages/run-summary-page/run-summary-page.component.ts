@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { RunService } from '../../core/services/run/run.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
@@ -15,5 +15,18 @@ import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-fram
 export class RunSummaryPageComponent {
   private readonly runService = inject(RunService);
   readonly summary = this.runService.summary;
+  readonly statusLabel = computed(() => this.humanize(this.summary()?.status ?? 'summary'));
+  readonly rewardCount = computed(() => this.summary()?.rewards.length ?? 0);
+  readonly survivorCount = computed(() => this.summary()?.survivors.length ?? 0);
+  readonly defeatedCount = computed(() => this.summary()?.defeated.length ?? 0);
+  readonly progressionCount = computed(() => this.summary()?.progression.length ?? 0);
+
+  private humanize(value: string): string {
+    return value
+      .split(/[_\s-]/g)
+      .filter((segment) => segment.length)
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(' ');
+  }
 }
 

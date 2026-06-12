@@ -71,6 +71,19 @@ class RunServiceStub {
               affix_outcome: null,
               target_hp_after: 13,
             },
+            {
+              type: 'action',
+              round: 2,
+              tick: 11,
+              side: 'enemy',
+              actor_enemy_slug: 'toad_shaman',
+              target_unit_instance_id: 'u1',
+              ability_id: 'sleep_hex',
+              slot_traces: [],
+              ability_outcome: 'sleep applied for 1 round and bleeding applied',
+              affix_outcome: null,
+              target_hp_after: 8,
+            },
           ],
         },
       },
@@ -101,6 +114,7 @@ class AbilityCatalogServiceStub {
     .and.returnValue(new Map([
       ['heavy_strike', { display_name: 'Heavy Strike' }],
       ['bolster_ally', { display_name: 'Bolster Ally' }],
+      ['sleep_hex', { display_name: 'Sleep Hex' }],
     ]));
   load = jasmine.createSpy('load').and.resolveTo();
 }
@@ -241,9 +255,18 @@ describe('RunNodePageComponent', () => {
         abilityName: 'Bolster Ally',
         targetName: 'Bogwort',
       }),
+      jasmine.objectContaining({
+        round: 2,
+        tick: 11,
+        actorName: 'Toad Shaman',
+        abilityName: 'Sleep Hex',
+        targetName: 'Ashback',
+      }),
     ]);
 
     const host: HTMLElement = fixture.nativeElement;
+    expect(host.textContent).toContain('Combat Node');
+    expect(host.textContent).toContain('Next Paths');
     expect(host.textContent).toContain('Battle Log');
     expect(host.textContent).toContain('Ashback');
     expect(host.textContent).toContain('Heavy Strike');
@@ -253,6 +276,17 @@ describe('RunNodePageComponent', () => {
     expect(host.textContent).toContain('Bolster Ally');
     expect(host.textContent).toContain('Bogwort');
     expect(host.textContent).toContain('bolstered applied for 2 rounds');
+    expect(host.textContent).toContain('Sleep Hex');
+    expect(host.textContent).toContain('sleep applied for 1 round and bleeding applied');
+
+    const conditionChip = host.querySelector('.battle-log__condition[title*="defensive buff"]');
+    expect(conditionChip?.textContent).toContain('bolstered');
+
+    const bleedChip = host.querySelector('.battle-log__condition[title*="increases damage received"]');
+    expect(bleedChip?.textContent).toContain('bleeding');
+
+    const enemyEntry = host.querySelector('.battle-log__entry--enemy');
+    expect(enemyEntry?.textContent).toContain('Toad Shaman');
   });
 
   it('shows a treasure-focused reward summary for loot nodes', async () => {
@@ -323,6 +357,8 @@ describe('RunNodePageComponent', () => {
     );
 
     const host: HTMLElement = fixture.nativeElement;
+    expect(host.textContent).toContain('Treasure Node');
+    expect(host.textContent).toContain('Claim Treasure');
     expect(host.textContent).toContain('Treasure Found');
     expect(host.textContent).toContain('bone d6');
     expect(host.textContent).toContain('Warcaller');

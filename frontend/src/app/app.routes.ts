@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authChildGuard, authGuard } from './core/guards/auth/auth.guard';
+import { authChildGuard, authGuard, guestGuard } from './core/guards/auth/auth.guard';
 import { GameShellComponent } from './layout/game-shell/game-shell.component';
 import { DebugPageComponent } from './pages/debug-page/debug-page.component';
 import { DicePageComponent } from './pages/dice-page/dice-page.component';
@@ -19,6 +19,7 @@ export const routes: Routes = [
   {
     path: 'login',
     component: LandingPageComponent,
+    canActivate: [guestGuard],
   },
   {
     path: '',

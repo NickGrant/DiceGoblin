@@ -1,17 +1,34 @@
 <div class="run-unit-grid">
   @for (cell of cells(); track cell.cell) {
   <article class="run-unit-grid__card" [class.run-unit-grid__card--empty]="!cell.entry" [class.run-unit-grid__card--defeated]="cell.entry?.defeated">
-    <span class="run-unit-grid__cell dg-stencil">{{ cell.cell }}</span>
-
     @if (cell.entry; as entry) {
     <div class="run-unit-grid__content">
-      <div>
+      <div class="run-unit-grid__heading">
         <h3 class="dg-stencil mb-1">{{ entry.unit?.name || 'Unit ' + entry.unit_instance_id }}</h3>
-        <p class="mb-0">{{ entry.unit?.unit_type_name || entry.unit?.unit_type_slug || 'Run unit' }}</p>
+        @if (formatTier(entry.unit?.tier); as tierLabel) {
+        <span class="run-unit-grid__tier dg-stencil">{{ tierLabel }}</span>
+        }
+      </div>
+
+      <div>
+        <p class="mb-0">
+          {{ entry.unit?.unit_type_name || entry.unit?.unit_type_slug || 'Run unit' }}
+          @if (entry.unit?.level) { Level {{ entry.unit?.level }} }
+        </p>
       </div>
 
       <div class="run-unit-grid__meta">
-        <span class="dg-chip">HP {{ entry.currentHp }}/{{ entry.maxHp }}</span>
+        <div
+          class="run-unit-grid__hp"
+          [attr.title]="'HP ' + entry.currentHp + '/' + entry.maxHp"
+          [attr.aria-label]="'HP ' + entry.currentHp + ' of ' + entry.maxHp"
+        >
+          <span
+            class="run-unit-grid__hp-fill"
+            [class]="hpBarClass(entry.currentHp, entry.maxHp)"
+            [style.width.%]="hpPercent(entry.currentHp, entry.maxHp)"
+          ></span>
+        </div>
         @if (entry.defeated) {
         <span class="dg-chip">Defeated</span>
         }

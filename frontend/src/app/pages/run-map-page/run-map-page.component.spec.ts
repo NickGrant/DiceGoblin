@@ -33,8 +33,8 @@ class SessionServiceStub {
       region_unlocks: [{ region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' }],
     }) as any;
   readonly units = () => [
-    { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', max_hp: 10 },
-    { id: 'u2', name: 'Moss', unit_type_name: 'Guardian', max_hp: 12 },
+    { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', level: 3, tier: 2, max_hp: 10 },
+    { id: 'u2', name: 'Moss', unit_type_name: 'Guardian', level: 4, tier: 1, max_hp: 12 },
   ] as any[];
   readonly activeSquad = () =>
     ({
@@ -71,6 +71,12 @@ describe('RunMapPageComponent', () => {
     expect(fixture.componentInstance.mapBackgroundUrl()).toBe('/assets/ui/biome/farm.png');
     expect(fixture.componentInstance.formationGrid().length).toBe(9);
     expect(fixture.componentInstance.formationGrid().find((cell) => cell.cell === 'A1')?.entry?.currentHp).toBe(6);
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.textContent).toContain('Bruiser');
+    expect(host.textContent).toContain('Level 3');
+    expect(host.textContent).toContain('II');
+    expect(host.textContent).not.toContain('A1');
+    expect(host.textContent).not.toContain('HP 6/10');
   });
 
   it('navigates to summary after abandoning a run', async () => {

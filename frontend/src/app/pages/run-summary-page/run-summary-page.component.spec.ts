@@ -7,11 +7,11 @@ import { RunService } from '../../core/services/run/run.service';
 class RunServiceStub {
   readonly summary = signal({
     title: 'Run Complete',
-    status: 'complete',
+    status: 'boss_cleared',
     rewards: ['Gold Tooth'],
-    progression: [],
+    progression: ['Unlocked Region 2'],
     survivors: ['Fang'],
-    defeated: [],
+    defeated: ['Muck'],
   });
 }
 
@@ -30,7 +30,11 @@ describe('RunSummaryPageComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Run Complete');
+    expect(compiled.textContent).toContain('Boss Cleared');
     expect(compiled.textContent).toContain('Gold Tooth');
+    expect(compiled.textContent).toContain('Unlocked Region 2');
     expect(compiled.textContent).toContain('Fang');
+    expect(compiled.textContent).toContain('Muck');
+    expect(compiled.textContent).toContain('Return Home');
   });
 });

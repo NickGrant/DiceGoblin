@@ -1,15 +1,23 @@
 :host {
   display: block;
+  --dg-page-frame-header-text: var(--dg-cream);
+  --dg-page-frame-header-text-muted: var(--dg-text-on-dark-muted);
+  --dg-page-frame-header-divider: var(--dg-text-on-dark-soft);
+  --dg-page-frame-header-accent: var(--dg-accent-warm);
+  --dg-page-frame-header-accent-hover: var(--dg-accent-warm-bright);
+  --dg-page-frame-header-overlay: var(--dg-overlay-dark-soft);
+  --dg-page-frame-header-border: rgba(35, 39, 42, 0.5);
+  --dg-page-frame-header-shadow: rgba(0, 0, 0, 0.4);
 }
 
 .dg-title-bar {
-  color: var(--dg-cream);
+  color: var(--dg-page-frame-header-text);
   background:
-    linear-gradient(rgba(35, 39, 42, 0.2), rgba(35, 39, 42, 0.2)),
+    linear-gradient(var(--dg-page-frame-header-overlay), var(--dg-page-frame-header-overlay)),
     url('/assets/ui/textures/red.png');
   background-size: cover;
-  border-bottom: 2px solid rgba(35, 39, 42, 0.5);
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+  border-bottom: 2px solid var(--dg-page-frame-header-border);
+  text-shadow: 0 2px 0 var(--dg-page-frame-header-shadow);
 }
 
 .route-frame__eyebrow,
@@ -18,7 +26,7 @@
 }
 
 .route-frame__eyebrow {
-  color: #f4b38b;
+  color: var(--dg-page-frame-header-accent);
 }
 
 .route-frame__breadcrumb-list {
@@ -38,7 +46,7 @@
 
 .route-frame__breadcrumb-item:not(:last-child)::after {
   content: '/';
-  color: rgba(243, 239, 224, 0.7);
+  color: var(--dg-page-frame-header-divider);
   font-weight: 700;
 }
 
@@ -48,15 +56,15 @@
 }
 
 .route-frame__breadcrumb-link {
-  color: #f4b38b;
+  color: var(--dg-page-frame-header-accent);
   text-decoration: none;
 }
 
 .route-frame__breadcrumb-link:hover {
-  color: #fff0d3;
+  color: var(--dg-page-frame-header-accent-hover);
   text-decoration: underline;
 }
 
 .route-frame__breadcrumb-current {
-  color: rgba(243, 239, 224, 0.92);
+  color: var(--dg-page-frame-header-text-muted);
 }

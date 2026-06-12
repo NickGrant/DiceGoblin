@@ -12,6 +12,8 @@ export type RunUnitFormationCell = {
       name?: string;
       unit_type_name?: string;
       unit_type_slug?: string;
+      level?: number;
+      tier?: number;
     } | null;
   } | null;
 };
@@ -24,4 +26,33 @@ export type RunUnitFormationCell = {
 })
 export class RunUnitFormationGridComponent {
   readonly cells = input.required<readonly RunUnitFormationCell[]>();
+
+  formatTier(tier: number | null | undefined): string | null {
+    switch (tier) {
+      case 1:
+        return 'I';
+      case 2:
+        return 'II';
+      case 3:
+        return 'III';
+      case 4:
+        return 'IV';
+      case 5:
+        return 'V';
+      default:
+        return tier ? `${tier}` : null;
+    }
+  }
+
+  hpPercent(currentHp: number, maxHp: number): number {
+    if (maxHp <= 0) {
+      return 0;
+    }
+
+    return Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
+  }
+
+  hpBarClass(currentHp: number, maxHp: number): string {
+    return this.hpPercent(currentHp, maxHp) <= 25 ? 'run-unit-grid__hp-fill--critical' : 'run-unit-grid__hp-fill--healthy';
+  }
 }

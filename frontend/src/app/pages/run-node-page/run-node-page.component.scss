@@ -2,40 +2,84 @@
   display: block;
 }
 
-.loot-node__hero {
-  padding: 1rem;
-  border: 1px solid rgba(16, 24, 40, 0.14);
-  background:
-    linear-gradient(135deg, rgba(164, 116, 27, 0.16), rgba(255, 248, 220, 0.7)),
-    rgba(255, 255, 255, 0.6);
+.node-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.2rem;
+  border: 1px solid var(--dg-border-soft);
+  color: var(--dg-cream);
+  background-size: cover;
+  background-position: center;
 }
 
-.loot-node__summary {
+.node-hero--loot {
+  background:
+    linear-gradient(135deg, rgba(138, 109, 59, 0.88), rgba(244, 179, 139, 0.7)),
+    linear-gradient(120deg, rgba(255, 248, 220, 0.15), rgba(35, 39, 42, 0.15));
+}
+
+.node-hero--combat {
+  background:
+    linear-gradient(135deg, rgba(100, 18, 18, 0.92), rgba(35, 39, 42, 0.82)),
+    linear-gradient(120deg, rgba(255, 248, 220, 0.08), rgba(35, 39, 42, 0.12));
+}
+
+.node-hero__eyebrow,
+.node-loading__eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--dg-accent-warm-bright);
+  font-size: 0.8rem;
+}
+
+.node-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
+.node-summary__item,
 .loot-node__stat,
-.loot-node__block {
-  border: 1px solid rgba(16, 24, 40, 0.14);
+.loot-node__block,
+.battle-log,
+.battle-log__entry,
+.node-loading {
+  border: 1px solid var(--dg-border-soft);
   background: rgba(255, 255, 255, 0.58);
+}
+
+.node-summary__item,
+.loot-node__stat,
+.loot-node__block,
+.battle-log__entry,
+.node-loading {
   padding: 0.9rem 1rem;
 }
 
+.node-summary__item strong,
 .loot-node__stat strong {
   display: block;
   font-size: 1.6rem;
   line-height: 1.1;
 }
 
-.loot-node__label {
+.node-summary__label,
+.loot-node__label,
+.battle-log__label {
   display: block;
   margin-bottom: 0.35rem;
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   opacity: 0.72;
+}
+
+.loot-node__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .loot-node__chips {
@@ -45,8 +89,7 @@
 }
 
 .battle-log {
-  border: 1px solid rgba(16, 24, 40, 0.14);
-  background: rgba(255, 255, 255, 0.58);
+  padding: 1rem;
 }
 
 .battle-log__header {
@@ -57,33 +100,72 @@
   margin-bottom: 0.75rem;
 }
 
-.battle-log__table-wrap {
-  overflow-x: auto;
+.battle-log__entries {
+  display: grid;
+  gap: 0.85rem;
 }
 
-.battle-log__table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 920px;
+.battle-log__entry {
+  background: rgba(243, 239, 224, 0.82);
 }
 
-.battle-log__table th,
-.battle-log__table td {
-  padding: 0.75rem;
-  border-top: 1px solid rgba(16, 24, 40, 0.12);
-  text-align: left;
-  vertical-align: top;
+.battle-log__entry--enemy {
+  background: rgba(79, 90, 101, 0.14);
 }
 
-.battle-log__table thead th {
-  border-top: 0;
+.battle-log__entry-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  margin-bottom: 0.8rem;
+}
+
+.battle-log__stamp,
+.battle-log__ability {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--dg-border-soft);
+  background: rgba(255, 252, 246, 0.86);
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
+.battle-log__entry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.battle-log__entry-result {
+  grid-column: 1 / -1;
+}
+
+.battle-log__condition {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  margin: 0 0.12rem;
+  border-bottom: 1px dotted var(--dg-slate);
+  background: rgba(138, 109, 59, 0.14);
+  cursor: help;
+}
+
+.node-loading {
+  padding: 1.1rem 1.2rem;
+  background:
+    linear-gradient(180deg, rgba(243, 239, 224, 0.92), rgba(232, 228, 210, 0.9));
+}
+
 @media (max-width: 767.98px) {
+  .node-summary,
   .loot-node__summary {
+    grid-template-columns: 1fr;
+  }
+
+  .battle-log__entry-grid {
     grid-template-columns: 1fr;
   }
 }

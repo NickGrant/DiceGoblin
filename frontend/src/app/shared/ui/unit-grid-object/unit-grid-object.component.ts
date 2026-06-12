@@ -12,5 +12,22 @@ import { GridObjectComponent } from '../grid-object/grid-object.component';
   styleUrl: './unit-grid-object.component.scss',
 })
 export class UnitGridObjectComponent extends GridObjectComponent<UnitRecord> {
-  readonly tag = input('Unit Record');
+  readonly tag = input('');
+
+  formatTier(tier: number | null | undefined): string | null {
+    switch (tier) {
+      case 1:
+        return 'I';
+      case 2:
+        return 'II';
+      case 3:
+        return 'III';
+      case 4:
+        return 'IV';
+      case 5:
+        return 'V';
+      default:
+        return tier ? `${tier}` : null;
+    }
+  }
 }
