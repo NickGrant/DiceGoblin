@@ -23,6 +23,14 @@ const REGION_THEME_BY_SLUG: Record<string, string> = {
   styleUrl: './run-map-page.component.scss',
 })
 export class RunMapPageComponent {
+  private static readonly MAP_MIN_WIDTH = 920;
+  private static readonly MAP_MIN_HEIGHT = 320;
+  private static readonly MAP_NODE_RADIUS = 34;
+  private static readonly MAP_HORIZONTAL_PADDING = 120;
+  private static readonly MAP_VERTICAL_PADDING = 90;
+  private static readonly MAP_NODE_HORIZONTAL_GAP = 140;
+  private static readonly MAP_ROW_VERTICAL_GAP = 100;
+
   private static readonly ENCOUNTER_ICON_MAP: Record<string, string> = {
     combat: '/assets/ui/icons/icon_encounter_combat.png',
     loot: '/assets/ui/icons/icon_encounter_loot.png',
@@ -56,10 +64,36 @@ export class RunMapPageComponent {
     const theme = regionSlug ? REGION_THEME_BY_SLUG[regionSlug] : null;
     return theme ? `/assets/ui/biome/${theme}.png` : null;
   });
-  readonly mapWidth = computed(() => {
-    const maxIndex = this.nodes().reduce((highest, node) => Math.max(highest, node.node_index), 0);
-    return Math.max(920, 240 + maxIndex * 120);
+  readonly nodeLayoutBounds = computed(() => {
+    const xs = this.nodes().map((node) => this.nodeX(node));
+    const ys = this.nodes().map((node) => this.nodeY(node));
+    const radius = RunMapPageComponent.MAP_NODE_RADIUS;
+    const horizontalPadding = RunMapPageComponent.MAP_HORIZONTAL_PADDING;
+    const verticalPadding = RunMapPageComponent.MAP_VERTICAL_PADDING;
+
+    if (!xs.length || !ys.length) {
+      return {
+        width: RunMapPageComponent.MAP_MIN_WIDTH,
+        height: RunMapPageComponent.MAP_MIN_HEIGHT,
+      };
+    }
+
+    const maxX = Math.max(...xs);
+    const maxY = Math.max(...ys);
+
+    return {
+      width: Math.max(
+        RunMapPageComponent.MAP_MIN_WIDTH,
+        maxX + radius + horizontalPadding,
+      ),
+      height: Math.max(
+        RunMapPageComponent.MAP_MIN_HEIGHT,
+        maxY + radius + verticalPadding,
+      ),
+    };
   });
+  readonly mapWidth = computed(() => this.nodeLayoutBounds().width);
+  readonly mapHeight = computed(() => this.nodeLayoutBounds().height);
   readonly legendEntries = computed(() => [
     { type: 'combat', label: 'Combat', icon: this.iconForNodeType('combat') },
     { type: 'loot', label: 'Loot', icon: this.iconForNodeType('loot') },
@@ -117,12 +151,13 @@ export class RunMapPageComponent {
   }
 
   nodeX(node: CurrentRunNode): number {
-    return 120 + node.node_index * 140;
+    const column = this.nodeMetaColumn(node);
+    return RunMapPageComponent.MAP_HORIZONTAL_PADDING + column * RunMapPageComponent.MAP_NODE_HORIZONTAL_GAP;
   }
 
   nodeY(node: CurrentRunNode): number {
-    const offset = node.node_index % 2 === 0 ? 90 : 190;
-    return offset;
+    const row = this.nodeMetaRow(node);
+    return RunMapPageComponent.MAP_VERTICAL_PADDING + row * RunMapPageComponent.MAP_ROW_VERTICAL_GAP;
   }
 
   nodeById(nodeId: string): CurrentRunNode | undefined {
@@ -207,6 +242,22 @@ export class RunMapPageComponent {
     } finally {
       this.working.set(false);
     }
+  }
+
+  private nodeMetaColumn(node: CurrentRunNode): number {
+    const raw = node.meta?.['col'];
+    const column = typeof raw === 'number' ? raw : Number(raw);
+    return Number.isFinite(column) ? column : node.node_index;
+  }
+
+  private nodeMetaRow(node: CurrentRunNode): number {
+    const raw = node.meta?.['row'];
+    const row = typeof raw === 'number' ? raw : Number(raw);
+    if (Number.isFinite(row)) {
+      return row;
+    }
+
+    return node.node_index % 2 === 0 ? 1 : 2;
   }
 }
 

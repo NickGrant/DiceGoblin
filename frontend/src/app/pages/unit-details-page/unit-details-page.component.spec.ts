@@ -91,35 +91,7 @@ class SessionServiceStub {
 }
 
 class UnitServiceStub {
-  getPromotionOptions = jasmine.createSpy('getPromotionOptions').and.resolveTo({
-    ok: true,
-    data: {
-      options: [
-        {
-          branch_unit_type_id: 'bruiser-1',
-          branch_unit_type_slug: 'frontline_bruiser_t1',
-          branch_unit_type_name: 'Bruiser',
-          target_unit_type_id: 'dest-1',
-          target_unit_type_slug: 'frontline_bruiser_t2',
-          target_unit_type_name: 'Enforcer',
-          target_tier: 2,
-          mode: 'chain',
-        },
-        {
-          branch_unit_type_id: 'guardian-1',
-          branch_unit_type_slug: 'frontline_guardian_t1',
-          branch_unit_type_name: 'Guardian',
-          target_unit_type_id: 'dest-2',
-          target_unit_type_slug: 'frontline_guardian_t2',
-          target_unit_type_name: 'Bulwark',
-          target_tier: 2,
-          mode: 'sideways',
-        },
-      ],
-    },
-  });
   renameUnit = jasmine.createSpy('renameUnit').and.resolveTo({ ok: true });
-  promoteUnit = jasmine.createSpy('promoteUnit').and.resolveTo({ ok: true });
   replaceEquippedAbilities = jasmine.createSpy('replaceEquippedAbilities').and.resolveTo({ ok: true });
   assignAbilitySlotDie = jasmine.createSpy('assignAbilitySlotDie').and.resolveTo({ ok: true });
   clearAbilitySlotDie = jasmine.createSpy('clearAbilitySlotDie').and.resolveTo({ ok: true });
@@ -208,13 +180,12 @@ describe('UnitDetailsPageComponent', () => {
 
     const unitService = TestBed.inject(UnitService) as unknown as UnitServiceStub;
     const abilityCatalog = TestBed.inject(AbilityCatalogService) as unknown as AbilityCatalogServiceStub;
-    expect(unitService.getPromotionOptions).toHaveBeenCalledWith('u1');
     expect(unitService.renameUnit).toHaveBeenCalledWith('u1', 'Rex');
     expect(abilityCatalog.load).toHaveBeenCalled();
     expect(fixture.componentInstance.message()).toBe('Unit renamed.');
   });
 
-  it('builds tabbed stats, learned abilities, and filtered promotion candidates', async () => {
+  it('builds tabbed stats, learned abilities, and academy handoff', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
     const host: HTMLElement = fixture.nativeElement;
@@ -226,6 +197,7 @@ describe('UnitDetailsPageComponent', () => {
     expect(host.textContent).toContain('3/3 (Goblin Bruiser)');
     expect(host.textContent).toContain('Attack');
     expect(host.textContent).toContain('Defense');
+    expect(host.textContent).toContain('Promotions are now handled in the Academy.');
     expect(fixture.nativeElement.querySelector('.unit-portrait')?.getAttribute('src')).toContain(
       '/assets/ui/portraits/goblin_bruiser.png',
     );
@@ -233,10 +205,6 @@ describe('UnitDetailsPageComponent', () => {
     component.setActiveTab('abilities');
     expect(component.learnedActiveAbilities().map((ability) => ability.abilityId)).toEqual(['guard', 'heavy_strike']);
     expect(component.learnedPassiveAbilities().map((ability) => ability.abilityId)).toEqual(['thick_hide']);
-    component.setActiveTab('promotion');
-    expect(component.eligiblePromotionCandidates().map((unit) => unit.id)).toEqual(['u2']);
-    expect(component.promotionOptionLabel(component.promotionOptions()[0])).toBe('Enforcer - chain');
-    expect(component.promotionOptionLabel(component.promotionOptions()[1])).toBe('Guardian - sideways');
   });
 
   it('builds slot editors from learned active abilities and filters picker dice to free or current-slot dice', async () => {
@@ -356,14 +324,12 @@ describe('UnitDetailsPageComponent', () => {
     fixture.componentInstance.addAbilityToLoadout('guard');
     await fixture.componentInstance.saveLoadout();
     fixture.componentInstance.openDicePicker('guard', 'Guard', 0);
-    await fixture.componentInstance.promoteUnit();
 
     const host: HTMLElement = fixture.nativeElement;
     expect(host.textContent).toContain('This unit is locked by the active run and cannot be modified until the run ends.');
     expect(fixture.componentInstance.unitLocked()).toBeTrue();
     expect(unitService.renameUnit).not.toHaveBeenCalledWith('u1', 'Rex');
     expect(unitService.replaceEquippedAbilities).not.toHaveBeenCalled();
-    expect(unitService.promoteUnit).not.toHaveBeenCalled();
     expect(fixture.componentInstance.pickerState()).toBeNull();
   });
 

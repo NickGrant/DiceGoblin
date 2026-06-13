@@ -48,8 +48,8 @@ describe('HomePageComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.textContent).toContain('Start Run');
-    expect(compiled.textContent).toContain('Choose your next route.');
-    expect(compiled.textContent).not.toContain('Active Squad: Alpha Squad');
+    expect(compiled.textContent).toContain("You're neighbors surely have some good stuff...");
+    expect(compiled.textContent).toContain('Academy');
     expect(component.primaryRoute()).toBe('/regions');
     expect(component.primaryLabel()).toBe('Start Run');
   });
@@ -68,10 +68,10 @@ describe('HomePageComponent', () => {
 
     const component = fixture.componentInstance;
     const compiled = fixture.nativeElement as HTMLElement;
-    const primaryImage = compiled.querySelector('.home-card--primary .home-card__image') as HTMLImageElement;
+    const primaryImage = compiled.querySelector('.dg-media-card--feature .dg-media-card__media') as HTMLImageElement;
 
     expect(compiled.textContent).toContain('Continue Run');
-    expect(compiled.textContent).toContain('Return to the trail.');
+    expect(compiled.textContent).toContain('Back to "work".');
     expect(component.primaryRoute()).toBe('/run/map');
     expect(component.primaryLabel()).toBe('Continue Run');
     expect(primaryImage.getAttribute('src')).toContain('home_continue_run.jpg');

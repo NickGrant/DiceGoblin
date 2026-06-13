@@ -38,9 +38,10 @@
           >
             <svg
               class="run-map"
-              [attr.viewBox]="'0 0 ' + mapWidth() + ' 320'"
+              [attr.viewBox]="'0 0 ' + mapWidth() + ' ' + mapHeight()"
               preserveAspectRatio="xMinYMid meet"
               [style.width.px]="mapWidth()"
+              [style.height.px]="mapHeight()"
             >
               @for (edge of edges(); track edge.edge_id) {
               <line

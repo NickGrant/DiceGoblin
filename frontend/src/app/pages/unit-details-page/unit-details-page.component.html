@@ -25,9 +25,6 @@
     <button [dgCommandBtn]="activeTab() === 'abilities' ? 'primary' : 'muted'" type="button" (click)="setActiveTab('abilities')">
       Abilities
     </button>
-    <button [dgCommandBtn]="activeTab() === 'promotion' ? 'primary' : 'muted'" type="button" (click)="setActiveTab('promotion')">
-      Promotion
-    </button>
   </nav>
 
   @if (activeTab() === 'stats') {
@@ -40,6 +37,16 @@
             <div class="d-flex gap-2">
               <input class="dg-input" [(ngModel)]="renameValue" [disabled]="unitLocked()" />
               <button dgCommandBtn type="button" (click)="renameUnit()" [disabled]="busy() || unitLocked()">Save</button>
+            </div>
+          </div>
+
+          <div class="unit-summary">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+              <div>
+                <h2 class="dg-stencil mb-1">Promotion</h2>
+                <p class="mb-0">Promotions are now handled in the Academy.</p>
+              </div>
+              <a dgCommandBtn="muted" [routerLink]="['/academy']" [queryParams]="{ unitId: unit.id }">Open Academy</a>
             </div>
           </div>
 
@@ -228,49 +235,6 @@
       </section>
     </div>
   </div>
-  }
-
-  @if (activeTab() === 'promotion') {
-  <section class="dg-card p-3 p-lg-4">
-    <h2 class="dg-stencil mb-3">Promotion</h2>
-    <p class="mb-3">Choose two max-level units of the same current type to consume.</p>
-
-    @if (promotionOptions().length) {
-    <label class="form-label">Destination</label>
-    <select class="dg-select mb-3" [(ngModel)]="selectedDestination">
-      @for (option of promotionOptions(); track option.target_unit_type_id) {
-      <option [value]="option.target_unit_type_id">{{ promotionOptionLabel(option) }}</option>
-      }
-    </select>
-    }
-
-    @if (eligiblePromotionCandidates().length) {
-    <div class="vstack gap-2 mb-3">
-      @for (candidate of eligiblePromotionCandidates(); track candidate.id) {
-      <label class="promote-row">
-        <input
-          type="checkbox"
-          [checked]="selectedSecondaries().includes(candidate.id)"
-          [disabled]="busy() || unitLocked()"
-          (change)="toggleSecondary(candidate.id)"
-        />
-        <span>{{ candidate.name }} - Level {{ candidate.level }} / {{ candidate.max_level }}</span>
-      </label>
-      }
-    </div>
-    } @else {
-    <dg-alert>No eligible merge units available.</dg-alert>
-    }
-
-    <button
-      dgCommandBtn="primary"
-      type="button"
-      (click)="promoteUnit()"
-      [disabled]="busy() || promotionOptions().length === 0 || selectedSecondaries().length !== 2 || unitLocked()"
-    >
-      {{ busy() ? 'Working...' : 'Promote' }}
-    </button>
-  </section>
   }
 
   <dg-dice-picker-modal

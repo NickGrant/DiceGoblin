@@ -405,6 +405,29 @@ export type ShopPurchaseData = {
 
 export type ShopPurchaseResponse = ApiResponse<ShopPurchaseData>;
 
+export type AcademyUnitUnlockItem = {
+  unit_type_slug: string;
+  name: string;
+  role: string;
+  cost: number;
+  is_unlocked: boolean;
+};
+
+export type AcademyCatalogData = {
+  currency_soft: number;
+  unit_unlocks: AcademyUnitUnlockItem[];
+};
+
+export type AcademyCatalogResponse = ApiResponse<AcademyCatalogData>;
+
+export type AcademyUnlockUnitTypeData = {
+  unit_type_slug: string;
+  cost: number;
+  currency_soft: number;
+};
+
+export type AcademyUnlockUnitTypeResponse = ApiResponse<AcademyUnlockUnitTypeData>;
+
 export type PromotionOptionRecord = {
   branch_unit_type_id: string;
   branch_unit_type_slug: string;

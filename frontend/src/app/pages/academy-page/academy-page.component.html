@@ -1,0 +1,148 @@
+<dg-page-frame
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Academy' }]"
+  title="Academy"
+  subtitle="Promote veteran units here. Unit unlock research will live here as well."
+>
+  @if (error() || message() || unitLocked()) {
+  <div class="vstack gap-2 mb-3">
+    @if (error()) {
+    <dg-alert tone="error">{{ error() }}</dg-alert>
+    }
+    @if (message()) {
+    <dg-alert tone="success">{{ message() }}</dg-alert>
+    }
+    @if (unitLocked()) {
+    <dg-alert>This unit is locked by the active run and cannot be promoted until the run ends.</dg-alert>
+    }
+  </div>
+  }
+
+  <div class="row g-4">
+    <div class="col-xl-6">
+      <section class="dg-card p-3 p-lg-4 h-100">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+          <div>
+            <h2 class="dg-stencil mb-1">Research Wing</h2>
+            <p class="mb-0">Spend teeth here to unlock additional Tier I unit types for loot and shop access.</p>
+          </div>
+          <span class="dg-chip">Teeth {{ profile().softCurrency }}</span>
+        </div>
+
+        @if (loadingUnlocks()) {
+        <dg-alert>Loading unit unlocks...</dg-alert>
+        } @else if (availableUnitUnlocks().length) {
+        <div class="vstack gap-2">
+          @for (entry of availableUnitUnlocks(); track entry.unit_type_slug) {
+          <button
+            class="academy-unlock-card"
+            type="button"
+            (click)="unlockUnitType(entry.unit_type_slug)"
+            [disabled]="unlockingUnitTypeSlug() === entry.unit_type_slug || profile().softCurrency < entry.cost"
+          >
+            <div>
+              <p class="academy-label mb-1">{{ roleLabel(entry.role) }}</p>
+              <h3 class="dg-stencil mb-1">{{ entry.name }}</h3>
+              <p class="mb-0">{{ unitUnlockDescription(entry.unit_type_slug) }}</p>
+            </div>
+            <div class="academy-unlock-card__actions">
+              <span class="academy-unlock-card__cost">{{ entry.cost }} Teeth</span>
+              @if (unlockingUnitTypeSlug() === entry.unit_type_slug) {
+              <span class="academy-unlock-card__state">Working...</span>
+              }
+            </div>
+          </button>
+          }
+        </div>
+        } @else {
+        <dg-alert>All currently available unit types have already been unlocked.</dg-alert>
+        }
+      </section>
+    </div>
+
+    <div class="col-xl-6">
+      <section class="dg-card p-3 p-lg-4 h-100">
+        <div class="mb-3">
+          <h2 class="dg-stencil mb-1">Promotion Hall</h2>
+          <p class="mb-0">Choose a primary unit, then consume two matching max-level units to promote it.</p>
+        </div>
+
+        @if (promotableUnits().length) {
+        <label class="form-label">Primary Unit</label>
+        <select
+          class="dg-select mb-4"
+          [ngModel]="selectedUnitId()"
+          (ngModelChange)="selectedUnitId.set($event)"
+        >
+          <option value="">Select a unit</option>
+          @for (unit of promotableUnits(); track unit.id) {
+          <option [value]="unit.id">
+            {{ unit.name }} - {{ unit.unit_type_name || unit.unit_type_slug || 'Unit' }} - Tier {{ toRomanNumeral(unit.tier) }} - Level {{ unit.level }}/{{ unit.max_level }}
+          </option>
+          }
+        </select>
+
+        @if (selectedUnit(); as unit) {
+        <div class="academy-selected-unit mb-4">
+          <div>
+            <p class="academy-label mb-1">Current Unit</p>
+            <h3 class="dg-stencil mb-1">{{ unit.name }}</h3>
+            <p class="mb-0">{{ unit.unit_type_name || unit.unit_type_slug || 'Unit' }} - Tier {{ toRomanNumeral(unit.tier) }} - Level {{ unit.level }}/{{ unit.max_level }}</p>
+          </div>
+        </div>
+
+        @if (promotionOptions().length) {
+        <label class="form-label">Destination</label>
+        <select
+          class="dg-select mb-3"
+          [ngModel]="selectedDestination()"
+          (ngModelChange)="selectedDestination.set($event)"
+        >
+          <option value="">No destination override</option>
+          @for (option of promotionOptions(); track option.target_unit_type_id + ':' + option.mode) {
+          <option [value]="option.target_unit_type_id">{{ promotionOptionLabel(option) }}</option>
+          }
+        </select>
+        } @else if (!loadingOptions()) {
+        <dg-alert class="mb-3">No promotion destinations are currently available for this unit.</dg-alert>
+        }
+
+        <h3 class="dg-stencil mb-3">Eligible Units to Consume</h3>
+        @if (eligiblePromotionCandidates().length) {
+        <div class="vstack gap-2 mb-3">
+          @for (candidate of eligiblePromotionCandidates(); track candidate.id) {
+          <label class="promote-row">
+            <span>
+              <strong>{{ candidate.name }}</strong>
+              <span class="promote-row__meta">{{ candidate.unit_type_name || candidate.unit_type_slug || 'Unit' }} - Level {{ candidate.level }}/{{ candidate.max_level }}</span>
+            </span>
+            <input
+              type="checkbox"
+              [checked]="selectedSecondaries().includes(candidate.id)"
+              [disabled]="busy() || unitLocked()"
+              (change)="toggleSecondary(candidate.id)"
+            />
+          </label>
+          }
+        </div>
+        } @else {
+        <dg-alert class="mb-3">No eligible merge units available.</dg-alert>
+        }
+
+        <button
+          dgCommandBtn="primary"
+          type="button"
+          (click)="promoteUnit()"
+          [disabled]="busy() || loadingOptions() || promotionOptions().length === 0 || selectedSecondaries().length !== 2 || unitLocked()"
+        >
+          {{ busy() ? 'Working...' : 'Promote Unit' }}
+        </button>
+        } @else {
+        <dg-alert>Select a unit to review promotion options.</dg-alert>
+        }
+        } @else {
+        <dg-alert>No units are currently eligible for promotion. Reach max level on three matching units to use the Academy.</dg-alert>
+        }
+      </section>
+    </div>
+  </div>
+</dg-page-frame>

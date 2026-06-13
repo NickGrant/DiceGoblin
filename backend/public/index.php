@@ -10,6 +10,7 @@ use DiceGoblins\Core\Autoloader;
 use DiceGoblins\Core\Env;
 use DiceGoblins\Core\Router;
 use DiceGoblins\Controllers\ApiController;
+use DiceGoblins\Controllers\AcademyController;
 use DiceGoblins\Controllers\AuthController;
 use DiceGoblins\Controllers\BattleController;
 use DiceGoblins\Controllers\DebugController;
@@ -97,6 +98,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
 $router = new Router();
 
 $api = new ApiController();
+$academy = new AcademyController();
 $auth = new AuthController();
 $battle = new BattleController();
 $debug = new DebugController();
@@ -114,6 +116,8 @@ $router->post('/api/v1/auth/logout', [$auth, 'logout']);
 $router->get('/api/v1/health', [$api, 'health']);
 $router->get('/api/v1/session', [$api, 'session']);
 $router->get('/api/v1/profile', [$api, 'profile']);
+$router->get('/api/v1/academy', [$academy, 'catalog']);
+$router->post('/api/v1/academy/unlock-unit-type', [$academy, 'unlockUnitType']);
 $router->get('/api/v1/shop', [$shop, 'catalog']);
 $router->post('/api/v1/shop/purchase', [$shop, 'purchase']);
 $router->get('/api/v1/runs/current', [$api, 'currentRun']);

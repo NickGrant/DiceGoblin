@@ -7,10 +7,9 @@ import {
 } from '@angular/cdk/drag-drop';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   DiceRecord,
-  PromotionOptionRecord,
   UnitAbilityDieRecord,
   UnitRecord,
 } from '../../core/models/api.models';
@@ -80,6 +79,7 @@ type DiceAssignmentRecord = {
     DgPageFrameComponent,
     DicePickerModalComponent,
     FormsModule,
+    RouterLink,
   ],
   templateUrl: './unit-details-page.component.html',
   styleUrl: './unit-details-page.component.scss',
@@ -104,14 +104,11 @@ export class UnitDetailsPageComponent {
   );
   readonly units = this.sessionService.units;
   readonly dice = this.sessionService.dice;
-  readonly promotionOptions = signal<PromotionOptionRecord[]>([]);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
   readonly busy = signal(false);
   readonly busySlotKey = signal<string | null>(null);
-  readonly selectedSecondaries = signal<string[]>([]);
-  readonly selectedDestination = signal<string>('');
-  readonly activeTab = signal<'stats' | 'abilities' | 'promotion'>('stats');
+  readonly activeTab = signal<'stats' | 'abilities'>('stats');
   readonly pendingEquippedAbilityIds = signal<string[]>([]);
   readonly savingLoadout = signal(false);
   readonly pickerState = signal<PickerState | null>(null);
@@ -208,24 +205,6 @@ export class UnitDetailsPageComponent {
       };
     }).filter((ability) => ability.diceCost > 0);
   });
-  readonly eligiblePromotionCandidates = computed(() => {
-    const unit = this.unit();
-    if (!unit) {
-      return [];
-    }
-
-    return this.units().filter((candidate) => {
-      if (candidate.id === unit.id) {
-        return false;
-      }
-
-      return (
-        candidate.unit_type_id === unit.unit_type_id &&
-        candidate.tier === unit.tier &&
-        (candidate.level ?? 0) >= (candidate.max_level ?? Number.MAX_SAFE_INTEGER)
-      );
-    });
-  });
   readonly pickerAvailableDice = computed(() => {
     const pickerState = this.pickerState();
     if (!pickerState) {
@@ -279,7 +258,6 @@ export class UnitDetailsPageComponent {
 
   constructor() {
     this.renameValue = this.unit()?.name ?? '';
-    void this.loadPromotionOptions();
     void this.abilityCatalogService.load();
     effect(() => {
       this.pendingEquippedAbilityIds.set(
@@ -292,44 +270,8 @@ export class UnitDetailsPageComponent {
     });
   }
 
-  async loadPromotionOptions(): Promise<void> {
-    if (!this.unit()) {
-      return;
-    }
-
-    try {
-      const response = await this.unitService.getPromotionOptions(this.unitId);
-      if (response.ok) {
-        this.promotionOptions.set(response.data.options);
-        this.selectedDestination.set(response.data.options[0]?.target_unit_type_id ?? '');
-      }
-    } catch {
-      // Keep details screen usable even if promotion lookup fails.
-    }
-  }
-
-  toggleSecondary(unitId: string): void {
-    if (this.unitLocked()) {
-      return;
-    }
-
-    const next = new Set(this.selectedSecondaries());
-    if (next.has(unitId)) {
-      next.delete(unitId);
-    } else if (next.size < 2) {
-      next.add(unitId);
-    }
-    this.selectedSecondaries.set(Array.from(next));
-  }
-
-  setActiveTab(tab: 'stats' | 'abilities' | 'promotion'): void {
+  setActiveTab(tab: 'stats' | 'abilities'): void {
     this.activeTab.set(tab);
-  }
-
-  promotionOptionLabel(option: PromotionOptionRecord): string {
-    const primaryName =
-      option.mode === 'sideways' ? option.branch_unit_type_name : option.target_unit_type_name;
-    return `${primaryName} - ${option.mode}`;
   }
 
   addAbilityToLoadout(abilityId: string, insertIndex?: number): void {
@@ -451,39 +393,6 @@ export class UnitDetailsPageComponent {
       this.message.set('Unit renamed.');
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to rename unit.');
-    } finally {
-      this.busy.set(false);
-    }
-  }
-
-  async promoteUnit(): Promise<void> {
-    if (this.unitLocked()) {
-      return;
-    }
-
-    if (this.selectedSecondaries().length !== 2) {
-      this.error.set('Choose two units to consume.');
-      return;
-    }
-
-    this.busy.set(true);
-    this.error.set(null);
-    this.message.set(null);
-    try {
-      const response = await this.unitService.promoteUnit(
-        this.unitId,
-        [this.selectedSecondaries()[0], this.selectedSecondaries()[1]],
-        this.selectedDestination() || undefined,
-      );
-      if (!response.ok) {
-        this.error.set(response.error.message);
-        return;
-      }
-      this.selectedSecondaries.set([]);
-      this.message.set('Promotion complete.');
-      await this.loadPromotionOptions();
-    } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Unable to promote unit.');
     } finally {
       this.busy.set(false);
     }
