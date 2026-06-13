@@ -15,6 +15,12 @@
   box-shadow: 0 10px 20px rgba(35, 39, 42, 0.18);
 }
 
+.unit-grid-object--static:hover,
+.unit-grid-object--static:focus-visible {
+  transform: none;
+  box-shadow: none;
+}
+
 .unit-grid-object:focus-visible {
   outline: 3px solid rgba(168, 69, 34, 0.45);
   outline-offset: 3px;
@@ -108,4 +114,8 @@
   color: var(--dg-ink);
   font-size: 0.76rem;
   letter-spacing: 0.08em;
+}
+
+.unit-grid-object--enemy {
+  background: rgba(79, 90, 101, 0.14);
 }

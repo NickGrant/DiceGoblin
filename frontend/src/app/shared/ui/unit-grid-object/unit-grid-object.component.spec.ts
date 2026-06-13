@@ -7,7 +7,15 @@ import { UnitGridObjectComponent } from './unit-grid-object.component';
   standalone: true,
   imports: [UnitGridObjectComponent],
   template: `
-    <dg-unit-grid-object [object]="unit" [progressBar]="progressBar" />
+    <dg-unit-grid-object
+      [object]="unit"
+      [progressBar]="progressBar"
+      [linkEnabled]="linkEnabled"
+      [subtitle]="subtitle"
+      [surfaceTone]="surfaceTone"
+      [showLockBadge]="showLockBadge"
+      [fillHeight]="fillHeight"
+    />
   `,
 })
 class HostComponent {
@@ -26,6 +34,11 @@ class HostComponent {
     tone: 'xp' as const,
     celebrationLabel: 'Level Up',
   };
+  linkEnabled = true;
+  subtitle: string | null = null;
+  surfaceTone: 'default' | 'enemy' = 'default';
+  showLockBadge = true;
+  fillHeight = true;
 }
 
 describe('UnitGridObjectComponent', () => {
@@ -62,5 +75,41 @@ describe('UnitGridObjectComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Locked In Run');
+  });
+
+  it('can render as a non-link enemy surface with custom subtitle', async () => {
+    await TestBed.configureTestingModule({
+      imports: [HostComponent],
+      providers: [provideRouter([])],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.linkEnabled = false;
+    fixture.componentInstance.subtitle = 'Enemy Unit';
+    fixture.componentInstance.surfaceTone = 'enemy';
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('a')).toBeNull();
+    expect(compiled.querySelector('article.unit-grid-object--enemy')).not.toBeNull();
+    expect(compiled.textContent).toContain('Enemy Unit');
+  });
+
+  it('can hide the lock badge and omit full-height stretching', async () => {
+    await TestBed.configureTestingModule({
+      imports: [HostComponent],
+      providers: [provideRouter([])],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.unit.locked = true;
+    fixture.componentInstance.showLockBadge = false;
+    fixture.componentInstance.fillHeight = false;
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const card = compiled.querySelector('.unit-grid-object');
+    expect(compiled.textContent).not.toContain('Locked In Run');
+    expect(card?.classList.contains('h-100')).toBeFalse();
   });
 });

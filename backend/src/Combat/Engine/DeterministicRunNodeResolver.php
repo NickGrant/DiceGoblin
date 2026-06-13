@@ -871,6 +871,9 @@ final class DeterministicRunNodeResolver
               'slot_traces' => $dice['slot_traces'],
               'slot_trace_summary' => $dice['slot_trace_summary'],
               'dice_outcome' => $dice['dice_outcome'],
+              'actor_hp_after' => (int)($playerHp[$playerActorId] ?? (int)$playerActor['max_hp']),
+              'actor_max_hp' => (int)$playerActor['max_hp'],
+              'target_max_hp' => (int)$targetUnit['max_hp'],
               ...$outcome,
             ];
             $this->applyOutcomeStatus(
@@ -982,6 +985,9 @@ final class DeterministicRunNodeResolver
               'slot_traces' => $dice['slot_traces'],
               'slot_trace_summary' => $dice['slot_trace_summary'],
               'dice_outcome' => $dice['dice_outcome'],
+              'actor_hp_after' => (int)($enemyHp[$enemyActorId] ?? (int)$enemyActor['max_hp']),
+              'actor_max_hp' => (int)$enemyActor['max_hp'],
+              'target_max_hp' => (int)$targetUnit['max_hp'],
               ...$outcome,
             ];
             $this->applyOutcomeStatus(

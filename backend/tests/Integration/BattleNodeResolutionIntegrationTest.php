@@ -253,6 +253,10 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
       $this->assertIsString($event['slot_trace_summary'] ?? null, 'Action events must include slot trace summary.');
       $this->assertIsString($event['dice_outcome'] ?? null, 'Action events must include dice_outcome summary.');
       $this->assertIsString($event['ability_outcome'] ?? null, 'Action events must include ability_outcome summary.');
+      $this->assertIsInt($event['actor_hp_after'] ?? null, 'Action events must include actor_hp_after snapshot.');
+      $this->assertIsInt($event['actor_max_hp'] ?? null, 'Action events must include actor_max_hp snapshot.');
+      $this->assertIsInt($event['target_hp_after'] ?? null, 'Action events must include target_hp_after snapshot.');
+      $this->assertIsInt($event['target_max_hp'] ?? null, 'Action events must include target_max_hp snapshot.');
     }
 
     $this->assertGreaterThan(2, count($roundOneTickSet), 'Round one should contain action ticks beyond the previous fixed two-tick cadence.');

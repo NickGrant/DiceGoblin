@@ -24,6 +24,11 @@ export type UnitGridObjectProgressBar = {
 export class UnitGridObjectComponent extends GridObjectComponent<UnitRecord> {
   readonly tag = input('');
   readonly progressBar = input<UnitGridObjectProgressBar | null>(null);
+  readonly linkEnabled = input(true);
+  readonly subtitle = input<string | null>(null);
+  readonly surfaceTone = input<'default' | 'enemy'>('default');
+  readonly showLockBadge = input(true);
+  readonly fillHeight = input(true);
 
   formatTier(tier: number | null | undefined): string | null {
     switch (tier) {
@@ -44,5 +49,12 @@ export class UnitGridObjectComponent extends GridObjectComponent<UnitRecord> {
 
   progressWidth(progressBar: UnitGridObjectProgressBar | null): number {
     return Math.max(0, Math.min(100, progressBar?.percent ?? 0));
+  }
+
+  defaultSubtitle(): string {
+    const typeLabel = this.object().unit_type_name || this.object().unit_type_slug || 'Unit';
+    return typeof this.object().level === 'number' && this.object().level > 0
+      ? `${typeLabel} Level ${this.object().level}`
+      : typeLabel;
   }
 }

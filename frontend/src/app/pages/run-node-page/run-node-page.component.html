@@ -3,6 +3,12 @@
   [title]="pageTitle()"
   [subtitle]="pageSubtitle()"
 >
+  @if (result()) {
+  <button pageFrameHeaderActions dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
+    {{ claimButtonLabel() }}
+  </button>
+  }
+
   @if (loading() || error()) {
   <div class="vstack gap-2 mb-3">
     @if (loading()) {
@@ -24,9 +30,6 @@
           <h2 class="dg-stencil mb-2">Treasure Found</h2>
           <p class="mb-0">This chest pays out immediately on claim and returns the warband to the map.</p>
         </div>
-        <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
-          {{ claimButtonLabel() }}
-        </button>
       </div>
 
       <div class="loot-node__summary mb-3">
@@ -83,17 +86,6 @@
     </div>
     } @else {
     <div class="battle-node">
-      <div class="node-hero node-hero--combat mb-3">
-        <div>
-          <p class="node-hero__eyebrow dg-stencil">Combat Node</p>
-          <h2 class="dg-stencil mb-2">Battle Result</h2>
-          <p class="mb-0">Review the clash, collect the spoils, and move the warband forward.</p>
-        </div>
-        <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
-          {{ claimButtonLabel() }}
-        </button>
-      </div>
-
       <div class="node-summary mb-3">
         <div class="node-summary__item">
           <span class="node-summary__label">Outcome</span>
@@ -103,14 +95,6 @@
           <span class="node-summary__label">Rounds</span>
           <strong>{{ result()!.battle.rounds }}</strong>
         </div>
-        <div class="node-summary__item">
-          <span class="node-summary__label">Ticks</span>
-          <strong>{{ result()!.battle.ticks }}</strong>
-        </div>
-        <div class="node-summary__item">
-          <span class="node-summary__label">Next Paths</span>
-          <strong>{{ unlockedNodeCount() }}</strong>
-        </div>
       </div>
 
     @if (abilityCatalogError()) {
@@ -118,41 +102,52 @@
     }
 
     <div class="battle-log">
-      <div class="battle-log__header">
-        <h3 class="dg-stencil mb-0">Battle Log</h3>
-        <span class="dg-chip">{{ actionLog().length }} action(s)</span>
-      </div>
+      <h3 class="dg-stencil">Battle Log</h3>
 
       @if (actionLog().length) {
       <div class="battle-log__entries">
-        @for (entry of actionLog(); track $index) {
-        <article class="battle-log__entry" [class.battle-log__entry--enemy]="isEnemyAction(entry)">
-          <div class="battle-log__entry-header">
-            <span class="battle-log__stamp">R{{ entry.round }} T{{ entry.tick }}</span>
-            <strong>{{ entry.actorName }}</strong>
-            <span class="battle-log__ability">{{ entry.abilityName }}</span>
-          </div>
+        @for (entry of actionLog(); track entry.round + '-' + entry.tick + '-' + entry.actorName + '-' + entry.targetName + '-' + $index) {
+        <article class="battle-log__entry">
           <div class="battle-log__entry-grid">
-            <div>
-              <span class="battle-log__label">Target</span>
-              <p class="mb-0">{{ entry.targetName }}</p>
-            </div>
-            <div>
-              <span class="battle-log__label">Dice Rolled</span>
-              <p class="mb-0">{{ entry.diceSummary }}</p>
-            </div>
-            <div class="battle-log__entry-result">
-              <span class="battle-log__label">Result</span>
-              <p class="mb-0">
-                @for (segment of entry.resultSegments; track segment.text + '-' + $index) {
-                  @if (segment.tooltip) {
-                  <span class="battle-log__condition" [title]="segment.tooltip">{{ segment.text }}</span>
-                  } @else {
-                  <span>{{ segment.text }}</span>
+            <dg-unit-grid-object
+              class="battle-log__unit-card"
+              [object]="entry.actorCard.unit"
+              [subtitle]="entry.actorCard.subtitle"
+              [surfaceTone]="entry.actorCard.tone"
+              [progressBar]="entry.actorCard.progressBar"
+              [showLockBadge]="entry.actorCard.showLockBadge"
+              [fillHeight]="false"
+              [linkEnabled]="false"
+            />
+
+            <div class="battle-log__entry-center">
+              <div class="battle-log__entry-header">
+                <span class="battle-log__ability">{{ entry.abilityName }}</span>
+              </div>
+              <div>
+                <span class="battle-log__label">Action Result</span>
+                <p class="mb-0">
+                  @for (segment of entry.resultSegments; track segment.text + '-' + $index) {
+                    @if (segment.tooltip) {
+                    <span class="battle-log__condition" [title]="segment.tooltip">{{ segment.text }}</span>
+                    } @else {
+                    <span>{{ segment.text }}</span>
+                    }
                   }
-                }
-              </p>
+                </p>
+              </div>
             </div>
+
+            <dg-unit-grid-object
+              class="battle-log__unit-card"
+              [object]="entry.targetCard.unit"
+              [subtitle]="entry.targetCard.subtitle"
+              [surfaceTone]="entry.targetCard.tone"
+              [progressBar]="entry.targetCard.progressBar"
+              [showLockBadge]="entry.targetCard.showLockBadge"
+              [fillHeight]="false"
+              [linkEnabled]="false"
+            />
           </div>
         </article>
         }

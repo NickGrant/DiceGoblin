@@ -48,7 +48,10 @@ class RunServiceStub {
               ],
               ability_outcome: '7 damage dealt',
               affix_outcome: 'explode triggered',
+              actor_hp_after: 20,
+              actor_max_hp: 20,
               target_hp_after: 3,
+              target_max_hp: 10,
             },
             {
               type: 'action',
@@ -69,7 +72,10 @@ class RunServiceStub {
               ],
               ability_outcome: 'bolstered applied for 2 rounds',
               affix_outcome: null,
+              actor_hp_after: 20,
+              actor_max_hp: 20,
               target_hp_after: 13,
+              target_max_hp: 18,
             },
             {
               type: 'action',
@@ -82,7 +88,10 @@ class RunServiceStub {
               slot_traces: [],
               ability_outcome: 'sleep applied for 1 round and bleeding applied',
               affix_outcome: null,
+              actor_hp_after: 8,
+              actor_max_hp: 12,
               target_hp_after: 8,
+              target_max_hp: 20,
             },
           ],
         },
@@ -98,8 +107,8 @@ class RunServiceStub {
 
 class SessionServiceStub {
   readonly units = jasmine.createSpy('units').and.returnValue([
-    { id: 'u1', name: 'Ashback' },
-    { id: 'u2', name: 'Bogwort' },
+    { id: 'u1', name: 'Ashback', unit_type_name: 'Bruiser', level: 2, tier: 1, max_hp: 20, current_hp: 20, locked: true },
+    { id: 'u2', name: 'Bogwort', unit_type_name: 'Bannerbearer', level: 2, tier: 1, max_hp: 18, current_hp: 13, locked: true },
   ]);
   readonly dice = jasmine.createSpy('dice').and.returnValue([
     { id: 'd1', rarity: 'rare', sides: 8 },
@@ -265,19 +274,24 @@ describe('RunNodePageComponent', () => {
     ]);
 
     const host: HTMLElement = fixture.nativeElement;
-    expect(host.textContent).toContain('Combat Node');
-    expect(host.textContent).toContain('Next Paths');
+    expect(host.textContent).toContain('Claim Rewards');
     expect(host.textContent).toContain('Battle Log');
     expect(host.textContent).toContain('Ashback');
+    expect(host.textContent).toContain('Bruiser Level 2');
     expect(host.textContent).toContain('Heavy Strike');
-    expect(host.textContent).toContain('rare d8');
     expect(host.textContent).toContain('Goblin Raider');
+    expect(host.textContent).toContain('Enemy Unit');
     expect(host.textContent).toContain('7 damage dealt');
     expect(host.textContent).toContain('Bolster Ally');
     expect(host.textContent).toContain('Bogwort');
     expect(host.textContent).toContain('bolstered applied for 2 rounds');
     expect(host.textContent).toContain('Sleep Hex');
     expect(host.textContent).toContain('sleep applied for 1 round and bleeding applied');
+    expect(host.textContent).not.toContain('explode triggered');
+    expect(host.textContent).not.toContain('target HP');
+    expect(host.textContent).not.toContain('Locked In Run');
+    expect(host.textContent).not.toContain('Combat Node');
+    expect(host.textContent).not.toContain('Next Paths');
 
     const conditionChip = host.querySelector('.battle-log__condition[title*="defensive buff"]');
     expect(conditionChip?.textContent).toContain('bolstered');
@@ -285,8 +299,10 @@ describe('RunNodePageComponent', () => {
     const bleedChip = host.querySelector('.battle-log__condition[title*="increases damage received"]');
     expect(bleedChip?.textContent).toContain('bleeding');
 
-    const enemyEntry = host.querySelector('.battle-log__entry--enemy');
-    expect(enemyEntry?.textContent).toContain('Toad Shaman');
+    const enemyCard = host.querySelector('.unit-grid-object--enemy');
+    expect(enemyCard?.textContent).toContain('Goblin Raider');
+    expect(host.querySelectorAll('.unit-grid-object__progress').length).toBe(6);
+    expect(host.querySelector('[pageFrameHeaderActions]')).not.toBeNull();
   });
 
   it('shows a treasure-focused reward summary for loot nodes', async () => {

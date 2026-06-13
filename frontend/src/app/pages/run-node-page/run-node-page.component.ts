@@ -1,12 +1,13 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ResolveNodeData } from '../../core/models/api.models';
+import { ResolveNodeData, UnitRecord } from '../../core/models/api.models';
 import { AbilityCatalogService } from '../../core/services/ability-catalog/ability-catalog.service';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { UnitGridObjectComponent, UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 
 const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss', 'loot']);
 
@@ -15,11 +16,21 @@ type BattleLogActionViewModel = {
   tick: number;
   side: string;
   actorName: string;
+  actorCard: BattleLogUnitCardViewModel;
   abilityName: string;
   diceSummary: string;
   targetName: string;
+  targetCard: BattleLogUnitCardViewModel;
   resultSummary: string;
   resultSegments: BattleLogResultSegmentViewModel[];
+};
+
+type BattleLogUnitCardViewModel = {
+  unit: UnitRecord;
+  subtitle: string;
+  tone: 'default' | 'enemy';
+  progressBar: UnitGridObjectProgressBar | null;
+  showLockBadge: boolean;
 };
 
 type LootRewardSummary = {
@@ -41,7 +52,7 @@ type ConditionDefinition = {
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, UnitGridObjectComponent],
   templateUrl: './run-node-page.component.html',
   styleUrl: './run-node-page.component.scss',
 })
@@ -151,9 +162,11 @@ export class RunNodePageComponent {
           tick,
           side: this.stringValue(event['side']) || 'player',
           actorName: this.resolveActorName(event),
+          actorCard: this.resolveActorCard(event),
           abilityName: this.resolveAbilityName(abilityId),
           diceSummary: this.describeDice(event),
           targetName: this.resolveTargetName(event),
+          targetCard: this.resolveTargetCard(event),
           resultSummary: resultParts.join(' | '),
           resultSegments: this.buildResultSegments(resultParts),
         };
@@ -299,22 +312,13 @@ export class RunNodePageComponent {
       .join(' | ');
   }
 
-  isEnemyAction(entry: BattleLogActionViewModel): boolean {
-    return entry.side === 'enemy';
-  }
-
   private resultParts(event: Record<string, unknown>): string[] {
-    const parts = [
-      this.stringValue(event['ability_outcome']),
-      this.stringValue(event['affix_outcome']),
-    ].filter((value) => value.length > 0);
-
-    const hpAfter = event['target_hp_after'];
-    if (typeof hpAfter === 'number') {
-      parts.push(`target HP ${hpAfter}`);
+    const primaryOutcome = this.stringValue(event['ability_outcome']);
+    if (primaryOutcome.length > 0) {
+      return [primaryOutcome];
     }
 
-    return parts.length ? parts : [this.humanizeId(this.stringValue(event['outcome']) || 'resolved')];
+    return [this.humanizeId(this.stringValue(event['outcome']) || 'resolved')];
   }
 
   private buildResultSegments(parts: string[]): BattleLogResultSegmentViewModel[] {
@@ -387,6 +391,85 @@ export class RunNodePageComponent {
 
   private escapeRegex(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private playerCard(unitId: string, fallbackName: string): BattleLogUnitCardViewModel {
+    const unit = this.sessionService.units().find((entry) => entry.id === unitId);
+    return {
+      unit: unit ?? { id: unitId || fallbackName.toLowerCase().replace(/\s+/g, '-'), name: fallbackName, level: 0 },
+      subtitle: unit?.unit_type_name || unit?.unit_type_slug
+        ? `${unit.unit_type_name || unit.unit_type_slug} Level ${unit.level}`
+        : 'Warband Unit',
+      tone: 'default',
+      progressBar: null,
+      showLockBadge: false,
+    };
+  }
+
+  private enemyCard(enemySlug: string): BattleLogUnitCardViewModel {
+    return {
+      unit: {
+        id: `enemy-${enemySlug}`,
+        name: this.humanizeId(enemySlug || 'enemy'),
+        unit_type_name: 'Enemy',
+        level: 0,
+      },
+      subtitle: 'Enemy Unit',
+      tone: 'enemy',
+      progressBar: null,
+      showLockBadge: false,
+    };
+  }
+
+  private resolveActorCard(event: Record<string, unknown>): BattleLogUnitCardViewModel {
+    const card = this.stringValue(event['side']) === 'enemy'
+      ? this.enemyCard(this.stringValue(event['actor_enemy_slug']) || 'enemy')
+      : this.playerCard(this.stringValue(event['actor_unit_instance_id']), 'Unknown Unit');
+
+    card.progressBar = this.hpProgressBar(
+      this.resolveHpValue(event['actor_hp_after'], card.unit.current_hp),
+      this.resolveHpValue(event['actor_max_hp'], card.unit.max_hp),
+    );
+    return card;
+  }
+
+  private resolveTargetCard(event: Record<string, unknown>): BattleLogUnitCardViewModel {
+    const side = this.stringValue(event['side']);
+    const card = side === 'enemy'
+      ? this.playerCard(this.stringValue(event['target_unit_instance_id']), 'Unknown Unit')
+      : this.stringValue(event['target_unit_instance_id']).length > 0
+        ? this.playerCard(this.stringValue(event['target_unit_instance_id']), 'Unknown Unit')
+        : this.enemyCard(this.stringValue(event['target_enemy_slug']) || 'enemy');
+
+    card.progressBar = this.hpProgressBar(
+      this.resolveHpValue(event['target_hp_after'], card.unit.current_hp),
+      this.resolveHpValue(event['target_max_hp'], card.unit.max_hp),
+    );
+    return card;
+  }
+
+  private hpProgressBar(currentHp: number, maxHp: number): UnitGridObjectProgressBar | null {
+    if (maxHp <= 0) {
+      return null;
+    }
+
+    const clampedCurrentHp = Math.max(0, Math.min(currentHp, maxHp));
+    const percent = (clampedCurrentHp / maxHp) * 100;
+    return {
+      percent,
+      title: `HP ${clampedCurrentHp}/${maxHp}`,
+      leftLabel: `HP ${clampedCurrentHp}/${maxHp}`,
+      tone: percent <= 25 ? 'hp-critical' : 'hp-healthy',
+      showLabels: false,
+    };
+  }
+
+  private resolveHpValue(eventValue: unknown, fallbackValue: unknown): number {
+    if (typeof eventValue === 'number') {
+      return eventValue;
+    }
+
+    return this.numberValue(fallbackValue);
   }
 }
 

@@ -36,7 +36,7 @@
 
 .node-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
@@ -109,16 +109,12 @@
   background: rgba(243, 239, 224, 0.82);
 }
 
-.battle-log__entry--enemy {
-  background: rgba(79, 90, 101, 0.14);
-}
-
 .battle-log__entry-header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem 0.85rem;
-  margin-bottom: 0.8rem;
+  margin-bottom: 0.9rem;
 }
 
 .battle-log__stamp,
@@ -135,12 +131,23 @@
 
 .battle-log__entry-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 1.1fr) minmax(0, 1fr);
   gap: 0.85rem;
+  align-items: center;
 }
 
-.battle-log__entry-result {
-  grid-column: 1 / -1;
+.battle-log__unit-card {
+  display: block;
+}
+
+.battle-log__entry-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 1rem;
+  border: 1px solid rgba(35, 39, 42, 0.15);
+  background: rgba(255, 252, 246, 0.76);
 }
 
 .battle-log__condition {

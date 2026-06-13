@@ -1,8 +1,15 @@
-<a class="dg-card dg-card-muted unit-grid-object p-3 h-100" [routerLink]="['/warband/units', object().id]">
+@if (linkEnabled()) {
+<a
+  class="dg-card dg-card-muted unit-grid-object p-3"
+  [class.h-100]="fillHeight()"
+  [class.unit-grid-object--enemy]="surfaceTone() === 'enemy'"
+  [class.unit-grid-object--static]="!linkEnabled()"
+  [routerLink]="['/warband/units', object().id]"
+>
   @if (tag()) {
   <span class="unit-grid-object__tag">{{ tag() }}</span>
   }
-  @if (object().locked) {
+  @if (showLockBadge() && object().locked) {
   <span class="unit-grid-object__lock">Locked In Run</span>
   }
   <div class="unit-grid-object__heading mt-2 mb-1">
@@ -12,7 +19,7 @@
     }
   </div>
   <p class="mb-2">
-    {{ object().unit_type_name || object().unit_type_slug || 'Unit' }} Level {{ object().level }}
+    {{ subtitle() || defaultSubtitle() }}
   </p>
   @if (progressBar(); as progressBar) {
   <div class="unit-grid-object__progress-wrap mt-auto">
@@ -48,3 +55,60 @@
   </div>
   }
 </a>
+} @else {
+<article
+  class="dg-card dg-card-muted unit-grid-object p-3"
+  [class.h-100]="fillHeight()"
+  [class.unit-grid-object--enemy]="surfaceTone() === 'enemy'"
+  [class.unit-grid-object--static]="!linkEnabled()"
+>
+  @if (tag()) {
+  <span class="unit-grid-object__tag">{{ tag() }}</span>
+  }
+  @if (showLockBadge() && object().locked) {
+  <span class="unit-grid-object__lock">Locked In Run</span>
+  }
+  <div class="unit-grid-object__heading mt-2 mb-1">
+    <h2 class="h5 m-0">{{ object().name }}</h2>
+    @if (formatTier(object().tier); as tierLabel) {
+    <span class="unit-grid-object__tier dg-stencil">{{ tierLabel }}</span>
+    }
+  </div>
+  <p class="mb-2">
+    {{ subtitle() || defaultSubtitle() }}
+  </p>
+  @if (progressBar(); as progressBar) {
+  <div class="unit-grid-object__progress-wrap mt-auto">
+    <div class="unit-grid-object__progress" [attr.title]="progressBar.title" [attr.aria-label]="progressBar.title">
+      <span
+        class="unit-grid-object__progress-fill"
+        [class.unit-grid-object__progress-fill--hp-healthy]="progressBar.tone === 'hp-healthy'"
+        [class.unit-grid-object__progress-fill--hp-critical]="progressBar.tone === 'hp-critical'"
+        [class.unit-grid-object__progress-fill--xp]="progressBar.tone === 'xp' || !progressBar.tone"
+        [style.width.%]="progressWidth(progressBar)"
+      ></span>
+    </div>
+    @if (progressBar.celebrationLabel) {
+    <span class="unit-grid-object__progress-indicator dg-stencil">{{ progressBar.celebrationLabel }}</span>
+    }
+    @if (progressBar.showLabels !== false) {
+    <div class="unit-grid-object__progress-meta">
+      <span>{{ progressBar.leftLabel }}</span>
+      @if (progressBar.rightLabel) {
+      <span>{{ progressBar.rightLabel }}</span>
+      }
+    </div>
+    }
+  </div>
+  }
+
+  @if (footerTemplate(); as footerTemplate) {
+  <div class="d-flex flex-wrap gap-2 mt-auto">
+    <ng-container
+      [ngTemplateOutlet]="footerTemplate"
+      [ngTemplateOutletContext]="{ $implicit: footerContext() || object() }"
+    />
+  </div>
+  }
+</article>
+}
