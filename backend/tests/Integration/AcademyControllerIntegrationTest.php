@@ -17,6 +17,9 @@ final class AcademyControllerIntegrationTest extends IntegrationTestCase
   {
     $userId = $this->insertUser('qa_academy', 'QA Academy');
     $_SESSION['user_id'] = $userId;
+    $this->pdo?->prepare(
+      "INSERT INTO `user_unlocks` (`user_id`, `unlock_namespace`, `unlock_key`) VALUES (?, 'feature', 'academy')"
+    )->execute([$userId]);
 
     $controller = new AcademyController();
     $response = $this->invoke(fn() => $controller->catalog());
@@ -43,6 +46,9 @@ final class AcademyControllerIntegrationTest extends IntegrationTestCase
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+    $this->pdo?->prepare(
+      "INSERT INTO `user_unlocks` (`user_id`, `unlock_namespace`, `unlock_key`) VALUES (?, 'feature', 'academy')"
+    )->execute([$userId]);
 
     $this->pdo?->prepare('UPDATE `player_state` SET `currency_soft` = 300 WHERE `user_id` = ?')->execute([$userId]);
 

@@ -1,5 +1,11 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { ShopCatalogData, ShopDailyDeal, ShopDiceItem, ShopUnitItem } from '../../core/models/api.models';
+import {
+  ShopCatalogData,
+  ShopDailyDeal,
+  ShopDiceItem,
+  ShopFeatureUnlockItem,
+  ShopUnitItem,
+} from '../../core/models/api.models';
 import { ShopService } from '../../core/services/shop/shop.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
@@ -24,6 +30,7 @@ import {
 export class ShopPageComponent {
   private readonly shopService = inject(ShopService);
 
+  readonly activeTab = signal<'supplies' | 'feature_unlocks'>('supplies');
   readonly catalog = signal<ShopCatalogData | null>(null);
   readonly loading = signal(true);
   readonly busyKey = signal<string | null>(null);
@@ -37,6 +44,7 @@ export class ShopPageComponent {
   readonly basicUnitGridObjects = computed(() =>
     (this.catalog()?.basic_units ?? []).map((item) => this.mapBasicUnitItem(item)),
   );
+  readonly featureUnlockItems = computed(() => this.catalog()?.feature_unlocks ?? []);
   readonly dailyDealGridObjects = computed(() => {
     const deal = this.catalog()?.daily_deal;
     return deal ? [this.mapDailyDealItem(deal)] : [];
@@ -63,7 +71,10 @@ export class ShopPageComponent {
     }
   }
 
-  async purchase(itemType: 'basic_unit' | 'basic_dice' | 'daily_deal', productId = ''): Promise<void> {
+  async purchase(
+    itemType: 'basic_unit' | 'basic_dice' | 'daily_deal' | 'feature_unlock',
+    productId = '',
+  ): Promise<void> {
     this.busyKey.set(`${itemType}:${productId}`);
     this.error.set(null);
     this.message.set(null);
@@ -117,5 +128,17 @@ export class ShopPageComponent {
       cost: item.cost,
       tierLabel: 'Tier 1',
     };
+  }
+
+  featureUnlockBusyKey(productId: string): string {
+    return `feature_unlock:${productId}`;
+  }
+
+  featureUnlockCta(item: ShopFeatureUnlockItem): string {
+    if (this.busyKey() === this.featureUnlockBusyKey(item.product_id)) {
+      return 'Unlocking...';
+    }
+
+    return item.is_unlocked ? 'Unlocked' : 'Unlock';
   }
 }

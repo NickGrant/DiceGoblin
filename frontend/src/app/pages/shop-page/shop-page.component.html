@@ -1,7 +1,7 @@
 <dg-page-frame
   [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Shop' }]"
   title="Shop"
-  subtitle="Spend teeth on recruits, dice, and the Daily Deal."
+  subtitle="Spend teeth on supplies today, then unlock bigger systems as your camp grows."
 >
   @if (error() || message()) {
     <div class="vstack gap-2 mb-3">
@@ -11,49 +11,105 @@
   }
   @if (loading()) { <dg-alert>Loading shop...</dg-alert> }
   @if (catalog()) {
-  <div class="row g-4">
-    <div class="col-xl-8">
-      <div class="dg-card p-3 h-100">
-        <h2 class="dg-stencil mb-3">Starter Dice</h2>
-        <dg-object-grid
-          [objects]="basicDiceGridObjects()"
-          [objectComponent]="shopDiceObjectComponent"
-          [footerTemplate]="basicDiceActions"
-          [pageSize]="4"
-          columnClasses="col-3"
-          emptyMessage="Go with what you got, no dice available."
-        />
-      </div>
-    </div>
+  <nav class="shop-tabs mb-4" aria-label="Shop categories">
+    <button
+      [dgCommandBtn]="activeTab() === 'supplies' ? 'primary' : 'muted'"
+      type="button"
+      (click)="activeTab.set('supplies')"
+    >
+      Supplies
+    </button>
+    <button
+      [dgCommandBtn]="activeTab() === 'feature_unlocks' ? 'primary' : 'muted'"
+      type="button"
+      (click)="activeTab.set('feature_unlocks')"
+    >
+      Feature Unlocks
+    </button>
+  </nav>
 
-    <div class="col-xl-4">
-      <div class="dg-card p-3 h-100">
-        <h2 class="dg-stencil mb-3">Daily Deal</h2>
-        <dg-object-grid
-          [objects]="dailyDealGridObjects()"
-          [objectComponent]="shopDiceObjectComponent"
-          [footerTemplate]="dailyDealActions"
-          [pageSize]="1"
-          columnClasses="col-12"
-          emptyMessage="No daily deal available."
-        />
+  @if (activeTab() === 'supplies') {
+    <div class="row g-4">
+      <div class="col-xl-8">
+        <div class="dg-card p-3 h-100">
+          <h2 class="dg-stencil mb-3">Starter Dice</h2>
+          <dg-object-grid
+            [objects]="basicDiceGridObjects()"
+            [objectComponent]="shopDiceObjectComponent"
+            [footerTemplate]="basicDiceActions"
+            [pageSize]="4"
+            columnClasses="col-3"
+            emptyMessage="Go with what you got, no dice available."
+          />
+        </div>
       </div>
-    </div>
 
-    <div class="col-12">
-      <div class="dg-card p-3 h-100">
-        <h2 class="dg-stencil mb-3">Fresh Meat</h2>
-        <dg-object-grid
-          [objects]="basicUnitGridObjects()"
-          [objectComponent]="shopUnitObjectComponent"
-          [footerTemplate]="basicUnitActions"
-          [pageSize]="4"
-          columnClasses="col-3"
-          emptyMessage="No recruits available."
-        />
+      <div class="col-xl-4">
+        <div class="dg-card p-3 h-100">
+          <h2 class="dg-stencil mb-3">Daily Deal</h2>
+          <dg-object-grid
+            [objects]="dailyDealGridObjects()"
+            [objectComponent]="shopDiceObjectComponent"
+            [footerTemplate]="dailyDealActions"
+            [pageSize]="1"
+            columnClasses="col-12"
+            emptyMessage="No daily deal available."
+          />
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="dg-card p-3 h-100">
+          <h2 class="dg-stencil mb-3">Fresh Meat</h2>
+          <dg-object-grid
+            [objects]="basicUnitGridObjects()"
+            [objectComponent]="shopUnitObjectComponent"
+            [footerTemplate]="basicUnitActions"
+            [pageSize]="4"
+            columnClasses="col-3"
+            emptyMessage="No recruits available."
+          />
+        </div>
       </div>
     </div>
-  </div>
+  } @else {
+    <section class="dg-card p-3 p-lg-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+        <div>
+          <h2 class="dg-stencil mb-1">Camp Upgrades</h2>
+          <p class="mb-0">Unlock long-term systems here as your warband grows beyond the starter camp.</p>
+        </div>
+        <span class="dg-chip">Teeth {{ catalog()?.currency_soft ?? 0 }}</span>
+      </div>
+
+      @if (featureUnlockItems().length) {
+        <div class="row g-3">
+          @for (item of featureUnlockItems(); track item.product_id) {
+            <div class="col-xl-6">
+              <button
+                class="feature-unlock-card"
+                type="button"
+                (click)="purchase('feature_unlock', item.product_id)"
+                [disabled]="item.is_unlocked || busyKey() === featureUnlockBusyKey(item.product_id) || !canAfford(item.cost)"
+              >
+                <div class="feature-unlock-card__body">
+                  <p class="feature-unlock-card__eyebrow mb-1">Feature Unlock</p>
+                  <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                    <h3 class="dg-stencil mb-0">{{ item.name }}</h3>
+                    <span class="feature-unlock-card__cost">{{ item.cost }} Teeth</span>
+                  </div>
+                  <p class="mb-0">{{ item.description }}</p>
+                </div>
+                <span class="feature-unlock-card__cta">{{ featureUnlockCta(item) }}</span>
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <dg-alert>No feature unlocks are currently available.</dg-alert>
+      }
+    </section>
+  }
   }
 </dg-page-frame>
 

@@ -54,6 +54,8 @@ final class ProfileService
 
     // Currency
     $currency = $this->playerStateRepo->getCurrency($userId);
+    $featureUnlocks = (new UserUnlockService($this->pdo))
+      ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_FEATURE);
 
     // Squads/Teams (membership + formation)
     $teams = $this->teamRepo->getTeamsWithMembershipAndFormationForUser($userId);
@@ -84,6 +86,7 @@ final class ProfileService
       $dice,
       $currency,
       $energy,
+      $featureUnlocks,
       $regionUnlocks,
       $regionItems,
       $activeRun

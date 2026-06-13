@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { ShopPageComponent } from './shop-page.component';
 import { ShopService } from '../../core/services/shop/shop.service';
 
@@ -40,21 +41,35 @@ class ShopServiceStub {
           value: 4,
         },
       },
+      feature_unlocks: [
+        {
+          product_id: 'academy',
+          name: 'Academy',
+          description: 'Unlock promotions and unit-type research for your warband.',
+          cost: 250,
+          is_unlocked: false,
+        },
+      ],
     },
   });
   purchase = jasmine.createSpy('purchase').and.resolveTo({ ok: true });
 }
 
 describe('ShopPageComponent', () => {
-  it('loads catalog data on startup and evaluates affordability', async () => {
+  async function createComponent() {
     await TestBed.configureTestingModule({
       imports: [ShopPageComponent],
-      providers: [{ provide: ShopService, useClass: ShopServiceStub }],
+      providers: [provideRouter([]), { provide: ShopService, useClass: ShopServiceStub }],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(ShopPageComponent);
     await fixture.whenStable();
     fixture.detectChanges();
+    return fixture;
+  }
+
+  it('loads catalog data on startup and evaluates affordability', async () => {
+    const fixture = await createComponent();
 
     const component = fixture.componentInstance;
     const compiled = fixture.nativeElement as HTMLElement;
@@ -62,9 +77,25 @@ describe('ShopPageComponent', () => {
     expect(component.catalog()?.currency_soft).toBe(20);
     expect(component.canAfford(10)).toBeTrue();
     expect(component.canAfford(30)).toBeFalse();
-    expect(compiled.textContent).toContain('d6 · Common');
-    expect(compiled.textContent).not.toContain('Starter d6');
     expect(compiled.textContent).toContain('Goblin Bruiser');
     expect(compiled.textContent).toContain('Sharp');
+  });
+
+  it('shows Academy under feature unlocks and purchases it from that tab', async () => {
+    const fixture = await createComponent();
+
+    const component = fixture.componentInstance;
+    const shopService = TestBed.inject(ShopService) as unknown as ShopServiceStub;
+
+    component.activeTab.set('feature_unlocks');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Camp Upgrades');
+    expect(compiled.textContent).toContain('Academy');
+    expect(compiled.textContent).toContain('250 Teeth');
+
+    await component.purchase('feature_unlock', 'academy');
+    expect(shopService.purchase).toHaveBeenCalledWith('feature_unlock', 'academy');
   });
 });

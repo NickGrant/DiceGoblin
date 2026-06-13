@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authChildGuard, authGuard, guestGuard } from './core/guards/auth/auth.guard';
+import { academyFeatureGuard, authChildGuard, authGuard, guestGuard } from './core/guards/auth/auth.guard';
 import { GameShellComponent } from './layout/game-shell/game-shell.component';
 import { DebugPageComponent } from './pages/debug-page/debug-page.component';
 import { DicePageComponent } from './pages/dice-page/dice-page.component';
@@ -30,7 +30,7 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: HomePageComponent },
-      { path: 'academy', component: AcademyPageComponent },
+      { path: 'academy', component: AcademyPageComponent, canActivate: [academyFeatureGuard] },
       { path: 'regions', component: RegionsPageComponent },
       { path: 'warband', component: WarbandPageComponent },
       { path: 'warband/units/:unitId', component: UnitDetailsPageComponent },

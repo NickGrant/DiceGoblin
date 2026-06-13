@@ -33,10 +33,13 @@ final class AcademyController
 
     try {
       $svc['bootstrapper']->ensureBaseline($userId);
+      $this->requireAcademyUnlocked($svc['pdo'], $userId);
       Response::json([
         'ok' => true,
         'data' => $this->buildCatalog($svc['pdo'], $svc['playerStateRepo'], $userId),
       ]);
+    } catch (RuntimeException $e) {
+      Response::json(['ok' => false, 'error' => ['code' => 'feature_locked', 'message' => $e->getMessage()]], 403);
     } catch (Throwable) {
       Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
     }
@@ -66,6 +69,7 @@ final class AcademyController
     $pdo = $svc['pdo'];
     try {
       $svc['bootstrapper']->ensureBaseline($userId);
+      $this->requireAcademyUnlocked($pdo, $userId);
       $pdo->beginTransaction();
 
       $catalogEntry = $this->loadTierOneUnitType($pdo, $unitTypeSlug);
@@ -185,6 +189,13 @@ final class AcademyController
   private function unlockCostForSlug(string $unitTypeSlug): int
   {
     return self::UNIT_UNLOCK_COSTS[$unitTypeSlug] ?? self::DEFAULT_UNLOCK_COST;
+  }
+
+  private function requireAcademyUnlocked(PDO $pdo, int $userId): void
+  {
+    if (!(new UserUnlockService($pdo))->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_ACADEMY)) {
+      throw new RuntimeException('Academy has not been unlocked yet.');
+    }
   }
 
   private function requireUserId(SessionService $sessionService): ?int

@@ -13,6 +13,7 @@ import { isDevPanelEnabled } from '../../core/config/runtime-config';
 export class HomePageComponent {
   private readonly sessionService = inject(SessionService);
   readonly profile = this.sessionService.profile;
+  readonly academyUnlocked = this.sessionService.academyUnlocked;
   readonly hasActiveRun = this.sessionService.hasActiveRun;
   readonly devPanelEnabled = isDevPanelEnabled();
   readonly primaryLabel = computed(() => (this.hasActiveRun() ? 'Continue Run' : 'Start Run'));

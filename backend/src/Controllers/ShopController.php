@@ -22,6 +22,9 @@ final class ShopController
   use RequiresCsrf;
 
   private const BASIC_UNIT_COST = 32;
+  private const FEATURE_UNLOCK_COSTS = [
+    UserUnlockService::FEATURE_ACADEMY => 250,
+  ];
 
   public function catalog(): void
   {
@@ -56,7 +59,7 @@ final class ShopController
 
     $itemType = trim((string)($body['item_type'] ?? ''));
     $productId = trim((string)($body['product_id'] ?? ''));
-    if (!in_array($itemType, ['basic_unit', 'basic_dice', 'daily_deal'], true)) {
+    if (!in_array($itemType, ['basic_unit', 'basic_dice', 'daily_deal', 'feature_unlock'], true)) {
       Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'item_type is required.']], 400);
       return;
     }
@@ -76,6 +79,7 @@ final class ShopController
         'basic_unit' => $this->purchaseBasicUnit($pdo, $userId, $productId),
         'basic_dice' => $this->purchaseBasicDice($pdo, $userId, $productId),
         'daily_deal' => $this->purchaseDailyDeal($pdo, $userId),
+        'feature_unlock' => $this->purchaseFeatureUnlock($pdo, $userId, $productId),
       };
 
       $cost = (int)$purchase['cost'];
@@ -119,6 +123,7 @@ final class ShopController
    *   currency_soft:int,
    *   basic_dice:array<int,array{product_id:string,label:string,rarity:string,sides:int,cost:int}>,
    *   basic_units:array<int,array{product_id:string,unit_type_slug:string,name:string,role:string,cost:int}>,
+   *   feature_unlocks:array<int,array{product_id:string,name:string,description:string,cost:int,is_unlocked:bool}>,
    *   daily_deal:?array<string,mixed>
    * }
    */
@@ -133,6 +138,7 @@ final class ShopController
       'currency_soft' => max(0, (int)($currency['soft'] ?? 0)),
       'basic_dice' => $this->listBasicDiceCatalog($pdo),
       'basic_units' => $this->listBasicUnitCatalog($pdo, $userId),
+      'feature_unlocks' => $this->listFeatureUnlockCatalog($pdo, $userId),
       'daily_deal' => $this->resolveDailyDeal($pdo, $userId, $shopDate, $lockDeal),
     ];
   }
@@ -192,6 +198,22 @@ final class ShopController
       'role' => (string)$row['role'],
       'cost' => self::BASIC_UNIT_COST,
     ], $stmt->fetchAll(PDO::FETCH_ASSOC));
+  }
+
+  /**
+   * @return array<int,array{product_id:string,name:string,description:string,cost:int,is_unlocked:bool}>
+   */
+  private function listFeatureUnlockCatalog(PDO $pdo, int $userId): array
+  {
+    $unlockService = new UserUnlockService($pdo);
+
+    return [[
+      'product_id' => UserUnlockService::FEATURE_ACADEMY,
+      'name' => 'Academy',
+      'description' => 'Unlock promotions and unit-type research for your warband.',
+      'cost' => self::FEATURE_UNLOCK_COSTS[UserUnlockService::FEATURE_ACADEMY],
+      'is_unlocked' => $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_ACADEMY),
+    ]];
   }
 
   /**
@@ -465,6 +487,33 @@ final class ShopController
         'rarity' => (string)$deal['rarity'],
         'sides' => (int)$deal['sides'],
         'affix' => $deal['affix'],
+      ],
+    ];
+  }
+
+  /**
+   * @return array{product_id:string,cost:int,purchase:array<string,mixed>}
+   */
+  private function purchaseFeatureUnlock(PDO $pdo, int $userId, string $productId): array
+  {
+    $cost = self::FEATURE_UNLOCK_COSTS[$productId] ?? null;
+    if ($cost === null) {
+      throw new RuntimeException('Requested feature unlock is not available.');
+    }
+
+    $unlockService = new UserUnlockService($pdo);
+    if ($unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, $productId)) {
+      throw new RuntimeException('Requested feature is already unlocked.');
+    }
+
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_FEATURE, $productId);
+
+    return [
+      'product_id' => $productId,
+      'cost' => $cost,
+      'purchase' => [
+        'unlock_namespace' => UserUnlockService::NAMESPACE_FEATURE,
+        'unlock_key' => $productId,
       ],
     ];
   }

@@ -88,6 +88,7 @@ class SessionServiceStub {
   ] as any[]);
   readonly activeSquad = signal({ id: 's1', unit_ids: ['u1'] } as any);
   readonly hasActiveRun = signal(false);
+  readonly academyUnlocked = signal(true);
 }
 
 class UnitServiceStub {

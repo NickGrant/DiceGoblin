@@ -20,6 +20,21 @@ async function requireGuestUser() {
   return sessionService.session().isAuthenticated ? router.createUrlTree(['/home']) : true;
 }
 
+async function requireFeatureUnlock(unlockKey: string) {
+  const sessionService = inject(SessionService);
+  const router = inject(Router);
+
+  await sessionService.initialize();
+
+  if (!sessionService.session().isAuthenticated) {
+    return router.createUrlTree(['/login']);
+  }
+
+  const unlocked = sessionService.profileData()?.feature_unlocks?.includes(unlockKey) ?? false;
+  return unlocked ? true : router.createUrlTree(['/shop']);
+}
+
 export const authGuard: CanActivateFn = async () => requireAuthenticatedUser();
 export const authChildGuard: CanActivateChildFn = async () => requireAuthenticatedUser();
 export const guestGuard: CanActivateFn = async () => requireGuestUser();
+export const academyFeatureGuard: CanActivateFn = async () => requireFeatureUnlock('academy');

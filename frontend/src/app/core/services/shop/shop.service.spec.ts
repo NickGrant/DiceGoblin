@@ -43,4 +43,15 @@ describe('ShopService', () => {
     });
     expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
   });
+
+  it('supports feature unlock purchases', async () => {
+    const response = { ok: true } as any;
+    apiHttp.postWithCsrf.and.resolveTo(response);
+
+    await expectAsync(service.purchase('feature_unlock', 'academy')).toBeResolvedTo(response);
+    expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/shop/purchase', {
+      item_type: 'feature_unlock',
+      product_id: 'academy',
+    });
+  });
 });

@@ -149,6 +149,7 @@ export type ProfileData = {
     regen_rate_per_hour?: number;
     last_regen_at?: string;
   };
+  feature_unlocks: string[];
   region_unlocks: RegionUnlockRecord[];
   region_items: RegionItemRecord[];
   active_run: ProfileActiveRun | null;
@@ -351,6 +352,14 @@ export type ShopUnitItem = {
   cost: number;
 };
 
+export type ShopFeatureUnlockItem = {
+  product_id: string;
+  name: string;
+  description: string;
+  cost: number;
+  is_unlocked: boolean;
+};
+
 export type ShopDailyDeal = {
   product_id: string;
   shop_date: string;
@@ -372,13 +381,14 @@ export type ShopCatalogData = {
   currency_soft: number;
   basic_dice: ShopDiceItem[];
   basic_units: ShopUnitItem[];
+  feature_unlocks: ShopFeatureUnlockItem[];
   daily_deal: ShopDailyDeal | null;
 };
 
 export type ShopCatalogResponse = ApiResponse<ShopCatalogData>;
 
 export type ShopPurchaseData = {
-  item_type: 'basic_unit' | 'basic_dice' | 'daily_deal';
+  item_type: 'basic_unit' | 'basic_dice' | 'daily_deal' | 'feature_unlock';
   product_id: string;
   cost: number;
   currency_soft: number;
@@ -400,6 +410,10 @@ export type ShopPurchaseData = {
           rarity: string;
           value: number;
         };
+      }
+    | {
+        unlock_namespace: string;
+        unlock_key: string;
       };
 };
 

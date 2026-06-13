@@ -59,6 +59,7 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsInt($data['energy']['max'] ?? null);
     $this->assertIsNumeric($data['energy']['regen_rate_per_hour'] ?? null);
     $this->assertIsString($data['energy']['last_regen_at'] ?? null);
+    $this->assertIsArray($data['feature_unlocks'] ?? null);
     $this->assertIsArray($data['region_unlocks'] ?? null);
     $this->assertIsArray($data['region_items'] ?? null);
     $this->assertArrayHasKey('active_run', $data);

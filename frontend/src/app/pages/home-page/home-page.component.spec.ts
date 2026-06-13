@@ -20,6 +20,7 @@ class SessionServiceStub {
   });
 
   readonly hasActiveRun = signal(false);
+  readonly academyUnlocked = signal(false);
 }
 
 describe('HomePageComponent', () => {
@@ -44,18 +45,19 @@ describe('HomePageComponent', () => {
     const fixture = TestBed.createComponent(HomePageComponent);
     fixture.detectChanges();
 
-    const component = fixture.componentInstance;
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.textContent).toContain('Start Run');
     expect(compiled.textContent).toContain("You're neighbors surely have some good stuff...");
-    expect(compiled.textContent).toContain('Academy');
-    expect(component.primaryRoute()).toBe('/regions');
-    expect(component.primaryLabel()).toBe('Start Run');
+    expect(compiled.textContent).not.toContain('Academy');
+    expect(compiled.textContent).not.toContain('Unlock in Shop');
+    expect(fixture.componentInstance.primaryRoute()).toBe('/regions');
+    expect(fixture.componentInstance.primaryLabel()).toBe('Start Run');
   });
 
   it('shows continue-run copy when an active run exists', () => {
     sessionService.hasActiveRun.set(true);
+    sessionService.academyUnlocked.set(true);
     sessionService.profile.set({
       activeRunId: 'run-7',
       activeSquadName: 'Alpha Squad',
@@ -72,6 +74,7 @@ describe('HomePageComponent', () => {
 
     expect(compiled.textContent).toContain('Continue Run');
     expect(compiled.textContent).toContain('Back to "work".');
+    expect(compiled.textContent).toContain('Academy');
     expect(component.primaryRoute()).toBe('/run/map');
     expect(component.primaryLabel()).toBe('Continue Run');
     expect(primaryImage.getAttribute('src')).toContain('home_continue_run.jpg');

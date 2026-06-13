@@ -24,6 +24,7 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     $this->assertSame(200, $response['status']);
     $data = is_array($response['body']['data'] ?? null) ? $response['body']['data'] : [];
     $basicUnits = is_array($data['basic_units'] ?? null) ? $data['basic_units'] : [];
+    $featureUnlocks = is_array($data['feature_unlocks'] ?? null) ? $data['feature_unlocks'] : [];
 
     $slugs = array_map(
       static fn(array $row): string => (string)($row['unit_type_slug'] ?? ''),
@@ -34,6 +35,8 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
       'frontline_bruiser_t1',
       'backline_marksman_t1',
     ], $slugs);
+    $this->assertSame('academy', (string)($featureUnlocks[0]['product_id'] ?? ''));
+    $this->assertFalse((bool)($featureUnlocks[0]['is_unlocked'] ?? true));
   }
 
   public function testPurchaseRejectsLockedUnitTypeEvenIfTierOne(): void
@@ -53,5 +56,32 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     $this->assertSame(400, $response['status']);
     $this->assertSame('validation_error', (string)($response['body']['error']['code'] ?? ''));
     $this->assertSame('Requested unit is not unlocked yet.', (string)($response['body']['error']['message'] ?? ''));
+  }
+
+  public function testPurchaseCanUnlockAcademyFeature(): void
+  {
+    $userId = $this->insertUser('qa_shop_feature', 'QA Shop Feature');
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $this->pdo?->prepare('UPDATE `player_state` SET `currency_soft` = 300 WHERE `user_id` = ?')->execute([$userId]);
+
+    $controller = new ShopController();
+    $this->setJsonBody([
+      'item_type' => 'feature_unlock',
+      'product_id' => 'academy',
+    ]);
+    $response = $this->invoke(fn() => $controller->purchase());
+
+    $this->assertSame(200, $response['status']);
+    $this->assertSame(250, (int)($response['body']['data']['cost'] ?? 0));
+    $this->assertSame(
+      '1',
+      (string)$this->scalar(
+        "SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_namespace` = 'feature' AND `unlock_key` = 'academy'",
+        [$userId]
+      )
+    );
   }
 }

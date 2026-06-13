@@ -1,3 +1,7 @@
 .home-grid {
   background: rgba(243, 239, 224, 0.5);
 }
+
+:host ::ng-deep .dg-media-card.is-disabled {
+  opacity: 0.82;
+}

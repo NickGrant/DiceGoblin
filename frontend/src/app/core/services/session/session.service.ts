@@ -46,6 +46,8 @@ export class SessionService {
   readonly isLoading = this.loadingState.asReadonly();
   readonly error = this.errorState.asReadonly();
   readonly hasActiveRun = computed(() => !!this.profileState().activeRunId);
+  readonly featureUnlocks = computed(() => this.profileDataState()?.feature_unlocks ?? []);
+  readonly academyUnlocked = computed(() => this.featureUnlocks().includes('academy'));
   readonly activeSquad = computed<TeamRecord | null>(
     () => this.profileDataState()?.squads.find((squad) => squad.is_active) ?? null,
   );

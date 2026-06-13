@@ -44,9 +44,17 @@
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
               <div>
                 <h2 class="dg-stencil mb-1">Promotion</h2>
-                <p class="mb-0">Promotions are now handled in the Academy.</p>
+                <p class="mb-0">
+                  {{ academyUnlocked() ? 'Promotions are now handled in the Academy.' : 'Unlock the Academy in the Shop to manage promotions.' }}
+                </p>
               </div>
-              <a dgCommandBtn="muted" [routerLink]="['/academy']" [queryParams]="{ unitId: unit.id }">Open Academy</a>
+              <a
+                dgCommandBtn="muted"
+                [routerLink]="[academyUnlocked() ? '/academy' : '/shop']"
+                [queryParams]="academyUnlocked() ? { unitId: unit.id } : null"
+              >
+                {{ academyUnlocked() ? 'Open Academy' : 'Unlock in Shop' }}
+              </a>
             </div>
           </div>
 

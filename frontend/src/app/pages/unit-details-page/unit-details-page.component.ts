@@ -99,6 +99,7 @@ export class UnitDetailsPageComponent {
   );
   readonly activeSquad = this.sessionService.activeSquad;
   readonly hasActiveRun = this.sessionService.hasActiveRun;
+  readonly academyUnlocked = this.sessionService.academyUnlocked;
   readonly unitLocked = computed(
     () => !!this.unit()?.locked || (this.hasActiveRun() && !!this.activeSquad()?.unit_ids?.includes(this.unitId)),
   );

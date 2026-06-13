@@ -7,7 +7,9 @@ use PDO;
 
 final class UserUnlockService
 {
+  public const NAMESPACE_FEATURE = 'feature';
   public const NAMESPACE_UNIT_TYPE = 'unit_type';
+  public const FEATURE_ACADEMY = 'academy';
 
   public function __construct(
     private readonly PDO $pdo,

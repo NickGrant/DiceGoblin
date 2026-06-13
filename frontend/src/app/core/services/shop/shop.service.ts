@@ -14,7 +14,10 @@ export class ShopService {
     return this.apiHttp.get<ShopCatalogResponse>('/api/v1/shop');
   }
 
-  async purchase(itemType: 'basic_unit' | 'basic_dice' | 'daily_deal', productId = ''): Promise<ShopPurchaseResponse> {
+  async purchase(
+    itemType: 'basic_unit' | 'basic_dice' | 'daily_deal' | 'feature_unlock',
+    productId = '',
+  ): Promise<ShopPurchaseResponse> {
     const response = await this.apiHttp.postWithCsrf<ShopPurchaseResponse>('/api/v1/shop/purchase', {
       item_type: itemType,
       product_id: productId,
