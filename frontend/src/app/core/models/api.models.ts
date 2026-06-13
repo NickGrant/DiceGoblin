@@ -237,6 +237,12 @@ export type RunSummaryPayload = {
   progression: string[];
   survivors: string[];
   defeated: string[];
+  reward_detail?: {
+    currency_soft: number;
+    units: Array<{ unit_instance_id: string | null; label: string }>;
+    dice: Array<{ dice_instance_id: string | null; label: string }>;
+  };
+  progression_detail?: Array<{ unit_instance_id: string; label: string; xp_gained: number }>;
 };
 
 export type RestOpenData = {

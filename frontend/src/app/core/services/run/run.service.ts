@@ -4,6 +4,7 @@ import {
   BattleClaimResponse,
   CreateResponse,
   ExitRunResponse,
+  RunSummaryPayload,
   ResolveNodeResponse,
   RestFinalizeResponse,
   RestOpenResponse,
@@ -19,6 +20,8 @@ export type RunSummaryState = {
   progression: string[];
   survivors: string[];
   defeated: string[];
+  rewardDetail: NonNullable<RunSummaryPayload['reward_detail']> | null;
+  progressionDetail: NonNullable<RunSummaryPayload['progression_detail']>;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -30,6 +33,19 @@ export class RunService {
     private readonly apiHttp: ApiHttpService,
     private readonly sessionService: SessionService,
   ) {}
+
+  private mapSummaryState(title: string, status: string, summary?: RunSummaryPayload | null): RunSummaryState {
+    return {
+      title,
+      status,
+      rewards: summary?.rewards ?? [],
+      progression: summary?.progression ?? [],
+      survivors: summary?.survivors ?? [],
+      defeated: summary?.defeated ?? [],
+      rewardDetail: summary?.reward_detail ?? null,
+      progressionDetail: summary?.progression_detail ?? [],
+    };
+  }
 
   getCurrentRun(): Promise<RunResponse> {
     return this.apiHttp.get<RunResponse>('/api/v1/runs/current');
@@ -43,33 +59,19 @@ export class RunService {
 
   async abandonRun(runId: string): Promise<AbandonRunResponse> {
     const response = await this.apiHttp.postWithCsrf<AbandonRunResponse>(`/api/v1/runs/${runId}/abandon`, {});
-    if (response.ok) {
-      this.summaryState.set({
-        title: 'Run Abandoned',
-        status: response.data.status,
-        rewards: response.data.run_summary?.rewards ?? [],
-        progression: response.data.run_summary?.progression ?? [],
-        survivors: response.data.run_summary?.survivors ?? [],
-        defeated: response.data.run_summary?.defeated ?? [],
-      });
-    }
     await this.sessionService.refreshProfile({ force: true });
+    if (response.ok) {
+      this.summaryState.set(this.mapSummaryState('Run Abandoned', response.data.status, response.data.run_summary));
+    }
     return response;
   }
 
   async exitRun(runId: string): Promise<ExitRunResponse> {
     const response = await this.apiHttp.postWithCsrf<ExitRunResponse>(`/api/v1/runs/${runId}/exit`, {});
-    if (response.ok) {
-      this.summaryState.set({
-        title: 'Run Complete',
-        status: response.data.status,
-        rewards: response.data.run_summary?.rewards ?? [],
-        progression: response.data.run_summary?.progression ?? [],
-        survivors: response.data.run_summary?.survivors ?? [],
-        defeated: response.data.run_summary?.defeated ?? [],
-      });
-    }
     await this.sessionService.refreshProfile({ force: true });
+    if (response.ok) {
+      this.summaryState.set(this.mapSummaryState('Run Complete', response.data.status, response.data.run_summary));
+    }
     return response;
   }
 
@@ -81,17 +83,16 @@ export class RunService {
 
   async claimBattleRewards(battleId: string): Promise<BattleClaimResponse> {
     const response = await this.apiHttp.postWithCsrf<BattleClaimResponse>(`/api/v1/battles/${battleId}/claim`, {});
-    if (response.ok && response.data.run_summary) {
-      this.summaryState.set({
-        title: response.data.run_resolution?.status === 'failed' ? 'Run Failed' : 'Run Summary',
-        status: response.data.run_resolution?.status ?? response.data.status,
-        rewards: response.data.run_summary.rewards ?? [],
-        progression: response.data.run_summary.progression ?? [],
-        survivors: response.data.run_summary.survivors ?? [],
-        defeated: response.data.run_summary.defeated ?? [],
-      });
-    }
     await this.sessionService.refreshProfile({ force: true });
+    if (response.ok && response.data.run_summary) {
+      this.summaryState.set(
+        this.mapSummaryState(
+          response.data.run_resolution?.status === 'failed' ? 'Run Failed' : 'Run Summary',
+          response.data.run_resolution?.status ?? response.data.status,
+          response.data.run_summary,
+        ),
+      );
+    }
     return response;
   }
 

@@ -38,7 +38,13 @@ final class RunSummaryBuilder
    *   rewards:array<int,string>,
    *   progression:array<int,string>,
    *   survivors:array<int,string>,
-   *   defeated:array<int,string>
+   *   defeated:array<int,string>,
+   *   reward_detail:array{
+   *     currency_soft:int,
+   *     units:array<int,array{unit_instance_id:string|null,label:string}>,
+   *     dice:array<int,array{dice_instance_id:string|null,label:string}>
+   *   },
+   *   progression_detail:array<int,array{unit_instance_id:string,label:string,xp_gained:int}>
    * }
    */
   public function buildRunSummary(int $userId, int $runId, ?array $terminalRunState = null): array
@@ -48,10 +54,19 @@ final class RunSummaryBuilder
     $unitRewardCounts = [];
     $diceRewardCounts = [];
     $xpByUnitId = [];
+    $rewardUnits = [];
+    $rewardDice = [];
 
     foreach ($battleRows as $battle) {
       $teethTotal += max(0, (int)($battle['currency_soft'] ?? 0));
       $rewards = is_array($battle['rewards']) ? $battle['rewards'] : [];
+
+      foreach ($this->extractUnitRewardEntries($userId, $rewards) as $entry) {
+        $rewardUnits[] = $entry;
+      }
+      foreach ($this->extractDiceRewardEntries($userId, $rewards) as $entry) {
+        $rewardDice[] = $entry;
+      }
 
       foreach ($this->extractUnitRewardLabels($userId, $rewards) as $label) {
         $unitRewardCounts[$label] = ($unitRewardCounts[$label] ?? 0) + 1;
@@ -96,15 +111,22 @@ final class RunSummaryBuilder
     }
 
     $progressionLines = [];
+    $progressionDetail = [];
     if (count($xpByUnitId) > 0) {
       $unitLabels = $this->loadUnitProgressLabels($userId, array_keys($xpByUnitId));
       uasort($xpByUnitId, static fn(int $a, int $b): int => $b <=> $a);
       foreach ($xpByUnitId as $unitId => $xpGained) {
+        $label = $unitLabels[$unitId] ?? ('Unit ' . $unitId);
         $progressionLines[] = sprintf(
           '%s +%d XP',
-          $unitLabels[$unitId] ?? ('Unit ' . $unitId),
+          $label,
           $xpGained
         );
+        $progressionDetail[] = [
+          'unit_instance_id' => $unitId,
+          'label' => $label,
+          'xp_gained' => $xpGained,
+        ];
       }
     }
 
@@ -118,6 +140,12 @@ final class RunSummaryBuilder
       'progression' => $progressionLines,
       'survivors' => $survivors,
       'defeated' => $defeated,
+      'reward_detail' => [
+        'currency_soft' => $teethTotal,
+        'units' => $rewardUnits,
+        'dice' => $rewardDice,
+      ],
+      'progression_detail' => $progressionDetail,
     ];
   }
 
@@ -195,6 +223,37 @@ final class RunSummaryBuilder
 
   /**
    * @param array<string,mixed> $rewards
+   * @return array<int,array{unit_instance_id:string|null,label:string}>
+   */
+  private function extractUnitRewardEntries(int $userId, array $rewards): array
+  {
+    $instanceIds = is_array($rewards['new_unit_instance_ids'] ?? null)
+      ? array_values(array_filter(array_map('strval', $rewards['new_unit_instance_ids']), static fn(string $id): bool => $id !== ''))
+      : [];
+
+    if (count($instanceIds) > 0) {
+      $labelsById = $this->loadUnitTypeLabelsForInstances($userId, $instanceIds);
+      $entries = [];
+      foreach ($instanceIds as $instanceId) {
+        $entries[] = [
+          'unit_instance_id' => $instanceId,
+          'label' => $labelsById[$instanceId] ?? ('Unit ' . $instanceId),
+        ];
+      }
+      return $entries;
+    }
+
+    return array_map(
+      static fn(string $label): array => [
+        'unit_instance_id' => null,
+        'label' => $label,
+      ],
+      $this->extractUnitRewardLabels($userId, $rewards)
+    );
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
    * @return array<int,string>
    */
   private function extractDiceRewardLabels(int $userId, array $rewards): array
@@ -224,6 +283,37 @@ final class RunSummaryBuilder
     }
 
     return array_values($this->loadDiceTypeLabelsForInstances($userId, $instanceIds));
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   * @return array<int,array{dice_instance_id:string|null,label:string}>
+   */
+  private function extractDiceRewardEntries(int $userId, array $rewards): array
+  {
+    $instanceIds = is_array($rewards['new_dice_instance_ids'] ?? null)
+      ? array_values(array_filter(array_map('strval', $rewards['new_dice_instance_ids']), static fn(string $id): bool => $id !== ''))
+      : [];
+
+    if (count($instanceIds) > 0) {
+      $labelsById = $this->loadDiceTypeLabelsForInstances($userId, $instanceIds);
+      $entries = [];
+      foreach ($instanceIds as $instanceId) {
+        $entries[] = [
+          'dice_instance_id' => $instanceId,
+          'label' => $labelsById[$instanceId] ?? ('Die ' . $instanceId),
+        ];
+      }
+      return $entries;
+    }
+
+    return array_map(
+      static fn(string $label): array => [
+        'dice_instance_id' => null,
+        'label' => $label,
+      ],
+      $this->extractDiceRewardLabels($userId, $rewards)
+    );
   }
 
   /**

@@ -7,7 +7,7 @@ import { UnitGridObjectComponent } from './unit-grid-object.component';
   standalone: true,
   imports: [UnitGridObjectComponent],
   template: `
-    <dg-unit-grid-object [object]="unit" />
+    <dg-unit-grid-object [object]="unit" [progressBar]="progressBar" />
   `,
 })
 class HostComponent {
@@ -18,6 +18,13 @@ class HostComponent {
     level: 3,
     tier: 2,
     locked: false,
+  };
+  readonly progressBar = {
+    percent: 75,
+    title: 'XP 90 of 120, gained 30',
+    leftLabel: 'XP 90/120',
+    tone: 'xp' as const,
+    celebrationLabel: 'Level Up',
   };
 }
 
@@ -38,6 +45,8 @@ describe('UnitGridObjectComponent', () => {
     expect(compiled.textContent).toContain('Level 3');
     expect(compiled.textContent).not.toContain('Tier 2');
     expect(compiled.textContent).not.toContain('Unit Record');
+    expect(compiled.textContent).toContain('XP 90/120');
+    expect(compiled.textContent).toContain('Level Up');
     expect(compiled.querySelector('a')?.getAttribute('href')).toContain('/warband/units/u1');
   });
 

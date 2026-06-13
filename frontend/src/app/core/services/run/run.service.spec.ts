@@ -42,6 +42,12 @@ describe('RunService', () => {
           progression: ['node 3'],
           survivors: ['Gobi'],
           defeated: ['Snail'],
+          reward_detail: {
+            currency_soft: 0,
+            units: [],
+            dice: [],
+          },
+          progression_detail: [],
         },
       },
     } as any;
@@ -56,6 +62,12 @@ describe('RunService', () => {
       progression: ['node 3'],
       survivors: ['Gobi'],
       defeated: ['Snail'],
+      rewardDetail: {
+        currency_soft: 0,
+        units: [],
+        dice: [],
+      },
+      progressionDetail: [],
     });
     expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
   });
@@ -70,7 +82,16 @@ describe('RunService', () => {
   });
 
   it('clears summary state', () => {
-    (service as any).summaryState.set({ title: 'x', status: 'y', rewards: [], progression: [], survivors: [], defeated: [] });
+    (service as any).summaryState.set({
+      title: 'x',
+      status: 'y',
+      rewards: [],
+      progression: [],
+      survivors: [],
+      defeated: [],
+      rewardDetail: null,
+      progressionDetail: [],
+    });
     service.clearSummary();
     expect(service.summary()).toBeNull();
   });

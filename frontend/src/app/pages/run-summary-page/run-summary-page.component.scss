@@ -1,86 +1,67 @@
-:host {
-  display: block;
+.run-summary-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.run-summary-hero {
+.run-summary-section-heading {
   display: flex;
-  flex-wrap: wrap;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  color: var(--dg-cream);
-  background:
-    linear-gradient(135deg, rgba(35, 39, 42, 0.88), rgba(94, 107, 60, 0.82)),
-    linear-gradient(120deg, rgba(255, 248, 220, 0.08), rgba(35, 39, 42, 0.12));
+  margin-bottom: 1.25rem;
 }
 
-.run-summary-hero__eyebrow {
-  margin: 0 0 0.35rem;
-  color: var(--dg-accent-warm-bright);
-  font-size: 0.8rem;
-}
-
-.run-summary-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-.run-summary-stat,
-.run-summary-list li,
-.run-summary-outcome {
-  border: 1px solid var(--dg-border-soft);
-  background: rgba(255, 255, 255, 0.58);
-}
-
-.run-summary-stat,
-.run-summary-outcome {
-  padding: 0.95rem 1rem;
-}
-
-.run-summary-stat strong {
-  display: block;
-  font-size: 1.6rem;
-  line-height: 1.1;
-}
-
-.run-summary-stat__label,
-.run-summary-outcome__label {
-  display: block;
+.run-summary-section-heading__eyebrow {
   margin-bottom: 0.35rem;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
+  color: var(--dg-slate);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  opacity: 0.72;
 }
 
-.run-summary-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+.run-summary-subheading {
+  margin-bottom: 0.85rem;
+  color: var(--dg-slate);
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-.run-summary-outcome {
-  display: grid;
+.run-summary-section-block + .run-summary-section-block {
+  margin-top: 1.5rem;
+}
+
+.run-summary-teeth {
+  display: inline-flex;
+  align-items: center;
   gap: 0.85rem;
+  margin-bottom: 1.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(35, 39, 42, 0.12);
+  background: rgba(243, 239, 224, 0.7);
 }
 
-.run-summary-list {
-  display: grid;
-  gap: 0.75rem;
+.run-summary-teeth img {
+  width: 20px;
+  height: 20px;
 }
 
-.run-summary-list li {
-  padding: 0.8rem 0.9rem;
+.run-summary-teeth strong {
+  display: block;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--dg-ink);
 }
 
-.run-summary-roster {
-  display: grid;
-  gap: 1rem;
+.run-summary-fallback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
 }
 
-@media (max-width: 767.98px) {
-  .run-summary-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.run-summary-fallback-list li {
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(35, 39, 42, 0.12);
+  background: rgba(243, 239, 224, 0.72);
 }

@@ -248,6 +248,32 @@ final class BattleClaimProgressionIntegrationTest extends BattleFlowIntegrationC
     $this->assertContains(sprintf('New Units: %s', $rewardedUnitName), $runSummary['rewards'] ?? []);
     $this->assertContains('New Dice: bone d6', $runSummary['rewards'] ?? []);
     $this->assertContains(sprintf('%s +22 XP', $rewardedUnitName), $runSummary['progression'] ?? []);
+
+    $rewardDetail = is_array($runSummary['reward_detail'] ?? null) ? $runSummary['reward_detail'] : [];
+    $this->assertSame(12, (int)($rewardDetail['currency_soft'] ?? 0));
+    $this->assertIsArray($rewardDetail['units'] ?? null);
+    $this->assertIsArray($rewardDetail['dice'] ?? null);
+
+    $rewardUnitLabels = array_map(
+      static fn(array $entry): string => (string)($entry['label'] ?? ''),
+      array_values(array_filter($rewardDetail['units'] ?? [], 'is_array'))
+    );
+    $rewardDiceIds = array_map(
+      static fn(array $entry): ?string => isset($entry['dice_instance_id']) ? (string)$entry['dice_instance_id'] : null,
+      array_values(array_filter($rewardDetail['dice'] ?? [], 'is_array'))
+    );
+    $this->assertContains($rewardedUnitName, $rewardUnitLabels);
+    $this->assertContains((string)$rewardedDiceId, $rewardDiceIds);
+
+    $progressionDetail = array_values(array_filter($runSummary['progression_detail'] ?? [], 'is_array'));
+    $this->assertNotEmpty($progressionDetail);
+    $matchingProgression = array_values(array_filter(
+      $progressionDetail,
+      static fn(array $entry): bool =>
+        (string)($entry['unit_instance_id'] ?? '') === (string)$unitId
+        && (int)($entry['xp_gained'] ?? 0) === 22
+    ));
+    $this->assertCount(1, $matchingProgression);
   }
 
   public function testClaimDefeatWithNoRemainingUnitsFailsRunAndResetsDefeatedXp(): void

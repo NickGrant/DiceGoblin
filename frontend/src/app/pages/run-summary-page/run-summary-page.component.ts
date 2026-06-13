@@ -1,32 +1,319 @@
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DiceRecord, UnitRecord } from '../../core/models/api.models';
 import { RunService } from '../../core/services/run/run.service';
+import { SessionService } from '../../core/services/session/session.service';
+import { DiceGridObjectComponent } from '../../shared/ui/dice-grid-object/dice-grid-object.component';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { UnitGridObjectComponent, UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
+
+type RewardUnitCard = {
+  id: string;
+  unit: UnitRecord;
+};
+
+type RewardDiceCard = {
+  id: string;
+  die: DiceRecord;
+};
+
+type ProgressionCard = {
+  id: string;
+  unit: UnitRecord;
+  xpGained: number;
+  progressPercent: number;
+  progressText: string;
+  levelGainCount: number;
+};
 
 @Component({
   selector: 'app-run-summary-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, RouterLink],
+  imports: [
+    DgAlertComponent,
+    DgCommandBtnDirective,
+    DgPageFrameComponent,
+    DiceGridObjectComponent,
+    RouterLink,
+    UnitGridObjectComponent,
+  ],
   templateUrl: './run-summary-page.component.html',
   styleUrl: './run-summary-page.component.scss',
 })
 export class RunSummaryPageComponent {
   private readonly runService = inject(RunService);
-  readonly summary = this.runService.summary;
-  readonly statusLabel = computed(() => this.humanize(this.summary()?.status ?? 'summary'));
-  readonly rewardCount = computed(() => this.summary()?.rewards.length ?? 0);
-  readonly survivorCount = computed(() => this.summary()?.survivors.length ?? 0);
-  readonly defeatedCount = computed(() => this.summary()?.defeated.length ?? 0);
-  readonly progressionCount = computed(() => this.summary()?.progression.length ?? 0);
+  private readonly sessionService = inject(SessionService);
 
-  private humanize(value: string): string {
-    return value
-      .split(/[_\s-]/g)
-      .filter((segment) => segment.length)
-      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-      .join(' ');
+  readonly summary = this.runService.summary;
+  readonly units = this.sessionService.units;
+  readonly dice = this.sessionService.dice;
+
+  readonly rewardCurrency = computed(() => {
+    const rewardDetail = this.summary()?.rewardDetail;
+    if (rewardDetail) {
+      return Math.max(0, rewardDetail.currency_soft ?? 0);
+    }
+
+    const line = this.summary()?.rewards.find((item) => /^Teeth \+\d+$/i.test(item));
+    if (!line) {
+      return 0;
+    }
+    const match = line.match(/\+(\d+)/);
+    return match ? Number(match[1]) : 0;
+  });
+
+  readonly rewardUnits = computed<RewardUnitCard[]>(() => {
+    const rewardUnits = this.summary()?.rewardDetail?.units ?? [];
+    if (rewardUnits.length === 0) {
+      return [];
+    }
+
+    const unitsById = new Map(this.units().map((unit) => [unit.id, unit]));
+    return rewardUnits
+      .map((entry, index) => {
+        if (!entry.unit_instance_id) {
+          return null;
+        }
+
+        const unit = unitsById.get(entry.unit_instance_id);
+        if (!unit) {
+          return null;
+        }
+
+        return {
+          id: `reward-unit-${entry.unit_instance_id}-${index}`,
+          unit,
+        };
+      })
+      .filter((entry): entry is RewardUnitCard => entry !== null);
+  });
+
+  readonly rewardUnitFallbackLabels = computed<string[]>(() => {
+    const rewardUnits = this.summary()?.rewardDetail?.units ?? [];
+    if (rewardUnits.length === 0) {
+      const line = this.summary()?.rewards.find((item) => item.startsWith('New Units: '));
+      return line ? this.expandCountList(line.replace('New Units: ', '')) : [];
+    }
+
+    const unitIds = new Set(this.units().map((unit) => unit.id));
+    return rewardUnits
+      .filter((entry) => !entry.unit_instance_id || !unitIds.has(entry.unit_instance_id))
+      .map((entry) => entry.label)
+      .filter((label) => label.trim().length > 0);
+  });
+
+  readonly rewardDice = computed<RewardDiceCard[]>(() => {
+    const rewardDice = this.summary()?.rewardDetail?.dice ?? [];
+    if (rewardDice.length === 0) {
+      return [];
+    }
+
+    const diceById = new Map(this.dice().map((die) => [die.id, die]));
+    return rewardDice
+      .map((entry, index) => {
+        if (!entry.dice_instance_id) {
+          return null;
+        }
+
+        const die = diceById.get(entry.dice_instance_id);
+        if (!die) {
+          return null;
+        }
+
+        return {
+          id: `reward-dice-${entry.dice_instance_id}-${index}`,
+          die,
+        };
+      })
+      .filter((entry): entry is RewardDiceCard => entry !== null);
+  });
+
+  readonly rewardDiceFallbackLabels = computed<string[]>(() => {
+    const rewardDice = this.summary()?.rewardDetail?.dice ?? [];
+    if (rewardDice.length === 0) {
+      const line = this.summary()?.rewards.find((item) => item.startsWith('New Dice: '));
+      return line ? this.expandCountList(line.replace('New Dice: ', '')).map((label) => this.titleCaseDiceLabel(label)) : [];
+    }
+
+    const diceIds = new Set(this.dice().map((die) => die.id));
+    return rewardDice
+      .filter((entry) => !entry.dice_instance_id || !diceIds.has(entry.dice_instance_id))
+      .map((entry) => entry.label)
+      .filter((label) => label.trim().length > 0);
+  });
+
+  readonly progressionCards = computed<ProgressionCard[]>(() => {
+    const summary = this.summary();
+    if (!summary) {
+      return [];
+    }
+
+    const unitsById = new Map(this.units().map((unit) => [unit.id, unit]));
+    if (summary.progressionDetail.length > 0) {
+      return summary.progressionDetail
+        .map((entry, index) => {
+          const unit = unitsById.get(entry.unit_instance_id) ?? this.findUnitByName(entry.label);
+          if (!unit) {
+            return null;
+          }
+
+          return this.buildProgressionCard(`progression-${entry.unit_instance_id || unit.id || index}-${index}`, unit, entry.xp_gained);
+        })
+        .filter((entry): entry is ProgressionCard => entry !== null);
+    }
+
+    return summary.progression
+      .map((line, index) => {
+        const parsed = this.parseProgressionLine(line);
+        if (!parsed) {
+          return null;
+        }
+
+        const unit = this.findUnitByName(parsed.unitName);
+        if (!unit) {
+          return null;
+        }
+
+        return this.buildProgressionCard(`progression-${unit.id}-${index}`, unit, parsed.xpGained);
+      })
+      .filter((entry): entry is ProgressionCard => entry !== null);
+  });
+
+  readonly rewardSectionsEmpty = computed(
+    () =>
+      this.rewardCurrency() <= 0 &&
+      this.rewardUnits().length === 0 &&
+      this.rewardDice().length === 0 &&
+      this.rewardUnitFallbackLabels().length === 0 &&
+      this.rewardDiceFallbackLabels().length === 0,
+  );
+
+  progressBar(card: ProgressionCard): UnitGridObjectProgressBar {
+    return {
+      percent: card.progressPercent,
+      title: `${card.progressText}, +${card.xpGained} XP${card.levelGainCount > 0 ? `, ${card.levelGainCount === 1 ? 'level gained' : `${card.levelGainCount} levels gained`}` : ''}`,
+      leftLabel: card.progressText === 'Max Level' ? card.progressText : `XP ${card.progressText}`,
+      tone: 'xp',
+      celebrationLabel: card.levelGainCount > 0
+        ? (card.levelGainCount === 1 ? 'Level Up' : `+${card.levelGainCount} Levels`)
+        : null,
+      showLabels: false,
+    };
+  }
+
+  private buildProgressionCard(id: string, unit: UnitRecord, xpGained: number): ProgressionCard {
+    const progress = this.buildProgressMetrics(unit, xpGained);
+    return {
+      id,
+      unit,
+      xpGained,
+      progressPercent: progress.progressPercent,
+      progressText: progress.progressText,
+      levelGainCount: progress.levelGainCount,
+    };
+  }
+
+  private parseProgressionLine(line: string): { unitName: string; xpGained: number } | null {
+    const match = line.match(/^(.*) \+(\d+) XP$/);
+    if (!match) {
+      return null;
+    }
+
+    return {
+      unitName: match[1].trim(),
+      xpGained: Number(match[2]),
+    };
+  }
+
+  private findUnitByName(unitName: string): UnitRecord | null {
+    return this.units().find((unit) => unit.name.trim().toLowerCase() === unitName.trim().toLowerCase()) ?? null;
+  }
+
+  private buildProgressMetrics(
+    unit: UnitRecord,
+    xpGained: number,
+  ): { progressPercent: number; progressText: string; levelGainCount: number } {
+    const level = Math.max(1, unit.level ?? 1);
+    const maxLevel = Math.max(1, unit.max_level ?? 1);
+    const tier = Math.max(1, unit.tier ?? 1);
+    const currentXp = Math.max(0, unit.xp ?? 0);
+    const xpToNextLevel = Math.max(0, unit.xp_to_next_level ?? 0);
+
+    if (level >= maxLevel || xpToNextLevel === 0) {
+      return {
+        progressPercent: 100,
+        progressText: 'Max Level',
+        levelGainCount: this.estimateLevelGainCount(level, currentXp, xpGained, tier),
+      };
+    }
+
+    const threshold = currentXp + xpToNextLevel;
+    const progressPercent = threshold > 0 ? Math.max(0, Math.min(100, (currentXp / threshold) * 100)) : 0;
+
+    return {
+      progressPercent,
+      progressText: `${currentXp}/${threshold} XP`,
+      levelGainCount: this.estimateLevelGainCount(level, currentXp, xpGained, tier),
+    };
+  }
+
+  private estimateLevelGainCount(finalLevel: number, finalXp: number, xpGained: number, tier: number): number {
+    let level = Math.max(1, finalLevel);
+    let xp = Math.max(0, finalXp);
+    let remaining = Math.max(0, xpGained);
+    let levelGainCount = 0;
+
+    while (remaining > 0) {
+      if (xp >= remaining) {
+        remaining = 0;
+        break;
+      }
+
+      remaining -= xp;
+      if (level <= 1) {
+        break;
+      }
+
+      level--;
+      levelGainCount++;
+      xp = this.levelThreshold(level, tier);
+    }
+
+    return levelGainCount;
+  }
+
+  private levelThreshold(level: number, tier: number): number {
+    return Math.max(1, Math.max(1, tier) * (Math.max(1, level) + 1) * 50);
+  }
+
+  private expandCountList(line: string): string[] {
+    if (!line.trim()) {
+      return [];
+    }
+
+    const entries = line
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+    const expanded: string[] = [];
+
+    for (const entry of entries) {
+      const match = entry.match(/^(.*) x(\d+)$/);
+      const label = (match?.[1] ?? entry).trim();
+      const count = Number(match?.[2] ?? '1');
+      const repetitions = Number.isFinite(count) && count > 0 ? count : 1;
+
+      for (let index = 0; index < repetitions; index++) {
+        expanded.push(label);
+      }
+    }
+
+    return expanded;
+  }
+
+  private titleCaseDiceLabel(label: string): string {
+    return label.replace(/\b\w/g, (char) => char.toUpperCase());
   }
 }
-

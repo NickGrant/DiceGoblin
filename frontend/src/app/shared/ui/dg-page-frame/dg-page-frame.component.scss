@@ -20,6 +20,31 @@
   text-shadow: 0 2px 0 var(--dg-page-frame-header-shadow);
 }
 
+.route-frame__header-shell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+}
+
+.route-frame__header-copy {
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+
+.route-frame__header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: end;
+  justify-content: end;
+  margin-left: auto;
+}
+
+.route-frame__header-actions:empty {
+  display: none;
+}
+
 .route-frame__eyebrow,
 .route-frame__breadcrumb-list {
   margin: 0 0 0.45rem;

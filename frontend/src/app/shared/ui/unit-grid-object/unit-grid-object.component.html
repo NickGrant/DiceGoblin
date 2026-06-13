@@ -14,6 +14,30 @@
   <p class="mb-2">
     {{ object().unit_type_name || object().unit_type_slug || 'Unit' }} Level {{ object().level }}
   </p>
+  @if (progressBar(); as progressBar) {
+  <div class="unit-grid-object__progress-wrap mt-auto">
+    <div class="unit-grid-object__progress" [attr.title]="progressBar.title" [attr.aria-label]="progressBar.title">
+      <span
+        class="unit-grid-object__progress-fill"
+        [class.unit-grid-object__progress-fill--hp-healthy]="progressBar.tone === 'hp-healthy'"
+        [class.unit-grid-object__progress-fill--hp-critical]="progressBar.tone === 'hp-critical'"
+        [class.unit-grid-object__progress-fill--xp]="progressBar.tone === 'xp' || !progressBar.tone"
+        [style.width.%]="progressWidth(progressBar)"
+      ></span>
+    </div>
+    @if (progressBar.celebrationLabel) {
+    <span class="unit-grid-object__progress-indicator dg-stencil">{{ progressBar.celebrationLabel }}</span>
+    }
+    @if (progressBar.showLabels !== false) {
+    <div class="unit-grid-object__progress-meta">
+      <span>{{ progressBar.leftLabel }}</span>
+      @if (progressBar.rightLabel) {
+      <span>{{ progressBar.rightLabel }}</span>
+      }
+    </div>
+    }
+  </div>
+  }
 
   @if (footerTemplate(); as footerTemplate) {
   <div class="d-flex flex-wrap gap-2 mt-auto">

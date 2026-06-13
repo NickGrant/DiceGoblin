@@ -1,29 +1,37 @@
 <section class="dg-page-frame route-frame">
   @if (showHeader()) {
     <div class="dg-title-bar p-3 p-md-4">
-      @if (hasBreadcrumbs()) {
-        <nav class="route-frame__breadcrumbs" aria-label="Breadcrumb">
-          <ol class="route-frame__breadcrumb-list">
-            @for (crumb of breadcrumbs(); track crumb.label + '-' + $index; let isLast = $last) {
-              <li class="route-frame__breadcrumb-item">
-                @if (crumb.route && !isLast) {
-                  <a class="route-frame__breadcrumb-link dg-stencil" [routerLink]="crumb.route">{{ crumb.label }}</a>
-                } @else {
-                  <span class="route-frame__breadcrumb-current dg-stencil" [attr.aria-current]="isLast ? 'page' : null">
-                    {{ crumb.label }}
-                  </span>
+      <div class="route-frame__header-shell">
+        <div class="route-frame__header-copy">
+          @if (hasBreadcrumbs()) {
+            <nav class="route-frame__breadcrumbs" aria-label="Breadcrumb">
+              <ol class="route-frame__breadcrumb-list">
+                @for (crumb of breadcrumbs(); track crumb.label + '-' + $index; let isLast = $last) {
+                  <li class="route-frame__breadcrumb-item">
+                    @if (crumb.route && !isLast) {
+                      <a class="route-frame__breadcrumb-link dg-stencil" [routerLink]="crumb.route">{{ crumb.label }}</a>
+                    } @else {
+                      <span class="route-frame__breadcrumb-current dg-stencil" [attr.aria-current]="isLast ? 'page' : null">
+                        {{ crumb.label }}
+                      </span>
+                    }
+                  </li>
                 }
-              </li>
-            }
-          </ol>
-        </nav>
-      } @else if (eyebrow()) {
-        <p class="route-frame__eyebrow dg-stencil">{{ eyebrow() }}</p>
-      }
-      <h1 class="mb-2">{{ title() }}</h1>
-      @if (subtitle(); as subtitle) {
-        <p class="mb-0">{{ subtitle }}</p>
-      }
+              </ol>
+            </nav>
+          } @else if (eyebrow()) {
+            <p class="route-frame__eyebrow dg-stencil">{{ eyebrow() }}</p>
+          }
+          <h1 class="mb-2">{{ title() }}</h1>
+          @if (subtitle(); as subtitle) {
+            <p class="mb-0">{{ subtitle }}</p>
+          }
+        </div>
+
+        <div class="route-frame__header-actions">
+          <ng-content select="[pageFrameHeaderActions]" />
+        </div>
+      </div>
     </div>
   }
   <div class="p-3 p-md-4">
