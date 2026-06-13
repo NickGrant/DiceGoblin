@@ -22,6 +22,7 @@ class SessionServiceStub {
   ] as any[]);
   readonly profileData = signal({ active_run: null } as any);
   readonly activeSquad = signal(null as any);
+  readonly squadUnitCap = signal(4);
 }
 
 class SquadServiceStub {
@@ -98,6 +99,7 @@ describe('SquadDetailsPageComponent', () => {
       readonly units = signal([{ id: 'u1', name: 'Fang', level: 3, unit_type_name: 'Guardian' }] as any[]);
       readonly profileData = signal({ active_run: null } as any);
       readonly activeSquad = signal(null as any);
+      readonly squadUnitCap = signal(4);
     }
 
     await TestBed.configureTestingModule({
@@ -172,6 +174,53 @@ describe('SquadDetailsPageComponent', () => {
     fixture.componentInstance.dropUnit(buildDropEvent('available-drop', 'u3'), { type: 'cell', cell: 'C3' });
 
     expect(fixture.componentInstance.formationAssignments.get('C3')).toBe('u3');
+  });
+
+  it('blocks adding a new unit into an empty slot when the squad is already at cap', async () => {
+    class CappedSessionServiceStub extends SessionServiceStub {
+      override readonly squads = signal([
+        {
+          id: 's1',
+          name: 'Alpha',
+          unit_ids: ['u1', 'u2', 'u3', 'u4'],
+          formation: [
+            { cell: 'A1', unit_instance_id: 'u1' },
+            { cell: 'A2', unit_instance_id: 'u2' },
+            { cell: 'B1', unit_instance_id: 'u3' },
+            { cell: 'B2', unit_instance_id: 'u4' },
+          ],
+          is_active: false,
+        },
+      ] as any[]);
+      override readonly units = signal([
+        { id: 'u1', name: 'Fang', level: 3, unit_type_name: 'Guardian', locked: false },
+        { id: 'u2', name: 'Moss', level: 2, unit_type_name: 'Bruiser', locked: false },
+        { id: 'u3', name: 'Rivet', level: 1, unit_type_name: 'Scout', locked: false },
+        { id: 'u4', name: 'Brass', level: 1, unit_type_name: 'Marksman', locked: false },
+        { id: 'u5', name: 'Tongs', level: 1, unit_type_name: 'Bruiser', locked: false },
+      ] as any[]);
+      override readonly squadUnitCap = signal(4);
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: CappedSessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.dropUnit(buildDropEvent('available-drop', 'u5'), { type: 'cell', cell: 'C3' });
+
+    expect(fixture.componentInstance.formationAssignments.get('C3')).toBeNull();
+    expect(fixture.componentInstance.error()).toContain('capped at 4 units');
   });
 
   it('shows a lock message and blocks squad mutations during an active run', async () => {

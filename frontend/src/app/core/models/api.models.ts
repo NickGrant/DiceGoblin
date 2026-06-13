@@ -149,6 +149,7 @@ export type ProfileData = {
     regen_rate_per_hour?: number;
     last_regen_at?: string;
   };
+  squad_unit_cap: number;
   feature_unlocks: string[];
   region_unlocks: RegionUnlockRecord[];
   region_items: RegionItemRecord[];
@@ -358,11 +359,15 @@ export type ShopFeatureUnlockItem = {
   description: string;
   cost: number;
   is_unlocked: boolean;
+  category: string;
+  requires_unlock_key?: string | null;
+  is_available?: boolean;
 };
 
 export type ShopDailyDeal = {
   product_id: string;
   shop_date: string;
+  slot?: number;
   sides: number;
   rarity: string;
   cost: number;
@@ -383,6 +388,7 @@ export type ShopCatalogData = {
   basic_units: ShopUnitItem[];
   feature_unlocks: ShopFeatureUnlockItem[];
   daily_deal: ShopDailyDeal | null;
+  daily_deals?: ShopDailyDeal[];
 };
 
 export type ShopCatalogResponse = ApiResponse<ShopCatalogData>;
@@ -401,6 +407,7 @@ export type ShopPurchaseData = {
       }
     | {
         dice_instance_id: string;
+        slot?: number;
         rarity: string;
         sides: number;
         affix?: {

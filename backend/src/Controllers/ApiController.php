@@ -37,6 +37,7 @@ use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\ProfileService;
 use DiceGoblins\Services\ProfileDtoMapper;
 use DiceGoblins\Services\SessionService;
+use DiceGoblins\Services\SquadCapacityService;
 use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Services\UserDataSyncService;
 use DiceGoblins\Support\RunSummaryBuilder;
@@ -337,6 +338,20 @@ final class ApiController
             'message' => 'No active squad found. Create and activate a squad before starting a run.',
           ],
         ], 400);
+        return;
+      }
+
+      $squadUnitCap = (new SquadCapacityService($pdo))->getCapForUser($userId);
+      $teamUnitIds = $services['teamRepo']->getTeamUnitIds($userId, (int)$activeTeam['id']);
+      if (count($teamUnitIds) > $squadUnitCap) {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'validation_error',
+            'message' => "Active squad exceeds your current {$squadUnitCap}-unit cap. Trim the squad before starting a run.",
+          ],
+        ], 409);
         return;
       }
 

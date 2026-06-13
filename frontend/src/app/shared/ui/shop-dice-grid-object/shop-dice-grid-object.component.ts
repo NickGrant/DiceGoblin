@@ -9,6 +9,7 @@ export interface ShopDiceGridObjectRecord {
   rarity: string;
   sides: number;
   cost: number;
+  isPurchased?: boolean;
   detailLines: string[];
 }
 

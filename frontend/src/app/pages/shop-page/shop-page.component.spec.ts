@@ -27,8 +27,9 @@ class ShopServiceStub {
         },
       ],
       daily_deal: {
-        product_id: 'deal-1',
+        product_id: 'daily_deal_1',
         shop_date: '2026-05-31',
+        slot: 1,
         sides: 8,
         rarity: 'rare',
         cost: 20,
@@ -41,13 +42,110 @@ class ShopServiceStub {
           value: 4,
         },
       },
+      daily_deals: [
+        {
+          product_id: 'daily_deal_1',
+          shop_date: '2026-05-31',
+          slot: 1,
+          sides: 8,
+          rarity: 'rare',
+          cost: 20,
+          is_purchased: false,
+          affix: {
+            slug: 'sharp',
+            name: 'Sharp',
+            description: 'Adds extra damage.',
+            rarity: 'rare',
+            value: 4,
+          },
+        },
+        {
+          product_id: 'daily_deal_2',
+          shop_date: '2026-05-31',
+          slot: 2,
+          sides: 10,
+          rarity: 'rare',
+          cost: 25,
+          is_purchased: false,
+          affix: {
+            slug: 'heavy',
+            name: 'Heavy',
+            description: 'Hits harder.',
+            rarity: 'rare',
+            value: 5,
+          },
+        },
+      ],
       feature_unlocks: [
         {
           product_id: 'academy',
           name: 'Academy',
           description: 'Unlock promotions and unit-type research for your warband.',
           cost: 250,
+          is_unlocked: true,
+          category: 'feature',
+          requires_unlock_key: null,
+          is_available: true,
+        },
+        {
+          product_id: 'bigger_squad',
+          name: 'Bigger Squad',
+          description: 'Raise your squad size cap from 4 units to 6.',
+          cost: 500,
           is_unlocked: false,
+          category: 'squad_upgrade',
+          requires_unlock_key: null,
+          is_available: true,
+        },
+        {
+          product_id: 'biggerest_squad',
+          name: 'Biggerest Squad',
+          description: 'Raise your squad size cap from 6 units to the full 9-slot formation.',
+          cost: 1000,
+          is_unlocked: false,
+          category: 'squad_upgrade',
+          requires_unlock_key: 'bigger_squad',
+          is_available: false,
+        },
+        {
+          product_id: 'shop_discount',
+          name: 'Coupon Book',
+          description: 'Make all future shop purchases cost 10% less.',
+          cost: 500,
+          is_unlocked: false,
+          category: 'economy_upgrade',
+          requires_unlock_key: null,
+          is_available: true,
+        },
+        {
+          product_id: 'sell_bonus',
+          name: 'Sharp Dealer',
+          description: 'Make dice sales pay out 10% more teeth.',
+          cost: 500,
+          is_unlocked: false,
+          category: 'economy_upgrade',
+          requires_unlock_key: null,
+          is_available: true,
+        },
+        {
+          product_id: 'market_mastery',
+          name: 'Market Mastery',
+          description: 'Improve both shop discounts and sale payouts to 20% once your traders are fully trained.',
+          cost: 1000,
+          is_unlocked: false,
+          category: 'economy_upgrade',
+          requires_unlock_key: 'shop_discount_and_sell_bonus',
+          is_available: false,
+        },
+        {
+          product_id: 'second_daily_deal',
+          name: 'Second Deal',
+          description: 'Add a second daily deal slot so the shop offers two rotating featured dice each day.',
+          cost: 500,
+          is_unlocked: false,
+          category: 'feature',
+          requires_unlock_key: null,
+          is_available: true,
         },
       ],
     },
@@ -79,6 +177,7 @@ describe('ShopPageComponent', () => {
     expect(component.canAfford(30)).toBeFalse();
     expect(compiled.textContent).toContain('Goblin Bruiser');
     expect(compiled.textContent).toContain('Sharp');
+    expect(compiled.textContent).toContain('Deal 2: Heavy');
   });
 
   it('shows Academy under feature unlocks and purchases it from that tab', async () => {
@@ -93,7 +192,18 @@ describe('ShopPageComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Camp Upgrades');
     expect(compiled.textContent).toContain('Academy');
-    expect(compiled.textContent).toContain('250 Teeth');
+    expect(compiled.textContent).toContain('Bigger Squad');
+    expect(compiled.textContent).toContain('Biggerest Squad');
+    expect(compiled.textContent).toContain('Coupon Book');
+    expect(compiled.textContent).toContain('Sharp Dealer');
+    expect(compiled.textContent).toContain('Market Mastery');
+    expect(compiled.textContent).toContain('Second Deal');
+    expect(compiled.textContent).toContain('Requires Bigger Squad');
+    expect(compiled.textContent).toContain('Requires Coupon Book + Sharp Dealer');
+    expect(compiled.textContent).toContain('500 Teeth');
+
+    const unlockedCard = compiled.querySelector('.feature-unlock-card--unlocked');
+    expect(unlockedCard?.textContent).toContain('Academy');
 
     await component.purchase('feature_unlock', 'academy');
     expect(shopService.purchase).toHaveBeenCalledWith('feature_unlock', 'academy');

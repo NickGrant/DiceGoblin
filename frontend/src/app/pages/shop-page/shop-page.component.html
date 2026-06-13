@@ -46,14 +46,14 @@
 
       <div class="col-xl-4">
         <div class="dg-card p-3 h-100">
-          <h2 class="dg-stencil mb-3">Daily Deal</h2>
+          <h2 class="dg-stencil mb-3">Daily Deals</h2>
           <dg-object-grid
             [objects]="dailyDealGridObjects()"
             [objectComponent]="shopDiceObjectComponent"
             [footerTemplate]="dailyDealActions"
-            [pageSize]="1"
+            [pageSize]="2"
             columnClasses="col-12"
-            emptyMessage="No daily deal available."
+            emptyMessage="No daily deals available."
           />
         </div>
       </div>
@@ -88,17 +88,21 @@
             <div class="col-xl-6">
               <button
                 class="feature-unlock-card"
+                [class.feature-unlock-card--unlocked]="item.is_unlocked"
                 type="button"
                 (click)="purchase('feature_unlock', item.product_id)"
-                [disabled]="item.is_unlocked || busyKey() === featureUnlockBusyKey(item.product_id) || !canAfford(item.cost)"
+                [disabled]="isFeatureUnlockDisabled(item)"
               >
                 <div class="feature-unlock-card__body">
-                  <p class="feature-unlock-card__eyebrow mb-1">Feature Unlock</p>
+                  <p class="feature-unlock-card__eyebrow mb-1">{{ featureUnlockEyebrow(item) }}</p>
                   <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
                     <h3 class="dg-stencil mb-0">{{ item.name }}</h3>
                     <span class="feature-unlock-card__cost">{{ item.cost }} Teeth</span>
                   </div>
                   <p class="mb-0">{{ item.description }}</p>
+                  @if (!item.is_unlocked && !isFeatureUnlockAvailable(item)) {
+                    <p class="feature-unlock-card__requirement mb-0">{{ featureUnlockRequirementLabel(item) }}</p>
+                  }
                 </div>
                 <span class="feature-unlock-card__cta">{{ featureUnlockCta(item) }}</span>
               </button>
@@ -142,13 +146,13 @@
     dgCommandBtn="primary"
     [teethCost]="item.cost"
     type="button"
-    (click)="purchase('daily_deal')"
-    [disabled]="busyKey() === 'daily_deal:' || catalog()?.daily_deal?.is_purchased || !canAfford(item.cost)"
+    (click)="purchase('daily_deal', item.id)"
+    [disabled]="busyKey() === ('daily_deal:' + item.id) || item.isPurchased || !canAfford(item.cost)"
   >
     {{
-      busyKey() === 'daily_deal:'
+      busyKey() === ('daily_deal:' + item.id)
         ? 'Buying...'
-        : catalog()?.daily_deal?.is_purchased
+        : item.isPurchased
           ? 'Purchased'
           : 'Buy Deal'
     }}

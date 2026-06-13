@@ -132,8 +132,73 @@ final class ApiControllerCreateRunDomainErrorsTest extends IntegrationTestCase
     $this->assertSame('insufficient_energy', (string)($res['body']['error']['code'] ?? ''), json_encode($res['body']));
   }
 
+  public function testCreateRunRejectsActiveSquadsOverCurrentUnitCap(): void
+  {
+    $userId = $this->insertUser('qa_create_run', 'QA Create Run');
+    $regionId = $this->insertRegion(5, true, 'qa-region', 'QA Region');
+    $teamId = $this->insertTeam($userId, 'QA Squad', true);
+    $this->unlockRegion($userId, $regionId);
+    $this->setEnergy($userId, 50, 50);
+
+    for ($index = 0; $index < 5; $index++) {
+      $unitId = $this->insertUnitInstance($userId);
+      $stmt = $this->pdo?->prepare('INSERT INTO `team_units` (`team_id`, `unit_instance_id`) VALUES (?, ?)');
+      $stmt?->execute([$teamId, $unitId]);
+    }
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+    $this->setJsonBody(['region_id' => (string)$regionId]);
+
+    $api = new ApiController();
+    $res = $this->invoke(fn() => $api->createRun());
+
+    $this->assertSame(409, $res['status']);
+    $this->assertSame('validation_error', (string)($res['body']['error']['code'] ?? ''));
+    $this->assertSame(
+      'Active squad exceeds your current 4-unit cap. Trim the squad before starting a run.',
+      (string)($res['body']['error']['message'] ?? '')
+    );
+  }
+
   private function insertActiveRun(int $userId, int $regionId, int $seed): void
   {
     $this->insertRun($userId, $regionId, $seed, 'active');
+  }
+
+  private function insertUnitInstance(int $userId): int
+  {
+    $unitTypeId = $this->insertUnitType();
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `tier`, `level`, `xp`, `locked`)
+      VALUES (?, ?, 1, 1, 0, 0)
+    ');
+    $stmt?->execute([$userId, $unitTypeId]);
+    return (int)$this->pdo?->lastInsertId();
+  }
+
+  private function insertUnitType(): int
+  {
+    $token = bin2hex(random_bytes(6));
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `unit_types`
+      (`slug`, `name`, `role`, `base_stats_json`, `ability_set_json`, `max_level`, `attack_per_level`, `defense_per_level`, `max_hp_per_level`)
+      VALUES (?, ?, ?, ?, ?, 50, 1, 1, 5)
+    ');
+    $stmt?->execute([
+      "qa_create_unit_$token",
+      "QA Create Unit $token",
+      'fighter',
+      json_encode([
+        'attack' => 5,
+        'defense' => 3,
+        'max_hp' => 20,
+        'formation' => ['w' => 1, 'h' => 1],
+      ], JSON_THROW_ON_ERROR),
+      json_encode(['active' => [], 'passive' => []], JSON_THROW_ON_ERROR),
+    ]);
+
+    return (int)$this->pdo?->lastInsertId();
   }
 }

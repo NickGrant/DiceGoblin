@@ -1613,6 +1613,15 @@ CREATE TABLE `user_unlocks` (
 );
 -- END MIGRATION: 47_user_unlocks.sql
 
+-- BEGIN MIGRATION: 48_shop_daily_deal_slots.sql
+ALTER TABLE `shop_daily_deals`
+  ADD COLUMN `deal_slot` TINYINT UNSIGNED NOT NULL DEFAULT 1 AFTER `shop_date`;
+
+ALTER TABLE `shop_daily_deals`
+  DROP INDEX `uq_shop_daily_deals_user_date`,
+  ADD UNIQUE KEY `uq_shop_daily_deals_user_date_slot` (`user_id`, `shop_date`, `deal_slot`);
+-- END MIGRATION: 48_shop_daily_deal_slots.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 SET FOREIGN_KEY_CHECKS=1;
 -- END MIGRATION: 99_finalize.sql

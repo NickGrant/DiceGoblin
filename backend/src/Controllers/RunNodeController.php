@@ -30,6 +30,7 @@ use DiceGoblins\Services\DiceAffixService;
 use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
+use DiceGoblins\Services\SquadCapacityService;
 use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Services\UnitNameGenerator;
 use DiceGoblins\Services\UserUnlockService;
@@ -203,6 +204,20 @@ final class RunNodeController
           ], 400);
           return;
         }
+      }
+
+      $squadUnitCap = (new SquadCapacityService($pdo))->getCapForUser($userId);
+      $teamUnitIds = $svc['teamRepo']->getTeamUnitIds($userId, $teamIdInt);
+      if (count($teamUnitIds) > $squadUnitCap) {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'validation_error',
+            'message' => "Selected squad exceeds your current {$squadUnitCap}-unit cap. Trim the squad before starting the run.",
+          ],
+        ], 409);
+        return;
       }
 
       // Idempotency: one battle per (run_id, node_id)

@@ -17,6 +17,7 @@ use DiceGoblins\Repositories\TeamRepository;
 use DiceGoblins\Repositories\UnitRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\CsrfService;
+use DiceGoblins\Services\EconomyModifierService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\PromotionService;
 use DiceGoblins\Services\SessionService;
@@ -394,7 +395,8 @@ final class GameplayController
         return;
       }
 
-      $sellValue = max(1, (int)($dice['sell_value'] ?? 0));
+      $sellValue = (new EconomyModifierService($pdo))
+        ->adjustedSellValueForUser($userId, max(1, (int)($dice['sell_value'] ?? 0)));
       $nextSoft = max(0, (int)$state['currency_soft']) + $sellValue;
       $svc['playerStateRepo']->setCurrency($userId, $nextSoft, max(0, (int)$state['currency_hard']));
       $svc['diceRepo']->deleteOwnedDiceInstance($userId, $diceId);

@@ -17,6 +17,7 @@ final class ProfileDtoMapper
    * @param array<int,mixed> $dice
    * @param array{soft:int,hard:int} $currency
    * @param array{current:int,max:int,regen_rate_per_hour:float,last_regen_at:string} $energy
+   * @param int $squadUnitCap
    * @param array<int,string> $featureUnlocks
    * @param array<int,mixed> $regionUnlocks
    * @param array<int,array{region_item_id:string,quantity:int}> $regionItems
@@ -30,6 +31,7 @@ final class ProfileDtoMapper
     array $dice,
     array $currency,
     array $energy,
+    int $squadUnitCap,
     array $featureUnlocks,
     array $regionUnlocks,
     array $regionItems,
@@ -42,6 +44,7 @@ final class ProfileDtoMapper
       'dice' => $dice,
       'currency' => $currency,
       'energy' => $energy,
+      'squad_unit_cap' => max(1, $squadUnitCap),
       'feature_unlocks' => array_values(array_map(static fn(mixed $value): string => (string)$value, $featureUnlocks)),
       'region_unlocks' => $regionUnlocks,
       'region_items' => $regionItems,

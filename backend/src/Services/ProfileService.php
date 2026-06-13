@@ -56,6 +56,7 @@ final class ProfileService
     $currency = $this->playerStateRepo->getCurrency($userId);
     $featureUnlocks = (new UserUnlockService($this->pdo))
       ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_FEATURE);
+    $squadUnitCap = SquadCapacityService::resolveCapFromFeatureUnlocks($featureUnlocks);
 
     // Squads/Teams (membership + formation)
     $teams = $this->teamRepo->getTeamsWithMembershipAndFormationForUser($userId);
@@ -66,6 +67,7 @@ final class ProfileService
 
     // Dice inventory (with affixes + base definition data)
     $dice = $this->diceRepo->getDiceWithAffixesForUser($userId);
+    $dice = $this->applyEconomyModifiersToDice($dice, $featureUnlocks);
 
     // Region unlocks
     $regionUnlocks = $this->regionRepo->getUnlocksForUser($userId);
@@ -86,6 +88,7 @@ final class ProfileService
       $dice,
       $currency,
       $energy,
+      $squadUnitCap,
       $featureUnlocks,
       $regionUnlocks,
       $regionItems,
@@ -174,5 +177,23 @@ final class ProfileService
     unset($unit);
 
     return $units;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $dice
+   * @param array<int,string> $featureUnlocks
+   * @return array<int,array<string,mixed>>
+   */
+  private function applyEconomyModifiersToDice(array $dice, array $featureUnlocks): array
+  {
+    foreach ($dice as &$die) {
+      $die['sell_value'] = EconomyModifierService::adjustedSellValue(
+        max(1, (int)($die['sell_value'] ?? 0)),
+        $featureUnlocks
+      );
+    }
+    unset($die);
+
+    return $dice;
   }
 }

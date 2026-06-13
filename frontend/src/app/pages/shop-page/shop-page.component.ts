@@ -29,6 +29,20 @@ import {
 })
 export class ShopPageComponent {
   private readonly shopService = inject(ShopService);
+  private static readonly FEATURE_UNLOCK_LABELS: Record<string, string> = {
+    academy: 'Feature Unlock',
+    bigger_squad: 'Squad Upgrade',
+    biggerest_squad: 'Squad Upgrade',
+    shop_discount: 'Economy Upgrade',
+    sell_bonus: 'Economy Upgrade',
+    market_mastery: 'Economy Upgrade',
+    second_daily_deal: 'Feature Unlock',
+  };
+  private static readonly FEATURE_UNLOCK_REQUIREMENT_LABELS: Record<string, string> = {
+    bigger_squad: 'No prerequisite',
+    biggerest_squad: 'Requires Bigger Squad',
+    market_mastery: 'Requires Coupon Book + Sharp Dealer',
+  };
 
   readonly activeTab = signal<'supplies' | 'feature_unlocks'>('supplies');
   readonly catalog = signal<ShopCatalogData | null>(null);
@@ -46,6 +60,11 @@ export class ShopPageComponent {
   );
   readonly featureUnlockItems = computed(() => this.catalog()?.feature_unlocks ?? []);
   readonly dailyDealGridObjects = computed(() => {
+    const deals = this.catalog()?.daily_deals;
+    if (Array.isArray(deals) && deals.length > 0) {
+      return deals.map((deal) => this.mapDailyDealItem(deal));
+    }
+
     const deal = this.catalog()?.daily_deal;
     return deal ? [this.mapDailyDealItem(deal)] : [];
   });
@@ -112,10 +131,11 @@ export class ShopPageComponent {
   private mapDailyDealItem(item: ShopDailyDeal): ShopDiceGridObjectRecord {
     return {
       id: item.product_id,
-      label: item.affix.name,
+      label: item.slot && item.slot > 1 ? `Deal ${item.slot}: ${item.affix.name}` : item.affix.name,
       rarity: item.rarity,
       sides: item.sides,
       cost: item.cost,
+      isPurchased: item.is_purchased,
       detailLines: [item.affix.description],
     };
   }
@@ -139,6 +159,31 @@ export class ShopPageComponent {
       return 'Unlocking...';
     }
 
+    if (!this.isFeatureUnlockAvailable(item)) {
+      return 'Locked';
+    }
+
     return item.is_unlocked ? 'Unlocked' : 'Unlock';
+  }
+
+  featureUnlockEyebrow(item: ShopFeatureUnlockItem): string {
+    return ShopPageComponent.FEATURE_UNLOCK_LABELS[item.product_id] ?? 'Feature Unlock';
+  }
+
+  featureUnlockRequirementLabel(item: ShopFeatureUnlockItem): string {
+    return ShopPageComponent.FEATURE_UNLOCK_REQUIREMENT_LABELS[item.product_id] ?? 'Locked';
+  }
+
+  isFeatureUnlockAvailable(item: ShopFeatureUnlockItem): boolean {
+    return (item.is_available ?? true) || item.is_unlocked;
+  }
+
+  isFeatureUnlockDisabled(item: ShopFeatureUnlockItem): boolean {
+    return (
+      item.is_unlocked
+      || !this.isFeatureUnlockAvailable(item)
+      || this.busyKey() === this.featureUnlockBusyKey(item.product_id)
+      || !this.canAfford(item.cost)
+    );
   }
 }

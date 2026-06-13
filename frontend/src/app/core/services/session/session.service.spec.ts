@@ -43,6 +43,8 @@ describe('SessionService', () => {
         energy: { current: 5, max: 10 },
         currency: { soft: 40 },
         active_run: { run_id: 12 },
+        squad_unit_cap: 4,
+        feature_unlocks: [],
         squads: [{ id: '1', name: 'Alpha', is_active: true }],
         units: [{ id: 'u1' }],
         dice: [{ id: 'd1' }],
@@ -54,6 +56,7 @@ describe('SessionService', () => {
     expect(service.session().displayName).toBe('Nick');
     expect(service.profile().activeRunId).toBe('12');
     expect(service.profile().activeSquadName).toBe('Alpha');
+    expect(service.squadUnitCap()).toBe(4);
     expect(service.hasActiveRun()).toBeTrue();
   });
 

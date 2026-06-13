@@ -21,7 +21,7 @@
   background:
     linear-gradient(180deg, rgba(34, 22, 16, 0.98), rgba(22, 14, 10, 0.98)),
     radial-gradient(circle at top right, rgba(173, 123, 55, 0.18), transparent 50%);
-  color: inherit;
+  color: #f5e8c5;
   text-align: left;
   transition:
     transform 120ms ease,
@@ -36,8 +36,21 @@
 }
 
 .feature-unlock-card:disabled {
-  opacity: 0.72;
   cursor: default;
+  border-color: rgba(245, 232, 197, 0.14);
+  box-shadow: none;
+}
+
+.feature-unlock-card--unlocked {
+  opacity: 0.68;
+}
+
+.feature-unlock-card h3 {
+  color: #f5e8c5;
+}
+
+.feature-unlock-card p {
+  color: rgba(245, 232, 197, 0.84);
 }
 
 .feature-unlock-card__body {
@@ -47,10 +60,16 @@
 }
 
 .feature-unlock-card__eyebrow {
-  color: rgba(245, 232, 197, 0.7);
+  color: rgba(245, 232, 197, 0.78);
   font-size: 0.75rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.feature-unlock-card__requirement {
+  color: #f2dfb0;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .feature-unlock-card__cost,

@@ -29,16 +29,23 @@ export class SquadDetailsPageComponent {
   private readonly sessionService = inject(SessionService);
   private readonly squadService = inject(SquadService);
   private readonly hydratedSquadId = signal<string | null>(null);
+  private readonly formationRevision = signal(0);
 
   readonly squadId = this.route.snapshot.paramMap.get('squadId') ?? '';
   readonly squad = computed(() => this.sessionService.squads().find((team) => team.id === this.squadId) ?? null);
   readonly activeRun = computed(() => this.sessionService.profileData()?.active_run ?? null);
   readonly activeSquad = this.sessionService.activeSquad;
   readonly availableUnits = this.sessionService.units;
+  readonly squadUnitCap = this.sessionService.squadUnitCap;
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
   readonly squadLocked = computed(() => !!this.activeRun() && this.activeSquad()?.id === this.squadId);
+  readonly selectedUnitCount = computed(() => {
+    this.formationRevision();
+    return this.selectedUnitIdsForSave().length;
+  });
+  readonly squadOverCap = computed(() => this.selectedUnitCount() > this.squadUnitCap());
 
   name = this.squad()?.name ?? '';
   formationAssignments = new Map<string, string | null>(
@@ -62,6 +69,7 @@ export class SquadDetailsPageComponent {
           squad.formation.find((entry) => entry.cell === cell)?.unit_instance_id ?? null,
         ]),
       );
+      this.bumpFormationRevision();
       this.hydratedSquadId.set(squad.id);
     });
   }
@@ -70,6 +78,8 @@ export class SquadDetailsPageComponent {
     if (this.squadLocked()) {
       return;
     }
+
+    this.error.set(null);
 
     const unitId = String(event.item.data ?? '');
     const unit = this.unitById(unitId);
@@ -84,6 +94,20 @@ export class SquadDetailsPageComponent {
 
     if (target.type === 'available') {
       this.removeUnitFromSquad(unitId);
+      return;
+    }
+
+    const sourceIsAvailable = source.type === 'available';
+    const previousCell = this.findAssignedCellForUnit(unitId);
+    const targetOccupiedByUnitId = this.formationAssignments.get(target.cell) ?? null;
+    const wouldAddNewMember =
+      sourceIsAvailable
+      && !previousCell
+      && !targetOccupiedByUnitId
+      && this.selectedUnitCount() >= this.squadUnitCap();
+
+    if (wouldAddNewMember) {
+      this.error.set(`This squad is capped at ${this.squadUnitCap()} units.`);
       return;
     }
 
@@ -129,6 +153,11 @@ export class SquadDetailsPageComponent {
       return;
     }
 
+    if (this.squadOverCap()) {
+      this.error.set(`This squad exceeds your ${this.squadUnitCap()}-unit cap. Remove units before saving.`);
+      return;
+    }
+
     this.saving.set(true);
     this.error.set(null);
     this.message.set(null);
@@ -152,6 +181,7 @@ export class SquadDetailsPageComponent {
 
   private removeUnitFromSquad(unitId: string): void {
     this.clearFormationAssignmentsForUnit(unitId);
+    this.bumpFormationRevision();
   }
 
   private placeUnitInCell(unitId: string, targetCell: string, sourceCell: string | null): void {
@@ -172,6 +202,8 @@ export class SquadDetailsPageComponent {
     if (displacedUnitId && displacedUnitId !== unitId && sourceCell && sourceCell !== targetCell) {
       this.formationAssignments.set(sourceCell, displacedUnitId);
     }
+
+    this.bumpFormationRevision();
   }
 
   private findAssignedCellForUnit(unitId: string): string | null {
@@ -208,6 +240,10 @@ export class SquadDetailsPageComponent {
         this.formationAssignments.set(cell, null);
       }
     });
+  }
+
+  private bumpFormationRevision(): void {
+    this.formationRevision.update((value) => value + 1);
   }
 
   protected readonly availableDropId = AVAILABLE_DROP_ID;

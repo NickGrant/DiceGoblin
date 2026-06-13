@@ -18,6 +18,12 @@
   </div>
   }
 
+  @if (squadOverCap()) {
+  <dg-alert class="mb-3" tone="error">
+    This squad currently exceeds your {{ squadUnitCap() }}-unit cap. Remove units until you are at {{ squadUnitCap() }} or fewer before saving.
+  </dg-alert>
+  }
+
   <div class="row g-4" cdkDropListGroup>
     <div class="col-xl-4">
       <div class="dg-card p-3 h-100">
@@ -28,7 +34,7 @@
           dgCommandBtn="primary" 
           type="button" 
           (click)="save()" 
-          [disabled]="saving() || squadLocked()"
+          [disabled]="saving() || squadLocked() || squadOverCap()"
           class="mb-4"
         >
           {{ saving() ? 'Saving...' : 'Save Squad' }}
@@ -71,6 +77,7 @@
             <span class="dg-stencil">Front</span>
           </div>
         </div>
+        <p class="mb-3">Units {{ selectedUnitCount() }} / {{ squadUnitCap() }}</p>
 
         <div class="formation-grid">
           @for (cell of formationCells; track cell) {

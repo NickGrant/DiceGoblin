@@ -10,6 +10,12 @@ final class UserUnlockService
   public const NAMESPACE_FEATURE = 'feature';
   public const NAMESPACE_UNIT_TYPE = 'unit_type';
   public const FEATURE_ACADEMY = 'academy';
+  public const FEATURE_BIGGER_SQUAD = 'bigger_squad';
+  public const FEATURE_BIGGEREST_SQUAD = 'biggerest_squad';
+  public const FEATURE_SHOP_DISCOUNT = 'shop_discount';
+  public const FEATURE_SELL_BONUS = 'sell_bonus';
+  public const FEATURE_MARKET_MASTERY = 'market_mastery';
+  public const FEATURE_SECOND_DAILY_DEAL = 'second_daily_deal';
 
   public function __construct(
     private readonly PDO $pdo,

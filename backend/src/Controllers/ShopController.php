@@ -9,6 +9,7 @@ use DiceGoblins\Core\Response;
 use DiceGoblins\Http\JsonRequestBody;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Services\DiceValuationService;
+use DiceGoblins\Services\EconomyModifierService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Services\UnitNameGenerator;
@@ -24,6 +25,12 @@ final class ShopController
   private const BASIC_UNIT_COST = 32;
   private const FEATURE_UNLOCK_COSTS = [
     UserUnlockService::FEATURE_ACADEMY => 250,
+    UserUnlockService::FEATURE_BIGGER_SQUAD => 500,
+    UserUnlockService::FEATURE_BIGGEREST_SQUAD => 1000,
+    UserUnlockService::FEATURE_SHOP_DISCOUNT => 500,
+    UserUnlockService::FEATURE_SELL_BONUS => 500,
+    UserUnlockService::FEATURE_MARKET_MASTERY => 1000,
+    UserUnlockService::FEATURE_SECOND_DAILY_DEAL => 500,
   ];
 
   public function catalog(): void
@@ -78,7 +85,7 @@ final class ShopController
       $purchase = match ($itemType) {
         'basic_unit' => $this->purchaseBasicUnit($pdo, $userId, $productId),
         'basic_dice' => $this->purchaseBasicDice($pdo, $userId, $productId),
-        'daily_deal' => $this->purchaseDailyDeal($pdo, $userId),
+        'daily_deal' => $this->purchaseDailyDeal($pdo, $userId, $productId),
         'feature_unlock' => $this->purchaseFeatureUnlock($pdo, $userId, $productId),
       };
 
@@ -123,8 +130,18 @@ final class ShopController
    *   currency_soft:int,
    *   basic_dice:array<int,array{product_id:string,label:string,rarity:string,sides:int,cost:int}>,
    *   basic_units:array<int,array{product_id:string,unit_type_slug:string,name:string,role:string,cost:int}>,
-   *   feature_unlocks:array<int,array{product_id:string,name:string,description:string,cost:int,is_unlocked:bool}>,
-   *   daily_deal:?array<string,mixed>
+   *   feature_unlocks:array<int,array{
+   *     product_id:string,
+   *     name:string,
+   *     description:string,
+   *     cost:int,
+   *     is_unlocked:bool,
+   *     category:string,
+   *     requires_unlock_key:?string,
+   *     is_available:bool
+   *   }>,
+   *   daily_deal:?array<string,mixed>,
+   *   daily_deals:array<int,array<string,mixed>>
    * }
    */
   private function buildCatalog(PDO $pdo, PlayerStateRepository $playerStateRepo, int $userId, bool $lockDeal): array
@@ -132,21 +149,25 @@ final class ShopController
     $playerStateRepo->ensurePlayerState($userId);
     $currency = $playerStateRepo->getCurrency($userId);
     $shopDate = gmdate('Y-m-d');
+    $featureUnlocks = (new UserUnlockService($pdo))
+      ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_FEATURE);
+    $dailyDeals = $this->resolveDailyDeals($pdo, $userId, $shopDate, $lockDeal, $featureUnlocks);
 
     return [
       'server_date' => $shopDate,
       'currency_soft' => max(0, (int)($currency['soft'] ?? 0)),
-      'basic_dice' => $this->listBasicDiceCatalog($pdo),
-      'basic_units' => $this->listBasicUnitCatalog($pdo, $userId),
-      'feature_unlocks' => $this->listFeatureUnlockCatalog($pdo, $userId),
-      'daily_deal' => $this->resolveDailyDeal($pdo, $userId, $shopDate, $lockDeal),
+      'basic_dice' => $this->listBasicDiceCatalog($pdo, $featureUnlocks),
+      'basic_units' => $this->listBasicUnitCatalog($pdo, $userId, $featureUnlocks),
+      'feature_unlocks' => $this->listFeatureUnlockCatalog($pdo, $userId, $featureUnlocks),
+      'daily_deal' => $dailyDeals[0] ?? null,
+      'daily_deals' => $dailyDeals,
     ];
   }
 
   /**
    * @return array<int,array{product_id:string,label:string,rarity:string,sides:int,cost:int}>
    */
-  private function listBasicDiceCatalog(PDO $pdo): array
+  private function listBasicDiceCatalog(PDO $pdo, array $featureUnlocks): array
   {
     $stmt = $pdo->query("
       SELECT `id`, `rarity`, `sides`
@@ -163,7 +184,10 @@ final class ShopController
         'label' => 'Common d' . $sides,
         'rarity' => 'common',
         'sides' => $sides,
-        'cost' => DiceValuationService::calculateValue($sides, 'common'),
+        'cost' => EconomyModifierService::adjustedShopCost(
+          DiceValuationService::calculateValue($sides, 'common'),
+          $featureUnlocks
+        ),
       ];
     }
 
@@ -173,7 +197,7 @@ final class ShopController
   /**
    * @return array<int,array{product_id:string,unit_type_slug:string,name:string,role:string,cost:int}>
    */
-  private function listBasicUnitCatalog(PDO $pdo, int $userId): array
+  private function listBasicUnitCatalog(PDO $pdo, int $userId, array $featureUnlocks): array
   {
     $unlockService = new UserUnlockService($pdo);
     $unlockedUnitSlugs = $unlockService->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_UNIT_TYPE);
@@ -196,35 +220,147 @@ final class ShopController
       'unit_type_slug' => (string)$row['slug'],
       'name' => (string)$row['name'],
       'role' => (string)$row['role'],
-      'cost' => self::BASIC_UNIT_COST,
+      'cost' => EconomyModifierService::adjustedShopCost(self::BASIC_UNIT_COST, $featureUnlocks),
     ], $stmt->fetchAll(PDO::FETCH_ASSOC));
   }
 
   /**
-   * @return array<int,array{product_id:string,name:string,description:string,cost:int,is_unlocked:bool}>
+   * @return array<int,array{
+   *   product_id:string,
+   *   name:string,
+   *   description:string,
+   *   cost:int,
+   *   is_unlocked:bool,
+   *   category:string,
+   *   requires_unlock_key:?string,
+   *   is_available:bool
+   * }>
    */
-  private function listFeatureUnlockCatalog(PDO $pdo, int $userId): array
+  private function listFeatureUnlockCatalog(PDO $pdo, int $userId, array $featureUnlocks): array
   {
     $unlockService = new UserUnlockService($pdo);
+    $academyUnlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_ACADEMY);
+    $biggerSquadUnlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_BIGGER_SQUAD);
+    $biggerestSquadUnlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_BIGGEREST_SQUAD);
+    $shopDiscountUnlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP_DISCOUNT);
+    $sellBonusUnlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SELL_BONUS);
+    $marketMasteryUnlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_MARKET_MASTERY);
+    $secondDailyDealUnlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SECOND_DAILY_DEAL);
 
     return [[
       'product_id' => UserUnlockService::FEATURE_ACADEMY,
       'name' => 'Academy',
       'description' => 'Unlock promotions and unit-type research for your warband.',
-      'cost' => self::FEATURE_UNLOCK_COSTS[UserUnlockService::FEATURE_ACADEMY],
-      'is_unlocked' => $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_ACADEMY),
+      'cost' => EconomyModifierService::adjustedShopCost(
+        self::FEATURE_UNLOCK_COSTS[UserUnlockService::FEATURE_ACADEMY],
+        $featureUnlocks
+      ),
+      'is_unlocked' => $academyUnlocked,
+      'category' => 'feature',
+      'requires_unlock_key' => null,
+      'is_available' => true,
+    ], [
+      'product_id' => UserUnlockService::FEATURE_BIGGER_SQUAD,
+      'name' => 'Bigger Squad',
+      'description' => 'Raise your squad size cap from 4 units to 6.',
+      'cost' => EconomyModifierService::adjustedShopCost(
+        self::FEATURE_UNLOCK_COSTS[UserUnlockService::FEATURE_BIGGER_SQUAD],
+        $featureUnlocks
+      ),
+      'is_unlocked' => $biggerSquadUnlocked,
+      'category' => 'squad_upgrade',
+      'requires_unlock_key' => null,
+      'is_available' => true,
+    ], [
+      'product_id' => UserUnlockService::FEATURE_BIGGEREST_SQUAD,
+      'name' => 'Biggerest Squad',
+      'description' => 'Raise your squad size cap from 6 units to the full 9-slot formation.',
+      'cost' => EconomyModifierService::adjustedShopCost(
+        self::FEATURE_UNLOCK_COSTS[UserUnlockService::FEATURE_BIGGEREST_SQUAD],
+        $featureUnlocks
+      ),
+      'is_unlocked' => $biggerestSquadUnlocked,
+      'category' => 'squad_upgrade',
+      'requires_unlock_key' => UserUnlockService::FEATURE_BIGGER_SQUAD,
+      'is_available' => $biggerSquadUnlocked || $biggerestSquadUnlocked,
+    ], [
+      'product_id' => UserUnlockService::FEATURE_SHOP_DISCOUNT,
+      'name' => 'Coupon Book',
+      'description' => 'Make all future shop purchases cost 10% less.',
+      'cost' => EconomyModifierService::adjustedShopCost(
+        self::FEATURE_UNLOCK_COSTS[UserUnlockService::FEATURE_SHOP_DISCOUNT],
+        $featureUnlocks
+      ),
+      'is_unlocked' => $shopDiscountUnlocked,
+      'category' => 'economy_upgrade',
+      'requires_unlock_key' => null,
+      'is_available' => true,
+    ], [
+      'product_id' => UserUnlockService::FEATURE_SELL_BONUS,
+      'name' => 'Sharp Dealer',
+      'description' => 'Make dice sales pay out 10% more teeth.',
+      'cost' => EconomyModifierService::adjustedShopCost(
+        self::FEATURE_UNLOCK_COSTS[UserUnlockService::FEATURE_SELL_BONUS],
+        $featureUnlocks
+      ),
+      'is_unlocked' => $sellBonusUnlocked,
+      'category' => 'economy_upgrade',
+      'requires_unlock_key' => null,
+      'is_available' => true,
+    ], [
+      'product_id' => UserUnlockService::FEATURE_MARKET_MASTERY,
+      'name' => 'Market Mastery',
+      'description' => 'Improve both shop discounts and sale payouts to 20% once your traders are fully trained.',
+      'cost' => EconomyModifierService::adjustedShopCost(
+        self::FEATURE_UNLOCK_COSTS[UserUnlockService::FEATURE_MARKET_MASTERY],
+        $featureUnlocks
+      ),
+      'is_unlocked' => $marketMasteryUnlocked,
+      'category' => 'economy_upgrade',
+      'requires_unlock_key' => 'shop_discount_and_sell_bonus',
+      'is_available' => ($shopDiscountUnlocked && $sellBonusUnlocked) || $marketMasteryUnlocked,
+    ], [
+      'product_id' => UserUnlockService::FEATURE_SECOND_DAILY_DEAL,
+      'name' => 'Second Deal',
+      'description' => 'Add a second daily deal slot so the shop offers two rotating featured dice each day.',
+      'cost' => EconomyModifierService::adjustedShopCost(
+        self::FEATURE_UNLOCK_COSTS[UserUnlockService::FEATURE_SECOND_DAILY_DEAL],
+        $featureUnlocks
+      ),
+      'is_unlocked' => $secondDailyDealUnlocked,
+      'category' => 'feature',
+      'requires_unlock_key' => null,
+      'is_available' => true,
     ]];
+  }
+
+  /**
+   * @return array<int,array<string,mixed>>
+   */
+  private function resolveDailyDeals(PDO $pdo, int $userId, string $shopDate, bool $lockRow, array $featureUnlocks): array
+  {
+    $deals = [];
+    $slotCount = $this->dailyDealSlotCount($featureUnlocks);
+    for ($slot = 1; $slot <= $slotCount; $slot++) {
+      $deal = $this->resolveDailyDeal($pdo, $userId, $shopDate, $slot, $lockRow, $featureUnlocks);
+      if (is_array($deal)) {
+        $deals[] = $deal;
+      }
+    }
+
+    return $deals;
   }
 
   /**
    * @return array<string,mixed>|null
    */
-  private function resolveDailyDeal(PDO $pdo, int $userId, string $shopDate, bool $lockRow): ?array
+  private function resolveDailyDeal(PDO $pdo, int $userId, string $shopDate, int $slot, bool $lockRow, array $featureUnlocks): ?array
   {
     $sql = "
       SELECT
         sdd.`id`,
         sdd.`shop_date`,
+        sdd.`deal_slot`,
         sdd.`purchased_at`,
         dd.`sides`,
         dd.`rarity`,
@@ -236,7 +372,7 @@ final class ShopController
       FROM `shop_daily_deals` sdd
       JOIN `dice_definitions` dd ON dd.`id` = sdd.`dice_definition_id`
       JOIN `affix_definitions` ad ON ad.`id` = sdd.`affix_definition_id`
-      WHERE sdd.`user_id` = ? AND sdd.`shop_date` = ?
+      WHERE sdd.`user_id` = ? AND sdd.`shop_date` = ? AND sdd.`deal_slot` = ?
       LIMIT 1
     ";
     if ($lockRow) {
@@ -244,10 +380,10 @@ final class ShopController
     }
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$userId, $shopDate]);
+    $stmt->execute([$userId, $shopDate, $slot]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!is_array($row)) {
-      $row = $this->createDailyDeal($pdo, $userId, $shopDate);
+      $row = $this->createDailyDeal($pdo, $userId, $shopDate, $slot);
     }
 
     $sides = max(2, (int)($row['sides'] ?? 6));
@@ -258,11 +394,12 @@ final class ShopController
     );
 
     return [
-      'product_id' => 'daily_deal',
+      'product_id' => 'daily_deal_' . $slot,
       'shop_date' => (string)($row['shop_date'] ?? $shopDate),
+      'slot' => max(1, (int)($row['deal_slot'] ?? $slot)),
       'sides' => $sides,
       'rarity' => (string)($row['rarity'] ?? 'uncommon'),
-      'cost' => $dealCost,
+      'cost' => EconomyModifierService::adjustedShopCost($dealCost, $featureUnlocks),
       'is_purchased' => !empty($row['purchased_at']),
       'affix' => [
         'slug' => (string)($row['affix_slug'] ?? ''),
@@ -277,7 +414,7 @@ final class ShopController
   /**
    * @return array<string,mixed>
    */
-  private function createDailyDeal(PDO $pdo, int $userId, string $shopDate): array
+  private function createDailyDeal(PDO $pdo, int $userId, string $shopDate, int $slot): array
   {
     $diceDefs = $pdo->query("
       SELECT `id`, `sides`, `rarity`
@@ -312,9 +449,10 @@ final class ShopController
 
     $insert = $pdo->prepare("
       INSERT INTO `shop_daily_deals` (
-        `user_id`, `shop_date`, `dice_definition_id`, `affix_definition_id`, `affix_value`
-      ) VALUES (?, ?, ?, ?, ?)
+        `user_id`, `shop_date`, `deal_slot`, `dice_definition_id`, `affix_definition_id`, `affix_value`
+      ) VALUES (?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
+        `deal_slot` = VALUES(`deal_slot`),
         `dice_definition_id` = VALUES(`dice_definition_id`),
         `affix_definition_id` = VALUES(`affix_definition_id`),
         `affix_value` = VALUES(`affix_value`)
@@ -322,6 +460,7 @@ final class ShopController
     $insert->execute([
       $userId,
       $shopDate,
+      $slot,
       (int)$diceDef['id'],
       (int)$affix['id'],
       $value,
@@ -329,6 +468,7 @@ final class ShopController
 
     return [
       'shop_date' => $shopDate,
+      'deal_slot' => $slot,
       'sides' => (int)$diceDef['sides'],
       'rarity' => (string)$diceDef['rarity'],
       'affix_slug' => (string)$affix['slug'],
@@ -372,7 +512,7 @@ final class ShopController
 
     return [
       'product_id' => (string)$type['slug'],
-      'cost' => self::BASIC_UNIT_COST,
+      'cost' => (new EconomyModifierService($pdo))->adjustedShopCostForUser($userId, self::BASIC_UNIT_COST),
       'purchase' => [
         'unit_instance_id' => (string)$unitInstanceId,
         'unit_type_slug' => (string)$type['slug'],
@@ -413,7 +553,10 @@ final class ShopController
 
     return [
       'product_id' => $productId,
-      'cost' => DiceValuationService::calculateValue($sides, 'common'),
+      'cost' => (new EconomyModifierService($pdo))->adjustedShopCostForUser(
+        $userId,
+        DiceValuationService::calculateValue($sides, 'common')
+      ),
       'purchase' => [
         'dice_instance_id' => (string)$pdo->lastInsertId(),
         'rarity' => (string)$definition['rarity'],
@@ -425,10 +568,17 @@ final class ShopController
   /**
    * @return array{product_id:string,cost:int,purchase:array<string,mixed>}
    */
-  private function purchaseDailyDeal(PDO $pdo, int $userId): array
+  private function purchaseDailyDeal(PDO $pdo, int $userId, string $productId): array
   {
     $shopDate = gmdate('Y-m-d');
-    $deal = $this->resolveDailyDeal($pdo, $userId, $shopDate, true);
+    $slot = $this->parseDailyDealSlot($productId);
+    $featureUnlocks = (new UserUnlockService($pdo))
+      ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_FEATURE);
+    if ($slot > $this->dailyDealSlotCount($featureUnlocks)) {
+      throw new RuntimeException('Requested daily deal slot is not unlocked.');
+    }
+
+    $deal = $this->resolveDailyDeal($pdo, $userId, $shopDate, $slot, true, $featureUnlocks);
     if (!is_array($deal)) {
       throw new RuntimeException('Daily deal unavailable.');
     }
@@ -437,13 +587,13 @@ final class ShopController
     }
 
     $stmt = $pdo->prepare("
-      SELECT sdd.`id`, sdd.`dice_definition_id`, sdd.`affix_definition_id`, sdd.`affix_value`
+      SELECT sdd.`id`, sdd.`deal_slot`, sdd.`dice_definition_id`, sdd.`affix_definition_id`, sdd.`affix_value`
       FROM `shop_daily_deals` sdd
-      WHERE sdd.`user_id` = ? AND sdd.`shop_date` = ?
+      WHERE sdd.`user_id` = ? AND sdd.`shop_date` = ? AND sdd.`deal_slot` = ?
       LIMIT 1
       FOR UPDATE
     ");
-    $stmt->execute([$userId, $shopDate]);
+    $stmt->execute([$userId, $shopDate, $slot]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!is_array($row)) {
       throw new RuntimeException('Daily deal unavailable.');
@@ -480,10 +630,11 @@ final class ShopController
     );
 
     return [
-      'product_id' => 'daily_deal',
-      'cost' => max(0, $cost),
+      'product_id' => 'daily_deal_' . $slot,
+      'cost' => (new EconomyModifierService($pdo))->adjustedShopCostForUser($userId, max(1, $cost)),
       'purchase' => [
         'dice_instance_id' => (string)$diceInstanceId,
+        'slot' => $slot,
         'rarity' => (string)$deal['rarity'],
         'sides' => (int)$deal['sides'],
         'affix' => $deal['affix'],
@@ -496,8 +647,8 @@ final class ShopController
    */
   private function purchaseFeatureUnlock(PDO $pdo, int $userId, string $productId): array
   {
-    $cost = self::FEATURE_UNLOCK_COSTS[$productId] ?? null;
-    if ($cost === null) {
+    $baseCost = self::FEATURE_UNLOCK_COSTS[$productId] ?? null;
+    if ($baseCost === null) {
       throw new RuntimeException('Requested feature unlock is not available.');
     }
 
@@ -506,11 +657,28 @@ final class ShopController
       throw new RuntimeException('Requested feature is already unlocked.');
     }
 
+    if (
+      $productId === UserUnlockService::FEATURE_BIGGEREST_SQUAD
+      && !$unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_BIGGER_SQUAD)
+    ) {
+      throw new RuntimeException('Bigger Squad must be unlocked first.');
+    }
+
+    if (
+      $productId === UserUnlockService::FEATURE_MARKET_MASTERY
+      && (
+        !$unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP_DISCOUNT)
+        || !$unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SELL_BONUS)
+      )
+    ) {
+      throw new RuntimeException('Coupon Book and Sharp Dealer must be unlocked first.');
+    }
+
     $unlockService->grant($userId, UserUnlockService::NAMESPACE_FEATURE, $productId);
 
     return [
       'product_id' => $productId,
-      'cost' => $cost,
+      'cost' => (new EconomyModifierService($pdo))->adjustedShopCostForUser($userId, $baseCost),
       'purchase' => [
         'unlock_namespace' => UserUnlockService::NAMESPACE_FEATURE,
         'unlock_key' => $productId,
@@ -524,6 +692,23 @@ final class ShopController
   private function readJsonBody(): ?array
   {
     return JsonRequestBody::decode();
+  }
+
+  /**
+   * @param list<string> $featureUnlocks
+   */
+  private function dailyDealSlotCount(array $featureUnlocks): int
+  {
+    return in_array(UserUnlockService::FEATURE_SECOND_DAILY_DEAL, $featureUnlocks, true) ? 2 : 1;
+  }
+
+  private function parseDailyDealSlot(string $productId): int
+  {
+    if (!preg_match('/^daily_deal_(\d+)$/', $productId, $matches)) {
+      throw new RuntimeException('Requested daily deal is not available.');
+    }
+
+    return max(1, (int)$matches[1]);
   }
 
   private function requireUserId(SessionService $sessionService): ?int

@@ -23,6 +23,7 @@ use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
+use DiceGoblins\Services\SquadCapacityService;
 
 use RuntimeException;
 use Throwable;
@@ -210,6 +211,11 @@ final class TeamController
     $unitIds = array_values(array_unique(array_map(static fn($v): int => (int)$v, $unitIdsRaw)));
 
     try {
+      $squadUnitCap = (new SquadCapacityService($svc['pdo']))->getCapForUser($userId);
+      if (count($unitIds) > $squadUnitCap) {
+        throw new RuntimeException("Squads are currently capped at {$squadUnitCap} units.");
+      }
+
       $svc['teamRepo']->updateTeamConfiguration(
         $userId,
         $teamIdInt,
