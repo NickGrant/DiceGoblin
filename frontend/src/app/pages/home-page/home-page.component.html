@@ -60,18 +60,19 @@
             </a>
           </div>
 
+          @if (devPanelEnabled) {
           <div class="col-sm-6">
             <a
               class="dg-media-card dg-media-card--compact"
-              [class.is-disabled]="!devPanelEnabled"
-              [routerLink]="devPanelEnabled ? '/debug' : '/home'"
+              routerLink="/debug"
             >
               <div class="dg-media-card__media dg-media-card__media--dev"></div>
               <div class="dg-media-card__overlay">
-                <span class="dg-media-card__title dg-stencil">{{ devPanelEnabled ? 'Dev Panel' : 'Coming Soon' }}</span>
+                <span class="dg-media-card__title dg-stencil">Dev Panel</span>
               </div>
             </a>
           </div>
+          }
         </div>
       </div>
     </div>
