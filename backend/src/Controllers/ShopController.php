@@ -12,6 +12,7 @@ use DiceGoblins\Services\DiceValuationService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Services\UnitNameGenerator;
+use DiceGoblins\Services\UserUnlockService;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -31,6 +32,7 @@ final class ShopController
     }
 
     try {
+      $svc['bootstrapper']->ensureBaseline($userId);
       $data = $this->buildCatalog($svc['pdo'], $svc['playerStateRepo'], $userId, false);
       Response::json(['ok' => true, 'data' => $data]);
     } catch (Throwable $e) {
@@ -62,6 +64,7 @@ final class ShopController
     /** @var PDO $pdo */
     $pdo = $svc['pdo'];
     try {
+      $svc['bootstrapper']->ensureBaseline($userId);
       $pdo->beginTransaction();
       $svc['playerStateRepo']->ensurePlayerState($userId);
       $state = $svc['playerStateRepo']->getPlayerStateForUpdate($userId);
@@ -129,7 +132,7 @@ final class ShopController
       'server_date' => $shopDate,
       'currency_soft' => max(0, (int)($currency['soft'] ?? 0)),
       'basic_dice' => $this->listBasicDiceCatalog($pdo),
-      'basic_units' => $this->listBasicUnitCatalog($pdo),
+      'basic_units' => $this->listBasicUnitCatalog($pdo, $userId),
       'daily_deal' => $this->resolveDailyDeal($pdo, $userId, $shopDate, $lockDeal),
     ];
   }
@@ -164,14 +167,23 @@ final class ShopController
   /**
    * @return array<int,array{product_id:string,unit_type_slug:string,name:string,role:string,cost:int}>
    */
-  private function listBasicUnitCatalog(PDO $pdo): array
+  private function listBasicUnitCatalog(PDO $pdo, int $userId): array
   {
-    $stmt = $pdo->query("
+    $unlockService = new UserUnlockService($pdo);
+    $unlockedUnitSlugs = $unlockService->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_UNIT_TYPE);
+    if (count($unlockedUnitSlugs) === 0) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($unlockedUnitSlugs), '?'));
+    $stmt = $pdo->prepare("
       SELECT `slug`, `name`, `role`
       FROM `unit_types`
       WHERE RIGHT(`slug`, 3) = '_t1'
+        AND `slug` IN ($placeholders)
       ORDER BY `id` ASC
     ");
+    $stmt->execute($unlockedUnitSlugs);
 
     return array_map(static fn(array $row): array => [
       'product_id' => (string)$row['slug'],
@@ -311,6 +323,10 @@ final class ShopController
    */
   private function purchaseBasicUnit(PDO $pdo, int $userId, string $productId): array
   {
+    if (!(new UserUnlockService($pdo))->isUnlocked($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, $productId)) {
+      throw new RuntimeException('Requested unit is not unlocked yet.');
+    }
+
     $stmt = $pdo->prepare("
       SELECT `id`, `slug`
       FROM `unit_types`
@@ -480,6 +496,7 @@ final class ShopController
       'pdo' => $pdo,
       'csrfService' => $core['csrfService'],
       'sessionService' => $core['sessionService'],
+      'bootstrapper' => $core['bootstrapper'],
       'playerStateRepo' => new PlayerStateRepository($pdo),
     ];
   }

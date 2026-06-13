@@ -11,6 +11,7 @@ namespace DiceGoblins\Combat\Engine;
 use DiceGoblins\Combat\Abilities\AbilityRegistry;
 use DiceGoblins\Combat\Abilities\AbilityType;
 use DiceGoblins\Services\UnitProgressionService;
+use DiceGoblins\Services\UserUnlockService;
 use DiceGoblins\Support\FormationGeometry;
 use PDO;
 use RuntimeException;
@@ -155,7 +156,7 @@ final class DeterministicRunNodeResolver
       }
 
       if ($grantUnit) {
-        $unitSlug = $this->pickUnitTypeSlug($rngState);
+        $unitSlug = $this->pickUnitTypeSlug($userId, $rngState);
         if ($unitSlug !== null) {
           $rewards['unit_grants'][] = [
             'unit_type_slug' => $unitSlug,
@@ -2214,9 +2215,17 @@ final class DeterministicRunNodeResolver
     return $exists;
   }
 
-  private function pickUnitTypeSlug(string &$state): ?string
+  private function pickUnitTypeSlug(int $userId, string &$state): ?string
   {
-    $stmt = $this->pdo->query("SELECT `slug` FROM `unit_types` WHERE RIGHT(`slug`, 3) = '_t1' ORDER BY `id` ASC");
+    $unlockService = new UserUnlockService($this->pdo);
+    $unlockedSlugs = $unlockService->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_UNIT_TYPE);
+    if (count($unlockedSlugs) === 0) {
+      return null;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($unlockedSlugs), '?'));
+    $stmt = $this->pdo->prepare("SELECT `slug` FROM `unit_types` WHERE RIGHT(`slug`, 3) = '_t1' AND `slug` IN ($placeholders) ORDER BY `id` ASC");
+    $stmt->execute($unlockedSlugs);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     if (count($rows) === 0) {
       return null;

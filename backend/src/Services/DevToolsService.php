@@ -326,6 +326,9 @@ final class DevToolsService
     $this->execDelete('DELETE FROM `user_region_items` WHERE `user_id` = ?', [$userId]);
     $this->execDelete('DELETE FROM `region_unlocks` WHERE `user_id` = ?', [$userId]);
     $this->execDelete('DELETE FROM `user_grants` WHERE `user_id` = ?', [$userId]);
+    if ($this->schemaHasTable('user_unlocks')) {
+      $this->execDelete('DELETE FROM `user_unlocks` WHERE `user_id` = ?', [$userId]);
+    }
     $this->execDelete('DELETE FROM `dice_instances` WHERE `user_id` = ?', [$userId]);
     $this->execDelete('DELETE FROM `unit_instances` WHERE `user_id` = ?', [$userId]);
     $this->execDelete('DELETE FROM `teams` WHERE `user_id` = ?', [$userId]);
@@ -359,6 +362,18 @@ final class DevToolsService
     ');
     $stmt->execute([$userId]);
     return (bool) $stmt->fetchColumn();
+  }
+
+  private function schemaHasTable(string $table): bool
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT COUNT(*)
+      FROM INFORMATION_SCHEMA.TABLES
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+    ');
+    $stmt->execute([$table]);
+    return ((int)$stmt->fetchColumn()) > 0;
   }
 
   private function lookupUnitTypeId(string $slug): ?int

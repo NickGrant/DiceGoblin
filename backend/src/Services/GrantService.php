@@ -22,16 +22,39 @@ final class GrantService
   private const STARTING_REGION_SLUGS = ['the_farm'];
 
   /** @var list<string> */
-  private const STARTER_UNIT_TYPE_SLUGS = [
-    'frontline_bruiser_t1',
+  private const STARTER_UNIT_UNLOCK_SLUGS = [
     'backline_marksman_t1',
-    'support_banner_t1',
-    'control_saboteur_t1',
+    'frontline_bruiser_t1',
+  ];
+
+  /** @var list<array{unit_type_slug:string,formation_cell:string,equipped_abilities:list<string>}> */
+  private const STARTER_UNITS = [
+    [
+      'unit_type_slug' => 'frontline_bruiser_t1',
+      'formation_cell' => 'A3',
+      'equipped_abilities' => ['basic_attack_melee', 'heavy_strike', 'basic_attack_melee'],
+    ],
+    [
+      'unit_type_slug' => 'backline_marksman_t1',
+      'formation_cell' => 'A1',
+      'equipped_abilities' => ['basic_attack_ranged', 'aimed_shot', 'basic_attack_ranged'],
+    ],
+    [
+      'unit_type_slug' => 'frontline_bruiser_t1',
+      'formation_cell' => 'C3',
+      'equipped_abilities' => ['basic_attack_melee', 'heavy_strike', 'basic_attack_melee'],
+    ],
+    [
+      'unit_type_slug' => 'backline_marksman_t1',
+      'formation_cell' => 'C1',
+      'equipped_abilities' => ['basic_attack_ranged', 'aimed_shot', 'basic_attack_ranged'],
+    ],
   ];
 
   private ?DiceAffixService $diceAffixService = null;
   private ?UnitLoadoutService $unitLoadoutService = null;
   private ?UnitNameGenerator $unitNameGenerator = null;
+  private ?UserUnlockService $userUnlockService = null;
 
   public function ensureStarterPackGranted(int $userId): void
   {
@@ -43,12 +66,14 @@ final class GrantService
     $this->diceAffixService ??= new DiceAffixService($db);
     $this->unitLoadoutService ??= new UnitLoadoutService($db);
     $this->unitNameGenerator ??= new UnitNameGenerator();
+    $this->userUnlockService ??= new UserUnlockService($db);
 
     $db->beginTransaction();
     try {
       foreach (self::STARTING_REGION_SLUGS as $regionSlug) {
         $this->ensureStartingRegionUnlock($db, $userId, $regionSlug);
       }
+      $this->ensureStarterUnitUnlocks($userId);
 
       $claimed = $this->tryClaimGrant($db, $userId, self::STARTER_GRANT_SLUG);
       if (!$claimed) {
@@ -58,12 +83,13 @@ final class GrantService
 
       $teamId = $this->ensureDefaultTeam($db, $userId);
 
-      $starterUnits = $this->createStarterUnits($db, $userId, self::STARTER_UNIT_TYPE_SLUGS);
+      $starterUnits = $this->createStarterUnits($db, $userId, self::STARTER_UNITS);
       $unitInstanceIds = array_map(
         static fn(array $unit): int => (int)$unit['unit_instance_id'],
         $starterUnits
       );
       $this->addUnitsToTeam($db, $teamId, $unitInstanceIds);
+      $this->seedStarterFormation($db, $teamId, $starterUnits);
 
       $starterAbilityTargets = $this->buildStarterAbilityTargets($starterUnits);
       $diceInstanceIds = $this->createStarterDice($db, $userId, count($starterAbilityTargets));
@@ -145,15 +171,27 @@ final class GrantService
     ]);
   }
 
+  private function ensureStarterUnitUnlocks(int $userId): void
+  {
+    $this->userUnlockService?->grantMany($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, self::STARTER_UNIT_UNLOCK_SLUGS);
+  }
+
   /**
-   * @param list<string> $unitTypeSlugs
-   * @return list<array{unit_instance_id:int,unit_type_id:int}>
+   * @param list<array{unit_type_slug:string,formation_cell:string,equipped_abilities:list<string>}> $starterUnitConfigs
+   * @return list<array{
+   *   unit_instance_id:int,
+   *   unit_type_id:int,
+   *   unit_type_slug:string,
+   *   formation_cell:string,
+   *   equipped_abilities:list<string>
+   * }>
    */
-  private function createStarterUnits(PDO $db, int $userId, array $unitTypeSlugs): array
+  private function createStarterUnits(PDO $db, int $userId, array $starterUnitConfigs): array
   {
     $starterUnits = [];
 
-    foreach ($unitTypeSlugs as $slug) {
+    foreach ($starterUnitConfigs as $config) {
+      $slug = (string)$config['unit_type_slug'];
       $unitTypeId = $this->getUnitTypeIdBySlug($db, $slug);
       if ($unitTypeId === null) {
         throw new RuntimeException("Starter pack config invalid: missing unit_type slug '{$slug}'.");
@@ -170,10 +208,14 @@ final class GrantService
 
       $unitInstanceId = (int)$db->lastInsertId();
       $this->unitLoadoutService?->initializeUnit($unitInstanceId, $unitTypeId);
+      $this->unitLoadoutService?->replaceEquippedAbilities($unitInstanceId, $config['equipped_abilities']);
 
       $starterUnits[] = [
         'unit_instance_id' => $unitInstanceId,
         'unit_type_id' => $unitTypeId,
+        'unit_type_slug' => $slug,
+        'formation_cell' => (string)$config['formation_cell'],
+        'equipped_abilities' => $config['equipped_abilities'],
       ];
     }
 
@@ -196,6 +238,32 @@ final class GrantService
       $stmt->execute([
         ':team_id' => $teamId,
         ':unit_instance_id' => $unitInstanceId,
+      ]);
+    }
+  }
+
+  /**
+   * @param list<array{
+   *   unit_instance_id:int,
+   *   unit_type_id:int,
+   *   unit_type_slug:string,
+   *   formation_cell:string,
+   *   equipped_abilities:list<string>
+   * }> $starterUnits
+   */
+  private function seedStarterFormation(PDO $db, int $teamId, array $starterUnits): void
+  {
+    $stmt = $db->prepare('
+      INSERT INTO `team_formation` (`team_id`, `cell`, `unit_instance_id`)
+      VALUES (?, ?, ?)
+      ON DUPLICATE KEY UPDATE `unit_instance_id` = VALUES(`unit_instance_id`)
+    ');
+
+    foreach ($starterUnits as $starterUnit) {
+      $stmt->execute([
+        $teamId,
+        (string)$starterUnit['formation_cell'],
+        (int)$starterUnit['unit_instance_id'],
       ]);
     }
   }

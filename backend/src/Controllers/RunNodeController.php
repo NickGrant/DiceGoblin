@@ -32,6 +32,7 @@ use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Services\UnitNameGenerator;
+use DiceGoblins\Services\UserUnlockService;
 use DiceGoblins\Support\RunSummaryBuilder;
 
 use PDO;
@@ -529,6 +530,9 @@ final class RunNodeController
       }
       $slug = trim((string)($grant['unit_type_slug'] ?? ''));
       if ($slug === '') {
+        continue;
+      }
+      if (!(new UserUnlockService($pdo))->isUnlocked($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, $slug)) {
         continue;
       }
 

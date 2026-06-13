@@ -55,9 +55,9 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
     $this->assertGreaterThan(0, $mountains);
 
     $unitTypeCount = (int)$this->scalar(
-      "SELECT COUNT(*) FROM `unit_types` WHERE `slug` IN ('frontline_bruiser_t1','backline_marksman_t1','support_banner_t1','control_saboteur_t1')"
+      "SELECT COUNT(*) FROM `unit_types` WHERE `slug` IN ('frontline_bruiser_t1','backline_marksman_t1')"
     );
-    $this->assertSame(4, $unitTypeCount);
+    $this->assertSame(2, $unitTypeCount);
 
     $diceDefs = (int)$this->scalar(
       "SELECT COUNT(*) FROM `dice_definitions` WHERE `rarity` = 'common' AND `sides` = 4"
@@ -92,12 +92,17 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
       "SELECT COUNT(*) FROM `region_unlocks` ru JOIN `regions` r ON r.`id` = ru.`region_id` WHERE ru.`user_id` = ? AND r.`slug` = 'the_farm'",
       [$userId]
     );
+    $unitUnlockCount = (int)$this->scalar(
+      "SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_namespace` = 'unit_type'",
+      [$userId]
+    );
 
     $this->assertSame(1, $teamCount);
     $this->assertSame(1, $activeTeams);
     $this->assertSame(4, $unitCount);
-    $this->assertSame(5, $diceCount);
+    $this->assertSame(8, $diceCount);
     $this->assertSame(1, $unlockCount);
+    $this->assertSame(2, $unitUnlockCount);
 
     $namedUnits = (int)$this->scalar(
       "SELECT COUNT(*) FROM `unit_instances` WHERE `user_id` = ? AND `display_name` IS NOT NULL AND `display_name` <> ''",
@@ -119,7 +124,7 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
        WHERE ui.`user_id` = ?",
       [$userId]
     );
-    $this->assertSame(8, $equippedAbilities);
+    $this->assertSame(12, $equippedAbilities);
 
     $abilityDice = (int)$this->scalar(
       "SELECT COUNT(*) FROM `unit_ability_dice` uad
@@ -127,7 +132,23 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
        WHERE ui.`user_id` = ?",
       [$userId]
     );
-    $this->assertSame(5, $abilityDice);
+    $this->assertSame(8, $abilityDice);
+
+    $formationRows = $this->pdo?->query(
+      "SELECT tf.`cell`, ut.`slug`
+       FROM `team_formation` tf
+       JOIN `teams` t ON t.`id` = tf.`team_id`
+       JOIN `unit_instances` ui ON ui.`id` = tf.`unit_instance_id`
+       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+       WHERE t.`user_id` = {$userId}
+       ORDER BY tf.`cell` ASC"
+    )?->fetchAll(PDO::FETCH_ASSOC) ?? [];
+    $this->assertSame([
+      ['cell' => 'A1', 'slug' => 'backline_marksman_t1'],
+      ['cell' => 'A3', 'slug' => 'frontline_bruiser_t1'],
+      ['cell' => 'C1', 'slug' => 'backline_marksman_t1'],
+      ['cell' => 'C3', 'slug' => 'frontline_bruiser_t1'],
+    ], $formationRows);
   }
 
   public function testEnsureStarterPackUsesExistingActiveTeamWithoutCreatingAnother(): void
@@ -168,7 +189,7 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
        ORDER BY di.`id` ASC"
     )?->fetchAll(PDO::FETCH_ASSOC) ?? [];
 
-    $this->assertCount(5, $rows);
+    $this->assertCount(8, $rows);
 
     foreach ($rows as $row) {
       $this->assertSame((int)$row['slot_capacity'], (int)$row['affix_count']);
@@ -261,6 +282,7 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
     $this->execDelete("DELETE ud FROM `unit_dice` ud JOIN `unit_instances` ui ON ui.`id` = ud.`unit_instance_id` WHERE ui.`user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE dia FROM `dice_instance_affixes` dia JOIN `dice_instances` di ON di.`id` = dia.`dice_instance_id` WHERE di.`user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE FROM `user_grants` WHERE `user_id` IN ($placeholders)", $userIds);
+    $this->execDelete("DELETE FROM `user_unlocks` WHERE `user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE FROM `unit_promotions` WHERE `user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE FROM `user_region_items` WHERE `user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE FROM `region_unlocks` WHERE `user_id` IN ($placeholders)", $userIds);
