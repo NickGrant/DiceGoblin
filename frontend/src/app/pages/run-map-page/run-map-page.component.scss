@@ -39,6 +39,27 @@
   display: block;
 }
 
+.run-map__edge {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.95;
+}
+
+.run-map__edge--available {
+  stroke: rgba(245, 198, 92, 0.95);
+  filter: drop-shadow(0 0 6px rgba(245, 198, 92, 0.28));
+}
+
+.run-map__edge--cleared {
+  stroke: rgba(54, 168, 181, 0.8);
+}
+
+.run-map__edge--locked {
+  stroke: rgba(77, 91, 100, 0.72);
+}
+
 .run-map__node {
   cursor: default;
   outline: none;

@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { CurrentRunData, CurrentRunNode } from '../../core/models/api.models';
+import { CurrentRunData, CurrentRunEdge, CurrentRunNode } from '../../core/models/api.models';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
@@ -29,7 +29,12 @@ export class RunMapPageComponent {
   private static readonly MAP_HORIZONTAL_PADDING = 120;
   private static readonly MAP_VERTICAL_PADDING = 90;
   private static readonly MAP_NODE_HORIZONTAL_GAP = 140;
-  private static readonly MAP_ROW_VERTICAL_GAP = 100;
+  private static readonly MAP_ROW_VERTICAL_GAP = 132;
+  private static readonly MAP_LONG_EDGE_VERTICAL_SPREAD = 18;
+  private static readonly MAP_LONG_EDGE_VERTICAL_SPREAD_MAX = 54;
+  private static readonly MAP_EDGE_FAN_OFFSET = 18;
+  private static readonly MAP_EDGE_CURVE_LEAD_MIN = 42;
+  private static readonly MAP_EDGE_CURVE_LEAD_MAX = 84;
 
   private static readonly ENCOUNTER_ICON_MAP: Record<string, string> = {
     combat: '/assets/ui/icons/icon_encounter_combat.png',
@@ -128,6 +133,7 @@ export class RunMapPageComponent {
       };
     });
   });
+  readonly renderedEdges = computed(() => this.buildRenderedEdges(this.nodes(), this.edges()));
 
   constructor() {
     void this.load();
@@ -157,7 +163,9 @@ export class RunMapPageComponent {
 
   nodeY(node: CurrentRunNode): number {
     const row = this.nodeMetaRow(node);
-    return RunMapPageComponent.MAP_VERTICAL_PADDING + row * RunMapPageComponent.MAP_ROW_VERTICAL_GAP;
+    return RunMapPageComponent.MAP_VERTICAL_PADDING
+      + row * RunMapPageComponent.MAP_ROW_VERTICAL_GAP
+      + this.nodeVerticalSpread(node);
   }
 
   nodeById(nodeId: string): CurrentRunNode | undefined {
@@ -172,6 +180,20 @@ export class RunMapPageComponent {
   edgeY(nodeId: string): number {
     const node = this.nodeById(nodeId);
     return node ? this.nodeY(node) : 0;
+  }
+
+  edgeState(edge: CurrentRunEdge): 'available' | 'cleared' | 'locked' {
+    const fromNode = this.nodeById(edge.from_node_id);
+    const toNode = this.nodeById(edge.to_node_id);
+
+    if (fromNode?.status === 'cleared' && toNode?.status === 'cleared') {
+      return 'cleared';
+    }
+    if (fromNode?.status === 'available' || toNode?.status === 'available') {
+      return 'available';
+    }
+
+    return 'locked';
   }
 
   iconForNode(node: CurrentRunNode): string {
@@ -258,6 +280,127 @@ export class RunMapPageComponent {
     }
 
     return node.node_index % 2 === 0 ? 1 : 2;
+  }
+
+  private nodeVerticalSpread(node: CurrentRunNode): number {
+    const row = this.nodeMetaRow(node);
+    if (row === 1) {
+      return 0;
+    }
+
+    const span = this.longestIncidentEdgeSpan(node.id);
+    if (span <= 1) {
+      return 0;
+    }
+
+    const spread = Math.min(
+      RunMapPageComponent.MAP_LONG_EDGE_VERTICAL_SPREAD_MAX,
+      (span - 1) * RunMapPageComponent.MAP_LONG_EDGE_VERTICAL_SPREAD,
+    );
+
+    return row === 0 ? -spread : spread;
+  }
+
+  private buildRenderedEdges(nodes: CurrentRunNode[], edges: CurrentRunEdge[]): Array<{
+    edgeId: string;
+    path: string;
+    state: 'available' | 'cleared' | 'locked';
+  }> {
+    const nodeById = new Map(nodes.map((node) => [node.id, node]));
+    const outgoingByNode = new Map<string, CurrentRunEdge[]>();
+    const incomingByNode = new Map<string, CurrentRunEdge[]>();
+
+    for (const edge of edges) {
+      const outgoing = outgoingByNode.get(edge.from_node_id) ?? [];
+      outgoing.push(edge);
+      outgoingByNode.set(edge.from_node_id, outgoing);
+
+      const incoming = incomingByNode.get(edge.to_node_id) ?? [];
+      incoming.push(edge);
+      incomingByNode.set(edge.to_node_id, incoming);
+    }
+
+    for (const siblingEdges of outgoingByNode.values()) {
+      siblingEdges.sort((left, right) => this.edgeSortValue(nodeById.get(left.to_node_id)) - this.edgeSortValue(nodeById.get(right.to_node_id)));
+    }
+
+    for (const siblingEdges of incomingByNode.values()) {
+      siblingEdges.sort((left, right) => this.edgeSortValue(nodeById.get(left.from_node_id)) - this.edgeSortValue(nodeById.get(right.from_node_id)));
+    }
+
+    return edges.map((edge) => {
+      const fromNode = nodeById.get(edge.from_node_id);
+      const toNode = nodeById.get(edge.to_node_id);
+      if (!fromNode || !toNode) {
+        return { edgeId: edge.edge_id, path: '', state: 'locked' as const };
+      }
+
+      const sourceOffset = this.siblingOffset(edge, outgoingByNode.get(edge.from_node_id) ?? []);
+      const targetOffset = this.siblingOffset(edge, incomingByNode.get(edge.to_node_id) ?? []);
+      const x1 = this.nodeX(fromNode);
+      const y1 = this.nodeY(fromNode);
+      const x2 = this.nodeX(toNode);
+      const y2 = this.nodeY(toNode);
+      const curveLead = Math.min(
+        RunMapPageComponent.MAP_EDGE_CURVE_LEAD_MAX,
+        Math.max(RunMapPageComponent.MAP_EDGE_CURVE_LEAD_MIN, Math.round((x2 - x1) * 0.35)),
+      );
+      const path = sourceOffset === 0 && targetOffset === 0 && y1 === y2
+        ? `M ${x1} ${y1} L ${x2} ${y2}`
+        : `M ${x1} ${y1} C ${x1 + curveLead} ${y1 + sourceOffset}, ${x2 - curveLead} ${y2 + targetOffset}, ${x2} ${y2}`;
+
+      return {
+        edgeId: edge.edge_id,
+        path,
+        state: this.edgeState(edge),
+      };
+    });
+  }
+
+  private siblingOffset(edge: CurrentRunEdge, siblings: CurrentRunEdge[]): number {
+    if (siblings.length <= 1) {
+      return 0;
+    }
+
+    const edgeIndex = siblings.findIndex((candidate) => candidate.edge_id === edge.edge_id);
+    if (edgeIndex === -1) {
+      return 0;
+    }
+
+    return (edgeIndex - ((siblings.length - 1) / 2)) * RunMapPageComponent.MAP_EDGE_FAN_OFFSET;
+  }
+
+  private edgeSortValue(node: CurrentRunNode | undefined): number {
+    if (!node) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+
+    return (this.nodeMetaRow(node) * 100) + this.nodeMetaColumn(node);
+  }
+
+  private longestIncidentEdgeSpan(nodeId: string): number {
+    const node = this.nodeById(nodeId);
+    if (!node) {
+      return 0;
+    }
+
+    const nodeColumn = this.nodeMetaColumn(node);
+    let longestSpan = 0;
+
+    for (const edge of this.edges()) {
+      if (edge.from_node_id !== nodeId && edge.to_node_id !== nodeId) {
+        continue;
+      }
+
+      const otherNode = this.nodeById(edge.from_node_id === nodeId ? edge.to_node_id : edge.from_node_id);
+      if (!otherNode) {
+        continue;
+      }
+
+      longestSpan = Math.max(longestSpan, Math.abs(this.nodeMetaColumn(otherNode) - nodeColumn));
+    }
+
+    return longestSpan;
   }
 }
 

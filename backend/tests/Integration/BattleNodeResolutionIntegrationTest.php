@@ -141,10 +141,10 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertIsArray($lootPreview);
     $this->assertSame('loot', (string)($lootPreview['node_type'] ?? ''));
     $this->assertSame(0, (int)($lootPreview['xp_total'] ?? -1));
-    $this->assertSame(5, (int)($lootPreview['currency_soft'] ?? -1));
+    $this->assertSame(8, (int)($lootPreview['currency_soft'] ?? -1));
     [$lootXp, $lootSoft] = $this->battleRewardTuple($lootBattleId);
     $this->assertSame(0, $lootXp);
-    $this->assertSame(5, $lootSoft);
+    $this->assertSame(8, $lootSoft);
 
     $combatNodeId = $this->insertRunNode($runId, 'combat', 'available');
     $combatRes = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$combatNodeId));
@@ -157,8 +157,8 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
 
     if ($outcome === 'victory') {
       $this->assertGreaterThan(0, $combatXp);
-      $this->assertGreaterThanOrEqual(3, $combatSoft);
-      $this->assertLessThanOrEqual(7, $combatSoft);
+      $this->assertGreaterThanOrEqual(5, $combatSoft);
+      $this->assertLessThanOrEqual(10, $combatSoft);
     } else {
       $this->assertGreaterThanOrEqual(0, $combatXp);
       $this->assertSame(0, $combatSoft);

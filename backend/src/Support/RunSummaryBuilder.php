@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Support;
 
 use PDO;
+use DiceGoblins\Services\UnitProgressionService;
 
 final class RunSummaryBuilder
 {
@@ -44,7 +45,19 @@ final class RunSummaryBuilder
    *     units:array<int,array{unit_instance_id:string|null,label:string}>,
    *     dice:array<int,array{dice_instance_id:string|null,label:string}>
    *   },
-   *   progression_detail:array<int,array{unit_instance_id:string,label:string,xp_gained:int}>
+   *   progression_detail:array<int,array{
+   *     unit_instance_id:string,
+   *     label:string,
+   *     xp_gained:int,
+   *     is_defeated:bool,
+   *     level_gain_count:int,
+   *     final_level:int,
+   *     final_xp:int,
+   *     xp_to_next_level:int,
+   *     tier:int,
+   *     max_level:int,
+   *     unit_type_name:string
+   *   }>
    * }
    */
   public function buildRunSummary(int $userId, int $runId, ?array $terminalRunState = null): array
@@ -110,30 +123,11 @@ final class RunSummaryBuilder
       $rewardLines[] = 'New Dice: ' . $this->formatCountList($diceRewardCounts);
     }
 
-    $progressionLines = [];
-    $progressionDetail = [];
-    if (count($xpByUnitId) > 0) {
-      $unitLabels = $this->loadUnitProgressLabels($userId, array_keys($xpByUnitId));
-      uasort($xpByUnitId, static fn(int $a, int $b): int => $b <=> $a);
-      foreach ($xpByUnitId as $unitId => $xpGained) {
-        $label = $unitLabels[$unitId] ?? ('Unit ' . $unitId);
-        $progressionLines[] = sprintf(
-          '%s +%d XP',
-          $label,
-          $xpGained
-        );
-        $progressionDetail[] = [
-          'unit_instance_id' => $unitId,
-          'label' => $label,
-          'xp_gained' => $xpGained,
-        ];
-      }
-    }
-
     $runState = is_array($terminalRunState) && count($terminalRunState) > 0
       ? $terminalRunState
       : $this->loadRunUnitState($userId, $runId);
     [$survivors, $defeated] = $this->formatRunStateLists($userId, $runState);
+    [$progressionLines, $progressionDetail] = $this->buildProgressionSummary($userId, $xpByUnitId, $runState);
 
     return [
       'rewards' => $rewardLines,
@@ -147,6 +141,156 @@ final class RunSummaryBuilder
       ],
       'progression_detail' => $progressionDetail,
     ];
+  }
+
+  /**
+   * @param array<string,int> $xpByUnitId
+   * @param array<int,array<string,mixed>> $runState
+   * @return array{
+   *   0:array<int,string>,
+   *   1:array<int,array{
+   *     unit_instance_id:string,
+   *     label:string,
+   *     xp_gained:int,
+   *     is_defeated:bool,
+   *     level_gain_count:int,
+   *     final_level:int,
+   *     final_xp:int,
+   *     xp_to_next_level:int,
+   *     tier:int,
+   *     max_level:int,
+   *     unit_type_name:string
+   *   }>
+   * }
+   */
+  private function buildProgressionSummary(int $userId, array $xpByUnitId, array $runState): array
+  {
+    $runStateByUnitId = [];
+    foreach ($runState as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $unitId = trim((string)($row['unit_instance_id'] ?? ''));
+      if ($unitId === '') {
+        continue;
+      }
+
+      $runStateByUnitId[$unitId] = [
+        'hp' => max(0, (int)($row['hp'] ?? 0)),
+        'is_defeated' => !empty($row['is_defeated']) || (int)($row['hp'] ?? 0) <= 0,
+      ];
+    }
+
+    $unitIds = array_values(array_unique(array_merge(array_keys($runStateByUnitId), array_keys($xpByUnitId))));
+    if (count($unitIds) === 0) {
+      return [[], []];
+    }
+
+    $unitSnapshots = $this->loadUnitProgressSnapshots($userId, $unitIds);
+    usort($unitIds, function (string $leftId, string $rightId) use ($xpByUnitId, $runStateByUnitId, $unitSnapshots): int {
+      $leftXp = (int)($xpByUnitId[$leftId] ?? 0);
+      $rightXp = (int)($xpByUnitId[$rightId] ?? 0);
+      if ($leftXp !== $rightXp) {
+        return $rightXp <=> $leftXp;
+      }
+
+      $leftDefeated = !empty($runStateByUnitId[$leftId]['is_defeated']);
+      $rightDefeated = !empty($runStateByUnitId[$rightId]['is_defeated']);
+      if ($leftDefeated !== $rightDefeated) {
+        return $leftDefeated ? 1 : -1;
+      }
+
+      $leftLabel = (string)($unitSnapshots[$leftId]['label'] ?? ('Unit ' . $leftId));
+      $rightLabel = (string)($unitSnapshots[$rightId]['label'] ?? ('Unit ' . $rightId));
+      return strnatcasecmp($leftLabel, $rightLabel);
+    });
+
+    $progressionLines = [];
+    $progressionDetail = [];
+    foreach ($unitIds as $unitId) {
+      $snapshot = $unitSnapshots[$unitId] ?? null;
+      $label = is_array($snapshot) ? (string)$snapshot['label'] : ('Unit ' . $unitId);
+      $xpGained = max(0, (int)($xpByUnitId[$unitId] ?? 0));
+      $isDefeated = !empty($runStateByUnitId[$unitId]['is_defeated']);
+
+      if ($xpGained > 0) {
+        $progressionLines[] = sprintf('%s +%d XP', $label, $xpGained);
+      }
+
+      $progressionDetail[] = [
+        'unit_instance_id' => $unitId,
+        'label' => $label,
+        'xp_gained' => $xpGained,
+        'is_defeated' => $isDefeated,
+        'level_gain_count' => is_array($snapshot)
+          ? $this->estimateLevelGainCount(
+            (int)$snapshot['final_level'],
+            (int)$snapshot['final_xp'],
+            $xpGained,
+            (int)$snapshot['tier'],
+          )
+          : 0,
+        'final_level' => is_array($snapshot) ? (int)$snapshot['final_level'] : 1,
+        'final_xp' => is_array($snapshot) ? (int)$snapshot['final_xp'] : 0,
+        'xp_to_next_level' => is_array($snapshot) ? (int)$snapshot['xp_to_next_level'] : 0,
+        'tier' => is_array($snapshot) ? (int)$snapshot['tier'] : 1,
+        'max_level' => is_array($snapshot) ? (int)$snapshot['max_level'] : 1,
+        'unit_type_name' => is_array($snapshot) ? (string)$snapshot['unit_type_name'] : 'Unit',
+      ];
+    }
+
+    return [$progressionLines, $progressionDetail];
+  }
+
+  /**
+   * @param array<int,string> $unitIds
+   * @return array<string,array{
+   *   label:string,
+   *   final_level:int,
+   *   final_xp:int,
+   *   xp_to_next_level:int,
+   *   tier:int,
+   *   max_level:int,
+   *   unit_type_name:string
+   * }>
+   */
+  private function loadUnitProgressSnapshots(int $userId, array $unitIds): array
+  {
+    $unitIds = array_values(array_unique(array_filter(array_map('strval', $unitIds), static fn(string $id): bool => $id !== '')));
+    if (count($unitIds) === 0) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
+    $params = array_merge([$userId], $unitIds);
+    $stmt = $this->pdo->prepare("
+      SELECT ui.`id`, ui.`display_name`, ui.`level`, ui.`xp`, ui.`tier`, ut.`name`, ut.`max_level`
+      FROM `unit_instances` ui
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE ui.`user_id` = ? AND ui.`id` IN ($placeholders)
+    ");
+    $stmt->execute($params);
+
+    $progression = new UnitProgressionService();
+    $map = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $displayName = trim((string)($row['display_name'] ?? ''));
+      $level = max(1, (int)($row['level'] ?? 1));
+      $xp = max(0, (int)($row['xp'] ?? 0));
+      $tier = max(1, (int)($row['tier'] ?? 1));
+      $maxLevel = max(1, (int)($row['max_level'] ?? 1));
+      $map[(string)$row['id']] = [
+        'label' => $displayName !== '' ? $displayName : (string)$row['name'],
+        'final_level' => $level,
+        'final_xp' => $xp,
+        'xp_to_next_level' => $progression->xpToNextLevel($tier, $level, $maxLevel, $xp),
+        'tier' => $tier,
+        'max_level' => $maxLevel,
+        'unit_type_name' => (string)$row['name'],
+      ];
+    }
+
+    return $map;
   }
 
   /**
@@ -525,5 +669,37 @@ final class RunSummaryBuilder
   private function prettifyId(string $value): string
   {
     return preg_replace('/\s+/', ' ', ucwords(str_replace(['_', '-'], ' ', trim($value)))) ?: $value;
+  }
+
+  private function estimateLevelGainCount(int $finalLevel, int $finalXp, int $xpGained, int $tier): int
+  {
+    $remaining = max(0, $xpGained);
+    $level = max(1, $finalLevel);
+    $xp = max(0, $finalXp);
+    $resolvedTier = max(1, $tier);
+    $levelGainCount = 0;
+
+    if ($remaining <= $xp) {
+      return 0;
+    }
+
+    $remaining -= $xp;
+    while ($remaining > 0 && $level > 1) {
+      $level--;
+      $levelGainCount++;
+      $threshold = $this->levelThreshold($level, $resolvedTier);
+      if ($remaining <= $threshold) {
+        break;
+      }
+
+      $remaining -= $threshold;
+    }
+
+    return $levelGainCount;
+  }
+
+  private function levelThreshold(int $level, int $tier): int
+  {
+    return max(1, max(1, $tier) * (max(1, $level) + 1) * 50);
   }
 }

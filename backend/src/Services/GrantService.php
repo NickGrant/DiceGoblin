@@ -302,21 +302,19 @@ final class GrantService
 
   /**
    * @param list<array{unit_instance_id:int,unit_type_id:int}> $starterUnits
-   * @return list<array{unit_instance_id:int,ability_id:string,ability_slot_index:int,legacy_slot_index:int}>
+   * @return list<array{unit_instance_id:int,ability_id:string,ability_slot_index:int}>
    */
   private function buildStarterAbilityTargets(array $starterUnits): array
   {
     $targets = [];
 
     foreach ($starterUnits as $starterUnit) {
-      $legacySlotIndex = 0;
       $slots = $this->unitLoadoutService?->listDefaultAbilityDiceSlotsForUnitType((int)$starterUnit['unit_type_id']) ?? [];
       foreach ($slots as $slot) {
         $targets[] = [
           'unit_instance_id' => (int)$starterUnit['unit_instance_id'],
           'ability_id' => (string)$slot['ability_id'],
           'ability_slot_index' => (int)$slot['slot_index'],
-          'legacy_slot_index' => $legacySlotIndex++,
         ];
       }
     }
@@ -325,7 +323,7 @@ final class GrantService
   }
 
   /**
-   * @param list<array{unit_instance_id:int,ability_id:string,ability_slot_index:int,legacy_slot_index:int}> $starterAbilityTargets
+   * @param list<array{unit_instance_id:int,ability_id:string,ability_slot_index:int}> $starterAbilityTargets
    * @param list<int> $diceInstanceIds
    */
   private function assignStarterDice(PDO $db, array $starterAbilityTargets, array $diceInstanceIds): void
@@ -333,11 +331,6 @@ final class GrantService
     if (!$starterAbilityTargets || !$diceInstanceIds) {
       return;
     }
-
-    $legacyStmt = $db->prepare(
-      "INSERT IGNORE INTO unit_dice (unit_instance_id, dice_instance_id, slot_index)
-       VALUES (:unit_id, :dice_id, :slot_index)"
-    );
 
     $n = min(count($starterAbilityTargets), count($diceInstanceIds));
     for ($i = 0; $i < $n; $i++) {
@@ -350,12 +343,6 @@ final class GrantService
         (int)$target['ability_slot_index'],
         $diceId
       );
-
-      $legacyStmt->execute([
-        ':unit_id' => (int)$target['unit_instance_id'],
-        ':dice_id' => $diceId,
-        ':slot_index' => (int)$target['legacy_slot_index'],
-      ]);
     }
   }
 

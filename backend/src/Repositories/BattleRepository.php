@@ -86,17 +86,18 @@ final class BattleRepository
    * Lock + fetch battle + rewards for claiming (ownership enforced).
    *
    * @return array{
-   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,seed:string,
+   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,node_id:string,node_type:string,seed:string,
    *   xp_total:int,currency_soft:int,rewards_json:string
    * }|null
    */
   public function getForClaimForUpdate(int $battleId, int $userId): ?array
   {
     $stmt = $this->pdo->prepare('
-      SELECT b.`id`, b.`status`, b.`outcome`, b.`rules_version`, b.`run_id`, b.`team_id`, b.`seed`,
+      SELECT b.`id`, b.`status`, b.`outcome`, b.`rules_version`, b.`run_id`, b.`team_id`, b.`node_id`, rn.`node_type`, b.`seed`,
              br.`xp_total`, br.`currency_soft`, br.`rewards_json`
       FROM `battles` b
       JOIN `battle_rewards` br ON br.`battle_id` = b.`id`
+      JOIN `run_nodes` rn ON rn.`id` = b.`node_id`
       WHERE b.`id` = ? AND b.`user_id` = ?
       LIMIT 1
       FOR UPDATE
@@ -113,6 +114,8 @@ final class BattleRepository
       'rules_version' => (string)$r['rules_version'],
       'run_id' => (string)$r['run_id'],
       'team_id' => (string)$r['team_id'],
+      'node_id' => (string)$r['node_id'],
+      'node_type' => (string)$r['node_type'],
       'seed' => (string)$r['seed'],
       'xp_total' => (int)$r['xp_total'],
       'currency_soft' => (int)$r['currency_soft'],

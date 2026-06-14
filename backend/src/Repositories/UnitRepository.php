@@ -124,7 +124,7 @@ final class UnitRepository
 
 
   /**
-   * Returns all owned unit instances with equipped dice, shaped for GET /api/v1/profile.
+   * Returns all owned unit instances with ability-slot dice, shaped for GET /api/v1/profile.
    *
    * @return array<int, array{
    *   id:string,
@@ -180,8 +180,6 @@ final class UnitRepository
 
     $unitIds = array_map(static fn(array $r): int => (int)$r['id'], $unitRows);
 
-    // 2) Equipped dice for those units
-    $equippedByUnit = $this->getEquippedDiceForUnitIds($unitIds);
     $unlockedAbilitiesByUnit = $this->getUnlockedAbilitiesForUnitIds($unitIds);
     $equippedAbilitiesByUnit = $this->getEquippedAbilitiesForUnitIds($unitIds);
     $abilityDiceByUnit = $this->getAbilityDiceBindingsForUnitIds($unitIds);
@@ -238,7 +236,7 @@ final class UnitRepository
         'locked' => ((int)$u['locked']) === 1,
         'formation_width' => $footprint['w'],
         'formation_height' => $footprint['h'],
-        'equipped_dice' => $equippedByUnit[$uid] ?? [],
+        'equipped_dice' => [],
         'abilities' => $authoredAbilities,
         'unlocked_abilities' => $unlockedAbilitiesByUnit[$uid] ?? [],
         'equipped_abilities' => $equippedAbilitiesByUnit[$uid] ?? [],

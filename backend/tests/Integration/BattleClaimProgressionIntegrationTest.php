@@ -276,6 +276,52 @@ final class BattleClaimProgressionIntegrationTest extends BattleFlowIntegrationC
     $this->assertCount(1, $matchingProgression);
   }
 
+  public function testClaimLootBattleDoesNotDamageRunUnits(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 66778899);
+    $nodeId = $this->insertRunNode($runId, 'loot', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 7, false);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'victory', 31313131, 0, 0);
+    $this->insertBattleRewards($battleId, 0, 5, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'loot_node' => [
+        'loot_table_slug' => 'tier_1',
+        'rolls' => 1,
+        'currency_soft' => 5,
+      ],
+    ]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new BattleController();
+    $res = $this->invoke(fn() => $controller->claimBattle((string)$battleId));
+    $this->assertSame(200, $res['status']);
+
+    $data = is_array($res['body']['data'] ?? null) ? $res['body']['data'] : [];
+    $updatedRunState = array_values(array_filter($data['updated_run_unit_state'] ?? [], 'is_array'));
+    $this->assertCount(1, $updatedRunState);
+    $this->assertSame((string)$unitId, (string)($updatedRunState[0]['unit_instance_id'] ?? ''));
+    $this->assertSame(7, (int)($updatedRunState[0]['hp'] ?? -1));
+    $this->assertFalse((bool)($updatedRunState[0]['is_defeated'] ?? true));
+
+    $storedHp = (int)$this->scalar(
+      'SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?',
+      [$runId, $unitId]
+    );
+    $this->assertSame(7, $storedHp);
+  }
+
   public function testClaimDefeatWithNoRemainingUnitsFailsRunAndResetsDefeatedXp(): void
   {
     $userId = $this->insertUser();

@@ -242,7 +242,19 @@ export type RunSummaryPayload = {
     units: Array<{ unit_instance_id: string | null; label: string }>;
     dice: Array<{ dice_instance_id: string | null; label: string }>;
   };
-  progression_detail?: Array<{ unit_instance_id: string; label: string; xp_gained: number }>;
+  progression_detail?: Array<{
+    unit_instance_id: string;
+    label: string;
+    xp_gained: number;
+    is_defeated?: boolean;
+    level_gain_count?: number;
+    final_level?: number;
+    final_xp?: number;
+    xp_to_next_level?: number;
+    tier?: number;
+    max_level?: number;
+    unit_type_name?: string;
+  }>;
 };
 
 export type RestOpenData = {

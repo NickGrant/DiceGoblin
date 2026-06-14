@@ -121,6 +121,102 @@ describe('RunMapPageComponent', () => {
     expect(component.mapWidth()).toBe(1254);
   });
 
+  it('fans branch and merge paths apart so overlapping routes stay readable', async () => {
+    class BranchingRunServiceStub extends RunServiceStub {
+      override getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
+        ok: true,
+        data: {
+          run: { run_id: 'run-3', region_id: '2', status: 'active' },
+          map: {
+            nodes: [
+              { id: 'n1', run_id: 'run-3', node_index: 0, node_type: 'combat', status: 'available', meta: { col: 0, row: 1 } },
+              { id: 'n2', run_id: 'run-3', node_index: 1, node_type: 'loot', status: 'locked', meta: { col: 1, row: 0 } },
+              { id: 'n3', run_id: 'run-3', node_index: 2, node_type: 'rest', status: 'locked', meta: { col: 1, row: 2 } },
+              { id: 'n4', run_id: 'run-3', node_index: 3, node_type: 'boss', status: 'locked', meta: { col: 2, row: 1 } },
+              { id: 'n5', run_id: 'run-3', node_index: 4, node_type: 'exit', status: 'locked', meta: { col: 3, row: 1 } },
+            ],
+            edges: [
+              { edge_id: 'e1', run_id: 'run-3', from_node_id: 'n1', to_node_id: 'n2' },
+              { edge_id: 'e2', run_id: 'run-3', from_node_id: 'n1', to_node_id: 'n3' },
+              { edge_id: 'e3', run_id: 'run-3', from_node_id: 'n2', to_node_id: 'n4' },
+              { edge_id: 'e4', run_id: 'run-3', from_node_id: 'n3', to_node_id: 'n4' },
+              { edge_id: 'e5', run_id: 'run-3', from_node_id: 'n4', to_node_id: 'n5' },
+            ],
+          },
+          run_unit_state: [],
+        },
+      });
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: BranchingRunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const renderedEdges = component.renderedEdges();
+
+    expect(renderedEdges.find((edge) => edge.edgeId === 'e1')?.path).toBe('M 120 222 C 169 213, 211 90, 260 90');
+    expect(renderedEdges.find((edge) => edge.edgeId === 'e2')?.path).toBe('M 120 222 C 169 231, 211 354, 260 354');
+    expect(renderedEdges.find((edge) => edge.edgeId === 'e3')?.path).toBe('M 260 90 C 309 90, 351 213, 400 222');
+    expect(renderedEdges.find((edge) => edge.edgeId === 'e4')?.path).toBe('M 260 354 C 309 354, 351 231, 400 222');
+    expect(renderedEdges.find((edge) => edge.edgeId === 'e5')?.path).toBe('M 400 222 L 540 222');
+  });
+
+  it('pushes long-jump side lanes farther from the center row', async () => {
+    class LongJumpRunServiceStub extends RunServiceStub {
+      override getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
+        ok: true,
+        data: {
+          run: { run_id: 'run-4', region_id: '2', status: 'active' },
+          map: {
+            nodes: [
+              { id: 'n1', run_id: 'run-4', node_index: 0, node_type: 'combat', status: 'available', meta: { col: 0, row: 1 } },
+              { id: 'n2', run_id: 'run-4', node_index: 1, node_type: 'loot', status: 'locked', meta: { col: 1, row: 0 } },
+              { id: 'n3', run_id: 'run-4', node_index: 2, node_type: 'boss', status: 'locked', meta: { col: 4, row: 1 } },
+              { id: 'n4', run_id: 'run-4', node_index: 3, node_type: 'exit', status: 'locked', meta: { col: 5, row: 1 } },
+            ],
+            edges: [
+              { edge_id: 'e1', run_id: 'run-4', from_node_id: 'n1', to_node_id: 'n2' },
+              { edge_id: 'e2', run_id: 'run-4', from_node_id: 'n2', to_node_id: 'n3' },
+              { edge_id: 'e3', run_id: 'run-4', from_node_id: 'n3', to_node_id: 'n4' },
+            ],
+          },
+          run_unit_state: [],
+        },
+      });
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: LongJumpRunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const topNode = component.nodes().find((node) => node.id === 'n2');
+    const longJumpEdge = component.renderedEdges().find((edge) => edge.edgeId === 'e2');
+
+    expect(topNode).toBeTruthy();
+    expect(component.nodeY(topNode!)).toBe(54);
+    expect(longJumpEdge?.path).toBe('M 260 54 C 344 54, 596 222, 680 222');
+  });
+
   it('navigates to summary after abandoning a run', async () => {
     await TestBed.configureTestingModule({
       imports: [RunMapPageComponent],

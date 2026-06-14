@@ -450,11 +450,11 @@ final class DiceRepository
     ];
   }
 
-  public function isDiceEquippedForUpdate(int $diceInstanceId): bool
+  public function isDiceAssignedToAbilitySlotForUpdate(int $diceInstanceId): bool
   {
     $stmt = $this->pdo->prepare('
       SELECT 1
-      FROM `unit_dice`
+      FROM `unit_ability_dice`
       WHERE `dice_instance_id` = ?
       LIMIT 1
       FOR UPDATE
@@ -466,6 +466,9 @@ final class DiceRepository
 
   public function deleteOwnedDiceInstance(int $userId, int $diceInstanceId): void
   {
+    $deleteLegacyEquip = $this->pdo->prepare('DELETE FROM `unit_dice` WHERE `dice_instance_id` = ?');
+    $deleteLegacyEquip->execute([$diceInstanceId]);
+
     $deleteAffixes = $this->pdo->prepare('DELETE FROM `dice_instance_affixes` WHERE `dice_instance_id` = ?');
     $deleteAffixes->execute([$diceInstanceId]);
 

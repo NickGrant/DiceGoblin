@@ -212,7 +212,7 @@ final class BattleController
 
   /**
    * @param array{
-   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,seed:string,
+   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,node_id:string,node_type:string,seed:string,
     *   xp_total:int,currency_soft:int,rewards_json:string
    * } $battle
    */
@@ -284,7 +284,7 @@ final class BattleController
     *   playerStateRepo: PlayerStateRepository
    * } $svc
    * @param array{
-   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,seed:string,
+   *   id:string,status:string,outcome:string,rules_version:string,run_id:string,team_id:string,node_id:string,node_type:string,seed:string,
     *   xp_total:int,currency_soft:int,rewards_json:string
    * } $battle
    * @return array{
@@ -304,6 +304,7 @@ final class BattleController
   {
     $runId = (int)$battle['run_id'];
     $battleId = (int)$battle['id'];
+    $nodeType = (string)($battle['node_type'] ?? 'combat');
     $awardPerUnit = max(0, (int)$battle['xp_total']);
     $softCurrencyAward = max(0, (int)($battle['currency_soft'] ?? 0));
     $run = $svc['runRepo']->getRunForUser($userId, $runId);
@@ -347,6 +348,25 @@ final class BattleController
           'run_id' => (string)$runId,
           'status' => (string)($run['status'] ?? 'failed'),
         ],
+        'xp' => [
+          'award_per_unit' => $awardPerUnit,
+          'applied_unit_instance_ids' => [],
+          'ignored_at_cap_unit_instance_ids' => [],
+        ],
+        'currency' => [
+          'soft_awarded' => $softCurrencyAward,
+        ],
+        'updated_units' => [],
+      ];
+    }
+
+    $isCombatLikeNode = in_array($nodeType, ['combat', 'boss'], true);
+    if (!$isCombatLikeNode) {
+      $updatedRunState = $this->formatRunUnitStateSnapshot($runStateByUnitId);
+
+      return [
+        'updated_run_unit_state' => $updatedRunState,
+        'run_resolution' => null,
         'xp' => [
           'award_per_unit' => $awardPerUnit,
           'applied_unit_instance_ids' => [],

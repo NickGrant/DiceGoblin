@@ -36,6 +36,7 @@ use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\ProfileService;
 use DiceGoblins\Services\ProfileDtoMapper;
+use DiceGoblins\Services\RunGraphGenerator;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\SquadCapacityService;
 use DiceGoblins\Services\UnitLoadoutService;
@@ -361,7 +362,7 @@ final class ApiController
 
       // Create run + graph.
       $seed = random_int(1, 9223372036854775807);
-      $graph = $this->generateRunGraph($regionId, (string)$region['slug'], (string)$seed);
+      $graph = (new RunGraphGenerator($pdo))->generate($regionId, (string)$region['slug'], (string)$seed);
 
       $created = $services['runRepo']->createRunGraph(
         $userId,
@@ -489,9 +490,9 @@ final class ApiController
         return;
       }
 
+      $runSummary = (new RunSummaryBuilder($pdo))->buildRunSummary($userId, $runIdInt);
       $services['runRepo']->applyRunEndCleanup($runIdInt, $userId, true);
       $services['runRepo']->endRun($userId, $runIdInt, 'abandoned');
-      $runSummary = (new RunSummaryBuilder($pdo))->buildRunSummary($userId, $runIdInt);
 
       $pdo->commit();
 
@@ -601,10 +602,10 @@ final class ApiController
       }
 
       $services['runNodeRepo']->markCleared($runIdInt, (int)$exitNode['id']);
+      $runSummary = (new RunSummaryBuilder($pdo))->buildRunSummary($userId, $runIdInt);
       $services['runRepo']->applyRunEndCleanup($runIdInt, $userId, false);
       $services['runRepo']->endRun($userId, $runIdInt, 'completed');
       $this->unlockNextRegionOnSuccessfulCompletion($services['regionRepo'], $userId, (int)($run['region_id'] ?? 0));
-      $runSummary = (new RunSummaryBuilder($pdo))->buildRunSummary($userId, $runIdInt);
 
       $pdo->commit();
 
@@ -738,172 +739,6 @@ final class ApiController
     }
 
     $energyRepo->setEnergyCurrentAndLastRegenAt($userId, $current - $cost, $lastSql);
-  }
-
-  /**
-   * Deterministic small branching run graph.
-   *
-   * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>}
-   */
-  private function generateRunGraph(int $regionId, string $regionSlug, string $seed): array
-  {
-    $seedInt = (int)(is_numeric($seed) ? $seed : crc32($seed));
-    mt_srand($seedInt ^ ($regionId * 2654435761));
-    if ($regionSlug === 'the_farm') {
-      return $this->generateFarmRunGraph($regionId);
-    }
-    $templatePools = $this->loadEncounterTemplatePools($regionId);
-
-    $midA = (mt_rand(0, 1) === 0) ? 'loot' : 'rest';
-    $midB = ($midA === 'loot') ? 'rest' : 'loot';
-    $variant = ['combat', 'loot', 'rest'][mt_rand(0, 2)];
-
-    $nodes = [
-      ['node_index' => 0, 'node_type' => 'combat', 'status' => 'available', 'meta' => ['col' => 0, 'row' => 1]],
-      ['node_index' => 1, 'node_type' => 'combat', 'status' => 'locked',    'meta' => ['col' => 1, 'row' => 0]],
-      ['node_index' => 2, 'node_type' => $midA,    'status' => 'locked',    'meta' => ['col' => 1, 'row' => 2]],
-      ['node_index' => 3, 'node_type' => 'combat', 'status' => 'locked',    'meta' => ['col' => 2, 'row' => 1]],
-      ['node_index' => 4, 'node_type' => $variant, 'status' => 'locked',    'meta' => ['col' => 3, 'row' => 0]],
-      ['node_index' => 5, 'node_type' => $midB,    'status' => 'locked',    'meta' => ['col' => 3, 'row' => 2]],
-      ['node_index' => 6, 'node_type' => 'combat', 'status' => 'locked',    'meta' => ['col' => 4, 'row' => 1]],
-      ['node_index' => 7, 'node_type' => 'combat', 'status' => 'locked',    'meta' => ['col' => 5, 'row' => 1]],
-      ['node_index' => 8, 'node_type' => 'boss',   'status' => 'locked',    'meta' => ['col' => 6, 'row' => 1]],
-      ['node_index' => 9, 'node_type' => 'exit',   'status' => 'locked',    'meta' => ['col' => 7, 'row' => 1]],
-    ];
-
-    foreach ($nodes as &$node) {
-      $nodeType = (string)$node['node_type'];
-      if (!isset($templatePools[$nodeType]) || count($templatePools[$nodeType]) === 0) {
-        continue;
-      }
-
-      $pool = $templatePools[$nodeType];
-      $node['encounter_template_id'] = $pool[mt_rand(0, count($pool) - 1)];
-    }
-    unset($node);
-
-    $edges = [
-      ['from' => 0, 'to' => 1],
-      ['from' => 0, 'to' => 2],
-      ['from' => 1, 'to' => 3],
-      ['from' => 2, 'to' => 3],
-      ['from' => 3, 'to' => 4],
-      ['from' => 3, 'to' => 5],
-      ['from' => 4, 'to' => 6],
-      ['from' => 5, 'to' => 6],
-      ['from' => 6, 'to' => 7],
-      ['from' => 7, 'to' => 8],
-      ['from' => 8, 'to' => 9],
-    ];
-
-    return ['nodes' => $nodes, 'edges' => $edges];
-  }
-
-  /**
-   * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>}
-   */
-  private function generateFarmRunGraph(int $regionId): array
-  {
-    $templateIds = $this->loadEncounterTemplateIdsBySlug($regionId, [
-      'the_farm_mud_combat_1',
-      'the_farm_loot_1',
-      'the_farm_rest_1',
-      'the_farm_mud_boss_1',
-    ]);
-
-    return [
-      'nodes' => [
-        ['node_index' => 0, 'node_type' => 'combat', 'status' => 'available', 'encounter_template_id' => $templateIds['the_farm_mud_combat_1'] ?? null, 'meta' => ['col' => 0, 'row' => 1]],
-        ['node_index' => 1, 'node_type' => 'loot', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_loot_1'] ?? null, 'meta' => ['col' => 1, 'row' => 1]],
-        ['node_index' => 2, 'node_type' => 'rest', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_rest_1'] ?? null, 'meta' => ['col' => 2, 'row' => 1]],
-        ['node_index' => 3, 'node_type' => 'boss', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_mud_boss_1'] ?? null, 'meta' => ['col' => 3, 'row' => 1]],
-        ['node_index' => 4, 'node_type' => 'exit', 'status' => 'locked', 'meta' => ['col' => 4, 'row' => 1]],
-      ],
-      'edges' => [
-        ['from' => 0, 'to' => 1],
-        ['from' => 1, 'to' => 2],
-        ['from' => 2, 'to' => 3],
-        ['from' => 3, 'to' => 4],
-      ],
-    ];
-  }
-
-  /**
-   * @return array{combat:array<int,int>,boss:array<int,int>,loot:array<int,int>,rest:array<int,int>}
-   */
-  private function loadEncounterTemplatePools(int $regionId): array
-  {
-    /** @var PDO $pdo */
-    $pdo = Db::pdo();
-
-    $stmt = $pdo->prepare('SELECT `id`, `slug`, `reward_profile_json` FROM `encounter_templates` WHERE `region_id` = ? ORDER BY `id` ASC');
-    $stmt->execute([$regionId]);
-
-    $pools = [
-      'combat' => [],
-      'boss' => [],
-      'loot' => [],
-      'rest' => [],
-    ];
-
-    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-      $id = (int)$row['id'];
-      $slug = (string)$row['slug'];
-
-      $rewardType = null;
-      $rewardProfile = json_decode((string)($row['reward_profile_json'] ?? ''), true);
-      if (is_array($rewardProfile) && isset($rewardProfile['type'])) {
-        $rewardType = (string)$rewardProfile['type'];
-      }
-
-      if (str_contains($slug, '_boss_')) {
-        $pools['boss'][] = $id;
-        continue;
-      }
-      if (str_contains($slug, '_combat_')) {
-        $pools['combat'][] = $id;
-        continue;
-      }
-      if ($rewardType === 'loot' || str_contains($slug, '_loot_')) {
-        $pools['loot'][] = $id;
-        continue;
-      }
-      if ($rewardType === 'rest' || str_contains($slug, '_rest_')) {
-        $pools['rest'][] = $id;
-      }
-    }
-
-    return $pools;
-  }
-
-  /**
-   * @param array<int,string> $slugs
-   * @return array<string,int>
-   */
-  private function loadEncounterTemplateIdsBySlug(int $regionId, array $slugs): array
-  {
-    if (count($slugs) === 0) {
-      return [];
-    }
-
-    /** @var PDO $pdo */
-    $pdo = Db::pdo();
-    $placeholders = implode(',', array_fill(0, count($slugs), '?'));
-    $params = array_merge([$regionId], $slugs);
-    $stmt = $pdo->prepare("
-      SELECT `id`, `slug`
-      FROM `encounter_templates`
-      WHERE `region_id` = ? AND `slug` IN ($placeholders)
-      ORDER BY `id` ASC
-    ");
-    $stmt->execute($params);
-
-    $map = [];
-    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-      $map[(string)$row['slug']] = (int)$row['id'];
-    }
-
-    return $map;
   }
 
   private function unlockNextRegionOnSuccessfulCompletion(RegionRepository $regionRepo, int $userId, int $completedRegionId): void

@@ -69,7 +69,7 @@ final class DeterministicRunNodeResolver
       $ticks = 0;
       $outcome = 'victory';
       $xpTotal = 0;
-      $currencySoft = $nodeType === 'loot' ? 5 : 0;
+      $currencySoft = $nodeType === 'loot' ? 8 : 0;
       $events = [[
         'type' => 'node_effect',
         'round' => 0,
@@ -114,7 +114,9 @@ final class DeterministicRunNodeResolver
       $rounds = max(1, (int)$combatResult['ended_round']);
       $ticks = max(1, (int)$combatResult['ended_tick']);
       $xpTotal = $this->computeXpTotal($enemyUnits, $difficulty, $outcome);
-      $currencySoft = $outcome === 'victory' ? (3 * $difficulty) + $this->nextInt($rngState, 5) : 0;
+      $currencySoft = $outcome === 'victory'
+        ? (5 * $difficulty) + $this->nextInt($rngState, 6)
+        : 0;
 
       $events[] = [
         'type' => 'battle_end',
@@ -2264,4 +2266,5 @@ final class DeterministicRunNodeResolver
       'sides' => max(2, (int)($row['sides'] ?? 6)),
     ];
   }
+
 }

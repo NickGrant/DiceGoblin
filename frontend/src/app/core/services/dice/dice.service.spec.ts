@@ -33,28 +33,4 @@ describe('DiceService', () => {
     expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/dice/9/sell', {});
     expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
   });
-
-  it('includes run and node context when equipping dice', async () => {
-    const response = { ok: true } as any;
-    apiHttp.postWithCsrf.and.resolveTo(response);
-
-    await service.equipDice('4', '12', { runId: '5', nodeId: '6' });
-
-    expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/units/4/dice/equip', {
-      dice_instance_id: 12,
-      run_id: 5,
-      node_id: 6,
-    });
-  });
-
-  it('unequips dice without optional context', async () => {
-    const response = { ok: true } as any;
-    apiHttp.postWithCsrf.and.resolveTo(response);
-
-    await service.unequipDice('4', '12');
-
-    expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/units/4/dice/unequip', {
-      dice_instance_id: 12,
-    });
-  });
 });

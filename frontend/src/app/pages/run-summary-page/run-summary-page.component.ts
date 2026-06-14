@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { DiceRecord, UnitRecord } from '../../core/models/api.models';
+import { DiceRecord, RunSummaryPayload, UnitRecord } from '../../core/models/api.models';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { DiceGridObjectComponent } from '../../shared/ui/dice-grid-object/dice-grid-object.component';
@@ -27,6 +27,8 @@ type ProgressionCard = {
   progressText: string;
   levelGainCount: number;
 };
+
+type ProgressionDetailEntry = NonNullable<RunSummaryPayload['progression_detail']>[number];
 
 @Component({
   selector: 'app-run-summary-page',
@@ -154,12 +156,17 @@ export class RunSummaryPageComponent {
     if (summary.progressionDetail.length > 0) {
       return summary.progressionDetail
         .map((entry, index) => {
-          const unit = unitsById.get(entry.unit_instance_id) ?? this.findUnitByName(entry.label);
+          const unit = this.progressionUnitForEntry(entry, unitsById, index);
           if (!unit) {
             return null;
           }
 
-          return this.buildProgressionCard(`progression-${entry.unit_instance_id || unit.id || index}-${index}`, unit, entry.xp_gained);
+          return this.buildProgressionCard(
+            `progression-${entry.unit_instance_id || unit.id || index}-${index}`,
+            unit,
+            entry.xp_gained,
+            typeof entry.level_gain_count === 'number' ? Math.max(0, entry.level_gain_count) : undefined,
+          );
         })
         .filter((entry): entry is ProgressionCard => entry !== null);
     }
@@ -203,8 +210,8 @@ export class RunSummaryPageComponent {
     };
   }
 
-  private buildProgressionCard(id: string, unit: UnitRecord, xpGained: number): ProgressionCard {
-    const progress = this.buildProgressMetrics(unit, xpGained);
+  private buildProgressionCard(id: string, unit: UnitRecord, xpGained: number, explicitLevelGainCount?: number): ProgressionCard {
+    const progress = this.buildProgressMetrics(unit, xpGained, explicitLevelGainCount);
     return {
       id,
       unit,
@@ -234,6 +241,7 @@ export class RunSummaryPageComponent {
   private buildProgressMetrics(
     unit: UnitRecord,
     xpGained: number,
+    explicitLevelGainCount?: number,
   ): { progressPercent: number; progressText: string; levelGainCount: number } {
     const level = Math.max(1, unit.level ?? 1);
     const maxLevel = Math.max(1, unit.max_level ?? 1);
@@ -245,7 +253,7 @@ export class RunSummaryPageComponent {
       return {
         progressPercent: 100,
         progressText: 'Max Level',
-        levelGainCount: this.estimateLevelGainCount(level, currentXp, xpGained, tier),
+        levelGainCount: explicitLevelGainCount ?? this.estimateLevelGainCount(level, currentXp, xpGained, tier),
       };
     }
 
@@ -255,30 +263,56 @@ export class RunSummaryPageComponent {
     return {
       progressPercent,
       progressText: `${currentXp}/${threshold} XP`,
-      levelGainCount: this.estimateLevelGainCount(level, currentXp, xpGained, tier),
+      levelGainCount: explicitLevelGainCount ?? this.estimateLevelGainCount(level, currentXp, xpGained, tier),
+    };
+  }
+
+  private progressionUnitForEntry(
+    entry: ProgressionDetailEntry,
+    unitsById: Map<string, UnitRecord>,
+    index: number,
+  ): UnitRecord | null {
+    const currentUnit = unitsById.get(entry.unit_instance_id) ?? this.findUnitByName(entry.label);
+    if (!currentUnit && typeof entry.final_level !== 'number') {
+      return null;
+    }
+
+    const fallbackName = entry.label?.trim() ? entry.label : `Unit ${entry.unit_instance_id || index}`;
+    return {
+      ...(currentUnit ?? { id: entry.unit_instance_id || `summary-${index}`, name: fallbackName }),
+      id: entry.unit_instance_id || currentUnit?.id || `summary-${index}`,
+      name: currentUnit?.name ?? fallbackName,
+      level: typeof entry.final_level === 'number' ? entry.final_level : (currentUnit?.level ?? 1),
+      xp: typeof entry.final_xp === 'number' ? entry.final_xp : (currentUnit?.xp ?? 0),
+      xp_to_next_level: typeof entry.xp_to_next_level === 'number'
+        ? entry.xp_to_next_level
+        : (currentUnit?.xp_to_next_level ?? 0),
+      tier: typeof entry.tier === 'number' ? entry.tier : (currentUnit?.tier ?? 1),
+      max_level: typeof entry.max_level === 'number' ? entry.max_level : (currentUnit?.max_level ?? 1),
+      unit_type_name: entry.unit_type_name || currentUnit?.unit_type_name,
     };
   }
 
   private estimateLevelGainCount(finalLevel: number, finalXp: number, xpGained: number, tier: number): number {
     let level = Math.max(1, finalLevel);
-    let xp = Math.max(0, finalXp);
     let remaining = Math.max(0, xpGained);
+    const xp = Math.max(0, finalXp);
     let levelGainCount = 0;
 
-    while (remaining > 0) {
-      if (xp >= remaining) {
-        remaining = 0;
-        break;
-      }
+    if (remaining <= xp) {
+      return 0;
+    }
 
-      remaining -= xp;
-      if (level <= 1) {
-        break;
-      }
-
+    remaining -= xp;
+    while (remaining > 0 && level > 1) {
       level--;
       levelGainCount++;
-      xp = this.levelThreshold(level, tier);
+      const threshold = this.levelThreshold(level, tier);
+      if (remaining <= threshold) {
+        break;
+      }
+
+      remaining -= threshold;
     }
 
     return levelGainCount;

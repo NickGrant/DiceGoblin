@@ -381,7 +381,7 @@ final class GameplayController
         return;
       }
 
-      if ($svc['diceRepo']->isDiceEquippedForUpdate($diceId)) {
+      if ($svc['diceRepo']->isDiceAssignedToAbilitySlotForUpdate($diceId)) {
         $pdo->rollBack();
         Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Equipped dice cannot be sold.']], 400);
         return;
@@ -435,36 +435,19 @@ final class GameplayController
     if ($unitId === null) {
       return;
     }
-    $body = $this->readJsonBody();
-    if ($body === null) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
-      return;
-    }
-    $diceId = (int)($body['dice_instance_id'] ?? 0);
-    if ($diceId <= 0) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'dice_instance_id is required.']], 400);
-      return;
-    }
 
     if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId)) {
       Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
       return;
     }
 
-    try {
-      $equipped = $isEquip
-        ? $svc['diceRepo']->equipDiceToUnit($userId, $unitId, $diceId)
-        : $svc['diceRepo']->unequipDiceFromUnit($userId, $unitId, $diceId);
-
-      Response::json([
-        'ok' => true,
-        'data' => ['unit_id' => (string)$unitId, 'equipped_dice' => $equipped],
-      ]);
-    } catch (RuntimeException $e) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => $e->getMessage()]], 400);
-    } catch (Throwable $e) {
-      Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
-    }
+    Response::json([
+      'ok' => false,
+      'error' => [
+        'code' => 'validation_error',
+        'message' => 'Legacy unit-level dice equip is no longer supported. Assign dice to ability slots instead.',
+      ],
+    ], 400);
   }
 
   private function handleAbilitySlotDiceMutation(?string $unitInstanceId, ?string $abilityId, ?string $slotIndex, bool $isAssign): void

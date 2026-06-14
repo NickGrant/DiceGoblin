@@ -48,6 +48,112 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $this->assertSame('[]', (string)$state[0]['status_effects_json']);
   }
 
+  public function testAbandonRunSummaryKeepsPreCleanupProgressionSnapshot(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 12344321);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 3, 20);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 0, true);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'claimed', 'victory', 999111, 20, 2);
+    $this->insertBattleRewards($battleId, 10, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'claim_snapshot' => [
+        'xp' => [
+          'award_per_unit' => 20,
+          'applied_unit_instance_ids' => [(string)$unitId],
+          'ignored_at_cap_unit_instance_ids' => [],
+        ],
+        'updated_units' => [
+          ['id' => (string)$unitId, 'xp' => 20, 'level' => 3, 'name' => 'Progress Test Unit'],
+        ],
+      ],
+    ]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $api = new ApiController();
+    $res = $this->invoke(fn() => $api->abandonRun((string)$runId));
+    $this->assertSame(200, $res['status']);
+
+    $summary = is_array($res['body']['data']['run_summary'] ?? null) ? $res['body']['data']['run_summary'] : [];
+    $progressionDetail = array_values(array_filter($summary['progression_detail'] ?? [], 'is_array'));
+    $this->assertCount(1, $progressionDetail);
+    $this->assertSame((string)$unitId, (string)($progressionDetail[0]['unit_instance_id'] ?? ''));
+    $this->assertSame(20, (int)($progressionDetail[0]['xp_gained'] ?? 0));
+    $this->assertSame(0, (int)($progressionDetail[0]['level_gain_count'] ?? -1));
+    $this->assertSame(20, (int)($progressionDetail[0]['final_xp'] ?? -1));
+
+    $this->assertSame('0', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
+  }
+
+  public function testAbandonRunSummaryIncludesZeroXpDefeatedUnitsInProgressionDetail(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 98761234);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $xpUnitId = $this->insertUnit($userId, $unitTypeId, 2, 25);
+    $defeatedUnitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+
+    $this->insertTeamUnit($teamId, $xpUnitId);
+    $this->insertTeamUnit($teamId, $defeatedUnitId);
+    $this->insertRunUnitState($runId, $xpUnitId, 6, false);
+    $this->insertRunUnitState($runId, $defeatedUnitId, 0, true);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'claimed', 'victory', 444999, 20, 2);
+    $this->insertBattleRewards($battleId, 10, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'claim_snapshot' => [
+        'xp' => [
+          'award_per_unit' => 20,
+          'applied_unit_instance_ids' => [(string)$xpUnitId],
+          'ignored_at_cap_unit_instance_ids' => [],
+        ],
+        'updated_units' => [
+          ['id' => (string)$xpUnitId, 'xp' => 25, 'level' => 2, 'name' => 'XP Unit'],
+          ['id' => (string)$defeatedUnitId, 'xp' => 0, 'level' => 1, 'name' => 'Defeated Unit'],
+        ],
+      ],
+    ]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $api = new ApiController();
+    $res = $this->invoke(fn() => $api->abandonRun((string)$runId));
+    $this->assertSame(200, $res['status']);
+
+    $summary = is_array($res['body']['data']['run_summary'] ?? null) ? $res['body']['data']['run_summary'] : [];
+    $progressionDetail = array_values(array_filter($summary['progression_detail'] ?? [], 'is_array'));
+    $this->assertCount(2, $progressionDetail);
+
+    $detailById = [];
+    foreach ($progressionDetail as $entry) {
+      $detailById[(string)($entry['unit_instance_id'] ?? '')] = $entry;
+    }
+
+    $this->assertArrayHasKey((string)$xpUnitId, $detailById);
+    $this->assertArrayHasKey((string)$defeatedUnitId, $detailById);
+    $this->assertSame(20, (int)($detailById[(string)$xpUnitId]['xp_gained'] ?? -1));
+    $this->assertSame(0, (int)($detailById[(string)$defeatedUnitId]['xp_gained'] ?? -1));
+    $this->assertTrue((bool)($detailById[(string)$defeatedUnitId]['is_defeated'] ?? false));
+  }
+
   public function testExitRunEndpointCompletesRunAndPreservesUnitXp(): void
   {
     $userId = $this->insertUser();

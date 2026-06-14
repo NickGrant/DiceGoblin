@@ -43,16 +43,14 @@
               [style.width.px]="mapWidth()"
               [style.height.px]="mapHeight()"
             >
-              @for (edge of edges(); track edge.edge_id) {
-              <line
-                [attr.x1]="edgeX(edge.from_node_id)"
-                [attr.y1]="edgeY(edge.from_node_id)"
-                [attr.x2]="edgeX(edge.to_node_id)"
-                [attr.y2]="edgeY(edge.to_node_id)"
-                stroke="rgba(35,39,42,0.45)"
-                stroke-width="6"
-                stroke-linecap="round"
-              ></line>
+              @for (edge of renderedEdges(); track edge.edgeId) {
+              <path
+                class="run-map__edge"
+                [class.run-map__edge--available]="edge.state === 'available'"
+                [class.run-map__edge--cleared]="edge.state === 'cleared'"
+                [class.run-map__edge--locked]="edge.state === 'locked'"
+                [attr.d]="edge.path"
+              ></path>
               }
               @for (node of nodes(); track node.id) {
               <g
