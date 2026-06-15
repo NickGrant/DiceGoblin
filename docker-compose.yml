@@ -46,6 +46,7 @@ services:
       - MYSQL_PASSWORD=dicepass
       - MYSQL_ROOT_PASSWORD=rootpass
     volumes:
+      - ./backend/docker/mysql/init:/docker-entrypoint-initdb.d:ro
       - dicegoblins_mysql:/var/lib/mysql
 
   phpmyadmin:

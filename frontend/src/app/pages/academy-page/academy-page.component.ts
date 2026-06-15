@@ -187,9 +187,15 @@ export class AcademyPageComponent {
   }
 
   promotionOptionLabel(option: PromotionOptionRecord): string {
-    const primaryName =
-      option.mode === 'sideways' ? option.branch_unit_type_name : option.target_unit_type_name;
-    return `${primaryName} - ${option.mode}`;
+    if (option.mode === 'sideways') {
+      if (option.target_unit_type_name === option.branch_unit_type_name) {
+        return `${option.target_unit_type_name} - sideways`;
+      }
+
+      return `${option.target_unit_type_name} - sideways via ${option.branch_unit_type_name}`;
+    }
+
+    return `${option.target_unit_type_name} - chain`;
   }
 
   async promoteUnit(): Promise<void> {

@@ -169,6 +169,54 @@ describe('AcademyPageComponent', () => {
     expect(component.selectedDestination()).toBe('');
   });
 
+  it('simplifies sideways labels when the branch and result share the same name', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+
+    expect(component.promotionOptionLabel({
+      branch_unit_type_id: 'banner',
+      branch_unit_type_slug: 'support_banner_t1',
+      branch_unit_type_name: 'Bannerbearer',
+      target_unit_type_id: 'warcaller',
+      target_unit_type_slug: 'support_banner_t2',
+      target_unit_type_name: 'Bannerbearer',
+      target_tier: 2,
+      mode: 'sideways',
+    })).toBe('Bannerbearer - sideways');
+  });
+
+  it('shows unlocked Tier 1 sideways branches as same-depth promotions', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+
+    expect(component.promotionOptionLabel({
+      branch_unit_type_id: 'marksman',
+      branch_unit_type_slug: 'backline_marksman_t1',
+      branch_unit_type_name: 'Marksman',
+      target_unit_type_id: 'marksman',
+      target_unit_type_slug: 'backline_marksman_t1',
+      target_unit_type_name: 'Marksman',
+      target_tier: 2,
+      mode: 'sideways',
+    })).toBe('Marksman - sideways');
+  });
+
+  it('labels sideways destinations with both result and branch when they differ', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+
+    expect(component.promotionOptionLabel({
+      branch_unit_type_id: 'banner',
+      branch_unit_type_slug: 'support_banner_t1',
+      branch_unit_type_name: 'Bannerbearer',
+      target_unit_type_id: 'warcaller',
+      target_unit_type_slug: 'support_banner_t2',
+      target_unit_type_name: 'Warcaller',
+      target_tier: 2,
+      mode: 'sideways',
+    })).toBe('Warcaller - sideways via Bannerbearer');
+  });
+
   it('promotes the selected unit using two chosen secondaries', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;

@@ -7,7 +7,13 @@ declare global {
   }
 }
 
-const DEFAULT_API_BASE_URL = 'http://localhost:8080';
+function sameOriginBaseUrl(): string {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+
+  return '';
+}
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
@@ -26,9 +32,9 @@ export function resolveApiBaseUrl(): string {
     return trimTrailingSlash(metaValue);
   }
 
-  return DEFAULT_API_BASE_URL;
+  return trimTrailingSlash(sameOriginBaseUrl());
 }
 
 export function isDevPanelEnabled(): boolean {
-  return window.__DICE_GOBLIN_CONFIG__?.enableDevPanel ?? true;
+  return window.__DICE_GOBLIN_CONFIG__?.enableDevPanel ?? false;
 }

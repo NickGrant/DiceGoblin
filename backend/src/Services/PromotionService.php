@@ -65,46 +65,51 @@ final class PromotionService
       return [];
     }
 
-    $currentTier = (int)$unit['tier'];
-    $targetTier = $currentTier + 1;
-    $currentTierTypes = $this->loadUnitTypesForTier($currentTier);
-    $targetTierTypes = $this->loadUnitTypesForTier($targetTier);
-    if (count($targetTierTypes) === 0) {
-      return [];
-    }
+    $currentInstanceTier = (int)$unit['tier'];
+    $targetInstanceTier = $currentInstanceTier + 1;
+    $currentAuthoredTier = $this->tierFromUnitTypeSlug((string)$unit['slug']);
+    $currentFamily = $this->unitTypeStem((string)$unit['slug']);
+    $familyProgress = $this->loadPromotionFamilyProgress((int)$unit['id']);
+    $familyProgress[$currentFamily] = max($familyProgress[$currentFamily] ?? 0, $currentAuthoredTier);
 
-    $allowedBranchIds = $currentTier === 1
-      ? array_map(static fn(array $row): int => (int)$row['id'], $currentTierTypes)
-      : $this->loadPromotionBranchHistoryIds((int)$unit['id'], $currentTier);
-    if (!in_array((int)$unit['unit_type_id'], $allowedBranchIds, true)) {
-      $allowedBranchIds[] = (int)$unit['unit_type_id'];
-    }
-
-    $currentByStem = [];
-    foreach ($currentTierTypes as $type) {
-      $currentByStem[$this->unitTypeStem((string)$type['slug'])] = $type;
+    $eligibleFamilies = array_fill_keys(array_keys($familyProgress), true);
+    foreach ($this->loadUnlockedFamilySlugs($userId) as $familySlug) {
+      $eligibleFamilies[$familySlug] = true;
     }
 
     $options = [];
-    foreach ($targetTierTypes as $targetType) {
-      $stem = $this->unitTypeStem((string)$targetType['slug']);
-      $branchType = $currentByStem[$stem] ?? null;
+    foreach (array_keys($eligibleFamilies) as $familySlug) {
+      $currentFamilyTier = $familyProgress[$familySlug] ?? 0;
+      $nextAuthoredTier = $currentFamilyTier + 1;
+      $targetType = $this->findTypeByFamilyAndTier($familySlug, $nextAuthoredTier);
+      if (!is_array($targetType)) {
+        continue;
+      }
+      $branchType = $currentFamilyTier > 0
+        ? $this->findTypeByFamilyAndTier($familySlug, $currentFamilyTier)
+        : $targetType;
       if (!is_array($branchType)) {
+        $branchType = $targetType;
+      }
+
+      $targetTypeId = (int)($targetType['id'] ?? 0);
+      if ($targetTypeId <= 0) {
         continue;
       }
-      if (!in_array((int)$branchType['id'], $allowedBranchIds, true)) {
-        continue;
-      }
+
+      $mode = $familySlug === $currentFamily && $nextAuthoredTier === ($currentAuthoredTier + 1)
+        ? 'chain'
+        : 'sideways';
 
       $options[] = [
         'branch_unit_type_id' => (string)$branchType['id'],
         'branch_unit_type_slug' => (string)$branchType['slug'],
         'branch_unit_type_name' => (string)$branchType['name'],
-        'target_unit_type_id' => (string)$targetType['id'],
+        'target_unit_type_id' => (string)$targetTypeId,
         'target_unit_type_slug' => (string)$targetType['slug'],
         'target_unit_type_name' => (string)$targetType['name'],
-        'target_tier' => $targetTier,
-        'mode' => (int)$branchType['id'] === (int)$unit['unit_type_id'] ? 'chain' : 'sideways',
+        'target_tier' => $targetInstanceTier,
+        'mode' => $mode,
       ];
     }
 
@@ -116,6 +121,81 @@ final class PromotionService
     });
 
     return $options;
+  }
+
+  /**
+   * @return array{id:int,slug:string,name:string}|null
+   */
+  private function findTypeByFamilyAndTier(string $familySlug, int $authoredTier): ?array
+  {
+    if ($familySlug === '' || $authoredTier <= 0) {
+      return null;
+    }
+
+    $targetSlug = "{$familySlug}_t{$authoredTier}";
+    $stmt = $this->pdo->prepare('
+      SELECT `id`, `slug`, `name`
+      FROM `unit_types`
+      WHERE `slug` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([$targetSlug]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (is_array($row)) {
+      return [
+        'id' => (int)$row['id'],
+        'slug' => (string)$row['slug'],
+        'name' => (string)$row['name'],
+      ];
+    }
+
+    return null;
+  }
+
+  /**
+   * @return array<string,int>
+   */
+  private function loadPromotionFamilyProgress(int $unitId): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT DISTINCT ut.`slug`
+      FROM `unit_instance_unlocked_abilities` uiua
+      JOIN `unit_types` ut ON ut.`id` = uiua.`source_unit_type_id`
+      WHERE uiua.`unit_instance_id` = ?
+      ORDER BY ut.`slug` ASC
+    ');
+    $stmt->execute([$unitId]);
+
+    $progress = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $slug = trim((string)($row['slug'] ?? ''));
+      $familySlug = $this->unitTypeStem($slug);
+      $tier = $this->tierFromUnitTypeSlug($slug);
+      if ($familySlug === '' || $tier <= 0) {
+        continue;
+      }
+
+      $progress[$familySlug] = max($progress[$familySlug] ?? 0, $tier);
+    }
+
+    return $progress;
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function loadUnlockedFamilySlugs(int $userId): array
+  {
+    $unlockService = new UserUnlockService($this->pdo);
+    $families = [];
+    foreach ($unlockService->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_UNIT_TYPE) as $slug) {
+      $familySlug = $this->unitTypeStem((string)$slug);
+      if ($familySlug !== '') {
+        $families[$familySlug] = true;
+      }
+    }
+
+    return array_keys($families);
   }
 
   /**
@@ -162,9 +242,6 @@ final class PromotionService
       throw new RuntimeException('promotion_requirements_not_met');
     }
 
-    // Persist the unit's current authored package before swapping types so
-    // promotions preserve cumulative ability history even for older rows that
-    // never had their unlocked catalog fully backfilled.
     $this->unitLoadoutService->ensureUnlockedCatalogForUnit($primaryId);
 
     $update = $this->pdo->prepare('
@@ -263,55 +340,6 @@ final class PromotionService
     }
 
     return $ordered;
-  }
-
-  /**
-   * @return list<array{id:int,slug:string,name:string}>
-   */
-  private function loadUnitTypesForTier(int $tier): array
-  {
-    $stmt = $this->pdo->query('SELECT `id`, `slug`, `name` FROM `unit_types` ORDER BY `id` ASC');
-    $out = [];
-    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-      $slug = (string)($row['slug'] ?? '');
-      if ($this->tierFromUnitTypeSlug($slug) !== $tier) {
-        continue;
-      }
-      $out[] = [
-        'id' => (int)$row['id'],
-        'slug' => $slug,
-        'name' => (string)($row['name'] ?? $slug),
-      ];
-    }
-
-    return $out;
-  }
-
-  /**
-   * @return list<int>
-   */
-  private function loadPromotionBranchHistoryIds(int $unitId, int $tier): array
-  {
-    $stmt = $this->pdo->prepare('
-      SELECT DISTINCT ut.`id`, ut.`slug`
-      FROM `unit_instance_unlocked_abilities` uiua
-      JOIN `unit_types` ut ON ut.`id` = uiua.`source_unit_type_id`
-      WHERE uiua.`unit_instance_id` = ?
-      ORDER BY ut.`id` ASC
-    ');
-    $stmt->execute([$unitId]);
-
-    $ids = [];
-    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-      $typeId = (int)($row['id'] ?? 0);
-      $slug = (string)($row['slug'] ?? '');
-      if ($typeId <= 0 || $this->tierFromUnitTypeSlug($slug) !== $tier) {
-        continue;
-      }
-      $ids[] = $typeId;
-    }
-
-    return array_values(array_unique($ids));
   }
 
   private function tierFromUnitTypeSlug(string $slug): int

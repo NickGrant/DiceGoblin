@@ -8,6 +8,8 @@
     "capture:scene": "node scripts/capture-scene.mjs",
     "capture:scene:install": "npx playwright install chromium",
     "db:schema": "npm --prefix frontend run db:schema",
+    "test:db:provision": "composer --working-dir=backend test:db:provision",
+    "test:db:reset": "composer --working-dir=backend test:db:reset",
     "docs:lint": "node scripts/lint-doc-headers.mjs",
     "test:backend": "composer --working-dir=backend test",
     "test:frontend": "npm --prefix frontend run test",

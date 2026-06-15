@@ -33,13 +33,21 @@ docker compose up --build
 ```bash
 docker compose exec -T db mysql -udice -pdicepass dice_goblins < backend/migrations/schema_all.sql
 ```
-3. Open apps:
+3. Provision and reset the dedicated backend test database:
+```bash
+npm run test:db:provision
+npm run test:db:reset
+```
+Note:
+`test:db:provision` is safe to rerun and is especially useful for existing Docker volumes, since MySQL init scripts only run on first container initialization.
+4. Open apps:
 - Frontend: http://localhost:5173
 - Backend health endpoint: http://localhost:8080/api/v1/health
 - phpMyAdmin: http://localhost:8081
 
 ## Environment
 Backend env lives in `backend/.env`.
+Backend test env lives in `backend/.env.test.local`.
 
 If you need to reset local env values:
 1. Copy `backend/.env.example` to `backend/.env`
@@ -107,4 +115,5 @@ npm run verify:full
 - CORS/session issues: verify `DEV_ALLOWED_ORIGINS` in `backend/.env` includes both `http://localhost:5173` and `http://127.0.0.1:5173`.
 - Scene screenshot capture: run `npm run capture:scene -- --scene <scene> --base-url http://127.0.0.1:5173/` one capture at a time against the shared local frontend.
 - Empty/missing data: re-apply `backend/migrations/schema_all.sql` to local DB.
+- Backend integration tests cannot connect: make sure Docker Desktop is running, then rerun `npm run test:db:provision` and `npm run test:db:reset`.
 - Frontend cannot reach backend: verify the backend is listening on `:8080` and, if needed, inject a runtime API base URL via `window.__DICE_GOBLIN_CONFIG__.apiBaseUrl`.

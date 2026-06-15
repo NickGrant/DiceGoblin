@@ -5,6 +5,7 @@ namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Controllers\GameplayController;
 use DiceGoblins\Services\UnitLoadoutService;
+use DiceGoblins\Services\UserUnlockService;
 use DiceGoblins\Tests\Support\BattleFlowIntegrationCase;
 
 final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
@@ -30,12 +31,16 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->assertSame('Mudjaw', (string)$this->scalar('SELECT `display_name` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
   }
 
-  public function testPromotionOptionsEndpointReturnsChainAndSidewaysBranches(): void
+  public function testPromotionOptionsEndpointReturnsOnlyUnlockedSidewaysBranches(): void
   {
     $userId = $this->insertUser('promo_opts', 'Promotion Options User');
     [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    [$marksmanTypeId, ] = $this->loadUnitType('backline_marksman_t1');
     $unitId = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
     (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $bruiserTypeId);
+    $unlockService = new UserUnlockService($this->pdo);
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'frontline_bruiser_t1');
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'backline_marksman_t1');
 
     $_SESSION['user_id'] = $userId;
 
@@ -45,17 +50,18 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->assertSame(200, $response['status'], json_encode($response['body']));
     $options = $response['body']['data']['options'] ?? null;
     $this->assertIsArray($options);
-    $this->assertGreaterThanOrEqual(4, count($options));
+    $this->assertCount(2, $options);
     $this->assertSame('chain', (string)($options[0]['mode'] ?? ''));
     $this->assertSame('Bruiser', (string)($options[0]['branch_unit_type_name'] ?? ''));
     $this->assertSame('Enforcer', (string)($options[0]['target_unit_type_name'] ?? ''));
 
     $branchNames = array_map(static fn(array $row): string => (string)($row['branch_unit_type_name'] ?? ''), $options);
     $targetNames = array_map(static fn(array $row): string => (string)($row['target_unit_type_name'] ?? ''), $options);
-    $this->assertContains('Guardian', $branchNames);
-    $this->assertContains('Bulwark', $targetNames);
-    $this->assertContains('Bannerbearer', $branchNames);
-    $this->assertContains('Warcaller', $targetNames);
+    $this->assertContains('Marksman', $branchNames);
+    $this->assertContains('Marksman', $targetNames);
+    $this->assertNotContains('Bannerbearer', $branchNames);
+    $this->assertNotContains('Warcaller', $targetNames);
+    $this->assertNotSame($marksmanTypeId, 0);
   }
 
   public function testReplaceEquippedAbilitiesEndpointReturnsUpdatedOrderedLoadout(): void
@@ -100,7 +106,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
   {
     $userId = $this->insertUser('promo_dest', 'Promotion Destination User');
     [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
-    [$bannerTargetTypeId, ] = $this->loadUnitType('support_banner_t2');
+    [$bannerTargetTypeId, ] = $this->loadUnitType('support_banner_t1');
     $primaryId = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
     $secondaryA = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
     $secondaryB = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
@@ -109,6 +115,9 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $loadout->initializeUnit($primaryId, $bruiserTypeId);
     $loadout->initializeUnit($secondaryA, $bruiserTypeId);
     $loadout->initializeUnit($secondaryB, $bruiserTypeId);
+    $unlockService = new UserUnlockService($this->pdo);
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'frontline_bruiser_t1');
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'support_banner_t1');
 
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
@@ -128,6 +137,10 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
       (string)$bannerTargetTypeId,
       (string)$this->scalar('SELECT `unit_type_id` FROM `unit_instances` WHERE `id` = ?', [$primaryId])
     );
+    $this->assertSame(
+      '2',
+      (string)$this->scalar('SELECT `tier` FROM `unit_instances` WHERE `id` = ?', [$primaryId])
+    );
 
     $unlockedAbilities = $this->rows(
       'SELECT `ability_id` FROM `unit_instance_unlocked_abilities` WHERE `unit_instance_id` = ? ORDER BY `ability_id` ASC',
@@ -138,11 +151,119 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->assertContains('bolster_ally', $abilityIds);
   }
 
+  public function testPromoteUnitEndpointRejectsLockedSidewaysDestination(): void
+  {
+    $userId = $this->insertUser('promo_locked', 'Promotion Locked Destination User');
+    [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    [$bannerTargetTypeId, ] = $this->loadUnitType('support_banner_t1');
+    $primaryId = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
+    $secondaryA = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
+    $secondaryB = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
+
+    $loadout = new UnitLoadoutService($this->pdo);
+    $loadout->initializeUnit($primaryId, $bruiserTypeId);
+    $loadout->initializeUnit($secondaryA, $bruiserTypeId);
+    $loadout->initializeUnit($secondaryB, $bruiserTypeId);
+    $unlockService = new UserUnlockService($this->pdo);
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'frontline_bruiser_t1');
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+    $this->setJsonBody([
+      'primary_unit_instance_id' => (string)$primaryId,
+      'secondary_unit_instance_ids' => [(string)$secondaryA, (string)$secondaryB],
+      'destination_unit_type_id' => (string)$bannerTargetTypeId,
+    ]);
+
+    $controller = new GameplayController();
+    $response = $this->invoke(fn() => $controller->promoteUnit((string)$primaryId));
+
+    $this->assertSame(409, $response['status'], json_encode($response['body']));
+    $this->assertSame('promotion_requirements_not_met', (string)($response['body']['error']['code'] ?? ''));
+  }
+
+  public function testTierTwoBannerbearerPromotionOptionsAllowWarcallerChainAndUnlockedTierOneSidewaysBranches(): void
+  {
+    $userId = $this->insertUser('promo_t3_banner', 'Promotion Tier Three Banner User');
+    [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    [$bannerTypeId, ] = $this->loadUnitType('support_banner_t1');
+    $unitId = $this->insertUnit($userId, $bannerTypeId, 8, 0);
+    $setTier = $this->pdo->prepare('UPDATE `unit_instances` SET `tier` = 2 WHERE `id` = ?');
+    $setTier->execute([$unitId]);
+    (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $bannerTypeId);
+    $insertHistory = $this->pdo->prepare('
+      INSERT IGNORE INTO `unit_instance_unlocked_abilities` (`unit_instance_id`, `ability_id`, `source_tier`, `source_unit_type_id`)
+      VALUES (?, ?, 1, ?)
+    ');
+    $insertHistory->execute([$unitId, 'heavy_strike', $bruiserTypeId]);
+    $insertHistory->execute([$unitId, 'thick_hide', $bruiserTypeId]);
+    $unlockService = new UserUnlockService($this->pdo);
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'support_banner_t1');
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'frontline_bruiser_t1');
+
+    $_SESSION['user_id'] = $userId;
+
+    $controller = new GameplayController();
+    $response = $this->invoke(fn() => $controller->getPromotionOptions((string)$unitId));
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $options = $response['body']['data']['options'] ?? null;
+    $this->assertIsArray($options);
+    $this->assertCount(2, $options);
+    $this->assertSame('chain', (string)($options[0]['mode'] ?? ''));
+    $this->assertSame('Warcaller', (string)($options[0]['target_unit_type_name'] ?? ''));
+    $this->assertSame(3, (int)($options[0]['target_tier'] ?? 0));
+
+    $sideways = $options[1] ?? [];
+    $this->assertSame('sideways', (string)($sideways['mode'] ?? ''));
+    $this->assertSame('Enforcer', (string)($sideways['target_unit_type_name'] ?? ''));
+    $this->assertSame(3, (int)($sideways['target_tier'] ?? 0));
+  }
+
+  public function testTierTwoEnforcerPromotionOptionsAllowUnstartedUnlockedTierOneBranches(): void
+  {
+    $userId = $this->insertUser('promo_t3_enforcer', 'Promotion Tier Three Enforcer User');
+    [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    [$enforcerTypeId, ] = $this->loadUnitType('frontline_bruiser_t2');
+    $unitId = $this->insertUnit($userId, $enforcerTypeId, 10, 0);
+    $setTier = $this->pdo->prepare('UPDATE `unit_instances` SET `tier` = 2 WHERE `id` = ?');
+    $setTier->execute([$unitId]);
+    (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $enforcerTypeId);
+    $insertHistory = $this->pdo->prepare('
+      INSERT IGNORE INTO `unit_instance_unlocked_abilities` (`unit_instance_id`, `ability_id`, `source_tier`, `source_unit_type_id`)
+      VALUES (?, ?, 1, ?)
+    ');
+    $insertHistory->execute([$unitId, 'heavy_strike', $bruiserTypeId]);
+    $insertHistory->execute([$unitId, 'thick_hide', $bruiserTypeId]);
+    $unlockService = new UserUnlockService($this->pdo);
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'frontline_bruiser_t1');
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'support_banner_t1');
+
+    $_SESSION['user_id'] = $userId;
+
+    $controller = new GameplayController();
+    $response = $this->invoke(fn() => $controller->getPromotionOptions((string)$unitId));
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $options = $response['body']['data']['options'] ?? null;
+    $this->assertIsArray($options);
+    $this->assertCount(2, $options);
+    $this->assertSame('chain', (string)($options[0]['mode'] ?? ''));
+    $this->assertSame('Juggernaut', (string)($options[0]['target_unit_type_name'] ?? ''));
+    $this->assertSame(3, (int)($options[0]['target_tier'] ?? 0));
+
+    $sideways = $options[1] ?? [];
+    $this->assertSame('sideways', (string)($sideways['mode'] ?? ''));
+    $this->assertSame('Bannerbearer', (string)($sideways['target_unit_type_name'] ?? ''));
+    $this->assertSame(3, (int)($sideways['target_tier'] ?? 0));
+  }
+
   public function testPromotionBackfillsCurrentCatalogBeforeTypeSwapAndKeepsEquippedAbilitiesValid(): void
   {
     $userId = $this->insertUser('promo_backfill', 'Promotion Backfill User');
     [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
-    [$deadeyeTypeId, ] = $this->loadUnitType('backline_marksman_t2');
+    [$marksmanTypeId, ] = $this->loadUnitType('backline_marksman_t1');
     $primaryId = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
     $secondaryA = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
     $secondaryB = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
@@ -152,6 +273,9 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $loadout->initializeUnit($secondaryA, $bruiserTypeId);
     $loadout->initializeUnit($secondaryB, $bruiserTypeId);
     $loadout->replaceEquippedAbilities($primaryId, ['basic_attack_melee', 'heavy_strike']);
+    $unlockService = new UserUnlockService($this->pdo);
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'frontline_bruiser_t1');
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'backline_marksman_t1');
 
     $deleteUnlocked = $this->pdo->prepare('DELETE FROM `unit_instance_unlocked_abilities` WHERE `unit_instance_id` = ?');
     $deleteUnlocked->execute([$primaryId]);
@@ -162,7 +286,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->setJsonBody([
       'primary_unit_instance_id' => (string)$primaryId,
       'secondary_unit_instance_ids' => [(string)$secondaryA, (string)$secondaryB],
-      'destination_unit_type_id' => (string)$deadeyeTypeId,
+      'destination_unit_type_id' => (string)$marksmanTypeId,
     ]);
 
     $controller = new GameplayController();
