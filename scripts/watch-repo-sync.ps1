@@ -508,7 +508,7 @@ try {
 
   Write-Log -Message "Repo watcher started. PollMinutes=$PollMinutes DurationMinutes=$DurationMinutes RepoRoot=$script:RepoRootResolved"
   $state = Get-State
-  if (-not $state.ContainsKey("lastMilestoneHash")) {
+  if (-not ($state.Keys -contains "lastMilestoneHash")) {
     $state["lastMilestoneHash"] = Get-FileHashSafe -Path $script:MilestonesPath
     Save-State -State $state
   }
