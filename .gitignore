@@ -10,3 +10,4 @@ backend/.env*.local
 artifacts/bundles/
 artifacts/screenshots/
 artifacts/api/
+artifacts/automation/

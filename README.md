@@ -103,6 +103,18 @@ npm run llm:check
 npm run docs:lint
 npm run bundle:check
 npm run verify:full
+npm run watch:repo
+```
+
+`npm run watch:repo` starts a PowerShell watcher that safely fetches remote changes, fast-forwards only on a clean non-diverged branch, validates backlog docs when `agent/MILESTONES.md` changes, triggers a non-interactive `codex exec` run for active ready issues in the current open milestone, and then auto-commits plus pushes finished work only when the tree was clean before the Codex run.
+
+Defaults:
+- runs for 60 minutes
+- checks every 5 minutes
+
+Example overrides:
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/watch-repo-sync.ps1 -DurationMinutes 120 -PollMinutes 2
 ```
 
 ## Local Skills
