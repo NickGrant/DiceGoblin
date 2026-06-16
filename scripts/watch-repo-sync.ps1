@@ -11,6 +11,20 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+  $PSNativeCommandUseErrorActionPreference = $false
+}
+
+function Test-ProcessRunning {
+  param([int]$ProcessId)
+
+  try {
+    $null = Get-Process -Id $ProcessId -ErrorAction Stop
+    return $true
+  } catch {
+    return $false
+  }
+}
 
 function Write-Log {
   param(
@@ -30,6 +44,79 @@ function Ensure-ParentDirectory {
   $parent = Split-Path -Parent $Path
   if ($parent -and -not (Test-Path -LiteralPath $parent)) {
     New-Item -ItemType Directory -Path $parent | Out-Null
+  }
+}
+
+function Remove-StaleFileLock {
+  param(
+    [string]$Path,
+    [int]$MinimumAgeMinutes = 2
+  )
+
+  if (-not (Test-Path -LiteralPath $Path)) {
+    return $false
+  }
+
+  try {
+    $item = Get-Item -LiteralPath $Path
+    $ageMinutes = ((Get-Date) - $item.LastWriteTime).TotalMinutes
+    if ($ageMinutes -lt $MinimumAgeMinutes) {
+      Write-Log -Level "WARN" -Message "Lock file $Path is only $([math]::Round($ageMinutes, 2)) minute(s) old. Leaving it in place."
+      return $false
+    }
+  } catch {
+    Write-Log -Level "WARN" -Message "Could not inspect lock file ${Path}: $($_.Exception.Message)"
+  }
+
+  try {
+    Remove-Item -LiteralPath $Path -Force
+    Write-Log -Level "WARN" -Message "Removed stale lock file $Path"
+    return $true
+  } catch {
+    Write-Log -Level "WARN" -Message "Could not remove lock file ${Path}: $($_.Exception.Message)"
+    return $false
+  }
+}
+
+function Acquire-WatcherMutex {
+  if (Test-Path -LiteralPath $script:WatcherLockPath) {
+    try {
+      $lockInfo = Get-Content -LiteralPath $script:WatcherLockPath -Raw | ConvertFrom-Json
+      $existingPid = [int]$lockInfo.pid
+      if (Test-ProcessRunning -ProcessId $existingPid) {
+        throw "Another watcher instance is already running with PID $existingPid."
+      }
+
+      Write-Log -Level "WARN" -Message "Found stale watcher lock for PID $existingPid. Reclaiming it."
+      Remove-Item -LiteralPath $script:WatcherLockPath -Force
+    } catch {
+      if (Test-Path -LiteralPath $script:WatcherLockPath) {
+        try {
+          Remove-Item -LiteralPath $script:WatcherLockPath -Force
+          Write-Log -Level "WARN" -Message "Removed unreadable or stale watcher lock file."
+        } catch {
+          throw "Another watcher instance may be running, and the watcher lock could not be reclaimed."
+        }
+      }
+    }
+  }
+
+  $payload = [ordered]@{
+    pid = $PID
+    startedAtUtc = [datetime]::UtcNow.ToString("o")
+    repoRoot = $script:RepoRootResolved
+  } | ConvertTo-Json
+
+  Set-Content -LiteralPath $script:WatcherLockPath -Value $payload
+}
+
+function Release-WatcherMutex {
+  if (Test-Path -LiteralPath $script:WatcherLockPath) {
+    try {
+      Remove-Item -LiteralPath $script:WatcherLockPath -Force
+    } catch {
+      Write-Log -Level "WARN" -Message "Failed to remove watcher lock file: $($_.Exception.Message)"
+    }
   }
 }
 
@@ -273,7 +360,9 @@ function Save-State {
   param([hashtable]$State)
 
   $json = $State | ConvertTo-Json -Depth 6
-  Set-Content -LiteralPath $script:StatePathResolved -Value $json
+  $tempPath = "$($script:StatePathResolved).tmp"
+  Set-Content -LiteralPath $tempPath -Value $json
+  Move-Item -LiteralPath $tempPath -Destination $script:StatePathResolved -Force
 }
 
 function Test-CodexCooldown {
@@ -295,10 +384,50 @@ function Test-CodexCooldown {
 }
 
 function Invoke-SafeSync {
+  function Clear-StaleRemoteRefLocks {
+    $lockFiles = @(
+      (Join-Path $script:RepoRootResolved ".git\refs\remotes\origin\main.lock"),
+      (Join-Path $script:RepoRootResolved ".git\logs\refs\remotes\origin\main.lock")
+    )
+
+    $lockRemoved = $false
+    foreach ($lockPath in $lockFiles) {
+      if (Remove-StaleFileLock -Path $lockPath) {
+        $lockRemoved = $true
+      }
+    }
+
+    return $lockRemoved
+  }
+
+  function Invoke-FetchWithRepair {
+    $preFetchRepair = Clear-StaleRemoteRefLocks
+
+    $fetch = Invoke-Git -Arguments @("fetch", "--prune", "origin") -AllowFailure
+    if ($fetch.ExitCode -eq 0) {
+      return $fetch
+    }
+
+    if ($fetch.Output -match "reference already exists") {
+      $postFailureRepair = Clear-StaleRemoteRefLocks
+      if ($postFailureRepair -or $preFetchRepair) {
+        Write-Log -Level "WARN" -Message "Retrying git fetch after clearing stale remote-ref lock files."
+        $retry = Invoke-Git -Arguments @("fetch", "--prune", "origin") -AllowFailure
+        if ($retry.ExitCode -eq 0) {
+          return $retry
+        }
+
+        throw "git fetch --prune origin failed after lock-file repair`n$($retry.Output)"
+      }
+    }
+
+    throw "git fetch --prune origin failed`n$($fetch.Output)"
+  }
+
   $status = Invoke-Git -Arguments @("status", "--porcelain")
   $localDirty = -not [string]::IsNullOrWhiteSpace($status.Output)
 
-  $fetch = Invoke-Git -Arguments @("fetch", "--prune", "origin")
+  $fetch = Invoke-FetchWithRepair
   if ($fetch.Output) {
     Write-Log -Message "git fetch completed: $($fetch.Output -replace '\s+', ' ')"
   } else {
@@ -485,10 +614,12 @@ $script:CodexOutputPathResolved = if ($CodexOutputPath) { $CodexOutputPath } els
 $script:MilestonesPath = Join-Path $script:RepoRootResolved "agent\MILESTONES.md"
 $script:IssuesPath = Join-Path $script:RepoRootResolved "agent\ISSUES.md"
 $script:CodexLockPath = Join-Path $defaultArtifactsDir "codex-exec.lock"
+$script:WatcherLockPath = Join-Path $defaultArtifactsDir "repo-watch.lock"
 
 Ensure-ParentDirectory -Path $script:StatePathResolved
 Ensure-ParentDirectory -Path $script:LogPathResolved
 Ensure-ParentDirectory -Path $script:CodexOutputPathResolved
+Ensure-ParentDirectory -Path $script:WatcherLockPath
 
 if (-not (Test-Path -LiteralPath $script:LogPathResolved)) {
   New-Item -ItemType File -Path $script:LogPathResolved | Out-Null
@@ -496,6 +627,7 @@ if (-not (Test-Path -LiteralPath $script:LogPathResolved)) {
 
 Push-Location $script:RepoRootResolved
 try {
+  Acquire-WatcherMutex
   if ($PollMinutes -lt 1) {
     throw "PollMinutes must be at least 1."
   }
@@ -562,5 +694,6 @@ try {
     Start-Sleep -Seconds $pollSeconds
   }
 } finally {
+  Release-WatcherMutex
   Pop-Location
 }
