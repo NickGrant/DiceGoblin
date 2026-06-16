@@ -2,6 +2,7 @@ param(
   [int]$PollMinutes = 5,
   [int]$DurationMinutes = 60,
   [string]$RepoRoot = (Get-Location).Path,
+  [string]$CodexPath = "",
   [string]$StatePath = "",
   [string]$LogPath = "",
   [string]$CodexOutputPath = "",
@@ -45,6 +46,47 @@ function Ensure-ParentDirectory {
   if ($parent -and -not (Test-Path -LiteralPath $parent)) {
     New-Item -ItemType Directory -Path $parent | Out-Null
   }
+}
+
+function Resolve-CodexExecutable {
+  param([string]$RequestedPath)
+
+  $candidates = [System.Collections.Generic.List[string]]::new()
+
+  if (-not [string]::IsNullOrWhiteSpace($RequestedPath)) {
+    $candidates.Add($RequestedPath)
+  }
+
+  $command = Get-Command codex -ErrorAction SilentlyContinue
+  if ($command -and $command.Source) {
+    $candidates.Add($command.Source)
+  }
+
+  $whereResults = & where.exe codex 2>$null
+  foreach ($result in $whereResults) {
+    if (-not [string]::IsNullOrWhiteSpace($result)) {
+      $candidates.Add($result.Trim())
+    }
+  }
+
+  $knownPaths = @(
+    "$env:USERPROFILE\.vscode\extensions\openai.chatgpt-26.609.30741-win32-x64\bin\windows-x86_64\codex.exe",
+    "$env:USERPROFILE\AppData\Local\Programs\OpenAI\Codex\codex.exe"
+  )
+  foreach ($path in $knownPaths) {
+    if (-not [string]::IsNullOrWhiteSpace($path)) {
+      $candidates.Add($path)
+    }
+  }
+
+  foreach ($candidate in $candidates) {
+    $expanded = [Environment]::ExpandEnvironmentVariables($candidate)
+    if (Test-Path -LiteralPath $expanded) {
+      return (Resolve-Path -LiteralPath $expanded).Path
+    }
+  }
+
+  throw "Unable to resolve codex.exe. Pass -CodexPath explicitly or add Codex to PATH."
 }
 
 function Remove-StaleFileLock {
@@ -152,7 +194,7 @@ function Invoke-Codex {
     "-"
   )
 
-  $output = $Prompt | & codex @arguments 2>&1
+  $output = $Prompt | & $script:CodexExe @arguments 2>&1
   $exitCode = $LASTEXITCODE
   $text = ($output | Out-String).Trim()
 
@@ -635,6 +677,7 @@ Instructions:
 }
 
 $script:RepoRootResolved = (Resolve-Path -LiteralPath $RepoRoot).Path
+$script:CodexExe = Resolve-CodexExecutable -RequestedPath $CodexPath
 $defaultArtifactsDir = Join-Path $script:RepoRootResolved "artifacts\automation"
 $script:StatePathResolved = if ($StatePath) { $StatePath } else { Join-Path $defaultArtifactsDir "repo-watch-state.json" }
 $script:LogPathResolved = if ($LogPath) { $LogPath } else { Join-Path $defaultArtifactsDir "repo-watch.log" }
