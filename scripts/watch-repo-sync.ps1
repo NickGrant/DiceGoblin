@@ -144,15 +144,15 @@ function Invoke-Codex {
   )
 
   $arguments = @(
-    "exec",
-    "-C", $script:RepoRootResolved,
     "-a", "never",
     "-s", "danger-full-access",
+    "exec",
+    "-C", $script:RepoRootResolved,
     "--output-last-message", $script:CodexOutputPathResolved,
-    $Prompt
+    "-"
   )
 
-  $output = & codex @arguments 2>&1
+  $output = $Prompt | & codex @arguments 2>&1
   $exitCode = $LASTEXITCODE
   $text = ($output | Out-String).Trim()
 
@@ -228,19 +228,25 @@ function Get-Issues {
   $raw = Get-Content -LiteralPath $Path -Raw
   $issues = @()
 
-  foreach ($block in Get-Blocks -Raw $raw) {
-    if ($block -notmatch "(?m)^title:\s+") {
-      continue
-    }
+  $milestoneSections = $raw -split "(?m)^\#\#\s+"
+  foreach ($section in $milestoneSections | Select-Object -Skip 1) {
+    $sectionLines = $section -split "`r?`n"
+    $milestoneName = $sectionLines[0].Trim()
+    $sectionBody = ($sectionLines | Select-Object -Skip 1) -join [Environment]::NewLine
+    $issueBlocks = $sectionBody -split "(?m)^\#\#\#\s+"
 
-    $issues += [PSCustomObject]@{
-      Title = Get-FieldValue -Block $block -Name "title"
-      Status = Get-FieldValue -Block $block -Name "status"
-      Priority = Get-FieldValue -Block $block -Name "priority"
-      Execution = Get-FieldValue -Block $block -Name "execution"
-      Ready = Get-FieldValue -Block $block -Name "ready"
-      Milestone = Get-FieldValue -Block $block -Name "milestone"
-      Description = Get-FieldValue -Block $block -Name "description"
+    foreach ($block in $issueBlocks | Select-Object -Skip 1) {
+      $blockLines = $block -split "`r?`n"
+      $title = $blockLines[0].Trim()
+      $body = ($blockLines | Select-Object -Skip 1) -join [Environment]::NewLine
+
+      $issues += [PSCustomObject]@{
+        Title = $title
+        Status = Get-MarkdownFieldValue -Block $body -Name "Status"
+        Priority = Get-MarkdownFieldValue -Block $body -Name "Priority"
+        Milestone = $milestoneName
+        Description = if ($body -match "(?im)^####\s+Problem") { "present" } else { $null }
+      }
     }
   }
 
@@ -257,27 +263,53 @@ function Get-Milestones {
   $raw = Get-Content -LiteralPath $Path -Raw
   $milestones = @()
 
-  foreach ($block in Get-Blocks -Raw $raw) {
-    if ($block -notmatch "(?m)^name:\s+") {
+  $milestoneBlocks = $raw -split "(?m)^\#\#\s+"
+  foreach ($block in $milestoneBlocks | Select-Object -Skip 1) {
+    $lines = $block -split "`r?`n"
+    $name = $lines[0].Trim()
+    if (-not $name) {
       continue
     }
 
-    $name = Get-FieldValue -Block $block -Name "name"
-    if (-not $name -or $name.StartsWith("<")) {
-      continue
-    }
-
+    $body = ($lines | Select-Object -Skip 1) -join [Environment]::NewLine
     $milestones += [PSCustomObject]@{
       Name = $name
-      Status = Get-FieldValue -Block $block -Name "status"
-      ExecutionWindow = Get-FieldValue -Block $block -Name "execution_window"
-      IsCurrent = Get-FieldValue -Block $block -Name "is_current"
-      Description = Get-FieldValue -Block $block -Name "description"
-      Issues = @(Get-BulletListValue -Block $block -Name "issues")
+      Status = Get-MarkdownFieldValue -Block $body -Name "Status"
+      Issues = @(Get-RelatedIssueTitles -Block $body)
     }
   }
 
   return $milestones
+}
+
+function Get-MarkdownFieldValue {
+  param(
+    [string]$Block,
+    [string]$Name
+  )
+
+  $pattern = "(?mi)^\*\*" + [regex]::Escape($Name) + ":\*\*\s*(.+)$"
+  $match = [regex]::Match($Block, $pattern)
+  if ($match.Success) {
+    return $match.Groups[1].Value.Trim()
+  }
+
+  return $null
+}
+
+function Get-RelatedIssueTitles {
+  param([string]$Block)
+
+  $match = [regex]::Match($Block, "(?ms)^###\s+Related Issues\s*\r?\n(.*?)(?:\r?\n##\s|\z)")
+  if (-not $match.Success) {
+    return @()
+  }
+
+  return $match.Groups[1].Value -split "`r?`n" |
+    ForEach-Object { $_.Trim() } |
+    Where-Object { $_.StartsWith("- ") } |
+    ForEach-Object { ($_ -replace "^-+\s*", "") -replace "^[A-Z0-9-]+:\s*", "" } |
+    Where-Object { $_ }
 }
 
 function Get-ActionableIssues {
@@ -285,7 +317,7 @@ function Get-ActionableIssues {
   $issues = Get-Issues -Path $script:IssuesPath
 
   $currentMilestone = $milestones |
-    Where-Object { $_.IsCurrent -eq "yes" -and $_.ExecutionWindow -eq "open" -and $_.Status -ne "complete" } |
+    Where-Object { $_.Status -eq "Active" } |
     Select-Object -First 1
 
   if (-not $currentMilestone) {
@@ -296,10 +328,9 @@ function Get-ActionableIssues {
   }
 
   $statusRank = @{
-    "reopened" = 0
-    "in-progress" = 1
-    "unstarted" = 2
-    "blocked" = 3
+    "In Progress" = 0
+    "Open" = 1
+    "Blocked" = 2
   }
 
   $priorityRank = @{
@@ -315,12 +346,9 @@ function Get-ActionableIssues {
 
   $actionable = $issues |
     Where-Object {
-      $_.Execution -eq "active" -and
-      $_.Ready -eq "yes" -and
-      $_.Status -in @("reopened", "in-progress", "unstarted") -and
+      $_.Status -in @("In Progress", "Open") -and
       (
         $_.Milestone -eq $currentMilestone.Name -or
-        ($_.Milestone -eq "unassigned") -or
         $milestoneIssueTitles.Contains($_.Title)
       )
     } |

@@ -16,9 +16,9 @@ Depends On: `agent/ISSUES.md`, `agent/ISSUES_BACKLOG.md`, `agent/MILESTONES.md`,
 4. Milestone 40 - Rework Normalization Pass
 
 ## Core Rules
-- Exactly one milestone may be `is_current: yes`.
-- Current milestone must be `execution_window: open`.
-- Execute earliest available open milestone unless blocked or user-overridden.
+- Exactly one milestone in `agent/MILESTONES.md` should have `**Status:** Active`.
+- Treat the first `Active` milestone in file order as the current milestone for automation.
+- Milestones below the active milestone should normally remain `Planned` unless the user intentionally wants parallel execution.
 - Documentation work that directly supports an active milestone should stay inside that milestone rather than spawning a separate governance lane.
 
 ## Active Sources
@@ -27,8 +27,8 @@ Depends On: `agent/ISSUES.md`, `agent/ISSUES_BACKLOG.md`, `agent/MILESTONES.md`,
 - Historical context on demand: `agent/ISSUES_ARCHIVE.md`, `agent/MILESTONES_ARCHIVE.md`.
 
 ## Open / Close Gates
-- Open when upstream blockers are resolved/accepted and at least three issues are actionable.
-- Close when required scope is complete/deferred with rationale and no unresolved high-priority blockers remain.
+- Mark a milestone `Active` when upstream blockers are resolved/accepted and at least three issues are actionable.
+- Mark a milestone `Complete` when required scope is complete/deferred with rationale and no unresolved high-priority blockers remain.
 - After closing the current milestone, automatically advance the next milestone in execution order unless the user explicitly pauses for re-evaluation.
 
 ## Dependency Metadata
@@ -37,45 +37,43 @@ Depends On: `agent/ISSUES.md`, `agent/ISSUES_BACKLOG.md`, `agent/MILESTONES.md`,
 
 ## Issue Rules
 - Active issue entries should include:
-  - `title`
-  - `status`
-  - `priority`
-  - `execution`
-  - `ready`
-  - `description`
+  - milestone section placement
+  - issue heading/title
+  - `**Status:**`
+  - `**Priority:**`
+  - problem/acceptance context
 - Prioritize work in this order unless the user overrides:
-  - `reopened`
-  - `in-progress`
-  - `unstarted`
-  - `blocked`
+  - `In Progress`
+  - `Open`
+  - `Blocked`
 - Within each status bucket, prioritize `high` before `medium` before `low`.
 - Default auto-execution gate:
-  - only auto-work issues where `execution: active` and `ready: yes`
-  - and either the issue milestone is unassigned, or the linked milestone is current and open
+  - only auto-work issues in the current `Active` milestone
+  - and only when issue `**Status:**` is `Open` or `In Progress`
 - Status transitions:
-  - `unstarted -> in-progress` when implementation begins
-  - `in-progress -> blocked` when blocked by dependency
-  - `blocked -> in-progress` when blocker clears
+  - `Open -> In Progress` when implementation begins
+  - `In Progress -> Blocked` when blocked by dependency
+  - `Blocked -> In Progress` when blocker clears
   - archive after verification and resolution logging
-  - use `reopened` for regressions
+  - use `Open` again for reopened regressions unless a stronger distinction is needed later
 - Completed issues should be archived promptly to keep `agent/ISSUES.md` lean.
 
 ## Milestone Rules
-- Milestones reference issue titles from `agent/ISSUES.md`.
-- If a milestone has no issues, it must remain `status: not-started`.
-- Issues mapped to milestones with `execution_window: closed` are planning-only unless the user explicitly asks to work them now.
-- When a current milestone is archived complete, automatically advance the next milestone in execution order unless the user explicitly pauses for evaluation.
+- Milestones are represented by markdown sections in `agent/MILESTONES.md`.
+- Issues are grouped under matching milestone sections in `agent/ISSUES.md`.
+- Only one milestone should be `Active`; others should normally be `Planned`, `Blocked`, or `Complete`.
+- When the current milestone is completed, advance the next milestone in file order unless the user explicitly pauses for evaluation.
 
 ## Triage Cadence
 - Weekly, at milestone boundaries, and after major roadmap/contract changes.
 
 ## Status Policy
-- `unstarted -> in-progress -> blocked/in-progress -> archived complete`.
-- Use `reopened` for regressions.
+- Issue flow: `Open -> In Progress -> Blocked/In Progress -> archived complete`.
+- Milestone flow: `Planned -> Active -> Blocked/Active -> Complete`.
 
 ## Work Loop
 - Select issue.
-- Mark it `in-progress`.
+- Mark it `In Progress`.
 - Implement and verify.
 - Update resolution/status.
 - Archive completed items.

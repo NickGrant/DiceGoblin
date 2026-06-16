@@ -5,24 +5,47 @@ const root = process.cwd();
 const issuesPath = path.join(root, "agent", "ISSUES.md");
 const milestonesPath = path.join(root, "agent", "MILESTONES.md");
 
-const allowedIssueStatus = new Set(["unstarted", "in-progress", "reopened", "blocked"]);
+const allowedIssueStatus = new Set(["open", "in progress", "blocked"]);
 const allowedPriority = new Set(["low", "medium", "high"]);
-const allowedExecution = new Set(["active", "deferred"]);
-const allowedReady = new Set(["yes", "no"]);
-const allowedMilestoneStatus = new Set(["not-started", "in-progress", "complete", "blocked"]);
-const allowedWindow = new Set(["open", "closed"]);
-const allowedCurrent = new Set(["yes", "no"]);
+const allowedMilestoneStatus = new Set(["planned", "active", "complete", "blocked"]);
 
-function parseBlocks(raw) {
-  return raw
-    .split(/\r?\n---\r?\n/g)
-    .map((b) => b.trim())
-    .filter((b) => /^title:\s+/m.test(b) || /^name:\s+/m.test(b));
+function parseIssueSections(raw) {
+  const sections = [];
+  const milestoneSections = raw.split(/\r?\n##\s+/).slice(1);
+
+  for (const section of milestoneSections) {
+    const [milestoneNameLine, ...rest] = section.split(/\r?\n/);
+    const milestoneName = (milestoneNameLine ?? "").trim();
+    const body = rest.join("\n");
+
+    for (const issueEntry of body.split(/\r?\n###\s+/).slice(1)) {
+      const trimmed = issueEntry.trim();
+      if (!trimmed) continue;
+      sections.push({
+        milestoneName,
+        raw: trimmed,
+      });
+    }
+  }
+
+  return sections;
 }
 
-function field(block, key) {
-  const m = block.match(new RegExp(`^${key}:\\s*(.+)$`, "m"));
+function parseMilestoneSections(raw) {
+  return raw
+    .split(/\r?\n##\s+/)
+    .slice(1)
+    .map((section) => section.trim())
+    .filter(Boolean);
+}
+
+function markdownField(block, key) {
+  const m = block.match(new RegExp(`\\*\\*${key}:\\*\\*\\s*(.+)$`, "mi"));
   return m ? m[1].trim() : null;
+}
+
+function normalizeIssueTitle(title) {
+  return title.replace(/^[A-Z0-9-]+:\s*/, "").replace(/[.]+$/, "").trim();
 }
 
 function parseIssueTitlesList(block, key) {
@@ -37,13 +60,13 @@ function parseIssueTitlesList(block, key) {
 }
 
 function parseMilestoneIssues(block) {
-  const m = block.match(/^issues:\s*\r?\n([\s\S]*?)(?:\r?\ndescription:|\r?\nentry_criteria:|\r?\nexit_criteria:|$)/m);
+  const m = block.match(/^###\s+Related Issues\s*\r?\n([\s\S]*?)(?:\r?\n##\s|\r?\n###\s|$)/m);
   if (!m) return [];
   return m[1]
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line.startsWith("- "))
-    .map((line) => line.slice(2).trim())
+    .map((line) => line.slice(2).trim().replace(/^[A-Z0-9-]+:\s*/, ""))
     .filter(Boolean);
 }
 
@@ -62,42 +85,38 @@ if (errors.length) fail(errors);
 const issuesRaw = fs.readFileSync(issuesPath, "utf8");
 const milestonesRaw = fs.readFileSync(milestonesPath, "utf8");
 
-const issueBlocks = parseBlocks(issuesRaw).filter((b) => /^title:\s+/m.test(b));
-const milestoneBlocks = parseBlocks(milestonesRaw)
-  .filter((b) => /^name:\s+/m.test(b))
-  .filter((b) => !/^name:\s*<milestone name>/m.test(b));
+const issueBlocks = parseIssueSections(issuesRaw);
+const milestoneBlocks = parseMilestoneSections(milestonesRaw);
 
 const issueTitles = [];
-for (const b of issueBlocks) {
-  const title = field(b, "title");
+const normalizedIssueTitles = [];
+for (const entry of issueBlocks) {
+  const [title] = entry.raw.split(/\r?\n/, 1);
   if (!title) {
     errors.push("Issue block missing title");
     continue;
   }
   if (issueTitles.includes(title)) errors.push(`Duplicate issue title: ${title}`);
   issueTitles.push(title);
+  normalizedIssueTitles.push(normalizeIssueTitle(title));
 
-  const status = field(b, "status");
-  const priority = field(b, "priority");
-  const execution = field(b, "execution");
-  const ready = field(b, "ready");
-  const description = field(b, "description");
-  const milestone = field(b, "milestone");
+  const status = markdownField(entry.raw, "Status");
+  const priority = markdownField(entry.raw, "Priority");
+  const milestone = entry.milestoneName;
+  const description = entry.raw.match(/####\s+Problem/i) ? "present" : null;
 
-  if (!status || !allowedIssueStatus.has(status)) errors.push(`Issue "${title}" has invalid status: ${status}`);
-  if (!priority || !allowedPriority.has(priority)) errors.push(`Issue "${title}" has invalid priority: ${priority}`);
-  if (!execution || !allowedExecution.has(execution)) errors.push(`Issue "${title}" has invalid execution: ${execution}`);
-  if (!ready || !allowedReady.has(ready)) errors.push(`Issue "${title}" has invalid ready: ${ready}`);
+  if (!status || !allowedIssueStatus.has(status.toLowerCase())) errors.push(`Issue "${title}" has invalid status: ${status}`);
+  if (!priority || !allowedPriority.has(priority.toLowerCase())) errors.push(`Issue "${title}" has invalid priority: ${priority}`);
   if (!description) errors.push(`Issue "${title}" missing description`);
   if (!milestone) errors.push(`Issue "${title}" missing milestone field`);
 
-  for (const dep of parseIssueTitlesList(b, "blocked_by")) {
+  for (const dep of parseIssueTitlesList(entry.raw, "blocked_by")) {
     if (dep.startsWith("<")) continue;
     if (!issueTitles.includes(dep) && !issuesRaw.includes(`title: ${dep}`)) {
       errors.push(`Issue "${title}" blocked_by references unknown issue: ${dep}`);
     }
   }
-  for (const dep of parseIssueTitlesList(b, "enables")) {
+  for (const dep of parseIssueTitlesList(entry.raw, "enables")) {
     if (dep.startsWith("<")) continue;
     if (!issueTitles.includes(dep) && !issuesRaw.includes(`title: ${dep}`)) {
       errors.push(`Issue "${title}" enables references unknown issue: ${dep}`);
@@ -106,10 +125,10 @@ for (const b of issueBlocks) {
 }
 
 const milestoneNames = [];
-let currentYesCount = 0;
+let activeCount = 0;
 
 for (const b of milestoneBlocks) {
-  const name = field(b, "name");
+  const [name] = b.split(/\r?\n/, 1);
   if (!name) {
     errors.push("Milestone block missing name");
     continue;
@@ -117,32 +136,28 @@ for (const b of milestoneBlocks) {
   if (milestoneNames.includes(name)) errors.push(`Duplicate milestone name: ${name}`);
   milestoneNames.push(name);
 
-  const status = field(b, "status");
-  const window = field(b, "execution_window");
-  const current = field(b, "is_current");
+  const status = markdownField(b, "Status");
   const issues = parseMilestoneIssues(b);
 
-  if (!status || !allowedMilestoneStatus.has(status)) errors.push(`Milestone "${name}" has invalid status: ${status}`);
-  if (!window || !allowedWindow.has(window)) errors.push(`Milestone "${name}" has invalid execution_window: ${window}`);
-  if (!current || !allowedCurrent.has(current)) errors.push(`Milestone "${name}" has invalid is_current: ${current}`);
-  if (current === "yes") currentYesCount += 1;
+  if (!status || !allowedMilestoneStatus.has(status.toLowerCase())) errors.push(`Milestone "${name}" has invalid status: ${status}`);
+  if (status?.toLowerCase() === "active") activeCount += 1;
 
-  if (issues.length === 0 && status !== "not-started") {
-    errors.push(`Milestone "${name}" has no issues but status is not-started requirement is violated`);
+  if (issues.length === 0 && status?.toLowerCase() !== "planned") {
+    errors.push(`Milestone "${name}" has no related issues but is not marked Planned`);
   }
   for (const issueTitle of issues) {
-    if (!issueTitles.includes(issueTitle)) {
+    if (!normalizedIssueTitles.includes(normalizeIssueTitle(issueTitle))) {
       errors.push(`Milestone "${name}" references missing issue: ${issueTitle}`);
     }
   }
 }
 
-if (currentYesCount > 1) errors.push("More than one milestone has is_current: yes");
+if (activeCount > 1) errors.push("More than one milestone is marked Active");
 
-for (const b of issueBlocks) {
-  const title = field(b, "title");
-  const milestone = field(b, "milestone");
-  if (!title || !milestone || milestone === "unassigned") continue;
+for (const entry of issueBlocks) {
+  const [title] = entry.raw.split(/\r?\n/, 1);
+  const milestone = entry.milestoneName;
+  if (!title || !milestone) continue;
   if (!milestoneNames.includes(milestone)) {
     errors.push(`Issue "${title}" points to unknown milestone: ${milestone}`);
   }

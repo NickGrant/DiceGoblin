@@ -29,7 +29,7 @@ Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
 ## Mobile Improvements
 
-**Status:** Active  
+**Status:** Planned  
 **Purpose:** Improve playability and regression coverage for phone-sized viewports before broader testing.
 
 ### Goals

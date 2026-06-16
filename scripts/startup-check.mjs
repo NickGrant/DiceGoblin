@@ -5,14 +5,10 @@ const root = process.cwd();
 const required = ["AGENTS.md", "agent/ISSUES.md", "agent/MILESTONES.md", "README.md"];
 const optional = ["agent/LLM_CONTEXT.md", "agent/ROLES.md", "agent/ISSUES_BACKLOG.md", "agent/MILESTONES_BACKLOG.md"];
 
-const issueStatus = new Set(["unstarted", "in-progress", "reopened", "blocked"]);
+const issueStatus = new Set(["open", "in progress", "blocked"]);
 const issuePriority = new Set(["low", "medium", "high"]);
-const issueExecution = new Set(["active", "deferred"]);
-const issueReady = new Set(["yes", "no"]);
 
-const milestoneStatus = new Set(["not-started", "in-progress", "complete", "blocked"]);
-const milestoneWindow = new Set(["open", "closed"]);
-const milestoneCurrent = new Set(["yes", "no"]);
+const milestoneStatus = new Set(["planned", "active", "blocked", "complete"]);
 
 function readFileSafe(rel) {
   const abs = path.join(root, rel);
@@ -32,6 +28,32 @@ function getField(block, key) {
   return m ? m[1].trim() : null;
 }
 
+function getMarkdownField(block, label) {
+  const m = block.match(new RegExp(`\\*\\*${label}:\\*\\*\\s*(.+)$`, "mi"));
+  return m ? m[1].trim() : null;
+}
+
+function parseIssueSections(raw) {
+  return raw
+    .split(/\r?\n##\s+/)
+    .slice(1)
+    .flatMap((section) =>
+      section
+        .split(/\r?\n###\s+/)
+        .slice(1)
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    );
+}
+
+function parseMilestoneSections(raw) {
+  return raw
+    .split(/\r?\n##\s+/)
+    .slice(1)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
 const errors = [];
 const warnings = [];
 
@@ -44,39 +66,31 @@ for (const rel of optional) {
 
 const issuesRaw = readFileSafe("agent/ISSUES.md");
 if (issuesRaw) {
-  const blocks = parseBlocks(issuesRaw, "title");
+  const blocks = parseIssueSections(issuesRaw);
   for (const b of blocks) {
-    const title = getField(b, "title") ?? "<unknown>";
-    const status = getField(b, "status");
-    const priority = getField(b, "priority");
-    const execution = getField(b, "execution");
-    const ready = getField(b, "ready");
+    const [titleLine] = b.split(/\r?\n/, 1);
+    const title = titleLine ?? "<unknown>";
+    const status = getMarkdownField(b, "Status");
+    const priority = getMarkdownField(b, "Priority");
 
-    if (!status || !issueStatus.has(status)) errors.push(`agent/ISSUES.md: invalid status for "${title}": ${status}`);
-    if (!priority || !issuePriority.has(priority)) errors.push(`agent/ISSUES.md: invalid priority for "${title}": ${priority}`);
-    if (!execution || !issueExecution.has(execution)) errors.push(`agent/ISSUES.md: invalid execution for "${title}": ${execution}`);
-    if (!ready || !issueReady.has(ready)) errors.push(`agent/ISSUES.md: invalid ready for "${title}": ${ready}`);
+    if (!status || !issueStatus.has(status.toLowerCase())) errors.push(`agent/ISSUES.md: invalid status for "${title}": ${status}`);
+    if (!priority || !issuePriority.has(priority.toLowerCase())) errors.push(`agent/ISSUES.md: invalid priority for "${title}": ${priority}`);
   }
 }
 
 const milestonesRaw = readFileSafe("agent/MILESTONES.md");
 if (milestonesRaw) {
-  const blocks = parseBlocks(milestonesRaw, "name");
-  let currentYes = 0;
+  const blocks = parseMilestoneSections(milestonesRaw);
+  let activeCount = 0;
   for (const b of blocks) {
-    const name = getField(b, "name") ?? "<unknown>";
-    if (name.startsWith("<")) continue;
+    const [nameLine] = b.split(/\r?\n/, 1);
+    const name = nameLine ?? "<unknown>";
+    const status = getMarkdownField(b, "Status");
 
-    const status = getField(b, "status");
-    const window = getField(b, "execution_window");
-    const current = getField(b, "is_current");
-
-    if (!status || !milestoneStatus.has(status)) errors.push(`agent/MILESTONES.md: invalid status for "${name}": ${status}`);
-    if (!window || !milestoneWindow.has(window)) errors.push(`agent/MILESTONES.md: invalid execution_window for "${name}": ${window}`);
-    if (!current || !milestoneCurrent.has(current)) errors.push(`agent/MILESTONES.md: invalid is_current for "${name}": ${current}`);
-    if (current === "yes") currentYes += 1;
+    if (!status || !milestoneStatus.has(status.toLowerCase())) errors.push(`agent/MILESTONES.md: invalid status for "${name}": ${status}`);
+    if (status?.toLowerCase() === "active") activeCount += 1;
   }
-  if (currentYes > 1) errors.push("agent/MILESTONES.md: more than one milestone has is_current: yes");
+  if (activeCount > 1) errors.push("agent/MILESTONES.md: more than one milestone is marked Active");
 }
 
 if (warnings.length) {
