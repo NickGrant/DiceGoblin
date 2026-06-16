@@ -1,0 +1,207 @@
+:host {
+  display: block;
+}
+
+.guide-shell {
+  padding: 24px 16px 48px;
+}
+
+.guide-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
+  gap: 24px;
+  padding: 32px;
+  margin-bottom: 20px;
+  background:
+    linear-gradient(135deg, rgba(20, 31, 44, 0.78), rgba(78, 52, 24, 0.52)),
+    url('/assets/ui/biome/mountain.png') center/cover;
+  color: var(--dg-cream);
+}
+
+.guide-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(255, 240, 211, 0.18), transparent 36%),
+    linear-gradient(180deg, rgba(10, 12, 14, 0.04), rgba(10, 12, 14, 0.32));
+  pointer-events: none;
+}
+
+.guide-hero__content,
+.guide-hero__panel {
+  position: relative;
+  z-index: 1;
+}
+
+.guide-hero__eyebrow {
+  margin: 0 0 10px;
+  color: var(--dg-accent-warm-bright);
+}
+
+.guide-hero h1 {
+  margin: 0 0 16px;
+  font-size: clamp(2.4rem, 4vw, 4.4rem);
+  line-height: 0.95;
+}
+
+.guide-hero__copy {
+  max-width: 640px;
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--dg-text-on-dark-muted);
+}
+
+.guide-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.guide-hero__card {
+  height: 100%;
+  padding: 20px;
+  border: 1px solid rgba(255, 247, 231, 0.22);
+  background: rgba(18, 21, 24, 0.52);
+  backdrop-filter: blur(2px);
+}
+
+.guide-hero__card h2 {
+  margin: 0 0 12px;
+  font-size: 1.35rem;
+}
+
+.guide-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.guide-nav__link {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--dg-border-soft);
+  background: rgba(243, 239, 224, 0.92);
+  color: var(--dg-charcoal);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+.guide-section {
+  margin-bottom: 32px;
+}
+
+.guide-section__heading {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border-left: 4px solid rgba(138, 109, 59, 0.75);
+  background: linear-gradient(90deg, rgba(243, 239, 224, 0.94), rgba(243, 239, 224, 0.7));
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.05);
+}
+
+.guide-section__heading p {
+  margin: 0 0 8px;
+  color: rgba(68, 47, 23, 0.92);
+  text-shadow: none;
+}
+
+.guide-section__heading h2 {
+  margin: 0 0 8px;
+  color: var(--dg-charcoal);
+  text-shadow: none;
+}
+
+.guide-section__heading > :last-child {
+  margin-bottom: 0;
+  color: rgba(35, 39, 42, 0.9);
+}
+
+.guide-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.guide-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.guide-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.guide-card {
+  padding: 18px;
+  border: 2px solid rgba(35, 39, 42, 0.14);
+  background: rgba(243, 239, 224, 0.88);
+  box-shadow: 0 12px 18px rgba(0, 0, 0, 0.08);
+}
+
+.guide-card--muted {
+  background: rgba(231, 226, 206, 0.88);
+}
+
+.guide-card--node {
+  text-align: center;
+}
+
+.guide-card__meta {
+  margin: 0 0 8px;
+  color: var(--dg-text-muted-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+}
+
+.guide-card h3 {
+  margin: 0 0 10px;
+  font-size: 1.35rem;
+}
+
+.guide-card p:last-child {
+  margin-bottom: 0;
+}
+
+.guide-node-icon {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  margin-bottom: 12px;
+}
+
+.guide-list {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.guide-list li + li {
+  margin-top: 0.45rem;
+}
+
+@media (max-width: 991.98px) {
+  .guide-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-grid--three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767.98px) {
+  .guide-shell {
+    padding-inline: 12px;
+  }
+
+  .guide-hero {
+    padding: 20px;
+  }
+
+  .guide-grid--two,
+  .guide-grid--three {
+    grid-template-columns: 1fr;
+  }
+}

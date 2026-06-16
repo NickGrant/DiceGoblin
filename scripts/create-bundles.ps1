@@ -5,6 +5,8 @@ Set-Location $repoRoot
 
 $outputDir = Join-Path $repoRoot "artifacts\bundles"
 New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+$releaseDir = Join-Path $outputDir "release"
+New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
 
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -97,6 +99,28 @@ function New-ZipBundle {
   Write-Output "Created $zipPath"
 }
 
+function Sync-DirectoryContents {
+  param(
+    [Parameter(Mandatory = $true)][string]$SourceDir,
+    [Parameter(Mandatory = $true)][string]$DestinationDir
+  )
+
+  if (-not (Test-Path $SourceDir)) {
+    throw "Source directory not found: $SourceDir"
+  }
+
+  if (Test-Path $DestinationDir) {
+    Remove-Item -LiteralPath $DestinationDir -Recurse -Force
+  }
+
+  New-Item -ItemType Directory -Path $DestinationDir -Force | Out-Null
+  Copy-Item -Path (Join-Path $SourceDir '*') -Destination $DestinationDir -Recurse -Force
+  Write-Output "Synced $SourceDir -> $DestinationDir"
+}
+
+Sync-DirectoryContents -SourceDir "frontend\dist\browser" -DestinationDir (Join-Path $releaseDir "frontend")
+Sync-DirectoryContents -SourceDir "backend" -DestinationDir (Join-Path $releaseDir "backend")
+
 New-ZipBundle -SourceDir "documentation" -ZipName "documentation.zip"
-New-ZipBundle -SourceDir "frontend" -ZipName "frontend.zip"
-New-ZipBundle -SourceDir "backend" -ZipName "backend.zip"
+New-ZipBundle -SourceDir (Join-Path $releaseDir "frontend") -ZipName "frontend.zip"
+New-ZipBundle -SourceDir (Join-Path $releaseDir "backend") -ZipName "backend.zip"

@@ -1,0 +1,236 @@
+<section class="guide-shell">
+  <div class="container-xl">
+    <div class="guide-hero dg-page-frame">
+      <div class="guide-hero__content">
+        <p class="guide-hero__eyebrow dg-stencil">Public Field Manual</p>
+        <h1>How Dice Goblins Works</h1>
+        <p class="guide-hero__copy">
+          This guide covers warband systems, the unit roster, map nodes, promotions, and what happens at the end of a run.
+        </p>
+        <div class="guide-hero__actions">
+          <a dgCommandBtn="primary" routerLink="/login">Sign In</a>
+          <a dgCommandBtn="teal" routerLink="/guide" fragment="combat">Jump to Combat</a>
+        </div>
+      </div>
+      <div class="guide-hero__panel">
+        <div class="guide-hero__card">
+          <h2>Quick Start</h2>
+          <ul class="guide-list">
+            <li>Build a squad and place tougher units up front.</li>
+            <li>Equip abilities and remember that empty die slots resolve as `1`.</li>
+            <li>Advance through run nodes while managing attrition between fights.</li>
+            <li>Use rest nodes to fully recover before pushing deeper.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <nav class="guide-nav">
+      <a class="guide-nav__link" routerLink="/guide" fragment="unlocks">Unlocks</a>
+      <a class="guide-nav__link" routerLink="/guide" fragment="units">Units</a>
+      <a class="guide-nav__link" routerLink="/guide" fragment="affixes">Affixes</a>
+      <a class="guide-nav__link" routerLink="/guide" fragment="combat">Combat</a>
+      <a class="guide-nav__link" routerLink="/guide" fragment="nodes">Nodes</a>
+      <a class="guide-nav__link" routerLink="/guide" fragment="promotion">Promotion</a>
+      <a class="guide-nav__link" routerLink="/guide" fragment="runs">Runs</a>
+    </nav>
+
+    <section class="guide-section" id="unlocks">
+      <div class="guide-section__heading">
+        <p class="dg-stencil">Warband Growth</p>
+        <h2>Available Unlocks</h2>
+        <p>These permanent upgrades expand what your warband can do between runs.</p>
+      </div>
+      <div class="guide-grid guide-grid--three me-2">
+        @for (unlock of unlocks; track unlock.name) {
+        <article class="guide-card">
+          <p class="guide-card__meta">{{ unlock.cost }} teeth</p>
+          <h3>{{ unlock.name }}</h3>
+          <p>{{ unlock.description }}</p>
+        </article>
+        }
+      </div>
+      <div class="guide-grid guide-grid--three">
+        @for (unit of unitUnlocks; track unit.slug) {
+        <article class="guide-card guide-card--muted">
+          <p class="guide-card__meta">{{ unit.role }} - Tier {{ unit.tier }} - Max Level {{ unit.maxLevel }}</p>
+          <h3>{{ unit.name }}</h3>
+          <p>{{ unit.summary }}</p>
+        </article>
+        }
+      </div>
+    </section>
+
+    <section class="guide-section" id="units">
+      <div class="guide-section__heading">
+        <p class="dg-stencil">Roster</p>
+        <h2>Units</h2>
+        <p>The roster keeps clear frontline, backline, support, and utility identities across tiers.</p>
+      </div>
+      <div class="guide-grid guide-grid--three">
+        @for (unit of units; track unit.slug) {
+        <article class="guide-card">
+          <p class="guide-card__meta">{{ unit.role }} - Tier {{ unit.tier }} - Max Level {{ unit.maxLevel }}</p>
+          <h3>{{ unit.name }}</h3>
+          <p>{{ unit.summary }}</p>
+        </article>
+        }
+      </div>
+    </section>
+
+    <section class="guide-section" id="affixes">
+      <div class="guide-section__heading">
+        <p class="dg-stencil">Dice Mods</p>
+        <h2>Affixes</h2>
+        <p>Affixes change how a die performs when it is equipped to an ability slot.</p>
+      </div>
+      <div class="guide-grid guide-grid--three">
+        @for (affix of affixes; track affix.name) {
+        <article class="guide-card">
+          <p class="guide-card__meta">{{ affix.rarity }}</p>
+          <h3>{{ affix.name }}</h3>
+          <p>{{ affix.description }}</p>
+        </article>
+        }
+      </div>
+    </section>
+
+    <section class="guide-section" id="combat">
+      <div class="guide-section__heading">
+        <p class="dg-stencil">Battle Rules</p>
+        <h2>Combat, Positioning, and Abilities</h2>
+      </div>
+      <div class="guide-grid guide-grid--two">
+        <article class="guide-card">
+          <h3>Squad Positioning</h3>
+          <ul class="guide-list">
+            <li>Combat happens on a fixed 3x3 grid for both sides.</li>
+            <li>Front-row and back-row positioning matter, so tougher units usually belong in front and ranged pressure usually belongs in back.</li>
+            <li>Placement affects who can pressure safely and who is left exposed on the field.</li>
+          </ul>
+        </article>
+        <article class="guide-card">
+          <h3>Ability Scheduling</h3>
+          <ul class="guide-list">
+            <li>Equipped abilities fire in loadout order using cumulative speed, not all at once.</li>
+            <li>Each ability instance can fire at most once per 20-tick round.</li>
+            <li>Reordering a loadout changes when actions happen, even if the unit keeps the same abilities.</li>
+          </ul>
+        </article>
+        <article class="guide-card">
+          <h3>Dice and Empty Slots</h3>
+          <ul class="guide-list">
+            <li>Dice are attached to ability slots, not to a shared unit-wide dice pool.</li>
+            <li>If you equip the same base ability multiple times, those copies reuse the same slot setup.</li>
+            <li>Any empty slot resolves as `1`, so incomplete setups still work but hit softer.</li>
+          </ul>
+        </article>
+        <article class="guide-card">
+          <h3>Status Snapshot</h3>
+          <ul class="guide-list">
+            <li>Status effects include Poison, Bolstered, Sleep, and Bleeding.</li>
+            <li>Status timing resolves server-side during dedicated status phases.</li>
+            <li>Dead units stop taking later actions in the same tick.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="guide-section" id="nodes">
+      <div class="guide-section__heading">
+        <p class="dg-stencil">Pathing</p>
+        <h2>Run Nodes</h2>
+        <p>Each map node advertises a different kind of risk, recovery, or reward.</p>
+      </div>
+      <div class="guide-grid guide-grid--three">
+        @for (node of nodes; track node.name) {
+        <article class="guide-card guide-card--node">
+          <img class="guide-node-icon" [src]="node.icon" [alt]="node.name + ' icon'" />
+          <h3>{{ node.name }}</h3>
+          <p>{{ node.description }}</p>
+        </article>
+        }
+      </div>
+    </section>
+
+    <section class="guide-section" id="promotion">
+      <div class="guide-section__heading">
+        <p class="dg-stencil">Academy</p>
+        <h2>How Promotion Works</h2>
+      </div>
+      <div class="guide-grid guide-grid--two">
+        <article class="guide-card">
+          <h3>Requirements</h3>
+          <ul class="guide-list">
+            <li>Promotion always advances a unit by exactly one tier.</li>
+            <li>You combine three max-level units of the same current type and tier.</li>
+            <li>The primary unit keeps its identity, while the two secondary units are consumed.</li>
+          </ul>
+        </article>
+        <article class="guide-card">
+          <h3>Results</h3>
+          <ul class="guide-list">
+            <li>The promoted unit resets to level 1 in its new tier.</li>
+            <li>Previously earned abilities stay with the unit across promotions.</li>
+            <li>Tier 3 promotions still require the authored rare region item.</li>
+          </ul>
+        </article>
+        <article class="guide-card">
+          <h3>Choosing a Destination</h3>
+          <ul class="guide-list">
+            <li>You can continue along the unit's current chain or branch into another eligible path.</li>
+            <li>Promotion does not allow tier skipping.</li>
+            <li>Sideways options are limited by paths the unit has actually earned through earlier choices.</li>
+          </ul>
+        </article>
+        <article class="guide-card">
+          <h3>Why It Matters</h3>
+          <p>
+            Promotion is both a power jump and a long-term build decision, because your unit's combat catalog accumulates over the path it has traveled.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="guide-section" id="runs">
+      <div class="guide-section__heading">
+        <p class="dg-stencil">Expeditions</p>
+        <h2>How Runs Work</h2>
+      </div>
+      <div class="guide-grid guide-grid--two">
+        <article class="guide-card">
+          <h3>During a Run</h3>
+          <ul class="guide-list">
+            <li>Unit HP persists between encounters, so attrition is part of the challenge.</li>
+            <li>Cooldowns and status effects clear after combat, but missing HP does not unless you rest.</li>
+            <li>Rest nodes are the primary way to fully recover before continuing.</li>
+          </ul>
+        </article>
+        <article class="guide-card">
+          <h3>If You Die</h3>
+          <ul class="guide-list">
+            <li>A combat or boss defeat immediately ends the run.</li>
+            <li>No retry is allowed inside that run.</li>
+            <li>Defeated units lose their current-level XP progress, but no unit loses a level.</li>
+          </ul>
+        </article>
+        <article class="guide-card">
+          <h3>If You Abandon</h3>
+          <ul class="guide-list">
+            <li>Abandoning a run uses the same resolution outcome as a failed run.</li>
+            <li>The energy spent to start the run is not refunded.</li>
+            <li>Abandon exists mainly to escape a doomed or stuck expedition.</li>
+          </ul>
+        </article>
+        <article class="guide-card">
+          <h3>After Any Run Ends</h3>
+          <ul class="guide-list">
+            <li>All units heal back to full after the run summary cleanup.</li>
+            <li>Rechargeable abilities recover and status effects are cleared.</li>
+            <li>Successful runs differ from failed or abandoned runs mainly in rewards and progression payout.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+  </div>
+</section>

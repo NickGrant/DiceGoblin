@@ -6,6 +6,7 @@ import { DicePageComponent } from './pages/dice-page/dice-page.component';
 import { LandingPageComponent } from './pages/landing-page/landing-page.component';
 import { HomePageComponent } from './pages/home-page/home-page.component';
 import { AcademyPageComponent } from './pages/academy-page/academy-page.component';
+import { GuidePageComponent } from './pages/guide-page/guide-page.component';
 import { RegionsPageComponent } from './pages/regions-page/regions-page.component';
 import { RunMapPageComponent } from './pages/run-map-page/run-map-page.component';
 import { RunNodePageComponent } from './pages/run-node-page/run-node-page.component';
@@ -21,6 +22,10 @@ export const routes: Routes = [
     path: 'login',
     component: LandingPageComponent,
     canActivate: [guestGuard],
+  },
+  {
+    path: 'guide',
+    component: GuidePageComponent,
   },
   {
     path: '',
