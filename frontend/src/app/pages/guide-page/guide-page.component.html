@@ -2,14 +2,14 @@
   <div class="container-xl">
     <div class="guide-hero dg-page-frame">
       <div class="guide-hero__content">
-        <p class="guide-hero__eyebrow dg-stencil">Public Field Manual</p>
+        <p class="guide-hero__eyebrow dg-stencil">{{ heroEyebrow() }}</p>
         <h1>How Dice Goblins Works</h1>
         <p class="guide-hero__copy">
           This guide covers warband systems, the unit roster, map nodes, promotions, and what happens at the end of a run.
         </p>
         <div class="guide-hero__actions">
-          <a dgCommandBtn="primary" routerLink="/login">Sign In</a>
-          <a dgCommandBtn="teal" routerLink="/guide" fragment="combat">Jump to Combat</a>
+          <a dgCommandBtn="primary" [routerLink]="primaryActionRoute()">{{ primaryActionLabel() }}</a>
+          <a dgCommandBtn="teal" href="#combat">Jump to Combat</a>
         </div>
       </div>
       <div class="guide-hero__panel">
@@ -26,13 +26,13 @@
     </div>
 
     <nav class="guide-nav">
-      <a class="guide-nav__link" routerLink="/guide" fragment="unlocks">Unlocks</a>
-      <a class="guide-nav__link" routerLink="/guide" fragment="units">Units</a>
-      <a class="guide-nav__link" routerLink="/guide" fragment="affixes">Affixes</a>
-      <a class="guide-nav__link" routerLink="/guide" fragment="combat">Combat</a>
-      <a class="guide-nav__link" routerLink="/guide" fragment="nodes">Nodes</a>
-      <a class="guide-nav__link" routerLink="/guide" fragment="promotion">Promotion</a>
-      <a class="guide-nav__link" routerLink="/guide" fragment="runs">Runs</a>
+      <a class="guide-nav__link" href="#unlocks">Unlocks</a>
+      <a class="guide-nav__link" href="#units">Units</a>
+      <a class="guide-nav__link" href="#affixes">Affixes</a>
+      <a class="guide-nav__link" href="#combat">Combat</a>
+      <a class="guide-nav__link" href="#nodes">Nodes</a>
+      <a class="guide-nav__link" href="#promotion">Promotion</a>
+      <a class="guide-nav__link" href="#runs">Runs</a>
     </nav>
 
     <section class="guide-section" id="unlocks">

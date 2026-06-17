@@ -194,9 +194,15 @@ function Invoke-Codex {
     "-"
   )
 
-  $output = $Prompt | & $script:CodexExe @arguments 2>&1
-  $exitCode = $LASTEXITCODE
-  $text = ($output | Out-String).Trim()
+  $previousErrorAction = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    $output = $Prompt | & $script:CodexExe @arguments 2>&1
+    $text = ($output | Out-String).Trim()
+    $exitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $previousErrorAction
+  }
 
   [PSCustomObject]@{
     ExitCode = $exitCode

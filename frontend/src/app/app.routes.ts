@@ -35,6 +35,7 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: HomePageComponent },
+      { path: 'field-guide', component: GuidePageComponent },
       { path: 'academy', component: AcademyPageComponent, canActivate: [academyFeatureGuard] },
       { path: 'regions', component: RegionsPageComponent },
       { path: 'warband', component: WarbandPageComponent },

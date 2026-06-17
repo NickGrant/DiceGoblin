@@ -8,6 +8,16 @@
 <!-- Archive history prior to purge can be recovered from git at commit fb22ebc and earlier. -->
 
 ---
+title: Make guide available to logged-in users
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Watcher Testing
+description: The guide is currently available as a public route, but watcher testing needs it to be explicitly available to logged-in users from the authenticated game experience as well.
+resolution: Kept the public `/guide` route for anonymous visitors, added an authenticated shell route that reuses the same guide component, and made the guide page session-aware so logged-in players get return-to-game actions without clearing their session or active run state.
+
+---
 title: Add unit naming and ability-loadout persistence schema
 status: complete
 priority: high

@@ -23,7 +23,6 @@ Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
 ### Related Issues
 
-- WT-001: Make guide available to logged-in users.
 - WT-002: Highlight acquired unlocks in the guide for logged-in users.
 - WT-003: Add navigation from inside the game to the guide.
 

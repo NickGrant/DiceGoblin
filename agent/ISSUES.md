@@ -4,30 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Watcher Testing
 
-### WT-001: Make guide available to logged-in users
-
-**Milestone:** Watcher Testing  
-**Status:** Open  
-**Priority:** High
-
-#### Problem
-
-The guide is currently available as a public route, but watcher testing needs it to be explicitly available to logged-in users from the authenticated game experience as well.
-
-#### Acceptance Criteria
-
-- A logged-in user can open the guide successfully.
-- Guide access does not clear the current session.
-- Guide access does not interrupt or discard an active run.
-- Anonymous guide access continues to work.
-- The implementation avoids duplicating guide content for logged-in and anonymous users.
-
-#### Current Code References
-
-- `frontend/src/app/app.routes.ts`
-- `frontend/src/app/pages/guide-page/guide-page.component.*`
-- `frontend/src/app/layout/game-shell/game-shell.component.*`
-
 ### WT-002: Highlight acquired unlocks in the guide for logged-in users
 
 **Milestone:** Watcher Testing  

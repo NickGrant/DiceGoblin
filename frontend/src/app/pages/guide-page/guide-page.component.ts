@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { SessionService } from '../../core/services/session/session.service';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 
 type GuideUnit = {
@@ -36,7 +37,31 @@ type GuideNode = {
   templateUrl: './guide-page.component.html',
   styleUrl: './guide-page.component.scss',
 })
-export class GuidePageComponent {
+export class GuidePageComponent implements OnInit {
+  private readonly sessionService = inject(SessionService);
+
+  protected readonly session = this.sessionService.session;
+  protected readonly hasActiveRun = this.sessionService.hasActiveRun;
+  protected readonly heroEyebrow = computed(() => this.session().isAuthenticated ? 'Field Manual' : 'Public Field Manual');
+  protected readonly primaryActionLabel = computed(() => {
+    if (!this.session().isAuthenticated) {
+      return 'Sign In';
+    }
+
+    return this.hasActiveRun() ? 'Return to Run' : 'Back to HQ';
+  });
+  protected readonly primaryActionRoute = computed(() => {
+    if (!this.session().isAuthenticated) {
+      return '/login';
+    }
+
+    return this.hasActiveRun() ? '/run/map' : '/home';
+  });
+
+  ngOnInit(): void {
+    void this.sessionService.initialize();
+  }
+
   protected readonly unitUnlocks: ReadonlyArray<GuideUnit> = [
     {
       name: 'Bruiser',
