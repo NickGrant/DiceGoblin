@@ -293,6 +293,7 @@ function Get-Issues {
         Status = Get-MarkdownFieldValue -Block $body -Name "Status"
         Priority = Get-MarkdownFieldValue -Block $body -Name "Priority"
         Milestone = $milestoneName
+        Body = $body
         Description = if ($body -match "(?im)^####\s+Problem") { "present" } else { $null }
       }
     }
@@ -411,10 +412,127 @@ function Get-ActionableIssues {
   }
 }
 
+function Get-BacklogHash {
+  $milestonesHash = Get-FileHashSafe -Path $script:MilestonesPath
+  $issuesHash = Get-FileHashSafe -Path $script:IssuesPath
+  return "$milestonesHash`::$issuesHash"
+}
+
+function Get-CurrentExecutionTarget {
+  $actionable = Get-ActionableIssues
+  $milestone = $actionable.Milestone
+  $issues = @($actionable.Issues)
+
+  if (-not $milestone) {
+    return [PSCustomObject]@{
+      Milestone = $null
+      Issue = $null
+      RemainingIssueCount = 0
+    }
+  }
+
+  $issue = $issues |
+    Where-Object { $_.Status -eq "In Progress" } |
+    Select-Object -First 1
+
+  if (-not $issue) {
+    $issue = $issues |
+      Where-Object { $_.Status -eq "Open" } |
+      Select-Object -First 1
+  }
+
+  return [PSCustomObject]@{
+    Milestone = $milestone
+    Issue = $issue
+    RemainingIssueCount = $issues.Count
+  }
+}
+
+function Set-MarkdownFieldValueInFile {
+  param(
+    [string]$Path,
+    [string]$SectionPattern,
+    [string]$FieldName,
+    [string]$NewValue
+  )
+
+  $raw = Get-Content -LiteralPath $Path -Raw
+  $fieldPattern = "(?mi)(?<prefix>$SectionPattern[\s\S]*?^\*\*" + [regex]::Escape($FieldName) + ":\*\*\s*)(?<value>.+)$"
+  $match = [regex]::Match($raw, $fieldPattern)
+  if (-not $match.Success) {
+    throw "Could not update field '$FieldName' in $Path."
+  }
+
+  $updated = $raw.Substring(0, $match.Groups["value"].Index) + $NewValue + $raw.Substring($match.Groups["value"].Index + $match.Groups["value"].Length)
+  Set-Content -LiteralPath $Path -Value $updated
+}
+
+function Set-IssueStatus {
+  param(
+    [string]$IssueTitle,
+    [string]$NewStatus
+  )
+
+  $escapedTitle = [regex]::Escape($IssueTitle)
+  $sectionPattern = "^###\s+$escapedTitle\s*$"
+  Set-MarkdownFieldValueInFile -Path $script:IssuesPath -SectionPattern $sectionPattern -FieldName "Status" -NewValue $NewStatus
+  Write-Log -Message "Updated issue '$IssueTitle' to status '$NewStatus'."
+}
+
+function Set-MilestoneStatus {
+  param(
+    [string]$MilestoneName,
+    [string]$NewStatus
+  )
+
+  $escapedName = [regex]::Escape($MilestoneName)
+  $sectionPattern = "^##\s+$escapedName\s*$"
+  Set-MarkdownFieldValueInFile -Path $script:MilestonesPath -SectionPattern $sectionPattern -FieldName "Status" -NewValue $NewStatus
+  Write-Log -Message "Updated milestone '$MilestoneName' to status '$NewStatus'."
+}
+
+function Advance-MilestonesIfNeeded {
+  $milestones = Get-Milestones -Path $script:MilestonesPath
+  $issues = Get-Issues -Path $script:IssuesPath
+
+  $activeMilestone = $milestones |
+    Where-Object { $_.Status -eq "Active" } |
+    Select-Object -First 1
+
+  if (-not $activeMilestone) {
+    return $false
+  }
+
+  $remainingIssues = $issues |
+    Where-Object {
+      $_.Milestone -eq $activeMilestone.Name -and
+      $_.Status -in @("Open", "In Progress", "Blocked")
+    }
+
+  if ($remainingIssues.Count -gt 0) {
+    return $false
+  }
+
+  Set-MilestoneStatus -MilestoneName $activeMilestone.Name -NewStatus "Complete"
+
+  $nextPlannedMilestone = $milestones |
+    Where-Object { $_.Status -eq "Planned" } |
+    Select-Object -First 1
+
+  if ($nextPlannedMilestone) {
+    Set-MilestoneStatus -MilestoneName $nextPlannedMilestone.Name -NewStatus "Active"
+    Write-Log -Message "Advanced next planned milestone '$($nextPlannedMilestone.Name)' to Active."
+  } else {
+    Write-Log -Message "No planned milestones remain after completing '$($activeMilestone.Name)'."
+  }
+
+  return $true
+}
+
 function Get-State {
   if (-not (Test-Path -LiteralPath $script:StatePathResolved)) {
     return [ordered]@{
-      lastMilestoneHash = ""
+      lastBacklogHash = ""
       lastCodexRunUtc = ""
       lastSyncedHead = ""
     }
@@ -425,7 +543,7 @@ function Get-State {
   } catch {
     Write-Log -Level "WARN" -Message "State file was unreadable. Reinitializing state."
     return [ordered]@{
-      lastMilestoneHash = ""
+      lastBacklogHash = ""
       lastCodexRunUtc = ""
       lastSyncedHead = ""
     }
@@ -607,38 +725,51 @@ function Invoke-CommitAndPush {
 function Invoke-CodexForMilestone {
   param(
     [hashtable]$State,
-    [string]$MilestoneHash,
+    [string]$BacklogHash,
     [bool]$PreRunTreeWasClean
   )
 
-  $actionable = Get-ActionableIssues
-  $milestone = $actionable.Milestone
-  $issues = @($actionable.Issues)
+  $target = Get-CurrentExecutionTarget
+  $milestone = $target.Milestone
+  $issue = $target.Issue
 
   if (-not $milestone) {
-    Write-Log -Message "Milestones changed, but there is no current open milestone to execute."
-    $State["lastMilestoneHash"] = $MilestoneHash
+    Write-Log -Message "Backlog changed, but there is no active milestone to execute."
+    $State["lastBacklogHash"] = $BacklogHash
     Save-State -State $State
     return
   }
 
-  if ($issues.Count -eq 0) {
-    Write-Log -Message "Milestones changed, but no active ready issues were found for milestone '$($milestone.Name)'."
-    $State["lastMilestoneHash"] = $MilestoneHash
-    Save-State -State $State
+  if (-not $issue) {
+    if (Advance-MilestonesIfNeeded) {
+      $State["lastBacklogHash"] = Get-BacklogHash
+      Save-State -State $State
+    } else {
+      Write-Log -Message "Backlog changed, but no actionable issues were found for milestone '$($milestone.Name)'."
+      $State["lastBacklogHash"] = $BacklogHash
+      Save-State -State $State
+    }
     return
+  }
+
+  if ($issue.Status -eq "Open") {
+    Set-IssueStatus -IssueTitle $issue.Title -NewStatus "In Progress"
+    $issue = (Get-CurrentExecutionTarget).Issue
   }
 
   if (Test-CodexCooldown -State $State) {
-    Write-Log -Level "WARN" -Message "Milestones changed, but Codex cooldown is active. Skipping this cycle."
-    $State["lastMilestoneHash"] = $MilestoneHash
+    Write-Log -Level "WARN" -Message "Backlog changed, but Codex cooldown is active. Skipping this cycle."
+    $State["lastBacklogHash"] = Get-BacklogHash
     Save-State -State $State
     return
   }
 
-  $issueSummary = $issues |
-    Select-Object -First 5 |
-    ForEach-Object { "- $($_.Title) [$($_.Status), $($_.Priority)]" }
+  $verificationCommands = @(
+    "npm.cmd run llm:check",
+    "composer --working-dir=backend test",
+    "npm.cmd --prefix frontend run test -- --watch=false --browsers=ChromeHeadless",
+    "npm.cmd --prefix frontend run build"
+  )
 
   $prompt = @"
 You are working in the Dice Goblins repository at $($script:RepoRootResolved).
@@ -650,34 +781,39 @@ Start by reading and following:
 - agent/MILESTONES.md
 - agent/ROLES.md
 
-The watcher detected an updated active milestone.
+The watcher has already selected the next issue for you. Do not re-triage the backlog.
 
-Current milestone:
+Active milestone:
 - $($milestone.Name)
 
-Actionable issues already identified from the active backlog:
-$($issueSummary -join [Environment]::NewLine)
+Selected issue:
+- $($issue.Title)
+- Status: $($issue.Status)
+- Priority: $($issue.Priority)
 
-Instructions:
-1. Validate that the current milestone and related active issues are implementation-relevant to developing the Dice Goblins game.
-2. If they are not implementation-relevant, stop without making changes and explain why.
-3. If they are implementation-relevant, choose the highest-priority ready issue from the current open milestone, implement it, verify the change, and update only the minimum related docs required by repo policy.
-4. Respect dirty-worktree safety. Do not revert user changes you did not make.
-5. Follow the repo backlog policy: only execute active, ready work in the current open milestone unless the docs themselves clearly require a tightly related supporting change.
+Execution requirements:
+1. Implement only the selected issue and tightly related verification/doc updates required by repo policy.
+2. Run this verification loop until the relevant checks are clean or you hit a real blocker:
+$($verificationCommands | ForEach-Object { "- $_" } | Out-String)
+3. If a check fails, fix the issue when it is caused by your work and rerun the affected checks.
+4. If a failure is clearly pre-existing or blocked externally, stop and explain it clearly.
+5. When the selected issue is complete, update the active backlog docs accordingly, including archive movement if the repo policy requires active issues only.
+6. Respect dirty-worktree safety. Do not revert user changes you did not make.
 "@
 
-  Write-Log -Message "Launching Codex for milestone '$($milestone.Name)' with $($issues.Count) actionable issue(s)."
+  Write-Log -Message "Launching Codex for issue '$($issue.Title)' in milestone '$($milestone.Name)'."
   $result = Invoke-Codex -Prompt $prompt
 
   if ($result.ExitCode -ne 0) {
     Write-Log -Level "ERROR" -Message "Codex exec failed with exit code $($result.ExitCode). Details: $($result.Output -replace '\s+', ' ')"
   } else {
     Write-Log -Message "Codex exec completed successfully."
+    [void](Advance-MilestonesIfNeeded)
     Invoke-CommitAndPush -MilestoneName $milestone.Name -PreRunTreeWasClean $PreRunTreeWasClean
   }
 
   $State["lastCodexRunUtc"] = [datetime]::UtcNow.ToString("o")
-  $State["lastMilestoneHash"] = Get-FileHashSafe -Path $script:MilestonesPath
+  $State["lastBacklogHash"] = Get-BacklogHash
   $State["lastSyncedHead"] = (Invoke-Git -Arguments @("rev-parse", "HEAD")).Output
   Save-State -State $State
 }
@@ -717,8 +853,8 @@ try {
 
   Write-Log -Message "Repo watcher started. PollMinutes=$PollMinutes DurationMinutes=$DurationMinutes RepoRoot=$script:RepoRootResolved"
   $state = Get-State
-  if (-not ($state.Keys -contains "lastMilestoneHash")) {
-    $state["lastMilestoneHash"] = Get-FileHashSafe -Path $script:MilestonesPath
+  if (-not ($state.Keys -contains "lastBacklogHash")) {
+    $state["lastBacklogHash"] = Get-BacklogHash
     Save-State -State $state
   }
 
@@ -730,18 +866,18 @@ try {
       $currentHead = (Invoke-Git -Arguments @("rev-parse", "HEAD")).Output
       $preRunStatus = Invoke-Git -Arguments @("status", "--porcelain")
       $preRunTreeWasClean = [string]::IsNullOrWhiteSpace($preRunStatus.Output)
-      $currentMilestoneHash = Get-FileHashSafe -Path $script:MilestonesPath
+      $currentBacklogHash = Get-BacklogHash
 
-      if ($state["lastMilestoneHash"] -ne $currentMilestoneHash) {
-        Write-Log -Message "Detected change in agent/MILESTONES.md."
+      if ($state["lastBacklogHash"] -ne $currentBacklogHash) {
+        Write-Log -Message "Detected change in active backlog files."
 
         if (-not (Test-Path -LiteralPath $script:CodexLockPath)) {
           Set-Content -LiteralPath $script:CodexLockPath -Value ([datetime]::UtcNow.ToString("o"))
           try {
             if (Invoke-BacklogValidation) {
-              Invoke-CodexForMilestone -State $state -MilestoneHash $currentMilestoneHash -PreRunTreeWasClean $preRunTreeWasClean
+              Invoke-CodexForMilestone -State $state -BacklogHash $currentBacklogHash -PreRunTreeWasClean $preRunTreeWasClean
             } else {
-              $state["lastMilestoneHash"] = $currentMilestoneHash
+              $state["lastBacklogHash"] = $currentBacklogHash
               $state["lastSyncedHead"] = $currentHead
               Save-State -State $state
             }
@@ -756,7 +892,7 @@ try {
       } else {
         $state["lastSyncedHead"] = $currentHead
         Save-State -State $state
-        Write-Log -Message "No milestone changes detected."
+        Write-Log -Message "No active backlog changes detected."
       }
     } catch {
       Write-Log -Level "ERROR" -Message $_.Exception.Message

@@ -27,9 +27,9 @@ Depends On: `agent/ISSUES.md`, `agent/ISSUES_BACKLOG.md`, `agent/MILESTONES.md`,
 - Historical context on demand: `agent/ISSUES_ARCHIVE.md`, `agent/MILESTONES_ARCHIVE.md`.
 
 ## Open / Close Gates
-- Mark a milestone `Active` when upstream blockers are resolved/accepted and at least three issues are actionable.
-- Mark a milestone `Complete` when required scope is complete/deferred with rationale and no unresolved high-priority blockers remain.
-- After closing the current milestone, automatically advance the next milestone in execution order unless the user explicitly pauses for re-evaluation.
+- Mark a milestone `Active` when it is the next implementation-ready milestone.
+- Mark a milestone `Complete` when it has no remaining active issues in `agent/ISSUES.md`.
+- After closing the current milestone, automatically advance the next milestone in file order unless the user explicitly pauses for re-evaluation.
 
 ## Dependency Metadata
 - Optional issue fields: `blocked_by`, `enables`.
@@ -42,11 +42,10 @@ Depends On: `agent/ISSUES.md`, `agent/ISSUES_BACKLOG.md`, `agent/MILESTONES.md`,
   - `**Status:**`
   - `**Priority:**`
   - problem/acceptance context
-- Prioritize work in this order unless the user overrides:
-  - `In Progress`
-  - `Open`
-  - `Blocked`
-- Within each status bucket, prioritize `high` before `medium` before `low`.
+- Default watcher selection is deterministic:
+  - first `In Progress` issue in the current `Active` milestone by file order
+  - otherwise first `Open` issue in the current `Active` milestone by file order
+- Priority is planning metadata for humans unless the user explicitly wants the watcher to reprioritize by it.
 - Default auto-execution gate:
   - only auto-work issues in the current `Active` milestone
   - and only when issue `**Status:**` is `Open` or `In Progress`
@@ -54,7 +53,7 @@ Depends On: `agent/ISSUES.md`, `agent/ISSUES_BACKLOG.md`, `agent/MILESTONES.md`,
   - `Open -> In Progress` when implementation begins
   - `In Progress -> Blocked` when blocked by dependency
   - `Blocked -> In Progress` when blocker clears
-  - archive after verification and resolution logging
+  - completed issues move out of `agent/ISSUES.md` and into `agent/ISSUES_ARCHIVE.md`
   - use `Open` again for reopened regressions unless a stronger distinction is needed later
 - Completed issues should be archived promptly to keep `agent/ISSUES.md` lean.
 
@@ -62,7 +61,7 @@ Depends On: `agent/ISSUES.md`, `agent/ISSUES_BACKLOG.md`, `agent/MILESTONES.md`,
 - Milestones are represented by markdown sections in `agent/MILESTONES.md`.
 - Issues are grouped under matching milestone sections in `agent/ISSUES.md`.
 - Only one milestone should be `Active`; others should normally be `Planned`, `Blocked`, or `Complete`.
-- When the current milestone is completed, advance the next milestone in file order unless the user explicitly pauses for evaluation.
+- When the current milestone has no remaining active issues, mark it `Complete` and advance the next `Planned` milestone in file order unless the user explicitly pauses for evaluation.
 
 ## Triage Cadence
 - Weekly, at milestone boundaries, and after major roadmap/contract changes.
@@ -72,15 +71,20 @@ Depends On: `agent/ISSUES.md`, `agent/ISSUES_BACKLOG.md`, `agent/MILESTONES.md`,
 - Milestone flow: `Planned -> Active -> Blocked/Active -> Complete`.
 
 ## Work Loop
-- Select issue.
-- Mark it `In Progress`.
-- Implement and verify.
-- Update resolution/status.
-- Archive completed items.
+- Detect backlog changes from `agent/ISSUES.md` and `agent/MILESTONES.md`.
+- Select the current execution target deterministically from the active milestone.
+- Mark an `Open` target issue `In Progress` before implementation begins.
+- Implement the selected issue only.
+- Run verification until the required checks pass or a real blocker is found.
+- Apply lint/cleanup appropriate to the touched area.
+- Archive completed issues and keep active docs minimal.
+- If the milestone has no remaining active issues, complete it and activate the next planned milestone.
+- Commit finished work.
+- Repeat until there is no active or planned implementation work left.
 
 ## Batching
-- Default to batches of 3-5 issues unless the user requests a different batch size.
-- After each batch, report completed items, remaining items, and blockers before continuing.
+- Watcher automation defaults to batch size `1` for deterministic execution and lower token spend.
+- Human-driven backlog work can still batch 3-5 issues when the user explicitly wants grouped execution.
 
 ## File Roles
 - Active execution: `agent/ISSUES.md`, `agent/MILESTONES.md`.
