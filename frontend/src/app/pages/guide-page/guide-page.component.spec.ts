@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { SessionService } from '../../core/services/session/session.service';
 import { GuidePageComponent } from './guide-page.component';
 
@@ -23,12 +23,20 @@ class SessionServiceStub {
 
 describe('GuidePageComponent', () => {
   let sessionService: SessionServiceStub;
+  let activatedRouteStub: { snapshot: { queryParamMap: ReturnType<typeof convertToParamMap> } };
 
   beforeEach(async () => {
+    activatedRouteStub = {
+      snapshot: {
+        queryParamMap: convertToParamMap({}),
+      },
+    };
+
     await TestBed.configureTestingModule({
       imports: [GuidePageComponent],
       providers: [
         provideRouter([]),
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: SessionService, useClass: SessionServiceStub },
       ],
     }).compileComponents();
@@ -70,6 +78,24 @@ describe('GuidePageComponent', () => {
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Return to Run');
     expect(text).not.toContain('Sign In');
+  });
+
+  it('uses a safe returnUrl query param for authenticated players', () => {
+    activatedRouteStub.snapshot.queryParamMap = convertToParamMap({ returnUrl: '/run/node/42' });
+    sessionService.session.set({
+      isAuthenticated: true,
+      displayName: 'Commander',
+      userId: 5,
+      csrfToken: 'token',
+    });
+
+    const fixture = TestBed.createComponent(GuidePageComponent);
+    fixture.detectChanges();
+
+    const primaryAction = fixture.nativeElement.querySelector('[dgCommandBtn="primary"]') as HTMLAnchorElement;
+
+    expect(primaryAction.textContent).toContain('Return to Run');
+    expect(primaryAction.getAttribute('href')).toBe('/run/node/42');
   });
 
   it('highlights acquired feature and unit unlocks for authenticated players', () => {

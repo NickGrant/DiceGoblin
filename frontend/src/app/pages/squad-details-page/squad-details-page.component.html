@@ -41,7 +41,22 @@
         </button>
 
         <section>
-          <h3 class="h6 dg-stencil">Available Units</h3>
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <h3 class="h6 dg-stencil mb-0">Available Units</h3>
+            @if (selectedUnit(); as selectedUnit) {
+            <button
+              dgCommandBtn="muted"
+              type="button"
+              (click)="removeSelectedUnitFromFormation()"
+              [disabled]="squadLocked() || !selectedUnitAssignedCell()"
+            >
+              Return {{ selectedUnit.name }} to Pool
+            </button>
+            }
+          </div>
+          <p class="formation-help mb-3">
+            Drag units as usual, or tap a unit card and then tap a formation slot to place it.
+          </p>
           <div
             class="unit-pool"
             cdkDropList
@@ -50,11 +65,26 @@
             (cdkDropListDropped)="dropUnit($event, { type: 'available' })"
           >
             @for (unit of availablePoolUnits(); track unit.id) {
-            <article class="unit-pool__card" cdkDrag [cdkDragData]="unit.id" [cdkDragDisabled]="squadLocked() || !!unit.locked">
+            <article
+              class="unit-pool__card"
+              [class.unit-pool__card--selected]="isUnitSelected(unit.id)"
+              cdkDrag
+              [cdkDragData]="unit.id"
+              [cdkDragDisabled]="squadLocked() || !!unit.locked"
+            >
               <div>
                 <strong>{{ unit.name }}</strong>
                 <p class="mb-0">{{ unit.unit_type_name || unit.unit_type_slug || 'Unit' }} Level {{ unit.level }}</p>
               </div>
+              <button
+                class="formation-select-btn"
+                type="button"
+                (click)="toggleUnitSelection(unit.id)"
+                [disabled]="squadLocked() || !!unit.locked"
+                [attr.aria-pressed]="isUnitSelected(unit.id)"
+              >
+                {{ isUnitSelected(unit.id) ? 'Selected for Placement' : 'Select for Placement' }}
+              </button>
               @if (unit.locked) {
               <span class="squad-lock-note">Locked in run</span>
               }
@@ -71,28 +101,73 @@
       <div class="dg-card p-3 h-100">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h2 class="dg-stencil m-0">Formation</h2>
-          <div class="formation-axis mb-3 w-25" aria-hidden="true">
+          <div class="formation-axis mb-3" aria-hidden="true">
             <span class="dg-stencil">Back</span>
             <span class="formation-axis__arrow"></span>
             <span class="dg-stencil">Front</span>
           </div>
         </div>
         <p class="mb-3">Units {{ selectedUnitCount() }} / {{ squadUnitCap() }}</p>
+        @if (selectedUnit(); as selectedUnit) {
+        <div
+          class="formation-selection mb-3"
+          [class.formation-selection--inactive]="!selectedUnitAssignedCell()"
+          aria-live="polite"
+        >
+          <strong>{{ selectedUnit.name }}</strong>
+          <span>
+            @if (selectedUnitAssignedCell(); as selectedCell) {
+            Selected from {{ selectedCell }}. Tap another slot to move or swap.
+            } @else {
+            Selected from the pool. Tap an empty or occupied slot to place.
+            }
+          </span>
+        </div>
+        }
 
         <div class="formation-grid">
           @for (cell of formationCells; track cell) {
           <div
             class="formation-cell"
             [class.formation-cell--occupied]="!!unitForCell(cell)"
+            [class.formation-cell--selected]="selectedUnitAssignedCell() === cell"
+            [class.formation-cell--disabled]="squadLocked()"
             cdkDropList
             [id]="dropListIdForCell(cell)"
             [cdkDropListDisabled]="squadLocked()"
             (cdkDropListDropped)="dropUnit($event, { type: 'cell', cell })"
           >
+            <div class="formation-cell__label">
+              <span>{{ cell }}</span>
+              <button
+                class="formation-cell__action"
+                type="button"
+                (click)="assignSelectedUnitToCell(cell)"
+                [disabled]="squadLocked()"
+                [attr.aria-label]="'Assign selected unit to formation slot ' + cell"
+              >
+                {{ formationCellActionLabel(cell) }}
+              </button>
+            </div>
             @if (unitForCell(cell); as unit) {
-              <article class="formation-unit" cdkDrag [cdkDragData]="unit.id" [cdkDragDisabled]="squadLocked() || !!unit.locked">
+              <article
+                class="formation-unit"
+                [class.formation-unit--selected]="isUnitSelected(unit.id)"
+                cdkDrag
+                [cdkDragData]="unit.id"
+                [cdkDragDisabled]="squadLocked() || !!unit.locked"
+              >
                 <strong>{{ unit.name }}</strong>
                 <p class="mb-0">{{ unit.unit_type_name || unit.unit_type_slug || 'Unit' }} {{ unit.level }}</p>
+                <button
+                  class="formation-select-btn"
+                  type="button"
+                  (click)="toggleUnitSelection(unit.id)"
+                  [disabled]="squadLocked() || !!unit.locked"
+                  [attr.aria-pressed]="isUnitSelected(unit.id)"
+                >
+                  {{ isUnitSelected(unit.id) ? 'Selected' : 'Select Unit' }}
+                </button>
               </article>
             } @else {
               <div class="formation-cell__empty">Drop unit</div>

@@ -8,6 +8,26 @@
 <!-- Archive history prior to purge can be recovered from git at commit fb22ebc and earlier. -->
 
 ---
+title: Make formation management usable on touch devices
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Mobile Improvements
+description: Squad formation management used drag/drop interactions that became unreliable once the formation grid collapsed to a single mobile column, leaving touch users without a dependable way to move units between the pool and formation slots.
+resolution: Added a tap-first selection and placement flow on squad details so touch users can select a pool or formation unit, tap any slot to place or swap it, and return the selected unit to the pool without dragging. Mobile styling now makes selected, occupied, empty, and locked/disabled states clearer with larger touch targets and a readable single-column layout. `npm run llm:check` passed, the focused squad-details frontend spec passed, and the frontend production build passed. Full frontend ChromeHeadless remains blocked by unrelated pre-existing failures in `shop-dice-grid-object.component.spec.ts`, `run-rest-page.component.spec.ts`, `home-page.component.spec.ts`, and `dice-grid-object.component.spec.ts`; backend PHPUnit remained externally blocked because the local MySQL test server refused connections.
+
+---
+title: Make the game shell and bottom HUD responsive on phones
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Mobile Improvements
+description: The authenticated Angular shell and persistent bottom HUD need to fit phone portrait and landscape viewports without hiding primary actions or reserving an oversized fixed bottom gap.
+resolution: Measured the live bottom HUD height into a shared CSS variable, switched the game shell bottom padding to that runtime value, and tightened the command strip layout for stacked portrait phones plus short landscape phones while preserving safe-area padding. `npm run llm:check` passed, targeted shell/HUD frontend specs passed, the frontend production build passed, portrait and landscape phone screenshots confirmed the CTA stayed visible above the HUD, backend PHPUnit was externally blocked because the configured MySQL test server on `127.0.0.1:3307` refused connections, and the full frontend suite still has unrelated pre-existing failures in run-rest, home-page, dice-grid, and shop-dice-grid specs.
+
+---
 title: Highlight acquired unlocks in the guide for logged-in users
 status: complete
 priority: high
@@ -26,6 +46,16 @@ ready: yes
 milestone: Watcher Testing
 description: The guide is currently available as a public route, but watcher testing needs it to be explicitly available to logged-in users from the authenticated game experience as well.
 resolution: Kept the public `/guide` route for anonymous visitors, added an authenticated shell route that reuses the same guide component, and made the guide page session-aware so logged-in players get return-to-game actions without clearing their session or active run state.
+
+---
+title: Add navigation from inside the game to the guide
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Watcher Testing
+description: Players need a discoverable route from inside the authenticated game shell to the guide.
+resolution: Added a persistent `Guide` entry in the authenticated bottom command strip, passed a safe `returnUrl` into the authenticated guide route so players can return to their exact in-game location, and kept the guide route session-safe during active runs. `npm run llm:check` passed, focused frontend guide/navigation specs passed, and backend PHPUnit remained blocked by the local MySQL test database refusing connections (`SQLSTATE[HY000] [2002]`).
 
 ---
 title: Add unit naming and ability-loadout persistence schema

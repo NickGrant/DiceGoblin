@@ -7,6 +7,7 @@ param(
   [string]$LogPath = "",
   [string]$CodexOutputPath = "",
   [int]$CodexCooldownMinutes = 15,
+  [int]$CodexTimeoutMinutes = 30,
   [bool]$AutoCommitAndPush = $true
 )
 
@@ -45,6 +46,61 @@ function Ensure-ParentDirectory {
   $parent = Split-Path -Parent $Path
   if ($parent -and -not (Test-Path -LiteralPath $parent)) {
     New-Item -ItemType Directory -Path $parent | Out-Null
+  }
+}
+
+function ConvertTo-TrimmedText {
+  param([AllowNull()][object]$Value)
+
+  if ($null -eq $Value) {
+    return ""
+  }
+
+  return ($Value | Out-String).Trim()
+}
+
+function Read-FileTextOrEmpty {
+  param([string]$Path)
+
+  if (-not (Test-Path -LiteralPath $Path)) {
+    return ""
+  }
+
+  $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction SilentlyContinue
+  if ($null -eq $raw) {
+    return ""
+  }
+
+  return [string]$raw
+}
+
+function Get-ChildProcessIds {
+  param([int]$ParentProcessId)
+
+  $children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $ParentProcessId" -ErrorAction SilentlyContinue)
+  $allIds = @()
+  foreach ($child in $children) {
+    $allIds += [int]$child.ProcessId
+    $allIds += @(Get-ChildProcessIds -ParentProcessId ([int]$child.ProcessId))
+  }
+
+  return $allIds
+}
+
+function Stop-ProcessTree {
+  param([int]$ProcessId)
+
+  $descendants = @(Get-ChildProcessIds -ParentProcessId $ProcessId)
+  foreach ($childId in ($descendants | Sort-Object -Descending -Unique)) {
+    try {
+      Stop-Process -Id $childId -Force -ErrorAction Stop
+    } catch {
+    }
+  }
+
+  try {
+    Stop-Process -Id $ProcessId -Force -ErrorAction Stop
+  } catch {
   }
 }
 
@@ -168,46 +224,172 @@ function Invoke-Git {
     [switch]$AllowFailure
   )
 
-  $output = & git @Arguments 2>&1
-  $exitCode = $LASTEXITCODE
+  $previousErrorAction = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    $output = & git @Arguments 2>&1
+    $exitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $previousErrorAction
+  }
+
   if (-not $AllowFailure -and $exitCode -ne 0) {
     throw "git $($Arguments -join ' ') failed with exit code $exitCode`n$output"
   }
 
   [PSCustomObject]@{
     ExitCode = $exitCode
-    Output = ($output | Out-String).Trim()
+    Output = ConvertTo-TrimmedText -Value $output
   }
 }
 
 function Invoke-Codex {
   param(
-    [string]$Prompt
+    [string]$Prompt,
+    [string]$IssueTitle = ""
   )
 
-  $arguments = @(
-    "-a", "never",
-    "-s", "danger-full-access",
-    "exec",
-    "-C", $script:RepoRootResolved,
-    "--output-last-message", $script:CodexOutputPathResolved,
-    "-"
+  $promptPath = Join-Path $script:ArtifactsDirResolved "codex-prompt.txt"
+  $stdoutPath = Join-Path $script:ArtifactsDirResolved "codex-stdout.txt"
+  $stderrPath = Join-Path $script:ArtifactsDirResolved "codex-stderr.txt"
+  $resultPath = Join-Path $script:ArtifactsDirResolved "codex-result.json"
+  $workerPath = Join-Path $script:ArtifactsDirResolved "codex-worker.ps1"
+
+  Set-Content -LiteralPath $promptPath -Value $Prompt
+  Remove-Item -LiteralPath $stdoutPath,$stderrPath,$resultPath -Force -ErrorAction SilentlyContinue
+
+  $workerScript = @'
+param(
+  [string]$CodexExe,
+  [string]$RepoRoot,
+  [string]$CodexOutputPath,
+  [string]$PromptPath,
+  [string]$ResultPath
+)
+
+$ErrorActionPreference = "Continue"
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+  $PSNativeCommandUseErrorActionPreference = $false
+}
+
+$arguments = @(
+  "-a", "never",
+  "-s", "danger-full-access",
+  "exec",
+  "-C", $RepoRoot,
+  "--output-last-message", $CodexOutputPath,
+  "-"
+)
+
+$output = (Get-Content -LiteralPath $PromptPath -Raw) | & $CodexExe @arguments 2>&1
+$exitCode = $LASTEXITCODE
+$payload = [ordered]@{
+  exitCode = $exitCode
+  output = if ($null -eq $output) { "" } else { ($output | Out-String).Trim() }
+} | ConvertTo-Json -Depth 4
+Set-Content -LiteralPath $ResultPath -Value $payload
+'@
+  Set-Content -LiteralPath $workerPath -Value $workerScript
+
+  $workerArgs = @(
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-File", $workerPath,
+    $script:CodexExe,
+    $script:RepoRootResolved,
+    $script:CodexOutputPathResolved,
+    $promptPath,
+    $resultPath
   )
 
-  $previousErrorAction = $ErrorActionPreference
-  $ErrorActionPreference = "Continue"
+  $worker = Start-Process -FilePath "powershell.exe" -ArgumentList $workerArgs -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -PassThru -WindowStyle Hidden
+  Update-CodexLockPid -ProcessId $worker.Id -Metadata $IssueTitle
+
   try {
-    $output = $Prompt | & $script:CodexExe @arguments 2>&1
-    $text = ($output | Out-String).Trim()
-    $exitCode = $LASTEXITCODE
-  } finally {
-    $ErrorActionPreference = $previousErrorAction
+    if (-not $worker.WaitForExit($CodexTimeoutMinutes * 60 * 1000)) {
+      Stop-ProcessTree -ProcessId $worker.Id
+      return [PSCustomObject]@{
+        ExitCode = 124
+        Output = "Codex execution timed out after $CodexTimeoutMinutes minute(s)."
+      }
+    }
+  } catch {
+    Stop-ProcessTree -ProcessId $worker.Id
+    throw
   }
 
-  [PSCustomObject]@{
-    ExitCode = $exitCode
-    Output = $text
+  $resultRaw = Read-FileTextOrEmpty -Path $resultPath
+  $stderrText = ConvertTo-TrimmedText -Value (Read-FileTextOrEmpty -Path $stderrPath)
+
+  if (-not [string]::IsNullOrWhiteSpace($resultRaw)) {
+    try {
+      $result = $resultRaw | ConvertFrom-Json
+      $combinedOutput = @($result.output, $stderrText) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+      return [PSCustomObject]@{
+        ExitCode = [int]$result.exitCode
+        Output = ConvertTo-TrimmedText -Value ($combinedOutput -join [Environment]::NewLine)
+      }
+    } catch {
+    }
   }
+
+  return [PSCustomObject]@{
+    ExitCode = $worker.ExitCode
+    Output = $stderrText
+  }
+}
+
+function Try-AcquireCodexLock {
+  param([string]$Metadata = "")
+
+  if (Test-Path -LiteralPath $script:CodexLockPath) {
+    try {
+      $lockInfo = Get-Content -LiteralPath $script:CodexLockPath -Raw | ConvertFrom-Json
+      $lockPid = 0
+      if ($lockInfo.PSObject.Properties.Name -contains "pid") {
+        $lockPid = [int]$lockInfo.pid
+      }
+
+      if ($lockPid -gt 0 -and (Test-ProcessRunning -ProcessId $lockPid)) {
+        return $false
+      }
+    } catch {
+    }
+
+    if (-not (Remove-StaleFileLock -Path $script:CodexLockPath -MinimumAgeMinutes 1)) {
+      return $false
+    }
+  }
+
+  $payload = [ordered]@{
+    pid = 0
+    startedAtUtc = [datetime]::UtcNow.ToString("o")
+    metadata = $Metadata
+  } | ConvertTo-Json
+
+  Set-Content -LiteralPath $script:CodexLockPath -Value $payload
+  return $true
+}
+
+function Release-CodexLock {
+  if (Test-Path -LiteralPath $script:CodexLockPath) {
+    Remove-Item -LiteralPath $script:CodexLockPath -Force -ErrorAction SilentlyContinue
+  }
+}
+
+function Update-CodexLockPid {
+  param(
+    [int]$ProcessId,
+    [string]$Metadata = ""
+  )
+
+  $payload = [ordered]@{
+    pid = $ProcessId
+    startedAtUtc = [datetime]::UtcNow.ToString("o")
+    metadata = $Metadata
+  } | ConvertTo-Json
+
+  Set-Content -LiteralPath $script:CodexLockPath -Value $payload
 }
 
 function Get-FileHashSafe {
@@ -230,6 +412,32 @@ function Get-Blocks {
   return ($Raw -split "(?m)^\-\-\-\s*$") |
     ForEach-Object { $_.Trim() } |
     Where-Object { $_ }
+}
+
+function Get-GitStatusPaths {
+  param([string]$StatusOutput)
+
+  if ([string]::IsNullOrWhiteSpace($StatusOutput)) {
+    return @()
+  }
+
+  $paths = @()
+  foreach ($line in ($StatusOutput -split "`r?`n")) {
+    if ([string]::IsNullOrWhiteSpace($line) -or $line.Length -lt 4) {
+      continue
+    }
+
+    $pathText = $line.Substring(3).Trim()
+    if ($pathText -match "\s+->\s+") {
+      $pathText = ($pathText -split "\s+->\s+")[-1].Trim()
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($pathText)) {
+      $paths += $pathText
+    }
+  }
+
+  return @($paths | Sort-Object -Unique)
 }
 
 function Get-FieldValue {
@@ -537,11 +745,13 @@ function Advance-MilestonesIfNeeded {
     return $false
   }
 
-  $remainingIssues = $issues |
-    Where-Object {
-      $_.Milestone -eq $activeMilestone.Name -and
-      $_.Status -in @("Open", "In Progress", "Blocked")
-    }
+  $remainingIssues = @(
+    $issues |
+      Where-Object {
+        $_.Milestone -eq $activeMilestone.Name -and
+        $_.Status -in @("Open", "In Progress", "Blocked")
+      }
+  )
 
   if ($remainingIssues.Count -gt 0) {
     return $false
@@ -700,7 +910,7 @@ function Invoke-SafeSync {
 function Invoke-BacklogValidation {
   $output = & npm.cmd run llm:check 2>&1
   $exitCode = $LASTEXITCODE
-  $text = ($output | Out-String).Trim()
+  $text = ConvertTo-TrimmedText -Value $output
 
   if ($exitCode -ne 0) {
     Write-Log -Level "WARN" -Message "Backlog validation failed. Codex trigger skipped. Details: $($text -replace '\s+', ' ')"
@@ -714,13 +924,9 @@ function Invoke-BacklogValidation {
 function Invoke-CommitAndPush {
   param(
     [string]$MilestoneName,
-    [bool]$PreRunTreeWasClean
+    [bool]$PreRunTreeWasClean,
+    [string[]]$PreRunDirtyPaths = @()
   )
-
-  if (-not $PreRunTreeWasClean) {
-    Write-Log -Level "WARN" -Message "Skipping auto-commit because the working tree was already dirty before Codex ran."
-    return
-  }
 
   if (-not $AutoCommitAndPush) {
     Write-Log -Message "Auto-commit is disabled for this watcher run."
@@ -738,11 +944,33 @@ function Invoke-CommitAndPush {
     return
   }
 
-  Invoke-Git -Arguments @("add", "-A") | Out-Null
+  $currentPaths = @(Get-GitStatusPaths -StatusOutput $status.Output)
+  $preexistingPathSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+  foreach ($path in $PreRunDirtyPaths) {
+    if (-not [string]::IsNullOrWhiteSpace($path)) {
+      [void]$preexistingPathSet.Add($path)
+    }
+  }
+
+  $commitPaths = @(
+    $currentPaths |
+      Where-Object { -not $preexistingPathSet.Contains($_) }
+  )
+
+  if ($commitPaths.Count -eq 0) {
+    if ($PreRunTreeWasClean) {
+      Write-Log -Level "WARN" -Message "No commitable paths were detected after the Codex run."
+    } else {
+      Write-Log -Level "WARN" -Message "Skipping auto-commit because all changed paths overlap with pre-existing dirty worktree files."
+    }
+    return
+  }
+
+  Invoke-Git -Arguments @("add", "--") + $commitPaths | Out-Null
 
   $cachedDiff = Invoke-Git -Arguments @("diff", "--cached", "--name-only")
   if ([string]::IsNullOrWhiteSpace($cachedDiff.Output)) {
-    Write-Log -Message "No staged diff was produced after git add -A."
+    Write-Log -Message "No staged diff was produced after staging commitable paths."
     return
   }
 
@@ -762,7 +990,8 @@ function Invoke-CodexForMilestone {
   param(
     [hashtable]$State,
     [string]$BacklogHash,
-    [bool]$PreRunTreeWasClean
+    [bool]$PreRunTreeWasClean,
+    [string[]]$PreRunDirtyPaths = @()
   )
 
   $target = Get-CurrentExecutionTarget
@@ -838,14 +1067,14 @@ $($verificationCommands | ForEach-Object { "- $_" } | Out-String)
 "@
 
   Write-Log -Message "Launching Codex for issue '$($issue.Title)' in milestone '$($milestone.Name)'."
-  $result = Invoke-Codex -Prompt $prompt
+  $result = Invoke-Codex -Prompt $prompt -IssueTitle $issue.Title
 
   if ($result.ExitCode -ne 0) {
     Write-Log -Level "ERROR" -Message "Codex exec failed with exit code $($result.ExitCode). Details: $($result.Output -replace '\s+', ' ')"
   } else {
     Write-Log -Message "Codex exec completed successfully."
     [void](Advance-MilestonesIfNeeded)
-    Invoke-CommitAndPush -MilestoneName $milestone.Name -PreRunTreeWasClean $PreRunTreeWasClean
+    Invoke-CommitAndPush -MilestoneName $milestone.Name -PreRunTreeWasClean $PreRunTreeWasClean -PreRunDirtyPaths $PreRunDirtyPaths
   }
 
   $State["lastCodexRunUtc"] = [datetime]::UtcNow.ToString("o")
@@ -857,6 +1086,7 @@ $($verificationCommands | ForEach-Object { "- $_" } | Out-String)
 $script:RepoRootResolved = (Resolve-Path -LiteralPath $RepoRoot).Path
 $script:CodexExe = Resolve-CodexExecutable -RequestedPath $CodexPath
 $defaultArtifactsDir = Join-Path $script:RepoRootResolved "artifacts\automation"
+$script:ArtifactsDirResolved = $defaultArtifactsDir
 $script:StatePathResolved = if ($StatePath) { $StatePath } else { Join-Path $defaultArtifactsDir "repo-watch-state.json" }
 $script:LogPathResolved = if ($LogPath) { $LogPath } else { Join-Path $defaultArtifactsDir "repo-watch.log" }
 $script:CodexOutputPathResolved = if ($CodexOutputPath) { $CodexOutputPath } else { Join-Path $defaultArtifactsDir "codex-last-message.txt" }
@@ -902,25 +1132,23 @@ try {
       $currentHead = (Invoke-Git -Arguments @("rev-parse", "HEAD")).Output
       $preRunStatus = Invoke-Git -Arguments @("status", "--porcelain")
       $preRunTreeWasClean = [string]::IsNullOrWhiteSpace($preRunStatus.Output)
+      $preRunDirtyPaths = @(Get-GitStatusPaths -StatusOutput $preRunStatus.Output)
       $currentBacklogHash = Get-BacklogHash
 
       if ($state["lastBacklogHash"] -ne $currentBacklogHash) {
         Write-Log -Message "Detected change in active backlog files."
 
-        if (-not (Test-Path -LiteralPath $script:CodexLockPath)) {
-          Set-Content -LiteralPath $script:CodexLockPath -Value ([datetime]::UtcNow.ToString("o"))
+        if (Try-AcquireCodexLock -Metadata $currentBacklogHash) {
           try {
             if (Invoke-BacklogValidation) {
-              Invoke-CodexForMilestone -State $state -BacklogHash $currentBacklogHash -PreRunTreeWasClean $preRunTreeWasClean
+              Invoke-CodexForMilestone -State $state -BacklogHash $currentBacklogHash -PreRunTreeWasClean $preRunTreeWasClean -PreRunDirtyPaths $preRunDirtyPaths
             } else {
               $state["lastBacklogHash"] = $currentBacklogHash
               $state["lastSyncedHead"] = $currentHead
               Save-State -State $state
             }
           } finally {
-            if (Test-Path -LiteralPath $script:CodexLockPath) {
-              Remove-Item -LiteralPath $script:CodexLockPath -Force
-            }
+            Release-CodexLock
           }
         } else {
           Write-Log -Level "WARN" -Message "Codex lock is present. Skipping trigger this cycle."

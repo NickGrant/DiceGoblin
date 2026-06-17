@@ -40,7 +40,16 @@ export class SquadDetailsPageComponent {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
+  readonly selectedUnitId = signal<string | null>(null);
   readonly squadLocked = computed(() => !!this.activeRun() && this.activeSquad()?.id === this.squadId);
+  readonly selectedUnit = computed(() => {
+    const unitId = this.selectedUnitId();
+    return unitId ? this.unitById(unitId) : null;
+  });
+  readonly selectedUnitAssignedCell = computed(() => {
+    const unit = this.selectedUnit();
+    return unit ? this.findAssignedCellForUnit(unit.id) : null;
+  });
   readonly selectedUnitCount = computed(() => {
     this.formationRevision();
     return this.selectedUnitIdsForSave().length;
@@ -114,6 +123,81 @@ export class SquadDetailsPageComponent {
     this.placeUnitInCell(unitId, target.cell, source.type === 'cell' ? source.cell : null);
   }
 
+  toggleUnitSelection(unitId: string): void {
+    if (this.squadLocked()) {
+      return;
+    }
+
+    const unit = this.unitById(unitId);
+    if (!unit || unit.locked) {
+      return;
+    }
+
+    this.error.set(null);
+    this.selectedUnitId.update((selectedUnitId) => selectedUnitId === unitId ? null : unitId);
+  }
+
+  assignSelectedUnitToCell(cell: string): void {
+    if (this.squadLocked()) {
+      return;
+    }
+
+    const unit = this.selectedUnit();
+    if (!unit) {
+      this.error.set('Select a unit first, then tap a formation slot.');
+      return;
+    }
+
+    this.error.set(null);
+
+    const previousCell = this.findAssignedCellForUnit(unit.id);
+    const targetOccupiedByUnitId = this.formationAssignments.get(cell) ?? null;
+    const wouldAddNewMember =
+      !previousCell
+      && !targetOccupiedByUnitId
+      && this.selectedUnitCount() >= this.squadUnitCap();
+
+    if (wouldAddNewMember) {
+      this.error.set(`This squad is capped at ${this.squadUnitCap()} units.`);
+      return;
+    }
+
+    this.placeUnitInCell(unit.id, cell, previousCell);
+  }
+
+  formationCellActionLabel(cell: string): string {
+    if (this.selectedUnitAssignedCell() === cell) {
+      return 'Selected';
+    }
+
+    return this.selectedUnit() ? 'Tap to Place' : 'Tap to Select Unit';
+  }
+
+  removeSelectedUnitFromFormation(): void {
+    if (this.squadLocked()) {
+      return;
+    }
+
+    const unit = this.selectedUnit();
+    if (!unit) {
+      this.error.set('Select a formation unit first, then remove it from the squad.');
+      return;
+    }
+
+    const assignedCell = this.findAssignedCellForUnit(unit.id);
+    if (!assignedCell) {
+      this.error.set('Selected unit is already in the available pool.');
+      return;
+    }
+
+    this.error.set(null);
+    this.removeUnitFromSquad(unit.id);
+  }
+
+  isUnitSelected(unitId: string): boolean {
+    return this.selectedUnitId() === unitId;
+  }
+
   unitById(unitId: string): UnitRecord | null {
     return this.availableUnits().find((unit) => unit.id === unitId) ?? null;
   }
@@ -181,6 +265,9 @@ export class SquadDetailsPageComponent {
 
   private removeUnitFromSquad(unitId: string): void {
     this.clearFormationAssignmentsForUnit(unitId);
+    if (this.selectedUnitId() === unitId) {
+      this.selectedUnitId.set(null);
+    }
     this.bumpFormationRevision();
   }
 
@@ -203,6 +290,7 @@ export class SquadDetailsPageComponent {
       this.formationAssignments.set(sourceCell, displacedUnitId);
     }
 
+    this.selectedUnitId.set(unitId);
     this.bumpFormationRevision();
   }
 

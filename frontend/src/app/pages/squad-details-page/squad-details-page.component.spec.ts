@@ -176,6 +176,115 @@ describe('SquadDetailsPageComponent', () => {
     expect(fixture.componentInstance.formationAssignments.get('C3')).toBe('u3');
   });
 
+  it('assigns a selected pool unit into formation through the tap placement flow', async () => {
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.toggleUnitSelection('u3');
+    fixture.componentInstance.assignSelectedUnitToCell('C3');
+
+    expect(fixture.componentInstance.selectedUnitId()).toBe('u3');
+    expect(fixture.componentInstance.selectedUnitAssignedCell()).toBe('C3');
+    expect(fixture.componentInstance.formationAssignments.get('C3')).toBe('u3');
+    expect(fixture.componentInstance.error()).toBeNull();
+  });
+
+  it('swaps a selected formation unit into a new occupied slot through the tap placement flow', async () => {
+    class FilledSessionServiceStub extends SessionServiceStub {
+      override readonly squads = signal([
+        {
+          id: 's1',
+          name: 'Alpha',
+          unit_ids: ['u1', 'u2'],
+          formation: [
+            { cell: 'A1', unit_instance_id: 'u1' },
+            { cell: 'B2', unit_instance_id: 'u2' },
+          ],
+          is_active: false,
+        },
+      ] as any[]);
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: FilledSessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.toggleUnitSelection('u1');
+    fixture.componentInstance.assignSelectedUnitToCell('B2');
+
+    expect(fixture.componentInstance.formationAssignments.get('A1')).toBe('u2');
+    expect(fixture.componentInstance.formationAssignments.get('B2')).toBe('u1');
+    expect(fixture.componentInstance.selectedUnitAssignedCell()).toBe('B2');
+  });
+
+  it('removes a selected formation unit back to the pool through the tap flow', async () => {
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.toggleUnitSelection('u1');
+    fixture.componentInstance.removeSelectedUnitFromFormation();
+
+    expect(fixture.componentInstance.formationAssignments.get('A1')).toBeNull();
+    expect(fixture.componentInstance.selectedUnitId()).toBeNull();
+    expect(fixture.componentInstance.availablePoolUnits().map((unit) => unit.id)).toContain('u1');
+  });
+
+  it('shows a clear error when a slot is tapped before a unit is selected', async () => {
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.assignSelectedUnitToCell('B2');
+
+    expect(fixture.componentInstance.error()).toBe('Select a unit first, then tap a formation slot.');
+  });
+
   it('blocks adding a new unit into an empty slot when the squad is already at cap', async () => {
     class CappedSessionServiceStub extends SessionServiceStub {
       override readonly squads = signal([

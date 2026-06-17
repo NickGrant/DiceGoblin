@@ -5,25 +5,27 @@
   z-index: 20;
   display: flex;
   justify-content: center;
-  padding: 0 1rem 0.75rem;
+  padding: 0 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
 }
 
 .hud-shell {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(190px, 0.85fr) minmax(0, 1fr);
   width: min(1280px, calc(100vw - 2rem));
   align-items: center;
-  justify-content: space-between;
   aspect-ratio: 1506 / 203;
   background: url('/assets/ui/elements/base_bar.png') center / 100% 100% no-repeat;
   padding: 20px 70px 50px;
+  column-gap: 1.25rem;
+  pointer-events: auto;
 }
 
 .hud-shell__group {
   display: flex;
   align-items: center;
   min-height: 0;
-  width: 370px;
-  align-items: center;
+  min-width: 0;
   justify-content: space-between;
 }
 
@@ -44,6 +46,29 @@
 
 .hud-icon-link:hover,
 .hud-icon-link.is-active {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.hud-guide-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(40px, 3vw, 48px);
+  padding: 0.35rem 0.9rem;
+  border: 1px solid rgba(243, 239, 224, 0.9);
+  background: rgba(243, 239, 224, 0.86);
+  color: #23272a;
+  font-size: clamp(0.72rem, 0.78vw, 0.82rem);
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.hud-guide-link:hover,
+.hud-guide-link.is-active {
   transform: translateY(-1px);
   filter: brightness(1.08);
 }
@@ -99,17 +124,21 @@
 }
 
 .hud-shell__group--nav {
-  gap: 0;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  justify-content: flex-start;
 }
 
 .hud-shell__group--stats {
-  width: 300px;
+  flex-wrap: wrap;
   justify-content: space-around;
   align-self: end;
   transform: translateY(-15px);
+  gap: 1rem;
 }
 
 .hud-shell__group--player {
+  flex-wrap: wrap;
   gap: 1rem;
 }
 
@@ -120,17 +149,162 @@
 
   .hud-shell {
     width: calc(100vw - 1rem);
+    padding-inline: 48px;
+    column-gap: 0.75rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .hud-shell {
+    aspect-ratio: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'nav nav'
+      'stats player';
+    background:
+      linear-gradient(180deg, rgba(62, 45, 32, 0.96), rgba(28, 21, 16, 0.96));
+    border: 1px solid rgba(243, 239, 224, 0.18);
+    border-radius: 22px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+    padding: 0.85rem 0.95rem;
+    row-gap: 0.75rem;
+  }
+
+  .hud-shell__group--nav {
+    grid-area: nav;
+    justify-content: center;
+  }
+
+  .hud-shell__group--stats {
+    grid-area: stats;
+    align-self: stretch;
+    justify-content: flex-start;
+    transform: none;
+    gap: 0.85rem;
+  }
+
+  .hud-shell__group--player {
+    grid-area: player;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .hud-player {
+    color: #f3efe0;
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .hud-player__label {
+    opacity: 0.72;
+  }
+
+  .hud-player__name {
+    font-size: 0.9rem;
+  }
+
+  .hud-logout {
+    min-height: 38px;
   }
 }
 
 @media (max-width: 640px) {
   .hud-shell__group--nav {
-    left: 1.5%;
-    width: 25%;
+    gap: 0.3rem 0.4rem;
+  }
+
+  .hud-stat {
+    font-size: 0.92rem;
+  }
+
+  .hud-guide-link {
+    min-height: 40px;
+    padding-inline: 0.75rem;
+    font-size: 0.7rem;
+  }
+
+  .hud-shell__group--player {
+    gap: 0.75rem;
   }
 
   .hud-player__label {
     display: none;
+  }
+}
+
+@media (max-width: 760px) and (orientation: landscape) {
+  .hud-shell {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.8fr) minmax(0, 1fr);
+    grid-template-areas: 'nav stats player';
+    align-items: center;
+    padding: 0.7rem 0.85rem;
+    column-gap: 0.65rem;
+    row-gap: 0.5rem;
+  }
+
+  .hud-shell__group--nav {
+    justify-content: flex-start;
+  }
+
+  .hud-shell__group--stats {
+    justify-content: center;
+    align-self: center;
+    gap: 0.7rem;
+  }
+
+  .hud-shell__group--player {
+    justify-content: flex-end;
+    gap: 0.6rem;
+  }
+
+  .hud-icon-link {
+    width: 40px;
+    height: 40px;
+  }
+
+  .hud-guide-link,
+  .hud-logout {
+    min-height: 36px;
+  }
+
+  .hud-player__name,
+  .hud-stat {
+    font-size: 0.84rem;
+  }
+}
+
+@media (max-width: 460px) {
+  .game-shell__hud {
+    padding-inline: 0.35rem;
+  }
+
+  .hud-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'nav'
+      'stats'
+      'player';
+    width: calc(100vw - 0.7rem);
+    padding: 0.75rem 0.8rem;
+  }
+
+  .hud-shell__group--stats {
+    justify-content: center;
+  }
+
+  .hud-shell__group--player {
+    justify-content: space-between;
+  }
+
+  .hud-player {
+    align-items: flex-start;
+    text-align: left;
+    color: #f3efe0;
+  }
+
+  .hud-icon-link {
+    width: clamp(40px, 12vw, 48px);
+    height: clamp(40px, 12vw, 48px);
   }
 
   .hud-logout {

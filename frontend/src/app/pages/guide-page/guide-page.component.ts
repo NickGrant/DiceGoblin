@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SessionService } from '../../core/services/session/session.service';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 
@@ -40,14 +40,40 @@ type GuideNode = {
 })
 export class GuidePageComponent implements OnInit {
   private readonly sessionService = inject(SessionService);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly session = this.sessionService.session;
   protected readonly profileData = this.sessionService.profileData;
   protected readonly hasActiveRun = this.sessionService.hasActiveRun;
   protected readonly heroEyebrow = computed(() => this.session().isAuthenticated ? 'Field Manual' : 'Public Field Manual');
+  protected readonly returnUrl = computed(() => {
+    if (!this.session().isAuthenticated) {
+      return null;
+    }
+
+    const candidate = this.route.snapshot.queryParamMap.get('returnUrl');
+
+    if (
+      !candidate
+      || !candidate.startsWith('/')
+      || candidate.startsWith('//')
+      || candidate === '/guide'
+      || candidate.startsWith('/guide?')
+      || candidate === '/field-guide'
+      || candidate.startsWith('/field-guide?')
+    ) {
+      return null;
+    }
+
+    return candidate;
+  });
   protected readonly primaryActionLabel = computed(() => {
     if (!this.session().isAuthenticated) {
       return 'Sign In';
+    }
+
+    if (this.returnUrl()) {
+      return this.returnUrl()!.startsWith('/run/') ? 'Return to Run' : 'Back to Game';
     }
 
     return this.hasActiveRun() ? 'Return to Run' : 'Back to HQ';
@@ -55,6 +81,10 @@ export class GuidePageComponent implements OnInit {
   protected readonly primaryActionRoute = computed(() => {
     if (!this.session().isAuthenticated) {
       return '/login';
+    }
+
+    if (this.returnUrl()) {
+      return this.returnUrl()!;
     }
 
     return this.hasActiveRun() ? '/run/map' : '/home';

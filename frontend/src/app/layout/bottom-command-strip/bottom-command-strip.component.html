@@ -13,6 +13,15 @@
       <a class="hud-icon-link" routerLink="/shop" routerLinkActive="is-active" aria-label="Shop">
         <img src="/assets/ui/icons/icon_shop.png" alt="" />
       </a>
+      <a
+        class="hud-guide-link dg-stencil"
+        routerLink="/field-guide"
+        [queryParams]="guideQueryParams()"
+        routerLinkActive="is-active"
+        aria-label="Field Guide"
+      >
+        Guide
+      </a>
     </div>
 
     <div class="hud-shell__group hud-shell__group--stats">

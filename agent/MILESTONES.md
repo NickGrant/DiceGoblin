@@ -2,32 +2,9 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Watcher Testing
-
-**Status:** Active  
-**Purpose:** Prepare a small set of guide and navigation improvements for watcher/user testing.
-
-### Goals
-
-- Make the guide useful to both anonymous visitors and logged-in players.
-- Let logged-in players see which guide unlocks they have already acquired.
-- Give players an obvious way to reach the guide from inside the authenticated game shell.
-
-### Exit Criteria
-
-- Logged-in users can open the guide without losing session or run state.
-- Anonymous guide access still works.
-- Acquired unlocks are clearly marked when a logged-in user views the guide.
-- Unacquired unlocks remain understandable without hiding useful guide content.
-- The in-game UI includes clear navigation to the guide and a clear way back to the game.
-
-### Related Issues
-
-- WT-003: Add navigation from inside the game to the guide.
-
 ## Mobile Improvements
 
-**Status:** Planned  
+**Status:** Active  
 **Purpose:** Improve playability and regression coverage for phone-sized viewports before broader testing.
 
 ### Goals
@@ -49,7 +26,5 @@ The latest GitHub code uses the Angular frontend structure under `frontend/src/a
 
 ### Related Issues
 
-- MI-001: Make the game shell and bottom HUD responsive on phones.
-- MI-002: Make formation management usable on touch devices.
 - MI-003: Make unit loadout editing touch-friendly.
 - MI-004: Add mobile viewport regression checks for key play flows.

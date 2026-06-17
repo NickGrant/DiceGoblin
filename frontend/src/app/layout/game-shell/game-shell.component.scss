@@ -1,6 +1,7 @@
 :host {
+  --bottom-command-strip-spacing: 1rem;
   min-height: 100vh;
-  padding: 1rem 0 200px;
+  padding: 1rem 0 calc(var(--bottom-command-strip-height, 152px) + var(--bottom-command-strip-spacing) + env(safe-area-inset-bottom, 0px));
   display: block;
 }
 
@@ -18,4 +19,11 @@
 .status-card--error {
   border-color: rgba(185, 28, 28, 0.5);
   background: rgba(185, 28, 28, 0.1);
+}
+
+@media (max-width: 640px) {
+  :host {
+    --bottom-command-strip-spacing: 0.75rem;
+    padding-top: 0.75rem;
+  }
 }

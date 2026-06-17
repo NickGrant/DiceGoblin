@@ -7,6 +7,27 @@
 
 <!-- Archive history prior to purge can be recovered from git at commit fb22ebc and earlier. -->
 
+name: Watcher Testing
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Make guide available to logged-in users
+  - Highlight acquired unlocks in the guide for logged-in users
+  - Add navigation from inside the game to the guide
+description: |
+  Prepare a small set of guide and navigation improvements for watcher and user
+  testing so both anonymous visitors and logged-in players can understand the
+  game flow without losing session or run context.
+Resolution: |
+  Completed the guide rollout across public and authenticated routes, surfaced
+  acquired unlock states for logged-in players, and added persistent in-game
+  navigation with safe return routing back to the current play surface. Frontend
+  and backlog checks passed for the final slice, while backend PHPUnit remained
+  externally blocked by the local MySQL test database refusing connections.
+
+---
+
 name: Milestone 37 - Ability Loadout Rework Foundations
 status: complete
 execution_window: open
