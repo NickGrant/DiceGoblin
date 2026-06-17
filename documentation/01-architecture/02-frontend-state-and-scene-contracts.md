@@ -48,6 +48,8 @@ Includes:
 - units
 - squads
 - dice inventory
+- permanent feature unlocks
+- permanent unit-type unlocks
 - region unlocks
 - active squad selection
 

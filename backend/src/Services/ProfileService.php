@@ -56,6 +56,8 @@ final class ProfileService
     $currency = $this->playerStateRepo->getCurrency($userId);
     $featureUnlocks = (new UserUnlockService($this->pdo))
       ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_FEATURE);
+    $unitTypeUnlocks = (new UserUnlockService($this->pdo))
+      ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_UNIT_TYPE);
     $squadUnitCap = SquadCapacityService::resolveCapFromFeatureUnlocks($featureUnlocks);
 
     // Squads/Teams (membership + formation)
@@ -90,6 +92,7 @@ final class ProfileService
       $energy,
       $squadUnitCap,
       $featureUnlocks,
+      $unitTypeUnlocks,
       $regionUnlocks,
       $regionItems,
       $activeRun

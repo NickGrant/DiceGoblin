@@ -20,6 +20,7 @@ type GuideAffix = {
 
 type GuideUnlock = {
   name: string;
+  key: string;
   cost: number;
   description: string;
 };
@@ -41,6 +42,7 @@ export class GuidePageComponent implements OnInit {
   private readonly sessionService = inject(SessionService);
 
   protected readonly session = this.sessionService.session;
+  protected readonly profileData = this.sessionService.profileData;
   protected readonly hasActiveRun = this.sessionService.hasActiveRun;
   protected readonly heroEyebrow = computed(() => this.session().isAuthenticated ? 'Field Manual' : 'Public Field Manual');
   protected readonly primaryActionLabel = computed(() => {
@@ -131,13 +133,13 @@ export class GuidePageComponent implements OnInit {
   ];
 
   protected readonly unlocks: ReadonlyArray<GuideUnlock> = [
-    { name: 'Academy', cost: 250, description: 'Unlock promotions and unit-type research for your warband.' },
-    { name: 'Bigger Squad', cost: 500, description: 'Raise your squad size cap from 4 units to 6.' },
-    { name: 'Biggerest Squad', cost: 1000, description: 'Raise your squad size cap from 6 units to the full 9-slot formation.' },
-    { name: 'Coupon Book', cost: 500, description: 'Make all future shop purchases cost 10% less.' },
-    { name: 'Sharp Dealer', cost: 500, description: 'Make dice sales pay out 10% more teeth.' },
-    { name: 'Market Mastery', cost: 1000, description: 'Improve both shop discounts and sale payouts to 20% once both economy upgrades are unlocked.' },
-    { name: 'Second Deal', cost: 500, description: 'Add a second daily deal slot so the shop offers two rotating featured dice each day.' },
+    { name: 'Academy', key: 'academy', cost: 250, description: 'Unlock promotions and unit-type research for your warband.' },
+    { name: 'Bigger Squad', key: 'bigger_squad', cost: 500, description: 'Raise your squad size cap from 4 units to 6.' },
+    { name: 'Biggerest Squad', key: 'biggerest_squad', cost: 1000, description: 'Raise your squad size cap from 6 units to the full 9-slot formation.' },
+    { name: 'Coupon Book', key: 'shop_discount', cost: 500, description: 'Make all future shop purchases cost 10% less.' },
+    { name: 'Sharp Dealer', key: 'sell_bonus', cost: 500, description: 'Make dice sales pay out 10% more teeth.' },
+    { name: 'Market Mastery', key: 'market_mastery', cost: 1000, description: 'Improve both shop discounts and sale payouts to 20% once both economy upgrades are unlocked.' },
+    { name: 'Second Deal', key: 'second_daily_deal', cost: 500, description: 'Add a second daily deal slot so the shop offers two rotating featured dice each day.' },
   ];
 
   protected readonly nodes: ReadonlyArray<GuideNode> = [
@@ -167,4 +169,20 @@ export class GuidePageComponent implements OnInit {
       description: 'Finish a successful run and move to the summary screen for rewards and cleanup.',
     },
   ];
+
+  protected hasAcquiredFeatureUnlock(unlockKey: string): boolean {
+    if (!this.session().isAuthenticated) {
+      return false;
+    }
+
+    return this.profileData()?.feature_unlocks.includes(unlockKey) ?? false;
+  }
+
+  protected hasAcquiredUnitUnlock(unitSlug: string): boolean {
+    if (!this.session().isAuthenticated) {
+      return false;
+    }
+
+    return this.profileData()?.unit_type_unlocks.includes(unitSlug) ?? false;
+  }
 }

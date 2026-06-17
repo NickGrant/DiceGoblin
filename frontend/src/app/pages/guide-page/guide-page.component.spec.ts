@@ -17,6 +17,7 @@ class SessionServiceStub {
     csrfToken: null,
   });
   readonly hasActiveRun = signal(false);
+  readonly profileData = signal<any>(null);
   readonly initialize = jasmine.createSpy('initialize').and.resolveTo();
 }
 
@@ -69,5 +70,28 @@ describe('GuidePageComponent', () => {
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Return to Run');
     expect(text).not.toContain('Sign In');
+  });
+
+  it('highlights acquired feature and unit unlocks for authenticated players', () => {
+    sessionService.session.set({
+      isAuthenticated: true,
+      displayName: 'Commander',
+      userId: 5,
+      csrfToken: 'token',
+    });
+    sessionService.profileData.set({
+      feature_unlocks: ['academy', 'sell_bonus'],
+      unit_type_unlocks: ['support_banner_t1'],
+    });
+
+    const fixture = TestBed.createComponent(GuidePageComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const acquiredCards = compiled.querySelectorAll('.guide-card--acquired');
+
+    expect(compiled.textContent).toContain('Acquired unlocks are stamped below.');
+    expect(acquiredCards.length).toBe(3);
+    expect(compiled.textContent).toContain('Acquired');
   });
 });

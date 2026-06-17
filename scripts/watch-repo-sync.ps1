@@ -346,6 +346,40 @@ function Get-MarkdownFieldValue {
   return $null
 }
 
+function ConvertTo-HashtableCompat {
+  param([object]$InputObject)
+
+  if ($null -eq $InputObject) {
+    return $null
+  }
+
+  if ($InputObject -is [System.Collections.IDictionary]) {
+    $table = [ordered]@{}
+    foreach ($key in $InputObject.Keys) {
+      $table[$key] = ConvertTo-HashtableCompat -InputObject $InputObject[$key]
+    }
+    return $table
+  }
+
+  if ($InputObject -is [System.Collections.IEnumerable] -and -not ($InputObject -is [string])) {
+    $items = @()
+    foreach ($item in $InputObject) {
+      $items += ConvertTo-HashtableCompat -InputObject $item
+    }
+    return $items
+  }
+
+  if ($InputObject -is [pscustomobject] -or $InputObject -is [psobject]) {
+    $table = [ordered]@{}
+    foreach ($property in $InputObject.PSObject.Properties) {
+      $table[$property.Name] = ConvertTo-HashtableCompat -InputObject $property.Value
+    }
+    return $table
+  }
+
+  return $InputObject
+}
+
 function Get-RelatedIssueTitles {
   param([string]$Block)
 
@@ -539,7 +573,9 @@ function Get-State {
   }
 
   try {
-    return Get-Content -LiteralPath $script:StatePathResolved -Raw | ConvertFrom-Json -AsHashtable
+    $raw = Get-Content -LiteralPath $script:StatePathResolved -Raw
+    $parsed = $raw | ConvertFrom-Json
+    return (ConvertTo-HashtableCompat -InputObject $parsed)
   } catch {
     Write-Log -Level "WARN" -Message "State file was unreadable. Reinitializing state."
     return [ordered]@{

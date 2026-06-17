@@ -8,6 +8,16 @@
 <!-- Archive history prior to purge can be recovered from git at commit fb22ebc and earlier. -->
 
 ---
+title: Highlight acquired unlocks in the guide for logged-in users
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Watcher Testing
+description: Logged-in players need the guide to reflect their progression by clearly showing which unlocks they have already acquired.
+resolution: Added acquired-state guide styling for authenticated players, extended the profile payload with `unit_type_unlocks` so feature and academy unlocks can both be derived from session/profile state, and kept the public guide neutral for anonymous visitors. `npm run llm:check` and the frontend production build passed, targeted guide/session frontend specs passed, backend PHPUnit was blocked by the local MySQL test database refusing connections, and the full frontend suite still has unrelated pre-existing failures in run-rest, dice-grid, shop-dice-grid, and home-page specs.
+
+---
 title: Make guide available to logged-in users
 status: complete
 priority: high

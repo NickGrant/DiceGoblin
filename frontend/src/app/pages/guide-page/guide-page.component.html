@@ -39,12 +39,20 @@
       <div class="guide-section__heading">
         <p class="dg-stencil">Warband Growth</p>
         <h2>Available Unlocks</h2>
-        <p>These permanent upgrades expand what your warband can do between runs.</p>
+        <p>
+          These permanent upgrades expand what your warband can do between runs.
+          @if (session().isAuthenticated) {
+          <span class="guide-section__status"> Acquired unlocks are stamped below.</span>
+          }
+        </p>
       </div>
       <div class="guide-grid guide-grid--three me-2">
         @for (unlock of unlocks; track unlock.name) {
-        <article class="guide-card">
+        <article class="guide-card" [class.guide-card--acquired]="hasAcquiredFeatureUnlock(unlock.key)">
           <p class="guide-card__meta">{{ unlock.cost }} teeth</p>
+          @if (hasAcquiredFeatureUnlock(unlock.key)) {
+          <p class="guide-card__badge dg-stencil">Acquired</p>
+          }
           <h3>{{ unlock.name }}</h3>
           <p>{{ unlock.description }}</p>
         </article>
@@ -52,8 +60,11 @@
       </div>
       <div class="guide-grid guide-grid--three">
         @for (unit of unitUnlocks; track unit.slug) {
-        <article class="guide-card guide-card--muted">
+        <article class="guide-card guide-card--muted" [class.guide-card--acquired]="hasAcquiredUnitUnlock(unit.slug)">
           <p class="guide-card__meta">{{ unit.role }} - Tier {{ unit.tier }} - Max Level {{ unit.maxLevel }}</p>
+          @if (hasAcquiredUnitUnlock(unit.slug)) {
+          <p class="guide-card__badge dg-stencil">Acquired</p>
+          }
           <h3>{{ unit.name }}</h3>
           <p>{{ unit.summary }}</p>
         </article>

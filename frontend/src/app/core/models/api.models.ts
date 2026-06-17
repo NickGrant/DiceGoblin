@@ -151,6 +151,7 @@ export type ProfileData = {
   };
   squad_unit_cap: number;
   feature_unlocks: string[];
+  unit_type_unlocks: string[];
   region_unlocks: RegionUnlockRecord[];
   region_items: RegionItemRecord[];
   active_run: ProfileActiveRun | null;

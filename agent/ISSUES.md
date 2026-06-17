@@ -4,30 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Watcher Testing
 
-### WT-002: Highlight acquired unlocks in the guide for logged-in users
-
-**Milestone:** Watcher Testing  
-**Status:** Open  
-**Priority:** High
-
-#### Problem
-
-Logged-in players need the guide to reflect their progression by clearly showing which unlocks they have already acquired.
-
-#### Acceptance Criteria
-
-- The guide can determine the current player's acquired unlocks from session/profile data or an appropriate API response.
-- Acquired unlocks have a clear visual state, such as an acquired badge, checked state, highlighted card, or equivalent treatment.
-- Locked or unacquired unlocks remain readable and understandable.
-- Anonymous users can still read the guide without misleading acquired/unacquired states.
-- The visual treatment fits the existing cardboard/construction-paper UI direction.
-
-#### Current Code References
-
-- `frontend/src/app/pages/guide-page/guide-page.component.*`
-- `frontend/src/app/core/services/session/session.service.*`
-- Backend/profile or unlock endpoints as applicable.
-
 ### WT-003: Add navigation from inside the game to the guide
 
 **Milestone:** Watcher Testing  
@@ -149,3 +125,4 @@ Responsive behavior is spread across shared layout components and page-level SCS
 - `frontend/src/app/layout/game-shell/game-shell.component.scss`
 - `frontend/src/app/layout/bottom-command-strip/bottom-command-strip.component.scss`
 - `frontend/src/app/pages/*/*.component.scss`
+

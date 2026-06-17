@@ -45,6 +45,7 @@ describe('SessionService', () => {
         active_run: { run_id: 12 },
         squad_unit_cap: 4,
         feature_unlocks: [],
+        unit_type_unlocks: ['support_banner_t1'],
         squads: [{ id: '1', name: 'Alpha', is_active: true }],
         units: [{ id: 'u1' }],
         dice: [{ id: 'd1' }],
@@ -57,6 +58,7 @@ describe('SessionService', () => {
     expect(service.profile().activeRunId).toBe('12');
     expect(service.profile().activeSquadName).toBe('Alpha');
     expect(service.squadUnitCap()).toBe(4);
+    expect(service.unitTypeUnlocks()).toEqual(['support_banner_t1']);
     expect(service.hasActiveRun()).toBeTrue();
   });
 

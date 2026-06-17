@@ -190,6 +190,7 @@ Returns a single payload the client can use to hydrate most screens:
 - warband/team overview
 - owned units
 - owned dice
+- permanent feature and unit-type unlocks
 - active run summary (if any)
 - region unlocks / meta inventory (promotion items)
 
@@ -233,6 +234,8 @@ Success (shape is illustrative; keep stable keys):
         ]
       }
     ],
+    "feature_unlocks": ["academy", "sell_bonus"],
+    "unit_type_unlocks": ["support_banner_t1"],
     "region_items": [
       { "region_item_id": "roc_egg", "quantity": 1 }
     ],
