@@ -966,7 +966,7 @@ function Invoke-CommitAndPush {
     return
   }
 
-  Invoke-Git -Arguments @("add", "--") + $commitPaths | Out-Null
+  Invoke-Git -Arguments (@("add", "--") + $commitPaths) | Out-Null
 
   $cachedDiff = Invoke-Git -Arguments @("diff", "--cached", "--name-only")
   if ([string]::IsNullOrWhiteSpace($cachedDiff.Output)) {
@@ -1142,6 +1142,7 @@ try {
           try {
             if (Invoke-BacklogValidation) {
               Invoke-CodexForMilestone -State $state -BacklogHash $currentBacklogHash -PreRunTreeWasClean $preRunTreeWasClean -PreRunDirtyPaths $preRunDirtyPaths
+              $state = Get-State
             } else {
               $state["lastBacklogHash"] = $currentBacklogHash
               $state["lastSyncedHead"] = $currentHead
