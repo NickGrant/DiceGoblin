@@ -56,7 +56,22 @@ function ConvertTo-TrimmedText {
     return ""
   }
 
-  return ($Value | Out-String).Trim()
+  if ($Value -is [string]) {
+    return $Value.Trim()
+  }
+
+  if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
+    $parts = @()
+    foreach ($item in $Value) {
+      if ($null -ne $item) {
+        $parts += [string]$item
+      }
+    }
+
+    return ([string]::Join([Environment]::NewLine, $parts)).Trim()
+  }
+
+  return ([string]$Value).Trim()
 }
 
 function Read-FileTextOrEmpty {
