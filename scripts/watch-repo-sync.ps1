@@ -455,6 +455,27 @@ function Get-GitStatusPaths {
   return @($paths | Sort-Object -Unique)
 }
 
+function Get-DirtyGitPaths {
+  $pathBuckets = @(
+    (Invoke-Git -Arguments @("diff", "--name-only")).Output,
+    (Invoke-Git -Arguments @("diff", "--cached", "--name-only")).Output,
+    (Invoke-Git -Arguments @("ls-files", "--others", "--exclude-standard")).Output
+  )
+
+  $paths = @()
+  foreach ($bucket in $pathBuckets) {
+    if ([string]::IsNullOrWhiteSpace($bucket)) {
+      continue
+    }
+
+    $paths += $bucket -split "`r?`n" |
+      ForEach-Object { $_.Trim() } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+  }
+
+  return @($paths | Sort-Object -Unique)
+}
+
 function Get-FieldValue {
   param(
     [string]$Block,
@@ -959,7 +980,7 @@ function Invoke-CommitAndPush {
     return
   }
 
-  $currentPaths = @(Get-GitStatusPaths -StatusOutput $status.Output)
+  $currentPaths = @(Get-DirtyGitPaths)
   $preexistingPathSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
   foreach ($path in $PreRunDirtyPaths) {
     if (-not [string]::IsNullOrWhiteSpace($path)) {
@@ -1089,7 +1110,11 @@ $($verificationCommands | ForEach-Object { "- $_" } | Out-String)
   } else {
     Write-Log -Message "Codex exec completed successfully."
     [void](Advance-MilestonesIfNeeded)
-    Invoke-CommitAndPush -MilestoneName $milestone.Name -PreRunTreeWasClean $PreRunTreeWasClean -PreRunDirtyPaths $PreRunDirtyPaths
+    try {
+      Invoke-CommitAndPush -MilestoneName $milestone.Name -PreRunTreeWasClean $PreRunTreeWasClean -PreRunDirtyPaths $PreRunDirtyPaths
+    } catch {
+      Write-Log -Level "ERROR" -Message $_.Exception.Message
+    }
   }
 
   $State["lastCodexRunUtc"] = [datetime]::UtcNow.ToString("o")
@@ -1147,7 +1172,7 @@ try {
       $currentHead = (Invoke-Git -Arguments @("rev-parse", "HEAD")).Output
       $preRunStatus = Invoke-Git -Arguments @("status", "--porcelain")
       $preRunTreeWasClean = [string]::IsNullOrWhiteSpace($preRunStatus.Output)
-      $preRunDirtyPaths = @(Get-GitStatusPaths -StatusOutput $preRunStatus.Output)
+      $preRunDirtyPaths = @(Get-DirtyGitPaths)
       $currentBacklogHash = Get-BacklogHash
 
       if ($state["lastBacklogHash"] -ne $currentBacklogHash) {
