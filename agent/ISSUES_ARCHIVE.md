@@ -8,6 +8,16 @@
 <!-- Archive history prior to purge can be recovered from git at commit fb22ebc and earlier. -->
 
 ---
+title: Make unit loadout editing touch-friendly
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Mobile Improvements
+description: Unit detail loadout editing appeared optimized for pointer-based drag/drop interactions. Ability cards, inline dice slots, loadout bars, and small remove buttons were difficult to use on phone screens.
+resolution: Added a tap-first unit-details loadout flow with explicit `Add to Loadout`, `Up`, `Down`, and `Remove` controls so mobile users can edit ability order and membership without drag/drop. Tightened the unit-details responsive layout so inline dice slots wrap cleanly, equipped bars show readable speed/dice metadata at phone widths, and loadout action targets meet touch sizing expectations. `npm run llm:check` passed, the focused `unit-details-page` ChromeHeadless spec passed, and the frontend production build passed after keeping the component SCSS within its local budget. Full backend PHPUnit remained externally blocked because the configured MySQL test server refused connections, and the full frontend ChromeHeadless suite still has unrelated pre-existing failures in `run-rest-page.component.spec.ts`, `dice-grid-object.component.spec.ts`, `shop-dice-grid-object.component.spec.ts`, and `home-page.component.spec.ts`. Manual phone-width touch emulation against a live authenticated unit-details route was not completed in this environment.
+
+---
 title: Make formation management usable on touch devices
 status: complete
 priority: high

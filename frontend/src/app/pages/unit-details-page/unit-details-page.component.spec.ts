@@ -245,6 +245,7 @@ describe('UnitDetailsPageComponent', () => {
     const component = fixture.componentInstance;
     const unitService = TestBed.inject(UnitService) as unknown as UnitServiceStub;
 
+    expect(component.canAddAbilityToLoadout('guard')).toBeTrue();
     component.addAbilityToLoadout('guard');
     expect(component.pendingEquippedAbilityIds()).toEqual(['heavy_strike', 'heavy_strike', 'guard']);
     expect(component.totalEquippedSpeed()).toBe(11);
@@ -254,6 +255,23 @@ describe('UnitDetailsPageComponent', () => {
 
     await component.saveLoadout();
     expect(unitService.replaceEquippedAbilities).toHaveBeenCalledWith('u1', ['heavy_strike', 'guard']);
+  });
+
+  it('moves loadout abilities through the tap-first reorder controls', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+
+    component.addAbilityToLoadout('guard');
+    expect(component.pendingEquippedAbilityIds()).toEqual(['heavy_strike', 'heavy_strike', 'guard']);
+
+    component.moveAbilityWithinLoadout(2, -1);
+    expect(component.pendingEquippedAbilityIds()).toEqual(['heavy_strike', 'guard', 'heavy_strike']);
+
+    component.moveAbilityWithinLoadout(1, 1);
+    expect(component.pendingEquippedAbilityIds()).toEqual(['heavy_strike', 'heavy_strike', 'guard']);
+
+    component.moveAbilityWithinLoadout(0, -1);
+    expect(component.pendingEquippedAbilityIds()).toEqual(['heavy_strike', 'heavy_strike', 'guard']);
   });
 
   it('adds and reorders loadout bars through drop events', async () => {

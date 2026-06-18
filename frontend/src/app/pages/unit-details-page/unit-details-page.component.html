@@ -133,6 +133,16 @@
               <p class="mb-2 small">{{ ability.shortDesc }}</p>
               <div class="ability-list-card__footer">
                 <span class="ability-speed-badge">Speed {{ ability.speed }}</span>
+                <span class="dg-chip">Equipped {{ ability.equippedCount }}</span>
+                <button
+                  dgCommandBtn="muted"
+                  class="ability-list-card__add"
+                  type="button"
+                  (click)="addAbilityToLoadout(ability.abilityId)"
+                  [disabled]="!canAddAbilityToLoadout(ability.abilityId)"
+                >
+                  Add to Loadout
+                </button>
               </div>
             </div>
 
@@ -191,7 +201,7 @@
         <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
           <div>
             <h2 class="dg-stencil mb-1">Combat Loadout</h2>
-            <p class="mb-0">Drag active abilities into the fixed 20-point execution lane.</p>
+            <p class="mb-0">Tap Add to Loadout or drag active abilities into the fixed 20-point execution lane.</p>
           </div>
           <span class="dg-chip">Budget {{ totalEquippedSpeed() }} / 20</span>
         </div>
@@ -210,16 +220,42 @@
           @for (bar of loadoutBars(); track bar.instanceKey) {
           <article class="loadout-bar" cdkDrag [cdkDragData]="bar" [cdkDragDisabled]="unitLocked()" [style.height.px]="bar.heightPx">
             <div class="loadout-bar__content">
-              <span class="loadout-bar__name">{{ bar.displayName }}</span>
-              <button
-                class="loadout-bar__remove"
-                type="button"
-                aria-label="Remove ability"
-                (click)="removeAbilityFromLoadout($index)"
-                [disabled]="unitLocked()"
-              >
-                x
-              </button>
+              <div class="loadout-bar__details">
+                <span class="loadout-bar__name">{{ bar.displayName }}</span>
+                <span class="loadout-bar__meta">Speed {{ bar.speed }} · Dice {{ bar.diceCost }}</span>
+              </div>
+              <div class="loadout-bar__actions">
+                <button
+                  dgCommandBtn="muted"
+                  class="loadout-bar__action"
+                  type="button"
+                  aria-label="Move ability earlier"
+                  (click)="moveAbilityWithinLoadout($index, -1)"
+                  [disabled]="unitLocked() || $index === 0"
+                >
+                  Up
+                </button>
+                <button
+                  dgCommandBtn="muted"
+                  class="loadout-bar__action"
+                  type="button"
+                  aria-label="Move ability later"
+                  (click)="moveAbilityWithinLoadout($index, 1)"
+                  [disabled]="unitLocked() || $index === loadoutBars().length - 1"
+                >
+                  Down
+                </button>
+                <button
+                  dgCommandBtn="muted"
+                  class="loadout-bar__action"
+                  type="button"
+                  aria-label="Remove ability"
+                  (click)="removeAbilityFromLoadout($index)"
+                  [disabled]="unitLocked()"
+                >
+                  Remove
+                </button>
+              </div>
             </div>
           </article>
           }

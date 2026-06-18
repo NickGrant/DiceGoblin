@@ -302,6 +302,20 @@ export class UnitDetailsPageComponent {
     });
   }
 
+  canAddAbilityToLoadout(abilityId: string): boolean {
+    if (this.unitLocked()) {
+      return false;
+    }
+
+    const ability = this.learnedAbilities().find((entry) => entry.abilityId === abilityId)
+      ?? this.abilityCatalog().get(abilityId);
+    if (!ability || ability.type !== 'active') {
+      return false;
+    }
+
+    return this.totalEquippedSpeed() + (ability.speed ?? 0) <= UnitDetailsPageComponent.LOADOUT_SPEED_BUDGET;
+  }
+
   removeAbilityFromLoadout(indexOrAbilityId: number | string): void {
     if (this.unitLocked()) {
       return;
@@ -324,6 +338,22 @@ export class UnitDetailsPageComponent {
         return true;
       }),
     );
+  }
+
+  moveAbilityWithinLoadout(index: number, direction: -1 | 1): void {
+    if (this.unitLocked()) {
+      return;
+    }
+
+    const nextIndex = index + direction;
+    const current = this.pendingEquippedAbilityIds();
+    if (index < 0 || index >= current.length || nextIndex < 0 || nextIndex >= current.length) {
+      return;
+    }
+
+    const next = [...current];
+    moveItemInArray(next, index, nextIndex);
+    this.pendingEquippedAbilityIds.set(next);
   }
 
   handleLoadoutDrop(

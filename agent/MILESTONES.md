@@ -26,5 +26,4 @@ The latest GitHub code uses the Angular frontend structure under `frontend/src/a
 
 ### Related Issues
 
-- MI-003: Make unit loadout editing touch-friendly.
 - MI-004: Add mobile viewport regression checks for key play flows.

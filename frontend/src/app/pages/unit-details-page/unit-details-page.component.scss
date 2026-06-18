@@ -72,16 +72,6 @@
   font-weight: 600;
 }
 
-.promote-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem;
-  border: 2px solid rgba(35, 39, 42, 0.12);
-  background: rgba(243, 239, 224, 0.72);
-}
-
 .ability-list-card {
   display: flex;
   align-items: stretch;
@@ -108,6 +98,7 @@
 .ability-list-card__footer {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.75rem;
 }
 
@@ -131,10 +122,6 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.8rem;
-}
-
-.ability-inline-slots--solo {
-  min-width: 12.25rem;
 }
 
 .ability-inline-slot {
@@ -209,28 +196,36 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.35rem 0.6rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.loadout-bar__details {
+  min-width: 0;
 }
 
 .loadout-bar__name {
-  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.loadout-bar__remove {
-  width: 24px;
-  height: 24px;
-  flex: 0 0 auto;
-  border: 1px solid rgba(243, 239, 224, 0.65);
-  background: rgba(35, 39, 42, 0.22);
-  color: var(--dg-cream);
-  line-height: 1;
+.loadout-bar__meta {
+  font-size: 0.72rem;
   text-transform: uppercase;
+  color: rgba(255, 248, 232, 0.84);
+}
+
+.loadout-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.loadout-bar__action {
+  min-width: 44px;
+  min-height: 44px;
+  flex: 0 0 auto;
 }
 
 .cdk-drag-preview.loadout-bar,
@@ -252,8 +247,7 @@
     gap: 0.2rem;
   }
 
-  .ability-list-card,
-  .promote-row {
+  .ability-list-card {
     flex-direction: column;
     align-items: start;
   }
@@ -261,9 +255,20 @@
   .ability-inline-slots {
     min-width: 100%;
     justify-content: start;
+    flex-wrap: wrap;
   }
 
   .loadout-bar__content {
-    padding-inline: 0.45rem;
+    align-items: stretch;
+    flex-direction: column;
+    padding-inline: 0.6rem;
+  }
+
+  .loadout-bar__actions {
+    justify-content: stretch;
+  }
+
+  .loadout-bar__action {
+    flex: 1 1 0;
   }
 }
