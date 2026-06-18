@@ -470,6 +470,7 @@ function Get-DirtyGitPaths {
 
     $paths += $bucket -split "`r?`n" |
       ForEach-Object { $_.Trim() } |
+      Where-Object { $_ -notmatch "^(warning|error):" } |
       Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
   }
 
