@@ -133,20 +133,32 @@ function Resolve-CodexExecutable {
     $candidates.Add($command.Source)
   }
 
-  $whereResults = & where.exe codex 2>$null
-  foreach ($result in $whereResults) {
-    if (-not [string]::IsNullOrWhiteSpace($result)) {
-      $candidates.Add($result.Trim())
+  try {
+    $whereOutput = cmd.exe /d /c "where codex 2>nul"
+    if ($LASTEXITCODE -eq 0) {
+      foreach ($result in $whereOutput) {
+        if (-not [string]::IsNullOrWhiteSpace($result)) {
+          $candidates.Add($result.Trim())
+        }
+      }
     }
+  } catch {
   }
 
   $knownPaths = @(
-    "$env:USERPROFILE\.vscode\extensions\openai.chatgpt-26.609.30741-win32-x64\bin\windows-x86_64\codex.exe",
     "$env:USERPROFILE\AppData\Local\Programs\OpenAI\Codex\codex.exe"
   )
   foreach ($path in $knownPaths) {
     if (-not [string]::IsNullOrWhiteSpace($path)) {
       $candidates.Add($path)
+    }
+  }
+
+  $vscodeExtensionRoots = @(Get-ChildItem -Path "$env:USERPROFILE\.vscode\extensions" -Directory -Filter "openai.chatgpt-*" -ErrorAction SilentlyContinue | Sort-Object Name -Descending)
+  foreach ($root in $vscodeExtensionRoots) {
+    $bundledCodex = Join-Path $root.FullName "bin\windows-x86_64\codex.exe"
+    if (Test-Path -LiteralPath $bundledCodex) {
+      $candidates.Add($bundledCodex)
     }
   }
 

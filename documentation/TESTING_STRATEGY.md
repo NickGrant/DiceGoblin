@@ -27,6 +27,7 @@ Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `AGENTS.md`, `documentatio
   - contract validation + architecture doc updates
 - Frontend scene/interaction changes:
   - interaction/state tests + manual scene sanity pass
+  - if the change affects mobile layout, run `documentation/05-playability-stability/04-mobile-viewport-regression-checklist.md`
 - Documentation-only changes:
   - `npm run llm:check` and reference consistency review
 
@@ -54,3 +55,4 @@ Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `AGENTS.md`, `documentatio
 - `documentation/01-architecture/03-backend-api-contracts.md`
 - `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
 - `documentation/05-playability-stability/00-release-gate-criteria.md`
+- `documentation/05-playability-stability/04-mobile-viewport-regression-checklist.md`
