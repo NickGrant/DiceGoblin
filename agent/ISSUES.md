@@ -27,3 +27,168 @@ Responsive behavior is spread across shared layout components and page-level SCS
 - `frontend/src/app/layout/bottom-command-strip/bottom-command-strip.component.scss`
 - `frontend/src/app/pages/*/*.component.scss`
 
+## Unit Progression Rework
+
+### UPR-001: Add progression data model support for mastery and capstones
+
+**Milestone:** Unit Progression Rework  
+**Status:** Open  
+**Priority:** High
+
+#### Problem
+
+The unit progression model needs to support level 10 mastery, level 6 promotion eligibility, passive capstone choices, and inherited capstones. Promotion eligibility and max level are currently treated too closely for the new promote-early versus master-first decision.
+
+#### Acceptance Criteria
+
+- Use `documentation/02-systems-mvp/11-unit-progression-rework.md` as the authoritative design reference.
+- Every unit type can define max level 10 independently from promotion eligibility at level 6.
+- Unit type data can define level 10 capstone choices.
+- Selected capstone choice is persisted for the unit or unit lineage.
+- Passive capstones follow the normal ability inheritance model after promotion.
+- Promotion preview can determine whether promoting now skips an unearned or unselected capstone.
+- Tier 2 and Tier 3 unit type data can grant one active and one passive ability immediately on promotion.
+- Existing unit detail API responses expose enough progression data for the frontend to show promotion eligibility, mastery state, capstone options, selected capstone, and inherited abilities.
+
+#### Current Code References
+
+- `documentation/02-systems-mvp/11-unit-progression-rework.md`
+- `backend/migrations/30_seed_unit_types.sql`
+- `backend/migrations/schema_all.sql`
+- `backend/migrations/schema_update.sql`
+- `backend/src/Combat/Abilities/AbilityRegistry.php`
+
+### UPR-002: Add combat primitives for targeting weights, stacks, reactions, and debuff counting
+
+**Milestone:** Unit Progression Rework  
+**Status:** Open  
+**Priority:** High
+
+#### Problem
+
+The new unit abilities require reusable combat primitives before content implementation can be reliable. Automated combat needs deterministic target weighting so abilities like Pick Your Mark, Mark Target, Kill Lane, and Patient Aim do not feel random. Several passives also need shared handling for one-attack defensive stacks, half-die scaling, once-per-round reactions, and distinct debuff counting.
+
+#### Acceptance Criteria
+
+- Active abilities consume at least one die and expose a die-scaled variable component.
+- Add a reusable half-die helper equivalent to `ceil(dieValue / 2)` for stack-style defensive abilities.
+- Add support for one-attack defensive stacks that accumulate, apply to the next incoming attack, and then fully clear.
+- Add once-per-round reaction support for effects such as Counterpunch and Spiteful Reflex.
+- Add non-recursive debuff reflection support for Spiteful Reflex.
+- Add distinct debuff type counting for Exposed Weaknesses and Sickly Weakness.
+- Add targeting weights for wounded, marked, debuffed, most debuffed, backline, low HP, high threat, and preferred previous target behaviors.
+- Combat logs show when targeting weights, stacks, reactions, and debuff-count effects influence a combat event.
+
+#### Current Code References
+
+- `documentation/02-systems-mvp/11-unit-progression-rework.md`
+- `backend/src/Combat/Abilities/AbilityRegistry.php`
+- `backend/tests/Unit/Combat/AbilityHandlerRegistryCoverageTest.php`
+- `backend/tests/Integration/BattleNodeResolutionIntegrationTest.php`
+
+### UPR-003: Implement Tier 1 and Tier 2 unit ability packages
+
+**Milestone:** Unit Progression Rework  
+**Status:** Open  
+**Priority:** High
+
+#### Problem
+
+The unit roster needs updated ability packages so Tier 2 branches feel specialized and capstone choices create long-term lineage decisions. Tier 1 units need passive capstone choices, while Tier 2 branches need immediate active/passive unlocks plus level 10 passive capstones.
+
+#### Acceptance Criteria
+
+- Implement Bruiser capstones: Brawl Hardened and Finisher.
+- Implement Enforcer promotion package: Skullcrack and Menacing Follow-Through.
+- Implement Enforcer capstones: No Mercy and Brutal Suppression.
+- Implement Pit Fighter promotion package: Desperate Swing and Counterpunch.
+- Implement Pit Fighter capstones: Last Goblin Standing and Crowd Favorite, with Crowd Favorite capped at 5 stacks.
+- Implement Marksman capstones: Patient Aim and Pick Your Mark, with targeting support.
+- Implement Deadeye promotion package: Piercing Shot and Vantage Point.
+- Implement Deadeye capstones: Kill Lane and Armor Gap.
+- Implement Trapper promotion package: Mark Target and Treasure Sense.
+- Implement Trapper capstones: Exposed Weaknesses and Barbed Mark.
+- Implement Guardian capstones: Bodyguard and Hold the Line.
+- Implement Bulwark promotion package: Taunting Guard and Shield Set.
+- Implement Bulwark capstones: Unmoving and Wall of Scrap.
+- Implement Shieldbreaker promotion package: Crack Armor and Find the Gap.
+- Implement Shieldbreaker capstones: Shatter Plate and Break Open.
+- Implement Bannerbearer capstones: Rally Rhythm and Patch Job.
+- Implement Warcaller promotion package: Warcry and Battle Tempo.
+- Implement Warcaller capstones: Chant of Violence and Mob Mentality.
+- Implement Mascot promotion package: Lucky Chant and Attention Hog.
+- Implement Mascot capstones: Dumb Luck and Morale Goblin.
+- Implement Saboteur capstones: Toxic Tools and Spiteful Reflex.
+- Implement Trickshot promotion package: Disarming Shot and Opportunist.
+- Implement Trickshot capstones: Disabling Hit and Clean Shot.
+- Implement Plaguehand promotion package: Poison Cloud and Nerve Toxin.
+- Implement Plaguehand capstones: Lingering Cloud and Sickly Weakness.
+- Do not introduce Quartermaster as part of this rework.
+- Keep all tuning conservative and centralized enough for later balancing.
+
+#### Current Code References
+
+- `documentation/02-systems-mvp/11-unit-progression-rework.md`
+- `backend/migrations/30_seed_unit_types.sql`
+- `backend/src/Combat/Abilities/AbilityRegistry.php`
+- `backend/tests/Unit/Combat/AbilityHandlerRegistryCoverageTest.php`
+
+### UPR-004: Add capstone and promotion UX
+
+**Milestone:** Unit Progression Rework  
+**Status:** Open  
+**Priority:** High
+
+#### Problem
+
+The player needs to understand the promote-early versus master-first decision. Since normal level-up is not interactive, the UI needs clear capstone selection and promotion-preview behavior without adding friction to every level gain.
+
+#### Acceptance Criteria
+
+- Unit detail view shows current level, max level, promotion eligibility, mastery state, selected capstone, and inherited abilities.
+- Level 10 units can choose one passive capstone from two options.
+- If a level 10 unit starts promotion without a selected capstone, the UI requires capstone choice before confirming promotion.
+- Promotion preview warns when promoting before level 10 will skip the current unit type capstone.
+- Promotion preview shows the active and passive abilities granted immediately by the selected Tier 2 or Tier 3 type.
+- Promotion preview shows inherited passives and capstones clearly.
+- Copy uses player-facing language for wounded, capstone, mastered, inherited, and promotion eligibility.
+- The UX remains usable on mobile after the current mobile milestone work.
+
+#### Current Code References
+
+- `documentation/02-systems-mvp/11-unit-progression-rework.md`
+- `frontend/src/app/pages/unit-details-page/*`
+- `frontend/src/app/pages/squad-details-page/*`
+- `backend/tests/Integration/GameplayUnitDetailsEndpointTest.php`
+
+### UPR-005: Add progression rework test coverage and validation
+
+**Milestone:** Unit Progression Rework  
+**Status:** Open  
+**Priority:** High
+
+#### Problem
+
+The progression rework touches data, combat, promotion, API responses, targeting, run-map behavior, and frontend UX. It needs dedicated regression coverage so later balancing does not break core lineage rules.
+
+#### Acceptance Criteria
+
+- Add backend tests for level 10 max level and level 6 promotion eligibility.
+- Add backend tests for capstone selection, persistence, and promotion inheritance.
+- Add backend tests that all new abilities are registered and have handlers.
+- Add combat tests for active abilities consuming dice and scaling at least one variable component.
+- Add combat tests for half-die defensive stack scaling.
+- Add combat tests for one-attack stack consumption and clearing.
+- Add combat tests for once-per-round reaction limits.
+- Add combat tests for target weighting with marked, wounded, debuffed, backline, and preferred targets.
+- Add tests for Treasure Sense revealing at most one hidden treasure node per run.
+- Add frontend tests or documented QA coverage for capstone selection and promotion preview.
+- Run the relevant verification commands from `agent/QUALITY_GATES.md` and report any failures.
+
+#### Current Code References
+
+- `documentation/02-systems-mvp/11-unit-progression-rework.md`
+- `agent/QUALITY_GATES.md`
+- `backend/tests/Unit/Combat/AbilityHandlerRegistryCoverageTest.php`
+- `backend/tests/Integration/BattleNodeResolutionIntegrationTest.php`
+- `backend/tests/Integration/GameplayUnitDetailsEndpointTest.php`
