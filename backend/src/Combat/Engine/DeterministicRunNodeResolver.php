@@ -751,6 +751,8 @@ final class DeterministicRunNodeResolver
     $preferredTargetByActor = [];
 
     for ($round = 1; $round <= $rounds; $round++) {
+      $playerDamagedThisRound = [];
+      $enemyDamagedThisRound = [];
       $roundStartTick = (($round - 1) * $ticksPerRound) + 1;
       $events[] = [
         'type' => 'phase_start',
@@ -834,6 +836,14 @@ final class DeterministicRunNodeResolver
               $combatOver = true;
               break 3;
             }
+            $guardRedirected = false;
+            if (!$isSupportAbility) {
+              $guardTargetId = $this->forcedGuardTargetId($targetPoolHp, $enemyStatuses);
+              if ($guardTargetId !== null) {
+                $aliveTargetIds = [$guardTargetId];
+                $guardRedirected = true;
+              }
+            }
 
             $targetSelection = $this->chooseTargetSelection(
               $state,
@@ -864,7 +874,12 @@ final class DeterministicRunNodeResolver
               ? ['damage_reduction' => 0, 'outcome' => null]
               : $this->consumeOneAttackDefenseStacks($enemyStatuses, $targetId);
             $outcome = $isSupportAbility
-              ? $this->deriveSupportOutcome($abilityRegistry, $abilityId, $targetId, $playerHp, $targetUnit, $dice)
+              ? $this->applySupportOutcomeActorPassives(
+                $this->deriveSupportOutcome($abilityRegistry, $abilityId, $targetId, $playerHp, $targetUnit, $dice),
+                $playerActor,
+                $targetUnit,
+                (int)($playerHp[$targetId] ?? (int)$targetUnit['max_hp'])
+              )
               : $this->deriveActionOutcome(
                 $state,
                 $this->effectiveAttackWithStatuses((int)$playerActor['attack'], (array)($playerStatuses[$playerActorId] ?? [])),
@@ -873,7 +888,13 @@ final class DeterministicRunNodeResolver
                 (int)$targetUnit['max_hp'],
                 $abilityId,
                 (int)$dice['dice_modifier'],
-                (array)($playerActor['combat_affixes'] ?? ['damage_flat' => 0, 'below_half_bonus' => 0.0]),
+                $this->applyTeamDamagePassives(
+                  (array)($playerActor['combat_affixes'] ?? ['damage_flat' => 0, 'below_half_bonus' => 0.0]),
+                  $playerById,
+                  $playerHp,
+                  $targetId,
+                  $enemyDamagedThisRound
+                ),
                 $dice,
                 $targetStatuses,
                 (array)($playerActor['pos'] ?? ['x' => 1, 'y' => 1]),
@@ -884,6 +905,16 @@ final class DeterministicRunNodeResolver
                 (int)$playerActor['attack'],
                 (int)($stackResolution['damage_reduction'] ?? 0),
               );
+            if (!$isSupportAbility) {
+              $outcome = $this->applyAllyProtectionPassives(
+                $outcome,
+                $targetId,
+                $enemyById,
+                $enemyHp,
+                $enemyStatuses,
+                $guardRedirected
+              );
+            }
 
             $events[] = [
               'type' => 'action',
@@ -908,21 +939,32 @@ final class DeterministicRunNodeResolver
               'stack_outcome' => $stackResolution['outcome'],
               ...$outcome,
             ];
-            $this->applyOutcomeStatus(
-              $enemyStatuses,
-              $targetId,
-              $outcome,
-              $round,
-              $tick,
-            );
-            $passiveStatusAugment = $this->applyAttackerPassiveStatusAugments(
-              $enemyStatuses,
-              $playerActor,
-              $targetId,
-              $outcome,
-              $round,
-              $tick
-            );
+            if ($isSupportAbility) {
+              $this->applyOutcomeStatus(
+                $playerStatuses,
+                $targetId,
+                $outcome,
+                $round,
+                $tick,
+              );
+              $passiveStatusAugment = null;
+            } else {
+              $this->applyOutcomeStatus(
+                $enemyStatuses,
+                $targetId,
+                $outcome,
+                $round,
+                $tick,
+              );
+              $passiveStatusAugment = $this->applyAttackerPassiveStatusAugments(
+                $enemyStatuses,
+                $playerActor,
+                $targetId,
+                $outcome,
+                $round,
+                $tick
+              );
+            }
             $reactionOutcome = $isSupportAbility
               ? null
               : $this->reflectDebuffToSourceIfNeeded(
@@ -937,8 +979,26 @@ final class DeterministicRunNodeResolver
             if ($reactionOutcome !== null) {
               $events[count($events) - 1]['reaction_outcome'] = $reactionOutcome;
             }
+            if ($isSupportAbility) {
+              $supportEchoOutcome = $this->applySupportEchoPassive(
+                $state,
+                $playerStatuses,
+                $playerById,
+                $playerHp,
+                $targetId,
+                $outcome,
+                $round,
+                $tick
+              );
+              if ($supportEchoOutcome !== null) {
+                $events[count($events) - 1]['support_passive_outcome'] = $supportEchoOutcome;
+              }
+            }
             if (!$isSupportAbility) {
               $enemyHp[$targetId] = (int)$outcome['target_hp_after'];
+              if ((int)($outcome['damage'] ?? 0) > 0) {
+                $enemyDamagedThisRound[$targetId] = true;
+              }
               $this->clearSleepOnDamage($enemyStatuses, $sleepBlockedUntilTick, $targetId, $tick, (int)$outcome['damage']);
               $preferredTargetByActor['player:' . $playerActorId] = $targetId;
               $defeatSupportOutcome = $this->applyPlayerDefeatTriggeredPassives(
@@ -1023,6 +1083,14 @@ final class DeterministicRunNodeResolver
               $combatOver = true;
               break 3;
             }
+            $guardRedirected = false;
+            if (!$isSupportAbility) {
+              $guardTargetId = $this->forcedGuardTargetId($targetPoolHp, $playerStatuses);
+              if ($guardTargetId !== null) {
+                $aliveTargetIds = [$guardTargetId];
+                $guardRedirected = true;
+              }
+            }
 
             $targetSelection = $this->chooseTargetSelection(
               $state,
@@ -1053,7 +1121,12 @@ final class DeterministicRunNodeResolver
               ? ['damage_reduction' => 0, 'outcome' => null]
               : $this->consumeOneAttackDefenseStacks($playerStatuses, $targetId);
             $outcome = $isSupportAbility
-              ? $this->deriveSupportOutcome($abilityRegistry, $abilityId, $targetId, $enemyHp, $targetUnit, $dice)
+              ? $this->applySupportOutcomeActorPassives(
+                $this->deriveSupportOutcome($abilityRegistry, $abilityId, $targetId, $enemyHp, $targetUnit, $dice),
+                $enemyActor,
+                $targetUnit,
+                (int)($enemyHp[$targetId] ?? (int)$targetUnit['max_hp'])
+              )
               : $this->deriveActionOutcome(
                 $state,
                 $this->effectiveAttackWithStatuses((int)$enemyActor['attack'], (array)($enemyStatuses[$enemyActorId] ?? [])),
@@ -1062,7 +1135,13 @@ final class DeterministicRunNodeResolver
                 (int)$targetUnit['max_hp'],
                 $abilityId,
                 (int)$dice['dice_modifier'],
-                ['damage_flat' => 0, 'below_half_bonus' => 0.0],
+                $this->applyTeamDamagePassives(
+                  ['damage_flat' => 0, 'below_half_bonus' => 0.0],
+                  $enemyById,
+                  $enemyHp,
+                  $targetId,
+                  $playerDamagedThisRound
+                ),
                 $dice,
                 $targetStatuses,
                 (array)($enemyActor['pos'] ?? ['x' => 1, 'y' => 1]),
@@ -1073,6 +1152,16 @@ final class DeterministicRunNodeResolver
                 (int)$enemyActor['attack'],
                 (int)($stackResolution['damage_reduction'] ?? 0),
               );
+            if (!$isSupportAbility) {
+              $outcome = $this->applyAllyProtectionPassives(
+                $outcome,
+                $targetId,
+                $playerById,
+                $playerHp,
+                $playerStatuses,
+                $guardRedirected
+              );
+            }
 
             $events[] = [
               'type' => 'action',
@@ -1097,21 +1186,32 @@ final class DeterministicRunNodeResolver
               'stack_outcome' => $stackResolution['outcome'],
               ...$outcome,
             ];
-            $this->applyOutcomeStatus(
-              $playerStatuses,
-              $targetId,
-              $outcome,
-              $round,
-              $tick,
-            );
-            $passiveStatusAugment = $this->applyAttackerPassiveStatusAugments(
-              $playerStatuses,
-              $enemyActor,
-              $targetId,
-              $outcome,
-              $round,
-              $tick
-            );
+            if ($isSupportAbility) {
+              $this->applyOutcomeStatus(
+                $enemyStatuses,
+                $targetId,
+                $outcome,
+                $round,
+                $tick,
+              );
+              $passiveStatusAugment = null;
+            } else {
+              $this->applyOutcomeStatus(
+                $playerStatuses,
+                $targetId,
+                $outcome,
+                $round,
+                $tick,
+              );
+              $passiveStatusAugment = $this->applyAttackerPassiveStatusAugments(
+                $playerStatuses,
+                $enemyActor,
+                $targetId,
+                $outcome,
+                $round,
+                $tick
+              );
+            }
             $reactionOutcome = $isSupportAbility
               ? null
               : $this->reflectDebuffToSourceIfNeeded(
@@ -1126,8 +1226,26 @@ final class DeterministicRunNodeResolver
             if ($reactionOutcome !== null) {
               $events[count($events) - 1]['reaction_outcome'] = $reactionOutcome;
             }
+            if ($isSupportAbility) {
+              $supportEchoOutcome = $this->applySupportEchoPassive(
+                $state,
+                $enemyStatuses,
+                $enemyById,
+                $enemyHp,
+                $targetId,
+                $outcome,
+                $round,
+                $tick
+              );
+              if ($supportEchoOutcome !== null) {
+                $events[count($events) - 1]['support_passive_outcome'] = $supportEchoOutcome;
+              }
+            }
             if (!$isSupportAbility) {
               $playerHp[$targetId] = (int)$outcome['target_hp_after'];
+              if ((int)($outcome['damage'] ?? 0) > 0) {
+                $playerDamagedThisRound[$targetId] = true;
+              }
               $this->clearSleepOnDamage($playerStatuses, $sleepBlockedUntilTick, $targetId, $tick, (int)$outcome['damage']);
               $preferredTargetByActor['enemy:' . $enemyActorId] = $targetId;
               $survivalOutcome = $this->applyLastGoblinStandingIfNeeded(
@@ -1859,6 +1977,15 @@ final class DeterministicRunNodeResolver
       );
     }
 
+    $damagedEnemyBonusPct = max(0.0, (float)($combatAffixes['damaged_enemy_bonus_pct'] ?? 0.0));
+    if ($damagedEnemyBonusPct > 0.0) {
+      $rawDamage = (int)floor($rawDamage * (1 + $damagedEnemyBonusPct));
+      $affixOutcomeParts[] = sprintf(
+        'damaged target x%s',
+        rtrim(rtrim(number_format(1 + $damagedEnemyBonusPct, 2, '.', ''), '0'), '.')
+      );
+    }
+
     if ($flatDamageReduction > 0) {
       $rawDamage -= $flatDamageReduction;
       $affixOutcomeParts[] = sprintf('one-attack stacks reduced damage by %d', $flatDamageReduction);
@@ -1929,6 +2056,7 @@ final class DeterministicRunNodeResolver
           'stack_count' => max(1, $halfDie),
           'per_stack_damage_reduction' => 1,
           'consumes_on_next_attack' => true,
+          'taunt_redirect' => true,
           'is_debuff' => false,
         ],
         'ability_outcome' => sprintf('guard_stacks applied for %d rounds', $statusDuration),
@@ -2120,7 +2248,14 @@ final class DeterministicRunNodeResolver
     if ($statusId === 'bolstered') {
       $existing = (float)($current['params']['defense_pct'] ?? 0.0);
       $next = max($existing, (float)($params['defense_pct'] ?? 0.0));
-      $statusMap[$unitId][$statusId]['params'] = ['defense_pct' => $next];
+      $statusMap[$unitId][$statusId]['params'] = [
+        'defense_pct' => $next,
+        'attack_pct' => max(
+          (float)($current['params']['attack_pct'] ?? 0.0),
+          (float)($params['attack_pct'] ?? 0.0)
+        ),
+        'is_debuff' => false,
+      ];
       return;
     }
 
@@ -2215,6 +2350,7 @@ final class DeterministicRunNodeResolver
   {
     $attack = $baseAttack;
     $attackMultiplier = 1.0;
+    $attackMultiplier += max(0.0, (float)($attackerStatuses['bolstered']['params']['attack_pct'] ?? 0.0));
     $attackMultiplier += max(0.0, (float)($attackerStatuses['warcry']['params']['attack_pct'] ?? 0.0));
     $attackMultiplier -= max(0.0, (float)($attackerStatuses['cracked_skull']['params']['attack_reduction_pct'] ?? 0.0));
     $attackMultiplier -= max(0.0, (float)($attackerStatuses['disarmed']['params']['attack_reduction_pct'] ?? 0.0));
@@ -2689,6 +2825,7 @@ final class DeterministicRunNodeResolver
         'wounded_damage_pct',
         'aimed_shot_bonus_pct',
         'backline_damage_pct',
+        'damaged_enemy_bonus_pct',
         'status_potency_pct',
         'poison_damage_pct',
         'status_bonus_pct',
@@ -2726,30 +2863,29 @@ final class DeterministicRunNodeResolver
    */
   private function initializePassiveStatusesForCombat(array &$statusMap, string $unitId, array $passiveAbilityIds): void
   {
-    if (!in_array('spiteful_reflex', $passiveAbilityIds, true)) {
-      if (in_array('last_goblin_standing', $passiveAbilityIds, true)) {
-        $this->applyStatusState(
-          $statusMap,
-          $unitId,
-          'last_goblin_standing_ready',
-          99,
-          ['is_debuff' => false, 'used' => false],
-          1,
-          0
-        );
-      }
-      return;
+    if (in_array('spiteful_reflex', $passiveAbilityIds, true)) {
+      $this->applyStatusState(
+        $statusMap,
+        $unitId,
+        'spiteful_reflex',
+        99,
+        ['is_debuff' => false, 'last_trigger_round' => 0],
+        1,
+        0
+      );
     }
 
-    $this->applyStatusState(
-      $statusMap,
-      $unitId,
-      'spiteful_reflex',
-      99,
-      ['is_debuff' => false, 'last_trigger_round' => 0],
-      1,
-      0
-    );
+    if (in_array('counterpunch', $passiveAbilityIds, true)) {
+      $this->applyStatusState(
+        $statusMap,
+        $unitId,
+        'counterpunch_ready',
+        99,
+        ['is_debuff' => false, 'last_trigger_round' => 0],
+        1,
+        0
+      );
+    }
 
     if (in_array('last_goblin_standing', $passiveAbilityIds, true)) {
       $this->applyStatusState(
@@ -3023,15 +3159,23 @@ final class DeterministicRunNodeResolver
     }
 
     $playerStatuses[$defenderId]['counterpunch_ready']['params']['last_trigger_round'] = $round;
+    $counterRatio = (float)($abilityRegistry->get('counterpunch')->defaultParams['counter_ratio'] ?? 0.7);
+    $counterAttack = max(
+      1,
+      (int)floor(
+        $this->effectiveAttackWithStatuses((int)$defenderUnit['attack'], (array)($playerStatuses[$defenderId] ?? []))
+        * max(0.1, $counterRatio)
+      )
+    );
     $counterOutcome = $this->deriveActionOutcome(
       $state,
-      $this->effectiveAttackWithStatuses((int)$defenderUnit['attack'], (array)($playerStatuses[$defenderId] ?? [])),
+      $counterAttack,
       (int)($enemyActor['defense'] ?? 0),
       (int)($enemyHp[$attackerId] ?? (int)($enemyActor['max_hp'] ?? 1)),
       (int)($enemyActor['max_hp'] ?? 1),
       'basic_attack_melee',
       0,
-      array_replace((array)($defenderUnit['combat_affixes'] ?? []), ['melee_damage_pct' => ((float)($defenderUnit['combat_affixes']['melee_damage_pct'] ?? 0.0)) - 0.30]),
+      (array)($defenderUnit['combat_affixes'] ?? []),
       ['dice_used' => [], 'dice_rolls' => [], 'dice_outcome' => 'counterpunch', 'dice_modifier' => 0, 'explode_triggered' => false],
       (array)($enemyStatuses[$attackerId] ?? []),
       (array)($defenderUnit['pos'] ?? ['x' => 1, 'y' => 1]),
@@ -3182,10 +3326,27 @@ final class DeterministicRunNodeResolver
       $messages[] = 'barbed_mark applied snared';
     }
 
+    $statusPotencyPct = 0.0;
+    if (in_array('toxic_tools', $passives, true)) {
+      $statusPotencyPct = max($statusPotencyPct, 0.15);
+    }
+    $statusPotencyPct += max(0.0, (float)($attackerUnit['combat_affixes']['status_potency_pct'] ?? 0.0));
+    if ($statusPotencyPct > 0.0 && $this->isDebuffStatus($statusId, ['params' => $params])) {
+      $params = $this->applyStatusPotencyBonus($params, $statusPotencyPct);
+      $this->applyStatusState($statusMap, $targetId, $statusId, $duration, $params, $round, $tick);
+      $messages[] = sprintf('toxic_tools strengthened %s', $statusId);
+    }
+
     if (isset($params['attack_reduction_pct']) && in_array('brutal_suppression', $passives, true)) {
       $params['attack_reduction_pct'] = (float)$params['attack_reduction_pct'] + 0.08;
       $this->applyStatusState($statusMap, $targetId, $statusId, $duration, $params, $round, $tick);
       $messages[] = 'brutal_suppression strengthened attack reduction';
+    }
+
+    if ($statusId === 'disarmed' && in_array('disabling_hit', $passives, true)) {
+      $params['attack_reduction_pct'] = (float)($params['attack_reduction_pct'] ?? 0.0) + 0.08;
+      $this->applyStatusState($statusMap, $targetId, $statusId, $duration, $params, $round, $tick);
+      $messages[] = 'disabling_hit strengthened disarm';
     }
 
     if ($statusId === 'cracked_armor' && in_array('shatter_plate', $passives, true)) {
@@ -3201,7 +3362,295 @@ final class DeterministicRunNodeResolver
       $messages[] = 'lingering_cloud extended poison';
     }
 
+    if ($statusId === 'poison' && in_array('sickly_weakness', $passives, true)) {
+      $params['counts_as_extra_debuff_type'] = max(1, (int)($params['counts_as_extra_debuff_type'] ?? 0) + 1);
+      $this->applyStatusState($statusMap, $targetId, $statusId, $duration, $params, $round, $tick);
+      $messages[] = 'sickly_weakness increased poison debuff weight';
+    }
+
     return count($messages) > 0 ? implode(', ', $messages) : null;
+  }
+
+  /**
+   * @param array<string,mixed> $outcome
+   * @param array<string,mixed> $actorUnit
+   * @param array<string,mixed> $targetUnit
+   * @return array<string,mixed>
+   */
+  private function applySupportOutcomeActorPassives(array $outcome, array $actorUnit, array $targetUnit, int $targetHpBefore): array
+  {
+    $passives = (array)($actorUnit['passive_abilities'] ?? []);
+    $statusId = trim((string)($outcome['status_applied'] ?? ''));
+    $params = is_array($outcome['status_params'] ?? null) ? $outcome['status_params'] : [];
+    $messages = [];
+
+    if ($statusId === 'bolstered' && in_array('rally_rhythm', $passives, true)) {
+      $params['attack_pct'] = max((float)($params['attack_pct'] ?? 0.0), 0.10);
+      $messages[] = 'rally_rhythm added attack boost';
+    }
+
+    if ($statusId === 'warcry' && in_array('chant_of_violence', $passives, true)) {
+      $params['attack_pct'] = (float)($params['attack_pct'] ?? 0.0) + 0.08;
+      $messages[] = 'chant_of_violence strengthened warcry';
+    }
+
+    if (
+      $statusId === 'bolstered'
+      && in_array('patch_job', $passives, true)
+      && $this->isWounded($targetHpBefore, (int)($targetUnit['max_hp'] ?? 1))
+    ) {
+      $heal = 2;
+      $outcome['target_hp_after'] = min((int)($targetUnit['max_hp'] ?? $targetHpBefore), $targetHpBefore + $heal);
+      $messages[] = sprintf('patch_job healed %d', $heal);
+    }
+
+    if (count($messages) === 0) {
+      return $outcome;
+    }
+
+    $outcome['status_params'] = $params;
+    $existingAffix = trim((string)($outcome['affix_outcome'] ?? ''));
+    $outcome['affix_outcome'] = implode(', ', array_values(array_filter([
+      $existingAffix !== '' ? $existingAffix : null,
+      implode(', ', $messages),
+    ])));
+
+    return $outcome;
+  }
+
+  /**
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<string,array<string,mixed>> $unitsById
+   * @param array<string,int> $hpByUnitId
+   * @param array<string,mixed> $outcome
+   */
+  private function applySupportEchoPassive(
+    string &$state,
+    array &$statusMap,
+    array $unitsById,
+    array $hpByUnitId,
+    string $targetId,
+    array $outcome,
+    int $round,
+    int $tick
+  ): ?string {
+    $targetUnit = $unitsById[$targetId] ?? null;
+    if (!is_array($targetUnit) || !in_array('attention_hog', (array)($targetUnit['passive_abilities'] ?? []), true)) {
+      return null;
+    }
+
+    $statusId = trim((string)($outcome['status_applied'] ?? ''));
+    $params = is_array($outcome['status_params'] ?? null) ? $outcome['status_params'] : [];
+    $duration = max(1, (int)($outcome['status_duration_rounds'] ?? 1));
+    if ($statusId === '' || count($params) === 0) {
+      return null;
+    }
+
+    $candidates = array_values(array_filter(
+      $this->aliveUnitIds($hpByUnitId),
+      static fn(string $unitId): bool => $unitId !== $targetId
+    ));
+    if (count($candidates) === 0) {
+      return null;
+    }
+
+    $allyTargetId = (string)$candidates[$this->nextInt($state, count($candidates))];
+    $this->applyStatusState(
+      $statusMap,
+      $allyTargetId,
+      $statusId,
+      $duration,
+      $this->scaleSupportStatusParams($statusId, $params, 0.5),
+      $round,
+      $tick
+    );
+
+    return sprintf('attention_hog echoed %s to %s', $statusId, $allyTargetId);
+  }
+
+  /**
+   * @param array<string,mixed> $params
+   * @return array<string,mixed>
+   */
+  private function scaleSupportStatusParams(string $statusId, array $params, float $scale): array
+  {
+    if ($statusId === 'guard_stacks') {
+      $params['stack_count'] = max(1, (int)ceil(max(0, (int)($params['stack_count'] ?? 1)) * $scale));
+      return $params;
+    }
+
+    foreach (['defense_pct', 'attack_pct', 'damage_taken_pct', 'damage_taken_melee_pct', 'poison_damage_ratio', 'attack_reduction_pct'] as $floatKey) {
+      if (isset($params[$floatKey])) {
+        $params[$floatKey] = round(max(0.0, (float)$params[$floatKey]) * $scale, 4);
+      }
+    }
+
+    foreach (['lucky_bonus_flat', 'defense_reduction_flat'] as $intKey) {
+      if (isset($params[$intKey])) {
+        $params[$intKey] = max(1, (int)ceil(max(0, (int)$params[$intKey]) * $scale));
+      }
+    }
+
+    return $params;
+  }
+
+  /**
+   * @param array<string,mixed> $outcome
+   * @param array<string,array<string,mixed>> $unitsById
+   * @param array<string,int> $hpByUnitId
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @return array<string,mixed>
+   */
+  private function applyAllyProtectionPassives(
+    array $outcome,
+    string $targetId,
+    array $unitsById,
+    array $hpByUnitId,
+    array $statusMap,
+    bool $guardRedirected = false
+  ): array {
+    $damage = max(0, (int)($outcome['damage'] ?? 0));
+    if ($damage <= 0) {
+      return $outcome;
+    }
+
+    $messages = [];
+    $reductionPct = $this->bodyguardDamageReductionPct($targetId, $unitsById, $hpByUnitId);
+    if ($reductionPct > 0.0) {
+      $reduced = max(1, (int)floor($damage * (1 - $reductionPct)));
+      if ($reduced < $damage) {
+        $damage = $reduced;
+        $messages[] = 'bodyguard reduced damage';
+      }
+    }
+
+    if ($guardRedirected && in_array('unmoving', (array)($unitsById[$targetId]['passive_abilities'] ?? []), true)) {
+      $damage = max(1, $damage - 2);
+      $messages[] = 'unmoving reduced redirected hit';
+    }
+
+    if (count($messages) === 0) {
+      return $outcome;
+    }
+
+    $targetHpBefore = max(0, (int)($hpByUnitId[$targetId] ?? 0));
+    $targetHpAfter = max(0, $targetHpBefore - $damage);
+    $outcome['damage'] = $damage;
+    $outcome['target_hp_after'] = $targetHpAfter;
+    $outcome['outcome'] = $targetHpAfter <= 0 ? 'defeated' : 'hit';
+    $existingAffix = trim((string)($outcome['affix_outcome'] ?? ''));
+    $outcome['affix_outcome'] = implode(', ', array_values(array_filter([
+      $existingAffix !== '' ? $existingAffix : null,
+      implode(', ', $messages),
+    ])));
+
+    return $outcome;
+  }
+
+  /**
+   * @param array<string,array<string,mixed>> $unitsById
+   * @param array<string,int> $hpByUnitId
+   */
+  private function bodyguardDamageReductionPct(string $targetId, array $unitsById, array $hpByUnitId): float
+  {
+    $lowestAllyId = $this->lowestHpAllyId($hpByUnitId, $unitsById);
+    if ($lowestAllyId === null || $lowestAllyId !== $targetId) {
+      return 0.0;
+    }
+
+    $bestReduction = 0.0;
+    foreach ($unitsById as $unitId => $unit) {
+      if (
+        $unitId === $targetId
+        || ($hpByUnitId[$unitId] ?? 0) <= 0
+        || !in_array('bodyguard', (array)($unit['passive_abilities'] ?? []), true)
+      ) {
+        continue;
+      }
+      $bestReduction = max($bestReduction, 0.15);
+    }
+
+    return $bestReduction;
+  }
+
+  /**
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   */
+  private function forcedGuardTargetId(array $hpByUnitId, array $statusMap): ?string
+  {
+    $bestId = null;
+    $bestTick = -1;
+    foreach ($this->aliveUnitIds($hpByUnitId) as $unitId) {
+      $guardState = $statusMap[$unitId]['guard_stacks'] ?? null;
+      if (!is_array($guardState) || (bool)($guardState['params']['taunt_redirect'] ?? false) !== true) {
+        continue;
+      }
+      $appliedTick = (int)($guardState['applied_tick'] ?? 0);
+      if ($appliedTick > $bestTick) {
+        $bestTick = $appliedTick;
+        $bestId = $unitId;
+      }
+    }
+
+    return $bestId;
+  }
+
+  /**
+   * @param array<string,mixed> $combatAffixes
+   * @param array<string,array<string,mixed>> $unitsById
+   * @param array<string,int> $hpByUnitId
+   * @param array<string,bool> $damagedThisRound
+   * @return array<string,mixed>
+   */
+  private function applyTeamDamagePassives(
+    array $combatAffixes,
+    array $unitsById,
+    array $hpByUnitId,
+    string $targetId,
+    array $damagedThisRound
+  ): array {
+    if (!isset($damagedThisRound[$targetId])) {
+      return $combatAffixes;
+    }
+
+    $bonusPct = 0.0;
+    foreach ($unitsById as $unitId => $unit) {
+      if (($hpByUnitId[$unitId] ?? 0) <= 0 || !in_array('mob_mentality', (array)($unit['passive_abilities'] ?? []), true)) {
+        continue;
+      }
+      $bonusPct = max($bonusPct, 0.12);
+    }
+
+    if ($bonusPct > 0.0) {
+      $combatAffixes['damaged_enemy_bonus_pct'] = max(
+        (float)($combatAffixes['damaged_enemy_bonus_pct'] ?? 0.0),
+        $bonusPct
+      );
+    }
+
+    return $combatAffixes;
+  }
+
+  /**
+   * @param array<string,mixed> $params
+   * @return array<string,mixed>
+   */
+  private function applyStatusPotencyBonus(array $params, float $potencyPct): array
+  {
+    foreach (['damage_taken_pct', 'damage_taken_melee_pct', 'attack_reduction_pct', 'poison_damage_ratio'] as $floatKey) {
+      if (isset($params[$floatKey])) {
+        $params[$floatKey] = round((float)$params[$floatKey] * (1 + $potencyPct), 4);
+      }
+    }
+
+    if (isset($params['defense_reduction_flat'])) {
+      $params['defense_reduction_flat'] = max(
+        1,
+        (int)ceil((int)$params['defense_reduction_flat'] * (1 + $potencyPct))
+      );
+    }
+
+    return $params;
   }
 
   /**

@@ -198,6 +198,20 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     $this->assertSame(false, (bool)($statusMap['unit-1']['spiteful_reflex']['params']['is_debuff'] ?? true));
   }
 
+  public function testInitializePassiveStatusesForCombatSeedsCounterpunchReadiness(): void
+  {
+    $statusMap = ['unit-1' => []];
+
+    $this->invokePrivate('initializePassiveStatusesForCombat', [
+      &$statusMap,
+      'unit-1',
+      ['counterpunch'],
+    ]);
+
+    $this->assertArrayHasKey('counterpunch_ready', $statusMap['unit-1']);
+    $this->assertSame(0, (int)($statusMap['unit-1']['counterpunch_ready']['params']['last_trigger_round'] ?? -1));
+  }
+
   public function testDeriveActionOutcomeUsesPassiveIgnoreDefenseAndWoundedBonus(): void
   {
     $state = str_repeat('b', 64);
@@ -429,6 +443,148 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     ]);
     $this->assertStringContainsString('shatter_plate', (string)$crackedArmor);
     $this->assertSame(3, (int)($statusMap['enemy-1']['cracked_armor']['params']['defense_reduction_flat'] ?? 0));
+  }
+
+  public function testApplyAttackerPassiveStatusAugmentsSupportsToxicToolsDisablingHitAndSicklyWeakness(): void
+  {
+    $statusMap = ['enemy-1' => []];
+    $attackerUnit = [
+      'passive_abilities' => ['toxic_tools', 'disabling_hit', 'sickly_weakness'],
+      'combat_affixes' => ['status_potency_pct' => 0.0],
+    ];
+
+    $disarm = $this->invokePrivate('applyAttackerPassiveStatusAugments', [
+      &$statusMap,
+      $attackerUnit,
+      'enemy-1',
+      [
+        'status_applied' => 'disarmed',
+        'status_duration_rounds' => 2,
+        'status_params' => ['attack_reduction_pct' => 0.15, 'is_debuff' => true],
+      ],
+      1,
+      10,
+    ]);
+    $this->assertStringContainsString('toxic_tools', (string)$disarm);
+    $this->assertStringContainsString('disabling_hit', (string)$disarm);
+    $this->assertGreaterThan(0.23, (float)($statusMap['enemy-1']['disarmed']['params']['attack_reduction_pct'] ?? 0.0));
+
+    $poison = $this->invokePrivate('applyAttackerPassiveStatusAugments', [
+      &$statusMap,
+      $attackerUnit,
+      'enemy-1',
+      [
+        'status_applied' => 'poison',
+        'status_duration_rounds' => 3,
+        'status_params' => ['poison_damage_ratio' => 0.2, 'is_debuff' => true],
+      ],
+      1,
+      11,
+    ]);
+    $this->assertStringContainsString('sickly_weakness', (string)$poison);
+    $this->assertSame(1, (int)($statusMap['enemy-1']['poison']['params']['counts_as_extra_debuff_type'] ?? 0));
+  }
+
+  public function testApplySupportOutcomeActorPassivesAugmentsBolsterWarcryAndPatchJob(): void
+  {
+    $bolster = $this->invokePrivate('applySupportOutcomeActorPassives', [
+      [
+        'target_hp_after' => 4,
+        'status_applied' => 'bolstered',
+        'status_params' => ['defense_pct' => 0.25, 'is_debuff' => false],
+        'affix_outcome' => null,
+      ],
+      ['passive_abilities' => ['rally_rhythm', 'patch_job']],
+      ['max_hp' => 20],
+      4,
+    ]);
+    $this->assertSame(0.10, (float)($bolster['status_params']['attack_pct'] ?? 0.0));
+    $this->assertSame(6, (int)($bolster['target_hp_after'] ?? 0));
+    $this->assertStringContainsString('patch_job', (string)($bolster['affix_outcome'] ?? ''));
+
+    $warcry = $this->invokePrivate('applySupportOutcomeActorPassives', [
+      [
+        'target_hp_after' => 10,
+        'status_applied' => 'warcry',
+        'status_params' => ['attack_pct' => 0.18, 'is_debuff' => false],
+        'affix_outcome' => null,
+      ],
+      ['passive_abilities' => ['chant_of_violence']],
+      ['max_hp' => 20],
+      10,
+    ]);
+    $this->assertSame(0.26, round((float)($warcry['status_params']['attack_pct'] ?? 0.0), 2));
+  }
+
+  public function testApplySupportEchoPassiveCopiesReducedBuffToAnotherAlly(): void
+  {
+    $state = str_repeat('d', 64);
+    $statusMap = ['mascot' => [], 'ally-1' => [], 'ally-2' => []];
+    $unitsById = [
+      'mascot' => ['passive_abilities' => ['attention_hog']],
+      'ally-1' => ['passive_abilities' => []],
+      'ally-2' => ['passive_abilities' => []],
+    ];
+    $hpByUnitId = ['mascot' => 10, 'ally-1' => 10, 'ally-2' => 10];
+
+    $summary = $this->invokePrivate('applySupportEchoPassive', [
+      &$state,
+      &$statusMap,
+      $unitsById,
+      $hpByUnitId,
+      'mascot',
+      [
+        'status_applied' => 'lucky',
+        'status_duration_rounds' => 2,
+        'status_params' => ['lucky_bonus_flat' => 4, 'is_debuff' => false],
+      ],
+      1,
+      8,
+    ]);
+
+    $this->assertStringContainsString('attention_hog echoed lucky', (string)$summary);
+    $echoed = (int)($statusMap['ally-1']['lucky']['params']['lucky_bonus_flat'] ?? $statusMap['ally-2']['lucky']['params']['lucky_bonus_flat'] ?? 0);
+    $this->assertSame(2, $echoed);
+  }
+
+  public function testApplyAllyProtectionPassivesSupportsBodyguardAndUnmoving(): void
+  {
+    $outcome = $this->invokePrivate('applyAllyProtectionPassives', [
+      [
+        'damage' => 10,
+        'target_hp_after' => 0,
+        'outcome' => 'defeated',
+        'affix_outcome' => null,
+      ],
+      'guard',
+      [
+        'guard' => ['max_hp' => 20, 'passive_abilities' => ['unmoving']],
+        'protector' => ['max_hp' => 25, 'passive_abilities' => ['bodyguard']],
+      ],
+      ['guard' => 8, 'protector' => 20],
+      ['guard' => []],
+      true,
+    ]);
+
+    $this->assertSame(6, (int)$outcome['damage']);
+    $this->assertSame(2, (int)$outcome['target_hp_after']);
+    $this->assertStringContainsString('bodyguard', (string)($outcome['affix_outcome'] ?? ''));
+    $this->assertStringContainsString('unmoving', (string)($outcome['affix_outcome'] ?? ''));
+  }
+
+  public function testApplyTeamDamagePassivesAddsMobMentalityBonusForDamagedTargets(): void
+  {
+    $affixes = $this->invokePrivate('applyTeamDamagePassives', [
+      ['damage_flat' => 0, 'below_half_bonus' => 0.0],
+      [
+        'warcaller' => ['passive_abilities' => ['mob_mentality']],
+      ],
+      ['warcaller' => 10],
+      'enemy-1',
+      ['enemy-1' => true],
+    ]);
+
+    $this->assertSame(0.12, (float)($affixes['damaged_enemy_bonus_pct'] ?? 0.0));
   }
 
   public function testResolveAdditionalAbilityTargetsSplashesPoisonCloud(): void
