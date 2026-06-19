@@ -1,4 +1,4 @@
 window.__DICE_GOBLIN_CONFIG__ = {
-  apiBaseUrl: 'https://dicegoblins-api.nickgrant.io',
-  enableDevPanel: false,
+  apiBaseUrl: 'http://localhost:8080',
+  enableDevPanel: true,
 };
