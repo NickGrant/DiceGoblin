@@ -2,6 +2,7 @@
   "name": "dice-goblin-workflow",
   "private": true,
   "scripts": {
+    "backlog": "node scripts/backlog-cli.mjs",
     "backlog:validate": "node scripts/validate-backlog.mjs",
     "bundle:check": "node scripts/check-frontend-bundle-size.mjs",
     "bundle:zip": "powershell -ExecutionPolicy Bypass -File scripts/create-bundles.ps1",
