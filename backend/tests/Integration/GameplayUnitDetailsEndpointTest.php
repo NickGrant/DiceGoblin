@@ -69,6 +69,25 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->assertTrue((bool)($options[0]['will_skip_current_capstone'] ?? false));
   }
 
+  public function testPromotionOptionsEndpointDoesNotOfferBranchesBeforeLevelSix(): void
+  {
+    $userId = $this->insertUser('promo_floor', 'Promotion Floor User');
+    [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    $unitId = $this->insertUnit($userId, $bruiserTypeId, 5, 0);
+    (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $bruiserTypeId);
+
+    $_SESSION['user_id'] = $userId;
+
+    $controller = new GameplayController();
+    $response = $this->invoke(fn() => $controller->getPromotionOptions((string)$unitId));
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $this->assertSame(10, (int)($response['body']['data']['current_max_level'] ?? 0));
+    $this->assertSame(6, (int)($response['body']['data']['current_promotion_level'] ?? 0));
+    $this->assertFalse((bool)($response['body']['data']['promotion_eligible'] ?? true));
+    $this->assertSame([], $response['body']['data']['options'] ?? null);
+  }
+
   public function testSelectCapstoneEndpointPersistsChoiceForMasteredUnit(): void
   {
     $userId = $this->insertUser('capstone_pick', 'Capstone Pick User');

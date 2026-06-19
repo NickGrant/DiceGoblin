@@ -77,6 +77,23 @@ final class AbilityHandlerRegistryCoverageTest extends TestCase
     );
   }
 
+  public function testAllActiveAbilitiesConsumeAtLeastOneDie(): void
+  {
+    $defs = (new AbilityRegistry())->all();
+
+    foreach ($defs as $def) {
+      if ($def->type !== AbilityType::Active) {
+        continue;
+      }
+
+      $this->assertGreaterThanOrEqual(
+        1,
+        $def->diceCost,
+        sprintf('Expected active ability %s to consume at least one die.', $def->abilityId)
+      );
+    }
+  }
+
   private function buildRegistry(): HandlerRegistry
   {
     return new HandlerRegistry(

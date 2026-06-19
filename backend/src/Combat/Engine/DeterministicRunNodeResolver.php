@@ -2459,14 +2459,17 @@ final class DeterministicRunNodeResolver
       'warcry' => [
         'duration_rounds' => $duration,
         'params' => [
-          'attack_pct' => (float)($params['attack_pct'] ?? 0.18),
+          'attack_pct' => (float)($params['attack_pct'] ?? 0.18) + ($rollTotal * 0.01),
           'is_debuff' => false,
         ],
       ],
       'lucky' => [
         'duration_rounds' => $duration,
         'params' => [
-          'lucky_bonus_flat' => (int)($params['lucky_bonus_flat'] ?? max(1, $this->halfDieValue($rollTotal))),
+          'lucky_bonus_flat' => max(
+            1,
+            (int)($params['lucky_bonus_flat'] ?? 0) + max(0, $this->halfDieValue($rollTotal) - 1)
+          ),
           'is_debuff' => false,
         ],
       ],

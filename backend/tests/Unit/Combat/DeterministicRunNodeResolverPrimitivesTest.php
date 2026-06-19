@@ -212,6 +212,80 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     $this->assertSame(0, (int)($statusMap['unit-1']['counterpunch_ready']['params']['last_trigger_round'] ?? -1));
   }
 
+  public function testResolveCounterpunchRetaliationOnlyTriggersOncePerRound(): void
+  {
+    $state = str_repeat('e', 64);
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+    $events = [];
+    $playerHp = ['defender-1' => 18];
+    $enemyHp = ['attacker-1' => 20];
+    $playerStatuses = [
+      'defender-1' => [
+        'counterpunch_ready' => [
+          'duration_rounds' => 99,
+          'params' => ['last_trigger_round' => 0, 'is_debuff' => false],
+          'applied_tick' => 0,
+          'applied_round' => 0,
+        ],
+      ],
+    ];
+    $enemyStatuses = ['attacker-1' => []];
+    $enemyActor = [
+      'defense' => 2,
+      'max_hp' => 20,
+      'pos' => ['x' => 2, 'y' => 0],
+      'formation' => ['w' => 1, 'h' => 1],
+    ];
+    $defenderUnit = [
+      'attack' => 8,
+      'pos' => ['x' => 0, 'y' => 0],
+      'formation' => ['w' => 1, 'h' => 1],
+      'passive_abilities' => ['counterpunch'],
+      'combat_affixes' => [],
+    ];
+
+    $first = $this->invokePrivate('resolveCounterpunchRetaliation', [
+      &$events,
+      &$state,
+      $registry,
+      $enemyActor,
+      $defenderUnit,
+      'attacker-1',
+      'defender-1',
+      'basic_attack_melee',
+      &$playerHp,
+      &$enemyHp,
+      &$playerStatuses,
+      &$enemyStatuses,
+      2,
+      10,
+    ]);
+
+    $this->assertStringContainsString('counterpunch', (string)$first);
+    $this->assertLessThan(20, $enemyHp['attacker-1']);
+    $this->assertSame(2, (int)($playerStatuses['defender-1']['counterpunch_ready']['params']['last_trigger_round'] ?? 0));
+
+    $second = $this->invokePrivate('resolveCounterpunchRetaliation', [
+      &$events,
+      &$state,
+      $registry,
+      $enemyActor,
+      $defenderUnit,
+      'attacker-1',
+      'defender-1',
+      'basic_attack_melee',
+      &$playerHp,
+      &$enemyHp,
+      &$playerStatuses,
+      &$enemyStatuses,
+      2,
+      11,
+    ]);
+
+    $this->assertSame('counterpunch already used this round', $second);
+  }
+
   public function testInitializePassiveStatusesForCombatSeedsDumbLuckReadiness(): void
   {
     $statusMap = ['unit-1' => []];
@@ -344,6 +418,52 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     $this->assertSame('guard_stacks', (string)($outcome['status_applied'] ?? ''));
     $this->assertSame(3, (int)($outcome['status_params']['stack_count'] ?? 0));
     $this->assertStringContainsString('half-die scaling', (string)($outcome['affix_outcome'] ?? ''));
+  }
+
+  public function testDeriveStatusApplicationScalesWarcryAndLuckyFromDieRolls(): void
+  {
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $warcryLow = $this->invokePrivate('deriveStatusApplication', [
+      $registry,
+      'warcry',
+      'warcry',
+      ['dice_rolls' => [['sides' => 6, 'roll' => 1]]],
+      0,
+    ]);
+    $warcryHigh = $this->invokePrivate('deriveStatusApplication', [
+      $registry,
+      'warcry',
+      'warcry',
+      ['dice_rolls' => [['sides' => 6, 'roll' => 6]]],
+      0,
+    ]);
+    $this->assertGreaterThan(
+      (float)($warcryLow['params']['attack_pct'] ?? 0.0),
+      (float)($warcryHigh['params']['attack_pct'] ?? 0.0)
+    );
+    $this->assertGreaterThan(0.18, (float)($warcryHigh['params']['attack_pct'] ?? 0.0));
+
+    $luckyLow = $this->invokePrivate('deriveStatusApplication', [
+      $registry,
+      'lucky_chant',
+      'lucky',
+      ['dice_rolls' => [['sides' => 6, 'roll' => 1]]],
+      0,
+    ]);
+    $luckyHigh = $this->invokePrivate('deriveStatusApplication', [
+      $registry,
+      'lucky_chant',
+      'lucky',
+      ['dice_rolls' => [['sides' => 6, 'roll' => 6]]],
+      0,
+    ]);
+    $this->assertGreaterThan(
+      (int)($luckyLow['params']['lucky_bonus_flat'] ?? 0),
+      (int)($luckyHigh['params']['lucky_bonus_flat'] ?? 0)
+    );
+    $this->assertGreaterThanOrEqual(2, (int)($luckyLow['params']['lucky_bonus_flat'] ?? 0));
   }
 
   public function testApplyLastGoblinStandingIfNeededLeavesUnitAtOneHpOnce(): void
