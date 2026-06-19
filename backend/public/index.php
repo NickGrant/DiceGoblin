@@ -142,6 +142,7 @@ $router->post('/api/v1/battles/:battleId/claim',[$battle, 'claimBattle']);
 // Compatibility-critical identifiers remain `teams` in route keys.
 $router->get('/api/v1/units/:unitInstanceId/promotion-options', [$gameplay, 'getPromotionOptions']);
 $router->post('/api/v1/units/:unitInstanceId/promote', [$gameplay, 'promoteUnit']);
+$router->put('/api/v1/units/:unitInstanceId/capstone', [$gameplay, 'selectCapstone']);
 $router->patch('/api/v1/units/:unitInstanceId/name', [$gameplay, 'renameUnit']);
 $router->put('/api/v1/units/:unitInstanceId/loadout', [$gameplay, 'replaceEquippedAbilities']);
 $router->put('/api/v1/units/:unitInstanceId/abilities/:abilityId/slots/:slotIndex/dice', [$gameplay, 'assignAbilitySlotDie']);

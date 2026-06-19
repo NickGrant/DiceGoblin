@@ -63,7 +63,7 @@
       <section class="dg-card p-3 p-lg-4 h-100">
         <div class="mb-3">
           <h2 class="dg-stencil mb-1">Promotion Hall</h2>
-          <p class="mb-0">Choose a primary unit, then consume two matching max-level units to promote it.</p>
+          <p class="mb-0">Choose a primary unit, then consume two matching promotion-ready units to promote it.</p>
         </div>
 
         @if (promotableUnits().length) {
@@ -140,7 +140,7 @@
         <dg-alert>Select a unit to review promotion options.</dg-alert>
         }
         } @else {
-        <dg-alert>No units are currently eligible for promotion. Reach max level on three matching units to use the Academy.</dg-alert>
+        <dg-alert>No units are currently eligible for promotion. Reach the promotion threshold on three matching units to use the Academy.</dg-alert>
         }
       </section>
     </div>

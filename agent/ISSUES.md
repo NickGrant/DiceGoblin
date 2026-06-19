@@ -4,39 +4,10 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Unit Progression Rework
 
-### UPR-001: Add progression data model support for mastery and capstones
-
-**Milestone:** Unit Progression Rework  
-**Status:** In Progress  
-**Priority:** High
-
-#### Problem
-
-The unit progression model needs to support level 10 mastery, level 6 promotion eligibility, passive capstone choices, and inherited capstones. Promotion eligibility and max level are currently treated too closely for the new promote-early versus master-first decision.
-
-#### Acceptance Criteria
-
-- Use `documentation/02-systems-mvp/11-unit-progression-rework.md` as the authoritative design reference.
-- Every unit type can define max level 10 independently from promotion eligibility at level 6.
-- Unit type data can define level 10 capstone choices.
-- Selected capstone choice is persisted for the unit or unit lineage.
-- Passive capstones follow the normal ability inheritance model after promotion.
-- Promotion preview can determine whether promoting now skips an unearned or unselected capstone.
-- Tier 2 and Tier 3 unit type data can grant one active and one passive ability immediately on promotion.
-- Existing unit detail API responses expose enough progression data for the frontend to show promotion eligibility, mastery state, capstone options, selected capstone, and inherited abilities.
-
-#### Current Code References
-
-- `documentation/02-systems-mvp/11-unit-progression-rework.md`
-- `backend/migrations/30_seed_unit_types.sql`
-- `backend/migrations/schema_all.sql`
-- `backend/migrations/schema_update.sql`
-- `backend/src/Combat/Abilities/AbilityRegistry.php`
-
 ### UPR-002: Add combat primitives for targeting weights, stacks, reactions, and debuff counting
 
 **Milestone:** Unit Progression Rework  
-**Status:** Open  
+**Status:** In Progress  
 **Priority:** High
 
 #### Problem

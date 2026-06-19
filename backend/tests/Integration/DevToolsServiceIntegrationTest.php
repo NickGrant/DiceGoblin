@@ -124,9 +124,9 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $updated = $service->setUnitLevel($userId, $unitId, 99);
 
     $this->assertSame((string)$unitId, $updated['id']);
-    $this->assertSame(6, $updated['level']);
-    $this->assertSame(6, $updated['max_level']);
-    $this->assertSame(6, (int)$this->scalar('SELECT `level` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
+    $this->assertSame(10, $updated['level']);
+    $this->assertSame(10, $updated['max_level']);
+    $this->assertSame(10, (int)$this->scalar('SELECT `level` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
   }
 
   private function makeService(): DevToolsService

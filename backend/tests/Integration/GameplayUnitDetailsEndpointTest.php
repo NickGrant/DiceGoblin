@@ -62,6 +62,44 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->assertNotContains('Bannerbearer', $branchNames);
     $this->assertNotContains('Warcaller', $targetNames);
     $this->assertNotSame($marksmanTypeId, 0);
+    $this->assertSame(6, (int)($response['body']['data']['current_promotion_level'] ?? 0));
+    $this->assertSame(false, (bool)($response['body']['data']['is_mastered'] ?? true));
+    $this->assertSame('unearned', (string)($response['body']['data']['current_capstone_state'] ?? ''));
+    $this->assertTrue((bool)($response['body']['data']['promotion_eligible'] ?? false));
+    $this->assertTrue((bool)($options[0]['will_skip_current_capstone'] ?? false));
+  }
+
+  public function testSelectCapstoneEndpointPersistsChoiceForMasteredUnit(): void
+  {
+    $userId = $this->insertUser('capstone_pick', 'Capstone Pick User');
+    [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    $unitId = $this->insertUnit($userId, $bruiserTypeId, 10, 0);
+    (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $bruiserTypeId);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+    $this->setJsonBody(['ability_id' => 'finisher']);
+
+    $controller = new GameplayController();
+    $response = $this->invoke(fn() => $controller->selectCapstone((string)$unitId));
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $this->assertSame('finisher', (string)($response['body']['data']['selected_capstone']['ability_id'] ?? ''));
+    $this->assertSame(
+      'finisher',
+      (string)$this->scalar(
+        'SELECT `ability_id` FROM `unit_instance_capstone_choices` WHERE `unit_instance_id` = ? AND `source_unit_type_id` = ?',
+        [$unitId, $bruiserTypeId]
+      )
+    );
+    $this->assertSame(
+      '1',
+      (string)$this->scalar(
+        'SELECT COUNT(*) FROM `unit_instance_unlocked_abilities` WHERE `unit_instance_id` = ? AND `ability_id` = ?',
+        [$unitId, 'finisher']
+      )
+    );
   }
 
   public function testReplaceEquippedAbilitiesEndpointReturnsUpdatedOrderedLoadout(): void
@@ -317,6 +355,57 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     foreach ($equippedAbilityIds as $abilityId) {
       $this->assertContains($abilityId, $unlockedAbilityIds);
     }
+  }
+
+  public function testPromotionKeepsSelectedCapstoneAsInheritedPassiveAfterTypeSwap(): void
+  {
+    $userId = $this->insertUser('promo_capstone', 'Promotion Capstone User');
+    [$bruiserTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    [$marksmanTypeId, ] = $this->loadUnitType('backline_marksman_t1');
+    $primaryId = $this->insertUnit($userId, $bruiserTypeId, 10, 0);
+    $secondaryA = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
+    $secondaryB = $this->insertUnit($userId, $bruiserTypeId, 6, 0);
+
+    $loadout = new UnitLoadoutService($this->pdo);
+    $loadout->initializeUnit($primaryId, $bruiserTypeId);
+    $loadout->initializeUnit($secondaryA, $bruiserTypeId);
+    $loadout->initializeUnit($secondaryB, $bruiserTypeId);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new GameplayController();
+    $this->setJsonBody(['ability_id' => 'finisher']);
+    $selectResponse = $this->invoke(fn() => $controller->selectCapstone((string)$primaryId));
+    $this->assertSame(200, $selectResponse['status'], json_encode($selectResponse['body']));
+
+    $unlockService = new UserUnlockService($this->pdo);
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'frontline_bruiser_t1');
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'backline_marksman_t1');
+
+    $this->setJsonBody([
+      'primary_unit_instance_id' => (string)$primaryId,
+      'secondary_unit_instance_ids' => [(string)$secondaryA, (string)$secondaryB],
+      'destination_unit_type_id' => (string)$marksmanTypeId,
+    ]);
+    $promoteResponse = $this->invoke(fn() => $controller->promoteUnit((string)$primaryId));
+
+    $this->assertSame(200, $promoteResponse['status'], json_encode($promoteResponse['body']));
+    $this->assertSame(
+      'finisher',
+      (string)$this->scalar(
+        'SELECT `ability_id` FROM `unit_instance_capstone_choices` WHERE `unit_instance_id` = ? AND `source_unit_type_id` = ?',
+        [$primaryId, $bruiserTypeId]
+      )
+    );
+    $this->assertSame(
+      '1',
+      (string)$this->scalar(
+        'SELECT COUNT(*) FROM `unit_instance_unlocked_abilities` WHERE `unit_instance_id` = ? AND `ability_id` = ?',
+        [$primaryId, 'finisher']
+      )
+    );
   }
 
   public function testReplaceEquippedAbilitiesEndpointRejectsActiveRunUnitsEvenWithRestContext(): void

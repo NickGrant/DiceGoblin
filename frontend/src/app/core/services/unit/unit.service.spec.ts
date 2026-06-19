@@ -55,6 +55,17 @@ describe('UnitService', () => {
     });
   });
 
+  it('selects a capstone and refreshes profile state', async () => {
+    apiHttp.putWithCsrf.and.resolveTo({ ok: true } as any);
+
+    await service.selectCapstone('1', 'finisher');
+
+    expect(apiHttp.putWithCsrf).toHaveBeenCalledWith('/api/v1/units/1/capstone', {
+      ability_id: 'finisher',
+    });
+    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
+  });
+
   it('clears an ability slot die and refreshes profile', async () => {
     apiHttp.deleteWithCsrf.and.resolveTo({ ok: true } as any);
 

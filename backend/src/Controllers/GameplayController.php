@@ -20,6 +20,7 @@ use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\EconomyModifierService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\PromotionService;
+use DiceGoblins\Services\UnitCapstoneService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Services\UnitProgressionService;
@@ -156,9 +157,56 @@ final class GameplayController
       'data' => [
         'unit_id' => (string)$pathUnitId,
         'current_tier' => (int)$unit['tier'],
+        ...$svc['promotionService']->getPromotionPreviewContext($unit),
         'options' => $svc['promotionService']->listPromotionOptions($userId, $unit),
       ],
     ]);
+  }
+
+  public function selectCapstone(?string $unitInstanceId = null): void
+  {
+    $svc = $this->services();
+    $userId = $this->requireUserId($svc['sessionService']);
+    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+      return;
+    }
+
+    $unitId = $this->requirePositiveInt($unitInstanceId, 'unitInstanceId');
+    if ($unitId === null) {
+      return;
+    }
+
+    $body = $this->readJsonBody();
+    if ($body === null) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
+      return;
+    }
+
+    $abilityId = trim((string)($body['ability_id'] ?? ''));
+    if ($abilityId === '') {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'ability_id is required.']], 400);
+      return;
+    }
+
+    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId)) {
+      Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
+      return;
+    }
+
+    try {
+      $selection = $svc['unitCapstoneService']->selectCapstone($userId, $unitId, $abilityId);
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'unit_id' => (string)$unitId,
+          'selected_capstone' => $selection,
+        ],
+      ]);
+    } catch (RuntimeException $e) {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => $e->getMessage()]], 400);
+    } catch (Throwable $e) {
+      Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
+    }
   }
 
   public function promoteUnit(?string $unitInstanceId = null): void
@@ -663,6 +711,7 @@ final class GameplayController
       'playerStateRepo' => new PlayerStateRepository($pdo),
       'unitLoadoutService' => new UnitLoadoutService($pdo),
       'promotionService' => new PromotionService($pdo),
+      'unitCapstoneService' => new UnitCapstoneService($pdo),
     ];
   }
 }

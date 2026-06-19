@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Repositories;
 
+use DiceGoblins\Combat\Abilities\AbilityRegistry;
+use DiceGoblins\Services\UnitCapstoneService;
 use PDO;
 use DiceGoblins\Services\UnitProgressionService;
 use DiceGoblins\Support\FormationGeometry;
@@ -17,12 +19,17 @@ use Throwable;
 final class UnitRepository
 {
   private UnitProgressionService $unitProgression;
+  private AbilityRegistry $abilityRegistry;
+  private UnitCapstoneService $unitCapstoneService;
 
   public function __construct(
     private readonly PDO $pdo,
     ?UnitProgressionService $unitProgression = null,
+    ?AbilityRegistry $abilityRegistry = null,
   ) {
     $this->unitProgression = $unitProgression ?? new UnitProgressionService();
+    $this->abilityRegistry = $abilityRegistry ?? new AbilityRegistry();
+    $this->unitCapstoneService = new UnitCapstoneService($pdo);
   }
 
   /**
@@ -155,7 +162,10 @@ final class UnitRepository
         ut.`name` AS `unit_type_name`,
         ut.`base_stats_json`,
         ut.`ability_set_json`,
+        ut.`promotion_grants_json`,
+        ut.`capstone_choices_json`,
         ut.`max_level`,
+        ut.`promotion_level`,
         ut.`attack_per_level`,
         ut.`defense_per_level`,
         ut.`max_hp_per_level`,
@@ -183,6 +193,7 @@ final class UnitRepository
     $unlockedAbilitiesByUnit = $this->getUnlockedAbilitiesForUnitIds($unitIds);
     $equippedAbilitiesByUnit = $this->getEquippedAbilitiesForUnitIds($unitIds);
     $abilityDiceByUnit = $this->getAbilityDiceBindingsForUnitIds($unitIds);
+    $capstoneSelectionsByUnit = $this->unitCapstoneService->getSelectionsForUnitIds($unitIds);
 
     // 3) Merge
     $out = [];
@@ -192,6 +203,7 @@ final class UnitRepository
       $tier = max(1, (int)$u['tier']);
       $xp = max(0, (int)$u['xp']);
       $maxLevel = max(1, (int)$u['max_level']);
+      $promotionLevel = $u['promotion_level'] !== null ? max(1, (int)$u['promotion_level']) : null;
       $familySlug = $this->unitFamilySlug((string)($u['unit_type_slug'] ?? ''));
       $maxTier = $familySlug !== null ? ($maxTierByFamily[$familySlug] ?? 1) : 1;
 
@@ -215,6 +227,19 @@ final class UnitRepository
         is_array($u['base_stats_json']) ? $u['base_stats_json'] : []
       );
       $authoredAbilities = $this->abilitySetToAbilityRecords($u['ability_set_json'] ?? null);
+      $capstoneChoices = array_map(
+        static fn(string $abilityId): array => ['ability_id' => $abilityId],
+        $this->decodeCapstoneChoices($u['capstone_choices_json'] ?? null)
+      );
+      $selectedCapstone = $this->findSelectedCapstoneForType(
+        $capstoneSelectionsByUnit[$uid] ?? [],
+        (string)$u['unit_type_id']
+      );
+      $inheritedPassiveAbilities = $this->buildInheritedPassiveAbilityRecords(
+        (string)$u['unit_type_id'],
+        $unlockedAbilitiesByUnit[$uid] ?? [],
+        $capstoneSelectionsByUnit[$uid] ?? []
+      );
 
       $out[] = [
         'id' => $uid,
@@ -227,6 +252,9 @@ final class UnitRepository
         'level' => $level,
         'xp' => $xp,
         'max_level' => $maxLevel,
+        'promotion_level' => $promotionLevel,
+        'promotion_eligible' => $promotionLevel !== null && $level >= $promotionLevel && $tier < max(1, $maxTier),
+        'is_mastered' => $level >= $maxLevel,
         'max_tier' => max(1, $maxTier),
         'total_attack' => $totalAttack,
         'total_defense' => $totalDefense,
@@ -241,6 +269,11 @@ final class UnitRepository
         'unlocked_abilities' => $unlockedAbilitiesByUnit[$uid] ?? [],
         'equipped_abilities' => $equippedAbilitiesByUnit[$uid] ?? [],
         'ability_dice' => $abilityDiceByUnit[$uid] ?? [],
+        'promotion_grants' => $this->decodePromotionGrants($u['promotion_grants_json'] ?? null),
+        'capstone_choices' => $capstoneChoices,
+        'selected_capstone' => $selectedCapstone,
+        'capstone_selections' => $capstoneSelectionsByUnit[$uid] ?? [],
+        'inherited_passive_abilities' => $inheritedPassiveAbilities,
       ];
     }
 
@@ -495,7 +528,12 @@ final class UnitRepository
 
   /**
    * @param array<int,int> $unitInstanceIds
-   * @return array<string, array<int, array{ability_id:string}>>
+   * @return array<string, array<int, array{
+   *   ability_id:string,
+   *   source_unit_type_id:string,
+   *   source_unit_type_slug:string,
+   *   source_unit_type_name:string
+   * }>>
    */
   public function getUnlockedAbilitiesForUnitIds(array $unitInstanceIds): array
   {
@@ -507,10 +545,16 @@ final class UnitRepository
     $placeholders = implode(',', array_fill(0, count($unitInstanceIds), '?'));
 
     $stmt = $this->pdo->prepare("
-      SELECT `unit_instance_id`, `ability_id`
-      FROM `unit_instance_unlocked_abilities`
+      SELECT
+        uiua.`unit_instance_id`,
+        uiua.`ability_id`,
+        ut.`id` AS `source_unit_type_id`,
+        ut.`slug` AS `source_unit_type_slug`,
+        ut.`name` AS `source_unit_type_name`
+      FROM `unit_instance_unlocked_abilities` uiua
+      JOIN `unit_types` ut ON ut.`id` = uiua.`source_unit_type_id`
       WHERE `unit_instance_id` IN ($placeholders)
-      ORDER BY `unit_instance_id` ASC, `created_at` ASC, `ability_id` ASC
+      ORDER BY uiua.`unit_instance_id` ASC, uiua.`created_at` ASC, uiua.`ability_id` ASC
     ");
     $stmt->execute($unitInstanceIds);
 
@@ -520,6 +564,9 @@ final class UnitRepository
       $byUnit[$unitId] ??= [];
       $byUnit[$unitId][] = [
         'ability_id' => (string)$row['ability_id'],
+        'source_unit_type_id' => (string)$row['source_unit_type_id'],
+        'source_unit_type_slug' => (string)$row['source_unit_type_slug'],
+        'source_unit_type_name' => (string)$row['source_unit_type_name'],
       ];
     }
 
@@ -694,5 +741,135 @@ final class UnitRepository
     return preg_match('/_t(\d+)$/', $slug, $matches) === 1
       ? max(1, (int)$matches[1])
       : null;
+  }
+
+  /**
+   * @param mixed $raw
+   * @return array{actives:list<string>,passives:list<string>}
+   */
+  private function decodePromotionGrants(mixed $raw): array
+  {
+    if (is_string($raw)) {
+      $decoded = json_decode($raw, true);
+      $raw = is_array($decoded) ? $decoded : [];
+    }
+
+    if (!is_array($raw)) {
+      return ['actives' => [], 'passives' => []];
+    }
+
+    return [
+      'actives' => $this->normalizeAbilityIdList($raw['actives'] ?? []),
+      'passives' => $this->normalizeAbilityIdList($raw['passives'] ?? []),
+    ];
+  }
+
+  /**
+   * @param mixed $raw
+   * @return list<string>
+   */
+  private function decodeCapstoneChoices(mixed $raw): array
+  {
+    return $this->unitCapstoneService->decodeCapstoneChoices($raw);
+  }
+
+  /**
+   * @param mixed $raw
+   * @return list<string>
+   */
+  private function normalizeAbilityIdList(mixed $raw): array
+  {
+    if (!is_array($raw)) {
+      return [];
+    }
+
+    $normalized = [];
+    foreach ($raw as $value) {
+      $abilityId = trim((string)$value);
+      if ($abilityId === '' || in_array($abilityId, $normalized, true)) {
+        continue;
+      }
+      $normalized[] = $abilityId;
+    }
+
+    return $normalized;
+  }
+
+  /**
+   * @param list<array{
+   *   source_unit_type_id:string,
+   *   source_unit_type_slug:string,
+   *   source_unit_type_name:string,
+   *   ability_id:string
+   * }> $selections
+   * @return array{
+   *   source_unit_type_id:string,
+   *   source_unit_type_slug:string,
+   *   source_unit_type_name:string,
+   *   ability_id:string
+   * }|null
+   */
+  private function findSelectedCapstoneForType(array $selections, string $unitTypeId): ?array
+  {
+    foreach ($selections as $selection) {
+      if ((string)$selection['source_unit_type_id'] === $unitTypeId) {
+        return $selection;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * @param list<array{
+   *   ability_id:string,
+   *   source_unit_type_id:string,
+   *   source_unit_type_slug:string,
+   *   source_unit_type_name:string
+   * }> $unlockedAbilities
+   * @param list<array{
+   *   source_unit_type_id:string,
+   *   source_unit_type_slug:string,
+   *   source_unit_type_name:string,
+   *   ability_id:string
+   * }> $capstoneSelections
+   * @return list<array{
+   *   ability_id:string,
+   *   source_unit_type_id:string,
+   *   source_unit_type_slug:string,
+   *   source_unit_type_name:string
+   * }>
+   */
+  private function buildInheritedPassiveAbilityRecords(
+    string $currentUnitTypeId,
+    array $unlockedAbilities,
+    array $capstoneSelections
+  ): array {
+    $capstoneIds = array_fill_keys(array_map(static fn(array $entry): string => (string)$entry['ability_id'], $capstoneSelections), true);
+    $records = [];
+    foreach ($unlockedAbilities as $entry) {
+      if ((string)$entry['source_unit_type_id'] === $currentUnitTypeId) {
+        continue;
+      }
+
+      $abilityId = (string)$entry['ability_id'];
+      $isPassive = isset($capstoneIds[$abilityId]);
+      if (!$isPassive && $this->abilityRegistry->has($abilityId)) {
+        $isPassive = $this->abilityRegistry->get($abilityId)->type->value === 'passive';
+      }
+
+      if (!$isPassive) {
+        continue;
+      }
+
+      $records[] = [
+        'ability_id' => $abilityId,
+        'source_unit_type_id' => (string)$entry['source_unit_type_id'],
+        'source_unit_type_slug' => (string)$entry['source_unit_type_slug'],
+        'source_unit_type_name' => (string)$entry['source_unit_type_name'],
+      ];
+    }
+
+    return $records;
   }
 }

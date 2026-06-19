@@ -199,7 +199,7 @@ final class UnitLoadoutService
       return;
     }
 
-    $this->replaceEquippedAbilities($unitInstanceId, $defaultEquipped);
+    $this->insertEquippedAbilities($unitInstanceId, $defaultEquipped);
   }
 
   /**
@@ -215,8 +215,9 @@ final class UnitLoadoutService
     }
 
     $abilitySet = $this->decodeAbilitySet($row['ability_set_json'] ?? null);
+    $promotionGrants = $this->decodeAbilitySet($row['promotion_grants_json'] ?? null);
     $sourceTier = $this->tierFromSlug($unitTypeSlug);
-    $catalog = $this->catalogAbilities($abilitySet);
+    $catalog = $this->catalogAbilities($abilitySet, $promotionGrants);
     if (count($catalog) === 0) {
       return;
     }
@@ -248,23 +249,24 @@ final class UnitLoadoutService
    * @param array<string,mixed> $abilitySet
    * @return list<string>
    */
-  private function catalogAbilities(array $abilitySet): array
+  private function catalogAbilities(array ...$abilitySources): array
   {
     $ordered = [];
-    foreach (['actives', 'passives'] as $key) {
-      $values = $abilitySet[$key] ?? [];
-      if (!is_array($values)) {
-        continue;
-      }
-      foreach ($values as $value) {
-        $abilityId = trim((string)$value);
-        if ($abilityId === '' || in_array($abilityId, $ordered, true)) {
+    foreach ($abilitySources as $abilitySet) {
+      foreach (['actives', 'passives'] as $key) {
+        $values = $abilitySet[$key] ?? [];
+        if (!is_array($values)) {
           continue;
         }
-        if (!$this->abilityRegistry->has($abilityId)) {
-          continue;
+
+        foreach ($values as $value) {
+          $abilityId = trim((string)$value);
+          if ($abilityId === '' || in_array($abilityId, $ordered, true)) {
+            continue;
+          }
+
+          $ordered[] = $abilityId;
         }
-        $ordered[] = $abilityId;
       }
     }
 

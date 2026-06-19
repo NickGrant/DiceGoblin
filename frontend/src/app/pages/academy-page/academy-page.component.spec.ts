@@ -16,7 +16,9 @@ class SessionServiceStub {
       unit_type_name: 'Bruiser',
       tier: 1,
       level: 6,
-      max_level: 6,
+      max_level: 10,
+      promotion_level: 6,
+      promotion_eligible: true,
       locked: false,
     },
     {
@@ -27,7 +29,9 @@ class SessionServiceStub {
       unit_type_name: 'Bruiser',
       tier: 1,
       level: 6,
-      max_level: 6,
+      max_level: 10,
+      promotion_level: 6,
+      promotion_eligible: true,
       locked: false,
     },
     {
@@ -38,7 +42,9 @@ class SessionServiceStub {
       unit_type_name: 'Bruiser',
       tier: 1,
       level: 6,
-      max_level: 6,
+      max_level: 10,
+      promotion_level: 6,
+      promotion_eligible: true,
       locked: false,
     },
     {
@@ -49,7 +55,9 @@ class SessionServiceStub {
       unit_type_name: 'Bannerbearer',
       tier: 1,
       level: 6,
-      max_level: 6,
+      max_level: 10,
+      promotion_level: 6,
+      promotion_eligible: true,
       locked: false,
     },
   ] as any[]);

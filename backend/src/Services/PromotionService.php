@@ -9,21 +9,33 @@ use RuntimeException;
 final class PromotionService
 {
   private UnitLoadoutService $unitLoadoutService;
+  private UnitCapstoneService $unitCapstoneService;
 
   public function __construct(
     private readonly PDO $pdo,
     ?UnitLoadoutService $unitLoadoutService = null,
   ) {
     $this->unitLoadoutService = $unitLoadoutService ?? new UnitLoadoutService($pdo);
+    $this->unitCapstoneService = new UnitCapstoneService($pdo);
   }
 
   /**
-   * @return array{id:int,unit_type_id:int,tier:int,level:int,max_level:int,slug:string,name:string}|null
+   * @return array{
+   *   id:int,
+   *   unit_type_id:int,
+   *   tier:int,
+   *   level:int,
+   *   max_level:int,
+   *   promotion_level:int|null,
+   *   slug:string,
+   *   name:string,
+   *   capstone_choices:list<string>
+   * }|null
    */
   public function getPromotionUnitSnapshot(int $userId, int $unitId): ?array
   {
     $stmt = $this->pdo->prepare('
-      SELECT ui.`id`, ui.`unit_type_id`, ui.`tier`, ui.`level`, ut.`max_level`, ut.`slug`, ut.`name`
+      SELECT ui.`id`, ui.`unit_type_id`, ui.`tier`, ui.`level`, ut.`max_level`, ut.`promotion_level`, ut.`slug`, ut.`name`, ut.`capstone_choices_json`
       FROM `unit_instances` ui
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
       WHERE ui.`id` = ? AND ui.`user_id` = ?
@@ -41,13 +53,25 @@ final class PromotionService
       'tier' => (int)$row['tier'],
       'level' => (int)$row['level'],
       'max_level' => (int)$row['max_level'],
+      'promotion_level' => $row['promotion_level'] !== null ? (int)$row['promotion_level'] : null,
       'slug' => (string)$row['slug'],
       'name' => (string)$row['name'],
+      'capstone_choices' => $this->unitCapstoneService->decodeCapstoneChoices($row['capstone_choices_json'] ?? null),
     ];
   }
 
   /**
-   * @param array{id:int,unit_type_id:int,tier:int,level:int,max_level:int,slug:string,name:string} $unit
+   * @param array{
+   *   id:int,
+   *   unit_type_id:int,
+   *   tier:int,
+   *   level:int,
+   *   max_level:int,
+   *   promotion_level:int|null,
+   *   slug:string,
+   *   name:string,
+   *   capstone_choices:list<string>
+   * } $unit
    * @return list<array{
    *   branch_unit_type_id:string,
    *   branch_unit_type_slug:string,
@@ -56,12 +80,15 @@ final class PromotionService
    *   target_unit_type_slug:string,
    *   target_unit_type_name:string,
    *   target_tier:int,
-   *   mode:string
+   *   mode:string,
+   *   promotion_grants:array{actives:list<string>,passives:list<string>},
+   *   will_skip_current_capstone:bool,
+   *   current_capstone_state:string
    * }>
    */
   public function listPromotionOptions(int $userId, array $unit): array
   {
-    if ($unit['level'] < $unit['max_level']) {
+    if (!$this->isPromotionEligible($unit)) {
       return [];
     }
 
@@ -77,6 +104,8 @@ final class PromotionService
       $eligibleFamilies[$familySlug] = true;
     }
 
+    $capstoneState = $this->currentCapstoneState((int)$unit['id'], (int)$unit['unit_type_id'], (int)$unit['level'], (int)$unit['max_level'], $unit['capstone_choices']);
+    $willSkipCurrentCapstone = $capstoneState === 'unearned' || $capstoneState === 'ready_to_select';
     $options = [];
     foreach (array_keys($eligibleFamilies) as $familySlug) {
       $currentFamilyTier = $familyProgress[$familySlug] ?? 0;
@@ -110,6 +139,9 @@ final class PromotionService
         'target_unit_type_name' => (string)$targetType['name'],
         'target_tier' => $targetInstanceTier,
         'mode' => $mode,
+        'promotion_grants' => $this->loadPromotionGrantsForTypeId($targetTypeId),
+        'will_skip_current_capstone' => $willSkipCurrentCapstone,
+        'current_capstone_state' => $capstoneState,
       ];
     }
 
@@ -121,6 +153,49 @@ final class PromotionService
     });
 
     return $options;
+  }
+
+  /**
+   * @param array{
+   *   id:int,
+   *   unit_type_id:int,
+   *   tier:int,
+   *   level:int,
+   *   max_level:int,
+   *   promotion_level:int|null,
+   *   slug:string,
+   *   name:string,
+   *   capstone_choices:list<string>
+   * } $unit
+   * @return array{
+   *   current_level:int,
+   *   current_max_level:int,
+   *   current_promotion_level:int|null,
+   *   promotion_eligible:bool,
+   *   is_mastered:bool,
+   *   current_capstone_state:string,
+   *   capstone_choices:list<array{ability_id:string}>,
+   *   selected_capstone:array{
+   *     source_unit_type_id:string,
+   *     source_unit_type_slug:string,
+   *     source_unit_type_name:string,
+   *     ability_id:string
+   *   }|null
+   * }
+   */
+  public function getPromotionPreviewContext(array $unit): array
+  {
+    $selectedCapstone = $this->loadSelectedCapstone((int)$unit['id'], (int)$unit['unit_type_id']);
+    return [
+      'current_level' => (int)$unit['level'],
+      'current_max_level' => (int)$unit['max_level'],
+      'current_promotion_level' => $unit['promotion_level'],
+      'promotion_eligible' => $this->isPromotionEligible($unit),
+      'is_mastered' => (int)$unit['level'] >= (int)$unit['max_level'],
+      'current_capstone_state' => $this->currentCapstoneState((int)$unit['id'], (int)$unit['unit_type_id'], (int)$unit['level'], (int)$unit['max_level'], $unit['capstone_choices']),
+      'capstone_choices' => array_map(static fn(string $abilityId): array => ['ability_id' => $abilityId], $unit['capstone_choices']),
+      'selected_capstone' => $selectedCapstone,
+    ];
   }
 
   /**
@@ -224,7 +299,8 @@ final class PromotionService
       if ((int)$unit['unit_type_id'] !== (int)$first['unit_type_id'] || (int)$unit['tier'] !== (int)$first['tier']) {
         throw new RuntimeException('promotion_requirements_not_met');
       }
-      if ((int)$unit['level'] < (int)$unit['max_level']) {
+      $promotionLevel = $unit['promotion_level'] !== null ? (int)$unit['promotion_level'] : null;
+      if ($promotionLevel === null || (int)$unit['level'] < $promotionLevel) {
         throw new RuntimeException('promotion_requirements_not_met');
       }
     }
@@ -320,6 +396,7 @@ final class PromotionService
     $params = array_merge([$userId], $unitIds);
     $stmt = $this->pdo->prepare("
       SELECT ui.`id`, ui.`unit_type_id`, ui.`tier`, ui.`level`, ut.`max_level`
+           , ut.`promotion_level`
       FROM `unit_instances` ui
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
       WHERE ui.`user_id` = ? AND ui.`id` IN ($placeholders)
@@ -340,6 +417,104 @@ final class PromotionService
     }
 
     return $ordered;
+  }
+
+  /**
+   * @param array{level:int,max_level:int,promotion_level:int|null} $unit
+   */
+  private function isPromotionEligible(array $unit): bool
+  {
+    $promotionLevel = $unit['promotion_level'];
+    return $promotionLevel !== null && (int)$unit['level'] >= $promotionLevel;
+  }
+
+  /**
+   * @return array{actives:list<string>,passives:list<string>}
+   */
+  private function loadPromotionGrantsForTypeId(int $unitTypeId): array
+  {
+    $stmt = $this->pdo->prepare('SELECT `promotion_grants_json` FROM `unit_types` WHERE `id` = ? LIMIT 1');
+    $stmt->execute([$unitTypeId]);
+    $raw = $stmt->fetchColumn();
+    return $this->decodePromotionGrants($raw);
+  }
+
+  /**
+   * @param mixed $raw
+   * @return array{actives:list<string>,passives:list<string>}
+   */
+  private function decodePromotionGrants(mixed $raw): array
+  {
+    if (is_string($raw)) {
+      $decoded = json_decode($raw, true);
+      $raw = is_array($decoded) ? $decoded : [];
+    }
+
+    if (!is_array($raw)) {
+      return ['actives' => [], 'passives' => []];
+    }
+
+    $normalize = static function (mixed $values): array {
+      if (!is_array($values)) {
+        return [];
+      }
+
+      $normalized = [];
+      foreach ($values as $value) {
+        $abilityId = trim((string)$value);
+        if ($abilityId === '' || in_array($abilityId, $normalized, true)) {
+          continue;
+        }
+        $normalized[] = $abilityId;
+      }
+
+      return $normalized;
+    };
+
+    return [
+      'actives' => $normalize($raw['actives'] ?? []),
+      'passives' => $normalize($raw['passives'] ?? []),
+    ];
+  }
+
+  /**
+   * @param list<string> $capstoneChoices
+   */
+  private function currentCapstoneState(int $unitId, int $unitTypeId, int $level, int $maxLevel, array $capstoneChoices): string
+  {
+    if (count($capstoneChoices) === 0) {
+      return 'none';
+    }
+
+    if ($this->loadSelectedCapstone($unitId, $unitTypeId) !== null) {
+      return 'selected';
+    }
+
+    if ($level >= $maxLevel) {
+      return 'ready_to_select';
+    }
+
+    return 'unearned';
+  }
+
+  /**
+   * @return array{
+   *   source_unit_type_id:string,
+   *   source_unit_type_slug:string,
+   *   source_unit_type_name:string,
+   *   ability_id:string
+   * }|null
+   */
+  private function loadSelectedCapstone(int $unitId, int $unitTypeId): ?array
+  {
+    $selections = $this->unitCapstoneService->getSelectionsForUnitIds([$unitId]);
+    foreach ($selections[(string)$unitId] ?? [] as $selection) {
+      if ((int)$selection['source_unit_type_id'] === $unitTypeId) {
+        return $selection;
+      }
+    }
+
+    return null;
   }
 
   private function tierFromUnitTypeSlug(string $slug): int

@@ -209,7 +209,21 @@ Success (shape is illustrative; keep stable keys):
         "name": "Goblin Spear",
         "level": 2,
         "xp": 40,
-        "max_level": 12,
+        "max_level": 10,
+        "promotion_level": 6,
+        "promotion_eligible": false,
+        "is_mastered": false,
+        "capstone_choices": [
+          { "ability_id": "brawl_hardened" },
+          { "ability_id": "finisher" }
+        ],
+        "selected_capstone": null,
+        "capstone_selections": [],
+        "inherited_passive_abilities": [],
+        "promotion_grants": {
+          "actives": [],
+          "passives": []
+        },
         "growth_per_ability_per_level": { "attack": 1, "defense": 1, "max_hp": 2 }
       }
     ],
@@ -386,6 +400,70 @@ Rules:
 Errors:
 - `409 conflict` code `promotion_requirements_not_met`
 - `409 conflict` code `unit_in_active_run`
+
+### 6.3 Get Promotion Options
+`GET /api/v1/units/:unitInstanceId/promotion-options`
+
+Returns promotion-preview data for the current unit plus eligible chain and sideways destinations.
+
+Success:
+```json
+{
+  "ok": true,
+  "data": {
+    "unit_id": "2001",
+    "current_tier": 1,
+    "current_level": 6,
+    "current_max_level": 10,
+    "current_promotion_level": 6,
+    "promotion_eligible": true,
+    "is_mastered": false,
+    "current_capstone_state": "unearned",
+    "capstone_choices": [
+      { "ability_id": "brawl_hardened" },
+      { "ability_id": "finisher" }
+    ],
+    "selected_capstone": null,
+    "options": [
+      {
+        "target_unit_type_id": "21",
+        "target_unit_type_name": "Enforcer",
+        "mode": "chain",
+        "promotion_grants": {
+          "actives": ["skullcrack"],
+          "passives": ["menacing_follow_through"]
+        },
+        "will_skip_current_capstone": true,
+        "current_capstone_state": "unearned"
+      }
+    ]
+  }
+}
+```
+
+### 6.4 Select Capstone
+`POST /api/v1/units/:unitInstanceId/capstone`
+
+Request:
+```json
+{ "ability_id": "finisher" }
+```
+
+Success:
+```json
+{
+  "ok": true,
+  "data": {
+    "unit_id": "2001",
+    "selected_capstone": {
+      "source_unit_type_id": "17",
+      "source_unit_type_slug": "frontline_bruiser_t1",
+      "source_unit_type_name": "Bruiser",
+      "ability_id": "finisher"
+    }
+  }
+}
+```
 
 ---
 

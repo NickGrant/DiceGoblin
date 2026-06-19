@@ -68,6 +68,51 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertTrue(is_array($data['active_run']) || $data['active_run'] === null);
   }
 
+  public function testProfileUnitPayloadIncludesProgressionReworkFields(): void
+  {
+    $userId = $this->insertUser('profile_progression', 'Profile Progression User');
+    $unitTypeId = (int)$this->scalar('SELECT `id` FROM `unit_types` WHERE `slug` = ? LIMIT 1', ['frontline_bruiser_t1']);
+    $this->assertGreaterThan(0, $unitTypeId);
+
+    $unitInsert = $this->pdo?->prepare('
+      INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `tier`, `level`, `xp`, `locked`)
+      VALUES (?, ?, 1, 10, 0, 0)
+    ');
+    $unitInsert?->execute([$userId, $unitTypeId]);
+    $unitId = (int)$this->pdo?->lastInsertId();
+
+    $unlockInsert = $this->pdo?->prepare('
+      INSERT INTO `unit_instance_unlocked_abilities` (`unit_instance_id`, `ability_id`, `source_tier`, `source_unit_type_id`)
+      VALUES (?, ?, 1, ?)
+    ');
+    $unlockInsert?->execute([$unitId, 'finisher', $unitTypeId]);
+
+    $capstoneInsert = $this->pdo?->prepare('
+      INSERT INTO `unit_instance_capstone_choices` (`unit_instance_id`, `source_unit_type_id`, `ability_id`)
+      VALUES (?, ?, ?)
+    ');
+    $capstoneInsert?->execute([$unitId, $unitTypeId, 'finisher']);
+
+    $_SESSION['user_id'] = $userId;
+
+    $controller = new ApiController();
+    $response = $this->invoke(fn() => $controller->profile());
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $data = $this->assertSuccessEnvelopeShape($response);
+    $units = is_array($data['units'] ?? null) ? $data['units'] : [];
+    $this->assertNotEmpty($units);
+    $unit = is_array($units[0] ?? null) ? $units[0] : [];
+    $this->assertSame(6, (int)($unit['promotion_level'] ?? 0));
+    $this->assertSame(true, (bool)($unit['promotion_eligible'] ?? false));
+    $this->assertSame(true, (bool)($unit['is_mastered'] ?? false));
+    $this->assertIsArray($unit['capstone_choices'] ?? null);
+    $this->assertSame('finisher', (string)($unit['selected_capstone']['ability_id'] ?? ''));
+    $this->assertIsArray($unit['capstone_selections'] ?? null);
+    $this->assertIsArray($unit['promotion_grants'] ?? null);
+    $this->assertIsArray($unit['inherited_passive_abilities'] ?? null);
+  }
+
   public function testCurrentRunReturnsSuccessEnvelopeWhenNoActiveRun(): void
   {
     $userId = $this->insertUser();

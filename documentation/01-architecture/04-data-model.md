@@ -50,6 +50,9 @@ They may need minor contract updates, but they are not the primary focus of the 
 - base stats
 - per-level growth
 - max level
+- promotion eligibility level
+- promotion-entry grants
+- level-10 capstone choices
 - authored ability packages by tier/path
 
 `ability_set_json` should no longer be interpreted as "everything this unit auto-uses in combat."
@@ -96,6 +99,23 @@ This can be represented by:
 - both
 
 Whatever shape is chosen must support validation without relying on player-facing names or lossy inference.
+
+### 4.3 Capstone Lineage State
+Capstone selection needs explicit persistence separate from authored unit-type data.
+
+Recommended shape:
+
+### unit_instance_capstone_choices
+Columns:
+- `unit_instance_id`
+- `source_unit_type_id`
+- `ability_id`
+- `created_at`
+- `updated_at`
+
+Notes:
+- the row is keyed by unit lineage plus authored source type, not only current type
+- the selected capstone should also be present in `unit_instance_unlocked_abilities` so inheritance continues to use the normal unlocked-ability path after promotion
 
 ## 5. Ability Persistence
 

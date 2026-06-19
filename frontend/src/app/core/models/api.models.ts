@@ -43,6 +43,9 @@ export type UnitAbilityRecord = {
 
 export type UnitUnlockedAbilityRecord = {
   ability_id: string;
+  source_unit_type_id?: string;
+  source_unit_type_slug?: string;
+  source_unit_type_name?: string;
 };
 
 export type UnitEquippedAbilityRecord = {
@@ -57,6 +60,22 @@ export type UnitAbilityDieRecord = {
   dice_instance_id: string;
 };
 
+export type UnitCapstoneChoiceRecord = {
+  ability_id: string;
+};
+
+export type UnitSelectedCapstoneRecord = {
+  source_unit_type_id: string;
+  source_unit_type_slug: string;
+  source_unit_type_name: string;
+  ability_id: string;
+};
+
+export type UnitPromotionGrantsRecord = {
+  actives: string[];
+  passives: string[];
+};
+
 export type UnitRecord = {
   id: string;
   name: string;
@@ -67,6 +86,9 @@ export type UnitRecord = {
   tier?: number;
   xp?: number;
   max_level?: number;
+  promotion_level?: number | null;
+  promotion_eligible?: boolean;
+  is_mastered?: boolean;
   max_tier?: number;
   total_attack?: number;
   total_defense?: number;
@@ -81,6 +103,11 @@ export type UnitRecord = {
   unlocked_abilities?: UnitUnlockedAbilityRecord[];
   equipped_abilities?: UnitEquippedAbilityRecord[];
   ability_dice?: UnitAbilityDieRecord[];
+  promotion_grants?: UnitPromotionGrantsRecord;
+  capstone_choices?: UnitCapstoneChoiceRecord[];
+  selected_capstone?: UnitSelectedCapstoneRecord | null;
+  capstone_selections?: UnitSelectedCapstoneRecord[];
+  inherited_passive_abilities?: UnitUnlockedAbilityRecord[];
   [key: string]: unknown;
 };
 
@@ -477,11 +504,22 @@ export type PromotionOptionRecord = {
   target_unit_type_name: string;
   target_tier: number;
   mode: 'chain' | 'sideways' | string;
+  promotion_grants?: UnitPromotionGrantsRecord;
+  will_skip_current_capstone?: boolean;
+  current_capstone_state?: 'none' | 'unearned' | 'ready_to_select' | 'selected' | string;
 };
 
 export type PromotionOptionsData = {
   unit_id: string;
   current_tier: number;
+  current_level?: number;
+  current_max_level?: number;
+  current_promotion_level?: number | null;
+  promotion_eligible?: boolean;
+  is_mastered?: boolean;
+  current_capstone_state?: 'none' | 'unearned' | 'ready_to_select' | 'selected' | string;
+  capstone_choices?: UnitCapstoneChoiceRecord[];
+  selected_capstone?: UnitSelectedCapstoneRecord | null;
   options: PromotionOptionRecord[];
 };
 
@@ -494,6 +532,13 @@ export type PromoteUnitData = {
 };
 
 export type PromoteUnitResponse = ApiResponse<PromoteUnitData>;
+
+export type SelectCapstoneData = {
+  unit_id: string;
+  selected_capstone: UnitSelectedCapstoneRecord;
+};
+
+export type SelectCapstoneResponse = ApiResponse<SelectCapstoneData>;
 
 export type RenameUnitData = {
   unit_id: string;

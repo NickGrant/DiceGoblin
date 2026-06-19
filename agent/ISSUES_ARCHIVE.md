@@ -8,6 +8,16 @@
 <!-- Archive history prior to purge can be recovered from git at commit fb22ebc and earlier. -->
 
 ---
+title: Add progression data model support for mastery and capstones
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Unit Progression Rework
+description: The unit progression model needs to support level 10 mastery, level 6 promotion eligibility, passive capstone choices, inherited capstones, and promotion-preview data for the new promote-early versus master-first decision.
+resolution: Added progression-foundation schema support for `promotion_level`, `promotion_grants_json`, `capstone_choices_json`, and persisted `unit_instance_capstone_choices`, then surfaced the new metadata through the existing profile and promotion-preview APIs. Promotion eligibility now reads level 6 separately from level 10 mastery, capstone selection persists and unlocks through the lineage model, promotion previews expose skipped-capstone and immediate-grant data, and targeted backend integration coverage for profile and unit-details progression flows passed. `npm run llm:check`, focused backend PHPUnit for `GameplayUnitDetailsEndpointTest` and `ApiControllerEnvelopeContractTest`, and the frontend production build passed. Full backend PHPUnit remains blocked by unrelated pre-existing failures in academy/shop/run tests, and the full frontend ChromeHeadless suite remains blocked by unrelated pre-existing failures in dice-grid, home-page, run-rest-page, and shop-dice-grid specs.
+
+---
 title: Add mobile viewport regression checks for key play flows
 status: complete
 priority: medium

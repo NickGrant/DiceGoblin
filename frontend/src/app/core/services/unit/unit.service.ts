@@ -5,6 +5,7 @@ import {
   PromoteUnitResponse,
   RenameUnitResponse,
   ReplaceEquippedAbilitiesResponse,
+  SelectCapstoneResponse,
 } from '../../models/api.models';
 import { ApiHttpService } from '../api-http/api-http.service';
 import { SessionService } from '../session/session.service';
@@ -37,6 +38,14 @@ export class UnitService {
       primary_unit_instance_id: Number(primaryUnitId),
       secondary_unit_instance_ids: secondaryUnitIds.map((id) => Number(id)),
       ...(destinationUnitTypeId ? { destination_unit_type_id: Number(destinationUnitTypeId) } : {}),
+    });
+    await this.sessionService.refreshProfile({ force: true });
+    return response;
+  }
+
+  async selectCapstone(unitId: string, abilityId: string): Promise<SelectCapstoneResponse> {
+    const response = await this.apiHttp.putWithCsrf<SelectCapstoneResponse>(`/api/v1/units/${unitId}/capstone`, {
+      ability_id: abilityId,
     });
     await this.sessionService.refreshProfile({ force: true });
     return response;

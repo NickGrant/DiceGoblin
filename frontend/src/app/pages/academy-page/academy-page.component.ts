@@ -61,7 +61,7 @@ export class AcademyPageComponent {
     const units = this.units();
     return units
       .filter((unit) => {
-        if ((unit.max_level ?? 0) <= 0 || (unit.level ?? 0) < (unit.max_level ?? Number.MAX_SAFE_INTEGER)) {
+        if (!unit.promotion_eligible) {
           return false;
         }
 
@@ -73,7 +73,7 @@ export class AcademyPageComponent {
           return (
             candidate.unit_type_id === unit.unit_type_id &&
             candidate.tier === unit.tier &&
-            (candidate.level ?? 0) >= (candidate.max_level ?? Number.MAX_SAFE_INTEGER)
+            !!candidate.promotion_eligible
           );
         }).length;
 
@@ -96,7 +96,7 @@ export class AcademyPageComponent {
       return (
         candidate.unit_type_id === unit.unit_type_id &&
         candidate.tier === unit.tier &&
-        (candidate.level ?? 0) >= (candidate.max_level ?? Number.MAX_SAFE_INTEGER)
+        !!candidate.promotion_eligible
       );
     });
   });
