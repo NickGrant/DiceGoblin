@@ -870,6 +870,15 @@ final class DeterministicRunNodeResolver
               $abilityId,
               'player'
             );
+            $luckPassive = $this->applyTeamLuckPassives(
+              $playerStatuses,
+              $playerById,
+              $playerHp,
+              $dice,
+              $round,
+              $tick
+            );
+            $dice = $luckPassive['dice'];
             $stackResolution = $isSupportAbility
               ? ['damage_reduction' => 0, 'outcome' => null]
               : $this->consumeOneAttackDefenseStacks($enemyStatuses, $targetId);
@@ -893,7 +902,8 @@ final class DeterministicRunNodeResolver
                   $playerById,
                   $playerHp,
                   $targetId,
-                  $enemyDamagedThisRound
+                  $enemyDamagedThisRound,
+                  $targetStatuses
                 ),
                 $dice,
                 $targetStatuses,
@@ -978,6 +988,9 @@ final class DeterministicRunNodeResolver
               );
             if ($reactionOutcome !== null) {
               $events[count($events) - 1]['reaction_outcome'] = $reactionOutcome;
+            }
+            if ($luckPassive['outcome'] !== null) {
+              $events[count($events) - 1]['luck_passive_outcome'] = $luckPassive['outcome'];
             }
             if ($isSupportAbility) {
               $supportEchoOutcome = $this->applySupportEchoPassive(
@@ -1117,6 +1130,15 @@ final class DeterministicRunNodeResolver
               $abilityId,
               'enemy'
             );
+            $luckPassive = $this->applyTeamLuckPassives(
+              $enemyStatuses,
+              $enemyById,
+              $enemyHp,
+              $dice,
+              $round,
+              $tick
+            );
+            $dice = $luckPassive['dice'];
             $stackResolution = $isSupportAbility
               ? ['damage_reduction' => 0, 'outcome' => null]
               : $this->consumeOneAttackDefenseStacks($playerStatuses, $targetId);
@@ -1140,7 +1162,8 @@ final class DeterministicRunNodeResolver
                   $enemyById,
                   $enemyHp,
                   $targetId,
-                  $playerDamagedThisRound
+                  $playerDamagedThisRound,
+                  $targetStatuses
                 ),
                 $dice,
                 $targetStatuses,
@@ -1225,6 +1248,9 @@ final class DeterministicRunNodeResolver
               );
             if ($reactionOutcome !== null) {
               $events[count($events) - 1]['reaction_outcome'] = $reactionOutcome;
+            }
+            if ($luckPassive['outcome'] !== null) {
+              $events[count($events) - 1]['luck_passive_outcome'] = $luckPassive['outcome'];
             }
             if ($isSupportAbility) {
               $supportEchoOutcome = $this->applySupportEchoPassive(
@@ -2887,6 +2913,18 @@ final class DeterministicRunNodeResolver
       );
     }
 
+    if (in_array('dumb_luck', $passiveAbilityIds, true)) {
+      $this->applyStatusState(
+        $statusMap,
+        $unitId,
+        'dumb_luck_ready',
+        99,
+        ['is_debuff' => false, 'used' => false],
+        1,
+        0
+      );
+    }
+
     if (in_array('last_goblin_standing', $passiveAbilityIds, true)) {
       $this->applyStatusState(
         $statusMap,
@@ -3607,18 +3645,22 @@ final class DeterministicRunNodeResolver
     array $unitsById,
     array $hpByUnitId,
     string $targetId,
-    array $damagedThisRound
+    array $damagedThisRound,
+    array $targetStatuses = []
   ): array {
-    if (!isset($damagedThisRound[$targetId])) {
-      return $combatAffixes;
-    }
-
     $bonusPct = 0.0;
+    $breakOpenPct = 0.0;
     foreach ($unitsById as $unitId => $unit) {
-      if (($hpByUnitId[$unitId] ?? 0) <= 0 || !in_array('mob_mentality', (array)($unit['passive_abilities'] ?? []), true)) {
+      if (($hpByUnitId[$unitId] ?? 0) <= 0) {
         continue;
       }
-      $bonusPct = max($bonusPct, 0.12);
+      $passives = (array)($unit['passive_abilities'] ?? []);
+      if (isset($damagedThisRound[$targetId]) && in_array('mob_mentality', $passives, true)) {
+        $bonusPct = max($bonusPct, 0.12);
+      }
+      if (isset($targetStatuses['cracked_armor']) && in_array('break_open', $passives, true)) {
+        $breakOpenPct = max($breakOpenPct, 0.12);
+      }
     }
 
     if ($bonusPct > 0.0) {
@@ -3626,6 +3668,11 @@ final class DeterministicRunNodeResolver
         (float)($combatAffixes['damaged_enemy_bonus_pct'] ?? 0.0),
         $bonusPct
       );
+    }
+
+    if ($breakOpenPct > 0.0) {
+      $combatAffixes['status_bonus_target'] = 'cracked_armor';
+      $combatAffixes['status_bonus_pct'] = max((float)($combatAffixes['status_bonus_pct'] ?? 0.0), $breakOpenPct);
     }
 
     return $combatAffixes;
@@ -3651,6 +3698,56 @@ final class DeterministicRunNodeResolver
     }
 
     return $params;
+  }
+
+  /**
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<string,array<string,mixed>> $unitsById
+   * @param array<string,int> $hpByUnitId
+   * @param array{dice_used:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,dice_rolls:array<int,array{sides:int,roll:int}>,slot_traces?:array<int,array<string,mixed>>,slot_trace_summary?:string,dice_outcome:string,dice_modifier:int,explode_triggered:bool} $dice
+   * @return array{dice:array<string,mixed>,outcome:?string}
+   */
+  private function applyTeamLuckPassives(
+    array &$statusMap,
+    array $unitsById,
+    array $hpByUnitId,
+    array $dice,
+    int $round,
+    int $tick
+  ): array {
+    if ($this->diceRollTotal($dice) > 2 || $this->diceRollTotal($dice) <= 0) {
+      return ['dice' => $dice, 'outcome' => null];
+    }
+
+    foreach ($unitsById as $unitId => $unit) {
+      if (($hpByUnitId[$unitId] ?? 0) <= 0 || !in_array('dumb_luck', (array)($unit['passive_abilities'] ?? []), true)) {
+        continue;
+      }
+
+      $ready = (array)($statusMap[$unitId]['dumb_luck_ready']['params'] ?? []);
+      if ((bool)($ready['used'] ?? false) === true) {
+        continue;
+      }
+
+      $dice['dice_modifier'] = (int)($dice['dice_modifier'] ?? 0) + 2;
+      $dice['dice_outcome'] = trim(((string)($dice['dice_outcome'] ?? '')) . ' + dumb_luck');
+      $this->applyStatusState(
+        $statusMap,
+        $unitId,
+        'dumb_luck_ready',
+        99,
+        ['is_debuff' => false, 'used' => true],
+        $round,
+        $tick
+      );
+
+      return [
+        'dice' => $dice,
+        'outcome' => sprintf('dumb_luck improved a low roll for %s', $unitId),
+      ];
+    }
+
+    return ['dice' => $dice, 'outcome' => null];
   }
 
   /**

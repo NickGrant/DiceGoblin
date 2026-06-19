@@ -184,6 +184,86 @@ final class RunGraphGenerator
   }
 
   /**
+   * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
+   * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>}
+   */
+  public function applyTreasureSenseReveal(int $regionId, array $graph, string $seed, float $revealChance): array
+  {
+    if ($revealChance <= 0.0) {
+      return $graph;
+    }
+
+    $roll = $this->randBetween($seed . '|treasure-sense-roll', 1, 10000) / 10000;
+    if ($roll > $revealChance) {
+      return $graph;
+    }
+
+    $nodes = $graph['nodes'];
+    $edges = $graph['edges'];
+    $occupied = [];
+    $exitCol = -1;
+    foreach ($nodes as $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $col = (int)($meta['col'] ?? -1);
+      $row = (int)($meta['row'] ?? -1);
+      if ($col >= 0 && $row >= 0) {
+        $occupied[$col . ':' . $row] = true;
+      }
+      if ((string)($node['node_type'] ?? '') === 'exit') {
+        $exitCol = max($exitCol, $col);
+      }
+    }
+
+    $candidates = [];
+    foreach ($nodes as $node) {
+      $nodeIndex = (int)($node['node_index'] ?? -1);
+      $nodeType = (string)($node['node_type'] ?? '');
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $col = (int)($meta['col'] ?? -1);
+      if ($nodeIndex < 0 || $col < 0 || in_array($nodeType, ['boss', 'exit'], true) || ($col + 1) >= $exitCol) {
+        continue;
+      }
+
+      $row = $this->pickDeadEndRow($seed . '|treasure-sense|' . $nodeIndex, $nodes, $edges, $occupied, $nodeIndex, $col + 1);
+      if ($row === null) {
+        continue;
+      }
+
+      $candidates[] = [
+        'parent_index' => $nodeIndex,
+        'child_col' => $col + 1,
+        'child_row' => $row,
+      ];
+    }
+
+    if ($candidates === []) {
+      return $graph;
+    }
+
+    $lootPool = $this->loadEncounterTemplatePools($regionId)['loot'] ?? [];
+    if ($lootPool === []) {
+      return $graph;
+    }
+
+    $pickIndex = $this->randBetween($seed . '|treasure-sense-parent', 0, count($candidates) - 1);
+    $picked = $candidates[$pickIndex];
+    $newNodeIndex = $this->appendNode($nodes, $occupied, 'loot', 'locked', (int)$picked['child_col'], (int)$picked['child_row']);
+    $nodes[$newNodeIndex]['meta']['revealed_by_treasure_sense'] = true;
+    $nodes[$newNodeIndex]['meta']['hidden_treasure'] = true;
+    $nodes[$newNodeIndex]['meta']['treasure_sense_chance'] = round($revealChance, 4);
+    $templateIndex = $this->randBetween($seed . '|treasure-sense-template', 0, count($lootPool) - 1);
+    $nodes[$newNodeIndex]['encounter_template_id'] = $lootPool[$templateIndex];
+    $edges[] = ['from' => (int)$picked['parent_index'], 'to' => $newNodeIndex];
+
+    $this->validateGraph($nodes, $edges);
+
+    return [
+      'nodes' => $nodes,
+      'edges' => $edges,
+    ];
+  }
+
+  /**
    * @return array{combat:array<int,int>,boss:array<int,int>,loot:array<int,int>,rest:array<int,int>}
    */
   public function loadEncounterTemplatePools(int $regionId): array

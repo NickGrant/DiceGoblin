@@ -342,6 +342,8 @@ final class ApiController
         return;
       }
 
+      (new UnitLoadoutService($pdo))->ensureStateForUser($userId);
+
       $squadUnitCap = (new SquadCapacityService($pdo))->getCapForUser($userId);
       $teamUnitIds = $services['teamRepo']->getTeamUnitIds($userId, (int)$activeTeam['id']);
       if (count($teamUnitIds) > $squadUnitCap) {
@@ -362,7 +364,12 @@ final class ApiController
 
       // Create run + graph.
       $seed = random_int(1, 9223372036854775807);
-      $graph = (new RunGraphGenerator($pdo))->generate($regionId, (string)$region['slug'], (string)$seed);
+      $graphGenerator = new RunGraphGenerator($pdo);
+      $graph = $graphGenerator->generate($regionId, (string)$region['slug'], (string)$seed);
+      $treasureSenseRevealChance = $this->activeTeamTreasureSenseRevealChance($pdo, $teamUnitIds);
+      if ($treasureSenseRevealChance > 0.0) {
+        $graph = $graphGenerator->applyTreasureSenseReveal($regionId, $graph, (string)$seed, $treasureSenseRevealChance);
+      }
 
       $created = $services['runRepo']->createRunGraph(
         $userId,
@@ -831,5 +838,36 @@ final class ApiController
       'energyRepo' => $energyRepo,
       'teamRepo' => $teamRepo,
     ];
+  }
+
+  /**
+   * @param array<int,int> $teamUnitIds
+   */
+  private function activeTeamTreasureSenseRevealChance(PDO $pdo, array $teamUnitIds): float
+  {
+    if ($teamUnitIds === []) {
+      return 0.0;
+    }
+
+    $abilityRegistry = new AbilityRegistry();
+    if (!$abilityRegistry->has('treasure_sense')) {
+      return 0.0;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($teamUnitIds), '?'));
+    $stmt = $pdo->prepare("
+      SELECT COUNT(*)
+      FROM `unit_instance_unlocked_abilities`
+      WHERE `ability_id` = 'treasure_sense'
+        AND `unit_instance_id` IN ($placeholders)
+    ");
+    $stmt->execute($teamUnitIds);
+    $count = (int)$stmt->fetchColumn();
+
+    if ($count <= 0) {
+      return 0.0;
+    }
+
+    return max(0.0, (float)($abilityRegistry->get('treasure_sense')->defaultParams['reveal_chance'] ?? 0.0));
   }
 }

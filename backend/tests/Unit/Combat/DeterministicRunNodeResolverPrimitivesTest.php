@@ -212,6 +212,20 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     $this->assertSame(0, (int)($statusMap['unit-1']['counterpunch_ready']['params']['last_trigger_round'] ?? -1));
   }
 
+  public function testInitializePassiveStatusesForCombatSeedsDumbLuckReadiness(): void
+  {
+    $statusMap = ['unit-1' => []];
+
+    $this->invokePrivate('initializePassiveStatusesForCombat', [
+      &$statusMap,
+      'unit-1',
+      ['dumb_luck'],
+    ]);
+
+    $this->assertArrayHasKey('dumb_luck_ready', $statusMap['unit-1']);
+    $this->assertFalse((bool)($statusMap['unit-1']['dumb_luck_ready']['params']['used'] ?? true));
+  }
+
   public function testDeriveActionOutcomeUsesPassiveIgnoreDefenseAndWoundedBonus(): void
   {
     $state = str_repeat('b', 64);
@@ -585,6 +599,54 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     ]);
 
     $this->assertSame(0.12, (float)($affixes['damaged_enemy_bonus_pct'] ?? 0.0));
+  }
+
+  public function testApplyTeamDamagePassivesSupportsBreakOpenForCrackedArmorTargets(): void
+  {
+    $affixes = $this->invokePrivate('applyTeamDamagePassives', [
+      ['damage_flat' => 0, 'below_half_bonus' => 0.0],
+      [
+        'breaker' => ['passive_abilities' => ['break_open']],
+      ],
+      ['breaker' => 10],
+      'enemy-1',
+      [],
+      ['cracked_armor' => ['params' => ['is_debuff' => true]]],
+    ]);
+
+    $this->assertSame('cracked_armor', (string)($affixes['status_bonus_target'] ?? ''));
+    $this->assertSame(0.12, (float)($affixes['status_bonus_pct'] ?? 0.0));
+  }
+
+  public function testApplyTeamLuckPassivesConsumesDumbLuckOnLowRoll(): void
+  {
+    $statusMap = [
+      'mascot' => [
+        'dumb_luck_ready' => [
+          'params' => ['used' => false, 'is_debuff' => false],
+        ],
+      ],
+    ];
+    $result = $this->invokePrivate('applyTeamLuckPassives', [
+      &$statusMap,
+      [
+        'mascot' => ['passive_abilities' => ['dumb_luck']],
+      ],
+      ['mascot' => 10],
+      [
+        'dice_used' => [],
+        'dice_rolls' => [['sides' => 6, 'roll' => 2]],
+        'dice_outcome' => 'rolled low',
+        'dice_modifier' => 0,
+        'explode_triggered' => false,
+      ],
+      1,
+      8,
+    ]);
+
+    $this->assertSame(2, (int)($result['dice']['dice_modifier'] ?? 0));
+    $this->assertStringContainsString('dumb_luck', (string)($result['outcome'] ?? ''));
+    $this->assertTrue((bool)($statusMap['mascot']['dumb_luck_ready']['params']['used'] ?? false));
   }
 
   public function testResolveAdditionalAbilityTargetsSplashesPoisonCloud(): void
