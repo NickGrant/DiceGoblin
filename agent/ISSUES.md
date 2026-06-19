@@ -7,7 +7,7 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 ### MI-004: Add mobile viewport regression checks for key play flows
 
 **Milestone:** Mobile Improvements  
-**Status:** Open  
+**Status:** In Progress
 **Priority:** Medium
 
 #### Problem
@@ -192,3 +192,4 @@ The progression rework touches data, combat, promotion, API responses, targeting
 - `backend/tests/Unit/Combat/AbilityHandlerRegistryCoverageTest.php`
 - `backend/tests/Integration/BattleNodeResolutionIntegrationTest.php`
 - `backend/tests/Integration/GameplayUnitDetailsEndpointTest.php`
+
