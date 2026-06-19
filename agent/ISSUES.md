@@ -4,38 +4,10 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Unit Progression Rework
 
-### UPR-002: Add combat primitives for targeting weights, stacks, reactions, and debuff counting
-
-**Milestone:** Unit Progression Rework  
-**Status:** In Progress  
-**Priority:** High
-
-#### Problem
-
-The new unit abilities require reusable combat primitives before content implementation can be reliable. Automated combat needs deterministic target weighting so abilities like Pick Your Mark, Mark Target, Kill Lane, and Patient Aim do not feel random. Several passives also need shared handling for one-attack defensive stacks, half-die scaling, once-per-round reactions, and distinct debuff counting.
-
-#### Acceptance Criteria
-
-- Active abilities consume at least one die and expose a die-scaled variable component.
-- Add a reusable half-die helper equivalent to `ceil(dieValue / 2)` for stack-style defensive abilities.
-- Add support for one-attack defensive stacks that accumulate, apply to the next incoming attack, and then fully clear.
-- Add once-per-round reaction support for effects such as Counterpunch and Spiteful Reflex.
-- Add non-recursive debuff reflection support for Spiteful Reflex.
-- Add distinct debuff type counting for Exposed Weaknesses and Sickly Weakness.
-- Add targeting weights for wounded, marked, debuffed, most debuffed, backline, low HP, high threat, and preferred previous target behaviors.
-- Combat logs show when targeting weights, stacks, reactions, and debuff-count effects influence a combat event.
-
-#### Current Code References
-
-- `documentation/02-systems-mvp/11-unit-progression-rework.md`
-- `backend/src/Combat/Abilities/AbilityRegistry.php`
-- `backend/tests/Unit/Combat/AbilityHandlerRegistryCoverageTest.php`
-- `backend/tests/Integration/BattleNodeResolutionIntegrationTest.php`
-
 ### UPR-003: Implement Tier 1 and Tier 2 unit ability packages
 
 **Milestone:** Unit Progression Rework  
-**Status:** Open  
+**Status:** In Progress  
 **Priority:** High
 
 #### Problem

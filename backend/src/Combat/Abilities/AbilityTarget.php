@@ -22,5 +22,10 @@ enum AbilityTarget: string
     case EnemyBackPrefer = 'enemy_back_prefer';
     case EnemyLowestHp = 'enemy_lowest_hp';
     case EnemyHighestThreat = 'enemy_highest_threat';
+    case EnemyWoundedPrefer = 'enemy_wounded_prefer';
+    case EnemyMarkedPrefer = 'enemy_marked_prefer';
+    case EnemyDebuffedPrefer = 'enemy_debuffed_prefer';
+    case EnemyMostDebuffed = 'enemy_most_debuffed';
+    case EnemyPreferredPreviousTarget = 'enemy_preferred_previous_target';
     case EnemyRandom = 'enemy_random';
 }

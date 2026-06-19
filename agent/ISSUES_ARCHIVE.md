@@ -8,6 +8,16 @@
 <!-- Archive history prior to purge can be recovered from git at commit fb22ebc and earlier. -->
 
 ---
+title: Add combat primitives for targeting weights, stacks, reactions, and debuff counting
+status: complete
+priority: high
+execution: active
+ready: yes
+milestone: Unit Progression Rework
+description: The new unit abilities require reusable combat primitives before content implementation can be reliable. Automated combat needs deterministic target weighting so abilities like Pick Your Mark, Mark Target, Kill Lane, and Patient Aim do not feel random, and several passives need shared handling for one-attack defensive stacks, half-die scaling, once-per-round reactions, and distinct debuff counting.
+resolution: Added reusable deterministic combat primitives to `DeterministicRunNodeResolver`, including a half-die helper, weighted target selection with explicit reasoning metadata, one-attack defensive stack accumulation/consumption, distinct debuff type counting with bonus-type support, and once-per-round non-recursive debuff reflection scaffolding for Spiteful Reflex-style passives. Combat action events now expose targeting reasons, candidate weights, stack consumption notes, and reaction outcomes so future ability packages can stay data-driven while remaining debuggable in battle logs. `php -l` passed for the touched combat files, the new `DeterministicRunNodeResolverPrimitivesTest` unit suite passed, and resolver-focused backend coverage in `AbilityHandlerRegistryCoverageTest`, `DeterministicRunNodeResolverFormationIntegrationTest`, and `BattleNodeResolutionIntegrationTest` all passed.
+
+---
 title: Add progression data model support for mastery and capstones
 status: complete
 priority: high
