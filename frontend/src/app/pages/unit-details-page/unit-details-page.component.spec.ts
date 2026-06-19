@@ -237,8 +237,9 @@ describe('UnitDetailsPageComponent', () => {
     expect(host.textContent).toContain('10/10 (Goblin Bruiser)');
     expect(host.textContent).toContain('Attack');
     expect(host.textContent).toContain('Defense');
-    expect(host.textContent).toContain('Ready at level 10');
-    expect(host.textContent).toContain('Mastered and ready to choose a capstone.');
+    expect(host.textContent).toContain('Eligible now (unlocked at level 6)');
+    expect(host.textContent).toContain('Mastered. Choose one capstone before any future promotion.');
+    expect(host.textContent).toContain('None selected yet');
     expect(host.textContent).toContain('Inherited from Bruiser.');
     expect(host.textContent).toContain('Brawl Hardened');
     expect(host.textContent).toContain('Finisher');

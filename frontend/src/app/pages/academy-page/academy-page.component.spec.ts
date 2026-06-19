@@ -111,6 +111,14 @@ class UnitServiceStub {
   getPromotionOptions = jasmine.createSpy('getPromotionOptions').and.resolveTo({
     ok: true,
     data: {
+      promotion_eligible: true,
+      is_mastered: true,
+      current_capstone_state: 'ready_to_select',
+      capstone_choices: [
+        { ability_id: 'brawl_hardened' },
+        { ability_id: 'finisher' },
+      ],
+      selected_capstone: null,
       options: [
         {
           branch_unit_type_id: 'bruiser',
@@ -121,11 +129,17 @@ class UnitServiceStub {
           target_unit_type_name: 'Enforcer',
           target_tier: 2,
           mode: 'chain',
+          promotion_grants: {
+            actives: ['skullcrack'],
+            passives: ['menacing_follow_through'],
+          },
+          will_skip_current_capstone: true,
         },
       ],
     },
   });
   promoteUnit = jasmine.createSpy('promoteUnit').and.resolveTo({ ok: true });
+  selectCapstone = jasmine.createSpy('selectCapstone').and.resolveTo({ ok: true });
 }
 
 describe('AcademyPageComponent', () => {
@@ -174,7 +188,8 @@ describe('AcademyPageComponent', () => {
     expect(unitService.getPromotionOptions).toHaveBeenCalledWith('u1');
     expect(component.eligiblePromotionCandidates().map((unit) => unit.id)).toEqual(['u2', 'u3']);
     expect(component.promotionOptionLabel(component.promotionOptions()[0])).toBe('Enforcer - chain');
-    expect(component.selectedDestination()).toBe('');
+    expect(component.selectedDestination()).toBe('enforcer');
+    expect(component.mustChooseCapstoneBeforePromotion()).toBeTrue();
   });
 
   it('simplifies sideways labels when the branch and result share the same name', async () => {
@@ -232,12 +247,40 @@ describe('AcademyPageComponent', () => {
 
     component.selectedUnitId.set('u1');
     await fixture.whenStable();
+    component['promotionContext'].update((value) => value ? { ...value, selected_capstone: { ability_id: 'finisher' } as any, current_capstone_state: 'selected' } : value);
     component.toggleSecondary('u2');
     component.toggleSecondary('u3');
     await component.promoteUnit();
 
-    expect(unitService.promoteUnit).toHaveBeenCalledWith('u1', ['u2', 'u3'], undefined);
+    expect(unitService.promoteUnit).toHaveBeenCalledWith('u1', ['u2', 'u3'], 'enforcer');
     expect(component.message()).toBe('Promotion complete.');
+  });
+
+  it('blocks promotion until a mastered unit chooses a capstone', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const unitService = TestBed.inject(UnitService) as unknown as UnitServiceStub;
+
+    component.selectedUnitId.set('u1');
+    await fixture.whenStable();
+    component.toggleSecondary('u2');
+    component.toggleSecondary('u3');
+    await component.promoteUnit();
+
+    expect(component.error()).toBe('Choose a capstone for this mastered unit before confirming promotion.');
+    expect(unitService.promoteUnit).not.toHaveBeenCalled();
+  });
+
+  it('renders promotion preview warnings and immediate grant summaries', async () => {
+    const fixture = await createComponent();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.textContent).toContain('Promoting now will skip the current class capstone unless it has already been selected and inherited.');
+    expect(host.textContent).toContain('Immediate Promotion Grants');
+    expect(host.textContent).toContain('Skullcrack');
+    expect(host.textContent).toContain('Menacing Follow Through');
   });
 
   it('unlocks a unit type through the academy service', async () => {

@@ -34,6 +34,4 @@ The implementation should use `documentation/02-systems-mvp/11-unit-progression-
 
 ### Related Issues
 
-- UPR-003: Implement Tier 1 and Tier 2 unit ability packages.
-- UPR-004: Add capstone and promotion UX.
 - UPR-005: Add progression rework test coverage and validation.

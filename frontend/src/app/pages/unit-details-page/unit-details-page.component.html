@@ -100,12 +100,16 @@
               <dd>{{ unit.total_defense || 0 }}</dd>
             </div>
             <div class="unit-stats-row">
-              <dt>Promotion</dt>
+              <dt>Promotion Eligibility</dt>
               <dd>{{ promotionReadinessLabel() }}</dd>
             </div>
             <div class="unit-stats-row">
-              <dt>Mastery</dt>
+              <dt>Mastery State</dt>
               <dd>{{ masteryLabel() }}</dd>
+            </div>
+            <div class="unit-stats-row">
+              <dt>Selected Capstone</dt>
+              <dd>{{ selectedCapstoneLabel() }}</dd>
             </div>
           </dl>
         </div>
@@ -132,13 +136,15 @@
               class="ability-list-card ability-list-card--passive text-start"
               type="button"
               (click)="chooseCapstone(choice.ability_id)"
-              [disabled]="unitLocked() || !!selectedCapstoneAbilityId() || selectingCapstoneId() === choice.ability_id"
+              [disabled]="unitLocked() || !canChooseCapstone() || selectingCapstoneId() === choice.ability_id"
             >
               <div>
                 <h3 class="dg-stencil mb-1">{{ abilityDisplayName(choice.ability_id) }}</h3>
                 <p class="mb-0 small">
                   @if (selectedCapstoneAbilityId() === choice.ability_id) {
                   Mastered on this unit.
+                  } @else if (!canChooseCapstone()) {
+                  Reach mastery first or keep the existing capstone.
                   } @else {
                   Choose this capstone to lock in the passive before future promotions.
                   }

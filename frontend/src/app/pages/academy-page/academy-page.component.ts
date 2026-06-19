@@ -231,7 +231,7 @@ export class AcademyPageComponent {
       none: 'This class has no capstone to choose.',
       unearned: 'Promoting now will skip this class capstone because the unit has not mastered the class yet.',
       ready_to_select: 'This unit is mastered. Choose one capstone before confirming promotion.',
-      selected: 'This unit already has a capstone and will carry it into the next class.',
+      selected: 'This unit already locked in a capstone and will carry it into the next class.',
     }[state] ?? 'Capstone state unavailable.';
   }
 

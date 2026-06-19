@@ -166,11 +166,11 @@ export class UnitDetailsPageComponent {
       return 'Unavailable';
     }
 
+    const threshold = unit.promotion_level ?? 6;
     if (unit.promotion_eligible) {
-      return `Ready at level ${unit.level}`;
+      return `Eligible now (unlocked at level ${threshold})`;
     }
 
-    const threshold = unit.promotion_level ?? 6;
     return `Unlocks at level ${threshold}`;
   });
   readonly masteryLabel = computed(() => {
@@ -185,6 +185,13 @@ export class UnitDetailsPageComponent {
 
     return this.currentCapstoneCopy(this.currentCapstoneState());
   });
+  readonly selectedCapstoneLabel = computed(() => {
+    const selectedCapstoneId = this.selectedCapstoneAbilityId();
+    return selectedCapstoneId ? this.abilityDisplayName(selectedCapstoneId) : 'None selected yet';
+  });
+  readonly canChooseCapstone = computed(
+    () => this.currentCapstoneState() === 'ready_to_select' && !this.selectedCapstoneAbilityId(),
+  );
   readonly totalEquippedSpeed = computed(() =>
     this.pendingEquippedAbilityIds().reduce(
       (total, abilityId) => total + (this.abilityCatalog().get(abilityId)?.speed ?? 0),
@@ -614,7 +621,7 @@ export class UnitDetailsPageComponent {
     return {
       none: 'This class has no mastery capstone.',
       unearned: 'Keep leveling to 10 to unlock a mastery capstone choice.',
-      ready_to_select: 'Mastered and ready to choose a capstone.',
+      ready_to_select: 'Mastered. Choose one capstone before any future promotion.',
       selected: 'Capstone selected and inherited forward.',
     }[state] ?? 'Capstone state unavailable.';
   }
