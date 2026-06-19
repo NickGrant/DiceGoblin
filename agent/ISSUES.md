@@ -7,7 +7,7 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 ### UPR-003: Implement Tier 1 and Tier 2 unit ability packages
 
 **Milestone:** Unit Progression Rework  
-**Status:** In Progress  
+**Status:** Complete  
 **Priority:** High
 
 #### Problem
