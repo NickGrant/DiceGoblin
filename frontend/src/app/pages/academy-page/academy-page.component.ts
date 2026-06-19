@@ -1,7 +1,14 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { AcademyUnitUnlockItem, PromotionOptionRecord, UnitRecord } from '../../core/models/api.models';
+import {
+  AcademyUnitUnlockItem,
+  PromotionOptionRecord,
+  PromotionOptionsData,
+  UnitCapstoneChoiceRecord,
+  UnitRecord,
+  UnitUnlockedAbilityRecord,
+} from '../../core/models/api.models';
 import { AcademyService } from '../../core/services/academy/academy.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { UnitService } from '../../core/services/unit/unit.service';
@@ -36,11 +43,14 @@ export class AcademyPageComponent {
   readonly hasActiveRun = this.sessionService.hasActiveRun;
   readonly selectedUnitId = signal(this.route.snapshot.queryParamMap.get('unitId') ?? '');
   readonly promotionOptions = signal<PromotionOptionRecord[]>([]);
+  readonly promotionContext = signal<PromotionOptionsData | null>(null);
   readonly unitUnlockCatalog = signal<AcademyUnitUnlockItem[]>([]);
   readonly selectedSecondaries = signal<string[]>([]);
   readonly selectedDestination = signal<string>('');
+  readonly selectedCapstoneChoice = signal<string>('');
   readonly busy = signal(false);
   readonly unlockingUnitTypeSlug = signal<string | null>(null);
+  readonly selectingCapstoneId = signal<string | null>(null);
   readonly loadingOptions = signal(false);
   readonly loadingUnlocks = signal(false);
   readonly error = signal<string | null>(null);
@@ -101,6 +111,17 @@ export class AcademyPageComponent {
     });
   });
   readonly availableUnitUnlocks = computed(() => this.unitUnlockCatalog().filter((entry) => !entry.is_unlocked));
+  readonly selectedPromotionOption = computed(() => {
+    const selectedDestination = this.selectedDestination();
+    return this.promotionOptions().find((option) => option.target_unit_type_id === selectedDestination) ?? null;
+  });
+  readonly capstoneChoices = computed<UnitCapstoneChoiceRecord[]>(() => this.promotionContext()?.capstone_choices ?? []);
+  readonly selectedCapstone = computed(() => this.promotionContext()?.selected_capstone ?? null);
+  readonly currentCapstoneState = computed(() => this.promotionContext()?.current_capstone_state ?? 'none');
+  readonly inheritedPassives = computed<UnitUnlockedAbilityRecord[]>(() => this.selectedUnit()?.inherited_passive_abilities ?? []);
+  readonly mustChooseCapstoneBeforePromotion = computed(() =>
+    this.currentCapstoneState() === 'ready_to_select' && !this.selectedCapstone(),
+  );
 
   constructor() {
     void this.loadUnitUnlockCatalog();
@@ -125,6 +146,8 @@ export class AcademyPageComponent {
       this.selectedSecondaries.set([]);
       this.selectedDestination.set('');
       this.promotionOptions.set([]);
+      this.promotionContext.set(null);
+      this.selectedCapstoneChoice.set('');
 
       if (!unitId) {
         return;
@@ -144,9 +167,11 @@ export class AcademyPageComponent {
         return;
       }
 
+      this.promotionContext.set(response.data);
       const options = response.data.options ?? [];
       this.promotionOptions.set(options);
-      this.selectedDestination.set('');
+      this.selectedDestination.set(options[0]?.target_unit_type_id ?? '');
+      this.selectedCapstoneChoice.set(response.data.selected_capstone?.ability_id ?? '');
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to load promotion options.');
     } finally {
@@ -170,6 +195,44 @@ export class AcademyPageComponent {
     } finally {
       this.loadingUnlocks.set(false);
     }
+  }
+
+  abilityDisplayName(abilityId: string | null | undefined): string {
+    const normalized = (abilityId ?? '').trim();
+    if (!normalized) {
+      return 'Unknown ability';
+    }
+
+    return normalized
+      .split('_')
+      .filter((segment) => segment.length)
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(' ');
+  }
+
+  summarizeAbilityList(abilityIds: string[] | null | undefined): string {
+    if (!abilityIds?.length) {
+      return 'None';
+    }
+
+    return abilityIds.map((abilityId) => this.abilityDisplayName(abilityId)).join(', ');
+  }
+
+  summarizeInheritedPassives(abilities: UnitUnlockedAbilityRecord[] | null | undefined): string {
+    if (!abilities?.length) {
+      return 'None yet';
+    }
+
+    return abilities.map((ability) => this.abilityDisplayName(ability.ability_id)).join(', ');
+  }
+
+  currentCapstoneCopy(state: string): string {
+    return {
+      none: 'This class has no capstone to choose.',
+      unearned: 'Promoting now will skip this class capstone because the unit has not mastered the class yet.',
+      ready_to_select: 'This unit is mastered. Choose one capstone before confirming promotion.',
+      selected: 'This unit already has a capstone and will carry it into the next class.',
+    }[state] ?? 'Capstone state unavailable.';
   }
 
   toggleSecondary(unitId: string): void {
@@ -209,6 +272,11 @@ export class AcademyPageComponent {
       return;
     }
 
+    if (this.mustChooseCapstoneBeforePromotion()) {
+      this.error.set('Choose a capstone for this mastered unit before confirming promotion.');
+      return;
+    }
+
     this.busy.set(true);
     this.error.set(null);
     this.message.set(null);
@@ -230,6 +298,32 @@ export class AcademyPageComponent {
       this.error.set(error instanceof Error ? error.message : 'Unable to promote unit.');
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  async chooseCapstone(abilityId: string): Promise<void> {
+    const unit = this.selectedUnit();
+    if (!unit || this.unitLocked()) {
+      return;
+    }
+
+    this.selectingCapstoneId.set(abilityId);
+    this.error.set(null);
+    this.message.set(null);
+    try {
+      const response = await this.unitService.selectCapstone(unit.id, abilityId);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+
+      this.selectedCapstoneChoice.set(abilityId);
+      this.message.set(`Capstone selected: ${this.abilityDisplayName(abilityId)}.`);
+      await this.loadPromotionOptions(unit.id);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to select capstone.');
+    } finally {
+      this.selectingCapstoneId.set(null);
     }
   }
 

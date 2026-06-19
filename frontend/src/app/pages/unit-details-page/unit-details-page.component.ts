@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   DiceRecord,
+  UnitCapstoneChoiceRecord,
   UnitAbilityDieRecord,
   UnitRecord,
 } from '../../core/models/api.models';
@@ -107,6 +108,7 @@ export class UnitDetailsPageComponent {
   readonly dice = this.sessionService.dice;
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
+  readonly selectingCapstoneId = signal<string | null>(null);
   readonly busy = signal(false);
   readonly busySlotKey = signal<string | null>(null);
   readonly activeTab = signal<'stats' | 'abilities'>('stats');
@@ -154,6 +156,35 @@ export class UnitDetailsPageComponent {
       .filter((ability) => ability.type !== 'active')
       .sort((left, right) => left.displayName.localeCompare(right.displayName)),
   );
+  readonly capstoneChoices = computed<UnitCapstoneChoiceRecord[]>(() => this.unit()?.capstone_choices ?? []);
+  readonly inheritedPassiveAbilities = computed(() => this.unit()?.inherited_passive_abilities ?? []);
+  readonly selectedCapstoneAbilityId = computed(() => this.unit()?.selected_capstone?.ability_id ?? null);
+  readonly currentCapstoneState = computed(() => (this.unit()?.current_capstone_state ?? 'none').toString());
+  readonly promotionReadinessLabel = computed(() => {
+    const unit = this.unit();
+    if (!unit) {
+      return 'Unavailable';
+    }
+
+    if (unit.promotion_eligible) {
+      return `Ready at level ${unit.level}`;
+    }
+
+    const threshold = unit.promotion_level ?? 6;
+    return `Unlocks at level ${threshold}`;
+  });
+  readonly masteryLabel = computed(() => {
+    const unit = this.unit();
+    if (!unit) {
+      return 'Unavailable';
+    }
+
+    if (unit.selected_capstone) {
+      return `Mastered with ${this.abilityDisplayName(unit.selected_capstone.ability_id)}`;
+    }
+
+    return this.currentCapstoneCopy(this.currentCapstoneState());
+  });
   readonly totalEquippedSpeed = computed(() =>
     this.pendingEquippedAbilityIds().reduce(
       (total, abilityId) => total + (this.abilityCatalog().get(abilityId)?.speed ?? 0),
@@ -429,6 +460,30 @@ export class UnitDetailsPageComponent {
     }
   }
 
+  async chooseCapstone(abilityId: string): Promise<void> {
+    const unit = this.unit();
+    if (!unit || this.unitLocked()) {
+      return;
+    }
+
+    this.selectingCapstoneId.set(abilityId);
+    this.error.set(null);
+    this.message.set(null);
+    try {
+      const response = await this.unitService.selectCapstone(unit.id, abilityId);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+
+      this.message.set(`Capstone selected: ${this.abilityDisplayName(abilityId)}.`);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to select capstone.');
+    } finally {
+      this.selectingCapstoneId.set(null);
+    }
+  }
+
   openDicePicker(abilityId: string, abilityName: string, slotIndex: number): void {
     if (this.unitLocked()) {
       return;
@@ -544,6 +599,24 @@ export class UnitDetailsPageComponent {
       .filter((segment) => segment.length)
       .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
       .join(' ');
+  }
+
+  abilityDisplayName(abilityId: string | null | undefined): string {
+    const normalized = this.normalizeAbilityId(abilityId);
+    if (!normalized) {
+      return 'Unknown ability';
+    }
+
+    return this.abilityCatalog().get(normalized)?.display_name ?? this.humanizeAbilityId(normalized);
+  }
+
+  currentCapstoneCopy(state: string): string {
+    return {
+      none: 'This class has no mastery capstone.',
+      unearned: 'Keep leveling to 10 to unlock a mastery capstone choice.',
+      ready_to_select: 'Mastered and ready to choose a capstone.',
+      selected: 'Capstone selected and inherited forward.',
+    }[state] ?? 'Capstone state unavailable.';
   }
 
   private normalizeAbilityId(abilityId: unknown): string | null {

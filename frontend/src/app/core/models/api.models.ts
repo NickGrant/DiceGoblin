@@ -105,6 +105,7 @@ export type UnitRecord = {
   ability_dice?: UnitAbilityDieRecord[];
   promotion_grants?: UnitPromotionGrantsRecord;
   capstone_choices?: UnitCapstoneChoiceRecord[];
+  current_capstone_state?: 'none' | 'unearned' | 'ready_to_select' | 'selected' | string;
   selected_capstone?: UnitSelectedCapstoneRecord | null;
   capstone_selections?: UnitSelectedCapstoneRecord[];
   inherited_passive_abilities?: UnitUnlockedAbilityRecord[];

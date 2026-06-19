@@ -90,6 +90,79 @@
           </div>
         </div>
 
+        <div class="vstack gap-3 mb-4">
+          <article class="ability-list-card ability-list-card--passive">
+            <div>
+              <h3 class="dg-stencil mb-1">Promotion Readiness</h3>
+              <p class="mb-0 small">
+                @if (promotionContext()?.promotion_eligible) {
+                Eligible now. This class can promote from level {{ promotionContext()?.current_promotion_level || unit.promotion_level || 6 }} onward.
+                } @else {
+                Not promotion-ready yet.
+                }
+              </p>
+            </div>
+            <span class="dg-chip">
+              @if (promotionContext()?.is_mastered) {
+              Mastered
+              } @else {
+              In Progress
+              }
+            </span>
+          </article>
+
+          <article class="ability-list-card ability-list-card--passive">
+            <div>
+              <h3 class="dg-stencil mb-1">Current Capstone State</h3>
+              <p class="mb-0 small">{{ currentCapstoneCopy(currentCapstoneState()) }}</p>
+            </div>
+            <span class="dg-chip">
+              @if (selectedCapstone(); as capstone) {
+              {{ abilityDisplayName(capstone.ability_id) }}
+              } @else {
+              None Selected
+              }
+            </span>
+          </article>
+        </div>
+
+        @if (capstoneChoices().length) {
+        <div class="mb-4">
+          <h3 class="dg-stencil mb-2">Mastery Capstone</h3>
+          <p class="mb-3">Level 10 units must lock in one passive capstone before promotion can carry it forward.</p>
+          <div class="vstack gap-2">
+            @for (choice of capstoneChoices(); track choice.ability_id) {
+            <button
+              class="ability-list-card ability-list-card--passive text-start"
+              type="button"
+              (click)="chooseCapstone(choice.ability_id)"
+              [disabled]="unitLocked() || !!selectedCapstone() || selectingCapstoneId() === choice.ability_id"
+            >
+              <div>
+                <h3 class="dg-stencil mb-1">{{ abilityDisplayName(choice.ability_id) }}</h3>
+                <p class="mb-0 small">
+                  @if (selectedCapstone()?.ability_id === choice.ability_id) {
+                  Already selected for this class lineage.
+                  } @else {
+                  Choose before promoting if this unit has already mastered the class.
+                  }
+                </p>
+              </div>
+              <span class="dg-chip">
+                @if (selectedCapstone()?.ability_id === choice.ability_id) {
+                Selected
+                } @else if (selectingCapstoneId() === choice.ability_id) {
+                Working...
+                } @else {
+                Choose
+                }
+              </span>
+            </button>
+            }
+          </div>
+        </div>
+        }
+
         @if (promotionOptions().length) {
         <label class="form-label">Destination</label>
         <select
@@ -102,6 +175,55 @@
           <option [value]="option.target_unit_type_id">{{ promotionOptionLabel(option) }}</option>
           }
         </select>
+
+        @if (selectedPromotionOption(); as promotionOption) {
+        <div class="vstack gap-2 mb-3">
+          <article class="ability-list-card ability-list-card--passive">
+            <div>
+              <h3 class="dg-stencil mb-1">Promotion Preview</h3>
+              <p class="mb-0 small">
+                {{ promotionOption.target_unit_type_name }} grants one active and one passive immediately on promotion.
+              </p>
+            </div>
+            <span class="dg-chip">{{ promotionOption.mode === 'sideways' ? 'Sideways' : 'Chain' }}</span>
+          </article>
+
+          @if (promotionOption.will_skip_current_capstone) {
+          <dg-alert tone="error">
+            Promoting now will skip the current class capstone unless it has already been selected and inherited.
+          </dg-alert>
+          }
+
+          <article class="ability-list-card ability-list-card--passive">
+            <div>
+              <h3 class="dg-stencil mb-1">Immediate Promotion Grants</h3>
+              <p class="mb-0 small">
+                Active:
+                {{ summarizeAbilityList(promotionOption.promotion_grants?.actives) }}
+                <br />
+                Passive:
+                {{ summarizeAbilityList(promotionOption.promotion_grants?.passives) }}
+              </p>
+            </div>
+          </article>
+
+          <article class="ability-list-card ability-list-card--passive">
+            <div>
+              <h3 class="dg-stencil mb-1">Inherited Passives</h3>
+              <p class="mb-0 small">
+                @if (selectedCapstone(); as selectedCapstone) {
+                Capstone: {{ abilityDisplayName(selectedCapstone.ability_id) }}.
+                } @else {
+                No capstone selected yet.
+                }
+                <br />
+                Other inherited passives:
+                {{ summarizeInheritedPassives(inheritedPassives()) }}.
+              </p>
+            </div>
+          </article>
+        </div>
+        }
         } @else if (!loadingOptions()) {
         <dg-alert class="mb-3">No promotion destinations are currently available for this unit.</dg-alert>
         }
@@ -132,7 +254,7 @@
           dgCommandBtn="primary"
           type="button"
           (click)="promoteUnit()"
-          [disabled]="busy() || loadingOptions() || promotionOptions().length === 0 || selectedSecondaries().length !== 2 || unitLocked()"
+          [disabled]="busy() || loadingOptions() || promotionOptions().length === 0 || selectedSecondaries().length !== 2 || unitLocked() || mustChooseCapstoneBeforePromotion()"
         >
           {{ busy() ? 'Working...' : 'Promote Unit' }}
         </button>

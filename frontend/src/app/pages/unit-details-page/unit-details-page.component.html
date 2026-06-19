@@ -99,7 +99,85 @@
               <dt>Defense</dt>
               <dd>{{ unit.total_defense || 0 }}</dd>
             </div>
+            <div class="unit-stats-row">
+              <dt>Promotion</dt>
+              <dd>{{ promotionReadinessLabel() }}</dd>
+            </div>
+            <div class="unit-stats-row">
+              <dt>Mastery</dt>
+              <dd>{{ masteryLabel() }}</dd>
+            </div>
           </dl>
+        </div>
+
+        <div class="unit-summary mt-3">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-2">
+            <div>
+              <h2 class="dg-stencil mb-1">Capstones</h2>
+              <p class="mb-0">
+                Passive capstones unlock at level 10 and follow the unit through later promotions.
+              </p>
+            </div>
+            @if (unit.selected_capstone; as selectedCapstone) {
+            <span class="dg-chip">Selected: {{ abilityDisplayName(selectedCapstone.ability_id) }}</span>
+            }
+          </div>
+
+          <p class="mb-3">{{ currentCapstoneCopy(currentCapstoneState()) }}</p>
+
+          @if (capstoneChoices().length) {
+          <div class="vstack gap-2">
+            @for (choice of capstoneChoices(); track choice.ability_id) {
+            <button
+              class="ability-list-card ability-list-card--passive text-start"
+              type="button"
+              (click)="chooseCapstone(choice.ability_id)"
+              [disabled]="unitLocked() || !!selectedCapstoneAbilityId() || selectingCapstoneId() === choice.ability_id"
+            >
+              <div>
+                <h3 class="dg-stencil mb-1">{{ abilityDisplayName(choice.ability_id) }}</h3>
+                <p class="mb-0 small">
+                  @if (selectedCapstoneAbilityId() === choice.ability_id) {
+                  Mastered on this unit.
+                  } @else {
+                  Choose this capstone to lock in the passive before future promotions.
+                  }
+                </p>
+              </div>
+              <span class="dg-chip">
+                @if (selectedCapstoneAbilityId() === choice.ability_id) {
+                Chosen
+                } @else if (selectingCapstoneId() === choice.ability_id) {
+                Working...
+                } @else {
+                Choose
+                }
+              </span>
+            </button>
+            }
+          </div>
+          }
+        </div>
+
+        <div class="unit-summary mt-3">
+          <h2 class="dg-stencil mb-2">Inherited Passives</h2>
+          @if (inheritedPassiveAbilities().length) {
+          <div class="vstack gap-2">
+            @for (ability of inheritedPassiveAbilities(); track ability.source_unit_type_id + ':' + ability.ability_id) {
+            <article class="ability-list-card ability-list-card--passive">
+              <div>
+                <h3 class="dg-stencil mb-1">{{ abilityDisplayName(ability.ability_id) }}</h3>
+                <p class="mb-0 small">
+                  Inherited from {{ ability.source_unit_type_name || ability.source_unit_type_slug || 'an earlier class' }}.
+                </p>
+              </div>
+              <span class="dg-chip">Inherited</span>
+            </article>
+            }
+          </div>
+          } @else {
+          <p class="mb-0">This unit has not inherited any passive abilities yet.</p>
+          }
         </div>
       </div>
     </div>

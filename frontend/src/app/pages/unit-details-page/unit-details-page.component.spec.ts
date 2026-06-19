@@ -15,9 +15,25 @@ class SessionServiceStub {
       unit_type_slug: 'frontline_bruiser_t1',
       unit_type_name: 'Goblin Bruiser',
       tier: 1,
-      level: 3,
-      max_level: 3,
+      level: 10,
+      max_level: 10,
+      promotion_level: 6,
+      promotion_eligible: true,
+      is_mastered: true,
+      current_capstone_state: 'ready_to_select',
       locked: false,
+      inherited_passive_abilities: [
+        {
+          ability_id: 'thick_hide',
+          source_unit_type_slug: 'frontline_bruiser_t1',
+          source_unit_type_name: 'Bruiser',
+        },
+      ],
+      capstone_choices: [
+        { ability_id: 'brawl_hardened' },
+        { ability_id: 'finisher' },
+      ],
+      selected_capstone: null,
       abilities: [
         { ability_id: 'heavy_strike', type: 'active' },
         { ability_id: 'guard', type: 'active' },
@@ -41,8 +57,8 @@ class SessionServiceStub {
       unit_type_slug: 'frontline_bruiser_t1',
       unit_type_name: 'Goblin Bruiser',
       tier: 1,
-      level: 3,
-      max_level: 3,
+      level: 10,
+      max_level: 10,
       locked: false,
       ability_dice: [{ ability_id: 'guard', slot_index: 0, dice_instance_id: 'd3' }],
     },
@@ -53,8 +69,8 @@ class SessionServiceStub {
       unit_type_slug: 'frontline_bruiser_t1',
       unit_type_name: 'Goblin Bruiser',
       tier: 1,
-      level: 2,
-      max_level: 3,
+      level: 6,
+      max_level: 10,
       locked: false,
       ability_dice: [],
     },
@@ -96,6 +112,7 @@ class UnitServiceStub {
   replaceEquippedAbilities = jasmine.createSpy('replaceEquippedAbilities').and.resolveTo({ ok: true });
   assignAbilitySlotDie = jasmine.createSpy('assignAbilitySlotDie').and.resolveTo({ ok: true });
   clearAbilitySlotDie = jasmine.createSpy('clearAbilitySlotDie').and.resolveTo({ ok: true });
+  selectCapstone = jasmine.createSpy('selectCapstone').and.resolveTo({ ok: true });
 }
 
 class AbilityCatalogServiceStub {
@@ -139,6 +156,28 @@ class AbilityCatalogServiceStub {
       dice_cost: undefined,
       default_target: null,
     },
+    {
+      ability_id: 'brawl_hardened',
+      type: 'passive',
+      display_name: 'Brawl Hardened',
+      short_desc: 'Gain protective stacks when attacked.',
+      icon_key: 'brawl_hardened',
+      tags: [],
+      default_params: {},
+      order: 4,
+      default_target: null,
+    },
+    {
+      ability_id: 'finisher',
+      type: 'passive',
+      display_name: 'Finisher',
+      short_desc: 'Deal more damage to wounded enemies.',
+      icon_key: 'finisher',
+      tags: [],
+      default_params: {},
+      order: 5,
+      default_target: null,
+    },
   ] as any[]);
   readonly error = signal<string | null>(null);
   readonly abilityMap = signal(
@@ -173,7 +212,7 @@ describe('UnitDetailsPageComponent', () => {
     return fixture;
   }
 
-  it('loads promotion options on startup and can rename a unit', async () => {
+  it('loads ability metadata on startup and can rename a unit', async () => {
     const fixture = await createComponent();
 
     fixture.componentInstance.renameValue = 'Rex';
@@ -195,9 +234,14 @@ describe('UnitDetailsPageComponent', () => {
     expect(component.tierRomanNumeral()).toBe('I');
     expect(host.textContent).toContain('Tier');
     expect(host.textContent).toContain('I');
-    expect(host.textContent).toContain('3/3 (Goblin Bruiser)');
+    expect(host.textContent).toContain('10/10 (Goblin Bruiser)');
     expect(host.textContent).toContain('Attack');
     expect(host.textContent).toContain('Defense');
+    expect(host.textContent).toContain('Ready at level 10');
+    expect(host.textContent).toContain('Mastered and ready to choose a capstone.');
+    expect(host.textContent).toContain('Inherited from Bruiser.');
+    expect(host.textContent).toContain('Brawl Hardened');
+    expect(host.textContent).toContain('Finisher');
     expect(host.textContent).toContain('Promotions are now handled in the Academy.');
     expect(fixture.nativeElement.querySelector('.unit-portrait')?.getAttribute('src')).toContain(
       '/assets/ui/portraits/goblin_bruiser.png',
@@ -326,6 +370,17 @@ describe('UnitDetailsPageComponent', () => {
     component.openDicePicker('heavy_strike', 'Heavy Strike', 0);
     await component.applyDiceSelection(null);
     expect(unitService.clearAbilitySlotDie).toHaveBeenCalledWith('u1', 'heavy_strike', 0);
+  });
+
+  it('selects a capstone from the unit details page', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const unitService = TestBed.inject(UnitService) as unknown as UnitServiceStub;
+
+    await component.chooseCapstone('finisher');
+
+    expect(unitService.selectCapstone).toHaveBeenCalledWith('u1', 'finisher');
+    expect(component.message()).toBe('Capstone selected: Finisher.');
   });
 
   it('shows a lock message and blocks mutations for units locked by the active run', async () => {
