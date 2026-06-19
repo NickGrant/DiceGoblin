@@ -7,6 +7,25 @@
 
 <!-- Archive history prior to purge can be recovered from git at commit fb22ebc and earlier. -->
 
+name: Mobile Improvements
+status: complete
+execution_window: open
+is_current: no
+issues:
+  - Add mobile viewport regression checks for key play flows
+description: |
+  Improve playability and regression coverage for phone-sized viewports before
+  broader testing.
+Resolution: |
+  Completed the phone-viewport usability lane by making the authenticated shell,
+  bottom HUD, touch-first squad management, unit loadout editing, and mobile QA
+  workflow concrete enough for repeatable verification. The final milestone slice
+  landed a dedicated mobile regression checklist that covers the core login,
+  management, store, and run routes in portrait and landscape phone layouts, and
+  startup/backlog/LLM checks passed at closeout.
+
+---
+
 name: Watcher Testing
 status: complete
 execution_window: open

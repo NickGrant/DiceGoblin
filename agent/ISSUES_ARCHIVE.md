@@ -8,6 +8,16 @@
 <!-- Archive history prior to purge can be recovered from git at commit fb22ebc and earlier. -->
 
 ---
+title: Add mobile viewport regression checks for key play flows
+status: complete
+priority: medium
+execution: active
+ready: yes
+milestone: Mobile Improvements
+description: Responsive behavior is spread across shared layout components and page-level SCSS files. A repeatable mobile regression pass would make future UI changes safer.
+resolution: Added `documentation/05-playability-stability/04-mobile-viewport-regression-checklist.md` as the canonical mobile QA pass covering login, guide, home, warband, squad details, unit details, dice, shop, regions, run map, run node, and run summary across portrait and landscape phone viewports. The checklist logs the required HUD overlap, horizontal overflow, readability, and primary-action reachability defects, and the testing/docs indexes now point future mobile layout changes at this regression pass. `npm run startup:check`, `npm run backlog:validate`, and `npm run llm:check` passed while closing the issue.
+
+---
 title: Make unit loadout editing touch-friendly
 status: complete
 priority: high
