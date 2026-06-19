@@ -408,6 +408,59 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     );
   }
 
+  public function testInitializeUnitUsesPromotionGrantsWhenAbilitySetIsEmpty(): void
+  {
+    $userId = $this->insertUser('promo_grants_only', 'Promotion Grants Only User');
+    [$unitTypeId, ] = $this->loadUnitType('support_mascot_t2');
+    $original = $this->rows(
+      'SELECT `ability_set_json`, `promotion_grants_json` FROM `unit_types` WHERE `id` = ? LIMIT 1',
+      [$unitTypeId]
+    );
+    $this->assertCount(1, $original);
+
+    $update = $this->pdo->prepare('
+      UPDATE `unit_types`
+      SET `ability_set_json` = ?, `promotion_grants_json` = ?
+      WHERE `id` = ?
+    ');
+
+    try {
+      $update->execute([
+        json_encode(['version' => 1, 'actives' => [], 'passives' => []], JSON_UNESCAPED_SLASHES),
+        json_encode(['version' => 1, 'actives' => ['lucky_chant'], 'passives' => ['attention_hog']], JSON_UNESCAPED_SLASHES),
+        $unitTypeId,
+      ]);
+
+      $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+      (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $unitTypeId);
+
+      $unlockedAbilityIds = array_map(
+        static fn(array $row): string => (string)$row['ability_id'],
+        $this->rows(
+          'SELECT `ability_id` FROM `unit_instance_unlocked_abilities` WHERE `unit_instance_id` = ? ORDER BY `ability_id` ASC',
+          [$unitId]
+        )
+      );
+      $equippedAbilityIds = array_map(
+        static fn(array $row): string => (string)$row['ability_id'],
+        $this->rows(
+          'SELECT `ability_id` FROM `unit_instance_equipped_abilities` WHERE `unit_instance_id` = ? ORDER BY `equip_order` ASC, `id` ASC',
+          [$unitId]
+        )
+      );
+
+      $this->assertContains('lucky_chant', $unlockedAbilityIds);
+      $this->assertContains('attention_hog', $unlockedAbilityIds);
+      $this->assertSame(['lucky_chant'], $equippedAbilityIds);
+    } finally {
+      $update->execute([
+        $original[0]['ability_set_json'],
+        $original[0]['promotion_grants_json'],
+        $unitTypeId,
+      ]);
+    }
+  }
+
   public function testReplaceEquippedAbilitiesEndpointRejectsActiveRunUnitsEvenWithRestContext(): void
   {
     $userId = $this->insertUser('load_rest', 'Loadout Rest User');

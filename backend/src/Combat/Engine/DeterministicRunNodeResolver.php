@@ -722,7 +722,10 @@ final class DeterministicRunNodeResolver
       $unitId = (string)$unit['id'];
       $playerHp[$unitId] = max(0, min((int)$unit['max_hp'], (int)$unit['current_hp']));
       $playerById[$unitId] = $unit;
-      $playerSchedules[$unitId] = $this->buildActiveAbilitySchedule((array)$unit['abilities'], $abilityRegistry);
+      $playerSchedules[$unitId] = $this->applyPassiveAbilityTargetingPreferencesToSchedule(
+        $this->buildActiveAbilitySchedule((array)$unit['abilities'], $abilityRegistry),
+        (array)($unit['passive_abilities'] ?? [])
+      );
       $playerStatuses[$unitId] = [];
       $this->initializePassiveStatusesForCombat($playerStatuses, $unitId, (array)($unit['passive_abilities'] ?? []));
     }
@@ -862,7 +865,7 @@ final class DeterministicRunNodeResolver
               ? $this->deriveSupportOutcome($abilityRegistry, $abilityId, $targetId, $playerHp, $targetUnit, $dice)
               : $this->deriveActionOutcome(
                 $state,
-                (int)$playerActor['attack'],
+                $this->effectiveAttackWithStatuses((int)$playerActor['attack'], (array)($playerStatuses[$playerActorId] ?? [])),
                 (int)$targetUnit['defense'],
                 (int)($enemyHp[$targetId] ?? (int)$targetUnit['max_hp']),
                 (int)$targetUnit['max_hp'],
@@ -1005,7 +1008,7 @@ final class DeterministicRunNodeResolver
               ? $this->deriveSupportOutcome($abilityRegistry, $abilityId, $targetId, $enemyHp, $targetUnit, $dice)
               : $this->deriveActionOutcome(
                 $state,
-                (int)$enemyActor['attack'],
+                $this->effectiveAttackWithStatuses((int)$enemyActor['attack'], (array)($enemyStatuses[$enemyActorId] ?? [])),
                 (int)$targetUnit['defense'],
                 (int)($playerHp[$targetId] ?? (int)$targetUnit['max_hp']),
                 (int)$targetUnit['max_hp'],
@@ -1710,10 +1713,10 @@ final class DeterministicRunNodeResolver
       $affixOutcomeParts[] = sprintf('position x%s', rtrim(rtrim(number_format($positionMultiplier, 2, '.', ''), '0'), '.'));
     }
 
-    $damageTakenMultiplier = $this->damageTakenMultiplierFromStatuses($targetStatuses);
+    $damageTakenMultiplier = $this->damageTakenMultiplierFromStatuses($targetStatuses, $isMelee);
     if (abs($damageTakenMultiplier - 1.0) > 0.0001) {
       $rawDamage = (int)floor($rawDamage * $damageTakenMultiplier);
-      $affixOutcomeParts[] = sprintf('bleeding x%s', rtrim(rtrim(number_format($damageTakenMultiplier, 2, '.', ''), '0'), '.'));
+      $affixOutcomeParts[] = sprintf('status damage x%s', rtrim(rtrim(number_format($damageTakenMultiplier, 2, '.', ''), '0'), '.'));
     }
 
     $debuffBonusPerType = max(0, (int)($combatAffixes['bonus_damage_per_debuff_type'] ?? 0));
@@ -1725,6 +1728,17 @@ final class DeterministicRunNodeResolver
         $rawDamage += $debuffBonus;
         $affixOutcomeParts[] = sprintf('+%d damage from %d debuff types', $debuffBonus, $debuffTypes);
       }
+    }
+
+    $statusBonusTarget = trim((string)($combatAffixes['status_bonus_target'] ?? ''));
+    $statusBonusPct = max(0.0, (float)($combatAffixes['status_bonus_pct'] ?? 0.0));
+    if ($statusBonusTarget !== '' && $statusBonusPct > 0 && isset($targetStatuses[$statusBonusTarget])) {
+      $rawDamage = (int)floor($rawDamage * (1 + $statusBonusPct));
+      $affixOutcomeParts[] = sprintf(
+        '%s x%s',
+        $statusBonusTarget,
+        rtrim(rtrim(number_format(1 + $statusBonusPct, 2, '.', ''), '0'), '.')
+      );
     }
 
     if ($flatDamageReduction > 0) {
@@ -1783,6 +1797,27 @@ final class DeterministicRunNodeResolver
     array $targetUnit,
     array $diceContext,
   ): array {
+    if ($abilityId === 'taunting_guard') {
+      $targetHp = (int)($currentHpByUnitId[$targetId] ?? (int)($targetUnit['max_hp'] ?? 0));
+      $halfDie = $this->halfDieValue($this->diceRollTotal($diceContext));
+      $statusDuration = 2;
+      return [
+        'damage' => 0,
+        'target_hp_after' => $targetHp,
+        'outcome' => 'buffed',
+        'status_applied' => 'guard_stacks',
+        'status_duration_rounds' => $statusDuration,
+        'status_params' => [
+          'stack_count' => max(1, $halfDie),
+          'per_stack_damage_reduction' => 1,
+          'consumes_on_next_attack' => true,
+          'is_debuff' => false,
+        ],
+        'ability_outcome' => sprintf('guard_stacks applied for %d rounds', $statusDuration),
+        'affix_outcome' => sprintf('gained %d guard stacks from half-die scaling', max(1, $halfDie)),
+      ];
+    }
+
     $status = $this->supportStatusEffect($abilityId);
     $statusApplication = $this->deriveStatusApplication(
       $abilityRegistry,
@@ -2022,19 +2057,47 @@ final class DeterministicRunNodeResolver
   private function effectiveDefenseWithStatuses(int $targetDefense, array $targetStatuses): int
   {
     $bolsteredPct = (float)($targetStatuses['bolstered']['params']['defense_pct'] ?? 0.0);
-    if ($bolsteredPct <= 0) {
-      return $targetDefense;
+    $effectiveDefense = $bolsteredPct > 0
+      ? max(0, (int)floor($targetDefense * (1 + $bolsteredPct)))
+      : $targetDefense;
+
+    $crackedArmorReduction = max(0, (int)($targetStatuses['cracked_armor']['params']['defense_reduction_flat'] ?? 0));
+    if ($crackedArmorReduction > 0) {
+      $effectiveDefense = max(0, $effectiveDefense - $crackedArmorReduction);
     }
 
-    return max(0, (int)floor($targetDefense * (1 + $bolsteredPct)));
+    return $effectiveDefense;
   }
 
   /**
    * @param array<string,array<string,mixed>> $targetStatuses
    */
-  private function damageTakenMultiplierFromStatuses(array $targetStatuses): float
+  private function damageTakenMultiplierFromStatuses(array $targetStatuses, bool $isMelee = false): float
   {
-    return 1.0 + max(0.0, (float)($targetStatuses['bleeding']['params']['damage_taken_pct'] ?? 0.0));
+    $multiplier = 1.0;
+    $multiplier += max(0.0, (float)($targetStatuses['bleeding']['params']['damage_taken_pct'] ?? 0.0));
+    $multiplier += max(0.0, (float)($targetStatuses['marked']['params']['damage_taken_pct'] ?? 0.0));
+    if ($isMelee) {
+      $multiplier += max(0.0, (float)($targetStatuses['menaced']['params']['damage_taken_melee_pct'] ?? 0.0));
+    }
+
+    return $multiplier;
+  }
+
+  /**
+   * @param array<string,array<string,mixed>> $attackerStatuses
+   */
+  private function effectiveAttackWithStatuses(int $baseAttack, array $attackerStatuses): int
+  {
+    $attack = $baseAttack;
+    $attackMultiplier = 1.0;
+    $attackMultiplier += max(0.0, (float)($attackerStatuses['warcry']['params']['attack_pct'] ?? 0.0));
+    $attackMultiplier -= max(0.0, (float)($attackerStatuses['cracked_skull']['params']['attack_reduction_pct'] ?? 0.0));
+    $attackMultiplier -= max(0.0, (float)($attackerStatuses['disarmed']['params']['attack_reduction_pct'] ?? 0.0));
+    $attackMultiplier -= max(0.0, (float)($attackerStatuses['poison']['params']['attack_reduction_pct'] ?? 0.0));
+    $attack = max(1, (int)floor($attack * max(0.1, $attackMultiplier)));
+    $attack += max(0, (int)($attackerStatuses['lucky']['params']['lucky_bonus_flat'] ?? 0));
+    return max(1, $attack);
   }
 
   /**
@@ -2078,10 +2141,57 @@ final class DeterministicRunNodeResolver
         'duration_rounds' => $duration,
         'params' => [
           'poison_damage_ratio' => (float)($params['poison_damage_ratio'] ?? 0.2),
+          'attack_reduction_pct' => (float)($params['poison_attack_reduction_pct'] ?? 0.0),
           'status_speed' => (int)($params['status_speed'] ?? 5),
           'source_attack' => max(1, $sourceAttack),
           'is_debuff' => true,
         ],
+      ],
+      'marked' => [
+        'duration_rounds' => $duration,
+        'params' => [
+          'damage_taken_pct' => (float)($params['damage_taken_pct'] ?? 0.15),
+          'is_debuff' => true,
+        ],
+      ],
+      'cracked_armor' => [
+        'duration_rounds' => $duration,
+        'params' => [
+          'defense_reduction_flat' => (int)($params['defense_reduction_flat'] ?? 2),
+          'is_debuff' => true,
+        ],
+      ],
+      'cracked_skull', 'disarmed' => [
+        'duration_rounds' => $duration,
+        'params' => [
+          'attack_reduction_pct' => (float)($params['attack_reduction_pct'] ?? 0.15),
+          'is_debuff' => true,
+        ],
+      ],
+      'warcry' => [
+        'duration_rounds' => $duration,
+        'params' => [
+          'attack_pct' => (float)($params['attack_pct'] ?? 0.18),
+          'is_debuff' => false,
+        ],
+      ],
+      'lucky' => [
+        'duration_rounds' => $duration,
+        'params' => [
+          'lucky_bonus_flat' => (int)($params['lucky_bonus_flat'] ?? max(1, $this->halfDieValue($rollTotal))),
+          'is_debuff' => false,
+        ],
+      ],
+      'menaced' => [
+        'duration_rounds' => $duration,
+        'params' => [
+          'damage_taken_melee_pct' => (float)($params['damage_taken_melee_pct'] ?? 0.12),
+          'is_debuff' => true,
+        ],
+      ],
+      'snared' => [
+        'duration_rounds' => $duration,
+        'params' => ['is_debuff' => true],
       ],
       'sleep' => [
         'duration_rounds' => $duration,
@@ -2455,6 +2565,7 @@ final class DeterministicRunNodeResolver
         'backline_damage_pct',
         'status_potency_pct',
         'poison_damage_pct',
+        'status_bonus_pct',
       ] as $floatKey) {
         if (isset($params[$floatKey])) {
           $combatAffixes[$floatKey] = ((float)($combatAffixes[$floatKey] ?? 0.0)) + (float)$params[$floatKey];
@@ -2469,6 +2580,10 @@ final class DeterministicRunNodeResolver
         if (isset($params[$intKey])) {
           $combatAffixes[$intKey] = max((int)($combatAffixes[$intKey] ?? 0), (int)$params[$intKey]);
         }
+      }
+
+      if (isset($params['status_bonus_target'])) {
+        $combatAffixes['status_bonus_target'] = (string)$params['status_bonus_target'];
       }
     }
 
@@ -2500,6 +2615,28 @@ final class DeterministicRunNodeResolver
     );
   }
 
+  /**
+   * @param array<int,array{ability_id:string,speed:int,target:string,trigger_tick:int,equip_order:int}> $schedule
+   * @param array<int,string> $passiveAbilityIds
+   * @return array<int,array{ability_id:string,speed:int,target:string,trigger_tick:int,equip_order:int}>
+   */
+  private function applyPassiveAbilityTargetingPreferencesToSchedule(array $schedule, array $passiveAbilityIds): array
+  {
+    $preferAimedShot = in_array('patient_aim', $passiveAbilityIds, true) || in_array('pick_your_mark', $passiveAbilityIds, true);
+    if (!$preferAimedShot) {
+      return $schedule;
+    }
+
+    foreach ($schedule as &$entry) {
+      if ((string)$entry['ability_id'] === 'aimed_shot') {
+        $entry['target'] = 'enemy_back_prefer_marked_wounded_preferred_previous_target';
+      }
+    }
+    unset($entry);
+
+    return $schedule;
+  }
+
   private function deriveStatusDurationRounds(AbilityRegistry $abilityRegistry, string $abilityId, ?string $status): ?int
   {
     if ($status === null) {
@@ -2528,6 +2665,14 @@ final class DeterministicRunNodeResolver
 
   private function pickStatusEffect(string &$state, string $abilityId): ?string
   {
+    $registry = new AbilityRegistry();
+    if ($registry->has($abilityId)) {
+      $statusId = trim((string)($registry->get($abilityId)->defaultParams['status_id'] ?? ''));
+      if ($statusId !== '') {
+        return $statusId;
+      }
+    }
+
     $ability = strtolower($abilityId);
     if (str_contains($ability, 'bolster') || str_contains($ability, 'shield')) {
       return 'bolstered';
@@ -2549,6 +2694,14 @@ final class DeterministicRunNodeResolver
 
   private function supportStatusEffect(string $abilityId): ?string
   {
+    $registry = new AbilityRegistry();
+    if ($registry->has($abilityId)) {
+      $statusId = trim((string)($registry->get($abilityId)->defaultParams['status_id'] ?? ''));
+      if ($statusId !== '') {
+        return $statusId;
+      }
+    }
+
     $ability = strtolower($abilityId);
     if (str_contains($ability, 'bolster') || str_contains($ability, 'shield')) {
       return 'bolstered';

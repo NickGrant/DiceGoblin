@@ -240,6 +240,84 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     $this->assertStringContainsString('passive damage', (string)($outcome['affix_outcome'] ?? ''));
   }
 
+  public function testDeriveStatusApplicationHonorsAuthoredStatusParams(): void
+  {
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $application = $this->invokePrivate('deriveStatusApplication', [
+      $registry,
+      'skullcrack',
+      'cracked_skull',
+      ['dice_used' => [], 'dice_rolls' => []],
+      10,
+    ]);
+
+    $this->assertSame(2, (int)($application['duration_rounds'] ?? 0));
+    $this->assertSame(0.15, (float)($application['params']['attack_reduction_pct'] ?? 0.0));
+    $this->assertSame(true, (bool)($application['params']['is_debuff'] ?? false));
+  }
+
+  public function testEffectiveAttackWithStatusesAppliesBuffsAndDebuffs(): void
+  {
+    $attack = $this->invokePrivate('effectiveAttackWithStatuses', [
+      10,
+      [
+        'warcry' => ['params' => ['attack_pct' => 0.2]],
+        'cracked_skull' => ['params' => ['attack_reduction_pct' => 0.1]],
+        'lucky' => ['params' => ['lucky_bonus_flat' => 2]],
+      ],
+    ]);
+
+    $this->assertSame(12, $attack);
+  }
+
+  public function testApplyPassiveAbilityTargetingPreferencesUpdatesAimedShotTargeting(): void
+  {
+    $schedule = [[
+      'ability_id' => 'aimed_shot',
+      'speed' => 8,
+      'target' => 'enemy_back_prefer',
+      'trigger_tick' => 8,
+      'equip_order' => 0,
+    ]];
+
+    $updated = $this->invokePrivate('applyPassiveAbilityTargetingPreferencesToSchedule', [
+      $schedule,
+      ['patient_aim'],
+    ]);
+
+    $this->assertSame(
+      'enemy_back_prefer_marked_wounded_preferred_previous_target',
+      (string)$updated[0]['target']
+    );
+  }
+
+  public function testDeriveSupportOutcomeUsesHalfDieGuardStacksForTauntingGuard(): void
+  {
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $outcome = $this->invokePrivate('deriveSupportOutcome', [
+      $registry,
+      'taunting_guard',
+      'unit-1',
+      ['unit-1' => 20],
+      ['max_hp' => 20],
+      [
+        'dice_used' => [],
+        'dice_rolls' => [['sides' => 6, 'roll' => 5]],
+        'dice_outcome' => 'none',
+        'dice_modifier' => 0,
+        'explode_triggered' => false,
+      ],
+    ]);
+
+    $this->assertSame('guard_stacks', (string)($outcome['status_applied'] ?? ''));
+    $this->assertSame(3, (int)($outcome['status_params']['stack_count'] ?? 0));
+    $this->assertStringContainsString('half-die scaling', (string)($outcome['affix_outcome'] ?? ''));
+  }
+
   /**
    * @param array<int,mixed> $args
    */
