@@ -7,8 +7,10 @@ require_once __DIR__ . '/../../../src/Combat/Engine/placeholders.php';
 
 use DiceGoblins\Combat\Abilities\AbilityTarget;
 use DiceGoblins\Combat\Abilities\Handlers\Active\BasicAttackMelee;
+use DiceGoblins\Combat\Abilities\Handlers\Active\ConfigurableAbility;
 use DiceGoblins\Combat\Abilities\Handlers\Active\ShieldUp;
 use DiceGoblins\Combat\Abilities\Handlers\Active\SleepDart;
+use DiceGoblins\Combat\Abilities\Handlers\Passive\ConfigurablePassive;
 use DiceGoblins\Combat\Abilities\Handlers\Passive\Sharpshooter;
 use DiceGoblins\Combat\Abilities\Handlers\Passive\ThickHide;
 use DiceGoblins\Combat\Abilities\Handlers\Passive\ToxicTraining;
@@ -73,9 +75,31 @@ final class AbilityHandlerEffectsTest extends TestCase
     $this->assertSame('sleep_dart', $ctx->statusCall['meta']['ability_id'] ?? null);
   }
 
+  public function testConfigurableAbilityCanDealDamageAndApplyStatus(): void
+  {
+    $ctx = new SpyCombatContext(new UnitRef('enemy-3'));
+    $actor = new UnitRef('ally-3');
+
+    (new ConfigurableAbility('skullcrack', 'melee'))->resolve($ctx, $actor, [
+      'target' => 'enemy_front_prefer',
+      'params' => [
+        'power_ratio' => 1.4,
+        'status_id' => 'cracked_skull',
+        'attack_reduction_pct' => 0.15,
+        'duration_rounds' => 2,
+      ],
+    ]);
+
+    $this->assertNotNull($ctx->damageCall);
+    $this->assertSame('skullcrack', $ctx->damageCall['meta']['ability_id'] ?? null);
+    $this->assertNotNull($ctx->statusCall);
+    $this->assertSame('cracked_skull', $ctx->statusCall['status_id']);
+    $this->assertSame(0.15, $ctx->statusCall['params']['attack_reduction_pct'] ?? null);
+  }
+
   public function testPassiveHandlersModifyDerivedStatsAsExpected(): void
   {
-    $unit = new UnitRef('ally-3');
+    $unit = new UnitRef('ally-4');
 
     $thickHide = new ThickHide();
     $statsA = $thickHide->apply(new DerivedStats(10, 5, 20), $unit, ['params' => ['defense_flat' => 4]]);
@@ -92,6 +116,12 @@ final class AbilityHandlerEffectsTest extends TestCase
       'params' => ['poison_damage_pct' => 0.3],
     ]);
     $this->assertSame(1.3, $statsC->statusPotency['poison']);
+
+    $configurablePassive = new ConfigurablePassive('finisher');
+    $statsD = $configurablePassive->apply(new DerivedStats(10, 5, 20, ['melee' => 1.0]), $unit, [
+      'params' => ['melee_damage_pct' => 0.1],
+    ]);
+    $this->assertSame(1.1, $statsD->damageMultipliers['melee']);
   }
 }
 

@@ -5,7 +5,7 @@
         <p class="guide-hero__eyebrow dg-stencil">{{ heroEyebrow() }}</p>
         <h1>How Dice Goblins Works</h1>
         <p class="guide-hero__copy">
-          This guide covers warband systems, the unit roster, map nodes, promotions, and what happens at the end of a run.
+          This guide covers warband systems, the current roster branches, level 6 promotions, level 10 mastery capstones, map nodes, and what happens at the end of a run.
         </p>
         <div class="guide-hero__actions">
           <a dgCommandBtn="primary" [routerLink]="primaryActionRoute()">{{ primaryActionLabel() }}</a>
@@ -19,6 +19,7 @@
             <li>Build a squad and place tougher units up front.</li>
             <li>Equip abilities and remember that empty die slots resolve as `1`.</li>
             <li>Advance through run nodes while managing attrition between fights.</li>
+            <li>Units can promote from level 6 onward, but staying to level 10 unlocks a passive capstone choice first.</li>
             <li>Use rest nodes to fully recover before pushing deeper.</li>
           </ul>
         </div>
@@ -76,7 +77,7 @@
       <div class="guide-section__heading">
         <p class="dg-stencil">Roster</p>
         <h2>Units</h2>
-        <p>The roster keeps clear frontline, backline, support, and utility identities across tiers.</p>
+        <p>The current roster keeps clear frontline, backline, support, and utility identities while offering two Tier 2 branches for each Tier 1 base class.</p>
       </div>
       <div class="guide-grid guide-grid--three">
         @for (unit of units; track unit.slug) {
@@ -174,7 +175,8 @@
           <h3>Requirements</h3>
           <ul class="guide-list">
             <li>Promotion always advances a unit by exactly one tier.</li>
-            <li>You combine three max-level units of the same current type and tier.</li>
+            <li>Promotion eligibility begins at level 6, even though every class now masters at level 10.</li>
+            <li>You still combine three units of the same current type and tier, with one primary unit carrying forward.</li>
             <li>The primary unit keeps its identity, while the two secondary units are consumed.</li>
           </ul>
         </article>
@@ -182,23 +184,26 @@
           <h3>Results</h3>
           <ul class="guide-list">
             <li>The promoted unit resets to level 1 in its new tier.</li>
-            <li>Previously earned abilities stay with the unit across promotions.</li>
+            <li>Tier 2 and Tier 3 classes grant an active ability and a passive ability immediately when chosen.</li>
+            <li>Previously earned abilities and selected passive capstones stay with the unit across promotions.</li>
             <li>Tier 3 promotions still require the authored rare region item.</li>
+          </ul>
+        </article>
+        <article class="guide-card">
+          <h3>Mastery and Capstones</h3>
+          <ul class="guide-list">
+            <li>Level 10 unlocks a choice between two passive capstones for the current class.</li>
+            <li>If you promote before level 10, you skip that class capstone unless the unit later returns to that class and masters it there.</li>
+            <li>If a level 10 unit has not picked a capstone yet, the promotion flow requires that choice before confirming.</li>
           </ul>
         </article>
         <article class="guide-card">
           <h3>Choosing a Destination</h3>
           <ul class="guide-list">
             <li>You can continue along the unit's current chain or branch into another eligible path.</li>
-            <li>Promotion does not allow tier skipping.</li>
-            <li>Sideways options are limited by paths the unit has actually earned through earlier choices.</li>
+            <li>Current Tier 2 branch pairs are Enforcer or Pit Fighter, Deadeye or Trapper, Bulwark or Shieldbreaker, Warcaller or Mascot, and Trickshot or Plaguehand.</li>
+            <li>Promotion does not allow tier skipping, and sideways options are limited by paths the unit has actually earned through earlier choices.</li>
           </ul>
-        </article>
-        <article class="guide-card">
-          <h3>Why It Matters</h3>
-          <p>
-            Promotion is both a power jump and a long-term build decision, because your unit's combat catalog accumulates over the path it has traveled.
-          </p>
         </article>
       </div>
     </section>

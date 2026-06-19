@@ -54,6 +54,24 @@ describe('GuidePageComponent', () => {
     expect(text).toContain('How Promotion Works');
     expect(text).toContain('How Runs Work');
     expect(text).toContain('Sign In');
+    expect(text).toContain('level 6 promotions');
+    expect(text).toContain('level 10 mastery capstones');
+  });
+
+  it('describes the current progression rules and branch roster', () => {
+    const fixture = TestBed.createComponent(GuidePageComponent);
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+
+    expect(text).toContain('Promotion eligibility begins at level 6');
+    expect(text).toContain('Level 10 unlocks a choice between two passive capstones');
+    expect(text).toContain('If you promote before level 10, you skip that class capstone');
+    expect(text).toContain('Enforcer or Pit Fighter');
+    expect(text).toContain('Warcaller or Mascot');
+    expect(text).toContain('Trickshot or Plaguehand');
+    expect(text).toContain('Trapper');
+    expect(text).toContain('Shieldbreaker');
   });
 
   it('initializes session state on init', () => {
