@@ -267,9 +267,11 @@ final class DeterministicRunNodeResolver
    */
   private function loadPlayerUnits(int $userId, int $teamId, int $runId): array
   {
+    $abilityRegistry = new AbilityRegistry();
     $stmt = $this->pdo->prepare('
       SELECT
         ui.`id` AS unit_instance_id,
+        ui.`unit_type_id`,
         ui.`level`,
         ut.`base_stats_json`,
         ut.`ability_set_json`,
@@ -318,6 +320,7 @@ final class DeterministicRunNodeResolver
 
       $units[] = [
         'id' => (string)$row['unit_instance_id'],
+        'unit_type_id' => (string)$row['unit_type_id'],
         'pos' => $pos,
         'formation' => $footprint,
         'attack' => $attack,
@@ -325,6 +328,7 @@ final class DeterministicRunNodeResolver
         'max_hp' => $maxHp,
         'current_hp' => $currentHp,
         'abilities' => $this->flattenActiveAbilityIds($abilitySet),
+        'passive_abilities' => $this->flattenPassiveAbilityIds($abilitySet),
         'combat_affixes' => [
           'damage_flat' => 0,
           'below_half_bonus' => 0.0,
@@ -340,6 +344,7 @@ final class DeterministicRunNodeResolver
 
     $unitIds = array_map(static fn(array $u): int => (int)$u['id'], $units);
     $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
+    $unlockedPassiveAbilityIdsByUnit = $this->loadUnlockedPassiveAbilityIdsByUnit($unitIds, $abilityRegistry);
     $equippedAbilityIdsByUnit = [];
     if ($this->schemaHasTable('unit_instance_equipped_abilities')) {
       $equippedAbilityStmt = $this->pdo->prepare("
@@ -402,6 +407,10 @@ final class DeterministicRunNodeResolver
       if (count($equippedAbilityIds) > 0) {
         $unit['abilities'] = $equippedAbilityIds;
       }
+      $unit['passive_abilities'] = array_values(array_unique(array_merge(
+        (array)($unit['passive_abilities'] ?? []),
+        $unlockedPassiveAbilityIdsByUnit[$unitId] ?? []
+      )));
 
       $abilityDice = [];
       foreach ($diceByUnitAbility[$unitId] ?? [] as $abilityId => $slots) {
@@ -412,6 +421,7 @@ final class DeterministicRunNodeResolver
 
       $unit['ability_dice'] = $abilityDice;
       $unit['passive_dice'] = array_values($passiveDiceByUnitId[$unitId] ?? []);
+      $this->applyPassiveAbilityAffixesToUnit($unit, $abilityRegistry);
       $this->applyPassiveDiceAffixesToUnit($unit);
     }
     unset($unit);
@@ -714,6 +724,7 @@ final class DeterministicRunNodeResolver
       $playerById[$unitId] = $unit;
       $playerSchedules[$unitId] = $this->buildActiveAbilitySchedule((array)$unit['abilities'], $abilityRegistry);
       $playerStatuses[$unitId] = [];
+      $this->initializePassiveStatusesForCombat($playerStatuses, $unitId, (array)($unit['passive_abilities'] ?? []));
     }
 
     $enemyHp = [];
@@ -1629,11 +1640,18 @@ final class DeterministicRunNodeResolver
     int $flatDamageReduction = 0,
   ): array {
     $effectiveDefense = $this->effectiveDefenseWithStatuses($targetDefense, $targetStatuses);
+    $ignoreDefenseFlat = max(0, (int)($combatAffixes['ignore_defense_flat'] ?? 0));
+    if ($ignoreDefenseFlat > 0) {
+      $effectiveDefense = max(0, $effectiveDefense - $ignoreDefenseFlat);
+    }
     $variance = $this->nextInt($state, 5) - 2;
     $rawDamage = (int)floor(($attackerAttack * 0.65) - ($effectiveDefense * 0.35)) + $variance + $diceModifier;
     $rawDamage += max(0, (int)($combatAffixes['damage_flat'] ?? 0));
 
     $affixOutcomeParts = [];
+    if ($ignoreDefenseFlat > 0) {
+      $affixOutcomeParts[] = sprintf('ignored %d defense', $ignoreDefenseFlat);
+    }
     if ($effectiveDefense !== $targetDefense) {
       $affixOutcomeParts[] = sprintf('defense buffed to %d', $effectiveDefense);
     }
@@ -1648,6 +1666,35 @@ final class DeterministicRunNodeResolver
     if ($belowHalfBonus > 0 && $targetMaxHp > 0 && $targetHp < (int)ceil($targetMaxHp / 2)) {
       $rawDamage = (int)floor($rawDamage * (1 + $belowHalfBonus));
       $affixOutcomeParts[] = sprintf('execute below half x%s', rtrim(rtrim(number_format(1 + $belowHalfBonus, 2, '.', ''), '0'), '.'));
+    }
+
+    $abilityTags = $abilityRegistry->has($abilityId)
+      ? $abilityRegistry->get($abilityId)->tags
+      : [];
+    $isMelee = in_array('melee', $abilityTags, true);
+    $isRanged = in_array('ranged', $abilityTags, true);
+    $passiveDamageMultiplier = 1.0;
+    if ($isMelee) {
+      $passiveDamageMultiplier += max(0.0, (float)($combatAffixes['melee_damage_pct'] ?? 0.0));
+    }
+    if ($isRanged) {
+      $passiveDamageMultiplier += max(0.0, (float)($combatAffixes['ranged_damage_pct'] ?? 0.0));
+    }
+    if ($abilityId === 'aimed_shot') {
+      $passiveDamageMultiplier += max(0.0, (float)($combatAffixes['aimed_shot_bonus_pct'] ?? 0.0));
+    }
+    if ($this->isWounded($targetHp, $targetMaxHp)) {
+      $passiveDamageMultiplier += max(0.0, (float)($combatAffixes['wounded_damage_pct'] ?? 0.0));
+    }
+    if ($isRanged && $this->isBackRow($targetPos, $targetFormation)) {
+      $passiveDamageMultiplier += max(0.0, (float)($combatAffixes['backline_damage_pct'] ?? 0.0));
+    }
+    if ($passiveDamageMultiplier > 1.0) {
+      $rawDamage = (int)floor($rawDamage * $passiveDamageMultiplier);
+      $affixOutcomeParts[] = sprintf(
+        'passive damage x%s',
+        rtrim(rtrim(number_format($passiveDamageMultiplier, 2, '.', ''), '0'), '.')
+      );
     }
 
     $positionMultiplier = $this->resolvePositionMultiplier(
@@ -2358,10 +2405,99 @@ final class DeterministicRunNodeResolver
 
     $unit['attack'] = max(1, (int)floor(((int)$unit['attack'] + $attackFlat) * (1 + $attackPct)));
     $unit['defense'] = max(0, (int)floor(((int)$unit['defense'] + $defenseFlat) * (1 + $defensePct)));
-    $unit['combat_affixes'] = [
-      'damage_flat' => $damageFlat,
-      'below_half_bonus' => $belowHalfBonus,
-    ];
+    $unit['combat_affixes'] = array_replace(
+      (array)($unit['combat_affixes'] ?? []),
+      [
+        'damage_flat' => max((int)($unit['combat_affixes']['damage_flat'] ?? 0), $damageFlat),
+        'below_half_bonus' => max((float)($unit['combat_affixes']['below_half_bonus'] ?? 0.0), $belowHalfBonus),
+      ]
+    );
+  }
+
+  /**
+   * @param array{
+   *   attack:int,
+   *   defense:int,
+   *   max_hp:int,
+   *   current_hp:int,
+   *   passive_abilities?:array<int,string>,
+   *   combat_affixes?:array<string,mixed>
+   * } $unit
+   */
+  private function applyPassiveAbilityAffixesToUnit(array &$unit, AbilityRegistry $abilityRegistry): void
+  {
+    $attackFlat = 0;
+    $defenseFlat = 0;
+    $maxHpFlat = 0;
+    $combatAffixes = (array)($unit['combat_affixes'] ?? []);
+
+    foreach ((array)($unit['passive_abilities'] ?? []) as $abilityId) {
+      $id = trim((string)$abilityId);
+      if ($id === '' || !$abilityRegistry->has($id)) {
+        continue;
+      }
+
+      $definition = $abilityRegistry->get($id);
+      if ($definition->type !== AbilityType::Passive) {
+        continue;
+      }
+
+      $params = (array)$definition->defaultParams;
+      $attackFlat += (int)($params['attack_flat'] ?? 0);
+      $defenseFlat += (int)($params['defense_flat'] ?? 0);
+      $maxHpFlat += (int)($params['max_hp_flat'] ?? 0);
+
+      foreach ([
+        'melee_damage_pct',
+        'ranged_damage_pct',
+        'wounded_damage_pct',
+        'aimed_shot_bonus_pct',
+        'backline_damage_pct',
+        'status_potency_pct',
+        'poison_damage_pct',
+      ] as $floatKey) {
+        if (isset($params[$floatKey])) {
+          $combatAffixes[$floatKey] = ((float)($combatAffixes[$floatKey] ?? 0.0)) + (float)$params[$floatKey];
+        }
+      }
+
+      foreach ([
+        'ignore_defense_flat',
+        'bonus_damage_per_debuff_type',
+        'debuff_type_cap',
+      ] as $intKey) {
+        if (isset($params[$intKey])) {
+          $combatAffixes[$intKey] = max((int)($combatAffixes[$intKey] ?? 0), (int)$params[$intKey]);
+        }
+      }
+    }
+
+    $unit['attack'] = max(1, (int)$unit['attack'] + $attackFlat);
+    $unit['defense'] = max(0, (int)$unit['defense'] + $defenseFlat);
+    $unit['max_hp'] = max(1, (int)$unit['max_hp'] + $maxHpFlat);
+    $unit['current_hp'] = min((int)$unit['max_hp'], (int)$unit['current_hp']);
+    $unit['combat_affixes'] = array_replace((array)($unit['combat_affixes'] ?? []), $combatAffixes);
+  }
+
+  /**
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<int,string> $passiveAbilityIds
+   */
+  private function initializePassiveStatusesForCombat(array &$statusMap, string $unitId, array $passiveAbilityIds): void
+  {
+    if (!in_array('spiteful_reflex', $passiveAbilityIds, true)) {
+      return;
+    }
+
+    $this->applyStatusState(
+      $statusMap,
+      $unitId,
+      'spiteful_reflex',
+      99,
+      ['is_debuff' => false, 'last_trigger_round' => 0],
+      1,
+      0
+    );
   }
 
   private function deriveStatusDurationRounds(AbilityRegistry $abilityRegistry, string $abilityId, ?string $status): ?int
@@ -2507,6 +2643,68 @@ final class DeterministicRunNodeResolver
 
     $out = array_values(array_unique($out));
     return $out;
+  }
+
+  /**
+   * @param array<string,mixed> $abilitySet
+   * @return array<int,string>
+   */
+  private function flattenPassiveAbilityIds(array $abilitySet): array
+  {
+    $out = [];
+
+    $bucket = $abilitySet['passives'] ?? [];
+    if (is_array($bucket)) {
+      foreach ($bucket as $abilityId) {
+        $id = trim((string)$abilityId);
+        if ($id !== '') {
+          $out[] = $id;
+        }
+      }
+    }
+
+    return array_values(array_unique($out));
+  }
+
+  /**
+   * @param array<int,int> $unitIds
+   * @return array<string,array<int,string>>
+   */
+  private function loadUnlockedPassiveAbilityIdsByUnit(array $unitIds, AbilityRegistry $abilityRegistry): array
+  {
+    if (count($unitIds) === 0 || !$this->schemaHasTable('unit_instance_unlocked_abilities')) {
+      return [];
+    }
+
+    $unitIds = array_values(array_unique(array_map(static fn($value): int => (int)$value, $unitIds)));
+    $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
+    $stmt = $this->pdo->prepare("
+      SELECT `unit_instance_id`, `ability_id`
+      FROM `unit_instance_unlocked_abilities`
+      WHERE `unit_instance_id` IN ($placeholders)
+      ORDER BY `unit_instance_id` ASC, `created_at` ASC, `ability_id` ASC
+    ");
+    $stmt->execute($unitIds);
+
+    $byUnit = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $abilityId = trim((string)($row['ability_id'] ?? ''));
+      if ($abilityId === '' || !$abilityRegistry->has($abilityId)) {
+        continue;
+      }
+
+      if ($abilityRegistry->get($abilityId)->type !== AbilityType::Passive) {
+        continue;
+      }
+
+      $unitId = (string)$row['unit_instance_id'];
+      $byUnit[$unitId] ??= [];
+      if (!in_array($abilityId, $byUnit[$unitId], true)) {
+        $byUnit[$unitId][] = $abilityId;
+      }
+    }
+
+    return $byUnit;
   }
 
   /**

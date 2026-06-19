@@ -161,6 +161,85 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     $this->assertStringContainsString('preferred_previous_target', (string)$selection['reason']);
   }
 
+  public function testApplyPassiveAbilityAffixesToUnitAggregatesUnlockedPassiveCombatBonuses(): void
+  {
+    $unit = [
+      'attack' => 10,
+      'defense' => 4,
+      'max_hp' => 20,
+      'current_hp' => 20,
+      'passive_abilities' => ['thick_hide', 'finisher', 'armor_gap', 'exposed_weaknesses'],
+      'combat_affixes' => ['damage_flat' => 0, 'below_half_bonus' => 0.0],
+    ];
+
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+    $this->invokePrivate('applyPassiveAbilityAffixesToUnit', [&$unit, $registry]);
+
+    $this->assertSame(6, (int)$unit['defense']);
+    $this->assertSame(0.2, (float)($unit['combat_affixes']['wounded_damage_pct'] ?? 0.0));
+    $this->assertSame(2, (int)($unit['combat_affixes']['ignore_defense_flat'] ?? 0));
+    $this->assertSame(1, (int)($unit['combat_affixes']['bonus_damage_per_debuff_type'] ?? 0));
+    $this->assertSame(3, (int)($unit['combat_affixes']['debuff_type_cap'] ?? 0));
+  }
+
+  public function testInitializePassiveStatusesForCombatSeedsSpitefulReflex(): void
+  {
+    $statusMap = ['unit-1' => []];
+
+    $this->invokePrivate('initializePassiveStatusesForCombat', [
+      &$statusMap,
+      'unit-1',
+      ['spiteful_reflex'],
+    ]);
+
+    $this->assertArrayHasKey('spiteful_reflex', $statusMap['unit-1']);
+    $this->assertSame(99, (int)($statusMap['unit-1']['spiteful_reflex']['duration_rounds'] ?? 0));
+    $this->assertSame(false, (bool)($statusMap['unit-1']['spiteful_reflex']['params']['is_debuff'] ?? true));
+  }
+
+  public function testDeriveActionOutcomeUsesPassiveIgnoreDefenseAndWoundedBonus(): void
+  {
+    $state = str_repeat('b', 64);
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $outcome = $this->invokePrivate('deriveActionOutcome', [
+      &$state,
+      12,
+      8,
+      5,
+      20,
+      'basic_attack_melee',
+      0,
+      [
+        'damage_flat' => 0,
+        'below_half_bonus' => 0.0,
+        'ignore_defense_flat' => 2,
+        'wounded_damage_pct' => 0.2,
+      ],
+      [
+        'dice_used' => [],
+        'dice_rolls' => [],
+        'dice_outcome' => 'none',
+        'dice_modifier' => 0,
+        'explode_triggered' => false,
+      ],
+      [],
+      ['x' => 2, 'y' => 1],
+      ['x' => 2, 'y' => 1],
+      ['w' => 1, 'h' => 1],
+      ['w' => 1, 'h' => 1],
+      $registry,
+      12,
+      0,
+    ]);
+
+    $this->assertGreaterThan(0, (int)($outcome['damage'] ?? 0));
+    $this->assertStringContainsString('ignored 2 defense', (string)($outcome['affix_outcome'] ?? ''));
+    $this->assertStringContainsString('passive damage', (string)($outcome['affix_outcome'] ?? ''));
+  }
+
   /**
    * @param array<int,mixed> $args
    */
