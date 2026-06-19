@@ -318,6 +318,174 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     $this->assertStringContainsString('half-die scaling', (string)($outcome['affix_outcome'] ?? ''));
   }
 
+  public function testApplyLastGoblinStandingIfNeededLeavesUnitAtOneHpOnce(): void
+  {
+    $hpByUnitId = ['unit-1' => 0];
+    $statusMap = ['unit-1' => []];
+    $unitsById = [
+      'unit-1' => ['passive_abilities' => ['last_goblin_standing']],
+    ];
+
+    $first = $this->invokePrivate('applyLastGoblinStandingIfNeeded', [
+      &$hpByUnitId,
+      &$statusMap,
+      $unitsById,
+      'unit-1',
+      1,
+      10,
+    ]);
+
+    $this->assertSame(1, $hpByUnitId['unit-1']);
+    $this->assertStringContainsString('1 HP', (string)$first);
+
+    $hpByUnitId['unit-1'] = 0;
+    $second = $this->invokePrivate('applyLastGoblinStandingIfNeeded', [
+      &$hpByUnitId,
+      &$statusMap,
+      $unitsById,
+      'unit-1',
+      2,
+      20,
+    ]);
+
+    $this->assertNull($second);
+    $this->assertSame(0, $hpByUnitId['unit-1']);
+  }
+
+  public function testApplyTriggeredDefenderPassivesAfterHitBuildsReactiveStacks(): void
+  {
+    $statusMap = ['unit-1' => []];
+    $unitsById = [
+      'unit-1' => ['passive_abilities' => ['brawl_hardened', 'shield_set', 'crowd_favorite']],
+    ];
+
+    $outcome = $this->invokePrivate('applyTriggeredDefenderPassivesAfterHit', [
+      &$statusMap,
+      $unitsById,
+      'unit-1',
+      3,
+      1,
+      12,
+    ]);
+
+    $this->assertStringContainsString('brawl_hardened', (string)$outcome);
+    $this->assertStringContainsString('shield_set', (string)$outcome);
+    $this->assertStringContainsString('crowd_favorite', (string)$outcome);
+    $this->assertSame(1, (int)($statusMap['unit-1']['brawl_hardened_stacks']['params']['stack_count'] ?? 0));
+    $this->assertSame(1, (int)($statusMap['unit-1']['shield_set']['params']['stack_count'] ?? 0));
+    $this->assertSame(1, (int)($statusMap['unit-1']['crowd_favorite']['params']['stack_count'] ?? 0));
+  }
+
+  public function testEffectiveDefenseWithStatusesIncludesShieldSetStacks(): void
+  {
+    $defense = $this->invokePrivate('effectiveDefenseWithStatuses', [
+      5,
+      [
+        'shield_set' => [
+          'params' => [
+            'stack_count' => 2,
+            'defense_flat_per_stack' => 1,
+          ],
+        ],
+      ],
+    ]);
+
+    $this->assertSame(7, $defense);
+  }
+
+  public function testApplyAttackerPassiveStatusAugmentsCanAddBarbedMarkAndStrongerDebuffs(): void
+  {
+    $statusMap = ['enemy-1' => []];
+    $attackerUnit = [
+      'passive_abilities' => ['barbed_mark', 'shatter_plate'],
+    ];
+
+    $marked = $this->invokePrivate('applyAttackerPassiveStatusAugments', [
+      &$statusMap,
+      $attackerUnit,
+      'enemy-1',
+      [
+        'status_applied' => 'marked',
+        'status_duration_rounds' => 3,
+        'status_params' => ['damage_taken_pct' => 0.15, 'is_debuff' => true],
+      ],
+      1,
+      10,
+    ]);
+    $this->assertStringContainsString('barbed_mark', (string)$marked);
+    $this->assertArrayHasKey('snared', $statusMap['enemy-1']);
+
+    $crackedArmor = $this->invokePrivate('applyAttackerPassiveStatusAugments', [
+      &$statusMap,
+      $attackerUnit,
+      'enemy-1',
+      [
+        'status_applied' => 'cracked_armor',
+        'status_duration_rounds' => 2,
+        'status_params' => ['defense_reduction_flat' => 2, 'is_debuff' => true],
+      ],
+      1,
+      11,
+    ]);
+    $this->assertStringContainsString('shatter_plate', (string)$crackedArmor);
+    $this->assertSame(3, (int)($statusMap['enemy-1']['cracked_armor']['params']['defense_reduction_flat'] ?? 0));
+  }
+
+  public function testResolveAdditionalAbilityTargetsSplashesPoisonCloud(): void
+  {
+    $state = str_repeat('c', 64);
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+    $events = [];
+    $targetUnitsById = [
+      'enemy-a' => ['defense' => 1, 'max_hp' => 10, 'pos' => ['x' => 1, 'y' => 0], 'formation' => ['w' => 1, 'h' => 1]],
+      'enemy-b' => ['defense' => 1, 'max_hp' => 10, 'pos' => ['x' => 1, 'y' => 1], 'formation' => ['w' => 1, 'h' => 1]],
+    ];
+    $targetHpById = ['enemy-a' => 10, 'enemy-b' => 10];
+    $targetStatuses = ['enemy-a' => [], 'enemy-b' => []];
+    $actorStatuses = ['unit-1' => []];
+
+    $summary = $this->invokePrivate('resolveAdditionalAbilityTargets', [
+      &$events,
+      &$state,
+      $registry,
+      'player',
+      [
+        'attack' => 8,
+        'combat_affixes' => ['damage_flat' => 0, 'below_half_bonus' => 0.0],
+        'pos' => ['x' => 0, 'y' => 1],
+        'formation' => ['w' => 1, 'h' => 1],
+        'passive_abilities' => [],
+      ],
+      'unit-1',
+      [
+        'ability_id' => 'poison_cloud',
+        'target' => 'enemy_back_prefer',
+        'equip_order' => 0,
+      ],
+      'enemy-a',
+      $targetUnitsById,
+      &$targetHpById,
+      &$targetStatuses,
+      &$actorStatuses,
+      [
+        'dice_used' => [],
+        'dice_rolls' => [],
+        'dice_outcome' => 'none',
+        'dice_modifier' => 0,
+        'explode_triggered' => false,
+      ],
+      1,
+      8,
+    ]);
+
+    $this->assertStringContainsString('enemy-b', (string)$summary);
+    $this->assertCount(1, $events);
+    $this->assertSame('action_splash', (string)$events[0]['type']);
+    $this->assertArrayHasKey('poison', $targetStatuses['enemy-b']);
+    $this->assertLessThan(10, $targetHpById['enemy-b']);
+  }
+
   /**
    * @param array<int,mixed> $args
    */

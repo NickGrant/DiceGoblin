@@ -426,6 +426,8 @@ final class DeterministicRunNodeResolver
     }
     unset($unit);
 
+    $this->applyFormationPassiveBonusesToUnits($units, $abilityRegistry);
+
     return $units;
   }
 
@@ -913,6 +915,14 @@ final class DeterministicRunNodeResolver
               $round,
               $tick,
             );
+            $passiveStatusAugment = $this->applyAttackerPassiveStatusAugments(
+              $enemyStatuses,
+              $playerActor,
+              $targetId,
+              $outcome,
+              $round,
+              $tick
+            );
             $reactionOutcome = $isSupportAbility
               ? null
               : $this->reflectDebuffToSourceIfNeeded(
@@ -931,6 +941,44 @@ final class DeterministicRunNodeResolver
               $enemyHp[$targetId] = (int)$outcome['target_hp_after'];
               $this->clearSleepOnDamage($enemyStatuses, $sleepBlockedUntilTick, $targetId, $tick, (int)$outcome['damage']);
               $preferredTargetByActor['player:' . $playerActorId] = $targetId;
+              $defeatSupportOutcome = $this->applyPlayerDefeatTriggeredPassives(
+                $playerUnits,
+                $playerById,
+                $playerHp,
+                $playerStatuses,
+                $enemyHp,
+                $round,
+                $tick,
+                $playerActorId,
+                $targetId,
+                $outcome,
+              );
+              if ($defeatSupportOutcome !== null) {
+                $events[count($events) - 1]['support_passive_outcome'] = $defeatSupportOutcome;
+              }
+              if ($passiveStatusAugment !== null) {
+                $events[count($events) - 1]['status_augment_outcome'] = $passiveStatusAugment;
+              }
+              $multiTargetOutcome = $this->resolveAdditionalAbilityTargets(
+                $events,
+                $state,
+                $abilityRegistry,
+                'player',
+                $playerActor,
+                $playerActorId,
+                $ability,
+                $targetId,
+                $enemyById,
+                $enemyHp,
+                $enemyStatuses,
+                $playerStatuses,
+                $dice,
+                $round,
+                $tick
+              );
+              if ($multiTargetOutcome !== null) {
+                $events[count($events) - 1]['multi_target_outcome'] = $multiTargetOutcome;
+              }
             }
             $lastRound = $round;
             $lastTick = $tick;
@@ -1056,6 +1104,14 @@ final class DeterministicRunNodeResolver
               $round,
               $tick,
             );
+            $passiveStatusAugment = $this->applyAttackerPassiveStatusAugments(
+              $playerStatuses,
+              $enemyActor,
+              $targetId,
+              $outcome,
+              $round,
+              $tick
+            );
             $reactionOutcome = $isSupportAbility
               ? null
               : $this->reflectDebuffToSourceIfNeeded(
@@ -1074,6 +1130,68 @@ final class DeterministicRunNodeResolver
               $playerHp[$targetId] = (int)$outcome['target_hp_after'];
               $this->clearSleepOnDamage($playerStatuses, $sleepBlockedUntilTick, $targetId, $tick, (int)$outcome['damage']);
               $preferredTargetByActor['enemy:' . $enemyActorId] = $targetId;
+              $survivalOutcome = $this->applyLastGoblinStandingIfNeeded(
+                $playerHp,
+                $playerStatuses,
+                $playerById,
+                $targetId,
+                $round,
+                $tick
+              );
+              $triggeredPassiveOutcome = $this->applyTriggeredDefenderPassivesAfterHit(
+                $playerStatuses,
+                $playerById,
+                $targetId,
+                (int)($outcome['damage'] ?? 0),
+                $round,
+                $tick
+              );
+              $counterOutcome = $this->resolveCounterpunchRetaliation(
+                $events,
+                $state,
+                $abilityRegistry,
+                $enemyActor,
+                $playerById[$targetId] ?? null,
+                $enemyActorId,
+                $targetId,
+                $abilityId,
+                $playerHp,
+                $enemyHp,
+                $playerStatuses,
+                $enemyStatuses,
+                $round,
+                $tick
+              );
+              if ($survivalOutcome !== null || $triggeredPassiveOutcome !== null || $counterOutcome !== null) {
+                $events[count($events) - 1]['defender_passive_outcome'] = implode('; ', array_values(array_filter([
+                  $survivalOutcome,
+                  $triggeredPassiveOutcome,
+                  $counterOutcome,
+                ])));
+              }
+              if ($passiveStatusAugment !== null) {
+                $events[count($events) - 1]['status_augment_outcome'] = $passiveStatusAugment;
+              }
+              $multiTargetOutcome = $this->resolveAdditionalAbilityTargets(
+                $events,
+                $state,
+                $abilityRegistry,
+                'enemy',
+                $enemyActor,
+                $enemyActorId,
+                $ability,
+                $targetId,
+                $playerById,
+                $playerHp,
+                $playerStatuses,
+                $enemyStatuses,
+                $dice,
+                $round,
+                $tick
+              );
+              if ($multiTargetOutcome !== null) {
+                $events[count($events) - 1]['multi_target_outcome'] = $multiTargetOutcome;
+              }
             }
             $lastRound = $round;
             $lastTick = $tick;
@@ -2066,6 +2184,12 @@ final class DeterministicRunNodeResolver
       $effectiveDefense = max(0, $effectiveDefense - $crackedArmorReduction);
     }
 
+    $shieldSetStacks = max(0, (int)($targetStatuses['shield_set']['params']['stack_count'] ?? 0));
+    $shieldSetPerStack = max(0, (int)($targetStatuses['shield_set']['params']['defense_flat_per_stack'] ?? 0));
+    if ($shieldSetStacks > 0 && $shieldSetPerStack > 0) {
+      $effectiveDefense += ($shieldSetStacks * $shieldSetPerStack);
+    }
+
     return $effectiveDefense;
   }
 
@@ -2097,6 +2221,8 @@ final class DeterministicRunNodeResolver
     $attackMultiplier -= max(0.0, (float)($attackerStatuses['poison']['params']['attack_reduction_pct'] ?? 0.0));
     $attack = max(1, (int)floor($attack * max(0.1, $attackMultiplier)));
     $attack += max(0, (int)($attackerStatuses['lucky']['params']['lucky_bonus_flat'] ?? 0));
+    $attack += max(0, (int)($attackerStatuses['crowd_favorite']['params']['stack_count'] ?? 0))
+      * max(0, (int)($attackerStatuses['crowd_favorite']['params']['damage_flat_per_stack'] ?? 0));
     return max(1, $attack);
   }
 
@@ -2601,6 +2727,17 @@ final class DeterministicRunNodeResolver
   private function initializePassiveStatusesForCombat(array &$statusMap, string $unitId, array $passiveAbilityIds): void
   {
     if (!in_array('spiteful_reflex', $passiveAbilityIds, true)) {
+      if (in_array('last_goblin_standing', $passiveAbilityIds, true)) {
+        $this->applyStatusState(
+          $statusMap,
+          $unitId,
+          'last_goblin_standing_ready',
+          99,
+          ['is_debuff' => false, 'used' => false],
+          1,
+          0
+        );
+      }
       return;
     }
 
@@ -2613,6 +2750,574 @@ final class DeterministicRunNodeResolver
       1,
       0
     );
+
+    if (in_array('last_goblin_standing', $passiveAbilityIds, true)) {
+      $this->applyStatusState(
+        $statusMap,
+        $unitId,
+        'last_goblin_standing_ready',
+        99,
+        ['is_debuff' => false, 'used' => false],
+        1,
+        0
+      );
+    }
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $units
+   */
+  private function applyFormationPassiveBonusesToUnits(array &$units, AbilityRegistry $abilityRegistry): void
+  {
+    $unitsById = [];
+    foreach ($units as $unit) {
+      $unitsById[(string)$unit['id']] = $unit;
+    }
+
+    foreach ($units as &$unit) {
+      $passives = (array)($unit['passive_abilities'] ?? []);
+      if (in_array('hold_the_line', $passives, true)) {
+        $this->applyHoldTheLineBonus($unit, $unitsById, $abilityRegistry);
+      }
+      if (in_array('vantage_point', $passives, true)) {
+        $this->applyVantagePointBonus($unit, $unitsById, $abilityRegistry);
+      }
+    }
+    unset($unit);
+  }
+
+  /**
+   * @param array<string,mixed> $unit
+   * @param array<string,array<string,mixed>> $unitsById
+   */
+  private function applyHoldTheLineBonus(array &$unit, array $unitsById, AbilityRegistry $abilityRegistry): void
+  {
+    if (!$abilityRegistry->has('hold_the_line')) {
+      return;
+    }
+
+    $params = (array)$abilityRegistry->get('hold_the_line')->defaultParams;
+    if (!$this->isFrontRow((array)($unit['pos'] ?? ['x' => 1, 'y' => 1]), (array)($unit['formation'] ?? ['w' => 1, 'h' => 1]))) {
+      return;
+    }
+
+    $bonus = max(0, (int)($params['front_row_defense_flat'] ?? 0));
+    $unitProfile = $this->combatPositionProfile($unit);
+    foreach ($unitsById as $allyId => $ally) {
+      if ($allyId === (string)$unit['id']) {
+        continue;
+      }
+      $allyProfile = $this->combatPositionProfile($ally);
+      if ($allyProfile['front_x'] < 2) {
+        continue;
+      }
+      if (abs($allyProfile['top_y'] - $unitProfile['top_y']) <= 1) {
+        $bonus += max(0, (int)($params['front_row_adjacent_bonus_flat'] ?? 0));
+        break;
+      }
+    }
+
+    $unit['defense'] = max(0, (int)$unit['defense'] + $bonus);
+  }
+
+  /**
+   * @param array<string,mixed> $unit
+   * @param array<string,array<string,mixed>> $unitsById
+   */
+  private function applyVantagePointBonus(array &$unit, array $unitsById, AbilityRegistry $abilityRegistry): void
+  {
+    if (!$abilityRegistry->has('vantage_point')) {
+      return;
+    }
+
+    $params = (array)$abilityRegistry->get('vantage_point')->defaultParams;
+    $profile = $this->combatPositionProfile($unit);
+    $rowsAhead = 0;
+    foreach ($unitsById as $allyId => $ally) {
+      if ($allyId === (string)$unit['id']) {
+        continue;
+      }
+      $allyProfile = $this->combatPositionProfile($ally);
+      if ($allyProfile['front_x'] > $profile['front_x']) {
+        $rowsAhead += 1;
+      }
+    }
+
+    if ($rowsAhead <= 0) {
+      return;
+    }
+
+    $unit['combat_affixes']['ranged_damage_pct'] = ((float)($unit['combat_affixes']['ranged_damage_pct'] ?? 0.0))
+      + ($rowsAhead * max(0.0, (float)($params['ranged_damage_pct_per_row_ahead'] ?? 0.0)));
+  }
+
+  /**
+   * @param array<string,int> $hpByUnitId
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<string,array<string,mixed>> $unitsById
+   */
+  private function applyLastGoblinStandingIfNeeded(
+    array &$hpByUnitId,
+    array &$statusMap,
+    array $unitsById,
+    string $unitId,
+    int $round,
+    int $tick
+  ): ?string {
+    if (($hpByUnitId[$unitId] ?? 0) > 0) {
+      return null;
+    }
+
+    $unit = $unitsById[$unitId] ?? null;
+    if (!is_array($unit) || !in_array('last_goblin_standing', (array)($unit['passive_abilities'] ?? []), true)) {
+      return null;
+    }
+
+    $ready = (array)($statusMap[$unitId]['last_goblin_standing_ready']['params'] ?? []);
+    if ((bool)($ready['used'] ?? false) === true) {
+      return null;
+    }
+
+    $hpByUnitId[$unitId] = 1;
+    $this->applyStatusState(
+      $statusMap,
+      $unitId,
+      'last_goblin_standing_ready',
+      99,
+      ['is_debuff' => false, 'used' => true],
+      $round,
+      $tick
+    );
+
+    return 'last_goblin_standing kept unit at 1 HP';
+  }
+
+  /**
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<string,array<string,mixed>> $unitsById
+   */
+  private function applyTriggeredDefenderPassivesAfterHit(
+    array &$statusMap,
+    array $unitsById,
+    string $unitId,
+    int $damageTaken,
+    int $round,
+    int $tick
+  ): ?string {
+    if ($damageTaken <= 0) {
+      return null;
+    }
+
+    $unit = $unitsById[$unitId] ?? null;
+    if (!is_array($unit)) {
+      return null;
+    }
+
+    $passives = (array)($unit['passive_abilities'] ?? []);
+    $outcomes = [];
+    $registry = new AbilityRegistry();
+
+    if (in_array('brawl_hardened', $passives, true) && $registry->has('brawl_hardened')) {
+      $params = (array)$registry->get('brawl_hardened')->defaultParams;
+      $this->applyOneAttackDefenseStacks(
+        $statusMap,
+        $unitId,
+        'brawl_hardened_stacks',
+        1,
+        max(0, (int)($params['damage_reduction_per_stack'] ?? 1)),
+        max(1, (int)($params['stack_cap'] ?? 3)),
+        $tick
+      );
+      $outcomes[] = 'brawl_hardened gained 1 stack';
+    }
+
+    if (in_array('shield_set', $passives, true) && $registry->has('shield_set')) {
+      $params = (array)$registry->get('shield_set')->defaultParams;
+      $stackCap = max(1, (int)($params['stack_cap'] ?? 3));
+      if (in_array('wall_of_scrap', $passives, true) && $registry->has('wall_of_scrap')) {
+        $stackCap += max(0, (int)($registry->get('wall_of_scrap')->defaultParams['stack_cap_bonus'] ?? 0));
+      }
+      $existing = (array)($statusMap[$unitId]['shield_set']['params'] ?? []);
+      $stackCount = min($stackCap, max(0, (int)($existing['stack_count'] ?? 0)) + 1);
+      $this->applyStatusState(
+        $statusMap,
+        $unitId,
+        'shield_set',
+        1,
+        [
+          'stack_count' => $stackCount,
+          'defense_flat_per_stack' => max(0, (int)($params['defense_flat_per_stack'] ?? 1)),
+          'is_debuff' => false,
+        ],
+        $round,
+        $tick
+      );
+      $outcomes[] = sprintf('shield_set increased to %d stacks', $stackCount);
+    }
+
+    if (in_array('crowd_favorite', $passives, true) && $registry->has('crowd_favorite')) {
+      $params = (array)$registry->get('crowd_favorite')->defaultParams;
+      $existing = (array)($statusMap[$unitId]['crowd_favorite']['params'] ?? []);
+      $stackCount = min(
+        max(1, (int)($params['stack_cap'] ?? 5)),
+        max(0, (int)($existing['stack_count'] ?? 0)) + 1
+      );
+      $this->applyStatusState(
+        $statusMap,
+        $unitId,
+        'crowd_favorite',
+        99,
+        [
+          'stack_count' => $stackCount,
+          'damage_flat_per_stack' => max(0, (int)($params['damage_flat_per_stack'] ?? 1)),
+          'is_debuff' => false,
+        ],
+        $round,
+        $tick
+      );
+      $outcomes[] = sprintf('crowd_favorite increased to %d stacks', $stackCount);
+    }
+
+    return count($outcomes) > 0 ? implode(', ', $outcomes) : null;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $events
+   * @param array<string,int> $playerHp
+   * @param array<string,int> $enemyHp
+   * @param array<string,array<string,array<string,mixed>>> $playerStatuses
+   * @param array<string,array<string,array<string,mixed>>> $enemyStatuses
+   * @param array<string,mixed>|null $defenderUnit
+   */
+  private function resolveCounterpunchRetaliation(
+    array &$events,
+    string &$state,
+    AbilityRegistry $abilityRegistry,
+    array $enemyActor,
+    ?array $defenderUnit,
+    string $attackerId,
+    string $defenderId,
+    string $enemyAbilityId,
+    array &$playerHp,
+    array &$enemyHp,
+    array &$playerStatuses,
+    array &$enemyStatuses,
+    int $round,
+    int $tick
+  ): ?string {
+    if (!is_array($defenderUnit) || !$abilityRegistry->has($enemyAbilityId)) {
+      return null;
+    }
+
+    if (!in_array('counterpunch', (array)($defenderUnit['passive_abilities'] ?? []), true)) {
+      return null;
+    }
+
+    if (!in_array('melee', $abilityRegistry->get($enemyAbilityId)->tags, true)) {
+      return null;
+    }
+
+    $counterState = (array)($playerStatuses[$defenderId]['counterpunch_ready']['params'] ?? []);
+    if ((int)($counterState['last_trigger_round'] ?? 0) === $round) {
+      return 'counterpunch already used this round';
+    }
+
+    $playerStatuses[$defenderId]['counterpunch_ready']['params']['last_trigger_round'] = $round;
+    $counterOutcome = $this->deriveActionOutcome(
+      $state,
+      $this->effectiveAttackWithStatuses((int)$defenderUnit['attack'], (array)($playerStatuses[$defenderId] ?? [])),
+      (int)($enemyActor['defense'] ?? 0),
+      (int)($enemyHp[$attackerId] ?? (int)($enemyActor['max_hp'] ?? 1)),
+      (int)($enemyActor['max_hp'] ?? 1),
+      'basic_attack_melee',
+      0,
+      array_replace((array)($defenderUnit['combat_affixes'] ?? []), ['melee_damage_pct' => ((float)($defenderUnit['combat_affixes']['melee_damage_pct'] ?? 0.0)) - 0.30]),
+      ['dice_used' => [], 'dice_rolls' => [], 'dice_outcome' => 'counterpunch', 'dice_modifier' => 0, 'explode_triggered' => false],
+      (array)($enemyStatuses[$attackerId] ?? []),
+      (array)($defenderUnit['pos'] ?? ['x' => 1, 'y' => 1]),
+      (array)($enemyActor['pos'] ?? ['x' => 1, 'y' => 1]),
+      (array)($defenderUnit['formation'] ?? ['w' => 1, 'h' => 1]),
+      (array)($enemyActor['formation'] ?? ['w' => 1, 'h' => 1]),
+      $abilityRegistry,
+      (int)$defenderUnit['attack'],
+      0
+    );
+    $enemyHp[$attackerId] = (int)($counterOutcome['target_hp_after'] ?? ($enemyHp[$attackerId] ?? 0));
+
+    $events[] = [
+      'type' => 'reaction',
+      'round' => $round,
+      'tick' => $tick,
+      'side' => 'player',
+      'actor_unit_instance_id' => $defenderId,
+      'target_enemy_slug' => $attackerId,
+      'ability_id' => 'counterpunch',
+      ...$counterOutcome,
+    ];
+
+    return sprintf('counterpunch retaliated for %d damage', (int)($counterOutcome['damage'] ?? 0));
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $playerUnits
+   * @param array<string,array<string,mixed>> $playerById
+   * @param array<string,int> $playerHp
+   * @param array<string,array<string,array<string,mixed>>> $playerStatuses
+   * @param array<string,int> $enemyHp
+   * @param array{outcome?:string} $outcome
+   */
+  private function applyPlayerDefeatTriggeredPassives(
+    array $playerUnits,
+    array $playerById,
+    array &$playerHp,
+    array &$playerStatuses,
+    array $enemyHp,
+    int $round,
+    int $tick,
+    string $actorId,
+    string $targetId,
+    array $outcome
+  ): ?string {
+    if ((string)($outcome['outcome'] ?? '') !== 'defeated') {
+      return null;
+    }
+
+    $messages = [];
+    foreach ($playerUnits as $unit) {
+      $unitId = (string)$unit['id'];
+      $passives = (array)($unit['passive_abilities'] ?? []);
+
+      if (in_array('battle_tempo', $passives, true) && isset($playerStatuses[$actorId]['warcry'])) {
+        $allyTargetId = $this->lowestHpAllyId($playerHp, $playerById, $unitId);
+        if ($allyTargetId !== null) {
+          $this->applyStatusState(
+            $playerStatuses,
+            $allyTargetId,
+            'bolstered',
+            1,
+            ['defense_pct' => 0.12, 'is_debuff' => false],
+            $round,
+            $tick
+          );
+          $messages[] = sprintf('battle_tempo bolstered %s', $allyTargetId);
+        }
+      }
+
+      if (in_array('morale_goblin', $passives, true)) {
+        $allyTargetId = $this->lowestHpAllyId($playerHp, $playerById, $unitId);
+        if ($allyTargetId !== null) {
+          $heal = 2;
+          $playerHp[$allyTargetId] = min(
+            (int)($playerById[$allyTargetId]['max_hp'] ?? $playerHp[$allyTargetId]),
+            (int)$playerHp[$allyTargetId] + $heal
+          );
+          $messages[] = sprintf('morale_goblin healed %s for %d', $allyTargetId, $heal);
+        }
+      }
+    }
+
+    return count($messages) > 0 ? implode(', ', $messages) : null;
+  }
+
+  /**
+   * @param array<string,int> $hpByUnitId
+   * @param array<string,array<string,mixed>> $unitsById
+   */
+  private function lowestHpAllyId(array $hpByUnitId, array $unitsById, string $excludeUnitId = ''): ?string
+  {
+    $bestId = null;
+    $bestRatio = 2.0;
+    foreach ($hpByUnitId as $unitId => $hp) {
+      if ((int)$hp <= 0 || $unitId === $excludeUnitId || !isset($unitsById[$unitId])) {
+        continue;
+      }
+      $maxHp = max(1, (int)($unitsById[$unitId]['max_hp'] ?? 1));
+      $ratio = (int)$hp / $maxHp;
+      if ($ratio < $bestRatio) {
+        $bestRatio = $ratio;
+        $bestId = (string)$unitId;
+      }
+    }
+
+    return $bestId;
+  }
+
+  /**
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<string,mixed> $attackerUnit
+   * @param array{status_applied?:mixed,status_duration_rounds?:mixed,status_params?:mixed} $outcome
+   */
+  private function applyAttackerPassiveStatusAugments(
+    array &$statusMap,
+    array $attackerUnit,
+    string $targetId,
+    array $outcome,
+    int $round,
+    int $tick
+  ): ?string {
+    $passives = (array)($attackerUnit['passive_abilities'] ?? []);
+    if (count($passives) === 0) {
+      return null;
+    }
+
+    $statusId = trim((string)($outcome['status_applied'] ?? ''));
+    if ($statusId === '') {
+      return null;
+    }
+
+    $messages = [];
+    $duration = max(1, (int)($outcome['status_duration_rounds'] ?? 1));
+    $params = is_array($outcome['status_params'] ?? null) ? $outcome['status_params'] : [];
+
+    if ($statusId === 'marked' && in_array('barbed_mark', $passives, true)) {
+      $this->applyStatusState(
+        $statusMap,
+        $targetId,
+        'snared',
+        2,
+        ['is_debuff' => true],
+        $round,
+        $tick
+      );
+      $messages[] = 'barbed_mark applied snared';
+    }
+
+    if (isset($params['attack_reduction_pct']) && in_array('brutal_suppression', $passives, true)) {
+      $params['attack_reduction_pct'] = (float)$params['attack_reduction_pct'] + 0.08;
+      $this->applyStatusState($statusMap, $targetId, $statusId, $duration, $params, $round, $tick);
+      $messages[] = 'brutal_suppression strengthened attack reduction';
+    }
+
+    if ($statusId === 'cracked_armor' && in_array('shatter_plate', $passives, true)) {
+      $params['defense_reduction_flat'] = (int)($params['defense_reduction_flat'] ?? 0) + 1;
+      $this->applyStatusState($statusMap, $targetId, $statusId, $duration, $params, $round, $tick);
+      $messages[] = 'shatter_plate strengthened cracked armor';
+    }
+
+    if ($statusId === 'poison' && in_array('lingering_cloud', $passives, true)) {
+      $params['poison_damage_ratio'] = (float)($params['poison_damage_ratio'] ?? 0.2) * 1.15;
+      $duration += 1;
+      $this->applyStatusState($statusMap, $targetId, $statusId, $duration, $params, $round, $tick);
+      $messages[] = 'lingering_cloud extended poison';
+    }
+
+    return count($messages) > 0 ? implode(', ', $messages) : null;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $events
+   * @param array<string,mixed> $actorUnit
+   * @param array{ability_id?:mixed,target?:mixed,equip_order?:mixed} $ability
+   * @param array<string,array<string,mixed>> $targetUnitsById
+   * @param array<string,int> $targetHpById
+   * @param array<string,array<string,array<string,mixed>>> $targetStatuses
+   * @param array<string,array<string,array<string,mixed>>> $actorStatuses
+   * @param array{dice_used:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,dice_rolls:array<int,array{sides:int,roll:int}>,slot_traces?:array<int,array<string,mixed>>,dice_outcome:string,dice_modifier:int,explode_triggered:bool} $dice
+   */
+  private function resolveAdditionalAbilityTargets(
+    array &$events,
+    string &$state,
+    AbilityRegistry $abilityRegistry,
+    string $side,
+    array $actorUnit,
+    string $actorId,
+    array $ability,
+    string $primaryTargetId,
+    array $targetUnitsById,
+    array &$targetHpById,
+    array &$targetStatuses,
+    array &$actorStatuses,
+    array $dice,
+    int $round,
+    int $tick
+  ): ?string {
+    $abilityId = trim((string)($ability['ability_id'] ?? ''));
+    if ($abilityId === '' || !$abilityRegistry->has($abilityId)) {
+      return null;
+    }
+
+    $definition = $abilityRegistry->get($abilityId);
+    $targetCount = max(1, (int)($definition->defaultParams['target_count'] ?? 1));
+    if ($targetCount <= 1) {
+      return null;
+    }
+
+    $availableIds = array_values(array_filter(
+      $this->aliveUnitIds($targetHpById),
+      static fn(string $candidateId): bool => $candidateId !== $primaryTargetId
+    ));
+    if (count($availableIds) === 0) {
+      return null;
+    }
+
+    $messages = [];
+    $targetPreference = (string)($ability['target'] ?? 'enemy_back_prefer');
+    $extraTargetsToResolve = min($targetCount - 1, count($availableIds));
+    for ($index = 0; $index < $extraTargetsToResolve; $index++) {
+      $selection = $this->chooseTargetSelection(
+        $state,
+        $availableIds,
+        $targetUnitsById,
+        $targetPreference,
+        $actorId,
+        $targetHpById,
+        $targetStatuses,
+        null
+      );
+      $targetId = (string)$selection['id'];
+      $targetUnit = $targetUnitsById[$targetId] ?? null;
+      if (!is_array($targetUnit)) {
+        continue;
+      }
+
+      $outcome = $this->deriveActionOutcome(
+        $state,
+        $this->effectiveAttackWithStatuses((int)$actorUnit['attack'], (array)($actorStatuses[$actorId] ?? [])),
+        (int)($targetUnit['defense'] ?? 0),
+        (int)($targetHpById[$targetId] ?? (int)($targetUnit['max_hp'] ?? 1)),
+        (int)($targetUnit['max_hp'] ?? 1),
+        $abilityId,
+        (int)($dice['dice_modifier'] ?? 0),
+        (array)($actorUnit['combat_affixes'] ?? ['damage_flat' => 0, 'below_half_bonus' => 0.0]),
+        $dice,
+        (array)($targetStatuses[$targetId] ?? []),
+        (array)($actorUnit['pos'] ?? ['x' => 1, 'y' => 1]),
+        (array)($targetUnit['pos'] ?? ['x' => 1, 'y' => 1]),
+        (array)($actorUnit['formation'] ?? ['w' => 1, 'h' => 1]),
+        (array)($targetUnit['formation'] ?? ['w' => 1, 'h' => 1]),
+        $abilityRegistry,
+        (int)$actorUnit['attack'],
+        0
+      );
+      $this->applyOutcomeStatus($targetStatuses, $targetId, $outcome, $round, $tick);
+      $augment = $this->applyAttackerPassiveStatusAugments($targetStatuses, $actorUnit, $targetId, $outcome, $round, $tick);
+      $targetHpById[$targetId] = (int)($outcome['target_hp_after'] ?? ($targetHpById[$targetId] ?? 0));
+
+      $events[] = [
+        'type' => 'action_splash',
+        'round' => $round,
+        'tick' => $tick,
+        'side' => $side,
+        $side === 'player' ? 'actor_unit_instance_id' : 'actor_enemy_slug' => $actorId,
+        $side === 'player' ? 'target_enemy_slug' : 'target_unit_instance_id' => $targetId,
+        'ability_id' => $abilityId,
+        'targeting_reason' => $selection['reason'],
+        'targeting_weights' => $selection['weights'],
+        'status_augment_outcome' => $augment,
+        ...$outcome,
+      ];
+
+      $messages[] = sprintf('extra target %s took %d damage', $targetId, (int)($outcome['damage'] ?? 0));
+      $availableIds = array_values(array_filter(
+        $availableIds,
+        static fn(string $candidateId): bool => $candidateId !== $targetId
+      ));
+      if (count($availableIds) === 0) {
+        break;
+      }
+    }
+
+    return count($messages) > 0 ? implode(', ', $messages) : null;
   }
 
   /**
