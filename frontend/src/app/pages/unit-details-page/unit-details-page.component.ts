@@ -6,6 +6,8 @@ import {
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faArrowDown, faArrowUp, faPlus, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
@@ -79,6 +81,7 @@ type DiceAssignmentRecord = {
     DgCommandBtnDirective,
     DgPageFrameComponent,
     DicePickerModalComponent,
+    FontAwesomeModule,
     FormsModule,
     RouterLink,
   ],
@@ -93,6 +96,10 @@ export class UnitDetailsPageComponent {
   private readonly sessionService = inject(SessionService);
   private readonly unitService = inject(UnitService);
   private readonly abilityCatalogService = inject(AbilityCatalogService);
+  readonly faPlus = faPlus;
+  readonly faArrowUp = faArrowUp;
+  readonly faArrowDown = faArrowDown;
+  readonly faXmark = faXmark;
 
   readonly unitId = this.route.snapshot.paramMap.get('unitId') ?? '';
   readonly unit = computed<UnitRecord | null>(

@@ -93,6 +93,8 @@ describe('BottomCommandStripComponent', () => {
 
     expect(guideLink).toBeDefined();
     expect(router.serializeUrl(guideLink!.injector.get(RouterLink).urlTree!)).toBe('/field-guide?returnUrl=%2Frun%2Fnode%2F42');
+    const icon = guideLink!.nativeElement.querySelector('img') as HTMLImageElement | null;
+    expect(icon?.getAttribute('src')).toContain('icon_guide.png');
   });
 
   it('stores the measured hud height in a shared CSS variable', () => {

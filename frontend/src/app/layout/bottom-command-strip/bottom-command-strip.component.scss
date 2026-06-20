@@ -11,7 +11,7 @@
 
 .hud-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(190px, 0.85fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 1fr) minmax(0, 1fr);
   width: min(1280px, calc(100vw - 2rem));
   align-items: center;
   aspect-ratio: 1506 / 203;
@@ -46,29 +46,6 @@
 
 .hud-icon-link:hover,
 .hud-icon-link.is-active {
-  transform: translateY(-1px);
-  filter: brightness(1.08);
-}
-
-.hud-guide-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: clamp(40px, 3vw, 48px);
-  padding: 0.35rem 0.9rem;
-  border: 1px solid rgba(243, 239, 224, 0.9);
-  background: rgba(243, 239, 224, 0.86);
-  color: #23272a;
-  font-size: clamp(0.72rem, 0.78vw, 0.82rem);
-  letter-spacing: 0.08em;
-  line-height: 1;
-  text-transform: uppercase;
-  white-space: nowrap;
-  transition: transform 120ms ease, filter 120ms ease;
-}
-
-.hud-guide-link:hover,
-.hud-guide-link.is-active {
   transform: translateY(-1px);
   filter: brightness(1.08);
 }
@@ -217,12 +194,6 @@
     font-size: 0.92rem;
   }
 
-  .hud-guide-link {
-    min-height: 40px;
-    padding-inline: 0.75rem;
-    font-size: 0.7rem;
-  }
-
   .hud-shell__group--player {
     gap: 0.75rem;
   }
@@ -262,7 +233,6 @@
     height: 40px;
   }
 
-  .hud-guide-link,
   .hud-logout {
     min-height: 36px;
   }

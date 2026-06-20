@@ -249,8 +249,10 @@ describe('UnitDetailsPageComponent', () => {
     );
 
     component.setActiveTab('abilities');
+    fixture.detectChanges();
     expect(component.learnedActiveAbilities().map((ability) => ability.abilityId)).toEqual(['guard', 'heavy_strike']);
     expect(component.learnedPassiveAbilities().map((ability) => ability.abilityId)).toEqual(['thick_hide']);
+    expect(fixture.nativeElement.querySelectorAll('.ability-icon-button').length).toBeGreaterThan(0);
   });
 
   it('builds slot editors from learned active abilities and filters picker dice to free or current-slot dice', async () => {

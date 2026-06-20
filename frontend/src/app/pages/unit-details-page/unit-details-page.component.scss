@@ -102,6 +102,20 @@
   gap: 0.75rem;
 }
 
+.ability-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.35rem;
+  line-height: 1;
+}
+
+.ability-icon-button fa-icon {
+  font-size: 1rem;
+}
+
 .ability-speed-badge {
   display: inline-flex;
   align-items: center;
@@ -223,8 +237,6 @@
 }
 
 .loadout-bar__action {
-  min-width: 44px;
-  min-height: 44px;
   flex: 0 0 auto;
 }
 

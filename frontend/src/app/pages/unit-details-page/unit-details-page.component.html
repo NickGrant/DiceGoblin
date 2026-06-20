@@ -220,12 +220,14 @@
                 <span class="dg-chip">Equipped {{ ability.equippedCount }}</span>
                 <button
                   dgCommandBtn="muted"
-                  class="ability-list-card__add"
+                  class="ability-list-card__add ability-icon-button"
                   type="button"
                   (click)="addAbilityToLoadout(ability.abilityId)"
                   [disabled]="!canAddAbilityToLoadout(ability.abilityId)"
+                  aria-label="Add ability to loadout"
+                  title="Add ability to loadout"
                 >
-                  Add to Loadout
+                  <fa-icon [icon]="faPlus" aria-hidden="true"></fa-icon>
                 </button>
               </div>
             </div>
@@ -285,7 +287,7 @@
         <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
           <div>
             <h2 class="dg-stencil mb-1">Combat Loadout</h2>
-            <p class="mb-0">Tap Add to Loadout or drag active abilities into the fixed 20-point execution lane.</p>
+            <p class="mb-0">Tap the plus button or drag active abilities into the fixed 20-point execution lane.</p>
           </div>
           <span class="dg-chip">Budget {{ totalEquippedSpeed() }} / 20</span>
         </div>
@@ -311,33 +313,36 @@
               <div class="loadout-bar__actions">
                 <button
                   dgCommandBtn="muted"
-                  class="loadout-bar__action"
+                  class="loadout-bar__action ability-icon-button"
                   type="button"
                   aria-label="Move ability earlier"
+                  title="Move ability earlier"
                   (click)="moveAbilityWithinLoadout($index, -1)"
                   [disabled]="unitLocked() || $index === 0"
                 >
-                  Up
+                  <fa-icon [icon]="faArrowUp" aria-hidden="true"></fa-icon>
                 </button>
                 <button
                   dgCommandBtn="muted"
-                  class="loadout-bar__action"
+                  class="loadout-bar__action ability-icon-button"
                   type="button"
                   aria-label="Move ability later"
+                  title="Move ability later"
                   (click)="moveAbilityWithinLoadout($index, 1)"
                   [disabled]="unitLocked() || $index === loadoutBars().length - 1"
                 >
-                  Down
+                  <fa-icon [icon]="faArrowDown" aria-hidden="true"></fa-icon>
                 </button>
                 <button
                   dgCommandBtn="muted"
-                  class="loadout-bar__action"
+                  class="loadout-bar__action ability-icon-button"
                   type="button"
                   aria-label="Remove ability"
+                  title="Remove ability"
                   (click)="removeAbilityFromLoadout($index)"
                   [disabled]="unitLocked()"
                 >
-                  Remove
+                  <fa-icon [icon]="faXmark" aria-hidden="true"></fa-icon>
                 </button>
               </div>
             </div>
