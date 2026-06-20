@@ -7,16 +7,20 @@
 
 ## Always Include (First Pass)
 - `AGENTS.md`
-- `agent/ROLES.md` (if present)
 - `agent/ISSUES.md`
 - `agent/MILESTONES.md` (if present)
-- `README.md`
-- `documentation/README.md`
-- `agent/ACTIVE_CONTEXT.md` (if present)
+- `agent/CONTEXT_ROUTER.md`
+
+## Include Conditionally
+- `agent/ROLES.md` only for role activation or role-driven work
+- `agent/ROLE_CATALOG.md` only when detailed role authority or constraints are required
+- `agent/ACTIVE_CONTEXT.md` only when active issues or milestones need a quick project-focus snapshot
 
 ## Include On Demand
 - `agent/ISSUES_BACKLOG.md` and `agent/MILESTONES_BACKLOG.md` for deferred roadmap/planning context
 - `agent/BACKLOG_OPERATIONS.md` for roadmap/triage/dependency policy decisions
+- `README.md` for repository-level setup or command questions
+- `documentation/README.md` only when a broader documentation index is needed
 - `documentation/01-architecture/` docs for API and system-contract decisions
 - `documentation/02-systems-mvp/` docs for gameplay rules and scope
 - `documentation/03-ux/` docs for UX and visual behavior
@@ -35,7 +39,8 @@
 
 ## Context Budget Guardrails
 - Keep `AGENTS.md` under ~220 lines.
-- Keep `agent/ROLES.md` under ~180 lines.
+- Keep `agent/ROLES.md` as a short activation/index file.
+- Keep `agent/ROLE_CATALOG.md` out of default context.
 - Keep `agent/ISSUES.md` under ~250 lines (active items only).
 - Keep `agent/MILESTONES.md` under ~120 lines (active items only).
 - Keep `agent/ISSUES_BACKLOG.md` and `agent/MILESTONES_BACKLOG.md` out of default context unless planning requires them.

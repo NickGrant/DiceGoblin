@@ -2,8 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const required = ["AGENTS.md", "agent/ISSUES.md", "agent/MILESTONES.md", "README.md"];
-const optional = ["agent/LLM_CONTEXT.md", "agent/ROLES.md", "agent/ISSUES_BACKLOG.md", "agent/MILESTONES_BACKLOG.md"];
+const required = ["AGENTS.md", "agent/LLM_CONTEXT.md", "agent/CONTEXT_ROUTER.md", "agent/ISSUES.md", "agent/MILESTONES.md"];
+const optional = ["README.md", "agent/ROLES.md", "agent/ROLE_CATALOG.md", "agent/ISSUES_BACKLOG.md", "agent/MILESTONES_BACKLOG.md"];
 
 const issueStatus = new Set(["open", "in progress", "blocked"]);
 const issuePriority = new Set(["low", "medium", "high"]);
