@@ -1,9 +1,8 @@
 :host {
   --bottom-command-strip-spacing: 1rem;
   min-height: 100vh;
-  padding: 1rem 0 1rem;
+  padding: calc(var(--bottom-command-strip-height, 180px) + 0.85rem) 0 1rem;
   display: block;
-  margin-bottom: 180px;
 }
 
 .status-row {
@@ -25,6 +24,6 @@
 @media (max-width: 640px) {
   :host {
     --bottom-command-strip-spacing: 0.75rem;
-    padding-top: 0.75rem;
+    padding-top: calc(var(--bottom-command-strip-height, 180px) + 0.6rem);
   }
 }

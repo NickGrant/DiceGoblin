@@ -126,4 +126,16 @@ describe('BottomCommandStripComponent', () => {
 
     expect(sessionService.logout).toHaveBeenCalled();
   });
+
+  it('renders the new split header art assets', () => {
+    const fixture = TestBed.createComponent(BottomCommandStripComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const panels = compiled.querySelectorAll('.hud-panel');
+
+    expect(panels.length).toBe(2);
+    expect(compiled.querySelector('.hud-panel--nav')).not.toBeNull();
+    expect(compiled.querySelector('.hud-panel--player')).not.toBeNull();
+  });
 });
