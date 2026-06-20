@@ -119,8 +119,8 @@ final class DevToolsService
     $count = max(1, min(25, $count));
     $this->bootstrapper->ensureBaseline($userId);
 
-    $unitTypeId = $this->lookupUnitTypeId($unitTypeSlug);
-    if ($unitTypeId === null) {
+    $unitType = $this->lookupUnitType($unitTypeSlug);
+    if ($unitType === null) {
       throw new RuntimeException('Unknown unit_type_slug.');
     }
 
@@ -128,14 +128,14 @@ final class DevToolsService
     for ($i = 0; $i < $count; $i += 1) {
       $unitId = $this->unitRepo->createUnitInstance(
         $userId,
-        $unitTypeId,
-        1,
+        (int)$unitType['id'],
+        (int)$unitType['tier'],
         1,
         0,
         false,
         $this->getUnitNameGenerator()->generate()
       );
-      $this->getUnitLoadoutService()->initializeUnit($unitId, $unitTypeId);
+      $this->getUnitLoadoutService()->initializeUnit($unitId, (int)$unitType['id']);
       $granted[] = [
         'id' => (string) $unitId,
         'unit_type_slug' => $unitTypeSlug,
@@ -376,12 +376,29 @@ final class DevToolsService
     return ((int)$stmt->fetchColumn()) > 0;
   }
 
-  private function lookupUnitTypeId(string $slug): ?int
+  /**
+   * @return array{id:int,tier:int}|null
+   */
+  private function lookupUnitType(string $slug): ?array
   {
     $stmt = $this->pdo->prepare('SELECT `id` FROM `unit_types` WHERE `slug` = ? LIMIT 1');
     $stmt->execute([$slug]);
     $value = $stmt->fetchColumn();
-    return $value === false ? null : (int) $value;
+    if ($value === false) {
+      return null;
+    }
+
+    return [
+      'id' => (int)$value,
+      'tier' => $this->tierFromUnitTypeSlug($slug),
+    ];
+  }
+
+  private function tierFromUnitTypeSlug(string $slug): int
+  {
+    return preg_match('/_t(\d+)$/', $slug, $matches) === 1
+      ? max(1, (int)$matches[1])
+      : 1;
   }
 
   private function lookupDiceDefinitionId(int $sides, string $rarity): ?int

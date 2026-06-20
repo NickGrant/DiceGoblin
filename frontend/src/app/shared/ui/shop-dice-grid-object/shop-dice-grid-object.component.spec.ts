@@ -19,7 +19,7 @@ describe('ShopDiceGridObjectComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const sprite = compiled.querySelector('.shop-dice-grid-object__sprite') as HTMLElement;
+    const sprite = compiled.querySelector('.sprite') as HTMLElement;
     expect(compiled.textContent).toContain('Starter d6');
     expect(compiled.textContent).toContain('Common');
     expect(compiled.textContent).toContain('Basic stock die');

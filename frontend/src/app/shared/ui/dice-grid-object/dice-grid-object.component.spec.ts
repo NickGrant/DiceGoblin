@@ -48,7 +48,7 @@ describe('DiceGridObjectComponent', () => {
     const sprite = compiled.querySelector('.sprite') as HTMLElement;
     expect(compiled.textContent).toContain('d8');
     expect(compiled.textContent).toContain('Rare');
-    expect(compiled.textContent).toContain('Guard + Bulwark');
+    expect(compiled.textContent).toContain('Guard Bulwark');
     expect(compiled.textContent).toContain('Gain block when this die resolves.');
     expect(compiled.textContent).toContain('Increase defense by 1.');
     expect(sprite.style.backgroundImage).toContain('dice_sheet.png');

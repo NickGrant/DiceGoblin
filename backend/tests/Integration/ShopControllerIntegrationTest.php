@@ -82,7 +82,7 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
 
-    $this->pdo?->prepare('UPDATE `player_state` SET `currency_soft` = 300 WHERE `user_id` = ?')->execute([$userId]);
+    $this->setSoftCurrency($userId, 300);
 
     $controller = new ShopController();
     $this->setJsonBody([
@@ -109,7 +109,7 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
 
-    $this->pdo?->prepare('UPDATE `player_state` SET `currency_soft` = 300 WHERE `user_id` = ?')->execute([$userId]);
+    $this->setSoftCurrency($userId, 500);
 
     $controller = new ShopController();
     $this->setJsonBody([
@@ -136,7 +136,7 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
 
-    $this->pdo?->prepare('UPDATE `player_state` SET `currency_soft` = 1000 WHERE `user_id` = ?')->execute([$userId]);
+    $this->setSoftCurrency($userId, 1000);
 
     $controller = new ShopController();
     $this->setJsonBody([
@@ -157,7 +157,7 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
 
-    $this->pdo?->prepare('UPDATE `player_state` SET `currency_soft` = 1000 WHERE `user_id` = ?')->execute([$userId]);
+    $this->setSoftCurrency($userId, 1000);
     $this->grantUnlock($userId, 'feature', 'shop_discount');
 
     $controller = new ShopController();
@@ -200,7 +200,7 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
 
-    $this->pdo?->prepare('UPDATE `player_state` SET `currency_soft` = 600 WHERE `user_id` = ?')->execute([$userId]);
+    $this->setSoftCurrency($userId, 600);
 
     $controller = new ShopController();
     $this->setJsonBody([

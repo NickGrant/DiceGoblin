@@ -129,6 +129,18 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $this->assertSame(10, (int)$this->scalar('SELECT `level` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
   }
 
+  public function testGrantUnitsUsesTierEncodedInUnitTypeSlug(): void
+  {
+    $userId = $this->insertUser('qa_devtier', 'QA DevTier');
+    $service = $this->makeService();
+
+    $grantedUnits = $service->grantUnits($userId, 'frontline_bruiser_t2', 1);
+    $unitId = (int)($grantedUnits[0]['id'] ?? 0);
+
+    $this->assertGreaterThan(0, $unitId);
+    $this->assertSame(2, (int)$this->scalar('SELECT `tier` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
+  }
+
   private function makeService(): DevToolsService
   {
     $playerStateRepo = new PlayerStateRepository($this->pdo);

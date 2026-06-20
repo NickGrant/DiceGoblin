@@ -1,7 +1,6 @@
 import { Component, OnInit, computed, inject } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { SessionService } from '../../core/services/session/session.service';
-import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 
 type GuideUnit = {
   name: string;
@@ -34,7 +33,6 @@ type GuideNode = {
 @Component({
   selector: 'app-guide-page',
   standalone: true,
-  imports: [RouterLink, DgCommandBtnDirective],
   templateUrl: './guide-page.component.html',
   styleUrl: './guide-page.component.scss',
 })

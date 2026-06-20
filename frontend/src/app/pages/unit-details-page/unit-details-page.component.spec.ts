@@ -242,7 +242,9 @@ describe('UnitDetailsPageComponent', () => {
     expect(host.textContent).toContain('None selected yet');
     expect(host.textContent).toContain('Inherited from Bruiser.');
     expect(host.textContent).toContain('Brawl Hardened');
+    expect(host.textContent).toContain('Gain protective stacks when attacked.');
     expect(host.textContent).toContain('Finisher');
+    expect(host.textContent).toContain('Deal more damage to wounded enemies.');
     expect(host.textContent).toContain('Promotions are now handled in the Academy.');
     expect(fixture.nativeElement.querySelector('.unit-portrait')?.getAttribute('src')).toContain(
       '/assets/ui/portraits/goblin_bruiser.png',

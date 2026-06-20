@@ -48,7 +48,7 @@ describe('HomePageComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.textContent).toContain('Start Run');
-    expect(compiled.textContent).toContain("You're neighbors surely have some good stuff...");
+    expect(compiled.textContent).toContain('Your neighbors surely have some good stuff...');
     expect(compiled.textContent).not.toContain('Academy');
     expect(compiled.textContent).not.toContain('Unlock in Shop');
     expect(fixture.componentInstance.primaryRoute()).toBe('/regions');

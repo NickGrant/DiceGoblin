@@ -93,12 +93,32 @@ abstract class IntegrationTestCase extends TestCase
 
   protected function insertUser(string $discordPrefix = 'qa_user', string $displayPrefix = 'QA User'): int
   {
-    $token = bin2hex(random_bytes(6));
+    $token = bin2hex(random_bytes(4));
+    $normalizedPrefix = substr(preg_replace('/[^a-z0-9_]/i', '_', $discordPrefix) ?? 'qa_user', 0, 23);
     $stmt = $this->pdo?->prepare('INSERT INTO `users` (`discord_id`, `display_name`) VALUES (?, ?)');
-    $stmt?->execute(["{$discordPrefix}_{$token}", "{$displayPrefix} {$token}"]);
+    $stmt?->execute(["{$normalizedPrefix}_{$token}", "{$displayPrefix} {$token}"]);
     $id = (int)$this->pdo?->lastInsertId();
     $this->trackedUserIds[] = $id;
     return $id;
+  }
+
+  protected function grantUnlock(int $userId, string $namespace, string $unlockKey): void
+  {
+    $stmt = $this->pdo?->prepare('
+      INSERT IGNORE INTO `user_unlocks` (`user_id`, `unlock_namespace`, `unlock_key`)
+      VALUES (?, ?, ?)
+    ');
+    $stmt?->execute([$userId, $namespace, $unlockKey]);
+  }
+
+  protected function setSoftCurrency(int $userId, int $amount): void
+  {
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `player_state` (`user_id`, `currency_soft`, `currency_hard`, `last_login_at`)
+      VALUES (?, ?, 0, NULL)
+      ON DUPLICATE KEY UPDATE `currency_soft` = VALUES(`currency_soft`)
+    ');
+    $stmt?->execute([$userId, max(0, $amount)]);
   }
 
   protected function insertRegion(

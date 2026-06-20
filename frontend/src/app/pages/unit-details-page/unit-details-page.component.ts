@@ -624,6 +624,15 @@ export class UnitDetailsPageComponent {
     return this.abilityCatalog().get(normalized)?.display_name ?? this.humanizeAbilityId(normalized);
   }
 
+  abilityShortDescription(abilityId: string | null | undefined): string {
+    const normalized = this.normalizeAbilityId(abilityId);
+    if (!normalized) {
+      return 'No description available.';
+    }
+
+    return this.abilityCatalog().get(normalized)?.short_desc ?? 'No description available.';
+  }
+
   currentCapstoneCopy(state: string): string {
     return {
       none: 'This class has no mastery capstone.',

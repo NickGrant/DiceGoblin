@@ -73,7 +73,8 @@ describe('RunRestPageComponent', () => {
     expect(fixture.componentInstance.restingUnits()[1].defeated).toBeTrue();
     expect(fixture.componentInstance.formationGrid().length).toBe(9);
     expect(fixture.componentInstance.formationGrid().find((cell) => cell.cell === 'A2')?.entry).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('HP 6/10');
+    const hpMeter = fixture.nativeElement.querySelector('.run-unit-grid__hp') as HTMLElement;
+    expect(hpMeter.getAttribute('title')).toBe('HP 6/10');
     expect(fixture.nativeElement.textContent).toContain('Defeated');
     expect(fixture.nativeElement.textContent).toContain('Empty');
   });

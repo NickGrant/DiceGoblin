@@ -140,15 +140,7 @@
             >
               <div>
                 <h3 class="dg-stencil mb-1">{{ abilityDisplayName(choice.ability_id) }}</h3>
-                <p class="mb-0 small">
-                  @if (selectedCapstoneAbilityId() === choice.ability_id) {
-                  Mastered on this unit.
-                  } @else if (!canChooseCapstone()) {
-                  Reach mastery first or keep the existing capstone.
-                  } @else {
-                  Choose this capstone to lock in the passive before future promotions.
-                  }
-                </p>
+                <p class="mb-0 small">{{ abilityShortDescription(choice.ability_id) }}</p>
               </div>
               <span class="dg-chip">
                 @if (selectedCapstoneAbilityId() === choice.ability_id) {

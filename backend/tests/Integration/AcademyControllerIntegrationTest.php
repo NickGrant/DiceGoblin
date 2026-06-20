@@ -50,7 +50,7 @@ final class AcademyControllerIntegrationTest extends IntegrationTestCase
       "INSERT INTO `user_unlocks` (`user_id`, `unlock_namespace`, `unlock_key`) VALUES (?, 'feature', 'academy')"
     )->execute([$userId]);
 
-    $this->pdo?->prepare('UPDATE `player_state` SET `currency_soft` = 300 WHERE `user_id` = ?')->execute([$userId]);
+    $this->setSoftCurrency($userId, 300);
 
     $controller = new AcademyController();
     $this->setJsonBody([

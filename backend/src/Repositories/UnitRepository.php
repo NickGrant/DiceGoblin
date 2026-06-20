@@ -235,6 +235,12 @@ final class UnitRepository
         $capstoneSelectionsByUnit[$uid] ?? [],
         (string)$u['unit_type_id']
       );
+      $currentCapstoneState = $this->currentCapstoneState(
+        $level,
+        $maxLevel,
+        $capstoneChoices,
+        $selectedCapstone,
+      );
       $inheritedPassiveAbilities = $this->buildInheritedPassiveAbilityRecords(
         (string)$u['unit_type_id'],
         $unlockedAbilitiesByUnit[$uid] ?? [],
@@ -255,6 +261,7 @@ final class UnitRepository
         'promotion_level' => $promotionLevel,
         'promotion_eligible' => $promotionLevel !== null && $level >= $promotionLevel && $tier < max(1, $maxTier),
         'is_mastered' => $level >= $maxLevel,
+        'current_capstone_state' => $currentCapstoneState,
         'max_tier' => max(1, $maxTier),
         'total_attack' => $totalAttack,
         'total_defense' => $totalDefense,
@@ -818,6 +825,36 @@ final class UnitRepository
     }
 
     return null;
+  }
+
+  /**
+   * @param list<array{ability_id:string}> $capstoneChoices
+   * @param array{
+   *   source_unit_type_id:string,
+   *   source_unit_type_slug:string,
+   *   source_unit_type_name:string,
+   *   ability_id:string
+   * }|null $selectedCapstone
+   */
+  private function currentCapstoneState(
+    int $level,
+    int $maxLevel,
+    array $capstoneChoices,
+    ?array $selectedCapstone
+  ): string {
+    if (count($capstoneChoices) === 0) {
+      return 'none';
+    }
+
+    if ($selectedCapstone !== null) {
+      return 'selected';
+    }
+
+    if ($level >= $maxLevel) {
+      return 'ready_to_select';
+    }
+
+    return 'unearned';
   }
 
   /**

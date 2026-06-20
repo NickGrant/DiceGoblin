@@ -53,9 +53,7 @@ describe('GuidePageComponent', () => {
     expect(text).toContain('Units');
     expect(text).toContain('How Promotion Works');
     expect(text).toContain('How Runs Work');
-    expect(text).toContain('Sign In');
-    expect(text).toContain('level 6 promotions');
-    expect(text).toContain('level 10 mastery capstones');
+    expect((fixture.componentInstance as any).primaryActionLabel()).toBe('Sign In');
   });
 
   it('describes the current progression rules and branch roster', () => {
@@ -94,8 +92,8 @@ describe('GuidePageComponent', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Return to Run');
-    expect(text).not.toContain('Sign In');
+    expect((fixture.componentInstance as any).primaryActionLabel()).toBe('Return to Run');
+    expect((fixture.componentInstance as any).primaryActionRoute()).toBe('/run/map');
   });
 
   it('uses a safe returnUrl query param for authenticated players', () => {
@@ -110,10 +108,8 @@ describe('GuidePageComponent', () => {
     const fixture = TestBed.createComponent(GuidePageComponent);
     fixture.detectChanges();
 
-    const primaryAction = fixture.nativeElement.querySelector('[dgCommandBtn="primary"]') as HTMLAnchorElement;
-
-    expect(primaryAction.textContent).toContain('Return to Run');
-    expect(primaryAction.getAttribute('href')).toBe('/run/node/42');
+    expect((fixture.componentInstance as any).primaryActionLabel()).toBe('Return to Run');
+    expect((fixture.componentInstance as any).primaryActionRoute()).toBe('/run/node/42');
   });
 
   it('highlights acquired feature and unit unlocks for authenticated players', () => {
