@@ -36,6 +36,11 @@
   --dg-media-card-border-strong: rgba(35, 39, 42, 0.66);
   --dg-media-card-overlay-strong: rgba(18, 18, 18, 0.9);
   --dg-media-card-shadow-strong: 0 18px 28px rgba(0, 0, 0, 0.16);
+  --dg-shell-max-width: 96rem;
+  --dg-shell-page-max-width: 90rem;
+  --dg-shell-gutter: clamp(0.7rem, 2vw, 1.5rem);
+  --dg-breakpoint-mobile-max: 440px;
+  --dg-breakpoint-tablet-max: 760px;
 }
 
 *,
@@ -47,6 +52,11 @@
 html,
 body {
   min-height: 100%;
+}
+
+app-root {
+  display: block;
+  min-height: 100vh;
 }
 
 body {
@@ -80,10 +90,37 @@ button {
 
 .dg-page-frame {
   position: relative;
+  width: min(100%, var(--dg-shell-page-max-width));
+  margin-inline: auto;
   border: 2px solid var(--dg-frame-border);
   background: linear-gradient(180deg, rgba(243, 239, 224, 0.9), rgba(232, 228, 210, 0.94));
   box-shadow: var(--dg-card-shadow);
   overflow: hidden;
+}
+
+app-game-shell .game-shell__router-frame > * {
+  animation: dg-screen-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center top;
+}
+
+@keyframes dg-screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.985);
+    filter: saturate(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: saturate(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  app-game-shell .game-shell__router-frame > * {
+    animation: none;
+  }
 }
 
 .dg-command-btn {

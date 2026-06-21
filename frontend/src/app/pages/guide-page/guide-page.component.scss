@@ -1,9 +1,17 @@
 :host {
   display: block;
+  height: 100%;
 }
 
 .guide-shell {
-  padding: 24px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.guide-shell__inner {
+  width: min(100%, var(--dg-shell-page-max-width));
+  margin-inline: auto;
 }
 
 .guide-hero {
@@ -206,7 +214,7 @@
   margin-top: 0.45rem;
 }
 
-@media (max-width: 991.98px) {
+@media (max-width: 760px) {
   .guide-hero {
     grid-template-columns: 1fr;
   }
@@ -216,11 +224,7 @@
   }
 }
 
-@media (max-width: 767.98px) {
-  .guide-shell {
-    padding-inline: 12px;
-  }
-
+@media (max-width: 440px) {
   .guide-hero {
     padding: 20px;
   }

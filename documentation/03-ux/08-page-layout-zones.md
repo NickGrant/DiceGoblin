@@ -8,7 +8,7 @@ Depends On: `frontend/src/layout/pageLayout.ts`, `raw-assets/new_ux`
 
 ## Purpose
 - Define the UX rebuild layout contract from the reference overlay image.
-- Keep home-scene navigation regions and the global bottom command strip consistent.
+- Keep home-scene navigation regions and the authenticated shell consistent.
 
 ## Asset Contract
 - Source art lane: `raw-assets/new_ux/`
@@ -39,12 +39,25 @@ These colors are layout/debug references only, not canonical UI art palette toke
   - solid-color or image-backed content body
   - click behavior on the full region that routes to target scene
 
+## Authenticated Shell Contract
+- Authenticated screens should read as one persistent game shell, not isolated website pages inside a generic container.
+- The global HUD is anchored to the top edge and reserves vertical space for content via shared shell spacing variables.
+- Major authenticated routes should fill the available viewport height intentionally.
+- Shared page frames should stretch vertically when the screen has excess height instead of floating as short cards in the middle of the page.
+- Shell/layout work should be mobile-first and progressively enhanced at these breakpoints:
+  - `0-440px`
+  - `441-760px`
+  - `761px+`
+- Breakpoint intent:
+  - `0-440px`: compact handset layout, densest HUD treatment, drawer-based navigation
+  - `441-760px`: expanded mobile/tablet layout with more breathing room but still one compact shell
+  - `761px+`: full desktop presentation with persistent split HUD surfaces and wider page frames
+
 ## Global Scene Rules
 - All scenes use `texture_paper` for `BackgroundImage`.
-- Authenticated scenes render one persistent bottom command strip split into two visual segments:
-  - left: Warband link, Dice link, current energy level
-  - right: Logout action, player name
-- Non-home scenes keep the shared dual-zone framing pattern (`content` + `buttons`) above the bottom strip.
+- Authenticated scenes render one persistent top HUD with navigation and player-state surfaces.
+- Mobile authenticated scenes should prefer one compact HUD surface plus an expandable menu rather than stacking multiple persistent bars.
+- Non-home scenes keep the shared dual-zone framing pattern (`content` + `buttons`) inside the authenticated shell rather than above a bottom strip.
 
 ## Shared Component Inventory
 Shared layout/system components:
@@ -83,5 +96,6 @@ Run flow components:
 
 ## Implementation Notes
 - Use `getPageLayout(scene)` to derive canonical content and bottom-strip bounds.
-- Bottom strip must be anchored to screen bottom edges on resize.
-- Left and right strip segments should remain visually distinct while sharing one global component contract.
+- The shared Angular shell should own top-HUD spacing and content viewport padding.
+- Shared page frames should participate in the shell height contract rather than relying on Bootstrap container width alone.
+- HUD surfaces can remain visually distinct while sharing one global component contract.

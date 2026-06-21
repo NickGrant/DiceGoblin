@@ -247,24 +247,11 @@
   justify-content: flex-start;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 760px) {
   .game-shell__hud {
     padding-inline: 0.5rem;
   }
 
-  .hud-panel--nav {
-    min-width: 20rem;
-    padding-inline: 1rem;
-  }
-
-  .hud-panel--player {
-    min-width: 26rem;
-    column-gap: 0.75rem;
-    padding-inline: 1.15rem 1.2rem;
-  }
-}
-
-@media (max-width: 760px) {
   .hud-shell {
     justify-content: flex-end;
   }
@@ -303,7 +290,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 440px) {
   .game-shell__hud {
     padding-inline: 0.35rem;
   }

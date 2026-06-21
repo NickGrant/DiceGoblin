@@ -1,12 +1,55 @@
 :host {
   --bottom-command-strip-spacing: 1rem;
   min-height: 100vh;
-  padding: calc(var(--bottom-command-strip-height, 180px) + 0.85rem) 0 1rem;
   display: block;
 }
 
+.game-shell__viewport {
+  min-height: 100vh;
+  padding:
+    calc(var(--bottom-command-strip-height, 180px) + 0.85rem)
+    clamp(0.7rem, 2vw, 1.5rem)
+    1rem;
+}
+
+.game-shell__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: calc(100vh - var(--bottom-command-strip-height, 180px) - 1.85rem);
+}
+
+.game-shell__router-frame {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.game-shell__router-frame > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+:host ::ng-deep .game-shell__router-frame > app-home-page,
+:host ::ng-deep .game-shell__router-frame > app-warband-page,
+:host ::ng-deep .game-shell__router-frame > app-dice-page,
+:host ::ng-deep .game-shell__router-frame > app-shop-page,
+:host ::ng-deep .game-shell__router-frame > app-academy-page,
+:host ::ng-deep .game-shell__router-frame > app-guide-page,
+:host ::ng-deep .game-shell__router-frame > app-run-map-page,
+:host ::ng-deep .game-shell__router-frame > app-run-node-page,
+:host ::ng-deep .game-shell__router-frame > app-run-rest-page,
+:host ::ng-deep .game-shell__router-frame > app-run-summary-page,
+:host ::ng-deep .game-shell__router-frame > app-regions-page,
+:host ::ng-deep .game-shell__router-frame > app-unit-details-page,
+:host ::ng-deep .game-shell__router-frame > app-squad-details-page,
+:host ::ng-deep .game-shell__router-frame > app-debug-page {
+  display: block;
+  width: 100%;
+}
+
 .status-row {
-  margin-bottom: 1rem;
+  flex: 0 0 auto;
 }
 
 .status-card {
@@ -21,9 +64,15 @@
   background: rgba(185, 28, 28, 0.1);
 }
 
-@media (max-width: 640px) {
-  :host {
-    --bottom-command-strip-spacing: 0.75rem;
-    padding-top: calc(var(--bottom-command-strip-height, 180px) + 0.6rem);
+@media (max-width: 440px) {
+  .game-shell__viewport {
+    padding:
+      calc(var(--bottom-command-strip-height, 180px) + 0.6rem)
+      0.5rem
+      0.75rem;
+  }
+
+  .game-shell__content {
+    min-height: calc(100vh - var(--bottom-command-strip-height, 180px) - 1.35rem);
   }
 }
