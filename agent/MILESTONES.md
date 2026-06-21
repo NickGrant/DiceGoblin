@@ -28,6 +28,5 @@ Primary implementation will likely touch frontend shell/layout components, route
 
 ### Related Issues
 
-- Implement mobile-first breakpoint system across authenticated UI
 - Create reusable game-like screen transition system
 - Run full responsive UX pass on core authenticated screens

@@ -36,6 +36,7 @@ The first-session objective is simple:
 - Make the primary run action the most obvious choice.
 - Show that warband and dice management exist as preparation surfaces.
 - Reinforce that energy and currency are persistent resources.
+- Keep navigation density responsive across 0-440px, 441-760px, and 761px+ so the home shell still reads like a game screen on smaller devices.
 
 Suggested framing:
 

@@ -1,3 +1,8 @@
+.squad-details-page__grid {
+  display: grid;
+  gap: 1rem;
+}
+
 .formation-help {
   font-size: 0.82rem;
   color: var(--dg-text-muted-strong);
@@ -161,7 +166,7 @@
   font-size: 0.9rem;
 }
 
-@media (max-width: 767.98px) {
+@media (max-width: 760px) {
   .formation-axis {
     width: 100%;
   }
@@ -184,5 +189,11 @@
   .formation-cell__label {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+@media (min-width: 761px) {
+  .squad-details-page__grid {
+    grid-template-columns: minmax(18rem, 0.9fr) minmax(0, 1.6fr);
   }
 }

@@ -1,4 +1,4 @@
-import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
+import { NgClass, NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
 import { Component, TemplateRef, Type, computed, effect, input, signal } from '@angular/core';
 import { DgAlertComponent } from '../dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../dg-command-btn/dg-command-btn.directive';
@@ -6,7 +6,7 @@ import { DgCommandBtnDirective } from '../dg-command-btn/dg-command-btn.directiv
 @Component({
   selector: 'dg-object-grid',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, NgComponentOutlet, NgTemplateOutlet],
+  imports: [DgAlertComponent, DgCommandBtnDirective, NgClass, NgComponentOutlet, NgTemplateOutlet],
   templateUrl: './object-grid.component.html',
   styleUrl: './object-grid.component.scss',
 })
@@ -19,7 +19,7 @@ export class ObjectGridComponent {
   readonly leadingContext = input<unknown>(null);
   readonly emptyMessage = input('Nothing available.');
   readonly pageSize = input(6);
-  readonly columnClasses = input('col-md-6');
+  readonly columnClasses = input('object-grid__col--halves');
 
   readonly currentPage = signal(1);
   readonly objectsPerPage = computed(() => {

@@ -17,8 +17,8 @@
   <div class="row g-4">
     <div class="col-12">
       <section class="dice-page__controls dg-card p-3 mb-3">
-        <div class="row g-3 align-items-end">
-          <div class="col-sm-6 col-lg-3">
+        <div class="dice-page__filters">
+          <div class="dice-page__filter">
             <label class="form-label" for="dice-size-filter">Size</label>
             <select
               id="dice-size-filter"
@@ -28,12 +28,12 @@
             >
               <option value="">All sizes</option>
               @for (size of sizeOptions(); track size) {
-                <option [value]="size">d{{ size }}</option>
+              <option [value]="size">d{{ size }}</option>
               }
             </select>
           </div>
 
-          <div class="col-sm-6 col-lg-3">
+          <div class="dice-page__filter">
             <label class="form-label" for="dice-rarity-filter">Rarity</label>
             <select
               id="dice-rarity-filter"
@@ -43,12 +43,12 @@
             >
               <option value="">All rarities</option>
               @for (rarity of rarityOptions(); track rarity) {
-                <option [value]="rarity">{{ rarity | titlecase }}</option>
+              <option [value]="rarity">{{ rarity | titlecase }}</option>
               }
             </select>
           </div>
 
-          <div class="col-sm-6 col-lg-3">
+          <div class="dice-page__filter">
             <label class="form-label" for="dice-equip-filter">Equip State</label>
             <select
               id="dice-equip-filter"
@@ -62,7 +62,7 @@
             </select>
           </div>
 
-          <div class="col-sm-6 col-lg-3">
+          <div class="dice-page__filter">
             <label class="form-label" for="dice-sort">Sort</label>
             <select
               id="dice-sort"
@@ -88,7 +88,7 @@
         [objectComponent]="diceObjectComponent"
         [footerTemplate]="diceActions"
         emptyMessage="No dice available."
-        columnClasses="col-3"
+        columnClasses="object-grid__col--quarters"
         [pageSize]="8"
       />
 

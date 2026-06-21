@@ -4,33 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Authenticated Shell Fullscreen UX Pass
 
-### UX-002: Implement mobile-first breakpoint system across authenticated UI
-
-**Milestone:** Authenticated Shell Fullscreen UX Pass  
-**Status:** In Progress  
-**Priority:** High
-
-#### Problem
-
-The shell and core screens need a deliberate mobile-first responsive system rather than ad hoc screen-size fixes. The UI should explicitly target 0-440px, 441-760px, and 761px+ and use those breakpoints to control layout density, HUD behavior, navigation, spacing, and content hierarchy.
-
-#### Acceptance Criteria
-
-- Define the three canonical breakpoints and their intended layout behavior in UX docs and shared styles.
-- Update the authenticated shell and top HUD to follow the mobile-first breakpoint strategy.
-- Apply the breakpoint strategy to core authenticated screens so layout, spacing, and hierarchy remain consistent.
-- Avoid duplicate or conflicting breakpoint logic across related screens where a shared rule can be used instead.
-
-#### Current Code References
-
-- `frontend/src/app/layout/bottom-command-strip/*`
-- `frontend/src/app/layout/game-shell/*`
-- `frontend/src/app/pages/home-page/*`
-- `frontend/src/app/pages/warband-page/*`
-- `frontend/src/app/pages/shop-page/*`
-- `documentation/03-ux/08-page-layout-zones.md`
-- `documentation/03-ux/09-first-session-player-journey.md`
-
 ### UX-003: Create reusable game-like screen transition system
 
 **Milestone:** Authenticated Shell Fullscreen UX Pass  

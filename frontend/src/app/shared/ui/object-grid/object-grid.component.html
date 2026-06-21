@@ -1,13 +1,13 @@
 @if (hasVisibleContent()) {
-  <div class="row g-3">
+  <div class="row g-3 object-grid">
     @if (leadingTemplate(); as leadingTemplate) {
-    <div [class]="columnClasses()">
+    <div class="object-grid__col" [ngClass]="columnClasses()">
       <ng-container [ngTemplateOutlet]="leadingTemplate" [ngTemplateOutletContext]="{ $implicit: leadingContext() }" />
     </div>
     }
 
     @for (object of pagedObjects(); track trackByObject($index, object)) {
-    <div [class]="columnClasses()">
+    <div class="object-grid__col" [ngClass]="columnClasses()">
       <ng-container *ngComponentOutlet="objectComponent(); inputs: buildInputs(object)"></ng-container>
     </div>
     }

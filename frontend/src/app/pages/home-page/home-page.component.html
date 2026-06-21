@@ -1,16 +1,14 @@
 <section class="dg-page-frame home-frame">
   <div class="dg-surface-banner">
-    <div class="row g-4 align-items-start">
-      <div class="col-lg-8">
-        <p class="dg-surface-banner__eyebrow dg-stencil">Welcome Back to HQ</p>
-        <h1>Prep the warband, then send them raiding.</h1>
-      </div>
+    <div class="home-frame__hero">
+      <p class="dg-surface-banner__eyebrow dg-stencil">Welcome Back to HQ</p>
+      <h1>Prep the warband, then send them raiding.</h1>
     </div>
   </div>
 
   <div class="home-grid p-3 p-md-4">
-    <div class="row g-3">
-      <div class="col-lg-6">
+    <div class="home-grid__layout">
+      <div class="home-grid__primary">
         <a class="dg-media-card dg-media-card--feature" [routerLink]="primaryRoute()">
           <img class="dg-media-card__media" [src]="hasActiveRun() ? '/assets/ui/panels/home_continue_run.jpg' : '/assets/ui/panels/home_start_run.jpg'" alt="" />
           <div class="dg-media-card__overlay">
@@ -20,9 +18,9 @@
         </a>
       </div>
 
-      <div class="col-lg-6">
-        <div class="row g-3">
-          <div class="col-sm-6">
+      <div class="home-grid__secondary">
+        <div class="home-grid__tiles">
+          <div class="home-grid__tile">
             <a class="dg-media-card dg-media-card--compact" routerLink="/warband">
               <img class="dg-media-card__media" src="/assets/ui/panels/home_warband.jpg" alt="" />
               <div class="dg-media-card__overlay">
@@ -32,7 +30,7 @@
           </div>
 
           @if (academyUnlocked()) {
-          <div class="col-sm-6">
+          <div class="home-grid__tile">
             <a class="dg-media-card dg-media-card--compact" routerLink="/academy">
               <img class="dg-media-card__media" src="/assets/ui/panels/academy.jpg" alt="" />
               <div class="dg-media-card__overlay">
@@ -42,7 +40,7 @@
           </div>
           }
 
-          <div class="col-sm-6">
+          <div class="home-grid__tile">
             <a class="dg-media-card dg-media-card--compact" routerLink="/shop">
               <img class="dg-media-card__media" src="/assets/ui/panels/home_shop.jpg" alt="" />
               <div class="dg-media-card__overlay">
@@ -51,7 +49,7 @@
             </a>
           </div>
 
-          <div class="col-sm-6">
+          <div class="home-grid__tile">
             <a class="dg-media-card dg-media-card--compact" routerLink="/dice">
               <img class="dg-media-card__media" src="/assets/ui/panels/home_inventory.jpg" alt="" />
               <div class="dg-media-card__overlay">
@@ -61,11 +59,8 @@
           </div>
 
           @if (devPanelEnabled) {
-          <div class="col-sm-6">
-            <a
-              class="dg-media-card dg-media-card--compact"
-              routerLink="/debug"
-            >
+          <div class="home-grid__tile">
+            <a class="dg-media-card dg-media-card--compact" routerLink="/debug">
               <div class="dg-media-card__media dg-media-card__media--dev"></div>
               <div class="dg-media-card__overlay">
                 <span class="dg-media-card__title dg-stencil">Dev Panel</span>

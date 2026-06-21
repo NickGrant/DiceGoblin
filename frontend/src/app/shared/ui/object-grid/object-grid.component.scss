@@ -1,3 +1,33 @@
+.object-grid__col {
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.object-grid__col--halves,
+.object-grid__col--thirds,
+.object-grid__col--quarters,
+.object-grid__col--units {
+  width: 100%;
+}
+
+@media (min-width: 441px) {
+  .object-grid__col--halves,
+  .object-grid__col--units {
+    width: 50%;
+  }
+}
+
+@media (min-width: 761px) {
+  .object-grid__col--thirds,
+  .object-grid__col--units {
+    width: 33.333333%;
+  }
+
+  .object-grid__col--quarters {
+    width: 25%;
+  }
+}
+
 .object-grid__pager {
   flex-wrap: wrap;
 }
