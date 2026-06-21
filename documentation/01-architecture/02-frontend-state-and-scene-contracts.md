@@ -1,278 +1,267 @@
 # Frontend Route and State Contracts
 
 Status: active  
-Last Updated: 2026-06-02  
+Last Updated: 2026-06-21  
 Owner: Frontend  
-Depends On: `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/01-architecture/06-angular-component-service-inventory.md`
+Depends On: `frontend/src/app/app.routes.ts`, `frontend/src/app/core/services/session/session.service.ts`, `frontend/src/app/core/services/run/run.service.ts`
 
 ## Purpose
 
-- Define the active frontend behavior contract in player-facing terms.
-- Identify which Angular routes own each major game surface.
-- Keep shared state boundaries explicit between session, profile, run, and debug concerns.
+- Describe the current Angular route surface in implementation-facing language.
+- Clarify which frontend state lives at session, profile, run, summary, and debug levels.
+- Reflect the routes and behaviors the app actually ships today.
 
-## Core Principles
+## Shell Model
 
-1. The Angular application owns primary routing, shell UI, forms, lists, and management flows.
-2. The backend is authoritative for session, profile, run state, rewards, battle outcomes, and purchases.
-3. Frontend route names should describe player intent rather than implementation details.
-4. User-facing copy should prefer `squad`; backend compatibility may still use `team` in endpoints and payloads.
-5. Page components should consume view-ready state from services or facades instead of assembling raw API payloads inline.
+The current frontend has two top-level experiences:
+
+- public routes:
+  - `/login`
+  - `/guide`
+- authenticated shell routes under `GameShellComponent`
+
+Authenticated routes render inside one persistent game shell with:
+
+- top HUD and navigation
+- route-framed page content
+- shared motion and responsive layout behavior
 
 ## Shared State Slices
 
 ### Session
 
-Owned by the session layer and initialized at app startup.
+Owned by `SessionService`.
 
-Includes:
+Current responsibilities:
 
-- authenticated state
-- player identity
-- CSRF or session metadata needed for API mutations
-
-Primary consumers:
-
-- login route
-- authenticated shell
-- logout action
+- authenticated vs guest state
+- current user id and display name
+- CSRF token
+- initial app bootstrap and refresh
+- logout flow
 
 ### Profile
 
-Owned by profile-facing services and refreshed after major mutations.
+Also owned by `SessionService` through cached profile refresh.
 
-Includes:
+Current responsibilities:
 
-- currency
 - energy
+- soft currency
+- active run id
 - units
 - squads
 - dice inventory
-- permanent feature unlocks
-- permanent unit-type unlocks
+- feature unlocks
+- unit-type unlocks
 - region unlocks
-- active squad selection
-
-Primary consumers:
-
-- home
-- warband
-- unit details
-- squad details
-- dice
-- shop
-- debug
+- active squad
+- squad unit cap
 
 ### Run
 
-Owned by run-facing services and route-local state for the active run loop.
+Owned primarily by `RunService` plus route-local page state.
 
-Includes:
+Current responsibilities:
 
-- active run summary
-- node graph and statuses
-- current node context
-- run-scoped unit state
-- rest summary data
-- terminal summary data
-
-Primary consumers:
-
-- home
-- regions
-- run map
+- current run payload
+- run creation, abandonment, and exit
 - node resolution
-- rest recovery
-- run summary
+- battle reward claims
+- rest open/finalize actions
+
+### Run Summary
+
+Owned by `RunService.summary`.
+
+Current responsibilities:
+
+- abandoned, failed, and completed run summary state
+- reward and progression payload prepared for `/run/summary`
 
 ### Debug
 
-Owned by debug tooling and only exposed when the environment allows it.
+Owned by `DebugService` and only available when runtime config enables it.
 
-Includes:
+Current responsibilities:
 
-- grantable currencies, dice, units, and region items
-- reset account action
-- dev-only inspection helpers
+- grant currency
+- grant units
+- grant dice
+- grant region items
+- set unit level
+- reset account
 
-## Route Contracts
+## Current Route Table
 
 ### `/login`
 
-Purpose:
+Public landing route.
 
-- unauthenticated entrypoint
-- login or continue surface
+Current behavior:
 
-Allowed behavior:
+- acts as guest-only entry
+- presents login and guide access
+- redirects authenticated users away through guards
 
-- request session state
-- redirect authenticated users into the app shell
-- initiate the configured login flow
+### `/guide`
+
+Public guide route.
+
+Current behavior:
+
+- readable without authentication
+- doubles as the field guide content source
 
 ### `/home`
 
-Purpose:
+Authenticated hub route.
 
-- authenticated landing page
-- high-level hub for run, warband, dice, shop, and debug access
+Current behavior:
 
-Allowed behavior:
+- shows primary action as `Start Run` or `Continue Run`
+- links to warband, academy, shop, inventory, and debug
+- reflects whether academy and debug are available
 
-- show current energy and currency
-- show start-run or continue-run affordance depending on active run state
-- allow logout
+### `/field-guide`
+
+Authenticated copy of the guide surface.
+
+Current behavior:
+
+- accessible inside the authenticated shell
+- reuses guide content rather than a separate guide system
 
 ### `/regions`
 
-Purpose:
+Run-entry route.
 
-- region selection before a run
+Current behavior:
 
-Allowed behavior:
-
-- show unlocked and locked regions
-- start a run for an unlocked region
-- provide blocked feedback for unavailable regions
+- presents the currently surfaced region sequence
+- shows locked vs unlocked regions
+- starts a run for an unlocked region
+- routes an already-active region back into `/run/map`
 
 ### `/warband`
 
-Purpose:
+Roster hub.
 
-- warband management hub
+Current behavior:
 
-Allowed behavior:
-
-- show unit list and squad list side by side
-- create squads
-- route into unit and squad detail flows
-
-### `/warband/units/:unitId`
-
-Purpose:
-
-- unit inspection and editing surface
-
-Allowed behavior:
-
-- show unit identity, stats, XP, promotion state, and equipped dice
-- support promotion when allowed
-- route into dice management for equip or unequip actions
-- show run-scoped read-only overlay when a run is active
+- shows squads and units
+- creates squads
+- activates squads
+- links into squad and unit detail pages
 
 ### `/warband/squads/:squadId`
 
-Purpose:
+Squad editing route.
 
-- saved squad editing surface
+Current behavior:
 
-Allowed behavior:
+- edits squad name
+- edits squad membership
+- edits formation on a 3x3 grid
+- supports drag/drop and tap-first placement
+- blocks edits while the squad is locked by an active run
 
-- edit squad name
-- edit membership
-- edit 3x3 formation
-- activate squad
-- persist changes through team endpoints
+### `/warband/units/:unitId`
+
+Unit details route.
+
+Current behavior:
+
+- shows stats and progression state
+- allows unit rename
+- exposes capstone state
+- exposes inherited passives
+- edits active ability loadout
+- assigns and clears dice on ability slots
+- links the player into academy/shop promotion flow
 
 ### `/dice`
 
-Purpose:
+Dice inventory route.
 
-- dice inventory and management surface
+Current behavior:
 
-Allowed behavior:
-
-- browse owned dice
-- sell unequipped dice
-- equip or unequip in unit-context flows
-- show where equipped dice are assigned
+- filters and sorts owned dice
+- shows where equipped dice are in use
+- sells unequipped dice
 
 ### `/shop`
 
-Purpose:
+Economy route.
 
-- between-run economy surface
+Current behavior:
 
-Allowed behavior:
+- shows starter dice and units
+- shows daily deals
+- shows feature unlocks
+- disables unaffordable, unavailable, or already-completed purchases
 
-- load shop catalog
-- purchase units or dice
-- show daily deal
-- disable unavailable or unaffordable purchases
+### `/academy`
+
+Feature-gated academy route.
+
+Current behavior:
+
+- unlocks additional Tier I unit types
+- lists promotable units
+- shows promotion destinations and inherited effects
+- requires capstone selection when applicable before promotion
 
 ### `/run/map`
 
-Purpose:
+Active run traversal route.
 
-- active run traversal surface
+Current behavior:
 
-Allowed behavior:
-
-- load current run graph
-- render node statuses and unlock paths
-- allow selection of available nodes only
-- abandon the run with confirmation
+- renders node graph and node statuses from backend data
+- shows squad formation and run-unit condition
+- opens node, rest, abandon, and exit flows
 
 ### `/run/node/:nodeId`
 
-Purpose:
+Combat or loot node resolution route.
 
-- unified non-rest node resolution surface
+Current behavior:
 
-Allowed behavior:
-
-- resolve combat, loot, boss, and exit nodes
-- show immediate outcome, rewards, and next-step action
-- branch back to map or into terminal summary
-- present battle playback details when that surface exists
+- auto-resolves combat, boss, and loot nodes
+- presents outcome state and battle log details
+- claims rewards
+- routes back to map or into summary depending on run state
 
 ### `/run/rest/:nodeId`
 
-Purpose:
+Rest node route.
 
-- run-scoped rest recovery
+Current behavior:
 
-Allowed behavior:
-
-- open rest state
-- show the units that will recover
-- finalize rest and return to the map with summary feedback
+- opens rest state from the backend
+- shows recovery preview
+- finalizes rest and returns to the run loop
 
 ### `/run/summary`
 
-Purpose:
+Terminal run state route.
 
-- terminal run summary for completed, failed, or abandoned runs
+Current behavior:
 
-Allowed behavior:
-
-- show outcome
-- show rewards and progression
-- show survivors and defeated units
-- return player to home
+- shows rewards, progression, survivors, and defeated units
+- handles complete, failed, and abandoned runs through one shared page
 
 ### `/debug`
 
-Purpose:
+Environment-gated operator route.
 
-- environment-gated operator surface
+Current behavior:
 
-Allowed behavior:
+- exposes account mutation helpers for testing and balancing
 
-- grant resources and content for testing
-- reset account state
-- inspect available debug catalog data
+## Current Naming Rules
 
-## Navigation Rules
-
-- unauthenticated users remain on `/login`
-- authenticated users enter the shell and can reach `/home`
-- if an active run exists, home should offer continue-run behavior
-- non-rest run nodes route through `/run/node/:nodeId`
-- rest nodes route through `/run/rest/:nodeId`
-- terminal run outcomes route through `/run/summary`
-
-## Current Gap
-
-- Rich battle playback presentation is the main remaining frontend depth gap.
-- Node resolution still owns the outcome contract either way, so battle playback should remain an embedded concern rather than a separate application shell.
+- The player-facing UI should prefer `squad`.
+- Backend compatibility still uses `team` in endpoints and some payloads.
+- Route docs should describe the player-facing name first and note backend compatibility only when it matters.

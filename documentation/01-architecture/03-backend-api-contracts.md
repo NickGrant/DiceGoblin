@@ -1,909 +1,153 @@
-﻿# Backend API Contracts - MVP (v1)
+# Backend API Contracts - Current Alpha Surface
 
 Status: active  
-Last Updated: 2026-06-02  
+Last Updated: 2026-06-21  
 Owner: Backend/API  
-Depends On: `backend/public/index.php`, `backend/src/Controllers/`, `backend/src/Services/ProfileService.php`
+Depends On: `backend/public/index.php`, `backend/src/Controllers/`, `frontend/src/app/core/services/api-http/api-http.service.ts`
 
-## 0. Purpose and Scope
+## Purpose
 
-This document defines the **HTTP contract** between the Dice Goblins frontend and backend (PHP) for the current alpha launch.
+- Summarize the backend routes the current frontend actually depends on.
+- Describe the current contract style without pretending every endpoint is a frozen public API.
+- Replace older speculative API descriptions with the implemented alpha surface.
 
-In-scope:
-- Discord OAuth login and cookie-backed sessions
-- Fetching canonical player/run state
-- Starting/resuming/abandoning a run
-- Resolving nodes (including server-authoritative combat) and persisting outcomes
-- Fetching battle logs for replay
-- Claiming rewards idempotently
-- Minimal endpoints to support warband, units, dice, and promotions required by the alpha-launch loop
+## Core Contract Rules
 
-Out-of-scope:
-- Multiplayer/PvP endpoints
-- Admin consoles beyond minimal debug hooks
-- Cross-device conflict resolution beyond "one active run"
+- API routes live under `/api/v1/...`
+- OAuth entry routes live under `/auth/...`
+- authentication is cookie/session based
+- mutating requests use CSRF protection
+- the backend is authoritative for session, profile, purchases, runs, battles, progression, and rewards
+- JSON ids should be treated as strings by the frontend even when backed by numeric database ids
 
----
+## Authentication And Session
 
-## 1. Conventions
+Current routes:
 
-### 1.1 Base URL and Versioning
-- All API endpoints are versioned: `/api/v1/...`
-- Non-API auth endpoints live under `/auth/...`
-
-### 1.2 Authentication
-- Authentication is **cookie-based** (server session).
-- All `/api/v1/*` endpoints require an authenticated session unless explicitly documented otherwise.
-- If unauthenticated:
-  - Return `401 Unauthorized` (JSON error), **not** HTML redirects.
-
-### 1.3 CSRF (Mutating Requests)
-Because the API uses cookies, **all mutating endpoints** MUST require CSRF protection.
-
-Contract:
-- `GET /api/v1/session` returns a `csrf_token`
-- Client sends `X-CSRF-Token: <token>` on all `POST/PUT/PATCH/DELETE`
-
-If missing/invalid:
-- Return `403 Forbidden` with error code `csrf_invalid`
+- `GET /auth/discord/start`
+- `GET /auth/discord/callback`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/session`
 
 Current behavior:
-- `POST /api/v1/runs` requires CSRF token validation.
-
-### 1.4 Content Type
-- Request/response JSON:
-  - Request header: `Content-Type: application/json`
-  - Response header: `Content-Type: application/json; charset=utf-8`
-
-### 1.5 ID Encoding
-MySQL uses `BIGINT`. JavaScript cannot safely represent all 64-bit integers.
-- **All IDs are returned as strings** in JSON.
-- Any request body field containing an ID must also be a string.
-
-### 1.6 Timestamp Format
-All timestamps are ISO 8601 strings in UTC:
-- Example: `"2026-01-10T08:15:30.123Z"`
-
-### 1.7 Response Envelope
-All API responses use a consistent envelope:
-
-**Success**
-```json
-{
-  "ok": true,
-  "data": { }
-}
-```
-
-**Error**
-```json
-{
-  "ok": false,
-  "error": {
-    "code": "string_machine_code",
-    "message": "Human-readable summary",
-    "details": { }
-  }
-}
-```
-
-### 1.8 Pagination
-For list endpoints (if any in the alpha launch):
-- Query: `?limit=50&cursor=<opaque>`
-- Response:
-```json
-{
-  "ok": true,
-  "data": {
-    "items": [],
-    "next_cursor": "opaque_or_null"
-  }
-}
-```
-
-### 1.9 Idempotency
-For actions that must not duplicate side effects (notably "resolve node" and "claim rewards"), the backend must be idempotent.
-
-Contract:
-- Client may send header: `Idempotency-Key: <uuid>`
-- Backend must also be idempotent **without** the header when it can derive uniqueness from `(user_id, run_id, node_id)` or `battle_id`.
-
-### 1.10 Implementation Status Labels
-- `Implemented`: currently available in backend routes/controllers.
-- `Planned`: target contract shape; not yet fully implemented.
-- Planned sections should not be treated as runtime-available APIs until routes/controllers are added.
-
-### 1.11 Terminology Compatibility (Squads vs Teams)
-- Product-facing term is `squad`.
-- Compatibility-critical backend identifiers still use `team` in several places:
-  - routes: `/api/v1/teams/*`
-  - persistence model/table naming: `teams`, `team_members`, `team_formations`
-- Frontend and docs should prefer `squad` in user-facing copy while preserving existing `team` route/database identifiers until an explicit compatibility migration is approved.
-
----
-
-## 2. Auth Endpoints
-
-### 2.1 Start Discord OAuth
-`GET /auth/discord/start`
-
-- Sets OAuth state in session
-- Redirects user to Discord authorization URL
-
-Response: **302 Redirect**
-
-### 2.2 Discord Callback
-`GET /auth/discord/callback?code=...&state=...`
-
-- Validates state
-- Exchanges code for token
-- Fetches Discord identity
-- Upserts user
-- Regenerates session id
-- Sets `user_id` in session
-- Redirects back to frontend
-
-Response: **302 Redirect**
-
-### 2.3 Logout
-`POST /api/v1/auth/logout` (`Implemented`)
-
-- Destroys server session (or clears session cookie)
-
-Success:
-```json
-{ "ok": true, "data": {} }
-```
-
----
-
-## 3. Session and Profile
-
-### 3.1 Get Session
-`GET /api/v1/session`
-
-Returns authenticated identity plus CSRF token used for mutating requests.
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "user": {
-      "id": "123",
-      "display_name": "Nick",
-      "avatar_url": "https://..."
-    },
-    "csrf_token": "base64_or_hex",
-    "server_time_iso": "2026-01-10T08:15:30.123Z"
-  }
-}
-```
-
-Errors:
-- `401 Unauthorized` if no session
-
-### 3.2 Get Profile Snapshot
-`GET /api/v1/profile`
-
-Returns a single payload the client can use to hydrate most screens:
-- warband/team overview
-- owned units
-- owned dice
-- permanent feature and unit-type unlocks
-- active run summary (if any)
-- region unlocks / meta inventory (promotion items)
-
-Success (shape is illustrative; keep stable keys):
-```json
-{
-  "ok": true,
-  "data": {
-    "squads": [
-      { "id": "10", "name": "Main", "is_active": true }
-    ],
-    "units": [
-      {
-        "id": "2001",
-        "unit_type_id": "17",
-        "name": "Goblin Spear",
-        "level": 2,
-        "xp": 40,
-        "max_level": 10,
-        "promotion_level": 6,
-        "promotion_eligible": false,
-        "is_mastered": false,
-        "capstone_choices": [
-          { "ability_id": "brawl_hardened" },
-          { "ability_id": "finisher" }
-        ],
-        "selected_capstone": null,
-        "capstone_selections": [],
-        "inherited_passive_abilities": [],
-        "promotion_grants": {
-          "actives": [],
-          "passives": []
-        },
-        "growth_per_ability_per_level": { "attack": 1, "defense": 1, "max_hp": 2 }
-      }
-    ],
-    "dice": [
-      {
-        "id": "9001",
-        "dice_definition_id": "5",
-        "rarity": "rare",
-        "sides": 6,
-        "slot_capacity": 2,
-        "affix_slots": 2,
-        "affixes": [
-          {
-            "affix_definition_id": "12",
-            "affix_slug": "atk_plus",
-            "name": "Atk+",
-            "rarity": "common",
-            "kind": "passive",
-            "description": "+1 damage on attack rolls",
-            "value": 1
-          }
-        ]
-      }
-    ],
-    "feature_unlocks": ["academy", "sell_bonus"],
-    "unit_type_unlocks": ["support_banner_t1"],
-    "region_items": [
-      { "region_item_id": "roc_egg", "quantity": 1 }
-    ],
-    "active_run": {
-      "run_id": "777",
-      "region_id": "2",
-      "status": "active"
-    }
-  }
-}
-```
-
-Dice contract notes:
-- `slot_capacity` and `affix_slots` follow the fixed rarity ladder: `common=0`, `uncommon=1`, `rare=2`, `epic=3`, `legendary=4`
-- The backend assigns affixes when a die is created and preserves them immutably afterward
-- An affix's `rarity` must never exceed the parent die `rarity`
-- `value` is the backend-authoritative full valuation for the die
-- `sell_value` is the backend-authoritative vendor payout and is always `floor(value / 2)`
-
----
-
-## 4. Regions
-
-### 4.1 List Regions
-`GET /api/v1/regions`
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "regions": [
-      { "id": "1", "slug": "mountains", "name": "Mountains" }
-    ]
-  }
-}
-```
-
-### 4.2 Get Region Unlocks (Optional; can be folded into /profile)
-`GET /api/v1/regions/unlocks`
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "unlocks": [
-      { "region_id": "1", "unlocked": true }
-    ]
-  }
-}
-```
-
----
-
-## 5. Squads (Warband)
-
-### 5.1 List Squads
-`GET /api/v1/teams` (`Planned`)
-
-### 5.2 Create Squad
-`POST /api/v1/teams` (`Implemented`)
-```json
-{ "name": "New Squad" }
-```
-
-### 5.3 Set Active Squad
-`POST /api/v1/teams/:teamId/activate` (`Implemented`)
-
-Notes:
-- Exactly one active team per user.
-
-Errors:
-- `404 not_found`
-- `403 forbidden` if team not owned
-
-### 5.4 Update Squad Composition / Formation
-`PUT /api/v1/teams/:teamId` (`Implemented`)
-
-Request:
-```json
-{
-  "name": "Renamed Squad (optional)",
-  "unit_ids": ["2001", "2002", "2003"],
-  "formation": [
-    { "cell": "A1", "unit_instance_id": "2001" },
-    { "cell": "B2", "unit_instance_id": "2002" },
-    { "cell": "C3", "unit_instance_id": null }
-  ]
-}
-```
-Notes
-- Updates saved definition only; does not mutate existing run-scoped snapshots.
-- `name` is optional. When provided, it must be a string and follows backend team-name rules.
-- Name validation rules:
-  - cannot be empty after trim
-  - max length 64 characters
-
-Errors:
-- `400 validation_error` when:
-  - `unit_ids` or `formation` is missing
-  - `name` is present but not a string
-  - name fails repository validation (empty/too long)
-  - formation includes a unit id not present in `unit_ids`
-
----
-
-## 6. Units and Promotions
-
-### 6.1 List Unit Types (Static Catalog)
-`GET /api/v1/unit-types`
-
-### 6.2 Promote Unit
-`POST /api/v1/units/:unitInstanceId/promote`
-
-Request:
-```json
-{
-  "primary_unit_instance_id": "2001",
-  "secondary_unit_instance_ids": ["2002", "2003"]
-}
-```
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "unit": {
-      "id": "2001",
-      "unit_type_id": "17",
-      "level": 3,
-      "xp": 0
-    },
-    "consumed": {
-      "region_items": [{ "region_item_id": "roc_egg", "quantity": 1 }]
-    }
-  }
-}
-```
-
-Rules:
-- Allowed between runs.
-- Units in an active run snapshot cannot be promoted until the run ends.
-- `secondary_unit_instance_ids` must contain two distinct unit ids.
-- Secondary units must not be referenced by an active run snapshot.
-
-Errors:
-- `409 conflict` code `promotion_requirements_not_met`
-- `409 conflict` code `unit_in_active_run`
-
-### 6.3 Get Promotion Options
-`GET /api/v1/units/:unitInstanceId/promotion-options`
-
-Returns promotion-preview data for the current unit plus eligible chain and sideways destinations.
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "unit_id": "2001",
-    "current_tier": 1,
-    "current_level": 6,
-    "current_max_level": 10,
-    "current_promotion_level": 6,
-    "promotion_eligible": true,
-    "is_mastered": false,
-    "current_capstone_state": "unearned",
-    "capstone_choices": [
-      { "ability_id": "brawl_hardened" },
-      { "ability_id": "finisher" }
-    ],
-    "selected_capstone": null,
-    "options": [
-      {
-        "target_unit_type_id": "21",
-        "target_unit_type_name": "Enforcer",
-        "mode": "chain",
-        "promotion_grants": {
-          "actives": ["skullcrack"],
-          "passives": ["menacing_follow_through"]
-        },
-        "will_skip_current_capstone": true,
-        "current_capstone_state": "unearned"
-      }
-    ]
-  }
-}
-```
-
-### 6.4 Select Capstone
-`POST /api/v1/units/:unitInstanceId/capstone`
-
-Request:
-```json
-{ "ability_id": "finisher" }
-```
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "unit_id": "2001",
-    "selected_capstone": {
-      "source_unit_type_id": "17",
-      "source_unit_type_slug": "frontline_bruiser_t1",
-      "source_unit_type_name": "Bruiser",
-      "ability_id": "finisher"
-    }
-  }
-}
-```
-
----
-
-## 7. Dice Inventory and Equipment
-
-### 7.1 List Dice Definitions (Static Catalog)
-`GET /api/v1/dice-definitions`
-
-### 7.2 Equip Dice to Unit
-`POST /api/v1/units/:unitInstanceId/dice/equip`
-
-Request:
-```json
-{
-  "dice_instance_id": "9001"
-}
-```
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "unit_id": "2001",
-    "equipped_dice": ["9001", "9002"]
-  }
-}
-```
-
-### 7.3 Unequip Dice
-`POST /api/v1/units/:unitInstanceId/dice/unequip`
-```json
-{ "dice_instance_id": "9001" }
-```
-
-Rules:
-- Dice equipped to units in active run snapshots cannot be modified until the run ends.
-- Backend enforces max equipped dice count per unit definition.
-
-### 7.4 Sell Unequipped Dice
-`POST /api/v1/dice/:diceInstanceId/sell`
-
-Request:
-```json
-{}
-```
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "dice_id": "9001",
-    "sell_value": 17,
-    "currency_soft": 64
-  }
-}
-```
-
-Rules:
-- Only owned dice may be sold.
-- Only unequipped dice may be sold.
-- The backend recalculates value/sell value inside the transaction; the client must not send pricing.
-
----
-
-## 8. Runs, Map, and Nodes
-
-### 8.1 Start Run
-`POST /api/v1/runs` (`Implemented`)
-
-Request:
-```json
-{
-  "region_id": "1",
-  "abandon_active": false
-}
-```
-
-Planned extension:
-```json
-{
-  "region_id": "1",
-  "team_id": "10",
-  "abandon_active": false
-}
-```
-
-Rules:
-- User may have **only one active run** at a time.
-- Run map is generated server-side (seed persisted).
-- On run start, server snapshots  the team's unit membership + formation into run-scoped state.
-- Team is locked for the run; editing is disallowed until the run ends.
-- Combat/encounters reference run-scoped snapshot.
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "run_id": "777",
-    "region_id": "1",
-    "seed": "123456789",
-    "status": "active"
-  }
-}
-```
-
-Errors:
-- `409 conflict` code `run_already_active`
-
-### 8.2 Get Current Run
-`GET /api/v1/runs/current` (`Implemented`)
-
-Success (if active):
-```json
-{
-  "ok": true,
-  "data": {
-    "run": {
-      "run_id": "777",
-      "region_id": "1",
-      "status": "active"
-    },
-    "map": {
-      "nodes": [],
-      "edges": []
-    }
-  }
-}
-```
-
-Success (if none active):
-```json
-{ "ok": true, "data": { "run": null, "map": null } }
-```
-
-### 8.3 Get Run Map State
-`GET /api/v1/runs/:runId/map` (`Planned`)
-
-Returns node list, edges, and current node statuses.
-```json
-{
-  "ok": true,
-  "data": {
-    "run_id": "777",
-    "nodes": [
-      {
-        "id": "300",
-        "type": "combat",
-        "status": "available",
-        "encounter_template_id": "44"
-      }
-    ],
-    "edges": [
-      { "from": "300", "to": "301" }
-    ]
-  }
-}
-```
-
-### 8.4 Abandon Run (Quit)
-`POST /api/v1/runs/:runId/abandon` (`Implemented`)
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "run_id": "777",
-    "status": "abandoned"
-  }
-}
-```
-
-### 8.5 Rest Recovery
-
-#### Open Rest
-`POST /api/v1/runs/:runId/nodes/:nodeId/rest/open` (`Implemented`)
-
-Returns the current run-unit recovery state without consuming the node.
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "run_id": "777",
-    "node_id": "300",
-    "status": "open",
-    "run_unit_state": [
-      {
-        "unit_instance_id": "2001",
-        "hp": 8,
-        "is_defeated": false,
-        "status_effects": [],
-        "cooldowns": {}
-      }
-    ]
-  }
-}
-```
-
-#### Finalize Rest
-`POST /api/v1/runs/:runId/nodes/:nodeId/rest/finalize` (`Implemented`)
-
-Fully heals run units, clears defeated flags/status/cooldowns, consumes the rest node, runs the backend-authoritative auto-level pass, and unlocks downstream nodes.
-
-Rules:
-- Rest does not allow squad membership, formation, promotion, dice, or combat-loadout changes.
-- Units captured in an active run snapshot remain locked for persistent mutations until the run ends.
-
-### 8.6 Exit Node Completion (Planned)
-`POST /api/v1/runs/:runId/exit`
-
-Rules:
-- Exit node is always map-visible.
-- Exit node is only reachable through the boss path.
-- Successful exit transitions run status to `completed`.
-- Run-end cleanup applies for all terminal outcomes (`completed`, `failed`, `abandoned`).
-- Completed runs keep earned XP.
-
----
-
-## 9. Node Resolution (Server-Authoritative)
-
-### 9.1 Resolve Node
-`POST /api/v1/runs/:runId/nodes/:nodeId/resolve`
-
-This endpoint is the core of server authority:
-- For **combat nodes**: server computes battle outcome once, persists `battles` + `battle_logs`.
-- For **non-combat nodes** (loot/rest/event): server applies deterministic effects and persists updated run state.
-
-Request:
-```json
-{
-  "team_id": "10"
-}
-```
-
-Success (combat example):
-```json
-{
-  "ok": true,
-  "data": {
-    "node": { "id": "300", "status": "completed" },
-    "battle": {
-      "battle_id": "555",
-      "outcome": "victory",
-      "rounds": 3,
-      "ticks": 60,
-      "status": "completed"
-    },
-    "next": {
-      "unlocked_node_ids": ["301"]
-    }
-  }
-}
-```
-
-Idempotency contract:
-- If called multiple times for the same `(runId,nodeId)`:
-  - Return the **existing** battle / outcome payload.
-  - Do not generate a second battle or apply effects twice.
-
-Errors:
-- `409 conflict` code `node_not_available`
-- `409 conflict` code `node_already_resolved` (optional; returning existing is preferred)
-- `403 forbidden` if run not owned by user
-
----
-
-## 10. Battles and Replay
-
-### 10.1 Get Battle Summary (Optional; can be folded into resolve response)
-`GET /api/v1/battles/:battleId`
-
-### 10.2 Get Battle Log
-`GET /api/v1/battles/:battleId/log`
-
-Returns the exact stored log for client replay. Backend never expects the client to re-simulate.
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "battle_id": "555",
-    "rules_version": "combat_v1",
-    "log": {
-      "meta": {
-        "ticksPerRound": 20,
-        "rng": { "seed": 12345 },
-        "createdAtIso": "2026-01-10T08:15:30.123Z",
-        "version": 1
-      },
-      "events": [
-        { "type": "phase_start", "round": 1, "tick": 1, "phase": "player_status" }
-      ]
-    }
-  }
-}
-```
-
----
-
-## 11. Rewards and Claiming (Idempotent)
-
-### 11.1 Claim Battle Rewards
-`POST /api/v1/battles/:battleId/claim`
-
-Rules:
-- Claim is a single step.
-- Claim must be **idempotent**.
-- If already claimed, return the same "claimed" result (or a clear status).
-- `xp_total` is the XP award amount per surviving fielded unit (not split).
-- Backend applies XP only to units that were fielded and not defeated.
-- Units at max level do not gain XP (award is ignored for them).
-
-Request:
-```json
-{}
-```
-
-Success:
-```json
-{
-  "ok": true,
-  "data": {
-    "battle_id": "555",
-    "status": "claimed",
-    "rewards": {
-      "xp_total": 20,
-      "new_dice_instance_ids": ["9100"],
-      "region_items": [{ "region_item_id": "roc_egg", "quantity": 1 }]
-    },
-    "updated_run_unit_state": [
-      { "unit_instance_id": "2001", "hp": 8, "status_effects": [] }
-    ],
-    "xp": {
-      "award_per_unit": 20,
-      "applied_unit_instance_ids": ["2001", "2002"],
-      "ignored_at_cap_unit_instance_ids": ["2009"]
-    },
-    "updated_units": [
-      { "unit_instance_id": "2001", "level": 3, "xp": 5 },
-      { "unit_instance_id": "2002", "level": 2, "xp": 60 }
-    ]
-  }
-}
-```
-
-Errors:
-- `409 conflict` code `battle_not_completed`
-- `403 forbidden` if battle not owned by user
-
----
-
-## 12. Debug Endpoints (Alpha Optional)
-
-All debug endpoints:
-- MUST be disabled in production (or gated behind env flag / admin allowlist).
-- MUST not mutate real economy unless explicitly desired.
-
-Current minimal set:
-
-### 12.1 Debug Catalog
-`GET /api/v1/debug/catalog`
-
-Returns available unit types, dice definitions, and region items for debug tooling.
-
-### 12.2 Grant Currency
-`POST /api/v1/debug/grant/currency`
-```json
-{ "soft": 500, "hard": 0 }
-```
-
-### 12.3 Grant Unit
-`POST /api/v1/debug/grant/unit`
-```json
-{ "unit_type_slug": "frontline_bruiser_t1", "count": 1 }
-```
-
-### 12.4 Grant Die
-`POST /api/v1/debug/grant/dice`
-```json
-{ "sides": 8, "rarity": "rare", "count": 1 }
-```
-
-### 12.5 Grant Region Item
-`POST /api/v1/debug/grant/region-item`
-```json
-{ "region_item_slug": "roc_egg", "quantity": 1 }
-```
-
-### 12.6 Reset Account
-`POST /api/v1/debug/reset-account`
-
-Resets user-owned progress to fresh-account baseline while preserving the user identity/session.
-
----
-
-## 13. Error Codes (Canonical)
-
-Use these codes consistently:
-
-- `unauthorized`
-- `forbidden`
-- `not_found`
-- `csrf_invalid`
-- `validation_error`
-- `run_already_active`
-- `run_not_active`
-- `node_not_available`
-- `node_already_resolved`
-- `battle_not_completed`
-- `promotion_requirements_not_met`
-
-Example:
-```json
-{
-  "ok": false,
-  "error": {
-    "code": "run_already_active",
-    "message": "User already has an active run.",
-    "details": { "active_run_id": "777" }
-  }
-}
-```
-
----
-
-## 14. Alpha Launch Invariants (Backend Must Enforce)
-
-- Exactly one active run per user
-- One battle per (run_id, node_id)
-- Battle logs are immutable once persisted
-- Reward claim is idempotent (no double awards)
-- All run state used for resume is server-canonical
-- IDs are strings in API responses to avoid JS precision loss
 
+- session bootstrap tells the frontend whether the user is authenticated
+- session payload also supplies the CSRF token used by mutating requests
+- logout should clear local shell state even if the backend request fails
 
+## Profile And Shared Player State
 
+Current routes:
+
+- `GET /api/v1/profile`
+- `GET /api/v1/health`
+- `GET /api/v1/abilities`
+
+Current behavior:
+
+- profile is the main shared data payload for the authenticated shell
+- it contains energy, currency, active run, squads, units, dice, unlocks, and region access data
+- the frontend refreshes profile after most successful mutations
+
+## Shop And Academy
+
+Current routes:
+
+- `GET /api/v1/shop`
+- `POST /api/v1/shop/purchase`
+- `GET /api/v1/academy`
+- `POST /api/v1/academy/unlock-unit-type`
+
+Current behavior:
+
+- shop returns starter inventory, daily deals, and feature unlocks
+- academy returns unit-type unlock catalog
+- purchases and unlocks are backend-authoritative and refresh profile state after success
+
+## Run Flow
+
+Current routes:
+
+- `GET /api/v1/runs/current`
+- `POST /api/v1/runs`
+- `POST /api/v1/runs/:runId/abandon`
+- `POST /api/v1/runs/:runId/exit`
+- `POST /api/v1/runs/:runId/nodes/:nodeId/resolve`
+- `POST /api/v1/runs/:runId/nodes/:nodeId/rest/open`
+- `POST /api/v1/runs/:runId/nodes/:nodeId/rest/finalize`
+
+Current behavior:
+
+- only one active run is supported at a time
+- region start consumes energy through run creation
+- node resolution is backend-authoritative
+- rest has explicit open and finalize steps
+- abandon and exit both produce summary-relevant run state
+
+## Battles
+
+Current routes:
+
+- `GET /api/v1/battles/:battleId/log`
+- `POST /api/v1/battles/:battleId/claim`
+
+Current behavior:
+
+- battle logs are fetched and rendered after node resolution
+- claim finalizes rewards and may also finalize run summary state
+
+## Units And Progression
+
+Current routes:
+
+- `GET /api/v1/units/:unitInstanceId/promotion-options`
+- `POST /api/v1/units/:unitInstanceId/promote`
+- `PUT /api/v1/units/:unitInstanceId/capstone`
+- `PATCH /api/v1/units/:unitInstanceId/name`
+- `PUT /api/v1/units/:unitInstanceId/loadout`
+- `PUT /api/v1/units/:unitInstanceId/abilities/:abilityId/slots/:slotIndex/dice`
+- `DELETE /api/v1/units/:unitInstanceId/abilities/:abilityId/slots/:slotIndex/dice`
+- `POST /api/v1/units/:unitInstanceId/dice/equip`
+- `POST /api/v1/units/:unitInstanceId/dice/unequip`
+- `POST /api/v1/dice/:diceInstanceId/sell`
+
+Current behavior:
+
+- promotion options are fetched separately from the shared profile
+- promotion, capstone choice, rename, loadout edits, and slot-dice changes all refresh profile state afterward
+- dice selling is a direct mutation and also refreshes profile state
+
+## Squads / Teams
+
+Current routes:
+
+- `POST /api/v1/teams`
+- `POST /api/v1/teams/:teamId/activate`
+- `PUT /api/v1/teams/:teamId`
+- `DELETE /api/v1/teams/:teamId`
+
+Current behavior:
+
+- backend route names remain `teams` for compatibility
+- the frontend should continue presenting this surface as `squads`
+
+## Debug Surface
+
+Current routes:
+
+- `GET /api/v1/debug/catalog`
+- `POST /api/v1/debug/grant/currency`
+- `POST /api/v1/debug/grant/unit`
+- `POST /api/v1/debug/grant/dice`
+- `POST /api/v1/debug/grant/region-item`
+- `POST /api/v1/debug/units/set-level`
+- `POST /api/v1/debug/reset-account`
+
+Current behavior:
+
+- these routes are intended for non-production testing workflows
+- frontend access is gated by runtime config, not by a separate public product flow
+
+## Documentation Rule
+
+- If endpoint names in this file ever disagree with `backend/public/index.php`, treat the router as source of truth and update this file immediately.

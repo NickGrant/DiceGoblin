@@ -1,154 +1,95 @@
-# Save & Resume Scope — Alpha Launch
+# Save and Resume Scope
 
 Status: active  
-Last Updated: 2026-03-02  
-Owner: Systems Design + Backend  
+Last Updated: 2026-06-21  
+Owner: Backend + Systems Design  
 Depends On: `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
 
+## Purpose
 
-This document defines the **authoritative persistence, save, and resume rules** for the Dice Goblins alpha launch. It covers run continuity, combat log replay, and the minimum server-side state required to resume play at any time.
+- Define the persistence guarantees for active runs in the current alpha build.
+- Document the server-authoritative resume model actually used by the run system.
 
----
+## Active Run Constraint
 
-## 1. Design Goals
-
-The alpha-launch save/resume system must:
-- Allow a player to safely leave and return to an active run at any time
-- Ensure server-authoritative outcomes (no client re-simulation)
-- Prevent duplicate reward claims and double-resolving combat
-- Keep persistence minimal and data-driven
-
----
-
-## 2. Active Run Constraint
-
-- Each user may have **at most one active run** at a time.
-- A run remains resumable until it reaches a terminal state:
-  - `completed` (success)
+- A player may have at most one active run at a time.
+- Starting a new run while another run is active is rejected.
+- An active run remains resumable until it becomes:
+  - `completed`
+  - `failed`
   - `abandoned`
-  - `failed` (terminal failure; see run resolution)
 
-Starting a new run while one is active is disallowed.
+## Resume Entry
 
----
+When the player returns with an active run:
 
-## 3. Resume Semantics
+- profile hydration exposes `active_run`
+- the run service can request the current run payload
+- the client returns the player to the run map
 
-### 3.1 Resume Guarantee
+The run map is the primary resume entry surface.
 
-A player must be able to resume an active run after:
-- Closing the browser
-- Disconnecting
-- Refreshing the page
+## Persisted Run State
 
-Resume restores:
-- Current map (nodes + edges + statuses)
-- Current warband state within the run (HP, cooldowns, status effects, defeated flags)
-- Cleared/available node progression
-- Any completed battles with their stored logs
+The current implementation persists:
 
-### 3.2 Resume Entry Point
+- run record
+- run map nodes
+- run map edges
+- run-scoped unit state
+- battle records
+- battle logs
+- battle rewards
 
-On resume, the client loads:
-- The active run state
-- The map and node statuses
+## Run-Scoped Unit Snapshot
 
-The player is returned to the map exploration UI. If there is an unresolved node, it is shown as available rather than forcing an immediate encounter.
+Run state is stored separately from the persistent roster so that the game can preserve:
 
----
+- current HP
+- defeated flags
+- cooldown state
+- status effects
 
-## 4. State Authority & Determinism
+This snapshot is what carries attrition between encounters.
 
-### 4.1 Server-Authoritative Rule
+## Battle Persistence
 
-- The backend is the single source of truth for run and combat state.
-- The client is a renderer and controller.
+- A battle is resolved server-side.
+- The canonical log is stored after resolution.
+- Rewards are stored separately from the log.
+- Claim behavior is idempotent and tied to stored battle state.
 
-### 4.2 Determinism Recommendation (Alpha Launch)
+## Idempotency Rules
 
-For the alpha launch, use **server snapshot persistence** for run-scoped unit state and node progression.
+- Re-resolving the same node should return the existing battle result unless a specific retry branch is allowed by controller logic.
+- Re-claiming rewards must not duplicate grants.
+- Resume never depends on client re-simulation.
 
-Rationale:
-- You already persist run maps (`run_nodes`, `run_edges`) and battles (`battles`, `battle_logs`).
-- Snapshotting avoids needing to re-simulate exploration or reconstruct unit HP/status from logs.
-- It is simpler, more robust, and easier to debug.
+## Rest Persistence
 
-Seeds may still exist for debugging and reproducibility, but **resume does not depend on re-simulation**.
+- Opening rest reads the current run-unit snapshot without mutating it.
+- Finalizing rest mutates run-unit state, clears the node, unlocks downstream progression, and applies auto-level processing.
 
----
+## Explicit Scope
 
-## 5. Combat Resolution & Replay
+The current save/resume contract covers:
 
-### 5.1 Single-Resolution Rule
+- refresh
+- browser close and reopen
+- reconnecting to an active run
+- replaying stored battle logs
 
-- Combat is calculated server-side.
-- Each fight (run node) may be resolved **exactly once** into a canonical outcome and log.
+## Out of Scope
 
-Enforcement:
-- One `battles` row per (`run_id`, `node_id`).
+- mid-combat reconnect into a still-running simulation
+- client-authoritative resume
+- multiple simultaneous active runs
+- offline progression
 
-### 5.2 Replay Rule
+## Validation Rules
 
-- The client may replay combat at any time.
-- Replay uses the **stored battle log** only.
-- No re-simulation occurs on the client.
+The save/resume system is aligned when:
 
-### 5.3 Rewards & Idempotency
-
-- Rewards are applied via a single claim step.
-- Claiming must be idempotent:
-  - A battle may be claimed at most once.
-  - Repeated claim requests must not duplicate rewards.
-
----
-
-## 6. Minimum Persisted State (Alpha Launch Contract)
-
-The following state must be persisted to support full resume:
-
-### 6.1 Run State
-- Active run record (`region_runs`)
-- Map graph and node status (`run_nodes`, `run_edges`)
-
-### 6.2 Run-Scoped Unit State (Required)
-
-Because HP, cooldowns, and status effects persist across encounters, the alpha launch must persist **run-scoped unit state** separate from the permanent unit instance.
-
-Required fields (conceptual):
-- `run_id`
-- `unit_instance_id`
-- `current_hp`
-- `cooldowns_json` (or recharge flags)
-- `status_effects_json`
-- `is_defeated` (within-run flag)
-
-### 6.3 Battles
-- Battle outcome and metadata (`battles`)
-- Canonical combat log (`battle_logs`)
-- Generated rewards to be claimed (`battle_rewards`) OR deterministic reward reconstruction rules
-
----
-
-## 7. Explicit Non-Goals
-
-The alpha-launch save/resume system does **not** include:
-- Offline progression
-- Mid-combat reconnect to an in-progress simulation (combat resolves atomically server-side)
-- Cross-device conflict resolution (beyond one active run)
-- Client-side authoritative caching
-
----
-
-## 8. Alpha Launch Validation Criteria
-
-Save/resume is alpha-launch complete when:
-- An active run can be resumed after refresh with no state loss
-- Node statuses and map remain consistent across sessions
-- HP/status/cooldowns persist correctly across encounters and across reconnects
-- Each combat encounter is computed once and replayable from logs
-- Claiming rewards is idempotent
-
----
-
-This document is considered **locked** for the alpha launch unless explicitly revised.
-
+- an active run restores map and run-unit state after refresh
+- battle results and reward claims stay idempotent
+- rest and battle state persist through reconnects

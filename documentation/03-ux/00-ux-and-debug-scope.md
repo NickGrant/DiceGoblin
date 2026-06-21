@@ -1,78 +1,83 @@
-# UX & Debug Scope - Alpha Launch
+# UX & Debug Scope - Current Alpha
 
 Status: active  
-Last Updated: 2026-06-02  
+Last Updated: 2026-06-21  
 Owner: UX + Frontend  
-Depends On: `documentation/03-ux/02-warband-management.md`, `documentation/03-ux/03-encounter-flow-transition-matrix.md`, `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
+Depends On: `documentation/00-overview/00-project-overview.md`, `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/03-ux/03-encounter-flow-transition-matrix.md`
 
 ## Purpose
 
-- Define the active player-facing surface area for the alpha launch.
-- Keep the app navigation, management flows, and debug tooling aligned.
-- Separate canonical gameplay UX from implementation-specific review notes.
+- Define the player-facing screen surface that exists today.
+- Keep the current alpha UX grounded in real routes and real game actions.
+- Separate current product behavior from older speculative UX plans.
 
-## Alpha Launch Surface List
+## Current Screen Surface
 
-The active alpha launch includes:
+Public:
 
 - login
+- guide
+
+Authenticated:
+
 - home
-- region selection
-- warband hub
-- unit details
+- field guide
+- regions
+- warband
 - squad details
+- unit details
 - dice inventory
 - shop
+- academy
 - run map
-- node resolution
-- rest recovery
+- run node
+- run rest
 - run summary
-- debug panel when environment-enabled
+- debug when runtime-enabled
 
-## Experience Goals
+## Current UX Priorities
 
-- The core loop should be understandable on the first session.
-- Every major action should produce immediate readable feedback.
-- Management and run surfaces should stay distinct so the player knows when edits are allowed.
-- Authenticated screen changes should feel like fast scene transitions rather than full web page swaps.
-- Debug tooling should be sufficient for local verification without leaking into normal player flow.
+- the game should feel like a persistent game shell instead of separate website pages
+- the player should always know whether they are preparing, traversing a run, resolving a node, or reviewing results
+- primary actions should stay obvious on mobile and desktop
+- battle outcomes should be readable even though the player is not manually controlling combat
+- progression decisions such as promotions and capstones should be understandable without external docs
 
-## Navigation Rules
+## Current Navigation Rules
 
-- The app should use explicit route-to-route progression rather than hidden nested flows.
-- Home is the primary hub outside an active run.
-- Abandon run is only offered from the run map.
-- Rest is a recovery stop during an active run.
-- Terminal outcomes always resolve through the shared run summary shell.
+- home is the main between-run hub
+- starting a new run goes through regions
+- continuing an active run goes straight back to the run map
+- academy is feature-gated
+- rest uses a dedicated route instead of the general node page
+- all terminal run outcomes resolve through the shared run summary route
 
-## Information Requirements
+## Current Information Requirements
 
-- Home shows energy, currency, and clear start-or-continue run behavior.
-- Run map shows node type, node availability, unlock paths, and warband condition summary.
-- Unit details show progression and equipped dice clearly.
-- Dice inventory shows size, rarity, slot capacity, affixes, and equip ownership.
-- Run summary shows outcome, rewards, progression, and survivor impact.
+- home must surface energy, currency, and start-or-continue run intent
+- warband must surface squads and units clearly enough to choose the next run lineup
+- unit details must explain loadout, dice slotting, progression, and promotion state
+- academy must explain unlocks, promotion destinations, and capstone requirements
+- run map must show node availability and current squad condition
+- run node must explain what happened, not just whether the player won
+- run summary must show rewards and progression clearly enough to motivate the next run
 
 ## Debug Scope
 
-Debug tooling is environment-gated and may include:
+The debug route may expose:
 
-- grant currency
-- grant unit
-- grant die
-- grant region item
-- reset account
-- battle-log export when battle playback is available
+- currency grants
+- unit grants
+- dice grants
+- region item grants
+- direct unit level changes
+- account reset
 
-## Non-Goals
+These tools exist to support testing and balancing, not normal player progression.
 
-- in-production cheat surfaces
-- analytics dashboards
-- deep accessibility redesign beyond baseline readable interaction
-- modal-heavy nested navigation as a default flow pattern
+## Current Non-Goals
 
-## Canonical Follow-Up Docs
-
-- Warband and inventory UX: `documentation/03-ux/02-warband-management.md`
-- Run, encounter, and summary UX: `documentation/03-ux/03-encounter-flow-transition-matrix.md`
-- Onboarding and first-session framing: `documentation/03-ux/09-first-session-player-journey.md`
+- direct manual battle control
+- public-facing multiplayer features
+- hidden nested management flows that bypass the main shell
+- production cheat surfaces

@@ -1,91 +1,106 @@
 # Dice Goblins - Project Overview
 
 Status: active  
-Last Updated: 2026-06-02  
+Last Updated: 2026-06-21  
 Owner: Product  
-Depends On: `documentation/00-overview/01-core-gameplay-loop.md`, `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation/03-ux/01-visual-design-guide.md`
+Depends On: `documentation/00-overview/01-core-gameplay-loop.md`, `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/03-ux/00-ux-and-debug-scope.md`
 
 ## Purpose
 
-- Define the game at a product level.
-- Give new readers a stable summary of player goals, progression, and scope.
-- Anchor the more detailed systems and UX documents.
+- Describe the game as it currently exists in the alpha launch.
+- Give new readers a reliable product-level summary before they dive into systems or code.
+- Establish which experience assumptions are current and which older ideas are no longer the default.
 
-## Game Summary
+## Current Game Summary
 
-Dice Goblins is a browser-based tactical roguelite where the player builds a goblin warband, equips units with dice-driven abilities, and sends squads through short node-based runs for rewards and progression.
+Dice Goblins is a browser-based tactical roguelite where the player manages a goblin warband between short runs, then sends an active squad through server-resolved node maps for rewards and progression.
 
-The game combines:
+The current game is built around:
 
-- roster management between runs
-- automated backend-resolved combat
-- branching run decisions with combat, loot, rest, boss, and exit nodes
-- persistent progression through units, dice, currency, and region unlocks
+- an authenticated shell with a persistent top HUD
+- squad and unit management between runs
+- dice-driven unit loadouts
+- region-based runs with combat, loot, rest, boss, and exit flow
+- backend-authoritative battle resolution with readable battle logs
+- persistent progression through units, dice, currency, feature unlocks, and region unlocks
 
-## Player Goal
+## What The Player Is Doing
 
-The player is trying to make their warband stronger over repeated runs.
+The player is trying to strengthen a roster over repeated runs.
 
-That means:
+In the current implementation, that mostly means:
 
-- collecting better dice
-- recruiting or earning stronger units
-- leveling and promoting units
-- assembling effective squads and formations
-- clearing regions to unlock more dangerous and rewarding content
+- maintaining one active squad for the next run
+- arranging that squad on a 3x3 formation grid
+- tuning unit combat loadouts and assigning dice to ability slots
+- buying supplies and unlocks from the shop
+- unlocking new Tier I unit types in the academy
+- leveling units and promoting them into stronger classes
+- completing regions to unlock the next region in sequence
 
-## Core Experience Pillars
+## Current Experience Pillars
 
-- Preparation matters:
-  - squad composition, formation, unit loadouts, and dice choices should change run outcomes
-- Runs are short and readable:
-  - a run should feel like a compact decision loop rather than a long campaign session
-- Combat is deterministic after resolution:
-  - the backend resolves outcomes and the frontend presents the results clearly
-- Progression is persistent:
-  - units, dice, currency, and unlocks carry forward between runs
+- Preparation affects outcomes:
+  - squad choice, formation, equipped abilities, and assigned dice all shape battle results
+- Runs are compact:
+  - the game is currently oriented around short, readable run sessions rather than long campaigns
+- Combat is resolved by the backend:
+  - the player does not manually play battles; they inspect results, logs, and rewards after resolution
+- Progress persists between runs:
+  - units, dice, soft currency, feature unlocks, and region unlocks carry forward
 
-## Alpha Launch Scope
+## Current Alpha Launch Surface Area
 
-The active alpha launch focuses on:
+The current player-facing product includes:
 
 - login and authenticated session flow
-- warband management
-- squad editing and activation
-- unit details, promotion, and dice equipment
+- a public guide page and an in-shell field guide route
+- home hub
 - region selection
-- run map traversal
-- node resolution, rest recovery, and run-end summary
-- shop and debug tooling
+- warband overview
+- squad editing
+- unit details, loadout, capstone, promotion, and dice-slot management
+- dice inventory and selling
+- shop supplies, daily deals, and feature unlocks
+- academy unit-type unlocks and promotion flow
+- run map
+- node resolution
+- rest resolution
+- run summary
+- environment-gated debug tooling
 
-The alpha launch is PvE-first. Direct PvP combat is not part of the active scope.
+## Current Content Shape
 
-## Multiplayer Position
+The currently surfaced region sequence is:
 
-Dice Goblins is built as a shared-world multiplayer game, but alpha-launch multiplayer interaction is indirect rather than head-to-head combat.
+- The Farm
+- Mountains
+- Swamps
 
-Multiplayer pressure can come from:
+The shop currently covers:
 
-- shared progression spaces
-- economy or region competition
-- future social or betrayal mechanics
+- basic dice
+- basic units
+- daily deals
+- feature unlocks
 
-Those systems are secondary to getting the single-player-equivalent progression loop clear and enjoyable first.
+The academy currently covers:
 
-## Tone and Presentation
+- Tier I unit-type unlock research
+- promotion management for eligible units
 
-The game should feel like goblin military bureaucracy:
+## Directional Notes
 
-- harsh
-- improvised
-- tactical
-- funny without becoming cute
+These points reflect the current product direction rather than older planning ideas:
 
-The visual language is governed by `documentation/03-ux/01-visual-design-guide.md`.
+- the game is in alpha launch, not pre-product concept stage
+- current-state docs should prefer implemented behavior over superseded roadmap language
+- direct PvP is not part of the current active game loop
+- debug tooling exists to accelerate testing and tuning, but it is environment-gated rather than player-facing
 
 ## Canonical Follow-Up Docs
 
 - Core loop: `documentation/00-overview/01-core-gameplay-loop.md`
-- Glossary: `documentation/00-overview/02-glossary.md`
-- Systems: `documentation/02-systems-mvp/`
-- UX: `documentation/03-ux/`
+- Frontend route and state behavior: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
+- Backend/API surface: `documentation/01-architecture/03-backend-api-contracts.md`
+- UX and player-facing scope: `documentation/03-ux/00-ux-and-debug-scope.md`

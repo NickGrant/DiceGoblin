@@ -8,9 +8,9 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
 ## Purpose
 
-- Provide one clear entrypoint for how Dice Goblins works.
-- Point each major question at a single canonical document.
-- Keep planning history and implementation notes out of the main gameplay read path.
+- Provide one clear entrypoint for how Dice Goblins works today.
+- Point each major question at a current-state canonical document before older subsystem references.
+- Keep planning history and superseded design assumptions out of the main gameplay read path.
 
 ## Scope
 
@@ -21,14 +21,24 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
 1. `documentation/00-overview/00-project-overview.md`
 2. `documentation/00-overview/01-core-gameplay-loop.md`
-3. `documentation/00-overview/02-glossary.md`
-4. `documentation/01-architecture/00-tech-stack.md`
-5. `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
-6. `documentation/01-architecture/03-backend-api-contracts.md`
+3. `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
+4. `documentation/01-architecture/03-backend-api-contracts.md`
+5. `documentation/03-ux/00-ux-and-debug-scope.md`
+6. `documentation/00-overview/02-glossary.md`
 7. `documentation/01-architecture/04-data-model.md`
 8. `documentation/02-systems-mvp/` docs relevant to the system being changed
 9. `documentation/03-ux/` docs relevant to the player flow being changed
 10. `documentation/05-playability-stability/` for release validation
+
+## Current-State Rule
+
+- If a detailed subsystem doc conflicts with:
+  - `00-project-overview.md`
+  - `01-core-gameplay-loop.md`
+  - `02-frontend-state-and-scene-contracts.md`
+  - `03-backend-api-contracts.md`
+  - `03-ux/00-ux-and-debug-scope.md`
+- treat those current-state docs as the source of truth until the narrower doc is updated.
 
 ## Canonical Docs By Topic
 
@@ -48,6 +58,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/02-systems-mvp/00-combat-system.md`
   - `documentation/02-systems-mvp/01-dice-system.md`
   - `documentation/02-systems-mvp/02-units-and-progression.md`
+  - `documentation/02-systems-mvp/12-academy-and-feature-unlocks.md`
   - `documentation/02-systems-mvp/03-encounter-scope.md`
   - `documentation/02-systems-mvp/04-loot-and-drop-scope.md`
   - `documentation/02-systems-mvp/05-save-and-resume-scope.md`
@@ -88,6 +99,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 - Warband, squads, units, and dice:
   - `documentation/02-systems-mvp/01-dice-system.md`
   - `documentation/02-systems-mvp/02-units-and-progression.md`
+  - `documentation/02-systems-mvp/12-academy-and-feature-unlocks.md`
   - `documentation/03-ux/02-warband-management.md`
 - Runs, encounters, loot, and summaries:
   - `documentation/02-systems-mvp/03-encounter-scope.md`

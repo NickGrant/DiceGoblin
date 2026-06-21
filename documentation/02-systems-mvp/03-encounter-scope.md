@@ -1,192 +1,110 @@
-# Encounter Scope — Alpha Launch
+# Encounter Scope
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-06-21  
 Owner: Systems Design  
-Depends On: `documentation/02-systems-mvp/02-units-and-progression.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
+Depends On: `documentation/02-systems-mvp/04-loot-and-drop-scope.md`, `documentation/02-systems-mvp/05-save-and-resume-scope.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
 
+## Purpose
 
-This document defines the **authoritative encounter, biome, enemy, and run-level scope** for the Dice Goblins alpha launch. Any encounter type, biome, enemy, or meta-progression system not explicitly defined here is **out of scope** for the alpha launch.
+- Define the encounter and run-map scope used by the current alpha build.
+- Replace older biome and encounter assumptions with the live route and generator behavior.
 
----
+## Encounter Types
 
-## 1. Design Goals
+The active run map exposes five node types:
 
-The alpha-launch encounter system must:
-- Fully exercise the combat system and unit progression
-- Support Tier 3 promotion gating through biome-specific items
-- Keep run structure simple and repeatable
-- Avoid long-term meta progression complexity
+1. `combat`
+2. `loot`
+3. `rest`
+4. `boss`
+5. `exit`
 
-The intent is to validate the end-to-end run loop, not long-term retention systems.
+Behavior by type:
 
----
+- `combat`: resolves into a battle log, reward preview, and possible run failure
+- `loot`: resolves immediately into a non-combat reward preview
+- `rest`: opens a separate rest page and finalizes manually
+- `boss`: uses combat rules and gates the final exit path
+- `exit`: is not resolved through node resolution and instead completes the run through the dedicated exit endpoint
 
-## 2. Encounter Types (Closed List)
+## XP Scope
 
-Exactly **four** encounter types exist in the alpha launch:
+- Combat and boss nodes are the active XP-awarding encounter types.
+- Loot and rest do not directly award combat XP.
+- Exit is a run-completion action, not an XP source by itself.
 
-1. **Combat**
-2. **Loot**
-3. **Rest**
-4. **Boss**
+## Region Scope
 
-### XP Award Rules (Alpha Launch)
-- Combat and Boss encounters award XP.
-- Rest encounters do not award XP.
-- XP is awarded to units that were fielded and not defeated (survivors only).
-- Award is not split: all surviving fielded units receive the same XP amount.
-- XP application timing:
-  - Combat/Boss XP is applied through reward/claim flow.
+The current alpha region set is:
 
-### Explicitly Excluded
-- Merchants
-- Narrative-only encounters
-- Choice-driven branching encounters
-- Environmental hazards
-- Event chains
+- `the_farm`
+- `mountains`
+- `swamps`
 
-### Rest Encounters
-- Primary function: Recover
-- Finalize with backend-authoritative healing and auto-level application
+## Region Structure
 
----
+### The Farm
 
-## 3. Biome Scope
+- Intro region
+- Fixed linear graph
+- Current path: combat -> loot -> rest -> boss -> exit
 
-The alpha launch includes **exactly two biomes**.
+### Mountains
 
-### 3.1 Mountains Biome
+- Procedural graph
+- Branching paths
+- Higher pressure than the farm
+- Current player-facing copy describes it as the gate to swamps
 
-- Theme: Rocky highlands
-- Enemy Faction: Kobolds
-- Tier 3 Advancement Item: **Roc Egg**
+### Swamps
 
-### 3.2 Swamps Biome
+- Procedural graph
+- Wider branching layout than mountains
+- Frogmen-themed destination region in the current guide copy
 
-- Theme: Wetlands and marshes
-- Enemy Faction: Frogmen
-- Tier 3 Advancement Item: **Gator Head**
+## Map Generation Rules
 
-### Biome Rules
-- Each biome has its own enemy pool
-- Each biome has exactly one boss
-- Tier 3 promotion items are biome-exclusive
+- Every run belongs to exactly one region.
+- Each run has one active map at a time.
+- The first node starts available.
+- Downstream nodes unlock when parent progression clears.
+- Exit nodes remain separate from normal node resolution.
+- The current generator guarantees at least one rest node in procedural regions.
 
----
+## Encounter Exclusions
 
-## 4. Enemy Roster Scope (Per Biome)
+The current alpha build does not expose separate route types for:
 
-Each biome supports the same **enemy role distribution**, reskinned per faction.
+- merchants
+- narrative-only event nodes
+- puzzle nodes
+- hazard-only nodes
+- social choice chains
 
-### Enemy Types Per Biome
+Those concepts may still appear in design history, but they are not part of the current run route set.
 
-| Role | Tier | Count |
-|----|------|-------|
-| Frontline | Tier 1 | 1 |
-| Frontline | Tier 2 | 1 |
-| Backline | Tier 1 | 1 |
-| Backline | Tier 2 | 1 |
-| Specialty | Tier 1 | 1 |
+## Region Energy
 
-**Total enemies per biome:** 5
+- Region energy cost is region-specific.
+- Current frontend region cards show:
+  - Farm: 3 energy
+  - Mountains: 5 energy
+  - Swamps: 5 energy
+- Player profile energy still tracks current, max, regen rate per hour, and last regen timestamp.
 
-### Specialty Unit Guidelines
-- Has a unique mechanic or status interaction
-- Does not exceed Tier 1
-- Exists to test edge-case combat behavior
+## Run Shape Expectations
 
----
+- Runs do not span multiple regions.
+- Boss nodes sit near the end of the route.
+- Exit becomes the terminal success path after boss progress is satisfied.
+- Attrition is carried through the run via run-unit state.
 
-## 5. Boss Encounters
+## Validation Rules
 
-Each biome contains:
-- Exactly **one boss encounter**
-- Bosses are biome-themed and mechanically distinct
+The encounter scope is aligned when:
 
-Boss Rules:
-- Boss encounters are always combat encounters
-- Boss encounters are the primary source of Tier 3 promotion items
-- Bosses do not introduce new mechanics beyond alpha-launch scope
-
----
-
-## 6. Run Structure
-
-Each run:
-- Occurs entirely within a single biome
-- Contains:
-  - Multiple combat encounters
-  - A small number of loot and rest nodes
-  - Exactly one boss encounter
-- Exit-node rule:
-  - Exit node is always visible on the map.
-  - Exit node has a single inbound path from the boss node.
-  - Exit node cannot be reached manually until the boss path is unlocked.
-- Rest workflow:
-  - open rest (non-consuming),
-  - finalize rest (heal run units, consume node, apply auto-level pass, unlock progression).
-- Nodes are structured in a branching shape
-- Nodes become unlocked when any Node with a connecting path is resolved (Victory for combat Nodes or just encountered for other Nodes)
-- The first Node in a run starts unlocked
-- Nodes cannot become locked again
-
-Runs do not span multiple biomes.
-
----
-
-## 7. Energy System Scope
-
-### Energy Rules
-
-- Maximum energy: **50**
-- Energy regeneration rate: **1 energy per 5 minutes**
-- Cost per run: **5 energy**
-
-Energy Rules:
-- Energy is required to start a run
-- Energy is not consumed per encounter
-- Energy is not refunded on run failure or abandonment
-
----
-
-## 8. Meta Progression
-
-### Alpha Launch Decision
-
-- **No meta progression systems exist in the alpha launch**
-
-Explicitly Excluded:
-- Permanent stat bonuses
-- Unlock trees
-- Account-wide modifiers
-- Cross-run buffs
-
-All progression is run-scoped or unit-scoped only.
-
----
-
-## 9. Explicit Non-Goals
-
-The alpha-launch encounter system does **not** include:
-- Cross-biome runs
-- Biome-specific modifiers
-- Enemy scaling beyond tier and level
-- Dynamic encounter difficulty
-- Player choice affecting encounter composition
-
----
-
-## 10. Alpha Launch Validation Criteria
-
-The encounter system is considered alpha-launch complete when:
-- Players can complete full runs in both biomes
-- Run completion uses the exit-node path after boss success and triggers run-end cleanup.
-- Tier 3 promotion items can be earned in each biome
-- Enemy role variety produces distinct combat scenarios
-- Boss encounters feel meaningfully different from normal fights
-- The energy system naturally paces play without frustration
-
----
-
-This document is considered **locked** for the alpha launch unless explicitly revised.
+- docs describe five node types, including exit
+- docs include Farm, Mountains, and Swamps
+- farm is documented as a fixed introductory lane
+- mountains and swamps are documented as procedural regions
