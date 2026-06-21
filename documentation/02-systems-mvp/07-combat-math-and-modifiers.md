@@ -1,4 +1,4 @@
-# Combat Math & Modifiers — MVP (Authoritative)
+# Combat Math & Modifiers — Alpha Launch (Authoritative)
 
 Status: active  
 Last Updated: 2026-03-21  
@@ -6,14 +6,14 @@ Owner: Systems Design
 Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/02-units-and-progression.md`
 
 
-This document defines the **numeric constants**, **order of operations**, and **damage/stat formulas** for MVP combat.
+This document defines the **numeric constants**, **order of operations**, and **damage/stat formulas** for alpha-launch combat.
 
 It is authoritative alongside:
-- Combat System & Content — MVP
-- Dice System — MVP
-- Units & Progression — MVP
+- Combat System & Content — Alpha Launch
+- Dice System — Alpha Launch
+- Units & Progression — Alpha Launch
 
-Any math or modifier not defined here is **out of scope** for MVP.
+Any math or modifier not defined here is **out of scope** for the alpha launch.
 
 ---
 
@@ -54,7 +54,7 @@ If your UI renders enemies upside-down or mirrored, it must still map to this co
 
 ---
 
-## 3. Core Constants (MVP Defaults)
+## 3. Core Constants (Alpha Launch Defaults)
 
 These constants are intended to be tunable but **must be centralized here**.
 
@@ -102,12 +102,12 @@ Dice affixes contribute either:
 - percent bonuses: `attackPct`, `defensePct`
 - conditional flags: `explodeOnce`, `onTargetBelowHalf`
 
-### 4.3 Status Contributions (MVP)
+### 4.3 Status Contributions (Alpha Launch)
 Statuses may contribute:
 - `bolsteredDefensePct` (percent)
 - `bleedingDamageTakenPct` (percent)
 
-No other status changes stats in MVP.
+No other status changes stats in the alpha launch.
 
 ### 4.4 Final Stat Formulas
 Compute for each stat:
@@ -127,7 +127,7 @@ Compute for each stat:
 
 Notes:
 - Percent values are expressed as decimals (e.g., 0.10 for +10%).
-- Percent modifiers are **additive within a stat** for MVP.
+- Percent modifiers are **additive within a stat** for the alpha launch.
 
 ---
 
@@ -151,25 +151,25 @@ The triggered affix `Explode` triggers if:
 
 ---
 
-## 6. Damage Model (MVP)
+## 6. Damage Model (Alpha Launch)
 
 ### 6.1 Damage Tags
 Each damaging ability must define a tag:
 - `melee` or `ranged` or `special`
 
-MVP positioning modifiers apply only to `melee` (unless explicitly overridden by an ability later).
+Alpha-launch positioning modifiers apply only to `melee` (unless explicitly overridden by an ability later).
 
 ### 6.2 Base Physical Damage (Pre-Defense)
 For a damaging action, define:
 
 `physicalPreDefense = attackTotal + rollTotal`
 
-(If you later want ability scaling, add `abilityAttackScale` and/or `abilityFlatDamage` here. MVP can keep this simple.)
+(If you later want ability scaling, add `abilityAttackScale` and/or `abilityFlatDamage` here. The alpha launch can keep this simple.)
 
 ### 6.3 Defense Mitigation
 `physicalPostDefense = max(0, physicalPreDefense - defenseTotal)`
 
-### 6.4 Conditional Bonus Damage (MVP Defaults)
+### 6.4 Conditional Bonus Damage (Alpha Launch Defaults)
 Two triggered affixes exist; define their effects here.
 
 #### A) Explode
@@ -223,7 +223,7 @@ You may either log the intermediate values or provide a `notes` string.
 
 ---
 
-## 7. Status Math (MVP)
+## 7. Status Math (Alpha Launch)
 
 ### 7.1 Poison
 Type: DoT debuff
@@ -290,7 +290,7 @@ Timing rule (“does not participate in tick where sleep ends”):
 
 ---
 
-## 8. Out of Scope (MVP)
+## 8. Out of Scope (Alpha Launch)
 This document explicitly does not define:
 - Critical hits, accuracy/evasion, glancing blows
 - Resistance, immunity, cleansing
@@ -301,8 +301,8 @@ This document explicitly does not define:
 
 ---
 
-## 9. MVP Validation Checklist (Math)
-Combat math is MVP-complete when:
+## 9. Alpha Launch Validation Checklist (Math)
+Combat math is alpha-launch complete when:
 - Two identical simulations (same seed/log) produce identical outcomes
 - Positioning materially changes TTK for melee-tagged attacks
 - Bolstered visibly alters damage via Defense percent
@@ -311,4 +311,4 @@ Combat math is MVP-complete when:
 
 ---
 
-This document is considered **locked** for MVP unless explicitly revised.
+This document is considered **locked** for the alpha launch unless explicitly revised.

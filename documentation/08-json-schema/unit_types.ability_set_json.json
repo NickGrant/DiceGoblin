@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dicegoblins.local/schemas/ability_set.schema.json",
-  "title": "UnitType Ability Set (MVP v1)",
+  "title": "UnitType Ability Set (Alpha Launch v1)",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "actives", "passives"],
@@ -85,7 +85,7 @@
         "slot": {
           "type": "integer",
           "enum": [1, 2],
-          "description": "UI slot / selection slot. MVP supports 2 actives."
+          "description": "UI slot / selection slot. Alpha launch supports 2 actives."
         },
 
         "ability_id": {

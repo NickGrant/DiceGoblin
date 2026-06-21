@@ -1,6 +1,6 @@
 # Dice Goblins
 
-Dice Goblins is a browser-based tactical RPG/roguelite prototype built with an Angular frontend and a PHP API backend.
+Dice Goblins is a browser-based tactical RPG/roguelite in active alpha launch, built with an Angular frontend and a PHP API backend.
 
 ## Tech Stack
 - Frontend: Angular 20, TypeScript, Bootstrap grid/utilities, Phaser 3 only for optional canvas-hosted playback surfaces

@@ -1,11 +1,11 @@
-# Units and Progression - MVP (Authoritative Rework Contract)
+# Units and Progression - Alpha Launch (Authoritative Rework Contract)
 
 Status: active  
 Last Updated: 2026-04-18  
 Owner: Systems Design  
 Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/01-architecture/04-data-model.md`
 
-This document defines the authoritative MVP unit, loadout, naming, and promotion rules for the current rework lane.
+This document defines the authoritative alpha-launch unit, loadout, naming, and promotion rules for the current rework lane.
 
 ## 1. Design Goals
 
@@ -71,7 +71,7 @@ Names are player-facing labels only and must not be used as system identifiers.
 ## 7. XP Rules
 
 ### 7.1 Sources
-- XP is awarded only from combat and boss encounters in MVP.
+- XP is awarded only from combat and boss encounters in the alpha launch.
 - Loot and rest nodes do not directly award XP.
 
 ### 7.2 Recipients
@@ -119,7 +119,7 @@ Eligibility rule:
 
 ## 10. Roster Scope
 
-The existing MVP roster count remains in scope unless a later content doc explicitly changes it.
+The existing alpha-launch roster count remains in scope unless a later content doc explicitly changes it.
 This rework changes how units fight and progress, not the approved roster size by itself.
 
 ## 11. Explicit Non-Goals
@@ -131,7 +131,7 @@ This rework does not add:
 - per-instance enemy customization
 - direct warband-hub editing of every unit system without entering unit details
 
-## 12. MVP Validation Criteria
+## 12. Alpha Launch Validation Criteria
 
 The unit and progression system is correct for this rework when:
 - units can equip duplicate abilities within a 20-point budget

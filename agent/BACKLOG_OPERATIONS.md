@@ -9,11 +9,10 @@ Depends On: `agent/ISSUES.md`, `agent/ISSUES_BACKLOG.md`, `agent/MILESTONES.md`,
 ## Purpose
 - Canonical policy for issue/milestone sequencing and triage.
 
-## Active Milestone Order
-1. Milestone 37 - Ability Loadout Rework Foundations
-2. Milestone 38 - Combat Scheduler and Resolution Rewrite
-3. Milestone 39 - Unit Details and Promotion UX
-4. Milestone 40 - Rework Normalization Pass
+## Current Sequencing Source
+- Do not treat this file as the authoritative roadmap inventory.
+- Define current and next milestone sequencing directly in `agent/MILESTONES.md` and `agent/MILESTONES_BACKLOG.md`.
+- If both files are empty after a milestone close, pause automation and explicitly establish the next milestone before resuming implementation.
 
 ## Core Rules
 - Exactly one milestone in `agent/MILESTONES.md` should have `**Status:** Active`.
@@ -29,7 +28,7 @@ Depends On: `agent/ISSUES.md`, `agent/ISSUES_BACKLOG.md`, `agent/MILESTONES.md`,
 ## Open / Close Gates
 - Mark a milestone `Active` when it is the next implementation-ready milestone.
 - Mark a milestone `Complete` when it has no remaining active issues in `agent/ISSUES.md`.
-- After closing the current milestone, automatically advance the next milestone in file order unless the user explicitly pauses for re-evaluation.
+- After closing the current milestone, automatically advance the next planned milestone only when one is explicitly defined in active or backlog milestone files.
 
 ## Dependency Metadata
 - Optional issue fields: `blocked_by`, `enables`.
@@ -61,7 +60,7 @@ Depends On: `agent/ISSUES.md`, `agent/ISSUES_BACKLOG.md`, `agent/MILESTONES.md`,
 - Milestones are represented by markdown sections in `agent/MILESTONES.md`.
 - Issues are grouped under matching milestone sections in `agent/ISSUES.md`.
 - Only one milestone should be `Active`; others should normally be `Planned`, `Blocked`, or `Complete`.
-- When the current milestone has no remaining active issues, mark it `Complete` and advance the next `Planned` milestone in file order unless the user explicitly pauses for evaluation.
+- When the current milestone has no remaining active issues, mark it `Complete` and advance the next explicitly defined `Planned` milestone unless the user explicitly pauses for evaluation.
 
 ## Triage Cadence
 - Weekly, at milestone boundaries, and after major roadmap/contract changes.
@@ -78,7 +77,7 @@ Depends On: `agent/ISSUES.md`, `agent/ISSUES_BACKLOG.md`, `agent/MILESTONES.md`,
 - Run verification until the required checks pass or a real blocker is found.
 - Apply lint/cleanup appropriate to the touched area.
 - Archive completed issues and keep active docs minimal.
-- If the milestone has no remaining active issues, complete it and activate the next planned milestone.
+- If the milestone has no remaining active issues, complete it and activate the next explicitly defined planned milestone.
 - Commit finished work.
 - Repeat until there is no active or planned implementation work left.
 

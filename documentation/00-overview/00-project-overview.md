@@ -45,9 +45,9 @@ That means:
 - Progression is persistent:
   - units, dice, currency, and unlocks carry forward between runs
 
-## MVP Product Scope
+## Alpha Launch Scope
 
-The active MVP focuses on:
+The active alpha launch focuses on:
 
 - login and authenticated session flow
 - warband management
@@ -58,11 +58,11 @@ The active MVP focuses on:
 - node resolution, rest recovery, and run-end summary
 - shop and debug tooling
 
-The MVP is PvE-first. Direct PvP combat is not part of the active scope.
+The alpha launch is PvE-first. Direct PvP combat is not part of the active scope.
 
 ## Multiplayer Position
 
-Dice Goblins is built as a shared-world multiplayer game, but MVP multiplayer interaction is indirect rather than head-to-head combat.
+Dice Goblins is built as a shared-world multiplayer game, but alpha-launch multiplayer interaction is indirect rather than head-to-head combat.
 
 Multiplayer pressure can come from:
 

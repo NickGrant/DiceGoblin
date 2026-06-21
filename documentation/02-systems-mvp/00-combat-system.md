@@ -1,4 +1,4 @@
-# Combat System - MVP (Authoritative Rework Contract)
+# Combat System - Alpha Launch (Authoritative Rework Contract)
 
 Status: active  
 Last Updated: 2026-04-18  
@@ -10,7 +10,7 @@ Numeric formulas remain defined in `07-combat-math-and-modifiers.md`.
 
 ## 1. Design Goals
 
-The MVP combat system must:
+The alpha-launch combat system must:
 - remain deterministic and replayable
 - preserve tactical value in 3x3 positioning
 - make ability loadout order a meaningful combat input
@@ -51,7 +51,7 @@ Examples:
 - Player units and enemies use the same cumulative scheduling model.
 - Enemy loadouts are authored per enemy type in data.
 - All enemies of the same type use the same authored equipped-ability order.
-- No per-enemy-instance combat loadout customization exists in MVP.
+- No per-enemy-instance combat loadout customization exists in the alpha launch.
 
 ## 4. Tick Processing Order
 
@@ -107,7 +107,7 @@ Each combat ability must define enough metadata to resolve:
 
 ## 9. Status Effects
 
-The closed MVP status list remains:
+The closed alpha-launch status list remains:
 - Poison
 - Bolstered
 - Sleep
@@ -139,7 +139,7 @@ This combat rework does not add:
 - multiplayer combat rules
 - per-enemy-instance scripted loadout overrides
 
-## 12. MVP Validation Criteria
+## 12. Alpha Launch Validation Criteria
 
 Combat is correct for this rework when:
 - a 20-tick round reproduces the documented cumulative scheduling examples exactly

@@ -1,4 +1,4 @@
-# Combat Viewer Readability Contract - MVP
+# Combat Viewer Readability Contract - Alpha Launch
 ----
 
 Status: active  

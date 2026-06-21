@@ -1,4 +1,4 @@
-# UX & Debug Scope - MVP
+# UX & Debug Scope - Alpha Launch
 
 Status: active  
 Last Updated: 2026-06-02  
@@ -7,13 +7,13 @@ Depends On: `documentation/03-ux/02-warband-management.md`, `documentation/03-ux
 
 ## Purpose
 
-- Define the active player-facing surface area for the MVP.
+- Define the active player-facing surface area for the alpha launch.
 - Keep the app navigation, management flows, and debug tooling aligned.
 - Separate canonical gameplay UX from implementation-specific review notes.
 
-## MVP Surface List
+## Alpha Launch Surface List
 
-The active MVP includes:
+The active alpha launch includes:
 
 - login
 - home

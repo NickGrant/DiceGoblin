@@ -161,7 +161,7 @@ The logic governing decision-making for non-player units.
 A discrete step of progression that increases unit capability; each unit type defines its own max level cap.
 
 ### Experience (XP)
-A per-unit resource used to gain levels. In MVP, `xp` represents progress within the unit's current level (not lifetime XP) and does not increase once the unit reaches its max level.
+A per-unit resource used to gain levels. In the current alpha launch, `xp` represents progress within the unit's current level (not lifetime XP) and does not increase once the unit reaches its max level.
 
 ### Stat
 A numeric attribute that influences unit performance.

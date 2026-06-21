@@ -1,4 +1,4 @@
-# Encounter Reward Surface Rules - MVP
+# Encounter Reward Surface Rules - Alpha Launch
 ----
 
 Status: active  
@@ -8,7 +8,7 @@ Depends On: `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation
 
 ## Purpose
 - Define what the reward/claim surface must show by encounter type.
-- Keep XP/reward messaging aligned with server behavior and MVP progression rules.
+- Keep XP/reward messaging aligned with server behavior and alpha-launch progression rules.
 
 ## Shared Surface Contract
 All encounter outcomes should show:
@@ -45,7 +45,7 @@ All encounter outcomes should show:
 - Surface should indicate immediate return to map after claim.
 
 ## Explicit Messaging Rules
-- Do not present Loot or Rest as awarding combat XP in MVP.
+- Do not present Loot or Rest as awarding combat XP in the alpha launch.
 - Do not imply replay-derived rewards; rewards are claim-time authoritative payloads.
 - If a claim is re-requested, UI should present identical claimed results (idempotent behavior).
 

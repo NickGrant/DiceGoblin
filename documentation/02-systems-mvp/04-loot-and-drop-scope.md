@@ -1,15 +1,15 @@
-# Loot and Drop Scope - MVP
+# Loot and Drop Scope - Alpha Launch
 
 Status: active  
 Last Updated: 2026-03-02  
 Owner: Systems Design  
 Depends On: `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/03-encounter-scope.md`
 
-This document defines the authoritative loot generation model for Dice Goblins MVP. It specifies reward categories, roll structure, and Tier 3 promotion-item sourcing.
+This document defines the authoritative loot generation model for the Dice Goblins alpha launch. It specifies reward categories, roll structure, and Tier 3 promotion-item sourcing.
 
 ## 1. Design Goals
 
-The MVP loot system must:
+The alpha-launch loot system must:
 - provide predictable but flexible reward pacing
 - support unit and dice acquisition without over-saturation
 - gate Tier 3 progression through biome-specific boss rewards
@@ -27,11 +27,11 @@ Key principles:
 
 ## 3. Loot Table Tiers
 
-The MVP supports exactly two loot table tiers:
+The alpha launch supports exactly two loot table tiers:
 - Tier 1
 - Tier 2
 
-No Tier 3 loot table exists in MVP.
+No Tier 3 loot table exists in the alpha launch.
 
 ## 4. Loot Categories (Closed List)
 
@@ -90,14 +90,14 @@ Rules:
 When a roll yields a unit:
 - generated at Tier 1
 - starts at level 1
-- no Tier 2/Tier 3 unit drops in MVP
+- no Tier 2/Tier 3 unit drops in the alpha launch
 
 ## 9. Dice as Loot
 
 When a roll yields a die:
 - die size and rarity come from loot tables
 - dice obey constraints in `documentation/02-systems-mvp/01-dice-system.md`
-- no drop-time upgrading/modification in MVP
+- no drop-time upgrading/modification in the alpha launch
 
 ## 10. Currency as Loot
 
@@ -105,20 +105,20 @@ Currency is granted as flat amounts from loot tables.
 
 Rules:
 - no player-state scaling
-- no multipliers in MVP
+- no multipliers in the alpha launch
 
 ## 11. Explicit Non-Goals
 
-The MVP loot system does not include:
+The alpha-launch loot system does not include:
 - pity timers
 - drop streak protection
 - smart loot targeting
 - inventory limits
 - player choice during loot resolution
 
-## 12. MVP Validation Criteria
+## 12. Alpha Launch Validation Criteria
 
-Loot is MVP-complete when:
+Loot is alpha-launch complete when:
 - tables can be tuned without code changes
 - players reliably gain units and dice through play
 - Tier 3 items feel rare but achievable

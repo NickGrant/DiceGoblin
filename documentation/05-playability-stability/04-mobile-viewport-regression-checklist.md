@@ -8,10 +8,10 @@ Depends On: `agent/MILESTONES.md`, `documentation/03-ux/08-page-layout-zones.md`
 
 ## Purpose
 - Provide a repeatable mobile regression pass for the Angular play flows most likely to regress during layout or HUD changes.
-- Catch viewport-specific failures before watcher testing or broader manual playtests.
+- Catch viewport-specific failures before automated handoff or broader manual playtests.
 
 ## When To Run
-- Before handing mobile UI changes to watcher testing.
+- Before handing mobile UI changes to automated validation or broader playtesting.
 - After edits to:
   - `frontend/src/app/layout/game-shell/`
   - `frontend/src/app/layout/bottom-command-strip/`

@@ -1,12 +1,12 @@
-# Dice System - MVP (Authoritative Rework Contract)
+# Dice System - Alpha Launch (Authoritative Rework Contract)
 
 Status: active  
 Last Updated: 2026-04-18  
 Owner: Systems Design  
 Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/02-systems-mvp/07-combat-math-and-modifiers.md`
 
-This document is the authoritative specification for the reworked MVP dice system.  
-Any dice mechanic not explicitly included here is out of scope for MVP.
+This document is the authoritative specification for the alpha-launch dice system.  
+Any dice mechanic not explicitly included here is out of scope for the alpha launch.
 
 ## 1. Design Goals
 
@@ -25,7 +25,7 @@ The dice system must:
 - d10
 
 ### 2.2 Excluded Sizes
-- d12 or higher in MVP combat inventory
+- d12 or higher in alpha-launch combat inventory
 - die-size mutation systems
 - reroll crafting systems
 
@@ -53,12 +53,12 @@ Notes:
 ## 3. Affixes
 
 ### 3.1 Global Rules
-- MVP affixes still each cost exactly 1 affix slot.
+- Alpha-launch affixes still each cost exactly 1 affix slot.
 - Affixes remain attached to dice instances.
 - Affix rarity may not exceed parent die rarity.
 - Affix effects apply when that die is read from an equipped ability slot.
 
-### 3.2 Closed MVP Affix Pool
+### 3.2 Closed Alpha Launch Affix Pool
 - `Atk+`
 - `Guard+`
 - `Bulwark+`
@@ -110,7 +110,7 @@ The rework removes these previous runtime rules:
 - immediate pool refresh on smallest-die consumption
 - refresh-driven combat throughput
 
-Those rules are no longer part of the MVP contract.
+Those rules are no longer part of the alpha-launch contract.
 
 ## 8. Economy Valuation
 
@@ -160,7 +160,7 @@ This dice rework does not add:
 - unit-specific affix restrictions
 - advanced procedural slot interactions beyond authored ability behavior
 
-## 10. MVP Validation Criteria
+## 10. Alpha Launch Validation Criteria
 
 The dice system is correct for this rework when:
 - ability slots, not unit pools, determine combat dice resolution

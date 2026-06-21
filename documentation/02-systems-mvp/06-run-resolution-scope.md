@@ -1,4 +1,4 @@
-# Run Resolution Scope — MVP
+# Run Resolution Scope — Alpha Launch
 
 Status: active  
 Last Updated: 2026-03-02  
@@ -6,13 +6,13 @@ Owner: Systems Design
 Depends On: `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation/02-systems-mvp/05-save-and-resume-scope.md`
 
 
-This document defines the **authoritative rules for run failure, retry, abandonment, and post-run cleanup** for the Dice Goblins MVP. Any run outcome or persistence behavior not explicitly defined here is **out of scope** for MVP.
+This document defines the **authoritative rules for run failure, retry, abandonment, and post-run cleanup** for the Dice Goblins alpha launch. Any run outcome or persistence behavior not explicitly defined here is **out of scope** for the alpha launch.
 
 ---
 
 ## 1. Design Goals
 
-The MVP run resolution system must:
+The alpha-launch run resolution system must:
 - Encourage tactical attrition and decision-making
 - Avoid hard punishment spirals
 - Clearly define when a run ends and what state is reset
@@ -41,7 +41,7 @@ This makes attrition a core consideration during exploration.
 
 ## 3. Encounter Failure Rules
 
-For current MVP behavior, any combat or boss encounter outcome of `defeat` is treated as terminal:
+For current alpha-launch behavior, any combat or boss encounter outcome of `defeat` is treated as terminal:
 
 - The run immediately ends
 - The run is considered failed
@@ -101,7 +101,7 @@ State cleanup is consistent across all run endings.
 
 ## 7. Explicit Non-Goals
 
-The MVP run resolution system does **not** include:
+The alpha-launch run resolution system does **not** include:
 - Partial XP rewards on failure
 - Permanent injury or death
 - Item loss or durability systems
@@ -110,9 +110,9 @@ The MVP run resolution system does **not** include:
 
 ---
 
-## 8. MVP Validation Criteria
+## 8. Alpha Launch Validation Criteria
 
-Run resolution is considered MVP-complete when:
+Run resolution is considered alpha-launch complete when:
 - Attrition meaningfully affects encounter choices
 - Retry rules are clear and exploitable only within intended bounds
 - Failure never leaves units in a broken or unusable state
@@ -120,4 +120,4 @@ Run resolution is considered MVP-complete when:
 
 ---
 
-This document is considered **locked** for MVP unless explicitly revised.
+This document is considered **locked** for the alpha launch unless explicitly revised.

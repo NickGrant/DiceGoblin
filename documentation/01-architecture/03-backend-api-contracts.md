@@ -7,7 +7,7 @@ Depends On: `backend/public/index.php`, `backend/src/Controllers/`, `backend/src
 
 ## 0. Purpose and Scope
 
-This document defines the **HTTP contract** between the Dice Goblins frontend and backend (PHP) for MVP.
+This document defines the **HTTP contract** between the Dice Goblins frontend and backend (PHP) for the current alpha launch.
 
 In-scope:
 - Discord OAuth login and cookie-backed sessions
@@ -16,7 +16,7 @@ In-scope:
 - Resolving nodes (including server-authoritative combat) and persisting outcomes
 - Fetching battle logs for replay
 - Claiming rewards idempotently
-- Minimal endpoints to support warband, units, dice, and promotions required by MVP loop
+- Minimal endpoints to support warband, units, dice, and promotions required by the alpha-launch loop
 
 Out-of-scope:
 - Multiplayer/PvP endpoints
@@ -88,7 +88,7 @@ All API responses use a consistent envelope:
 ```
 
 ### 1.8 Pagination
-For list endpoints (if any in MVP):
+For list endpoints (if any in the alpha launch):
 - Query: `?limit=50&cursor=<opaque>`
 - Response:
 ```json
@@ -822,7 +822,7 @@ Errors:
 
 ---
 
-## 12. Debug Endpoints (MVP Optional)
+## 12. Debug Endpoints (Alpha Optional)
 
 All debug endpoints:
 - MUST be disabled in production (or gated behind env flag / admin allowlist).
@@ -896,7 +896,7 @@ Example:
 
 ---
 
-## 14. MVP Invariants (Backend Must Enforce)
+## 14. Alpha Launch Invariants (Backend Must Enforce)
 
 - Exactly one active run per user
 - One battle per (run_id, node_id)

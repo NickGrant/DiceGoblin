@@ -1,4 +1,4 @@
-# Save & Resume Scope — MVP
+# Save & Resume Scope — Alpha Launch
 
 Status: active  
 Last Updated: 2026-03-02  
@@ -6,13 +6,13 @@ Owner: Systems Design + Backend
 Depends On: `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
 
 
-This document defines the **authoritative persistence, save, and resume rules** for the Dice Goblins MVP. It covers run continuity, combat log replay, and the minimum server-side state required to resume play at any time.
+This document defines the **authoritative persistence, save, and resume rules** for the Dice Goblins alpha launch. It covers run continuity, combat log replay, and the minimum server-side state required to resume play at any time.
 
 ---
 
 ## 1. Design Goals
 
-The MVP save/resume system must:
+The alpha-launch save/resume system must:
 - Allow a player to safely leave and return to an active run at any time
 - Ensure server-authoritative outcomes (no client re-simulation)
 - Prevent duplicate reward claims and double-resolving combat
@@ -64,9 +64,9 @@ The player is returned to the map exploration UI. If there is an unresolved node
 - The backend is the single source of truth for run and combat state.
 - The client is a renderer and controller.
 
-### 4.2 Determinism Recommendation (MVP)
+### 4.2 Determinism Recommendation (Alpha Launch)
 
-For MVP, use **server snapshot persistence** for run-scoped unit state and node progression.
+For the alpha launch, use **server snapshot persistence** for run-scoped unit state and node progression.
 
 Rationale:
 - You already persist run maps (`run_nodes`, `run_edges`) and battles (`battles`, `battle_logs`).
@@ -102,7 +102,7 @@ Enforcement:
 
 ---
 
-## 6. Minimum Persisted State (MVP Contract)
+## 6. Minimum Persisted State (Alpha Launch Contract)
 
 The following state must be persisted to support full resume:
 
@@ -112,7 +112,7 @@ The following state must be persisted to support full resume:
 
 ### 6.2 Run-Scoped Unit State (Required)
 
-Because HP, cooldowns, and status effects persist across encounters, MVP must persist **run-scoped unit state** separate from the permanent unit instance.
+Because HP, cooldowns, and status effects persist across encounters, the alpha launch must persist **run-scoped unit state** separate from the permanent unit instance.
 
 Required fields (conceptual):
 - `run_id`
@@ -131,7 +131,7 @@ Required fields (conceptual):
 
 ## 7. Explicit Non-Goals
 
-The MVP save/resume system does **not** include:
+The alpha-launch save/resume system does **not** include:
 - Offline progression
 - Mid-combat reconnect to an in-progress simulation (combat resolves atomically server-side)
 - Cross-device conflict resolution (beyond one active run)
@@ -139,9 +139,9 @@ The MVP save/resume system does **not** include:
 
 ---
 
-## 8. MVP Validation Criteria
+## 8. Alpha Launch Validation Criteria
 
-Save/resume is MVP-complete when:
+Save/resume is alpha-launch complete when:
 - An active run can be resumed after refresh with no state loss
 - Node statuses and map remain consistent across sessions
 - HP/status/cooldowns persist correctly across encounters and across reconnects
@@ -150,5 +150,5 @@ Save/resume is MVP-complete when:
 
 ---
 
-This document is considered **locked** for MVP unless explicitly revised.
+This document is considered **locked** for the alpha launch unless explicitly revised.
 

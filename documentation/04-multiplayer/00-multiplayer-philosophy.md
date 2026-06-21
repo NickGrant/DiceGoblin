@@ -14,4 +14,4 @@ Key concepts:
 - Benefits for betrayal
 - Shared world manipulation
 
-No multiplayer slated for MVP.
+Head-to-head multiplayer is not part of the current alpha launch.

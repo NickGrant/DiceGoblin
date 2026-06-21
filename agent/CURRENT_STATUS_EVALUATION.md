@@ -11,7 +11,7 @@ Depends On: `agent/ROLES.md`, `agent/ISSUES.md`, `agent/MILESTONES.md`, `documen
 - `current status evaluation`
 
 ## Purpose
-- Run a structured multi-role quality pass and convert findings into backlog updates.
+- Run a structured multi-role quality pass and convert findings into backlog updates suited to the current alpha-launch state.
 
 ## Workflow
 1. Load: `agent/ROLES.md`, `agent/ISSUES.md`, `agent/MILESTONES.md`, and relevant code/docs.

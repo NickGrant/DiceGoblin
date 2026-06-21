@@ -161,7 +161,7 @@ Still defines:
 - slot capacity
 
 ### 6.2 affix_definitions
-Still defines the fixed MVP affix pool and authored affix metadata.
+Still defines the fixed alpha-launch affix pool and authored affix metadata.
 
 ### 6.3 dice_instances
 Still represents player-owned dice.

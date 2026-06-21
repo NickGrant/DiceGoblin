@@ -1,4 +1,4 @@
-# Encounter Scope — MVP
+# Encounter Scope — Alpha Launch
 
 Status: active  
 Last Updated: 2026-03-02  
@@ -6,13 +6,13 @@ Owner: Systems Design
 Depends On: `documentation/02-systems-mvp/02-units-and-progression.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
 
 
-This document defines the **authoritative encounter, biome, enemy, and run-level scope** for the Dice Goblins MVP. Any encounter type, biome, enemy, or meta-progression system not explicitly defined here is **out of scope** for MVP.
+This document defines the **authoritative encounter, biome, enemy, and run-level scope** for the Dice Goblins alpha launch. Any encounter type, biome, enemy, or meta-progression system not explicitly defined here is **out of scope** for the alpha launch.
 
 ---
 
 ## 1. Design Goals
 
-The MVP encounter system must:
+The alpha-launch encounter system must:
 - Fully exercise the combat system and unit progression
 - Support Tier 3 promotion gating through biome-specific items
 - Keep run structure simple and repeatable
@@ -24,14 +24,14 @@ The intent is to validate the end-to-end run loop, not long-term retention syste
 
 ## 2. Encounter Types (Closed List)
 
-Exactly **four** encounter types exist in MVP:
+Exactly **four** encounter types exist in the alpha launch:
 
 1. **Combat**
 2. **Loot**
 3. **Rest**
 4. **Boss**
 
-### XP Award Rules (MVP)
+### XP Award Rules (Alpha Launch)
 - Combat and Boss encounters award XP.
 - Rest encounters do not award XP.
 - XP is awarded to units that were fielded and not defeated (survivors only).
@@ -54,7 +54,7 @@ Exactly **four** encounter types exist in MVP:
 
 ## 3. Biome Scope
 
-The MVP includes **exactly two biomes**.
+The alpha launch includes **exactly two biomes**.
 
 ### 3.1 Mountains Biome
 
@@ -107,7 +107,7 @@ Each biome contains:
 Boss Rules:
 - Boss encounters are always combat encounters
 - Boss encounters are the primary source of Tier 3 promotion items
-- Bosses do not introduce new mechanics beyond MVP scope
+- Bosses do not introduce new mechanics beyond alpha-launch scope
 
 ---
 
@@ -152,9 +152,9 @@ Energy Rules:
 
 ## 8. Meta Progression
 
-### MVP Decision
+### Alpha Launch Decision
 
-- **No meta progression systems exist in MVP**
+- **No meta progression systems exist in the alpha launch**
 
 Explicitly Excluded:
 - Permanent stat bonuses
@@ -168,7 +168,7 @@ All progression is run-scoped or unit-scoped only.
 
 ## 9. Explicit Non-Goals
 
-The MVP encounter system does **not** include:
+The alpha-launch encounter system does **not** include:
 - Cross-biome runs
 - Biome-specific modifiers
 - Enemy scaling beyond tier and level
@@ -177,9 +177,9 @@ The MVP encounter system does **not** include:
 
 ---
 
-## 10. MVP Validation Criteria
+## 10. Alpha Launch Validation Criteria
 
-The encounter system is considered MVP-complete when:
+The encounter system is considered alpha-launch complete when:
 - Players can complete full runs in both biomes
 - Run completion uses the exit-node path after boss success and triggers run-end cleanup.
 - Tier 3 promotion items can be earned in each biome
@@ -189,4 +189,4 @@ The encounter system is considered MVP-complete when:
 
 ---
 
-This document is considered **locked** for MVP unless explicitly revised.
+This document is considered **locked** for the alpha launch unless explicitly revised.
