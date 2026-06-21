@@ -2,27 +2,17 @@
   <div class="hud-shell">
     <div class="hud-panel hud-panel--nav">
       <nav class="hud-nav" aria-label="Primary navigation">
-        <a class="hud-icon-link" routerLink="/home" routerLinkActive="is-active" aria-label="Home">
-          <img src="/assets/ui/icons/icon_home.png" alt="" />
-        </a>
-        <a class="hud-icon-link" routerLink="/warband" routerLinkActive="is-active" aria-label="Warband">
-          <img src="/assets/ui/icons/icon_warband.png" alt="" />
-        </a>
-        <a class="hud-icon-link" routerLink="/dice" routerLinkActive="is-active" aria-label="Inventory">
-          <img src="/assets/ui/icons/icon_inventory.png" alt="" />
-        </a>
-        <a class="hud-icon-link" routerLink="/shop" routerLinkActive="is-active" aria-label="Shop">
-          <img src="/assets/ui/icons/icon_shop.png" alt="" />
-        </a>
-        <a
-          class="hud-icon-link"
-          routerLink="/field-guide"
-          [queryParams]="guideQueryParams()"
-          routerLinkActive="is-active"
-          aria-label="Guide"
-        >
-          <img src="/assets/ui/icons/icon_guide.png" alt="" />
-        </a>
+        @for (item of navItems; track item.route) {
+          <a
+            class="hud-icon-link"
+            [routerLink]="item.route"
+            [queryParams]="item.guide ? guideQueryParams() : null"
+            routerLinkActive="is-active"
+            [attr.aria-label]="item.ariaLabel"
+          >
+            <img [src]="item.icon" alt="" />
+          </a>
+        }
       </nav>
     </div>
 
@@ -47,6 +37,43 @@
       <button class="hud-logout" type="button" (click)="logout()" aria-label="Logout">
         <img src="/assets/ui/icons/icon_logout.png" alt="" />
       </button>
+
+      <button
+        class="hud-menu-toggle"
+        type="button"
+        aria-label="Open menu"
+        [attr.aria-expanded]="mobileMenuOpen()"
+        (click)="toggleMobileMenu()"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      @if (mobileMenuOpen()) {
+        <div class="hud-mobile-menu" aria-label="Mobile navigation menu">
+          <nav class="hud-mobile-menu__nav" aria-label="Primary navigation">
+            @for (item of navItems; track item.route) {
+              <a
+                class="hud-mobile-link"
+                [routerLink]="item.route"
+                [queryParams]="item.guide ? guideQueryParams() : null"
+                routerLinkActive="is-active"
+                [attr.aria-label]="item.ariaLabel"
+                (click)="closeMobileMenu()"
+              >
+                <img [src]="item.icon" alt="" />
+                <span>{{ item.label }}</span>
+              </a>
+            }
+          </nav>
+
+          <button class="hud-mobile-logout" type="button" (click)="logout()">
+            <img src="/assets/ui/icons/icon_logout.png" alt="" />
+            <span>Logout</span>
+          </button>
+        </div>
+      }
     </div>
   </div>
 </header>

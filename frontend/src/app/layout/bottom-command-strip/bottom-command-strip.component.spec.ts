@@ -89,7 +89,7 @@ describe('BottomCommandStripComponent', () => {
 
     const guideLink = fixture.debugElement
       .queryAll(By.directive(RouterLink))
-      .find((debugElement) => debugElement.attributes['aria-label'] === 'Field Guide');
+      .find((debugElement) => debugElement.attributes['aria-label'] === 'Guide');
 
     expect(guideLink).toBeDefined();
     expect(router.serializeUrl(guideLink!.injector.get(RouterLink).urlTree!)).toBe('/field-guide?returnUrl=%2Frun%2Fnode%2F42');
@@ -137,5 +137,38 @@ describe('BottomCommandStripComponent', () => {
     expect(panels.length).toBe(2);
     expect(compiled.querySelector('.hud-panel--nav')).not.toBeNull();
     expect(compiled.querySelector('.hud-panel--player')).not.toBeNull();
+  });
+
+  it('opens a labeled mobile menu from the player panel', () => {
+    const fixture = TestBed.createComponent(BottomCommandStripComponent);
+    fixture.detectChanges();
+
+    const toggle = fixture.nativeElement.querySelector('.hud-menu-toggle') as HTMLButtonElement;
+    toggle.click();
+    fixture.detectChanges();
+
+    const menu = fixture.nativeElement.querySelector('.hud-mobile-menu') as HTMLElement | null;
+    expect(menu).not.toBeNull();
+    expect(menu?.textContent).toContain('Home');
+    expect(menu?.textContent).toContain('Warband');
+    expect(menu?.textContent).toContain('Inventory');
+    expect(menu?.textContent).toContain('Shop');
+    expect(menu?.textContent).toContain('Guide');
+    expect(menu?.textContent).toContain('Logout');
+  });
+
+  it('closes the mobile menu after tapping a menu link', () => {
+    const fixture = TestBed.createComponent(BottomCommandStripComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.mobileMenuOpen.set(true);
+    fixture.detectChanges();
+
+    const mobileLink = fixture.nativeElement.querySelector('.hud-mobile-link') as HTMLAnchorElement;
+    mobileLink.click();
+    fixture.detectChanges();
+
+    expect(component.mobileMenuOpen()).toBeFalse();
   });
 });

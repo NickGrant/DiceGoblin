@@ -6,9 +6,13 @@
 - Historical milestone records can be retrieved from git when needed.
 
 ---
-title: Unit Progression Rework
+name: Unit Progression Rework
 status: complete
-purpose: Implement the revised level 10 mastery, level 6 promotion eligibility, passive capstone inheritance, targeting weights, and specialized Tier 2/Tier 3 unit progression model.
+issues:
+  - UPR-003
+  - UPR-004
+  - UPR-005
+description: Implement the revised level 10 mastery, level 6 promotion eligibility, passive capstone inheritance, targeting weights, and specialized Tier 2/Tier 3 unit progression model.
 goals:
   - Make every unit type max at level 10 while allowing promotion from level 6 onward.
   - Add passive level 10 capstone choices that inherit through promotion.
@@ -27,7 +31,3 @@ exit_criteria:
   - Mascot is available as a Bannerbearer Tier 2 branch.
   - Unit detail and promotion UX clearly communicate promotion eligibility, skipped capstones, mastered capstones, and inherited abilities.
   - Backend and frontend tests cover progression, inheritance, ability handlers, targeting behavior, capstone selection, and run-map passive behavior.
-related_issues:
-  - UPR-003
-  - UPR-004
-  - UPR-005
