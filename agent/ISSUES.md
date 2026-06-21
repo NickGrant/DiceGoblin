@@ -4,35 +4,10 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Authenticated Shell Fullscreen UX Pass
 
-### UX-001: Define full-screen shell and viewport layout contract
-
-**Milestone:** Authenticated Shell Fullscreen UX Pass  
-**Status:** In Progress  
-**Priority:** High
-
-#### Problem
-
-The authenticated frontend still reads like a set of web pages in a container instead of a continuous game shell. We need a single viewport/layout contract that defines how the HUD, content region, safe areas, vertical spacing, and screen framing behave before we tune individual pages.
-
-#### Acceptance Criteria
-
-- Document the target shell behavior for authenticated screens, including viewport usage, safe-area handling, and persistent HUD spacing.
-- Refactor shared shell/page-frame layout so major authenticated screens fill the available viewport intentionally.
-- Remove accidental page-like margins and container behavior where they break the game-like presentation.
-- Keep desktop behavior aligned with the current top-header direction while preparing for mobile-first responsive work.
-
-#### Current Code References
-
-- `frontend/src/app/layout/game-shell/*`
-- `frontend/src/app/layout/bottom-command-strip/*`
-- `frontend/src/app/shared/ui/dg-page-frame/*`
-- `frontend/src/app/app.scss`
-- `documentation/03-ux/08-page-layout-zones.md`
-
 ### UX-002: Implement mobile-first breakpoint system across authenticated UI
 
 **Milestone:** Authenticated Shell Fullscreen UX Pass  
-**Status:** Open  
+**Status:** In Progress  
 **Priority:** High
 
 #### Problem

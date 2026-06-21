@@ -1,7 +1,31 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.home-frame {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
 .home-grid {
+  flex: 1 1 auto;
   background: rgba(243, 239, 224, 0.5);
 }
 
 :host ::ng-deep .dg-media-card.is-disabled {
   opacity: 0.82;
+}
+
+@media (max-width: 760px) {
+  .home-frame {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 440px) {
+  .home-grid {
+    background: rgba(243, 239, 224, 0.42);
+  }
 }

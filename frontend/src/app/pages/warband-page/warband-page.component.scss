@@ -1,6 +1,6 @@
 .squad-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
 }
 
@@ -98,18 +98,50 @@
   opacity: 0.7;
 }
 
+:host ::ng-deep dg-page-frame .row.g-4 {
+  --bs-gutter-x: 1rem;
+  --bs-gutter-y: 1rem;
+}
+
 .squad-card__lock {
   margin-top: 0.35rem;
   color: var(--dg-red, #8f1717);
   font-size: 0.9rem;
 }
 
-@media (max-width: 575.98px) {
+@media (min-width: 441px) {
   .squad-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
+@media (max-width: 760px) {
+  :host ::ng-deep dg-page-frame .dg-card {
+    padding: 0.9rem !important;
+  }
+
+  .squad-card__toggle {
+    top: 0.55rem;
+    right: 0.55rem;
+  }
+}
+
+@media (min-width: 761px) {
+  .squad-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 440px) {
   .squad-card__link {
     padding-right: 3.5rem;
+  }
+
+  .squad-card strong {
+    font-size: 0.98rem;
+  }
+
+  .squad-card__lock {
+    font-size: 0.84rem;
   }
 }

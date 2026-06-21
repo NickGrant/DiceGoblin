@@ -28,7 +28,6 @@ Primary implementation will likely touch frontend shell/layout components, route
 
 ### Related Issues
 
-- Define full-screen shell and viewport layout contract
 - Implement mobile-first breakpoint system across authenticated UI
 - Create reusable game-like screen transition system
 - Run full responsive UX pass on core authenticated screens
