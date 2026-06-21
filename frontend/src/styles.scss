@@ -41,6 +41,12 @@
   --dg-shell-gutter: clamp(0.7rem, 2vw, 1.5rem);
   --dg-breakpoint-mobile-max: 440px;
   --dg-breakpoint-tablet-max: 760px;
+  --dg-motion-duration-route: 320ms;
+  --dg-motion-duration-surface: 240ms;
+  --dg-motion-duration-panel: 200ms;
+  --dg-motion-ease-emphatic: cubic-bezier(0.22, 1, 0.36, 1);
+  --dg-motion-ease-panel: cubic-bezier(0.2, 0.9, 0.25, 1);
+  --dg-motion-stagger-step: 55ms;
 }
 
 *,
@@ -98,12 +104,46 @@ button {
   overflow: hidden;
 }
 
+.dg-motion-route-enter,
 app-game-shell .game-shell__router-frame > * {
-  animation: dg-screen-enter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: dg-route-screen-enter var(--dg-motion-duration-route) var(--dg-motion-ease-emphatic) both;
   transform-origin: center top;
+  will-change: transform, opacity, filter;
 }
 
-@keyframes dg-screen-enter {
+.dg-motion-surface-enter {
+  animation: dg-surface-enter var(--dg-motion-duration-surface) var(--dg-motion-ease-emphatic) both;
+}
+
+.dg-motion-panel-enter {
+  animation: dg-panel-enter var(--dg-motion-duration-panel) var(--dg-motion-ease-panel) both;
+}
+
+.dg-motion-stagger > * {
+  animation: dg-panel-enter var(--dg-motion-duration-panel) var(--dg-motion-ease-panel) both;
+}
+
+.dg-motion-stagger > :nth-child(2) {
+  animation-delay: calc(var(--dg-motion-stagger-step) * 1);
+}
+
+.dg-motion-stagger > :nth-child(3) {
+  animation-delay: calc(var(--dg-motion-stagger-step) * 2);
+}
+
+.dg-motion-stagger > :nth-child(4) {
+  animation-delay: calc(var(--dg-motion-stagger-step) * 3);
+}
+
+.dg-motion-stagger > :nth-child(5) {
+  animation-delay: calc(var(--dg-motion-stagger-step) * 4);
+}
+
+.dg-motion-stagger > :nth-child(6) {
+  animation-delay: calc(var(--dg-motion-stagger-step) * 5);
+}
+
+@keyframes dg-route-screen-enter {
   from {
     opacity: 0;
     transform: translateY(20px) scale(0.985);
@@ -117,9 +157,39 @@ app-game-shell .game-shell__router-frame > * {
   }
 }
 
+@keyframes dg-surface-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.992);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dg-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .dg-motion-route-enter,
+  .dg-motion-surface-enter,
+  .dg-motion-panel-enter,
+  .dg-motion-stagger > *,
   app-game-shell .game-shell__router-frame > * {
     animation: none;
+    transition: none !important;
+    transform: none !important;
   }
 }
 

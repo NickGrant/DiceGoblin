@@ -1,7 +1,7 @@
-<section class="dg-page-frame route-frame">
+<section class="dg-page-frame route-frame dg-motion-surface-enter">
   @if (showHeader()) {
     <div class="dg-title-bar p-3 p-md-4">
-      <div class="route-frame__header-shell">
+      <div class="route-frame__header-shell dg-motion-panel-enter">
         <div class="route-frame__header-copy">
           @if (hasBreadcrumbs()) {
             <nav class="route-frame__breadcrumbs" aria-label="Breadcrumb">
@@ -34,7 +34,7 @@
       </div>
     </div>
   }
-  <div class="route-frame__body p-3 p-md-4">
+  <div class="route-frame__body dg-motion-stagger p-3 p-md-4">
     <ng-content />
   </div>
 </section>

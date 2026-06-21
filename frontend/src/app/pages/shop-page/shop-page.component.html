@@ -29,7 +29,7 @@
   </nav>
 
   @if (activeTab() === 'supplies') {
-    <div class="shop-page__supplies-grid">
+    <div class="shop-page__supplies-grid dg-motion-stagger">
       <div class="shop-page__supplies-main">
         <div class="dg-card p-3 h-100">
           <h2 class="dg-stencil mb-3">Starter Dice</h2>
@@ -83,7 +83,7 @@
       </div>
 
       @if (featureUnlockItems().length) {
-        <div class="shop-page__feature-grid">
+        <div class="shop-page__feature-grid dg-motion-stagger">
           @for (item of featureUnlockItems(); track item.product_id) {
             <div class="shop-page__feature-column">
               <button

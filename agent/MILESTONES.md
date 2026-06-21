@@ -28,5 +28,4 @@ Primary implementation will likely touch frontend shell/layout components, route
 
 ### Related Issues
 
-- Create reusable game-like screen transition system
 - Run full responsive UX pass on core authenticated screens

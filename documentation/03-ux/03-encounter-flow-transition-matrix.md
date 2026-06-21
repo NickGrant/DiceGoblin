@@ -131,6 +131,17 @@ Every summary should include:
 - Messaging should be short, concrete, and specific about what changed.
 - Reward and progression terminology should match backend payload semantics.
 
+## Motion Vocabulary
+
+- Route entry:
+  - use a fast shell-level screen enter on authenticated route changes
+- Surface reveal:
+  - use a lighter reveal for shared page frames and major scene wrappers
+- Panel stagger:
+  - use short staggered panel reveals for card groups, tile groups, and battle-log sections when it improves readability
+- Reduced motion:
+  - all route and panel motion must disable cleanly when the user prefers reduced motion
+
 ## Current Scope Note
 
 - The route and branching contract is active now.

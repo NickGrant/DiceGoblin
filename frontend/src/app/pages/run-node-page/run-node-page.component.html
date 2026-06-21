@@ -105,7 +105,7 @@
       <h3 class="dg-stencil">Battle Log</h3>
 
       @if (actionLog().length) {
-      <div class="battle-log__entries">
+      <div class="battle-log__entries dg-motion-stagger">
         @for (entry of actionLog(); track entry.round + '-' + entry.tick + '-' + entry.actorName + '-' + entry.targetName + '-' + $index) {
         <article class="battle-log__entry">
           <div class="battle-log__entry-grid">

@@ -133,3 +133,22 @@ current_code_references:
   - frontend/src/app/pages/shop-page/*
   - documentation/03-ux/08-page-layout-zones.md
   - documentation/03-ux/09-first-session-player-journey.md
+
+---
+id: UX-003
+title: Create reusable game-like screen transition system
+status: complete
+priority: medium
+milestone: Authenticated Shell Fullscreen UX Pass
+description: Route changes and screen reveals currently feel like standard website navigation. We need a lightweight but reusable transition system that adds game-like continuity without slowing interaction or obscuring critical state changes.
+acceptance_criteria:
+  - Define a transition vocabulary for route changes, page entry, and key panel reveals.
+  - Implement reusable transition hooks or classes that can be applied across authenticated screens.
+  - Ensure transitions are fast, readable, and can be reduced or disabled when accessibility or clarity requires it.
+  - Apply the system to a representative set of core screens so the shell feels cohesive rather than one-off animated.
+current_code_references:
+  - frontend/src/app/layout/game-shell/*
+  - frontend/src/app/app.html
+  - frontend/src/app/app.scss
+  - documentation/03-ux/03-encounter-flow-transition-matrix.md
+  - documentation/03-ux/00-ux-and-debug-scope.md

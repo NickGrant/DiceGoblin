@@ -34,6 +34,7 @@ The active MVP includes:
 - The core loop should be understandable on the first session.
 - Every major action should produce immediate readable feedback.
 - Management and run surfaces should stay distinct so the player knows when edits are allowed.
+- Authenticated screen changes should feel like fast scene transitions rather than full web page swaps.
 - Debug tooling should be sufficient for local verification without leaking into normal player flow.
 
 ## Navigation Rules

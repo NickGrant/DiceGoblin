@@ -4,31 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Authenticated Shell Fullscreen UX Pass
 
-### UX-003: Create reusable game-like screen transition system
-
-**Milestone:** Authenticated Shell Fullscreen UX Pass  
-**Status:** Open  
-**Priority:** Medium
-
-#### Problem
-
-Route changes and screen reveals currently feel like standard website navigation. We need a lightweight but reusable transition system that adds game-like continuity without slowing interaction or obscuring critical state changes.
-
-#### Acceptance Criteria
-
-- Define a transition vocabulary for route changes, page entry, and key panel reveals.
-- Implement reusable transition hooks or classes that can be applied across authenticated screens.
-- Ensure transitions are fast, readable, and can be reduced or disabled when accessibility or clarity requires it.
-- Apply the system to a representative set of core screens so the shell feels cohesive rather than one-off animated.
-
-#### Current Code References
-
-- `frontend/src/app/layout/game-shell/*`
-- `frontend/src/app/app.html`
-- `frontend/src/app/app.scss`
-- `documentation/03-ux/03-encounter-flow-transition-matrix.md`
-- `documentation/03-ux/00-ux-and-debug-scope.md`
-
 ### UX-004: Run full responsive UX pass on core authenticated screens
 
 **Milestone:** Authenticated Shell Fullscreen UX Pass  
