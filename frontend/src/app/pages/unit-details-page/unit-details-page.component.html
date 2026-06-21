@@ -29,8 +29,8 @@
 
   @if (activeTab() === 'stats') {
   <section class="dg-card p-3 p-lg-4">
-    <div class="row g-4">
-      <div class="col-xl-6">
+    <div class="unit-details-page__stats-grid">
+      <div class="unit-details-page__column">
         <div class="vstack gap-3">
           <div class="unit-summary">
             <label class="form-label">Display Name</label>
@@ -75,7 +75,7 @@
         </div>
       </div>
 
-      <div class="col-xl-6">
+      <div class="unit-details-page__column">
         <h2 class="dg-stencil mb-3">Stats</h2>
         <div class="unit-stats-panel">
           <dl class="unit-stats-list mb-0">
@@ -183,8 +183,8 @@
   }
 
   @if (activeTab() === 'abilities') {
-  <div class="row g-4">
-    <div class="col-xl-6">
+  <div class="unit-details-page__abilities-grid">
+    <div class="unit-details-page__column">
       <section class="dg-card p-3 p-lg-4 h-100">
         <h2 class="dg-stencil mb-3">Learned Abilities</h2>
 
@@ -274,7 +274,7 @@
       </section>
     </div>
 
-    <div class="col-xl-6">
+    <div class="unit-details-page__column">
       <section class="dg-card p-3 p-lg-4 h-100">
         <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
           <div>

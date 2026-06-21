@@ -94,6 +94,10 @@ Run flow components:
 - Unknown node or icon variants should render a generic fallback instead of an empty surface.
 - Invalid formation placements should be blocked with immediate user feedback.
 
+## Responsive Validation Focus
+- Verify home, warband, inventory, shop, academy, guide, unit details, squad details, regions, run map, node resolution, and run summary against the shared shell contract.
+- Confirm HUD density, drawer behavior, page framing, and panel spacing at `0-440px`, `441-760px`, and `761px+`.
+
 ## Implementation Notes
 - Use `getPageLayout(scene)` to derive canonical content and bottom-strip bounds.
 - The shared Angular shell should own top-HUD spacing and content viewport padding.

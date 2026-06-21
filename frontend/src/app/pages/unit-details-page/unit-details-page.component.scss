@@ -1,3 +1,9 @@
+.unit-details-page__stats-grid,
+.unit-details-page__abilities-grid {
+  display: grid;
+  gap: 1rem;
+}
+
 .unit-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -253,7 +259,7 @@
   transition: transform 180ms ease;
 }
 
-@media (max-width: 991px) {
+@media (max-width: 760px) {
   .unit-stats-row {
     grid-template-columns: 1fr;
     gap: 0.2rem;
@@ -282,5 +288,23 @@
 
   .loadout-bar__action {
     flex: 1 1 0;
+  }
+}
+
+@media (max-width: 440px) {
+  .unit-tabs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .unit-tabs > * {
+    width: 100%;
+  }
+}
+
+@media (min-width: 761px) {
+  .unit-details-page__stats-grid,
+  .unit-details-page__abilities-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

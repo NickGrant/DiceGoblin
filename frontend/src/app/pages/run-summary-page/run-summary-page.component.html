@@ -6,7 +6,7 @@
   <a pageFrameHeaderActions dgCommandBtn="primary" routerLink="/home">Return Home</a>
 
   @if (summary()) {
-  <div class="run-summary-stack">
+  <div class="run-summary-stack dg-motion-stagger">
     <section class="dg-card p-3 p-lg-4">
       <div class="run-summary-section-heading">
         <div>
@@ -31,9 +31,9 @@
         @if (rewardUnits().length) {
         <div class="run-summary-section-block">
           <p class="run-summary-subheading dg-stencil">Units</p>
-          <div class="row g-3">
+          <div class="run-summary-card-grid">
             @for (card of rewardUnits(); track $index) {
-            <div class="col-sm-6 col-xl-4">
+            <div class="run-summary-card-grid__item">
               <dg-unit-grid-object [object]="card.unit" />
             </div>
             }
@@ -55,9 +55,9 @@
         @if (rewardDice().length) {
         <div class="run-summary-section-block">
           <p class="run-summary-subheading dg-stencil">Dice</p>
-          <div class="row g-3">
+          <div class="run-summary-card-grid">
             @for (card of rewardDice(); track $index) {
-            <div class="col-sm-6 col-xl-4">
+            <div class="run-summary-card-grid__item">
               <dg-dice-grid-object [object]="card.die" />
             </div>
             }
@@ -87,9 +87,9 @@
       </div>
 
       @if (progressionCards().length) {
-      <div class="row g-3">
+      <div class="run-summary-progression-grid">
         @for (card of progressionCards(); track $index) {
-        <div class="col-lg-6">
+        <div class="run-summary-progression-grid__item">
           <dg-unit-grid-object [object]="card.unit" [progressBar]="progressBar(card)" />
         </div>
         }
