@@ -14,9 +14,6 @@ use Throwable;
 
 final class DevToolsService
 {
-  private ?UnitLoadoutService $unitLoadoutService = null;
-  private ?UnitNameGenerator $unitNameGenerator = null;
-
   public function __construct(
     private readonly PDO $pdo,
     private readonly PlayerBootstrapper $bootstrapper,
@@ -24,7 +21,6 @@ final class DevToolsService
     private readonly UnitRepository $unitRepo,
     private readonly DiceRepository $diceRepo,
     private readonly RegionRepository $regionRepo,
-    private readonly DiceAffixService $diceAffixService,
   ) {}
 
   public function isEnabled(): bool
@@ -119,25 +115,12 @@ final class DevToolsService
     $count = max(1, min(25, $count));
     $this->bootstrapper->ensureBaseline($userId);
 
-    $unitType = $this->lookupUnitType($unitTypeSlug);
-    if ($unitType === null) {
-      throw new RuntimeException('Unknown unit_type_slug.');
-    }
-
+    $grantService = new OwnedUnitGrantService($this->pdo);
     $granted = [];
     for ($i = 0; $i < $count; $i += 1) {
-      $unitId = $this->unitRepo->createUnitInstance(
-        $userId,
-        (int)$unitType['id'],
-        (int)$unitType['tier'],
-        1,
-        0,
-        false,
-        $this->getUnitNameGenerator()->generate()
-      );
-      $this->getUnitLoadoutService()->initializeUnit($unitId, (int)$unitType['id']);
+      $unit = $grantService->grantBySlug($userId, $unitTypeSlug);
       $granted[] = [
-        'id' => (string) $unitId,
+        'id' => (string) $unit['id'],
         'unit_type_slug' => $unitTypeSlug,
       ];
     }
@@ -153,23 +136,12 @@ final class DevToolsService
     $count = max(1, min(25, $count));
     $this->bootstrapper->ensureBaseline($userId);
 
-    $definitionId = $this->lookupDiceDefinitionId($sides, $rarity);
-    if ($definitionId === null) {
-      throw new RuntimeException('Unknown dice definition for requested rarity and size.');
-    }
-
-    $insert = $this->pdo->prepare('
-      INSERT INTO `dice_instances` (`user_id`, `dice_definition_id`, `display_name`)
-      VALUES (?, ?, NULL)
-    ');
-
+    $grantService = new OwnedDiceGrantService($this->pdo);
     $granted = [];
     for ($i = 0; $i < $count; $i += 1) {
-      $insert->execute([$userId, $definitionId]);
-      $diceId = (int) $this->pdo->lastInsertId();
-      $this->diceAffixService->assignAffixesToDiceInstance($diceId);
+      $dice = $grantService->grantByRarityAndSides($userId, $rarity, $sides);
       $granted[] = [
-        'id' => (string) $diceId,
+        'id' => (string) $dice['id'],
         'sides' => $sides,
         'rarity' => $rarity,
       ];
@@ -376,61 +348,11 @@ final class DevToolsService
     return ((int)$stmt->fetchColumn()) > 0;
   }
 
-  /**
-   * @return array{id:int,tier:int}|null
-   */
-  private function lookupUnitType(string $slug): ?array
-  {
-    $stmt = $this->pdo->prepare('SELECT `id` FROM `unit_types` WHERE `slug` = ? LIMIT 1');
-    $stmt->execute([$slug]);
-    $value = $stmt->fetchColumn();
-    if ($value === false) {
-      return null;
-    }
-
-    return [
-      'id' => (int)$value,
-      'tier' => $this->tierFromUnitTypeSlug($slug),
-    ];
-  }
-
-  private function tierFromUnitTypeSlug(string $slug): int
-  {
-    return preg_match('/_t(\d+)$/', $slug, $matches) === 1
-      ? max(1, (int)$matches[1])
-      : 1;
-  }
-
-  private function lookupDiceDefinitionId(int $sides, string $rarity): ?int
-  {
-    $stmt = $this->pdo->prepare('
-      SELECT `id`
-      FROM `dice_definitions`
-      WHERE `sides` = ? AND `rarity` = ?
-      LIMIT 1
-    ');
-    $stmt->execute([$sides, $rarity]);
-    $value = $stmt->fetchColumn();
-    return $value === false ? null : (int) $value;
-  }
-
   private function lookupRegionItemId(string $slug): ?int
   {
     $stmt = $this->pdo->prepare('SELECT `id` FROM `region_items` WHERE `slug` = ? LIMIT 1');
     $stmt->execute([$slug]);
     $value = $stmt->fetchColumn();
     return $value === false ? null : (int) $value;
-  }
-
-  private function getUnitLoadoutService(): UnitLoadoutService
-  {
-    $this->unitLoadoutService ??= new UnitLoadoutService($this->pdo);
-    return $this->unitLoadoutService;
-  }
-
-  private function getUnitNameGenerator(): UnitNameGenerator
-  {
-    $this->unitNameGenerator ??= new UnitNameGenerator();
-    return $this->unitNameGenerator;
   }
 }

@@ -1,12 +1,12 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SessionService } from '../../core/services/session/session.service';
-import { BottomCommandStripComponent } from '../bottom-command-strip/bottom-command-strip.component';
+import { CommandControlsComponent } from '../command-controls/command-controls.component';
 
 @Component({
   selector: 'app-game-shell',
   standalone: true,
-  imports: [BottomCommandStripComponent, RouterOutlet],
+  imports: [CommandControlsComponent, RouterOutlet],
   templateUrl: './game-shell.component.html',
   styleUrl: './game-shell.component.scss',
 })

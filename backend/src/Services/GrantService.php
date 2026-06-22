@@ -53,7 +53,8 @@ final class GrantService
 
   private ?DiceAffixService $diceAffixService = null;
   private ?UnitLoadoutService $unitLoadoutService = null;
-  private ?UnitNameGenerator $unitNameGenerator = null;
+  private ?OwnedDiceGrantService $ownedDiceGrantService = null;
+  private ?OwnedUnitGrantService $ownedUnitGrantService = null;
   private ?UserUnlockService $userUnlockService = null;
 
   public function ensureStarterPackGranted(int $userId): void
@@ -65,7 +66,8 @@ final class GrantService
     $db = Db::pdo();
     $this->diceAffixService ??= new DiceAffixService($db);
     $this->unitLoadoutService ??= new UnitLoadoutService($db);
-    $this->unitNameGenerator ??= new UnitNameGenerator();
+    $this->ownedDiceGrantService ??= new OwnedDiceGrantService($db, $this->diceAffixService);
+    $this->ownedUnitGrantService ??= new OwnedUnitGrantService($db, null, null, $this->unitLoadoutService);
     $this->userUnlockService ??= new UserUnlockService($db);
 
     $db->beginTransaction();
@@ -197,17 +199,11 @@ final class GrantService
         throw new RuntimeException("Starter pack config invalid: missing unit_type slug '{$slug}'.");
       }
 
-      $db->prepare(
-        "INSERT INTO unit_instances (user_id, unit_type_id, display_name, tier, level, xp, locked)
-         VALUES (:user_id, :unit_type_id, :display_name, 1, 1, 0, 0)"
-      )->execute([
-        ':user_id' => $userId,
-        ':unit_type_id' => $unitTypeId,
-        ':display_name' => $this->unitNameGenerator?->generate(),
-      ]);
-
-      $unitInstanceId = (int)$db->lastInsertId();
-      $this->unitLoadoutService?->initializeUnit($unitInstanceId, $unitTypeId);
+      $grantedUnit = $this->ownedUnitGrantService?->grantBySlug($userId, $slug, 1, 1);
+      if (!is_array($grantedUnit)) {
+        throw new RuntimeException('Starter pack unit grant service unavailable.');
+      }
+      $unitInstanceId = (int)$grantedUnit['id'];
       $this->unitLoadoutService?->replaceEquippedAbilities($unitInstanceId, $config['equipped_abilities']);
 
       $starterUnits[] = [
@@ -276,25 +272,12 @@ final class GrantService
       return $diceInstanceIds;
     }
 
-    $defId = $this->getDiceDefinitionId($db, 4, 'common');
-    if ($defId === null) {
-      throw new RuntimeException("Starter pack config invalid: missing common d4 dice definition.");
-    }
-
-    $insert = $db->prepare(
-      "INSERT INTO dice_instances (user_id, dice_definition_id, display_name)
-       VALUES (:user_id, :def_id, NULL)"
-    );
-
     for ($i = 0; $i < $count; $i++) {
-      $insert->execute([
-        ':user_id' => $userId,
-        ':def_id' => $defId,
-      ]);
-
-      $diceInstanceId = (int)$db->lastInsertId();
-      $this->diceAffixService?->assignAffixesToDiceInstance($diceInstanceId);
-      $diceInstanceIds[] = $diceInstanceId;
+      $grantedDice = $this->ownedDiceGrantService?->grantByRarityAndSides($userId, 'common', 4);
+      if (!is_array($grantedDice)) {
+        throw new RuntimeException('Starter pack dice grant service unavailable.');
+      }
+      $diceInstanceIds[] = (int)$grantedDice['id'];
     }
 
     return $diceInstanceIds;
@@ -358,19 +341,6 @@ final class GrantService
   {
     $stmt = $db->prepare("SELECT id FROM unit_types WHERE slug = :slug LIMIT 1");
     $stmt->execute([':slug' => $slug]);
-    $id = $stmt->fetchColumn();
-    return $id === false ? null : (int)$id;
-  }
-
-  private function getDiceDefinitionId(PDO $db, int $sides, string $rarity): ?int
-  {
-    $stmt = $db->prepare(
-      "SELECT id
-       FROM dice_definitions
-       WHERE sides = :sides AND rarity = :rarity
-       LIMIT 1"
-    );
-    $stmt->execute([':sides' => $sides, ':rarity' => $rarity]);
     $id = $stmt->fetchColumn();
     return $id === false ? null : (int)$id;
   }

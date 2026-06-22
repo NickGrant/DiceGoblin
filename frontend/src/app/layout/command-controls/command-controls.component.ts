@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { AfterViewInit, Component, ElementRef, OnDestroy, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { SessionService } from '../../core/services/session/session.service';
 
@@ -7,21 +7,22 @@ type HudNavItem = {
   readonly label: string;
   readonly ariaLabel: string;
   readonly icon: string;
-  readonly route: string;
+  readonly authenticatedRoute: string;
+  readonly publicRoute: string | null;
   readonly guide: boolean;
 };
 
 @Component({
-  selector: 'app-bottom-command-strip',
+  selector: 'app-command-controls',
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
   host: {
     style: 'display: block;',
   },
-  templateUrl: './bottom-command-strip.component.html',
-  styleUrl: './bottom-command-strip.component.scss',
+  templateUrl: './command-controls.component.html',
+  styleUrl: './command-controls.component.scss',
 })
-export class BottomCommandStripComponent implements AfterViewInit, OnDestroy {
+export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   private readonly sessionService = inject(SessionService);
   private readonly router = inject(Router);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
@@ -32,13 +33,49 @@ export class BottomCommandStripComponent implements AfterViewInit, OnDestroy {
 
   readonly session = this.sessionService.session;
   readonly profile = this.sessionService.profile;
+  readonly isAuthenticated = computed(() => this.session().isAuthenticated);
   readonly mobileMenuOpen = signal(false);
   readonly navItems: readonly HudNavItem[] = [
-    { label: 'Home', ariaLabel: 'Home', icon: '/assets/ui/icons/icon_home.png', route: '/home', guide: false },
-    { label: 'Warband', ariaLabel: 'Warband', icon: '/assets/ui/icons/icon_warband.png', route: '/warband', guide: false },
-    { label: 'Inventory', ariaLabel: 'Inventory', icon: '/assets/ui/icons/icon_inventory.png', route: '/dice', guide: false },
-    { label: 'Shop', ariaLabel: 'Shop', icon: '/assets/ui/icons/icon_shop.png', route: '/shop', guide: false },
-    { label: 'Guide', ariaLabel: 'Guide', icon: '/assets/ui/icons/icon_guide.png', route: '/field-guide', guide: true },
+    {
+      label: 'Home',
+      ariaLabel: 'Home',
+      icon: '/assets/ui/icons/icon_home.png',
+      authenticatedRoute: '/home',
+      publicRoute: '/login',
+      guide: false,
+    },
+    {
+      label: 'Warband',
+      ariaLabel: 'Warband',
+      icon: '/assets/ui/icons/icon_warband.png',
+      authenticatedRoute: '/warband',
+      publicRoute: null,
+      guide: false,
+    },
+    {
+      label: 'Inventory',
+      ariaLabel: 'Inventory',
+      icon: '/assets/ui/icons/icon_inventory.png',
+      authenticatedRoute: '/dice',
+      publicRoute: null,
+      guide: false,
+    },
+    {
+      label: 'Shop',
+      ariaLabel: 'Shop',
+      icon: '/assets/ui/icons/icon_shop.png',
+      authenticatedRoute: '/shop',
+      publicRoute: null,
+      guide: false,
+    },
+    {
+      label: 'Guide',
+      ariaLabel: 'Field Guide',
+      icon: '/assets/ui/icons/icon_guide.png',
+      authenticatedRoute: '/field-guide',
+      publicRoute: '/guide',
+      guide: true,
+    },
   ];
 
   ngAfterViewInit(): void {
@@ -66,6 +103,10 @@ export class BottomCommandStripComponent implements AfterViewInit, OnDestroy {
   }
 
   guideQueryParams(): { returnUrl: string } | null {
+    if (!this.isAuthenticated()) {
+      return null;
+    }
+
     const currentUrl = this.router.url;
 
     if (currentUrl.startsWith('/field-guide')) {
@@ -80,6 +121,19 @@ export class BottomCommandStripComponent implements AfterViewInit, OnDestroy {
     await this.sessionService.logout();
   }
 
+  isNavItemEnabled(item: HudNavItem): boolean {
+    return this.isAuthenticated() || item.publicRoute !== null;
+  }
+
+  navRoute(item: HudNavItem): string {
+    return this.isAuthenticated() ? item.authenticatedRoute : (item.publicRoute ?? '/login');
+  }
+
+  login(): void {
+    this.mobileMenuOpen.set(false);
+    void this.router.navigateByUrl('/login');
+  }
+
   toggleMobileMenu(): void {
     this.mobileMenuOpen.update((open) => !open);
   }
@@ -90,6 +144,7 @@ export class BottomCommandStripComponent implements AfterViewInit, OnDestroy {
 
   private syncHudHeight(): void {
     const hudHeight = Math.ceil(this.elementRef.nativeElement.getBoundingClientRect().height);
+    this.document.documentElement.style.setProperty('--command-controls-height', `${hudHeight}px`);
     this.document.documentElement.style.setProperty('--bottom-command-strip-height', `${hudHeight}px`);
   }
 }

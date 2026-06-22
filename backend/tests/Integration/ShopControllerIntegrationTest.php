@@ -220,6 +220,106 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     );
   }
 
+  public function testPurchaseBasicUnitCreatesOwnedUnitAndReturnsSlug(): void
+  {
+    $userId = $this->insertUser('qa_shop_basic_unit', 'QA Shop Basic Unit');
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $this->setSoftCurrency($userId, 200);
+
+    $controller = new ShopController();
+    $this->setJsonBody([
+      'item_type' => 'basic_unit',
+      'product_id' => 'frontline_bruiser_t1',
+    ]);
+    $response = $this->invoke(fn() => $controller->purchase());
+
+    $this->assertSame(200, $response['status']);
+    $purchase = is_array($response['body']['data']['purchase'] ?? null) ? $response['body']['data']['purchase'] : [];
+    $unitId = (int)($purchase['unit_instance_id'] ?? 0);
+
+    $this->assertGreaterThan(0, $unitId);
+    $this->assertSame('frontline_bruiser_t1', (string)($purchase['unit_type_slug'] ?? ''));
+    $this->assertSame(
+      'frontline_bruiser_t1',
+      (string)$this->scalar(
+        'SELECT ut.`slug` FROM `unit_instances` ui JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id` WHERE ui.`id` = ?',
+        [$unitId]
+      )
+    );
+  }
+
+  public function testPurchaseBasicDiceCreatesOwnedDieWithExpectedAffixSlotCount(): void
+  {
+    $userId = $this->insertUser('qa_shop_basic_dice', 'QA Shop Basic Dice');
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $this->setSoftCurrency($userId, 200);
+
+    $controller = new ShopController();
+    $this->setJsonBody([
+      'item_type' => 'basic_dice',
+      'product_id' => 'common_d6',
+    ]);
+    $response = $this->invoke(fn() => $controller->purchase());
+
+    $this->assertSame(200, $response['status']);
+    $purchase = is_array($response['body']['data']['purchase'] ?? null) ? $response['body']['data']['purchase'] : [];
+    $diceId = (int)($purchase['dice_instance_id'] ?? 0);
+
+    $this->assertGreaterThan(0, $diceId);
+    $this->assertSame(
+      (int)$this->scalar(
+        'SELECT dd.`slot_capacity` FROM `dice_instances` di JOIN `dice_definitions` dd ON dd.`id` = di.`dice_definition_id` WHERE di.`id` = ?',
+        [$diceId]
+      ),
+      (int)$this->scalar('SELECT COUNT(*) FROM `dice_instance_affixes` WHERE `dice_instance_id` = ?', [$diceId])
+    );
+  }
+
+  public function testPurchaseDailyDealUsesExactFixedAffixFromDealRow(): void
+  {
+    $userId = $this->insertUser('qa_shop_daily_deal_purchase', 'QA Shop Daily Deal Purchase');
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $this->setSoftCurrency($userId, 500);
+
+    $controller = new ShopController();
+    $catalogResponse = $this->invoke(fn() => $controller->catalog());
+    $this->assertSame(200, $catalogResponse['status']);
+    $deal = is_array($catalogResponse['body']['data']['daily_deal'] ?? null) ? $catalogResponse['body']['data']['daily_deal'] : [];
+
+    $this->setJsonBody([
+      'item_type' => 'daily_deal',
+      'product_id' => 'daily_deal_1',
+    ]);
+    $purchaseResponse = $this->invoke(fn() => $controller->purchase());
+
+    $this->assertSame(200, $purchaseResponse['status']);
+    $purchase = is_array($purchaseResponse['body']['data']['purchase'] ?? null) ? $purchaseResponse['body']['data']['purchase'] : [];
+    $diceId = (int)($purchase['dice_instance_id'] ?? 0);
+
+    $this->assertGreaterThan(0, $diceId);
+    $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM `dice_instance_affixes` WHERE `dice_instance_id` = ?', [$diceId]));
+    $this->assertSame(
+      (string)($deal['affix']['slug'] ?? ''),
+      (string)$this->scalar(
+        'SELECT ad.`slug`
+         FROM `dice_instance_affixes` dia
+         JOIN `affix_definitions` ad ON ad.`id` = dia.`affix_definition_id`
+         WHERE dia.`dice_instance_id` = ?
+         LIMIT 1',
+        [$diceId]
+      )
+    );
+  }
+
   public function testCatalogAppliesTwentyPercentEconomyModifiersAfterMarketMasteryUnlock(): void
   {
     $userId = $this->insertUser('qa_shop_market_mastery', 'QA Shop Market Mastery');

@@ -26,13 +26,12 @@ use DiceGoblins\Repositories\TeamRepository;
 use DiceGoblins\Repositories\UserRepository;
 
 use DiceGoblins\Services\CsrfService;
-use DiceGoblins\Services\DiceAffixService;
 use DiceGoblins\Services\GrantService;
+use DiceGoblins\Services\OwnedDiceGrantService;
+use DiceGoblins\Services\OwnedUnitGrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\SquadCapacityService;
-use DiceGoblins\Services\UnitLoadoutService;
-use DiceGoblins\Services\UnitNameGenerator;
 use DiceGoblins\Services\UserUnlockService;
 use DiceGoblins\Support\RunSummaryBuilder;
 
@@ -539,6 +538,8 @@ final class RunNodeController
     }
 
     $created = [];
+    $ownedUnitGrantService = new OwnedUnitGrantService($pdo);
+    $unlockService = new UserUnlockService($pdo);
     foreach ($unitGrants as $grant) {
       if (!is_array($grant)) {
         continue;
@@ -547,24 +548,21 @@ final class RunNodeController
       if ($slug === '') {
         continue;
       }
-      if (!(new UserUnlockService($pdo))->isUnlocked($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, $slug)) {
+      if (!$unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, $slug)) {
+        continue;
+      }
+      try {
+        $grantedUnit = $ownedUnitGrantService->grantBySlug(
+          $userId,
+          $slug,
+          max(1, min(3, (int)($grant['tier'] ?? 1))),
+          max(1, (int)($grant['level'] ?? 1))
+        );
+      } catch (RuntimeException) {
         continue;
       }
 
-      $typeStmt = $pdo->prepare('SELECT `id` FROM `unit_types` WHERE `slug` = ? LIMIT 1');
-      $typeStmt->execute([$slug]);
-      $unitTypeId = (int)$typeStmt->fetchColumn();
-      if ($unitTypeId <= 0) {
-        continue;
-      }
-
-      $tier = max(1, min(3, (int)($grant['tier'] ?? 1)));
-      $level = max(1, (int)($grant['level'] ?? 1));
-      $insert = $pdo->prepare('INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `display_name`, `tier`, `level`, `xp`, `locked`) VALUES (?, ?, ?, ?, ?, 0, 0)');
-      $insert->execute([$userId, $unitTypeId, (new UnitNameGenerator())->generate(), $tier, $level]);
-      $unitInstanceId = (int)$pdo->lastInsertId();
-      (new UnitLoadoutService($pdo))->initializeUnit($unitInstanceId, $unitTypeId);
-      $created[] = (string)$unitInstanceId;
+      $created[] = (string)$grantedUnit['id'];
     }
 
     return $created;
@@ -582,25 +580,20 @@ final class RunNodeController
     }
 
     $created = [];
+    $ownedDiceGrantService = new OwnedDiceGrantService($pdo);
     foreach ($diceGrants as $grant) {
       if (!is_array($grant)) {
         continue;
       }
       $rarity = trim((string)($grant['rarity'] ?? 'common'));
       $sides = max(2, (int)($grant['sides'] ?? 6));
-
-      $defStmt = $pdo->prepare('SELECT `id` FROM `dice_definitions` WHERE `rarity` = ? AND `sides` = ? ORDER BY `id` ASC LIMIT 1');
-      $defStmt->execute([$rarity, $sides]);
-      $definitionId = (int)$defStmt->fetchColumn();
-      if ($definitionId <= 0) {
+      try {
+        $grantedDice = $ownedDiceGrantService->grantByRarityAndSides($userId, $rarity, $sides);
+      } catch (RuntimeException) {
         continue;
       }
 
-      $insert = $pdo->prepare('INSERT INTO `dice_instances` (`user_id`, `dice_definition_id`, `display_name`) VALUES (?, ?, NULL)');
-      $insert->execute([$userId, $definitionId]);
-      $diceInstanceId = (int)$pdo->lastInsertId();
-      (new DiceAffixService($pdo))->assignAffixesToDiceInstance($diceInstanceId);
-      $created[] = (string)$diceInstanceId;
+      $created[] = (string)$grantedDice['id'];
     }
 
     return $created;

@@ -302,7 +302,7 @@ describe('RunNodePageComponent', () => {
     const enemyCard = host.querySelector('.unit-grid-object--enemy');
     expect(enemyCard?.textContent).toContain('Goblin Raider');
     expect(host.querySelectorAll('.unit-grid-object__progress').length).toBe(6);
-    expect(host.querySelector('[pageFrameHeaderActions]')).not.toBeNull();
+    expect(host.querySelector('button[dgcommandbtn], button[dgCommandBtn]')).not.toBeNull();
   });
 
   it('shows a treasure-focused reward summary for loot nodes', async () => {

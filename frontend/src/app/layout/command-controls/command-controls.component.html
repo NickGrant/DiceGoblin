@@ -2,21 +2,33 @@
   <div class="hud-shell">
     <div class="hud-panel hud-panel--nav">
       <nav class="hud-nav" aria-label="Primary navigation">
-        @for (item of navItems; track item.route) {
+        @for (item of navItems; track item.authenticatedRoute) {
+          @if (isNavItemEnabled(item)) {
           <a
             class="hud-icon-link"
-            [routerLink]="item.route"
+            [routerLink]="navRoute(item)"
             [queryParams]="item.guide ? guideQueryParams() : null"
             routerLinkActive="is-active"
             [attr.aria-label]="item.ariaLabel"
+            (click)="closeMobileMenu()"
           >
             <img [src]="item.icon" alt="" />
           </a>
+          } @else {
+          <span
+            class="hud-icon-link hud-icon-link--disabled"
+            [attr.aria-label]="item.ariaLabel + ' unavailable until you sign in'"
+            aria-disabled="true"
+          >
+            <img [src]="item.icon" alt="" />
+          </span>
+          }
         }
       </nav>
     </div>
 
     <div class="hud-panel hud-panel--player">
+      @if (isAuthenticated()) {
       <div class="hud-stats" aria-label="Commander resources">
         <span class="hud-stat">
           <img src="/assets/ui/icons/energy_16.png" alt="" />
@@ -28,15 +40,24 @@
           <span>{{ profile().softCurrency }}</span>
         </span>
       </div>
+      } @else {
+      <div class="hud-stats hud-stats--hidden" aria-hidden="true"></div>
+      }
 
       <div class="hud-player">
+        @if (isAuthenticated()) {
         <span class="hud-player__label dg-stencil">Commander</span>
         <span class="hud-player__name">{{ session().displayName }}</span>
+        } @else {
+        <button class="hud-login-button dg-stencil" type="button" (click)="login()">Login</button>
+        }
       </div>
 
+      @if (isAuthenticated()) {
       <button class="hud-logout" type="button" (click)="logout()" aria-label="Logout">
         <img src="/assets/ui/icons/icon_logout.png" alt="" />
       </button>
+      }
 
       <button
         class="hud-menu-toggle"
@@ -53,10 +74,11 @@
       @if (mobileMenuOpen()) {
         <div class="hud-mobile-menu" aria-label="Mobile navigation menu">
           <nav class="hud-mobile-menu__nav" aria-label="Primary navigation">
-            @for (item of navItems; track item.route) {
+            @for (item of navItems; track item.authenticatedRoute) {
+              @if (isNavItemEnabled(item)) {
               <a
                 class="hud-mobile-link"
-                [routerLink]="item.route"
+                [routerLink]="navRoute(item)"
                 [queryParams]="item.guide ? guideQueryParams() : null"
                 routerLinkActive="is-active"
                 [attr.aria-label]="item.ariaLabel"
@@ -65,13 +87,21 @@
                 <img [src]="item.icon" alt="" />
                 <span>{{ item.label }}</span>
               </a>
+              } @else {
+              <span class="hud-mobile-link hud-mobile-link--disabled" [attr.aria-label]="item.ariaLabel + ' unavailable until you sign in'" aria-disabled="true">
+                <img [src]="item.icon" alt="" />
+                <span>{{ item.label }}</span>
+              </span>
+              }
             }
           </nav>
 
+          @if (isAuthenticated()) {
           <button class="hud-mobile-logout" type="button" (click)="logout()">
             <img src="/assets/ui/icons/icon_logout.png" alt="" />
             <span>Logout</span>
           </button>
+          }
         </div>
       }
     </div>

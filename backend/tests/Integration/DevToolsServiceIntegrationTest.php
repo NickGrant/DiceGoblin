@@ -8,7 +8,6 @@ use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RegionRepository;
 use DiceGoblins\Repositories\UnitRepository;
 use DiceGoblins\Services\DevToolsService;
-use DiceGoblins\Services\DiceAffixService;
 use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Repositories\EnergyRepository;
@@ -157,7 +156,6 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
       new UnitRepository($this->pdo),
       new DiceRepository($this->pdo),
       new RegionRepository($this->pdo),
-      new DiceAffixService($this->pdo),
     );
   }
 }

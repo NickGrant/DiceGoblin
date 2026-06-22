@@ -9,8 +9,23 @@
   min-height: 100%;
 }
 
+.home-frame .dg-surface-banner {
+  --dg-surface-banner-padding:
+    calc(var(--game-shell-top-inset, 180px) + 1.4rem)
+    clamp(1rem, 3vw, 2.4rem)
+    1.5rem;
+  --dg-surface-banner-copy-width: none;
+
+  margin-top: calc(-1 * var(--game-shell-top-inset, 180px));
+  margin-inline: calc(-1 * var(--game-shell-inline-padding, 1rem));
+  min-height: clamp(16rem, 32vw, 24rem);
+  display: flex;
+  align-items: flex-start;
+}
+
 .home-frame__hero {
-  max-width: 48rem;
+  width: 100%;
+  max-width: none;
 }
 
 .home-grid {
@@ -41,6 +56,15 @@
 }
 
 @media (max-width: 440px) {
+  .home-frame .dg-surface-banner {
+    --dg-surface-banner-padding:
+      calc(var(--game-shell-top-inset, 180px) + 0.9rem)
+      0.85rem
+      1.15rem;
+
+    min-height: clamp(13.5rem, 42vw, 17rem);
+  }
+
   .home-grid {
     background: rgba(243, 239, 224, 0.42);
   }

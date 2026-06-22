@@ -6,6 +6,25 @@
 - Historical issue records can be retrieved from git when needed.
 
 ---
+id: BSC-001
+title: Extract shared roster grant services
+status: complete
+priority: high
+milestone: Backend Structural Cleanup Pass
+description: Unit and dice creation lived in battle rewards, shop purchases, debug tools, and starter grants. Shared grant services now own unit naming, loadout initialization, dice affix assignment, and fixed-affix daily deal minting so those flows stop drifting.
+acceptance_criteria:
+  - Create shared backend services for granting owned units and owned dice.
+  - Move at least the battle reward and shop flows onto the shared grant path.
+  - Keep starter pack and debug flows aligned or explicitly staged for the next issue.
+  - Retain current gameplay behavior and response payload shapes.
+  - Add or update targeted backend coverage for the shared grant path where practical.
+current_code_references:
+  - backend/src/Controllers/RunNodeController.php
+  - backend/src/Controllers/ShopController.php
+  - backend/src/Services/GrantService.php
+  - backend/src/Services/DevToolsService.php
+
+---
 id: UPR-003
 title: Implement Tier 1 and Tier 2 unit ability packages
 status: complete

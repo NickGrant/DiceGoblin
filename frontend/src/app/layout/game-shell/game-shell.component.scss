@@ -1,5 +1,7 @@
 :host {
-  --bottom-command-strip-spacing: 1rem;
+  --game-shell-top-inset: calc(var(--command-controls-height, 180px) + 0.85rem);
+  --game-shell-inline-padding: clamp(0.7rem, 2vw, 1.5rem);
+  --game-shell-bottom-padding: 1rem;
   min-height: 100vh;
   display: block;
 }
@@ -7,16 +9,16 @@
 .game-shell__viewport {
   min-height: 100vh;
   padding:
-    calc(var(--bottom-command-strip-height, 180px) + 0.85rem)
-    clamp(0.7rem, 2vw, 1.5rem)
-    1rem;
+    var(--game-shell-top-inset)
+    var(--game-shell-inline-padding)
+    var(--game-shell-bottom-padding);
 }
 
 .game-shell__content {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  min-height: calc(100vh - var(--bottom-command-strip-height, 180px) - 1.85rem);
+  min-height: calc(100vh - var(--command-controls-height, 180px) - 1.85rem);
 }
 
 .game-shell__router-frame {
@@ -65,14 +67,20 @@
 }
 
 @media (max-width: 440px) {
+  :host {
+    --game-shell-top-inset: calc(var(--command-controls-height, 180px) + 0.6rem);
+    --game-shell-inline-padding: 0.5rem;
+    --game-shell-bottom-padding: 0.75rem;
+  }
+
   .game-shell__viewport {
     padding:
-      calc(var(--bottom-command-strip-height, 180px) + 0.6rem)
-      0.5rem
-      0.75rem;
+      var(--game-shell-top-inset)
+      var(--game-shell-inline-padding)
+      var(--game-shell-bottom-padding);
   }
 
   .game-shell__content {
-    min-height: calc(100vh - var(--bottom-command-strip-height, 180px) - 1.35rem);
+    min-height: calc(100vh - var(--command-controls-height, 180px) - 1.35rem);
   }
 }

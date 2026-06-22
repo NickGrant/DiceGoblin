@@ -2,11 +2,12 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter, Router, RouterLink } from '@angular/router';
-import { BottomCommandStripComponent } from './bottom-command-strip.component';
+import { CommandControlsComponent } from './command-controls.component';
 import { SessionService } from '../../core/services/session/session.service';
 
 class SessionServiceStub {
   readonly session = signal({
+    isAuthenticated: true,
     displayName: 'Nick',
   });
 
@@ -19,7 +20,7 @@ class SessionServiceStub {
   readonly logout = jasmine.createSpy('logout').and.resolveTo();
 }
 
-describe('BottomCommandStripComponent', () => {
+describe('CommandControlsComponent', () => {
   let sessionService: SessionServiceStub;
   let router: Router;
   let originalResizeObserver: typeof ResizeObserver | undefined;
@@ -43,7 +44,7 @@ describe('BottomCommandStripComponent', () => {
     });
 
     await TestBed.configureTestingModule({
-      imports: [BottomCommandStripComponent],
+      imports: [CommandControlsComponent],
       providers: [
         provideRouter([]),
         {
@@ -64,11 +65,12 @@ describe('BottomCommandStripComponent', () => {
       value: originalResizeObserver,
     });
 
+    document.documentElement.style.removeProperty('--command-controls-height');
     document.documentElement.style.removeProperty('--bottom-command-strip-height');
   });
 
   it('renders the commander and resource values', () => {
-    const fixture = TestBed.createComponent(BottomCommandStripComponent);
+    const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
@@ -84,12 +86,12 @@ describe('BottomCommandStripComponent', () => {
       get: () => '/run/node/42',
     });
 
-    const fixture = TestBed.createComponent(BottomCommandStripComponent);
+    const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
     const guideLink = fixture.debugElement
       .queryAll(By.directive(RouterLink))
-      .find((debugElement) => debugElement.attributes['aria-label'] === 'Guide');
+      .find((debugElement) => debugElement.attributes['aria-label'] === 'Field Guide');
 
     expect(guideLink).toBeDefined();
     expect(router.serializeUrl(guideLink!.injector.get(RouterLink).urlTree!)).toBe('/field-guide?returnUrl=%2Frun%2Fnode%2F42');
@@ -98,7 +100,7 @@ describe('BottomCommandStripComponent', () => {
   });
 
   it('stores the measured hud height in a shared CSS variable', () => {
-    const fixture = TestBed.createComponent(BottomCommandStripComponent);
+    const fixture = TestBed.createComponent(CommandControlsComponent);
     spyOn(fixture.nativeElement as HTMLElement, 'getBoundingClientRect').and.returnValue({
       width: 320,
       height: 96,
@@ -113,11 +115,12 @@ describe('BottomCommandStripComponent', () => {
 
     fixture.detectChanges();
 
+    expect(document.documentElement.style.getPropertyValue('--command-controls-height')).toBe('96px');
     expect(document.documentElement.style.getPropertyValue('--bottom-command-strip-height')).toBe('96px');
   });
 
   it('delegates logout to the session service when the logout button is clicked', async () => {
-    const fixture = TestBed.createComponent(BottomCommandStripComponent);
+    const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
     const button = fixture.nativeElement.querySelector('.hud-logout') as HTMLButtonElement;
@@ -128,7 +131,7 @@ describe('BottomCommandStripComponent', () => {
   });
 
   it('renders the new split header art assets', () => {
-    const fixture = TestBed.createComponent(BottomCommandStripComponent);
+    const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
@@ -140,7 +143,7 @@ describe('BottomCommandStripComponent', () => {
   });
 
   it('opens a labeled mobile menu from the player panel', () => {
-    const fixture = TestBed.createComponent(BottomCommandStripComponent);
+    const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
     const toggle = fixture.nativeElement.querySelector('.hud-menu-toggle') as HTMLButtonElement;
@@ -158,7 +161,7 @@ describe('BottomCommandStripComponent', () => {
   });
 
   it('closes the mobile menu after tapping a menu link', () => {
-    const fixture = TestBed.createComponent(BottomCommandStripComponent);
+    const fixture = TestBed.createComponent(CommandControlsComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
 
@@ -170,5 +173,21 @@ describe('BottomCommandStripComponent', () => {
     fixture.detectChanges();
 
     expect(component.mobileMenuOpen()).toBeFalse();
+  });
+
+  it('disables protected navigation items and shows login when not authenticated', () => {
+    sessionService.session.set({
+      isAuthenticated: false,
+      displayName: 'Visitor',
+    });
+
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Login');
+    expect(compiled.textContent).not.toContain('12 / 20');
+    expect(compiled.querySelector('.hud-logout')).toBeNull();
+    expect(compiled.querySelectorAll('.hud-icon-link--disabled').length).toBe(3);
   });
 });

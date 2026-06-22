@@ -14,7 +14,6 @@ use DiceGoblins\Repositories\UnitRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\DevToolsService;
-use DiceGoblins\Services\DiceAffixService;
 use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
@@ -360,7 +359,6 @@ final class DebugController
         new UnitRepository($pdo),
         new DiceRepository($pdo),
         new RegionRepository($pdo),
-        new DiceAffixService($pdo),
       ),
     ];
   }

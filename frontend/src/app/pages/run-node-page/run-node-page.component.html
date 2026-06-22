@@ -4,7 +4,7 @@
   [subtitle]="pageSubtitle()"
 >
   @if (result()) {
-  <button pageFrameHeaderActions dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
+  <button dgCommandBtn="primary" type="button" class="mb-3 align-self-start" (click)="claimRewards()" [disabled]="busy()">
     {{ claimButtonLabel() }}
   </button>
   }

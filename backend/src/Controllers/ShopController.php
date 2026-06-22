@@ -10,9 +10,9 @@ use DiceGoblins\Http\JsonRequestBody;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Services\DiceValuationService;
 use DiceGoblins\Services\EconomyModifierService;
+use DiceGoblins\Services\OwnedDiceGrantService;
+use DiceGoblins\Services\OwnedUnitGrantService;
 use DiceGoblins\Services\SessionService;
-use DiceGoblins\Services\UnitLoadoutService;
-use DiceGoblins\Services\UnitNameGenerator;
 use DiceGoblins\Services\UserUnlockService;
 use PDO;
 use RuntimeException;
@@ -501,14 +501,8 @@ final class ShopController
       throw new RuntimeException('Requested unit is not available in the shop.');
     }
 
-    $unitTypeId = (int)$type['id'];
-    $insert = $pdo->prepare("
-      INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `display_name`, `tier`, `level`, `xp`, `locked`)
-      VALUES (?, ?, ?, 1, 1, 0, 0)
-    ");
-    $insert->execute([$userId, $unitTypeId, (new UnitNameGenerator())->generate()]);
-    $unitInstanceId = (int)$pdo->lastInsertId();
-    (new UnitLoadoutService($pdo))->initializeUnit($unitInstanceId, $unitTypeId);
+    $grantedUnit = (new OwnedUnitGrantService($pdo))->grantBySlug($userId, (string)$type['slug'], 1, 1);
+    $unitInstanceId = (int)$grantedUnit['id'];
 
     return [
       'product_id' => (string)$type['slug'],
@@ -545,11 +539,7 @@ final class ShopController
       throw new RuntimeException('Requested die is not available in the shop.');
     }
 
-    $insert = $pdo->prepare("
-      INSERT INTO `dice_instances` (`user_id`, `dice_definition_id`, `display_name`)
-      VALUES (?, ?, NULL)
-    ");
-    $insert->execute([$userId, (int)$definition['id']]);
+    $grantedDice = (new OwnedDiceGrantService($pdo))->grantByDefinitionId($userId, (int)$definition['id']);
 
     return [
       'product_id' => $productId,
@@ -558,7 +548,7 @@ final class ShopController
         DiceValuationService::calculateValue($sides, 'common')
       ),
       'purchase' => [
-        'dice_instance_id' => (string)$pdo->lastInsertId(),
+        'dice_instance_id' => (string)$grantedDice['id'],
         'rarity' => (string)$definition['rarity'],
         'sides' => $sides,
       ],
@@ -599,22 +589,15 @@ final class ShopController
       throw new RuntimeException('Daily deal unavailable.');
     }
 
-    $insertDice = $pdo->prepare("
-      INSERT INTO `dice_instances` (`user_id`, `dice_definition_id`, `display_name`)
-      VALUES (?, ?, NULL)
-    ");
-    $insertDice->execute([$userId, (int)$row['dice_definition_id']]);
-    $diceInstanceId = (int)$pdo->lastInsertId();
-
-    $insertAffix = $pdo->prepare("
-      INSERT INTO `dice_instance_affixes` (`dice_instance_id`, `affix_definition_id`, `value`)
-      VALUES (?, ?, ?)
-    ");
-    $insertAffix->execute([
-      $diceInstanceId,
-      (int)$row['affix_definition_id'],
-      (float)$row['affix_value'],
-    ]);
+    $grantedDice = (new OwnedDiceGrantService($pdo))->grantByDefinitionId(
+      $userId,
+      (int)$row['dice_definition_id'],
+      [[
+        'affix_definition_id' => (int)$row['affix_definition_id'],
+        'value' => (float)$row['affix_value'],
+      ]]
+    );
+    $diceInstanceId = (int)$grantedDice['id'];
 
     $markPurchased = $pdo->prepare("
       UPDATE `shop_daily_deals`

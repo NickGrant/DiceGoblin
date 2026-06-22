@@ -8,7 +8,7 @@ class SessionServiceStub {
   readonly isLoading = signal(false);
   readonly error = signal<string | null>(null);
   readonly initialize = jasmine.createSpy('initialize').and.resolveTo();
-  readonly session = signal({ displayName: 'Nick' });
+  readonly session = signal({ isAuthenticated: true, displayName: 'Nick' });
   readonly profile = signal({ energyCurrent: 1, energyMax: 2, softCurrency: 3 });
 }
 

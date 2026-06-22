@@ -3,10 +3,12 @@
   [title]="summary()?.title || 'Run Summary'"
   subtitle="Review rewards and progression, then head back to camp."
 >
-  <a pageFrameHeaderActions dgCommandBtn="primary" routerLink="/home">Return Home</a>
-
   @if (summary()) {
   <div class="run-summary-stack dg-motion-stagger">
+    <div class="d-flex justify-content-start">
+      <a dgCommandBtn="primary" routerLink="/home">Return Home</a>
+    </div>
+
     <section class="dg-card p-3 p-lg-4">
       <div class="run-summary-section-heading">
         <div>
