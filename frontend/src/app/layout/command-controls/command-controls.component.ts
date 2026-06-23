@@ -16,9 +16,6 @@ type HudNavItem = {
   selector: 'app-command-controls',
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
-  host: {
-    style: 'display: block;',
-  },
   templateUrl: './command-controls.component.html',
   styleUrl: './command-controls.component.scss',
 })

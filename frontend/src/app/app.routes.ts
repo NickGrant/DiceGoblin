@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { academyFeatureGuard, authChildGuard, authGuard, guestGuard } from './core/guards/auth/auth.guard';
-import { GameShellComponent } from './layout/game-shell/game-shell.component';
 import { DebugPageComponent } from './pages/debug-page/debug-page.component';
 import { DicePageComponent } from './pages/dice-page/dice-page.component';
 import { LandingPageComponent } from './pages/landing-page/landing-page.component';
@@ -19,40 +18,34 @@ import { WarbandPageComponent } from './pages/warband-page/warband-page.componen
 
 export const routes: Routes = [
   {
+    path: 'login',
+    component: LandingPageComponent,
+    canActivate: [guestGuard],
+  },
+  {
+    path: 'guide',
+    component: GuidePageComponent,
+  },
+  {
     path: '',
-    component: GameShellComponent,
+    canActivate: [authGuard],
+    canActivateChild: [authChildGuard],
     children: [
-      {
-        path: 'login',
-        component: LandingPageComponent,
-        canActivate: [guestGuard],
-      },
-      {
-        path: 'guide',
-        component: GuidePageComponent,
-      },
-      {
-        path: '',
-        canActivate: [authGuard],
-        canActivateChild: [authChildGuard],
-        children: [
-          { path: '', pathMatch: 'full', redirectTo: 'home' },
-          { path: 'home', component: HomePageComponent },
-          { path: 'field-guide', component: GuidePageComponent },
-          { path: 'academy', component: AcademyPageComponent, canActivate: [academyFeatureGuard] },
-          { path: 'regions', component: RegionsPageComponent },
-          { path: 'warband', component: WarbandPageComponent },
-          { path: 'warband/units/:unitId', component: UnitDetailsPageComponent },
-          { path: 'warband/squads/:squadId', component: SquadDetailsPageComponent },
-          { path: 'dice', component: DicePageComponent },
-          { path: 'shop', component: ShopPageComponent },
-          { path: 'run/map', component: RunMapPageComponent },
-          { path: 'run/node/:nodeId', component: RunNodePageComponent },
-          { path: 'run/rest/:nodeId', component: RunRestPageComponent },
-          { path: 'run/summary', component: RunSummaryPageComponent },
-          { path: 'debug', component: DebugPageComponent },
-        ],
-      },
+      { path: '', pathMatch: 'full', redirectTo: 'home' },
+      { path: 'home', component: HomePageComponent },
+      { path: 'field-guide', component: GuidePageComponent },
+      { path: 'academy', component: AcademyPageComponent, canActivate: [academyFeatureGuard] },
+      { path: 'regions', component: RegionsPageComponent },
+      { path: 'warband', component: WarbandPageComponent },
+      { path: 'warband/units/:unitId', component: UnitDetailsPageComponent },
+      { path: 'warband/squads/:squadId', component: SquadDetailsPageComponent },
+      { path: 'dice', component: DicePageComponent },
+      { path: 'shop', component: ShopPageComponent },
+      { path: 'run/map', component: RunMapPageComponent },
+      { path: 'run/node/:nodeId', component: RunNodePageComponent },
+      { path: 'run/rest/:nodeId', component: RunRestPageComponent },
+      { path: 'run/summary', component: RunSummaryPageComponent },
+      { path: 'debug', component: DebugPageComponent },
     ],
   },
   {

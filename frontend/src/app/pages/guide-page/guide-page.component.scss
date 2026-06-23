@@ -14,58 +14,8 @@
   margin-inline: auto;
 }
 
-.guide-hero {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
-  gap: 24px;
-  padding: 32px;
-  margin-bottom: 20px;
-  background:
-    linear-gradient(135deg, rgba(20, 31, 44, 0.78), rgba(78, 52, 24, 0.52)),
-    url('/assets/ui/biome/mountain.png') center/cover;
-  color: var(--dg-cream);
-}
-
-.guide-hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at top right, rgba(255, 240, 211, 0.18), transparent 36%),
-    linear-gradient(180deg, rgba(10, 12, 14, 0.04), rgba(10, 12, 14, 0.32));
-  pointer-events: none;
-}
-
-.guide-hero__content,
 .guide-hero__panel {
-  position: relative;
-  z-index: 1;
-}
-
-.guide-hero__eyebrow {
-  margin: 0 0 10px;
-  color: var(--dg-accent-warm-bright);
-}
-
-.guide-hero h1 {
-  margin: 0 0 16px;
-  font-size: clamp(2.4rem, 4vw, 4.4rem);
-  line-height: 0.95;
-}
-
-.guide-hero__copy {
-  max-width: 640px;
-  margin: 0;
-  font-size: 1.1rem;
-  color: var(--dg-text-on-dark-muted);
-}
-
-.guide-hero__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 24px;
+  margin-bottom: 20px;
 }
 
 .guide-hero__card {
@@ -215,20 +165,12 @@
 }
 
 @media (max-width: 760px) {
-  .guide-hero {
-    grid-template-columns: 1fr;
-  }
-
   .guide-grid--three {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 440px) {
-  .guide-hero {
-    padding: 20px;
-  }
-
   .guide-grid--two,
   .guide-grid--three {
     grid-template-columns: 1fr;

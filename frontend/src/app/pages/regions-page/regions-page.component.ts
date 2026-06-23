@@ -6,7 +6,7 @@ import { SessionService } from '../../core/services/session/session.service';
 import { RegionUnlockRecord } from '../../core/models/api.models';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 
 type RegionCard = {
   slug: string;
@@ -55,7 +55,7 @@ const REGION_CARDS: RegionCard[] = [
 @Component({
   selector: 'app-regions-page',
   standalone: true,
-  imports: [DatePipe, DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent],
+  imports: [DatePipe, DgAlertComponent, DgCommandBtnDirective, PageFrameComponent],
   templateUrl: './regions-page.component.html',
   styleUrl: './regions-page.component.scss',
 })

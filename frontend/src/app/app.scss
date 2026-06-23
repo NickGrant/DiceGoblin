@@ -1,0 +1,18 @@
+:host {
+  --command-controls-height: 135px;
+  padding: 0 0 1rem;
+  min-height: calc(100vh - var(--command-controls-height) - 1rem);
+  display: block;
+}
+
+.status-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  padding: 0.9rem 1rem;
+}
+
+.status-card--error {
+  border-color: rgba(185, 28, 28, 0.5);
+  background: rgba(185, 28, 28, 0.1);
+}

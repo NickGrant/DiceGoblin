@@ -1,14 +1,12 @@
-<section class="dg-page-frame home-frame">
-  <div class="dg-surface-banner">
-    <div class="home-frame__hero">
-      <p class="dg-surface-banner__eyebrow dg-stencil">Welcome Back to HQ</p>
-      <h1>Prep the warband, then send them raiding.</h1>
-    </div>
-  </div>
-
-  <div class="home-grid p-3 p-md-4">
+<page-frame
+  [breadcrumbs]="[{ label: 'Home' }]"
+  title="Prep the warband, then send them raiding."
+  [subtitle]="subtitle()"
+  headerVariant="home"
+>
+  <div class="home-grid" (wheel)="onGridWheel($event)">
     <div class="home-grid__layout">
-      <div class="home-grid__primary">
+      <div class="home-grid__tile home-grid__tile--primary">
         <a class="dg-media-card dg-media-card--feature" [routerLink]="primaryRoute()">
           <img class="dg-media-card__media" [src]="hasActiveRun() ? '/assets/ui/panels/home_continue_run.jpg' : '/assets/ui/panels/home_start_run.jpg'" alt="" />
           <div class="dg-media-card__overlay">
@@ -18,58 +16,54 @@
         </a>
       </div>
 
-      <div class="home-grid__secondary">
-        <div class="home-grid__tiles dg-motion-stagger">
-          <div class="home-grid__tile">
-            <a class="dg-media-card dg-media-card--compact" routerLink="/warband">
-              <img class="dg-media-card__media" src="/assets/ui/panels/home_warband.jpg" alt="" />
-              <div class="dg-media-card__overlay">
-                <span class="dg-media-card__title dg-stencil">Warband</span>
-              </div>
-            </a>
+      <div class="home-grid__tile">
+        <a class="dg-media-card dg-media-card--compact" routerLink="/warband">
+          <img class="dg-media-card__media" src="/assets/ui/panels/home_warband.jpg" alt="" />
+          <div class="dg-media-card__overlay">
+            <span class="dg-media-card__title dg-stencil">Warband</span>
           </div>
-
-          @if (academyUnlocked()) {
-          <div class="home-grid__tile">
-            <a class="dg-media-card dg-media-card--compact" routerLink="/academy">
-              <img class="dg-media-card__media" src="/assets/ui/panels/academy.jpg" alt="" />
-              <div class="dg-media-card__overlay">
-                <span class="dg-media-card__title dg-stencil">Academy</span>
-              </div>
-            </a>
-          </div>
-          }
-
-          <div class="home-grid__tile">
-            <a class="dg-media-card dg-media-card--compact" routerLink="/shop">
-              <img class="dg-media-card__media" src="/assets/ui/panels/home_shop.jpg" alt="" />
-              <div class="dg-media-card__overlay">
-                <span class="dg-media-card__title dg-stencil">Shop</span>
-              </div>
-            </a>
-          </div>
-
-          <div class="home-grid__tile">
-            <a class="dg-media-card dg-media-card--compact" routerLink="/dice">
-              <img class="dg-media-card__media" src="/assets/ui/panels/home_inventory.jpg" alt="" />
-              <div class="dg-media-card__overlay">
-                <span class="dg-media-card__title dg-stencil">Inventory</span>
-              </div>
-            </a>
-          </div>
-
-          @if (devPanelEnabled) {
-          <div class="home-grid__tile">
-            <a class="dg-media-card dg-media-card--compact" routerLink="/debug">
-              <div class="dg-media-card__media dg-media-card__media--dev"></div>
-              <div class="dg-media-card__overlay">
-                <span class="dg-media-card__title dg-stencil">Dev Panel</span>
-              </div>
-            </a>
-          </div>
-          }
-        </div>
+        </a>
       </div>
+
+      @if (academyUnlocked()) {
+      <div class="home-grid__tile">
+        <a class="dg-media-card dg-media-card--compact" routerLink="/academy">
+          <img class="dg-media-card__media" src="/assets/ui/panels/academy.jpg" alt="" />
+          <div class="dg-media-card__overlay">
+            <span class="dg-media-card__title dg-stencil">Academy</span>
+          </div>
+        </a>
+      </div>
+      }
+
+      <div class="home-grid__tile">
+        <a class="dg-media-card dg-media-card--compact" routerLink="/shop">
+          <img class="dg-media-card__media" src="/assets/ui/panels/home_shop.jpg" alt="" />
+          <div class="dg-media-card__overlay">
+            <span class="dg-media-card__title dg-stencil">Shop</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="home-grid__tile">
+        <a class="dg-media-card dg-media-card--compact" routerLink="/dice">
+          <img class="dg-media-card__media" src="/assets/ui/panels/home_inventory.jpg" alt="" />
+          <div class="dg-media-card__overlay">
+            <span class="dg-media-card__title dg-stencil">Inventory</span>
+          </div>
+        </a>
+      </div>
+
+      @if (devPanelEnabled) {
+      <div class="home-grid__tile">
+        <a class="dg-media-card dg-media-card--compact" routerLink="/debug">
+          <div class="dg-media-card__media dg-media-card__media--dev"></div>
+          <div class="dg-media-card__overlay">
+            <span class="dg-media-card__title dg-stencil">Dev Panel</span>
+          </div>
+        </a>
+      </div>
+      }
     </div>
   </div>
-</section>
+</page-frame>

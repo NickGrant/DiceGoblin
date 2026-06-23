@@ -4,12 +4,12 @@ import { DebugCatalogData, DebugOwnedUnitRecord } from '../../core/models/api.mo
 import { DebugService } from '../../core/services/debug/debug.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 
 @Component({
   selector: 'app-debug-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, FormsModule],
   templateUrl: './debug-page.component.html',
   styleUrl: './debug-page.component.scss',
 })

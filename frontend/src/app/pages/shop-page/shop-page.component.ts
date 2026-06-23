@@ -9,7 +9,7 @@ import {
 import { ShopService } from '../../core/services/shop/shop.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { ObjectGridComponent } from '../../shared/ui/object-grid/object-grid.component';
 import {
   ShopDiceGridObjectComponent,
@@ -23,7 +23,7 @@ import {
 @Component({
   selector: 'app-shop-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, ObjectGridComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, ObjectGridComponent],
   templateUrl: './shop-page.component.html',
   styleUrl: './shop-page.component.scss',
 })

@@ -5,7 +5,7 @@ import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { RunUnitFormationGridComponent } from '../../shared/ui/run-unit-formation-grid/run-unit-formation-grid.component';
 
 const FORMATION_CELLS = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'] as const;
@@ -18,7 +18,7 @@ const REGION_THEME_BY_SLUG: Record<string, string> = {
 @Component({
   selector: 'app-run-map-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, RunUnitFormationGridComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RunUnitFormationGridComponent],
   templateUrl: './run-map-page.component.html',
   styleUrl: './run-map-page.component.scss',
 })

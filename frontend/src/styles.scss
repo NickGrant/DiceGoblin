@@ -94,18 +94,8 @@ button {
   font: inherit;
 }
 
-.dg-page-frame {
-  position: relative;
-  width: min(100%, var(--dg-shell-page-max-width));
-  margin-inline: auto;
-  border: 2px solid var(--dg-frame-border);
-  background: linear-gradient(180deg, rgba(243, 239, 224, 0.9), rgba(232, 228, 210, 0.94));
-  box-shadow: var(--dg-card-shadow);
-  overflow: hidden;
-}
-
 .dg-motion-route-enter,
-app-game-shell .game-shell__router-frame > * {
+app-root .frame > * {
   animation: dg-route-screen-enter var(--dg-motion-duration-route) var(--dg-motion-ease-emphatic) both;
   transform-origin: center top;
   will-change: transform, opacity, filter;
@@ -186,7 +176,7 @@ app-game-shell .game-shell__router-frame > * {
   .dg-motion-surface-enter,
   .dg-motion-panel-enter,
   .dg-motion-stagger > *,
-  app-game-shell .game-shell__router-frame > * {
+  app-root .app-shell__router-frame > * {
     animation: none;
     transition: none !important;
     transform: none !important;

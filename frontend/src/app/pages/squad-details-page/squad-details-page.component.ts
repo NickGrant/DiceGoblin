@@ -7,7 +7,7 @@ import { SessionService } from '../../core/services/session/session.service';
 import { SquadService } from '../../core/services/squad/squad.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 
 const FORMATION_CELLS = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'];
 const AVAILABLE_DROP_ID = 'available-drop';
@@ -20,7 +20,7 @@ type DropTarget =
 @Component({
   selector: 'app-squad-details-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, DragDropModule, FormsModule],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, DragDropModule, FormsModule],
   templateUrl: './squad-details-page.component.html',
   styleUrl: './squad-details-page.component.scss',
 })

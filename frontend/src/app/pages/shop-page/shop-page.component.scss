@@ -7,7 +7,7 @@
   height: 100%;
 }
 
-:host ::ng-deep dg-page-frame .route-frame__body {
+:host ::ng-deep page-frame .route-frame__body {
   gap: 1rem;
 }
 
@@ -98,7 +98,7 @@
     gap: 0.55rem;
   }
 
-  :host ::ng-deep dg-page-frame .dg-card {
+  :host ::ng-deep page-frame .dg-card {
     padding: 0.95rem !important;
   }
 

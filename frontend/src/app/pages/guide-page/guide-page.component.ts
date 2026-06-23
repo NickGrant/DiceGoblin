@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SessionService } from '../../core/services/session/session.service';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 
 type GuideUnit = {
   name: string;
@@ -33,6 +34,7 @@ type GuideNode = {
 @Component({
   selector: 'app-guide-page',
   standalone: true,
+  imports: [PageFrameComponent],
   templateUrl: './guide-page.component.html',
   styleUrl: './guide-page.component.scss',
 })
@@ -43,7 +45,6 @@ export class GuidePageComponent implements OnInit {
   protected readonly session = this.sessionService.session;
   protected readonly profileData = this.sessionService.profileData;
   protected readonly hasActiveRun = this.sessionService.hasActiveRun;
-  protected readonly heroEyebrow = computed(() => this.session().isAuthenticated ? 'Field Manual' : 'Public Field Manual');
   protected readonly returnUrl = computed(() => {
     if (!this.session().isAuthenticated) {
       return null;

@@ -1,20 +1,20 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { DgPageFrameComponent } from './dg-page-frame.component';
+import { PageFrameComponent } from './page-frame.component';
 
 @Component({
   standalone: true,
-  imports: [DgPageFrameComponent],
+  imports: [PageFrameComponent],
   template: `
-    <dg-page-frame eyebrow="HQ" title="Title" subtitle="Subtitle">
+    <page-frame title="Title" subtitle="Subtitle">
       <div class="projected">Body</div>
-    </dg-page-frame>
+    </page-frame>
   `,
 })
 class HostComponent {}
 
-describe('DgPageFrameComponent', () => {
+describe('PageFrameComponent', () => {
   it('renders header content and projected body', async () => {
     await TestBed.configureTestingModule({
       imports: [HostComponent],
@@ -34,9 +34,9 @@ describe('DgPageFrameComponent', () => {
   it('renders clickable breadcrumbs when provided', async () => {
     @Component({
       standalone: true,
-      imports: [DgPageFrameComponent],
+      imports: [PageFrameComponent],
       template: `
-        <dg-page-frame
+        <page-frame
           title="Title"
           [breadcrumbs]="[
             { label: 'HQ', route: '/home' },

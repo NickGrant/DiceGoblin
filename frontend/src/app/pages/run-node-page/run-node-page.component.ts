@@ -6,7 +6,7 @@ import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { UnitGridObjectComponent, UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 
 const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss', 'loot']);
@@ -52,7 +52,7 @@ type ConditionDefinition = {
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, UnitGridObjectComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, UnitGridObjectComponent],
   templateUrl: './run-node-page.component.html',
   styleUrl: './run-node-page.component.scss',
 })

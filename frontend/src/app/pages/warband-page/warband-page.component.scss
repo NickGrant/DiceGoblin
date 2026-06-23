@@ -98,7 +98,7 @@
   opacity: 0.7;
 }
 
-:host ::ng-deep dg-page-frame .row.g-4 {
+:host ::ng-deep page-frame .row.g-4 {
   --bs-gutter-x: 1rem;
   --bs-gutter-y: 1rem;
 }
@@ -116,7 +116,7 @@
 }
 
 @media (max-width: 760px) {
-  :host ::ng-deep dg-page-frame .dg-card {
+  :host ::ng-deep page-frame .dg-card {
     padding: 0.9rem !important;
   }
 

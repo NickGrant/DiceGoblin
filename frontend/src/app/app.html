@@ -1,1 +1,10 @@
+<app-command-controls></app-command-controls>
+
+@if (isLoading() || error()) {
+  <div class="dg-card status-card" [class.status-card--error]="!!error()">
+    <strong class="dg-stencil">{{ error() ? 'Comms Disrupted' : 'Loading Registry Data' }}</strong>
+    <span>{{ error() || 'Syncing camp records.' }}</span>
+  </div>
+}
+
 <router-outlet></router-outlet>

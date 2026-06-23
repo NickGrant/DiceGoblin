@@ -6,7 +6,7 @@ import { SessionService } from '../../core/services/session/session.service';
 import { DiceGridObjectComponent } from '../../shared/ui/dice-grid-object/dice-grid-object.component';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { UnitGridObjectComponent, UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 
 type RewardUnitCard = {
@@ -36,7 +36,7 @@ type ProgressionDetailEntry = NonNullable<RunSummaryPayload['progression_detail'
   imports: [
     DgAlertComponent,
     DgCommandBtnDirective,
-    DgPageFrameComponent,
+    PageFrameComponent,
     DiceGridObjectComponent,
     RouterLink,
     UnitGridObjectComponent,

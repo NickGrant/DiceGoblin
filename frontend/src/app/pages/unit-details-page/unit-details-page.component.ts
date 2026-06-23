@@ -22,7 +22,7 @@ import { UnitService } from '../../core/services/unit/unit.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
-import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { DicePickerModalComponent } from '../../shared/ui/dice-picker-modal/dice-picker-modal.component';
 
 type AbilitySlotViewModel = {
@@ -79,7 +79,7 @@ type DiceAssignmentRecord = {
     CdkDropList,
     DgAlertComponent,
     DgCommandBtnDirective,
-    DgPageFrameComponent,
+    PageFrameComponent,
     DicePickerModalComponent,
     FontAwesomeModule,
     FormsModule,

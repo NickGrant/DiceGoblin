@@ -14,12 +14,12 @@ import { SessionService } from '../../core/services/session/session.service';
 import { UnitService } from '../../core/services/unit/unit.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 
 @Component({
   selector: 'app-academy-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, FormsModule],
   templateUrl: './academy-page.component.html',
   styleUrl: './academy-page.component.scss',
 })

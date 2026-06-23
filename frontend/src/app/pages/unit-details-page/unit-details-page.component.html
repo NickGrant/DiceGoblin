@@ -1,5 +1,5 @@
 @if (unit(); as unit) {
-<dg-page-frame
+<page-frame
   [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Warband', route: '/warband' }, { label: 'Unit' }]"
   [title]="unit.name"
   [subtitle]="(unit.unit_type_name || unit.unit_type_slug || 'Unit') + ' - Level ' + unit.level"
@@ -371,9 +371,9 @@
     (dismissed)="closeDicePicker()"
     (selected)="applyDiceSelection($event)"
   />
-</dg-page-frame>
+</page-frame>
 } @else {
-<dg-page-frame [showHeader]="false">
+<page-frame [showHeader]="false">
   <dg-alert tone="error">Unit not found.</dg-alert>
-</dg-page-frame>
+</page-frame>
 }

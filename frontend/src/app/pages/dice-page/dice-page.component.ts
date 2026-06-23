@@ -15,13 +15,13 @@ import {
   filterAndSortDice,
 } from '../../shared/ui/dice-display/dice-display.utils';
 import { DiceGridObjectComponent } from '../../shared/ui/dice-grid-object/dice-grid-object.component';
-import { DgPageFrameComponent } from '../../shared/ui/dg-page-frame/dg-page-frame.component';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { ObjectGridComponent } from '../../shared/ui/object-grid/object-grid.component';
 
 @Component({
   selector: 'app-dice-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgPageFrameComponent, FormsModule, ObjectGridComponent, RouterLink, TitleCasePipe],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, FormsModule, ObjectGridComponent, RouterLink, TitleCasePipe],
   templateUrl: './dice-page.component.html',
   styleUrl: './dice-page.component.scss',
 })

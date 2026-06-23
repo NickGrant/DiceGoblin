@@ -3,40 +3,49 @@
   height: 100%;
 }
 
-.home-frame {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-}
-
-.home-frame .dg-surface-banner {
-  --dg-surface-banner-padding:
-    calc(var(--game-shell-top-inset, 180px) + 1.4rem)
-    clamp(1rem, 3vw, 2.4rem)
-    1.5rem;
-  --dg-surface-banner-copy-width: none;
-
-  margin-top: calc(-1 * var(--game-shell-top-inset, 180px));
-  margin-inline: calc(-1 * var(--game-shell-inline-padding, 1rem));
-  min-height: clamp(16rem, 32vw, 24rem);
-  display: flex;
-  align-items: flex-start;
-}
-
-.home-frame__hero {
-  width: 100%;
-  max-width: none;
-}
-
 .home-grid {
+  --home-grid-space: 1rem;
   flex: 1 1 auto;
-  background: rgba(243, 239, 224, 0.5);
+  padding-top: var(--home-grid-space);
 }
 
-.home-grid__layout,
-.home-grid__tiles {
+.home-grid__layout {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--home-grid-space);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.home-grid__tile {
+  min-width: 0;
+  transition: transform 180ms ease;
+}
+
+.home-grid__tile--primary {
+  grid-column: 1 / -1;
+}
+
+:host ::ng-deep .dg-media-card {
+  height: auto;
+  aspect-ratio: 311 / 234;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+  transform-origin: center center;
+}
+
+:host ::ng-deep .dg-media-card--feature {
+  aspect-ratio: 618 / 478;
+}
+
+:host ::ng-deep .dg-media-card:hover,
+:host ::ng-deep .dg-media-card:focus-visible {
+  transform: scale(1.03);
+  border-color: rgba(255, 240, 211, 0.72);
+  box-shadow:
+    0 22px 34px rgba(0, 0, 0, 0.22),
+    0 0 0 1px rgba(255, 240, 211, 0.35);
+  z-index: 1;
 }
 
 :host ::ng-deep .dg-media-card.is-disabled {
@@ -44,28 +53,51 @@
 }
 
 @media (min-width: 441px) {
-  .home-grid__tiles {
+  .home-grid {
+    --home-grid-space: 1.25rem;
+  }
+
+  .home-grid__layout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 761px) {
+  .home-grid {
+    --home-grid-space: 1.5rem;
+    --home-grid-hover-bleed: 0.75rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    padding-inline-start: var(--home-grid-space);
+    padding-bottom: calc(0.35rem + var(--home-grid-hover-bleed));
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .home-grid::-webkit-scrollbar {
+    display: none;
+  }
+
   .home-grid__layout {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    width: max-content;
+    min-width: 100%;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(18.5rem, 20rem);
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-template-columns: none;
+    padding-bottom: var(--home-grid-hover-bleed);
+  }
+
+  .home-grid__tile--primary {
+    grid-column: span 2;
+    grid-row: span 2;
   }
 }
 
 @media (max-width: 440px) {
-  .home-frame .dg-surface-banner {
-    --dg-surface-banner-padding:
-      calc(var(--game-shell-top-inset, 180px) + 0.9rem)
-      0.85rem
-      1.15rem;
-
-    min-height: clamp(13.5rem, 42vw, 17rem);
-  }
-
   .home-grid {
     background: rgba(243, 239, 224, 0.42);
+    padding: 0.75rem;
   }
 }

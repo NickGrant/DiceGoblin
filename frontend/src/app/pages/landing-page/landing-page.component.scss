@@ -13,6 +13,13 @@ section {
   --dg-surface-banner-overlay-end: rgba(35, 39, 42, 0.04);
   --dg-surface-banner-padding: 20px 0;
 
+  position: relative;
+  width: min(100%, var(--dg-shell-page-max-width));
+  margin-inline: auto;
+  border: 2px solid var(--dg-frame-border);
+  background: linear-gradient(180deg, rgba(243, 239, 224, 0.9), rgba(232, 228, 210, 0.94));
+  box-shadow: var(--dg-card-shadow);
+  overflow: hidden;
   font-size: 1.2em;
   text-shadow: 1px 1px 5px var(--dg-charcoal);
 }
