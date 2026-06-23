@@ -19,6 +19,11 @@ type RegionCard = {
   unlockHint: string;
 };
 
+type RegionCardViewModel = RegionCard & {
+  regionId: string | null;
+  isUnlocked: boolean;
+};
+
 const REGION_CARDS: RegionCard[] = [
   {
     slug: 'the_farm',
@@ -70,7 +75,6 @@ export class RegionsPageComponent {
   readonly startingSlug = signal<string | null>(null);
   readonly message = signal<string | null>(null);
   readonly error = signal<string | null>(null);
-  readonly currentRegionIndex = signal(0);
   readonly regions = computed(() => {
     const unlocks = this.profileData()?.region_unlocks ?? [];
     return REGION_CARDS.map((region) => {
@@ -83,13 +87,12 @@ export class RegionsPageComponent {
     });
   });
   readonly unlockedRegionCount = computed(() => this.regions().filter((region) => region.isUnlocked).length);
-  readonly currentRegion = computed(() => this.regions()[this.currentRegionIndex()] ?? null);
-  readonly currentRegionActionLabel = computed(() => {
-    const region = this.currentRegion();
-    if (!region) {
-      return 'Start Run';
-    }
 
+  isActiveRegion(regionId: string | null): boolean {
+    return this.profileData()?.active_run?.region_id === regionId;
+  }
+
+  regionActionLabel(region: RegionCardViewModel): string {
     if (this.startingSlug() === region.slug) {
       return 'Starting...';
     }
@@ -99,13 +102,9 @@ export class RegionsPageComponent {
     }
 
     return 'Start Run';
-  });
-  readonly currentRegionActionDisabled = computed(() => {
-    const region = this.currentRegion();
-    if (!region) {
-      return true;
-    }
+  }
 
+  regionActionDisabled(region: RegionCardViewModel): boolean {
     if (this.startingSlug() === region.slug) {
       return true;
     }
@@ -119,10 +118,6 @@ export class RegionsPageComponent {
     }
 
     return this.isStarting() || this.hasActiveRun();
-  });
-
-  isActiveRegion(regionId: string | null): boolean {
-    return this.profileData()?.active_run?.region_id === regionId;
   }
 
   async startRegionRun(regionId: string | null, slug: string): Promise<void> {
@@ -156,41 +151,28 @@ export class RegionsPageComponent {
     await this.router.navigateByUrl('/run/map');
   }
 
-  previousRegion(): void {
-    this.currentRegionIndex.update((index) => {
-      const count = this.regions().length;
-      return count > 0 ? (index - 1 + count) % count : 0;
-    });
-  }
-
-  nextRegion(): void {
-    this.currentRegionIndex.update((index) => {
-      const count = this.regions().length;
-      return count > 0 ? (index + 1) % count : 0;
-    });
-  }
-
-  goToRegion(index: number): void {
-    const count = this.regions().length;
-    if (index < 0 || index >= count) {
-      return;
-    }
-
-    this.currentRegionIndex.set(index);
-  }
-
-  async activateCurrentRegion(): Promise<void> {
-    const region = this.currentRegion();
-    if (!region) {
-      return;
-    }
-
+  async activateRegion(region: RegionCardViewModel): Promise<void> {
     if (this.isActiveRegion(region.regionId)) {
       await this.continueRun();
       return;
     }
 
     await this.startRegionRun(region.regionId, region.slug);
+  }
+
+  onGridWheel(event: WheelEvent): void {
+    const rail = event.currentTarget;
+    if (!(rail instanceof HTMLElement) || rail.scrollWidth <= rail.clientWidth) {
+      return;
+    }
+
+    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+    if (delta === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    rail.scrollLeft += delta;
   }
 
   unlockRecord(regionSlug: string): RegionUnlockRecord | null {

@@ -1,7 +1,8 @@
 <page-frame
-  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Regions' }]"
-  title="Region Selection"
-  subtitle="Choose where the warband marches next."
+  [breadcrumbs]="[{ label: 'Home', route: '/home' }, { label: 'Start Run' }]"
+  title="Choose the Next Raid"
+  subtitle="Pick a destination tile and send the warband out for another job."
+  headerVariant="home"
 >
   @if (message() || error()) {
   <div class="mb-3 vstack gap-2">
@@ -14,85 +15,52 @@
   </div>
   }
 
-  @if (currentRegion(); as region) {
-  <section class="region-carousel">
-    <article class="region-card" [class.region-card--locked]="!region.isUnlocked">
-      <button
-        class="region-carousel__arrow region-carousel__arrow--prev"
-        type="button"
-        aria-label="Previous region"
-        (click)="previousRegion()"
-      >
-        <span aria-hidden="true">‹</span>
-      </button>
-
-      <img [src]="'/assets/ui/biome/' + region.theme + '.png'" alt="" />
-      <div class="region-card__body">
-        <div class="region-card__chips d-flex flex-wrap gap-2 align-items-center">
-          <span class="dg-chip">{{ region.pathSummary }}</span>
-          <span class="dg-chip region-card__energy-chip">
-            <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
-            {{ region.energyCost }}
-          </span>
-          @if (isActiveRegion(region.regionId)) {
-          <span class="dg-chip">Current Run</span>
-          }
-          @if (!region.isUnlocked) {
-          <span class="dg-chip">Locked</span>
-          }
-        </div>
-
-        <div class="region-card__footer">
-          <div class="region-card__content-wrap">
-            <div class="region-card__content">
-              <h2 class="mb-2">{{ region.name }}</h2>
-              <p class="mb-1">{{ region.summary }}</p>
-              @if (region.isUnlocked) {
-              <p class="mb-0">Unlocked {{ unlockRecord(region.slug)?.unlocked_at | date: 'mediumDate' }}.</p>
-              } @else {
-              <p class="mb-0">{{ region.unlockHint }}</p>
+  <section class="region-grid" (wheel)="onGridWheel($event)">
+    <div class="region-grid__layout">
+      @for (region of regions(); track region.slug) {
+      <div class="region-grid__tile">
+        <article class="dg-media-card dg-media-card--feature region-tile" [class.region-tile--locked]="!region.isUnlocked">
+          <img class="dg-media-card__media" [src]="'/assets/ui/biome/' + region.theme + '.png'" alt="" />
+          <div class="dg-media-card__overlay region-tile__overlay">
+            <div class="region-tile__chips">
+              <span class="dg-chip">{{ region.pathSummary }}</span>
+              <span class="dg-chip region-tile__energy-chip">
+                <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
+                {{ region.energyCost }}
+              </span>
+              <span class="dg-chip">Level {{ region.recommendedLevel }}+</span>
+              @if (isActiveRegion(region.regionId)) {
+              <span class="dg-chip">Current Run</span>
+              }
+              @if (!region.isUnlocked) {
+              <span class="dg-chip">Locked</span>
               }
             </div>
-          </div>
 
-          <div class="region-card__action-wrap">
-            <div class="region-card__action">
+            <div class="region-tile__body">
+              <span class="dg-media-card__title dg-stencil">{{ region.name }}</span>
+              <p class="region-tile__summary">{{ region.summary }}</p>
+              @if (region.isUnlocked) {
+              <p class="region-tile__meta">Unlocked {{ unlockRecord(region.slug)?.unlocked_at | date: 'mediumDate' }}.</p>
+              } @else {
+              <p class="region-tile__meta">{{ region.unlockHint }}</p>
+              }
+            </div>
+
+            <div class="region-tile__footer">
               <button
                 type="button"
                 dgCommandBtn="primary"
-                (click)="activateCurrentRegion()"
-                [disabled]="currentRegionActionDisabled()"
+                (click)="activateRegion(region)"
+                [disabled]="regionActionDisabled(region)"
               >
-                {{ currentRegionActionLabel() }}
+                {{ regionActionLabel(region) }}
               </button>
             </div>
           </div>
-        </div>
+        </article>
       </div>
-
-      <button
-        class="region-carousel__arrow region-carousel__arrow--next"
-        type="button"
-        aria-label="Next region"
-        (click)="nextRegion()"
-      >
-        <span aria-hidden="true">›</span>
-      </button>
-    </article>
-
-    <div class="region-carousel__dots" aria-label="Region selection">
-      @for (entry of regions(); track entry.slug; let index = $index) {
-      <button
-        class="region-carousel__dot"
-        type="button"
-        [class.region-carousel__dot--active]="currentRegionIndex() === index"
-        [attr.aria-label]="'Show ' + entry.name"
-        (click)="goToRegion(index)"
-      >
-        <span class="visually-hidden">{{ entry.name }}</span>
-      </button>
       }
     </div>
   </section>
-  }
 </page-frame>

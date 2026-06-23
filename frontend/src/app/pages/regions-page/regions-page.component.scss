@@ -1,173 +1,140 @@
-.region-carousel {
-  display: grid;
-  gap: 1rem;
-}
-
-.region-carousel__dots {
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.region-carousel__dot {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(35, 39, 42, 0.35);
-  border-radius: 999px;
-  background: rgba(243, 239, 224, 0.45);
-}
-
-.region-carousel__dot--active {
-  background: var(--dg-red);
-  border-color: rgba(143, 23, 23, 0.95);
-}
-
-.region-carousel__arrow {
-  position: absolute;
-  top: 50%;
-  z-index: 2;
-  width: 52px;
-  height: 52px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid rgba(243, 239, 224, 0.85);
-  border-radius: 999px;
-  background: rgba(35, 39, 42, 0.58);
-  color: var(--dg-cream);
-  font-size: 2rem;
-  line-height: 1;
-  transform: translateY(-50%);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
-}
-
-.region-carousel__arrow--prev {
-  left: 1rem;
-}
-
-.region-carousel__arrow--next {
-  right: 1rem;
-}
-
-.region-card {
-  position: relative;
-  min-height: 480px;
-  border: 2px solid rgba(35, 39, 42, 0.22);
-  background: rgba(243, 239, 224, 0.7);
-  overflow: hidden;
-}
-
-.region-card--locked {
-  opacity: 0.82;
-}
-
-.region-card--locked img {
-  filter: grayscale(0.5) saturate(0.7);
-}
-
-.region-card > img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
+:host {
+  display: block;
   height: 100%;
-  object-fit: cover;
 }
 
-.region-card__body {
-  position: relative;
+.region-grid {
+  --region-grid-space: 1rem;
+  padding-top: var(--region-grid-space);
+}
+
+.region-grid__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--region-grid-space);
+}
+
+.region-grid__tile {
+  min-width: 0;
+  transition: transform 180ms ease;
+}
+
+:host ::ng-deep .region-tile {
+  height: auto;
+  aspect-ratio: 311 / 234;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    opacity 180ms ease;
+  transform-origin: center center;
+}
+
+:host ::ng-deep .region-tile:hover,
+:host ::ng-deep .region-tile:focus-within {
+  transform: scale(1.03);
+  border-color: rgba(255, 240, 211, 0.72);
+  box-shadow:
+    0 22px 34px rgba(0, 0, 0, 0.22),
+    0 0 0 1px rgba(255, 240, 211, 0.35);
   z-index: 1;
+}
+
+.region-tile--locked {
+  opacity: 0.86;
+}
+
+.region-tile--locked .dg-media-card__media {
+  filter: grayscale(0.32) saturate(0.78);
+}
+
+.region-tile__overlay {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 0.9rem;
-  min-height: 480px;
-  padding: 2rem 5.5rem 2rem 2rem;
-  color: var(--dg-cream);
-  background:
-    linear-gradient(
-      180deg,
-      rgba(35, 39, 42, 0.12) 0%,
-      rgba(35, 39, 42, 0.34) 40%,
-      rgba(35, 39, 42, 0.82) 100%
-    );
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  min-height: 100%;
+  gap: 1rem;
+  padding: 1rem 1.1rem 1.1rem;
 }
 
-.region-card__chips {
-  align-self: flex-start;
+.region-tile__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.region-card__body .dg-chip {
+.region-tile__chips .dg-chip {
   background: rgba(243, 239, 224, 0.88);
   color: var(--dg-charcoal);
-  text-shadow: none;
 }
 
-.region-card__energy-chip img {
+.region-tile__energy-chip img {
   width: 16px;
   height: 16px;
   display: block;
   object-fit: contain;
 }
 
-.region-card__footer {
-  width: 100%;
-  display: grid;
-  gap: 0.75rem;
-}
-
-.region-card__content {
-  max-width: 40rem;
-}
-
-.region-card__action {
-  min-height: 100%;
+.region-tile__body {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 
-.region-card__action .dg-command-btn {
+.region-tile__summary,
+.region-tile__meta {
+  margin: 0;
+}
+
+.region-tile__meta {
+  color: rgba(243, 239, 224, 0.88);
+  font-size: 0.95rem;
+}
+
+.region-tile__footer .dg-command-btn {
   min-width: 11rem;
 }
 
-@media (max-width: 760px) {
-  .region-card {
-    min-height: 420px;
+@media (min-width: 761px) {
+  .region-grid {
+    --region-grid-space: 1.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    padding-inline-start: var(--region-grid-space);
+    padding-bottom: 0.65rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
-  .region-card__body {
-    min-height: 420px;
-    padding: 1.5rem 4.5rem 1.5rem 1.5rem;
+  .region-grid::-webkit-scrollbar {
+    display: none;
   }
 
-  .region-card__content {
-    max-width: none;
-  }
-
-  .region-card__action {
-    justify-content: flex-start;
-  }
-
-  .region-carousel__arrow {
-    width: 44px;
-    height: 44px;
-    font-size: 1.7rem;
-  }
-
-  .region-carousel__arrow--prev {
-    left: 0.75rem;
-  }
-
-  .region-carousel__arrow--next {
-    right: 0.75rem;
+  .region-grid__layout {
+    width: max-content;
+    min-width: 100%;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(21rem, 26rem);
+    grid-template-columns: none;
+    padding-bottom: 0.45rem;
   }
 }
 
-@media (min-width: 761px) {
-  .region-card__footer {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: stretch;
+@media (max-width: 440px) {
+  .region-grid {
+    background: rgba(243, 239, 224, 0.42);
+    padding: 0.75rem;
+  }
+
+  :host ::ng-deep .region-tile {
+    aspect-ratio: 7 / 6;
+  }
+}
+
+@media (max-width: 760px) {
+  :host ::ng-deep .region-tile:hover,
+  :host ::ng-deep .region-tile:focus-within {
+    transform: none;
   }
 }

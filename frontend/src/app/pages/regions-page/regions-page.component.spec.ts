@@ -44,7 +44,6 @@ describe('RegionsPageComponent', () => {
 
     const component = fixture.componentInstance;
     expect(component.unlockedRegionCount()).toBe(2);
-    expect(component.currentRegion()?.slug).toBe('the_farm');
     expect(component.regions().find((region) => region.slug === 'mountains')?.isUnlocked).toBeTrue();
     expect(component.regions().find((region) => region.slug === 'swamps')?.isUnlocked).toBeFalse();
   });
@@ -60,7 +59,7 @@ describe('RegionsPageComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/run/map');
   });
 
-  it('shows continue run only for the currently displayed active region', async () => {
+  it('shows continue run only for the active region tile', async () => {
     const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
     sessionService.hasActiveRun.set(true);
     sessionService.profileData.set({
@@ -75,14 +74,12 @@ describe('RegionsPageComponent', () => {
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
-    expect(component.currentRegionActionLabel()).toBe('Start Run');
-    expect(component.currentRegionActionDisabled()).toBeTrue();
+    const farm = component.regions().find((region) => region.slug === 'the_farm')!;
+    const mountains = component.regions().find((region) => region.slug === 'mountains')!;
 
-    component.goToRegion(1);
-    fixture.detectChanges();
-
-    expect(component.currentRegion()?.slug).toBe('mountains');
-    expect(component.currentRegionActionLabel()).toBe('Continue Run');
-    expect(component.currentRegionActionDisabled()).toBeFalse();
+    expect(component.regionActionLabel(farm)).toBe('Start Run');
+    expect(component.regionActionDisabled(farm)).toBeTrue();
+    expect(component.regionActionLabel(mountains)).toBe('Continue Run');
+    expect(component.regionActionDisabled(mountains)).toBeFalse();
   });
 });
