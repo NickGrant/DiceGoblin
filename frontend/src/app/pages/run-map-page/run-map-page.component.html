@@ -16,22 +16,24 @@
 
   @if (run()) {
   <div class="vstack gap-4 dg-motion-stagger">
-    <div class="row g-4 align-items-stretch">
-      <div class="col-12">
+    <div class="run-map-layout">
+      <div class="run-map-layout__legend">
+        @for (entry of legendEntries(); track entry.type) {
+        <div class="run-map-page__legend-row">
+          <img class="run-map-page__legend-icon" [src]="entry.icon" alt="" aria-hidden="true" />
+          <span>{{ entry.label }}</span>
+        </div>
+        }
+      </div>
+
+      <div class="run-map-layout__actions">
+        <button dgCommandBtn="primary" type="button" (click)="abandonRun()" [disabled]="working()">
+          Abandon Run
+        </button>
+      </div>
+
+      <div class="run-map-layout__map">
         <div class="dg-card p-3 h-100 run-map-shell">
-          <div class="run-map-shell__toolbar mb-3">
-            <div class="run-map-shell__legend">
-              @for (entry of legendEntries(); track entry.type) {
-              <div class="run-map-page__legend-row">
-                <img class="run-map-page__legend-icon" [src]="entry.icon" alt="" aria-hidden="true" />
-                <span>{{ entry.label }}</span>
-              </div>
-              }
-            </div>
-            <button dgCommandBtn="primary" type="button" (click)="abandonRun()" [disabled]="working()" class="run-map-shell__abandon">
-              Abandon Run
-            </button>
-          </div>
           <div
             class="run-map-scroll"
             [style.background-image]="mapBackgroundUrl() ? 'linear-gradient(rgba(12, 16, 18, 0.38), rgba(12, 16, 18, 0.6)), url(' + mapBackgroundUrl() + ')' : null"
@@ -84,11 +86,9 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="row g-4">
-      <div class="col-12">
-        <div class="dg-card p-3 h-100">
+      <div class="run-map-layout__units">
+        <div class="dg-card p-3 h-100 run-map-units-shell">
           <dg-run-unit-formation-grid [cells]="formationGrid()" />
         </div>
       </div>

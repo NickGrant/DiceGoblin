@@ -1,5 +1,50 @@
+.run-map-layout {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'legend'
+    'actions'
+    'map'
+    'units';
+  padding: 0 1.25rem;
+}
+
+.run-map-layout__legend {
+  grid-area: legend;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.25rem;
+  align-items: center;
+  flex-direction: row;
+}
+
+.run-map-layout__actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  button {
+    width: 100%;
+  }
+}
+
+.run-map-layout__map {
+  grid-area: map;
+}
+
+.run-map-layout__units {
+  grid-area: units;
+}
+
 .run-map-shell {
   overflow: hidden;
+}
+
+.run-map-units-shell {
+  display: flex;
+  flex-direction: column;
 }
 
 .run-map-shell__toolbar {
@@ -8,17 +53,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-}
-
-.run-map-shell__legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem 1.25rem;
-  align-items: center;
-}
-
-.run-map-shell__abandon {
-  flex: 0 0 auto;
 }
 
 .run-map-scroll {
@@ -94,12 +128,16 @@
   min-height: 60px;
 }
 
-@media (max-width: 760px) {
-  .run-map-shell__toolbar {
-    align-items: stretch;
+@media (min-width: 761px) {
+  .run-map-layout {
+    grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+    grid-template-areas:
+      'legend actions'
+      'map units';
+    align-items: start;
   }
 
-  .run-map-shell__abandon {
-    width: 100%;
+  .run-map-actions button{
+    width: auto;
   }
 }
