@@ -19,11 +19,10 @@ describe('ShopDiceGridObjectComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const sprite = compiled.querySelector('.sprite') as HTMLElement;
+    const sprite = compiled.querySelector('.sprite') as HTMLImageElement;
     expect(compiled.textContent).toContain('Starter d6');
     expect(compiled.textContent).toContain('Common');
     expect(compiled.textContent).toContain('Basic stock die');
-    expect(sprite.style.backgroundImage).toContain('dice_sheet.png');
-    expect(sprite.style.backgroundPosition).toContain('-116px -116px');
+    expect(sprite.getAttribute('src')).toContain('/assets/ui/dice/cardboard_d6.png');
   });
 });

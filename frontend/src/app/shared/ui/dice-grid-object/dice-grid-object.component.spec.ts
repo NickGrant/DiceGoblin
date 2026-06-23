@@ -45,13 +45,12 @@ describe('DiceGridObjectComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const sprite = compiled.querySelector('.sprite') as HTMLElement;
+    const sprite = compiled.querySelector('.sprite') as HTMLImageElement;
     expect(compiled.textContent).toContain('d8');
     expect(compiled.textContent).toContain('Rare');
     expect(compiled.textContent).toContain('Guard Bulwark');
     expect(compiled.textContent).toContain('Gain block when this die resolves.');
     expect(compiled.textContent).toContain('Increase defense by 1.');
-    expect(sprite.style.backgroundImage).toContain('dice_sheet.png');
-    expect(sprite.style.backgroundPosition).toContain('-264px');
+    expect(sprite.getAttribute('src')).toContain('/assets/ui/dice/bone_d8.png');
   });
 });

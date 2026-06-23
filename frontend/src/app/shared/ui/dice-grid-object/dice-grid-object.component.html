@@ -1,9 +1,4 @@
-<div
-  class="sprite"
-  [style.background-image]="artStyles().backgroundImage"
-  [style.background-position]="artStyles().backgroundPosition"
-  [style.background-size]="artStyles().backgroundSize"
-></div>
+<img class="sprite" [src]="artStyles().imageUrl" [alt]="'d' + object().sides + ' ' + object().rarity + ' die'" />
 
 <p class="mb-2">d{{ object().sides }} · {{ object().rarity | titlecase }}</p>
 

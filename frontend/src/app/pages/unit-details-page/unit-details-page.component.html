@@ -236,12 +236,11 @@
               >
                 @if (slot.die; as die) {
                 @if (diceArtStyles(die); as artStyles) {
-                <span
+                <img
                   class="ability-inline-slot__art"
-                  [style.background-image]="artStyles.backgroundImage"
-                  [style.background-position]="artStyles.backgroundPosition"
-                  [style.background-size]="artStyles.backgroundSize"
-                ></span>
+                  [src]="artStyles.imageUrl"
+                  [alt]="'d' + die.sides + ' ' + die.rarity + ' die'"
+                />
                 }
                 } @else {
                 <span class="ability-inline-slot__empty"></span>

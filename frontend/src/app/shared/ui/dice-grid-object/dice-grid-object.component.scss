@@ -10,6 +10,7 @@
 .sprite {
   width: 132px;
   height: 132px;
-  background-repeat: no-repeat;
+  object-fit: contain;
+  display: block;
   filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.2));
 }
