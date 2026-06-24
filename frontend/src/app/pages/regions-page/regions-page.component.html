@@ -20,7 +20,9 @@
       @for (region of regions(); track region.slug) {
       <div class="region-grid__tile">
         <article class="dg-media-card dg-media-card--feature region-tile" [class.region-tile--locked]="!region.isUnlocked">
-          <img class="dg-media-card__media" [src]="'/assets/ui/biome/' + region.theme + '.png'" alt="" />
+          <div class="region-tile__badge-stage">
+            <img class="region-tile__badge" [src]="'/assets/ui/biome/' + region.theme + '_badge.png'" alt="" />
+          </div>
           <div class="dg-media-card__overlay region-tile__overlay">
             <div class="region-tile__chips">
               <span class="dg-chip">{{ region.pathSummary }}</span>

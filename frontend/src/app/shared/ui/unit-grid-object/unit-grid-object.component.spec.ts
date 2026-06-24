@@ -22,9 +22,13 @@ class HostComponent {
   readonly unit = {
     id: 'u1',
     name: 'Fang',
-    unit_type_name: 'Goblin',
+    unit_type_slug: 'frontline_bruiser_t1',
+    unit_type_name: 'Bruiser',
     level: 3,
     tier: 2,
+    total_attack: 7,
+    total_defense: 5,
+    max_hp: 18,
     locked: false,
   };
   readonly progressBar = {
@@ -53,14 +57,19 @@ describe('UnitGridObjectComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Fang');
-    expect(compiled.textContent).toContain('II');
-    expect(compiled.textContent).toContain('Goblin');
+    expect(compiled.textContent).toContain('Tier II');
+    expect(compiled.textContent).toContain('Bruiser');
     expect(compiled.textContent).toContain('Level 3');
-    expect(compiled.textContent).not.toContain('Tier 2');
     expect(compiled.textContent).not.toContain('Unit Record');
     expect(compiled.textContent).toContain('XP 90/120');
     expect(compiled.textContent).toContain('Level Up');
+    expect(compiled.textContent).toContain('7');
+    expect(compiled.textContent).toContain('5');
+    expect(compiled.textContent).toContain('18');
     expect(compiled.querySelector('a')?.getAttribute('href')).toContain('/warband/units/u1');
+    expect((compiled.querySelector('.unit-grid-object__card-art') as HTMLImageElement | null)?.src).toContain(
+      '/assets/ui/cardboard-units/bruiser.png',
+    );
   });
 
   it('renders a lock badge for run-locked units', async () => {

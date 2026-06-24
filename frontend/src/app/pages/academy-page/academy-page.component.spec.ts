@@ -84,7 +84,7 @@ class AcademyServiceStub {
           unit_type_slug: 'frontline_bruiser_t1',
           name: 'Bruiser',
           role: 'frontline',
-          cost: 500,
+          cost: 250,
           is_unlocked: true,
         },
         {
@@ -92,6 +92,13 @@ class AcademyServiceStub {
           name: 'Bannerbearer',
           role: 'support',
           cost: 250,
+          is_unlocked: false,
+        },
+        {
+          unit_type_slug: 'frontline_bruiser_t2',
+          name: 'Enforcer',
+          role: 'frontline',
+          cost: 500,
           is_unlocked: false,
         },
       ],
@@ -176,9 +183,13 @@ describe('AcademyPageComponent', () => {
     const unitService = TestBed.inject(UnitService) as unknown as UnitServiceStub;
 
     expect(academyService.getCatalog).toHaveBeenCalled();
-    expect(component.unitUnlockCatalog().length).toBe(2);
-    expect(component.availableUnitUnlocks().map((entry) => entry.unit_type_slug)).toEqual(['support_banner_t1']);
+    expect(component.unitUnlockCatalog().length).toBe(3);
+    expect(component.availableUnitUnlocks().map((entry) => entry.unit_type_slug)).toEqual([
+      'support_banner_t1',
+      'frontline_bruiser_t2',
+    ]);
     expect(component.unitUnlockDescription('support_banner_t1')).toContain('support specialist');
+    expect(component.unitUnlockDescription('frontline_bruiser_t2')).toContain('heavier execution damage');
     component.selectedUnitId.set('u1');
     await fixture.whenStable();
     fixture.detectChanges();

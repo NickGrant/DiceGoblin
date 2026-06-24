@@ -19,9 +19,7 @@ final class AcademyController
   use RequiresCsrf;
 
   private const DEFAULT_UNLOCK_COST = 500;
-  private const UNIT_UNLOCK_COSTS = [
-    'support_banner_t1' => 250,
-  ];
+  private const TIER_ONE_UNLOCK_COST = 250;
 
   public function catalog(): void
   {
@@ -72,7 +70,7 @@ final class AcademyController
       $this->requireAcademyUnlocked($pdo, $userId);
       $pdo->beginTransaction();
 
-      $catalogEntry = $this->loadTierOneUnitType($pdo, $unitTypeSlug);
+      $catalogEntry = $this->loadUnlockableUnitType($pdo, $unitTypeSlug);
       if ($catalogEntry === null) {
         throw new RuntimeException('Requested unit type is not available for Academy unlocks.');
       }
@@ -141,8 +139,13 @@ final class AcademyController
     $stmt = $pdo->query("
       SELECT `slug`, `name`, `role`
       FROM `unit_types`
-      WHERE RIGHT(`slug`, 3) = '_t1'
-      ORDER BY `id` ASC
+      WHERE RIGHT(`slug`, 3) IN ('_t1', '_t2')
+      ORDER BY CASE
+        WHEN RIGHT(`slug`, 3) = '_t1' THEN 1
+        WHEN RIGHT(`slug`, 3) = '_t2' THEN 2
+        ELSE 3
+      END ASC,
+      `id` ASC
     ");
 
     $unitUnlocks = array_map(function (array $row) use ($unlocked): array {
@@ -165,12 +168,12 @@ final class AcademyController
   /**
    * @return array{slug:string,name:string,role:string}|null
    */
-  private function loadTierOneUnitType(PDO $pdo, string $unitTypeSlug): ?array
+  private function loadUnlockableUnitType(PDO $pdo, string $unitTypeSlug): ?array
   {
     $stmt = $pdo->prepare("
       SELECT `slug`, `name`, `role`
       FROM `unit_types`
-      WHERE `slug` = ? AND RIGHT(`slug`, 3) = '_t1'
+      WHERE `slug` = ? AND RIGHT(`slug`, 3) IN ('_t1', '_t2')
       LIMIT 1
     ");
     $stmt->execute([$unitTypeSlug]);
@@ -188,7 +191,9 @@ final class AcademyController
 
   private function unlockCostForSlug(string $unitTypeSlug): int
   {
-    return self::UNIT_UNLOCK_COSTS[$unitTypeSlug] ?? self::DEFAULT_UNLOCK_COST;
+    return str_ends_with($unitTypeSlug, '_t1')
+      ? self::TIER_ONE_UNLOCK_COST
+      : self::DEFAULT_UNLOCK_COST;
   }
 
   private function requireAcademyUnlocked(PDO $pdo, int $userId): void

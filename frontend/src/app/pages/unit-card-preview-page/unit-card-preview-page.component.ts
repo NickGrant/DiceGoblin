@@ -1,0 +1,95 @@
+import { Component } from '@angular/core';
+import { UnitRecord } from '../../core/models/api.models';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
+import { HorizontalRailDirective } from '../../shared/ui/horizontal-rail/horizontal-rail.directive';
+import { UnitGridObjectComponent } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
+
+@Component({
+  selector: 'app-unit-card-preview-page',
+  standalone: true,
+  imports: [HorizontalRailDirective, PageFrameComponent, UnitGridObjectComponent],
+  templateUrl: './unit-card-preview-page.component.html',
+  styleUrl: './unit-card-preview-page.component.scss',
+})
+export class UnitCardPreviewPageComponent {
+  readonly units: UnitRecord[] = [
+    {
+      id: 'u1',
+      name: 'Fang',
+      unit_type_slug: 'frontline_bruiser_t1',
+      unit_type_name: 'Bruiser',
+      level: 4,
+      tier: 1,
+      total_attack: 7,
+      total_defense: 5,
+      max_hp: 18,
+      xp: 90,
+      xp_to_next_level: 120,
+    },
+    {
+      id: 'u2',
+      name: 'Muckjaw',
+      unit_type_slug: 'control_plaguehand_t2',
+      unit_type_name: 'Plaguehand',
+      level: 7,
+      tier: 2,
+      total_attack: 10,
+      total_defense: 6,
+      max_hp: 20,
+      xp: 140,
+      xp_to_next_level: 160,
+    },
+    {
+      id: 'u3',
+      name: 'Bash',
+      unit_type_slug: 'frontline_guardian_t2',
+      unit_type_name: 'Bulwark',
+      level: 6,
+      tier: 2,
+      total_attack: 6,
+      total_defense: 11,
+      max_hp: 25,
+      xp: 110,
+      xp_to_next_level: 150,
+    },
+    {
+      id: 'u4',
+      name: 'Shiv',
+      unit_type_slug: 'control_saboteur_t2',
+      unit_type_name: 'Trickshot',
+      level: 6,
+      tier: 2,
+      total_attack: 9,
+      total_defense: 4,
+      max_hp: 17,
+      xp: 118,
+      xp_to_next_level: 150,
+    },
+    {
+      id: 'u5',
+      name: 'Sparktooth',
+      unit_type_slug: 'support_banner_t2',
+      unit_type_name: 'Warcaller',
+      level: 5,
+      tier: 2,
+      total_attack: 5,
+      total_defense: 7,
+      max_hp: 19,
+      xp: 96,
+      xp_to_next_level: 140,
+    },
+    {
+      id: 'u6',
+      name: 'Twitch',
+      unit_type_slug: 'backline_marksman_t2',
+      unit_type_name: 'Deadeye',
+      level: 7,
+      tier: 2,
+      total_attack: 12,
+      total_defense: 4,
+      max_hp: 16,
+      xp: 150,
+      xp_to_next_level: 170,
+    },
+  ];
+}

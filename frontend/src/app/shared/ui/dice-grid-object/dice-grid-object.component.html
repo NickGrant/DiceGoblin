@@ -1,26 +1,38 @@
-<img class="sprite" [src]="artStyles().imageUrl" [alt]="'d' + object().sides + ' ' + object().rarity + ' die'" />
-
-<p class="mb-2">d{{ object().sides }} · {{ object().rarity | titlecase }}</p>
-
-@if (object().affixes?.length) {
-  @if (affixLabel()) {
-    <h2 class="h6 mt-2 mb-1">{{ affixLabel() }}</h2>
-  }
-
-  @if (affixDescriptions().length) {
-    <ul class="dg-list-reset small mb-3">
-      @for (description of affixDescriptions(); track description) {
-        <li>{{ description }}</li>
+@if (displayMode() === 'compact') {
+  <div class="dice-card dice-card--compact">
+    <div class="dice-card__art-wrap">
+      <img class="sprite dice-card__sprite" [src]="artStyles().imageUrl" [alt]="'d' + object().sides + ' ' + object().rarity + ' die'" />
+      @if (isEquipped()) {
+        <span class="dice-card__badge">Equipped</span>
       }
-    </ul>
-  }
-}
-
-@if (footerTemplate(); as footerTemplate) {
-  <div class="d-flex flex-wrap gap-2 mt-auto">
-    <ng-container
-      [ngTemplateOutlet]="footerTemplate"
-      [ngTemplateOutletContext]="{ $implicit: footerContext() || object() }"
-    />
+    </div>
+    <span class="visually-hidden">{{ title() }} {{ sizeLabel() }} {{ rarityLabel() }}</span>
   </div>
+} @else {
+  <img class="sprite" [src]="artStyles().imageUrl" [alt]="'d' + object().sides + ' ' + object().rarity + ' die'" />
+
+  <p class="mb-2">{{ sizeLabel() }} · {{ rarityLabel() }}</p>
+
+  @if (object().affixes?.length) {
+    @if (affixLabel()) {
+      <h2 class="h6 mt-2 mb-1">{{ affixLabel() }}</h2>
+    }
+
+    @if (affixDescriptions().length) {
+      <ul class="dg-list-reset small mb-3">
+        @for (description of affixDescriptions(); track description) {
+          <li>{{ description }}</li>
+        }
+      </ul>
+    }
+  }
+
+  @if (footerTemplate(); as footerTemplate) {
+    <div class="d-flex flex-wrap gap-2 mt-auto">
+      <ng-container
+        [ngTemplateOutlet]="footerTemplate"
+        [ngTemplateOutletContext]="{ $implicit: footerContext() || object() }"
+      />
+    </div>
+  }
 }

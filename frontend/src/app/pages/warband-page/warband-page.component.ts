@@ -4,14 +4,14 @@ import { SessionService } from '../../core/services/session/session.service';
 import { SquadService } from '../../core/services/squad/squad.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
+import { HorizontalRailDirective } from '../../shared/ui/horizontal-rail/horizontal-rail.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { ObjectGridComponent } from '../../shared/ui/object-grid/object-grid.component';
 import { UnitGridObjectComponent } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 
 @Component({
   selector: 'app-warband-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, ObjectGridComponent, RouterLink],
+  imports: [DgAlertComponent, DgCommandBtnDirective, HorizontalRailDirective, PageFrameComponent, RouterLink, UnitGridObjectComponent],
   templateUrl: './warband-page.component.html',
   styleUrl: './warband-page.component.scss',
 })
@@ -24,10 +24,23 @@ export class WarbandPageComponent {
   readonly units = this.sessionService.units;
   readonly activeRun = computed(() => this.sessionService.profileData()?.active_run ?? null);
   readonly activeSquad = this.sessionService.activeSquad;
+  readonly selectedUnitTypes = signal<string[]>([]);
   readonly isSaving = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
-  readonly unitObjectComponent = UnitGridObjectComponent;
+  readonly availableUnitTypes = computed(() =>
+    [...new Set(this.units().map((unit) => this.unitTypeLabel(unit)).filter((label) => label.length > 0))].sort((a, b) =>
+      a.localeCompare(b),
+    ),
+  );
+  readonly filteredUnits = computed(() => {
+    const selected = this.selectedUnitTypes();
+    if (!selected.length) {
+      return this.units();
+    }
+
+    return this.units().filter((unit) => selected.includes(this.unitTypeLabel(unit)));
+  });
 
   isSquadLocked(teamId: string): boolean {
     return !!this.activeRun() && this.activeSquad()?.id === teamId;
@@ -77,6 +90,24 @@ export class WarbandPageComponent {
     } finally {
       this.isSaving.set(false);
     }
+  }
+
+  isUnitTypeSelected(unitType: string): boolean {
+    return this.selectedUnitTypes().includes(unitType);
+  }
+
+  toggleUnitType(unitType: string): void {
+    this.selectedUnitTypes.update((selected) =>
+      selected.includes(unitType) ? selected.filter((value) => value !== unitType) : [...selected, unitType],
+    );
+  }
+
+  clearUnitTypeFilters(): void {
+    this.selectedUnitTypes.set([]);
+  }
+
+  private unitTypeLabel(unit: { unit_type_name?: string; unit_type_slug?: string }): string {
+    return (unit.unit_type_name || unit.unit_type_slug || 'Unknown').trim();
   }
 }
 

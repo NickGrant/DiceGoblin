@@ -1808,6 +1808,18 @@ WHERE `slug` IN (
 );
 -- END MIGRATION: 51_seed_progression_branch_packages.sql
 
+-- BEGIN MIGRATION: 52_rebalance_unit_drop_rates.sql
+-- Rebalance unit drop rates to reduce inventory flooding from combat rewards.
+
+UPDATE `loot_tables`
+SET `entries_json` = JSON_SET(`entries_json`, '$.drops.units.chance', 0.05)
+WHERE `slug` IN ('kobold_basic_loot', 'frogman_basic_loot');
+
+UPDATE `loot_tables`
+SET `entries_json` = JSON_SET(`entries_json`, '$.drops.units.chance', 0.12)
+WHERE `slug` IN ('kobold_boss_loot', 'frogman_boss_loot');
+-- END MIGRATION: 52_rebalance_unit_drop_rates.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 SET FOREIGN_KEY_CHECKS=1;
 -- END MIGRATION: 99_finalize.sql

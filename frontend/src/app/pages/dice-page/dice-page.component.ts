@@ -5,7 +5,9 @@ import { RouterLink } from '@angular/router';
 import { DiceRecord } from '../../core/models/api.models';
 import { DiceService } from '../../core/services/dice/dice.service';
 import { SessionService } from '../../core/services/session/session.service';
+import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
+import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import {
   buildDiceRarityOptions,
@@ -15,13 +17,11 @@ import {
   filterAndSortDice,
 } from '../../shared/ui/dice-display/dice-display.utils';
 import { DiceGridObjectComponent } from '../../shared/ui/dice-grid-object/dice-grid-object.component';
-import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { ObjectGridComponent } from '../../shared/ui/object-grid/object-grid.component';
 
 @Component({
   selector: 'app-dice-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, FormsModule, ObjectGridComponent, RouterLink, TitleCasePipe],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DiceGridObjectComponent, PageFrameComponent, FormsModule, RouterLink, TitleCasePipe],
   templateUrl: './dice-page.component.html',
   styleUrl: './dice-page.component.scss',
 })
@@ -34,11 +34,11 @@ export class DicePageComponent {
   readonly busyDiceId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
-  readonly diceObjectComponent = DiceGridObjectComponent;
   readonly selectedSize = signal<number | null>(null);
   readonly selectedRarity = signal<string | null>(null);
   readonly selectedEquipFilter = signal<DiceEquipFilter>('all');
   readonly selectedSort = signal<DiceSortOption>('size-asc');
+  readonly inspectedDiceId = signal<string | null>(null);
   readonly sizeOptions = computed(() => buildDiceSizeOptions(this.dice()));
   readonly rarityOptions = computed(() => buildDiceRarityOptions(this.dice()));
   readonly filteredDice = computed(() =>
@@ -49,6 +49,23 @@ export class DicePageComponent {
       sort: this.selectedSort(),
       isEquipped: (diceId) => this.isEquippedAnywhere(diceId),
     }),
+  );
+  readonly inspectedDice = computed(() => {
+    const filteredDice = this.filteredDice();
+    if (!filteredDice.length) {
+      return null;
+    }
+
+    const selectedId = this.inspectedDiceId();
+    return filteredDice.find((die) => die.id === selectedId) ?? filteredDice[0] ?? null;
+  });
+  readonly inspectedAffixDetails = computed(() =>
+    (this.inspectedDice()?.affixes ?? [])
+      .map((affix) => ({
+        name: this.resolveAffixName(affix),
+        description: affix.description?.trim() ?? '',
+      }))
+      .filter((affix) => affix.name.length > 0 || affix.description.length > 0),
   );
 
   isEquippedAnywhere(diceId: string): boolean {
@@ -97,6 +114,67 @@ export class DicePageComponent {
   updateSort(value: DiceSortOption): void {
     this.selectedSort.set(value);
   }
+
+  inspectDice(diceId: string): void {
+    this.inspectedDiceId.set(diceId);
+  }
+
+  isInspecting(diceId: string): boolean {
+    return this.inspectedDice()?.id === diceId;
+  }
+
+  diceTitle(die: DiceRecord): string {
+    const displayName = die.display_name?.trim();
+    if (displayName) {
+      return displayName;
+    }
+
+    const affixNames = (die.affixes ?? [])
+      .map((affix) => this.resolveAffixName(affix))
+      .filter((name) => name.length > 0);
+    if (affixNames.length) {
+      return `${affixNames.join(' ')} ${this.sizeLabel(die)}`;
+    }
+
+    return this.sizeLabel(die);
+  }
+
+  rarityLabel(die: DiceRecord | null): string {
+    return this.normalizeLabel(die?.rarity, 'Common');
+  }
+
+  sizeLabel(die: DiceRecord | null): string {
+    return `d${die?.sides ?? 6}`;
+  }
+
+  inspectArtUrl(die: DiceRecord | null): string {
+    return resolveDiceArtStyles(die?.rarity, die?.sides, 132).imageUrl;
+  }
+
+  private resolveAffixName(affix: { name?: string | null; affix_slug?: string | null }): string {
+    const name = affix.name?.trim();
+    if (name) {
+      return name;
+    }
+
+    const slug = affix.affix_slug?.trim();
+    if (!slug) {
+      return '';
+    }
+
+    return slug
+      .split(/[_-]+/)
+      .filter((segment) => segment.length > 0)
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(' ');
+  }
+
+  private normalizeLabel(value: string | null | undefined, fallback: string): string {
+    const normalized = value?.trim();
+    if (!normalized) {
+      return fallback;
+    }
+
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
+  }
 }
-
-

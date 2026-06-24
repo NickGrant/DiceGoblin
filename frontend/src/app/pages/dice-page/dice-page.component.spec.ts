@@ -20,9 +20,9 @@ class SessionServiceStub {
     },
   ] as any[]);
   readonly dice = signal([
-    { id: 'd1', sell_value: 12, sides: 8, rarity: 'rare' },
+    { id: 'd1', sell_value: 12, sides: 8, rarity: 'rare', affixes: [{ name: 'Bulwark', description: 'Increase defense by 1.' }] },
     { id: 'd2', sell_value: 8, sides: 4, rarity: 'common' },
-    { id: 'd3', sell_value: 15, sides: 10, rarity: 'epic' },
+    { id: 'd3', sell_value: 15, sides: 10, rarity: 'epic', affixes: [{ name: 'Oracle', description: 'Peek the next result.' }] },
   ] as any[]);
 }
 
@@ -74,11 +74,13 @@ describe('DicePageComponent', () => {
 
   it('shows a unit link for equipped dice and keeps sell for unequipped dice', async () => {
     const fixture = await createComponent();
+    const component = fixture.componentInstance;
     const host: HTMLElement = fixture.nativeElement;
 
-    const sellButtons = Array.from(host.querySelectorAll('button')).map((button) => button.textContent?.trim() ?? '');
-    expect(sellButtons.some((label) => label.startsWith('Sell'))).toBeTrue();
-    expect(sellButtons).not.toContain('Working...');
+    const inspectBodyText = () => host.querySelector('.dice-page__inspect')?.textContent ?? '';
+
+    component.inspectDice('d1');
+    fixture.detectChanges();
 
     const unitLinkDebug = fixture.debugElement
       .queryAll(By.directive(RouterLink))
@@ -86,10 +88,37 @@ describe('DicePageComponent', () => {
 
     expect(unitLinkDebug).toBeDefined();
     expect(unitLinkDebug!.injector.get(RouterLink).href).toContain('/warband/units/u1');
+    expect(inspectBodyText()).toContain('View Fang');
 
-    const actionLabels = host.textContent ?? '';
-    expect(actionLabels).toContain('View Fang');
-    expect(actionLabels).toContain('Sell');
+    component.inspectDice('d2');
+    fixture.detectChanges();
+
+    expect(inspectBodyText()).toContain('Sell');
+    expect(inspectBodyText()).not.toContain('Working...');
+  });
+
+  it('uses the first filtered die as the default inspect target and updates on selection', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const host: HTMLElement = fixture.nativeElement;
+    const selectedLabel = () =>
+      (host.querySelector('.dice-page__tile.is-selected') as HTMLButtonElement | null)?.getAttribute('aria-label') ?? '';
+    const inspectBodyText = () => host.querySelector('.dice-page__inspect')?.textContent ?? '';
+
+    expect(component.inspectedDice()?.id).toBe('d2');
+    expect(selectedLabel()).toContain('d4');
+    expect(inspectBodyText()).toContain('d4');
+
+    const tiles = Array.from(host.querySelectorAll('.dice-page__tile')) as HTMLButtonElement[];
+    const epicTile = tiles.find((tile) => tile.getAttribute('aria-label')?.includes('Oracle d10 d10 Epic'));
+    expect(epicTile).toBeDefined();
+
+    epicTile!.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(component.inspectedDice()?.id).toBe('d3');
+    expect(selectedLabel()).toContain('Oracle d10');
+    expect(inspectBodyText()).toContain('Oracle d10');
   });
 
   it('does not expose legacy equip controls in inventory mode', async () => {

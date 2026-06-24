@@ -61,18 +61,49 @@
     </div>
 
     <div class="col-12">
-      <div class="dg-card p-3 p-md-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+      <section class="warband-units-section">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
           <h2 class="m-0 dg-stencil">Units</h2>
+          @if (availableUnitTypes().length) {
+          <div class="warband-units-filters">
+            <span class="warband-units-filters__label">Unit Type</span>
+            <div class="warband-units-filters__chips">
+              @for (unitType of availableUnitTypes(); track unitType) {
+              <button
+                type="button"
+                class="warband-units-filters__chip"
+                [class.is-active]="isUnitTypeSelected(unitType)"
+                (click)="toggleUnitType(unitType)"
+                [attr.aria-pressed]="isUnitTypeSelected(unitType)"
+              >
+                {{ unitType }}
+              </button>
+              }
+            </div>
+            @if (selectedUnitTypes().length) {
+            <button type="button" class="warband-units-filters__clear" (click)="clearUnitTypeFilters()">
+              Clear Filters
+            </button>
+            }
+          </div>
+          }
         </div>
-        <dg-object-grid
-          [objects]="units()"
-          [objectComponent]="unitObjectComponent"
-          emptyMessage="No units available."
-          [pageSize]="9"
-          columnClasses="object-grid__col--units"
-        />
-      </div>
+        @if (filteredUnits().length) {
+        <div class="warband-units-rail" dgHorizontalRail>
+          <div class="warband-units-rail__layout">
+            @for (unit of filteredUnits(); track unit.id) {
+            <div class="warband-units-rail__tile">
+              <dg-unit-grid-object [object]="unit" />
+            </div>
+            }
+          </div>
+        </div>
+        } @else if (units().length) {
+        <dg-alert>No units match the selected filters.</dg-alert>
+        } @else {
+        <dg-alert>No units available.</dg-alert>
+        }
+      </section>
     </div>
   </div>
 </page-frame>

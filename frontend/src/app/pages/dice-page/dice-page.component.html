@@ -14,93 +14,159 @@
   </div>
   }
 
-  <div class="row g-4">
-    <div class="col-12">
-      <section class="dice-page__controls dg-card p-3 mb-3">
-        <div class="dice-page__filters">
-          <div class="dice-page__filter">
-            <label class="form-label" for="dice-size-filter">Size</label>
-            <select
-              id="dice-size-filter"
-              class="dg-select"
-              [ngModel]="selectedSize() ?? ''"
-              (ngModelChange)="updateSize($event)"
-            >
-              <option value="">All sizes</option>
-              @for (size of sizeOptions(); track size) {
-              <option [value]="size">d{{ size }}</option>
+  <section class="dice-page">
+    <section class="dice-page__layout">
+      <div class="dice-page__primary">
+        <section class="dice-page__controls">
+          <div class="dice-page__filters">
+            <div class="dice-page__filter">
+              <label class="form-label" for="dice-size-filter">Size</label>
+              <select
+                id="dice-size-filter"
+                class="dg-select"
+                [ngModel]="selectedSize() ?? ''"
+                (ngModelChange)="updateSize($event)"
+              >
+                <option value="">All sizes</option>
+                @for (size of sizeOptions(); track size) {
+                <option [value]="size">d{{ size }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="dice-page__filter">
+              <label class="form-label" for="dice-rarity-filter">Rarity</label>
+              <select
+                id="dice-rarity-filter"
+                class="dg-select"
+                [ngModel]="selectedRarity() ?? ''"
+                (ngModelChange)="updateRarity($event)"
+              >
+                <option value="">All rarities</option>
+                @for (rarity of rarityOptions(); track rarity) {
+                <option [value]="rarity">{{ rarity | titlecase }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="dice-page__filter">
+              <label class="form-label" for="dice-equip-filter">Equip State</label>
+              <select
+                id="dice-equip-filter"
+                class="dg-select"
+                [ngModel]="selectedEquipFilter()"
+                (ngModelChange)="updateEquipFilter($event)"
+              >
+                <option value="all">All dice</option>
+                <option value="equipped">Equipped only</option>
+                <option value="unequipped">Unequipped only</option>
+              </select>
+            </div>
+
+            <div class="dice-page__filter">
+              <label class="form-label" for="dice-sort">Sort</label>
+              <select
+                id="dice-sort"
+                class="dg-select"
+                [ngModel]="selectedSort()"
+                (ngModelChange)="updateSort($event)"
+              >
+                <option value="size-asc">Size: Small to Large</option>
+                <option value="size-desc">Size: Large to Small</option>
+                <option value="rarity-asc">Rarity: Common to Legendary</option>
+                <option value="rarity-desc">Rarity: Legendary to Common</option>
+              </select>
+            </div>
+          </div>
+
+          <p class="dice-page__results">Showing {{ filteredDice().length }} of {{ dice().length }} dice.</p>
+        </section>
+
+        @if (filteredDice().length) {
+        <div class="dice-page__inventory">
+          <div class="dice-page__rail">
+            <div class="dice-page__rail-layout">
+              @for (die of filteredDice(); track die.id) {
+              <button
+                type="button"
+                class="dice-page__tile"
+                [class.is-selected]="isInspecting(die.id)"
+                (click)="inspectDice(die.id)"
+                (focus)="inspectDice(die.id)"
+                (mouseenter)="inspectDice(die.id)"
+                [attr.aria-pressed]="isInspecting(die.id)"
+                [attr.aria-label]="diceTitle(die) + ' ' + sizeLabel(die) + ' ' + rarityLabel(die)"
+              >
+                <dg-dice-grid-object
+                  [object]="die"
+                  displayMode="compact"
+                  [isEquipped]="isEquippedAnywhere(die.id)"
+                />
+              </button>
               }
-            </select>
-          </div>
-
-          <div class="dice-page__filter">
-            <label class="form-label" for="dice-rarity-filter">Rarity</label>
-            <select
-              id="dice-rarity-filter"
-              class="dg-select"
-              [ngModel]="selectedRarity() ?? ''"
-              (ngModelChange)="updateRarity($event)"
-            >
-              <option value="">All rarities</option>
-              @for (rarity of rarityOptions(); track rarity) {
-              <option [value]="rarity">{{ rarity | titlecase }}</option>
-              }
-            </select>
-          </div>
-
-          <div class="dice-page__filter">
-            <label class="form-label" for="dice-equip-filter">Equip State</label>
-            <select
-              id="dice-equip-filter"
-              class="dg-select"
-              [ngModel]="selectedEquipFilter()"
-              (ngModelChange)="updateEquipFilter($event)"
-            >
-              <option value="all">All dice</option>
-              <option value="equipped">Equipped only</option>
-              <option value="unequipped">Unequipped only</option>
-            </select>
-          </div>
-
-          <div class="dice-page__filter">
-            <label class="form-label" for="dice-sort">Sort</label>
-            <select
-              id="dice-sort"
-              class="dg-select"
-              [ngModel]="selectedSort()"
-              (ngModelChange)="updateSort($event)"
-            >
-              <option value="size-asc">Size: Small to Large</option>
-              <option value="size-desc">Size: Large to Small</option>
-              <option value="rarity-asc">Rarity: Common to Legendary</option>
-              <option value="rarity-desc">Rarity: Legendary to Common</option>
-            </select>
+            </div>
           </div>
         </div>
-
-        <p class="dice-page__results mb-0 mt-3">
-          Showing {{ filteredDice().length }} of {{ dice().length }} dice.
-        </p>
-      </section>
-
-      <dg-object-grid
-        [objects]="filteredDice()"
-        [objectComponent]="diceObjectComponent"
-        [footerTemplate]="diceActions"
-        emptyMessage="No dice available."
-        columnClasses="object-grid__col--quarters"
-        [pageSize]="8"
-      />
-
-      <ng-template #diceActions let-die>
-        @if (equippedUnit(die.id); as unit) {
-          <a dgCommandBtn="primary" [routerLink]="['/warband/units', unit.id]">View {{ unit.name }}</a>
         } @else {
-          <button dgCommandBtn type="button" [teethCost]="die.sell_value" (click)="sellDice(die)" [disabled]="busyDiceId() === die.id">
-            {{ busyDiceId() === die.id ? 'Working...' : 'Sell' }}
-          </button>
+        <dg-alert>No dice available.</dg-alert>
         }
-      </ng-template>
-    </div>
-  </div>
+      </div>
+
+      @if (inspectedDice(); as die) {
+      <aside class="dice-page__inspect">
+        <div class="dice-page__inspect-head">
+          <div>
+            <p class="dice-page__inspect-kicker">{{ rarityLabel(die) }} Die</p>
+            <h2 class="dice-page__inspect-title">{{ diceTitle(die) }}</h2>
+          </div>
+          @if (isEquippedAnywhere(die.id)) {
+          <span class="dice-page__inspect-state is-equipped">Equipped</span>
+          } @else {
+          <span class="dice-page__inspect-state">Loose</span>
+          }
+        </div>
+
+        <div class="dice-page__inspect-art">
+          <img class="dice-page__inspect-image" [src]="inspectArtUrl(die)" [alt]="diceTitle(die)" />
+        </div>
+
+        <div class="dice-page__inspect-body">
+          @if (inspectedAffixDetails().length) {
+          <section class="dice-page__inspect-section">
+            <h3 class="dice-page__inspect-label">Affixes</h3>
+            <ul class="dice-page__inspect-affixes">
+              @for (affix of inspectedAffixDetails(); track affix.name + affix.description) {
+              <li class="dice-page__inspect-affix">
+                @if (affix.name) {
+                <span class="dice-page__inspect-affix-name">{{ affix.name }}</span>
+                }
+                @if (affix.description) {
+                <span class="dice-page__inspect-affix-copy">{{ affix.description }}</span>
+                }
+              </li>
+              }
+            </ul>
+          </section>
+          }
+
+          <section class="dice-page__inspect-section">
+            @if (equippedUnit(die.id); as unit) {
+              <a dgCommandBtn="primary" [routerLink]="['/warband/units', unit.id]">View {{ unit.name }}</a>
+            } @else {
+              <button
+                dgCommandBtn
+                type="button"
+                [teethCost]="die.sell_value ?? null"
+                (click)="sellDice(die)"
+                [disabled]="busyDiceId() === die.id"
+              >
+                {{ busyDiceId() === die.id ? 'Working...' : 'Sell' }}
+              </button>
+            }
+          </section>
+        </div>
+      </aside>
+      }
+    </section>
+  </section>
 </page-frame>

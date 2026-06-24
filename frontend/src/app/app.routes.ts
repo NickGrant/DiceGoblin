@@ -13,6 +13,7 @@ import { RunRestPageComponent } from './pages/run-rest-page/run-rest-page.compon
 import { RunSummaryPageComponent } from './pages/run-summary-page/run-summary-page.component';
 import { ShopPageComponent } from './pages/shop-page/shop-page.component';
 import { SquadDetailsPageComponent } from './pages/squad-details-page/squad-details-page.component';
+import { UnitCardPreviewPageComponent } from './pages/unit-card-preview-page/unit-card-preview-page.component';
 import { UnitDetailsPageComponent } from './pages/unit-details-page/unit-details-page.component';
 import { WarbandPageComponent } from './pages/warband-page/warband-page.component';
 
@@ -25,6 +26,10 @@ export const routes: Routes = [
   {
     path: 'guide',
     component: GuidePageComponent,
+  },
+  {
+    path: 'unit-card-preview',
+    component: UnitCardPreviewPageComponent,
   },
   {
     path: '',

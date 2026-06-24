@@ -1,0 +1,311 @@
+[1m[33mOption 'host' has been specified multiple times. The value '127.0.0.1' will be used.[39m[22m
+[1m[33mOption 'port' has been specified multiple times. The value '4173' will be used.[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2305: Module '"@fortawesome/free-solid-svg-icons"' has no exported member 'faSword'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/shared/ui/unit-grid-object/unit-grid-object.component.ts:4:34:
+[37m      4 │ ...t { faHeart, faShieldHalved, [32mfaSword[37m } from '@fortawesome/free-s...
+        ╵                                 [32m~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: TitleCasePipe is not used within the template of DiceGridObjectComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/shared/ui/dice-grid-object/dice-grid-object.component.ts:10:30:
+[37m      10 │   imports: [NgTemplateOutlet, [32mTitleCasePipe[37m],
+         ╵                               [32m~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: DiceGridObjectComponent is not used within the template of DicePageComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/dice-page/dice-page.component.ts:27:4:
+[37m      27 │     [32mDiceGridObjectComponent[37m,
+         ╵     [32m~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: HorizontalRailDirective is not used within the template of DicePageComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/dice-page/dice-page.component.ts:28:4:
+[37m      28 │     [32mHorizontalRailDirective[37m,
+         ╵     [32m~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: TitleCasePipe is not used within the template of DiceGridObjectComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/shared/ui/dice-grid-object/dice-grid-object.component.ts:10:30:
+[37m      10 │   imports: [NgTemplateOutlet, [32mTitleCasePipe[37m],
+         ╵                               [32m~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG8001: 'dg-object-grid' is not a known element:
+1. If 'dg-object-grid' is an Angular component, then verify that it is included in the '@Component.imports' of this component.
+2. If 'dg-object-grid' is a Web Component then add 'CUSTOM_ELEMENTS_SCHEMA' to the '@Component.schemas' of this component to suppress this message.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/dice-page/dice-page.component.html:86:6:
+[37m      86 │       [32m<dg-object-grid[37m
+         ╵       [32m~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component DicePageComponent.
+
+    src/app/pages/dice-page/dice-page.component.ts:34:15:
+[37m      34 │   templateUrl: [32m'./dice-page.component.html'[37m,
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG8002: Can't bind to 'objects' since it isn't a known property of 'dg-object-grid'.
+1. If 'dg-object-grid' is an Angular component and it has 'objects' input, then verify that it is included in the '@Component.imports' of this component.
+2. If 'dg-object-grid' is a Web Component then add 'CUSTOM_ELEMENTS_SCHEMA' to the '@Component.schemas' of this component to suppress this message.
+3. To allow any property add 'NO_ERRORS_SCHEMA' to the '@Component.schemas' of this component.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/dice-page/dice-page.component.html:87:8:
+[37m      87 │         [32m[objects]="filteredDice()"[37m
+         ╵         [32m~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component DicePageComponent.
+
+    src/app/pages/dice-page/dice-page.component.ts:34:15:
+[37m      34 │   templateUrl: [32m'./dice-page.component.html'[37m,
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG8002: Can't bind to 'objectComponent' since it isn't a known property of 'dg-object-grid'.
+1. If 'dg-object-grid' is an Angular component and it has 'objectComponent' input, then verify that it is included in the '@Component.imports' of this component.
+2. If 'dg-object-grid' is a Web Component then add 'CUSTOM_ELEMENTS_SCHEMA' to the '@Component.schemas' of this component to suppress this message.
+3. To allow any property add 'NO_ERRORS_SCHEMA' to the '@Component.schemas' of this component.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/dice-page/dice-page.component.html:88:8:
+[37m      88 │         [32m[objectComponent]="diceObjectComponent"[37m
+         ╵         [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component DicePageComponent.
+
+    src/app/pages/dice-page/dice-page.component.ts:34:15:
+[37m      34 │   templateUrl: [32m'./dice-page.component.html'[37m,
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 'diceObjectComponent' does not exist on type 'DicePageComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/dice-page/dice-page.component.html:88:27:
+[37m      88 │         [objectComponent]="[32mdiceObjectComponent[37m"
+         ╵                            [32m~~~~~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component DicePageComponent.
+
+    src/app/pages/dice-page/dice-page.component.ts:34:15:
+[37m      34 │   templateUrl: [32m'./dice-page.component.html'[37m,
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG8002: Can't bind to 'footerTemplate' since it isn't a known property of 'dg-object-grid'.
+1. If 'dg-object-grid' is an Angular component and it has 'footerTemplate' input, then verify that it is included in the '@Component.imports' of this component.
+2. If 'dg-object-grid' is a Web Component then add 'CUSTOM_ELEMENTS_SCHEMA' to the '@Component.schemas' of this component to suppress this message.
+3. To allow any property add 'NO_ERRORS_SCHEMA' to the '@Component.schemas' of this component.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/dice-page/dice-page.component.html:89:8:
+[37m      89 │         [32m[footerTemplate]="diceActions"[37m
+         ╵         [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component DicePageComponent.
+
+    src/app/pages/dice-page/dice-page.component.ts:34:15:
+[37m      34 │   templateUrl: [32m'./dice-page.component.html'[37m,
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG8002: Can't bind to 'pageSize' since it isn't a known property of 'dg-object-grid'.
+1. If 'dg-object-grid' is an Angular component and it has 'pageSize' input, then verify that it is included in the '@Component.imports' of this component.
+2. If 'dg-object-grid' is a Web Component then add 'CUSTOM_ELEMENTS_SCHEMA' to the '@Component.schemas' of this component to suppress this message.
+3. To allow any property add 'NO_ERRORS_SCHEMA' to the '@Component.schemas' of this component.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/dice-page/dice-page.component.html:92:8:
+[37m      92 │         [32m[pageSize]="8"[37m
+         ╵         [32m~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component DicePageComponent.
+
+    src/app/pages/dice-page/dice-page.component.ts:34:15:
+[37m      34 │   templateUrl: [32m'./dice-page.component.html'[37m,
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: TitleCasePipe is not used within the template of DiceGridObjectComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/shared/ui/dice-grid-object/dice-grid-object.component.ts:10:30:
+[37m      10 │   imports: [NgTemplateOutlet, [32mTitleCasePipe[37m],
+         ╵                               [32m~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG2008: Could not find template file './dice-page.component.html'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/dice-page/dice-page.component.ts:34:15:
+[37m      34 │   templateUrl: [32m'./dice-page.component.html'[37m,
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: TitleCasePipe is not used within the template of DiceGridObjectComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/shared/ui/dice-grid-object/dice-grid-object.component.ts:10:30:
+[37m      10 │   imports: [NgTemplateOutlet, [32mTitleCasePipe[37m],
+         ╵                               [32m~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG2008: Could not find template file './dice-page.component.html'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/dice-page/dice-page.component.ts:34:15:
+[37m      34 │   templateUrl: [32m'./dice-page.component.html'[37m,
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: TitleCasePipe is not used within the template of DiceGridObjectComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/shared/ui/dice-grid-object/dice-grid-object.component.ts:10:30:
+[37m      10 │   imports: [NgTemplateOutlet, [32mTitleCasePipe[37m],
+         ╵                               [32m~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mNG8113: TitleCasePipe is not used within the template of DiceGridObjectComponent[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/shared/ui/dice-grid-object/dice-grid-object.component.ts:10:30:
+[37m      10 │   imports: [NgTemplateOutlet, [32mTitleCasePipe[37m],
+         ╵                               [32m~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2322: Type 'number | undefined' is not assignable to type 'string | number | null'.
+  Type 'undefined' is not assignable to type 'string | number | null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/dice-page/dice-page.component.html:164:15:
+[37m      164 │               [[32mteethCost[37m]="die.sell_value"
+          ╵                [32m~~~~~~~~~[0m
+
+  Error occurs in the template of component DicePageComponent.
+
+    src/app/pages/dice-page/dice-page.component.ts:34:15:
+[37m      34 │   templateUrl: [32m'./dice-page.component.html'[37m,
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2322: Type 'number | undefined' is not assignable to type 'string | number | null'.
+  Type 'undefined' is not assignable to type 'string | number | null'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/dice-page/dice-page.component.html:164:15:
+[37m      164 │               [[32mteethCost[37m]="die.sell_value"
+          ╵                [32m~~~~~~~~~[0m
+
+  Error occurs in the template of component DicePageComponent.
+
+    src/app/pages/dice-page/dice-page.component.ts:34:15:
+[37m      34 │   templateUrl: [32m'./dice-page.component.html'[37m,
+         ╵                [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2307: Cannot find module './pages/dice-page/dice-page.component' or its corresponding type declarations.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.routes.ts:4:34:
+[37m      4 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "./pages/dice-page/dice-page.component"[0m
+
+    src/app/app.routes.ts:3:34:
+[37m      3 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2307: Cannot find module './pages/dice-page/dice-page.component' or its corresponding type declarations.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.routes.ts:4:34:
+[37m      4 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "./pages/dice-page/dice-page.component"[0m
+
+    src/app/app.routes.ts:3:34:
+[37m      3 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2307: Cannot find module './pages/dice-page/dice-page.component' or its corresponding type declarations.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.routes.ts:4:34:
+[37m      4 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "./pages/dice-page/dice-page.component"[0m
+
+    src/app/app.routes.ts:3:34:
+[37m      3 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2307: Cannot find module './pages/dice-page/dice-page.component' or its corresponding type declarations.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.routes.ts:4:34:
+[37m      4 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "./pages/dice-page/dice-page.component"[0m
+
+    src/app/app.routes.ts:3:34:
+[37m      3 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2307: Cannot find module './pages/dice-page/dice-page.component' or its corresponding type declarations.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.routes.ts:4:34:
+[37m      4 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "./pages/dice-page/dice-page.component"[0m
+
+    src/app/app.routes.ts:3:34:
+[37m      3 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2307: Cannot find module './pages/dice-page/dice-page.component' or its corresponding type declarations.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.routes.ts:4:34:
+[37m      4 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "./pages/dice-page/dice-page.component"[0m
+
+    src/app/app.routes.ts:3:34:
+[37m      3 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2307: Cannot find module './pages/dice-page/dice-page.component' or its corresponding type declarations.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.routes.ts:4:34:
+[37m      4 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "./pages/dice-page/dice-page.component"[0m
+
+    src/app/app.routes.ts:3:34:
+[37m      3 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS2307: Cannot find module './pages/dice-page/dice-page.component' or its corresponding type declarations.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/app.routes.ts:4:34:
+[37m      4 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "./pages/dice-page/dice-page.component"[0m
+
+    src/app/app.routes.ts:3:34:
+[37m      3 │ ...{ DicePageComponent } from [32m'./pages/dice-page/dice-page.component'[37m;
+        ╵                               [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m

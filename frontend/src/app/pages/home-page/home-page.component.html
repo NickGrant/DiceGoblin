@@ -4,7 +4,7 @@
   [subtitle]="subtitle()"
   headerVariant="home"
 >
-  <div class="home-grid" (wheel)="onGridWheel($event)">
+  <div class="home-grid" dgHorizontalRail>
     <div class="home-grid__layout">
       <div class="home-grid__tile home-grid__tile--primary">
         <a class="dg-media-card dg-media-card--feature" [routerLink]="primaryRoute()">

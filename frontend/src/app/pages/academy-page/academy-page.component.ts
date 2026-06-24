@@ -26,10 +26,20 @@ import { PageFrameComponent } from '../../layout/page-frame/page-frame.component
 export class AcademyPageComponent {
   private static readonly UNIT_UNLOCK_DESCRIPTIONS: Record<string, string> = {
     frontline_bruiser_t1: 'A durable frontliner built to absorb hits and keep pressure on the enemy line.',
+    frontline_bruiser_t2: 'An upgraded bruiser branch that leans into heavier execution damage and frontline pressure.',
+    frontline_pit_fighter_t2: 'A risky brawler branch that cashes in on wounded states, counters, and comeback turns.',
     frontline_guardian_t1: 'A shield-first defender that trades damage for stronger protection and staying power.',
+    frontline_guardian_t2: 'A fortified guardian branch that specializes in tanking, guard conversion, and line-holding.',
+    frontline_shieldbreaker_t2: 'An anti-armor frontline branch built to crack defenses open for the squad.',
     backline_marksman_t1: 'A ranged damage dealer that thrives from the back row with steady offensive pressure.',
+    backline_marksman_t2: 'A precision ranged branch focused on single-target removal and armor-piercing shots.',
+    backline_trapper_t2: 'A utility archer branch built around marks, setup tools, and treasure sense.',
     support_banner_t1: 'A support specialist that reinforces nearby allies and helps the squad endure longer fights.',
+    support_banner_t2: 'An offensive support branch that turns team tempo and buffs into aggressive momentum.',
+    support_mascot_t2: 'A chaotic support branch that spreads luck, morale swings, and scrappy clutch bonuses.',
     control_saboteur_t1: 'A disruptive skirmisher focused on interference, control, and breaking enemy momentum.',
+    control_saboteur_t2: 'A sharper control branch that punishes compromised enemies with precise follow-up pressure.',
+    control_plaguehand_t2: 'A poison-heavy control branch that spreads weakness and softens multiple targets at once.',
   };
 
   private readonly route = inject(ActivatedRoute);

@@ -13,7 +13,7 @@ final class AcademyControllerIntegrationTest extends IntegrationTestCase
     return 'Set TEST_DB_DSN to run academy integration tests.';
   }
 
-  public function testCatalogShowsTierOneUnlocksWithExpectedPricing(): void
+  public function testCatalogShowsTierOneAndTierTwoUnlocksWithExpectedPricing(): void
   {
     $userId = $this->insertUser('qa_academy', 'QA Academy');
     $_SESSION['user_id'] = $userId;
@@ -33,8 +33,10 @@ final class AcademyControllerIntegrationTest extends IntegrationTestCase
       $bySlug[(string)($row['unit_type_slug'] ?? '')] = $row;
     }
 
-    $this->assertSame(500, (int)($bySlug['frontline_guardian_t1']['cost'] ?? 0));
+    $this->assertSame(250, (int)($bySlug['frontline_guardian_t1']['cost'] ?? 0));
     $this->assertSame(250, (int)($bySlug['support_banner_t1']['cost'] ?? 0));
+    $this->assertSame(500, (int)($bySlug['frontline_bruiser_t2']['cost'] ?? 0));
+    $this->assertSame(500, (int)($bySlug['support_banner_t2']['cost'] ?? 0));
     $this->assertTrue((bool)($bySlug['frontline_bruiser_t1']['is_unlocked'] ?? false));
     $this->assertTrue((bool)($bySlug['backline_marksman_t1']['is_unlocked'] ?? false));
     $this->assertFalse((bool)($bySlug['support_banner_t1']['is_unlocked'] ?? true));

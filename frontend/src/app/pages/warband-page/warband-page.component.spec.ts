@@ -9,7 +9,10 @@ import { SquadService } from '../../core/services/squad/squad.service';
 class SessionServiceStub {
   readonly profile = signal({ activeSquadName: 'Alpha' });
   readonly squads = signal([{ id: '1', name: 'Alpha', is_active: true, unit_ids: ['u1'] }]);
-  readonly units = signal([{ id: 'u1', name: 'Fang', locked: false }]);
+  readonly units = signal([
+    { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', locked: false },
+    { id: 'u2', name: 'Muckjaw', unit_type_name: 'Plaguehand', locked: false },
+  ]);
   readonly profileData = signal({ active_run: null });
   readonly activeSquad = signal({ id: '1', name: 'Alpha', is_active: true, unit_ids: ['u1'] } as any);
 }
@@ -101,12 +104,40 @@ describe('WarbandPageComponent', () => {
     expect(toggle?.disabled).toBeTrue();
   });
 
-  it('shows more units per page in the expanded layout', () => {
+  it('renders units in the horizontal rail layout', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
-    const objectGrid = fixture.debugElement.query(By.css('dg-object-grid'));
+    const host: HTMLElement = fixture.nativeElement;
+    const rail = host.querySelector('.warband-units-rail');
+    const tiles = host.querySelectorAll('.warband-units-rail__tile');
 
-    expect(objectGrid.componentInstance.pageSize()).toBe(9);
+    expect(rail).not.toBeNull();
+    expect(tiles.length).toBe(2);
+  });
+
+  it('filters units by selected unit types', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.toggleUnitType('Bruiser');
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const tiles = host.querySelectorAll('.warband-units-rail__tile');
+
+    expect(tiles.length).toBe(1);
+    expect(host.textContent).toContain('Fang');
+    expect(host.textContent).not.toContain('Muckjaw');
+  });
+
+  it('clears unit type filters', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.toggleUnitType('Bruiser');
+    fixture.componentInstance.clearUnitTypeFilters();
+
+    expect(fixture.componentInstance.selectedUnitTypes()).toEqual([]);
   });
 });
