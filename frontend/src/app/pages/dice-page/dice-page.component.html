@@ -91,10 +91,9 @@
                 type="button"
                 class="dice-page__tile"
                 [class.is-selected]="isInspecting(die.id)"
-                (click)="inspectDice(die.id)"
-                (focus)="inspectDice(die.id)"
-                (mouseenter)="inspectDice(die.id)"
-                [attr.aria-pressed]="isInspecting(die.id)"
+                (click)="activateDice(die)"
+                (focus)="previewDice(die.id)"
+                (mouseenter)="previewDice(die.id)"
                 [attr.aria-label]="diceTitle(die) + ' ' + sizeLabel(die) + ' ' + rarityLabel(die)"
               >
                 <dg-dice-grid-object
@@ -157,7 +156,7 @@
                 dgCommandBtn
                 type="button"
                 [teethCost]="die.sell_value ?? null"
-                (click)="sellDice(die)"
+                (click)="activateDice(die)"
                 [disabled]="busyDiceId() === die.id"
               >
                 {{ busyDiceId() === die.id ? 'Working...' : 'Sell' }}
@@ -169,4 +168,16 @@
       }
     </section>
   </section>
+
+  <dg-confirm-modal
+    [open]="!!pendingSellDiceId()"
+    title="Sell Die"
+    [message]="'Sell ' + (diceTitle(pendingSellDice()) || 'this die') + ' for ' + (pendingSellDice()?.sell_value ?? 0) + ' teeth?'"
+    confirmLabel="Sell"
+    cancelLabel="Keep It"
+    [busy]="!!busyDiceId()"
+    tone="danger"
+    (dismissed)="closeSellConfirm()"
+    (confirmed)="confirmSellDice()"
+  />
 </page-frame>

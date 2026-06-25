@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { RouterLink, provideRouter } from '@angular/router';
+import { Router, RouterLink, provideRouter } from '@angular/router';
 import { WarbandPageComponent } from './warband-page.component';
 import { SessionService } from '../../core/services/session/session.service';
 import { SquadService } from '../../core/services/squad/squad.service';
@@ -24,6 +24,7 @@ class SquadServiceStub {
 
 describe('WarbandPageComponent', () => {
   let squadService: SquadServiceStub;
+  let router: Router;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -36,6 +37,7 @@ describe('WarbandPageComponent', () => {
     }).compileComponents();
 
     squadService = TestBed.inject(SquadService) as unknown as SquadServiceStub;
+    router = TestBed.inject(Router);
   });
 
   it('creates a squad and sets a success message', async () => {
@@ -76,19 +78,14 @@ describe('WarbandPageComponent', () => {
     expect(host.textContent).not.toContain('Active squad');
   });
 
-  it('uses unit cards as details links without unit action buttons', () => {
+  it('shows the inspected unit card without extra header chrome or action buttons', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
-    const unitLinkDebug = fixture.debugElement
-      .queryAll(By.directive(RouterLink))
-      .find((element) => element.nativeElement.textContent?.includes('Fang'));
-
-    expect(unitLinkDebug).toBeDefined();
-    expect(unitLinkDebug!.injector.get(RouterLink).href).toContain('/warband/units/u1');
-    expect(host.textContent).not.toContain('Dice');
-    expect(host.textContent).not.toContain('Unit Record');
+    expect(host.textContent).not.toContain('Selected Unit');
+    expect(host.textContent).not.toContain('Open Unit');
+    expect(host.querySelector('.warband-units-inspect__panel .unit-grid-object')).not.toBeNull();
   });
 
   it('marks the active squad as locked during an active run and disables squad toggles', () => {
@@ -104,27 +101,27 @@ describe('WarbandPageComponent', () => {
     expect(toggle?.disabled).toBeTrue();
   });
 
-  it('renders units in the horizontal rail layout', () => {
+  it('renders units in the inspect grid layout', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
-    const rail = host.querySelector('.warband-units-rail');
-    const tiles = host.querySelectorAll('.warband-units-rail__tile');
+    const grid = host.querySelector('.warband-units-grid');
+    const tiles = host.querySelectorAll('.warband-units-grid__tile');
 
-    expect(rail).not.toBeNull();
+    expect(grid).not.toBeNull();
     expect(tiles.length).toBe(2);
   });
 
-  it('filters units by selected unit types', () => {
+  it('filters units by selected unit type', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.toggleUnitType('Bruiser');
+    fixture.componentInstance.updateUnitType('Bruiser');
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
-    const tiles = host.querySelectorAll('.warband-units-rail__tile');
+    const tiles = host.querySelectorAll('.warband-units-grid__tile');
 
     expect(tiles.length).toBe(1);
     expect(host.textContent).toContain('Fang');
@@ -135,9 +132,31 @@ describe('WarbandPageComponent', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.toggleUnitType('Bruiser');
-    fixture.componentInstance.clearUnitTypeFilters();
+    fixture.componentInstance.updateUnitType('Bruiser');
+    fixture.componentInstance.clearUnitFilters();
 
-    expect(fixture.componentInstance.selectedUnitTypes()).toEqual([]);
+    expect(fixture.componentInstance.selectedUnitType()).toBeNull();
+  });
+
+  it('supports hover preview for the inspect sidebar', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+
+    expect(component.inspectedUnit()?.id).toBe('u1');
+
+    component.previewUnit('u2');
+    expect(component.inspectedUnit()?.id).toBe('u2');
+  });
+
+  it('opens a unit directly when a grid tile is activated', async () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+    spyOn(router, 'navigate').and.resolveTo(true);
+
+    await fixture.componentInstance.openUnit('u2');
+
+    expect(router.navigate).toHaveBeenCalledWith(['/warband/units', 'u2']);
   });
 });

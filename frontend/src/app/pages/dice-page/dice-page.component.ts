@@ -1,7 +1,7 @@
 import { TitleCasePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { DiceRecord } from '../../core/models/api.models';
 import { DiceService } from '../../core/services/dice/dice.service';
 import { SessionService } from '../../core/services/session/session.service';
@@ -9,6 +9,7 @@ import { PageFrameComponent } from '../../layout/page-frame/page-frame.component
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
+import { ConfirmModalComponent } from '../../shared/ui/confirm-modal/confirm-modal.component';
 import {
   buildDiceRarityOptions,
   buildDiceSizeOptions,
@@ -21,13 +22,14 @@ import { DiceGridObjectComponent } from '../../shared/ui/dice-grid-object/dice-g
 @Component({
   selector: 'app-dice-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DiceGridObjectComponent, PageFrameComponent, FormsModule, RouterLink, TitleCasePipe],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DiceGridObjectComponent, PageFrameComponent, FormsModule, RouterLink, TitleCasePipe, ConfirmModalComponent],
   templateUrl: './dice-page.component.html',
   styleUrl: './dice-page.component.scss',
 })
 export class DicePageComponent {
   private readonly diceService = inject(DiceService);
   private readonly sessionService = inject(SessionService);
+  private readonly router = inject(Router);
 
   readonly profileData = this.sessionService.profileData;
   readonly dice = computed(() => this.sessionService.dice());
@@ -38,7 +40,8 @@ export class DicePageComponent {
   readonly selectedRarity = signal<string | null>(null);
   readonly selectedEquipFilter = signal<DiceEquipFilter>('all');
   readonly selectedSort = signal<DiceSortOption>('size-asc');
-  readonly inspectedDiceId = signal<string | null>(null);
+  readonly hoveredDiceId = signal<string | null>(null);
+  readonly pendingSellDiceId = signal<string | null>(null);
   readonly sizeOptions = computed(() => buildDiceSizeOptions(this.dice()));
   readonly rarityOptions = computed(() => buildDiceRarityOptions(this.dice()));
   readonly filteredDice = computed(() =>
@@ -56,9 +59,17 @@ export class DicePageComponent {
       return null;
     }
 
-    const selectedId = this.inspectedDiceId();
-    return filteredDice.find((die) => die.id === selectedId) ?? filteredDice[0] ?? null;
+    const hoveredId = this.hoveredDiceId();
+    if (hoveredId) {
+      const hoveredDie = filteredDice.find((die) => die.id === hoveredId);
+      if (hoveredDie) {
+        return hoveredDie;
+      }
+    }
+
+    return filteredDice[0] ?? null;
   });
+  readonly pendingSellDice = computed(() => this.dice().find((die) => die.id === this.pendingSellDiceId()) ?? null);
   readonly inspectedAffixDetails = computed(() =>
     (this.inspectedDice()?.affixes ?? [])
       .map((affix) => ({
@@ -115,15 +126,50 @@ export class DicePageComponent {
     this.selectedSort.set(value);
   }
 
-  inspectDice(diceId: string): void {
-    this.inspectedDiceId.set(diceId);
+  previewDice(diceId: string): void {
+    this.hoveredDiceId.set(diceId);
+  }
+
+  async activateDice(die: DiceRecord): Promise<void> {
+    const unit = this.equippedUnit(die.id);
+    if (unit) {
+      await this.router.navigate(['/warband/units', unit.id]);
+      return;
+    }
+
+    this.pendingSellDiceId.set(die.id);
+  }
+
+  closeSellConfirm(): void {
+    if (this.busyDiceId()) {
+      return;
+    }
+
+    this.pendingSellDiceId.set(null);
+  }
+
+  async confirmSellDice(): Promise<void> {
+    const die = this.pendingSellDice();
+    if (!die) {
+      this.pendingSellDiceId.set(null);
+      return;
+    }
+
+    await this.sellDice(die);
+    if (!this.error()) {
+      this.pendingSellDiceId.set(null);
+    }
   }
 
   isInspecting(diceId: string): boolean {
     return this.inspectedDice()?.id === diceId;
   }
 
-  diceTitle(die: DiceRecord): string {
+  diceTitle(die: DiceRecord | null): string {
+    if (!die) {
+      return 'd6';
+    }
+
     const displayName = die.display_name?.trim();
     if (displayName) {
       return displayName;

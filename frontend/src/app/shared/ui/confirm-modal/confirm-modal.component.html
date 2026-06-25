@@ -1,0 +1,29 @@
+@if (open()) {
+  <div class="confirm-modal-backdrop" (click)="close()">
+    <section
+      class="confirm-modal"
+      [class.confirm-modal--danger]="tone() === 'danger'"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="title()"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="confirm-modal__header">
+        <h2 class="confirm-modal__title dg-stencil">{{ title() }}</h2>
+      </div>
+
+      <div class="confirm-modal__body">
+        <p class="confirm-modal__message">{{ message() }}</p>
+      </div>
+
+      <div class="confirm-modal__actions">
+        <button dgCommandBtn="muted" type="button" (click)="close()" [disabled]="busy()">
+          {{ cancelLabel() }}
+        </button>
+        <button [dgCommandBtn]="tone() === 'danger' ? 'primary' : 'teal'" type="button" (click)="confirm()" [disabled]="busy()">
+          {{ busy() ? 'Working...' : confirmLabel() }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

@@ -1,13 +1,12 @@
 import { Component } from '@angular/core';
 import { UnitRecord } from '../../core/models/api.models';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { HorizontalRailDirective } from '../../shared/ui/horizontal-rail/horizontal-rail.directive';
 import { UnitGridObjectComponent } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 
 @Component({
   selector: 'app-unit-card-preview-page',
   standalone: true,
-  imports: [HorizontalRailDirective, PageFrameComponent, UnitGridObjectComponent],
+  imports: [PageFrameComponent, UnitGridObjectComponent],
   templateUrl: './unit-card-preview-page.component.html',
   styleUrl: './unit-card-preview-page.component.scss',
 })

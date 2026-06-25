@@ -4,9 +4,11 @@
 }
 
 .dice-page {
+  --inspect-layout-edge: 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  padding-inline: var(--inspect-layout-edge);
 }
 
 .dice-page__controls,
@@ -228,6 +230,10 @@
 }
 
 @media (min-width: 441px) {
+  .dice-page {
+    --inspect-layout-edge: 1rem;
+  }
+
   .dice-page__filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -246,6 +252,10 @@
 }
 
 @media (min-width: 761px) {
+  .dice-page {
+    --inspect-layout-edge: 1rem;
+  }
+
   .dice-page__layout {
     grid-template-columns: minmax(0, 1.85fr) minmax(280px, 0.8fr);
     align-items: start;

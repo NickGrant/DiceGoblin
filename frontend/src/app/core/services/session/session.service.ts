@@ -39,6 +39,7 @@ export class SessionService {
   private readonly loadingState = signal(false);
   private readonly errorState = signal<string | null>(null);
   private initialized = false;
+  private initializePromise: Promise<void> | null = null;
 
   readonly session = this.sessionState.asReadonly();
   readonly profile = this.profileState.asReadonly();
@@ -63,12 +64,24 @@ export class SessionService {
   ) {}
 
   async initialize(): Promise<void> {
-    if (this.initialized || this.loadingState()) {
+    if (this.initializePromise) {
+      return this.initializePromise;
+    }
+
+    if (this.initialized) {
       return;
     }
 
-    this.initialized = true;
-    await this.refresh();
+    this.initializePromise = (async () => {
+      await this.refresh();
+      this.initialized = true;
+    })();
+
+    try {
+      await this.initializePromise;
+    } finally {
+      this.initializePromise = null;
+    }
   }
 
   async refresh(): Promise<void> {
@@ -103,6 +116,7 @@ export class SessionService {
     }
 
     this.initialized = false;
+    this.initializePromise = null;
     this.sessionState.set(DEFAULT_SESSION);
     this.profileState.set(DEFAULT_PROFILE);
     this.profileDataState.set(null);

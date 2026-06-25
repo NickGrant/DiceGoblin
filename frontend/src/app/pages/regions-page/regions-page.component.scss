@@ -3,172 +3,276 @@
   height: 100%;
 }
 
-.region-grid {
-  --region-grid-space: 1rem;
-  padding-top: var(--region-grid-space);
+.region-page {
+  --inspect-layout-edge: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-inline: var(--inspect-layout-edge);
 }
 
-.region-grid__layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--region-grid-space);
-}
-
-.region-grid__tile {
-  min-width: 0;
-  transition: transform 180ms ease;
-}
-
-:host ::ng-deep .region-tile {
-  height: auto;
-  min-height: 32rem;
-  border: 2px solid rgba(35, 39, 42, 0.68);
+.region-page__inspect {
+  border: 1px solid rgba(98, 70, 35, 0.22);
+  border-radius: 1.5rem;
   background:
-    linear-gradient(180deg, rgba(245, 238, 221, 0.92), rgba(221, 210, 188, 0.9)),
-    url('/assets/ui/textures/paper.png');
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    box-shadow 180ms ease,
-    opacity 180ms ease;
-  transform-origin: center center;
+    linear-gradient(180deg, rgba(251, 245, 228, 0.97), rgba(236, 228, 206, 0.95)),
+    rgba(255, 255, 255, 0.82);
+  box-shadow: 0 18px 34px rgba(52, 34, 17, 0.12);
 }
 
-:host ::ng-deep .region-tile:hover,
-:host ::ng-deep .region-tile:focus-within {
-  transform: scale(1.03);
-  border-color: rgba(255, 240, 211, 0.72);
-  box-shadow:
-    0 22px 34px rgba(0, 0, 0, 0.22),
-    0 0 0 1px rgba(255, 240, 211, 0.35);
-  z-index: 1;
+.region-page__layout {
+  display: grid;
+  gap: 1rem;
 }
 
-.region-tile--locked {
-  opacity: 0.86;
+.region-page__primary {
+  min-width: 0;
+  display: grid;
+  gap: 0;
 }
 
-.region-tile--locked .region-tile__badge {
-  filter: grayscale(0.32) saturate(0.78);
+.region-page__inventory {
+  min-width: 0;
 }
 
-.region-tile__badge-stage {
+.region-page__rail {
+  padding: 0.35rem 0 0;
+}
+
+.region-page__rail-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 288px), 288px));
+  gap: 1rem;
+  align-items: stretch;
+  justify-content: start;
+}
+
+.region-page__tile {
+  position: relative;
+  appearance: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 17rem;
-  padding: 1.25rem 1rem 0.75rem;
-  background:
-    radial-gradient(circle at top, rgba(255, 244, 214, 0.72), rgba(255, 244, 214, 0)),
-    linear-gradient(180deg, rgba(113, 56, 22, 0.08), rgba(35, 39, 42, 0));
+  width: min(100%, 288px);
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 1rem;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
 }
 
-.region-tile__badge {
+.region-page__tile:hover,
+.region-page__tile:focus-visible,
+.region-page__tile.is-selected {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 2px rgba(149, 87, 23, 0.55);
+}
+
+.region-page__tile:focus-visible {
+  outline: 2px solid rgba(168, 102, 33, 0.35);
+  outline-offset: 2px;
+}
+
+.region-page__tile.is-locked {
+  opacity: 0.86;
+}
+
+.region-page__tile.is-locked .region-page__tile-badge {
+  filter: grayscale(0.32) saturate(0.8);
+}
+
+.region-page__tile-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  max-width: 17.5rem;
-  max-height: 15rem;
-  object-fit: contain;
-  filter: drop-shadow(0 14px 24px rgba(35, 39, 42, 0.28));
+  min-height: 100%;
 }
 
-.region-tile__overlay {
-  position: static;
+.region-page__tile-badge {
+  width: 100%;
+  height: auto;
+  max-width: 288px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 14px rgba(46, 30, 16, 0.2));
+}
+
+.region-page__tile-tag,
+.region-page__inspect-state {
+  border: 1px solid rgba(103, 74, 40, 0.2);
+  border-radius: 999px;
+  background: rgba(245, 236, 215, 0.92);
+  color: rgba(70, 46, 18, 0.82);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 0.35rem 0.7rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.region-page__tile-tag {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+}
+
+.region-page__tile-tag.is-active,
+.region-page__inspect-state.is-active {
+  background: rgba(213, 234, 214, 0.94);
+  border-color: rgba(56, 122, 67, 0.2);
+  color: #285934;
+}
+
+.region-page__inspect-state.is-locked {
+  background: rgba(246, 226, 202, 0.94);
+  border-color: rgba(131, 74, 25, 0.16);
+  color: #854315;
+}
+
+.region-page__inspect {
+  padding: 1.15rem;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  min-height: 15rem;
   gap: 1rem;
-  padding: 1rem 1.1rem 1.1rem;
-  background:
-    linear-gradient(180deg, rgba(35, 39, 42, 0.22), rgba(35, 39, 42, 0.88));
 }
 
-.region-tile__chips {
+.region-page__inspect-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.region-page__inspect-kicker,
+.region-page__inspect-title,
+.region-page__inspect-label,
+.region-page__inspect-copy {
+  margin: 0;
+}
+
+.region-page__inspect-kicker {
+  color: rgba(100, 67, 31, 0.78);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.region-page__inspect-title {
+  color: #271b14;
+  font-family: var(--font-display, 'Bebas Neue', sans-serif);
+  font-size: clamp(1.8rem, 1.45rem + 0.8vw, 2.35rem);
+  letter-spacing: 0.04em;
+  line-height: 0.92;
+}
+
+.region-page__inspect-art {
+  border: 1px solid rgba(98, 70, 35, 0.14);
+  border-radius: 1.15rem;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.85), rgba(240, 230, 207, 0.72)),
+    rgba(242, 233, 212, 0.86);
+  min-height: 13rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.region-page__inspect-image {
+  width: min(100%, 240px);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 16px rgba(46, 30, 16, 0.18));
+}
+
+.region-page__inspect-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.region-page__inspect-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.region-page__inspect-label {
+  color: rgba(96, 63, 28, 0.88);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.region-page__inspect-copy {
+  color: rgba(36, 27, 19, 0.86);
+  line-height: 1.45;
+}
+
+.region-page__chips {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.region-tile__chips .dg-chip {
+.region-page__chips .dg-chip {
   background: rgba(243, 239, 224, 0.88);
   color: var(--dg-charcoal);
 }
 
-.region-tile__energy-chip img {
+.region-page__energy-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.region-page__energy-chip img {
   width: 16px;
   height: 16px;
   display: block;
   object-fit: contain;
 }
 
-.region-tile__body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+@media (max-width: 760px) {
+  .region-page__tile:hover,
+  .region-page__tile:focus-visible,
+  .region-page__tile.is-selected {
+    transform: none;
+  }
 }
 
-.region-tile__body .dg-media-card__title {
-  font-size: clamp(1.6rem, 2vw, 2.2rem);
-}
-
-.region-tile__summary,
-.region-tile__meta {
-  margin: 0;
-}
-
-.region-tile__meta {
-  color: rgba(243, 239, 224, 0.88);
-  font-size: 0.95rem;
-}
-
-.region-tile__footer .dg-command-btn {
-  min-width: 11rem;
+@media (min-width: 441px) {
+  .region-page {
+    --inspect-layout-edge: 1rem;
+  }
 }
 
 @media (min-width: 761px) {
-  .region-grid {
-    --region-grid-space: 1.5rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-x: contain;
-    padding-inline-start: var(--region-grid-space);
-    padding-bottom: 0.65rem;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+  .region-page {
+    --inspect-layout-edge: 1rem;
   }
 
-  .region-grid::-webkit-scrollbar {
-    display: none;
+  .region-page__layout {
+    grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.95fr);
+    align-items: start;
   }
 
-  .region-grid__layout {
-    width: max-content;
-    min-width: 100%;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(21rem, 26rem);
-    grid-template-columns: none;
-    padding-bottom: 0.45rem;
+  .region-page__rail {
+    padding-bottom: 0.5rem;
   }
 
-  :host ::ng-deep .region-tile {
-    min-height: 34rem;
-  }
-}
-
-@media (max-width: 440px) {
-  .region-grid {
-    background: rgba(243, 239, 224, 0.42);
-    padding: 0.75rem;
-  }
-
-  :host ::ng-deep .region-tile {
-    min-height: 0;
-  }
-}
-
-@media (max-width: 760px) {
-  :host ::ng-deep .region-tile:hover,
-  :host ::ng-deep .region-tile:focus-within {
-    transform: none;
+  .region-page__inspect {
+    position: sticky;
+    top: 1rem;
   }
 }

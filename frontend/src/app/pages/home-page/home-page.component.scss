@@ -6,7 +6,7 @@
 .home-grid {
   --home-grid-space: 1rem;
   flex: 1 1 auto;
-  padding-top: var(--home-grid-space);
+  padding-inline: 1rem;
 }
 
 .home-grid__layout {
@@ -65,37 +65,15 @@
 @media (min-width: 761px) {
   .home-grid {
     --home-grid-space: 1.5rem;
-    --home-grid-hover-bleed: 0.75rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-x: contain;
-    padding-inline-start: var(--home-grid-space);
-    padding-bottom: calc(0.35rem + var(--home-grid-hover-bleed));
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .home-grid::-webkit-scrollbar {
-    display: none;
+    padding-inline: 1rem;
   }
 
   .home-grid__layout {
-    width: max-content;
-    min-width: 100%;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(18.5rem, 20rem);
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    grid-template-columns: none;
-    padding-bottom: var(--home-grid-hover-bleed);
-  }
-
-  .home-grid__tile {
-    height: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   :host ::ng-deep .dg-media-card--compact {
-    height: 100%;
-    aspect-ratio: auto;
+    aspect-ratio: 311 / 234;
   }
 
   .home-grid__tile--primary {

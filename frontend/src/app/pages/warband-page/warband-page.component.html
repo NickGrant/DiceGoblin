@@ -19,7 +19,7 @@
 
   <div class="row g-4">
     <div class="col-12">
-      <div class="dg-card p-3 p-md-4">
+      <section class="warband-squads-section">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h2 class="m-0 dg-stencil">Squads</h2>
           <button dgCommandBtn="primary" type="button" (click)="createSquad()" [disabled]="isSaving()">
@@ -29,8 +29,22 @@
 
         @if (squads().length) {
         <div class="squad-grid">
-          @for (squad of squads(); track squad.id) {
+          @for (squad of sortedSquads(); track squad.id) {
           <article class="squad-card" [class.is-active]="squad.is_active">
+            <a class="squad-card__link" [routerLink]="['/warband/squads', squad.id]">
+              <span class="squad-card__icon" [class.is-active]="squad.is_active" aria-hidden="true">
+                <span class="squad-card__icon-frame"></span>
+                <span class="squad-card__icon-check"></span>
+              </span>
+              <span class="squad-card__nameplate">
+                <strong>{{ squad.name }}</strong>
+                <span>{{ squad.unit_ids.length }} units</span>
+              </span>
+              @if (squadLockMessage(squad.id); as lockMessage) {
+              <span class="squad-card__lock">{{ lockMessage }}</span>
+              }
+            </a>
+
             <button
               class="squad-card__toggle"
               [class.is-active]="squad.is_active"
@@ -41,63 +55,97 @@
               (click)="activateSquad(squad.id)"
               [disabled]="squad.is_active || isSaving() || !!activeRun()"
             >
-              <span class="squad-card__toggle-box" aria-hidden="true"></span>
+              {{ squad.is_active ? 'Active' : 'Set Active' }}
             </button>
-
-            <a class="squad-card__link" [routerLink]="['/warband/squads', squad.id]">
-              <strong>{{ squad.name }}</strong>
-              <p class="mb-0">{{ squad.unit_ids.length }} units</p>
-              @if (squadLockMessage(squad.id); as lockMessage) {
-              <p class="squad-card__lock mb-0">{{ lockMessage }}</p>
-              }
-            </a>
           </article>
           }
         </div>
         } @else {
         <dg-alert>No squads available.</dg-alert>
         }
-      </div>
+      </section>
     </div>
 
     <div class="col-12">
       <section class="warband-units-section">
+        <div class="warband-units-section__divider" aria-hidden="true"></div>
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
           <h2 class="m-0 dg-stencil">Units</h2>
-          @if (availableUnitTypes().length) {
-          <div class="warband-units-filters">
-            <span class="warband-units-filters__label">Unit Type</span>
-            <div class="warband-units-filters__chips">
-              @for (unitType of availableUnitTypes(); track unitType) {
-              <button
-                type="button"
-                class="warband-units-filters__chip"
-                [class.is-active]="isUnitTypeSelected(unitType)"
-                (click)="toggleUnitType(unitType)"
-                [attr.aria-pressed]="isUnitTypeSelected(unitType)"
-              >
-                {{ unitType }}
-              </button>
-              }
-            </div>
-            @if (selectedUnitTypes().length) {
-            <button type="button" class="warband-units-filters__clear" (click)="clearUnitTypeFilters()">
-              Clear Filters
-            </button>
-            }
-          </div>
-          }
         </div>
         @if (filteredUnits().length) {
-        <div class="warband-units-rail" dgHorizontalRail>
-          <div class="warband-units-rail__layout">
-            @for (unit of filteredUnits(); track unit.id) {
-            <div class="warband-units-rail__tile">
-              <dg-unit-grid-object [object]="unit" />
+        <section class="warband-units-inspect">
+          <div class="warband-units-inspect__layout">
+            <div class="warband-units-inspect__primary">
+              <section class="warband-units-controls">
+                <div class="warband-units-controls__filters">
+                  <div class="warband-units-controls__filter">
+                    <label class="form-label" for="warband-unit-type-filter">Unit Type</label>
+                    <select
+                      id="warband-unit-type-filter"
+                      class="dg-select"
+                      [ngModel]="selectedUnitType() ?? ''"
+                      (ngModelChange)="updateUnitType($event)"
+                    >
+                      <option value="">All unit types</option>
+                      @for (unitType of availableUnitTypes(); track unitType) {
+                      <option [value]="unitType">{{ unitType }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="warband-units-controls__filter">
+                    <label class="form-label" for="warband-unit-sort">Sort</label>
+                    <select
+                      id="warband-unit-sort"
+                      class="dg-select"
+                      [ngModel]="selectedUnitSort()"
+                      (ngModelChange)="updateUnitSort($event)"
+                    >
+                      <option value="level-desc">Level: High to Low</option>
+                      <option value="tier-desc">Tier: High to Low</option>
+                      <option value="name-asc">Name: A to Z</option>
+                    </select>
+                  </div>
+                </div>
+
+                <p class="warband-units-controls__results">
+                  Showing {{ filteredUnits().length }} of {{ units().length }} units.
+                </p>
+              </section>
+
+              <div class="warband-units-grid">
+                @for (unit of filteredUnits(); track unit.id) {
+                <button
+                  type="button"
+                  class="warband-units-grid__tile"
+                  [class.is-selected]="isInspectingUnit(unit.id)"
+                  (click)="openUnit(unit.id)"
+                  (focus)="previewUnit(unit.id)"
+                  (mouseenter)="previewUnit(unit.id)"
+                  [attr.aria-label]="unit.name + ' ' + (unit.unit_type_name || unit.unit_type_slug || 'Unit')"
+                >
+                  <span class="warband-units-grid__tile-art">
+                    @if (unitCardArtUrl(unit); as artUrl) {
+                    <img class="warband-units-grid__tile-image" [src]="artUrl" [alt]="unit.name" />
+                    } @else {
+                    <span class="warband-units-grid__tile-fallback" aria-hidden="true"></span>
+                    }
+                  </span>
+                  <span class="warband-units-grid__tile-nameplate">
+                    <span class="warband-units-grid__tile-name dg-stencil">{{ unit.name }}</span>
+                  </span>
+                </button>
+                }
+              </div>
             </div>
+
+            @if (inspectedUnit(); as unit) {
+            <aside class="warband-units-inspect__panel">
+              <dg-unit-grid-object [object]="unit" [linkEnabled]="false" />
+            </aside>
             }
           </div>
-        </div>
+        </section>
         } @else if (units().length) {
         <dg-alert>No units match the selected filters.</dg-alert>
         } @else {

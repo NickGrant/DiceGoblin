@@ -7,6 +7,7 @@ import { RegionUnlockRecord } from '../../core/models/api.models';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
+import { ConfirmModalComponent } from '../../shared/ui/confirm-modal/confirm-modal.component';
 
 type RegionCard = {
   slug: string;
@@ -60,7 +61,7 @@ const REGION_CARDS: RegionCard[] = [
 @Component({
   selector: 'app-regions-page',
   standalone: true,
-  imports: [DatePipe, DgAlertComponent, DgCommandBtnDirective, PageFrameComponent],
+  imports: [DatePipe, DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, ConfirmModalComponent],
   templateUrl: './regions-page.component.html',
   styleUrl: './regions-page.component.scss',
 })
@@ -73,6 +74,8 @@ export class RegionsPageComponent {
   readonly profileData = this.sessionService.profileData;
   readonly isStarting = signal(false);
   readonly startingSlug = signal<string | null>(null);
+  readonly hoveredSlug = signal<string | null>(null);
+  readonly pendingRegionSlug = signal<string | null>(null);
   readonly message = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly regions = computed(() => {
@@ -86,7 +89,23 @@ export class RegionsPageComponent {
       };
     });
   });
-  readonly unlockedRegionCount = computed(() => this.regions().filter((region) => region.isUnlocked).length);
+  readonly inspectedRegion = computed(() => {
+    const regions = this.regions();
+    if (!regions.length) {
+      return null;
+    }
+
+    const hoveredSlug = this.hoveredSlug();
+    if (hoveredSlug) {
+      const hoveredRegion = regions.find((region) => region.slug === hoveredSlug);
+      if (hoveredRegion) {
+        return hoveredRegion;
+      }
+    }
+
+    return regions[0] ?? null;
+  });
+  readonly pendingRegion = computed(() => this.regions().find((region) => region.slug === this.pendingRegionSlug()) ?? null);
 
   isActiveRegion(regionId: string | null): boolean {
     return this.profileData()?.active_run?.region_id === regionId;
@@ -152,27 +171,39 @@ export class RegionsPageComponent {
   }
 
   async activateRegion(region: RegionCardViewModel): Promise<void> {
+    if (this.regionActionDisabled(region)) {
+      return;
+    }
+
     if (this.isActiveRegion(region.regionId)) {
       await this.continueRun();
       return;
     }
 
-    await this.startRegionRun(region.regionId, region.slug);
+    this.pendingRegionSlug.set(region.slug);
   }
 
-  onGridWheel(event: WheelEvent): void {
-    const rail = event.currentTarget;
-    if (!(rail instanceof HTMLElement) || rail.scrollWidth <= rail.clientWidth) {
+  previewRegion(regionSlug: string): void {
+    this.hoveredSlug.set(regionSlug);
+  }
+
+  closeStartRunConfirm(): void {
+    if (this.isStarting()) {
       return;
     }
 
-    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-    if (delta === 0) {
+    this.pendingRegionSlug.set(null);
+  }
+
+  async confirmStartRun(): Promise<void> {
+    const region = this.regions().find((entry) => entry.slug === this.pendingRegionSlug()) ?? null;
+    if (!region?.regionId) {
+      this.pendingRegionSlug.set(null);
       return;
     }
 
-    event.preventDefault();
-    rail.scrollLeft += delta;
+    await this.startRegionRun(region.regionId, region.slug);
+    this.pendingRegionSlug.set(null);
   }
 
   unlockRecord(regionSlug: string): RegionUnlockRecord | null {

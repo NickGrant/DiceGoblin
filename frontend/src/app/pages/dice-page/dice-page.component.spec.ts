@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { RouterLink, provideRouter } from '@angular/router';
+import { Router, RouterLink, provideRouter } from '@angular/router';
 import { DicePageComponent } from './dice-page.component';
 import { DiceService } from '../../core/services/dice/dice.service';
 import { SessionService } from '../../core/services/session/session.service';
@@ -79,7 +79,7 @@ describe('DicePageComponent', () => {
 
     const inspectBodyText = () => host.querySelector('.dice-page__inspect')?.textContent ?? '';
 
-    component.inspectDice('d1');
+    component.previewDice('d1');
     fixture.detectChanges();
 
     const unitLinkDebug = fixture.debugElement
@@ -90,14 +90,14 @@ describe('DicePageComponent', () => {
     expect(unitLinkDebug!.injector.get(RouterLink).href).toContain('/warband/units/u1');
     expect(inspectBodyText()).toContain('View Fang');
 
-    component.inspectDice('d2');
+    component.previewDice('d2');
     fixture.detectChanges();
 
     expect(inspectBodyText()).toContain('Sell');
     expect(inspectBodyText()).not.toContain('Working...');
   });
 
-  it('uses the first filtered die as the default inspect target and updates on selection', async () => {
+  it('uses the first filtered die as the default inspect target and supports hover preview', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
     const host: HTMLElement = fixture.nativeElement;
@@ -119,6 +119,26 @@ describe('DicePageComponent', () => {
     expect(component.inspectedDice()?.id).toBe('d3');
     expect(selectedLabel()).toContain('Oracle d10');
     expect(inspectBodyText()).toContain('Oracle d10');
+  });
+
+  it('opens a sell confirmation for unequipped dice', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+
+    await component.activateDice(component.dice().find((die) => die.id === 'd2')!);
+
+    expect(component.pendingSellDice()?.id).toBe('d2');
+  });
+
+  it('navigates directly for equipped dice clicks', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.resolveTo(true);
+
+    await component.activateDice(component.dice().find((die) => die.id === 'd1')!);
+
+    expect(router.navigate).toHaveBeenCalledWith(['/warband/units', 'u1']);
   });
 
   it('does not expose legacy equip controls in inventory mode', async () => {

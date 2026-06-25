@@ -10,68 +10,15 @@
 .warband-units-rail__layout {
   display: grid;
   gap: 1rem;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
 }
 
 .warband-units-rail__tile {
   min-width: 0;
 }
 
-@media (min-width: 441px) and (max-width: 760px) {
-  .warband-units-rail {
-    --warband-units-space: 1.25rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-x: contain;
-    padding-bottom: 0.35rem;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .warband-units-rail::-webkit-scrollbar {
-    display: none;
-  }
-
-  .warband-units-rail__layout {
-    width: max-content;
-    min-width: 100%;
-    gap: var(--warband-units-space);
-    grid-auto-flow: column;
-    grid-auto-columns: 18.75rem;
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    grid-template-columns: none;
-  }
-}
-
 @media (min-width: 761px) {
-  .warband-units-rail {
-    --warband-units-space: 1.5rem;
-    --warband-units-hover-bleed: 0.75rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-x: contain;
-    padding-inline-start: var(--warband-units-space);
-    padding-bottom: calc(0.35rem + var(--warband-units-hover-bleed));
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .warband-units-rail::-webkit-scrollbar {
-    display: none;
-  }
-
   .warband-units-rail__layout {
-    width: max-content;
-    min-width: 100%;
-    gap: var(--warband-units-space);
-    grid-auto-flow: column;
-    grid-auto-columns: 21.875rem;
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    grid-template-columns: none;
-    padding-bottom: var(--warband-units-hover-bleed);
-  }
-
-  .warband-units-rail__tile {
-    height: 100%;
+    grid-template-columns: repeat(3, minmax(18rem, 1fr));
   }
 }

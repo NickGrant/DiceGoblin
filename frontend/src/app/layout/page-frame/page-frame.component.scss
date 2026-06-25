@@ -7,6 +7,7 @@
 }
 
 header {
+  position: relative;
   color: var(--dg-cream);
   background-size: cover;
   background-position: center;
@@ -44,11 +45,22 @@ header {
     var(--dg-surface-banner-image-default);
 }
 
+.header--home h1,
+.header--home p {
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: min(52rem, 100%);
+  padding-inline: 0.35rem;
+  background: linear-gradient(90deg, rgba(44, 27, 17, 0.7), rgba(44, 27, 17, 0.28));
+  box-decoration-break: clone;
+}
+
 :host > div {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  padding: 0.85rem 0 0;
+  padding: 1rem 0 0;
 }
 
 nav.breadcrumbs {

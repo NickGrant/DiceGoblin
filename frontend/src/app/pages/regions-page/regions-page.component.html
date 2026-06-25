@@ -1,7 +1,7 @@
 <page-frame
   [breadcrumbs]="[{ label: 'Home', route: '/home' }, { label: 'Start Run' }]"
   title="Choose the Next Raid"
-  subtitle="Pick a destination tile and send the warband out for another job."
+  subtitle="Inspect a destination badge, review the route details, and send the warband out for another job."
   headerVariant="home"
 >
   @if (message() || error()) {
@@ -15,54 +15,111 @@
   </div>
   }
 
-  <section class="region-grid" (wheel)="onGridWheel($event)">
-    <div class="region-grid__layout">
-      @for (region of regions(); track region.slug) {
-      <div class="region-grid__tile">
-        <article class="dg-media-card dg-media-card--feature region-tile" [class.region-tile--locked]="!region.isUnlocked">
-          <div class="region-tile__badge-stage">
-            <img class="region-tile__badge" [src]="'/assets/ui/biome/' + region.theme + '_badge.png'" alt="" />
-          </div>
-          <div class="dg-media-card__overlay region-tile__overlay">
-            <div class="region-tile__chips">
-              <span class="dg-chip">{{ region.pathSummary }}</span>
-              <span class="dg-chip region-tile__energy-chip">
-                <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
-                {{ region.energyCost }}
-              </span>
-              <span class="dg-chip">Level {{ region.recommendedLevel }}+</span>
-              @if (isActiveRegion(region.regionId)) {
-              <span class="dg-chip">Current Run</span>
-              }
-              @if (!region.isUnlocked) {
-              <span class="dg-chip">Locked</span>
-              }
-            </div>
-
-            <div class="region-tile__body">
-              <span class="dg-media-card__title dg-stencil">{{ region.name }}</span>
-              <p class="region-tile__summary">{{ region.summary }}</p>
-              @if (region.isUnlocked) {
-              <p class="region-tile__meta">Unlocked {{ unlockRecord(region.slug)?.unlocked_at | date: 'mediumDate' }}.</p>
-              } @else {
-              <p class="region-tile__meta">{{ region.unlockHint }}</p>
-              }
-            </div>
-
-            <div class="region-tile__footer">
+  <section class="region-page">
+    <section class="region-page__layout">
+      <div class="region-page__primary">
+        <div class="region-page__inventory">
+          <div class="region-page__rail">
+            <div class="region-page__rail-layout">
+              @for (region of regions(); track region.slug) {
               <button
                 type="button"
-                dgCommandBtn="primary"
+                class="region-page__tile"
+                [class.is-selected]="inspectedRegion()?.slug === region.slug"
+                [class.is-locked]="!region.isUnlocked"
                 (click)="activateRegion(region)"
-                [disabled]="regionActionDisabled(region)"
+                (focus)="previewRegion(region.slug)"
+                (mouseenter)="previewRegion(region.slug)"
+                [attr.aria-label]="region.name + ' ' + (region.isUnlocked ? 'Unlocked' : 'Locked')"
+                [disabled]="regionActionDisabled(region) && !isActiveRegion(region.regionId)"
               >
-                {{ regionActionLabel(region) }}
+                <span class="region-page__tile-art">
+                  <img class="region-page__tile-badge" [src]="'/assets/ui/biome/' + region.theme + '_badge.png'" alt="" />
+                </span>
+                @if (isActiveRegion(region.regionId)) {
+                <span class="region-page__tile-tag is-active">Current</span>
+                } @else if (!region.isUnlocked) {
+                <span class="region-page__tile-tag">Locked</span>
+                }
               </button>
+              }
             </div>
           </div>
-        </article>
+        </div>
       </div>
+
+      @if (inspectedRegion(); as region) {
+      <aside class="region-page__inspect">
+        <div class="region-page__inspect-head">
+          <div>
+            <p class="region-page__inspect-kicker">Destination</p>
+            <h2 class="region-page__inspect-title">{{ region.name }}</h2>
+          </div>
+          @if (isActiveRegion(region.regionId)) {
+          <span class="region-page__inspect-state is-active">Current Run</span>
+          } @else if (region.isUnlocked) {
+          <span class="region-page__inspect-state">Unlocked</span>
+          } @else {
+          <span class="region-page__inspect-state is-locked">Locked</span>
+          }
+        </div>
+
+        <div class="region-page__inspect-art">
+          <img class="region-page__inspect-image" [src]="'/assets/ui/biome/' + region.theme + '_badge.png'" [alt]="region.name" />
+        </div>
+
+        <div class="region-page__inspect-body">
+          <section class="region-page__inspect-section">
+            <div class="region-page__chips">
+              <span class="dg-chip">{{ region.pathSummary }}</span>
+              <span class="dg-chip region-page__energy-chip">
+                <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
+                {{ region.energyCost }} energy
+              </span>
+              <span class="dg-chip">Level {{ region.recommendedLevel }}+</span>
+            </div>
+          </section>
+
+          <section class="region-page__inspect-section">
+            <h3 class="region-page__inspect-label">Route Brief</h3>
+            <p class="region-page__inspect-copy">{{ region.summary }}</p>
+          </section>
+
+          <section class="region-page__inspect-section">
+            <h3 class="region-page__inspect-label">Unlock Status</h3>
+            @if (region.isUnlocked) {
+            <p class="region-page__inspect-copy">
+              Unlocked {{ unlockRecord(region.slug)?.unlocked_at | date: 'mediumDate' }}.
+            </p>
+            } @else {
+            <p class="region-page__inspect-copy">{{ region.unlockHint }}</p>
+            }
+          </section>
+
+          <section class="region-page__inspect-section">
+            <button
+              type="button"
+              dgCommandBtn="primary"
+              (click)="activateRegion(region)"
+              [disabled]="regionActionDisabled(region)"
+            >
+              {{ regionActionLabel(region) }}
+            </button>
+          </section>
+        </div>
+      </aside>
       }
-    </div>
+    </section>
   </section>
+
+  <dg-confirm-modal
+    [open]="!!pendingRegionSlug()"
+    title="Start Run"
+    [message]="'Send the warband into ' + (pendingRegion()?.name ?? 'this route') + '?'"
+    confirmLabel="Start Run"
+    cancelLabel="Stay Here"
+    [busy]="isStarting()"
+    (dismissed)="closeStartRunConfirm()"
+    (confirmed)="confirmStartRun()"
+  />
 </page-frame>

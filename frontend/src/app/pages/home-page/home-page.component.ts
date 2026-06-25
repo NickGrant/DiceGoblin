@@ -3,12 +3,11 @@ import { RouterLink } from '@angular/router';
 import { SessionService } from '../../core/services/session/session.service';
 import { isDevPanelEnabled } from '../../core/config/runtime-config';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { HorizontalRailDirective } from '../../shared/ui/horizontal-rail/horizontal-rail.directive';
 
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [HorizontalRailDirective, RouterLink, PageFrameComponent],
+  imports: [RouterLink, PageFrameComponent],
   templateUrl: './home-page.component.html',
   styleUrl: './home-page.component.scss',
 })

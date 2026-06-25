@@ -43,7 +43,7 @@ describe('RegionsPageComponent', () => {
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
-    expect(component.unlockedRegionCount()).toBe(2);
+    expect(component.regions().filter((region) => region.isUnlocked).length).toBe(2);
     expect(component.regions().find((region) => region.slug === 'mountains')?.isUnlocked).toBeTrue();
     expect(component.regions().find((region) => region.slug === 'swamps')?.isUnlocked).toBeFalse();
   });
@@ -81,5 +81,28 @@ describe('RegionsPageComponent', () => {
     expect(component.regionActionDisabled(farm)).toBeTrue();
     expect(component.regionActionLabel(mountains)).toBe('Continue Run');
     expect(component.regionActionDisabled(mountains)).toBeFalse();
+  });
+
+  it('defaults inspection to the first region and uses hover preview', () => {
+    const fixture = TestBed.createComponent(RegionsPageComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    expect(component.inspectedRegion()?.slug).toBe('the_farm');
+
+    component.previewRegion('mountains');
+    expect(component.inspectedRegion()?.slug).toBe('mountains');
+  });
+
+  it('opens a confirm state before starting a new run', async () => {
+    const fixture = TestBed.createComponent(RegionsPageComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const mountains = component.regions().find((region) => region.slug === 'mountains')!;
+
+    await component.activateRegion(mountains);
+
+    expect(component.pendingRegion()?.slug).toBe('mountains');
   });
 });

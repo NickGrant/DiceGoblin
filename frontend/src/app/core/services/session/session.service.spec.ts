@@ -86,6 +86,34 @@ describe('SessionService', () => {
     expect(profileService.getProfile).not.toHaveBeenCalled();
   });
 
+  it('shares the same in-flight initialize request across concurrent callers', async () => {
+    let resolveSession: ((value: unknown) => void) | null = null;
+    apiHttp.get.and.returnValue(
+      new Promise((resolve) => {
+        resolveSession = resolve;
+      }) as any,
+    );
+    profileService.getProfile.and.resolveTo({ ok: true, data: { squads: [], units: [], dice: [], energy: { current: 0, max: 0 }, currency: { soft: 0 }, feature_unlocks: [], unit_type_unlocks: [], active_run: null } } as any);
+
+    const first = service.initialize();
+    const second = service.initialize();
+
+    expect(apiHttp.get).toHaveBeenCalledTimes(1);
+
+    resolveSession!({
+      ok: true,
+      data: {
+        authenticated: true,
+        csrf_token: 'csrf',
+        user: { id: 4, display_name: 'Nick' },
+      },
+    });
+
+    await Promise.all([first, second]);
+
+    expect(apiHttp.get).toHaveBeenCalledTimes(1);
+  });
+
   it('stores a readable error when refresh throws', async () => {
     apiHttp.get.and.rejectWith(new Error('down'));
 

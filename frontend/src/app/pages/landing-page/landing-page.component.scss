@@ -1,23 +1,38 @@
 :host {
+  display: block;
   min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(27, 18, 11, 0.58), rgba(27, 18, 11, 0.34)),
+    var(--dg-surface-banner-image-default);
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.landing-page {
+  min-height: 100vh;
+  padding:
+    calc(var(--command-controls-height) + 1rem)
+    1rem
+    1.5rem;
+}
+
+.landing-page__shell {
   display: flex;
+  min-height: calc(100vh - var(--command-controls-height) - 2.5rem);
   align-items: center;
 }
 
-section {
-  padding: 20px;
-}
-
 .landing-frame {
-  --dg-surface-banner-overlay-start: rgba(35, 39, 42, 0.28);
-  --dg-surface-banner-overlay-end: rgba(35, 39, 42, 0.04);
+  --dg-surface-banner-overlay-start: rgba(35, 39, 42, 0.38);
+  --dg-surface-banner-overlay-end: rgba(35, 39, 42, 0.1);
   --dg-surface-banner-padding: 20px 0;
 
   position: relative;
   width: min(100%, var(--dg-shell-page-max-width));
   margin-inline: auto;
   border: 2px solid var(--dg-frame-border);
-  background: linear-gradient(180deg, rgba(243, 239, 224, 0.9), rgba(232, 228, 210, 0.94));
+  background: linear-gradient(180deg, rgba(243, 239, 224, 0.92), rgba(232, 228, 210, 0.96));
   box-shadow: var(--dg-card-shadow);
   overflow: hidden;
   font-size: 1.2em;
@@ -35,4 +50,15 @@ section {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .landing-page {
+    padding-top: calc(var(--command-controls-height) + 0.75rem);
+  }
+
+  .landing-page__shell {
+    min-height: calc(100vh - var(--command-controls-height) - 2rem);
+    align-items: flex-start;
+  }
 }
