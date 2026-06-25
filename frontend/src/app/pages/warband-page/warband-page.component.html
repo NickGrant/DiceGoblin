@@ -30,33 +30,27 @@
         @if (squads().length) {
         <div class="squad-grid">
           @for (squad of sortedSquads(); track squad.id) {
-          <article class="squad-card" [class.is-active]="squad.is_active">
-            <a class="squad-card__link" [routerLink]="['/warband/squads', squad.id]">
-              <span class="squad-card__icon" [class.is-active]="squad.is_active" aria-hidden="true">
-                <span class="squad-card__icon-frame"></span>
-                <span class="squad-card__icon-check"></span>
-              </span>
-              <span class="squad-card__nameplate">
-                <strong>{{ squad.name }}</strong>
-                <span>{{ squad.unit_ids.length }} units</span>
-              </span>
-              @if (squadLockMessage(squad.id); as lockMessage) {
-              <span class="squad-card__lock">{{ lockMessage }}</span>
-              }
-            </a>
-
+          <article class="squad-card" [class.is-active]="squad.is_active" [class.is-locked]="isSquadLocked(squad.id)">
+            @if (!isSquadLocked(squad.id) && !squad.is_active) {
             <button
-              class="squad-card__toggle"
-              [class.is-active]="squad.is_active"
+              class="squad-card__activate"
               type="button"
-              role="checkbox"
-              [attr.aria-checked]="squad.is_active"
-              [attr.aria-label]="squad.is_active ? squad.name + ' is the active squad' : 'Set ' + squad.name + ' as the active squad'"
+              [attr.aria-label]="'Set ' + squad.name + ' as the active squad'"
               (click)="activateSquad(squad.id)"
-              [disabled]="squad.is_active || isSaving() || !!activeRun()"
-            >
-              {{ squad.is_active ? 'Active' : 'Set Active' }}
-            </button>
+              [disabled]="isSaving()"
+            ></button>
+            }
+            @if (isSquadLocked(squad.id)) {
+            <span class="squad-card__nameplate" aria-label="Locked squad">
+              <strong>{{ squad.name }}</strong>
+              <span>{{ squad.unit_ids.length }} units</span>
+            </span>
+            } @else {
+            <a class="squad-card__nameplate squad-card__nameplate--link" [routerLink]="['/warband/squads', squad.id]">
+              <strong>{{ squad.name }}</strong>
+              <span>{{ squad.unit_ids.length }} units</span>
+            </a>
+            }
           </article>
           }
         </div>

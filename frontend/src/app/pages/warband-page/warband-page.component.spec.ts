@@ -8,7 +8,10 @@ import { SquadService } from '../../core/services/squad/squad.service';
 
 class SessionServiceStub {
   readonly profile = signal({ activeSquadName: 'Alpha' });
-  readonly squads = signal([{ id: '1', name: 'Alpha', is_active: true, unit_ids: ['u1'] }]);
+  readonly squads = signal([
+    { id: '1', name: 'Alpha', is_active: true, unit_ids: ['u1'] },
+    { id: '2', name: 'Beta', is_active: false, unit_ids: ['u1', 'u2'] },
+  ]);
   readonly units = signal([
     { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', locked: false },
     { id: 'u2', name: 'Muckjaw', unit_type_name: 'Plaguehand', locked: false },
@@ -60,7 +63,7 @@ describe('WarbandPageComponent', () => {
     expect(fixture.componentInstance.message()).toBe('Active squad updated.');
   });
 
-  it('renders squad cards as details links with a separate active toggle', () => {
+  it('renders unlocked squad cards as full-card links', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
@@ -68,14 +71,21 @@ describe('WarbandPageComponent', () => {
     const squadLinkDebug = fixture.debugElement
       .queryAll(By.directive(RouterLink))
       .find((element) => element.nativeElement.textContent?.includes('Alpha'));
-    const toggle = host.querySelector('.squad-card__toggle') as HTMLButtonElement | null;
 
     expect(squadLinkDebug).toBeDefined();
     expect(squadLinkDebug!.injector.get(RouterLink).href).toContain('/warband/squads/1');
-    expect(toggle).not.toBeNull();
-    expect(host.textContent).not.toContain('Details');
-    expect(host.textContent).not.toContain('Activate');
-    expect(host.textContent).not.toContain('Active squad');
+    expect(host.querySelector('.squad-card__nameplate--link')).not.toBeNull();
+  });
+
+  it('renders an activation hotspot for inactive unlocked squads', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const activateButton = host.querySelector('.squad-card__activate') as HTMLButtonElement | null;
+
+    expect(activateButton).not.toBeNull();
+    expect(activateButton?.getAttribute('aria-label')).toContain('Set Beta as the active squad');
   });
 
   it('shows the inspected unit card without extra header chrome or action buttons', () => {
@@ -88,17 +98,19 @@ describe('WarbandPageComponent', () => {
     expect(host.querySelector('.warband-units-inspect__panel .unit-grid-object')).not.toBeNull();
   });
 
-  it('marks the active squad as locked during an active run and disables squad toggles', () => {
+  it('marks the active squad as locked during an active run', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
     sessionService.profileData.set({ active_run: { run_id: '9' } } as any);
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
-    const toggle = host.querySelector('.squad-card__toggle') as HTMLButtonElement | null;
+    const lockedCard = host.querySelector('.squad-card.is-locked');
+    const lockedLink = host.querySelector('.squad-card.is-locked .squad-card__nameplate--link');
 
-    expect(host.textContent).toContain('Locked while this squad is committed to the active run.');
-    expect(toggle?.disabled).toBeTrue();
+    expect(host.textContent).toContain('Squads and Squad members are locked while on a run.');
+    expect(lockedCard).not.toBeNull();
+    expect(lockedLink).toBeNull();
   });
 
   it('renders units in the inspect grid layout', () => {

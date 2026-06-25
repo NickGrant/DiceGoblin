@@ -85,10 +85,6 @@ export class WarbandPageComponent {
     return !!this.activeRun() && this.activeSquad()?.id === teamId;
   }
 
-  squadLockMessage(teamId: string): string | null {
-    return this.isSquadLocked(teamId) ? 'Locked while this squad is committed to the active run.' : null;
-  }
-
   async createSquad(): Promise<void> {
     this.error.set(null);
     this.message.set(null);
