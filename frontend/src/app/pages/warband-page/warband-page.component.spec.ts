@@ -13,8 +13,8 @@ class SessionServiceStub {
     { id: '2', name: 'Beta', is_active: false, unit_ids: ['u1', 'u2'] },
   ]);
   readonly units = signal([
-    { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', locked: false },
-    { id: 'u2', name: 'Muckjaw', unit_type_name: 'Plaguehand', locked: false },
+    { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', tier: 1, level: 2, locked: false },
+    { id: 'u2', name: 'Muckjaw', unit_type_name: 'Plaguehand', tier: 2, level: 6, locked: false },
   ]);
   readonly profileData = signal({ active_run: null });
   readonly activeSquad = signal({ id: '1', name: 'Alpha', is_active: true, unit_ids: ['u1'] } as any);
@@ -140,14 +140,51 @@ describe('WarbandPageComponent', () => {
     expect(host.textContent).not.toContain('Muckjaw');
   });
 
+  it('filters units by selected tier', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.updateUnitTier('2');
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const tiles = host.querySelectorAll('.warband-units-grid__tile');
+
+    expect(tiles.length).toBe(1);
+    expect(host.textContent).toContain('Muckjaw');
+    expect(host.textContent).not.toContain('Fang');
+  });
+
+  it('filters units by selected level range', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.updateLevelMin('5');
+    fixture.componentInstance.updateLevelMax('6');
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const tiles = host.querySelectorAll('.warband-units-grid__tile');
+
+    expect(tiles.length).toBe(1);
+    expect(host.textContent).toContain('Muckjaw');
+    expect(host.textContent).not.toContain('Fang');
+  });
+
   it('clears unit type filters', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
     fixture.componentInstance.updateUnitType('Bruiser');
+    fixture.componentInstance.updateUnitTier('2');
+    fixture.componentInstance.updateLevelMin('2');
+    fixture.componentInstance.updateLevelMax('6');
     fixture.componentInstance.clearUnitFilters();
 
     expect(fixture.componentInstance.selectedUnitType()).toBeNull();
+    expect(fixture.componentInstance.selectedUnitTier()).toBeNull();
+    expect(fixture.componentInstance.selectedLevelMin()).toBeNull();
+    expect(fixture.componentInstance.selectedLevelMax()).toBeNull();
   });
 
   it('supports hover preview for the inspect sidebar', () => {
@@ -156,7 +193,7 @@ describe('WarbandPageComponent', () => {
 
     const component = fixture.componentInstance;
 
-    expect(component.inspectedUnit()?.id).toBe('u1');
+    expect(component.inspectedUnit()?.id).toBe('u2');
 
     component.previewUnit('u2');
     expect(component.inspectedUnit()?.id).toBe('u2');

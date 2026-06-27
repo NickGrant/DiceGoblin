@@ -27,6 +27,9 @@ export class WarbandPageComponent {
   readonly activeRun = computed(() => this.sessionService.profileData()?.active_run ?? null);
   readonly activeSquad = this.sessionService.activeSquad;
   readonly selectedUnitType = signal<string | null>(null);
+  readonly selectedUnitTier = signal<number | null>(null);
+  readonly selectedLevelMin = signal<number | null>(null);
+  readonly selectedLevelMax = signal<number | null>(null);
   readonly selectedUnitSort = signal<'name-asc' | 'level-desc' | 'tier-desc'>('level-desc');
   readonly hoveredUnitId = signal<string | null>(null);
   readonly isSaving = signal(false);
@@ -37,11 +40,44 @@ export class WarbandPageComponent {
       a.localeCompare(b),
     ),
   );
+  readonly availableUnitTiers = computed(() =>
+    [...new Set(this.units().map((unit) => unit.tier).filter((tier): tier is number => typeof tier === 'number' && tier > 0))].sort(
+      (a, b) => a - b,
+    ),
+  );
+  readonly availableUnitLevels = computed(() => {
+    const maxLevel = Math.max(
+      1,
+      ...this.units().map((unit) => (typeof unit.level === 'number' && unit.level > 0 ? unit.level : 1)),
+    );
+
+    return Array.from({ length: maxLevel }, (_, index) => index + 1);
+  });
   readonly filteredUnits = computed(() => {
     const selectedType = this.selectedUnitType();
-    const filtered = selectedType
-      ? this.units().filter((unit) => this.unitTypeLabel(unit) === selectedType)
-      : this.units();
+    const selectedTier = this.selectedUnitTier();
+    const selectedLevelMin = this.selectedLevelMin();
+    const selectedLevelMax = this.selectedLevelMax();
+    const filtered = this.units().filter((unit) => {
+      if (selectedType && this.unitTypeLabel(unit) !== selectedType) {
+        return false;
+      }
+
+      if (selectedTier !== null && (unit.tier ?? 0) !== selectedTier) {
+        return false;
+      }
+
+      const level = typeof unit.level === 'number' && unit.level > 0 ? unit.level : 1;
+      if (selectedLevelMin !== null && level < selectedLevelMin) {
+        return false;
+      }
+
+      if (selectedLevelMax !== null && level > selectedLevelMax) {
+        return false;
+      }
+
+      return true;
+    });
 
     return [...filtered].sort((left, right) => {
       switch (this.selectedUnitSort()) {
@@ -131,12 +167,39 @@ export class WarbandPageComponent {
     this.selectedUnitType.set(value || null);
   }
 
+  updateUnitTier(value: string): void {
+    this.selectedUnitTier.set(value ? Number(value) : null);
+  }
+
+  updateLevelMin(value: string): void {
+    const nextValue = value ? Number(value) : null;
+    const currentMax = this.selectedLevelMax();
+    this.selectedLevelMin.set(nextValue);
+
+    if (nextValue !== null && currentMax !== null && nextValue > currentMax) {
+      this.selectedLevelMax.set(nextValue);
+    }
+  }
+
+  updateLevelMax(value: string): void {
+    const nextValue = value ? Number(value) : null;
+    const currentMin = this.selectedLevelMin();
+    this.selectedLevelMax.set(nextValue);
+
+    if (nextValue !== null && currentMin !== null && nextValue < currentMin) {
+      this.selectedLevelMin.set(nextValue);
+    }
+  }
+
   updateUnitSort(value: 'name-asc' | 'level-desc' | 'tier-desc'): void {
     this.selectedUnitSort.set(value);
   }
 
   clearUnitFilters(): void {
     this.selectedUnitType.set(null);
+    this.selectedUnitTier.set(null);
+    this.selectedLevelMin.set(null);
+    this.selectedLevelMax.set(null);
     this.selectedUnitSort.set('level-desc');
   }
 

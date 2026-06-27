@@ -1,11 +1,53 @@
-<header class="game-shell__hud">
-  <div class="hud-shell">
-    <div class="hud-panel hud-panel--nav">
-      <nav class="hud-nav" aria-label="Primary navigation">
+<header class="hud-panel hud-panel--player">
+  @if (isAuthenticated()) {
+  <div class="hud-stats" aria-label="Commander resources">
+    <span class="hud-stat">
+      <img src="/assets/ui/icons/energy_16.png" alt="Energy" />
+      <span>{{ profile().energyCurrent }} / {{ profile().energyMax }}</span>
+    </span>
+
+    <span class="hud-stat">
+      <img src="/assets/ui/icons/tooth_16.png" alt="Teeth" />
+      <span>{{ profile().softCurrency }}</span>
+    </span>
+  </div>
+  } @else {
+  <div class="hud-stats" aria-hidden="true"></div>
+  }
+
+  <div class="hud-player">
+    @if (isAuthenticated()) {
+    <span class="dg-stencil">Commander</span>
+    <span>{{ session().displayName }}</span>
+    } @else {
+    <button class="dg-stencil" type="button" (click)="login()">Login</button>
+    }
+  </div>
+
+  @if (isAuthenticated()) {
+    <button class="hud-logout" type="button" (click)="logout()" aria-label="Logout">
+      <img src="/assets/ui/icons/icon_logout.png" alt="" />
+    </button>
+  }
+
+  <button
+    class="hud-menu-toggle"
+    type="button"
+    aria-label="Open menu"
+    [attr.aria-expanded]="mobileMenuOpen()"
+    (click)="toggleMobileMenu()"
+  >
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  @if (mobileMenuOpen()) {
+    <div class="hud-mobile-menu" aria-label="Mobile navigation menu">
+      <nav aria-label="Primary navigation">
         @for (item of navItems; track item.authenticatedRoute) {
           @if (isNavItemEnabled(item)) {
           <a
-            class="hud-icon-link"
             [routerLink]="navRoute(item)"
             [queryParams]="item.guide ? guideQueryParams() : null"
             routerLinkActive="is-active"
@@ -13,97 +55,45 @@
             (click)="closeMobileMenu()"
           >
             <img [src]="item.icon" alt="" />
+            <span>{{ item.label }}</span>
           </a>
           } @else {
-          <span
-            class="hud-icon-link hud-icon-link--disabled"
-            [attr.aria-label]="item.ariaLabel + ' unavailable until you sign in'"
-            aria-disabled="true"
-          >
+          <span [attr.aria-label]="item.ariaLabel + ' unavailable until you sign in'" aria-disabled="true">
             <img [src]="item.icon" alt="" />
+            <span>{{ item.label }}</span>
           </span>
           }
         }
       </nav>
-    </div>
-
-    <div class="hud-panel hud-panel--player">
-      @if (isAuthenticated()) {
-      <div class="hud-stats" aria-label="Commander resources">
-        <span class="hud-stat">
-          <img src="/assets/ui/icons/energy_16.png" alt="" />
-          <span>{{ profile().energyCurrent }} / {{ profile().energyMax }}</span>
-        </span>
-
-        <span class="hud-stat">
-          <img src="/assets/ui/icons/tooth_16.png" alt="" />
-          <span>{{ profile().softCurrency }}</span>
-        </span>
-      </div>
-      } @else {
-      <div class="hud-stats hud-stats--hidden" aria-hidden="true"></div>
-      }
-
-      <div class="hud-player">
-        @if (isAuthenticated()) {
-        <span class="hud-player__label dg-stencil">Commander</span>
-        <span class="hud-player__name">{{ session().displayName }}</span>
-        } @else {
-        <button class="hud-login-button dg-stencil" type="button" (click)="login()">Login</button>
-        }
-      </div>
 
       @if (isAuthenticated()) {
-      <button class="hud-logout" type="button" (click)="logout()" aria-label="Logout">
+      <button type="button" (click)="logout()">
         <img src="/assets/ui/icons/icon_logout.png" alt="" />
+        <span>Logout</span>
       </button>
-      }
-
-      <button
-        class="hud-menu-toggle"
-        type="button"
-        aria-label="Open menu"
-        [attr.aria-expanded]="mobileMenuOpen()"
-        (click)="toggleMobileMenu()"
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-
-      @if (mobileMenuOpen()) {
-        <div class="hud-mobile-menu" aria-label="Mobile navigation menu">
-          <nav class="hud-mobile-menu__nav" aria-label="Primary navigation">
-            @for (item of navItems; track item.authenticatedRoute) {
-              @if (isNavItemEnabled(item)) {
-              <a
-                class="hud-mobile-link"
-                [routerLink]="navRoute(item)"
-                [queryParams]="item.guide ? guideQueryParams() : null"
-                routerLinkActive="is-active"
-                [attr.aria-label]="item.ariaLabel"
-                (click)="closeMobileMenu()"
-              >
-                <img [src]="item.icon" alt="" />
-                <span>{{ item.label }}</span>
-              </a>
-              } @else {
-              <span class="hud-mobile-link hud-mobile-link--disabled" [attr.aria-label]="item.ariaLabel + ' unavailable until you sign in'" aria-disabled="true">
-                <img [src]="item.icon" alt="" />
-                <span>{{ item.label }}</span>
-              </span>
-              }
-            }
-          </nav>
-
-          @if (isAuthenticated()) {
-          <button class="hud-mobile-logout" type="button" (click)="logout()">
-            <img src="/assets/ui/icons/icon_logout.png" alt="" />
-            <span>Logout</span>
-          </button>
-          }
-        </div>
       }
     </div>
-  </div>
+  }
 </header>
+<nav class="hud-panel hud-panel--nav" aria-label="Primary navigation">
+  @for (item of navItems; track item.authenticatedRoute) {
+    @if (isNavItemEnabled(item)) {
+    <a
+      [routerLink]="navRoute(item)"
+      [queryParams]="item.guide ? guideQueryParams() : null"
+      routerLinkActive="is-active"
+      [attr.aria-label]="item.ariaLabel"
+      (click)="closeMobileMenu()"
+    >
+      <img [src]="item.icon" [alt]="item.ariaLabel" />
+    </a>
+    } @else {
+    <span
+      [attr.aria-label]="item.ariaLabel + ' unavailable until you sign in'"
+      aria-disabled="true"
+    >
+      <img [src]="item.icon" [alt]="item.ariaLabel" />
+    </span>
+    }
+  }
+</nav>

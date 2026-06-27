@@ -7,7 +7,7 @@
   height: 100%;
 }
 
-:host ::ng-deep page-frame .route-frame__body {
+:host ::ng-deep page-frame > .page-frame__body {
   gap: 1rem;
 }
 

@@ -56,8 +56,8 @@ describe('PageFrameComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const links = compiled.querySelectorAll('.route-frame__breadcrumb-link');
-    const current = compiled.querySelector('.route-frame__breadcrumb-current') as HTMLElement;
+    const links = compiled.querySelectorAll('nav.page-frame__breadcrumbs a');
+    const current = compiled.querySelector('nav.page-frame__breadcrumbs [aria-current="page"]') as HTMLElement;
 
     expect(links.length).toBe(1);
     expect(links[0].textContent).toContain('HQ');

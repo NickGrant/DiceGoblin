@@ -118,6 +118,13 @@
   white-space: nowrap;
 }
 
+.region-page__inspect-state {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 5;
+}
+
 .region-page__tile-tag {
   position: absolute;
   top: 0.8rem;
@@ -141,13 +148,6 @@
   padding: 1.15rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-}
-
-.region-page__inspect-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
   gap: 1rem;
 }
 
@@ -175,20 +175,15 @@
 }
 
 .region-page__inspect-art {
-  border: 1px solid rgba(98, 70, 35, 0.14);
-  border-radius: 1.15rem;
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.85), rgba(240, 230, 207, 0.72)),
-    rgba(242, 233, 212, 0.86);
   min-height: 13rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  position: relative;
 }
 
 .region-page__inspect-image {
-  width: min(100%, 240px);
+  width: 100%;
   height: auto;
   object-fit: contain;
   filter: drop-shadow(0 12px 16px rgba(46, 30, 16, 0.18));
@@ -221,8 +216,12 @@
 
 .region-page__chips {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.5rem;
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  flex-direction: column;
+  z-index: 5;
 }
 
 .region-page__chips .dg-chip {
@@ -263,7 +262,7 @@
   }
 
   .region-page__layout {
-    grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.95fr);
+    grid-template-columns: minmax(0, 1.65fr) minmax(300px, 500px);
     align-items: start;
   }
 

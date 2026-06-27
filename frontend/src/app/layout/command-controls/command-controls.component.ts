@@ -142,6 +142,5 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   private syncHudHeight(): void {
     const hudHeight = Math.ceil(this.elementRef.nativeElement.getBoundingClientRect().height);
     this.document.documentElement.style.setProperty('--command-controls-height', `${hudHeight}px`);
-    this.document.documentElement.style.setProperty('--bottom-command-strip-height', `${hudHeight}px`);
   }
 }

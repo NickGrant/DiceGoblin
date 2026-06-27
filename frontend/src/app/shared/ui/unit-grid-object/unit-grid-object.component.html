@@ -1,33 +1,32 @@
-@if (linkEnabled()) {
-<a
-  class="unit-grid-object"
-  [class.h-100]="fillHeight()"
-  [class.unit-grid-object--enemy]="surfaceTone() === 'enemy'"
-  [class.unit-grid-object--static]="!linkEnabled()"
-  [routerLink]="['/warband/units', object().id]"
->
+<ng-template #cardFrame>
   <div class="unit-grid-object__frame">
-    @if (tag()) {
-    <span class="unit-grid-object__tag">{{ tag() }}</span>
-    }
-    @if (showLockBadge() && object().locked) {
-    <span class="unit-grid-object__lock">Locked In Run</span>
-    }
     <div class="unit-grid-object__nameplate">
       <h2 class="m-0 dg-stencil">{{ object().name }}</h2>
     </div>
+
     <div class="unit-grid-object__art-stage">
-      @if (cardArtUrl(); as cardArtUrl) {
-      <img class="unit-grid-object__card-art" [src]="cardArtUrl" alt="" />
-      } @else if (portraitUrl(); as portraitUrl) {
-      <img class="unit-grid-object__card-art unit-grid-object__card-art--portrait" [src]="portraitUrl" alt="" />
-      } @else {
-      <div class="unit-grid-object__card-art unit-grid-object__card-art--fallback" aria-hidden="true"></div>
+      @if (tag()) {
+      <span class="unit-grid-object__tag">{{ tag() }}</span>
       }
+      @if (showLockBadge() && object().locked) {
+      <span class="unit-grid-object__lock">Locked In Run</span>
+      }
+
+      <div class="unit-grid-object__art-canvas">
+        @if (cardArtUrl(); as cardArtUrl) {
+        <img class="unit-grid-object__card-art" [src]="cardArtUrl" alt="" />
+        } @else if (portraitUrl(); as portraitUrl) {
+        <img class="unit-grid-object__card-art unit-grid-object__card-art--portrait" [src]="portraitUrl" alt="" />
+        } @else {
+        <div class="unit-grid-object__card-art unit-grid-object__card-art--fallback" aria-hidden="true"></div>
+        }
+      </div>
+
       @if (formatTier(object().tier); as tierLabel) {
       <span class="unit-grid-object__tier-chip dg-stencil">Tier {{ tierLabel }}</span>
       }
     </div>
+
     <div class="unit-grid-object__stats" aria-label="Unit stats">
       <span class="unit-grid-object__stat">
         <fa-icon [icon]="faAttack" aria-hidden="true"></fa-icon>
@@ -42,6 +41,7 @@
         <span>{{ statValue(object().max_hp) }}</span>
       </span>
     </div>
+
     <div class="unit-grid-object__detail-panel">
       <p class="unit-grid-object__type mb-0">{{ subtitle() || defaultSubtitle() }}</p>
       @if (progressBar(); as progressBar) {
@@ -70,6 +70,17 @@
       }
     </div>
   </div>
+</ng-template>
+
+@if (linkEnabled()) {
+<a
+  class="unit-grid-object"
+  [class.h-100]="fillHeight()"
+  [class.unit-grid-object--enemy]="surfaceTone() === 'enemy'"
+  [class.unit-grid-object--static]="!linkEnabled()"
+  [routerLink]="['/warband/units', object().id]"
+>
+  <ng-container [ngTemplateOutlet]="cardFrame" />
 
   @if (footerTemplate(); as footerTemplate) {
   <div class="d-flex flex-wrap gap-2 mt-auto unit-grid-object__footer">
@@ -87,70 +98,7 @@
   [class.unit-grid-object--enemy]="surfaceTone() === 'enemy'"
   [class.unit-grid-object--static]="!linkEnabled()"
 >
-  <div class="unit-grid-object__frame">
-    @if (tag()) {
-    <span class="unit-grid-object__tag">{{ tag() }}</span>
-    }
-    @if (showLockBadge() && object().locked) {
-    <span class="unit-grid-object__lock">Locked In Run</span>
-    }
-    <div class="unit-grid-object__nameplate">
-      <h2 class="m-0 dg-stencil">{{ object().name }}</h2>
-    </div>
-    <div class="unit-grid-object__art-stage">
-      @if (cardArtUrl(); as cardArtUrl) {
-      <img class="unit-grid-object__card-art" [src]="cardArtUrl" alt="" />
-      } @else if (portraitUrl(); as portraitUrl) {
-      <img class="unit-grid-object__card-art unit-grid-object__card-art--portrait" [src]="portraitUrl" alt="" />
-      } @else {
-      <div class="unit-grid-object__card-art unit-grid-object__card-art--fallback" aria-hidden="true"></div>
-      }
-      @if (formatTier(object().tier); as tierLabel) {
-      <span class="unit-grid-object__tier-chip dg-stencil">Tier {{ tierLabel }}</span>
-      }
-    </div>
-    <div class="unit-grid-object__stats" aria-label="Unit stats">
-      <span class="unit-grid-object__stat">
-        <fa-icon [icon]="faAttack" aria-hidden="true"></fa-icon>
-        <span>{{ statValue(object().total_attack) }}</span>
-      </span>
-      <span class="unit-grid-object__stat">
-        <fa-icon [icon]="faDefense" aria-hidden="true"></fa-icon>
-        <span>{{ statValue(object().total_defense) }}</span>
-      </span>
-      <span class="unit-grid-object__stat">
-        <fa-icon [icon]="faHealth" aria-hidden="true"></fa-icon>
-        <span>{{ statValue(object().max_hp) }}</span>
-      </span>
-    </div>
-    <div class="unit-grid-object__detail-panel">
-      <p class="unit-grid-object__type mb-0">{{ subtitle() || defaultSubtitle() }}</p>
-      @if (progressBar(); as progressBar) {
-      <div class="unit-grid-object__progress-wrap">
-        <div class="unit-grid-object__progress" [attr.title]="progressBar.title" [attr.aria-label]="progressBar.title">
-          <span
-            class="unit-grid-object__progress-fill"
-            [class.unit-grid-object__progress-fill--hp-healthy]="progressBar.tone === 'hp-healthy'"
-            [class.unit-grid-object__progress-fill--hp-critical]="progressBar.tone === 'hp-critical'"
-            [class.unit-grid-object__progress-fill--xp]="progressBar.tone === 'xp' || !progressBar.tone"
-            [style.width.%]="progressWidth(progressBar)"
-          ></span>
-        </div>
-        @if (progressBar.showLabels !== false) {
-        <div class="unit-grid-object__progress-meta">
-          <span>{{ progressBar.leftLabel }}</span>
-          @if (progressBar.rightLabel) {
-          <span>{{ progressBar.rightLabel }}</span>
-          }
-        </div>
-        }
-        @if (progressBar.celebrationLabel) {
-        <span class="unit-grid-object__progress-indicator dg-stencil">{{ progressBar.celebrationLabel }}</span>
-        }
-      </div>
-      }
-    </div>
-  </div>
+  <ng-container [ngTemplateOutlet]="cardFrame" />
 
   @if (footerTemplate(); as footerTemplate) {
   <div class="d-flex flex-wrap gap-2 mt-auto unit-grid-object__footer">

@@ -1,6 +1,6 @@
 @if (showHeader()) {
-  <header class="header--{{ headerVariant() }} dg-motion-panel-enter">
-    <nav class="breadcrumbs" aria-label="Breadcrumb">
+  <header class="page-frame__header page-frame__header--{{ headerVariant() }} dg-motion-panel-enter">
+    <nav class="page-frame__breadcrumbs" aria-label="Breadcrumb">
       <ol>
         @for (crumb of normalizedBreadcrumbs(); track crumb.label + '-' + $index; let isLast = $last) {
           <li>
@@ -22,6 +22,6 @@
     }
   </header>
 }
-<div class="dg-motion-stagger">
+<main class="page-frame__body dg-motion-stagger">
   <ng-content />
-</div>
+</main>

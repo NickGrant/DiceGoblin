@@ -280,6 +280,6 @@
 
   .dice-page__inspect {
     position: sticky;
-    top: 1rem;
+    top: calc((var(--command-controls-height) * 2) + 1rem);
   }
 }

@@ -66,7 +66,6 @@ describe('CommandControlsComponent', () => {
     });
 
     document.documentElement.style.removeProperty('--command-controls-height');
-    document.documentElement.style.removeProperty('--bottom-command-strip-height');
   });
 
   it('renders the commander and resource values', () => {
@@ -116,7 +115,6 @@ describe('CommandControlsComponent', () => {
     fixture.detectChanges();
 
     expect(document.documentElement.style.getPropertyValue('--command-controls-height')).toBe('96px');
-    expect(document.documentElement.style.getPropertyValue('--bottom-command-strip-height')).toBe('96px');
   });
 
   it('delegates logout to the session service when the logout button is clicked', async () => {
@@ -168,7 +166,7 @@ describe('CommandControlsComponent', () => {
     component.mobileMenuOpen.set(true);
     fixture.detectChanges();
 
-    const mobileLink = fixture.nativeElement.querySelector('.hud-mobile-link') as HTMLAnchorElement;
+    const mobileLink = fixture.nativeElement.querySelector('.hud-mobile-menu nav a') as HTMLAnchorElement;
     mobileLink.click();
     fixture.detectChanges();
 
@@ -188,6 +186,6 @@ describe('CommandControlsComponent', () => {
     expect(compiled.textContent).toContain('Login');
     expect(compiled.textContent).not.toContain('12 / 20');
     expect(compiled.querySelector('.hud-logout')).toBeNull();
-    expect(compiled.querySelectorAll('.hud-icon-link--disabled').length).toBe(3);
+    expect(compiled.querySelectorAll('.hud-panel--nav [aria-disabled="true"]').length).toBe(3);
   });
 });

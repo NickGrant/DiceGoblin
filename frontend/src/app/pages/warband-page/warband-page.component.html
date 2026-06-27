@@ -100,6 +100,52 @@
                       <option value="name-asc">Name: A to Z</option>
                     </select>
                   </div>
+
+                  <div class="warband-units-controls__filter">
+                    <label class="form-label" for="warband-unit-tier-filter">Tier</label>
+                    <select
+                      id="warband-unit-tier-filter"
+                      class="dg-select"
+                      [ngModel]="selectedUnitTier() ?? ''"
+                      (ngModelChange)="updateUnitTier($event)"
+                    >
+                      <option value="">All tiers</option>
+                      @for (tier of availableUnitTiers(); track tier) {
+                      <option [value]="tier">Tier {{ tier }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="warband-units-controls__filter warband-units-controls__filter--range">
+                    <label class="form-label" for="warband-unit-level-min">Level Range</label>
+                    <div class="warband-units-controls__range">
+                      <select
+                        id="warband-unit-level-min"
+                        class="dg-select"
+                        [ngModel]="selectedLevelMin() ?? ''"
+                        (ngModelChange)="updateLevelMin($event)"
+                      >
+                        <option value="">Min</option>
+                        @for (level of availableUnitLevels(); track level) {
+                        <option [value]="level">{{ level }}</option>
+                        }
+                      </select>
+
+                      <span class="warband-units-controls__range-separator" aria-hidden="true">to</span>
+
+                      <select
+                        id="warband-unit-level-max"
+                        class="dg-select"
+                        [ngModel]="selectedLevelMax() ?? ''"
+                        (ngModelChange)="updateLevelMax($event)"
+                      >
+                        <option value="">Max</option>
+                        @for (level of availableUnitLevels(); track level) {
+                        <option [value]="level">{{ level }}</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
                 <p class="warband-units-controls__results">

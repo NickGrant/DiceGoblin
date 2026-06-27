@@ -50,61 +50,28 @@
 
       @if (inspectedRegion(); as region) {
       <aside class="region-page__inspect">
-        <div class="region-page__inspect-head">
-          <div>
-            <p class="region-page__inspect-kicker">Destination</p>
-            <h2 class="region-page__inspect-title">{{ region.name }}</h2>
+        <div class="region-page__inspect-art">
+          <div class="region-page__chips">
+            <span class="dg-chip region-page__energy-chip">
+              <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
+              {{ region.energyCost }}
+            </span>
+            <span class="dg-chip">Level {{ region.recommendedLevel }}+</span>
           </div>
           @if (isActiveRegion(region.regionId)) {
-          <span class="region-page__inspect-state is-active">Current Run</span>
+            <span class="region-page__inspect-state is-active">Current Run</span>
           } @else if (region.isUnlocked) {
-          <span class="region-page__inspect-state">Unlocked</span>
+            <span class="region-page__inspect-state">Unlocked</span>
           } @else {
-          <span class="region-page__inspect-state is-locked">Locked</span>
+            <span class="region-page__inspect-state is-locked">Locked</span>
           }
-        </div>
-
-        <div class="region-page__inspect-art">
           <img class="region-page__inspect-image" [src]="'/assets/ui/biome/' + region.theme + '_badge.png'" [alt]="region.name" />
         </div>
 
         <div class="region-page__inspect-body">
           <section class="region-page__inspect-section">
-            <div class="region-page__chips">
-              <span class="dg-chip">{{ region.pathSummary }}</span>
-              <span class="dg-chip region-page__energy-chip">
-                <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
-                {{ region.energyCost }} energy
-              </span>
-              <span class="dg-chip">Level {{ region.recommendedLevel }}+</span>
-            </div>
-          </section>
-
-          <section class="region-page__inspect-section">
             <h3 class="region-page__inspect-label">Route Brief</h3>
             <p class="region-page__inspect-copy">{{ region.summary }}</p>
-          </section>
-
-          <section class="region-page__inspect-section">
-            <h3 class="region-page__inspect-label">Unlock Status</h3>
-            @if (region.isUnlocked) {
-            <p class="region-page__inspect-copy">
-              Unlocked {{ unlockRecord(region.slug)?.unlocked_at | date: 'mediumDate' }}.
-            </p>
-            } @else {
-            <p class="region-page__inspect-copy">{{ region.unlockHint }}</p>
-            }
-          </section>
-
-          <section class="region-page__inspect-section">
-            <button
-              type="button"
-              dgCommandBtn="primary"
-              (click)="activateRegion(region)"
-              [disabled]="regionActionDisabled(region)"
-            >
-              {{ regionActionLabel(region) }}
-            </button>
           </section>
         </div>
       </aside>
