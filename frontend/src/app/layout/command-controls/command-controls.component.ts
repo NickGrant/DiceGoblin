@@ -99,20 +99,6 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  guideQueryParams(): { returnUrl: string } | null {
-    if (!this.isAuthenticated()) {
-      return null;
-    }
-
-    const currentUrl = this.router.url;
-
-    if (currentUrl.startsWith('/field-guide')) {
-      return null;
-    }
-
-    return { returnUrl: currentUrl };
-  }
-
   async logout(): Promise<void> {
     this.mobileMenuOpen.set(false);
     await this.sessionService.logout();

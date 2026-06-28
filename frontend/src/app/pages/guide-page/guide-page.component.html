@@ -1,242 +1,330 @@
-  <page-frame
-    [breadcrumbs]="[{ label: 'Field Guide' }]"
-    title="How Dice Goblins Works"
-    subtitle="An encyclopedia for how to play Dice Goblins, from roster growth to run flow."
-    headerVariant="guide"
-  >
-    <div class="guide-hero__panel">
-      <div class="guide-hero__card">
-        <h2>Quick Start</h2>
-        <ul class="guide-list">
-          <li>Build a squad.</li>
-          <li>Equip abilities and dice to your units.</li>
-          <li>Start a run, completing nodes for treasure and experience.</li>
-          <li>Use rest nodes to fully recover before pushing deeper.</li>
-          <li>Buy unlocks, promote units, and equip stronger dice then dive back in.</li>
-        </ul>
+<page-frame
+  [breadcrumbs]="[{ label: 'Field Guide' }]"
+  title="Field Guide"
+  subtitle="An in-game codex for squads, dice, and expeditions."
+  headerVariant="guide"
+>
+  <section class="guide-codex">
+    <header class="guide-hero">
+      <div class="guide-hero__copy">
+        <p class="guide-hero__eyebrow dg-stencil">{{ activeChapterMeta().kicker }}</p>
+        <h2>{{ activeChapterMeta().title }}</h2>
+        <p>{{ activeChapterMeta().summary }}</p>
       </div>
-    </div>
 
-  <nav class="guide-nav">
-    <a class="guide-nav__link" href="#unlocks">Unlocks</a>
-    <a class="guide-nav__link" href="#units">Units</a>
-    <a class="guide-nav__link" href="#affixes">Affixes</a>
-    <a class="guide-nav__link" href="#combat">Combat</a>
-    <a class="guide-nav__link" href="#nodes">Nodes</a>
-    <a class="guide-nav__link" href="#promotion">Promotion</a>
-    <a class="guide-nav__link" href="#runs">Runs</a>
-  </nav>
+      <div class="guide-hero__quickstart">
+        <p class="guide-hero__label dg-stencil">Quick Start</p>
+        <ol class="guide-sequence">
+          <li>Build a squad and equip units with abilities and dice.</li>
+          <li>Start a run and route toward loot, rest, and boss nodes.</li>
+          <li>Spend teeth on permanent unlocks, stronger dice, and future promotions.</li>
+        </ol>
+      </div>
+    </header>
 
-  <section class="guide-section" id="unlocks">
-    <div class="guide-section__heading">
-      <p class="dg-stencil">Warband Growth</p>
-      <h2>Available Unlocks</h2>
-      <p>
-        These permanent upgrades expand what your warband can do between runs.
-        @if (session().isAuthenticated) {
-        <span class="guide-section__status"> Acquired unlocks are stamped below.</span>
-        }
-      </p>
-    </div>
-    <div class="guide-grid guide-grid--three me-2">
-      @for (unlock of unlocks; track unlock.name) {
-      <article class="guide-card" [class.guide-card--acquired]="hasAcquiredFeatureUnlock(unlock.key)">
-        <p class="guide-card__meta">{{ unlock.cost }} teeth</p>
-        @if (hasAcquiredFeatureUnlock(unlock.key)) {
-        <p class="guide-card__badge dg-stencil">Acquired</p>
-        }
-        <h3>{{ unlock.name }}</h3>
-        <p>{{ unlock.description }}</p>
-      </article>
+    <nav class="guide-chapters" aria-label="Field guide chapters">
+      @for (chapter of chapters; track chapter.id) {
+      <button
+        class="guide-chapters__button"
+        type="button"
+        [class.is-active]="isActiveChapter(chapter.id)"
+        [attr.aria-pressed]="isActiveChapter(chapter.id)"
+        (click)="setActiveChapter(chapter.id)"
+      >
+        <span class="guide-chapters__kicker dg-stencil">{{ chapter.kicker }}</span>
+        <span class="guide-chapters__label">{{ chapter.label }}</span>
+      </button>
       }
-    </div>
-    <div class="guide-grid guide-grid--three">
-      @for (unit of unitUnlocks; track unit.slug) {
-      <article class="guide-card guide-card--muted" [class.guide-card--acquired]="hasAcquiredUnitUnlock(unit.slug)">
-        <p class="guide-card__meta">{{ unit.role }} - Tier {{ unit.tier }} - Max Level {{ unit.maxLevel }}</p>
-        @if (hasAcquiredUnitUnlock(unit.slug)) {
-        <p class="guide-card__badge dg-stencil">Acquired</p>
-        }
-        <h3>{{ unit.name }}</h3>
-        <p>{{ unit.summary }}</p>
-      </article>
-      }
-    </div>
-  </section>
+    </nav>
 
-  <section class="guide-section" id="units">
-    <div class="guide-section__heading">
-      <p class="dg-stencil">Roster</p>
-      <h2>Units</h2>
-      <p>The current roster keeps clear frontline, backline, support, and utility identities while offering two Tier 2 branches for each Tier 1 base class.</p>
-    </div>
-    <div class="guide-grid guide-grid--three">
-      @for (unit of units; track unit.slug) {
-      <article class="guide-card">
-        <p class="guide-card__meta">{{ unit.role }} - Tier {{ unit.tier }} - Max Level {{ unit.maxLevel }}</p>
-        <h3>{{ unit.name }}</h3>
-        <p>{{ unit.summary }}</p>
+    @if (isActiveChapter('overview')) {
+    <section class="guide-layout" aria-label="Overview chapter">
+      <article class="guide-article">
+        <p class="guide-article__eyebrow dg-stencil">Overview</p>
+        <h3>What you are actually managing</h3>
+        <p>
+          Dice Goblins loops between two modes. In HQ, you assemble squads, upgrade the roster, buy dice, and plan promotions. On a run,
+          you commit a squad to a chain of encounters where health attrition, pathing, and die quality all matter.
+        </p>
+        <p>
+          Permanent progress mostly comes from unlocks, better dice, and broader unit options. Temporary progress happens inside a run,
+          where the goal is to survive enough combat to cash out rewards and return stronger than you left.
+        </p>
       </article>
-      }
-    </div>
-  </section>
 
-  <section class="guide-section" id="affixes">
-    <div class="guide-section__heading">
-      <p class="dg-stencil">Dice Mods</p>
-      <h2>Affixes</h2>
-      <p>Affixes change how a die performs when it is equipped to an ability slot.</p>
-    </div>
-    <div class="guide-grid guide-grid--three">
-      @for (affix of affixes; track affix.name) {
-      <article class="guide-card">
-        <p class="guide-card__meta">{{ affix.rarity }}</p>
-        <h3>{{ affix.name }}</h3>
-        <p>{{ affix.description }}</p>
+      <article class="guide-article">
+        <p class="guide-article__eyebrow dg-stencil">Current Rules</p>
+        <h3>What progression looks like right now</h3>
+        <p>
+          Units can promote starting at level 6, but every class can now stay through level 10 to claim one of two capstones first.
+          The Academy unlocks the roster tree, while the shop and your run rewards handle the economy side of long-term growth.
+        </p>
+        <p>
+          If you are signed in, acquired feature unlocks and base unit unlocks are marked below so the guide reads like a live codex
+          instead of a static document.
+        </p>
       </article>
-      }
-    </div>
-  </section>
 
-  <section class="guide-section" id="combat">
-    <div class="guide-section__heading">
-      <p class="dg-stencil">Battle Rules</p>
-      <h2>Combat, Positioning, and Abilities</h2>
-    </div>
-    <div class="guide-grid guide-grid--two">
-      <article class="guide-card">
-        <h3>Squad Positioning</h3>
-        <ul class="guide-list">
-          <li>Combat happens on a fixed 3x3 grid for both sides.</li>
-          <li>Front-row and back-row positioning matter, so tougher units usually belong in front and ranged pressure usually belongs in back.</li>
-          <li>Placement affects who can pressure safely and who is left exposed on the field.</li>
-        </ul>
-      </article>
-      <article class="guide-card">
-        <h3>Ability Scheduling</h3>
-        <ul class="guide-list">
-          <li>Equipped abilities fire in loadout order using cumulative speed, not all at once.</li>
-          <li>Each ability instance can fire at most once per 20-tick round.</li>
-          <li>Reordering a loadout changes when actions happen, even if the unit keeps the same abilities.</li>
-        </ul>
-      </article>
-      <article class="guide-card">
-        <h3>Dice and Empty Slots</h3>
-        <ul class="guide-list">
-          <li>Dice are attached to ability slots, not to a shared unit-wide dice pool.</li>
-          <li>If you equip the same base ability multiple times, those copies reuse the same slot setup.</li>
-          <li>Any empty slot resolves as `1`, so incomplete setups still work but hit softer.</li>
-        </ul>
-      </article>
-      <article class="guide-card">
-        <h3>Status Snapshot</h3>
-        <ul class="guide-list">
-          <li>Status effects include Poison, Bolstered, Sleep, and Bleeding.</li>
-          <li>Status timing resolves server-side during dedicated status phases.</li>
-          <li>Dead units stop taking later actions in the same tick.</li>
-        </ul>
-      </article>
-    </div>
-  </section>
+      <section class="guide-block">
+        <div class="guide-block__heading">
+          <p class="dg-stencil">Warband Growth</p>
+          <h3>Permanent unlocks</h3>
+        </div>
 
-  <section class="guide-section" id="nodes">
-    <div class="guide-section__heading">
-      <p class="dg-stencil">Pathing</p>
-      <h2>Run Nodes</h2>
-      <p>Each map node advertises a different kind of risk, recovery, or reward.</p>
-    </div>
-    <div class="guide-grid guide-grid--three">
-      @for (node of nodes; track node.name) {
-      <article class="guide-card guide-card--node">
-        <img class="guide-node-icon" [src]="node.icon" [alt]="node.name + ' icon'" />
-        <h3>{{ node.name }}</h3>
-        <p>{{ node.description }}</p>
-      </article>
-      }
-    </div>
-  </section>
+        <div class="guide-visual-grid guide-visual-grid--unlock">
+          @for (unlock of unlocks; track unlock.name) {
+          <article class="guide-tile guide-tile--unlock" [class.guide-tile--acquired]="hasAcquiredFeatureUnlock(unlock.key)">
+            <p class="guide-tile__meta">{{ unlock.cost }} teeth</p>
+            @if (hasAcquiredFeatureUnlock(unlock.key)) {
+            <p class="guide-tile__badge dg-stencil">Acquired</p>
+            }
+            <h4>{{ unlock.name }}</h4>
+            <p>{{ unlock.description }}</p>
+          </article>
+          }
+        </div>
+      </section>
 
-  <section class="guide-section" id="promotion">
-    <div class="guide-section__heading">
-      <p class="dg-stencil">Academy</p>
-      <h2>How Promotion Works</h2>
-    </div>
-    <div class="guide-grid guide-grid--two">
-      <article class="guide-card">
-        <h3>Requirements</h3>
-        <ul class="guide-list">
-          <li>Promotion always advances a unit by exactly one tier.</li>
-          <li>Promotion eligibility begins at level 6, even though every class now masters at level 10.</li>
-          <li>You still combine three units of the same current type and tier, with one primary unit carrying forward.</li>
-          <li>The primary unit keeps its identity, while the two secondary units are consumed.</li>
-        </ul>
-      </article>
-      <article class="guide-card">
-        <h3>Results</h3>
-        <ul class="guide-list">
-          <li>The promoted unit resets to level 1 in its new tier.</li>
-          <li>Tier 2 and Tier 3 classes grant an active ability and a passive ability immediately when chosen.</li>
-          <li>Previously earned abilities and selected passive capstones stay with the unit across promotions.</li>
-          <li>Tier 3 promotions still require the authored rare region item.</li>
-        </ul>
-      </article>
-      <article class="guide-card">
-        <h3>Mastery and Capstones</h3>
-        <ul class="guide-list">
-          <li>Level 10 unlocks a choice between two passive capstones for the current class.</li>
-          <li>If you promote before level 10, you skip that class capstone unless the unit later returns to that class and masters it there.</li>
-          <li>If a level 10 unit has not picked a capstone yet, the promotion flow requires that choice before confirming.</li>
-        </ul>
-      </article>
-      <article class="guide-card">
-        <h3>Choosing a Destination</h3>
-        <ul class="guide-list">
-          <li>You can continue along the unit's current chain or branch into another eligible path.</li>
-          <li>Current Tier 2 branch pairs are Enforcer or Pit Fighter, Deadeye or Trapper, Bulwark or Shieldbreaker, Warcaller or Mascot, and Trickshot or Plaguehand.</li>
-          <li>Promotion does not allow tier skipping, and sideways options are limited by paths the unit has actually earned through earlier choices.</li>
-        </ul>
-      </article>
-    </div>
-  </section>
+      <section class="guide-block">
+        <div class="guide-block__heading">
+          <p class="dg-stencil">Pathing</p>
+          <h3>Run node reference</h3>
+        </div>
 
-  <section class="guide-section" id="runs">
-    <div class="guide-section__heading">
-      <p class="dg-stencil">Expeditions</p>
-      <h2>How Runs Work</h2>
-    </div>
-    <div class="guide-grid guide-grid--two">
-      <article class="guide-card">
-        <h3>During a Run</h3>
-        <ul class="guide-list">
-          <li>Unit HP persists between encounters, so attrition is part of the challenge.</li>
-          <li>Cooldowns and status effects clear after combat, but missing HP does not unless you rest.</li>
-          <li>Rest nodes are the primary way to fully recover before continuing.</li>
-        </ul>
+        <div class="guide-visual-grid guide-visual-grid--nodes">
+          @for (node of nodes; track node.name) {
+          <article class="guide-tile guide-tile--node">
+            <img class="guide-node-icon" [src]="node.icon" [alt]="node.name + ' icon'" />
+            <h4>{{ node.name }}</h4>
+            <p>{{ node.description }}</p>
+          </article>
+          }
+        </div>
+      </section>
+    </section>
+    }
+
+    @if (isActiveChapter('warband')) {
+    <section class="guide-layout" aria-label="Warband chapter">
+      <article class="guide-article">
+        <p class="guide-article__eyebrow dg-stencil">Promotion</p>
+        <h3>How units grow and branch</h3>
+        <p>
+          Promotion always advances a unit by one tier. Eligibility starts at level 6, while level 10 offers a capstone choice for the
+          current class. Promoting early speeds up access to new branches, while staying longer locks in class mastery first.
+        </p>
+        <p>
+          Promotion still consumes two matching supporting units. The primary unit keeps its identity and carries forward into the chosen
+          destination, resetting to level 1 for the new tier.
+        </p>
       </article>
-      <article class="guide-card">
-        <h3>If You Die</h3>
-        <ul class="guide-list">
-          <li>A combat or boss defeat immediately ends the run.</li>
-          <li>No retry is allowed inside that run.</li>
-          <li>Defeated units lose their current-level XP progress, but no unit loses a level.</li>
-        </ul>
+
+      <article class="guide-article">
+        <p class="guide-article__eyebrow dg-stencil">Branching</p>
+        <h3>Current promotion paths</h3>
+        <p>
+          Tier 1 lines currently branch into Enforcer or Pit Fighter, Bulwark or Shieldbreaker, Deadeye or Trapper, Warcaller or Mascot,
+          and Trickshot or Plaguehand. Tier 3 promotions still expect the authored rare region item.
+        </p>
+        <p>
+          If a level 10 unit has not chosen its capstone yet, the promotion flow requires that decision before the tier change can be
+          confirmed.
+        </p>
       </article>
-      <article class="guide-card">
-        <h3>If You Abandon</h3>
-        <ul class="guide-list">
-          <li>Abandoning a run uses the same resolution outcome as a failed run.</li>
-          <li>The energy spent to start the run is not refunded.</li>
-          <li>Abandon exists mainly to escape a doomed or stuck expedition.</li>
-        </ul>
+
+      <section class="guide-block">
+        <div class="guide-block__heading">
+          <p class="dg-stencil">Base Unlocks</p>
+          <h3>Starter unit types</h3>
+        </div>
+
+        <div class="guide-visual-grid guide-visual-grid--units">
+          @for (unit of unitUnlocks; track unit.slug) {
+          <article class="guide-unit-tile" [class.guide-unit-tile--acquired]="hasAcquiredUnitUnlock(unit.slug)">
+            <div class="guide-unit-tile__art">
+              <img [src]="unitArtUrl(unit.slug)" [alt]="unit.name" />
+            </div>
+            <div class="guide-unit-tile__body">
+              <p class="guide-unit-tile__meta">{{ unit.role }} | Tier {{ unit.tier }} | Max {{ unit.maxLevel }}</p>
+              @if (hasAcquiredUnitUnlock(unit.slug)) {
+              <p class="guide-tile__badge dg-stencil">Acquired</p>
+              }
+              <h4>{{ unit.name }}</h4>
+              <p>{{ unit.summary }}</p>
+            </div>
+          </article>
+          }
+        </div>
+      </section>
+
+      <section class="guide-block">
+        <div class="guide-block__heading">
+          <p class="dg-stencil">Roster</p>
+          <h3>Current unit codex</h3>
+        </div>
+
+        <div class="guide-visual-grid guide-visual-grid--units">
+          @for (unit of units; track unit.slug) {
+          <article class="guide-unit-tile">
+            <div class="guide-unit-tile__art">
+              <img [src]="unitArtUrl(unit.slug)" [alt]="unit.name" />
+            </div>
+            <div class="guide-unit-tile__body">
+              <p class="guide-unit-tile__meta">{{ unit.role }} | Tier {{ unit.tier }} | Max {{ unit.maxLevel }}</p>
+              <h4>{{ unit.name }}</h4>
+              <p>{{ unit.summary }}</p>
+            </div>
+          </article>
+          }
+        </div>
+      </section>
+    </section>
+    }
+
+    @if (isActiveChapter('dice')) {
+    <section class="guide-layout" aria-label="Dice chapter">
+      <article class="guide-article">
+        <p class="guide-article__eyebrow dg-stencil">Dice Rules</p>
+        <h3>How dice connect to abilities</h3>
+        <p>
+          Dice are equipped into ability slots, not into a shared unit-wide inventory. If a slot is empty, the roll resolves as `1`,
+          which keeps the loadout functional but much weaker than a fully built kit.
+        </p>
+        <p>
+          Reordering abilities changes when those rolls matter because actions fire in loadout order through the combat scheduler, not all
+          at once.
+        </p>
       </article>
-      <article class="guide-card">
-        <h3>After Any Run Ends</h3>
-        <ul class="guide-list">
-          <li>All units heal back to full after the run summary cleanup.</li>
-          <li>Rechargeable abilities recover and status effects are cleared.</li>
-          <li>Successful runs differ from failed or abandoned runs mainly in rewards and progression payout.</li>
-        </ul>
+
+      <article class="guide-article">
+        <p class="guide-article__eyebrow dg-stencil">Affixes</p>
+        <h3>What makes one die different from another</h3>
+        <p>
+          Size defines the raw roll ceiling. Rarity changes the material tier, value, and overall affix budget. Affixes are what turn a
+          die from generic throughput into a piece aimed at offense, defense, sustain, or burst.
+        </p>
       </article>
-    </div>
+
+      <section class="guide-block">
+        <div class="guide-block__heading">
+          <p class="dg-stencil">Materials</p>
+          <h3>Dice rarity ladder</h3>
+        </div>
+
+        <div class="guide-visual-grid guide-visual-grid--dice">
+          @for (family of diceFamilies; track family.rarity) {
+          <article class="guide-dice-tile">
+            <img [src]="family.image" [alt]="family.rarity + ' die'" />
+            <h4>{{ family.rarity }}</h4>
+            <p>{{ family.summary }}</p>
+          </article>
+          }
+        </div>
+      </section>
+
+      <section class="guide-block">
+        <div class="guide-block__heading">
+          <p class="dg-stencil">Sizes</p>
+          <h3>Die size reference</h3>
+        </div>
+
+        <div class="guide-visual-grid guide-visual-grid--dice">
+          @for (die of dieSizes; track die.label) {
+          <article class="guide-dice-tile">
+            <img [src]="die.image" [alt]="die.label" />
+            <h4>{{ die.label }}</h4>
+            <p>{{ die.summary }}</p>
+          </article>
+          }
+        </div>
+      </section>
+
+      <section class="guide-block">
+        <div class="guide-block__heading">
+          <p class="dg-stencil">Affixes</p>
+          <h3>Common terms you will see on dice</h3>
+        </div>
+
+        <div class="guide-visual-grid guide-visual-grid--affixes">
+          @for (affix of affixes; track affix.name) {
+          <article class="guide-tile">
+            <p class="guide-tile__meta">{{ affix.rarity }}</p>
+            <h4>{{ affix.name }}</h4>
+            <p>{{ affix.description }}</p>
+          </article>
+          }
+        </div>
+      </section>
+    </section>
+    }
+
+    @if (isActiveChapter('expeditions')) {
+    <section class="guide-layout" aria-label="Expeditions chapter">
+      <article class="guide-article">
+        <p class="guide-article__eyebrow dg-stencil">Combat</p>
+        <h3>How battles actually resolve</h3>
+        <p>
+          Combat takes place on mirrored 3x3 formations. Front and back rows matter, so tougher units usually absorb the first pressure
+          while ranged or support units benefit from safer lanes behind them.
+        </p>
+        <p>
+          Abilities execute in order using the combat scheduler. Status effects such as Poison, Bolstered, Sleep, and Bleeding resolve in
+          their own phases, and dead units stop taking later actions in the same tick.
+        </p>
+      </article>
+
+      <article class="guide-article">
+        <p class="guide-article__eyebrow dg-stencil">Run Resolution</p>
+        <h3>What happens when a run ends</h3>
+        <p>
+          During a run, HP attrition persists across encounters until you find a rest node. If you fail or abandon the expedition, the run
+          ends immediately and defeated units lose current-level XP progress, but they do not lose levels.
+        </p>
+        <p>
+          After the run summary cleanup, units heal fully, statuses clear, and rechargeable abilities recover. Success mainly changes the
+          reward payout, not the cleanup pattern itself.
+        </p>
+      </article>
+
+      <section class="guide-block">
+        <div class="guide-block__heading">
+          <p class="dg-stencil">Node Types</p>
+          <h3>Map icon legend</h3>
+        </div>
+
+        <div class="guide-visual-grid guide-visual-grid--nodes">
+          @for (node of nodes; track node.name) {
+          <article class="guide-tile guide-tile--node">
+            <img class="guide-node-icon" [src]="node.icon" [alt]="node.name + ' icon'" />
+            <h4>{{ node.name }}</h4>
+            <p>{{ node.description }}</p>
+          </article>
+          }
+        </div>
+      </section>
+
+      <section class="guide-block">
+        <div class="guide-block__heading">
+          <p class="dg-stencil">Run Flow</p>
+          <h3>Expedition checklist</h3>
+        </div>
+
+        <div class="guide-callouts">
+          <article class="guide-callout">
+            <h4>Before the run</h4>
+            <p>Choose a squad, inspect unit health, and make sure the right dice are attached to your highest-impact abilities.</p>
+          </article>
+          <article class="guide-callout">
+            <h4>During the run</h4>
+            <p>Balance greed against survival. Loot grows the warband, but rest nodes protect a promising expedition from collapsing.</p>
+          </article>
+          <article class="guide-callout">
+            <h4>After the run</h4>
+            <p>Use rewards to buy permanent power, unlock fresh unit lines, and prepare the next run with a stronger roster.</p>
+          </article>
+        </div>
+      </section>
+    </section>
+    }
   </section>
 </page-frame>

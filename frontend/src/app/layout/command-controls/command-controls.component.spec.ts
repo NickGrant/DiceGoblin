@@ -79,12 +79,7 @@ describe('CommandControlsComponent', () => {
     expect(compiled.textContent).toContain('93');
   });
 
-  it('includes a guide link that preserves the current in-game route', () => {
-    Object.defineProperty(router, 'url', {
-      configurable: true,
-      get: () => '/run/node/42',
-    });
-
+  it('includes a guide link that routes directly to the field guide', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
@@ -93,7 +88,7 @@ describe('CommandControlsComponent', () => {
       .find((debugElement) => debugElement.attributes['aria-label'] === 'Field Guide');
 
     expect(guideLink).toBeDefined();
-    expect(router.serializeUrl(guideLink!.injector.get(RouterLink).urlTree!)).toBe('/field-guide?returnUrl=%2Frun%2Fnode%2F42');
+    expect(router.serializeUrl(guideLink!.injector.get(RouterLink).urlTree!)).toBe('/field-guide');
     const icon = guideLink!.nativeElement.querySelector('img') as HTMLImageElement | null;
     expect(icon?.getAttribute('src')).toContain('icon_guide.png');
   });

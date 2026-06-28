@@ -1,7 +1,17 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
+import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
+
+type GuideChapterId = 'overview' | 'warband' | 'dice' | 'expeditions';
+
+type GuideChapter = {
+  id: GuideChapterId;
+  label: string;
+  kicker: string;
+  title: string;
+  summary: string;
+};
 
 type GuideUnit = {
   name: string;
@@ -31,6 +41,18 @@ type GuideNode = {
   description: string;
 };
 
+type GuideDiceFamily = {
+  rarity: string;
+  image: string;
+  summary: string;
+};
+
+type GuideDieSize = {
+  label: string;
+  image: string;
+  summary: string;
+};
+
 @Component({
   selector: 'app-guide-page',
   standalone: true,
@@ -40,58 +62,42 @@ type GuideNode = {
 })
 export class GuidePageComponent implements OnInit {
   private readonly sessionService = inject(SessionService);
-  private readonly route = inject(ActivatedRoute);
 
   protected readonly session = this.sessionService.session;
   protected readonly profileData = this.sessionService.profileData;
   protected readonly hasActiveRun = this.sessionService.hasActiveRun;
-  protected readonly returnUrl = computed(() => {
-    if (!this.session().isAuthenticated) {
-      return null;
-    }
+  protected readonly activeChapter = signal<GuideChapterId>('overview');
 
-    const candidate = this.route.snapshot.queryParamMap.get('returnUrl');
-
-    if (
-      !candidate
-      || !candidate.startsWith('/')
-      || candidate.startsWith('//')
-      || candidate === '/guide'
-      || candidate.startsWith('/guide?')
-      || candidate === '/field-guide'
-      || candidate.startsWith('/field-guide?')
-    ) {
-      return null;
-    }
-
-    return candidate;
-  });
-  protected readonly primaryActionLabel = computed(() => {
-    if (!this.session().isAuthenticated) {
-      return 'Sign In';
-    }
-
-    if (this.returnUrl()) {
-      return this.returnUrl()!.startsWith('/run/') ? 'Return to Run' : 'Back to Game';
-    }
-
-    return this.hasActiveRun() ? 'Return to Run' : 'Back to HQ';
-  });
-  protected readonly primaryActionRoute = computed(() => {
-    if (!this.session().isAuthenticated) {
-      return '/login';
-    }
-
-    if (this.returnUrl()) {
-      return this.returnUrl()!;
-    }
-
-    return this.hasActiveRun() ? '/run/map' : '/home';
-  });
-
-  ngOnInit(): void {
-    void this.sessionService.initialize();
-  }
+  protected readonly chapters: ReadonlyArray<GuideChapter> = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      kicker: 'Quick Read',
+      title: 'Learn the rhythm of a run',
+      summary: 'Start here for the fastest explanation of how squads, unlocks, and expeditions fit together.',
+    },
+    {
+      id: 'warband',
+      label: 'Warband',
+      kicker: 'Roster',
+      title: 'Build, unlock, and promote units',
+      summary: 'Browse the current roster, see what unlocks permanently expand the warband, and review promotion rules.',
+    },
+    {
+      id: 'dice',
+      label: 'Dice',
+      kicker: 'Loadouts',
+      title: 'Understand dice, sizes, and affixes',
+      summary: 'See the main dice families, size breakpoints, and affix language used throughout the game.',
+    },
+    {
+      id: 'expeditions',
+      label: 'Expeditions',
+      kicker: 'Runs',
+      title: 'Read how combat and map nodes work',
+      summary: 'Review encounter flow, node meanings, failure handling, and the basic rules that shape a successful run.',
+    },
+  ];
 
   protected readonly unitUnlocks: ReadonlyArray<GuideUnit> = [
     {
@@ -204,6 +210,39 @@ export class GuidePageComponent implements OnInit {
     },
   ];
 
+  protected readonly diceFamilies: ReadonlyArray<GuideDiceFamily> = [
+    { rarity: 'Common', image: this.diceImage('common', 6), summary: 'Cardboard dice are the baseline economy pieces you buy, loot, and replace most often.' },
+    { rarity: 'Uncommon', image: this.diceImage('uncommon', 8), summary: 'Wood dice start adding stronger affix combinations and better sell value.' },
+    { rarity: 'Rare', image: this.diceImage('rare', 10), summary: 'Bone dice are premium upgrades with more dramatic payoff and stronger affix ceilings.' },
+    { rarity: 'Epic', image: this.diceImage('epic', 12), summary: 'Metal dice are heavier endgame pieces intended to anchor higher-value loadouts.' },
+    { rarity: 'Legendary', image: this.diceImage('legendary', 20), summary: 'Gemstone dice represent the flashiest rarity tier and the broadest raw power ceiling.' },
+  ];
+
+  protected readonly dieSizes: ReadonlyArray<GuideDieSize> = [
+    { label: 'd4', image: this.diceImage('common', 4), summary: 'Smallest die size. Useful for cheap utility slots and low-variance filler.' },
+    { label: 'd6', image: this.diceImage('common', 6), summary: 'The default all-rounder size and the most familiar starting point for loadouts.' },
+    { label: 'd8', image: this.diceImage('common', 8), summary: 'A noticeable power jump that still shows up regularly in the early and mid game.' },
+    { label: 'd10', image: this.diceImage('common', 10), summary: 'A premium mid-to-high roll option that starts feeling explosive with good affixes.' },
+    { label: 'd12', image: this.diceImage('common', 12), summary: 'Large die size with strong ceiling value for major attack or support slots.' },
+    { label: 'd20', image: this.diceImage('common', 20), summary: 'The biggest standard die, best suited to high-impact abilities and chase upgrades.' },
+  ];
+
+  ngOnInit(): void {
+    void this.sessionService.initialize();
+  }
+
+  protected setActiveChapter(chapterId: GuideChapterId): void {
+    this.activeChapter.set(chapterId);
+  }
+
+  protected isActiveChapter(chapterId: GuideChapterId): boolean {
+    return this.activeChapter() === chapterId;
+  }
+
+  protected activeChapterMeta(): GuideChapter {
+    return this.chapters.find((chapter) => chapter.id === this.activeChapter()) ?? this.chapters[0];
+  }
+
   protected hasAcquiredFeatureUnlock(unlockKey: string): boolean {
     if (!this.session().isAuthenticated) {
       return false;
@@ -218,5 +257,38 @@ export class GuidePageComponent implements OnInit {
     }
 
     return this.profileData()?.unit_type_unlocks.includes(unitSlug) ?? false;
+  }
+
+  protected unitArtUrl(unitSlug: string): string {
+    return `/assets/ui/cardboard-units/${this.normalizeUnitArtSlug(unitSlug)}.png`;
+  }
+
+  private diceImage(rarity: string, sides: number): string {
+    return resolveDiceArtStyles(rarity, sides, 96).imageUrl;
+  }
+
+  private normalizeUnitArtSlug(unitSlug: string): string {
+    const knownSlugMap: Record<string, string> = {
+      frontline_bruiser_t1: 'bruiser',
+      frontline_bruiser_t2: 'enforcer',
+      frontline_pit_fighter_t2: 'pit-fighter',
+      frontline_bruiser_t3: 'juggernaut',
+      frontline_guardian_t1: 'guardian',
+      frontline_guardian_t2: 'bulwark',
+      frontline_shieldbreaker_t2: 'shieldbreaker',
+      frontline_guardian_t3: 'ironwall',
+      backline_marksman_t1: 'marksman',
+      backline_marksman_t2: 'deadeye',
+      backline_trapper_t2: 'trapper',
+      backline_marksman_t3: 'sharpshot',
+      support_banner_t1: 'bannerbearer',
+      support_banner_t2: 'warcaller',
+      support_mascot_t2: 'mascot',
+      control_saboteur_t1: 'saboteur',
+      control_saboteur_t2: 'trickshot',
+      control_plaguehand_t2: 'plaguehand',
+    };
+
+    return knownSlugMap[unitSlug] ?? unitSlug;
   }
 }
