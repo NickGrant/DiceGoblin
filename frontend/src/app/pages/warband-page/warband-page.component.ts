@@ -9,6 +9,7 @@ import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { UnitGridObjectComponent } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 import { FocusLayoutComponent } from '../../shared/ui/focus-layout/focus-layout.component';
+import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
 
 @Component({
   selector: 'app-warband-page',
@@ -217,55 +218,12 @@ export class WarbandPageComponent {
   }
 
   unitCardArtUrl(unit: UnitRecord): string | null {
-    const nameSlug = this.normalizeCardArtSlug(unit.unit_type_name);
-    if (nameSlug) {
-      return `/assets/ui/cardboard-units/${nameSlug}.png`;
-    }
-
-    const slug = this.normalizeCardArtSlug(unit.unit_type_slug);
-    if (slug) {
-      return `/assets/ui/cardboard-units/${slug}.png`;
-    }
-
-    return null;
+    return resolveUnitImageUrl(unit.unit_type_slug)
+      ?? resolveUnitImageUrl(unit.unit_type_name);
   }
 
   private unitTypeLabel(unit: { unit_type_name?: string; unit_type_slug?: string }): string {
     return (unit.unit_type_name || unit.unit_type_slug || 'Unknown').trim();
-  }
-
-  private normalizeCardArtSlug(value: string | null | undefined): string | null {
-    const normalized = (value ?? '').trim().toLowerCase();
-    if (!normalized.length) {
-      return null;
-    }
-
-    const knownSlugMap: Record<string, string> = {
-      frontline_bruiser_t1: 'bruiser',
-      frontline_bruiser_t2: 'enforcer',
-      frontline_pit_fighter_t2: 'pit-fighter',
-      frontline_guardian_t1: 'guardian',
-      frontline_guardian_t2: 'bulwark',
-      frontline_shieldbreaker_t2: 'shieldbreaker',
-      backline_marksman_t1: 'marksman',
-      backline_marksman_t2: 'deadeye',
-      backline_trapper_t2: 'trapper',
-      support_banner_t1: 'bannerbearer',
-      support_banner_t2: 'warcaller',
-      support_mascot_t2: 'mascot',
-      control_saboteur_t1: 'saboteur',
-      control_saboteur_t2: 'trickshot',
-      control_plaguehand_t2: 'plaguehand',
-    };
-
-    if (knownSlugMap[normalized]) {
-      return knownSlugMap[normalized];
-    }
-
-    return normalized
-      .replace(/^goblin\s+/, '')
-      .replace(/\s+/g, '-')
-      .replace(/banner\b/g, 'bannerbearer');
   }
 }
 

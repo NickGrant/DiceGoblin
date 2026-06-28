@@ -247,7 +247,7 @@ describe('UnitDetailsPageComponent', () => {
     expect(host.textContent).toContain('Deal more damage to wounded enemies.');
     expect(host.textContent).toContain('Promotions are now handled in the Academy.');
     expect(fixture.nativeElement.querySelector('.unit-portrait')?.getAttribute('src')).toContain(
-      '/assets/ui/portraits/goblin_bruiser.png',
+      '/assets/ui/units/goblin_bruiser.png',
     );
 
     component.setActiveTab('abilities');
@@ -447,6 +447,6 @@ describe('UnitDetailsPageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.unitPortraitUrl()).toBe('/assets/ui/portraits/goblin_banner.png');
+    expect(fixture.componentInstance.unitPortraitUrl()).toBe('/assets/ui/units/goblin_bannerbearer.png');
   });
 });

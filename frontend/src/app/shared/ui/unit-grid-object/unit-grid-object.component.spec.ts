@@ -68,7 +68,7 @@ describe('UnitGridObjectComponent', () => {
     expect(compiled.textContent).toContain('18');
     expect(compiled.querySelector('a')?.getAttribute('href')).toContain('/warband/units/u1');
     expect((compiled.querySelector('.unit-grid-object__card-art') as HTMLImageElement | null)?.src).toContain(
-      '/assets/ui/cardboard-units/bruiser.png',
+      '/assets/ui/units/goblin_bruiser.png',
     );
   });
 

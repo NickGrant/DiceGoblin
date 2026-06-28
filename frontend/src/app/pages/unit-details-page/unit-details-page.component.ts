@@ -25,6 +25,7 @@ import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { DicePickerModalComponent } from '../../shared/ui/dice-picker-modal/dice-picker-modal.component';
 import { TabStripComponent, TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
+import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
 
 type AbilitySlotViewModel = {
   abilityId: string;
@@ -303,10 +304,7 @@ export class UnitDetailsPageComponent {
   readonly unitTypeLabel = computed(() => this.unit()?.unit_type_name || this.unit()?.unit_type_slug || 'Unit');
   readonly tierRomanNumeral = computed(() => this.toRomanNumeral(this.unit()?.tier ?? 1));
   readonly portraitLoadFailed = signal(false);
-  readonly unitPortraitUrl = computed(() => {
-    const slug = this.normalizePortraitSlug(this.unit()?.unit_type_slug);
-    return slug ? `/assets/ui/portraits/${slug}.png` : null;
-  });
+  readonly unitPortraitUrl = computed(() => resolveUnitImageUrl(this.unit()?.unit_type_slug));
 
   constructor() {
     this.renameValue = this.unit()?.name ?? '';
@@ -690,20 +688,6 @@ export class UnitDetailsPageComponent {
     }
 
     return result;
-  }
-
-  private normalizePortraitSlug(value: string | null | undefined): string | null {
-    const normalized = (value ?? '').trim().toLowerCase().replace(/-/g, '_');
-    if (!normalized.length) {
-      return null;
-    }
-
-    const goblinRoleMatch = normalized.match(/^(frontline|backline|support|control)_([a-z0-9_]+)_t\d+$/);
-    if (goblinRoleMatch) {
-      return `goblin_${goblinRoleMatch[2]}`;
-    }
-
-    return normalized;
   }
 }
 

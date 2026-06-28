@@ -3,6 +3,7 @@ import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { TabStripComponent } from '../../shared/ui/tab-strip/tab-strip.component';
+import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
 
 type GuideChapterId = 'overview' | 'warband' | 'dice' | 'expeditions';
 
@@ -265,35 +266,10 @@ export class GuidePageComponent implements OnInit {
   }
 
   protected unitArtUrl(unitSlug: string): string {
-    return `/assets/ui/cardboard-units/${this.normalizeUnitArtSlug(unitSlug)}.png`;
+    return resolveUnitImageUrl(unitSlug) ?? '';
   }
 
   private diceImage(rarity: string, sides: number): string {
     return resolveDiceArtStyles(rarity, sides, 96).imageUrl;
-  }
-
-  private normalizeUnitArtSlug(unitSlug: string): string {
-    const knownSlugMap: Record<string, string> = {
-      frontline_bruiser_t1: 'bruiser',
-      frontline_bruiser_t2: 'enforcer',
-      frontline_pit_fighter_t2: 'pit-fighter',
-      frontline_bruiser_t3: 'juggernaut',
-      frontline_guardian_t1: 'guardian',
-      frontline_guardian_t2: 'bulwark',
-      frontline_shieldbreaker_t2: 'shieldbreaker',
-      frontline_guardian_t3: 'ironwall',
-      backline_marksman_t1: 'marksman',
-      backline_marksman_t2: 'deadeye',
-      backline_trapper_t2: 'trapper',
-      backline_marksman_t3: 'sharpshot',
-      support_banner_t1: 'bannerbearer',
-      support_banner_t2: 'warcaller',
-      support_mascot_t2: 'mascot',
-      control_saboteur_t1: 'saboteur',
-      control_saboteur_t2: 'trickshot',
-      control_plaguehand_t2: 'plaguehand',
-    };
-
-    return knownSlugMap[unitSlug] ?? unitSlug;
   }
 }
