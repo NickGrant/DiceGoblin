@@ -1,0 +1,18 @@
+<nav class="tab-strip" [attr.aria-label]="ariaLabel()">
+  @for (item of items(); track item.id) {
+  <button
+    class="tab-strip__button"
+    type="button"
+    [class.is-active]="isActive(item.id)"
+    [disabled]="item.disabled"
+    [attr.aria-pressed]="isActive(item.id)"
+    [attr.aria-label]="item.ariaLabel || item.label"
+    (click)="select(item)"
+  >
+    @if (item.kicker) {
+    <span class="tab-strip__kicker dg-stencil">{{ item.kicker }}</span>
+    }
+    <span class="tab-strip__label">{{ item.label }}</span>
+  </button>
+  }
+</nav>

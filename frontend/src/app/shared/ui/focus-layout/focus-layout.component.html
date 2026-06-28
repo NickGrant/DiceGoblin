@@ -1,0 +1,13 @@
+<section
+  class="focus-layout"
+  [class.focus-layout--sticky]="stickyPanel()"
+  [style.--focus-layout-panel-width]="panelWidth()"
+>
+  <div class="focus-layout__primary">
+    <ng-content select="[focusLayoutPrimary]"></ng-content>
+  </div>
+
+  <aside class="focus-layout__panel">
+    <ng-content select="[focusLayoutPanel]"></ng-content>
+  </aside>
+</section>

@@ -19,11 +19,12 @@ import {
   ShopUnitGridObjectComponent,
   ShopUnitGridObjectRecord,
 } from '../../shared/ui/shop-unit-grid-object/shop-unit-grid-object.component';
+import { TabStripComponent, TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
 
 @Component({
   selector: 'app-shop-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, ObjectGridComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, ObjectGridComponent, TabStripComponent],
   templateUrl: './shop-page.component.html',
   styleUrl: './shop-page.component.scss',
 })
@@ -45,6 +46,10 @@ export class ShopPageComponent {
   };
 
   readonly activeTab = signal<'supplies' | 'feature_unlocks'>('supplies');
+  readonly tabs: ReadonlyArray<TabStripItem> = [
+    { id: 'supplies', label: 'Supplies', kicker: 'Stock' },
+    { id: 'feature_unlocks', label: 'Feature Unlocks', kicker: 'Progression' },
+  ];
   readonly catalog = signal<ShopCatalogData | null>(null);
   readonly loading = signal(true);
   readonly busyKey = signal<string | null>(null);
@@ -185,5 +190,9 @@ export class ShopPageComponent {
       || this.busyKey() === this.featureUnlockBusyKey(item.product_id)
       || !this.canAfford(item.cost)
     );
+  }
+
+  selectTab(tabId: string): void {
+    this.activeTab.set(tabId === 'feature_unlocks' ? 'feature_unlocks' : 'supplies');
   }
 }

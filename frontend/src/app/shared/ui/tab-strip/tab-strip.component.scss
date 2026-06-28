@@ -1,0 +1,75 @@
+.tab-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.tab-strip__button {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(96, 67, 33, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 239, 0.88), rgba(242, 231, 205, 0.84)),
+    rgba(255, 255, 255, 0.8);
+  color: var(--dg-charcoal);
+  text-align: left;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.tab-strip__button:hover:not(:disabled),
+.tab-strip__button:focus-visible,
+.tab-strip__button.is-active {
+  transform: translateY(-2px);
+  border-color: rgba(144, 82, 19, 0.48);
+  background:
+    linear-gradient(180deg, rgba(255, 249, 235, 0.98), rgba(241, 226, 193, 0.94));
+  box-shadow: 0 10px 18px rgba(79, 52, 25, 0.1);
+}
+
+.tab-strip__button:focus-visible {
+  outline: 2px solid rgba(168, 102, 33, 0.4);
+  outline-offset: 2px;
+}
+
+.tab-strip__button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.tab-strip__kicker {
+  color: rgba(92, 60, 25, 0.92);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tab-strip__label {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .tab-strip__button:hover:not(:disabled),
+  .tab-strip__button:focus-visible,
+  .tab-strip__button.is-active {
+    transform: none;
+  }
+}
+
+@media (max-width: 440px) {
+  .tab-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 761px) {
+  .tab-strip {
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  }
+}

@@ -40,11 +40,6 @@
   font-size: 0.95rem;
 }
 
-.dice-page__layout {
-  display: grid;
-  gap: 1rem;
-}
-
 .dice-page__primary {
   min-width: 0;
   display: grid;
@@ -256,11 +251,6 @@
     --inspect-layout-edge: 1rem;
   }
 
-  .dice-page__layout {
-    grid-template-columns: minmax(0, 1.85fr) minmax(280px, 0.8fr);
-    align-items: start;
-  }
-
   .dice-page__controls {
     padding: 1.25rem;
   }
@@ -276,10 +266,5 @@
 
   .dice-page__tile {
     min-height: 92px;
-  }
-
-  .dice-page__inspect {
-    position: sticky;
-    top: calc((var(--command-controls-height) * 2) + 1rem);
   }
 }

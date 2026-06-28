@@ -22,20 +22,12 @@
       </div>
     </header>
 
-    <nav class="guide-chapters" aria-label="Field guide chapters">
-      @for (chapter of chapters; track chapter.id) {
-      <button
-        class="guide-chapters__button"
-        type="button"
-        [class.is-active]="isActiveChapter(chapter.id)"
-        [attr.aria-pressed]="isActiveChapter(chapter.id)"
-        (click)="setActiveChapter(chapter.id)"
-      >
-        <span class="guide-chapters__kicker dg-stencil">{{ chapter.kicker }}</span>
-        <span class="guide-chapters__label">{{ chapter.label }}</span>
-      </button>
-      }
-    </nav>
+    <dg-tab-strip
+      [items]="chapters"
+      [activeId]="activeChapter()"
+      ariaLabel="Field guide chapters"
+      (selected)="handleChapterSelection($event)"
+    />
 
     @if (isActiveChapter('overview')) {
     <section class="guide-layout" aria-label="Overview chapter">

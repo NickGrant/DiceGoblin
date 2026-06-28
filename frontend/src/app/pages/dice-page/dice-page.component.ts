@@ -10,6 +10,7 @@ import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { ConfirmModalComponent } from '../../shared/ui/confirm-modal/confirm-modal.component';
+import { FocusLayoutComponent } from '../../shared/ui/focus-layout/focus-layout.component';
 import {
   buildDiceRarityOptions,
   buildDiceSizeOptions,
@@ -22,7 +23,7 @@ import { DiceGridObjectComponent } from '../../shared/ui/dice-grid-object/dice-g
 @Component({
   selector: 'app-dice-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DiceGridObjectComponent, PageFrameComponent, FormsModule, RouterLink, TitleCasePipe, ConfirmModalComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DiceGridObjectComponent, PageFrameComponent, FormsModule, RouterLink, TitleCasePipe, ConfirmModalComponent, FocusLayoutComponent],
   templateUrl: './dice-page.component.html',
   styleUrl: './dice-page.component.scss',
 })

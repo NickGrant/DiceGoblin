@@ -67,9 +67,8 @@
           <h2 class="m-0 dg-stencil">Units</h2>
         </div>
         @if (filteredUnits().length) {
-        <section class="warband-units-inspect">
-          <div class="warband-units-inspect__layout">
-            <div class="warband-units-inspect__primary">
+        <dg-focus-layout class="warband-units-focus" panelWidth="31.125rem">
+            <div focusLayoutPrimary class="warband-units-inspect__primary">
               <section class="warband-units-controls">
                 <div class="warband-units-controls__filters">
                   <div class="warband-units-controls__filter">
@@ -180,12 +179,11 @@
             </div>
 
             @if (inspectedUnit(); as unit) {
-            <aside class="warband-units-inspect__panel">
+            <aside focusLayoutPanel class="warband-units-inspect__panel">
               <dg-unit-grid-object [object]="unit" [linkEnabled]="false" />
             </aside>
             }
-          </div>
-        </section>
+        </dg-focus-layout>
         } @else if (units().length) {
         <dg-alert>No units match the selected filters.</dg-alert>
         } @else {

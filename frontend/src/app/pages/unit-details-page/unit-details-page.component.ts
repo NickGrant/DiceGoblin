@@ -24,6 +24,7 @@ import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { DicePickerModalComponent } from '../../shared/ui/dice-picker-modal/dice-picker-modal.component';
+import { TabStripComponent, TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
 
 type AbilitySlotViewModel = {
   abilityId: string;
@@ -84,6 +85,7 @@ type DiceAssignmentRecord = {
     FontAwesomeModule,
     FormsModule,
     RouterLink,
+    TabStripComponent,
   ],
   templateUrl: './unit-details-page.component.html',
   styleUrl: './unit-details-page.component.scss',
@@ -119,6 +121,10 @@ export class UnitDetailsPageComponent {
   readonly busy = signal(false);
   readonly busySlotKey = signal<string | null>(null);
   readonly activeTab = signal<'stats' | 'abilities'>('stats');
+  readonly tabs: ReadonlyArray<TabStripItem> = [
+    { id: 'stats', label: 'Stats', kicker: 'Unit' },
+    { id: 'abilities', label: 'Abilities', kicker: 'Loadout' },
+  ];
   readonly pendingEquippedAbilityIds = signal<string[]>([]);
   readonly savingLoadout = signal(false);
   readonly pickerState = signal<PickerState | null>(null);
@@ -318,6 +324,10 @@ export class UnitDetailsPageComponent {
 
   setActiveTab(tab: 'stats' | 'abilities'): void {
     this.activeTab.set(tab);
+  }
+
+  handleTabSelection(tabId: string): void {
+    this.setActiveTab(tabId === 'abilities' ? 'abilities' : 'stats');
   }
 
   addAbilityToLoadout(abilityId: string, insertIndex?: number): void {

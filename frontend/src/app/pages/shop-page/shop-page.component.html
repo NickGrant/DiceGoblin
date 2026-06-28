@@ -11,22 +11,13 @@
   }
   @if (loading()) { <dg-alert>Loading shop...</dg-alert> }
   @if (catalog()) {
-  <nav class="shop-tabs mb-4" aria-label="Shop categories">
-    <button
-      [dgCommandBtn]="activeTab() === 'supplies' ? 'primary' : 'muted'"
-      type="button"
-      (click)="activeTab.set('supplies')"
-    >
-      Supplies
-    </button>
-    <button
-      [dgCommandBtn]="activeTab() === 'feature_unlocks' ? 'primary' : 'muted'"
-      type="button"
-      (click)="activeTab.set('feature_unlocks')"
-    >
-      Feature Unlocks
-    </button>
-  </nav>
+  <dg-tab-strip
+    class="mb-4"
+    [items]="tabs"
+    [activeId]="activeTab()"
+    ariaLabel="Shop categories"
+    (selected)="selectTab($event)"
+  />
 
   @if (activeTab() === 'supplies') {
     <div class="shop-page__supplies-grid dg-motion-stagger">

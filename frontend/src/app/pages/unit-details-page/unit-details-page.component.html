@@ -18,14 +18,13 @@
   </div>
   }
 
-  <nav class="unit-tabs mb-4" aria-label="Unit details tabs">
-    <button [dgCommandBtn]="activeTab() === 'stats' ? 'primary' : 'muted'" type="button" (click)="setActiveTab('stats')">
-      Stats
-    </button>
-    <button [dgCommandBtn]="activeTab() === 'abilities' ? 'primary' : 'muted'" type="button" (click)="setActiveTab('abilities')">
-      Abilities
-    </button>
-  </nav>
+  <dg-tab-strip
+    class="mb-4"
+    [items]="tabs"
+    [activeId]="activeTab()"
+    ariaLabel="Unit details tabs"
+    (selected)="handleTabSelection($event)"
+  />
 
   @if (activeTab() === 'stats') {
   <section class="dg-card p-3 p-lg-4">

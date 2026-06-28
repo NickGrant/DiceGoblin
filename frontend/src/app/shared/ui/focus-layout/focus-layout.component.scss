@@ -1,0 +1,38 @@
+.focus-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.focus-layout__primary,
+.focus-layout__panel {
+  min-width: 0;
+}
+
+.focus-layout__panel {
+  width: 100%;
+}
+
+.focus-layout__panel:empty {
+  display: none;
+}
+
+@media (min-width: 441px) {
+  .focus-layout__panel:not(:empty) {
+    width: var(--focus-layout-panel-width, 31.125rem);
+    max-width: var(--focus-layout-panel-width, 31.125rem);
+    min-width: var(--focus-layout-panel-width, 31.125rem);
+    margin-inline: auto;
+  }
+}
+
+@media (min-width: 761px) {
+  .focus-layout:has(.focus-layout__panel:not(:empty)) {
+    grid-template-columns: minmax(0, 1fr) var(--focus-layout-panel-width, 31.125rem);
+    align-items: start;
+  }
+
+  .focus-layout--sticky .focus-layout__panel:not(:empty) {
+    position: sticky;
+    top: calc((var(--command-controls-height) * 2) + 1rem);
+  }
+}

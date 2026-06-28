@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
+import { TabStripComponent } from '../../shared/ui/tab-strip/tab-strip.component';
 
 type GuideChapterId = 'overview' | 'warband' | 'dice' | 'expeditions';
 
@@ -56,7 +57,7 @@ type GuideDieSize = {
 @Component({
   selector: 'app-guide-page',
   standalone: true,
-  imports: [PageFrameComponent],
+  imports: [PageFrameComponent, TabStripComponent],
   templateUrl: './guide-page.component.html',
   styleUrl: './guide-page.component.scss',
 })
@@ -233,6 +234,10 @@ export class GuidePageComponent implements OnInit {
 
   protected setActiveChapter(chapterId: GuideChapterId): void {
     this.activeChapter.set(chapterId);
+  }
+
+  protected handleChapterSelection(chapterId: string): void {
+    this.setActiveChapter(chapterId as GuideChapterId);
   }
 
   protected isActiveChapter(chapterId: GuideChapterId): boolean {

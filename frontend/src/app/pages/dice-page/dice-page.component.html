@@ -15,8 +15,8 @@
   }
 
   <section class="dice-page">
-    <section class="dice-page__layout">
-      <div class="dice-page__primary">
+    <dg-focus-layout class="dice-page__layout" panelWidth="21rem">
+      <div focusLayoutPrimary class="dice-page__primary">
         <section class="dice-page__controls">
           <div class="dice-page__filters">
             <div class="dice-page__filter">
@@ -112,7 +112,7 @@
       </div>
 
       @if (inspectedDice(); as die) {
-      <aside class="dice-page__inspect">
+      <aside focusLayoutPanel class="dice-page__inspect">
         <div class="dice-page__inspect-head">
           <div>
             <p class="dice-page__inspect-kicker">{{ rarityLabel(die) }} Die</p>
@@ -166,7 +166,7 @@
         </div>
       </aside>
       }
-    </section>
+    </dg-focus-layout>
   </section>
 
   <dg-confirm-modal

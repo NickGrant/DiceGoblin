@@ -8,11 +8,12 @@ import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { UnitGridObjectComponent } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
+import { FocusLayoutComponent } from '../../shared/ui/focus-layout/focus-layout.component';
 
 @Component({
   selector: 'app-warband-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RouterLink, UnitGridObjectComponent, FormsModule],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RouterLink, UnitGridObjectComponent, FormsModule, FocusLayoutComponent],
   templateUrl: './warband-page.component.html',
   styleUrl: './warband-page.component.scss',
 })

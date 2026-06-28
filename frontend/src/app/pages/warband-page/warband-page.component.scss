@@ -157,11 +157,6 @@
   background: linear-gradient(90deg, rgba(69, 49, 26, 0), rgba(69, 49, 26, 0.42), rgba(69, 49, 26, 0));
 }
 
-.warband-units-inspect__layout {
-  display: grid;
-  gap: 1rem;
-}
-
 .warband-units-inspect__primary {
   min-width: 0;
   display: grid;
@@ -300,13 +295,6 @@
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
 }
 
-.warband-units-inspect__panel {
-  min-width: 0;
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
 .warband-units-inspect__panel :is(.unit-grid-object) {
   width: 100%;
 }
@@ -328,13 +316,6 @@
 }
 
 @media (min-width: 441px) {
-  .warband-units-inspect__panel {
-    width: 31.125rem;
-    max-width: 31.125rem;
-    min-width: 31.125rem;
-    margin-inline: auto;
-  }
-
   .warband-units-controls {
     padding: 1.15rem;
   }
@@ -361,15 +342,6 @@
     grid-column: auto;
   }
 
-  .warband-units-inspect__layout {
-    grid-template-columns: minmax(0, 1fr) 31.125rem;
-    align-items: start;
-  }
-
-  .warband-units-inspect__panel {
-    position: sticky;
-    top: calc((var(--command-controls-height) * 2) + 1rem);
-  }
 }
 
 @media (max-width: 440px) {

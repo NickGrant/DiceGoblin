@@ -4,12 +4,6 @@
   gap: 1rem;
 }
 
-.unit-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
 .unit-stats-panel,
 .unit-summary {
   padding: 1rem;
@@ -288,17 +282,6 @@
 
   .loadout-bar__action {
     flex: 1 1 0;
-  }
-}
-
-@media (max-width: 440px) {
-  .unit-tabs {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .unit-tabs > * {
-    width: 100%;
   }
 }
 
