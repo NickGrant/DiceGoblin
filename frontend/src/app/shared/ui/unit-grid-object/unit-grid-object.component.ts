@@ -60,7 +60,7 @@ export class UnitGridObjectComponent extends GridObjectComponent<UnitRecord> {
   defaultSubtitle(): string {
     const typeLabel = this.object().unit_type_name || this.object().unit_type_slug || 'Unit';
     return typeof this.object().level === 'number' && this.object().level > 0
-      ? `${typeLabel} Level ${this.object().level}`
+      ? `${typeLabel} Lv. ${this.object().level}`
       : typeLabel;
   }
 

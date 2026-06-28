@@ -302,10 +302,12 @@
 
 .warband-units-inspect__panel {
   min-width: 0;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .warband-units-inspect__panel :is(.unit-grid-object) {
-  max-width: none;
   width: 100%;
 }
 
@@ -326,6 +328,13 @@
 }
 
 @media (min-width: 441px) {
+  .warband-units-inspect__panel {
+    width: 31.125rem;
+    max-width: 31.125rem;
+    min-width: 31.125rem;
+    margin-inline: auto;
+  }
+
   .warband-units-controls {
     padding: 1.15rem;
   }
@@ -353,7 +362,7 @@
   }
 
   .warband-units-inspect__layout {
-    grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.95fr);
+    grid-template-columns: minmax(0, 1fr) 31.125rem;
     align-items: start;
   }
 
