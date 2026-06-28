@@ -1,11 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { RegionUnlockRecord } from '../../core/models/api.models';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
-import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { ConfirmModalComponent } from '../../shared/ui/confirm-modal/confirm-modal.component';
 
@@ -61,7 +59,7 @@ const REGION_CARDS: RegionCard[] = [
 @Component({
   selector: 'app-regions-page',
   standalone: true,
-  imports: [DatePipe, DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, ConfirmModalComponent],
+  imports: [DgAlertComponent, PageFrameComponent, ConfirmModalComponent],
   templateUrl: './regions-page.component.html',
   styleUrl: './regions-page.component.scss',
 })

@@ -411,6 +411,7 @@ export class RunNodePageComponent {
       unit: {
         id: `enemy-${enemySlug}`,
         name: this.humanizeId(enemySlug || 'enemy'),
+        unit_type_slug: enemySlug || 'enemy',
         unit_type_name: 'Enemy',
         level: 0,
       },

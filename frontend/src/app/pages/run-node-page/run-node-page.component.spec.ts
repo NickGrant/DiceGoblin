@@ -301,6 +301,9 @@ describe('RunNodePageComponent', () => {
 
     const enemyCard = host.querySelector('.unit-grid-object--enemy');
     expect(enemyCard?.textContent).toContain('Goblin Raider');
+    expect(
+      (enemyCard?.querySelector('.unit-grid-object__card-art') as HTMLImageElement | null)?.getAttribute('src'),
+    ).toContain('/assets/ui/units/goblin_bruiser.png');
     expect(host.querySelectorAll('.unit-grid-object__progress').length).toBe(6);
     expect(host.querySelector('button[dgcommandbtn], button[dgCommandBtn]')).not.toBeNull();
   });

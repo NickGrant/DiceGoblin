@@ -562,13 +562,6 @@ export type AbilitySlotDiceMutationData = {
 
 export type AbilitySlotDiceMutationResponse = ApiResponse<AbilitySlotDiceMutationData>;
 
-export type UnitEquipmentMutationData = {
-  unit_id: string;
-  equipped_dice: UnitEquippedDie[];
-};
-
-export type UnitEquipmentMutationResponse = ApiResponse<UnitEquipmentMutationData>;
-
 export type DiceSellData = {
   dice_id: string;
   sell_value: number;
