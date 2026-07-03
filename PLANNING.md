@@ -2,7 +2,7 @@ This document represents current thoughts on direction and structure needed to s
 
 Loading:
     - May need to introduce a loading screen to give time for auth service to validate
-    - Flicker of vertical padding/margin on initial load
+    - Mobile layout is causing wrapping issues
 
 Home:
     - 
