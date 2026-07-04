@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Serve existing files and directories directly.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Fall back to the SPA shell only for real app routes.
+RewriteRule ^ index.html [L]

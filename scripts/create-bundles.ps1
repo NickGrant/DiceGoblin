@@ -81,7 +81,7 @@ function New-ZipBundle {
   }
 
   $sourceRoot = (Resolve-Path -LiteralPath $SourceDir).Path
-  $files = Get-ChildItem -Path $SourceDir -Recurse -File | Where-Object {
+  $files = Get-ChildItem -Path $SourceDir -Recurse -File -Force | Where-Object {
     $_.FullName -notmatch '[\\/]\.git([\\/]|$)' -and
     $_.FullName -notmatch '[\\/]node_modules([\\/]|$)'
   }
@@ -125,7 +125,9 @@ function Sync-DirectoryContents {
   }
 
   New-Item -ItemType Directory -Path $DestinationDir -Force | Out-Null
-  Copy-Item -Path (Join-Path $SourceDir '*') -Destination $DestinationDir -Recurse -Force
+  Get-ChildItem -LiteralPath $SourceDir -Force | ForEach-Object {
+    Copy-Item -LiteralPath $_.FullName -Destination $DestinationDir -Recurse -Force
+  }
   Write-Output "Synced $SourceDir -> $DestinationDir"
 }
 
