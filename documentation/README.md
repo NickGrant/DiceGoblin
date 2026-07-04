@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-05-29  
+Last Updated: 2026-07-04  
 Owner: Product + Engineering  
 Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
@@ -21,14 +21,15 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
 1. `documentation/00-overview/00-project-overview.md`
 2. `documentation/00-overview/01-core-gameplay-loop.md`
-3. `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
-4. `documentation/01-architecture/03-backend-api-contracts.md`
-5. `documentation/03-ux/00-ux-and-debug-scope.md`
-6. `documentation/00-overview/02-glossary.md`
-7. `documentation/01-architecture/04-data-model.md`
-8. `documentation/02-systems-mvp/` docs relevant to the system being changed
-9. `documentation/03-ux/` docs relevant to the player flow being changed
-10. `documentation/05-playability-stability/` for release validation
+3. `documentation/00-overview/03-world-and-lore.md`
+4. `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
+5. `documentation/01-architecture/03-backend-api-contracts.md`
+6. `documentation/03-ux/00-ux-and-debug-scope.md`
+7. `documentation/00-overview/02-glossary.md`
+8. `documentation/01-architecture/04-data-model.md`
+9. `documentation/02-systems-mvp/` docs relevant to the system being changed
+10. `documentation/03-ux/` docs relevant to the player flow being changed
+11. `documentation/05-playability-stability/` for release validation
 
 ## Current-State Rule
 
@@ -45,6 +46,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 - What the game is:
   - `documentation/00-overview/00-project-overview.md`
   - `documentation/00-overview/01-core-gameplay-loop.md`
+  - `documentation/00-overview/03-world-and-lore.md`
   - `documentation/00-overview/02-glossary.md`
 - Frontend and API architecture:
   - `documentation/01-architecture/00-tech-stack.md`

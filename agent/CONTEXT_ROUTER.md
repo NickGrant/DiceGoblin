@@ -16,6 +16,7 @@
 - Game overview or glossary:
   - `documentation/00-overview/00-project-overview.md`
   - `documentation/00-overview/01-core-gameplay-loop.md`
+  - `documentation/00-overview/03-world-and-lore.md`
   - `documentation/00-overview/02-glossary.md`
 - Frontend architecture, routes, state, or API contracts:
   - `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`

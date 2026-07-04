@@ -1,9 +1,9 @@
 # Game Glossary (Milestone 0)
 
 Status: active  
-Last Updated: 2026-03-02  
+Last Updated: 2026-07-04  
 Owner: Product + Engineering  
-Depends On: `documentation/00-overview/01-core-gameplay-loop.md`, `documentation/README.md`
+Depends On: `documentation/00-overview/01-core-gameplay-loop.md`, `documentation/00-overview/03-world-and-lore.md`, `documentation/README.md`
 
 
 This document defines the canonical terminology used throughout the game's design, implementation, and documentation.  
@@ -52,6 +52,15 @@ A thematic and mechanical grouping that influences encounter types, enemies, and
 
 ### Region / Act
 A large-scale grouping of nodes representing a stage of progression with escalating difficulty.
+
+### The Grand Library
+The world institution founded and maintained by The Archivist to classify, preserve, and stabilize reality through order.
+
+### The Archivist
+The champion of light associated with bringing the world into its current ordered state.
+
+### The Whim
+The closest thing the setting has to a deity of chaos and the source from which goblins manifest.
 
 ### Discovery
 The act of revealing previously hidden nodes, paths, or information through exploration.
@@ -125,6 +134,9 @@ The state in which a unit can no longer participate in combat.
 ### Unit
 A single actor in the game capable of taking actions.
 
+### Goblin Warchief
+The player's narrative role: an insider to goblin culture who commands a warband in service of chaos.
+
 ### Squads (Warband)
 A subset of units participating together within an encounter.
  - referred to in UI as "Warband"
@@ -193,6 +205,9 @@ Any reward obtained during a run, including items and resources.
 
 ### Item
 A discrete object with mechanical effects.
+
+### Dice
+In gameplay terms, modular combat loadout objects assigned to ability slots. In-world, they are physical shards of chaos power sought by goblins.
 
 ### Rarity
 A classification indicating item power and drop frequency.
