@@ -26,6 +26,7 @@
   - `documentation/02-systems-mvp/`
 - UX, navigation, layouts, and player-facing behavior:
   - `documentation/03-ux/`
+  - `documentation/06-page-analysis/`
 - Release validation, testing, and quality gates:
   - `documentation/TESTING_STRATEGY.md`
   - `documentation/05-playability-stability/`

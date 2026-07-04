@@ -76,6 +76,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/03-ux/07-dice-pool-consumption-and-refresh-cues.md`
   - `documentation/03-ux/08-page-layout-zones.md`
   - `documentation/03-ux/09-first-session-player-journey.md`
+  - `documentation/06-page-analysis/`
 - Verification and release:
   - `documentation/ENGINEERING_STANDARDS.md`
   - `documentation/TESTING_STRATEGY.md`
@@ -111,6 +112,8 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/03-ux/03-encounter-flow-transition-matrix.md`
 - Onboarding and first-session flow:
   - `documentation/03-ux/09-first-session-player-journey.md`
+- Page-by-page route breakdowns:
+  - `documentation/06-page-analysis/00-index.md`
 
 ## Reference Data
 
