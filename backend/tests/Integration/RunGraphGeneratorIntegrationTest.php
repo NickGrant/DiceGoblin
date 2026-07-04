@@ -65,6 +65,7 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertCount(1, $availableNodes);
     $this->assertCount(1, $bossNodes);
     $this->assertCount(1, $exitNodes);
+    $this->assertGreaterThanOrEqual(2, count($analysis['start_children']));
     $this->assertTrue(isset($analysis['reachable_from_start'][$analysis['boss_index']]));
     $this->assertTrue(isset($analysis['reachable_from_start'][$analysis['exit_index']]));
     $this->assertTrue(isset($analysis['reachable_from_boss'][$analysis['exit_index']]));
@@ -78,7 +79,8 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
 
     foreach ($graph['nodes'] as $node) {
       $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
-      $this->assertContains((int)($meta['row'] ?? -1), [0, 1, 2]);
+      $this->assertGreaterThanOrEqual(0, (int)($meta['row'] ?? -1));
+      $this->assertLessThanOrEqual(10, (int)($meta['row'] ?? -1));
       $this->assertGreaterThanOrEqual(0, (int)($meta['col'] ?? -1));
     }
   }
@@ -99,22 +101,111 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertNotSame($graphA, $graphC, 'Different seeds should usually produce different graphs.');
   }
 
-  public function testMountainsFavorLongReconnectTreks(): void
+  public function testMountainsGenerateMultiLaneHorizontalRoutes(): void
   {
     $regionId = $this->seededRegionId('mountains');
     $generator = new RunGraphGenerator($this->pdo);
 
-    $foundLongReconnect = false;
+    $foundBroadLaneUsage = false;
     for ($seed = 200; $seed < 225; $seed++) {
       $graph = $generator->generate($regionId, 'mountains', (string)$seed);
       $analysis = $this->analyzeGraph($graph);
-      if ($analysis['side_to_side_edges'] > 0) {
-        $foundLongReconnect = true;
+      if ($analysis['distinct_row_count'] >= 4 && count($analysis['start_children']) >= 2) {
+        $foundBroadLaneUsage = true;
         break;
       }
     }
 
-    $this->assertTrue($foundLongReconnect, 'Mountains should regularly generate longer reconnecting treks.');
+    $this->assertTrue($foundBroadLaneUsage, 'Mountains should regularly generate multi-lane horizontal routes.');
+  }
+
+  public function testMountainsCompactRowsAndBreakStraightawaysForReferenceSeed(): void
+  {
+    $regionId = $this->seededRegionId('mountains');
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $graph = $generator->generate($regionId, 'mountains', '7762837825202513111');
+    $analysis = $this->analyzeGraph($graph);
+
+    $usedRows = array_values(array_unique(array_map(
+      static fn(array $node): int => (int)$node['meta']['row'],
+      $graph['nodes'],
+    )));
+    sort($usedRows);
+
+    $this->assertLessThanOrEqual(5, count($usedRows), 'Reference mountains seed should collapse into a tighter set of rows.');
+    $this->assertSame(range(0, count($usedRows) - 1), $usedRows, 'Collapsed rows should be renumbered consecutively.');
+
+    $hasSingleRowShift = false;
+    $hasMidRunShortcut = false;
+    foreach ($graph['edges'] as $edge) {
+      $fromNode = $analysis['node_by_index'][(int)$edge['from']];
+      $toNode = $analysis['node_by_index'][(int)$edge['to']];
+      $rowDelta = abs((int)$toNode['meta']['row'] - (int)$fromNode['meta']['row']);
+      $columnDelta = (int)$toNode['meta']['col'] - (int)$fromNode['meta']['col'];
+
+      if ($rowDelta === 1 && (int)$toNode['meta']['col'] < $analysis['boss_col']) {
+        $hasSingleRowShift = true;
+      }
+      if ($columnDelta > 1 && (int)$fromNode['meta']['col'] > 0 && (int)$toNode['meta']['col'] < $analysis['boss_col']) {
+        $hasMidRunShortcut = true;
+      }
+    }
+
+    $this->assertTrue($hasSingleRowShift, 'Reference mountains seed should include at least one small row shift to break long straight branches.');
+    $this->assertTrue($hasMidRunShortcut, 'Reference mountains seed should sometimes add a mid-run shortcut after row collapse.');
+  }
+
+  /**
+   * @dataProvider proceduralRegionProvider
+   */
+  public function testProceduralRegionsAvoidRedundantSameRowBypassEdges(string $regionSlug): void
+  {
+    $regionId = $this->seededRegionId($regionSlug);
+    $generator = new RunGraphGenerator($this->pdo);
+
+    for ($seed = 1; $seed <= 80; $seed++) {
+      $graph = $generator->generate($regionId, $regionSlug, (string)$seed);
+      $analysis = $this->analyzeGraph($graph);
+
+      foreach ($graph['edges'] as $edge) {
+        $from = (int)$edge['from'];
+        $to = (int)$edge['to'];
+        $fromNode = $analysis['node_by_index'][$from];
+        $toNode = $analysis['node_by_index'][$to];
+        $fromCol = (int)$fromNode['meta']['col'];
+        $fromRow = (int)$fromNode['meta']['row'];
+        $toCol = (int)$toNode['meta']['col'];
+
+        if (($toCol - $fromCol) <= 1) {
+          continue;
+        }
+
+        foreach ($analysis['outgoing'][$from] as $childIndex) {
+          $childNode = $analysis['node_by_index'][$childIndex];
+          $childCol = (int)$childNode['meta']['col'];
+          $childRow = (int)$childNode['meta']['row'];
+          if ($childCol !== ($fromCol + 1) || $childRow !== $fromRow) {
+            continue;
+          }
+
+          $this->assertNotContains(
+            $to,
+            $analysis['outgoing'][$childIndex],
+            sprintf(
+              'Seed %d for %s should not contain same-row bypass triangle %d->%d->%d alongside %d->%d.',
+              $seed,
+              $regionSlug,
+              $from,
+              $childIndex,
+              $to,
+              $from,
+              $to,
+            ),
+          );
+        }
+      }
+    }
   }
 
   /**
@@ -248,7 +339,8 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
    *   branch_count: int,
    *   max_children_from_single_node: int,
    *   dead_end_indexes: array<int,int>,
-   *   side_to_side_edges: int,
+   *   start_children: array<int,int>,
+   *   distinct_row_count: int,
    *   backward_edges: array<int,string>,
    *   duplicate_edges: array<int,string>,
    *   crossing_edges: array<int,string>,
@@ -315,15 +407,11 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
         && !in_array((string)$nodeByIndex[$nodeIndex]['node_type'], ['boss', 'exit'], true),
     ));
 
-    $coreNodeCount = 8;
-    $sideToSideEdges = 0;
-    foreach ($graph['edges'] as $edge) {
-      $from = (int)$edge['from'];
-      $to = (int)$edge['to'];
-      if ($from >= $coreNodeCount && $to >= $coreNodeCount) {
-        $sideToSideEdges++;
-      }
-    }
+    $startChildren = $outgoing[$startIndex] ?? [];
+    $distinctRowCount = count(array_unique(array_map(
+      static fn(array $node): int => (int)$node['meta']['row'],
+      $graph['nodes'],
+    )));
 
     $edgeCount = count($graph['edges']);
     for ($leftIndex = 0; $leftIndex < $edgeCount; $leftIndex++) {
@@ -378,7 +466,8 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
       'branch_count' => $branchCount,
       'max_children_from_single_node' => $maxChildrenFromSingleNode,
       'dead_end_indexes' => $deadEndIndexes,
-      'side_to_side_edges' => $sideToSideEdges,
+      'start_children' => $startChildren,
+      'distinct_row_count' => $distinctRowCount,
       'backward_edges' => $backwardEdges,
       'duplicate_edges' => $duplicateEdges,
       'crossing_edges' => $crossingEdges,

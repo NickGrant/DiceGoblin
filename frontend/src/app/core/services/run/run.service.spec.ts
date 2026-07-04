@@ -32,6 +32,46 @@ describe('RunService', () => {
     expect(apiHttp.get).toHaveBeenCalledWith('/api/v1/runs/current');
   });
 
+  it('parses run node meta_json into meta for the map renderer', async () => {
+    apiHttp.get.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: '7', region_id: '1', seed: 'abc', status: 'active', started_at: '2026-07-04', ended_at: null },
+        map: {
+          nodes: [
+            {
+              id: 'n1',
+              run_id: '7',
+              node_index: 0,
+              node_type: 'combat',
+              status: 'available',
+              meta_json: '{"col":0,"row":4}',
+            },
+          ],
+          edges: [
+            {
+              run_id: '7',
+              from_node_id: 'n1',
+              to_node_id: 'n2',
+            },
+          ],
+        },
+        run_unit_state: [],
+      },
+    } as any);
+
+    const response = await service.getCurrentRun();
+
+    expect(response.ok).toBeTrue();
+    if (!response.ok) {
+      fail('Expected ok response');
+      return;
+    }
+
+    expect(response.data.map?.nodes[0]?.meta).toEqual({ col: 0, row: 4 });
+    expect(response.data.map?.edges[0]?.edge_id).toBe('n1->n2#0');
+  });
+
   it('captures summary state when abandoning a run succeeds', async () => {
     const response = {
       ok: true,

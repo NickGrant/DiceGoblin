@@ -8,34 +8,36 @@ use RuntimeException;
 
 final class RunGraphGenerator
 {
-  /** @var array<string,array<string,int|bool>> */
+  /** @var array<string,array<string,int>> */
   private const REGION_CONFIG = [
     'mountains' => [
-      'spine_middle_nodes' => 5,
-      'dead_ends_min' => 1,
-      'dead_ends_max' => 1,
-      'reconnect_min' => 0,
-      'reconnect_max' => 1,
-      'long_reconnect_min' => 1,
-      'long_reconnect_max' => 2,
-      'wide_fork_min' => 0,
-      'wide_fork_max' => 0,
+      'row_count' => 9,
+      'travel_columns' => 8,
+      'path_count' => 3,
+      'opening_rows_min' => 3,
+      'opening_rows_max' => 3,
+      'lane_gap' => 2,
+      'dead_ends_min' => 2,
+      'dead_ends_max' => 3,
+      'dead_end_chain_min' => 1,
+      'dead_end_chain_max' => 1,
       'rest_weight' => 1,
       'loot_weight' => 2,
       'combat_weight' => 5,
     ],
     'swamps' => [
-      'spine_middle_nodes' => 5,
+      'row_count' => 11,
+      'travel_columns' => 10,
+      'path_count' => 4,
+      'opening_rows_min' => 4,
+      'opening_rows_max' => 4,
+      'lane_gap' => 2,
       'dead_ends_min' => 3,
-      'dead_ends_max' => 4,
-      'reconnect_min' => 0,
-      'reconnect_max' => 1,
-      'long_reconnect_min' => 0,
-      'long_reconnect_max' => 0,
-      'wide_fork_min' => 1,
-      'wide_fork_max' => 2,
+      'dead_ends_max' => 5,
+      'dead_end_chain_min' => 1,
+      'dead_end_chain_max' => 1,
       'rest_weight' => 2,
-      'loot_weight' => 2,
+      'loot_weight' => 3,
       'combat_weight' => 3,
     ],
   ];
@@ -97,86 +99,142 @@ final class RunGraphGenerator
   public function generateProcedural(int $regionId, string $regionSlug, string $seed): array
   {
     $config = self::REGION_CONFIG[$regionSlug] ?? [
-      'spine_middle_nodes' => 5,
-      'dead_ends_min' => 1,
-      'dead_ends_max' => 2,
-      'reconnect_min' => 1,
-      'reconnect_max' => 1,
-      'long_reconnect_min' => 0,
-      'long_reconnect_max' => 0,
-      'wide_fork_min' => 0,
-      'wide_fork_max' => 1,
+      'row_count' => 9,
+      'travel_columns' => 9,
+      'path_count' => 3,
+      'opening_rows_min' => 3,
+      'opening_rows_max' => 3,
+      'lane_gap' => 2,
+      'dead_ends_min' => 2,
+      'dead_ends_max' => 4,
+      'dead_end_chain_min' => 1,
+      'dead_end_chain_max' => 1,
       'rest_weight' => 2,
       'loot_weight' => 2,
-      'combat_weight' => 3,
+      'combat_weight' => 4,
     ];
 
     $this->rngCounter = 0;
     $seedKey = sprintf('%s|%d|%s', $regionSlug, $regionId, $seed);
 
-    $spineMiddleNodes = (int)$config['spine_middle_nodes'];
+    $rowCount = max(3, (int)$config['row_count']);
+    $travelColumns = max(4, (int)$config['travel_columns']);
+    $pathCount = max(3, (int)$config['path_count']);
+    $laneGap = max(1, (int)($config['lane_gap'] ?? 2));
+    $centerRow = intdiv($rowCount - 1, 2);
+
     $nodes = [];
     $edges = [];
     /** @var array<string,bool> $occupied */
     $occupied = [];
-    /** @var array<int,int> $spineNodeIndexes */
-    $spineNodeIndexes = [];
+    /** @var array<string,int> $nodeIndexByPosition */
+    $nodeIndexByPosition = [];
+    /** @var array<int,array{walker_id:int,row:int,node_index:int,anchor_row:int}> $walkers */
+    $walkers = [];
 
-    $startIndex = $this->appendNode($nodes, $occupied, 'combat', 'available', 0, 1);
-    $spineNodeIndexes[] = $startIndex;
+    $startIndex = $this->appendNode($nodes, $occupied, $nodeIndexByPosition, 'combat', 'available', 0, $centerRow);
 
-    for ($column = 1; $column <= $spineMiddleNodes; $column++) {
-      $nodeType = $this->pickSpineNodeType($seedKey, $column, $spineMiddleNodes, $config);
-      $spineNodeIndexes[] = $this->appendNode($nodes, $occupied, $nodeType, 'locked', $column, 1);
+    $openingCount = $this->randBetween(
+      $seedKey . '|openings',
+      min((int)$config['opening_rows_min'], $rowCount),
+      min((int)$config['opening_rows_max'], $rowCount),
+    );
+    $laneRows = $this->buildLaneRows($rowCount, $pathCount, $centerRow);
+    $openingRows = $this->pickOpeningRows($seedKey, $rowCount, $openingCount, $centerRow, $laneGap, $laneRows);
+    foreach ($openingRows as $openingRow) {
+      $openingIndex = $this->ensureNodeAt($nodes, $occupied, $nodeIndexByPosition, 1, $openingRow);
+      $this->appendEdge($edges, $startIndex, $openingIndex);
     }
 
-    $bossColumn = $spineMiddleNodes + 1;
-    $exitColumn = $spineMiddleNodes + 2;
-    $bossIndex = $this->appendNode($nodes, $occupied, 'boss', 'locked', $bossColumn, 1);
-    $exitIndex = $this->appendNode($nodes, $occupied, 'exit', 'locked', $exitColumn, 1);
-    $spineNodeIndexes[] = $bossIndex;
-    $spineNodeIndexes[] = $exitIndex;
-
-    for ($index = 0; $index < count($spineNodeIndexes) - 1; $index++) {
-      $edges[] = ['from' => $spineNodeIndexes[$index], 'to' => $spineNodeIndexes[$index + 1]];
+    for ($walkerId = 0; $walkerId < $pathCount; $walkerId++) {
+      $openingRow = $this->pickOpeningRowForWalker($seedKey, $openingRows, $laneRows, $walkerId);
+      $walkers[] = [
+        'walker_id' => $walkerId,
+        'row' => $openingRow,
+        'node_index' => $this->mustNodeIndexAt($nodeIndexByPosition, 1, $openingRow),
+        'anchor_row' => $openingRow,
+        'straight_streak' => 0,
+      ];
     }
 
-    $deadEndsTarget = $this->randBetween($seedKey, (int)$config['dead_ends_min'], (int)$config['dead_ends_max']);
-    $reconnectTarget = $this->randBetween($seedKey, (int)$config['reconnect_min'], (int)$config['reconnect_max']);
-    $longReconnectTarget = $this->randBetween($seedKey, (int)$config['long_reconnect_min'], (int)$config['long_reconnect_max']);
-    $wideForkTarget = $this->randBetween($seedKey, (int)$config['wide_fork_min'], (int)$config['wide_fork_max']);
+    for ($column = 1; $column < $travelColumns; $column++) {
+      usort($walkers, static function (array $left, array $right): int {
+        if ($left['row'] !== $right['row']) {
+          return $left['row'] <=> $right['row'];
+        }
 
-    $deadEndParents = $this->pickDistinctSpineParents($seedKey, $spineMiddleNodes, $deadEndsTarget);
-    foreach ($deadEndParents as $parentOffset) {
-      $parentIndex = $spineNodeIndexes[$parentOffset];
-      $parentCol = (int)$nodes[$parentIndex]['meta']['col'];
-      $childCol = $parentCol + 1;
-      $row = $this->pickDeadEndRow($seedKey, $nodes, $edges, $occupied, $parentIndex, $childCol);
-      if ($row === null) {
-        continue;
+        return $left['walker_id'] <=> $right['walker_id'];
+      });
+
+      $nextWalkers = [];
+      $previousChosenRow = null;
+
+      foreach ($walkers as $walker) {
+        $nextRow = $this->pickNextWalkerRow(
+          $seedKey,
+          $walker['walker_id'],
+          $column,
+          (int)$walker['row'],
+          (int)$walker['anchor_row'],
+          (int)$walker['straight_streak'],
+          $rowCount,
+          $centerRow,
+          $previousChosenRow,
+          $travelColumns,
+          $laneGap,
+        );
+
+        $fromIndex = (int)$walker['node_index'];
+        $toIndex = $this->ensureNodeAt($nodes, $occupied, $nodeIndexByPosition, $column + 1, $nextRow);
+        $this->appendEdge($edges, $fromIndex, $toIndex);
+
+        $nextWalkers[] = [
+          'walker_id' => (int)$walker['walker_id'],
+          'row' => $nextRow,
+          'node_index' => $toIndex,
+          'anchor_row' => (int)$walker['anchor_row'],
+          'straight_streak' => $nextRow === (int)$walker['row']
+            ? ((int)$walker['straight_streak']) + 1
+            : 0,
+        ];
+        $previousChosenRow = $nextRow;
       }
 
-      $deadEndType = $this->pickDeadEndType($seedKey);
-      $childIndex = $this->appendNode($nodes, $occupied, $deadEndType, 'locked', $childCol, $row);
-      $edges[] = ['from' => $parentIndex, 'to' => $childIndex];
+      $walkers = $nextWalkers;
     }
 
-    $reconnectParents = $this->pickDistinctSpineParents($seedKey . '|reconnect', max(0, $spineMiddleNodes - 1), $reconnectTarget);
-    foreach ($reconnectParents as $parentOffset) {
-      $this->addShortReconnectBranch($seedKey, $config, $nodes, $edges, $occupied, $spineNodeIndexes, $parentOffset);
-    }
+    $bossCol = $travelColumns + 1;
+    $exitCol = $travelColumns + 2;
+    $bossIndex = $this->appendNode($nodes, $occupied, $nodeIndexByPosition, 'boss', 'locked', $bossCol, $centerRow);
+    $exitIndex = $this->appendNode($nodes, $occupied, $nodeIndexByPosition, 'exit', 'locked', $exitCol, $centerRow);
 
-    $longReconnectParents = $this->pickDistinctSpineParents($seedKey . '|long-reconnect', max(0, $spineMiddleNodes - 2), $longReconnectTarget);
-    foreach ($longReconnectParents as $parentOffset) {
-      $this->addLongReconnectBranch($seedKey, $config, $nodes, $edges, $occupied, $spineNodeIndexes, $parentOffset);
+    foreach ($this->nodeIndexesInColumn($nodes, $travelColumns) as $nodeIndex) {
+      $this->appendEdge($edges, $nodeIndex, $bossIndex);
     }
+    $this->appendEdge($edges, $bossIndex, $exitIndex);
 
-    $wideForkParents = $this->pickDistinctSpineParents($seedKey . '|wide-fork', $spineMiddleNodes, $wideForkTarget);
-    foreach ($wideForkParents as $parentOffset) {
-      $this->addWideForkDeadEnd($seedKey, $nodes, $edges, $occupied, $spineNodeIndexes, $parentOffset);
-    }
+    $deadEndsTarget = $this->randBetween($seedKey . '|dead-end-count', (int)$config['dead_ends_min'], (int)$config['dead_ends_max']);
+    $deadEndChainMin = max(1, (int)$config['dead_end_chain_min']);
+    $deadEndChainMax = max($deadEndChainMin, (int)$config['dead_end_chain_max']);
+    $this->addDeadEndBranches(
+      $seedKey,
+      $nodes,
+      $edges,
+      $occupied,
+      $nodeIndexByPosition,
+      $travelColumns,
+      $rowCount,
+      $centerRow,
+      $deadEndsTarget,
+      $deadEndChainMin,
+      $deadEndChainMax,
+    );
+    $this->compactRowsTowardCenter($nodes, $edges);
+    $this->addNearbyShortcutConnections($seedKey, $nodes, $edges, $travelColumns);
+    $this->removeRedundantSameRowBypassEdges($nodes, $edges);
 
-    $this->ensureAtLeastOneRestNode($nodes, $seedKey);
+    $this->assignProceduralNodeTypes($nodes, $edges, $seedKey, $config, $travelColumns);
+    $this->ensureAtLeastOneRestNode($nodes, $seedKey, $travelColumns);
     $nodes = $this->assignEncounterTemplates($regionId, $nodes, $seedKey);
     $this->validateGraph($nodes, $edges);
 
@@ -201,42 +259,55 @@ final class RunGraphGenerator
     $nodes = $graph['nodes'];
     $edges = $graph['edges'];
     $occupied = [];
+    $nodeIndexByPosition = [];
     $exitCol = -1;
+
     foreach ($nodes as $node) {
       $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
       $col = (int)($meta['col'] ?? -1);
       $row = (int)($meta['row'] ?? -1);
       if ($col >= 0 && $row >= 0) {
         $occupied[$col . ':' . $row] = true;
+        $nodeIndexByPosition[$col . ':' . $row] = (int)$node['node_index'];
       }
       if ((string)($node['node_type'] ?? '') === 'exit') {
         $exitCol = max($exitCol, $col);
       }
     }
 
-    $candidates = [];
+    $candidateParents = [];
     foreach ($nodes as $node) {
       $nodeIndex = (int)($node['node_index'] ?? -1);
       $nodeType = (string)($node['node_type'] ?? '');
       $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
       $col = (int)($meta['col'] ?? -1);
-      if ($nodeIndex < 0 || $col < 0 || in_array($nodeType, ['boss', 'exit'], true) || ($col + 1) >= $exitCol) {
+      $row = (int)($meta['row'] ?? -1);
+
+      if ($nodeIndex < 0 || $col < 0 || $row < 0 || in_array($nodeType, ['boss', 'exit'], true) || ($col + 1) >= $exitCol) {
         continue;
       }
 
-      $row = $this->pickDeadEndRow($seed . '|treasure-sense|' . $nodeIndex, $nodes, $edges, $occupied, $nodeIndex, $col + 1);
-      if ($row === null) {
+      $candidate = $this->pickDeadEndCandidate(
+        $seed . '|treasure-sense|' . $nodeIndex,
+        $nodes,
+        $edges,
+        $occupied,
+        $nodeIndexByPosition,
+        $nodeIndex,
+        $col,
+        $row,
+        max(1, $this->maxRowIndex($nodes) + 1),
+        max(0, intdiv($this->maxRowIndex($nodes), 2)),
+        1,
+      );
+      if ($candidate === null) {
         continue;
       }
 
-      $candidates[] = [
-        'parent_index' => $nodeIndex,
-        'child_col' => $col + 1,
-        'child_row' => $row,
-      ];
+      $candidateParents[] = $candidate;
     }
 
-    if ($candidates === []) {
+    if ($candidateParents === []) {
       return $graph;
     }
 
@@ -245,15 +316,24 @@ final class RunGraphGenerator
       return $graph;
     }
 
-    $pickIndex = $this->randBetween($seed . '|treasure-sense-parent', 0, count($candidates) - 1);
-    $picked = $candidates[$pickIndex];
-    $newNodeIndex = $this->appendNode($nodes, $occupied, 'loot', 'locked', (int)$picked['child_col'], (int)$picked['child_row']);
+    $pickIndex = $this->randBetween($seed . '|treasure-sense-parent', 0, count($candidateParents) - 1);
+    $picked = $candidateParents[$pickIndex];
+
+    $newNodeIndex = $this->appendNode(
+      $nodes,
+      $occupied,
+      $nodeIndexByPosition,
+      'loot',
+      'locked',
+      (int)$picked['col'],
+      (int)$picked['row'],
+    );
     $nodes[$newNodeIndex]['meta']['revealed_by_treasure_sense'] = true;
     $nodes[$newNodeIndex]['meta']['hidden_treasure'] = true;
     $nodes[$newNodeIndex]['meta']['treasure_sense_chance'] = round($revealChance, 4);
     $templateIndex = $this->randBetween($seed . '|treasure-sense-template', 0, count($lootPool) - 1);
     $nodes[$newNodeIndex]['encounter_template_id'] = $lootPool[$templateIndex];
-    $edges[] = ['from' => (int)$picked['parent_index'], 'to' => $newNodeIndex];
+    $this->appendEdge($edges, (int)$picked['from'], $newNodeIndex);
 
     $this->validateGraph($nodes, $edges);
 
@@ -365,7 +445,7 @@ final class RunGraphGenerator
       $meta = is_array($node['meta'] ?? null) ? $node['meta'] : null;
       $col = is_array($meta) ? (int)($meta['col'] ?? -1) : -1;
       $row = is_array($meta) ? (int)($meta['row'] ?? -1) : -1;
-      if ($col < 0 || $row < 0 || $row > 2) {
+      if ($col < 0 || $row < 0) {
         throw new RuntimeException('Run graph nodes must include valid col/row metadata.');
       }
       $maxCol = max($maxCol, $col);
@@ -545,9 +625,17 @@ final class RunGraphGenerator
   /**
    * @param array<int,array<string,mixed>> $nodes
    * @param array<string,bool> $occupied
+   * @param array<string,int> $nodeIndexByPosition
    */
-  private function appendNode(array &$nodes, array &$occupied, string $nodeType, string $status, int $col, int $row): int
-  {
+  private function appendNode(
+    array &$nodes,
+    array &$occupied,
+    array &$nodeIndexByPosition,
+    string $nodeType,
+    string $status,
+    int $col,
+    int $row,
+  ): int {
     $positionKey = $col . ':' . $row;
     if (isset($occupied[$positionKey])) {
       throw new RuntimeException('Run graph attempted to reuse a map position.');
@@ -561,361 +649,105 @@ final class RunGraphGenerator
       'meta' => ['col' => $col, 'row' => $row],
     ];
     $occupied[$positionKey] = true;
+    $nodeIndexByPosition[$positionKey] = $nodeIndex;
 
     return $nodeIndex;
   }
 
-  private function pickSpineNodeType(string $seedKey, int $column, int $spineMiddleNodes, array $config): string
-  {
-    if ($column === 1 || $column === $spineMiddleNodes) {
-      return 'combat';
-    }
-
-    $weights = [
-      'combat' => (int)$config['combat_weight'],
-      'loot' => (int)$config['loot_weight'],
-      'rest' => (int)$config['rest_weight'],
-    ];
-
-    return $this->pickWeightedType($seedKey . '|spine-node|' . $column, $weights);
-  }
-
-  private function pickDeadEndType(string $seedKey): string
-  {
-    return $this->pickWeightedType($seedKey . '|dead-end', [
-      'loot' => 60,
-      'rest' => 25,
-      'combat' => 15,
-    ]);
-  }
-
   /**
-   * @param array<string,int|bool> $config
-   */
-  private function pickReconnectType(string $seedKey, array $config): string
-  {
-    return $this->pickWeightedType($seedKey . '|reconnect', [
-      'combat' => max(1, (int)$config['combat_weight']),
-      'loot' => max(1, (int)$config['loot_weight']),
-      'rest' => max(1, (int)$config['rest_weight']),
-    ]);
-  }
-
-  /**
-   * @param array<string,int> $weights
-   */
-  private function pickWeightedType(string $seedKey, array $weights): string
-  {
-    $total = array_sum($weights);
-    $roll = $this->randBetween($seedKey, 1, $total);
-    $running = 0;
-
-    foreach ($weights as $type => $weight) {
-      $running += $weight;
-      if ($roll <= $running) {
-        return $type;
-      }
-    }
-
-    return array_key_first($weights) ?? 'combat';
-  }
-
-  /**
-   * @param array<string,int|bool> $config
    * @param array<int,array<string,mixed>> $nodes
-   * @param array<int,array{from:int,to:int}> $edges
    * @param array<string,bool> $occupied
-   * @param array<int,int> $spineNodeIndexes
+   * @param array<string,int> $nodeIndexByPosition
    */
-  private function addShortReconnectBranch(
-    string $seedKey,
-    array $config,
+  private function ensureNodeAt(
     array &$nodes,
-    array &$edges,
     array &$occupied,
-    array $spineNodeIndexes,
-    int $parentOffset,
-  ): void {
-    $parentIndex = $spineNodeIndexes[$parentOffset];
-    $parentCol = (int)$nodes[$parentIndex]['meta']['col'];
-    $childCol = $parentCol + 1;
-    $reconnectTargetIndex = $spineNodeIndexes[$parentOffset + 2];
-    $row = $this->pickShortReconnectRow($seedKey, $nodes, $edges, $occupied, $parentIndex, $childCol, $reconnectTargetIndex);
-    if ($row === null) {
-      return;
-    }
-
-    $branchType = $this->pickReconnectType($seedKey . '|short-type', $config);
-    $branchIndex = $this->appendNode($nodes, $occupied, $branchType, 'locked', $childCol, $row);
-    $edges[] = ['from' => $parentIndex, 'to' => $branchIndex];
-    $edges[] = ['from' => $branchIndex, 'to' => $reconnectTargetIndex];
-  }
-
-  /**
-   * @param array<string,int|bool> $config
-   * @param array<int,array<string,mixed>> $nodes
-   * @param array<int,array{from:int,to:int}> $edges
-   * @param array<string,bool> $occupied
-   * @param array<int,int> $spineNodeIndexes
-   */
-  private function addLongReconnectBranch(
-    string $seedKey,
-    array $config,
-    array &$nodes,
-    array &$edges,
-    array &$occupied,
-    array $spineNodeIndexes,
-    int $parentOffset,
-  ): void {
-    $parentIndex = $spineNodeIndexes[$parentOffset];
-    $parentCol = (int)$nodes[$parentIndex]['meta']['col'];
-    $firstCol = $parentCol + 1;
-    $secondCol = $parentCol + 2;
-
-    $reconnectTargetIndex = $spineNodeIndexes[$parentOffset + 3];
-    $branchRow = $this->pickLongReconnectRow($seedKey, $nodes, $edges, $occupied, $parentIndex, $firstCol, $secondCol, $reconnectTargetIndex);
-    if ($branchRow === null) {
-      return;
-    }
-
-    $firstType = $this->pickReconnectType($seedKey . '|long-type-a', $config);
-    $secondType = $this->pickReconnectType($seedKey . '|long-type-b', $config);
-    $firstIndex = $this->appendNode($nodes, $occupied, $firstType, 'locked', $firstCol, $branchRow);
-    $secondIndex = $this->appendNode($nodes, $occupied, $secondType, 'locked', $secondCol, $branchRow);
-
-    $edges[] = ['from' => $parentIndex, 'to' => $firstIndex];
-    $edges[] = ['from' => $firstIndex, 'to' => $secondIndex];
-    $edges[] = ['from' => $secondIndex, 'to' => $reconnectTargetIndex];
-  }
-
-  /**
-   * @param array<int,array<string,mixed>> $nodes
-   * @param array<int,array{from:int,to:int}> $edges
-   * @param array<string,bool> $occupied
-   * @param array<int,int> $spineNodeIndexes
-   */
-  private function addWideForkDeadEnd(
-    string $seedKey,
-    array &$nodes,
-    array &$edges,
-    array &$occupied,
-    array $spineNodeIndexes,
-    int $parentOffset,
-  ): void {
-    $parentIndex = $spineNodeIndexes[$parentOffset];
-    $parentCol = (int)$nodes[$parentIndex]['meta']['col'];
-    $childCol = $parentCol + 1;
-    $rows = $this->pickWideForkRows($seedKey, $nodes, $edges, $occupied, $parentIndex, $childCol);
-    if ($rows === null) {
-      return;
-    }
-    [$firstRow, $secondRow] = $rows;
-
-    $firstIndex = $this->appendNode($nodes, $occupied, $this->pickDeadEndType($seedKey . '|wide-type-a'), 'locked', $childCol, $firstRow);
-    $secondIndex = $this->appendNode($nodes, $occupied, $this->pickDeadEndType($seedKey . '|wide-type-b'), 'locked', $childCol, $secondRow);
-
-    $edges[] = ['from' => $parentIndex, 'to' => $firstIndex];
-    $edges[] = ['from' => $parentIndex, 'to' => $secondIndex];
-  }
-
-  /**
-   * @param array<string,bool> $occupied
-   */
-  private function isBranchLaneOpen(array $occupied, array $columns, int $row): bool
-  {
-    foreach ($columns as $col) {
-      if (isset($occupied[$col . ':' . $row])) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * @return array<int,int>
-   */
-  private function orderedBranchLanes(string $seedKey): array
-  {
-    $rows = [0, 2];
-    if ($this->randBetween($seedKey . '|lane-order', 0, 1) === 1) {
-      $rows = array_reverse($rows);
-    }
-
-    return $rows;
-  }
-
-  /**
-   * @param array<int,array<string,mixed>> $nodes
-   * @param array<int,array{from:int,to:int}> $edges
-   * @param array<string,bool> $occupied
-   */
-  private function pickDeadEndRow(
-    string $seedKey,
-    array $nodes,
-    array $edges,
-    array $occupied,
-    int $parentIndex,
-    int $childCol,
-  ): ?int {
-    $parentMeta = $nodes[$parentIndex]['meta'];
-    foreach ($this->orderedBranchLanes($seedKey . '|dead-end-row') as $row) {
-      if (!$this->isBranchLaneOpen($occupied, [$childCol], $row)) {
-        continue;
-      }
-
-      if ($this->proposedSegmentsCrossExisting($nodes, $edges, [[
-        'from' => ['col' => (int)$parentMeta['col'], 'row' => (int)$parentMeta['row']],
-        'to' => ['col' => $childCol, 'row' => $row],
-      ]])) {
-        continue;
-      }
-
-      return $row;
-    }
-
-    return null;
-  }
-
-  /**
-   * @param array<int,array<string,mixed>> $nodes
-   * @param array<int,array{from:int,to:int}> $edges
-   * @param array<string,bool> $occupied
-   */
-  private function pickShortReconnectRow(
-    string $seedKey,
-    array $nodes,
-    array $edges,
-    array $occupied,
-    int $parentIndex,
-    int $childCol,
-    int $reconnectTargetIndex,
-  ): ?int {
-    $parentMeta = $nodes[$parentIndex]['meta'];
-    $targetMeta = $nodes[$reconnectTargetIndex]['meta'];
-    foreach ($this->orderedBranchLanes($seedKey . '|short-row') as $row) {
-      if (!$this->isBranchLaneOpen($occupied, [$childCol], $row)) {
-        continue;
-      }
-
-      if ($this->proposedSegmentsCrossExisting($nodes, $edges, [
-        [
-          'from' => ['col' => (int)$parentMeta['col'], 'row' => (int)$parentMeta['row']],
-          'to' => ['col' => $childCol, 'row' => $row],
-        ],
-        [
-          'from' => ['col' => $childCol, 'row' => $row],
-          'to' => ['col' => (int)$targetMeta['col'], 'row' => (int)$targetMeta['row']],
-        ],
-      ])) {
-        continue;
-      }
-
-      return $row;
-    }
-
-    return null;
-  }
-
-  /**
-   * @param array<int,array<string,mixed>> $nodes
-   * @param array<int,array{from:int,to:int}> $edges
-   * @param array<string,bool> $occupied
-   */
-  private function pickLongReconnectRow(
-    string $seedKey,
-    array $nodes,
-    array $edges,
-    array $occupied,
-    int $parentIndex,
-    int $firstCol,
-    int $secondCol,
-    int $reconnectTargetIndex,
-  ): ?int {
-    $parentMeta = $nodes[$parentIndex]['meta'];
-    $targetMeta = $nodes[$reconnectTargetIndex]['meta'];
-    foreach ($this->orderedBranchLanes($seedKey . '|long-row') as $row) {
-      if (!$this->isBranchLaneOpen($occupied, [$firstCol, $secondCol], $row)) {
-        continue;
-      }
-
-      if ($this->proposedSegmentsCrossExisting($nodes, $edges, [
-        [
-          'from' => ['col' => (int)$parentMeta['col'], 'row' => (int)$parentMeta['row']],
-          'to' => ['col' => $firstCol, 'row' => $row],
-        ],
-        [
-          'from' => ['col' => $firstCol, 'row' => $row],
-          'to' => ['col' => $secondCol, 'row' => $row],
-        ],
-        [
-          'from' => ['col' => $secondCol, 'row' => $row],
-          'to' => ['col' => (int)$targetMeta['col'], 'row' => (int)$targetMeta['row']],
-        ],
-      ])) {
-        continue;
-      }
-
-      return $row;
-    }
-
-    return null;
-  }
-
-  /**
-   * @param array<int,array<string,mixed>> $nodes
-   * @param array<int,array{from:int,to:int}> $edges
-   * @param array<string,bool> $occupied
-   * @return array{0:int,1:int}|null
-   */
-  private function pickWideForkRows(
-    string $seedKey,
-    array $nodes,
-    array $edges,
-    array $occupied,
-    int $parentIndex,
+    array &$nodeIndexByPosition,
     int $col,
-  ): ?array
+    int $row,
+  ): int {
+    $positionKey = $col . ':' . $row;
+    if (isset($nodeIndexByPosition[$positionKey])) {
+      return $nodeIndexByPosition[$positionKey];
+    }
+
+    return $this->appendNode($nodes, $occupied, $nodeIndexByPosition, 'combat', 'locked', $col, $row);
+  }
+
+  /**
+   * @param array<string,int> $nodeIndexByPosition
+   */
+  private function mustNodeIndexAt(array $nodeIndexByPosition, int $col, int $row): int
   {
-    if (!$this->isBranchLaneOpen($occupied, [$col], 0) || !$this->isBranchLaneOpen($occupied, [$col], 2)) {
-      return null;
+    $positionKey = $col . ':' . $row;
+    if (!isset($nodeIndexByPosition[$positionKey])) {
+      throw new RuntimeException('Expected node position was not generated.');
     }
 
-    $rows = [0, 2];
-    if ($this->randBetween($seedKey . '|wide-order', 0, 1) === 1) {
-      $rows = array_reverse($rows);
+    return (int)$nodeIndexByPosition[$positionKey];
+  }
+
+  /**
+   * @param array<int,array{from:int,to:int}> $edges
+   */
+  private function appendEdge(array &$edges, int $from, int $to): void
+  {
+    foreach ($edges as $edge) {
+      if ((int)$edge['from'] === $from && (int)$edge['to'] === $to) {
+        return;
+      }
     }
 
-    $parentMeta = $nodes[$parentIndex]['meta'];
-    if ($this->proposedSegmentsCrossExisting($nodes, $edges, [
-      [
-        'from' => ['col' => (int)$parentMeta['col'], 'row' => (int)$parentMeta['row']],
-        'to' => ['col' => $col, 'row' => $rows[0]],
-      ],
-      [
-        'from' => ['col' => (int)$parentMeta['col'], 'row' => (int)$parentMeta['row']],
-        'to' => ['col' => $col, 'row' => $rows[1]],
-      ],
-    ])) {
-      return null;
-    }
-
-    return $rows;
+    $edges[] = ['from' => $from, 'to' => $to];
   }
 
   /**
    * @return array<int,int>
    */
-  private function pickDistinctSpineParents(string $seedKey, int $spineMiddleNodes, int $count): array
+  private function pickOpeningRows(string $seedKey, int $rowCount, int $openingCount, int $centerRow, int $laneGap, array $preferredRows = []): array
   {
-    $candidates = range(0, max(0, $spineMiddleNodes - 1));
-    $picked = [];
+    if ($preferredRows !== []) {
+      $preferredRows = array_values(array_unique(array_filter(
+        array_map(static fn(mixed $row): int => (int)$row, $preferredRows),
+        static function (int $row) use ($rowCount): bool {
+          return $row >= 0 && $row < $rowCount;
+        },
+      )));
+      sort($preferredRows);
+      if (count($preferredRows) >= $openingCount) {
+        return array_slice($preferredRows, 0, $openingCount);
+      }
+    }
 
-    while ($count > 0 && $candidates !== []) {
-      $pickIndex = $this->randBetween($seedKey . '|parent-pick|' . $count, 0, count($candidates) - 1);
-      $picked[] = $candidates[$pickIndex];
-      array_splice($candidates, $pickIndex, 1);
-      $count--;
+    $pool = [];
+    for ($row = 0; $row < $rowCount; $row += $laneGap) {
+      $pool[] = $row;
+    }
+    if (!in_array($centerRow, $pool, true)) {
+      $pool[] = $centerRow;
+    }
+
+    usort($pool, static function (int $left, int $right) use ($centerRow): int {
+      $leftDistance = abs($left - $centerRow);
+      $rightDistance = abs($right - $centerRow);
+      if ($leftDistance !== $rightDistance) {
+        return $leftDistance <=> $rightDistance;
+      }
+
+      return $left <=> $right;
+    });
+
+    $picked = [];
+    while (count($picked) < $openingCount && $pool !== []) {
+      $maxPickIndex = min(count($pool) - 1, max(0, count($pool) - 1));
+      $pickIndex = $this->randBetween($seedKey . '|opening-row|' . count($picked), 0, min($maxPickIndex, 3));
+      $pickedRow = $pool[$pickIndex];
+      $picked[] = $pickedRow;
+      array_splice($pool, $pickIndex, 1);
+      $pool = array_values(array_filter(
+        $pool,
+        static fn(int $candidateRow): bool => abs($candidateRow - $pickedRow) >= $laneGap,
+      ));
     }
 
     sort($picked);
@@ -923,9 +755,795 @@ final class RunGraphGenerator
   }
 
   /**
+   * @param array<int,int> $openingRows
+   */
+  private function pickOpeningRowForWalker(string $seedKey, array $openingRows, array $laneRows, int $walkerId): int
+  {
+    if ($laneRows !== []) {
+      $laneIndex = min($walkerId, count($laneRows) - 1);
+      return (int)$laneRows[$laneIndex];
+    }
+
+    if ($openingRows === []) {
+      return 0;
+    }
+
+    if ($walkerId < count($openingRows)) {
+      return (int)$openingRows[$walkerId];
+    }
+
+    $pickIndex = $this->randBetween($seedKey . '|walker-opening|' . $walkerId, 0, count($openingRows) - 1);
+    return (int)$openingRows[$pickIndex];
+  }
+
+  private function pickNextWalkerRow(
+    string $seedKey,
+    int $walkerId,
+    int $column,
+    int $currentRow,
+    int $anchorRow,
+    int $straightStreak,
+    int $rowCount,
+    int $centerRow,
+    ?int $previousChosenRow,
+    int $travelColumns,
+    int $laneGap,
+  ): int {
+    $candidates = [];
+    $minimumRow = $previousChosenRow === null ? 0 : $previousChosenRow + 1;
+    $stepOffsets = array_values(array_unique([
+      -$laneGap,
+      -1,
+      0,
+      1,
+      $laneGap,
+    ]));
+
+    foreach ($stepOffsets as $offset) {
+      $candidateRow = $currentRow + $offset;
+      if ($candidateRow < 0 || $candidateRow >= $rowCount || $candidateRow < $minimumRow) {
+        continue;
+      }
+
+      $distanceFromCurrent = abs($candidateRow - $currentRow);
+      $distanceFromAnchor = abs($candidateRow - $anchorRow);
+      $score = 16;
+
+      if ($distanceFromCurrent === 0) {
+        $score -= 6 + ($straightStreak * 8);
+      } else {
+        $score += 6;
+        if ($distanceFromCurrent === 1) {
+          $score += 3;
+        }
+      }
+
+      $score -= $distanceFromAnchor * 2;
+
+      if ($column >= $travelColumns - 2) {
+        $score += max(0, 6 - abs($candidateRow - $centerRow));
+      }
+
+      $score += $this->randBetween($seedKey . '|walker-step-noise|' . $walkerId . '|' . $column . '|' . $candidateRow, 0, 4);
+      $candidates[] = ['row' => $candidateRow, 'score' => $score];
+    }
+
+    if ($candidates === []) {
+      return min($rowCount - 1, max($minimumRow, $anchorRow));
+    }
+
+    usort($candidates, static function (array $left, array $right): int {
+      if ($left['score'] !== $right['score']) {
+        return $right['score'] <=> $left['score'];
+      }
+
+      return $left['row'] <=> $right['row'];
+    });
+
+    return (int)$candidates[0]['row'];
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @param array<int,array{from:int,to:int}> $edges
+   */
+  private function compactRowsTowardCenter(array &$nodes, array $edges): void
+  {
+    $centerRow = $this->layoutCenterRow($nodes);
+    $attempt = 0;
+
+    while ($attempt < 12) {
+      $attempt++;
+      $usedRows = $this->usedRows($nodes);
+      usort($usedRows, static function (int $left, int $right) use ($centerRow): int {
+        $leftDistance = abs($left - $centerRow);
+        $rightDistance = abs($right - $centerRow);
+        if ($leftDistance !== $rightDistance) {
+          return $rightDistance <=> $leftDistance;
+        }
+
+        return $left <=> $right;
+      });
+
+      $moved = false;
+      foreach ($usedRows as $sourceRow) {
+        if ($sourceRow === $centerRow) {
+          continue;
+        }
+
+        $direction = $sourceRow < $centerRow ? 1 : -1;
+        for (
+          $targetRow = $sourceRow + $direction;
+          $direction > 0 ? $targetRow <= $centerRow : $targetRow >= $centerRow;
+          $targetRow += $direction
+        ) {
+          if (!$this->canMoveRowWithoutOverlapOrCrossing($nodes, $edges, $sourceRow, $targetRow)) {
+            continue;
+          }
+
+          $this->moveRow($nodes, $sourceRow, $targetRow);
+          $moved = true;
+          break 2;
+        }
+      }
+
+      if (!$moved) {
+        break;
+      }
+    }
+
+    $this->normalizeRowIndexes($nodes);
+    $this->assertNoCrossingEdges($nodes, $edges);
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @param array<int,array{from:int,to:int}> $edges
+   */
+  private function addNearbyShortcutConnections(string $seedKey, array $nodes, array &$edges, int $travelColumns): void
+  {
+    $nodeByIndex = $this->nodeByIndex($nodes);
+    $outgoing = $this->outgoingByNode($nodes, $edges);
+
+    $sortedIndexes = array_keys($nodeByIndex);
+    usort($sortedIndexes, function (int $left, int $right) use ($nodeByIndex): int {
+      $leftMeta = $nodeByIndex[$left]['meta'];
+      $rightMeta = $nodeByIndex[$right]['meta'];
+      if ((int)$leftMeta['col'] !== (int)$rightMeta['col']) {
+        return ((int)$leftMeta['col']) <=> ((int)$rightMeta['col']);
+      }
+
+      return ((int)$leftMeta['row']) <=> ((int)$rightMeta['row']);
+    });
+
+    foreach ($sortedIndexes as $sourceIndex) {
+      $sourceNode = $nodeByIndex[$sourceIndex];
+      $sourceType = (string)($sourceNode['node_type'] ?? '');
+      if (in_array($sourceType, ['boss', 'exit'], true) || count($outgoing[$sourceIndex] ?? []) !== 1) {
+        continue;
+      }
+
+      $sourceMeta = is_array($sourceNode['meta'] ?? null) ? $sourceNode['meta'] : [];
+      $sourceCol = (int)($sourceMeta['col'] ?? -1);
+      $sourceRow = (int)($sourceMeta['row'] ?? -1);
+      if ($sourceCol < 0 || $sourceCol >= $travelColumns) {
+        continue;
+      }
+
+      $candidateIndexes = [];
+      foreach ($sortedIndexes as $targetIndex) {
+        if ($targetIndex === $sourceIndex || in_array($targetIndex, $outgoing[$sourceIndex] ?? [], true)) {
+          continue;
+        }
+
+        $targetNode = $nodeByIndex[$targetIndex];
+        $targetType = (string)($targetNode['node_type'] ?? '');
+        if (in_array($targetType, ['boss', 'exit'], true)) {
+          continue;
+        }
+
+        $targetMeta = is_array($targetNode['meta'] ?? null) ? $targetNode['meta'] : [];
+        $targetCol = (int)($targetMeta['col'] ?? -1);
+        $targetRow = (int)($targetMeta['row'] ?? -1);
+        $columnDistance = $targetCol - $sourceCol;
+
+        if ($columnDistance < 1 || $columnDistance > 3) {
+          continue;
+        }
+        if (abs($targetRow - $sourceRow) > 1) {
+          continue;
+        }
+
+        $candidateIndexes[] = $targetIndex;
+      }
+
+      usort($candidateIndexes, function (int $left, int $right) use ($nodeByIndex, $sourceCol, $sourceRow): int {
+        $leftMeta = $nodeByIndex[$left]['meta'];
+        $rightMeta = $nodeByIndex[$right]['meta'];
+        $leftColumnDistance = abs((int)$leftMeta['col'] - $sourceCol);
+        $rightColumnDistance = abs((int)$rightMeta['col'] - $sourceCol);
+        if ($leftColumnDistance !== $rightColumnDistance) {
+          return $leftColumnDistance <=> $rightColumnDistance;
+        }
+
+        $leftRowDistance = abs((int)$leftMeta['row'] - $sourceRow);
+        $rightRowDistance = abs((int)$rightMeta['row'] - $sourceRow);
+        if ($leftRowDistance !== $rightRowDistance) {
+          return $leftRowDistance <=> $rightRowDistance;
+        }
+
+        return $left <=> $right;
+      });
+
+      foreach ($candidateIndexes as $targetIndex) {
+        $shouldConnect = $this->randBetween(
+          $seedKey . '|shortcut|' . $sourceIndex . '|' . $targetIndex,
+          1,
+          100,
+        ) <= 20;
+        if (!$shouldConnect) {
+          continue;
+        }
+
+        if ($this->createsRedundantShortcutTriangle($sourceIndex, $targetIndex, $nodeByIndex, $outgoing)) {
+          continue;
+        }
+
+        if (!$this->canAppendEdgeWithoutCrossing($nodes, $edges, $sourceIndex, $targetIndex)) {
+          continue;
+        }
+
+        $this->appendEdge($edges, $sourceIndex, $targetIndex);
+        $outgoing[$sourceIndex][] = $targetIndex;
+        break;
+      }
+    }
+  }
+
+  /**
+   * @return array<int,int>
+   */
+  private function buildLaneRows(int $rowCount, int $pathCount, int $centerRow): array
+  {
+    if ($pathCount <= 1) {
+      return [$centerRow];
+    }
+
+    $maxIndex = $rowCount - 1;
+    $rows = [];
+    for ($laneIndex = 0; $laneIndex < $pathCount; $laneIndex++) {
+      $ratio = $laneIndex / ($pathCount - 1);
+      $row = (int)round($ratio * $maxIndex);
+      $rows[] = max(0, min($maxIndex, $row));
+    }
+
+    $rows = array_values(array_unique($rows));
+    sort($rows);
+
+    while (count($rows) < $pathCount) {
+      $candidate = min($maxIndex, end($rows) + 1);
+      if (!in_array($candidate, $rows, true)) {
+        $rows[] = $candidate;
+      } else {
+        break;
+      }
+    }
+
+    return array_slice($rows, 0, $pathCount);
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @return array<int,int>
+   */
+  private function nodeIndexesInColumn(array $nodes, int $column): array
+  {
+    $indexes = [];
+    foreach ($nodes as $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      if ((int)($meta['col'] ?? -1) !== $column) {
+        continue;
+      }
+
+      $indexes[] = (int)$node['node_index'];
+    }
+
+    usort($indexes, function (int $left, int $right) use ($nodes): int {
+      return ((int)$nodes[$left]['meta']['row']) <=> ((int)$nodes[$right]['meta']['row']);
+    });
+
+    return $indexes;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @param array<int,array{from:int,to:int}> $edges
+   * @param array<string,bool> $occupied
+   * @param array<string,int> $nodeIndexByPosition
+   */
+  private function addDeadEndBranches(
+    string $seedKey,
+    array &$nodes,
+    array &$edges,
+    array &$occupied,
+    array &$nodeIndexByPosition,
+    int $travelColumns,
+    int $rowCount,
+    int $centerRow,
+    int $targetCount,
+    int $chainMin,
+    int $chainMax,
+  ): void {
+    $parentIndexes = [];
+    $outgoing = $this->outgoingByNode($nodes, $edges);
+
+    foreach ($nodes as $node) {
+      $nodeIndex = (int)$node['node_index'];
+      $nodeType = (string)$node['node_type'];
+      $col = (int)$node['meta']['col'];
+      if ($nodeType === 'boss' || $nodeType === 'exit' || $col <= 0 || $col >= $travelColumns - 1) {
+        continue;
+      }
+      if (count($outgoing[$nodeIndex] ?? []) === 0) {
+        continue;
+      }
+
+      $parentIndexes[] = $nodeIndex;
+    }
+
+    $attempts = 0;
+    $created = 0;
+    while ($created < $targetCount && $attempts < max(12, count($parentIndexes) * 3) && $parentIndexes !== []) {
+      $pickIndex = $this->randBetween($seedKey . '|dead-end-parent|' . $attempts, 0, count($parentIndexes) - 1);
+      $parentIndex = $parentIndexes[$pickIndex];
+      array_splice($parentIndexes, $pickIndex, 1);
+      $attempts++;
+
+      $parentMeta = $nodes[$parentIndex]['meta'];
+      $chainLength = $this->randBetween($seedKey . '|dead-end-chain|' . $parentIndex, $chainMin, $chainMax);
+      $candidate = $this->pickDeadEndCandidate(
+        $seedKey . '|dead-end-start|' . $parentIndex,
+        $nodes,
+        $edges,
+        $occupied,
+        $nodeIndexByPosition,
+        $parentIndex,
+        (int)$parentMeta['col'],
+        (int)$parentMeta['row'],
+        $rowCount,
+        $centerRow,
+        $chainLength,
+      );
+      if ($candidate === null) {
+        continue;
+      }
+
+      $previousIndex = $parentIndex;
+      foreach ($candidate['steps'] as $stepIndex => $step) {
+        $nodeIndex = $this->appendNode(
+          $nodes,
+          $occupied,
+          $nodeIndexByPosition,
+          'combat',
+          'locked',
+          (int)$step['col'],
+          (int)$step['row'],
+        );
+        $this->appendEdge($edges, $previousIndex, $nodeIndex);
+        $previousIndex = $nodeIndex;
+
+        if ($stepIndex === 0) {
+          $created++;
+        }
+      }
+    }
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @param array<int,array{from:int,to:int}> $edges
+   * @param array<string,bool> $occupied
+   * @param array<string,int> $nodeIndexByPosition
+   * @return array{from:int,col:int,row:int,steps:array<int,array{col:int,row:int}>}|null
+   */
+  private function pickDeadEndCandidate(
+    string $seedKey,
+    array $nodes,
+    array $edges,
+    array $occupied,
+    array $nodeIndexByPosition,
+    int $parentIndex,
+    int $parentCol,
+    int $parentRow,
+    int $rowCount,
+    int $centerRow,
+    int $desiredLength,
+  ): ?array {
+    $preferredDirections = $parentRow <= $centerRow ? [-1, 1] : [1, -1];
+    if ($this->randBetween($seedKey . '|direction-order', 0, 1) === 1) {
+      $preferredDirections = array_reverse($preferredDirections);
+    }
+
+    foreach ($preferredDirections as $direction) {
+      $steps = [];
+      $currentCol = $parentCol;
+      $currentRow = $parentRow;
+      $proposedSegments = [];
+
+      for ($stepNumber = 1; $stepNumber <= $desiredLength; $stepNumber++) {
+        $nextCol = $currentCol + 1;
+        $rowCandidates = $this->deadEndRowCandidates($currentRow, $direction, $rowCount);
+        $pickedStep = null;
+
+        foreach ($rowCandidates as $candidateRow) {
+          $positionKey = $nextCol . ':' . $candidateRow;
+          if (isset($occupied[$positionKey]) || isset($nodeIndexByPosition[$positionKey])) {
+            continue;
+          }
+
+          $candidateSegments = array_merge($proposedSegments, [[
+            'from' => ['col' => $currentCol, 'row' => $currentRow],
+            'to' => ['col' => $nextCol, 'row' => $candidateRow],
+          ]]);
+
+          if ($this->proposedSegmentsCrossExisting($nodes, $edges, $candidateSegments)) {
+            continue;
+          }
+
+          $pickedStep = ['col' => $nextCol, 'row' => $candidateRow];
+          $proposedSegments = $candidateSegments;
+          break;
+        }
+
+        if ($pickedStep === null) {
+          break;
+        }
+
+        $steps[] = $pickedStep;
+        $currentCol = (int)$pickedStep['col'];
+        $currentRow = (int)$pickedStep['row'];
+      }
+
+      if ($steps !== []) {
+        return [
+          'from' => $parentIndex,
+          'col' => (int)$steps[0]['col'],
+          'row' => (int)$steps[0]['row'],
+          'steps' => $steps,
+        ];
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * @return array<int,int>
+   */
+  private function deadEndRowCandidates(int $currentRow, int $direction, int $rowCount): array
+  {
+    $candidates = [];
+    foreach ([$currentRow + $direction, $currentRow, $currentRow - $direction] as $candidateRow) {
+      if ($candidateRow < 0 || $candidateRow >= $rowCount || in_array($candidateRow, $candidates, true)) {
+        continue;
+      }
+
+      $candidates[] = $candidateRow;
+    }
+
+    return $candidates;
+  }
+
+  /**
    * @param array<int,array<string,mixed>> $nodes
    */
-  private function ensureAtLeastOneRestNode(array &$nodes, string $seedKey): void
+  private function layoutCenterRow(array $nodes): int
+  {
+    foreach ($nodes as $node) {
+      if ((string)($node['status'] ?? '') !== 'available') {
+        continue;
+      }
+
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      return (int)($meta['row'] ?? 0);
+    }
+
+    return intdiv($this->maxRowIndex($nodes), 2);
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @return array<int,int>
+   */
+  private function usedRows(array $nodes): array
+  {
+    $rows = array_values(array_unique(array_map(
+      static function (array $node): int {
+        $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+        return (int)($meta['row'] ?? 0);
+      },
+      $nodes,
+    )));
+    sort($rows);
+
+    return $rows;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @param array<int,array{from:int,to:int}> $edges
+   */
+  private function canMoveRowWithoutOverlapOrCrossing(array $nodes, array $edges, int $sourceRow, int $targetRow): bool
+  {
+    if ($sourceRow === $targetRow) {
+      return false;
+    }
+
+    $candidateNodes = $nodes;
+    foreach ($candidateNodes as $index => $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      if ((int)($meta['row'] ?? -1) !== $sourceRow) {
+        continue;
+      }
+
+      $candidateNodes[$index]['meta']['row'] = $targetRow;
+    }
+
+    $positions = [];
+    foreach ($candidateNodes as $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $positionKey = (int)($meta['col'] ?? -1) . ':' . (int)($meta['row'] ?? -1);
+      if (isset($positions[$positionKey])) {
+        return false;
+      }
+
+      $positions[$positionKey] = true;
+    }
+
+    try {
+      $this->assertNoCrossingEdges($candidateNodes, $edges);
+    } catch (RuntimeException) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodeByIndex
+   * @param array<int,array<int,int>> $outgoing
+   */
+  private function createsRedundantShortcutTriangle(int $sourceIndex, int $targetIndex, array $nodeByIndex, array $outgoing): bool
+  {
+    if (!isset($nodeByIndex[$sourceIndex], $nodeByIndex[$targetIndex])) {
+      return false;
+    }
+
+    $sourceMeta = is_array($nodeByIndex[$sourceIndex]['meta'] ?? null) ? $nodeByIndex[$sourceIndex]['meta'] : [];
+    $targetMeta = is_array($nodeByIndex[$targetIndex]['meta'] ?? null) ? $nodeByIndex[$targetIndex]['meta'] : [];
+    $sourceCol = (int)($sourceMeta['col'] ?? -1);
+    $targetCol = (int)($targetMeta['col'] ?? -1);
+
+    foreach ($outgoing[$sourceIndex] ?? [] as $childIndex) {
+      if (!isset($nodeByIndex[$childIndex])) {
+        continue;
+      }
+
+      $childMeta = is_array($nodeByIndex[$childIndex]['meta'] ?? null) ? $nodeByIndex[$childIndex]['meta'] : [];
+      $childCol = (int)($childMeta['col'] ?? -1);
+      if ($childCol <= $sourceCol || $childCol >= $targetCol) {
+        continue;
+      }
+
+      if (in_array($targetIndex, $outgoing[$childIndex] ?? [], true)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   */
+  private function moveRow(array &$nodes, int $sourceRow, int $targetRow): void
+  {
+    foreach ($nodes as $index => $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      if ((int)($meta['row'] ?? -1) !== $sourceRow) {
+        continue;
+      }
+
+      $nodes[$index]['meta']['row'] = $targetRow;
+    }
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   */
+  private function normalizeRowIndexes(array &$nodes): void
+  {
+    $usedRows = $this->usedRows($nodes);
+    $rowMap = [];
+    foreach ($usedRows as $index => $row) {
+      $rowMap[$row] = $index;
+    }
+
+    foreach ($nodes as $index => $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $row = (int)($meta['row'] ?? 0);
+      $nodes[$index]['meta']['row'] = $rowMap[$row] ?? $row;
+    }
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @return array<int,array<string,mixed>>
+   */
+  private function nodeByIndex(array $nodes): array
+  {
+    $nodeByIndex = [];
+    foreach ($nodes as $node) {
+      $nodeByIndex[(int)$node['node_index']] = $node;
+    }
+
+    return $nodeByIndex;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @param array<int,array{from:int,to:int}> $edges
+   */
+  private function canAppendEdgeWithoutCrossing(array $nodes, array $edges, int $from, int $to): bool
+  {
+    foreach ($edges as $edge) {
+      if ((int)$edge['from'] === $from && (int)$edge['to'] === $to) {
+        return false;
+      }
+    }
+
+    $nodeByIndex = $this->nodeByIndex($nodes);
+    if (!isset($nodeByIndex[$from], $nodeByIndex[$to])) {
+      return false;
+    }
+
+    $fromCol = (int)$nodeByIndex[$from]['meta']['col'];
+    $toCol = (int)$nodeByIndex[$to]['meta']['col'];
+    if ($toCol <= $fromCol) {
+      return false;
+    }
+
+    $candidateEdges = $edges;
+    $candidateEdges[] = ['from' => $from, 'to' => $to];
+
+    try {
+      $this->assertNoCrossingEdges($nodes, $candidateEdges);
+    } catch (RuntimeException) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @param array<int,array{from:int,to:int}> $edges
+   */
+  private function removeRedundantSameRowBypassEdges(array $nodes, array &$edges): void
+  {
+    $nodeByIndex = $this->nodeByIndex($nodes);
+    $outgoing = $this->outgoingByNode($nodes, $edges);
+    $edgeKeysToRemove = [];
+
+    foreach ($edges as $edge) {
+      $from = (int)$edge['from'];
+      $to = (int)$edge['to'];
+      if (!isset($nodeByIndex[$from], $nodeByIndex[$to])) {
+        continue;
+      }
+
+      $fromMeta = is_array($nodeByIndex[$from]['meta'] ?? null) ? $nodeByIndex[$from]['meta'] : [];
+      $toMeta = is_array($nodeByIndex[$to]['meta'] ?? null) ? $nodeByIndex[$to]['meta'] : [];
+      $fromCol = (int)($fromMeta['col'] ?? -1);
+      $fromRow = (int)($fromMeta['row'] ?? -1);
+      $toCol = (int)($toMeta['col'] ?? -1);
+
+      if (($toCol - $fromCol) <= 1) {
+        continue;
+      }
+
+      foreach ($outgoing[$from] ?? [] as $childIndex) {
+        if (!isset($nodeByIndex[$childIndex])) {
+          continue;
+        }
+
+        $childMeta = is_array($nodeByIndex[$childIndex]['meta'] ?? null) ? $nodeByIndex[$childIndex]['meta'] : [];
+        $childCol = (int)($childMeta['col'] ?? -1);
+        $childRow = (int)($childMeta['row'] ?? -1);
+
+        if ($childCol !== ($fromCol + 1) || $childRow !== $fromRow) {
+          continue;
+        }
+
+        if (in_array($to, $outgoing[$childIndex] ?? [], true)) {
+          $edgeKeysToRemove[$from . '->' . $to] = true;
+          break;
+        }
+      }
+    }
+
+    if ($edgeKeysToRemove === []) {
+      return;
+    }
+
+    $edges = array_values(array_filter(
+      $edges,
+      static function (array $edge) use ($edgeKeysToRemove): bool {
+        $key = (int)$edge['from'] . '->' . (int)$edge['to'];
+        return !isset($edgeKeysToRemove[$key]);
+      },
+    ));
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @param array<int,array{from:int,to:int}> $edges
+   * @param array<string,int> $config
+   */
+  private function assignProceduralNodeTypes(array &$nodes, array $edges, string $seedKey, array $config, int $travelColumns): void
+  {
+    $incoming = $this->incomingByNode($nodes, $edges);
+    $outgoing = $this->outgoingByNode($nodes, $edges);
+
+    foreach ($nodes as $index => $node) {
+      $nodeType = (string)($node['node_type'] ?? '');
+      if (in_array($nodeType, ['boss', 'exit'], true)) {
+        continue;
+      }
+
+      $col = (int)($node['meta']['col'] ?? 0);
+      if ((string)($node['status'] ?? '') === 'available') {
+        $nodes[$index]['node_type'] = 'combat';
+        continue;
+      }
+
+      $isDeadEnd = count($outgoing[$index] ?? []) === 0;
+      $weights = $isDeadEnd
+        ? ['loot' => 50, 'rest' => 30, 'combat' => 20]
+        : [
+          'combat' => (int)$config['combat_weight'],
+          'loot' => (int)$config['loot_weight'],
+          'rest' => (int)$config['rest_weight'],
+        ];
+
+      if ($col <= 2) {
+        $weights['combat'] += 4;
+        $weights['rest'] = 0;
+      }
+      if ($col >= $travelColumns - 1) {
+        $weights['rest'] += 3;
+      }
+
+      $parentTypes = [];
+      foreach ($incoming[$index] ?? [] as $parentIndex) {
+        $parentTypes[] = (string)($nodes[$parentIndex]['node_type'] ?? '');
+      }
+      if (in_array('rest', $parentTypes, true)) {
+        $weights['rest'] = 0;
+      }
+
+      if (array_sum($weights) <= 0) {
+        $weights = ['combat' => 1];
+      }
+
+      $nodes[$index]['node_type'] = $this->pickWeightedType($seedKey . '|node-type|' . $index, $weights);
+    }
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   */
+  private function ensureAtLeastOneRestNode(array &$nodes, string $seedKey, int $travelColumns): void
   {
     foreach ($nodes as $node) {
       if ((string)($node['node_type'] ?? '') === 'rest') {
@@ -943,7 +1561,7 @@ final class RunGraphGenerator
 
       $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
       $col = (int)($meta['col'] ?? -1);
-      if ($col <= 0) {
+      if ($col <= 1 || $col > $travelColumns) {
         continue;
       }
 
@@ -961,14 +1579,90 @@ final class RunGraphGenerator
       $rightCol = (int)($rightMeta['col'] ?? 0);
 
       if ($leftCol !== $rightCol) {
-        return $leftCol <=> $rightCol;
+        return $rightCol <=> $leftCol;
       }
 
-      return ((int)($leftMeta['row'] ?? 1)) <=> ((int)($rightMeta['row'] ?? 1));
+      return ((int)($leftMeta['row'] ?? 0)) <=> ((int)($rightMeta['row'] ?? 0));
     });
 
     $pickIndex = $this->randBetween($seedKey . '|force-rest', 0, count($candidates) - 1);
     $nodes[$candidates[$pickIndex]]['node_type'] = 'rest';
+  }
+
+  /**
+   * @param array<string,int> $weights
+   */
+  private function pickWeightedType(string $seedKey, array $weights): string
+  {
+    $weights = array_filter($weights, static fn(int $weight): bool => $weight > 0);
+    if ($weights === []) {
+      return 'combat';
+    }
+
+    $total = array_sum($weights);
+    $roll = $this->randBetween($seedKey, 1, $total);
+    $running = 0;
+
+    foreach ($weights as $type => $weight) {
+      $running += $weight;
+      if ($roll <= $running) {
+        return $type;
+      }
+    }
+
+    return array_key_first($weights) ?? 'combat';
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @param array<int,array{from:int,to:int}> $edges
+   * @return array<int,array<int,int>>
+   */
+  private function outgoingByNode(array $nodes, array $edges): array
+  {
+    $outgoing = [];
+    foreach ($nodes as $node) {
+      $outgoing[(int)$node['node_index']] = [];
+    }
+
+    foreach ($edges as $edge) {
+      $outgoing[(int)$edge['from']][] = (int)$edge['to'];
+    }
+
+    return $outgoing;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @param array<int,array{from:int,to:int}> $edges
+   * @return array<int,array<int,int>>
+   */
+  private function incomingByNode(array $nodes, array $edges): array
+  {
+    $incoming = [];
+    foreach ($nodes as $node) {
+      $incoming[(int)$node['node_index']] = [];
+    }
+
+    foreach ($edges as $edge) {
+      $incoming[(int)$edge['to']][] = (int)$edge['from'];
+    }
+
+    return $incoming;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   */
+  private function maxRowIndex(array $nodes): int
+  {
+    $max = 0;
+    foreach ($nodes as $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $max = max($max, (int)($meta['row'] ?? 0));
+    }
+
+    return $max;
   }
 
   /**

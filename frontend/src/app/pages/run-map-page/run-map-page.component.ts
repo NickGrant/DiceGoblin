@@ -332,7 +332,7 @@ export class RunMapPageComponent {
       const fromNode = nodeById.get(edge.from_node_id);
       const toNode = nodeById.get(edge.to_node_id);
       if (!fromNode || !toNode) {
-        return { edgeId: edge.edge_id, path: '', state: 'locked' as const };
+        return { edgeId: edge.edge_id ?? `${edge.from_node_id}->${edge.to_node_id}`, path: '', state: 'locked' as const };
       }
 
       const sourceOffset = this.siblingOffset(edge, outgoingByNode.get(edge.from_node_id) ?? []);
@@ -350,7 +350,7 @@ export class RunMapPageComponent {
         : `M ${x1} ${y1} C ${x1 + curveLead} ${y1 + sourceOffset}, ${x2 - curveLead} ${y2 + targetOffset}, ${x2} ${y2}`;
 
       return {
-        edgeId: edge.edge_id,
+        edgeId: edge.edge_id ?? `${edge.from_node_id}->${edge.to_node_id}`,
         path,
         state: this.edgeState(edge),
       };

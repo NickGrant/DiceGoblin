@@ -68,9 +68,11 @@ The current alpha region set is:
 - Every run belongs to exactly one region.
 - Each run has one active map at a time.
 - The first node starts available.
+- Procedural regions use a horizontally advancing route graph that scrolls left-to-right toward the boss and exit.
 - Downstream nodes unlock when parent progression clears.
 - Exit nodes remain separate from normal node resolution.
 - The current generator guarantees at least one rest node in procedural regions.
+- Procedural regions may include optional dead-end branches, but they must never block the guaranteed boss route.
 
 ## Encounter Exclusions
 

@@ -231,7 +231,7 @@ export type CurrentRunNode = {
 };
 
 export type CurrentRunEdge = {
-  edge_id: string;
+  edge_id?: string;
   run_id: string;
   from_node_id: string;
   to_node_id: string;

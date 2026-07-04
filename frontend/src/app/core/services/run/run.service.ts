@@ -2,6 +2,9 @@ import { Injectable, signal } from '@angular/core';
 import {
   AbandonRunResponse,
   BattleClaimResponse,
+  CurrentRunData,
+  CurrentRunEdge,
+  CurrentRunNode,
   CreateResponse,
   ExitRunResponse,
   RunSummaryPayload,
@@ -47,8 +50,70 @@ export class RunService {
     };
   }
 
-  getCurrentRun(): Promise<RunResponse> {
-    return this.apiHttp.get<RunResponse>('/api/v1/runs/current');
+  private normalizeCurrentRunData(data: CurrentRunData): CurrentRunData {
+    const map = data.map;
+    if (!map) {
+      return data;
+    }
+
+    const nodes = map.nodes.map((node) => this.normalizeCurrentRunNode(node));
+    const edges = map.edges.map((edge, index) => this.normalizeCurrentRunEdge(edge, index));
+
+    return {
+      ...data,
+      map: {
+        ...map,
+        nodes,
+        edges,
+      },
+    };
+  }
+
+  private normalizeCurrentRunNode(node: CurrentRunNode): CurrentRunNode {
+    if (node.meta && typeof node.meta === 'object') {
+      return node;
+    }
+
+    if (!node.meta_json) {
+      return node;
+    }
+
+    try {
+      const parsed = JSON.parse(node.meta_json);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return node;
+      }
+
+      return {
+        ...node,
+        meta: parsed as Record<string, unknown>,
+      };
+    } catch {
+      return node;
+    }
+  }
+
+  private normalizeCurrentRunEdge(edge: CurrentRunEdge, index: number): CurrentRunEdge {
+    if (edge.edge_id) {
+      return edge;
+    }
+
+    return {
+      ...edge,
+      edge_id: `${edge.from_node_id}->${edge.to_node_id}#${index}`,
+    };
+  }
+
+  async getCurrentRun(): Promise<RunResponse> {
+    const response = await this.apiHttp.get<RunResponse>('/api/v1/runs/current');
+    if (!response.ok) {
+      return response;
+    }
+
+    return {
+      ...response,
+      data: this.normalizeCurrentRunData(response.data),
+    };
   }
 
   async createRun(regionId: number): Promise<CreateResponse> {
