@@ -13,3 +13,4 @@ artifacts/api/
 artifacts/automation/
 artifacts/*.log
 artifacts/*.err.log
+__pycache__/
