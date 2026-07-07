@@ -24,7 +24,7 @@
 
       <div class="dialogue-stage__bubble">
         <p class="dialogue-stage__name">{{ entry.speaker?.name ?? 'Speaker' }}</p>
-        <p class="dialogue-stage__text">{{ entry.step.text }}</p>
+        <p class="dialogue-stage__text">{{ displayedStepText(entry.step) }}</p>
       </div>
     </article>
     }

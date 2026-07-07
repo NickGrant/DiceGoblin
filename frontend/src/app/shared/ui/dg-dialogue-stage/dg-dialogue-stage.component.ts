@@ -124,6 +124,11 @@ export class DgDialogueStageComponent {
     this.moveToStep(choice.nextStepId);
   }
 
+  displayedStepText(step: DialogueStep): string {
+    const selectedChoice = this.selectedChoiceLabelForStep(step.id);
+    return selectedChoice ? `${step.text}\n${selectedChoice}` : step.text;
+  }
+
   private moveChoice(delta: number): void {
     const choices = this.currentStep()?.choices ?? [];
     if (!choices.length) {
@@ -154,5 +159,15 @@ export class DgDialogueStageComponent {
     }
 
     return this.script()?.speakers.find((speaker) => speaker.id === speakerId) ?? null;
+  }
+
+  private selectedChoiceLabelForStep(stepId: string): string | null {
+    const choiceId = this.choiceHistory().find((selection) => selection.stepId === stepId)?.choiceId ?? null;
+    if (!choiceId) {
+      return null;
+    }
+
+    const step = this.stepById(stepId);
+    return step?.choices.find((choice) => choice.id === choiceId)?.label ?? null;
   }
 }

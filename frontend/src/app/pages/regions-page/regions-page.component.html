@@ -34,7 +34,12 @@
                 [disabled]="regionActionDisabled(region) && !isActiveRegion(region.regionId)"
               >
                 <span class="region-page__tile-art">
-                  <img class="region-page__tile-badge" [src]="'/assets/ui/biome/' + region.theme + '_badge.png'" alt="" />
+                  <img
+                    class="region-page__tile-badge"
+                    [class.is-locked]="!region.isUnlocked"
+                    [src]="'/assets/ui/biome/' + region.theme + '_badge.png'"
+                    alt=""
+                  />
                 </span>
                 @if (isActiveRegion(region.regionId)) {
                 <span class="region-page__tile-tag is-active">Current</span>
@@ -50,7 +55,7 @@
 
       @if (inspectedRegion(); as region) {
       <aside class="region-page__inspect">
-        <div class="region-page__inspect-art">
+        <div class="region-page__inspect-art" [class.is-locked]="!region.isUnlocked">
           <div class="region-page__chips">
             <span class="dg-chip region-page__energy-chip">
               <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
@@ -65,7 +70,12 @@
           } @else {
             <span class="region-page__inspect-state is-locked">Locked</span>
           }
-          <img class="region-page__inspect-image" [src]="'/assets/ui/biome/' + region.theme + '_badge.png'" [alt]="region.name" />
+          <img
+            class="region-page__inspect-image"
+            [class.is-locked]="!region.isUnlocked"
+            [src]="'/assets/ui/biome/' + region.theme + '_badge.png'"
+            [alt]="region.name"
+          />
         </div>
 
         <div class="region-page__inspect-body">

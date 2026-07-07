@@ -120,4 +120,21 @@ describe('DgDialogueStageComponent', () => {
     expect(fixture.componentInstance.currentStep()?.id).toBe('no-response');
     expect(host.textContent).toContain('Too bad!');
   });
+
+  it('appends the selected choice text to the prompt bubble after choosing', () => {
+    fixture.componentInstance.advance();
+    fixture.detectChanges();
+
+    fixture.componentInstance.selectChoice(2);
+    fixture.componentInstance.chooseSelectedOption();
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const promptBubble = Array.from(host.querySelectorAll('.dialogue-stage__text'))
+      .find((element) => element.textContent?.includes('How do you answer?')) as HTMLElement | undefined;
+
+    expect(promptBubble).toBeDefined();
+    expect(promptBubble?.textContent).toContain('How do you answer?');
+    expect(promptBubble?.textContent).toContain('maybe');
+  });
 });

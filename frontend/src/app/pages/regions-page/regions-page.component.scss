@@ -81,11 +81,16 @@
 }
 
 .region-page__tile.is-locked {
-  opacity: 0.86;
+  opacity: 0.9;
 }
 
-.region-page__tile.is-locked .region-page__tile-badge {
-  filter: grayscale(0.32) saturate(0.8);
+.region-page__tile-badge.is-locked {
+  filter:
+    grayscale(1)
+    saturate(0.15)
+    brightness(0.72)
+    contrast(0.92)
+    drop-shadow(0 10px 14px rgba(24, 24, 24, 0.26));
 }
 
 .region-page__tile-art {
@@ -182,11 +187,29 @@
   position: relative;
 }
 
+.region-page__inspect-art.is-locked::after {
+  content: '';
+  position: absolute;
+  inset: 1.5rem;
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(67, 62, 57, 0.08), rgba(44, 41, 38, 0.18));
+  pointer-events: none;
+}
+
 .region-page__inspect-image {
   width: 100%;
   height: auto;
   object-fit: contain;
   filter: drop-shadow(0 12px 16px rgba(46, 30, 16, 0.18));
+}
+
+.region-page__inspect-image.is-locked {
+  filter:
+    grayscale(1)
+    saturate(0.12)
+    brightness(0.76)
+    contrast(0.92)
+    drop-shadow(0 12px 16px rgba(28, 28, 28, 0.22));
 }
 
 .region-page__inspect-body {

@@ -105,4 +105,18 @@ describe('RegionsPageComponent', () => {
 
     expect(component.pendingRegion()?.slug).toBe('mountains');
   });
+
+  it('marks locked region art with lock styling classes', () => {
+    const fixture = TestBed.createComponent(RegionsPageComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.previewRegion('swamps');
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const lockedTileBadge = host.querySelector('.region-page__tile.is-locked .region-page__tile-badge');
+    const lockedInspectImage = host.querySelector('.region-page__inspect-image.is-locked');
+
+    expect(lockedTileBadge?.classList.contains('is-locked')).toBeTrue();
+    expect(lockedInspectImage).not.toBeNull();
+  });
 });

@@ -461,7 +461,7 @@ final class DeterministicRunNodeResolver
   }
 
   /**
-     * @return array{difficulty_rating:int,description:string,reward_profile:array<string,mixed>,units:array<int,array{id:string,pos:array{x:int,y:int},formation:array{w:int,h:int},attack:int,defense:int,max_hp:int,abilities:array<int,string>,dice_pool:array<int,array{kind:string,dice_instance_id:?string,sides:int}>,xp_reward:int}>}
+     * @return array{difficulty_rating:int,description:string,reward_profile:array<string,mixed>,units:array<int,array{id:string,pos:array{x:int,y:int},formation:array{w:int,h:int},attack:int,defense:int,max_hp:int,current_hp:int,abilities:array<int,string>,passive_abilities:array<int,string>,combat_affixes:array{damage_flat:int,below_half_bonus:float},ability_dice:array<string,array<int,array{kind:string,dice_instance_id:?string,sides:int,affixes:array<int,array{slug:string,value:float}>}>>,passive_dice:array<int,array{kind:string,dice_instance_id:?string,sides:int,affixes:array<int,array{slug:string,value:float}>}>,xp_reward:int}>}
    */
   private function loadEncounter(?int $encounterTemplateId): array
   {
@@ -549,6 +549,7 @@ final class DeterministicRunNodeResolver
 
     $units = [];
     $slugCounts = [];
+    $abilityRegistry = new AbilityRegistry();
     foreach ($enemyEntries as $entry) {
       $slug = (string)($entry['slug'] ?? '');
       $row = $enemyBySlug[$slug] ?? null;
@@ -565,6 +566,7 @@ final class DeterministicRunNodeResolver
       $footprint = FormationGeometry::footprintFromStats($baseStats);
       $abilitySet = $this->decodeJsonObject($row['ability_set_json']);
       $equippedAbilityIds = $this->decodeAbilityIdList($row['equipped_abilities_json'] ?? null);
+      $maxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
 
       $units[] = [
         'id' => $instanceId,
@@ -572,12 +574,27 @@ final class DeterministicRunNodeResolver
         'formation' => $footprint,
         'attack' => max(1, (int)($baseStats['attack'] ?? 1)),
         'defense' => max(0, (int)($baseStats['defense'] ?? 0)),
-        'max_hp' => max(1, (int)($baseStats['max_hp'] ?? 1)),
+        'max_hp' => $maxHp,
+        'current_hp' => $maxHp,
         'abilities' => count($equippedAbilityIds) > 0 ? $equippedAbilityIds : $this->flattenActiveAbilityIds($abilitySet),
-        'dice_pool' => [],
+        'passive_abilities' => $this->flattenPassiveAbilityIds($abilitySet),
+        'combat_affixes' => [
+          'damage_flat' => 0,
+          'below_half_bonus' => 0.0,
+        ],
+        'ability_dice' => [],
+        'passive_dice' => [],
         'xp_reward' => max(0, (int)$row['xp_reward']),
       ];
     }
+
+    foreach ($units as &$unit) {
+      $this->applyPassiveAbilityAffixesToUnit($unit, $abilityRegistry);
+      $this->applyPassiveDiceAffixesToUnit($unit);
+    }
+    unset($unit);
+
+    $this->applyFormationPassiveBonusesToUnits($units, $abilityRegistry);
 
     return [
       'difficulty_rating' => max(1, (int)$template['difficulty_rating']),
@@ -744,10 +761,14 @@ final class DeterministicRunNodeResolver
     $enemyStatuses = [];
     foreach ($enemyUnits as $unit) {
       $unitId = (string)$unit['id'];
-      $enemyHp[$unitId] = (int)$unit['max_hp'];
+      $enemyHp[$unitId] = max(0, min((int)$unit['max_hp'], (int)($unit['current_hp'] ?? $unit['max_hp'])));
       $enemyById[$unitId] = $unit;
-      $enemySchedules[$unitId] = $this->buildActiveAbilitySchedule((array)$unit['abilities'], $abilityRegistry);
+      $enemySchedules[$unitId] = $this->applyPassiveAbilityTargetingPreferencesToSchedule(
+        $this->buildActiveAbilitySchedule((array)$unit['abilities'], $abilityRegistry),
+        (array)($unit['passive_abilities'] ?? [])
+      );
       $enemyStatuses[$unitId] = [];
+      $this->initializePassiveStatusesForCombat($enemyStatuses, $unitId, (array)($unit['passive_abilities'] ?? []));
     }
 
     $combatOver = false;
@@ -843,7 +864,12 @@ final class DeterministicRunNodeResolver
               break 3;
             }
             $guardRedirected = false;
-            if (!$isSupportAbility) {
+            $forcedTargetId = !$isSupportAbility
+              ? $this->forcedNextAttackTargetId($playerStatuses, $playerActorId, $enemyHp)
+              : null;
+            if ($forcedTargetId !== null) {
+              $aliveTargetIds = [$forcedTargetId];
+            } elseif (!$isSupportAbility) {
               $guardTargetId = $this->forcedGuardTargetId($targetPoolHp, $enemyStatuses);
               if ($guardTargetId !== null) {
                 $aliveTargetIds = [$guardTargetId];
@@ -921,6 +947,7 @@ final class DeterministicRunNodeResolver
                 (int)$playerActor['attack'],
                 (int)($stackResolution['damage_reduction'] ?? 0),
               );
+            $outcome = $this->applySourceLinkedStatusParams($outcome, $playerActorId);
             if (!$isSupportAbility) {
               $outcome = $this->applyAllyProtectionPassives(
                 $outcome,
@@ -997,6 +1024,9 @@ final class DeterministicRunNodeResolver
             }
             if ($luckPassive['outcome'] !== null) {
               $events[count($events) - 1]['luck_passive_outcome'] = $luckPassive['outcome'];
+            }
+            if (!$isSupportAbility) {
+              $this->consumeForcedNextAttackTarget($playerStatuses, $playerActorId);
             }
             if ($isSupportAbility) {
               $supportEchoOutcome = $this->applySupportEchoPassive(
@@ -1103,7 +1133,12 @@ final class DeterministicRunNodeResolver
               break 3;
             }
             $guardRedirected = false;
-            if (!$isSupportAbility) {
+            $forcedTargetId = !$isSupportAbility
+              ? $this->forcedNextAttackTargetId($enemyStatuses, $enemyActorId, $playerHp)
+              : null;
+            if ($forcedTargetId !== null) {
+              $aliveTargetIds = [$forcedTargetId];
+            } elseif (!$isSupportAbility) {
               $guardTargetId = $this->forcedGuardTargetId($targetPoolHp, $playerStatuses);
               if ($guardTargetId !== null) {
                 $aliveTargetIds = [$guardTargetId];
@@ -1181,6 +1216,7 @@ final class DeterministicRunNodeResolver
                 (int)$enemyActor['attack'],
                 (int)($stackResolution['damage_reduction'] ?? 0),
               );
+            $outcome = $this->applySourceLinkedStatusParams($outcome, $enemyActorId);
             if (!$isSupportAbility) {
               $outcome = $this->applyAllyProtectionPassives(
                 $outcome,
@@ -1257,6 +1293,9 @@ final class DeterministicRunNodeResolver
             }
             if ($luckPassive['outcome'] !== null) {
               $events[count($events) - 1]['luck_passive_outcome'] = $luckPassive['outcome'];
+            }
+            if (!$isSupportAbility) {
+              $this->consumeForcedNextAttackTarget($enemyStatuses, $enemyActorId);
             }
             if ($isSupportAbility) {
               $supportEchoOutcome = $this->applySupportEchoPassive(
@@ -1380,29 +1419,53 @@ final class DeterministicRunNodeResolver
   {
     $schedule = [];
     $cumulativeTick = 0;
-    foreach ($abilityIds as $abilityId) {
-      $id = trim((string)$abilityId);
-      if ($id === '' || !$registry->has($id)) {
-        continue;
+    $orderedActives = $this->normalizeOrderedActiveAbilityScheduleEntries($abilityIds, $registry);
+
+    foreach ($orderedActives as $entry) {
+      $speed = (int)$entry['speed'];
+      if (($cumulativeTick + $speed) > 20) {
+        break;
       }
 
-      $def = $registry->get($id);
-      if ($def->type !== AbilityType::Active || $def->speed === null) {
-        continue;
-      }
-
-      $cumulativeTick += (int)$def->speed;
-      if ($cumulativeTick > 20) {
-        continue;
-      }
-
+      $cumulativeTick += $speed;
       $schedule[] = [
-        'ability_id' => $id,
-        'speed' => (int)$def->speed,
-        'target' => $def->defaultTarget?->value ?? 'enemy_front_prefer',
+        'ability_id' => (string)$entry['ability_id'],
+        'speed' => $speed,
+        'target' => (string)$entry['target'],
         'trigger_tick' => $cumulativeTick,
-        'equip_order' => count($schedule),
+        'equip_order' => (int)$entry['equip_order'],
       ];
+    }
+
+    $fillerCandidates = array_values(array_filter(
+      $orderedActives,
+      fn(array $entry): bool => $this->isRepeatableFillerAbility($entry, $registry)
+    ));
+
+    while (count($fillerCandidates) > 0 && $cumulativeTick < 20) {
+      $scheduled = false;
+      $remainingTicks = 20 - $cumulativeTick;
+      foreach ($fillerCandidates as $entry) {
+        $speed = (int)$entry['speed'];
+        if ($speed > $remainingTicks) {
+          continue;
+        }
+
+        $cumulativeTick += $speed;
+        $schedule[] = [
+          'ability_id' => (string)$entry['ability_id'],
+          'speed' => $speed,
+          'target' => (string)$entry['target'],
+          'trigger_tick' => $cumulativeTick,
+          'equip_order' => (int)$entry['equip_order'],
+        ];
+        $scheduled = true;
+        break;
+      }
+
+      if (!$scheduled) {
+        break;
+      }
     }
 
     if (count($schedule) === 0) {
@@ -2489,6 +2552,14 @@ final class DeterministicRunNodeResolver
       'snared' => [
         'duration_rounds' => $duration,
         'params' => ['is_debuff' => true],
+      ],
+      'wrestled' => [
+        'duration_rounds' => $duration,
+        'params' => [
+          'forced_target_id' => '',
+          'consumes_on_hostile_action' => true,
+          'is_debuff' => true,
+        ],
       ],
       'sleep' => [
         'duration_rounds' => $duration,
@@ -3664,6 +3735,56 @@ final class DeterministicRunNodeResolver
   }
 
   /**
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<string,int> $hpByUnitId
+   */
+  private function forcedNextAttackTargetId(array $statusMap, string $actorId, array $hpByUnitId): ?string
+  {
+    $wrestled = $statusMap[$actorId]['wrestled'] ?? null;
+    if (!is_array($wrestled)) {
+      return null;
+    }
+
+    $forcedTargetId = trim((string)($wrestled['params']['forced_target_id'] ?? ''));
+    if ($forcedTargetId === '') {
+      return null;
+    }
+
+    return (($hpByUnitId[$forcedTargetId] ?? 0) > 0) ? $forcedTargetId : null;
+  }
+
+  /**
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   */
+  private function consumeForcedNextAttackTarget(array &$statusMap, string $actorId): void
+  {
+    if (!isset($statusMap[$actorId]['wrestled'])) {
+      return;
+    }
+
+    unset($statusMap[$actorId]['wrestled']);
+  }
+
+  /**
+   * @param array<string,mixed> $outcome
+   * @return array<string,mixed>
+   */
+  private function applySourceLinkedStatusParams(array $outcome, string $sourceUnitId): array
+  {
+    if (trim((string)($outcome['status_applied'] ?? '')) !== 'wrestled') {
+      return $outcome;
+    }
+
+    $params = is_array($outcome['status_params'] ?? null) ? $outcome['status_params'] : [];
+    $params['forced_target_id'] = $sourceUnitId;
+    $params['consumes_on_hostile_action'] = true;
+    $params['is_debuff'] = true;
+    $outcome['status_params'] = $params;
+
+    return $outcome;
+  }
+
+  /**
    * @param array<string,mixed> $combatAffixes
    * @param array<string,array<string,mixed>> $unitsById
    * @param array<string,int> $hpByUnitId
@@ -3865,6 +3986,7 @@ final class DeterministicRunNodeResolver
         (int)$actorUnit['attack'],
         0
       );
+      $outcome = $this->applySourceLinkedStatusParams($outcome, $actorId);
       $this->applyOutcomeStatus($targetStatuses, $targetId, $outcome, $round, $tick);
       $augment = $this->applyAttackerPassiveStatusAugments($targetStatuses, $actorUnit, $targetId, $outcome, $round, $tick);
       $targetHpById[$targetId] = (int)($outcome['target_hp_after'] ?? ($targetHpById[$targetId] ?? 0));
@@ -3918,6 +4040,67 @@ final class DeterministicRunNodeResolver
     return $schedule;
   }
 
+  /**
+   * @param array<int,string> $abilityIds
+   * @return array<int,array{ability_id:string,speed:int,target:string,equip_order:int}>
+   */
+  private function normalizeOrderedActiveAbilityScheduleEntries(array $abilityIds, AbilityRegistry $registry): array
+  {
+    $entries = [];
+    foreach ($abilityIds as $abilityId) {
+      $id = trim((string)$abilityId);
+      if ($id === '' || !$registry->has($id)) {
+        continue;
+      }
+
+      $def = $registry->get($id);
+      if ($def->type !== AbilityType::Active || $def->speed === null) {
+        continue;
+      }
+
+      $entries[] = [
+        'ability_id' => $id,
+        'speed' => (int)$def->speed,
+        'target' => $def->defaultTarget?->value ?? 'enemy_front_prefer',
+        'equip_order' => count($entries),
+      ];
+    }
+
+    return $entries;
+  }
+
+  /**
+   * @param array{ability_id:string,speed:int,target:string,equip_order:int} $entry
+   */
+  private function isRepeatableFillerAbility(array $entry, AbilityRegistry $registry): bool
+  {
+    $abilityId = trim((string)($entry['ability_id'] ?? ''));
+    if ($abilityId === '' || !$registry->has($abilityId)) {
+      return false;
+    }
+
+    $definition = $registry->get($abilityId);
+    if ($definition->type !== AbilityType::Active || $definition->speed === null) {
+      return false;
+    }
+
+    $target = (string)($entry['target'] ?? '');
+    if (!str_starts_with($target, 'enemy_')) {
+      return false;
+    }
+
+    if (in_array($abilityId, ['basic_attack_melee', 'basic_attack_ranged'], true)) {
+      return true;
+    }
+
+    $powerRatio = $definition->defaultParams['power_ratio'] ?? null;
+    if (is_numeric($powerRatio) && (float)$powerRatio > 0.0) {
+      return true;
+    }
+
+    return in_array('damage', $definition->tags, true);
+  }
+
   private function deriveStatusDurationRounds(AbilityRegistry $abilityRegistry, string $abilityId, ?string $status): ?int
   {
     if ($status === null) {
@@ -3935,13 +4118,7 @@ final class DeterministicRunNodeResolver
       }
     }
 
-    return match ($status) {
-      'sleep' => 2,
-      'poison' => 3,
-      'bleeding' => 2,
-      'guard_up' => 2,
-      default => null,
-    };
+    return null;
   }
 
   private function pickStatusEffect(string &$state, string $abilityId): ?string
@@ -3952,22 +4129,6 @@ final class DeterministicRunNodeResolver
       if ($statusId !== '') {
         return $statusId;
       }
-    }
-
-    $ability = strtolower($abilityId);
-    if (str_contains($ability, 'bolster') || str_contains($ability, 'shield')) {
-      return 'bolstered';
-    }
-    if (str_contains($ability, 'poison')) {
-      return 'poison';
-    }
-    if (str_contains($ability, 'sleep')) {
-      return 'sleep';
-    }
-
-    // Low deterministic chance to apply bleeding on generic attacks.
-    if ($this->nextInt($state, 10) === 0) {
-      return 'bleeding';
     }
 
     return null;
@@ -3981,11 +4142,6 @@ final class DeterministicRunNodeResolver
       if ($statusId !== '') {
         return $statusId;
       }
-    }
-
-    $ability = strtolower($abilityId);
-    if (str_contains($ability, 'bolster') || str_contains($ability, 'shield')) {
-      return 'bolstered';
     }
 
     return null;

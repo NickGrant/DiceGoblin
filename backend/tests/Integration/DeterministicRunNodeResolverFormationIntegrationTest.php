@@ -240,7 +240,7 @@ final class DeterministicRunNodeResolverFormationIntegrationTest extends Integra
           'max_hp' => 20,
           'formation' => ['w' => 1, 'h' => 1],
         ],
-        ['basic_attack_melee']
+        ['shield_up']
       );
       $encounterId = $this->insertEncounterTemplate(
         $encounterSlug,
@@ -306,6 +306,196 @@ final class DeterministicRunNodeResolverFormationIntegrationTest extends Integra
       if ($frontlineUnitTypeId !== null) {
         $this->pdo->prepare('DELETE FROM `unit_types` WHERE `id` = ?')->execute([$frontlineUnitTypeId]);
       }
+    }
+  }
+
+  public function testResolveAppliesEnemyPassiveStatBonusesAndPassiveStatuses(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 70707070);
+
+    $unitTypeSlug = 'qa-enemy-passive-player-' . bin2hex(random_bytes(4));
+    $enemySlug = 'qa-enemy-passive-' . bin2hex(random_bytes(4));
+    $encounterSlug = 'qa-enemy-passive-encounter-' . bin2hex(random_bytes(4));
+    $unitTypeId = null;
+    $unitId = null;
+    $encounterId = null;
+
+    try {
+      $unitTypeId = $this->insertUnitType(
+        $unitTypeSlug,
+        [
+          'attack' => 9,
+          'defense' => 2,
+          'max_hp' => 24,
+        ],
+        ['basic_attack_melee']
+      );
+      $unitId = $this->insertUnitInstance($userId, $unitTypeId);
+      $this->insertTeamUnitRow($teamId, $unitId);
+      $this->insertRunUnitStateRow($runId, $unitId, 24);
+
+      $this->insertEnemyTemplate(
+        $enemySlug,
+        [
+          'attack' => 6,
+          'defense' => 4,
+          'max_hp' => 30,
+          'formation' => ['w' => 1, 'h' => 1],
+        ],
+        ['basic_attack_melee'],
+        ['thick_hide', 'dumb_luck']
+      );
+      $encounterId = $this->insertEncounterTemplate(
+        $encounterSlug,
+        $regionId,
+        [
+          'teams' => [[
+            'units' => [[
+              'enemy_template_slug' => $enemySlug,
+              'pos' => ['x' => 1, 'y' => 1],
+            ]],
+          ]],
+        ]
+      );
+
+      $resolver = new DeterministicRunNodeResolver($this->pdo);
+      $result = $resolver->resolve(
+        $userId,
+        $teamId,
+        ['id' => (string)$runId, 'seed' => '70707070'],
+        ['id' => '1', 'node_type' => 'combat', 'encounter_template_id' => (string)$encounterId]
+      );
+
+      $log = is_array($result['log'] ?? null) ? $result['log'] : [];
+      $meta = is_array($log['meta'] ?? null) ? $log['meta'] : [];
+      $participants = is_array($meta['participants'] ?? null) ? $meta['participants'] : [];
+      $enemyUnits = is_array($participants['enemy'] ?? null) ? $participants['enemy'] : [];
+      $this->assertCount(1, $enemyUnits);
+      $this->assertSame(6, (int)($enemyUnits[0]['attack'] ?? 0));
+      $this->assertSame(6, (int)($enemyUnits[0]['defense'] ?? 0), 'thick_hide should increase enemy defense.');
+      $this->assertSame(30, (int)($enemyUnits[0]['max_hp'] ?? 0));
+
+      $events = is_array($log['events'] ?? null) ? $log['events'] : [];
+      $enemyAction = $this->firstActionEventForSide($events, 'enemy');
+      $this->assertIsArray($enemyAction, 'Expected at least one enemy action event.');
+      $this->assertSame($enemySlug, (string)($enemyAction['actor_enemy_slug'] ?? ''));
+      $this->assertGreaterThanOrEqual(0, (int)($enemyAction['damage'] ?? -1));
+    } finally {
+      $this->cleanupResolverFixture($runId, $teamId, $unitId, $unitTypeId, $encounterId, [$enemySlug]);
+    }
+  }
+
+  public function testResolveWrestleForcesOnlyTheNextHostileTarget(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 71717171);
+
+    $unitTypeSlug = 'qa-wrestle-player-' . bin2hex(random_bytes(4));
+    $wrestlerSlug = 'qa-wrestler-' . bin2hex(random_bytes(4));
+    $backlinerSlug = 'qa-backliner-' . bin2hex(random_bytes(4));
+    $encounterSlug = 'qa-wrestle-encounter-' . bin2hex(random_bytes(4));
+    $unitTypeId = null;
+    $unitId = null;
+    $encounterId = null;
+
+    try {
+      $unitTypeId = $this->insertUnitType(
+        $unitTypeSlug,
+        [
+          'attack' => 10,
+          'defense' => 2,
+          'max_hp' => 26,
+        ],
+        ['basic_attack_ranged', 'aimed_shot']
+      );
+      $unitId = $this->insertUnitInstance($userId, $unitTypeId);
+      $this->insertTeamUnitRow($teamId, $unitId);
+      $this->insertRunUnitStateRow($runId, $unitId, 26);
+
+      $this->insertEnemyTemplate(
+        $wrestlerSlug,
+        [
+          'attack' => 4,
+          'defense' => 2,
+          'max_hp' => 80,
+          'formation' => ['w' => 1, 'h' => 1],
+        ],
+        ['basic_attack_melee', 'wrestle']
+      );
+      $this->insertEnemyTemplate(
+        $backlinerSlug,
+        [
+          'attack' => 4,
+          'defense' => 1,
+          'max_hp' => 80,
+          'formation' => ['w' => 1, 'h' => 1],
+        ],
+        ['basic_attack_ranged']
+      );
+      $encounterId = $this->insertEncounterTemplate(
+        $encounterSlug,
+        $regionId,
+        [
+          'teams' => [[
+            'units' => [
+              [
+                'enemy_template_slug' => $wrestlerSlug,
+                'pos' => ['x' => 2, 'y' => 1],
+              ],
+              [
+                'enemy_template_slug' => $backlinerSlug,
+                'pos' => ['x' => 0, 'y' => 1],
+              ],
+            ],
+          ]],
+        ]
+      );
+
+      $resolver = new DeterministicRunNodeResolver($this->pdo);
+      $result = $resolver->resolve(
+        $userId,
+        $teamId,
+        ['id' => (string)$runId, 'seed' => '71717171'],
+        ['id' => '1', 'node_type' => 'combat', 'encounter_template_id' => (string)$encounterId]
+      );
+
+      $log = is_array($result['log'] ?? null) ? $result['log'] : [];
+      $events = is_array($log['events'] ?? null) ? $log['events'] : [];
+
+      $playerActions = array_values(array_filter(
+        $events,
+        static fn($event): bool => is_array($event)
+          && (string)($event['type'] ?? '') === 'action'
+          && (string)($event['side'] ?? '') === 'player'
+          && (int)($event['round'] ?? 0) === 1
+      ));
+      $enemyWrestle = null;
+      foreach ($events as $event) {
+        if (
+          is_array($event)
+          && (string)($event['type'] ?? '') === 'action'
+          && (string)($event['side'] ?? '') === 'enemy'
+          && (string)($event['ability_id'] ?? '') === 'wrestle'
+        ) {
+          $enemyWrestle = $event;
+          break;
+        }
+      }
+
+      $this->assertIsArray($enemyWrestle, 'Expected an enemy wrestle action event.');
+      $this->assertSame('wrestled', (string)($enemyWrestle['status_applied'] ?? ''));
+      $this->assertCount(4, $playerActions);
+      $this->assertSame($backlinerSlug, (string)($playerActions[0]['target_enemy_slug'] ?? ''));
+      $this->assertSame($backlinerSlug, (string)($playerActions[1]['target_enemy_slug'] ?? ''));
+      $this->assertSame($wrestlerSlug, (string)($playerActions[2]['target_enemy_slug'] ?? ''));
+      $this->assertSame($backlinerSlug, (string)($playerActions[3]['target_enemy_slug'] ?? ''));
+    } finally {
+      $this->cleanupResolverFixture($runId, $teamId, $unitId, $unitTypeId, $encounterId, [$wrestlerSlug, $backlinerSlug]);
     }
   }
 
@@ -416,9 +606,20 @@ final class DeterministicRunNodeResolverFormationIntegrationTest extends Integra
   /**
    * @param array<string,mixed> $baseStats
    * @param array<int,string> $equippedAbilityIds
+   * @param array<int,string> $passiveAbilityIds
    */
-  private function insertEnemyTemplate(string $slug, array $baseStats, array $equippedAbilityIds): void
+  private function insertEnemyTemplate(
+    string $slug,
+    array $baseStats,
+    array $equippedAbilityIds,
+    array $passiveAbilityIds = []
+  ): void
   {
+    $abilitySet = [
+      'actives' => $equippedAbilityIds,
+      'passives' => $passiveAbilityIds,
+    ];
+
     if ($this->schemaHasColumn('enemy_templates', 'equipped_abilities_json')) {
       $stmt = $this->pdo->prepare('
         INSERT INTO `enemy_templates` (
@@ -439,7 +640,7 @@ final class DeterministicRunNodeResolverFormationIntegrationTest extends Integra
         $slug,
         'test',
         json_encode($baseStats, JSON_UNESCAPED_SLASHES),
-        json_encode(['actives' => $equippedAbilityIds], JSON_UNESCAPED_SLASHES),
+        json_encode($abilitySet, JSON_UNESCAPED_SLASHES),
         json_encode($equippedAbilityIds, JSON_UNESCAPED_SLASHES),
         json_encode(['archetype' => 'qa'], JSON_UNESCAPED_SLASHES),
       ]);
@@ -464,7 +665,7 @@ final class DeterministicRunNodeResolverFormationIntegrationTest extends Integra
       $slug,
       'test',
       json_encode($baseStats, JSON_UNESCAPED_SLASHES),
-      json_encode(['actives' => $equippedAbilityIds], JSON_UNESCAPED_SLASHES),
+      json_encode($abilitySet, JSON_UNESCAPED_SLASHES),
       json_encode(['archetype' => 'qa'], JSON_UNESCAPED_SLASHES),
     ]);
   }

@@ -317,8 +317,9 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
 
     $this->assertContains(4, $playerRoundOneTicks);
     $this->assertContains(12, $playerRoundOneTicks);
+    $this->assertContains(16, $playerRoundOneTicks);
     $this->assertNotContains(8, $playerRoundOneTicks, 'The second equipped ability should fire at cumulative tick 12, not at its raw speed tick.');
-    $this->assertNotContains(16, $playerRoundOneTicks, 'Equipped abilities should fire once per round rather than on speed multiples.');
+    $this->assertGreaterThanOrEqual(3, count($playerRoundOneTicks), 'Remaining round budget should allow a repeated attack action when it fits.');
   }
 
   public function testResolveNodeUsesD1FallbackForPlayerEmptyDiceSlots(): void

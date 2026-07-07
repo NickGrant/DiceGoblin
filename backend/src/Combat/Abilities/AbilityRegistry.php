@@ -176,6 +176,7 @@ final class AbilityRegistry
                 iconKey: 'icon_ability_shield_up',
                 tags: ['tank', 'defense', 'bolster'],
                 defaultParams: [
+                    'status_id' => 'bolstered',
                     'bolster_defense_pct' => 0.25,
                     'duration_rounds' => 2
                 ],
@@ -191,6 +192,7 @@ final class AbilityRegistry
                 iconKey: 'icon_ability_bolster_ally',
                 tags: ['support', 'defense', 'bolster'],
                 defaultParams: [
+                    'status_id' => 'bolstered',
                     'bolster_defense_pct' => 0.25,
                     'duration_rounds' => 2
                 ],
@@ -207,6 +209,7 @@ final class AbilityRegistry
                 tags: ['melee', 'debuff', 'poison'],
                 defaultParams: [
                     'power_ratio' => 0.6,
+                    'status_id' => 'poison',
                     'poison_damage_ratio' => 0.2,
                     'status_speed' => 5,
                     'duration_rounds' => 3
@@ -224,6 +227,7 @@ final class AbilityRegistry
                 tags: ['ranged', 'debuff', 'poison'],
                 defaultParams: [
                     'power_ratio' => 0.6,
+                    'status_id' => 'poison',
                     'poison_damage_ratio' => 0.2,
                     'status_speed' => 5,
                     'duration_rounds' => 3
@@ -240,6 +244,7 @@ final class AbilityRegistry
                 iconKey: 'icon_ability_sleep_dart',
                 tags: ['control', 'sleep', 'debuff'],
                 defaultParams: [
+                    'status_id' => 'sleep',
                     'duration_rounds' => 2
                 ],
             ),
@@ -338,6 +343,56 @@ final class AbilityRegistry
                     'power_ratio' => 1.2,
                     'status_id' => 'cracked_armor',
                     'defense_reduction_flat' => 2,
+                    'duration_rounds' => 2,
+                ],
+            ),
+            AbilityDefinition::active(
+                abilityId: 'wrestle',
+                speed: 8,
+                diceCost: 1,
+                order: 17,
+                defaultTarget: AbilityTarget::EnemyFrontPrefer,
+                displayName: 'Wrestle',
+                shortDesc: 'A rough grapple that forces the target to strike back at the attacker next time.',
+                iconKey: 'icon_ability_wrestle',
+                tags: ['melee', 'damage', 'control', 'mud'],
+                defaultParams: [
+                    'power_ratio' => 1.05,
+                    'status_id' => 'wrestled',
+                    'duration_rounds' => 2,
+                ],
+            ),
+            AbilityDefinition::active(
+                abilityId: 'mud_sling',
+                speed: 8,
+                diceCost: 1,
+                order: 17,
+                defaultTarget: AbilityTarget::EnemyBackPrefer,
+                displayName: 'Mud Sling',
+                shortDesc: 'A filthy ranged hit that leaves the target easier to crack open.',
+                iconKey: 'icon_ability_mud_sling',
+                tags: ['ranged', 'damage', 'debuff', 'mud'],
+                defaultParams: [
+                    'power_ratio' => 0.9,
+                    'status_id' => 'cracked_armor',
+                    'defense_reduction_flat' => 2,
+                    'duration_rounds' => 2,
+                ],
+            ),
+            AbilityDefinition::active(
+                abilityId: 'mud_slam',
+                speed: 8,
+                diceCost: 1,
+                order: 18,
+                defaultTarget: AbilityTarget::EnemyFrontPrefer,
+                displayName: 'Mud Slam',
+                shortDesc: 'A muddy crush that batters defenses down harder than a normal hit.',
+                iconKey: 'icon_ability_mud_slam',
+                tags: ['melee', 'damage', 'debuff', 'mud'],
+                defaultParams: [
+                    'power_ratio' => 1.2,
+                    'status_id' => 'cracked_armor',
+                    'defense_reduction_flat' => 3,
                     'duration_rounds' => 2,
                 ],
             ),

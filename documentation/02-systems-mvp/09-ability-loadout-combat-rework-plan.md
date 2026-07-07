@@ -42,11 +42,15 @@ Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/0
 - Combat still runs on a 20-tick round.
 - Units trigger actions from their equipped abilities.
 - Equipped abilities no longer trigger on multiples of speed.
-- Instead, each equipped ability instance fires once per round at the cumulative tick produced by loadout order.
+- Instead, each round first queues the equipped loadout once at the cumulative ticks produced by loadout order.
+- If the initial pass leaves unused ticks, the resolver fills them with repeatable hostile abilities that still fit, checking equipped order from the top again each time.
+- Self-targeted and ally-targeted utility abilities do not repeat as filler actions.
 - Example:
   - Loadout `6, 6, 8` fires at ticks `6, 12, 20`
   - Loadout `8, 6, 6` fires at ticks `8, 14, 20`
   - Loadout `6, 6, 6` fires at ticks `6, 12, 18`
+  - Loadout `4, 10` with `basic_attack_melee` then `shield_up` fires at ticks `4, 14, 18`
+  - Loadout `4, 8` with `basic_attack_melee` then `heavy_strike` fires at ticks `4, 12, 16, 20`
 - The schedule resets at the start of each new round.
 - The round still ends at tick 20.
 - Enemies also use the new loadout-based cumulative scheduling format.

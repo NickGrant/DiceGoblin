@@ -417,6 +417,40 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     );
   }
 
+  public function testBuildActiveAbilityScheduleFillsRemainingTicksWithRepeatableAttacks(): void
+  {
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $schedule = $this->invokePrivate('buildActiveAbilitySchedule', [
+      ['basic_attack_melee', 'shield_up'],
+      $registry,
+    ]);
+
+    $this->assertSame([4, 14, 18], array_column($schedule, 'trigger_tick'));
+    $this->assertSame(
+      ['basic_attack_melee', 'shield_up', 'basic_attack_melee'],
+      array_column($schedule, 'ability_id')
+    );
+  }
+
+  public function testBuildActiveAbilityScheduleDoesNotRepeatSupportAbilitiesAsFiller(): void
+  {
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $schedule = $this->invokePrivate('buildActiveAbilitySchedule', [
+      ['basic_attack_melee', 'bolster_ally'],
+      $registry,
+    ]);
+
+    $this->assertSame([4, 14, 18], array_column($schedule, 'trigger_tick'));
+    $this->assertSame(
+      ['basic_attack_melee', 'bolster_ally', 'basic_attack_melee'],
+      array_column($schedule, 'ability_id')
+    );
+  }
+
   public function testDeriveSupportOutcomeUsesHalfDieGuardStacksForTauntingGuard(): void
   {
     $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');

@@ -33,12 +33,14 @@ The alpha-launch combat system must:
 
 ### 3.2 Equipped Ability Scheduling
 - Units act through equipped ability instances, not through all authored abilities on their type.
-- Each equipped ability instance fires at most once per round.
+- Each round first walks the equipped loadout once in order.
 - Trigger timing is determined by cumulative loadout order.
 - For a unit with equipped ability speeds `[a, b, c]`, the firing ticks are:
   - first ability: `a`
   - second ability: `a + b`
   - third ability: `a + b + c`
+- If the initial pass leaves unused ticks, the resolver fills the remaining budget with repeatable hostile abilities that still fit, rechecking equipped order from the top each time.
+- Self-targeted and ally-targeted utility abilities do not repeat as filler actions.
 - An equipped ability only fires if its cumulative tick is 20 or less.
 - The schedule resets at the start of the next round.
 
@@ -46,6 +48,8 @@ Examples:
 - Loadout `6, 6, 8` fires at ticks `6, 12, 20`
 - Loadout `8, 6, 6` fires at ticks `8, 14, 20`
 - Loadout `6, 6, 6` fires at ticks `6, 12, 18`
+- Loadout `4, 10` with `basic_attack_melee` then `shield_up` fires at ticks `4, 14, 18`
+- Loadout `4, 8` with `basic_attack_melee` then `heavy_strike` fires at ticks `4, 12, 16, 20`
 
 ### 3.3 Player and Enemy Parity
 - Player units and enemies use the same cumulative scheduling model.

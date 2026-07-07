@@ -37,7 +37,7 @@
         {
           "id": "player-answer",
           "speaker_id": "player",
-          "text": "How do you answer?",
+          "text": "...",
           "choices": [
             {
               "id": "yes",
