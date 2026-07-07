@@ -1,6 +1,12 @@
 import { Component, EventEmitter, HostListener, Output, computed, effect, input, signal } from '@angular/core';
 import { DialogueChoiceSelection, DialogueScript, DialogueSpeaker, DialogueStep } from '../../../core/dialogue/dialogue.models';
 
+type DialogueVisibleEntry = {
+  step: DialogueStep;
+  speaker: DialogueSpeaker | null;
+  isCurrent: boolean;
+};
+
 @Component({
   selector: 'dg-dialogue-stage',
   standalone: true,
@@ -13,18 +19,23 @@ export class DgDialogueStageComponent {
 
   readonly selectedChoiceIndex = signal(0);
   readonly currentStepId = signal('');
+  readonly visibleStepIds = signal<string[]>([]);
   readonly choiceHistory = signal<DialogueChoiceSelection[]>([]);
   readonly currentStep = computed<DialogueStep | null>(
     () => this.script()?.steps.find((step) => step.id === this.currentStepId()) ?? null,
   );
-  readonly leftSpeaker = computed<DialogueSpeaker | null>(
-    () => this.script()?.speakers.find((speaker) => speaker.side === 'left') ?? null,
-  );
-  readonly rightSpeaker = computed<DialogueSpeaker | null>(
-    () => this.script()?.speakers.find((speaker) => speaker.side === 'right') ?? null,
+  readonly visibleEntries = computed<DialogueVisibleEntry[]>(() =>
+    this.visibleStepIds()
+      .map((stepId) => this.stepById(stepId))
+      .filter((step): step is DialogueStep => step !== null)
+      .map((step) => ({
+        step,
+        speaker: this.speakerById(step.speakerId),
+        isCurrent: step.id === this.currentStepId(),
+      })),
   );
   readonly activeSpeaker = computed<DialogueSpeaker | null>(
-    () => this.script()?.speakers.find((speaker) => speaker.id === this.currentStep()?.speakerId) ?? null,
+    () => this.speakerById(this.currentStep()?.speakerId ?? null),
   );
   readonly hasChoices = computed(() => (this.currentStep()?.choices.length ?? 0) > 0);
   readonly canAdvance = computed(() => !this.hasChoices());
@@ -35,12 +46,14 @@ export class DgDialogueStageComponent {
       const script = this.script();
       if (!script) {
         this.currentStepId.set('');
+        this.visibleStepIds.set([]);
         this.selectedChoiceIndex.set(0);
         this.choiceHistory.set([]);
         return;
       }
 
       this.currentStepId.set(script.startStepId);
+      this.visibleStepIds.set(script.startStepId ? [script.startStepId] : []);
       this.selectedChoiceIndex.set(0);
       this.choiceHistory.set([]);
     });
@@ -87,8 +100,7 @@ export class DgDialogueStageComponent {
       return;
     }
 
-    this.currentStepId.set(step.nextStepId);
-    this.selectedChoiceIndex.set(0);
+    this.moveToStep(step.nextStepId);
   }
 
   selectChoice(index: number): void {
@@ -109,20 +121,7 @@ export class DgDialogueStageComponent {
         choiceId: choice.id,
       },
     ]);
-    this.currentStepId.set(choice.nextStepId);
-    this.selectedChoiceIndex.set(0);
-  }
-
-  activeTextFor(speaker: DialogueSpeaker | null): string {
-    if (!speaker || this.activeSpeaker()?.id !== speaker.id) {
-      return '';
-    }
-
-    return this.currentStep()?.text ?? '';
-  }
-
-  isSpeakerActive(speaker: DialogueSpeaker | null): boolean {
-    return !!speaker && this.activeSpeaker()?.id === speaker.id;
+    this.moveToStep(choice.nextStepId);
   }
 
   private moveChoice(delta: number): void {
@@ -133,5 +132,27 @@ export class DgDialogueStageComponent {
 
     const nextIndex = (this.selectedChoiceIndex() + delta + choices.length) % choices.length;
     this.selectedChoiceIndex.set(nextIndex);
+  }
+
+  private moveToStep(stepId: string): void {
+    this.currentStepId.set(stepId);
+    this.visibleStepIds.set([...this.visibleStepIds(), stepId].slice(-2));
+    this.selectedChoiceIndex.set(0);
+  }
+
+  private stepById(stepId: string | null): DialogueStep | null {
+    if (!stepId) {
+      return null;
+    }
+
+    return this.script()?.steps.find((step) => step.id === stepId) ?? null;
+  }
+
+  private speakerById(speakerId: string | null): DialogueSpeaker | null {
+    if (!speakerId) {
+      return null;
+    }
+
+    return this.script()?.speakers.find((speaker) => speaker.id === speakerId) ?? null;
   }
 }

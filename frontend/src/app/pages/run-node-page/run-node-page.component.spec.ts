@@ -12,8 +12,8 @@ const FARM_BOSS_DIALOGUE: DialogueScript = {
   backgroundUrl: '/assets/ui/biome/farm.png',
   startStepId: 'intro',
   speakers: [
-    { id: 'mudking', side: 'left', name: 'Mudking', portraitUrl: '/assets/ui/units/pig_mudking.png', role: 'npc' },
-    { id: 'player', side: 'right', name: 'Ashback', portraitUrl: '/assets/ui/units/goblin_bruiser.png', role: 'player' },
+    { id: 'mudking', side: 'right', name: 'Mudking', portraitUrl: '/assets/ui/units/pig_mudking.png', party: 'enemy', role: 'npc' },
+    { id: 'player', side: 'left', name: 'Ashback', portraitUrl: '/assets/ui/units/goblin_bruiser.png', party: 'player', role: 'player' },
   ],
   steps: [
     { id: 'intro', speakerId: 'mudking', text: 'Are you here to fight me', nextStepId: 'answer', choices: [] },

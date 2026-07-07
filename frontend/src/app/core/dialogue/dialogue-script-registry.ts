@@ -55,9 +55,10 @@ export function materializeDialogueScript(
 ): DialogueScript {
   const speakers = definition.speakers.map((speaker): DialogueSpeaker => ({
     id: speaker.id,
-    side: speaker.side,
+    side: resolveSpeakerSide(speaker),
     name: resolveSpeakerName(speaker.name, speaker.role, context),
     portraitUrl: resolveSpeakerPortrait(speaker.portrait_url, speaker.portrait_unit_slug, speaker.role, context),
+    party: speaker.party ?? null,
     role: speaker.role ?? null,
   }));
 
@@ -82,6 +83,18 @@ export function materializeDialogueScript(
     startStepId: definition.start_step_id ?? definition.steps[0]?.id ?? '',
     steps,
   };
+}
+
+function resolveSpeakerSide(speaker: DialogueScriptDefinition['speakers'][number]): 'left' | 'right' {
+  if (speaker.party === 'player' || speaker.role === 'player') {
+    return 'left';
+  }
+
+  if (speaker.party === 'enemy') {
+    return 'right';
+  }
+
+  return speaker.side;
 }
 
 function resolveSpeakerName(

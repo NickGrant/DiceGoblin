@@ -13,40 +13,81 @@
   background-repeat: no-repeat;
   background-size: cover;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
 }
 
 .dialogue-stage__scene {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 31rem;
+  justify-content: flex-start;
+  gap: 0.4rem;
+  min-height: 0;
+  flex: 1 1 auto;
+  padding-inline: 0.35rem;
+  padding-top: 0.35rem;
 }
 
-.dialogue-stage__speaker {
+.dialogue-stage--has-choices .dialogue-stage__scene {
+  flex: 0 0 auto;
+}
+
+.dialogue-stage__message {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0.85rem;
   align-items: end;
-  opacity: 0.62;
-  transition: opacity 140ms ease, transform 140ms ease;
+  animation: dialogue-stage-rise-in 180ms ease;
+  transition: opacity 180ms ease, transform 180ms ease, filter 180ms ease;
+  width: min(22rem, calc(100% - 0.7rem));
 }
 
-.dialogue-stage__speaker--left {
+.dialogue-stage__message--left {
+  margin-right: auto;
   justify-items: start;
 }
 
-.dialogue-stage__speaker--right {
+.dialogue-stage__message--right {
+  margin-left: auto;
   justify-items: end;
 }
 
-.dialogue-stage__speaker--active {
+.dialogue-stage__message--left .dialogue-stage__bubble,
+.dialogue-stage__message--left .dialogue-stage__portrait-frame {
+  justify-self: start;
+}
+
+.dialogue-stage__message--right .dialogue-stage__bubble,
+.dialogue-stage__message--right .dialogue-stage__portrait-frame {
+  justify-self: end;
+}
+
+.dialogue-stage__message--right .dialogue-stage__bubble {
+  text-align: right;
+}
+
+.dialogue-stage__message--previous {
+  opacity: 0.5;
+  filter: saturate(0.78);
+  transform: translateY(-0.3rem);
+}
+
+.dialogue-stage__message--current {
   opacity: 1;
-  transform: translateY(-0.15rem);
+}
+
+.dialogue-stage__message + .dialogue-stage__message {
+  margin-top: -0.4rem;
+}
+
+.dialogue-stage__message--left + .dialogue-stage__message--right,
+.dialogue-stage__message--right + .dialogue-stage__message--left {
+  margin-top: -0.9rem;
 }
 
 .dialogue-stage__portrait-frame {
-  width: min(15rem, 55vw);
+  width: min(6.8rem, 24vw);
+  flex: 0 0 auto;
   border: 2px solid rgba(255, 229, 178, 0.4);
   background: linear-gradient(180deg, rgba(34, 39, 31, 0.9), rgba(19, 21, 19, 0.9));
   box-shadow: 0 16px 28px rgba(0, 0, 0, 0.22);
@@ -64,16 +105,13 @@
 }
 
 .dialogue-stage__bubble {
-  width: min(28rem, 100%);
+  width: 100%;
+  min-width: 0;
   padding: 0.95rem 1rem;
   border: 2px solid rgba(255, 229, 178, 0.54);
   background: linear-gradient(180deg, rgba(246, 236, 211, 0.96), rgba(228, 214, 185, 0.94));
   box-shadow: 0 16px 28px rgba(0, 0, 0, 0.18);
   color: #262014;
-}
-
-.dialogue-stage__speaker--right .dialogue-stage__bubble {
-  text-align: right;
 }
 
 .dialogue-stage__name {
@@ -95,7 +133,7 @@
   display: grid;
   gap: 0.6rem;
   width: min(20rem, 100%);
-  margin-top: 1rem;
+  margin-top: 0.9rem;
   margin-left: auto;
   margin-right: auto;
 }
@@ -119,11 +157,24 @@
 .dialogue-stage__hint {
   display: flex;
   justify-content: center;
-  margin-top: 1rem;
+  margin-top: auto;
+  padding-top: 1rem;
   color: rgba(255, 244, 214, 0.88);
   font-size: 0.82rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+@keyframes dialogue-stage-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.7rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (min-width: 760px) {
@@ -132,14 +183,36 @@
   }
 
   .dialogue-stage__scene {
-    min-height: 32rem;
+    padding-inline: 0.8rem;
   }
 
-  .dialogue-stage__speaker {
-    grid-template-columns: auto minmax(16rem, 28rem);
+  .dialogue-stage__message {
+    grid-template-columns: auto minmax(16rem, 26rem);
+    width: min(34rem, calc(50% - 1.4rem));
   }
 
-  .dialogue-stage__speaker--right {
-    grid-template-columns: minmax(16rem, 28rem) auto;
+  .dialogue-stage__message--right {
+    grid-template-columns: minmax(16rem, 26rem) auto;
+  }
+
+  .dialogue-stage__message--right .dialogue-stage__portrait-frame {
+    order: 2;
+  }
+
+  .dialogue-stage__portrait-frame {
+    width: 7rem;
+  }
+
+  .dialogue-stage__bubble {
+    width: 100%;
+  }
+
+  .dialogue-stage__message + .dialogue-stage__message {
+    margin-top: -0.8rem;
+  }
+
+  .dialogue-stage__message--left + .dialogue-stage__message--right,
+  .dialogue-stage__message--right + .dialogue-stage__message--left {
+    margin-top: -1.6rem;
   }
 }

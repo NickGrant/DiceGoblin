@@ -121,4 +121,47 @@ final class RunNodeRepository
 
     return array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN));
   }
+
+  /**
+   * Reopen any locked node that is reachable from at least one cleared parent.
+   *
+   * This preserves the intended OR-style branch progression for converging paths
+   * and also self-heals stale availability if an earlier unlock step was missed.
+   *
+   * @return array<int,string>
+   */
+  public function syncAvailableNodesFromClearedParents(int $runId): array
+  {
+    $select = $this->pdo->prepare('
+      SELECT DISTINCT child.`id`
+      FROM `run_nodes` child
+      JOIN `run_edges` re
+        ON re.`run_id` = child.`run_id`
+       AND re.`to_node_id` = child.`id`
+      JOIN `run_nodes` parent
+        ON parent.`id` = re.`from_node_id`
+       AND parent.`run_id` = child.`run_id`
+      WHERE child.`run_id` = ?
+        AND child.`status` = \'locked\'
+        AND parent.`status` = \'cleared\'
+    ');
+    $select->execute([$runId]);
+    $nodeIds = array_values(array_map('intval', $select->fetchAll(PDO::FETCH_COLUMN)));
+
+    if (count($nodeIds) === 0) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($nodeIds), '?'));
+    $params = array_merge([$runId], $nodeIds);
+
+    $update = $this->pdo->prepare("
+      UPDATE `run_nodes`
+      SET `status` = 'available'
+      WHERE `run_id` = ? AND `id` IN ($placeholders) AND `status` = 'locked'
+    ");
+    $update->execute($params);
+
+    return array_map('strval', $nodeIds);
+  }
 }

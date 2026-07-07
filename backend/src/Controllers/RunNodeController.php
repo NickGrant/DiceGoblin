@@ -138,6 +138,7 @@ final class RunNodeController
       }
 
       // Lock node
+      $svc['runNodeRepo']->syncAvailableNodesFromClearedParents($runIdInt);
       $node = $svc['runNodeRepo']->getForUpdate($runIdInt, $nodeIdInt);
       if ($node === null) {
         $pdo->rollBack();

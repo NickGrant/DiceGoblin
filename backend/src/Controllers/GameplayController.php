@@ -598,6 +598,7 @@ final class GameplayController
 
   private function requireAvailableRestNode(RunNodeRepository $runNodeRepo, int $runId, int $nodeId): ?array
   {
+    $runNodeRepo->syncAvailableNodesFromClearedParents($runId);
     $node = $runNodeRepo->getForUpdate($runId, $nodeId);
     if ($node === null) {
       Response::json(['ok' => false, 'error' => ['code' => 'not_found', 'message' => 'Node not found for run.']], 404);

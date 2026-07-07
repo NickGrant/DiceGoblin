@@ -6,41 +6,28 @@
   (click)="canAdvance() ? advance() : null"
 >
   <div class="dialogue-stage__scene">
+    @for (entry of visibleEntries(); track entry.step.id) {
     <article
-      class="dialogue-stage__speaker dialogue-stage__speaker--left"
-      [class.dialogue-stage__speaker--active]="isSpeakerActive(leftSpeaker())"
+      class="dialogue-stage__message"
+      [class.dialogue-stage__message--left]="entry.speaker?.side === 'left'"
+      [class.dialogue-stage__message--right]="entry.speaker?.side === 'right'"
+      [class.dialogue-stage__message--current]="entry.isCurrent"
+      [class.dialogue-stage__message--previous]="!entry.isCurrent"
     >
       <div class="dialogue-stage__portrait-frame">
-        @if (leftSpeaker()?.portraitUrl) {
-        <img class="dialogue-stage__portrait" [src]="leftSpeaker()!.portraitUrl!" [alt]="leftSpeaker()!.name" />
+        @if (entry.speaker?.portraitUrl) {
+        <img class="dialogue-stage__portrait" [src]="entry.speaker!.portraitUrl!" [alt]="entry.speaker!.name" />
         } @else {
         <div class="dialogue-stage__portrait dialogue-stage__portrait--empty"></div>
         }
       </div>
 
       <div class="dialogue-stage__bubble">
-        <p class="dialogue-stage__name">{{ leftSpeaker()?.name ?? 'Left Speaker' }}</p>
-        <p class="dialogue-stage__text">{{ activeTextFor(leftSpeaker()) }}</p>
+        <p class="dialogue-stage__name">{{ entry.speaker?.name ?? 'Speaker' }}</p>
+        <p class="dialogue-stage__text">{{ entry.step.text }}</p>
       </div>
     </article>
-
-    <article
-      class="dialogue-stage__speaker dialogue-stage__speaker--right"
-      [class.dialogue-stage__speaker--active]="isSpeakerActive(rightSpeaker())"
-    >
-      <div class="dialogue-stage__bubble">
-        <p class="dialogue-stage__name">{{ rightSpeaker()?.name ?? 'Right Speaker' }}</p>
-        <p class="dialogue-stage__text">{{ activeTextFor(rightSpeaker()) }}</p>
-      </div>
-
-      <div class="dialogue-stage__portrait-frame">
-        @if (rightSpeaker()?.portraitUrl) {
-        <img class="dialogue-stage__portrait" [src]="rightSpeaker()!.portraitUrl!" [alt]="rightSpeaker()!.name" />
-        } @else {
-        <div class="dialogue-stage__portrait dialogue-stage__portrait--empty"></div>
-        }
-      </div>
-    </article>
+    }
   </div>
 
   @if (hasChoices()) {

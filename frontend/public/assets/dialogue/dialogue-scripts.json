@@ -13,14 +13,16 @@
       "speakers": [
         {
           "id": "mudking",
-          "side": "left",
+          "side": "right",
           "name": "Mudking",
           "portrait_unit_slug": "mudking",
+          "party": "enemy",
           "role": "npc"
         },
         {
           "id": "player",
-          "side": "right",
+          "side": "left",
+          "party": "player",
           "role": "player"
         }
       ],
@@ -29,7 +31,7 @@
         {
           "id": "mudking-intro",
           "speaker_id": "mudking",
-          "text": "Are you here to fight me",
+          "text": "Goblins?! On my farm? Are you looking for a fight?",
           "next_step_id": "player-answer"
         },
         {
@@ -39,17 +41,17 @@
           "choices": [
             {
               "id": "yes",
-              "label": "yes",
+              "label": "Lookin'? Just found one!",
               "next_step_id": "mudking-yes"
             },
             {
               "id": "no",
-              "label": "no",
+              "label": "Not me, I am here for companionship and love.",
               "next_step_id": "mudking-no"
             },
             {
               "id": "maybe",
-              "label": "maybe",
+              "label": "Maybe...",
               "next_step_id": "mudking-maybe"
             }
           ]
@@ -62,7 +64,7 @@
         {
           "id": "mudking-no",
           "speaker_id": "mudking",
-          "text": "Too bad!"
+          "text": "I am faithfully married to the Mudqueen!!! Prepare to die!"
         },
         {
           "id": "mudking-maybe",

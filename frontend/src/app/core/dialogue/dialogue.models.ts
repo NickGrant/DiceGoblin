@@ -16,6 +16,7 @@ export type DialogueSpeakerDefinition = {
   name?: string;
   portrait_url?: string | null;
   portrait_unit_slug?: string | null;
+  party?: 'player' | 'enemy' | 'neutral' | string;
   role?: 'player' | 'npc' | string;
 };
 
@@ -66,6 +67,7 @@ export type DialogueSpeaker = {
   side: DialogueSpeakerSide;
   name: string;
   portraitUrl: string | null;
+  party: string | null;
   role: string | null;
 };
 

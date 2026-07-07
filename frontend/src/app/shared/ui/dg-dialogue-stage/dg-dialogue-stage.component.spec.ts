@@ -7,8 +7,8 @@ const TEST_SCRIPT: DialogueScript = {
   backgroundUrl: '/assets/ui/biome/farm.png',
   startStepId: 'intro',
   speakers: [
-    { id: 'mudking', side: 'left', name: 'Mudking', portraitUrl: '/assets/ui/units/pig_mudking.png', role: 'npc' },
-    { id: 'player', side: 'right', name: 'Ashback', portraitUrl: '/assets/ui/units/goblin_bruiser.png', role: 'player' },
+    { id: 'mudking', side: 'right', name: 'Mudking', portraitUrl: '/assets/ui/units/pig_mudking.png', party: 'enemy', role: 'npc' },
+    { id: 'player', side: 'left', name: 'Ashback', portraitUrl: '/assets/ui/units/goblin_bruiser.png', party: 'player', role: 'player' },
   ],
   steps: [
     { id: 'intro', speakerId: 'mudking', text: 'Are you here to fight me', nextStepId: 'answer', choices: [] },
@@ -61,11 +61,51 @@ describe('DgDialogueStageComponent', () => {
 
     expect(fixture.componentInstance.currentStep()?.id).toBe('maybe-response');
     expect(fixture.componentInstance.choiceHistory()).toEqual([{ stepId: 'answer', choiceId: 'maybe' }]);
+    expect(fixture.componentInstance.visibleEntries().map((entry) => entry.step.id)).toEqual(['answer', 'maybe-response']);
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
     fixture.detectChanges();
 
     expect(completeSpy).toHaveBeenCalledWith([{ stepId: 'answer', choiceId: 'maybe' }]);
+  });
+
+  it('keeps only the latest two dialogue messages visible', () => {
+    const host: HTMLElement = fixture.nativeElement;
+
+    expect(fixture.componentInstance.visibleEntries().map((entry) => entry.step.id)).toEqual(['intro']);
+    expect(host.querySelectorAll('.dialogue-stage__message').length).toBe(1);
+
+    fixture.componentInstance.advance();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.visibleEntries().map((entry) => entry.step.id)).toEqual(['intro', 'answer']);
+    expect(host.textContent).toContain('Are you here to fight me');
+    expect(host.textContent).toContain('How do you answer?');
+
+    fixture.componentInstance.selectChoice(0);
+    fixture.componentInstance.chooseSelectedOption();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.visibleEntries().map((entry) => entry.step.id)).toEqual(['answer', 'yes-response']);
+    expect(host.querySelectorAll('.dialogue-stage__message').length).toBe(2);
+    expect(host.textContent).not.toContain('Are you here to fight me');
+    expect(host.textContent).toContain('How do you answer?');
+    expect(host.textContent).toContain('Good!');
+  });
+
+  it('keeps player dialogue on the left and enemy dialogue on the right', () => {
+    let host: HTMLElement = fixture.nativeElement;
+    let messages = Array.from(host.querySelectorAll('.dialogue-stage__message')) as HTMLElement[];
+
+    expect(messages[0].classList.contains('dialogue-stage__message--right')).toBeTrue();
+
+    fixture.componentInstance.advance();
+    fixture.detectChanges();
+
+    host = fixture.nativeElement;
+    messages = Array.from(host.querySelectorAll('.dialogue-stage__message')) as HTMLElement[];
+    expect(messages[0].classList.contains('dialogue-stage__message--right')).toBeTrue();
+    expect(messages[1].classList.contains('dialogue-stage__message--left')).toBeTrue();
   });
 
   it('supports selecting a choice with the mouse', () => {

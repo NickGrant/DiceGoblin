@@ -85,7 +85,7 @@ const UNIT_IMAGE_SLUG_MAP: Record<string, string> = {
 };
 
 export function resolveUnitImageSlug(value: string | null | undefined): string | null {
-  const normalized = (value ?? '').trim().toLowerCase();
+  const normalized = normalizeUnitImageKey(value);
   if (!normalized.length) {
     return null;
   }
@@ -103,4 +103,13 @@ export function resolveUnitImageSlug(value: string | null | undefined): string |
 export function resolveUnitImageUrl(value: string | null | undefined): string | null {
   const slug = resolveUnitImageSlug(value);
   return slug ? `${UNIT_ASSET_BASE_PATH}/${slug}.png` : null;
+}
+
+function normalizeUnitImageKey(value: string | null | undefined): string {
+  return (value ?? '')
+    .trim()
+    .toLowerCase()
+    // Combat logs and generated labels may suffix duplicate enemies with counters.
+    .replace(/\s*#\d+\s*$/g, '')
+    .replace(/\s+\d+\s*$/g, '');
 }

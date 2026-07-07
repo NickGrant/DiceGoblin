@@ -179,6 +179,7 @@ final class ApiController
       }
 
       $runId = (int)$run['run_id'];
+      $services['runNodeRepo']->syncAvailableNodesFromClearedParents($runId);
 
       Response::json([
         'ok' => true,
