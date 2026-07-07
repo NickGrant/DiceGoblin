@@ -29,9 +29,9 @@
   @if (activeTab() === 'stats') {
   <section class="dg-card p-3 p-lg-4">
     <div class="unit-details-page__stats-grid">
-      <div class="unit-details-page__column">
+      <div class="unit-summary unit-summary--command">
         <div class="vstack gap-3">
-          <div class="unit-summary">
+          <div>
             <label class="form-label">Display Name</label>
             <div class="d-flex gap-2">
               <input class="dg-input" [(ngModel)]="renameValue" [disabled]="unitLocked()" />
@@ -39,12 +39,12 @@
             </div>
           </div>
 
-          <div class="unit-summary">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          @if (showPromotionAction()) {
+            <div class="unit-promo-banner">
               <div>
-                <h2 class="dg-stencil mb-1">Promotion</h2>
+                <p class="unit-promo-banner__label mb-1">Promotion</p>
                 <p class="mb-0">
-                  {{ academyUnlocked() ? 'Promotions are now handled in the Academy.' : 'Unlock the Academy in the Shop to manage promotions.' }}
+                  {{ academyUnlocked() ? promotionReadinessLabel() : 'Unlock the Academy in the Shop to manage promotions.' }}
                 </p>
               </div>
               <a
@@ -52,10 +52,10 @@
                 [routerLink]="[academyUnlocked() ? '/academy' : '/shop']"
                 [queryParams]="academyUnlocked() ? { unitId: unit.id } : null"
               >
-                {{ academyUnlocked() ? 'Open Academy' : 'Unlock in Shop' }}
+                {{ academyUnlocked() ? 'Academy' : 'Unlock' }}
               </a>
             </div>
-          </div>
+          }
 
           <div class="unit-summary unit-summary--portrait">
             @if (unitPortraitUrl() && !portraitLoadFailed()) {
@@ -74,108 +74,82 @@
         </div>
       </div>
 
-      <div class="unit-details-page__column">
+      <div class="unit-summary">
         <h2 class="dg-stencil mb-3">Stats</h2>
-        <div class="unit-stats-panel">
-          <dl class="unit-stats-list mb-0">
-            <div class="unit-stats-row">
-              <dt>Tier</dt>
-              <dd>{{ tierRomanNumeral() }}</dd>
-            </div>
-            <div class="unit-stats-row">
-              <dt>Level</dt>
-              <dd>{{ unit.level }}/{{ unit.max_level || 0 }} ({{ unitTypeLabel() }})</dd>
-            </div>
-            <div class="unit-stats-row">
-              <dt>HP</dt>
-              <dd>{{ unit.current_hp || unit.max_hp || 0 }}/{{ unit.max_hp || 0 }}</dd>
-            </div>
-            <div class="unit-stats-row">
-              <dt>Attack</dt>
-              <dd>{{ unit.total_attack || 0 }}</dd>
-            </div>
-            <div class="unit-stats-row">
-              <dt>Defense</dt>
-              <dd>{{ unit.total_defense || 0 }}</dd>
-            </div>
-            <div class="unit-stats-row">
-              <dt>Promotion Eligibility</dt>
-              <dd>{{ promotionReadinessLabel() }}</dd>
-            </div>
-            <div class="unit-stats-row">
-              <dt>Mastery State</dt>
-              <dd>{{ masteryLabel() }}</dd>
-            </div>
-            <div class="unit-stats-row">
-              <dt>Selected Capstone</dt>
-              <dd>{{ selectedCapstoneLabel() }}</dd>
-            </div>
-          </dl>
+        <div class="unit-profile-grid">
+          <article class="unit-stat-card">
+            <span class="unit-stat-card__label">Tier</span>
+            <strong class="unit-stat-card__value">{{ tierRomanNumeral() }}</strong>
+            <span class="unit-stat-card__meta">{{ unitTypeLabel() }}</span>
+          </article>
+          <article class="unit-stat-card">
+            <span class="unit-stat-card__label">Level</span>
+            <strong class="unit-stat-card__value">{{ unit.level }}/{{ unit.max_level || 0 }}</strong>
+            <span class="unit-stat-card__meta">XP to next: {{ unit.xp_to_next_level || 0 }}</span>
+          </article>
+          <article class="unit-stat-card">
+            <span class="unit-stat-card__label">HP</span>
+            <strong class="unit-stat-card__value">{{ unit.current_hp || unit.max_hp || 0 }}/{{ unit.max_hp || 0 }}</strong>
+            <span class="unit-stat-card__meta">Frontline endurance</span>
+          </article>
+          <article class="unit-stat-card">
+            <span class="unit-stat-card__label">Attack</span>
+            <strong class="unit-stat-card__value">{{ unit.total_attack || 0 }}</strong>
+            <span class="unit-stat-card__meta">Strike pressure</span>
+          </article>
+          <article class="unit-stat-card">
+            <span class="unit-stat-card__label">Defense</span>
+            <strong class="unit-stat-card__value">{{ unit.total_defense || 0 }}</strong>
+            <span class="unit-stat-card__meta">Damage mitigation</span>
+          </article>
+          <article class="unit-stat-card">
+            <span class="unit-stat-card__label">Formation</span>
+            <strong class="unit-stat-card__value">{{ unit.formation_width || 1 }}x{{ unit.formation_height || 1 }}</strong>
+            <span class="unit-stat-card__meta">Board footprint</span>
+          </article>
+        </div>
+      </div>
+
+      <div class="unit-summary">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-2">
+          <div>
+            <h2 class="dg-stencil mb-1">Mastery & Capstone</h2>
+            <p class="mb-0">Passive capstones unlock at level 10 and stay with the unit through later promotions.</p>
+          </div>
+          <span class="dg-chip">{{ masteryStatusLabel() }}</span>
         </div>
 
-        <div class="unit-summary mt-3">
-          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-2">
-            <div>
-              <h2 class="dg-stencil mb-1">Capstones</h2>
-              <p class="mb-0">
-                Passive capstones unlock at level 10 and follow the unit through later promotions.
-              </p>
-            </div>
-            @if (unit.selected_capstone; as selectedCapstone) {
-            <span class="dg-chip">Selected: {{ abilityDisplayName(selectedCapstone.ability_id) }}</span>
-            }
-          </div>
+        <p class="mb-2">{{ currentCapstoneCopy(currentCapstoneState()) }}</p>
+        <p class="mb-3"><strong>Selected:</strong> {{ selectedCapstoneLabel() }}</p>
 
-          <p class="mb-3">{{ currentCapstoneCopy(currentCapstoneState()) }}</p>
-
-          @if (capstoneChoices().length) {
+        @if (capstoneChoices().length) {
           <div class="vstack gap-2">
             @for (choice of capstoneChoices(); track choice.ability_id) {
-            <button
-              class="ability-list-card ability-list-card--passive text-start"
-              type="button"
-              (click)="chooseCapstone(choice.ability_id)"
-              [disabled]="unitLocked() || !canChooseCapstone() || selectingCapstoneId() === choice.ability_id"
-            >
-              <div>
-                <h3 class="dg-stencil mb-1">{{ abilityDisplayName(choice.ability_id) }}</h3>
-                <p class="mb-0 small">{{ abilityShortDescription(choice.ability_id) }}</p>
-              </div>
-              <span class="dg-chip">
-                @if (selectedCapstoneAbilityId() === choice.ability_id) {
-                Chosen
-                } @else if (selectingCapstoneId() === choice.ability_id) {
-                Working...
-                } @else {
-                Choose
-                }
-              </span>
-            </button>
+              <button
+                class="ability-list-card ability-list-card--passive text-start"
+                type="button"
+                (click)="chooseCapstone(choice.ability_id)"
+                [disabled]="unitLocked() || !canChooseCapstone() || selectingCapstoneId() === choice.ability_id"
+              >
+                <div>
+                  <h3 class="dg-stencil mb-1">{{ abilityDisplayName(choice.ability_id) }}</h3>
+                  <p class="mb-0 small">{{ abilityShortDescription(choice.ability_id) }}</p>
+                </div>
+                <span class="dg-chip">
+                  @if (selectedCapstoneAbilityId() === choice.ability_id) {
+                    Chosen
+                  } @else if (selectingCapstoneId() === choice.ability_id) {
+                    Working...
+                  } @else {
+                    Choose
+                  }
+                </span>
+              </button>
             }
           </div>
-          }
-        </div>
-
-        <div class="unit-summary mt-3">
-          <h2 class="dg-stencil mb-2">Inherited Passives</h2>
-          @if (inheritedPassiveAbilities().length) {
-          <div class="vstack gap-2">
-            @for (ability of inheritedPassiveAbilities(); track ability.source_unit_type_id + ':' + ability.ability_id) {
-            <article class="ability-list-card ability-list-card--passive">
-              <div>
-                <h3 class="dg-stencil mb-1">{{ abilityDisplayName(ability.ability_id) }}</h3>
-                <p class="mb-0 small">
-                  Inherited from {{ ability.source_unit_type_name || ability.source_unit_type_slug || 'an earlier class' }}.
-                </p>
-              </div>
-              <span class="dg-chip">Inherited</span>
-            </article>
-            }
-          </div>
-          } @else {
-          <p class="mb-0">This unit has not inherited any passive abilities yet.</p>
-          }
-        </div>
+        } @else {
+          <p class="mb-0">This unit does not offer a mastery capstone.</p>
+        }
       </div>
     </div>
   </section>

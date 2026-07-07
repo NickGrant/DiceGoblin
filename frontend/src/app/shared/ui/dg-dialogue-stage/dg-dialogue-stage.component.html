@@ -1,0 +1,66 @@
+<section
+  class="dialogue-stage"
+  [style.background-image]="script()?.backgroundUrl ? 'linear-gradient(rgba(18, 20, 21, 0.18), rgba(18, 20, 21, 0.5)), url(' + script()!.backgroundUrl + ')' : null"
+  [class.dialogue-stage--has-choices]="hasChoices()"
+  tabindex="0"
+  (click)="canAdvance() ? advance() : null"
+>
+  <div class="dialogue-stage__scene">
+    <article
+      class="dialogue-stage__speaker dialogue-stage__speaker--left"
+      [class.dialogue-stage__speaker--active]="isSpeakerActive(leftSpeaker())"
+    >
+      <div class="dialogue-stage__portrait-frame">
+        @if (leftSpeaker()?.portraitUrl) {
+        <img class="dialogue-stage__portrait" [src]="leftSpeaker()!.portraitUrl!" [alt]="leftSpeaker()!.name" />
+        } @else {
+        <div class="dialogue-stage__portrait dialogue-stage__portrait--empty"></div>
+        }
+      </div>
+
+      <div class="dialogue-stage__bubble">
+        <p class="dialogue-stage__name">{{ leftSpeaker()?.name ?? 'Left Speaker' }}</p>
+        <p class="dialogue-stage__text">{{ activeTextFor(leftSpeaker()) }}</p>
+      </div>
+    </article>
+
+    <article
+      class="dialogue-stage__speaker dialogue-stage__speaker--right"
+      [class.dialogue-stage__speaker--active]="isSpeakerActive(rightSpeaker())"
+    >
+      <div class="dialogue-stage__bubble">
+        <p class="dialogue-stage__name">{{ rightSpeaker()?.name ?? 'Right Speaker' }}</p>
+        <p class="dialogue-stage__text">{{ activeTextFor(rightSpeaker()) }}</p>
+      </div>
+
+      <div class="dialogue-stage__portrait-frame">
+        @if (rightSpeaker()?.portraitUrl) {
+        <img class="dialogue-stage__portrait" [src]="rightSpeaker()!.portraitUrl!" [alt]="rightSpeaker()!.name" />
+        } @else {
+        <div class="dialogue-stage__portrait dialogue-stage__portrait--empty"></div>
+        }
+      </div>
+    </article>
+  </div>
+
+  @if (hasChoices()) {
+  <div class="dialogue-stage__choices" (click)="$event.stopPropagation()">
+    @for (choice of currentStep()?.choices ?? []; track choice.id; let choiceIndex = $index) {
+    <button
+      type="button"
+      class="dialogue-stage__choice"
+      [class.dialogue-stage__choice--selected]="selectedChoiceIndex() === choiceIndex"
+      (mouseenter)="selectChoice(choiceIndex)"
+      (focus)="selectChoice(choiceIndex)"
+      (click)="selectChoice(choiceIndex); chooseSelectedOption()"
+    >
+      {{ choice.label }}
+    </button>
+    }
+  </div>
+  } @else {
+  <div class="dialogue-stage__hint">
+    <span>Click, Space, or Enter to continue</span>
+  </div>
+  }
+</section>

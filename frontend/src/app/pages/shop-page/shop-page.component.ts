@@ -38,11 +38,15 @@ export class ShopPageComponent {
     sell_bonus: 'Economy Upgrade',
     market_mastery: 'Economy Upgrade',
     second_daily_deal: 'Feature Unlock',
+    energy_cap_75: 'Energy Upgrade',
+    energy_cap_100: 'Energy Upgrade',
+    explode_d4s: 'Dice Upgrade',
   };
   private static readonly FEATURE_UNLOCK_REQUIREMENT_LABELS: Record<string, string> = {
     bigger_squad: 'No prerequisite',
     biggerest_squad: 'Requires Bigger Squad',
     market_mastery: 'Requires Coupon Book + Sharp Dealer',
+    energy_cap_100: 'Requires Deep Pantry',
   };
 
   readonly activeTab = signal<'supplies' | 'feature_unlocks'>('supplies');

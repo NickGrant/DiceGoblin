@@ -234,18 +234,22 @@ describe('UnitDetailsPageComponent', () => {
     expect(component.tierRomanNumeral()).toBe('I');
     expect(host.textContent).toContain('Tier');
     expect(host.textContent).toContain('I');
-    expect(host.textContent).toContain('10/10 (Goblin Bruiser)');
+    expect(host.textContent).toContain('10/10');
+    expect(host.textContent).toContain('XP to next: 0');
     expect(host.textContent).toContain('Attack');
     expect(host.textContent).toContain('Defense');
     expect(host.textContent).toContain('Eligible now (unlocked at level 6)');
     expect(host.textContent).toContain('Mastered. Choose one capstone before any future promotion.');
     expect(host.textContent).toContain('None selected yet');
-    expect(host.textContent).toContain('Inherited from Bruiser.');
+    expect(host.textContent).toContain('Mastery & Capstone');
     expect(host.textContent).toContain('Brawl Hardened');
     expect(host.textContent).toContain('Gain protective stacks when attacked.');
     expect(host.textContent).toContain('Finisher');
     expect(host.textContent).toContain('Deal more damage to wounded enemies.');
-    expect(host.textContent).toContain('Promotions are now handled in the Academy.');
+    expect(host.textContent).toContain('Academy');
+    expect(host.textContent).toContain('Formation');
+    expect(host.textContent).toContain('Board footprint');
+    expect(host.textContent).not.toContain('Inherited Passives');
     expect(fixture.nativeElement.querySelector('.unit-portrait')?.getAttribute('src')).toContain(
       '/assets/ui/units/goblin_bruiser.png',
     );

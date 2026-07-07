@@ -114,6 +114,14 @@ export class UnitDetailsPageComponent {
   readonly unitLocked = computed(
     () => !!this.unit()?.locked || (this.hasActiveRun() && !!this.activeSquad()?.unit_ids?.includes(this.unitId)),
   );
+  readonly showPromotionAction = computed(() => {
+    const unit = this.unit();
+    if (!unit) {
+      return false;
+    }
+
+    return this.academyUnlocked() || !!unit.promotion_eligible;
+  });
   readonly units = this.sessionService.units;
   readonly dice = this.sessionService.dice;
   readonly error = signal<string | null>(null);
@@ -206,6 +214,18 @@ export class UnitDetailsPageComponent {
   readonly canChooseCapstone = computed(
     () => this.currentCapstoneState() === 'ready_to_select' && !this.selectedCapstoneAbilityId(),
   );
+  readonly masteryStatusLabel = computed(() => {
+    if (this.selectedCapstoneAbilityId()) {
+      return 'Capstone Locked In';
+    }
+
+    return {
+      none: 'No Capstone',
+      unearned: 'Mastery Unlocked Later',
+      ready_to_select: 'Choose Capstone',
+      selected: 'Capstone Locked In',
+    }[this.currentCapstoneState()] ?? 'Capstone Status';
+  });
   readonly totalEquippedSpeed = computed(() =>
     this.pendingEquippedAbilityIds().reduce(
       (total, abilityId) => total + (this.abilityCatalog().get(abilityId)?.speed ?? 0),

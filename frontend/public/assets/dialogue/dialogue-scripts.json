@@ -1,0 +1,75 @@
+{
+  "scripts": [
+    {
+      "id": "farm-boss-intro",
+      "trigger": {
+        "scene": "run-node",
+        "node_type": "boss",
+        "region_slug": "the_farm"
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/farm.png"
+      },
+      "speakers": [
+        {
+          "id": "mudking",
+          "side": "left",
+          "name": "Mudking",
+          "portrait_unit_slug": "mudking",
+          "role": "npc"
+        },
+        {
+          "id": "player",
+          "side": "right",
+          "role": "player"
+        }
+      ],
+      "start_step_id": "mudking-intro",
+      "steps": [
+        {
+          "id": "mudking-intro",
+          "speaker_id": "mudking",
+          "text": "Are you here to fight me",
+          "next_step_id": "player-answer"
+        },
+        {
+          "id": "player-answer",
+          "speaker_id": "player",
+          "text": "How do you answer?",
+          "choices": [
+            {
+              "id": "yes",
+              "label": "yes",
+              "next_step_id": "mudking-yes"
+            },
+            {
+              "id": "no",
+              "label": "no",
+              "next_step_id": "mudking-no"
+            },
+            {
+              "id": "maybe",
+              "label": "maybe",
+              "next_step_id": "mudking-maybe"
+            }
+          ]
+        },
+        {
+          "id": "mudking-yes",
+          "speaker_id": "mudking",
+          "text": "Good!"
+        },
+        {
+          "id": "mudking-no",
+          "speaker_id": "mudking",
+          "text": "Too bad!"
+        },
+        {
+          "id": "mudking-maybe",
+          "speaker_id": "mudking",
+          "text": "Gonna fight ya anyway!"
+        }
+      ]
+    }
+  ]
+}

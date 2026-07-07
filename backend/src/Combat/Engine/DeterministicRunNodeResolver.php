@@ -344,6 +344,9 @@ final class DeterministicRunNodeResolver
 
     $unitIds = array_map(static fn(array $u): int => (int)$u['id'], $units);
     $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
+    $featureUnlocks = (new UserUnlockService($this->pdo))
+      ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_FEATURE);
+    $d4ExplosionUnlocked = in_array(UserUnlockService::FEATURE_D4_EXPLODE, $featureUnlocks, true);
     $unlockedPassiveAbilityIdsByUnit = $this->loadUnlockedPassiveAbilityIdsByUnit($unitIds, $abilityRegistry);
     $equippedAbilityIdsByUnit = [];
     if ($this->schemaHasTable('unit_instance_equipped_abilities')) {
@@ -386,6 +389,9 @@ final class DeterministicRunNodeResolver
             'sides' => max(2, (int)$diceRow['sides']),
             'affixes' => [],
           ];
+          if ($d4ExplosionUnlocked) {
+            $this->applyGlobalD4ExplosionUnlockToDie($die);
+          }
           $diceByUnitAbility[$unitId][$abilityId][$slotIndex][$diceKey] = $die;
           $passiveDiceByUnitId[$unitId][$diceInstanceId] = $die;
         }
@@ -2813,6 +2819,27 @@ final class DeterministicRunNodeResolver
         'below_half_bonus' => max((float)($unit['combat_affixes']['below_half_bonus'] ?? 0.0), $belowHalfBonus),
       ]
     );
+  }
+
+  /**
+   * @param array{kind:string,dice_instance_id:?string,sides:int,affixes:array<int,array{slug:string,value:float}>} $die
+   */
+  private function applyGlobalD4ExplosionUnlockToDie(array &$die): void
+  {
+    if ((int)($die['sides'] ?? 0) !== 4) {
+      return;
+    }
+
+    foreach ((array)($die['affixes'] ?? []) as $affix) {
+      if (strtolower(trim((string)($affix['slug'] ?? ''))) === 'explode_once') {
+        return;
+      }
+    }
+
+    $die['affixes'][] = [
+      'slug' => 'explode_once',
+      'value' => 1.0,
+    ];
   }
 
   /**

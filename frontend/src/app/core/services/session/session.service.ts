@@ -61,7 +61,12 @@ export class SessionService {
   constructor(
     private readonly apiHttp: ApiHttpService,
     private readonly profileService: ProfileService,
-  ) {}
+  ) {
+    this.apiHttp.registerAuthRecovery({
+      refreshSession: (failingPath) => this.refreshAfterUnauthorized(failingPath),
+      handleSessionExpired: () => this.handleExpiredSession(),
+    });
+  }
 
   async initialize(): Promise<void> {
     if (this.initializePromise) {
@@ -85,11 +90,48 @@ export class SessionService {
   }
 
   async refresh(): Promise<void> {
+    await this.refreshInternal();
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await this.apiHttp.post('/api/v1/auth/logout', {}, { skipAuthRecovery: true });
+    } catch {
+      // Keep local shell usable even if the backend logout call fails.
+    }
+
+    await this.clearSessionStateAndRouteToLogin();
+  }
+
+  async refreshProfile(options?: { force?: boolean }): Promise<void> {
+    try {
+      const profile = await this.profileService.getProfile({
+        force: options?.force,
+        allowStaleOnError: !options?.force,
+      });
+      this.profileDataState.set(profile.ok ? profile.data : null);
+      this.profileState.set(this.mapProfile(profile));
+      this.errorState.set(null);
+    } catch (error) {
+      this.errorState.set(error instanceof Error ? error.message : 'Unable to reach the API.');
+    }
+  }
+
+  invalidateProfileCache(): void {
+    this.profileService.invalidateProfileCache();
+  }
+
+  private async refreshInternal(options?: { skipAuthRecovery?: boolean; suppressErrors?: boolean }): Promise<void> {
     this.loadingState.set(true);
-    this.errorState.set(null);
+    if (!options?.suppressErrors) {
+      this.errorState.set(null);
+    }
 
     try {
-      const session = await this.apiHttp.get<SessionResponse>('/api/v1/session');
+      const session = await this.apiHttp.get<SessionResponse>(
+        '/api/v1/session',
+        options?.skipAuthRecovery ? { skipAuthRecovery: true } : undefined,
+      );
       const mappedSession = this.mapSession(session);
       this.sessionState.set(mappedSession);
 
@@ -102,38 +144,31 @@ export class SessionService {
         this.profileState.set(DEFAULT_PROFILE);
       }
     } catch (error) {
-      this.errorState.set(error instanceof Error ? error.message : 'Unable to reach the API.');
+      if (!options?.suppressErrors) {
+        this.errorState.set(error instanceof Error ? error.message : 'Unable to reach the API.');
+      }
     } finally {
       this.loadingState.set(false);
     }
   }
 
-  async logout(): Promise<void> {
-    try {
-      await this.apiHttp.post('/api/v1/auth/logout', {});
-    } catch {
-      // Keep local shell usable even if the backend logout call fails.
-    }
-
+  async clearSessionStateAndRouteToLogin(): Promise<void> {
     this.initialized = false;
     this.initializePromise = null;
     this.sessionState.set(DEFAULT_SESSION);
     this.profileState.set(DEFAULT_PROFILE);
     this.profileDataState.set(null);
+    this.errorState.set(null);
     await this.router.navigateByUrl('/login');
   }
 
-  async refreshProfile(options?: { force?: boolean }): Promise<void> {
-    const profile = await this.profileService.getProfile({
-      force: options?.force,
-      allowStaleOnError: !options?.force,
-    });
-    this.profileDataState.set(profile.ok ? profile.data : null);
-    this.profileState.set(this.mapProfile(profile));
+  private async refreshAfterUnauthorized(_failingPath: string): Promise<boolean> {
+    await this.refreshInternal({ skipAuthRecovery: true, suppressErrors: true });
+    return this.sessionState().isAuthenticated;
   }
 
-  invalidateProfileCache(): void {
-    this.profileService.invalidateProfileCache();
+  private async handleExpiredSession(): Promise<void> {
+    await this.clearSessionStateAndRouteToLogin();
   }
 
   private mapSession(session: SessionResponse): SessionViewModel {

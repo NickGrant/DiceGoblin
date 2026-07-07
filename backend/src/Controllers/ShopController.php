@@ -31,6 +31,9 @@ final class ShopController
     UserUnlockService::FEATURE_SELL_BONUS => 500,
     UserUnlockService::FEATURE_MARKET_MASTERY => 1000,
     UserUnlockService::FEATURE_SECOND_DAILY_DEAL => 500,
+    UserUnlockService::FEATURE_ENERGY_75 => 750,
+    UserUnlockService::FEATURE_ENERGY_100 => 1250,
+    UserUnlockService::FEATURE_D4_EXPLODE => 2000,
   ];
 
   public function catalog(): void
@@ -246,6 +249,9 @@ final class ShopController
     $sellBonusUnlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SELL_BONUS);
     $marketMasteryUnlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_MARKET_MASTERY);
     $secondDailyDealUnlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SECOND_DAILY_DEAL);
+    $energy75Unlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_ENERGY_75);
+    $energy100Unlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_ENERGY_100);
+    $d4ExplodeUnlocked = $unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_D4_EXPLODE);
 
     return [[
       'product_id' => UserUnlockService::FEATURE_ACADEMY,
@@ -329,6 +335,42 @@ final class ShopController
       ),
       'is_unlocked' => $secondDailyDealUnlocked,
       'category' => 'feature',
+      'requires_unlock_key' => null,
+      'is_available' => true,
+    ], [
+      'product_id' => UserUnlockService::FEATURE_ENERGY_75,
+      'name' => 'Deep Pantry',
+      'description' => 'Raise your max energy from 50 to 75.',
+      'cost' => EconomyModifierService::adjustedShopCost(
+        self::FEATURE_UNLOCK_COSTS[UserUnlockService::FEATURE_ENERGY_75],
+        $featureUnlocks
+      ),
+      'is_unlocked' => $energy75Unlocked,
+      'category' => 'energy_upgrade',
+      'requires_unlock_key' => null,
+      'is_available' => true,
+    ], [
+      'product_id' => UserUnlockService::FEATURE_ENERGY_100,
+      'name' => 'Bottomless Pantry',
+      'description' => 'Raise your max energy from 75 to 100.',
+      'cost' => EconomyModifierService::adjustedShopCost(
+        self::FEATURE_UNLOCK_COSTS[UserUnlockService::FEATURE_ENERGY_100],
+        $featureUnlocks
+      ),
+      'is_unlocked' => $energy100Unlocked,
+      'category' => 'energy_upgrade',
+      'requires_unlock_key' => UserUnlockService::FEATURE_ENERGY_75,
+      'is_available' => $energy75Unlocked || $energy100Unlocked,
+    ], [
+      'product_id' => UserUnlockService::FEATURE_D4_EXPLODE,
+      'name' => 'Loaded Caltrops',
+      'description' => 'All d4s gain a one-time explode when they roll max during combat.',
+      'cost' => EconomyModifierService::adjustedShopCost(
+        self::FEATURE_UNLOCK_COSTS[UserUnlockService::FEATURE_D4_EXPLODE],
+        $featureUnlocks
+      ),
+      'is_unlocked' => $d4ExplodeUnlocked,
+      'category' => 'dice_upgrade',
       'requires_unlock_key' => null,
       'is_available' => true,
     ]];
@@ -648,6 +690,13 @@ final class ShopController
     }
 
     if (
+      $productId === UserUnlockService::FEATURE_ENERGY_100
+      && !$unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_ENERGY_75)
+    ) {
+      throw new RuntimeException('Deep Pantry must be unlocked first.');
+    }
+
+    if (
       $productId === UserUnlockService::FEATURE_MARKET_MASTERY
       && (
         !$unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP_DISCOUNT)
@@ -658,6 +707,16 @@ final class ShopController
     }
 
     $unlockService->grant($userId, UserUnlockService::NAMESPACE_FEATURE, $productId);
+
+    if (
+      $productId === UserUnlockService::FEATURE_ENERGY_75
+      || $productId === UserUnlockService::FEATURE_ENERGY_100
+    ) {
+      $effectiveMax = UserUnlockService::resolveEnergyMaxFromFeatureUnlocks(
+        $unlockService->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_FEATURE)
+      );
+      $this->applyEnergyCapUnlockInOpenTransaction($pdo, $userId, $effectiveMax);
+    }
 
     return [
       'product_id' => $productId,
@@ -692,6 +751,24 @@ final class ShopController
     }
 
     return max(1, (int)$matches[1]);
+  }
+
+  private function applyEnergyCapUnlockInOpenTransaction(PDO $pdo, int $userId, int $energyMax): void
+  {
+    $energyRepo = new \DiceGoblins\Repositories\EnergyRepository($pdo);
+    $energyRepo->ensureEnergyState($userId);
+    $row = $energyRepo->getEnergyStateForUpdate($userId);
+    if (!is_array($row)) {
+      throw new RuntimeException('Energy state row not found.');
+    }
+
+    $current = min(max(0, (int)($row['energy_current'] ?? 0)), $energyMax);
+    $stmt = $pdo->prepare('
+      UPDATE `energy_state`
+      SET `energy_max` = ?, `energy_current` = ?
+      WHERE `user_id` = ?
+    ');
+    $stmt->execute([$energyMax, $current, $userId]);
   }
 
   private function requireUserId(SessionService $sessionService): ?int

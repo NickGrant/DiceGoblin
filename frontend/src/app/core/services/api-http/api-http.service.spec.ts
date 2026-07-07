@@ -48,4 +48,38 @@ describe('ApiHttpService', () => {
     const headers = new Headers(init.headers);
     expect(headers.get('X-CSRF-Token')).toBe('csrf-123');
   });
+
+  it('retries once after auth recovery succeeds on a 401', async () => {
+    let callCount = 0;
+    service.registerAuthRecovery({
+      refreshSession: async () => true,
+      handleSessionExpired: async () => {},
+    });
+    fetchSpy.and.callFake(async () => {
+      callCount += 1;
+      if (callCount === 1) {
+        return new Response('unauthorized', { status: 401, statusText: 'Unauthorized' });
+      }
+
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+
+    await expectAsync(service.get('/api/v1/profile')).toBeResolvedTo({ ok: true } as any);
+    expect(fetchSpy.calls.count()).toBe(2);
+  });
+
+  it('does not attempt auth recovery for the session endpoint itself', async () => {
+    const refreshSession = jasmine.createSpy('refreshSession').and.resolveTo(true);
+    service.registerAuthRecovery({
+      refreshSession,
+      handleSessionExpired: async () => {},
+    });
+    fetchSpy.and.resolveTo(new Response('unauthorized', { status: 401, statusText: 'Unauthorized' }));
+
+    await expectAsync(service.get('/api/v1/session')).toBeRejected();
+    expect(refreshSession).not.toHaveBeenCalled();
+  });
 });

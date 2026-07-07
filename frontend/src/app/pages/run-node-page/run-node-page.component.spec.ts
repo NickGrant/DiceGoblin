@@ -1,9 +1,32 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { RunNodePageComponent } from './run-node-page.component';
+import { DialogueScript } from '../../core/dialogue/dialogue.models';
 import { AbilityCatalogService } from '../../core/services/ability-catalog/ability-catalog.service';
+import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
+
+const FARM_BOSS_DIALOGUE: DialogueScript = {
+  id: 'farm-boss-intro',
+  backgroundUrl: '/assets/ui/biome/farm.png',
+  startStepId: 'intro',
+  speakers: [
+    { id: 'mudking', side: 'left', name: 'Mudking', portraitUrl: '/assets/ui/units/pig_mudking.png', role: 'npc' },
+    { id: 'player', side: 'right', name: 'Ashback', portraitUrl: '/assets/ui/units/goblin_bruiser.png', role: 'player' },
+  ],
+  steps: [
+    { id: 'intro', speakerId: 'mudking', text: 'Are you here to fight me', nextStepId: 'answer', choices: [] },
+    {
+      id: 'answer',
+      speakerId: 'player',
+      text: 'How do you answer?',
+      nextStepId: null,
+      choices: [{ id: 'yes', label: 'yes', nextStepId: 'yes-response' }],
+    },
+    { id: 'yes-response', speakerId: 'mudking', text: 'Good!', nextStepId: null, choices: [] },
+  ],
+};
 
 class RunServiceStub {
   getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
@@ -114,6 +137,19 @@ class SessionServiceStub {
     { id: 'd1', rarity: 'rare', sides: 8 },
     { id: 'd2', rarity: 'uncommon', sides: 4 },
   ]);
+  readonly profileData = jasmine.createSpy('profileData').and.returnValue({
+    region_unlocks: [{ region_id: 'region-1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' }],
+  });
+  readonly activeSquad = jasmine.createSpy('activeSquad').and.returnValue({
+    id: 'team-1',
+    name: 'Bogbreakers',
+    is_active: true,
+    unit_ids: ['u1', 'u2'],
+    formation: [{ cell: 'A1', unit_instance_id: 'u1' }],
+  });
+  readonly session = jasmine.createSpy('session').and.returnValue({
+    displayName: 'Commander',
+  });
 }
 
 class AbilityCatalogServiceStub {
@@ -128,6 +164,10 @@ class AbilityCatalogServiceStub {
   load = jasmine.createSpy('load').and.resolveTo();
 }
 
+class DialogueServiceStub {
+  getDialogue = jasmine.createSpy('getDialogue').and.resolveTo(null);
+}
+
 describe('RunNodePageComponent', () => {
   it('loads the active run id on startup', async () => {
     await TestBed.configureTestingModule({
@@ -137,6 +177,7 @@ describe('RunNodePageComponent', () => {
         { provide: RunService, useClass: RunServiceStub },
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        { provide: DialogueService, useClass: DialogueServiceStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
@@ -157,6 +198,7 @@ describe('RunNodePageComponent', () => {
         { provide: RunService, useClass: RunServiceStub },
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        { provide: DialogueService, useClass: DialogueServiceStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
@@ -191,6 +233,7 @@ describe('RunNodePageComponent', () => {
         { provide: RunService, useValue: runService },
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        { provide: DialogueService, useClass: DialogueServiceStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
@@ -214,6 +257,7 @@ describe('RunNodePageComponent', () => {
         { provide: RunService, useClass: RunServiceStub },
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        { provide: DialogueService, useClass: DialogueServiceStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
@@ -238,6 +282,7 @@ describe('RunNodePageComponent', () => {
         { provide: RunService, useClass: RunServiceStub },
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        { provide: DialogueService, useClass: DialogueServiceStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
@@ -353,6 +398,7 @@ describe('RunNodePageComponent', () => {
         { provide: RunService, useValue: lootRunService },
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        { provide: DialogueService, useClass: DialogueServiceStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
@@ -382,5 +428,62 @@ describe('RunNodePageComponent', () => {
     expect(host.textContent).toContain('bone d6');
     expect(host.textContent).toContain('Warcaller');
     expect(host.textContent).not.toContain('Battle Log');
+  });
+
+  it('shows dialogue before resolving the farm boss node', async () => {
+    const runService = new RunServiceStub();
+    runService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: 'run-1', region_id: 'region-1' },
+        map: {
+          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'boss', status: 'available' }],
+          edges: [],
+        },
+      },
+    });
+    const dialogueService = new DialogueServiceStub();
+    dialogueService.getDialogue.and.resolveTo(FARM_BOSS_DIALOGUE);
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: runService },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        { provide: DialogueService, useValue: dialogueService },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(runService.resolveNode).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.dialogue()?.id).toBe('farm-boss-intro');
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.textContent).toContain('Are you here to fight me');
+
+    const continueSurface = host.querySelector('.dialogue-stage') as HTMLElement;
+    continueSurface.click();
+    fixture.detectChanges();
+
+    const choiceButton = host.querySelector('.dialogue-stage__choice') as HTMLButtonElement;
+    choiceButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    continueSurface.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', 'n1');
+    expect(fixture.componentInstance.result()?.battle.battle_id).toBe('b1');
   });
 });

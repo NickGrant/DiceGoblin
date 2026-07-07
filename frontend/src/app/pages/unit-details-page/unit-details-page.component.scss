@@ -4,11 +4,15 @@
   gap: 1rem;
 }
 
-.unit-stats-panel,
 .unit-summary {
   padding: 1rem;
   border: 2px solid rgba(35, 39, 42, 0.12);
   background: rgba(243, 239, 224, 0.72);
+}
+
+.unit-summary--command {
+  display: flex;
+  flex-direction: column;
 }
 
 .unit-summary--portrait {
@@ -37,39 +41,55 @@
   text-align: center;
 }
 
-.unit-stats-list {
-  display: grid;
-  gap: 0.9rem;
+.unit-promo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 2px solid rgba(35, 39, 42, 0.12);
+  background: rgba(255, 250, 240, 0.9);
 }
 
-.unit-stats-row {
-  display: grid;
-  grid-template-columns: minmax(6rem, 8rem) 1fr;
-  gap: 0.75rem;
-  align-items: baseline;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(35, 39, 42, 0.12);
-}
-
-.unit-stats-row:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-
-.unit-stats-row dt,
-.unit-stats-row dd {
-  margin: 0;
-}
-
-.unit-stats-row dt {
-  font-family: 'Big Shoulders Stencil Text', 'Saira Stencil One', Impact, sans-serif;
+.unit-promo-banner__label {
+  font-size: 0.78rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: rgba(35, 39, 42, 0.64);
 }
 
-.unit-stats-row dd {
-  font-size: 1rem;
-  font-weight: 600;
+.unit-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.unit-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.85rem 0.9rem;
+  border: 2px solid rgba(35, 39, 42, 0.1);
+  background: rgba(255, 252, 246, 0.84);
+}
+
+.unit-stat-card__label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(35, 39, 42, 0.62);
+}
+
+.unit-stat-card__value {
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.unit-stat-card__meta {
+  font-size: 0.82rem;
+  color: rgba(35, 39, 42, 0.7);
 }
 
 .ability-list-card {
@@ -254,9 +274,13 @@
 }
 
 @media (max-width: 760px) {
-  .unit-stats-row {
+  .unit-profile-grid {
     grid-template-columns: 1fr;
-    gap: 0.2rem;
+  }
+
+  .unit-promo-banner {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .ability-list-card {
@@ -287,6 +311,10 @@
 
 @media (min-width: 761px) {
   .unit-details-page__stats-grid,
+  .unit-details-page__abilities-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .unit-details-page__abilities-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

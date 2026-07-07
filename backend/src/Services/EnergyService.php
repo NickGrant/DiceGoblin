@@ -46,6 +46,21 @@ final class EnergyService
         throw new RuntimeException('Energy state not found.');
       }
 
+      $featureUnlocks = (new UserUnlockService($pdo))
+        ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_FEATURE);
+      $effectiveMax = UserUnlockService::resolveEnergyMaxFromFeatureUnlocks($featureUnlocks);
+      if ((int)$row['energy_max'] !== $effectiveMax) {
+        $current = min(max(0, (int)$row['energy_current']), $effectiveMax);
+        $update = $pdo->prepare('
+          UPDATE `energy_state`
+          SET `energy_max` = ?, `energy_current` = ?
+          WHERE `user_id` = ?
+        ');
+        $update->execute([$effectiveMax, $current, $userId]);
+        $row['energy_max'] = $effectiveMax;
+        $row['energy_current'] = $current;
+      }
+
       $current = (int)$row['energy_current'];
       $max = (int)$row['energy_max'];
       $rate = (float)$row['regen_rate_per_hour'];

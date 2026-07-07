@@ -16,6 +16,9 @@ final class UserUnlockService
   public const FEATURE_SELL_BONUS = 'sell_bonus';
   public const FEATURE_MARKET_MASTERY = 'market_mastery';
   public const FEATURE_SECOND_DAILY_DEAL = 'second_daily_deal';
+  public const FEATURE_ENERGY_75 = 'energy_cap_75';
+  public const FEATURE_ENERGY_100 = 'energy_cap_100';
+  public const FEATURE_D4_EXPLODE = 'explode_d4s';
 
   public function __construct(
     private readonly PDO $pdo,
@@ -75,5 +78,21 @@ final class UserUnlockService
       static fn(mixed $value): string => (string)$value,
       $stmt->fetchAll(PDO::FETCH_COLUMN)
     ));
+  }
+
+  /**
+   * @param list<string> $featureUnlocks
+   */
+  public static function resolveEnergyMaxFromFeatureUnlocks(array $featureUnlocks): int
+  {
+    if (in_array(self::FEATURE_ENERGY_100, $featureUnlocks, true)) {
+      return 100;
+    }
+
+    if (in_array(self::FEATURE_ENERGY_75, $featureUnlocks, true)) {
+      return 75;
+    }
+
+    return 50;
   }
 }

@@ -2,6 +2,11 @@
   display: block;
 }
 
+.node-dialogue {
+  border: 1px solid var(--dg-border-soft);
+  background: rgba(20, 21, 18, 0.8);
+}
+
 .node-hero {
   display: flex;
   flex-wrap: wrap;

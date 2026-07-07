@@ -9,9 +9,16 @@ describe('SessionService', () => {
   let apiHttp: jasmine.SpyObj<ApiHttpService>;
   let profileService: jasmine.SpyObj<ProfileService>;
   let router: jasmine.SpyObj<Router>;
+  let registeredAuthRecovery: {
+    refreshSession: (failingPath: string) => Promise<boolean>;
+    handleSessionExpired: () => Promise<void>;
+  };
 
   beforeEach(() => {
-    apiHttp = jasmine.createSpyObj<ApiHttpService>('ApiHttpService', ['get', 'post']);
+    apiHttp = jasmine.createSpyObj<ApiHttpService>('ApiHttpService', ['get', 'post', 'registerAuthRecovery']);
+    apiHttp.registerAuthRecovery.and.callFake((handlers) => {
+      registeredAuthRecovery = handlers;
+    });
     profileService = jasmine.createSpyObj<ProfileService>('ProfileService', ['getProfile', 'invalidateProfileCache']);
     router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
     router.navigateByUrl.and.resolveTo(true);
@@ -130,6 +137,52 @@ describe('SessionService', () => {
 
     expect(service.session().displayName).toBe('Visitor');
     expect(service.profile().softCurrency).toBe(0);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
+  });
+
+  it('registers auth recovery and can silently confirm a still-authenticated session', async () => {
+    apiHttp.get.and.resolveTo({
+      ok: true,
+      data: {
+        authenticated: true,
+        csrf_token: 'csrf',
+        user: { id: 4, display_name: 'Nick' },
+      },
+    } as any);
+    profileService.getProfile.and.resolveTo({
+      ok: true,
+      data: {
+        energy: { current: 5, max: 10 },
+        currency: { soft: 40 },
+        active_run: null,
+        squad_unit_cap: 4,
+        feature_unlocks: [],
+        unit_type_unlocks: [],
+        squads: [],
+        units: [],
+        dice: [],
+      },
+    } as any);
+
+    const recovered = await registeredAuthRecovery.refreshSession('/api/v1/profile');
+
+    expect(recovered).toBeTrue();
+    expect(apiHttp.get).toHaveBeenCalledWith('/api/v1/session', { skipAuthRecovery: true });
+  });
+
+  it('clears session state when auth recovery confirms expiry', async () => {
+    apiHttp.get.and.resolveTo({
+      ok: true,
+      data: {
+        authenticated: false,
+      },
+    } as any);
+
+    const recovered = await registeredAuthRecovery.refreshSession('/api/v1/profile');
+
+    expect(recovered).toBeFalse();
+    await registeredAuthRecovery.handleSessionExpired();
+    expect(service.session().isAuthenticated).toBeFalse();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
   });
 });

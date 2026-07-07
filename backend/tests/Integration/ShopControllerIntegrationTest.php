@@ -52,6 +52,12 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     $this->assertFalse((bool)($featureUnlocks[5]['is_available'] ?? true));
     $this->assertSame('second_daily_deal', (string)($featureUnlocks[6]['product_id'] ?? ''));
     $this->assertSame(500, (int)($featureUnlocks[6]['cost'] ?? 0));
+    $this->assertSame('energy_cap_75', (string)($featureUnlocks[7]['product_id'] ?? ''));
+    $this->assertSame(750, (int)($featureUnlocks[7]['cost'] ?? 0));
+    $this->assertSame('energy_cap_100', (string)($featureUnlocks[8]['product_id'] ?? ''));
+    $this->assertFalse((bool)($featureUnlocks[8]['is_available'] ?? true));
+    $this->assertSame('explode_d4s', (string)($featureUnlocks[9]['product_id'] ?? ''));
+    $this->assertSame(2000, (int)($featureUnlocks[9]['cost'] ?? 0));
     $this->assertCount(1, $dailyDeals);
     $this->assertSame('daily_deal_1', (string)($dailyDeals[0]['product_id'] ?? ''));
   }
@@ -172,6 +178,27 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     $this->assertSame('Coupon Book and Sharp Dealer must be unlocked first.', (string)($response['body']['error']['message'] ?? ''));
   }
 
+  public function testPurchaseRejectsEnergy100UntilEnergy75IsUnlocked(): void
+  {
+    $userId = $this->insertUser('qa_shop_energy_gate', 'QA Shop Energy Gate');
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $this->setSoftCurrency($userId, 1300);
+
+    $controller = new ShopController();
+    $this->setJsonBody([
+      'item_type' => 'feature_unlock',
+      'product_id' => 'energy_cap_100',
+    ]);
+    $response = $this->invoke(fn() => $controller->purchase());
+
+    $this->assertSame(400, $response['status']);
+    $this->assertSame('validation_error', (string)($response['body']['error']['code'] ?? ''));
+    $this->assertSame('Deep Pantry must be unlocked first.', (string)($response['body']['error']['message'] ?? ''));
+  }
+
   public function testCatalogDiscountsCostsAfterShopDiscountUnlock(): void
   {
     $userId = $this->insertUser('qa_shop_discount', 'QA Shop Discount');
@@ -191,6 +218,9 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     $this->assertSame(450, (int)($featureUnlocks[1]['cost'] ?? 0));
     $this->assertSame(450, (int)($featureUnlocks[3]['cost'] ?? 0));
     $this->assertSame(900, (int)($featureUnlocks[5]['cost'] ?? 0));
+    $this->assertSame(675, (int)($featureUnlocks[7]['cost'] ?? 0));
+    $this->assertSame(1125, (int)($featureUnlocks[8]['cost'] ?? 0));
+    $this->assertSame(1800, (int)($featureUnlocks[9]['cost'] ?? 0));
   }
 
   public function testPurchaseCanUnlockSellBonusFeature(): void
@@ -341,6 +371,9 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     $this->assertSame(400, (int)($featureUnlocks[3]['cost'] ?? 0));
     $this->assertSame(800, (int)($featureUnlocks[5]['cost'] ?? 0));
     $this->assertTrue((bool)($featureUnlocks[5]['is_unlocked'] ?? false));
+    $this->assertSame(600, (int)($featureUnlocks[7]['cost'] ?? 0));
+    $this->assertSame(1000, (int)($featureUnlocks[8]['cost'] ?? 0));
+    $this->assertSame(1600, (int)($featureUnlocks[9]['cost'] ?? 0));
   }
 
   public function testCatalogShowsSecondDailyDealAfterUnlock(): void
@@ -359,5 +392,28 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
     $this->assertCount(2, $dailyDeals);
     $this->assertSame('daily_deal_1', (string)($dailyDeals[0]['product_id'] ?? ''));
     $this->assertSame('daily_deal_2', (string)($dailyDeals[1]['product_id'] ?? ''));
+  }
+
+  public function testPurchaseEnergyUnlockRaisesStoredEnergyCap(): void
+  {
+    $userId = $this->insertUser('qa_shop_energy75', 'QA Shop Energy 75');
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $this->setSoftCurrency($userId, 900);
+
+    $controller = new ShopController();
+    $this->setJsonBody([
+      'item_type' => 'feature_unlock',
+      'product_id' => 'energy_cap_75',
+    ]);
+    $response = $this->invoke(fn() => $controller->purchase());
+
+    $this->assertSame(200, $response['status']);
+    $this->assertSame(75, (int)$this->scalar(
+      'SELECT `energy_max` FROM `energy_state` WHERE `user_id` = ?',
+      [$userId]
+    ));
   }
 }

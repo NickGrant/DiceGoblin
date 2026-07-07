@@ -41,6 +41,7 @@ use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\SquadCapacityService;
 use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Services\UserDataSyncService;
+use DiceGoblins\Services\UserUnlockService;
 use DiceGoblins\Support\RunSummaryBuilder;
 
 use PDO;
@@ -706,7 +707,20 @@ final class ApiController
     }
 
     $current = (int)$row['energy_current'];
-    $max = (int)$row['energy_max'];
+    $featureUnlocks = (new UserUnlockService($energyRepo->pdo()))
+      ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_FEATURE);
+    $effectiveMax = UserUnlockService::resolveEnergyMaxFromFeatureUnlocks($featureUnlocks);
+    if ((int)$row['energy_max'] !== $effectiveMax) {
+      $current = min($current, $effectiveMax);
+      $stmt = $energyRepo->pdo()->prepare('
+        UPDATE `energy_state`
+        SET `energy_max` = ?, `energy_current` = ?
+        WHERE `user_id` = ?
+      ');
+      $stmt->execute([$effectiveMax, $current, $userId]);
+    }
+
+    $max = $effectiveMax;
     $rate = (float)$row['regen_rate_per_hour'];
     $lastSql = (string)$row['last_regen_at'];
 

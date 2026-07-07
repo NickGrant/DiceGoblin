@@ -147,6 +147,36 @@ class ShopServiceStub {
           requires_unlock_key: null,
           is_available: true,
         },
+        {
+          product_id: 'energy_cap_75',
+          name: 'Deep Pantry',
+          description: 'Raise your max energy from 50 to 75.',
+          cost: 750,
+          is_unlocked: false,
+          category: 'energy_upgrade',
+          requires_unlock_key: null,
+          is_available: true,
+        },
+        {
+          product_id: 'energy_cap_100',
+          name: 'Bottomless Pantry',
+          description: 'Raise your max energy from 75 to 100.',
+          cost: 1250,
+          is_unlocked: false,
+          category: 'energy_upgrade',
+          requires_unlock_key: 'energy_cap_75',
+          is_available: false,
+        },
+        {
+          product_id: 'explode_d4s',
+          name: 'Loaded Caltrops',
+          description: 'All d4s gain a one-time explode when they roll max during combat.',
+          cost: 2000,
+          is_unlocked: false,
+          category: 'dice_upgrade',
+          requires_unlock_key: null,
+          is_available: true,
+        },
       ],
     },
   });
@@ -198,8 +228,12 @@ describe('ShopPageComponent', () => {
     expect(compiled.textContent).toContain('Sharp Dealer');
     expect(compiled.textContent).toContain('Market Mastery');
     expect(compiled.textContent).toContain('Second Deal');
+    expect(compiled.textContent).toContain('Deep Pantry');
+    expect(compiled.textContent).toContain('Bottomless Pantry');
+    expect(compiled.textContent).toContain('Loaded Caltrops');
     expect(compiled.textContent).toContain('Requires Bigger Squad');
     expect(compiled.textContent).toContain('Requires Coupon Book + Sharp Dealer');
+    expect(compiled.textContent).toContain('Requires Deep Pantry');
     expect(compiled.textContent).toContain('500 Teeth');
 
     const unlockedCard = compiled.querySelector('.feature-unlock-card--unlocked');

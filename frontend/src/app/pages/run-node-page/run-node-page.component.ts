@@ -1,15 +1,24 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ResolveNodeData, UnitRecord } from '../../core/models/api.models';
+import { DialogueChoiceSelection, DialogueScript, DialogueTriggerContext } from '../../core/dialogue/dialogue.models';
 import { AbilityCatalogService } from '../../core/services/ability-catalog/ability-catalog.service';
+import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
+import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
+import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
 import { UnitGridObjectComponent, UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 
 const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss', 'loot']);
+const REGION_THEME_BY_SLUG: Record<string, string> = {
+  the_farm: 'farm',
+  mountains: 'mountain',
+  swamps: 'swamp',
+};
 
 type BattleLogActionViewModel = {
   round: number;
@@ -52,7 +61,7 @@ type ConditionDefinition = {
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, UnitGridObjectComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, DgDialogueStageComponent, PageFrameComponent, UnitGridObjectComponent],
   templateUrl: './run-node-page.component.html',
   styleUrl: './run-node-page.component.scss',
 })
@@ -84,11 +93,14 @@ export class RunNodePageComponent {
   private readonly router = inject(Router);
   private readonly runService = inject(RunService);
   private readonly sessionService = inject(SessionService);
+  private readonly dialogueService = inject(DialogueService);
   private readonly abilityCatalogService = inject(AbilityCatalogService);
 
   readonly nodeId = this.route.snapshot.paramMap.get('nodeId') ?? '';
   readonly runId = signal<string | null>(null);
   readonly result = signal<ResolveNodeData | null>(null);
+  readonly dialogue = signal<DialogueScript | null>(null);
+  readonly dialogueChoiceHistory = signal<DialogueChoiceSelection[]>([]);
   readonly loading = signal(true);
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
@@ -195,7 +207,12 @@ export class RunNodePageComponent {
       this.runId.set(current.data.run.run_id);
 
       if (currentNode && AUTO_RESOLVE_NODE_TYPES.has(currentNode.node_type)) {
-        await this.resolveNode();
+        const dialogue = await this.lookupDialogue(current.data.run.region_id, currentNode);
+        if (dialogue) {
+          this.dialogue.set(dialogue);
+        } else {
+          await this.resolveNode();
+        }
       }
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to load node.');
@@ -284,6 +301,12 @@ export class RunNodePageComponent {
 
   private resolveAbilityName(abilityId: string): string {
     return this.abilityCatalog().get(abilityId)?.display_name ?? this.humanizeId(abilityId || 'ability');
+  }
+
+  async handleDialogueComplete(choiceHistory: DialogueChoiceSelection[]): Promise<void> {
+    this.dialogueChoiceHistory.set(choiceHistory);
+    this.dialogue.set(null);
+    await this.resolveNode();
   }
 
   private describeDice(event: Record<string, unknown>): string {
@@ -471,6 +494,47 @@ export class RunNodePageComponent {
     }
 
     return this.numberValue(fallbackValue);
+  }
+
+  private async lookupDialogue(
+    regionId: string,
+    currentNode: { node_type: string; meta?: Record<string, unknown> | null },
+  ): Promise<DialogueScript | null> {
+    const regionSlug = this.sessionService
+      .profileData()
+      ?.region_unlocks.find((entry) => entry.region_id === regionId)?.region_slug ?? null;
+    const leadUnit = this.resolveLeadUnit();
+    const playerPortraitUrl = resolveUnitImageUrl(leadUnit?.unit_type_slug || leadUnit?.unit_type_name || 'bruiser');
+    const fallbackTheme = regionSlug ? REGION_THEME_BY_SLUG[regionSlug] : null;
+    const context: DialogueTriggerContext = {
+      scene: 'run-node',
+      nodeType: currentNode.node_type,
+      regionId,
+      regionSlug,
+      encounterTemplateId: this.stringValue(currentNode.meta?.['encounter_template_id']),
+      playerName: leadUnit?.name ?? this.sessionService.session().displayName,
+      playerPortraitUrl,
+      tags: fallbackTheme ? [fallbackTheme] : [],
+    };
+
+    try {
+      return await this.dialogueService.getDialogue(context);
+    } catch {
+      return null;
+    }
+  }
+
+  private resolveLeadUnit(): UnitRecord | null {
+    const activeSquad = this.sessionService.activeSquad();
+    const leadUnitId = activeSquad?.formation.find((entry) => entry.unit_instance_id)?.unit_instance_id
+      ?? activeSquad?.unit_ids.find((unitId) => typeof unitId === 'string' && unitId.length > 0)
+      ?? null;
+
+    if (leadUnitId) {
+      return this.sessionService.units().find((unit) => unit.id === leadUnitId) ?? null;
+    }
+
+    return this.sessionService.units()[0] ?? null;
   }
 }
 

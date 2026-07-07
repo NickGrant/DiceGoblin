@@ -183,6 +183,28 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     $this->assertSame(3, (int)($unit['combat_affixes']['debuff_type_cap'] ?? 0));
   }
 
+  public function testApplyGlobalD4ExplosionUnlockAddsExplodeAffixToD4Only(): void
+  {
+    $d4 = [
+      'kind' => 'unit',
+      'dice_instance_id' => '4',
+      'sides' => 4,
+      'affixes' => [],
+    ];
+    $d6 = [
+      'kind' => 'unit',
+      'dice_instance_id' => '6',
+      'sides' => 6,
+      'affixes' => [],
+    ];
+
+    $this->invokePrivate('applyGlobalD4ExplosionUnlockToDie', [&$d4]);
+    $this->invokePrivate('applyGlobalD4ExplosionUnlockToDie', [&$d6]);
+
+    $this->assertSame('explode_once', (string)($d4['affixes'][0]['slug'] ?? ''));
+    $this->assertSame([], $d6['affixes']);
+  }
+
   public function testInitializePassiveStatusesForCombatSeedsSpitefulReflex(): void
   {
     $statusMap = ['unit-1' => []];
