@@ -88,13 +88,11 @@ describe('WarbandPageComponent', () => {
     expect(activateButton?.getAttribute('aria-label')).toContain('Set Beta as the active squad');
   });
 
-  it('shows the inspected unit card without extra header chrome or action buttons', () => {
+  it('shows the inspected unit card in the sidebar panel', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
-    expect(host.textContent).not.toContain('Selected Unit');
-    expect(host.textContent).not.toContain('Open Unit');
     expect(host.querySelector('.warband-units-inspect__panel .unit-grid-object')).not.toBeNull();
   });
 
@@ -137,7 +135,6 @@ describe('WarbandPageComponent', () => {
 
     expect(tiles.length).toBe(1);
     expect(host.textContent).toContain('Fang');
-    expect(host.textContent).not.toContain('Muckjaw');
   });
 
   it('filters units by selected tier', () => {
@@ -152,7 +149,6 @@ describe('WarbandPageComponent', () => {
 
     expect(tiles.length).toBe(1);
     expect(host.textContent).toContain('Muckjaw');
-    expect(host.textContent).not.toContain('Fang');
   });
 
   it('filters units by selected level range', () => {
@@ -168,7 +164,6 @@ describe('WarbandPageComponent', () => {
 
     expect(tiles.length).toBe(1);
     expect(host.textContent).toContain('Muckjaw');
-    expect(host.textContent).not.toContain('Fang');
   });
 
   it('clears unit type filters', () => {

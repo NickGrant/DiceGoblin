@@ -37,12 +37,22 @@
       }
 
       <div class="home-grid__tile">
+        @if (shopUnlocked()) {
         <a class="dg-media-card dg-media-card--compact" routerLink="/shop">
           <img class="dg-media-card__media" src="/assets/ui/panels/home_shop.jpg" alt="" />
           <div class="dg-media-card__overlay">
             <span class="dg-media-card__title dg-stencil">Shop</span>
           </div>
         </a>
+        } @else {
+        <div class="dg-media-card dg-media-card--compact is-disabled home-grid__locked-card" aria-disabled="true">
+          <img class="dg-media-card__media" src="/assets/ui/panels/home_shop.jpg" alt="" />
+          <div class="dg-media-card__overlay">
+            <span class="dg-media-card__title dg-stencil">Shop Locked</span>
+            <span class="dg-media-card__copy">Defeat The Farm to free the Tooth Collector.</span>
+          </div>
+        </div>
+        }
       </div>
 
       <div class="home-grid__tile">

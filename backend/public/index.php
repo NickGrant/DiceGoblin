@@ -116,6 +116,7 @@ $router->post('/api/v1/auth/logout', [$auth, 'logout']);
 $router->get('/api/v1/health', [$api, 'health']);
 $router->get('/api/v1/session', [$api, 'session']);
 $router->get('/api/v1/profile', [$api, 'profile']);
+$router->post('/api/v1/dialogues/:dialogueId/seen', [$api, 'markDialogueSeen']);
 $router->get('/api/v1/academy', [$academy, 'catalog']);
 $router->post('/api/v1/academy/unlock-unit-type', [$academy, 'unlockUnitType']);
 $router->get('/api/v1/shop', [$shop, 'catalog']);

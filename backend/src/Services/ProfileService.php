@@ -58,6 +58,8 @@ final class ProfileService
       ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_FEATURE);
     $unitTypeUnlocks = (new UserUnlockService($this->pdo))
       ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_UNIT_TYPE);
+    $seenDialogues = (new UserUnlockService($this->pdo))
+      ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_DIALOGUE);
     $squadUnitCap = SquadCapacityService::resolveCapFromFeatureUnlocks($featureUnlocks);
 
     // Squads/Teams (membership + formation)
@@ -93,6 +95,7 @@ final class ProfileService
       $squadUnitCap,
       $featureUnlocks,
       $unitTypeUnlocks,
+      $seenDialogues,
       $regionUnlocks,
       $regionItems,
       $activeRun

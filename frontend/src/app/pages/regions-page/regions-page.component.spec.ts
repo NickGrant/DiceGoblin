@@ -2,6 +2,8 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RegionsPageComponent } from './regions-page.component';
+import { DialogueScript } from '../../core/dialogue/dialogue.models';
+import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 
@@ -9,20 +11,35 @@ class RunServiceStub {
   createRun = jasmine.createSpy('createRun').and.resolveTo({ ok: true });
 }
 
+class DialogueServiceStub {
+  getDialogue = jasmine.createSpy('getDialogue').and.resolveTo(null);
+  markDialogueSeen = jasmine.createSpy('markDialogueSeen').and.resolveTo(undefined);
+}
+
 class SessionServiceStub {
   readonly hasActiveRun = signal(false);
+  readonly session = signal({
+    isAuthenticated: true,
+    displayName: 'Ravin',
+    userId: '42',
+    csrfToken: 'token',
+  });
   readonly profileData = signal<any>({
     active_run: null,
+    seen_dialogues: [],
     region_unlocks: [
       { region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' },
       { region_id: '2', region_slug: 'mountains', unlocked_at: '2026-06-02T00:00:00Z' },
     ],
   });
+  refreshProfile = jasmine.createSpy('refreshProfile').and.resolveTo(undefined);
 }
 
 describe('RegionsPageComponent', () => {
   let router: Router;
   let runService: RunServiceStub;
+  let dialogueService: DialogueServiceStub;
+  let sessionService: SessionServiceStub;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -30,12 +47,15 @@ describe('RegionsPageComponent', () => {
       providers: [
         provideRouter([]),
         { provide: RunService, useClass: RunServiceStub },
+        { provide: DialogueService, useClass: DialogueServiceStub },
         { provide: SessionService, useClass: SessionServiceStub },
       ],
     }).compileComponents();
 
     router = TestBed.inject(Router);
     runService = TestBed.inject(RunService) as unknown as RunServiceStub;
+    dialogueService = TestBed.inject(DialogueService) as unknown as DialogueServiceStub;
+    sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
   });
 
   it('computes unlocked regions from profile data', () => {
@@ -64,6 +84,7 @@ describe('RegionsPageComponent', () => {
     sessionService.hasActiveRun.set(true);
     sessionService.profileData.set({
       active_run: { region_id: '2' },
+      seen_dialogues: [],
       region_unlocks: [
         { region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' },
         { region_id: '2', region_slug: 'mountains', unlocked_at: '2026-06-02T00:00:00Z' },
@@ -118,5 +139,70 @@ describe('RegionsPageComponent', () => {
 
     expect(lockedTileBadge?.classList.contains('is-locked')).toBeTrue();
     expect(lockedInspectImage).not.toBeNull();
+  });
+
+  it('shows the kickoff dialogue and marks it seen on completion', async () => {
+    const kickoffDialogue: DialogueScript = {
+      id: 'start-run-kickoff',
+      backgroundUrl: '/assets/ui/biome/mystic_cave.png',
+      startStepId: 'intro',
+      speakers: [
+        { id: 'player', side: 'left', name: 'Ravin', portraitUrl: '/assets/dialogue/portraits/goblin/primordial_frame_0.png', party: 'player', role: 'player' },
+        { id: 'whim', side: 'right', name: 'The Whim', portraitUrl: '/assets/dialogue/portraits/whim/frame_0.png', party: 'neutral', role: 'npc' },
+      ],
+      steps: [
+        {
+          id: 'intro',
+          speakerId: 'whim',
+          text: 'In the beginning all was chaos...',
+          nextStepId: null,
+          choices: [],
+          enterEffect: null,
+        },
+      ],
+    };
+    dialogueService.getDialogue.and.resolveTo(kickoffDialogue);
+
+    const fixture = TestBed.createComponent(RegionsPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(dialogueService.getDialogue).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        scene: 'start-run',
+        tags: ['first-visit'],
+        playerName: 'Ravin',
+      }),
+    );
+    expect(fixture.componentInstance.startRunIntroDialogue()?.id).toBe('start-run-kickoff');
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.querySelector('.region-page-shell--dialogue-open')).not.toBeNull();
+    expect(host.querySelector('.region-page__dialogue[role="dialog"]')).not.toBeNull();
+
+    await fixture.componentInstance.handleStartRunIntroComplete([]);
+
+    expect(dialogueService.markDialogueSeen).toHaveBeenCalledWith('start-run-kickoff');
+    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
+    expect(fixture.componentInstance.startRunIntroDialogue()).toBeNull();
+  });
+
+  it('skips the kickoff dialogue after the account has already seen it', async () => {
+    sessionService.profileData.set({
+      active_run: null,
+      seen_dialogues: ['start-run-kickoff'],
+      region_unlocks: [
+        { region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(RegionsPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(dialogueService.getDialogue).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.startRunIntroDialogue()).toBeNull();
   });
 });

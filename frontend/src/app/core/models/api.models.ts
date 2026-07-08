@@ -180,6 +180,7 @@ export type ProfileData = {
   squad_unit_cap: number;
   feature_unlocks: string[];
   unit_type_unlocks: string[];
+  seen_dialogues?: string[];
   region_unlocks: RegionUnlockRecord[];
   region_items: RegionItemRecord[];
   active_run: ProfileActiveRun | null;
@@ -266,6 +267,12 @@ export type RunSummaryPayload = {
   progression: string[];
   survivors: string[];
   defeated: string[];
+  meta?: {
+    completed_region_slug?: string | null;
+    completed_region_name?: string | null;
+    new_feature_unlocks?: string[];
+    new_region_unlocks?: string[];
+  };
   reward_detail?: {
     currency_soft: number;
     units: Array<{ unit_instance_id: string | null; label: string }>;

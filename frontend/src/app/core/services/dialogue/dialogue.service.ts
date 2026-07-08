@@ -1,14 +1,21 @@
 import { Injectable } from '@angular/core';
 import { findDialogueScript } from '../../dialogue/dialogue-script-registry';
 import { DialogueLibraryDefinition, DialogueScript, DialogueTriggerContext } from '../../dialogue/dialogue.models';
+import { ApiHttpService } from '../api-http/api-http.service';
 
 @Injectable({ providedIn: 'root' })
 export class DialogueService {
   private libraryPromise: Promise<DialogueLibraryDefinition> | null = null;
 
+  constructor(private readonly apiHttp: ApiHttpService) {}
+
   async getDialogue(context: DialogueTriggerContext): Promise<DialogueScript | null> {
     const library = await this.loadLibrary();
     return findDialogueScript(library, context);
+  }
+
+  async markDialogueSeen(dialogueId: string): Promise<void> {
+    await this.apiHttp.postWithCsrf(`/api/v1/dialogues/${encodeURIComponent(dialogueId)}/seen`, {});
   }
 
   private async loadLibrary(): Promise<DialogueLibraryDefinition> {

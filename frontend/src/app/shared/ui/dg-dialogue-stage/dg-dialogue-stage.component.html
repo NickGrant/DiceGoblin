@@ -1,10 +1,20 @@
 <section
   class="dialogue-stage"
   [style.background-image]="script()?.backgroundUrl ? 'linear-gradient(rgba(18, 20, 21, 0.18), rgba(18, 20, 21, 0.5)), url(' + script()!.backgroundUrl + ')' : null"
-  [class.dialogue-stage--has-choices]="hasChoices()"
+  [class.dialogue-stage--has-choices]="hasVisibleChoices()"
   tabindex="0"
   (click)="canAdvance() ? advance() : null"
 >
+  @if (overlayImageUrl()) {
+  <div
+    class="dialogue-stage__overlay"
+    [class.dialogue-stage__overlay--visible]="overlayVisible()"
+    [class.dialogue-stage__overlay--flashing]="overlayFlashing()"
+  >
+    <img class="dialogue-stage__overlay-image" [src]="overlayImageUrl()!" alt="" />
+  </div>
+  }
+
   <div class="dialogue-stage__scene">
     @for (entry of visibleEntries(); track entry.step.id) {
     <article
@@ -30,9 +40,9 @@
     }
   </div>
 
-  @if (hasChoices()) {
+  @if (hasVisibleChoices()) {
   <div class="dialogue-stage__choices" (click)="$event.stopPropagation()">
-    @for (choice of currentStep()?.choices ?? []; track choice.id; let choiceIndex = $index) {
+    @for (choice of visibleChoices(); track choice.id; let choiceIndex = $index) {
     <button
       type="button"
       class="dialogue-stage__choice"

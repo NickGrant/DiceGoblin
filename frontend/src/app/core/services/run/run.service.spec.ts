@@ -102,6 +102,7 @@ describe('RunService', () => {
       progression: ['node 3'],
       survivors: ['Gobi'],
       defeated: ['Snail'],
+      meta: null,
       rewardDetail: {
         currency_soft: 0,
         units: [],
@@ -129,6 +130,7 @@ describe('RunService', () => {
       progression: [],
       survivors: [],
       defeated: [],
+      meta: null,
       rewardDetail: null,
       progressionDetail: [],
     });

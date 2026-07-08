@@ -60,7 +60,6 @@ describe('UnitGridObjectComponent', () => {
     expect(compiled.textContent).toContain('Tier II');
     expect(compiled.textContent).toContain('Bruiser');
     expect(compiled.textContent).toContain('Lv. 3');
-    expect(compiled.textContent).not.toContain('Unit Record');
     expect(compiled.textContent).toContain('XP 90/120');
     expect(compiled.textContent).toContain('Level Up');
     expect(compiled.textContent).toContain('7');

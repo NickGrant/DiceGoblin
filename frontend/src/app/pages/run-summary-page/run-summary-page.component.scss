@@ -1,3 +1,26 @@
+.run-summary-shell {
+  position: relative;
+}
+
+.run-summary-shell--dialogue-open {
+  min-height: 42rem;
+}
+
+.run-summary-dialogue {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 1rem 0;
+  background: linear-gradient(180deg, rgba(24, 18, 13, 0.18), rgba(24, 18, 13, 0.42));
+}
+
+.run-summary-dialogue dg-dialogue-stage {
+  width: 100%;
+}
+
 .run-summary-stack {
   display: flex;
   flex-direction: column;
@@ -79,6 +102,10 @@
 }
 
 @media (min-width: 761px) {
+  .run-summary-shell--dialogue-open {
+    min-height: 46rem;
+  }
+
   .run-summary-card-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

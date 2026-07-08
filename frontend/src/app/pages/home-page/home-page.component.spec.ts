@@ -20,6 +20,7 @@ class SessionServiceStub {
   });
 
   readonly hasActiveRun = signal(false);
+  readonly shopUnlocked = signal(false);
   readonly academyUnlocked = signal(false);
 }
 
@@ -49,14 +50,16 @@ describe('HomePageComponent', () => {
 
     expect(compiled.textContent).toContain('Start Run');
     expect(compiled.textContent).toContain('Your neighbors surely have some good stuff...');
+    expect(compiled.textContent).toContain('Shop Locked');
+    expect(compiled.textContent).toContain('Defeat The Farm to free the Tooth Collector.');
     expect(compiled.textContent).not.toContain('Academy');
-    expect(compiled.textContent).not.toContain('Unlock in Shop');
     expect(fixture.componentInstance.primaryRoute()).toBe('/regions');
     expect(fixture.componentInstance.primaryLabel()).toBe('Start Run');
   });
 
   it('shows continue-run copy when an active run exists', () => {
     sessionService.hasActiveRun.set(true);
+    sessionService.shopUnlocked.set(true);
     sessionService.academyUnlocked.set(true);
     sessionService.profile.set({
       activeRunId: 'run-7',
@@ -74,6 +77,7 @@ describe('HomePageComponent', () => {
 
     expect(compiled.textContent).toContain('Continue Run');
     expect(compiled.textContent).toContain('Back to "work".');
+    expect(compiled.textContent).toContain('Shop');
     expect(compiled.textContent).toContain('Academy');
     expect(component.primaryRoute()).toBe('/run/map');
     expect(component.primaryLabel()).toBe('Continue Run');

@@ -17,6 +17,7 @@ class SessionServiceStub {
     softCurrency: 93,
   });
 
+  readonly featureUnlocks = signal(['shop']);
   readonly logout = jasmine.createSpy('logout').and.resolveTo();
 }
 
@@ -151,6 +152,18 @@ describe('CommandControlsComponent', () => {
     expect(menu?.textContent).toContain('Shop');
     expect(menu?.textContent).toContain('Guide');
     expect(menu?.textContent).toContain('Logout');
+  });
+
+  it('disables the shop icon until the farm unlock is earned', () => {
+    sessionService.featureUnlocks.set([]);
+
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.detectChanges();
+
+    const disabledItems = Array.from(fixture.nativeElement.querySelectorAll('.hud-panel--nav [aria-disabled="true"]')) as HTMLElement[];
+    const shopItem = disabledItems.find((item) => item.getAttribute('aria-label')?.includes('Shop unavailable until you defeat The Farm'));
+
+    expect(shopItem).toBeDefined();
   });
 
   it('closes the mobile menu after tapping a menu link', () => {

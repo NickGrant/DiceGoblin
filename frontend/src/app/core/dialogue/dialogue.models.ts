@@ -32,6 +32,19 @@ export type DialogueStepDefinition = {
   text: string;
   next_step_id?: string | null;
   choices?: DialogueChoiceDefinition[];
+  enter_effect?: DialogueStepEnterEffectDefinition;
+};
+
+export type DialogueStepEnterEffectDefinition = {
+  kind: 'player_reveal';
+  initial_overlay_url: string;
+  final_overlay_url: string;
+  resulting_player_portrait_url: string;
+  initial_duration_ms?: number;
+  flash_count?: number;
+  flash_interval_ms?: number;
+  between_overlays_ms?: number;
+  final_hold_ms?: number;
 };
 
 export type DialoguePresentationDefinition = {
@@ -83,6 +96,19 @@ export type DialogueStep = {
   text: string;
   nextStepId: string | null;
   choices: DialogueChoice[];
+  enterEffect: DialogueStepEnterEffect | null;
+};
+
+export type DialogueStepEnterEffect = {
+  kind: 'player_reveal';
+  initialOverlayUrl: string;
+  finalOverlayUrl: string;
+  resultingPlayerPortraitUrl: string;
+  initialDurationMs: number;
+  flashCount: number;
+  flashIntervalMs: number;
+  betweenOverlaysMs: number;
+  finalHoldMs: number;
 };
 
 export type DialogueScript = {

@@ -17,6 +17,35 @@
   flex-direction: column;
 }
 
+.dialogue-stage__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 4;
+  transition: opacity 260ms ease;
+}
+
+.dialogue-stage__overlay--visible {
+  opacity: 1;
+}
+
+.dialogue-stage__overlay--flashing {
+  animation: dialogue-stage-overlay-flash 180ms ease 1;
+}
+
+.dialogue-stage__overlay-image {
+  width: min(20rem, 46vw);
+  max-height: min(24rem, 72vh);
+  object-fit: contain;
+  filter:
+    drop-shadow(0 0 1.2rem rgba(255, 241, 190, 0.34))
+    drop-shadow(0 1rem 1.5rem rgba(0, 0, 0, 0.34));
+}
+
 .dialogue-stage__scene {
   display: flex;
   flex-direction: column;
@@ -175,6 +204,23 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes dialogue-stage-overlay-flash {
+  0% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+
+  50% {
+    opacity: 0.25;
+    filter: brightness(1.55);
+  }
+
+  100% {
+    opacity: 1;
+    filter: brightness(1);
   }
 }
 

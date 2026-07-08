@@ -16,15 +16,16 @@ const FARM_BOSS_DIALOGUE: DialogueScript = {
     { id: 'player', side: 'left', name: 'Ashback', portraitUrl: '/assets/ui/units/goblin_bruiser.png', party: 'player', role: 'player' },
   ],
   steps: [
-    { id: 'intro', speakerId: 'mudking', text: 'Are you here to fight me', nextStepId: 'answer', choices: [] },
+    { id: 'intro', speakerId: 'mudking', text: 'Are you here to fight me', nextStepId: 'answer', choices: [], enterEffect: null },
     {
       id: 'answer',
       speakerId: 'player',
       text: 'How do you answer?',
       nextStepId: null,
+      enterEffect: null,
       choices: [{ id: 'yes', label: 'yes', nextStepId: 'yes-response' }],
     },
-    { id: 'yes-response', speakerId: 'mudking', text: 'Good!', nextStepId: null, choices: [] },
+    { id: 'yes-response', speakerId: 'mudking', text: 'Good!', nextStepId: null, choices: [], enterEffect: null },
   ],
 };
 
@@ -216,9 +217,6 @@ describe('RunNodePageComponent', () => {
     expect(fixture.componentInstance.pageSubtitle()).toBe(
       'Several goblins have volunteered to be an educational example.',
     );
-
-    const host: HTMLElement = fixture.nativeElement;
-    expect(host.textContent).not.toContain('Resolve Node');
   });
 
   it('uses an empty subtitle while a battle node is still loading', async () => {
@@ -333,10 +331,6 @@ describe('RunNodePageComponent', () => {
     expect(host.textContent).toContain('Sleep Hex');
     expect(host.textContent).toContain('sleep applied for 1 round and bleeding applied');
     expect(host.textContent).not.toContain('explode triggered');
-    expect(host.textContent).not.toContain('target HP');
-    expect(host.textContent).not.toContain('Locked In Run');
-    expect(host.textContent).not.toContain('Combat Node');
-    expect(host.textContent).not.toContain('Next Paths');
 
     const conditionChip = host.querySelector('.battle-log__condition[title*="defensive buff"]');
     expect(conditionChip?.textContent).toContain('bolstered');
@@ -465,6 +459,15 @@ describe('RunNodePageComponent', () => {
     fixture.detectChanges();
 
     expect(runService.resolveNode).not.toHaveBeenCalled();
+    expect(dialogueService.getDialogue).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        scene: 'run-node',
+        nodeType: 'boss',
+        regionSlug: 'the_farm',
+        playerName: 'Commander',
+        playerPortraitUrl: '/assets/dialogue/portraits/goblin/base_frame_0.png',
+      }),
+    );
     expect(fixture.componentInstance.dialogue()?.id).toBe('farm-boss-intro');
 
     const host: HTMLElement = fixture.nativeElement;

@@ -5,6 +5,7 @@ import {
   DialogueScriptDefinition,
   DialogueSpeaker,
   DialogueStep,
+  DialogueStepEnterEffect,
   DialogueTrigger,
   DialogueTriggerContext,
 } from './dialogue.models';
@@ -74,6 +75,7 @@ export function materializeDialogueScript(
         nextStepId: choice.next_step_id,
       }),
     ),
+    enterEffect: materializeEnterEffect(step.enter_effect),
   }));
 
   return {
@@ -132,4 +134,22 @@ function resolveSpeakerPortrait(
   }
 
   return null;
+}
+
+function materializeEnterEffect(effect: DialogueScriptDefinition['steps'][number]['enter_effect']): DialogueStepEnterEffect | null {
+  if (!effect || effect.kind !== 'player_reveal') {
+    return null;
+  }
+
+  return {
+    kind: 'player_reveal',
+    initialOverlayUrl: effect.initial_overlay_url,
+    finalOverlayUrl: effect.final_overlay_url,
+    resultingPlayerPortraitUrl: effect.resulting_player_portrait_url,
+    initialDurationMs: Math.max(200, effect.initial_duration_ms ?? 700),
+    flashCount: Math.max(1, effect.flash_count ?? 2),
+    flashIntervalMs: Math.max(80, effect.flash_interval_ms ?? 180),
+    betweenOverlaysMs: Math.max(0, effect.between_overlays_ms ?? 220),
+    finalHoldMs: Math.max(300, effect.final_hold_ms ?? 2000),
+  };
 }

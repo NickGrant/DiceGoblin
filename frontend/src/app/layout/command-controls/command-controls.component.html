@@ -57,7 +57,7 @@
             <span>{{ item.label }}</span>
           </a>
           } @else {
-          <span [attr.aria-label]="item.ariaLabel + ' unavailable until you sign in'" aria-disabled="true">
+          <span [attr.aria-label]="navDisabledLabel(item)" aria-disabled="true">
             <img [src]="item.icon" alt="" />
             <span>{{ item.label }}</span>
           </span>
@@ -87,7 +87,7 @@
     </a>
     } @else {
     <span
-      [attr.aria-label]="item.ariaLabel + ' unavailable until you sign in'"
+      [attr.aria-label]="navDisabledLabel(item)"
       aria-disabled="true"
     >
       <img [src]="item.icon" [alt]="item.ariaLabel" />

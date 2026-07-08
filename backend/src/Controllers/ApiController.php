@@ -614,7 +614,12 @@ final class ApiController
       $runSummary = (new RunSummaryBuilder($pdo))->buildRunSummary($userId, $runIdInt);
       $services['runRepo']->applyRunEndCleanup($runIdInt, $userId, false);
       $services['runRepo']->endRun($userId, $runIdInt, 'completed');
-      $this->unlockNextRegionOnSuccessfulCompletion($services['regionRepo'], $userId, (int)($run['region_id'] ?? 0));
+      $runSummary['meta'] = $this->unlockSuccessfulCompletionRewards(
+        $pdo,
+        $services['regionRepo'],
+        $userId,
+        (int)($run['region_id'] ?? 0),
+      );
 
       $pdo->commit();
 
@@ -680,6 +685,64 @@ final class ApiController
   private function readJsonBody(): ?array
   {
     return JsonRequestBody::decode();
+  }
+
+  /**
+   * POST /api/v1/dialogues/:dialogueId/seen
+   */
+  public function markDialogueSeen(): void
+  {
+    $services = $this->services();
+
+    try {
+      $userId = $services['sessionService']->requireUserId();
+    } catch (Throwable $e) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'unauthorized',
+          'message' => 'No active session.',
+        ],
+      ], 401);
+      return;
+    }
+
+    if (!$this->requireCsrf($services['csrfService'])) {
+      return;
+    }
+
+    $dialogueId = trim((string)($_GET['dialogueId'] ?? ''));
+    if ($dialogueId === '' || !preg_match('/^[a-z0-9][a-z0-9_-]{0,127}$/i', $dialogueId)) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'validation_error',
+          'message' => 'Invalid dialogue id.',
+        ],
+      ], 400);
+      return;
+    }
+
+    try {
+      $unlockService = new UserUnlockService(Db::pdo());
+      $unlockService->grant($userId, UserUnlockService::NAMESPACE_DIALOGUE, $dialogueId);
+
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'dialogue_id' => $dialogueId,
+          'seen' => true,
+        ],
+      ]);
+    } catch (Throwable $e) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'server_error',
+          'message' => 'Unexpected error.',
+        ],
+      ], 500);
+    }
   }
 
   /**
@@ -763,33 +826,84 @@ final class ApiController
     $energyRepo->setEnergyCurrentAndLastRegenAt($userId, $current - $cost, $lastSql);
   }
 
-  private function unlockNextRegionOnSuccessfulCompletion(RegionRepository $regionRepo, int $userId, int $completedRegionId): void
+  /**
+   * @return array{
+   *   completed_region_slug:?string,
+   *   completed_region_name:?string,
+   *   new_feature_unlocks:array<int,string>,
+   *   new_region_unlocks:array<int,string>
+   * }
+   */
+  private function unlockSuccessfulCompletionRewards(PDO $pdo, RegionRepository $regionRepo, int $userId, int $completedRegionId): array
   {
     if ($completedRegionId <= 0) {
-      return;
+      return [
+        'completed_region_slug' => null,
+        'completed_region_name' => null,
+        'new_feature_unlocks' => [],
+        'new_region_unlocks' => [],
+      ];
     }
 
     $completedRegion = $regionRepo->getRegionById($completedRegionId);
     if ($completedRegion === null) {
-      return;
+      return [
+        'completed_region_slug' => null,
+        'completed_region_name' => null,
+        'new_feature_unlocks' => [],
+        'new_region_unlocks' => [],
+      ];
     }
 
-    $nextSlug = match ((string)$completedRegion['slug']) {
+    $newFeatureUnlocks = [];
+    $newRegionUnlocks = [];
+    $completedRegionSlug = (string)$completedRegion['slug'];
+    $unlockService = new UserUnlockService($pdo);
+
+    if (
+      $completedRegionSlug === 'the_farm'
+      && !$unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP)
+    ) {
+      $unlockService->grant($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP);
+      $newFeatureUnlocks[] = UserUnlockService::FEATURE_SHOP;
+    }
+
+    $nextSlug = match ($completedRegionSlug) {
       'the_farm' => 'mountains',
       'mountains' => 'swamps',
       default => null,
     };
 
     if ($nextSlug === null) {
-      return;
+      return [
+        'completed_region_slug' => $completedRegionSlug,
+        'completed_region_name' => (string)($completedRegion['name'] ?? ''),
+        'new_feature_unlocks' => $newFeatureUnlocks,
+        'new_region_unlocks' => $newRegionUnlocks,
+      ];
     }
 
     $nextRegion = $regionRepo->getRegionBySlug($nextSlug);
     if ($nextRegion === null || !$nextRegion['is_enabled']) {
-      return;
+      return [
+        'completed_region_slug' => $completedRegionSlug,
+        'completed_region_name' => (string)($completedRegion['name'] ?? ''),
+        'new_feature_unlocks' => $newFeatureUnlocks,
+        'new_region_unlocks' => $newRegionUnlocks,
+      ];
     }
 
+    if (!$regionRepo->isRegionUnlocked($userId, (int)$nextRegion['id'])) {
+      $newRegionUnlocks[] = (string)$nextRegion['slug'];
+    }
     $regionRepo->unlockRegion($userId, (int)$nextRegion['id']);
+
+    return [
+      'completed_region_slug' => $completedRegionSlug,
+      'completed_region_name' => (string)($completedRegion['name'] ?? ''),
+      'new_feature_unlocks' => $newFeatureUnlocks,
+      'new_region_unlocks' => $newRegionUnlocks,
+    ];
   }
 
   /**

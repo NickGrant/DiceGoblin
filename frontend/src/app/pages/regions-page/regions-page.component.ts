@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
@@ -6,6 +6,9 @@ import { RegionUnlockRecord } from '../../core/models/api.models';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { ConfirmModalComponent } from '../../shared/ui/confirm-modal/confirm-modal.component';
+import { DialogueChoiceSelection, DialogueScript } from '../../core/dialogue/dialogue.models';
+import { DialogueService } from '../../core/services/dialogue/dialogue.service';
+import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
 
 type RegionCard = {
   slug: string;
@@ -59,16 +62,22 @@ const REGION_CARDS: RegionCard[] = [
 @Component({
   selector: 'app-regions-page',
   standalone: true,
-  imports: [DgAlertComponent, PageFrameComponent, ConfirmModalComponent],
+  imports: [DgAlertComponent, PageFrameComponent, ConfirmModalComponent, DgDialogueStageComponent],
   templateUrl: './regions-page.component.html',
   styleUrl: './regions-page.component.scss',
 })
 export class RegionsPageComponent {
+  private static readonly START_RUN_INTRO_ID = 'start-run-kickoff';
+  private static readonly START_RUN_INTRO_PORTRAIT = '/assets/dialogue/portraits/goblin/primordial_frame_0.png';
+
   private readonly router = inject(Router);
   private readonly runService = inject(RunService);
   private readonly sessionService = inject(SessionService);
+  private readonly dialogueService = inject(DialogueService);
+  private startRunIntroChecked = false;
 
   readonly hasActiveRun = this.sessionService.hasActiveRun;
+  readonly session = this.sessionService.session;
   readonly profileData = this.sessionService.profileData;
   readonly isStarting = signal(false);
   readonly startingSlug = signal<string | null>(null);
@@ -76,6 +85,7 @@ export class RegionsPageComponent {
   readonly pendingRegionSlug = signal<string | null>(null);
   readonly message = signal<string | null>(null);
   readonly error = signal<string | null>(null);
+  readonly startRunIntroDialogue = signal<DialogueScript | null>(null);
   readonly regions = computed(() => {
     const unlocks = this.profileData()?.region_unlocks ?? [];
     return REGION_CARDS.map((region) => {
@@ -105,6 +115,19 @@ export class RegionsPageComponent {
   });
   readonly pendingRegion = computed(() => this.regions().find((region) => region.slug === this.pendingRegionSlug()) ?? null);
 
+  constructor() {
+    effect(() => {
+      const userId = this.session().userId?.trim() ?? '';
+      const profile = this.profileData();
+      if (!userId || !profile || this.hasActiveRun() || this.startRunIntroChecked) {
+        return;
+      }
+
+      this.startRunIntroChecked = true;
+      void this.loadStartRunIntro(userId);
+    });
+  }
+
   isActiveRegion(regionId: string | null): boolean {
     return this.profileData()?.active_run?.region_id === regionId;
   }
@@ -122,6 +145,10 @@ export class RegionsPageComponent {
   }
 
   regionActionDisabled(region: RegionCardViewModel): boolean {
+    if (this.startRunIntroDialogue()) {
+      return true;
+    }
+
     if (this.startingSlug() === region.slug) {
       return true;
     }
@@ -169,7 +196,7 @@ export class RegionsPageComponent {
   }
 
   async activateRegion(region: RegionCardViewModel): Promise<void> {
-    if (this.regionActionDisabled(region)) {
+    if (this.startRunIntroDialogue() || this.regionActionDisabled(region)) {
       return;
     }
 
@@ -194,6 +221,10 @@ export class RegionsPageComponent {
   }
 
   async confirmStartRun(): Promise<void> {
+    if (this.startRunIntroDialogue()) {
+      return;
+    }
+
     const region = this.regions().find((entry) => entry.slug === this.pendingRegionSlug()) ?? null;
     if (!region?.regionId) {
       this.pendingRegionSlug.set(null);
@@ -206,6 +237,75 @@ export class RegionsPageComponent {
 
   unlockRecord(regionSlug: string): RegionUnlockRecord | null {
     return this.profileData()?.region_unlocks.find((entry) => entry.region_slug === regionSlug) ?? null;
+  }
+
+  async handleStartRunIntroComplete(_choiceHistory: DialogueChoiceSelection[]): Promise<void> {
+    this.startRunIntroDialogue.set(null);
+    this.rememberDialogueSeenLocally(RegionsPageComponent.START_RUN_INTRO_ID);
+    await this.persistStartRunIntroSeen();
+  }
+
+  private async loadStartRunIntro(_userId: string): Promise<void> {
+    if (this.hasSeenDialogue(RegionsPageComponent.START_RUN_INTRO_ID)) {
+      return;
+    }
+
+    try {
+      const dialogue = await this.dialogueService.getDialogue({
+        scene: 'start-run',
+        tags: ['first-visit'],
+        playerName: this.session().displayName,
+        playerPortraitUrl: RegionsPageComponent.START_RUN_INTRO_PORTRAIT,
+      });
+
+      if (dialogue) {
+        this.startRunIntroDialogue.set(dialogue);
+      }
+    } catch {
+      // Keep the regions page usable even if dialogue assets fail to load.
+    }
+  }
+
+  private hasSeenDialogue(dialogueId: string): boolean {
+    return (this.profileData()?.seen_dialogues ?? []).includes(dialogueId) || this.hasSeenDialogueLocally(dialogueId);
+  }
+
+  private async persistStartRunIntroSeen(): Promise<void> {
+    try {
+      await this.dialogueService.markDialogueSeen(RegionsPageComponent.START_RUN_INTRO_ID);
+      await this.sessionService.refreshProfile({ force: true });
+    } catch {
+      // Keep the page usable even if the persistence call fails during testing.
+    }
+  }
+
+  private hasSeenDialogueLocally(dialogueId: string): boolean {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    try {
+      return window.sessionStorage.getItem(this.dialogueSeenStorageKey(dialogueId)) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  private rememberDialogueSeenLocally(dialogueId: string): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      window.sessionStorage.setItem(this.dialogueSeenStorageKey(dialogueId), '1');
+    } catch {
+      // Keep the page usable if session storage is unavailable.
+    }
+  }
+
+  private dialogueSeenStorageKey(dialogueId: string): string {
+    const userId = this.session().userId?.trim() ?? 'guest';
+    return `dialogue-seen:${userId}:${dialogueId}`;
   }
 }
 

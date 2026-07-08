@@ -17,6 +17,7 @@ use Throwable;
 final class GrantService
 {
   private const STARTER_GRANT_SLUG = 'starter_pack_v1';
+  private const SHOP_UNLOCK_REGION_SLUG = 'mountains';
 
   /** @var list<string> */
   private const STARTING_REGION_SLUGS = ['the_farm'];
@@ -69,6 +70,7 @@ final class GrantService
     $this->ownedDiceGrantService ??= new OwnedDiceGrantService($db, $this->diceAffixService);
     $this->ownedUnitGrantService ??= new OwnedUnitGrantService($db, null, null, $this->unitLoadoutService);
     $this->userUnlockService ??= new UserUnlockService($db);
+    $this->ensureLegacyFeatureUnlocks($db, $userId);
 
     $db->beginTransaction();
     try {
@@ -176,6 +178,31 @@ final class GrantService
   private function ensureStarterUnitUnlocks(int $userId): void
   {
     $this->userUnlockService?->grantMany($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, self::STARTER_UNIT_UNLOCK_SLUGS);
+  }
+
+  private function ensureLegacyFeatureUnlocks(PDO $db, int $userId): void
+  {
+    if ($this->userUnlockService?->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP)) {
+      return;
+    }
+
+    $regionId = $this->getRegionIdBySlug($db, self::SHOP_UNLOCK_REGION_SLUG);
+    if ($regionId === null) {
+      return;
+    }
+
+    $stmt = $db->prepare('
+      SELECT 1
+      FROM `region_unlocks`
+      WHERE `user_id` = ? AND `region_id` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([$userId, $regionId]);
+    if ($stmt->fetchColumn() === false) {
+      return;
+    }
+
+    $this->userUnlockService?->grant($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP);
   }
 
   /**

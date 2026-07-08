@@ -31,10 +31,23 @@ async function requireFeatureUnlock(unlockKey: string) {
   }
 
   const unlocked = sessionService.profileData()?.feature_unlocks?.includes(unlockKey) ?? false;
-  return unlocked ? true : router.createUrlTree(['/shop']);
+  if (unlocked) {
+    return true;
+  }
+
+  if (unlockKey === 'shop') {
+    return router.createUrlTree(['/home']);
+  }
+
+  if (unlockKey === 'academy' && !(sessionService.profileData()?.feature_unlocks?.includes('shop') ?? false)) {
+    return router.createUrlTree(['/home']);
+  }
+
+  return router.createUrlTree(['/shop']);
 }
 
 export const authGuard: CanActivateFn = async () => requireAuthenticatedUser();
 export const authChildGuard: CanActivateChildFn = async () => requireAuthenticatedUser();
 export const guestGuard: CanActivateFn = async () => requireGuestUser();
+export const shopFeatureGuard: CanActivateFn = async () => requireFeatureUnlock('shop');
 export const academyFeatureGuard: CanActivateFn = async () => requireFeatureUnlock('academy');

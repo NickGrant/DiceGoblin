@@ -14,6 +14,7 @@ import { PageFrameComponent } from '../../layout/page-frame/page-frame.component
 export class HomePageComponent {
   private readonly sessionService = inject(SessionService);
   readonly profile = this.sessionService.profile;
+  readonly shopUnlocked = this.sessionService.shopUnlocked;
   readonly academyUnlocked = this.sessionService.academyUnlocked;
   readonly hasActiveRun = this.sessionService.hasActiveRun;
   readonly devPanelEnabled = isDevPanelEnabled();

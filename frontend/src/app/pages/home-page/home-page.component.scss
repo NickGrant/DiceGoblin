@@ -52,6 +52,11 @@
   opacity: 0.82;
 }
 
+.home-grid__locked-card {
+  filter: grayscale(0.88) saturate(0.2);
+  cursor: default;
+}
+
 @media (min-width: 441px) {
   .home-grid {
     --home-grid-space: 1.25rem;

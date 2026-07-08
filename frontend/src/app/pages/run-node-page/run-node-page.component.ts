@@ -10,7 +10,6 @@ import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
 import { UnitGridObjectComponent, UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 
 const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss', 'loot']);
@@ -70,6 +69,7 @@ export class RunNodePageComponent {
   private static readonly LOOT_TITLE = 'A respectable acquisition of wealth';
   private static readonly BATTLE_SUBTITLE = 'Several goblins have volunteered to be an educational example.';
   private static readonly LOOT_SUBTITLE = 'No heroism required, just strong knees and stronger pockets.';
+  private static readonly PLAYER_DIALOGUE_PORTRAIT = '/assets/dialogue/portraits/goblin/base_frame_0.png';
   private static readonly CONDITION_DEFINITIONS: ConditionDefinition[] = [
     {
       aliases: ['poisoned', 'poison'],
@@ -503,8 +503,6 @@ export class RunNodePageComponent {
     const regionSlug = this.sessionService
       .profileData()
       ?.region_unlocks.find((entry) => entry.region_id === regionId)?.region_slug ?? null;
-    const leadUnit = this.resolveLeadUnit();
-    const playerPortraitUrl = resolveUnitImageUrl(leadUnit?.unit_type_slug || leadUnit?.unit_type_name || 'bruiser');
     const fallbackTheme = regionSlug ? REGION_THEME_BY_SLUG[regionSlug] : null;
     const context: DialogueTriggerContext = {
       scene: 'run-node',
@@ -512,8 +510,8 @@ export class RunNodePageComponent {
       regionId,
       regionSlug,
       encounterTemplateId: this.stringValue(currentNode.meta?.['encounter_template_id']),
-      playerName: leadUnit?.name ?? this.sessionService.session().displayName,
-      playerPortraitUrl,
+      playerName: this.sessionService.session().displayName ?? this.resolveLeadUnit()?.name,
+      playerPortraitUrl: RunNodePageComponent.PLAYER_DIALOGUE_PORTRAIT,
       tags: fallbackTheme ? [fallbackTheme] : [],
     };
 

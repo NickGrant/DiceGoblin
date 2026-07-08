@@ -1,5 +1,11 @@
 import { Component, EventEmitter, HostListener, Output, computed, effect, input, signal } from '@angular/core';
-import { DialogueChoiceSelection, DialogueScript, DialogueSpeaker, DialogueStep } from '../../../core/dialogue/dialogue.models';
+import {
+  DialogueChoiceSelection,
+  DialogueScript,
+  DialogueSpeaker,
+  DialogueStep,
+  DialogueStepEnterEffect,
+} from '../../../core/dialogue/dialogue.models';
 
 type DialogueVisibleEntry = {
   step: DialogueStep;
@@ -21,6 +27,11 @@ export class DgDialogueStageComponent {
   readonly currentStepId = signal('');
   readonly visibleStepIds = signal<string[]>([]);
   readonly choiceHistory = signal<DialogueChoiceSelection[]>([]);
+  readonly speakerPortraitOverrides = signal<Record<string, string>>({});
+  readonly overlayVisible = signal(false);
+  readonly overlayFlashing = signal(false);
+  readonly overlayImageUrl = signal<string | null>(null);
+  readonly stepEffectInProgress = signal(false);
   readonly currentStep = computed<DialogueStep | null>(
     () => this.script()?.steps.find((step) => step.id === this.currentStepId()) ?? null,
   );
@@ -38,17 +49,24 @@ export class DgDialogueStageComponent {
     () => this.speakerById(this.currentStep()?.speakerId ?? null),
   );
   readonly hasChoices = computed(() => (this.currentStep()?.choices.length ?? 0) > 0);
-  readonly canAdvance = computed(() => !this.hasChoices());
+  readonly visibleChoices = computed(() => (this.stepEffectInProgress() ? [] : (this.currentStep()?.choices ?? [])));
+  readonly hasVisibleChoices = computed(() => this.visibleChoices().length > 0);
+  readonly canAdvance = computed(() => !this.hasChoices() && !this.stepEffectInProgress());
   readonly selectedChoice = computed(() => this.currentStep()?.choices[this.selectedChoiceIndex()] ?? null);
+  private effectRunToken = 0;
 
   constructor() {
     effect(() => {
       const script = this.script();
+      this.effectRunToken += 1;
       if (!script) {
         this.currentStepId.set('');
         this.visibleStepIds.set([]);
         this.selectedChoiceIndex.set(0);
         this.choiceHistory.set([]);
+        this.speakerPortraitOverrides.set({});
+        this.clearOverlay();
+        this.stepEffectInProgress.set(false);
         return;
       }
 
@@ -56,18 +74,33 @@ export class DgDialogueStageComponent {
       this.visibleStepIds.set(script.startStepId ? [script.startStepId] : []);
       this.selectedChoiceIndex.set(0);
       this.choiceHistory.set([]);
+      this.speakerPortraitOverrides.set({});
+      this.clearOverlay();
+      this.stepEffectInProgress.set(false);
+    });
+
+    effect(() => {
+      const step = this.currentStep();
+      const token = ++this.effectRunToken;
+      this.stepEffectInProgress.set(false);
+      this.clearOverlay();
+      if (!step?.enterEffect) {
+        return;
+      }
+
+      void this.runEnterEffect(step.enterEffect, token);
     });
   }
 
   @HostListener('document:keydown', ['$event'])
   handleKeydown(event: KeyboardEvent): void {
-    if (event.key === 'ArrowUp' && this.hasChoices()) {
+    if (event.key === 'ArrowUp' && this.hasVisibleChoices()) {
       event.preventDefault();
       this.moveChoice(-1);
       return;
     }
 
-    if (event.key === 'ArrowDown' && this.hasChoices()) {
+    if (event.key === 'ArrowDown' && this.hasVisibleChoices()) {
       event.preventDefault();
       this.moveChoice(1);
       return;
@@ -75,7 +108,7 @@ export class DgDialogueStageComponent {
 
     if (event.key === 'Enter') {
       event.preventDefault();
-      if (this.hasChoices()) {
+      if (this.hasVisibleChoices()) {
         this.chooseSelectedOption();
       } else {
         this.advance();
@@ -91,7 +124,7 @@ export class DgDialogueStageComponent {
 
   advance(): void {
     const step = this.currentStep();
-    if (!step || step.choices.length > 0) {
+    if (!step || step.choices.length > 0 || this.stepEffectInProgress()) {
       return;
     }
 
@@ -110,7 +143,7 @@ export class DgDialogueStageComponent {
   chooseSelectedOption(): void {
     const step = this.currentStep();
     const choice = this.selectedChoice();
-    if (!step || !choice) {
+    if (!step || !choice || this.stepEffectInProgress()) {
       return;
     }
 
@@ -140,6 +173,7 @@ export class DgDialogueStageComponent {
   }
 
   private moveToStep(stepId: string): void {
+    this.effectRunToken += 1;
     this.currentStepId.set(stepId);
     this.visibleStepIds.set([...this.visibleStepIds(), stepId].slice(-2));
     this.selectedChoiceIndex.set(0);
@@ -158,7 +192,13 @@ export class DgDialogueStageComponent {
       return null;
     }
 
-    return this.script()?.speakers.find((speaker) => speaker.id === speakerId) ?? null;
+    const speaker = this.script()?.speakers.find((entry) => entry.id === speakerId) ?? null;
+    if (!speaker) {
+      return null;
+    }
+
+    const overrideUrl = this.speakerPortraitOverrides()[speakerId] ?? null;
+    return overrideUrl ? { ...speaker, portraitUrl: overrideUrl } : speaker;
   }
 
   private selectedChoiceLabelForStep(stepId: string): string | null {
@@ -169,5 +209,62 @@ export class DgDialogueStageComponent {
 
     const step = this.stepById(stepId);
     return step?.choices.find((choice) => choice.id === choiceId)?.label ?? null;
+  }
+
+  private async runEnterEffect(effect: DialogueStepEnterEffect, token: number): Promise<void> {
+    if (effect.kind !== 'player_reveal') {
+      return;
+    }
+
+    this.stepEffectInProgress.set(true);
+    this.overlayImageUrl.set(effect.initialOverlayUrl);
+    this.overlayVisible.set(true);
+    await this.delay(effect.initialDurationMs);
+    if (token !== this.effectRunToken) {
+      return;
+    }
+
+    for (let index = 0; index < effect.flashCount; index += 1) {
+      this.overlayFlashing.set(true);
+      await this.delay(effect.flashIntervalMs);
+      if (token !== this.effectRunToken) {
+        return;
+      }
+      this.overlayFlashing.set(false);
+      await this.delay(effect.flashIntervalMs);
+      if (token !== this.effectRunToken) {
+        return;
+      }
+    }
+
+    this.overlayVisible.set(false);
+    await this.delay(effect.betweenOverlaysMs);
+    if (token !== this.effectRunToken) {
+      return;
+    }
+
+    this.overlayImageUrl.set(effect.finalOverlayUrl);
+    this.overlayVisible.set(true);
+    this.speakerPortraitOverrides.set({
+      ...this.speakerPortraitOverrides(),
+      player: effect.resultingPlayerPortraitUrl,
+    });
+    await this.delay(effect.finalHoldMs);
+    if (token !== this.effectRunToken) {
+      return;
+    }
+
+    this.clearOverlay();
+    this.stepEffectInProgress.set(false);
+  }
+
+  private clearOverlay(): void {
+    this.overlayVisible.set(false);
+    this.overlayFlashing.set(false);
+    this.overlayImageUrl.set(null);
+  }
+
+  private delay(durationMs: number): Promise<void> {
+    return new Promise((resolve) => window.setTimeout(resolve, durationMs));
   }
 }

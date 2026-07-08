@@ -10,6 +10,7 @@ type HudNavItem = {
   readonly authenticatedRoute: string;
   readonly publicRoute: string | null;
   readonly guide: boolean;
+  readonly requiredFeatureUnlockKey?: string | null;
 };
 
 @Component({
@@ -64,6 +65,7 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
       authenticatedRoute: '/shop',
       publicRoute: null,
       guide: false,
+      requiredFeatureUnlockKey: 'shop',
     },
     {
       label: 'Guide',
@@ -105,11 +107,31 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   }
 
   isNavItemEnabled(item: HudNavItem): boolean {
-    return this.isAuthenticated() || item.publicRoute !== null;
+    if (!this.isAuthenticated()) {
+      return item.publicRoute !== null;
+    }
+
+    if (item.requiredFeatureUnlockKey) {
+      return this.sessionService.featureUnlocks().includes(item.requiredFeatureUnlockKey);
+    }
+
+    return true;
   }
 
   navRoute(item: HudNavItem): string {
     return this.isAuthenticated() ? item.authenticatedRoute : (item.publicRoute ?? '/login');
+  }
+
+  navDisabledLabel(item: HudNavItem): string {
+    if (!this.isAuthenticated()) {
+      return item.ariaLabel + ' unavailable until you sign in';
+    }
+
+    if (item.requiredFeatureUnlockKey === 'shop') {
+      return item.ariaLabel + ' unavailable until you defeat The Farm';
+    }
+
+    return item.ariaLabel + ' unavailable';
   }
 
   login(): void {

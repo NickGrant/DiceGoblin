@@ -3,6 +3,29 @@
   height: 100%;
 }
 
+.region-page-shell {
+  position: relative;
+}
+
+.region-page-shell--dialogue-open {
+  min-height: 42rem;
+}
+
+.region-page__dialogue {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 1rem;
+  background: linear-gradient(180deg, rgba(24, 18, 13, 0.18), rgba(24, 18, 13, 0.42));
+}
+
+.region-page__dialogue dg-dialogue-stage {
+  width: 100%;
+}
+
 .region-page {
   --inspect-layout-edge: 1rem;
   display: flex;
@@ -280,6 +303,10 @@
 }
 
 @media (min-width: 761px) {
+  .region-page-shell--dialogue-open {
+    min-height: 46rem;
+  }
+
   .region-page {
     --inspect-layout-edge: 1rem;
   }

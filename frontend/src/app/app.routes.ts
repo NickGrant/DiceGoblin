@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { academyFeatureGuard, authChildGuard, authGuard, guestGuard } from './core/guards/auth/auth.guard';
+import { academyFeatureGuard, authChildGuard, authGuard, guestGuard, shopFeatureGuard } from './core/guards/auth/auth.guard';
 import { DebugPageComponent } from './pages/debug-page/debug-page.component';
 import { DicePageComponent } from './pages/dice-page/dice-page.component';
 import { LandingPageComponent } from './pages/landing-page/landing-page.component';
@@ -40,7 +40,7 @@ export const routes: Routes = [
       { path: 'warband/units/:unitId', component: UnitDetailsPageComponent },
       { path: 'warband/squads/:squadId', component: SquadDetailsPageComponent },
       { path: 'dice', component: DicePageComponent },
-      { path: 'shop', component: ShopPageComponent },
+      { path: 'shop', component: ShopPageComponent, canActivate: [shopFeatureGuard] },
       { path: 'run/map', component: RunMapPageComponent },
       { path: 'run/node/:nodeId', component: RunNodePageComponent },
       { path: 'run/rest/:nodeId', component: RunRestPageComponent },

@@ -11,21 +11,22 @@ const TEST_SCRIPT: DialogueScript = {
     { id: 'player', side: 'left', name: 'Ashback', portraitUrl: '/assets/ui/units/goblin_bruiser.png', party: 'player', role: 'player' },
   ],
   steps: [
-    { id: 'intro', speakerId: 'mudking', text: 'Are you here to fight me', nextStepId: 'answer', choices: [] },
+    { id: 'intro', speakerId: 'mudking', text: 'Are you here to fight me', nextStepId: 'answer', choices: [], enterEffect: null },
     {
       id: 'answer',
       speakerId: 'player',
       text: 'How do you answer?',
       nextStepId: null,
+      enterEffect: null,
       choices: [
         { id: 'yes', label: 'yes', nextStepId: 'yes-response' },
         { id: 'no', label: 'no', nextStepId: 'no-response' },
         { id: 'maybe', label: 'maybe', nextStepId: 'maybe-response' },
       ],
     },
-    { id: 'yes-response', speakerId: 'mudking', text: 'Good!', nextStepId: null, choices: [] },
-    { id: 'no-response', speakerId: 'mudking', text: 'Too bad!', nextStepId: null, choices: [] },
-    { id: 'maybe-response', speakerId: 'mudking', text: 'Gonna fight ya anyway!', nextStepId: null, choices: [] },
+    { id: 'yes-response', speakerId: 'mudking', text: 'Good!', nextStepId: null, choices: [], enterEffect: null },
+    { id: 'no-response', speakerId: 'mudking', text: 'Too bad!', nextStepId: null, choices: [], enterEffect: null },
+    { id: 'maybe-response', speakerId: 'mudking', text: 'Gonna fight ya anyway!', nextStepId: null, choices: [], enterEffect: null },
   ],
 };
 
@@ -136,5 +137,52 @@ describe('DgDialogueStageComponent', () => {
     expect(promptBubble).toBeDefined();
     expect(promptBubble?.textContent).toContain('How do you answer?');
     expect(promptBubble?.textContent).toContain('maybe');
+  });
+
+  it('runs a player reveal effect before showing choices and updates the portrait', async () => {
+    const revealScript: DialogueScript = {
+      id: 'reveal-script',
+      backgroundUrl: '/assets/ui/biome/mystic_cave.png',
+      startStepId: 'reveal',
+      speakers: [
+        { id: 'player', side: 'left', name: 'Ashback', portraitUrl: '/assets/dialogue/portraits/goblin/primordial_frame_0.png', party: 'player', role: 'player' },
+      ],
+      steps: [
+        {
+          id: 'reveal',
+          speakerId: 'player',
+          text: '...',
+          nextStepId: null,
+          choices: [{ id: 'yes', label: 'Yes', nextStepId: 'done' }],
+          enterEffect: {
+            kind: 'player_reveal',
+            initialOverlayUrl: '/assets/dialogue/portraits/goblin/primordial_frame_0.png',
+            finalOverlayUrl: '/assets/dialogue/portraits/goblin/base_frame_0.png',
+            resultingPlayerPortraitUrl: '/assets/dialogue/portraits/goblin/base_frame_0.png',
+            initialDurationMs: 10,
+            flashCount: 1,
+            flashIntervalMs: 10,
+            betweenOverlaysMs: 10,
+            finalHoldMs: 10,
+          },
+        },
+        { id: 'done', speakerId: 'player', text: 'Done', nextStepId: null, choices: [], enterEffect: null },
+      ],
+    };
+
+    fixture.componentRef.setInput('script', revealScript);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.hasVisibleChoices()).toBeFalse();
+    expect(fixture.componentInstance.overlayImageUrl()).toContain('primordial_frame_0');
+
+    await new Promise((resolve) => window.setTimeout(resolve, 80));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.hasVisibleChoices()).toBeTrue();
+    expect(fixture.componentInstance.overlayImageUrl()).toBeNull();
+
+    const playerSpeaker = fixture.componentInstance.visibleEntries()[0]?.speaker;
+    expect(playerSpeaker?.portraitUrl).toContain('base_frame_0');
   });
 });
