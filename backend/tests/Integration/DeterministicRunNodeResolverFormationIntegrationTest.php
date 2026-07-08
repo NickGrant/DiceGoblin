@@ -388,6 +388,106 @@ final class DeterministicRunNodeResolverFormationIntegrationTest extends Integra
     }
   }
 
+  public function testResolveBombTossAppliesFuseAndExplodesAtRoundEnd(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 71707070);
+
+    $unitTypeSlug = 'qa-bomb-thrower-' . bin2hex(random_bytes(4));
+    $enemySlug = 'qa-bomb-target-' . bin2hex(random_bytes(4));
+    $encounterSlug = 'qa-bomb-encounter-' . bin2hex(random_bytes(4));
+    $unitTypeId = null;
+    $unitId = null;
+    $encounterId = null;
+
+    try {
+      $unitTypeId = $this->insertUnitType(
+        $unitTypeSlug,
+        [
+          'attack' => 10,
+          'defense' => 2,
+          'max_hp' => 24,
+        ],
+        ['bomb_toss']
+      );
+      $unitId = $this->insertUnitInstance($userId, $unitTypeId);
+      $this->insertTeamUnitRow($teamId, $unitId);
+      $this->insertRunUnitStateRow($runId, $unitId, 24);
+
+      $this->insertEnemyTemplate(
+        $enemySlug,
+        [
+          'attack' => 1,
+          'defense' => 1,
+          'max_hp' => 60,
+          'formation' => ['w' => 1, 'h' => 1],
+        ],
+        ['shield_up']
+      );
+      $encounterId = $this->insertEncounterTemplate(
+        $encounterSlug,
+        $regionId,
+        [
+          'teams' => [[
+            'units' => [[
+              'enemy_template_slug' => $enemySlug,
+              'pos' => ['x' => 2, 'y' => 1],
+            ]],
+          ]],
+        ]
+      );
+
+      $resolver = new DeterministicRunNodeResolver($this->pdo);
+      $result = $resolver->resolve(
+        $userId,
+        $teamId,
+        ['id' => (string)$runId, 'seed' => '71707070'],
+        ['id' => '1', 'node_type' => 'combat', 'encounter_template_id' => (string)$encounterId]
+      );
+
+      $log = is_array($result['log'] ?? null) ? $result['log'] : [];
+      $events = is_array($log['events'] ?? null) ? $log['events'] : [];
+
+      $bombAction = null;
+      $explosionEvent = null;
+      foreach ($events as $event) {
+        if (
+          $bombAction === null
+          && is_array($event)
+          && (string)($event['type'] ?? '') === 'action'
+          && (string)($event['side'] ?? '') === 'player'
+          && (string)($event['ability_id'] ?? '') === 'bomb_toss'
+        ) {
+          $bombAction = $event;
+        }
+
+        if (
+          $explosionEvent === null
+          && is_array($event)
+          && (string)($event['type'] ?? '') === 'status_tick'
+          && (string)($event['side'] ?? '') === 'enemy'
+          && (string)($event['status_id'] ?? '') === 'fuse_lit'
+        ) {
+          $explosionEvent = $event;
+        }
+      }
+
+      $this->assertIsArray($bombAction, 'Expected a bomb toss action event.');
+      $this->assertSame('fuse_lit', (string)($bombAction['status_applied'] ?? ''));
+      $this->assertSame(1, (int)($bombAction['status_duration_rounds'] ?? 0));
+
+      $this->assertIsArray($explosionEvent, 'Expected fuse_lit to explode at round end.');
+      $this->assertSame(1, (int)($explosionEvent['round'] ?? 0));
+      $this->assertSame(20, (int)($explosionEvent['tick'] ?? 0));
+      $this->assertGreaterThan(0, (int)($explosionEvent['damage'] ?? 0));
+      $this->assertStringContainsString('exploded', (string)($explosionEvent['ability_outcome'] ?? ''));
+    } finally {
+      $this->cleanupResolverFixture($runId, $teamId, $unitId, $unitTypeId, $encounterId, [$enemySlug]);
+    }
+  }
+
   public function testResolveWrestleForcesOnlyTheNextHostileTarget(): void
   {
     $userId = $this->insertUser();

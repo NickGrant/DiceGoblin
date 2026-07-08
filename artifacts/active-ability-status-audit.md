@@ -6,9 +6,9 @@ Purpose: confirm that active abilities only apply statuses when the authored abi
 
 ## Summary
 
-- Active abilities audited: `22`
-- Active abilities with explicit `status_id`: `16`
-- Active abilities with no `status_id`: `6`
+- Active abilities audited: `26`
+- Active abilities with explicit `status_id`: `19`
+- Active abilities with no `status_id`: `7`
 - Active abilities missing `duration_rounds` while also declaring a `status_id`: `0`
 
 ## Active Abilities With Explicit `status_id`
@@ -31,6 +31,9 @@ Purpose: confirm that active abilities only apply statuses when the authored abi
 | `lucky_chant` | Lucky Chant | `lucky` | `2` | Ally next-action boost |
 | `disarming_shot` | Disarming Shot | `disarmed` | `2` | Attack reduction debuff |
 | `poison_cloud` | Poison Cloud | `poison` | `3` | Multi-target poison |
+| `bomb_toss` | Bomb Toss | `fuse_lit` | `1` | Delayed explosive pressure |
+| `bog_splash` | Bog Splash | `cracked_armor` | `2` | Swamp-flavored armor break |
+| `swamp_holler` | Swamp Holler | `warcry` | `2` | Rough offensive support buff |
 
 ## Active Abilities With No `status_id`
 
@@ -44,6 +47,7 @@ These now rely entirely on their direct authored payload and should never apply 
 | `aimed_shot` | Aimed Shot | Burst damage only |
 | `desperate_swing` | Desperate Swing | Damage scales from self wounded state |
 | `piercing_shot` | Piercing Shot | Uses direct defense ignore, not a status |
+| `reed_spear` | Reed Spear | Uses direct defense ignore, not a status |
 
 ## Audit Notes
 

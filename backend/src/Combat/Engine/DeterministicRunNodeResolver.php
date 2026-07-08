@@ -1398,8 +1398,8 @@ final class DeterministicRunNodeResolver
       }
 
       $roundEndTick = $roundStartTick + $ticksPerRound - 1;
-      $this->tickStatusDurations($events, 'player', $round, $roundEndTick, $playerStatuses);
-      $this->tickStatusDurations($events, 'enemy', $round, $roundEndTick, $enemyStatuses);
+      $this->tickStatusDurations($events, 'player', $round, $roundEndTick, $playerStatuses, $playerHp, $playerById, $sleepBlockedUntilTick);
+      $this->tickStatusDurations($events, 'enemy', $round, $roundEndTick, $enemyStatuses, $enemyHp, $enemyById, $sleepBlockedUntilTick);
     }
 
     return [
@@ -2265,8 +2265,20 @@ final class DeterministicRunNodeResolver
   /**
    * @param array<int,array<string,mixed>> $events
    * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<string,int> $hpByUnitId
+   * @param array<string,array<string,mixed>> $unitsById
+   * @param array<string,int> $sleepBlockedUntilTick
    */
-  private function tickStatusDurations(array &$events, string $side, int $round, int $tick, array &$statusMap): void
+  private function tickStatusDurations(
+    array &$events,
+    string $side,
+    int $round,
+    int $tick,
+    array &$statusMap,
+    array &$hpByUnitId,
+    array $unitsById,
+    array &$sleepBlockedUntilTick
+  ): void
   {
     foreach ($statusMap as $unitId => &$statuses) {
       foreach ($statuses as $statusId => &$statusState) {
@@ -2278,6 +2290,19 @@ final class DeterministicRunNodeResolver
         $remaining -= 1;
         $statusState['duration_rounds'] = $remaining;
         if ($remaining <= 0) {
+          $this->applyStatusExpiryEffects(
+            $events,
+            $side,
+            (string)$unitId,
+            (string)$statusId,
+            is_array($statusState) ? $statusState : [],
+            $round,
+            $tick,
+            $hpByUnitId,
+            $unitsById,
+            $statusMap,
+            $sleepBlockedUntilTick
+          );
           unset($statuses[$statusId]);
           $events[] = [
             'type' => 'status_expired',
@@ -2292,6 +2317,67 @@ final class DeterministicRunNodeResolver
       unset($statusState);
     }
     unset($statuses);
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $events
+   * @param array<string,mixed> $statusState
+   * @param array<string,int> $hpByUnitId
+   * @param array<string,array<string,mixed>> $unitsById
+   * @param array<string,array<string,array<string,mixed>>> $statusMap
+   * @param array<string,int> $sleepBlockedUntilTick
+   */
+  private function applyStatusExpiryEffects(
+    array &$events,
+    string $side,
+    string $unitId,
+    string $statusId,
+    array $statusState,
+    int $round,
+    int $tick,
+    array &$hpByUnitId,
+    array $unitsById,
+    array &$statusMap,
+    array &$sleepBlockedUntilTick
+  ): void {
+    if ($statusId !== 'fuse_lit') {
+      return;
+    }
+
+    $currentHp = (int)($hpByUnitId[$unitId] ?? 0);
+    if ($currentHp <= 0) {
+      return;
+    }
+
+    $unit = $unitsById[$unitId] ?? null;
+    if (!is_array($unit)) {
+      return;
+    }
+
+    $statuses = $statusMap[$unitId] ?? [];
+    $sourceAttack = max(1, (int)($statusState['params']['source_attack'] ?? 1));
+    $damageRatio = max(0.0, (float)($statusState['params']['bomb_damage_ratio'] ?? 0.9));
+    $damage = max(1, (int)floor($sourceAttack * $damageRatio));
+    $damage = (int)floor($damage * $this->specialFrontTakenMultiplier($unit));
+    $damage = (int)floor($damage * $this->damageTakenMultiplierFromStatuses($statuses));
+    $damage = max(1, $damage);
+
+    $nextHp = max(0, $currentHp - $damage);
+    $hpByUnitId[$unitId] = $nextHp;
+    $this->clearSleepOnDamage($statusMap, $sleepBlockedUntilTick, $unitId, $tick, $damage);
+
+    $events[] = [
+      'type' => 'status_tick',
+      'round' => $round,
+      'tick' => $tick,
+      'side' => $side,
+      $side === 'player' ? 'actor_unit_instance_id' : 'actor_enemy_slug' => $unitId,
+      'status_id' => 'fuse_lit',
+      'damage' => $damage,
+      'target_hp_after' => $nextHp,
+      'outcome' => $nextHp <= 0 ? 'defeated' : 'ticked',
+      'ability_outcome' => sprintf('fuse_lit exploded for %d damage', $damage),
+    ];
   }
 
   /**
@@ -2558,6 +2644,14 @@ final class DeterministicRunNodeResolver
         'params' => [
           'forced_target_id' => '',
           'consumes_on_hostile_action' => true,
+          'is_debuff' => true,
+        ],
+      ],
+      'fuse_lit' => [
+        'duration_rounds' => $duration,
+        'params' => [
+          'bomb_damage_ratio' => (float)($params['bomb_damage_ratio'] ?? 0.9),
+          'source_attack' => max(1, $sourceAttack),
           'is_debuff' => true,
         ],
       ],

@@ -120,6 +120,10 @@ final class AbilityHandlerRegistryCoverageTest extends TestCase
         new ConfigurableAbility('lucky_chant', 'support'),
         new ConfigurableAbility('disarming_shot', 'ranged'),
         new ConfigurableAbility('poison_cloud', 'ranged'),
+        new ConfigurableAbility('bomb_toss', 'ranged'),
+        new ConfigurableAbility('bog_splash', 'melee'),
+        new ConfigurableAbility('swamp_holler', 'support'),
+        new ConfigurableAbility('reed_spear', 'melee'),
       ],
       [
         new ThickHide(),
