@@ -1,0 +1,281 @@
+{
+  "scripts": [
+    {
+      "id": "start-run-kickoff",
+      "trigger": {
+        "scene": "start-run",
+        "tags": ["kickoff"]
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/mystic_cave.png"
+      },
+      "speakers": [
+        {
+          "id": "player",
+          "side": "left",
+          "party": "player",
+          "role": "player",
+          "portrait_url": "/assets/dialogue/portraits/goblin/primordial_frame_0.png"
+        },
+        {
+          "id": "whim",
+          "side": "right",
+          "name": "The Whim",
+          "portrait_url": "/assets/dialogue/portraits/whim/frame_0.png",
+          "party": "neutral",
+          "role": "npc"
+        }
+      ],
+      "start_step_id": "whim-chaos",
+      "steps": [
+        {
+          "id": "whim-chaos",
+          "speaker_id": "whim",
+          "text": "In the beginning all was chaos... as my creations you goblins were given free reign. Do you remember?",
+          "next_step_id": "player-no-memory"
+        },
+        {
+          "id": "player-no-memory",
+          "speaker_id": "player",
+          "text": "Uhmm.... no",
+          "next_step_id": "whim-explains"
+        },
+        {
+          "id": "whim-explains",
+          "speaker_id": "whim",
+          "text": "Right, I just conjured you. Well, goblins are pretty much wiped out. The Archivist came and his forces squashed Chaos anywhere they could find it. Now all I have left are but tiny fragments. Even a tiny fragment can be mighty though right my little fragment?",
+          "next_step_id": "player-uncertain"
+        },
+        {
+          "id": "player-uncertain",
+          "speaker_id": "player",
+          "text": "Uhmm... yes?",
+          "next_step_id": "whim-call-to-action"
+        },
+        {
+          "id": "whim-call-to-action",
+          "speaker_id": "whim",
+          "text": "... right. Well I want you to go out and fight back. Spread goblinkind! Reclaim your glory! Get messy! Are you ready to get messy?",
+          "next_step_id": "player-ready"
+        },
+        {
+          "id": "player-ready",
+          "speaker_id": "player",
+          "text": "...",
+          "enter_effect": {
+            "kind": "player_reveal",
+            "initial_overlay_url": "/assets/dialogue/portraits/goblin/primordial_frame_0.png",
+            "final_overlay_url": "/assets/dialogue/portraits/goblin/base_frame_0.png",
+            "resulting_player_portrait_url": "/assets/dialogue/portraits/goblin/base_frame_0.png",
+            "initial_duration_ms": 700,
+            "flash_count": 2,
+            "flash_interval_ms": 180,
+            "between_overlays_ms": 220,
+            "final_hold_ms": 2000
+          },
+          "choices": [
+            {
+              "id": "yes",
+              "label": "Yes",
+              "next_step_id": "whim-sendoff"
+            },
+            {
+              "id": "hell-yeah",
+              "label": "Hell yeah!",
+              "next_step_id": "whim-sendoff"
+            },
+            {
+              "id": "already-messed",
+              "label": "I already messed myself in preparation.",
+              "next_step_id": "whim-sendoff"
+            }
+          ]
+        },
+        {
+          "id": "whim-sendoff",
+          "speaker_id": "whim",
+          "text": "That is the spirit. Off you go now, my little fragment. Create a mess. Your first stop should be our old friend The Mudking to convince him to release The Tooth Collector."
+        }
+      ]
+    },
+    {
+      "id": "farm-boss-intro",
+      "trigger": {
+        "scene": "run-node",
+        "node_type": "boss",
+        "region_slug": "the_farm"
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/farm.png"
+      },
+      "speakers": [
+        {
+          "id": "mudking",
+          "side": "right",
+          "name": "Mudking",
+          "portrait_unit_slug": "mudking",
+          "party": "enemy",
+          "role": "npc"
+        },
+        {
+          "id": "player",
+          "side": "left",
+          "party": "player",
+          "role": "player"
+        }
+      ],
+      "start_step_id": "mudking-intro",
+      "steps": [
+        {
+          "id": "mudking-intro",
+          "speaker_id": "mudking",
+          "text": "Goblins?! On my farm? Are you looking for a fight?",
+          "next_step_id": "player-answer"
+        },
+        {
+          "id": "player-answer",
+          "speaker_id": "player",
+          "text": "...",
+          "choices": [
+            {
+              "id": "yes",
+              "label": "Lookin'? Just found one!",
+              "next_step_id": "mudking-yes"
+            },
+            {
+              "id": "no",
+              "label": "I am here to peacefully negotiate the release of The Tooth Collector.",
+              "next_step_id": "mudking-no"
+            },
+            {
+              "id": "maybe",
+              "label": "Maybe... You gonna turn over The Tooth Collector any other way?",
+              "next_step_id": "mudking-maybe"
+            }
+          ]
+        },
+        {
+          "id": "mudking-yes",
+          "speaker_id": "mudking",
+          "text": "Good!"
+        },
+        {
+          "id": "mudking-no",
+          "speaker_id": "mudking",
+          "text": "That creep isn't going anywhere!"
+        },
+        {
+          "id": "mudking-maybe",
+          "speaker_id": "mudking",
+          "text": "Ugh... Make up your mind wimp! Taste my tusk!"
+        }
+      ]
+    },
+    {
+      "id": "mountains-archivist-first-contact",
+      "trigger": {
+        "scene": "start-run",
+        "region_slug": "mountains",
+        "tags": ["first-visit"]
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/mountain.png"
+      },
+      "speakers": [
+        {
+          "id": "player",
+          "side": "left",
+          "party": "player",
+          "role": "player"
+        },
+        {
+          "id": "archivist",
+          "side": "right",
+          "name": "The Archivist",
+          "portrait_url": "/assets/dialogue/portraits/archivist/frame_0.png",
+          "party": "neutral",
+          "role": "npc"
+        }
+      ],
+      "start_step_id": "archivist-extinct",
+      "steps": [
+        {
+          "id": "archivist-extinct",
+          "speaker_id": "archivist",
+          "text": "Remarkable. A goblin, alive and wandering the high passes. Your kind was meant to have vanished from the record long ago.",
+          "next_step_id": "player-response"
+        },
+        {
+          "id": "player-response",
+          "speaker_id": "player",
+          "text": "...",
+          "choices": [
+            {
+              "id": "still-here",
+              "label": "Well... I ain't gone.",
+              "next_step_id": "archivist-catalogue"
+            },
+            {
+              "id": "rude",
+              "label": "That is a mean way to say hello.",
+              "next_step_id": "archivist-catalogue"
+            },
+            {
+              "id": "messy",
+              "label": "Nah. We are just hard to find.",
+              "next_step_id": "archivist-catalogue"
+            }
+          ]
+        },
+        {
+          "id": "archivist-catalogue",
+          "speaker_id": "archivist",
+          "text": "This will require attention. I shall have someone come to record your kind properly, and then see the error corrected. I wonder whether the Mudking has glimpsed any more of you..."
+        }
+      ]
+    },
+    {
+      "id": "farm-shop-unlock",
+      "trigger": {
+        "scene": "run-summary",
+        "region_slug": "the_farm",
+        "tags": ["shop-unlocked"]
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/farm.png"
+      },
+      "speakers": [
+        {
+          "id": "tooth-collector",
+          "side": "left",
+          "name": "The Tooth Collector",
+          "portrait_url": "/assets/dialogue/portraits/tooth_collector_frame_0.png",
+          "party": "neutral",
+          "role": "npc"
+        },
+        {
+          "id": "mudking",
+          "side": "right",
+          "name": "Mudking",
+          "portrait_unit_slug": "mudking",
+          "party": "enemy",
+          "role": "npc"
+        }
+      ],
+      "start_step_id": "mudking-release",
+      "steps": [
+        {
+          "id": "mudking-release",
+          "speaker_id": "mudking",
+          "text": "Fine, you can have him. He weirds me out anyway.",
+          "next_step_id": "collector-free"
+        },
+        {
+          "id": "collector-free",
+          "speaker_id": "tooth-collector",
+          "text": "Finally... I am free again. Bring me teeth, goblin, and I will help you spend them wisely."
+        }
+      ]
+    }
+  ]
+}

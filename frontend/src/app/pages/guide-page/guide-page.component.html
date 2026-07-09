@@ -170,6 +170,37 @@
           }
         </div>
       </section>
+
+      @if (session().isAuthenticated && discoveredBiomeUnits().length) {
+      <section class="guide-block">
+        <div class="guide-block__heading">
+          <p class="dg-stencil">Units</p>
+          <h3>Biome encounter units you have uncovered</h3>
+        </div>
+
+        <div class="guide-visual-grid guide-visual-grid--bestiary">
+          @for (unit of discoveredBiomeUnits(); track unit.slug) {
+          <article
+            class="guide-bestiary-tile"
+            (mouseenter)="startGuideUnitAnimation(unit.slug)"
+            (mouseleave)="stopGuideUnitAnimation(unit.slug)"
+            (focusin)="startGuideUnitAnimation(unit.slug)"
+            (focusout)="stopGuideUnitAnimation(unit.slug)"
+            tabindex="0"
+          >
+            <div class="guide-bestiary-tile__art">
+              <img [src]="guideUnitFramePath(unit)" [alt]="unit.name" />
+            </div>
+            <div class="guide-bestiary-tile__body">
+              <h4>{{ unit.name }}</h4>
+              <p class="guide-bestiary-tile__meta">Biome: {{ unit.biome }}</p>
+              <p class="guide-bestiary-tile__meta">Role: {{ unit.role }}</p>
+            </div>
+          </article>
+          }
+        </div>
+      </section>
+      }
     </section>
     }
 

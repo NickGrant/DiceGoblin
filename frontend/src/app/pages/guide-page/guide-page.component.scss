@@ -95,7 +95,8 @@
 
 .guide-tile,
 .guide-unit-tile,
-.guide-dice-tile {
+.guide-dice-tile,
+.guide-bestiary-tile {
   position: relative;
   min-width: 0;
   border: 1px solid rgba(96, 67, 33, 0.16);
@@ -160,6 +161,21 @@
   overflow: hidden;
 }
 
+.guide-bestiary-tile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.guide-bestiary-tile:hover,
+.guide-bestiary-tile:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(169, 85, 33, 0.38);
+  box-shadow: 0 16px 28px rgba(52, 34, 17, 0.12);
+  outline: none;
+}
+
 .guide-unit-tile__art {
   display: flex;
   align-items: flex-end;
@@ -181,6 +197,42 @@
 
 .guide-unit-tile__body {
   padding: 1rem;
+}
+
+.guide-bestiary-tile__art {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 12rem;
+  padding: 1rem 1rem 0.25rem;
+  background:
+    radial-gradient(circle at top, rgba(111, 134, 156, 0.16), rgba(111, 134, 156, 0) 72%),
+    linear-gradient(180deg, rgba(233, 240, 246, 0.96), rgba(214, 224, 233, 0.88));
+}
+
+.guide-bestiary-tile__art img {
+  width: min(100%, 14rem);
+  max-height: 11rem;
+  object-fit: contain;
+  object-position: center top;
+  image-rendering: auto;
+  filter: drop-shadow(0 10px 14px rgba(35, 39, 42, 0.18));
+}
+
+.guide-bestiary-tile__body {
+  padding: 1rem;
+}
+
+.guide-bestiary-tile__meta {
+  margin: 0 0 0.25rem;
+  color: var(--dg-text-muted-strong);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.guide-bestiary-tile__body p:last-child {
+  margin-bottom: 0;
 }
 
 .guide-dice-tile {
@@ -257,6 +309,10 @@
   }
 
   .guide-visual-grid--units {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guide-visual-grid--bestiary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

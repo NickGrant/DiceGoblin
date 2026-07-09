@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
@@ -55,6 +55,52 @@ type GuideDieSize = {
   summary: string;
 };
 
+type GuideBestiaryUnit = {
+  slug: string;
+  name: string;
+  biome: string;
+  role: string;
+  assetKey: string;
+};
+
+const REGION_COMPLETION_UNLOCK_MAP: Record<string, string> = {
+  the_farm: 'mountains',
+  mountains: 'swamps',
+};
+
+const BIOME_GUIDE_UNITS: ReadonlyArray<GuideBestiaryUnit> = [
+  {
+    slug: 'kobold_skirmisher',
+    name: 'Kobold Skirmisher',
+    biome: 'Mountains',
+    role: 'Backline',
+    assetKey: 'kobold/skirmisher',
+  },
+  {
+    slug: 'kobold_shieldbearer',
+    name: 'Kobold Shieldbearer',
+    biome: 'Mountains',
+    role: 'Frontline',
+    assetKey: 'kobold/shieldbearer',
+  },
+  {
+    slug: 'kobold_sharpshooter',
+    name: 'Kobold Sharpshooter',
+    biome: 'Mountains',
+    role: 'Backline',
+    assetKey: 'kobold/sharpshooter',
+  },
+  {
+    slug: 'kobold_warchief',
+    name: 'Kobold Warchief',
+    biome: 'Mountains',
+    role: 'Backline',
+    assetKey: 'kobold/warchief',
+  },
+];
+
+const GUIDE_UNIT_ANIMATION_INTERVAL_MS = 320;
+
 @Component({
   selector: 'app-guide-page',
   standalone: true,
@@ -62,13 +108,15 @@ type GuideDieSize = {
   templateUrl: './guide-page.component.html',
   styleUrl: './guide-page.component.scss',
 })
-export class GuidePageComponent implements OnInit {
+export class GuidePageComponent implements OnInit, OnDestroy {
   private readonly sessionService = inject(SessionService);
+  private readonly guideUnitAnimationTimers = new Map<string, ReturnType<typeof window.setInterval>>();
 
   protected readonly session = this.sessionService.session;
   protected readonly profileData = this.sessionService.profileData;
   protected readonly hasActiveRun = this.sessionService.hasActiveRun;
   protected readonly activeChapter = signal<GuideChapterId>('overview');
+  protected readonly guideUnitFrameIndexes = signal<Record<string, number>>({});
 
   protected readonly chapters: ReadonlyArray<GuideChapter> = [
     {
@@ -232,8 +280,31 @@ export class GuidePageComponent implements OnInit {
     { label: 'd20', image: this.diceImage('common', 20), summary: 'The biggest standard die, best suited to high-impact abilities and chase upgrades.' },
   ];
 
+  protected readonly completedBiomeSlugs = computed(() => {
+    const unlockedRegions = new Set((this.profileData()?.region_unlocks ?? []).map((entry) => entry.region_slug));
+    return Object.entries(REGION_COMPLETION_UNLOCK_MAP)
+      .filter(([, unlockedRegionSlug]) => unlockedRegions.has(unlockedRegionSlug))
+      .map(([completedRegionSlug]) => completedRegionSlug);
+  });
+
+  protected readonly discoveredBiomeUnits = computed(() => {
+    if (!this.session().isAuthenticated) {
+      return [] as GuideBestiaryUnit[];
+    }
+
+    const completedBiomes = new Set(this.completedBiomeSlugs());
+    return BIOME_GUIDE_UNITS.filter((unit) => completedBiomes.has(this.normalizeBiomeSlug(unit.biome)));
+  });
+
   ngOnInit(): void {
     void this.sessionService.initialize();
+  }
+
+  ngOnDestroy(): void {
+    for (const timer of this.guideUnitAnimationTimers.values()) {
+      window.clearInterval(timer);
+    }
+    this.guideUnitAnimationTimers.clear();
   }
 
   protected setActiveChapter(chapterId: GuideChapterId): void {
@@ -272,7 +343,42 @@ export class GuidePageComponent implements OnInit {
     return resolveUnitImageUrl(unitSlug) ?? '';
   }
 
+  protected guideUnitFramePath(unit: GuideBestiaryUnit): string {
+    const frameIndex = this.guideUnitFrameIndexes()[unit.slug] ?? 0;
+    return `/assets/ui/units/animated/${unit.assetKey}/frame_${frameIndex}.png`;
+  }
+
+  protected startGuideUnitAnimation(unitSlug: string): void {
+    if (typeof window === 'undefined' || this.guideUnitAnimationTimers.has(unitSlug)) {
+      return;
+    }
+
+    this.guideUnitFrameIndexes.update((current) => ({ ...current, [unitSlug]: 1 }));
+    const timer = window.setInterval(() => {
+      this.guideUnitFrameIndexes.update((current) => {
+        const currentFrame = current[unitSlug] ?? 1;
+        const nextFrame = currentFrame >= 3 ? 1 : currentFrame + 1;
+        return { ...current, [unitSlug]: nextFrame };
+      });
+    }, GUIDE_UNIT_ANIMATION_INTERVAL_MS);
+    this.guideUnitAnimationTimers.set(unitSlug, timer);
+  }
+
+  protected stopGuideUnitAnimation(unitSlug: string): void {
+    const timer = this.guideUnitAnimationTimers.get(unitSlug);
+    if (timer) {
+      window.clearInterval(timer);
+      this.guideUnitAnimationTimers.delete(unitSlug);
+    }
+
+    this.guideUnitFrameIndexes.update((current) => ({ ...current, [unitSlug]: 0 }));
+  }
+
   private diceImage(rarity: string, sides: number): string {
     return resolveDiceArtStyles(rarity, sides, 96).imageUrl;
+  }
+
+  private normalizeBiomeSlug(value: string): string {
+    return value.trim().toLowerCase().replace(/\s+/g, '_');
   }
 }

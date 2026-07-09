@@ -110,4 +110,59 @@ describe('GuidePageComponent', () => {
     expect(compiled.querySelectorAll('.guide-unit-tile--acquired').length).toBe(1);
     expect(compiled.textContent).toContain('Acquired');
   });
+
+  it('reveals biome units only for authenticated players who have completed the matching biome', () => {
+    sessionService.session.set({
+      isAuthenticated: true,
+      displayName: 'Commander',
+      userId: 5,
+      csrfToken: 'token',
+    });
+    sessionService.profileData.set({
+      feature_unlocks: [],
+      unit_type_unlocks: [],
+      region_unlocks: [
+        { region_id: '1', region_slug: 'the_farm', region_name: 'The Farm', unlocked_at: '2026-06-01T00:00:00Z' },
+        { region_id: '2', region_slug: 'mountains', region_name: 'Mountains', unlocked_at: '2026-06-02T00:00:00Z' },
+        { region_id: '3', region_slug: 'swamps', region_name: 'Swamps', unlocked_at: '2026-06-03T00:00:00Z' },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(GuidePageComponent);
+    const component = fixture.componentInstance as any;
+    component.setActiveChapter('warband');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Biome encounter units you have uncovered');
+    expect(compiled.textContent).toContain('Kobold Skirmisher');
+    expect(compiled.textContent).toContain('Kobold Warchief');
+    expect(compiled.textContent).toContain('Biome: Mountains');
+  });
+
+  it('keeps the units section hidden when the player has not completed a matching biome', () => {
+    sessionService.session.set({
+      isAuthenticated: true,
+      displayName: 'Commander',
+      userId: 5,
+      csrfToken: 'token',
+    });
+    sessionService.profileData.set({
+      feature_unlocks: [],
+      unit_type_unlocks: [],
+      region_unlocks: [
+        { region_id: '1', region_slug: 'the_farm', region_name: 'The Farm', unlocked_at: '2026-06-01T00:00:00Z' },
+        { region_id: '2', region_slug: 'mountains', region_name: 'Mountains', unlocked_at: '2026-06-02T00:00:00Z' },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(GuidePageComponent);
+    const component = fixture.componentInstance as any;
+    component.setActiveChapter('warband');
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).not.toContain('Biome encounter units you have uncovered');
+    expect(compiled.textContent).not.toContain('Kobold Skirmisher');
+  });
 });
