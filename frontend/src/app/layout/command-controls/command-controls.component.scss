@@ -15,11 +15,13 @@
 
   position: fixed;
   top: 0;
-  right: 0;
+  left: 50%;
   z-index: 20;
+  width: min(100vw, var(--dg-app-shell-max-width));
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  transform: translateX(-50%);
   pointer-events: auto;
 }
 
@@ -289,5 +291,11 @@
   .hud-menu-toggle,
   .hud-mobile-menu {
     display: none;
+  }
+}
+
+@media (min-width: 117.5625rem) {
+  :host {
+    width: min(calc(100vw - 3rem), var(--dg-app-shell-max-width));
   }
 }

@@ -36,6 +36,7 @@
   --dg-media-card-border-strong: rgba(35, 39, 42, 0.66);
   --dg-media-card-overlay-strong: rgba(18, 18, 18, 0.9);
   --dg-media-card-shadow-strong: 0 18px 28px rgba(0, 0, 0, 0.16);
+  --dg-app-shell-max-width: 117.5rem;
   --dg-shell-max-width: 96rem;
   --dg-shell-page-max-width: 90rem;
   --dg-shell-gutter: clamp(0.7rem, 2vw, 1.5rem);
@@ -69,9 +70,7 @@ body {
   margin: 0;
   font-family: 'IBM Plex Sans Condensed', 'Roboto Condensed', Arial, sans-serif;
   color: var(--dg-charcoal);
-  background:
-    linear-gradient(rgba(35, 39, 42, 0.1), rgba(35, 39, 42, 0.5)),
-    url('/assets/ui/textures/paper.png');
+  background: #1c242b;
 }
 
 h1,
@@ -96,21 +95,21 @@ button {
 
 .dg-motion-route-enter,
 app-root .frame > * {
-  animation: dg-route-screen-enter var(--dg-motion-duration-route) var(--dg-motion-ease-emphatic) both;
+  animation: dg-route-screen-enter var(--dg-motion-duration-route) var(--dg-motion-ease-emphatic) backwards;
   transform-origin: center top;
   will-change: transform, opacity, filter;
 }
 
 .dg-motion-surface-enter {
-  animation: dg-surface-enter var(--dg-motion-duration-surface) var(--dg-motion-ease-emphatic) both;
+  animation: dg-surface-enter var(--dg-motion-duration-surface) var(--dg-motion-ease-emphatic) backwards;
 }
 
 .dg-motion-panel-enter {
-  animation: dg-panel-enter var(--dg-motion-duration-panel) var(--dg-motion-ease-panel) both;
+  animation: dg-panel-enter var(--dg-motion-duration-panel) var(--dg-motion-ease-panel) backwards;
 }
 
 .dg-motion-stagger > * {
-  animation: dg-panel-enter var(--dg-motion-duration-panel) var(--dg-motion-ease-panel) both;
+  animation: dg-panel-enter var(--dg-motion-duration-panel) var(--dg-motion-ease-panel) backwards;
 }
 
 .dg-motion-stagger > :nth-child(2) {

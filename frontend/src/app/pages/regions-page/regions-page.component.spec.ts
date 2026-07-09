@@ -171,7 +171,7 @@ describe('RegionsPageComponent', () => {
     expect(dialogueService.getDialogue).toHaveBeenCalledWith(
       jasmine.objectContaining({
         scene: 'start-run',
-        tags: ['first-visit'],
+        tags: ['kickoff'],
         playerName: 'Ravin',
       }),
     );
@@ -204,5 +204,65 @@ describe('RegionsPageComponent', () => {
 
     expect(dialogueService.getDialogue).not.toHaveBeenCalled();
     expect(fixture.componentInstance.startRunIntroDialogue()).toBeNull();
+  });
+
+  it('shows the mountains archivist dialogue once before starting that run', async () => {
+    spyOn(router, 'navigateByUrl').and.resolveTo(true);
+    sessionService.profileData.set({
+      active_run: null,
+      seen_dialogues: ['start-run-kickoff'],
+      region_unlocks: [
+        { region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' },
+        { region_id: '2', region_slug: 'mountains', unlocked_at: '2026-06-02T00:00:00Z' },
+      ],
+    });
+    dialogueService.getDialogue.and.resolveTo({
+      id: 'mountains-archivist-first-contact',
+      backgroundUrl: '/assets/ui/biome/mountain.png',
+      startStepId: 'archivist-extinct',
+      speakers: [
+        { id: 'player', side: 'left', name: 'Ravin', portraitUrl: '/assets/dialogue/portraits/goblin/base_frame_0.png', party: 'player', role: 'player' },
+        { id: 'archivist', side: 'right', name: 'The Archivist', portraitUrl: '/assets/dialogue/portraits/archivist/frame_0.png', party: 'neutral', role: 'npc' },
+      ],
+      steps: [
+        {
+          id: 'archivist-extinct',
+          speakerId: 'archivist',
+          text: 'Oh. A goblin. You should be extinct.',
+          nextStepId: null,
+          choices: [],
+          enterEffect: null,
+        },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(RegionsPageComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    dialogueService.getDialogue.calls.reset();
+    fixture.componentInstance.pendingRegionSlug.set('mountains');
+
+    await fixture.componentInstance.confirmStartRun();
+
+    expect(dialogueService.getDialogue).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        scene: 'start-run',
+        regionSlug: 'mountains',
+        tags: ['first-visit'],
+        playerName: 'Ravin',
+      }),
+    );
+    expect(fixture.componentInstance.pendingRegionDialogue()?.id).toBe('mountains-archivist-first-contact');
+    expect(runService.createRun).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.pendingRegionSlug()).toBeNull();
+
+    await fixture.componentInstance.handlePendingRegionDialogueComplete([]);
+
+    expect(dialogueService.markDialogueSeen).toHaveBeenCalledWith('mountains-archivist-first-contact');
+    expect(runService.createRun).toHaveBeenCalledWith(2);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/run/map');
+    expect(fixture.componentInstance.pendingRegionDialogue()).toBeNull();
   });
 });

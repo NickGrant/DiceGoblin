@@ -69,6 +69,8 @@ const REGION_CARDS: RegionCard[] = [
 export class RegionsPageComponent {
   private static readonly START_RUN_INTRO_ID = 'start-run-kickoff';
   private static readonly START_RUN_INTRO_PORTRAIT = '/assets/dialogue/portraits/goblin/primordial_frame_0.png';
+  private static readonly MOUNTAINS_ARCHIVIST_DIALOGUE_ID = 'mountains-archivist-first-contact';
+  private static readonly PLAYER_DIALOGUE_PORTRAIT = '/assets/dialogue/portraits/goblin/base_frame_0.png';
 
   private readonly router = inject(Router);
   private readonly runService = inject(RunService);
@@ -86,6 +88,9 @@ export class RegionsPageComponent {
   readonly message = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly startRunIntroDialogue = signal<DialogueScript | null>(null);
+  readonly pendingRegionDialogue = signal<DialogueScript | null>(null);
+  readonly deferredStartRegionSlug = signal<string | null>(null);
+  readonly activeDialogue = computed(() => this.pendingRegionDialogue() ?? this.startRunIntroDialogue());
   readonly regions = computed(() => {
     const unlocks = this.profileData()?.region_unlocks ?? [];
     return REGION_CARDS.map((region) => {
@@ -145,7 +150,7 @@ export class RegionsPageComponent {
   }
 
   regionActionDisabled(region: RegionCardViewModel): boolean {
-    if (this.startRunIntroDialogue()) {
+    if (this.activeDialogue()) {
       return true;
     }
 
@@ -196,7 +201,7 @@ export class RegionsPageComponent {
   }
 
   async activateRegion(region: RegionCardViewModel): Promise<void> {
-    if (this.startRunIntroDialogue() || this.regionActionDisabled(region)) {
+    if (this.activeDialogue() || this.regionActionDisabled(region)) {
       return;
     }
 
@@ -221,13 +226,19 @@ export class RegionsPageComponent {
   }
 
   async confirmStartRun(): Promise<void> {
-    if (this.startRunIntroDialogue()) {
+    if (this.activeDialogue()) {
       return;
     }
 
     const region = this.regions().find((entry) => entry.slug === this.pendingRegionSlug()) ?? null;
     if (!region?.regionId) {
       this.pendingRegionSlug.set(null);
+      return;
+    }
+
+    if (await this.tryOpenRegionDialogue(region.slug)) {
+      this.pendingRegionSlug.set(null);
+      this.deferredStartRegionSlug.set(region.slug);
       return;
     }
 
@@ -245,6 +256,22 @@ export class RegionsPageComponent {
     await this.persistStartRunIntroSeen();
   }
 
+  async handlePendingRegionDialogueComplete(_choiceHistory: DialogueChoiceSelection[]): Promise<void> {
+    const regionSlug = this.deferredStartRegionSlug();
+    this.pendingRegionDialogue.set(null);
+    this.deferredStartRegionSlug.set(null);
+    this.rememberDialogueSeenLocally(RegionsPageComponent.MOUNTAINS_ARCHIVIST_DIALOGUE_ID);
+
+    try {
+      await this.persistDialogueSeen(RegionsPageComponent.MOUNTAINS_ARCHIVIST_DIALOGUE_ID);
+    } finally {
+      const region = this.regions().find((entry) => entry.slug === regionSlug) ?? null;
+      if (region?.regionId) {
+        await this.startRegionRun(region.regionId, region.slug);
+      }
+    }
+  }
+
   private async loadStartRunIntro(_userId: string): Promise<void> {
     if (this.hasSeenDialogue(RegionsPageComponent.START_RUN_INTRO_ID)) {
       return;
@@ -253,7 +280,7 @@ export class RegionsPageComponent {
     try {
       const dialogue = await this.dialogueService.getDialogue({
         scene: 'start-run',
-        tags: ['first-visit'],
+        tags: ['kickoff'],
         playerName: this.session().displayName,
         playerPortraitUrl: RegionsPageComponent.START_RUN_INTRO_PORTRAIT,
       });
@@ -271,11 +298,44 @@ export class RegionsPageComponent {
   }
 
   private async persistStartRunIntroSeen(): Promise<void> {
+    await this.persistDialogueSeen(RegionsPageComponent.START_RUN_INTRO_ID);
+  }
+
+  private async persistDialogueSeen(dialogueId: string): Promise<void> {
     try {
-      await this.dialogueService.markDialogueSeen(RegionsPageComponent.START_RUN_INTRO_ID);
+      await this.dialogueService.markDialogueSeen(dialogueId);
       await this.sessionService.refreshProfile({ force: true });
     } catch {
       // Keep the page usable even if the persistence call fails during testing.
+    }
+  }
+
+  private async tryOpenRegionDialogue(regionSlug: string): Promise<boolean> {
+    if (regionSlug !== 'mountains') {
+      return false;
+    }
+
+    if (this.hasSeenDialogue(RegionsPageComponent.MOUNTAINS_ARCHIVIST_DIALOGUE_ID)) {
+      return false;
+    }
+
+    try {
+      const dialogue = await this.dialogueService.getDialogue({
+        scene: 'start-run',
+        regionSlug,
+        tags: ['first-visit'],
+        playerName: this.session().displayName,
+        playerPortraitUrl: RegionsPageComponent.PLAYER_DIALOGUE_PORTRAIT,
+      });
+
+      if (!dialogue) {
+        return false;
+      }
+
+      this.pendingRegionDialogue.set(dialogue);
+      return true;
+    } catch {
+      return false;
     }
   }
 
