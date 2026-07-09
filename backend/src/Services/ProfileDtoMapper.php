@@ -21,6 +21,7 @@ final class ProfileDtoMapper
    * @param array<int,string> $featureUnlocks
    * @param array<int,string> $unitTypeUnlocks
    * @param array<int,string> $seenDialogues
+   * @param array<int,mixed> $regions
    * @param array<int,mixed> $regionUnlocks
    * @param array<int,array{region_item_id:string,quantity:int}> $regionItems
    * @param array<string,mixed>|null $activeRun
@@ -37,6 +38,7 @@ final class ProfileDtoMapper
     array $featureUnlocks,
     array $unitTypeUnlocks,
     array $seenDialogues,
+    array $regions,
     array $regionUnlocks,
     array $regionItems,
     ?array $activeRun
@@ -52,6 +54,7 @@ final class ProfileDtoMapper
       'feature_unlocks' => array_values(array_map(static fn(mixed $value): string => (string)$value, $featureUnlocks)),
       'unit_type_unlocks' => array_values(array_map(static fn(mixed $value): string => (string)$value, $unitTypeUnlocks)),
       'seen_dialogues' => array_values(array_map(static fn(mixed $value): string => (string)$value, $seenDialogues)),
+      'regions' => $regions,
       'region_unlocks' => $regionUnlocks,
       'region_items' => $regionItems,
       'active_run' => $activeRun,

@@ -22,11 +22,12 @@ export class UnitService {
   }
 
   async renameUnit(unitId: string, displayName: string): Promise<RenameUnitResponse> {
-    const response = await this.apiHttp.patchWithCsrf<RenameUnitResponse>(`/api/v1/units/${unitId}/name`, {
-      display_name: displayName,
-    });
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    return this.sessionService.runProfileMutation(() => this.apiHttp.patchWithCsrf<RenameUnitResponse>(
+      `/api/v1/units/${unitId}/name`,
+      {
+        display_name: displayName,
+      },
+    ));
   }
 
   async promoteUnit(
@@ -34,32 +35,35 @@ export class UnitService {
     secondaryUnitIds: [string, string],
     destinationUnitTypeId?: string,
   ): Promise<PromoteUnitResponse> {
-    const response = await this.apiHttp.postWithCsrf<PromoteUnitResponse>(`/api/v1/units/${primaryUnitId}/promote`, {
-      primary_unit_instance_id: Number(primaryUnitId),
-      secondary_unit_instance_ids: secondaryUnitIds.map((id) => Number(id)),
-      ...(destinationUnitTypeId ? { destination_unit_type_id: Number(destinationUnitTypeId) } : {}),
-    });
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<PromoteUnitResponse>(
+      `/api/v1/units/${primaryUnitId}/promote`,
+      {
+        primary_unit_instance_id: Number(primaryUnitId),
+        secondary_unit_instance_ids: secondaryUnitIds.map((id) => Number(id)),
+        ...(destinationUnitTypeId ? { destination_unit_type_id: Number(destinationUnitTypeId) } : {}),
+      },
+    ));
   }
 
   async selectCapstone(unitId: string, abilityId: string): Promise<SelectCapstoneResponse> {
-    const response = await this.apiHttp.putWithCsrf<SelectCapstoneResponse>(`/api/v1/units/${unitId}/capstone`, {
-      ability_id: abilityId,
-    });
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    return this.sessionService.runProfileMutation(() => this.apiHttp.putWithCsrf<SelectCapstoneResponse>(
+      `/api/v1/units/${unitId}/capstone`,
+      {
+        ability_id: abilityId,
+      },
+    ));
   }
 
   async replaceEquippedAbilities(
     unitId: string,
     abilityIds: string[],
   ): Promise<ReplaceEquippedAbilitiesResponse> {
-    const response = await this.apiHttp.putWithCsrf<ReplaceEquippedAbilitiesResponse>(`/api/v1/units/${unitId}/loadout`, {
-      ability_ids: abilityIds,
-    });
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    return this.sessionService.runProfileMutation(() => this.apiHttp.putWithCsrf<ReplaceEquippedAbilitiesResponse>(
+      `/api/v1/units/${unitId}/loadout`,
+      {
+        ability_ids: abilityIds,
+      },
+    ));
   }
 
   async assignAbilitySlotDie(
@@ -68,14 +72,12 @@ export class UnitService {
     slotIndex: number,
     diceId: string,
   ): Promise<AbilitySlotDiceMutationResponse> {
-    const response = await this.apiHttp.putWithCsrf<AbilitySlotDiceMutationResponse>(
+    return this.sessionService.runProfileMutation(() => this.apiHttp.putWithCsrf<AbilitySlotDiceMutationResponse>(
       `/api/v1/units/${unitId}/abilities/${abilityId}/slots/${slotIndex}/dice`,
       {
         dice_instance_id: Number(diceId),
       },
-    );
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    ));
   }
 
   async clearAbilitySlotDie(
@@ -83,12 +85,10 @@ export class UnitService {
     abilityId: string,
     slotIndex: number,
   ): Promise<AbilitySlotDiceMutationResponse> {
-    const response = await this.apiHttp.deleteWithCsrf<AbilitySlotDiceMutationResponse>(
+    return this.sessionService.runProfileMutation(() => this.apiHttp.deleteWithCsrf<AbilitySlotDiceMutationResponse>(
       `/api/v1/units/${unitId}/abilities/${abilityId}/slots/${slotIndex}/dice`,
       {},
-    );
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    ));
   }
 }
 

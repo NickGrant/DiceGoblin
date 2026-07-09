@@ -5,11 +5,10 @@ import { ActivatedRoute } from '@angular/router';
 import { TeamFormationCell, UnitRecord } from '../../core/models/api.models';
 import { SessionService } from '../../core/services/session/session.service';
 import { SquadService } from '../../core/services/squad/squad.service';
+import { FORMATION_CELLS } from '../../shared/formation/formation';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-
-const FORMATION_CELLS = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'];
 const AVAILABLE_DROP_ID = 'available-drop';
 const CELL_DROP_PREFIX = 'formation-cell-';
 

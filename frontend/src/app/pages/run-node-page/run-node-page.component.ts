@@ -1,7 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ResolveNodeData, UnitRecord } from '../../core/models/api.models';
+import { CurrentRunRecord, ResolveNodeData, UnitRecord } from '../../core/models/api.models';
 import { DialogueChoiceSelection, DialogueScript, DialogueTriggerContext } from '../../core/dialogue/dialogue.models';
+import { resolveRegionTheme } from '../../core/regions/region-catalog';
 import { AbilityCatalogService } from '../../core/services/ability-catalog/ability-catalog.service';
 import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { RunService } from '../../core/services/run/run.service';
@@ -13,11 +14,6 @@ import { PageFrameComponent } from '../../layout/page-frame/page-frame.component
 import { UnitGridObjectComponent, UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 
 const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss', 'loot']);
-const REGION_THEME_BY_SLUG: Record<string, string> = {
-  the_farm: 'farm',
-  mountains: 'mountain',
-  swamps: 'swamp',
-};
 
 type BattleLogActionViewModel = {
   round: number;
@@ -207,7 +203,7 @@ export class RunNodePageComponent {
       this.runId.set(current.data.run.run_id);
 
       if (currentNode && AUTO_RESOLVE_NODE_TYPES.has(currentNode.node_type)) {
-        const dialogue = await this.lookupDialogue(current.data.run.region_id, currentNode);
+        const dialogue = await this.lookupDialogue(current.data.run, currentNode);
         if (dialogue) {
           this.dialogue.set(dialogue);
         } else {
@@ -497,17 +493,15 @@ export class RunNodePageComponent {
   }
 
   private async lookupDialogue(
-    regionId: string,
+    run: CurrentRunRecord,
     currentNode: { node_type: string; meta?: Record<string, unknown> | null },
   ): Promise<DialogueScript | null> {
-    const regionSlug = this.sessionService
-      .profileData()
-      ?.region_unlocks.find((entry) => entry.region_id === regionId)?.region_slug ?? null;
-    const fallbackTheme = regionSlug ? REGION_THEME_BY_SLUG[regionSlug] : null;
+    const regionSlug = run.region_slug ?? null;
+    const fallbackTheme = resolveRegionTheme(regionSlug, run.region_theme ?? null);
     const context: DialogueTriggerContext = {
       scene: 'run-node',
       nodeType: currentNode.node_type,
-      regionId,
+      regionId: run.region_id,
       regionSlug,
       encounterTemplateId: this.stringValue(currentNode.meta?.['encounter_template_id']),
       playerName: this.sessionService.session().displayName ?? this.resolveLeadUnit()?.name,

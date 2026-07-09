@@ -18,13 +18,11 @@ export class AcademyService {
   }
 
   async unlockUnitType(unitTypeSlug: string): Promise<AcademyUnlockUnitTypeResponse> {
-    const response = await this.apiHttp.postWithCsrf<AcademyUnlockUnitTypeResponse>(
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<AcademyUnlockUnitTypeResponse>(
       '/api/v1/academy/unlock-unit-type',
       {
         unit_type_slug: unitTypeSlug,
       },
-    );
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    ));
   }
 }

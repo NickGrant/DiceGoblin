@@ -119,14 +119,17 @@ export class RunService {
   }
 
   async createRun(regionId: number): Promise<CreateResponse> {
-    const response = await this.apiHttp.postWithCsrf<CreateResponse>('/api/v1/runs', { region_id: regionId });
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<CreateResponse>(
+      '/api/v1/runs',
+      { region_id: regionId },
+    ));
   }
 
   async abandonRun(runId: string): Promise<AbandonRunResponse> {
-    const response = await this.apiHttp.postWithCsrf<AbandonRunResponse>(`/api/v1/runs/${runId}/abandon`, {});
-    await this.sessionService.refreshProfile({ force: true });
+    const response = await this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<AbandonRunResponse>(
+      `/api/v1/runs/${runId}/abandon`,
+      {},
+    ));
     if (response.ok) {
       this.summaryState.set(this.mapSummaryState('Run Abandoned', response.data.status, response.data.run_summary));
     }
@@ -134,8 +137,10 @@ export class RunService {
   }
 
   async exitRun(runId: string): Promise<ExitRunResponse> {
-    const response = await this.apiHttp.postWithCsrf<ExitRunResponse>(`/api/v1/runs/${runId}/exit`, {});
-    await this.sessionService.refreshProfile({ force: true });
+    const response = await this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<ExitRunResponse>(
+      `/api/v1/runs/${runId}/exit`,
+      {},
+    ));
     if (response.ok) {
       this.summaryState.set(this.mapSummaryState('Run Complete', response.data.status, response.data.run_summary));
     }
@@ -149,8 +154,10 @@ export class RunService {
   }
 
   async claimBattleRewards(battleId: string): Promise<BattleClaimResponse> {
-    const response = await this.apiHttp.postWithCsrf<BattleClaimResponse>(`/api/v1/battles/${battleId}/claim`, {});
-    await this.sessionService.refreshProfile({ force: true });
+    const response = await this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<BattleClaimResponse>(
+      `/api/v1/battles/${battleId}/claim`,
+      {},
+    ));
     if (response.ok && response.data.run_summary) {
       this.summaryState.set(
         this.mapSummaryState(
@@ -168,12 +175,10 @@ export class RunService {
   }
 
   async finalizeRest(runId: string, nodeId: string): Promise<RestFinalizeResponse> {
-    const response = await this.apiHttp.postWithCsrf<RestFinalizeResponse>(
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<RestFinalizeResponse>(
       `/api/v1/runs/${runId}/nodes/${nodeId}/rest/finalize`,
       {},
-    );
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    ));
   }
 
   clearSummary(): void {

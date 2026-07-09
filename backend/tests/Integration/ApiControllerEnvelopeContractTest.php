@@ -62,6 +62,7 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsInt($data['squad_unit_cap'] ?? null);
     $this->assertIsArray($data['feature_unlocks'] ?? null);
     $this->assertIsArray($data['unit_type_unlocks'] ?? null);
+    $this->assertIsArray($data['regions'] ?? null);
     $this->assertIsArray($data['region_unlocks'] ?? null);
     $this->assertIsArray($data['region_items'] ?? null);
     $this->assertArrayHasKey('active_run', $data);
@@ -156,6 +157,8 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertArrayHasKey('run_id', $run);
     $this->assertArrayHasKey('status', $run);
     $this->assertArrayHasKey('seed', $run);
+    $this->assertArrayHasKey('region_slug', $run);
+    $this->assertArrayHasKey('region_theme', $run);
 
     $nodes = is_array($data['map']['nodes']) ? $data['map']['nodes'] : [];
     $edges = is_array($data['map']['edges']) ? $data['map']['edges'] : [];

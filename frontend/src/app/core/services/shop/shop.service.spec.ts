@@ -10,8 +10,8 @@ describe('ShopService', () => {
 
   beforeEach(() => {
     apiHttp = jasmine.createSpyObj<ApiHttpService>('ApiHttpService', ['get', 'postWithCsrf']);
-    sessionService = jasmine.createSpyObj<SessionService>('SessionService', ['refreshProfile']);
-    sessionService.refreshProfile.and.resolveTo();
+    sessionService = jasmine.createSpyObj<SessionService>('SessionService', ['runProfileMutation']);
+    sessionService.runProfileMutation.and.callFake(async <T>(operation: () => Promise<T>) => operation());
 
     TestBed.configureTestingModule({
       providers: [
@@ -41,7 +41,7 @@ describe('ShopService', () => {
       item_type: 'daily_deal',
       product_id: '7',
     });
-    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 
   it('supports feature unlock purchases', async () => {

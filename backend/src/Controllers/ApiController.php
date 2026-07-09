@@ -37,12 +37,12 @@ use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\ProfileService;
 use DiceGoblins\Services\ProfileDtoMapper;
 use DiceGoblins\Services\RunGraphGenerator;
+use DiceGoblins\Services\RunLifecycleService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\SquadCapacityService;
 use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Services\UserDataSyncService;
 use DiceGoblins\Services\UserUnlockService;
-use DiceGoblins\Support\RunSummaryBuilder;
 
 use PDO;
 use RuntimeException;
@@ -180,6 +180,15 @@ final class ApiController
 
       $runId = (int)$run['run_id'];
       $services['runNodeRepo']->syncAvailableNodesFromClearedParents($runId);
+      $regionId = (int)($run['region_id'] ?? 0);
+      $region = $regionId > 0 ? $services['regionRepo']->getRegionById($regionId) : null;
+      if ($region !== null) {
+        $run['region_slug'] = (string)$region['slug'];
+        $run['region_name'] = (string)$region['name'];
+        $run['region_theme'] = (string)$region['theme'];
+        $run['recommended_level'] = (int)$region['recommended_level'];
+        $run['energy_cost'] = (int)$region['energy_cost'];
+      }
 
       Response::json([
         'ok' => true,
@@ -289,7 +298,7 @@ final class ApiController
           return;
         }
 
-        $services['runRepo']->abandonActiveRunsForUser($userId);
+        $services['runLifecycleService']->abandonRun($userId, (int)$active['run_id']);
       }
 
       // Validate region.
@@ -499,18 +508,16 @@ final class ApiController
         return;
       }
 
-      $runSummary = (new RunSummaryBuilder($pdo))->buildRunSummary($userId, $runIdInt);
-      $services['runRepo']->applyRunEndCleanup($runIdInt, $userId, true);
-      $services['runRepo']->endRun($userId, $runIdInt, 'abandoned');
+      $result = $services['runLifecycleService']->abandonRun($userId, $runIdInt);
 
       $pdo->commit();
 
       Response::json([
         'ok' => true,
         'data' => [
-          'run_id' => (string)$runIdInt,
-          'status' => 'abandoned',
-          'run_summary' => $runSummary,
+          'run_id' => $result['run_id'],
+          'status' => $result['status'],
+          'run_summary' => $result['run_summary'],
         ],
       ]);
     } catch (Throwable $e) {
@@ -597,6 +604,7 @@ final class ApiController
         return;
       }
 
+      $services['runNodeRepo']->syncAvailableNodesFromClearedParents($runIdInt);
       $exitNode = $services['runNodeRepo']->getFirstByTypeForUpdate($runIdInt, 'exit');
       if ($exitNode === null || (string)$exitNode['status'] !== 'available') {
         $pdo->rollBack();
@@ -610,15 +618,11 @@ final class ApiController
         return;
       }
 
-      $services['runNodeRepo']->markCleared($runIdInt, (int)$exitNode['id']);
-      $runSummary = (new RunSummaryBuilder($pdo))->buildRunSummary($userId, $runIdInt);
-      $services['runRepo']->applyRunEndCleanup($runIdInt, $userId, false);
-      $services['runRepo']->endRun($userId, $runIdInt, 'completed');
-      $runSummary['meta'] = $this->unlockSuccessfulCompletionRewards(
-        $pdo,
-        $services['regionRepo'],
+      $result = $services['runLifecycleService']->completeRun(
         $userId,
+        $runIdInt,
         (int)($run['region_id'] ?? 0),
+        (int)$exitNode['id'],
       );
 
       $pdo->commit();
@@ -626,10 +630,10 @@ final class ApiController
       Response::json([
         'ok' => true,
         'data' => [
-          'run_id' => (string)$runIdInt,
-          'status' => 'completed',
-          'exit_node_id' => (string)$exitNode['id'],
-          'run_summary' => $runSummary,
+          'run_id' => $result['run_id'],
+          'status' => $result['status'],
+          'exit_node_id' => $result['exit_node_id'],
+          'run_summary' => $result['run_summary'],
         ],
       ]);
     } catch (Throwable $e) {
@@ -827,86 +831,6 @@ final class ApiController
   }
 
   /**
-   * @return array{
-   *   completed_region_slug:?string,
-   *   completed_region_name:?string,
-   *   new_feature_unlocks:array<int,string>,
-   *   new_region_unlocks:array<int,string>
-   * }
-   */
-  private function unlockSuccessfulCompletionRewards(PDO $pdo, RegionRepository $regionRepo, int $userId, int $completedRegionId): array
-  {
-    if ($completedRegionId <= 0) {
-      return [
-        'completed_region_slug' => null,
-        'completed_region_name' => null,
-        'new_feature_unlocks' => [],
-        'new_region_unlocks' => [],
-      ];
-    }
-
-    $completedRegion = $regionRepo->getRegionById($completedRegionId);
-    if ($completedRegion === null) {
-      return [
-        'completed_region_slug' => null,
-        'completed_region_name' => null,
-        'new_feature_unlocks' => [],
-        'new_region_unlocks' => [],
-      ];
-    }
-
-    $newFeatureUnlocks = [];
-    $newRegionUnlocks = [];
-    $completedRegionSlug = (string)$completedRegion['slug'];
-    $unlockService = new UserUnlockService($pdo);
-
-    if (
-      $completedRegionSlug === 'the_farm'
-      && !$unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP)
-    ) {
-      $unlockService->grant($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP);
-      $newFeatureUnlocks[] = UserUnlockService::FEATURE_SHOP;
-    }
-
-    $nextSlug = match ($completedRegionSlug) {
-      'the_farm' => 'mountains',
-      'mountains' => 'swamps',
-      default => null,
-    };
-
-    if ($nextSlug === null) {
-      return [
-        'completed_region_slug' => $completedRegionSlug,
-        'completed_region_name' => (string)($completedRegion['name'] ?? ''),
-        'new_feature_unlocks' => $newFeatureUnlocks,
-        'new_region_unlocks' => $newRegionUnlocks,
-      ];
-    }
-
-    $nextRegion = $regionRepo->getRegionBySlug($nextSlug);
-    if ($nextRegion === null || !$nextRegion['is_enabled']) {
-      return [
-        'completed_region_slug' => $completedRegionSlug,
-        'completed_region_name' => (string)($completedRegion['name'] ?? ''),
-        'new_feature_unlocks' => $newFeatureUnlocks,
-        'new_region_unlocks' => $newRegionUnlocks,
-      ];
-    }
-
-    if (!$regionRepo->isRegionUnlocked($userId, (int)$nextRegion['id'])) {
-      $newRegionUnlocks[] = (string)$nextRegion['slug'];
-    }
-    $regionRepo->unlockRegion($userId, (int)$nextRegion['id']);
-
-    return [
-      'completed_region_slug' => $completedRegionSlug,
-      'completed_region_name' => (string)($completedRegion['name'] ?? ''),
-      'new_feature_unlocks' => $newFeatureUnlocks,
-      'new_region_unlocks' => $newRegionUnlocks,
-    ];
-  }
-
-  /**
    * Simple manual composition (no DI container).
    *
    * @return array{
@@ -919,7 +843,8 @@ final class ApiController
    *   runNodeRepo: RunNodeRepository,
    *   regionRepo: RegionRepository,
    *   energyRepo: EnergyRepository,
-   *   teamRepo: TeamRepository
+   *   teamRepo: TeamRepository,
+   *   runLifecycleService: RunLifecycleService
    * }
    */
   private function services(): array
@@ -966,6 +891,12 @@ final class ApiController
       'regionRepo' => $regionRepo,
       'energyRepo' => $energyRepo,
       'teamRepo' => $teamRepo,
+      'runLifecycleService' => new RunLifecycleService(
+        $pdo,
+        $runRepo,
+        $regionRepo,
+        new RunNodeRepository($pdo),
+      ),
     ];
   }
 

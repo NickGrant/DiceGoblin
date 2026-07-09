@@ -33,7 +33,7 @@ class RunServiceStub {
   getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
     ok: true,
     data: {
-      run: { run_id: 'run-1' },
+      run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'the_farm', region_theme: 'farm' },
       map: {
         nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'combat', status: 'available' }],
         edges: [],
@@ -139,6 +139,9 @@ class SessionServiceStub {
     { id: 'd2', rarity: 'uncommon', sides: 4 },
   ]);
   readonly profileData = jasmine.createSpy('profileData').and.returnValue({
+    regions: [
+      { id: 'region-1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: false, unlocked_at: '2026-06-01T00:00:00Z' },
+    ],
     region_unlocks: [{ region_id: 'region-1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' }],
   });
   readonly activeSquad = jasmine.createSpy('activeSquad').and.returnValue({
@@ -350,12 +353,12 @@ describe('RunNodePageComponent', () => {
   it('shows a treasure-focused reward summary for loot nodes', async () => {
     const lootRunService = new RunServiceStub();
     lootRunService.getCurrentRun.and.resolveTo({
-      ok: true,
-      data: {
-        run: { run_id: 'run-1' },
-        map: {
-          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'loot', status: 'available' }],
-          edges: [],
+        ok: true,
+        data: {
+          run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'the_farm', region_theme: 'farm' },
+          map: {
+            nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'loot', status: 'available' }],
+            edges: [],
         },
       },
     });
@@ -427,9 +430,9 @@ describe('RunNodePageComponent', () => {
   it('shows dialogue before resolving the farm boss node', async () => {
     const runService = new RunServiceStub();
     runService.getCurrentRun.and.resolveTo({
-      ok: true,
-      data: {
-        run: { run_id: 'run-1', region_id: 'region-1' },
+        ok: true,
+        data: {
+        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'the_farm', region_theme: 'farm' },
         map: {
           nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'boss', status: 'available' }],
           edges: [],

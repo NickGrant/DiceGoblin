@@ -1,4 +1,5 @@
 import { Component, input } from '@angular/core';
+import { formatTier } from '../../utils/unit-formatters';
 
 export type RunUnitFormationCell = {
   cell: string;
@@ -28,20 +29,7 @@ export class RunUnitFormationGridComponent {
   readonly cells = input.required<readonly RunUnitFormationCell[]>();
 
   formatTier(tier: number | null | undefined): string | null {
-    switch (tier) {
-      case 1:
-        return 'I';
-      case 2:
-        return 'II';
-      case 3:
-        return 'III';
-      case 4:
-        return 'IV';
-      case 5:
-        return 'V';
-      default:
-        return tier ? `${tier}` : null;
-    }
+    return formatTier(tier);
   }
 
   hpPercent(currentHp: number, maxHp: number): number {

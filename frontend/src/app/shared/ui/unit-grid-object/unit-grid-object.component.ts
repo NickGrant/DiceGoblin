@@ -4,6 +4,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faHandFist, faHeart, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
 import { RouterLink } from '@angular/router';
 import { UnitRecord } from '../../../core/models/api.models';
+import { formatTier } from '../../utils/unit-formatters';
 import { GridObjectComponent } from '../grid-object/grid-object.component';
 import { resolveUnitImageUrl } from '../unit-art/unit-art';
 
@@ -38,20 +39,7 @@ export class UnitGridObjectComponent extends GridObjectComponent<UnitRecord> {
   readonly fillHeight = input(true);
 
   formatTier(tier: number | null | undefined): string | null {
-    switch (tier) {
-      case 1:
-        return 'I';
-      case 2:
-        return 'II';
-      case 3:
-        return 'III';
-      case 4:
-        return 'IV';
-      case 5:
-        return 'V';
-      default:
-        return tier ? `${tier}` : null;
-    }
+    return formatTier(tier);
   }
 
   progressWidth(progressBar: UnitGridObjectProgressBar | null): number {

@@ -118,6 +118,12 @@ export class SessionService {
     }
   }
 
+  async runProfileMutation<T>(operation: () => Promise<T>, options?: { force?: boolean }): Promise<T> {
+    const response = await operation();
+    await this.refreshProfile({ force: options?.force ?? true });
+    return response;
+  }
+
   invalidateProfileCache(): void {
     this.profileService.invalidateProfileCache();
   }

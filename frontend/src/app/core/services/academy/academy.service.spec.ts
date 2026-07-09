@@ -10,8 +10,8 @@ describe('AcademyService', () => {
 
   beforeEach(() => {
     apiHttp = jasmine.createSpyObj<ApiHttpService>('ApiHttpService', ['get', 'postWithCsrf']);
-    sessionService = jasmine.createSpyObj<SessionService>('SessionService', ['refreshProfile']);
-    sessionService.refreshProfile.and.resolveTo();
+    sessionService = jasmine.createSpyObj<SessionService>('SessionService', ['runProfileMutation']);
+    sessionService.runProfileMutation.and.callFake(async <T>(operation: () => Promise<T>) => operation());
 
     TestBed.configureTestingModule({
       providers: [
@@ -43,6 +43,6 @@ describe('AcademyService', () => {
     expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/academy/unlock-unit-type', {
       unit_type_slug: 'support_banner_t1',
     });
-    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 });

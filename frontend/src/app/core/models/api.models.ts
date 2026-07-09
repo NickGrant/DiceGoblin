@@ -23,6 +23,11 @@ export type SessionResponse = ApiResponse<SessionData>;
 export type ProfileActiveRun = {
   run_id: string;
   region_id: string;
+  region_slug?: string;
+  region_name?: string;
+  region_theme?: string;
+  recommended_level?: number;
+  energy_cost?: number;
   seed: string;
   status: string;
   started_at: string;
@@ -154,7 +159,24 @@ export type RegionUnlockRecord = {
   region_id: string;
   region_slug: string;
   region_name: string;
+  region_theme?: string;
+  recommended_level?: number;
+  energy_cost?: number;
+  is_completed?: boolean;
   unlocked_at: string;
+};
+
+export type RegionRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  theme: string;
+  recommended_level: number;
+  energy_cost: number;
+  is_enabled: boolean;
+  is_unlocked: boolean;
+  is_completed: boolean;
+  unlocked_at: string | null;
 };
 
 export type RegionItemRecord = {
@@ -181,6 +203,7 @@ export type ProfileData = {
   feature_unlocks: string[];
   unit_type_unlocks: string[];
   seen_dialogues?: string[];
+  regions: RegionRecord[];
   region_unlocks: RegionUnlockRecord[];
   region_items: RegionItemRecord[];
   active_run: ProfileActiveRun | null;
@@ -212,6 +235,11 @@ export type AbilityCatalogResponse = ApiResponse<AbilityCatalogData>;
 export type CurrentRunRecord = {
   run_id: string;
   region_id: string;
+  region_slug?: string;
+  region_name?: string;
+  region_theme?: string;
+  recommended_level?: number;
+  energy_cost?: number;
   seed: string;
   status: string;
   started_at: string;

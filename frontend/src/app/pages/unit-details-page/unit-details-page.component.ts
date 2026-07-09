@@ -25,6 +25,7 @@ import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { DicePickerModalComponent } from '../../shared/ui/dice-picker-modal/dice-picker-modal.component';
 import { TabStripComponent, TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
+import { humanizeAbilityId, normalizeAbilityId, resolveAbilityDisplayName, toRomanNumeral } from '../../shared/utils/unit-formatters';
 import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
 
 type AbilitySlotViewModel = {
@@ -147,10 +148,10 @@ export class UnitDetailsPageComponent {
     }
 
     const authoredAbilityIds = (unit.abilities ?? [])
-      .map((ability) => this.normalizeAbilityId(ability.ability_id))
+      .map((ability) => normalizeAbilityId(ability.ability_id))
       .filter((abilityId): abilityId is string => abilityId !== null);
     const unlockedAbilityIds = this.unlockedAbilityIds()
-      .map((abilityId) => this.normalizeAbilityId(abilityId))
+      .map((abilityId) => normalizeAbilityId(abilityId))
       .filter((abilityId): abilityId is string => abilityId !== null);
     const learnedIds = Array.from(new Set([...authoredAbilityIds, ...unlockedAbilityIds]));
 
@@ -159,7 +160,7 @@ export class UnitDetailsPageComponent {
       const authoredRecord = unit.abilities?.find((ability) => ability.ability_id === abilityId);
       return {
         abilityId,
-        displayName: abilityMeta?.display_name ?? this.humanizeAbilityId(abilityId),
+        displayName: abilityMeta?.display_name ?? humanizeAbilityId(abilityId),
         shortDesc: abilityMeta?.short_desc ?? 'No description available.',
         type: abilityMeta?.type ?? authoredRecord?.type ?? 'active',
         speed: abilityMeta?.speed ?? 0,
@@ -250,7 +251,7 @@ export class UnitDetailsPageComponent {
       return {
         instanceKey: `${abilityId}:${index}`,
         abilityId,
-        displayName: ability?.displayName ?? this.humanizeAbilityId(abilityId),
+        displayName: ability?.displayName ?? humanizeAbilityId(abilityId),
         speed,
         diceCost: Math.max(0, ability?.diceCost ?? this.abilityCatalog().get(abilityId)?.dice_cost ?? 0),
         heightPx: speed * UnitDetailsPageComponent.LOADOUT_PIXEL_PER_SPEED,
@@ -266,7 +267,7 @@ export class UnitDetailsPageComponent {
 
       return {
         abilityId,
-        displayName: abilityMeta?.display_name ?? this.humanizeAbilityId(abilityId),
+        displayName: abilityMeta?.display_name ?? humanizeAbilityId(abilityId),
         shortDesc: abilityMeta?.short_desc ?? 'Configure dice used when this ability resolves.',
         speedCost,
         diceCost,
@@ -322,7 +323,7 @@ export class UnitDetailsPageComponent {
   renameValue = '';
 
   readonly unitTypeLabel = computed(() => this.unit()?.unit_type_name || this.unit()?.unit_type_slug || 'Unit');
-  readonly tierRomanNumeral = computed(() => this.toRomanNumeral(this.unit()?.tier ?? 1));
+  readonly tierRomanNumeral = computed(() => toRomanNumeral(this.unit()?.tier ?? 1));
   readonly portraitLoadFailed = signal(false);
   readonly unitPortraitUrl = computed(() => resolveUnitImageUrl(this.unit()?.unit_type_slug));
 
@@ -635,25 +636,12 @@ export class UnitDetailsPageComponent {
     return null;
   }
 
-  private humanizeAbilityId(abilityId: string): string {
-    return abilityId
-      .split('_')
-      .filter((segment) => segment.length)
-      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-      .join(' ');
-  }
-
   abilityDisplayName(abilityId: string | null | undefined): string {
-    const normalized = this.normalizeAbilityId(abilityId);
-    if (!normalized) {
-      return 'Unknown ability';
-    }
-
-    return this.abilityCatalog().get(normalized)?.display_name ?? this.humanizeAbilityId(normalized);
+    return resolveAbilityDisplayName(abilityId, this.abilityCatalog());
   }
 
   abilityShortDescription(abilityId: string | null | undefined): string {
-    const normalized = this.normalizeAbilityId(abilityId);
+    const normalized = normalizeAbilityId(abilityId);
     if (!normalized) {
       return 'No description available.';
     }
@@ -670,44 +658,8 @@ export class UnitDetailsPageComponent {
     }[state] ?? 'Capstone state unavailable.';
   }
 
-  private normalizeAbilityId(abilityId: unknown): string | null {
-    const normalized = typeof abilityId === 'string' ? abilityId.trim() : '';
-    return normalized.length > 0 ? normalized : null;
-  }
-
   private slotKey(abilityId: string, slotIndex: number): string {
     return `${abilityId}:${slotIndex}`;
-  }
-
-  private toRomanNumeral(value: number): string {
-    const normalized = Math.max(1, Math.floor(value || 1));
-    const numerals: Array<{ value: number; symbol: string }> = [
-      { value: 1000, symbol: 'M' },
-      { value: 900, symbol: 'CM' },
-      { value: 500, symbol: 'D' },
-      { value: 400, symbol: 'CD' },
-      { value: 100, symbol: 'C' },
-      { value: 90, symbol: 'XC' },
-      { value: 50, symbol: 'L' },
-      { value: 40, symbol: 'XL' },
-      { value: 10, symbol: 'X' },
-      { value: 9, symbol: 'IX' },
-      { value: 5, symbol: 'V' },
-      { value: 4, symbol: 'IV' },
-      { value: 1, symbol: 'I' },
-    ];
-
-    let remaining = normalized;
-    let result = '';
-
-    for (const numeral of numerals) {
-      while (remaining >= numeral.value) {
-        result += numeral.symbol;
-        remaining -= numeral.value;
-      }
-    }
-
-    return result;
   }
 }
 

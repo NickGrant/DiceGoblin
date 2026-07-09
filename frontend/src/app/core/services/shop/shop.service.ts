@@ -18,12 +18,13 @@ export class ShopService {
     itemType: 'basic_unit' | 'basic_dice' | 'daily_deal' | 'feature_unlock',
     productId = '',
   ): Promise<ShopPurchaseResponse> {
-    const response = await this.apiHttp.postWithCsrf<ShopPurchaseResponse>('/api/v1/shop/purchase', {
-      item_type: itemType,
-      product_id: productId,
-    });
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<ShopPurchaseResponse>(
+      '/api/v1/shop/purchase',
+      {
+        item_type: itemType,
+        product_id: productId,
+      },
+    ));
   }
 }
 

@@ -1,19 +1,14 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CurrentRunData, CurrentRunEdge, CurrentRunNode } from '../../core/models/api.models';
+import { resolveRunRegionBackgroundUrl } from '../../core/regions/region-catalog';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
+import { buildFormationGrid } from '../../shared/formation/formation';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { RunUnitFormationGridComponent } from '../../shared/ui/run-unit-formation-grid/run-unit-formation-grid.component';
-
-const FORMATION_CELLS = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'] as const;
-const REGION_THEME_BY_SLUG: Record<string, string> = {
-  the_farm: 'farm',
-  mountains: 'mountain',
-  swamps: 'swamp',
-};
 
 @Component({
   selector: 'app-run-map-page',
@@ -57,18 +52,7 @@ export class RunMapPageComponent {
   readonly edges = computed(() => this.runData()?.map?.edges ?? []);
   readonly run = computed(() => this.runData()?.run ?? null);
   readonly activeSquad = this.sessionService.activeSquad;
-  readonly mapBackgroundUrl = computed(() => {
-    const regionId = this.run()?.region_id ?? this.sessionService.profileData()?.active_run?.region_id ?? null;
-    if (!regionId) {
-      return null;
-    }
-
-    const regionSlug = this.sessionService
-      .profileData()
-      ?.region_unlocks.find((entry) => entry.region_id === regionId)?.region_slug;
-    const theme = regionSlug ? REGION_THEME_BY_SLUG[regionSlug] : null;
-    return theme ? `/assets/ui/biome/${theme}.png` : null;
-  });
+  readonly mapBackgroundUrl = computed(() => resolveRunRegionBackgroundUrl(this.run()));
   readonly nodeLayoutBounds = computed(() => {
     const xs = this.nodes().map((node) => this.nodeX(node));
     const ys = this.nodes().map((node) => this.nodeY(node));
@@ -120,18 +104,7 @@ export class RunMapPageComponent {
     () => new Map(this.runUnits().map((entry) => [entry.unit_instance_id, entry])),
   );
   readonly formationGrid = computed(() => {
-    const formationAssignments = new Map(
-      (this.activeSquad()?.formation ?? []).map((entry) => [entry.cell, entry.unit_instance_id]),
-    );
-
-    return FORMATION_CELLS.map((cell) => {
-      const unitId = formationAssignments.get(cell) ?? null;
-      return {
-        cell,
-        unitId,
-        entry: unitId ? this.runUnitById().get(unitId) ?? null : null,
-      };
-    });
+    return buildFormationGrid(this.activeSquad()?.formation, this.runUnitById());
   });
   readonly renderedEdges = computed(() => this.buildRenderedEdges(this.nodes(), this.edges()));
 

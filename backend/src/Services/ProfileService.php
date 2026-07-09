@@ -74,6 +74,7 @@ final class ProfileService
     $dice = $this->applyEconomyModifiersToDice($dice, $featureUnlocks);
 
     // Region unlocks
+    $regions = $this->regionRepo->listRegionsWithUserState($userId);
     $regionUnlocks = $this->regionRepo->getUnlocksForUser($userId);
 
     // Region items (small join; you did not create RegionItemRepository, so we keep this here for now)
@@ -82,6 +83,7 @@ final class ProfileService
     // Active run (if any)
     $activeRun = $this->runRepo->getActiveRunForUser($userId);
     if ($activeRun !== null) {
+      $activeRun = $this->decorateActiveRun($activeRun);
       $units = $this->applyActiveRunUnitHealth($units, (int)$activeRun['run_id'], $userId);
     }
 
@@ -96,6 +98,7 @@ final class ProfileService
       $featureUnlocks,
       $unitTypeUnlocks,
       $seenDialogues,
+      $regions,
       $regionUnlocks,
       $regionItems,
       $activeRun
@@ -110,6 +113,31 @@ final class ProfileService
   {
     $dt = new DateTimeImmutable('now', new DateTimeZone('UTC'));
     return $dt->format('Y-m-d\TH:i:s.v\Z');
+  }
+
+  /**
+   * @param array<string,mixed> $activeRun
+   * @return array<string,mixed>
+   */
+  private function decorateActiveRun(array $activeRun): array
+  {
+    $regionId = (int)($activeRun['region_id'] ?? 0);
+    if ($regionId <= 0) {
+      return $activeRun;
+    }
+
+    $region = $this->regionRepo->getRegionById($regionId);
+    if ($region === null) {
+      return $activeRun;
+    }
+
+    $activeRun['region_slug'] = (string)$region['slug'];
+    $activeRun['region_name'] = (string)$region['name'];
+    $activeRun['region_theme'] = (string)$region['theme'];
+    $activeRun['recommended_level'] = (int)$region['recommended_level'];
+    $activeRun['energy_cost'] = (int)$region['energy_cost'];
+
+    return $activeRun;
   }
 
   /**

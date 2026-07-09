@@ -51,10 +51,4 @@ describe('ProfileService', () => {
     await service.getProfile();
     await expectAsync(service.getProfile({ force: true, allowStaleOnError: true })).toBeResolvedTo(profile);
   });
-
-  it('invalidates cache before refreshProfileAfterMutation and swallows refresh errors', async () => {
-    apiHttp.get.and.rejectWith(new Error('broken'));
-
-    expect(() => service.refreshProfileAfterMutation()).not.toThrow();
-  });
 });

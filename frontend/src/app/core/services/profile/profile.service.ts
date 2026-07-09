@@ -52,10 +52,5 @@ export class ProfileService {
   invalidateProfileCache(): void {
     this.profileCache = null;
   }
-
-  refreshProfileAfterMutation(): void {
-    this.invalidateProfileCache();
-    void this.getProfile({ force: true }).catch(() => {});
-  }
 }
 

@@ -8,28 +8,19 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Controllers;
 
+use DiceGoblins\Controllers\Concerns\HandlesControllerRequests;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
-use DiceGoblins\Http\JsonRequestBody;
-
-use DiceGoblins\Repositories\EnergyRepository;
-use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunRepository;
 use DiceGoblins\Repositories\TeamRepository;
-use DiceGoblins\Repositories\UserRepository;
-
-use DiceGoblins\Services\CsrfService;
-use DiceGoblins\Services\GrantService;
-use DiceGoblins\Services\PlayerBootstrapper;
-use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\SquadCapacityService;
-
 use RuntimeException;
 use Throwable;
 
 final class TeamController
 {
+  use HandlesControllerRequests;
   use RequiresCsrf;
 
   /**
@@ -40,16 +31,8 @@ final class TeamController
   {
     $svc = $this->services();
 
-    try {
-      $userId = $svc['sessionService']->requireUserId();
-    } catch (Throwable $e) {
-      Response::json([
-        'ok' => false,
-        'error' => [
-          'code' => 'unauthorized',
-          'message' => 'No active session.',
-        ],
-      ], 401);
+    $userId = $this->requireUserId($svc['sessionService']);
+    if ($userId === null) {
       return;
     }
 
@@ -57,15 +40,8 @@ final class TeamController
       return;
     }
 
-    $body = $this->readJsonBody();
+    $body = $this->readJsonBody('invalid_request', 'Invalid JSON body.');
     if ($body === null) {
-      Response::json([
-        'ok' => false,
-        'error' => [
-          'code' => 'invalid_request',
-          'message' => 'Invalid JSON body.',
-        ],
-      ], 400);
       return;
     }
 
@@ -107,16 +83,8 @@ final class TeamController
   {
     $svc = $this->services();
 
-    try {
-      $userId = $svc['sessionService']->requireUserId();
-    } catch (Throwable $e) {
-      Response::json([
-        'ok' => false,
-        'error' => [
-          'code' => 'unauthorized',
-          'message' => 'No active session.',
-        ],
-      ], 401);
+    $userId = $this->requireUserId($svc['sessionService']);
+    if ($userId === null) {
       return;
     }
 
@@ -161,16 +129,8 @@ final class TeamController
   {
     $svc = $this->services();
 
-    try {
-      $userId = $svc['sessionService']->requireUserId();
-    } catch (Throwable $e) {
-      Response::json([
-        'ok' => false,
-        'error' => [
-          'code' => 'unauthorized',
-          'message' => 'No active session.',
-        ],
-      ], 401);
+    $userId = $this->requireUserId($svc['sessionService']);
+    if ($userId === null) {
       return;
     }
 
@@ -181,15 +141,8 @@ final class TeamController
     $teamIdInt = $this->requirePositiveInt($teamId, 'teamId');
     if ($teamIdInt === null) return;
 
-    $body = $this->readJsonBody();
+    $body = $this->readJsonBody('invalid_request', 'Invalid JSON body.');
     if ($body === null) {
-      Response::json([
-        'ok' => false,
-        'error' => [
-          'code' => 'invalid_request',
-          'message' => 'Invalid JSON body.',
-        ],
-      ], 400);
       return;
     }
 
@@ -254,16 +207,8 @@ final class TeamController
   {
     $svc = $this->services();
 
-    try {
-      $userId = $svc['sessionService']->requireUserId();
-    } catch (Throwable $e) {
-      Response::json([
-        'ok' => false,
-        'error' => [
-          'code' => 'unauthorized',
-          'message' => 'No active session.',
-        ],
-      ], 401);
+    $userId = $this->requireUserId($svc['sessionService']);
+    if ($userId === null) {
       return;
     }
 
@@ -332,26 +277,5 @@ final class TeamController
       'sessionService' => $core['sessionService'],
       'csrfService' => $core['csrfService'],
     ];
-  }
-
-  private function readJsonBody(): ?array
-  {
-    return JsonRequestBody::decode();
-  }
-
-  private function requirePositiveInt(?string $raw, string $field): ?int
-  {
-    $v = (int)($raw ?? 0);
-    if ($v <= 0) {
-      Response::json([
-        'ok' => false,
-        'error' => [
-          'code' => 'validation_error',
-          'message' => "{$field} is required.",
-        ],
-      ], 400);
-      return null;
-    }
-    return $v;
   }
 }

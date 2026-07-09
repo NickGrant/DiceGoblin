@@ -1,8 +1,9 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { RegionRecord } from '../../core/models/api.models';
+import { REGION_SUMMARY_BY_SLUG } from '../../core/regions/region-catalog';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
-import { RegionUnlockRecord } from '../../core/models/api.models';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { ConfirmModalComponent } from '../../shared/ui/confirm-modal/confirm-modal.component';
@@ -10,54 +11,9 @@ import { DialogueChoiceSelection, DialogueScript } from '../../core/dialogue/dia
 import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
 
-type RegionCard = {
-  slug: string;
-  name: string;
-  theme: string;
-  recommendedLevel: number;
-  energyCost: number;
+type RegionCardViewModel = RegionRecord & {
   summary: string;
-  pathSummary: string;
-  unlockHint: string;
 };
-
-type RegionCardViewModel = RegionCard & {
-  regionId: string | null;
-  isUnlocked: boolean;
-};
-
-const REGION_CARDS: RegionCard[] = [
-  {
-    slug: 'the_farm',
-    name: 'The Farm',
-    theme: 'farm',
-    recommendedLevel: 1,
-    energyCost: 3,
-    summary: 'Combat, loot, rest, boss, then exit.',
-    pathSummary: 'Tutorial route',
-    unlockHint: 'Available from the start.',
-  },
-  {
-    slug: 'mountains',
-    name: 'Mountains',
-    theme: 'mountain',
-    recommendedLevel: 1,
-    energyCost: 5,
-    summary: 'Branching climbs with tougher fights and a boss reward that unlocks the swamps.',
-    pathSummary: 'Kobold ascent',
-    unlockHint: 'Complete The Farm to unlock.',
-  },
-  {
-    slug: 'swamps',
-    name: 'Swamps',
-    theme: 'swamp',
-    recommendedLevel: 1,
-    energyCost: 5,
-    summary: 'Branching marsh paths with frogman encounters, rest stops, and a final boss.',
-    pathSummary: 'Frogman marsh',
-    unlockHint: 'Complete Mountains to unlock.',
-  },
-];
 
 @Component({
   selector: 'app-regions-page',
@@ -91,17 +47,10 @@ export class RegionsPageComponent {
   readonly pendingRegionDialogue = signal<DialogueScript | null>(null);
   readonly deferredStartRegionSlug = signal<string | null>(null);
   readonly activeDialogue = computed(() => this.pendingRegionDialogue() ?? this.startRunIntroDialogue());
-  readonly regions = computed(() => {
-    const unlocks = this.profileData()?.region_unlocks ?? [];
-    return REGION_CARDS.map((region) => {
-      const unlock = unlocks.find((entry) => entry.region_slug === region.slug) ?? null;
-      return {
-        ...region,
-        regionId: unlock?.region_id ?? null,
-        isUnlocked: !!unlock,
-      };
-    });
-  });
+  readonly regions = computed<RegionCardViewModel[]>(() => (this.profileData()?.regions ?? []).map((region) => ({
+    ...region,
+    summary: REGION_SUMMARY_BY_SLUG[region.slug] ?? 'Path details will be added as this biome is expanded.',
+  })));
   readonly inspectedRegion = computed(() => {
     const regions = this.regions();
     if (!regions.length) {
@@ -142,7 +91,7 @@ export class RegionsPageComponent {
       return 'Starting...';
     }
 
-    if (this.isActiveRegion(region.regionId)) {
+    if (this.isActiveRegion(region.id)) {
       return 'Continue Run';
     }
 
@@ -158,11 +107,11 @@ export class RegionsPageComponent {
       return true;
     }
 
-    if (!region.isUnlocked) {
+    if (!region.is_unlocked) {
       return true;
     }
 
-    if (this.isActiveRegion(region.regionId)) {
+    if (this.isActiveRegion(region.id)) {
       return false;
     }
 
@@ -205,7 +154,7 @@ export class RegionsPageComponent {
       return;
     }
 
-    if (this.isActiveRegion(region.regionId)) {
+    if (this.isActiveRegion(region.id)) {
       await this.continueRun();
       return;
     }
@@ -231,7 +180,7 @@ export class RegionsPageComponent {
     }
 
     const region = this.regions().find((entry) => entry.slug === this.pendingRegionSlug()) ?? null;
-    if (!region?.regionId) {
+    if (!region?.id) {
       this.pendingRegionSlug.set(null);
       return;
     }
@@ -242,12 +191,8 @@ export class RegionsPageComponent {
       return;
     }
 
-    await this.startRegionRun(region.regionId, region.slug);
+    await this.startRegionRun(region.id, region.slug);
     this.pendingRegionSlug.set(null);
-  }
-
-  unlockRecord(regionSlug: string): RegionUnlockRecord | null {
-    return this.profileData()?.region_unlocks.find((entry) => entry.region_slug === regionSlug) ?? null;
   }
 
   async handleStartRunIntroComplete(_choiceHistory: DialogueChoiceSelection[]): Promise<void> {
@@ -266,8 +211,8 @@ export class RegionsPageComponent {
       await this.persistDialogueSeen(RegionsPageComponent.MOUNTAINS_ARCHIVIST_DIALOGUE_ID);
     } finally {
       const region = this.regions().find((entry) => entry.slug === regionSlug) ?? null;
-      if (region?.regionId) {
-        await this.startRegionRun(region.regionId, region.slug);
+      if (region?.id) {
+        await this.startRegionRun(region.id, region.slug);
       }
     }
   }

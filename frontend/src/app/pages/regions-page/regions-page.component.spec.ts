@@ -27,6 +27,11 @@ class SessionServiceStub {
   readonly profileData = signal<any>({
     active_run: null,
     seen_dialogues: [],
+    regions: [
+      { id: '1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: true, unlocked_at: '2026-06-01T00:00:00Z' },
+      { id: '2', slug: 'mountains', name: 'Mountains', theme: 'mountain', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: true, is_completed: false, unlocked_at: '2026-06-02T00:00:00Z' },
+      { id: '3', slug: 'swamps', name: 'Swamps', theme: 'swamp', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: false, is_completed: false, unlocked_at: null },
+    ],
     region_unlocks: [
       { region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' },
       { region_id: '2', region_slug: 'mountains', unlocked_at: '2026-06-02T00:00:00Z' },
@@ -63,9 +68,9 @@ describe('RegionsPageComponent', () => {
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
-    expect(component.regions().filter((region) => region.isUnlocked).length).toBe(2);
-    expect(component.regions().find((region) => region.slug === 'mountains')?.isUnlocked).toBeTrue();
-    expect(component.regions().find((region) => region.slug === 'swamps')?.isUnlocked).toBeFalse();
+    expect(component.regions().filter((region) => region.is_unlocked).length).toBe(2);
+    expect(component.regions().find((region) => region.slug === 'mountains')?.is_unlocked).toBeTrue();
+    expect(component.regions().find((region) => region.slug === 'swamps')?.is_unlocked).toBeFalse();
   });
 
   it('starts a run and routes to the map for unlocked regions', async () => {
@@ -85,6 +90,11 @@ describe('RegionsPageComponent', () => {
     sessionService.profileData.set({
       active_run: { region_id: '2' },
       seen_dialogues: [],
+      regions: [
+        { id: '1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: true, unlocked_at: '2026-06-01T00:00:00Z' },
+        { id: '2', slug: 'mountains', name: 'Mountains', theme: 'mountain', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: true, is_completed: false, unlocked_at: '2026-06-02T00:00:00Z' },
+        { id: '3', slug: 'swamps', name: 'Swamps', theme: 'swamp', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: false, is_completed: false, unlocked_at: null },
+      ],
       region_unlocks: [
         { region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' },
         { region_id: '2', region_slug: 'mountains', unlocked_at: '2026-06-02T00:00:00Z' },
@@ -192,6 +202,11 @@ describe('RegionsPageComponent', () => {
     sessionService.profileData.set({
       active_run: null,
       seen_dialogues: ['start-run-kickoff'],
+      regions: [
+        { id: '1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: false, unlocked_at: '2026-06-01T00:00:00Z' },
+        { id: '2', slug: 'mountains', name: 'Mountains', theme: 'mountain', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: false, is_completed: false, unlocked_at: null },
+        { id: '3', slug: 'swamps', name: 'Swamps', theme: 'swamp', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: false, is_completed: false, unlocked_at: null },
+      ],
       region_unlocks: [
         { region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' },
       ],
@@ -211,6 +226,11 @@ describe('RegionsPageComponent', () => {
     sessionService.profileData.set({
       active_run: null,
       seen_dialogues: ['start-run-kickoff'],
+      regions: [
+        { id: '1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: true, unlocked_at: '2026-06-01T00:00:00Z' },
+        { id: '2', slug: 'mountains', name: 'Mountains', theme: 'mountain', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: true, is_completed: false, unlocked_at: '2026-06-02T00:00:00Z' },
+        { id: '3', slug: 'swamps', name: 'Swamps', theme: 'swamp', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: false, is_completed: false, unlocked_at: null },
+      ],
       region_unlocks: [
         { region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' },
         { region_id: '2', region_slug: 'mountains', unlocked_at: '2026-06-02T00:00:00Z' },

@@ -10,8 +10,8 @@ describe('DiceService', () => {
 
   beforeEach(() => {
     apiHttp = jasmine.createSpyObj<ApiHttpService>('ApiHttpService', ['postWithCsrf']);
-    sessionService = jasmine.createSpyObj<SessionService>('SessionService', ['refreshProfile']);
-    sessionService.refreshProfile.and.resolveTo();
+    sessionService = jasmine.createSpyObj<SessionService>('SessionService', ['runProfileMutation']);
+    sessionService.runProfileMutation.and.callFake(async <T>(operation: () => Promise<T>) => operation());
 
     TestBed.configureTestingModule({
       providers: [
@@ -31,6 +31,6 @@ describe('DiceService', () => {
     await service.sellDice('9');
 
     expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/dice/9/sell', {});
-    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 });

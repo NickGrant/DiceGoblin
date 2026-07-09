@@ -3,26 +3,21 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Controllers;
 
+use DiceGoblins\Controllers\Concerns\HandlesControllerRequests;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
-use DiceGoblins\Http\JsonRequestBody;
 use DiceGoblins\Repositories\DiceRepository;
-use DiceGoblins\Repositories\EnergyRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunEdgeRepository;
 use DiceGoblins\Repositories\RunNodeRepository;
 use DiceGoblins\Repositories\RunRepository;
-use DiceGoblins\Repositories\TeamRepository;
 use DiceGoblins\Repositories\UnitRepository;
-use DiceGoblins\Repositories\UserRepository;
-use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\EconomyModifierService;
-use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\PromotionService;
 use DiceGoblins\Services\UnitCapstoneService;
-use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\UnitLoadoutService;
+use DiceGoblins\Services\UnitMutationGuardService;
 use DiceGoblins\Services\UnitProgressionService;
 use PDO;
 use RuntimeException;
@@ -30,6 +25,7 @@ use Throwable;
 
 final class GameplayController
 {
+  use HandlesControllerRequests;
   use RequiresCsrf;
 
   public function openRest(?string $runId = null, ?string $nodeId = null): void
@@ -178,7 +174,6 @@ final class GameplayController
 
     $body = $this->readJsonBody();
     if ($body === null) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
       return;
     }
 
@@ -188,7 +183,7 @@ final class GameplayController
       return;
     }
 
-    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId)) {
+    if (!$svc['unitMutationGuardService']->isUnitMutableForUser($userId, $unitId)) {
       Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
       return;
     }
@@ -223,7 +218,6 @@ final class GameplayController
     }
     $body = $this->readJsonBody();
     if ($body === null) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
       return;
     }
 
@@ -244,18 +238,15 @@ final class GameplayController
       return;
     }
 
-    $activeRun = $svc['runRepo']->getActiveRunForUser($userId);
-    if ($activeRun !== null) {
-      $activeRunId = (int)$activeRun['run_id'];
-      if ($this->isUnitInRunSnapshot($svc['pdo'], $activeRunId, $primaryId)) {
-        Response::json(['ok' => false, 'error' => ['code' => 'unit_in_active_run', 'message' => 'Units in an active run cannot be promoted.']], 409);
+    $lockedUnitIds = array_flip($svc['unitMutationGuardService']->getLockedUnitIdsForUser($userId, array_merge([$primaryId], $secondaryIds)));
+    if (isset($lockedUnitIds[$primaryId])) {
+      Response::json(['ok' => false, 'error' => ['code' => 'unit_in_active_run', 'message' => 'Units in an active run cannot be promoted.']], 409);
+      return;
+    }
+    foreach ($secondaryIds as $sid) {
+      if (isset($lockedUnitIds[$sid])) {
+        Response::json(['ok' => false, 'error' => ['code' => 'unit_in_active_run', 'message' => 'Secondary units in active run snapshot cannot be consumed.']], 409);
         return;
-      }
-      foreach ($secondaryIds as $sid) {
-        if ($this->isUnitInRunSnapshot($svc['pdo'], $activeRunId, $sid)) {
-          Response::json(['ok' => false, 'error' => ['code' => 'unit_in_active_run', 'message' => 'Secondary units in active run snapshot cannot be consumed.']], 409);
-          return;
-        }
       }
     }
 
@@ -319,7 +310,6 @@ final class GameplayController
 
     $body = $this->readJsonBody();
     if ($body === null) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
       return;
     }
 
@@ -360,7 +350,6 @@ final class GameplayController
 
     $body = $this->readJsonBody();
     if ($body === null) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
       return;
     }
 
@@ -370,7 +359,7 @@ final class GameplayController
       return;
     }
 
-    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId)) {
+    if (!$svc['unitMutationGuardService']->isUnitMutableForUser($userId, $unitId)) {
       Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
       return;
     }
@@ -484,7 +473,7 @@ final class GameplayController
       return;
     }
 
-    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId)) {
+    if (!$svc['unitMutationGuardService']->isUnitMutableForUser($userId, $unitId)) {
       Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
       return;
     }
@@ -524,11 +513,10 @@ final class GameplayController
 
     $body = $this->readJsonBody();
     if ($body === null) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Invalid JSON body.']], 400);
       return;
     }
 
-    if (!$this->assertUnitMutationContextAllowed($svc['pdo'], $svc['runRepo'], $userId, $unitId)) {
+    if (!$svc['unitMutationGuardService']->isUnitMutableForUser($userId, $unitId)) {
       Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
       return;
     }
@@ -572,16 +560,6 @@ final class GameplayController
     return $unlocked;
   }
 
-  private function requireUserId(SessionService $sessionService): ?int
-  {
-    try {
-      return $sessionService->requireUserId();
-    } catch (Throwable $e) {
-      Response::json(['ok' => false, 'error' => ['code' => 'unauthorized', 'message' => 'No active session.']], 401);
-      return null;
-    }
-  }
-
   private function requireActiveOwnedRun(RunRepository $runRepo, int $userId, int $runId): ?array
   {
     $run = $runRepo->getRunForUser($userId, $runId);
@@ -609,27 +587,6 @@ final class GameplayController
       return null;
     }
     return $node;
-  }
-
-  private function isUnitInRunSnapshot(PDO $pdo, int $runId, int $unitId): bool
-  {
-    $stmt = $pdo->prepare('
-      SELECT 1 FROM `run_unit_state`
-      WHERE `run_id` = ? AND `unit_instance_id` = ?
-      LIMIT 1
-    ');
-    $stmt->execute([$runId, $unitId]);
-    return (bool)$stmt->fetchColumn();
-  }
-
-  private function assertUnitMutationContextAllowed(PDO $pdo, RunRepository $runRepo, int $userId, int $unitId): bool
-  {
-    $activeRun = $runRepo->getActiveRunForUser($userId);
-    if ($activeRun === null) {
-      return true;
-    }
-    $activeRunId = (int)$activeRun['run_id'];
-    return !$this->isUnitInRunSnapshot($pdo, $activeRunId, $unitId);
   }
 
   private function healRunUnitsAtRest(PDO $pdo, int $runId, int $userId): void
@@ -669,31 +626,6 @@ final class GameplayController
     }
   }
 
-  private function readJsonBody(): ?array
-  {
-    return JsonRequestBody::decode();
-  }
-
-  private function requirePositiveInt(?string $raw, string $field): ?int
-  {
-    $v = (int)($raw ?? 0);
-    if ($v <= 0) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => "{$field} is required."]], 400);
-      return null;
-    }
-    return $v;
-  }
-
-  private function requireNonNegativeInt(?string $raw, string $field): ?int
-  {
-    if ($raw === null || $raw === '' || !preg_match('/^\d+$/', $raw)) {
-      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => "{$field} is required."]], 400);
-      return null;
-    }
-
-    return (int)$raw;
-  }
-
   private function services(): array
   {
     $pdo = Db::pdo();
@@ -706,13 +638,13 @@ final class GameplayController
       'runRepo' => new RunRepository($pdo),
       'runNodeRepo' => new RunNodeRepository($pdo),
       'runEdgeRepo' => new RunEdgeRepository($pdo),
-      'teamRepo' => new TeamRepository($pdo),
       'unitRepo' => new UnitRepository($pdo),
       'diceRepo' => new DiceRepository($pdo),
       'playerStateRepo' => new PlayerStateRepository($pdo),
       'unitLoadoutService' => new UnitLoadoutService($pdo),
       'promotionService' => new PromotionService($pdo),
       'unitCapstoneService' => new UnitCapstoneService($pdo),
+      'unitMutationGuardService' => new UnitMutationGuardService($pdo, new RunRepository($pdo)),
     ];
   }
 }

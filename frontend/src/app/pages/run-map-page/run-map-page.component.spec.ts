@@ -8,7 +8,7 @@ class RunServiceStub {
   getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
     ok: true,
     data: {
-      run: { run_id: 'run-1', region_id: '1', status: 'active' },
+      run: { run_id: 'run-1', region_id: '1', region_slug: 'the_farm', region_theme: 'farm', status: 'active' },
       map: {
         nodes: [
           { id: 'n1', node_index: 0, node_type: 'combat', status: 'available' },
@@ -29,7 +29,10 @@ class RunServiceStub {
 class SessionServiceStub {
   readonly profileData = () =>
     ({
-      active_run: { run_id: 'run-1', region_id: '1' },
+      active_run: { run_id: 'run-1', region_id: '1', region_slug: 'the_farm', region_theme: 'farm' },
+      regions: [
+        { id: '1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: false, unlocked_at: '2026-06-01T00:00:00Z' },
+      ],
       region_unlocks: [{ region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' }],
     }) as any;
   readonly units = () => [
@@ -88,7 +91,7 @@ describe('RunMapPageComponent', () => {
       override getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
         ok: true,
         data: {
-          run: { run_id: 'run-2', region_id: '1', status: 'active' },
+          run: { run_id: 'run-2', region_id: '1', region_slug: 'the_farm', region_theme: 'farm', status: 'active' },
           map: {
             nodes: [
               { id: 'n1', node_index: 0, node_type: 'combat', status: 'cleared', meta: { col: 0, row: 1 } },
@@ -126,7 +129,7 @@ describe('RunMapPageComponent', () => {
       override getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
         ok: true,
         data: {
-          run: { run_id: 'run-3', region_id: '2', status: 'active' },
+          run: { run_id: 'run-3', region_id: '2', region_slug: 'mountains', region_theme: 'mountain', status: 'active' },
           map: {
             nodes: [
               { id: 'n1', run_id: 'run-3', node_index: 0, node_type: 'combat', status: 'available', meta: { col: 0, row: 1 } },
@@ -176,7 +179,7 @@ describe('RunMapPageComponent', () => {
       override getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
         ok: true,
         data: {
-          run: { run_id: 'run-4', region_id: '2', status: 'active' },
+          run: { run_id: 'run-4', region_id: '2', region_slug: 'mountains', region_theme: 'mountain', status: 'active' },
           map: {
             nodes: [
               { id: 'n1', run_id: 'run-4', node_index: 0, node_type: 'combat', status: 'available', meta: { col: 0, row: 1 } },

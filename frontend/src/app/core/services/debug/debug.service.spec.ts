@@ -10,8 +10,8 @@ describe('DebugService', () => {
 
   beforeEach(() => {
     apiHttp = jasmine.createSpyObj<ApiHttpService>('ApiHttpService', ['get', 'postWithCsrf']);
-    sessionService = jasmine.createSpyObj<SessionService>('SessionService', ['refreshProfile']);
-    sessionService.refreshProfile.and.resolveTo();
+    sessionService = jasmine.createSpyObj<SessionService>('SessionService', ['runProfileMutation']);
+    sessionService.runProfileMutation.and.callFake(async <T>(operation: () => Promise<T>) => operation());
 
     TestBed.configureTestingModule({
       providers: [
@@ -39,7 +39,7 @@ describe('DebugService', () => {
     await service.grantCurrency(50, 2);
 
     expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/debug/grant/currency', { soft: 50, hard: 2 });
-    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 
   it('resets the account and refreshes profile', async () => {
@@ -49,7 +49,7 @@ describe('DebugService', () => {
     await service.resetAccount();
 
     expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/debug/reset-account', {});
-    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 
   it('sets a unit level and refreshes profile', async () => {
@@ -62,6 +62,6 @@ describe('DebugService', () => {
       unit_instance_id: '7',
       level: 6,
     });
-    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 });

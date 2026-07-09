@@ -14,6 +14,7 @@ import { SessionService } from '../../core/services/session/session.service';
 import { UnitService } from '../../core/services/unit/unit.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
+import { resolveAbilityDisplayName, summarizeAbilityNames, toRomanNumeral } from '../../shared/utils/unit-formatters';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 
 @Component({
@@ -208,24 +209,11 @@ export class AcademyPageComponent {
   }
 
   abilityDisplayName(abilityId: string | null | undefined): string {
-    const normalized = (abilityId ?? '').trim();
-    if (!normalized) {
-      return 'Unknown ability';
-    }
-
-    return normalized
-      .split('_')
-      .filter((segment) => segment.length)
-      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-      .join(' ');
+    return resolveAbilityDisplayName(abilityId);
   }
 
   summarizeAbilityList(abilityIds: string[] | null | undefined): string {
-    if (!abilityIds?.length) {
-      return 'None';
-    }
-
-    return abilityIds.map((abilityId) => this.abilityDisplayName(abilityId)).join(', ');
+    return summarizeAbilityNames(abilityIds);
   }
 
   summarizeInheritedPassives(abilities: UnitUnlockedAbilityRecord[] | null | undefined): string {
@@ -233,7 +221,7 @@ export class AcademyPageComponent {
       return 'None yet';
     }
 
-    return abilities.map((ability) => this.abilityDisplayName(ability.ability_id)).join(', ');
+    return summarizeAbilityNames(abilities.map((ability) => ability.ability_id));
   }
 
   currentCapstoneCopy(state: string): string {
@@ -367,32 +355,6 @@ export class AcademyPageComponent {
   }
 
   toRomanNumeral(value: number | null | undefined): string {
-    const normalized = Math.max(1, Math.floor(value || 1));
-    const numerals: Array<{ value: number; symbol: string }> = [
-      { value: 1000, symbol: 'M' },
-      { value: 900, symbol: 'CM' },
-      { value: 500, symbol: 'D' },
-      { value: 400, symbol: 'CD' },
-      { value: 100, symbol: 'C' },
-      { value: 90, symbol: 'XC' },
-      { value: 50, symbol: 'L' },
-      { value: 40, symbol: 'XL' },
-      { value: 10, symbol: 'X' },
-      { value: 9, symbol: 'IX' },
-      { value: 5, symbol: 'V' },
-      { value: 4, symbol: 'IV' },
-      { value: 1, symbol: 'I' },
-    ];
-
-    let remaining = normalized;
-    let result = '';
-    for (const numeral of numerals) {
-      while (remaining >= numeral.value) {
-        result += numeral.symbol;
-        remaining -= numeral.value;
-      }
-    }
-
-    return result;
+    return toRomanNumeral(value);
   }
 }

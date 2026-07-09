@@ -10,8 +10,8 @@ describe('SquadService', () => {
 
   beforeEach(() => {
     apiHttp = jasmine.createSpyObj<ApiHttpService>('ApiHttpService', ['postWithCsrf', 'putWithCsrf', 'deleteWithCsrf']);
-    sessionService = jasmine.createSpyObj<SessionService>('SessionService', ['refreshProfile']);
-    sessionService.refreshProfile.and.resolveTo();
+    sessionService = jasmine.createSpyObj<SessionService>('SessionService', ['runProfileMutation']);
+    sessionService.runProfileMutation.and.callFake(async <T>(operation: () => Promise<T>) => operation());
 
     TestBed.configureTestingModule({
       providers: [
@@ -33,7 +33,7 @@ describe('SquadService', () => {
       name: 'Alpha',
       make_active: true,
     });
-    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 
   it('updates a team and refreshes the profile', async () => {
@@ -43,6 +43,7 @@ describe('SquadService', () => {
     await service.updateTeam('5', payload);
 
     expect(apiHttp.putWithCsrf).toHaveBeenCalledWith('/api/v1/teams/5', payload);
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 
   it('deletes a team and refreshes the profile', async () => {
@@ -51,5 +52,6 @@ describe('SquadService', () => {
     await service.deleteTeam('6');
 
     expect(apiHttp.deleteWithCsrf).toHaveBeenCalledWith('/api/v1/teams/6', {});
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 });

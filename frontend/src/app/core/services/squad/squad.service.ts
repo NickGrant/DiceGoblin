@@ -23,30 +23,34 @@ export class SquadService {
   ) {}
 
   async createTeam(name: string, makeActive = true): Promise<TeamCreateResponse> {
-    const response = await this.apiHttp.postWithCsrf<TeamCreateResponse>('/api/v1/teams', {
-      name,
-      make_active: makeActive,
-    });
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<TeamCreateResponse>(
+      '/api/v1/teams',
+      {
+        name,
+        make_active: makeActive,
+      },
+    ));
   }
 
   async activateTeam(teamId: string): Promise<TeamActivateResponse> {
-    const response = await this.apiHttp.postWithCsrf<TeamActivateResponse>(`/api/v1/teams/${teamId}/activate`, {});
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<TeamActivateResponse>(
+      `/api/v1/teams/${teamId}/activate`,
+      {},
+    ));
   }
 
   async updateTeam(teamId: string, payload: TeamUpdatePayload): Promise<TeamUpdateResponse> {
-    const response = await this.apiHttp.putWithCsrf<TeamUpdateResponse>(`/api/v1/teams/${teamId}`, payload);
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    return this.sessionService.runProfileMutation(() => this.apiHttp.putWithCsrf<TeamUpdateResponse>(
+      `/api/v1/teams/${teamId}`,
+      payload,
+    ));
   }
 
   async deleteTeam(teamId: string): Promise<TeamDeleteResponse> {
-    const response = await this.apiHttp.deleteWithCsrf<TeamDeleteResponse>(`/api/v1/teams/${teamId}`, {});
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    return this.sessionService.runProfileMutation(() => this.apiHttp.deleteWithCsrf<TeamDeleteResponse>(
+      `/api/v1/teams/${teamId}`,
+      {},
+    ));
   }
 }
 

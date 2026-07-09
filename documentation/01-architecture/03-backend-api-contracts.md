@@ -1,7 +1,7 @@
 # Backend API Contracts - Current Alpha Surface
 
 Status: active  
-Last Updated: 2026-06-21  
+Last Updated: 2026-07-09  
 Owner: Backend/API  
 Depends On: `backend/public/index.php`, `backend/src/Controllers/`, `frontend/src/app/core/services/api-http/api-http.service.ts`
 
@@ -47,6 +47,8 @@ Current behavior:
 
 - profile is the main shared data payload for the authenticated shell
 - it contains energy, currency, active run, squads, units, dice, unlocks, and region access data
+- profile now includes a backend-authored `regions` catalog with unlock and inferred completion state for each enabled biome
+- `active_run` includes region metadata such as slug and theme so the frontend does not need to infer biome presentation from unlock arrays
 - the frontend refreshes profile after most successful mutations
 
 ## Shop And Academy
@@ -80,6 +82,7 @@ Current behavior:
 
 - only one active run is supported at a time
 - region start consumes energy through run creation
+- current run payloads include region metadata such as `region_slug`, `region_name`, `region_theme`, `recommended_level`, and `energy_cost`
 - node resolution is backend-authoritative
 - rest has explicit open and finalize steps
 - abandon and exit both produce summary-relevant run state
@@ -93,7 +96,8 @@ Current routes:
 
 Current behavior:
 
-- battle logs are fetched and rendered after node resolution
+- node resolution responses may already include the battle log used by the current frontend
+- `GET /api/v1/battles/:battleId/log` remains available as a direct backend route, but it is not the primary path used by the Angular run-node screen today
 - claim finalizes rewards and may also finalize run summary state
 
 ## Units And Progression

@@ -11,9 +11,10 @@ export class DiceService {
   ) {}
 
   async sellDice(diceId: string): Promise<DiceSellResponse> {
-    const response = await this.apiHttp.postWithCsrf<DiceSellResponse>(`/api/v1/dice/${diceId}/sell`, {});
-    await this.sessionService.refreshProfile({ force: true });
-    return response;
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<DiceSellResponse>(
+      `/api/v1/dice/${diceId}/sell`,
+      {},
+    ));
   }
 }
 

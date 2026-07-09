@@ -10,8 +10,8 @@ describe('UnitService', () => {
 
   beforeEach(() => {
     apiHttp = jasmine.createSpyObj<ApiHttpService>('ApiHttpService', ['get', 'patchWithCsrf', 'postWithCsrf', 'putWithCsrf', 'deleteWithCsrf']);
-    sessionService = jasmine.createSpyObj<SessionService>('SessionService', ['refreshProfile']);
-    sessionService.refreshProfile.and.resolveTo();
+    sessionService = jasmine.createSpyObj<SessionService>('SessionService', ['runProfileMutation']);
+    sessionService.runProfileMutation.and.callFake(async <T>(operation: () => Promise<T>) => operation());
 
     TestBed.configureTestingModule({
       providers: [
@@ -40,7 +40,7 @@ describe('UnitService', () => {
     expect(apiHttp.patchWithCsrf).toHaveBeenCalledWith('/api/v1/units/7/name', {
       display_name: 'Fang',
     });
-    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 
   it('sends promotion payloads without run context', async () => {
@@ -63,7 +63,7 @@ describe('UnitService', () => {
     expect(apiHttp.putWithCsrf).toHaveBeenCalledWith('/api/v1/units/1/capstone', {
       ability_id: 'finisher',
     });
-    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 
   it('clears an ability slot die and refreshes profile', async () => {
@@ -72,5 +72,6 @@ describe('UnitService', () => {
     await service.clearAbilitySlotDie('1', 'ability-7', 2);
 
     expect(apiHttp.deleteWithCsrf).toHaveBeenCalledWith('/api/v1/units/1/abilities/ability-7/slots/2/dice', {});
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 });

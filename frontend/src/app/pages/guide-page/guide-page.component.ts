@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { resolveCompletedRegionSlugs } from '../../core/regions/region-catalog';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
@@ -61,11 +62,6 @@ type GuideBestiaryUnit = {
   biome: string;
   role: string;
   assetKey: string;
-};
-
-const REGION_COMPLETION_UNLOCK_MAP: Record<string, string> = {
-  the_farm: 'mountains',
-  mountains: 'swamps',
 };
 
 const BIOME_GUIDE_UNITS: ReadonlyArray<GuideBestiaryUnit> = [
@@ -280,12 +276,7 @@ export class GuidePageComponent implements OnInit, OnDestroy {
     { label: 'd20', image: this.diceImage('common', 20), summary: 'The biggest standard die, best suited to high-impact abilities and chase upgrades.' },
   ];
 
-  protected readonly completedBiomeSlugs = computed(() => {
-    const unlockedRegions = new Set((this.profileData()?.region_unlocks ?? []).map((entry) => entry.region_slug));
-    return Object.entries(REGION_COMPLETION_UNLOCK_MAP)
-      .filter(([, unlockedRegionSlug]) => unlockedRegions.has(unlockedRegionSlug))
-      .map(([completedRegionSlug]) => completedRegionSlug);
-  });
+  protected readonly completedBiomeSlugs = computed(() => resolveCompletedRegionSlugs(this.profileData()));
 
   protected readonly discoveredBiomeUnits = computed(() => {
     if (!this.session().isAuthenticated) {

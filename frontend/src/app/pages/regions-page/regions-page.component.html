@@ -27,24 +27,24 @@
                   type="button"
                   class="region-page__tile"
                   [class.is-selected]="inspectedRegion()?.slug === region.slug"
-                  [class.is-locked]="!region.isUnlocked"
+                  [class.is-locked]="!region.is_unlocked"
                   (click)="activateRegion(region)"
                   (focus)="previewRegion(region.slug)"
                   (mouseenter)="previewRegion(region.slug)"
-                  [attr.aria-label]="region.name + ' ' + (region.isUnlocked ? 'Unlocked' : 'Locked')"
-                  [disabled]="regionActionDisabled(region) && !isActiveRegion(region.regionId)"
+                  [attr.aria-label]="region.name + ' ' + (region.is_unlocked ? 'Unlocked' : 'Locked')"
+                  [disabled]="regionActionDisabled(region) && !isActiveRegion(region.id)"
                 >
                   <span class="region-page__tile-art">
                     <img
                       class="region-page__tile-badge"
-                      [class.is-locked]="!region.isUnlocked"
+                      [class.is-locked]="!region.is_unlocked"
                       [src]="'/assets/ui/biome/' + region.theme + '_badge.png'"
                       alt=""
                     />
                   </span>
-                  @if (isActiveRegion(region.regionId)) {
+                  @if (isActiveRegion(region.id)) {
                   <span class="region-page__tile-tag is-active">Current</span>
-                  } @else if (!region.isUnlocked) {
+                  } @else if (!region.is_unlocked) {
                   <span class="region-page__tile-tag">Locked</span>
                   }
                 </button>
@@ -56,24 +56,24 @@
 
         @if (inspectedRegion(); as region) {
         <aside class="region-page__inspect">
-          <div class="region-page__inspect-art" [class.is-locked]="!region.isUnlocked">
+          <div class="region-page__inspect-art" [class.is-locked]="!region.is_unlocked">
             <div class="region-page__chips">
               <span class="dg-chip region-page__energy-chip">
                 <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
-                {{ region.energyCost }}
+                {{ region.energy_cost }}
               </span>
-              <span class="dg-chip">Level {{ region.recommendedLevel }}+</span>
+              <span class="dg-chip">Level {{ region.recommended_level }}+</span>
             </div>
-            @if (isActiveRegion(region.regionId)) {
+            @if (isActiveRegion(region.id)) {
               <span class="region-page__inspect-state is-active">Current Run</span>
-            } @else if (region.isUnlocked) {
+            } @else if (region.is_unlocked) {
               <span class="region-page__inspect-state">Unlocked</span>
             } @else {
               <span class="region-page__inspect-state is-locked">Locked</span>
             }
             <img
               class="region-page__inspect-image"
-              [class.is-locked]="!region.isUnlocked"
+              [class.is-locked]="!region.is_unlocked"
               [src]="'/assets/ui/biome/' + region.theme + '_badge.png'"
               [alt]="region.name"
             />

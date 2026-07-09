@@ -3,12 +3,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { RestOpenData } from '../../core/models/api.models';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
+import { buildFormationGrid } from '../../shared/formation/formation';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { RunUnitFormationGridComponent } from '../../shared/ui/run-unit-formation-grid/run-unit-formation-grid.component';
-
-const FORMATION_CELLS = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'] as const;
 
 @Component({
   selector: 'app-run-rest-page',
@@ -45,18 +44,7 @@ export class RunRestPageComponent {
     () => new Map(this.restingUnits().map((entry) => [entry.unit_instance_id, entry])),
   );
   readonly formationGrid = computed(() => {
-    const formationAssignments = new Map(
-      (this.activeSquad()?.formation ?? []).map((entry) => [entry.cell, entry.unit_instance_id]),
-    );
-
-    return FORMATION_CELLS.map((cell) => {
-      const unitId = formationAssignments.get(cell) ?? null;
-      return {
-        cell,
-        unitId,
-        entry: unitId ? this.restingUnitById().get(unitId) ?? null : null,
-      };
-    });
+    return buildFormationGrid(this.activeSquad()?.formation, this.restingUnitById());
   });
 
   constructor() {

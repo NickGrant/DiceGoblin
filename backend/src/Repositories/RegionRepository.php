@@ -14,6 +14,12 @@ use Throwable;
 
 final class RegionRepository
 {
+  /** @var array<string,string> */
+  private const REGION_COMPLETION_UNLOCKS = [
+    'the_farm' => 'mountains',
+    'mountains' => 'swamps',
+  ];
+
   public function __construct(
     private readonly PDO $pdo,
   ) {}
@@ -172,6 +178,9 @@ final class RegionRepository
         ru.`region_id`,
         r.`slug` AS `region_slug`,
         r.`name` AS `region_name`,
+        r.`theme` AS `region_theme`,
+        r.`recommended_level`,
+        r.`energy_cost`,
         ru.`unlocked_at`
       FROM `region_unlocks` ru
       JOIN `regions` r ON r.`id` = ru.`region_id`
@@ -181,13 +190,89 @@ final class RegionRepository
     $stmt->execute([$userId]);
 
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $unlockedSlugs = array_values(array_map(
+      static fn(array $row): string => (string)$row['region_slug'],
+      $rows,
+    ));
 
-    return array_map(static fn(array $r): array => [
+    return array_map(fn(array $r): array => [
       'region_id' => (string)$r['region_id'],
       'region_slug' => (string)$r['region_slug'],
       'region_name' => (string)$r['region_name'],
+      'region_theme' => (string)$r['region_theme'],
+      'recommended_level' => (int)$r['recommended_level'],
+      'energy_cost' => (int)$r['energy_cost'],
       'unlocked_at' => (string)$r['unlocked_at'],
+      'is_completed' => $this->isRegionCompleted((string)$r['region_slug'], $unlockedSlugs),
     ], $rows);
+  }
+
+  /**
+   * Returns the canonical enabled-region catalog decorated with user unlock state.
+   *
+   * @return array<int, array{
+   *   id:string,
+   *   slug:string,
+   *   name:string,
+   *   theme:string,
+   *   recommended_level:int,
+   *   energy_cost:int,
+   *   is_enabled:bool,
+   *   is_unlocked:bool,
+   *   is_completed:bool,
+   *   unlocked_at:?string
+   * }>
+   */
+  public function listRegionsWithUserState(int $userId, bool $onlyEnabled = true): array
+  {
+    $enabledClause = $onlyEnabled ? 'WHERE r.`is_enabled` = 1' : '';
+    $stmt = $this->pdo->prepare("
+      SELECT
+        r.`id`,
+        r.`slug`,
+        r.`name`,
+        r.`theme`,
+        r.`recommended_level`,
+        r.`energy_cost`,
+        r.`is_enabled`,
+        ru.`unlocked_at`
+      FROM `regions` r
+      LEFT JOIN `region_unlocks` ru
+        ON ru.`region_id` = r.`id`
+       AND ru.`user_id` = ?
+      $enabledClause
+      ORDER BY r.`id` ASC
+    ");
+    $stmt->execute([$userId]);
+
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $unlockedSlugs = array_values(array_map(
+      static fn(array $row): string => (string)$row['slug'],
+      array_values(array_filter(
+        $rows,
+        static fn(array $row): bool => isset($row['unlocked_at']) && $row['unlocked_at'] !== null && $row['unlocked_at'] !== '',
+      )),
+    ));
+
+    return array_map(fn(array $row): array => [
+      'id' => (string)$row['id'],
+      'slug' => (string)$row['slug'],
+      'name' => (string)$row['name'],
+      'theme' => (string)$row['theme'],
+      'recommended_level' => (int)$row['recommended_level'],
+      'energy_cost' => (int)$row['energy_cost'],
+      'is_enabled' => ((int)$row['is_enabled']) === 1,
+      'is_unlocked' => isset($row['unlocked_at']) && $row['unlocked_at'] !== null && $row['unlocked_at'] !== '',
+      'is_completed' => $this->isRegionCompleted((string)$row['slug'], $unlockedSlugs),
+      'unlocked_at' => isset($row['unlocked_at']) && $row['unlocked_at'] !== null
+        ? (string)$row['unlocked_at']
+        : null,
+    ], $rows);
+  }
+
+  public function getNextRegionSlug(string $slug): ?string
+  {
+    return self::REGION_COMPLETION_UNLOCKS[$slug] ?? null;
   }
 
   /**
@@ -269,5 +354,18 @@ final class RegionRepository
       }
       throw $e;
     }
+  }
+
+  /**
+   * @param array<int,string> $unlockedSlugs
+   */
+  private function isRegionCompleted(string $slug, array $unlockedSlugs): bool
+  {
+    $nextSlug = $this->getNextRegionSlug($slug);
+    if ($nextSlug === null) {
+      return false;
+    }
+
+    return in_array($nextSlug, $unlockedSlugs, true);
   }
 }

@@ -19,6 +19,7 @@ use DiceGoblins\Repositories\BattleRepository;
 use DiceGoblins\Repositories\BattleRewardsRepository;
 use DiceGoblins\Repositories\EnergyRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
+use DiceGoblins\Repositories\RegionRepository;
 use DiceGoblins\Repositories\RunEdgeRepository;
 use DiceGoblins\Repositories\RunNodeRepository;
 use DiceGoblins\Repositories\RunRepository;
@@ -30,6 +31,7 @@ use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\OwnedDiceGrantService;
 use DiceGoblins\Services\OwnedUnitGrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
+use DiceGoblins\Services\RunLifecycleService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\SquadCapacityService;
 use DiceGoblins\Services\UserUnlockService;
@@ -336,8 +338,7 @@ final class RunNodeController
       $runFailed = $isCombatLikeNode && $outcome === 'defeat';
 
       if ($runFailed) {
-        $svc['runRepo']->applyRunEndCleanup($runIdInt, $userId, true);
-        $svc['runRepo']->endRun($userId, $runIdInt, 'failed');
+        $svc['runLifecycleService']->failRun($userId, $runIdInt);
       }
 
       $unlocked = [];
@@ -479,6 +480,7 @@ final class RunNodeController
    *   battleRewardsRepo: BattleRewardsRepository,
    *   teamRepo: TeamRepository,
    *   resolver: DeterministicRunNodeResolver,
+   *   runLifecycleService: RunLifecycleService,
    *   sessionService: SessionService,
    *   csrfService: CsrfService
    * }
@@ -498,6 +500,12 @@ final class RunNodeController
       'battleRewardsRepo' => new BattleRewardsRepository($pdo),
       'teamRepo' => new TeamRepository($pdo),
       'resolver' => new DeterministicRunNodeResolver($pdo),
+      'runLifecycleService' => new RunLifecycleService(
+        $pdo,
+        new RunRepository($pdo),
+        new RegionRepository($pdo),
+        new RunNodeRepository($pdo),
+      ),
       'sessionService' => $core['sessionService'],
       'csrfService' => $core['csrfService'],
     ];

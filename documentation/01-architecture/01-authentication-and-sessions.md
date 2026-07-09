@@ -1,7 +1,7 @@
 # Authentication & Session Model
 
 Status: active  
-Last Updated: 2026-05-29  
+Last Updated: 2026-07-09  
 Owner: Backend/API  
 Depends On: `backend/public/index.php`, `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
 
@@ -25,8 +25,7 @@ Depends On: `backend/public/index.php`, `documentation/01-architecture/03-backen
 - Cookie-based PHP sessions
 - Session contains:
   - `user_id` (local DB ID)
-  - `display_name`
-  - `avatar_url` (optional)
+- Display-facing profile fields such as `display_name` and `avatar_url` are loaded from the database-backed session payload, not treated as canonical PHP session keys.
 
 ## Cookie Settings
 
@@ -37,6 +36,6 @@ Depends On: `backend/public/index.php`, `documentation/01-architecture/03-backen
 
 ## API Auth Rule
 
-The frontend startup/session layer is the only application layer that should directly query `/api/v1/session`.
-
-That responsibility lives in the Angular session/bootstrap layer. Page components and any future Phaser-hosted renderers should consume session state through the Angular frontend state layer rather than each querying the session endpoint independently.
+- The Angular session/bootstrap layer remains the only feature-facing owner of session state.
+- Page components and any future Phaser-hosted renderers should consume session state through the Angular frontend state layer rather than querying `/api/v1/session` directly.
+- The low-level HTTP client is allowed to re-read `/api/v1/session` before CSRF-protected mutations so it can attach a fresh token without duplicating session logic inside feature services.

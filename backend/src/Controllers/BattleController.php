@@ -17,12 +17,15 @@ use DiceGoblins\Repositories\BattleRepository;
 use DiceGoblins\Repositories\BattleRewardsRepository;
 use DiceGoblins\Repositories\EnergyRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
+use DiceGoblins\Repositories\RegionRepository;
+use DiceGoblins\Repositories\RunNodeRepository;
 use DiceGoblins\Repositories\RunRepository;
 use DiceGoblins\Repositories\UserRepository;
 
 use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
+use DiceGoblins\Services\RunLifecycleService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\UnitProgressionService;
 use DiceGoblins\Support\RunSummaryBuilder;
@@ -506,12 +509,7 @@ final class BattleController
 
       if (count($remaining) === 0) {
         $terminalRunState = $this->formatRunUnitStateSnapshot($runStateByUnitId);
-        $svc['runRepo']->applyRunEndCleanup($runId, $userId, true);
-        $svc['runRepo']->endRun($userId, $runId, 'failed');
-        $runResolution = [
-          'run_id' => (string)$runId,
-          'status' => 'failed',
-        ];
+        $runResolution = $svc['runLifecycleService']->failRun($userId, $runId);
 
         $updatedRunState = array_map(static fn(array $row): array => [
           'unit_instance_id' => (string)$row['unit_instance_id'],
@@ -637,7 +635,8 @@ final class BattleController
    *   battleLogRepo: BattleLogRepository,
    *   battleRewardsRepo: BattleRewardsRepository,
    *   runRepo: RunRepository,
-  *   playerStateRepo: PlayerStateRepository,
+   *   playerStateRepo: PlayerStateRepository,
+   *   runLifecycleService: RunLifecycleService,
    *   sessionService: SessionService,
    *   csrfService: CsrfService
    * }
@@ -654,6 +653,12 @@ final class BattleController
       'battleRewardsRepo' => new BattleRewardsRepository($pdo),
       'runRepo' => new RunRepository($pdo),
       'playerStateRepo' => new PlayerStateRepository($pdo),
+      'runLifecycleService' => new RunLifecycleService(
+        $pdo,
+        new RunRepository($pdo),
+        new RegionRepository($pdo),
+        new RunNodeRepository($pdo),
+      ),
       'sessionService' => $core['sessionService'],
       'csrfService' => $core['csrfService'],
     ];
