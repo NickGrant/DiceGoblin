@@ -11,6 +11,13 @@ import {
   DiceRecord,
 } from '../../models/api.models';
 import { ApiHttpService } from '../api-http/api-http.service';
+import {
+  createDebugCaptureProfile,
+  createDebugCaptureSession,
+  isDebugCaptureAuthenticated,
+  isDebugCaptureGuest,
+  readDebugCaptureRequest,
+} from '../../debug/debug-capture';
 import { ProfileService } from '../profile/profile.service';
 
 const DEFAULT_SESSION: SessionViewModel = {
@@ -58,6 +65,7 @@ export class SessionService {
   readonly units = computed<UnitRecord[]>(() => this.profileDataState()?.units ?? []);
   readonly squads = computed<TeamRecord[]>(() => this.profileDataState()?.squads ?? []);
   readonly dice = computed<DiceRecord[]>(() => this.profileDataState()?.dice ?? []);
+  private readonly debugCaptureRequest = readDebugCaptureRequest();
 
   constructor(
     private readonly apiHttp: ApiHttpService,
@@ -79,6 +87,11 @@ export class SessionService {
     }
 
     this.initializePromise = (async () => {
+      if (this.applyDebugCaptureState()) {
+        this.initialized = true;
+        return;
+      }
+
       await this.refresh();
       this.initialized = true;
     })();
@@ -207,6 +220,37 @@ export class SessionService {
       unitCount: profile.data?.units?.length ?? 0,
       activeSquadName: activeSquad?.name ?? null,
     };
+  }
+
+  private applyDebugCaptureState(): boolean {
+    if (isDebugCaptureGuest(this.debugCaptureRequest)) {
+      this.sessionState.set(DEFAULT_SESSION);
+      this.profileState.set(DEFAULT_PROFILE);
+      this.profileDataState.set(null);
+      this.loadingState.set(false);
+      this.errorState.set(null);
+      return true;
+    }
+
+    if (!isDebugCaptureAuthenticated(this.debugCaptureRequest) || !this.debugCaptureRequest) {
+      return false;
+    }
+
+    const profileData = createDebugCaptureProfile(this.debugCaptureRequest);
+    this.sessionState.set(createDebugCaptureSession(this.debugCaptureRequest));
+    this.profileDataState.set(profileData);
+    this.profileState.set({
+      energyCurrent: profileData.energy.current,
+      energyMax: profileData.energy.max,
+      softCurrency: profileData.currency.soft,
+      activeRunId: profileData.active_run?.run_id ?? null,
+      squadCount: profileData.squads.length,
+      unitCount: profileData.units.length,
+      activeSquadName: profileData.squads.find((squad) => squad.is_active)?.name ?? null,
+    });
+    this.loadingState.set(false);
+    this.errorState.set(null);
+    return true;
   }
 }
 

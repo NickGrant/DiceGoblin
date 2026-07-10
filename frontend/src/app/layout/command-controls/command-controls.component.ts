@@ -1,5 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, OnDestroy, computed, inject, signal } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faVolumeHigh, faVolumeOff, faVolumeXmark } from '@fortawesome/free-solid-svg-icons';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AudioDirectorService } from '../../core/services/audio/audio-director.service';
 import { SessionService } from '../../core/services/session/session.service';
@@ -17,7 +19,7 @@ type HudNavItem = {
 @Component({
   selector: 'app-command-controls',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [FontAwesomeModule, RouterLink, RouterLinkActive],
   templateUrl: './command-controls.component.html',
   styleUrl: './command-controls.component.scss',
 })
@@ -37,6 +39,9 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   readonly audioEnabled = this.audioDirector.isEnabled;
   readonly audioUnlocked = this.audioDirector.isUnlocked;
   readonly audioMuted = this.audioDirector.isMuted;
+  readonly faVolumeHigh = faVolumeHigh;
+  readonly faVolumeOff = faVolumeOff;
+  readonly faVolumeXmark = faVolumeXmark;
   readonly mobileMenuOpen = signal(false);
   readonly navItems: readonly HudNavItem[] = [
     {
@@ -134,6 +139,14 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
     }
 
     return this.audioMuted() ? 'Unmute sound' : 'Mute sound';
+  }
+
+  audioControlIcon() {
+    if (!this.audioUnlocked()) {
+      return this.faVolumeOff;
+    }
+
+    return this.audioMuted() ? this.faVolumeXmark : this.faVolumeHigh;
   }
 
   isNavItemEnabled(item: HudNavItem): boolean {

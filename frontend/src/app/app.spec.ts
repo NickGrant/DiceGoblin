@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { App } from './app';
 import { AudioDirectorService } from './core/services/audio/audio-director.service';
 import { SessionService } from './core/services/session/session.service';
+import { ViewportOrientationService } from './core/services/viewport/viewport-orientation.service';
 
 class SessionServiceStub {
   readonly isLoading = signal(false);
@@ -24,6 +25,11 @@ class AudioDirectorServiceStub {
   readonly toggleMute = jasmine.createSpy('toggleMute');
 }
 
+class ViewportOrientationServiceStub {
+  readonly initialize = jasmine.createSpy('initialize');
+  readonly isLandscapeGateActive = signal(false);
+}
+
 describe('App', () => {
   it('creates the root shell', async () => {
     await TestBed.configureTestingModule({
@@ -32,6 +38,7 @@ describe('App', () => {
         provideRouter([]),
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AudioDirectorService, useClass: AudioDirectorServiceStub },
+        { provide: ViewportOrientationService, useClass: ViewportOrientationServiceStub },
       ],
     }).compileComponents();
 
@@ -39,5 +46,28 @@ describe('App', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance).toBeTruthy();
+  });
+
+  it('shows the rotate prompt instead of the shell when phone portrait mode is blocked', async () => {
+    await TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideRouter([]),
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AudioDirectorService, useClass: AudioDirectorServiceStub },
+        { provide: ViewportOrientationService, useClass: ViewportOrientationServiceStub },
+      ],
+    }).compileComponents();
+
+    const viewportOrientation = TestBed.inject(ViewportOrientationService) as unknown as ViewportOrientationServiceStub;
+    viewportOrientation.isLandscapeGateActive.set(true);
+
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.textContent).toContain('Landscape Required');
+    expect(host.querySelector('app-command-controls')).toBeNull();
+    expect(host.querySelector('.orientation-gate')).not.toBeNull();
   });
 });

@@ -92,18 +92,12 @@
 
 .hud-audio {
   justify-self: end;
-  width: auto;
-  min-width: var(--hud-control-size);
-  padding-inline: 0.8rem;
   color: #2f241b;
-  font-size: 0.62rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
 
-.hud-audio .dg-stencil {
-  line-height: 1;
+  fa-icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
 }
 
 .hud-panel--nav [aria-disabled='true'] {
@@ -148,6 +142,7 @@
   align-items: flex-start;
   justify-content: center;
   min-width: 0;
+  overflow: hidden;
   color: #30271f;
   text-align: left;
 
@@ -158,6 +153,10 @@
   }
 
   > span:last-child {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: var(--hud-name-size);
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -297,6 +296,10 @@
     aspect-ratio: 795 / 200;
     padding: 24px;
     background-image: url('/assets/ui/elements/global-player-bar.png');
+  }
+
+  .hud-player {
+    padding-left: 2.25rem;
   }
 
   .hud-panel--nav {

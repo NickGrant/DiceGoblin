@@ -1,4 +1,16 @@
 <div class="app-shell">
+  @if (isLandscapeGateActive()) {
+    <section class="orientation-gate" aria-live="polite" aria-label="Rotate device prompt">
+      <div class="orientation-gate__panel dg-card">
+        <div class="orientation-gate__icon" aria-hidden="true">
+          <span class="orientation-gate__phone"></span>
+          <span class="orientation-gate__arrow"></span>
+        </div>
+        <strong class="dg-stencil">Landscape Required</strong>
+        <p>Turn your phone sideways to continue. Dice Goblins is tuned for landscape on phones.</p>
+      </div>
+    </section>
+  } @else {
   <div class="app-shell__frame">
     <app-command-controls></app-command-controls>
 
@@ -11,4 +23,5 @@
 
     <router-outlet></router-outlet>
   </div>
+  }
 </div>

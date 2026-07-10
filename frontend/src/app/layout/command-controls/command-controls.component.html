@@ -29,9 +29,11 @@
       class="hud-audio"
       type="button"
       [attr.aria-label]="audioControlAriaLabel()"
+      [attr.title]="audioControlAriaLabel()"
       (click)="activateAudioControl()"
     >
-      <span class="dg-stencil">{{ audioControlLabel() }}</span>
+      <fa-icon [icon]="audioControlIcon()" aria-hidden="true"></fa-icon>
+      <span class="visually-hidden">{{ audioControlLabel() }}</span>
     </button>
   }
 
