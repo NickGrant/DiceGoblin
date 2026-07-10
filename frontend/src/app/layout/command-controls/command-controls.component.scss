@@ -34,7 +34,7 @@
 
 .hud-panel--player {
   display: grid;
-  grid-template-columns: minmax(0, 0.32fr) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 0.32fr) minmax(0, 1fr) auto auto auto;
   align-items: center;
   column-gap: var(--hud-panel-gap);
   aspect-ratio: 652 / 200;
@@ -49,6 +49,7 @@
 }
 
 .hud-panel--nav :is(a, span),
+.hud-audio,
 .hud-logout,
 .hud-menu-toggle {
   display: inline-flex;
@@ -73,6 +74,8 @@
 .hud-panel--nav a:hover,
 .hud-panel--nav a:focus-visible,
 .hud-panel--nav a.is-active,
+.hud-audio:hover,
+.hud-audio:focus-visible,
 .hud-logout:hover,
 .hud-logout:focus-visible,
 .hud-menu-toggle:hover,
@@ -85,6 +88,22 @@
 .hud-panel--nav a.is-active {
   filter: brightness(1.08) saturate(1.06);
   box-shadow: 0 0 18px rgba(255, 195, 110, 0.22);
+}
+
+.hud-audio {
+  justify-self: end;
+  width: auto;
+  min-width: var(--hud-control-size);
+  padding-inline: 0.8rem;
+  color: #2f241b;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hud-audio .dg-stencil {
+  line-height: 1;
 }
 
 .hud-panel--nav [aria-disabled='true'] {
@@ -274,7 +293,7 @@
 
 @media (min-width: 761px) {
   .hud-panel--player {
-    grid-template-columns: minmax(0, 0.3fr) minmax(0, 0.68fr) auto;
+    grid-template-columns: minmax(0, 0.3fr) minmax(0, 0.68fr) auto auto auto;
     aspect-ratio: 795 / 200;
     padding: 24px;
     background-image: url('/assets/ui/elements/global-player-bar.png');

@@ -1,13 +1,15 @@
 # Angular Frontend Architecture Plan
 
 Status: active  
-Last Updated: 2026-06-02  
+Last Updated: 2026-07-09  
 Owner: Frontend  
-Depends On: `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/01-architecture/06-angular-component-service-inventory.md`, `documentation/03-ux/08-page-layout-zones.md`
+Depends On: `documentation/01-architecture/03-backend-api-contracts.md`, `documentation/01-architecture/06-angular-component-service-inventory.md`, `documentation/01-architecture/07-hybrid-phaser-audio-architecture.md`, `documentation/03-ux/08-page-layout-zones.md`
 
 ## Purpose
 
 This document defines the active Angular frontend architecture for Dice Goblins and the narrow situations where Phaser still makes sense.
+
+The detailed hybrid Angular, Phaser, and app-level audio rules now live in `documentation/01-architecture/07-hybrid-phaser-audio-architecture.md`. This document should stay aligned with that decision and focus on the Angular-side structure.
 
 The PHP API is the source of truth for session, profile, run, battle, shop, squad, unit, dice, reward, and debug state.
 
@@ -22,6 +24,7 @@ Angular owns:
 - routing and navigation
 - forms, lists, dialogs, HUD, and ordinary page composition
 - API orchestration and state facades
+- shell-level audio controls and route-level audio intent selection
 
 ## Ownership Boundary
 
@@ -138,6 +141,7 @@ Recommended bridge services:
 - `PhaserEventBridgeService`
 - `BattlePlaybackBridgeService`
 - `RunMapBridgeService`, only if the run map becomes canvas-based
+- `AudioDirectorService`
 
 The host should create a Phaser instance when mounted, destroy it when the route or component is removed, pass immutable input snapshots into Phaser, and receive Phaser events through a small bridge.
 

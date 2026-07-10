@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { DgDialogueStageComponent } from './dg-dialogue-stage.component';
 import { DialogueScript } from '../../../core/dialogue/dialogue.models';
 
@@ -139,7 +139,7 @@ describe('DgDialogueStageComponent', () => {
     expect(promptBubble?.textContent).toContain('maybe');
   });
 
-  it('runs a player reveal effect before showing choices and updates the portrait', async () => {
+  it('runs a player reveal effect before showing choices and updates the portrait', fakeAsync(() => {
     const revealScript: DialogueScript = {
       id: 'reveal-script',
       backgroundUrl: '/assets/ui/biome/mystic_cave.png',
@@ -176,7 +176,7 @@ describe('DgDialogueStageComponent', () => {
     expect(fixture.componentInstance.hasVisibleChoices()).toBeFalse();
     expect(fixture.componentInstance.overlayImageUrl()).toContain('primordial_frame_0');
 
-    await new Promise((resolve) => window.setTimeout(resolve, 80));
+    tick(120);
     fixture.detectChanges();
 
     expect(fixture.componentInstance.hasVisibleChoices()).toBeTrue();
@@ -184,5 +184,5 @@ describe('DgDialogueStageComponent', () => {
 
     const playerSpeaker = fixture.componentInstance.visibleEntries()[0]?.speaker;
     expect(playerSpeaker?.portraitUrl).toContain('base_frame_0');
-  });
+  }));
 });

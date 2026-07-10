@@ -24,6 +24,17 @@
     }
   </div>
 
+  @if (audioEnabled()) {
+    <button
+      class="hud-audio"
+      type="button"
+      [attr.aria-label]="audioControlAriaLabel()"
+      (click)="activateAudioControl()"
+    >
+      <span class="dg-stencil">{{ audioControlLabel() }}</span>
+    </button>
+  }
+
   @if (isAuthenticated()) {
     <button class="hud-logout" type="button" (click)="logout()" aria-label="Logout">
       <img src="/assets/ui/icons/icon_logout.png" alt="" />

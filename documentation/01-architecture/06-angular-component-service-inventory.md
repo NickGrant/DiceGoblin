@@ -1,13 +1,15 @@
 # Angular Component and Service Inventory
 
 Status: active  
-Last Updated: 2026-06-02  
+Last Updated: 2026-07-09  
 Owner: Frontend  
-Depends On: `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/03-ux/08-page-layout-zones.md`
+Depends On: `documentation/01-architecture/05-angular-frontend-architecture-plan.md`, `documentation/01-architecture/07-hybrid-phaser-audio-architecture.md`, `documentation/03-ux/08-page-layout-zones.md`
 
 ## Purpose
 
 This inventory describes the active Angular frontend component and service map, plus the optional Phaser host points that still make sense.
+
+Audio ownership now follows the hybrid architecture decision in `documentation/01-architecture/07-hybrid-phaser-audio-architecture.md`.
 
 This is an architecture inventory only. It does not define final visual styling.
 
@@ -125,6 +127,7 @@ This is an architecture inventory only. It does not define final visual styling.
 - `DebugService`: local debug catalog, grant, and reset operations.
 - `AssetUrlService`: central browser asset path handling.
 - `NavigationIntentService`: maps domain events to route transitions.
+- `AudioDirectorService`: app-level audio state, route music intents, mute and unlock handling, and semantic sound playback.
 
 ## Route Facades
 
@@ -148,6 +151,7 @@ This is an architecture inventory only. It does not define final visual styling.
 - `PhaserEventBridgeService`: typed event bridge between Angular and Phaser.
 - `BattlePlaybackBridgeService`: converts battle logs into renderer-friendly playback snapshots and commands.
 - `RunMapBridgeService`: optional adapter if the run map becomes Phaser-rendered.
+- `AudioDirectorService`: receives semantic audio intents from Angular and future Phaser hosts.
 
 ## Recommended Initial Angular Module or Folder Shape
 

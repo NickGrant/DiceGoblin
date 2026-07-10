@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter, Router, RouterLink } from '@angular/router';
 import { CommandControlsComponent } from './command-controls.component';
+import { AudioDirectorService } from '../../core/services/audio/audio-director.service';
 import { SessionService } from '../../core/services/session/session.service';
 
 class SessionServiceStub {
@@ -21,8 +22,17 @@ class SessionServiceStub {
   readonly logout = jasmine.createSpy('logout').and.resolveTo();
 }
 
+class AudioDirectorServiceStub {
+  readonly isEnabled = signal(true);
+  readonly isUnlocked = signal(false);
+  readonly isMuted = signal(false);
+  readonly enableSound = jasmine.createSpy('enableSound').and.resolveTo();
+  readonly toggleMute = jasmine.createSpy('toggleMute');
+}
+
 describe('CommandControlsComponent', () => {
   let sessionService: SessionServiceStub;
+  let audioDirector: AudioDirectorServiceStub;
   let router: Router;
   let originalResizeObserver: typeof ResizeObserver | undefined;
 
@@ -52,10 +62,15 @@ describe('CommandControlsComponent', () => {
           provide: SessionService,
           useClass: SessionServiceStub,
         },
+        {
+          provide: AudioDirectorService,
+          useClass: AudioDirectorServiceStub,
+        },
       ],
     }).compileComponents();
 
     sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    audioDirector = TestBed.inject(AudioDirectorService) as unknown as AudioDirectorServiceStub;
     router = TestBed.inject(Router);
   });
 
@@ -78,6 +93,32 @@ describe('CommandControlsComponent', () => {
     expect(compiled.textContent).toContain('Nick');
     expect(compiled.textContent).toContain('12 / 20');
     expect(compiled.textContent).toContain('93');
+    expect(compiled.textContent).toContain('Enable Sound');
+  });
+
+  it('enables sound when the audio control is pressed before unlock', async () => {
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('.hud-audio') as HTMLButtonElement;
+    button.click();
+    await fixture.whenStable();
+
+    expect(audioDirector.enableSound).toHaveBeenCalled();
+    expect(audioDirector.toggleMute).not.toHaveBeenCalled();
+  });
+
+  it('toggles mute once audio is unlocked', async () => {
+    audioDirector.isUnlocked.set(true);
+
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('.hud-audio') as HTMLButtonElement;
+    button.click();
+    await fixture.whenStable();
+
+    expect(audioDirector.toggleMute).toHaveBeenCalled();
   });
 
   it('includes a guide link that routes directly to the field guide', () => {

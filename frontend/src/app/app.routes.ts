@@ -21,10 +21,20 @@ export const routes: Routes = [
     path: 'login',
     component: LandingPageComponent,
     canActivate: [guestGuard],
+    data: {
+      audio: {
+        musicIntent: 'music.login',
+      },
+    },
   },
   {
     path: 'guide',
     component: GuidePageComponent,
+    data: {
+      audio: {
+        musicIntent: 'music.home',
+      },
+    },
   },
   {
     path: '',
@@ -32,20 +42,50 @@ export const routes: Routes = [
     canActivateChild: [authChildGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
-      { path: 'home', component: HomePageComponent },
-      { path: 'field-guide', component: GuidePageComponent },
-      { path: 'academy', component: AcademyPageComponent, canActivate: [academyFeatureGuard] },
-      { path: 'regions', component: RegionsPageComponent },
-      { path: 'warband', component: WarbandPageComponent },
-      { path: 'warband/units/:unitId', component: UnitDetailsPageComponent },
-      { path: 'warband/squads/:squadId', component: SquadDetailsPageComponent },
-      { path: 'dice', component: DicePageComponent },
-      { path: 'shop', component: ShopPageComponent, canActivate: [shopFeatureGuard] },
-      { path: 'run/map', component: RunMapPageComponent },
-      { path: 'run/node/:nodeId', component: RunNodePageComponent },
-      { path: 'run/rest/:nodeId', component: RunRestPageComponent },
-      { path: 'run/summary', component: RunSummaryPageComponent },
-      { path: 'debug', component: DebugPageComponent },
+      { path: 'home', component: HomePageComponent, data: { audio: { musicIntent: 'music.home' } } },
+      { path: 'field-guide', component: GuidePageComponent, data: { audio: { musicIntent: 'music.home' } } },
+      {
+        path: 'academy',
+        component: AcademyPageComponent,
+        canActivate: [academyFeatureGuard],
+        data: { audio: { musicIntent: 'music.home' } },
+      },
+      { path: 'regions', component: RegionsPageComponent, data: { audio: { musicIntent: 'music.regions' } } },
+      { path: 'warband', component: WarbandPageComponent, data: { audio: { musicIntent: 'music.home' } } },
+      {
+        path: 'warband/units/:unitId',
+        component: UnitDetailsPageComponent,
+        data: { audio: { musicIntent: 'music.home' } },
+      },
+      {
+        path: 'warband/squads/:squadId',
+        component: SquadDetailsPageComponent,
+        data: { audio: { musicIntent: 'music.home' } },
+      },
+      { path: 'dice', component: DicePageComponent, data: { audio: { musicIntent: 'music.home' } } },
+      {
+        path: 'shop',
+        component: ShopPageComponent,
+        canActivate: [shopFeatureGuard],
+        data: { audio: { musicIntent: 'music.home' } },
+      },
+      { path: 'run/map', component: RunMapPageComponent, data: { audio: { musicIntent: 'music.run' } } },
+      {
+        path: 'run/node/:nodeId',
+        component: RunNodePageComponent,
+        data: { audio: { musicIntent: 'music.battle.normal' } },
+      },
+      {
+        path: 'run/rest/:nodeId',
+        component: RunRestPageComponent,
+        data: { audio: { musicIntent: 'music.run' } },
+      },
+      {
+        path: 'run/summary',
+        component: RunSummaryPageComponent,
+        data: { audio: { musicIntent: 'music.summary' } },
+      },
+      { path: 'debug', component: DebugPageComponent, data: { audio: { musicIntent: 'music.home' } } },
     ],
   },
   {

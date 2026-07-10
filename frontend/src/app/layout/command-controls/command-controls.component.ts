@@ -1,6 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, OnDestroy, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { AudioDirectorService } from '../../core/services/audio/audio-director.service';
 import { SessionService } from '../../core/services/session/session.service';
 
 type HudNavItem = {
@@ -22,6 +23,7 @@ type HudNavItem = {
 })
 export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   private readonly sessionService = inject(SessionService);
+  private readonly audioDirector = inject(AudioDirectorService);
   private readonly router = inject(Router);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly document = inject(DOCUMENT);
@@ -32,6 +34,9 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   readonly session = this.sessionService.session;
   readonly profile = this.sessionService.profile;
   readonly isAuthenticated = computed(() => this.session().isAuthenticated);
+  readonly audioEnabled = this.audioDirector.isEnabled;
+  readonly audioUnlocked = this.audioDirector.isUnlocked;
+  readonly audioMuted = this.audioDirector.isMuted;
   readonly mobileMenuOpen = signal(false);
   readonly navItems: readonly HudNavItem[] = [
     {
@@ -104,6 +109,31 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   async logout(): Promise<void> {
     this.mobileMenuOpen.set(false);
     await this.sessionService.logout();
+  }
+
+  async activateAudioControl(): Promise<void> {
+    if (!this.audioUnlocked()) {
+      await this.audioDirector.enableSound();
+      return;
+    }
+
+    this.audioDirector.toggleMute();
+  }
+
+  audioControlLabel(): string {
+    if (!this.audioUnlocked()) {
+      return 'Enable Sound';
+    }
+
+    return this.audioMuted() ? 'Muted' : 'Sound On';
+  }
+
+  audioControlAriaLabel(): string {
+    if (!this.audioUnlocked()) {
+      return 'Enable sound';
+    }
+
+    return this.audioMuted() ? 'Unmute sound' : 'Mute sound';
   }
 
   isNavItemEnabled(item: HudNavItem): boolean {

@@ -3,6 +3,8 @@ declare global {
     __DICE_GOBLIN_CONFIG__?: {
       apiBaseUrl?: string;
       enableDevPanel?: boolean;
+      enablePhaserBattlePlayback?: boolean;
+      enableAudioDirector?: boolean;
     };
   }
 }
@@ -17,6 +19,10 @@ function sameOriginBaseUrl(): string {
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
+}
+
+function readOptionalBooleanFlag(value: boolean | undefined, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
 }
 
 export function resolveApiBaseUrl(): string {
@@ -37,4 +43,12 @@ export function resolveApiBaseUrl(): string {
 
 export function isDevPanelEnabled(): boolean {
   return window.__DICE_GOBLIN_CONFIG__?.enableDevPanel ?? false;
+}
+
+export function isPhaserBattlePlaybackEnabled(): boolean {
+  return readOptionalBooleanFlag(window.__DICE_GOBLIN_CONFIG__?.enablePhaserBattlePlayback, false);
+}
+
+export function isAudioDirectorEnabled(): boolean {
+  return readOptionalBooleanFlag(window.__DICE_GOBLIN_CONFIG__?.enableAudioDirector, true);
 }
