@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Tests\Integration;
 
-use DiceGoblins\Services\GrantService;
+use DiceGoblins\Services\StarterPackProvisioningService;
 use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 use RuntimeException;
@@ -115,7 +115,7 @@ final class UnitLoadoutServiceIntegrationTest extends IntegrationTestCase
   private function seedStarterUser(string $prefix = 'loadout_user'): int
   {
     $userId = $this->insertUser($prefix, 'Loadout User');
-    (new GrantService())->ensureStarterPackGranted($userId);
+    (new StarterPackProvisioningService())->ensureStarterPackGranted($userId);
     return $userId;
   }
 

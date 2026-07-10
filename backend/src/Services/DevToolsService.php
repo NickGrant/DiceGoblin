@@ -14,6 +14,8 @@ use Throwable;
 
 final class DevToolsService
 {
+  private UserAssetGrantService $userAssetGrantService;
+
   public function __construct(
     private readonly PDO $pdo,
     private readonly PlayerBootstrapper $bootstrapper,
@@ -21,7 +23,10 @@ final class DevToolsService
     private readonly UnitRepository $unitRepo,
     private readonly DiceRepository $diceRepo,
     private readonly RegionRepository $regionRepo,
-  ) {}
+    ?UserAssetGrantService $userAssetGrantService = null,
+  ) {
+    $this->userAssetGrantService = $userAssetGrantService ?? new UserAssetGrantService($pdo);
+  }
 
   public function isEnabled(): bool
   {
@@ -112,20 +117,8 @@ final class DevToolsService
    */
   public function grantUnits(int $userId, string $unitTypeSlug, int $count = 1): array
   {
-    $count = max(1, min(25, $count));
     $this->bootstrapper->ensureBaseline($userId);
-
-    $grantService = new OwnedUnitGrantService($this->pdo);
-    $granted = [];
-    for ($i = 0; $i < $count; $i += 1) {
-      $unit = $grantService->grantBySlug($userId, $unitTypeSlug);
-      $granted[] = [
-        'id' => (string) $unit['id'],
-        'unit_type_slug' => $unitTypeSlug,
-      ];
-    }
-
-    return $granted;
+    return $this->userAssetGrantService->grantUnitsBySlug($userId, $unitTypeSlug, $count);
   }
 
   /**
@@ -133,21 +126,8 @@ final class DevToolsService
    */
   public function grantDice(int $userId, int $sides, string $rarity, int $count = 1): array
   {
-    $count = max(1, min(25, $count));
     $this->bootstrapper->ensureBaseline($userId);
-
-    $grantService = new OwnedDiceGrantService($this->pdo);
-    $granted = [];
-    for ($i = 0; $i < $count; $i += 1) {
-      $dice = $grantService->grantByRarityAndSides($userId, $rarity, $sides);
-      $granted[] = [
-        'id' => (string) $dice['id'],
-        'sides' => $sides,
-        'rarity' => $rarity,
-      ];
-    }
-
-    return $granted;
+    return $this->userAssetGrantService->grantDiceBatch($userId, $sides, $rarity, $count);
   }
 
   /**

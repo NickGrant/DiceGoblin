@@ -19,15 +19,15 @@ use Throwable;
  *
  * Keep this class conservative:
  * - It should create "state scaffolding" rows (player_state, energy_state).
- * - It should NOT auto-create gameplay content (teams/units/dice/unlocks) unless explicitly requested,
- *   because those rules tend to evolve and are better handled by a dedicated provisioning action/service.
+ * - Any gameplay content provisioning should be delegated to a dedicated collaborator
+ *   so the bootstrap path stays explicit and easy to swap or narrow later.
  */
 final class PlayerBootstrapper
 {
   public function __construct(
     private readonly PlayerStateRepository $playerStateRepo,
     private readonly EnergyRepository $energyRepo,
-    private readonly GrantService $grantService,
+    private readonly StarterPackProvisioningService $starterPackProvisioningService,
   ) {}
 
   /**
@@ -46,7 +46,7 @@ final class PlayerBootstrapper
     $this->energyRepo->ensureEnergyState($userId);
 
     // Provision starter gameplay content exactly once (idempotent via user_grants).
-    $this->grantService->ensureStarterPackGranted($userId);
+    $this->starterPackProvisioningService->ensureStarterPackGranted($userId);
   }
 
   /**

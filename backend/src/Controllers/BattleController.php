@@ -23,8 +23,6 @@ use DiceGoblins\Repositories\RunRepository;
 use DiceGoblins\Repositories\UserRepository;
 
 use DiceGoblins\Services\CsrfService;
-use DiceGoblins\Services\GrantService;
-use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\RunLifecycleService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\UnitProgressionService;

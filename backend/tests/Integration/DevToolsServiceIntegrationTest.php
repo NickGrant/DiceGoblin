@@ -8,8 +8,8 @@ use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RegionRepository;
 use DiceGoblins\Repositories\UnitRepository;
 use DiceGoblins\Services\DevToolsService;
-use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
+use DiceGoblins\Services\StarterPackProvisioningService;
 use DiceGoblins\Repositories\EnergyRepository;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 
@@ -146,7 +146,7 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $bootstrapper = new PlayerBootstrapper(
       $playerStateRepo,
       new EnergyRepository($this->pdo),
-      new GrantService(),
+      new StarterPackProvisioningService(),
     );
 
     return new DevToolsService(

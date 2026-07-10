@@ -27,14 +27,10 @@ use DiceGoblins\Repositories\TeamRepository;
 use DiceGoblins\Repositories\UserRepository;
 
 use DiceGoblins\Services\CsrfService;
-use DiceGoblins\Services\GrantService;
-use DiceGoblins\Services\OwnedDiceGrantService;
-use DiceGoblins\Services\OwnedUnitGrantService;
-use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\RunLifecycleService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\SquadCapacityService;
-use DiceGoblins\Services\UserUnlockService;
+use DiceGoblins\Services\UserAssetGrantService;
 use DiceGoblins\Support\RunSummaryBuilder;
 
 use PDO;
@@ -294,8 +290,8 @@ final class RunNodeController
       $ticks = (int)$resolution['ticks'];
       $rounds = (int)$resolution['rounds'];
       $resolvedRewards = is_array($resolution['rewards'] ?? null) ? $resolution['rewards'] : [];
-      $grantedUnitIds = $this->materializeUnitGrants($pdo, $userId, $resolvedRewards);
-      $grantedDiceIds = $this->materializeDiceGrants($pdo, $userId, $resolvedRewards);
+      $grantedUnitIds = $svc['userAssetGrantService']->materializeRewardUnitGrants($userId, $resolvedRewards);
+      $grantedDiceIds = $svc['userAssetGrantService']->materializeRewardDiceGrants($userId, $resolvedRewards);
       if (count($grantedUnitIds) > 0) {
         $existing = is_array($resolvedRewards['new_unit_instance_ids'] ?? null) ? $resolvedRewards['new_unit_instance_ids'] : [];
         $resolvedRewards['new_unit_instance_ids'] = array_values(array_unique(array_map('strval', array_merge($existing, $grantedUnitIds))));
@@ -481,6 +477,7 @@ final class RunNodeController
    *   teamRepo: TeamRepository,
    *   resolver: DeterministicRunNodeResolver,
    *   runLifecycleService: RunLifecycleService,
+   *   userAssetGrantService: UserAssetGrantService,
    *   sessionService: SessionService,
    *   csrfService: CsrfService
    * }
@@ -506,6 +503,7 @@ final class RunNodeController
         new RegionRepository($pdo),
         new RunNodeRepository($pdo),
       ),
+      'userAssetGrantService' => new UserAssetGrantService($pdo),
       'sessionService' => $core['sessionService'],
       'csrfService' => $core['csrfService'],
     ];
@@ -535,76 +533,4 @@ final class RunNodeController
     return $v;
   }
 
-  /**
-   * @param array<string,mixed> $rewards
-   * @return array<int,string>
-   */
-  private function materializeUnitGrants(PDO $pdo, int $userId, array $rewards): array
-  {
-    $unitGrants = $rewards['unit_grants'] ?? null;
-    if (!is_array($unitGrants) || count($unitGrants) === 0) {
-      return [];
-    }
-
-    $created = [];
-    $ownedUnitGrantService = new OwnedUnitGrantService($pdo);
-    $unlockService = new UserUnlockService($pdo);
-    foreach ($unitGrants as $grant) {
-      if (!is_array($grant)) {
-        continue;
-      }
-      $slug = trim((string)($grant['unit_type_slug'] ?? ''));
-      if ($slug === '') {
-        continue;
-      }
-      if (!$unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, $slug)) {
-        continue;
-      }
-      try {
-        $grantedUnit = $ownedUnitGrantService->grantBySlug(
-          $userId,
-          $slug,
-          max(1, min(3, (int)($grant['tier'] ?? 1))),
-          max(1, (int)($grant['level'] ?? 1))
-        );
-      } catch (RuntimeException) {
-        continue;
-      }
-
-      $created[] = (string)$grantedUnit['id'];
-    }
-
-    return $created;
-  }
-
-  /**
-   * @param array<string,mixed> $rewards
-   * @return array<int,string>
-   */
-  private function materializeDiceGrants(PDO $pdo, int $userId, array $rewards): array
-  {
-    $diceGrants = $rewards['dice_grants'] ?? null;
-    if (!is_array($diceGrants) || count($diceGrants) === 0) {
-      return [];
-    }
-
-    $created = [];
-    $ownedDiceGrantService = new OwnedDiceGrantService($pdo);
-    foreach ($diceGrants as $grant) {
-      if (!is_array($grant)) {
-        continue;
-      }
-      $rarity = trim((string)($grant['rarity'] ?? 'common'));
-      $sides = max(2, (int)($grant['sides'] ?? 6));
-      try {
-        $grantedDice = $ownedDiceGrantService->grantByRarityAndSides($userId, $rarity, $sides);
-      } catch (RuntimeException) {
-        continue;
-      }
-
-      $created[] = (string)$grantedDice['id'];
-    }
-
-    return $created;
-  }
 }

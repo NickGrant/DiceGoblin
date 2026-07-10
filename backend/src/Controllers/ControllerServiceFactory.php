@@ -7,9 +7,9 @@ use DiceGoblins\Repositories\EnergyRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\CsrfService;
-use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
+use DiceGoblins\Services\StarterPackProvisioningService;
 use PDO;
 
 final class ControllerServiceFactory
@@ -22,7 +22,7 @@ final class ControllerServiceFactory
    *   playerStateRepo: PlayerStateRepository,
    *   energyRepo: EnergyRepository,
    *   csrfService: CsrfService,
-   *   grantService: GrantService,
+   *   starterPackProvisioningService: StarterPackProvisioningService,
    *   bootstrapper: PlayerBootstrapper,
    *   sessionService: SessionService
    * }
@@ -33,8 +33,8 @@ final class ControllerServiceFactory
     $playerStateRepo = new PlayerStateRepository($pdo);
     $energyRepo = new EnergyRepository($pdo);
     $csrfService = new CsrfService();
-    $grantService = new GrantService();
-    $bootstrapper = new PlayerBootstrapper($playerStateRepo, $energyRepo, $grantService);
+    $starterPackProvisioningService = new StarterPackProvisioningService();
+    $bootstrapper = new PlayerBootstrapper($playerStateRepo, $energyRepo, $starterPackProvisioningService);
     $sessionService = new SessionService($userRepo, $csrfService, $bootstrapper);
 
     return [
@@ -42,7 +42,7 @@ final class ControllerServiceFactory
       'playerStateRepo' => $playerStateRepo,
       'energyRepo' => $energyRepo,
       'csrfService' => $csrfService,
-      'grantService' => $grantService,
+      'starterPackProvisioningService' => $starterPackProvisioningService,
       'bootstrapper' => $bootstrapper,
       'sessionService' => $sessionService,
     ];

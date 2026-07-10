@@ -32,8 +32,6 @@ use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\DiceAffixService;
 use DiceGoblins\Services\EnergyService;
-use DiceGoblins\Services\PlayerBootstrapper;
-use DiceGoblins\Services\GrantService;
 use DiceGoblins\Services\ProfileService;
 use DiceGoblins\Services\ProfileDtoMapper;
 use DiceGoblins\Services\RunGraphGenerator;
@@ -885,7 +883,7 @@ final class ApiController
         $diceAffixService
       ),
       'profileService' => $profileService,
-      'grantService' => $core['grantService'],
+      'starterPackProvisioningService' => $core['starterPackProvisioningService'],
       'runRepo' => $runRepo,
       'runNodeRepo' => new RunNodeRepository($pdo),
       'regionRepo' => $regionRepo,

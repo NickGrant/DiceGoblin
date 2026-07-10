@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Core\Db;
-use DiceGoblins\Services\GrantService;
+use DiceGoblins\Services\StarterPackProvisioningService;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -24,7 +24,7 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
     $user = getenv('TEST_DB_USER') ?: '';
     $pass = getenv('TEST_DB_PASS') ?: '';
     if ($dsn === '') {
-      $this->markTestSkipped('Set TEST_DB_DSN to run GrantService integration tests.');
+      $this->markTestSkipped('Set TEST_DB_DSN to run starter-pack provisioning integration tests.');
     }
 
     $this->pdo = new PDO($dsn, $user, $pass, [
@@ -73,7 +73,7 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
   public function testEnsureStarterPackGrantedIsIdempotentForCleanUser(): void
   {
     $userId = $this->insertUser();
-    $service = new GrantService();
+    $service = new StarterPackProvisioningService();
 
     $service->ensureStarterPackGranted($userId);
     $service->ensureStarterPackGranted($userId);
@@ -156,7 +156,7 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
     $userId = $this->insertUser();
     $existingTeamId = $this->insertTeam($userId, 'Prebuilt Squad', true);
 
-    $service = new GrantService();
+    $service = new StarterPackProvisioningService();
     $service->ensureStarterPackGranted($userId);
 
     $teamCount = (int)$this->scalar("SELECT COUNT(*) FROM `teams` WHERE `user_id` = ?", [$userId]);
@@ -171,7 +171,7 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
   public function testEnsureStarterPackAssignsImmutableAffixesWithinRarityBounds(): void
   {
     $userId = $this->insertUser();
-    $service = new GrantService();
+    $service = new StarterPackProvisioningService();
 
     $service->ensureStarterPackGranted($userId);
 

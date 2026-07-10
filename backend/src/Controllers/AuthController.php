@@ -18,8 +18,6 @@ use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserRepository;
 
 use DiceGoblins\Services\CsrfService;
-use DiceGoblins\Services\GrantService;
-use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
 
 use Throwable;

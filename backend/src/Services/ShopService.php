@@ -25,10 +25,15 @@ final class ShopService
     UserUnlockService::FEATURE_D4_EXPLODE => 2000,
   ];
 
+  private UserAssetGrantService $userAssetGrantService;
+
   public function __construct(
     private readonly PDO $pdo,
     private readonly PlayerStateRepository $playerStateRepository,
-  ) {}
+    ?UserAssetGrantService $userAssetGrantService = null,
+  ) {
+    $this->userAssetGrantService = $userAssetGrantService ?? new UserAssetGrantService($pdo);
+  }
 
   /**
    * @return array{
@@ -501,7 +506,7 @@ final class ShopService
       throw new RuntimeException('Requested unit is not available in the shop.');
     }
 
-    $grantedUnit = (new OwnedUnitGrantService($this->pdo))->grantBySlug($userId, (string)$type['slug'], 1, 1);
+    $grantedUnit = $this->userAssetGrantService->grantUnitBySlug($userId, (string)$type['slug'], 1, 1);
     $unitInstanceId = (int)$grantedUnit['id'];
 
     return [
@@ -539,7 +544,7 @@ final class ShopService
       throw new RuntimeException('Requested die is not available in the shop.');
     }
 
-    $grantedDice = (new OwnedDiceGrantService($this->pdo))->grantByDefinitionId($userId, (int)$definition['id']);
+    $grantedDice = $this->userAssetGrantService->grantDiceByDefinitionId($userId, (int)$definition['id']);
 
     return [
       'product_id' => $productId,
@@ -589,7 +594,7 @@ final class ShopService
       throw new RuntimeException('Daily deal unavailable.');
     }
 
-    $grantedDice = (new OwnedDiceGrantService($this->pdo))->grantByDefinitionId(
+    $grantedDice = $this->userAssetGrantService->grantDiceByDefinitionId(
       $userId,
       (int)$row['dice_definition_id'],
       [[
