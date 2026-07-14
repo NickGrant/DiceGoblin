@@ -5,163 +5,169 @@
   headerVariant="home"
 >
   <div class="home-proto dg-proto-shell">
-    <section class="home-proto__hero dg-proto-hero">
-      <p class="dg-proto-hero__eyebrow">
-        {{ hasActiveRun() ? 'Current raid board' : 'Camp board' }}
-      </p>
-      <h2 class="dg-proto-hero__title">{{ homeHeroTitle() }}</h2>
-      <p class="dg-proto-hero__copy">{{ subtitle() }}</p>
-      <div class="dg-proto-hero__meta">
-        <span class="dg-proto-chip">{{ profile().activeSquadName || 'No active squad' }}</span>
-        <span class="dg-proto-chip dg-proto-chip--small">{{ rewardLabelForUnitCount() }}</span>
-        <span class="dg-proto-chip dg-proto-chip--small"
-          >Energy {{ profile().energyCurrent }}/{{ profile().energyMax }}</span
-        >
-        <span class="dg-proto-chip dg-proto-chip--small">Teeth {{ profile().softCurrency }}</span>
-        @if (activeRun(); as run) {
-          <span class="dg-proto-chip dg-proto-chip--small">{{
-            run.region_name || 'Unknown route'
-          }}</span>
-        }
-      </div>
-    </section>
-
-    <section class="home-proto__layout">
-      <div class="home-proto__primary dg-proto-section">
-        <div class="dg-proto-section__header">
-          <div>
-            <p class="dg-proto-section__eyebrow">
-              {{ hasActiveRun() ? 'Raid status' : 'Next move' }}
-            </p>
-            <h3 class="dg-proto-section__title">{{ primaryLabel() }}</h3>
-          </div>
+    <section class="home-proto__stage dg-proto-backplate dg-proto-backplate--wood">
+      <div class="home-proto__status-strip">
+        <div class="home-proto__status-block">
+          <p class="home-proto__status-label">Warband</p>
+          <strong>{{ profile().activeSquadName || 'No active squad' }}</strong>
+          <span>{{ rewardLabelForUnitCount() }}</span>
         </div>
-        <div class="dg-proto-divider"></div>
-        <a class="home-proto__mission-card dg-proto-card" [routerLink]="primaryRoute()">
-          <div class="dg-proto-card__media dg-proto-card__media--wide">
-            <img
-              [src]="
-                hasActiveRun()
-                  ? '/assets/ui/panels/home_continue_run.jpg'
-                  : '/assets/ui/panels/home_start_run.jpg'
-              "
-              alt=""
-            />
+        <div class="home-proto__status-block">
+          <p class="home-proto__status-label">Supplies</p>
+          <strong>{{ profile().energyCurrent }}/{{ profile().energyMax }} Energy</strong>
+          <span>{{ profile().softCurrency }} Teeth</span>
+        </div>
+        <div class="home-proto__status-block">
+          <p class="home-proto__status-label">{{ hasActiveRun() ? 'Current raid' : 'Camp order' }}</p>
+          <strong>{{ homeHeroTitle() }}</strong>
+          <span>{{ activeRun()?.region_name || 'Choose a biome and head out' }}</span>
+        </div>
+      </div>
+
+      <div class="home-proto__command-table">
+        <aside class="home-proto__rail home-proto__rail--squad dg-proto-sidebar">
+          <div class="home-proto__rail-header">
+            <div>
+              <p class="dg-proto-section__eyebrow">Lineup</p>
+              <h3 class="dg-proto-section__title">Current Squad</h3>
+            </div>
+            <a class="home-proto__rail-link" routerLink="/warband">Manage</a>
           </div>
-          <div class="home-proto__mission-copy">
-            <h4 class="dg-proto-card__title">{{ primaryLabel() }}</h4>
-            <p class="dg-proto-card__copy">
-              {{
-                hasActiveRun() ? 'Back to "work".' : 'Your neighbors surely have some good stuff...'
-              }}
-            </p>
-            @if (activeRun(); as run) {
-              <div class="dg-proto-card__stats">
-                <span class="dg-proto-pill">{{ run.region_name || 'Unknown region' }}</span>
-                <span class="dg-proto-pill">Seed {{ run.seed }}</span>
+          <div class="dg-proto-divider"></div>
+          @if (activeSquadUnits().length) {
+            <div class="home-proto__squad-list">
+              @for (entry of activeSquadUnits(); track entry.unit.id) {
+                <article class="home-proto__squad-card">
+                  <img
+                    class="dg-proto-sprite"
+                    [src]="entry.spriteUrl"
+                    [alt]="entry.unit.name"
+                  />
+                  <div>
+                    <h4>{{ entry.unit.name }}</h4>
+                    <p>{{ entry.unit.unit_type_name || 'Raider' }}</p>
+                    <span>Level {{ entry.unit.level }}</span>
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="home-proto__empty mb-0">Assign a squad before the next raid.</p>
+          }
+        </aside>
+
+        <section class="home-proto__mission-board dg-proto-section">
+          <p class="dg-proto-section__eyebrow">
+            {{ hasActiveRun() ? 'Return to the field' : 'Ready the next raid' }}
+          </p>
+          <h2 class="home-proto__mission-title">{{ primaryLabel() }}</h2>
+          <p class="home-proto__mission-copy">
+            {{
+              hasActiveRun()
+                ? 'The crew is already out there. Jump back into the route, keep the formation alive, and get paid.'
+                : 'Pick a biome, commit the squad, and chase loot before the route turns ugly.'
+            }}
+          </p>
+
+          <a class="home-proto__mission-card" [routerLink]="primaryRoute()">
+            <div class="home-proto__mission-art">
+              <img
+                [src]="
+                  hasActiveRun()
+                    ? '/assets/ui/panels/home_continue_run.jpg'
+                    : '/assets/ui/panels/home_start_run.jpg'
+                "
+                alt=""
+              />
+            </div>
+            <div class="home-proto__mission-body">
+              <div class="home-proto__mission-badges">
+                <span class="dg-proto-chip">{{ primaryLabel() }}</span>
+                @if (activeRun(); as run) {
+                  <span class="dg-proto-chip dg-proto-chip--small">{{
+                    run.region_name || 'Unknown route'
+                  }}</span>
+                  <span class="dg-proto-chip dg-proto-chip--small">Seed {{ run.seed }}</span>
+                } @else {
+                  <span class="dg-proto-chip dg-proto-chip--small">Pick biome</span>
+                  <span class="dg-proto-chip dg-proto-chip--small">Spend energy</span>
+                }
+              </div>
+
+              <div class="home-proto__mission-panel">
+                <div class="home-proto__mission-step">
+                  <span>1</span>
+                  <div>
+                    <strong>{{ hasActiveRun() ? 'Check the route' : 'Choose the hunting ground' }}</strong>
+                    <p>{{ activeRun()?.region_name || 'Each biome shapes the danger and rewards.' }}</p>
+                  </div>
+                </div>
+                <div class="home-proto__mission-step">
+                  <span>2</span>
+                  <div>
+                    <strong>Commit the squad</strong>
+                    <p>{{ rewardLabelForUnitCount() }} and ready to cause trouble.</p>
+                  </div>
+                </div>
+                <div class="home-proto__mission-step">
+                  <span>3</span>
+                  <div>
+                    <strong>{{ hasActiveRun() ? 'Resume the push' : 'Start the run' }}</strong>
+                    <p>{{ subtitle() }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </a>
+        </section>
+
+        <aside class="home-proto__rail home-proto__rail--routes dg-proto-sidebar">
+          <div class="home-proto__rail-header">
+            <div>
+              <p class="dg-proto-section__eyebrow">Camp routes</p>
+              <h3 class="dg-proto-section__title">Utilities</h3>
+            </div>
+          </div>
+          <div class="dg-proto-divider"></div>
+
+          <div class="home-proto__route-list">
+            <a class="home-proto__route-card" routerLink="/warband">
+              <strong>Warband</strong>
+              <span>Squads, roles, and formation.</span>
+            </a>
+
+            @if (academyUnlocked()) {
+              <a class="home-proto__route-card" routerLink="/academy">
+                <strong>Academy</strong>
+                <span>Train up fresh troublemakers.</span>
+              </a>
+            }
+
+            @if (shopUnlocked()) {
+              <a class="home-proto__route-card" routerLink="/shop">
+                <strong>Shop</strong>
+                <span>Trade teeth for tools and recruits.</span>
+              </a>
+            } @else {
+              <div class="home-proto__route-card home-proto__route-card--locked" aria-disabled="true">
+                <strong>Shop Locked</strong>
+                <span>Defeat The Farm to free the Tooth Collector.</span>
               </div>
             }
-          </div>
-        </a>
-      </div>
 
-      <aside class="home-proto__sidebar dg-proto-sidebar">
-        <div class="dg-proto-section__header">
-          <div>
-            <p class="dg-proto-section__eyebrow">Current squad</p>
-            <h3 class="dg-proto-section__title">
-              {{ profile().activeSquadName || 'No squad selected' }}
-            </h3>
-          </div>
-        </div>
-        <div class="dg-proto-divider"></div>
-        @if (activeSquadUnits().length) {
-          <div class="home-proto__squad-list">
-            @for (entry of activeSquadUnits(); track entry.unit.id) {
-              <article class="home-proto__squad-card">
-                <img
-                  class="dg-proto-sprite dg-proto-sprite--sm"
-                  [src]="entry.spriteUrl"
-                  [alt]="entry.unit.name"
-                />
-                <div>
-                  <h4>{{ entry.unit.name }}</h4>
-                  <p>
-                    {{ entry.unit.unit_type_name || 'Raider' }} - Level {{ entry.unit.level }}
-                  </p>
-                </div>
-              </article>
+            <a class="home-proto__route-card" routerLink="/dice">
+              <strong>Inventory</strong>
+              <span>Sort dice, compare rarity, prep the stash.</span>
+            </a>
+
+            @if (devPanelEnabled) {
+              <a class="home-proto__route-card" routerLink="/debug">
+                <strong>Dev Panel</strong>
+                <span>Capture states and test flow quickly.</span>
+              </a>
             }
           </div>
-        } @else {
-          <p class="home-proto__empty mb-0">Assign a squad before the next raid.</p>
-        }
-      </aside>
-    </section>
-
-    <section class="home-proto__nav dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow">Camp routes</p>
-          <h3 class="dg-proto-section__title">Quick access</h3>
-        </div>
-      </div>
-      <div class="dg-proto-divider"></div>
-      <div class="dg-proto-grid dg-proto-grid--cards">
-        <a class="home-proto__nav-card dg-proto-card" routerLink="/warband">
-          <div class="dg-proto-card__media">
-            <img src="/assets/ui/panels/home_warband.jpg" alt="" />
-          </div>
-          <h4 class="dg-proto-card__title">Warband</h4>
-          <p class="dg-proto-card__copy">Check squads, roles, and formation.</p>
-        </a>
-
-        @if (academyUnlocked()) {
-          <a class="home-proto__nav-card dg-proto-card" routerLink="/academy">
-            <div class="dg-proto-card__media">
-              <img src="/assets/ui/panels/academy.jpg" alt="" />
-            </div>
-            <h4 class="dg-proto-card__title">Academy</h4>
-            <p class="dg-proto-card__copy">Train up fresh troublemakers.</p>
-          </a>
-        }
-
-        @if (shopUnlocked()) {
-          <a class="home-proto__nav-card dg-proto-card" routerLink="/shop">
-            <div class="dg-proto-card__media">
-              <img src="/assets/ui/panels/home_shop.jpg" alt="" />
-            </div>
-            <h4 class="dg-proto-card__title">Shop</h4>
-            <p class="dg-proto-card__copy">Trade teeth for tools and recruits.</p>
-          </a>
-        } @else {
-          <div
-            class="home-proto__nav-card dg-proto-card dg-proto-card--locked"
-            aria-disabled="true"
-          >
-            <div class="dg-proto-card__media">
-              <img src="/assets/ui/panels/home_shop.jpg" alt="" />
-            </div>
-            <h4 class="dg-proto-card__title">Shop Locked</h4>
-            <p class="dg-proto-card__copy">Defeat The Farm to free the Tooth Collector.</p>
-          </div>
-        }
-
-        <a class="home-proto__nav-card dg-proto-card" routerLink="/dice">
-          <div class="dg-proto-card__media">
-            <img src="/assets/ui/panels/home_inventory.jpg" alt="" />
-          </div>
-          <h4 class="dg-proto-card__title">Inventory</h4>
-          <p class="dg-proto-card__copy">Sort dice, compare rarity, prep the stash.</p>
-        </a>
-
-        @if (devPanelEnabled) {
-          <a class="home-proto__nav-card dg-proto-card" routerLink="/debug">
-            <div class="dg-proto-card__media home-proto__dev-art"></div>
-            <h4 class="dg-proto-card__title">Dev Panel</h4>
-            <p class="dg-proto-card__copy">Capture states and test flow quickly.</p>
-          </a>
-        }
+        </aside>
       </div>
     </section>
   </div>

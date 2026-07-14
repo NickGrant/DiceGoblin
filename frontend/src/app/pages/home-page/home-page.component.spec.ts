@@ -63,7 +63,7 @@ describe('HomePageComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.textContent).toContain('Start Run');
-    expect(compiled.textContent).toContain('Your neighbors surely have some good stuff...');
+    expect(compiled.textContent).toContain('Pick a biome, commit the squad, and chase loot before the route turns ugly.');
     expect(compiled.textContent).toContain('Shop Locked');
     expect(compiled.textContent).toContain('Defeat The Farm to free the Tooth Collector.');
     expect(compiled.textContent).not.toContain('Academy');
@@ -99,10 +99,10 @@ describe('HomePageComponent', () => {
     ) as HTMLImageElement;
 
     expect(compiled.textContent).toContain('Continue Run');
-    expect(compiled.textContent).toContain('Back to "work".');
+    expect(compiled.textContent).toContain('The crew is already out there. Jump back into the route, keep the formation alive, and get paid.');
     expect(compiled.textContent).toContain('Shop');
     expect(compiled.textContent).toContain('Academy');
-    expect(compiled.textContent).toContain('Current squad');
+    expect(compiled.textContent).toContain('Current Squad');
     expect(component.primaryRoute()).toBe('/run/map');
     expect(component.primaryLabel()).toBe('Continue Run');
     expect(primaryImage.getAttribute('src')).toContain('home_continue_run.jpg');

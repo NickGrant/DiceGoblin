@@ -113,6 +113,9 @@ export class RunMapPageComponent {
   readonly clearedNodeCount = computed(
     () => this.nodes().filter((node) => node.status === 'cleared').length,
   );
+  readonly nextAvailableNode = computed(
+    () => this.nodes().find((node) => node.status === 'available') ?? null,
+  );
   readonly squadPreview = computed(() =>
     this.runUnits().map((entry) => ({
       id: entry.unit_instance_id,
@@ -204,6 +207,27 @@ export class RunMapPageComponent {
 
   nodeTypeLabel(nodeType: string): string {
     return nodeType.charAt(0).toUpperCase() + nodeType.slice(1);
+  }
+
+  nodeActionLabel(node: CurrentRunNode | null): string {
+    if (!node) {
+      return 'Scout route';
+    }
+
+    switch (node.node_type) {
+      case 'combat':
+        return 'Start fight';
+      case 'loot':
+        return 'Open cache';
+      case 'rest':
+        return 'Take rest';
+      case 'boss':
+        return 'Face boss';
+      case 'exit':
+        return 'Cash out';
+      default:
+        return 'Open node';
+    }
   }
 
   async openNode(node: CurrentRunNode): Promise<void> {

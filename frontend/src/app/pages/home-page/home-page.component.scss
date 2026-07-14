@@ -5,51 +5,102 @@
 
 .home-proto {
   padding: 0 1rem 1rem;
+}
+
+.home-proto__stage {
+  padding: 1rem;
   display: grid;
   gap: 1rem;
 }
 
-.home-proto__layout {
-  display: grid;
-  gap: 1rem;
-}
-
-.home-proto__hero {
-  background:
-    linear-gradient(135deg, rgba(245, 232, 200, 0.82), rgba(220, 238, 255, 0.64)),
-    center / cover no-repeat var(--dg-proto-sky);
-}
-
-.home-proto__mission-card,
-.home-proto__nav-card {
-  text-decoration: none;
-  color: inherit;
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease;
-}
-
-.home-proto__mission-card:hover,
-.home-proto__mission-card:focus-visible,
-.home-proto__nav-card:hover,
-.home-proto__nav-card:focus-visible {
-  transform: translateY(-3px);
-  box-shadow: 0 18px 28px rgba(56, 31, 14, 0.16);
-}
-
-.home-proto__mission-copy {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.home-proto__sidebar {
-  display: grid;
-  gap: 0.8rem;
-}
-
-.home-proto__squad-list {
+.home-proto__status-strip {
   display: grid;
   gap: 0.75rem;
+}
+
+.home-proto__status-block {
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(91, 59, 29, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 231, 0.94), rgba(231, 210, 173, 0.9)),
+    center / 220px auto repeat var(--dg-proto-paper);
+  color: #24150d;
+}
+
+.home-proto__status-label,
+.home-proto__mission-copy,
+.home-proto__mission-step p,
+.home-proto__squad-card p,
+.home-proto__squad-card span,
+.home-proto__route-card span,
+.home-proto__empty {
+  margin: 0;
+  color: rgba(49, 30, 18, 0.78);
+}
+
+.home-proto__status-label {
+  margin-bottom: 0.2rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.home-proto__status-block strong,
+.home-proto__mission-step strong,
+.home-proto__route-card strong,
+.home-proto__squad-card h4 {
+  display: block;
+  margin: 0;
+  color: #24150d;
+}
+
+.home-proto__status-block span,
+.home-proto__squad-card span,
+.home-proto__route-card span {
+  display: block;
+  margin-top: 0.18rem;
+  font-size: 0.84rem;
+}
+
+.home-proto__command-table {
+  display: grid;
+  gap: 1rem;
+}
+
+.home-proto__rail,
+.home-proto__mission-board {
+  min-width: 0;
+}
+
+.home-proto__rail-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.home-proto__rail-link {
+  color: #5c3a1d;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.home-proto__squad-list,
+.home-proto__route-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.home-proto__squad-card,
+.home-proto__route-card,
+.home-proto__mission-step {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(91, 59, 29, 0.16);
 }
 
 .home-proto__squad-card {
@@ -58,10 +109,9 @@
   gap: 0.75rem;
   align-items: center;
   padding: 0.75rem;
-  border-radius: 0.9rem;
   background:
     linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
-    center / cover no-repeat var(--dg-proto-paper);
+    center / 220px auto repeat var(--dg-proto-paper);
 }
 
 .home-proto__squad-card h4,
@@ -69,26 +119,120 @@
   margin: 0;
 }
 
-.home-proto__squad-card h4 {
-  color: #24150d;
-  font-size: 0.95rem;
+.home-proto__mission-board {
+  display: grid;
+  gap: 0.85rem;
 }
 
-.home-proto__squad-card p,
-.home-proto__empty {
-  color: rgba(51, 31, 18, 0.78);
-  font-size: 0.88rem;
+.home-proto__mission-title {
+  margin: 0;
+  color: #23150d;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 0.9;
 }
 
-.home-proto__dev-art {
-  min-height: 8rem;
+.home-proto__mission-card {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  text-decoration: none;
+  color: inherit;
   background:
-    radial-gradient(circle at top, rgba(220, 238, 255, 0.7), transparent 54%),
-    linear-gradient(135deg, rgba(92, 143, 216, 0.92), rgba(58, 42, 26, 0.88));
+    linear-gradient(160deg, rgba(66, 40, 24, 0.94), rgba(29, 20, 13, 0.92)),
+    center / cover no-repeat var(--dg-proto-wood);
+  box-shadow: inset 0 0 0 1px rgba(242, 225, 184, 0.16);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.home-proto__mission-card:hover,
+.home-proto__mission-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 0 0 1px rgba(242, 225, 184, 0.16),
+    0 18px 28px rgba(29, 16, 8, 0.24);
+}
+
+.home-proto__mission-art {
+  min-height: 12rem;
+  padding: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.95rem;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.24), transparent 48%),
+    linear-gradient(180deg, rgba(247, 224, 170, 0.32), rgba(56, 34, 17, 0.18));
+  border: 1px solid rgba(244, 224, 176, 0.16);
+}
+
+.home-proto__mission-art img {
+  max-width: 100%;
+  max-height: 12rem;
+  object-fit: contain;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 16px 18px rgba(0, 0, 0, 0.32));
+}
+
+.home-proto__mission-body,
+.home-proto__mission-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.home-proto__mission-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.home-proto__mission-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.75rem;
+  background: rgba(247, 236, 210, 0.94);
+}
+
+.home-proto__mission-step span {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #8db341;
+  color: #fff8ea;
+  font-weight: 800;
+}
+
+.home-proto__route-card {
+  padding: 0.9rem;
+  text-decoration: none;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
+    center / 220px auto repeat var(--dg-proto-paper);
+}
+
+.home-proto__route-card--locked {
+  opacity: 0.72;
 }
 
 @media (min-width: 761px) {
-  .home-proto__layout {
-    grid-template-columns: minmax(0, 1.65fr) minmax(18rem, 0.9fr);
+  .home-proto__status-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .home-proto__command-table {
+    grid-template-columns: minmax(16rem, 0.95fr) minmax(0, 1.45fr) minmax(15rem, 0.9fr);
+    align-items: start;
+  }
+
+  .home-proto__mission-card {
+    grid-template-columns: minmax(13rem, 0.85fr) minmax(0, 1fr);
+    align-items: center;
   }
 }
