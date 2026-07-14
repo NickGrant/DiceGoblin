@@ -4,97 +4,163 @@
   subtitle="Plot the next node and keep the squad moving."
 >
   @if (loading() || error()) {
-  <div class="vstack gap-2 mb-3">
-    @if (loading()) {
-    <dg-alert>Loading run map...</dg-alert>
-    }
-    @if (error()) {
-    <dg-alert tone="error">{{ error() }}</dg-alert>
-    }
-  </div>
+    <div class="vstack gap-2 mb-3">
+      @if (loading()) {
+        <dg-alert>Loading run map...</dg-alert>
+      }
+      @if (error()) {
+        <dg-alert tone="error">{{ error() }}</dg-alert>
+      }
+    </div>
   }
 
   @if (run()) {
-  <div class="vstack gap-4 dg-motion-stagger">
-    <div class="run-map-layout">
-      <div class="run-map-layout__legend">
-        @for (entry of legendEntries(); track entry.type) {
-        <div class="run-map-page__legend-row">
-          <img class="run-map-page__legend-icon" [src]="entry.icon" alt="" aria-hidden="true" />
-          <span>{{ entry.label }}</span>
+    <div class="run-map-proto dg-proto-shell dg-motion-stagger">
+      <section class="run-map-proto__hero dg-proto-hero">
+        <p class="dg-proto-hero__eyebrow">Route overview</p>
+        <h2 class="dg-proto-hero__title">{{ run()!.region_name || 'Current Run' }}</h2>
+        <p class="dg-proto-hero__copy">
+          Trace the available branch, protect the squad, and cash out before the route turns on you.
+        </p>
+        <div class="dg-proto-hero__meta">
+          <span class="dg-proto-chip">{{ activeSquad()?.name || 'No active squad' }}</span>
+          <span class="dg-proto-chip dg-proto-chip--small">{{ availableNodeCount() }} open</span>
+          <span class="dg-proto-chip dg-proto-chip--small">{{ clearedNodeCount() }} cleared</span>
+          @if (run()!.energy_cost) {
+            <span class="dg-proto-chip dg-proto-chip--small">Energy {{ run()!.energy_cost }}</span>
+          }
         </div>
-        }
-      </div>
+      </section>
 
-      <div class="run-map-layout__actions">
-        <button dgCommandBtn="primary" type="button" (click)="abandonRun()" [disabled]="working()">
-          Abandon Run
-        </button>
-      </div>
-
-      <div class="run-map-layout__map">
-        <div class="run-map-shell">
-          <div
-            class="run-map-scroll"
-            [style.background-image]="mapBackgroundUrl() ? 'linear-gradient(rgba(12, 16, 18, 0.38), rgba(12, 16, 18, 0.6)), url(' + mapBackgroundUrl() + ')' : null"
-          >
-            <svg
-              class="run-map"
-              [attr.viewBox]="'0 0 ' + mapWidth() + ' ' + mapHeight()"
-              preserveAspectRatio="xMinYMid meet"
-              [style.width.px]="mapWidth()"
-              [style.height.px]="mapHeight()"
+      <div class="run-map-layout dg-proto-split">
+        <section class="run-map-layout__map dg-proto-section">
+          <div class="dg-proto-section__header">
+            <div>
+              <p class="dg-proto-section__eyebrow">Map</p>
+              <h3 class="dg-proto-section__title">Choose the next node</h3>
+            </div>
+            <button
+              dgCommandBtn="primary"
+              type="button"
+              (click)="abandonRun()"
+              [disabled]="working()"
             >
-              @for (edge of renderedEdges(); track edge.edgeId) {
-              <path
-                class="run-map__edge"
-                [class.run-map__edge--available]="edge.state === 'available'"
-                [class.run-map__edge--cleared]="edge.state === 'cleared'"
-                [class.run-map__edge--locked]="edge.state === 'locked'"
-                [attr.d]="edge.path"
-              ></path>
-              }
-              @for (node of nodes(); track node.id) {
-              <g
-                class="run-map__node"
-                [class.run-map__node--available]="node.status === 'available'"
-                [class.run-map__node--disabled]="node.status !== 'available'"
-                role="button"
-                [attr.tabindex]="node.status === 'available' ? 0 : -1"
-                [attr.aria-label]="nodeTypeLabel(node.node_type) + ' node ' + node.status"
-                (click)="openNode(node)"
-                (keydown.enter)="openNode(node)"
-                (keydown.space)="openNode(node); $event.preventDefault()"
-              >
-                <circle
-                  [attr.cx]="nodeX(node)"
-                  [attr.cy]="nodeY(node)"
-                  r="34"
-                  [attr.fill]="node.status === 'available' ? '#b91c1c' : (node.status === 'cleared' ? '#006f7a' : '#9ea6ad')"
-                ></circle>
-                <image
-                  [attr.href]="iconForNode(node)"
-                  [attr.x]="nodeX(node) - 30"
-                  [attr.y]="nodeY(node) - 30"
-                  width="60"
-                  height="60"
-                  preserveAspectRatio="xMidYMid meet"
-                ></image>
-              </g>
-              }
-            </svg>
+              Abandon Run
+            </button>
           </div>
-        </div>
-      </div>
+          <div class="dg-proto-divider"></div>
+          <div class="run-map-layout__legend">
+            @for (entry of legendEntries(); track entry.type) {
+              <div class="run-map-page__legend-row">
+                <img
+                  class="run-map-page__legend-icon"
+                  [src]="entry.icon"
+                  alt=""
+                  aria-hidden="true"
+                />
+                <span>{{ entry.label }}</span>
+              </div>
+            }
+          </div>
+          <div class="run-map-shell">
+            <div
+              class="run-map-scroll"
+              [style.background-image]="
+                mapBackgroundUrl()
+                  ? 'linear-gradient(rgba(12, 16, 18, 0.38), rgba(12, 16, 18, 0.6)), url(' +
+                    mapBackgroundUrl() +
+                    ')'
+                  : null
+              "
+            >
+              <svg
+                class="run-map"
+                [attr.viewBox]="'0 0 ' + mapWidth() + ' ' + mapHeight()"
+                preserveAspectRatio="xMinYMid meet"
+                [style.width.px]="mapWidth()"
+                [style.height.px]="mapHeight()"
+              >
+                @for (edge of renderedEdges(); track edge.edgeId) {
+                  <path
+                    class="run-map__edge"
+                    [class.run-map__edge--available]="edge.state === 'available'"
+                    [class.run-map__edge--cleared]="edge.state === 'cleared'"
+                    [class.run-map__edge--locked]="edge.state === 'locked'"
+                    [attr.d]="edge.path"
+                  ></path>
+                }
+                @for (node of nodes(); track node.id) {
+                  <g
+                    class="run-map__node"
+                    [class.run-map__node--available]="node.status === 'available'"
+                    [class.run-map__node--disabled]="node.status !== 'available'"
+                    role="button"
+                    [attr.tabindex]="node.status === 'available' ? 0 : -1"
+                    [attr.aria-label]="nodeTypeLabel(node.node_type) + ' node ' + node.status"
+                    (click)="openNode(node)"
+                    (keydown.enter)="openNode(node)"
+                    (keydown.space)="openNode(node); $event.preventDefault()"
+                  >
+                    <circle
+                      [attr.cx]="nodeX(node)"
+                      [attr.cy]="nodeY(node)"
+                      r="34"
+                      [attr.fill]="
+                        node.status === 'available'
+                          ? '#b91c1c'
+                          : node.status === 'cleared'
+                            ? '#006f7a'
+                            : '#9ea6ad'
+                      "
+                    ></circle>
+                    <image
+                      [attr.href]="iconForNode(node)"
+                      [attr.x]="nodeX(node) - 30"
+                      [attr.y]="nodeY(node) - 30"
+                      width="60"
+                      height="60"
+                      preserveAspectRatio="xMidYMid meet"
+                    ></image>
+                  </g>
+                }
+              </svg>
+            </div>
+          </div>
+        </section>
 
-      <div class="run-map-layout__units">
-        <div class="dg-card p-3 h-100 run-map-units-shell">
-          <dg-run-unit-formation-grid [cells]="formationGrid()" />
-        </div>
+        <aside class="run-map-layout__units dg-proto-sidebar">
+          <div class="dg-proto-section__header">
+            <div>
+              <p class="dg-proto-section__eyebrow">Squad</p>
+              <h3 class="dg-proto-section__title">
+                {{ activeSquad()?.name || 'Current formation' }}
+              </h3>
+            </div>
+          </div>
+          <div class="dg-proto-divider"></div>
+          <div class="run-map-units-shell">
+            <div class="run-map-squad-list">
+              @for (entry of squadPreview(); track entry.id) {
+                <article class="run-map-squad-card" [class.is-defeated]="entry.defeated">
+                  <img
+                    class="dg-proto-sprite dg-proto-sprite--sm"
+                    [src]="entry.spriteUrl"
+                    [alt]="entry.name"
+                  />
+                  <div>
+                    <h4>{{ entry.name }}</h4>
+                    <p>{{ entry.role }} - Lv {{ entry.level }}</p>
+                    <span>{{ entry.defeated ? 'Defeated' : entry.hpLabel }}</span>
+                  </div>
+                </article>
+              }
+            </div>
+            <dg-run-unit-formation-grid [cells]="formationGrid()" />
+          </div>
+        </aside>
       </div>
     </div>
-  </div>
   } @else {
-  <dg-alert>No active run.</dg-alert>
+    <dg-alert>No active run.</dg-alert>
   }
 </page-frame>

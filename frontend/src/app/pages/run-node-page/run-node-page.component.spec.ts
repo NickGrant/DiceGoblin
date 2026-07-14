@@ -321,17 +321,21 @@ describe('RunNodePageComponent', () => {
 
     const host: HTMLElement = fixture.nativeElement;
     expect(host.textContent).toContain('Claim Rewards');
-    expect(host.textContent).toContain('Battle Log');
+    expect(host.textContent).toContain('VICTORY');
+    expect(host.textContent).toContain('Acted Out');
+    expect(host.textContent).toContain('Log View');
     expect(host.textContent).toContain('Ashback');
-    expect(host.textContent).toContain('Bruiser Level 2');
     expect(host.textContent).toContain('Heavy Strike');
     expect(host.textContent).toContain('Goblin Raider');
-    expect(host.textContent).toContain('Enemy Unit');
     expect(host.textContent).toContain('7 damage dealt');
+    expect(host.querySelectorAll('.battle-playback__unit').length).toBeGreaterThan(0);
+
+    fixture.componentInstance.setBattleView('log');
+    fixture.detectChanges();
+
+    expect(host.textContent).toContain('Battle Log');
     expect(host.textContent).toContain('Bolster Ally');
     expect(host.textContent).toContain('Bogwort');
-    expect(host.textContent).toContain('bolstered applied for 2 rounds');
-    expect(host.textContent).toContain('Sleep Hex');
     expect(host.textContent).toContain('sleep applied for 1 round and bleeding applied');
     expect(host.textContent).not.toContain('explode triggered');
 
@@ -340,13 +344,6 @@ describe('RunNodePageComponent', () => {
 
     const bleedChip = host.querySelector('.battle-log__condition[title*="increases damage received"]');
     expect(bleedChip?.textContent).toContain('bleeding');
-
-    const enemyCard = host.querySelector('.unit-grid-object--enemy');
-    expect(enemyCard?.textContent).toContain('Goblin Raider');
-    expect(
-      (enemyCard?.querySelector('.unit-grid-object__card-art') as HTMLImageElement | null)?.getAttribute('src'),
-    ).toContain('/assets/ui/units/goblin_bruiser.png');
-    expect(host.querySelectorAll('.unit-grid-object__progress').length).toBe(6);
     expect(host.querySelector('button[dgcommandbtn], button[dgCommandBtn]')).not.toBeNull();
   });
 

@@ -31,6 +31,7 @@ export const routes: Routes = [
     path: 'guide',
     component: GuidePageComponent,
     data: {
+      guideVariant: 'public',
       audio: {
         musicIntent: 'music.home',
       },
@@ -43,7 +44,14 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: HomePageComponent, data: { audio: { musicIntent: 'music.home' } } },
-      { path: 'field-guide', component: GuidePageComponent, data: { audio: { musicIntent: 'music.home' } } },
+      {
+        path: 'field-guide',
+        component: GuidePageComponent,
+        data: {
+          guideVariant: 'codex',
+          audio: { musicIntent: 'music.home' },
+        },
+      },
       {
         path: 'academy',
         component: AcademyPageComponent,

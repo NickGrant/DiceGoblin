@@ -4,118 +4,148 @@
   subtitle="Review rewards and progression, then head back to camp."
 >
   @if (summary()) {
-  <div class="run-summary-shell" [class.run-summary-shell--dialogue-open]="!!summaryDialogue()">
-    <div class="run-summary-stack dg-motion-stagger">
-      <div class="d-flex justify-content-start">
-        <a dgCommandBtn="primary" routerLink="/home">Return Home</a>
+    <div class="run-summary-shell" [class.run-summary-shell--dialogue-open]="!!summaryDialogue()">
+      <div class="run-summary-stack dg-motion-stagger dg-proto-shell">
+        <section class="run-summary-hero dg-proto-hero">
+          <p class="dg-proto-hero__eyebrow">Run results</p>
+          <h2 class="dg-proto-hero__title">{{ resultTitle() }}</h2>
+          <p class="dg-proto-hero__copy">
+            Review the haul, check who made it back, and decide what the camp does next.
+          </p>
+          <div class="dg-proto-hero__meta">
+            <a dgCommandBtn="primary" routerLink="/home">Return Home</a>
+            <span class="dg-proto-chip dg-proto-chip--small">Teeth {{ rewardCurrency() }}</span>
+            <span class="dg-proto-chip dg-proto-chip--small">Dice {{ rewardDiceCount() }}</span>
+            <span class="dg-proto-chip dg-proto-chip--small">Units {{ rewardUnitCount() }}</span>
+          </div>
+        </section>
+
+        <section class="run-summary-section dg-proto-section">
+          <div class="run-summary-section-heading dg-proto-section__header">
+            <div>
+              <p class="run-summary-section-heading__eyebrow">Treasure haul</p>
+              <h2 class="dg-proto-section__title">Rewards</h2>
+            </div>
+          </div>
+          <div class="dg-proto-divider"></div>
+
+          @if (rewardSectionsEmpty()) {
+            <p class="mb-0">No rewards recorded.</p>
+          } @else {
+            <div class="run-summary-loot-summary">
+              <div class="run-summary-loot-stat">
+                <span class="run-summary-subheading">Teeth</span>
+                <strong>{{ rewardCurrency() }}</strong>
+              </div>
+              <div class="run-summary-loot-stat">
+                <span class="run-summary-subheading">Dice</span>
+                <strong>{{ rewardDiceCount() }}</strong>
+              </div>
+              <div class="run-summary-loot-stat">
+                <span class="run-summary-subheading">Units</span>
+                <strong>{{ rewardUnitCount() }}</strong>
+              </div>
+            </div>
+
+            @if (rewardDiceLabels().length) {
+              <div class="run-summary-section-block">
+                <p class="run-summary-subheading">Dice Found</p>
+                <div class="run-summary-chip-row">
+                  @for (label of rewardDiceLabels(); track label + '-' + $index) {
+                    <span class="dg-proto-chip dg-proto-chip--small">{{ label }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (rewardUnitLabels().length) {
+              <div class="run-summary-section-block">
+                <p class="run-summary-subheading">Units Found</p>
+                <div class="run-summary-chip-row">
+                  @for (label of rewardUnitLabels(); track label + '-' + $index) {
+                    <span class="dg-proto-chip dg-proto-chip--small">{{ label }}</span>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </section>
+
+        <section class="run-summary-section dg-proto-section">
+          <div class="run-summary-section-heading dg-proto-section__header">
+            <div>
+              <p class="run-summary-section-heading__eyebrow">Squad report</p>
+              <h2 class="dg-proto-section__title">Current Squad</h2>
+            </div>
+          </div>
+          <div class="dg-proto-divider"></div>
+
+          @if (squadOutcomeCards().length) {
+            <div class="run-summary-squad-grid">
+              @for (card of squadOutcomeCards(); track card.id) {
+                <article class="run-summary-squad-card" [class.is-defeated]="card.defeated">
+                  <img
+                    class="dg-proto-sprite dg-proto-sprite--sm"
+                    [src]="card.spriteUrl"
+                    [alt]="card.name"
+                  />
+                  <div>
+                    <h3>{{ card.name }}</h3>
+                    <p>{{ card.role }} - Level {{ card.level }}</p>
+                    <span>{{ card.defeated ? 'Defeated' : '+' + card.xpGained + ' XP' }}</span>
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="mb-0">No deployed squad data was recorded for this summary.</p>
+          }
+        </section>
+
+        <section class="run-summary-section dg-proto-section">
+          <div class="run-summary-section-heading dg-proto-section__header">
+            <div>
+              <p class="run-summary-section-heading__eyebrow">Camp growth</p>
+              <h2 class="dg-proto-section__title">Progression</h2>
+            </div>
+          </div>
+          <div class="dg-proto-divider"></div>
+
+          @if (progressionCards().length) {
+            <div class="run-summary-progression-grid">
+              @for (card of progressionCards(); track $index) {
+                <div class="run-summary-progression-grid__item">
+                  <dg-unit-grid-object [object]="card.unit" [progressBar]="progressBar(card)" />
+                </div>
+              }
+            </div>
+          } @else if (summary()!.progression.length) {
+            <ul class="run-summary-fallback-list dg-list-reset">
+              @for (item of summary()!.progression; track $index) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+          } @else {
+            <p class="mb-0">No progression milestones recorded.</p>
+          }
+        </section>
       </div>
 
-      <section class="dg-card p-3 p-lg-4">
-        <div class="run-summary-section-heading">
-          <div>
-            <p class="run-summary-section-heading__eyebrow dg-stencil">Run Rewards</p>
-            <h2 class="dg-stencil mb-0">Rewards</h2>
-          </div>
+      @if (summaryDialogue()) {
+        <div
+          class="run-summary-dialogue"
+          aria-label="Run completion dialogue"
+          aria-modal="true"
+          role="dialog"
+        >
+          <dg-dialogue-stage
+            [script]="summaryDialogue()!"
+            (complete)="handleSummaryDialogueComplete($event)"
+          />
         </div>
-
-        @if (rewardSectionsEmpty()) {
-        <p class="mb-0">No rewards recorded.</p>
-        } @else {
-          @if (rewardCurrency() > 0) {
-          <article class="run-summary-teeth">
-            <img src="/assets/ui/icons/tooth_16.png" alt="" aria-hidden="true" />
-            <div>
-              <p class="run-summary-subheading dg-stencil mb-1">Teeth</p>
-              <strong>{{ rewardCurrency() }}</strong>
-            </div>
-          </article>
-          }
-
-          @if (rewardUnits().length) {
-          <div class="run-summary-section-block">
-            <p class="run-summary-subheading dg-stencil">Units</p>
-            <div class="run-summary-card-grid">
-              @for (card of rewardUnits(); track $index) {
-              <div class="run-summary-card-grid__item">
-                <dg-unit-grid-object [object]="card.unit" />
-              </div>
-              }
-            </div>
-          </div>
-          }
-
-          @if (rewardUnitFallbackLabels().length) {
-          <div class="run-summary-section-block">
-            <p class="run-summary-subheading dg-stencil">Unit Rewards</p>
-            <ul class="run-summary-fallback-list dg-list-reset">
-              @for (label of rewardUnitFallbackLabels(); track $index) {
-              <li>{{ label }}</li>
-              }
-            </ul>
-          </div>
-          }
-
-          @if (rewardDice().length) {
-          <div class="run-summary-section-block">
-            <p class="run-summary-subheading dg-stencil">Dice</p>
-            <div class="run-summary-card-grid">
-              @for (card of rewardDice(); track $index) {
-              <div class="run-summary-card-grid__item">
-                <dg-dice-grid-object [object]="card.die" />
-              </div>
-              }
-            </div>
-          </div>
-          }
-
-          @if (rewardDiceFallbackLabels().length) {
-          <div class="run-summary-section-block">
-            <p class="run-summary-subheading dg-stencil">Dice Rewards</p>
-            <ul class="run-summary-fallback-list dg-list-reset">
-              @for (label of rewardDiceFallbackLabels(); track $index) {
-              <li>{{ label }}</li>
-              }
-            </ul>
-          </div>
-          }
-        }
-      </section>
-
-      <section class="dg-card p-3 p-lg-4">
-        <div class="run-summary-section-heading">
-          <div>
-            <p class="run-summary-section-heading__eyebrow dg-stencil">Camp Growth</p>
-            <h2 class="dg-stencil mb-0">Progression</h2>
-          </div>
-        </div>
-
-        @if (progressionCards().length) {
-        <div class="run-summary-progression-grid">
-          @for (card of progressionCards(); track $index) {
-          <div class="run-summary-progression-grid__item">
-            <dg-unit-grid-object [object]="card.unit" [progressBar]="progressBar(card)" />
-          </div>
-          }
-        </div>
-        } @else if (summary()!.progression.length) {
-        <ul class="run-summary-fallback-list dg-list-reset">
-          @for (item of summary()!.progression; track $index) {
-          <li>{{ item }}</li>
-          }
-        </ul>
-        } @else {
-        <p class="mb-0">No progression milestones recorded.</p>
-        }
-      </section>
+      }
     </div>
-
-    @if (summaryDialogue()) {
-    <div class="run-summary-dialogue" aria-label="Run completion dialogue" aria-modal="true" role="dialog">
-      <dg-dialogue-stage [script]="summaryDialogue()!" (complete)="handleSummaryDialogueComplete($event)" />
-    </div>
-    }
-  </div>
   } @else {
-  <dg-alert>No run summary available.</dg-alert>
+    <dg-alert>No run summary available.</dg-alert>
   }
 </page-frame>

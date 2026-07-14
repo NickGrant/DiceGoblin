@@ -1,16 +1,15 @@
+import { ActivatedRoute } from '@angular/router';
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { resolveCompletedRegionSlugs } from '../../core/regions/region-catalog';
+import { DiceAffixRecord } from '../../core/models/api.models';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
-import { TabStripComponent } from '../../shared/ui/tab-strip/tab-strip.component';
-import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
+import { resolvePrototypeEnemySpriteUrl, resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 
-type GuideChapterId = 'overview' | 'warband' | 'dice' | 'expeditions';
+type GuidePageVariant = 'public' | 'codex';
 
-type GuideChapter = {
-  id: GuideChapterId;
-  label: string;
+type GuideStep = {
   kicker: string;
   title: string;
   summary: string;
@@ -64,6 +63,27 @@ type GuideBestiaryUnit = {
   assetKey: string;
 };
 
+type CodexMetric = {
+  label: string;
+  value: string;
+  detail: string;
+  progressPercent: number;
+};
+
+type CodexAffixEntry = GuideAffix & {
+  discovered: boolean;
+};
+
+type CodexEnemyEntry = GuideBestiaryUnit & {
+  discovered: boolean;
+};
+
+type CodexLoreEntry = {
+  id: string;
+  title: string;
+  summary: string;
+};
+
 const BIOME_GUIDE_UNITS: ReadonlyArray<GuideBestiaryUnit> = [
   {
     slug: 'kobold_skirmisher',
@@ -95,55 +115,50 @@ const BIOME_GUIDE_UNITS: ReadonlyArray<GuideBestiaryUnit> = [
   },
 ];
 
+const PUBLIC_GUIDE_STEPS: ReadonlyArray<GuideStep> = [
+  {
+    kicker: '1. Assemble',
+    title: 'Build a squad around roles, not just levels',
+    summary: 'Frontliners buy time, ranged units convert that time into damage, and support or control units smooth out bad rolls.',
+  },
+  {
+    kicker: '2. Equip',
+    title: 'Put your best dice on your highest-impact abilities',
+    summary: 'An empty slot still resolves, but it resolves as a weak roll. Strong loadouts come from matching die size and affix style to the right skill.',
+  },
+  {
+    kicker: '3. Venture',
+    title: 'Use expeditions to cash in permanent progress',
+    summary: 'Loot, XP, and unlocks mostly come from surviving runs long enough to return home and reinvest the rewards.',
+  },
+];
+
 const GUIDE_UNIT_ANIMATION_INTERVAL_MS = 320;
 
 @Component({
   selector: 'app-guide-page',
   standalone: true,
-  imports: [PageFrameComponent, TabStripComponent],
+  imports: [PageFrameComponent],
   templateUrl: './guide-page.component.html',
   styleUrl: './guide-page.component.scss',
 })
 export class GuidePageComponent implements OnInit, OnDestroy {
+  private readonly route = inject(ActivatedRoute);
   private readonly sessionService = inject(SessionService);
   private readonly guideUnitAnimationTimers = new Map<string, ReturnType<typeof window.setInterval>>();
 
   protected readonly session = this.sessionService.session;
   protected readonly profileData = this.sessionService.profileData;
   protected readonly hasActiveRun = this.sessionService.hasActiveRun;
-  protected readonly activeChapter = signal<GuideChapterId>('overview');
   protected readonly guideUnitFrameIndexes = signal<Record<string, number>>({});
+  protected readonly variant = signal<GuidePageVariant>(this.resolveInitialVariant());
 
-  protected readonly chapters: ReadonlyArray<GuideChapter> = [
-    {
-      id: 'overview',
-      label: 'Overview',
-      kicker: 'Quick Read',
-      title: 'Learn the rhythm of a run',
-      summary: 'Start here for the fastest explanation of how squads, unlocks, and expeditions fit together.',
-    },
-    {
-      id: 'warband',
-      label: 'Warband',
-      kicker: 'Roster',
-      title: 'Build, unlock, and promote units',
-      summary: 'Browse the current roster, see what unlocks permanently expand the warband, and review promotion rules.',
-    },
-    {
-      id: 'dice',
-      label: 'Dice',
-      kicker: 'Loadouts',
-      title: 'Understand dice, sizes, and affixes',
-      summary: 'See the main dice families, size breakpoints, and affix language used throughout the game.',
-    },
-    {
-      id: 'expeditions',
-      label: 'Expeditions',
-      kicker: 'Runs',
-      title: 'Read how combat and map nodes work',
-      summary: 'Review encounter flow, node meanings, failure handling, and the basic rules that shape a successful run.',
-    },
-  ];
+  protected readonly isCodex = computed(() => this.variant() === 'codex');
+  protected readonly pageTitle = computed(() => (this.isCodex() ? 'Codex' : 'Guide'));
+  protected readonly pageSubtitle = computed(() => this.isCodex()
+    ? 'A living record of your unlocks, sightings, and discoveries.'
+    : 'A public how-to-play primer for squads, dice, and expeditions.');
+  protected readonly breadcrumbs = computed(() => [{ label: this.pageTitle() }]);
 
   protected readonly unitUnlocks: ReadonlyArray<GuideUnit> = [
     {
@@ -186,27 +201,6 @@ export class GuidePageComponent implements OnInit, OnDestroy {
       maxLevel: 10,
       summary: 'A disruptive debuffer that can promote from level 6 or stay through level 10 for stronger control passives.',
     },
-  ];
-
-  protected readonly units: ReadonlyArray<GuideUnit> = [
-    { name: 'Bruiser', slug: 'frontline_bruiser_t1', role: 'Frontline', tier: 1, maxLevel: 10, summary: 'Balanced offense and toughness for the front row.' },
-    { name: 'Enforcer', slug: 'frontline_bruiser_t2', role: 'Frontline', tier: 2, maxLevel: 10, summary: 'A pressure bruiser that leans into execution damage and attack suppression.' },
-    { name: 'Pit Fighter', slug: 'frontline_pit_fighter_t2', role: 'Frontline', tier: 2, maxLevel: 10, summary: 'A comeback brawler built around wounded payoffs, counterattacks, and survival spikes.' },
-    { name: 'Juggernaut', slug: 'frontline_bruiser_t3', role: 'Frontline', tier: 3, maxLevel: 10, summary: 'The heavy end of the bruiser line, intended to become a squad-anchor frontline threat.' },
-    { name: 'Guardian', slug: 'frontline_guardian_t1', role: 'Frontline', tier: 1, maxLevel: 10, summary: 'Defense-first tank for holding the line.' },
-    { name: 'Bulwark', slug: 'frontline_guardian_t2', role: 'Frontline', tier: 2, maxLevel: 10, summary: 'A dedicated tank that redirects pressure and converts die rolls into temporary guard stacks.' },
-    { name: 'Shieldbreaker', slug: 'frontline_shieldbreaker_t2', role: 'Frontline', tier: 2, maxLevel: 10, summary: 'An anti-armor frontline branch that cracks defenses open for the rest of the squad.' },
-    { name: 'Ironwall', slug: 'frontline_guardian_t3', role: 'Frontline', tier: 3, maxLevel: 10, summary: 'The guardian line\'s endgame wall, built to anchor formations and absorb focused fire.' },
-    { name: 'Marksman', slug: 'backline_marksman_t1', role: 'Backline', tier: 1, maxLevel: 10, summary: 'Reliable ranged damage from safer back-row positions.' },
-    { name: 'Deadeye', slug: 'backline_marksman_t2', role: 'Backline', tier: 2, maxLevel: 10, summary: 'A single-target ranged specialist with stronger armor-piercing pressure.' },
-    { name: 'Trapper', slug: 'backline_trapper_t2', role: 'Backline', tier: 2, maxLevel: 10, summary: 'A utility archer that marks enemies and can reveal hidden treasure once per run.' },
-    { name: 'Sharpshot', slug: 'backline_marksman_t3', role: 'Backline', tier: 3, maxLevel: 10, summary: 'The marksman line\'s endgame sniper, intended for elite ranged focus fire.' },
-    { name: 'Bannerbearer', slug: 'support_banner_t1', role: 'Support', tier: 1, maxLevel: 10, summary: 'Support path focused on bolsters, sustain, and setting up later support branches.' },
-    { name: 'Warcaller', slug: 'support_banner_t2', role: 'Support', tier: 2, maxLevel: 10, summary: 'An offensive support branch that buffs allies and accelerates combat momentum.' },
-    { name: 'Mascot', slug: 'support_mascot_t2', role: 'Support', tier: 2, maxLevel: 10, summary: 'A luck-driven support branch that spreads scrappy bonuses and clutch protection.' },
-    { name: 'Saboteur', slug: 'control_saboteur_t1', role: 'Utility', tier: 1, maxLevel: 10, summary: 'Control-focused unit built around disruption and enemy debuffs.' },
-    { name: 'Trickshot', slug: 'control_saboteur_t2', role: 'Utility', tier: 2, maxLevel: 10, summary: 'A precision debuffer that punishes enemies already suffering status effects.' },
-    { name: 'Plaguehand', slug: 'control_plaguehand_t2', role: 'Utility', tier: 2, maxLevel: 10, summary: 'A poison-focused control branch that weakens multiple enemies at once.' },
   ];
 
   protected readonly affixes: ReadonlyArray<GuideAffix> = [
@@ -279,12 +273,75 @@ export class GuidePageComponent implements OnInit, OnDestroy {
   protected readonly completedBiomeSlugs = computed(() => resolveCompletedRegionSlugs(this.profileData()));
 
   protected readonly discoveredBiomeUnits = computed(() => {
-    if (!this.session().isAuthenticated) {
-      return [] as GuideBestiaryUnit[];
-    }
-
     const completedBiomes = new Set(this.completedBiomeSlugs());
     return BIOME_GUIDE_UNITS.filter((unit) => completedBiomes.has(this.normalizeBiomeSlug(unit.biome)));
+  });
+
+  protected readonly codexMetrics = computed<ReadonlyArray<CodexMetric>>(() => {
+    const profile = this.profileData();
+    const completedRegions = this.completedBiomeSlugs().length;
+    const unlockedFeatures = profile?.feature_unlocks.length ?? 0;
+    const unlockedUnits = profile?.unit_type_unlocks.length ?? 0;
+    const seenAffixes = this.discoveredAffixNames().size;
+    const loreCount = this.codexLoreEntries().length;
+
+    return [
+      {
+        label: 'Feature unlocks',
+        value: `${unlockedFeatures}/${this.unlocks.length}`,
+        detail: unlockedFeatures ? 'Permanent account upgrades recovered.' : 'No permanent account upgrades recorded yet.',
+        progressPercent: this.percent(unlockedFeatures, this.unlocks.length),
+      },
+      {
+        label: 'Starter classes',
+        value: `${unlockedUnits}/${this.unitUnlocks.length}`,
+        detail: unlockedUnits ? 'Base class lines currently available in your warband.' : 'Recruit more unit lines to expand promotions.',
+        progressPercent: this.percent(unlockedUnits, this.unitUnlocks.length),
+      },
+      {
+        label: 'Seen affixes',
+        value: `${seenAffixes}/${this.affixes.length}`,
+        detail: seenAffixes ? 'Affix language spotted on owned dice.' : 'Appraise more dice to fill in the affix archive.',
+        progressPercent: this.percent(seenAffixes, this.affixes.length),
+      },
+      {
+        label: 'Lore pages',
+        value: `${loreCount}`,
+        detail: loreCount ? 'Dialogue moments and discoveries logged to the archive.' : 'No lore entries logged yet.',
+        progressPercent: Math.min(100, loreCount * 20),
+      },
+      {
+        label: 'Defeated enemy types',
+        value: `${this.discoveredBiomeUnits().length}/${BIOME_GUIDE_UNITS.length}`,
+        detail: completedRegions ? `${completedRegions} cleared region${completedRegions === 1 ? '' : 's'} feeding the bestiary.` : 'Clear regions to confirm enemy records.',
+        progressPercent: this.percent(this.discoveredBiomeUnits().length, BIOME_GUIDE_UNITS.length),
+      },
+    ];
+  });
+
+  protected readonly codexAffixEntries = computed<ReadonlyArray<CodexAffixEntry>>(() => {
+    const discovered = this.discoveredAffixNames();
+    return this.affixes.map((affix) => ({
+      ...affix,
+      discovered: discovered.has(this.normalizeKey(affix.name)),
+    }));
+  });
+
+  protected readonly codexEnemyEntries = computed<ReadonlyArray<CodexEnemyEntry>>(() => {
+    const discovered = new Set(this.discoveredBiomeUnits().map((unit) => unit.slug));
+    return BIOME_GUIDE_UNITS.map((unit) => ({
+      ...unit,
+      discovered: discovered.has(unit.slug),
+    }));
+  });
+
+  protected readonly codexLoreEntries = computed<ReadonlyArray<CodexLoreEntry>>(() => {
+    const seenDialogues = Array.from(new Set(this.profileData()?.seen_dialogues ?? []));
+    return seenDialogues.map((entryId) => ({
+      id: entryId,
+      title: this.humanizeLabel(entryId),
+      summary: 'Recovered from camp dialogue, region story beats, or another codex-worthy encounter.',
+    }));
   });
 
   ngOnInit(): void {
@@ -298,20 +355,8 @@ export class GuidePageComponent implements OnInit, OnDestroy {
     this.guideUnitAnimationTimers.clear();
   }
 
-  protected setActiveChapter(chapterId: GuideChapterId): void {
-    this.activeChapter.set(chapterId);
-  }
-
-  protected handleChapterSelection(chapterId: string): void {
-    this.setActiveChapter(chapterId as GuideChapterId);
-  }
-
-  protected isActiveChapter(chapterId: GuideChapterId): boolean {
-    return this.activeChapter() === chapterId;
-  }
-
-  protected activeChapterMeta(): GuideChapter {
-    return this.chapters.find((chapter) => chapter.id === this.activeChapter()) ?? this.chapters[0];
+  protected setVariant(variant: GuidePageVariant): void {
+    this.variant.set(variant);
   }
 
   protected hasAcquiredFeatureUnlock(unlockKey: string): boolean {
@@ -330,8 +375,12 @@ export class GuidePageComponent implements OnInit, OnDestroy {
     return this.profileData()?.unit_type_unlocks.includes(unitSlug) ?? false;
   }
 
-  protected unitArtUrl(unitSlug: string): string {
-    return resolveUnitImageUrl(unitSlug) ?? '';
+  protected unitSpriteUrl(unitSlug: string): string {
+    return resolvePrototypeUnitSpriteUrl(unitSlug);
+  }
+
+  protected enemySpriteUrl(enemySlug: string): string {
+    return resolvePrototypeEnemySpriteUrl(enemySlug);
   }
 
   protected guideUnitFramePath(unit: GuideBestiaryUnit): string {
@@ -365,6 +414,35 @@ export class GuidePageComponent implements OnInit, OnDestroy {
     this.guideUnitFrameIndexes.update((current) => ({ ...current, [unitSlug]: 0 }));
   }
 
+  private resolveInitialVariant(): GuidePageVariant {
+    return this.route.snapshot.data['guideVariant'] === 'codex' ? 'codex' : 'public';
+  }
+
+  private discoveredAffixNames(): Set<string> {
+    return new Set(
+      (this.profileData()?.dice ?? [])
+        .flatMap((die) => die.affixes ?? [])
+        .map((affix) => this.affixKey(affix))
+        .filter((value): value is string => value.length > 0),
+    );
+  }
+
+  private affixKey(affix: DiceAffixRecord): string {
+    return this.normalizeKey(affix.name ?? affix.affix_slug ?? '');
+  }
+
+  private normalizeKey(value: string): string {
+    return value.trim().toLowerCase().replace(/\s+/g, '');
+  }
+
+  private humanizeLabel(value: string): string {
+    return value
+      .trim()
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/\b\w/g, (match) => match.toUpperCase());
+  }
+
   private diceImage(rarity: string, sides: number): string {
     return resolveDiceArtStyles(rarity, sides, 96).imageUrl;
   }
@@ -372,4 +450,14 @@ export class GuidePageComponent implements OnInit, OnDestroy {
   private normalizeBiomeSlug(value: string): string {
     return value.trim().toLowerCase().replace(/\s+/g, '_');
   }
+
+  private percent(value: number, total: number): number {
+    if (total <= 0) {
+      return 0;
+    }
+
+    return Math.max(0, Math.min(100, Math.round((value / total) * 100)));
+  }
+
+  protected readonly publicGuideSteps = PUBLIC_GUIDE_STEPS;
 }

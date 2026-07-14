@@ -5,98 +5,144 @@
   headerVariant="home"
 >
   @if (message() || error()) {
-  <div class="mb-3 vstack gap-2">
-    @if (message()) {
-    <dg-alert tone="success">{{ message() }}</dg-alert>
-    }
-    @if (error()) {
-    <dg-alert tone="error">{{ error() }}</dg-alert>
-    }
-  </div>
+    <div class="mb-3 vstack gap-2">
+      @if (message()) {
+        <dg-alert tone="success">{{ message() }}</dg-alert>
+      }
+      @if (error()) {
+        <dg-alert tone="error">{{ error() }}</dg-alert>
+      }
+    </div>
   }
 
   <div class="region-page-shell" [class.region-page-shell--dialogue-open]="!!activeDialogue()">
-    <section class="region-page">
-      <section class="region-page__layout">
-        <div class="region-page__primary">
-          <div class="region-page__inventory">
-            <div class="region-page__rail">
-              <div class="region-page__rail-layout">
-                @for (region of regions(); track region.slug) {
-                <button
-                  type="button"
-                  class="region-page__tile"
-                  [class.is-selected]="inspectedRegion()?.slug === region.slug"
-                  [class.is-locked]="!region.is_unlocked"
-                  (click)="activateRegion(region)"
-                  (focus)="previewRegion(region.slug)"
-                  (mouseenter)="previewRegion(region.slug)"
-                  [attr.aria-label]="region.name + ' ' + (region.is_unlocked ? 'Unlocked' : 'Locked')"
-                  [disabled]="regionActionDisabled(region) && !isActiveRegion(region.id)"
-                >
-                  <span class="region-page__tile-art">
-                    <img
-                      class="region-page__tile-badge"
-                      [class.is-locked]="!region.is_unlocked"
-                      [src]="'/assets/ui/biome/' + region.theme + '_badge.png'"
-                      alt=""
-                    />
-                  </span>
-                  @if (isActiveRegion(region.id)) {
-                  <span class="region-page__tile-tag is-active">Current</span>
-                  } @else if (!region.is_unlocked) {
-                  <span class="region-page__tile-tag">Locked</span>
-                  }
-                </button>
-                }
-              </div>
+    <section class="region-page dg-proto-shell">
+      <section class="region-page__layout dg-proto-split">
+        <div class="region-page__primary dg-proto-section">
+          <div class="dg-proto-section__header">
+            <div>
+              <p class="dg-proto-section__eyebrow">Route board</p>
+              <h2 class="dg-proto-section__title">Pick the next job</h2>
             </div>
+          </div>
+          <div class="dg-proto-divider"></div>
+          <div class="region-page__rail-layout">
+            @for (region of regions(); track region.slug) {
+              <button
+                type="button"
+                class="region-page__tile dg-proto-card"
+                [class.is-selected]="inspectedRegion()?.slug === region.slug"
+                [class.is-locked]="!region.is_unlocked"
+                (click)="activateRegion(region)"
+                (focus)="previewRegion(region.slug)"
+                (mouseenter)="previewRegion(region.slug)"
+                [attr.aria-label]="region.name + ' ' + (region.is_unlocked ? 'Unlocked' : 'Locked')"
+                [disabled]="regionActionDisabled(region) && !isActiveRegion(region.id)"
+              >
+                <div class="region-page__tile-header">
+                  <span
+                    class="region-page__tile-tag"
+                    [class.is-active]="isActiveRegion(region.id)"
+                    [class.is-locked]="!region.is_unlocked"
+                  >
+                    {{ regionStateLabel(region) }}
+                  </span>
+                  <span class="dg-proto-pill">Lv {{ region.recommended_level }}+</span>
+                </div>
+                <div class="region-page__tile-art dg-proto-card__media">
+                  <img
+                    class="region-page__tile-badge"
+                    [class.is-locked]="!region.is_unlocked"
+                    [src]="'/assets/ui/biome/' + region.theme + '_badge.png'"
+                    [alt]="region.name"
+                  />
+                </div>
+                <div class="region-page__tile-body">
+                  <h3 class="dg-proto-card__title">{{ region.name }}</h3>
+                  <p class="dg-proto-card__copy">{{ region.summary }}</p>
+                </div>
+                <div class="region-page__tile-footer">
+                  <span class="dg-proto-chip dg-proto-chip--small">
+                    <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
+                    {{ region.energy_cost }}
+                  </span>
+                  <span class="region-page__tile-action">{{ regionActionLabel(region) }}</span>
+                </div>
+              </button>
+            }
           </div>
         </div>
 
         @if (inspectedRegion(); as region) {
-        <aside class="region-page__inspect">
-          <div class="region-page__inspect-art" [class.is-locked]="!region.is_unlocked">
-            <div class="region-page__chips">
-              <span class="dg-chip region-page__energy-chip">
-                <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
-                {{ region.energy_cost }}
+          <aside class="region-page__inspect dg-proto-sidebar">
+            <div class="region-page__inspect-art" [class.is-locked]="!region.is_unlocked">
+              <div class="region-page__chips">
+                <span class="dg-proto-chip dg-proto-chip--small region-page__energy-chip">
+                  <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
+                  {{ region.energy_cost }}
+                </span>
+                <span class="dg-proto-chip dg-proto-chip--small"
+                  >Level {{ region.recommended_level }}+</span
+                >
+              </div>
+              <span
+                class="region-page__inspect-state"
+                [class.is-active]="isActiveRegion(region.id)"
+                [class.is-locked]="!region.is_unlocked"
+              >
+                {{ regionStateLabel(region) }}
               </span>
-              <span class="dg-chip">Level {{ region.recommended_level }}+</span>
+              <img
+                class="region-page__inspect-image"
+                [class.is-locked]="!region.is_unlocked"
+                [src]="'/assets/ui/biome/' + region.theme + '_badge.png'"
+                [alt]="region.name"
+              />
             </div>
-            @if (isActiveRegion(region.id)) {
-              <span class="region-page__inspect-state is-active">Current Run</span>
-            } @else if (region.is_unlocked) {
-              <span class="region-page__inspect-state">Unlocked</span>
-            } @else {
-              <span class="region-page__inspect-state is-locked">Locked</span>
-            }
-            <img
-              class="region-page__inspect-image"
-              [class.is-locked]="!region.is_unlocked"
-              [src]="'/assets/ui/biome/' + region.theme + '_badge.png'"
-              [alt]="region.name"
-            />
-          </div>
 
-          <div class="region-page__inspect-body">
-            <section class="region-page__inspect-section">
-              <h3 class="region-page__inspect-label">Route Brief</h3>
-              <p class="region-page__inspect-copy">{{ region.summary }}</p>
-            </section>
-          </div>
-        </aside>
+            <div class="region-page__inspect-body">
+              <div>
+                <p class="region-page__inspect-kicker">Selected region</p>
+                <h3 class="region-page__inspect-title">{{ region.name }}</h3>
+              </div>
+              <section class="region-page__inspect-section">
+                <h3 class="region-page__inspect-label">Route Brief</h3>
+                <p class="region-page__inspect-copy">{{ region.summary }}</p>
+              </section>
+              <section class="region-page__inspect-section">
+                <h3 class="region-page__inspect-label">Launch</h3>
+                <p class="region-page__inspect-copy">
+                  {{
+                    isActiveRegion(region.id)
+                      ? 'This route already has your active run.'
+                      : region.is_unlocked
+                        ? 'Start this route from here after a quick confirm.'
+                        : 'This route stays locked until its unlock conditions are met.'
+                  }}
+                </p>
+              </section>
+            </div>
+          </aside>
         }
       </section>
     </section>
 
     @if (activeDialogue()) {
-    <div class="region-page__dialogue" aria-label="Start run introduction" aria-modal="true" role="dialog">
-      <dg-dialogue-stage
-        [script]="activeDialogue()!"
-        (complete)="pendingRegionDialogue() ? handlePendingRegionDialogueComplete($event) : handleStartRunIntroComplete($event)"
-      />
-    </div>
+      <div
+        class="region-page__dialogue"
+        aria-label="Start run introduction"
+        aria-modal="true"
+        role="dialog"
+      >
+        <dg-dialogue-stage
+          [script]="activeDialogue()!"
+          (complete)="
+            pendingRegionDialogue()
+              ? handlePendingRegionDialogueComplete($event)
+              : handleStartRunIntroComplete($event)
+          "
+        />
+      </div>
     }
   </div>
 

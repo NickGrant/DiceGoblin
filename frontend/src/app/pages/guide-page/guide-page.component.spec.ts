@@ -35,56 +35,20 @@ describe('GuidePageComponent', () => {
     sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
   });
 
-  it('renders the field guide codex shell and overview chapter by default', () => {
+  it('renders the public guide experience by default', () => {
     const fixture = TestBed.createComponent(GuidePageComponent);
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Field Guide');
-    expect(text).toContain('Overview');
-    expect(text).toContain('Warband');
-    expect(text).toContain('Dice');
-    expect(text).toContain('Expeditions');
-    expect(text).toContain('Permanent unlocks');
-    expect(text).toContain('Run node reference');
+    expect(text).toContain('Guide');
+    expect(text).toContain('Public Guide');
+    expect(text).toContain('Core Loop');
+    expect(text).toContain('Starter classes and why they matter');
+    expect(text).toContain('Rarity tells you ceiling. Affixes tell you intent.');
+    expect(text).toContain('Read the map before greed takes over');
   });
 
-  it('switches to the warband chapter and shows the current promotion paths', () => {
-    const fixture = TestBed.createComponent(GuidePageComponent);
-    const component = fixture.componentInstance as any;
-    component.setActiveChapter('warband');
-    fixture.detectChanges();
-
-    const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Current unit codex');
-    expect(text).toContain('Enforcer or Pit Fighter');
-    expect(text).toContain('Warcaller or Mascot');
-    expect(text).toContain('Trickshot or Plaguehand');
-    expect(text).toContain('Tier 3 promotions still expect the authored rare region item.');
-  });
-
-  it('switches to the dice chapter and shows dice materials and sizes', () => {
-    const fixture = TestBed.createComponent(GuidePageComponent);
-    const component = fixture.componentInstance as any;
-    component.setActiveChapter('dice');
-    fixture.detectChanges();
-
-    const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Dice rarity ladder');
-    expect(text).toContain('Common');
-    expect(text).toContain('Legendary');
-    expect(text).toContain('d20');
-    expect(text).toContain('Common terms you will see on dice');
-  });
-
-  it('initializes session state on init', () => {
-    const fixture = TestBed.createComponent(GuidePageComponent);
-    fixture.detectChanges();
-
-    expect(sessionService.initialize).toHaveBeenCalled();
-  });
-
-  it('highlights acquired feature and unit unlocks for authenticated players', () => {
+  it('renders the codex view when the variant is switched', () => {
     sessionService.session.set({
       isAuthenticated: true,
       displayName: 'Commander',
@@ -94,59 +58,76 @@ describe('GuidePageComponent', () => {
     sessionService.profileData.set({
       feature_unlocks: ['academy', 'sell_bonus'],
       unit_type_unlocks: ['support_banner_t1'],
-      regions: [],
-    });
-
-    const fixture = TestBed.createComponent(GuidePageComponent);
-    const component = fixture.componentInstance as any;
-    component.setActiveChapter('overview');
-    fixture.detectChanges();
-
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelectorAll('.guide-tile--acquired').length).toBe(2);
-
-    component.setActiveChapter('warband');
-    fixture.detectChanges();
-
-    expect(compiled.querySelectorAll('.guide-unit-tile--acquired').length).toBe(1);
-    expect(compiled.textContent).toContain('Acquired');
-  });
-
-  it('reveals biome units only for authenticated players who have completed the matching biome', () => {
-    sessionService.session.set({
-      isAuthenticated: true,
-      displayName: 'Commander',
-      userId: 5,
-      csrfToken: 'token',
-    });
-    sessionService.profileData.set({
-      feature_unlocks: [],
-      unit_type_unlocks: [],
+      seen_dialogues: ['camp_intro', 'mountain_warning'],
+      dice: [
+        { id: 'd1', affixes: [{ name: 'Bulwark', affix_slug: 'bulwark', value: 1 }] },
+        { id: 'd2', affixes: [{ name: 'Execute', affix_slug: 'execute', value: 1 }] },
+      ],
       regions: [
         { id: '1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: true, unlocked_at: '2026-06-01T00:00:00Z' },
         { id: '2', slug: 'mountains', name: 'Mountains', theme: 'mountain', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: true, is_completed: true, unlocked_at: '2026-06-02T00:00:00Z' },
-        { id: '3', slug: 'swamps', name: 'Swamps', theme: 'swamp', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: true, is_completed: false, unlocked_at: '2026-06-03T00:00:00Z' },
       ],
       region_unlocks: [
         { region_id: '1', region_slug: 'the_farm', region_name: 'The Farm', unlocked_at: '2026-06-01T00:00:00Z' },
         { region_id: '2', region_slug: 'mountains', region_name: 'Mountains', unlocked_at: '2026-06-02T00:00:00Z' },
-        { region_id: '3', region_slug: 'swamps', region_name: 'Swamps', unlocked_at: '2026-06-03T00:00:00Z' },
       ],
+      active_run: { region_name: 'Mountains' },
     });
 
     const fixture = TestBed.createComponent(GuidePageComponent);
     const component = fixture.componentInstance as any;
-    component.setActiveChapter('warband');
+    component.setVariant('codex');
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('Biome encounter units you have uncovered');
-    expect(compiled.textContent).toContain('Kobold Skirmisher');
-    expect(compiled.textContent).toContain('Kobold Warchief');
-    expect(compiled.textContent).toContain('Biome: Mountains');
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Codex');
+    expect(text).toContain('Authenticated Codex');
+    expect(text).toContain('Feature unlocks');
+    expect(text).toContain('Seen affixes');
+    expect(text).toContain('Defeated enemy types');
+    expect(text).toContain('Lore Archive');
+    expect(text).toContain('Camp Intro');
+    expect(text).toContain('Mountain Warning');
+    expect(text).toContain('Kobold Skirmisher');
   });
 
-  it('keeps the units section hidden when the player has not completed a matching biome', () => {
+  it('initializes session state on init', () => {
+    const fixture = TestBed.createComponent(GuidePageComponent);
+    fixture.detectChanges();
+
+    expect(sessionService.initialize).toHaveBeenCalled();
+  });
+
+  it('marks known feature unlocks and unit unlocks in codex mode', () => {
+    sessionService.session.set({
+      isAuthenticated: true,
+      displayName: 'Commander',
+      userId: 5,
+      csrfToken: 'token',
+    });
+    sessionService.profileData.set({
+      feature_unlocks: ['academy', 'sell_bonus'],
+      unit_type_unlocks: ['support_banner_t1'],
+      seen_dialogues: [],
+      dice: [],
+      regions: [],
+      region_unlocks: [],
+      active_run: null,
+    });
+
+    const fixture = TestBed.createComponent(GuidePageComponent);
+    const component = fixture.componentInstance as any;
+    component.setVariant('codex');
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Academy');
+    expect(text).toContain('Seen');
+    expect(text).toContain('Bannerbearer');
+    expect(text).toContain('Unlocked');
+  });
+
+  it('shows a locked lore empty state when no dialogue has been seen', () => {
     sessionService.session.set({
       isAuthenticated: true,
       displayName: 'Commander',
@@ -156,24 +137,20 @@ describe('GuidePageComponent', () => {
     sessionService.profileData.set({
       feature_unlocks: [],
       unit_type_unlocks: [],
-      regions: [
-        { id: '1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: true, unlocked_at: '2026-06-01T00:00:00Z' },
-        { id: '2', slug: 'mountains', name: 'Mountains', theme: 'mountain', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: true, is_completed: false, unlocked_at: '2026-06-02T00:00:00Z' },
-        { id: '3', slug: 'swamps', name: 'Swamps', theme: 'swamp', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: false, is_completed: false, unlocked_at: null },
-      ],
-      region_unlocks: [
-        { region_id: '1', region_slug: 'the_farm', region_name: 'The Farm', unlocked_at: '2026-06-01T00:00:00Z' },
-        { region_id: '2', region_slug: 'mountains', region_name: 'Mountains', unlocked_at: '2026-06-02T00:00:00Z' },
-      ],
+      seen_dialogues: [],
+      dice: [],
+      regions: [],
+      region_unlocks: [],
+      active_run: null,
     });
 
     const fixture = TestBed.createComponent(GuidePageComponent);
     const component = fixture.componentInstance as any;
-    component.setActiveChapter('warband');
+    component.setVariant('codex');
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).not.toContain('Biome encounter units you have uncovered');
-    expect(compiled.textContent).not.toContain('Kobold Skirmisher');
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('No lore pages unlocked yet');
+    expect(text).not.toContain('Camp Intro');
   });
 });

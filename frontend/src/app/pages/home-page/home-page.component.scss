@@ -3,93 +3,92 @@
   height: 100%;
 }
 
-.home-grid {
-  --home-grid-space: 1rem;
-  flex: 1 1 auto;
-  padding-inline: 1rem;
-}
-
-.home-grid__layout {
+.home-proto {
+  padding: 0 1rem 1rem;
   display: grid;
-  gap: var(--home-grid-space);
-  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
 }
 
-.home-grid__tile {
-  min-width: 0;
-  transition: transform 180ms ease;
+.home-proto__layout {
+  display: grid;
+  gap: 1rem;
 }
 
-.home-grid__tile--primary {
-  grid-column: 1 / -1;
+.home-proto__hero {
+  background:
+    linear-gradient(135deg, rgba(245, 232, 200, 0.82), rgba(220, 238, 255, 0.64)),
+    center / cover no-repeat var(--dg-proto-sky);
 }
 
-:host ::ng-deep .dg-media-card {
-  height: auto;
-  aspect-ratio: 311 / 234;
+.home-proto__mission-card,
+.home-proto__nav-card {
+  text-decoration: none;
+  color: inherit;
   transition:
     transform 180ms ease,
-    border-color 180ms ease,
     box-shadow 180ms ease;
-  transform-origin: center center;
 }
 
-:host ::ng-deep .dg-media-card--feature {
-  aspect-ratio: 618 / 478;
+.home-proto__mission-card:hover,
+.home-proto__mission-card:focus-visible,
+.home-proto__nav-card:hover,
+.home-proto__nav-card:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 28px rgba(56, 31, 14, 0.16);
 }
 
-:host ::ng-deep .dg-media-card:hover,
-:host ::ng-deep .dg-media-card:focus-visible {
-  transform: scale(1.03);
-  border-color: rgba(255, 240, 211, 0.72);
-  box-shadow:
-    0 22px 34px rgba(0, 0, 0, 0.22),
-    0 0 0 1px rgba(255, 240, 211, 0.35);
-  z-index: 1;
+.home-proto__mission-copy {
+  display: grid;
+  gap: 0.5rem;
 }
 
-:host ::ng-deep .dg-media-card.is-disabled {
-  opacity: 0.82;
+.home-proto__sidebar {
+  display: grid;
+  gap: 0.8rem;
 }
 
-.home-grid__locked-card {
-  filter: grayscale(0.88) saturate(0.2);
-  cursor: default;
+.home-proto__squad-list {
+  display: grid;
+  gap: 0.75rem;
 }
 
-@media (min-width: 441px) {
-  .home-grid {
-    --home-grid-space: 1.25rem;
-  }
+.home-proto__squad-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
+    center / cover no-repeat var(--dg-proto-paper);
+}
 
-  .home-grid__layout {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.home-proto__squad-card h4,
+.home-proto__squad-card p {
+  margin: 0;
+}
+
+.home-proto__squad-card h4 {
+  color: #24150d;
+  font-size: 0.95rem;
+}
+
+.home-proto__squad-card p,
+.home-proto__empty {
+  color: rgba(51, 31, 18, 0.78);
+  font-size: 0.88rem;
+}
+
+.home-proto__dev-art {
+  min-height: 8rem;
+  background:
+    radial-gradient(circle at top, rgba(220, 238, 255, 0.7), transparent 54%),
+    linear-gradient(135deg, rgba(92, 143, 216, 0.92), rgba(58, 42, 26, 0.88));
 }
 
 @media (min-width: 761px) {
-  .home-grid {
-    --home-grid-space: 1.5rem;
-    padding-inline: 1rem;
-  }
-
-  .home-grid__layout {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  :host ::ng-deep .dg-media-card--compact {
-    aspect-ratio: 311 / 234;
-  }
-
-  .home-grid__tile--primary {
-    grid-column: span 2;
-    grid-row: span 2;
-  }
-}
-
-@media (max-width: 440px) {
-  .home-grid {
-    background: rgba(243, 239, 224, 0.42);
-    padding: 0.75rem;
+  .home-proto__layout {
+    grid-template-columns: minmax(0, 1.65fr) minmax(18rem, 0.9fr);
   }
 }

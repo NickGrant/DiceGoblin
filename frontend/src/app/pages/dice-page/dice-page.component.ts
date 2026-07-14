@@ -18,12 +18,11 @@ import {
   DiceSortOption,
   filterAndSortDice,
 } from '../../shared/ui/dice-display/dice-display.utils';
-import { DiceGridObjectComponent } from '../../shared/ui/dice-grid-object/dice-grid-object.component';
 
 @Component({
   selector: 'app-dice-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DiceGridObjectComponent, PageFrameComponent, FormsModule, RouterLink, TitleCasePipe, ConfirmModalComponent, FocusLayoutComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, FormsModule, RouterLink, TitleCasePipe, ConfirmModalComponent, FocusLayoutComponent],
   templateUrl: './dice-page.component.html',
   styleUrl: './dice-page.component.scss',
 })

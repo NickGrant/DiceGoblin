@@ -7,14 +7,14 @@ import { SquadService } from '../../core/services/squad/squad.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { UnitGridObjectComponent } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 import { FocusLayoutComponent } from '../../shared/ui/focus-layout/focus-layout.component';
+import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
 
 @Component({
   selector: 'app-warband-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RouterLink, UnitGridObjectComponent, FormsModule, FocusLayoutComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RouterLink, FormsModule, FocusLayoutComponent],
   templateUrl: './warband-page.component.html',
   styleUrl: './warband-page.component.scss',
 })
@@ -220,6 +220,19 @@ export class WarbandPageComponent {
   unitCardArtUrl(unit: UnitRecord): string | null {
     return resolveUnitImageUrl(unit.unit_type_slug)
       ?? resolveUnitImageUrl(unit.unit_type_name);
+  }
+
+  unitCardSpriteUrl(unit: UnitRecord): string {
+    return resolvePrototypeUnitSpriteUrl(unit);
+  }
+
+  unitLevelLabel(unit: UnitRecord): string {
+    const level = typeof unit.level === 'number' && unit.level > 0 ? unit.level : 1;
+    return `Lv ${level}`;
+  }
+
+  unitTierLabel(unit: UnitRecord): string {
+    return `Tier ${unit.tier ?? 1}`;
   }
 
   private unitTypeLabel(unit: { unit_type_name?: string; unit_type_slug?: string }): string {

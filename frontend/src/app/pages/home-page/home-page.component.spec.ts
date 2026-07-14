@@ -22,6 +22,20 @@ class SessionServiceStub {
   readonly hasActiveRun = signal(false);
   readonly shopUnlocked = signal(false);
   readonly academyUnlocked = signal(false);
+  readonly profileData = signal<any>({
+    active_run: null,
+  });
+  readonly activeSquad = signal<any>({
+    id: 's1',
+    name: 'Alpha Squad',
+    is_active: true,
+    unit_ids: ['u1', 'u2'],
+    formation: [],
+  });
+  readonly units = signal<any[]>([
+    { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', level: 3 },
+    { id: 'u2', name: 'Moss', unit_type_name: 'Guardian', level: 2 },
+  ]);
 }
 
 describe('HomePageComponent', () => {
@@ -67,18 +81,28 @@ describe('HomePageComponent', () => {
       unitCount: 4,
       squadCount: 2,
     });
+    sessionService.profileData.set({
+      active_run: {
+        run_id: 'run-7',
+        region_name: 'The Farm',
+        seed: 'abc123',
+      },
+    });
 
     const fixture = TestBed.createComponent(HomePageComponent);
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
     const compiled = fixture.nativeElement as HTMLElement;
-    const primaryImage = compiled.querySelector('.dg-media-card--feature .dg-media-card__media') as HTMLImageElement;
+    const primaryImage = compiled.querySelector(
+      '.home-proto__mission-card img',
+    ) as HTMLImageElement;
 
     expect(compiled.textContent).toContain('Continue Run');
     expect(compiled.textContent).toContain('Back to "work".');
     expect(compiled.textContent).toContain('Shop');
     expect(compiled.textContent).toContain('Academy');
+    expect(compiled.textContent).toContain('Current squad');
     expect(component.primaryRoute()).toBe('/run/map');
     expect(component.primaryLabel()).toBe('Continue Run');
     expect(primaryImage.getAttribute('src')).toContain('home_continue_run.jpg');

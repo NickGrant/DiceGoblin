@@ -7,6 +7,7 @@ import { buildFormationGrid } from '../../shared/formation/formation';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
+import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 import { RunUnitFormationGridComponent } from '../../shared/ui/run-unit-formation-grid/run-unit-formation-grid.component';
 
 @Component({
@@ -42,6 +43,17 @@ export class RunRestPageComponent {
   });
   readonly restingUnitById = computed(
     () => new Map(this.restingUnits().map((entry) => [entry.unit_instance_id, entry])),
+  );
+  readonly restCards = computed(() =>
+    this.restingUnits().map((entry) => ({
+      id: entry.unit_instance_id,
+      name: entry.unit?.name ?? 'Unknown Unit',
+      subtitle: entry.unit?.unit_type_name || entry.unit?.unit_type_slug || 'Unit',
+      spriteUrl: resolvePrototypeUnitSpriteUrl(entry.unit ?? entry.unit_instance_id),
+      currentHp: entry.currentHp,
+      maxHp: entry.maxHp,
+      defeated: entry.defeated,
+    })),
   );
   readonly formationGrid = computed(() => {
     return buildFormationGrid(this.activeSquad()?.formation, this.restingUnitById());

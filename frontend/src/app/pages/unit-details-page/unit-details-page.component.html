@@ -27,310 +27,301 @@
   />
 
   @if (activeTab() === 'stats') {
-  <section class="dg-card p-3 p-lg-4">
-    <div class="unit-details-page__stats-grid">
-      <div class="unit-summary unit-summary--command">
-        <div class="vstack gap-3">
-          <div>
-            <label class="form-label">Display Name</label>
-            <div class="d-flex gap-2">
-              <input class="dg-input" [(ngModel)]="renameValue" [disabled]="unitLocked()" />
-              <button dgCommandBtn type="button" (click)="renameUnit()" [disabled]="busy() || unitLocked()">Save</button>
-            </div>
+  <section class="unit-details-page__stats-grid">
+    <section class="unit-summary unit-summary--command dg-proto-section">
+      <div class="vstack gap-3">
+        <div>
+          <label class="form-label">Display Name</label>
+          <div class="d-flex gap-2">
+            <input class="dg-input" [(ngModel)]="renameValue" [disabled]="unitLocked()" />
+            <button dgCommandBtn type="button" (click)="renameUnit()" [disabled]="busy() || unitLocked()">
+              <fa-icon [icon]="faUserPen" aria-hidden="true"></fa-icon>
+              <span>Save</span>
+            </button>
           </div>
+        </div>
 
-          @if (showPromotionAction()) {
-            <div class="unit-promo-banner">
-              <div>
-                <p class="unit-promo-banner__label mb-1">Promotion</p>
-                <p class="mb-0">
-                  {{ academyUnlocked() ? promotionReadinessLabel() : 'Unlock the Academy in the Shop to manage promotions.' }}
-                </p>
-              </div>
-              <a
-                dgCommandBtn="muted"
-                [routerLink]="[academyUnlocked() ? '/academy' : '/shop']"
-                [queryParams]="academyUnlocked() ? { unitId: unit.id } : null"
-              >
-                {{ academyUnlocked() ? 'Academy' : 'Unlock' }}
-              </a>
-            </div>
+        @if (showPromotionAction()) {
+        <div class="unit-promo-banner">
+          <div>
+            <p class="unit-promo-banner__label mb-1">Promotion</p>
+            <p class="mb-0">
+              {{ academyUnlocked() ? promotionReadinessLabel() : 'Unlock the Academy in the Shop to manage promotions.' }}
+            </p>
+          </div>
+          <a
+            dgCommandBtn="muted"
+            [routerLink]="[academyUnlocked() ? '/academy' : '/shop']"
+            [queryParams]="academyUnlocked() ? { unitId: unit.id } : null"
+          >
+            {{ academyUnlocked() ? 'Academy' : 'Unlock' }}
+          </a>
+        </div>
+        }
+
+        <div class="unit-summary unit-summary--portrait">
+          @if (unitPortraitUrl() && !portraitLoadFailed()) {
+          <img
+            class="unit-portrait"
+            [src]="unitPortraitUrl()!"
+            [alt]="unitTypeLabel() + ' portrait'"
+            (error)="handlePortraitError()"
+          />
+          } @else {
+          <div class="unit-portrait unit-portrait--empty">
+            <span class="dg-stencil">Portrait Pending</span>
+          </div>
           }
-
-          <div class="unit-summary unit-summary--portrait">
-            @if (unitPortraitUrl() && !portraitLoadFailed()) {
-              <img
-                class="unit-portrait"
-                [src]="unitPortraitUrl()!"
-                [alt]="unitTypeLabel() + ' portrait'"
-                (error)="handlePortraitError()"
-              />
-            } @else {
-              <div class="unit-portrait unit-portrait--empty">
-                <span class="dg-stencil">Portrait Pending</span>
-              </div>
-            }
-          </div>
         </div>
       </div>
+    </section>
 
-      <div class="unit-summary">
-        <h2 class="dg-stencil mb-3">Stats</h2>
-        <div class="unit-profile-grid">
-          <article class="unit-stat-card">
-            <span class="unit-stat-card__label">Tier</span>
-            <strong class="unit-stat-card__value">{{ tierRomanNumeral() }}</strong>
-            <span class="unit-stat-card__meta">{{ unitTypeLabel() }}</span>
-          </article>
-          <article class="unit-stat-card">
-            <span class="unit-stat-card__label">Level</span>
-            <strong class="unit-stat-card__value">{{ unit.level }}/{{ unit.max_level || 0 }}</strong>
-            <span class="unit-stat-card__meta">XP to next: {{ unit.xp_to_next_level || 0 }}</span>
-          </article>
-          <article class="unit-stat-card">
-            <span class="unit-stat-card__label">HP</span>
-            <strong class="unit-stat-card__value">{{ unit.current_hp || unit.max_hp || 0 }}/{{ unit.max_hp || 0 }}</strong>
-            <span class="unit-stat-card__meta">Frontline endurance</span>
-          </article>
-          <article class="unit-stat-card">
-            <span class="unit-stat-card__label">Attack</span>
-            <strong class="unit-stat-card__value">{{ unit.total_attack || 0 }}</strong>
-            <span class="unit-stat-card__meta">Strike pressure</span>
-          </article>
-          <article class="unit-stat-card">
-            <span class="unit-stat-card__label">Defense</span>
-            <strong class="unit-stat-card__value">{{ unit.total_defense || 0 }}</strong>
-            <span class="unit-stat-card__meta">Damage mitigation</span>
-          </article>
-          <article class="unit-stat-card">
-            <span class="unit-stat-card__label">Formation</span>
-            <strong class="unit-stat-card__value">{{ unit.formation_width || 1 }}x{{ unit.formation_height || 1 }}</strong>
-            <span class="unit-stat-card__meta">Board footprint</span>
-          </article>
+    <section class="unit-summary dg-proto-section">
+      <div class="dg-proto-section__header">
+        <div>
+          <p class="dg-proto-section__eyebrow dg-stencil">Unit Snapshot</p>
+          <h2 class="dg-proto-section__title dg-stencil">Stats</h2>
         </div>
       </div>
-
-      <div class="unit-summary">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-2">
-          <div>
-            <h2 class="dg-stencil mb-1">Mastery & Capstone</h2>
-            <p class="mb-0">Passive capstones unlock at level 10 and stay with the unit through later promotions.</p>
-          </div>
-          <span class="dg-chip">{{ masteryStatusLabel() }}</span>
-        </div>
-
-        <p class="mb-2">{{ currentCapstoneCopy(currentCapstoneState()) }}</p>
-        <p class="mb-3"><strong>Selected:</strong> {{ selectedCapstoneLabel() }}</p>
-
-        @if (capstoneChoices().length) {
-          <div class="vstack gap-2">
-            @for (choice of capstoneChoices(); track choice.ability_id) {
-              <button
-                class="ability-list-card ability-list-card--passive text-start"
-                type="button"
-                (click)="chooseCapstone(choice.ability_id)"
-                [disabled]="unitLocked() || !canChooseCapstone() || selectingCapstoneId() === choice.ability_id"
-              >
-                <div>
-                  <h3 class="dg-stencil mb-1">{{ abilityDisplayName(choice.ability_id) }}</h3>
-                  <p class="mb-0 small">{{ abilityShortDescription(choice.ability_id) }}</p>
-                </div>
-                <span class="dg-chip">
-                  @if (selectedCapstoneAbilityId() === choice.ability_id) {
-                    Chosen
-                  } @else if (selectingCapstoneId() === choice.ability_id) {
-                    Working...
-                  } @else {
-                    Choose
-                  }
-                </span>
-              </button>
-            }
-          </div>
-        } @else {
-          <p class="mb-0">This unit does not offer a mastery capstone.</p>
+      <div class="dg-proto-divider"></div>
+      <div class="unit-profile-grid">
+        @for (stat of unitStatTiles(); track stat.label) {
+        <article class="unit-stat-card">
+          <span class="unit-stat-card__label">
+            <fa-icon [icon]="stat.icon" aria-hidden="true"></fa-icon>
+            <span>{{ stat.label }}</span>
+          </span>
+          <strong class="unit-stat-card__value">{{ stat.value }}</strong>
+          <span class="unit-stat-card__meta">{{ stat.meta }}</span>
+        </article>
         }
       </div>
-    </div>
+    </section>
+
+    <section class="unit-summary dg-proto-section">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-2">
+        <div>
+          <p class="dg-proto-section__eyebrow dg-stencil mb-1">Mastery</p>
+          <h2 class="dg-proto-section__title dg-stencil mb-0">Mastery & Capstone</h2>
+        </div>
+        <span class="dg-chip">{{ masteryStatusLabel() }}</span>
+      </div>
+
+      <p class="mb-2">{{ currentCapstoneCopy(currentCapstoneState()) }}</p>
+      <p class="mb-3"><strong>Selected:</strong> {{ selectedCapstoneLabel() }}</p>
+
+      @if (capstoneChoices().length) {
+      <div class="vstack gap-2">
+        @for (choice of capstoneChoices(); track choice.ability_id) {
+        <button
+          class="ability-list-card ability-list-card--passive text-start"
+          type="button"
+          (click)="chooseCapstone(choice.ability_id)"
+          [disabled]="unitLocked() || !canChooseCapstone() || selectingCapstoneId() === choice.ability_id"
+        >
+          <div>
+            <h3 class="dg-stencil mb-1">{{ abilityDisplayName(choice.ability_id) }}</h3>
+            <p class="mb-0 small">{{ abilityShortDescription(choice.ability_id) }}</p>
+          </div>
+          <span class="dg-chip">
+            @if (selectedCapstoneAbilityId() === choice.ability_id) {
+              Chosen
+            } @else if (selectingCapstoneId() === choice.ability_id) {
+              Working...
+            } @else {
+              Choose
+            }
+          </span>
+        </button>
+        }
+      </div>
+      } @else {
+      <p class="mb-0">This unit does not offer a mastery capstone.</p>
+      }
+    </section>
   </section>
   }
 
   @if (activeTab() === 'abilities') {
   <div class="unit-details-page__abilities-grid">
-    <div class="unit-details-page__column">
-      <section class="dg-card p-3 p-lg-4 h-100">
-        <h2 class="dg-stencil mb-3">Learned Abilities</h2>
+    <section class="dg-proto-section h-100">
+      <div class="dg-proto-section__header">
+        <div>
+          <p class="dg-proto-section__eyebrow dg-stencil">Learned Kit</p>
+          <h2 class="dg-proto-section__title dg-stencil">Abilities</h2>
+        </div>
+      </div>
+      <div class="dg-proto-divider"></div>
 
-        @if (abilityCatalogError()) {
-        <dg-alert tone="error" class="mb-3">{{ abilityCatalogError() }}</dg-alert>
-        }
+      @if (abilityCatalogError()) {
+      <dg-alert tone="error" class="mb-3">{{ abilityCatalogError() }}</dg-alert>
+      }
 
-        @if (learnedActiveAbilities().length) {
-        <div
-          class="vstack gap-2 mb-4"
-          cdkDropList
-          id="learned-ability-list"
-          [cdkDropListData]="learnedActiveAbilities()"
-          [cdkDropListConnectedTo]="['combat-loadout-lane']"
-          [cdkDropListSortingDisabled]="true"
-          [cdkDropListDisabled]="unitLocked()"
-        >
-          @for (ability of learnedActiveAbilities(); track ability.abilityId) {
-          <article class="ability-list-card ability-list-card--draggable" cdkDrag [cdkDragData]="ability" [cdkDragDisabled]="unitLocked()">
-            <div class="ability-list-card__content" cdkDragHandle>
-              <h3 class="dg-stencil mb-1">{{ ability.displayName }}</h3>
-              <p class="mb-2 small">{{ ability.shortDesc }}</p>
-              <div class="ability-list-card__footer">
-                <span class="ability-speed-badge">Speed {{ ability.speed }}</span>
-                <span class="dg-chip">Equipped {{ ability.equippedCount }}</span>
-                <button
-                  dgCommandBtn="muted"
-                  class="ability-list-card__add ability-icon-button"
-                  type="button"
-                  (click)="addAbilityToLoadout(ability.abilityId)"
-                  [disabled]="!canAddAbilityToLoadout(ability.abilityId)"
-                  aria-label="Add ability to loadout"
-                  title="Add ability to loadout"
-                >
-                  <fa-icon [icon]="faPlus" aria-hidden="true"></fa-icon>
-                </button>
-              </div>
-            </div>
-
-            @if (ability.diceCost > 0 && abilitySlotsFor(ability.abilityId); as abilitySlots) {
-            <div class="ability-inline-slots" [class.ability-inline-slots--solo]="abilitySlots.slots.length === 1">
-              @for (slot of abilitySlots.slots; track slot.slotIndex) {
+      @if (learnedActiveAbilities().length) {
+      <div
+        class="vstack gap-2 mb-4"
+        cdkDropList
+        id="learned-ability-list"
+        [cdkDropListData]="learnedActiveAbilities()"
+        [cdkDropListConnectedTo]="['combat-loadout-lane']"
+        [cdkDropListSortingDisabled]="true"
+        [cdkDropListDisabled]="unitLocked()"
+      >
+        @for (ability of learnedActiveAbilities(); track ability.abilityId) {
+        <article class="ability-list-card ability-list-card--draggable" cdkDrag [cdkDragData]="ability" [cdkDragDisabled]="unitLocked()">
+          <div class="ability-list-card__content" cdkDragHandle>
+            <h3 class="dg-stencil mb-1">{{ ability.displayName }}</h3>
+            <p class="mb-2 small">{{ ability.shortDesc }}</p>
+            <div class="ability-list-card__footer">
+              <span class="ability-speed-badge">Speed {{ ability.speed }}</span>
+              <span class="dg-chip">Equipped {{ ability.equippedCount }}</span>
               <button
-                class="ability-inline-slot"
+                dgCommandBtn="muted"
+                class="ability-list-card__add ability-icon-button"
                 type="button"
-                (click)="openDicePicker(ability.abilityId, ability.displayName, slot.slotIndex)"
-                [disabled]="isSlotBusy(ability.abilityId, slot.slotIndex) || unitLocked()"
-                [attr.aria-label]="ability.displayName + ' slot ' + (slot.slotIndex + 1)"
+                (click)="addAbilityToLoadout(ability.abilityId)"
+                [disabled]="!canAddAbilityToLoadout(ability.abilityId)"
+                aria-label="Add ability to loadout"
+                title="Add ability to loadout"
               >
-                @if (slot.die; as die) {
-                @if (diceArtStyles(die); as artStyles) {
-                <img
-                  class="ability-inline-slot__art"
-                  [src]="artStyles.imageUrl"
-                  [alt]="'d' + die.sides + ' ' + die.rarity + ' die'"
-                />
-                }
-                } @else {
-                <span class="ability-inline-slot__empty"></span>
-                }
+                <fa-icon [icon]="faPlus" aria-hidden="true"></fa-icon>
               </button>
+            </div>
+          </div>
+
+          @if (ability.diceCost > 0 && abilitySlotsFor(ability.abilityId); as abilitySlots) {
+          <div class="ability-inline-slots" [class.ability-inline-slots--solo]="abilitySlots.slots.length === 1">
+            @for (slot of abilitySlots.slots; track slot.slotIndex) {
+            <button
+              class="ability-inline-slot"
+              type="button"
+              (click)="openDicePicker(ability.abilityId, ability.displayName, slot.slotIndex)"
+              [disabled]="isSlotBusy(ability.abilityId, slot.slotIndex) || unitLocked()"
+              [attr.aria-label]="ability.displayName + ' slot ' + (slot.slotIndex + 1)"
+            >
+              @if (slot.die; as die) {
+              @if (diceArtStyles(die); as artStyles) {
+              <img
+                class="ability-inline-slot__art"
+                [src]="artStyles.imageUrl"
+                [alt]="'d' + die.sides + ' ' + die.rarity + ' die'"
+              />
               }
-            </div>
+              } @else {
+              <span class="ability-inline-slot__empty"></span>
+              }
+            </button>
             }
-          </article>
+          </div>
           }
-        </div>
-        } @else {
-        <dg-alert>No active abilities learned yet.</dg-alert>
+        </article>
         }
+      </div>
+      } @else {
+      <dg-alert>No active abilities learned yet.</dg-alert>
+      }
 
-        @if (learnedPassiveAbilities().length) {
-        <h3 class="dg-stencil mb-3">Passive Abilities</h3>
-        <div class="vstack gap-2">
-          @for (ability of learnedPassiveAbilities(); track ability.abilityId) {
-          <article class="ability-list-card ability-list-card--passive">
-            <div>
-              <h3 class="dg-stencil mb-1">{{ ability.displayName }}</h3>
-              <p class="mb-0 small">{{ ability.shortDesc }}</p>
-            </div>
-            <span class="dg-chip">Passive</span>
-          </article>
-          }
-        </div>
-        }
-      </section>
-    </div>
-
-    <div class="unit-details-page__column">
-      <section class="dg-card p-3 p-lg-4 h-100">
-        <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+      @if (learnedPassiveAbilities().length) {
+      <h3 class="dg-stencil mb-3">Passive Abilities</h3>
+      <div class="vstack gap-2">
+        @for (ability of learnedPassiveAbilities(); track ability.abilityId) {
+        <article class="ability-list-card ability-list-card--passive">
           <div>
-            <h2 class="dg-stencil mb-1">Combat Loadout</h2>
-            <p class="mb-0">Tap the plus button or drag active abilities into the fixed 20-point execution lane.</p>
+            <h3 class="dg-stencil mb-1">{{ ability.displayName }}</h3>
+            <p class="mb-0 small">{{ ability.shortDesc }}</p>
           </div>
-          <span class="dg-chip">Budget {{ totalEquippedSpeed() }} / 20</span>
-        </div>
+          <span class="dg-chip">Passive</span>
+        </article>
+        }
+      </div>
+      }
+    </section>
 
-        <div
-          class="loadout-lane"
-          cdkDropList
-          id="combat-loadout-lane"
-          [cdkDropListData]="loadoutBars()"
-          [cdkDropListConnectedTo]="['learned-ability-list']"
-          [cdkDropListDisabled]="unitLocked()"
-          (cdkDropListDropped)="handleLoadoutDrop($event)"
-          [style.height.px]="loadoutHeightPx()"
-        >
-          @if (loadoutBars().length) {
-          @for (bar of loadoutBars(); track bar.instanceKey) {
-          <article class="loadout-bar" cdkDrag [cdkDragData]="bar" [cdkDragDisabled]="unitLocked()" [style.height.px]="bar.heightPx">
-            <div class="loadout-bar__content">
-              <div class="loadout-bar__details">
-                <span class="loadout-bar__name">{{ bar.displayName }}</span>
-                <span class="loadout-bar__meta">Speed {{ bar.speed }} · Dice {{ bar.diceCost }}</span>
-              </div>
-              <div class="loadout-bar__actions">
-                <button
-                  dgCommandBtn="muted"
-                  class="loadout-bar__action ability-icon-button"
-                  type="button"
-                  aria-label="Move ability earlier"
-                  title="Move ability earlier"
-                  (click)="moveAbilityWithinLoadout($index, -1)"
-                  [disabled]="unitLocked() || $index === 0"
-                >
-                  <fa-icon [icon]="faArrowUp" aria-hidden="true"></fa-icon>
-                </button>
-                <button
-                  dgCommandBtn="muted"
-                  class="loadout-bar__action ability-icon-button"
-                  type="button"
-                  aria-label="Move ability later"
-                  title="Move ability later"
-                  (click)="moveAbilityWithinLoadout($index, 1)"
-                  [disabled]="unitLocked() || $index === loadoutBars().length - 1"
-                >
-                  <fa-icon [icon]="faArrowDown" aria-hidden="true"></fa-icon>
-                </button>
-                <button
-                  dgCommandBtn="muted"
-                  class="loadout-bar__action ability-icon-button"
-                  type="button"
-                  aria-label="Remove ability"
-                  title="Remove ability"
-                  (click)="removeAbilityFromLoadout($index)"
-                  [disabled]="unitLocked()"
-                >
-                  <fa-icon [icon]="faXmark" aria-hidden="true"></fa-icon>
-                </button>
-              </div>
+    <section class="dg-proto-section h-100">
+      <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+        <div>
+          <p class="dg-proto-section__eyebrow dg-stencil mb-1">Combat Lane</p>
+          <h2 class="dg-proto-section__title dg-stencil mb-1">Loadout</h2>
+          <p class="mb-0">Tap the plus button or drag active abilities into the fixed 20-point execution lane.</p>
+        </div>
+        <span class="dg-chip">Budget {{ totalEquippedSpeed() }} / 20</span>
+      </div>
+      <div class="dg-proto-divider"></div>
+
+      <div
+        class="loadout-lane"
+        cdkDropList
+        id="combat-loadout-lane"
+        [cdkDropListData]="loadoutBars()"
+        [cdkDropListConnectedTo]="['learned-ability-list']"
+        [cdkDropListDisabled]="unitLocked()"
+        (cdkDropListDropped)="handleLoadoutDrop($event)"
+        [style.height.px]="loadoutHeightPx()"
+      >
+        @if (loadoutBars().length) {
+        @for (bar of loadoutBars(); track bar.instanceKey) {
+        <article class="loadout-bar" cdkDrag [cdkDragData]="bar" [cdkDragDisabled]="unitLocked()" [style.height.px]="bar.heightPx">
+          <div class="loadout-bar__content">
+            <div class="loadout-bar__details">
+              <span class="loadout-bar__name">{{ bar.displayName }}</span>
+              <span class="loadout-bar__meta">Speed {{ bar.speed }} - Dice {{ bar.diceCost }}</span>
             </div>
-          </article>
-          }
-          } @else {
-          <div class="loadout-lane__empty">
-            <span class="dg-stencil">Drop Active Abilities Here</span>
+            <div class="loadout-bar__actions">
+              <button
+                dgCommandBtn="muted"
+                class="loadout-bar__action ability-icon-button"
+                type="button"
+                aria-label="Move ability earlier"
+                title="Move ability earlier"
+                (click)="moveAbilityWithinLoadout($index, -1)"
+                [disabled]="unitLocked() || $index === 0"
+              >
+                <fa-icon [icon]="faArrowUp" aria-hidden="true"></fa-icon>
+              </button>
+              <button
+                dgCommandBtn="muted"
+                class="loadout-bar__action ability-icon-button"
+                type="button"
+                aria-label="Move ability later"
+                title="Move ability later"
+                (click)="moveAbilityWithinLoadout($index, 1)"
+                [disabled]="unitLocked() || $index === loadoutBars().length - 1"
+              >
+                <fa-icon [icon]="faArrowDown" aria-hidden="true"></fa-icon>
+              </button>
+              <button
+                dgCommandBtn="muted"
+                class="loadout-bar__action ability-icon-button"
+                type="button"
+                aria-label="Remove ability"
+                title="Remove ability"
+                (click)="removeAbilityFromLoadout($index)"
+                [disabled]="unitLocked()"
+              >
+                <fa-icon [icon]="faXmark" aria-hidden="true"></fa-icon>
+              </button>
+            </div>
           </div>
-          }
+        </article>
+        }
+        } @else {
+        <div class="loadout-lane__empty">
+          <span class="dg-stencil">Drop Active Abilities Here</span>
         </div>
+        }
+      </div>
 
-        <div class="d-flex justify-content-end mt-3">
-          <button
-            dgCommandBtn="primary"
-            type="button"
-            (click)="saveLoadout()"
-            [disabled]="savingLoadout() || !canSaveLoadout() || unitLocked()"
-          >
-            {{ savingLoadout() ? 'Working...' : 'Save Loadout' }}
-          </button>
-        </div>
-      </section>
-    </div>
+      <div class="d-flex justify-content-end mt-3">
+        <button
+          dgCommandBtn="primary"
+          type="button"
+          (click)="saveLoadout()"
+          [disabled]="savingLoadout() || !canSaveLoadout() || unitLocked()"
+        >
+          {{ savingLoadout() ? 'Working...' : 'Save Loadout' }}
+        </button>
+      </div>
+    </section>
   </div>
   }
 

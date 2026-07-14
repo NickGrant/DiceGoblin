@@ -27,144 +27,287 @@
   }
 
   @if (!dialogue()) {
-  <div class="dg-card p-3">
+  <div class="dg-proto-shell">
     @if (!dialogue() && result()) {
-    @if (isLootNode()) {
-    <div class="loot-node">
-      <div class="node-hero node-hero--loot mb-3">
-        <div>
-          <p class="node-hero__eyebrow dg-stencil">Treasure Node</p>
-          <h2 class="dg-stencil mb-2">Treasure Found</h2>
-          <p class="mb-0">This chest pays out immediately on claim and returns the warband to the map.</p>
+      @if (isLootNode()) {
+      <section class="dg-proto-section">
+        <div class="dg-proto-section__header">
+          <div>
+            <p class="dg-proto-section__eyebrow dg-stencil">Treasure Node</p>
+            <h2 class="dg-proto-section__title dg-stencil">Treasure Found</h2>
+          </div>
+          <span class="dg-proto-chip">{{ battleStatusLabel() }}</span>
         </div>
-      </div>
 
-      <div class="loot-node__summary mb-3">
-        <div class="loot-node__stat">
-          <span class="loot-node__label">Teeth</span>
-          <strong>{{ lootRewards()?.teeth ?? 0 }}</strong>
+        <div class="dg-proto-loot-grid mb-3">
+          <article class="dg-proto-kpi">
+            <span>Teeth</span>
+            <strong>{{ lootRewards()?.teeth ?? 0 }}</strong>
+          </article>
+          <article class="dg-proto-kpi">
+            <span>Dice</span>
+            <strong>{{ lootDiceCards().length }}</strong>
+          </article>
+          <article class="dg-proto-kpi">
+            <span>Units</span>
+            <strong>{{ lootUnitCards().length }}</strong>
+          </article>
+          <article class="dg-proto-kpi">
+            <span>Next Paths</span>
+            <strong>{{ unlockedNodeCount() }}</strong>
+          </article>
         </div>
-        <div class="loot-node__stat">
-          <span class="loot-node__label">Dice</span>
-          <strong>{{ lootRewards()?.diceLabels?.length ?? 0 }}</strong>
-        </div>
-        <div class="loot-node__stat">
-          <span class="loot-node__label">Units</span>
-          <strong>{{ lootRewards()?.unitLabels?.length ?? 0 }}</strong>
-        </div>
-      </div>
 
-      <div class="node-summary mb-3">
-        <div class="node-summary__item">
-          <span class="node-summary__label">Status</span>
-          <strong>{{ battleStatusLabel() }}</strong>
-        </div>
-        <div class="node-summary__item">
-          <span class="node-summary__label">Next Paths</span>
-          <strong>{{ unlockedNodeCount() }}</strong>
-        </div>
-      </div>
-
-      @if ((lootRewards()?.diceLabels?.length ?? 0) > 0) {
-      <div class="loot-node__block mb-3">
-        <h3 class="dg-stencil mb-2">Dice Found</h3>
-        <div class="loot-node__chips">
-          @for (label of lootRewards()!.diceLabels; track label + '-' + $index) {
-          <span class="dg-chip">{{ label }}</span>
-          }
-        </div>
-      </div>
-      }
-
-      @if ((lootRewards()?.unitLabels?.length ?? 0) > 0) {
-      <div class="loot-node__block mb-3">
-        <h3 class="dg-stencil mb-2">Units Found</h3>
-        <div class="loot-node__chips">
-          @for (label of lootRewards()!.unitLabels; track label + '-' + $index) {
-          <span class="dg-chip">{{ label }}</span>
-          }
-        </div>
-      </div>
-      }
-
-      @if ((lootRewards()?.teeth ?? 0) <= 0 && (lootRewards()?.diceLabels?.length ?? 0) === 0 && (lootRewards()?.unitLabels?.length ?? 0) === 0) {
-      <dg-alert class="mb-3">This chest is resolved, but there are no item labels available to preview before claim.</dg-alert>
-      }
-    </div>
-    } @else {
-    <div class="battle-node">
-      <div class="node-summary mb-3">
-        <div class="node-summary__item">
-          <span class="node-summary__label">Outcome</span>
-          <strong>{{ battleOutcomeLabel() }}</strong>
-        </div>
-        <div class="node-summary__item">
-          <span class="node-summary__label">Rounds</span>
-          <strong>{{ result()!.battle.rounds }}</strong>
-        </div>
-      </div>
-
-    @if (abilityCatalogError()) {
-    <dg-alert tone="error" class="mb-3">{{ abilityCatalogError() }}</dg-alert>
-    }
-
-    <div class="battle-log">
-      <h3 class="dg-stencil">Battle Log</h3>
-
-      @if (actionLog().length) {
-      <div class="battle-log__entries dg-motion-stagger">
-        @for (entry of actionLog(); track entry.round + '-' + entry.tick + '-' + entry.actorName + '-' + entry.targetName + '-' + $index) {
-        <article class="battle-log__entry">
-          <div class="battle-log__entry-grid">
-            <dg-unit-grid-object
-              class="battle-log__unit-card"
-              [object]="entry.actorCard.unit"
-              [subtitle]="entry.actorCard.subtitle"
-              [surfaceTone]="entry.actorCard.tone"
-              [progressBar]="entry.actorCard.progressBar"
-              [showLockBadge]="entry.actorCard.showLockBadge"
-              [fillHeight]="false"
-              [linkEnabled]="false"
-            />
-
-            <div class="battle-log__entry-center">
-              <div class="battle-log__entry-header">
-                <span class="battle-log__ability">{{ entry.abilityName }}</span>
+        @if (lootDiceCards().length) {
+        <div class="node-loot-block">
+          <div class="dg-proto-divider"></div>
+          <div class="dg-proto-section__header">
+            <div>
+              <p class="dg-proto-section__eyebrow dg-stencil">Dice Loot</p>
+              <h3 class="dg-proto-section__title dg-stencil">Recovered Dice</h3>
+            </div>
+          </div>
+          <div class="dg-proto-grid dg-proto-grid--three">
+            @for (card of lootDiceCards(); track card.id) {
+            <article class="dg-proto-card">
+              <div class="dg-proto-card__media">
+                <img [src]="card.imageUrl" [alt]="card.label" />
               </div>
               <div>
-                <span class="battle-log__label">Action Result</span>
-                <p class="mb-0">
-                  @for (segment of entry.resultSegments; track segment.text + '-' + $index) {
-                    @if (segment.tooltip) {
-                    <span class="battle-log__condition" [title]="segment.tooltip">{{ segment.text }}</span>
-                    } @else {
-                    <span>{{ segment.text }}</span>
-                    }
-                  }
-                </p>
+                <p class="dg-proto-card__meta">{{ card.meta }}</p>
+                <h4 class="dg-proto-card__title dg-stencil">{{ card.label }}</h4>
+              </div>
+            </article>
+            }
+          </div>
+        </div>
+        }
+
+        @if (lootUnitCards().length) {
+        <div class="node-loot-block">
+          <div class="dg-proto-divider"></div>
+          <div class="dg-proto-section__header">
+            <div>
+              <p class="dg-proto-section__eyebrow dg-stencil">Unit Loot</p>
+              <h3 class="dg-proto-section__title dg-stencil">Fresh Recruits</h3>
+            </div>
+          </div>
+          <div class="dg-proto-grid dg-proto-grid--three">
+            @for (card of lootUnitCards(); track card.id) {
+            <article class="dg-proto-card">
+              <div class="dg-proto-card__media">
+                <img class="dg-proto-sprite dg-proto-sprite--lg" [src]="card.imageUrl" [alt]="card.label" />
+              </div>
+              <div>
+                <p class="dg-proto-card__meta">{{ card.meta }}</p>
+                <h4 class="dg-proto-card__title dg-stencil">{{ card.label }}</h4>
+              </div>
+            </article>
+            }
+          </div>
+        </div>
+        }
+
+        @if ((lootRewards()?.teeth ?? 0) <= 0 && lootDiceCards().length === 0 && lootUnitCards().length === 0) {
+        <dg-alert>This chest is resolved, but there are no item labels available to preview before claim.</dg-alert>
+        }
+      </section>
+      } @else {
+      <section class="dg-proto-shell">
+        <section class="dg-proto-battle-banner" [class.dg-proto-battle-banner--victory]="result()!.battle.outcome === 'victory'">
+          <div>
+            <p class="dg-proto-section__eyebrow dg-stencil">{{ resolvedNodeType() === 'boss' ? 'Boss Node' : 'Fight Node' }}</p>
+            <h2 class="dg-proto-battle-banner__result dg-stencil">{{ battleResultHeadline() }}</h2>
+            <p class="dg-proto-battle-banner__copy">{{ battleResultCopy() }}</p>
+          </div>
+          <div class="battle-banner__meta">
+            <span class="dg-proto-chip">Rounds {{ result()!.battle.rounds }}</span>
+            <span class="dg-proto-chip">Ticks {{ result()!.battle.ticks }}</span>
+            <span class="dg-proto-chip">Status {{ battleStatusLabel() }}</span>
+          </div>
+        </section>
+
+        @if (abilityCatalogError()) {
+        <dg-alert tone="error">{{ abilityCatalogError() }}</dg-alert>
+        }
+
+        <section class="dg-proto-section">
+          <div class="dg-proto-tabs mb-3" aria-label="Battle replay modes">
+            @for (tab of battleViewTabs; track tab.id) {
+            <button
+              type="button"
+              class="dg-proto-tabs__item"
+              [class.is-active]="battleViewMode() === tab.id"
+              (click)="setBattleView(tab.id)"
+            >
+              {{ tab.label }}
+            </button>
+            }
+          </div>
+
+          @if (battleViewMode() === 'acted') {
+          <div class="battle-playback">
+            <div class="battle-playback__controls">
+              <div class="battle-playback__controls-main">
+                <button dgCommandBtn="muted" type="button" (click)="togglePlayback()">
+                  {{ playbackPaused() ? 'Play' : 'Pause' }}
+                </button>
+                <button dgCommandBtn="muted" type="button" (click)="restartPlayback()" [disabled]="playbackStepCount() === 0">
+                  Restart
+                </button>
+              </div>
+
+              <div class="battle-playback__speed">
+                @for (speed of playbackSpeedOptions; track speed) {
+                <button
+                  type="button"
+                  class="battle-playback__speed-btn"
+                  [class.is-active]="playbackSpeed() === speed"
+                  (click)="setPlaybackSpeed(speed)"
+                >
+                  {{ speed }}x
+                </button>
+                }
               </div>
             </div>
 
-            <dg-unit-grid-object
-              class="battle-log__unit-card"
-              [object]="entry.targetCard.unit"
-              [subtitle]="entry.targetCard.subtitle"
-              [surfaceTone]="entry.targetCard.tone"
-              [progressBar]="entry.targetCard.progressBar"
-              [showLockBadge]="entry.targetCard.showLockBadge"
-              [fillHeight]="false"
-              [linkEnabled]="false"
-            />
+            <div class="battle-playback__progress">
+              <div class="dg-proto-progress">
+                <div class="dg-proto-progress__fill" [style.width.%]="playbackProgressPercent()"></div>
+              </div>
+              <div class="battle-playback__progress-meta">
+                <span>{{ playbackStepLabel() }}</span>
+                <span>{{ playbackStepCount() ? playbackIndex() + 1 : 0 }} / {{ playbackStepCount() }}</span>
+              </div>
+              <input
+                class="battle-playback__scrubber"
+                type="range"
+                min="0"
+                [max]="playbackMaxIndex()"
+                [value]="playbackIndex()"
+                (input)="seekPlayback($any($event.target).value)"
+              />
+            </div>
+
+            <div class="battle-playback__stage">
+              <div class="battle-playback__squad">
+                @for (participant of playerPlaybackParticipants(); track participant.participantId) {
+                <article
+                  class="battle-playback__unit"
+                  [class.is-actor]="participant.isActor"
+                  [class.is-target]="participant.isTarget"
+                >
+                  <img class="dg-proto-sprite" [src]="participant.spriteUrl" [alt]="participant.name" />
+                  <div class="battle-playback__unit-copy">
+                    <strong class="dg-stencil">{{ participant.name }}</strong>
+                    <span>{{ participant.statusLabel }}</span>
+                    <div class="battle-playback__unit-bar">
+                      <span [style.width.%]="participant.hpPercent"></span>
+                    </div>
+                  </div>
+                </article>
+                }
+              </div>
+
+              <div class="battle-playback__event">
+                @if (playbackStep(); as step) {
+                <div class="battle-playback__event-card">
+                  <p class="battle-playback__event-eyebrow dg-stencil">{{ step.side === 'player' ? 'Warband Action' : 'Enemy Action' }}</p>
+                  <h3 class="dg-stencil">{{ step.actor.name }} uses {{ step.abilityName }}</h3>
+                  <p class="battle-playback__event-copy">{{ step.resultSummary }}</p>
+                  <div class="battle-playback__dice">
+                    <span class="dg-proto-pill">Dice</span>
+                    <p>{{ step.diceSummary }}</p>
+                  </div>
+                </div>
+                } @else {
+                <div class="battle-playback__event-card">
+                  <p class="battle-playback__event-eyebrow dg-stencil">Playback</p>
+                  <h3 class="dg-stencil">No battle ticks recorded</h3>
+                  <p class="battle-playback__event-copy">This encounter resolved without action events, so only the outcome is available.</p>
+                </div>
+                }
+              </div>
+
+              <div class="battle-playback__squad battle-playback__squad--enemy">
+                @for (participant of enemyPlaybackParticipants(); track participant.participantId) {
+                <article
+                  class="battle-playback__unit"
+                  [class.is-actor]="participant.isActor"
+                  [class.is-target]="participant.isTarget"
+                >
+                  <img class="dg-proto-sprite" [src]="participant.spriteUrl" [alt]="participant.name" />
+                  <div class="battle-playback__unit-copy">
+                    <strong class="dg-stencil">{{ participant.name }}</strong>
+                    <span>{{ participant.statusLabel }}</span>
+                    <div class="battle-playback__unit-bar">
+                      <span [style.width.%]="participant.hpPercent"></span>
+                    </div>
+                  </div>
+                </article>
+                }
+              </div>
+            </div>
           </div>
-        </article>
-        }
-      </div>
-      } @else {
-      <p class="mb-0">No action events were captured for this node.</p>
+          } @else {
+          <div class="battle-log">
+            <div class="dg-proto-section__header">
+              <div>
+                <p class="dg-proto-section__eyebrow dg-stencil">Battle Log</p>
+                <h3 class="dg-proto-section__title dg-stencil">Tick By Tick Breakdown</h3>
+              </div>
+            </div>
+
+            @if (actionLog().length) {
+            <div class="dg-proto-list">
+              @for (entry of actionLog(); track entry.round + '-' + entry.tick + '-' + entry.actorName + '-' + entry.targetName + '-' + $index) {
+              <article class="dg-proto-row dg-proto-row--combat battle-log__entry">
+                <div class="dg-proto-row__media">
+                  <img class="dg-proto-sprite dg-proto-sprite--sm" [src]="entry.actorSpriteUrl" [alt]="entry.actorName" />
+                  <div>
+                    <p class="battle-log__label">{{ entry.actorCard.subtitle }}</p>
+                    <strong class="dg-stencil">{{ entry.actorName }}</strong>
+                  </div>
+                </div>
+
+                <div class="battle-log__entry-center">
+                  <div class="battle-log__entry-header">
+                    <span class="battle-log__stamp">Round {{ entry.round }} • Tick {{ entry.tick }}</span>
+                    <span class="battle-log__ability">{{ entry.abilityName }}</span>
+                  </div>
+                  <div>
+                    <span class="battle-log__label">Action Result</span>
+                    <p class="mb-2">
+                      @for (segment of entry.resultSegments; track segment.text + '-' + $index) {
+                        @if (segment.tooltip) {
+                        <span class="battle-log__condition" [title]="segment.tooltip">{{ segment.text }}</span>
+                        } @else {
+                        <span>{{ segment.text }}</span>
+                        }
+                      }
+                    </p>
+                    <p class="battle-log__dice-summary mb-0">{{ entry.diceSummary }}</p>
+                  </div>
+                </div>
+
+                <div class="dg-proto-row__media battle-log__target">
+                  <img class="dg-proto-sprite dg-proto-sprite--sm" [src]="entry.targetSpriteUrl" [alt]="entry.targetName" />
+                  <div>
+                    <p class="battle-log__label">{{ entry.targetCard.subtitle }}</p>
+                    <strong class="dg-stencil">{{ entry.targetName }}</strong>
+                  </div>
+                </div>
+              </article>
+              }
+            </div>
+            } @else {
+            <p class="mb-0">No action events were captured for this node.</p>
+            }
+          </div>
+          }
+        </section>
+      </section>
       }
-    </div>
-    </div>
-    }
     } @else if (!dialogue()) {
     <div class="node-loading">
       <p class="node-loading__eyebrow dg-stencil">Encounter</p>

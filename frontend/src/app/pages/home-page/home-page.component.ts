@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { SessionService } from '../../core/services/session/session.service';
 import { isDevPanelEnabled } from '../../core/config/runtime-config';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
+import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 
 @Component({
   selector: 'app-home-page',
@@ -14,9 +15,12 @@ import { PageFrameComponent } from '../../layout/page-frame/page-frame.component
 export class HomePageComponent {
   private readonly sessionService = inject(SessionService);
   readonly profile = this.sessionService.profile;
+  readonly profileData = this.sessionService.profileData;
   readonly shopUnlocked = this.sessionService.shopUnlocked;
   readonly academyUnlocked = this.sessionService.academyUnlocked;
   readonly hasActiveRun = this.sessionService.hasActiveRun;
+  readonly activeSquad = this.sessionService.activeSquad;
+  readonly units = this.sessionService.units;
   readonly devPanelEnabled = isDevPanelEnabled();
   readonly primaryLabel = computed(() => (this.hasActiveRun() ? 'Continue Run' : 'Start Run'));
   readonly primaryRoute = computed(() => (this.hasActiveRun() ? '/run/map' : '/regions'));
@@ -25,5 +29,24 @@ export class HomePageComponent {
       ? 'Your raiders are already in the field. Patch the squad up and get them back to work.'
       : 'Prep the warband, sharpen the dice, and send the crew out hunting for loot.',
   );
-}
+  readonly activeSquadUnits = computed(() => {
+    const activeSquad = this.activeSquad();
+    const unitsById = new Map(this.units().map((unit) => [unit.id, unit]));
+    return (activeSquad?.unit_ids ?? [])
+      .map((unitId) => unitsById.get(unitId) ?? null)
+      .filter((unit): unit is NonNullable<typeof unit> => unit !== null)
+      .map((unit) => ({
+        unit,
+        spriteUrl: resolvePrototypeUnitSpriteUrl(unit),
+      }));
+  });
+  readonly activeRun = computed(() => this.profileData()?.active_run ?? null);
+  readonly homeHeroTitle = computed(() =>
+    this.hasActiveRun() ? 'Raid In Progress' : 'Camp Is Ready',
+  );
 
+  rewardLabelForUnitCount(): string {
+    const count = this.activeSquadUnits().length;
+    return `${count} ${count === 1 ? 'raider' : 'raiders'} ready`;
+  }
+}

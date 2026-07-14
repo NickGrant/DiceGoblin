@@ -10,21 +10,14 @@ import { ShopService } from '../../core/services/shop/shop.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { ObjectGridComponent } from '../../shared/ui/object-grid/object-grid.component';
-import {
-  ShopDiceGridObjectComponent,
-  ShopDiceGridObjectRecord,
-} from '../../shared/ui/shop-dice-grid-object/shop-dice-grid-object.component';
-import {
-  ShopUnitGridObjectComponent,
-  ShopUnitGridObjectRecord,
-} from '../../shared/ui/shop-unit-grid-object/shop-unit-grid-object.component';
 import { TabStripComponent, TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
+import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
+import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 
 @Component({
   selector: 'app-shop-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, ObjectGridComponent, TabStripComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, TabStripComponent],
   templateUrl: './shop-page.component.html',
   styleUrl: './shop-page.component.scss',
 })
@@ -59,23 +52,17 @@ export class ShopPageComponent {
   readonly busyKey = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
-  readonly shopDiceObjectComponent = ShopDiceGridObjectComponent;
-  readonly shopUnitObjectComponent = ShopUnitGridObjectComponent;
-  readonly basicDiceGridObjects = computed(() =>
-    (this.catalog()?.basic_dice ?? []).map((item) => this.mapBasicDiceItem(item)),
-  );
-  readonly basicUnitGridObjects = computed(() =>
-    (this.catalog()?.basic_units ?? []).map((item) => this.mapBasicUnitItem(item)),
-  );
+  readonly basicDiceGridObjects = computed(() => this.catalog()?.basic_dice ?? []);
+  readonly basicUnitGridObjects = computed(() => this.catalog()?.basic_units ?? []);
   readonly featureUnlockItems = computed(() => this.catalog()?.feature_unlocks ?? []);
   readonly dailyDealGridObjects = computed(() => {
     const deals = this.catalog()?.daily_deals;
     if (Array.isArray(deals) && deals.length > 0) {
-      return deals.map((deal) => this.mapDailyDealItem(deal));
+      return deals;
     }
 
     const deal = this.catalog()?.daily_deal;
-    return deal ? [this.mapDailyDealItem(deal)] : [];
+    return deal ? [deal] : [];
   });
 
   constructor() {
@@ -126,37 +113,24 @@ export class ShopPageComponent {
     return (this.catalog()?.currency_soft ?? 0) >= cost;
   }
 
-  private mapBasicDiceItem(item: ShopDiceItem): ShopDiceGridObjectRecord {
-    return {
-      id: item.product_id,
-      label: '',
-      rarity: item.rarity,
-      sides: item.sides,
-      cost: item.cost,
-      detailLines: [],
-    };
+  diceArtUrl(item: Pick<ShopDiceItem, 'rarity' | 'sides'>): string {
+    return resolveDiceArtStyles(item.rarity, item.sides, 124).imageUrl;
   }
 
-  private mapDailyDealItem(item: ShopDailyDeal): ShopDiceGridObjectRecord {
-    return {
-      id: item.product_id,
-      label: item.slot && item.slot > 1 ? `Deal ${item.slot}: ${item.affix.name}` : item.affix.name,
-      rarity: item.rarity,
-      sides: item.sides,
-      cost: item.cost,
-      isPurchased: item.is_purchased,
-      detailLines: [item.affix.description],
-    };
+  diceTitle(item: Pick<ShopDiceItem, 'rarity' | 'sides'>): string {
+    return `${item.rarity} d${item.sides}`;
   }
 
-  private mapBasicUnitItem(item: ShopUnitItem): ShopUnitGridObjectRecord {
-    return {
-      id: item.product_id,
-      name: item.name,
-      role: item.role,
-      cost: item.cost,
-      tierLabel: 'Tier 1',
-    };
+  dailyDealLabel(item: ShopDailyDeal): string {
+    return item.slot && item.slot > 1 ? `Deal ${item.slot}: ${item.affix.name}` : item.affix.name;
+  }
+
+  unitSpriteUrl(item: ShopUnitItem): string {
+    return resolvePrototypeUnitSpriteUrl(item.name);
+  }
+
+  purchaseBusy(itemType: 'basic_unit' | 'basic_dice' | 'daily_deal', productId: string): boolean {
+    return this.busyKey() === `${itemType}:${productId}`;
   }
 
   featureUnlockBusyKey(productId: string): string {

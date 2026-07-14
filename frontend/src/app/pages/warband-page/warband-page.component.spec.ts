@@ -93,7 +93,7 @@ describe('WarbandPageComponent', () => {
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
-    expect(host.querySelector('.warband-units-inspect__panel .unit-grid-object')).not.toBeNull();
+    expect(host.querySelector('.warband-units-inspect__panel .warband-units-inspect-card')).not.toBeNull();
   });
 
   it('marks the active squad as locked during an active run', () => {

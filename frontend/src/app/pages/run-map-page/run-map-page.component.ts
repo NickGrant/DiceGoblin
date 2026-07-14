@@ -8,12 +8,18 @@ import { buildFormationGrid } from '../../shared/formation/formation';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
+import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 import { RunUnitFormationGridComponent } from '../../shared/ui/run-unit-formation-grid/run-unit-formation-grid.component';
 
 @Component({
   selector: 'app-run-map-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RunUnitFormationGridComponent],
+  imports: [
+    DgAlertComponent,
+    DgCommandBtnDirective,
+    PageFrameComponent,
+    RunUnitFormationGridComponent,
+  ],
   templateUrl: './run-map-page.component.html',
   styleUrl: './run-map-page.component.scss',
 })
@@ -71,14 +77,8 @@ export class RunMapPageComponent {
     const maxY = Math.max(...ys);
 
     return {
-      width: Math.max(
-        RunMapPageComponent.MAP_MIN_WIDTH,
-        maxX + radius + horizontalPadding,
-      ),
-      height: Math.max(
-        RunMapPageComponent.MAP_MIN_HEIGHT,
-        maxY + radius + verticalPadding,
-      ),
+      width: Math.max(RunMapPageComponent.MAP_MIN_WIDTH, maxX + radius + horizontalPadding),
+      height: Math.max(RunMapPageComponent.MAP_MIN_HEIGHT, maxY + radius + verticalPadding),
     };
   });
   readonly mapWidth = computed(() => this.nodeLayoutBounds().width);
@@ -107,6 +107,23 @@ export class RunMapPageComponent {
     return buildFormationGrid(this.activeSquad()?.formation, this.runUnitById());
   });
   readonly renderedEdges = computed(() => this.buildRenderedEdges(this.nodes(), this.edges()));
+  readonly availableNodeCount = computed(
+    () => this.nodes().filter((node) => node.status === 'available').length,
+  );
+  readonly clearedNodeCount = computed(
+    () => this.nodes().filter((node) => node.status === 'cleared').length,
+  );
+  readonly squadPreview = computed(() =>
+    this.runUnits().map((entry) => ({
+      id: entry.unit_instance_id,
+      name: entry.unit?.name ?? 'Unknown Raider',
+      role: entry.unit?.unit_type_name ?? 'Raider',
+      level: entry.unit?.level ?? 1,
+      hpLabel: `${Math.max(0, entry.currentHp)}/${Math.max(0, entry.maxHp)} HP`,
+      defeated: entry.defeated,
+      spriteUrl: resolvePrototypeUnitSpriteUrl(entry.unit),
+    })),
+  );
 
   constructor() {
     void this.load();
@@ -131,14 +148,19 @@ export class RunMapPageComponent {
 
   nodeX(node: CurrentRunNode): number {
     const column = this.nodeMetaColumn(node);
-    return RunMapPageComponent.MAP_HORIZONTAL_PADDING + column * RunMapPageComponent.MAP_NODE_HORIZONTAL_GAP;
+    return (
+      RunMapPageComponent.MAP_HORIZONTAL_PADDING +
+      column * RunMapPageComponent.MAP_NODE_HORIZONTAL_GAP
+    );
   }
 
   nodeY(node: CurrentRunNode): number {
     const row = this.nodeMetaRow(node);
-    return RunMapPageComponent.MAP_VERTICAL_PADDING
-      + row * RunMapPageComponent.MAP_ROW_VERTICAL_GAP
-      + this.nodeVerticalSpread(node);
+    return (
+      RunMapPageComponent.MAP_VERTICAL_PADDING +
+      row * RunMapPageComponent.MAP_ROW_VERTICAL_GAP +
+      this.nodeVerticalSpread(node)
+    );
   }
 
   nodeById(nodeId: string): CurrentRunNode | undefined {
@@ -174,7 +196,10 @@ export class RunMapPageComponent {
   }
 
   iconForNodeType(nodeType: string): string {
-    return RunMapPageComponent.ENCOUNTER_ICON_MAP[nodeType] ?? '/assets/ui/icons/icon_encounter_locked.png';
+    return (
+      RunMapPageComponent.ENCOUNTER_ICON_MAP[nodeType] ??
+      '/assets/ui/icons/icon_encounter_locked.png'
+    );
   }
 
   nodeTypeLabel(nodeType: string): string {
@@ -274,7 +299,10 @@ export class RunMapPageComponent {
     return row === 0 ? -spread : spread;
   }
 
-  private buildRenderedEdges(nodes: CurrentRunNode[], edges: CurrentRunEdge[]): Array<{
+  private buildRenderedEdges(
+    nodes: CurrentRunNode[],
+    edges: CurrentRunEdge[],
+  ): Array<{
     edgeId: string;
     path: string;
     state: 'available' | 'cleared' | 'locked';
@@ -294,18 +322,30 @@ export class RunMapPageComponent {
     }
 
     for (const siblingEdges of outgoingByNode.values()) {
-      siblingEdges.sort((left, right) => this.edgeSortValue(nodeById.get(left.to_node_id)) - this.edgeSortValue(nodeById.get(right.to_node_id)));
+      siblingEdges.sort(
+        (left, right) =>
+          this.edgeSortValue(nodeById.get(left.to_node_id)) -
+          this.edgeSortValue(nodeById.get(right.to_node_id)),
+      );
     }
 
     for (const siblingEdges of incomingByNode.values()) {
-      siblingEdges.sort((left, right) => this.edgeSortValue(nodeById.get(left.from_node_id)) - this.edgeSortValue(nodeById.get(right.from_node_id)));
+      siblingEdges.sort(
+        (left, right) =>
+          this.edgeSortValue(nodeById.get(left.from_node_id)) -
+          this.edgeSortValue(nodeById.get(right.from_node_id)),
+      );
     }
 
     return edges.map((edge) => {
       const fromNode = nodeById.get(edge.from_node_id);
       const toNode = nodeById.get(edge.to_node_id);
       if (!fromNode || !toNode) {
-        return { edgeId: edge.edge_id ?? `${edge.from_node_id}->${edge.to_node_id}`, path: '', state: 'locked' as const };
+        return {
+          edgeId: edge.edge_id ?? `${edge.from_node_id}->${edge.to_node_id}`,
+          path: '',
+          state: 'locked' as const,
+        };
       }
 
       const sourceOffset = this.siblingOffset(edge, outgoingByNode.get(edge.from_node_id) ?? []);
@@ -318,9 +358,10 @@ export class RunMapPageComponent {
         RunMapPageComponent.MAP_EDGE_CURVE_LEAD_MAX,
         Math.max(RunMapPageComponent.MAP_EDGE_CURVE_LEAD_MIN, Math.round((x2 - x1) * 0.35)),
       );
-      const path = sourceOffset === 0 && targetOffset === 0 && y1 === y2
-        ? `M ${x1} ${y1} L ${x2} ${y2}`
-        : `M ${x1} ${y1} C ${x1 + curveLead} ${y1 + sourceOffset}, ${x2 - curveLead} ${y2 + targetOffset}, ${x2} ${y2}`;
+      const path =
+        sourceOffset === 0 && targetOffset === 0 && y1 === y2
+          ? `M ${x1} ${y1} L ${x2} ${y2}`
+          : `M ${x1} ${y1} C ${x1 + curveLead} ${y1 + sourceOffset}, ${x2 - curveLead} ${y2 + targetOffset}, ${x2} ${y2}`;
 
       return {
         edgeId: edge.edge_id ?? `${edge.from_node_id}->${edge.to_node_id}`,
@@ -340,7 +381,7 @@ export class RunMapPageComponent {
       return 0;
     }
 
-    return (edgeIndex - ((siblings.length - 1) / 2)) * RunMapPageComponent.MAP_EDGE_FAN_OFFSET;
+    return (edgeIndex - (siblings.length - 1) / 2) * RunMapPageComponent.MAP_EDGE_FAN_OFFSET;
   }
 
   private edgeSortValue(node: CurrentRunNode | undefined): number {
@@ -348,7 +389,7 @@ export class RunMapPageComponent {
       return Number.MAX_SAFE_INTEGER;
     }
 
-    return (this.nodeMetaRow(node) * 100) + this.nodeMetaColumn(node);
+    return this.nodeMetaRow(node) * 100 + this.nodeMetaColumn(node);
   }
 
   private longestIncidentEdgeSpan(nodeId: string): number {
@@ -365,7 +406,9 @@ export class RunMapPageComponent {
         continue;
       }
 
-      const otherNode = this.nodeById(edge.from_node_id === nodeId ? edge.to_node_id : edge.from_node_id);
+      const otherNode = this.nodeById(
+        edge.from_node_id === nodeId ? edge.to_node_id : edge.from_node_id,
+      );
       if (!otherNode) {
         continue;
       }
@@ -376,4 +419,3 @@ export class RunMapPageComponent {
     return longestSpan;
   }
 }
-
