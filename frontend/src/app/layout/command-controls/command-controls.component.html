@@ -1,32 +1,34 @@
-<header class="hud-panel hud-panel--player">
-  @if (isAuthenticated()) {
-  <div class="hud-stats" aria-label="Commander resources">
-    <span class="hud-stat">
-      <img src="/assets/ui/icons/energy_16.png" alt="Energy" />
+<header class="floating-header" [class.is-open]="mobileMenuOpen()">
+  <div class="floating-header__bar">
+    <div class="floating-header__slot floating-header__slot--energy" aria-label="Energy">
+      @if (isAuthenticated()) {
+      <img class="floating-header__slot-icon" src="/assets/ui/icons/energy_64.png" alt="" />
       <span>{{ profile().energyCurrent }} / {{ profile().energyMax }}</span>
-    </span>
+      } @else {
+      <span>--</span>
+      }
+    </div>
 
-    <span class="hud-stat">
-      <img src="/assets/ui/icons/tooth_16.png" alt="Teeth" />
+    <div class="floating-header__slot floating-header__slot--teeth" aria-label="Teeth">
+      @if (isAuthenticated()) {
+      <img class="floating-header__slot-icon" src="/assets/ui/icons/tooth_64.png" alt="" />
       <span>{{ profile().softCurrency }}</span>
-    </span>
-  </div>
-  } @else {
-  <div class="hud-stats" aria-hidden="true"></div>
-  }
+      } @else {
+      <span>--</span>
+      }
+    </div>
 
-  <div class="hud-player">
-    @if (isAuthenticated()) {
-    <span class="dg-stencil">Commander</span>
-    <span>{{ session().displayName }}</span>
-    } @else {
-    <button class="dg-stencil" type="button" (click)="login()">Login</button>
-    }
-  </div>
+    <div class="floating-header__slot floating-header__slot--future" aria-hidden="true">
+      <span></span>
+    </div>
 
-  @if (audioEnabled()) {
+    <div class="floating-header__name" [attr.aria-label]="isAuthenticated() ? 'Commander name' : 'Guest label'">
+      <span>{{ isAuthenticated() ? session().displayName : 'Guest' }}</span>
+    </div>
+
+    @if (audioEnabled()) {
     <button
-      class="hud-audio"
+      class="floating-header__audio"
       type="button"
       [attr.aria-label]="audioControlAriaLabel()"
       [attr.title]="audioControlAriaLabel()"
@@ -35,76 +37,53 @@
       <fa-icon [icon]="audioControlIcon()" aria-hidden="true"></fa-icon>
       <span class="visually-hidden">{{ audioControlLabel() }}</span>
     </button>
-  }
+    }
 
-  @if (isAuthenticated()) {
-    <button class="hud-logout" type="button" (click)="logout()" aria-label="Logout">
-      <img src="/assets/ui/icons/icon_logout.png" alt="" />
+    <button
+      class="floating-header__toggle"
+      [class.is-active]="mobileMenuOpen()"
+      type="button"
+      [attr.aria-label]="menuToggleLabel()"
+      [attr.aria-expanded]="mobileMenuOpen()"
+      (click)="toggleMobileMenu()"
+    >
+      <span class="floating-header__toggle-box" aria-hidden="true">
+        <span class="floating-header__toggle-inner"></span>
+      </span>
+      <span class="visually-hidden">{{ menuToggleLabel() }}</span>
     </button>
-  }
-
-  <button
-    class="hud-menu-toggle"
-    type="button"
-    aria-label="Open menu"
-    [attr.aria-expanded]="mobileMenuOpen()"
-    (click)="toggleMobileMenu()"
-  >
-    <span></span>
-    <span></span>
-    <span></span>
-  </button>
+  </div>
 
   @if (mobileMenuOpen()) {
-    <div class="hud-mobile-menu" aria-label="Mobile navigation menu">
-      <nav aria-label="Primary navigation">
-        @for (item of navItems; track item.authenticatedRoute) {
-          @if (isNavItemEnabled(item)) {
-          <a
-            [routerLink]="navRoute(item)"
-            routerLinkActive="is-active"
-            [attr.aria-label]="item.ariaLabel"
-            (click)="closeMobileMenu()"
-          >
-            <img [src]="item.icon" alt="" />
-            <span>{{ item.label }}</span>
-          </a>
-          } @else {
-          <span [attr.aria-label]="navDisabledLabel(item)" aria-disabled="true">
-            <img [src]="item.icon" alt="" />
-            <span>{{ item.label }}</span>
-          </span>
-          }
-        }
-      </nav>
-
-      @if (isAuthenticated()) {
-      <button type="button" (click)="logout()">
-        <img src="/assets/ui/icons/icon_logout.png" alt="" />
-        <span>Logout</span>
-      </button>
+  <nav class="floating-header__menu" aria-label="Primary navigation links">
+    @for (item of navItems; track item.authenticatedRoute) {
+      @if (isNavItemEnabled(item)) {
+      <a
+        class="floating-header__menu-item"
+        [routerLink]="navRoute(item)"
+        routerLinkActive="is-active"
+        [attr.aria-label]="item.ariaLabel"
+        (click)="closeMobileMenu()"
+      >
+        <img class="floating-header__menu-item-icon" [src]="item.icon" alt="" />
+        <span class="floating-header__menu-item-label">{{ item.label }}</span>
+      </a>
+      } @else {
+      <span
+        class="floating-header__menu-item"
+        [attr.aria-label]="navDisabledLabel(item)"
+        aria-disabled="true"
+      >
+        <img class="floating-header__menu-item-icon" [src]="item.icon" alt="" />
+        <span class="floating-header__menu-item-label">{{ item.label }}</span>
+      </span>
       }
-    </div>
+    }
+
+    <button class="floating-header__menu-item floating-header__menu-item--action" type="button" (click)="isAuthenticated() ? logout() : login()">
+      <img class="floating-header__menu-item-icon" [src]="authActionIcon()" alt="" />
+      <span class="floating-header__menu-item-label">{{ authActionLabel() }}</span>
+    </button>
+  </nav>
   }
 </header>
-<nav class="hud-panel hud-panel--nav" aria-label="Primary navigation">
-  @for (item of navItems; track item.authenticatedRoute) {
-    @if (isNavItemEnabled(item)) {
-    <a
-      [routerLink]="navRoute(item)"
-      routerLinkActive="is-active"
-      [attr.aria-label]="item.ariaLabel"
-      (click)="closeMobileMenu()"
-    >
-      <img [src]="item.icon" [alt]="item.ariaLabel" />
-    </a>
-    } @else {
-    <span
-      [attr.aria-label]="navDisabledLabel(item)"
-      aria-disabled="true"
-    >
-      <img [src]="item.icon" [alt]="item.ariaLabel" />
-    </span>
-    }
-  }
-</nav>

@@ -100,7 +100,7 @@ describe('CommandControlsComponent', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('.hud-audio') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.floating-header__audio') as HTMLButtonElement;
     button.click();
     await fixture.whenStable();
 
@@ -114,7 +114,7 @@ describe('CommandControlsComponent', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('.hud-audio') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.floating-header__audio') as HTMLButtonElement;
     button.click();
     await fixture.whenStable();
 
@@ -123,16 +123,15 @@ describe('CommandControlsComponent', () => {
 
   it('includes a guide link that routes directly to the field guide', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.componentInstance.mobileMenuOpen.set(true);
     fixture.detectChanges();
 
     const guideLink = fixture.debugElement
       .queryAll(By.directive(RouterLink))
-      .find((debugElement) => debugElement.attributes['aria-label'] === 'Field Guide');
+      .find((debugElement) => debugElement.attributes['aria-label'] === 'Codex');
 
     expect(guideLink).toBeDefined();
     expect(router.serializeUrl(guideLink!.injector.get(RouterLink).urlTree!)).toBe('/field-guide');
-    const icon = guideLink!.nativeElement.querySelector('img') as HTMLImageElement | null;
-    expect(icon?.getAttribute('src')).toContain('icon_guide.png');
   });
 
   it('stores the measured hud height in a shared CSS variable', () => {
@@ -156,58 +155,61 @@ describe('CommandControlsComponent', () => {
 
   it('delegates logout to the session service when the logout button is clicked', async () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.componentInstance.mobileMenuOpen.set(true);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('.hud-logout') as HTMLButtonElement;
+    const buttons = fixture.nativeElement.querySelectorAll('.floating-header__menu-item--action') as NodeListOf<HTMLButtonElement>;
+    const button = buttons[0];
     button.click();
     await fixture.whenStable();
 
     expect(sessionService.logout).toHaveBeenCalled();
   });
 
-  it('renders the new split header art assets', () => {
+  it('renders the floating header art assets', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const panels = compiled.querySelectorAll('.hud-panel');
-
-    expect(panels.length).toBe(2);
-    expect(compiled.querySelector('.hud-panel--nav')).not.toBeNull();
-    expect(compiled.querySelector('.hud-panel--player')).not.toBeNull();
+    expect(compiled.querySelector('.floating-header')).not.toBeNull();
+    expect(window.getComputedStyle(compiled.querySelector('.floating-header__bar') as HTMLElement).backgroundImage).toContain('floating-header-bar.png');
+    expect(compiled.querySelector('.floating-header__toggle-box')).not.toBeNull();
+    expect(compiled.querySelector('.floating-header__toggle-inner')).not.toBeNull();
   });
 
-  it('opens a labeled mobile menu from the player panel', () => {
+  it('opens a labeled dropdown menu from the arrow toggle', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
-    const toggle = fixture.nativeElement.querySelector('.hud-menu-toggle') as HTMLButtonElement;
+    const toggle = fixture.nativeElement.querySelector('.floating-header__toggle') as HTMLButtonElement;
     toggle.click();
     fixture.detectChanges();
 
-    const menu = fixture.nativeElement.querySelector('.hud-mobile-menu') as HTMLElement | null;
+    const menu = fixture.nativeElement.querySelector('.floating-header__menu') as HTMLElement | null;
     expect(menu).not.toBeNull();
+    expect(toggle.classList.contains('is-active')).toBeTrue();
     expect(menu?.textContent).toContain('Home');
-    expect(menu?.textContent).toContain('Warband');
-    expect(menu?.textContent).toContain('Inventory');
-    expect(menu?.textContent).toContain('Shop');
-    expect(menu?.textContent).toContain('Guide');
+    expect(menu?.textContent).toContain('Battle Crew');
+    expect(menu?.textContent).toContain('Pack');
+    expect(menu?.textContent).toContain('Academy');
+    expect(menu?.textContent).toContain('Codex');
     expect(menu?.textContent).toContain('Logout');
   });
 
-  it('disables the shop icon until the farm unlock is earned', () => {
+  it('disables the academy menu item until the unlock is earned', () => {
     sessionService.featureUnlocks.set([]);
 
     const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.componentInstance.mobileMenuOpen.set(true);
     fixture.detectChanges();
 
-    const disabledItems = Array.from(fixture.nativeElement.querySelectorAll('.hud-panel--nav [aria-disabled="true"]')) as HTMLElement[];
-    const shopItem = disabledItems.find((item) => item.getAttribute('aria-label')?.includes('Shop unavailable until you defeat The Farm'));
+    const disabledItems = Array.from(fixture.nativeElement.querySelectorAll('.floating-header__menu [aria-disabled="true"]')) as HTMLElement[];
+    const academyItem = disabledItems.find((item) => item.getAttribute('aria-label')?.includes('Academy unavailable'));
 
-    expect(shopItem).toBeDefined();
+    expect(academyItem).toBeDefined();
   });
 
-  it('closes the mobile menu after tapping a menu link', () => {
+  it('closes the dropdown after tapping a menu link', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
@@ -215,26 +217,27 @@ describe('CommandControlsComponent', () => {
     component.mobileMenuOpen.set(true);
     fixture.detectChanges();
 
-    const mobileLink = fixture.nativeElement.querySelector('.hud-mobile-menu nav a') as HTMLAnchorElement;
+    const mobileLink = fixture.nativeElement.querySelector('.floating-header__menu a') as HTMLAnchorElement;
     mobileLink.click();
     fixture.detectChanges();
 
     expect(component.mobileMenuOpen()).toBeFalse();
   });
 
-  it('disables protected navigation items and shows login when not authenticated', () => {
+  it('shows login on the lock button and disables protected navigation items when not authenticated', () => {
     sessionService.session.set({
       isAuthenticated: false,
       displayName: 'Visitor',
     });
 
     const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.componentInstance.mobileMenuOpen.set(true);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('Login');
-    expect(compiled.textContent).not.toContain('12 / 20');
-    expect(compiled.querySelector('.hud-logout')).toBeNull();
-    expect(compiled.querySelectorAll('.hud-panel--nav [aria-disabled="true"]').length).toBe(3);
+    expect(compiled.querySelector('.floating-header__name')?.textContent).toContain('Guest');
+    expect(compiled.querySelector('.floating-header__slot--energy')?.textContent).toContain('--');
+    expect(compiled.querySelectorAll('.floating-header__menu [aria-disabled="true"]').length).toBe(3);
+    expect(compiled.querySelector('.floating-header__menu-item--action')?.textContent).toContain('Login');
   });
 });

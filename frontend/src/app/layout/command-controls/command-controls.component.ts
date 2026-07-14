@@ -12,7 +12,6 @@ type HudNavItem = {
   readonly icon: string;
   readonly authenticatedRoute: string;
   readonly publicRoute: string | null;
-  readonly guide: boolean;
   readonly requiredFeatureUnlockKey?: string | null;
 };
 
@@ -50,40 +49,35 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
       icon: '/assets/ui/icons/icon_home.png',
       authenticatedRoute: '/home',
       publicRoute: '/login',
-      guide: false,
     },
     {
-      label: 'Warband',
-      ariaLabel: 'Warband',
+      label: 'Battle Crew',
+      ariaLabel: 'Battle Crew',
       icon: '/assets/ui/icons/icon_warband.png',
       authenticatedRoute: '/warband',
       publicRoute: null,
-      guide: false,
     },
     {
-      label: 'Inventory',
-      ariaLabel: 'Inventory',
+      label: 'Pack',
+      ariaLabel: 'Pack',
       icon: '/assets/ui/icons/icon_inventory.png',
       authenticatedRoute: '/dice',
       publicRoute: null,
-      guide: false,
     },
     {
-      label: 'Shop',
-      ariaLabel: 'Shop',
+      label: 'Academy',
+      ariaLabel: 'Academy',
       icon: '/assets/ui/icons/icon_shop.png',
-      authenticatedRoute: '/shop',
+      authenticatedRoute: '/academy',
       publicRoute: null,
-      guide: false,
-      requiredFeatureUnlockKey: 'shop',
+      requiredFeatureUnlockKey: 'academy',
     },
     {
-      label: 'Guide',
-      ariaLabel: 'Field Guide',
+      label: 'Codex',
+      ariaLabel: 'Codex',
       icon: '/assets/ui/icons/icon_guide.png',
       authenticatedRoute: '/field-guide',
       publicRoute: '/guide',
-      guide: true,
     },
   ];
 
@@ -184,6 +178,18 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
 
   toggleMobileMenu(): void {
     this.mobileMenuOpen.update((open) => !open);
+  }
+
+  menuToggleLabel(): string {
+    return this.mobileMenuOpen() ? 'Close navigation menu' : 'Open navigation menu';
+  }
+
+  authActionLabel(): string {
+    return this.isAuthenticated() ? 'Logout' : 'Login';
+  }
+
+  authActionIcon(): string {
+    return this.isAuthenticated() ? '/assets/ui/icons/icon_logout.png' : '/assets/ui/icons/icon_home.png';
   }
 
   closeMobileMenu(): void {
