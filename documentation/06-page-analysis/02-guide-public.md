@@ -7,23 +7,19 @@ Component: `GuidePageComponent`
 ## UX Pieces
 
 - Global guest HUD with public-safe navigation behavior.
-- PageFrame header for `Field Guide`.
-- Guide hero section with chapter eyebrow, chapter title, chapter summary, and a `Quick Start` ordered list.
-- Chapter tab strip for `overview`, `warband`, `dice`, and `expeditions`.
-- Chapter-specific article blocks, tiles, callouts, and codex grids.
+- PageFrame header for `Guide`.
+- How-to-play hero with a quick ordered overview.
+- Guide sections for the base loop, combat stats, starter classes, dice basics, and map glossary.
 
 ## Data Displayed
 
-- Static guide chapter metadata including chapter kickers, titles, and summaries.
-- Static quick-start steps.
-- Feature unlock reference cards with name, cost, description, and acquired state when profile data is available.
+- Static guide loop steps.
+- Combat stat explanations for attack, defense, HP, and ability dice.
 - Node legend entries with node icon, name, and description.
-- Unit unlock codex data with unit name, role, tier, max level, summary, and art.
-- Unit codex roster entries with class info and summaries.
-- Dice family, die size, and affix reference data.
-- Expedition tips and rules text.
+- Starter unit class summaries with class info and art.
+- Dice family and die size reference data.
 
 ## Notes
 
-- This route uses the same component as the authenticated field guide.
-- In guest use, the page still functions as a readable codex even without live player progression context.
+- This route is separate from the authenticated `/codex` page.
+- The map glossary lives here instead of in the codex.

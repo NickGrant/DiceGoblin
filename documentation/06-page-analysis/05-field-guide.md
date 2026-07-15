@@ -1,21 +1,24 @@
-# Field Guide Page Analysis
+# Codex Page Analysis
 
-Route: `/field-guide`  
+Route: `/codex`  
 Auth: authenticated  
-Component: `GuidePageComponent`
+Component: `frontend/src/app/pages/codex-page/CodexPageComponent`
 
 ## UX Pieces
 
 - Shared authenticated HUD.
-- Same PageFrame, hero, quick-start, and tab-strip structure as the public guide.
-- Chapter-specific codex layouts for overview, warband, dice, and expeditions.
+- PageFrame and codex hero.
+- Vertical subnavigation in a two-column layout.
+- Category-specific layouts for feature unlocks, unit unlocks, affixes, enemies, and lore.
 
 ## Data Displayed
 
-- Everything listed on the public guide page.
-- Live acquired-state overlays when player profile data is available:
-  - feature unlock acquisition state
-  - unit unlock acquisition state
+- Progress snapshot metrics derived from player profile data.
+- Feature unlock acquisition state, with locked entries marked by a lock icon.
+- Unit unlock acquisition state, with locked sprite-backed entries shown as silhouettes.
+- Seen affixes inferred from owned dice.
+- Enemy records unlocked by cleared biomes, with locked sprite-backed entries shown as silhouettes.
+- Seen dialogue entries rendered as lore pages.
 - Shared HUD values:
   - energy
   - teeth
@@ -23,5 +26,5 @@ Component: `GuidePageComponent`
 
 ## Notes
 
-- This is the in-shell version of the guide.
-- The component doubles as both the public guide and authenticated field guide surface.
+- `/field-guide` is retained only as a legacy redirect to `/codex`.
+- The public `/guide` route is a separate how-to-play and map glossary page.

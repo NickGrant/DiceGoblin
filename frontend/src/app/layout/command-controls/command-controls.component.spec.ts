@@ -121,7 +121,7 @@ describe('CommandControlsComponent', () => {
     expect(audioDirector.toggleMute).toHaveBeenCalled();
   });
 
-  it('includes a guide link that routes directly to the field guide', () => {
+  it('includes a codex link that routes directly to the codex', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.componentInstance.mobileMenuOpen.set(true);
     fixture.detectChanges();
@@ -131,7 +131,7 @@ describe('CommandControlsComponent', () => {
       .find((debugElement) => debugElement.attributes['aria-label'] === 'Codex');
 
     expect(guideLink).toBeDefined();
-    expect(router.serializeUrl(guideLink!.injector.get(RouterLink).urlTree!)).toBe('/field-guide');
+    expect(router.serializeUrl(guideLink!.injector.get(RouterLink).urlTree!)).toBe('/codex');
   });
 
   it('stores the measured hud height in a shared CSS variable', () => {

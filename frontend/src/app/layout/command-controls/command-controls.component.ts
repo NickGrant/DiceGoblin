@@ -76,7 +76,7 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
       label: 'Codex',
       ariaLabel: 'Codex',
       icon: '/assets/ui/icons/icon_guide.png',
-      authenticatedRoute: '/field-guide',
+      authenticatedRoute: '/codex',
       publicRoute: '/guide',
     },
   ];

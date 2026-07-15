@@ -1,13 +1,8 @@
-import { ActivatedRoute } from '@angular/router';
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
-import { resolveCompletedRegionSlugs } from '../../core/regions/region-catalog';
-import { DiceAffixRecord } from '../../core/models/api.models';
+import { Component, OnInit, inject } from '@angular/core';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
-import { resolvePrototypeEnemySpriteUrl, resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
-
-type GuidePageVariant = 'public' | 'codex';
+import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 
 type GuideStep = {
   kicker: string;
@@ -55,65 +50,10 @@ type GuideDieSize = {
   summary: string;
 };
 
-type GuideBestiaryUnit = {
-  slug: string;
+type GuideCombatStat = {
   name: string;
-  biome: string;
-  role: string;
-  assetKey: string;
+  description: string;
 };
-
-type CodexMetric = {
-  label: string;
-  value: string;
-  detail: string;
-  progressPercent: number;
-};
-
-type CodexAffixEntry = GuideAffix & {
-  discovered: boolean;
-};
-
-type CodexEnemyEntry = GuideBestiaryUnit & {
-  discovered: boolean;
-};
-
-type CodexLoreEntry = {
-  id: string;
-  title: string;
-  summary: string;
-};
-
-const BIOME_GUIDE_UNITS: ReadonlyArray<GuideBestiaryUnit> = [
-  {
-    slug: 'kobold_skirmisher',
-    name: 'Kobold Skirmisher',
-    biome: 'Mountains',
-    role: 'Backline',
-    assetKey: 'kobold/skirmisher',
-  },
-  {
-    slug: 'kobold_shieldbearer',
-    name: 'Kobold Shieldbearer',
-    biome: 'Mountains',
-    role: 'Frontline',
-    assetKey: 'kobold/shieldbearer',
-  },
-  {
-    slug: 'kobold_sharpshooter',
-    name: 'Kobold Sharpshooter',
-    biome: 'Mountains',
-    role: 'Backline',
-    assetKey: 'kobold/sharpshooter',
-  },
-  {
-    slug: 'kobold_warchief',
-    name: 'Kobold Warchief',
-    biome: 'Mountains',
-    role: 'Backline',
-    assetKey: 'kobold/warchief',
-  },
-];
 
 const PUBLIC_GUIDE_STEPS: ReadonlyArray<GuideStep> = [
   {
@@ -133,8 +73,6 @@ const PUBLIC_GUIDE_STEPS: ReadonlyArray<GuideStep> = [
   },
 ];
 
-const GUIDE_UNIT_ANIMATION_INTERVAL_MS = 320;
-
 @Component({
   selector: 'app-guide-page',
   standalone: true,
@@ -142,23 +80,10 @@ const GUIDE_UNIT_ANIMATION_INTERVAL_MS = 320;
   templateUrl: './guide-page.component.html',
   styleUrl: './guide-page.component.scss',
 })
-export class GuidePageComponent implements OnInit, OnDestroy {
-  private readonly route = inject(ActivatedRoute);
+export class GuidePageComponent implements OnInit {
   private readonly sessionService = inject(SessionService);
-  private readonly guideUnitAnimationTimers = new Map<string, ReturnType<typeof window.setInterval>>();
 
-  protected readonly session = this.sessionService.session;
-  protected readonly profileData = this.sessionService.profileData;
-  protected readonly hasActiveRun = this.sessionService.hasActiveRun;
-  protected readonly guideUnitFrameIndexes = signal<Record<string, number>>({});
-  protected readonly variant = signal<GuidePageVariant>(this.resolveInitialVariant());
-
-  protected readonly isCodex = computed(() => this.variant() === 'codex');
-  protected readonly pageTitle = computed(() => (this.isCodex() ? 'Codex' : 'Guide'));
-  protected readonly pageSubtitle = computed(() => this.isCodex()
-    ? 'A living record of your unlocks, sightings, and discoveries.'
-    : 'A public how-to-play primer for squads, dice, and expeditions.');
-  protected readonly breadcrumbs = computed(() => [{ label: this.pageTitle() }]);
+  protected readonly breadcrumbs = [{ label: 'Guide' }];
 
   protected readonly unitUnlocks: ReadonlyArray<GuideUnit> = [
     {
@@ -270,193 +195,35 @@ export class GuidePageComponent implements OnInit, OnDestroy {
     { label: 'd20', image: this.diceImage('common', 20), summary: 'The biggest standard die, best suited to high-impact abilities and chase upgrades.' },
   ];
 
-  protected readonly completedBiomeSlugs = computed(() => resolveCompletedRegionSlugs(this.profileData()));
-
-  protected readonly discoveredBiomeUnits = computed(() => {
-    const completedBiomes = new Set(this.completedBiomeSlugs());
-    return BIOME_GUIDE_UNITS.filter((unit) => completedBiomes.has(this.normalizeBiomeSlug(unit.biome)));
-  });
-
-  protected readonly codexMetrics = computed<ReadonlyArray<CodexMetric>>(() => {
-    const profile = this.profileData();
-    const completedRegions = this.completedBiomeSlugs().length;
-    const unlockedFeatures = profile?.feature_unlocks.length ?? 0;
-    const unlockedUnits = profile?.unit_type_unlocks.length ?? 0;
-    const seenAffixes = this.discoveredAffixNames().size;
-    const loreCount = this.codexLoreEntries().length;
-
-    return [
-      {
-        label: 'Feature unlocks',
-        value: `${unlockedFeatures}/${this.unlocks.length}`,
-        detail: unlockedFeatures ? 'Permanent account upgrades recovered.' : 'No permanent account upgrades recorded yet.',
-        progressPercent: this.percent(unlockedFeatures, this.unlocks.length),
-      },
-      {
-        label: 'Starter classes',
-        value: `${unlockedUnits}/${this.unitUnlocks.length}`,
-        detail: unlockedUnits ? 'Base class lines currently available in your warband.' : 'Recruit more unit lines to expand promotions.',
-        progressPercent: this.percent(unlockedUnits, this.unitUnlocks.length),
-      },
-      {
-        label: 'Seen affixes',
-        value: `${seenAffixes}/${this.affixes.length}`,
-        detail: seenAffixes ? 'Affix language spotted on owned dice.' : 'Appraise more dice to fill in the affix archive.',
-        progressPercent: this.percent(seenAffixes, this.affixes.length),
-      },
-      {
-        label: 'Lore pages',
-        value: `${loreCount}`,
-        detail: loreCount ? 'Dialogue moments and discoveries logged to the archive.' : 'No lore entries logged yet.',
-        progressPercent: Math.min(100, loreCount * 20),
-      },
-      {
-        label: 'Defeated enemy types',
-        value: `${this.discoveredBiomeUnits().length}/${BIOME_GUIDE_UNITS.length}`,
-        detail: completedRegions ? `${completedRegions} cleared region${completedRegions === 1 ? '' : 's'} feeding the bestiary.` : 'Clear regions to confirm enemy records.',
-        progressPercent: this.percent(this.discoveredBiomeUnits().length, BIOME_GUIDE_UNITS.length),
-      },
-    ];
-  });
-
-  protected readonly codexAffixEntries = computed<ReadonlyArray<CodexAffixEntry>>(() => {
-    const discovered = this.discoveredAffixNames();
-    return this.affixes.map((affix) => ({
-      ...affix,
-      discovered: discovered.has(this.normalizeKey(affix.name)),
-    }));
-  });
-
-  protected readonly codexEnemyEntries = computed<ReadonlyArray<CodexEnemyEntry>>(() => {
-    const discovered = new Set(this.discoveredBiomeUnits().map((unit) => unit.slug));
-    return BIOME_GUIDE_UNITS.map((unit) => ({
-      ...unit,
-      discovered: discovered.has(unit.slug),
-    }));
-  });
-
-  protected readonly codexLoreEntries = computed<ReadonlyArray<CodexLoreEntry>>(() => {
-    const seenDialogues = Array.from(new Set(this.profileData()?.seen_dialogues ?? []));
-    return seenDialogues.map((entryId) => ({
-      id: entryId,
-      title: this.humanizeLabel(entryId),
-      summary: 'Recovered from camp dialogue, region story beats, or another codex-worthy encounter.',
-    }));
-  });
+  protected readonly combatStats: ReadonlyArray<GuideCombatStat> = [
+    {
+      name: 'Attack',
+      description: 'Raises outgoing damage from offensive abilities before the defender gets a say.',
+    },
+    {
+      name: 'Defense',
+      description: 'Softens incoming hits and makes durable frontliners much better at buying time.',
+    },
+    {
+      name: 'HP',
+      description: 'Determines how much punishment a unit can take before being defeated for the current run.',
+    },
+    {
+      name: 'Ability dice',
+      description: 'The die assigned to an ability contributes the roll value, while affixes bend the result toward damage, defense, or special payoff.',
+    },
+  ];
 
   ngOnInit(): void {
     void this.sessionService.initialize();
-  }
-
-  ngOnDestroy(): void {
-    for (const timer of this.guideUnitAnimationTimers.values()) {
-      window.clearInterval(timer);
-    }
-    this.guideUnitAnimationTimers.clear();
-  }
-
-  protected setVariant(variant: GuidePageVariant): void {
-    this.variant.set(variant);
-  }
-
-  protected hasAcquiredFeatureUnlock(unlockKey: string): boolean {
-    if (!this.session().isAuthenticated) {
-      return false;
-    }
-
-    return this.profileData()?.feature_unlocks.includes(unlockKey) ?? false;
-  }
-
-  protected hasAcquiredUnitUnlock(unitSlug: string): boolean {
-    if (!this.session().isAuthenticated) {
-      return false;
-    }
-
-    return this.profileData()?.unit_type_unlocks.includes(unitSlug) ?? false;
   }
 
   protected unitSpriteUrl(unitSlug: string): string {
     return resolvePrototypeUnitSpriteUrl(unitSlug);
   }
 
-  protected enemySpriteUrl(enemySlug: string): string {
-    return resolvePrototypeEnemySpriteUrl(enemySlug);
-  }
-
-  protected guideUnitFramePath(unit: GuideBestiaryUnit): string {
-    const frameIndex = this.guideUnitFrameIndexes()[unit.slug] ?? 0;
-    return `/assets/ui/units/animated/${unit.assetKey}/frame_${frameIndex}.png`;
-  }
-
-  protected startGuideUnitAnimation(unitSlug: string): void {
-    if (typeof window === 'undefined' || this.guideUnitAnimationTimers.has(unitSlug)) {
-      return;
-    }
-
-    this.guideUnitFrameIndexes.update((current) => ({ ...current, [unitSlug]: 1 }));
-    const timer = window.setInterval(() => {
-      this.guideUnitFrameIndexes.update((current) => {
-        const currentFrame = current[unitSlug] ?? 1;
-        const nextFrame = currentFrame >= 3 ? 1 : currentFrame + 1;
-        return { ...current, [unitSlug]: nextFrame };
-      });
-    }, GUIDE_UNIT_ANIMATION_INTERVAL_MS);
-    this.guideUnitAnimationTimers.set(unitSlug, timer);
-  }
-
-  protected stopGuideUnitAnimation(unitSlug: string): void {
-    const timer = this.guideUnitAnimationTimers.get(unitSlug);
-    if (timer) {
-      window.clearInterval(timer);
-      this.guideUnitAnimationTimers.delete(unitSlug);
-    }
-
-    this.guideUnitFrameIndexes.update((current) => ({ ...current, [unitSlug]: 0 }));
-  }
-
-  private resolveInitialVariant(): GuidePageVariant {
-    return this.route.snapshot.data['guideVariant'] === 'codex' ? 'codex' : 'public';
-  }
-
-  private discoveredAffixNames(): Set<string> {
-    return new Set(
-      (this.profileData()?.dice ?? [])
-        .flatMap((die) => die.affixes ?? [])
-        .map((affix) => this.affixKey(affix))
-        .filter((value): value is string => value.length > 0),
-    );
-  }
-
-  private affixKey(affix: DiceAffixRecord): string {
-    return this.normalizeKey(affix.name ?? affix.affix_slug ?? '');
-  }
-
-  private normalizeKey(value: string): string {
-    return value.trim().toLowerCase().replace(/\s+/g, '');
-  }
-
-  private humanizeLabel(value: string): string {
-    return value
-      .trim()
-      .replace(/[_-]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .replace(/\b\w/g, (match) => match.toUpperCase());
-  }
-
   private diceImage(rarity: string, sides: number): string {
     return resolveDiceArtStyles(rarity, sides, 96).imageUrl;
-  }
-
-  private normalizeBiomeSlug(value: string): string {
-    return value.trim().toLowerCase().replace(/\s+/g, '_');
-  }
-
-  private percent(value: number, total: number): number {
-    if (total <= 0) {
-      return 0;
-    }
-
-    return Math.max(0, Math.min(100, Math.round((value / total) * 100)));
   }
 
   protected readonly publicGuideSteps = PUBLIC_GUIDE_STEPS;

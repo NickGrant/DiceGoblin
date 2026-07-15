@@ -5,6 +5,7 @@ import { DicePageComponent } from './pages/dice-page/dice-page.component';
 import { LandingPageComponent } from './pages/landing-page/landing-page.component';
 import { HomePageComponent } from './pages/home-page/home-page.component';
 import { AcademyPageComponent } from './pages/academy-page/academy-page.component';
+import { CodexPageComponent } from './pages/codex-page/codex-page.component';
 import { GuidePageComponent } from './pages/guide-page/guide-page.component';
 import { RegionsPageComponent } from './pages/regions-page/regions-page.component';
 import { RunMapPageComponent } from './pages/run-map-page/run-map-page.component';
@@ -31,7 +32,6 @@ export const routes: Routes = [
     path: 'guide',
     component: GuidePageComponent,
     data: {
-      guideVariant: 'public',
       audio: {
         musicIntent: 'music.home',
       },
@@ -45,13 +45,13 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: HomePageComponent, data: { audio: { musicIntent: 'music.home' } } },
       {
-        path: 'field-guide',
-        component: GuidePageComponent,
+        path: 'codex',
+        component: CodexPageComponent,
         data: {
-          guideVariant: 'codex',
           audio: { musicIntent: 'music.home' },
         },
       },
+      { path: 'field-guide', redirectTo: 'codex', pathMatch: 'full' },
       {
         path: 'academy',
         component: AcademyPageComponent,

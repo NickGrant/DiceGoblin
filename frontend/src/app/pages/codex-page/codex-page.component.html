@@ -1,0 +1,194 @@
+<page-frame
+  [breadcrumbs]="breadcrumbs"
+  [title]="pageTitle"
+  [subtitle]="pageSubtitle"
+  headerVariant="guide"
+>
+  <section class="dg-proto-shell guide-page guide-page--codex">
+    <div class="guide-page__kpis">
+      @for (metric of codexMetrics(); track metric.label) {
+      <article class="dg-proto-kpi">
+        <div class="guide-page__kpi-heading">
+          <span>{{ metric.label }}</span>
+          <strong>{{ metric.value }}</strong>
+        </div>
+        <div class="dg-proto-progress" aria-hidden="true">
+          <div class="dg-proto-progress__fill" [style.width.%]="metric.progressPercent"></div>
+        </div>
+        <p class="guide-page__kpi-copy">{{ metric.detail }}</p>
+      </article>
+      }
+    </div>
+  
+
+    <div class="guide-page__codex-layout">
+      <nav class="guide-page__subnav" aria-label="Codex categories">
+        @for (category of categories; track category.key) {
+        <button
+          type="button"
+          class="guide-page__subnav-item"
+          [class.is-active]="activeCategory() === category.key"
+          [attr.aria-current]="activeCategory() === category.key ? 'page' : null"
+          (click)="setActiveCategory(category.key)"
+        >
+          {{ category.label }}
+        </button>
+        }
+      </nav>
+
+      <div class="guide-page__codex-content">
+    
+
+    @if (activeCategory() === 'features') {
+    <section class="dg-proto-section">
+      <div class="dg-proto-section__header">
+        <div>
+          <p class="dg-proto-section__eyebrow dg-stencil">Feature Unlocks</p>
+          <h3 class="dg-proto-section__title">Permanent account upgrades</h3>
+        </div>
+      </div>
+      <div class="dg-proto-divider" aria-hidden="true"></div>
+      <article class="dg-proto-card guide-page__guide-panel">
+        <div class="guide-page__stack">
+          @for (unlock of unlocks; track unlock.key) {
+          <div class="guide-page__mini-row">
+            @if (hasAcquiredFeatureUnlock(unlock.key)) {
+            <span class="dg-proto-chip dg-proto-chip--small">Seen</span>
+            } @else {
+            <span class="guide-page__lock-icon" aria-label="Locked feature">
+              <fa-icon [icon]="faLock" aria-hidden="true"></fa-icon>
+            </span>
+            }
+            <div>
+              <strong>{{ unlock.name }}</strong>
+              <p>{{ unlock.cost }} teeth - {{ unlock.description }}</p>
+            </div>
+          </div>
+          }
+        </div>
+      </article>
+    </section>
+    }
+
+    @if (activeCategory() === 'units') {
+    <section class="dg-proto-section">
+      <article class="dg-proto-card guide-page__guide-panel">
+        <div class="guide-page__stack">
+          @for (unit of unitUnlocks; track unit.slug) {
+          <div class="guide-page__mini-row">
+            <img
+              [src]="unitSpriteUrl(unit.slug)"
+              [alt]="unit.name"
+              class="dg-proto-sprite dg-proto-sprite--sm"
+              [class.guide-page__sprite--silhouette]="!hasAcquiredUnitUnlock(unit.slug)"
+            />
+            <div>
+              <strong>{{ hasAcquiredUnitUnlock(unit.slug) ? unit.name : 'Unknown Class' }}</strong>
+              <p>{{ hasAcquiredUnitUnlock(unit.slug) ? 'Unlocked' : 'Locked' }} - {{ unit.role }}</p>
+            </div>
+          </div>
+          }
+        </div>
+      </article>
+    </section>
+    }
+
+    @if (activeCategory() === 'affixes') {
+    <section class="dg-proto-section">
+      <div class="dg-proto-section__header">
+        <div>
+          <p class="dg-proto-section__eyebrow dg-stencil">Affix Archive</p>
+          <h3 class="dg-proto-section__title">Seen affixes and their current definitions</h3>
+        </div>
+      </div>
+      <div class="dg-proto-divider" aria-hidden="true"></div>
+      <div class="dg-proto-grid dg-proto-grid--three">
+        @for (affix of codexAffixEntries(); track affix.name) {
+        <article class="dg-proto-card" [class.dg-proto-card--locked]="!affix.discovered">
+          <span class="dg-proto-chip dg-proto-chip--small">{{ affix.discovered ? affix.rarity : 'Locked' }}</span>
+          <h4 class="dg-proto-card__title">{{ affix.discovered ? affix.name : 'Unknown Affix' }}</h4>
+          <p class="dg-proto-card__copy">
+            {{ affix.discovered ? affix.description : 'Recover or buy more dice to reveal this affix entry.' }}
+          </p>
+        </article>
+        }
+      </div>
+    </section>
+    }
+
+    @if (activeCategory() === 'enemies') {
+    <section class="dg-proto-section">
+      <div class="dg-proto-section__header">
+        <div>
+          <p class="dg-proto-section__eyebrow dg-stencil">Enemy Record</p>
+          <h3 class="dg-proto-section__title">Defeated enemy types by cleared biome</h3>
+        </div>
+      </div>
+      <div class="dg-proto-divider" aria-hidden="true"></div>
+      <div class="dg-proto-list">
+        @for (unit of codexEnemyEntries(); track unit.slug) {
+        <article
+          class="dg-proto-row guide-page__enemy-row"
+          [class.guide-page__enemy-row--locked]="!unit.discovered"
+          (mouseenter)="unit.discovered && startGuideUnitAnimation(unit.slug)"
+          (mouseleave)="stopGuideUnitAnimation(unit.slug)"
+          (focusin)="unit.discovered && startGuideUnitAnimation(unit.slug)"
+          (focusout)="stopGuideUnitAnimation(unit.slug)"
+          tabindex="0"
+        >
+          <div class="dg-proto-row__media">
+            <img
+              [src]="unit.discovered ? guideUnitFramePath(unit) : enemySpriteUrl(unit.slug)"
+              [alt]="unit.discovered ? unit.name : 'Unknown enemy silhouette'"
+              class="dg-proto-sprite dg-proto-sprite--lg"
+              [class.guide-page__sprite--silhouette]="!unit.discovered"
+            />
+            <div>
+              <h4 class="dg-proto-card__title">{{ unit.discovered ? unit.name : 'Unknown Enemy' }}</h4>
+              <p class="dg-proto-card__meta">{{ unit.biome }} - {{ unit.role }}</p>
+            </div>
+          </div>
+          <p class="dg-proto-card__copy">
+            {{
+              unit.discovered
+                ? 'Cleared biome data confirms this enemy type in the field record.'
+                : 'Complete the matching biome to confirm this enemy entry.'
+            }}
+          </p>
+        </article>
+        }
+      </div>
+    </section>
+    }
+
+    @if (activeCategory() === 'lore') {
+    <section class="dg-proto-section">
+      <div class="dg-proto-section__header">
+        <div>
+          <p class="dg-proto-section__eyebrow dg-stencil">Lore Archive</p>
+          <h3 class="dg-proto-section__title">Unlocked story beats and dialogue fragments</h3>
+        </div>
+      </div>
+      <div class="dg-proto-divider" aria-hidden="true"></div>
+      @if (codexLoreEntries().length) {
+      <div class="dg-proto-grid dg-proto-grid--cards">
+        @for (entry of codexLoreEntries(); track entry.id) {
+        <article class="dg-proto-card guide-page__lore-card">
+          <span class="dg-proto-chip dg-proto-chip--small">Seen</span>
+          <h4 class="dg-proto-card__title">{{ entry.title }}</h4>
+          <p class="dg-proto-card__copy">{{ entry.summary }}</p>
+        </article>
+        }
+      </div>
+      } @else {
+      <article class="dg-proto-card dg-proto-card--locked guide-page__empty-card">
+        <h4 class="dg-proto-card__title">No lore pages unlocked yet</h4>
+        <p class="dg-proto-card__copy">Seen dialogue entries will appear here once this account starts uncovering story moments.</p>
+      </article>
+      }
+    </section>
+    }
+      </div>
+    </div>
+  </section>
+</page-frame>

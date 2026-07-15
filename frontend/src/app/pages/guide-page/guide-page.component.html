@@ -1,27 +1,26 @@
 <page-frame
-  [breadcrumbs]="breadcrumbs()"
-  [title]="pageTitle()"
-  [subtitle]="pageSubtitle()"
+  [breadcrumbs]="breadcrumbs"
+  title="Guide"
+  subtitle="How to play, how combat reads your stats, and what the run map icons mean."
   headerVariant="guide"
 >
-  <section class="dg-proto-shell guide-page" [class.guide-page--codex]="isCodex()">
-    @if (!isCodex()) {
+  <section class="dg-proto-shell guide-page">
     <header class="dg-proto-hero guide-page__hero">
       <div class="guide-page__hero-copy">
-        <p class="dg-proto-hero__eyebrow dg-stencil">Public Guide</p>
-        <h2 class="dg-proto-hero__title">Learn the loop before you log in.</h2>
+        <p class="dg-proto-hero__eyebrow dg-stencil">How To Play</p>
+        <h2 class="dg-proto-hero__title">Build a squad, equip dice, survive the route, spend the loot.</h2>
         <p class="dg-proto-hero__copy">
-          Dice Goblins is a squad-building run game. You recruit unit lines, wire strong dice into abilities, and survive expeditions long
-          enough to come home with permanent gains.
+          Dice Goblins is a squad-building run game. Most decisions happen before and after expeditions: who joins the squad, where they
+          stand, which dice power their abilities, and what upgrades you buy before the next attempt.
         </p>
       </div>
 
       <div class="guide-page__hero-panel">
-        <span class="dg-proto-chip">Works Logged Out</span>
+        <span class="dg-proto-chip">Public Guide</span>
         <ol class="guide-page__sequence">
-          <li>Set a formation that can survive the front row.</li>
-          <li>Prioritize dice on your best actives and clutch support skills.</li>
-          <li>Use each run to unlock more classes, more shop power, and better tools.</li>
+          <li>Assemble a squad with a front row that can hold and a back row that can finish fights.</li>
+          <li>Equip dice to the abilities that matter most for your plan.</li>
+          <li>Choose a region, push through nodes, then return home with rewards and upgrades.</li>
         </ol>
       </div>
     </header>
@@ -29,7 +28,7 @@
     <section class="dg-proto-section">
       <div class="dg-proto-section__header">
         <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Core Loop</p>
+          <p class="dg-proto-section__eyebrow dg-stencil">Base Loop</p>
           <h3 class="dg-proto-section__title">What a successful account keeps doing</h3>
         </div>
       </div>
@@ -40,6 +39,24 @@
           <span class="dg-proto-chip dg-proto-chip--small">{{ step.kicker }}</span>
           <h4 class="dg-proto-card__title">{{ step.title }}</h4>
           <p class="dg-proto-card__copy">{{ step.summary }}</p>
+        </article>
+        }
+      </div>
+    </section>
+
+    <section class="dg-proto-section">
+      <div class="dg-proto-section__header">
+        <div>
+          <p class="dg-proto-section__eyebrow dg-stencil">Combat Stats</p>
+          <h3 class="dg-proto-section__title">How numbers turn into battle results</h3>
+        </div>
+      </div>
+      <div class="dg-proto-divider" aria-hidden="true"></div>
+      <div class="dg-proto-grid dg-proto-grid--cards">
+        @for (stat of combatStats; track stat.name) {
+        <article class="dg-proto-card guide-page__stat-card">
+          <h4 class="dg-proto-card__title">{{ stat.name }}</h4>
+          <p class="dg-proto-card__copy">{{ stat.description }}</p>
         </article>
         }
       </div>
@@ -96,254 +113,6 @@
         </article>
 
         <article class="dg-proto-card guide-page__guide-panel">
-          <h4 class="dg-proto-card__title">Affix language to recognize</h4>
-          <div class="guide-page__stack">
-            @for (affix of affixes; track affix.name) {
-            <div class="guide-page__mini-row guide-page__mini-row--text">
-              <div>
-                <strong>{{ affix.name }}</strong>
-                <p>{{ affix.rarity }} - {{ affix.description }}</p>
-              </div>
-            </div>
-            }
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Expeditions</p>
-          <h3 class="dg-proto-section__title">Read the map before greed takes over</h3>
-        </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-      <div class="dg-proto-grid dg-proto-grid--cards">
-        @for (node of nodes; track node.name) {
-        <article class="dg-proto-card guide-page__node-card">
-          <div class="dg-proto-card__media">
-            <img [src]="node.icon" [alt]="node.name + ' icon'" class="guide-page__node-icon" />
-          </div>
-          <h4 class="dg-proto-card__title">{{ node.name }}</h4>
-          <p class="dg-proto-card__copy">{{ node.description }}</p>
-        </article>
-        }
-      </div>
-    </section>
-    } @else {
-    <header class="dg-proto-hero guide-page__hero guide-page__hero--codex">
-      <div class="guide-page__hero-copy">
-        <p class="dg-proto-hero__eyebrow dg-stencil">Authenticated Codex</p>
-        <h2 class="dg-proto-hero__title">Track what this account has actually uncovered.</h2>
-        <p class="dg-proto-hero__copy">
-          This codex turns your current save into a readable archive: unlocks, affixes you have seen, enemy records earned through cleared
-          regions, and lore entries pulled from seen dialogue.
-        </p>
-      </div>
-
-      <div class="guide-page__hero-panel">
-        <span class="dg-proto-chip">{{ hasActiveRun() ? 'Run Active' : 'Run Idle' }}</span>
-        <p class="guide-page__hero-note">
-          @if (profileData()?.active_run?.region_name) {
-          Current expedition: {{ profileData()?.active_run?.region_name }}
-          } @else {
-          No expedition is active. Use this page to spot your biggest gaps before the next run.
-          }
-        </p>
-      </div>
-    </header>
-
-    <section class="dg-proto-split">
-      <section class="dg-proto-section">
-        <div class="dg-proto-section__header">
-          <div>
-            <p class="dg-proto-section__eyebrow dg-stencil">Progress Snapshot</p>
-            <h3 class="dg-proto-section__title">What this file knows about your progress</h3>
-          </div>
-        </div>
-        <div class="dg-proto-divider" aria-hidden="true"></div>
-        <div class="guide-page__kpis">
-          @for (metric of codexMetrics(); track metric.label) {
-          <article class="dg-proto-kpi">
-            <span>{{ metric.label }}</span>
-            <strong>{{ metric.value }}</strong>
-            <div class="dg-proto-progress" aria-hidden="true">
-              <div class="dg-proto-progress__fill" [style.width.%]="metric.progressPercent"></div>
-            </div>
-            <p class="guide-page__kpi-copy">{{ metric.detail }}</p>
-          </article>
-          }
-        </div>
-      </section>
-
-      <aside class="dg-proto-sidebar guide-page__sidebar">
-        <p class="dg-proto-section__eyebrow dg-stencil">Archive Rules</p>
-        <h3 class="guide-page__sidebar-title">How entries unlock right now</h3>
-        <div class="guide-page__stack">
-          <p>Feature upgrades are recorded from your permanent profile unlock list.</p>
-          <p>Affix discoveries are inferred from affixes currently attached to owned dice.</p>
-          <p>Enemy records appear after clearing the matching biome.</p>
-          <p>Lore pages use dialogue entries already marked seen on the account.</p>
-        </div>
-      </aside>
-    </section>
-
-    <section class="dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Unlock Ledger</p>
-          <h3 class="dg-proto-section__title">Permanent upgrades and class lines</h3>
-        </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-      <div class="dg-proto-grid dg-proto-grid--two">
-        <article class="dg-proto-card guide-page__guide-panel">
-          <h4 class="dg-proto-card__title">Feature unlocks</h4>
-          <div class="guide-page__stack">
-            @for (unlock of unlocks; track unlock.key) {
-            <div class="guide-page__mini-row">
-              <span class="dg-proto-chip dg-proto-chip--small">{{ hasAcquiredFeatureUnlock(unlock.key) ? 'Seen' : 'Locked' }}</span>
-              <div>
-                <strong>{{ unlock.name }}</strong>
-                <p>{{ unlock.cost }} teeth - {{ unlock.description }}</p>
-              </div>
-            </div>
-            }
-          </div>
-        </article>
-
-        <article class="dg-proto-card guide-page__guide-panel">
-          <h4 class="dg-proto-card__title">Starter class roster</h4>
-          <div class="guide-page__stack">
-            @for (unit of unitUnlocks; track unit.slug) {
-            <div class="guide-page__mini-row">
-              <img [src]="unitSpriteUrl(unit.slug)" [alt]="unit.name" class="dg-proto-sprite dg-proto-sprite--sm" />
-              <div>
-                <strong>{{ unit.name }}</strong>
-                <p>{{ hasAcquiredUnitUnlock(unit.slug) ? 'Unlocked' : 'Locked' }} - {{ unit.role }} - {{ unit.summary }}</p>
-              </div>
-            </div>
-            }
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Affix Archive</p>
-          <h3 class="dg-proto-section__title">Seen affixes and their current definitions</h3>
-        </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-      <div class="dg-proto-grid dg-proto-grid--three">
-        @for (affix of codexAffixEntries(); track affix.name) {
-        <article class="dg-proto-card" [class.dg-proto-card--locked]="!affix.discovered">
-          <span class="dg-proto-chip dg-proto-chip--small">{{ affix.discovered ? affix.rarity : 'Locked' }}</span>
-          <h4 class="dg-proto-card__title">{{ affix.discovered ? affix.name : 'Unknown Affix' }}</h4>
-          <p class="dg-proto-card__copy">
-            {{ affix.discovered ? affix.description : 'Recover or buy more dice to reveal this affix entry.' }}
-          </p>
-        </article>
-        }
-      </div>
-    </section>
-
-    <section class="dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Enemy Record</p>
-          <h3 class="dg-proto-section__title">Defeated enemy types by cleared biome</h3>
-        </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-      <div class="dg-proto-list">
-        @for (unit of codexEnemyEntries(); track unit.slug) {
-        <article
-          class="dg-proto-row guide-page__enemy-row"
-          [class.guide-page__enemy-row--locked]="!unit.discovered"
-          (mouseenter)="unit.discovered && startGuideUnitAnimation(unit.slug)"
-          (mouseleave)="stopGuideUnitAnimation(unit.slug)"
-          (focusin)="unit.discovered && startGuideUnitAnimation(unit.slug)"
-          (focusout)="stopGuideUnitAnimation(unit.slug)"
-          tabindex="0"
-        >
-          <div class="dg-proto-row__media">
-            <img
-              [src]="unit.discovered ? guideUnitFramePath(unit) : enemySpriteUrl(unit.slug)"
-              [alt]="unit.discovered ? unit.name : 'Unknown enemy silhouette'"
-              class="dg-proto-sprite dg-proto-sprite--lg"
-            />
-            <div>
-              <h4 class="dg-proto-card__title">{{ unit.discovered ? unit.name : 'Unknown Enemy' }}</h4>
-              <p class="dg-proto-card__meta">{{ unit.biome }} - {{ unit.role }}</p>
-            </div>
-          </div>
-          <p class="dg-proto-card__copy">
-            {{
-              unit.discovered
-                ? 'Cleared biome data confirms this enemy type in the field record.'
-                : 'Complete the matching biome to confirm this enemy entry.'
-            }}
-          </p>
-        </article>
-        }
-      </div>
-    </section>
-
-    <section class="dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Lore Archive</p>
-          <h3 class="dg-proto-section__title">Unlocked story beats and dialogue fragments</h3>
-        </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-      @if (codexLoreEntries().length) {
-      <div class="dg-proto-grid dg-proto-grid--cards">
-        @for (entry of codexLoreEntries(); track entry.id) {
-        <article class="dg-proto-card guide-page__lore-card">
-          <span class="dg-proto-chip dg-proto-chip--small">Seen</span>
-          <h4 class="dg-proto-card__title">{{ entry.title }}</h4>
-          <p class="dg-proto-card__copy">{{ entry.summary }}</p>
-        </article>
-        }
-      </div>
-      } @else {
-      <article class="dg-proto-card dg-proto-card--locked guide-page__empty-card">
-        <h4 class="dg-proto-card__title">No lore pages unlocked yet</h4>
-        <p class="dg-proto-card__copy">Seen dialogue entries will appear here once this account starts uncovering story moments.</p>
-      </article>
-      }
-    </section>
-
-    <section class="dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Reference</p>
-          <h3 class="dg-proto-section__title">Map node legend and die size ladder</h3>
-        </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-      <div class="dg-proto-grid dg-proto-grid--two">
-        <article class="dg-proto-card guide-page__guide-panel">
-          <h4 class="dg-proto-card__title">Encounter icons</h4>
-          <div class="guide-page__stack">
-            @for (node of nodes; track node.name) {
-            <div class="guide-page__mini-row">
-              <img [src]="node.icon" [alt]="node.name + ' icon'" class="guide-page__node-icon guide-page__node-icon--small" />
-              <div>
-                <strong>{{ node.name }}</strong>
-                <p>{{ node.description }}</p>
-              </div>
-            </div>
-            }
-          </div>
-        </article>
-
-        <article class="dg-proto-card guide-page__guide-panel">
           <h4 class="dg-proto-card__title">Standard die sizes</h4>
           <div class="guide-page__stack">
             @for (die of dieSizes; track die.label) {
@@ -359,6 +128,26 @@
         </article>
       </div>
     </section>
-    }
+
+    <section class="dg-proto-section">
+      <div class="dg-proto-section__header">
+        <div>
+          <p class="dg-proto-section__eyebrow dg-stencil">Map Glossary</p>
+          <h3 class="dg-proto-section__title">Read the route before greed takes over</h3>
+        </div>
+      </div>
+      <div class="dg-proto-divider" aria-hidden="true"></div>
+      <div class="dg-proto-grid dg-proto-grid--cards">
+        @for (node of nodes; track node.name) {
+        <article class="dg-proto-card guide-page__node-card">
+          <div class="dg-proto-card__media">
+            <img [src]="node.icon" [alt]="node.name + ' icon'" class="guide-page__node-icon" />
+          </div>
+          <h4 class="dg-proto-card__title">{{ node.name }}</h4>
+          <p class="dg-proto-card__copy">{{ node.description }}</p>
+        </article>
+        }
+      </div>
+    </section>
   </section>
 </page-frame>
