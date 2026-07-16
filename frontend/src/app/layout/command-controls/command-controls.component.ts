@@ -12,7 +12,7 @@ type HudNavItem = {
   readonly icon: string;
   readonly authenticatedRoute: string;
   readonly publicRoute: string | null;
-  readonly requiredFeatureUnlockKey?: string | null;
+  readonly isVisible: () => boolean;
 };
 
 @Component({
@@ -49,20 +49,23 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
       icon: '/assets/ui/icons/icon_home.png',
       authenticatedRoute: '/home',
       publicRoute: '/login',
+      isVisible: () => true,
     },
     {
-      label: 'Battle Crew',
-      ariaLabel: 'Battle Crew',
+      label: 'Warband',
+      ariaLabel: 'Warband',
       icon: '/assets/ui/icons/icon_warband.png',
       authenticatedRoute: '/warband',
       publicRoute: null,
+      isVisible: () => this.isAuthenticated(),
     },
     {
-      label: 'Pack',
-      ariaLabel: 'Pack',
+      label: 'Inventory',
+      ariaLabel: 'Inventory',
       icon: '/assets/ui/icons/icon_inventory.png',
       authenticatedRoute: '/dice',
       publicRoute: null,
+      isVisible: () => this.isAuthenticated(),
     },
     {
       label: 'Academy',
@@ -70,16 +73,27 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
       icon: '/assets/ui/icons/icon_shop.png',
       authenticatedRoute: '/academy',
       publicRoute: null,
-      requiredFeatureUnlockKey: 'academy',
+      isVisible: () =>
+        this.isAuthenticated() && this.sessionService.featureUnlocks().includes('academy'),
+    },
+    {
+      label: 'Guide',
+      ariaLabel: 'Guide',
+      icon: '/assets/ui/icons/icon_guide.png',
+      authenticatedRoute: '/guide',
+      publicRoute: '/guide',
+      isVisible: () => true,
     },
     {
       label: 'Codex',
       ariaLabel: 'Codex',
       icon: '/assets/ui/icons/icon_guide.png',
       authenticatedRoute: '/codex',
-      publicRoute: '/guide',
+      publicRoute: null,
+      isVisible: () => this.isAuthenticated(),
     },
   ];
+  readonly visibleNavItems = computed(() => this.navItems.filter((item) => item.isVisible()));
 
   ngAfterViewInit(): void {
     this.syncHudHeight();
@@ -143,32 +157,8 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
     return this.audioMuted() ? this.faVolumeXmark : this.faVolumeHigh;
   }
 
-  isNavItemEnabled(item: HudNavItem): boolean {
-    if (!this.isAuthenticated()) {
-      return item.publicRoute !== null;
-    }
-
-    if (item.requiredFeatureUnlockKey) {
-      return this.sessionService.featureUnlocks().includes(item.requiredFeatureUnlockKey);
-    }
-
-    return true;
-  }
-
   navRoute(item: HudNavItem): string {
     return this.isAuthenticated() ? item.authenticatedRoute : (item.publicRoute ?? '/login');
-  }
-
-  navDisabledLabel(item: HudNavItem): string {
-    if (!this.isAuthenticated()) {
-      return item.ariaLabel + ' unavailable until you sign in';
-    }
-
-    if (item.requiredFeatureUnlockKey === 'shop') {
-      return item.ariaLabel + ' unavailable until you defeat The Farm';
-    }
-
-    return item.ariaLabel + ' unavailable';
   }
 
   login(): void {

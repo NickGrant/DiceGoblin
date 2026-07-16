@@ -100,7 +100,7 @@ describe('CommandControlsComponent', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('.floating-header__audio') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.audio-control') as HTMLButtonElement;
     button.click();
     await fixture.whenStable();
 
@@ -114,7 +114,7 @@ describe('CommandControlsComponent', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('.floating-header__audio') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.audio-control') as HTMLButtonElement;
     button.click();
     await fixture.whenStable();
 
@@ -132,6 +132,19 @@ describe('CommandControlsComponent', () => {
 
     expect(guideLink).toBeDefined();
     expect(router.serializeUrl(guideLink!.injector.get(RouterLink).urlTree!)).toBe('/codex');
+  });
+
+  it('includes a guide link that routes directly to the guide', () => {
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.componentInstance.mobileMenuOpen.set(true);
+    fixture.detectChanges();
+
+    const guideLink = fixture.debugElement
+      .queryAll(By.directive(RouterLink))
+      .find((debugElement) => debugElement.attributes['aria-label'] === 'Guide');
+
+    expect(guideLink).toBeDefined();
+    expect(router.serializeUrl(guideLink!.injector.get(RouterLink).urlTree!)).toBe('/guide');
   });
 
   it('stores the measured hud height in a shared CSS variable', () => {
@@ -158,7 +171,7 @@ describe('CommandControlsComponent', () => {
     fixture.componentInstance.mobileMenuOpen.set(true);
     fixture.detectChanges();
 
-    const buttons = fixture.nativeElement.querySelectorAll('.floating-header__menu-item--action') as NodeListOf<HTMLButtonElement>;
+    const buttons = fixture.nativeElement.querySelectorAll('.menu-item-action') as NodeListOf<HTMLButtonElement>;
     const button = buttons[0];
     button.click();
     await fixture.whenStable();
@@ -171,42 +184,54 @@ describe('CommandControlsComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.floating-header')).not.toBeNull();
-    expect(window.getComputedStyle(compiled.querySelector('.floating-header__bar') as HTMLElement).backgroundImage).toContain('floating-header-bar.png');
-    expect(compiled.querySelector('.floating-header__toggle-box')).not.toBeNull();
-    expect(compiled.querySelector('.floating-header__toggle-inner')).not.toBeNull();
+    expect(window.getComputedStyle(compiled).backgroundImage).toContain('floating-header-bar.png');
+    expect(compiled.querySelector('.slots')).not.toBeNull();
+    expect(compiled.querySelector('.menu-toggle-box')).not.toBeNull();
+    expect(compiled.querySelector('.menu-toggle-inner')).not.toBeNull();
   });
 
   it('opens a labeled dropdown menu from the arrow toggle', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
-    const toggle = fixture.nativeElement.querySelector('.floating-header__toggle') as HTMLButtonElement;
+    const toggle = fixture.nativeElement.querySelector('.menu-toggle') as HTMLButtonElement;
     toggle.click();
     fixture.detectChanges();
 
-    const menu = fixture.nativeElement.querySelector('.floating-header__menu') as HTMLElement | null;
+    const menu = fixture.nativeElement.querySelector('.menu') as HTMLElement | null;
     expect(menu).not.toBeNull();
     expect(toggle.classList.contains('is-active')).toBeTrue();
     expect(menu?.textContent).toContain('Home');
-    expect(menu?.textContent).toContain('Battle Crew');
-    expect(menu?.textContent).toContain('Pack');
-    expect(menu?.textContent).toContain('Academy');
+    expect(menu?.textContent).toContain('Warband');
+    expect(menu?.textContent).toContain('Inventory');
+    expect(menu?.textContent).not.toContain('Academy');
+    expect(menu?.textContent).toContain('Guide');
     expect(menu?.textContent).toContain('Codex');
     expect(menu?.textContent).toContain('Logout');
   });
 
-  it('disables the academy menu item until the unlock is earned', () => {
+  it('hides the academy menu item until the unlock is earned', () => {
     sessionService.featureUnlocks.set([]);
 
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.componentInstance.mobileMenuOpen.set(true);
     fixture.detectChanges();
 
-    const disabledItems = Array.from(fixture.nativeElement.querySelectorAll('.floating-header__menu [aria-disabled="true"]')) as HTMLElement[];
-    const academyItem = disabledItems.find((item) => item.getAttribute('aria-label')?.includes('Academy unavailable'));
+    const compiled = fixture.nativeElement as HTMLElement;
+    const academyItem = compiled.querySelector('.menu [aria-label="Academy"]');
 
-    expect(academyItem).toBeDefined();
+    expect(academyItem).toBeNull();
+  });
+
+  it('shows the academy menu item after the unlock is earned', () => {
+    sessionService.featureUnlocks.set(['academy']);
+
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.componentInstance.mobileMenuOpen.set(true);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.menu [aria-label="Academy"]')).not.toBeNull();
   });
 
   it('closes the dropdown after tapping a menu link', () => {
@@ -217,14 +242,14 @@ describe('CommandControlsComponent', () => {
     component.mobileMenuOpen.set(true);
     fixture.detectChanges();
 
-    const mobileLink = fixture.nativeElement.querySelector('.floating-header__menu a') as HTMLAnchorElement;
+    const mobileLink = fixture.nativeElement.querySelector('.menu a') as HTMLAnchorElement;
     mobileLink.click();
     fixture.detectChanges();
 
     expect(component.mobileMenuOpen()).toBeFalse();
   });
 
-  it('shows login on the lock button and disables protected navigation items when not authenticated', () => {
+  it('shows login and hides authenticated routes when not authenticated', () => {
     sessionService.session.set({
       isAuthenticated: false,
       displayName: 'Visitor',
@@ -235,9 +260,14 @@ describe('CommandControlsComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.floating-header__name')?.textContent).toContain('Guest');
-    expect(compiled.querySelector('.floating-header__slot--energy')?.textContent).toContain('--');
-    expect(compiled.querySelectorAll('.floating-header__menu [aria-disabled="true"]').length).toBe(3);
-    expect(compiled.querySelector('.floating-header__menu-item--action')?.textContent).toContain('Login');
+    expect(compiled.querySelector('.slot-name')?.textContent).toContain('Guest');
+    expect(compiled.querySelector('.slot-energy')?.textContent).toContain('--');
+    expect(compiled.querySelector('.menu [aria-label="Warband"]')).toBeNull();
+    expect(compiled.querySelector('.menu [aria-label="Inventory"]')).toBeNull();
+    expect(compiled.querySelector('.menu [aria-label="Academy"]')).toBeNull();
+    expect(compiled.querySelector('.menu [aria-label="Home"]')).not.toBeNull();
+    expect(compiled.querySelector('.menu [aria-label="Guide"]')).not.toBeNull();
+    expect(compiled.querySelector('.menu [aria-label="Codex"]')).toBeNull();
+    expect(compiled.querySelector('.menu-item-action')?.textContent).toContain('Login');
   });
 });

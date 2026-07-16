@@ -1,21 +1,24 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faLock } from '@fortawesome/free-solid-svg-icons';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import { faBullseye, faFlag, faHandFist, faLock, faShieldHalved, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { resolveCompletedRegionSlugs } from '../../core/regions/region-catalog';
 import { DiceAffixRecord } from '../../core/models/api.models';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { resolvePrototypeEnemySpriteUrl, resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
+import { resolvePrototypeEnemySpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 
 type CodexCategory = 'features' | 'units' | 'affixes' | 'enemies' | 'lore';
 
-type GuideUnit = {
+type CodexUnit = {
   name: string;
   slug: string;
   role: string;
   tier: number;
-  maxLevel: number;
-  summary: string;
+  description: string;
+  cost: number;
+  children?: ReadonlyArray<CodexUnit>;
 };
 
 type GuideAffix = {
@@ -92,11 +95,176 @@ const BIOME_GUIDE_UNITS: ReadonlyArray<GuideBestiaryUnit> = [
 ];
 
 const GUIDE_UNIT_ANIMATION_INTERVAL_MS = 320;
+const TIER_ONE_UNIT_COST = 250;
+const PROMOTED_UNIT_COST = 500;
+
+const UNIT_TREE: ReadonlyArray<CodexUnit> = [
+  {
+    name: 'Bruiser',
+    slug: 'frontline_bruiser_t1',
+    role: 'Frontline',
+    tier: 1,
+    cost: TIER_ONE_UNIT_COST,
+    description: 'A durable frontliner built to absorb hits and keep pressure on the enemy line.',
+    children: [
+      {
+        name: 'Enforcer',
+        slug: 'frontline_bruiser_t2',
+        role: 'Frontline',
+        tier: 2,
+        cost: PROMOTED_UNIT_COST,
+        description: 'An upgraded bruiser branch that leans into heavier execution damage and frontline pressure.',
+        children: [
+          {
+            name: 'Juggernaut',
+            slug: 'frontline_bruiser_t3',
+            role: 'Frontline',
+            tier: 3,
+            cost: PROMOTED_UNIT_COST,
+            description: 'A deep bruiser promotion that commits fully to punishing pressure and frontline dominance.',
+          },
+        ],
+      },
+      {
+        name: 'Pit Fighter',
+        slug: 'frontline_pit_fighter_t2',
+        role: 'Frontline',
+        tier: 2,
+        cost: PROMOTED_UNIT_COST,
+        description: 'A risky brawler branch that cashes in on wounded states, counters, and comeback turns.',
+      },
+    ],
+  },
+  {
+    name: 'Guardian',
+    slug: 'frontline_guardian_t1',
+    role: 'Frontline',
+    tier: 1,
+    cost: TIER_ONE_UNIT_COST,
+    description: 'A shield-first defender that trades damage for stronger protection and staying power.',
+    children: [
+      {
+        name: 'Bulwark',
+        slug: 'frontline_guardian_t2',
+        role: 'Frontline',
+        tier: 2,
+        cost: PROMOTED_UNIT_COST,
+        description: 'A fortified guardian branch that specializes in tanking, guard conversion, and line-holding.',
+        children: [
+          {
+            name: 'Ironwall',
+            slug: 'frontline_guardian_t3',
+            role: 'Frontline',
+            tier: 3,
+            cost: PROMOTED_UNIT_COST,
+            description: 'A deep guardian promotion built around maximum line control and defensive staying power.',
+          },
+        ],
+      },
+      {
+        name: 'Shieldbreaker',
+        slug: 'frontline_shieldbreaker_t2',
+        role: 'Frontline',
+        tier: 2,
+        cost: PROMOTED_UNIT_COST,
+        description: 'An anti-armor frontline branch built to crack defenses open for the squad.',
+      },
+    ],
+  },
+  {
+    name: 'Marksman',
+    slug: 'backline_marksman_t1',
+    role: 'Backline',
+    tier: 1,
+    cost: TIER_ONE_UNIT_COST,
+    description: 'A ranged damage dealer that thrives from the back row with steady offensive pressure.',
+    children: [
+      {
+        name: 'Deadeye',
+        slug: 'backline_marksman_t2',
+        role: 'Backline',
+        tier: 2,
+        cost: PROMOTED_UNIT_COST,
+        description: 'A precision ranged branch focused on single-target removal and armor-piercing shots.',
+        children: [
+          {
+            name: 'Sharpshot',
+            slug: 'backline_marksman_t3',
+            role: 'Backline',
+            tier: 3,
+            cost: PROMOTED_UNIT_COST,
+            description: 'A deep marksman promotion that turns backline pressure into lethal precision.',
+          },
+        ],
+      },
+      {
+        name: 'Trapper',
+        slug: 'backline_trapper_t2',
+        role: 'Backline',
+        tier: 2,
+        cost: PROMOTED_UNIT_COST,
+        description: 'A utility archer branch built around marks, setup tools, and treasure sense.',
+      },
+    ],
+  },
+  {
+    name: 'Bannerbearer',
+    slug: 'support_banner_t1',
+    role: 'Support',
+    tier: 1,
+    cost: TIER_ONE_UNIT_COST,
+    description: 'A support specialist that reinforces nearby allies and helps the squad endure longer fights.',
+    children: [
+      {
+        name: 'Warcaller',
+        slug: 'support_banner_t2',
+        role: 'Support',
+        tier: 2,
+        cost: PROMOTED_UNIT_COST,
+        description: 'An offensive support branch that turns team tempo and buffs into aggressive momentum.',
+      },
+      {
+        name: 'Mascot',
+        slug: 'support_mascot_t2',
+        role: 'Support',
+        tier: 2,
+        cost: PROMOTED_UNIT_COST,
+        description: 'A chaotic support branch that spreads luck, morale swings, and scrappy clutch bonuses.',
+      },
+    ],
+  },
+  {
+    name: 'Saboteur',
+    slug: 'control_saboteur_t1',
+    role: 'Utility',
+    tier: 1,
+    cost: TIER_ONE_UNIT_COST,
+    description: 'A disruptive skirmisher focused on interference, control, and breaking enemy momentum.',
+    children: [
+      {
+        name: 'Trickshot',
+        slug: 'control_saboteur_t2',
+        role: 'Utility',
+        tier: 2,
+        cost: PROMOTED_UNIT_COST,
+        description: 'A sharper control branch that punishes compromised enemies with precise follow-up pressure.',
+      },
+      {
+        name: 'Plaguehand',
+        slug: 'control_plaguehand_t2',
+        role: 'Utility',
+        tier: 2,
+        cost: PROMOTED_UNIT_COST,
+        description: 'A poison-heavy control branch that spreads weakness and softens multiple targets at once.',
+      },
+    ],
+  },
+];
 
 @Component({
   selector: 'app-codex-page',
   standalone: true,
-  imports: [FontAwesomeModule, PageFrameComponent],
+  imports: [FontAwesomeModule, NgTemplateOutlet, PageFrameComponent],
   templateUrl: './codex-page.component.html',
   styleUrl: './codex-page.component.scss',
 })
@@ -113,6 +281,7 @@ export class CodexPageComponent implements OnInit, OnDestroy {
   protected readonly pageSubtitle = 'A living record of your unlocks, sightings, and discoveries.';
   protected readonly breadcrumbs = [{ label: 'Codex' }];
   protected readonly faLock = faLock;
+  protected readonly teethIcon = '/assets/ui/icons/tooth_64.png';
   protected readonly categories: ReadonlyArray<{ key: CodexCategory; label: string }> = [
     { key: 'features', label: 'Features' },
     { key: 'units', label: 'Units' },
@@ -121,48 +290,7 @@ export class CodexPageComponent implements OnInit, OnDestroy {
     { key: 'lore', label: 'Lore' },
   ];
 
-  protected readonly unitUnlocks: ReadonlyArray<GuideUnit> = [
-    {
-      name: 'Bruiser',
-      slug: 'frontline_bruiser_t1',
-      role: 'Frontline',
-      tier: 1,
-      maxLevel: 10,
-      summary: 'A durable frontliner that can promote early at level 6 or master the class at level 10 for a passive capstone.',
-    },
-    {
-      name: 'Guardian',
-      slug: 'frontline_guardian_t1',
-      role: 'Frontline',
-      tier: 1,
-      maxLevel: 10,
-      summary: 'A shield-first defender that can hold for a level 10 capstone or branch early into pure tanking or anti-armor roles.',
-    },
-    {
-      name: 'Marksman',
-      slug: 'backline_marksman_t1',
-      role: 'Backline',
-      tier: 1,
-      maxLevel: 10,
-      summary: 'A back-row damage dealer that can rush promotion at level 6 or stay to earn a targeting-focused capstone at level 10.',
-    },
-    {
-      name: 'Bannerbearer',
-      slug: 'support_banner_t1',
-      role: 'Support',
-      tier: 1,
-      maxLevel: 10,
-      summary: 'A support specialist that can either master bolster-focused capstones or branch into offensive or luck-based support.',
-    },
-    {
-      name: 'Saboteur',
-      slug: 'control_saboteur_t1',
-      role: 'Utility',
-      tier: 1,
-      maxLevel: 10,
-      summary: 'A disruptive debuffer that can promote from level 6 or stay through level 10 for stronger control passives.',
-    },
-  ];
+  protected readonly unitTree = UNIT_TREE;
 
   protected readonly affixes: ReadonlyArray<GuideAffix> = [
     { name: 'Atk+', rarity: 'Common', description: '+1 damage on attack rolls.' },
@@ -197,7 +325,7 @@ export class CodexPageComponent implements OnInit, OnDestroy {
     const profile = this.profileData();
     const completedRegions = this.completedBiomeSlugs().length;
     const unlockedFeatures = profile?.feature_unlocks.length ?? 0;
-    const unlockedUnits = profile?.unit_type_unlocks.length ?? 0;
+    const unlockedUnits = this.unlockedUnitCount();
     const seenAffixes = this.discoveredAffixNames().size;
     const loreCount = this.codexLoreEntries().length;
 
@@ -209,10 +337,10 @@ export class CodexPageComponent implements OnInit, OnDestroy {
         progressPercent: this.percent(unlockedFeatures, this.unlocks.length),
       },
       {
-        label: 'Starter classes',
-        value: `${unlockedUnits}/${this.unitUnlocks.length}`,
-        detail: unlockedUnits ? 'Base class lines currently available in your warband.' : 'Recruit more unit lines to expand promotions.',
-        progressPercent: this.percent(unlockedUnits, this.unitUnlocks.length),
+        label: 'Units',
+        value: `${unlockedUnits}/${this.totalUnitCount()}`,
+        detail: unlockedUnits ? 'Unit types currently available in your warband.' : 'Recruit more units to expand promotions.',
+        progressPercent: this.percent(unlockedUnits, this.totalUnitCount()),
       },
       {
         label: 'Seen affixes',
@@ -291,8 +419,19 @@ export class CodexPageComponent implements OnInit, OnDestroy {
     return this.profileData()?.unit_type_unlocks.includes(unitSlug) ?? false;
   }
 
-  protected unitSpriteUrl(unitSlug: string): string {
-    return resolvePrototypeUnitSpriteUrl(unitSlug);
+  protected roleIcon(role: string): IconDefinition {
+    switch (role.trim().toLowerCase()) {
+      case 'frontline':
+        return faShieldHalved;
+      case 'backline':
+        return faBullseye;
+      case 'support':
+        return faFlag;
+      case 'utility':
+        return faWandMagicSparkles;
+      default:
+        return faHandFist;
+    }
   }
 
   protected enemySpriteUrl(enemySlug: string): string {
@@ -337,6 +476,23 @@ export class CodexPageComponent implements OnInit, OnDestroy {
         .map((affix) => this.affixKey(affix))
         .filter((value): value is string => value.length > 0),
     );
+  }
+
+  private flattenedUnits(): ReadonlyArray<CodexUnit> {
+    const flatten = (units: ReadonlyArray<CodexUnit>): CodexUnit[] => units.flatMap((unit) => [
+      unit,
+      ...flatten(unit.children ?? []),
+    ]);
+
+    return flatten(this.unitTree);
+  }
+
+  private totalUnitCount(): number {
+    return this.flattenedUnits().length;
+  }
+
+  private unlockedUnitCount(): number {
+    return this.flattenedUnits().filter((unit) => this.hasAcquiredUnitUnlock(unit.slug)).length;
   }
 
   private affixKey(affix: DiceAffixRecord): string {

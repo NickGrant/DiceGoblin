@@ -66,7 +66,7 @@ describe('CodexPageComponent', () => {
     const fixture = TestBed.createComponent(CodexPageComponent);
     fixture.detectChanges();
 
-    const heading = fixture.nativeElement.querySelector('.guide-page__kpi-heading') as HTMLElement;
+    const heading = fixture.nativeElement.querySelector('.stat-head') as HTMLElement;
     expect(heading).not.toBeNull();
     expect(heading.querySelector('span')?.textContent).toContain('Feature unlocks');
     expect(heading.querySelector('strong')?.textContent).toContain('2/10');
@@ -78,18 +78,23 @@ describe('CodexPageComponent', () => {
 
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Permanent account upgrades');
-    expect(fixture.nativeElement.querySelector('.guide-page__lock-icon fa-icon')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.lock fa-icon')).not.toBeNull();
   });
 
-  it('shows unit unlocks on a separate category', () => {
+  it('shows all units as a locked and unlocked hierarchy on a separate category', () => {
     const fixture = TestBed.createComponent(CodexPageComponent);
     const component = fixture.componentInstance as any;
     component.setActiveCategory('units');
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
+    const unitEntries = fixture.nativeElement.querySelectorAll('.unit-entry');
+    expect(unitEntries.length).toBe(18);
     expect(text).toContain('Bannerbearer');
-    expect(text).toContain('Unknown Class');
+    expect(text).toContain('A support specialist that reinforces nearby allies');
+    expect(text).toContain('???');
+    expect(text).not.toContain('Unknown Class');
+    expect(fixture.nativeElement.querySelector('.role-icon')).not.toBeNull();
   });
 
   it('switches categories and shows discovered affixes', () => {
@@ -121,7 +126,7 @@ describe('CodexPageComponent', () => {
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Enemy Record');
     expect(text).toContain('Unknown Enemy');
-    expect(fixture.nativeElement.querySelector('.guide-page__sprite--silhouette')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.silhouette')).not.toBeNull();
   });
 
   it('shows lore entries only on the lore category', () => {
