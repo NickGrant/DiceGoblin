@@ -94,7 +94,15 @@ describe('CodexPageComponent', () => {
     expect(text).toContain('A support specialist that reinforces nearby allies');
     expect(text).toContain('???');
     expect(text).not.toContain('Unknown Class');
-    expect(fixture.nativeElement.querySelector('.role-icon')).not.toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.role-icon').length).toBe(18);
+    expect(fixture.nativeElement.querySelectorAll('.unit-thumbnail').length).toBe(18);
+    expect(fixture.nativeElement.querySelectorAll('.unit-thumbnail--silhouette').length).toBe(17);
+    expect(fixture.nativeElement.querySelector('.unit-thumbnail[alt="Bannerbearer portrait"]')?.getAttribute('src')).toContain(
+      '/assets/ui/units/thumbnails/goblin/bannerbearer.png',
+    );
+    expect(fixture.nativeElement.querySelector('.unit-thumbnail--silhouette')?.getAttribute('src')).toContain(
+      '/assets/ui/units/thumbnails/goblin/silhouette.png',
+    );
   });
 
   it('switches categories and shows discovered affixes', () => {

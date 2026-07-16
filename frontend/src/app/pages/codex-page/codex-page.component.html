@@ -106,6 +106,12 @@
 <ng-template #unitNodeTemplate let-unit let-depth="depth">
   <article class="entry unit-entry" [style.--depth]="depth">
     <fa-icon class="role-icon" [icon]="roleIcon(unit.role)" aria-hidden="true" [title]="unit.role"></fa-icon>
+    <img
+      class="unit-thumbnail"
+      [class.unit-thumbnail--silhouette]="!hasAcquiredUnitUnlock(unit.slug)"
+      [src]="unitPortraitUrl(unit)"
+      [alt]="hasAcquiredUnitUnlock(unit.slug) ? unit.name + ' portrait' : 'Locked unit silhouette'"
+    />
     @if (hasAcquiredUnitUnlock(unit.slug)) {
       <div class="unit-copy">
         <strong>{{ unit.name }}</strong>
@@ -114,6 +120,7 @@
     } @else {
       <div class="unit-copy locked">
         <strong>???</strong>
+        <p>Unlock to learn more.</p>
       </div>
     }
   </article>

@@ -8,6 +8,7 @@ import { DiceAffixRecord } from '../../core/models/api.models';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolvePrototypeEnemySpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
+import { resolveUnitSilhouetteUrl, resolveUnitThumbnailUrl } from '../../shared/ui/unit-art/unit-art';
 
 type CodexCategory = 'features' | 'units' | 'affixes' | 'enemies' | 'lore';
 
@@ -432,6 +433,14 @@ export class CodexPageComponent implements OnInit, OnDestroy {
       default:
         return faHandFist;
     }
+  }
+
+  protected unitPortraitUrl(unit: CodexUnit): string {
+    if (!this.hasAcquiredUnitUnlock(unit.slug)) {
+      return resolveUnitSilhouetteUrl();
+    }
+
+    return resolveUnitThumbnailUrl(unit.slug) ?? resolveUnitSilhouetteUrl();
   }
 
   protected enemySpriteUrl(enemySlug: string): string {

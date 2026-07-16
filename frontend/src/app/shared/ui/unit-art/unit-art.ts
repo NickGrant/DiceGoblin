@@ -1,5 +1,6 @@
 const UNIT_ASSET_BASE_PATH = '/assets/ui/units';
 const UNIT_ANIMATED_ASSET_BASE_PATH = '/assets/ui/units/animated';
+const UNIT_THUMBNAIL_ASSET_BASE_PATH = '/assets/ui/units/thumbnails';
 const ANIMATED_UNIT_IMAGE_PATH_MAP: Record<string, string> = {
   goblin_bruiser: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
   goblin_enforcer: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
@@ -109,6 +110,27 @@ const UNIT_IMAGE_SLUG_MAP: Record<string, string> = {
   'frogman bog tyrant': 'frogman_bog_tyrant',
 };
 
+const GOBLIN_THUMBNAIL_SLUGS = new Set([
+  'goblin_bannerbearer',
+  'goblin_bruiser',
+  'goblin_bulwark',
+  'goblin_deadeye',
+  'goblin_enforcer',
+  'goblin_guardian',
+  'goblin_ironwall',
+  'goblin_juggernaut',
+  'goblin_marksman',
+  'goblin_mascot',
+  'goblin_pit_fighter',
+  'goblin_plaguehand',
+  'goblin_saboteur',
+  'goblin_sharpshot',
+  'goblin_shieldbreaker',
+  'goblin_trapper',
+  'goblin_trickshot',
+  'goblin_warcaller',
+]);
+
 export function resolveUnitImageSlug(value: string | null | undefined): string | null {
   const normalized = normalizeUnitImageKey(value);
   if (!normalized.length) {
@@ -132,6 +154,19 @@ export function resolveUnitImageUrl(value: string | null | undefined): string | 
   }
 
   return ANIMATED_UNIT_IMAGE_PATH_MAP[slug] ?? `${UNIT_ASSET_BASE_PATH}/${slug}.png`;
+}
+
+export function resolveUnitThumbnailUrl(value: string | null | undefined): string | null {
+  const slug = resolveUnitImageSlug(value);
+  if (!slug || !GOBLIN_THUMBNAIL_SLUGS.has(slug)) {
+    return null;
+  }
+
+  return `${UNIT_THUMBNAIL_ASSET_BASE_PATH}/goblin/${slug.replace(/^goblin_/, '')}.png`;
+}
+
+export function resolveUnitSilhouetteUrl(): string {
+  return `${UNIT_THUMBNAIL_ASSET_BASE_PATH}/goblin/silhouette.png`;
 }
 
 function normalizeUnitImageKey(value: string | null | undefined): string {
