@@ -218,9 +218,8 @@ export class RegionsPageComponent {
   }
 
   async handleStartRunIntroComplete(_choiceHistory: DialogueChoiceSelection[]): Promise<void> {
-    this.startRunIntroDialogue.set(null);
-    this.rememberDialogueSeenLocally(RegionsPageComponent.START_RUN_INTRO_ID);
     await this.persistStartRunIntroSeen();
+    this.startRunIntroDialogue.set(null);
   }
 
   async handlePendingRegionDialogueComplete(
@@ -229,7 +228,6 @@ export class RegionsPageComponent {
     const regionSlug = this.deferredStartRegionSlug();
     this.pendingRegionDialogue.set(null);
     this.deferredStartRegionSlug.set(null);
-    this.rememberDialogueSeenLocally(RegionsPageComponent.MOUNTAINS_ARCHIVIST_DIALOGUE_ID);
 
     try {
       await this.persistDialogueSeen(RegionsPageComponent.MOUNTAINS_ARCHIVIST_DIALOGUE_ID);
@@ -263,10 +261,7 @@ export class RegionsPageComponent {
   }
 
   private hasSeenDialogue(dialogueId: string): boolean {
-    return (
-      (this.profileData()?.seen_dialogues ?? []).includes(dialogueId) ||
-      this.hasSeenDialogueLocally(dialogueId)
-    );
+    return (this.profileData()?.seen_dialogues ?? []).includes(dialogueId);
   }
 
   private async persistStartRunIntroSeen(): Promise<void> {
@@ -309,34 +304,5 @@ export class RegionsPageComponent {
     } catch {
       return false;
     }
-  }
-
-  private hasSeenDialogueLocally(dialogueId: string): boolean {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    try {
-      return window.sessionStorage.getItem(this.dialogueSeenStorageKey(dialogueId)) === '1';
-    } catch {
-      return false;
-    }
-  }
-
-  private rememberDialogueSeenLocally(dialogueId: string): void {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      window.sessionStorage.setItem(this.dialogueSeenStorageKey(dialogueId), '1');
-    } catch {
-      // Keep the page usable if session storage is unavailable.
-    }
-  }
-
-  private dialogueSeenStorageKey(dialogueId: string): string {
-    const userId = this.session().userId?.trim() ?? 'guest';
-    return `dialogue-seen:${userId}:${dialogueId}`;
   }
 }

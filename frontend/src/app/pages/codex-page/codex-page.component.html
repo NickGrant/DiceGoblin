@@ -218,12 +218,14 @@
     </div>
     <div class="dg-proto-divider" aria-hidden="true"></div>
     @if (codexLoreEntries().length) {
-      <div class="dg-proto-grid dg-proto-grid--cards">
+      <div class="entries lore-entries">
         @for (entry of codexLoreEntries(); track entry.id) {
-          <article class="dg-proto-card">
-            <span class="dg-proto-chip dg-proto-chip--small">Seen</span>
-            <h4 class="dg-proto-card__title">{{ entry.title }}</h4>
-            <p class="dg-proto-card__copy">{{ entry.summary }}</p>
+          <article class="entry lore-entry">
+            <div class="lore-copy">
+              <strong>{{ entry.title }}</strong>
+              <p>{{ entry.summary }}</p>
+            </div>
+            <button class="lore-replay" type="button" (click)="replayLoreDialogue(entry)">Replay</button>
           </article>
         }
       </div>
@@ -234,4 +236,11 @@
       </article>
     }
   </section>
+
+  @if (activeLoreDialogue(); as dialogue) {
+    <div class="lore-dialogue" role="dialog" aria-modal="true" aria-label="Lore dialogue replay">
+      <button class="lore-dialogue__close" type="button" (click)="closeLoreDialogue()">Close</button>
+      <dg-dialogue-stage [script]="dialogue" (complete)="closeLoreDialogue()" />
+    </div>
+  }
 </ng-template>

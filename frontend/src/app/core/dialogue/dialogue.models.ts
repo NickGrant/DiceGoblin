@@ -53,6 +53,9 @@ export type DialoguePresentationDefinition = {
 
 export type DialogueScriptDefinition = {
   id: string;
+  title?: string;
+  summary?: string;
+  tags?: string[];
   trigger: DialogueTrigger;
   presentation?: DialoguePresentationDefinition;
   speakers: DialogueSpeakerDefinition[];
@@ -113,6 +116,9 @@ export type DialogueStepEnterEffect = {
 
 export type DialogueScript = {
   id: string;
+  title?: string;
+  summary?: string;
+  tags?: string[];
   backgroundUrl: string | null;
   speakers: DialogueSpeaker[];
   startStepId: string;

@@ -181,7 +181,8 @@
   }
 
   .affix-entries,
-  .enemy-entries {
+  .enemy-entries,
+  .lore-entries {
     gap: 0.65rem;
   }
 
@@ -228,6 +229,48 @@
     width: 96px;
     height: 96px;
     object-fit: contain;
+  }
+
+  .lore-entry {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .lore-copy {
+    min-width: 0;
+  }
+
+  .lore-replay,
+  .lore-dialogue__close {
+    border: 0;
+    border-radius: 0.55rem;
+    padding: 0.55rem 0.8rem;
+    color: #fff4dc;
+    background: #20140d;
+    font: inherit;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgba(255, 244, 220, 0.18);
+  }
+
+  .lore-dialogue {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(21, 13, 8, 0.82);
+  }
+
+  .lore-dialogue dg-dialogue-stage {
+    width: min(980px, 100%);
+  }
+
+  .lore-dialogue__close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
   }
 
   .cost {

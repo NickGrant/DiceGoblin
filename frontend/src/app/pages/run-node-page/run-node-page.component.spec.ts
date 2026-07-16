@@ -464,6 +464,7 @@ describe('RunNodePageComponent', () => {
         scene: 'run-node',
         nodeType: 'boss',
         regionSlug: 'the_farm',
+        tags: ['farm'],
         playerName: 'Commander',
         playerPortraitUrl: '/assets/dialogue/portraits/goblin/base_frame_0.png',
       }),
@@ -488,5 +489,55 @@ describe('RunNodePageComponent', () => {
 
     expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', 'n1');
     expect(fixture.componentInstance.result()?.battle.battle_id).toBe('b1');
+  });
+
+  it('passes the shop-unlocked tag for farm boss dialogue after the Tooth Collector is freed', async () => {
+    const runService = new RunServiceStub();
+    runService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'the_farm', region_theme: 'farm' },
+        map: {
+          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'boss', status: 'available' }],
+          edges: [],
+        },
+      },
+    });
+    const dialogueService = new DialogueServiceStub();
+    const sessionService = new SessionServiceStub();
+    sessionService.profileData.and.returnValue({
+      feature_unlocks: ['shop'],
+      regions: [
+        { id: 'region-1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: true, unlocked_at: '2026-06-01T00:00:00Z' },
+      ],
+      region_unlocks: [{ region_id: 'region-1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' }],
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: runService },
+        { provide: SessionService, useValue: sessionService },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        { provide: DialogueService, useValue: dialogueService },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+
+    expect(dialogueService.getDialogue).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        scene: 'run-node',
+        nodeType: 'boss',
+        regionSlug: 'the_farm',
+        tags: ['farm', 'shop-unlocked'],
+      }),
+    );
   });
 });

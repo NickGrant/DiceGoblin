@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { CodexPageComponent } from './codex-page.component';
 
@@ -15,7 +16,7 @@ class SessionServiceStub {
   readonly profileData = signal<any>({
     feature_unlocks: ['academy', 'sell_bonus'],
     unit_type_unlocks: ['support_banner_t1'],
-    seen_dialogues: ['camp_intro', 'mountain_warning'],
+    seen_dialogues: ['start-run-kickoff', 'mountains-archivist-first-contact', 'farm-shop-unlock'],
     dice: [
       { id: 'd1', affixes: [{ name: 'Bulwark', affix_slug: 'bulwark', value: 1 }] },
       { id: 'd2', affixes: [{ name: 'Execute', affix_slug: 'execute', value: 1 }] },
@@ -33,8 +34,54 @@ class SessionServiceStub {
   readonly initialize = jasmine.createSpy('initialize').and.resolveTo();
 }
 
+class DialogueServiceStub {
+  readonly loreScripts = [
+    {
+      id: 'start-run-kickoff',
+      title: "The Whim's First Fragment",
+      summary: 'The Whim explains what happened to goblinkind.',
+      tags: ['lore'],
+      backgroundUrl: '/assets/ui/biome/mystic_cave.png',
+      speakers: [
+        { id: 'player', side: 'left' as const, name: 'Commander', portraitUrl: null, party: 'player', role: 'player' },
+        { id: 'whim', side: 'right' as const, name: 'The Whim', portraitUrl: '/assets/dialogue/portraits/whim/frame_0.png', party: 'neutral', role: 'npc' },
+      ],
+      startStepId: 'start',
+      steps: [{ id: 'start', speakerId: 'whim', text: 'Go make a mess.', nextStepId: null, choices: [], enterEffect: null }],
+    },
+    {
+      id: 'mountains-archivist-first-contact',
+      title: 'The Archivist Takes Notice',
+      summary: 'The Archivist discovers that goblins still exist.',
+      tags: ['lore'],
+      backgroundUrl: '/assets/ui/biome/mountain.png',
+      speakers: [
+        { id: 'archivist', side: 'right' as const, name: 'The Archivist', portraitUrl: '/assets/dialogue/portraits/archivist/frame_0.png', party: 'neutral', role: 'npc' },
+      ],
+      startStepId: 'start',
+      steps: [{ id: 'start', speakerId: 'archivist', text: 'Remarkable.', nextStepId: null, choices: [], enterEffect: null }],
+    },
+    {
+      id: 'farm-shop-unlock',
+      title: 'The Tooth Collector Freed',
+      summary: 'The Mudking releases The Tooth Collector.',
+      tags: ['lore'],
+      backgroundUrl: '/assets/ui/biome/farm.png',
+      speakers: [
+        { id: 'tooth-collector', side: 'left' as const, name: 'The Tooth Collector', portraitUrl: '/assets/dialogue/portraits/tooth_collector_frame_0.png', party: 'neutral', role: 'npc' },
+      ],
+      startStepId: 'start',
+      steps: [{ id: 'start', speakerId: 'tooth-collector', text: 'Finally.', nextStepId: null, choices: [], enterEffect: null }],
+    },
+  ];
+  readonly getLoreDialogues = jasmine.createSpy('getLoreDialogues').and.callFake((dialogueIds: ReadonlyArray<string>) =>
+    Promise.resolve(this.loreScripts.filter((script) => dialogueIds.includes(script.id))),
+  );
+}
+
 describe('CodexPageComponent', () => {
   let sessionService: SessionServiceStub;
+  let dialogueService: DialogueServiceStub;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -42,9 +89,11 @@ describe('CodexPageComponent', () => {
       providers: [
         provideRouter([]),
         { provide: SessionService, useClass: SessionServiceStub },
+        { provide: DialogueService, useClass: DialogueServiceStub },
       ],
     }).compileComponents();
     sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    dialogueService = TestBed.inject(DialogueService) as unknown as DialogueServiceStub;
   });
 
   it('renders codex progress and vertical category navigation', () => {
@@ -160,16 +209,22 @@ describe('CodexPageComponent', () => {
     expect(fixture.nativeElement.querySelector('.silhouette')).not.toBeNull();
   });
 
-  it('shows lore entries only on the lore category', () => {
+  it('shows replayable lore entries only for seen lore-tagged dialogues', async () => {
     const fixture = TestBed.createComponent(CodexPageComponent);
     const component = fixture.componentInstance as any;
     component.setActiveCategory('lore');
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Lore Archive');
-    expect(text).toContain('Camp Intro');
-    expect(text).toContain('Mountain Warning');
+    expect(dialogueService.getLoreDialogues).toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelectorAll('.lore-entry').length).toBe(3);
+    expect(text).toContain("The Whim's First Fragment");
+    expect(text).toContain('The Archivist Takes Notice');
+    expect(text).toContain('The Tooth Collector Freed');
+    expect(fixture.nativeElement.querySelectorAll('.lore-replay').length).toBe(3);
   });
 
   it('initializes session state on init', () => {

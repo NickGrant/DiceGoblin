@@ -2,6 +2,9 @@
   "scripts": [
     {
       "id": "start-run-kickoff",
+      "title": "The Whim's First Fragment",
+      "summary": "The Whim explains what happened to goblinkind and sends your first fragment toward The Farm.",
+      "tags": ["lore"],
       "trigger": {
         "scene": "start-run",
         "tags": ["kickoff"]
@@ -99,6 +102,80 @@
       ]
     },
     {
+      "id": "farm-boss-intro-shop-unlocked",
+      "trigger": {
+        "scene": "run-node",
+        "node_type": "boss",
+        "region_slug": "the_farm",
+        "tags": ["shop-unlocked"]
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/farm.png"
+      },
+      "speakers": [
+        {
+          "id": "mudking",
+          "side": "right",
+          "name": "Mudking",
+          "portrait_unit_slug": "mudking",
+          "party": "enemy",
+          "role": "npc"
+        },
+        {
+          "id": "player",
+          "side": "left",
+          "party": "player",
+          "role": "player"
+        }
+      ],
+      "start_step_id": "mudking-return",
+      "steps": [
+        {
+          "id": "mudking-return",
+          "speaker_id": "mudking",
+          "text": "Back again? I already settled the last bit of business with you lot. What do you want now?",
+          "next_step_id": "player-answer"
+        },
+        {
+          "id": "player-answer",
+          "speaker_id": "player",
+          "text": "...",
+          "choices": [
+            {
+              "id": "fight",
+              "label": "A fight. Same as last time.",
+              "next_step_id": "mudking-fight"
+            },
+            {
+              "id": "mess",
+              "label": "Just making sure the farm stays messy.",
+              "next_step_id": "mudking-mess"
+            },
+            {
+              "id": "teeth",
+              "label": "Mostly your teeth, honestly.",
+              "next_step_id": "mudking-teeth"
+            }
+          ]
+        },
+        {
+          "id": "mudking-fight",
+          "speaker_id": "mudking",
+          "text": "Good. I was hoping you would say something simple."
+        },
+        {
+          "id": "mudking-mess",
+          "speaker_id": "mudking",
+          "text": "This is a farm! I have a system! I hate your system!"
+        },
+        {
+          "id": "mudking-teeth",
+          "speaker_id": "mudking",
+          "text": "Try it, goblin. I bite back."
+        }
+      ]
+    },
+    {
       "id": "farm-boss-intro",
       "trigger": {
         "scene": "run-node",
@@ -173,6 +250,9 @@
     },
     {
       "id": "mountains-archivist-first-contact",
+      "title": "The Archivist Takes Notice",
+      "summary": "The Archivist discovers that goblins still exist and decides the record must be corrected.",
+      "tags": ["lore"],
       "trigger": {
         "scene": "start-run",
         "region_slug": "mountains",
@@ -236,6 +316,9 @@
     },
     {
       "id": "farm-shop-unlock",
+      "title": "The Tooth Collector Freed",
+      "summary": "The Mudking releases The Tooth Collector, opening the shop and its teeth-for-power economy.",
+      "tags": ["lore"],
       "trigger": {
         "scene": "run-summary",
         "region_slug": "the_farm",

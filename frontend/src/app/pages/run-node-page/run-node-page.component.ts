@@ -600,6 +600,10 @@ export class RunNodePageComponent implements OnDestroy {
   ): Promise<DialogueScript | null> {
     const regionSlug = run.region_slug ?? null;
     const fallbackTheme = resolveRegionTheme(regionSlug, run.region_theme ?? null);
+    const dialogueTags = [
+      ...(fallbackTheme ? [fallbackTheme] : []),
+      ...(this.sessionService.profileData()?.feature_unlocks?.includes('shop') ? ['shop-unlocked'] : []),
+    ];
     const context: DialogueTriggerContext = {
       scene: 'run-node',
       nodeType: currentNode.node_type,
@@ -608,7 +612,7 @@ export class RunNodePageComponent implements OnDestroy {
       encounterTemplateId: this.stringValue(currentNode.meta?.['encounter_template_id']),
       playerName: this.sessionService.session().displayName ?? this.resolveLeadUnit()?.name,
       playerPortraitUrl: RunNodePageComponent.PLAYER_DIALOGUE_PORTRAIT,
-      tags: fallbackTheme ? [fallbackTheme] : [],
+      tags: dialogueTags,
     };
 
     try {

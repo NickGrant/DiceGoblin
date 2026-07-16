@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
@@ -18,9 +18,12 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { resolveCompletedRegionSlugs } from '../../core/regions/region-catalog';
 import { FeatureUnlockCategoryLabel, resolveFeatureUnlockCategory } from '../../core/feature-unlocks/feature-unlock-categories';
+import { DialogueScript } from '../../core/dialogue/dialogue.models';
+import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { DiceAffixRecord } from '../../core/models/api.models';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
+import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
 import { resolvePrototypeEnemySpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 import { resolveUnitSilhouetteUrl, resolveUnitThumbnailUrl } from '../../shared/ui/unit-art/unit-art';
 
@@ -78,6 +81,7 @@ type CodexLoreEntry = {
   id: string;
   title: string;
   summary: string;
+  script: DialogueScript;
 };
 
 const BIOME_GUIDE_UNITS: ReadonlyArray<GuideBestiaryUnit> = [
@@ -114,6 +118,7 @@ const BIOME_GUIDE_UNITS: ReadonlyArray<GuideBestiaryUnit> = [
 const GUIDE_UNIT_ANIMATION_INTERVAL_MS = 320;
 const TIER_ONE_UNIT_COST = 250;
 const PROMOTED_UNIT_COST = 500;
+const PLAYER_DIALOGUE_PORTRAIT = '/assets/dialogue/portraits/goblin/base_frame_0.png';
 
 const UNIT_TREE: ReadonlyArray<CodexUnit> = [
   {
@@ -281,18 +286,22 @@ const UNIT_TREE: ReadonlyArray<CodexUnit> = [
 @Component({
   selector: 'app-codex-page',
   standalone: true,
-  imports: [FontAwesomeModule, NgTemplateOutlet, PageFrameComponent],
+  imports: [DgDialogueStageComponent, FontAwesomeModule, NgTemplateOutlet, PageFrameComponent],
   templateUrl: './codex-page.component.html',
   styleUrl: './codex-page.component.scss',
 })
 export class CodexPageComponent implements OnInit, OnDestroy {
   private readonly sessionService = inject(SessionService);
+  private readonly dialogueService = inject(DialogueService);
   private readonly guideUnitAnimationTimers = new Map<string, ReturnType<typeof window.setInterval>>();
+  private lastLoreDialogueKey = '';
 
   protected readonly session = this.sessionService.session;
   protected readonly profileData = this.sessionService.profileData;
   protected readonly hasActiveRun = this.sessionService.hasActiveRun;
   protected readonly guideUnitFrameIndexes = signal<Record<string, number>>({});
+  protected readonly codexLoreEntries = signal<ReadonlyArray<CodexLoreEntry>>([]);
+  protected readonly activeLoreDialogue = signal<DialogueScript | null>(null);
   protected readonly activeCategory = signal<CodexCategory>('features');
   protected readonly pageTitle = 'Codex';
   protected readonly pageSubtitle = 'A living record of your unlocks, sightings, and discoveries.';
@@ -394,14 +403,20 @@ export class CodexPageComponent implements OnInit, OnDestroy {
     }));
   });
 
-  protected readonly codexLoreEntries = computed<ReadonlyArray<CodexLoreEntry>>(() => {
-    const seenDialogues = Array.from(new Set(this.profileData()?.seen_dialogues ?? []));
-    return seenDialogues.map((entryId) => ({
-      id: entryId,
-      title: this.humanizeLabel(entryId),
-      summary: 'Recovered from camp dialogue, region story beats, or another codex-worthy encounter.',
-    }));
-  });
+  constructor() {
+    effect(() => {
+      const seenDialogueKey = Array.from(new Set(this.profileData()?.seen_dialogues ?? []))
+        .sort()
+        .join('|');
+      const sessionKey = `${this.session().displayName ?? ''}|${seenDialogueKey}`;
+      if (sessionKey === this.lastLoreDialogueKey) {
+        return;
+      }
+
+      this.lastLoreDialogueKey = sessionKey;
+      void this.loadLoreDialogues();
+    });
+  }
 
   ngOnInit(): void {
     void this.sessionService.initialize();
@@ -416,6 +431,14 @@ export class CodexPageComponent implements OnInit, OnDestroy {
 
   protected setActiveCategory(category: CodexCategory): void {
     this.activeCategory.set(category);
+  }
+
+  protected replayLoreDialogue(entry: CodexLoreEntry): void {
+    this.activeLoreDialogue.set(entry.script);
+  }
+
+  protected closeLoreDialogue(): void {
+    this.activeLoreDialogue.set(null);
   }
 
   protected hasAcquiredFeatureUnlock(unlockKey: string): boolean {
@@ -566,6 +589,10 @@ export class CodexPageComponent implements OnInit, OnDestroy {
     return value.trim().toLowerCase().replace(/\s+/g, '');
   }
 
+  private normalizeBiomeSlug(value: string): string {
+    return value.trim().toLowerCase().replace(/\s+/g, '_');
+  }
+
   private humanizeLabel(value: string): string {
     return value
       .trim()
@@ -574,8 +601,28 @@ export class CodexPageComponent implements OnInit, OnDestroy {
       .replace(/\b\w/g, (match) => match.toUpperCase());
   }
 
-  private normalizeBiomeSlug(value: string): string {
-    return value.trim().toLowerCase().replace(/\s+/g, '_');
+  private async loadLoreDialogues(): Promise<void> {
+    const seenDialogues = Array.from(new Set(this.profileData()?.seen_dialogues ?? []));
+    if (!seenDialogues.length) {
+      this.codexLoreEntries.set([]);
+      return;
+    }
+
+    try {
+      const scripts = await this.dialogueService.getLoreDialogues(seenDialogues, {
+        scene: 'codex',
+        playerName: this.session().displayName,
+        playerPortraitUrl: PLAYER_DIALOGUE_PORTRAIT,
+      });
+      this.codexLoreEntries.set(scripts.map((script) => ({
+        id: script.id,
+        title: script.title ?? this.humanizeLabel(script.id),
+        summary: script.summary ?? 'Recovered dialogue from your journey.',
+        script,
+      })));
+    } catch {
+      this.codexLoreEntries.set([]);
+    }
   }
 
   private percent(value: number, total: number): number {

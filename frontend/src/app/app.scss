@@ -6,7 +6,8 @@
 
 .app-shell {
   min-height: 100vh;
-  background: linear-gradient(180deg, #27313a 0%, #1c242b 100%);
+  background: linear-gradient(rgba(35, 39, 42, 0.7), rgba(35, 39, 42, 0.9)),
+    url('/assets/ui/textures/paper.png');
 }
 
 .orientation-gate {
@@ -106,6 +107,7 @@
   margin-inline: auto;
   padding: 0 0 1rem;
   display: block;
+  position: relative;
   background:
     linear-gradient(rgba(35, 39, 42, 0.1), rgba(35, 39, 42, 0.5)),
     url('/assets/ui/textures/paper.png');
