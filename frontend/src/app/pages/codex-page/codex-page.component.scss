@@ -134,12 +134,20 @@
   }
 
   .unit-entry {
-    grid-template-columns: 64px 123px minmax(0, 1fr);
+    grid-template-columns: 64px 96px minmax(0, 1fr);
     align-items: center;
     margin-left: calc(0.8rem + (var(--depth, 0) * 1.35rem));
   }
 
-  .role-icon {
+  .feature-entry {
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+    margin-left: calc(0.8rem + (var(--depth, 0) * 1.35rem));
+  }
+
+  .role-icon,
+  .feature-icon,
+  .affix-icon {
     display: inline-grid;
     place-items: center;
     width: 64px;
@@ -150,8 +158,8 @@
   }
 
   .unit-thumbnail {
-    width: 123px;
-    height: 123px;
+    width: 96px;
+    height: 96px;
     object-fit: contain;
     align-self: center;
   }
@@ -168,6 +176,60 @@
     }
   }
 
+  .feature-copy {
+    min-width: 0;
+  }
+
+  .affix-entries,
+  .enemy-entries {
+    gap: 0.65rem;
+  }
+
+  .affix-entry {
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+
+    &.is-locked {
+      opacity: 0.72;
+    }
+  }
+
+  .affix-copy,
+  .enemy-copy {
+    min-width: 0;
+  }
+
+  .enemy-entry {
+    grid-template-columns: 64px 96px minmax(0, 1fr) 96px;
+    align-items: center;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+
+    &:hover,
+    &:focus-visible {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(49, 30, 18, 0.14);
+      outline: none;
+    }
+
+    &.is-locked {
+      opacity: 0.72;
+    }
+  }
+
+  .enemy-sprite {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    align-self: center;
+  }
+
+  .biome-badge {
+    justify-self: end;
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+  }
+
   .cost {
     display: inline-flex;
     align-items: center;
@@ -181,38 +243,6 @@
       width: 1.2rem;
       height: 1.2rem;
       object-fit: contain;
-    }
-  }
-
-  .lock {
-    display: inline-grid;
-    place-items: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: 0.5rem;
-    color: #fff4dc;
-    background: #20140d;
-    box-shadow: inset 0 0 0 1px rgba(255, 244, 220, 0.18);
-  }
-
-  .enemy {
-    transition: transform 160ms ease, box-shadow 160ms ease;
-
-    &:hover,
-    &:focus-visible {
-      transform: translateY(-2px);
-      box-shadow: 0 14px 28px rgba(49, 30, 18, 0.14);
-      outline: none;
-    }
-
-    &.is-locked {
-      opacity: 0.72;
-
-      &::after {
-        background:
-          linear-gradient(180deg, rgba(146, 132, 109, 0.35), rgba(63, 47, 32, 0.22)),
-          linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 32%);
-      }
     }
   }
 

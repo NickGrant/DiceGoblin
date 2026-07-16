@@ -37,6 +37,12 @@ describe('GuidePageComponent', () => {
     expect(text).toContain('How To Play');
     expect(text).toContain('Base Loop');
     expect(text).toContain('Combat Stats');
+    expect(text).toContain('Icon Reference');
+    expect(text).toContain('Unit type icons');
+    expect(text).toContain('Feature type icons');
+    expect(text).toContain('Frontline');
+    expect(text).toContain('Economy Upgrade');
+    expect(text).toContain('Dice Upgrade');
     expect(text).toContain('Map Glossary');
     expect(text).toContain('Read the route before greed takes over');
     expect(text).not.toContain('Authenticated Codex');

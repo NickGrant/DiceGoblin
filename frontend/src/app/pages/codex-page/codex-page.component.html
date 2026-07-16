@@ -67,19 +67,20 @@
     </div>
     <div class="entries">
       @for (unlock of unlocks; track unlock.key) {
-        <div class="entry">
+        <article class="entry feature-entry" [style.--depth]="unlock.depth">
+          <fa-icon class="feature-icon" [icon]="featureIcon(unlock.category)" aria-hidden="true" [title]="unlock.category"></fa-icon>
           @if (hasAcquiredFeatureUnlock(unlock.key)) {
-            <span class="dg-proto-chip dg-proto-chip--small">Seen</span>
-          } @else {
-            <span class="lock" aria-label="Locked feature">
-              <fa-icon [icon]="faLock" aria-hidden="true"></fa-icon>
-            </span>
-          }
-          <div>
+          <div class="feature-copy">
             <strong>{{ unlock.name }}</strong>
-            <p>{{ unlock.cost }} teeth - {{ unlock.description }}</p>
+            <p>{{ unlock.category }} - {{ unlock.cost }} teeth - {{ unlock.description }}</p>
           </div>
-        </div>
+          } @else {
+          <div class="feature-copy locked">
+            <strong>???</strong>
+            <p>Unlock to learn more.</p>
+          </div>
+          }
+        </article>
       }
     </div>
   </section>
@@ -89,6 +90,7 @@
   <section class="dg-proto-section">
     <div class="dg-proto-section__header">
       <div>
+        <p class="dg-proto-section__eyebrow dg-stencil">Unit Types</p>
         <h3 class="dg-proto-section__title">Unlockable unit types</h3>
       </div>
     </div>
@@ -141,15 +143,21 @@
         <h3 class="dg-proto-section__title">Seen affixes and their current definitions</h3>
       </div>
     </div>
-    <div class="dg-proto-divider" aria-hidden="true"></div>
-    <div class="dg-proto-grid dg-proto-grid--three">
+    <div class="entries affix-entries">
       @for (affix of codexAffixEntries(); track affix.name) {
-        <article class="dg-proto-card" [class.dg-proto-card--locked]="!affix.discovered">
-          <span class="dg-proto-chip dg-proto-chip--small">{{ affix.discovered ? affix.rarity : 'Locked' }}</span>
-          <h4 class="dg-proto-card__title">{{ affix.discovered ? affix.name : 'Unknown Affix' }}</h4>
-          <p class="dg-proto-card__copy">
-            {{ affix.discovered ? affix.description : 'Recover or buy more dice to reveal this affix entry.' }}
-          </p>
+        <article class="entry affix-entry" [class.is-locked]="!affix.discovered">
+          <fa-icon class="affix-icon" [icon]="affixIcon(affix)" aria-hidden="true" [title]="affix.discovered ? affix.name : 'Locked affix'"></fa-icon>
+          @if (affix.discovered) {
+            <div class="affix-copy">
+              <strong>{{ affix.name }}</strong>
+              <p>{{ affix.rarity }} - {{ affix.description }}</p>
+            </div>
+          } @else {
+            <div class="affix-copy locked">
+              <strong>???</strong>
+              <p>Unlock to learn more.</p>
+            </div>
+          }
         </article>
       }
     </div>
@@ -164,11 +172,10 @@
         <h3 class="dg-proto-section__title">Defeated enemy types by cleared biome</h3>
       </div>
     </div>
-    <div class="dg-proto-divider" aria-hidden="true"></div>
-    <div class="dg-proto-list">
+    <div class="entries enemy-entries">
       @for (unit of codexEnemyEntries(); track unit.slug) {
         <article
-          class="dg-proto-row enemy"
+          class="entry enemy-entry"
           [class.is-locked]="!unit.discovered"
           (mouseenter)="unit.discovered && startGuideUnitAnimation(unit.slug)"
           (mouseleave)="stopGuideUnitAnimation(unit.slug)"
@@ -176,25 +183,25 @@
           (focusout)="stopGuideUnitAnimation(unit.slug)"
           tabindex="0"
         >
-          <div class="dg-proto-row__media">
-            <img
-              [src]="unit.discovered ? guideUnitFramePath(unit) : enemySpriteUrl(unit.slug)"
-              [alt]="unit.discovered ? unit.name : 'Unknown enemy silhouette'"
-              class="dg-proto-sprite dg-proto-sprite--lg"
-              [class.silhouette]="!unit.discovered"
-            />
-            <div>
-              <h4 class="dg-proto-card__title">{{ unit.discovered ? unit.name : 'Unknown Enemy' }}</h4>
-              <p class="dg-proto-card__meta">{{ unit.biome }} - {{ unit.role }}</p>
+          <fa-icon class="role-icon" [icon]="roleIcon(unit.role)" aria-hidden="true" [title]="unit.role"></fa-icon>
+          <img
+            [src]="unit.discovered ? guideUnitFramePath(unit) : enemySpriteUrl(unit.slug)"
+            [alt]="unit.discovered ? unit.name : 'Unknown enemy silhouette'"
+            class="enemy-sprite"
+            [class.silhouette]="!unit.discovered"
+          />
+          @if (unit.discovered) {
+            <div class="enemy-copy">
+              <strong>{{ unit.name }}</strong>
+              <p>{{ unit.role }} - Cleared biome data confirms this enemy type in the field record.</p>
             </div>
-          </div>
-          <p class="dg-proto-card__copy">
-            {{
-              unit.discovered
-                ? 'Cleared biome data confirms this enemy type in the field record.'
-                : 'Complete the matching biome to confirm this enemy entry.'
-            }}
-          </p>
+          } @else {
+            <div class="enemy-copy locked">
+              <strong>???</strong>
+              <p>Unlock to learn more.</p>
+            </div>
+          }
+          <img class="biome-badge" [src]="biomeBadgeUrl(unit.biome)" [alt]="unit.biome + ' biome badge'" />
         </article>
       }
     </div>

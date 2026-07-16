@@ -91,6 +91,47 @@
     <section class="dg-proto-section">
       <div class="dg-proto-section__header">
         <div>
+          <p class="dg-proto-section__eyebrow dg-stencil">Icon Reference</p>
+          <h3 class="dg-proto-section__title">How to read unit and feature categories</h3>
+        </div>
+      </div>
+      <div class="dg-proto-divider" aria-hidden="true"></div>
+      <div class="dg-proto-grid dg-proto-grid--two">
+        <article class="dg-proto-card guide-page__guide-panel">
+          <h4 class="dg-proto-card__title">Unit type icons</h4>
+          <div class="guide-page__stack">
+            @for (entry of unitTypeIcons; track entry.label) {
+            <div class="guide-page__mini-row guide-page__icon-row">
+              <fa-icon [icon]="entry.icon" aria-hidden="true"></fa-icon>
+              <div>
+                <strong>{{ entry.label }}</strong>
+                <p>{{ entry.description }}</p>
+              </div>
+            </div>
+            }
+          </div>
+        </article>
+
+        <article class="dg-proto-card guide-page__guide-panel">
+          <h4 class="dg-proto-card__title">Feature type icons</h4>
+          <div class="guide-page__stack">
+            @for (entry of featureTypeIcons; track entry.label) {
+            <div class="guide-page__mini-row guide-page__icon-row">
+              <fa-icon [icon]="entry.icon" aria-hidden="true"></fa-icon>
+              <div>
+                <strong>{{ entry.label }}</strong>
+                <p>{{ entry.description }}</p>
+              </div>
+            </div>
+            }
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="dg-proto-section">
+      <div class="dg-proto-section__header">
+        <div>
           <p class="dg-proto-section__eyebrow dg-stencil">Dice</p>
           <h3 class="dg-proto-section__title">Rarity tells you ceiling. Affixes tell you intent.</h3>
         </div>

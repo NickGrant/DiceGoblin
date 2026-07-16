@@ -72,13 +72,25 @@ describe('CodexPageComponent', () => {
     expect(heading.querySelector('strong')?.textContent).toContain('2/10');
   });
 
-  it('shows locked feature unlocks with a fontawesome lock icon', () => {
+  it('shows feature unlocks as category-icon rows with locked details hidden', () => {
     const fixture = TestBed.createComponent(CodexPageComponent);
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
+    const featureEntries = fixture.nativeElement.querySelectorAll('.feature-entry');
     expect(text).toContain('Permanent account upgrades');
-    expect(fixture.nativeElement.querySelector('.lock fa-icon')).not.toBeNull();
+    expect(featureEntries.length).toBe(10);
+    expect(featureEntries[1].getAttribute('style')).toContain('--depth: 0');
+    expect(featureEntries[2].getAttribute('style')).toContain('--depth: 1');
+    expect(featureEntries[5].getAttribute('style')).toContain('--depth: 1');
+    expect(featureEntries[8].getAttribute('style')).toContain('--depth: 1');
+    expect(fixture.nativeElement.querySelectorAll('.feature-icon').length).toBe(10);
+    expect(text).toContain('Academy');
+    expect(text).toContain('Feature Unlock - 250 teeth');
+    expect(text).toContain('Sharp Dealer');
+    expect(text).toContain('Economy Upgrade - 500 teeth');
+    expect(text).toContain('???');
+    expect(text).toContain('Unlock to learn more.');
   });
 
   it('shows all units as a locked and unlocked hierarchy on a separate category', () => {
@@ -96,6 +108,7 @@ describe('CodexPageComponent', () => {
     expect(text).not.toContain('Unknown Class');
     expect(fixture.nativeElement.querySelectorAll('.role-icon').length).toBe(18);
     expect(fixture.nativeElement.querySelectorAll('.unit-thumbnail').length).toBe(18);
+    expect(fixture.nativeElement.querySelector('.unit-thumbnail')?.getAttribute('style') ?? '').not.toContain('123');
     expect(fixture.nativeElement.querySelectorAll('.unit-thumbnail--silhouette').length).toBe(17);
     expect(fixture.nativeElement.querySelector('.unit-thumbnail[alt="Bannerbearer portrait"]')?.getAttribute('src')).toContain(
       '/assets/ui/units/thumbnails/goblin/bannerbearer.png',
@@ -112,10 +125,14 @@ describe('CodexPageComponent', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
+    const affixEntries = fixture.nativeElement.querySelectorAll('.affix-entry');
     expect(text).toContain('Affix Archive');
+    expect(affixEntries.length).toBe(6);
+    expect(fixture.nativeElement.querySelectorAll('.affix-icon').length).toBe(6);
     expect(text).toContain('Bulwark');
     expect(text).toContain('Execute');
-    expect(text).toContain('Unknown Affix');
+    expect(text).not.toContain('Unknown Affix');
+    expect(text).toContain('Unlock to learn more.');
   });
 
   it('shows unlocked enemies and silhouettes locked enemy sprites', () => {
@@ -132,8 +149,14 @@ describe('CodexPageComponent', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
+    const enemyEntries = fixture.nativeElement.querySelectorAll('.enemy-entry');
     expect(text).toContain('Enemy Record');
-    expect(text).toContain('Unknown Enemy');
+    expect(enemyEntries.length).toBe(4);
+    expect(text).not.toContain('Unknown Enemy');
+    expect(fixture.nativeElement.querySelectorAll('.enemy-sprite').length).toBe(4);
+    expect(fixture.nativeElement.querySelectorAll('.enemy-entry .role-icon').length).toBe(4);
+    expect(fixture.nativeElement.querySelectorAll('.biome-badge').length).toBe(4);
+    expect(fixture.nativeElement.querySelector('.biome-badge')?.getAttribute('src')).toContain('/assets/ui/biome/mountain_badge.png');
     expect(fixture.nativeElement.querySelector('.silhouette')).not.toBeNull();
   });
 

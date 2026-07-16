@@ -2,8 +2,22 @@ import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular
 import { NgTemplateOutlet } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faBullseye, faFlag, faHandFist, faLock, faShieldHalved, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import {
+  faBolt,
+  faBullseye,
+  faCoins,
+  faDiceD20,
+  faFlag,
+  faGraduationCap,
+  faHandFist,
+  faBomb,
+  faSkull,
+  faShieldHalved,
+  faUsers,
+  faWandMagicSparkles,
+} from '@fortawesome/free-solid-svg-icons';
 import { resolveCompletedRegionSlugs } from '../../core/regions/region-catalog';
+import { FeatureUnlockCategoryLabel, resolveFeatureUnlockCategory } from '../../core/feature-unlocks/feature-unlock-categories';
 import { DiceAffixRecord } from '../../core/models/api.models';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
@@ -31,6 +45,8 @@ type GuideAffix = {
 type GuideUnlock = {
   name: string;
   key: string;
+  category: FeatureUnlockCategoryLabel;
+  depth: number;
   cost: number;
   description: string;
 };
@@ -281,8 +297,6 @@ export class CodexPageComponent implements OnInit, OnDestroy {
   protected readonly pageTitle = 'Codex';
   protected readonly pageSubtitle = 'A living record of your unlocks, sightings, and discoveries.';
   protected readonly breadcrumbs = [{ label: 'Codex' }];
-  protected readonly faLock = faLock;
-  protected readonly teethIcon = '/assets/ui/icons/tooth_64.png';
   protected readonly categories: ReadonlyArray<{ key: CodexCategory; label: string }> = [
     { key: 'features', label: 'Features' },
     { key: 'units', label: 'Units' },
@@ -303,16 +317,16 @@ export class CodexPageComponent implements OnInit, OnDestroy {
   ];
 
   protected readonly unlocks: ReadonlyArray<GuideUnlock> = [
-    { name: 'Academy', key: 'academy', cost: 250, description: 'Unlock promotions and unit-type research for your warband.' },
-    { name: 'Bigger Squad', key: 'bigger_squad', cost: 500, description: 'Raise your squad size cap from 4 units to 6.' },
-    { name: 'Biggerest Squad', key: 'biggerest_squad', cost: 1000, description: 'Raise your squad size cap from 6 units to the full 9-slot formation.' },
-    { name: 'Coupon Book', key: 'shop_discount', cost: 500, description: 'Make all future shop purchases cost 10% less.' },
-    { name: 'Sharp Dealer', key: 'sell_bonus', cost: 500, description: 'Make dice sales pay out 10% more teeth.' },
-    { name: 'Market Mastery', key: 'market_mastery', cost: 1000, description: 'Improve both shop discounts and sale payouts to 20% once both economy upgrades are unlocked.' },
-    { name: 'Second Deal', key: 'second_daily_deal', cost: 500, description: 'Add a second daily deal slot so the shop offers two rotating featured dice each day.' },
-    { name: 'Deep Pantry', key: 'energy_cap_75', cost: 750, description: 'Raise your max energy from 50 to 75.' },
-    { name: 'Bottomless Pantry', key: 'energy_cap_100', cost: 1250, description: 'Raise your max energy from 75 to 100 once Deep Pantry is unlocked.' },
-    { name: 'Loaded Caltrops', key: 'explode_d4s', cost: 2000, description: 'Give every d4 a one-time explode when it rolls max during combat.' },
+    { name: 'Academy', key: 'academy', category: resolveFeatureUnlockCategory('academy'), depth: 0, cost: 250, description: 'Unlock promotions and unit-type research for your warband.' },
+    { name: 'Bigger Squad', key: 'bigger_squad', category: resolveFeatureUnlockCategory('bigger_squad'), depth: 0, cost: 500, description: 'Raise your squad size cap from 4 units to 6.' },
+    { name: 'Biggerest Squad', key: 'biggerest_squad', category: resolveFeatureUnlockCategory('biggerest_squad'), depth: 1, cost: 1000, description: 'Raise your squad size cap from 6 units to the full 9-slot formation.' },
+    { name: 'Coupon Book', key: 'shop_discount', category: resolveFeatureUnlockCategory('shop_discount'), depth: 0, cost: 500, description: 'Make all future shop purchases cost 10% less.' },
+    { name: 'Sharp Dealer', key: 'sell_bonus', category: resolveFeatureUnlockCategory('sell_bonus'), depth: 0, cost: 500, description: 'Make dice sales pay out 10% more teeth.' },
+    { name: 'Market Mastery', key: 'market_mastery', category: resolveFeatureUnlockCategory('market_mastery'), depth: 1, cost: 1000, description: 'Improve both shop discounts and sale payouts to 20% once both economy upgrades are unlocked.' },
+    { name: 'Second Deal', key: 'second_daily_deal', category: resolveFeatureUnlockCategory('second_daily_deal'), depth: 0, cost: 500, description: 'Add a second daily deal slot so the shop offers two rotating featured dice each day.' },
+    { name: 'Deep Pantry', key: 'energy_cap_75', category: resolveFeatureUnlockCategory('energy_cap_75'), depth: 0, cost: 750, description: 'Raise your max energy from 50 to 75.' },
+    { name: 'Bottomless Pantry', key: 'energy_cap_100', category: resolveFeatureUnlockCategory('energy_cap_100'), depth: 1, cost: 1250, description: 'Raise your max energy from 75 to 100 once Deep Pantry is unlocked.' },
+    { name: 'Loaded Caltrops', key: 'explode_d4s', category: resolveFeatureUnlockCategory('explode_d4s'), depth: 0, cost: 2000, description: 'Give every d4 a one-time explode when it rolls max during combat.' },
   ];
 
   protected readonly completedBiomeSlugs = computed(() => resolveCompletedRegionSlugs(this.profileData()));
@@ -435,6 +449,41 @@ export class CodexPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  protected featureIcon(category: FeatureUnlockCategoryLabel): IconDefinition {
+    switch (category.trim().toLowerCase()) {
+      case 'squad upgrade':
+        return faUsers;
+      case 'economy upgrade':
+        return faCoins;
+      case 'energy upgrade':
+        return faBolt;
+      case 'dice upgrade':
+        return faDiceD20;
+      default:
+        return faGraduationCap;
+    }
+  }
+
+  protected affixIcon(affix: CodexAffixEntry): IconDefinition {
+    if (!affix.discovered) {
+      return faDiceD20;
+    }
+
+    switch (this.normalizeKey(affix.name)) {
+      case 'guard':
+      case 'bulwark':
+        return faShieldHalved;
+      case 'precision':
+        return faBullseye;
+      case 'execute':
+        return faSkull;
+      case 'explode':
+        return faBomb;
+      default:
+        return faHandFist;
+    }
+  }
+
   protected unitPortraitUrl(unit: CodexUnit): string {
     if (!this.hasAcquiredUnitUnlock(unit.slug)) {
       return resolveUnitSilhouetteUrl();
@@ -445,6 +494,11 @@ export class CodexPageComponent implements OnInit, OnDestroy {
 
   protected enemySpriteUrl(enemySlug: string): string {
     return resolvePrototypeEnemySpriteUrl(enemySlug);
+  }
+
+  protected biomeBadgeUrl(biome: string): string {
+    const theme = this.normalizeBiomeSlug(biome).replace(/^the_/, '').replace(/s$/, '');
+    return `/assets/ui/biome/${theme}_badge.png`;
   }
 
   protected guideUnitFramePath(unit: GuideBestiaryUnit): string {

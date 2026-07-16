@@ -1,5 +1,19 @@
 import { Component, OnInit, inject } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import {
+  faBolt,
+  faBullseye,
+  faCoins,
+  faDiceD20,
+  faFlag,
+  faGraduationCap,
+  faShieldHalved,
+  faUsers,
+  faWandMagicSparkles,
+} from '@fortawesome/free-solid-svg-icons';
 import { SessionService } from '../../core/services/session/session.service';
+import { FEATURE_UNLOCK_CATEGORY_DETAILS, FeatureUnlockCategoryLabel } from '../../core/feature-unlocks/feature-unlock-categories';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
@@ -55,6 +69,20 @@ type GuideCombatStat = {
   description: string;
 };
 
+type GuideIconEntry = {
+  label: string;
+  icon: IconDefinition;
+  description: string;
+};
+
+const FEATURE_CATEGORY_ICON_BY_LABEL: Record<FeatureUnlockCategoryLabel, IconDefinition> = {
+  'Feature Unlock': faGraduationCap,
+  'Squad Upgrade': faUsers,
+  'Economy Upgrade': faCoins,
+  'Energy Upgrade': faBolt,
+  'Dice Upgrade': faDiceD20,
+};
+
 const PUBLIC_GUIDE_STEPS: ReadonlyArray<GuideStep> = [
   {
     kicker: '1. Assemble',
@@ -76,7 +104,7 @@ const PUBLIC_GUIDE_STEPS: ReadonlyArray<GuideStep> = [
 @Component({
   selector: 'app-guide-page',
   standalone: true,
-  imports: [PageFrameComponent],
+  imports: [FontAwesomeModule, PageFrameComponent],
   templateUrl: './guide-page.component.html',
   styleUrl: './guide-page.component.scss',
 })
@@ -213,6 +241,18 @@ export class GuidePageComponent implements OnInit {
       description: 'The die assigned to an ability contributes the roll value, while affixes bend the result toward damage, defense, or special payoff.',
     },
   ];
+
+  protected readonly unitTypeIcons: ReadonlyArray<GuideIconEntry> = [
+    { label: 'Frontline', icon: faShieldHalved, description: 'Durable unit types built to hold space and absorb pressure.' },
+    { label: 'Backline', icon: faBullseye, description: 'Ranged unit types that convert protected turns into damage.' },
+    { label: 'Support', icon: faFlag, description: 'Team-focused unit types that reinforce allies, tempo, or morale.' },
+    { label: 'Utility', icon: faWandMagicSparkles, description: 'Disruptive unit types that interfere with enemy plans.' },
+  ];
+
+  protected readonly featureTypeIcons: ReadonlyArray<GuideIconEntry> = FEATURE_UNLOCK_CATEGORY_DETAILS.map((entry) => ({
+    ...entry,
+    icon: FEATURE_CATEGORY_ICON_BY_LABEL[entry.label],
+  }));
 
   ngOnInit(): void {
     void this.sessionService.initialize();

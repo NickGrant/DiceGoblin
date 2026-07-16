@@ -13,6 +13,7 @@ import { PageFrameComponent } from '../../layout/page-frame/page-frame.component
 import { TabStripComponent, TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
+import { resolveFeatureUnlockCategory } from '../../core/feature-unlocks/feature-unlock-categories';
 
 @Component({
   selector: 'app-shop-page',
@@ -23,18 +24,6 @@ import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/pro
 })
 export class ShopPageComponent {
   private readonly shopService = inject(ShopService);
-  private static readonly FEATURE_UNLOCK_LABELS: Record<string, string> = {
-    academy: 'Feature Unlock',
-    bigger_squad: 'Squad Upgrade',
-    biggerest_squad: 'Squad Upgrade',
-    shop_discount: 'Economy Upgrade',
-    sell_bonus: 'Economy Upgrade',
-    market_mastery: 'Economy Upgrade',
-    second_daily_deal: 'Feature Unlock',
-    energy_cap_75: 'Energy Upgrade',
-    energy_cap_100: 'Energy Upgrade',
-    explode_d4s: 'Dice Upgrade',
-  };
   private static readonly FEATURE_UNLOCK_REQUIREMENT_LABELS: Record<string, string> = {
     bigger_squad: 'No prerequisite',
     biggerest_squad: 'Requires Bigger Squad',
@@ -150,7 +139,7 @@ export class ShopPageComponent {
   }
 
   featureUnlockEyebrow(item: ShopFeatureUnlockItem): string {
-    return ShopPageComponent.FEATURE_UNLOCK_LABELS[item.product_id] ?? 'Feature Unlock';
+    return resolveFeatureUnlockCategory(item.product_id);
   }
 
   featureUnlockRequirementLabel(item: ShopFeatureUnlockItem): string {
