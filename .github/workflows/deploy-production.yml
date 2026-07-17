@@ -7,7 +7,6 @@ on:
     paths:
       - "frontend/**"
       - "backend/**"
-      - "scripts/prepare-release.mjs"
   workflow_dispatch:
     inputs:
       deployment_ref:
@@ -98,10 +97,6 @@ jobs:
                 backend/*)
                   backend=true
                   [[ "$changed_file" == backend/migrations/* ]] && migration=true
-                  ;;
-                scripts/prepare-release.mjs)
-                  frontend=true
-                  backend=true
                   ;;
               esac
             done < <(git diff --name-only "$base_sha" "$GITHUB_SHA")
