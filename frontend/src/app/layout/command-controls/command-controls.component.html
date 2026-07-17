@@ -57,16 +57,16 @@
 
 @if (mobileMenuOpen()) {
 <nav class="menu" aria-label="Primary navigation links">
-  @for (item of visibleNavItems(); track item.authenticatedRoute) {
+  @for (item of visibleNavItems(); track item.id) {
   <a
     class="menu-item"
     [routerLink]="navRoute(item)"
     routerLinkActive="is-active"
-    [attr.aria-label]="item.ariaLabel"
+    [attr.aria-label]="navAriaLabel(item)"
     (click)="closeMobileMenu()"
   >
     <img class="menu-item-icon" [src]="item.icon" alt="" />
-    <span class="menu-item-label">{{ item.label }}</span>
+    <span class="menu-item-label">{{ navLabel(item) }}</span>
   </a>
   }
 

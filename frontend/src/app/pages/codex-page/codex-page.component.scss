@@ -215,6 +215,10 @@
     &.is-locked {
       opacity: 0.72;
     }
+
+    &.enemy-entry--no-sprite {
+      grid-template-columns: 64px minmax(0, 1fr) 96px;
+    }
   }
 
   .enemy-sprite {

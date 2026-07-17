@@ -59,7 +59,7 @@ type GuideBestiaryUnit = {
   name: string;
   biome: string;
   role: string;
-  assetKey: string;
+  assetKey?: string;
 };
 
 type CodexMetric = {
@@ -85,6 +85,24 @@ type CodexLoreEntry = {
 };
 
 const BIOME_GUIDE_UNITS: ReadonlyArray<GuideBestiaryUnit> = [
+  {
+    slug: 'mudwrestler',
+    name: 'Mudwrestler',
+    biome: 'The Farm',
+    role: 'Frontline',
+  },
+  {
+    slug: 'mudslinger',
+    name: 'Mudslinger',
+    biome: 'The Farm',
+    role: 'Backline',
+  },
+  {
+    slug: 'mudking',
+    name: 'Mudking',
+    biome: 'The Farm',
+    role: 'Frontline',
+  },
   {
     slug: 'kobold_skirmisher',
     name: 'Kobold Skirmisher',
@@ -112,6 +130,30 @@ const BIOME_GUIDE_UNITS: ReadonlyArray<GuideBestiaryUnit> = [
     biome: 'Mountains',
     role: 'Backline',
     assetKey: 'kobold/warchief',
+  },
+  {
+    slug: 'frogman_bruiser',
+    name: 'Frogman Bruiser',
+    biome: 'Swamps',
+    role: 'Frontline',
+  },
+  {
+    slug: 'frogman_spearhunter',
+    name: 'Frogman Spearhunter',
+    biome: 'Swamps',
+    role: 'Frontline',
+  },
+  {
+    slug: 'frogman_wardrummer',
+    name: 'Frogman Wardrummer',
+    biome: 'Swamps',
+    role: 'Support',
+  },
+  {
+    slug: 'frogman_bog_tyrant',
+    name: 'Bog Tyrant',
+    biome: 'Swamps',
+    role: 'Frontline',
   },
 ];
 
@@ -519,6 +561,10 @@ export class CodexPageComponent implements OnInit, OnDestroy {
     return resolvePrototypeEnemySpriteUrl(enemySlug);
   }
 
+  protected hasEnemySprite(unit: GuideBestiaryUnit): boolean {
+    return Boolean(unit.assetKey);
+  }
+
   protected biomeBadgeUrl(biome: string): string {
     const theme = this.normalizeBiomeSlug(biome).replace(/^the_/, '').replace(/s$/, '');
     return `/assets/ui/biome/${theme}_badge.png`;
@@ -526,6 +572,10 @@ export class CodexPageComponent implements OnInit, OnDestroy {
 
   protected guideUnitFramePath(unit: GuideBestiaryUnit): string {
     const frameIndex = this.guideUnitFrameIndexes()[unit.slug] ?? 0;
+    if (!unit.assetKey) {
+      return '';
+    }
+
     return `/assets/ui/units/animated/${unit.assetKey}/frame_${frameIndex}.png`;
   }
 

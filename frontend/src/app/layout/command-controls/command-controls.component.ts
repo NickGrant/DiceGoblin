@@ -7,10 +7,11 @@ import { AudioDirectorService } from '../../core/services/audio/audio-director.s
 import { SessionService } from '../../core/services/session/session.service';
 
 type HudNavItem = {
-  readonly label: string;
-  readonly ariaLabel: string;
+  readonly id: string;
+  readonly label: () => string;
+  readonly ariaLabel: () => string;
   readonly icon: string;
-  readonly authenticatedRoute: string;
+  readonly authenticatedRoute: () => string;
   readonly publicRoute: string | null;
   readonly isVisible: () => boolean;
 };
@@ -35,6 +36,7 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   readonly session = this.sessionService.session;
   readonly profile = this.sessionService.profile;
   readonly isAuthenticated = computed(() => this.session().isAuthenticated);
+  readonly hasActiveRun = this.sessionService.hasActiveRun;
   readonly audioEnabled = this.audioDirector.isEnabled;
   readonly audioUnlocked = this.audioDirector.isUnlocked;
   readonly audioMuted = this.audioDirector.isMuted;
@@ -44,51 +46,66 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   readonly mobileMenuOpen = signal(false);
   readonly navItems: readonly HudNavItem[] = [
     {
-      label: 'Home',
-      ariaLabel: 'Home',
+      id: 'home',
+      label: () => 'Home',
+      ariaLabel: () => 'Home',
       icon: '/assets/ui/icons/icon_home.png',
-      authenticatedRoute: '/home',
+      authenticatedRoute: () => '/home',
       publicRoute: '/login',
       isVisible: () => true,
     },
     {
-      label: 'Warband',
-      ariaLabel: 'Warband',
+      id: 'run',
+      label: () => (this.hasActiveRun() ? 'Continue Run' : 'Start Run'),
+      ariaLabel: () => (this.hasActiveRun() ? 'Continue Run' : 'Start Run'),
+      icon: '/assets/ui/icons/icon_encounter_combat.png',
+      authenticatedRoute: () => (this.hasActiveRun() ? '/run/map' : '/regions'),
+      publicRoute: null,
+      isVisible: () => this.isAuthenticated(),
+    },
+    {
+      id: 'warband',
+      label: () => 'Warband',
+      ariaLabel: () => 'Warband',
       icon: '/assets/ui/icons/icon_warband.png',
-      authenticatedRoute: '/warband',
+      authenticatedRoute: () => '/warband',
       publicRoute: null,
       isVisible: () => this.isAuthenticated(),
     },
     {
-      label: 'Inventory',
-      ariaLabel: 'Inventory',
+      id: 'inventory',
+      label: () => 'Inventory',
+      ariaLabel: () => 'Inventory',
       icon: '/assets/ui/icons/icon_inventory.png',
-      authenticatedRoute: '/dice',
+      authenticatedRoute: () => '/dice',
       publicRoute: null,
       isVisible: () => this.isAuthenticated(),
     },
     {
-      label: 'Academy',
-      ariaLabel: 'Academy',
+      id: 'academy',
+      label: () => 'Academy',
+      ariaLabel: () => 'Academy',
       icon: '/assets/ui/icons/icon_shop.png',
-      authenticatedRoute: '/academy',
+      authenticatedRoute: () => '/academy',
       publicRoute: null,
       isVisible: () =>
         this.isAuthenticated() && this.sessionService.featureUnlocks().includes('academy'),
     },
     {
-      label: 'Guide',
-      ariaLabel: 'Guide',
+      id: 'guide',
+      label: () => 'Guide',
+      ariaLabel: () => 'Guide',
       icon: '/assets/ui/icons/icon_guide.png',
-      authenticatedRoute: '/guide',
+      authenticatedRoute: () => '/guide',
       publicRoute: '/guide',
       isVisible: () => true,
     },
     {
-      label: 'Codex',
-      ariaLabel: 'Codex',
+      id: 'codex',
+      label: () => 'Codex',
+      ariaLabel: () => 'Codex',
       icon: '/assets/ui/icons/icon_guide.png',
-      authenticatedRoute: '/codex',
+      authenticatedRoute: () => '/codex',
       publicRoute: null,
       isVisible: () => this.isAuthenticated(),
     },
@@ -158,7 +175,15 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   }
 
   navRoute(item: HudNavItem): string {
-    return this.isAuthenticated() ? item.authenticatedRoute : (item.publicRoute ?? '/login');
+    return this.isAuthenticated() ? item.authenticatedRoute() : (item.publicRoute ?? '/login');
+  }
+
+  navLabel(item: HudNavItem): string {
+    return item.label();
+  }
+
+  navAriaLabel(item: HudNavItem): string {
+    return item.ariaLabel();
   }
 
   login(): void {

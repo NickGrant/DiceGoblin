@@ -19,6 +19,7 @@ class SessionServiceStub {
   });
 
   readonly featureUnlocks = signal(['shop']);
+  readonly hasActiveRun = signal(false);
   readonly logout = jasmine.createSpy('logout').and.resolveTo();
 }
 
@@ -147,6 +148,36 @@ describe('CommandControlsComponent', () => {
     expect(router.serializeUrl(guideLink!.injector.get(RouterLink).urlTree!)).toBe('/guide');
   });
 
+  it('includes a start run link that routes to region selection', () => {
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.componentInstance.mobileMenuOpen.set(true);
+    fixture.detectChanges();
+
+    const runLink = fixture.debugElement
+      .queryAll(By.directive(RouterLink))
+      .find((debugElement) => debugElement.attributes['aria-label'] === 'Start Run');
+
+    expect(runLink).toBeDefined();
+    expect(runLink!.nativeElement.textContent).toContain('Start Run');
+    expect(router.serializeUrl(runLink!.injector.get(RouterLink).urlTree!)).toBe('/regions');
+  });
+
+  it('updates the run link while a run is active', () => {
+    sessionService.hasActiveRun.set(true);
+
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.componentInstance.mobileMenuOpen.set(true);
+    fixture.detectChanges();
+
+    const runLink = fixture.debugElement
+      .queryAll(By.directive(RouterLink))
+      .find((debugElement) => debugElement.attributes['aria-label'] === 'Continue Run');
+
+    expect(runLink).toBeDefined();
+    expect(runLink!.nativeElement.textContent).toContain('Continue Run');
+    expect(router.serializeUrl(runLink!.injector.get(RouterLink).urlTree!)).toBe('/run/map');
+  });
+
   it('stores the measured hud height in a shared CSS variable', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     spyOn(fixture.nativeElement as HTMLElement, 'getBoundingClientRect').and.returnValue({
@@ -202,6 +233,7 @@ describe('CommandControlsComponent', () => {
     expect(menu).not.toBeNull();
     expect(toggle.classList.contains('is-active')).toBeTrue();
     expect(menu?.textContent).toContain('Home');
+    expect(menu?.textContent).toContain('Start Run');
     expect(menu?.textContent).toContain('Warband');
     expect(menu?.textContent).toContain('Inventory');
     expect(menu?.textContent).not.toContain('Academy');
@@ -263,6 +295,8 @@ describe('CommandControlsComponent', () => {
     expect(compiled.querySelector('.slot-name')?.textContent).toContain('Guest');
     expect(compiled.querySelector('.slot-energy')?.textContent).toContain('--');
     expect(compiled.querySelector('.menu [aria-label="Warband"]')).toBeNull();
+    expect(compiled.querySelector('.menu [aria-label="Start Run"]')).toBeNull();
+    expect(compiled.querySelector('.menu [aria-label="Continue Run"]')).toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Inventory"]')).toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Academy"]')).toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Home"]')).not.toBeNull();

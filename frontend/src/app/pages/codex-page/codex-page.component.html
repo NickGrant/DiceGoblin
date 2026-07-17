@@ -177,19 +177,22 @@
         <article
           class="entry enemy-entry"
           [class.is-locked]="!unit.discovered"
-          (mouseenter)="unit.discovered && startGuideUnitAnimation(unit.slug)"
+          [class.enemy-entry--no-sprite]="!hasEnemySprite(unit)"
+          (mouseenter)="unit.discovered && hasEnemySprite(unit) && startGuideUnitAnimation(unit.slug)"
           (mouseleave)="stopGuideUnitAnimation(unit.slug)"
-          (focusin)="unit.discovered && startGuideUnitAnimation(unit.slug)"
+          (focusin)="unit.discovered && hasEnemySprite(unit) && startGuideUnitAnimation(unit.slug)"
           (focusout)="stopGuideUnitAnimation(unit.slug)"
           tabindex="0"
         >
           <fa-icon class="role-icon" [icon]="roleIcon(unit.role)" aria-hidden="true" [title]="unit.role"></fa-icon>
-          <img
-            [src]="unit.discovered ? guideUnitFramePath(unit) : enemySpriteUrl(unit.slug)"
-            [alt]="unit.discovered ? unit.name : 'Unknown enemy silhouette'"
-            class="enemy-sprite"
-            [class.silhouette]="!unit.discovered"
-          />
+          @if (hasEnemySprite(unit)) {
+            <img
+              [src]="unit.discovered ? guideUnitFramePath(unit) : enemySpriteUrl(unit.slug)"
+              [alt]="unit.discovered ? unit.name : 'Unknown enemy silhouette'"
+              class="enemy-sprite"
+              [class.silhouette]="!unit.discovered"
+            />
+          }
           @if (unit.discovered) {
             <div class="enemy-copy">
               <strong>{{ unit.name }}</strong>

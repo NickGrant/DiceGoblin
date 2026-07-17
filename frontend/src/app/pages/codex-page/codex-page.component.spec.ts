@@ -184,7 +184,7 @@ describe('CodexPageComponent', () => {
     expect(text).toContain('Unlock to learn more.');
   });
 
-  it('shows unlocked enemies and silhouettes locked enemy sprites', () => {
+  it('shows all enemies and skips sprites where art is unavailable', () => {
     sessionService.profileData.update((profile) => ({
       ...profile,
       regions: profile.regions.map((region: any) => (
@@ -200,12 +200,16 @@ describe('CodexPageComponent', () => {
     const text = fixture.nativeElement.textContent as string;
     const enemyEntries = fixture.nativeElement.querySelectorAll('.enemy-entry');
     expect(text).toContain('Enemy Record');
-    expect(enemyEntries.length).toBe(4);
+    expect(enemyEntries.length).toBe(11);
+    expect(text).toContain('Mudwrestler');
+    expect(text).toContain('Mudslinger');
+    expect(text).toContain('Mudking');
     expect(text).not.toContain('Unknown Enemy');
     expect(fixture.nativeElement.querySelectorAll('.enemy-sprite').length).toBe(4);
-    expect(fixture.nativeElement.querySelectorAll('.enemy-entry .role-icon').length).toBe(4);
-    expect(fixture.nativeElement.querySelectorAll('.biome-badge').length).toBe(4);
-    expect(fixture.nativeElement.querySelector('.biome-badge')?.getAttribute('src')).toContain('/assets/ui/biome/mountain_badge.png');
+    expect(fixture.nativeElement.querySelectorAll('.enemy-entry--no-sprite').length).toBe(7);
+    expect(fixture.nativeElement.querySelectorAll('.enemy-entry .role-icon').length).toBe(11);
+    expect(fixture.nativeElement.querySelectorAll('.biome-badge').length).toBe(11);
+    expect(fixture.nativeElement.querySelector('.biome-badge')?.getAttribute('src')).toContain('/assets/ui/biome/farm_badge.png');
     expect(fixture.nativeElement.querySelector('.silhouette')).not.toBeNull();
   });
 
