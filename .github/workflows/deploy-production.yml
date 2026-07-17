@@ -118,7 +118,7 @@ jobs:
             echo "- Database migration changed: $migration"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  build-frontend:
+  build_frontend:
     name: Test and build frontend
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
@@ -156,7 +156,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  build-backend:
+  build_backend:
     name: Test and package backend
     needs: changes
     if: needs.changes.outputs.backend == 'true'
@@ -202,16 +202,16 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  deploy-backend:
+  deploy_backend:
     name: Deploy backend
     needs:
       - changes
-      - build-backend
+      - build_backend
     if: >-
       ${{
         always() &&
         needs.changes.outputs.backend == 'true' &&
-        needs.build-backend.result == 'success'
+        needs.build_backend.result == 'success'
       }}
     runs-on: ubuntu-latest
     environment: production
@@ -273,20 +273,20 @@ jobs:
         if: needs.changes.outputs.migration == 'true'
         run: echo "::warning::This deployment includes migration changes. Confirm the production schema was applied separately."
 
-  deploy-frontend:
+  deploy_frontend:
     name: Deploy frontend
     needs:
       - changes
-      - build-frontend
-      - deploy-backend
+      - build_frontend
+      - deploy_backend
     if: >-
       ${{
         always() &&
         needs.changes.outputs.frontend == 'true' &&
-        needs.build-frontend.result == 'success' &&
+        needs.build_frontend.result == 'success' &&
         (
           needs.changes.outputs.backend != 'true' ||
-          needs.deploy-backend.result == 'success'
+          needs.deploy_backend.result == 'success'
         )
       }}
     runs-on: ubuntu-latest
