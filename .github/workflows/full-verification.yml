@@ -44,7 +44,7 @@ jobs:
         run: npm run test:backend
 
       - name: Run frontend tests
-        run: npm run test:frontend
+        run: npm --prefix frontend run test -- --watch=false --browsers=ChromeHeadless
 
       - name: Build frontend
         run: npm run build:frontend
