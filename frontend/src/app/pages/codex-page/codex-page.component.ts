@@ -3,18 +3,12 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
-  faBolt,
   faBullseye,
-  faCoins,
   faDiceD20,
-  faFlag,
-  faGraduationCap,
   faHandFist,
   faBomb,
   faSkull,
   faShieldHalved,
-  faUsers,
-  faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons';
 import { resolveCompletedRegionSlugs } from '../../core/regions/region-catalog';
 import { FeatureUnlockCategoryLabel, resolveFeatureUnlockCategory } from '../../core/feature-unlocks/feature-unlock-categories';
@@ -26,6 +20,7 @@ import { PageFrameComponent } from '../../layout/page-frame/page-frame.component
 import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
 import { resolvePrototypeEnemySpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 import { resolveUnitSilhouetteUrl, resolveUnitThumbnailUrl } from '../../shared/ui/unit-art/unit-art';
+import { resolveFeatureUnlockIcon, resolveUnitRoleIcon } from '../../shared/ui/category-icons/category-icons';
 
 type CodexCategory = 'features' | 'units' | 'affixes' | 'enemies' | 'lore';
 
@@ -500,33 +495,11 @@ export class CodexPageComponent implements OnInit, OnDestroy {
   }
 
   protected roleIcon(role: string): IconDefinition {
-    switch (role.trim().toLowerCase()) {
-      case 'frontline':
-        return faShieldHalved;
-      case 'backline':
-        return faBullseye;
-      case 'support':
-        return faFlag;
-      case 'utility':
-        return faWandMagicSparkles;
-      default:
-        return faHandFist;
-    }
+    return resolveUnitRoleIcon(role);
   }
 
   protected featureIcon(category: FeatureUnlockCategoryLabel): IconDefinition {
-    switch (category.trim().toLowerCase()) {
-      case 'squad upgrade':
-        return faUsers;
-      case 'economy upgrade':
-        return faCoins;
-      case 'energy upgrade':
-        return faBolt;
-      case 'dice upgrade':
-        return faDiceD20;
-      default:
-        return faGraduationCap;
-    }
+    return resolveFeatureUnlockIcon(category);
   }
 
   protected affixIcon(affix: CodexAffixEntry): IconDefinition {

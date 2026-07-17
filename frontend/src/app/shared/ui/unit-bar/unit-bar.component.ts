@@ -1,11 +1,13 @@
 import { Component, computed, input } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { UnitRecord } from '../../../core/models/api.models';
 import { UnitThumbnailComponent } from '../unit-thumbnail/unit-thumbnail.component';
+import { resolveUnitRoleIcon } from '../category-icons/category-icons';
 
 @Component({
   selector: 'dg-unit-bar',
   standalone: true,
-  imports: [UnitThumbnailComponent],
+  imports: [FontAwesomeModule, UnitThumbnailComponent],
   templateUrl: './unit-bar.component.html',
   styleUrl: './unit-bar.component.scss',
 })
@@ -36,6 +38,7 @@ export class UnitBarComponent {
   readonly tierLabel = computed(() => `Tier ${this.tierNumber()}`);
   readonly tierIconUrl = computed(() => `/assets/ui/icons/tier/${this.tierNumber()}.png`);
   readonly levelLabel = computed(() => `Level ${this.unit().level || 1}`);
+  readonly roleIcon = computed(() => resolveUnitRoleIcon(this.unit().unit_type_slug ?? this.unit().unit_type_name));
 
   private percent(value: number, total: number): number {
     if (total <= 0) {

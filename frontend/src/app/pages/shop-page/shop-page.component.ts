@@ -1,24 +1,27 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   ShopCatalogData,
   ShopDailyDeal,
   ShopDiceItem,
   ShopFeatureUnlockItem,
   ShopUnitItem,
+  UnitRecord,
 } from '../../core/models/api.models';
 import { ShopService } from '../../core/services/shop/shop.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { TabStripComponent, TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
-import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
-import { resolveFeatureUnlockCategory } from '../../core/feature-unlocks/feature-unlock-categories';
+import { FeatureUnlockCategoryLabel, resolveFeatureUnlockCategory } from '../../core/feature-unlocks/feature-unlock-categories';
+import { UnitBarComponent } from '../../shared/ui/unit-bar/unit-bar.component';
+import { resolveFeatureUnlockIcon } from '../../shared/ui/category-icons/category-icons';
 
 @Component({
   selector: 'app-shop-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, TabStripComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, FontAwesomeModule, PageFrameComponent, UnitBarComponent],
   templateUrl: './shop-page.component.html',
   styleUrl: './shop-page.component.scss',
 })
@@ -30,12 +33,13 @@ export class ShopPageComponent {
     market_mastery: 'Requires Coupon Book + Sharp Dealer',
     energy_cap_100: 'Requires Deep Pantry',
   };
+  private static readonly FEATURE_UNLOCK_DEPTHS: Record<string, number> = {
+    biggerest_squad: 1,
+    market_mastery: 1,
+    energy_cap_100: 1,
+  };
 
   readonly activeTab = signal<'supplies' | 'feature_unlocks'>('supplies');
-  readonly tabs: ReadonlyArray<TabStripItem> = [
-    { id: 'supplies', label: 'Supplies', kicker: 'Stock' },
-    { id: 'feature_unlocks', label: 'Feature Unlocks', kicker: 'Progression' },
-  ];
   readonly catalog = signal<ShopCatalogData | null>(null);
   readonly loading = signal(true);
   readonly busyKey = signal<string | null>(null);
@@ -110,12 +114,24 @@ export class ShopPageComponent {
     return `${item.rarity} d${item.sides}`;
   }
 
-  dailyDealLabel(item: ShopDailyDeal): string {
-    return item.slot && item.slot > 1 ? `Deal ${item.slot}: ${item.affix.name}` : item.affix.name;
+  unitBarRecord(item: ShopUnitItem): UnitRecord {
+    return {
+      id: item.product_id,
+      name: item.name,
+      level: 1,
+      tier: 1,
+      unit_type_slug: item.unit_type_slug,
+      unit_type_name: item.name,
+      current_hp: 10,
+      max_hp: 10,
+      xp: 0,
+      xp_to_next_level: 100,
+      is_mastered: false,
+    };
   }
 
-  unitSpriteUrl(item: ShopUnitItem): string {
-    return resolvePrototypeUnitSpriteUrl(item.name);
+  dailyDealLabel(item: ShopDailyDeal): string {
+    return item.slot && item.slot > 1 ? `Deal ${item.slot}: ${item.affix.name}` : item.affix.name;
   }
 
   purchaseBusy(itemType: 'basic_unit' | 'basic_dice' | 'daily_deal', productId: string): boolean {
@@ -138,12 +154,20 @@ export class ShopPageComponent {
     return item.is_unlocked ? 'Unlocked' : 'Unlock';
   }
 
-  featureUnlockEyebrow(item: ShopFeatureUnlockItem): string {
+  featureUnlockEyebrow(item: ShopFeatureUnlockItem): FeatureUnlockCategoryLabel {
     return resolveFeatureUnlockCategory(item.product_id);
+  }
+
+  featureUnlockIcon(item: ShopFeatureUnlockItem): IconDefinition {
+    return resolveFeatureUnlockIcon(this.featureUnlockEyebrow(item));
   }
 
   featureUnlockRequirementLabel(item: ShopFeatureUnlockItem): string {
     return ShopPageComponent.FEATURE_UNLOCK_REQUIREMENT_LABELS[item.product_id] ?? 'Locked';
+  }
+
+  featureUnlockDepth(item: ShopFeatureUnlockItem): number {
+    return ShopPageComponent.FEATURE_UNLOCK_DEPTHS[item.product_id] ?? 0;
   }
 
   isFeatureUnlockAvailable(item: ShopFeatureUnlockItem): boolean {

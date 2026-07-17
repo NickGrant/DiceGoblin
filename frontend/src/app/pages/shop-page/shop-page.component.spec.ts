@@ -208,6 +208,7 @@ describe('ShopPageComponent', () => {
     expect(compiled.textContent).toContain('Goblin Bruiser');
     expect(compiled.textContent).toContain('Sharp');
     expect(compiled.textContent).toContain('Deal 2: Heavy');
+    expect(compiled.querySelector('.shop-unit__cost')?.textContent).toContain('15');
   });
 
   it('shows Academy under feature unlocks and purchases it from that tab', async () => {
@@ -220,7 +221,7 @@ describe('ShopPageComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('Camp Upgrades');
+    expect(compiled.textContent).toContain('Tooth Market');
     expect(compiled.textContent).toContain('Academy');
     expect(compiled.textContent).toContain('Bigger Squad');
     expect(compiled.textContent).toContain('Biggerest Squad');
@@ -234,10 +235,13 @@ describe('ShopPageComponent', () => {
     expect(compiled.textContent).toContain('Requires Bigger Squad');
     expect(compiled.textContent).toContain('Requires Coupon Book + Sharp Dealer');
     expect(compiled.textContent).toContain('Requires Deep Pantry');
-    expect(compiled.textContent).toContain('500 Teeth');
+    expect(compiled.textContent).toContain('500');
 
     const unlockedCard = compiled.querySelector('.feature-unlock-card--unlocked');
     expect(unlockedCard?.textContent).toContain('Academy');
+    const featureEntries = Array.from(compiled.querySelectorAll('.feature-unlock-card'));
+    expect(featureEntries[2].getAttribute('style')).toContain('--depth: 1');
+    expect(featureEntries[2].classList).toContain('feature-unlock-card--unavailable');
 
     await component.purchase('feature_unlock', 'academy');
     expect(shopService.purchase).toHaveBeenCalledWith('feature_unlock', 'academy');
