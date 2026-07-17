@@ -1,0 +1,367 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - "backend/**"
+      - "scripts/prepare-release.mjs"
+  workflow_dispatch:
+    inputs:
+      deployment_ref:
+        description: Branch, tag, or commit SHA to deploy
+        required: true
+        default: main
+        type: string
+      component:
+        description: Application component to deploy
+        required: true
+        default: both
+        type: choice
+        options:
+          - frontend
+          - backend
+          - both
+      dry_run:
+        description: Show FTP changes without uploading or deleting files
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-ftp-deploy
+  cancel-in-progress: false
+
+jobs:
+  changes:
+    name: Detect application changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.detect.outputs.frontend }}
+      backend: ${{ steps.detect.outputs.backend }}
+      migration: ${{ steps.detect.outputs.migration }}
+    steps:
+      - name: Checkout deployment source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.deployment_ref || github.sha }}
+          fetch-depth: 0
+
+      - name: Detect affected components
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          frontend=false
+          backend=false
+          migration=false
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            case "${{ inputs.component }}" in
+              frontend)
+                frontend=true
+                ;;
+              backend)
+                backend=true
+                ;;
+              both)
+                frontend=true
+                backend=true
+                ;;
+              *)
+                echo "Unsupported component selection." >&2
+                exit 1
+                ;;
+            esac
+          else
+            base_sha="${{ github.event.before }}"
+
+            if [[ "$base_sha" =~ ^0+$ ]] || ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
+              base_sha="$(git rev-parse "${GITHUB_SHA}^" 2>/dev/null || git rev-list --max-parents=0 "$GITHUB_SHA")"
+            fi
+
+            echo "Changed files between $base_sha and $GITHUB_SHA:"
+            while IFS= read -r changed_file; do
+              [[ -z "$changed_file" ]] && continue
+              echo "  $changed_file"
+
+              case "$changed_file" in
+                frontend/*)
+                  frontend=true
+                  ;;
+                backend/*)
+                  backend=true
+                  [[ "$changed_file" == backend/migrations/* ]] && migration=true
+                  ;;
+                scripts/prepare-release.mjs)
+                  frontend=true
+                  backend=true
+                  ;;
+              esac
+            done < <(git diff --name-only "$base_sha" "$GITHUB_SHA")
+          fi
+
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
+          echo "migration=$migration" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Deployment scope"
+            echo "- Frontend: $frontend"
+            echo "- Backend: $backend"
+            echo "- Database migration changed: $migration"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build-frontend:
+    name: Test and build frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployment source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.deployment_ref || github.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Run frontend tests
+        run: npm --prefix frontend run test -- --watch=false --browsers=ChromeHeadless
+
+      - name: Build production frontend
+        run: npm --prefix frontend run build
+
+      - name: Check bundle size
+        run: node scripts/check-frontend-bundle-size.mjs
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/browser
+          if-no-files-found: error
+          retention-days: 7
+
+  build-backend:
+    name: Test and package backend
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployment source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.deployment_ref || github.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          tools: composer
+
+      - name: Install backend dependencies
+        run: composer --working-dir=backend install --no-interaction --no-progress --prefer-dist
+
+      - name: Run backend tests
+        run: composer --working-dir=backend test
+
+      - name: Lint backend PHP
+        shell: bash
+        run: find backend/public backend/src -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Remove development dependencies
+        run: composer --working-dir=backend install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Prepare backend release
+        run: node scripts/prepare-release.mjs backend
+
+      - name: Upload backend release
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-release
+          path: artifacts/deploy/backend
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy-backend:
+    name: Deploy backend
+    needs:
+      - changes
+      - build-backend
+    if: >-
+      ${{
+        always() &&
+        needs.changes.outputs.backend == 'true' &&
+        needs.build-backend.result == 'success'
+      }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Download backend release
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-release
+          path: artifacts/deploy/backend
+
+      - name: Validate backend deployment configuration
+        shell: bash
+        env:
+          FTP_SERVER: ${{ vars.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.BACKEND_FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.BACKEND_FTP_PASSWORD }}
+          SERVER_DIR: ${{ vars.BACKEND_SERVER_DIR }}
+          PRODUCTION_API_URL: ${{ vars.PRODUCTION_API_URL }}
+        run: |
+          set -euo pipefail
+          for required_name in FTP_SERVER FTP_USERNAME FTP_PASSWORD SERVER_DIR PRODUCTION_API_URL; do
+            if [[ -z "${!required_name:-}" ]]; then
+              echo "Missing production setting: $required_name" >&2
+              exit 1
+            fi
+          done
+          [[ "$SERVER_DIR" == */ ]] || {
+            echo "BACKEND_SERVER_DIR must end with a slash." >&2
+            exit 1
+          }
+
+      - name: Deploy backend over FTP
+        uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287
+        with:
+          server: ${{ vars.FTP_SERVER }}
+          username: ${{ secrets.BACKEND_FTP_USERNAME }}
+          password: ${{ secrets.BACKEND_FTP_PASSWORD }}
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          port: ${{ vars.FTP_PORT || '21' }}
+          local-dir: ./artifacts/deploy/backend/
+          server-dir: ${{ vars.BACKEND_SERVER_DIR }}
+          state-name: .ftp-deploy-sync-state-backend.json
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.env
+            **/.env.*
+            **/logs/**
+
+      - name: Verify backend health
+        if: github.event_name != 'workflow_dispatch' || !inputs.dry_run
+        env:
+          PRODUCTION_API_URL: ${{ vars.PRODUCTION_API_URL }}
+        run: curl --fail --silent --show-error --retry 4 --retry-delay 5 "${PRODUCTION_API_URL%/}/api/v1/health"
+
+      - name: Note database migration changes
+        if: needs.changes.outputs.migration == 'true'
+        run: echo "::warning::This deployment includes migration changes. Confirm the production schema was applied separately."
+
+  deploy-frontend:
+    name: Deploy frontend
+    needs:
+      - changes
+      - build-frontend
+      - deploy-backend
+    if: >-
+      ${{
+        always() &&
+        needs.changes.outputs.frontend == 'true' &&
+        needs.build-frontend.result == 'success' &&
+        (
+          needs.changes.outputs.backend != 'true' ||
+          needs.deploy-backend.result == 'success'
+        )
+      }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout deployment source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.deployment_ref || github.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/browser
+
+      - name: Validate frontend deployment configuration
+        shell: bash
+        env:
+          FTP_SERVER: ${{ vars.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FRONTEND_FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FRONTEND_FTP_PASSWORD }}
+          SERVER_DIR: ${{ vars.FRONTEND_SERVER_DIR }}
+          PRODUCTION_FRONTEND_URL: ${{ vars.PRODUCTION_FRONTEND_URL }}
+          PRODUCTION_API_URL: ${{ vars.PRODUCTION_API_URL }}
+        run: |
+          set -euo pipefail
+          for required_name in FTP_SERVER FTP_USERNAME FTP_PASSWORD SERVER_DIR PRODUCTION_FRONTEND_URL PRODUCTION_API_URL; do
+            if [[ -z "${!required_name:-}" ]]; then
+              echo "Missing production setting: $required_name" >&2
+              exit 1
+            fi
+          done
+          [[ "$SERVER_DIR" == */ ]] || {
+            echo "FRONTEND_SERVER_DIR must end with a slash." >&2
+            exit 1
+          }
+
+      - name: Prepare frontend release configuration
+        env:
+          DICE_GOBLIN_RELEASE_API_URL: ${{ vars.PRODUCTION_API_URL }}
+        run: node scripts/prepare-release.mjs frontend
+
+      - name: Deploy frontend over FTP
+        uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287
+        with:
+          server: ${{ vars.FTP_SERVER }}
+          username: ${{ secrets.FRONTEND_FTP_USERNAME }}
+          password: ${{ secrets.FRONTEND_FTP_PASSWORD }}
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          port: ${{ vars.FTP_PORT || '21' }}
+          local-dir: ./artifacts/deploy/frontend/
+          server-dir: ${{ vars.FRONTEND_SERVER_DIR }}
+          state-name: .ftp-deploy-sync-state-frontend.json
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+
+      - name: Verify frontend deployment
+        if: github.event_name != 'workflow_dispatch' || !inputs.dry_run
+        shell: bash
+        env:
+          PRODUCTION_FRONTEND_URL: ${{ vars.PRODUCTION_FRONTEND_URL }}
+          PRODUCTION_API_URL: ${{ vars.PRODUCTION_API_URL }}
+        run: |
+          set -euo pipefail
+          frontend_url="${PRODUCTION_FRONTEND_URL%/}"
+          api_url="${PRODUCTION_API_URL%/}"
+
+          curl --fail --silent --show-error --retry 4 --retry-delay 5 "$frontend_url/" > /dev/null
+          curl --fail --silent --show-error --retry 4 --retry-delay 5 "$frontend_url/runtime-config.js" | grep --fixed-strings "$api_url"
