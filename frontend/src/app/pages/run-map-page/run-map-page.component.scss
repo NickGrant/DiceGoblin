@@ -2,136 +2,16 @@
   padding: 0 1rem 1rem;
 }
 
-.run-map-scene {
-  padding: 1rem;
-  display: grid;
-  gap: 1rem;
-}
-
-.run-map-scene__status-strip,
-.run-map-scene__layout,
-.run-map-squad-list,
-.run-map-layout__legend {
+.run-map-scene__layout {
   display: grid;
   gap: 0.75rem;
 }
 
-.run-map-scene__status-card,
-.run-map-squad-card,
-.run-map-page__legend-row,
-.run-map-scene__next-node {
-  border-radius: 0.95rem;
-  border: 1px solid rgba(91, 59, 29, 0.16);
-}
-
-.run-map-scene__status-card {
-  padding: 0.9rem 1rem;
-  background:
-    linear-gradient(180deg, rgba(255, 247, 231, 0.94), rgba(231, 210, 173, 0.9)),
-    center / 220px auto repeat var(--dg-proto-paper);
-  color: #24150d;
-}
-
-.run-map-scene__status-card p,
-.run-map-scene__status-card span,
-.run-map-squad-card p,
-.run-map-squad-card span,
-.run-map-page__legend-row span,
-.run-map-scene__next-node-label,
-.run-map-scene__next-node span {
-  margin: 0;
-  color: rgba(51, 31, 18, 0.78);
-}
-
-.run-map-scene__status-card p,
-.run-map-scene__next-node-label {
-  margin-bottom: 0.2rem;
-  font-size: 0.74rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.run-map-scene__status-card strong,
-.run-map-page__legend-row strong,
-.run-map-squad-card h4,
-.run-map-scene__next-node strong {
-  display: block;
-  margin: 0;
-  color: #24150d;
-}
-
-.run-map-scene__status-card span,
-.run-map-page__legend-row span,
-.run-map-scene__next-node span,
-.run-map-squad-card span {
-  display: block;
-  margin-top: 0.18rem;
-  font-size: 0.84rem;
-}
-
-.run-map-scene__rail,
-.run-map-scene__board {
-  min-width: 0;
-}
-
-.run-map-scene__rail {
-  display: grid;
-  gap: 1rem;
-  align-content: start;
-}
-
-.run-map-scene__rail-header,
-.run-map-scene__board-header {
+.run-map-meta {
   display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.run-map-scene__board {
-  display: grid;
+  flex-direction: column;
   gap: 1rem;
-}
-
-.run-map-scene__board-title {
-  margin: 0;
-  color: #23150d;
-  font-size: clamp(1.6rem, 3vw, 2.3rem);
-}
-
-.run-map-scene__next-node {
-  padding: 0.9rem;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.85rem;
   align-items: center;
-  background:
-    linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
-    center / 220px auto repeat var(--dg-proto-paper);
-}
-
-.run-map-scene__next-node-icon {
-  width: 4.5rem;
-  height: 4.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.85rem;
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.48), transparent 46%),
-    linear-gradient(180deg, rgba(219, 236, 216, 0.82), rgba(194, 181, 145, 0.76));
-}
-
-.run-map-scene__next-node-icon img,
-.run-map-page__legend-icon {
-  object-fit: contain;
-  image-rendering: pixelated;
-}
-
-.run-map-scene__next-node-icon img {
-  width: 3.25rem;
-  height: 3.25rem;
 }
 
 .run-map-shell {
@@ -139,6 +19,9 @@
 }
 
 .run-map-scroll {
+  display: flex;
+  align-items: center;
+  min-height: 580px;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 1rem;
@@ -147,12 +30,11 @@
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  min-height: 320px;
 }
 
 .run-map {
-  min-width: 100%;
   display: block;
+  min-width: 100%;
 }
 
 .run-map__edge {
@@ -188,9 +70,7 @@
 .run-map__node--available circle {
   stroke: rgba(243, 239, 224, 0.9);
   stroke-width: 3;
-  transition:
-    transform 140ms ease,
-    stroke-width 140ms ease;
+  transition: stroke-width 140ms ease;
 }
 
 .run-map__node--available:hover circle,
@@ -198,50 +78,9 @@
   stroke-width: 5;
 }
 
-.run-map-squad-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.75rem;
-  align-items: center;
-  padding: 0.75rem;
-  background:
-    linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
-    center / 220px auto repeat var(--dg-proto-paper);
-}
-
-.run-map-squad-card h4,
-.run-map-squad-card p,
-.run-map-squad-card span {
-  margin: 0;
-}
-
-.run-map-squad-card.is-defeated {
-  opacity: 0.7;
-}
-
-.run-map-page__legend-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.75rem;
-  align-items: center;
-  padding: 0.75rem;
-  background:
-    linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
-    center / 220px auto repeat var(--dg-proto-paper);
-}
-
-.run-map-page__legend-icon {
-  width: 60px;
-  height: 60px;
-}
-
 @media (min-width: 761px) {
-  .run-map-scene__status-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .run-map-scene__layout {
-    grid-template-columns: minmax(15rem, 0.9fr) minmax(0, 1.55fr) minmax(15rem, 0.9fr);
+    grid-template-columns: minmax(0, 1.55fr) minmax(15rem, 0.9fr);
     align-items: start;
   }
 }

@@ -12,4 +12,13 @@
     <span class="unit-thumbnail__level">{{ levelLabel() }}</span>
   </span>
   }
+  @if (showHp()) {
+  <span class="unit-thumbnail__hp" [attr.title]="hpLabel()" [attr.aria-label]="hpLabel()">
+    <span
+      class="unit-thumbnail__hp-fill"
+      [class.unit-thumbnail__hp-fill--critical]="hpPercent() <= 25"
+      [style.width.%]="hpPercent()"
+    ></span>
+  </span>
+  }
 </span>

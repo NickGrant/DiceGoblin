@@ -1,6 +1,7 @@
 import { Component, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { UnitRecord } from '../../../core/models/api.models';
-import { UnitBarComponent } from '../unit-bar/unit-bar.component';
+import { UnitThumbnailComponent } from '../unit-thumbnail/unit-thumbnail.component';
 
 export type RunUnitFormationCell = {
   cell: string;
@@ -29,7 +30,7 @@ export type RunUnitFormationCell = {
 @Component({
   selector: 'dg-run-unit-formation-grid',
   standalone: true,
-  imports: [UnitBarComponent],
+  imports: [RouterLink, UnitThumbnailComponent],
   templateUrl: './run-unit-formation-grid.component.html',
   styleUrl: './run-unit-formation-grid.component.scss',
 })

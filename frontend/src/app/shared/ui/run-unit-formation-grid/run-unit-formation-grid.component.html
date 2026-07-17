@@ -2,14 +2,16 @@
   @for (cell of cells(); track cell.cell) {
   <article class="run-unit-grid__card" [class.run-unit-grid__card--empty]="!cell.entry" [class.run-unit-grid__card--defeated]="cell.entry?.defeated">
     @if (cell.entry; as entry) {
-    <dg-unit-bar
-      [unit]="displayUnit(entry)"
-      [currentHp]="entry.currentHp"
-      [maxHp]="entry.maxHp"
-      [defeated]="entry.defeated"
-      [positionLabel]="cell.cell"
-      [compact]="true"
-    />
+    <a class="run-unit-grid__link" [routerLink]="['/warband/units', entry.unit_instance_id]">
+      <dg-unit-thumbnail
+        [unit]="displayUnit(entry)"
+        [compact]="true"
+        [locked]="entry.defeated"
+        [showHp]="true"
+        [currentHp]="entry.currentHp"
+        [maxHp]="entry.maxHp"
+      />
+    </a>
     } @else {
     <div class="run-unit-grid__empty">
       <span>Empty</span>

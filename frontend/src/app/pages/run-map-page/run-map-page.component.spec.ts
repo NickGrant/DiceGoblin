@@ -69,6 +69,7 @@ describe('RunMapPageComponent', () => {
 
     expect(fixture.componentInstance.run()?.run_id).toBe('run-1');
     expect(fixture.componentInstance.loading()).toBeFalse();
+    expect(fixture.componentInstance.pageTitle()).toBe('Continue Run - The Farm');
     expect(fixture.componentInstance.iconForNodeType('combat')).toContain('icon_encounter_combat.png');
     expect(fixture.componentInstance.iconForNodeType('exit')).toContain('icon_home.png');
     expect(fixture.componentInstance.mapBackgroundUrl()).toBe('/assets/ui/biome/farm.png');
@@ -79,11 +80,13 @@ describe('RunMapPageComponent', () => {
     expect(fixture.componentInstance.formationGrid().length).toBe(9);
     expect(fixture.componentInstance.formationGrid().find((cell) => cell.cell === 'A1')?.entry?.currentHp).toBe(6);
     const host: HTMLElement = fixture.nativeElement;
-    expect(host.textContent).toContain('Bruiser');
-    expect(host.textContent).toContain('Level 3');
-    expect(host.querySelector('.unit-bar__tier-icon')?.getAttribute('src')).toContain('/assets/ui/icons/tier/2.png');
-    expect(host.textContent).toContain('A1');
-    expect(host.textContent).toContain('6/10 HP');
+    expect(host.textContent).toContain('Continue Run - The Farm');
+    expect(host.textContent).toContain('Fang');
+    expect(host.textContent).toContain('Lv 3');
+    expect(host.querySelector('.run-unit-grid .unit-thumbnail')).not.toBeNull();
+    expect(host.querySelector('.run-unit-grid .unit-thumbnail__hp')).not.toBeNull();
+    expect(host.querySelector('.run-unit-grid .unit-bar')).toBeNull();
+    expect(host.querySelector('.run-unit-grid a')?.getAttribute('href')).toContain('/warband/units/u1');
   });
 
   it('sizes the map from rendered node positions instead of a separate node-index guess', async () => {

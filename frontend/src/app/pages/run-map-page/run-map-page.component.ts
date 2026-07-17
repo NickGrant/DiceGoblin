@@ -8,7 +8,6 @@ import { buildFormationGrid } from '../../shared/formation/formation';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 import { RunUnitFormationGridComponent } from '../../shared/ui/run-unit-formation-grid/run-unit-formation-grid.component';
 
 @Component({
@@ -57,6 +56,29 @@ export class RunMapPageComponent {
   readonly nodes = computed(() => this.runData()?.map?.nodes ?? []);
   readonly edges = computed(() => this.runData()?.map?.edges ?? []);
   readonly run = computed(() => this.runData()?.run ?? null);
+  readonly regionName = computed(() => {
+    const run = this.run();
+    if (!run) {
+      return null;
+    }
+
+    if (run.region_name) {
+      return run.region_name;
+    }
+
+    const profile = this.sessionService.profileData();
+    const region = profile?.regions?.find(
+      (candidate) =>
+        String(candidate.id) === String(run.region_id) ||
+        candidate.slug === run.region_slug,
+    );
+
+    return region?.name ?? null;
+  });
+  readonly pageTitle = computed(() => {
+    const regionName = this.regionName();
+    return regionName ? `Continue Run - ${regionName}` : 'Continue Run';
+  });
   readonly activeSquad = this.sessionService.activeSquad;
   readonly mapBackgroundUrl = computed(() => resolveRunRegionBackgroundUrl(this.run()));
   readonly nodeLayoutBounds = computed(() => {
@@ -83,13 +105,6 @@ export class RunMapPageComponent {
   });
   readonly mapWidth = computed(() => this.nodeLayoutBounds().width);
   readonly mapHeight = computed(() => this.nodeLayoutBounds().height);
-  readonly legendEntries = computed(() => [
-    { type: 'combat', label: 'Combat', icon: this.iconForNodeType('combat') },
-    { type: 'loot', label: 'Loot', icon: this.iconForNodeType('loot') },
-    { type: 'rest', label: 'Rest', icon: this.iconForNodeType('rest') },
-    { type: 'boss', label: 'Boss', icon: this.iconForNodeType('boss') },
-    { type: 'exit', label: 'Exit', icon: this.iconForNodeType('exit') },
-  ]);
   readonly runUnits = computed(() => {
     const unitsById = new Map(this.sessionService.units().map((unit) => [unit.id, unit]));
     return (this.runData()?.run_unit_state ?? []).map((state) => ({
@@ -107,26 +122,6 @@ export class RunMapPageComponent {
     return buildFormationGrid(this.activeSquad()?.formation, this.runUnitById());
   });
   readonly renderedEdges = computed(() => this.buildRenderedEdges(this.nodes(), this.edges()));
-  readonly availableNodeCount = computed(
-    () => this.nodes().filter((node) => node.status === 'available').length,
-  );
-  readonly clearedNodeCount = computed(
-    () => this.nodes().filter((node) => node.status === 'cleared').length,
-  );
-  readonly nextAvailableNode = computed(
-    () => this.nodes().find((node) => node.status === 'available') ?? null,
-  );
-  readonly squadPreview = computed(() =>
-    this.runUnits().map((entry) => ({
-      id: entry.unit_instance_id,
-      name: entry.unit?.name ?? 'Unknown Raider',
-      role: entry.unit?.unit_type_name ?? 'Raider',
-      level: entry.unit?.level ?? 1,
-      hpLabel: `${Math.max(0, entry.currentHp)}/${Math.max(0, entry.maxHp)} HP`,
-      defeated: entry.defeated,
-      spriteUrl: resolvePrototypeUnitSpriteUrl(entry.unit),
-    })),
-  );
 
   constructor() {
     void this.load();
@@ -170,16 +165,6 @@ export class RunMapPageComponent {
     return this.nodes().find((node) => node.id === nodeId);
   }
 
-  edgeX(nodeId: string): number {
-    const node = this.nodeById(nodeId);
-    return node ? this.nodeX(node) : 0;
-  }
-
-  edgeY(nodeId: string): number {
-    const node = this.nodeById(nodeId);
-    return node ? this.nodeY(node) : 0;
-  }
-
   edgeState(edge: CurrentRunEdge): 'available' | 'cleared' | 'locked' {
     const fromNode = this.nodeById(edge.from_node_id);
     const toNode = this.nodeById(edge.to_node_id);
@@ -207,27 +192,6 @@ export class RunMapPageComponent {
 
   nodeTypeLabel(nodeType: string): string {
     return nodeType.charAt(0).toUpperCase() + nodeType.slice(1);
-  }
-
-  nodeActionLabel(node: CurrentRunNode | null): string {
-    if (!node) {
-      return 'Scout route';
-    }
-
-    switch (node.node_type) {
-      case 'combat':
-        return 'Start fight';
-      case 'loot':
-        return 'Open cache';
-      case 'rest':
-        return 'Take rest';
-      case 'boss':
-        return 'Face boss';
-      case 'exit':
-        return 'Cash out';
-      default:
-        return 'Open node';
-    }
   }
 
   async openNode(node: CurrentRunNode): Promise<void> {
