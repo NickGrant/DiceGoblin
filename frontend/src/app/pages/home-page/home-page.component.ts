@@ -3,12 +3,12 @@ import { RouterLink } from '@angular/router';
 import { SessionService } from '../../core/services/session/session.service';
 import { isDevPanelEnabled } from '../../core/config/runtime-config';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
+import { UnitBarComponent } from '../../shared/ui/unit-bar/unit-bar.component';
 
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [RouterLink, PageFrameComponent],
+  imports: [RouterLink, PageFrameComponent, UnitBarComponent],
   templateUrl: './home-page.component.html',
   styleUrl: './home-page.component.scss',
 })
@@ -34,11 +34,7 @@ export class HomePageComponent {
     const unitsById = new Map(this.units().map((unit) => [unit.id, unit]));
     return (activeSquad?.unit_ids ?? [])
       .map((unitId) => unitsById.get(unitId) ?? null)
-      .filter((unit): unit is NonNullable<typeof unit> => unit !== null)
-      .map((unit) => ({
-        unit,
-        spriteUrl: resolvePrototypeUnitSpriteUrl(unit),
-      }));
+      .filter((unit): unit is NonNullable<typeof unit> => unit !== null);
   });
   readonly activeRun = computed(() => this.profileData()?.active_run ?? null);
   readonly homeHeroTitle = computed(() =>

@@ -1,0 +1,53 @@
+<div
+  class="unit-bar"
+  [class.unit-bar--selected]="selected()"
+  [class.unit-bar--defeated]="defeated()"
+  [class.unit-bar--compact]="compact()"
+>
+  <dg-unit-thumbnail
+    class="unit-bar__thumbnail"
+    [unit]="unit()"
+    [selected]="selected()"
+    [locked]="unit().locked || defeated()"
+    [compact]="compact()"
+    [showCopy]="false"
+  />
+
+  <div class="unit-bar__body">
+    <div class="unit-bar__identity">
+      <strong class="unit-bar__name dg-stencil">{{ unit().name }}</strong>
+      <span class="unit-bar__rank">
+        <span class="unit-bar__level">{{ levelLabel() }}</span>
+        <img class="unit-bar__tier-icon" [src]="tierIconUrl()" [alt]="tierLabel()" [title]="tierLabel()" />
+      </span>
+      @if (positionLabel()) {
+        <span class="unit-bar__position">{{ positionLabel() }}</span>
+      }
+      @if (defeated()) {
+        <span class="unit-bar__position">Defeated</span>
+      }
+    </div>
+
+    <div class="unit-bar__progress-list">
+      <div class="unit-bar__progress-row">
+        <span>HP</span>
+        <div class="unit-bar__progress" [attr.title]="hpLabel()" [attr.aria-label]="hpLabel()">
+          <span
+            class="unit-bar__progress-fill unit-bar__progress-fill--hp"
+            [class.unit-bar__progress-fill--critical]="hpPercent() <= 25"
+            [style.width.%]="hpPercent()"
+          ></span>
+        </div>
+        <strong>{{ hpLabel() }}</strong>
+      </div>
+
+      <div class="unit-bar__progress-row">
+        <span>XP</span>
+        <div class="unit-bar__progress" [attr.title]="xpLabel()" [attr.aria-label]="xpLabel()">
+          <span class="unit-bar__progress-fill unit-bar__progress-fill--xp" [style.width.%]="xpPercent()"></span>
+        </div>
+        <strong>{{ xpLabel() }}</strong>
+      </div>
+    </div>
+  </div>
+</div>

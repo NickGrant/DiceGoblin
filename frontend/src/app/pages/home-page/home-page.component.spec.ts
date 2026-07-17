@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { By } from '@angular/platform-browser';
+import { RouterLink, provideRouter } from '@angular/router';
 import { HomePageComponent } from './home-page.component';
 import { SessionService } from '../../core/services/session/session.service';
 
@@ -33,8 +34,8 @@ class SessionServiceStub {
     formation: [],
   });
   readonly units = signal<any[]>([
-    { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', level: 3 },
-    { id: 'u2', name: 'Moss', unit_type_name: 'Guardian', level: 2 },
+    { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', unit_type_slug: 'frontline_bruiser_t1', level: 3, tier: 1, max_hp: 10 },
+    { id: 'u2', name: 'Moss', unit_type_name: 'Guardian', unit_type_slug: 'frontline_guardian_t1', level: 2, tier: 1, max_hp: 12 },
   ]);
 }
 
@@ -69,6 +70,18 @@ describe('HomePageComponent', () => {
     expect(compiled.textContent).not.toContain('Academy');
     expect(fixture.componentInstance.primaryRoute()).toBe('/regions');
     expect(fixture.componentInstance.primaryLabel()).toBe('Start Run');
+  });
+
+  it('links current squad units to their details pages', () => {
+    const fixture = TestBed.createComponent(HomePageComponent);
+    fixture.detectChanges();
+
+    const unitLink = fixture.debugElement
+      .queryAll(By.directive(RouterLink))
+      .find((debugElement) => debugElement.nativeElement.textContent?.includes('Fang'));
+
+    expect(unitLink).toBeDefined();
+    expect(unitLink!.injector.get(RouterLink).href).toContain('/warband/units/u1');
   });
 
   it('shows continue-run copy when an active run exists', () => {

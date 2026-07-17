@@ -1,0 +1,108 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.unit-thumbnail {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  border: 2px solid rgba(35, 39, 42, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.88)),
+    center / 220px auto repeat var(--dg-proto-paper);
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.unit-thumbnail--selected,
+:host-context(.unit-bar:hover) .unit-thumbnail,
+:host-context(.unit-bar:focus-within) .unit-thumbnail,
+:host-context(.home-proto__squad-unit-link:hover) .unit-thumbnail,
+:host-context(.home-proto__squad-unit-link:focus-visible) .unit-thumbnail,
+:host-context(.warband-units-grid__tile:hover) .unit-thumbnail,
+:host-context(.warband-units-grid__tile:focus-visible) .unit-thumbnail {
+  border-color: rgba(94, 107, 60, 0.85);
+  background: rgba(231, 239, 210, 0.94);
+  box-shadow: 0 0 0 2px rgba(94, 107, 60, 0.18);
+}
+
+.unit-thumbnail--locked {
+  opacity: 0.68;
+}
+
+.unit-thumbnail--compact {
+  grid-template-columns: 52px minmax(0, 1fr);
+  padding: 6px;
+}
+
+.unit-thumbnail:has(.unit-thumbnail__image:only-child) {
+  grid-template-columns: 96px;
+  justify-content: center;
+}
+
+.unit-thumbnail--compact:has(.unit-thumbnail__image:only-child) {
+  grid-template-columns: 72px;
+}
+
+.unit-thumbnail__image {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  transition:
+    filter 150ms ease,
+    transform 150ms ease;
+}
+
+.unit-thumbnail--compact .unit-thumbnail__image {
+  width: 52px;
+  height: 52px;
+}
+
+.unit-thumbnail:has(.unit-thumbnail__image:only-child) .unit-thumbnail__image {
+  width: 96px;
+  height: 96px;
+}
+
+.unit-thumbnail--compact:has(.unit-thumbnail__image:only-child) .unit-thumbnail__image {
+  width: 72px;
+  height: 72px;
+}
+
+.unit-thumbnail--selected .unit-thumbnail__image,
+:host-context(.unit-bar:hover) .unit-thumbnail__image,
+:host-context(.unit-bar:focus-within) .unit-thumbnail__image,
+:host-context(.home-proto__squad-unit-link:hover) .unit-thumbnail__image,
+:host-context(.home-proto__squad-unit-link:focus-visible) .unit-thumbnail__image,
+:host-context(.warband-units-grid__tile:hover) .unit-thumbnail__image,
+:host-context(.warband-units-grid__tile:focus-visible) .unit-thumbnail__image {
+  filter: drop-shadow(0 8px 10px rgba(93, 110, 55, 0.36)) saturate(1.1);
+  transform: translateY(-1px);
+}
+
+.unit-thumbnail__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.unit-thumbnail__name {
+  color: #25150c;
+  font-size: 18px;
+  line-height: 0.92;
+  overflow-wrap: anywhere;
+}
+
+.unit-thumbnail__level {
+  color: rgba(37, 21, 12, 0.72);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

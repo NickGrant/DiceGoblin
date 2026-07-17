@@ -2,38 +2,14 @@
   @for (cell of cells(); track cell.cell) {
   <article class="run-unit-grid__card" [class.run-unit-grid__card--empty]="!cell.entry" [class.run-unit-grid__card--defeated]="cell.entry?.defeated">
     @if (cell.entry; as entry) {
-    <div class="run-unit-grid__content">
-      <div class="run-unit-grid__heading">
-        <h3 class="run-unit-grid__name dg-stencil mb-1">{{ entry.unit?.name || 'Unit ' + entry.unit_instance_id }}</h3>
-        @if (formatTier(entry.unit?.tier); as tierLabel) {
-        <span class="run-unit-grid__tier dg-stencil">{{ tierLabel }}</span>
-        }
-      </div>
-
-      <div>
-        <p class="run-unit-grid__type mb-0">
-          {{ entry.unit?.unit_type_name || entry.unit?.unit_type_slug || 'Run unit' }}
-          @if (entry.unit?.level) { Level {{ entry.unit?.level }} }
-        </p>
-      </div>
-
-      <div class="run-unit-grid__meta">
-        <div
-          class="run-unit-grid__hp"
-          [attr.title]="'HP ' + entry.currentHp + '/' + entry.maxHp"
-          [attr.aria-label]="'HP ' + entry.currentHp + ' of ' + entry.maxHp"
-        >
-          <span
-            class="run-unit-grid__hp-fill"
-            [class]="hpBarClass(entry.currentHp, entry.maxHp)"
-            [style.width.%]="hpPercent(entry.currentHp, entry.maxHp)"
-          ></span>
-        </div>
-        @if (entry.defeated) {
-        <span class="dg-chip">Defeated</span>
-        }
-      </div>
-    </div>
+    <dg-unit-bar
+      [unit]="displayUnit(entry)"
+      [currentHp]="entry.currentHp"
+      [maxHp]="entry.maxHp"
+      [defeated]="entry.defeated"
+      [positionLabel]="cell.cell"
+      [compact]="true"
+    />
     } @else {
     <div class="run-unit-grid__empty">
       <span>Empty</span>

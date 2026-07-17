@@ -9,6 +9,7 @@ import { FORMATION_CELLS } from '../../shared/formation/formation';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
+import { UnitThumbnailComponent } from '../../shared/ui/unit-thumbnail/unit-thumbnail.component';
 const AVAILABLE_DROP_ID = 'available-drop';
 const CELL_DROP_PREFIX = 'formation-cell-';
 
@@ -19,7 +20,7 @@ type DropTarget =
 @Component({
   selector: 'app-squad-details-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, DragDropModule, FormsModule],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, DragDropModule, FormsModule, UnitThumbnailComponent],
   templateUrl: './squad-details-page.component.html',
   styleUrl: './squad-details-page.component.scss',
 })

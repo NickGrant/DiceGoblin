@@ -81,9 +81,9 @@ describe('RunMapPageComponent', () => {
     const host: HTMLElement = fixture.nativeElement;
     expect(host.textContent).toContain('Bruiser');
     expect(host.textContent).toContain('Level 3');
-    expect(host.textContent).toContain('II');
-    expect(host.textContent).not.toContain('A1');
-    expect(host.textContent).not.toContain('HP 6/10');
+    expect(host.querySelector('.unit-bar__tier-icon')?.getAttribute('src')).toContain('/assets/ui/icons/tier/2.png');
+    expect(host.textContent).toContain('A1');
+    expect(host.textContent).toContain('6/10 HP');
   });
 
   it('sizes the map from rendered node positions instead of a separate node-index guess', async () => {

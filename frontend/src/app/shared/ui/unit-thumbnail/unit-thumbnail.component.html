@@ -1,0 +1,15 @@
+<span
+  class="unit-thumbnail"
+  [class.unit-thumbnail--selected]="selected()"
+  [class.unit-thumbnail--locked]="locked() || unit().locked"
+  [class.unit-thumbnail--compact]="compact()"
+  [attr.title]="unit().name + ' - ' + unitTypeLabel()"
+>
+  <img class="unit-thumbnail__image" [src]="imageUrl()" [alt]="unitTypeLabel() + ' thumbnail'" />
+  @if (showCopy()) {
+  <span class="unit-thumbnail__copy">
+    <strong class="unit-thumbnail__name dg-stencil">{{ unit().name }}</strong>
+    <span class="unit-thumbnail__level">{{ levelLabel() }}</span>
+  </span>
+  }
+</span>

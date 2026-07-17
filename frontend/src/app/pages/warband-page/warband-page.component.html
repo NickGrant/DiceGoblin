@@ -72,150 +72,106 @@
       <div class="dg-proto-divider" aria-hidden="true"></div>
 
       @if (filteredUnits().length) {
-      <dg-focus-layout class="warband-units-focus" panelWidth="22rem">
-        <div focusLayoutPrimary class="warband-units-inspect__primary">
-          <section class="warband-units-controls">
-            <div class="warband-units-controls__filters">
-              <div class="warband-units-controls__filter">
-                <label class="form-label" for="warband-unit-type-filter">Unit Type</label>
-                <select
-                  id="warband-unit-type-filter"
-                  class="dg-select"
-                  [ngModel]="selectedUnitType() ?? ''"
-                  (ngModelChange)="updateUnitType($event)"
-                >
-                  <option value="">All unit types</option>
-                  @for (unitType of availableUnitTypes(); track unitType) {
-                  <option [value]="unitType">{{ unitType }}</option>
-                  }
-                </select>
-              </div>
-
-              <div class="warband-units-controls__filter">
-                <label class="form-label" for="warband-unit-sort">Sort</label>
-                <select
-                  id="warband-unit-sort"
-                  class="dg-select"
-                  [ngModel]="selectedUnitSort()"
-                  (ngModelChange)="updateUnitSort($event)"
-                >
-                  <option value="level-desc">Level: High to Low</option>
-                  <option value="tier-desc">Tier: High to Low</option>
-                  <option value="name-asc">Name: A to Z</option>
-                </select>
-              </div>
-
-              <div class="warband-units-controls__filter">
-                <label class="form-label" for="warband-unit-tier-filter">Tier</label>
-                <select
-                  id="warband-unit-tier-filter"
-                  class="dg-select"
-                  [ngModel]="selectedUnitTier() ?? ''"
-                  (ngModelChange)="updateUnitTier($event)"
-                >
-                  <option value="">All tiers</option>
-                  @for (tier of availableUnitTiers(); track tier) {
-                  <option [value]="tier">Tier {{ tier }}</option>
-                  }
-                </select>
-              </div>
-
-              <div class="warband-units-controls__filter warband-units-controls__filter--range">
-                <label class="form-label" for="warband-unit-level-min">Level Range</label>
-                <div class="warband-units-controls__range">
-                  <select
-                    id="warband-unit-level-min"
-                    class="dg-select"
-                    [ngModel]="selectedLevelMin() ?? ''"
-                    (ngModelChange)="updateLevelMin($event)"
-                  >
-                    <option value="">Min</option>
-                    @for (level of availableUnitLevels(); track level) {
-                    <option [value]="level">{{ level }}</option>
-                    }
-                  </select>
-
-                  <span class="warband-units-controls__range-separator" aria-hidden="true">to</span>
-
-                  <select
-                    id="warband-unit-level-max"
-                    class="dg-select"
-                    [ngModel]="selectedLevelMax() ?? ''"
-                    (ngModelChange)="updateLevelMax($event)"
-                  >
-                    <option value="">Max</option>
-                    @for (level of availableUnitLevels(); track level) {
-                    <option [value]="level">{{ level }}</option>
-                    }
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div class="warband-units-controls__footer">
-              <p class="warband-units-controls__results">
-                Showing {{ filteredUnits().length }} of {{ units().length }} units.
-              </p>
-              <button dgCommandBtn="muted" type="button" (click)="clearUnitFilters()">Reset Filters</button>
-            </div>
-          </section>
-
-          <div class="warband-units-grid dg-motion-stagger">
-            @for (unit of filteredUnits(); track unit.id) {
-            <button
-              type="button"
-              class="warband-units-grid__tile dg-proto-card"
-              [class.is-selected]="isInspectingUnit(unit.id)"
-              (click)="openUnit(unit.id)"
-              (focus)="previewUnit(unit.id)"
-              (mouseenter)="previewUnit(unit.id)"
-              [attr.aria-label]="unit.name + ' ' + (unit.unit_type_name || unit.unit_type_slug || 'Unit')"
-            >
-              <span class="warband-units-grid__tile-media dg-proto-card__media">
-                <img class="warband-units-grid__tile-sprite dg-proto-sprite" [src]="unitCardSpriteUrl(unit)" [alt]="unit.name" />
-                @if (unitCardArtUrl(unit); as artUrl) {
-                <img class="warband-units-grid__tile-portrait" [src]="artUrl" [alt]="unit.name + ' art'" />
+      <div class="warband-units-roster">
+        <section class="warband-units-controls">
+          <div class="warband-units-controls__filters">
+            <div class="warband-units-controls__filter">
+              <label class="form-label" for="warband-unit-type-filter">Unit Type</label>
+              <select
+                id="warband-unit-type-filter"
+                class="dg-select"
+                [ngModel]="selectedUnitType() ?? ''"
+                (ngModelChange)="updateUnitType($event)"
+              >
+                <option value="">All unit types</option>
+                @for (unitType of availableUnitTypes(); track unitType) {
+                <option [value]="unitType">{{ unitType }}</option>
                 }
-              </span>
-              <span class="warband-units-grid__tile-copy">
-                <span class="warband-units-grid__tile-name dg-stencil">{{ unit.name }}</span>
-                <span class="warband-units-grid__tile-role">{{ unit.unit_type_name || unit.unit_type_slug || 'Unit' }}</span>
-              </span>
-              <span class="dg-proto-card__stats">
-                <span class="dg-proto-pill">{{ unitLevelLabel(unit) }}</span>
-                <span class="dg-proto-pill">{{ unitTierLabel(unit) }}</span>
-              </span>
-            </button>
-            }
-          </div>
-        </div>
+              </select>
+            </div>
 
-        @if (inspectedUnit(); as unit) {
-        <aside focusLayoutPanel class="warband-units-inspect__panel dg-proto-sidebar">
-          <div class="warband-units-inspect-card">
-            <div class="warband-units-inspect-card__media dg-proto-card__media dg-proto-card__media--wide">
-              <img class="dg-proto-sprite dg-proto-sprite--lg" [src]="unitCardSpriteUrl(unit)" [alt]="unit.name" />
+            <div class="warband-units-controls__filter">
+              <label class="form-label" for="warband-unit-sort">Sort</label>
+              <select
+                id="warband-unit-sort"
+                class="dg-select"
+                [ngModel]="selectedUnitSort()"
+                (ngModelChange)="updateUnitSort($event)"
+              >
+                <option value="level-desc">Level: High to Low</option>
+                <option value="tier-desc">Tier: High to Low</option>
+                <option value="name-asc">Name: A to Z</option>
+              </select>
             </div>
-            <div class="warband-units-inspect-card__copy">
-              <p class="dg-proto-section__eyebrow">Selected Unit</p>
-              <h3 class="warband-units-inspect-card__title dg-stencil">{{ unit.name }}</h3>
-              <p class="warband-units-inspect-card__meta">{{ unit.unit_type_name || unit.unit_type_slug || 'Unit' }}</p>
+
+            <div class="warband-units-controls__filter">
+              <label class="form-label" for="warband-unit-tier-filter">Tier</label>
+              <select
+                id="warband-unit-tier-filter"
+                class="dg-select"
+                [ngModel]="selectedUnitTier() ?? ''"
+                (ngModelChange)="updateUnitTier($event)"
+              >
+                <option value="">All tiers</option>
+                @for (tier of availableUnitTiers(); track tier) {
+                <option [value]="tier">Tier {{ tier }}</option>
+                }
+              </select>
             </div>
-            <div class="warband-units-inspect-card__stats">
-              <div class="dg-proto-kpi">
-                <strong>{{ unit.level }}</strong>
-                <span>Level</span>
+
+            <div class="warband-units-controls__filter warband-units-controls__filter--range">
+              <label class="form-label" for="warband-unit-level-min">Level Range</label>
+              <div class="warband-units-controls__range">
+                <select
+                  id="warband-unit-level-min"
+                  class="dg-select"
+                  [ngModel]="selectedLevelMin() ?? ''"
+                  (ngModelChange)="updateLevelMin($event)"
+                >
+                  <option value="">Min</option>
+                  @for (level of availableUnitLevels(); track level) {
+                  <option [value]="level">{{ level }}</option>
+                  }
+                </select>
+
+                <span class="warband-units-controls__range-separator" aria-hidden="true">to</span>
+
+                <select
+                  id="warband-unit-level-max"
+                  class="dg-select"
+                  [ngModel]="selectedLevelMax() ?? ''"
+                  (ngModelChange)="updateLevelMax($event)"
+                >
+                  <option value="">Max</option>
+                  @for (level of availableUnitLevels(); track level) {
+                  <option [value]="level">{{ level }}</option>
+                  }
+                </select>
               </div>
-              <div class="dg-proto-kpi">
-                <strong>{{ unit.tier ?? 1 }}</strong>
-                <span>Tier</span>
-              </div>
             </div>
-            <a dgCommandBtn="primary" [routerLink]="['/warband/units', unit.id]">Open Unit</a>
           </div>
-        </aside>
-        }
-      </dg-focus-layout>
+
+          <div class="warband-units-controls__footer">
+            <p class="warband-units-controls__results">
+              Showing {{ filteredUnits().length }} of {{ units().length }} units.
+            </p>
+            <button dgCommandBtn="muted" type="button" (click)="clearUnitFilters()">Reset Filters</button>
+          </div>
+        </section>
+
+        <div class="warband-units-grid dg-motion-stagger">
+          @for (unit of filteredUnits(); track unit.id) {
+          <button
+            type="button"
+            class="warband-units-grid__tile dg-proto-card"
+            (click)="openUnit(unit.id)"
+            [attr.aria-label]="unit.name + ' ' + (unit.unit_type_name || unit.unit_type_slug || 'Unit')"
+          >
+            <dg-unit-bar [unit]="unit" [positionLabel]="unitPositionLabel(unit)" />
+          </button>
+          }
+        </div>
+      </div>
       } @else if (units().length) {
       <dg-alert>No units match the selected filters.</dg-alert>
       } @else {

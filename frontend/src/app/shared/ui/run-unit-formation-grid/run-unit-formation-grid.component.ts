@@ -1,5 +1,6 @@
 import { Component, input } from '@angular/core';
-import { formatTier } from '../../utils/unit-formatters';
+import { UnitRecord } from '../../../core/models/api.models';
+import { UnitBarComponent } from '../unit-bar/unit-bar.component';
 
 export type RunUnitFormationCell = {
   cell: string;
@@ -15,32 +16,40 @@ export type RunUnitFormationCell = {
       unit_type_slug?: string;
       level?: number;
       tier?: number;
-    } | null;
+      xp?: number;
+      xp_to_next_level?: number;
+      is_mastered?: boolean;
+      current_hp?: number;
+      max_hp?: number;
+      locked?: boolean;
+    } | UnitRecord | null;
   } | null;
 };
 
 @Component({
   selector: 'dg-run-unit-formation-grid',
   standalone: true,
+  imports: [UnitBarComponent],
   templateUrl: './run-unit-formation-grid.component.html',
   styleUrl: './run-unit-formation-grid.component.scss',
 })
 export class RunUnitFormationGridComponent {
   readonly cells = input.required<readonly RunUnitFormationCell[]>();
 
-  formatTier(tier: number | null | undefined): string | null {
-    return formatTier(tier);
-  }
-
-  hpPercent(currentHp: number, maxHp: number): number {
-    if (maxHp <= 0) {
-      return 0;
-    }
-
-    return Math.max(0, Math.min(100, (currentHp / maxHp) * 100));
-  }
-
-  hpBarClass(currentHp: number, maxHp: number): string {
-    return this.hpPercent(currentHp, maxHp) <= 25 ? 'run-unit-grid__hp-fill--critical' : 'run-unit-grid__hp-fill--healthy';
+  displayUnit(entry: NonNullable<RunUnitFormationCell['entry']>): UnitRecord {
+    return {
+      id: entry.unit_instance_id,
+      name: entry.unit?.name || `Unit ${entry.unit_instance_id}`,
+      level: entry.unit?.level ?? 1,
+      unit_type_name: entry.unit?.unit_type_name,
+      unit_type_slug: entry.unit?.unit_type_slug,
+      tier: entry.unit?.tier,
+      xp: entry.unit?.xp,
+      xp_to_next_level: entry.unit?.xp_to_next_level,
+      is_mastered: entry.unit?.is_mastered,
+      current_hp: entry.currentHp,
+      max_hp: entry.maxHp,
+      locked: entry.unit?.locked,
+    };
   }
 }

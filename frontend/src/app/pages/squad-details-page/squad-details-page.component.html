@@ -72,10 +72,7 @@
               [cdkDragData]="unit.id"
               [cdkDragDisabled]="squadLocked() || !!unit.locked"
             >
-              <div>
-                <strong>{{ unit.name }}</strong>
-                <p class="mb-0">{{ unit.unit_type_name || unit.unit_type_slug || 'Unit' }} Level {{ unit.level }}</p>
-              </div>
+              <dg-unit-thumbnail [unit]="unit" [selected]="isUnitSelected(unit.id)" [locked]="!!unit.locked" />
               <button
                 class="formation-select-btn"
                 type="button"
@@ -157,8 +154,7 @@
                 [cdkDragData]="unit.id"
                 [cdkDragDisabled]="squadLocked() || !!unit.locked"
               >
-                <strong>{{ unit.name }}</strong>
-                <p class="mb-0">{{ unit.unit_type_name || unit.unit_type_slug || 'Unit' }} {{ unit.level }}</p>
+                <dg-unit-thumbnail [unit]="unit" [selected]="isUnitSelected(unit.id)" [locked]="!!unit.locked" [compact]="true" />
                 <button
                   class="formation-select-btn"
                   type="button"

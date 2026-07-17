@@ -143,7 +143,7 @@
   font-size: 0.78rem;
 }
 
-.warband-units-inspect__primary {
+.warband-units-roster {
   min-width: 0;
   display: grid;
   gap: 1rem;
@@ -195,22 +195,24 @@
 
 .warband-units-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
 }
 
 .warband-units-grid__tile {
   appearance: none;
   border: 0;
+  border-radius: 8px;
+  padding: 0;
   text-align: left;
+  background: transparent;
   transition:
     transform 150ms ease,
     filter 150ms ease;
 }
 
 .warband-units-grid__tile:hover,
-.warband-units-grid__tile:focus-visible,
-.warband-units-grid__tile.is-selected {
+.warband-units-grid__tile:focus-visible {
   transform: translateY(-3px);
   filter: saturate(1.08);
 }
@@ -220,87 +222,13 @@
   outline-offset: 2px;
 }
 
-.warband-units-grid__tile-media {
-  min-height: 11rem;
-  gap: 0.75rem;
-  flex-direction: column;
-}
-
-.warband-units-grid__tile-sprite {
-  position: relative;
-  z-index: 1;
-}
-
-.warband-units-grid__tile-portrait {
-  position: absolute;
-  inset: auto 0 0;
-  width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  object-position: center bottom;
-  opacity: 0.28;
-}
-
-.warband-units-grid__tile-copy {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.warband-units-grid__tile-name {
-  color: #25150c;
-  font-size: 1.15rem;
-  line-height: 0.92;
-}
-
-.warband-units-grid__tile-role {
-  color: rgba(37, 21, 12, 0.72);
-  font-size: 0.88rem;
-}
-
-.warband-units-inspect__panel {
-  min-width: 0;
-}
-
-.warband-units-inspect-card {
-  display: grid;
-  gap: 1rem;
-}
-
-.warband-units-inspect-card__media {
-  min-height: 14rem;
-}
-
-.warband-units-inspect-card__copy {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.warband-units-inspect-card__title {
-  margin: 0;
-  color: #25150c;
-  font-size: 1.7rem;
-  line-height: 0.9;
-}
-
-.warband-units-inspect-card__meta {
-  margin: 0;
-  color: rgba(37, 21, 12, 0.76);
-}
-
-.warband-units-inspect-card__stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
 @media (max-width: 760px) {
   .squad-card:hover,
   .squad-card:has(.squad-card__nameplate--link:focus-visible),
   .squad-card:not(.is-active):not(.is-locked):has(.squad-card__activate:hover),
   .squad-card:not(.is-active):not(.is-locked):has(.squad-card__activate:focus-visible),
   .warband-units-grid__tile:hover,
-  .warband-units-grid__tile:focus-visible,
-  .warband-units-grid__tile.is-selected {
+  .warband-units-grid__tile:focus-visible {
     transform: none;
   }
 }
@@ -313,6 +241,10 @@
   .warband-units-controls__filter--range {
     grid-column: 1 / -1;
   }
+
+  .warband-units-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 761px) {
@@ -322,6 +254,10 @@
 
   .warband-units-controls__filter--range {
     grid-column: auto;
+  }
+
+  .warband-units-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

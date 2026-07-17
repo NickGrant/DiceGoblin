@@ -7,14 +7,12 @@ import { SquadService } from '../../core/services/squad/squad.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { FocusLayoutComponent } from '../../shared/ui/focus-layout/focus-layout.component';
-import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
-import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
+import { UnitBarComponent } from '../../shared/ui/unit-bar/unit-bar.component';
 
 @Component({
   selector: 'app-warband-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RouterLink, FormsModule, FocusLayoutComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RouterLink, FormsModule, UnitBarComponent],
   templateUrl: './warband-page.component.html',
   styleUrl: './warband-page.component.scss',
 })
@@ -33,7 +31,6 @@ export class WarbandPageComponent {
   readonly selectedLevelMin = signal<number | null>(null);
   readonly selectedLevelMax = signal<number | null>(null);
   readonly selectedUnitSort = signal<'name-asc' | 'level-desc' | 'tier-desc'>('level-desc');
-  readonly hoveredUnitId = signal<string | null>(null);
   readonly isSaving = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
@@ -102,23 +99,6 @@ export class WarbandPageComponent {
       return left.is_active ? -1 : 1;
     }),
   );
-  readonly inspectedUnit = computed<UnitRecord | null>(() => {
-    const filteredUnits = this.filteredUnits();
-    if (!filteredUnits.length) {
-      return null;
-    }
-
-    const hoveredUnitId = this.hoveredUnitId();
-    if (hoveredUnitId) {
-      const hoveredUnit = filteredUnits.find((unit) => unit.id === hoveredUnitId);
-      if (hoveredUnit) {
-        return hoveredUnit;
-      }
-    }
-
-    return filteredUnits[0] ?? null;
-  });
-
   isSquadLocked(teamId: string): boolean {
     return !!this.activeRun() && this.activeSquad()?.id === teamId;
   }
@@ -205,34 +185,14 @@ export class WarbandPageComponent {
     this.selectedUnitSort.set('level-desc');
   }
 
-  previewUnit(unitId: string): void {
-    this.hoveredUnitId.set(unitId);
-  }
-
-  isInspectingUnit(unitId: string): boolean {
-    return this.inspectedUnit()?.id === unitId;
-  }
-
   async openUnit(unitId: string): Promise<void> {
     await this.router.navigate(['/warband/units', unitId]);
   }
 
-  unitCardArtUrl(unit: UnitRecord): string | null {
-    return resolveUnitImageUrl(unit.unit_type_slug)
-      ?? resolveUnitImageUrl(unit.unit_type_name);
-  }
-
-  unitCardSpriteUrl(unit: UnitRecord): string {
-    return resolvePrototypeUnitSpriteUrl(unit);
-  }
-
-  unitLevelLabel(unit: UnitRecord): string {
-    const level = typeof unit.level === 'number' && unit.level > 0 ? unit.level : 1;
-    return `Lv ${level}`;
-  }
-
-  unitTierLabel(unit: UnitRecord): string {
-    return `Tier ${unit.tier ?? 1}`;
+  unitPositionLabel(unit: UnitRecord): string | null {
+    const activeSquad = this.activeSquad();
+    const assignment = activeSquad?.formation?.find((entry) => entry.unit_instance_id === unit.id);
+    return assignment ? `Slot ${assignment.cell}` : null;
   }
 
   private unitTypeLabel(unit: { unit_type_name?: string; unit_type_slug?: string }): string {

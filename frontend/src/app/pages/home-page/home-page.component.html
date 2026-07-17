@@ -36,19 +36,10 @@
           <div class="dg-proto-divider"></div>
           @if (activeSquadUnits().length) {
             <div class="home-proto__squad-list">
-              @for (entry of activeSquadUnits(); track entry.unit.id) {
-                <article class="home-proto__squad-card">
-                  <img
-                    class="dg-proto-sprite"
-                    [src]="entry.spriteUrl"
-                    [alt]="entry.unit.name"
-                  />
-                  <div>
-                    <h4>{{ entry.unit.name }}</h4>
-                    <p>{{ entry.unit.unit_type_name || 'Raider' }}</p>
-                    <span>Level {{ entry.unit.level }}</span>
-                  </div>
-                </article>
+              @for (unit of activeSquadUnits(); track unit.id) {
+                <a class="home-proto__squad-unit-link" [routerLink]="['/warband/units', unit.id]">
+                  <dg-unit-bar [unit]="unit" [compact]="true" />
+                </a>
               }
             </div>
           } @else {

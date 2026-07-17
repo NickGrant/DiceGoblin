@@ -31,8 +31,6 @@
 .home-proto__status-label,
 .home-proto__mission-copy,
 .home-proto__mission-step p,
-.home-proto__squad-card p,
-.home-proto__squad-card span,
 .home-proto__route-card span,
 .home-proto__empty {
   margin: 0;
@@ -49,15 +47,13 @@
 
 .home-proto__status-block strong,
 .home-proto__mission-step strong,
-.home-proto__route-card strong,
-.home-proto__squad-card h4 {
+.home-proto__route-card strong {
   display: block;
   margin: 0;
   color: #24150d;
 }
 
 .home-proto__status-block span,
-.home-proto__squad-card span,
 .home-proto__route-card span {
   display: block;
   margin-top: 0.18rem;
@@ -96,27 +92,25 @@
   gap: 0.75rem;
 }
 
-.home-proto__squad-card,
+.home-proto__squad-unit-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: transform 150ms ease, filter 150ms ease;
+}
+
+.home-proto__squad-unit-link:hover,
+.home-proto__squad-unit-link:focus-visible {
+  transform: translateY(-2px);
+  filter: saturate(1.08);
+  outline: none;
+}
+
 .home-proto__route-card,
 .home-proto__mission-step {
   border-radius: 0.9rem;
   border: 1px solid rgba(91, 59, 29, 0.16);
-}
-
-.home-proto__squad-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.75rem;
-  align-items: center;
-  padding: 0.75rem;
-  background:
-    linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
-    center / 220px auto repeat var(--dg-proto-paper);
-}
-
-.home-proto__squad-card h4,
-.home-proto__squad-card p {
-  margin: 0;
 }
 
 .home-proto__mission-board {
