@@ -63,13 +63,12 @@ describe('HomePageComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.textContent).toContain('Start Run');
-    expect(compiled.textContent).toContain('Pick a biome, commit the squad, and chase loot before the route turns ugly.');
+    expect(compiled.textContent).toContain('Start the run');
+    expect(compiled.textContent).toContain('Each biome shapes the danger and rewards.');
     expect(compiled.textContent).toContain('Shop Locked');
     expect(compiled.textContent).toContain('Defeat The Farm to free the Tooth Collector.');
     expect(compiled.textContent).not.toContain('Academy');
     expect(fixture.componentInstance.primaryRoute()).toBe('/regions');
-    expect(fixture.componentInstance.primaryLabel()).toBe('Start Run');
   });
 
   it('links current squad units to their details pages', () => {
@@ -111,13 +110,12 @@ describe('HomePageComponent', () => {
       '.home-proto__mission-card img',
     ) as HTMLImageElement;
 
-    expect(compiled.textContent).toContain('Continue Run');
-    expect(compiled.textContent).toContain('The crew is already out there. Jump back into the route, keep the formation alive, and get paid.');
+    expect(compiled.textContent).toContain('Resume the push');
+    expect(compiled.textContent).toContain('The Farm');
     expect(compiled.textContent).toContain('Shop');
     expect(compiled.textContent).toContain('Academy');
     expect(compiled.textContent).toContain('Current Squad');
     expect(component.primaryRoute()).toBe('/run/map');
-    expect(component.primaryLabel()).toBe('Continue Run');
     expect(primaryImage.getAttribute('src')).toContain('home_continue_run.jpg');
   });
 });

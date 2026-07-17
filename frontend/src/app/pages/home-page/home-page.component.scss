@@ -4,69 +4,18 @@
 }
 
 .home-proto {
-  padding: 0 1rem 1rem;
-}
-
-.home-proto__stage {
-  padding: 1rem;
-  display: grid;
-  gap: 1rem;
-}
-
-.home-proto__status-strip {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.home-proto__status-block {
-  padding: 0.9rem 1rem;
-  border-radius: 0.9rem;
-  border: 1px solid rgba(91, 59, 29, 0.2);
-  background:
-    linear-gradient(180deg, rgba(255, 247, 231, 0.94), rgba(231, 210, 173, 0.9)),
-    center / 220px auto repeat var(--dg-proto-paper);
-  color: #24150d;
-}
-
-.home-proto__status-label,
-.home-proto__mission-copy,
-.home-proto__mission-step p,
-.home-proto__route-card span,
-.home-proto__empty {
-  margin: 0;
-  color: rgba(49, 30, 18, 0.78);
-}
-
-.home-proto__status-label {
-  margin-bottom: 0.2rem;
-  font-size: 0.74rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.home-proto__status-block strong,
-.home-proto__mission-step strong,
-.home-proto__route-card strong {
-  display: block;
-  margin: 0;
-  color: #24150d;
-}
-
-.home-proto__status-block span,
-.home-proto__route-card span {
-  display: block;
-  margin-top: 0.18rem;
-  font-size: 0.84rem;
+  padding: 0 16px 16px;
 }
 
 .home-proto__command-table {
   display: grid;
-  gap: 1rem;
+  gap: 16px;
+  align-items: start;
 }
 
 .home-proto__rail,
-.home-proto__mission-board {
+.home-proto__mission-board,
+.home-proto__mission-card {
   min-width: 0;
 }
 
@@ -74,22 +23,29 @@
   display: flex;
   align-items: start;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
 .home-proto__rail-link {
   color: #5c3a1d;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 1px;
   text-decoration: none;
   text-transform: uppercase;
 }
 
+.home-proto__rail-link:hover,
+.home-proto__rail-link:focus-visible {
+  color: #24150d;
+  text-decoration: underline;
+}
+
 .home-proto__squad-list,
-.home-proto__route-list {
+.home-proto__route-list,
+.home-proto__mission-panel {
   display: grid;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
 .home-proto__squad-unit-link {
@@ -97,7 +53,9 @@
   color: inherit;
   text-decoration: none;
   border-radius: 8px;
-  transition: transform 150ms ease, filter 150ms ease;
+  transition:
+    transform 150ms ease,
+    filter 150ms ease;
 }
 
 .home-proto__squad-unit-link:hover,
@@ -107,35 +65,25 @@
   outline: none;
 }
 
-.home-proto__route-card,
-.home-proto__mission-step {
-  border-radius: 0.9rem;
-  border: 1px solid rgba(91, 59, 29, 0.16);
-}
-
-.home-proto__mission-board {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.home-proto__mission-title {
+.home-proto__empty,
+.home-proto__mission-step p,
+.home-proto__route-card span {
   margin: 0;
-  color: #23150d;
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
-  line-height: 0.9;
+  color: rgba(49, 30, 18, 0.78);
 }
 
 .home-proto__mission-card {
-  display: grid;
-  gap: 0.9rem;
-  padding: 1rem;
-  border-radius: 1rem;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  height: 100%;
+  min-height: 520px;
+  overflow: visible;
+  padding: 0;
+  border-radius: 8px;
   text-decoration: none;
   color: inherit;
-  background:
-    linear-gradient(160deg, rgba(66, 40, 24, 0.94), rgba(29, 20, 13, 0.92)),
-    center / cover no-repeat var(--dg-proto-wood);
-  box-shadow: inset 0 0 0 1px rgba(242, 225, 184, 0.16);
+  background: transparent;
   transition:
     transform 180ms ease,
     box-shadow 180ms ease;
@@ -144,71 +92,94 @@
 .home-proto__mission-card:hover,
 .home-proto__mission-card:focus-visible {
   transform: translateY(-2px);
-  box-shadow:
-    inset 0 0 0 1px rgba(242, 225, 184, 0.16),
-    0 18px 28px rgba(29, 16, 8, 0.24);
+  box-shadow: none;
+  outline: none;
 }
 
-.home-proto__mission-art {
-  min-height: 12rem;
-  padding: 0.9rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.95rem;
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.24), transparent 48%),
-    linear-gradient(180deg, rgba(247, 224, 170, 0.32), rgba(56, 34, 17, 0.18));
-  border: 1px solid rgba(244, 224, 176, 0.16);
-}
-
-.home-proto__mission-art img {
-  max-width: 100%;
-  max-height: 12rem;
+.home-proto__mission-card > img {
+  position: absolute;
+  inset: 0 92px 0 0;
+  height: 100%;
   object-fit: contain;
+  object-position: center;
+  border-radius: 8px;
   image-rendering: crisp-edges;
-  filter: drop-shadow(0 16px 18px rgba(0, 0, 0, 0.32));
+  filter: saturate(1.04) drop-shadow(0 16px 22px rgba(29, 16, 8, 0.24));
 }
 
-.home-proto__mission-body,
-.home-proto__mission-panel {
+.home-proto__mission-body {
+  position: relative;
+  z-index: 1;
   display: grid;
-  gap: 0.75rem;
+  width: min(74%, 430px);
+  margin-top: 120px;
+  margin-left: auto;
+  margin-right: 18px;
+  min-width: 0;
 }
 
-.home-proto__mission-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
+.home-proto__mission-step,
+.home-proto__route-card {
+  border: 1px solid rgba(91, 59, 29, 0.16);
+  border-radius: 8px;
 }
 
 .home-proto__mission-step {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.75rem;
+  gap: 12px;
   align-items: start;
-  padding: 0.75rem;
-  background: rgba(247, 236, 210, 0.94);
+  padding: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 243, 0.95), rgba(239, 229, 203, 0.9)),
+    center / 220px auto repeat var(--dg-proto-paper);
+  box-shadow: 0 10px 20px rgba(29, 16, 8, 0.16);
 }
 
 .home-proto__mission-step span {
-  width: 2rem;
-  height: 2rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
   background: #8db341;
   color: #fff8ea;
-  font-weight: 800;
+  font-weight: 900;
+}
+
+.home-proto__mission-step strong,
+.home-proto__route-card strong {
+  display: block;
+  margin: 0;
+  color: #24150d;
 }
 
 .home-proto__route-card {
-  padding: 0.9rem;
+  display: block;
+  padding: 14px;
   text-decoration: none;
   background:
     linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
     center / 220px auto repeat var(--dg-proto-paper);
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+a.home-proto__route-card:hover,
+a.home-proto__route-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(91, 59, 29, 0.28);
+  box-shadow: 0 12px 20px rgba(54, 33, 18, 0.16);
+  outline: none;
+}
+
+.home-proto__route-card span {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
 }
 
 .home-proto__route-card--locked {
@@ -216,17 +187,24 @@
 }
 
 @media (min-width: 761px) {
-  .home-proto__status-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .home-proto__command-table {
-    grid-template-columns: minmax(16rem, 0.95fr) minmax(0, 1.45fr) minmax(15rem, 0.9fr);
-    align-items: start;
+    grid-template-columns: minmax(260px, 0.95fr) minmax(0, 1.45fr) minmax(240px, 0.9fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .home-proto {
+    padding: 0 8px 12px;
   }
 
-  .home-proto__mission-card {
-    grid-template-columns: minmax(13rem, 0.85fr) minmax(0, 1fr);
-    align-items: center;
+  .home-proto__mission-card > img {
+    inset: 0;
+    width: 100%;
+    object-position: center;
+  }
+
+  .home-proto__mission-body {
+    width: 100%;
+    margin: 16px;
   }
 }

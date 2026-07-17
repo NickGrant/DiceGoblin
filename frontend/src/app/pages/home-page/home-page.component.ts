@@ -14,7 +14,6 @@ import { UnitBarComponent } from '../../shared/ui/unit-bar/unit-bar.component';
 })
 export class HomePageComponent {
   private readonly sessionService = inject(SessionService);
-  readonly profile = this.sessionService.profile;
   readonly profileData = this.sessionService.profileData;
   readonly shopUnlocked = this.sessionService.shopUnlocked;
   readonly academyUnlocked = this.sessionService.academyUnlocked;
@@ -22,7 +21,6 @@ export class HomePageComponent {
   readonly activeSquad = this.sessionService.activeSquad;
   readonly units = this.sessionService.units;
   readonly devPanelEnabled = isDevPanelEnabled();
-  readonly primaryLabel = computed(() => (this.hasActiveRun() ? 'Continue Run' : 'Start Run'));
   readonly primaryRoute = computed(() => (this.hasActiveRun() ? '/run/map' : '/regions'));
   readonly subtitle = computed(() =>
     this.hasActiveRun()
@@ -37,9 +35,6 @@ export class HomePageComponent {
       .filter((unit): unit is NonNullable<typeof unit> => unit !== null);
   });
   readonly activeRun = computed(() => this.profileData()?.active_run ?? null);
-  readonly homeHeroTitle = computed(() =>
-    this.hasActiveRun() ? 'Raid In Progress' : 'Camp Is Ready',
-  );
 
   rewardLabelForUnitCount(): string {
     const count = this.activeSquadUnits().length;

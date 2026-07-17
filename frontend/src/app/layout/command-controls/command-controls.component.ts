@@ -82,6 +82,16 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
       isVisible: () => this.isAuthenticated(),
     },
     {
+      id: 'shop',
+      label: () => 'Shop',
+      ariaLabel: () => 'Shop',
+      icon: '/assets/ui/icons/icon_shop.png',
+      authenticatedRoute: () => '/shop',
+      publicRoute: null,
+      isVisible: () =>
+        this.isAuthenticated() && this.sessionService.featureUnlocks().includes('shop'),
+    },
+    {
       id: 'academy',
       label: () => 'Academy',
       ariaLabel: () => 'Academy',

@@ -236,6 +236,7 @@ describe('CommandControlsComponent', () => {
     expect(menu?.textContent).toContain('Start Run');
     expect(menu?.textContent).toContain('Warband');
     expect(menu?.textContent).toContain('Inventory');
+    expect(menu?.textContent).toContain('Shop');
     expect(menu?.textContent).not.toContain('Academy');
     expect(menu?.textContent).toContain('Guide');
     expect(menu?.textContent).toContain('Codex');
@@ -253,6 +254,34 @@ describe('CommandControlsComponent', () => {
     const academyItem = compiled.querySelector('.menu [aria-label="Academy"]');
 
     expect(academyItem).toBeNull();
+  });
+
+  it('hides the shop menu item until the unlock is earned', () => {
+    sessionService.featureUnlocks.set([]);
+
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.componentInstance.mobileMenuOpen.set(true);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const shopItem = compiled.querySelector('.menu [aria-label="Shop"]');
+
+    expect(shopItem).toBeNull();
+  });
+
+  it('shows the shop menu item after the unlock is earned', () => {
+    sessionService.featureUnlocks.set(['shop']);
+
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.componentInstance.mobileMenuOpen.set(true);
+    fixture.detectChanges();
+
+    const shopLink = fixture.debugElement
+      .queryAll(By.directive(RouterLink))
+      .find((debugElement) => debugElement.attributes['aria-label'] === 'Shop');
+
+    expect(shopLink).toBeDefined();
+    expect(router.serializeUrl(shopLink!.injector.get(RouterLink).urlTree!)).toBe('/shop');
   });
 
   it('shows the academy menu item after the unlock is earned', () => {
@@ -298,6 +327,7 @@ describe('CommandControlsComponent', () => {
     expect(compiled.querySelector('.menu [aria-label="Start Run"]')).toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Continue Run"]')).toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Inventory"]')).toBeNull();
+    expect(compiled.querySelector('.menu [aria-label="Shop"]')).toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Academy"]')).toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Home"]')).not.toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Guide"]')).not.toBeNull();
