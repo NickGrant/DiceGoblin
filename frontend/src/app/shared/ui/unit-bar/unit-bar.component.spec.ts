@@ -30,15 +30,16 @@ describe('UnitBarComponent', () => {
 
     const host = fixture.nativeElement as HTMLElement;
     const fills = host.querySelectorAll('.unit-bar__progress-fill') as NodeListOf<HTMLElement>;
-    const tierIcon = host.querySelector('.unit-bar__tier-icon') as HTMLImageElement;
+    const tierIcon = host.querySelector('.unit-bar__tier-icon') as HTMLElement;
     const roleIcon = host.querySelector('.unit-bar__role-icon');
     expect(host.textContent).toContain('Fang');
     expect(host.textContent).toContain('Level 4');
+    expect(host.textContent).toContain('Tier II');
     expect(host.textContent).toContain('Slot B2');
     expect(host.textContent).toContain('12/20 HP');
     expect(host.textContent).toContain('70 XP to next');
-    expect(tierIcon.getAttribute('src')).toContain('/assets/ui/icons/tier/2.png');
-    expect(tierIcon.getAttribute('alt')).toBe('Tier 2');
+    expect(tierIcon.classList.contains('dg-tier-indicator--2')).toBeTrue();
+    expect(tierIcon.getAttribute('aria-label')).toBe('Tier II');
     expect(roleIcon).not.toBeNull();
     expect(fills[0].style.width).toBe('60%');
     expect(fills[1].style.width).toBe('30%');

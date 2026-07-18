@@ -249,6 +249,89 @@ app-root .frame > * {
   font-size: 0.78rem;
 }
 
+.dg-tier-indicator {
+  --dg-tier-glyph: 'I';
+  --dg-tier-fill: #f2384a;
+  --dg-tier-outline: #050505;
+  --dg-tier-highlight: #fff8ec;
+  --dg-tier-shadow: #d72638;
+  --dg-tier-width: 1.75em;
+
+  position: relative;
+  isolation: isolate;
+  display: inline-grid;
+  place-items: center;
+  width: var(--dg-tier-width);
+  aspect-ratio: 1.15;
+  flex: 0 0 auto;
+  color: transparent;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 1.8rem;
+  font-weight: 900;
+  line-height: 0.78;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.dg-tier-indicator::before,
+.dg-tier-indicator::after {
+  content: var(--dg-tier-glyph);
+  grid-area: 1 / 1;
+  font: inherit;
+  pointer-events: none;
+}
+
+.dg-tier-indicator::before {
+  position: relative;
+  z-index: 2;
+  color: var(--dg-tier-fill);
+  -webkit-text-stroke: 0.075em var(--dg-tier-outline);
+  paint-order: stroke fill;
+  text-shadow:
+    -0.035em -0.035em 0 var(--dg-tier-highlight),
+    0 0.018em 0 var(--dg-tier-outline);
+}
+
+.dg-tier-indicator::after {
+  position: absolute;
+  z-index: 1;
+  color: var(--dg-tier-shadow);
+  transform: translate(0.1em, 0.1em);
+  -webkit-text-stroke: 0.045em var(--dg-tier-shadow);
+  paint-order: stroke fill;
+}
+
+.dg-tier-indicator--1 {
+  --dg-tier-glyph: 'I';
+}
+
+.dg-tier-indicator--2 {
+  --dg-tier-glyph: 'II';
+  --dg-tier-width: 1.95em;
+}
+
+.dg-tier-indicator--3 {
+  --dg-tier-glyph: 'III';
+  --dg-tier-width: 2.35em;
+}
+
+.dg-tier-indicator--4 {
+  --dg-tier-glyph: 'IV';
+  --dg-tier-width: 2.25em;
+}
+
+.dg-tier-indicator--5 {
+  --dg-tier-glyph: 'V';
+  --dg-tier-width: 1.65em;
+}
+
+.dg-tier-indicator--muted {
+  --dg-tier-fill: #87909a;
+  --dg-tier-outline: #3f464d;
+  --dg-tier-highlight: #f3efe0;
+  --dg-tier-shadow: #68717a;
+}
+
 .dg-card {
   border: 2px solid rgba(35, 39, 42, 0.2);
   background: rgba(243, 239, 224, 0.88);

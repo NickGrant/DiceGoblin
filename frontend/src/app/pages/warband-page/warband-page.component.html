@@ -105,18 +105,26 @@
             </div>
 
             <div class="warband-units-controls__filter">
-              <label class="form-label" for="warband-unit-tier-filter">Tier</label>
-              <select
-                id="warband-unit-tier-filter"
-                class="dg-select"
-                [ngModel]="selectedUnitTier() ?? ''"
-                (ngModelChange)="updateUnitTier($event)"
+              <span class="form-label" id="warband-unit-tier-filter-label">Tier</span>
+              <div
+                class="warband-tier-filter"
+                role="group"
+                aria-labelledby="warband-unit-tier-filter-label"
               >
-                <option value="">All tiers</option>
                 @for (tier of availableUnitTiers(); track tier) {
-                <option [value]="tier">Tier {{ tier }}</option>
+                <button
+                  class="warband-tier-filter__option"
+                  [class.is-selected]="isUnitTierSelected(tier)"
+                  type="button"
+                  [attr.aria-pressed]="isUnitTierSelected(tier)"
+                  [attr.aria-label]="'Tier ' + tierFilterLabel(tier)"
+                  (click)="toggleUnitTier(tier)"
+                >
+                  <span [class]="tierFilterClass(tier)" aria-hidden="true"></span>
+                  <span class="visually-hidden">Tier {{ tierFilterLabel(tier) }}</span>
+                </button>
                 }
-              </select>
+              </div>
             </div>
 
             <div class="warband-units-controls__filter warband-units-controls__filter--range">

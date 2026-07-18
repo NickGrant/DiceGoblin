@@ -18,7 +18,7 @@ import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-d
 })
 export class RunDialoguePageComponent {
   private static readonly PLAYER_DIALOGUE_PORTRAIT =
-    '/assets/dialogue/portraits/goblin/base_frame_0.png';
+    '/assets/ui/units/animated/goblin/base/frame_0.png';
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

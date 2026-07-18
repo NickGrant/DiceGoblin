@@ -8,7 +8,7 @@ const TEST_SCRIPT: DialogueScript = {
   startStepId: 'intro',
   speakers: [
     { id: 'mudking', side: 'right', name: 'Mudking', portraitUrl: '/assets/ui/units/pig_mudking.png', party: 'enemy', role: 'npc' },
-    { id: 'player', side: 'left', name: 'Ashback', portraitUrl: '/assets/ui/units/goblin_bruiser.png', party: 'player', role: 'player' },
+    { id: 'player', side: 'left', name: 'Ashback', portraitUrl: '/assets/ui/units/animated/goblin/base/frame_0.png', party: 'player', role: 'player' },
   ],
   steps: [
     { id: 'intro', speakerId: 'mudking', text: 'Are you here to fight me', nextStepId: 'answer', choices: [], enterEffect: null },
@@ -145,7 +145,7 @@ describe('DgDialogueStageComponent', () => {
       backgroundUrl: '/assets/ui/biome/mystic_cave.png',
       startStepId: 'reveal',
       speakers: [
-        { id: 'player', side: 'left', name: 'Ashback', portraitUrl: '/assets/dialogue/portraits/goblin/primordial_frame_0.png', party: 'player', role: 'player' },
+        { id: 'player', side: 'left', name: 'Ashback', portraitUrl: '/assets/ui/units/animated/goblin/primordial/frame_0.png', party: 'player', role: 'player' },
       ],
       steps: [
         {
@@ -156,9 +156,9 @@ describe('DgDialogueStageComponent', () => {
           choices: [{ id: 'yes', label: 'Yes', nextStepId: 'done' }],
           enterEffect: {
             kind: 'player_reveal',
-            initialOverlayUrl: '/assets/dialogue/portraits/goblin/primordial_frame_0.png',
-            finalOverlayUrl: '/assets/dialogue/portraits/goblin/base_frame_0.png',
-            resultingPlayerPortraitUrl: '/assets/dialogue/portraits/goblin/base_frame_0.png',
+            initialOverlayUrl: '/assets/ui/units/animated/goblin/primordial/frame_0.png',
+            finalOverlayUrl: '/assets/ui/units/animated/goblin/base/frame_0.png',
+            resultingPlayerPortraitUrl: '/assets/ui/units/animated/goblin/base/frame_0.png',
             initialDurationMs: 10,
             flashCount: 1,
             flashIntervalMs: 10,
@@ -174,7 +174,7 @@ describe('DgDialogueStageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.hasVisibleChoices()).toBeFalse();
-    expect(fixture.componentInstance.overlayImageUrl()).toContain('primordial_frame_0');
+    expect(fixture.componentInstance.overlayImageUrl()).toBe('/assets/ui/units/animated/goblin/primordial/frame_0.png');
 
     tick(120);
     fixture.detectChanges();
@@ -183,6 +183,6 @@ describe('DgDialogueStageComponent', () => {
     expect(fixture.componentInstance.overlayImageUrl()).toBeNull();
 
     const playerSpeaker = fixture.componentInstance.visibleEntries()[0]?.speaker;
-    expect(playerSpeaker?.portraitUrl).toContain('base_frame_0');
+    expect(playerSpeaker?.portraitUrl).toBe('/assets/ui/units/animated/goblin/base/frame_0.png');
   }));
 });

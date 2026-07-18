@@ -8,6 +8,7 @@ import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { UnitBarComponent } from '../../shared/ui/unit-bar/unit-bar.component';
+import { formatTier } from '../../shared/utils/unit-formatters';
 
 @Component({
   selector: 'app-warband-page',
@@ -27,7 +28,7 @@ export class WarbandPageComponent {
   readonly activeRun = computed(() => this.sessionService.profileData()?.active_run ?? null);
   readonly activeSquad = this.sessionService.activeSquad;
   readonly selectedUnitType = signal<string | null>(null);
-  readonly selectedUnitTier = signal<number | null>(null);
+  readonly excludedUnitTiers = signal<number[]>([]);
   readonly selectedLevelMin = signal<number | null>(null);
   readonly selectedLevelMax = signal<number | null>(null);
   readonly selectedUnitSort = signal<'name-asc' | 'level-desc' | 'tier-desc'>('level-desc');
@@ -44,6 +45,10 @@ export class WarbandPageComponent {
       (a, b) => a - b,
     ),
   );
+  readonly selectedUnitTiers = computed(() => {
+    const excludedTiers = new Set(this.excludedUnitTiers());
+    return this.availableUnitTiers().filter((tier) => !excludedTiers.has(tier));
+  });
   readonly availableUnitLevels = computed(() => {
     const maxLevel = Math.max(
       1,
@@ -54,7 +59,7 @@ export class WarbandPageComponent {
   });
   readonly filteredUnits = computed(() => {
     const selectedType = this.selectedUnitType();
-    const selectedTier = this.selectedUnitTier();
+    const excludedTiers = new Set(this.excludedUnitTiers());
     const selectedLevelMin = this.selectedLevelMin();
     const selectedLevelMax = this.selectedLevelMax();
     const filtered = this.units().filter((unit) => {
@@ -62,7 +67,7 @@ export class WarbandPageComponent {
         return false;
       }
 
-      if (selectedTier !== null && (unit.tier ?? 0) !== selectedTier) {
+      if (excludedTiers.has(unit.tier ?? 0)) {
         return false;
       }
 
@@ -149,8 +154,29 @@ export class WarbandPageComponent {
     this.selectedUnitType.set(value || null);
   }
 
-  updateUnitTier(value: string): void {
-    this.selectedUnitTier.set(value ? Number(value) : null);
+  toggleUnitTier(tier: number): void {
+    const excludedTiers = new Set(this.excludedUnitTiers());
+    if (excludedTiers.has(tier)) {
+      excludedTiers.delete(tier);
+    } else {
+      excludedTiers.add(tier);
+    }
+
+    this.excludedUnitTiers.set([...excludedTiers].sort((a, b) => a - b));
+  }
+
+  tierFilterLabel(tier: number): string {
+    return formatTier(tier) ?? `${tier}`;
+  }
+
+  tierFilterClass(tier: number): string {
+    const tierNumber = Math.max(1, Math.min(5, Math.round(tier)));
+    const selectedClass = this.isUnitTierSelected(tier) ? '' : ' dg-tier-indicator--muted';
+    return `warband-tier-filter__mark dg-tier-indicator dg-tier-indicator--${tierNumber}${selectedClass}`;
+  }
+
+  isUnitTierSelected(tier: number): boolean {
+    return !this.excludedUnitTiers().includes(tier);
   }
 
   updateLevelMin(value: string): void {
@@ -179,7 +205,7 @@ export class WarbandPageComponent {
 
   clearUnitFilters(): void {
     this.selectedUnitType.set(null);
-    this.selectedUnitTier.set(null);
+    this.excludedUnitTiers.set([]);
     this.selectedLevelMin.set(null);
     this.selectedLevelMax.set(null);
     this.selectedUnitSort.set('level-desc');

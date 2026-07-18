@@ -139,11 +139,11 @@ describe('WarbandPageComponent', () => {
     expect(host.textContent).toContain('Fang');
   });
 
-  it('filters units by selected tier', () => {
+  it('filters units by toggled tier availability', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.updateUnitTier('2');
+    fixture.componentInstance.toggleUnitTier(1);
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
@@ -151,6 +151,32 @@ describe('WarbandPageComponent', () => {
 
     expect(tiles.length).toBe(1);
     expect(host.textContent).toContain('Muckjaw');
+  });
+
+  it('renders tier filter options as roman numeral buttons', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const buttons = Array.from(host.querySelectorAll('.warband-tier-filter__option')) as HTMLButtonElement[];
+    const marks = Array.from(host.querySelectorAll('.warband-tier-filter__mark')) as HTMLElement[];
+
+    expect(buttons.length).toBe(2);
+    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual(['Tier I', 'Tier II']);
+    expect(marks[0].classList.contains('dg-tier-indicator--1')).toBeTrue();
+    expect(marks[1].classList.contains('dg-tier-indicator--2')).toBeTrue();
+    expect(marks.every((mark) => !mark.classList.contains('dg-tier-indicator--muted'))).toBeTrue();
+    expect(buttons.every((button) => button.getAttribute('aria-pressed') === 'true')).toBeTrue();
+
+    buttons[1].click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.excludedUnitTiers()).toEqual([2]);
+    const disabledMark = buttons[1].querySelector('.warband-tier-filter__mark');
+    expect(buttons[1].classList.contains('is-selected')).toBeFalse();
+    expect(buttons[1].getAttribute('aria-pressed')).toBe('false');
+    expect(disabledMark?.classList.contains('dg-tier-indicator--muted')).toBeTrue();
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(1);
   });
 
   it('filters units by selected level range', () => {
@@ -173,13 +199,13 @@ describe('WarbandPageComponent', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.updateUnitType('Bruiser');
-    fixture.componentInstance.updateUnitTier('2');
+    fixture.componentInstance.toggleUnitTier(2);
     fixture.componentInstance.updateLevelMin('2');
     fixture.componentInstance.updateLevelMax('6');
     fixture.componentInstance.clearUnitFilters();
 
     expect(fixture.componentInstance.selectedUnitType()).toBeNull();
-    expect(fixture.componentInstance.selectedUnitTier()).toBeNull();
+    expect(fixture.componentInstance.excludedUnitTiers()).toEqual([]);
     expect(fixture.componentInstance.selectedLevelMin()).toBeNull();
     expect(fixture.componentInstance.selectedLevelMax()).toBeNull();
   });

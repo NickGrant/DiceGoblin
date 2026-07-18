@@ -164,20 +164,9 @@
 .unit-grid-object__tier-chip {
   position: absolute;
   right: 0;
-  bottom: 9%;
+  bottom: 6%;
   z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 1.5rem;
-  padding: 0.22rem 0.5rem;
-  border: 1px solid rgba(243, 239, 224, 0.2);
-  background: rgba(18, 18, 18, 0.76);
-  color: #f4ead1;
-  font-size: 0.64rem;
-  line-height: 1;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: clamp(1.75rem, 5vw, 2.45rem);
 }
 
 .unit-grid-object__stats {
