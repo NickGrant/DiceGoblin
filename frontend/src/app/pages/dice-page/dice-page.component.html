@@ -17,7 +17,15 @@
   <section class="dice-page">
     <dg-focus-layout class="dice-page__layout" panelWidth="21rem">
       <div focusLayoutPrimary class="dice-page__primary">
-        <section class="dice-page__controls">
+        <section class="dice-page__controls dg-proto-section">
+          <div class="dg-proto-section__header">
+            <div>
+              <p class="dg-proto-section__eyebrow">Camp Stock</p>
+              <h2 class="dg-proto-section__title">Inventory</h2>
+            </div>
+            <span class="dg-proto-chip">Owned {{ dice().length }}</span>
+          </div>
+          <div class="dg-proto-divider" aria-hidden="true"></div>
           <div class="dice-page__filters">
             <div class="dice-page__filter">
               <label class="form-label" for="dice-size-filter">Size</label>
@@ -85,22 +93,28 @@
         @if (filteredDice().length) {
         <div class="dice-page__inventory">
           <div class="dice-page__rail">
-            <div class="dice-page__rail-layout">
+            <div class="dice-page__rail-layout dg-motion-stagger">
               @for (die of filteredDice(); track die.id) {
               <button
                 type="button"
-                class="dice-page__tile"
+                class="dice-page__tile dg-proto-card"
                 [class.is-selected]="isInspecting(die.id)"
                 (click)="activateDice(die)"
                 (focus)="previewDice(die.id)"
                 (mouseenter)="previewDice(die.id)"
                 [attr.aria-label]="diceTitle(die) + ' ' + sizeLabel(die) + ' ' + rarityLabel(die)"
               >
-                <dg-dice-grid-object
-                  [object]="die"
-                  displayMode="compact"
-                  [isEquipped]="isEquippedAnywhere(die.id)"
-                />
+                <span class="dice-page__tile-media dg-proto-card__media">
+                  <img class="dice-page__tile-image" [src]="inspectArtUrl(die)" [alt]="diceTitle(die)" />
+                </span>
+                <span class="dice-page__tile-copy">
+                  <span class="dice-page__tile-name">{{ diceTitle(die) }}</span>
+                  <span class="dice-page__tile-meta">{{ rarityLabel(die) }}</span>
+                </span>
+                <span class="dg-proto-card__stats">
+                  <span class="dg-proto-pill">{{ sizeLabel(die) }}</span>
+                  <span class="dg-proto-pill">{{ isEquippedAnywhere(die.id) ? 'Equipped' : 'Loose' }}</span>
+                </span>
               </button>
               }
             </div>
@@ -112,7 +126,7 @@
       </div>
 
       @if (inspectedDice(); as die) {
-      <aside focusLayoutPanel class="dice-page__inspect">
+      <aside focusLayoutPanel class="dice-page__inspect dg-proto-sidebar">
         <div class="dice-page__inspect-head">
           <div>
             <p class="dice-page__inspect-kicker">{{ rarityLabel(die) }} Die</p>
@@ -125,8 +139,14 @@
           }
         </div>
 
-        <div class="dice-page__inspect-art">
+        <div class="dice-page__inspect-art dg-proto-card__media dg-proto-card__media--wide">
           <img class="dice-page__inspect-image" [src]="inspectArtUrl(die)" [alt]="diceTitle(die)" />
+        </div>
+
+        <div class="dice-page__inspect-stats">
+          <span class="dg-proto-pill">{{ sizeLabel(die) }}</span>
+          <span class="dg-proto-pill">{{ rarityLabel(die) }}</span>
+          <span class="dg-proto-pill">{{ die.sell_value ?? 0 }} teeth</span>
         </div>
 
         <div class="dice-page__inspect-body">

@@ -18,21 +18,59 @@
   }
 
   @if (restData()) {
-  <section class="dg-card p-3 p-lg-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-      <div>
-        <h2 class="dg-stencil mb-1">Recovery</h2>
-        <p class="mb-0">Resting restores run units to full health.</p>
+  <section class="dg-proto-shell">
+    <section class="dg-proto-hero">
+      <p class="dg-proto-hero__eyebrow dg-stencil">Recovery Node</p>
+      <h2 class="dg-proto-hero__title dg-stencil">Patch Up The Crew</h2>
+      <p class="dg-proto-hero__copy">Everyone returns to full health here. Use the stop to steady the squad before the next push.</p>
+      <div class="dg-proto-hero__meta">
+        <span class="dg-proto-chip">Units {{ restCards().length }}</span>
+        <button dgCommandBtn="primary" type="button" (click)="finalizeRest()" [disabled]="busy()">
+          {{ busy() ? 'Resting...' : 'Rest' }}
+        </button>
       </div>
-      <button dgCommandBtn="primary" type="button" (click)="finalizeRest()" [disabled]="busy()">
-        {{ busy() ? 'Resting...' : 'Rest' }}
-      </button>
-    </div>
+    </section>
 
-    @if (restingUnits().length) {
-    <dg-run-unit-formation-grid [cells]="formationGrid()" />
-    } @else {
-    <dg-alert>No run units found for this rest.</dg-alert>
+    <section class="dg-proto-section">
+      <div class="dg-proto-section__header">
+        <div>
+          <p class="dg-proto-section__eyebrow dg-stencil">Formation</p>
+          <h3 class="dg-proto-section__title dg-stencil">Current Squad</h3>
+        </div>
+      </div>
+      @if (restingUnits().length) {
+      <dg-run-unit-formation-grid [cells]="formationGrid()" />
+      } @else {
+      <dg-alert>No run units found for this rest.</dg-alert>
+      }
+    </section>
+
+    @if (restCards().length) {
+    <section class="dg-proto-section">
+      <div class="dg-proto-section__header">
+        <div>
+          <p class="dg-proto-section__eyebrow dg-stencil">Recovery Board</p>
+          <h3 class="dg-proto-section__title dg-stencil">Unit Status</h3>
+        </div>
+      </div>
+      <div class="dg-proto-grid dg-proto-grid--cards">
+        @for (card of restCards(); track card.id) {
+        <article class="dg-proto-card">
+          <div class="dg-proto-card__media">
+            <img class="dg-proto-sprite dg-proto-sprite--lg" [src]="card.spriteUrl" [alt]="card.name" />
+          </div>
+          <div>
+            <p class="dg-proto-card__meta">{{ card.subtitle }}</p>
+            <h4 class="dg-proto-card__title dg-stencil">{{ card.name }}</h4>
+          </div>
+          <div class="dg-proto-card__stats">
+            <span class="dg-proto-pill">{{ card.defeated ? 'Defeated' : 'Standing' }}</span>
+            <span class="dg-proto-pill">HP {{ card.currentHp }}/{{ card.maxHp }}</span>
+          </div>
+        </article>
+        }
+      </div>
+    </section>
     }
   </section>
   }

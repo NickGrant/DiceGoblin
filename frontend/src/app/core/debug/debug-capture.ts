@@ -24,8 +24,9 @@ const DEFAULT_USER_ID = 'debug-user';
 const DEBUG_SCENE_ROUTE_ALIASES: Record<string, string> = {
   login: '/login',
   guide: '/guide',
+  codex: '/codex',
   home: '/home',
-  'field-guide': '/field-guide',
+  'field-guide': '/codex',
   regions: '/regions',
   warband: '/warband',
   dice: '/dice',

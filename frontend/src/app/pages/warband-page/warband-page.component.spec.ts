@@ -88,12 +88,13 @@ describe('WarbandPageComponent', () => {
     expect(activateButton?.getAttribute('aria-label')).toContain('Set Beta as the active squad');
   });
 
-  it('shows the inspected unit card in the sidebar panel', () => {
+  it('does not render the old hover-inspect sidebar', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
-    expect(host.querySelector('.warband-units-inspect__panel .unit-grid-object')).not.toBeNull();
+    expect(host.querySelector('.warband-units-inspect__panel')).toBeNull();
+    expect(host.querySelector('.warband-units-roster')).not.toBeNull();
   });
 
   it('marks the active squad as locked during an active run', () => {
@@ -111,7 +112,7 @@ describe('WarbandPageComponent', () => {
     expect(lockedLink).toBeNull();
   });
 
-  it('renders units in the inspect grid layout', () => {
+  it('renders units in the full-width roster grid', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
@@ -121,6 +122,7 @@ describe('WarbandPageComponent', () => {
 
     expect(grid).not.toBeNull();
     expect(tiles.length).toBe(2);
+    expect(host.querySelectorAll('dg-unit-bar').length).toBe(2);
   });
 
   it('filters units by selected unit type', () => {
@@ -180,18 +182,6 @@ describe('WarbandPageComponent', () => {
     expect(fixture.componentInstance.selectedUnitTier()).toBeNull();
     expect(fixture.componentInstance.selectedLevelMin()).toBeNull();
     expect(fixture.componentInstance.selectedLevelMax()).toBeNull();
-  });
-
-  it('supports hover preview for the inspect sidebar', () => {
-    const fixture = TestBed.createComponent(WarbandPageComponent);
-    fixture.detectChanges();
-
-    const component = fixture.componentInstance;
-
-    expect(component.inspectedUnit()?.id).toBe('u2');
-
-    component.previewUnit('u2');
-    expect(component.inspectedUnit()?.id).toBe('u2');
   });
 
   it('opens a unit directly when a grid tile is activated', async () => {

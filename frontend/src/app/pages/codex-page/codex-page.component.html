@@ -1,0 +1,249 @@
+<page-frame
+  [breadcrumbs]="breadcrumbs"
+  [title]="pageTitle"
+  [subtitle]="pageSubtitle"
+  headerVariant="guide"
+>
+  <section class="dg-proto-shell codex">
+    <div class="stats">
+      @for (metric of codexMetrics(); track metric.label) {
+        <article class="dg-proto-kpi">
+          <div class="stat-head">
+            <span>{{ metric.label }}</span>
+            <strong>{{ metric.value }}</strong>
+          </div>
+          <div class="dg-proto-progress" aria-hidden="true">
+            <div class="dg-proto-progress__fill" [style.width.%]="metric.progressPercent"></div>
+          </div>
+          <p class="stat-copy">{{ metric.detail }}</p>
+        </article>
+      }
+    </div>
+
+    <div class="layout">
+      <nav aria-label="Codex categories">
+        @for (category of categories; track category.key) {
+          <button
+            type="button"
+            [class.is-active]="activeCategory() === category.key"
+            [attr.aria-current]="activeCategory() === category.key ? 'page' : null"
+            (click)="setActiveCategory(category.key)"
+          >
+            {{ category.label }}
+          </button>
+        }
+      </nav>
+
+      <div>
+        @switch (activeCategory()) {
+          @case ('features') {
+            <ng-container [ngTemplateOutlet]="featuresTemplate"></ng-container>
+          }
+          @case ('units') {
+            <ng-container [ngTemplateOutlet]="unitsTemplate"></ng-container>
+          }
+          @case ('affixes') {
+            <ng-container [ngTemplateOutlet]="affixesTemplate"></ng-container>
+          }
+          @case ('enemies') {
+            <ng-container [ngTemplateOutlet]="enemiesTemplate"></ng-container>
+          }
+          @case ('lore') {
+            <ng-container [ngTemplateOutlet]="loreTemplate"></ng-container>
+          }
+        }
+      </div>
+    </div>
+  </section>
+</page-frame>
+
+<ng-template #featuresTemplate>
+  <section class="dg-proto-section">
+    <div class="dg-proto-section__header">
+      <div>
+        <p class="dg-proto-section__eyebrow dg-stencil">Feature Unlocks</p>
+        <h3 class="dg-proto-section__title">Permanent account upgrades</h3>
+      </div>
+    </div>
+    <div class="entries">
+      @for (unlock of unlocks; track unlock.key) {
+        <article class="entry feature-entry" [style.--depth]="unlock.depth">
+          <fa-icon class="feature-icon" [icon]="featureIcon(unlock.category)" aria-hidden="true" [title]="unlock.category"></fa-icon>
+          @if (hasAcquiredFeatureUnlock(unlock.key)) {
+          <div class="feature-copy">
+            <strong>{{ unlock.name }}</strong>
+            <p>{{ unlock.category }} - {{ unlock.cost }} teeth - {{ unlock.description }}</p>
+          </div>
+          } @else {
+          <div class="feature-copy locked">
+            <strong>???</strong>
+            <p>Unlock to learn more.</p>
+          </div>
+          }
+        </article>
+      }
+    </div>
+  </section>
+</ng-template>
+
+<ng-template #unitsTemplate>
+  <section class="dg-proto-section">
+    <div class="dg-proto-section__header">
+      <div>
+        <p class="dg-proto-section__eyebrow dg-stencil">Unit Types</p>
+        <h3 class="dg-proto-section__title">Unlockable unit types</h3>
+      </div>
+    </div>
+    <div class="entries unit-tree">
+      @for (unit of unitTree; track unit.slug) {
+        <ng-container
+          [ngTemplateOutlet]="unitNodeTemplate"
+          [ngTemplateOutletContext]="{ $implicit: unit, depth: 0 }"
+        ></ng-container>
+      }
+    </div>
+  </section>
+</ng-template>
+
+<ng-template #unitNodeTemplate let-unit let-depth="depth">
+  <article class="entry unit-entry" [style.--depth]="depth">
+    <fa-icon class="role-icon" [icon]="roleIcon(unit.role)" aria-hidden="true" [title]="unit.role"></fa-icon>
+    <img
+      class="unit-thumbnail"
+      [class.unit-thumbnail--silhouette]="!hasAcquiredUnitUnlock(unit.slug)"
+      [src]="unitPortraitUrl(unit)"
+      [alt]="hasAcquiredUnitUnlock(unit.slug) ? unit.name + ' portrait' : 'Locked unit silhouette'"
+    />
+    @if (hasAcquiredUnitUnlock(unit.slug)) {
+      <div class="unit-copy">
+        <strong>{{ unit.name }}</strong>
+        <p>{{ unit.description }}</p>
+      </div>
+    } @else {
+      <div class="unit-copy locked">
+        <strong>???</strong>
+        <p>Unlock to learn more.</p>
+      </div>
+    }
+  </article>
+
+  @for (child of unit.children ?? []; track child.slug) {
+    <ng-container
+      [ngTemplateOutlet]="unitNodeTemplate"
+      [ngTemplateOutletContext]="{ $implicit: child, depth: depth + 1 }"
+    ></ng-container>
+  }
+</ng-template>
+
+<ng-template #affixesTemplate>
+  <section class="dg-proto-section">
+    <div class="dg-proto-section__header">
+      <div>
+        <p class="dg-proto-section__eyebrow dg-stencil">Affix Archive</p>
+        <h3 class="dg-proto-section__title">Seen affixes and their current definitions</h3>
+      </div>
+    </div>
+    <div class="entries affix-entries">
+      @for (affix of codexAffixEntries(); track affix.name) {
+        <article class="entry affix-entry" [class.is-locked]="!affix.discovered">
+          <fa-icon class="affix-icon" [icon]="affixIcon(affix)" aria-hidden="true" [title]="affix.discovered ? affix.name : 'Locked affix'"></fa-icon>
+          @if (affix.discovered) {
+            <div class="affix-copy">
+              <strong>{{ affix.name }}</strong>
+              <p>{{ affix.rarity }} - {{ affix.description }}</p>
+            </div>
+          } @else {
+            <div class="affix-copy locked">
+              <strong>???</strong>
+              <p>Unlock to learn more.</p>
+            </div>
+          }
+        </article>
+      }
+    </div>
+  </section>
+</ng-template>
+
+<ng-template #enemiesTemplate>
+  <section class="dg-proto-section">
+    <div class="dg-proto-section__header">
+      <div>
+        <p class="dg-proto-section__eyebrow dg-stencil">Enemy Record</p>
+        <h3 class="dg-proto-section__title">Defeated enemy types by cleared biome</h3>
+      </div>
+    </div>
+    <div class="entries enemy-entries">
+      @for (unit of codexEnemyEntries(); track unit.slug) {
+        <article
+          class="entry enemy-entry"
+          [class.is-locked]="!unit.discovered"
+          [class.enemy-entry--no-sprite]="!hasEnemySprite(unit)"
+          (mouseenter)="unit.discovered && hasEnemySprite(unit) && startGuideUnitAnimation(unit.slug)"
+          (mouseleave)="stopGuideUnitAnimation(unit.slug)"
+          (focusin)="unit.discovered && hasEnemySprite(unit) && startGuideUnitAnimation(unit.slug)"
+          (focusout)="stopGuideUnitAnimation(unit.slug)"
+          tabindex="0"
+        >
+          <fa-icon class="role-icon" [icon]="roleIcon(unit.role)" aria-hidden="true" [title]="unit.role"></fa-icon>
+          @if (hasEnemySprite(unit)) {
+            <img
+              [src]="unit.discovered ? guideUnitFramePath(unit) : enemySpriteUrl(unit.slug)"
+              [alt]="unit.discovered ? unit.name : 'Unknown enemy silhouette'"
+              class="enemy-sprite"
+              [class.silhouette]="!unit.discovered"
+            />
+          }
+          @if (unit.discovered) {
+            <div class="enemy-copy">
+              <strong>{{ unit.name }}</strong>
+              <p>{{ unit.role }} - Cleared biome data confirms this enemy type in the field record.</p>
+            </div>
+          } @else {
+            <div class="enemy-copy locked">
+              <strong>???</strong>
+              <p>Unlock to learn more.</p>
+            </div>
+          }
+          <img class="biome-badge" [src]="biomeBadgeUrl(unit.biome)" [alt]="unit.biome + ' biome badge'" />
+        </article>
+      }
+    </div>
+  </section>
+</ng-template>
+
+<ng-template #loreTemplate>
+  <section class="dg-proto-section">
+    <div class="dg-proto-section__header">
+      <div>
+        <p class="dg-proto-section__eyebrow dg-stencil">Lore Archive</p>
+        <h3 class="dg-proto-section__title">Unlocked story beats and dialogue fragments</h3>
+      </div>
+    </div>
+    <div class="dg-proto-divider" aria-hidden="true"></div>
+    @if (codexLoreEntries().length) {
+      <div class="entries lore-entries">
+        @for (entry of codexLoreEntries(); track entry.id) {
+          <article class="entry lore-entry">
+            <div class="lore-copy">
+              <strong>{{ entry.title }}</strong>
+              <p>{{ entry.summary }}</p>
+            </div>
+            <button class="lore-replay" type="button" (click)="replayLoreDialogue(entry)">Replay</button>
+          </article>
+        }
+      </div>
+    } @else {
+      <article class="dg-proto-card dg-proto-card--locked">
+        <h4 class="dg-proto-card__title">No lore pages unlocked yet</h4>
+        <p class="dg-proto-card__copy">Seen dialogue entries will appear here once this account starts uncovering story moments.</p>
+      </article>
+    }
+  </section>
+
+  @if (activeLoreDialogue(); as dialogue) {
+    <div class="lore-dialogue" role="dialog" aria-modal="true" aria-label="Lore dialogue replay">
+      <button class="lore-dialogue__close" type="button" (click)="closeLoreDialogue()">Close</button>
+      <dg-dialogue-stage [script]="dialogue" (complete)="closeLoreDialogue()" />
+    </div>
+  }
+</ng-template>

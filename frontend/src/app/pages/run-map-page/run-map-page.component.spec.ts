@@ -69,6 +69,7 @@ describe('RunMapPageComponent', () => {
 
     expect(fixture.componentInstance.run()?.run_id).toBe('run-1');
     expect(fixture.componentInstance.loading()).toBeFalse();
+    expect(fixture.componentInstance.pageTitle()).toBe('Continue Run - The Farm');
     expect(fixture.componentInstance.iconForNodeType('combat')).toContain('icon_encounter_combat.png');
     expect(fixture.componentInstance.iconForNodeType('exit')).toContain('icon_home.png');
     expect(fixture.componentInstance.mapBackgroundUrl()).toBe('/assets/ui/biome/farm.png');
@@ -79,11 +80,13 @@ describe('RunMapPageComponent', () => {
     expect(fixture.componentInstance.formationGrid().length).toBe(9);
     expect(fixture.componentInstance.formationGrid().find((cell) => cell.cell === 'A1')?.entry?.currentHp).toBe(6);
     const host: HTMLElement = fixture.nativeElement;
-    expect(host.textContent).toContain('Bruiser');
-    expect(host.textContent).toContain('Level 3');
-    expect(host.textContent).toContain('II');
-    expect(host.textContent).not.toContain('A1');
-    expect(host.textContent).not.toContain('HP 6/10');
+    expect(host.textContent).toContain('Continue Run - The Farm');
+    expect(host.textContent).toContain('Fang');
+    expect(host.textContent).toContain('Lv 3');
+    expect(host.querySelector('.run-unit-grid .unit-thumbnail')).not.toBeNull();
+    expect(host.querySelector('.run-unit-grid .unit-thumbnail__hp')).not.toBeNull();
+    expect(host.querySelector('.run-unit-grid .unit-bar')).toBeNull();
+    expect(host.querySelector('.run-unit-grid a')?.getAttribute('href')).toContain('/warband/units/u1');
   });
 
   it('sizes the map from rendered node positions instead of a separate node-index guess', async () => {
@@ -238,5 +241,31 @@ describe('RunMapPageComponent', () => {
     await fixture.componentInstance.abandonRun();
 
     expect(router.navigateByUrl).toHaveBeenCalledWith('/run/summary');
+  });
+
+  it('opens available loot nodes on the loot route', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.resolveTo(true);
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+
+    await fixture.componentInstance.openNode({
+      id: 'loot-1',
+      run_id: 'run-1',
+      node_index: 1,
+      node_type: 'loot',
+      status: 'available',
+    });
+
+    expect(router.navigate).toHaveBeenCalledWith(['/run/loot', 'loot-1']);
   });
 });

@@ -142,6 +142,15 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame('loot', (string)($lootPreview['node_type'] ?? ''));
     $this->assertSame(0, (int)($lootPreview['xp_total'] ?? -1));
     $this->assertSame(8, (int)($lootPreview['currency_soft'] ?? -1));
+    $this->assertIsArray($lootPreview['units'] ?? null);
+    $this->assertIsArray($lootPreview['dice'] ?? null);
+    $this->assertNotEmpty($lootPreview['dice']);
+    $firstLootDie = $lootPreview['dice'][0];
+    $this->assertIsArray($firstLootDie);
+    $this->assertArrayHasKey('label', $firstLootDie);
+    $this->assertArrayHasKey('material', $firstLootDie);
+    $this->assertArrayHasKey('sides', $firstLootDie);
+    $this->assertIsArray($firstLootDie['affixes'] ?? null);
     [$lootXp, $lootSoft] = $this->battleRewardTuple($lootBattleId);
     $this->assertSame(0, $lootXp);
     $this->assertSame(8, $lootSoft);

@@ -1,0 +1,320 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.codex {
+  --codex-surface: #fff8ea;
+  --codex-surface-low: #f0dfbd;
+  --codex-surface-soft: #fffaf0;
+  --codex-border: rgba(76, 45, 25, 0.16);
+
+  padding-bottom: 1rem;
+
+  .dg-proto-section,
+  .dg-proto-card,
+  .dg-proto-kpi {
+    background:
+      linear-gradient(180deg, rgba(255, 252, 244, 0.98), rgba(242, 229, 203, 0.96)),
+      var(--codex-surface);
+    border-color: var(--codex-border);
+  }
+
+  .dg-proto-section::before,
+  .dg-proto-card::before {
+    opacity: 0.12;
+    background-image:
+      linear-gradient(180deg, rgba(112, 72, 38, 0.08), transparent 34%, rgba(99, 63, 35, 0.06));
+  }
+
+  .stats {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  }
+
+  .stat-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+
+    span {
+      min-width: 0;
+      white-space: nowrap;
+    }
+
+    strong {
+      flex: 0 0 auto;
+    }
+  }
+
+  .stat-copy,
+  .entry p {
+    margin: 0;
+    color: rgba(40, 24, 14, 0.8);
+  }
+
+  .stat-copy {
+    font-size: 0.82rem;
+  }
+
+  .layout {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .layout > div {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  nav {
+    display: grid;
+    gap: 0.5rem;
+    align-content: start;
+    padding: 0.7rem;
+    border-radius: 0.85rem;
+    background:
+      linear-gradient(180deg, rgba(255, 250, 239, 0.98), rgba(239, 224, 196, 0.96)),
+      var(--codex-surface-low);
+    box-shadow: inset 0 0 0 1px var(--codex-border);
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 0.55rem;
+      padding: 0.55rem 0.8rem;
+      color: #372115;
+      background: rgba(255, 255, 255, 0.35);
+      font: inherit;
+      font-weight: 800;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 140ms ease, background 140ms ease, box-shadow 140ms ease;
+
+      &:hover,
+      &:focus-visible,
+      &.is-active {
+        transform: translateY(-1px);
+        background: rgba(95, 58, 33, 0.16);
+        box-shadow: inset 0 0 0 1px rgba(72, 43, 24, 0.24);
+        outline: none;
+      }
+    }
+  }
+
+  .entries {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .unit-tree {
+    gap: 0.65rem;
+  }
+
+  .entry {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.7rem 0.8rem;
+    border-radius: 0.85rem;
+    background:
+      linear-gradient(180deg, rgba(255, 253, 247, 0.98), rgba(246, 235, 214, 0.97)),
+      var(--codex-surface-soft);
+    border: 1px solid rgba(111, 76, 42, 0.12);
+
+    strong {
+      display: block;
+      margin-bottom: 0.2rem;
+      color: #26160d;
+    }
+  }
+
+  .unit-entry {
+    grid-template-columns: 64px 96px minmax(0, 1fr);
+    align-items: center;
+    margin-left: calc(0.8rem + (var(--depth, 0) * 1.35rem));
+  }
+
+  .feature-entry {
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+    margin-left: calc(0.8rem + (var(--depth, 0) * 1.35rem));
+  }
+
+  .role-icon,
+  .feature-icon,
+  .affix-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    color: #372115;
+    font-size: 42px;
+    align-self: center;
+  }
+
+  .unit-thumbnail {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    align-self: center;
+  }
+
+  .unit-thumbnail--silhouette {
+    opacity: 0.82;
+  }
+
+  .unit-copy {
+    min-width: 0;
+
+    &.locked {
+      align-self: center;
+    }
+  }
+
+  .feature-copy {
+    min-width: 0;
+  }
+
+  .affix-entries,
+  .enemy-entries,
+  .lore-entries {
+    gap: 0.65rem;
+  }
+
+  .affix-entry {
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+
+    &.is-locked {
+      opacity: 0.72;
+    }
+  }
+
+  .affix-copy,
+  .enemy-copy {
+    min-width: 0;
+  }
+
+  .enemy-entry {
+    grid-template-columns: 64px 96px minmax(0, 1fr) 96px;
+    align-items: center;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+
+    &:hover,
+    &:focus-visible {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(49, 30, 18, 0.14);
+      outline: none;
+    }
+
+    &.is-locked {
+      opacity: 0.72;
+    }
+
+    &.enemy-entry--no-sprite {
+      grid-template-columns: 64px minmax(0, 1fr) 96px;
+    }
+  }
+
+  .enemy-sprite {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    align-self: center;
+  }
+
+  .biome-badge {
+    justify-self: end;
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+  }
+
+  .lore-entry {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .lore-copy {
+    min-width: 0;
+  }
+
+  .lore-replay,
+  .lore-dialogue__close {
+    border: 0;
+    border-radius: 0.55rem;
+    padding: 0.55rem 0.8rem;
+    color: #fff4dc;
+    background: #20140d;
+    font: inherit;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgba(255, 244, 220, 0.18);
+  }
+
+  .lore-dialogue {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(21, 13, 8, 0.82);
+  }
+
+  .lore-dialogue dg-dialogue-stage {
+    width: min(980px, 100%);
+  }
+
+  .lore-dialogue__close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .cost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    justify-self: end;
+    color: #26160d;
+    font-weight: 900;
+    white-space: nowrap;
+
+    img {
+      width: 1.2rem;
+      height: 1.2rem;
+      object-fit: contain;
+    }
+  }
+
+  .silhouette {
+    filter: brightness(0) saturate(100%);
+    opacity: 0.9;
+  }
+
+  .dg-proto-card--locked::after {
+    background:
+      linear-gradient(180deg, rgba(146, 132, 109, 0.35), rgba(63, 47, 32, 0.22)),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 32%);
+  }
+}
+
+@media (min-width: 761px) {
+  .codex {
+    .layout {
+      grid-template-columns: minmax(10rem, 0.32fr) minmax(0, 1fr);
+      align-items: start;
+    }
+
+    nav {
+      position: sticky;
+      top: calc(var(--command-controls-height, 0px) + 0.8rem);
+    }
+  }
+}

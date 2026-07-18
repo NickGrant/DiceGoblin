@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { findDialogueScript } from '../../dialogue/dialogue-script-registry';
+import { findDialogueScript, materializeDialogueScript } from '../../dialogue/dialogue-script-registry';
 import { DialogueLibraryDefinition, DialogueScript, DialogueTriggerContext } from '../../dialogue/dialogue.models';
 import { ApiHttpService } from '../api-http/api-http.service';
 
@@ -12,6 +12,20 @@ export class DialogueService {
   async getDialogue(context: DialogueTriggerContext): Promise<DialogueScript | null> {
     const library = await this.loadLibrary();
     return findDialogueScript(library, context);
+  }
+
+  async getDialogueById(dialogueId: string, context: DialogueTriggerContext): Promise<DialogueScript | null> {
+    const library = await this.loadLibrary();
+    const script = library.scripts.find((candidate) => candidate.id === dialogueId) ?? null;
+    return script ? materializeDialogueScript(script, context) : null;
+  }
+
+  async getLoreDialogues(dialogueIds: ReadonlyArray<string>, context: DialogueTriggerContext): Promise<DialogueScript[]> {
+    const library = await this.loadLibrary();
+    const seenIds = new Set(dialogueIds);
+    return library.scripts
+      .filter((script) => seenIds.has(script.id) && (script.tags ?? []).includes('lore'))
+      .map((script) => materializeDialogueScript(script, context));
   }
 
   async markDialogueSeen(dialogueId: string): Promise<void> {

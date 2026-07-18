@@ -692,7 +692,7 @@ final class ApiController
   /**
    * POST /api/v1/dialogues/:dialogueId/seen
    */
-  public function markDialogueSeen(): void
+  public function markDialogueSeen(?string $dialogueId = null): void
   {
     $services = $this->services();
 
@@ -713,7 +713,7 @@ final class ApiController
       return;
     }
 
-    $dialogueId = trim((string)($_GET['dialogueId'] ?? ''));
+    $dialogueId = trim((string)($dialogueId ?? ''));
     if ($dialogueId === '' || !preg_match('/^[a-z0-9][a-z0-9_-]{0,127}$/i', $dialogueId)) {
       Response::json([
         'ok' => false,

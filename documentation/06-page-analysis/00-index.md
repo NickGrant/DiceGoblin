@@ -20,7 +20,7 @@ That shell currently displays:
 - commander energy as `energyCurrent / energyMax`
 - soft currency as teeth
 - commander display name
-- primary nav icons for home, warband, inventory, shop, and field guide
+- primary nav icons for home, warband, inventory, shop, and codex
 - logout and mobile menu controls
 
 Public routes still render the global HUD, but with guest-safe behavior:
@@ -34,7 +34,7 @@ Public routes still render the global HUD, but with guest-safe behavior:
 - [01-login.md](./01-login.md)
 - [02-guide-public.md](./02-guide-public.md)
 - [04-home.md](./04-home.md)
-- [05-field-guide.md](./05-field-guide.md)
+- [05-field-guide.md](./05-field-guide.md) (codex route)
 - [06-academy.md](./06-academy.md)
 - [07-regions.md](./07-regions.md)
 - [08-warband.md](./08-warband.md)

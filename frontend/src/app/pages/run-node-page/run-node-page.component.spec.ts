@@ -275,6 +275,43 @@ describe('RunNodePageComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/run/map');
   });
 
+  it('redirects loot nodes to the loot node screen', async () => {
+    const runService = new RunServiceStub();
+    runService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'the_farm', region_theme: 'farm' },
+        map: {
+          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'loot', status: 'available' }],
+          edges: [],
+        },
+      },
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: runService },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        { provide: DialogueService, useClass: DialogueServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.resolveTo(true);
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/run/loot', 'n1']);
+    expect(runService.resolveNode).not.toHaveBeenCalled();
+  });
+
   it('formats battle action log details for the node screen', async () => {
     await TestBed.configureTestingModule({
       imports: [RunNodePageComponent],
@@ -321,17 +358,21 @@ describe('RunNodePageComponent', () => {
 
     const host: HTMLElement = fixture.nativeElement;
     expect(host.textContent).toContain('Claim Rewards');
-    expect(host.textContent).toContain('Battle Log');
+    expect(host.textContent).toContain('VICTORY');
+    expect(host.textContent).toContain('Acted Out');
+    expect(host.textContent).toContain('Log View');
     expect(host.textContent).toContain('Ashback');
-    expect(host.textContent).toContain('Bruiser Level 2');
     expect(host.textContent).toContain('Heavy Strike');
     expect(host.textContent).toContain('Goblin Raider');
-    expect(host.textContent).toContain('Enemy Unit');
     expect(host.textContent).toContain('7 damage dealt');
+    expect(host.querySelectorAll('.battle-playback__unit').length).toBeGreaterThan(0);
+
+    fixture.componentInstance.setBattleView('log');
+    fixture.detectChanges();
+
+    expect(host.textContent).toContain('Battle Log');
     expect(host.textContent).toContain('Bolster Ally');
     expect(host.textContent).toContain('Bogwort');
-    expect(host.textContent).toContain('bolstered applied for 2 rounds');
-    expect(host.textContent).toContain('Sleep Hex');
     expect(host.textContent).toContain('sleep applied for 1 round and bleeding applied');
     expect(host.textContent).not.toContain('explode triggered');
 
@@ -340,91 +381,7 @@ describe('RunNodePageComponent', () => {
 
     const bleedChip = host.querySelector('.battle-log__condition[title*="increases damage received"]');
     expect(bleedChip?.textContent).toContain('bleeding');
-
-    const enemyCard = host.querySelector('.unit-grid-object--enemy');
-    expect(enemyCard?.textContent).toContain('Goblin Raider');
-    expect(
-      (enemyCard?.querySelector('.unit-grid-object__card-art') as HTMLImageElement | null)?.getAttribute('src'),
-    ).toContain('/assets/ui/units/goblin_bruiser.png');
-    expect(host.querySelectorAll('.unit-grid-object__progress').length).toBe(6);
     expect(host.querySelector('button[dgcommandbtn], button[dgCommandBtn]')).not.toBeNull();
-  });
-
-  it('shows a treasure-focused reward summary for loot nodes', async () => {
-    const lootRunService = new RunServiceStub();
-    lootRunService.getCurrentRun.and.resolveTo({
-        ok: true,
-        data: {
-          run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'the_farm', region_theme: 'farm' },
-          map: {
-            nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'loot', status: 'available' }],
-            edges: [],
-        },
-      },
-    });
-    lootRunService.resolveNode.and.resolveTo({
-      ok: true,
-      data: {
-        node: { id: 'n1', status: 'cleared' },
-        battle: {
-          battle_id: 'b2',
-          outcome: 'victory',
-          rounds: 0,
-          ticks: 0,
-          status: 'completed',
-          reward_preview: {
-            node_type: 'loot',
-            xp_total: 0,
-            currency_soft: 5,
-            new_unit_labels: ['Warcaller'],
-            new_dice_labels: ['bone d6'],
-          },
-          log: {
-            meta: { node_type: 'loot' },
-            events: [],
-          },
-        },
-        next: { unlocked_node_ids: ['n2', 'n3'] },
-      },
-    });
-
-    await TestBed.configureTestingModule({
-      imports: [RunNodePageComponent],
-      providers: [
-        provideRouter([]),
-        { provide: RunService, useValue: lootRunService },
-        { provide: SessionService, useClass: SessionServiceStub },
-        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
-        { provide: DialogueService, useClass: DialogueServiceStub },
-        {
-          provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
-        },
-      ],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(RunNodePageComponent);
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.isLootNode()).toBeTrue();
-    expect(fixture.componentInstance.lootRewards()).toEqual({
-      teeth: 5,
-      diceLabels: ['bone d6'],
-      unitLabels: ['Warcaller'],
-    });
-    expect(fixture.componentInstance.pageTitle()).toBe('A respectable acquisition of wealth');
-    expect(fixture.componentInstance.pageSubtitle()).toBe(
-      'No heroism required, just strong knees and stronger pockets.',
-    );
-
-    const host: HTMLElement = fixture.nativeElement;
-    expect(host.textContent).toContain('Treasure Node');
-    expect(host.textContent).toContain('Claim Treasure');
-    expect(host.textContent).toContain('Treasure Found');
-    expect(host.textContent).toContain('bone d6');
-    expect(host.textContent).toContain('Warcaller');
-    expect(host.textContent).not.toContain('Battle Log');
   });
 
   it('shows dialogue before resolving the farm boss node', async () => {
@@ -467,6 +424,7 @@ describe('RunNodePageComponent', () => {
         scene: 'run-node',
         nodeType: 'boss',
         regionSlug: 'the_farm',
+        tags: ['farm'],
         playerName: 'Commander',
         playerPortraitUrl: '/assets/dialogue/portraits/goblin/base_frame_0.png',
       }),
@@ -491,5 +449,55 @@ describe('RunNodePageComponent', () => {
 
     expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', 'n1');
     expect(fixture.componentInstance.result()?.battle.battle_id).toBe('b1');
+  });
+
+  it('passes the shop-unlocked tag for farm boss dialogue after the Tooth Collector is freed', async () => {
+    const runService = new RunServiceStub();
+    runService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'the_farm', region_theme: 'farm' },
+        map: {
+          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'boss', status: 'available' }],
+          edges: [],
+        },
+      },
+    });
+    const dialogueService = new DialogueServiceStub();
+    const sessionService = new SessionServiceStub();
+    sessionService.profileData.and.returnValue({
+      feature_unlocks: ['shop'],
+      regions: [
+        { id: 'region-1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: true, unlocked_at: '2026-06-01T00:00:00Z' },
+      ],
+      region_unlocks: [{ region_id: 'region-1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' }],
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: runService },
+        { provide: SessionService, useValue: sessionService },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        { provide: DialogueService, useValue: dialogueService },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+
+    expect(dialogueService.getDialogue).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        scene: 'run-node',
+        nodeType: 'boss',
+        regionSlug: 'the_farm',
+        tags: ['farm', 'shop-unlocked'],
+      }),
+    );
   });
 });

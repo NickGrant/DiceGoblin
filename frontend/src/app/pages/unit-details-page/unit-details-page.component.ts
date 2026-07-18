@@ -7,7 +7,19 @@ import {
 } from '@angular/cdk/drag-drop';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faArrowDown, faArrowUp, faPlus, faXmark } from '@fortawesome/free-solid-svg-icons';
+import {
+  faArrowDown,
+  faArrowUp,
+  faChessBoard,
+  faCrown,
+  faHandFist,
+  faHeartPulse,
+  faPlus,
+  faShieldHalved,
+  faTrophy,
+  faUserPen,
+  faXmark,
+} from '@fortawesome/free-solid-svg-icons';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
@@ -104,6 +116,13 @@ export class UnitDetailsPageComponent {
   readonly faArrowUp = faArrowUp;
   readonly faArrowDown = faArrowDown;
   readonly faXmark = faXmark;
+  readonly faUserPen = faUserPen;
+  readonly faTrophy = faTrophy;
+  readonly faCrown = faCrown;
+  readonly faHeartPulse = faHeartPulse;
+  readonly faHandFist = faHandFist;
+  readonly faShieldHalved = faShieldHalved;
+  readonly faChessBoard = faChessBoard;
 
   readonly unitId = this.route.snapshot.paramMap.get('unitId') ?? '';
   readonly unit = computed<UnitRecord | null>(
@@ -312,7 +331,7 @@ export class UnitDetailsPageComponent {
       return '';
     }
 
-    return `${pickerState.abilityName} · Slot ${pickerState.slotIndex + 1}`;
+    return `${pickerState.abilityName} - Slot ${pickerState.slotIndex + 1}`;
   });
   readonly pickerBusy = computed(
     () =>
@@ -326,6 +345,51 @@ export class UnitDetailsPageComponent {
   readonly tierRomanNumeral = computed(() => toRomanNumeral(this.unit()?.tier ?? 1));
   readonly portraitLoadFailed = signal(false);
   readonly unitPortraitUrl = computed(() => resolveUnitImageUrl(this.unit()?.unit_type_slug));
+  readonly unitStatTiles = computed(() => {
+    const unit = this.unit();
+    if (!unit) {
+      return [];
+    }
+
+    return [
+      {
+        icon: this.faCrown,
+        label: 'Tier',
+        value: this.tierRomanNumeral(),
+        meta: this.unitTypeLabel(),
+      },
+      {
+        icon: this.faArrowUp,
+        label: 'Level',
+        value: `${unit.level ?? 1}/${unit.max_level || 0}`,
+        meta: `XP to next: ${unit.xp_to_next_level || 0}`,
+      },
+      {
+        icon: this.faHeartPulse,
+        label: 'HP',
+        value: `${unit.current_hp || unit.max_hp || 0}/${unit.max_hp || 0}`,
+        meta: 'Frontline endurance',
+      },
+      {
+        icon: this.faHandFist,
+        label: 'Attack',
+        value: `${unit.total_attack || 0}`,
+        meta: 'Strike pressure',
+      },
+      {
+        icon: this.faShieldHalved,
+        label: 'Defense',
+        value: `${unit.total_defense || 0}`,
+        meta: 'Damage mitigation',
+      },
+      {
+        icon: this.faChessBoard,
+        label: 'Formation',
+        value: `${unit.formation_width || 1}x${unit.formation_height || 1}`,
+        meta: 'Board footprint',
+      },
+    ];
+  });
 
   constructor() {
     this.renameValue = this.unit()?.name ?? '';

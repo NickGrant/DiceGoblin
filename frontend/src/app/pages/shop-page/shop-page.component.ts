@@ -1,81 +1,61 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   ShopCatalogData,
   ShopDailyDeal,
   ShopDiceItem,
   ShopFeatureUnlockItem,
   ShopUnitItem,
+  UnitRecord,
 } from '../../core/models/api.models';
 import { ShopService } from '../../core/services/shop/shop.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { ObjectGridComponent } from '../../shared/ui/object-grid/object-grid.component';
-import {
-  ShopDiceGridObjectComponent,
-  ShopDiceGridObjectRecord,
-} from '../../shared/ui/shop-dice-grid-object/shop-dice-grid-object.component';
-import {
-  ShopUnitGridObjectComponent,
-  ShopUnitGridObjectRecord,
-} from '../../shared/ui/shop-unit-grid-object/shop-unit-grid-object.component';
-import { TabStripComponent, TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
+import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
+import { FeatureUnlockCategoryLabel, resolveFeatureUnlockCategory } from '../../core/feature-unlocks/feature-unlock-categories';
+import { UnitBarComponent } from '../../shared/ui/unit-bar/unit-bar.component';
+import { resolveFeatureUnlockIcon } from '../../shared/ui/category-icons/category-icons';
 
 @Component({
   selector: 'app-shop-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, ObjectGridComponent, TabStripComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, FontAwesomeModule, PageFrameComponent, UnitBarComponent],
   templateUrl: './shop-page.component.html',
   styleUrl: './shop-page.component.scss',
 })
 export class ShopPageComponent {
   private readonly shopService = inject(ShopService);
-  private static readonly FEATURE_UNLOCK_LABELS: Record<string, string> = {
-    academy: 'Feature Unlock',
-    bigger_squad: 'Squad Upgrade',
-    biggerest_squad: 'Squad Upgrade',
-    shop_discount: 'Economy Upgrade',
-    sell_bonus: 'Economy Upgrade',
-    market_mastery: 'Economy Upgrade',
-    second_daily_deal: 'Feature Unlock',
-    energy_cap_75: 'Energy Upgrade',
-    energy_cap_100: 'Energy Upgrade',
-    explode_d4s: 'Dice Upgrade',
-  };
   private static readonly FEATURE_UNLOCK_REQUIREMENT_LABELS: Record<string, string> = {
     bigger_squad: 'No prerequisite',
     biggerest_squad: 'Requires Bigger Squad',
     market_mastery: 'Requires Coupon Book + Sharp Dealer',
     energy_cap_100: 'Requires Deep Pantry',
   };
+  private static readonly FEATURE_UNLOCK_DEPTHS: Record<string, number> = {
+    biggerest_squad: 1,
+    market_mastery: 1,
+    energy_cap_100: 1,
+  };
 
   readonly activeTab = signal<'supplies' | 'feature_unlocks'>('supplies');
-  readonly tabs: ReadonlyArray<TabStripItem> = [
-    { id: 'supplies', label: 'Supplies', kicker: 'Stock' },
-    { id: 'feature_unlocks', label: 'Feature Unlocks', kicker: 'Progression' },
-  ];
   readonly catalog = signal<ShopCatalogData | null>(null);
   readonly loading = signal(true);
   readonly busyKey = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
-  readonly shopDiceObjectComponent = ShopDiceGridObjectComponent;
-  readonly shopUnitObjectComponent = ShopUnitGridObjectComponent;
-  readonly basicDiceGridObjects = computed(() =>
-    (this.catalog()?.basic_dice ?? []).map((item) => this.mapBasicDiceItem(item)),
-  );
-  readonly basicUnitGridObjects = computed(() =>
-    (this.catalog()?.basic_units ?? []).map((item) => this.mapBasicUnitItem(item)),
-  );
+  readonly basicDiceGridObjects = computed(() => this.catalog()?.basic_dice ?? []);
+  readonly basicUnitGridObjects = computed(() => this.catalog()?.basic_units ?? []);
   readonly featureUnlockItems = computed(() => this.catalog()?.feature_unlocks ?? []);
   readonly dailyDealGridObjects = computed(() => {
     const deals = this.catalog()?.daily_deals;
     if (Array.isArray(deals) && deals.length > 0) {
-      return deals.map((deal) => this.mapDailyDealItem(deal));
+      return deals;
     }
 
     const deal = this.catalog()?.daily_deal;
-    return deal ? [this.mapDailyDealItem(deal)] : [];
+    return deal ? [deal] : [];
   });
 
   constructor() {
@@ -126,37 +106,36 @@ export class ShopPageComponent {
     return (this.catalog()?.currency_soft ?? 0) >= cost;
   }
 
-  private mapBasicDiceItem(item: ShopDiceItem): ShopDiceGridObjectRecord {
-    return {
-      id: item.product_id,
-      label: '',
-      rarity: item.rarity,
-      sides: item.sides,
-      cost: item.cost,
-      detailLines: [],
-    };
+  diceArtUrl(item: Pick<ShopDiceItem, 'rarity' | 'sides'>): string {
+    return resolveDiceArtStyles(item.rarity, item.sides, 124).imageUrl;
   }
 
-  private mapDailyDealItem(item: ShopDailyDeal): ShopDiceGridObjectRecord {
-    return {
-      id: item.product_id,
-      label: item.slot && item.slot > 1 ? `Deal ${item.slot}: ${item.affix.name}` : item.affix.name,
-      rarity: item.rarity,
-      sides: item.sides,
-      cost: item.cost,
-      isPurchased: item.is_purchased,
-      detailLines: [item.affix.description],
-    };
+  diceTitle(item: Pick<ShopDiceItem, 'rarity' | 'sides'>): string {
+    return `${item.rarity} d${item.sides}`;
   }
 
-  private mapBasicUnitItem(item: ShopUnitItem): ShopUnitGridObjectRecord {
+  unitBarRecord(item: ShopUnitItem): UnitRecord {
     return {
       id: item.product_id,
       name: item.name,
-      role: item.role,
-      cost: item.cost,
-      tierLabel: 'Tier 1',
+      level: 1,
+      tier: 1,
+      unit_type_slug: item.unit_type_slug,
+      unit_type_name: item.name,
+      current_hp: 10,
+      max_hp: 10,
+      xp: 0,
+      xp_to_next_level: 100,
+      is_mastered: false,
     };
+  }
+
+  dailyDealLabel(item: ShopDailyDeal): string {
+    return item.slot && item.slot > 1 ? `Deal ${item.slot}: ${item.affix.name}` : item.affix.name;
+  }
+
+  purchaseBusy(itemType: 'basic_unit' | 'basic_dice' | 'daily_deal', productId: string): boolean {
+    return this.busyKey() === `${itemType}:${productId}`;
   }
 
   featureUnlockBusyKey(productId: string): string {
@@ -175,12 +154,20 @@ export class ShopPageComponent {
     return item.is_unlocked ? 'Unlocked' : 'Unlock';
   }
 
-  featureUnlockEyebrow(item: ShopFeatureUnlockItem): string {
-    return ShopPageComponent.FEATURE_UNLOCK_LABELS[item.product_id] ?? 'Feature Unlock';
+  featureUnlockEyebrow(item: ShopFeatureUnlockItem): FeatureUnlockCategoryLabel {
+    return resolveFeatureUnlockCategory(item.product_id);
+  }
+
+  featureUnlockIcon(item: ShopFeatureUnlockItem): IconDefinition {
+    return resolveFeatureUnlockIcon(this.featureUnlockEyebrow(item));
   }
 
   featureUnlockRequirementLabel(item: ShopFeatureUnlockItem): string {
     return ShopPageComponent.FEATURE_UNLOCK_REQUIREMENT_LABELS[item.product_id] ?? 'Locked';
+  }
+
+  featureUnlockDepth(item: ShopFeatureUnlockItem): number {
+    return ShopPageComponent.FEATURE_UNLOCK_DEPTHS[item.product_id] ?? 0;
   }
 
   isFeatureUnlockAvailable(item: ShopFeatureUnlockItem): boolean {

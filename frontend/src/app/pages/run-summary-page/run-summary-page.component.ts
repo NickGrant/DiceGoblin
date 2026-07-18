@@ -5,12 +5,15 @@ import { DialogueChoiceSelection, DialogueScript } from '../../core/dialogue/dia
 import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
-import { DiceGridObjectComponent } from '../../shared/ui/dice-grid-object/dice-grid-object.component';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { UnitGridObjectComponent, UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
+import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
+import {
+  UnitGridObjectComponent,
+  UnitGridObjectProgressBar,
+} from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 
 type RewardUnitCard = {
   id: string;
@@ -32,6 +35,15 @@ type ProgressionCard = {
 };
 
 type ProgressionDetailEntry = NonNullable<RunSummaryPayload['progression_detail']>[number];
+type SquadOutcomeCard = {
+  id: string;
+  name: string;
+  role: string;
+  level: number;
+  xpGained: number;
+  defeated: boolean;
+  spriteUrl: string;
+};
 
 @Component({
   selector: 'app-run-summary-page',
@@ -41,7 +53,6 @@ type ProgressionDetailEntry = NonNullable<RunSummaryPayload['progression_detail'
     DgCommandBtnDirective,
     DgDialogueStageComponent,
     PageFrameComponent,
-    DiceGridObjectComponent,
     RouterLink,
     UnitGridObjectComponent,
   ],
@@ -50,7 +61,8 @@ type ProgressionDetailEntry = NonNullable<RunSummaryPayload['progression_detail'
 })
 export class RunSummaryPageComponent {
   private static readonly SHOP_UNLOCK_DIALOGUE_ID = 'farm-shop-unlock';
-  private static readonly PLAYER_DIALOGUE_PORTRAIT = '/assets/dialogue/portraits/goblin/base_frame_0.png';
+  private static readonly PLAYER_DIALOGUE_PORTRAIT =
+    '/assets/dialogue/portraits/goblin/base_frame_0.png';
 
   private readonly runService = inject(RunService);
   private readonly sessionService = inject(SessionService);
@@ -63,6 +75,69 @@ export class RunSummaryPageComponent {
   readonly profileData = this.sessionService.profileData;
   readonly session = this.sessionService.session;
   readonly summaryDialogue = signal<DialogueScript | null>(null);
+  readonly rewardUnitLabels = computed<string[]>(() => {
+    const structured = this.rewardUnits().map((card) => card.unit.name);
+    return this.uniqueLabels([...structured, ...this.rewardUnitFallbackLabels()]);
+  });
+  readonly rewardDiceLabels = computed<string[]>(() => {
+    const structured = this.rewardDice().map((card) => this.diceLabel(card.die));
+    return this.uniqueLabels([...structured, ...this.rewardDiceFallbackLabels()]);
+  });
+  readonly rewardUnitCount = computed(() => this.rewardUnitLabels().length);
+  readonly rewardDiceCount = computed(() => this.rewardDiceLabels().length);
+  readonly resultTitle = computed(() => {
+    const status = this.summary()?.status ?? '';
+    if (status.includes('abandon')) {
+      return 'Run Abandoned';
+    }
+    if (status.includes('fail') || status.includes('defeat')) {
+      return 'Run Failed';
+    }
+    return 'Run Complete';
+  });
+  readonly squadOutcomeCards = computed<SquadOutcomeCard[]>(() => {
+    const summary = this.summary();
+    if (!summary) {
+      return [];
+    }
+
+    const unitsById = new Map(this.units().map((unit) => [unit.id, unit]));
+    if (summary.progressionDetail.length > 0) {
+      return summary.progressionDetail.map((entry, index) => {
+        const unit = this.progressionUnitForEntry(entry, unitsById, index);
+        return {
+          id: entry.unit_instance_id || `outcome-${index}`,
+          name: unit?.name ?? entry.label,
+          role: unit?.unit_type_name ?? entry.unit_type_name ?? 'Raider',
+          level: unit?.level ?? entry.final_level ?? 1,
+          xpGained: entry.xp_gained,
+          defeated: !!entry.is_defeated,
+          spriteUrl: resolvePrototypeUnitSpriteUrl(unit ?? entry.label),
+        };
+      });
+    }
+
+    const survivors = summary.survivors.map((name, index) => ({
+      id: `survivor-${index}-${name}`,
+      name,
+      role: this.findUnitByName(name)?.unit_type_name ?? 'Raider',
+      level: this.findUnitByName(name)?.level ?? 1,
+      xpGained: 0,
+      defeated: false,
+      spriteUrl: resolvePrototypeUnitSpriteUrl(this.findUnitByName(name) ?? name),
+    }));
+    const defeated = summary.defeated.map((name, index) => ({
+      id: `defeated-${index}-${name}`,
+      name,
+      role: this.findUnitByName(name)?.unit_type_name ?? 'Raider',
+      level: this.findUnitByName(name)?.level ?? 1,
+      xpGained: 0,
+      defeated: true,
+      spriteUrl: resolvePrototypeUnitSpriteUrl(this.findUnitByName(name) ?? name),
+    }));
+
+    return [...survivors, ...defeated];
+  });
 
   readonly rewardCurrency = computed(() => {
     const rewardDetail = this.summary()?.rewardDetail;
@@ -148,7 +223,11 @@ export class RunSummaryPageComponent {
     const rewardDice = this.summary()?.rewardDetail?.dice ?? [];
     if (rewardDice.length === 0) {
       const line = this.summary()?.rewards.find((item) => item.startsWith('New Dice: '));
-      return line ? this.expandCountList(line.replace('New Dice: ', '')).map((label) => this.titleCaseDiceLabel(label)) : [];
+      return line
+        ? this.expandCountList(line.replace('New Dice: ', '')).map((label) =>
+            this.titleCaseDiceLabel(label),
+          )
+        : [];
     }
 
     const diceIds = new Set(this.dice().map((die) => die.id));
@@ -177,7 +256,9 @@ export class RunSummaryPageComponent {
             `progression-${entry.unit_instance_id || unit.id || index}-${index}`,
             unit,
             entry.xp_gained,
-            typeof entry.level_gain_count === 'number' ? Math.max(0, entry.level_gain_count) : undefined,
+            typeof entry.level_gain_count === 'number'
+              ? Math.max(0, entry.level_gain_count)
+              : undefined,
           );
         })
         .filter((entry): entry is ProgressionCard => entry !== null);
@@ -230,9 +311,9 @@ export class RunSummaryPageComponent {
       this.lastDialogueSummaryKey = summaryKey;
 
       if (
-        summary.meta?.completed_region_slug !== 'the_farm'
-        || !(summary.meta?.new_feature_unlocks ?? []).includes('shop')
-        || (profileData.seen_dialogues ?? []).includes(RunSummaryPageComponent.SHOP_UNLOCK_DIALOGUE_ID)
+        summary.meta?.completed_region_slug !== 'the_farm' ||
+        !(summary.meta?.new_feature_unlocks ?? []).includes('shop') ||
+        (profileData.seen_dialogues ?? []).includes(RunSummaryPageComponent.SHOP_UNLOCK_DIALOGUE_ID)
       ) {
         return;
       }
@@ -247,14 +328,34 @@ export class RunSummaryPageComponent {
       title: `${card.progressText}, +${card.xpGained} XP${card.levelGainCount > 0 ? `, ${card.levelGainCount === 1 ? 'level gained' : `${card.levelGainCount} levels gained`}` : ''}`,
       leftLabel: card.progressText === 'Max Level' ? card.progressText : `XP ${card.progressText}`,
       tone: 'xp',
-      celebrationLabel: card.levelGainCount > 0
-        ? (card.levelGainCount === 1 ? 'Level Up' : `+${card.levelGainCount} Levels`)
-        : null,
+      celebrationLabel:
+        card.levelGainCount > 0
+          ? card.levelGainCount === 1
+            ? 'Level Up'
+            : `+${card.levelGainCount} Levels`
+          : null,
       showLabels: false,
     };
   }
 
-  private buildProgressionCard(id: string, unit: UnitRecord, xpGained: number, explicitLevelGainCount?: number): ProgressionCard {
+  diceLabel(die: DiceRecord): string {
+    if (typeof die.display_name === 'string' && die.display_name.trim()) {
+      return die.display_name.trim();
+    }
+
+    const rarity =
+      typeof die.rarity === 'string' && die.rarity.trim()
+        ? `${die.rarity.trim().charAt(0).toUpperCase()}${die.rarity.trim().slice(1)} `
+        : '';
+    return `${rarity}d${die.sides ?? '?'}`.trim();
+  }
+
+  private buildProgressionCard(
+    id: string,
+    unit: UnitRecord,
+    xpGained: number,
+    explicitLevelGainCount?: number,
+  ): ProgressionCard {
     const progress = this.buildProgressMetrics(unit, xpGained, explicitLevelGainCount);
     return {
       id,
@@ -279,7 +380,11 @@ export class RunSummaryPageComponent {
   }
 
   private findUnitByName(unitName: string): UnitRecord | null {
-    return this.units().find((unit) => unit.name.trim().toLowerCase() === unitName.trim().toLowerCase()) ?? null;
+    return (
+      this.units().find(
+        (unit) => unit.name.trim().toLowerCase() === unitName.trim().toLowerCase(),
+      ) ?? null
+    );
   }
 
   private buildProgressMetrics(
@@ -297,17 +402,20 @@ export class RunSummaryPageComponent {
       return {
         progressPercent: 100,
         progressText: 'Max Level',
-        levelGainCount: explicitLevelGainCount ?? this.estimateLevelGainCount(level, currentXp, xpGained, tier),
+        levelGainCount:
+          explicitLevelGainCount ?? this.estimateLevelGainCount(level, currentXp, xpGained, tier),
       };
     }
 
     const threshold = currentXp + xpToNextLevel;
-    const progressPercent = threshold > 0 ? Math.max(0, Math.min(100, (currentXp / threshold) * 100)) : 0;
+    const progressPercent =
+      threshold > 0 ? Math.max(0, Math.min(100, (currentXp / threshold) * 100)) : 0;
 
     return {
       progressPercent,
       progressText: `${currentXp}/${threshold} XP`,
-      levelGainCount: explicitLevelGainCount ?? this.estimateLevelGainCount(level, currentXp, xpGained, tier),
+      levelGainCount:
+        explicitLevelGainCount ?? this.estimateLevelGainCount(level, currentXp, xpGained, tier),
     };
   }
 
@@ -321,23 +429,32 @@ export class RunSummaryPageComponent {
       return null;
     }
 
-    const fallbackName = entry.label?.trim() ? entry.label : `Unit ${entry.unit_instance_id || index}`;
+    const fallbackName = entry.label?.trim()
+      ? entry.label
+      : `Unit ${entry.unit_instance_id || index}`;
     return {
       ...(currentUnit ?? { id: entry.unit_instance_id || `summary-${index}`, name: fallbackName }),
       id: entry.unit_instance_id || currentUnit?.id || `summary-${index}`,
       name: currentUnit?.name ?? fallbackName,
       level: typeof entry.final_level === 'number' ? entry.final_level : (currentUnit?.level ?? 1),
       xp: typeof entry.final_xp === 'number' ? entry.final_xp : (currentUnit?.xp ?? 0),
-      xp_to_next_level: typeof entry.xp_to_next_level === 'number'
-        ? entry.xp_to_next_level
-        : (currentUnit?.xp_to_next_level ?? 0),
+      xp_to_next_level:
+        typeof entry.xp_to_next_level === 'number'
+          ? entry.xp_to_next_level
+          : (currentUnit?.xp_to_next_level ?? 0),
       tier: typeof entry.tier === 'number' ? entry.tier : (currentUnit?.tier ?? 1),
-      max_level: typeof entry.max_level === 'number' ? entry.max_level : (currentUnit?.max_level ?? 1),
+      max_level:
+        typeof entry.max_level === 'number' ? entry.max_level : (currentUnit?.max_level ?? 1),
       unit_type_name: entry.unit_type_name || currentUnit?.unit_type_name,
     };
   }
 
-  private estimateLevelGainCount(finalLevel: number, finalXp: number, xpGained: number, tier: number): number {
+  private estimateLevelGainCount(
+    finalLevel: number,
+    finalXp: number,
+    xpGained: number,
+    tier: number,
+  ): number {
     let level = Math.max(1, finalLevel);
     let remaining = Math.max(0, xpGained);
     const xp = Math.max(0, finalXp);
@@ -393,6 +510,18 @@ export class RunSummaryPageComponent {
 
   private titleCaseDiceLabel(label: string): string {
     return label.replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  private uniqueLabels(labels: string[]): string[] {
+    const seen = new Set<string>();
+    return labels.filter((label) => {
+      const normalized = label.trim().toLowerCase();
+      if (!normalized || seen.has(normalized)) {
+        return false;
+      }
+      seen.add(normalized);
+      return true;
+    });
   }
 
   async handleSummaryDialogueComplete(_choiceHistory: DialogueChoiceSelection[]): Promise<void> {

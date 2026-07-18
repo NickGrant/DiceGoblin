@@ -29,6 +29,7 @@ describe('PageFrameComponent', () => {
     expect(compiled.textContent).toContain('Title');
     expect(compiled.textContent).toContain('Subtitle');
     expect(compiled.textContent).toContain('Body');
+    expect(compiled.querySelector('page-frame header')).toBeNull();
   });
 
   it('renders clickable breadcrumbs when provided', async () => {

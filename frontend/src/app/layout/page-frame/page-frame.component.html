@@ -1,5 +1,5 @@
 @if (showHeader()) {
-  <header class="page-frame__header page-frame__header--{{ headerVariant() }} dg-motion-panel-enter">
+  <section class="page-frame__header page-frame__header--{{ headerVariant() }} dg-motion-panel-enter">
     <nav class="page-frame__breadcrumbs" aria-label="Breadcrumb">
       <ol>
         @for (crumb of normalizedBreadcrumbs(); track crumb.label + '-' + $index; let isLast = $last) {
@@ -20,7 +20,7 @@
     @if (subtitle(); as subtitle) {
       <p class="mb-0">{{ subtitle }}</p>
     }
-  </header>
+  </section>
 }
 <main class="page-frame__body dg-motion-stagger">
   <ng-content />

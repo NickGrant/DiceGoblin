@@ -7,10 +7,5 @@ backend/.env.test.local
 backend/.env*.local
 
 .env
-artifacts/bundles/
-artifacts/screenshots/
-artifacts/api/
-artifacts/automation/
-artifacts/*.log
-artifacts/*.err.log
+artifacts/
 __pycache__/

@@ -111,7 +111,7 @@ Public guide route.
 Current behavior:
 
 - readable without authentication
-- doubles as the field guide content source
+- explains the base game loop, combat stat basics, dice basics, and map glossary
 
 ### `/home`
 
@@ -123,14 +123,24 @@ Current behavior:
 - links to warband, academy, shop, inventory, and debug
 - reflects whether academy and debug are available
 
-### `/field-guide`
+### `/codex`
 
-Authenticated copy of the guide surface.
+Authenticated codex route.
 
 Current behavior:
 
 - accessible inside the authenticated shell
-- reuses guide content rather than a separate guide system
+- tracks account discovery across feature unlocks, unit unlocks, affixes, enemies, and lore
+- uses vertical category navigation in a two-column codex layout
+- shows locked sprite-backed entries as silhouettes until discovered
+
+### `/field-guide`
+
+Legacy redirect.
+
+Current behavior:
+
+- redirects to `/codex`
 
 ### `/regions`
 

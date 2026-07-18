@@ -1,0 +1,81 @@
+<page-frame
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Run', route: '/run/map' }, { label: 'Loot' }]"
+  [title]="pageTitle()"
+  [subtitle]="pageSubtitle()"
+>
+  @if (loading() || error()) {
+  <div class="vstack gap-2 mb-3">
+    @if (loading()) {
+    <dg-alert>Opening loot...</dg-alert>
+    }
+    @if (error()) {
+    <dg-alert tone="error">{{ error() }}</dg-alert>
+    }
+  </div>
+  }
+
+  @if (result()) {
+  <section class="loot-scene" [style.background-image]="lootBackgroundImage()">
+    <div class="loot-scene__header">
+      <div>
+        <h2 class="loot-scene__title dg-stencil">Treasure Found</h2>
+        <p class="loot-scene__copy">Sweep the cache, clock the spoils, and move before the tunnel closes in.</p>
+      </div>
+    </div>
+
+    <div class="loot-scene__body">
+      <div class="loot-masonry" aria-label="Loot rewards">
+        <article class="loot-card loot-card--teeth">
+          <img class="loot-payout__icon" src="/assets/ui/icons/tooth_64.png" alt="" aria-hidden="true" />
+          <div class="loot-payout__copy">
+            <strong class="loot-payout__value dg-stencil">{{ lootRewards()?.teeth ?? 0 }}</strong>
+          </div>
+        </article>
+
+        @for (card of lootDiceCards(); track card.id) {
+        <article class="loot-card loot-card--dice">
+          <div class="loot-card__media">
+            <img [src]="card.imageUrl" [alt]="card.label" />
+          </div>
+          @if (card.meta) {
+          <p class="loot-card__title dg-stencil">{{ card.meta }}</p>
+          }
+        </article>
+        }
+
+        @for (card of lootUnitCards(); track card.id) {
+        <article class="loot-card loot-card--unit">
+          <div class="loot-card__media">
+            <img [src]="card.imageUrl" [alt]="card.label" />
+          </div>
+          <div class="loot-card__copy">
+            <p class="loot-card__meta">{{ card.meta }}</p>
+            <h4 class="loot-card__title dg-stencil">{{ card.label }}</h4>
+          </div>
+        </article>
+        }
+
+        @if (!hasLootRewards()) {
+        <dg-alert>This chest is resolved, but there are no item labels available to preview before claim.</dg-alert>
+        }
+      </div>
+    </div>
+
+    <div class="loot-scene__footer">
+      <div class="loot-scene__summary" aria-label="Loot summary">
+        <span>
+          <strong>{{ lootDiceCards().length }}</strong>
+          dice
+        </span>
+        <span>
+          <strong>{{ lootUnitCards().length }}</strong>
+          units
+        </span>
+      </div>
+      <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
+        {{ claimButtonLabel() }}
+      </button>
+    </div>
+  </section>
+  }
+</page-frame>

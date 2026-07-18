@@ -4,76 +4,113 @@
   [subtitle]="subtitle()"
   headerVariant="home"
 >
-  <div class="home-grid">
-    <div class="home-grid__layout">
-      <div class="home-grid__tile home-grid__tile--primary">
-        <a class="dg-media-card dg-media-card--feature" [routerLink]="primaryRoute()">
-          <img class="dg-media-card__media" [src]="hasActiveRun() ? '/assets/ui/panels/home_continue_run.jpg' : '/assets/ui/panels/home_start_run.jpg'" alt="" />
-          <div class="dg-media-card__overlay">
-            <span class="dg-media-card__title dg-stencil">{{ primaryLabel() }}</span>
-            <span class="dg-media-card__copy">{{ hasActiveRun() ? 'Back to "work".' : 'Your neighbors surely have some good stuff...' }}</span>
+  <div class="home-proto dg-proto-shell">
+    <div class="home-proto__command-table">
+      <aside class="home-proto__rail home-proto__rail--squad dg-proto-sidebar">
+        <div class="home-proto__rail-header">
+          <div>
+            <h3 class="dg-proto-section__title">Current Squad</h3>
           </div>
-        </a>
-      </div>
-
-      <div class="home-grid__tile">
-        <a class="dg-media-card dg-media-card--compact" routerLink="/warband">
-          <img class="dg-media-card__media" src="/assets/ui/panels/home_warband.jpg" alt="" />
-          <div class="dg-media-card__overlay">
-            <span class="dg-media-card__title dg-stencil">Warband</span>
+          <a class="home-proto__rail-link" routerLink="/warband">Manage</a>
+        </div>
+        <div class="dg-proto-divider"></div>
+        @if (activeSquadUnits().length) {
+          <div class="home-proto__squad-list">
+            @for (unit of activeSquadUnits(); track unit.id) {
+              <a class="home-proto__squad-unit-link" [routerLink]="['/warband/units', unit.id]">
+                <dg-unit-bar [unit]="unit" [compact]="true" />
+              </a>
+            }
           </div>
-        </a>
-      </div>
-
-      @if (academyUnlocked()) {
-      <div class="home-grid__tile">
-        <a class="dg-media-card dg-media-card--compact" routerLink="/academy">
-          <img class="dg-media-card__media" src="/assets/ui/panels/academy.jpg" alt="" />
-          <div class="dg-media-card__overlay">
-            <span class="dg-media-card__title dg-stencil">Academy</span>
-          </div>
-        </a>
-      </div>
-      }
-
-      <div class="home-grid__tile">
-        @if (shopUnlocked()) {
-        <a class="dg-media-card dg-media-card--compact" routerLink="/shop">
-          <img class="dg-media-card__media" src="/assets/ui/panels/home_shop.jpg" alt="" />
-          <div class="dg-media-card__overlay">
-            <span class="dg-media-card__title dg-stencil">Shop</span>
-          </div>
-        </a>
         } @else {
-        <div class="dg-media-card dg-media-card--compact is-disabled home-grid__locked-card" aria-disabled="true">
-          <img class="dg-media-card__media" src="/assets/ui/panels/home_shop.jpg" alt="" />
-          <div class="dg-media-card__overlay">
-            <span class="dg-media-card__title dg-stencil">Shop Locked</span>
-            <span class="dg-media-card__copy">Defeat The Farm to free the Tooth Collector.</span>
+          <p class="home-proto__empty mb-0">Assign a squad before the next raid.</p>
+        }
+      </aside>
+
+      <section class="home-proto__mission-board dg-proto-section">
+        <a class="home-proto__mission-card" [routerLink]="primaryRoute()">
+          <img
+            [src]="
+              hasActiveRun()
+                ? '/assets/ui/panels/home_continue_run.jpg'
+                : '/assets/ui/panels/home_start_run.jpg'
+            "
+            alt=""
+          />
+          <div class="home-proto__mission-body">
+            <div class="home-proto__mission-panel">
+              <div class="home-proto__mission-step">
+                <span>1</span>
+                <div>
+                  <strong>{{ hasActiveRun() ? 'Check the route' : 'Choose the hunting ground' }}</strong>
+                  <p>{{ activeRun()?.region_name || 'Each biome shapes the danger and rewards.' }}</p>
+                </div>
+              </div>
+              <div class="home-proto__mission-step">
+                <span>2</span>
+                <div>
+                  <strong>Commit the squad</strong>
+                  <p>{{ rewardLabelForUnitCount() }} and ready to cause trouble.</p>
+                </div>
+              </div>
+              <div class="home-proto__mission-step">
+                <span>3</span>
+                <div>
+                  <strong>{{ hasActiveRun() ? 'Resume the push' : 'Start the run' }}</strong>
+                  <p>{{ subtitle() }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </a>
+      </section>
+
+      <aside class="home-proto__rail home-proto__rail--routes dg-proto-sidebar">
+        <div class="home-proto__rail-header">
+          <div>
+            <h3 class="dg-proto-section__title">Utilities</h3>
           </div>
         </div>
-        }
-      </div>
+        <div class="dg-proto-divider"></div>
 
-      <div class="home-grid__tile">
-        <a class="dg-media-card dg-media-card--compact" routerLink="/dice">
-          <img class="dg-media-card__media" src="/assets/ui/panels/home_inventory.jpg" alt="" />
-          <div class="dg-media-card__overlay">
-            <span class="dg-media-card__title dg-stencil">Inventory</span>
-          </div>
-        </a>
-      </div>
+        <div class="home-proto__route-list">
+          <a class="home-proto__route-card" routerLink="/warband">
+            <strong>Warband</strong>
+            <span>Squads, roles, and formation.</span>
+          </a>
 
-      @if (devPanelEnabled) {
-      <div class="home-grid__tile">
-        <a class="dg-media-card dg-media-card--compact" routerLink="/debug">
-          <div class="dg-media-card__media dg-media-card__media--dev"></div>
-          <div class="dg-media-card__overlay">
-            <span class="dg-media-card__title dg-stencil">Dev Panel</span>
-          </div>
-        </a>
-      </div>
-      }
+          @if (academyUnlocked()) {
+            <a class="home-proto__route-card" routerLink="/academy">
+              <strong>Academy</strong>
+              <span>Train up fresh troublemakers.</span>
+            </a>
+          }
+
+          @if (shopUnlocked()) {
+            <a class="home-proto__route-card" routerLink="/shop">
+              <strong>Shop</strong>
+              <span>Trade teeth for tools and recruits.</span>
+            </a>
+          } @else {
+            <div class="home-proto__route-card home-proto__route-card--locked" aria-disabled="true">
+              <strong>Shop Locked</strong>
+              <span>Defeat The Farm to free the Tooth Collector.</span>
+            </div>
+          }
+
+          <a class="home-proto__route-card" routerLink="/dice">
+            <strong>Inventory</strong>
+            <span>Sort dice, compare rarity, prep the stash.</span>
+          </a>
+
+          @if (devPanelEnabled) {
+            <a class="home-proto__route-card" routerLink="/debug">
+              <strong>Dev Panel</strong>
+              <span>Capture states and test flow quickly.</span>
+            </a>
+          }
+        </div>
+      </aside>
     </div>
   </div>
 </page-frame>

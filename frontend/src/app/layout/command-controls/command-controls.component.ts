@@ -7,12 +7,13 @@ import { AudioDirectorService } from '../../core/services/audio/audio-director.s
 import { SessionService } from '../../core/services/session/session.service';
 
 type HudNavItem = {
-  readonly label: string;
-  readonly ariaLabel: string;
+  readonly id: string;
+  readonly label: () => string;
+  readonly ariaLabel: () => string;
   readonly icon: string;
-  readonly authenticatedRoute: string;
+  readonly authenticatedRoute: () => string;
   readonly publicRoute: string | null;
-  readonly requiredFeatureUnlockKey?: string | null;
+  readonly isVisible: () => boolean;
 };
 
 @Component({
@@ -35,6 +36,7 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   readonly session = this.sessionService.session;
   readonly profile = this.sessionService.profile;
   readonly isAuthenticated = computed(() => this.session().isAuthenticated);
+  readonly hasActiveRun = this.sessionService.hasActiveRun;
   readonly audioEnabled = this.audioDirector.isEnabled;
   readonly audioUnlocked = this.audioDirector.isUnlocked;
   readonly audioMuted = this.audioDirector.isMuted;
@@ -44,42 +46,81 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   readonly mobileMenuOpen = signal(false);
   readonly navItems: readonly HudNavItem[] = [
     {
-      label: 'Home',
-      ariaLabel: 'Home',
+      id: 'home',
+      label: () => 'Home',
+      ariaLabel: () => 'Home',
       icon: '/assets/ui/icons/icon_home.png',
-      authenticatedRoute: '/home',
+      authenticatedRoute: () => '/home',
       publicRoute: '/login',
+      isVisible: () => true,
     },
     {
-      label: 'Battle Crew',
-      ariaLabel: 'Battle Crew',
+      id: 'run',
+      label: () => (this.hasActiveRun() ? 'Continue Run' : 'Start Run'),
+      ariaLabel: () => (this.hasActiveRun() ? 'Continue Run' : 'Start Run'),
+      icon: '/assets/ui/icons/icon_encounter_combat.png',
+      authenticatedRoute: () => (this.hasActiveRun() ? '/run/map' : '/regions'),
+      publicRoute: null,
+      isVisible: () => this.isAuthenticated(),
+    },
+    {
+      id: 'warband',
+      label: () => 'Warband',
+      ariaLabel: () => 'Warband',
       icon: '/assets/ui/icons/icon_warband.png',
-      authenticatedRoute: '/warband',
+      authenticatedRoute: () => '/warband',
       publicRoute: null,
+      isVisible: () => this.isAuthenticated(),
     },
     {
-      label: 'Pack',
-      ariaLabel: 'Pack',
+      id: 'inventory',
+      label: () => 'Inventory',
+      ariaLabel: () => 'Inventory',
       icon: '/assets/ui/icons/icon_inventory.png',
-      authenticatedRoute: '/dice',
+      authenticatedRoute: () => '/dice',
       publicRoute: null,
+      isVisible: () => this.isAuthenticated(),
     },
     {
-      label: 'Academy',
-      ariaLabel: 'Academy',
+      id: 'shop',
+      label: () => 'Shop',
+      ariaLabel: () => 'Shop',
       icon: '/assets/ui/icons/icon_shop.png',
-      authenticatedRoute: '/academy',
+      authenticatedRoute: () => '/shop',
       publicRoute: null,
-      requiredFeatureUnlockKey: 'academy',
+      isVisible: () =>
+        this.isAuthenticated() && this.sessionService.featureUnlocks().includes('shop'),
     },
     {
-      label: 'Codex',
-      ariaLabel: 'Codex',
+      id: 'academy',
+      label: () => 'Academy',
+      ariaLabel: () => 'Academy',
+      icon: '/assets/ui/icons/icon_shop.png',
+      authenticatedRoute: () => '/academy',
+      publicRoute: null,
+      isVisible: () =>
+        this.isAuthenticated() && this.sessionService.featureUnlocks().includes('academy'),
+    },
+    {
+      id: 'guide',
+      label: () => 'Guide',
+      ariaLabel: () => 'Guide',
       icon: '/assets/ui/icons/icon_guide.png',
-      authenticatedRoute: '/field-guide',
+      authenticatedRoute: () => '/guide',
       publicRoute: '/guide',
+      isVisible: () => true,
+    },
+    {
+      id: 'codex',
+      label: () => 'Codex',
+      ariaLabel: () => 'Codex',
+      icon: '/assets/ui/icons/icon_guide.png',
+      authenticatedRoute: () => '/codex',
+      publicRoute: null,
+      isVisible: () => this.isAuthenticated(),
     },
   ];
+  readonly visibleNavItems = computed(() => this.navItems.filter((item) => item.isVisible()));
 
   ngAfterViewInit(): void {
     this.syncHudHeight();
@@ -143,32 +184,16 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
     return this.audioMuted() ? this.faVolumeXmark : this.faVolumeHigh;
   }
 
-  isNavItemEnabled(item: HudNavItem): boolean {
-    if (!this.isAuthenticated()) {
-      return item.publicRoute !== null;
-    }
-
-    if (item.requiredFeatureUnlockKey) {
-      return this.sessionService.featureUnlocks().includes(item.requiredFeatureUnlockKey);
-    }
-
-    return true;
-  }
-
   navRoute(item: HudNavItem): string {
-    return this.isAuthenticated() ? item.authenticatedRoute : (item.publicRoute ?? '/login');
+    return this.isAuthenticated() ? item.authenticatedRoute() : (item.publicRoute ?? '/login');
   }
 
-  navDisabledLabel(item: HudNavItem): string {
-    if (!this.isAuthenticated()) {
-      return item.ariaLabel + ' unavailable until you sign in';
-    }
+  navLabel(item: HudNavItem): string {
+    return item.label();
+  }
 
-    if (item.requiredFeatureUnlockKey === 'shop') {
-      return item.ariaLabel + ' unavailable until you defeat The Farm';
-    }
-
-    return item.ariaLabel + ' unavailable';
+  navAriaLabel(item: HudNavItem): string {
+    return item.ariaLabel();
   }
 
   login(): void {

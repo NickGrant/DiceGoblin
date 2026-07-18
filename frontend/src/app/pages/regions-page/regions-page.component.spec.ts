@@ -152,6 +152,19 @@ describe('RegionsPageComponent', () => {
   });
 
   it('shows the kickoff dialogue and marks it seen on completion', async () => {
+    sessionService.profileData.set({
+      active_run: null,
+      feature_unlocks: [],
+      unit_type_unlocks: [],
+      seen_dialogues: [],
+      regions: [
+        { id: '1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: false, unlocked_at: '2026-06-01T00:00:00Z' },
+        { id: '2', slug: 'mountains', name: 'Mountains', theme: 'mountain', recommended_level: 1, energy_cost: 5, is_enabled: true, is_unlocked: false, is_completed: false, unlocked_at: null },
+      ],
+      region_unlocks: [
+        { region_id: '1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' },
+      ],
+    } as any);
     const kickoffDialogue: DialogueScript = {
       id: 'start-run-kickoff',
       backgroundUrl: '/assets/ui/biome/mystic_cave.png',

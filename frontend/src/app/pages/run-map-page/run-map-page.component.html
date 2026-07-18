@@ -1,42 +1,32 @@
 <page-frame
   [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Run' }]"
-  title="Current Run"
+  [title]="pageTitle()"
   subtitle="Plot the next node and keep the squad moving."
 >
   @if (loading() || error()) {
-  <div class="vstack gap-2 mb-3">
-    @if (loading()) {
-    <dg-alert>Loading run map...</dg-alert>
-    }
-    @if (error()) {
-    <dg-alert tone="error">{{ error() }}</dg-alert>
-    }
-  </div>
+    <div class="vstack gap-2 mb-3">
+      @if (loading()) {
+        <dg-alert>Loading run map...</dg-alert>
+      }
+      @if (error()) {
+        <dg-alert tone="error">{{ error() }}</dg-alert>
+      }
+    </div>
   }
 
   @if (run()) {
-  <div class="vstack gap-4 dg-motion-stagger">
-    <div class="run-map-layout">
-      <div class="run-map-layout__legend">
-        @for (entry of legendEntries(); track entry.type) {
-        <div class="run-map-page__legend-row">
-          <img class="run-map-page__legend-icon" [src]="entry.icon" alt="" aria-hidden="true" />
-          <span>{{ entry.label }}</span>
-        </div>
-        }
-      </div>
-
-      <div class="run-map-layout__actions">
-        <button dgCommandBtn="primary" type="button" (click)="abandonRun()" [disabled]="working()">
-          Abandon Run
-        </button>
-      </div>
-
-      <div class="run-map-layout__map">
+    <div class="run-map-proto dg-proto-shell">
+      <div class="run-map-scene__layout">
         <div class="run-map-shell">
           <div
             class="run-map-scroll"
-            [style.background-image]="mapBackgroundUrl() ? 'linear-gradient(rgba(12, 16, 18, 0.38), rgba(12, 16, 18, 0.6)), url(' + mapBackgroundUrl() + ')' : null"
+            [style.background-image]="
+              mapBackgroundUrl()
+                ? 'linear-gradient(rgba(17, 25, 20, 0.34), rgba(17, 25, 20, 0.5)), url(' +
+                  mapBackgroundUrl() +
+                  ')'
+                : null
+            "
           >
             <svg
               class="run-map"
@@ -46,55 +36,65 @@
               [style.height.px]="mapHeight()"
             >
               @for (edge of renderedEdges(); track edge.edgeId) {
-              <path
-                class="run-map__edge"
-                [class.run-map__edge--available]="edge.state === 'available'"
-                [class.run-map__edge--cleared]="edge.state === 'cleared'"
-                [class.run-map__edge--locked]="edge.state === 'locked'"
-                [attr.d]="edge.path"
-              ></path>
+                <path
+                  class="run-map__edge"
+                  [class.run-map__edge--available]="edge.state === 'available'"
+                  [class.run-map__edge--cleared]="edge.state === 'cleared'"
+                  [class.run-map__edge--locked]="edge.state === 'locked'"
+                  [attr.d]="edge.path"
+                ></path>
               }
               @for (node of nodes(); track node.id) {
-              <g
-                class="run-map__node"
-                [class.run-map__node--available]="node.status === 'available'"
-                [class.run-map__node--disabled]="node.status !== 'available'"
-                role="button"
-                [attr.tabindex]="node.status === 'available' ? 0 : -1"
-                [attr.aria-label]="nodeTypeLabel(node.node_type) + ' node ' + node.status"
-                (click)="openNode(node)"
-                (keydown.enter)="openNode(node)"
-                (keydown.space)="openNode(node); $event.preventDefault()"
-              >
-                <circle
-                  [attr.cx]="nodeX(node)"
-                  [attr.cy]="nodeY(node)"
-                  r="34"
-                  [attr.fill]="node.status === 'available' ? '#b91c1c' : (node.status === 'cleared' ? '#006f7a' : '#9ea6ad')"
-                ></circle>
-                <image
-                  [attr.href]="iconForNode(node)"
-                  [attr.x]="nodeX(node) - 30"
-                  [attr.y]="nodeY(node) - 30"
-                  width="60"
-                  height="60"
-                  preserveAspectRatio="xMidYMid meet"
-                ></image>
-              </g>
+                <g
+                  class="run-map__node"
+                  [class.run-map__node--available]="node.status === 'available'"
+                  [class.run-map__node--disabled]="node.status !== 'available'"
+                  role="button"
+                  [attr.tabindex]="node.status === 'available' ? 0 : -1"
+                  [attr.aria-label]="nodeTypeLabel(node.node_type) + ' node ' + node.status"
+                  (click)="openNode(node)"
+                  (keydown.enter)="openNode(node)"
+                  (keydown.space)="openNode(node); $event.preventDefault()"
+                >
+                  <circle
+                    [attr.cx]="nodeX(node)"
+                    [attr.cy]="nodeY(node)"
+                    r="34"
+                    [attr.fill]="
+                      node.status === 'available'
+                        ? '#b91c1c'
+                        : node.status === 'cleared'
+                          ? '#006f7a'
+                          : '#9ea6ad'
+                    "
+                  ></circle>
+                  <image
+                    [attr.href]="iconForNode(node)"
+                    [attr.x]="nodeX(node) - 30"
+                    [attr.y]="nodeY(node) - 30"
+                    width="60"
+                    height="60"
+                    preserveAspectRatio="xMidYMid meet"
+                  ></image>
+                </g>
               }
             </svg>
           </div>
         </div>
-      </div>
-
-      <div class="run-map-layout__units">
-        <div class="dg-card p-3 h-100 run-map-units-shell">
+        <div class="run-map-meta">
           <dg-run-unit-formation-grid [cells]="formationGrid()" />
+          <button
+            dgCommandBtn="primary"
+            type="button"
+            (click)="abandonRun()"
+            [disabled]="working()"
+          >
+            Abandon Run
+          </button>
         </div>
       </div>
     </div>
-  </div>
   } @else {
-  <dg-alert>No active run.</dg-alert>
+    <dg-alert>No active run.</dg-alert>
   }
 </page-frame>

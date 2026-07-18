@@ -251,7 +251,7 @@ describe('UnitDetailsPageComponent', () => {
     expect(host.textContent).toContain('Board footprint');
     expect(host.textContent).not.toContain('Inherited Passives');
     expect(fixture.nativeElement.querySelector('.unit-portrait')?.getAttribute('src')).toContain(
-      '/assets/ui/units/goblin_bruiser.png',
+      '/assets/ui/units/animated/goblin/base/frame_0.png',
     );
 
     component.setActiveTab('abilities');
@@ -451,6 +451,6 @@ describe('UnitDetailsPageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.unitPortraitUrl()).toBe('/assets/ui/units/goblin_bannerbearer.png');
+    expect(fixture.componentInstance.unitPortraitUrl()).toBe('/assets/ui/units/animated/goblin/base/frame_0.png');
   });
 });

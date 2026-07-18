@@ -1,151 +1,167 @@
 <page-frame
   [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Shop' }]"
-  title="Shop"
-  subtitle="Spend teeth on supplies today, then unlock bigger systems as your camp grows."
+  title="Tooth Market"
+  subtitle="Spend teeth on quick power or permanent camp unlocks."
 >
   @if (error() || message()) {
-    <div class="vstack gap-2 mb-3">
+    <div class="shop-page__alerts">
       @if (error()) { <dg-alert tone="error">{{ error() }}</dg-alert> }
       @if (message()) { <dg-alert tone="success">{{ message() }}</dg-alert> }
     </div>
   }
   @if (loading()) { <dg-alert>Loading shop...</dg-alert> }
   @if (catalog()) {
-  <dg-tab-strip
-    class="mb-4"
-    [items]="tabs"
-    [activeId]="activeTab()"
-    ariaLabel="Shop categories"
-    (selected)="selectTab($event)"
-  />
+  <div class="shop-page">
+    <div class="shop-page__counter">
+      @if (activeTab() === 'supplies') {
+      <section class="shop-page__dice" aria-label="Dice for sale">
+        @for (item of basicDiceGridObjects(); track item.product_id) {
+        <button
+          class="shop-die"
+          type="button"
+          (click)="purchase('basic_dice', item.product_id)"
+          [disabled]="purchaseBusy('basic_dice', item.product_id) || !canAfford(item.cost)"
+          [attr.aria-label]="'Buy ' + diceTitle(item) + ' for ' + item.cost + ' teeth'"
+        >
+          <img class="shop-die__sprite" [src]="diceArtUrl(item)" [alt]="diceTitle(item)" />
+          <span class="shop-price">
+            <strong>{{ item.cost }}</strong>
+            <img src="/assets/ui/icons/tooth_16.png" alt="teeth" />
+          </span>
+        </button>
+        }
+        @if (!basicDiceGridObjects().length) {
+        <dg-alert>No dice available.</dg-alert>
+        }
+      </section>
 
-  @if (activeTab() === 'supplies') {
-    <div class="shop-page__supplies-grid dg-motion-stagger">
-      <div class="shop-page__supplies-main">
-        <div class="dg-card p-3 h-100">
-          <h2 class="dg-stencil mb-3">Starter Dice</h2>
-          <dg-object-grid
-            [objects]="basicDiceGridObjects()"
-            [objectComponent]="shopDiceObjectComponent"
-            [footerTemplate]="basicDiceActions"
-            [pageSize]="4"
-            columnClasses="object-grid__col--quarters"
-            emptyMessage="Go with what you got, no dice available."
-          />
-        </div>
-      </div>
+      <section class="shop-page__deals" aria-label="Daily deals">
+        @for (item of dailyDealGridObjects(); track item.product_id) {
+        <article class="shop-deal">
+          <img class="shop-deal__sprite" [src]="diceArtUrl(item)" [alt]="dailyDealLabel(item)" />
+          <div class="shop-deal__copy">
+            <p class="shop-deal__eyebrow">Daily Deal</p>
+            <h2 class="shop-deal__title dg-stencil">{{ dailyDealLabel(item) }}</h2>
+            <p class="shop-deal__description">{{ item.affix.description }}</p>
+          </div>
+          <button
+            dgCommandBtn="primary"
+            [teethCost]="item.cost"
+            type="button"
+            (click)="purchase('daily_deal', item.product_id)"
+            [disabled]="purchaseBusy('daily_deal', item.product_id) || item.is_purchased || !canAfford(item.cost)"
+          >
+            {{
+              purchaseBusy('daily_deal', item.product_id)
+                ? 'Buying...'
+                : item.is_purchased
+                  ? 'Purchased'
+                  : 'Buy Deal'
+            }}
+          </button>
+        </article>
+        }
+        @if (!dailyDealGridObjects().length) {
+        <dg-alert>No daily deals available.</dg-alert>
+        }
+      </section>
 
-      <div class="shop-page__supplies-side">
-        <div class="dg-card p-3 h-100">
-          <h2 class="dg-stencil mb-3">Daily Deals</h2>
-          <dg-object-grid
-            [objects]="dailyDealGridObjects()"
-            [objectComponent]="shopDiceObjectComponent"
-            [footerTemplate]="dailyDealActions"
-            [pageSize]="2"
-            columnClasses="object-grid__col"
-            emptyMessage="No daily deals available."
-          />
-        </div>
-      </div>
-
-      <div class="shop-page__supplies-footer">
-        <div class="dg-card p-3 h-100">
-          <h2 class="dg-stencil mb-3">Fresh Meat</h2>
-          <dg-object-grid
-            [objects]="basicUnitGridObjects()"
-            [objectComponent]="shopUnitObjectComponent"
-            [footerTemplate]="basicUnitActions"
-            [pageSize]="4"
-            columnClasses="object-grid__col--quarters"
-            emptyMessage="No recruits available."
-          />
-        </div>
-      </div>
-    </div>
-  } @else {
-    <section class="dg-card p-3 p-lg-4">
-      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-        <div>
-          <h2 class="dg-stencil mb-1">Camp Upgrades</h2>
-          <p class="mb-0">Unlock long-term systems here as your warband grows beyond the starter camp.</p>
-        </div>
-        <span class="dg-chip">Teeth {{ catalog()?.currency_soft ?? 0 }}</span>
-      </div>
-
-      @if (featureUnlockItems().length) {
-        <div class="shop-page__feature-grid dg-motion-stagger">
-          @for (item of featureUnlockItems(); track item.product_id) {
-            <div class="shop-page__feature-column">
-              <button
-                class="feature-unlock-card"
-                [class.feature-unlock-card--unlocked]="item.is_unlocked"
-                type="button"
-                (click)="purchase('feature_unlock', item.product_id)"
-                [disabled]="isFeatureUnlockDisabled(item)"
-              >
-                <div class="feature-unlock-card__body">
-                  <p class="feature-unlock-card__eyebrow mb-1">{{ featureUnlockEyebrow(item) }}</p>
-                  <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
-                    <h3 class="dg-stencil mb-0">{{ item.name }}</h3>
-                    <span class="feature-unlock-card__cost">{{ item.cost }} Teeth</span>
-                  </div>
-                  <p class="mb-0">{{ item.description }}</p>
-                  @if (!item.is_unlocked && !isFeatureUnlockAvailable(item)) {
-                    <p class="feature-unlock-card__requirement mb-0">{{ featureUnlockRequirementLabel(item) }}</p>
-                  }
-                </div>
-                <span class="feature-unlock-card__cta">{{ featureUnlockCta(item) }}</span>
-              </button>
-            </div>
-          }
-        </div>
+      <section class="shop-page__units" aria-label="Recruits for sale">
+        @for (item of basicUnitGridObjects(); track item.product_id) {
+        <button
+          class="shop-unit"
+          type="button"
+          (click)="purchase('basic_unit', item.product_id)"
+          [disabled]="purchaseBusy('basic_unit', item.product_id) || !canAfford(item.cost)"
+          [attr.aria-label]="'Recruit ' + item.name + ' for ' + item.cost + ' teeth'"
+        >
+          <dg-unit-bar [unit]="unitBarRecord(item)" [compact]="true" />
+          <span class="shop-unit__cost">
+            <span>{{ purchaseBusy('basic_unit', item.product_id) ? 'Buying' : item.cost }}</span>
+            <img src="/assets/ui/icons/tooth_16.png" alt="teeth" />
+          </span>
+        </button>
+        }
+        @if (!basicUnitGridObjects().length) {
+        <dg-alert>No recruits available.</dg-alert>
+        }
+      </section>
       } @else {
+      <section class="shop-page__unlocks" aria-label="Feature unlocks">
+        @if (featureUnlockItems().length) {
+        @for (item of featureUnlockItems(); track item.product_id) {
+        <button
+          class="feature-unlock-card"
+          [class.feature-unlock-card--unlocked]="item.is_unlocked"
+          [class.feature-unlock-card--unavailable]="!isFeatureUnlockAvailable(item)"
+          [style.--depth]="featureUnlockDepth(item)"
+          type="button"
+          (click)="purchase('feature_unlock', item.product_id)"
+          [disabled]="isFeatureUnlockDisabled(item)"
+        >
+          <fa-icon
+            class="feature-unlock-card__icon"
+            [icon]="featureUnlockIcon(item)"
+            aria-hidden="true"
+            [title]="featureUnlockEyebrow(item)"
+          ></fa-icon>
+          <span class="feature-unlock-card__body">
+            <strong class="feature-unlock-card__title dg-stencil">{{ item.name }}</strong>
+            <span class="feature-unlock-card__description">{{ item.description }}</span>
+            @if (!item.is_unlocked && !isFeatureUnlockAvailable(item)) {
+            <span class="feature-unlock-card__requirement">{{ featureUnlockRequirementLabel(item) }}</span>
+            }
+          </span>
+          <span class="feature-unlock-card__action">
+            <span class="shop-price">
+              <strong>{{ item.cost }}</strong>
+              <img src="/assets/ui/icons/tooth_16.png" alt="teeth" />
+            </span>
+            <span>{{ featureUnlockCta(item) }}</span>
+          </span>
+        </button>
+        }
+        } @else {
         <dg-alert>No feature unlocks are currently available.</dg-alert>
+        }
+      </section>
       }
-    </section>
-  }
+    </div>
+
+    <aside class="shop-page__merchant" aria-label="Tooth Collector">
+      <div class="shop-page__mode-switch" role="tablist" aria-label="Shop categories">
+        <button
+          class="shop-mode"
+          [class.shop-mode--selected]="activeTab() === 'supplies'"
+          type="button"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'supplies'"
+          (click)="selectTab('supplies')"
+        >
+          Loot
+        </button>
+        <button
+          class="shop-mode"
+          [class.shop-mode--selected]="activeTab() === 'feature_unlocks'"
+          type="button"
+          role="tab"
+          [attr.aria-selected]="activeTab() === 'feature_unlocks'"
+          (click)="selectTab('feature_unlocks')"
+        >
+          Unlocks
+        </button>
+      </div>
+      <img
+        class="shop-page__collector"
+        src="/assets/dialogue/portraits/tooth_collector_frame_0.png"
+        alt="The Tooth Collector"
+      />
+      <div class="shop-page__wallet">
+        <span>Teeth</span>
+        <strong>{{ catalog()?.currency_soft ?? 0 }}</strong>
+        <img src="/assets/ui/icons/tooth_16.png" alt="" />
+      </div>
+    </aside>
+  </div>
   }
 </page-frame>
-
-<ng-template #basicDiceActions let-item>
-  <button
-    dgCommandBtn
-    [teethCost]="item.cost"
-    type="button"
-    (click)="purchase('basic_dice', item.id)"
-    [disabled]="busyKey() === ('basic_dice:' + item.id) || !canAfford(item.cost)"
-  >
-    {{ busyKey() === ('basic_dice:' + item.id) ? 'Buying...' : 'Buy' }}
-  </button>
-</ng-template>
-
-<ng-template #basicUnitActions let-item>
-  <button
-    dgCommandBtn
-    [teethCost]="item.cost"
-    type="button"
-    (click)="purchase('basic_unit', item.id)"
-    [disabled]="busyKey() === ('basic_unit:' + item.id) || !canAfford(item.cost)"
-  >
-    {{ busyKey() === ('basic_unit:' + item.id) ? 'Buying...' : 'Buy' }}
-  </button>
-</ng-template>
-
-<ng-template #dailyDealActions let-item>
-  <button
-    dgCommandBtn="primary"
-    [teethCost]="item.cost"
-    type="button"
-    (click)="purchase('daily_deal', item.id)"
-    [disabled]="busyKey() === ('daily_deal:' + item.id) || item.isPurchased || !canAfford(item.cost)"
-  >
-    {{
-      busyKey() === ('daily_deal:' + item.id)
-        ? 'Buying...'
-        : item.isPurchased
-          ? 'Purchased'
-          : 'Buy Deal'
-    }}
-  </button>
-</ng-template>

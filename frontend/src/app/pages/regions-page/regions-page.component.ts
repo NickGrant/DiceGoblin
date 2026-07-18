@@ -24,9 +24,11 @@ type RegionCardViewModel = RegionRecord & {
 })
 export class RegionsPageComponent {
   private static readonly START_RUN_INTRO_ID = 'start-run-kickoff';
-  private static readonly START_RUN_INTRO_PORTRAIT = '/assets/dialogue/portraits/goblin/primordial_frame_0.png';
+  private static readonly START_RUN_INTRO_PORTRAIT =
+    '/assets/dialogue/portraits/goblin/primordial_frame_0.png';
   private static readonly MOUNTAINS_ARCHIVIST_DIALOGUE_ID = 'mountains-archivist-first-contact';
-  private static readonly PLAYER_DIALOGUE_PORTRAIT = '/assets/dialogue/portraits/goblin/base_frame_0.png';
+  private static readonly PLAYER_DIALOGUE_PORTRAIT =
+    '/assets/dialogue/portraits/goblin/base_frame_0.png';
 
   private readonly router = inject(Router);
   private readonly runService = inject(RunService);
@@ -46,11 +48,17 @@ export class RegionsPageComponent {
   readonly startRunIntroDialogue = signal<DialogueScript | null>(null);
   readonly pendingRegionDialogue = signal<DialogueScript | null>(null);
   readonly deferredStartRegionSlug = signal<string | null>(null);
-  readonly activeDialogue = computed(() => this.pendingRegionDialogue() ?? this.startRunIntroDialogue());
-  readonly regions = computed<RegionCardViewModel[]>(() => (this.profileData()?.regions ?? []).map((region) => ({
-    ...region,
-    summary: REGION_SUMMARY_BY_SLUG[region.slug] ?? 'Path details will be added as this biome is expanded.',
-  })));
+  readonly activeDialogue = computed(
+    () => this.pendingRegionDialogue() ?? this.startRunIntroDialogue(),
+  );
+  readonly regions = computed<RegionCardViewModel[]>(() =>
+    (this.profileData()?.regions ?? []).map((region) => ({
+      ...region,
+      summary:
+        REGION_SUMMARY_BY_SLUG[region.slug] ??
+        'Path details will be added as this biome is expanded.',
+    })),
+  );
   readonly inspectedRegion = computed(() => {
     const regions = this.regions();
     if (!regions.length) {
@@ -67,7 +75,9 @@ export class RegionsPageComponent {
 
     return regions[0] ?? null;
   });
-  readonly pendingRegion = computed(() => this.regions().find((region) => region.slug === this.pendingRegionSlug()) ?? null);
+  readonly pendingRegion = computed(
+    () => this.regions().find((region) => region.slug === this.pendingRegionSlug()) ?? null,
+  );
 
   constructor() {
     effect(() => {
@@ -116,6 +126,18 @@ export class RegionsPageComponent {
     }
 
     return this.isStarting() || this.hasActiveRun();
+  }
+
+  regionStateLabel(region: RegionCardViewModel): string {
+    if (this.isActiveRegion(region.id)) {
+      return 'Current Run';
+    }
+
+    if (region.is_unlocked) {
+      return region.is_completed ? 'Cleared' : 'Unlocked';
+    }
+
+    return 'Locked';
   }
 
   async startRegionRun(regionId: string | null, slug: string): Promise<void> {
@@ -196,16 +218,16 @@ export class RegionsPageComponent {
   }
 
   async handleStartRunIntroComplete(_choiceHistory: DialogueChoiceSelection[]): Promise<void> {
-    this.startRunIntroDialogue.set(null);
-    this.rememberDialogueSeenLocally(RegionsPageComponent.START_RUN_INTRO_ID);
     await this.persistStartRunIntroSeen();
+    this.startRunIntroDialogue.set(null);
   }
 
-  async handlePendingRegionDialogueComplete(_choiceHistory: DialogueChoiceSelection[]): Promise<void> {
+  async handlePendingRegionDialogueComplete(
+    _choiceHistory: DialogueChoiceSelection[],
+  ): Promise<void> {
     const regionSlug = this.deferredStartRegionSlug();
     this.pendingRegionDialogue.set(null);
     this.deferredStartRegionSlug.set(null);
-    this.rememberDialogueSeenLocally(RegionsPageComponent.MOUNTAINS_ARCHIVIST_DIALOGUE_ID);
 
     try {
       await this.persistDialogueSeen(RegionsPageComponent.MOUNTAINS_ARCHIVIST_DIALOGUE_ID);
@@ -239,7 +261,7 @@ export class RegionsPageComponent {
   }
 
   private hasSeenDialogue(dialogueId: string): boolean {
-    return (this.profileData()?.seen_dialogues ?? []).includes(dialogueId) || this.hasSeenDialogueLocally(dialogueId);
+    return (this.profileData()?.seen_dialogues ?? []).includes(dialogueId);
   }
 
   private async persistStartRunIntroSeen(): Promise<void> {
@@ -283,34 +305,4 @@ export class RegionsPageComponent {
       return false;
     }
   }
-
-  private hasSeenDialogueLocally(dialogueId: string): boolean {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    try {
-      return window.sessionStorage.getItem(this.dialogueSeenStorageKey(dialogueId)) === '1';
-    } catch {
-      return false;
-    }
-  }
-
-  private rememberDialogueSeenLocally(dialogueId: string): void {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      window.sessionStorage.setItem(this.dialogueSeenStorageKey(dialogueId), '1');
-    } catch {
-      // Keep the page usable if session storage is unavailable.
-    }
-  }
-
-  private dialogueSeenStorageKey(dialogueId: string): string {
-    const userId = this.session().userId?.trim() ?? 'guest';
-    return `dialogue-seen:${userId}:${dialogueId}`;
-  }
 }
-

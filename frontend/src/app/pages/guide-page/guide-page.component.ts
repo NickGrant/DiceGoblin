@@ -1,16 +1,24 @@
-import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
-import { resolveCompletedRegionSlugs } from '../../core/regions/region-catalog';
+import { Component, OnInit, inject } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import {
+  faBolt,
+  faBullseye,
+  faCoins,
+  faDiceD20,
+  faFlag,
+  faGraduationCap,
+  faShieldHalved,
+  faUsers,
+  faWandMagicSparkles,
+} from '@fortawesome/free-solid-svg-icons';
 import { SessionService } from '../../core/services/session/session.service';
+import { FEATURE_UNLOCK_CATEGORY_DETAILS, FeatureUnlockCategoryLabel } from '../../core/feature-unlocks/feature-unlock-categories';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
-import { TabStripComponent } from '../../shared/ui/tab-strip/tab-strip.component';
-import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
+import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 
-type GuideChapterId = 'overview' | 'warband' | 'dice' | 'expeditions';
-
-type GuideChapter = {
-  id: GuideChapterId;
-  label: string;
+type GuideStep = {
   kicker: string;
   title: string;
   summary: string;
@@ -56,94 +64,54 @@ type GuideDieSize = {
   summary: string;
 };
 
-type GuideBestiaryUnit = {
-  slug: string;
+type GuideCombatStat = {
   name: string;
-  biome: string;
-  role: string;
-  assetKey: string;
+  description: string;
 };
 
-const BIOME_GUIDE_UNITS: ReadonlyArray<GuideBestiaryUnit> = [
+type GuideIconEntry = {
+  label: string;
+  icon: IconDefinition;
+  description: string;
+};
+
+const FEATURE_CATEGORY_ICON_BY_LABEL: Record<FeatureUnlockCategoryLabel, IconDefinition> = {
+  'Feature Unlock': faGraduationCap,
+  'Squad Upgrade': faUsers,
+  'Economy Upgrade': faCoins,
+  'Energy Upgrade': faBolt,
+  'Dice Upgrade': faDiceD20,
+};
+
+const PUBLIC_GUIDE_STEPS: ReadonlyArray<GuideStep> = [
   {
-    slug: 'kobold_skirmisher',
-    name: 'Kobold Skirmisher',
-    biome: 'Mountains',
-    role: 'Backline',
-    assetKey: 'kobold/skirmisher',
+    kicker: '1. Assemble',
+    title: 'Build a squad around roles, not just levels',
+    summary: 'Frontliners buy time, ranged units convert that time into damage, and support or control units smooth out bad rolls.',
   },
   {
-    slug: 'kobold_shieldbearer',
-    name: 'Kobold Shieldbearer',
-    biome: 'Mountains',
-    role: 'Frontline',
-    assetKey: 'kobold/shieldbearer',
+    kicker: '2. Equip',
+    title: 'Put your best dice on your highest-impact abilities',
+    summary: 'An empty slot still resolves, but it resolves as a weak roll. Strong loadouts come from matching die size and affix style to the right skill.',
   },
   {
-    slug: 'kobold_sharpshooter',
-    name: 'Kobold Sharpshooter',
-    biome: 'Mountains',
-    role: 'Backline',
-    assetKey: 'kobold/sharpshooter',
-  },
-  {
-    slug: 'kobold_warchief',
-    name: 'Kobold Warchief',
-    biome: 'Mountains',
-    role: 'Backline',
-    assetKey: 'kobold/warchief',
+    kicker: '3. Venture',
+    title: 'Use expeditions to cash in permanent progress',
+    summary: 'Loot, XP, and unlocks mostly come from surviving runs long enough to return home and reinvest the rewards.',
   },
 ];
-
-const GUIDE_UNIT_ANIMATION_INTERVAL_MS = 320;
 
 @Component({
   selector: 'app-guide-page',
   standalone: true,
-  imports: [PageFrameComponent, TabStripComponent],
+  imports: [FontAwesomeModule, PageFrameComponent],
   templateUrl: './guide-page.component.html',
   styleUrl: './guide-page.component.scss',
 })
-export class GuidePageComponent implements OnInit, OnDestroy {
+export class GuidePageComponent implements OnInit {
   private readonly sessionService = inject(SessionService);
-  private readonly guideUnitAnimationTimers = new Map<string, ReturnType<typeof window.setInterval>>();
 
-  protected readonly session = this.sessionService.session;
-  protected readonly profileData = this.sessionService.profileData;
-  protected readonly hasActiveRun = this.sessionService.hasActiveRun;
-  protected readonly activeChapter = signal<GuideChapterId>('overview');
-  protected readonly guideUnitFrameIndexes = signal<Record<string, number>>({});
-
-  protected readonly chapters: ReadonlyArray<GuideChapter> = [
-    {
-      id: 'overview',
-      label: 'Overview',
-      kicker: 'Quick Read',
-      title: 'Learn the rhythm of a run',
-      summary: 'Start here for the fastest explanation of how squads, unlocks, and expeditions fit together.',
-    },
-    {
-      id: 'warband',
-      label: 'Warband',
-      kicker: 'Roster',
-      title: 'Build, unlock, and promote units',
-      summary: 'Browse the current roster, see what unlocks permanently expand the warband, and review promotion rules.',
-    },
-    {
-      id: 'dice',
-      label: 'Dice',
-      kicker: 'Loadouts',
-      title: 'Understand dice, sizes, and affixes',
-      summary: 'See the main dice families, size breakpoints, and affix language used throughout the game.',
-    },
-    {
-      id: 'expeditions',
-      label: 'Expeditions',
-      kicker: 'Runs',
-      title: 'Read how combat and map nodes work',
-      summary: 'Review encounter flow, node meanings, failure handling, and the basic rules that shape a successful run.',
-    },
-  ];
+  protected readonly breadcrumbs = [{ label: 'Guide' }];
 
   protected readonly unitUnlocks: ReadonlyArray<GuideUnit> = [
     {
@@ -186,27 +154,6 @@ export class GuidePageComponent implements OnInit, OnDestroy {
       maxLevel: 10,
       summary: 'A disruptive debuffer that can promote from level 6 or stay through level 10 for stronger control passives.',
     },
-  ];
-
-  protected readonly units: ReadonlyArray<GuideUnit> = [
-    { name: 'Bruiser', slug: 'frontline_bruiser_t1', role: 'Frontline', tier: 1, maxLevel: 10, summary: 'Balanced offense and toughness for the front row.' },
-    { name: 'Enforcer', slug: 'frontline_bruiser_t2', role: 'Frontline', tier: 2, maxLevel: 10, summary: 'A pressure bruiser that leans into execution damage and attack suppression.' },
-    { name: 'Pit Fighter', slug: 'frontline_pit_fighter_t2', role: 'Frontline', tier: 2, maxLevel: 10, summary: 'A comeback brawler built around wounded payoffs, counterattacks, and survival spikes.' },
-    { name: 'Juggernaut', slug: 'frontline_bruiser_t3', role: 'Frontline', tier: 3, maxLevel: 10, summary: 'The heavy end of the bruiser line, intended to become a squad-anchor frontline threat.' },
-    { name: 'Guardian', slug: 'frontline_guardian_t1', role: 'Frontline', tier: 1, maxLevel: 10, summary: 'Defense-first tank for holding the line.' },
-    { name: 'Bulwark', slug: 'frontline_guardian_t2', role: 'Frontline', tier: 2, maxLevel: 10, summary: 'A dedicated tank that redirects pressure and converts die rolls into temporary guard stacks.' },
-    { name: 'Shieldbreaker', slug: 'frontline_shieldbreaker_t2', role: 'Frontline', tier: 2, maxLevel: 10, summary: 'An anti-armor frontline branch that cracks defenses open for the rest of the squad.' },
-    { name: 'Ironwall', slug: 'frontline_guardian_t3', role: 'Frontline', tier: 3, maxLevel: 10, summary: 'The guardian line\'s endgame wall, built to anchor formations and absorb focused fire.' },
-    { name: 'Marksman', slug: 'backline_marksman_t1', role: 'Backline', tier: 1, maxLevel: 10, summary: 'Reliable ranged damage from safer back-row positions.' },
-    { name: 'Deadeye', slug: 'backline_marksman_t2', role: 'Backline', tier: 2, maxLevel: 10, summary: 'A single-target ranged specialist with stronger armor-piercing pressure.' },
-    { name: 'Trapper', slug: 'backline_trapper_t2', role: 'Backline', tier: 2, maxLevel: 10, summary: 'A utility archer that marks enemies and can reveal hidden treasure once per run.' },
-    { name: 'Sharpshot', slug: 'backline_marksman_t3', role: 'Backline', tier: 3, maxLevel: 10, summary: 'The marksman line\'s endgame sniper, intended for elite ranged focus fire.' },
-    { name: 'Bannerbearer', slug: 'support_banner_t1', role: 'Support', tier: 1, maxLevel: 10, summary: 'Support path focused on bolsters, sustain, and setting up later support branches.' },
-    { name: 'Warcaller', slug: 'support_banner_t2', role: 'Support', tier: 2, maxLevel: 10, summary: 'An offensive support branch that buffs allies and accelerates combat momentum.' },
-    { name: 'Mascot', slug: 'support_mascot_t2', role: 'Support', tier: 2, maxLevel: 10, summary: 'A luck-driven support branch that spreads scrappy bonuses and clutch protection.' },
-    { name: 'Saboteur', slug: 'control_saboteur_t1', role: 'Utility', tier: 1, maxLevel: 10, summary: 'Control-focused unit built around disruption and enemy debuffs.' },
-    { name: 'Trickshot', slug: 'control_saboteur_t2', role: 'Utility', tier: 2, maxLevel: 10, summary: 'A precision debuffer that punishes enemies already suffering status effects.' },
-    { name: 'Plaguehand', slug: 'control_plaguehand_t2', role: 'Utility', tier: 2, maxLevel: 10, summary: 'A poison-focused control branch that weakens multiple enemies at once.' },
   ];
 
   protected readonly affixes: ReadonlyArray<GuideAffix> = [
@@ -276,100 +223,48 @@ export class GuidePageComponent implements OnInit, OnDestroy {
     { label: 'd20', image: this.diceImage('common', 20), summary: 'The biggest standard die, best suited to high-impact abilities and chase upgrades.' },
   ];
 
-  protected readonly completedBiomeSlugs = computed(() => resolveCompletedRegionSlugs(this.profileData()));
+  protected readonly combatStats: ReadonlyArray<GuideCombatStat> = [
+    {
+      name: 'Attack',
+      description: 'Raises outgoing damage from offensive abilities before the defender gets a say.',
+    },
+    {
+      name: 'Defense',
+      description: 'Softens incoming hits and makes durable frontliners much better at buying time.',
+    },
+    {
+      name: 'HP',
+      description: 'Determines how much punishment a unit can take before being defeated for the current run.',
+    },
+    {
+      name: 'Ability dice',
+      description: 'The die assigned to an ability contributes the roll value, while affixes bend the result toward damage, defense, or special payoff.',
+    },
+  ];
 
-  protected readonly discoveredBiomeUnits = computed(() => {
-    if (!this.session().isAuthenticated) {
-      return [] as GuideBestiaryUnit[];
-    }
+  protected readonly unitTypeIcons: ReadonlyArray<GuideIconEntry> = [
+    { label: 'Frontline', icon: faShieldHalved, description: 'Durable unit types built to hold space and absorb pressure.' },
+    { label: 'Backline', icon: faBullseye, description: 'Ranged unit types that convert protected turns into damage.' },
+    { label: 'Support', icon: faFlag, description: 'Team-focused unit types that reinforce allies, tempo, or morale.' },
+    { label: 'Utility', icon: faWandMagicSparkles, description: 'Disruptive unit types that interfere with enemy plans.' },
+  ];
 
-    const completedBiomes = new Set(this.completedBiomeSlugs());
-    return BIOME_GUIDE_UNITS.filter((unit) => completedBiomes.has(this.normalizeBiomeSlug(unit.biome)));
-  });
+  protected readonly featureTypeIcons: ReadonlyArray<GuideIconEntry> = FEATURE_UNLOCK_CATEGORY_DETAILS.map((entry) => ({
+    ...entry,
+    icon: FEATURE_CATEGORY_ICON_BY_LABEL[entry.label],
+  }));
 
   ngOnInit(): void {
     void this.sessionService.initialize();
   }
 
-  ngOnDestroy(): void {
-    for (const timer of this.guideUnitAnimationTimers.values()) {
-      window.clearInterval(timer);
-    }
-    this.guideUnitAnimationTimers.clear();
-  }
-
-  protected setActiveChapter(chapterId: GuideChapterId): void {
-    this.activeChapter.set(chapterId);
-  }
-
-  protected handleChapterSelection(chapterId: string): void {
-    this.setActiveChapter(chapterId as GuideChapterId);
-  }
-
-  protected isActiveChapter(chapterId: GuideChapterId): boolean {
-    return this.activeChapter() === chapterId;
-  }
-
-  protected activeChapterMeta(): GuideChapter {
-    return this.chapters.find((chapter) => chapter.id === this.activeChapter()) ?? this.chapters[0];
-  }
-
-  protected hasAcquiredFeatureUnlock(unlockKey: string): boolean {
-    if (!this.session().isAuthenticated) {
-      return false;
-    }
-
-    return this.profileData()?.feature_unlocks.includes(unlockKey) ?? false;
-  }
-
-  protected hasAcquiredUnitUnlock(unitSlug: string): boolean {
-    if (!this.session().isAuthenticated) {
-      return false;
-    }
-
-    return this.profileData()?.unit_type_unlocks.includes(unitSlug) ?? false;
-  }
-
-  protected unitArtUrl(unitSlug: string): string {
-    return resolveUnitImageUrl(unitSlug) ?? '';
-  }
-
-  protected guideUnitFramePath(unit: GuideBestiaryUnit): string {
-    const frameIndex = this.guideUnitFrameIndexes()[unit.slug] ?? 0;
-    return `/assets/ui/units/animated/${unit.assetKey}/frame_${frameIndex}.png`;
-  }
-
-  protected startGuideUnitAnimation(unitSlug: string): void {
-    if (typeof window === 'undefined' || this.guideUnitAnimationTimers.has(unitSlug)) {
-      return;
-    }
-
-    this.guideUnitFrameIndexes.update((current) => ({ ...current, [unitSlug]: 1 }));
-    const timer = window.setInterval(() => {
-      this.guideUnitFrameIndexes.update((current) => {
-        const currentFrame = current[unitSlug] ?? 1;
-        const nextFrame = currentFrame >= 3 ? 1 : currentFrame + 1;
-        return { ...current, [unitSlug]: nextFrame };
-      });
-    }, GUIDE_UNIT_ANIMATION_INTERVAL_MS);
-    this.guideUnitAnimationTimers.set(unitSlug, timer);
-  }
-
-  protected stopGuideUnitAnimation(unitSlug: string): void {
-    const timer = this.guideUnitAnimationTimers.get(unitSlug);
-    if (timer) {
-      window.clearInterval(timer);
-      this.guideUnitAnimationTimers.delete(unitSlug);
-    }
-
-    this.guideUnitFrameIndexes.update((current) => ({ ...current, [unitSlug]: 0 }));
+  protected unitSpriteUrl(unitSlug: string): string {
+    return resolvePrototypeUnitSpriteUrl(unitSlug);
   }
 
   private diceImage(rarity: string, sides: number): string {
     return resolveDiceArtStyles(rarity, sides, 96).imageUrl;
   }
 
-  private normalizeBiomeSlug(value: string): string {
-    return value.trim().toLowerCase().replace(/\s+/g, '_');
-  }
+  protected readonly publicGuideSteps = PUBLIC_GUIDE_STEPS;
 }

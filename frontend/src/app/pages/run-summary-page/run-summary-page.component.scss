@@ -25,10 +25,22 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  padding: 0 1rem 1rem;
 }
 
-.run-summary-card-grid,
+.run-summary-hero {
+  background:
+    linear-gradient(135deg, rgba(141, 179, 65, 0.62), rgba(245, 232, 200, 0.82)),
+    center / cover no-repeat var(--dg-proto-moss);
+}
+
 .run-summary-progression-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.run-summary-squad-grid,
+.run-summary-loot-summary {
   display: grid;
   gap: 0.75rem;
 }
@@ -38,49 +50,82 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.25rem;
 }
 
 .run-summary-section-heading__eyebrow {
-  margin-bottom: 0.35rem;
-  color: var(--dg-slate);
+  margin: 0 0 0.35rem;
+  color: rgba(71, 41, 16, 0.74);
   font-size: 0.78rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .run-summary-subheading {
-  margin-bottom: 0.85rem;
-  color: var(--dg-slate);
+  margin: 0 0 0.85rem;
+  color: rgba(71, 41, 16, 0.74);
   font-size: 0.82rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .run-summary-section-block + .run-summary-section-block {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
 }
 
-.run-summary-teeth {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.85rem;
-  margin-bottom: 1.5rem;
-  padding: 0.85rem 1rem;
-  border: 1px solid rgba(35, 39, 42, 0.12);
-  background: rgba(243, 239, 224, 0.7);
+.run-summary-loot-stat,
+.run-summary-squad-card {
+  padding: 0.85rem 0.95rem;
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
+    center / cover no-repeat var(--dg-proto-paper);
 }
 
-.run-summary-teeth img {
-  width: 20px;
-  height: 20px;
-}
-
-.run-summary-teeth strong {
+.run-summary-loot-stat strong {
   display: block;
-  font-size: 1.3rem;
+  color: #24150d;
+  font-size: 1.7rem;
   line-height: 1;
-  color: var(--dg-ink);
+}
+
+.run-summary-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.run-summary-squad-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.run-summary-squad-card h3,
+.run-summary-squad-card p,
+.run-summary-squad-card span {
+  margin: 0;
+}
+
+.run-summary-squad-card h3 {
+  color: #24150d;
+  font-size: 0.95rem;
+}
+
+.run-summary-squad-card p,
+.run-summary-squad-card span {
+  color: rgba(51, 31, 18, 0.78);
+  font-size: 0.84rem;
+}
+
+.run-summary-squad-card span {
+  display: inline-block;
+  margin-top: 0.2rem;
+  font-weight: 700;
+}
+
+.run-summary-squad-card.is-defeated {
+  opacity: 0.72;
 }
 
 .run-summary-fallback-list {
@@ -96,7 +141,11 @@
 }
 
 @media (min-width: 441px) {
-  .run-summary-card-grid {
+  .run-summary-loot-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .run-summary-squad-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -106,7 +155,7 @@
     min-height: 46rem;
   }
 
-  .run-summary-card-grid {
+  .run-summary-squad-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 

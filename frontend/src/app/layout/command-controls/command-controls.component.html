@@ -1,34 +1,32 @@
-<header class="floating-header" [class.is-open]="mobileMenuOpen()">
-  <div class="floating-header__bar">
-    <div class="floating-header__slot floating-header__slot--energy" aria-label="Energy">
-      @if (isAuthenticated()) {
-      <img class="floating-header__slot-icon" src="/assets/ui/icons/energy_64.png" alt="" />
-      <span>{{ profile().energyCurrent }} / {{ profile().energyMax }}</span>
-      } @else {
-      <span>--</span>
-      }
-    </div>
+<div class="slots" [class.is-open]="mobileMenuOpen()">
+  <div class="slot slot-energy" aria-label="Energy">
+    @if (isAuthenticated()) {
+    <img class="slot-icon" src="/assets/ui/icons/energy_64.png" alt="" />
+    <span>{{ profile().energyCurrent }} / {{ profile().energyMax }}</span>
+    } @else {
+    <span>--</span>
+    }
+  </div>
 
-    <div class="floating-header__slot floating-header__slot--teeth" aria-label="Teeth">
-      @if (isAuthenticated()) {
-      <img class="floating-header__slot-icon" src="/assets/ui/icons/tooth_64.png" alt="" />
-      <span>{{ profile().softCurrency }}</span>
-      } @else {
-      <span>--</span>
-      }
-    </div>
+  <div class="slot slot-teeth" aria-label="Teeth">
+    @if (isAuthenticated()) {
+    <img class="slot-icon" src="/assets/ui/icons/tooth_64.png" alt="" />
+    <span>{{ profile().softCurrency }}</span>
+    } @else {
+    <span>--</span>
+    }
+  </div>
 
-    <div class="floating-header__slot floating-header__slot--future" aria-hidden="true">
-      <span></span>
-    </div>
+  <div class="slot slot-chaos" aria-hidden="true"></div>
 
-    <div class="floating-header__name" [attr.aria-label]="isAuthenticated() ? 'Commander name' : 'Guest label'">
-      <span>{{ isAuthenticated() ? session().displayName : 'Guest' }}</span>
-    </div>
+  <div class="slot slot-name" [attr.aria-label]="isAuthenticated() ? 'Commander name' : 'Guest label'">
+    <span>{{ isAuthenticated() ? session().displayName : 'Guest' }}</span>
+  </div>
 
+  <div class="slot slot-audio">
     @if (audioEnabled()) {
     <button
-      class="floating-header__audio"
+      class="audio-control"
       type="button"
       [attr.aria-label]="audioControlAriaLabel()"
       [attr.title]="audioControlAriaLabel()"
@@ -38,52 +36,43 @@
       <span class="visually-hidden">{{ audioControlLabel() }}</span>
     </button>
     }
+  </div>
 
+  <div class="slot slot-menu">
     <button
-      class="floating-header__toggle"
+      class="menu-toggle"
       [class.is-active]="mobileMenuOpen()"
       type="button"
       [attr.aria-label]="menuToggleLabel()"
       [attr.aria-expanded]="mobileMenuOpen()"
       (click)="toggleMobileMenu()"
     >
-      <span class="floating-header__toggle-box" aria-hidden="true">
-        <span class="floating-header__toggle-inner"></span>
+      <span class="menu-toggle-box" aria-hidden="true">
+        <span class="menu-toggle-inner"></span>
       </span>
       <span class="visually-hidden">{{ menuToggleLabel() }}</span>
     </button>
   </div>
+</div>
 
-  @if (mobileMenuOpen()) {
-  <nav class="floating-header__menu" aria-label="Primary navigation links">
-    @for (item of navItems; track item.authenticatedRoute) {
-      @if (isNavItemEnabled(item)) {
-      <a
-        class="floating-header__menu-item"
-        [routerLink]="navRoute(item)"
-        routerLinkActive="is-active"
-        [attr.aria-label]="item.ariaLabel"
-        (click)="closeMobileMenu()"
-      >
-        <img class="floating-header__menu-item-icon" [src]="item.icon" alt="" />
-        <span class="floating-header__menu-item-label">{{ item.label }}</span>
-      </a>
-      } @else {
-      <span
-        class="floating-header__menu-item"
-        [attr.aria-label]="navDisabledLabel(item)"
-        aria-disabled="true"
-      >
-        <img class="floating-header__menu-item-icon" [src]="item.icon" alt="" />
-        <span class="floating-header__menu-item-label">{{ item.label }}</span>
-      </span>
-      }
-    }
-
-    <button class="floating-header__menu-item floating-header__menu-item--action" type="button" (click)="isAuthenticated() ? logout() : login()">
-      <img class="floating-header__menu-item-icon" [src]="authActionIcon()" alt="" />
-      <span class="floating-header__menu-item-label">{{ authActionLabel() }}</span>
-    </button>
-  </nav>
+@if (mobileMenuOpen()) {
+<nav class="menu" aria-label="Primary navigation links">
+  @for (item of visibleNavItems(); track item.id) {
+  <a
+    class="menu-item"
+    [routerLink]="navRoute(item)"
+    routerLinkActive="is-active"
+    [attr.aria-label]="navAriaLabel(item)"
+    (click)="closeMobileMenu()"
+  >
+    <img class="menu-item-icon" [src]="item.icon" alt="" />
+    <span class="menu-item-label">{{ navLabel(item) }}</span>
+  </a>
   }
-</header>
+
+  <button class="menu-item menu-item-action" type="button" (click)="isAuthenticated() ? logout() : login()">
+    <img class="menu-item-icon" [src]="authActionIcon()" alt="" />
+    <span class="menu-item-label">{{ authActionLabel() }}</span>
+  </button>
+</nav>
+}

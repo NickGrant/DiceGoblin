@@ -1,4 +1,30 @@
 const UNIT_ASSET_BASE_PATH = '/assets/ui/units';
+const UNIT_ANIMATED_ASSET_BASE_PATH = '/assets/ui/units/animated';
+const UNIT_THUMBNAIL_ASSET_BASE_PATH = '/assets/ui/units/thumbnails';
+const ANIMATED_UNIT_IMAGE_PATH_MAP: Record<string, string> = {
+  goblin_bruiser: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_enforcer: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_pit_fighter: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_juggernaut: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_guardian: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_bulwark: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_shieldbreaker: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_ironwall: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_marksman: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_deadeye: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_trapper: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_sharpshot: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_bannerbearer: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_warcaller: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_mascot: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_saboteur: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_trickshot: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  goblin_plaguehand: `${UNIT_ANIMATED_ASSET_BASE_PATH}/goblin/base/frame_0.png`,
+  kobold_skirmisher: `${UNIT_ANIMATED_ASSET_BASE_PATH}/kobold/skirmisher/frame_0.png`,
+  kobold_shieldbearer: `${UNIT_ANIMATED_ASSET_BASE_PATH}/kobold/shieldbearer/frame_0.png`,
+  kobold_sharpshooter: `${UNIT_ANIMATED_ASSET_BASE_PATH}/kobold/sharpshooter/frame_0.png`,
+  kobold_warchief: `${UNIT_ANIMATED_ASSET_BASE_PATH}/kobold/warchief/frame_0.png`,
+};
 
 const UNIT_IMAGE_SLUG_MAP: Record<string, string> = {
   frontline_bruiser_t1: 'goblin_bruiser',
@@ -84,6 +110,27 @@ const UNIT_IMAGE_SLUG_MAP: Record<string, string> = {
   'frogman bog tyrant': 'frogman_bog_tyrant',
 };
 
+const GOBLIN_THUMBNAIL_SLUGS = new Set([
+  'goblin_bannerbearer',
+  'goblin_bruiser',
+  'goblin_bulwark',
+  'goblin_deadeye',
+  'goblin_enforcer',
+  'goblin_guardian',
+  'goblin_ironwall',
+  'goblin_juggernaut',
+  'goblin_marksman',
+  'goblin_mascot',
+  'goblin_pit_fighter',
+  'goblin_plaguehand',
+  'goblin_saboteur',
+  'goblin_sharpshot',
+  'goblin_shieldbreaker',
+  'goblin_trapper',
+  'goblin_trickshot',
+  'goblin_warcaller',
+]);
+
 export function resolveUnitImageSlug(value: string | null | undefined): string | null {
   const normalized = normalizeUnitImageKey(value);
   if (!normalized.length) {
@@ -102,7 +149,24 @@ export function resolveUnitImageSlug(value: string | null | undefined): string |
 
 export function resolveUnitImageUrl(value: string | null | undefined): string | null {
   const slug = resolveUnitImageSlug(value);
-  return slug ? `${UNIT_ASSET_BASE_PATH}/${slug}.png` : null;
+  if (!slug) {
+    return null;
+  }
+
+  return ANIMATED_UNIT_IMAGE_PATH_MAP[slug] ?? `${UNIT_ASSET_BASE_PATH}/${slug}.png`;
+}
+
+export function resolveUnitThumbnailUrl(value: string | null | undefined): string | null {
+  const slug = resolveUnitImageSlug(value);
+  if (!slug || !GOBLIN_THUMBNAIL_SLUGS.has(slug)) {
+    return null;
+  }
+
+  return `${UNIT_THUMBNAIL_ASSET_BASE_PATH}/goblin/${slug.replace(/^goblin_/, '')}.png`;
+}
+
+export function resolveUnitSilhouetteUrl(): string {
+  return `${UNIT_THUMBNAIL_ASSET_BASE_PATH}/goblin/silhouette.png`;
 }
 
 function normalizeUnitImageKey(value: string | null | undefined): string {

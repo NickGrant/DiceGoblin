@@ -80,11 +80,22 @@ export function materializeDialogueScript(
 
   return {
     id: definition.id,
+    title: definition.title?.trim() || humanizeScriptId(definition.id),
+    summary: definition.summary?.trim() || 'Recovered dialogue from your journey.',
+    tags: definition.tags ?? [],
     backgroundUrl: definition.presentation?.background_url ?? null,
     speakers,
     startStepId: definition.start_step_id ?? definition.steps[0]?.id ?? '',
     steps,
   };
+}
+
+function humanizeScriptId(value: string): string {
+  return value
+    .trim()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
 function resolveSpeakerSide(speaker: DialogueScriptDefinition['speakers'][number]): 'left' | 'right' {

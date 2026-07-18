@@ -413,7 +413,31 @@ final class RunNodeController
    *   xp_total:int,
    *   currency_soft:int,
    *   new_unit_labels:array<int,string>,
-   *   new_dice_labels:array<int,string>
+   *   new_dice_labels:array<int,string>,
+   *   units:array<int,array{
+   *     unit_instance_id:string|null,
+   *     name:string,
+   *     unit_type_slug:string|null,
+   *     unit_type_name:string,
+   *     tier:int,
+   *     level:int
+   *   }>,
+   *   dice:array<int,array{
+   *     dice_instance_id:string|null,
+   *     label:string,
+   *     rarity:string,
+   *     material:string,
+   *     sides:int,
+   *     affixes:array<int,array{
+   *       affix_definition_id:string,
+   *       affix_slug:string,
+   *       name:string,
+   *       rarity:string,
+   *       kind:string,
+   *       description:string,
+   *       value:float
+   *     }>
+   *   }>
    * }|null
    */
   private function buildRewardPreview(PDO $pdo, int $userId, string $nodeType, ?array $rewardRow): ?array
@@ -429,6 +453,7 @@ final class RunNodeController
 
     $summaryBuilder = new RunSummaryBuilder($pdo);
     $labels = $summaryBuilder->buildBattleRewardLabels($userId, $rewards);
+    $details = $summaryBuilder->buildBattleRewardDetails($userId, $rewards);
 
     return [
       'node_type' => $nodeType,
@@ -436,6 +461,8 @@ final class RunNodeController
       'currency_soft' => max(0, (int)($rewardRow['currency_soft'] ?? 0)),
       'new_unit_labels' => array_values(is_array($labels['new_unit_labels'] ?? null) ? $labels['new_unit_labels'] : []),
       'new_dice_labels' => array_values(is_array($labels['new_dice_labels'] ?? null) ? $labels['new_dice_labels'] : []),
+      'units' => array_values(is_array($details['units'] ?? null) ? $details['units'] : []),
+      'dice' => array_values(is_array($details['dice'] ?? null) ? $details['dice'] : []),
     ];
   }
 

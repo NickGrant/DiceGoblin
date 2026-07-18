@@ -13,7 +13,12 @@ import { RunUnitFormationGridComponent } from '../../shared/ui/run-unit-formatio
 @Component({
   selector: 'app-run-map-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RunUnitFormationGridComponent],
+  imports: [
+    DgAlertComponent,
+    DgCommandBtnDirective,
+    PageFrameComponent,
+    RunUnitFormationGridComponent,
+  ],
   templateUrl: './run-map-page.component.html',
   styleUrl: './run-map-page.component.scss',
 })
@@ -51,6 +56,29 @@ export class RunMapPageComponent {
   readonly nodes = computed(() => this.runData()?.map?.nodes ?? []);
   readonly edges = computed(() => this.runData()?.map?.edges ?? []);
   readonly run = computed(() => this.runData()?.run ?? null);
+  readonly regionName = computed(() => {
+    const run = this.run();
+    if (!run) {
+      return null;
+    }
+
+    if (run.region_name) {
+      return run.region_name;
+    }
+
+    const profile = this.sessionService.profileData();
+    const region = profile?.regions?.find(
+      (candidate) =>
+        String(candidate.id) === String(run.region_id) ||
+        candidate.slug === run.region_slug,
+    );
+
+    return region?.name ?? null;
+  });
+  readonly pageTitle = computed(() => {
+    const regionName = this.regionName();
+    return regionName ? `Continue Run - ${regionName}` : 'Continue Run';
+  });
   readonly activeSquad = this.sessionService.activeSquad;
   readonly mapBackgroundUrl = computed(() => resolveRunRegionBackgroundUrl(this.run()));
   readonly nodeLayoutBounds = computed(() => {
@@ -71,25 +99,12 @@ export class RunMapPageComponent {
     const maxY = Math.max(...ys);
 
     return {
-      width: Math.max(
-        RunMapPageComponent.MAP_MIN_WIDTH,
-        maxX + radius + horizontalPadding,
-      ),
-      height: Math.max(
-        RunMapPageComponent.MAP_MIN_HEIGHT,
-        maxY + radius + verticalPadding,
-      ),
+      width: Math.max(RunMapPageComponent.MAP_MIN_WIDTH, maxX + radius + horizontalPadding),
+      height: Math.max(RunMapPageComponent.MAP_MIN_HEIGHT, maxY + radius + verticalPadding),
     };
   });
   readonly mapWidth = computed(() => this.nodeLayoutBounds().width);
   readonly mapHeight = computed(() => this.nodeLayoutBounds().height);
-  readonly legendEntries = computed(() => [
-    { type: 'combat', label: 'Combat', icon: this.iconForNodeType('combat') },
-    { type: 'loot', label: 'Loot', icon: this.iconForNodeType('loot') },
-    { type: 'rest', label: 'Rest', icon: this.iconForNodeType('rest') },
-    { type: 'boss', label: 'Boss', icon: this.iconForNodeType('boss') },
-    { type: 'exit', label: 'Exit', icon: this.iconForNodeType('exit') },
-  ]);
   readonly runUnits = computed(() => {
     const unitsById = new Map(this.sessionService.units().map((unit) => [unit.id, unit]));
     return (this.runData()?.run_unit_state ?? []).map((state) => ({
@@ -131,28 +146,23 @@ export class RunMapPageComponent {
 
   nodeX(node: CurrentRunNode): number {
     const column = this.nodeMetaColumn(node);
-    return RunMapPageComponent.MAP_HORIZONTAL_PADDING + column * RunMapPageComponent.MAP_NODE_HORIZONTAL_GAP;
+    return (
+      RunMapPageComponent.MAP_HORIZONTAL_PADDING +
+      column * RunMapPageComponent.MAP_NODE_HORIZONTAL_GAP
+    );
   }
 
   nodeY(node: CurrentRunNode): number {
     const row = this.nodeMetaRow(node);
-    return RunMapPageComponent.MAP_VERTICAL_PADDING
-      + row * RunMapPageComponent.MAP_ROW_VERTICAL_GAP
-      + this.nodeVerticalSpread(node);
+    return (
+      RunMapPageComponent.MAP_VERTICAL_PADDING +
+      row * RunMapPageComponent.MAP_ROW_VERTICAL_GAP +
+      this.nodeVerticalSpread(node)
+    );
   }
 
   nodeById(nodeId: string): CurrentRunNode | undefined {
     return this.nodes().find((node) => node.id === nodeId);
-  }
-
-  edgeX(nodeId: string): number {
-    const node = this.nodeById(nodeId);
-    return node ? this.nodeX(node) : 0;
-  }
-
-  edgeY(nodeId: string): number {
-    const node = this.nodeById(nodeId);
-    return node ? this.nodeY(node) : 0;
   }
 
   edgeState(edge: CurrentRunEdge): 'available' | 'cleared' | 'locked' {
@@ -174,7 +184,10 @@ export class RunMapPageComponent {
   }
 
   iconForNodeType(nodeType: string): string {
-    return RunMapPageComponent.ENCOUNTER_ICON_MAP[nodeType] ?? '/assets/ui/icons/icon_encounter_locked.png';
+    return (
+      RunMapPageComponent.ENCOUNTER_ICON_MAP[nodeType] ??
+      '/assets/ui/icons/icon_encounter_locked.png'
+    );
   }
 
   nodeTypeLabel(nodeType: string): string {
@@ -188,6 +201,11 @@ export class RunMapPageComponent {
 
     if (node.node_type === 'rest') {
       await this.router.navigate(['/run/rest', node.id]);
+      return;
+    }
+
+    if (node.node_type === 'loot') {
+      await this.router.navigate(['/run/loot', node.id]);
       return;
     }
 
@@ -274,7 +292,10 @@ export class RunMapPageComponent {
     return row === 0 ? -spread : spread;
   }
 
-  private buildRenderedEdges(nodes: CurrentRunNode[], edges: CurrentRunEdge[]): Array<{
+  private buildRenderedEdges(
+    nodes: CurrentRunNode[],
+    edges: CurrentRunEdge[],
+  ): Array<{
     edgeId: string;
     path: string;
     state: 'available' | 'cleared' | 'locked';
@@ -294,18 +315,30 @@ export class RunMapPageComponent {
     }
 
     for (const siblingEdges of outgoingByNode.values()) {
-      siblingEdges.sort((left, right) => this.edgeSortValue(nodeById.get(left.to_node_id)) - this.edgeSortValue(nodeById.get(right.to_node_id)));
+      siblingEdges.sort(
+        (left, right) =>
+          this.edgeSortValue(nodeById.get(left.to_node_id)) -
+          this.edgeSortValue(nodeById.get(right.to_node_id)),
+      );
     }
 
     for (const siblingEdges of incomingByNode.values()) {
-      siblingEdges.sort((left, right) => this.edgeSortValue(nodeById.get(left.from_node_id)) - this.edgeSortValue(nodeById.get(right.from_node_id)));
+      siblingEdges.sort(
+        (left, right) =>
+          this.edgeSortValue(nodeById.get(left.from_node_id)) -
+          this.edgeSortValue(nodeById.get(right.from_node_id)),
+      );
     }
 
     return edges.map((edge) => {
       const fromNode = nodeById.get(edge.from_node_id);
       const toNode = nodeById.get(edge.to_node_id);
       if (!fromNode || !toNode) {
-        return { edgeId: edge.edge_id ?? `${edge.from_node_id}->${edge.to_node_id}`, path: '', state: 'locked' as const };
+        return {
+          edgeId: edge.edge_id ?? `${edge.from_node_id}->${edge.to_node_id}`,
+          path: '',
+          state: 'locked' as const,
+        };
       }
 
       const sourceOffset = this.siblingOffset(edge, outgoingByNode.get(edge.from_node_id) ?? []);
@@ -318,9 +351,10 @@ export class RunMapPageComponent {
         RunMapPageComponent.MAP_EDGE_CURVE_LEAD_MAX,
         Math.max(RunMapPageComponent.MAP_EDGE_CURVE_LEAD_MIN, Math.round((x2 - x1) * 0.35)),
       );
-      const path = sourceOffset === 0 && targetOffset === 0 && y1 === y2
-        ? `M ${x1} ${y1} L ${x2} ${y2}`
-        : `M ${x1} ${y1} C ${x1 + curveLead} ${y1 + sourceOffset}, ${x2 - curveLead} ${y2 + targetOffset}, ${x2} ${y2}`;
+      const path =
+        sourceOffset === 0 && targetOffset === 0 && y1 === y2
+          ? `M ${x1} ${y1} L ${x2} ${y2}`
+          : `M ${x1} ${y1} C ${x1 + curveLead} ${y1 + sourceOffset}, ${x2 - curveLead} ${y2 + targetOffset}, ${x2} ${y2}`;
 
       return {
         edgeId: edge.edge_id ?? `${edge.from_node_id}->${edge.to_node_id}`,
@@ -340,7 +374,7 @@ export class RunMapPageComponent {
       return 0;
     }
 
-    return (edgeIndex - ((siblings.length - 1) / 2)) * RunMapPageComponent.MAP_EDGE_FAN_OFFSET;
+    return (edgeIndex - (siblings.length - 1) / 2) * RunMapPageComponent.MAP_EDGE_FAN_OFFSET;
   }
 
   private edgeSortValue(node: CurrentRunNode | undefined): number {
@@ -348,7 +382,7 @@ export class RunMapPageComponent {
       return Number.MAX_SAFE_INTEGER;
     }
 
-    return (this.nodeMetaRow(node) * 100) + this.nodeMetaColumn(node);
+    return this.nodeMetaRow(node) * 100 + this.nodeMetaColumn(node);
   }
 
   private longestIncidentEdgeSpan(nodeId: string): number {
@@ -365,7 +399,9 @@ export class RunMapPageComponent {
         continue;
       }
 
-      const otherNode = this.nodeById(edge.from_node_id === nodeId ? edge.to_node_id : edge.from_node_id);
+      const otherNode = this.nodeById(
+        edge.from_node_id === nodeId ? edge.to_node_id : edge.from_node_id,
+      );
       if (!otherNode) {
         continue;
       }
@@ -376,4 +412,3 @@ export class RunMapPageComponent {
     return longestSpan;
   }
 }
-
