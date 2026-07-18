@@ -49,8 +49,10 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
 
   public function testStarterPackSeedDependenciesExist(): void
   {
+    $mysticCave = (int)$this->scalar("SELECT COUNT(*) FROM `regions` WHERE `slug` = 'mystic_cave'");
     $farm = (int)$this->scalar("SELECT COUNT(*) FROM `regions` WHERE `slug` = 'the_farm'");
     $mountains = (int)$this->scalar("SELECT COUNT(*) FROM `regions` WHERE `slug` = 'mountains'");
+    $this->assertGreaterThan(0, $mysticCave);
     $this->assertGreaterThan(0, $farm);
     $this->assertGreaterThan(0, $mountains);
 
@@ -89,6 +91,10 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
     $unitCount = (int)$this->scalar("SELECT COUNT(*) FROM `unit_instances` WHERE `user_id` = ?", [$userId]);
     $diceCount = (int)$this->scalar("SELECT COUNT(*) FROM `dice_instances` WHERE `user_id` = ?", [$userId]);
     $unlockCount = (int)$this->scalar(
+      "SELECT COUNT(*) FROM `region_unlocks` ru JOIN `regions` r ON r.`id` = ru.`region_id` WHERE ru.`user_id` = ? AND r.`slug` = 'mystic_cave'",
+      [$userId]
+    );
+    $farmUnlockCount = (int)$this->scalar(
       "SELECT COUNT(*) FROM `region_unlocks` ru JOIN `regions` r ON r.`id` = ru.`region_id` WHERE ru.`user_id` = ? AND r.`slug` = 'the_farm'",
       [$userId]
     );
@@ -102,6 +108,7 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
     $this->assertSame(4, $unitCount);
     $this->assertSame(8, $diceCount);
     $this->assertSame(1, $unlockCount);
+    $this->assertSame(0, $farmUnlockCount);
     $this->assertSame(2, $unitUnlockCount);
 
     $namedUnits = (int)$this->scalar(

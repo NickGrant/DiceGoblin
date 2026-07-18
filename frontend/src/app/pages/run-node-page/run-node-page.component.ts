@@ -1,17 +1,13 @@
 import { Component, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BattlePlaybackActionStep, BattlePlaybackParticipant, BattlePlaybackSnapshot } from '../../core/battle-playback/battle-playback.models';
-import { CurrentRunRecord, ResolveNodeData, UnitRecord } from '../../core/models/api.models';
-import { DialogueChoiceSelection, DialogueScript, DialogueTriggerContext } from '../../core/dialogue/dialogue.models';
-import { resolveRegionTheme } from '../../core/regions/region-catalog';
+import { ResolveNodeData, UnitRecord } from '../../core/models/api.models';
 import { AbilityCatalogService } from '../../core/services/ability-catalog/ability-catalog.service';
 import { BattlePlaybackAdapterService } from '../../core/services/battle-playback/battle-playback-adapter.service';
-import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 import { resolvePrototypeEnemySpriteUrl, resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
@@ -65,29 +61,25 @@ type BattlePlaybackParticipantStateViewModel = {
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, DgDialogueStageComponent, PageFrameComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent],
   templateUrl: './run-node-page.component.html',
   styleUrl: './run-node-page.component.scss',
 })
 export class RunNodePageComponent implements OnDestroy {
   private static readonly BATTLE_TITLE = 'BATTLE!';
   private static readonly BATTLE_SUBTITLE = 'Several goblins have volunteered to be an educational example.';
-  private static readonly PLAYER_DIALOGUE_PORTRAIT = '/assets/dialogue/portraits/goblin/base_frame_0.png';
   private static readonly PLAYBACK_INTERVAL_MS = 1250;
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly runService = inject(RunService);
   private readonly sessionService = inject(SessionService);
-  private readonly dialogueService = inject(DialogueService);
   private readonly abilityCatalogService = inject(AbilityCatalogService);
   private readonly battlePlaybackAdapter = inject(BattlePlaybackAdapterService);
 
   readonly nodeId = this.route.snapshot.paramMap.get('nodeId') ?? '';
   readonly runId = signal<string | null>(null);
   readonly result = signal<ResolveNodeData | null>(null);
-  readonly dialogue = signal<DialogueScript | null>(null);
-  readonly dialogueChoiceHistory = signal<DialogueChoiceSelection[]>([]);
   readonly loading = signal(true);
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
@@ -216,12 +208,7 @@ export class RunNodePageComponent implements OnDestroy {
       }
 
       if (currentNode && AUTO_RESOLVE_NODE_TYPES.has(currentNode.node_type)) {
-        const dialogue = await this.lookupDialogue(current.data.run, currentNode);
-        if (dialogue) {
-          this.dialogue.set(dialogue);
-        } else {
-          await this.resolveNode();
-        }
+        await this.resolveNode();
       }
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to load node.');
@@ -276,12 +263,6 @@ export class RunNodePageComponent implements OnDestroy {
     } finally {
       this.busy.set(false);
     }
-  }
-
-  async handleDialogueComplete(choiceHistory: DialogueChoiceSelection[]): Promise<void> {
-    this.dialogueChoiceHistory.set(choiceHistory);
-    this.dialogue.set(null);
-    await this.resolveNode();
   }
 
   setBattleView(mode: BattleViewMode): void {
@@ -345,10 +326,6 @@ export class RunNodePageComponent implements OnDestroy {
       .filter((segment) => segment.length)
       .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
       .join(' ');
-  }
-
-  private stringValue(value: unknown): string {
-    return typeof value === 'string' ? value : '';
   }
 
   private numberValue(value: unknown): number {
@@ -524,45 +501,5 @@ export class RunNodePageComponent implements OnDestroy {
     return this.numberValue(fallbackValue);
   }
 
-  private async lookupDialogue(
-    run: CurrentRunRecord,
-    currentNode: { node_type: string; meta?: Record<string, unknown> | null },
-  ): Promise<DialogueScript | null> {
-    const regionSlug = run.region_slug ?? null;
-    const fallbackTheme = resolveRegionTheme(regionSlug, run.region_theme ?? null);
-    const dialogueTags = [
-      ...(fallbackTheme ? [fallbackTheme] : []),
-      ...(this.sessionService.profileData()?.feature_unlocks?.includes('shop') ? ['shop-unlocked'] : []),
-    ];
-    const context: DialogueTriggerContext = {
-      scene: 'run-node',
-      nodeType: currentNode.node_type,
-      regionId: run.region_id,
-      regionSlug,
-      encounterTemplateId: this.stringValue(currentNode.meta?.['encounter_template_id']),
-      playerName: this.sessionService.session().displayName ?? this.resolveLeadUnit()?.name,
-      playerPortraitUrl: RunNodePageComponent.PLAYER_DIALOGUE_PORTRAIT,
-      tags: dialogueTags,
-    };
-
-    try {
-      return await this.dialogueService.getDialogue(context);
-    } catch {
-      return null;
-    }
-  }
-
-  private resolveLeadUnit(): UnitRecord | null {
-    const activeSquad = this.sessionService.activeSquad();
-    const leadUnitId = activeSquad?.formation.find((entry) => entry.unit_instance_id)?.unit_instance_id
-      ?? activeSquad?.unit_ids.find((unitId) => typeof unitId === 'string' && unitId.length > 0)
-      ?? null;
-
-    if (leadUnitId) {
-      return this.sessionService.units().find((unit) => unit.id === leadUnitId) ?? null;
-    }
-
-    return this.sessionService.units()[0] ?? null;
-  }
 }
 

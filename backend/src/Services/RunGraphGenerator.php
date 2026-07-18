@@ -8,6 +8,38 @@ use RuntimeException;
 
 final class RunGraphGenerator
 {
+  /** @var array<int,array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>}> */
+  private const DIALOGUE_NODE_DEFINITIONS = [
+    [
+      'region_slug' => 'mystic_cave',
+      'dialogue_id' => 'start-run-kickoff',
+      'placement' => 'start',
+      'one_time' => true,
+      'tags' => ['lore'],
+    ],
+    [
+      'region_slug' => 'the_farm',
+      'dialogue_id' => 'farm-boss-intro',
+      'placement' => 'before_boss',
+      'one_time' => false,
+      'tags' => [],
+    ],
+    [
+      'region_slug' => 'the_farm',
+      'dialogue_id' => 'farm-shop-unlock',
+      'placement' => 'before_exit',
+      'one_time' => true,
+      'tags' => ['lore'],
+    ],
+    [
+      'region_slug' => 'mountains',
+      'dialogue_id' => 'mountains-archivist-first-contact',
+      'placement' => 'start',
+      'one_time' => true,
+      'tags' => ['lore'],
+    ],
+  ];
+
   /** @var array<string,array<string,int>> */
   private const REGION_CONFIG = [
     'mountains' => [
@@ -53,11 +85,46 @@ final class RunGraphGenerator
    */
   public function generate(int $regionId, string $regionSlug, string $seed): array
   {
+    if ($regionSlug === 'mystic_cave') {
+      return $this->generateMysticCave();
+    }
+
     if ($regionSlug === 'the_farm') {
       return $this->generateFarm($regionId);
     }
 
     return $this->generateProcedural($regionId, $regionSlug, $seed);
+  }
+
+  /**
+   * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>}
+   */
+  public function generateMysticCave(): array
+  {
+    $graph = [
+      'nodes' => [
+        [
+          'node_index' => 0,
+          'node_type' => 'dialogue',
+          'status' => 'available',
+          'meta' => [
+            'col' => 0,
+            'row' => 1,
+            'dialogue_id' => 'start-run-kickoff',
+            'one_time' => true,
+            'tags' => ['lore'],
+          ],
+        ],
+        ['node_index' => 1, 'node_type' => 'exit', 'status' => 'locked', 'meta' => ['col' => 1, 'row' => 1]],
+      ],
+      'edges' => [
+        ['from' => 0, 'to' => 1],
+      ],
+    ];
+
+    $this->validateGraph($graph['nodes'], $graph['edges']);
+
+    return $graph;
   }
 
   /**
@@ -91,6 +158,349 @@ final class RunGraphGenerator
     $this->validateGraph($graph['nodes'], $graph['edges']);
 
     return $graph;
+  }
+
+  /**
+   * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
+   * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>}
+   */
+  public function applyDialogueNodes(int $userId, string $regionSlug, array $graph): array
+  {
+    $definitions = $this->dialogueNodeDefinitionsForRegion($regionSlug);
+    $seenDialogues = $this->seenDialogueSet($userId);
+    $graph = $this->removeSeenOneTimeDialogueNodes($graph, $seenDialogues);
+
+    if ($definitions === []) {
+      $graph = $this->normalizeNodeIndexes($graph);
+      $this->validateGraph($graph['nodes'], $graph['edges']);
+      return $graph;
+    }
+
+    $hasShop = $this->hasFeatureUnlock($userId, 'shop');
+    foreach ($definitions as $definition) {
+      if ($regionSlug === 'mystic_cave' && $definition['dialogue_id'] === 'start-run-kickoff') {
+        continue;
+      }
+
+      if ($definition['dialogue_id'] === 'farm-boss-intro' && $hasShop) {
+        $definition['dialogue_id'] = 'farm-boss-intro-shop-unlocked';
+      }
+
+      if ($definition['one_time'] && isset($seenDialogues[$definition['dialogue_id']])) {
+        continue;
+      }
+
+      $graph = $this->insertDialogueNode($graph, $definition);
+    }
+
+    $graph = $this->normalizeNodeIndexes($graph);
+    $this->validateGraph($graph['nodes'], $graph['edges']);
+
+    return $graph;
+  }
+
+  /**
+   * @return array<int,array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>}>
+   */
+  private function dialogueNodeDefinitionsForRegion(string $regionSlug): array
+  {
+    return array_values(array_filter(
+      self::DIALOGUE_NODE_DEFINITIONS,
+      static fn(array $definition): bool => $definition['region_slug'] === $regionSlug,
+    ));
+  }
+
+  /**
+   * @return array<string,bool>
+   */
+  private function seenDialogueSet(int $userId): array
+  {
+    $stmt = $this->pdo->prepare("
+      SELECT `unlock_key`
+      FROM `user_unlocks`
+      WHERE `user_id` = ? AND `unlock_namespace` = 'dialogue'
+    ");
+    $stmt->execute([$userId]);
+
+    $seen = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $seen[(string)$row['unlock_key']] = true;
+    }
+
+    return $seen;
+  }
+
+  private function hasFeatureUnlock(int $userId, string $featureKey): bool
+  {
+    $stmt = $this->pdo->prepare("
+      SELECT 1
+      FROM `user_unlocks`
+      WHERE `user_id` = ? AND `unlock_namespace` = 'feature' AND `unlock_key` = ?
+      LIMIT 1
+    ");
+    $stmt->execute([$userId, $featureKey]);
+
+    return $stmt->fetchColumn() !== false;
+  }
+
+  /**
+   * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
+   * @param array<string,bool> $seenDialogues
+   * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>}
+   */
+  private function removeSeenOneTimeDialogueNodes(array $graph, array $seenDialogues): array
+  {
+    $removeIndexes = [];
+    foreach ($graph['nodes'] as $node) {
+      if ((string)($node['node_type'] ?? '') !== 'dialogue') {
+        continue;
+      }
+
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $dialogueId = (string)($meta['dialogue_id'] ?? '');
+      $oneTime = (bool)($meta['one_time'] ?? false);
+      if ($oneTime && $dialogueId !== '' && isset($seenDialogues[$dialogueId])) {
+        $removeIndexes[(int)$node['node_index']] = true;
+      }
+    }
+
+    if ($removeIndexes === []) {
+      return $graph;
+    }
+
+    $incoming = [];
+    $outgoing = [];
+    foreach ($graph['edges'] as $edge) {
+      $from = (int)$edge['from'];
+      $to = (int)$edge['to'];
+      $outgoing[$from][] = $to;
+      $incoming[$to][] = $from;
+    }
+
+    $edges = [];
+    foreach ($graph['edges'] as $edge) {
+      if (isset($removeIndexes[(int)$edge['from']]) || isset($removeIndexes[(int)$edge['to']])) {
+        continue;
+      }
+
+      $this->appendEdge($edges, (int)$edge['from'], (int)$edge['to']);
+    }
+
+    foreach (array_keys($removeIndexes) as $removedIndex) {
+      $parents = array_values(array_filter(
+        $incoming[$removedIndex] ?? [],
+        static fn(int $parentIndex): bool => !isset($removeIndexes[$parentIndex]),
+      ));
+      $children = array_values(array_filter(
+        $outgoing[$removedIndex] ?? [],
+        static fn(int $childIndex): bool => !isset($removeIndexes[$childIndex]),
+      ));
+
+      foreach ($parents as $parentIndex) {
+        foreach ($children as $childIndex) {
+          $this->appendEdge($edges, $parentIndex, $childIndex);
+        }
+      }
+
+      if ($parents === []) {
+        foreach ($graph['nodes'] as $nodeIndex => $node) {
+          if (in_array((int)$node['node_index'], $children, true)) {
+            $graph['nodes'][$nodeIndex]['status'] = 'available';
+          }
+        }
+      }
+    }
+
+    $graph['nodes'] = array_values(array_filter(
+      $graph['nodes'],
+      static fn(array $node): bool => !isset($removeIndexes[(int)$node['node_index']]),
+    ));
+    $graph['edges'] = $edges;
+
+    return $graph;
+  }
+
+  /**
+   * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
+   * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>} $definition
+   * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>}
+   */
+  private function insertDialogueNode(array $graph, array $definition): array
+  {
+    return match ($definition['placement']) {
+      'start' => $this->insertDialogueAtStart($graph, $definition),
+      'before_boss' => $this->insertDialogueBeforeType($graph, $definition, 'boss'),
+      'before_exit' => $this->insertDialogueBeforeType($graph, $definition, 'exit'),
+      default => $graph,
+    };
+  }
+
+  /**
+   * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
+   * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>} $definition
+   * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>}
+   */
+  private function insertDialogueAtStart(array $graph, array $definition): array
+  {
+    $starts = [];
+    foreach ($graph['nodes'] as $index => $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $graph['nodes'][$index]['meta'] = [
+        ...$meta,
+        'col' => ((int)($meta['col'] ?? 0)) + 1,
+      ];
+
+      if ((string)($node['status'] ?? '') === 'available') {
+        $graph['nodes'][$index]['status'] = 'locked';
+        $starts[] = (int)$node['node_index'];
+      }
+    }
+
+    if ($starts === []) {
+      return $graph;
+    }
+
+    $dialogueIndex = $this->nextNodeIndex($graph['nodes']);
+    $graph['nodes'][] = $this->dialogueNode($dialogueIndex, $definition, 'available', 0, 1);
+    foreach ($starts as $startIndex) {
+      $this->appendEdge($graph['edges'], $dialogueIndex, $startIndex);
+    }
+
+    return $graph;
+  }
+
+  /**
+   * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
+   * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>} $definition
+   * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>}
+   */
+  private function insertDialogueBeforeType(array $graph, array $definition, string $targetType): array
+  {
+    $target = null;
+    foreach ($graph['nodes'] as $node) {
+      if ((string)($node['node_type'] ?? '') === $targetType) {
+        $target = $node;
+        break;
+      }
+    }
+
+    if ($target === null) {
+      return $graph;
+    }
+
+    $targetIndex = (int)$target['node_index'];
+    $targetMeta = is_array($target['meta'] ?? null) ? $target['meta'] : [];
+    $targetCol = (int)($targetMeta['col'] ?? 0);
+    $targetRow = (int)($targetMeta['row'] ?? 0);
+
+    foreach ($graph['nodes'] as $index => $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $col = (int)($meta['col'] ?? 0);
+      if ($col >= $targetCol) {
+        $graph['nodes'][$index]['meta'] = [
+          ...$meta,
+          'col' => $col + 1,
+        ];
+      }
+    }
+
+    $dialogueIndex = $this->nextNodeIndex($graph['nodes']);
+    $graph['nodes'][] = $this->dialogueNode($dialogueIndex, $definition, 'locked', $targetCol, $targetRow);
+
+    $rewiredEdges = [];
+    foreach ($graph['edges'] as $edge) {
+      if ((int)$edge['to'] === $targetIndex) {
+        $this->appendEdge($rewiredEdges, (int)$edge['from'], $dialogueIndex);
+        continue;
+      }
+
+      $this->appendEdge($rewiredEdges, (int)$edge['from'], (int)$edge['to']);
+    }
+    $this->appendEdge($rewiredEdges, $dialogueIndex, $targetIndex);
+    $graph['edges'] = $rewiredEdges;
+
+    return $graph;
+  }
+
+  /**
+   * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>} $definition
+   * @return array<string,mixed>
+   */
+  private function dialogueNode(int $nodeIndex, array $definition, string $status, int $col, int $row): array
+  {
+    return [
+      'node_index' => $nodeIndex,
+      'node_type' => 'dialogue',
+      'status' => $status,
+      'encounter_template_id' => null,
+      'meta' => [
+        'col' => $col,
+        'row' => $row,
+        'dialogue_id' => $definition['dialogue_id'],
+        'one_time' => $definition['one_time'],
+        'placement' => $definition['placement'],
+        'tags' => $definition['tags'],
+      ],
+    ];
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   */
+  private function nextNodeIndex(array $nodes): int
+  {
+    $maxIndex = -1;
+    foreach ($nodes as $node) {
+      $maxIndex = max($maxIndex, (int)($node['node_index'] ?? -1));
+    }
+
+    return $maxIndex + 1;
+  }
+
+  /**
+   * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
+   * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>}
+   */
+  private function normalizeNodeIndexes(array $graph): array
+  {
+    $nodes = $graph['nodes'];
+    usort($nodes, static function (array $left, array $right): int {
+      $leftMeta = is_array($left['meta'] ?? null) ? $left['meta'] : [];
+      $rightMeta = is_array($right['meta'] ?? null) ? $right['meta'] : [];
+      $leftCol = (int)($leftMeta['col'] ?? 0);
+      $rightCol = (int)($rightMeta['col'] ?? 0);
+      if ($leftCol !== $rightCol) {
+        return $leftCol <=> $rightCol;
+      }
+
+      $leftRow = (int)($leftMeta['row'] ?? 0);
+      $rightRow = (int)($rightMeta['row'] ?? 0);
+      if ($leftRow !== $rightRow) {
+        return $leftRow <=> $rightRow;
+      }
+
+      return ((int)($left['node_index'] ?? 0)) <=> ((int)($right['node_index'] ?? 0));
+    });
+
+    $indexMap = [];
+    foreach ($nodes as $newIndex => $node) {
+      $oldIndex = (int)$node['node_index'];
+      $indexMap[$oldIndex] = $newIndex;
+      $nodes[$newIndex]['node_index'] = $newIndex;
+    }
+
+    $edges = [];
+    foreach ($graph['edges'] as $edge) {
+      $from = $indexMap[(int)$edge['from']] ?? null;
+      $to = $indexMap[(int)$edge['to']] ?? null;
+      if ($from === null || $to === null) {
+        continue;
+      }
+
+      $this->appendEdge($edges, $from, $to);
+    }
+
+    return ['nodes' => $nodes, 'edges' => $edges];
   }
 
   /**
@@ -398,7 +808,7 @@ final class RunGraphGenerator
 
     foreach ($nodes as $index => $node) {
       $nodeType = (string)($node['node_type'] ?? '');
-      if ($nodeType === 'exit') {
+      if ($nodeType === 'exit' || $nodeType === 'dialogue') {
         continue;
       }
 
@@ -468,8 +878,8 @@ final class RunGraphGenerator
     if (count($availableStarts) !== 1) {
       throw new RuntimeException('Run graph must contain exactly one available starting node.');
     }
-    if (count($bossIndexes) !== 1) {
-      throw new RuntimeException('Run graph must contain exactly one boss node.');
+    if (count($bossIndexes) > 1) {
+      throw new RuntimeException('Run graph must contain at most one boss node.');
     }
     if (count($exitIndexes) !== 1) {
       throw new RuntimeException('Run graph must contain exactly one exit node.');
@@ -513,37 +923,42 @@ final class RunGraphGenerator
     }
 
     $reachableFromStart = $this->reachableNodeIndexes($startIndex, $outgoing);
-    $bossIndex = $bossIndexes[0];
+    $bossIndex = $bossIndexes[0] ?? null;
     $exitIndex = $exitIndexes[0];
-    $bossCol = (int)$nodeIndexes[$bossIndex]['meta']['col'];
     $exitCol = (int)$nodeIndexes[$exitIndex]['meta']['col'];
 
     if ($exitCol !== $maxCol) {
       throw new RuntimeException('Exit must be the right-most node in the run graph.');
     }
-    if ($bossCol !== $exitCol - 1) {
-      throw new RuntimeException('Boss must appear immediately before the exit column.');
-    }
 
-    foreach ($nodeIndexes as $nodeIndex => $node) {
-      if ($nodeIndex === $exitIndex) {
-        continue;
+    if ($bossIndex !== null) {
+      $bossCol = (int)$nodeIndexes[$bossIndex]['meta']['col'];
+      if ($bossCol > $exitCol - 1) {
+        throw new RuntimeException('Boss must appear before the exit column.');
       }
-      if ((int)$node['meta']['col'] > $bossCol) {
-        throw new RuntimeException('No non-exit nodes may appear to the right of the boss.');
-      }
-    }
 
-    if (!isset($reachableFromStart[$bossIndex])) {
-      throw new RuntimeException('Boss must be reachable from the start node.');
+      foreach ($nodeIndexes as $nodeIndex => $node) {
+        if ($nodeIndex === $exitIndex) {
+          continue;
+        }
+        if ((int)$node['meta']['col'] > $exitCol) {
+          throw new RuntimeException('No non-exit nodes may appear to the right of the exit.');
+        }
+      }
+
+      if (!isset($reachableFromStart[$bossIndex])) {
+        throw new RuntimeException('Boss must be reachable from the start node.');
+      }
     }
     if (!isset($reachableFromStart[$exitIndex])) {
       throw new RuntimeException('Exit must be reachable from the start node.');
     }
 
-    $reachableFromBoss = $this->reachableNodeIndexes($bossIndex, $outgoing);
-    if (!isset($reachableFromBoss[$exitIndex])) {
-      throw new RuntimeException('Exit must be reachable from the boss node.');
+    if ($bossIndex !== null) {
+      $reachableFromBoss = $this->reachableNodeIndexes($bossIndex, $outgoing);
+      if (!isset($reachableFromBoss[$exitIndex])) {
+        throw new RuntimeException('Exit must be reachable from the boss node.');
+      }
     }
 
     foreach (array_keys($nodeIndexes) as $nodeIndex) {
@@ -579,13 +994,13 @@ final class RunGraphGenerator
         $hasBossRoute = false;
         foreach ($alternateChildren as $alternateChild) {
           $reachable = $this->reachableNodeIndexes($alternateChild, $outgoing);
-          if (isset($reachable[$bossIndex])) {
+          if ($bossIndex !== null && isset($reachable[$bossIndex])) {
             $hasBossRoute = true;
             break;
           }
         }
 
-        if (!$hasBossRoute) {
+        if ($bossIndex !== null && !$hasBossRoute) {
           throw new RuntimeException('Dead ends must not block access to the boss path.');
         }
       }

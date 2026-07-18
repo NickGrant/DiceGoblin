@@ -15,7 +15,7 @@
     </div>
   }
 
-  <div class="region-page-shell" [class.region-page-shell--dialogue-open]="!!activeDialogue()">
+  <div class="region-page-shell">
     <section class="region-page dg-proto-shell">
       <section class="region-page__layout dg-proto-split">
         <div class="region-page__primary dg-proto-section">
@@ -126,24 +126,6 @@
         }
       </section>
     </section>
-
-    @if (activeDialogue()) {
-      <div
-        class="region-page__dialogue"
-        aria-label="Start run introduction"
-        aria-modal="true"
-        role="dialog"
-      >
-        <dg-dialogue-stage
-          [script]="activeDialogue()!"
-          (complete)="
-            pendingRegionDialogue()
-              ? handlePendingRegionDialogueComplete($event)
-              : handleStartRunIntroComplete($event)
-          "
-        />
-      </div>
-    }
   </div>
 
   <dg-confirm-modal

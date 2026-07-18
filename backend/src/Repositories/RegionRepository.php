@@ -16,6 +16,7 @@ final class RegionRepository
 {
   /** @var array<string,string> */
   private const REGION_COMPLETION_UNLOCKS = [
+    'mystic_cave' => 'the_farm',
     'the_farm' => 'mountains',
     'mountains' => 'swamps',
   ];

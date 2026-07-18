@@ -6,7 +6,9 @@
       "summary": "The Whim explains what happened to goblinkind and sends your first fragment toward The Farm.",
       "tags": ["lore"],
       "trigger": {
-        "scene": "start-run",
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
+        "region_slug": "mystic_cave",
         "tags": ["kickoff"]
       },
       "presentation": {
@@ -104,8 +106,8 @@
     {
       "id": "farm-boss-intro-shop-unlocked",
       "trigger": {
-        "scene": "run-node",
-        "node_type": "boss",
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
         "region_slug": "the_farm",
         "tags": ["shop-unlocked"]
       },
@@ -178,8 +180,8 @@
     {
       "id": "farm-boss-intro",
       "trigger": {
-        "scene": "run-node",
-        "node_type": "boss",
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
         "region_slug": "the_farm"
       },
       "presentation": {
@@ -254,7 +256,8 @@
       "summary": "The Archivist discovers that goblins still exist and decides the record must be corrected.",
       "tags": ["lore"],
       "trigger": {
-        "scene": "start-run",
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
         "region_slug": "mountains",
         "tags": ["first-visit"]
       },
@@ -320,7 +323,8 @@
       "summary": "The Mudking releases The Tooth Collector, opening the shop and its teeth-for-power economy.",
       "tags": ["lore"],
       "trigger": {
-        "scene": "run-summary",
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
         "region_slug": "the_farm",
         "tags": ["shop-unlocked"]
       },

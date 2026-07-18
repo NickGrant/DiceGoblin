@@ -15,7 +15,7 @@ final class StarterPackProvisioningService
   private const SHOP_UNLOCK_REGION_SLUG = 'mountains';
 
   /** @var list<string> */
-  private const STARTING_REGION_SLUGS = ['the_farm'];
+  private const STARTING_REGION_SLUGS = ['mystic_cave'];
 
   /** @var list<string> */
   private const STARTER_UNIT_UNLOCK_SLUGS = [

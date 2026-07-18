@@ -1,13 +1,10 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DiceRecord, RunSummaryPayload, UnitRecord } from '../../core/models/api.models';
-import { DialogueChoiceSelection, DialogueScript } from '../../core/dialogue/dialogue.models';
-import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 import {
@@ -51,7 +48,6 @@ type SquadOutcomeCard = {
   imports: [
     DgAlertComponent,
     DgCommandBtnDirective,
-    DgDialogueStageComponent,
     PageFrameComponent,
     RouterLink,
     UnitGridObjectComponent,
@@ -60,21 +56,14 @@ type SquadOutcomeCard = {
   styleUrl: './run-summary-page.component.scss',
 })
 export class RunSummaryPageComponent {
-  private static readonly SHOP_UNLOCK_DIALOGUE_ID = 'farm-shop-unlock';
-  private static readonly PLAYER_DIALOGUE_PORTRAIT =
-    '/assets/dialogue/portraits/goblin/base_frame_0.png';
-
   private readonly runService = inject(RunService);
   private readonly sessionService = inject(SessionService);
-  private readonly dialogueService = inject(DialogueService);
-  private lastDialogueSummaryKey: string | null = null;
 
   readonly summary = this.runService.summary;
   readonly units = this.sessionService.units;
   readonly dice = this.sessionService.dice;
   readonly profileData = this.sessionService.profileData;
   readonly session = this.sessionService.session;
-  readonly summaryDialogue = signal<DialogueScript | null>(null);
   readonly rewardUnitLabels = computed<string[]>(() => {
     const structured = this.rewardUnits().map((card) => card.unit.name);
     return this.uniqueLabels([...structured, ...this.rewardUnitFallbackLabels()]);
@@ -290,38 +279,6 @@ export class RunSummaryPageComponent {
       this.rewardDiceFallbackLabels().length === 0,
   );
 
-  constructor() {
-    effect(() => {
-      const summary = this.summary();
-      const profileData = this.profileData();
-      if (!summary || !profileData) {
-        this.lastDialogueSummaryKey = null;
-        return;
-      }
-
-      const summaryKey = [
-        summary.title,
-        summary.status,
-        summary.meta?.completed_region_slug ?? '',
-        (summary.meta?.new_feature_unlocks ?? []).join(','),
-      ].join('|');
-      if (summaryKey === this.lastDialogueSummaryKey) {
-        return;
-      }
-      this.lastDialogueSummaryKey = summaryKey;
-
-      if (
-        summary.meta?.completed_region_slug !== 'the_farm' ||
-        !(summary.meta?.new_feature_unlocks ?? []).includes('shop') ||
-        (profileData.seen_dialogues ?? []).includes(RunSummaryPageComponent.SHOP_UNLOCK_DIALOGUE_ID)
-      ) {
-        return;
-      }
-
-      void this.loadShopUnlockDialogue();
-    });
-  }
-
   progressBar(card: ProgressionCard): UnitGridObjectProgressBar {
     return {
       percent: card.progressPercent,
@@ -524,32 +481,4 @@ export class RunSummaryPageComponent {
     });
   }
 
-  async handleSummaryDialogueComplete(_choiceHistory: DialogueChoiceSelection[]): Promise<void> {
-    this.summaryDialogue.set(null);
-
-    try {
-      await this.dialogueService.markDialogueSeen(RunSummaryPageComponent.SHOP_UNLOCK_DIALOGUE_ID);
-      await this.sessionService.refreshProfile({ force: true });
-    } catch {
-      // Keep the summary usable if dialogue persistence fails.
-    }
-  }
-
-  private async loadShopUnlockDialogue(): Promise<void> {
-    try {
-      const dialogue = await this.dialogueService.getDialogue({
-        scene: 'run-summary',
-        regionSlug: 'the_farm',
-        tags: ['shop-unlocked'],
-        playerName: this.session().displayName,
-        playerPortraitUrl: RunSummaryPageComponent.PLAYER_DIALOGUE_PORTRAIT,
-      });
-
-      if (dialogue) {
-        this.summaryDialogue.set(dialogue);
-      }
-    } catch {
-      // Keep the summary usable if dialogue assets fail to load.
-    }
-  }
 }

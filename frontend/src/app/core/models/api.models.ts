@@ -265,7 +265,7 @@ export type CurrentRunRecord = {
 };
 
 export type RunNodeStatus = 'available' | 'locked' | 'cleared' | string;
-export type RunNodeType = 'combat' | 'loot' | 'rest' | 'boss' | 'exit' | string;
+export type RunNodeType = 'combat' | 'loot' | 'rest' | 'boss' | 'exit' | 'dialogue' | string;
 
 export type CurrentRunNode = {
   id: string;
@@ -413,6 +413,19 @@ export type ResolveNodeData = {
 };
 
 export type ResolveNodeResponse = ApiResponse<ResolveNodeData>;
+
+export type DialogueNodeCompleteData = {
+  node: {
+    id: string;
+    status: string;
+    dialogue_id: string;
+  };
+  next: {
+    unlocked_node_ids: string[];
+  };
+};
+
+export type DialogueNodeCompleteResponse = ApiResponse<DialogueNodeCompleteData>;
 
 export type BattleClaimData = {
   battle_id: string;

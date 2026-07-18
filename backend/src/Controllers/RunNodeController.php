@@ -31,6 +31,7 @@ use DiceGoblins\Services\RunLifecycleService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\SquadCapacityService;
 use DiceGoblins\Services\UserAssetGrantService;
+use DiceGoblins\Services\UserUnlockService;
 use DiceGoblins\Support\RunSummaryBuilder;
 
 use PDO;
@@ -169,6 +170,18 @@ final class RunNodeController
           'error' => [
             'code' => 'invalid_node_type',
             'message' => 'Exit nodes are completed via /api/v1/runs/:runId/exit.',
+          ],
+        ], 409);
+        return;
+      }
+
+      if ((string)$node['node_type'] === 'dialogue') {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'invalid_node_type',
+            'message' => 'Dialogue nodes are completed via /api/v1/runs/:runId/nodes/:nodeId/dialogue/complete.',
           ],
         ], 409);
         return;
@@ -389,6 +402,158 @@ final class RunNodeController
     }
   }
 
+  public function completeDialogueNode(?string $runId = null, ?string $nodeId = null): void
+  {
+    $svc = $this->services();
+
+    try {
+      $userId = $svc['sessionService']->requireUserId();
+    } catch (Throwable $e) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'unauthorized',
+          'message' => 'No active session.',
+        ],
+      ], 401);
+      return;
+    }
+
+    if (!$this->requireCsrf($svc['csrfService'])) {
+      return;
+    }
+
+    $runIdInt = $this->requirePositiveInt($runId, 'runId');
+    $nodeIdInt = $this->requirePositiveInt($nodeId, 'nodeId');
+    if ($runIdInt === null || $nodeIdInt === null) {
+      return;
+    }
+
+    /** @var PDO $pdo */
+    $pdo = $svc['pdo'];
+
+    try {
+      $pdo->beginTransaction();
+
+      $run = $svc['runRepo']->getRunForUser($userId, $runIdInt);
+      if ($run === null) {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'forbidden',
+            'message' => 'Run not found or not owned by user.',
+          ],
+        ], 403);
+        return;
+      }
+
+      if (($run['status'] ?? null) !== 'active') {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'run_not_active',
+            'message' => 'Run is not active.',
+          ],
+        ], 409);
+        return;
+      }
+
+      $svc['runNodeRepo']->syncAvailableNodesFromClearedParents($runIdInt);
+      $node = $svc['runNodeRepo']->getForUpdate($runIdInt, $nodeIdInt);
+      if ($node === null) {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'not_found',
+            'message' => 'Node not found for run.',
+          ],
+        ], 404);
+        return;
+      }
+
+      if ((string)$node['node_type'] !== 'dialogue') {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'invalid_node_type',
+            'message' => 'Only dialogue nodes may be completed through this endpoint.',
+          ],
+        ], 409);
+        return;
+      }
+
+      $meta = $this->decodeMetaJson($node['meta_json'] ?? null);
+      $dialogueId = trim((string)($meta['dialogue_id'] ?? ''));
+      if ($dialogueId === '' || !preg_match('/^[a-z0-9][a-z0-9_-]*$/', $dialogueId)) {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'invalid_dialogue_node',
+            'message' => 'Dialogue node is missing a valid dialogue id.',
+          ],
+        ], 409);
+        return;
+      }
+
+      if ((string)$node['status'] === 'locked') {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'node_not_available',
+            'message' => 'Node is locked.',
+          ],
+        ], 409);
+        return;
+      }
+
+      $unlocked = [];
+      if ((string)$node['status'] !== 'cleared') {
+        $svc['userUnlockService']->grant($userId, UserUnlockService::NAMESPACE_DIALOGUE, $dialogueId);
+        $svc['runNodeRepo']->markCleared($runIdInt, $nodeIdInt);
+        $unlocked = $this->unlockFromNode(
+          $svc['runEdgeRepo'],
+          $svc['runNodeRepo'],
+          $runIdInt,
+          $nodeIdInt
+        );
+      }
+
+      $pdo->commit();
+
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'node' => [
+            'id' => (string)$nodeIdInt,
+            'status' => 'completed',
+            'dialogue_id' => $dialogueId,
+          ],
+          'next' => [
+            'unlocked_node_ids' => array_map('strval', $unlocked),
+          ],
+        ],
+      ]);
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+      }
+
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'server_error',
+          'message' => 'Unexpected error.',
+        ],
+      ], 500);
+    }
+  }
+
   /**
    * @return array<string,mixed>|null
    */
@@ -404,6 +569,19 @@ final class RunNodeController
     }
 
     return $decoded;
+  }
+
+  /**
+   * @return array<string,mixed>
+   */
+  private function decodeMetaJson(mixed $metaJson): array
+  {
+    if (!is_string($metaJson) || $metaJson === '') {
+      return [];
+    }
+
+    $decoded = json_decode($metaJson, true);
+    return is_array($decoded) ? $decoded : [];
   }
 
   /**
@@ -505,6 +683,7 @@ final class RunNodeController
    *   resolver: DeterministicRunNodeResolver,
    *   runLifecycleService: RunLifecycleService,
    *   userAssetGrantService: UserAssetGrantService,
+   *   userUnlockService: UserUnlockService,
    *   sessionService: SessionService,
    *   csrfService: CsrfService
    * }
@@ -531,6 +710,7 @@ final class RunNodeController
         new RunNodeRepository($pdo),
       ),
       'userAssetGrantService' => new UserAssetGrantService($pdo),
+      'userUnlockService' => new UserUnlockService($pdo),
       'sessionService' => $core['sessionService'],
       'csrfService' => $core['csrfService'],
     ];

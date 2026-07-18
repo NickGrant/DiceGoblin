@@ -1,33 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { RunNodePageComponent } from './run-node-page.component';
-import { DialogueScript } from '../../core/dialogue/dialogue.models';
 import { AbilityCatalogService } from '../../core/services/ability-catalog/ability-catalog.service';
-import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
-
-const FARM_BOSS_DIALOGUE: DialogueScript = {
-  id: 'farm-boss-intro',
-  backgroundUrl: '/assets/ui/biome/farm.png',
-  startStepId: 'intro',
-  speakers: [
-    { id: 'mudking', side: 'right', name: 'Mudking', portraitUrl: '/assets/ui/units/pig_mudking.png', party: 'enemy', role: 'npc' },
-    { id: 'player', side: 'left', name: 'Ashback', portraitUrl: '/assets/ui/units/goblin_bruiser.png', party: 'player', role: 'player' },
-  ],
-  steps: [
-    { id: 'intro', speakerId: 'mudking', text: 'Are you here to fight me', nextStepId: 'answer', choices: [], enterEffect: null },
-    {
-      id: 'answer',
-      speakerId: 'player',
-      text: 'How do you answer?',
-      nextStepId: null,
-      enterEffect: null,
-      choices: [{ id: 'yes', label: 'yes', nextStepId: 'yes-response' }],
-    },
-    { id: 'yes-response', speakerId: 'mudking', text: 'Good!', nextStepId: null, choices: [], enterEffect: null },
-  ],
-};
 
 class RunServiceStub {
   getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
@@ -168,10 +144,6 @@ class AbilityCatalogServiceStub {
   load = jasmine.createSpy('load').and.resolveTo();
 }
 
-class DialogueServiceStub {
-  getDialogue = jasmine.createSpy('getDialogue').and.resolveTo(null);
-}
-
 describe('RunNodePageComponent', () => {
   it('loads the active run id on startup', async () => {
     await TestBed.configureTestingModule({
@@ -181,7 +153,6 @@ describe('RunNodePageComponent', () => {
         { provide: RunService, useClass: RunServiceStub },
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
-        { provide: DialogueService, useClass: DialogueServiceStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
@@ -202,7 +173,6 @@ describe('RunNodePageComponent', () => {
         { provide: RunService, useClass: RunServiceStub },
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
-        { provide: DialogueService, useClass: DialogueServiceStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
@@ -234,7 +204,6 @@ describe('RunNodePageComponent', () => {
         { provide: RunService, useValue: runService },
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
-        { provide: DialogueService, useClass: DialogueServiceStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
@@ -258,7 +227,6 @@ describe('RunNodePageComponent', () => {
         { provide: RunService, useClass: RunServiceStub },
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
-        { provide: DialogueService, useClass: DialogueServiceStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
@@ -295,7 +263,6 @@ describe('RunNodePageComponent', () => {
         { provide: RunService, useValue: runService },
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
-        { provide: DialogueService, useClass: DialogueServiceStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
@@ -320,7 +287,6 @@ describe('RunNodePageComponent', () => {
         { provide: RunService, useClass: RunServiceStub },
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
-        { provide: DialogueService, useClass: DialogueServiceStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
@@ -384,120 +350,4 @@ describe('RunNodePageComponent', () => {
     expect(host.querySelector('button[dgcommandbtn], button[dgCommandBtn]')).not.toBeNull();
   });
 
-  it('shows dialogue before resolving the farm boss node', async () => {
-    const runService = new RunServiceStub();
-    runService.getCurrentRun.and.resolveTo({
-        ok: true,
-        data: {
-        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'the_farm', region_theme: 'farm' },
-        map: {
-          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'boss', status: 'available' }],
-          edges: [],
-        },
-      },
-    });
-    const dialogueService = new DialogueServiceStub();
-    dialogueService.getDialogue.and.resolveTo(FARM_BOSS_DIALOGUE);
-
-    await TestBed.configureTestingModule({
-      imports: [RunNodePageComponent],
-      providers: [
-        provideRouter([]),
-        { provide: RunService, useValue: runService },
-        { provide: SessionService, useClass: SessionServiceStub },
-        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
-        { provide: DialogueService, useValue: dialogueService },
-        {
-          provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
-        },
-      ],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(RunNodePageComponent);
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(runService.resolveNode).not.toHaveBeenCalled();
-    expect(dialogueService.getDialogue).toHaveBeenCalledWith(
-      jasmine.objectContaining({
-        scene: 'run-node',
-        nodeType: 'boss',
-        regionSlug: 'the_farm',
-        tags: ['farm'],
-        playerName: 'Commander',
-        playerPortraitUrl: '/assets/dialogue/portraits/goblin/base_frame_0.png',
-      }),
-    );
-    expect(fixture.componentInstance.dialogue()?.id).toBe('farm-boss-intro');
-
-    const host: HTMLElement = fixture.nativeElement;
-    expect(host.textContent).toContain('Are you here to fight me');
-
-    const continueSurface = host.querySelector('.dialogue-stage') as HTMLElement;
-    continueSurface.click();
-    fixture.detectChanges();
-
-    const choiceButton = host.querySelector('.dialogue-stage__choice') as HTMLButtonElement;
-    choiceButton.click();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    continueSurface.click();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', 'n1');
-    expect(fixture.componentInstance.result()?.battle.battle_id).toBe('b1');
-  });
-
-  it('passes the shop-unlocked tag for farm boss dialogue after the Tooth Collector is freed', async () => {
-    const runService = new RunServiceStub();
-    runService.getCurrentRun.and.resolveTo({
-      ok: true,
-      data: {
-        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'the_farm', region_theme: 'farm' },
-        map: {
-          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'boss', status: 'available' }],
-          edges: [],
-        },
-      },
-    });
-    const dialogueService = new DialogueServiceStub();
-    const sessionService = new SessionServiceStub();
-    sessionService.profileData.and.returnValue({
-      feature_unlocks: ['shop'],
-      regions: [
-        { id: 'region-1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: true, unlocked_at: '2026-06-01T00:00:00Z' },
-      ],
-      region_unlocks: [{ region_id: 'region-1', region_slug: 'the_farm', unlocked_at: '2026-06-01T00:00:00Z' }],
-    });
-
-    await TestBed.configureTestingModule({
-      imports: [RunNodePageComponent],
-      providers: [
-        provideRouter([]),
-        { provide: RunService, useValue: runService },
-        { provide: SessionService, useValue: sessionService },
-        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
-        { provide: DialogueService, useValue: dialogueService },
-        {
-          provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
-        },
-      ],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(RunNodePageComponent);
-    await fixture.whenStable();
-
-    expect(dialogueService.getDialogue).toHaveBeenCalledWith(
-      jasmine.objectContaining({
-        scene: 'run-node',
-        nodeType: 'boss',
-        regionSlug: 'the_farm',
-        tags: ['farm', 'shop-unlocked'],
-      }),
-    );
-  });
 });

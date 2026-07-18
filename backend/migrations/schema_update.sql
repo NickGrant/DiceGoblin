@@ -1828,6 +1828,28 @@ SET `entries_json` = JSON_SET(`entries_json`, '$.drops.units.chance', 0.12)
 WHERE `slug` IN ('kobold_boss_loot', 'frogman_boss_loot');
 -- END MIGRATION: 52_rebalance_unit_drop_rates.sql
 
+-- BEGIN MIGRATION: 56_dialogue_run_nodes_and_mystic_cave.sql
+ALTER TABLE `run_nodes`
+  MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit','dialogue') NOT NULL;
+
+INSERT INTO `regions` (
+  `slug`,
+  `name`,
+  `theme`,
+  `recommended_level`,
+  `energy_cost`,
+  `is_enabled`
+)
+VALUES
+  ('mystic_cave', 'Mystic Cave', 'mystic_cave', 1, 0, 1)
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `theme` = VALUES(`theme`),
+  `recommended_level` = VALUES(`recommended_level`),
+  `energy_cost` = VALUES(`energy_cost`),
+  `is_enabled` = VALUES(`is_enabled`);
+-- END MIGRATION: 56_dialogue_run_nodes_and_mystic_cave.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 SET FOREIGN_KEY_CHECKS=1;
 -- END MIGRATION: 99_finalize.sql

@@ -379,6 +379,7 @@ final class ApiController
       if ($treasureSenseRevealChance > 0.0) {
         $graph = $graphGenerator->applyTreasureSenseReveal($regionId, $graph, (string)$seed, $treasureSenseRevealChance);
       }
+      $graph = $graphGenerator->applyDialogueNodes($userId, (string)$region['slug'], $graph);
 
       $created = $services['runRepo']->createRunGraph(
         $userId,
