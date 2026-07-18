@@ -17,12 +17,9 @@ Dice Goblins is a browser-based tactical RPG/roguelite in active alpha launch, b
 
 ## Prerequisites
 - Docker Desktop (or Docker Engine + Compose)
+- Node.js 22+ and npm for root/frontend convenience scripts
 
-Optional (non-Docker local dev):
-- Node.js 22+
-- npm
-- PHP 8.3+
-- MySQL 8+
+Docker is the supported local runtime for the backend, PHP, MySQL, and backend tests. If Docker is not running during local work, ask the user to start Docker before running backend or database commands. CI/pipeline scripts still run on the host tools installed by GitHub Actions.
 
 ## Quick Start (Docker)
 1. Start services:
@@ -35,11 +32,18 @@ docker compose exec -T db mysql -udice -pdicepass dice_goblins < backend/migrati
 ```
 3. Provision and reset the dedicated backend test database:
 ```bash
-npm run test:db:provision
-npm run test:db:reset
+docker compose exec -T db mysql -uroot -prootpass < backend/docker/mysql/init/01-create-test-db.sql
+docker compose exec -T db mysql -uroot -prootpass -e "DROP DATABASE IF EXISTS goblin_test; CREATE DATABASE goblin_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON goblin_test.* TO 'dice_test'@'%'; FLUSH PRIVILEGES;"
+docker compose exec -T db mysql -uroot -prootpass goblin_test < backend/migrations/schema_all.sql
+```
+PowerShell equivalent:
+```powershell
+Get-Content -Raw backend/docker/mysql/init/01-create-test-db.sql | docker compose exec -T db mysql -uroot -prootpass
+docker compose exec -T db mysql -uroot -prootpass -e "DROP DATABASE IF EXISTS goblin_test; CREATE DATABASE goblin_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON goblin_test.* TO 'dice_test'@'%'; FLUSH PRIVILEGES;"
+Get-Content -Raw backend/migrations/schema_all.sql | docker compose exec -T db mysql -uroot -prootpass goblin_test
 ```
 Note:
-`test:db:provision` is safe to rerun and is especially useful for existing Docker volumes, since MySQL init scripts only run on first container initialization.
+The provision command is safe to rerun and is especially useful for existing Docker volumes, since MySQL init scripts only run on first container initialization.
 4. Open apps:
 - Frontend: http://localhost:5173
 - Backend health endpoint: http://localhost:8080/api/v1/health
@@ -64,6 +68,17 @@ npm install
 npm run dev
 npm run build
 npm run test -- --watch=false --browsers=ChromeHeadless
+```
+
+## Backend Test Commands
+Run backend tests in CI or any host environment with Composer/PHP installed:
+```bash
+npm run test:backend
+```
+
+Run backend tests locally through Docker:
+```bash
+npm run test:backend:docker
 ```
 
 ## API Surface (Current Core)
@@ -130,5 +145,5 @@ powershell -ExecutionPolicy Bypass -File scripts/watch-repo-sync.ps1 -DurationMi
 - CORS/session issues: verify `DEV_ALLOWED_ORIGINS` in `backend/.env` includes both `http://localhost:5173` and `http://127.0.0.1:5173`.
 - Scene screenshot capture: run `npm run capture:scene -- --scene <scene> --base-url http://127.0.0.1:5173/` one capture at a time against the shared local frontend.
 - Empty/missing data: re-apply `backend/migrations/schema_all.sql` to local DB.
-- Backend integration tests cannot connect: make sure Docker Desktop is running, then rerun `npm run test:db:provision` and `npm run test:db:reset`.
+- Backend integration tests cannot connect: make sure Docker Desktop is running, then rerun the Docker test DB provision/reset commands above.
 - Frontend cannot reach backend: verify the backend is listening on `:8080` and, if needed, inject a runtime API base URL via `window.__DICE_GOBLIN_CONFIG__.apiBaseUrl`.

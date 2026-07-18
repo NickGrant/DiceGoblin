@@ -178,6 +178,56 @@
       ]
     },
     {
+      "id": "mystic-cave-wrong-machine-reminder",
+      "title": "The Whim Waits",
+      "summary": "The Whim reminds your fragment to return after finding the Wrong Machine.",
+      "trigger": {
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
+        "region_slug": "mystic_cave"
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/mystic_cave.png"
+      },
+      "speakers": [
+        {
+          "id": "player",
+          "side": "left",
+          "party": "player",
+          "role": "player",
+          "portrait_url": "/assets/dialogue/portraits/goblin/base_frame_0.png"
+        },
+        {
+          "id": "whim",
+          "side": "right",
+          "name": "The Whim",
+          "portrait_url": "/assets/dialogue/portraits/whim/frame_0.png",
+          "party": "neutral",
+          "role": "npc"
+        }
+      ],
+      "start_step_id": "whim-wrong-machine",
+      "steps": [
+        {
+          "id": "whim-wrong-machine",
+          "speaker_id": "whim",
+          "text": "Still here, little fragment? Good. Wander, meddle, make mistakes. When you find the Wrong Machine, come back to me.",
+          "next_step_id": "player-wrong-machine"
+        },
+        {
+          "id": "player-wrong-machine",
+          "speaker_id": "player",
+          "text": "The... Wrong Machine?",
+          "next_step_id": "whim-sendoff"
+        },
+        {
+          "id": "whim-sendoff",
+          "speaker_id": "whim",
+          "text": "You will know it by how badly it thinks it is right. Off you go."
+        }
+      ]
+    },
+    {
       "id": "farm-boss-intro",
       "trigger": {
         "scene": "run-dialogue",

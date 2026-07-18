@@ -55,7 +55,7 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertSame([['from' => 0, 'to' => 1]], $graph['edges']);
   }
 
-  public function testSeenOneTimeDialogueNodesAreRemovedFromGeneratedGraph(): void
+  public function testSeenMysticCaveIntroShowsRepeatWrongMachineReminder(): void
   {
     $userId = $this->insertUser();
     $this->grantUnlock($userId, 'dialogue', 'start-run-kickoff');
@@ -68,10 +68,15 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
       $generator->generate($regionId, 'mystic_cave', 'mystic-seed'),
     );
 
-    $this->assertCount(1, $graph['nodes']);
-    $this->assertSame('exit', (string)$graph['nodes'][0]['node_type']);
+    $this->assertCount(2, $graph['nodes']);
+    $this->assertSame(
+      ['dialogue', 'exit'],
+      array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']),
+    );
     $this->assertSame('available', (string)$graph['nodes'][0]['status']);
-    $this->assertSame([], $graph['edges']);
+    $this->assertSame('mystic-cave-wrong-machine-reminder', (string)($graph['nodes'][0]['meta']['dialogue_id'] ?? ''));
+    $this->assertSame('locked', (string)$graph['nodes'][1]['status']);
+    $this->assertSame([['from' => 0, 'to' => 1]], $graph['edges']);
   }
 
   /**

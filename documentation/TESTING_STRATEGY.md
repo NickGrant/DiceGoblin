@@ -17,7 +17,10 @@ Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `AGENTS.md`, `documentatio
   - `npm.cmd --prefix frontend run test`
   - `npm.cmd --prefix frontend run build`
 - Backend changes:
-  - `composer --working-dir=backend test` (or backend equivalent)
+  - CI or host tools: `npm.cmd run test:backend`
+  - Local Docker: `npm.cmd run test:backend:docker`
+
+Docker is the preferred local backend/PHP/database toolchain. CI/pipeline verification uses host PHP/Composer from GitHub Actions. If Docker is not running during local work, ask the user to start Docker before running backend or database verification.
 
 ## Verification Matrix
 - Backend API/controller/repository changes:
