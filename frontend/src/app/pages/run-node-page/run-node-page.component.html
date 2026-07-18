@@ -23,88 +23,6 @@
   @if (!dialogue()) {
   <div class="node-screen">
     @if (!dialogue() && result()) {
-      @if (isLootNode()) {
-      <section class="loot-scene">
-        <div class="loot-scene__header">
-          <div>
-            <p class="loot-scene__eyebrow dg-stencil">Treasure Node</p>
-            <h2 class="loot-scene__title dg-stencil">Treasure Found</h2>
-            <p class="loot-scene__copy">Sweep the cache, clock the spoils, and move before the tunnel closes in.</p>
-          </div>
-          <div class="loot-scene__actions">
-            <span class="dg-proto-chip">{{ battleStatusLabel() }}</span>
-            <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
-              {{ claimButtonLabel() }}
-            </button>
-          </div>
-        </div>
-
-        <div class="loot-scene__kpis">
-          <article class="dg-proto-kpi">
-            <span>Teeth</span>
-            <strong>{{ lootRewards()?.teeth ?? 0 }}</strong>
-          </article>
-          <article class="dg-proto-kpi">
-            <span>Dice</span>
-            <strong>{{ lootDiceCards().length }}</strong>
-          </article>
-          <article class="dg-proto-kpi">
-            <span>Units</span>
-            <strong>{{ lootUnitCards().length }}</strong>
-          </article>
-          <article class="dg-proto-kpi">
-            <span>Next Paths</span>
-            <strong>{{ unlockedNodeCount() }}</strong>
-          </article>
-        </div>
-
-        <div class="loot-scene__stacks">
-          @if (lootDiceCards().length) {
-          <section class="loot-stack">
-            <div class="loot-stack__header">
-              <p class="loot-stack__eyebrow dg-stencil">Dice Loot</p>
-              <h3 class="loot-stack__title dg-stencil">Recovered Dice</h3>
-            </div>
-            <div class="loot-stack__grid">
-              @for (card of lootDiceCards(); track card.id) {
-              <article class="loot-card">
-                <div class="loot-card__media">
-                  <img [src]="card.imageUrl" [alt]="card.label" />
-                </div>
-                <p class="loot-card__meta">{{ card.meta }}</p>
-                <h4 class="loot-card__title dg-stencil">{{ card.label }}</h4>
-              </article>
-              }
-            </div>
-          </section>
-          }
-
-          @if (lootUnitCards().length) {
-          <section class="loot-stack">
-            <div class="loot-stack__header">
-              <p class="loot-stack__eyebrow dg-stencil">Unit Loot</p>
-              <h3 class="loot-stack__title dg-stencil">Fresh Recruits</h3>
-            </div>
-            <div class="loot-stack__grid">
-              @for (card of lootUnitCards(); track card.id) {
-              <article class="loot-card">
-                <div class="loot-card__media">
-                  <img class="dg-proto-sprite dg-proto-sprite--lg" [src]="card.imageUrl" [alt]="card.label" />
-                </div>
-                <p class="loot-card__meta">{{ card.meta }}</p>
-                <h4 class="loot-card__title dg-stencil">{{ card.label }}</h4>
-              </article>
-              }
-            </div>
-          </section>
-          }
-        </div>
-
-        @if ((lootRewards()?.teeth ?? 0) <= 0 && lootDiceCards().length === 0 && lootUnitCards().length === 0) {
-        <dg-alert>This chest is resolved, but there are no item labels available to preview before claim.</dg-alert>
-        }
-      </section>
-      } @else {
       <section class="battle-scene" [class.battle-scene--defeat]="result()!.battle.outcome !== 'victory'">
         <div class="battle-scene__topbar">
           <div class="battle-scene__topbar-copy">
@@ -311,7 +229,6 @@
         </section>
         }
       </section>
-      }
     } @else if (!dialogue()) {
     <div class="node-loading">
       <p class="node-loading__eyebrow dg-stencil">Encounter</p>

@@ -8,6 +8,7 @@ import { AcademyPageComponent } from './pages/academy-page/academy-page.componen
 import { CodexPageComponent } from './pages/codex-page/codex-page.component';
 import { GuidePageComponent } from './pages/guide-page/guide-page.component';
 import { RegionsPageComponent } from './pages/regions-page/regions-page.component';
+import { RunLootPageComponent } from './pages/run-loot-page/run-loot-page.component';
 import { RunMapPageComponent } from './pages/run-map-page/run-map-page.component';
 import { RunNodePageComponent } from './pages/run-node-page/run-node-page.component';
 import { RunRestPageComponent } from './pages/run-rest-page/run-rest-page.component';
@@ -82,6 +83,11 @@ export const routes: Routes = [
         path: 'run/node/:nodeId',
         component: RunNodePageComponent,
         data: { audio: { musicIntent: 'music.battle.normal' } },
+      },
+      {
+        path: 'run/loot/:nodeId',
+        component: RunLootPageComponent,
+        data: { audio: { musicIntent: 'music.run' } },
       },
       {
         path: 'run/rest/:nodeId',

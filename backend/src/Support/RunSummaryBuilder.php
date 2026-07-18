@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Support;
 
 use PDO;
+use DiceGoblins\Repositories\DiceRepository;
 use DiceGoblins\Services\UnitProgressionService;
 
 final class RunSummaryBuilder
@@ -30,6 +31,43 @@ final class RunSummaryBuilder
     return [
       'new_unit_labels' => $this->extractUnitRewardLabels($userId, $rewards),
       'new_dice_labels' => $this->extractDiceRewardLabels($userId, $rewards),
+    ];
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   * @return array{
+   *   units:array<int,array{
+   *     unit_instance_id:string|null,
+   *     name:string,
+   *     unit_type_slug:string|null,
+   *     unit_type_name:string,
+   *     tier:int,
+   *     level:int
+   *   }>,
+   *   dice:array<int,array{
+   *     dice_instance_id:string|null,
+   *     label:string,
+   *     rarity:string,
+   *     material:string,
+   *     sides:int,
+   *     affixes:array<int,array{
+   *       affix_definition_id:string,
+   *       affix_slug:string,
+   *       name:string,
+   *       rarity:string,
+   *       kind:string,
+   *       description:string,
+   *       value:float
+   *     }>
+   *   }>
+   * }
+   */
+  public function buildBattleRewardDetails(int $userId, array $rewards): array
+  {
+    return [
+      'units' => $this->extractUnitRewardDetails($userId, $rewards),
+      'dice' => $this->extractDiceRewardDetails($userId, $rewards),
     ];
   }
 
@@ -398,6 +436,69 @@ final class RunSummaryBuilder
 
   /**
    * @param array<string,mixed> $rewards
+   * @return array<int,array{
+   *   unit_instance_id:string|null,
+   *   name:string,
+   *   unit_type_slug:string|null,
+   *   unit_type_name:string,
+   *   tier:int,
+   *   level:int
+   * }>
+   */
+  private function extractUnitRewardDetails(int $userId, array $rewards): array
+  {
+    $instanceIds = is_array($rewards['new_unit_instance_ids'] ?? null)
+      ? array_values(array_filter(array_map('strval', $rewards['new_unit_instance_ids']), static fn(string $id): bool => $id !== ''))
+      : [];
+
+    if (count($instanceIds) > 0) {
+      return $this->loadUnitRewardDetailsForInstances($userId, $instanceIds);
+    }
+
+    $unitGrants = is_array($rewards['unit_grants'] ?? null) ? $rewards['unit_grants'] : [];
+    if (count($unitGrants) === 0) {
+      return [];
+    }
+
+    $slugs = [];
+    foreach ($unitGrants as $grant) {
+      if (!is_array($grant)) {
+        continue;
+      }
+      $slug = trim((string)($grant['unit_type_slug'] ?? ''));
+      if ($slug !== '') {
+        $slugs[] = $slug;
+      }
+    }
+
+    $namesBySlug = $this->loadUnitTypeNamesBySlug($slugs);
+    $details = [];
+    foreach ($unitGrants as $grant) {
+      if (!is_array($grant)) {
+        continue;
+      }
+
+      $slug = trim((string)($grant['unit_type_slug'] ?? ''));
+      if ($slug === '') {
+        continue;
+      }
+
+      $unitTypeName = $namesBySlug[$slug] ?? $this->prettifyId($slug);
+      $details[] = [
+        'unit_instance_id' => null,
+        'name' => $unitTypeName,
+        'unit_type_slug' => $slug,
+        'unit_type_name' => $unitTypeName,
+        'tier' => max(1, (int)($grant['tier'] ?? 1)),
+        'level' => max(1, (int)($grant['level'] ?? 1)),
+      ];
+    }
+
+    return $details;
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
    * @return array<int,string>
    */
   private function extractDiceRewardLabels(int $userId, array $rewards): array
@@ -461,6 +562,57 @@ final class RunSummaryBuilder
   }
 
   /**
+   * @param array<string,mixed> $rewards
+   * @return array<int,array{
+   *   dice_instance_id:string|null,
+   *   label:string,
+   *   rarity:string,
+   *   material:string,
+   *   sides:int,
+   *   affixes:array<int,array{
+   *     affix_definition_id:string,
+   *     affix_slug:string,
+   *     name:string,
+   *     rarity:string,
+   *     kind:string,
+   *     description:string,
+   *     value:float
+   *   }>
+   * }>
+   */
+  private function extractDiceRewardDetails(int $userId, array $rewards): array
+  {
+    $instanceIds = is_array($rewards['new_dice_instance_ids'] ?? null)
+      ? array_values(array_filter(array_map('strval', $rewards['new_dice_instance_ids']), static fn(string $id): bool => $id !== ''))
+      : [];
+
+    if (count($instanceIds) > 0) {
+      return $this->loadDiceRewardDetailsForInstances($userId, $instanceIds);
+    }
+
+    $diceGrants = is_array($rewards['dice_grants'] ?? null) ? $rewards['dice_grants'] : [];
+    $details = [];
+    foreach ($diceGrants as $grant) {
+      if (!is_array($grant)) {
+        continue;
+      }
+
+      $rarity = strtolower(trim((string)($grant['rarity'] ?? 'common')));
+      $sides = max(2, (int)($grant['sides'] ?? 6));
+      $details[] = [
+        'dice_instance_id' => null,
+        'label' => $this->formatDiceTypeLabel($rarity, $sides),
+        'rarity' => $rarity,
+        'material' => $this->diceMaterial($rarity),
+        'sides' => $sides,
+        'affixes' => [],
+      ];
+    }
+
+    return $details;
+  }
+
+  /**
    * @param array<int,string> $slugs
    * @return array<string,string>
    */
@@ -518,6 +670,64 @@ final class RunSummaryBuilder
 
   /**
    * @param array<int,string> $instanceIds
+   * @return array<int,array{
+   *   unit_instance_id:string,
+   *   name:string,
+   *   unit_type_slug:string,
+   *   unit_type_name:string,
+   *   tier:int,
+   *   level:int
+   * }>
+   */
+  private function loadUnitRewardDetailsForInstances(int $userId, array $instanceIds): array
+  {
+    $instanceIds = array_values(array_unique(array_filter(array_map('strval', $instanceIds), static fn(string $id): bool => $id !== '')));
+    if (count($instanceIds) === 0) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($instanceIds), '?'));
+    $params = array_merge([$userId], $instanceIds);
+    $stmt = $this->pdo->prepare("
+      SELECT
+        ui.`id`,
+        ui.`display_name`,
+        ui.`tier`,
+        ui.`level`,
+        ut.`slug` AS `unit_type_slug`,
+        ut.`name` AS `unit_type_name`
+      FROM `unit_instances` ui
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE ui.`user_id` = ? AND ui.`id` IN ($placeholders)
+    ");
+    $stmt->execute($params);
+
+    $detailsById = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $displayName = trim((string)($row['display_name'] ?? ''));
+      $unitTypeName = (string)($row['unit_type_name'] ?? '');
+      $detailsById[(string)$row['id']] = [
+        'unit_instance_id' => (string)$row['id'],
+        'name' => $displayName !== '' ? $displayName : $unitTypeName,
+        'unit_type_slug' => (string)($row['unit_type_slug'] ?? ''),
+        'unit_type_name' => $unitTypeName,
+        'tier' => max(1, (int)($row['tier'] ?? 1)),
+        'level' => max(1, (int)($row['level'] ?? 1)),
+      ];
+    }
+
+    $ordered = [];
+    foreach ($instanceIds as $instanceId) {
+      if (isset($detailsById[$instanceId])) {
+        $ordered[] = $detailsById[$instanceId];
+      }
+    }
+
+    return $ordered;
+  }
+
+  /**
+   * @param array<int,string> $instanceIds
    * @return array<string,string>
    */
   private function loadDiceTypeLabelsForInstances(int $userId, array $instanceIds): array
@@ -546,6 +756,68 @@ final class RunSummaryBuilder
     }
 
     return $map;
+  }
+
+  /**
+   * @param array<int,string> $instanceIds
+   * @return array<int,array{
+   *   dice_instance_id:string,
+   *   label:string,
+   *   rarity:string,
+   *   material:string,
+   *   sides:int,
+   *   affixes:array<int,array{
+   *     affix_definition_id:string,
+   *     affix_slug:string,
+   *     name:string,
+   *     rarity:string,
+   *     kind:string,
+   *     description:string,
+   *     value:float
+   *   }>
+   * }>
+   */
+  private function loadDiceRewardDetailsForInstances(int $userId, array $instanceIds): array
+  {
+    $instanceIds = array_values(array_unique(array_filter(array_map('strval', $instanceIds), static fn(string $id): bool => $id !== '')));
+    if (count($instanceIds) === 0) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($instanceIds), '?'));
+    $params = array_merge([$userId], $instanceIds);
+    $stmt = $this->pdo->prepare("
+      SELECT di.`id`, dd.`rarity`, dd.`sides`
+      FROM `dice_instances` di
+      JOIN `dice_definitions` dd ON dd.`id` = di.`dice_definition_id`
+      WHERE di.`user_id` = ? AND di.`id` IN ($placeholders)
+    ");
+    $stmt->execute($params);
+
+    $affixesByDice = (new DiceRepository($this->pdo))->getAffixesForDiceInstanceIds($instanceIds);
+    $detailsById = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $diceId = (string)$row['id'];
+      $rarity = strtolower(trim((string)($row['rarity'] ?? 'common')));
+      $sides = max(2, (int)($row['sides'] ?? 6));
+      $detailsById[$diceId] = [
+        'dice_instance_id' => $diceId,
+        'label' => $this->formatDiceTypeLabel($rarity, $sides),
+        'rarity' => $rarity,
+        'material' => $this->diceMaterial($rarity),
+        'sides' => $sides,
+        'affixes' => $affixesByDice[$diceId] ?? [],
+      ];
+    }
+
+    $ordered = [];
+    foreach ($instanceIds as $instanceId) {
+      if (isset($detailsById[$instanceId])) {
+        $ordered[] = $detailsById[$instanceId];
+      }
+    }
+
+    return $ordered;
   }
 
   /**
@@ -662,8 +934,12 @@ final class RunSummaryBuilder
 
   private function formatDiceTypeLabel(string $rarity, int $sides): string
   {
-    $material = self::RARITY_TO_MATERIAL[strtolower(trim($rarity))] ?? 'cardboard';
-    return sprintf('%s d%d', $material, max(2, $sides));
+    return sprintf('%s d%d', $this->diceMaterial($rarity), max(2, $sides));
+  }
+
+  private function diceMaterial(string $rarity): string
+  {
+    return self::RARITY_TO_MATERIAL[strtolower(trim($rarity))] ?? 'cardboard';
   }
 
   private function prettifyId(string $value): string

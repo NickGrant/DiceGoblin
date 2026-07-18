@@ -13,7 +13,6 @@
 }
 
 .battle-scene,
-.loot-scene,
 .node-loading {
   position: relative;
   overflow: hidden;
@@ -49,8 +48,6 @@
 }
 
 .battle-scene__eyebrow,
-.loot-scene__eyebrow,
-.loot-stack__eyebrow,
 .battle-log-drawer__eyebrow,
 .battle-scene__roster-label,
 .battle-scene__flash-kicker,
@@ -74,8 +71,7 @@
   color: rgba(248, 240, 221, 0.84);
 }
 
-.battle-scene__topbar-actions,
-.loot-scene__actions {
+.battle-scene__topbar-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -304,9 +300,7 @@
   background: linear-gradient(180deg, rgba(248, 239, 220, 0.98), rgba(229, 211, 178, 0.96));
 }
 
-.battle-log-drawer__title,
-.loot-stack__title,
-.loot-scene__title {
+.battle-log-drawer__title {
   margin: 0;
   color: #24150d;
 }
@@ -385,91 +379,6 @@
   cursor: help;
 }
 
-.loot-scene {
-  display: grid;
-  gap: 1rem;
-  padding: 1rem;
-  background:
-    linear-gradient(180deg, rgba(248, 239, 220, 0.98), rgba(224, 197, 145, 0.94)),
-    radial-gradient(circle at top, rgba(255, 213, 111, 0.18), transparent 45%),
-    center / cover no-repeat url('/assets/ui/biome/mystic_cave.png');
-}
-
-.loot-scene__header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: start;
-}
-
-.loot-scene__copy {
-  margin: 0.35rem 0 0;
-  color: rgba(36, 21, 13, 0.8);
-}
-
-.loot-scene__kpis {
-  display: grid;
-  gap: 0.85rem;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-}
-
-.loot-scene__stacks {
-  display: grid;
-  gap: 1rem;
-}
-
-.loot-stack {
-  display: grid;
-  gap: 0.8rem;
-  padding: 1rem;
-  border: 1px solid rgba(115, 78, 46, 0.2);
-  border-radius: 1.2rem;
-  background: linear-gradient(180deg, rgba(255, 251, 241, 0.86), rgba(241, 229, 203, 0.82));
-}
-
-.loot-stack__grid {
-  display: grid;
-  gap: 0.8rem;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-}
-
-.loot-card {
-  display: grid;
-  gap: 0.55rem;
-  padding: 0.9rem;
-  border: 1px solid rgba(115, 78, 46, 0.16);
-  border-radius: 1rem;
-  background: linear-gradient(180deg, rgba(255, 252, 245, 0.96), rgba(235, 220, 190, 0.9));
-}
-
-.loot-card__media {
-  display: grid;
-  place-items: center;
-  min-height: 10rem;
-  padding: 0.75rem;
-  border-radius: 0.85rem;
-  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.44), transparent 45%);
-}
-
-.loot-card__media img {
-  max-width: 100%;
-  max-height: 9rem;
-  object-fit: contain;
-}
-
-.loot-card__meta,
-.loot-card__title {
-  margin: 0;
-}
-
-.loot-card__meta {
-  color: rgba(50, 31, 17, 0.72);
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
 .node-loading {
   padding: 1.1rem 1.2rem;
   background:
@@ -517,4 +426,5 @@
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr) minmax(0, 0.9fr);
     align-items: center;
   }
+
 }

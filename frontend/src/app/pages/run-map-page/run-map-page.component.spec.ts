@@ -242,4 +242,30 @@ describe('RunMapPageComponent', () => {
 
     expect(router.navigateByUrl).toHaveBeenCalledWith('/run/summary');
   });
+
+  it('opens available loot nodes on the loot route', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.resolveTo(true);
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+
+    await fixture.componentInstance.openNode({
+      id: 'loot-1',
+      run_id: 'run-1',
+      node_index: 1,
+      node_type: 'loot',
+      status: 'available',
+    });
+
+    expect(router.navigate).toHaveBeenCalledWith(['/run/loot', 'loot-1']);
+  });
 });

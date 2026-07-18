@@ -204,6 +204,11 @@ export class RunMapPageComponent {
       return;
     }
 
+    if (node.node_type === 'loot') {
+      await this.router.navigate(['/run/loot', node.id]);
+      return;
+    }
+
     if (node.node_type === 'exit') {
       await this.finishRun();
       return;

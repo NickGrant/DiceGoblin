@@ -275,6 +275,43 @@ describe('RunNodePageComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/run/map');
   });
 
+  it('redirects loot nodes to the loot node screen', async () => {
+    const runService = new RunServiceStub();
+    runService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'the_farm', region_theme: 'farm' },
+        map: {
+          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'loot', status: 'available' }],
+          edges: [],
+        },
+      },
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: runService },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        { provide: DialogueService, useClass: DialogueServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.resolveTo(true);
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/run/loot', 'n1']);
+    expect(runService.resolveNode).not.toHaveBeenCalled();
+  });
+
   it('formats battle action log details for the node screen', async () => {
     await TestBed.configureTestingModule({
       imports: [RunNodePageComponent],
@@ -345,83 +382,6 @@ describe('RunNodePageComponent', () => {
     const bleedChip = host.querySelector('.battle-log__condition[title*="increases damage received"]');
     expect(bleedChip?.textContent).toContain('bleeding');
     expect(host.querySelector('button[dgcommandbtn], button[dgCommandBtn]')).not.toBeNull();
-  });
-
-  it('shows a treasure-focused reward summary for loot nodes', async () => {
-    const lootRunService = new RunServiceStub();
-    lootRunService.getCurrentRun.and.resolveTo({
-        ok: true,
-        data: {
-          run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'the_farm', region_theme: 'farm' },
-          map: {
-            nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'loot', status: 'available' }],
-            edges: [],
-        },
-      },
-    });
-    lootRunService.resolveNode.and.resolveTo({
-      ok: true,
-      data: {
-        node: { id: 'n1', status: 'cleared' },
-        battle: {
-          battle_id: 'b2',
-          outcome: 'victory',
-          rounds: 0,
-          ticks: 0,
-          status: 'completed',
-          reward_preview: {
-            node_type: 'loot',
-            xp_total: 0,
-            currency_soft: 5,
-            new_unit_labels: ['Warcaller'],
-            new_dice_labels: ['bone d6'],
-          },
-          log: {
-            meta: { node_type: 'loot' },
-            events: [],
-          },
-        },
-        next: { unlocked_node_ids: ['n2', 'n3'] },
-      },
-    });
-
-    await TestBed.configureTestingModule({
-      imports: [RunNodePageComponent],
-      providers: [
-        provideRouter([]),
-        { provide: RunService, useValue: lootRunService },
-        { provide: SessionService, useClass: SessionServiceStub },
-        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
-        { provide: DialogueService, useClass: DialogueServiceStub },
-        {
-          provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
-        },
-      ],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(RunNodePageComponent);
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.isLootNode()).toBeTrue();
-    expect(fixture.componentInstance.lootRewards()).toEqual({
-      teeth: 5,
-      diceLabels: ['bone d6'],
-      unitLabels: ['Warcaller'],
-    });
-    expect(fixture.componentInstance.pageTitle()).toBe('A respectable acquisition of wealth');
-    expect(fixture.componentInstance.pageSubtitle()).toBe(
-      'No heroism required, just strong knees and stronger pockets.',
-    );
-
-    const host: HTMLElement = fixture.nativeElement;
-    expect(host.textContent).toContain('Treasure Node');
-    expect(host.textContent).toContain('Claim Treasure');
-    expect(host.textContent).toContain('Treasure Found');
-    expect(host.textContent).toContain('bone d6');
-    expect(host.textContent).toContain('Warcaller');
-    expect(host.textContent).not.toContain('Battle Log');
   });
 
   it('shows dialogue before resolving the farm boss node', async () => {

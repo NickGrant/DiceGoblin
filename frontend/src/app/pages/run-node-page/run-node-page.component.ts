@@ -9,7 +9,6 @@ import { BattlePlaybackAdapterService } from '../../core/services/battle-playbac
 import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
-import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
@@ -17,7 +16,7 @@ import { PageFrameComponent } from '../../layout/page-frame/page-frame.component
 import { UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 import { resolvePrototypeEnemySpriteUrl, resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 
-const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss', 'loot']);
+const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss']);
 
 type BattleViewMode = 'acted' | 'log';
 
@@ -45,12 +44,6 @@ type BattleLogUnitCardViewModel = {
   showLockBadge: boolean;
 };
 
-type LootRewardSummary = {
-  teeth: number;
-  diceLabels: string[];
-  unitLabels: string[];
-};
-
 type BattleLogResultSegmentViewModel = {
   text: string;
   tooltip: string | null;
@@ -69,13 +62,6 @@ type BattlePlaybackParticipantStateViewModel = {
   isTarget: boolean;
 };
 
-type BattleLootDisplayCard = {
-  id: string;
-  label: string;
-  meta: string;
-  imageUrl: string;
-};
-
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
@@ -85,9 +71,7 @@ type BattleLootDisplayCard = {
 })
 export class RunNodePageComponent implements OnDestroy {
   private static readonly BATTLE_TITLE = 'BATTLE!';
-  private static readonly LOOT_TITLE = 'A respectable acquisition of wealth';
   private static readonly BATTLE_SUBTITLE = 'Several goblins have volunteered to be an educational example.';
-  private static readonly LOOT_SUBTITLE = 'No heroism required, just strong knees and stronger pockets.';
   private static readonly PLAYER_DIALOGUE_PORTRAIT = '/assets/dialogue/portraits/goblin/base_frame_0.png';
   private static readonly PLAYBACK_INTERVAL_MS = 1250;
 
@@ -116,20 +100,10 @@ export class RunNodePageComponent implements OnDestroy {
   readonly abilityCatalogError = this.abilityCatalogService.error;
   readonly abilityCatalog = this.abilityCatalogService.abilityMap;
   readonly resolvedNodeType = computed(() => {
-    const previewType = this.result()?.battle.reward_preview?.node_type;
-    if (typeof previewType === 'string' && previewType.length > 0) {
-      return previewType;
-    }
-
     const metaNodeType = this.result()?.battle.log?.meta?.['node_type'];
-    return typeof metaNodeType === 'string' ? metaNodeType : 'combat';
+    return typeof metaNodeType === 'string' ? metaNodeType : (this.nodeType() ?? 'combat');
   });
-  readonly isLootNode = computed(() => this.resolvedNodeType() === 'loot');
   readonly pageTitle = computed(() => {
-    if (this.isLootNode() || this.nodeType() === 'loot') {
-      return RunNodePageComponent.LOOT_TITLE;
-    }
-
     if (this.shouldAutoResolve()) {
       return RunNodePageComponent.BATTLE_TITLE;
     }
@@ -141,29 +115,14 @@ export class RunNodePageComponent implements OnDestroy {
       return '';
     }
 
-    return this.isLootNode()
-      ? RunNodePageComponent.LOOT_SUBTITLE
-      : RunNodePageComponent.BATTLE_SUBTITLE;
+    return RunNodePageComponent.BATTLE_SUBTITLE;
   });
-  readonly unlockedNodeCount = computed(() => this.result()?.next.unlocked_node_ids.length ?? 0);
   readonly claimButtonLabel = computed(() => {
     if (this.busy()) {
       return 'Working...';
     }
 
-    return this.isLootNode() ? 'Claim Treasure' : 'Claim Rewards';
-  });
-  readonly lootRewards = computed<LootRewardSummary | null>(() => {
-    const rewards = this.battlePlaybackSnapshot()?.rewards;
-    if (!rewards || this.resolvedNodeType() !== 'loot') {
-      return null;
-    }
-
-    return {
-      teeth: rewards.currencySoft,
-      diceLabels: rewards.newDiceLabels,
-      unitLabels: rewards.newUnitLabels,
-    };
+    return 'Claim Rewards';
   });
   readonly battlePlaybackSnapshot = computed(() =>
     this.battlePlaybackAdapter.createSnapshot({
@@ -213,22 +172,6 @@ export class RunNodePageComponent implements OnDestroy {
   });
   readonly playerPlaybackParticipants = computed(() => this.buildParticipantStates('player'));
   readonly enemyPlaybackParticipants = computed(() => this.buildParticipantStates('enemy'));
-  readonly lootUnitCards = computed(() => {
-    return (this.lootRewards()?.unitLabels ?? []).map((label, index) => ({
-      id: `unit-${index}-${label}`,
-      label,
-      meta: 'Unit Loot',
-      imageUrl: resolvePrototypeUnitSpriteUrl(label),
-    }));
-  });
-  readonly lootDiceCards = computed(() => {
-    return (this.lootRewards()?.diceLabels ?? []).map((label, index) => ({
-      id: `die-${index}-${label}`,
-      label,
-      meta: this.formatLootDieMeta(label),
-      imageUrl: this.lootDieImage(label),
-    }));
-  });
   readonly battleOutcomeLabel = computed(() => this.humanizeId(this.result()?.battle.outcome ?? 'pending'));
   readonly battleStatusLabel = computed(() => this.humanizeId(this.result()?.battle.status ?? 'pending'));
   private playbackTimer: ReturnType<typeof window.setTimeout> | null = null;
@@ -266,6 +209,11 @@ export class RunNodePageComponent implements OnDestroy {
       const currentNode = current.data.map?.nodes.find((node) => node.id === this.nodeId) ?? null;
       this.nodeType.set(currentNode?.node_type ?? null);
       this.runId.set(current.data.run.run_id);
+
+      if (currentNode?.node_type === 'loot') {
+        await this.router.navigate(['/run/loot', this.nodeId]);
+        return;
+      }
 
       if (currentNode && AUTO_RESOLVE_NODE_TYPES.has(currentNode.node_type)) {
         const dialogue = await this.lookupDialogue(current.data.run, currentNode);
@@ -550,24 +498,6 @@ export class RunNodePageComponent implements OnDestroy {
     }
 
     return resolvePrototypeUnitSpriteUrl(source);
-  }
-
-  private lootDieImage(label: string): string {
-    const match = label.trim().match(/^([a-z]+)\s+d(\d+)$/i);
-    if (!match) {
-      return resolveDiceArtStyles('common', 6, 96).imageUrl;
-    }
-
-    return resolveDiceArtStyles(match[1], Number(match[2]), 96).imageUrl;
-  }
-
-  private formatLootDieMeta(label: string): string {
-    const match = label.trim().match(/^([a-z]+)\s+d(\d+)$/i);
-    if (!match) {
-      return 'Dice Loot';
-    }
-
-    return `${match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase()} d${match[2]}`;
   }
 
   private hpProgressBar(currentHp: number, maxHp: number): UnitGridObjectProgressBar | null {

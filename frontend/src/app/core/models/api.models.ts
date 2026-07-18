@@ -155,6 +155,24 @@ export type DiceRecord = {
   [key: string]: unknown;
 };
 
+export type RewardPreviewUnit = {
+  unit_instance_id?: string | null;
+  name: string;
+  unit_type_slug?: string | null;
+  unit_type_name: string;
+  tier: number;
+  level: number;
+};
+
+export type RewardPreviewDice = {
+  dice_instance_id?: string | null;
+  label: string;
+  rarity: string;
+  material: string;
+  sides: number;
+  affixes: DiceAffixRecord[];
+};
+
 export type RegionUnlockRecord = {
   region_id: string;
   region_slug: string;
@@ -380,6 +398,8 @@ export type ResolveNodeData = {
       currency_soft: number;
       new_unit_labels: string[];
       new_dice_labels: string[];
+      units?: RewardPreviewUnit[];
+      dice?: RewardPreviewDice[];
     } | null;
     log: {
       meta?: Record<string, unknown>;
