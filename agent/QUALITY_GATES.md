@@ -22,10 +22,10 @@
 ## Verification Requirements
 - After code changes, run relevant tests/builds when available.
 - Report pass/fail status clearly.
-- Use Docker for backend/PHP/database verification. If Docker is not running, ask the user to start Docker before attempting backend or database commands.
+- Use Docker for local backend/PHP/database verification. If Docker is not running during local work, ask the user to start Docker before attempting backend or database commands. Keep root test scripts compatible with CI host tools unless a script is explicitly Docker-local.
 - Minimum pre-commit verification for mixed frontend/backend work:
   - `npm.cmd run llm:check`
-  - `docker compose exec -T backend php vendor/bin/phpunit -c phpunit.xml.dist`
+  - `npm.cmd run test:backend`
   - `npm.cmd --prefix frontend run test`
   - `npm.cmd --prefix frontend run build`
 - If any build/test command fails:

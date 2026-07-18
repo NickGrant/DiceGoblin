@@ -19,7 +19,7 @@ Dice Goblins is a browser-based tactical RPG/roguelite in active alpha launch, b
 - Docker Desktop (or Docker Engine + Compose)
 - Node.js 22+ and npm for root/frontend convenience scripts
 
-Docker is the supported local runtime for the backend, PHP, MySQL, and backend tests. If Docker is not running, ask the user to start Docker before running backend or database commands.
+Docker is the supported local runtime for the backend, PHP, MySQL, and backend tests. If Docker is not running during local work, ask the user to start Docker before running backend or database commands. CI/pipeline scripts still run on the host tools installed by GitHub Actions.
 
 ## Quick Start (Docker)
 1. Start services:
@@ -71,14 +71,14 @@ npm run test -- --watch=false --browsers=ChromeHeadless
 ```
 
 ## Backend Test Commands
-Run backend tests through Docker:
+Run backend tests in CI or any host environment with Composer/PHP installed:
 ```bash
-docker compose exec -T backend php vendor/bin/phpunit -c phpunit.xml.dist
+npm run test:backend
 ```
 
-Run integration tests against the Docker test database:
+Run backend tests locally through Docker:
 ```bash
-docker compose exec -T backend sh -lc "TEST_DB_DSN='mysql:host=db;port=3306;dbname=goblin_test;charset=utf8mb4' TEST_DB_USER='dice_test' TEST_DB_PASS='dicepass_test' php vendor/bin/phpunit -c phpunit.xml.dist --stderr"
+npm run test:backend:docker
 ```
 
 ## API Surface (Current Core)
