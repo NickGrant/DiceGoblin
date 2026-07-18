@@ -17,7 +17,11 @@ Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `AGENTS.md`, `documentatio
   - `npm.cmd --prefix frontend run test`
   - `npm.cmd --prefix frontend run build`
 - Backend changes:
-  - `composer --working-dir=backend test` (or backend equivalent)
+  - `docker compose exec -T backend php vendor/bin/phpunit -c phpunit.xml.dist`
+  - For integration coverage, pass Docker test DB env and use `--stderr`:
+    `docker compose exec -T backend sh -lc "TEST_DB_DSN='mysql:host=db;port=3306;dbname=goblin_test;charset=utf8mb4' TEST_DB_USER='dice_test' TEST_DB_PASS='dicepass_test' php vendor/bin/phpunit -c phpunit.xml.dist --stderr"`
+
+Docker is the preferred backend/PHP/database toolchain. If Docker is not running, ask the user to start Docker before running backend or database verification.
 
 ## Verification Matrix
 - Backend API/controller/repository changes:

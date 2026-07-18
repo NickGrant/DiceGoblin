@@ -1,7 +1,7 @@
 :host {
   position: fixed;
   top: 0;
-  right: 0;
+  right: max(0px, calc((100vw - var(--dg-app-shell-max-width)) / 2));
   z-index: 20;
   display: block;
   box-sizing: border-box;
