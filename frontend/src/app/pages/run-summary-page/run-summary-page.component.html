@@ -4,7 +4,7 @@
   subtitle="Review rewards and progression, then head back to camp."
 >
   @if (summary()) {
-    <div class="run-summary-shell" [class.run-summary-shell--dialogue-open]="!!summaryDialogue()">
+    <div class="run-summary-shell">
       <div class="run-summary-stack dg-motion-stagger dg-proto-shell">
         <section class="run-summary-hero dg-proto-hero">
           <p class="dg-proto-hero__eyebrow">Run results</p>
@@ -130,20 +130,6 @@
           }
         </section>
       </div>
-
-      @if (summaryDialogue()) {
-        <div
-          class="run-summary-dialogue"
-          aria-label="Run completion dialogue"
-          aria-modal="true"
-          role="dialog"
-        >
-          <dg-dialogue-stage
-            [script]="summaryDialogue()!"
-            (complete)="handleSummaryDialogueComplete($event)"
-          />
-        </div>
-      }
     </div>
   } @else {
     <dg-alert>No run summary available.</dg-alert>

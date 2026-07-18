@@ -6,6 +6,7 @@ import {
   CurrentRunEdge,
   CurrentRunNode,
   CreateResponse,
+  DialogueNodeCompleteResponse,
   ExitRunResponse,
   RunSummaryPayload,
   ResolveNodeResponse,
@@ -151,6 +152,13 @@ export class RunService {
     return this.apiHttp.postWithCsrf<ResolveNodeResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/resolve`, {
       ...(teamId ? { team_id: Number(teamId) } : {}),
     });
+  }
+
+  async completeDialogueNode(runId: string, nodeId: string): Promise<DialogueNodeCompleteResponse> {
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<DialogueNodeCompleteResponse>(
+      `/api/v1/runs/${runId}/nodes/${nodeId}/dialogue/complete`,
+      {},
+    ));
   }
 
   async claimBattleRewards(battleId: string): Promise<BattleClaimResponse> {

@@ -1,0 +1,22 @@
+<page-frame
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Run', route: '/run/map' }, { label: 'Dialogue' }]"
+  [title]="pageTitle()"
+  [subtitle]="pageSubtitle()"
+>
+  @if (loading() || error()) {
+  <div class="dialogue-status">
+    @if (loading()) {
+    <dg-alert>Loading dialogue...</dg-alert>
+    }
+    @if (error()) {
+    <dg-alert tone="error">{{ error() }}</dg-alert>
+    }
+  </div>
+  }
+
+  @if (script()) {
+  <section class="run-dialogue">
+    <dg-dialogue-stage [script]="script()!" (complete)="completeDialogue()" />
+  </section>
+  }
+</page-frame>

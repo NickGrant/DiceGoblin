@@ -1,7 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { RunSummaryPageComponent } from './run-summary-page.component';
@@ -69,11 +68,6 @@ class SessionServiceStub {
   refreshProfile = jasmine.createSpy('refreshProfile').and.resolveTo(undefined);
 }
 
-class DialogueServiceStub {
-  getDialogue = jasmine.createSpy('getDialogue').and.resolveTo(null);
-  markDialogueSeen = jasmine.createSpy('markDialogueSeen').and.resolveTo(undefined);
-}
-
 describe('RunSummaryPageComponent', () => {
   it('renders shared reward cards and progression bars from structured summary data', async () => {
     await TestBed.configureTestingModule({
@@ -82,7 +76,6 @@ describe('RunSummaryPageComponent', () => {
         provideRouter([]),
         { provide: RunService, useClass: RunServiceStub },
         { provide: SessionService, useClass: SessionServiceStub },
-        { provide: DialogueService, useClass: DialogueServiceStub },
       ],
     }).compileComponents();
 
@@ -151,7 +144,6 @@ describe('RunSummaryPageComponent', () => {
         provideRouter([]),
         { provide: RunService, useClass: CleanupRunServiceStub },
         { provide: SessionService, useClass: CleanupSessionServiceStub },
-        { provide: DialogueService, useClass: DialogueServiceStub },
       ],
     }).compileComponents();
 
@@ -252,7 +244,6 @@ describe('RunSummaryPageComponent', () => {
         provideRouter([]),
         { provide: RunService, useClass: FullRunSummaryServiceStub },
         { provide: SessionService, useClass: FullRunSessionServiceStub },
-        { provide: DialogueService, useClass: DialogueServiceStub },
       ],
     }).compileComponents();
 
@@ -265,83 +256,5 @@ describe('RunSummaryPageComponent', () => {
     expect(component.progressionCards()).toHaveSize(2);
     expect(compiled.textContent).toContain('Boghand');
     expect(compiled.textContent).toContain('Copperwhistle');
-  });
-
-  it('shows the farm shop-unlock dialogue once when the summary metadata announces it', async () => {
-    class UnlockRunServiceStub {
-      readonly summary = signal({
-        title: 'Run Complete',
-        status: 'completed',
-        rewards: [],
-        progression: [],
-        survivors: ['Commander'],
-        defeated: [],
-        meta: {
-          completed_region_slug: 'the_farm',
-          new_feature_unlocks: ['shop'],
-          new_region_unlocks: ['mountains'],
-        },
-        rewardDetail: {
-          currency_soft: 0,
-          units: [],
-          dice: [],
-        },
-        progressionDetail: [],
-      });
-    }
-
-    class UnlockSessionServiceStub extends SessionServiceStub {
-      override readonly profileData = signal<any>({
-        feature_unlocks: ['shop'],
-        seen_dialogues: [],
-      });
-      override readonly units = signal([]);
-      override readonly dice = signal([]);
-    }
-
-    await TestBed.configureTestingModule({
-      imports: [RunSummaryPageComponent],
-      providers: [
-        provideRouter([]),
-        { provide: RunService, useClass: UnlockRunServiceStub },
-        { provide: SessionService, useClass: UnlockSessionServiceStub },
-        { provide: DialogueService, useClass: DialogueServiceStub },
-      ],
-    }).compileComponents();
-
-    const dialogueService = TestBed.inject(DialogueService) as unknown as DialogueServiceStub;
-    const sessionService = TestBed.inject(SessionService) as unknown as UnlockSessionServiceStub;
-    dialogueService.getDialogue.and.resolveTo({
-      id: 'farm-shop-unlock',
-      backgroundUrl: '/assets/ui/biome/farm.png',
-      startStepId: 'mudking-release',
-      speakers: [
-        { id: 'tooth-collector', side: 'left', name: 'The Tooth Collector', portraitUrl: '/assets/dialogue/portraits/tooth_collector_frame_0.png', party: 'neutral', role: 'npc' },
-        { id: 'mudking', side: 'right', name: 'Mudking', portraitUrl: '/assets/ui/units/pig_mudking.png', party: 'enemy', role: 'npc' },
-      ],
-      steps: [
-        { id: 'mudking-release', speakerId: 'mudking', text: 'Fine, you can have him.', nextStepId: null, choices: [], enterEffect: null },
-      ],
-    });
-
-    const fixture = TestBed.createComponent(RunSummaryPageComponent);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(dialogueService.getDialogue).toHaveBeenCalledWith(
-      jasmine.objectContaining({
-        scene: 'run-summary',
-        regionSlug: 'the_farm',
-        tags: ['shop-unlocked'],
-      }),
-    );
-    expect(fixture.componentInstance.summaryDialogue()?.id).toBe('farm-shop-unlock');
-
-    await fixture.componentInstance.handleSummaryDialogueComplete([]);
-
-    expect(dialogueService.markDialogueSeen).toHaveBeenCalledWith('farm-shop-unlock');
-    expect(sessionService.refreshProfile).toHaveBeenCalledWith({ force: true });
-    expect(fixture.componentInstance.summaryDialogue()).toBeNull();
   });
 });

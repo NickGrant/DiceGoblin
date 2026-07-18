@@ -31,17 +31,25 @@ final class RunLifecycleApiIntegrationTest extends IntegrationTestCase
     );
     $this->assertSame(1, $exitNodeCount, 'Run graph should include exactly one visible exit node.');
 
-    $bossToExitEdgeCount = (int)$this->scalar(
+    $bossToExitDialogueEdgeCount = (int)$this->scalar(
       'SELECT COUNT(*) FROM `run_edges` re
        JOIN `run_nodes` src ON src.`id` = re.`from_node_id`
        JOIN `run_nodes` dst ON dst.`id` = re.`to_node_id`
-       WHERE re.`run_id` = ? AND src.`node_type` = \'boss\' AND dst.`node_type` = \'exit\'',
+       WHERE re.`run_id` = ? AND src.`node_type` = \'boss\' AND dst.`node_type` = \'dialogue\'',
       [$runId]
     );
-    $this->assertSame(1, $bossToExitEdgeCount, 'Exit should be reachable only through boss path.');
+    $exitDialogueToExitEdgeCount = (int)$this->scalar(
+      'SELECT COUNT(*) FROM `run_edges` re
+       JOIN `run_nodes` src ON src.`id` = re.`from_node_id`
+       JOIN `run_nodes` dst ON dst.`id` = re.`to_node_id`
+       WHERE re.`run_id` = ? AND src.`node_type` = \'dialogue\' AND dst.`node_type` = \'exit\'',
+      [$runId]
+    );
+    $this->assertSame(1, $bossToExitDialogueEdgeCount, 'Farm exit dialogue should sit after the boss.');
+    $this->assertSame(1, $exitDialogueToExitEdgeCount, 'Exit should be reachable through the farm exit dialogue.');
 
     $nonExitWithoutTemplate = (int)$this->scalar(
-      'SELECT COUNT(*) FROM `run_nodes` WHERE `run_id` = ? AND `node_type` != \'exit\' AND `encounter_template_id` IS NULL',
+      'SELECT COUNT(*) FROM `run_nodes` WHERE `run_id` = ? AND `node_type` NOT IN (\'exit\', \'dialogue\') AND `encounter_template_id` IS NULL',
       [$runId]
     );
     $this->assertSame(0, $nonExitWithoutTemplate, 'All generated non-exit nodes should carry an encounter template id.');
@@ -115,6 +123,7 @@ final class RunLifecycleApiIntegrationTest extends IntegrationTestCase
     $userId = $this->insertUser('qa_lifecycle', 'QA Lifecycle');
     $farmRegionId = (int)$this->scalar("SELECT `id` FROM `regions` WHERE `slug` = 'the_farm' LIMIT 1", []);
     $this->assertGreaterThan(0, $farmRegionId, 'the_farm must be seeded in the test database.');
+    $this->unlockRegion($userId, $farmRegionId);
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';

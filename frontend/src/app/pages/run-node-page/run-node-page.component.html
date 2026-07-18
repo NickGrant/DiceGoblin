@@ -14,15 +14,8 @@
   </div>
   }
 
-  @if (dialogue()) {
-  <div class="node-dialogue mb-3">
-    <dg-dialogue-stage [script]="dialogue()!" (complete)="handleDialogueComplete($event)" />
-  </div>
-  }
-
-  @if (!dialogue()) {
   <div class="node-screen">
-    @if (!dialogue() && result()) {
+    @if (result()) {
       <section class="battle-scene" [class.battle-scene--defeat]="result()!.battle.outcome !== 'victory'">
         <div class="battle-scene__topbar">
           <div class="battle-scene__topbar-copy">
@@ -229,7 +222,7 @@
         </section>
         }
       </section>
-    } @else if (!dialogue()) {
+    } @else {
     <div class="node-loading">
       <p class="node-loading__eyebrow dg-stencil">Encounter</p>
       <h2 class="dg-stencil mb-3">Encounter Loading</h2>
@@ -248,5 +241,4 @@
     </div>
     }
   </div>
-  }
 </page-frame>

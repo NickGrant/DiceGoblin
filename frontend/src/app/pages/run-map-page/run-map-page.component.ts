@@ -42,6 +42,7 @@ export class RunMapPageComponent {
     rest: '/assets/ui/icons/icon_encounter_rest.png',
     boss: '/assets/ui/icons/icon_encounter_boss.png',
     exit: '/assets/ui/icons/icon_home.png',
+    dialogue: '/assets/ui/icons/icon_guide.png',
   };
 
   private readonly router = inject(Router);
@@ -206,6 +207,11 @@ export class RunMapPageComponent {
 
     if (node.node_type === 'loot') {
       await this.router.navigate(['/run/loot', node.id]);
+      return;
+    }
+
+    if (node.node_type === 'dialogue') {
+      await this.router.navigate(['/run/dialogue', node.id]);
       return;
     }
 

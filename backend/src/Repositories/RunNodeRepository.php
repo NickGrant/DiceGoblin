@@ -24,13 +24,14 @@ final class RunNodeRepository
    *   run_id:string,
    *   node_type:string,
    *   status:string,
-   *   encounter_template_id:?string
+   *   encounter_template_id:?string,
+   *   meta_json:?string
    * }|null
    */
   public function getForUpdate(int $runId, int $nodeId): ?array
   {
     $stmt = $this->pdo->prepare('
-      SELECT `id`, `run_id`, `node_type`, `status`, `encounter_template_id`
+      SELECT `id`, `run_id`, `node_type`, `status`, `encounter_template_id`, `meta_json`
       FROM `run_nodes`
       WHERE `id` = ? AND `run_id` = ?
       LIMIT 1
@@ -47,6 +48,7 @@ final class RunNodeRepository
       'node_type' => (string)$r['node_type'],
       'status' => (string)$r['status'],
       'encounter_template_id' => $r['encounter_template_id'] !== null ? (string)$r['encounter_template_id'] : null,
+      'meta_json' => $r['meta_json'] !== null ? (string)$r['meta_json'] : null,
     ];
   }
 

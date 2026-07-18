@@ -138,6 +138,7 @@ $router->post('/api/v1/debug/units/set-level', [$debug, 'setUnitLevel']);
 $router->post('/api/v1/debug/reset-account', [$debug, 'resetAccount']);
 
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/resolve', [$runNode, 'resolveNode']);
+$router->post('/api/v1/runs/:runId/nodes/:nodeId/dialogue/complete', [$runNode, 'completeDialogueNode']);
 $router->get('/api/v1/battles/:battleId/log',[$battle, 'getBattleLog']);
 $router->post('/api/v1/battles/:battleId/claim',[$battle, 'claimBattle']);
 // Compatibility-critical identifiers remain `teams` in route keys.
