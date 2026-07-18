@@ -19,7 +19,9 @@
       <span class="unit-bar__rank">
         <fa-icon class="unit-bar__role-icon" [icon]="roleIcon()" aria-hidden="true"></fa-icon>
         <span class="unit-bar__level">{{ levelLabel() }}</span>
-        <img class="unit-bar__tier-icon" [src]="tierIconUrl()" [alt]="tierLabel()" [title]="tierLabel()" />
+        <span [class]="tierIndicatorClass()" [attr.aria-label]="tierLabel()" [attr.title]="tierLabel()">
+          <span class="visually-hidden">{{ tierLabel() }}</span>
+        </span>
       </span>
       @if (positionLabel()) {
         <span class="unit-bar__position">{{ positionLabel() }}</span>

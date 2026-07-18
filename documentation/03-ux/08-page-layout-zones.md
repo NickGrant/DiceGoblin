@@ -12,7 +12,7 @@ Depends On: `frontend/src/layout/pageLayout.ts`, `raw-assets/new_ux`
 
 ## Asset Contract
 - Source art lane: `raw-assets/new_ux/`
-- Runtime copies must live under `frontend/public/assets/new_ux/`
+- Runtime UI copies must live under `frontend/public/assets/ui/`, with structured subfolders such as `biome/`, `textures/`, `header/`, and `prototype-kit/`.
 - Global background texture for scenes: `textures/paper.png`
 - Title bar texture for major action regions: `textures/red.png`
 - Global bottom command strip visuals:

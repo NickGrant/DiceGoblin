@@ -23,7 +23,13 @@
       </div>
 
       @if (formatTier(object().tier); as tierLabel) {
-      <span class="unit-grid-object__tier-chip dg-stencil">Tier {{ tierLabel }}</span>
+      <span
+        [class]="tierIndicatorClass(object().tier)"
+        [attr.aria-label]="'Tier ' + tierLabel"
+        [attr.title]="'Tier ' + tierLabel"
+      >
+        <span class="visually-hidden">Tier {{ tierLabel }}</span>
+      </span>
       }
     </div>
 

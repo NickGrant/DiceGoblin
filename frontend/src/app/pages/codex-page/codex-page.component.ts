@@ -155,7 +155,7 @@ const BIOME_GUIDE_UNITS: ReadonlyArray<GuideBestiaryUnit> = [
 const GUIDE_UNIT_ANIMATION_INTERVAL_MS = 320;
 const TIER_ONE_UNIT_COST = 250;
 const PROMOTED_UNIT_COST = 500;
-const PLAYER_DIALOGUE_PORTRAIT = '/assets/dialogue/portraits/goblin/base_frame_0.png';
+const PLAYER_DIALOGUE_PORTRAIT = '/assets/ui/units/animated/goblin/base/frame_0.png';
 
 const UNIT_TREE: ReadonlyArray<CodexUnit> = [
   {

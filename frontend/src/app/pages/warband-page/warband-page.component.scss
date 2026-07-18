@@ -170,6 +170,41 @@
   gap: 0.5rem;
 }
 
+.warband-tier-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-height: 46px;
+  align-items: center;
+}
+
+.warband-tier-filter__option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.1rem;
+  min-height: 2.7rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  transition:
+    transform 120ms ease;
+}
+
+.warband-tier-filter__option:hover,
+.warband-tier-filter__option:focus-visible {
+  transform: translateY(-1px);
+}
+
+.warband-tier-filter__option:focus-visible {
+  outline: 2px solid rgba(185, 28, 28, 0.28);
+  outline-offset: 2px;
+}
+
+.warband-tier-filter__mark {
+  font-size: 1.55rem;
+}
+
 .warband-units-controls__range-separator {
   color: rgba(35, 39, 42, 0.68);
   font-size: 0.82rem;

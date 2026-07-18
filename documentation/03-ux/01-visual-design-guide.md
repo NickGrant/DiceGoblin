@@ -110,6 +110,8 @@ Interaction language:
 ## Asset Pipeline Rules
 - Source art lane: `raw-assets/`
 - Runtime UI lane: `frontend/public/assets/ui/`
+- Runtime data lane: `frontend/public/assets/data/`
+- Unit and speaker character art belongs under `frontend/public/assets/ui/units/`; multi-frame or frame-indexed art belongs under `ui/units/animated/`.
 - Runtime logic should bind only to runtime asset paths and registered keys, not raw source paths.
 - Reuse shared textures, frames, and icon families before introducing one-off motif assets.
 

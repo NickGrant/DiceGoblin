@@ -44,7 +44,7 @@ class DialogueServiceStub {
       backgroundUrl: '/assets/ui/biome/mystic_cave.png',
       speakers: [
         { id: 'player', side: 'left' as const, name: 'Commander', portraitUrl: null, party: 'player', role: 'player' },
-        { id: 'whim', side: 'right' as const, name: 'The Whim', portraitUrl: '/assets/dialogue/portraits/whim/frame_0.png', party: 'neutral', role: 'npc' },
+        { id: 'whim', side: 'right' as const, name: 'The Whim', portraitUrl: '/assets/ui/units/animated/whim/base/frame_0.png', party: 'neutral', role: 'npc' },
       ],
       startStepId: 'start',
       steps: [{ id: 'start', speakerId: 'whim', text: 'Go make a mess.', nextStepId: null, choices: [], enterEffect: null }],
@@ -56,7 +56,7 @@ class DialogueServiceStub {
       tags: ['lore'],
       backgroundUrl: '/assets/ui/biome/mountain.png',
       speakers: [
-        { id: 'archivist', side: 'right' as const, name: 'The Archivist', portraitUrl: '/assets/dialogue/portraits/archivist/frame_0.png', party: 'neutral', role: 'npc' },
+        { id: 'archivist', side: 'right' as const, name: 'The Archivist', portraitUrl: '/assets/ui/units/animated/archivist/base/frame_0.png', party: 'neutral', role: 'npc' },
       ],
       startStepId: 'start',
       steps: [{ id: 'start', speakerId: 'archivist', text: 'Remarkable.', nextStepId: null, choices: [], enterEffect: null }],
@@ -68,7 +68,7 @@ class DialogueServiceStub {
       tags: ['lore'],
       backgroundUrl: '/assets/ui/biome/farm.png',
       speakers: [
-        { id: 'tooth-collector', side: 'left' as const, name: 'The Tooth Collector', portraitUrl: '/assets/dialogue/portraits/tooth_collector_frame_0.png', party: 'neutral', role: 'npc' },
+        { id: 'tooth-collector', side: 'left' as const, name: 'The Tooth Collector', portraitUrl: '/assets/ui/units/animated/tooth_collector/base/frame_0.png', party: 'neutral', role: 'npc' },
       ],
       startStepId: 'start',
       steps: [{ id: 'start', speakerId: 'tooth-collector', text: 'Finally.', nextStepId: null, choices: [], enterEffect: null }],

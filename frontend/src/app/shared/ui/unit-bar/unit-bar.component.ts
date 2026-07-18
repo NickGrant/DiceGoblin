@@ -1,6 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { UnitRecord } from '../../../core/models/api.models';
+import { formatTier } from '../../utils/unit-formatters';
 import { UnitThumbnailComponent } from '../unit-thumbnail/unit-thumbnail.component';
 import { resolveUnitRoleIcon } from '../category-icons/category-icons';
 
@@ -35,8 +36,10 @@ export class UnitBarComponent {
   });
   readonly xpLabel = computed(() => this.unit().is_mastered ? 'Mastered' : `${this.xpToNext()} XP to next`);
   readonly tierNumber = computed(() => Math.max(1, Math.min(5, Math.round(this.unit().tier ?? 1))));
-  readonly tierLabel = computed(() => `Tier ${this.tierNumber()}`);
-  readonly tierIconUrl = computed(() => `/assets/ui/icons/tier/${this.tierNumber()}.png`);
+  readonly tierLabel = computed(() => `Tier ${formatTier(this.tierNumber()) ?? this.tierNumber()}`);
+  readonly tierIndicatorClass = computed(
+    () => `unit-bar__tier-icon dg-tier-indicator dg-tier-indicator--${this.tierNumber()}`,
+  );
   readonly levelLabel = computed(() => `Level ${this.unit().level || 1}`);
   readonly roleIcon = computed(() => resolveUnitRoleIcon(this.unit().unit_type_slug ?? this.unit().unit_type_name));
 

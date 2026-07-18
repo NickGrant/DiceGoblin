@@ -42,6 +42,11 @@ export class UnitGridObjectComponent extends GridObjectComponent<UnitRecord> {
     return formatTier(tier);
   }
 
+  tierIndicatorClass(tier: number | null | undefined): string {
+    const tierNumber = Math.max(1, Math.min(5, Math.round(tier ?? 1)));
+    return `unit-grid-object__tier-chip dg-tier-indicator dg-tier-indicator--${tierNumber}`;
+  }
+
   progressWidth(progressBar: UnitGridObjectProgressBar | null): number {
     return Math.max(0, Math.min(100, progressBar?.percent ?? 0));
   }
