@@ -34,17 +34,6 @@
     center / cover no-repeat var(--dg-proto-moss);
 }
 
-.run-summary-progression-grid {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.run-summary-squad-grid,
-.run-summary-loot-summary {
-  display: grid;
-  gap: 0.75rem;
-}
-
 .run-summary-section-heading {
   display: flex;
   align-items: center;
@@ -68,84 +57,19 @@
   text-transform: uppercase;
 }
 
-.run-summary-section-block + .run-summary-section-block {
-  margin-top: 1rem;
-}
-
-.run-summary-loot-stat,
-.run-summary-squad-card {
-  padding: 0.85rem 0.95rem;
-  border-radius: 0.9rem;
-  background:
-    linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
-    center / cover no-repeat var(--dg-proto-paper);
-}
-
-.run-summary-loot-stat strong {
-  display: block;
-  color: #24150d;
-  font-size: 1.7rem;
-  line-height: 1;
-}
-
-.run-summary-chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.run-summary-squad-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+.run-summary-loot-masonry {
   gap: 0.75rem;
-  align-items: center;
 }
 
-.run-summary-squad-card h3,
-.run-summary-squad-card p,
-.run-summary-squad-card span {
-  margin: 0;
-}
-
-.run-summary-squad-card h3 {
-  color: #24150d;
-  font-size: 0.95rem;
-}
-
-.run-summary-squad-card p,
-.run-summary-squad-card span {
-  color: rgba(51, 31, 18, 0.78);
-  font-size: 0.84rem;
-}
-
-.run-summary-squad-card span {
-  display: inline-block;
-  margin-top: 0.2rem;
-  font-weight: 700;
-}
-
-.run-summary-squad-card.is-defeated {
-  opacity: 0.72;
-}
-
-.run-summary-fallback-list {
+.run-summary-unit-list {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
-}
-
-.run-summary-fallback-list li {
-  padding: 0.9rem 1rem;
-  border: 1px solid rgba(35, 39, 42, 0.12);
-  background: rgba(243, 239, 224, 0.72);
+  gap: 0.75rem;
 }
 
 @media (min-width: 441px) {
-  .run-summary-loot-summary {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .run-summary-squad-grid {
+  .run-summary-unit-list {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -155,11 +79,7 @@
     min-height: 46rem;
   }
 
-  .run-summary-squad-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .run-summary-progression-grid {
+  .run-summary-unit-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
