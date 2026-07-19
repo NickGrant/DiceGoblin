@@ -225,7 +225,7 @@ describe('UnitDetailsPageComponent', () => {
     expect(fixture.componentInstance.message()).toBe('Unit renamed.');
   });
 
-  it('builds tabbed stats, learned abilities, and academy handoff', async () => {
+  it('builds the unit details layout, learned abilities, and academy handoff', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
     const host: HTMLElement = fixture.nativeElement;
@@ -235,30 +235,54 @@ describe('UnitDetailsPageComponent', () => {
     expect(host.textContent).toContain('Tier');
     expect(host.textContent).toContain('I');
     expect(host.textContent).toContain('10/10');
-    expect(host.textContent).toContain('XP to next: 0');
     expect(host.textContent).toContain('Attack');
     expect(host.textContent).toContain('Defense');
     expect(host.textContent).toContain('Eligible now (unlocked at level 6)');
-    expect(host.textContent).toContain('Mastered. Choose one capstone before any future promotion.');
-    expect(host.textContent).toContain('None selected yet');
-    expect(host.textContent).toContain('Mastery & Capstone');
+    expect(host.textContent).toContain('Static Abilities');
+    expect(host.textContent).toContain('Choose Capstone');
     expect(host.textContent).toContain('Brawl Hardened');
     expect(host.textContent).toContain('Gain protective stacks when attacked.');
     expect(host.textContent).toContain('Finisher');
     expect(host.textContent).toContain('Deal more damage to wounded enemies.');
+    expect(host.textContent).not.toContain('Mastered. Choose one capstone before any future promotion.');
+    expect(host.textContent).not.toContain('None selected yet');
     expect(host.textContent).toContain('Academy');
     expect(host.textContent).toContain('Formation');
-    expect(host.textContent).toContain('Board footprint');
     expect(host.textContent).not.toContain('Inherited Passives');
-    expect(fixture.nativeElement.querySelector('.unit-portrait')?.getAttribute('src')).toContain(
-      '/assets/ui/units/animated/goblin/base/frame_0.png',
-    );
+    expect(fixture.nativeElement.querySelector('.unit-thumbnail__image')?.getAttribute('src')).toBeTruthy();
 
     component.setActiveTab('abilities');
     fixture.detectChanges();
     expect(component.learnedActiveAbilities().map((ability) => ability.abilityId)).toEqual(['guard', 'heavy_strike']);
     expect(component.learnedPassiveAbilities().map((ability) => ability.abilityId)).toEqual(['thick_hide']);
     expect(fixture.nativeElement.querySelectorAll('.ability-icon-button').length).toBeGreaterThan(0);
+  });
+
+  it('displays a selected capstone like a normal passive ability', async () => {
+    const fixture = await createComponent();
+    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+
+    sessionService.units.set(
+      sessionService.units().map((unit) =>
+        unit.id === 'u1'
+          ? {
+              ...unit,
+              current_capstone_state: 'selected',
+              selected_capstone: { ability_id: 'finisher' },
+            }
+          : unit,
+      ) as any[],
+    );
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(fixture.componentInstance.staticAbilities().map((ability) => ability.abilityId)).toContain('finisher');
+    expect(fixture.componentInstance.staticAbilities().find((ability) => ability.abilityId === 'finisher')?.badge).toBe(
+      'Passive',
+    );
+    expect(host.textContent).toContain('Finisher');
+    expect(host.textContent).not.toContain('Choose Capstone');
+    expect(host.textContent).not.toContain('Capstone Locked In');
   });
 
   it('builds slot editors from learned active abilities and filters picker dice to free or current-slot dice', async () => {
