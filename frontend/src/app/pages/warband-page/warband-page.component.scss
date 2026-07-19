@@ -14,133 +14,156 @@
 }
 
 .squad-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 15.625rem));
-  justify-content: start;
-  gap: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem;
 }
 
 .squad-card {
   position: relative;
-  display: flex;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: 52px minmax(0, max-content);
+  align-items: center;
+  gap: 12px;
   min-width: 0;
-  aspect-ratio: 1;
-  min-height: 15.625rem;
-  width: 100%;
-  max-width: 15.625rem;
-  border-radius: 1rem;
-  margin-inline: auto;
-  background-image: url('/assets/ui/squads/squad-card-unchecked.png');
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-  filter: drop-shadow(0 14px 24px rgba(52, 34, 17, 0.18));
+  min-height: 86px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 10px;
+  border: 1px solid rgba(91, 59, 29, 0.16);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
+    center / 220px auto repeat var(--dg-proto-paper);
   transition:
     transform 150ms ease,
     box-shadow 150ms ease,
-    background-image 150ms ease;
+    filter 150ms ease;
 }
 
 .squad-card.is-active {
-  background-image: url('/assets/ui/squads/squad-card-selected.png');
-}
-
-.squad-card:not(.is-active):not(.is-locked):has(.squad-card__activate:hover),
-.squad-card:not(.is-active):not(.is-locked):has(.squad-card__activate:focus-visible) {
-  background-image: url('/assets/ui/squads/squad-card-hover.png');
+  box-shadow: 0 0 0 2px rgba(94, 107, 60, 0.2);
 }
 
 .squad-card:hover,
-.squad-card:has(.squad-card__nameplate--link:focus-visible) {
-  transform: translateY(-2px);
-  box-shadow: 0 0 0 2px rgba(149, 87, 23, 0.26);
+.squad-card:has(.squad-card__body--link:focus-visible),
+.squad-card:not(.is-active):not(.is-locked):has(.squad-card__activate:hover),
+.squad-card:not(.is-active):not(.is-locked):has(.squad-card__activate:focus-visible) {
+  transform: translateY(-3px);
+  filter: saturate(1.08);
 }
 
 .squad-card.is-locked::before {
-  content: '\1F512';
+  content: 'LOCKED';
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 8px;
+  right: 10px;
   z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 999px;
-  background: rgba(33, 22, 15, 0.92);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
-  font-size: 1rem;
+  color: rgba(143, 23, 23, 0.78);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
   line-height: 1;
 }
 
+.squad-card__status {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+}
+
 .squad-card__activate {
-  position: absolute;
-  top: 1.1rem;
-  left: 50%;
-  z-index: 4;
-  width: 6rem;
-  height: 6rem;
-  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   border: 0;
-  border-radius: 999px;
   background: transparent;
-  color: transparent;
   cursor: pointer;
 }
 
 .squad-card__activate:focus-visible {
-  outline: 2px solid rgba(168, 102, 33, 0.5);
-  outline-offset: 0.25rem;
+  outline: 2px solid rgba(185, 28, 28, 0.28);
+  outline-offset: 2px;
 }
 
 .squad-card__activate:disabled {
   cursor: default;
 }
 
-.squad-card__nameplate {
+.squad-card__active-mark {
+  --squad-active-fill: #f2384a;
+
+  position: relative;
+  isolation: isolate;
+  display: block;
+  width: 26px;
+  height: 26px;
+}
+
+.squad-card__active-mark::before,
+.squad-card__active-mark::after {
+  content: '';
   position: absolute;
-  inset-inline: 1.25rem;
-  bottom: 2.5em;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.65rem 0.85rem;
-  text-align: center;
+  width: 18px;
+  height: 18px;
+}
+
+.squad-card__active-mark::before {
+  left: 8px;
+  top: 8px;
+  z-index: 1;
+  background: var(--squad-active-fill);
+}
+
+.squad-card__active-mark::after {
+  left: 2px;
+  top: 2px;
+  z-index: 2;
+  border: 3px solid #050505;
+  background: transparent;
+}
+
+.squad-card__active-mark--muted {
+  --squad-active-fill: #87909a;
+}
+
+.squad-card__body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  max-width: 18rem;
+  padding-inline-end: 4.5rem;
   text-decoration: none;
 }
 
-.squad-card__nameplate--link {
-  position: absolute;
-}
-
-.squad-card__nameplate--link::after {
-  content: '';
-  position: absolute;
-  inset: -1rem;
-  z-index: 1;
-}
-
-.squad-card__nameplate--link:focus-visible {
+.squad-card__body--link:focus-visible {
   outline: 2px solid rgba(168, 102, 33, 0.35);
   outline-offset: 2px;
 }
 
-.squad-card__nameplate strong,
-.squad-card__nameplate span {
-  position: relative;
-  z-index: 2;
+.squad-card__name {
+  min-width: 0;
+  color: #25150c;
+  font-size: 20px;
+  line-height: 0.92;
+  overflow-wrap: anywhere;
+}
+
+.squad-card__meta {
+  display: inline-flex;
+  justify-self: start;
+  min-height: 22px;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid rgba(35, 39, 42, 0.14);
+  background: rgba(255, 252, 246, 0.72);
+  color: rgba(37, 21, 12, 0.74);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.squad-card__nameplate strong {
-  font-size: clamp(1.05rem, 0.98rem + 0.35vw, 1.3rem);
-}
-
-.squad-card__nameplate span {
-  font-size: 0.78rem;
 }
 
 .warband-units-roster {
@@ -259,7 +282,7 @@
 
 @media (max-width: 760px) {
   .squad-card:hover,
-  .squad-card:has(.squad-card__nameplate--link:focus-visible),
+  .squad-card:has(.squad-card__body--link:focus-visible),
   .squad-card:not(.is-active):not(.is-locked):has(.squad-card__activate:hover),
   .squad-card:not(.is-active):not(.is-locked):has(.squad-card__activate:focus-visible),
   .warband-units-grid__tile:hover,
@@ -301,15 +324,18 @@
     padding-inline: 0.75rem;
   }
 
-  .squad-card__activate {
-    top: 0.95rem;
-    width: 5.25rem;
-    height: 5.25rem;
+  .squad-grid {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .squad-card__nameplate {
-    inset-inline: 0.9rem;
-    bottom: 0.8rem;
+  .squad-card {
+    grid-template-columns: 44px minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .squad-card__body {
+    padding-inline-end: 3.75rem;
   }
 
   .warband-units-controls__footer {

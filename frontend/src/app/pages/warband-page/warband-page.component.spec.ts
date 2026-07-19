@@ -74,7 +74,7 @@ describe('WarbandPageComponent', () => {
 
     expect(squadLinkDebug).toBeDefined();
     expect(squadLinkDebug!.injector.get(RouterLink).href).toContain('/warband/squads/1');
-    expect(host.querySelector('.squad-card__nameplate--link')).not.toBeNull();
+    expect(host.querySelector('.squad-card__body--link')).not.toBeNull();
   });
 
   it('renders an activation hotspot for inactive unlocked squads', () => {
@@ -105,7 +105,7 @@ describe('WarbandPageComponent', () => {
 
     const host: HTMLElement = fixture.nativeElement;
     const lockedCard = host.querySelector('.squad-card.is-locked');
-    const lockedLink = host.querySelector('.squad-card.is-locked .squad-card__nameplate--link');
+    const lockedLink = host.querySelector('.squad-card.is-locked .squad-card__body--link');
 
     expect(host.textContent).toContain('Squads and Squad members are locked while on a run.');
     expect(lockedCard).not.toBeNull();
