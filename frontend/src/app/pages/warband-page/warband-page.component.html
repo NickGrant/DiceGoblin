@@ -34,24 +34,35 @@
       <div class="squad-grid">
         @for (squad of sortedSquads(); track squad.id) {
         <article class="squad-card" [class.is-active]="squad.is_active" [class.is-locked]="isSquadLocked(squad.id)">
-          @if (!isSquadLocked(squad.id) && !squad.is_active) {
-          <button
-            class="squad-card__activate"
-            type="button"
-            [attr.aria-label]="'Set ' + squad.name + ' as the active squad'"
-            (click)="activateSquad(squad.id)"
-            [disabled]="isSaving()"
-          ></button>
-          }
+          <div class="squad-card__status">
+            @if (!isSquadLocked(squad.id) && !squad.is_active) {
+            <button
+              class="squad-card__activate"
+              type="button"
+              [attr.aria-label]="'Set ' + squad.name + ' as the active squad'"
+              (click)="activateSquad(squad.id)"
+              [disabled]="isSaving()"
+            >
+              <span class="squad-card__active-mark squad-card__active-mark--muted" aria-hidden="true"></span>
+            </button>
+            } @else {
+            <span
+              class="squad-card__active-mark"
+              [class.squad-card__active-mark--muted]="!squad.is_active"
+              [attr.aria-label]="squad.is_active ? 'Active squad' : 'Inactive squad'"
+              role="img"
+            ></span>
+            }
+          </div>
           @if (isSquadLocked(squad.id)) {
-          <span class="squad-card__nameplate" aria-label="Locked squad">
-            <strong>{{ squad.name }}</strong>
-            <span>{{ squad.unit_ids.length }} units</span>
+          <span class="squad-card__body" aria-label="Locked squad">
+            <strong class="squad-card__name dg-stencil">{{ squad.name }}</strong>
+            <span class="squad-card__meta">{{ squad.unit_ids.length }} units</span>
           </span>
           } @else {
-          <a class="squad-card__nameplate squad-card__nameplate--link" [routerLink]="['/warband/squads', squad.id]">
-            <strong>{{ squad.name }}</strong>
-            <span>{{ squad.unit_ids.length }} units</span>
+          <a class="squad-card__body squad-card__body--link" [routerLink]="['/warband/squads', squad.id]">
+            <strong class="squad-card__name dg-stencil">{{ squad.name }}</strong>
+            <span class="squad-card__meta">{{ squad.unit_ids.length }} units</span>
           </a>
           }
         </article>
