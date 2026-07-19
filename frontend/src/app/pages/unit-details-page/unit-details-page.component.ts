@@ -36,9 +36,10 @@ import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { DicePickerModalComponent } from '../../shared/ui/dice-picker-modal/dice-picker-modal.component';
-import { TabStripComponent, TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
+import { type TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
 import { humanizeAbilityId, normalizeAbilityId, resolveAbilityDisplayName, toRomanNumeral } from '../../shared/utils/unit-formatters';
 import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
+import { UnitThumbnailComponent } from '../../shared/ui/unit-thumbnail/unit-thumbnail.component';
 
 type AbilitySlotViewModel = {
   abilityId: string;
@@ -72,6 +73,13 @@ type LoadoutBarViewModel = {
   heightPx: number;
 };
 
+type StaticAbilityViewModel = {
+  abilityId: string;
+  displayName: string;
+  shortDesc: string;
+  badge: string;
+};
+
 type PickerState = {
   abilityId: string;
   abilityName: string;
@@ -99,7 +107,7 @@ type DiceAssignmentRecord = {
     FontAwesomeModule,
     FormsModule,
     RouterLink,
-    TabStripComponent,
+    UnitThumbnailComponent,
   ],
   templateUrl: './unit-details-page.component.html',
   styleUrl: './unit-details-page.component.scss',
@@ -198,6 +206,44 @@ export class UnitDetailsPageComponent {
       .filter((ability) => ability.type !== 'active')
       .sort((left, right) => left.displayName.localeCompare(right.displayName)),
   );
+  readonly staticAbilities = computed<StaticAbilityViewModel[]>(() => {
+    const cards = new Map<string, StaticAbilityViewModel>();
+
+    for (const ability of this.learnedPassiveAbilities()) {
+      cards.set(ability.abilityId, {
+        abilityId: ability.abilityId,
+        displayName: ability.displayName,
+        shortDesc: ability.shortDesc,
+        badge: 'Passive',
+      });
+    }
+
+    for (const inherited of this.inheritedPassiveAbilities()) {
+      const abilityId = normalizeAbilityId(inherited.ability_id);
+      if (!abilityId || cards.has(abilityId)) {
+        continue;
+      }
+
+      cards.set(abilityId, {
+        abilityId,
+        displayName: this.abilityDisplayName(abilityId),
+        shortDesc: this.abilityShortDescription(abilityId),
+        badge: 'Inherited',
+      });
+    }
+
+    const selectedCapstoneId = normalizeAbilityId(this.selectedCapstoneAbilityId());
+    if (selectedCapstoneId && !cards.has(selectedCapstoneId)) {
+      cards.set(selectedCapstoneId, {
+        abilityId: selectedCapstoneId,
+        displayName: this.abilityDisplayName(selectedCapstoneId),
+        shortDesc: this.abilityShortDescription(selectedCapstoneId),
+        badge: 'Passive',
+      });
+    }
+
+    return Array.from(cards.values()).sort((left, right) => left.displayName.localeCompare(right.displayName));
+  });
   readonly capstoneChoices = computed<UnitCapstoneChoiceRecord[]>(() => this.unit()?.capstone_choices ?? []);
   readonly inheritedPassiveAbilities = computed(() => this.unit()?.inherited_passive_abilities ?? []);
   readonly selectedCapstoneAbilityId = computed(() => this.unit()?.selected_capstone?.ability_id ?? null);
@@ -215,37 +261,9 @@ export class UnitDetailsPageComponent {
 
     return `Unlocks at level ${threshold}`;
   });
-  readonly masteryLabel = computed(() => {
-    const unit = this.unit();
-    if (!unit) {
-      return 'Unavailable';
-    }
-
-    if (unit.selected_capstone) {
-      return `Mastered with ${this.abilityDisplayName(unit.selected_capstone.ability_id)}`;
-    }
-
-    return this.currentCapstoneCopy(this.currentCapstoneState());
-  });
-  readonly selectedCapstoneLabel = computed(() => {
-    const selectedCapstoneId = this.selectedCapstoneAbilityId();
-    return selectedCapstoneId ? this.abilityDisplayName(selectedCapstoneId) : 'None selected yet';
-  });
   readonly canChooseCapstone = computed(
     () => this.currentCapstoneState() === 'ready_to_select' && !this.selectedCapstoneAbilityId(),
   );
-  readonly masteryStatusLabel = computed(() => {
-    if (this.selectedCapstoneAbilityId()) {
-      return 'Capstone Locked In';
-    }
-
-    return {
-      none: 'No Capstone',
-      unearned: 'Mastery Unlocked Later',
-      ready_to_select: 'Choose Capstone',
-      selected: 'Capstone Locked In',
-    }[this.currentCapstoneState()] ?? 'Capstone Status';
-  });
   readonly totalEquippedSpeed = computed(() =>
     this.pendingEquippedAbilityIds().reduce(
       (total, abilityId) => total + (this.abilityCatalog().get(abilityId)?.speed ?? 0),
@@ -711,15 +729,6 @@ export class UnitDetailsPageComponent {
     }
 
     return this.abilityCatalog().get(normalized)?.short_desc ?? 'No description available.';
-  }
-
-  currentCapstoneCopy(state: string): string {
-    return {
-      none: 'This class has no mastery capstone.',
-      unearned: 'Keep leveling to 10 to unlock a mastery capstone choice.',
-      ready_to_select: 'Mastered. Choose one capstone before any future promotion.',
-      selected: 'Capstone selected and inherited forward.',
-    }[state] ?? 'Capstone state unavailable.';
   }
 
   private slotKey(abilityId: string, slotIndex: number): string {
