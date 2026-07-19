@@ -96,13 +96,15 @@ button {
 
 .dg-motion-route-enter,
 app-root .frame > * {
-  animation: dg-route-screen-enter var(--dg-motion-duration-route) var(--dg-motion-ease-emphatic) backwards;
+  animation: dg-route-screen-enter var(--dg-motion-duration-route) var(--dg-motion-ease-emphatic)
+    backwards;
   transform-origin: center top;
   will-change: transform, opacity, filter;
 }
 
 .dg-motion-surface-enter {
-  animation: dg-surface-enter var(--dg-motion-duration-surface) var(--dg-motion-ease-emphatic) backwards;
+  animation: dg-surface-enter var(--dg-motion-duration-surface) var(--dg-motion-ease-emphatic)
+    backwards;
 }
 
 .dg-motion-panel-enter {
@@ -195,7 +197,10 @@ app-root .frame > * {
   color: var(--dg-charcoal);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease;
   box-shadow: 0 6px 0 rgba(35, 39, 42, 0.28);
 }
 
@@ -458,6 +463,7 @@ app-root .frame > * {
   background:
     linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
     center / 220px auto repeat var(--dg-proto-paper);
+  color: #24150d;
 }
 
 .loot-card--teeth {
@@ -507,6 +513,11 @@ app-root .frame > * {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.loot-card__title {
+  color: #24150d;
+  line-height: 0.95;
 }
 
 .loot-scene__footer {

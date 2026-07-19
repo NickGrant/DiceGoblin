@@ -19,18 +19,20 @@ class RunServiceStub {
       units: [{ unit_instance_id: 'u1', label: 'Goblin Bruiser' }],
       dice: [{ dice_instance_id: 'd1', label: 'bone d8' }],
     },
-    progressionDetail: [{
-      unit_instance_id: 'u1',
-      label: 'Fang',
-      xp_gained: 30,
-      level_gain_count: 0,
-      final_level: 2,
-      final_xp: 90,
-      xp_to_next_level: 30,
-      tier: 1,
-      max_level: 6,
-      unit_type_name: 'Bruiser',
-    }],
+    progressionDetail: [
+      {
+        unit_instance_id: 'u1',
+        label: 'Fang',
+        xp_gained: 30,
+        level_gain_count: 0,
+        final_level: 2,
+        final_xp: 90,
+        xp_to_next_level: 30,
+        tier: 1,
+        max_level: 6,
+        unit_type_name: 'Bruiser',
+      },
+    ],
   });
 }
 
@@ -69,7 +71,7 @@ class SessionServiceStub {
 }
 
 describe('RunSummaryPageComponent', () => {
-  it('renders shared reward cards and progression bars from structured summary data', async () => {
+  it('renders loot-style rewards and current unit bars from structured summary data', async () => {
     await TestBed.configureTestingModule({
       imports: [RunSummaryPageComponent],
       providers: [
@@ -84,12 +86,15 @@ describe('RunSummaryPageComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Run Complete');
-    expect(compiled.textContent).toContain('Rewards');
+    expect(compiled.textContent).toContain('Acquisitions');
     expect(compiled.textContent).toContain('125');
     expect(compiled.textContent).toContain('Fang');
     expect(compiled.textContent).toContain('d8');
     expect(compiled.textContent).toContain('Rare');
     expect(compiled.textContent).toContain('Return Home');
+    expect(compiled.querySelectorAll('.run-summary-loot-masonry .loot-card')).toHaveSize(3);
+    expect(compiled.querySelectorAll('dg-unit-bar')).toHaveSize(1);
+    expect(compiled.querySelector('dg-unit-grid-object')).toBeNull();
   });
 
   it('uses structured summary snapshots for current progression values', async () => {
@@ -107,18 +112,20 @@ describe('RunSummaryPageComponent', () => {
           units: [],
           dice: [],
         },
-        progressionDetail: [{
-          unit_instance_id: 'u2',
-          label: 'Boghand',
-          xp_gained: 20,
-          level_gain_count: 0,
-          final_level: 3,
-          final_xp: 20,
-          xp_to_next_level: 180,
-          tier: 1,
-          max_level: 6,
-          unit_type_name: 'Bruiser',
-        }],
+        progressionDetail: [
+          {
+            unit_instance_id: 'u2',
+            label: 'Boghand',
+            xp_gained: 20,
+            level_gain_count: 0,
+            final_level: 3,
+            final_xp: 20,
+            xp_to_next_level: 180,
+            tier: 1,
+            max_level: 6,
+            unit_type_name: 'Bruiser',
+          },
+        ],
       });
     }
 
@@ -153,10 +160,10 @@ describe('RunSummaryPageComponent', () => {
     const component = fixture.componentInstance;
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Boghand');
-    expect(component.progressionCards()).toEqual([
+    expect(component.squadOutcomeUnits()).toEqual([
       jasmine.objectContaining({
         xpGained: 20,
-        levelGainCount: 0,
+        positionLabel: '+20 XP',
         unit: jasmine.objectContaining({
           name: 'Boghand',
           level: 3,
@@ -253,7 +260,8 @@ describe('RunSummaryPageComponent', () => {
     const component = fixture.componentInstance;
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(component.progressionCards()).toHaveSize(2);
+    expect(component.squadOutcomeUnits()).toHaveSize(2);
+    expect(compiled.querySelectorAll('dg-unit-bar')).toHaveSize(2);
     expect(compiled.textContent).toContain('Boghand');
     expect(compiled.textContent).toContain('Copperwhistle');
   });
