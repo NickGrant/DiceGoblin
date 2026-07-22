@@ -205,8 +205,8 @@ describe('CodexPageComponent', () => {
     expect(text).toContain('Mudslinger');
     expect(text).toContain('Mudking');
     expect(text).not.toContain('Unknown Enemy');
-    expect(fixture.nativeElement.querySelectorAll('.enemy-sprite').length).toBe(4);
-    expect(fixture.nativeElement.querySelectorAll('.enemy-entry--no-sprite').length).toBe(7);
+    expect(fixture.nativeElement.querySelectorAll('.enemy-sprite').length).toBe(11);
+    expect(fixture.nativeElement.querySelectorAll('.enemy-entry--no-sprite').length).toBe(0);
     expect(fixture.nativeElement.querySelectorAll('.enemy-entry .role-icon').length).toBe(11);
     expect(fixture.nativeElement.querySelectorAll('.biome-badge').length).toBe(11);
     expect(fixture.nativeElement.querySelector('.biome-badge')?.getAttribute('src')).toContain('/assets/ui/biome/farm_badge.png');

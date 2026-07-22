@@ -47,7 +47,7 @@
               [class.is-actor]="participant.isActor"
               [class.is-target]="participant.isTarget"
             >
-              <img class="battle-unit__sprite dg-proto-sprite" [src]="participant.spriteUrl" [alt]="participant.name" />
+              <img class="battle-unit__sprite dg-proto-sprite" [src]="combatSpriteUrl(participant)" [alt]="participant.name" />
               <div class="battle-unit__copy">
                 <strong class="dg-stencil">{{ participant.name }}</strong>
                 <span>{{ participant.statusLabel }}</span>
@@ -91,7 +91,7 @@
               [class.is-actor]="participant.isActor"
               [class.is-target]="participant.isTarget"
             >
-              <img class="battle-unit__sprite dg-proto-sprite" [src]="participant.spriteUrl" [alt]="participant.name" />
+                <img class="battle-unit__sprite dg-proto-sprite" [src]="combatSpriteUrl(participant)" [alt]="participant.name" />
               <div class="battle-unit__copy">
                 <strong class="dg-stencil">{{ participant.name }}</strong>
                 <span>{{ participant.statusLabel }}</span>

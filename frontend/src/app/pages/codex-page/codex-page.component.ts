@@ -19,7 +19,7 @@ import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
 import { resolvePrototypeEnemySpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
-import { resolveUnitSilhouetteUrl, resolveUnitThumbnailUrl } from '../../shared/ui/unit-art/unit-art';
+import { resolveUnitAnimationFrameUrls, resolveUnitSilhouetteUrl, resolveUnitThumbnailUrl } from '../../shared/ui/unit-art/unit-art';
 import { resolveFeatureUnlockIcon, resolveUnitRoleIcon } from '../../shared/ui/category-icons/category-icons';
 
 type CodexCategory = 'features' | 'units' | 'affixes' | 'enemies' | 'lore';
@@ -535,7 +535,7 @@ export class CodexPageComponent implements OnInit, OnDestroy {
   }
 
   protected hasEnemySprite(unit: GuideBestiaryUnit): boolean {
-    return Boolean(unit.assetKey);
+    return resolveUnitAnimationFrameUrls(unit.slug).length > 0;
   }
 
   protected biomeBadgeUrl(biome: string): string {
@@ -545,11 +545,12 @@ export class CodexPageComponent implements OnInit, OnDestroy {
 
   protected guideUnitFramePath(unit: GuideBestiaryUnit): string {
     const frameIndex = this.guideUnitFrameIndexes()[unit.slug] ?? 0;
-    if (!unit.assetKey) {
+    const frames = resolveUnitAnimationFrameUrls(unit.slug);
+    if (!frames.length) {
       return '';
     }
 
-    return `/assets/ui/units/animated/${unit.assetKey}/frame_${frameIndex}.png`;
+    return frames[frameIndex % frames.length];
   }
 
   protected startGuideUnitAnimation(unitSlug: string): void {

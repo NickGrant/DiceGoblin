@@ -7,7 +7,7 @@ const TEST_SCRIPT: DialogueScript = {
   backgroundUrl: '/assets/ui/biome/farm.png',
   startStepId: 'intro',
   speakers: [
-    { id: 'mudking', side: 'right', name: 'Mudking', portraitUrl: '/assets/ui/units/pig_mudking.png', party: 'enemy', role: 'npc' },
+    { id: 'mudking', side: 'right', name: 'Mudking', portraitUrl: '/assets/ui/units/animated/pig/mudking/frame_0.png', party: 'enemy', role: 'npc' },
     { id: 'player', side: 'left', name: 'Ashback', portraitUrl: '/assets/ui/units/animated/goblin/base/frame_0.png', party: 'player', role: 'player' },
   ],
   steps: [

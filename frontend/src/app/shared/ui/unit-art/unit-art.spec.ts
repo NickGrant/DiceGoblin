@@ -1,4 +1,10 @@
-import { resolveUnitImageSlug, resolveUnitImageUrl, resolveUnitSilhouetteUrl, resolveUnitThumbnailUrl } from './unit-art';
+import {
+  resolveUnitAnimationFrameUrls,
+  resolveUnitImageSlug,
+  resolveUnitImageUrl,
+  resolveUnitSilhouetteUrl,
+  resolveUnitThumbnailUrl,
+} from './unit-art';
 
 describe('unit-art helpers', () => {
   it('resolves numbered enemy labels to the base portrait slug', () => {
@@ -15,6 +21,22 @@ describe('unit-art helpers', () => {
   it('resolves tier one unit thumbnails from canonical slugs and names', () => {
     expect(resolveUnitThumbnailUrl('frontline_bruiser_t1')).toBe('/assets/ui/units/thumbnails/goblin/bruiser.png');
     expect(resolveUnitThumbnailUrl('Bannerbearer')).toBe('/assets/ui/units/thumbnails/goblin/bannerbearer.png');
+  });
+
+  it('resolves allied unit static art to the class-specific animation frame', () => {
+    expect(resolveUnitImageUrl('frontline_bruiser_t1')).toBe('/assets/ui/units/animated/goblin/base/bruiser/frame_0.png');
+    expect(resolveUnitImageUrl('support_banner_t1')).toBe('/assets/ui/units/animated/goblin/base/bannerbearer/frame_0.png');
+    expect(resolveUnitAnimationFrameUrls('control_saboteur_t1')).toEqual([
+      '/assets/ui/units/animated/goblin/base/saboteur/frame_0.png',
+      '/assets/ui/units/animated/goblin/base/saboteur/frame_1.png',
+      '/assets/ui/units/animated/goblin/base/saboteur/frame_2.png',
+      '/assets/ui/units/animated/goblin/base/saboteur/frame_3.png',
+    ]);
+  });
+
+  it('resolves farm enemies to their copied animation frames', () => {
+    expect(resolveUnitImageUrl('mudking')).toBe('/assets/ui/units/animated/pig/mudking/frame_0.png');
+    expect(resolveUnitAnimationFrameUrls('mudslinger').length).toBe(4);
   });
 
   it('resolves promoted unit thumbnails when available', () => {

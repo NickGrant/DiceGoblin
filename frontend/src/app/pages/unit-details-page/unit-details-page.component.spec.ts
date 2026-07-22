@@ -475,6 +475,6 @@ describe('UnitDetailsPageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.unitPortraitUrl()).toBe('/assets/ui/units/animated/goblin/base/frame_0.png');
+    expect(fixture.componentInstance.unitPortraitUrl()).toBe('/assets/ui/units/animated/goblin/base/bannerbearer/frame_0.png');
   });
 });
