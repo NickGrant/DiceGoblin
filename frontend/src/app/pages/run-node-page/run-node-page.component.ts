@@ -11,6 +11,7 @@ import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 import { resolvePrototypeEnemySpriteUrl, resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
+import { resolveUnitAnimationFrameUrls } from '../../shared/ui/unit-art/unit-art';
 
 const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss']);
 
@@ -50,6 +51,7 @@ type BattlePlaybackParticipantStateViewModel = {
   side: 'player' | 'enemy';
   name: string;
   spriteUrl: string;
+  spriteFrameUrls: string[];
   currentHp: number;
   maxHp: number;
   hpPercent: number;
@@ -69,6 +71,7 @@ export class RunNodePageComponent implements OnDestroy {
   private static readonly BATTLE_TITLE = 'BATTLE!';
   private static readonly BATTLE_SUBTITLE = 'Several goblins have volunteered to be an educational example.';
   private static readonly PLAYBACK_INTERVAL_MS = 1250;
+  private static readonly SPRITE_ANIMATION_INTERVAL_MS = 240;
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -88,6 +91,7 @@ export class RunNodePageComponent implements OnDestroy {
   readonly playbackIndex = signal(0);
   readonly playbackPaused = signal(false);
   readonly playbackSpeed = signal(1);
+  readonly combatAnimationFrameIndex = signal(0);
   readonly shouldAutoResolve = computed(() => AUTO_RESOLVE_NODE_TYPES.has(this.nodeType() ?? ''));
   readonly abilityCatalogError = this.abilityCatalogService.error;
   readonly abilityCatalog = this.abilityCatalogService.abilityMap;
@@ -167,6 +171,7 @@ export class RunNodePageComponent implements OnDestroy {
   readonly battleOutcomeLabel = computed(() => this.humanizeId(this.result()?.battle.outcome ?? 'pending'));
   readonly battleStatusLabel = computed(() => this.humanizeId(this.result()?.battle.status ?? 'pending'));
   private playbackTimer: ReturnType<typeof window.setTimeout> | null = null;
+  private combatAnimationTimer: ReturnType<typeof window.setInterval> | null = null;
   private lastPlaybackBattleId: string | null = null;
 
   constructor() {
@@ -181,11 +186,13 @@ export class RunNodePageComponent implements OnDestroy {
 
       this.lastPlaybackBattleId = battleId;
       this.restartPlayback();
+      this.restartCombatAnimation();
     });
   }
 
   ngOnDestroy(): void {
     this.clearPlaybackTimer();
+    this.clearCombatAnimationTimer();
   }
 
   async loadRun(): Promise<void> {
@@ -269,10 +276,12 @@ export class RunNodePageComponent implements OnDestroy {
     this.battleViewMode.set(mode);
     if (mode === 'acted') {
       this.schedulePlayback();
+      this.restartCombatAnimation();
       return;
     }
 
     this.clearPlaybackTimer();
+    this.clearCombatAnimationTimer();
   }
 
   togglePlayback(): void {
@@ -297,6 +306,15 @@ export class RunNodePageComponent implements OnDestroy {
     const nextIndex = Number.isFinite(parsed) ? Math.max(0, Math.min(maxIndex, Math.round(parsed))) : 0;
     this.playbackIndex.set(nextIndex);
     this.schedulePlayback();
+  }
+
+  combatSpriteUrl(participant: BattlePlaybackParticipantStateViewModel): string {
+    const frames = participant.spriteFrameUrls.length ? participant.spriteFrameUrls : [participant.spriteUrl];
+    if (!participant.isActor) {
+      return frames[0] ?? participant.spriteUrl;
+    }
+
+    return frames[this.combatAnimationFrameIndex() % frames.length] ?? participant.spriteUrl;
   }
 
   private mapActionStep(step: BattlePlaybackActionStep): BattleLogActionViewModel {
@@ -425,6 +443,7 @@ export class RunNodePageComponent implements OnDestroy {
       spriteUrl: participant.side === 'player'
         ? resolvePrototypeUnitSpriteUrl(participant.unitId ?? participant.spriteKey)
         : resolvePrototypeEnemySpriteUrl(participant.enemySlug ?? participant.spriteKey),
+      spriteFrameUrls: this.resolveParticipantFrameUrls(participant),
       currentHp,
       maxHp,
       hpPercent,
@@ -467,6 +486,35 @@ export class RunNodePageComponent implements OnDestroy {
       clearTimeout(this.playbackTimer);
       this.playbackTimer = null;
     }
+  }
+
+  private restartCombatAnimation(): void {
+    this.clearCombatAnimationTimer();
+    this.combatAnimationFrameIndex.set(0);
+
+    if (typeof window === 'undefined' || this.battleViewMode() !== 'acted') {
+      return;
+    }
+
+    this.combatAnimationTimer = window.setInterval(() => {
+      this.combatAnimationFrameIndex.update((index) => (index + 1) % 4);
+    }, RunNodePageComponent.SPRITE_ANIMATION_INTERVAL_MS);
+  }
+
+  private clearCombatAnimationTimer(): void {
+    if (this.combatAnimationTimer !== null) {
+      clearInterval(this.combatAnimationTimer);
+      this.combatAnimationTimer = null;
+    }
+  }
+
+  private resolveParticipantFrameUrls(participant: BattlePlaybackParticipant): string[] {
+    if (participant.side === 'player') {
+      const unit = this.sessionService.units().find((entry) => entry.id === participant.unitId) ?? null;
+      return resolveUnitAnimationFrameUrls(unit?.unit_type_slug ?? unit?.unit_type_name ?? participant.spriteKey ?? participant.name);
+    }
+
+    return resolveUnitAnimationFrameUrls(participant.enemySlug ?? participant.spriteKey ?? participant.name);
   }
 
   private resolveSpriteUrl(source: UnitRecord | string | null | undefined): string {
