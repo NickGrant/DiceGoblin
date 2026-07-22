@@ -350,4 +350,35 @@ describe('RunNodePageComponent', () => {
     expect(host.querySelector('button[dgcommandbtn], button[dgCommandBtn]')).not.toBeNull();
   });
 
+  it('animates only the participant taking the current combat action', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as any;
+    component.combatAnimationFrameIndex.set(2);
+
+    const actor = component.playerPlaybackParticipants().find((entry: any) => entry.participantId === 'u1');
+    const idleAlly = component.playerPlaybackParticipants().find((entry: any) => entry.participantId === 'u2');
+
+    expect(actor.isActor).toBeTrue();
+    expect(idleAlly.isActor).toBeFalse();
+    expect(component.combatSpriteUrl(actor)).toBe('/assets/ui/units/animated/goblin/base/bruiser/frame_2.png');
+    expect(component.combatSpriteUrl(idleAlly)).toBe('/assets/ui/units/animated/goblin/base/bannerbearer/frame_0.png');
+  });
+
 });

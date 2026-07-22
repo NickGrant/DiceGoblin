@@ -71,7 +71,7 @@ export class RunNodePageComponent implements OnDestroy {
   private static readonly BATTLE_TITLE = 'BATTLE!';
   private static readonly BATTLE_SUBTITLE = 'Several goblins have volunteered to be an educational example.';
   private static readonly PLAYBACK_INTERVAL_MS = 1250;
-  private static readonly SPRITE_ANIMATION_INTERVAL_MS = 180;
+  private static readonly SPRITE_ANIMATION_INTERVAL_MS = 240;
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -310,6 +310,10 @@ export class RunNodePageComponent implements OnDestroy {
 
   combatSpriteUrl(participant: BattlePlaybackParticipantStateViewModel): string {
     const frames = participant.spriteFrameUrls.length ? participant.spriteFrameUrls : [participant.spriteUrl];
+    if (!participant.isActor) {
+      return frames[0] ?? participant.spriteUrl;
+    }
+
     return frames[this.combatAnimationFrameIndex() % frames.length] ?? participant.spriteUrl;
   }
 
