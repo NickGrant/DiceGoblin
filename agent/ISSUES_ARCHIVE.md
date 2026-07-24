@@ -249,3 +249,22 @@ current_code_references:
   - frontend/src/app/pages/academy-page/*
   - frontend/src/app/pages/run-*/*
   - documentation/03-ux/*
+
+---
+id: BSC-004
+title: Separate shop and academy domain services from controllers
+status: complete
+priority: medium
+milestone: Backend Structural Cleanup Pass
+description: Shop and academy catalog, unlock, pricing, daily-deal, and purchase behavior now live in dedicated services, with controllers acting as thin transport layers. Direct service integration coverage now protects those domain boundaries in addition to controller endpoint tests.
+acceptance_criteria:
+  - Extract dedicated services for catalog and purchase orchestration where it materially reduces controller complexity.
+  - Keep unlock rules and response envelopes unchanged.
+  - Preserve daily-deal and feature-unlock behavior with regression coverage where practical.
+current_code_references:
+  - backend/src/Services/ShopService.php
+  - backend/src/Services/AcademyService.php
+  - backend/src/Controllers/ShopController.php
+  - backend/src/Controllers/AcademyController.php
+  - backend/tests/Integration/ShopServiceIntegrationTest.php
+  - backend/tests/Integration/AcademyServiceIntegrationTest.php

@@ -51,27 +51,6 @@ Active-run mutation checks, auth wrappers, JSON decoding, and transaction envelo
 - `backend/src/Controllers/AcademyController.php`
 - `backend/src/Controllers/ShopController.php`
 
-### BSC-004: Separate shop and academy domain services from controllers
-
-**Milestone:** Backend Structural Cleanup Pass  
-**Status:** Open  
-**Priority:** Medium
-
-#### Problem
-
-Shop and academy controllers currently combine catalog assembly, unlock policy, daily-deal generation, and purchase orchestration. Move domain logic into dedicated services so controllers return to thin transport layers.
-
-#### Acceptance Criteria
-
-- Extract dedicated services for catalog and purchase orchestration where it materially reduces controller complexity.
-- Keep unlock rules and response envelopes unchanged.
-- Preserve daily-deal and feature-unlock behavior with regression coverage where practical.
-
-#### Current Code References
-
-- `backend/src/Controllers/ShopController.php`
-- `backend/src/Controllers/AcademyController.php`
-
 ### BSC-005: Evaluate narrow synchronous domain events after service extraction
 
 **Milestone:** Backend Structural Cleanup Pass  
