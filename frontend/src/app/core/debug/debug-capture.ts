@@ -168,6 +168,8 @@ export function createDebugCaptureProfile(_request: DebugCaptureRequest): Profil
     ],
     currency: {
       soft: 209,
+      hard: 0,
+      raw_chaos: 7,
     },
     energy: {
       current: 47,

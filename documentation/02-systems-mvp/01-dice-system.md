@@ -151,6 +151,17 @@ Dice value remains backend-authoritative for shops, inventory, and sell payouts.
 
 `value = round(base_size_value * (1 + die_rarity_bonus + sum(all affix premiums)))`
 
+### 8.5 Raw Chaos Salvage
+
+Unequipped owned dice may be salvaged into Raw Chaos instead of sold for teeth.
+
+- salvage deletes the die instance
+- equipped dice cannot be salvaged
+- Raw Chaos payout is backend-authoritative
+- payout scales from die size, die rarity, and affix rarity
+
+This is the Wrong Machine v1 currency foundation. Fabrication recipes, catalyst costs, and any die-modification spend rules remain follow-up work.
+
 ## 9. Explicit Non-Goals
 
 This dice rework does not add:

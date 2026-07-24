@@ -25,6 +25,7 @@ final class PlayerStateRepository
    *   user_id:string,
    *   currency_soft:int,
    *   currency_hard:int,
+   *   currency_raw_chaos:int,
    *   last_login_at:?string,
    *   created_at:string,
    *   updated_at:string
@@ -33,7 +34,7 @@ final class PlayerStateRepository
   public function getPlayerState(int $userId): ?array
   {
     $stmt = $this->pdo->prepare('
-      SELECT `user_id`, `currency_soft`, `currency_hard`, `last_login_at`, `created_at`, `updated_at`
+      SELECT `user_id`, `currency_soft`, `currency_hard`, `currency_raw_chaos`, `last_login_at`, `created_at`, `updated_at`
       FROM `player_state`
       WHERE `user_id` = ?
       LIMIT 1
@@ -49,6 +50,7 @@ final class PlayerStateRepository
       'user_id' => (string)$row['user_id'],
       'currency_soft' => (int)$row['currency_soft'],
       'currency_hard' => (int)$row['currency_hard'],
+      'currency_raw_chaos' => (int)$row['currency_raw_chaos'],
       'last_login_at' => $row['last_login_at'] !== null ? (string)$row['last_login_at'] : null,
       'created_at' => (string)$row['created_at'],
       'updated_at' => (string)$row['updated_at'],
@@ -59,12 +61,12 @@ final class PlayerStateRepository
    * Fetch player_state and lock it for update.
    * Call inside an open transaction.
    *
-   * @return array{currency_soft:int,currency_hard:int,last_login_at:?string}|null
+   * @return array{currency_soft:int,currency_hard:int,currency_raw_chaos:int,last_login_at:?string}|null
    */
   public function getPlayerStateForUpdate(int $userId): ?array
   {
     $stmt = $this->pdo->prepare('
-      SELECT `currency_soft`, `currency_hard`, `last_login_at`
+      SELECT `currency_soft`, `currency_hard`, `currency_raw_chaos`, `last_login_at`
       FROM `player_state`
       WHERE `user_id` = ?
       LIMIT 1
@@ -80,6 +82,7 @@ final class PlayerStateRepository
     return [
       'currency_soft' => (int)$row['currency_soft'],
       'currency_hard' => (int)$row['currency_hard'],
+      'currency_raw_chaos' => (int)$row['currency_raw_chaos'],
       'last_login_at' => $row['last_login_at'] !== null ? (string)$row['last_login_at'] : null,
     ];
   }
@@ -102,12 +105,12 @@ final class PlayerStateRepository
   /**
    * Convenience method used by profile hydration.
    *
-   * @return array{soft:int,hard:int}
+   * @return array{soft:int,hard:int,raw_chaos:int}
    */
   public function getCurrency(int $userId): array
   {
     $stmt = $this->pdo->prepare('
-      SELECT `currency_soft`, `currency_hard`
+      SELECT `currency_soft`, `currency_hard`, `currency_raw_chaos`
       FROM `player_state`
       WHERE `user_id` = ?
       LIMIT 1
@@ -117,12 +120,13 @@ final class PlayerStateRepository
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
       // Prefer explicit bootstrap, but return a safe value for callers.
-      return ['soft' => 0, 'hard' => 0];
+      return ['soft' => 0, 'hard' => 0, 'raw_chaos' => 0];
     }
 
     return [
       'soft' => (int)$row['currency_soft'],
       'hard' => (int)$row['currency_hard'],
+      'raw_chaos' => (int)$row['currency_raw_chaos'],
     ];
   }
 
@@ -141,6 +145,24 @@ final class PlayerStateRepository
       WHERE `user_id` = ?
     ');
     $stmt->execute([$soft, $hard, $userId]);
+
+    if ($stmt->rowCount() === 0) {
+      throw new RuntimeException('Player state row not found.');
+    }
+  }
+
+  public function setRawChaos(int $userId, int $rawChaos): void
+  {
+    if ($rawChaos < 0) {
+      throw new RuntimeException('Raw Chaos cannot be negative.');
+    }
+
+    $stmt = $this->pdo->prepare('
+      UPDATE `player_state`
+      SET `currency_raw_chaos` = ?
+      WHERE `user_id` = ?
+    ');
+    $stmt->execute([$rawChaos, $userId]);
 
     if ($stmt->rowCount() === 0) {
       throw new RuntimeException('Player state row not found.');

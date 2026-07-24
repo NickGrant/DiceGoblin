@@ -8,10 +8,14 @@ import { SessionService } from '../../core/services/session/session.service';
 
 class DiceServiceStub {
   sellDice = jasmine.createSpy('sellDice').and.resolveTo({ ok: true, data: { sell_value: 12 } });
+  salvageDice = jasmine.createSpy('salvageDice').and.resolveTo({
+    ok: true,
+    data: { dice_id: 'd2', raw_chaos_awarded: 3, currency_raw_chaos: 10 },
+  });
 }
 
 class SessionServiceStub {
-  readonly profileData = signal({ dice: [] });
+  readonly profileData = signal({ dice: [], currency: { soft: 0, hard: 0, raw_chaos: 7 } });
   readonly units = signal([
     {
       id: 'u1',
@@ -72,7 +76,7 @@ describe('DicePageComponent', () => {
     expect(component.filteredDice().map((die) => die.id)).toEqual(['d3', 'd1', 'd2']);
   });
 
-  it('shows a unit link for equipped dice and keeps sell for unequipped dice', async () => {
+  it('shows a unit link for equipped dice and keeps sell and salvage for unequipped dice', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
     const host: HTMLElement = fixture.nativeElement;
@@ -94,7 +98,15 @@ describe('DicePageComponent', () => {
     fixture.detectChanges();
 
     expect(inspectBodyText()).toContain('Sell');
+    expect(inspectBodyText()).toContain('Salvage');
     expect(inspectBodyText()).not.toContain('Working...');
+  });
+
+  it('shows the current Raw Chaos balance', async () => {
+    const fixture = await createComponent();
+    const host: HTMLElement = fixture.nativeElement;
+
+    expect(host.textContent).toContain('Raw Chaos 7');
   });
 
   it('uses the first filtered die as the default inspect target and supports hover preview', async () => {
@@ -128,6 +140,24 @@ describe('DicePageComponent', () => {
     await component.activateDice(component.dice().find((die) => die.id === 'd2')!);
 
     expect(component.pendingSellDice()?.id).toBe('d2');
+  });
+
+  it('opens a salvage confirmation and calls the salvage service', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const diceService = TestBed.inject(DiceService) as unknown as DiceServiceStub;
+
+    component.openSalvageConfirm(component.dice().find((die) => die.id === 'd2')!);
+    fixture.detectChanges();
+
+    expect(component.pendingSalvageDice()?.id).toBe('d2');
+
+    await component.confirmSalvageDice();
+    fixture.detectChanges();
+
+    expect(diceService.salvageDice).toHaveBeenCalledWith('d2');
+    expect(component.pendingSalvageDice()).toBeNull();
+    expect(component.message()).toBe('Salvaged die for 3 Raw Chaos.');
   });
 
   it('navigates directly for equipped dice clicks', async () => {

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { DiceSellResponse } from '../../models/api.models';
+import { DiceSalvageResponse, DiceSellResponse } from '../../models/api.models';
 import { ApiHttpService } from '../api-http/api-http.service';
 import { SessionService } from '../session/session.service';
 
@@ -13,6 +13,13 @@ export class DiceService {
   async sellDice(diceId: string): Promise<DiceSellResponse> {
     return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<DiceSellResponse>(
       `/api/v1/dice/${diceId}/sell`,
+      {},
+    ));
+  }
+
+  async salvageDice(diceId: string): Promise<DiceSalvageResponse> {
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<DiceSalvageResponse>(
+      `/api/v1/dice/${diceId}/salvage`,
       {},
     ));
   }

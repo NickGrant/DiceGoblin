@@ -69,6 +69,34 @@ final class DiceValuationService
     return max(1, (int)floor(self::calculateValue($sides, $diceRarity, $affixes) / 2));
   }
 
+  /**
+   * @param array<int,array{rarity?:string}> $affixes
+   */
+  public static function calculateRawChaosSalvageValue(int $sides, string $diceRarity, array $affixes = []): int
+  {
+    $base = max(1, (int)floor(self::baseValueForSides($sides) / 6));
+    $rarityBonus = match (self::normalizeRarity($diceRarity)) {
+      'uncommon' => 1,
+      'rare' => 3,
+      'epic' => 6,
+      'legendary' => 10,
+      default => 0,
+    };
+
+    $affixBonus = 0;
+    foreach ($affixes as $affix) {
+      $affixBonus += match (self::normalizeRarity((string)($affix['rarity'] ?? 'common'))) {
+        'uncommon' => 1,
+        'rare' => 2,
+        'epic' => 3,
+        'legendary' => 5,
+        default => 1,
+      };
+    }
+
+    return max(1, $base + $rarityBonus + $affixBonus);
+  }
+
   private static function normalizeRarity(string $rarity): string
   {
     return strtolower(trim($rarity));

@@ -162,6 +162,7 @@ $router->delete('/api/v1/units/:unitInstanceId/abilities/:abilityId/slots/:slotI
 $router->post('/api/v1/units/:unitInstanceId/dice/equip', [$gameplay, 'equipDice']);
 $router->post('/api/v1/units/:unitInstanceId/dice/unequip', [$gameplay, 'unequipDice']);
 $router->post('/api/v1/dice/:diceInstanceId/sell', [$gameplay, 'sellDice']);
+$router->post('/api/v1/dice/:diceInstanceId/salvage', [$gameplay, 'salvageDice']);
 
 $router->post('/api/v1/teams', [$team, 'createTeam']);
 $router->post('/api/v1/teams/:teamId/activate', [$team, 'activateTeam']);

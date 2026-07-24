@@ -42,8 +42,10 @@ export class DicePageComponent {
   readonly selectedSort = signal<DiceSortOption>('size-asc');
   readonly hoveredDiceId = signal<string | null>(null);
   readonly pendingSellDiceId = signal<string | null>(null);
+  readonly pendingSalvageDiceId = signal<string | null>(null);
   readonly sizeOptions = computed(() => buildDiceSizeOptions(this.dice()));
   readonly rarityOptions = computed(() => buildDiceRarityOptions(this.dice()));
+  readonly rawChaosBalance = computed(() => this.profileData()?.currency?.raw_chaos ?? 0);
   readonly filteredDice = computed(() =>
     filterAndSortDice(this.dice(), {
       selectedSize: this.selectedSize(),
@@ -70,6 +72,7 @@ export class DicePageComponent {
     return filteredDice[0] ?? null;
   });
   readonly pendingSellDice = computed(() => this.dice().find((die) => die.id === this.pendingSellDiceId()) ?? null);
+  readonly pendingSalvageDice = computed(() => this.dice().find((die) => die.id === this.pendingSalvageDiceId()) ?? null);
   readonly inspectedAffixDetails = computed(() =>
     (this.inspectedDice()?.affixes ?? [])
       .map((affix) => ({
@@ -105,6 +108,24 @@ export class DicePageComponent {
       this.message.set(`Sold die for ${response.data.sell_value}.`);
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to sell die.');
+    } finally {
+      this.busyDiceId.set(null);
+    }
+  }
+
+  async salvageDice(die: DiceRecord): Promise<void> {
+    this.busyDiceId.set(die.id);
+    this.error.set(null);
+    this.message.set(null);
+    try {
+      const response = await this.diceService.salvageDice(die.id);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+      this.message.set(`Salvaged die for ${response.data.raw_chaos_awarded} Raw Chaos.`);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to salvage die.');
     } finally {
       this.busyDiceId.set(null);
     }
@@ -148,6 +169,19 @@ export class DicePageComponent {
     this.pendingSellDiceId.set(null);
   }
 
+  openSalvageConfirm(die: DiceRecord): void {
+    this.pendingSellDiceId.set(null);
+    this.pendingSalvageDiceId.set(die.id);
+  }
+
+  closeSalvageConfirm(): void {
+    if (this.busyDiceId()) {
+      return;
+    }
+
+    this.pendingSalvageDiceId.set(null);
+  }
+
   async confirmSellDice(): Promise<void> {
     const die = this.pendingSellDice();
     if (!die) {
@@ -158,6 +192,19 @@ export class DicePageComponent {
     await this.sellDice(die);
     if (!this.error()) {
       this.pendingSellDiceId.set(null);
+    }
+  }
+
+  async confirmSalvageDice(): Promise<void> {
+    const die = this.pendingSalvageDice();
+    if (!die) {
+      this.pendingSalvageDiceId.set(null);
+      return;
+    }
+
+    await this.salvageDice(die);
+    if (!this.error()) {
+      this.pendingSalvageDiceId.set(null);
     }
   }
 

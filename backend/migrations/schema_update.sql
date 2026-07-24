@@ -2795,6 +2795,11 @@ ON DUPLICATE KEY UPDATE
   `is_enabled` = VALUES(`is_enabled`);
 -- END MIGRATION: 63_seed_splice_variants.sql
 
+-- BEGIN MIGRATION: 64_add_raw_chaos_currency.sql
+ALTER TABLE `player_state`
+  ADD COLUMN `currency_raw_chaos` BIGINT UNSIGNED NOT NULL DEFAULT 0 AFTER `currency_hard`;
+-- END MIGRATION: 64_add_raw_chaos_currency.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 -- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
