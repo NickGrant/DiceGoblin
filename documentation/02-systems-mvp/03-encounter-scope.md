@@ -118,9 +118,33 @@ The current alpha build does not expose separate route types for:
 - branching narrative event chains beyond authored dialogue nodes
 - puzzle nodes
 - social choice chains
-- slot-machine-style generated encounters
+- fully routed slot-machine-style generated encounters
 
 Those concepts may still appear in future planning, but they are not part of the current run route set.
+
+## Chaos Encounter Foundation
+
+Slot-machine-style chaos encounters now have a backend persistence foundation, but they are not yet a generated run-map node type.
+
+The foundation uses three authored reel responsibilities:
+
+- enemy family: the broad enemy source or mixed-family pressure
+- encounter shape: the formation or composition pressure
+- rule and reward: the special rule, reward hook, or payout pressure
+
+Generation rules:
+
+- the backend generates and stores one result per run node
+- repeated generate calls return the stored result
+- reward multiplier is derived from the persisted risk score, not a separate hidden roll
+- the player may reroll one reel once through the backend
+- reroll state is stored with the result so refreshes and retries cannot reset it
+
+Current foundation exclusions:
+
+- chaos nodes are not yet placed by the run graph generator
+- chaos results do not yet finalize into combat or claim rewards
+- Raw Chaos payouts, combat modifiers, and full frontend presentation remain follow-up work
 
 ## Region Energy
 
