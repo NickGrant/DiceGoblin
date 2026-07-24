@@ -249,3 +249,22 @@ current_code_references:
   - frontend/src/app/pages/academy-page/*
   - frontend/src/app/pages/run-*/*
   - documentation/03-ux/*
+
+---
+id: BSC-003
+title: Extract shared mutation guard and controller helpers
+status: complete
+priority: medium
+milestone: Backend Structural Cleanup Pass
+description: Active-run mutation checks and auth/CSRF request boilerplate were repeated across gameplay, team, shop, and academy controllers. HandlesControllerRequests now provides shared mutating-user and mutable-unit helpers, while UnitMutationGuardService remains the canonical active-run unit policy.
+acceptance_criteria:
+  - Create a shared unit mutation guard or equivalent policy service.
+  - Reduce repeated request/response boilerplate across the most duplicated controllers.
+  - Keep controller behavior and status codes stable.
+current_code_references:
+  - backend/src/Controllers/Concerns/HandlesControllerRequests.php
+  - backend/src/Services/UnitMutationGuardService.php
+  - backend/src/Controllers/GameplayController.php
+  - backend/src/Controllers/TeamController.php
+  - backend/src/Controllers/AcademyController.php
+  - backend/src/Controllers/ShopController.php

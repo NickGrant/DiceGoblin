@@ -28,29 +28,6 @@ Run failure, completion, cleanup, and summary timing are currently split between
 - `backend/src/Controllers/ApiController.php`
 - `backend/src/Repositories/RunRepository.php`
 
-### BSC-003: Extract shared mutation guard and controller helpers
-
-**Milestone:** Backend Structural Cleanup Pass  
-**Status:** Open  
-**Priority:** Medium
-
-#### Problem
-
-Active-run mutation checks, auth wrappers, JSON decoding, and transaction envelopes are repeated across controllers. Extract shared helpers and policy services to reduce controller size and inconsistency.
-
-#### Acceptance Criteria
-
-- Create a shared unit mutation guard or equivalent policy service.
-- Reduce repeated request/response boilerplate across the most duplicated controllers.
-- Keep controller behavior and status codes stable.
-
-#### Current Code References
-
-- `backend/src/Controllers/GameplayController.php`
-- `backend/src/Controllers/TeamController.php`
-- `backend/src/Controllers/AcademyController.php`
-- `backend/src/Controllers/ShopController.php`
-
 ### BSC-004: Separate shop and academy domain services from controllers
 
 **Milestone:** Backend Structural Cleanup Pass  
