@@ -395,10 +395,22 @@ export class UnitDetailsPageComponent {
         meta: 'Strike pressure',
       },
       {
+        icon: this.faTrophy,
+        label: 'Precision',
+        value: `${unit.total_precision ?? 5}`,
+        meta: 'Effect reliability',
+      },
+      {
         icon: this.faShieldHalved,
         label: 'Defense',
         value: `${unit.total_defense || 0}`,
         meta: 'Damage mitigation',
+      },
+      {
+        icon: this.faShieldHalved,
+        label: 'Resolve',
+        value: `${unit.total_resolve ?? 5}`,
+        meta: 'Status resistance',
       },
       {
         icon: this.faChessBoard,

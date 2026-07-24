@@ -32,6 +32,7 @@ use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\DiceAffixService;
 use DiceGoblins\Services\EnergyService;
+use DiceGoblins\Services\ObjectiveService;
 use DiceGoblins\Services\ProfileService;
 use DiceGoblins\Services\ProfileDtoMapper;
 use DiceGoblins\Services\RunGraphGenerator;
@@ -865,6 +866,7 @@ final class ApiController
     $profileService = new ProfileService(
       $energyService,
       new ProfileDtoMapper(),
+      new ObjectiveService(),
       $playerStateRepo,
       $teamRepo,
       $unitRepo,

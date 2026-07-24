@@ -65,6 +65,16 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsArray($data['regions'] ?? null);
     $this->assertIsArray($data['region_unlocks'] ?? null);
     $this->assertIsArray($data['region_items'] ?? null);
+    $this->assertIsArray($data['objectives'] ?? null);
+    $this->assertNotEmpty($data['objectives']);
+    $firstObjective = is_array($data['objectives'][0] ?? null) ? $data['objectives'][0] : [];
+    $this->assertIsString($firstObjective['id'] ?? null);
+    $this->assertIsString($firstObjective['title'] ?? null);
+    $this->assertIsString($firstObjective['status'] ?? null);
+    $this->assertIsInt($firstObjective['priority'] ?? null);
+    $this->assertIsInt($firstObjective['progress_current'] ?? null);
+    $this->assertIsInt($firstObjective['progress_target'] ?? null);
+    $this->assertIsString($firstObjective['route'] ?? null);
     $this->assertArrayHasKey('active_run', $data);
     $this->assertTrue(is_array($data['active_run']) || $data['active_run'] === null);
   }
@@ -104,8 +114,11 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $units = is_array($data['units'] ?? null) ? $data['units'] : [];
     $this->assertNotEmpty($units);
     $unit = is_array($units[0] ?? null) ? $units[0] : [];
+    $this->assertSame('basic_goblin', (string)($unit['splice_variant_slug'] ?? ''));
     $this->assertSame(10, (int)($unit['max_level'] ?? 0));
     $this->assertSame(6, (int)($unit['promotion_level'] ?? 0));
+    $this->assertSame(5, (int)($unit['total_precision'] ?? 0));
+    $this->assertSame(5, (int)($unit['total_resolve'] ?? 0));
     $this->assertSame(true, (bool)($unit['promotion_eligible'] ?? false));
     $this->assertSame(true, (bool)($unit['is_mastered'] ?? false));
     $this->assertIsArray($unit['capstone_choices'] ?? null);

@@ -49,6 +49,18 @@ final class UnitProgressionService
     return max(1, $baseMaxHp + (max(0, $maxHpPerLevel) * $levelScale));
   }
 
+  public function precision(mixed $baseStatsRaw): int
+  {
+    $baseStats = $this->decodeBaseStats($baseStatsRaw);
+    return max(0, (int)($baseStats['precision'] ?? 5));
+  }
+
+  public function resolve(mixed $baseStatsRaw): int
+  {
+    $baseStats = $this->decodeBaseStats($baseStatsRaw);
+    return max(0, (int)($baseStats['resolve'] ?? 5));
+  }
+
   public function xpToNextLevel(int $tier, int $level, int $maxLevel, int $xp): int
   {
     if ($level >= $maxLevel) {

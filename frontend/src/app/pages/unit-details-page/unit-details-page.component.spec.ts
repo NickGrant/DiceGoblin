@@ -236,7 +236,9 @@ describe('UnitDetailsPageComponent', () => {
     expect(host.textContent).toContain('I');
     expect(host.textContent).toContain('10/10');
     expect(host.textContent).toContain('Attack');
+    expect(host.textContent).toContain('Precision');
     expect(host.textContent).toContain('Defense');
+    expect(host.textContent).toContain('Resolve');
     expect(host.textContent).toContain('Eligible now (unlocked at level 6)');
     expect(host.textContent).toContain('Static Abilities');
     expect(host.textContent).toContain('Choose Capstone');

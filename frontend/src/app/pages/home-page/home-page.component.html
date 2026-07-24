@@ -42,8 +42,12 @@
               <div class="home-proto__mission-step">
                 <span>1</span>
                 <div>
-                  <strong>{{ hasActiveRun() ? 'Check the route' : 'Choose the hunting ground' }}</strong>
-                  <p>{{ activeRun()?.region_name || 'Each biome shapes the danger and rewards.' }}</p>
+                  <strong>{{
+                    hasActiveRun() ? 'Check the route' : 'Choose the hunting ground'
+                  }}</strong>
+                  <p>
+                    {{ activeRun()?.region_name || 'Each biome shapes the danger and rewards.' }}
+                  </p>
                 </div>
               </div>
               <div class="home-proto__mission-step">
@@ -71,6 +75,33 @@
             <h3 class="dg-proto-section__title">Utilities</h3>
           </div>
         </div>
+        <div class="dg-proto-divider"></div>
+
+        <a
+          class="home-proto__route-card home-proto__route-card--guidance"
+          [routerLink]="nextProgressionAction().route"
+        >
+          <span class="home-proto__guidance-eyebrow">{{ nextProgressionAction().eyebrow }}</span>
+          <strong>{{ nextProgressionAction().title }}</strong>
+          <span>{{ nextProgressionAction().body }}</span>
+          <span class="home-proto__guidance-cta">{{ nextProgressionAction().cta }}</span>
+        </a>
+
+        <div class="home-proto__progress-list" aria-label="Progression snapshot">
+          <div class="home-proto__route-card home-proto__progress-chip">
+            <strong>{{ squadStatusLabel() }}</strong>
+            <span>Formation</span>
+          </div>
+          <div class="home-proto__route-card home-proto__progress-chip">
+            <strong>{{ regionProgressLabel() }}</strong>
+            <span>Map</span>
+          </div>
+          <div class="home-proto__route-card home-proto__progress-chip">
+            <strong>{{ unlockProgressLabel() }}</strong>
+            <span>Unlocks</span>
+          </div>
+        </div>
+
         <div class="dg-proto-divider"></div>
 
         <div class="home-proto__route-list">

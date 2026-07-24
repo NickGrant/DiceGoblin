@@ -25,6 +25,7 @@ final class ProfileDtoMapper
    * @param array<int,mixed> $regionUnlocks
    * @param array<int,array{region_item_id:string,quantity:int}> $regionItems
    * @param array<string,mixed>|null $activeRun
+   * @param array<int,mixed> $objectives
    * @return array<string,mixed>
    */
   public function mapProfilePayload(
@@ -41,7 +42,8 @@ final class ProfileDtoMapper
     array $regions,
     array $regionUnlocks,
     array $regionItems,
-    ?array $activeRun
+    ?array $activeRun,
+    array $objectives = []
   ): array {
     return [
       'server_time_iso' => $serverTimeIso,
@@ -58,6 +60,7 @@ final class ProfileDtoMapper
       'region_unlocks' => $regionUnlocks,
       'region_items' => $regionItems,
       'active_run' => $activeRun,
+      'objectives' => $objectives,
     ];
   }
 

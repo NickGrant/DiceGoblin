@@ -31,8 +31,8 @@ final class GameplayController
   public function openRest(?string $runId = null, ?string $nodeId = null): void
   {
     $svc = $this->services();
-    $userId = $this->requireUserId($svc['sessionService']);
-    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
       return;
     }
 
@@ -80,8 +80,8 @@ final class GameplayController
   public function finalizeRest(?string $runId = null, ?string $nodeId = null): void
   {
     $svc = $this->services();
-    $userId = $this->requireUserId($svc['sessionService']);
-    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
       return;
     }
 
@@ -162,8 +162,8 @@ final class GameplayController
   public function selectCapstone(?string $unitInstanceId = null): void
   {
     $svc = $this->services();
-    $userId = $this->requireUserId($svc['sessionService']);
-    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
       return;
     }
 
@@ -183,8 +183,7 @@ final class GameplayController
       return;
     }
 
-    if (!$svc['unitMutationGuardService']->isUnitMutableForUser($userId, $unitId)) {
-      Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
+    if (!$this->requireMutableUnit($svc['unitMutationGuardService'], $userId, $unitId)) {
       return;
     }
 
@@ -207,8 +206,8 @@ final class GameplayController
   public function promoteUnit(?string $unitInstanceId = null): void
   {
     $svc = $this->services();
-    $userId = $this->requireUserId($svc['sessionService']);
-    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
       return;
     }
 
@@ -298,8 +297,8 @@ final class GameplayController
   public function renameUnit(?string $unitInstanceId = null): void
   {
     $svc = $this->services();
-    $userId = $this->requireUserId($svc['sessionService']);
-    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
       return;
     }
 
@@ -338,8 +337,8 @@ final class GameplayController
   public function replaceEquippedAbilities(?string $unitInstanceId = null): void
   {
     $svc = $this->services();
-    $userId = $this->requireUserId($svc['sessionService']);
-    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
       return;
     }
 
@@ -359,8 +358,7 @@ final class GameplayController
       return;
     }
 
-    if (!$svc['unitMutationGuardService']->isUnitMutableForUser($userId, $unitId)) {
-      Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
+    if (!$this->requireMutableUnit($svc['unitMutationGuardService'], $userId, $unitId)) {
       return;
     }
 
@@ -396,8 +394,8 @@ final class GameplayController
   public function sellDice(?string $diceInstanceId = null): void
   {
     $svc = $this->services();
-    $userId = $this->requireUserId($svc['sessionService']);
-    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
       return;
     }
 
@@ -463,8 +461,8 @@ final class GameplayController
   private function handleDiceMutation(?string $unitInstanceId, bool $isEquip): void
   {
     $svc = $this->services();
-    $userId = $this->requireUserId($svc['sessionService']);
-    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
       return;
     }
 
@@ -473,8 +471,7 @@ final class GameplayController
       return;
     }
 
-    if (!$svc['unitMutationGuardService']->isUnitMutableForUser($userId, $unitId)) {
-      Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
+    if (!$this->requireMutableUnit($svc['unitMutationGuardService'], $userId, $unitId)) {
       return;
     }
 
@@ -490,8 +487,8 @@ final class GameplayController
   private function handleAbilitySlotDiceMutation(?string $unitInstanceId, ?string $abilityId, ?string $slotIndex, bool $isAssign): void
   {
     $svc = $this->services();
-    $userId = $this->requireUserId($svc['sessionService']);
-    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
       return;
     }
 
@@ -516,8 +513,7 @@ final class GameplayController
       return;
     }
 
-    if (!$svc['unitMutationGuardService']->isUnitMutableForUser($userId, $unitId)) {
-      Response::json(['ok' => false, 'error' => ['code' => 'active_run_unit_locked', 'message' => 'Active run units cannot be changed until the run ends.']], 409);
+    if (!$this->requireMutableUnit($svc['unitMutationGuardService'], $userId, $unitId)) {
       return;
     }
 

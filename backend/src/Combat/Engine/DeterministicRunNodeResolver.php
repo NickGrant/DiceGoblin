@@ -64,7 +64,7 @@ final class DeterministicRunNodeResolver
     );
     $ticksPerRound = 20;
 
-    if ($nodeType === 'rest' || $nodeType === 'loot') {
+    if (in_array($nodeType, ['rest', 'loot', 'hazard'], true)) {
       $rounds = 0;
       $ticks = 0;
       $outcome = 'victory';
@@ -75,7 +75,7 @@ final class DeterministicRunNodeResolver
         'round' => 0,
         'tick' => 0,
         'node_type' => $nodeType,
-        'message' => 'non_combat_resolution',
+        'message' => $nodeType === 'hazard' ? 'hazard_avoided' : 'non_combat_resolution',
       ]];
     } else {
       $difficulty = max(1, (int)$encounter['difficulty_rating']);
@@ -214,6 +214,8 @@ final class DeterministicRunNodeResolver
               ],
               'attack' => (int)$u['attack'],
               'defense' => (int)$u['defense'],
+              'precision' => (int)($u['precision'] ?? 5),
+              'resolve' => (int)($u['resolve'] ?? 5),
               'max_hp' => (int)$u['max_hp'],
               'current_hp' => (int)$u['current_hp'],
               'abilities' => $u['abilities'],
@@ -230,6 +232,8 @@ final class DeterministicRunNodeResolver
               ],
               'attack' => (int)$u['attack'],
               'defense' => (int)$u['defense'],
+              'precision' => (int)($u['precision'] ?? 5),
+              'resolve' => (int)($u['resolve'] ?? 5),
               'max_hp' => (int)$u['max_hp'],
               'abilities' => $u['abilities'],
             ], $enemyUnits),
@@ -247,6 +251,8 @@ final class DeterministicRunNodeResolver
    *   formation:array{w:int,h:int},
    *   attack:int,
    *   defense:int,
+   *   precision:int,
+   *   resolve:int,
    *   max_hp:int,
    *   current_hp:int,
    *   abilities:array<int,string>,
@@ -305,6 +311,8 @@ final class DeterministicRunNodeResolver
       $attack = $progression->totalAttackForLevel($baseStats, $level, (int)$row['attack_per_level']);
       $defense = $progression->totalDefenseForLevel($baseStats, $level, (int)$row['defense_per_level']);
       $maxHp = $progression->maxHpForLevel($baseStats, $level, (int)$row['max_hp_per_level']);
+      $precision = $progression->precision($baseStats);
+      $resolve = $progression->resolve($baseStats);
       $footprint = FormationGeometry::footprintFromStats($baseStats);
       $currentHp = $row['run_current_hp'] !== null
         ? max(0, min($maxHp, (int)$row['run_current_hp']))
@@ -325,6 +333,8 @@ final class DeterministicRunNodeResolver
         'formation' => $footprint,
         'attack' => $attack,
         'defense' => $defense,
+        'precision' => $precision,
+        'resolve' => $resolve,
         'max_hp' => $maxHp,
         'current_hp' => $currentHp,
         'abilities' => $this->flattenActiveAbilityIds($abilitySet),
@@ -567,6 +577,8 @@ final class DeterministicRunNodeResolver
       $abilitySet = $this->decodeJsonObject($row['ability_set_json']);
       $equippedAbilityIds = $this->decodeAbilityIdList($row['equipped_abilities_json'] ?? null);
       $maxHp = max(1, (int)($baseStats['max_hp'] ?? 1));
+      $precision = max(0, (int)($baseStats['precision'] ?? 5));
+      $resolve = max(0, (int)($baseStats['resolve'] ?? 5));
 
       $units[] = [
         'id' => $instanceId,
@@ -574,6 +586,8 @@ final class DeterministicRunNodeResolver
         'formation' => $footprint,
         'attack' => max(1, (int)($baseStats['attack'] ?? 1)),
         'defense' => max(0, (int)($baseStats['defense'] ?? 0)),
+        'precision' => $precision,
+        'resolve' => $resolve,
         'max_hp' => $maxHp,
         'current_hp' => $maxHp,
         'abilities' => count($equippedAbilityIds) > 0 ? $equippedAbilityIds : $this->flattenActiveAbilityIds($abilitySet),
