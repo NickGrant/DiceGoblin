@@ -40,8 +40,8 @@ final class AcademyController
   public function unlockUnitType(): void
   {
     $svc = $this->services();
-    $userId = $this->requireUserId($svc['sessionService']);
-    if ($userId === null || !$this->requireCsrf($svc['csrfService'])) {
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
       return;
     }
 

@@ -31,12 +31,8 @@ final class TeamController
   {
     $svc = $this->services();
 
-    $userId = $this->requireUserId($svc['sessionService']);
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
     if ($userId === null) {
-      return;
-    }
-
-    if (!$this->requireCsrf($svc['csrfService'])) {
       return;
     }
 
@@ -83,12 +79,8 @@ final class TeamController
   {
     $svc = $this->services();
 
-    $userId = $this->requireUserId($svc['sessionService']);
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
     if ($userId === null) {
-      return;
-    }
-
-    if (!$this->requireCsrf($svc['csrfService'])) {
       return;
     }
 
@@ -129,12 +121,8 @@ final class TeamController
   {
     $svc = $this->services();
 
-    $userId = $this->requireUserId($svc['sessionService']);
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
     if ($userId === null) {
-      return;
-    }
-
-    if (!$this->requireCsrf($svc['csrfService'])) {
       return;
     }
 
@@ -207,12 +195,8 @@ final class TeamController
   {
     $svc = $this->services();
 
-    $userId = $this->requireUserId($svc['sessionService']);
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
     if ($userId === null) {
-      return;
-    }
-
-    if (!$this->requireCsrf($svc['csrfService'])) {
       return;
     }
 

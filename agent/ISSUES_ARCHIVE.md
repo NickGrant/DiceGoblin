@@ -251,20 +251,21 @@ current_code_references:
   - documentation/03-ux/*
 
 ---
-id: BSC-004
-title: Separate shop and academy domain services from controllers
+id: BSC-002
+title: Centralize run lifecycle transitions
 status: complete
-priority: medium
+priority: high
 milestone: Backend Structural Cleanup Pass
-description: Shop and academy catalog, unlock, pricing, daily-deal, and purchase behavior now live in dedicated services, with controllers acting as thin transport layers. Direct service integration coverage now protects those domain boundaries in addition to controller endpoint tests.
+description: Run failure, completion, cleanup, and summary timing were split between resolve and claim controllers. RunLifecycleService now owns run-end transitions and battle-claim mutation sequencing so claim transport no longer duplicates reward, XP, attrition, and fail-run orchestration.
 acceptance_criteria:
-  - Extract dedicated services for catalog and purchase orchestration where it materially reduces controller complexity.
-  - Keep unlock rules and response envelopes unchanged.
-  - Preserve daily-deal and feature-unlock behavior with regression coverage where practical.
+  - Create a backend service that owns failed, abandoned, and completed run transitions.
+  - Remove duplicated cleanup and end-run sequencing from multiple controllers.
+  - Preserve current summary and XP behavior unless explicitly changed.
+  - Add or update targeted regression coverage for the lifecycle service.
 current_code_references:
-  - backend/src/Services/ShopService.php
-  - backend/src/Services/AcademyService.php
-  - backend/src/Controllers/ShopController.php
-  - backend/src/Controllers/AcademyController.php
-  - backend/tests/Integration/ShopServiceIntegrationTest.php
-  - backend/tests/Integration/AcademyServiceIntegrationTest.php
+  - backend/src/Services/RunLifecycleService.php
+  - backend/src/Controllers/BattleController.php
+  - backend/src/Controllers/ApiController.php
+  - backend/src/Controllers/RunNodeController.php
+  - backend/src/Repositories/RunRepository.php
+  - backend/tests/Integration/RunLifecycleServiceIntegrationTest.php
