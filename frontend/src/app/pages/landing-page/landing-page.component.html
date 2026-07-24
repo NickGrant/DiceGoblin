@@ -9,8 +9,109 @@
           <p class="dg-surface-banner__eyebrow dg-stencil">Dice Goblins</p>
           <h1>Report for Duty</h1>
           <p class="dg-surface-banner__copy">Rally your warband, manage your supplies, and prepare for the next raid.</p>
+          <form class="local-auth" (ngSubmit)="submitLocalAuth()">
+            <div class="local-auth__tabs" aria-label="Local account mode">
+              <button
+                type="button"
+                class="local-auth__tab"
+                [class.is-active]="authMode() === 'login'"
+                (click)="setAuthMode('login')"
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                class="local-auth__tab"
+                [class.is-active]="authMode() === 'register'"
+                (click)="setAuthMode('register')"
+              >
+                Register
+              </button>
+              <button
+                type="button"
+                class="local-auth__tab"
+                [class.is-active]="authMode() === 'forgot' || authMode() === 'reset'"
+                (click)="setAuthMode('forgot')"
+              >
+                Reset
+              </button>
+            </div>
+
+            @if (authMode() === 'register') {
+              <label class="local-auth__field">
+                <span>Display Name</span>
+                <input
+                  name="displayName"
+                  type="text"
+                  autocomplete="nickname"
+                  maxlength="128"
+                  [(ngModel)]="displayName"
+                  [disabled]="busy()"
+                />
+              </label>
+            }
+
+            @if (authMode() !== 'reset') {
+            <label class="local-auth__field">
+              <span>Email</span>
+              <input
+                name="email"
+                type="email"
+                autocomplete="email"
+                required
+                [(ngModel)]="email"
+                [disabled]="busy()"
+              />
+            </label>
+            }
+
+            @if (authMode() === 'reset') {
+              <label class="local-auth__field">
+                <span>Reset Token</span>
+                <input
+                  name="resetToken"
+                  type="text"
+                  required
+                  autocomplete="one-time-code"
+                  [(ngModel)]="resetToken"
+                  [disabled]="busy()"
+                />
+              </label>
+            }
+
+            @if (authMode() !== 'forgot') {
+            <label class="local-auth__field">
+              <span>{{ authMode() === 'reset' ? 'New Password' : 'Password' }}</span>
+              <input
+                name="password"
+                type="password"
+                [attr.autocomplete]="passwordAutocomplete()"
+                required
+                minlength="8"
+                [(ngModel)]="password"
+                [disabled]="busy()"
+              />
+            </label>
+            }
+
+            @if (error()) {
+              <p class="local-auth__error">{{ error() }}</p>
+            }
+
+            @if (success()) {
+              <p class="local-auth__success">{{ success() }}</p>
+            }
+
+            @if (resetTokenHint) {
+              <p class="local-auth__token">{{ resetTokenHint }}</p>
+            }
+
+            <button dgCommandBtn="primary" type="submit" [disabled]="busy()">
+              {{ submitLabel() }}
+            </button>
+          </form>
           <div class="landing-actions">
-            <a dgCommandBtn="primary" [href]="loginUrl">Sign in through Discord</a>
+            <a dgCommandBtn="teal" [href]="discordLoginUrl">Sign in through Discord</a>
             <a dgCommandBtn="teal" routerLink="/guide">How to Play</a>
           </div>
         </div>

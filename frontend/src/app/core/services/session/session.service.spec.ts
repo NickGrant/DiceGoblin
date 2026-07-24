@@ -140,6 +140,97 @@ describe('SessionService', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
   });
 
+  it('logs in with local credentials and refreshes session state', async () => {
+    apiHttp.post.and.resolveTo({ ok: true, data: { authenticated: true } } as any);
+    apiHttp.get.and.resolveTo({
+      ok: true,
+      data: {
+        authenticated: true,
+        csrf_token: 'csrf',
+        user: { id: 4, display_name: 'Nick' },
+      },
+    } as any);
+    profileService.getProfile.and.resolveTo({
+      ok: true,
+      data: {
+        energy: { current: 0, max: 10 },
+        currency: { soft: 0 },
+        active_run: null,
+        squad_unit_cap: 4,
+        feature_unlocks: [],
+        unit_type_unlocks: [],
+        squads: [],
+        units: [],
+        dice: [],
+      },
+    } as any);
+
+    await service.loginWithLocalCredentials('player@example.test', 'secret-pass');
+
+    expect(apiHttp.post).toHaveBeenCalledWith(
+      '/api/v1/auth/local/login',
+      { email: 'player@example.test', password: 'secret-pass' },
+      { skipAuthRecovery: true },
+    );
+    expect(service.session().isAuthenticated).toBeTrue();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/');
+  });
+
+  it('requests a local password reset token', async () => {
+    apiHttp.post.and.resolveTo({
+      ok: true,
+      data: {
+        message: 'If that account exists, a password reset is available.',
+        reset_token: 'token',
+      },
+    } as any);
+
+    const response = await service.requestPasswordReset('player@example.test');
+
+    expect(apiHttp.post).toHaveBeenCalledWith(
+      '/api/v1/auth/local/password-reset/request',
+      { email: 'player@example.test' },
+      { skipAuthRecovery: true },
+    );
+    expect(response.reset_token).toBe('token');
+  });
+
+  it('confirms a local password reset and refreshes session state', async () => {
+    apiHttp.post.and.resolveTo({ ok: true, data: { authenticated: true } } as any);
+    apiHttp.get.and.resolveTo({
+      ok: true,
+      data: {
+        authenticated: true,
+        csrf_token: 'csrf',
+        user: { id: 4, display_name: 'Nick' },
+      },
+    } as any);
+    profileService.getProfile.and.resolveTo({
+      ok: true,
+      data: {
+        energy: { current: 0, max: 10 },
+        currency: { soft: 0 },
+        active_run: null,
+        squad_unit_cap: 4,
+        feature_unlocks: [],
+        unit_type_unlocks: [],
+        squads: [],
+        units: [],
+        dice: [],
+      },
+    } as any);
+
+    await service.confirmPasswordReset('token', 'new-password');
+
+    expect(apiHttp.post).toHaveBeenCalledWith(
+      '/api/v1/auth/local/password-reset/confirm',
+      { token: 'token', password: 'new-password' },
+      { skipAuthRecovery: true },
+    );
+    expect(service.session().isAuthenticated).toBeTrue();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/');
+  });
+
   it('registers auth recovery and can silently confirm a still-authenticated session', async () => {
     apiHttp.get.and.resolveTo({
       ok: true,

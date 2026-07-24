@@ -49,7 +49,80 @@
 .landing-actions {
   display: flex;
   flex-wrap: wrap;
+  margin-top: 12px;
   gap: 12px;
+}
+
+.local-auth {
+  display: grid;
+  gap: 12px;
+  max-width: 440px;
+  margin: 18px 0 0;
+  padding: 16px;
+  border: 1px solid rgba(35, 39, 42, 0.18);
+  background: rgba(255, 247, 231, 0.7);
+  text-shadow: none;
+}
+
+.local-auth__tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.local-auth__tab {
+  min-height: 40px;
+  border: 1px solid rgba(35, 39, 42, 0.28);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--dg-charcoal);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.local-auth__tab.is-active {
+  background: var(--dg-red);
+  color: #fff7ea;
+}
+
+.local-auth__field {
+  display: grid;
+  gap: 4px;
+  color: var(--dg-charcoal);
+  font-weight: 800;
+}
+
+.local-auth__field input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgba(35, 39, 42, 0.28);
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--dg-charcoal);
+}
+
+.local-auth__error,
+.local-auth__success,
+.local-auth__token {
+  margin: 0;
+  font-weight: 800;
+}
+
+.local-auth__error {
+  color: var(--dg-red);
+}
+
+.local-auth__success {
+  color: #1f6f54;
+}
+
+.local-auth__token {
+  overflow-wrap: anywhere;
+  padding: 8px 10px;
+  border: 1px dashed rgba(35, 39, 42, 0.35);
+  background: rgba(255, 255, 255, 0.64);
+  color: var(--dg-charcoal);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.8rem;
 }
 
 @media (max-width: 760px) {
@@ -60,5 +133,14 @@
   .landing-page__shell {
     min-height: calc(100vh - var(--command-controls-height) - 2rem);
     align-items: flex-start;
+  }
+
+  .landing-frame .row {
+    gap: 16px;
+  }
+
+  .landing-frame .col-4,
+  .landing-frame .col-8 {
+    width: 100%;
   }
 }

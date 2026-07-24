@@ -6,6 +6,26 @@
 - Historical milestone records can be retrieved from git when needed.
 
 ---
+name: Local Account Authentication
+status: complete
+issues:
+  - LA-001
+  - LA-002
+  - LA-003
+description: Remove Discord as the only sign-in path so players on restricted networks can create accounts and enter the game with local credentials while keeping the existing session model intact.
+goals:
+  - Add backend-supported local registration and login using email plus password.
+  - Keep Discord OAuth available as an alternate provider.
+  - Reuse the existing PHP session, CSRF, bootstrap, and profile flow after either login path.
+  - Update player-facing login UX and canonical auth documentation.
+current_code_context: Implementation touched AuthController, UserRepository, user schema migrations, the Angular landing/login page, SessionService, and authentication/session documentation.
+exit_criteria:
+  - New players can register with local credentials and receive the same starter account bootstrap as Discord users.
+  - Existing local users can sign in without Discord access.
+  - Duplicate emails, invalid credentials, and weak local registration payloads return stable API errors.
+  - Login documentation and active roadmap files identify backend structural cleanup as the next implementation target after local auth.
+
+---
 name: Unit Progression Rework
 status: complete
 issues:

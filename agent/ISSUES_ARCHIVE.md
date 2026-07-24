@@ -6,6 +6,63 @@
 - Historical issue records can be retrieved from git when needed.
 
 ---
+id: LA-001
+title: Document local-auth roadmap and auth contract
+status: complete
+priority: high
+milestone: Local Account Authentication
+description: The active roadmap needed to reflect the product access blocker caused by Discord-only authentication on restricted networks.
+acceptance_criteria:
+  - Update active milestones and issues so local auth is visible as the implementation lane.
+  - Update authentication, API, UX, and data-model docs to describe local credentials beside Discord OAuth.
+  - Keep backend structural cleanup visible as the next follow-up work.
+current_code_references:
+  - agent/MILESTONES.md
+  - agent/ISSUES.md
+  - documentation/01-architecture/01-authentication-and-sessions.md
+  - documentation/01-architecture/03-backend-api-contracts.md
+  - documentation/03-ux/09-first-session-player-journey.md
+
+---
+id: LA-002
+title: Add local registration and login API
+status: complete
+priority: high
+milestone: Local Account Authentication
+description: Discord OAuth was the only account path, preventing players on networks that block Discord from registering or signing in.
+acceptance_criteria:
+  - Add schema support for local email/password credentials without breaking existing Discord users.
+  - Add registration and login endpoints that establish the existing PHP session and CSRF flow.
+  - Store password hashes only; never store raw passwords.
+  - Return stable validation, duplicate-account, and invalid-credential errors.
+  - Preserve Discord OAuth behavior.
+current_code_references:
+  - backend/migrations
+  - backend/src/Controllers/AuthController.php
+  - backend/src/Repositories/UserRepository.php
+  - backend/public/index.php
+  - backend/src/Services/SessionService.php
+
+---
+id: LA-003
+title: Add local account controls to login page
+status: complete
+priority: high
+milestone: Local Account Authentication
+description: The login page only offered Discord, so players needed visible local registration and sign-in controls that enter the same authenticated shell.
+acceptance_criteria:
+  - Add local sign-in and registration controls on /login.
+  - Keep Discord sign-in available.
+  - Refresh the existing session/profile state after successful local auth and route into the app.
+  - Show concise validation/error feedback for failed local auth attempts.
+  - Cover the new login controls with focused frontend tests.
+current_code_references:
+  - frontend/src/app/pages/landing-page/landing-page.component.ts
+  - frontend/src/app/pages/landing-page/landing-page.component.html
+  - frontend/src/app/pages/landing-page/landing-page.component.scss
+  - frontend/src/app/core/services/session/session.service.ts
+
+---
 id: BSC-001
 title: Extract shared roster grant services
 status: complete
