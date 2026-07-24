@@ -364,6 +364,23 @@ export class AcademyPageComponent {
     return AcademyPageComponent.UNIT_UNLOCK_DESCRIPTIONS[unitTypeSlug] ?? 'Unlock this unit type for future recruitment opportunities.';
   }
 
+  unitUnlockRequirementLabel(entry: AcademyUnitUnlockItem): string {
+    const unmet = (entry.requirements ?? []).find((requirement) => !requirement.is_met);
+    if (unmet) {
+      return `Requires: ${unmet.label}`;
+    }
+
+    return entry.requirements?.length ? 'Requirements met' : 'Available now';
+  }
+
+  unitUnlockDisabled(entry: AcademyUnitUnlockItem): boolean {
+    return (
+      this.unlockingUnitTypeSlug() === entry.unit_type_slug ||
+      profileSoftCurrency(this.profile()) < entry.cost ||
+      entry.is_available === false
+    );
+  }
+
   toRomanNumeral(value: number | null | undefined): string {
     return toRomanNumeral(value);
   }
@@ -371,4 +388,8 @@ export class AcademyPageComponent {
   private statValue(value: number | null | undefined): string {
     return typeof value === 'number' ? `${value}` : '-';
   }
+}
+
+function profileSoftCurrency(profile: { softCurrency?: number } | null | undefined): number {
+  return Math.max(0, profile?.softCurrency ?? 0);
 }

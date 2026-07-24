@@ -21,7 +21,7 @@ final class AcademyService
   /**
    * @return array{
    *   currency_soft:int,
-   *   unit_unlocks:array<int,array{unit_type_slug:string,name:string,role:string,cost:int,is_unlocked:bool,total_attack:int,total_defense:int,total_precision:int,total_resolve:int,max_hp:int}>
+   *   unit_unlocks:array<int,array{unit_type_slug:string,name:string,role:string,cost:int,is_unlocked:bool,is_available:bool,requirements:array<int,array{type:string,label:string,is_met:bool,progress_current:int,progress_target:int}>,total_attack:int,total_defense:int,total_precision:int,total_resolve:int,max_hp:int}>
    * }
    */
   public function buildCatalog(int $userId): array
@@ -35,6 +35,7 @@ final class AcademyService
       $unlockService->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_UNIT_TYPE),
       true
     );
+    $hasCompletedRun = $this->hasCompletedRun($userId);
 
     $stmt = $this->pdo->query("
       SELECT `slug`, `name`, `role`, `base_stats_json`
@@ -48,14 +49,17 @@ final class AcademyService
       `id` ASC
     ");
 
-    $unitUnlocks = array_map(function (array $row) use ($unlocked): array {
+    $unitUnlocks = array_map(function (array $row) use ($unlocked, $hasCompletedRun): array {
       $slug = (string)$row['slug'];
+      $requirements = $this->requirementsForSlug($slug, $hasCompletedRun);
       return [
         'unit_type_slug' => $slug,
         'name' => (string)$row['name'],
         'role' => (string)$row['role'],
         'cost' => $this->unlockCostForSlug($slug),
         'is_unlocked' => isset($unlocked[$slug]),
+        'is_available' => $this->requirementsAreMet($requirements),
+        'requirements' => $requirements,
         ...$this->unitTypeStats($row['base_stats_json'] ?? null),
       ];
     }, $stmt->fetchAll(PDO::FETCH_ASSOC));
@@ -78,6 +82,9 @@ final class AcademyService
       $catalogEntry = $this->loadUnlockableUnitType($unitTypeSlug);
       if ($catalogEntry === null) {
         throw new RuntimeException('Requested unit type is not available for Academy unlocks.');
+      }
+      if (!$this->requirementsAreMet($this->requirementsForSlug($unitTypeSlug, $this->hasCompletedRun($userId)))) {
+        throw new RuntimeException('Complete any run before researching Tier II unit types.');
       }
 
       $unlockService = new UserUnlockService($this->pdo);
@@ -152,6 +159,50 @@ final class AcademyService
     return str_ends_with($unitTypeSlug, '_t1')
       ? self::TIER_ONE_UNLOCK_COST
       : self::DEFAULT_UNLOCK_COST;
+  }
+
+  private function hasCompletedRun(int $userId): bool
+  {
+    $stmt = $this->pdo->prepare("
+      SELECT COUNT(*)
+      FROM `region_runs`
+      WHERE `user_id` = ? AND `status` = 'completed'
+    ");
+    $stmt->execute([$userId]);
+
+    return (int)$stmt->fetchColumn() > 0;
+  }
+
+  /**
+   * @return array<int,array{type:string,label:string,is_met:bool,progress_current:int,progress_target:int}>
+   */
+  private function requirementsForSlug(string $unitTypeSlug, bool $hasCompletedRun): array
+  {
+    if (!str_ends_with($unitTypeSlug, '_t2')) {
+      return [];
+    }
+
+    return [[
+      'type' => 'completed_run',
+      'label' => 'Complete any run',
+      'is_met' => $hasCompletedRun,
+      'progress_current' => $hasCompletedRun ? 1 : 0,
+      'progress_target' => 1,
+    ]];
+  }
+
+  /**
+   * @param array<int,array{is_met:bool}> $requirements
+   */
+  private function requirementsAreMet(array $requirements): bool
+  {
+    foreach ($requirements as $requirement) {
+      if (!(bool)($requirement['is_met'] ?? false)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**

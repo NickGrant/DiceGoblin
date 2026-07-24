@@ -86,6 +86,8 @@ class AcademyServiceStub {
           role: 'frontline',
           cost: 250,
           is_unlocked: true,
+          is_available: true,
+          requirements: [],
           total_attack: 6,
           total_defense: 4,
           total_precision: 5,
@@ -98,6 +100,8 @@ class AcademyServiceStub {
           role: 'support',
           cost: 250,
           is_unlocked: false,
+          is_available: true,
+          requirements: [],
           total_attack: 2,
           total_defense: 4,
           total_precision: 5,
@@ -110,6 +114,16 @@ class AcademyServiceStub {
           role: 'frontline',
           cost: 500,
           is_unlocked: false,
+          is_available: false,
+          requirements: [
+            {
+              type: 'completed_run',
+              label: 'Complete any run',
+              is_met: false,
+              progress_current: 0,
+              progress_target: 1,
+            },
+          ],
           total_attack: 8,
           total_defense: 5,
           total_precision: 5,
@@ -205,8 +219,11 @@ describe('AcademyPageComponent', () => {
     ]);
     expect(component.unitUnlockDescription('support_banner_t1')).toContain('support specialist');
     expect(component.unitUnlockDescription('frontline_bruiser_t2')).toContain('heavier execution damage');
+    expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[0])).toBe('Available now');
+    expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[1])).toBe('Requires: Complete any run');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('PRC');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('RES');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Requires: Complete any run');
     component.selectedUnitId.set('u1');
     await fixture.whenStable();
     fixture.detectChanges();
@@ -320,5 +337,21 @@ describe('AcademyPageComponent', () => {
 
     expect(academyService.unlockUnitType).toHaveBeenCalledWith('support_banner_t1');
     expect(component.message()).toBe('Unit type unlocked.');
+  });
+
+  it('disables research while backend-authored requirements are unmet', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const host: HTMLElement = fixture.nativeElement;
+    const lockedEntry = component.availableUnitUnlocks().find((entry) => entry.unit_type_slug === 'frontline_bruiser_t2');
+
+    expect(lockedEntry).toBeTruthy();
+    expect(component.unitUnlockDisabled(lockedEntry!)).toBeTrue();
+    expect(host.textContent).toContain('Requires: Complete any run');
+
+    const buttons = Array.from(host.querySelectorAll<HTMLButtonElement>('.academy-unlock-card'));
+    const tierTwoButton = buttons.find((button) => button.textContent?.includes('Enforcer'));
+
+    expect(tierTwoButton?.disabled).toBeTrue();
   });
 });
