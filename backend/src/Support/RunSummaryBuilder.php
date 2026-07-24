@@ -43,7 +43,12 @@ final class RunSummaryBuilder
    *     unit_type_slug:string|null,
    *     unit_type_name:string,
    *     tier:int,
-   *     level:int
+   *     level:int,
+   *     total_attack:int,
+   *     total_defense:int,
+   *     total_precision:int,
+   *     total_resolve:int,
+   *     max_hp:int
    *   }>,
    *   dice:array<int,array{
    *     dice_instance_id:string|null,
@@ -442,7 +447,12 @@ final class RunSummaryBuilder
    *   unit_type_slug:string|null,
    *   unit_type_name:string,
    *   tier:int,
-   *   level:int
+   *   level:int,
+   *   total_attack:int,
+   *   total_defense:int,
+   *   total_precision:int,
+   *   total_resolve:int,
+   *   max_hp:int
    * }>
    */
   private function extractUnitRewardDetails(int $userId, array $rewards): array
@@ -471,7 +481,7 @@ final class RunSummaryBuilder
       }
     }
 
-    $namesBySlug = $this->loadUnitTypeNamesBySlug($slugs);
+    $unitTypesBySlug = $this->loadUnitTypesBySlug($slugs);
     $details = [];
     foreach ($unitGrants as $grant) {
       if (!is_array($grant)) {
@@ -483,7 +493,8 @@ final class RunSummaryBuilder
         continue;
       }
 
-      $unitTypeName = $namesBySlug[$slug] ?? $this->prettifyId($slug);
+      $unitType = $unitTypesBySlug[$slug] ?? null;
+      $unitTypeName = (string)($unitType['name'] ?? $this->prettifyId($slug));
       $details[] = [
         'unit_instance_id' => null,
         'name' => $unitTypeName,
@@ -491,6 +502,7 @@ final class RunSummaryBuilder
         'unit_type_name' => $unitTypeName,
         'tier' => max(1, (int)($grant['tier'] ?? 1)),
         'level' => max(1, (int)($grant['level'] ?? 1)),
+        ...$this->unitTypeStats($unitType['base_stats_json'] ?? null),
       ];
     }
 
@@ -618,6 +630,20 @@ final class RunSummaryBuilder
    */
   private function loadUnitTypeNamesBySlug(array $slugs): array
   {
+    $map = [];
+    foreach ($this->loadUnitTypesBySlug($slugs) as $slug => $row) {
+      $map[$slug] = (string)$row['name'];
+    }
+
+    return $map;
+  }
+
+  /**
+   * @param array<int,string> $slugs
+   * @return array<string,array{name:string,base_stats_json:mixed}>
+   */
+  private function loadUnitTypesBySlug(array $slugs): array
+  {
     $slugs = array_values(array_unique(array_filter(array_map('strval', $slugs), static fn(string $slug): bool => $slug !== '')));
     if (count($slugs) === 0) {
       return [];
@@ -625,7 +651,7 @@ final class RunSummaryBuilder
 
     $placeholders = implode(',', array_fill(0, count($slugs), '?'));
     $stmt = $this->pdo->prepare("
-      SELECT `slug`, `name`
+      SELECT `slug`, `name`, `base_stats_json`
       FROM `unit_types`
       WHERE `slug` IN ($placeholders)
     ");
@@ -633,7 +659,10 @@ final class RunSummaryBuilder
 
     $map = [];
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-      $map[(string)$row['slug']] = (string)$row['name'];
+      $map[(string)$row['slug']] = [
+        'name' => (string)$row['name'],
+        'base_stats_json' => $row['base_stats_json'] ?? null,
+      ];
     }
 
     return $map;
@@ -676,7 +705,12 @@ final class RunSummaryBuilder
    *   unit_type_slug:string,
    *   unit_type_name:string,
    *   tier:int,
-   *   level:int
+   *   level:int,
+   *   total_attack:int,
+   *   total_defense:int,
+   *   total_precision:int,
+   *   total_resolve:int,
+   *   max_hp:int
    * }>
    */
   private function loadUnitRewardDetailsForInstances(int $userId, array $instanceIds): array
@@ -695,7 +729,8 @@ final class RunSummaryBuilder
         ui.`tier`,
         ui.`level`,
         ut.`slug` AS `unit_type_slug`,
-        ut.`name` AS `unit_type_name`
+        ut.`name` AS `unit_type_name`,
+        ut.`base_stats_json`
       FROM `unit_instances` ui
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
       WHERE ui.`user_id` = ? AND ui.`id` IN ($placeholders)
@@ -713,6 +748,7 @@ final class RunSummaryBuilder
         'unit_type_name' => $unitTypeName,
         'tier' => max(1, (int)($row['tier'] ?? 1)),
         'level' => max(1, (int)($row['level'] ?? 1)),
+        ...$this->unitTypeStats($row['base_stats_json'] ?? null),
       ];
     }
 
@@ -724,6 +760,25 @@ final class RunSummaryBuilder
     }
 
     return $ordered;
+  }
+
+  /**
+   * @return array{total_attack:int,total_defense:int,total_precision:int,total_resolve:int,max_hp:int}
+   */
+  private function unitTypeStats(mixed $baseStatsJson): array
+  {
+    $stats = is_string($baseStatsJson) && $baseStatsJson !== ''
+      ? json_decode($baseStatsJson, true)
+      : [];
+    $stats = is_array($stats) ? $stats : [];
+
+    return [
+      'total_attack' => max(0, (int)($stats['attack'] ?? 0)),
+      'total_defense' => max(0, (int)($stats['defense'] ?? 0)),
+      'total_precision' => max(0, (int)($stats['precision'] ?? 5)),
+      'total_resolve' => max(0, (int)($stats['resolve'] ?? 5)),
+      'max_hp' => max(1, (int)($stats['max_hp'] ?? 1)),
+    ];
   }
 
   /**

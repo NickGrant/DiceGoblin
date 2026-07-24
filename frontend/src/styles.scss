@@ -520,6 +520,33 @@ app-root .frame > * {
   line-height: 0.95;
 }
 
+.loot-card__stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.28rem;
+  margin-top: 0.45rem;
+}
+
+.loot-card__stats > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.22rem;
+  min-height: 1.45rem;
+  padding-inline: 0.24rem;
+  border: 1px solid rgba(35, 39, 42, 0.12);
+  background: rgba(255, 252, 246, 0.62);
+  color: rgba(37, 21, 12, 0.72);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.loot-card__stats strong {
+  color: #25150c;
+}
+
 .loot-scene__footer {
   display: flex;
   flex-wrap: wrap;

@@ -32,6 +32,15 @@
     </div>
 
     <div class="unit-bar__progress-list">
+      <div class="unit-bar__stat-strip" aria-label="Combat stats">
+        @for (stat of statStrip(); track stat.label) {
+        <span class="unit-bar__stat">
+          <span>{{ stat.label }}</span>
+          <strong>{{ stat.value }}</strong>
+        </span>
+        }
+      </div>
+
       <div class="unit-bar__progress-row">
         <span>HP</span>
         <div class="unit-bar__progress" [attr.title]="hpLabel()" [attr.aria-label]="hpLabel()">

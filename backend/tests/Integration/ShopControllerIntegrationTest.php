@@ -36,6 +36,13 @@ final class ShopControllerIntegrationTest extends IntegrationTestCase
       'frontline_bruiser_t1',
       'backline_marksman_t1',
     ], $slugs);
+    foreach ($basicUnits as $unit) {
+      $this->assertIsInt($unit['total_precision'] ?? null);
+      $this->assertIsInt($unit['total_resolve'] ?? null);
+      $this->assertIsInt($unit['total_attack'] ?? null);
+      $this->assertIsInt($unit['total_defense'] ?? null);
+      $this->assertIsInt($unit['max_hp'] ?? null);
+    }
     $this->assertSame('academy', (string)($featureUnlocks[0]['product_id'] ?? ''));
     $this->assertSame(250, (int)($featureUnlocks[0]['cost'] ?? 0));
     $this->assertFalse((bool)($featureUnlocks[0]['is_unlocked'] ?? true));
