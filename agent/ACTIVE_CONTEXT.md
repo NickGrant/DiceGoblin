@@ -1,9 +1,9 @@
 # Active Context Snapshot
 ----
 
-Status: active  
-Last Updated: 2026-04-18  
-Owner: Product + Engineering  
+Status: active
+Last Updated: 2026-07-24
+Owner: Product + Engineering
 Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `documentation/README.md`
 
 ## Purpose
@@ -11,13 +11,13 @@ Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `documentation/README.md`
 
 ## Current Focus
 - Execute from `agent/ISSUES.md` and `agent/MILESTONES.md` only.
-- Keep API contracts and UX docs aligned with implementation.
-- Prioritize the ability-loadout, cumulative scheduler, promotion, and naming rework.
+- Current active lane: Expanded Combat Stats.
+- Prioritize turning Precision and Resolve from schema-visible fields into deterministic combat behavior, seed tuning, logs, and comparison UI.
 
 ## Key Risks
-- API/doc drift while old and new combat models coexist during rollout.
-- Migration complexity around unit dice, loadouts, and active runs.
-- Sparse regression coverage around new persistence and scheduler behavior.
+- Combat balance drift if Precision and Resolve formulas are too swingy.
+- API/doc drift while roadmap foundations are promoted into implemented systems.
+- Migration sequencing around roadmap schema files 59-61 during production deploys.
 
 ## Working Agreement
 - Active execution: `agent/ISSUES.md`, `agent/MILESTONES.md`.

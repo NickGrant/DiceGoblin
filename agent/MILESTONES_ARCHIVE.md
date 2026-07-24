@@ -73,3 +73,41 @@ exit_criteria:
   - Mobile navigation, HUD density, and page framing remain usable without wasting excessive vertical space.
   - Core screens share a reusable transition pattern for route changes and stateful screen reveals.
   - The revised shell is verified across home, warband, inventory, shop, academy, and run-related flows.
+
+---
+name: Backend Structural Cleanup Pass
+status: complete
+issues:
+  - BSC-001
+  - BSC-002
+  - BSC-003
+  - BSC-004
+  - BSC-005
+description: Reduced backend orchestration drift by extracting lifecycle, grant, request-helper, mutation-guard, shop, and academy service boundaries, then documented the narrow event-style coordination strategy.
+goals:
+  - Create a single canonical service path for run lifecycle transitions and cleanup.
+  - Consolidate unit and dice grant creation behind shared services.
+  - Reduce controller duplication for auth, JSON validation, transactions, and mutation guards.
+  - Prepare the backend for narrow domain events only where they provide clear value after service extraction.
+current_code_context: Implementation touched backend controllers, shared controller concerns, lifecycle/grant/objective-oriented services, shop and academy service tests, and domain-event evaluation documentation.
+exit_criteria:
+  - Run lifecycle transitions no longer require duplicated controller logic to stay consistent.
+  - Unit and dice creation paths are consolidated across battle rewards, shop flows, debug tools, and starter grants.
+  - Common controller plumbing is meaningfully reduced or centralized.
+  - Event-style coordination remains narrow, synchronous, and documented for future objective or bounty progress work.
+
+---
+name: Gameplay Systems Roadmap Foundations
+status: complete
+issues:
+  - RGF-001
+description: Landed the first dependency-reducing roadmap foundations after backend cleanup: profile objectives, home guidance, expanded stat fields, basic splice lineage, hazard node vocabulary, and bounty-board persistence.
+goals:
+  - Establish safe schema/API footholds before full feature behavior.
+  - Keep roadmap foundations backend-authoritative and testable.
+  - Leave full system behavior in explicit follow-up milestones rather than treating foundations as complete features.
+current_code_context: Implementation touched profile DTOs, ObjectiveService, home dashboard UI, migrations 59-61, combat/encounter docs, and data-model documentation.
+exit_criteria:
+  - Fresh schema builds include roadmap migrations 59-61.
+  - Objective, expanded stat, splice, hazard, and bounty concepts have durable contracts.
+  - Active backlog is advanced to the next implementation-ready milestone.

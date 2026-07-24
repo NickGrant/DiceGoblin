@@ -269,3 +269,77 @@ current_code_references:
   - backend/src/Controllers/RunNodeController.php
   - backend/src/Repositories/RunRepository.php
   - backend/tests/Integration/RunLifecycleServiceIntegrationTest.php
+
+---
+id: BSC-003
+title: Extract shared mutation guard and controller helpers
+status: complete
+priority: medium
+milestone: Backend Structural Cleanup Pass
+description: Shared controller helpers now cover recurring auth/session wrappers, JSON body parsing, request validation, and active-run mutation checks across the most duplicated backend controllers.
+acceptance_criteria:
+  - Create a shared unit mutation guard or equivalent policy service.
+  - Reduce repeated request/response boilerplate across the most duplicated controllers.
+  - Keep controller behavior and status codes stable.
+current_code_references:
+  - backend/src/Controllers/Concerns/HandlesControllerRequests.php
+  - backend/src/Controllers/GameplayController.php
+  - backend/src/Controllers/TeamController.php
+  - backend/src/Controllers/AcademyController.php
+  - backend/src/Controllers/ShopController.php
+  - backend/tests/Integration/ApiControllerEnvelopeContractTest.php
+
+---
+id: BSC-004
+title: Separate shop and academy domain services from controllers
+status: complete
+priority: medium
+milestone: Backend Structural Cleanup Pass
+description: Shop and academy orchestration has been moved toward dedicated service paths so controllers stay focused on transport behavior while catalog, unlock, and purchase rules remain stable.
+acceptance_criteria:
+  - Extract dedicated services for catalog and purchase orchestration where it materially reduces controller complexity.
+  - Keep unlock rules and response envelopes unchanged.
+  - Preserve daily-deal and feature-unlock behavior with regression coverage where practical.
+current_code_references:
+  - backend/src/Controllers/ShopController.php
+  - backend/src/Controllers/AcademyController.php
+  - backend/tests/Integration/ShopServiceIntegrationTest.php
+  - backend/tests/Integration/AcademyServiceIntegrationTest.php
+
+---
+id: BSC-005
+title: Evaluate narrow synchronous domain events after service extraction
+status: complete
+priority: medium
+milestone: Backend Structural Cleanup Pass
+description: The domain event pass concluded that a broad event bus is not needed yet; future event-like handling should stay narrow and synchronous, with bounty/objective progress as the first likely candidate.
+acceptance_criteria:
+  - Do not introduce a broad event bus before the core service extractions land.
+  - Document or implement only narrowly scoped synchronous events where they clearly reduce coupling.
+  - Keep core gameplay mutations understandable and directly traceable.
+current_code_references:
+  - documentation/01-architecture/05-domain-events-evaluation.md
+  - backend/src/Controllers
+  - backend/src/Services
+
+---
+id: RGF-001
+title: Add roadmap foundation batch
+status: complete
+priority: high
+milestone: Gameplay Systems Roadmap Foundations
+description: The first roadmap implementation batch landed foundational contracts for progression guidance, objectives, expanded stats, splice lineage, run hazard vocabulary, and bounty persistence without claiming those full systems are complete.
+acceptance_criteria:
+  - Add home dashboard next-action and progress guidance.
+  - Add profile objective structure.
+  - Add Precision and Resolve schema/API visibility.
+  - Add persistent basic splice lineage.
+  - Add hazard run node vocabulary.
+  - Add bounty definition and accepted-bounty storage.
+current_code_references:
+  - frontend/src/app/pages/home-page
+  - backend/src/Services/ObjectiveService.php
+  - backend/migrations/59_unit_splice_variant_foundation.sql
+  - backend/migrations/60_run_nodes_hazard_type.sql
+  - backend/migrations/61_bounty_board_foundation.sql
+  - documentation/07-roadmap/00-gameplay-systems-roadmap.md

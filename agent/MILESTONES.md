@@ -2,30 +2,31 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Backend Structural Cleanup Pass
+## Expanded Combat Stats
 
-**Status:** Active  
-**Purpose:** Reduce backend orchestration drift by extracting shared lifecycle, grant, and policy services from controller-heavy flows before adding any broader event-style coordination.
+**Status:** Active
+**Purpose:** Turn the newly added Precision and Resolve schema fields into real combat, tuning, and player-facing comparison behavior.
 
 ### Goals
 
-- Create a single canonical service path for run lifecycle transitions and cleanup.
-- Consolidate unit and dice grant creation behind shared services.
-- Reduce controller duplication for auth, JSON validation, transactions, and mutation guards.
-- Prepare the backend for narrow domain events only where they provide clear value after service extraction.
+- Make Precision influence eligible attack reliability and restrained critical-hit outcomes.
+- Make Resolve influence harmful-status and control resistance.
+- Author conservative Precision and Resolve values for current units and enemies.
+- Surface expanded-stat outcomes clearly in battle logs and comparison UI.
 
 ### Current Code Context
 
-Primary work will touch backend/src/Controllers, backend/src/Services, and selected repositories around runs, battles, shop, academy, and grants.
+The schema and DTO foundation landed in the roadmap foundation batch. Primary follow-up work should touch backend combat resolution, seeded unit/enemy stat JSON, combat logs, focused backend tests, and the frontend surfaces that compare unit or enemy stats.
 
 ### Exit Criteria
 
-- Run lifecycle transitions no longer require duplicated controller logic to stay consistent.
-- Unit and dice creation paths are consolidated across battle rewards, shop flows, debug tools, and starter grants.
-- Common controller plumbing is meaningfully reduced or centralized.
-- Any event-style coordination introduced is narrow, synchronous, and built on top of cleaner service boundaries.
+- Neutral Precision and Resolve values preserve the existing baseline feel.
+- Non-neutral values create readable tactical differences in combat.
+- Player and enemy seed data intentionally includes Precision and Resolve.
+- Combat logs and UI make misses, critical hits, and resisted effects understandable.
 
 ### Related Issues
 
-- BSC-003: Extract shared mutation guard and controller helpers
-- BSC-005: Evaluate narrow synchronous domain events after service extraction
+- ECS-002: Implement Precision and Resolve combat behavior
+- ECS-003: Author Precision and Resolve balance data
+- ECS-004: Surface expanded stats in player-facing comparisons

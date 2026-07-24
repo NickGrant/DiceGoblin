@@ -2,13 +2,37 @@
 -- Source: C:\xampp\htdocs\dice-goblin\backend\migrations
 
 -- BEGIN MIGRATION: 00_setup.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
 SET NAMES utf8mb4;
 SET time_zone = '+00:00';
 
+-- Optional: create and select DB
+-- CREATE DATABASE IF NOT EXISTS `dice_goblins` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- USE `dice_goblins`;
+
+-- Safety for repeated runs (comment out if you do not want drops)
 SET FOREIGN_KEY_CHECKS=0;
 -- END MIGRATION: 00_setup.sql
 
 -- BEGIN MIGRATION: 01_users.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `users` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `discord_id` VARCHAR(32) NOT NULL,
@@ -22,6 +46,16 @@ CREATE TABLE `users` (
 -- END MIGRATION: 01_users.sql
 
 -- BEGIN MIGRATION: 02_regions.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `regions` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `slug` VARCHAR(64) NOT NULL,
@@ -38,6 +72,16 @@ CREATE TABLE `regions` (
 -- END MIGRATION: 02_regions.sql
 
 -- BEGIN MIGRATION: 03_unit_types.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `unit_types` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `slug` VARCHAR(64) NOT NULL,
@@ -57,6 +101,16 @@ CREATE TABLE `unit_types` (
 -- END MIGRATION: 03_unit_types.sql
 
 -- BEGIN MIGRATION: 04_dice_definitions.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `dice_definitions` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `sides` INT NOT NULL,
@@ -69,6 +123,16 @@ CREATE TABLE `dice_definitions` (
 -- END MIGRATION: 04_dice_definitions.sql
 
 -- BEGIN MIGRATION: 05_affix_definitions.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `affix_definitions` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `slug` VARCHAR(64) NOT NULL,
@@ -87,6 +151,16 @@ CREATE TABLE `affix_definitions` (
 -- END MIGRATION: 05_affix_definitions.sql
 
 -- BEGIN MIGRATION: 06_enemy_templates.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `enemy_templates` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `slug` VARCHAR(64) NOT NULL,
@@ -105,6 +179,16 @@ CREATE TABLE `enemy_templates` (
 -- END MIGRATION: 06_enemy_templates.sql
 
 -- BEGIN MIGRATION: 07_loot_tables.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `loot_tables` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `slug` VARCHAR(64) NOT NULL,
@@ -118,6 +202,16 @@ CREATE TABLE `loot_tables` (
 -- END MIGRATION: 07_loot_tables.sql
 
 -- BEGIN MIGRATION: 08_player_state.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `player_state` (
   `user_id` BIGINT UNSIGNED NOT NULL,
   `currency_soft` BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -131,6 +225,16 @@ CREATE TABLE `player_state` (
 -- END MIGRATION: 08_player_state.sql
 
 -- BEGIN MIGRATION: 09_energy_state.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `energy_state` (
   `user_id` BIGINT UNSIGNED NOT NULL,
   `energy_current` INT NOT NULL,
@@ -145,6 +249,16 @@ CREATE TABLE `energy_state` (
 -- END MIGRATION: 09_energy_state.sql
 
 -- BEGIN MIGRATION: 10_teams.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `teams` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` BIGINT UNSIGNED NOT NULL,
@@ -159,6 +273,16 @@ CREATE TABLE `teams` (
 -- END MIGRATION: 10_teams.sql
 
 -- BEGIN MIGRATION: 11_region_unlocks.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `region_unlocks` (
   `user_id` BIGINT UNSIGNED NOT NULL,
   `region_id` BIGINT UNSIGNED NOT NULL,
@@ -170,6 +294,16 @@ CREATE TABLE `region_unlocks` (
 -- END MIGRATION: 11_region_unlocks.sql
 
 -- BEGIN MIGRATION: 12_region_runs.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `region_runs` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` BIGINT UNSIGNED NOT NULL,
@@ -188,6 +322,16 @@ CREATE TABLE `region_runs` (
 -- END MIGRATION: 12_region_runs.sql
 
 -- BEGIN MIGRATION: 13_encounter_templates.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `encounter_templates` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `slug` VARCHAR(64) NOT NULL,
@@ -204,6 +348,16 @@ CREATE TABLE `encounter_templates` (
 -- END MIGRATION: 13_encounter_templates.sql
 
 -- BEGIN MIGRATION: 14_region_items.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `region_items` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `region_id` BIGINT UNSIGNED NOT NULL,
@@ -218,6 +372,16 @@ CREATE TABLE `region_items` (
 -- END MIGRATION: 14_region_items.sql
 
 -- BEGIN MIGRATION: 15_unit_instances.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `unit_instances` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` BIGINT UNSIGNED NOT NULL,
@@ -237,6 +401,16 @@ CREATE TABLE `unit_instances` (
 -- END MIGRATION: 15_unit_instances.sql
 
 -- BEGIN MIGRATION: 16_dice_instances.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `dice_instances` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` BIGINT UNSIGNED NOT NULL,
@@ -252,6 +426,16 @@ CREATE TABLE `dice_instances` (
 -- END MIGRATION: 16_dice_instances.sql
 
 -- BEGIN MIGRATION: 17_run_nodes.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `run_nodes` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `run_id` BIGINT UNSIGNED NOT NULL,
@@ -271,6 +455,16 @@ CREATE TABLE `run_nodes` (
 -- END MIGRATION: 17_run_nodes.sql
 
 -- BEGIN MIGRATION: 18_user_region_items.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `user_region_items` (
   `user_id` BIGINT UNSIGNED NOT NULL,
   `region_item_id` BIGINT UNSIGNED NOT NULL,
@@ -282,6 +476,16 @@ CREATE TABLE `user_region_items` (
 -- END MIGRATION: 18_user_region_items.sql
 
 -- BEGIN MIGRATION: 19_team_units.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `team_units` (
   `team_id` BIGINT UNSIGNED NOT NULL,
   `unit_instance_id` BIGINT UNSIGNED NOT NULL,
@@ -293,6 +497,16 @@ CREATE TABLE `team_units` (
 -- END MIGRATION: 19_team_units.sql
 
 -- BEGIN MIGRATION: 20_team_formation.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `team_formation` (
   `team_id` BIGINT UNSIGNED NOT NULL,
   `cell` VARCHAR(2) NOT NULL,
@@ -305,6 +519,16 @@ CREATE TABLE `team_formation` (
 -- END MIGRATION: 20_team_formation.sql
 
 -- BEGIN MIGRATION: 21_run_unit_state.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `run_unit_state` (
   `run_id` BIGINT UNSIGNED NOT NULL,
   `unit_instance_id` BIGINT UNSIGNED NOT NULL,
@@ -321,6 +545,16 @@ CREATE TABLE `run_unit_state` (
 -- END MIGRATION: 21_run_unit_state.sql
 
 -- BEGIN MIGRATION: 22_unit_promotions.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `unit_promotions` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` BIGINT UNSIGNED NOT NULL,
@@ -335,6 +569,16 @@ CREATE TABLE `unit_promotions` (
 -- END MIGRATION: 22_unit_promotions.sql
 
 -- BEGIN MIGRATION: 23_dice_instance_affixes.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `dice_instance_affixes` (
   `dice_instance_id` BIGINT UNSIGNED NOT NULL,
   `affix_definition_id` BIGINT UNSIGNED NOT NULL,
@@ -346,6 +590,16 @@ CREATE TABLE `dice_instance_affixes` (
 -- END MIGRATION: 23_dice_instance_affixes.sql
 
 -- BEGIN MIGRATION: 24_unit_dice.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `unit_dice` (
   `unit_instance_id` BIGINT UNSIGNED NOT NULL,
   `dice_instance_id` BIGINT UNSIGNED NOT NULL,
@@ -359,6 +613,16 @@ CREATE TABLE `unit_dice` (
 -- END MIGRATION: 24_unit_dice.sql
 
 -- BEGIN MIGRATION: 25_run_edges.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `run_edges` (
   `run_id` BIGINT UNSIGNED NOT NULL,
   `from_node_id` BIGINT UNSIGNED NOT NULL,
@@ -371,6 +635,16 @@ CREATE TABLE `run_edges` (
 -- END MIGRATION: 25_run_edges.sql
 
 -- BEGIN MIGRATION: 26_battles.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `battles` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` BIGINT UNSIGNED NOT NULL,
@@ -396,6 +670,16 @@ CREATE TABLE `battles` (
 -- END MIGRATION: 26_battles.sql
 
 -- BEGIN MIGRATION: 27_battle_logs.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `battle_logs` (
   `battle_id` BIGINT UNSIGNED NOT NULL,
   `log_json` JSON NOT NULL,
@@ -406,6 +690,16 @@ CREATE TABLE `battle_logs` (
 -- END MIGRATION: 27_battle_logs.sql
 
 -- BEGIN MIGRATION: 28_battle_rewards.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+
 CREATE TABLE `battle_rewards` (
   `battle_id` BIGINT UNSIGNED NOT NULL,
   `xp_total` INT NOT NULL DEFAULT 0,
@@ -1340,11 +1634,13 @@ ON DUPLICATE KEY UPDATE
 -- END MIGRATION: 37_seed_dice_definitions.sql
 
 -- BEGIN MIGRATION: 38_run_nodes_add_exit_type.sql
+-- Migration: allow explicit run exit node type in run graph.
 ALTER TABLE `run_nodes`
   MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit') NOT NULL;
 -- END MIGRATION: 38_run_nodes_add_exit_type.sql
 
 -- BEGIN MIGRATION: 39_unit_types_add_max_equipped_dice.sql
+-- Migration: unit definition cap for equipped dice.
 ALTER TABLE `unit_types`
   ADD COLUMN `max_equipped_dice` INT NOT NULL DEFAULT 2 AFTER `max_level`;
 -- END MIGRATION: 39_unit_types_add_max_equipped_dice.sql
@@ -1488,7 +1784,14 @@ CREATE TABLE `shop_daily_deals` (
 -- END MIGRATION: 42_shop_daily_deals.sql
 
 -- BEGIN MIGRATION: 43_seed_farm_tutorial_content.sql
-INSERT INTO `regions` (`slug`, `name`, `theme`, `recommended_level`, `energy_cost`, `is_enabled`)
+INSERT INTO `regions` (
+  `slug`,
+  `name`,
+  `theme`,
+  `recommended_level`,
+  `energy_cost`,
+  `is_enabled`
+)
 VALUES
   ('the_farm', 'The Farm', 'farm', 1, 3, 1)
 ON DUPLICATE KEY UPDATE
@@ -1498,11 +1801,47 @@ ON DUPLICATE KEY UPDATE
   `energy_cost` = VALUES(`energy_cost`),
   `is_enabled` = VALUES(`is_enabled`);
 
-INSERT INTO `enemy_templates` (`slug`, `name`, `tier`, `role`, `base_stats_json`, `ability_set_json`, `xp_reward`, `tags_json`)
+INSERT INTO `enemy_templates` (
+  `slug`,
+  `name`,
+  `tier`,
+  `role`,
+  `base_stats_json`,
+  `ability_set_json`,
+  `xp_reward`,
+  `tags_json`
+)
 VALUES
-  ('mudwrestler', 'Mudwrestler', 1, 'frontline', JSON_OBJECT('version', 1, 'attack', 3, 'defense', 2, 'max_hp', 16), JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('basic_attack_melee'), 'passives', JSON_ARRAY()), 8, JSON_OBJECT('faction', 'pigs', 'archetype', 'grunt', 'damage_profile', 'melee')),
-  ('mudslinger', 'Mudslinger', 1, 'backline', JSON_OBJECT('version', 1, 'attack', 4, 'defense', 1, 'max_hp', 14), JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('basic_attack_ranged'), 'passives', JSON_ARRAY()), 8, JSON_OBJECT('faction', 'pigs', 'archetype', 'grunt', 'damage_profile', 'ranged')),
-  ('mudking', 'Mudking', 2, 'frontline', JSON_OBJECT('version', 1, 'attack', 5, 'defense', 4, 'max_hp', 30), JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('basic_attack_melee', 'heavy_strike'), 'passives', JSON_ARRAY('thick_hide')), 16, JSON_OBJECT('faction', 'pigs', 'archetype', 'boss', 'damage_profile', 'melee'))
+  (
+    'mudwrestler',
+    'Mudwrestler',
+    1,
+    'frontline',
+    JSON_OBJECT('version', 1, 'attack', 3, 'defense', 2, 'max_hp', 16),
+    JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('basic_attack_melee'), 'passives', JSON_ARRAY()),
+    8,
+    JSON_OBJECT('faction', 'pigs', 'archetype', 'grunt', 'damage_profile', 'melee')
+  ),
+  (
+    'mudslinger',
+    'Mudslinger',
+    1,
+    'backline',
+    JSON_OBJECT('version', 1, 'attack', 4, 'defense', 1, 'max_hp', 14),
+    JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('basic_attack_ranged'), 'passives', JSON_ARRAY()),
+    8,
+    JSON_OBJECT('faction', 'pigs', 'archetype', 'grunt', 'damage_profile', 'ranged')
+  ),
+  (
+    'mudking',
+    'Mudking',
+    2,
+    'frontline',
+    JSON_OBJECT('version', 1, 'attack', 5, 'defense', 4, 'max_hp', 30),
+    JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('basic_attack_melee', 'heavy_strike'), 'passives', JSON_ARRAY('thick_hide')),
+    16,
+    JSON_OBJECT('faction', 'pigs', 'archetype', 'boss', 'damage_profile', 'melee')
+  )
 ON DUPLICATE KEY UPDATE
   `name` = VALUES(`name`),
   `tier` = VALUES(`tier`),
@@ -1512,12 +1851,70 @@ ON DUPLICATE KEY UPDATE
   `xp_reward` = VALUES(`xp_reward`),
   `tags_json` = VALUES(`tags_json`);
 
-INSERT INTO `encounter_templates` (`slug`, `region_id`, `difficulty_rating`, `description`, `enemy_set_json`, `reward_profile_json`)
+INSERT INTO `encounter_templates` (
+  `slug`,
+  `region_id`,
+  `difficulty_rating`,
+  `description`,
+  `enemy_set_json`,
+  `reward_profile_json`
+)
 VALUES
-  ('the_farm_mud_combat_1', (SELECT `id` FROM `regions` WHERE `slug` = 'the_farm' LIMIT 1), 1, 'A pair of pigs lurches out of the muck, giving the warband its first real skirmish.', JSON_OBJECT('version', 2, 'teams', JSON_ARRAY(JSON_OBJECT('team_id', 'A', 'label', 'Pigs', 'units', JSON_ARRAY(JSON_OBJECT('enemy_template_slug', 'mudwrestler', 'pos', JSON_OBJECT('x', 2, 'y', 1)), JSON_OBJECT('enemy_template_slug', 'mudslinger', 'pos', JSON_OBJECT('x', 0, 'y', 1)))))), JSON_OBJECT('version', 1, 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)),
-  ('the_farm_loot_1', (SELECT `id` FROM `regions` WHERE `slug` = 'the_farm' LIMIT 1), 1, 'A crate of feed and spare gear sits untouched beside the fence line.', JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()), JSON_OBJECT('version', 1, 'type', 'loot', 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)),
-  ('the_farm_rest_1', (SELECT `id` FROM `regions` WHERE `slug` = 'the_farm' LIMIT 1), 1, 'The warband catches its breath at a dry patch of hay before the final push.', JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()), JSON_OBJECT('version', 1, 'type', 'rest')),
-  ('the_farm_mud_boss_1', (SELECT `id` FROM `regions` WHERE `slug` = 'the_farm' LIMIT 1), 2, 'The Mudking snorts, stamps, and charges to defend the whole sty.', JSON_OBJECT('version', 2, 'teams', JSON_ARRAY(JSON_OBJECT('team_id', 'A', 'label', 'Pigs', 'units', JSON_ARRAY(JSON_OBJECT('enemy_template_slug', 'mudking', 'pos', JSON_OBJECT('x', 2, 'y', 1)))))), JSON_OBJECT('version', 1, 'loot_table_slug', 'kobold_boss_loot', 'rolls', 1))
+  (
+    'the_farm_mud_combat_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'the_farm' LIMIT 1),
+    1,
+    'A pair of pigs lurches out of the muck, giving the warband its first real skirmish.',
+    JSON_OBJECT(
+      'version', 2,
+      'teams', JSON_ARRAY(
+        JSON_OBJECT(
+          'team_id', 'A',
+          'label', 'Pigs',
+          'units', JSON_ARRAY(
+            JSON_OBJECT('enemy_template_slug', 'mudwrestler', 'pos', JSON_OBJECT('x', 2, 'y', 1)),
+            JSON_OBJECT('enemy_template_slug', 'mudslinger', 'pos', JSON_OBJECT('x', 0, 'y', 1))
+          )
+        )
+      )
+    ),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
+  ),
+  (
+    'the_farm_loot_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'the_farm' LIMIT 1),
+    1,
+    'A crate of feed and spare gear sits untouched beside the fence line.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
+    JSON_OBJECT('version', 1, 'type', 'loot', 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
+  ),
+  (
+    'the_farm_rest_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'the_farm' LIMIT 1),
+    1,
+    'The warband catches its breath at a dry patch of hay before the final push.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
+    JSON_OBJECT('version', 1, 'type', 'rest')
+  ),
+  (
+    'the_farm_mud_boss_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'the_farm' LIMIT 1),
+    2,
+    'The Mudking snorts, stamps, and charges to defend the whole sty.',
+    JSON_OBJECT(
+      'version', 2,
+      'teams', JSON_ARRAY(
+        JSON_OBJECT(
+          'team_id', 'A',
+          'label', 'Pigs',
+          'units', JSON_ARRAY(
+            JSON_OBJECT('enemy_template_slug', 'mudking', 'pos', JSON_OBJECT('x', 2, 'y', 1))
+          )
+        )
+      )
+    ),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'kobold_boss_loot', 'rolls', 1)
+  )
 ON DUPLICATE KEY UPDATE
   `region_id` = VALUES(`region_id`),
   `difficulty_rating` = VALUES(`difficulty_rating`),
@@ -1828,6 +2225,286 @@ SET `entries_json` = JSON_SET(`entries_json`, '$.drops.units.chance', 0.12)
 WHERE `slug` IN ('kobold_boss_loot', 'frogman_boss_loot');
 -- END MIGRATION: 52_rebalance_unit_drop_rates.sql
 
+-- BEGIN MIGRATION: 53_rebalance_farm_pigs.sql
+UPDATE `enemy_templates`
+SET
+  `ability_set_json` = JSON_OBJECT(
+    'version', 1,
+    'actives', JSON_ARRAY('basic_attack_melee', 'wrestle'),
+    'passives', JSON_ARRAY()
+  ),
+  `equipped_abilities_json` = JSON_ARRAY('basic_attack_melee', 'wrestle')
+WHERE `slug` = 'mudwrestler';
+
+UPDATE `enemy_templates`
+SET
+  `ability_set_json` = JSON_OBJECT(
+    'version', 1,
+    'actives', JSON_ARRAY('basic_attack_ranged', 'mud_sling'),
+    'passives', JSON_ARRAY()
+  ),
+  `equipped_abilities_json` = JSON_ARRAY('basic_attack_ranged', 'mud_sling')
+WHERE `slug` = 'mudslinger';
+
+UPDATE `enemy_templates`
+SET
+  `ability_set_json` = JSON_OBJECT(
+    'version', 1,
+    'actives', JSON_ARRAY('basic_attack_melee', 'wrestle', 'mud_slam'),
+    'passives', JSON_ARRAY('thick_hide')
+  ),
+  `equipped_abilities_json` = JSON_ARRAY('basic_attack_melee', 'wrestle', 'mud_slam')
+WHERE `slug` = 'mudking';
+-- END MIGRATION: 53_rebalance_farm_pigs.sql
+
+-- BEGIN MIGRATION: 54_rebalance_kobolds_frogmen.sql
+UPDATE `enemy_templates`
+SET
+  `base_stats_json` = JSON_OBJECT('version', 1, 'attack', 3, 'defense', 6, 'max_hp', 28),
+  `ability_set_json` = JSON_OBJECT(
+    'version', 1,
+    'actives', JSON_ARRAY('basic_attack_melee', 'taunting_guard'),
+    'passives', JSON_ARRAY('shield_set', 'wall_of_scrap', 'unmoving')
+  ),
+  `equipped_abilities_json` = JSON_ARRAY('basic_attack_melee', 'taunting_guard')
+WHERE `slug` = 'kobold_shieldbearer';
+
+UPDATE `enemy_templates`
+SET
+  `base_stats_json` = JSON_OBJECT('version', 1, 'attack', 6, 'defense', 2, 'max_hp', 18),
+  `ability_set_json` = JSON_OBJECT(
+    'version', 1,
+    'actives', JSON_ARRAY('bomb_toss', 'basic_attack_ranged'),
+    'passives', JSON_ARRAY('sharpshooter')
+  ),
+  `equipped_abilities_json` = JSON_ARRAY('bomb_toss', 'basic_attack_ranged')
+WHERE `slug` = 'kobold_skirmisher';
+
+UPDATE `enemy_templates`
+SET
+  `base_stats_json` = JSON_OBJECT('version', 1, 'attack', 9, 'defense', 3, 'max_hp', 22),
+  `ability_set_json` = JSON_OBJECT(
+    'version', 1,
+    'actives', JSON_ARRAY('basic_attack_ranged', 'disarming_shot', 'aimed_shot'),
+    'passives', JSON_ARRAY('sharpshooter', 'clean_shot')
+  ),
+  `equipped_abilities_json` = JSON_ARRAY('basic_attack_ranged', 'disarming_shot', 'aimed_shot')
+WHERE `slug` = 'kobold_sharpshooter';
+
+UPDATE `enemy_templates`
+SET
+  `base_stats_json` = JSON_OBJECT('version', 1, 'attack', 11, 'defense', 4, 'max_hp', 42),
+  `ability_set_json` = JSON_OBJECT(
+    'version', 1,
+    'actives', JSON_ARRAY('bomb_toss', 'basic_attack_ranged', 'aimed_shot'),
+    'passives', JSON_ARRAY('sharpshooter', 'patient_aim', 'dumb_luck')
+  ),
+  `equipped_abilities_json` = JSON_ARRAY('bomb_toss', 'basic_attack_ranged', 'aimed_shot')
+WHERE `slug` = 'kobold_warchief';
+
+UPDATE `enemy_templates`
+SET
+  `base_stats_json` = JSON_OBJECT('version', 1, 'attack', 4, 'defense', 5, 'max_hp', 30),
+  `ability_set_json` = JSON_OBJECT(
+    'version', 1,
+    'actives', JSON_ARRAY('basic_attack_melee', 'bog_splash'),
+    'passives', JSON_ARRAY('thick_hide', 'brawl_hardened')
+  ),
+  `equipped_abilities_json` = JSON_ARRAY('basic_attack_melee', 'bog_splash')
+WHERE `slug` = 'frogman_bruiser';
+
+UPDATE `enemy_templates`
+SET
+  `base_stats_json` = JSON_OBJECT('version', 1, 'attack', 7, 'defense', 3, 'max_hp', 24),
+  `ability_set_json` = JSON_OBJECT(
+    'version', 1,
+    'actives', JSON_ARRAY('basic_attack_melee', 'reed_spear', 'heavy_strike'),
+    'passives', JSON_ARRAY('find_the_gap')
+  ),
+  `equipped_abilities_json` = JSON_ARRAY('basic_attack_melee', 'reed_spear', 'heavy_strike')
+WHERE `slug` = 'frogman_spearhunter';
+
+UPDATE `enemy_templates`
+SET
+  `base_stats_json` = JSON_OBJECT('version', 1, 'attack', 4, 'defense', 4, 'max_hp', 28),
+  `ability_set_json` = JSON_OBJECT(
+    'version', 1,
+    'actives', JSON_ARRAY('basic_attack_melee', 'swamp_holler'),
+    'passives', JSON_ARRAY('chant_of_violence', 'morale_goblin')
+  ),
+  `equipped_abilities_json` = JSON_ARRAY('basic_attack_melee', 'swamp_holler')
+WHERE `slug` = 'frogman_wardrummer';
+
+UPDATE `enemy_templates`
+SET
+  `base_stats_json` = JSON_OBJECT('version', 1, 'attack', 8, 'defense', 7, 'max_hp', 54),
+  `ability_set_json` = JSON_OBJECT(
+    'version', 1,
+    'actives', JSON_ARRAY('basic_attack_melee', 'bog_splash', 'skullcrack'),
+    'passives', JSON_ARRAY('thick_hide', 'crowd_favorite')
+  ),
+  `equipped_abilities_json` = JSON_ARRAY('basic_attack_melee', 'bog_splash', 'skullcrack')
+WHERE `slug` = 'frogman_bog_tyrant';
+-- END MIGRATION: 54_rebalance_kobolds_frogmen.sql
+
+-- BEGIN MIGRATION: 55_rebalance_mountains_swamps_encounters.sql
+UPDATE `encounter_templates`
+SET
+  `difficulty_rating` = 1,
+  `enemy_set_json` = JSON_OBJECT(
+    'version', 2,
+    'teams', JSON_ARRAY(
+      JSON_OBJECT(
+        'team_id', 'A',
+        'label', 'Kobold Warband',
+        'units', JSON_ARRAY(
+          JSON_OBJECT('enemy_template_slug', 'kobold_shieldbearer', 'pos', JSON_OBJECT('x', 0, 'y', 1)),
+          JSON_OBJECT('enemy_template_slug', 'kobold_skirmisher',   'pos', JSON_OBJECT('x', 2, 'y', 0)),
+          JSON_OBJECT('enemy_template_slug', 'kobold_skirmisher',   'pos', JSON_OBJECT('x', 2, 'y', 2))
+        )
+      )
+    )
+  )
+WHERE `slug` = 'mountains_kobold_combat_1';
+
+UPDATE `encounter_templates`
+SET
+  `difficulty_rating` = 2,
+  `enemy_set_json` = JSON_OBJECT(
+    'version', 2,
+    'teams', JSON_ARRAY(
+      JSON_OBJECT(
+        'team_id', 'A',
+        'label', 'Kobold Warband',
+        'units', JSON_ARRAY(
+          JSON_OBJECT('enemy_template_slug', 'kobold_shieldbearer', 'pos', JSON_OBJECT('x', 0, 'y', 1)),
+          JSON_OBJECT('enemy_template_slug', 'kobold_skirmisher',   'pos', JSON_OBJECT('x', 2, 'y', 0)),
+          JSON_OBJECT('enemy_template_slug', 'kobold_sharpshooter', 'pos', JSON_OBJECT('x', 2, 'y', 2))
+        )
+      )
+    )
+  )
+WHERE `slug` = 'mountains_kobold_combat_2';
+
+UPDATE `encounter_templates`
+SET
+  `difficulty_rating` = 3,
+  `enemy_set_json` = JSON_OBJECT(
+    'version', 2,
+    'teams', JSON_ARRAY(
+      JSON_OBJECT(
+        'team_id', 'A',
+        'label', 'Kobold Warband',
+        'units', JSON_ARRAY(
+          JSON_OBJECT('enemy_template_slug', 'kobold_shieldbearer', 'pos', JSON_OBJECT('x', 0, 'y', 0)),
+          JSON_OBJECT('enemy_template_slug', 'kobold_shieldbearer', 'pos', JSON_OBJECT('x', 0, 'y', 2)),
+          JSON_OBJECT('enemy_template_slug', 'kobold_skirmisher',   'pos', JSON_OBJECT('x', 2, 'y', 0)),
+          JSON_OBJECT('enemy_template_slug', 'kobold_sharpshooter', 'pos', JSON_OBJECT('x', 2, 'y', 2))
+        )
+      )
+    )
+  )
+WHERE `slug` = 'mountains_kobold_combat_3';
+
+UPDATE `encounter_templates`
+SET
+  `difficulty_rating` = 5,
+  `enemy_set_json` = JSON_OBJECT(
+    'version', 2,
+    'teams', JSON_ARRAY(
+      JSON_OBJECT(
+        'team_id', 'A',
+        'label', 'Kobold Command',
+        'units', JSON_ARRAY(
+          JSON_OBJECT('enemy_template_slug', 'kobold_shieldbearer', 'pos', JSON_OBJECT('x', 0, 'y', 1)),
+          JSON_OBJECT('enemy_template_slug', 'kobold_sharpshooter', 'pos', JSON_OBJECT('x', 1, 'y', 0)),
+          JSON_OBJECT('enemy_template_slug', 'kobold_skirmisher',   'pos', JSON_OBJECT('x', 2, 'y', 2)),
+          JSON_OBJECT('enemy_template_slug', 'kobold_warchief',     'pos', JSON_OBJECT('x', 2, 'y', 1))
+        )
+      )
+    )
+  )
+WHERE `slug` = 'mountains_kobold_boss_1';
+
+UPDATE `encounter_templates`
+SET
+  `difficulty_rating` = 1,
+  `enemy_set_json` = JSON_OBJECT(
+    'version', 2,
+    'teams', JSON_ARRAY(
+      JSON_OBJECT(
+        'team_id', 'A',
+        'label', 'Frogman Hunting Party',
+        'units', JSON_ARRAY(
+          JSON_OBJECT('enemy_template_slug', 'frogman_bruiser',     'pos', JSON_OBJECT('x', 0, 'y', 1)),
+          JSON_OBJECT('enemy_template_slug', 'frogman_spearhunter', 'pos', JSON_OBJECT('x', 1, 'y', 0)),
+          JSON_OBJECT('enemy_template_slug', 'frogman_spearhunter', 'pos', JSON_OBJECT('x', 1, 'y', 2))
+        )
+      )
+    )
+  )
+WHERE `slug` = 'swamps_frogman_combat_1';
+
+UPDATE `encounter_templates`
+SET
+  `difficulty_rating` = 2,
+  `enemy_set_json` = JSON_OBJECT(
+    'version', 2,
+    'teams', JSON_ARRAY(
+      JSON_OBJECT(
+        'team_id', 'A',
+        'label', 'Frogman Hunting Party',
+        'units', JSON_ARRAY(
+          JSON_OBJECT('enemy_template_slug', 'frogman_bruiser',     'pos', JSON_OBJECT('x', 0, 'y', 1)),
+          JSON_OBJECT('enemy_template_slug', 'frogman_spearhunter', 'pos', JSON_OBJECT('x', 1, 'y', 0)),
+          JSON_OBJECT('enemy_template_slug', 'frogman_wardrummer',  'pos', JSON_OBJECT('x', 2, 'y', 1))
+        )
+      )
+    )
+  )
+WHERE `slug` = 'swamps_frogman_combat_2';
+
+UPDATE `encounter_templates`
+SET
+  `difficulty_rating` = 3,
+  `enemy_set_json` = JSON_OBJECT(
+    'version', 2,
+    'teams', JSON_ARRAY(
+      JSON_OBJECT(
+        'team_id', 'A',
+        'label', 'Frogman Hunting Party',
+        'units', JSON_ARRAY(
+          JSON_OBJECT('enemy_template_slug', 'frogman_bruiser',     'pos', JSON_OBJECT('x', 0, 'y', 0)),
+          JSON_OBJECT('enemy_template_slug', 'frogman_bruiser',     'pos', JSON_OBJECT('x', 0, 'y', 2)),
+          JSON_OBJECT('enemy_template_slug', 'frogman_spearhunter', 'pos', JSON_OBJECT('x', 1, 'y', 1)),
+          JSON_OBJECT('enemy_template_slug', 'frogman_wardrummer',  'pos', JSON_OBJECT('x', 2, 'y', 1))
+        )
+      )
+    )
+  )
+WHERE `slug` = 'swamps_frogman_combat_3';
+
+UPDATE `encounter_templates`
+SET
+  `difficulty_rating` = 5,
+  `enemy_set_json` = JSON_OBJECT(
+    'version', 2,
+    'teams', JSON_ARRAY(
+      JSON_OBJECT(
+        'team_id', 'A',
+        'label', 'Bog Court',
+        'units', JSON_ARRAY(
+          JSON_OBJECT('enemy_template_slug', 'frogman_bruiser',     'pos', JSON_OBJECT('x', 0, 'y', 0)),
+          JSON_OBJECT('enemy_template_slug', 'frogman_bog_tyrant',  'pos', JSON_OBJECT('x', 0, 'y', 1)),
+          JSON_OBJECT('enemy_template_slug', 'frogman_spearhunter', 'pos', JSON_OBJECT('x', 1, 'y', 2)),
+          JSON_OBJECT('enemy_template_slug', 'frogman_wardrummer',  'pos', JSON_OBJECT('x', 2, 'y', 1))
+        )
+      )
+    )
+  )
+WHERE `slug` = 'swamps_frogman_boss_1';
+-- END MIGRATION: 55_rebalance_mountains_swamps_encounters.sql
+
 -- BEGIN MIGRATION: 56_dialogue_run_nodes_and_mystic_cave.sql
 ALTER TABLE `run_nodes`
   MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit','dialogue') NOT NULL;
@@ -1881,6 +2558,63 @@ ALTER TABLE `unit_instances`
   ADD COLUMN `splice_variant_slug` VARCHAR(64) NOT NULL DEFAULT 'basic_goblin' AFTER `unit_type_id`;
 -- END MIGRATION: 59_unit_splice_variant_foundation.sql
 
+-- BEGIN MIGRATION: 60_run_nodes_hazard_type.sql
+ALTER TABLE `run_nodes`
+  MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit','dialogue','hazard') NOT NULL;
+-- END MIGRATION: 60_run_nodes_hazard_type.sql
+
+-- BEGIN MIGRATION: 61_bounty_board_foundation.sql
+CREATE TABLE `bounty_definitions` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `slug` VARCHAR(96) NOT NULL,
+  `title` VARCHAR(160) NOT NULL,
+  `description` TEXT NOT NULL,
+  `category` ENUM('hunting','region','challenge') NOT NULL,
+  `objective_json` JSON NOT NULL,
+  `reward_json` JSON NOT NULL,
+  `is_enabled` TINYINT(1) NOT NULL DEFAULT 1,
+  `sort_order` INT NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_bounty_definitions_slug` (`slug`),
+  KEY `ix_bounty_definitions_enabled_category` (`is_enabled`, `category`, `sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `user_bounties` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `bounty_definition_id` BIGINT UNSIGNED NOT NULL,
+  `status` ENUM('accepted','completed','claimed','abandoned') NOT NULL DEFAULT 'accepted',
+  `progress_json` JSON NOT NULL,
+  `accepted_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `completed_at` TIMESTAMP NULL DEFAULT NULL,
+  `claimed_at` TIMESTAMP NULL DEFAULT NULL,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_user_bounties_user_definition` (`user_id`, `bounty_definition_id`),
+  KEY `ix_user_bounties_user_status` (`user_id`, `status`, `updated_at`),
+  CONSTRAINT `fk_user_bounties_user_id`
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
+  CONSTRAINT `fk_user_bounties_definition_id`
+    FOREIGN KEY (`bounty_definition_id`) REFERENCES `bounty_definitions` (`id`)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- END MIGRATION: 61_bounty_board_foundation.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
+-- Dice Goblins — MySQL Schema (MVP)
+-- Generated: 2026-01-11 08:27:46
+-- Source: design-docs-final/09-data-model.md
+--
+-- Notes:
+-- - Intended for MySQL 8.0+
+-- - Default charset/collation: utf8mb4 / utf8mb4_unicode_ci
+-- - Foreign keys use RESTRICT (application is expected to manage lifecycle deletes)
+
+-- Re-enable FK checks if you disabled them
 SET FOREIGN_KEY_CHECKS=1;
 -- END MIGRATION: 99_finalize.sql
