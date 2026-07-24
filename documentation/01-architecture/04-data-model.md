@@ -1,7 +1,7 @@
 # Dice Goblins - Data Model (Authoritative Rework Contract)
 
 Status: active  
-Last Updated: 2026-07-23
+Last Updated: 2026-07-24
 Owner: Backend/Data  
 Depends On: `backend/migrations/schema_all.sql`, `documentation/02-systems-mvp/00-combat-system.md`, `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/02-units-and-progression.md`
 
@@ -219,7 +219,36 @@ Initial unit grants must seed:
 
 This should be handled in bootstrap or account-seed logic, not as implicit frontend-only setup.
 
-## 8. Battles and Logs
+## 8. Bounty Board Foundation
+
+### 8.1 bounty_definitions
+
+`bounty_definitions` stores authored contract templates that can appear on a future bounty board.
+
+Current foundation columns:
+- stable `slug`
+- player-facing title and description
+- category: hunting, region, or challenge
+- `objective_json` for event/filter/target requirements
+- `reward_json` for backend-authored payout details
+- enabled and sort-order fields for board curation
+
+### 8.2 user_bounties
+
+`user_bounties` stores the player's accepted bounty state.
+
+Current foundation columns:
+- `user_id`
+- `bounty_definition_id`
+- status: accepted, completed, claimed, or abandoned
+- `progress_json` for idempotent backend-owned progress
+- accepted, completed, claimed, and updated timestamps
+
+Notes:
+- active-slot limits, board rotation, reward claims, and progress event handling are future service work
+- bounty progress must be backend-authored and idempotent once those services are introduced
+
+## 9. Battles and Logs
 
 `battles` remain the authoritative battle record.
 
@@ -232,7 +261,7 @@ This should be handled in bootstrap or account-seed logic, not as implicit front
 
 The old pooled-dice combat interpretation should not appear in new logs.
 
-## 9. Rewards and Promotions
+## 10. Rewards and Promotions
 
 `unit_promotions` should retain enough detail to explain:
 - source unit
@@ -243,7 +272,7 @@ The old pooled-dice combat interpretation should not appear in new logs.
 
 This history is important both for player support/debugging and sideways-promotion eligibility.
 
-## 10. Migration Expectations
+## 11. Migration Expectations
 
 The rework requires explicit migration treatment for:
 - existing `unit_dice` rows
@@ -257,14 +286,14 @@ Recommended migration stance:
 - convert legacy unit-dice assignments into base-ability slot assignments deterministically where possible
 - author enemy equipped-loadout data before enabling the new scheduler
 
-## 11. Normalization Guidance
+## 12. Normalization Guidance
 
 As implementation lands, prefer normalization over further drift:
 - compact legacy migration history into a smaller set of canonical migrations once the rework stabilizes
 - avoid growing parallel pooled-dice and ability-slot schemas long-term
 - keep test fixtures aligned to the new normalized model instead of preserving legacy abstractions indefinitely
 
-## 12. Explicitly Superseded Model
+## 13. Explicitly Superseded Model
 
 The following model is no longer canonical:
 - unit-scoped combat dice pools
