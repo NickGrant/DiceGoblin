@@ -343,3 +343,145 @@ current_code_references:
   - backend/migrations/60_run_nodes_hazard_type.sql
   - backend/migrations/61_bounty_board_foundation.sql
   - documentation/07-roadmap/00-gameplay-systems-roadmap.md
+
+---
+id: ECS-002
+title: Implement Precision and Resolve combat behavior
+status: complete
+priority: high
+milestone: Expanded Combat Stats
+description: Precision and Resolve now affect deterministic hit, crit, and harmful-status resistance behavior while neutral values preserve baseline combat feel.
+acceptance_criteria:
+  - Add deterministic Precision-based hit and critical behavior for eligible attacks.
+  - Add Resolve-based resistance behavior for Poison, Bleeding, Sleep, and other supported harmful statuses.
+  - Preserve current combat determinism and replayability.
+  - Add battle-log language when Precision or Resolve changes an outcome.
+  - Keep neutral `5` values close to existing gameplay behavior.
+  - Add targeted backend combat tests for hit, crit, resisted status, and neutral-stat behavior.
+current_code_references:
+  - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
+  - backend/tests/Unit/Combat/DeterministicRunNodeResolverPrimitivesTest.php
+  - documentation/02-systems-mvp/00-combat-system.md
+
+---
+id: ECS-003
+title: Author Precision and Resolve balance data
+status: complete
+priority: high
+milestone: Expanded Combat Stats
+description: Seeded player unit and enemy template stats now include conservative authored Precision and Resolve values through a forward migration.
+acceptance_criteria:
+  - Add authored Precision and Resolve values to player unit type seed data.
+  - Add authored Precision and Resolve values to enemy template seed data.
+  - Keep existing regions playable with conservative tuning.
+  - Document the initial tuning assumptions and any intentionally neutral entries.
+  - Add or update regression coverage that verifies seeded stat JSON exposes the expected fields.
+current_code_references:
+  - backend/migrations/62_seed_precision_resolve_stats.sql
+  - backend/tests/Integration/ExpandedCombatStatsSeedIntegrationTest.php
+  - documentation/02-systems-mvp/00-combat-system.md
+
+---
+id: ECS-004
+title: Surface expanded stats in player-facing comparisons
+status: complete
+priority: medium
+milestone: Expanded Combat Stats
+description: Precision and Resolve are now displayed consistently across comparison-oriented unit and reward surfaces.
+acceptance_criteria:
+  - Show Precision and Resolve consistently wherever unit or enemy stat blocks are compared.
+  - Keep compact/mobile layouts readable.
+  - Explain misses, critical hits, and resisted outcomes through existing battle summary or log surfaces.
+  - Add focused frontend coverage for at least one stat-comparison surface.
+current_code_references:
+  - frontend/src/app/core/models/api.models.ts
+  - frontend/src/app/shared/utils/unit-formatters.ts
+  - frontend/src/app/pages/unit-details-page
+  - frontend/src/app/pages/run-loot-page
+
+---
+id: DNA-002
+title: Implement splice variant catalog and acquisition
+status: complete
+priority: high
+milestone: Goblin DNA Splice Variants
+description: Units now roll and persist authored splice variants when granted through recruitment, shop purchases, and deterministic run rewards, with player-facing splice metadata surfaced in roster and reward views.
+acceptance_criteria:
+  - Define a small launch set of splice variants with modest stat tendencies or conditional behaviors.
+  - Persist rolled variants when units are recruited, purchased, or granted.
+  - Display splice identity in unit details, rewards, recruitment, and relevant filters.
+  - Preserve `basic_goblin` as the migration/default lineage.
+current_code_references:
+  - backend/migrations/63_seed_splice_variants.sql
+  - backend/src/Services/SpliceVariantService.php
+  - backend/src/Repositories/UnitRepository.php
+  - frontend/src/app/pages/warband-page
+
+---
+id: PGH-002
+title: Record objective progress from gameplay events
+status: complete
+priority: high
+milestone: Progression Guidance and Home Dashboard
+description: Objective progress is now derived from durable gameplay facts such as completed runs and claimed victorious battles, and the home dashboard presents completed and next objective states.
+acceptance_criteria:
+  - Record progress for the first objective set from backend-owned gameplay facts.
+  - Keep progress idempotent across retries and refreshes.
+  - Show completed and next objective states on the home dashboard.
+current_code_references:
+  - backend/src/Services/ObjectiveService.php
+  - backend/src/Services/ProfileService.php
+  - frontend/src/app/pages/home-page
+
+---
+id: BB-002
+title: Build bounty board service and API
+status: complete
+priority: high
+milestone: Bounty Board
+description: The bounty board now exposes authenticated backend endpoints for listing, accepting, syncing progress, and claiming authored bounty contracts.
+acceptance_criteria:
+  - Add backend services and API endpoints for board listing, acceptance, progress, completion, and reward claim.
+  - Enforce active-slot limits and duplicate prevention.
+  - Keep generated board state stable for its rotation period.
+  - Add backend and frontend coverage for the core bounty flow.
+current_code_references:
+  - backend/src/Services/BountyBoardService.php
+  - backend/src/Controllers/BountyBoardController.php
+  - backend/tests/Integration/BountyBoardControllerIntegrationTest.php
+  - documentation/01-architecture/03-backend-api-contracts.md
+
+---
+id: AFE-001
+title: Expand academy and feature-unlock tree
+status: complete
+priority: medium
+milestone: Academy and Feature-Unlock Expansion
+description: Academy unit research now includes backend-authored gameplay progress requirements and visible availability state.
+acceptance_criteria:
+  - Add at least one new unlock path that depends on gameplay progress rather than only currency.
+  - Keep unlock requirements visible and backend-authoritative.
+  - Document how the expanded tree connects to bounties, splice research, or future crafting.
+current_code_references:
+  - backend/src/Services/AcademyService.php
+  - backend/tests/Integration/AcademyServiceIntegrationTest.php
+  - frontend/src/app/pages/academy-page
+  - documentation/02-systems-mvp/12-academy-and-feature-unlocks.md
+
+---
+id: WM-001
+title: Add Wrong Machine and Raw Chaos foundation
+status: complete
+priority: medium
+milestone: Wrong Machine and Raw Chaos
+description: Raw Chaos account balance storage and backend-authored dice salvage now provide the first Wrong Machine currency foundation.
+acceptance_criteria:
+  - Add Raw Chaos account balance storage.
+  - Add backend-authored dice salvage rules.
+  - Prevent equipped dice from being salvaged without explicit player action.
+  - Document fabrication and catalyst work as follow-up scope.
+current_code_references:
+  - backend/migrations/64_add_raw_chaos_currency.sql
+  - backend/src/Services/DiceSalvageService.php
+  - frontend/src/app/pages/dice-page
+  - documentation/02-systems-mvp/01-dice-system.md
