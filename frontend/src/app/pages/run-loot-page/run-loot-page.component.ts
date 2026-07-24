@@ -8,6 +8,7 @@ import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { resolveUnitSilhouetteUrl, resolveUnitThumbnailUrl } from '../../shared/ui/unit-art/unit-art';
+import { formatSpliceVariantLabel } from '../../shared/utils/unit-formatters';
 
 type LootRewardSummary = {
   teeth: number;
@@ -74,7 +75,7 @@ export class RunLootPageComponent {
     return (this.lootRewards()?.units ?? []).map((unit, index) => ({
       id: unit.unit_instance_id ?? `unit-${index}-${unit.name}`,
       label: unit.name,
-      meta: unit.unit_type_name,
+      meta: this.unitRewardMeta(unit),
       imageUrl: resolveUnitThumbnailUrl(unit.unit_type_slug ?? unit.unit_type_name) ?? resolveUnitSilhouetteUrl(),
       stats: this.unitRewardStats(unit),
     }));
@@ -217,9 +218,17 @@ export class RunLootPageComponent {
       name: label,
       unit_type_slug: null,
       unit_type_name: label,
+      splice_variant_slug: null,
+      splice_variant_name: null,
       tier: 1,
       level: 1,
     };
+  }
+
+  private unitRewardMeta(unit: RewardPreviewUnit): string {
+    const typeName = unit.unit_type_name || 'Unit';
+    const spliceName = formatSpliceVariantLabel(unit.splice_variant_name, unit.splice_variant_slug);
+    return `${typeName} - ${spliceName}`;
   }
 
   private unitRewardStats(unit: RewardPreviewUnit): Array<{ label: string; value: string }> {

@@ -162,6 +162,10 @@ final class UnitRepository
         ui.`id`,
         ui.`unit_type_id`,
         ui.`splice_variant_slug`,
+        sv.`name` AS `splice_variant_name`,
+        sv.`description` AS `splice_variant_description`,
+        sv.`passive_summary` AS `splice_variant_passive_summary`,
+        sv.`stat_modifiers_json` AS `splice_stat_modifiers_json`,
         ut.`slug` AS `unit_type_slug`,
         ut.`name` AS `unit_type_name`,
         ut.`base_stats_json`,
@@ -180,6 +184,7 @@ final class UnitRepository
         ui.`locked`
       FROM `unit_instances` ui
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      LEFT JOIN `splice_variants` sv ON sv.`slug` = ui.`splice_variant_slug`
       WHERE ui.`user_id` = ?
       ORDER BY ui.`id` ASC
     ');
@@ -211,26 +216,28 @@ final class UnitRepository
       $familySlug = $this->unitFamilySlug((string)($u['unit_type_slug'] ?? ''));
       $maxTier = $familySlug !== null ? ($maxTierByFamily[$familySlug] ?? 1) : 1;
 
+      $baseStats = $this->applySpliceStatModifiers($u['base_stats_json'], $u['splice_stat_modifiers_json'] ?? null);
+
       $totalAttack = $this->unitProgression->totalAttackForLevel(
-        $u['base_stats_json'],
+        $baseStats,
         $level,
         (int)$u['attack_per_level']
       );
       $totalDefense = $this->unitProgression->totalDefenseForLevel(
-        $u['base_stats_json'],
+        $baseStats,
         $level,
         (int)$u['defense_per_level']
       );
       $maxHp = $this->unitProgression->maxHpForLevel(
-        $u['base_stats_json'],
+        $baseStats,
         $level,
         (int)$u['max_hp_per_level']
       );
-      $totalPrecision = $this->unitProgression->precision($u['base_stats_json']);
-      $totalResolve = $this->unitProgression->resolve($u['base_stats_json']);
+      $totalPrecision = $this->unitProgression->precision($baseStats);
+      $totalResolve = $this->unitProgression->resolve($baseStats);
       $xpToNext = $this->unitProgression->xpToNextLevel($tier, $level, $maxLevel, $xp);
       $footprint = FormationGeometry::footprintFromStats(
-        is_array($u['base_stats_json']) ? $u['base_stats_json'] : []
+        $baseStats
       );
       $authoredAbilities = $this->abilitySetToAbilityRecords($u['ability_set_json'] ?? null);
       $capstoneChoices = array_map(
@@ -257,6 +264,9 @@ final class UnitRepository
         'id' => $uid,
         'unit_type_id' => (string)$u['unit_type_id'],
         'splice_variant_slug' => (string)($u['splice_variant_slug'] ?? 'basic_goblin'),
+        'splice_variant_name' => (string)($u['splice_variant_name'] ?? 'Basic Goblin'),
+        'splice_variant_description' => (string)($u['splice_variant_description'] ?? ''),
+        'splice_variant_passive_summary' => (string)($u['splice_variant_passive_summary'] ?? ''),
         'unit_type_slug' => (string)($u['unit_type_slug'] ?? ''),
         'name' => $u['display_name'] !== null ? (string)$u['display_name'] : (string)$u['unit_type_name'],
         'display_name' => $u['display_name'] !== null ? (string)$u['display_name'] : (string)$u['unit_type_name'],
@@ -354,6 +364,7 @@ final class UnitRepository
     int $xp = 0,
     bool $locked = false,
     ?string $displayName = null,
+    string $spliceVariantSlug = 'basic_goblin',
   ): int {
     if ($tier < 1) {
       throw new RuntimeException('Tier must be >= 1.');
@@ -366,10 +377,10 @@ final class UnitRepository
     }
 
     $stmt = $this->pdo->prepare('
-      INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `display_name`, `tier`, `level`, `xp`, `locked`)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `splice_variant_slug`, `display_name`, `tier`, `level`, `xp`, `locked`)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ');
-    $stmt->execute([$userId, $unitTypeId, $displayName, $tier, $level, $xp, $locked ? 1 : 0]);
+    $stmt->execute([$userId, $unitTypeId, $spliceVariantSlug, $displayName, $tier, $level, $xp, $locked ? 1 : 0]);
 
     return (int)$this->pdo->lastInsertId();
   }
@@ -809,6 +820,43 @@ final class UnitRepository
     }
 
     return $normalized;
+  }
+
+  /**
+   * @return array<string,mixed>
+   */
+  private function applySpliceStatModifiers(mixed $baseStatsRaw, mixed $modifiersRaw): array
+  {
+    $baseStats = $this->decodeJsonObject($baseStatsRaw);
+    $modifiers = $this->decodeJsonObject($modifiersRaw);
+
+    foreach (['attack', 'defense', 'max_hp', 'precision', 'resolve'] as $key) {
+      $default = match ($key) {
+        'max_hp' => 1,
+        'precision', 'resolve' => 5,
+        default => 0,
+      };
+      $baseStats[$key] = max(0, (int)($baseStats[$key] ?? $default) + (int)($modifiers[$key] ?? 0));
+    }
+
+    if (isset($baseStats['max_hp'])) {
+      $baseStats['max_hp'] = max(1, (int)$baseStats['max_hp']);
+    }
+
+    return $baseStats;
+  }
+
+  /**
+   * @return array<string,mixed>
+   */
+  private function decodeJsonObject(mixed $raw): array
+  {
+    if (is_string($raw)) {
+      $decoded = json_decode($raw, true);
+      return is_array($decoded) ? $decoded : [];
+    }
+
+    return is_array($raw) ? $raw : [];
   }
 
   /**

@@ -22,6 +22,11 @@
     <div class="unit-details-page__left dg-proto-shell">
       <section class="unit-command-panel dg-proto-section dg-motion-surface-enter" aria-label="Unit command">
         <dg-unit-thumbnail [unit]="unit" [locked]="unitLocked()" [showCopy]="false" />
+        <div class="unit-splice-card">
+          <p class="unit-splice-card__label mb-1">DNA Splice</p>
+          <strong class="dg-stencil">{{ spliceVariantLabel() }}</strong>
+          <span>{{ spliceVariantSummary() }}</span>
+        </div>
         <div class="unit-name-editor">
           <label class="form-label" for="unit-details-display-name">Display Name</label>
           <input

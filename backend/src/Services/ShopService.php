@@ -537,6 +537,7 @@ final class ShopService
       'purchase' => [
         'unit_instance_id' => (string)$unitInstanceId,
         'unit_type_slug' => (string)$type['slug'],
+        'splice_variant_slug' => (string)($grantedUnit['splice_variant_slug'] ?? SpliceVariantService::BASIC_GOBLIN),
         'tier' => 1,
         'level' => 1,
       ],

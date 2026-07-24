@@ -1,4 +1,4 @@
-import { formatTier, humanizeAbilityId, resolveAbilityDisplayName, summarizeAbilityNames, toRomanNumeral } from './unit-formatters';
+import { formatSpliceVariantLabel, formatTier, humanizeAbilityId, resolveAbilityDisplayName, summarizeAbilityNames, toRomanNumeral } from './unit-formatters';
 
 describe('unit formatters', () => {
   it('formats tiers as roman numerals', () => {
@@ -10,6 +10,12 @@ describe('unit formatters', () => {
 
   it('humanizes ability identifiers', () => {
     expect(humanizeAbilityId('sleep_hex')).toBe('Sleep Hex');
+  });
+
+  it('formats splice variant labels from names or slugs', () => {
+    expect(formatSpliceVariantLabel('Rat-Spliced', 'rat_splice')).toBe('Rat-Spliced');
+    expect(formatSpliceVariantLabel(null, 'toad_splice')).toBe('Toad-Spliced');
+    expect(formatSpliceVariantLabel(null, 'basic_goblin')).toBe('Basic Goblin');
   });
 
   it('prefers catalog names when resolving ability labels', () => {

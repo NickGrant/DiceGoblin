@@ -28,6 +28,19 @@ final class UserAssetGrantServiceIntegrationTest extends BattleFlowIntegrationCa
     }
   }
 
+  public function testGrantUnitCanPersistRequestedSpliceVariant(): void
+  {
+    $userId = $this->insertUser();
+
+    $granted = $this->service()->grantUnitBySlug($userId, 'frontline_bruiser_t1', null, 1, 0, false, null, 'rat_splice');
+
+    $this->assertSame('rat_splice', (string)($granted['splice_variant_slug'] ?? ''));
+    $this->assertSame(
+      'rat_splice',
+      (string)$this->scalar('SELECT `splice_variant_slug` FROM `unit_instances` WHERE `id` = ?', [(int)$granted['id']])
+    );
+  }
+
   public function testGrantDiceBatchCreatesRequestedCount(): void
   {
     $userId = $this->insertUser();
@@ -48,11 +61,12 @@ final class UserAssetGrantServiceIntegrationTest extends BattleFlowIntegrationCa
     $created = $this->service()->materializeRewardUnitGrants($userId, [
       'unit_grants' => [
         ['unit_type_slug' => 'frontline_bruiser_t1', 'tier' => 1, 'level' => 1],
+        ['unit_type_slug' => 'frontline_bruiser_t1', 'splice_variant_slug' => 'toad_splice', 'tier' => 1, 'level' => 1],
         ['unit_type_slug' => 'backline_marksman_t1', 'tier' => 1, 'level' => 1],
       ],
     ]);
 
-    $this->assertCount(1, $created);
+    $this->assertCount(2, $created);
     $this->assertSame(
       'frontline_bruiser_t1',
       (string)$this->scalar(
@@ -62,6 +76,10 @@ final class UserAssetGrantServiceIntegrationTest extends BattleFlowIntegrationCa
          WHERE ui.`id` = ?',
         [(int)$created[0]]
       )
+    );
+    $this->assertSame(
+      'toad_splice',
+      (string)$this->scalar('SELECT `splice_variant_slug` FROM `unit_instances` WHERE `id` = ?', [(int)$created[1]])
     );
   }
 

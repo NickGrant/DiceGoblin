@@ -24,6 +24,8 @@ class HostComponent {
     name: 'Fang',
     unit_type_slug: 'frontline_bruiser_t1',
     unit_type_name: 'Bruiser',
+    splice_variant_slug: 'toad_splice',
+    splice_variant_name: 'Toad-Spliced',
     level: 3,
     tier: 2,
     total_attack: 7,
@@ -61,6 +63,7 @@ describe('UnitGridObjectComponent', () => {
     expect(compiled.textContent).toContain('Fang');
     expect(compiled.textContent).toContain('Tier II');
     expect(compiled.textContent).toContain('Bruiser');
+    expect(compiled.textContent).toContain('Toad-Spliced');
     expect(compiled.textContent).toContain('Lv. 3');
     expect(compiled.textContent).toContain('XP 90/120');
     expect(compiled.textContent).toContain('Level Up');

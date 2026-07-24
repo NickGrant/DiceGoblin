@@ -446,6 +446,10 @@ final class RunSummaryBuilder
    *   name:string,
    *   unit_type_slug:string|null,
    *   unit_type_name:string,
+   *   splice_variant_slug:string,
+   *   splice_variant_name:string,
+   *   splice_variant_description:string,
+   *   splice_variant_passive_summary:string,
    *   tier:int,
    *   level:int,
    *   total_attack:int,
@@ -471,6 +475,7 @@ final class RunSummaryBuilder
     }
 
     $slugs = [];
+    $spliceSlugs = [];
     foreach ($unitGrants as $grant) {
       if (!is_array($grant)) {
         continue;
@@ -479,9 +484,14 @@ final class RunSummaryBuilder
       if ($slug !== '') {
         $slugs[] = $slug;
       }
+      $spliceSlug = trim((string)($grant['splice_variant_slug'] ?? ''));
+      if ($spliceSlug !== '') {
+        $spliceSlugs[] = $spliceSlug;
+      }
     }
 
     $unitTypesBySlug = $this->loadUnitTypesBySlug($slugs);
+    $spliceVariantsBySlug = $this->loadSpliceVariantsBySlug($spliceSlugs);
     $details = [];
     foreach ($unitGrants as $grant) {
       if (!is_array($grant)) {
@@ -495,11 +505,17 @@ final class RunSummaryBuilder
 
       $unitType = $unitTypesBySlug[$slug] ?? null;
       $unitTypeName = (string)($unitType['name'] ?? $this->prettifyId($slug));
+      $spliceSlug = trim((string)($grant['splice_variant_slug'] ?? 'basic_goblin'));
+      $spliceVariant = $spliceVariantsBySlug[$spliceSlug] ?? $this->defaultSpliceVariant();
       $details[] = [
         'unit_instance_id' => null,
         'name' => $unitTypeName,
         'unit_type_slug' => $slug,
         'unit_type_name' => $unitTypeName,
+        'splice_variant_slug' => (string)$spliceVariant['slug'],
+        'splice_variant_name' => (string)$spliceVariant['name'],
+        'splice_variant_description' => (string)$spliceVariant['description'],
+        'splice_variant_passive_summary' => (string)$spliceVariant['passive_summary'],
         'tier' => max(1, (int)($grant['tier'] ?? 1)),
         'level' => max(1, (int)($grant['level'] ?? 1)),
         ...$this->unitTypeStats($unitType['base_stats_json'] ?? null),
@@ -669,6 +685,51 @@ final class RunSummaryBuilder
   }
 
   /**
+   * @param array<int,string> $slugs
+   * @return array<string,array{slug:string,name:string,description:string,passive_summary:string}>
+   */
+  private function loadSpliceVariantsBySlug(array $slugs): array
+  {
+    $slugs = array_values(array_unique(array_filter(array_map('strval', $slugs), static fn(string $slug): bool => $slug !== '')));
+    if (count($slugs) === 0) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($slugs), '?'));
+    $stmt = $this->pdo->prepare("
+      SELECT `slug`, `name`, `description`, `passive_summary`
+      FROM `splice_variants`
+      WHERE `slug` IN ($placeholders)
+    ");
+    $stmt->execute($slugs);
+
+    $map = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $map[(string)$row['slug']] = [
+        'slug' => (string)$row['slug'],
+        'name' => (string)$row['name'],
+        'description' => (string)$row['description'],
+        'passive_summary' => (string)$row['passive_summary'],
+      ];
+    }
+
+    return $map;
+  }
+
+  /**
+   * @return array{slug:string,name:string,description:string,passive_summary:string}
+   */
+  private function defaultSpliceVariant(): array
+  {
+    return [
+      'slug' => 'basic_goblin',
+      'name' => 'Basic Goblin',
+      'description' => 'Baseline goblin stock with no splice tendency.',
+      'passive_summary' => 'No splice modifier.',
+    ];
+  }
+
+  /**
    * @param array<int,string> $instanceIds
    * @return array<string,string>
    */
@@ -704,6 +765,10 @@ final class RunSummaryBuilder
    *   name:string,
    *   unit_type_slug:string,
    *   unit_type_name:string,
+   *   splice_variant_slug:string,
+   *   splice_variant_name:string,
+   *   splice_variant_description:string,
+   *   splice_variant_passive_summary:string,
    *   tier:int,
    *   level:int,
    *   total_attack:int,
@@ -728,11 +793,16 @@ final class RunSummaryBuilder
         ui.`display_name`,
         ui.`tier`,
         ui.`level`,
+        ui.`splice_variant_slug`,
         ut.`slug` AS `unit_type_slug`,
         ut.`name` AS `unit_type_name`,
-        ut.`base_stats_json`
+        ut.`base_stats_json`,
+        sv.`name` AS `splice_variant_name`,
+        sv.`description` AS `splice_variant_description`,
+        sv.`passive_summary` AS `splice_variant_passive_summary`
       FROM `unit_instances` ui
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      LEFT JOIN `splice_variants` sv ON sv.`slug` = ui.`splice_variant_slug`
       WHERE ui.`user_id` = ? AND ui.`id` IN ($placeholders)
     ");
     $stmt->execute($params);
@@ -746,6 +816,10 @@ final class RunSummaryBuilder
         'name' => $displayName !== '' ? $displayName : $unitTypeName,
         'unit_type_slug' => (string)($row['unit_type_slug'] ?? ''),
         'unit_type_name' => $unitTypeName,
+        'splice_variant_slug' => (string)($row['splice_variant_slug'] ?? 'basic_goblin'),
+        'splice_variant_name' => (string)($row['splice_variant_name'] ?? 'Basic Goblin'),
+        'splice_variant_description' => (string)($row['splice_variant_description'] ?? ''),
+        'splice_variant_passive_summary' => (string)($row['splice_variant_passive_summary'] ?? ''),
         'tier' => max(1, (int)($row['tier'] ?? 1)),
         'level' => max(1, (int)($row['level'] ?? 1)),
         ...$this->unitTypeStats($row['base_stats_json'] ?? null),
