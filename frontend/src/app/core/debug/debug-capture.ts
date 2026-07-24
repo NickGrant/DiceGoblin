@@ -221,6 +221,22 @@ export function createDebugCaptureProfile(_request: DebugCaptureRequest): Profil
     ],
     region_items: [],
     active_run: null,
+    objectives: [
+      {
+        id: 'clear-next-region',
+        title: 'Clear The Mountain',
+        description: 'Complete the next unlocked region to advance the map and unlock more systems.',
+        status: 'active',
+        priority: 50,
+        progress_current: 1,
+        progress_target: 2,
+        route: '/regions',
+        meta: {
+          region_slug: 'the_mountain',
+          region_name: 'The Mountain',
+        },
+      },
+    ],
   };
 }
 

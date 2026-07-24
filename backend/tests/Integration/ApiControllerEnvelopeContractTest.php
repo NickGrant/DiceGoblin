@@ -65,6 +65,16 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsArray($data['regions'] ?? null);
     $this->assertIsArray($data['region_unlocks'] ?? null);
     $this->assertIsArray($data['region_items'] ?? null);
+    $this->assertIsArray($data['objectives'] ?? null);
+    $this->assertNotEmpty($data['objectives']);
+    $firstObjective = is_array($data['objectives'][0] ?? null) ? $data['objectives'][0] : [];
+    $this->assertIsString($firstObjective['id'] ?? null);
+    $this->assertIsString($firstObjective['title'] ?? null);
+    $this->assertIsString($firstObjective['status'] ?? null);
+    $this->assertIsInt($firstObjective['priority'] ?? null);
+    $this->assertIsInt($firstObjective['progress_current'] ?? null);
+    $this->assertIsInt($firstObjective['progress_target'] ?? null);
+    $this->assertIsString($firstObjective['route'] ?? null);
     $this->assertArrayHasKey('active_run', $data);
     $this->assertTrue(is_array($data['active_run']) || $data['active_run'] === null);
   }
