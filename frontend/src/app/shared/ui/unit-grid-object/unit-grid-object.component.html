@@ -34,17 +34,25 @@
     </div>
 
     <div class="unit-grid-object__stats" aria-label="Unit stats">
-      <span class="unit-grid-object__stat">
+      <span class="unit-grid-object__stat" title="Attack">
         <fa-icon [icon]="faAttack" aria-hidden="true"></fa-icon>
         <span>{{ statValue(object().total_attack) }}</span>
       </span>
-      <span class="unit-grid-object__stat">
+      <span class="unit-grid-object__stat" title="Defense">
         <fa-icon [icon]="faDefense" aria-hidden="true"></fa-icon>
         <span>{{ statValue(object().total_defense) }}</span>
       </span>
-      <span class="unit-grid-object__stat">
+      <span class="unit-grid-object__stat" title="Health">
         <fa-icon [icon]="faHealth" aria-hidden="true"></fa-icon>
         <span>{{ statValue(object().max_hp) }}</span>
+      </span>
+      <span class="unit-grid-object__stat" title="Precision">
+        <fa-icon [icon]="faPrecision" aria-hidden="true"></fa-icon>
+        <span>{{ statValue(object().total_precision) }}</span>
+      </span>
+      <span class="unit-grid-object__stat" title="Resolve">
+        <fa-icon [icon]="faResolve" aria-hidden="true"></fa-icon>
+        <span>{{ statValue(object().total_resolve) }}</span>
       </span>
     </div>
 

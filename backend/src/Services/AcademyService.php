@@ -21,7 +21,7 @@ final class AcademyService
   /**
    * @return array{
    *   currency_soft:int,
-   *   unit_unlocks:array<int,array{unit_type_slug:string,name:string,role:string,cost:int,is_unlocked:bool}>
+   *   unit_unlocks:array<int,array{unit_type_slug:string,name:string,role:string,cost:int,is_unlocked:bool,total_attack:int,total_defense:int,total_precision:int,total_resolve:int,max_hp:int}>
    * }
    */
   public function buildCatalog(int $userId): array
@@ -37,7 +37,7 @@ final class AcademyService
     );
 
     $stmt = $this->pdo->query("
-      SELECT `slug`, `name`, `role`
+      SELECT `slug`, `name`, `role`, `base_stats_json`
       FROM `unit_types`
       WHERE RIGHT(`slug`, 3) IN ('_t1', '_t2')
       ORDER BY CASE
@@ -56,6 +56,7 @@ final class AcademyService
         'role' => (string)$row['role'],
         'cost' => $this->unlockCostForSlug($slug),
         'is_unlocked' => isset($unlocked[$slug]),
+        ...$this->unitTypeStats($row['base_stats_json'] ?? null),
       ];
     }, $stmt->fetchAll(PDO::FETCH_ASSOC));
 
@@ -151,5 +152,24 @@ final class AcademyService
     return str_ends_with($unitTypeSlug, '_t1')
       ? self::TIER_ONE_UNLOCK_COST
       : self::DEFAULT_UNLOCK_COST;
+  }
+
+  /**
+   * @return array{total_attack:int,total_defense:int,total_precision:int,total_resolve:int,max_hp:int}
+   */
+  private function unitTypeStats(mixed $baseStatsJson): array
+  {
+    $stats = is_string($baseStatsJson) && $baseStatsJson !== ''
+      ? json_decode($baseStatsJson, true)
+      : [];
+    $stats = is_array($stats) ? $stats : [];
+
+    return [
+      'total_attack' => max(0, (int)($stats['attack'] ?? 0)),
+      'total_defense' => max(0, (int)($stats['defense'] ?? 0)),
+      'total_precision' => max(0, (int)($stats['precision'] ?? 5)),
+      'total_resolve' => max(0, (int)($stats['resolve'] ?? 5)),
+      'max_hp' => max(1, (int)($stats['max_hp'] ?? 1)),
+    ];
   }
 }

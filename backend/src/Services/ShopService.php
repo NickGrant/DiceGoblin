@@ -40,7 +40,7 @@ final class ShopService
    *   server_date:string,
    *   currency_soft:int,
    *   basic_dice:array<int,array{product_id:string,label:string,rarity:string,sides:int,cost:int}>,
-   *   basic_units:array<int,array{product_id:string,unit_type_slug:string,name:string,role:string,cost:int}>,
+   *   basic_units:array<int,array{product_id:string,unit_type_slug:string,name:string,role:string,cost:int,total_attack:int,total_defense:int,total_precision:int,total_resolve:int,max_hp:int}>,
    *   feature_unlocks:array<int,array{
    *     product_id:string,
    *     name:string,
@@ -161,7 +161,7 @@ final class ShopService
   }
 
   /**
-   * @return array<int,array{product_id:string,unit_type_slug:string,name:string,role:string,cost:int}>
+   * @return array<int,array{product_id:string,unit_type_slug:string,name:string,role:string,cost:int,total_attack:int,total_defense:int,total_precision:int,total_resolve:int,max_hp:int}>
    */
   private function listBasicUnitCatalog(int $userId, array $featureUnlocks): array
   {
@@ -173,7 +173,7 @@ final class ShopService
 
     $placeholders = implode(',', array_fill(0, count($unlockedUnitSlugs), '?'));
     $stmt = $this->pdo->prepare("
-      SELECT `slug`, `name`, `role`
+      SELECT `slug`, `name`, `role`, `base_stats_json`
       FROM `unit_types`
       WHERE RIGHT(`slug`, 3) = '_t1'
         AND `slug` IN ($placeholders)
@@ -181,13 +181,35 @@ final class ShopService
     ");
     $stmt->execute($unlockedUnitSlugs);
 
-    return array_map(static fn(array $row): array => [
-      'product_id' => (string)$row['slug'],
-      'unit_type_slug' => (string)$row['slug'],
-      'name' => (string)$row['name'],
-      'role' => (string)$row['role'],
-      'cost' => EconomyModifierService::adjustedShopCost(self::BASIC_UNIT_COST, $featureUnlocks),
-    ], $stmt->fetchAll(PDO::FETCH_ASSOC));
+    return array_map(function (array $row) use ($featureUnlocks): array {
+      return [
+        'product_id' => (string)$row['slug'],
+        'unit_type_slug' => (string)$row['slug'],
+        'name' => (string)$row['name'],
+        'role' => (string)$row['role'],
+        'cost' => EconomyModifierService::adjustedShopCost(self::BASIC_UNIT_COST, $featureUnlocks),
+        ...$this->unitTypeStats($row['base_stats_json'] ?? null),
+      ];
+    }, $stmt->fetchAll(PDO::FETCH_ASSOC));
+  }
+
+  /**
+   * @return array{total_attack:int,total_defense:int,total_precision:int,total_resolve:int,max_hp:int}
+   */
+  private function unitTypeStats(mixed $baseStatsJson): array
+  {
+    $stats = is_string($baseStatsJson) && $baseStatsJson !== ''
+      ? json_decode($baseStatsJson, true)
+      : [];
+    $stats = is_array($stats) ? $stats : [];
+
+    return [
+      'total_attack' => max(0, (int)($stats['attack'] ?? 0)),
+      'total_defense' => max(0, (int)($stats['defense'] ?? 0)),
+      'total_precision' => max(0, (int)($stats['precision'] ?? 5)),
+      'total_resolve' => max(0, (int)($stats['resolve'] ?? 5)),
+      'max_hp' => max(1, (int)($stats['max_hp'] ?? 1)),
+    ];
   }
 
   /**

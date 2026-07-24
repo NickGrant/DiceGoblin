@@ -78,6 +78,22 @@ Current behavior:
 - academy returns unit-type unlock catalog
 - purchases and unlocks are backend-authoritative and refresh profile state after success
 
+## Bounty Board
+
+Current routes:
+
+- `GET /api/v1/bounties`
+- `POST /api/v1/bounties/accept`
+- `POST /api/v1/bounties/sync`
+- `POST /api/v1/bounties/:userBountyId/claim`
+
+Current behavior:
+
+- the board seeds a small backend-authored bounty definition set into the existing bounty tables
+- players may accept up to three active or completed-but-unclaimed bounties
+- progress is derived idempotently from durable gameplay rows such as completed runs and claimed victorious battles
+- claiming a completed bounty grants backend-authored rewards and returns the updated board state
+
 ## Run Flow
 
 Current routes:

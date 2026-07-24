@@ -602,7 +602,12 @@ final class RunNodeController
    *     splice_variant_description:string,
    *     splice_variant_passive_summary:string,
    *     tier:int,
-   *     level:int
+   *     level:int,
+   *     total_attack:int,
+   *     total_defense:int,
+   *     total_precision:int,
+   *     total_resolve:int,
+   *     max_hp:int
    *   }>,
    *   dice:array<int,array{
    *     dice_instance_id:string|null,

@@ -40,6 +40,11 @@ class RunServiceStub {
               splice_variant_name: 'Rat-Spliced',
               tier: 2,
               level: 1,
+              total_attack: 4,
+              total_defense: 5,
+              total_precision: 5,
+              total_resolve: 7,
+              max_hp: 22,
             },
           ],
           dice: [
@@ -127,6 +132,11 @@ describe('RunLootPageComponent', () => {
           splice_variant_name: 'Rat-Spliced',
           tier: 2,
           level: 1,
+          total_attack: 4,
+          total_defense: 5,
+          total_precision: 5,
+          total_resolve: 7,
+          max_hp: 22,
         },
       ],
     });
@@ -141,6 +151,8 @@ describe('RunLootPageComponent', () => {
     expect(host.textContent).toContain('Brindle');
     expect(host.textContent).toContain('Warcaller');
     expect(host.textContent).toContain('Rat-Spliced');
+    expect(host.textContent).toContain('PRC');
+    expect(host.textContent).toContain('RES');
     expect(host.textContent).toContain('Guard');
     expect(host.textContent).not.toContain('Battle Log');
     expect(host.textContent).not.toContain('bone d6');

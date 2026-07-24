@@ -43,6 +43,12 @@ export class UnitBarComponent {
   readonly levelLabel = computed(() => `Level ${this.unit().level || 1}`);
   readonly roleIcon = computed(() => resolveUnitRoleIcon(this.unit().unit_type_slug ?? this.unit().unit_type_name));
   readonly spliceLabel = computed(() => formatSpliceVariantLabel(this.unit().splice_variant_name, this.unit().splice_variant_slug));
+  readonly statStrip = computed(() => [
+    { label: 'ATK', value: this.statValue(this.unit().total_attack) },
+    { label: 'DEF', value: this.statValue(this.unit().total_defense) },
+    { label: 'PRC', value: this.statValue(this.unit().total_precision) },
+    { label: 'RES', value: this.statValue(this.unit().total_resolve) },
+  ]);
 
   private percent(value: number, total: number): number {
     if (total <= 0) {
@@ -50,5 +56,9 @@ export class UnitBarComponent {
     }
 
     return Math.max(0, Math.min(100, Math.round((value / total) * 100)));
+  }
+
+  private statValue(value: number | null | undefined): string {
+    return typeof value === 'number' ? `${value}` : '-';
   }
 }

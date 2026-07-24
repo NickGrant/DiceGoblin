@@ -44,7 +44,8 @@
 .home-proto__squad-list,
 .home-proto__route-list,
 .home-proto__mission-panel,
-.home-proto__progress-list {
+.home-proto__progress-list,
+.home-proto__objective-list {
   display: grid;
   gap: 12px;
 }
@@ -161,6 +162,10 @@
 .home-proto__progress-chip {
   display: grid;
   gap: 6px;
+}
+
+.home-proto__objective-row--complete {
+  opacity: 0.72;
 }
 
 .home-proto__guidance-eyebrow,

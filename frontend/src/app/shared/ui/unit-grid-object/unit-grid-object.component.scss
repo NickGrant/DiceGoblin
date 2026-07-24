@@ -173,7 +173,7 @@
   grid-column: 1 / -1;
   grid-row: 3;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--unit-card-gap-x);
   align-items: center;
   min-width: 0;
@@ -188,7 +188,7 @@
   gap: 0.28rem;
   min-width: 0;
   padding-inline: var(--unit-card-cell-pad-x);
-  font-size: clamp(0.9rem, 1.7vw, 1.05rem);
+  font-size: clamp(0.72rem, 1.34vw, 0.98rem);
   font-weight: 700;
   color: #f4ead1;
   text-align: center;
@@ -196,7 +196,7 @@
 }
 
 .unit-grid-object__stat fa-icon {
-  font-size: 0.78em;
+  font-size: 0.76em;
   color: #e8d6a0;
 }
 

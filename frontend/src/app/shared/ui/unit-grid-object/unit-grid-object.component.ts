@@ -1,7 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, input } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faHandFist, faHeart, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
+import { faBrain, faBullseye, faHandFist, faHeart, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
 import { RouterLink } from '@angular/router';
 import { UnitRecord } from '../../../core/models/api.models';
 import { formatSpliceVariantLabel, formatTier } from '../../utils/unit-formatters';
@@ -29,6 +29,8 @@ export class UnitGridObjectComponent extends GridObjectComponent<UnitRecord> {
   readonly faAttack = faHandFist;
   readonly faDefense = faShieldHalved;
   readonly faHealth = faHeart;
+  readonly faPrecision = faBullseye;
+  readonly faResolve = faBrain;
 
   readonly tag = input('');
   readonly progressBar = input<UnitGridObjectProgressBar | null>(null);

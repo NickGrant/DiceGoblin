@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ProfileData, RegionRecord, UnitRecord } from '../../core/models/api.models';
+import { ObjectiveRecord, ProfileData, RegionRecord, UnitRecord } from '../../core/models/api.models';
 import { SessionService } from '../../core/services/session/session.service';
 import { isDevPanelEnabled } from '../../core/config/runtime-config';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
@@ -44,6 +44,13 @@ export class HomePageComponent {
       .filter((unit): unit is NonNullable<typeof unit> => unit !== null);
   });
   readonly activeRun = computed(() => this.profileData()?.active_run ?? null);
+  readonly profileObjectives = computed(() => this.profileData()?.objectives ?? []);
+  readonly currentObjective = computed(
+    () => this.profileObjectives().find((objective) => objective.status !== 'complete') ?? null,
+  );
+  readonly completedObjectives = computed(() =>
+    this.profileObjectives().filter((objective) => objective.status === 'complete'),
+  );
   readonly nextRegion = computed(() => this.findNextRegion(this.profileData()));
   readonly nextProgressionAction = computed<DashboardAction>(() =>
     this.resolveNextProgressionAction(),
@@ -83,6 +90,17 @@ export class HomePageComponent {
 
   private resolveNextProgressionAction(): DashboardAction {
     const profile = this.profileData();
+    const objective = this.currentObjective();
+    if (objective) {
+      return {
+        eyebrow: 'Current Objective',
+        title: objective.title,
+        body: this.objectiveBody(objective),
+        route: objective.route,
+        cta: this.ctaForObjectiveRoute(objective.route),
+      };
+    }
+
     const activeRun = this.activeRun();
     const activeSquadUnits = this.activeSquadUnits();
     const promotionReadyUnit = this.findPromotionReadyUnit(activeSquadUnits);
@@ -189,5 +207,35 @@ export class HomePageComponent {
 
   private findCapstoneReadyUnit(units: UnitRecord[]): UnitRecord | null {
     return units.find((unit) => unit.current_capstone_state === 'ready_to_select') ?? null;
+  }
+
+  objectiveProgressLabel(objective: ObjectiveRecord): string {
+    const target = Math.max(1, objective.progress_target);
+    const current = Math.min(Math.max(0, objective.progress_current), target);
+    return `${current}/${target}`;
+  }
+
+  private objectiveBody(objective: ObjectiveRecord): string {
+    return `${this.objectiveProgressLabel(objective)} - ${objective.description}`;
+  }
+
+  private ctaForObjectiveRoute(route: string): string {
+    if (route.startsWith('/run')) {
+      return 'Open Map';
+    }
+    if (route.startsWith('/warband')) {
+      return 'Manage Squad';
+    }
+    if (route.startsWith('/academy')) {
+      return 'Open Academy';
+    }
+    if (route.startsWith('/dice')) {
+      return 'Open Inventory';
+    }
+    if (route.startsWith('/shop')) {
+      return 'Visit Shop';
+    }
+
+    return 'Choose Region';
   }
 }

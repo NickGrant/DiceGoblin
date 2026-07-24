@@ -24,6 +24,11 @@ class ShopServiceStub {
           name: 'Goblin Bruiser',
           role: 'Frontline',
           cost: 15,
+          total_attack: 7,
+          total_defense: 5,
+          total_precision: 6,
+          total_resolve: 4,
+          max_hp: 18,
         },
       ],
       daily_deal: {
@@ -226,6 +231,8 @@ describe('ShopPageComponent', () => {
     expect(component.canAfford(10)).toBeTrue();
     expect(component.canAfford(30)).toBeFalse();
     expect(compiled.textContent).toContain('Goblin Bruiser');
+    expect(compiled.textContent).toContain('PRC');
+    expect(compiled.textContent).toContain('RES');
     expect(compiled.textContent).toContain('Sharp');
     expect(compiled.textContent).toContain('Deal 2: Heavy');
     expect(compiled.querySelector('.shop-unit__cost')?.textContent).toContain('15');

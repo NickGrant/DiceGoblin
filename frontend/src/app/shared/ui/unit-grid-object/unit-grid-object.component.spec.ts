@@ -30,6 +30,8 @@ class HostComponent {
     tier: 2,
     total_attack: 7,
     total_defense: 5,
+    total_precision: 6,
+    total_resolve: 4,
     max_hp: 18,
     locked: false,
   };
@@ -68,6 +70,8 @@ describe('UnitGridObjectComponent', () => {
     expect(compiled.textContent).toContain('7');
     expect(compiled.textContent).toContain('5');
     expect(compiled.textContent).toContain('18');
+    expect(compiled.querySelector('.unit-grid-object__stat[title="Precision"]')?.textContent).toContain('6');
+    expect(compiled.querySelector('.unit-grid-object__stat[title="Resolve"]')?.textContent).toContain('4');
     expect(compiled.querySelector('a')?.getAttribute('href')).toContain('/warband/units/u1');
     expect((compiled.querySelector('.unit-grid-object__card-art') as HTMLImageElement | null)?.src).toContain(
       '/assets/ui/units/animated/goblin/base/bruiser/frame_0.png',

@@ -21,6 +21,10 @@ describe('UnitBarComponent', () => {
       splice_variant_name: 'Rat-Spliced',
       current_hp: 12,
       max_hp: 20,
+      total_attack: 7,
+      total_defense: 5,
+      total_precision: 6,
+      total_resolve: 4,
       xp: 30,
       xp_to_next_level: 70,
     });
@@ -41,6 +45,10 @@ describe('UnitBarComponent', () => {
     expect(host.textContent).toContain('Slot B2');
     expect(host.textContent).toContain('12/20 HP');
     expect(host.textContent).toContain('70 XP to next');
+    expect(host.textContent).toContain('PRC');
+    expect(host.textContent).toContain('RES');
+    expect(host.textContent).toContain('6');
+    expect(host.textContent).toContain('4');
     expect(tierIcon.classList.contains('dg-tier-indicator--2')).toBeTrue();
     expect(tierIcon.getAttribute('aria-label')).toBe('Tier II');
     expect(roleIcon).not.toBeNull();

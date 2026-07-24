@@ -71,6 +71,34 @@ final class ObjectiveServiceTest extends TestCase
     $this->assertSame('complete', $objectiveById['promote-first-unit']['status']);
   }
 
+  public function testItUsesGameplayFactsForBattleAndRunProgress(): void
+  {
+    $objectives = $this->service()->listProfileObjectives(
+      $this->teams(['u1']),
+      $this->units(),
+      $this->completedRegions(),
+      4,
+      null,
+      [
+        'started_runs' => 3,
+        'completed_runs' => 2,
+        'claimed_victory_battles' => 5,
+      ]
+    );
+
+    $objectiveById = [];
+    foreach ($objectives as $objective) {
+      $objectiveById[$objective['id']] = $objective;
+    }
+
+    $this->assertSame('complete', $objectiveById['continue-active-run']['status']);
+    $this->assertSame(1, $objectiveById['continue-active-run']['progress_current']);
+    $this->assertSame('complete', $objectiveById['claim-first-victory']['status']);
+    $this->assertSame(1, $objectiveById['claim-first-victory']['progress_current']);
+    $this->assertSame('complete', $objectiveById['complete-first-run']['status']);
+    $this->assertSame(1, $objectiveById['complete-first-run']['progress_current']);
+  }
+
   private function service(): ObjectiveService
   {
     return new ObjectiveService();
@@ -121,6 +149,23 @@ final class ObjectiveServiceTest extends TestCase
         'is_enabled' => true,
         'is_unlocked' => true,
         'is_completed' => false,
+      ],
+    ];
+  }
+
+  /**
+   * @return array<int,array<string,mixed>>
+   */
+  private function completedRegions(): array
+  {
+    return [
+      [
+        'id' => 'region-1',
+        'slug' => 'the_farm',
+        'name' => 'The Farm',
+        'is_enabled' => true,
+        'is_unlocked' => true,
+        'is_completed' => true,
       ],
     ];
   }

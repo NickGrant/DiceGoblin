@@ -180,6 +180,11 @@ export type RewardPreviewUnit = {
   splice_variant_passive_summary?: string | null;
   tier: number;
   level: number;
+  total_attack?: number;
+  total_defense?: number;
+  total_precision?: number;
+  total_resolve?: number;
+  max_hp?: number;
 };
 
 export type RewardPreviewDice = {
@@ -497,6 +502,11 @@ export type ShopUnitItem = {
   name: string;
   role: string;
   cost: number;
+  total_attack?: number;
+  total_defense?: number;
+  total_precision?: number;
+  total_resolve?: number;
+  max_hp?: number;
 };
 
 export type ShopFeatureUnlockItem = {
@@ -580,6 +590,11 @@ export type AcademyUnitUnlockItem = {
   role: string;
   cost: number;
   is_unlocked: boolean;
+  total_attack?: number;
+  total_defense?: number;
+  total_precision?: number;
+  total_resolve?: number;
+  max_hp?: number;
 };
 
 export type AcademyCatalogData = {

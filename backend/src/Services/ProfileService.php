@@ -87,7 +87,14 @@ final class ProfileService
       $activeRun = $this->decorateActiveRun($activeRun);
       $units = $this->applyActiveRunUnitHealth($units, (int)$activeRun['run_id'], $userId);
     }
-    $objectives = $this->objectiveService->listProfileObjectives($teams, $units, $regions, $squadUnitCap, $activeRun);
+    $objectives = $this->objectiveService->listProfileObjectives(
+      $teams,
+      $units,
+      $regions,
+      $squadUnitCap,
+      $activeRun,
+      $this->getObjectiveGameplayFacts($userId)
+    );
 
     return $this->profileDtoMapper->mapProfilePayload(
       $this->nowIsoUtc(),
@@ -167,6 +174,37 @@ final class ProfileService
       'region_item_id' => (string)$r['region_item_slug'], // slug is the client-facing id
       'quantity' => (int)$r['quantity'],
     ], $rows);
+  }
+
+  /**
+   * @return array{started_runs:int,completed_runs:int,claimed_victory_battles:int}
+   */
+  private function getObjectiveGameplayFacts(int $userId): array
+  {
+    $runStmt = $this->pdo->prepare('
+      SELECT
+        COUNT(*) AS `started_runs`,
+        SUM(CASE WHEN `status` = \'completed\' THEN 1 ELSE 0 END) AS `completed_runs`
+      FROM `region_runs`
+      WHERE `user_id` = ?
+    ');
+    $runStmt->execute([$userId]);
+    $runFacts = $runStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    $battleStmt = $this->pdo->prepare('
+      SELECT COUNT(*) AS `claimed_victory_battles`
+      FROM `battles`
+      WHERE `user_id` = ?
+        AND `status` = \'claimed\'
+        AND `outcome` = \'victory\'
+    ');
+    $battleStmt->execute([$userId]);
+
+    return [
+      'started_runs' => (int)($runFacts['started_runs'] ?? 0),
+      'completed_runs' => (int)($runFacts['completed_runs'] ?? 0),
+      'claimed_victory_battles' => (int)$battleStmt->fetchColumn(),
+    ];
   }
 
   /**
