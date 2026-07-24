@@ -598,7 +598,12 @@ final class RunNodeController
    *     unit_type_slug:string|null,
    *     unit_type_name:string,
    *     tier:int,
-   *     level:int
+   *     level:int,
+   *     total_attack:int,
+   *     total_defense:int,
+   *     total_precision:int,
+   *     total_resolve:int,
+   *     max_hp:int
    *   }>,
    *   dice:array<int,array{
    *     dice_instance_id:string|null,

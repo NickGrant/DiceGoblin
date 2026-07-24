@@ -350,11 +350,25 @@ export class AcademyPageComponent {
     return normalized.length ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Unit';
   }
 
+  unitUnlockStats(entry: AcademyUnitUnlockItem): Array<{ label: string; value: string }> {
+    return [
+      { label: 'ATK', value: this.statValue(entry.total_attack) },
+      { label: 'DEF', value: this.statValue(entry.total_defense) },
+      { label: 'PRC', value: this.statValue(entry.total_precision) },
+      { label: 'RES', value: this.statValue(entry.total_resolve) },
+      { label: 'HP', value: this.statValue(entry.max_hp) },
+    ];
+  }
+
   unitUnlockDescription(unitTypeSlug: string): string {
     return AcademyPageComponent.UNIT_UNLOCK_DESCRIPTIONS[unitTypeSlug] ?? 'Unlock this unit type for future recruitment opportunities.';
   }
 
   toRomanNumeral(value: number | null | undefined): string {
     return toRomanNumeral(value);
+  }
+
+  private statValue(value: number | null | undefined): string {
+    return typeof value === 'number' ? `${value}` : '-';
   }
 }

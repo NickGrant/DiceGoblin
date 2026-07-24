@@ -43,6 +43,14 @@
               <p class="academy-label mb-1">{{ roleLabel(entry.role) }}</p>
               <h3 class="dg-stencil mb-1">{{ entry.name }}</h3>
               <p class="mb-0">{{ unitUnlockDescription(entry.unit_type_slug) }}</p>
+              <div class="academy-unlock-card__stats" aria-label="Combat stats">
+                @for (stat of unitUnlockStats(entry); track stat.label) {
+                <span>
+                  <span>{{ stat.label }}</span>
+                  <strong>{{ stat.value }}</strong>
+                </span>
+                }
+              </div>
             </div>
             <div class="academy-unlock-card__actions">
               <span class="academy-unlock-card__cost">{{ entry.cost }} Teeth</span>

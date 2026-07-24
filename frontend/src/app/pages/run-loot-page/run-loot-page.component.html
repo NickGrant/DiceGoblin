@@ -51,6 +51,16 @@
           <div class="loot-card__copy">
             <p class="loot-card__meta">{{ card.meta }}</p>
             <h4 class="loot-card__title dg-stencil">{{ card.label }}</h4>
+            @if (card.stats?.length) {
+            <div class="loot-card__stats" aria-label="Unit stats">
+              @for (stat of card.stats; track stat.label) {
+              <span>
+                <span>{{ stat.label }}</span>
+                <strong>{{ stat.value }}</strong>
+              </span>
+              }
+            </div>
+            }
           </div>
         </article>
         }

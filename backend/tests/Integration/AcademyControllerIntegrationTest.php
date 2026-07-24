@@ -37,6 +37,13 @@ final class AcademyControllerIntegrationTest extends IntegrationTestCase
     $this->assertSame(250, (int)($bySlug['support_banner_t1']['cost'] ?? 0));
     $this->assertSame(500, (int)($bySlug['frontline_bruiser_t2']['cost'] ?? 0));
     $this->assertSame(500, (int)($bySlug['support_banner_t2']['cost'] ?? 0));
+    foreach ($unitUnlocks as $unitUnlock) {
+      $this->assertIsInt($unitUnlock['total_precision'] ?? null);
+      $this->assertIsInt($unitUnlock['total_resolve'] ?? null);
+      $this->assertIsInt($unitUnlock['total_attack'] ?? null);
+      $this->assertIsInt($unitUnlock['total_defense'] ?? null);
+      $this->assertIsInt($unitUnlock['max_hp'] ?? null);
+    }
     $this->assertTrue((bool)($bySlug['frontline_bruiser_t1']['is_unlocked'] ?? false));
     $this->assertTrue((bool)($bySlug['backline_marksman_t1']['is_unlocked'] ?? false));
     $this->assertFalse((bool)($bySlug['support_banner_t1']['is_unlocked'] ?? true));

@@ -86,6 +86,11 @@ class AcademyServiceStub {
           role: 'frontline',
           cost: 250,
           is_unlocked: true,
+          total_attack: 6,
+          total_defense: 4,
+          total_precision: 5,
+          total_resolve: 5,
+          max_hp: 24,
         },
         {
           unit_type_slug: 'support_banner_t1',
@@ -93,6 +98,11 @@ class AcademyServiceStub {
           role: 'support',
           cost: 250,
           is_unlocked: false,
+          total_attack: 2,
+          total_defense: 4,
+          total_precision: 5,
+          total_resolve: 6,
+          max_hp: 20,
         },
         {
           unit_type_slug: 'frontline_bruiser_t2',
@@ -100,6 +110,11 @@ class AcademyServiceStub {
           role: 'frontline',
           cost: 500,
           is_unlocked: false,
+          total_attack: 8,
+          total_defense: 5,
+          total_precision: 5,
+          total_resolve: 6,
+          max_hp: 28,
         },
       ],
     },
@@ -190,6 +205,8 @@ describe('AcademyPageComponent', () => {
     ]);
     expect(component.unitUnlockDescription('support_banner_t1')).toContain('support specialist');
     expect(component.unitUnlockDescription('frontline_bruiser_t2')).toContain('heavier execution damage');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('PRC');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('RES');
     component.selectedUnitId.set('u1');
     await fixture.whenStable();
     fixture.detectChanges();

@@ -20,6 +20,7 @@ type LootDisplayCard = {
   label: string;
   meta: string | null;
   imageUrl: string;
+  stats?: Array<{ label: string; value: string }>;
 };
 
 @Component({
@@ -75,6 +76,7 @@ export class RunLootPageComponent {
       label: unit.name,
       meta: unit.unit_type_name,
       imageUrl: resolveUnitThumbnailUrl(unit.unit_type_slug ?? unit.unit_type_name) ?? resolveUnitSilhouetteUrl(),
+      stats: this.unitRewardStats(unit),
     }));
   });
   readonly lootDiceCards = computed<LootDisplayCard[]>(() => {
@@ -218,6 +220,20 @@ export class RunLootPageComponent {
       tier: 1,
       level: 1,
     };
+  }
+
+  private unitRewardStats(unit: RewardPreviewUnit): Array<{ label: string; value: string }> {
+    return [
+      { label: 'ATK', value: this.statValue(unit.total_attack) },
+      { label: 'DEF', value: this.statValue(unit.total_defense) },
+      { label: 'PRC', value: this.statValue(unit.total_precision) },
+      { label: 'RES', value: this.statValue(unit.total_resolve) },
+      { label: 'HP', value: this.statValue(unit.max_hp) },
+    ];
+  }
+
+  private statValue(value: number | null | undefined): string {
+    return typeof value === 'number' ? `${value}` : '-';
   }
 
   private normalizeDiceMaterial(value: string | null | undefined): string {
