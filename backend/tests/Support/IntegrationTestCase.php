@@ -231,6 +231,9 @@ abstract class IntegrationTestCase extends TestCase
     $this->execDeleteByUserIds("DELETE bl FROM `battle_logs` bl JOIN `battles` b ON b.`id` = bl.`battle_id` WHERE b.`user_id` IN ($placeholders)", $userIds);
     $this->execDeleteByUserIds("DELETE FROM `battles` WHERE `user_id` IN ($placeholders)", $userIds);
 
+    if ($this->schemaHasTable('chaos_encounter_results')) {
+      $this->execDeleteByUserIds("DELETE FROM `chaos_encounter_results` WHERE `user_id` IN ($placeholders)", $userIds);
+    }
     $this->execDeleteByUserIds("DELETE re FROM `run_edges` re JOIN `region_runs` rr ON rr.`id` = re.`run_id` WHERE rr.`user_id` IN ($placeholders)", $userIds);
     $this->execDeleteByUserIds("DELETE rus FROM `run_unit_state` rus JOIN `region_runs` rr ON rr.`id` = rus.`run_id` WHERE rr.`user_id` IN ($placeholders)", $userIds);
     $this->execDeleteByUserIds("DELETE rn FROM `run_nodes` rn JOIN `region_runs` rr ON rr.`id` = rn.`run_id` WHERE rr.`user_id` IN ($placeholders)", $userIds);

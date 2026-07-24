@@ -37,6 +37,7 @@ These areas remain structurally stable for the rework:
 - `battles`
 - `battle_logs`
 - `battle_rewards`
+- `chaos_encounter_results`
 - `region_items`
 - `user_region_items`
 
@@ -260,6 +261,25 @@ Notes:
 - enemy authored loadout participation
 
 The old pooled-dice combat interpretation should not appear in new logs.
+
+### 9.1 chaos_encounter_results
+
+`chaos_encounter_results` is the persisted foundation for slot-machine-style chaos encounters.
+
+Current foundation columns:
+- owning `user_id`, `run_id`, and one unique `node_id`
+- `status`: generated, manipulated, or confirmed
+- deterministic `seed`
+- `reels_json` containing the three authored reel outputs
+- `reward_multiplier` derived from the generated risk score
+- `rerolled_reel_index` and `manipulation_count` for one allowed player reroll
+
+Rules:
+- one run node can have only one generated chaos result
+- refreshes return the existing row instead of rerolling
+- one reroll may change exactly one reel, then manipulation is spent
+- reward scaling is derived from the same persisted reel result that communicates risk
+- full chaos-node routing, combat generation, and finalize/claim behavior are follow-up work
 
 ## 10. Rewards and Promotions
 

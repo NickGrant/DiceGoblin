@@ -462,6 +462,12 @@ Choose one initial manipulation mechanic:
 
 Later unlocks may allow the player to pay teeth or Raw Chaos for a bounded manipulation. Unlimited rerolls are not allowed.
 
+Foundation implementation note:
+
+- the first backend slice persists three generated reel outputs per run node
+- the initial player agency mechanic is one reroll of one reel
+- full chaos-node graph placement, encounter finalization, and reward application are follow-up work
+
 ### Fairness requirements
 
 - generated encounters remain inside authored difficulty limits for the selected region or run depth
