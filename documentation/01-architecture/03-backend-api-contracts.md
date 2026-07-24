@@ -58,6 +58,7 @@ Current behavior:
 - profile is the main shared data payload for the authenticated shell
 - it contains energy, currency, active run, squads, units, dice, unlocks, and region access data
 - profile now includes a backend-authored `regions` catalog with unlock and inferred completion state for each enabled biome
+- unit records include `splice_variant_slug`, defaulting to `basic_goblin` until animal splice acquisition rules are implemented
 - `active_run` includes region metadata such as slug and theme so the frontend does not need to infer biome presentation from unlock arrays
 - `objectives` contains backend-derived passive guidance records with id, status, priority, progress, route, and optional metadata
 - the frontend refreshes profile after most successful mutations

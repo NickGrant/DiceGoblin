@@ -114,6 +114,7 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $units = is_array($data['units'] ?? null) ? $data['units'] : [];
     $this->assertNotEmpty($units);
     $unit = is_array($units[0] ?? null) ? $units[0] : [];
+    $this->assertSame('basic_goblin', (string)($unit['splice_variant_slug'] ?? ''));
     $this->assertSame(10, (int)($unit['max_level'] ?? 0));
     $this->assertSame(6, (int)($unit['promotion_level'] ?? 0));
     $this->assertSame(5, (int)($unit['total_precision'] ?? 0));

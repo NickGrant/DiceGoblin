@@ -94,6 +94,7 @@ export type UnitRecord = {
   name: string;
   level: number;
   unit_type_id?: string;
+  splice_variant_slug?: string;
   unit_type_slug?: string;
   unit_type_name?: string;
   tier?: number;
