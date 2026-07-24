@@ -134,6 +134,46 @@ final class RunLifecycleServiceIntegrationTest extends BattleFlowIntegrationCase
     );
   }
 
+  public function testClaimBattleAppliesRewardsAndStoresIdempotentClaimSnapshot(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 51525354);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 12, false);
+    $this->setSoftCurrency($userId, 4);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'victory', 61626364, 60, 3);
+    $this->insertBattleRewards($battleId, 8, 5, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+    ]);
+
+    $first = $this->service()->claimBattle($userId, $battleId);
+    $second = $this->service()->claimBattle($userId, $battleId);
+
+    $this->assertTrue($first['newly_claimed']);
+    $this->assertFalse($second['newly_claimed']);
+    $this->assertSame('claimed', (string)$first['battle']['status']);
+    $this->assertSame('claimed', (string)$this->scalar('SELECT `status` FROM `battles` WHERE `id` = ?', [$battleId]));
+    $this->assertSame('8', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
+    $this->assertSame('9', (string)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
+
+    $firstSnapshot = is_array($first['claim_snapshot'] ?? null) ? $first['claim_snapshot'] : [];
+    $secondSnapshot = is_array($second['claim_snapshot'] ?? null) ? $second['claim_snapshot'] : [];
+    $this->assertEquals($firstSnapshot, $secondSnapshot);
+    $this->assertSame([(string)$unitId], $firstSnapshot['xp']['applied_unit_instance_ids'] ?? null);
+
+    $storedRewards = json_decode((string)$this->scalar('SELECT `rewards_json` FROM `battle_rewards` WHERE `battle_id` = ?', [$battleId]), true);
+    $this->assertIsArray($storedRewards);
+    $this->assertIsArray($storedRewards['claim_snapshot'] ?? null);
+  }
+
   private function service(): RunLifecycleService
   {
     $pdo = $this->pdo;
