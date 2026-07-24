@@ -2800,6 +2800,11 @@ ALTER TABLE `player_state`
   ADD COLUMN `currency_raw_chaos` BIGINT UNSIGNED NOT NULL DEFAULT 0 AFTER `currency_hard`;
 -- END MIGRATION: 64_add_raw_chaos_currency.sql
 
+-- BEGIN MIGRATION: 65_run_nodes_shrine_type.sql
+ALTER TABLE `run_nodes`
+  MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit','dialogue','hazard','shrine') NOT NULL;
+-- END MIGRATION: 65_run_nodes_shrine_type.sql
+
 -- BEGIN MIGRATION: 66_chaos_encounter_results.sql
 CREATE TABLE `chaos_encounter_results` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

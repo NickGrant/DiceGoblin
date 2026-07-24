@@ -65,18 +65,35 @@ final class DeterministicRunNodeResolver
     );
     $ticksPerRound = 20;
 
-    if (in_array($nodeType, ['rest', 'loot', 'hazard'], true)) {
+    if (in_array($nodeType, ['rest', 'loot', 'hazard', 'shrine'], true)) {
       $rounds = 0;
       $ticks = 0;
       $outcome = 'victory';
       $xpTotal = 0;
-      $currencySoft = $nodeType === 'loot' ? 8 : 0;
+      $shrineFavor = null;
+      if ($nodeType === 'shrine') {
+        $favorRoll = $this->nextInt($rngState, 3);
+        $shrineFavor = [
+          'favor' => ['bone_whisper', 'rust_blessing', 'bog_luck'][$favorRoll],
+          'currency_soft' => 4 + $this->nextInt($rngState, 5),
+        ];
+      }
+      $currencySoft = match ($nodeType) {
+        'loot' => 8,
+        'shrine' => (int)($shrineFavor['currency_soft'] ?? 0),
+        default => 0,
+      };
       $events = [[
         'type' => 'node_effect',
         'round' => 0,
         'tick' => 0,
         'node_type' => $nodeType,
-        'message' => $nodeType === 'hazard' ? 'hazard_avoided' : 'non_combat_resolution',
+        'message' => match ($nodeType) {
+          'hazard' => 'hazard_avoided',
+          'shrine' => 'shrine_favor_granted',
+          default => 'non_combat_resolution',
+        },
+        ...(is_array($shrineFavor) ? ['shrine_result' => $shrineFavor] : []),
       ]];
     } else {
       $difficulty = max(1, (int)$encounter['difficulty_rating']);
@@ -145,6 +162,13 @@ final class DeterministicRunNodeResolver
         'loot_table_slug' => $lootTableSlug,
         'rolls' => $rolls,
         'currency_soft' => $currencySoft,
+      ];
+    }
+    if ($nodeType === 'shrine') {
+      $firstEvent = is_array($events[0] ?? null) ? $events[0] : [];
+      $rewards['encounter_result'] = [
+        'family' => 'shrine',
+        'result' => is_array($firstEvent['shrine_result'] ?? null) ? $firstEvent['shrine_result'] : [],
       ];
     }
 

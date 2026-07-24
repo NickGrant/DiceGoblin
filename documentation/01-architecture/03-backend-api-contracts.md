@@ -113,6 +113,7 @@ Current behavior:
 - region start consumes energy through run creation
 - current run payloads include region metadata such as `region_slug`, `region_name`, `region_theme`, `recommended_level`, and `energy_cost`
 - node resolution is backend-authoritative
+- non-combat `hazard` and `shrine` nodes resolve through the same node-resolution endpoint and persist their generated results in the battle log/reward rows
 - chaos encounter foundation endpoints persist slot-style reel results before resolution:
   - `POST /api/v1/runs/:runId/nodes/:nodeId/chaos/generate`
   - `POST /api/v1/runs/:runId/nodes/:nodeId/chaos/reroll`
