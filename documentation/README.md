@@ -2,7 +2,7 @@
 ----
 
 Status: active  
-Last Updated: 2026-07-04  
+Last Updated: 2026-07-24  
 Owner: Product + Engineering  
 Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
@@ -16,6 +16,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
 - This index covers the active `documentation/` set.
 - Agent workflow, backlog policy, and execution rules live in `AGENTS.md` and `agent/README.md`.
+- Future gameplay planning is directional and does not override current-state contracts until a feature enters implementation.
 
 ## Recommended Read Order
 
@@ -29,7 +30,8 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 8. `documentation/01-architecture/04-data-model.md`
 9. `documentation/02-systems-mvp/` docs relevant to the system being changed
 10. `documentation/03-ux/` docs relevant to the player flow being changed
-11. `documentation/05-playability-stability/` for release validation
+11. `documentation/07-roadmap/00-gameplay-systems-roadmap.md` for future gameplay direction
+12. `documentation/05-playability-stability/` for release validation
 
 ## Current-State Rule
 
@@ -40,6 +42,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `03-backend-api-contracts.md`
   - `03-ux/00-ux-and-debug-scope.md`
 - treat those current-state docs as the source of truth until the narrower doc is updated.
+- roadmap documents describe proposed direction and never override implemented behavior by themselves.
 
 ## Canonical Docs By Topic
 
@@ -67,6 +70,8 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/02-systems-mvp/06-run-resolution-scope.md`
   - `documentation/02-systems-mvp/07-combat-math-and-modifiers.md`
   - `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
+- Future gameplay direction:
+  - `documentation/07-roadmap/00-gameplay-systems-roadmap.md`
 - Player-facing UX:
   - `documentation/03-ux/00-ux-and-debug-scope.md`
   - `documentation/03-ux/01-visual-design-guide.md`
@@ -112,6 +117,9 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/03-ux/03-encounter-flow-transition-matrix.md`
 - Onboarding and first-session flow:
   - `documentation/03-ux/09-first-session-player-journey.md`
+  - `documentation/02-systems-mvp/03-encounter-scope.md`
+- Future gameplay planning:
+  - `documentation/07-roadmap/00-gameplay-systems-roadmap.md`
 - Page-by-page route breakdowns:
   - `documentation/06-page-analysis/00-index.md`
 
