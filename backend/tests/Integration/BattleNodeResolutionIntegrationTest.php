@@ -145,6 +145,28 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame(0, $hazardXp);
     $this->assertSame(0, $hazardSoft);
 
+    $shrineNodeId = $this->insertRunNode($runId, 'shrine', 'available');
+    $shrineRes = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$shrineNodeId));
+    $this->assertSame(200, $shrineRes['status']);
+    $shrineBattleId = (int)($shrineRes['body']['data']['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $shrineBattleId);
+    $shrinePreview = $shrineRes['body']['data']['battle']['reward_preview'] ?? null;
+    $this->assertIsArray($shrinePreview);
+    $this->assertSame('shrine', (string)($shrinePreview['node_type'] ?? ''));
+    $this->assertSame('shrine_favor_granted', (string)($shrineRes['body']['data']['battle']['log']['events'][0]['message'] ?? ''));
+    $shrineResult = $shrineRes['body']['data']['battle']['log']['events'][0]['shrine_result'] ?? null;
+    $this->assertIsArray($shrineResult);
+    $this->assertContains((string)($shrineResult['favor'] ?? ''), ['bone_whisper', 'rust_blessing', 'bog_luck']);
+    [$shrineXp, $shrineSoft] = $this->battleRewardTuple($shrineBattleId);
+    $this->assertSame(0, $shrineXp);
+    $this->assertGreaterThanOrEqual(4, $shrineSoft);
+    $this->assertLessThanOrEqual(8, $shrineSoft);
+
+    $shrineRewardsRaw = (string)$this->scalar('SELECT `rewards_json` FROM `battle_rewards` WHERE `battle_id` = ?', [$shrineBattleId]);
+    $shrineRewards = json_decode($shrineRewardsRaw, true);
+    $this->assertIsArray($shrineRewards);
+    $this->assertSame('shrine', (string)($shrineRewards['encounter_result']['family'] ?? ''));
+
     $lootNodeId = $this->insertRunNode($runId, 'loot', 'available');
     $lootRes = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$lootNodeId));
     $this->assertSame(200, $lootRes['status']);

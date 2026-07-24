@@ -767,7 +767,7 @@ final class RunGraphGenerator
   }
 
   /**
-   * @return array{combat:array<int,int>,boss:array<int,int>,loot:array<int,int>,rest:array<int,int>}
+   * @return array{combat:array<int,int>,boss:array<int,int>,loot:array<int,int>,rest:array<int,int>,shrine:array<int,int>}
    */
   public function loadEncounterTemplatePools(int $regionId): array
   {
@@ -779,6 +779,7 @@ final class RunGraphGenerator
       'boss' => [],
       'loot' => [],
       'rest' => [],
+      'shrine' => [],
     ];
 
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
@@ -807,6 +808,8 @@ final class RunGraphGenerator
         $pools['rest'][] = $id;
       }
     }
+
+    $pools['shrine'] = $pools['shrine'] !== [] ? $pools['shrine'] : $pools['loot'];
 
     return $pools;
   }
@@ -1937,19 +1940,22 @@ final class RunGraphGenerator
 
       $isDeadEnd = count($outgoing[$index] ?? []) === 0;
       $weights = $isDeadEnd
-        ? ['loot' => 50, 'rest' => 30, 'combat' => 20]
+        ? ['loot' => 50, 'rest' => 30, 'combat' => 20, 'shrine' => 1]
         : [
           'combat' => (int)$config['combat_weight'],
           'loot' => (int)$config['loot_weight'],
           'rest' => (int)$config['rest_weight'],
+          'shrine' => 1,
         ];
 
       if ($col <= 2) {
         $weights['combat'] += 4;
         $weights['rest'] = 0;
+        $weights['shrine'] = 0;
       }
       if ($col >= $travelColumns - 1) {
         $weights['rest'] += 3;
+        $weights['shrine'] += 1;
       }
 
       $parentTypes = [];
@@ -1958,6 +1964,9 @@ final class RunGraphGenerator
       }
       if (in_array('rest', $parentTypes, true)) {
         $weights['rest'] = 0;
+      }
+      if (in_array('shrine', $parentTypes, true)) {
+        $weights['shrine'] = 0;
       }
 
       if (array_sum($weights) <= 0) {

@@ -1,3 +1,4 @@
+import { TitleCasePipe } from '@angular/common';
 import { Component, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BattlePlaybackActionStep, BattlePlaybackParticipant, BattlePlaybackSnapshot } from '../../core/battle-playback/battle-playback.models';
@@ -64,7 +65,7 @@ type BattlePlaybackParticipantStateViewModel = {
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, TitleCasePipe],
   templateUrl: './run-node-page.component.html',
   styleUrl: './run-node-page.component.scss',
 })
@@ -109,11 +110,15 @@ export class RunNodePageComponent implements OnDestroy {
       return RunNodePageComponent.BATTLE_TITLE;
     }
 
-    return `Node ${this.nodeId}`;
+    return `${this.humanizeId(this.nodeType() ?? 'encounter')} Encounter`;
   });
   readonly pageSubtitle = computed(() => {
     if (!this.result()) {
       return '';
+    }
+
+    if (!this.isCombatLikeNodeType(this.resolvedNodeType())) {
+      return 'The encounter is settled. Review the result, then claim what the run earned.';
     }
 
     return RunNodePageComponent.BATTLE_SUBTITLE;
@@ -155,6 +160,10 @@ export class RunNodePageComponent implements OnDestroy {
     `url('${resolveRegionBackgroundUrl(this.runRegionSlug(), this.runRegionTheme()) ?? '/assets/ui/biome/mystic_cave.png'}')`,
   );
   readonly battleResultCopy = computed(() => {
+    if (!this.isCombatLikeNodeType(this.resolvedNodeType())) {
+      return 'The path opened without a fight. Claim the result and keep moving.';
+    }
+
     return this.result()?.battle.outcome === 'victory'
       ? 'The crew held the line. Review the sequence or skip straight to the payout.'
       : 'The squad got broken. Study the sequence, then decide how to regroup.';
@@ -369,6 +378,10 @@ export class RunNodePageComponent implements OnDestroy {
       .filter((segment) => segment.length)
       .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
       .join(' ');
+  }
+
+  isCombatLikeNodeType(nodeType: string | null | undefined): boolean {
+    return nodeType === 'combat' || nodeType === 'boss';
   }
 
   private numberValue(value: unknown): number {

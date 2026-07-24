@@ -12,7 +12,7 @@ Depends On: `documentation/02-systems-mvp/04-loot-and-drop-scope.md`, `documenta
 
 ## Encounter Types
 
-The active run map exposes seven node types:
+The active run map exposes eight node types:
 
 1. `dialogue`
 2. `combat`
@@ -20,7 +20,8 @@ The active run map exposes seven node types:
 4. `rest`
 5. `boss`
 6. `hazard`
-7. `exit`
+7. `shrine`
+8. `exit`
 
 Behavior by type:
 
@@ -30,12 +31,13 @@ Behavior by type:
 - `rest`: opens a separate rest page and finalizes manually
 - `boss`: uses combat rules and gates the final exit path in combat regions
 - `hazard`: resolves as a backend-authored non-combat obstacle, clears progression, and grants no rewards by default
+- `shrine`: resolves as a backend-authored non-combat encounter, persists a generated favor result, and may grant a small deterministic non-XP reward
 - `exit`: is not resolved through node resolution and instead completes the run through the dedicated exit endpoint
 
 ## XP Scope
 
 - Combat and boss nodes are the active XP-awarding encounter types.
-- Dialogue, loot, rest, and hazard nodes do not directly award combat XP.
+- Dialogue, loot, rest, hazard, and shrine nodes do not directly award combat XP.
 - Exit is a run-completion action, not an XP source by itself.
 
 ## Region Scope
@@ -108,6 +110,7 @@ Mystic Cave is currently a narrative onboarding region rather than a combat biom
 - Exit nodes remain separate from normal node resolution.
 - The current generator guarantees at least one rest node in procedural combat regions.
 - Procedural regions may include optional dead-end branches, but they must never block the guaranteed boss route.
+- Procedural regions may include shrine nodes as optional non-combat branches or late-path pauses.
 - Authored dialogue nodes may be inserted into otherwise fixed or procedural graphs.
 
 ## Encounter Exclusions
@@ -144,7 +147,7 @@ Those concepts may still appear in future planning, but they are not part of the
 
 The encounter scope is aligned when:
 
-- docs describe seven node types, including dialogue, hazard, and exit
+- docs describe eight node types, including dialogue, hazard, shrine, and exit
 - docs include Mystic Cave, Farm, Mountains, and Swamps
 - Mystic Cave is documented as the initial zero-energy narrative run
 - Farm is documented as the first fixed combat lane
