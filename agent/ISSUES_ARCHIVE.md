@@ -249,3 +249,20 @@ current_code_references:
   - frontend/src/app/pages/academy-page/*
   - frontend/src/app/pages/run-*/*
   - documentation/03-ux/*
+
+---
+id: BSC-005
+title: Evaluate narrow synchronous domain events after service extraction
+status: complete
+priority: medium
+milestone: Backend Structural Cleanup Pass
+description: The event-system evaluation concluded that Dice Goblins should not add a broad event bus yet. Narrow synchronous event-like services are acceptable later for objective or bounty progress once those systems create a real consumer.
+acceptance_criteria:
+  - Do not introduce a broad event bus before the core service extractions land.
+  - Document or implement only narrowly scoped synchronous events where they clearly reduce coupling.
+  - Keep core gameplay mutations understandable and directly traceable.
+current_code_references:
+  - documentation/01-architecture/05-domain-events-evaluation.md
+  - backend/src/Controllers
+  - backend/src/Services
+  - backend/src/Repositories
