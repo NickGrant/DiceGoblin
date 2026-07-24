@@ -1,7 +1,7 @@
 # Backend API Contracts - Current Alpha Surface
 
 Status: active  
-Last Updated: 2026-07-23
+Last Updated: 2026-07-24
 Owner: Backend/API  
 Depends On: `backend/public/index.php`, `backend/src/Controllers/`, `frontend/src/app/core/services/api-http/api-http.service.ts`
 
@@ -59,6 +59,7 @@ Current behavior:
 - it contains energy, currency, active run, squads, units, dice, unlocks, and region access data
 - profile now includes a backend-authored `regions` catalog with unlock and inferred completion state for each enabled biome
 - `active_run` includes region metadata such as slug and theme so the frontend does not need to infer biome presentation from unlock arrays
+- `objectives` contains backend-derived passive guidance records with id, status, priority, progress, route, and optional metadata
 - the frontend refreshes profile after most successful mutations
 
 ## Shop And Academy

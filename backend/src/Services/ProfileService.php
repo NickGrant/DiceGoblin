@@ -26,6 +26,7 @@ final class ProfileService
   public function __construct(
     private readonly EnergyService $energyService,
     private readonly ProfileDtoMapper $profileDtoMapper,
+    private readonly ObjectiveService $objectiveService,
 
     private readonly PlayerStateRepository $playerStateRepo,
     private readonly TeamRepository $teamRepo,
@@ -86,6 +87,7 @@ final class ProfileService
       $activeRun = $this->decorateActiveRun($activeRun);
       $units = $this->applyActiveRunUnitHealth($units, (int)$activeRun['run_id'], $userId);
     }
+    $objectives = $this->objectiveService->listProfileObjectives($teams, $units, $regions, $squadUnitCap, $activeRun);
 
     return $this->profileDtoMapper->mapProfilePayload(
       $this->nowIsoUtc(),
@@ -101,7 +103,8 @@ final class ProfileService
       $regions,
       $regionUnlocks,
       $regionItems,
-      $activeRun
+      $activeRun,
+      $objectives
     );
   }
 
