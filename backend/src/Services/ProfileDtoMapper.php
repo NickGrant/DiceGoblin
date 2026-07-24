@@ -15,7 +15,7 @@ final class ProfileDtoMapper
    * }> $squads
    * @param array<int,mixed> $units
    * @param array<int,mixed> $dice
-   * @param array{soft:int,hard:int} $currency
+   * @param array{soft:int,hard:int,raw_chaos?:int} $currency
    * @param array{current:int,max:int,regen_rate_per_hour:float,last_regen_at:string} $energy
    * @param int $squadUnitCap
    * @param array<int,string> $featureUnlocks

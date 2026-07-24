@@ -464,6 +464,32 @@ final class DiceRepository
     return (bool)$stmt->fetchColumn();
   }
 
+  public function isDiceEquippedForUpdate(int $diceInstanceId): bool
+  {
+    $abilityStmt = $this->pdo->prepare('
+      SELECT 1
+      FROM `unit_ability_dice`
+      WHERE `dice_instance_id` = ?
+      LIMIT 1
+      FOR UPDATE
+    ');
+    $abilityStmt->execute([$diceInstanceId]);
+    if ((bool)$abilityStmt->fetchColumn()) {
+      return true;
+    }
+
+    $legacyStmt = $this->pdo->prepare('
+      SELECT 1
+      FROM `unit_dice`
+      WHERE `dice_instance_id` = ?
+      LIMIT 1
+      FOR UPDATE
+    ');
+    $legacyStmt->execute([$diceInstanceId]);
+
+    return (bool)$legacyStmt->fetchColumn();
+  }
+
   public function deleteOwnedDiceInstance(int $userId, int $diceInstanceId): void
   {
     $deleteLegacyEquip = $this->pdo->prepare('DELETE FROM `unit_dice` WHERE `dice_instance_id` = ?');

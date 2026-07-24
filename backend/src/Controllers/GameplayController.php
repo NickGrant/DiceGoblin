@@ -13,6 +13,7 @@ use DiceGoblins\Repositories\RunEdgeRepository;
 use DiceGoblins\Repositories\RunNodeRepository;
 use DiceGoblins\Repositories\RunRepository;
 use DiceGoblins\Repositories\UnitRepository;
+use DiceGoblins\Services\DiceSalvageService;
 use DiceGoblins\Services\EconomyModifierService;
 use DiceGoblins\Services\PromotionService;
 use DiceGoblins\Services\UnitCapstoneService;
@@ -458,6 +459,41 @@ final class GameplayController
     }
   }
 
+  public function salvageDice(?string $diceInstanceId = null): void
+  {
+    $svc = $this->services();
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
+      return;
+    }
+
+    $diceId = $this->requirePositiveInt($diceInstanceId, 'diceInstanceId');
+    if ($diceId === null) {
+      return;
+    }
+
+    try {
+      $result = $svc['diceSalvageService']->salvageDice($userId, $diceId);
+      Response::json([
+        'ok' => true,
+        'data' => $result,
+      ]);
+    } catch (RuntimeException $e) {
+      $message = $e->getMessage();
+      if ($message === 'dice_not_found') {
+        Response::json(['ok' => false, 'error' => ['code' => 'not_found', 'message' => 'Dice not found.']], 404);
+        return;
+      }
+      if ($message === 'equipped_dice_cannot_be_salvaged') {
+        Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Equipped dice cannot be salvaged.']], 400);
+        return;
+      }
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => $message]], 400);
+    } catch (Throwable) {
+      Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
+    }
+  }
+
   private function handleDiceMutation(?string $unitInstanceId, bool $isEquip): void
   {
     $svc = $this->services();
@@ -637,6 +673,7 @@ final class GameplayController
       'unitRepo' => new UnitRepository($pdo),
       'diceRepo' => new DiceRepository($pdo),
       'playerStateRepo' => new PlayerStateRepository($pdo),
+      'diceSalvageService' => new DiceSalvageService($pdo, new DiceRepository($pdo), new PlayerStateRepository($pdo)),
       'unitLoadoutService' => new UnitLoadoutService($pdo),
       'promotionService' => new PromotionService($pdo),
       'unitCapstoneService' => new UnitCapstoneService($pdo),

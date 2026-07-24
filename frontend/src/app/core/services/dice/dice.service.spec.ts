@@ -33,4 +33,14 @@ describe('DiceService', () => {
     expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/dice/9/sell', {});
     expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
+
+  it('salvages dice and refreshes the profile', async () => {
+    const response = { ok: true } as any;
+    apiHttp.postWithCsrf.and.resolveTo(response);
+
+    await service.salvageDice('9');
+
+    expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/dice/9/salvage', {});
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
+  });
 });

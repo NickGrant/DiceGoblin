@@ -245,6 +245,7 @@ export type ProfileData = {
   currency: {
     soft: number;
     hard?: number;
+    raw_chaos?: number;
   };
   energy: {
     current: number;
@@ -693,6 +694,14 @@ export type DiceSellData = {
 };
 
 export type DiceSellResponse = ApiResponse<DiceSellData>;
+
+export type DiceSalvageData = {
+  dice_id: string;
+  raw_chaos_awarded: number;
+  currency_raw_chaos: number;
+};
+
+export type DiceSalvageResponse = ApiResponse<DiceSalvageData>;
 
 export type TeamCreateData = {
   team_id: string;

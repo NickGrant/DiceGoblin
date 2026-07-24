@@ -40,4 +40,19 @@ final class DiceValuationServiceTest extends TestCase
       $sellValue
     );
   }
+
+  public function testRawChaosSalvageValueUsesSizeRarityAndAffixes(): void
+  {
+    $this->assertSame(2, DiceValuationService::calculateRawChaosSalvageValue(4, 'common'));
+    $this->assertSame(10, DiceValuationService::calculateRawChaosSalvageValue(8, 'rare', [
+      ['rarity' => 'common'],
+      ['rarity' => 'rare'],
+    ]));
+    $this->assertGreaterThan(
+      DiceValuationService::calculateRawChaosSalvageValue(8, 'rare'),
+      DiceValuationService::calculateRawChaosSalvageValue(20, 'legendary', [
+        ['rarity' => 'legendary'],
+      ])
+    );
+  }
 }

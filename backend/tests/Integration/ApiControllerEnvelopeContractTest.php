@@ -54,6 +54,7 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsArray($data['currency'] ?? null);
     $this->assertIsInt($data['currency']['soft'] ?? null);
     $this->assertIsInt($data['currency']['hard'] ?? null);
+    $this->assertIsInt($data['currency']['raw_chaos'] ?? null);
     $this->assertIsArray($data['energy'] ?? null);
     $this->assertIsInt($data['energy']['current'] ?? null);
     $this->assertIsInt($data['energy']['max'] ?? null);

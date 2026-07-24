@@ -1,7 +1,7 @@
 <page-frame
   [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Inventory' }]"
   title="Dice Inventory"
-  subtitle="Review owned dice and sell unused pieces."
+  subtitle="Review owned dice, sell unused pieces, or salvage them into Raw Chaos."
 >
   @if (error() || message()) {
   <div class="vstack gap-2 mb-3">
@@ -23,7 +23,10 @@
               <p class="dg-proto-section__eyebrow">Camp Stock</p>
               <h2 class="dg-proto-section__title">Inventory</h2>
             </div>
-            <span class="dg-proto-chip">Owned {{ dice().length }}</span>
+            <div class="dice-page__header-chips">
+              <span class="dg-proto-chip">Owned {{ dice().length }}</span>
+              <span class="dg-proto-chip">Raw Chaos {{ rawChaosBalance() }}</span>
+            </div>
           </div>
           <div class="dg-proto-divider" aria-hidden="true"></div>
           <div class="dice-page__filters">
@@ -147,6 +150,7 @@
           <span class="dg-proto-pill">{{ sizeLabel(die) }}</span>
           <span class="dg-proto-pill">{{ rarityLabel(die) }}</span>
           <span class="dg-proto-pill">{{ die.sell_value ?? 0 }} teeth</span>
+          <span class="dg-proto-pill">Raw Chaos ready</span>
         </div>
 
         <div class="dice-page__inspect-body">
@@ -172,6 +176,7 @@
             @if (equippedUnit(die.id); as unit) {
               <a dgCommandBtn="primary" [routerLink]="['/warband/units', unit.id]">View {{ unit.name }}</a>
             } @else {
+              <div class="dice-page__inspect-actions">
               <button
                 dgCommandBtn
                 type="button"
@@ -181,6 +186,15 @@
               >
                 {{ busyDiceId() === die.id ? 'Working...' : 'Sell' }}
               </button>
+              <button
+                dgCommandBtn="muted"
+                type="button"
+                (click)="openSalvageConfirm(die)"
+                [disabled]="busyDiceId() === die.id"
+              >
+                Salvage
+              </button>
+              </div>
             }
           </section>
         </div>
@@ -199,5 +213,17 @@
     tone="danger"
     (dismissed)="closeSellConfirm()"
     (confirmed)="confirmSellDice()"
+  />
+
+  <dg-confirm-modal
+    [open]="!!pendingSalvageDiceId()"
+    title="Salvage Die"
+    [message]="'Salvage ' + (diceTitle(pendingSalvageDice()) || 'this die') + ' into Raw Chaos?'"
+    confirmLabel="Salvage"
+    cancelLabel="Keep It"
+    [busy]="!!busyDiceId()"
+    tone="danger"
+    (dismissed)="closeSalvageConfirm()"
+    (confirmed)="confirmSalvageDice()"
   />
 </page-frame>

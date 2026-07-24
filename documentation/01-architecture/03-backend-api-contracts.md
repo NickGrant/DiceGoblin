@@ -57,6 +57,7 @@ Current behavior:
 
 - profile is the main shared data payload for the authenticated shell
 - it contains energy, currency, active run, squads, units, dice, unlocks, and region access data
+- `currency` includes `soft`, `hard`, and `raw_chaos`
 - profile now includes a backend-authored `regions` catalog with unlock and inferred completion state for each enabled biome
 - unit records include `splice_variant_slug`, defaulting to `basic_goblin` until animal splice acquisition rules are implemented
 - `active_run` includes region metadata such as slug and theme so the frontend does not need to infer biome presentation from unlock arrays
@@ -142,12 +143,14 @@ Current routes:
 - `POST /api/v1/units/:unitInstanceId/dice/equip`
 - `POST /api/v1/units/:unitInstanceId/dice/unequip`
 - `POST /api/v1/dice/:diceInstanceId/sell`
+- `POST /api/v1/dice/:diceInstanceId/salvage`
 
 Current behavior:
 
 - promotion options are fetched separately from the shared profile
 - promotion, capstone choice, rename, loadout edits, and slot-dice changes all refresh profile state afterward
 - dice selling is a direct mutation and also refreshes profile state
+- dice salvage deletes an unequipped owned die, awards backend-calculated Raw Chaos, blocks equipped dice, and refreshes profile state
 
 ## Squads / Teams
 
