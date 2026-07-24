@@ -25,6 +25,30 @@ class SessionServiceStub {
   readonly academyUnlocked = signal(false);
   readonly profileData = signal<any>({
     active_run: null,
+    dice: [{ id: 'd1' }],
+    feature_unlocks: [],
+    regions: [
+      {
+        id: '1',
+        slug: 'the_farm',
+        name: 'The Farm',
+        recommended_level: 1,
+        energy_cost: 3,
+        is_enabled: true,
+        is_unlocked: true,
+        is_completed: false,
+      },
+      {
+        id: '2',
+        slug: 'mountains',
+        name: 'Mountains',
+        recommended_level: 2,
+        energy_cost: 5,
+        is_enabled: true,
+        is_unlocked: false,
+        is_completed: false,
+      },
+    ],
   });
   readonly activeSquad = signal<any>({
     id: 's1',
@@ -33,9 +57,26 @@ class SessionServiceStub {
     unit_ids: ['u1', 'u2'],
     formation: [],
   });
+  readonly squadUnitCap = signal(4);
   readonly units = signal<any[]>([
-    { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', unit_type_slug: 'frontline_bruiser_t1', level: 3, tier: 1, max_hp: 10 },
-    { id: 'u2', name: 'Moss', unit_type_name: 'Guardian', unit_type_slug: 'frontline_guardian_t1', level: 2, tier: 1, max_hp: 12 },
+    {
+      id: 'u1',
+      name: 'Fang',
+      unit_type_name: 'Bruiser',
+      unit_type_slug: 'frontline_bruiser_t1',
+      level: 3,
+      tier: 1,
+      max_hp: 10,
+    },
+    {
+      id: 'u2',
+      name: 'Moss',
+      unit_type_name: 'Guardian',
+      unit_type_slug: 'frontline_guardian_t1',
+      level: 2,
+      tier: 1,
+      max_hp: 12,
+    },
   ]);
 }
 
@@ -69,6 +110,15 @@ describe('HomePageComponent', () => {
     expect(compiled.textContent).toContain('Defeat The Farm to free the Tooth Collector.');
     expect(compiled.textContent).not.toContain('Academy');
     expect(fixture.componentInstance.primaryRoute()).toBe('/regions');
+    expect(fixture.componentInstance.nextProgressionAction()).toEqual({
+      eyebrow: 'Next Region',
+      title: 'Clear The Farm',
+      body: 'Recommended level 1; costs 3 energy.',
+      route: '/regions',
+      cta: 'Choose Region',
+    });
+    expect(compiled.textContent).toContain('2/4 squad slots filled');
+    expect(compiled.textContent).toContain('0/2 regions cleared');
   });
 
   it('links current squad units to their details pages', () => {
@@ -99,6 +149,30 @@ describe('HomePageComponent', () => {
         region_name: 'The Farm',
         seed: 'abc123',
       },
+      dice: [{ id: 'd1' }],
+      feature_unlocks: ['shop', 'academy'],
+      regions: [
+        {
+          id: '1',
+          slug: 'the_farm',
+          name: 'The Farm',
+          recommended_level: 1,
+          energy_cost: 3,
+          is_enabled: true,
+          is_unlocked: true,
+          is_completed: true,
+        },
+        {
+          id: '2',
+          slug: 'mountains',
+          name: 'Mountains',
+          recommended_level: 2,
+          energy_cost: 5,
+          is_enabled: true,
+          is_unlocked: true,
+          is_completed: false,
+        },
+      ],
     });
 
     const fixture = TestBed.createComponent(HomePageComponent);
@@ -116,6 +190,45 @@ describe('HomePageComponent', () => {
     expect(compiled.textContent).toContain('Academy');
     expect(compiled.textContent).toContain('Current Squad');
     expect(component.primaryRoute()).toBe('/run/map');
+    expect(component.nextProgressionAction().title).toBe('Continue The Farm');
+    expect(component.nextProgressionAction().route).toBe('/run/map');
     expect(primaryImage.getAttribute('src')).toContain('home_continue_run.jpg');
+  });
+
+  it('prioritizes squad assignment when the active squad is empty', () => {
+    sessionService.activeSquad.set({
+      id: 's1',
+      name: 'Alpha Squad',
+      is_active: true,
+      unit_ids: [],
+      formation: [],
+    });
+
+    const fixture = TestBed.createComponent(HomePageComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(component.nextProgressionAction().title).toBe('Assign raiders before launching');
+    expect(component.nextProgressionAction().route).toBe('/warband');
+    expect(compiled.textContent).toContain('0/4 squad slots filled');
+  });
+
+  it('prioritizes academy progression when a squad unit can promote', () => {
+    sessionService.shopUnlocked.set(true);
+    sessionService.academyUnlocked.set(true);
+    sessionService.units.update((units) =>
+      units.map((unit) => (unit.id === 'u1' ? { ...unit, promotion_eligible: true } : unit)),
+    );
+
+    const fixture = TestBed.createComponent(HomePageComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+
+    expect(component.nextProgressionAction().eyebrow).toBe('Promotion Ready');
+    expect(component.nextProgressionAction().title).toBe('Fang can advance');
+    expect(component.nextProgressionAction().route).toBe('/academy');
   });
 });
