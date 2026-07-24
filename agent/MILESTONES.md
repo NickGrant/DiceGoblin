@@ -2,31 +2,29 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Expanded Combat Stats
+## Expanded Run Encounters
 
 **Status:** Active
-**Purpose:** Turn the newly added Precision and Resolve schema fields into real combat, tuning, and player-facing comparison behavior.
+**Purpose:** Add run encounter families that create decisions, risk profiles, and biome identity beyond the current node vocabulary.
 
 ### Goals
 
-- Make Precision influence eligible attack reliability and restrained critical-hit outcomes.
-- Make Resolve influence harmful-status and control resistance.
-- Author conservative Precision and Resolve values for current units and enemies.
-- Surface expanded-stat outcomes clearly in battle logs and comparison UI.
+- Add at least one meaningful non-combat encounter family.
+- Persist generated encounter state before player resolution.
+- Keep encounter outcomes backend-authoritative and testable.
+- Surface clear player-facing copy for the new encounter flow.
 
 ### Current Code Context
 
-The schema and DTO foundation landed in the roadmap foundation batch. Primary follow-up work should touch backend combat resolution, seeded unit/enemy stat JSON, combat logs, focused backend tests, and the frontend surfaces that compare unit or enemy stats.
+The roadmap foundation added hazard node vocabulary, while the existing run flow already supports combat, loot, rest, boss, exit, dialogue, and hazard node types. The next implementation should extend backend run-node resolution and frontend run-node presentation without changing unrelated combat or reward flows.
 
 ### Exit Criteria
 
-- Neutral Precision and Resolve values preserve the existing baseline feel.
-- Non-neutral values create readable tactical differences in combat.
-- Player and enemy seed data intentionally includes Precision and Resolve.
-- Combat logs and UI make misses, critical hits, and resisted effects understandable.
+- The new encounter family has durable backend state for generated results.
+- Resolving the encounter is idempotent and fits the existing run-node lifecycle.
+- The frontend presents the encounter decision and result clearly.
+- Backend and frontend coverage protect the core encounter flow.
 
 ### Related Issues
 
-- ECS-002: Implement Precision and Resolve combat behavior
-- ECS-003: Author Precision and Resolve balance data
-- ECS-004: Surface expanded stats in player-facing comparisons
+- REE-002: Add expanded run encounter families

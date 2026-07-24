@@ -111,3 +111,108 @@ exit_criteria:
   - Fresh schema builds include roadmap migrations 59-61.
   - Objective, expanded stat, splice, hazard, and bounty concepts have durable contracts.
   - Active backlog is advanced to the next implementation-ready milestone.
+
+---
+name: Expanded Combat Stats
+status: complete
+issues:
+  - ECS-002
+  - ECS-003
+  - ECS-004
+description: Turned Precision and Resolve from visible stat fields into deterministic combat behavior, authored seed data, and player-facing comparison vocabulary.
+goals:
+  - Make Precision influence eligible attack reliability and restrained critical-hit outcomes.
+  - Make Resolve influence harmful-status and control resistance.
+  - Author conservative Precision and Resolve values for current units and enemies.
+  - Surface expanded-stat outcomes clearly in battle logs and comparison UI.
+current_code_context: Implementation touched deterministic combat resolution, forward migration 62, combat docs, profile/stat payloads, and frontend unit/reward comparison surfaces.
+exit_criteria:
+  - Neutral Precision and Resolve values preserve the existing baseline feel.
+  - Non-neutral values create readable tactical differences in combat.
+  - Player and enemy seed data intentionally includes Precision and Resolve.
+  - Combat logs and UI make misses, critical hits, and resisted effects understandable.
+
+---
+name: Goblin DNA Splice Variants
+status: complete
+issues:
+  - DNA-002
+description: Added an authored launch splice catalog, persisted rolled variants through unit acquisition, applied splice stat modifiers, and surfaced splice identity in player-facing roster/reward views.
+goals:
+  - Define a small enabled splice catalog.
+  - Persist rolled variants for recruited, purchased, and rewarded units.
+  - Keep `basic_goblin` as the safe default lineage.
+  - Make splice identity visible where players compare units.
+current_code_context: Implementation touched migration 63, SpliceVariantService, UnitRepository, unit grant paths, run rewards, shop recruitment, and unit/reward frontend surfaces.
+exit_criteria:
+  - Fresh schema builds include the splice variant catalog.
+  - Unit grants can assign enabled splice variants deterministically or randomly as appropriate.
+  - Unit payloads expose splice metadata and stat effects.
+  - Frontend unit and reward surfaces display splice identity.
+
+---
+name: Progression Guidance and Home Dashboard
+status: complete
+issues:
+  - PGH-002
+description: Connected objective progress to durable backend gameplay facts and updated the home dashboard to show completed and next objective states.
+goals:
+  - Derive objective progress from completed runs and claimed victories.
+  - Keep progress idempotent across retries and refreshes.
+  - Present objective status clearly on the home dashboard.
+current_code_context: Implementation touched ObjectiveService, ProfileService, profile contract coverage, and the Angular home page.
+exit_criteria:
+  - Objective progress reflects durable gameplay rows.
+  - Completed objectives and next objectives appear in profile/home state.
+  - The home dashboard remains driven by backend-authored objective ordering.
+
+---
+name: Bounty Board
+status: complete
+issues:
+  - BB-002
+description: Built the first authenticated bounty board service and API on top of the existing bounty schema foundation.
+goals:
+  - List authored bounty contracts.
+  - Accept bounties with active-slot and duplicate protection.
+  - Sync progress from durable gameplay facts.
+  - Claim completed bounty rewards idempotently.
+current_code_context: Implementation touched BountyBoardService, BountyBoardController, routes, API docs, and integration coverage.
+exit_criteria:
+  - Players can list, accept, sync, and claim bounties through backend endpoints.
+  - Bounty progress is idempotent and derived from existing gameplay state.
+  - Bounty rewards are backend-authored and tested.
+
+---
+name: Academy and Feature-Unlock Expansion
+status: complete
+issues:
+  - AFE-001
+description: Expanded Academy research with backend-authored availability and gameplay-progress requirements.
+goals:
+  - Add unlock requirements that depend on gameplay progress.
+  - Keep availability and requirements backend-authoritative.
+  - Show unmet requirements in the Academy UI.
+current_code_context: Implementation touched AcademyService, academy API contracts, Academy page UI/tests, and academy system documentation.
+exit_criteria:
+  - Academy catalog entries expose availability and requirements.
+  - Locked research cannot be purchased before requirements are met.
+  - The frontend displays requirement state clearly.
+
+---
+name: Wrong Machine and Raw Chaos
+status: complete
+issues:
+  - WM-001
+description: Added Raw Chaos currency storage and dice salvage as the first Wrong Machine foundation.
+goals:
+  - Store Raw Chaos on player state.
+  - Salvage unequipped dice into backend-calculated Raw Chaos.
+  - Block equipped dice from salvage.
+  - Document fabrication and catalyst work as follow-up scope.
+current_code_context: Implementation touched migration 64, schema snapshots, DiceSalvageService, dice valuation, profile currency contracts, Dice Inventory UI, and dice system documentation.
+exit_criteria:
+  - Fresh schema builds include Raw Chaos.
+  - Dice salvage is backend-authoritative and transactional.
+  - Equipped dice cannot be salvaged.
+  - The Dice Inventory exposes Raw Chaos balance and salvage confirmation.
