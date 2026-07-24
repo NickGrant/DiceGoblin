@@ -231,4 +231,52 @@ describe('HomePageComponent', () => {
     expect(component.nextProgressionAction().title).toBe('Fang can advance');
     expect(component.nextProgressionAction().route).toBe('/academy');
   });
+
+  it('uses backend objectives for the current action and objective checklist', () => {
+    sessionService.profileData.update((profile) => ({
+      ...profile,
+      objectives: [
+        {
+          id: 'equip-first-die',
+          title: 'Equip a die',
+          description: 'Attach at least one die to a raider ability before pushing deeper.',
+          status: 'complete',
+          priority: 100,
+          progress_current: 1,
+          progress_target: 1,
+          route: '/dice',
+          meta: {},
+        },
+        {
+          id: 'claim-first-victory',
+          title: 'Claim a battle victory',
+          description: 'Resolve and claim one victorious combat reward to grow the warband.',
+          status: 'active',
+          priority: 45,
+          progress_current: 0,
+          progress_target: 1,
+          route: '/run/map',
+          meta: {},
+        },
+      ],
+    }));
+
+    const fixture = TestBed.createComponent(HomePageComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(component.nextProgressionAction()).toEqual({
+      eyebrow: 'Current Objective',
+      title: 'Claim a battle victory',
+      body: '0/1 - Resolve and claim one victorious combat reward to grow the warband.',
+      route: '/run/map',
+      cta: 'Open Map',
+    });
+    expect(compiled.textContent).toContain('Equip a die');
+    expect(compiled.textContent).toContain('Done');
+    expect(compiled.textContent).toContain('Claim a battle victory');
+    expect(compiled.textContent).toContain('Next');
+  });
 });

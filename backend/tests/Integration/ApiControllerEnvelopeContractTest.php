@@ -129,6 +129,38 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsArray($unit['inherited_passive_abilities'] ?? null);
   }
 
+  public function testProfileObjectivesReflectDurableGameplayFacts(): void
+  {
+    $userId = $this->insertUser('profile_objectives', 'Profile Objectives User');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 81828384, 'completed');
+    $nodeId = $this->insertRunNode($runId, 0, 'combat', 'cleared');
+    $this->insertBattle($userId, $runId, $nodeId, $teamId, 'claimed', 'victory');
+    $_SESSION['user_id'] = $userId;
+
+    $controller = new ApiController();
+    $response = $this->invoke(fn() => $controller->profile());
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $data = $this->assertSuccessEnvelopeShape($response);
+    $objectives = is_array($data['objectives'] ?? null) ? $data['objectives'] : [];
+    $objectiveById = [];
+    foreach ($objectives as $objective) {
+      if (is_array($objective) && isset($objective['id'])) {
+        $objectiveById[(string)$objective['id']] = $objective;
+      }
+    }
+
+    $this->assertSame('complete', (string)($objectiveById['continue-active-run']['status'] ?? ''));
+    $this->assertSame(1, (int)($objectiveById['continue-active-run']['progress_current'] ?? 0));
+    $this->assertSame('complete', (string)($objectiveById['claim-first-victory']['status'] ?? ''));
+    $this->assertSame(1, (int)($objectiveById['claim-first-victory']['progress_current'] ?? 0));
+    $this->assertSame('complete', (string)($objectiveById['complete-first-run']['status'] ?? ''));
+    $this->assertSame(1, (int)($objectiveById['complete-first-run']['progress_current'] ?? 0));
+  }
+
+
   public function testCurrentRunReturnsSuccessEnvelopeWhenNoActiveRun(): void
   {
     $userId = $this->insertUser();
@@ -222,5 +254,22 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
       VALUES (?, ?, ?)
     ');
     $stmt?->execute([$runId, $fromNodeId, $toNodeId]);
+  }
+
+  private function insertBattle(
+    int $userId,
+    int $runId,
+    int $nodeId,
+    int $teamId,
+    string $status,
+    string $outcome
+  ): int {
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `battles` (
+        `user_id`, `run_id`, `node_id`, `team_id`, `rules_version`, `seed`, `status`, `outcome`, `ticks`, `rounds`
+      ) VALUES (?, ?, ?, ?, \'combat_v1\', 424242, ?, ?, 40, 2)
+    ');
+    $stmt?->execute([$userId, $runId, $nodeId, $teamId, $status, $outcome]);
+    return (int)$this->pdo?->lastInsertId();
   }
 }
