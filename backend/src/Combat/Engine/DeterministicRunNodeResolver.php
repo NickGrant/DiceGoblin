@@ -64,7 +64,7 @@ final class DeterministicRunNodeResolver
     );
     $ticksPerRound = 20;
 
-    if ($nodeType === 'rest' || $nodeType === 'loot') {
+    if (in_array($nodeType, ['rest', 'loot', 'hazard'], true)) {
       $rounds = 0;
       $ticks = 0;
       $outcome = 'victory';
@@ -75,7 +75,7 @@ final class DeterministicRunNodeResolver
         'round' => 0,
         'tick' => 0,
         'node_type' => $nodeType,
-        'message' => 'non_combat_resolution',
+        'message' => $nodeType === 'hazard' ? 'hazard_avoided' : 'non_combat_resolution',
       ]];
     } else {
       $difficulty = max(1, (int)$encounter['difficulty_rating']);

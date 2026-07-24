@@ -132,6 +132,19 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame(0, $restXp);
     $this->assertSame(0, $restSoft);
 
+    $hazardNodeId = $this->insertRunNode($runId, 'hazard', 'available');
+    $hazardRes = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$hazardNodeId));
+    $this->assertSame(200, $hazardRes['status']);
+    $hazardBattleId = (int)($hazardRes['body']['data']['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $hazardBattleId);
+    $hazardPreview = $hazardRes['body']['data']['battle']['reward_preview'] ?? null;
+    $this->assertIsArray($hazardPreview);
+    $this->assertSame('hazard', (string)($hazardPreview['node_type'] ?? ''));
+    $this->assertSame('hazard_avoided', (string)($hazardRes['body']['data']['battle']['log']['events'][0]['message'] ?? ''));
+    [$hazardXp, $hazardSoft] = $this->battleRewardTuple($hazardBattleId);
+    $this->assertSame(0, $hazardXp);
+    $this->assertSame(0, $hazardSoft);
+
     $lootNodeId = $this->insertRunNode($runId, 'loot', 'available');
     $lootRes = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$lootNodeId));
     $this->assertSame(200, $lootRes['status']);

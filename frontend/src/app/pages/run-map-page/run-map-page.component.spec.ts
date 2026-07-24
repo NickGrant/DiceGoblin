@@ -71,6 +71,7 @@ describe('RunMapPageComponent', () => {
     expect(fixture.componentInstance.loading()).toBeFalse();
     expect(fixture.componentInstance.pageTitle()).toBe('Continue Run - The Farm');
     expect(fixture.componentInstance.iconForNodeType('combat')).toContain('icon_encounter_combat.png');
+    expect(fixture.componentInstance.iconForNodeType('hazard')).toContain('icon_encounter_locked.png');
     expect(fixture.componentInstance.iconForNodeType('exit')).toContain('icon_home.png');
     expect(fixture.componentInstance.mapBackgroundUrl()).toBe('/assets/ui/biome/farm.png');
     expect(fixture.componentInstance.nodeX(fixture.componentInstance.nodes()[1]!)).toBe(260);

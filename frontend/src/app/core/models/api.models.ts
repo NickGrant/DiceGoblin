@@ -289,7 +289,7 @@ export type CurrentRunRecord = {
 };
 
 export type RunNodeStatus = 'available' | 'locked' | 'cleared' | string;
-export type RunNodeType = 'combat' | 'loot' | 'rest' | 'boss' | 'exit' | 'dialogue' | string;
+export type RunNodeType = 'combat' | 'loot' | 'rest' | 'boss' | 'exit' | 'dialogue' | 'hazard' | string;
 
 export type CurrentRunNode = {
   id: string;
