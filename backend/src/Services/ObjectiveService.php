@@ -10,6 +10,7 @@ final class ObjectiveService
    * @param array<int,array<string,mixed>> $units
    * @param array<int,array<string,mixed>> $regions
    * @param array<string,mixed>|null $activeRun
+   * @param array{started_runs?:int,completed_runs?:int,claimed_victory_battles?:int} $gameplayFacts
    * @return array<int,array{
    *   id:string,
    *   title:string,
@@ -27,12 +28,15 @@ final class ObjectiveService
     array $units,
     array $regions,
     int $squadUnitCap,
-    ?array $activeRun
+    ?array $activeRun,
+    array $gameplayFacts = []
   ): array {
     $objectives = [
-      $this->activeRunObjective($activeRun),
+      $this->activeRunObjective($activeRun, (int)($gameplayFacts['started_runs'] ?? 0)),
       $this->squadObjective($teams, $squadUnitCap),
       $this->diceObjective($units),
+      $this->battleObjective((int)($gameplayFacts['claimed_victory_battles'] ?? 0)),
+      $this->runCompletionObjective((int)($gameplayFacts['completed_runs'] ?? 0)),
       $this->promotionObjective($units),
       $this->regionObjective($regions),
     ];
@@ -50,23 +54,61 @@ final class ObjectiveService
    * @param array<string,mixed>|null $activeRun
    * @return array<string,mixed>
    */
-  private function activeRunObjective(?array $activeRun): array
+  private function activeRunObjective(?array $activeRun, int $startedRunCount): array
   {
+    $hasRunProgress = $activeRun !== null || $startedRunCount > 0;
+
     return [
       'id' => 'continue-active-run',
       'title' => $activeRun === null ? 'Start a run' : 'Continue the active run',
       'description' => $activeRun === null
         ? 'Choose an unlocked region and send the active squad into the field.'
         : 'Finish the current route before changing squads or starting another run.',
-      'status' => 'active',
+      'status' => $activeRun === null && $hasRunProgress ? 'complete' : 'active',
       'priority' => $activeRun === null ? 40 : 10,
-      'progress_current' => $activeRun === null ? 0 : 1,
+      'progress_current' => $hasRunProgress ? 1 : 0,
       'progress_target' => 1,
       'route' => $activeRun === null ? '/regions' : '/run/map',
       'meta' => [
         'region_slug' => isset($activeRun['region_slug']) ? (string)$activeRun['region_slug'] : null,
         'region_name' => isset($activeRun['region_name']) ? (string)$activeRun['region_name'] : null,
       ],
+    ];
+  }
+
+  /**
+   * @return array<string,mixed>
+   */
+  private function battleObjective(int $claimedVictoryBattleCount): array
+  {
+    return [
+      'id' => 'claim-first-victory',
+      'title' => 'Claim a battle victory',
+      'description' => 'Resolve and claim one victorious combat reward to grow the warband.',
+      'status' => $claimedVictoryBattleCount > 0 ? 'complete' : 'active',
+      'priority' => $claimedVictoryBattleCount > 0 ? 105 : 45,
+      'progress_current' => min(max(0, $claimedVictoryBattleCount), 1),
+      'progress_target' => 1,
+      'route' => '/run/map',
+      'meta' => [],
+    ];
+  }
+
+  /**
+   * @return array<string,mixed>
+   */
+  private function runCompletionObjective(int $completedRunCount): array
+  {
+    return [
+      'id' => 'complete-first-run',
+      'title' => 'Complete a run',
+      'description' => 'Reach the exit after enough nodes are cleared to lock in the route rewards.',
+      'status' => $completedRunCount > 0 ? 'complete' : 'active',
+      'priority' => $completedRunCount > 0 ? 108 : 55,
+      'progress_current' => min(max(0, $completedRunCount), 1),
+      'progress_target' => 1,
+      'route' => '/run/map',
+      'meta' => [],
     ];
   }
 
