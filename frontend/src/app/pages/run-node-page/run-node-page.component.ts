@@ -6,6 +6,7 @@ import { AbilityCatalogService } from '../../core/services/ability-catalog/abili
 import { BattlePlaybackAdapterService } from '../../core/services/battle-playback/battle-playback-adapter.service';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
+import { resolveRegionBackgroundUrl } from '../../core/regions/region-catalog';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
@@ -71,6 +72,7 @@ export class RunNodePageComponent implements OnDestroy {
   private static readonly BATTLE_TITLE = 'BATTLE!';
   private static readonly BATTLE_SUBTITLE = 'Several goblins have volunteered to be an educational example.';
   private static readonly PLAYBACK_INTERVAL_MS = 1250;
+  private static readonly ACTION_TRANSITION_GAP_MS = 260;
   private static readonly SPRITE_ANIMATION_INTERVAL_MS = 240;
 
   private readonly route = inject(ActivatedRoute);
@@ -82,6 +84,8 @@ export class RunNodePageComponent implements OnDestroy {
 
   readonly nodeId = this.route.snapshot.paramMap.get('nodeId') ?? '';
   readonly runId = signal<string | null>(null);
+  readonly runRegionSlug = signal<string | null>(null);
+  readonly runRegionTheme = signal<string | null>(null);
   readonly result = signal<ResolveNodeData | null>(null);
   readonly loading = signal(true);
   readonly busy = signal(false);
@@ -91,6 +95,7 @@ export class RunNodePageComponent implements OnDestroy {
   readonly playbackIndex = signal(0);
   readonly playbackPaused = signal(false);
   readonly playbackSpeed = signal(1);
+  readonly actionTransitioning = signal(false);
   readonly combatAnimationFrameIndex = signal(0);
   readonly shouldAutoResolve = computed(() => AUTO_RESOLVE_NODE_TYPES.has(this.nodeType() ?? ''));
   readonly abilityCatalogError = this.abilityCatalogService.error;
@@ -124,6 +129,7 @@ export class RunNodePageComponent implements OnDestroy {
     this.battlePlaybackAdapter.createSnapshot({
       runId: this.runId(),
       nodeId: this.nodeId,
+      regionTheme: this.runRegionTheme(),
       result: this.result(),
       playerUnits: this.sessionService.units(),
       diceInventory: this.sessionService.dice(),
@@ -145,6 +151,9 @@ export class RunNodePageComponent implements OnDestroy {
     return Math.round((this.playbackIndex() / (stepCount - 1)) * 100);
   });
   readonly battleResultHeadline = computed(() => this.battleOutcomeLabel().toUpperCase());
+  readonly battleSceneBackgroundImage = computed(() =>
+    `url('${resolveRegionBackgroundUrl(this.runRegionSlug(), this.runRegionTheme()) ?? '/assets/ui/biome/mystic_cave.png'}')`,
+  );
   readonly battleResultCopy = computed(() => {
     return this.result()?.battle.outcome === 'victory'
       ? 'The crew held the line. Review the sequence or skip straight to the payout.'
@@ -171,6 +180,7 @@ export class RunNodePageComponent implements OnDestroy {
   readonly battleOutcomeLabel = computed(() => this.humanizeId(this.result()?.battle.outcome ?? 'pending'));
   readonly battleStatusLabel = computed(() => this.humanizeId(this.result()?.battle.status ?? 'pending'));
   private playbackTimer: ReturnType<typeof window.setTimeout> | null = null;
+  private actionTransitionTimer: ReturnType<typeof window.setTimeout> | null = null;
   private combatAnimationTimer: ReturnType<typeof window.setInterval> | null = null;
   private lastPlaybackBattleId: string | null = null;
 
@@ -192,6 +202,7 @@ export class RunNodePageComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.clearPlaybackTimer();
+    this.clearActionTransitionTimer();
     this.clearCombatAnimationTimer();
   }
 
@@ -208,6 +219,8 @@ export class RunNodePageComponent implements OnDestroy {
       const currentNode = current.data.map?.nodes.find((node) => node.id === this.nodeId) ?? null;
       this.nodeType.set(currentNode?.node_type ?? null);
       this.runId.set(current.data.run.run_id);
+      this.runRegionSlug.set(current.data.run.region_slug ?? null);
+      this.runRegionTheme.set(current.data.run.region_theme ?? null);
 
       if (currentNode?.node_type === 'loot') {
         await this.router.navigate(['/run/loot', this.nodeId]);
@@ -281,15 +294,24 @@ export class RunNodePageComponent implements OnDestroy {
     }
 
     this.clearPlaybackTimer();
+    this.clearActionTransitionTimer();
     this.clearCombatAnimationTimer();
+    this.actionTransitioning.set(false);
   }
 
   togglePlayback(): void {
     this.playbackPaused.update((paused) => !paused);
+    if (this.playbackPaused()) {
+      this.clearCombatAnimationTimer();
+    } else {
+      this.restartCombatAnimation();
+    }
     this.schedulePlayback();
   }
 
   restartPlayback(): void {
+    this.clearActionTransitionTimer();
+    this.actionTransitioning.set(false);
     this.playbackIndex.set(0);
     this.playbackPaused.set(false);
     this.schedulePlayback();
@@ -304,7 +326,10 @@ export class RunNodePageComponent implements OnDestroy {
     const maxIndex = Math.max(0, this.playbackStepCount() - 1);
     const parsed = typeof indexValue === 'number' ? indexValue : Number(indexValue);
     const nextIndex = Number.isFinite(parsed) ? Math.max(0, Math.min(maxIndex, Math.round(parsed))) : 0;
+    this.clearActionTransitionTimer();
+    this.actionTransitioning.set(false);
     this.playbackIndex.set(nextIndex);
+    this.restartCombatAnimation();
     this.schedulePlayback();
   }
 
@@ -455,6 +480,8 @@ export class RunNodePageComponent implements OnDestroy {
 
   private schedulePlayback(): void {
     this.clearPlaybackTimer();
+    this.clearActionTransitionTimer();
+    this.actionTransitioning.set(false);
 
     if (this.battleViewMode() !== 'acted' || this.playbackPaused()) {
       return;
@@ -475,9 +502,14 @@ export class RunNodePageComponent implements OnDestroy {
     }
 
     this.playbackTimer = window.setTimeout(() => {
-      const maxIndex = Math.max(0, this.playbackStepCount() - 1);
-      this.playbackIndex.update((index) => Math.min(index + 1, maxIndex));
-      this.schedulePlayback();
+      this.actionTransitioning.set(true);
+      this.actionTransitionTimer = window.setTimeout(() => {
+        const maxIndex = Math.max(0, this.playbackStepCount() - 1);
+        this.playbackIndex.update((index) => Math.min(index + 1, maxIndex));
+        this.actionTransitioning.set(false);
+        this.restartCombatAnimation();
+        this.schedulePlayback();
+      }, RunNodePageComponent.ACTION_TRANSITION_GAP_MS / this.playbackSpeed());
     }, RunNodePageComponent.PLAYBACK_INTERVAL_MS / this.playbackSpeed());
   }
 
@@ -488,16 +520,30 @@ export class RunNodePageComponent implements OnDestroy {
     }
   }
 
+  private clearActionTransitionTimer(): void {
+    if (this.actionTransitionTimer !== null) {
+      clearTimeout(this.actionTransitionTimer);
+      this.actionTransitionTimer = null;
+    }
+  }
+
   private restartCombatAnimation(): void {
     this.clearCombatAnimationTimer();
     this.combatAnimationFrameIndex.set(0);
 
-    if (typeof window === 'undefined' || this.battleViewMode() !== 'acted') {
+    if (typeof window === 'undefined' || this.battleViewMode() !== 'acted' || this.playbackPaused()) {
       return;
     }
 
     this.combatAnimationTimer = window.setInterval(() => {
-      this.combatAnimationFrameIndex.update((index) => (index + 1) % 4);
+      this.combatAnimationFrameIndex.update((index) => {
+        const nextIndex = Math.min(index + 1, 3);
+        if (nextIndex >= 3) {
+          this.clearCombatAnimationTimer();
+        }
+
+        return nextIndex;
+      });
     }, RunNodePageComponent.SPRITE_ANIMATION_INTERVAL_MS);
   }
 

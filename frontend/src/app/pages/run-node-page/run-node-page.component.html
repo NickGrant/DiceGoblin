@@ -16,7 +16,11 @@
 
   <div class="node-screen">
     @if (result()) {
-      <section class="battle-scene" [class.battle-scene--defeat]="result()!.battle.outcome !== 'victory'">
+      <section
+        class="battle-scene"
+        [class.battle-scene--defeat]="result()!.battle.outcome !== 'victory'"
+        [style.--battle-scene-background-image]="battleSceneBackgroundImage()"
+      >
         <div class="battle-scene__topbar">
           <div class="battle-scene__topbar-copy">
             <p class="battle-scene__eyebrow dg-stencil">{{ resolvedNodeType() === 'boss' ? 'Boss Node' : 'Fight Node' }}</p>
@@ -24,8 +28,6 @@
             <p class="battle-scene__copy">{{ battleResultCopy() }}</p>
           </div>
           <div class="battle-scene__topbar-actions">
-            <span class="dg-proto-chip">Rounds {{ result()!.battle.rounds }}</span>
-            <span class="dg-proto-chip">Ticks {{ result()!.battle.ticks }}</span>
             <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
               {{ claimButtonLabel() }}
             </button>
@@ -36,6 +38,23 @@
         <dg-alert tone="error">{{ abilityCatalogError() }}</dg-alert>
         }
 
+        <div class="battle-modebar">
+          <div class="dg-proto-tabs" aria-label="Battle replay modes">
+            @for (tab of battleViewTabs; track tab.id) {
+            <button
+              type="button"
+              class="dg-proto-tabs__item"
+              [class.is-active]="battleViewMode() === tab.id"
+              (click)="setBattleView(tab.id)"
+            >
+              {{ tab.label }}
+            </button>
+            }
+          </div>
+          <div class="battle-hud__status">{{ playbackStepLabel() }}</div>
+        </div>
+
+        @if (battleViewMode() === 'acted') {
         <div class="battle-scene__viewport">
           <div class="battle-scene__vignette"></div>
 
@@ -43,7 +62,7 @@
             <p class="battle-scene__roster-label dg-stencil">Warband</p>
             @for (participant of playerPlaybackParticipants(); track participant.participantId) {
             <article
-              class="battle-unit battle-playback__unit"
+              class="battle-unit battle-unit--player battle-playback__unit"
               [class.is-actor]="participant.isActor"
               [class.is-target]="participant.isTarget"
             >
@@ -60,7 +79,7 @@
           </section>
 
           <section class="battle-scene__center">
-            <div class="battle-scene__flash">
+            <div class="battle-scene__flash" [class.is-transitioning]="actionTransitioning()">
               <p class="battle-scene__flash-kicker dg-stencil">
                 @if (playbackStep(); as step) {
                   {{ step.side === 'player' ? 'Warband Action' : 'Enemy Action' }}
@@ -104,26 +123,6 @@
           </section>
 
           <section class="battle-hud">
-            <div class="battle-hud__modebar">
-              <div class="dg-proto-tabs" aria-label="Battle replay modes">
-                @for (tab of battleViewTabs; track tab.id) {
-                <button
-                  type="button"
-                  class="dg-proto-tabs__item"
-                  [class.is-active]="battleViewMode() === tab.id"
-                  (click)="setBattleView(tab.id)"
-                >
-                  {{ tab.label }}
-                </button>
-                }
-              </div>
-              <div class="battle-hud__status">
-                <span class="dg-proto-chip">{{ battleStatusLabel() }}</span>
-                <span class="dg-proto-chip dg-proto-chip--small">{{ playbackStepLabel() }}</span>
-              </div>
-            </div>
-
-            @if (battleViewMode() === 'acted') {
             <div class="battle-hud__rail">
               <div class="battle-hud__controls">
                 <button dgCommandBtn="muted" type="button" (click)="togglePlayback()">
@@ -147,9 +146,6 @@
               </div>
 
               <div class="battle-hud__timeline">
-                <div class="dg-proto-progress">
-                  <div class="dg-proto-progress__fill" [style.width.%]="playbackProgressPercent()"></div>
-                </div>
                 <div class="battle-hud__timeline-meta">
                   <span>{{ playbackStepCount() ? playbackIndex() + 1 : 0 }} / {{ playbackStepCount() }}</span>
                   <span>{{ playbackProgressPercent() }}%</span>
@@ -164,9 +160,9 @@
                 />
               </div>
             </div>
-            }
           </section>
         </div>
+        }
 
         @if (battleViewMode() === 'log') {
         <section class="battle-log-drawer">

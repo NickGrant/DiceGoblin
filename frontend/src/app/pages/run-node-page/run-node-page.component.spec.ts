@@ -332,11 +332,23 @@ describe('RunNodePageComponent', () => {
     expect(host.textContent).toContain('Goblin Raider');
     expect(host.textContent).toContain('7 damage dealt');
     expect(host.querySelectorAll('.battle-playback__unit').length).toBeGreaterThan(0);
+    expect(host.querySelector('.battle-scene__viewport')).not.toBeNull();
+    expect(host.querySelector('.battle-hud__timeline .dg-proto-progress')).toBeNull();
+    expect(fixture.componentInstance.battleSceneBackgroundImage()).toBe("url('/assets/ui/biome/farm.png')");
+    expect((host.querySelector('.battle-scene') as HTMLElement).style.getPropertyValue('--battle-scene-background-image')).toBe(
+      "url('/assets/ui/biome/farm.png')",
+    );
+
+    fixture.componentInstance.actionTransitioning.set(true);
+    fixture.detectChanges();
+
+    expect(host.querySelector('.battle-scene__flash')?.classList).toContain('is-transitioning');
 
     fixture.componentInstance.setBattleView('log');
     fixture.detectChanges();
 
     expect(host.textContent).toContain('Battle Log');
+    expect(host.querySelector('.battle-scene__viewport')).toBeNull();
     expect(host.textContent).toContain('Bolster Ally');
     expect(host.textContent).toContain('Bogwort');
     expect(host.textContent).toContain('sleep applied for 1 round and bleeding applied');

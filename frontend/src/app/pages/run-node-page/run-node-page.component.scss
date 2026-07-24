@@ -22,13 +22,14 @@
 }
 
 .battle-scene {
+  --battle-scene-background-image: url('/assets/ui/biome/mystic_cave.png');
   display: grid;
   gap: 1rem;
   padding: 1rem;
   background:
     linear-gradient(180deg, rgba(17, 16, 20, 0.88), rgba(31, 22, 16, 0.94)),
     radial-gradient(circle at top, rgba(188, 86, 58, 0.2), transparent 48%),
-    center / cover no-repeat url('/assets/ui/biome/mystic_cave.png');
+    center / cover no-repeat var(--battle-scene-background-image);
   color: #f8f0dd;
 }
 
@@ -36,7 +37,7 @@
   background:
     linear-gradient(180deg, rgba(24, 12, 12, 0.92), rgba(31, 16, 13, 0.96)),
     radial-gradient(circle at top, rgba(161, 39, 31, 0.26), transparent 52%),
-    center / cover no-repeat url('/assets/ui/biome/mystic_cave.png');
+    center / cover no-repeat var(--battle-scene-background-image);
 }
 
 .battle-scene__topbar {
@@ -75,6 +76,21 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+}
+
+.battle-modebar {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid rgba(243, 223, 182, 0.16);
+  border-radius: 1.15rem;
+  background: linear-gradient(180deg, rgba(20, 18, 15, 0.88), rgba(11, 10, 9, 0.8));
+}
+
+.battle-modebar .dg-proto-tabs {
+  padding: 0.15rem;
 }
 
 .battle-scene__viewport {
@@ -131,11 +147,18 @@
 }
 
 .battle-unit.is-actor {
-  transform: translateY(-4px) scale(1.02);
   border-color: rgba(255, 213, 111, 0.5);
   box-shadow:
     0 0 0 1px rgba(255, 213, 111, 0.16),
     0 14px 22px rgba(0, 0, 0, 0.24);
+}
+
+.battle-unit--player.is-actor {
+  transform: translateX(20px) translateY(-4px) scale(1.02);
+}
+
+.battle-unit--enemy.is-actor {
+  transform: translateX(-20px) translateY(-4px) scale(1.02);
 }
 
 .battle-unit.is-target {
@@ -192,6 +215,16 @@
   border-radius: 1.4rem;
   background: linear-gradient(180deg, rgba(30, 24, 19, 0.94), rgba(18, 15, 12, 0.9));
   box-shadow: 0 18px 28px rgba(0, 0, 0, 0.24);
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.battle-scene__flash.is-transitioning {
+  opacity: 0;
+  transform: translateY(6px);
 }
 
 .battle-scene__flash-title {
@@ -317,6 +350,7 @@
   border: 1px solid rgba(115, 78, 46, 0.16);
   border-radius: 1rem;
   background: linear-gradient(180deg, rgba(255, 251, 241, 0.9), rgba(236, 222, 194, 0.84));
+  color: #24150d;
 }
 
 .battle-log-row__actor {
@@ -324,10 +358,25 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.7rem;
   align-items: center;
+  min-width: 0;
 }
 
 .battle-log-row__actor--target {
-  justify-self: end;
+  justify-self: stretch;
+  grid-template-columns: minmax(0, 1fr) auto;
+  text-align: right;
+}
+
+.battle-log-row__actor--target img {
+  order: 2;
+}
+
+.battle-log-row__actor--target div {
+  order: 1;
+}
+
+.battle-log-row strong {
+  color: #24150d;
 }
 
 .battle-log-row__header {
@@ -386,6 +435,11 @@
 }
 
 @media (min-width: 900px) {
+  .battle-modebar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
   .battle-scene__viewport {
     grid-template-columns: minmax(15rem, 0.95fr) minmax(0, 1.2fr) minmax(15rem, 0.95fr);
     grid-template-rows: minmax(0, 1fr) auto;
@@ -423,7 +477,7 @@
   }
 
   .battle-log-row {
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr) minmax(0, 0.9fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
     align-items: center;
   }
 
