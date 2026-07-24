@@ -1,7 +1,7 @@
 # Dice Goblins - Project Overview
 
 Status: active  
-Last Updated: 2026-07-04  
+Last Updated: 2026-07-24  
 Owner: Product  
 Depends On: `documentation/00-overview/01-core-gameplay-loop.md`, `documentation/00-overview/03-world-and-lore.md`, `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/03-ux/00-ux-and-debug-scope.md`
 
@@ -20,7 +20,7 @@ The current game is built around:
 - an authenticated shell with a persistent top HUD
 - squad and unit management between runs
 - dice-driven unit loadouts
-- region-based runs with combat, loot, rest, boss, and exit flow
+- region-based runs with dialogue, combat, loot, rest, boss, and exit flow
 - backend-authoritative battle resolution with readable battle logs
 - persistent progression through units, dice, currency, feature unlocks, and region unlocks
 
@@ -75,7 +75,8 @@ The current player-facing product includes:
 - shop supplies, daily deals, and feature unlocks
 - academy unit-type unlocks and promotion flow
 - run map
-- node resolution
+- dialogue-node resolution
+- combat and loot node resolution
 - rest resolution
 - run summary
 - environment-gated debug tooling
@@ -84,9 +85,19 @@ The current player-facing product includes:
 
 The currently surfaced region sequence is:
 
-- The Farm
-- Mountains
-- Swamps
+1. **Mystic Cave**
+   - initial unlocked region
+   - zero-energy introductory run
+   - conversation with The Whim followed by an exit
+   - completion unlocks The Farm
+2. **The Farm**
+   - fixed introductory combat route
+   - completion unlocks Mountains
+3. **Mountains**
+   - procedural kobold region
+   - completion unlocks Swamps
+4. **Swamps**
+   - procedural frogman region
 
 The shop currently covers:
 
@@ -119,3 +130,4 @@ These points reflect the current product direction rather than older planning id
 - Frontend route and state behavior: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
 - Backend/API surface: `documentation/01-architecture/03-backend-api-contracts.md`
 - UX and player-facing scope: `documentation/03-ux/00-ux-and-debug-scope.md`
+- Future gameplay systems: `documentation/07-roadmap/00-gameplay-systems-roadmap.md`
