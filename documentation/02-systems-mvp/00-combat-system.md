@@ -1,7 +1,7 @@
 # Combat System - Alpha Launch (Authoritative Rework Contract)
 
 Status: active  
-Last Updated: 2026-04-18  
+Last Updated: 2026-07-24
 Owner: Systems Design  
 Depends On: `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/02-units-and-progression.md`, `documentation/02-systems-mvp/07-combat-math-and-modifiers.md`, `backend/src/Combat/`
 
@@ -94,6 +94,17 @@ Each combat ability must define enough metadata to resolve:
 - targeting behavior
 - effect semantics
 - whether it is equip-eligible
+
+## 6.4 Expanded Stat Vocabulary
+
+The shared combat stat payload now supports:
+- Max HP
+- Attack
+- Defense
+- Precision
+- Resolve
+
+Precision and Resolve are present as readable unit and encounter stats before they affect combat formulas. Existing unit and enemy stat JSON that omits them resolves to neutral `5` values. Speed is not a universal stat; timing remains governed by equipped ability speed costs and the 20-tick scheduler.
 
 ## 7. Dice Resolution in Combat
 

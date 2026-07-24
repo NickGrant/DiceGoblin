@@ -105,6 +105,8 @@ export type UnitRecord = {
   max_tier?: number;
   total_attack?: number;
   total_defense?: number;
+  total_precision?: number;
+  total_resolve?: number;
   max_hp?: number;
   current_hp?: number;
   xp_to_next_level?: number;
