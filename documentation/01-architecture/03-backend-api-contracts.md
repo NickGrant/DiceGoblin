@@ -1,7 +1,7 @@
 # Backend API Contracts - Current Alpha Surface
 
 Status: active  
-Last Updated: 2026-07-23
+Last Updated: 2026-07-24
 Owner: Backend/API  
 Depends On: `backend/public/index.php`, `backend/src/Controllers/`, `frontend/src/app/core/services/api-http/api-http.service.ts`
 
@@ -58,6 +58,7 @@ Current behavior:
 - profile is the main shared data payload for the authenticated shell
 - it contains energy, currency, active run, squads, units, dice, unlocks, and region access data
 - profile now includes a backend-authored `regions` catalog with unlock and inferred completion state for each enabled biome
+- unit records include `splice_variant_slug`, defaulting to `basic_goblin` until animal splice acquisition rules are implemented
 - `active_run` includes region metadata such as slug and theme so the frontend does not need to infer biome presentation from unlock arrays
 - the frontend refreshes profile after most successful mutations
 

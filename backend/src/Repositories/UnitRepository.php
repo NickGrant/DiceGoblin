@@ -136,6 +136,7 @@ final class UnitRepository
    * @return array<int, array{
    *   id:string,
    *   unit_type_id:string,
+   *   splice_variant_slug:string,
    *   name:string,
    *   tier:int,
    *   level:int,
@@ -158,6 +159,7 @@ final class UnitRepository
       SELECT
         ui.`id`,
         ui.`unit_type_id`,
+        ui.`splice_variant_slug`,
         ut.`slug` AS `unit_type_slug`,
         ut.`name` AS `unit_type_name`,
         ut.`base_stats_json`,
@@ -250,6 +252,7 @@ final class UnitRepository
       $out[] = [
         'id' => $uid,
         'unit_type_id' => (string)$u['unit_type_id'],
+        'splice_variant_slug' => (string)($u['splice_variant_slug'] ?? 'basic_goblin'),
         'unit_type_slug' => (string)($u['unit_type_slug'] ?? ''),
         'name' => $u['display_name'] !== null ? (string)$u['display_name'] : (string)$u['unit_type_name'],
         'display_name' => $u['display_name'] !== null ? (string)$u['display_name'] : (string)$u['unit_type_name'],
