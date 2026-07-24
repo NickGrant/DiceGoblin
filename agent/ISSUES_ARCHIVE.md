@@ -251,18 +251,21 @@ current_code_references:
   - documentation/03-ux/*
 
 ---
-id: BSC-005
-title: Evaluate narrow synchronous domain events after service extraction
+id: BSC-002
+title: Centralize run lifecycle transitions
 status: complete
-priority: medium
+priority: high
 milestone: Backend Structural Cleanup Pass
-description: The event-system evaluation concluded that Dice Goblins should not add a broad event bus yet. Narrow synchronous event-like services are acceptable later for objective or bounty progress once those systems create a real consumer.
+description: Run failure, completion, cleanup, and summary timing were split between resolve and claim controllers. RunLifecycleService now owns run-end transitions and battle-claim mutation sequencing so claim transport no longer duplicates reward, XP, attrition, and fail-run orchestration.
 acceptance_criteria:
-  - Do not introduce a broad event bus before the core service extractions land.
-  - Document or implement only narrowly scoped synchronous events where they clearly reduce coupling.
-  - Keep core gameplay mutations understandable and directly traceable.
+  - Create a backend service that owns failed, abandoned, and completed run transitions.
+  - Remove duplicated cleanup and end-run sequencing from multiple controllers.
+  - Preserve current summary and XP behavior unless explicitly changed.
+  - Add or update targeted regression coverage for the lifecycle service.
 current_code_references:
-  - documentation/01-architecture/05-domain-events-evaluation.md
-  - backend/src/Controllers
-  - backend/src/Services
-  - backend/src/Repositories
+  - backend/src/Services/RunLifecycleService.php
+  - backend/src/Controllers/BattleController.php
+  - backend/src/Controllers/ApiController.php
+  - backend/src/Controllers/RunNodeController.php
+  - backend/src/Repositories/RunRepository.php
+  - backend/tests/Integration/RunLifecycleServiceIntegrationTest.php

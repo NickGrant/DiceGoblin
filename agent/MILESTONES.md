@@ -27,6 +27,5 @@ Primary work will touch backend/src/Controllers, backend/src/Services, and selec
 
 ### Related Issues
 
-- BSC-002: Centralize run lifecycle transitions
 - BSC-003: Extract shared mutation guard and controller helpers
-- BSC-004: Separate shop and academy domain services from controllers
+- BSC-005: Evaluate narrow synchronous domain events after service extraction
