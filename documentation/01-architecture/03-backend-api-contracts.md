@@ -113,6 +113,7 @@ Current behavior:
 - region start consumes energy through run creation
 - current run payloads include region metadata such as `region_slug`, `region_name`, `region_theme`, `recommended_level`, and `energy_cost`
 - node resolution is backend-authoritative
+- non-combat `hazard` and `shrine` nodes resolve through the same node-resolution endpoint and persist their generated results in the battle log/reward rows
 - rest has explicit open and finalize steps
 - abandon and exit both produce summary-relevant run state
 

@@ -279,6 +279,70 @@ describe('RunNodePageComponent', () => {
     expect(runService.resolveNode).not.toHaveBeenCalled();
   });
 
+  it('keeps shrine encounters on the node screen until manually resolved', async () => {
+    const runService = new RunServiceStub();
+    runService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'mountains', region_theme: 'mountain' },
+        map: {
+          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'shrine', status: 'available' }],
+          edges: [],
+        },
+      },
+    });
+    runService.resolveNode.and.resolveTo({
+      ok: true,
+      data: {
+        node: { id: 'n1', status: 'completed' },
+        battle: {
+          battle_id: 'b-shrine',
+          outcome: 'victory',
+          rounds: 0,
+          ticks: 0,
+          status: 'completed',
+          reward_preview: { node_type: 'shrine', xp_total: 0, currency_soft: 6, new_unit_labels: [], new_dice_labels: [], units: [], dice: [] },
+          log: {
+            meta: { node_type: 'shrine' },
+            events: [{ type: 'node_effect', round: 0, tick: 0, node_type: 'shrine', message: 'shrine_favor_granted' }],
+          },
+        },
+        next: { unlocked_node_ids: [] },
+      },
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: runService },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(runService.resolveNode).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.pageTitle()).toBe('Shrine Encounter');
+
+    await fixture.componentInstance.resolveNode();
+    fixture.detectChanges();
+
+    expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', 'n1');
+    expect(fixture.componentInstance.pageSubtitle()).toBe(
+      'The encounter is settled. Review the result, then claim what the run earned.',
+    );
+    expect(fixture.nativeElement.textContent).toContain('Shrine Node');
+    expect(fixture.nativeElement.textContent).toContain('The path opened without a fight.');
+  });
+
   it('formats battle action log details for the node screen', async () => {
     await TestBed.configureTestingModule({
       imports: [RunNodePageComponent],
