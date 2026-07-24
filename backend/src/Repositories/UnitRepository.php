@@ -144,6 +144,8 @@ final class UnitRepository
     *   max_tier:int,
     *   total_attack:int,
     *   total_defense:int,
+    *   total_precision:int,
+    *   total_resolve:int,
     *   max_hp:int,
     *   current_hp:int,
     *   xp_to_next_level:int,
@@ -222,6 +224,8 @@ final class UnitRepository
         $level,
         (int)$u['max_hp_per_level']
       );
+      $totalPrecision = $this->unitProgression->precision($u['base_stats_json']);
+      $totalResolve = $this->unitProgression->resolve($u['base_stats_json']);
       $xpToNext = $this->unitProgression->xpToNextLevel($tier, $level, $maxLevel, $xp);
       $footprint = FormationGeometry::footprintFromStats(
         is_array($u['base_stats_json']) ? $u['base_stats_json'] : []
@@ -265,6 +269,8 @@ final class UnitRepository
         'max_tier' => max(1, $maxTier),
         'total_attack' => $totalAttack,
         'total_defense' => $totalDefense,
+        'total_precision' => $totalPrecision,
+        'total_resolve' => $totalResolve,
         'max_hp' => $maxHp,
         'current_hp' => $maxHp,
         'xp_to_next_level' => $xpToNext,

@@ -106,6 +106,8 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $unit = is_array($units[0] ?? null) ? $units[0] : [];
     $this->assertSame(10, (int)($unit['max_level'] ?? 0));
     $this->assertSame(6, (int)($unit['promotion_level'] ?? 0));
+    $this->assertSame(5, (int)($unit['total_precision'] ?? 0));
+    $this->assertSame(5, (int)($unit['total_resolve'] ?? 0));
     $this->assertSame(true, (bool)($unit['promotion_eligible'] ?? false));
     $this->assertSame(true, (bool)($unit['is_mastered'] ?? false));
     $this->assertIsArray($unit['capstone_choices'] ?? null);
