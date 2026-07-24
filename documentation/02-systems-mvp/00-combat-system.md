@@ -104,7 +104,7 @@ The shared combat stat payload now supports:
 - Precision
 - Resolve
 
-Precision and Resolve are present as readable unit and encounter stats before they affect combat formulas. Existing unit and enemy stat JSON that omits them resolves to neutral `5` values. Speed is not a universal stat; timing remains governed by equipped ability speed costs and the 20-tick scheduler.
+Precision and Resolve now participate in combat with conservative first-pass rules. Existing unit and enemy stat JSON that omits them resolves to neutral `5` values. Neutral `5` Precision has no miss chance and no critical-hit chance; neutral `5` Resolve has no status resistance. Speed is not a universal stat; timing remains governed by equipped ability speed costs and the 20-tick scheduler.
 
 ## 7. Dice Resolution in Combat
 
@@ -132,7 +132,9 @@ Global rules:
 - statuses are evaluated server-side
 - status applications, ticks, and removals are logged
 - status timing still resolves in status phases
-- no resistance, immunity, or cleanse systems are added by this rework
+- harmful status application can be resisted when target Resolve is higher than source Precision
+- resistance is deterministic, logged on the action event, and prevents the resisted status from entering status state
+- no immunity or cleanse systems are added by this rework
 
 Any further status redesign is out of scope for this combat rework unless explicitly documented elsewhere.
 

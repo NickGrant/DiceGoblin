@@ -1,7 +1,7 @@
 # Combat Math & Modifiers — Alpha Launch (Authoritative)
 
 Status: active  
-Last Updated: 2026-03-21  
+Last Updated: 2026-07-24
 Owner: Systems Design  
 Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/02-units-and-progression.md`
 
@@ -212,12 +212,28 @@ Compute per target:
 `finalDamage = max(MIN_DAMAGE, raw3)`  
 (If `raw3` is 0 but the action is “damage,” MIN_DAMAGE enforces progress.)
 
-### 6.8 Logging Requirements
+### 6.8 Precision Hit and Critical Outcomes
+
+Precision is intentionally neutral at `5`.
+
+- If Precision is 5 or higher, the attack has no Precision-driven miss chance.
+- If Precision is lower than 5, miss chance is `min(40, (5 - precision) * 8)` percent.
+- If an attack misses, it deals 0 damage, applies no harmful status, and does not trigger hit-only defender reactions.
+- If Precision is 5 or lower, the attack has no Precision-driven critical-hit chance.
+- If Precision is higher than 5, critical-hit chance is `min(30, (precision - 5) * 5)` percent.
+- A critical hit multiplies post-modifier damage by `1.5` before one-attack damage reduction.
+
+Precision rolls use the deterministic combat RNG state. Neutral Precision does not consume extra hit or crit RNG.
+
+### 6.9 Logging Requirements
 For each damage event, logs should be able to reflect:
 - dice consumed + roll results
 - final damage amount
 - whether `Explode` triggered
 - whether below-half multiplier applied
+- hit outcome: hit, miss, or critical
+- Precision roll/target when a miss or crit chance exists
+- Resolve resistance roll/target when a harmful status can be resisted
 
 You may either log the intermediate values or provide a `notes` string.
 
@@ -288,12 +304,23 @@ Timing rule (“does not participate in tick where sleep ends”):
 - If Sleep ends at any point during tick T (expiration or damage), the unit is considered **ineligible to act for tick T**
 - The unit may act again starting tick T+1
 
+### 7.5 Resolve Resistance
+
+Resolve is intentionally neutral at `5`.
+
+- Buffs are not resisted.
+- Harmful statuses compare target Resolve against source Precision.
+- If target Resolve is less than or equal to source Precision, there is no Resolve-driven resistance chance.
+- If target Resolve is higher than source Precision, resistance chance is `min(45, (resolve - precision) * 8)` percent.
+- A resisted status is not applied and is logged on the action event.
+- Neutral Precision 5 against neutral Resolve 5 does not consume extra resistance RNG.
+
 ---
 
 ## 8. Out of Scope (Alpha Launch)
 This document explicitly does not define:
-- Critical hits, accuracy/evasion, glancing blows
-- Resistance, immunity, cleansing
+- Evasion as a separate stat, glancing blows
+- Immunity, cleansing
 - AoE math
 - Status interactions (poison + fire, etc.)
 - Percent elemental damage

@@ -960,6 +960,8 @@ final class DeterministicRunNodeResolver
                 $abilityRegistry,
                 (int)$playerActor['attack'],
                 (int)($stackResolution['damage_reduction'] ?? 0),
+                (int)($playerActor['precision'] ?? 5),
+                (int)($targetUnit['resolve'] ?? 5),
               );
             $outcome = $this->applySourceLinkedStatusParams($outcome, $playerActorId);
             if (!$isSupportAbility) {
@@ -1229,6 +1231,8 @@ final class DeterministicRunNodeResolver
                 $abilityRegistry,
                 (int)$enemyActor['attack'],
                 (int)($stackResolution['damage_reduction'] ?? 0),
+                (int)($enemyActor['precision'] ?? 5),
+                (int)($targetUnit['resolve'] ?? 5),
               );
             $outcome = $this->applySourceLinkedStatusParams($outcome, $enemyActorId);
             if (!$isSupportAbility) {
@@ -1341,30 +1345,34 @@ final class DeterministicRunNodeResolver
                 $round,
                 $tick
               );
-              $triggeredPassiveOutcome = $this->applyTriggeredDefenderPassivesAfterHit(
-                $playerStatuses,
-                $playerById,
-                $targetId,
-                (int)($outcome['damage'] ?? 0),
-                $round,
-                $tick
-              );
-              $counterOutcome = $this->resolveCounterpunchRetaliation(
-                $events,
-                $state,
-                $abilityRegistry,
-                $enemyActor,
-                $playerById[$targetId] ?? null,
-                $enemyActorId,
-                $targetId,
-                $abilityId,
-                $playerHp,
-                $enemyHp,
-                $playerStatuses,
-                $enemyStatuses,
-                $round,
-                $tick
-              );
+              $triggeredPassiveOutcome = null;
+              $counterOutcome = null;
+              if ((int)($outcome['damage'] ?? 0) > 0) {
+                $triggeredPassiveOutcome = $this->applyTriggeredDefenderPassivesAfterHit(
+                  $playerStatuses,
+                  $playerById,
+                  $targetId,
+                  (int)($outcome['damage'] ?? 0),
+                  $round,
+                  $tick
+                );
+                $counterOutcome = $this->resolveCounterpunchRetaliation(
+                  $events,
+                  $state,
+                  $abilityRegistry,
+                  $enemyActor,
+                  $playerById[$targetId] ?? null,
+                  $enemyActorId,
+                  $targetId,
+                  $abilityId,
+                  $playerHp,
+                  $enemyHp,
+                  $playerStatuses,
+                  $enemyStatuses,
+                  $round,
+                  $tick
+                );
+              }
               if ($survivalOutcome !== null || $triggeredPassiveOutcome !== null || $counterOutcome !== null) {
                 $events[count($events) - 1]['defender_passive_outcome'] = implode('; ', array_values(array_filter([
                   $survivalOutcome,
@@ -1986,7 +1994,37 @@ final class DeterministicRunNodeResolver
     AbilityRegistry $abilityRegistry,
     int $statusSourceAttack,
     int $flatDamageReduction = 0,
+    int $attackerPrecision = 5,
+    int $targetResolve = 5,
   ): array {
+    $attackerPrecision = $this->normalizeCombatReliabilityStat($attackerPrecision);
+    $targetResolve = $this->normalizeCombatReliabilityStat($targetResolve);
+    $missChance = $this->precisionMissChancePercent($attackerPrecision);
+    $missRoll = null;
+    if ($missChance > 0) {
+      $missRoll = $this->nextInt($state, 100) + 1;
+      if ($missRoll <= $missChance) {
+        return [
+          'damage' => 0,
+          'target_hp_after' => $targetHp,
+          'outcome' => 'missed',
+          'status_applied' => null,
+          'status_duration_rounds' => null,
+          'status_params' => [],
+          'ability_outcome' => sprintf('attack missed (Precision %d)', $attackerPrecision),
+          'affix_outcome' => null,
+          'hit_outcome' => 'miss',
+          'precision_roll' => $missRoll,
+          'precision_target' => $missChance,
+          'crit_roll' => null,
+          'crit_target' => 0,
+          'status_resisted' => false,
+          'status_resist_roll' => null,
+          'status_resist_target' => 0,
+        ];
+      }
+    }
+
     $effectiveDefense = $this->effectiveDefenseWithStatuses($targetDefense, $targetStatuses);
     $ignoreDefenseFlat = max(0, (int)($combatAffixes['ignore_defense_flat'] ?? 0));
     if ($ignoreDefenseFlat > 0) {
@@ -2095,6 +2133,18 @@ final class DeterministicRunNodeResolver
       );
     }
 
+    $critChance = $this->precisionCritChancePercent($attackerPrecision);
+    $critRoll = null;
+    $isCritical = false;
+    if ($critChance > 0) {
+      $critRoll = $this->nextInt($state, 100) + 1;
+      $isCritical = $critRoll <= $critChance;
+      if ($isCritical) {
+        $rawDamage = (int)floor($rawDamage * 1.5);
+        $affixOutcomeParts[] = 'critical hit x1.5';
+      }
+    }
+
     if ($flatDamageReduction > 0) {
       $rawDamage -= $flatDamageReduction;
       $affixOutcomeParts[] = sprintf('one-attack stacks reduced damage by %d', $flatDamageReduction);
@@ -2111,6 +2161,23 @@ final class DeterministicRunNodeResolver
       $statusSourceAttack
     );
     $statusDuration = $statusApplication['duration_rounds'];
+    $statusResistChance = $this->statusResistanceChancePercent(
+      $attackerPrecision,
+      $targetResolve,
+      $statusApplication['params']
+    );
+    $statusResistRoll = null;
+    $statusResisted = false;
+    if ($status !== null && $statusResistChance > 0) {
+      $statusResistRoll = $this->nextInt($state, 100) + 1;
+      $statusResisted = $statusResistRoll <= $statusResistChance;
+      if ($statusResisted) {
+        $affixOutcomeParts[] = sprintf('%s resisted by Resolve %d', $status, $targetResolve);
+        $status = null;
+        $statusDuration = null;
+        $statusApplication = ['duration_rounds' => null, 'params' => []];
+      }
+    }
     $outcome = $nextHp <= 0 ? 'defeated' : 'hit';
 
     $abilityOutcomeParts = [sprintf('%d damage dealt', $damage)];
@@ -2120,6 +2187,12 @@ final class DeterministicRunNodeResolver
       } else {
         $abilityOutcomeParts[] = sprintf('%s applied', $status);
       }
+    }
+    if ($statusResisted) {
+      $abilityOutcomeParts[] = sprintf('status resisted by Resolve %d', $targetResolve);
+    }
+    if ($isCritical) {
+      $abilityOutcomeParts[] = 'critical hit';
     }
     if ($outcome === 'defeated') {
       $abilityOutcomeParts[] = 'target defeated';
@@ -2134,7 +2207,59 @@ final class DeterministicRunNodeResolver
       'status_params' => $statusApplication['params'],
       'ability_outcome' => implode(', ', $abilityOutcomeParts),
       'affix_outcome' => count($affixOutcomeParts) > 0 ? implode(', ', $affixOutcomeParts) : null,
+      'hit_outcome' => $isCritical ? 'critical' : 'hit',
+      'precision_roll' => $missRoll,
+      'precision_target' => $missChance,
+      'crit_roll' => $critRoll,
+      'crit_target' => $critChance,
+      'status_resisted' => $statusResisted,
+      'status_resist_roll' => $statusResistRoll,
+      'status_resist_target' => $statusResistChance,
     ];
+  }
+
+  private function normalizeCombatReliabilityStat(int $value): int
+  {
+    return max(1, min(20, $value));
+  }
+
+  private function precisionMissChancePercent(int $precision): int
+  {
+    $precision = $this->normalizeCombatReliabilityStat($precision);
+    if ($precision >= 5) {
+      return 0;
+    }
+
+    return min(40, (5 - $precision) * 8);
+  }
+
+  private function precisionCritChancePercent(int $precision): int
+  {
+    $precision = $this->normalizeCombatReliabilityStat($precision);
+    if ($precision <= 5) {
+      return 0;
+    }
+
+    return min(30, ($precision - 5) * 5);
+  }
+
+  /**
+   * @param array<string,mixed> $statusParams
+   */
+  private function statusResistanceChancePercent(int $attackerPrecision, int $targetResolve, array $statusParams): int
+  {
+    if ((bool)($statusParams['is_debuff'] ?? false) !== true) {
+      return 0;
+    }
+
+    $attackerPrecision = $this->normalizeCombatReliabilityStat($attackerPrecision);
+    $targetResolve = $this->normalizeCombatReliabilityStat($targetResolve);
+    $advantage = $targetResolve - $attackerPrecision;
+    if ($advantage <= 0) {
+      return 0;
+    }
+
+    return min(45, $advantage * 8);
   }
 
   /**
@@ -3431,7 +3556,9 @@ final class DeterministicRunNodeResolver
       (array)($enemyActor['formation'] ?? ['w' => 1, 'h' => 1]),
       $abilityRegistry,
       (int)$defenderUnit['attack'],
-      0
+      0,
+      (int)($defenderUnit['precision'] ?? 5),
+      (int)($enemyActor['resolve'] ?? 5)
     );
     $enemyHp[$attackerId] = (int)($counterOutcome['target_hp_after'] ?? ($enemyHp[$attackerId] ?? 0));
 
@@ -4092,7 +4219,9 @@ final class DeterministicRunNodeResolver
         (array)($targetUnit['formation'] ?? ['w' => 1, 'h' => 1]),
         $abilityRegistry,
         (int)$actorUnit['attack'],
-        0
+        0,
+        (int)($actorUnit['precision'] ?? 5),
+        (int)($targetUnit['resolve'] ?? 5)
       );
       $outcome = $this->applySourceLinkedStatusParams($outcome, $actorId);
       $this->applyOutcomeStatus($targetStatuses, $targetId, $outcome, $round, $tick);
