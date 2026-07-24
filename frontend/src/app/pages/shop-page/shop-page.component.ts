@@ -6,6 +6,7 @@ import {
   ShopDailyDeal,
   ShopDiceItem,
   ShopFeatureUnlockItem,
+  ShopPurchaseData,
   ShopUnitItem,
   UnitRecord,
 } from '../../core/models/api.models';
@@ -17,6 +18,7 @@ import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { FeatureUnlockCategoryLabel, resolveFeatureUnlockCategory } from '../../core/feature-unlocks/feature-unlock-categories';
 import { UnitBarComponent } from '../../shared/ui/unit-bar/unit-bar.component';
 import { resolveFeatureUnlockIcon } from '../../shared/ui/category-icons/category-icons';
+import { formatSpliceVariantLabel } from '../../shared/utils/unit-formatters';
 
 @Component({
   selector: 'app-shop-page',
@@ -93,7 +95,7 @@ export class ShopPageComponent {
         this.error.set(response.error.message);
         return;
       }
-      this.message.set('Purchase complete.');
+      this.message.set(this.purchaseMessage(response.data));
       await this.loadCatalog();
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to complete purchase.');
@@ -185,5 +187,16 @@ export class ShopPageComponent {
 
   selectTab(tabId: string): void {
     this.activeTab.set(tabId === 'feature_unlocks' ? 'feature_unlocks' : 'supplies');
+  }
+
+  private purchaseMessage(data: ShopPurchaseData): string {
+    if (data.item_type !== 'basic_unit' || !('unit_instance_id' in data.purchase)) {
+      return 'Purchase complete.';
+    }
+
+    const spliceName = data.purchase.splice_variant_name;
+    const spliceSlug = data.purchase.splice_variant_slug;
+
+    return `Recruit joined: ${formatSpliceVariantLabel(spliceName, spliceSlug)}.`;
   }
 }

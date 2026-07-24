@@ -37,7 +37,7 @@ import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { DicePickerModalComponent } from '../../shared/ui/dice-picker-modal/dice-picker-modal.component';
 import { type TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
-import { humanizeAbilityId, normalizeAbilityId, resolveAbilityDisplayName, toRomanNumeral } from '../../shared/utils/unit-formatters';
+import { formatSpliceVariantLabel, humanizeAbilityId, normalizeAbilityId, resolveAbilityDisplayName, toRomanNumeral } from '../../shared/utils/unit-formatters';
 import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
 import { UnitThumbnailComponent } from '../../shared/ui/unit-thumbnail/unit-thumbnail.component';
 
@@ -360,6 +360,8 @@ export class UnitDetailsPageComponent {
   renameValue = '';
 
   readonly unitTypeLabel = computed(() => this.unit()?.unit_type_name || this.unit()?.unit_type_slug || 'Unit');
+  readonly spliceVariantLabel = computed(() => formatSpliceVariantLabel(this.unit()?.splice_variant_name, this.unit()?.splice_variant_slug));
+  readonly spliceVariantSummary = computed(() => this.unit()?.splice_variant_passive_summary || 'No splice modifier.');
   readonly tierRomanNumeral = computed(() => toRomanNumeral(this.unit()?.tier ?? 1));
   readonly portraitLoadFailed = signal(false);
   readonly unitPortraitUrl = computed(() => resolveUnitImageUrl(this.unit()?.unit_type_slug));

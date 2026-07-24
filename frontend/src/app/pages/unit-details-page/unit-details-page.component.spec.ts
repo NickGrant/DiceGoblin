@@ -14,6 +14,9 @@ class SessionServiceStub {
       unit_type_id: 'goblin-bruiser-1',
       unit_type_slug: 'frontline_bruiser_t1',
       unit_type_name: 'Goblin Bruiser',
+      splice_variant_slug: 'bat_splice',
+      splice_variant_name: 'Bat-Spliced',
+      splice_variant_passive_summary: '+1 Attack, +1 Precision, -1 HP.',
       tier: 1,
       level: 10,
       max_level: 10,
@@ -239,6 +242,9 @@ describe('UnitDetailsPageComponent', () => {
     expect(host.textContent).toContain('Precision');
     expect(host.textContent).toContain('Defense');
     expect(host.textContent).toContain('Resolve');
+    expect(host.textContent).toContain('DNA Splice');
+    expect(host.textContent).toContain('Bat-Spliced');
+    expect(host.textContent).toContain('+1 Attack, +1 Precision, -1 HP.');
     expect(host.textContent).toContain('Eligible now (unlocked at level 6)');
     expect(host.textContent).toContain('Static Abilities');
     expect(host.textContent).toContain('Choose Capstone');

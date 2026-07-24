@@ -12,20 +12,23 @@ final class OwnedUnitGrantService
   private UnitRepository $unitRepo;
   private UnitNameGenerator $unitNameGenerator;
   private UnitLoadoutService $unitLoadoutService;
+  private SpliceVariantService $spliceVariantService;
 
   public function __construct(
     private readonly PDO $pdo,
     ?UnitRepository $unitRepo = null,
     ?UnitNameGenerator $unitNameGenerator = null,
     ?UnitLoadoutService $unitLoadoutService = null,
+    ?SpliceVariantService $spliceVariantService = null,
   ) {
     $this->unitRepo = $unitRepo ?? new UnitRepository($pdo);
     $this->unitNameGenerator = $unitNameGenerator ?? new UnitNameGenerator();
     $this->unitLoadoutService = $unitLoadoutService ?? new UnitLoadoutService($pdo);
+    $this->spliceVariantService = $spliceVariantService ?? new SpliceVariantService($pdo);
   }
 
   /**
-   * @return array{id:int,unit_type_id:int,unit_type_slug:string,tier:int,level:int}
+   * @return array{id:int,unit_type_id:int,unit_type_slug:string,tier:int,level:int,splice_variant_slug:string}
    */
   public function grantBySlug(
     int $userId,
@@ -35,6 +38,7 @@ final class OwnedUnitGrantService
     int $xp = 0,
     bool $locked = false,
     ?string $displayName = null,
+    ?string $spliceVariantSlug = null,
   ): array {
     $type = $this->loadUnitTypeBySlug($unitTypeSlug);
     if ($type === null) {
@@ -50,11 +54,12 @@ final class OwnedUnitGrantService
       $xp,
       $locked,
       $displayName,
+      $spliceVariantSlug,
     );
   }
 
   /**
-   * @return array{id:int,unit_type_id:int,unit_type_slug:string,tier:int,level:int}
+   * @return array{id:int,unit_type_id:int,unit_type_slug:string,tier:int,level:int,splice_variant_slug:string}
    */
   public function grantByTypeId(
     int $userId,
@@ -65,7 +70,9 @@ final class OwnedUnitGrantService
     int $xp = 0,
     bool $locked = false,
     ?string $displayName = null,
+    ?string $spliceVariantSlug = null,
   ): array {
+    $resolvedSpliceVariantSlug = $this->resolveSpliceVariantSlug($spliceVariantSlug);
     $unitId = $this->unitRepo->createUnitInstance(
       $userId,
       $unitTypeId,
@@ -74,6 +81,7 @@ final class OwnedUnitGrantService
       max(0, $xp),
       $locked,
       $displayName !== null ? trim($displayName) : $this->unitNameGenerator->generate(),
+      $resolvedSpliceVariantSlug,
     );
     $this->unitLoadoutService->initializeUnit($unitId, $unitTypeId);
 
@@ -83,6 +91,7 @@ final class OwnedUnitGrantService
       'unit_type_slug' => $unitTypeSlug,
       'tier' => max(1, $tier),
       'level' => max(1, $level),
+      'splice_variant_slug' => $resolvedSpliceVariantSlug,
     ];
   }
 
@@ -117,5 +126,15 @@ final class OwnedUnitGrantService
     }
 
     return 1;
+  }
+
+  private function resolveSpliceVariantSlug(?string $spliceVariantSlug): string
+  {
+    $slug = trim((string)$spliceVariantSlug);
+    if ($slug !== '') {
+      return $this->spliceVariantService->describeVariant($slug)['slug'];
+    }
+
+    return $this->spliceVariantService->rollVariantSlug();
   }
 }

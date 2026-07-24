@@ -597,6 +597,10 @@ final class RunNodeController
    *     name:string,
    *     unit_type_slug:string|null,
    *     unit_type_name:string,
+   *     splice_variant_slug:string,
+   *     splice_variant_name:string,
+   *     splice_variant_description:string,
+   *     splice_variant_passive_summary:string,
    *     tier:int,
    *     level:int
    *   }>,

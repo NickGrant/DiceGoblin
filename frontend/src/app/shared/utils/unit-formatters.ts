@@ -43,6 +43,28 @@ export function humanizeAbilityId(abilityId: string): string {
     .join(' ');
 }
 
+export function formatSpliceVariantLabel(
+  spliceVariantName: string | null | undefined,
+  spliceVariantSlug: string | null | undefined,
+): string {
+  const name = (spliceVariantName ?? '').trim();
+  if (name.length > 0) {
+    return name;
+  }
+
+  const slug = (spliceVariantSlug ?? '').trim();
+  if (slug.length === 0 || slug === 'basic_goblin') {
+    return 'Basic Goblin';
+  }
+
+  return slug
+    .split('_')
+    .filter((segment) => segment.length)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join('-')
+    .replace(/-Splice$/, '-Spliced');
+}
+
 export function normalizeAbilityId(abilityId: unknown): string | null {
   const normalized = typeof abilityId === 'string' ? abilityId.trim() : '';
   return normalized.length > 0 ? normalized : null;

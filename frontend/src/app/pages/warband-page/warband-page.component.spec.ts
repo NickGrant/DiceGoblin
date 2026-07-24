@@ -13,8 +13,8 @@ class SessionServiceStub {
     { id: '2', name: 'Beta', is_active: false, unit_ids: ['u1', 'u2'] },
   ]);
   readonly units = signal([
-    { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', tier: 1, level: 2, locked: false },
-    { id: 'u2', name: 'Muckjaw', unit_type_name: 'Plaguehand', tier: 2, level: 6, locked: false },
+    { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', splice_variant_slug: 'rat_splice', splice_variant_name: 'Rat-Spliced', tier: 1, level: 2, locked: false },
+    { id: 'u2', name: 'Muckjaw', unit_type_name: 'Plaguehand', splice_variant_slug: 'toad_splice', splice_variant_name: 'Toad-Spliced', tier: 2, level: 6, locked: false },
   ]);
   readonly profileData = signal({ active_run: null });
   readonly activeSquad = signal({ id: '1', name: 'Alpha', is_active: true, unit_ids: ['u1'] } as any);
@@ -139,6 +139,21 @@ describe('WarbandPageComponent', () => {
     expect(host.textContent).toContain('Fang');
   });
 
+  it('filters units by selected splice variant', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.updateSpliceVariant('Toad-Spliced');
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const tiles = host.querySelectorAll('.warband-units-grid__tile');
+
+    expect(tiles.length).toBe(1);
+    expect(host.textContent).toContain('Muckjaw');
+    expect(host.textContent).not.toContain('Fang');
+  });
+
   it('filters units by toggled tier availability', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
@@ -199,12 +214,14 @@ describe('WarbandPageComponent', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.updateUnitType('Bruiser');
+    fixture.componentInstance.updateSpliceVariant('Rat-Spliced');
     fixture.componentInstance.toggleUnitTier(2);
     fixture.componentInstance.updateLevelMin('2');
     fixture.componentInstance.updateLevelMax('6');
     fixture.componentInstance.clearUnitFilters();
 
     expect(fixture.componentInstance.selectedUnitType()).toBeNull();
+    expect(fixture.componentInstance.selectedSpliceVariant()).toBeNull();
     expect(fixture.componentInstance.excludedUnitTiers()).toEqual([]);
     expect(fixture.componentInstance.selectedLevelMin()).toBeNull();
     expect(fixture.componentInstance.selectedLevelMax()).toBeNull();

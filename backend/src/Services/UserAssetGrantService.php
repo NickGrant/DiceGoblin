@@ -24,7 +24,7 @@ final class UserAssetGrantService
   }
 
   /**
-   * @return array{id:int,unit_type_id:int,unit_type_slug:string,tier:int,level:int}
+   * @return array{id:int,unit_type_id:int,unit_type_slug:string,tier:int,level:int,splice_variant_slug:string}
    */
   public function grantUnitBySlug(
     int $userId,
@@ -34,6 +34,7 @@ final class UserAssetGrantService
     int $xp = 0,
     bool $locked = false,
     ?string $displayName = null,
+    ?string $spliceVariantSlug = null,
   ): array {
     return $this->ownedUnitGrantService->grantBySlug(
       $userId,
@@ -43,22 +44,24 @@ final class UserAssetGrantService
       $xp,
       $locked,
       $displayName,
+      $spliceVariantSlug,
     );
   }
 
   /**
-   * @return array<int,array{id:string,unit_type_slug:string}>
+   * @return array<int,array{id:string,unit_type_slug:string,splice_variant_slug:string}>
    */
-  public function grantUnitsBySlug(int $userId, string $unitTypeSlug, int $count = 1): array
+  public function grantUnitsBySlug(int $userId, string $unitTypeSlug, int $count = 1, ?string $spliceVariantSlug = null): array
   {
     $count = max(1, min(25, $count));
     $granted = [];
 
     for ($i = 0; $i < $count; $i += 1) {
-      $unit = $this->grantUnitBySlug($userId, $unitTypeSlug);
+      $unit = $this->grantUnitBySlug($userId, $unitTypeSlug, null, 1, 0, false, null, $spliceVariantSlug);
       $granted[] = [
         'id' => (string)$unit['id'],
         'unit_type_slug' => $unitTypeSlug,
+        'splice_variant_slug' => (string)$unit['splice_variant_slug'],
       ];
     }
 
@@ -134,7 +137,11 @@ final class UserAssetGrantService
           $userId,
           $slug,
           max(1, min(3, (int)($grant['tier'] ?? 1))),
-          max(1, (int)($grant['level'] ?? 1))
+          max(1, (int)($grant['level'] ?? 1)),
+          0,
+          false,
+          null,
+          isset($grant['splice_variant_slug']) ? (string)$grant['splice_variant_slug'] : null
         );
       } catch (RuntimeException) {
         continue;

@@ -115,6 +115,7 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertNotEmpty($units);
     $unit = is_array($units[0] ?? null) ? $units[0] : [];
     $this->assertSame('basic_goblin', (string)($unit['splice_variant_slug'] ?? ''));
+    $this->assertSame('Basic Goblin', (string)($unit['splice_variant_name'] ?? ''));
     $this->assertSame(10, (int)($unit['max_level'] ?? 0));
     $this->assertSame(6, (int)($unit['promotion_level'] ?? 0));
     $this->assertSame(5, (int)($unit['total_precision'] ?? 0));
@@ -127,6 +128,36 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsArray($unit['capstone_selections'] ?? null);
     $this->assertIsArray($unit['promotion_grants'] ?? null);
     $this->assertIsArray($unit['inherited_passive_abilities'] ?? null);
+  }
+
+  public function testProfileUnitPayloadAppliesSpliceVariantMetadataAndStats(): void
+  {
+    $userId = $this->insertUser('profile_splice', 'Profile Splice User');
+    $unitTypeId = (int)$this->scalar('SELECT `id` FROM `unit_types` WHERE `slug` = ? LIMIT 1', ['backline_marksman_t1']);
+    $this->assertGreaterThan(0, $unitTypeId);
+
+    $unitInsert = $this->pdo?->prepare('
+      INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `splice_variant_slug`, `tier`, `level`, `xp`, `locked`)
+      VALUES (?, ?, ?, 1, 1, 0, 0)
+    ');
+    $unitInsert?->execute([$userId, $unitTypeId, 'toad_splice']);
+
+    $_SESSION['user_id'] = $userId;
+
+    $controller = new ApiController();
+    $response = $this->invoke(fn() => $controller->profile());
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $data = $this->assertSuccessEnvelopeShape($response);
+    $units = is_array($data['units'] ?? null) ? $data['units'] : [];
+    $this->assertNotEmpty($units);
+    $unit = is_array($units[0] ?? null) ? $units[0] : [];
+    $this->assertSame('toad_splice', (string)($unit['splice_variant_slug'] ?? ''));
+    $this->assertSame('Toad-Spliced', (string)($unit['splice_variant_name'] ?? ''));
+    $this->assertSame('+2 HP, +1 Resolve, -1 Precision.', (string)($unit['splice_variant_passive_summary'] ?? ''));
+    $this->assertSame(5, (int)($unit['total_precision'] ?? 0));
+    $this->assertSame(5, (int)($unit['total_resolve'] ?? 0));
+    $this->assertSame(20, (int)($unit['max_hp'] ?? 0));
   }
 
   public function testCurrentRunReturnsSuccessEnvelopeWhenNoActiveRun(): void

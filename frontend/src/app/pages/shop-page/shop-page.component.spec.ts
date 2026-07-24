@@ -180,7 +180,27 @@ class ShopServiceStub {
       ],
     },
   });
-  purchase = jasmine.createSpy('purchase').and.resolveTo({ ok: true });
+  purchase = jasmine.createSpy('purchase').and.callFake((itemType: string, productId: string) => Promise.resolve({
+    ok: true,
+    data: {
+      item_type: itemType,
+      product_id: productId,
+      cost: 15,
+      currency_soft: 5,
+      purchase: itemType === 'basic_unit'
+        ? {
+            unit_instance_id: 'unit-instance-1',
+            unit_type_slug: 'goblin_bruiser',
+            splice_variant_slug: 'rat_splice',
+            tier: 1,
+            level: 1,
+          }
+        : {
+            unlock_namespace: 'feature',
+            unlock_key: productId,
+          },
+    },
+  }));
 }
 
 describe('ShopPageComponent', () => {
@@ -245,5 +265,14 @@ describe('ShopPageComponent', () => {
 
     await component.purchase('feature_unlock', 'academy');
     expect(shopService.purchase).toHaveBeenCalledWith('feature_unlock', 'academy');
+  });
+
+  it('announces the recruited splice variant after buying a basic unit', async () => {
+    const fixture = await createComponent();
+
+    const component = fixture.componentInstance;
+    await component.purchase('basic_unit', 'unit-1');
+
+    expect(component.message()).toBe('Recruit joined: Rat-Spliced.');
   });
 });

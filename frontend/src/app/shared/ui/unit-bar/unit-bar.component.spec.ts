@@ -17,6 +17,8 @@ describe('UnitBarComponent', () => {
       tier: 2,
       unit_type_slug: 'frontline_bruiser_t1',
       unit_type_name: 'Bruiser',
+      splice_variant_slug: 'rat_splice',
+      splice_variant_name: 'Rat-Spliced',
       current_hp: 12,
       max_hp: 20,
       xp: 30,
@@ -35,6 +37,7 @@ describe('UnitBarComponent', () => {
     expect(host.textContent).toContain('Fang');
     expect(host.textContent).toContain('Level 4');
     expect(host.textContent).toContain('Tier II');
+    expect(host.textContent).toContain('Rat-Spliced');
     expect(host.textContent).toContain('Slot B2');
     expect(host.textContent).toContain('12/20 HP');
     expect(host.textContent).toContain('70 XP to next');

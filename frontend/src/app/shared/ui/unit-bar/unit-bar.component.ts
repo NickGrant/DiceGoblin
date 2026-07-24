@@ -1,7 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { UnitRecord } from '../../../core/models/api.models';
-import { formatTier } from '../../utils/unit-formatters';
+import { formatSpliceVariantLabel, formatTier } from '../../utils/unit-formatters';
 import { UnitThumbnailComponent } from '../unit-thumbnail/unit-thumbnail.component';
 import { resolveUnitRoleIcon } from '../category-icons/category-icons';
 
@@ -42,6 +42,7 @@ export class UnitBarComponent {
   );
   readonly levelLabel = computed(() => `Level ${this.unit().level || 1}`);
   readonly roleIcon = computed(() => resolveUnitRoleIcon(this.unit().unit_type_slug ?? this.unit().unit_type_name));
+  readonly spliceLabel = computed(() => formatSpliceVariantLabel(this.unit().splice_variant_name, this.unit().splice_variant_slug));
 
   private percent(value: number, total: number): number {
     if (total <= 0) {

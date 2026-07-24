@@ -95,6 +95,9 @@ export type UnitRecord = {
   level: number;
   unit_type_id?: string;
   splice_variant_slug?: string;
+  splice_variant_name?: string;
+  splice_variant_description?: string;
+  splice_variant_passive_summary?: string;
   unit_type_slug?: string;
   unit_type_name?: string;
   tier?: number;
@@ -171,6 +174,10 @@ export type RewardPreviewUnit = {
   name: string;
   unit_type_slug?: string | null;
   unit_type_name: string;
+  splice_variant_slug?: string | null;
+  splice_variant_name?: string | null;
+  splice_variant_description?: string | null;
+  splice_variant_passive_summary?: string | null;
   tier: number;
   level: number;
 };
@@ -541,6 +548,8 @@ export type ShopPurchaseData = {
     | {
         unit_instance_id: string;
         unit_type_slug: string;
+        splice_variant_slug?: string;
+        splice_variant_name?: string;
         tier: number;
         level: number;
       }

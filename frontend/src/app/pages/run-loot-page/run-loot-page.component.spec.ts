@@ -36,6 +36,8 @@ class RunServiceStub {
               name: 'Brindle',
               unit_type_slug: 'support_banner_t2',
               unit_type_name: 'Warcaller',
+              splice_variant_slug: 'rat_splice',
+              splice_variant_name: 'Rat-Spliced',
               tier: 2,
               level: 1,
             },
@@ -121,6 +123,8 @@ describe('RunLootPageComponent', () => {
           name: 'Brindle',
           unit_type_slug: 'support_banner_t2',
           unit_type_name: 'Warcaller',
+          splice_variant_slug: 'rat_splice',
+          splice_variant_name: 'Rat-Spliced',
           tier: 2,
           level: 1,
         },
@@ -136,6 +140,7 @@ describe('RunLootPageComponent', () => {
     expect(host.textContent).toContain('Treasure Found');
     expect(host.textContent).toContain('Brindle');
     expect(host.textContent).toContain('Warcaller');
+    expect(host.textContent).toContain('Rat-Spliced');
     expect(host.textContent).toContain('Guard');
     expect(host.textContent).not.toContain('Battle Log');
     expect(host.textContent).not.toContain('bone d6');

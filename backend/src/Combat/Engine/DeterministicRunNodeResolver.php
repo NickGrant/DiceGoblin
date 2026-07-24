@@ -10,6 +10,7 @@ namespace DiceGoblins\Combat\Engine;
 
 use DiceGoblins\Combat\Abilities\AbilityRegistry;
 use DiceGoblins\Combat\Abilities\AbilityType;
+use DiceGoblins\Services\SpliceVariantService;
 use DiceGoblins\Services\UnitProgressionService;
 use DiceGoblins\Services\UserUnlockService;
 use DiceGoblins\Support\FormationGeometry;
@@ -160,8 +161,10 @@ final class DeterministicRunNodeResolver
       if ($grantUnit) {
         $unitSlug = $this->pickUnitTypeSlug($userId, $rngState);
         if ($unitSlug !== null) {
+          $spliceVariantSlug = $this->pickSpliceVariantSlug($rngState);
           $rewards['unit_grants'][] = [
             'unit_type_slug' => $unitSlug,
+            'splice_variant_slug' => $spliceVariantSlug,
             'tier' => 1,
             'level' => 1,
           ];
@@ -278,6 +281,8 @@ final class DeterministicRunNodeResolver
       SELECT
         ui.`id` AS unit_instance_id,
         ui.`unit_type_id`,
+        ui.`splice_variant_slug`,
+        sv.`stat_modifiers_json` AS `splice_stat_modifiers_json`,
         ui.`level`,
         ut.`base_stats_json`,
         ut.`ability_set_json`,
@@ -289,6 +294,7 @@ final class DeterministicRunNodeResolver
       FROM `team_units` tu
       JOIN `unit_instances` ui ON ui.`id` = tu.`unit_instance_id`
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      LEFT JOIN `splice_variants` sv ON sv.`slug` = ui.`splice_variant_slug`
       LEFT JOIN `run_unit_state` rus
         ON rus.`run_id` = ?
        AND rus.`unit_instance_id` = ui.`id`
@@ -304,7 +310,10 @@ final class DeterministicRunNodeResolver
     $progression = new UnitProgressionService();
 
     foreach ($rows as $row) {
-      $baseStats = $this->decodeJsonObject($row['base_stats_json']);
+      $baseStats = $this->applySpliceStatModifiers(
+        $this->decodeJsonObject($row['base_stats_json']),
+        $this->decodeJsonObject($row['splice_stat_modifiers_json'] ?? null)
+      );
       $abilitySet = $this->decodeJsonObject($row['ability_set_json']);
       $level = max(1, (int)$row['level']);
 
@@ -4451,6 +4460,29 @@ final class DeterministicRunNodeResolver
   }
 
   /**
+   * @param array<string,mixed> $baseStats
+   * @param array<string,mixed> $modifiers
+   * @return array<string,mixed>
+   */
+  private function applySpliceStatModifiers(array $baseStats, array $modifiers): array
+  {
+    foreach (['attack', 'defense', 'max_hp', 'precision', 'resolve'] as $key) {
+      $default = match ($key) {
+        'max_hp' => 1,
+        'precision', 'resolve' => 5,
+        default => 0,
+      };
+      $baseStats[$key] = max(0, (int)($baseStats[$key] ?? $default) + (int)($modifiers[$key] ?? 0));
+    }
+
+    if (isset($baseStats['max_hp'])) {
+      $baseStats['max_hp'] = max(1, (int)$baseStats['max_hp']);
+    }
+
+    return $baseStats;
+  }
+
+  /**
    * @param array<string,mixed> $abilitySet
    * @return array<int,string>
    */
@@ -4630,6 +4662,45 @@ final class DeterministicRunNodeResolver
     $index = $this->nextInt($state, count($rows));
     $slug = (string)($rows[$index]['slug'] ?? '');
     return $slug !== '' ? $slug : null;
+  }
+
+  private function pickSpliceVariantSlug(string &$state): string
+  {
+    $stmt = $this->pdo->query("
+      SELECT `slug`, `grant_weight`
+      FROM `splice_variants`
+      WHERE `is_enabled` = 1 AND `grant_weight` > 0
+      ORDER BY `id` ASC
+    ");
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (count($rows) === 0) {
+      return SpliceVariantService::BASIC_GOBLIN;
+    }
+
+    $totalWeight = 0;
+    foreach ($rows as $row) {
+      $totalWeight += max(0, (int)($row['grant_weight'] ?? 0));
+    }
+    if ($totalWeight <= 0) {
+      return SpliceVariantService::BASIC_GOBLIN;
+    }
+
+    $roll = $this->nextInt($state, $totalWeight);
+    foreach ($rows as $row) {
+      $weight = max(0, (int)($row['grant_weight'] ?? 0));
+      if ($weight <= 0) {
+        continue;
+      }
+
+      if ($roll < $weight) {
+        $slug = (string)($row['slug'] ?? '');
+        return $slug !== '' ? $slug : SpliceVariantService::BASIC_GOBLIN;
+      }
+
+      $roll -= $weight;
+    }
+
+    return SpliceVariantService::BASIC_GOBLIN;
   }
 
   /**
