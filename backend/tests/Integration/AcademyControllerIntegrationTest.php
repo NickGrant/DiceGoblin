@@ -37,6 +37,9 @@ final class AcademyControllerIntegrationTest extends IntegrationTestCase
     $this->assertSame(250, (int)($bySlug['support_banner_t1']['cost'] ?? 0));
     $this->assertSame(500, (int)($bySlug['frontline_bruiser_t2']['cost'] ?? 0));
     $this->assertSame(500, (int)($bySlug['support_banner_t2']['cost'] ?? 0));
+    $this->assertFalse((bool)($bySlug['frontline_bruiser_t2']['is_available'] ?? true));
+    $this->assertSame('Complete any run', (string)($bySlug['frontline_bruiser_t2']['requirements'][0]['label'] ?? ''));
+    $this->assertTrue((bool)($bySlug['support_banner_t1']['is_available'] ?? false));
     foreach ($unitUnlocks as $unitUnlock) {
       $this->assertIsInt($unitUnlock['total_precision'] ?? null);
       $this->assertIsInt($unitUnlock['total_resolve'] ?? null);
@@ -77,5 +80,25 @@ final class AcademyControllerIntegrationTest extends IntegrationTestCase
         [$userId]
       )
     );
+  }
+
+  public function testTierTwoUnlockRequiresCompletedRun(): void
+  {
+    $userId = $this->insertUser('qa_academy_t2_locked', 'QA Academy T2 Locked');
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+    $this->grantUnlock($userId, 'feature', 'academy');
+    $this->setSoftCurrency($userId, 600);
+
+    $controller = new AcademyController();
+    $this->setJsonBody([
+      'unit_type_slug' => 'frontline_bruiser_t2',
+    ]);
+    $response = $this->invoke(fn() => $controller->unlockUnitType());
+
+    $this->assertSame(400, $response['status']);
+    $this->assertSame('validation_error', (string)($response['body']['error']['code'] ?? ''));
+    $this->assertSame('Complete any run before researching Tier II unit types.', (string)($response['body']['error']['message'] ?? ''));
   }
 }

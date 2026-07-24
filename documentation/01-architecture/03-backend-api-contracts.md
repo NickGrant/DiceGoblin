@@ -75,7 +75,7 @@ Current routes:
 Current behavior:
 
 - shop returns starter inventory, daily deals, and feature unlocks
-- academy returns unit-type unlock catalog
+- academy returns unit-type unlock catalog entries with backend-authored `is_available` and `requirements` fields
 - purchases and unlocks are backend-authoritative and refresh profile state after success
 
 ## Run Flow

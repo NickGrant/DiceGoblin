@@ -37,12 +37,18 @@
             class="academy-unlock-card"
             type="button"
             (click)="unlockUnitType(entry.unit_type_slug)"
-            [disabled]="unlockingUnitTypeSlug() === entry.unit_type_slug || profile().softCurrency < entry.cost"
+            [disabled]="unitUnlockDisabled(entry)"
           >
             <div>
               <p class="academy-label mb-1">{{ roleLabel(entry.role) }}</p>
               <h3 class="dg-stencil mb-1">{{ entry.name }}</h3>
               <p class="mb-0">{{ unitUnlockDescription(entry.unit_type_slug) }}</p>
+              <p
+                class="academy-unlock-card__requirement mb-0"
+                [class.academy-unlock-card__requirement--met]="entry.is_available !== false"
+              >
+                {{ unitUnlockRequirementLabel(entry) }}
+              </p>
               <div class="academy-unlock-card__stats" aria-label="Combat stats">
                 @for (stat of unitUnlockStats(entry); track stat.label) {
                 <span>

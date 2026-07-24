@@ -581,6 +581,14 @@ export type AcademyUnitUnlockItem = {
   role: string;
   cost: number;
   is_unlocked: boolean;
+  is_available?: boolean;
+  requirements?: Array<{
+    type: string;
+    label: string;
+    is_met: boolean;
+    progress_current?: number;
+    progress_target?: number;
+  }>;
   total_attack?: number;
   total_defense?: number;
   total_precision?: number;

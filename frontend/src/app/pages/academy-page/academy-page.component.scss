@@ -59,6 +59,17 @@
   font-size: 0.9rem;
 }
 
+.academy-unlock-card__requirement {
+  margin-top: 0.55rem;
+  color: #7b2f25;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.academy-unlock-card__requirement--met {
+  color: var(--dg-text-muted-strong);
+}
+
 .academy-unlock-card__stats {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

@@ -24,7 +24,7 @@ Once unlocked, the academy becomes the player-facing home for:
 
 ## Academy Unit-Type Research
 
-The academy catalog currently exposes Tier I unit-family unlocks.
+The academy catalog exposes Tier I and Tier II unit-family unlocks.
 
 Current starter family set:
 
@@ -35,6 +35,12 @@ Current starter family set:
 - `control_saboteur_t1`
 
 Unlocking a unit type makes that family available for future recruitment surfaces such as the shop.
+
+Tier I unit-family research is currently teeth-gated only. Tier II research remains visible in the same catalog, but it is locked until the player has completed at least one run. The backend returns each research item's `is_available` state and requirement rows so the UI can explain locked options without becoming authoritative.
+
+Current gameplay-gated research requirement:
+
+- Tier II unit-type research: complete any run
 
 ## Promotion Workspace
 
@@ -84,6 +90,16 @@ Current prerequisite rules surfaced in player-facing copy:
 - `biggerest_squad`: requires `bigger_squad`
 - `market_mastery`: requires both `shop_discount` and `sell_bonus`
 
+## Expanded Tree Direction
+
+The academy should keep growing as a medium-term progression tree connected to the main loop rather than a separate currency sink. Near-term branches can use existing gameplay facts:
+
+- bounties can unlock additional bounty slots, categories, or reroll controls
+- splice research can reveal variant tendencies or provide limited recruitment steering
+- future crafting can unlock dice salvage, fabrication, or probability-appraisal tools
+
+These branches should stay backend-authored and expose visible requirement rows in their catalogs.
+
 ## Active Run Restrictions
 
 Academy actions are blocked for units currently locked into an active run snapshot.
@@ -99,5 +115,5 @@ That includes:
 This doc is aligned when:
 
 - academy is documented as a purchased feature unlock
-- Tier I research and promotion are clearly separated but housed together
+- Tier I/Tier II research and promotion are clearly separated but housed together
 - current feature unlock keys and prerequisites match the live shop/catalog behavior
