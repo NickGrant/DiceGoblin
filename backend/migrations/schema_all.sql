@@ -1868,10 +1868,10 @@ CREATE TABLE `password_reset_tokens` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- END MIGRATION: 58_password_reset_tokens.sql
 
--- BEGIN MIGRATION: 60_run_nodes_hazard_type.sql
-ALTER TABLE `run_nodes`
-  MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit','dialogue','hazard') NOT NULL;
--- END MIGRATION: 60_run_nodes_hazard_type.sql
+-- BEGIN MIGRATION: 59_unit_splice_variant_foundation.sql
+ALTER TABLE `unit_instances`
+  ADD COLUMN `splice_variant_slug` VARCHAR(64) NOT NULL DEFAULT 'basic_goblin' AFTER `unit_type_id`;
+-- END MIGRATION: 59_unit_splice_variant_foundation.sql
 
 -- BEGIN MIGRATION: 99_finalize.sql
 SET FOREIGN_KEY_CHECKS=1;

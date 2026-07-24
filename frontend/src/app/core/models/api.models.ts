@@ -94,6 +94,7 @@ export type UnitRecord = {
   name: string;
   level: number;
   unit_type_id?: string;
+  splice_variant_slug?: string;
   unit_type_slug?: string;
   unit_type_name?: string;
   tier?: number;
@@ -105,6 +106,8 @@ export type UnitRecord = {
   max_tier?: number;
   total_attack?: number;
   total_defense?: number;
+  total_precision?: number;
+  total_resolve?: number;
   max_hp?: number;
   current_hp?: number;
   xp_to_next_level?: number;
@@ -210,6 +213,18 @@ export type RegionItemRecord = {
   quantity: number;
 };
 
+export type ObjectiveRecord = {
+  id: string;
+  title: string;
+  description: string;
+  status: 'active' | 'complete' | string;
+  priority: number;
+  progress_current: number;
+  progress_target: number;
+  route: string;
+  meta: Record<string, unknown>;
+};
+
 export type ProfileData = {
   server_time_iso: string;
   squads: TeamRecord[];
@@ -233,6 +248,7 @@ export type ProfileData = {
   region_unlocks: RegionUnlockRecord[];
   region_items: RegionItemRecord[];
   active_run: ProfileActiveRun | null;
+  objectives: ObjectiveRecord[];
 };
 
 export type ProfileResponse = ApiResponse<ProfileData>;
