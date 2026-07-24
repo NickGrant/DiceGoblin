@@ -364,6 +364,174 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     $this->assertStringContainsString('passive damage', (string)($outcome['affix_outcome'] ?? ''));
   }
 
+  public function testDeriveActionOutcomeNeutralPrecisionAndResolvePreservesBaselineHit(): void
+  {
+    $state = str_repeat('f', 64);
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $outcome = $this->invokePrivate('deriveActionOutcome', [
+      &$state,
+      12,
+      4,
+      20,
+      20,
+      'poison_stab',
+      0,
+      ['damage_flat' => 0, 'below_half_bonus' => 0.0],
+      [
+        'dice_used' => [],
+        'dice_rolls' => [],
+        'dice_outcome' => 'none',
+        'dice_modifier' => 0,
+        'explode_triggered' => false,
+      ],
+      [],
+      ['x' => 2, 'y' => 1],
+      ['x' => 2, 'y' => 1],
+      ['w' => 1, 'h' => 1],
+      ['w' => 1, 'h' => 1],
+      $registry,
+      12,
+      0,
+      5,
+      5,
+    ]);
+
+    $this->assertSame('hit', (string)($outcome['hit_outcome'] ?? ''));
+    $this->assertSame(0, (int)($outcome['precision_target'] ?? -1));
+    $this->assertNull($outcome['precision_roll'] ?? null);
+    $this->assertSame(0, (int)($outcome['crit_target'] ?? -1));
+    $this->assertNull($outcome['crit_roll'] ?? null);
+    $this->assertFalse((bool)($outcome['status_resisted'] ?? true));
+    $this->assertSame('poison', (string)($outcome['status_applied'] ?? ''));
+  }
+
+  public function testDeriveActionOutcomeCanMissWithLowPrecision(): void
+  {
+    $state = '129f756a2dacf6886dcf83035b27f9f20d6b148e89e7804ddb3bb72d424c7d98';
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $outcome = $this->invokePrivate('deriveActionOutcome', [
+      &$state,
+      12,
+      4,
+      20,
+      20,
+      'basic_attack_melee',
+      0,
+      ['damage_flat' => 0, 'below_half_bonus' => 0.0],
+      [
+        'dice_used' => [],
+        'dice_rolls' => [],
+        'dice_outcome' => 'none',
+        'dice_modifier' => 0,
+        'explode_triggered' => false,
+      ],
+      [],
+      ['x' => 2, 'y' => 1],
+      ['x' => 2, 'y' => 1],
+      ['w' => 1, 'h' => 1],
+      ['w' => 1, 'h' => 1],
+      $registry,
+      12,
+      0,
+      1,
+      5,
+    ]);
+
+    $this->assertSame('missed', (string)($outcome['outcome'] ?? ''));
+    $this->assertSame('miss', (string)($outcome['hit_outcome'] ?? ''));
+    $this->assertSame(0, (int)($outcome['damage'] ?? -1));
+    $this->assertSame(20, (int)($outcome['target_hp_after'] ?? -1));
+    $this->assertSame(32, (int)($outcome['precision_target'] ?? -1));
+    $this->assertSame(32, (int)($outcome['precision_roll'] ?? -1));
+    $this->assertStringContainsString('attack missed', (string)($outcome['ability_outcome'] ?? ''));
+  }
+
+  public function testDeriveActionOutcomeCanCritWithHighPrecision(): void
+  {
+    $state = '8119a37d4bd9c02207afd7d47abc0d37922b4d372ea44ff1a6fb877fb6eb86e1';
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $outcome = $this->invokePrivate('deriveActionOutcome', [
+      &$state,
+      12,
+      4,
+      20,
+      20,
+      'basic_attack_melee',
+      0,
+      ['damage_flat' => 0, 'below_half_bonus' => 0.0],
+      [
+        'dice_used' => [],
+        'dice_rolls' => [],
+        'dice_outcome' => 'none',
+        'dice_modifier' => 0,
+        'explode_triggered' => false,
+      ],
+      [],
+      ['x' => 2, 'y' => 1],
+      ['x' => 2, 'y' => 1],
+      ['w' => 1, 'h' => 1],
+      ['w' => 1, 'h' => 1],
+      $registry,
+      12,
+      0,
+      11,
+      5,
+    ]);
+
+    $this->assertSame('critical', (string)($outcome['hit_outcome'] ?? ''));
+    $this->assertSame(30, (int)($outcome['crit_target'] ?? -1));
+    $this->assertSame(19, (int)($outcome['crit_roll'] ?? -1));
+    $this->assertStringContainsString('critical hit', (string)($outcome['ability_outcome'] ?? ''));
+    $this->assertStringContainsString('critical hit x1.5', (string)($outcome['affix_outcome'] ?? ''));
+  }
+
+  public function testDeriveActionOutcomeCanResistDebuffWithHighResolve(): void
+  {
+    $state = 'f3c5bc4e044d3f88740fd8eb7e281322dc62ddbcb700c46887799490f5c86a1e';
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $outcome = $this->invokePrivate('deriveActionOutcome', [
+      &$state,
+      12,
+      4,
+      20,
+      20,
+      'poison_stab',
+      0,
+      ['damage_flat' => 0, 'below_half_bonus' => 0.0],
+      [
+        'dice_used' => [],
+        'dice_rolls' => [],
+        'dice_outcome' => 'none',
+        'dice_modifier' => 0,
+        'explode_triggered' => false,
+      ],
+      [],
+      ['x' => 2, 'y' => 1],
+      ['x' => 2, 'y' => 1],
+      ['w' => 1, 'h' => 1],
+      ['w' => 1, 'h' => 1],
+      $registry,
+      12,
+      0,
+      5,
+      10,
+    ]);
+
+    $this->assertTrue((bool)($outcome['status_resisted'] ?? false));
+    $this->assertNull($outcome['status_applied'] ?? null);
+    $this->assertSame(40, (int)($outcome['status_resist_target'] ?? -1));
+    $this->assertSame(8, (int)($outcome['status_resist_roll'] ?? -1));
+    $this->assertStringContainsString('status resisted by Resolve 10', (string)($outcome['ability_outcome'] ?? ''));
+  }
+
   public function testDeriveStatusApplicationHonorsAuthoredStatusParams(): void
   {
     $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
