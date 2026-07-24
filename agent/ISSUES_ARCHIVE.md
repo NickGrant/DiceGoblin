@@ -251,20 +251,21 @@ current_code_references:
   - documentation/03-ux/*
 
 ---
-id: BSC-003
-title: Extract shared mutation guard and controller helpers
+id: BSC-002
+title: Centralize run lifecycle transitions
 status: complete
-priority: medium
+priority: high
 milestone: Backend Structural Cleanup Pass
-description: Active-run mutation checks and auth/CSRF request boilerplate were repeated across gameplay, team, shop, and academy controllers. HandlesControllerRequests now provides shared mutating-user and mutable-unit helpers, while UnitMutationGuardService remains the canonical active-run unit policy.
+description: Run failure, completion, cleanup, and summary timing were split between resolve and claim controllers. RunLifecycleService now owns run-end transitions and battle-claim mutation sequencing so claim transport no longer duplicates reward, XP, attrition, and fail-run orchestration.
 acceptance_criteria:
-  - Create a shared unit mutation guard or equivalent policy service.
-  - Reduce repeated request/response boilerplate across the most duplicated controllers.
-  - Keep controller behavior and status codes stable.
+  - Create a backend service that owns failed, abandoned, and completed run transitions.
+  - Remove duplicated cleanup and end-run sequencing from multiple controllers.
+  - Preserve current summary and XP behavior unless explicitly changed.
+  - Add or update targeted regression coverage for the lifecycle service.
 current_code_references:
-  - backend/src/Controllers/Concerns/HandlesControllerRequests.php
-  - backend/src/Services/UnitMutationGuardService.php
-  - backend/src/Controllers/GameplayController.php
-  - backend/src/Controllers/TeamController.php
-  - backend/src/Controllers/AcademyController.php
-  - backend/src/Controllers/ShopController.php
+  - backend/src/Services/RunLifecycleService.php
+  - backend/src/Controllers/BattleController.php
+  - backend/src/Controllers/ApiController.php
+  - backend/src/Controllers/RunNodeController.php
+  - backend/src/Repositories/RunRepository.php
+  - backend/tests/Integration/RunLifecycleServiceIntegrationTest.php
