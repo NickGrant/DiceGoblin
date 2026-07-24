@@ -102,6 +102,13 @@ abstract class IntegrationTestCase extends TestCase
     return $id;
   }
 
+  protected function trackUserId(int $userId): void
+  {
+    if ($userId > 0) {
+      $this->trackedUserIds[] = $userId;
+    }
+  }
+
   protected function grantUnlock(int $userId, string $namespace, string $unlockKey): void
   {
     $stmt = $this->pdo?->prepare('

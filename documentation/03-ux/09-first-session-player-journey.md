@@ -2,7 +2,7 @@
 ----
 
 Status: active
-Last Updated: 2026-06-02
+Last Updated: 2026-07-23
 Owner: Product + UX
 Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/03-ux/03-encounter-flow-transition-matrix.md`
 
@@ -28,8 +28,10 @@ The first-session objective is simple:
 
 ### 1. Login
 
-- Show one clear continue or sign-in action.
+- Show local registration and sign-in as the primary access path.
+- Keep Discord sign-in available as an alternate path.
 - If the player is already authenticated, route directly into the app.
+- Successful local registration should feel identical to any other first login: the next screen is the authenticated game shell, not a separate account setup flow.
 
 ### 2. Home Orientation
 

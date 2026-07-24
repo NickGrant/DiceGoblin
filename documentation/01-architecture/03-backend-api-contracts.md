@@ -1,7 +1,7 @@
 # Backend API Contracts - Current Alpha Surface
 
 Status: active  
-Last Updated: 2026-07-09  
+Last Updated: 2026-07-23
 Owner: Backend/API  
 Depends On: `backend/public/index.php`, `backend/src/Controllers/`, `frontend/src/app/core/services/api-http/api-http.service.ts`
 
@@ -26,14 +26,24 @@ Current routes:
 
 - `GET /auth/discord/start`
 - `GET /auth/discord/callback`
+- `POST /api/v1/auth/local/register`
+- `POST /api/v1/auth/local/login`
+- `POST /api/v1/auth/local/password-reset/request`
+- `POST /api/v1/auth/local/password-reset/confirm`
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/session`
 
 Current behavior:
 
+- local registration accepts email, password, and display name, then establishes the normal session
+- local login accepts email and password, then establishes the normal session
+- password reset request accepts email and returns a generic success payload without revealing whether an account exists
+- password reset confirm accepts a reset token and new password, updates the hash, consumes the token, and establishes the normal session
 - session bootstrap tells the frontend whether the user is authenticated
 - session payload also supplies the CSRF token used by mutating requests
 - logout should clear local shell state even if the backend request fails
+- auth responses never expose password hashes or local credential internals
+- non-production reset requests may include a raw reset token for local Docker/dev workflows until email delivery exists
 
 ## Profile And Shared Player State
 

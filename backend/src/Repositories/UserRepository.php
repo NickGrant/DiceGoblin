@@ -21,12 +21,12 @@ final class UserRepository
   /**
    * Fetch user by internal id.
    *
-   * @return array{id:string,discord_id:string,display_name:string,avatar_url:?string,created_at:string,updated_at:string}|null
+   * @return array{id:string,discord_id:?string,local_email:?string,display_name:string,avatar_url:?string,created_at:string,updated_at:string}|null
    */
   public function getUserById(int $userId): ?array
   {
     $stmt = $this->pdo->prepare('
-      SELECT `id`, `discord_id`, `display_name`, `avatar_url`, `created_at`, `updated_at`
+      SELECT `id`, `discord_id`, `local_email`, `display_name`, `avatar_url`, `created_at`, `updated_at`
       FROM `users`
       WHERE `id` = ?
       LIMIT 1
@@ -40,7 +40,8 @@ final class UserRepository
 
     return [
       'id' => (string)$r['id'],
-      'discord_id' => (string)$r['discord_id'],
+      'discord_id' => $r['discord_id'] !== null ? (string)$r['discord_id'] : null,
+      'local_email' => $r['local_email'] !== null ? (string)$r['local_email'] : null,
       'display_name' => (string)$r['display_name'],
       'avatar_url' => $r['avatar_url'] !== null ? (string)$r['avatar_url'] : null,
       'created_at' => (string)$r['created_at'],
@@ -100,6 +101,149 @@ final class UserRepository
     $stmt->execute([$discordId, $displayName, $avatarUrl]);
 
     return (int)$this->pdo->lastInsertId();
+  }
+
+  public function createLocalUser(string $email, string $passwordHash, string $displayName): int
+  {
+    $email = $this->normalizeEmail($email);
+    $displayName = trim($displayName);
+
+    if ($email === '') {
+      throw new RuntimeException('email cannot be empty.');
+    }
+    if ($passwordHash === '') {
+      throw new RuntimeException('passwordHash cannot be empty.');
+    }
+    if ($displayName === '') {
+      $displayName = 'Goblin';
+    }
+
+    $stmt = $this->pdo->prepare('
+      INSERT INTO `users` (`discord_id`, `local_email`, `password_hash`, `display_name`, `avatar_url`)
+      VALUES (NULL, ?, ?, ?, NULL)
+    ');
+    $stmt->execute([$email, $passwordHash, $displayName]);
+
+    return (int)$this->pdo->lastInsertId();
+  }
+
+  /**
+   * @return array{id:string,local_email:string,password_hash:string,display_name:string,avatar_url:?string}|null
+   */
+  public function getUserByLocalEmail(string $email): ?array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT `id`, `local_email`, `password_hash`, `display_name`, `avatar_url`
+      FROM `users`
+      WHERE `local_email` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([$this->normalizeEmail($email)]);
+
+    $r = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$r) {
+      return null;
+    }
+
+    return [
+      'id' => (string)$r['id'],
+      'local_email' => (string)$r['local_email'],
+      'password_hash' => (string)$r['password_hash'],
+      'display_name' => (string)$r['display_name'],
+      'avatar_url' => $r['avatar_url'] !== null ? (string)$r['avatar_url'] : null,
+    ];
+  }
+
+  public function createPasswordResetToken(int $userId, string $tokenHash, string $expiresAt): void
+  {
+    if ($userId <= 0) {
+      throw new RuntimeException('userId must be positive.');
+    }
+    if ($tokenHash === '') {
+      throw new RuntimeException('tokenHash cannot be empty.');
+    }
+
+    try {
+      $this->pdo->beginTransaction();
+
+      $markOld = $this->pdo->prepare('
+        UPDATE `password_reset_tokens`
+        SET `used_at` = UTC_TIMESTAMP()
+        WHERE `user_id` = ?
+          AND `used_at` IS NULL
+      ');
+      $markOld->execute([$userId]);
+
+      $stmt = $this->pdo->prepare('
+        INSERT INTO `password_reset_tokens` (`user_id`, `token_hash`, `expires_at`)
+        VALUES (?, ?, ?)
+      ');
+      $stmt->execute([$userId, $tokenHash, $expiresAt]);
+
+      $this->pdo->commit();
+    } catch (Throwable $e) {
+      if ($this->pdo->inTransaction()) {
+        $this->pdo->rollBack();
+      }
+      throw $e;
+    }
+  }
+
+  public function consumePasswordResetToken(string $tokenHash, string $passwordHash): ?int
+  {
+    if ($tokenHash === '' || $passwordHash === '') {
+      return null;
+    }
+
+    try {
+      $this->pdo->beginTransaction();
+
+      $stmt = $this->pdo->prepare('
+        SELECT `id`, `user_id`
+        FROM `password_reset_tokens`
+        WHERE `token_hash` = ?
+          AND `used_at` IS NULL
+          AND `expires_at` > UTC_TIMESTAMP()
+        LIMIT 1
+        FOR UPDATE
+      ');
+      $stmt->execute([$tokenHash]);
+
+      $token = $stmt->fetch(PDO::FETCH_ASSOC);
+      if (!$token) {
+        $this->pdo->rollBack();
+        return null;
+      }
+
+      $userId = (int)$token['user_id'];
+      $updateUser = $this->pdo->prepare('
+        UPDATE `users`
+        SET `password_hash` = ?
+        WHERE `id` = ?
+          AND `local_email` IS NOT NULL
+      ');
+      $updateUser->execute([$passwordHash, $userId]);
+
+      if ($updateUser->rowCount() !== 1) {
+        $this->pdo->rollBack();
+        return null;
+      }
+
+      $markUsed = $this->pdo->prepare('
+        UPDATE `password_reset_tokens`
+        SET `used_at` = UTC_TIMESTAMP()
+        WHERE `id` = ?
+      ');
+      $markUsed->execute([(int)$token['id']]);
+
+      $this->pdo->commit();
+      return $userId;
+    } catch (Throwable $e) {
+      if ($this->pdo->inTransaction()) {
+        $this->pdo->rollBack();
+      }
+      throw $e;
+    }
   }
 
   /**
@@ -241,5 +385,10 @@ final class UserRepository
       'display_name' => (string)$r['display_name'],
       'avatar_url' => $r['avatar_url'] !== null ? (string)$r['avatar_url'] : null,
     ];
+  }
+
+  private function normalizeEmail(string $email): string
+  {
+    return strtolower(trim($email));
   }
 }

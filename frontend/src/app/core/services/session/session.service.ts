@@ -2,6 +2,8 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   ProfileData,
+  PasswordResetRequestResponse,
+  PasswordResetRequestData,
   ProfileResponse,
   ProfileViewModel,
   SessionResponse,
@@ -115,6 +117,50 @@ export class SessionService {
     }
 
     await this.clearSessionStateAndRouteToLogin();
+  }
+
+  async loginWithLocalCredentials(email: string, password: string): Promise<void> {
+    await this.apiHttp.post<SessionResponse>(
+      '/api/v1/auth/local/login',
+      { email, password },
+      { skipAuthRecovery: true },
+    );
+    await this.refresh();
+    await this.router.navigateByUrl('/');
+  }
+
+  async registerWithLocalCredentials(email: string, password: string, displayName: string): Promise<void> {
+    await this.apiHttp.post<SessionResponse>(
+      '/api/v1/auth/local/register',
+      { email, password, display_name: displayName },
+      { skipAuthRecovery: true },
+    );
+    await this.refresh();
+    await this.router.navigateByUrl('/');
+  }
+
+  async requestPasswordReset(email: string): Promise<PasswordResetRequestData> {
+    const response = await this.apiHttp.post<PasswordResetRequestResponse>(
+      '/api/v1/auth/local/password-reset/request',
+      { email },
+      { skipAuthRecovery: true },
+    );
+
+    if (!response.ok) {
+      throw new Error(response.error?.message ?? 'Could not request password reset.');
+    }
+
+    return response.data;
+  }
+
+  async confirmPasswordReset(token: string, password: string): Promise<void> {
+    await this.apiHttp.post<SessionResponse>(
+      '/api/v1/auth/local/password-reset/confirm',
+      { token, password },
+      { skipAuthRecovery: true },
+    );
+    await this.refresh();
+    await this.router.navigateByUrl('/');
   }
 
   async refreshProfile(options?: { force?: boolean }): Promise<void> {

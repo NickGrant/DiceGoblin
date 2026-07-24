@@ -1,4 +1,4 @@
-<div class="app-shell">
+<div class="app-shell" [class.app-shell--guest]="!isAuthenticated()">
   @if (isLandscapeGateActive()) {
     <section class="orientation-gate" aria-live="polite" aria-label="Rotate device prompt">
       <div class="orientation-gate__panel dg-card">
@@ -12,7 +12,9 @@
     </section>
   } @else {
   <div class="app-shell__frame">
-    <app-command-controls></app-command-controls>
+    @if (isAuthenticated()) {
+      <app-command-controls></app-command-controls>
+    }
 
     @if (isLoading() || error()) {
       <div class="dg-card status-card" [class.status-card--error]="!!error()">

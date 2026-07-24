@@ -12,6 +12,7 @@ class SessionServiceStub {
   readonly initialize = jasmine.createSpy('initialize').and.resolveTo();
   readonly session = signal({ isAuthenticated: false, displayName: 'Visitor' });
   readonly profile = signal({ energyCurrent: 0, energyMax: 0, softCurrency: 0 });
+  readonly hasActiveRun = signal(false);
   readonly featureUnlocks = signal<string[]>([]);
 }
 
@@ -31,8 +32,8 @@ class ViewportOrientationServiceStub {
 }
 
 describe('App', () => {
-  it('creates the root shell', async () => {
-    await TestBed.configureTestingModule({
+  beforeEach(() => {
+    TestBed.configureTestingModule({
       imports: [App],
       providers: [
         provideRouter([]),
@@ -40,7 +41,11 @@ describe('App', () => {
         { provide: AudioDirectorService, useClass: AudioDirectorServiceStub },
         { provide: ViewportOrientationService, useClass: ViewportOrientationServiceStub },
       ],
-    }).compileComponents();
+    });
+  });
+
+  it('creates the root shell', async () => {
+    await TestBed.compileComponents();
 
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
@@ -48,16 +53,32 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
+  it('hides command controls for unauthenticated users', async () => {
+    await TestBed.compileComponents();
+
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('app-command-controls')).toBeNull();
+    expect(host.querySelector('.app-shell--guest')).not.toBeNull();
+  });
+
+  it('shows command controls for authenticated users', async () => {
+    await TestBed.compileComponents();
+
+    const session = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    session.session.set({ isAuthenticated: true, displayName: 'Goblin' });
+
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('app-command-controls')).not.toBeNull();
+  });
+
   it('shows the rotate prompt instead of the shell when phone portrait mode is blocked', async () => {
-    await TestBed.configureTestingModule({
-      imports: [App],
-      providers: [
-        provideRouter([]),
-        { provide: SessionService, useClass: SessionServiceStub },
-        { provide: AudioDirectorService, useClass: AudioDirectorServiceStub },
-        { provide: ViewportOrientationService, useClass: ViewportOrientationServiceStub },
-      ],
-    }).compileComponents();
+    await TestBed.compileComponents();
 
     const viewportOrientation = TestBed.inject(ViewportOrientationService) as unknown as ViewportOrientationServiceStub;
     viewportOrientation.isLandscapeGateActive.set(true);

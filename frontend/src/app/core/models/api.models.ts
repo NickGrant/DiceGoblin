@@ -20,6 +20,14 @@ export type SessionData = {
 
 export type SessionResponse = ApiResponse<SessionData>;
 
+export type PasswordResetRequestData = {
+  message: string;
+  reset_token?: string;
+  expires_at?: string;
+};
+
+export type PasswordResetRequestResponse = ApiResponse<PasswordResetRequestData>;
+
 export type ProfileActiveRun = {
   run_id: string;
   region_id: string;

@@ -10,6 +10,10 @@
     url('/assets/ui/textures/paper.png');
 }
 
+.app-shell--guest {
+  --command-controls-height: 0px;
+}
+
 .orientation-gate {
   min-height: 100vh;
   display: grid;

@@ -1,7 +1,7 @@
 # Dice Goblins - Data Model (Authoritative Rework Contract)
 
 Status: active  
-Last Updated: 2026-04-18  
+Last Updated: 2026-07-23
 Owner: Backend/Data  
 Depends On: `backend/migrations/schema_all.sql`, `documentation/02-systems-mvp/00-combat-system.md`, `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/02-units-and-progression.md`
 
@@ -41,6 +41,25 @@ These areas remain structurally stable for the rework:
 - `user_region_items`
 
 They may need minor contract updates, but they are not the primary focus of the rework.
+
+### 2.1 users
+
+`users` is the canonical local account row regardless of provider. Discord OAuth and local credentials both resolve to a local `users.id`.
+
+Current credential fields:
+- `discord_id` for Discord OAuth identities; nullable for local-only users
+- `local_email` for normalized email sign-in; nullable for Discord-only users
+- `password_hash` for local credential verification; nullable for Discord-only users
+- `display_name` and `avatar_url` for player-facing identity
+
+Related credential table:
+- `password_reset_tokens` stores one-hour hashed reset tokens for local accounts, with `used_at` marking consumed or superseded tokens
+
+Rules:
+- never store raw passwords
+- never store raw password reset tokens
+- never expose credential fields through session or profile payloads
+- keep provider-specific identifiers unique when present
 
 ## 3. Unit Types and Enemy Types
 

@@ -1850,6 +1850,32 @@ ON DUPLICATE KEY UPDATE
   `is_enabled` = VALUES(`is_enabled`);
 -- END MIGRATION: 56_dialogue_run_nodes_and_mystic_cave.sql
 
+-- BEGIN MIGRATION: 57_local_account_auth.sql
+ALTER TABLE `users`
+  MODIFY COLUMN `discord_id` VARCHAR(32) NULL,
+  ADD COLUMN `local_email` VARCHAR(255) NULL AFTER `discord_id`,
+  ADD COLUMN `password_hash` VARCHAR(255) NULL AFTER `local_email`,
+  ADD UNIQUE KEY `uq_users_local_email` (`local_email`);
+-- END MIGRATION: 57_local_account_auth.sql
+
+-- BEGIN MIGRATION: 58_password_reset_tokens.sql
+CREATE TABLE `password_reset_tokens` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `token_hash` CHAR(64) NOT NULL,
+  `expires_at` TIMESTAMP NOT NULL,
+  `used_at` TIMESTAMP NULL DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_password_reset_tokens_hash` (`token_hash`),
+  KEY `ix_password_reset_tokens_user_id_created_at` (`user_id`, `created_at`),
+  CONSTRAINT `fk_password_reset_tokens_user_id`
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- END MIGRATION: 58_password_reset_tokens.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 SET FOREIGN_KEY_CHECKS=1;
 -- END MIGRATION: 99_finalize.sql

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
@@ -29,6 +29,7 @@ export class App implements OnInit {
 
   readonly isLoading = this.sessionService.isLoading;
   readonly error = this.sessionService.error;
+  readonly isAuthenticated = computed(() => this.sessionService.session().isAuthenticated);
   readonly isLandscapeGateActive = this.viewportOrientation.isLandscapeGateActive;
 
   ngOnInit(): void {

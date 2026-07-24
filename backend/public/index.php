@@ -110,6 +110,10 @@ $team = new TeamController();
 // Auth
 $router->get('/auth/discord/start', [$auth, 'discordStart']);
 $router->get('/auth/discord/callback', [$auth, 'discordCallback']);
+$router->post('/api/v1/auth/local/register', [$auth, 'localRegister']);
+$router->post('/api/v1/auth/local/login', [$auth, 'localLogin']);
+$router->post('/api/v1/auth/local/password-reset/request', [$auth, 'requestPasswordReset']);
+$router->post('/api/v1/auth/local/password-reset/confirm', [$auth, 'confirmPasswordReset']);
 $router->post('/api/v1/auth/logout', [$auth, 'logout']);
 
 // API
