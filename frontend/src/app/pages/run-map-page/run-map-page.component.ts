@@ -43,6 +43,7 @@ export class RunMapPageComponent {
     boss: '/assets/ui/icons/icon_encounter_boss.png',
     exit: '/assets/ui/icons/icon_home.png',
     dialogue: '/assets/ui/icons/icon_guide.png',
+    hazard: '/assets/ui/icons/icon_encounter_locked.png',
   };
 
   private readonly router = inject(Router);

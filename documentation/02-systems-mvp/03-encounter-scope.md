@@ -12,14 +12,15 @@ Depends On: `documentation/02-systems-mvp/04-loot-and-drop-scope.md`, `documenta
 
 ## Encounter Types
 
-The active run map exposes six node types:
+The active run map exposes seven node types:
 
 1. `dialogue`
 2. `combat`
 3. `loot`
 4. `rest`
 5. `boss`
-6. `exit`
+6. `hazard`
+7. `exit`
 
 Behavior by type:
 
@@ -28,12 +29,13 @@ Behavior by type:
 - `loot`: resolves immediately into a non-combat reward preview
 - `rest`: opens a separate rest page and finalizes manually
 - `boss`: uses combat rules and gates the final exit path in combat regions
+- `hazard`: resolves as a backend-authored non-combat obstacle, clears progression, and grants no rewards by default
 - `exit`: is not resolved through node resolution and instead completes the run through the dedicated exit endpoint
 
 ## XP Scope
 
 - Combat and boss nodes are the active XP-awarding encounter types.
-- Dialogue, loot, and rest do not directly award combat XP.
+- Dialogue, loot, rest, and hazard nodes do not directly award combat XP.
 - Exit is a run-completion action, not an XP source by itself.
 
 ## Region Scope
@@ -115,7 +117,6 @@ The current alpha build does not expose separate route types for:
 - merchants
 - branching narrative event chains beyond authored dialogue nodes
 - puzzle nodes
-- hazard-only nodes
 - social choice chains
 - slot-machine-style generated encounters
 
@@ -143,7 +144,7 @@ Those concepts may still appear in future planning, but they are not part of the
 
 The encounter scope is aligned when:
 
-- docs describe six node types, including dialogue and exit
+- docs describe seven node types, including dialogue, hazard, and exit
 - docs include Mystic Cave, Farm, Mountains, and Swamps
 - Mystic Cave is documented as the initial zero-energy narrative run
 - Farm is documented as the first fixed combat lane
