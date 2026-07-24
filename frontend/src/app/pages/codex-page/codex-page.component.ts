@@ -281,6 +281,16 @@ const UNIT_TREE: ReadonlyArray<CodexUnit> = [
         tier: 2,
         cost: PROMOTED_UNIT_COST,
         description: 'An offensive support branch that turns team tempo and buffs into aggressive momentum.',
+        children: [
+          {
+            name: 'Warchanter',
+            slug: 'support_banner_t3',
+            role: 'Support',
+            tier: 3,
+            cost: PROMOTED_UNIT_COST,
+            description: 'A deep banner promotion that makes sustained buffs and squad tempo the center of the fight.',
+          },
+        ],
       },
       {
         name: 'Mascot',
@@ -307,6 +317,16 @@ const UNIT_TREE: ReadonlyArray<CodexUnit> = [
         tier: 2,
         cost: PROMOTED_UNIT_COST,
         description: 'A sharper control branch that punishes compromised enemies with precise follow-up pressure.',
+        children: [
+          {
+            name: 'Venomwright',
+            slug: 'control_saboteur_t3',
+            role: 'Utility',
+            tier: 3,
+            cost: PROMOTED_UNIT_COST,
+            description: 'A deep saboteur promotion that turns disruption and poison setup into a late-game control plan.',
+          },
+        ],
       },
       {
         name: 'Plaguehand',

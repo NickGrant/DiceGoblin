@@ -144,7 +144,7 @@ export class GuidePageComponent implements OnInit {
       role: 'Support',
       tier: 1,
       maxLevel: 10,
-      summary: 'A support specialist that can either master bolster-focused capstones or branch into offensive or luck-based support.',
+      summary: 'A support specialist that can master bolster-focused capstones, branch into offensive or luck-based support, and eventually chain into Warchanter.',
     },
     {
       name: 'Saboteur',
@@ -152,7 +152,7 @@ export class GuidePageComponent implements OnInit {
       role: 'Utility',
       tier: 1,
       maxLevel: 10,
-      summary: 'A disruptive debuffer that can promote from level 6 or stay through level 10 for stronger control passives.',
+      summary: 'A disruptive debuffer that can promote from level 6, master stronger control passives, and eventually chain into Venomwright.',
     },
   ];
 
