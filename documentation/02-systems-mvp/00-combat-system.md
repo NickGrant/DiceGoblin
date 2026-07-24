@@ -106,6 +106,13 @@ The shared combat stat payload now supports:
 
 Precision and Resolve now participate in combat with conservative first-pass rules. Existing unit and enemy stat JSON that omits them resolves to neutral `5` values. Neutral `5` Precision has no miss chance and no critical-hit chance; neutral `5` Resolve has no status resistance. Speed is not a universal stat; timing remains governed by equipped ability speed costs and the 20-tick scheduler.
 
+Initial authored tuning stays conservative:
+- `5` remains the neutral baseline for both stats.
+- Frontline defenders lean toward higher Resolve and slightly lower Precision.
+- Ranged damage dealers lean toward higher Precision and lower Resolve.
+- Support units remain near neutral, with Resolve used for battlefield steadiness.
+- Existing enemies use small deviations by archetype so current regions remain recognizable before a broader balance pass.
+
 ## 7. Dice Resolution in Combat
 
 - Combat no longer consumes from a shared per-unit dice pool.
