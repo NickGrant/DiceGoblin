@@ -1,7 +1,7 @@
 # Core Gameplay Loop
 
 Status: active  
-Last Updated: 2026-06-21  
+Last Updated: 2026-07-24  
 Owner: Product  
 Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
 
@@ -21,12 +21,23 @@ Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts
    - spend the region's energy cost
 5. Traverse the run map by selecting available nodes.
 6. Resolve the selected node:
+   - dialogue nodes resolve through the dialogue page or dialogue presentation on the node route
    - combat, boss, and loot nodes resolve through the node page
    - rest nodes resolve through the rest page
    - exit ends the run from the run map
 7. Claim rewards or return to the map.
 8. If the run ends, review the run summary and return home.
 9. Between runs, use warband, dice, shop, and academy screens to prepare the next attempt.
+
+## First-Session Region Flow
+
+- New players begin with Mystic Cave unlocked.
+- Mystic Cave costs zero energy and contains an introductory conversation with The Whim followed by an exit.
+- Completing Mystic Cave unlocks The Farm.
+- Completing The Farm unlocks Mountains.
+- Completing Mountains unlocks Swamps.
+
+Mystic Cave is an onboarding and narrative region. It is not part of the current combat progression loop.
 
 ## Current Between-Run Preparation
 
@@ -50,6 +61,7 @@ During an active run:
 - the active squad is locked for the duration of the run
 - the run map is loaded from backend state
 - only available nodes can be selected
+- dialogue nodes advance authored narrative and may unlock codex entries
 - combat and boss encounters resolve automatically on the backend
 - the player reads outcome state and battle logs rather than issuing combat commands directly
 - rest restores run state through a dedicated recovery flow
@@ -65,10 +77,11 @@ The current implementation supports these progression ideas:
 - promotion consumes secondary units and upgrades the primary unit
 - feature unlocks can increase squad capacity and open additional systems
 - region unlocks gate access to later content
+- one-time dialogue discoveries persist for codex and onboarding state
 
 ## Current Constraints Players Feel
 
-- energy gates how often a new run can be started
+- energy gates how often an energy-costing run can be started
 - only one squad is active at a time
 - squad edits are blocked during an active run
 - unit and squad content can be locked by run state
@@ -77,3 +90,4 @@ The current implementation supports these progression ideas:
 ## Notes For Future Documentation
 
 - If current code behavior and older subsystem docs disagree, treat this file as the higher-level player-flow source of truth and update the narrower docs to match.
+- Future gameplay direction is tracked in `documentation/07-roadmap/00-gameplay-systems-roadmap.md`.
