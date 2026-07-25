@@ -169,10 +169,8 @@ Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/0
   - enemy authored-loadout validity
 
 ### Lane 2. Dice-to-Ability Binding
-- Replace `unit_dice`-style combat lookup with ability-slot lookup.
-- Decide whether legacy `unit_dice` is:
-  - removed outright, or
-  - migrated into a compatibility table during rollout.
+- Replace `unit_dice`-style combat lookup with ability-slot lookup. Complete.
+- Remove legacy `unit_dice` storage once ability-slot binding is canonical. Complete.
 - Add starter-loadout seed behavior that assigns common `d4` dice into all default starter ability slots.
 
 ### Lane 3. Combat Scheduler Rewrite

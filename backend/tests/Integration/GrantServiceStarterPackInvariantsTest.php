@@ -286,7 +286,6 @@ final class GrantServiceStarterPackInvariantsTest extends TestCase
     $this->execDelete("DELETE uad FROM `unit_ability_dice` uad JOIN `unit_instances` ui ON ui.`id` = uad.`unit_instance_id` WHERE ui.`user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE uea FROM `unit_instance_equipped_abilities` uea JOIN `unit_instances` ui ON ui.`id` = uea.`unit_instance_id` WHERE ui.`user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE uua FROM `unit_instance_unlocked_abilities` uua JOIN `unit_instances` ui ON ui.`id` = uua.`unit_instance_id` WHERE ui.`user_id` IN ($placeholders)", $userIds);
-    $this->execDelete("DELETE ud FROM `unit_dice` ud JOIN `unit_instances` ui ON ui.`id` = ud.`unit_instance_id` WHERE ui.`user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE dia FROM `dice_instance_affixes` dia JOIN `dice_instances` di ON di.`id` = dia.`dice_instance_id` WHERE di.`user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE FROM `user_grants` WHERE `user_id` IN ($placeholders)", $userIds);
     $this->execDelete("DELETE FROM `user_unlocks` WHERE `user_id` IN ($placeholders)", $userIds);

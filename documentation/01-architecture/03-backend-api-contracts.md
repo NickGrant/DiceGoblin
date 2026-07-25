@@ -148,8 +148,6 @@ Current routes:
 - `PUT /api/v1/units/:unitInstanceId/loadout`
 - `PUT /api/v1/units/:unitInstanceId/abilities/:abilityId/slots/:slotIndex/dice`
 - `DELETE /api/v1/units/:unitInstanceId/abilities/:abilityId/slots/:slotIndex/dice`
-- `POST /api/v1/units/:unitInstanceId/dice/equip`
-- `POST /api/v1/units/:unitInstanceId/dice/unequip`
 - `POST /api/v1/dice/:diceInstanceId/sell`
 - `POST /api/v1/dice/:diceInstanceId/salvage`
 
