@@ -2915,6 +2915,11 @@ SET
 WHERE RIGHT(`slug`, 3) IN ('_t2', '_t3');
 -- END MIGRATION: 67_tier_three_progression_coverage.sql
 
+-- BEGIN MIGRATION: 68_run_nodes_chaos_type.sql
+ALTER TABLE `run_nodes`
+  MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit','dialogue','hazard','shrine','chaos') NOT NULL;
+-- END MIGRATION: 68_run_nodes_chaos_type.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 -- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46

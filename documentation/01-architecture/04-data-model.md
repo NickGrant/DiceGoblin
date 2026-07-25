@@ -264,7 +264,7 @@ The old pooled-dice combat interpretation should not appear in new logs.
 
 ### 9.1 chaos_encounter_results
 
-`chaos_encounter_results` is the persisted foundation for slot-machine-style chaos encounters.
+`chaos_encounter_results` stores persisted slot-machine-style chaos encounter results for generated `chaos` run nodes.
 
 Current foundation columns:
 - owning `user_id`, `run_id`, and one unique `node_id`
@@ -279,7 +279,7 @@ Rules:
 - refreshes return the existing row instead of rerolling
 - one reroll may change exactly one reel, then manipulation is spent
 - reward scaling is derived from the same persisted reel result that communicates risk
-- full chaos-node routing, combat generation, and finalize/claim behavior are follow-up work
+- combat generation and finalize/claim behavior are follow-up work
 
 ## 10. Rewards and Promotions
 

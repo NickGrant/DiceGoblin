@@ -18,7 +18,7 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $userId = $this->insertUser('chaos_encounter', 'Chaos Encounter User');
     $regionId = $this->insertRegion();
     $runId = $this->insertRun($userId, $regionId, 424242, 'active');
-    $nodeId = $this->insertRunNode($runId, 'hazard', 'available');
+    $nodeId = $this->insertRunNode($runId, 'chaos', 'available');
 
     $this->authenticate($userId);
     $first = $this->invoke(fn() => (new ChaosEncounterController())->generate((string)$runId, (string)$nodeId));
@@ -66,6 +66,7 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $regionId = $this->insertRegion();
     $runId = $this->insertRun($ownerId, $regionId, 989898, 'active');
     $exitNodeId = $this->insertRunNode($runId, 'exit', 'available');
+    $hazardNodeId = $this->insertRunNode($runId, 'hazard', 'available');
 
     $this->authenticate($otherUserId);
     $wrongOwner = $this->invoke(fn() => (new ChaosEncounterController())->generate((string)$runId, (string)$exitNodeId));
@@ -76,6 +77,11 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $invalid = $this->invoke(fn() => (new ChaosEncounterController())->generate((string)$runId, (string)$exitNodeId));
     $this->assertSame(409, $invalid['status'], json_encode($invalid['body']));
     $this->assertSame('invalid_chaos_node', (string)($invalid['body']['error']['code'] ?? ''));
+
+    $this->authenticate($ownerId);
+    $invalidHazard = $this->invoke(fn() => (new ChaosEncounterController())->generate((string)$runId, (string)$hazardNodeId));
+    $this->assertSame(409, $invalidHazard['status'], json_encode($invalidHazard['body']));
+    $this->assertSame('invalid_chaos_node', (string)($invalidHazard['body']['error']['code'] ?? ''));
   }
 
   private function insertRunNode(int $runId, string $nodeType, string $status): int

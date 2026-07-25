@@ -12,7 +12,7 @@ Depends On: `documentation/02-systems-mvp/04-loot-and-drop-scope.md`, `documenta
 
 ## Encounter Types
 
-The active run map exposes eight node types:
+The active run map exposes nine node types:
 
 1. `dialogue`
 2. `combat`
@@ -21,7 +21,8 @@ The active run map exposes eight node types:
 5. `boss`
 6. `hazard`
 7. `shrine`
-8. `exit`
+8. `chaos`
+9. `exit`
 
 Behavior by type:
 
@@ -32,12 +33,13 @@ Behavior by type:
 - `boss`: uses combat rules and gates the final exit path in combat regions
 - `hazard`: resolves as a backend-authored non-combat obstacle, clears progression, and grants no rewards by default
 - `shrine`: resolves as a backend-authored non-combat encounter, persists a generated favor result, and may grant a small deterministic non-XP reward
+- `chaos`: presents persisted slot-style reel results and one bounded reroll before later combat/reward finalization work
 - `exit`: is not resolved through node resolution and instead completes the run through the dedicated exit endpoint
 
 ## XP Scope
 
 - Combat and boss nodes are the active XP-awarding encounter types.
-- Dialogue, loot, rest, hazard, and shrine nodes do not directly award combat XP.
+- Dialogue, loot, rest, hazard, shrine, and chaos nodes do not directly award combat XP.
 - Exit is a run-completion action, not an XP source by itself.
 
 ## Region Scope
@@ -111,6 +113,7 @@ Mystic Cave is currently a narrative onboarding region rather than a combat biom
 - The current generator guarantees at least one rest node in procedural combat regions.
 - Procedural regions may include optional dead-end branches, but they must never block the guaranteed boss route.
 - Procedural regions may include shrine nodes as optional non-combat branches or late-path pauses.
+- Procedural regions include at least one chaos node that presents persisted reel results.
 - Authored dialogue nodes may be inserted into otherwise fixed or procedural graphs.
 
 ## Encounter Exclusions
@@ -121,13 +124,12 @@ The current alpha build does not expose separate route types for:
 - branching narrative event chains beyond authored dialogue nodes
 - puzzle nodes
 - social choice chains
-- fully routed slot-machine-style generated encounters
 
 Those concepts may still appear in future planning, but they are not part of the current run route set.
 
 ## Chaos Encounter Foundation
 
-Slot-machine-style chaos encounters now have a backend persistence foundation, but they are not yet a generated run-map node type.
+Slot-machine-style chaos encounters now have a backend persistence foundation and appear as generated run-map node types in procedural regions.
 
 The foundation uses three authored reel responsibilities:
 
@@ -145,9 +147,8 @@ Generation rules:
 
 Current foundation exclusions:
 
-- chaos nodes are not yet placed by the run graph generator
 - chaos results do not yet finalize into combat or claim rewards
-- Raw Chaos payouts, combat modifiers, and full frontend presentation remain follow-up work
+- Raw Chaos payouts, combat modifiers, and battle reward application remain follow-up work
 
 ## Region Energy
 
@@ -171,7 +172,7 @@ Current foundation exclusions:
 
 The encounter scope is aligned when:
 
-- docs describe eight node types, including dialogue, hazard, shrine, and exit
+- docs describe nine node types, including dialogue, hazard, shrine, chaos, and exit
 - docs include Mystic Cave, Farm, Mountains, and Swamps
 - Mystic Cave is documented as the initial zero-energy narrative run
 - Farm is documented as the first fixed combat lane

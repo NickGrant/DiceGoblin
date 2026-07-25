@@ -272,6 +272,33 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     }
   }
 
+  /**
+   * @dataProvider proceduralRegionProvider
+   */
+  public function testProceduralRegionsIncludeReachableChaosNode(string $regionSlug): void
+  {
+    $regionId = $this->seededRegionId($regionSlug);
+    $generator = new RunGraphGenerator($this->pdo);
+
+    for ($seed = 1; $seed <= 20; $seed++) {
+      $graph = $generator->generate($regionId, $regionSlug, (string)$seed);
+      $analysis = $this->analyzeGraph($graph);
+      $chaosNodes = array_values(array_filter(
+        $graph['nodes'],
+        static fn(array $node): bool => (string)($node['node_type'] ?? '') === 'chaos',
+      ));
+
+      $this->assertNotEmpty($chaosNodes, sprintf('Seed %d for %s should include a chaos node.', $seed, $regionSlug));
+      foreach ($chaosNodes as $chaosNode) {
+        $nodeIndex = (int)$chaosNode['node_index'];
+        $this->assertArrayHasKey($nodeIndex, $analysis['reachable_from_start']);
+        $this->assertNull($chaosNode['encounter_template_id'] ?? null);
+        $this->assertGreaterThan(2, (int)$chaosNode['meta']['col']);
+        $this->assertLessThan($analysis['boss_col'], (int)$chaosNode['meta']['col']);
+      }
+    }
+  }
+
   public function testSwampsFavorBroadDeadEndHeavyLayouts(): void
   {
     $regionId = $this->seededRegionId('swamps');

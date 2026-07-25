@@ -99,6 +99,52 @@ class RunServiceStub {
       next: { unlocked_node_ids: ['n2'] },
     },
   });
+  generateChaosEncounter = jasmine.createSpy('generateChaosEncounter').and.resolveTo({
+    ok: true,
+    data: {
+      chaos_result: {
+        id: 'chaos-1',
+        status: 'generated',
+        seed: 1234,
+        reels: [
+          { reel_index: 0, reel: 'enemy_family', symbol: 'kobolds', label: 'Kobolds', weight: 30, risk: 2, effect: 'Trap-ready kobold pressure.' },
+          { reel_index: 1, reel: 'encounter_shape', symbol: 'ambush', label: 'Ambush', weight: 20, risk: 3, effect: 'A dangerous opening position.' },
+          { reel_index: 2, reel: 'rule_reward', symbol: 'guaranteed_loot', label: 'Guaranteed Loot', weight: 30, risk: 1, effect: 'Victory promises extra loot.' },
+        ],
+        reward_multiplier: 1.9,
+        manipulation: { available: true, rerolled_reel_index: null, remaining: 1 },
+        summary: {
+          title: 'Kobolds + Ambush + Guaranteed Loot',
+          effect: 'Trap-ready kobold pressure. A dangerous opening position. Victory promises extra loot.',
+        },
+      },
+      run: { id: 'run-1', status: 'active' },
+      node: { id: 'n1', node_type: 'chaos', status: 'available' },
+    },
+  });
+  rerollChaosEncounter = jasmine.createSpy('rerollChaosEncounter').and.resolveTo({
+    ok: true,
+    data: {
+      chaos_result: {
+        id: 'chaos-1',
+        status: 'manipulated',
+        seed: 5678,
+        reels: [
+          { reel_index: 0, reel: 'enemy_family', symbol: 'frogmen', label: 'Frogmen', weight: 25, risk: 2, effect: 'Swamp attrition pressure.' },
+          { reel_index: 1, reel: 'encounter_shape', symbol: 'ambush', label: 'Ambush', weight: 20, risk: 3, effect: 'A dangerous opening position.' },
+          { reel_index: 2, reel: 'rule_reward', symbol: 'guaranteed_loot', label: 'Guaranteed Loot', weight: 30, risk: 1, effect: 'Victory promises extra loot.' },
+        ],
+        reward_multiplier: 1.9,
+        manipulation: { available: false, rerolled_reel_index: 0, remaining: 0 },
+        summary: {
+          title: 'Frogmen + Ambush + Guaranteed Loot',
+          effect: 'Swamp attrition pressure. A dangerous opening position. Victory promises extra loot.',
+        },
+      },
+      run: { id: 'run-1', status: 'active' },
+      node: { id: 'n1', node_type: 'chaos', status: 'available' },
+    },
+  });
   claimBattleRewards = jasmine.createSpy('claimBattleRewards').and.resolveTo({
     ok: true,
     data: { run_resolution: { status: 'active' } },
@@ -341,6 +387,52 @@ describe('RunNodePageComponent', () => {
     );
     expect(fixture.nativeElement.textContent).toContain('Shrine Node');
     expect(fixture.nativeElement.textContent).toContain('The path opened without a fight.');
+  });
+
+  it('shows generated chaos reels and allows one reroll without resolving the node', async () => {
+    const runService = new RunServiceStub();
+    runService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'swamps', region_theme: 'swamp' },
+        map: {
+          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'chaos', status: 'available' }],
+          edges: [],
+        },
+      },
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: runService },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(runService.resolveNode).not.toHaveBeenCalled();
+    expect(runService.generateChaosEncounter).toHaveBeenCalledOnceWith('run-1', 'n1');
+    expect(fixture.componentInstance.pageTitle()).toBe('Chaos Encounter');
+    expect(fixture.nativeElement.textContent).toContain('Kobolds + Ambush + Guaranteed Loot');
+    expect(fixture.nativeElement.textContent).toContain('1.9x');
+    expect(fixture.nativeElement.textContent).toContain('Reroll Reel');
+
+    await fixture.componentInstance.rerollChaosReel(0);
+    fixture.detectChanges();
+
+    expect(runService.rerollChaosEncounter).toHaveBeenCalledOnceWith('run-1', 'n1', 0);
+    expect(fixture.nativeElement.textContent).toContain('Frogmen + Ambush + Guaranteed Loot');
+    expect(fixture.nativeElement.textContent).toContain('The reroll is spent.');
   });
 
   it('formats battle action log details for the node screen', async () => {
