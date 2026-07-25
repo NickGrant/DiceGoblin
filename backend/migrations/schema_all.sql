@@ -3004,62 +3004,20 @@ DROP TABLE IF EXISTS `unit_dice`;
 -- END MIGRATION: 70_drop_unit_dice.sql
 
 -- BEGIN MIGRATION: 71_coalesce_unit_type_ability_sets.sql
-UPDATE `unit_types` ut
-SET `ability_set_json` = JSON_SET(
-  COALESCE(ut.`ability_set_json`, JSON_OBJECT('version', 1, 'actives', JSON_ARRAY(), 'passives', JSON_ARRAY())),
-  '$.actives',
-  (
-    SELECT COALESCE(JSON_ARRAYAGG(`ability_id`), JSON_ARRAY())
-    FROM (
-      SELECT `ability_id`
-      FROM (
-        SELECT `ability_id`, MIN(`sort_key`) AS `sort_key`
-        FROM (
-          SELECT current_actives.`ability_id`, current_actives.`ord` AS `sort_key`
-          FROM JSON_TABLE(
-            COALESCE(JSON_EXTRACT(ut.`ability_set_json`, '$.actives'), JSON_ARRAY()),
-            '$[*]' COLUMNS (`ord` FOR ORDINALITY, `ability_id` VARCHAR(64) PATH '$')
-          ) current_actives
-          UNION ALL
-          SELECT grant_actives.`ability_id`, 1000 + grant_actives.`ord` AS `sort_key`
-          FROM JSON_TABLE(
-            COALESCE(JSON_EXTRACT(ut.`promotion_grants_json`, '$.actives'), JSON_ARRAY()),
-            '$[*]' COLUMNS (`ord` FOR ORDINALITY, `ability_id` VARCHAR(64) PATH '$')
-          ) grant_actives
-        ) merged_actives
-        WHERE `ability_id` IS NOT NULL AND `ability_id` <> ''
-        GROUP BY `ability_id`
-      ) deduped_actives
-      ORDER BY `sort_key` ASC
-    ) ordered_actives
-  ),
-  '$.passives',
-  (
-    SELECT COALESCE(JSON_ARRAYAGG(`ability_id`), JSON_ARRAY())
-    FROM (
-      SELECT `ability_id`
-      FROM (
-        SELECT `ability_id`, MIN(`sort_key`) AS `sort_key`
-        FROM (
-          SELECT current_passives.`ability_id`, current_passives.`ord` AS `sort_key`
-          FROM JSON_TABLE(
-            COALESCE(JSON_EXTRACT(ut.`ability_set_json`, '$.passives'), JSON_ARRAY()),
-            '$[*]' COLUMNS (`ord` FOR ORDINALITY, `ability_id` VARCHAR(64) PATH '$')
-          ) current_passives
-          UNION ALL
-          SELECT grant_passives.`ability_id`, 1000 + grant_passives.`ord` AS `sort_key`
-          FROM JSON_TABLE(
-            COALESCE(JSON_EXTRACT(ut.`promotion_grants_json`, '$.passives'), JSON_ARRAY()),
-            '$[*]' COLUMNS (`ord` FOR ORDINALITY, `ability_id` VARCHAR(64) PATH '$')
-          ) grant_passives
-        ) merged_passives
-        WHERE `ability_id` IS NOT NULL AND `ability_id` <> ''
-        GROUP BY `ability_id`
-      ) deduped_passives
-      ORDER BY `sort_key` ASC
-    ) ordered_passives
-  )
-)
+UPDATE `unit_types`
+SET `ability_set_json` = CASE `slug`
+  WHEN 'frontline_bruiser_t2' THEN JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('skullcrack'), 'passives', JSON_ARRAY('menacing_follow_through'))
+  WHEN 'frontline_guardian_t2' THEN JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('taunting_guard'), 'passives', JSON_ARRAY('shield_set'))
+  WHEN 'backline_marksman_t2' THEN JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('piercing_shot'), 'passives', JSON_ARRAY('vantage_point'))
+  WHEN 'support_banner_t2' THEN JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('warcry'), 'passives', JSON_ARRAY('battle_tempo'))
+  WHEN 'control_saboteur_t2' THEN JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('disarming_shot'), 'passives', JSON_ARRAY('opportunist'))
+  WHEN 'frontline_pit_fighter_t2' THEN JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('desperate_swing'), 'passives', JSON_ARRAY('counterpunch'))
+  WHEN 'frontline_shieldbreaker_t2' THEN JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('crack_armor'), 'passives', JSON_ARRAY('find_the_gap'))
+  WHEN 'backline_trapper_t2' THEN JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('mark_target'), 'passives', JSON_ARRAY('treasure_sense'))
+  WHEN 'support_mascot_t2' THEN JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('lucky_chant'), 'passives', JSON_ARRAY('attention_hog'))
+  WHEN 'control_plaguehand_t2' THEN JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('poison_cloud'), 'passives', JSON_ARRAY('nerve_toxin'))
+  ELSE `ability_set_json`
+END
 WHERE `promotion_grants_json` IS NOT NULL;
 
 ALTER TABLE `unit_types`
