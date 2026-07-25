@@ -98,7 +98,7 @@ Current prerequisite rules surfaced in player-facing copy:
 The academy should keep growing as a medium-term progression tree connected to the main loop rather than a separate currency sink. Near-term branches can use existing gameplay facts:
 
 - bounties can unlock additional bounty slots, categories, or reroll controls
-- splice research can reveal variant tendencies or provide limited recruitment steering
+- kin research can reveal lineage tendencies or provide limited recruitment steering
 - future crafting can unlock dice salvage, fabrication, or probability-appraisal tools
 
 These branches should stay backend-authored and expose visible requirement rows in their catalogs.

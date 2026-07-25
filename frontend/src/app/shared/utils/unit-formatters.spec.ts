@@ -12,9 +12,9 @@ describe('unit formatters', () => {
     expect(humanizeAbilityId('sleep_hex')).toBe('Sleep Hex');
   });
 
-  it('formats splice variant labels from names or slugs', () => {
-    expect(formatSpliceVariantLabel('Rat-Spliced', 'rat_splice')).toBe('Rat-Spliced');
-    expect(formatSpliceVariantLabel(null, 'toad_splice')).toBe('Toad-Spliced');
+  it('formats legacy splice variant labels as kin labels from names or slugs', () => {
+    expect(formatSpliceVariantLabel('Rat-Spliced', 'rat_splice')).toBe('Rat Kin');
+    expect(formatSpliceVariantLabel(null, 'toad_splice')).toBe('Toad Kin');
     expect(formatSpliceVariantLabel(null, 'basic_goblin')).toBe('Basic Goblin');
   });
 

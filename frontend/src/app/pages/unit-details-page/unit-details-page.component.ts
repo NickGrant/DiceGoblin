@@ -361,7 +361,7 @@ export class UnitDetailsPageComponent {
 
   readonly unitTypeLabel = computed(() => this.unit()?.unit_type_name || this.unit()?.unit_type_slug || 'Unit');
   readonly spliceVariantLabel = computed(() => formatSpliceVariantLabel(this.unit()?.splice_variant_name, this.unit()?.splice_variant_slug));
-  readonly spliceVariantSummary = computed(() => this.unit()?.splice_variant_passive_summary || 'No splice modifier.');
+  readonly spliceVariantSummary = computed(() => this.unit()?.splice_variant_passive_summary || 'No kin modifier.');
   readonly tierRomanNumeral = computed(() => toRomanNumeral(this.unit()?.tier ?? 1));
   readonly portraitLoadFailed = signal(false);
   readonly unitPortraitUrl = computed(() => resolveUnitImageUrl(this.unit()?.unit_type_slug));

@@ -274,12 +274,12 @@ describe('ShopPageComponent', () => {
     expect(shopService.purchase).toHaveBeenCalledWith('feature_unlock', 'academy');
   });
 
-  it('announces the recruited splice variant after buying a basic unit', async () => {
+  it('announces the recruited kin after buying a basic unit', async () => {
     const fixture = await createComponent();
 
     const component = fixture.componentInstance;
     await component.purchase('basic_unit', 'unit-1');
 
-    expect(component.message()).toBe('Recruit joined: Rat-Spliced.');
+    expect(component.message()).toBe('Recruit joined: Rat Kin.');
   });
 });

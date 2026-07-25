@@ -2,29 +2,32 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Hybrid Seed Catalog Ownership
+## Wrong Machine and Kin Foundation
 
 **Status:** Active
-**Purpose:** Establish clear ownership rules for database-backed, code-backed, and hybrid seeded data so future cleanup work can move constants and behavior-bearing catalog values intentionally.
+**Purpose:** Build the foundation for goblin-kin progression, generic progression items, and the Wrong Machine loop without extending superseded region-item or splice-variant terminology.
 
 ### Goals
 
-- Define criteria for deciding whether data should live in the database, code/config, or a hybrid model.
-- Classify every current table against those criteria.
-- Identify the safest near-term cleanup candidates.
-- Keep the read-only seed browser as the inspection surface for database-backed catalog values.
+- Add a generic item foundation for lineage materials, boss catalysts, machine catalysts, and unlock keys.
+- Retire `region_items` as the path for new progression rewards and profile work.
+- Canonicalize player-facing terminology around goblins, goblin-kin, kin, and lineages.
+- Preserve Basic Goblins as the implicit default while preparing account-level lineage unlocks.
+- Make Pig Kin the guaranteed first reconstruction path.
 
 ### Current Code Context
 
-The seed catalog ownership matrix exists, and `unit_types` now uses `ability_set_json` as the single authored ability package source. The next slice should add parity tests for behavior-bearing seeded slugs before more catalog values move out of raw SQL.
+The current implementation persists kin identity through legacy `splice_variant` fields and stores older boss-item concepts through `region_items`. The July 25 roadmap now supersedes both terms for new work: use kin/lineage language and generic item ownership going forward.
 
 ### Exit Criteria
 
-- A canonical ownership matrix exists and covers all current tables.
-- The roadmap points at hybrid catalog cleanup instead of the completed seed-browser work.
-- Follow-up implementation candidates are explicit enough to promote into focused issues.
-- Behavior-bearing seeded catalog slugs are protected by parity tests.
+- A generic item catalog and ownership path exists.
+- New progression rewards no longer depend on `region_items`.
+- Profile/debug surfaces expose generic item quantities.
+- Player-facing UI renders kin language instead of splice language.
+- The next branch can implement account-level lineage unlocks and Pig Kin reconstruction costs.
 
 ### Related Issues
 
-- HDC-003: Add hybrid catalog slug parity tests
+- PIF-001: Add generic progression item foundation
+- KRB-001: Canonicalize kin and lineage terminology

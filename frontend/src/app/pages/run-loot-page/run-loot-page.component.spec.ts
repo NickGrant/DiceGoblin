@@ -150,7 +150,7 @@ describe('RunLootPageComponent', () => {
     expect(host.textContent).toContain('Treasure Found');
     expect(host.textContent).toContain('Brindle');
     expect(host.textContent).toContain('Warcaller');
-    expect(host.textContent).toContain('Rat-Spliced');
+    expect(host.textContent).toContain('Rat Kin');
     expect(host.textContent).toContain('PRC');
     expect(host.textContent).toContain('RES');
     expect(host.textContent).toContain('Guard');

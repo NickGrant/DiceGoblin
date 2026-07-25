@@ -242,8 +242,8 @@ describe('UnitDetailsPageComponent', () => {
     expect(host.textContent).toContain('Precision');
     expect(host.textContent).toContain('Defense');
     expect(host.textContent).toContain('Resolve');
-    expect(host.textContent).toContain('DNA Splice');
-    expect(host.textContent).toContain('Bat-Spliced');
+    expect(host.textContent).toContain('Kin');
+    expect(host.textContent).toContain('Bat Kin');
     expect(host.textContent).toContain('+1 Attack, +1 Precision, -1 HP.');
     expect(host.textContent).toContain('Eligible now (unlocked at level 6)');
     expect(host.textContent).toContain('Static Abilities');
