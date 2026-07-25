@@ -540,3 +540,22 @@ current_code_references:
   - frontend/src/app/pages/codex-page
   - frontend/src/app/pages/guide-page
   - documentation/02-systems-mvp/02-units-and-progression.md
+
+---
+id: SME-002
+title: Place and present chaos encounter nodes
+status: complete
+priority: medium
+milestone: Slot-Machine-Style Random Encounters
+description: Added chaos as a reachable procedural run node type, rendered persisted reel results with a one-reroll flow on the run-node page, and kept combat/reward finalization as explicit follow-up scope.
+acceptance_criteria:
+  - Add chaos run-node placement to eligible procedural run graphs without disrupting existing combat, shrine, rest, loot, boss, exit, dialogue, or hazard flows.
+  - Present chaos nodes in the run-node UI with generated reel results, readable risk/reward copy, and the one-reroll agency mechanic.
+  - Keep generation idempotent: refreshing or revisiting a chaos node must not regenerate an existing result.
+  - Add backend and frontend coverage for chaos node placement and the visible generate/reroll flow.
+current_code_references:
+  - backend/migrations/68_run_nodes_chaos_type.sql
+  - backend/src/Services/RunGraphGenerator.php
+  - backend/src/Services/ChaosEncounterService.php
+  - frontend/src/app/pages/run-node-page
+  - documentation/02-systems-mvp/03-encounter-scope.md
