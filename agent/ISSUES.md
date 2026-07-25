@@ -4,7 +4,7 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Hybrid Seed Catalog Ownership
 
-### HDC-001: Classify database tables by data ownership model
+### HDC-003: Add hybrid catalog slug parity tests
 
 **Milestone:** Hybrid Seed Catalog Ownership
 **Status:** Open
@@ -12,12 +12,12 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 #### Problem
 
-Seeded and runtime tables currently mix several kinds of data ownership: player state, authored catalog values, small constants, and behavior-bearing slugs. Without a shared classification, it is unclear which tables should stay database-backed, which values should be codified, and which tables need a hybrid contract between seeded data and executable code.
+Hybrid-owned catalog rows reference behavior-bearing slugs for abilities, affixes, bounty objectives, enemy loadouts, and encounter content. Without explicit parity tests, seeded rows can drift away from code handlers or reference missing catalog records.
 
 #### Acceptance Criteria
 
-- Add a canonical architecture document that defines database, code/config, and hybrid ownership criteria.
-- Classify every current table in the project by ownership model.
-- Identify near-term candidates for codification or hybrid contract enforcement.
-- Update the active roadmap so the seed browser is marked complete and hybrid catalog cleanup is the current planning lane.
-- Preserve runtime/player-state tables as database-owned unless a concrete reason says otherwise.
+- Add backend coverage that verifies unit and enemy ability slugs resolve through the ability registry.
+- Verify behavior-bearing affix definitions use supported behavior kinds or handlers.
+- Verify bounty objective kinds resolve to backend objective evaluation support.
+- Verify encounter templates reference seeded enemy templates and valid region context where applicable.
+- Keep tests focused on seeded catalog integrity without changing runtime behavior.

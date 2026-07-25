@@ -19,7 +19,7 @@ final class UnitLoadoutService
   public function ensureStateForUser(int $userId): void
   {
     $stmt = $this->pdo->prepare('
-      SELECT ui.`id` AS `unit_instance_id`, ui.`unit_type_id`, ut.`slug` AS `unit_type_slug`, ut.`ability_set_json`, ut.`promotion_grants_json`
+      SELECT ui.`id` AS `unit_instance_id`, ui.`unit_type_id`, ut.`slug` AS `unit_type_slug`, ut.`ability_set_json`
       FROM `unit_instances` ui
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
       WHERE ui.`user_id` = ?
@@ -35,7 +35,7 @@ final class UnitLoadoutService
   public function initializeUnit(int $unitInstanceId, int $unitTypeId): void
   {
     $stmt = $this->pdo->prepare('
-      SELECT ui.`id` AS `unit_instance_id`, ui.`unit_type_id`, ut.`slug` AS `unit_type_slug`, ut.`ability_set_json`, ut.`promotion_grants_json`
+      SELECT ui.`id` AS `unit_instance_id`, ui.`unit_type_id`, ut.`slug` AS `unit_type_slug`, ut.`ability_set_json`
       FROM `unit_instances` ui
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
       WHERE ui.`id` = ? AND ui.`unit_type_id` = ?
@@ -53,7 +53,7 @@ final class UnitLoadoutService
   public function ensureUnlockedCatalogForUnit(int $unitInstanceId): void
   {
     $stmt = $this->pdo->prepare('
-      SELECT ui.`id` AS `unit_instance_id`, ui.`unit_type_id`, ut.`slug` AS `unit_type_slug`, ut.`ability_set_json`, ut.`promotion_grants_json`
+      SELECT ui.`id` AS `unit_instance_id`, ui.`unit_type_id`, ut.`slug` AS `unit_type_slug`, ut.`ability_set_json`
       FROM `unit_instances` ui
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
       WHERE ui.`id` = ?
@@ -73,7 +73,7 @@ final class UnitLoadoutService
    */
   public function listDefaultAbilityDiceSlotsForUnitType(int $unitTypeId): array
   {
-    $stmt = $this->pdo->prepare('SELECT `ability_set_json`, `promotion_grants_json` FROM `unit_types` WHERE `id` = ? LIMIT 1');
+    $stmt = $this->pdo->prepare('SELECT `ability_set_json` FROM `unit_types` WHERE `id` = ? LIMIT 1');
     $stmt->execute([$unitTypeId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!is_array($row)) {
@@ -81,9 +81,8 @@ final class UnitLoadoutService
     }
 
     $abilitySet = $this->decodeAbilitySet($row['ability_set_json'] ?? null);
-    $promotionGrants = $this->decodeAbilitySet($row['promotion_grants_json'] ?? null);
     $slots = [];
-    foreach ($this->orderedActives($abilitySet, $promotionGrants) as $abilityId) {
+    foreach ($this->orderedActives($abilitySet) as $abilityId) {
       $slotCount = $this->slotCountForAbility($abilityId);
       for ($slotIndex = 0; $slotIndex < $slotCount; $slotIndex++) {
         $slots[] = [
@@ -186,7 +185,6 @@ final class UnitLoadoutService
     }
 
     $abilitySet = $this->decodeAbilitySet($row['ability_set_json'] ?? null);
-    $promotionGrants = $this->decodeAbilitySet($row['promotion_grants_json'] ?? null);
     $this->insertUnlockedCatalogFromRow($row);
 
     $countStmt = $this->pdo->prepare('SELECT COUNT(*) FROM `unit_instance_equipped_abilities` WHERE `unit_instance_id` = ?');
@@ -196,7 +194,7 @@ final class UnitLoadoutService
       return;
     }
 
-    $defaultEquipped = $this->orderedActives($abilitySet, $promotionGrants);
+    $defaultEquipped = $this->orderedActives($abilitySet);
     if (count($defaultEquipped) === 0) {
       return;
     }
@@ -217,9 +215,8 @@ final class UnitLoadoutService
     }
 
     $abilitySet = $this->decodeAbilitySet($row['ability_set_json'] ?? null);
-    $promotionGrants = $this->decodeAbilitySet($row['promotion_grants_json'] ?? null);
     $sourceTier = $this->tierFromSlug($unitTypeSlug);
-    $catalog = $this->catalogAbilities($abilitySet, $promotionGrants);
+    $catalog = $this->catalogAbilities($abilitySet);
     if (count($catalog) === 0) {
       return;
     }
@@ -390,7 +387,7 @@ final class UnitLoadoutService
   private function backfillAuthoredAbilityUnlock(int $unitInstanceId, string $abilityId): bool
   {
     $stmt = $this->pdo->prepare('
-      SELECT ui.`unit_type_id`, ut.`slug` AS `unit_type_slug`, ut.`ability_set_json`, ut.`promotion_grants_json`
+      SELECT ui.`unit_type_id`, ut.`slug` AS `unit_type_slug`, ut.`ability_set_json`
       FROM `unit_instances` ui
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
       WHERE ui.`id` = ?
@@ -403,8 +400,7 @@ final class UnitLoadoutService
     }
 
     $abilitySet = $this->decodeAbilitySet($row['ability_set_json'] ?? null);
-    $promotionGrants = $this->decodeAbilitySet($row['promotion_grants_json'] ?? null);
-    if (!in_array($abilityId, $this->catalogAbilities($abilitySet, $promotionGrants), true)) {
+    if (!in_array($abilityId, $this->catalogAbilities($abilitySet), true)) {
       return false;
     }
 

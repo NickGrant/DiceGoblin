@@ -685,12 +685,11 @@ final class DeterministicRunNodeResolverFormationIntegrationTest extends Integra
         `base_stats_json`,
         `ability_set_json`,
         `max_level`,
-        `max_equipped_dice`,
         `attack_per_level`,
         `defense_per_level`,
         `max_hp_per_level`
       )
-      VALUES (?, ?, ?, ?, ?, 10, 2, 1, 1, 2)
+      VALUES (?, ?, ?, ?, ?, 10, 1, 1, 2)
     ');
     $stmt->execute([
       $slug,

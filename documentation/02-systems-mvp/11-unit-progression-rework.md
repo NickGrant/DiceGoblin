@@ -23,7 +23,7 @@ The rework should also make higher-tier unit types more specialized than Tier 1 
 - Level 10 unlocks a choice between two passive capstone abilities.
 - Capstone abilities follow the normal ability inheritance model when a unit promotes.
 - Capstones must be passive abilities.
-- Tier 2 and Tier 3 unit types grant an active ability and a passive ability immediately when the class is chosen.
+- Tier 2 and Tier 3 unit types grant the abilities in their authored `ability_set_json` immediately when the class is chosen.
 - Tier 2 and Tier 3 unit types also unlock a passive capstone choice at level 10.
 - The player is not asked to make decisions on normal level-up except for capstone selection and promotion.
 - If a unit promotes before level 10, it skips that unit type's capstone unless it later has another valid way to return to that class and reach mastery.
