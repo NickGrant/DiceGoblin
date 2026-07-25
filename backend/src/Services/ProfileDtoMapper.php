@@ -20,6 +20,7 @@ final class ProfileDtoMapper
    * @param int $squadUnitCap
    * @param array<int,string> $featureUnlocks
    * @param array<int,string> $unitTypeUnlocks
+   * @param array<int,mixed> $lineageUnlocks
    * @param array<int,string> $seenDialogues
    * @param array<int,mixed> $regions
    * @param array<int,mixed> $regionUnlocks
@@ -39,6 +40,7 @@ final class ProfileDtoMapper
     int $squadUnitCap,
     array $featureUnlocks,
     array $unitTypeUnlocks,
+    array $lineageUnlocks,
     array $seenDialogues,
     array $regions,
     array $regionUnlocks,
@@ -57,6 +59,7 @@ final class ProfileDtoMapper
       'squad_unit_cap' => max(1, $squadUnitCap),
       'feature_unlocks' => array_values(array_map(static fn(mixed $value): string => (string)$value, $featureUnlocks)),
       'unit_type_unlocks' => array_values(array_map(static fn(mixed $value): string => (string)$value, $unitTypeUnlocks)),
+      'lineage_unlocks' => $lineageUnlocks,
       'seen_dialogues' => array_values(array_map(static fn(mixed $value): string => (string)$value, $seenDialogues)),
       'regions' => $regions,
       'region_unlocks' => $regionUnlocks,

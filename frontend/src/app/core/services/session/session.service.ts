@@ -59,6 +59,7 @@ export class SessionService {
   readonly squadUnitCap = computed(() => this.profileDataState()?.squad_unit_cap ?? 4);
   readonly featureUnlocks = computed(() => this.profileDataState()?.feature_unlocks ?? []);
   readonly unitTypeUnlocks = computed(() => this.profileDataState()?.unit_type_unlocks ?? []);
+  readonly lineageUnlocks = computed(() => this.profileDataState()?.lineage_unlocks ?? []);
   readonly shopUnlocked = computed(() => this.featureUnlocks().includes('shop'));
   readonly academyUnlocked = computed(() => this.featureUnlocks().includes('academy'));
   readonly activeSquad = computed<TeamRecord | null>(

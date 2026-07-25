@@ -108,6 +108,7 @@
         <h2 class="dg-stencil mb-3">Catalog</h2>
         <p class="mb-2">{{ catalog.unit_types.length }} units - {{ catalog.dice_definitions.length }} dice defs</p>
         <p class="mb-2">{{ catalog.items.length }} items</p>
+        <p class="mb-2">{{ catalog.owned_lineages.length }} / {{ catalog.lineages.length }} lineages unlocked</p>
         <p class="mb-3">{{ catalog.region_items.length }} region items</p>
         <button dgCommandBtn="primary" type="button" (click)="resetAccount()" [disabled]="busy()">
           Reset Account

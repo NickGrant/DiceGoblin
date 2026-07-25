@@ -61,6 +61,7 @@ final class DevToolsService
 
   private UserAssetGrantService $userAssetGrantService;
   private ItemInventoryService $itemInventoryService;
+  private LineageUnlockService $lineageUnlockService;
 
   public function __construct(
     private readonly PDO $pdo,
@@ -73,6 +74,7 @@ final class DevToolsService
   ) {
     $this->userAssetGrantService = $userAssetGrantService ?? new UserAssetGrantService($pdo);
     $this->itemInventoryService = new ItemInventoryService($pdo);
+    $this->lineageUnlockService = new LineageUnlockService($pdo);
   }
 
   public function isEnabled(): bool
@@ -93,6 +95,8 @@ final class DevToolsService
    *   unit_types: array<int, array{id:string,slug:string,name:string,role:string}>,
    *   dice_definitions: array<int, array{id:string,sides:int,rarity:string,slot_capacity:int}>,
    *   items: array<int, array{id:string,slug:string,name:string,description:string,category:string,rarity:string,source_region_slug:?string,source_region_name:?string,source_family_slug:?string,is_stackable:bool}>,
+   *   lineages: array<int, array{lineage_slug:string,kin_slug:string,name:string,description:string,is_default:bool,sort_order:int}>,
+   *   owned_lineages: array<int, array{lineage_slug:string,kin_slug:string,name:string,description:string,is_default:bool,is_implicit:bool,unlocked_at:?string}>,
    *   region_items: array<int, array{id:string,slug:string,name:string,region_slug:string,region_name:string}>,
    *   owned_units: array<int, array{id:string,name:string,unit_type_slug:string,level:int,max_level:int}>
    * }
@@ -147,6 +151,8 @@ final class DevToolsService
       'unit_types' => $this->unitRepo->listUnitTypes(),
       'dice_definitions' => $this->diceRepo->listDiceDefinitions(),
       'items' => $this->itemInventoryService->listCatalog(),
+      'lineages' => $this->lineageUnlockService->listCatalog(),
+      'owned_lineages' => $this->lineageUnlockService->listForUser($userId),
       'region_items' => $regionItems,
       'owned_units' => $ownedUnits,
     ];

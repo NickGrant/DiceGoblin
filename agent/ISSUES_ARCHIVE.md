@@ -6,6 +6,23 @@
 - Historical issue records can be retrieved from git when needed.
 
 ---
+id: KRB-001
+title: Canonicalize kin and lineage terminology
+status: complete
+priority: high
+milestone: Wrong Machine and Kin Foundation
+description: Canonicalized new documentation, UI copy, and service/API concepts around "goblins and goblin-kin," shortened to "kin," while keeping legacy `splice_variant` storage as compatibility-only.
+acceptance_criteria:
+  - Use kin/lineage language in new documentation, UI copy, and service/API additions.
+  - Keep old migrations untouched.
+  - Plan any `splice_variant` storage/API rename as a forward migration with compatibility handling.
+  - Ensure visible unit, reward, shop, and roster copy renders legacy `*-Spliced` values as `* Kin`.
+current_code_references:
+  - backend/src/Services/KinLabelService.php
+  - frontend/src/app/shared/utils/kin-label.ts
+  - documentation/01-architecture/03-backend-api-contracts.md
+
+---
 id: HDC-002
 title: Coalesce unit type ability package fields
 status: complete

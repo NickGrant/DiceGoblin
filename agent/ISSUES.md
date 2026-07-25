@@ -4,7 +4,7 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Wrong Machine and Kin Foundation
 
-### KRB-001: Canonicalize kin and lineage terminology
+### KRB-002: Add account-level lineage unlock state
 
 **Milestone:** Wrong Machine and Kin Foundation
 **Status:** Open
@@ -12,11 +12,13 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 #### Problem
 
-The approved language is "goblins and goblin-kin," shortened to "kin," with lineage as the account-level unlock track. Legacy `splice_variant` names remain in storage and API fields, but new player-facing copy and new code concepts should not reinforce that terminology.
+The Wrong Machine loop needs account-level lineage ownership before Pig Kin reconstruction can grant a durable unlock. Basic Goblin should stay available to every account without extra storage, while new kin unlocks need a shared service/API surface.
 
 #### Acceptance Criteria
 
-- Use kin/lineage language in new documentation, UI copy, and service/API additions.
+- Store explicit lineage unlocks in the existing `user_unlocks` table under the `lineage` namespace.
+- Treat Basic Goblin as the implicit default lineage for every account.
+- Expose owned lineages in the profile payload.
+- Expose the lineage catalog and owned lineages in debug/dev catalog surfaces.
 - Keep old migrations untouched.
-- Plan any `splice_variant` storage/API rename as a forward migration with compatibility handling.
-- Ensure visible unit, reward, shop, and roster copy renders legacy `*-Spliced` values as `* Kin`.
+- Do not add new `region_items` dependencies.

@@ -264,6 +264,7 @@ export type ProfileData = {
   squad_unit_cap: number;
   feature_unlocks: string[];
   unit_type_unlocks: string[];
+  lineage_unlocks: LineageUnlockRecord[];
   seen_dialogues?: string[];
   regions: RegionRecord[];
   region_unlocks: RegionUnlockRecord[];
@@ -271,6 +272,16 @@ export type ProfileData = {
   region_items: RegionItemRecord[];
   active_run: ProfileActiveRun | null;
   objectives: ObjectiveRecord[];
+};
+
+export type LineageUnlockRecord = {
+  lineage_slug: string;
+  kin_slug: string;
+  name: string;
+  description: string;
+  is_default: boolean;
+  is_implicit: boolean;
+  unlocked_at: string | null;
 };
 
 export type ItemRecord = {
@@ -846,6 +857,17 @@ export type DebugItemRecord = {
   is_stackable: boolean;
 };
 
+export type DebugLineageRecord = {
+  lineage_slug: string;
+  kin_slug: string;
+  name: string;
+  description: string;
+  is_default: boolean;
+  sort_order?: number;
+  is_implicit?: boolean;
+  unlocked_at?: string | null;
+};
+
 export type DebugOwnedUnitRecord = {
   id: string;
   name: string;
@@ -858,6 +880,8 @@ export type DebugCatalogData = {
   unit_types: DebugUnitTypeRecord[];
   dice_definitions: DebugDiceDefinition[];
   items: DebugItemRecord[];
+  lineages: DebugLineageRecord[];
+  owned_lineages: DebugLineageRecord[];
   region_items: DebugRegionItemRecord[];
   owned_units: DebugOwnedUnitRecord[];
 };
