@@ -4,7 +4,7 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Wrong Machine and Kin Foundation
 
-### KRB-002: Add account-level lineage unlock state
+### KRB-003: Add Wrong Machine reconstruction transaction
 
 **Milestone:** Wrong Machine and Kin Foundation
 **Status:** Open
@@ -12,13 +12,15 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 #### Problem
 
-The Wrong Machine loop needs account-level lineage ownership before Pig Kin reconstruction can grant a durable unlock. Basic Goblin should stay available to every account without extra storage, while new kin unlocks need a shared service/API surface.
+Pig Kin should be unlocked through a backend-authoritative Wrong Machine reconstruction flow rather than appearing only through random kin assignment. Reconstruction needs a cost preview, transactional spending, lineage unlock grant, and tutorial unit grant without consuming materials on failed or duplicate requests.
 
 #### Acceptance Criteria
 
-- Store explicit lineage unlocks in the existing `user_unlocks` table under the `lineage` namespace.
-- Treat Basic Goblin as the implicit default lineage for every account.
-- Expose owned lineages in the profile payload.
-- Expose the lineage catalog and owned lineages in debug/dev catalog surfaces.
+- Add a backend service/API surface for reconstructing the first explicit lineage.
+- Require the Wrong Machine feature before reconstruction actions succeed.
+- Preview Pig Kin costs from backend-owned item and Raw Chaos requirements.
+- Spend required materials and boss catalysts only when reconstruction succeeds.
+- Grant the Pig Kin lineage and a Pig Kin unit atomically with the spend.
+- Make duplicate reconstruction idempotent and never double-spend resources.
 - Keep old migrations untouched.
 - Do not add new `region_items` dependencies.
