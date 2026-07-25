@@ -134,6 +134,43 @@ final class RunLifecycleServiceIntegrationTest extends BattleFlowIntegrationCase
     );
   }
 
+  public function testCompleteSwampsRunGrantsWrongMachineFeatureOnce(): void
+  {
+    $userId = $this->insertUser();
+    $swampsRegionId = (int)$this->scalar("SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1", []);
+    $this->assertGreaterThan(0, $swampsRegionId);
+
+    $firstRunId = $this->insertRun($userId, $swampsRegionId, 42434445);
+    $firstExitNodeId = $this->insertRunNode($firstRunId, 'exit', 'available');
+
+    $first = $this->service()->completeRun($userId, $firstRunId, $swampsRegionId, $firstExitNodeId);
+    $firstSummary = is_array($first['run_summary'] ?? null) ? $first['run_summary'] : [];
+    $firstMeta = is_array($firstSummary['meta'] ?? null) ? $firstSummary['meta'] : [];
+
+    $this->assertSame('completed', $first['status']);
+    $this->assertContains(UserUnlockService::FEATURE_WRONG_MACHINE, $firstMeta['new_feature_unlocks'] ?? []);
+
+    $unlockService = new UserUnlockService($this->pdo);
+    $this->assertTrue($unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_WRONG_MACHINE));
+
+    $secondRunId = $this->insertRun($userId, $swampsRegionId, 52535455);
+    $secondExitNodeId = $this->insertRunNode($secondRunId, 'exit', 'available');
+
+    $second = $this->service()->completeRun($userId, $secondRunId, $swampsRegionId, $secondExitNodeId);
+    $secondSummary = is_array($second['run_summary'] ?? null) ? $second['run_summary'] : [];
+    $secondMeta = is_array($secondSummary['meta'] ?? null) ? $secondSummary['meta'] : [];
+
+    $this->assertSame('completed', $second['status']);
+    $this->assertNotContains(UserUnlockService::FEATURE_WRONG_MACHINE, $secondMeta['new_feature_unlocks'] ?? []);
+    $this->assertSame(
+      '1',
+      (string)$this->scalar(
+        "SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_namespace` = 'feature' AND `unlock_key` = ?",
+        [$userId, UserUnlockService::FEATURE_WRONG_MACHINE]
+      )
+    );
+  }
+
   public function testClaimBattleAppliesRewardsAndStoresIdempotentClaimSnapshot(): void
   {
     $userId = $this->insertUser();
