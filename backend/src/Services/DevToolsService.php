@@ -28,6 +28,7 @@ final class DevToolsService
     'encounter_templates' => ['label' => 'Encounter Templates', 'order_by' => '`region_id` ASC, `slug` ASC'],
     'enemy_templates' => ['label' => 'Enemy Templates', 'order_by' => '`tier` ASC, `slug` ASC'],
     'energy_state' => ['label' => 'Energy State', 'order_by' => '`user_id` ASC'],
+    'items' => ['label' => 'Items', 'order_by' => '`category` ASC, `rarity` ASC, `slug` ASC'],
     'loot_tables' => ['label' => 'Loot Tables', 'order_by' => '`tier` ASC, `slug` ASC'],
     'password_reset_tokens' => ['label' => 'Password Reset Tokens', 'order_by' => '`id` DESC'],
     'player_state' => ['label' => 'Player State', 'order_by' => '`user_id` ASC'],
@@ -52,12 +53,14 @@ final class DevToolsService
     'unit_types' => ['label' => 'Unit Types', 'order_by' => '`role` ASC, `slug` ASC'],
     'user_bounties' => ['label' => 'User Bounties', 'order_by' => '`user_id` ASC, `bounty_definition_id` ASC'],
     'user_grants' => ['label' => 'User Grants', 'order_by' => '`id` DESC'],
+    'user_items' => ['label' => 'User Items', 'order_by' => '`user_id` ASC, `item_id` ASC'],
     'user_region_items' => ['label' => 'User Region Items', 'order_by' => '`user_id` ASC, `region_item_id` ASC'],
     'user_unlocks' => ['label' => 'User Unlocks', 'order_by' => '`user_id` ASC, `unlock_namespace` ASC, `unlock_key` ASC'],
     'users' => ['label' => 'Users', 'order_by' => '`id` DESC'],
   ];
 
   private UserAssetGrantService $userAssetGrantService;
+  private ItemInventoryService $itemInventoryService;
 
   public function __construct(
     private readonly PDO $pdo,
@@ -69,6 +72,7 @@ final class DevToolsService
     ?UserAssetGrantService $userAssetGrantService = null,
   ) {
     $this->userAssetGrantService = $userAssetGrantService ?? new UserAssetGrantService($pdo);
+    $this->itemInventoryService = new ItemInventoryService($pdo);
   }
 
   public function isEnabled(): bool
@@ -88,6 +92,7 @@ final class DevToolsService
    * @return array{
    *   unit_types: array<int, array{id:string,slug:string,name:string,role:string}>,
    *   dice_definitions: array<int, array{id:string,sides:int,rarity:string,slot_capacity:int}>,
+   *   items: array<int, array{id:string,slug:string,name:string,description:string,category:string,rarity:string,source_region_slug:?string,source_region_name:?string,source_family_slug:?string,is_stackable:bool}>,
    *   region_items: array<int, array{id:string,slug:string,name:string,region_slug:string,region_name:string}>,
    *   owned_units: array<int, array{id:string,name:string,unit_type_slug:string,level:int,max_level:int}>
    * }
@@ -141,6 +146,7 @@ final class DevToolsService
     return [
       'unit_types' => $this->unitRepo->listUnitTypes(),
       'dice_definitions' => $this->diceRepo->listDiceDefinitions(),
+      'items' => $this->itemInventoryService->listCatalog(),
       'region_items' => $regionItems,
       'owned_units' => $ownedUnits,
     ];
@@ -249,6 +255,17 @@ final class DevToolsService
       'region_item_slug' => $regionItemSlug,
       'quantity' => $currentQuantity,
     ];
+  }
+
+  /**
+   * @return array{item_slug:string,quantity:int,granted_quantity:int}
+   */
+  public function grantItem(int $userId, string $itemSlug, int $quantity = 1): array
+  {
+    $quantity = max(1, min(999, $quantity));
+    $this->bootstrapper->ensureBaseline($userId);
+
+    return $this->itemInventoryService->grantBySlug($userId, $itemSlug, $quantity);
   }
 
   /**
@@ -363,6 +380,9 @@ final class DevToolsService
     $this->execDelete('DELETE FROM `shop_daily_deals` WHERE `user_id` = ?', [$userId]);
 
     $this->execDelete('DELETE FROM `unit_promotions` WHERE `user_id` = ?', [$userId]);
+    if ($this->schemaHasTable('user_items')) {
+      $this->execDelete('DELETE FROM `user_items` WHERE `user_id` = ?', [$userId]);
+    }
     $this->execDelete('DELETE FROM `user_region_items` WHERE `user_id` = ?', [$userId]);
     $this->execDelete('DELETE FROM `region_unlocks` WHERE `user_id` = ?', [$userId]);
     $this->execDelete('DELETE FROM `user_grants` WHERE `user_id` = ?', [$userId]);

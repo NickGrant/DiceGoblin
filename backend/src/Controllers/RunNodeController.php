@@ -317,6 +317,7 @@ final class RunNodeController
       $resolvedRewards = is_array($resolution['rewards'] ?? null) ? $resolution['rewards'] : [];
       $grantedUnitIds = $svc['userAssetGrantService']->materializeRewardUnitGrants($userId, $resolvedRewards);
       $grantedDiceIds = $svc['userAssetGrantService']->materializeRewardDiceGrants($userId, $resolvedRewards);
+      $grantedItems = $svc['userAssetGrantService']->materializeRewardItemGrants($userId, $resolvedRewards);
       if (count($grantedUnitIds) > 0) {
         $existing = is_array($resolvedRewards['new_unit_instance_ids'] ?? null) ? $resolvedRewards['new_unit_instance_ids'] : [];
         $resolvedRewards['new_unit_instance_ids'] = array_values(array_unique(array_map('strval', array_merge($existing, $grantedUnitIds))));
@@ -324,6 +325,9 @@ final class RunNodeController
       if (count($grantedDiceIds) > 0) {
         $existing = is_array($resolvedRewards['new_dice_instance_ids'] ?? null) ? $resolvedRewards['new_dice_instance_ids'] : [];
         $resolvedRewards['new_dice_instance_ids'] = array_values(array_unique(array_map('strval', array_merge($existing, $grantedDiceIds))));
+      }
+      if (count($grantedItems) > 0) {
+        $resolvedRewards['granted_items'] = $grantedItems;
       }
 
       $battleId = $svc['battleRepo']->createCompleted(

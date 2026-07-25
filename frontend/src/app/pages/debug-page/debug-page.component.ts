@@ -28,6 +28,7 @@ export class DebugPageComponent {
   selectedUnitSlug = '';
   selectedSides = 6;
   selectedRarity = 'common';
+  selectedItem = '';
   selectedRegionItem = '';
   selectedOwnedUnitId = '';
   selectedOwnedUnitLevel = 1;
@@ -49,6 +50,7 @@ export class DebugPageComponent {
       }
       this.catalog.set(response.data);
       this.selectedUnitSlug ||= response.data.unit_types[0]?.slug ?? '';
+      this.selectedItem ||= response.data.items[0]?.slug ?? '';
       this.selectedRegionItem ||= response.data.region_items[0]?.slug ?? '';
       this.syncOwnedUnitSelection(response.data);
     } catch (error) {
@@ -87,6 +89,10 @@ export class DebugPageComponent {
 
   async grantDie(): Promise<void> {
     await this.runMutation(async () => this.debugService.grantDie(this.selectedSides, this.selectedRarity, 1));
+  }
+
+  async grantItem(): Promise<void> {
+    await this.runMutation(async () => this.debugService.grantItem(this.selectedItem, 1));
   }
 
   async grantRegionItem(): Promise<void> {

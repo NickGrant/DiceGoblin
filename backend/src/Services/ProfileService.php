@@ -78,7 +78,9 @@ final class ProfileService
     $regions = $this->regionRepo->listRegionsWithUserState($userId);
     $regionUnlocks = $this->regionRepo->getUnlocksForUser($userId);
 
-    // Region items (small join; you did not create RegionItemRepository, so we keep this here for now)
+    $items = (new ItemInventoryService($this->pdo))->listForUser($userId);
+
+    // Region items remain for legacy compatibility while new progression inventory uses items.
     $regionItems = $this->getRegionItemsForUser($userId);
 
     // Active run (if any)
@@ -109,6 +111,7 @@ final class ProfileService
       $seenDialogues,
       $regions,
       $regionUnlocks,
+      $items,
       $regionItems,
       $activeRun,
       $objectives

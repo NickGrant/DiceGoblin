@@ -280,6 +280,62 @@ final class DebugController
     }
   }
 
+  public function grantItem(): void
+  {
+    $svc = $this->services();
+    if (!$svc['devTools']->isEnabled()) {
+      $this->respondDisabled();
+      return;
+    }
+
+    try {
+      $userId = $svc['sessionService']->requireUserId();
+    } catch (Throwable $e) {
+      $this->respondUnauthorized();
+      return;
+    }
+
+    if (!$this->requireCsrf($svc['csrfService'])) {
+      return;
+    }
+
+    $body = $this->readJsonBody();
+    if ($body === null) {
+      $this->respondInvalidBody();
+      return;
+    }
+
+    $itemSlug = trim((string)($body['item_slug'] ?? ''));
+    if ($itemSlug === '') {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'validation_error',
+          'message' => 'item_slug is required.',
+        ],
+      ], 400);
+      return;
+    }
+
+    try {
+      $quantity = max(1, (int)($body['quantity'] ?? 1));
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'item' => $svc['devTools']->grantItem($userId, $itemSlug, $quantity),
+        ],
+      ]);
+    } catch (Throwable $e) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'validation_error',
+          'message' => 'Unable to grant requested item.',
+        ],
+      ], 400);
+    }
+  }
+
   public function resetAccount(): void
   {
     $svc = $this->services();

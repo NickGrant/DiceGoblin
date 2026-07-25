@@ -37,6 +37,10 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $dice = $service->grantDice($userId, 6, 'rare', 1);
     $this->assertCount(1, $dice);
 
+    $item = $service->grantItem($userId, 'pig_ear', 2);
+    $this->assertSame('pig_ear', $item['item_slug']);
+    $this->assertGreaterThanOrEqual(2, $item['quantity']);
+
     $regionItem = $service->grantRegionItem($userId, 'roc_egg', 2);
     $this->assertSame('roc_egg', $regionItem['region_item_slug']);
     $this->assertGreaterThanOrEqual(2, $regionItem['quantity']);
@@ -51,6 +55,13 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $this->assertSame($baselineUnitCount + 2, $unitCount);
     $this->assertSame($baselineDiceCount + 1, $diceCount);
     $this->assertGreaterThanOrEqual(1, $affixCount);
+    $this->assertSame(2, (int)$this->scalar(
+      'SELECT ui.`quantity`
+       FROM `user_items` ui
+       JOIN `items` i ON i.`id` = ui.`item_id`
+       WHERE ui.`user_id` = ? AND i.`slug` = ?',
+      [$userId, 'pig_ear']
+    ));
   }
 
   public function testResetAccountClearsProgressAndReappliesFreshBaseline(): void
@@ -137,6 +148,7 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $tableNames = array_map(static fn(array $row): string => (string)$row['name'], $catalog['tables']);
     $this->assertContains('unit_types', $tableNames);
     $this->assertContains('enemy_templates', $tableNames);
+    $this->assertContains('items', $tableNames);
 
     $selected = $catalog['selected_table'];
     $this->assertIsArray($selected);

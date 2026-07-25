@@ -63,6 +63,16 @@
           <button dgCommandBtn type="button" (click)="grantDie()" [disabled]="busy()">Grant Die</button>
 
           <div>
+            <label class="form-label">Item</label>
+            <select class="dg-select" [(ngModel)]="selectedItem">
+              @for (item of catalog.items; track item.id) {
+              <option [value]="item.slug">{{ item.name }} ({{ item.category }})</option>
+              }
+            </select>
+          </div>
+          <button dgCommandBtn type="button" (click)="grantItem()" [disabled]="busy() || !catalog.items.length">Grant Item</button>
+
+          <div>
             <label class="form-label">Region Item</label>
             <select class="dg-select" [(ngModel)]="selectedRegionItem">
               @for (item of catalog.region_items; track item.id) {
@@ -96,7 +106,8 @@
     <div class="col-lg-6">
       <div class="dg-card p-3 h-100">
         <h2 class="dg-stencil mb-3">Catalog</h2>
-        <p class="mb-2">{{ catalog.unit_types.length }} units · {{ catalog.dice_definitions.length }} dice defs</p>
+        <p class="mb-2">{{ catalog.unit_types.length }} units - {{ catalog.dice_definitions.length }} dice defs</p>
+        <p class="mb-2">{{ catalog.items.length }} items</p>
         <p class="mb-3">{{ catalog.region_items.length }} region items</p>
         <button dgCommandBtn="primary" type="button" (click)="resetAccount()" [disabled]="busy()">
           Reset Account
