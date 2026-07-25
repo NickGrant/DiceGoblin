@@ -485,3 +485,58 @@ current_code_references:
   - backend/src/Services/DiceSalvageService.php
   - frontend/src/app/pages/dice-page
   - documentation/02-systems-mvp/01-dice-system.md
+
+---
+id: REE-002
+title: Add expanded run encounter families
+status: complete
+priority: medium
+milestone: Expanded Run Encounters
+description: Added shrine encounters as a backend-authored non-combat run encounter family with deterministic persisted favor results, run graph placement, frontend node presentation, and documentation coverage.
+acceptance_criteria:
+  - Implement at least one meaningful non-combat encounter family beyond the current dialogue/rest/loot/hazard baseline.
+  - Persist any generated encounter result before player resolution.
+  - Add player-facing copy and tests for the new encounter flow.
+current_code_references:
+  - backend/migrations/65_run_nodes_shrine_type.sql
+  - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
+  - backend/src/Services/RunGraphGenerator.php
+  - frontend/src/app/pages/run-node-page
+  - documentation/02-systems-mvp/03-encounter-scope.md
+
+---
+id: SME-001
+title: Design and implement slot-machine-style chaos encounter foundation
+status: complete
+priority: medium
+milestone: Slot-Machine-Style Random Encounters
+description: Added the persisted chaos encounter foundation, including generated three-reel results, a single-use reroll mechanic, backend endpoints, API/data-model documentation, and integration coverage.
+acceptance_criteria:
+  - Document reel responsibilities, result persistence, and reward-scaling constraints.
+  - Add backend persistence for generated chaos encounter results.
+  - Implement one limited player agency mechanic such as locking or rerolling one reel.
+current_code_references:
+  - backend/migrations/66_chaos_encounter_results.sql
+  - backend/src/Services/ChaosEncounterService.php
+  - backend/src/Controllers/ChaosEncounterController.php
+  - backend/tests/Integration/ChaosEncounterControllerIntegrationTest.php
+  - documentation/01-architecture/03-backend-api-contracts.md
+  - documentation/01-architecture/04-data-model.md
+
+---
+id: T3P-001
+title: Complete Tier III progression coverage
+status: complete
+priority: medium
+milestone: Complete Tier III Progression
+description: Added Tier III chain destinations for every starter family, terminal mastery capstone choices, Tier II mastery promotion requirements, frontend codex/guide references, and seed integration coverage.
+acceptance_criteria:
+  - Define Tier III destinations for every major Tier I family.
+  - Add capstone coverage and inherited-passive review.
+  - Add promotion requirements that use regions, mastery, research, or region items.
+current_code_references:
+  - backend/migrations/67_tier_three_progression_coverage.sql
+  - backend/tests/Integration/TierThreeProgressionSeedIntegrationTest.php
+  - frontend/src/app/pages/codex-page
+  - frontend/src/app/pages/guide-page
+  - documentation/02-systems-mvp/02-units-and-progression.md

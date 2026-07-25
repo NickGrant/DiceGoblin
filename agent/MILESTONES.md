@@ -2,29 +2,29 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Expanded Run Encounters
+## Slot-Machine-Style Random Encounters
 
 **Status:** Active
-**Purpose:** Add run encounter families that create decisions, risk profiles, and biome identity beyond the current node vocabulary.
+**Purpose:** Turn the persisted chaos encounter foundation into a reachable run-node experience with readable reel results, bounded player agency, and clear risk/reward presentation.
 
 ### Goals
 
-- Add at least one meaningful non-combat encounter family.
-- Persist generated encounter state before player resolution.
-- Keep encounter outcomes backend-authoritative and testable.
-- Surface clear player-facing copy for the new encounter flow.
+- Place chaos encounters into eligible procedural run maps.
+- Surface persisted reel results and one-reroll agency in the frontend.
+- Preserve backend authority and idempotent result generation.
+- Keep reward and combat finalization as explicit follow-up scope unless the active issue expands.
 
 ### Current Code Context
 
-The roadmap foundation added hazard node vocabulary, while the existing run flow already supports combat, loot, rest, boss, exit, dialogue, and hazard node types. The next implementation should extend backend run-node resolution and frontend run-node presentation without changing unrelated combat or reward flows.
+The chaos foundation already persists generated reel outputs and one single-use reroll per run node. Run graphs currently place combat, loot, rest, boss, exit, dialogue, hazard, and shrine nodes, while docs identify chaos node placement, encounter finalization, and reward application as follow-up work.
 
 ### Exit Criteria
 
-- The new encounter family has durable backend state for generated results.
-- Resolving the encounter is idempotent and fits the existing run-node lifecycle.
-- The frontend presents the encounter decision and result clearly.
-- Backend and frontend coverage protect the core encounter flow.
+- Chaos nodes are reachable in eligible generated runs.
+- The run-node UI presents the generated chaos result and reroll state clearly.
+- Refreshing or revisiting the node preserves the existing generated result.
+- Backend and frontend tests cover placement and the core player-facing chaos flow.
 
 ### Related Issues
 
-- REE-002: Add expanded run encounter families
+- SME-002: Place and present chaos encounter nodes
