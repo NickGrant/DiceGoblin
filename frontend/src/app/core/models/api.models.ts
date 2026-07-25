@@ -912,6 +912,7 @@ export type DebugCurrencyGrantResponse = ApiResponse<{ currency: { soft: number;
 export type DebugGrantUnitResponse = ApiResponse<{ granted_units: Array<{ id: string; unit_type_slug: string }> }>;
 export type DebugGrantDieResponse = ApiResponse<{ granted_dice: Array<{ id: string; sides: number; rarity: string }> }>;
 export type DebugGrantItemResponse = ApiResponse<{ item: { item_slug: string; quantity: number; granted_quantity: number } }>;
+export type DebugGrantLineageResponse = ApiResponse<{ owned_lineages: LineageUnlockRecord[] }>;
 export type DebugGrantRegionItemResponse = ApiResponse<{ region_item: { region_item_slug: string; quantity: number } }>;
 export type DebugSetUnitLevelResponse = ApiResponse<{ unit: { id: string; level: number; max_level: number } }>;
 export type DebugResetAccountResponse = ApiResponse<{

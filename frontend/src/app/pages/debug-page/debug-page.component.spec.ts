@@ -48,6 +48,7 @@ class DebugServiceStub {
   grantUnit = jasmine.createSpy('grantUnit').and.resolveTo({ ok: true });
   grantDie = jasmine.createSpy('grantDie').and.resolveTo({ ok: true });
   grantItem = jasmine.createSpy('grantItem').and.resolveTo({ ok: true });
+  grantLineage = jasmine.createSpy('grantLineage').and.resolveTo({ ok: true });
   grantRegionItem = jasmine.createSpy('grantRegionItem').and.resolveTo({ ok: true });
   setUnitLevel = jasmine.createSpy('setUnitLevel').and.resolveTo({ ok: true });
   resetAccount = jasmine.createSpy('resetAccount').and.resolveTo({ ok: true });
@@ -69,6 +70,7 @@ describe('DebugPageComponent', () => {
     expect(component.catalog()?.unit_types.length).toBe(1);
     expect(component.selectedUnitSlug).toBe('goblin');
     expect(component.selectedItem).toBe('pig_ear');
+    expect(component.selectedLineage).toBe('pig_kin');
     expect(component.selectedOwnedUnitId).toBe('u1');
     expect(component.selectedOwnedUnitLevel).toBe(3);
     expect(component.seedTables()?.selected_table?.name).toBe('unit_types');
@@ -98,5 +100,20 @@ describe('DebugPageComponent', () => {
 
     expect(debugService.getSeedTables).toHaveBeenCalledWith('enemy_templates');
     expect(fixture.nativeElement.textContent).toContain('kobold_sapper');
+  });
+
+  it('grants the selected lineage', async () => {
+    await TestBed.configureTestingModule({
+      imports: [DebugPageComponent],
+      providers: [{ provide: DebugService, useClass: DebugServiceStub }, provideRouter([])],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(DebugPageComponent);
+    await fixture.whenStable();
+    const debugService = TestBed.inject(DebugService) as unknown as DebugServiceStub;
+
+    await fixture.componentInstance.grantLineage();
+
+    expect(debugService.grantLineage).toHaveBeenCalledWith('pig_kin');
   });
 });

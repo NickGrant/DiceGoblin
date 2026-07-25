@@ -4,6 +4,7 @@ import {
   DebugCurrencyGrantResponse,
   DebugGrantDieResponse,
   DebugGrantItemResponse,
+  DebugGrantLineageResponse,
   DebugGrantRegionItemResponse,
   DebugGrantUnitResponse,
   DebugResetAccountResponse,
@@ -73,6 +74,15 @@ export class DebugService {
       {
         item_slug: itemSlug,
         quantity,
+      },
+    ));
+  }
+
+  async grantLineage(lineageSlug: string): Promise<DebugGrantLineageResponse> {
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<DebugGrantLineageResponse>(
+      '/api/v1/debug/grant/lineage',
+      {
+        lineage_slug: lineageSlug,
       },
     ));
   }

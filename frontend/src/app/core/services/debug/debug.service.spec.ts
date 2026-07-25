@@ -63,6 +63,18 @@ describe('DebugService', () => {
     expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 
+  it('grants a lineage and refreshes profile', async () => {
+    const response = { ok: true } as any;
+    apiHttp.postWithCsrf.and.resolveTo(response);
+
+    await service.grantLineage('pig_kin');
+
+    expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/debug/grant/lineage', {
+      lineage_slug: 'pig_kin',
+    });
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
+  });
+
   it('resets the account and refreshes profile', async () => {
     const response = { ok: true } as any;
     apiHttp.postWithCsrf.and.resolveTo(response);
