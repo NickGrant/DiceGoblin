@@ -9,18 +9,45 @@ final class SpliceVariantService
 {
   public const BASIC_GOBLIN = 'basic_goblin';
 
+  private LineageUnlockService $lineageUnlockService;
+
   public function __construct(
     private readonly PDO $pdo,
-  ) {}
+    ?LineageUnlockService $lineageUnlockService = null,
+  ) {
+    $this->lineageUnlockService = $lineageUnlockService ?? new LineageUnlockService($pdo);
+  }
 
   public function rollVariantSlug(?int $roll = null): string
   {
-    $variants = $this->enabledVariants();
+    return $this->rollFromVariants($this->enabledVariants(), $roll);
+  }
+
+  public function rollVariantSlugForUser(int $userId, ?int $roll = null): string
+  {
+    return $this->rollFromVariants($this->enabledVariantsForUser($userId), $roll);
+  }
+
+  public function totalEnabledWeight(): int
+  {
+    return $this->totalWeight($this->enabledVariants());
+  }
+
+  public function totalEnabledWeightForUser(int $userId): int
+  {
+    return $this->totalWeight($this->enabledVariantsForUser($userId));
+  }
+
+  /**
+   * @param list<array{slug:string,grant_weight:int}> $variants
+   */
+  private function rollFromVariants(array $variants, ?int $roll = null): string
+  {
     if ($variants === []) {
       return self::BASIC_GOBLIN;
     }
 
-    $totalWeight = array_sum(array_map(static fn(array $row): int => max(0, (int)$row['grant_weight']), $variants));
+    $totalWeight = $this->totalWeight($variants);
     if ($totalWeight <= 0) {
       return self::BASIC_GOBLIN;
     }
@@ -44,9 +71,12 @@ final class SpliceVariantService
     return self::BASIC_GOBLIN;
   }
 
-  public function totalEnabledWeight(): int
+  /**
+   * @param list<array{slug:string,grant_weight:int}> $variants
+   */
+  private function totalWeight(array $variants): int
   {
-    return array_sum(array_map(static fn(array $row): int => max(0, (int)$row['grant_weight']), $this->enabledVariants()));
+    return array_sum(array_map(static fn(array $row): int => max(0, (int)$row['grant_weight']), $variants));
   }
 
   /**
@@ -97,6 +127,39 @@ final class SpliceVariantService
       'slug' => (string)$row['slug'],
       'grant_weight' => max(0, (int)$row['grant_weight']),
     ], $stmt->fetchAll(PDO::FETCH_ASSOC));
+  }
+
+  /**
+   * @return list<array{slug:string,grant_weight:int}>
+   */
+  private function enabledVariantsForUser(int $userId): array
+  {
+    return array_values(array_filter(
+      $this->enabledVariants(),
+      fn(array $variant): bool => $this->isVariantRandomlyAvailableForUser($userId, (string)$variant['slug'])
+    ));
+  }
+
+  private function isVariantRandomlyAvailableForUser(int $userId, string $variantSlug): bool
+  {
+    $lineageSlug = $this->lineageSlugForKinSlug($variantSlug);
+    if ($lineageSlug === null) {
+      return false;
+    }
+
+    return $this->lineageUnlockService->isUnlocked($userId, $lineageSlug);
+  }
+
+  private function lineageSlugForKinSlug(string $kinSlug): ?string
+  {
+    foreach ($this->lineageUnlockService->listCatalog() as $lineage) {
+      $lineageSlug = (string)$lineage['lineage_slug'];
+      if ($kinSlug === $lineageSlug || $kinSlug === (string)$lineage['kin_slug']) {
+        return $lineageSlug;
+      }
+    }
+
+    return null;
   }
 
   /**

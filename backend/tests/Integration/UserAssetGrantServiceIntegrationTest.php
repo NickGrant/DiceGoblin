@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Services\UserAssetGrantService;
+use DiceGoblins\Services\LineageUnlockService;
+use DiceGoblins\Services\SpliceVariantService;
 use DiceGoblins\Services\UserUnlockService;
 use DiceGoblins\Tests\Support\BattleFlowIntegrationCase;
 
@@ -39,6 +41,44 @@ final class UserAssetGrantServiceIntegrationTest extends BattleFlowIntegrationCa
       'rat_splice',
       (string)$this->scalar('SELECT `splice_variant_slug` FROM `unit_instances` WHERE `id` = ?', [(int)$granted['id']])
     );
+  }
+
+  public function testRandomUnitGrantFallsBackToBasicWhenOnlyExplicitKinIsLocked(): void
+  {
+    $userId = $this->insertUser();
+    $snapshot = $this->snapshotSpliceVariants();
+
+    try {
+      $this->prepareBasicAndPigOnlyRandomPool();
+
+      $granted = $this->service()->grantUnitBySlug($userId, 'frontline_bruiser_t1');
+
+      $this->assertSame(SpliceVariantService::BASIC_GOBLIN, (string)($granted['splice_variant_slug'] ?? ''));
+      $this->assertSame(
+        SpliceVariantService::BASIC_GOBLIN,
+        (string)$this->scalar('SELECT `splice_variant_slug` FROM `unit_instances` WHERE `id` = ?', [(int)$granted['id']])
+      );
+    } finally {
+      $this->restoreSpliceVariants($snapshot);
+    }
+  }
+
+  public function testUserAwareRandomPoolIncludesExplicitKinAfterUnlock(): void
+  {
+    $userId = $this->insertUser();
+    $snapshot = $this->snapshotSpliceVariants();
+
+    try {
+      $this->prepareBasicAndPigOnlyRandomPool();
+      (new LineageUnlockService($this->pdo))->grant($userId, LineageUnlockService::PIG_KIN);
+
+      $service = new SpliceVariantService($this->pdo);
+
+      $this->assertSame(101, $service->totalEnabledWeightForUser($userId));
+      $this->assertSame(LineageUnlockService::PIG_KIN, $service->rollVariantSlugForUser($userId, 1));
+    } finally {
+      $this->restoreSpliceVariants($snapshot);
+    }
   }
 
   public function testGrantDiceBatchCreatesRequestedCount(): void
@@ -130,5 +170,67 @@ final class UserAssetGrantServiceIntegrationTest extends BattleFlowIntegrationCa
   private function service(): UserAssetGrantService
   {
     return new UserAssetGrantService($this->pdo);
+  }
+
+  /**
+   * @return list<array<string,mixed>>
+   */
+  private function snapshotSpliceVariants(): array
+  {
+    $stmt = $this->pdo?->query('SELECT * FROM `splice_variants` ORDER BY `id` ASC');
+    return is_object($stmt) ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
+  }
+
+  private function prepareBasicAndPigOnlyRandomPool(): void
+  {
+    $this->pdo?->exec('UPDATE `splice_variants` SET `grant_weight` = 0');
+    $this->pdo?->prepare('
+      UPDATE `splice_variants`
+      SET `is_enabled` = 1, `grant_weight` = 1
+      WHERE `slug` = ?
+    ')->execute([SpliceVariantService::BASIC_GOBLIN]);
+
+    $this->pdo?->prepare("
+      INSERT INTO `splice_variants` (
+        `slug`, `name`, `description`, `passive_summary`, `stat_modifiers_json`, `grant_weight`, `is_enabled`
+      ) VALUES (?, 'Pig Kin', 'QA Pig Kin.', 'QA Pig Kin modifier.', JSON_OBJECT(), 100, 1)
+      ON DUPLICATE KEY UPDATE
+        `name` = VALUES(`name`),
+        `description` = VALUES(`description`),
+        `passive_summary` = VALUES(`passive_summary`),
+        `stat_modifiers_json` = VALUES(`stat_modifiers_json`),
+        `grant_weight` = VALUES(`grant_weight`),
+        `is_enabled` = VALUES(`is_enabled`)
+    ")->execute([LineageUnlockService::PIG_KIN]);
+  }
+
+  /**
+   * @param list<array<string,mixed>> $snapshot
+   */
+  private function restoreSpliceVariants(array $snapshot): void
+  {
+    $this->pdo?->exec('DELETE FROM `splice_variants`');
+
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `splice_variants` (
+        `id`, `slug`, `name`, `description`, `passive_summary`, `stat_modifiers_json`,
+        `grant_weight`, `is_enabled`, `created_at`, `updated_at`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ');
+
+    foreach ($snapshot as $row) {
+      $stmt?->execute([
+        (int)$row['id'],
+        (string)$row['slug'],
+        (string)$row['name'],
+        (string)$row['description'],
+        (string)$row['passive_summary'],
+        (string)$row['stat_modifiers_json'],
+        (int)$row['grant_weight'],
+        (int)$row['is_enabled'],
+        (string)$row['created_at'],
+        (string)$row['updated_at'],
+      ]);
+    }
   }
 }
