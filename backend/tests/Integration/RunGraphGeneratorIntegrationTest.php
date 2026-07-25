@@ -160,6 +160,49 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertTrue($foundBroadLaneUsage, 'Mountains should regularly generate multi-lane horizontal routes.');
   }
 
+  public function testFreshMountainsRunInsertsWrongMachineLeadDialogues(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->seededRegionId('mountains');
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $graph = $generator->applyDialogueNodes(
+      $userId,
+      'mountains',
+      $generator->generate($regionId, 'mountains', 'mountain-story-seed'),
+    );
+    $analysis = $this->analyzeGraph($graph);
+    $dialogueIds = $this->dialogueIds($graph);
+
+    $this->assertContains('mountains-archivist-first-contact', $dialogueIds);
+    $this->assertContains('mountains-kobold-machine-trail', $dialogueIds);
+    $this->assertContains('mountains-swamps-lead', $dialogueIds);
+    $this->assertNotContains('mountains-wrong-machine-search-repeat', $dialogueIds);
+    $this->assertSame('mountains-archivist-first-contact', (string)($graph['nodes'][$analysis['start_index']]['meta']['dialogue_id'] ?? ''));
+    $this->assertDialogueImmediatelyPrecedes($graph, 'mountains-kobold-machine-trail', 'boss');
+    $this->assertDialogueImmediatelyPrecedes($graph, 'mountains-swamps-lead', 'exit');
+  }
+
+  public function testSeenMountainsFirstContactUsesRepeatStartDialogue(): void
+  {
+    $userId = $this->insertUser();
+    $this->grantUnlock($userId, 'dialogue', 'mountains-archivist-first-contact');
+    $regionId = $this->seededRegionId('mountains');
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $graph = $generator->applyDialogueNodes(
+      $userId,
+      'mountains',
+      $generator->generate($regionId, 'mountains', 'mountain-repeat-seed'),
+    );
+    $analysis = $this->analyzeGraph($graph);
+    $dialogueIds = $this->dialogueIds($graph);
+
+    $this->assertNotContains('mountains-archivist-first-contact', $dialogueIds);
+    $this->assertContains('mountains-wrong-machine-search-repeat', $dialogueIds);
+    $this->assertSame('mountains-wrong-machine-search-repeat', (string)($graph['nodes'][$analysis['start_index']]['meta']['dialogue_id'] ?? ''));
+  }
+
   public function testMountainsCompactRowsAndBreakStraightawaysForReferenceSeed(): void
   {
     $regionId = $this->seededRegionId('mountains');
@@ -408,6 +451,7 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
    *   max_children_from_single_node: int,
    *   dead_end_indexes: array<int,int>,
    *   start_children: array<int,int>,
+   *   start_index: int,
    *   distinct_row_count: int,
    *   backward_edges: array<int,string>,
    *   duplicate_edges: array<int,string>,
@@ -535,6 +579,7 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
       'max_children_from_single_node' => $maxChildrenFromSingleNode,
       'dead_end_indexes' => $deadEndIndexes,
       'start_children' => $startChildren,
+      'start_index' => $startIndex,
       'distinct_row_count' => $distinctRowCount,
       'backward_edges' => $backwardEdges,
       'duplicate_edges' => $duplicateEdges,
@@ -543,6 +588,52 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
       'exit_col' => $exitCol,
       'max_col' => $maxCol,
     ];
+  }
+
+  /**
+   * @param array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>} $graph
+   * @return array<int,string>
+   */
+  private function dialogueIds(array $graph): array
+  {
+    $ids = [];
+    foreach ($graph['nodes'] as $node) {
+      if ((string)($node['node_type'] ?? '') !== 'dialogue') {
+        continue;
+      }
+
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $ids[] = (string)($meta['dialogue_id'] ?? '');
+    }
+
+    return $ids;
+  }
+
+  /**
+   * @param array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>} $graph
+   */
+  private function assertDialogueImmediatelyPrecedes(array $graph, string $dialogueId, string $targetNodeType): void
+  {
+    $dialogueIndex = null;
+    $targetIndex = null;
+    foreach ($graph['nodes'] as $node) {
+      $nodeIndex = (int)$node['node_index'];
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      if ((string)($node['node_type'] ?? '') === 'dialogue' && (string)($meta['dialogue_id'] ?? '') === $dialogueId) {
+        $dialogueIndex = $nodeIndex;
+      }
+      if ((string)($node['node_type'] ?? '') === $targetNodeType) {
+        $targetIndex = $nodeIndex;
+      }
+    }
+
+    $this->assertNotNull($dialogueIndex, sprintf('Dialogue `%s` should exist.', $dialogueId));
+    $this->assertNotNull($targetIndex, sprintf('Target node type `%s` should exist.', $targetNodeType));
+    $this->assertContains(
+      ['from' => $dialogueIndex, 'to' => $targetIndex],
+      $graph['edges'],
+      sprintf('Dialogue `%s` should directly precede `%s`.', $dialogueId, $targetNodeType),
+    );
   }
 
   /**

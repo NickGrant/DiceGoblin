@@ -46,6 +46,28 @@ final class RunGraphGenerator
       'one_time' => true,
       'tags' => ['lore'],
     ],
+    [
+      'region_slug' => 'mountains',
+      'dialogue_id' => 'mountains-wrong-machine-search-repeat',
+      'placement' => 'start',
+      'one_time' => false,
+      'tags' => [],
+      'requires_seen_dialogue' => 'mountains-archivist-first-contact',
+    ],
+    [
+      'region_slug' => 'mountains',
+      'dialogue_id' => 'mountains-kobold-machine-trail',
+      'placement' => 'before_boss',
+      'one_time' => true,
+      'tags' => ['lore'],
+    ],
+    [
+      'region_slug' => 'mountains',
+      'dialogue_id' => 'mountains-swamps-lead',
+      'placement' => 'before_exit',
+      'one_time' => true,
+      'tags' => ['lore'],
+    ],
   ];
 
   /** @var array<string,array<string,int>> */
