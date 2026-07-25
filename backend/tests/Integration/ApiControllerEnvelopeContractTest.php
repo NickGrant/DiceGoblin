@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Controllers\ApiController;
+use DiceGoblins\Services\LineageUnlockService;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
@@ -63,6 +64,7 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsInt($data['squad_unit_cap'] ?? null);
     $this->assertIsArray($data['feature_unlocks'] ?? null);
     $this->assertIsArray($data['unit_type_unlocks'] ?? null);
+    $this->assertIsArray($data['lineage_unlocks'] ?? null);
     $this->assertIsArray($data['regions'] ?? null);
     $this->assertIsArray($data['region_unlocks'] ?? null);
     $this->assertIsArray($data['items'] ?? null);
@@ -79,6 +81,36 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsString($firstObjective['route'] ?? null);
     $this->assertArrayHasKey('active_run', $data);
     $this->assertTrue(is_array($data['active_run']) || $data['active_run'] === null);
+  }
+
+  public function testProfileReturnsImplicitAndExplicitLineageUnlocks(): void
+  {
+    $userId = $this->insertUser('profile_lineage', 'Profile Lineage User');
+    (new LineageUnlockService($this->pdo))->grant($userId, LineageUnlockService::PIG_KIN);
+    $_SESSION['user_id'] = $userId;
+
+    $controller = new ApiController();
+    $response = $this->invoke(fn() => $controller->profile());
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $data = $this->assertSuccessEnvelopeShape($response);
+    $lineages = is_array($data['lineage_unlocks'] ?? null) ? $data['lineage_unlocks'] : [];
+    $bySlug = [];
+    foreach ($lineages as $lineage) {
+      if (is_array($lineage)) {
+        $bySlug[(string)($lineage['lineage_slug'] ?? '')] = $lineage;
+      }
+    }
+
+    $this->assertArrayHasKey(LineageUnlockService::BASIC_GOBLIN, $bySlug);
+    $this->assertSame('Basic Goblin', (string)($bySlug[LineageUnlockService::BASIC_GOBLIN]['name'] ?? ''));
+    $this->assertSame(true, (bool)($bySlug[LineageUnlockService::BASIC_GOBLIN]['is_implicit'] ?? false));
+    $this->assertNull($bySlug[LineageUnlockService::BASIC_GOBLIN]['unlocked_at'] ?? null);
+
+    $this->assertArrayHasKey(LineageUnlockService::PIG_KIN, $bySlug);
+    $this->assertSame('Pig Kin', (string)($bySlug[LineageUnlockService::PIG_KIN]['name'] ?? ''));
+    $this->assertSame(false, (bool)($bySlug[LineageUnlockService::PIG_KIN]['is_implicit'] ?? true));
+    $this->assertIsString($bySlug[LineageUnlockService::PIG_KIN]['unlocked_at'] ?? null);
   }
 
   public function testProfileUnitPayloadIncludesProgressionReworkFields(): void

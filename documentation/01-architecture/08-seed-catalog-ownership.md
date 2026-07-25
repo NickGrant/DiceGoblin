@@ -54,7 +54,7 @@ The contract is a stable slug:
 | `player_state` | Database-owned | Mutable per-user currencies and progression state. | Keep DB. |
 | `energy_state` | Database-owned | Mutable per-user regeneration state. | Keep DB. |
 | `user_grants` | Database-owned | Idempotency/audit ledger for grants. | Keep DB. |
-| `user_unlocks` | Database-owned | Per-user feature and catalog unlock state. | Keep DB. |
+| `user_unlocks` | Database-owned | Per-user feature and catalog unlock state, including explicit lineage unlocks under the `lineage` namespace. | Keep DB; Basic Goblin remains an implicit default without a row. |
 | `user_items` | Database-owned | Per-user generic inventory counts. | Keep DB. |
 | `region_unlocks` | Database-owned | Per-user progression state. | Keep DB. |
 | `user_region_items` | Database-owned legacy | Per-user legacy region-item counts. | Keep DB for compatibility; do not extend for new progression rewards. |

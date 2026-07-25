@@ -40,12 +40,13 @@ These areas remain structurally stable for the rework:
 - `chaos_encounter_results`
 - `items`
 - `user_items`
+- `user_unlocks`
 - `region_items`
 - `user_region_items`
 
 They may need minor contract updates, but they are not the primary focus of the rework.
 
-`items` and `user_items` are the generic progression inventory path for lineage materials, boss catalysts, machine catalysts, unlock keys, and later consumables. `region_items` and `user_region_items` remain legacy compatibility tables and should not be extended for new progression rewards.
+`items` and `user_items` are the generic progression inventory path for lineage materials, boss catalysts, machine catalysts, unlock keys, and later consumables. `user_unlocks` stores explicit account-level lineage unlocks under the `lineage` namespace; Basic Goblin is implicit for every account and should not need a row. `region_items` and `user_region_items` remain legacy compatibility tables and should not be extended for new progression rewards.
 
 ### 2.1 users
 

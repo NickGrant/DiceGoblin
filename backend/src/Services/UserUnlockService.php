@@ -10,6 +10,7 @@ final class UserUnlockService
   public const NAMESPACE_FEATURE = 'feature';
   public const NAMESPACE_UNIT_TYPE = 'unit_type';
   public const NAMESPACE_DIALOGUE = 'dialogue';
+  public const NAMESPACE_LINEAGE = 'lineage';
   public const FEATURE_SHOP = 'shop';
   public const FEATURE_ACADEMY = 'academy';
   public const FEATURE_BIGGER_SQUAD = 'bigger_squad';

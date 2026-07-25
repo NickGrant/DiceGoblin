@@ -61,6 +61,7 @@ Current behavior:
 - profile now includes a backend-authored `regions` catalog with unlock and inferred completion state for each enabled biome
 - profile includes `items` for generic account inventory such as lineage materials and boss catalysts; `region_items` remains a legacy compatibility payload
 - unit records include `kin_*` aliases plus legacy `splice_variant_*` fields; clients should prefer `kin_*` and treat splice fields as compatibility-only
+- profile includes `lineage_unlocks`; Basic Goblin is implicit and explicit kin unlocks are persisted under the `lineage` unlock namespace
 - `active_run` includes region metadata such as slug and theme so the frontend does not need to infer biome presentation from unlock arrays
 - `objectives` contains backend-derived passive guidance records with id, status, priority, progress, route, and optional metadata
 - the frontend refreshes profile after most successful mutations

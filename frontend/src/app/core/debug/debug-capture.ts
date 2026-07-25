@@ -178,6 +178,17 @@ export function createDebugCaptureProfile(_request: DebugCaptureRequest): Profil
     squad_unit_cap: 4,
     feature_unlocks: ['shop', 'academy'],
     unit_type_unlocks: ['goblin_bruiser', 'goblin_bannerbearer', 'goblin_deadeye'],
+    lineage_unlocks: [
+      {
+        lineage_slug: 'basic_goblin',
+        kin_slug: 'basic_goblin',
+        name: 'Basic Goblin',
+        description: 'The flexible baseline goblin lineage available to every player.',
+        is_default: true,
+        is_implicit: true,
+        unlocked_at: null,
+      },
+    ],
     seen_dialogues: [],
     regions: [
       {

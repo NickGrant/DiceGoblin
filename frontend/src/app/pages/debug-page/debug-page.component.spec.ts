@@ -10,6 +10,13 @@ class DebugServiceStub {
       unit_types: [{ slug: 'goblin', name: 'Goblin' }],
       dice_definitions: [{ sides: 6 }],
       items: [{ id: 'item-1', slug: 'pig_ear', name: 'Pig Ear', category: 'lineage_material' }],
+      lineages: [
+        { lineage_slug: 'basic_goblin', kin_slug: 'basic_goblin', name: 'Basic Goblin', description: '', is_default: true },
+        { lineage_slug: 'pig_kin', kin_slug: 'pig_kin', name: 'Pig Kin', description: '', is_default: false },
+      ],
+      owned_lineages: [
+        { lineage_slug: 'basic_goblin', kin_slug: 'basic_goblin', name: 'Basic Goblin', description: '', is_default: true, is_implicit: true },
+      ],
       region_items: [{ slug: 'hay', name: 'Hay' }],
       owned_units: [{ id: 'u1', name: 'Briarjaw', unit_type_slug: 'frontline_bruiser_t1', level: 3, max_level: 6 }],
     },
@@ -66,6 +73,7 @@ describe('DebugPageComponent', () => {
     expect(component.selectedOwnedUnitLevel).toBe(3);
     expect(component.seedTables()?.selected_table?.name).toBe('unit_types');
     expect(fixture.nativeElement.textContent).toContain('Seeded Tables');
+    expect(fixture.nativeElement.textContent).toContain('1 / 2 lineages unlocked');
     expect(fixture.nativeElement.textContent).toContain('frontline_bruiser_t1');
     expect(fixture.nativeElement.textContent).toContain('"ability_set_json"');
     expect(fixture.nativeElement.textContent).toContain('"basic_attack_melee"');

@@ -17,15 +17,15 @@ Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
 ### Current Code Context
 
-Generic `items` and `user_items` now provide the progression inventory foundation for Pig Kin materials and boss catalysts. The current implementation still persists kin identity through legacy `splice_variant` fields, so the next slice should avoid new splice terminology while planning the storage/API compatibility rename.
+Generic `items` and `user_items` now provide the progression inventory foundation for Pig Kin materials and boss catalysts. The current slice adds account-level lineage unlock state through the existing unlock table, with Basic Goblin implicit and Pig Kin as the first explicit lineage. The implementation still persists unit kin identity through legacy `splice_variant` fields, so follow-up work should avoid new splice terminology while planning the storage/API compatibility rename.
 
 ### Exit Criteria
 
 - Account-level lineage unlock state exists.
 - Profile/debug surfaces expose owned lineages.
 - Player-facing UI renders kin language instead of splice language.
-- The next branch can implement account-level lineage unlocks and Pig Kin reconstruction costs.
+- The next branch can implement Pig Kin reconstruction costs and reward-claim unlock handling.
 
 ### Related Issues
 
-- KRB-001: Canonicalize kin and lineage terminology
+- KRB-002: Add account-level lineage unlock state

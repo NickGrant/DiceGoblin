@@ -162,6 +162,21 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $this->assertIsArray($firstRow['ability_set_json']);
   }
 
+  public function testCatalogIncludesLineageDefinitionsAndOwnedLineages(): void
+  {
+    $userId = $this->insertUser('qa_dev_lineages', 'QA Dev Lineages');
+    $service = $this->makeService();
+
+    $catalog = $service->getCatalog($userId);
+
+    $lineageSlugs = array_map(static fn(array $row): string => (string)$row['lineage_slug'], $catalog['lineages']);
+    $ownedLineageSlugs = array_map(static fn(array $row): string => (string)$row['lineage_slug'], $catalog['owned_lineages']);
+
+    $this->assertContains('basic_goblin', $lineageSlugs);
+    $this->assertContains('pig_kin', $lineageSlugs);
+    $this->assertSame(['basic_goblin'], $ownedLineageSlugs);
+  }
+
   public function testSeedTableCatalogRejectsUnknownTables(): void
   {
     $service = $this->makeService();

@@ -53,6 +53,7 @@ describe('SessionService', () => {
         squad_unit_cap: 4,
         feature_unlocks: [],
         unit_type_unlocks: ['support_banner_t1'],
+        lineage_unlocks: [{ lineage_slug: 'basic_goblin', kin_slug: 'basic_goblin', name: 'Basic Goblin', description: '', is_default: true, is_implicit: true, unlocked_at: null }],
         squads: [{ id: '1', name: 'Alpha', is_active: true }],
         units: [{ id: 'u1' }],
         dice: [{ id: 'd1' }],
@@ -66,6 +67,7 @@ describe('SessionService', () => {
     expect(service.profile().activeSquadName).toBe('Alpha');
     expect(service.squadUnitCap()).toBe(4);
     expect(service.unitTypeUnlocks()).toEqual(['support_banner_t1']);
+    expect(service.lineageUnlocks().map((lineage) => lineage.lineage_slug)).toEqual(['basic_goblin']);
     expect(service.hasActiveRun()).toBeTrue();
   });
 
