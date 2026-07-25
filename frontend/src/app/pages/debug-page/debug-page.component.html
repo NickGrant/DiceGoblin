@@ -130,31 +130,18 @@
       <span class="dg-proto-chip">{{ selected.columns.length }} columns</span>
     </div>
 
-    <div class="debug-seeds__table-wrap">
-      <table class="debug-seeds__table">
-        <thead>
-          <tr>
-            @for (column of selected.columns; track column) {
-            <th scope="col">{{ column }}</th>
-            }
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of selected.rows; track $index) {
-          <tr>
-            @for (column of selected.columns; track column) {
-            <td>
-              @if (seedCellIsJson(row, column)) {
-              <pre>{{ seedCellValue(row, column) }}</pre>
-              } @else {
-              <span>{{ seedCellValue(row, column) }}</span>
-              }
-            </td>
-            }
-          </tr>
-          }
-        </tbody>
-      </table>
+    <div class="debug-seeds__entries">
+      @for (row of selected.rows; track $index) {
+      <article class="debug-seeds__entry">
+        <header class="debug-seeds__entry-header">
+          <span class="debug-seeds__entry-index">#{{ $index + 1 }}</span>
+          <strong>{{ seedRowLabel(row, $index) }}</strong>
+        </header>
+        <pre>{{ seedRowJson(row) }}</pre>
+      </article>
+      } @empty {
+      <dg-alert>No rows are available for this table.</dg-alert>
+      }
     </div>
     } @else {
     <dg-alert>No seeded tables are available.</dg-alert>
