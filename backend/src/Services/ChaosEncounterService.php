@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Services;
 
+use DiceGoblins\Repositories\PlayerStateRepository;
+use DiceGoblins\Repositories\RunEdgeRepository;
+use DiceGoblins\Repositories\RunNodeRepository;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -79,6 +82,10 @@ final class ChaosEncounterService
         $this->pdo->rollBack();
         throw new RuntimeException('chaos_result_not_generated');
       }
+      if ((string)$existing['status'] === 'confirmed') {
+        $this->pdo->rollBack();
+        throw new RuntimeException('chaos_result_confirmed');
+      }
       if ((int)$existing['manipulation_count'] >= 1) {
         $this->pdo->rollBack();
         throw new RuntimeException('chaos_reroll_spent');
@@ -108,6 +115,66 @@ final class ChaosEncounterService
       $updated = $this->findForNodeForUpdate($nodeId);
       $this->pdo->commit();
       return $this->mapResult($updated ?? [], $context);
+    } catch (Throwable $e) {
+      if ($this->pdo->inTransaction()) {
+        $this->pdo->rollBack();
+      }
+      throw $e;
+    }
+  }
+
+  /**
+   * @return array<string,mixed>
+   */
+  public function finalize(int $userId, int $runId, int $nodeId): array
+  {
+    try {
+      $this->pdo->beginTransaction();
+      $context = $this->lockRunNodeContext($userId, $runId, $nodeId);
+      $existing = $this->findForNodeForUpdate($nodeId);
+      if ($existing === null) {
+        $this->pdo->rollBack();
+        throw new RuntimeException('chaos_result_not_generated');
+      }
+
+      $unlocked = [];
+      $rewards = $this->decodeFinalizedRewards($existing['finalized_rewards_json'] ?? null);
+      if ((string)$existing['status'] !== 'confirmed' || $rewards === null) {
+        $reels = $this->decodeReels((string)$existing['reels_json']);
+        $rewards = $this->buildFinalizedRewards($reels, (float)$existing['reward_multiplier']);
+        $playerState = new PlayerStateRepository($this->pdo);
+        $playerState->ensurePlayerState($userId);
+        $playerState->getPlayerStateForUpdate($userId);
+        $this->applyFinalizedRewards($userId, $rewards);
+
+        $stmt = $this->pdo->prepare('
+          UPDATE `chaos_encounter_results`
+          SET `status` = \'confirmed\',
+              `finalized_rewards_json` = ?,
+              `finalized_at` = UTC_TIMESTAMP()
+          WHERE `id` = ?
+        ');
+        $stmt->execute([
+          json_encode($rewards, JSON_UNESCAPED_SLASHES),
+          (int)$existing['id'],
+        ]);
+
+        if ((string)$context['node']['status'] !== 'cleared') {
+          $runNodes = new RunNodeRepository($this->pdo);
+          $runNodes->markCleared($runId, $nodeId);
+          $unlocked = $this->unlockFromNode(new RunEdgeRepository($this->pdo), $runNodes, $runId, $nodeId);
+          $context['node']['status'] = 'cleared';
+        }
+      }
+
+      $updated = $this->findForNodeForUpdate($nodeId) ?? $existing;
+      $mapped = $this->mapResult($updated, $context);
+      $mapped['completion'] = $this->completionCopy($mapped['chaos_result']['summary']['title'] ?? 'Chaos Result');
+      $mapped['rewards'] = $rewards;
+      $mapped['next'] = ['unlocked_node_ids' => array_map('strval', $unlocked)];
+
+      $this->pdo->commit();
+      return $mapped;
     } catch (Throwable $e) {
       if ($this->pdo->inTransaction()) {
         $this->pdo->rollBack();
@@ -299,20 +366,26 @@ final class ChaosEncounterService
   private function mapResult(array $row, array $context): array
   {
     $reels = $this->decodeReels((string)($row['reels_json'] ?? '[]'));
+    $finalizedRewards = $this->decodeFinalizedRewards($row['finalized_rewards_json'] ?? null);
+    $status = (string)($row['status'] ?? 'generated');
+    $isConfirmed = $status === 'confirmed';
+    $manipulationCount = (int)($row['manipulation_count'] ?? 0);
 
     return [
       'chaos_result' => [
         'id' => (string)($row['id'] ?? ''),
-        'status' => (string)($row['status'] ?? 'generated'),
+        'status' => $status,
         'seed' => (int)($row['seed'] ?? 0),
         'reels' => $reels,
         'reward_multiplier' => (float)($row['reward_multiplier'] ?? $this->rewardMultiplier($reels)),
         'manipulation' => [
-          'available' => (int)($row['manipulation_count'] ?? 0) < 1,
+          'available' => !$isConfirmed && $manipulationCount < 1,
           'rerolled_reel_index' => $row['rerolled_reel_index'] !== null ? (int)$row['rerolled_reel_index'] : null,
-          'remaining' => max(0, 1 - (int)($row['manipulation_count'] ?? 0)),
+          'remaining' => $isConfirmed ? 0 : max(0, 1 - $manipulationCount),
         ],
         'summary' => $this->summary($reels),
+        'finalized_rewards' => $finalizedRewards,
+        'finalized_at' => isset($row['finalized_at']) && $row['finalized_at'] !== null ? (string)$row['finalized_at'] : null,
       ],
       'run' => $context['run'],
       'node' => $context['node'],
@@ -329,5 +402,94 @@ final class ChaosEncounterService
       'title' => implode(' + ', array_map(static fn(array $row): string => (string)($row['label'] ?? ''), $reels)),
       'effect' => implode(' ', array_map(static fn(array $row): string => (string)($row['effect'] ?? ''), $reels)),
     ];
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $reels
+   * @return array<string,mixed>
+   */
+  private function buildFinalizedRewards(array $reels, float $rewardMultiplier): array
+  {
+    $risk = array_sum(array_map(static fn(array $row): int => max(0, (int)($row['risk'] ?? 0)), $reels));
+    $symbols = array_map(static fn(array $row): string => (string)($row['symbol'] ?? ''), $reels);
+    $baseSoft = 8 + ($risk * 2) + (in_array('guaranteed_loot', $symbols, true) ? 4 : 0);
+    $soft = max(8, min(40, (int)round($baseSoft * max(1.0, $rewardMultiplier))));
+    $rawChaos = in_array('raw_chaos_spark', $symbols, true)
+      ? max(1, min(5, (int)ceil($rewardMultiplier * 2)))
+      : 0;
+
+    $labels = [sprintf('%d Teeth', $soft)];
+    if ($rawChaos > 0) {
+      $labels[] = sprintf('%d Raw Chaos', $rawChaos);
+    }
+
+    return [
+      'currency' => [
+        'soft' => $soft,
+        'raw_chaos' => $rawChaos,
+      ],
+      'reward_multiplier' => $rewardMultiplier,
+      'labels' => $labels,
+    ];
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   */
+  private function applyFinalizedRewards(int $userId, array $rewards): void
+  {
+    $currency = is_array($rewards['currency'] ?? null) ? $rewards['currency'] : [];
+    $soft = max(0, (int)($currency['soft'] ?? 0));
+    $rawChaos = max(0, (int)($currency['raw_chaos'] ?? 0));
+    $stmt = $this->pdo->prepare('
+      UPDATE `player_state`
+      SET `currency_soft` = `currency_soft` + ?,
+          `currency_raw_chaos` = `currency_raw_chaos` + ?
+      WHERE `user_id` = ?
+    ');
+    $stmt->execute([$soft, $rawChaos, $userId]);
+  }
+
+  /**
+   * @return array<string,mixed>|null
+   */
+  private function decodeFinalizedRewards(mixed $json): ?array
+  {
+    if (!is_string($json) || $json === '') {
+      return null;
+    }
+
+    $decoded = json_decode($json, true);
+    return is_array($decoded) ? $decoded : null;
+  }
+
+  /**
+   * @return array<string,string>
+   */
+  private function completionCopy(string $title): array
+  {
+    return [
+      'title' => 'Chaos Settled',
+      'message' => sprintf('%s paid out and the path opened.', $title),
+    ];
+  }
+
+  /**
+   * @return array<int,int>
+   */
+  private function unlockFromNode(
+    RunEdgeRepository $edges,
+    RunNodeRepository $nodes,
+    int $runId,
+    int $fromNodeId
+  ): array {
+    $unlocked = [];
+    foreach ($edges->getToNodeIdsFrom($runId, $fromNodeId) as $toId) {
+      if ($nodes->setAvailableIfLocked($runId, $toId)) {
+        $unlocked[] = $toId;
+      }
+    }
+
+    return $unlocked;
   }
 }

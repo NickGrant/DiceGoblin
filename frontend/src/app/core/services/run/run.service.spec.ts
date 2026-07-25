@@ -124,6 +124,16 @@ describe('RunService', () => {
     expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/runs/1/nodes/2/resolve', { team_id: 3 });
   });
 
+  it('routes chaos finalization through a profile mutation', async () => {
+    const response = { ok: true } as any;
+    apiHttp.postWithCsrf.and.resolveTo(response);
+
+    await service.finalizeChaosEncounter('1', '2');
+
+    expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/runs/1/nodes/2/chaos/finalize', {});
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
+  });
+
   it('clears summary state', () => {
     (service as any).summaryState.set({
       title: 'x',

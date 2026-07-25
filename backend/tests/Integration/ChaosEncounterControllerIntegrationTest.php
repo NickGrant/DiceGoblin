@@ -84,6 +84,49 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $this->assertSame('invalid_chaos_node', (string)($invalidHazard['body']['error']['code'] ?? ''));
   }
 
+  public function testFinalizeAppliesPersistedRewardsOnceAndClearsNode(): void
+  {
+    $userId = $this->insertUser('chaos_finalize', 'Chaos Finalize User');
+    $this->setSoftCurrency($userId, 10);
+    $regionId = $this->insertRegion();
+    $runId = $this->insertRun($userId, $regionId, 515151, 'active');
+    $nodeId = $this->insertRunNode($runId, 'chaos', 'available');
+    $nextNodeId = $this->insertRunNode($runId, 'combat', 'locked');
+    $this->insertRunEdge($runId, $nodeId, $nextNodeId);
+
+    $this->authenticate($userId);
+    $generate = $this->invoke(fn() => (new ChaosEncounterController())->generate((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $generate['status'], json_encode($generate['body']));
+    $generatedResult = $this->assertSuccess($generate)['chaos_result'] ?? [];
+    $this->assertIsArray($generatedResult);
+    $this->assertSame('generated', (string)($generatedResult['status'] ?? ''));
+
+    $this->authenticate($userId);
+    $firstFinalize = $this->invoke(fn() => (new ChaosEncounterController())->finalize((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $firstFinalize['status'], json_encode($firstFinalize['body']));
+    $firstData = $this->assertSuccess($firstFinalize);
+    $firstRewards = is_array($firstData['rewards'] ?? null) ? $firstData['rewards'] : [];
+    $softAward = (int)($firstRewards['currency']['soft'] ?? 0);
+
+    $this->assertSame('confirmed', (string)($firstData['chaos_result']['status'] ?? ''));
+    $this->assertSame((float)($generatedResult['reward_multiplier'] ?? 0), (float)($firstRewards['reward_multiplier'] ?? -1));
+    $this->assertGreaterThanOrEqual(8, $softAward);
+    $this->assertSame(['' . $nextNodeId], $firstData['next']['unlocked_node_ids'] ?? []);
+    $this->assertSame('cleared', (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$nodeId]));
+    $this->assertSame('available', (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$nextNodeId]));
+    $this->assertSame((string)(10 + $softAward), (string)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertNotSame('', (string)$this->scalar('SELECT `finalized_rewards_json` FROM `chaos_encounter_results` WHERE `node_id` = ?', [$nodeId]));
+
+    $this->authenticate($userId);
+    $secondFinalize = $this->invoke(fn() => (new ChaosEncounterController())->finalize((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $secondFinalize['status'], json_encode($secondFinalize['body']));
+    $secondData = $this->assertSuccess($secondFinalize);
+
+    $this->assertEquals($firstRewards, $secondData['rewards'] ?? null);
+    $this->assertSame([], $secondData['next']['unlocked_node_ids'] ?? null);
+    $this->assertSame((string)(10 + $softAward), (string)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
+  }
+
   private function insertRunNode(int $runId, string $nodeType, string $status): int
   {
     $stmt = $this->pdo?->prepare('
@@ -92,6 +135,15 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     ');
     $stmt?->execute([$runId, random_int(1, 9999), $nodeType, $status]);
     return (int)$this->pdo?->lastInsertId();
+  }
+
+  private function insertRunEdge(int $runId, int $fromNodeId, int $toNodeId): void
+  {
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `run_edges` (`run_id`, `from_node_id`, `to_node_id`)
+      VALUES (?, ?, ?)
+    ');
+    $stmt?->execute([$runId, $fromNodeId, $toNodeId]);
   }
 
   /**

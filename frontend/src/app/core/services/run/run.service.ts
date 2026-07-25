@@ -3,6 +3,7 @@ import {
   AbandonRunResponse,
   BattleClaimResponse,
   ChaosEncounterResponse,
+  ChaosFinalizeResponse,
   CurrentRunData,
   CurrentRunEdge,
   CurrentRunNode,
@@ -163,6 +164,13 @@ export class RunService {
     return this.apiHttp.postWithCsrf<ChaosEncounterResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/chaos/reroll`, {
       reel_index: reelIndex,
     });
+  }
+
+  finalizeChaosEncounter(runId: string, nodeId: string): Promise<ChaosFinalizeResponse> {
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<ChaosFinalizeResponse>(
+      `/api/v1/runs/${runId}/nodes/${nodeId}/chaos/finalize`,
+      {},
+    ));
   }
 
   async completeDialogueNode(runId: string, nodeId: string): Promise<DialogueNodeCompleteResponse> {

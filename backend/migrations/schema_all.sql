@@ -2920,6 +2920,12 @@ ALTER TABLE `run_nodes`
   MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit','dialogue','hazard','shrine','chaos') NOT NULL;
 -- END MIGRATION: 68_run_nodes_chaos_type.sql
 
+-- BEGIN MIGRATION: 69_chaos_encounter_finalized_rewards.sql
+ALTER TABLE `chaos_encounter_results`
+  ADD COLUMN `finalized_rewards_json` JSON NULL AFTER `reward_multiplier`,
+  ADD COLUMN `finalized_at` TIMESTAMP NULL DEFAULT NULL AFTER `manipulation_count`;
+-- END MIGRATION: 69_chaos_encounter_finalized_rewards.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 -- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46

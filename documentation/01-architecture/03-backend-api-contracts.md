@@ -1,7 +1,7 @@
 # Backend API Contracts - Current Alpha Surface
 
 Status: active  
-Last Updated: 2026-07-24
+Last Updated: 2026-07-25
 Owner: Backend/API  
 Depends On: `backend/public/index.php`, `backend/src/Controllers/`, `frontend/src/app/core/services/api-http/api-http.service.ts`
 
@@ -106,6 +106,9 @@ Current routes:
 - `POST /api/v1/runs/:runId/nodes/:nodeId/resolve`
 - `POST /api/v1/runs/:runId/nodes/:nodeId/rest/open`
 - `POST /api/v1/runs/:runId/nodes/:nodeId/rest/finalize`
+- `POST /api/v1/runs/:runId/nodes/:nodeId/chaos/generate`
+- `POST /api/v1/runs/:runId/nodes/:nodeId/chaos/reroll`
+- `POST /api/v1/runs/:runId/nodes/:nodeId/chaos/finalize`
 
 Current behavior:
 
@@ -114,9 +117,10 @@ Current behavior:
 - current run payloads include region metadata such as `region_slug`, `region_name`, `region_theme`, `recommended_level`, and `energy_cost`
 - node resolution is backend-authoritative
 - non-combat `hazard` and `shrine` nodes resolve through the same node-resolution endpoint and persist their generated results in the battle log/reward rows
-- `chaos` nodes use dedicated slot-style reel endpoints before later combat/reward finalization work:
-  - `POST /api/v1/runs/:runId/nodes/:nodeId/chaos/generate`
-  - `POST /api/v1/runs/:runId/nodes/:nodeId/chaos/reroll`
+- `chaos` nodes use dedicated slot-style reel endpoints:
+  - generate creates or returns the persisted reel result
+  - reroll changes one reel before completion when the reroll is still available
+  - finalize completes the node, applies the bounded persisted-result reward, stores the reward payload, and returns the same payout on retry
 - rest has explicit open and finalize steps
 - abandon and exit both produce summary-relevant run state
 

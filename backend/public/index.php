@@ -141,6 +141,7 @@ $router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/open', [$gameplay, 'openRe
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/finalize', [$gameplay, 'finalizeRest']);
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/chaos/generate', [$chaosEncounter, 'generate']);
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/chaos/reroll', [$chaosEncounter, 'reroll']);
+$router->post('/api/v1/runs/:runId/nodes/:nodeId/chaos/finalize', [$chaosEncounter, 'finalize']);
 $router->get('/api/v1/abilities', [$api, 'abilities']);
 // Debug / dev-only endpoints
 $router->get('/api/v1/debug/catalog', [$debug, 'catalog']);
