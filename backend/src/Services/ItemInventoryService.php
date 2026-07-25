@@ -138,6 +138,48 @@ final class ItemInventoryService
   }
 
   /**
+   * Spend an owned item row inside an existing transaction.
+   *
+   * @return array{item_slug:string,quantity:int,spent_quantity:int}
+   */
+  public function spendBySlugForUpdate(int $userId, string $itemSlug, int $quantity): array
+  {
+    $itemSlug = trim($itemSlug);
+    $quantity = max(1, $quantity);
+    $itemId = $this->lookupItemId($itemSlug);
+    if ($itemId === null) {
+      throw new RuntimeException('Unknown item_slug.');
+    }
+
+    $stmt = $this->pdo->prepare('
+      SELECT `quantity`
+      FROM `user_items`
+      WHERE `user_id` = ? AND `item_id` = ?
+      LIMIT 1
+      FOR UPDATE
+    ');
+    $stmt->execute([$userId, $itemId]);
+    $owned = (int)($stmt->fetchColumn() ?: 0);
+    if ($owned < $quantity) {
+      throw new RuntimeException('insufficient_items');
+    }
+
+    $nextQuantity = $owned - $quantity;
+    $update = $this->pdo->prepare('
+      UPDATE `user_items`
+      SET `quantity` = ?
+      WHERE `user_id` = ? AND `item_id` = ?
+    ');
+    $update->execute([$nextQuantity, $userId, $itemId]);
+
+    return [
+      'item_slug' => $itemSlug,
+      'quantity' => $nextQuantity,
+      'spent_quantity' => $quantity,
+    ];
+  }
+
+  /**
    * @param array<string,mixed> $rewards
    * @return array<int,array{item_slug:string,quantity:int,granted_quantity:int}>
    */
