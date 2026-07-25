@@ -146,22 +146,14 @@ export class DebugPageComponent {
     this.selectedOwnedUnitLevel = unit.level;
   }
 
-  seedCellValue(row: Record<string, unknown>, column: string): string {
-    const value = row[column];
-    if (value === null || value === undefined) {
-      return 'null';
-    }
-
-    if (typeof value === 'object') {
-      return JSON.stringify(value, null, 2);
-    }
-
-    return String(value);
+  seedRowLabel(row: Record<string, unknown>, index: number): string {
+    const candidate = row['slug'] ?? row['name'] ?? row['title'] ?? row['id'];
+    const label = candidate === null || candidate === undefined ? '' : String(candidate).trim();
+    return label || `Entry ${index + 1}`;
   }
 
-  seedCellIsJson(row: Record<string, unknown>, column: string): boolean {
-    const value = row[column];
-    return value !== null && typeof value === 'object';
+  seedRowJson(row: Record<string, unknown>): string {
+    return JSON.stringify(row, null, 2);
   }
 
   private syncOwnedUnitSelection(catalog: DebugCatalogData): void {

@@ -64,6 +64,12 @@ describe('DebugPageComponent', () => {
     expect(component.seedTables()?.selected_table?.name).toBe('unit_types');
     expect(fixture.nativeElement.textContent).toContain('Seeded Tables');
     expect(fixture.nativeElement.textContent).toContain('frontline_bruiser_t1');
+    expect(fixture.nativeElement.textContent).toContain('"ability_set_json"');
+    expect(fixture.nativeElement.textContent).toContain('"basic_attack_melee"');
+    expect(fixture.nativeElement.querySelector('.debug-seeds__table')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.debug-seeds__entry pre')?.textContent).toContain(
+      '"slug": "frontline_bruiser_t1"',
+    );
   });
 
   it('loads another seeded table when selected', async () => {
