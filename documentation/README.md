@@ -16,22 +16,23 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
 - This index covers the active `documentation/` set.
 - Agent workflow, backlog policy, and execution rules live in `AGENTS.md` and `agent/README.md`.
-- Future gameplay planning is directional and does not override current-state contracts until a feature enters implementation.
+- Future gameplay and narrative planning is directional and does not override current-state contracts until a feature enters implementation.
 
 ## Recommended Read Order
 
 1. `documentation/00-overview/00-project-overview.md`
 2. `documentation/00-overview/01-core-gameplay-loop.md`
 3. `documentation/00-overview/03-world-and-lore.md`
-4. `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
-5. `documentation/01-architecture/03-backend-api-contracts.md`
-6. `documentation/03-ux/00-ux-and-debug-scope.md`
-7. `documentation/00-overview/02-glossary.md`
-8. `documentation/01-architecture/04-data-model.md`
-9. `documentation/02-systems-mvp/` docs relevant to the system being changed
-10. `documentation/03-ux/` docs relevant to the player flow being changed
-11. `documentation/07-roadmap/00-gameplay-systems-roadmap.md` for future gameplay direction
-12. `documentation/05-playability-stability/` for release validation
+4. `documentation/00-overview/04-story-and-biome-progression.md`
+5. `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
+6. `documentation/01-architecture/03-backend-api-contracts.md`
+7. `documentation/03-ux/00-ux-and-debug-scope.md`
+8. `documentation/00-overview/02-glossary.md`
+9. `documentation/01-architecture/04-data-model.md`
+10. `documentation/02-systems-mvp/` docs relevant to the system being changed
+11. `documentation/03-ux/` docs relevant to the player flow being changed
+12. `documentation/07-roadmap/00-gameplay-systems-roadmap.md` for future gameplay direction
+13. `documentation/05-playability-stability/` for release validation
 
 ## Current-State Rule
 
@@ -42,7 +43,8 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `03-backend-api-contracts.md`
   - `03-ux/00-ux-and-debug-scope.md`
 - treat those current-state docs as the source of truth until the narrower doc is updated.
-- roadmap documents describe proposed direction and never override implemented behavior by themselves.
+- `03-world-and-lore.md` is the canonical setting source.
+- `04-story-and-biome-progression.md` and roadmap documents describe proposed direction and never override implemented behavior by themselves.
 
 ## Canonical Docs By Topic
 
@@ -51,6 +53,9 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/00-overview/01-core-gameplay-loop.md`
   - `documentation/00-overview/03-world-and-lore.md`
   - `documentation/00-overview/02-glossary.md`
+- Story, setting, and biome direction:
+  - `documentation/00-overview/03-world-and-lore.md`
+  - `documentation/00-overview/04-story-and-biome-progression.md`
 - Frontend and API architecture:
   - `documentation/01-architecture/00-tech-stack.md`
   - `documentation/01-architecture/01-authentication-and-sessions.md`
@@ -71,6 +76,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/02-systems-mvp/07-combat-math-and-modifiers.md`
   - `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
 - Future gameplay direction:
+  - `documentation/00-overview/04-story-and-biome-progression.md`
   - `documentation/07-roadmap/00-gameplay-systems-roadmap.md`
 - Player-facing UX:
   - `documentation/03-ux/00-ux-and-debug-scope.md`
@@ -118,7 +124,12 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 - Onboarding and first-session flow:
   - `documentation/03-ux/09-first-session-player-journey.md`
   - `documentation/02-systems-mvp/03-encounter-scope.md`
+- Lore, dialogue, and biome planning:
+  - `documentation/00-overview/03-world-and-lore.md`
+  - `documentation/00-overview/04-story-and-biome-progression.md`
+  - `frontend/public/assets/data/dialogue/dialogue-scripts.json`
 - Future gameplay planning:
+  - `documentation/00-overview/04-story-and-biome-progression.md`
   - `documentation/07-roadmap/00-gameplay-systems-roadmap.md`
 - Page-by-page route breakdowns:
   - `documentation/06-page-analysis/00-index.md`
