@@ -2,28 +2,28 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Developer Support: Seed Catalog Browser
+## Hybrid Seed Catalog Ownership
 
 **Status:** Active
-**Purpose:** Add a read-only developer-panel view for seeded catalog tables so content and balance data can be inspected without direct SQL access.
+**Purpose:** Establish clear ownership rules for database-backed, code-backed, and hybrid seeded data so future cleanup work can move constants and behavior-bearing catalog values intentionally.
 
 ### Goals
 
-- Expose selected seeded tables through a read-only debug API.
-- Present table selection, row counts, and seeded values in the Angular debug panel.
-- Keep unknown tables and all mutation attempts out of scope.
-- Document the supported debug contract.
+- Define criteria for deciding whether data should live in the database, code/config, or a hybrid model.
+- Classify every current table against those criteria.
+- Identify the safest near-term cleanup candidates.
+- Keep the read-only seed browser as the inspection surface for database-backed catalog values.
 
 ### Current Code Context
 
-The debug panel already loads a compact catalog and supports dev-only account mutations. The next slice should add read-only seeded-table inspection without changing existing grant/reset tools.
+The debug panel can inspect allowlisted seeded tables. The next slice should clarify which inspected values are meant to remain DB-authored, which should become code/config primitives, and which need slug parity between data rows and code handlers.
 
 ### Exit Criteria
 
-- Developers can inspect supported seeded tables from `/debug`.
-- The backend allowlists table names and returns rows without write behavior.
-- Frontend and backend coverage protect the read-only browser flow.
+- A canonical ownership matrix exists and covers all current tables.
+- The roadmap points at hybrid catalog cleanup instead of the completed seed-browser work.
+- Follow-up implementation candidates are explicit enough to promote into focused issues.
 
 ### Related Issues
 
-- DSB-001: Add read-only seeded table browser to debug panel
+- HDC-001: Classify database tables by data ownership model

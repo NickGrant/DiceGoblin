@@ -62,6 +62,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
   - `documentation/01-architecture/03-backend-api-contracts.md`
   - `documentation/01-architecture/04-data-model.md`
+  - `documentation/01-architecture/08-seed-catalog-ownership.md`
   - `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
   - `documentation/01-architecture/06-angular-component-service-inventory.md`
 - Gameplay systems:
@@ -104,6 +105,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/01-architecture/01-authentication-and-sessions.md`
   - `documentation/01-architecture/03-backend-api-contracts.md`
   - `documentation/01-architecture/04-data-model.md`
+  - `documentation/01-architecture/08-seed-catalog-ownership.md`
 - Frontend route/state/component changes:
   - `documentation/ENGINEERING_STANDARDS.md`
   - `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`

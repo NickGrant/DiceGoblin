@@ -6,6 +6,23 @@
 - Historical milestone records can be retrieved from git when needed.
 
 ---
+name: Developer Support: Seed Catalog Browser
+status: complete
+issues:
+  - DSB-001
+description: Add a read-only developer-panel view for seeded catalog tables so content and balance data can be inspected without direct SQL access.
+goals:
+  - Expose selected seeded tables through a read-only debug API.
+  - Present table selection, row counts, and seeded values in the Angular debug panel.
+  - Keep unknown tables and all mutation attempts out of scope.
+  - Document the supported debug contract.
+current_code_context: Implementation touched DebugController, DevToolsService, debug-page Angular components, debug service models, API documentation, and roadmap files.
+exit_criteria:
+  - Developers can inspect supported seeded tables from `/debug`.
+  - The backend allowlists table names and returns rows without write behavior.
+  - Frontend and backend coverage protect the read-only browser flow.
+
+---
 name: Local Account Authentication
 status: complete
 issues:

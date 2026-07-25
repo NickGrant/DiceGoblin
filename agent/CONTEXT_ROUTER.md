@@ -22,6 +22,8 @@
   - `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
   - `documentation/01-architecture/03-backend-api-contracts.md`
   - `documentation/01-architecture/04-data-model.md`
+- Seed catalog ownership and DB-vs-code decisions:
+  - `documentation/01-architecture/08-seed-catalog-ownership.md`
 - Gameplay systems, combat, units, progression, loot, or runs:
   - `documentation/02-systems-mvp/`
 - UX, navigation, layouts, and player-facing behavior:

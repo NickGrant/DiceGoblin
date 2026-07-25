@@ -2,22 +2,22 @@
 ----
 Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
-## Developer Support: Seed Catalog Browser
+## Hybrid Seed Catalog Ownership
 
-### DSB-001: Add read-only seeded table browser to debug panel
+### HDC-001: Classify database tables by data ownership model
 
-**Milestone:** Developer Support: Seed Catalog Browser
+**Milestone:** Hybrid Seed Catalog Ownership
 **Status:** Open
-**Priority:** Medium
+**Priority:** High
 
 #### Problem
 
-Seeded catalog data is spread across migrations and database tables, so reviewing current unit, enemy, dice, region, bounty, and encounter seed values requires direct SQL access or source spelunking.
+Seeded and runtime tables currently mix several kinds of data ownership: player state, authored catalog values, small constants, and behavior-bearing slugs. Without a shared classification, it is unclear which tables should stay database-backed, which values should be codified, and which tables need a hybrid contract between seeded data and executable code.
 
 #### Acceptance Criteria
 
-- Add a read-only backend debug endpoint for allowlisted seeded tables.
-- Include table metadata such as supported table names, labels, row counts, and columns.
-- Add a debug-panel UI for choosing a table and inspecting seeded rows.
-- Refuse unknown table names and avoid any edit/delete/write behavior.
-- Document the seeded table browser contract and add backend/frontend coverage.
+- Add a canonical architecture document that defines database, code/config, and hybrid ownership criteria.
+- Classify every current table in the project by ownership model.
+- Identify near-term candidates for codification or hybrid contract enforcement.
+- Update the active roadmap so the seed browser is marked complete and hybrid catalog cleanup is the current planning lane.
+- Preserve runtime/player-state tables as database-owned unless a concrete reason says otherwise.
