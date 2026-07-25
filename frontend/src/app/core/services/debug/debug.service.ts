@@ -7,6 +7,7 @@ import {
   DebugGrantUnitResponse,
   DebugResetAccountResponse,
   DebugSetUnitLevelResponse,
+  DebugSeedTablesResponse,
 } from '../../models/api.models';
 import { ApiHttpService } from '../api-http/api-http.service';
 import { SessionService } from '../session/session.service';
@@ -20,6 +21,11 @@ export class DebugService {
 
   getCatalog(): Promise<DebugCatalogResponse> {
     return this.apiHttp.get<DebugCatalogResponse>('/api/v1/debug/catalog');
+  }
+
+  getSeedTables(tableName?: string): Promise<DebugSeedTablesResponse> {
+    const query = tableName ? `?table=${encodeURIComponent(tableName)}` : '';
+    return this.apiHttp.get<DebugSeedTablesResponse>(`/api/v1/debug/seed-tables${query}`);
   }
 
   async grantCurrency(soft: number, hard = 0): Promise<DebugCurrencyGrantResponse> {

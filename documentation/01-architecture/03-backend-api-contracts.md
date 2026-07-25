@@ -179,6 +179,7 @@ Current behavior:
 Current routes:
 
 - `GET /api/v1/debug/catalog`
+- `GET /api/v1/debug/seed-tables`
 - `POST /api/v1/debug/grant/currency`
 - `POST /api/v1/debug/grant/unit`
 - `POST /api/v1/debug/grant/dice`
@@ -190,6 +191,7 @@ Current behavior:
 
 - these routes are intended for non-production testing workflows
 - frontend access is gated by runtime config, not by a separate public product flow
+- seed-table browsing is read-only, allowlisted, and intended for inspecting authored catalog data without direct SQL access
 
 ## Documentation Rule
 

@@ -13,6 +13,29 @@ class DebugServiceStub {
       owned_units: [{ id: 'u1', name: 'Briarjaw', unit_type_slug: 'frontline_bruiser_t1', level: 3, max_level: 6 }],
     },
   });
+  getSeedTables = jasmine.createSpy('getSeedTables').and.callFake((tableName?: string) => Promise.resolve({
+    ok: true,
+    data: {
+      tables: [
+        { name: 'unit_types', label: 'Unit Types', row_count: 1 },
+        { name: 'enemy_templates', label: 'Enemy Templates', row_count: 1 },
+      ],
+      selected_table: {
+        name: tableName || 'unit_types',
+        label: tableName === 'enemy_templates' ? 'Enemy Templates' : 'Unit Types',
+        row_count: 1,
+        columns: ['id', 'slug', 'ability_set_json'],
+        json_columns: ['ability_set_json'],
+        rows: [
+          {
+            id: '1',
+            slug: tableName === 'enemy_templates' ? 'kobold_sapper' : 'frontline_bruiser_t1',
+            ability_set_json: { version: 1, actives: ['basic_attack_melee'] },
+          },
+        ],
+      },
+    },
+  }));
   grantCurrency = jasmine.createSpy('grantCurrency').and.resolveTo({ ok: true });
   grantUnit = jasmine.createSpy('grantUnit').and.resolveTo({ ok: true });
   grantDie = jasmine.createSpy('grantDie').and.resolveTo({ ok: true });
@@ -38,5 +61,25 @@ describe('DebugPageComponent', () => {
     expect(component.selectedUnitSlug).toBe('goblin');
     expect(component.selectedOwnedUnitId).toBe('u1');
     expect(component.selectedOwnedUnitLevel).toBe(3);
+    expect(component.seedTables()?.selected_table?.name).toBe('unit_types');
+    expect(fixture.nativeElement.textContent).toContain('Seeded Tables');
+    expect(fixture.nativeElement.textContent).toContain('frontline_bruiser_t1');
+  });
+
+  it('loads another seeded table when selected', async () => {
+    await TestBed.configureTestingModule({
+      imports: [DebugPageComponent],
+      providers: [{ provide: DebugService, useClass: DebugServiceStub }, provideRouter([])],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(DebugPageComponent);
+    await fixture.whenStable();
+
+    const debugService = TestBed.inject(DebugService) as unknown as DebugServiceStub;
+    await fixture.componentInstance.loadSeedTables('enemy_templates');
+    fixture.detectChanges();
+
+    expect(debugService.getSeedTables).toHaveBeenCalledWith('enemy_templates');
+    expect(fixture.nativeElement.textContent).toContain('kobold_sapper');
   });
 });

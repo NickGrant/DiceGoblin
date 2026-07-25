@@ -128,6 +128,38 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $this->assertSame(10, (int)$this->scalar('SELECT `level` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
   }
 
+  public function testSeedTableCatalogListsAllowlistedRowsAndDecodesJson(): void
+  {
+    $service = $this->makeService();
+
+    $catalog = $service->getSeedTableCatalog('unit_types');
+    $this->assertNotEmpty($catalog['tables']);
+    $tableNames = array_map(static fn(array $row): string => (string)$row['name'], $catalog['tables']);
+    $this->assertContains('unit_types', $tableNames);
+    $this->assertContains('enemy_templates', $tableNames);
+
+    $selected = $catalog['selected_table'];
+    $this->assertIsArray($selected);
+    $this->assertSame('unit_types', $selected['name']);
+    $this->assertContains('ability_set_json', $selected['json_columns']);
+    $this->assertGreaterThan(0, $selected['row_count']);
+    $this->assertNotEmpty($selected['rows']);
+    $firstRow = $selected['rows'][0] ?? [];
+    $this->assertIsArray($firstRow);
+    $this->assertArrayHasKey('slug', $firstRow);
+    $this->assertIsArray($firstRow['ability_set_json']);
+  }
+
+  public function testSeedTableCatalogRejectsUnknownTables(): void
+  {
+    $service = $this->makeService();
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('Unknown seeded table.');
+
+    $service->getSeedTableCatalog('users');
+  }
+
   public function testGrantUnitsUsesTierEncodedInUnitTypeSlug(): void
   {
     $userId = $this->insertUser('qa_devtier', 'QA DevTier');

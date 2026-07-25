@@ -145,6 +145,7 @@ $router->post('/api/v1/runs/:runId/nodes/:nodeId/chaos/finalize', [$chaosEncount
 $router->get('/api/v1/abilities', [$api, 'abilities']);
 // Debug / dev-only endpoints
 $router->get('/api/v1/debug/catalog', [$debug, 'catalog']);
+$router->get('/api/v1/debug/seed-tables', [$debug, 'seedTables']);
 $router->post('/api/v1/debug/grant/currency', [$debug, 'grantCurrency']);
 $router->post('/api/v1/debug/grant/unit', [$debug, 'grantUnit']);
 $router->post('/api/v1/debug/grant/dice', [$debug, 'grantDice']);
