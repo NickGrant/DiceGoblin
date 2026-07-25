@@ -59,10 +59,20 @@ Current behavior:
 - it contains energy, currency, active run, squads, units, dice, unlocks, and region access data
 - `currency` includes `soft`, `hard`, and `raw_chaos`
 - profile now includes a backend-authored `regions` catalog with unlock and inferred completion state for each enabled biome
-- unit records currently include the legacy `splice_variant_slug` field, defaulting to `basic_goblin`; new API surface should use kin/lineage terminology when the compatibility migration lands
+- unit records include `kin_*` aliases plus legacy `splice_variant_*` fields; clients should prefer `kin_*` and treat splice fields as compatibility-only
 - `active_run` includes region metadata such as slug and theme so the frontend does not need to infer biome presentation from unlock arrays
 - `objectives` contains backend-derived passive guidance records with id, status, priority, progress, route, and optional metadata
 - the frontend refreshes profile after most successful mutations
+
+### Kin compatibility plan
+
+The current unit, shop, and reward payloads expose `kin_*` aliases while still carrying legacy `splice_variant_*` fields because those names match current storage. New endpoints and new response objects should use `kin_*` and `lineage_*` names instead.
+
+A later compatibility migration should:
+
+- rename services and frontend helpers to kin/lineage terms first, leaving database columns untouched
+- add a forward migration for storage/table names only after the API aliases are deployed
+- remove legacy response fields in a separate cleanup after clients have moved to the kin names
 
 ## Shop And Academy
 

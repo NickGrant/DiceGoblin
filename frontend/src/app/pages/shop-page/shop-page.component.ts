@@ -18,7 +18,7 @@ import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { FeatureUnlockCategoryLabel, resolveFeatureUnlockCategory } from '../../core/feature-unlocks/feature-unlock-categories';
 import { UnitBarComponent } from '../../shared/ui/unit-bar/unit-bar.component';
 import { resolveFeatureUnlockIcon } from '../../shared/ui/category-icons/category-icons';
-import { formatSpliceVariantLabel } from '../../shared/utils/unit-formatters';
+import { formatKinLabel } from '../../shared/utils/unit-formatters';
 
 @Component({
   selector: 'app-shop-page',
@@ -198,9 +198,9 @@ export class ShopPageComponent {
       return 'Purchase complete.';
     }
 
-    const spliceName = data.purchase.splice_variant_name;
-    const spliceSlug = data.purchase.splice_variant_slug;
+    const kinName = data.purchase.kin_name ?? data.purchase.splice_variant_name;
+    const kinSlug = data.purchase.kin_slug ?? data.purchase.splice_variant_slug;
 
-    return `Recruit joined: ${formatSpliceVariantLabel(spliceName, spliceSlug)}.`;
+    return `Recruit joined: ${formatKinLabel(kinName, kinSlug)}.`;
   }
 }

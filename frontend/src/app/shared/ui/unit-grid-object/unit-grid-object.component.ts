@@ -4,7 +4,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faBrain, faBullseye, faHandFist, faHeart, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
 import { RouterLink } from '@angular/router';
 import { UnitRecord } from '../../../core/models/api.models';
-import { formatSpliceVariantLabel, formatTier } from '../../utils/unit-formatters';
+import { formatTier, formatUnitKinLabel } from '../../utils/unit-formatters';
 import { GridObjectComponent } from '../grid-object/grid-object.component';
 import { resolveUnitImageUrl } from '../unit-art/unit-art';
 
@@ -55,8 +55,8 @@ export class UnitGridObjectComponent extends GridObjectComponent<UnitRecord> {
 
   defaultSubtitle(): string {
     const typeLabel = this.object().unit_type_name || this.object().unit_type_slug || 'Unit';
-    const spliceLabel = formatSpliceVariantLabel(this.object().splice_variant_name, this.object().splice_variant_slug);
-    const identityLabel = `${typeLabel} - ${spliceLabel}`;
+    const kinLabel = formatUnitKinLabel(this.object());
+    const identityLabel = `${typeLabel} - ${kinLabel}`;
     return typeof this.object().level === 'number' && this.object().level > 0
       ? `${identityLabel} Lv. ${this.object().level}`
       : identityLabel;

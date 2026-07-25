@@ -43,16 +43,16 @@ export function humanizeAbilityId(abilityId: string): string {
     .join(' ');
 }
 
-export function formatSpliceVariantLabel(
-  spliceVariantName: string | null | undefined,
-  spliceVariantSlug: string | null | undefined,
+export function formatKinLabel(
+  kinName: string | null | undefined,
+  kinSlug: string | null | undefined,
 ): string {
-  const name = (spliceVariantName ?? '').trim();
+  const name = (kinName ?? '').trim();
   if (name.length > 0) {
     return normalizeKinLabel(name);
   }
 
-  const slug = (spliceVariantSlug ?? '').trim();
+  const slug = (kinSlug ?? '').trim();
   if (slug.length === 0 || slug === 'basic_goblin') {
     return 'Basic Goblin';
   }
@@ -62,6 +62,25 @@ export function formatSpliceVariantLabel(
     .filter((segment) => segment.length)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' '));
+}
+
+export function formatSpliceVariantLabel(
+  spliceVariantName: string | null | undefined,
+  spliceVariantSlug: string | null | undefined,
+): string {
+  return formatKinLabel(spliceVariantName, spliceVariantSlug);
+}
+
+export function formatUnitKinLabel(unit: {
+  kin_name?: string | null;
+  kin_slug?: string | null;
+  splice_variant_name?: string | null;
+  splice_variant_slug?: string | null;
+}): string {
+  return formatKinLabel(
+    unit.kin_name ?? unit.splice_variant_name,
+    unit.kin_slug ?? unit.splice_variant_slug,
+  );
 }
 
 function normalizeKinLabel(label: string): string {

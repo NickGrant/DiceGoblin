@@ -115,6 +115,8 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $units = is_array($data['units'] ?? null) ? $data['units'] : [];
     $this->assertNotEmpty($units);
     $unit = is_array($units[0] ?? null) ? $units[0] : [];
+    $this->assertSame('basic_goblin', (string)($unit['kin_slug'] ?? ''));
+    $this->assertSame('Basic Goblin', (string)($unit['kin_name'] ?? ''));
     $this->assertSame('basic_goblin', (string)($unit['splice_variant_slug'] ?? ''));
     $this->assertSame('Basic Goblin', (string)($unit['splice_variant_name'] ?? ''));
     $this->assertSame(10, (int)($unit['max_level'] ?? 0));
@@ -153,6 +155,9 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $units = is_array($data['units'] ?? null) ? $data['units'] : [];
     $this->assertNotEmpty($units);
     $unit = is_array($units[0] ?? null) ? $units[0] : [];
+    $this->assertSame('toad_splice', (string)($unit['kin_slug'] ?? ''));
+    $this->assertSame('Toad-Spliced', (string)($unit['kin_name'] ?? ''));
+    $this->assertSame('+2 HP, +1 Resolve, -1 Precision.', (string)($unit['kin_passive_summary'] ?? ''));
     $this->assertSame('toad_splice', (string)($unit['splice_variant_slug'] ?? ''));
     $this->assertSame('Toad-Spliced', (string)($unit['splice_variant_name'] ?? ''));
     $this->assertSame('+2 HP, +1 Resolve, -1 Precision.', (string)($unit['splice_variant_passive_summary'] ?? ''));

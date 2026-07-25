@@ -106,12 +106,12 @@
               <select
                 id="warband-splice-filter"
                 class="dg-select"
-                [ngModel]="selectedSpliceVariant() ?? ''"
-                (ngModelChange)="updateSpliceVariant($event)"
+                [ngModel]="selectedKin() ?? ''"
+                (ngModelChange)="updateKin($event)"
               >
                 <option value="">All kin</option>
-                @for (spliceVariant of availableSpliceVariants(); track spliceVariant) {
-                <option [value]="spliceVariant">{{ spliceVariant }}</option>
+                @for (kin of availableKinLabels(); track kin) {
+                <option [value]="kin">{{ kin }}</option>
                 }
               </select>
             </div>

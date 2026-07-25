@@ -507,15 +507,23 @@ final class RunSummaryBuilder
       $unitTypeName = (string)($unitType['name'] ?? $this->prettifyId($slug));
       $spliceSlug = trim((string)($grant['splice_variant_slug'] ?? 'basic_goblin'));
       $spliceVariant = $spliceVariantsBySlug[$spliceSlug] ?? $this->defaultSpliceVariant();
+      $kinSlug = (string)$spliceVariant['slug'];
+      $kinName = (string)$spliceVariant['name'];
+      $kinDescription = (string)$spliceVariant['description'];
+      $kinPassiveSummary = (string)$spliceVariant['passive_summary'];
       $details[] = [
         'unit_instance_id' => null,
         'name' => $unitTypeName,
         'unit_type_slug' => $slug,
         'unit_type_name' => $unitTypeName,
-        'splice_variant_slug' => (string)$spliceVariant['slug'],
-        'splice_variant_name' => (string)$spliceVariant['name'],
-        'splice_variant_description' => (string)$spliceVariant['description'],
-        'splice_variant_passive_summary' => (string)$spliceVariant['passive_summary'],
+        'kin_slug' => $kinSlug,
+        'kin_name' => $kinName,
+        'kin_description' => $kinDescription,
+        'kin_passive_summary' => $kinPassiveSummary,
+        'splice_variant_slug' => $kinSlug,
+        'splice_variant_name' => $kinName,
+        'splice_variant_description' => $kinDescription,
+        'splice_variant_passive_summary' => $kinPassiveSummary,
         'tier' => max(1, (int)($grant['tier'] ?? 1)),
         'level' => max(1, (int)($grant['level'] ?? 1)),
         ...$this->unitTypeStats($unitType['base_stats_json'] ?? null),
@@ -811,15 +819,23 @@ final class RunSummaryBuilder
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
       $displayName = trim((string)($row['display_name'] ?? ''));
       $unitTypeName = (string)($row['unit_type_name'] ?? '');
+      $kinSlug = (string)($row['splice_variant_slug'] ?? 'basic_goblin');
+      $kinName = (string)($row['splice_variant_name'] ?? 'Basic Goblin');
+      $kinDescription = (string)($row['splice_variant_description'] ?? '');
+      $kinPassiveSummary = (string)($row['splice_variant_passive_summary'] ?? '');
       $detailsById[(string)$row['id']] = [
         'unit_instance_id' => (string)$row['id'],
         'name' => $displayName !== '' ? $displayName : $unitTypeName,
         'unit_type_slug' => (string)($row['unit_type_slug'] ?? ''),
         'unit_type_name' => $unitTypeName,
-        'splice_variant_slug' => (string)($row['splice_variant_slug'] ?? 'basic_goblin'),
-        'splice_variant_name' => (string)($row['splice_variant_name'] ?? 'Basic Goblin'),
-        'splice_variant_description' => (string)($row['splice_variant_description'] ?? ''),
-        'splice_variant_passive_summary' => (string)($row['splice_variant_passive_summary'] ?? ''),
+        'kin_slug' => $kinSlug,
+        'kin_name' => $kinName,
+        'kin_description' => $kinDescription,
+        'kin_passive_summary' => $kinPassiveSummary,
+        'splice_variant_slug' => $kinSlug,
+        'splice_variant_name' => $kinName,
+        'splice_variant_description' => $kinDescription,
+        'splice_variant_passive_summary' => $kinPassiveSummary,
         'tier' => max(1, (int)($row['tier'] ?? 1)),
         'level' => max(1, (int)($row['level'] ?? 1)),
         ...$this->unitTypeStats($row['base_stats_json'] ?? null),

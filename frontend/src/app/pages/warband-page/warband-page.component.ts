@@ -8,7 +8,7 @@ import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { UnitBarComponent } from '../../shared/ui/unit-bar/unit-bar.component';
-import { formatSpliceVariantLabel, formatTier } from '../../shared/utils/unit-formatters';
+import { formatTier, formatUnitKinLabel } from '../../shared/utils/unit-formatters';
 
 @Component({
   selector: 'app-warband-page',
@@ -28,7 +28,7 @@ export class WarbandPageComponent {
   readonly activeRun = computed(() => this.sessionService.profileData()?.active_run ?? null);
   readonly activeSquad = this.sessionService.activeSquad;
   readonly selectedUnitType = signal<string | null>(null);
-  readonly selectedSpliceVariant = signal<string | null>(null);
+  readonly selectedKin = signal<string | null>(null);
   readonly excludedUnitTiers = signal<number[]>([]);
   readonly selectedLevelMin = signal<number | null>(null);
   readonly selectedLevelMax = signal<number | null>(null);
@@ -46,8 +46,8 @@ export class WarbandPageComponent {
       (a, b) => a - b,
     ),
   );
-  readonly availableSpliceVariants = computed(() =>
-    [...new Set(this.units().map((unit) => this.spliceVariantLabel(unit)).filter((label) => label.length > 0))].sort((a, b) =>
+  readonly availableKinLabels = computed(() =>
+    [...new Set(this.units().map((unit) => this.kinLabel(unit)).filter((label) => label.length > 0))].sort((a, b) =>
       a.localeCompare(b),
     ),
   );
@@ -65,7 +65,7 @@ export class WarbandPageComponent {
   });
   readonly filteredUnits = computed(() => {
     const selectedType = this.selectedUnitType();
-    const selectedSpliceVariant = this.selectedSpliceVariant();
+    const selectedKin = this.selectedKin();
     const excludedTiers = new Set(this.excludedUnitTiers());
     const selectedLevelMin = this.selectedLevelMin();
     const selectedLevelMax = this.selectedLevelMax();
@@ -74,7 +74,7 @@ export class WarbandPageComponent {
         return false;
       }
 
-      if (selectedSpliceVariant && this.spliceVariantLabel(unit) !== selectedSpliceVariant) {
+      if (selectedKin && this.kinLabel(unit) !== selectedKin) {
         return false;
       }
 
@@ -165,8 +165,8 @@ export class WarbandPageComponent {
     this.selectedUnitType.set(value || null);
   }
 
-  updateSpliceVariant(value: string): void {
-    this.selectedSpliceVariant.set(value || null);
+  updateKin(value: string): void {
+    this.selectedKin.set(value || null);
   }
 
   toggleUnitTier(tier: number): void {
@@ -220,7 +220,7 @@ export class WarbandPageComponent {
 
   clearUnitFilters(): void {
     this.selectedUnitType.set(null);
-    this.selectedSpliceVariant.set(null);
+    this.selectedKin.set(null);
     this.excludedUnitTiers.set([]);
     this.selectedLevelMin.set(null);
     this.selectedLevelMax.set(null);
@@ -241,8 +241,8 @@ export class WarbandPageComponent {
     return (unit.unit_type_name || unit.unit_type_slug || 'Unknown').trim();
   }
 
-  private spliceVariantLabel(unit: Pick<UnitRecord, 'splice_variant_name' | 'splice_variant_slug'>): string {
-    return formatSpliceVariantLabel(unit.splice_variant_name, unit.splice_variant_slug);
+  private kinLabel(unit: Pick<UnitRecord, 'kin_name' | 'kin_slug' | 'splice_variant_name' | 'splice_variant_slug'>): string {
+    return formatUnitKinLabel(unit);
   }
 }
 

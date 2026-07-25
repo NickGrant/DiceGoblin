@@ -101,7 +101,7 @@ The primordial goblin is a form closer to unshaped chaos than the stable basic g
 
 The player's first appearance when conjured by The Whim foreshadows this lineage. Primordial Goblins are intended as a late-game unlock associated with defeating The Archivist and breaking the Grand Library's suppression of goblinkind.
 
-They should feel like a return to goblin origins rather than a simple animal splice.
+They should feel like a return to goblin origins rather than a simple borrowed animal costume.
 
 ## Tone For Goblin Writing
 
@@ -215,7 +215,7 @@ Examples currently established or planned include:
 - Bat Goblins from aerial creature families
 - Primordial Goblins as the late-game return to original chaos
 
-The word `splicing` may be used mechanically, but the lore framing is reconstruction through chaos rather than modern laboratory genetics.
+Use **goblin-kin** or **kin** for the approved game terminology. The lore framing is reconstruction through chaos rather than modern laboratory genetics.
 
 The intended process is:
 
