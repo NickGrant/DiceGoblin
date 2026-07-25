@@ -36,7 +36,7 @@ Current documented roster coverage in the guide includes:
 
 - Tier I starters: Bruiser, Guardian, Marksman, Bannerbearer, Saboteur
 - Tier II branches: Enforcer, Pit Fighter, Bulwark, Shieldbreaker, Deadeye, Trapper, Warcaller, Mascot, Trickshot, Plaguehand
-- Tier III examples currently surfaced in the guide: Juggernaut, Ironwall, Sharpshot
+- Tier III chain destinations: Juggernaut, Ironwall, Sharpshot, Warchanter, Venomwright
 
 ## Levels and XP
 
@@ -92,7 +92,7 @@ Promotion is currently driven by authored `promotion_level`, not only by max lev
   - two additional units of the same current type and tier
   - all three units to be promotion-eligible
 
-In practice, many Tier I classes can promote early at level 6 and can still continue leveling to 10 to master the class first.
+In practice, Tier I classes can promote early at level 6 and can still continue leveling to 10 to master the class first. Tier II classes require mastery at level 10 before the Tier III chain destination appears.
 
 ## Promotion Flow
 

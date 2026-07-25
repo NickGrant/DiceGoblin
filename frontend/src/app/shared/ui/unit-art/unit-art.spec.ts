@@ -47,6 +47,8 @@ describe('unit-art helpers', () => {
     expect(resolveUnitThumbnailUrl('frontline_pit_fighter_t2')).toBe('/assets/ui/units/thumbnails/goblin/pit_fighter.png');
     expect(resolveUnitThumbnailUrl('control_plaguehand_t2')).toBe('/assets/ui/units/thumbnails/goblin/plaguehand.png');
     expect(resolveUnitThumbnailUrl('support_banner_t2')).toBe('/assets/ui/units/thumbnails/goblin/warcaller.png');
+    expect(resolveUnitThumbnailUrl('support_banner_t3')).toBe('/assets/ui/units/thumbnails/goblin/warcaller.png');
+    expect(resolveUnitThumbnailUrl('control_saboteur_t3')).toBe('/assets/ui/units/thumbnails/goblin/trickshot.png');
     expect(resolveUnitThumbnailUrl('support_mascot_t2')).toBe('/assets/ui/units/thumbnails/goblin/mascot.png');
   });
 

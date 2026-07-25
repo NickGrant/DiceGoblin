@@ -506,6 +506,12 @@ Complete late-game class coverage after the expanded stats and variant systems e
 - advanced promotion requirements using regions, research, mastery, or region items where appropriate
 - balance rules preventing one route from becoming universally dominant
 
+Foundation implementation note:
+
+- every starter family now has a chain Tier III destination
+- Tier II chain promotion requires mastery before Tier III options appear
+- terminal Tier III classes expose authored mastery capstone choices
+
 ### Why it follows the earlier systems
 
 Tier III designs created before Precision, Resolve, and splice variants would likely require immediate rework once those systems become part of every unit build.

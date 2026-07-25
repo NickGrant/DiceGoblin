@@ -50,6 +50,7 @@ The academy promotion flow currently lets the player:
 - pick two secondary same-type, same-tier units to consume
 - preview chain and sideways promotion options
 - choose a required capstone first when the current class is mastered but not yet finalized
+- progress Tier II chain classes into Tier III only after mastery
 
 ## Capstone Behavior
 
@@ -59,6 +60,8 @@ Current capstone state meanings:
 - `unearned`: the unit can promote now, but doing so skips the current class capstone
 - `ready_to_select`: the unit mastered the class and must choose a capstone before promotion
 - `selected`: the capstone is already locked and will carry forward
+
+Tier III chain destinations are terminal classes with their own mastery capstone choices. Current Tier III chain coverage is Juggernaut, Ironwall, Sharpshot, Warchanter, and Venomwright.
 
 ## Feature Unlock Catalog
 
