@@ -266,3 +266,23 @@ exit_criteria:
   - Every starter family has a Tier III chain destination.
   - Tier II chain promotions require mastery before Tier III options appear.
   - Terminal Tier III classes expose authored mastery capstone choices.
+
+---
+name: Slot-Machine-Style Random Encounters
+status: complete
+issues:
+  - SME-001
+  - SME-002
+  - SME-003
+description: Completed the slot-machine-style chaos encounter loop from persisted reel generation through reachable run-map placement, one-reroll agency, backend-authored finalization rewards, and node progression.
+goals:
+  - Persist generated chaos encounter results per run node.
+  - Add bounded player agency without regenerating the result.
+  - Place and present chaos nodes in eligible procedural runs.
+  - Finalize generated chaos encounters through a backend-authoritative path.
+current_code_context: Implementation touched migrations 66, 68, and 69, ChaosEncounterService, ChaosEncounterController, RunGraphGenerator, the Angular run-node page, API/data-model documentation, and backend/frontend coverage.
+exit_criteria:
+  - Generated chaos results are durable and idempotent.
+  - Chaos nodes are reachable and visually distinct on run maps.
+  - One reroll may be used before finalization.
+  - Finalize applies rewards once, clears the node, and unlocks downstream progression.
