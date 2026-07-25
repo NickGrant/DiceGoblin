@@ -150,6 +150,7 @@ $router->post('/api/v1/debug/grant/currency', [$debug, 'grantCurrency']);
 $router->post('/api/v1/debug/grant/unit', [$debug, 'grantUnit']);
 $router->post('/api/v1/debug/grant/dice', [$debug, 'grantDice']);
 $router->post('/api/v1/debug/grant/item', [$debug, 'grantItem']);
+$router->post('/api/v1/debug/grant/lineage', [$debug, 'grantLineage']);
 $router->post('/api/v1/debug/grant/region-item', [$debug, 'grantRegionItem']);
 $router->post('/api/v1/debug/units/set-level', [$debug, 'setUnitLevel']);
 $router->post('/api/v1/debug/reset-account', [$debug, 'resetAccount']);

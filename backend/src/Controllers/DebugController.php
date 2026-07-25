@@ -336,6 +336,61 @@ final class DebugController
     }
   }
 
+  public function grantLineage(): void
+  {
+    $svc = $this->services();
+    if (!$svc['devTools']->isEnabled()) {
+      $this->respondDisabled();
+      return;
+    }
+
+    try {
+      $userId = $svc['sessionService']->requireUserId();
+    } catch (Throwable $e) {
+      $this->respondUnauthorized();
+      return;
+    }
+
+    if (!$this->requireCsrf($svc['csrfService'])) {
+      return;
+    }
+
+    $body = $this->readJsonBody();
+    if ($body === null) {
+      $this->respondInvalidBody();
+      return;
+    }
+
+    $lineageSlug = trim((string)($body['lineage_slug'] ?? ''));
+    if ($lineageSlug === '') {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'validation_error',
+          'message' => 'lineage_slug is required.',
+        ],
+      ], 400);
+      return;
+    }
+
+    try {
+      Response::json([
+        'ok' => true,
+        'data' => [
+          'owned_lineages' => $svc['devTools']->grantLineage($userId, $lineageSlug),
+        ],
+      ]);
+    } catch (Throwable $e) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'validation_error',
+          'message' => 'Unable to grant requested lineage.',
+        ],
+      ], 400);
+    }
+  }
+
   public function resetAccount(): void
   {
     $svc = $this->services();
