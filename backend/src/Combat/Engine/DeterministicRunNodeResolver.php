@@ -185,7 +185,7 @@ final class DeterministicRunNodeResolver
       if ($grantUnit) {
         $unitSlug = $this->pickUnitTypeSlug($userId, $rngState);
         if ($unitSlug !== null) {
-          $spliceVariantSlug = $this->pickSpliceVariantSlug($rngState);
+          $spliceVariantSlug = $this->pickSpliceVariantSlug($userId, $rngState);
           $rewards['unit_grants'][] = [
             'unit_type_slug' => $unitSlug,
             'splice_variant_slug' => $spliceVariantSlug,
@@ -4687,43 +4687,16 @@ final class DeterministicRunNodeResolver
     return $slug !== '' ? $slug : null;
   }
 
-  private function pickSpliceVariantSlug(string &$state): string
+  private function pickSpliceVariantSlug(int $userId, string &$state): string
   {
-    $stmt = $this->pdo->query("
-      SELECT `slug`, `grant_weight`
-      FROM `splice_variants`
-      WHERE `is_enabled` = 1 AND `grant_weight` > 0
-      ORDER BY `id` ASC
-    ");
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    if (count($rows) === 0) {
-      return SpliceVariantService::BASIC_GOBLIN;
-    }
-
-    $totalWeight = 0;
-    foreach ($rows as $row) {
-      $totalWeight += max(0, (int)($row['grant_weight'] ?? 0));
-    }
+    $spliceVariantService = new SpliceVariantService($this->pdo);
+    $totalWeight = $spliceVariantService->totalEnabledWeightForUser($userId);
     if ($totalWeight <= 0) {
       return SpliceVariantService::BASIC_GOBLIN;
     }
 
     $roll = $this->nextInt($state, $totalWeight);
-    foreach ($rows as $row) {
-      $weight = max(0, (int)($row['grant_weight'] ?? 0));
-      if ($weight <= 0) {
-        continue;
-      }
-
-      if ($roll < $weight) {
-        $slug = (string)($row['slug'] ?? '');
-        return $slug !== '' ? $slug : SpliceVariantService::BASIC_GOBLIN;
-      }
-
-      $roll -= $weight;
-    }
-
-    return SpliceVariantService::BASIC_GOBLIN;
+    return $spliceVariantService->rollVariantSlugForUser($userId, $roll);
   }
 
   /**
