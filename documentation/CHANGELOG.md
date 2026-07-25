@@ -7,6 +7,10 @@ Depends On: `documentation/README.md`, `agent/ISSUES.md`
 
 ----
 
+## 2026-07-25
+- Added `documentation/02-systems-mvp/13-wrong-machine-and-kin.md` as the active contract for approved goblin-kin terminology, lineage ownership, Pig Kin first reconstruction, and deferred legacy splice compatibility work.
+- Updated `documentation/README.md` to include the Wrong Machine and kin contract in gameplay and warband task entry points.
+
 ## 2026-05-29
 - Added `documentation/ENGINEERING_STANDARDS.md` as the canonical coding standards reference for test coverage, SCSS, HTML, TypeScript, and architecture expectations.
 - Expanded `documentation/TESTING_STRATEGY.md` with explicit coverage expectations and when manual verification is acceptable.

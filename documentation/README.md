@@ -76,6 +76,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/02-systems-mvp/06-run-resolution-scope.md`
   - `documentation/02-systems-mvp/07-combat-math-and-modifiers.md`
   - `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
+  - `documentation/02-systems-mvp/13-wrong-machine-and-kin.md`
 - Future gameplay direction:
   - `documentation/00-overview/04-story-and-biome-progression.md`
   - `documentation/07-roadmap/00-gameplay-systems-roadmap.md`
@@ -115,6 +116,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 - Warband, squads, units, and dice:
   - `documentation/02-systems-mvp/01-dice-system.md`
   - `documentation/02-systems-mvp/02-units-and-progression.md`
+  - `documentation/02-systems-mvp/13-wrong-machine-and-kin.md`
   - `documentation/02-systems-mvp/12-academy-and-feature-unlocks.md`
   - `documentation/03-ux/02-warband-management.md`
 - Runs, encounters, loot, and summaries:
