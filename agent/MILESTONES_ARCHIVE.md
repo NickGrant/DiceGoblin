@@ -216,3 +216,53 @@ exit_criteria:
   - Dice salvage is backend-authoritative and transactional.
   - Equipped dice cannot be salvaged.
   - The Dice Inventory exposes Raw Chaos balance and salvage confirmation.
+
+---
+name: Expanded Run Encounters
+status: complete
+issues:
+  - REE-002
+description: Added shrine encounters as the first expanded non-combat encounter family beyond dialogue, rest, loot, and hazard nodes.
+goals:
+  - Add at least one meaningful non-combat encounter family.
+  - Persist generated encounter state before player resolution.
+  - Keep encounter outcomes backend-authoritative and testable.
+  - Surface clear player-facing copy for the new encounter flow.
+current_code_context: Implementation touched migration 65, run graph generation, deterministic node resolution, run node API/frontend presentation, and encounter documentation.
+exit_criteria:
+  - Shrine encounters have durable backend-authored favor results.
+  - Resolving shrine encounters fits the existing run-node lifecycle.
+  - The frontend presents shrine encounters and result copy clearly.
+  - Backend and frontend coverage protect the core shrine flow.
+
+---
+name: Slot-Machine-Style Random Encounters Foundation
+status: complete
+issues:
+  - SME-001
+description: Established persisted chaos reel results and one single-use reroll mechanic as the foundation for later reachable chaos encounter nodes.
+goals:
+  - Document reel responsibilities, result persistence, and reward-scaling constraints.
+  - Persist generated chaos encounter results.
+  - Add one bounded player agency mechanic.
+current_code_context: Implementation touched migration 66, ChaosEncounterService, ChaosEncounterController, backend routing, API/data-model documentation, and integration tests.
+exit_criteria:
+  - Generated chaos results are durable per run node.
+  - Reroll state is persisted and single-use.
+  - Wrong-owner, invalid-node, and idempotency cases are tested.
+
+---
+name: Complete Tier III Progression
+status: complete
+issues:
+  - T3P-001
+description: Filled the starter-family Tier III class map and aligned mastery capstone and promotion seed data with player-facing references.
+goals:
+  - Define Tier III destinations for every major Tier I family.
+  - Add capstone coverage and inherited-passive review.
+  - Add promotion requirements using mastery as the initial advanced gate.
+current_code_context: Implementation touched migration 67, schema snapshots, progression integration tests, unit-art mapping, codex/guide pages, and progression documentation.
+exit_criteria:
+  - Every starter family has a Tier III chain destination.
+  - Tier II chain promotions require mastery before Tier III options appear.
+  - Terminal Tier III classes expose authored mastery capstone choices.

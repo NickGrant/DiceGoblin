@@ -2,20 +2,21 @@
 ----
 Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
-## Expanded Run Encounters
+## Slot-Machine-Style Random Encounters
 
-### REE-002: Add expanded run encounter families
+### SME-002: Place and present chaos encounter nodes
 
-**Milestone:** Expanded Run Encounters
+**Milestone:** Slot-Machine-Style Random Encounters
 **Status:** Open
 **Priority:** Medium
 
 #### Problem
 
-Run nodes now support hazard vocabulary, but the game still needs authored encounter families that create new decisions and biome identity.
+Chaos encounter results can be generated and rerolled, but chaos encounters are not yet reachable through ordinary run maps or presented as a coherent player-facing node flow.
 
 #### Acceptance Criteria
 
-- Implement at least one meaningful non-combat encounter family beyond the current dialogue/rest/loot/hazard baseline.
-- Persist any generated encounter result before player resolution.
-- Add player-facing copy and tests for the new encounter flow.
+- Add chaos run-node placement to eligible procedural run graphs without disrupting existing combat, shrine, rest, loot, boss, exit, dialogue, or hazard flows.
+- Present chaos nodes in the run-node UI with generated reel results, readable risk/reward copy, and the one-reroll agency mechanic.
+- Keep generation idempotent: refreshing or revisiting a chaos node must not regenerate an existing result.
+- Add backend and frontend coverage for chaos node placement and the visible generate/reroll flow.

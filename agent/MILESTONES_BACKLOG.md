@@ -8,20 +8,4 @@
 
 ## Backlog Milestones
 
-## Slot-Machine-Style Random Encounters
-
-**Status:** Planned
-**Purpose:** Create a persisted chaos encounter with readable reel results, bounded player agency, and visible risk/reward tradeoffs.
-
-### Related Issues
-
-- SME-001: Design and implement slot-machine-style chaos encounter foundation
-
-## Complete Tier III Progression
-
-**Status:** Planned
-**Purpose:** Finish late-game class coverage after expanded stats and splice variants establish the final build vocabulary.
-
-### Related Issues
-
-- T3P-001: Complete Tier III progression coverage
+No deferred milestones are currently staged. Add the next planned milestone here when it is known but not yet execution-ready.
