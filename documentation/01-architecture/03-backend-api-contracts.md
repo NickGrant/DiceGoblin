@@ -63,6 +63,7 @@ Current behavior:
 - unit records include `kin_*` aliases plus legacy `splice_variant_*` fields; clients should prefer `kin_*` and treat splice fields as compatibility-only
 - profile includes `lineage_unlocks`; Basic Goblin is implicit and explicit kin unlocks are persisted under the `lineage` unlock namespace
 - Wrong Machine reconstruction endpoints expose backend-owned Pig Kin cost preview and transactional reconstruction; successful reconstruction spends Raw Chaos and generic items, grants the Pig Kin lineage, and grants one Pig Kin unit
+- random unit grants choose kin only from the account's unlocked lineage pool; explicit grant payloads may still request a specific kin for backend-owned flows such as reconstruction
 - `active_run` includes region metadata such as slug and theme so the frontend does not need to infer biome presentation from unlock arrays
 - `objectives` contains backend-derived passive guidance records with id, status, priority, progress, route, and optional metadata
 - the frontend refreshes profile after most successful mutations

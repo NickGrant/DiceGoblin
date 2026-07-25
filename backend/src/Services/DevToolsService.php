@@ -275,6 +275,17 @@ final class DevToolsService
   }
 
   /**
+   * @return array<int,array{lineage_slug:string,kin_slug:string,name:string,description:string,is_default:bool,is_implicit:bool,unlocked_at:?string}>
+   */
+  public function grantLineage(int $userId, string $lineageSlug): array
+  {
+    $this->bootstrapper->ensureBaseline($userId);
+    $this->lineageUnlockService->grant($userId, $lineageSlug);
+
+    return $this->lineageUnlockService->listForUser($userId);
+  }
+
+  /**
    * @return array{
    *   user_id:string,
    *   squads:int,

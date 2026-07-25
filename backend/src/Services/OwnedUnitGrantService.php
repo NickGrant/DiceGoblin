@@ -72,7 +72,7 @@ final class OwnedUnitGrantService
     ?string $displayName = null,
     ?string $spliceVariantSlug = null,
   ): array {
-    $resolvedSpliceVariantSlug = $this->resolveSpliceVariantSlug($spliceVariantSlug);
+    $resolvedSpliceVariantSlug = $this->resolveSpliceVariantSlug($userId, $spliceVariantSlug);
     $unitId = $this->unitRepo->createUnitInstance(
       $userId,
       $unitTypeId,
@@ -128,13 +128,13 @@ final class OwnedUnitGrantService
     return 1;
   }
 
-  private function resolveSpliceVariantSlug(?string $spliceVariantSlug): string
+  private function resolveSpliceVariantSlug(int $userId, ?string $spliceVariantSlug): string
   {
     $slug = trim((string)$spliceVariantSlug);
     if ($slug !== '') {
       return $this->spliceVariantService->describeVariant($slug)['slug'];
     }
 
-    return $this->spliceVariantService->rollVariantSlug();
+    return $this->spliceVariantService->rollVariantSlugForUser($userId);
   }
 }

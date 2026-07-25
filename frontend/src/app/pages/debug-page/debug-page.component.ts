@@ -29,6 +29,7 @@ export class DebugPageComponent {
   selectedSides = 6;
   selectedRarity = 'common';
   selectedItem = '';
+  selectedLineage = '';
   selectedRegionItem = '';
   selectedOwnedUnitId = '';
   selectedOwnedUnitLevel = 1;
@@ -51,6 +52,7 @@ export class DebugPageComponent {
       this.catalog.set(response.data);
       this.selectedUnitSlug ||= response.data.unit_types[0]?.slug ?? '';
       this.selectedItem ||= response.data.items[0]?.slug ?? '';
+      this.selectedLineage ||= response.data.lineages.find((lineage) => !lineage.is_default)?.lineage_slug ?? response.data.lineages[0]?.lineage_slug ?? '';
       this.selectedRegionItem ||= response.data.region_items[0]?.slug ?? '';
       this.syncOwnedUnitSelection(response.data);
     } catch (error) {
@@ -93,6 +95,10 @@ export class DebugPageComponent {
 
   async grantItem(): Promise<void> {
     await this.runMutation(async () => this.debugService.grantItem(this.selectedItem, 1));
+  }
+
+  async grantLineage(): Promise<void> {
+    await this.runMutation(async () => this.debugService.grantLineage(this.selectedLineage), 'Lineage granted.', true);
   }
 
   async grantRegionItem(): Promise<void> {

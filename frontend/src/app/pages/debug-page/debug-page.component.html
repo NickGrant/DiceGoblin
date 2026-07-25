@@ -73,6 +73,16 @@
           <button dgCommandBtn type="button" (click)="grantItem()" [disabled]="busy() || !catalog.items.length">Grant Item</button>
 
           <div>
+            <label class="form-label">Lineage</label>
+            <select class="dg-select" [(ngModel)]="selectedLineage">
+              @for (lineage of catalog.lineages; track lineage.lineage_slug) {
+              <option [value]="lineage.lineage_slug">{{ lineage.name }}</option>
+              }
+            </select>
+          </div>
+          <button dgCommandBtn type="button" (click)="grantLineage()" [disabled]="busy() || !catalog.lineages.length">Grant Lineage</button>
+
+          <div>
             <label class="form-label">Region Item</label>
             <select class="dg-select" [(ngModel)]="selectedRegionItem">
               @for (item of catalog.region_items; track item.id) {

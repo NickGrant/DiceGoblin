@@ -17,15 +17,16 @@ Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
 ### Current Code Context
 
-Generic `items` and `user_items` now provide the progression inventory foundation for Pig Kin materials and boss catalysts. The current slice adds account-level lineage unlock state through the existing unlock table, with Basic Goblin implicit and Pig Kin as the first explicit lineage. The implementation still persists unit kin identity through legacy `splice_variant` fields, so follow-up work should avoid new splice terminology while planning the storage/API compatibility rename.
+Generic `items` and `user_items` now provide the progression inventory foundation for Pig Kin materials and boss catalysts. Account-level lineage unlock state exists through the existing unlock table, with Basic Goblin implicit and Pig Kin as the first explicit lineage. The next implementation slice should add the backend-authoritative Wrong Machine reconstruction transaction that spends Pig Kin materials, unlocks Pig Kin, and grants the tutorial unit.
 
 ### Exit Criteria
 
 - Account-level lineage unlock state exists.
 - Profile/debug surfaces expose owned lineages.
 - Player-facing UI renders kin language instead of splice language.
-- The next branch can implement Pig Kin reconstruction costs and reward-claim unlock handling.
+- Pig Kin reconstruction has backend-owned cost preview, spending, lineage unlock, and tutorial unit grant behavior.
+- The next branch can connect Swamps reward-claim progression to Wrong Machine unlock/recovery story.
 
 ### Related Issues
 
-- KRB-002: Add account-level lineage unlock state
+- KRB-003: Add Wrong Machine reconstruction transaction

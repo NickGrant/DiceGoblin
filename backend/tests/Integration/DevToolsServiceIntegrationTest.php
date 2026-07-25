@@ -8,6 +8,7 @@ use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RegionRepository;
 use DiceGoblins\Repositories\UnitRepository;
 use DiceGoblins\Services\DevToolsService;
+use DiceGoblins\Services\LineageUnlockService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\StarterPackProvisioningService;
 use DiceGoblins\Repositories\EnergyRepository;
@@ -177,6 +178,21 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $this->assertSame(['basic_goblin'], $ownedLineageSlugs);
   }
 
+  public function testGrantLineageAddsExplicitOwnedLineage(): void
+  {
+    $userId = $this->insertUser('qa_dev_lineage_grant', 'QA Dev Lineage Grant');
+    $service = $this->makeService();
+
+    $ownedLineages = $service->grantLineage($userId, LineageUnlockService::PIG_KIN);
+    $ownedLineageSlugs = array_map(static fn(array $row): string => (string)$row['lineage_slug'], $ownedLineages);
+
+    $this->assertSame(['basic_goblin', 'pig_kin'], $ownedLineageSlugs);
+    $this->assertSame('1', (string)$this->scalar(
+      'SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_namespace` = ? AND `unlock_key` = ?',
+      [$userId, 'lineage', LineageUnlockService::PIG_KIN]
+    ));
+  }
+
   public function testSeedTableCatalogRejectsUnknownTables(): void
   {
     $service = $this->makeService();
@@ -184,7 +200,7 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $this->expectException(\RuntimeException::class);
     $this->expectExceptionMessage('Unknown seeded table.');
 
-    $service->getSeedTableCatalog('users');
+    $service->getSeedTableCatalog('not_a_seed_table');
   }
 
   public function testGrantUnitsUsesTierEncodedInUnitTypeSlug(): void
