@@ -59,6 +59,7 @@ Current behavior:
 - it contains energy, currency, active run, squads, units, dice, unlocks, and region access data
 - `currency` includes `soft`, `hard`, and `raw_chaos`
 - profile now includes a backend-authored `regions` catalog with unlock and inferred completion state for each enabled biome
+- profile includes `items` for generic account inventory such as lineage materials and boss catalysts; `region_items` remains a legacy compatibility payload
 - unit records currently include the legacy `splice_variant_slug` field, defaulting to `basic_goblin`; new API surface should use kin/lineage terminology when the compatibility migration lands
 - `active_run` includes region metadata such as slug and theme so the frontend does not need to infer biome presentation from unlock arrays
 - `objectives` contains backend-derived passive guidance records with id, status, priority, progress, route, and optional metadata

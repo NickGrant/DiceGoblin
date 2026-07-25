@@ -259,9 +259,29 @@ export type ProfileData = {
   seen_dialogues?: string[];
   regions: RegionRecord[];
   region_unlocks: RegionUnlockRecord[];
+  items: ItemRecord[];
   region_items: RegionItemRecord[];
   active_run: ProfileActiveRun | null;
   objectives: ObjectiveRecord[];
+};
+
+export type ItemRecord = {
+  item_id: string;
+  item_slug: string;
+  name: string;
+  description: string;
+  category: string;
+  quantity: number;
+  rarity: string;
+  source_region_slug: string | null;
+  source_region_name: string | null;
+  source_family_slug: string | null;
+  icon_key: string | null;
+  lore_key: string | null;
+  is_visible_before_discovery: boolean;
+  is_spendable: boolean;
+  is_primary_progression: boolean;
+  meta: Record<string, unknown>;
 };
 
 export type ProfileResponse = ApiResponse<ProfileData>;
@@ -803,6 +823,19 @@ export type DebugRegionItemRecord = {
   region_name: string;
 };
 
+export type DebugItemRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  rarity: string;
+  source_region_slug: string | null;
+  source_region_name: string | null;
+  source_family_slug: string | null;
+  is_stackable: boolean;
+};
+
 export type DebugOwnedUnitRecord = {
   id: string;
   name: string;
@@ -814,6 +847,7 @@ export type DebugOwnedUnitRecord = {
 export type DebugCatalogData = {
   unit_types: DebugUnitTypeRecord[];
   dice_definitions: DebugDiceDefinition[];
+  items: DebugItemRecord[];
   region_items: DebugRegionItemRecord[];
   owned_units: DebugOwnedUnitRecord[];
 };
@@ -843,6 +877,7 @@ export type DebugSeedTablesResponse = ApiResponse<DebugSeedTablesData>;
 export type DebugCurrencyGrantResponse = ApiResponse<{ currency: { soft: number; hard?: number } }>;
 export type DebugGrantUnitResponse = ApiResponse<{ granted_units: Array<{ id: string; unit_type_slug: string }> }>;
 export type DebugGrantDieResponse = ApiResponse<{ granted_dice: Array<{ id: string; sides: number; rarity: string }> }>;
+export type DebugGrantItemResponse = ApiResponse<{ item: { item_slug: string; quantity: number; granted_quantity: number } }>;
 export type DebugGrantRegionItemResponse = ApiResponse<{ region_item: { region_item_slug: string; quantity: number } }>;
 export type DebugSetUnitLevelResponse = ApiResponse<{ unit: { id: string; level: number; max_level: number } }>;
 export type DebugResetAccountResponse = ApiResponse<{

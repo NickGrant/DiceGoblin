@@ -9,6 +9,7 @@ class DebugServiceStub {
     data: {
       unit_types: [{ slug: 'goblin', name: 'Goblin' }],
       dice_definitions: [{ sides: 6 }],
+      items: [{ id: 'item-1', slug: 'pig_ear', name: 'Pig Ear', category: 'lineage_material' }],
       region_items: [{ slug: 'hay', name: 'Hay' }],
       owned_units: [{ id: 'u1', name: 'Briarjaw', unit_type_slug: 'frontline_bruiser_t1', level: 3, max_level: 6 }],
     },
@@ -39,6 +40,7 @@ class DebugServiceStub {
   grantCurrency = jasmine.createSpy('grantCurrency').and.resolveTo({ ok: true });
   grantUnit = jasmine.createSpy('grantUnit').and.resolveTo({ ok: true });
   grantDie = jasmine.createSpy('grantDie').and.resolveTo({ ok: true });
+  grantItem = jasmine.createSpy('grantItem').and.resolveTo({ ok: true });
   grantRegionItem = jasmine.createSpy('grantRegionItem').and.resolveTo({ ok: true });
   setUnitLevel = jasmine.createSpy('setUnitLevel').and.resolveTo({ ok: true });
   resetAccount = jasmine.createSpy('resetAccount').and.resolveTo({ ok: true });
@@ -59,6 +61,7 @@ describe('DebugPageComponent', () => {
     expect(component.loading()).toBeFalse();
     expect(component.catalog()?.unit_types.length).toBe(1);
     expect(component.selectedUnitSlug).toBe('goblin');
+    expect(component.selectedItem).toBe('pig_ear');
     expect(component.selectedOwnedUnitId).toBe('u1');
     expect(component.selectedOwnedUnitLevel).toBe(3);
     expect(component.seedTables()?.selected_table?.name).toBe('unit_types');

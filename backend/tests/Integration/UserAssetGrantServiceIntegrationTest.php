@@ -99,6 +99,34 @@ final class UserAssetGrantServiceIntegrationTest extends BattleFlowIntegrationCa
     $this->assertSame(2, $diceCount);
   }
 
+  public function testMaterializeRewardItemGrantsAccumulatesGenericItems(): void
+  {
+    $userId = $this->insertUser();
+
+    $granted = $this->service()->materializeRewardItemGrants($userId, [
+      'item_grants' => [
+        ['item_slug' => 'pig_ear', 'quantity' => 2],
+        ['item_slug' => 'pig_ear', 'quantity' => 3],
+        ['item_slug' => 'missing_item', 'quantity' => 99],
+      ],
+    ]);
+
+    $this->assertCount(2, $granted);
+    $this->assertSame('pig_ear', $granted[0]['item_slug']);
+    $this->assertSame(2, $granted[0]['quantity']);
+    $this->assertSame(5, $granted[1]['quantity']);
+    $this->assertSame(
+      5,
+      (int)$this->scalar(
+        'SELECT ui.`quantity`
+         FROM `user_items` ui
+         JOIN `items` i ON i.`id` = ui.`item_id`
+         WHERE ui.`user_id` = ? AND i.`slug` = ?',
+        [$userId, 'pig_ear']
+      )
+    );
+  }
+
   private function service(): UserAssetGrantService
   {
     return new UserAssetGrantService($this->pdo);

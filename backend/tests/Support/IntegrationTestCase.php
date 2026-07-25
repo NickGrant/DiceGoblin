@@ -263,6 +263,9 @@ abstract class IntegrationTestCase extends TestCase
       $this->execDeleteByUserIds("DELETE FROM `user_unlocks` WHERE `user_id` IN ($placeholders)", $userIds);
     }
     $this->execDeleteByUserIds("DELETE FROM `unit_promotions` WHERE `user_id` IN ($placeholders)", $userIds);
+    if ($this->schemaHasTable('user_items')) {
+      $this->execDeleteByUserIds("DELETE FROM `user_items` WHERE `user_id` IN ($placeholders)", $userIds);
+    }
     $this->execDeleteByUserIds("DELETE FROM `user_region_items` WHERE `user_id` IN ($placeholders)", $userIds);
     $this->execDeleteByUserIds("DELETE FROM `region_unlocks` WHERE `user_id` IN ($placeholders)", $userIds);
     $this->execDeleteByUserIds("DELETE FROM `dice_instances` WHERE `user_id` IN ($placeholders)", $userIds);

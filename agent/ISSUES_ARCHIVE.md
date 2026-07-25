@@ -639,3 +639,29 @@ current_code_references:
   - frontend/src/app/pages/run-node-page
   - documentation/01-architecture/03-backend-api-contracts.md
   - documentation/01-architecture/04-data-model.md
+
+---
+id: PIF-001
+title: Add generic progression item foundation
+status: complete
+priority: high
+milestone: Wrong Machine and Kin Foundation
+description: Added generic item catalog and user item ownership tables, seeded Pig Ear and Mudking Crown Fragment for the Pig Kin path, exposed owned items through profile/debug payloads, added debug granting and reward materialization support, and documented region items as legacy compatibility.
+acceptance_criteria:
+  - Add a generic item catalog and per-user item ownership table through new migrations only.
+  - Seed at least one Pig Kin lineage material and one Farm boss catalyst.
+  - Route new progression reward/profile/debug work through the generic item foundation.
+  - Do not add new dependencies on region_items or user_region_items.
+  - Keep reward claims and item grants idempotent, with non-negative quantities.
+  - Add focused backend coverage for duplicate grants and profile serialization.
+current_code_references:
+  - backend/migrations/73_generic_progression_items.sql
+  - backend/src/Services/ItemInventoryService.php
+  - backend/src/Services/ProfileService.php
+  - backend/src/Services/UserAssetGrantService.php
+  - backend/src/Services/DevToolsService.php
+  - backend/src/Controllers/RunNodeController.php
+  - backend/tests/Integration/UserAssetGrantServiceIntegrationTest.php
+  - backend/tests/Integration/ApiControllerEnvelopeContractTest.php
+  - documentation/01-architecture/03-backend-api-contracts.md
+  - documentation/01-architecture/04-data-model.md

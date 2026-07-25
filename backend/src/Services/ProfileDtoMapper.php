@@ -23,6 +23,7 @@ final class ProfileDtoMapper
    * @param array<int,string> $seenDialogues
    * @param array<int,mixed> $regions
    * @param array<int,mixed> $regionUnlocks
+   * @param array<int,mixed> $items
    * @param array<int,array{region_item_id:string,quantity:int}> $regionItems
    * @param array<string,mixed>|null $activeRun
    * @param array<int,mixed> $objectives
@@ -41,6 +42,7 @@ final class ProfileDtoMapper
     array $seenDialogues,
     array $regions,
     array $regionUnlocks,
+    array $items,
     array $regionItems,
     ?array $activeRun,
     array $objectives = []
@@ -58,6 +60,7 @@ final class ProfileDtoMapper
       'seen_dialogues' => array_values(array_map(static fn(mixed $value): string => (string)$value, $seenDialogues)),
       'regions' => $regions,
       'region_unlocks' => $regionUnlocks,
+      'items' => $items,
       'region_items' => $regionItems,
       'active_run' => $activeRun,
       'objectives' => $objectives,

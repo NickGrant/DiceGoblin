@@ -11,16 +11,19 @@ final class UserAssetGrantService
   private OwnedUnitGrantService $ownedUnitGrantService;
   private OwnedDiceGrantService $ownedDiceGrantService;
   private UserUnlockService $userUnlockService;
+  private ItemInventoryService $itemInventoryService;
 
   public function __construct(
     private readonly PDO $pdo,
     ?OwnedUnitGrantService $ownedUnitGrantService = null,
     ?OwnedDiceGrantService $ownedDiceGrantService = null,
     ?UserUnlockService $userUnlockService = null,
+    ?ItemInventoryService $itemInventoryService = null,
   ) {
     $this->ownedUnitGrantService = $ownedUnitGrantService ?? new OwnedUnitGrantService($pdo);
     $this->ownedDiceGrantService = $ownedDiceGrantService ?? new OwnedDiceGrantService($pdo);
     $this->userUnlockService = $userUnlockService ?? new UserUnlockService($pdo);
+    $this->itemInventoryService = $itemInventoryService ?? new ItemInventoryService($pdo);
   }
 
   /**
@@ -183,5 +186,14 @@ final class UserAssetGrantService
     }
 
     return $created;
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   * @return array<int,array{item_slug:string,quantity:int,granted_quantity:int}>
+   */
+  public function materializeRewardItemGrants(int $userId, array $rewards): array
+  {
+    return $this->itemInventoryService->materializeRewardItemGrants($userId, $rewards);
   }
 }

@@ -221,6 +221,7 @@ export function createDebugCaptureProfile(_request: DebugCaptureRequest): Profil
         unlocked_at: '2026-07-02T00:00:00Z',
       },
     ],
+    items: [],
     region_items: [],
     active_run: null,
     objectives: [
