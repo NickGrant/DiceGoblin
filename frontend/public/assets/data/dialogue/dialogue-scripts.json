@@ -368,6 +368,173 @@
       ]
     },
     {
+      "id": "mountains-wrong-machine-search-repeat",
+      "title": "The High Pass Search",
+      "summary": "The mountains keep pointing your fragment toward whatever the kobolds call the Wrong Machine.",
+      "trigger": {
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
+        "region_slug": "mountains"
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/mountain.png"
+      },
+      "speakers": [
+        {
+          "id": "player",
+          "side": "left",
+          "party": "player",
+          "role": "player"
+        },
+        {
+          "id": "kobold-scout",
+          "side": "right",
+          "name": "Kobold Scout",
+          "portrait_unit_slug": "kobold_scout",
+          "party": "enemy",
+          "role": "npc"
+        }
+      ],
+      "start_step_id": "scout-warning",
+      "steps": [
+        {
+          "id": "scout-warning",
+          "speaker_id": "kobold-scout",
+          "text": "Back on the pass? Fine. Follow the old scratches if you must, but do not touch the swamp machine when you find it.",
+          "next_step_id": "player-machine"
+        },
+        {
+          "id": "player-machine",
+          "speaker_id": "player",
+          "text": "So there is a machine.",
+          "next_step_id": "scout-sendoff"
+        },
+        {
+          "id": "scout-sendoff",
+          "speaker_id": "kobold-scout",
+          "text": "There is a mistake with gears. That is different."
+        }
+      ]
+    },
+    {
+      "id": "mountains-kobold-machine-trail",
+      "title": "Kobold Evidence",
+      "summary": "A kobold sentry recognizes old goblin machinery and points toward the Swamps.",
+      "tags": ["lore"],
+      "trigger": {
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
+        "region_slug": "mountains",
+        "tags": ["lore"]
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/mountain.png"
+      },
+      "speakers": [
+        {
+          "id": "player",
+          "side": "left",
+          "party": "player",
+          "role": "player"
+        },
+        {
+          "id": "kobold-sentry",
+          "side": "right",
+          "name": "Kobold Sentry",
+          "portrait_unit_slug": "kobold_scout",
+          "party": "enemy",
+          "role": "npc"
+        }
+      ],
+      "start_step_id": "sentry-findings",
+      "steps": [
+        {
+          "id": "sentry-findings",
+          "speaker_id": "kobold-sentry",
+          "text": "Those claw marks are not ours. Old goblin work. Old wrong work.",
+          "next_step_id": "player-wrong"
+        },
+        {
+          "id": "player-wrong",
+          "speaker_id": "player",
+          "text": "Wrong like bad?",
+          "next_step_id": "sentry-machine"
+        },
+        {
+          "id": "sentry-machine",
+          "speaker_id": "kobold-sentry",
+          "text": "Wrong like it refuses the shape the world gave it. The Archivist hates it. The swamp keeps it."
+        }
+      ]
+    },
+    {
+      "id": "mountains-swamps-lead",
+      "title": "Toward the Swamps",
+      "summary": "The mountains reveal that the path to the Wrong Machine runs through the Swamps.",
+      "tags": ["lore"],
+      "trigger": {
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
+        "region_slug": "mountains",
+        "tags": ["lore"]
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/mountain.png"
+      },
+      "speakers": [
+        {
+          "id": "player",
+          "side": "left",
+          "party": "player",
+          "role": "player"
+        },
+        {
+          "id": "archivist",
+          "side": "right",
+          "name": "The Archivist",
+          "portrait_url": "/assets/ui/units/animated/archivist/base/frame_0.png",
+          "party": "neutral",
+          "role": "npc"
+        }
+      ],
+      "start_step_id": "archivist-warning",
+      "steps": [
+        {
+          "id": "archivist-warning",
+          "speaker_id": "archivist",
+          "text": "You are following a forbidden thread. It leads downward, into rot and water, to a machine that should have stayed unmade.",
+          "next_step_id": "player-thread"
+        },
+        {
+          "id": "player-thread",
+          "speaker_id": "player",
+          "text": "...",
+          "choices": [
+            {
+              "id": "good",
+              "label": "Forbidden sounds useful.",
+              "next_step_id": "archivist-record"
+            },
+            {
+              "id": "swamp",
+              "label": "So... Swamps next?",
+              "next_step_id": "archivist-record"
+            },
+            {
+              "id": "wrong",
+              "label": "The Wrong Machine wants me.",
+              "next_step_id": "archivist-record"
+            }
+          ]
+        },
+        {
+          "id": "archivist-record",
+          "speaker_id": "archivist",
+          "text": "The record will survive your confusion. Go, then. The Bog Tyrant will be less patient than I am."
+        }
+      ]
+    },
+    {
       "id": "farm-shop-unlock",
       "title": "The Tooth Collector Freed",
       "summary": "The Mudking releases The Tooth Collector, opening the shop and its teeth-for-power economy.",
