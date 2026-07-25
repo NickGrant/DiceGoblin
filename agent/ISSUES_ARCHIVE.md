@@ -559,3 +559,24 @@ current_code_references:
   - backend/src/Services/ChaosEncounterService.php
   - frontend/src/app/pages/run-node-page
   - documentation/02-systems-mvp/03-encounter-scope.md
+
+---
+id: SME-003
+title: Finalize chaos encounter rewards
+status: complete
+priority: medium
+milestone: Slot-Machine-Style Random Encounters
+description: Added backend-authoritative chaos encounter finalization that applies bounded persisted-result rewards once, clears the chaos run node, unlocks downstream progression, and presents completion rewards in the run-node UI.
+acceptance_criteria:
+  - Add a backend-authoritative finalize path for generated chaos results that completes the run node.
+  - Apply a bounded reward based on the persisted reel result, including the advertised reward multiplier.
+  - Keep finalize idempotent so retries return the same completed result without duplicating rewards.
+  - Add player-facing completion copy and backend/frontend coverage for the finalize flow.
+current_code_references:
+  - backend/migrations/69_chaos_encounter_finalized_rewards.sql
+  - backend/src/Services/ChaosEncounterService.php
+  - backend/src/Controllers/ChaosEncounterController.php
+  - backend/tests/Integration/ChaosEncounterControllerIntegrationTest.php
+  - frontend/src/app/pages/run-node-page
+  - documentation/01-architecture/03-backend-api-contracts.md
+  - documentation/01-architecture/04-data-model.md
