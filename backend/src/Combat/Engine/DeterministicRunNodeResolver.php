@@ -361,6 +361,8 @@ final class DeterministicRunNodeResolver
         ut.`attack_per_level`,
         ut.`defense_per_level`,
         ut.`max_hp_per_level`,
+        ut.`precision_per_level`,
+        ut.`resolve_per_level`,
         rus.`current_hp` AS `run_current_hp`
       FROM `team_units` tu
       JOIN `unit_instances` ui ON ui.`id` = tu.`unit_instance_id`
@@ -391,8 +393,8 @@ final class DeterministicRunNodeResolver
       $attack = $progression->totalAttackForLevel($baseStats, $level, (int)$row['attack_per_level']);
       $defense = $progression->totalDefenseForLevel($baseStats, $level, (int)$row['defense_per_level']);
       $maxHp = $progression->maxHpForLevel($baseStats, $level, (int)$row['max_hp_per_level']);
-      $precision = $progression->precision($baseStats);
-      $resolve = $progression->resolve($baseStats);
+      $precision = $progression->totalPrecisionForLevel($baseStats, $level, (int)$row['precision_per_level']);
+      $resolve = $progression->totalResolveForLevel($baseStats, $level, (int)$row['resolve_per_level']);
       $footprint = FormationGeometry::footprintFromStats($baseStats);
       $currentHp = $row['run_current_hp'] !== null
         ? max(0, min($maxHp, (int)$row['run_current_hp']))

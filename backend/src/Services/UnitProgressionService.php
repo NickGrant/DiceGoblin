@@ -61,6 +61,18 @@ final class UnitProgressionService
     return max(0, (int)($baseStats['resolve'] ?? 5));
   }
 
+  public function totalPrecisionForLevel(mixed $baseStatsRaw, int $level, int $precisionPerLevel): int
+  {
+    $levelScale = max(0, $level - 1);
+    return max(0, $this->precision($baseStatsRaw) + (max(0, $precisionPerLevel) * $levelScale));
+  }
+
+  public function totalResolveForLevel(mixed $baseStatsRaw, int $level, int $resolvePerLevel): int
+  {
+    $levelScale = max(0, $level - 1);
+    return max(0, $this->resolve($baseStatsRaw) + (max(0, $resolvePerLevel) * $levelScale));
+  }
+
   public function xpToNextLevel(int $tier, int $level, int $maxLevel, int $xp): int
   {
     if ($level >= $maxLevel) {

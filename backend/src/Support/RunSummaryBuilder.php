@@ -544,7 +544,15 @@ final class RunSummaryBuilder
         'splice_variant_passive_summary' => $kinPassiveSummary,
         'tier' => max(1, (int)($grant['tier'] ?? 1)),
         'level' => max(1, (int)($grant['level'] ?? 1)),
-        ...$this->unitTypeStats($unitType['base_stats_json'] ?? null),
+        ...$this->unitTypeStats(
+          $unitType['base_stats_json'] ?? null,
+          max(1, (int)($grant['level'] ?? 1)),
+          (int)($unitType['attack_per_level'] ?? 0),
+          (int)($unitType['defense_per_level'] ?? 0),
+          (int)($unitType['max_hp_per_level'] ?? 0),
+          (int)($unitType['precision_per_level'] ?? 0),
+          (int)($unitType['resolve_per_level'] ?? 0),
+        ),
       ];
     }
 
@@ -778,7 +786,7 @@ final class RunSummaryBuilder
 
   /**
    * @param array<int,string> $slugs
-   * @return array<string,array{name:string,base_stats_json:mixed}>
+   * @return array<string,array{name:string,base_stats_json:mixed,attack_per_level:int,defense_per_level:int,max_hp_per_level:int,precision_per_level:int,resolve_per_level:int}>
    */
   private function loadUnitTypesBySlug(array $slugs): array
   {
@@ -789,7 +797,15 @@ final class RunSummaryBuilder
 
     $placeholders = implode(',', array_fill(0, count($slugs), '?'));
     $stmt = $this->pdo->prepare("
-      SELECT `slug`, `name`, `base_stats_json`
+      SELECT
+        `slug`,
+        `name`,
+        `base_stats_json`,
+        `attack_per_level`,
+        `defense_per_level`,
+        `max_hp_per_level`,
+        `precision_per_level`,
+        `resolve_per_level`
       FROM `unit_types`
       WHERE `slug` IN ($placeholders)
     ");
@@ -800,6 +816,11 @@ final class RunSummaryBuilder
       $map[(string)$row['slug']] = [
         'name' => (string)$row['name'],
         'base_stats_json' => $row['base_stats_json'] ?? null,
+        'attack_per_level' => (int)($row['attack_per_level'] ?? 0),
+        'defense_per_level' => (int)($row['defense_per_level'] ?? 0),
+        'max_hp_per_level' => (int)($row['max_hp_per_level'] ?? 0),
+        'precision_per_level' => (int)($row['precision_per_level'] ?? 0),
+        'resolve_per_level' => (int)($row['resolve_per_level'] ?? 0),
       ];
     }
 
@@ -945,6 +966,11 @@ final class RunSummaryBuilder
         ut.`slug` AS `unit_type_slug`,
         ut.`name` AS `unit_type_name`,
         ut.`base_stats_json`,
+        ut.`attack_per_level`,
+        ut.`defense_per_level`,
+        ut.`max_hp_per_level`,
+        ut.`precision_per_level`,
+        ut.`resolve_per_level`,
         sv.`name` AS `splice_variant_name`,
         sv.`description` AS `splice_variant_description`,
         sv.`passive_summary` AS `splice_variant_passive_summary`
@@ -978,7 +1004,15 @@ final class RunSummaryBuilder
         'splice_variant_passive_summary' => $kinPassiveSummary,
         'tier' => max(1, (int)($row['tier'] ?? 1)),
         'level' => max(1, (int)($row['level'] ?? 1)),
-        ...$this->unitTypeStats($row['base_stats_json'] ?? null),
+        ...$this->unitTypeStats(
+          $row['base_stats_json'] ?? null,
+          max(1, (int)($row['level'] ?? 1)),
+          (int)($row['attack_per_level'] ?? 0),
+          (int)($row['defense_per_level'] ?? 0),
+          (int)($row['max_hp_per_level'] ?? 0),
+          (int)($row['precision_per_level'] ?? 0),
+          (int)($row['resolve_per_level'] ?? 0),
+        ),
       ];
     }
 
@@ -995,19 +1029,28 @@ final class RunSummaryBuilder
   /**
    * @return array{total_attack:int,total_defense:int,total_precision:int,total_resolve:int,max_hp:int}
    */
-  private function unitTypeStats(mixed $baseStatsJson): array
+  private function unitTypeStats(
+    mixed $baseStatsJson,
+    int $level = 1,
+    int $attackPerLevel = 0,
+    int $defensePerLevel = 0,
+    int $maxHpPerLevel = 0,
+    int $precisionPerLevel = 0,
+    int $resolvePerLevel = 0,
+  ): array
   {
     $stats = is_string($baseStatsJson) && $baseStatsJson !== ''
       ? json_decode($baseStatsJson, true)
       : [];
     $stats = is_array($stats) ? $stats : [];
+    $progression = new UnitProgressionService();
 
     return [
-      'total_attack' => max(0, (int)($stats['attack'] ?? 0)),
-      'total_defense' => max(0, (int)($stats['defense'] ?? 0)),
-      'total_precision' => max(0, (int)($stats['precision'] ?? 5)),
-      'total_resolve' => max(0, (int)($stats['resolve'] ?? 5)),
-      'max_hp' => max(1, (int)($stats['max_hp'] ?? 1)),
+      'total_attack' => $progression->totalAttackForLevel($stats, $level, $attackPerLevel),
+      'total_defense' => $progression->totalDefenseForLevel($stats, $level, $defensePerLevel),
+      'total_precision' => $progression->totalPrecisionForLevel($stats, $level, $precisionPerLevel),
+      'total_resolve' => $progression->totalResolveForLevel($stats, $level, $resolvePerLevel),
+      'max_hp' => $progression->maxHpForLevel($stats, $level, $maxHpPerLevel),
     ];
   }
 

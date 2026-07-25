@@ -3330,6 +3330,13 @@ ON DUPLICATE KEY UPDATE
 
 -- END MIGRATION: 76_seed_energy_consumables.sql
 
+-- BEGIN MIGRATION: 77_unit_type_precision_resolve_growth.sql
+ALTER TABLE `unit_types`
+  ADD COLUMN `precision_per_level` INT NOT NULL DEFAULT 1 AFTER `max_hp_per_level`,
+  ADD COLUMN `resolve_per_level` INT NOT NULL DEFAULT 1 AFTER `precision_per_level`;
+
+-- END MIGRATION: 77_unit_type_precision_resolve_growth.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 -- Dice Goblins â€” MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
