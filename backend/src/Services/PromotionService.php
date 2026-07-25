@@ -139,7 +139,7 @@ final class PromotionService
         'target_unit_type_name' => (string)$targetType['name'],
         'target_tier' => $targetInstanceTier,
         'mode' => $mode,
-        'promotion_grants' => $this->loadPromotionGrantsForTypeId($targetTypeId),
+        'promotion_grants' => $this->loadAbilitySetForTypeId($targetTypeId),
         'will_skip_current_capstone' => $willSkipCurrentCapstone,
         'current_capstone_state' => $capstoneState,
       ];
@@ -431,19 +431,19 @@ final class PromotionService
   /**
    * @return array{actives:list<string>,passives:list<string>}
    */
-  private function loadPromotionGrantsForTypeId(int $unitTypeId): array
+  private function loadAbilitySetForTypeId(int $unitTypeId): array
   {
-    $stmt = $this->pdo->prepare('SELECT `promotion_grants_json` FROM `unit_types` WHERE `id` = ? LIMIT 1');
+    $stmt = $this->pdo->prepare('SELECT `ability_set_json` FROM `unit_types` WHERE `id` = ? LIMIT 1');
     $stmt->execute([$unitTypeId]);
     $raw = $stmt->fetchColumn();
-    return $this->decodePromotionGrants($raw);
+    return $this->decodeAbilitySet($raw);
   }
 
   /**
    * @param mixed $raw
    * @return array{actives:list<string>,passives:list<string>}
    */
-  private function decodePromotionGrants(mixed $raw): array
+  private function decodeAbilitySet(mixed $raw): array
   {
     if (is_string($raw)) {
       $decoded = json_decode($raw, true);

@@ -313,7 +313,6 @@ final class DeterministicRunNodeResolver
         ut.`attack_per_level`,
         ut.`defense_per_level`,
         ut.`max_hp_per_level`,
-        ut.`max_equipped_dice`,
         rus.`current_hp` AS `run_current_hp`
       FROM `team_units` tu
       JOIN `unit_instances` ui ON ui.`id` = tu.`unit_instance_id`

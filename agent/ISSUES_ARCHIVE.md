@@ -6,6 +6,45 @@
 - Historical issue records can be retrieved from git when needed.
 
 ---
+id: HDC-002
+title: Coalesce unit type ability package fields
+status: complete
+priority: high
+milestone: Hybrid Seed Catalog Ownership
+description: Unit type seed data duplicated authored ability packages between `ability_set_json` and `promotion_grants_json`, and still carried obsolete unit-level dice capacity through `max_equipped_dice`.
+acceptance_criteria:
+  - Use `ability_set_json` as the single database source for unit type authored abilities.
+  - Derive promotion preview grant data from destination `ability_set_json`.
+  - Add a forward migration that preserves residual grant data before dropping `promotion_grants_json`.
+  - Drop `max_equipped_dice` now that dice capacity is derived from equipped abilities and ability slot costs.
+  - Regenerate schema snapshots and keep docs aligned.
+current_code_references:
+  - backend/migrations/71_coalesce_unit_type_ability_sets.sql
+  - backend/migrations/72_drop_unit_type_max_equipped_dice.sql
+  - backend/src/Services/UnitLoadoutService.php
+  - backend/src/Services/PromotionService.php
+  - backend/src/Repositories/UnitRepository.php
+
+---
+id: HDC-001
+title: Classify database tables by data ownership model
+status: complete
+priority: high
+milestone: Hybrid Seed Catalog Ownership
+description: Seeded and runtime tables needed a shared classification for database-owned, code/config-owned, and hybrid-owned data.
+acceptance_criteria:
+  - Add a canonical architecture document that defines database, code/config, and hybrid ownership criteria.
+  - Classify every current table in the project by ownership model.
+  - Identify near-term candidates for codification or hybrid contract enforcement.
+  - Update the active roadmap so the seed browser is marked complete and hybrid catalog cleanup is the current planning lane.
+  - Preserve runtime/player-state tables as database-owned unless a concrete reason says otherwise.
+current_code_references:
+  - documentation/01-architecture/08-seed-catalog-ownership.md
+  - documentation/07-roadmap/00-gameplay-systems-roadmap.md
+  - agent/ISSUES.md
+  - agent/MILESTONES.md
+
+---
 id: DSB-001
 title: Add read-only seeded table browser to debug panel
 status: complete

@@ -79,7 +79,7 @@ The contract is a stable slug:
 | `shop_daily_deals` | Database-owned | Per-user rotating shop state. | Keep DB. |
 | `regions` | Database-owned catalog | Authored progression catalog with unlock joins and debug inspection value. | Keep DB; seed from structured source later if SQL becomes painful. |
 | `region_items` | Database-owned catalog | Authored item catalog referenced by inventory, shop, and rewards. | Keep DB; candidate for structured source seeds. |
-| `unit_types` | Hybrid-owned catalog | Rows store stats, progression metadata, and ability packages; ability behavior is code-owned. | Keep DB; add stronger slug/ability registry parity tests. |
+| `unit_types` | Hybrid-owned catalog | Rows store stats, progression metadata, capstone choices, and a single authored ability package in `ability_set_json`; ability behavior and dice-slot capacity are code-owned through the ability registry. | Keep DB; add stronger slug/ability registry parity tests. |
 | `enemy_templates` | Hybrid-owned catalog | Rows store enemy stats/loadouts; combat behavior and abilities are code-owned. | Keep DB; add stronger ability/loadout parity tests. |
 | `encounter_templates` | Hybrid-owned catalog | Rows store authored encounter composition; node generation and combat rules are code-owned. | Keep DB; validate referenced regions/enemies/ability slugs. |
 | `loot_tables` | Database-owned catalog | Authored reward weights need inspection and balancing. | Keep DB; candidate for structured source seeds. |

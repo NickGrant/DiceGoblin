@@ -71,14 +71,18 @@ Rules:
 - per-level growth
 - max level
 - promotion eligibility level
-- promotion-entry grants
 - level-10 capstone choices
 - authored ability packages by tier/path
 
 `ability_set_json` should no longer be interpreted as "everything this unit auto-uses in combat."
 It should represent authored ability packages that feed:
 - unlocked ability inheritance
+- promotion-entry grants when the unit type is selected as a destination
 - default equipped starter or migration loadouts where applicable
+
+`promotion_grants_json` was removed in migration 71. Promotion previews may still expose a `promotion_grants` response object, but it is derived from the destination type's `ability_set_json`.
+
+`max_equipped_dice` was removed in migration 72. Dice capacity is derived from equipped active abilities and their registered dice-slot requirements.
 
 ### 3.2 enemy_templates
 `enemy_templates` remain the authored source of:

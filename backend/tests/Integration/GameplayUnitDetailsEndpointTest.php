@@ -427,25 +427,24 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     );
   }
 
-  public function testInitializeUnitUsesPromotionGrantsWhenAbilitySetIsEmpty(): void
+  public function testInitializeUnitUsesAbilitySetAsSingleAuthoredCatalog(): void
   {
-    $userId = $this->insertUser('promo_grants_only', 'Promotion Grants Only User');
+    $userId = $this->insertUser('ability_set_only', 'Ability Set Only User');
     [$unitTypeId, ] = $this->loadUnitType('support_mascot_t2');
     $original = $this->rows(
-      'SELECT `ability_set_json`, `promotion_grants_json` FROM `unit_types` WHERE `id` = ? LIMIT 1',
+      'SELECT `ability_set_json` FROM `unit_types` WHERE `id` = ? LIMIT 1',
       [$unitTypeId]
     );
     $this->assertCount(1, $original);
 
     $update = $this->pdo->prepare('
       UPDATE `unit_types`
-      SET `ability_set_json` = ?, `promotion_grants_json` = ?
+      SET `ability_set_json` = ?
       WHERE `id` = ?
     ');
 
     try {
       $update->execute([
-        json_encode(['version' => 1, 'actives' => [], 'passives' => []], JSON_UNESCAPED_SLASHES),
         json_encode(['version' => 1, 'actives' => ['lucky_chant'], 'passives' => ['attention_hog']], JSON_UNESCAPED_SLASHES),
         $unitTypeId,
       ]);
@@ -474,7 +473,6 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     } finally {
       $update->execute([
         $original[0]['ability_set_json'],
-        $original[0]['promotion_grants_json'],
         $unitTypeId,
       ]);
     }
