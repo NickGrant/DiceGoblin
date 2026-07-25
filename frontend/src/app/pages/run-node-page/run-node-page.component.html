@@ -15,7 +15,73 @@
   }
 
   <div class="node-screen">
-    @if (result()) {
+    @if (isChaosNode()) {
+      <section class="chaos-panel">
+        <div class="chaos-panel__header">
+          <div>
+            <p class="chaos-panel__eyebrow dg-stencil">Wrong Machine Echo</p>
+            <h2 class="chaos-panel__title dg-stencil">{{ chaosResult()?.summary?.title ?? 'Chaos Reels' }}</h2>
+            <p class="chaos-panel__copy">
+              {{ chaosResult()?.summary?.effect ?? 'The reels are settling into place.' }}
+            </p>
+          </div>
+          <div class="chaos-panel__multiplier">
+            <span class="dg-stencil">Reward</span>
+            <strong>{{ chaosResult()?.reward_multiplier ?? 1 }}x</strong>
+          </div>
+        </div>
+
+        @if (chaosResult(); as chaos) {
+        <div class="chaos-reels" aria-label="Chaos reel results">
+          @for (reel of chaos.reels; track reel.reel_index) {
+          <article class="chaos-reel">
+            <p class="chaos-reel__label dg-stencil">{{ reel.reel | titlecase }}</p>
+            <h3 class="dg-stencil">{{ reel.label }}</h3>
+            <p>{{ reel.effect }}</p>
+            <div class="chaos-reel__meta">
+              <span>Risk {{ reel.risk }}</span>
+              <span>{{ reel.symbol }}</span>
+            </div>
+            <button
+              dgCommandBtn="muted"
+              type="button"
+              (click)="rerollChaosReel(reel.reel_index)"
+              [disabled]="busy() || !chaos.manipulation.available"
+            >
+              @if (chaos.manipulation.rerolled_reel_index === reel.reel_index) {
+                Rerolled
+              } @else {
+                Reroll Reel
+              }
+            </button>
+          </article>
+          }
+        </div>
+
+        <div class="chaos-panel__footer">
+          <p>
+            @if (chaos.manipulation.available) {
+              One reroll remains. This result is bound to the node.
+            } @else {
+              The reroll is spent. This result is locked to the run node.
+            }
+          </p>
+          <button dgCommandBtn="primary" type="button" [routerLink]="['/run/map']">Back to Map</button>
+        </div>
+        } @else {
+        <div class="node-loading">
+          <p class="node-loading__eyebrow dg-stencil">Chaos</p>
+          <h2 class="dg-stencil mb-3">Reels Turning</h2>
+          <p class="mb-0">{{ busy() ? 'Generating this chaos result...' : 'Preparing this chaos result...' }}</p>
+          @if (error()) {
+          <button dgCommandBtn="primary" type="button" class="mt-3" (click)="generateChaosResult()" [disabled]="busy() || loading()">
+            Retry Generation
+          </button>
+          }
+        </div>
+        }
+      </section>
+    } @else if (result()) {
       <section
         class="battle-scene"
         [class.battle-scene--defeat]="result()!.battle.outcome !== 'victory'"

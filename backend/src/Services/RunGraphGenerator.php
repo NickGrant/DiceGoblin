@@ -658,6 +658,7 @@ final class RunGraphGenerator
 
     $this->assignProceduralNodeTypes($nodes, $edges, $seedKey, $config, $travelColumns);
     $this->ensureAtLeastOneRestNode($nodes, $seedKey, $travelColumns);
+    $this->ensureAtLeastOneChaosNode($nodes, $seedKey, $travelColumns);
     $nodes = $this->assignEncounterTemplates($regionId, $nodes, $seedKey);
     $this->validateGraph($nodes, $edges);
 
@@ -767,7 +768,7 @@ final class RunGraphGenerator
   }
 
   /**
-   * @return array{combat:array<int,int>,boss:array<int,int>,loot:array<int,int>,rest:array<int,int>,shrine:array<int,int>}
+   * @return array{combat:array<int,int>,boss:array<int,int>,loot:array<int,int>,rest:array<int,int>,shrine:array<int,int>,chaos:array<int,int>}
    */
   public function loadEncounterTemplatePools(int $regionId): array
   {
@@ -780,6 +781,7 @@ final class RunGraphGenerator
       'loot' => [],
       'rest' => [],
       'shrine' => [],
+      'chaos' => [],
     ];
 
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
@@ -1940,22 +1942,25 @@ final class RunGraphGenerator
 
       $isDeadEnd = count($outgoing[$index] ?? []) === 0;
       $weights = $isDeadEnd
-        ? ['loot' => 50, 'rest' => 30, 'combat' => 20, 'shrine' => 1]
+        ? ['loot' => 50, 'rest' => 30, 'combat' => 20, 'shrine' => 1, 'chaos' => 1]
         : [
           'combat' => (int)$config['combat_weight'],
           'loot' => (int)$config['loot_weight'],
           'rest' => (int)$config['rest_weight'],
           'shrine' => 1,
+          'chaos' => 1,
         ];
 
       if ($col <= 2) {
         $weights['combat'] += 4;
         $weights['rest'] = 0;
         $weights['shrine'] = 0;
+        $weights['chaos'] = 0;
       }
       if ($col >= $travelColumns - 1) {
         $weights['rest'] += 3;
         $weights['shrine'] += 1;
+        $weights['chaos'] += 1;
       }
 
       $parentTypes = [];
@@ -1967,6 +1972,9 @@ final class RunGraphGenerator
       }
       if (in_array('shrine', $parentTypes, true)) {
         $weights['shrine'] = 0;
+      }
+      if (in_array('chaos', $parentTypes, true)) {
+        $weights['chaos'] = 0;
       }
 
       if (array_sum($weights) <= 0) {
@@ -2024,6 +2032,44 @@ final class RunGraphGenerator
 
     $pickIndex = $this->randBetween($seedKey . '|force-rest', 0, count($candidates) - 1);
     $nodes[$candidates[$pickIndex]]['node_type'] = 'rest';
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   */
+  private function ensureAtLeastOneChaosNode(array &$nodes, string $seedKey, int $travelColumns): void
+  {
+    foreach ($nodes as $node) {
+      if ((string)($node['node_type'] ?? '') === 'chaos') {
+        return;
+      }
+    }
+
+    $candidates = [];
+    foreach ($nodes as $index => $node) {
+      $nodeType = (string)($node['node_type'] ?? '');
+      $status = (string)($node['status'] ?? '');
+      if (!in_array($nodeType, ['combat', 'loot', 'shrine'], true) || $status === 'available') {
+        continue;
+      }
+
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $col = (int)($meta['col'] ?? -1);
+      if ($col <= 2 || $col >= $travelColumns) {
+        continue;
+      }
+
+      $candidates[] = $index;
+    }
+
+    if ($candidates === []) {
+      return;
+    }
+
+    $pickIndex = $this->randBetween($seedKey . '|force-chaos', 0, count($candidates) - 1);
+    $picked = $candidates[$pickIndex];
+    $nodes[$picked]['node_type'] = 'chaos';
+    $nodes[$picked]['encounter_template_id'] = null;
   }
 
   /**

@@ -2,6 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import {
   AbandonRunResponse,
   BattleClaimResponse,
+  ChaosEncounterResponse,
   CurrentRunData,
   CurrentRunEdge,
   CurrentRunNode,
@@ -151,6 +152,16 @@ export class RunService {
   async resolveNode(runId: string, nodeId: string, teamId?: string): Promise<ResolveNodeResponse> {
     return this.apiHttp.postWithCsrf<ResolveNodeResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/resolve`, {
       ...(teamId ? { team_id: Number(teamId) } : {}),
+    });
+  }
+
+  generateChaosEncounter(runId: string, nodeId: string): Promise<ChaosEncounterResponse> {
+    return this.apiHttp.postWithCsrf<ChaosEncounterResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/chaos/generate`, {});
+  }
+
+  rerollChaosEncounter(runId: string, nodeId: string, reelIndex: number): Promise<ChaosEncounterResponse> {
+    return this.apiHttp.postWithCsrf<ChaosEncounterResponse>(`/api/v1/runs/${runId}/nodes/${nodeId}/chaos/reroll`, {
+      reel_index: reelIndex,
     });
   }
 

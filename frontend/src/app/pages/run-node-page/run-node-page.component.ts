@@ -1,8 +1,8 @@
 import { TitleCasePipe } from '@angular/common';
 import { Component, OnDestroy, computed, effect, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BattlePlaybackActionStep, BattlePlaybackParticipant, BattlePlaybackSnapshot } from '../../core/battle-playback/battle-playback.models';
-import { ResolveNodeData, UnitRecord } from '../../core/models/api.models';
+import { ChaosEncounterData, ResolveNodeData, UnitRecord } from '../../core/models/api.models';
 import { AbilityCatalogService } from '../../core/services/ability-catalog/ability-catalog.service';
 import { BattlePlaybackAdapterService } from '../../core/services/battle-playback/battle-playback-adapter.service';
 import { RunService } from '../../core/services/run/run.service';
@@ -65,7 +65,7 @@ type BattlePlaybackParticipantStateViewModel = {
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, TitleCasePipe],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RouterLink, TitleCasePipe],
   templateUrl: './run-node-page.component.html',
   styleUrl: './run-node-page.component.scss',
 })
@@ -88,6 +88,7 @@ export class RunNodePageComponent implements OnDestroy {
   readonly runRegionSlug = signal<string | null>(null);
   readonly runRegionTheme = signal<string | null>(null);
   readonly result = signal<ResolveNodeData | null>(null);
+  readonly chaosResult = signal<ChaosEncounterData['chaos_result'] | null>(null);
   readonly loading = signal(true);
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
@@ -99,6 +100,7 @@ export class RunNodePageComponent implements OnDestroy {
   readonly actionTransitioning = signal(false);
   readonly combatAnimationFrameIndex = signal(0);
   readonly shouldAutoResolve = computed(() => AUTO_RESOLVE_NODE_TYPES.has(this.nodeType() ?? ''));
+  readonly isChaosNode = computed(() => this.nodeType() === 'chaos');
   readonly abilityCatalogError = this.abilityCatalogService.error;
   readonly abilityCatalog = this.abilityCatalogService.abilityMap;
   readonly resolvedNodeType = computed(() => {
@@ -106,6 +108,10 @@ export class RunNodePageComponent implements OnDestroy {
     return typeof metaNodeType === 'string' ? metaNodeType : (this.nodeType() ?? 'combat');
   });
   readonly pageTitle = computed(() => {
+    if (this.isChaosNode()) {
+      return 'Chaos Encounter';
+    }
+
     if (this.shouldAutoResolve()) {
       return RunNodePageComponent.BATTLE_TITLE;
     }
@@ -113,6 +119,13 @@ export class RunNodePageComponent implements OnDestroy {
     return `${this.humanizeId(this.nodeType() ?? 'encounter')} Encounter`;
   });
   readonly pageSubtitle = computed(() => {
+    if (this.isChaosNode()) {
+      if (this.chaosResult()) {
+        return 'The machine has settled. Reroll one reel or carry the risk forward.';
+      }
+      return '';
+    }
+
     if (!this.result()) {
       return '';
     }
@@ -236,6 +249,11 @@ export class RunNodePageComponent implements OnDestroy {
         return;
       }
 
+      if (currentNode?.node_type === 'chaos') {
+        await this.generateChaosResult();
+        return;
+      }
+
       if (currentNode && AUTO_RESOLVE_NODE_TYPES.has(currentNode.node_type)) {
         await this.resolveNode();
       }
@@ -262,6 +280,48 @@ export class RunNodePageComponent implements OnDestroy {
       this.result.set(response.data);
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to resolve node.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async generateChaosResult(): Promise<void> {
+    if (!this.runId()) {
+      return;
+    }
+
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      const response = await this.runService.generateChaosEncounter(this.runId()!, this.nodeId);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+      this.chaosResult.set(response.data.chaos_result);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to generate chaos encounter.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async rerollChaosReel(reelIndex: number): Promise<void> {
+    if (!this.runId() || !this.chaosResult()?.manipulation.available) {
+      return;
+    }
+
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      const response = await this.runService.rerollChaosEncounter(this.runId()!, this.nodeId, reelIndex);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+      this.chaosResult.set(response.data.chaos_result);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to reroll chaos reel.');
     } finally {
       this.busy.set(false);
     }

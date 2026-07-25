@@ -187,6 +187,18 @@ final class RunNodeController
         return;
       }
 
+      if ((string)$node['node_type'] === 'chaos') {
+        $pdo->rollBack();
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'invalid_node_type',
+            'message' => 'Chaos nodes are generated via /api/v1/runs/:runId/nodes/:nodeId/chaos/generate.',
+          ],
+        ], 409);
+        return;
+      }
+
       // Determine squad selection (defaults to active squad route/table naming remains team_id)
       if ($teamIdInt <= 0) {
         $activeTeam = $svc['teamRepo']->getActiveTeamForUser($userId);

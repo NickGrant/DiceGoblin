@@ -302,7 +302,7 @@ export type CurrentRunRecord = {
 };
 
 export type RunNodeStatus = 'available' | 'locked' | 'cleared' | string;
-export type RunNodeType = 'combat' | 'loot' | 'rest' | 'boss' | 'exit' | 'dialogue' | 'hazard' | 'shrine' | string;
+export type RunNodeType = 'combat' | 'loot' | 'rest' | 'boss' | 'exit' | 'dialogue' | 'hazard' | 'shrine' | 'chaos' | string;
 
 export type CurrentRunNode = {
   id: string;
@@ -400,6 +400,46 @@ export type RestFinalizeData = {
 
 export type RestOpenResponse = ApiResponse<RestOpenData>;
 export type RestFinalizeResponse = ApiResponse<RestFinalizeData>;
+
+export type ChaosReelRecord = {
+  reel_index: number;
+  reel: string;
+  symbol: string;
+  label: string;
+  weight: number;
+  risk: number;
+  effect: string;
+};
+
+export type ChaosEncounterData = {
+  chaos_result: {
+    id: string;
+    status: string;
+    seed: number;
+    reels: ChaosReelRecord[];
+    reward_multiplier: number;
+    manipulation: {
+      available: boolean;
+      rerolled_reel_index: number | null;
+      remaining: number;
+    };
+    summary: {
+      title: string;
+      effect: string;
+    };
+  };
+  run: {
+    id: string;
+    status: string;
+  };
+  node: {
+    id: string;
+    node_type: string;
+    status: string;
+  };
+};
+
+export type ChaosEncounterResponse = ApiResponse<ChaosEncounterData>;
 
 export type ExitRunData = {
   run_id: string;

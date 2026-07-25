@@ -147,7 +147,7 @@ final class ChaosEncounterService
     if ((string)$row['node_status'] === 'locked') {
       throw new RuntimeException('node_not_available');
     }
-    if (in_array((string)$row['node_type'], ['exit', 'dialogue'], true)) {
+    if ((string)$row['node_type'] !== 'chaos') {
       throw new RuntimeException('invalid_chaos_node');
     }
 
