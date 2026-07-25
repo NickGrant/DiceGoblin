@@ -63,7 +63,7 @@ describe('UnitGridObjectComponent', () => {
     expect(compiled.textContent).toContain('Fang');
     expect(compiled.textContent).toContain('Tier II');
     expect(compiled.textContent).toContain('Bruiser');
-    expect(compiled.textContent).toContain('Toad-Spliced');
+    expect(compiled.textContent).toContain('Toad Kin');
     expect(compiled.textContent).toContain('Lv. 3');
     expect(compiled.textContent).toContain('XP 90/120');
     expect(compiled.textContent).toContain('Level Up');

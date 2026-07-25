@@ -49,7 +49,7 @@ export function formatSpliceVariantLabel(
 ): string {
   const name = (spliceVariantName ?? '').trim();
   if (name.length > 0) {
-    return name;
+    return normalizeKinLabel(name);
   }
 
   const slug = (spliceVariantSlug ?? '').trim();
@@ -57,12 +57,23 @@ export function formatSpliceVariantLabel(
     return 'Basic Goblin';
   }
 
-  return slug
+  return normalizeKinLabel(slug
     .split('_')
     .filter((segment) => segment.length)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join('-')
-    .replace(/-Splice$/, '-Spliced');
+    .join(' '));
+}
+
+function normalizeKinLabel(label: string): string {
+  const trimmed = label.trim();
+  if (trimmed.length === 0 || trimmed === 'Basic Goblin') {
+    return 'Basic Goblin';
+  }
+
+  return trimmed
+    .replace(/\bSpliced\b/g, 'Kin')
+    .replace(/\bSplice\b/g, 'Kin')
+    .replace(/-Kin\b/g, ' Kin');
 }
 
 export function normalizeAbilityId(abilityId: unknown): string | null {

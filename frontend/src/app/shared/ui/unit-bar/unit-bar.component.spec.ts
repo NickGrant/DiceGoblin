@@ -41,7 +41,7 @@ describe('UnitBarComponent', () => {
     expect(host.textContent).toContain('Fang');
     expect(host.textContent).toContain('Level 4');
     expect(host.textContent).toContain('Tier II');
-    expect(host.textContent).toContain('Rat-Spliced');
+    expect(host.textContent).toContain('Rat Kin');
     expect(host.textContent).toContain('Slot B2');
     expect(host.textContent).toContain('12/20 HP');
     expect(host.textContent).toContain('70 XP to next');

@@ -102,14 +102,14 @@
             </div>
 
             <div class="warband-units-controls__filter">
-              <label class="form-label" for="warband-splice-filter">DNA Splice</label>
+              <label class="form-label" for="warband-splice-filter">Kin</label>
               <select
                 id="warband-splice-filter"
                 class="dg-select"
                 [ngModel]="selectedSpliceVariant() ?? ''"
                 (ngModelChange)="updateSpliceVariant($event)"
               >
-                <option value="">All splices</option>
+                <option value="">All kin</option>
                 @for (spliceVariant of availableSpliceVariants(); track spliceVariant) {
                 <option [value]="spliceVariant">{{ spliceVariant }}</option>
                 }

@@ -164,8 +164,8 @@ A dormant or newly manifested portion of The Whim that can take goblin form when
 ### Goblin Lineage
 A persistent goblin subspecies or reconstructed form influenced by traits recovered from a stable creature family. A lineage may provide combat traits, traversal capabilities, or both.
 
-### Splice
-The mechanical term for a goblin lineage variant. In lore, splicing is reconstruction through chaos rather than modern laboratory genetics.
+### Kin
+The approved player-facing term for inherited goblin forms, written formally as goblin-kin and shortened to kin in UI copy. Legacy code and storage may still use splice-variant names until a focused compatibility migration retires them.
 
 ### Primordial Goblin
 A late-game goblin lineage closer to unshaped original chaos than the basic goblin form. The player's first conjured appearance foreshadows this lineage.

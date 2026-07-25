@@ -29,7 +29,7 @@ The current game already includes:
 - backend-authoritative combat resolution, battle logs, reward preview, reward claim, run cleanup, and summaries
 - Precision and Resolve as authored, visible, combat-relevant stats
 - unit XP, leveling, mastery, Tier II and Tier III class progression, capstones, inherited abilities, and promotion UX
-- persistent goblin DNA splice variants with acquisition and player-facing display
+- persistent goblin-kin with acquisition and player-facing display
 - shop, daily deals, feature unlocks, academy requirements, and academy research
 - bounty-board backend foundation with list, accept, sync, and claim flows
 - Raw Chaos currency and dice salvage
@@ -60,7 +60,7 @@ These milestone lanes are complete in the archive and should be treated as imple
 
 - Backend Structural Cleanup
 - Expanded Combat Stats
-- Goblin DNA Splice Variants
+- Goblin-Kin
 - Progression Guidance and Home Dashboard foundation
 - Bounty Board foundation
 - Academy and Feature-Unlock Expansion
@@ -116,7 +116,7 @@ After hybrid catalog ownership cleanup, the strongest gameplay candidates are:
    - turn persisted reel results into authored combat encounters
    - connect reel symbols to enemy composition, encounter rules, and reward modifiers
    - add explicit confirmation for high-risk results
-4. **Splice Variants v2**
+4. **Goblin-Kin v2**
    - stronger passive behaviors
    - acquisition tuning
    - academy influence over recruitment visibility or odds
@@ -141,7 +141,7 @@ The following are still out of near-term scope:
 
 - direct PvP
 - full breeding and genetic inheritance simulation
-- multiple simultaneous splice families per unit
+- multiple simultaneous kin families per unit
 - unrestricted item rerolling or perfect-item crafting
 - monetized gambling or purchasable slot-machine spins
 - replacing Angular management screens with Phaser

@@ -139,11 +139,11 @@ describe('WarbandPageComponent', () => {
     expect(host.textContent).toContain('Fang');
   });
 
-  it('filters units by selected splice variant', () => {
+  it('filters units by selected kin', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.updateSpliceVariant('Toad-Spliced');
+    fixture.componentInstance.updateSpliceVariant('Toad Kin');
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
@@ -214,7 +214,7 @@ describe('WarbandPageComponent', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.updateUnitType('Bruiser');
-    fixture.componentInstance.updateSpliceVariant('Rat-Spliced');
+    fixture.componentInstance.updateSpliceVariant('Rat Kin');
     fixture.componentInstance.toggleUnitTier(2);
     fixture.componentInstance.updateLevelMin('2');
     fixture.componentInstance.updateLevelMax('6');
