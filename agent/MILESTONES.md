@@ -5,26 +5,26 @@ Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 ## Slot-Machine-Style Random Encounters
 
 **Status:** Active
-**Purpose:** Turn the persisted chaos encounter foundation into a reachable run-node experience with readable reel results, bounded player agency, and clear risk/reward presentation.
+**Purpose:** Turn reachable chaos encounter nodes into a complete backend-authored encounter loop with persisted results, bounded player agency, and visible rewards.
 
 ### Goals
 
-- Place chaos encounters into eligible procedural run maps.
-- Surface persisted reel results and one-reroll agency in the frontend.
+- Finalize generated chaos encounters through a backend-authoritative path.
+- Apply rewards from the persisted reel result without regenerating risk/reward state.
 - Preserve backend authority and idempotent result generation.
-- Keep reward and combat finalization as explicit follow-up scope unless the active issue expands.
+- Keep full chaos combat generation as explicit follow-up scope unless the active issue expands.
 
 ### Current Code Context
 
-The chaos foundation already persists generated reel outputs and one single-use reroll per run node. Run graphs currently place combat, loot, rest, boss, exit, dialogue, hazard, and shrine nodes, while docs identify chaos node placement, encounter finalization, and reward application as follow-up work.
+Chaos nodes are reachable in eligible procedural run maps and the frontend presents generated reel results with one single-use reroll. The remaining gap for the current milestone is completing the node with rewards derived from the persisted result.
 
 ### Exit Criteria
 
-- Chaos nodes are reachable in eligible generated runs.
-- The run-node UI presents the generated chaos result and reroll state clearly.
-- Refreshing or revisiting the node preserves the existing generated result.
-- Backend and frontend tests cover placement and the core player-facing chaos flow.
+- Generated chaos results can be finalized exactly once.
+- Finalize responses expose clear reward and completion state.
+- Retries do not duplicate rewards or reroll the result.
+- Backend and frontend tests cover the core finalize flow.
 
 ### Related Issues
 
-- SME-002: Place and present chaos encounter nodes
+- SME-003: Finalize chaos encounter rewards
