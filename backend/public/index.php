@@ -20,6 +20,7 @@ use DiceGoblins\Controllers\GameplayController;
 use DiceGoblins\Controllers\RunNodeController;
 use DiceGoblins\Controllers\ShopController;
 use DiceGoblins\Controllers\TeamController;
+use DiceGoblins\Controllers\WrongMachineController;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';
 Autoloader::register(__DIR__ . '/../src');
@@ -110,6 +111,7 @@ $gameplay = new GameplayController();
 $runNode = new RunNodeController();
 $shop = new ShopController();
 $team = new TeamController();
+$wrongMachine = new WrongMachineController();
 
 // Auth
 $router->get('/auth/discord/start', [$auth, 'discordStart']);
@@ -133,6 +135,8 @@ $router->get('/api/v1/bounties', [$bountyBoard, 'board']);
 $router->post('/api/v1/bounties/accept', [$bountyBoard, 'accept']);
 $router->post('/api/v1/bounties/sync', [$bountyBoard, 'sync']);
 $router->post('/api/v1/bounties/:userBountyId/claim', [$bountyBoard, 'claim']);
+$router->get('/api/v1/wrong-machine/reconstructions', [$wrongMachine, 'reconstructions']);
+$router->post('/api/v1/wrong-machine/reconstruct', [$wrongMachine, 'reconstruct']);
 $router->get('/api/v1/runs/current', [$api, 'currentRun']);
 $router->post('/api/v1/runs', [$api, 'createRun']);
 $router->post('/api/v1/runs/:runId/abandon', [$api, 'abandonRun']);

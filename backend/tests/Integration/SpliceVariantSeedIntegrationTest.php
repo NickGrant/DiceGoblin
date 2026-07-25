@@ -16,7 +16,7 @@ final class SpliceVariantSeedIntegrationTest extends IntegrationTestCase
   {
     $stmt = $this->pdo?->query('SELECT `slug`, `grant_weight`, `stat_modifiers_json` FROM `splice_variants` ORDER BY `slug` ASC');
     $rows = is_object($stmt) ? $stmt->fetchAll(\PDO::FETCH_ASSOC) : [];
-    $this->assertCount(4, $rows);
+    $this->assertCount(5, $rows);
 
     $bySlug = [];
     foreach ($rows as $row) {
@@ -32,5 +32,6 @@ final class SpliceVariantSeedIntegrationTest extends IntegrationTestCase
     $this->assertArrayHasKey('rat_splice', $bySlug);
     $this->assertArrayHasKey('toad_splice', $bySlug);
     $this->assertArrayHasKey('bat_splice', $bySlug);
+    $this->assertArrayHasKey('pig_kin', $bySlug);
   }
 }

@@ -1,9 +1,9 @@
 # Wrong Machine and Kin
 ----
 
-Status: active  
-Last Updated: 2026-07-25  
-Owner: Product + Systems Design + Engineering  
+Status: active
+Last Updated: 2026-07-25
+Owner: Product + Systems Design + Engineering
 Depends On: `documentation/00-overview/03-world-and-lore.md`, `documentation/02-systems-mvp/02-units-and-progression.md`, `documentation/02-systems-mvp/04-loot-and-drop-scope.md`, `documentation/07-roadmap/2026-07-25.md`
 
 ## Purpose
