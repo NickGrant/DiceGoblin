@@ -467,20 +467,6 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     ');
     $insertBinding->execute([$unitId, 'heavy_strike', 0, $boundDiceId]);
 
-    $legacyD6DefStmt = $this->pdo->prepare("SELECT `id` FROM `dice_definitions` WHERE `rarity` = 'common' AND `sides` = 6 LIMIT 1");
-    $legacyD6DefStmt->execute();
-    $d6DefinitionId = (int)$legacyD6DefStmt->fetchColumn();
-    $this->assertGreaterThan(0, $d6DefinitionId);
-
-    $insertDice->execute([$userId, $d6DefinitionId]);
-    $legacyDiceId = (int)$this->pdo->lastInsertId();
-
-    $insertLegacyUnitDie = $this->pdo->prepare('
-      INSERT INTO `unit_dice` (`unit_instance_id`, `dice_instance_id`, `slot_index`)
-      VALUES (?, ?, ?)
-    ');
-    $insertLegacyUnitDie->execute([$unitId, $legacyDiceId, 0]);
-
     $_SESSION['user_id'] = $userId;
     $_SESSION['csrf_token'] = 'valid_csrf';
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';

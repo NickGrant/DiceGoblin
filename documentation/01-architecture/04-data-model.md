@@ -107,7 +107,7 @@ Recommended contract:
 - xp
 - any locking/protection flags
 
-`unit_instances` should no longer be treated as fully defined by `unit_type_id` plus `unit_dice`.
+`unit_instances` should no longer be treated as fully defined by only `unit_type_id`.
 The unit now also owns combat-configuration state.
 
 ### 4.2 Promotion Path History
@@ -187,9 +187,9 @@ Still defines the fixed alpha-launch affix pool and authored affix metadata.
 Still represents player-owned dice.
 
 ### 6.4 ability-slot binding
-The old `unit_dice` contract is superseded.
+The old `unit_dice` contract has been removed. Dice are now bound to a base ability slot instead of a generic unit slot.
 
-The canonical target model is a binding from unit + base ability + slot index to die instance.
+The canonical model is a binding from unit + base ability + slot index to die instance.
 
 Recommended shape:
 
@@ -297,8 +297,9 @@ This history is important both for player support/debugging and sideways-promoti
 
 ## 11. Migration Expectations
 
-The rework requires explicit migration treatment for:
-- existing `unit_dice` rows
+The ability-loadout rework migrated runtime dice assignment to `unit_ability_dice` and removed the legacy `unit_dice` table in migration 70.
+
+Remaining migration concerns for future combat/loadout changes:
 - existing authored unit ability data
 - existing enemy template combat definitions
 - existing starter grant logic
@@ -306,8 +307,7 @@ The rework requires explicit migration treatment for:
 
 Recommended migration stance:
 - treat active runs as incompatible unless a clear snapshot migration is implemented
-- convert legacy unit-dice assignments into base-ability slot assignments deterministically where possible
-- author enemy equipped-loadout data before enabling the new scheduler
+- author enemy equipped-loadout data before enabling scheduler changes
 
 ## 12. Normalization Guidance
 

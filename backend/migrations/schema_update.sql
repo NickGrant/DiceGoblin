@@ -20,6 +20,7 @@ SET time_zone = '+00:00';
 
 -- Safety for repeated runs (comment out if you do not want drops)
 SET FOREIGN_KEY_CHECKS=0;
+
 -- END MIGRATION: 00_setup.sql
 
 -- BEGIN MIGRATION: 01_users.sql
@@ -43,6 +44,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_users_discord_id` (`discord_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 01_users.sql
 
 -- BEGIN MIGRATION: 02_regions.sql
@@ -69,6 +71,7 @@ CREATE TABLE `regions` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_regions_slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 02_regions.sql
 
 -- BEGIN MIGRATION: 03_unit_types.sql
@@ -98,6 +101,7 @@ CREATE TABLE `unit_types` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_unit_types_slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 03_unit_types.sql
 
 -- BEGIN MIGRATION: 04_dice_definitions.sql
@@ -120,6 +124,7 @@ CREATE TABLE `dice_definitions` (
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 04_dice_definitions.sql
 
 -- BEGIN MIGRATION: 05_affix_definitions.sql
@@ -148,6 +153,7 @@ CREATE TABLE `affix_definitions` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_affix_definitions_slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 05_affix_definitions.sql
 
 -- BEGIN MIGRATION: 06_enemy_templates.sql
@@ -176,6 +182,7 @@ CREATE TABLE `enemy_templates` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_enemy_templates_slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 06_enemy_templates.sql
 
 -- BEGIN MIGRATION: 07_loot_tables.sql
@@ -199,6 +206,7 @@ CREATE TABLE `loot_tables` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_loot_tables_slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 07_loot_tables.sql
 
 -- BEGIN MIGRATION: 08_player_state.sql
@@ -222,6 +230,7 @@ CREATE TABLE `player_state` (
   PRIMARY KEY (`user_id`),
   CONSTRAINT `fk_player_state_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 08_player_state.sql
 
 -- BEGIN MIGRATION: 09_energy_state.sql
@@ -246,6 +255,7 @@ CREATE TABLE `energy_state` (
   PRIMARY KEY (`user_id`),
   CONSTRAINT `fk_energy_state_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 09_energy_state.sql
 
 -- BEGIN MIGRATION: 10_teams.sql
@@ -270,6 +280,7 @@ CREATE TABLE `teams` (
   KEY `ix_teams_user_id_is_active` (`user_id`, `is_active`),
   CONSTRAINT `fk_teams_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 10_teams.sql
 
 -- BEGIN MIGRATION: 11_region_unlocks.sql
@@ -291,6 +302,7 @@ CREATE TABLE `region_unlocks` (
   CONSTRAINT `fk_region_unlocks_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_region_unlocks_region_id` FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 11_region_unlocks.sql
 
 -- BEGIN MIGRATION: 12_region_runs.sql
@@ -319,6 +331,7 @@ CREATE TABLE `region_runs` (
   CONSTRAINT `fk_region_runs_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_region_runs_region_id` FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 12_region_runs.sql
 
 -- BEGIN MIGRATION: 13_encounter_templates.sql
@@ -345,6 +358,7 @@ CREATE TABLE `encounter_templates` (
   UNIQUE KEY `uq_encounter_templates_slug` (`slug`),
   CONSTRAINT `fk_encounter_templates_region_id` FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 13_encounter_templates.sql
 
 -- BEGIN MIGRATION: 14_region_items.sql
@@ -369,6 +383,7 @@ CREATE TABLE `region_items` (
   UNIQUE KEY `uq_region_items_slug` (`slug`),
   CONSTRAINT `fk_region_items_region_id` FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 14_region_items.sql
 
 -- BEGIN MIGRATION: 15_unit_instances.sql
@@ -398,6 +413,7 @@ CREATE TABLE `unit_instances` (
   CONSTRAINT `fk_unit_instances_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_unit_instances_unit_type_id` FOREIGN KEY (`unit_type_id`) REFERENCES `unit_types`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 15_unit_instances.sql
 
 -- BEGIN MIGRATION: 16_dice_instances.sql
@@ -423,6 +439,7 @@ CREATE TABLE `dice_instances` (
   CONSTRAINT `fk_dice_instances_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_dice_instances_dice_definition_id` FOREIGN KEY (`dice_definition_id`) REFERENCES `dice_definitions`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 16_dice_instances.sql
 
 -- BEGIN MIGRATION: 17_run_nodes.sql
@@ -452,6 +469,7 @@ CREATE TABLE `run_nodes` (
   CONSTRAINT `fk_run_nodes_run_id` FOREIGN KEY (`run_id`) REFERENCES `region_runs`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_run_nodes_encounter_template_id` FOREIGN KEY (`encounter_template_id`) REFERENCES `encounter_templates`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 17_run_nodes.sql
 
 -- BEGIN MIGRATION: 18_user_region_items.sql
@@ -473,6 +491,7 @@ CREATE TABLE `user_region_items` (
   CONSTRAINT `fk_user_region_items_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_user_region_items_region_item_id` FOREIGN KEY (`region_item_id`) REFERENCES `region_items`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 18_user_region_items.sql
 
 -- BEGIN MIGRATION: 19_team_units.sql
@@ -494,6 +513,7 @@ CREATE TABLE `team_units` (
   CONSTRAINT `fk_team_units_team_id` FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_team_units_unit_instance_id` FOREIGN KEY (`unit_instance_id`) REFERENCES `unit_instances`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 19_team_units.sql
 
 -- BEGIN MIGRATION: 20_team_formation.sql
@@ -516,6 +536,7 @@ CREATE TABLE `team_formation` (
   CONSTRAINT `fk_team_formation_team_id` FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_team_formation_unit_instance_id` FOREIGN KEY (`unit_instance_id`) REFERENCES `unit_instances`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 20_team_formation.sql
 
 -- BEGIN MIGRATION: 21_run_unit_state.sql
@@ -542,6 +563,7 @@ CREATE TABLE `run_unit_state` (
   CONSTRAINT `fk_run_unit_state_run_id` FOREIGN KEY (`run_id`) REFERENCES `region_runs`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_run_unit_state_unit_instance_id` FOREIGN KEY (`unit_instance_id`) REFERENCES `unit_instances`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 21_run_unit_state.sql
 
 -- BEGIN MIGRATION: 22_unit_promotions.sql
@@ -566,6 +588,7 @@ CREATE TABLE `unit_promotions` (
   CONSTRAINT `fk_unit_promotions_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_unit_promotions_result_unit_instance_id` FOREIGN KEY (`result_unit_instance_id`) REFERENCES `unit_instances`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 22_unit_promotions.sql
 
 -- BEGIN MIGRATION: 23_dice_instance_affixes.sql
@@ -587,6 +610,7 @@ CREATE TABLE `dice_instance_affixes` (
   CONSTRAINT `fk_dice_instance_affixes_dice_instance_id` FOREIGN KEY (`dice_instance_id`) REFERENCES `dice_instances`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_dice_instance_affixes_affix_definition_id` FOREIGN KEY (`affix_definition_id`) REFERENCES `affix_definitions`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 23_dice_instance_affixes.sql
 
 -- BEGIN MIGRATION: 24_unit_dice.sql
@@ -610,6 +634,7 @@ CREATE TABLE `unit_dice` (
   CONSTRAINT `fk_unit_dice_unit_instance_id` FOREIGN KEY (`unit_instance_id`) REFERENCES `unit_instances`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_unit_dice_dice_instance_id` FOREIGN KEY (`dice_instance_id`) REFERENCES `dice_instances`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 24_unit_dice.sql
 
 -- BEGIN MIGRATION: 25_run_edges.sql
@@ -632,6 +657,7 @@ CREATE TABLE `run_edges` (
   CONSTRAINT `fk_run_edges_from_node_id` FOREIGN KEY (`from_node_id`) REFERENCES `run_nodes`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_run_edges_to_node_id` FOREIGN KEY (`to_node_id`) REFERENCES `run_nodes`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 25_run_edges.sql
 
 -- BEGIN MIGRATION: 26_battles.sql
@@ -667,6 +693,7 @@ CREATE TABLE `battles` (
   CONSTRAINT `fk_battles_node_id` FOREIGN KEY (`node_id`) REFERENCES `run_nodes`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_battles_team_id` FOREIGN KEY (`team_id`) REFERENCES `teams`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 26_battles.sql
 
 -- BEGIN MIGRATION: 27_battle_logs.sql
@@ -687,6 +714,7 @@ CREATE TABLE `battle_logs` (
   PRIMARY KEY (`battle_id`),
   CONSTRAINT `fk_battle_logs_battle_id` FOREIGN KEY (`battle_id`) REFERENCES `battles`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 27_battle_logs.sql
 
 -- BEGIN MIGRATION: 28_battle_rewards.sql
@@ -709,6 +737,7 @@ CREATE TABLE `battle_rewards` (
   PRIMARY KEY (`battle_id`),
   CONSTRAINT `fk_battle_rewards_battle_id` FOREIGN KEY (`battle_id`) REFERENCES `battles`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 28_battle_rewards.sql
 
 -- BEGIN MIGRATION: 29_user_grants.sql
@@ -725,6 +754,7 @@ CREATE TABLE `user_grants` (
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
     ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 29_user_grants.sql
 
 -- BEGIN MIGRATION: 30_seed_unit_types.sql
@@ -922,6 +952,7 @@ ON DUPLICATE KEY UPDATE
   `attack_per_level` = VALUES(`attack_per_level`),
   `defense_per_level` = VALUES(`defense_per_level`),
   `max_hp_per_level` = VALUES(`max_hp_per_level`);
+
 -- END MIGRATION: 30_seed_unit_types.sql
 
 -- BEGIN MIGRATION: 31_seed_enemy_templates.sql
@@ -1061,6 +1092,7 @@ ON DUPLICATE KEY UPDATE
   `ability_set_json` = VALUES(`ability_set_json`),
   `xp_reward` = VALUES(`xp_reward`),
   `tags_json` = VALUES(`tags_json`);
+
 -- END MIGRATION: 31_seed_enemy_templates.sql
 
 -- BEGIN MIGRATION: 32_seed_region_items.sql
@@ -1109,6 +1141,7 @@ VALUES
 ON DUPLICATE KEY UPDATE
   `region_id` = VALUES(`region_id`),
   `name` = VALUES(`name`);
+
 -- END MIGRATION: 32_seed_region_items.sql
 
 -- BEGIN MIGRATION: 33_seed_loot_tables.sql
@@ -1259,6 +1292,7 @@ VALUES
 ON DUPLICATE KEY UPDATE
   `tier` = VALUES(`tier`),
   `entries_json` = VALUES(`entries_json`);
+
 -- END MIGRATION: 33_seed_loot_tables.sql
 
 -- BEGIN MIGRATION: 34_seed_encounter_templates.sql
@@ -1456,6 +1490,7 @@ ON DUPLICATE KEY UPDATE
   `difficulty_rating` = VALUES(`difficulty_rating`),
   `enemy_set_json` = VALUES(`enemy_set_json`),
   `reward_profile_json` = VALUES(`reward_profile_json`);
+
 -- END MIGRATION: 34_seed_encounter_templates.sql
 
 -- BEGIN MIGRATION: 35_encounter_noncombat_and_descriptions.sql
@@ -1601,11 +1636,13 @@ ON DUPLICATE KEY UPDATE
   `description` = VALUES(`description`),
   `enemy_set_json` = VALUES(`enemy_set_json`),
   `reward_profile_json` = VALUES(`reward_profile_json`);
+
 -- END MIGRATION: 35_encounter_noncombat_and_descriptions.sql
 
 -- BEGIN MIGRATION: 36_add_unique_dice_definitions_sides_rarity.sql
 ALTER TABLE `dice_definitions`
   ADD UNIQUE KEY `uq_dice_definitions_sides_rarity` (`sides`, `rarity`);
+
 -- END MIGRATION: 36_add_unique_dice_definitions_sides_rarity.sql
 
 -- BEGIN MIGRATION: 37_seed_dice_definitions.sql
@@ -1631,18 +1668,23 @@ VALUES
   (10, 'rare',     2)
 ON DUPLICATE KEY UPDATE
   `slot_capacity` = VALUES(`slot_capacity`);
+
 -- END MIGRATION: 37_seed_dice_definitions.sql
 
 -- BEGIN MIGRATION: 38_run_nodes_add_exit_type.sql
 -- Migration: allow explicit run exit node type in run graph.
 ALTER TABLE `run_nodes`
   MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit') NOT NULL;
+
+
 -- END MIGRATION: 38_run_nodes_add_exit_type.sql
 
 -- BEGIN MIGRATION: 39_unit_types_add_max_equipped_dice.sql
 -- Migration: unit definition cap for equipped dice.
 ALTER TABLE `unit_types`
   ADD COLUMN `max_equipped_dice` INT NOT NULL DEFAULT 2 AFTER `max_level`;
+
+
 -- END MIGRATION: 39_unit_types_add_max_equipped_dice.sql
 
 -- BEGIN MIGRATION: 40_affix_rarity_and_metadata.sql
@@ -1654,6 +1696,7 @@ ALTER TABLE `affix_definitions`
   ADD COLUMN `behavior_kind` ENUM('passive','triggered') NOT NULL DEFAULT 'passive' AFTER `op`,
   ADD COLUMN `description` VARCHAR(255) NOT NULL DEFAULT '' AFTER `max_value`,
   ADD KEY `ix_affix_definitions_rarity` (`rarity`);
+
 -- END MIGRATION: 40_affix_rarity_and_metadata.sql
 
 -- BEGIN MIGRATION: 41_seed_affix_definitions.sql
@@ -1760,6 +1803,7 @@ ON DUPLICATE KEY UPDATE
   `max_value` = VALUES(`max_value`),
   `description` = VALUES(`description`),
   `tags_json` = VALUES(`tags_json`);
+
 -- END MIGRATION: 41_seed_affix_definitions.sql
 
 -- BEGIN MIGRATION: 42_shop_daily_deals.sql
@@ -1781,6 +1825,7 @@ CREATE TABLE `shop_daily_deals` (
   CONSTRAINT `fk_shop_daily_deals_affix_definition_id` FOREIGN KEY (`affix_definition_id`) REFERENCES `affix_definitions`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_shop_daily_deals_purchased_dice_instance_id` FOREIGN KEY (`purchased_dice_instance_id`) REFERENCES `dice_instances`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 42_shop_daily_deals.sql
 
 -- BEGIN MIGRATION: 43_seed_farm_tutorial_content.sql
@@ -1921,6 +1966,7 @@ ON DUPLICATE KEY UPDATE
   `description` = VALUES(`description`),
   `enemy_set_json` = VALUES(`enemy_set_json`),
   `reward_profile_json` = VALUES(`reward_profile_json`);
+
 -- END MIGRATION: 43_seed_farm_tutorial_content.sql
 
 -- BEGIN MIGRATION: 44_unit_loadout_foundations.sql
@@ -1973,6 +2019,7 @@ CREATE TABLE `unit_ability_dice` (
 
 ALTER TABLE `enemy_templates`
   ADD COLUMN `equipped_abilities_json` JSON NULL AFTER `ability_set_json`;
+
 -- END MIGRATION: 44_unit_loadout_foundations.sql
 
 -- BEGIN MIGRATION: 45_seed_enemy_equipped_loadouts.sql
@@ -1982,6 +2029,7 @@ SET `equipped_abilities_json` = JSON_OBJECT(
   'equipped', COALESCE(JSON_EXTRACT(`ability_set_json`, '$.actives'), JSON_ARRAY())
 )
 WHERE `equipped_abilities_json` IS NULL;
+
 -- END MIGRATION: 45_seed_enemy_equipped_loadouts.sql
 
 -- BEGIN MIGRATION: 46_multi_cell_unit_footprints.sql
@@ -1992,6 +2040,7 @@ SET `base_stats_json` = JSON_SET(
   JSON_OBJECT('w', 2, 'h', 2)
 )
 WHERE JSON_UNQUOTE(JSON_EXTRACT(`tags_json`, '$.archetype')) = 'boss';
+
 -- END MIGRATION: 46_multi_cell_unit_footprints.sql
 
 -- BEGIN MIGRATION: 47_user_unlocks.sql
@@ -2008,6 +2057,7 @@ CREATE TABLE `user_unlocks` (
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
     ON DELETE RESTRICT ON UPDATE RESTRICT
 );
+
 -- END MIGRATION: 47_user_unlocks.sql
 
 -- BEGIN MIGRATION: 48_shop_daily_deal_slots.sql
@@ -2017,6 +2067,7 @@ ALTER TABLE `shop_daily_deals`
 ALTER TABLE `shop_daily_deals`
   DROP INDEX `uq_shop_daily_deals_user_date`,
   ADD UNIQUE KEY `uq_shop_daily_deals_user_date_slot` (`user_id`, `shop_date`, `deal_slot`);
+
 -- END MIGRATION: 48_shop_daily_deal_slots.sql
 
 -- BEGIN MIGRATION: 49_unit_progression_rework_foundations.sql
@@ -2038,6 +2089,7 @@ CREATE TABLE `unit_instance_capstone_choices` (
   CONSTRAINT `fk_unit_instance_capstone_choices_source_unit_type_id`
     FOREIGN KEY (`source_unit_type_id`) REFERENCES `unit_types`(`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 49_unit_progression_rework_foundations.sql
 
 -- BEGIN MIGRATION: 50_seed_unit_progression_rework.sql
@@ -2075,6 +2127,7 @@ SET
     WHEN 'control_saboteur_t2' THEN JSON_OBJECT('version', 1, 'choices', JSON_ARRAY('disabling_hit', 'clean_shot'))
     ELSE JSON_OBJECT('version', 1, 'choices', JSON_ARRAY())
   END;
+
 -- END MIGRATION: 50_seed_unit_progression_rework.sql
 
 -- BEGIN MIGRATION: 51_seed_progression_branch_packages.sql
@@ -2211,6 +2264,7 @@ WHERE `slug` IN (
   'support_mascot_t2',
   'control_plaguehand_t2'
 );
+
 -- END MIGRATION: 51_seed_progression_branch_packages.sql
 
 -- BEGIN MIGRATION: 52_rebalance_unit_drop_rates.sql
@@ -2223,6 +2277,7 @@ WHERE `slug` IN ('kobold_basic_loot', 'frogman_basic_loot');
 UPDATE `loot_tables`
 SET `entries_json` = JSON_SET(`entries_json`, '$.drops.units.chance', 0.12)
 WHERE `slug` IN ('kobold_boss_loot', 'frogman_boss_loot');
+
 -- END MIGRATION: 52_rebalance_unit_drop_rates.sql
 
 -- BEGIN MIGRATION: 53_rebalance_farm_pigs.sql
@@ -2255,6 +2310,7 @@ SET
   ),
   `equipped_abilities_json` = JSON_ARRAY('basic_attack_melee', 'wrestle', 'mud_slam')
 WHERE `slug` = 'mudking';
+
 -- END MIGRATION: 53_rebalance_farm_pigs.sql
 
 -- BEGIN MIGRATION: 54_rebalance_kobolds_frogmen.sql
@@ -2345,6 +2401,7 @@ SET
   ),
   `equipped_abilities_json` = JSON_ARRAY('basic_attack_melee', 'bog_splash', 'skullcrack')
 WHERE `slug` = 'frogman_bog_tyrant';
+
 -- END MIGRATION: 54_rebalance_kobolds_frogmen.sql
 
 -- BEGIN MIGRATION: 55_rebalance_mountains_swamps_encounters.sql
@@ -2503,6 +2560,7 @@ SET
     )
   )
 WHERE `slug` = 'swamps_frogman_boss_1';
+
 -- END MIGRATION: 55_rebalance_mountains_swamps_encounters.sql
 
 -- BEGIN MIGRATION: 56_dialogue_run_nodes_and_mystic_cave.sql
@@ -2525,6 +2583,7 @@ ON DUPLICATE KEY UPDATE
   `recommended_level` = VALUES(`recommended_level`),
   `energy_cost` = VALUES(`energy_cost`),
   `is_enabled` = VALUES(`is_enabled`);
+
 -- END MIGRATION: 56_dialogue_run_nodes_and_mystic_cave.sql
 
 -- BEGIN MIGRATION: 57_local_account_auth.sql
@@ -2533,6 +2592,7 @@ ALTER TABLE `users`
   ADD COLUMN `local_email` VARCHAR(255) NULL AFTER `discord_id`,
   ADD COLUMN `password_hash` VARCHAR(255) NULL AFTER `local_email`,
   ADD UNIQUE KEY `uq_users_local_email` (`local_email`);
+
 -- END MIGRATION: 57_local_account_auth.sql
 
 -- BEGIN MIGRATION: 58_password_reset_tokens.sql
@@ -2551,16 +2611,19 @@ CREATE TABLE `password_reset_tokens` (
     ON DELETE CASCADE
     ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 58_password_reset_tokens.sql
 
 -- BEGIN MIGRATION: 59_unit_splice_variant_foundation.sql
 ALTER TABLE `unit_instances`
   ADD COLUMN `splice_variant_slug` VARCHAR(64) NOT NULL DEFAULT 'basic_goblin' AFTER `unit_type_id`;
+
 -- END MIGRATION: 59_unit_splice_variant_foundation.sql
 
 -- BEGIN MIGRATION: 60_run_nodes_hazard_type.sql
 ALTER TABLE `run_nodes`
   MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit','dialogue','hazard') NOT NULL;
+
 -- END MIGRATION: 60_run_nodes_hazard_type.sql
 
 -- BEGIN MIGRATION: 61_bounty_board_foundation.sql
@@ -2603,6 +2666,7 @@ CREATE TABLE `user_bounties` (
     ON DELETE RESTRICT
     ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 61_bounty_board_foundation.sql
 
 -- BEGIN MIGRATION: 62_seed_precision_resolve_stats.sql
@@ -2721,6 +2785,7 @@ WHERE `slug` = 'mudslinger';
 UPDATE `enemy_templates`
 SET `base_stats_json` = JSON_SET(`base_stats_json`, '$.precision', 5, '$.resolve', 7)
 WHERE `slug` = 'mudking';
+
 -- END MIGRATION: 62_seed_precision_resolve_stats.sql
 
 -- BEGIN MIGRATION: 63_seed_splice_variants.sql
@@ -2793,16 +2858,19 @@ ON DUPLICATE KEY UPDATE
   `passive_summary` = VALUES(`passive_summary`),
   `grant_weight` = VALUES(`grant_weight`),
   `is_enabled` = VALUES(`is_enabled`);
+
 -- END MIGRATION: 63_seed_splice_variants.sql
 
 -- BEGIN MIGRATION: 64_add_raw_chaos_currency.sql
 ALTER TABLE `player_state`
   ADD COLUMN `currency_raw_chaos` BIGINT UNSIGNED NOT NULL DEFAULT 0 AFTER `currency_hard`;
+
 -- END MIGRATION: 64_add_raw_chaos_currency.sql
 
 -- BEGIN MIGRATION: 65_run_nodes_shrine_type.sql
 ALTER TABLE `run_nodes`
   MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit','dialogue','hazard','shrine') NOT NULL;
+
 -- END MIGRATION: 65_run_nodes_shrine_type.sql
 
 -- BEGIN MIGRATION: 66_chaos_encounter_results.sql
@@ -2835,6 +2903,7 @@ CREATE TABLE `chaos_encounter_results` (
     ON DELETE RESTRICT
     ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- END MIGRATION: 66_chaos_encounter_results.sql
 
 -- BEGIN MIGRATION: 67_tier_three_progression_coverage.sql
@@ -2913,18 +2982,26 @@ SET
     ELSE `capstone_choices_json`
   END
 WHERE RIGHT(`slug`, 3) IN ('_t2', '_t3');
+
 -- END MIGRATION: 67_tier_three_progression_coverage.sql
 
 -- BEGIN MIGRATION: 68_run_nodes_chaos_type.sql
 ALTER TABLE `run_nodes`
   MODIFY COLUMN `node_type` ENUM('combat','loot','rest','boss','exit','dialogue','hazard','shrine','chaos') NOT NULL;
+
 -- END MIGRATION: 68_run_nodes_chaos_type.sql
 
 -- BEGIN MIGRATION: 69_chaos_encounter_finalized_rewards.sql
 ALTER TABLE `chaos_encounter_results`
   ADD COLUMN `finalized_rewards_json` JSON NULL AFTER `reward_multiplier`,
   ADD COLUMN `finalized_at` TIMESTAMP NULL DEFAULT NULL AFTER `manipulation_count`;
+
 -- END MIGRATION: 69_chaos_encounter_finalized_rewards.sql
+
+-- BEGIN MIGRATION: 70_drop_unit_dice.sql
+DROP TABLE IF EXISTS `unit_dice`;
+
+-- END MIGRATION: 70_drop_unit_dice.sql
 
 -- BEGIN MIGRATION: 99_finalize.sql
 -- Dice Goblins — MySQL Schema (MVP)
@@ -2938,4 +3015,5 @@ ALTER TABLE `chaos_encounter_results`
 
 -- Re-enable FK checks if you disabled them
 SET FOREIGN_KEY_CHECKS=1;
+
 -- END MIGRATION: 99_finalize.sql

@@ -285,16 +285,6 @@ final class GameplayController
     }
   }
 
-  public function equipDice(?string $unitInstanceId = null): void
-  {
-    $this->handleDiceMutation($unitInstanceId, true);
-  }
-
-  public function unequipDice(?string $unitInstanceId = null): void
-  {
-    $this->handleDiceMutation($unitInstanceId, false);
-  }
-
   public function renameUnit(?string $unitInstanceId = null): void
   {
     $svc = $this->services();
@@ -492,32 +482,6 @@ final class GameplayController
     } catch (Throwable) {
       Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
     }
-  }
-
-  private function handleDiceMutation(?string $unitInstanceId, bool $isEquip): void
-  {
-    $svc = $this->services();
-    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
-    if ($userId === null) {
-      return;
-    }
-
-    $unitId = $this->requirePositiveInt($unitInstanceId, 'unitInstanceId');
-    if ($unitId === null) {
-      return;
-    }
-
-    if (!$this->requireMutableUnit($svc['unitMutationGuardService'], $userId, $unitId)) {
-      return;
-    }
-
-    Response::json([
-      'ok' => false,
-      'error' => [
-        'code' => 'validation_error',
-        'message' => 'Legacy unit-level dice equip is no longer supported. Assign dice to ability slots instead.',
-      ],
-    ], 400);
   }
 
   private function handleAbilitySlotDiceMutation(?string $unitInstanceId, ?string $abilityId, ?string $slotIndex, bool $isAssign): void

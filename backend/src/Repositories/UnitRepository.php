@@ -493,67 +493,6 @@ final class UnitRepository
   }
 
   /**
-   * Returns equipped dice for a set of unit ids.
-   *
-   * @param array<int,int> $unitInstanceIds
-   * @return array<string, array<int, array{dice_instance_id:string,slot_index:int}>>
-   */
-  public function getEquippedDiceForUnitIds(array $unitInstanceIds): array
-  {
-    if (count($unitInstanceIds) === 0) {
-      return [];
-    }
-
-    $unitInstanceIds = array_values(array_unique(array_map(static fn($v): int => (int)$v, $unitInstanceIds)));
-    $placeholders = implode(',', array_fill(0, count($unitInstanceIds), '?'));
-
-    $stmt = $this->pdo->prepare("
-      SELECT `unit_instance_id`, `dice_instance_id`, `slot_index`
-      FROM `unit_dice`
-      WHERE `unit_instance_id` IN ($placeholders)
-      ORDER BY `unit_instance_id` ASC, `slot_index` ASC
-    ");
-    $stmt->execute($unitInstanceIds);
-
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    $byUnit = [];
-    foreach ($rows as $r) {
-      $uId = (string)$r['unit_instance_id'];
-      $byUnit[$uId] ??= [];
-      $byUnit[$uId][] = [
-        'dice_instance_id' => (string)$r['dice_instance_id'],
-        'slot_index' => (int)$r['slot_index'],
-      ];
-    }
-
-    return $byUnit;
-  }
-
-  /**
-   * Convenience: returns equipped dice for a single unit id.
-   *
-   * @return array<int, array{dice_instance_id:string,slot_index:int}>
-   */
-  public function getEquippedDiceForUnit(int $unitInstanceId): array
-  {
-    $stmt = $this->pdo->prepare('
-      SELECT `dice_instance_id`, `slot_index`
-      FROM `unit_dice`
-      WHERE `unit_instance_id` = ?
-      ORDER BY `slot_index` ASC
-    ');
-    $stmt->execute([$unitInstanceId]);
-
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    return array_map(static fn(array $r): array => [
-      'dice_instance_id' => (string)$r['dice_instance_id'],
-      'slot_index' => (int)$r['slot_index'],
-    ], $rows);
-  }
-
-  /**
    * @param array<int,int> $unitInstanceIds
    * @return array<string, array<int, array{
    *   ability_id:string,

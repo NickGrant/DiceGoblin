@@ -5,6 +5,7 @@ namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Controllers\ApiController;
 use DiceGoblins\Controllers\GameplayController;
+use DiceGoblins\Services\UnitLoadoutService;
 use DiceGoblins\Tests\Support\BattleFlowIntegrationCase;
 
 final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
@@ -316,6 +317,8 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $primary = $this->insertUnit($userId, $unitTypeId, $maxLevel, 0);
     $secondaryA = $this->insertUnit($userId, $unitTypeId, $maxLevel, 0);
     $secondaryB = $this->insertUnit($userId, $unitTypeId, $maxLevel, 0);
+    $loadout = new UnitLoadoutService($this->pdo);
+    $loadout->initializeUnit($primary, $unitTypeId);
     $this->insertTeamUnit($teamId, $primary);
     $this->insertRunUnitState($runId, $primary, 10, false);
     $this->insertRunUnitState($runId, $secondaryA, 10, false);
@@ -330,7 +333,7 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
     $gameplay = new GameplayController();
 
     $this->setJsonBody(['dice_instance_id' => (string)$diceId]);
-    $equipBlocked = $this->invoke(fn() => $gameplay->equipDice((string)$primary));
+    $equipBlocked = $this->invoke(fn() => $gameplay->assignAbilitySlotDie((string)$primary, 'heavy_strike', '0'));
     $this->assertSame(409, $equipBlocked['status']);
     $this->assertSame('active_run_unit_locked', (string)($equipBlocked['body']['error']['code'] ?? ''));
 
@@ -339,7 +342,7 @@ final class RunStateCleanupIntegrationTest extends BattleFlowIntegrationCase
       'run_id' => (string)$runId,
       'node_id' => (string)$restNodeId,
     ]);
-    $equipStillBlocked = $this->invoke(fn() => $gameplay->equipDice((string)$primary));
+    $equipStillBlocked = $this->invoke(fn() => $gameplay->assignAbilitySlotDie((string)$primary, 'heavy_strike', '0'));
     $this->assertSame(409, $equipStillBlocked['status']);
     $this->assertSame('active_run_unit_locked', (string)($equipStillBlocked['body']['error']['code'] ?? ''));
 

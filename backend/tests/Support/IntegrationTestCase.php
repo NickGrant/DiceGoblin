@@ -250,7 +250,6 @@ abstract class IntegrationTestCase extends TestCase
     if ($this->schemaHasTable('unit_instance_unlocked_abilities')) {
       $this->execDeleteByUserIds("DELETE uua FROM `unit_instance_unlocked_abilities` uua JOIN `unit_instances` ui ON ui.`id` = uua.`unit_instance_id` WHERE ui.`user_id` IN ($placeholders)", $userIds);
     }
-    $this->execDeleteByUserIds("DELETE ud FROM `unit_dice` ud JOIN `unit_instances` ui ON ui.`id` = ud.`unit_instance_id` WHERE ui.`user_id` IN ($placeholders)", $userIds);
     $this->execDeleteByUserIds("DELETE dia FROM `dice_instance_affixes` dia JOIN `dice_instances` di ON di.`id` = dia.`dice_instance_id` WHERE di.`user_id` IN ($placeholders)", $userIds);
     if ($this->schemaHasTable('shop_daily_deals')) {
       $this->execDeleteByUserIds("DELETE FROM `shop_daily_deals` WHERE `user_id` IN ($placeholders)", $userIds);

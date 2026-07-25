@@ -538,7 +538,7 @@ final class PromotionService
   {
     $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
 
-    $stmt = $this->pdo->prepare("DELETE FROM `unit_dice` WHERE `unit_instance_id` IN ($placeholders)");
+    $stmt = $this->pdo->prepare("DELETE FROM `unit_ability_dice` WHERE `unit_instance_id` IN ($placeholders)");
     $stmt->execute($unitIds);
 
     $stmt = $this->pdo->prepare("

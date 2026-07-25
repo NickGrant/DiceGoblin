@@ -625,7 +625,7 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->assertSame('active_run_unit_locked', (string)($stillBlocked['body']['error']['code'] ?? ''));
   }
 
-  public function testSellDiceIgnoresLegacyUnitDiceRowsButBlocksAbilitySlotAssignments(): void
+  public function testSellDiceAllowsUnassignedDiceButBlocksAbilitySlotAssignments(): void
   {
     $userId = $this->insertUser('sell_dice', 'Sell Dice User');
     [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
@@ -633,14 +633,8 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $loadout = new UnitLoadoutService($this->pdo);
     $loadout->initializeUnit($unitId, $unitTypeId);
 
-    $legacyDiceId = $this->insertDiceInstance($userId, $this->pickAnyDiceDefinitionId());
+    $unassignedDiceId = $this->insertDiceInstance($userId, $this->pickAnyDiceDefinitionId());
     $abilityDiceId = $this->insertDiceInstance($userId, $this->pickAnyDiceDefinitionId());
-
-    $legacyInsert = $this->pdo->prepare('
-      INSERT INTO `unit_dice` (`unit_instance_id`, `dice_instance_id`, `slot_index`)
-      VALUES (?, ?, 0)
-    ');
-    $legacyInsert->execute([$unitId, $legacyDiceId]);
 
     $loadout->assignDieToAbilitySlot($unitId, 'heavy_strike', 0, $abilityDiceId);
 
@@ -650,45 +644,17 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
 
     $controller = new GameplayController();
 
-    $legacySell = $this->invoke(fn() => $controller->sellDice((string)$legacyDiceId));
-    $this->assertSame(200, $legacySell['status'], json_encode($legacySell['body']));
+    $unassignedSell = $this->invoke(fn() => $controller->sellDice((string)$unassignedDiceId));
+    $this->assertSame(200, $unassignedSell['status'], json_encode($unassignedSell['body']));
     $this->assertSame(
       '0',
-      (string)$this->scalar('SELECT COUNT(*) FROM `dice_instances` WHERE `id` = ?', [$legacyDiceId])
+      (string)$this->scalar('SELECT COUNT(*) FROM `dice_instances` WHERE `id` = ?', [$unassignedDiceId])
     );
 
     $abilitySell = $this->invoke(fn() => $controller->sellDice((string)$abilityDiceId));
     $this->assertSame(400, $abilitySell['status'], json_encode($abilitySell['body']));
     $this->assertSame('validation_error', (string)($abilitySell['body']['error']['code'] ?? ''));
     $this->assertSame('Equipped dice cannot be sold.', (string)($abilitySell['body']['error']['message'] ?? ''));
-  }
-
-  public function testLegacyUnitLevelDiceEndpointsAreRejected(): void
-  {
-    $userId = $this->insertUser('legacy_dice', 'Legacy Dice User');
-    [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
-    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
-    $diceId = $this->insertDiceInstance($userId, $this->pickAnyDiceDefinitionId());
-
-    $_SESSION['user_id'] = $userId;
-    $_SESSION['csrf_token'] = 'valid_csrf';
-    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
-    $this->setJsonBody(['dice_instance_id' => (string)$diceId]);
-
-    $controller = new GameplayController();
-
-    $equip = $this->invoke(fn() => $controller->equipDice((string)$unitId));
-    $this->assertSame(400, $equip['status'], json_encode($equip['body']));
-    $this->assertSame('validation_error', (string)($equip['body']['error']['code'] ?? ''));
-    $this->assertSame(
-      'Legacy unit-level dice equip is no longer supported. Assign dice to ability slots instead.',
-      (string)($equip['body']['error']['message'] ?? '')
-    );
-
-    $this->setJsonBody(['dice_instance_id' => (string)$diceId]);
-    $unequip = $this->invoke(fn() => $controller->unequipDice((string)$unitId));
-    $this->assertSame(400, $unequip['status'], json_encode($unequip['body']));
-    $this->assertSame('validation_error', (string)($unequip['body']['error']['code'] ?? ''));
   }
 
   /**

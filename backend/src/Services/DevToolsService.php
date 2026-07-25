@@ -320,10 +320,12 @@ final class DevToolsService
       'DELETE tu FROM `team_units` tu JOIN `teams` t ON t.`id` = tu.`team_id` WHERE t.`user_id` = ?',
       [$userId]
     );
-    $this->execDelete(
-      'DELETE ud FROM `unit_dice` ud JOIN `unit_instances` ui ON ui.`id` = ud.`unit_instance_id` WHERE ui.`user_id` = ?',
-      [$userId]
-    );
+    if ($this->schemaHasTable('unit_ability_dice')) {
+      $this->execDelete(
+        'DELETE uad FROM `unit_ability_dice` uad JOIN `unit_instances` ui ON ui.`id` = uad.`unit_instance_id` WHERE ui.`user_id` = ?',
+        [$userId]
+      );
+    }
     $this->execDelete(
       'DELETE dia FROM `dice_instance_affixes` dia JOIN `dice_instances` di ON di.`id` = dia.`dice_instance_id` WHERE di.`user_id` = ?',
       [$userId]

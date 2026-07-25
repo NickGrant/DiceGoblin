@@ -10,7 +10,6 @@ namespace DiceGoblins\Repositories;
 
 use DiceGoblins\Services\DiceValuationService;
 use PDO;
-use PDOException;
 use RuntimeException;
 
 final class DiceRepository
@@ -187,210 +186,6 @@ final class DiceRepository
   }
 
   /**
-   * Returns equipped dice instance IDs (strings) in slot order.
-   *
-   * @return array<int, string>
-   */
-  public function getEquippedDiceIdsForUnit(int $unitInstanceId): array
-  {
-    $stmt = $this->pdo->prepare('
-      SELECT `dice_instance_id`
-      FROM `unit_dice`
-      WHERE `unit_instance_id` = ?
-      ORDER BY `slot_index` ASC
-    ');
-    $stmt->execute([$unitInstanceId]);
-
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    return array_map(static fn(array $r): string => (string)$r['dice_instance_id'], $rows);
-  }
-
-  /**
-   * Equip a dice instance to a unit.
-   *
-   * Notes:
-   * - Enforces ownership: both unit and dice must belong to user.
-   * - Enforces "a die can only be equipped to one unit at a time" at the application layer.
-   * - Idempotent: if already equipped to the same unit, returns current equipped list.
-   *
-   * @return array<int, string> equipped dice IDs in slot order
-   */
-  public function equipDiceToUnit(int $userId, int $unitInstanceId, int $diceInstanceId): array
-  {
-    try {
-      $this->pdo->beginTransaction();
-
-      $this->assertUnitOwnedByUserForUpdate($userId, $unitInstanceId);
-      $this->assertDiceOwnedByUserForUpdate($userId, $diceInstanceId);
-
-      // If already equipped to this unit, treat as idempotent.
-      $stmt = $this->pdo->prepare('
-        SELECT 1
-        FROM `unit_dice`
-        WHERE `unit_instance_id` = ? AND `dice_instance_id` = ?
-        LIMIT 1
-        FOR UPDATE
-      ');
-      $stmt->execute([$unitInstanceId, $diceInstanceId]);
-      if ((bool)$stmt->fetchColumn()) {
-        $this->pdo->commit();
-        return $this->getEquippedDiceIdsForUnit($unitInstanceId);
-      }
-
-      // Prevent a die being equipped to any other unit.
-      $stmt = $this->pdo->prepare('
-        SELECT `unit_instance_id`
-        FROM `unit_dice`
-        WHERE `dice_instance_id` = ?
-        LIMIT 1
-        FOR UPDATE
-      ');
-      $stmt->execute([$diceInstanceId]);
-      $alreadyOnUnit = $stmt->fetchColumn();
-      if ($alreadyOnUnit) {
-        $this->pdo->rollBack();
-        throw new RuntimeException('Dice is already equipped to another unit.');
-      }
-
-      $maxEquipped = $this->getUnitMaxEquippedDiceForUpdate($unitInstanceId);
-      $currentCount = $this->countEquippedDiceForUnitForUpdate($unitInstanceId);
-      if ($currentCount >= $maxEquipped) {
-        $this->pdo->rollBack();
-        throw new RuntimeException('Unit has reached max equipped dice capacity.');
-      }
-
-      $slotIndex = $this->nextAvailableSlotIndexForUnitForUpdate($unitInstanceId);
-
-      $stmt = $this->pdo->prepare('
-        INSERT INTO `unit_dice` (`unit_instance_id`, `dice_instance_id`, `slot_index`)
-        VALUES (?, ?, ?)
-      ');
-      $stmt->execute([$unitInstanceId, $diceInstanceId, $slotIndex]);
-
-      $this->pdo->commit();
-
-      return $this->getEquippedDiceIdsForUnit($unitInstanceId);
-    } catch (\Throwable $e) {
-      if ($this->pdo->inTransaction()) {
-        $this->pdo->rollBack();
-      }
-      throw $e;
-    }
-  }
-
-  /**
-   * Unequip a dice instance from a unit.
-   *
-   * Idempotent: if not equipped, returns current equipped list.
-   *
-   * @return array<int, string> equipped dice IDs in slot order
-   */
-  public function unequipDiceFromUnit(int $userId, int $unitInstanceId, int $diceInstanceId): array
-  {
-    try {
-      $this->pdo->beginTransaction();
-
-      $this->assertUnitOwnedByUserForUpdate($userId, $unitInstanceId);
-
-      // If not equipped, treat as idempotent.
-      $stmt = $this->pdo->prepare('
-        SELECT 1
-        FROM `unit_dice`
-        WHERE `unit_instance_id` = ? AND `dice_instance_id` = ?
-        LIMIT 1
-        FOR UPDATE
-      ');
-      $stmt->execute([$unitInstanceId, $diceInstanceId]);
-      if (!(bool)$stmt->fetchColumn()) {
-        $this->pdo->commit();
-        return $this->getEquippedDiceIdsForUnit($unitInstanceId);
-      }
-
-      $stmt = $this->pdo->prepare('
-        DELETE FROM `unit_dice`
-        WHERE `unit_instance_id` = ? AND `dice_instance_id` = ?
-      ');
-      $stmt->execute([$unitInstanceId, $diceInstanceId]);
-
-      $this->pdo->commit();
-
-      return $this->getEquippedDiceIdsForUnit($unitInstanceId);
-    } catch (\Throwable $e) {
-      if ($this->pdo->inTransaction()) {
-        $this->pdo->rollBack();
-      }
-      throw $e;
-    }
-  }
-
-  // -----------------------------
-  // Internals
-  // -----------------------------
-
-  private function assertUnitOwnedByUserForUpdate(int $userId, int $unitInstanceId): void
-  {
-    $stmt = $this->pdo->prepare('
-      SELECT `id`
-      FROM `unit_instances`
-      WHERE `id` = ? AND `user_id` = ?
-      LIMIT 1
-      FOR UPDATE
-    ');
-    $stmt->execute([$unitInstanceId, $userId]);
-    $ok = $stmt->fetchColumn();
-
-    if (!$ok) {
-      throw new RuntimeException('Unit not found or not owned by user.');
-    }
-  }
-
-  private function assertDiceOwnedByUserForUpdate(int $userId, int $diceInstanceId): void
-  {
-    $stmt = $this->pdo->prepare('
-      SELECT `id`
-      FROM `dice_instances`
-      WHERE `id` = ? AND `user_id` = ?
-      LIMIT 1
-      FOR UPDATE
-    ');
-    $stmt->execute([$diceInstanceId, $userId]);
-    $ok = $stmt->fetchColumn();
-
-    if (!$ok) {
-      throw new RuntimeException('Dice not found or not owned by user.');
-    }
-  }
-
-  /**
-   * Finds the smallest non-negative integer not used as a slot_index for this unit.
-   * Locks the unit_dice rows for the unit (FOR UPDATE) to avoid concurrent slot collisions.
-   */
-  private function nextAvailableSlotIndexForUnitForUpdate(int $unitInstanceId): int
-  {
-    $stmt = $this->pdo->prepare('
-      SELECT `slot_index`
-      FROM `unit_dice`
-      WHERE `unit_instance_id` = ?
-      ORDER BY `slot_index` ASC
-      FOR UPDATE
-    ');
-    $stmt->execute([$unitInstanceId]);
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    $used = [];
-    foreach ($rows as $r) {
-      $used[(int)$r['slot_index']] = true;
-    }
-
-    $i = 0;
-    while (isset($used[$i])) {
-      $i++;
-    }
-    return $i;
-  }
-
-  /**
    * @return array{
    *   id:string,
    *   dice_definition_id:string,
@@ -466,35 +261,20 @@ final class DiceRepository
 
   public function isDiceEquippedForUpdate(int $diceInstanceId): bool
   {
-    $abilityStmt = $this->pdo->prepare('
+    $stmt = $this->pdo->prepare('
       SELECT 1
       FROM `unit_ability_dice`
       WHERE `dice_instance_id` = ?
       LIMIT 1
       FOR UPDATE
     ');
-    $abilityStmt->execute([$diceInstanceId]);
-    if ((bool)$abilityStmt->fetchColumn()) {
-      return true;
-    }
+    $stmt->execute([$diceInstanceId]);
 
-    $legacyStmt = $this->pdo->prepare('
-      SELECT 1
-      FROM `unit_dice`
-      WHERE `dice_instance_id` = ?
-      LIMIT 1
-      FOR UPDATE
-    ');
-    $legacyStmt->execute([$diceInstanceId]);
-
-    return (bool)$legacyStmt->fetchColumn();
+    return (bool)$stmt->fetchColumn();
   }
 
   public function deleteOwnedDiceInstance(int $userId, int $diceInstanceId): void
   {
-    $deleteLegacyEquip = $this->pdo->prepare('DELETE FROM `unit_dice` WHERE `dice_instance_id` = ?');
-    $deleteLegacyEquip->execute([$diceInstanceId]);
-
     $deleteAffixes = $this->pdo->prepare('DELETE FROM `dice_instance_affixes` WHERE `dice_instance_id` = ?');
     $deleteAffixes->execute([$diceInstanceId]);
 
@@ -506,31 +286,4 @@ final class DiceRepository
     }
   }
 
-  private function countEquippedDiceForUnitForUpdate(int $unitInstanceId): int
-  {
-    $stmt = $this->pdo->prepare('
-      SELECT COUNT(*)
-      FROM `unit_dice`
-      WHERE `unit_instance_id` = ?
-      FOR UPDATE
-    ');
-    $stmt->execute([$unitInstanceId]);
-    return (int)$stmt->fetchColumn();
-  }
-
-  private function getUnitMaxEquippedDiceForUpdate(int $unitInstanceId): int
-  {
-    $stmt = $this->pdo->prepare('
-      SELECT ut.`max_equipped_dice`
-      FROM `unit_instances` ui
-      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
-      WHERE ui.`id` = ?
-      LIMIT 1
-      FOR UPDATE
-    ');
-    $stmt->execute([$unitInstanceId]);
-    $value = $stmt->fetchColumn();
-    $maxEquipped = (int)$value;
-    return max(0, $maxEquipped);
-  }
 }
