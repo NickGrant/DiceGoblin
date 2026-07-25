@@ -6,6 +6,26 @@
 - Historical issue records can be retrieved from git when needed.
 
 ---
+id: KRB-002
+title: Add account-level lineage unlock state
+status: complete
+priority: high
+milestone: Wrong Machine and Kin Foundation
+description: Added account-level lineage unlock state through the existing `user_unlocks` table, treating Basic Goblin as implicit and Pig Kin as the first explicit lineage.
+acceptance_criteria:
+  - Store explicit lineage unlocks in the existing `user_unlocks` table under the `lineage` namespace.
+  - Treat Basic Goblin as the implicit default lineage for every account.
+  - Expose owned lineages in the profile payload.
+  - Expose the lineage catalog and owned lineages in debug/dev catalog surfaces.
+  - Keep old migrations untouched.
+  - Do not add new `region_items` dependencies.
+current_code_references:
+  - backend/src/Services/LineageUnlockService.php
+  - backend/src/Services/ProfileService.php
+  - backend/src/Services/DevToolsService.php
+  - frontend/src/app/core/models/api.models.ts
+
+---
 id: KRB-001
 title: Canonicalize kin and lineage terminology
 status: complete
