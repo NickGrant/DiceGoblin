@@ -1,9 +1,9 @@
 # Game Glossary (Milestone 0)
 
 Status: active  
-Last Updated: 2026-07-04  
+Last Updated: 2026-07-24  
 Owner: Product + Engineering  
-Depends On: `documentation/00-overview/01-core-gameplay-loop.md`, `documentation/00-overview/03-world-and-lore.md`, `documentation/README.md`
+Depends On: `documentation/00-overview/01-core-gameplay-loop.md`, `documentation/00-overview/03-world-and-lore.md`, `documentation/00-overview/04-story-and-biome-progression.md`, `documentation/README.md`
 
 
 This document defines the canonical terminology used throughout the game's design, implementation, and documentation.  
@@ -48,25 +48,43 @@ A single location on the map that may contain encounters, events, rewards, or na
 A connection between two nodes that defines possible movement and may include costs, risks, or gating conditions.
 
 ### Biome
-A thematic and mechanical grouping that influences encounter types, enemies, and modifiers.
+A thematic and mechanical grouping that influences encounter types, enemies, modifiers, narrative, and exploration capabilities.
 
 ### Region / Act
 A large-scale grouping of nodes representing a stage of progression with escalating difficulty.
 
 ### The Grand Library
-The world institution founded and maintained by The Archivist to classify, preserve, and stabilize reality through order.
+The world institution founded and maintained by The Archivist to classify, preserve, and stabilize reality through order. Its records and magic help enforce which forms of existence are considered stable and permitted.
 
 ### The Archivist
-The champion of light associated with bringing the world into its current ordered state.
+The champion of light associated with bringing the world into its current ordered state. The Archivist eradicated historical goblinkind through direct extermination and forced magical stabilization.
 
 ### The Whim
 The closest thing the setting has to a deity of chaos and the source from which goblins manifest.
 
+### Chaos
+The metaphysical principle associated with possibility, improvisation, mutation, accidents, unstable creation, and The Whim. Chaos is not synonymous with good.
+
+### Order
+The metaphysical principle associated with continuity, safety, classification, predictable rules, and the Grand Library. Order is not synonymous with evil.
+
+### Order Magic
+Magic used by the Grand Library to bind, classify, suppress, stabilize, or remove chaotic possibilities and creatures.
+
+### Clerical Templar
+A heavily armored magical enforcer of the Grand Library. Clerical templars combine disciplined military organization, institutional authority, and anti-chaos magic.
+
+### The Wrong Machine
+The proper name of an ancient goblin or Whim-aligned contraption built to construct things from chaos. It is not named because it is broken or performing an incorrect function.
+
 ### Discovery
-The act of revealing previously hidden nodes, paths, or information through exploration.
+The act of revealing previously hidden nodes, paths, information, dialogue, or codex content through exploration.
 
 ### Exploration Event
 A non-combat interaction triggered by entering or interacting with a node.
+
+### Traversal Unlock
+A persistent capability that opens routes, nodes, shortcuts, or discoveries that were previously inaccessible. Goblin lineages are a primary source of planned traversal unlocks.
 
 ---
 
@@ -98,13 +116,13 @@ Resources, loot, or progression granted as a result of encounter resolution.
 A turn-based or structured battle mode with its own ruleset and UI.
 
 ### Tick
-The atomic combat step, 20 ticks per round
+The atomic combat step, 20 ticks per round.
 
 ### Round
 A complete cycle of exactly 20 ticks.
 
 ### Speed
-Determines which ticks a unit acts on
+Determines which ticks a unit acts on.
 
 ### Action
 A primary activity a unit may perform on its turn.
@@ -134,8 +152,23 @@ The state in which a unit can no longer participate in combat.
 ### Unit
 A single actor in the game capable of taking actions.
 
+### Goblin
+A physical manifestation of The Whim and an incarnation of chaos. Goblins are intelligent humanoid protagonists, not animal-minded beasts.
+
 ### Goblin Warchief
 The player's narrative role: an insider to goblin culture who commands a warband in service of chaos.
+
+### Goblin Fragment
+A dormant or newly manifested portion of The Whim that can take goblin form when cracks appear in the ordered world.
+
+### Goblin Lineage
+A persistent goblin subspecies or reconstructed form influenced by traits recovered from a stable creature family. A lineage may provide combat traits, traversal capabilities, or both.
+
+### Splice
+The mechanical term for a goblin lineage variant. In lore, splicing is reconstruction through chaos rather than modern laboratory genetics.
+
+### Primordial Goblin
+A late-game goblin lineage closer to unshaped original chaos than the basic goblin form. The player's first conjured appearance foreshadows this lineage.
 
 ### Squads (Warband)
 A subset of units participating together within an encounter.
@@ -143,7 +176,7 @@ A subset of units participating together within an encounter.
  - player defined
  - multiple squads per player
  - exactly one active run
- 
+
 ### Formation
 A 3x3 placement grid defining starting positions in combat. Stored on squads (persistent) and also copied into run state (run-scoped).
 
@@ -194,7 +227,10 @@ A positive interaction between multiple mechanics or systems.
 An intentional friction that limits overpowered combinations.
 
 ### Build
-The aggregate configuration of a unit's traits, talents, stats, and augments.
+The aggregate configuration of a unit's traits, talents, stats, augments, lineage, abilities, and dice.
+
+### Lineage Reconstruction
+The planned process of combining Raw Chaos and lineage materials in the Wrong Machine to unlock a goblin lineage.
 
 ---
 
@@ -209,6 +245,15 @@ A discrete object with mechanical effects.
 ### Dice
 In gameplay terms, modular combat loadout objects assigned to ability slots. In-world, they are physical shards of chaos power sought by goblins.
 
+### Raw Chaos
+A persistent resource released from stabilized chaos objects such as salvaged dice. It supports construction, reconstruction, fabrication, and other advanced chaos systems.
+
+### Lineage Material
+A creature-family-specific item recovered from enemies and combined with Raw Chaos to unlock a goblin lineage. Exact item names and costs are authored per lineage.
+
+### Teeth
+Ordinary monster currency used for recruitment, supplies, market purchases, and other goblin commerce. Teeth do not require a hidden magical function.
+
 ### Rarity
 A classification indicating item power and drop frequency.
 
@@ -222,7 +267,7 @@ A spendable resource used in shops or upgrades.
 An encounter or entity that exchanges currency for goods or services.
 
 ### Upgrade
-A permanent improvement applied to a unit or item.
+A permanent improvement applied to a unit, item, system, or account capability.
 
 ---
 
@@ -234,6 +279,15 @@ Progression systems that persist across runs.
 ### Unlock
 Content that becomes available after meeting specific conditions.
 
+### Feature Unlock
+A persistent account-level unlock that opens or expands a game system.
+
+### Region Unlock
+Persistent access to a biome or region after satisfying its progression requirement.
+
+### Lineage Unlock
+Persistent access to a goblin lineage after its reconstruction requirements are completed.
+
 ### Carryover
 Resources or effects that persist between runs.
 
@@ -242,6 +296,9 @@ The clearing of run-scoped state at run end.
 
 ### Save State
 A serialized snapshot of the current game state.
+
+### Post-Story State
+The persistent game state after the main campaign and final Archivist confrontation are complete. Repeatable runs, bounties, collection, hidden routes, and unfinished unlocks remain available.
 
 ---
 
@@ -261,6 +318,9 @@ Audio or visual response that communicates the result of actions.
 
 ### Clarity
 The player's ability to understand cause, effect, and intent.
+
+### Codex
+The persistent player-facing record of discovered units, enemies, affixes, features, dialogue, lore, and other collected knowledge.
 
 ---
 
