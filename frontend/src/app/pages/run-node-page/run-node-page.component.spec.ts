@@ -145,6 +145,45 @@ class RunServiceStub {
       node: { id: 'n1', node_type: 'chaos', status: 'available' },
     },
   });
+  finalizeChaosEncounter = jasmine.createSpy('finalizeChaosEncounter').and.resolveTo({
+    ok: true,
+    data: {
+      chaos_result: {
+        id: 'chaos-1',
+        status: 'confirmed',
+        seed: 5678,
+        reels: [
+          { reel_index: 0, reel: 'enemy_family', symbol: 'frogmen', label: 'Frogmen', weight: 25, risk: 2, effect: 'Swamp attrition pressure.' },
+          { reel_index: 1, reel: 'encounter_shape', symbol: 'ambush', label: 'Ambush', weight: 20, risk: 3, effect: 'A dangerous opening position.' },
+          { reel_index: 2, reel: 'rule_reward', symbol: 'raw_chaos_spark', label: 'Raw Chaos Spark', weight: 20, risk: 2, effect: 'Victory can feed later chaos systems.' },
+        ],
+        reward_multiplier: 2.05,
+        manipulation: { available: false, rerolled_reel_index: 0, remaining: 0 },
+        summary: {
+          title: 'Frogmen + Ambush + Raw Chaos Spark',
+          effect: 'Swamp attrition pressure. A dangerous opening position. Victory can feed later chaos systems.',
+        },
+        finalized_rewards: {
+          currency: { soft: 32, raw_chaos: 5 },
+          reward_multiplier: 2.05,
+          labels: ['32 Teeth', '5 Raw Chaos'],
+        },
+        finalized_at: '2026-07-25 12:00:00',
+      },
+      run: { id: 'run-1', status: 'active' },
+      node: { id: 'n1', node_type: 'chaos', status: 'cleared' },
+      completion: {
+        title: 'Chaos Settled',
+        message: 'Frogmen + Ambush + Raw Chaos Spark paid out and the path opened.',
+      },
+      rewards: {
+        currency: { soft: 32, raw_chaos: 5 },
+        reward_multiplier: 2.05,
+        labels: ['32 Teeth', '5 Raw Chaos'],
+      },
+      next: { unlocked_node_ids: ['n2'] },
+    },
+  });
   claimBattleRewards = jasmine.createSpy('claimBattleRewards').and.resolveTo({
     ok: true,
     data: { run_resolution: { status: 'active' } },
@@ -389,7 +428,7 @@ describe('RunNodePageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('The path opened without a fight.');
   });
 
-  it('shows generated chaos reels and allows one reroll without resolving the node', async () => {
+  it('shows generated chaos reels and finalizes rewards without resolving the node', async () => {
     const runService = new RunServiceStub();
     runService.getCurrentRun.and.resolveTo({
       ok: true,
@@ -433,6 +472,17 @@ describe('RunNodePageComponent', () => {
     expect(runService.rerollChaosEncounter).toHaveBeenCalledOnceWith('run-1', 'n1', 0);
     expect(fixture.nativeElement.textContent).toContain('Frogmen + Ambush + Guaranteed Loot');
     expect(fixture.nativeElement.textContent).toContain('The reroll is spent.');
+
+    await fixture.componentInstance.finalizeChaosEncounter();
+    fixture.detectChanges();
+
+    expect(runService.finalizeChaosEncounter).toHaveBeenCalledOnceWith('run-1', 'n1');
+    expect(fixture.componentInstance.chaosIsFinalized()).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('Chaos Settled');
+    expect(fixture.nativeElement.textContent).toContain('32 Teeth');
+    expect(fixture.nativeElement.textContent).toContain('5 Raw Chaos');
+    expect(fixture.nativeElement.textContent).toContain('This chaos result is complete.');
+    expect(fixture.nativeElement.textContent).toContain('Back to Map');
   });
 
   it('formats battle action log details for the node screen', async () => {

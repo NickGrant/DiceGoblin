@@ -1,7 +1,7 @@
 # Dice Goblins - Data Model (Authoritative Rework Contract)
 
 Status: active  
-Last Updated: 2026-07-24
+Last Updated: 2026-07-25
 Owner: Backend/Data  
 Depends On: `backend/migrations/schema_all.sql`, `documentation/02-systems-mvp/00-combat-system.md`, `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/02-units-and-progression.md`
 
@@ -272,14 +272,17 @@ Current foundation columns:
 - deterministic `seed`
 - `reels_json` containing the three authored reel outputs
 - `reward_multiplier` derived from the generated risk score
+- `finalized_rewards_json` containing the backend-authored payout applied when the node is completed
 - `rerolled_reel_index` and `manipulation_count` for one allowed player reroll
+- `finalized_at` for the durable completion timestamp
 
 Rules:
 - one run node can have only one generated chaos result
 - refreshes return the existing row instead of rerolling
 - one reroll may change exactly one reel, then manipulation is spent
 - reward scaling is derived from the same persisted reel result that communicates risk
-- combat generation and finalize/claim behavior are follow-up work
+- finalization applies the stored reward payload once, marks the node cleared, and returns the same payout on retry
+- full chaos combat generation remains follow-up work
 
 ## 10. Rewards and Promotions
 

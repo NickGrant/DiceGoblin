@@ -427,6 +427,8 @@ export type ChaosEncounterData = {
       title: string;
       effect: string;
     };
+    finalized_rewards?: ChaosFinalizedRewards | null;
+    finalized_at?: string | null;
   };
   run: {
     id: string;
@@ -440,6 +442,28 @@ export type ChaosEncounterData = {
 };
 
 export type ChaosEncounterResponse = ApiResponse<ChaosEncounterData>;
+
+export type ChaosFinalizedRewards = {
+  currency: {
+    soft: number;
+    raw_chaos: number;
+  };
+  reward_multiplier: number;
+  labels: string[];
+};
+
+export type ChaosFinalizeData = ChaosEncounterData & {
+  completion: {
+    title: string;
+    message: string;
+  };
+  rewards: ChaosFinalizedRewards;
+  next: {
+    unlocked_node_ids: string[];
+  };
+};
+
+export type ChaosFinalizeResponse = ApiResponse<ChaosFinalizeData>;
 
 export type ExitRunData = {
   run_id: string;

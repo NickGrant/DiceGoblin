@@ -2,7 +2,7 @@ import { TitleCasePipe } from '@angular/common';
 import { Component, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BattlePlaybackActionStep, BattlePlaybackParticipant, BattlePlaybackSnapshot } from '../../core/battle-playback/battle-playback.models';
-import { ChaosEncounterData, ResolveNodeData, UnitRecord } from '../../core/models/api.models';
+import { ChaosEncounterData, ChaosFinalizeData, ResolveNodeData, UnitRecord } from '../../core/models/api.models';
 import { AbilityCatalogService } from '../../core/services/ability-catalog/ability-catalog.service';
 import { BattlePlaybackAdapterService } from '../../core/services/battle-playback/battle-playback-adapter.service';
 import { RunService } from '../../core/services/run/run.service';
@@ -89,6 +89,7 @@ export class RunNodePageComponent implements OnDestroy {
   readonly runRegionTheme = signal<string | null>(null);
   readonly result = signal<ResolveNodeData | null>(null);
   readonly chaosResult = signal<ChaosEncounterData['chaos_result'] | null>(null);
+  readonly chaosCompletion = signal<ChaosFinalizeData['completion'] | null>(null);
   readonly loading = signal(true);
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
@@ -101,6 +102,8 @@ export class RunNodePageComponent implements OnDestroy {
   readonly combatAnimationFrameIndex = signal(0);
   readonly shouldAutoResolve = computed(() => AUTO_RESOLVE_NODE_TYPES.has(this.nodeType() ?? ''));
   readonly isChaosNode = computed(() => this.nodeType() === 'chaos');
+  readonly chaosRewards = computed(() => this.chaosResult()?.finalized_rewards ?? null);
+  readonly chaosIsFinalized = computed(() => this.chaosResult()?.status === 'confirmed');
   readonly abilityCatalogError = this.abilityCatalogService.error;
   readonly abilityCatalog = this.abilityCatalogService.abilityMap;
   readonly resolvedNodeType = computed(() => {
@@ -120,6 +123,9 @@ export class RunNodePageComponent implements OnDestroy {
   });
   readonly pageSubtitle = computed(() => {
     if (this.isChaosNode()) {
+      if (this.chaosIsFinalized()) {
+        return 'The payout is banked. The path ahead is open.';
+      }
       if (this.chaosResult()) {
         return 'The machine has settled. Reroll one reel or carry the risk forward.';
       }
@@ -299,6 +305,12 @@ export class RunNodePageComponent implements OnDestroy {
         return;
       }
       this.chaosResult.set(response.data.chaos_result);
+      if (response.data.chaos_result.status === 'confirmed') {
+        this.chaosCompletion.set({
+          title: 'Chaos Settled',
+          message: `${response.data.chaos_result.summary.title} paid out and the path opened.`,
+        });
+      }
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to generate chaos encounter.');
     } finally {
@@ -307,7 +319,7 @@ export class RunNodePageComponent implements OnDestroy {
   }
 
   async rerollChaosReel(reelIndex: number): Promise<void> {
-    if (!this.runId() || !this.chaosResult()?.manipulation.available) {
+    if (!this.runId() || this.chaosIsFinalized() || !this.chaosResult()?.manipulation.available) {
       return;
     }
 
@@ -322,6 +334,28 @@ export class RunNodePageComponent implements OnDestroy {
       this.chaosResult.set(response.data.chaos_result);
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to reroll chaos reel.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async finalizeChaosEncounter(): Promise<void> {
+    if (!this.runId() || !this.chaosResult()) {
+      return;
+    }
+
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      const response = await this.runService.finalizeChaosEncounter(this.runId()!, this.nodeId);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+      this.chaosResult.set(response.data.chaos_result);
+      this.chaosCompletion.set(response.data.completion);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to finalize chaos encounter.');
     } finally {
       this.busy.set(false);
     }
