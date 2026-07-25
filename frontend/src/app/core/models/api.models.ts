@@ -819,6 +819,27 @@ export type DebugCatalogData = {
 };
 
 export type DebugCatalogResponse = ApiResponse<DebugCatalogData>;
+export type DebugSeedTableSummary = {
+  name: string;
+  label: string;
+  row_count: number;
+};
+
+export type DebugSeedTableRecord = {
+  name: string;
+  label: string;
+  row_count: number;
+  columns: string[];
+  json_columns: string[];
+  rows: Array<Record<string, unknown>>;
+};
+
+export type DebugSeedTablesData = {
+  tables: DebugSeedTableSummary[];
+  selected_table: DebugSeedTableRecord | null;
+};
+
+export type DebugSeedTablesResponse = ApiResponse<DebugSeedTablesData>;
 export type DebugCurrencyGrantResponse = ApiResponse<{ currency: { soft: number; hard?: number } }>;
 export type DebugGrantUnitResponse = ApiResponse<{ granted_units: Array<{ id: string; unit_type_slug: string }> }>;
 export type DebugGrantDieResponse = ApiResponse<{ granted_dice: Array<{ id: string; sides: number; rarity: string }> }>;

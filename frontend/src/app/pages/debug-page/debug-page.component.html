@@ -3,7 +3,7 @@
   title="Debug Panel"
   subtitle="Grant resources and inspect catalog entries."
 >
-  @if (error() || message() || loading()) {
+  @if (error() || message() || loading() || seedLoading()) {
   <div class="vstack gap-2 mb-3">
     @if (error()) {
     <dg-alert tone="error">{{ error() }}</dg-alert>
@@ -13,6 +13,9 @@
     }
     @if (loading()) {
     <dg-alert>Loading debug catalog...</dg-alert>
+    }
+    @if (seedLoading()) {
+    <dg-alert>Loading seeded tables...</dg-alert>
     }
   </div>
   }
@@ -101,5 +104,61 @@
       </div>
     </div>
   </div>
+  }
+
+  @if (seedTables(); as seedData) {
+  <section class="dg-card debug-seeds p-3 mt-4">
+    <div class="debug-seeds__header">
+      <div>
+        <h2 class="dg-stencil mb-2">Seeded Tables</h2>
+        <p class="mb-0">Read-only seed data inspection.</p>
+      </div>
+      <div class="debug-seeds__picker">
+        <label class="form-label">Table</label>
+        <select class="dg-select" [(ngModel)]="selectedSeedTableName" (ngModelChange)="loadSeedTables($event)" [disabled]="seedLoading()">
+          @for (table of seedData.tables; track table.name) {
+          <option [value]="table.name">{{ table.label }} ({{ table.row_count }})</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    @if (seedData.selected_table; as selected) {
+    <div class="debug-seeds__meta">
+      <span class="dg-proto-chip">{{ selected.name }}</span>
+      <span class="dg-proto-chip">{{ selected.row_count }} rows</span>
+      <span class="dg-proto-chip">{{ selected.columns.length }} columns</span>
+    </div>
+
+    <div class="debug-seeds__table-wrap">
+      <table class="debug-seeds__table">
+        <thead>
+          <tr>
+            @for (column of selected.columns; track column) {
+            <th scope="col">{{ column }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of selected.rows; track $index) {
+          <tr>
+            @for (column of selected.columns; track column) {
+            <td>
+              @if (seedCellIsJson(row, column)) {
+              <pre>{{ seedCellValue(row, column) }}</pre>
+              } @else {
+              <span>{{ seedCellValue(row, column) }}</span>
+              }
+            </td>
+            }
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    } @else {
+    <dg-alert>No seeded tables are available.</dg-alert>
+    }
+  </section>
   }
 </page-frame>

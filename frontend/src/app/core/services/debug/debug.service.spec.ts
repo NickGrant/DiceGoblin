@@ -32,6 +32,14 @@ describe('DebugService', () => {
     expect(apiHttp.get).toHaveBeenCalledWith('/api/v1/debug/catalog');
   });
 
+  it('loads read-only seeded table rows', async () => {
+    const response = { ok: true, data: {} } as any;
+    apiHttp.get.and.resolveTo(response);
+
+    await expectAsync(service.getSeedTables('unit_types')).toBeResolvedTo(response);
+    expect(apiHttp.get).toHaveBeenCalledWith('/api/v1/debug/seed-tables?table=unit_types');
+  });
+
   it('grants currency and refreshes profile', async () => {
     const response = { ok: true } as any;
     apiHttp.postWithCsrf.and.resolveTo(response);

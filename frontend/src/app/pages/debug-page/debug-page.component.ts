@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DebugCatalogData, DebugOwnedUnitRecord } from '../../core/models/api.models';
+import { DebugCatalogData, DebugOwnedUnitRecord, DebugSeedTablesData } from '../../core/models/api.models';
 import { DebugService } from '../../core/services/debug/debug.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
@@ -17,7 +17,9 @@ export class DebugPageComponent {
   private readonly debugService = inject(DebugService);
 
   readonly catalog = signal<DebugCatalogData | null>(null);
+  readonly seedTables = signal<DebugSeedTablesData | null>(null);
   readonly loading = signal(true);
+  readonly seedLoading = signal(true);
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
@@ -29,9 +31,11 @@ export class DebugPageComponent {
   selectedRegionItem = '';
   selectedOwnedUnitId = '';
   selectedOwnedUnitLevel = 1;
+  selectedSeedTableName = '';
 
   constructor() {
     void this.loadCatalog();
+    void this.loadSeedTables();
   }
 
   async loadCatalog(): Promise<void> {
@@ -51,6 +55,25 @@ export class DebugPageComponent {
       this.error.set(error instanceof Error ? error.message : 'Unable to load debug catalog.');
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async loadSeedTables(tableName = this.selectedSeedTableName): Promise<void> {
+    this.seedLoading.set(true);
+    this.error.set(null);
+    try {
+      const response = await this.debugService.getSeedTables(tableName || undefined);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+
+      this.seedTables.set(response.data);
+      this.selectedSeedTableName = response.data.selected_table?.name ?? response.data.tables[0]?.name ?? '';
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to load seeded table.');
+    } finally {
+      this.seedLoading.set(false);
     }
   }
 
@@ -121,6 +144,24 @@ export class DebugPageComponent {
     }
 
     this.selectedOwnedUnitLevel = unit.level;
+  }
+
+  seedCellValue(row: Record<string, unknown>, column: string): string {
+    const value = row[column];
+    if (value === null || value === undefined) {
+      return 'null';
+    }
+
+    if (typeof value === 'object') {
+      return JSON.stringify(value, null, 2);
+    }
+
+    return String(value);
+  }
+
+  seedCellIsJson(row: Record<string, unknown>, column: string): boolean {
+    const value = row[column];
+    return value !== null && typeof value === 'object';
   }
 
   private syncOwnedUnitSelection(catalog: DebugCatalogData): void {

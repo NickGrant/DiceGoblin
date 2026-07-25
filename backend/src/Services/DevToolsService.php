@@ -14,6 +14,19 @@ use Throwable;
 
 final class DevToolsService
 {
+  /** @var array<string,array{label:string,order_by:string}> */
+  private const SEEDED_TABLES = [
+    'regions' => ['label' => 'Regions', 'order_by' => '`id` ASC'],
+    'unit_types' => ['label' => 'Unit Types', 'order_by' => '`role` ASC, `slug` ASC'],
+    'enemy_templates' => ['label' => 'Enemy Templates', 'order_by' => '`tier` ASC, `slug` ASC'],
+    'dice_definitions' => ['label' => 'Dice Definitions', 'order_by' => '`sides` ASC, `rarity` ASC'],
+    'affix_definitions' => ['label' => 'Affix Definitions', 'order_by' => '`rarity` ASC, `slug` ASC'],
+    'loot_tables' => ['label' => 'Loot Tables', 'order_by' => '`tier` ASC, `slug` ASC'],
+    'encounter_templates' => ['label' => 'Encounter Templates', 'order_by' => '`region_id` ASC, `slug` ASC'],
+    'splice_variants' => ['label' => 'Splice Variants', 'order_by' => '`is_enabled` DESC, `grant_weight` DESC, `slug` ASC'],
+    'bounty_definitions' => ['label' => 'Bounty Definitions', 'order_by' => '`sort_order` ASC, `slug` ASC'],
+  ];
+
   private UserAssetGrantService $userAssetGrantService;
 
   public function __construct(
@@ -119,6 +132,49 @@ final class DevToolsService
   {
     $this->bootstrapper->ensureBaseline($userId);
     return $this->userAssetGrantService->grantUnitsBySlug($userId, $unitTypeSlug, $count);
+  }
+
+  /**
+   * @return array{
+   *   tables: array<int,array{name:string,label:string,row_count:int}>,
+   *   selected_table: array{name:string,label:string,row_count:int,columns:array<int,string>,json_columns:array<int,string>,rows:array<int,array<string,mixed>>}|null
+   * }
+   */
+  public function getSeedTableCatalog(?string $requestedTable = null): array
+  {
+    $tables = $this->listSeedTables();
+    $tableName = $requestedTable !== null && trim($requestedTable) !== ''
+      ? trim($requestedTable)
+      : (string)($tables[0]['name'] ?? '');
+
+    if ($tableName === '') {
+      return [
+        'tables' => $tables,
+        'selected_table' => null,
+      ];
+    }
+
+    if (!array_key_exists($tableName, self::SEEDED_TABLES)) {
+      throw new RuntimeException('Unknown seeded table.');
+    }
+
+    $columns = $this->listColumns($tableName);
+    $jsonColumns = $this->listJsonColumns($tableName);
+    $orderBy = self::SEEDED_TABLES[$tableName]['order_by'];
+    $stmt = $this->pdo->query("SELECT * FROM `$tableName` ORDER BY $orderBy LIMIT 500");
+    $rows = array_map(fn(array $row): array => $this->normalizeSeedRow($row, $jsonColumns), $stmt->fetchAll(PDO::FETCH_ASSOC));
+
+    return [
+      'tables' => $tables,
+      'selected_table' => [
+        'name' => $tableName,
+        'label' => self::SEEDED_TABLES[$tableName]['label'],
+        'row_count' => $this->countTableRows($tableName),
+        'columns' => $columns,
+        'json_columns' => $jsonColumns,
+        'rows' => $rows,
+      ],
+    ];
   }
 
   /**
@@ -302,6 +358,94 @@ final class DevToolsService
     $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM `$table` WHERE `$column` = ?");
     $stmt->execute([$userId]);
     return (int) ($stmt->fetchColumn() ?: 0);
+  }
+
+  /**
+   * @return array<int,array{name:string,label:string,row_count:int}>
+   */
+  private function listSeedTables(): array
+  {
+    $tables = [];
+    foreach (self::SEEDED_TABLES as $name => $config) {
+      if (!$this->schemaHasTable($name)) {
+        continue;
+      }
+
+      $tables[] = [
+        'name' => $name,
+        'label' => $config['label'],
+        'row_count' => $this->countTableRows($name),
+      ];
+    }
+
+    return $tables;
+  }
+
+  private function countTableRows(string $table): int
+  {
+    if (!array_key_exists($table, self::SEEDED_TABLES)) {
+      throw new RuntimeException('Unknown seeded table.');
+    }
+
+    $stmt = $this->pdo->query("SELECT COUNT(*) FROM `$table`");
+    return (int)($stmt->fetchColumn() ?: 0);
+  }
+
+  /**
+   * @return array<int,string>
+   */
+  private function listColumns(string $table): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT `COLUMN_NAME`
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+      ORDER BY `ORDINAL_POSITION` ASC
+    ');
+    $stmt->execute([$table]);
+    return array_values(array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN)));
+  }
+
+  /**
+   * @return array<int,string>
+   */
+  private function listJsonColumns(string $table): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT `COLUMN_NAME`
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+        AND `DATA_TYPE` = \'json\'
+      ORDER BY `ORDINAL_POSITION` ASC
+    ');
+    $stmt->execute([$table]);
+    return array_values(array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN)));
+  }
+
+  /**
+   * @param array<string,mixed> $row
+   * @param array<int,string> $jsonColumns
+   * @return array<string,mixed>
+   */
+  private function normalizeSeedRow(array $row, array $jsonColumns): array
+  {
+    foreach ($row as $key => $value) {
+      if ($value === null) {
+        continue;
+      }
+
+      if (in_array((string)$key, $jsonColumns, true) && is_string($value)) {
+        $decoded = json_decode($value, true);
+        $row[$key] = $decoded === null && json_last_error() !== JSON_ERROR_NONE ? $value : $decoded;
+        continue;
+      }
+
+      $row[$key] = is_scalar($value) ? $value : (string)$value;
+    }
+
+    return $row;
   }
 
   private function hasActiveRun(int $userId): bool

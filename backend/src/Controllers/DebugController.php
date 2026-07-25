@@ -40,6 +40,38 @@ final class DebugController
     }
   }
 
+  public function seedTables(): void
+  {
+    $svc = $this->services();
+    if (!$svc['devTools']->isEnabled()) {
+      $this->respondDisabled();
+      return;
+    }
+
+    try {
+      $svc['sessionService']->requireUserId();
+    } catch (Throwable $e) {
+      $this->respondUnauthorized();
+      return;
+    }
+
+    try {
+      $table = isset($_GET['table']) ? trim((string)$_GET['table']) : null;
+      Response::json([
+        'ok' => true,
+        'data' => $svc['devTools']->getSeedTableCatalog($table),
+      ]);
+    } catch (Throwable $e) {
+      Response::json([
+        'ok' => false,
+        'error' => [
+          'code' => 'validation_error',
+          'message' => $e->getMessage() !== '' ? $e->getMessage() : 'Unable to load seeded table.',
+        ],
+      ], 400);
+    }
+  }
+
   public function grantCurrency(): void
   {
     $svc = $this->services();
