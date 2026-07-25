@@ -644,6 +644,14 @@ final class RunLifecycleService
       $newFeatureUnlocks[] = UserUnlockService::FEATURE_SHOP;
     }
 
+    if (
+      $completedRegionSlug === 'swamps'
+      && !$unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_WRONG_MACHINE)
+    ) {
+      $unlockService->grant($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_WRONG_MACHINE);
+      $newFeatureUnlocks[] = UserUnlockService::FEATURE_WRONG_MACHINE;
+    }
+
     $nextSlug = $this->regionRepository->getNextRegionSlug($completedRegionSlug);
     if ($nextSlug === null) {
       return [

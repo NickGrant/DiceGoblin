@@ -65,6 +65,7 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsArray($data['unit_type_unlocks'] ?? null);
     $this->assertIsArray($data['regions'] ?? null);
     $this->assertIsArray($data['region_unlocks'] ?? null);
+    $this->assertIsArray($data['items'] ?? null);
     $this->assertIsArray($data['region_items'] ?? null);
     $this->assertIsArray($data['objectives'] ?? null);
     $this->assertNotEmpty($data['objectives']);
@@ -196,6 +197,33 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertSame('complete', (string)($objectiveById['complete-first-run']['status'] ?? ''));
     $this->assertSame(1, (int)($objectiveById['complete-first-run']['progress_current'] ?? 0));
   }
+
+  public function testProfileReturnsGenericItemsWithMetadata(): void
+  {
+    $userId = $this->insertUser('profile_items', 'Profile Items User');
+    $itemId = (int)$this->scalar('SELECT `id` FROM `items` WHERE `slug` = ? LIMIT 1', ['pig_ear']);
+    $this->assertGreaterThan(0, $itemId);
+    $stmt = $this->pdo?->prepare('INSERT INTO `user_items` (`user_id`, `item_id`, `quantity`) VALUES (?, ?, ?)');
+    $stmt?->execute([$userId, $itemId, 4]);
+    $_SESSION['user_id'] = $userId;
+
+    $controller = new ApiController();
+    $response = $this->invoke(fn() => $controller->profile());
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $data = $this->assertSuccessEnvelopeShape($response);
+    $items = is_array($data['items'] ?? null) ? $data['items'] : [];
+    $this->assertNotEmpty($items);
+    $item = $items[0];
+    $this->assertSame('pig_ear', (string)($item['item_slug'] ?? ''));
+    $this->assertSame('lineage_material', (string)($item['category'] ?? ''));
+    $this->assertSame(4, (int)($item['quantity'] ?? 0));
+    $this->assertSame('the_farm', (string)($item['source_region_slug'] ?? ''));
+    $this->assertSame(true, (bool)($item['is_primary_progression'] ?? false));
+    $this->assertIsArray($item['meta'] ?? null);
+    $this->assertSame('pig_kin', (string)($item['meta']['lineage_slug'] ?? ''));
+  }
+
   public function testCurrentRunReturnsSuccessEnvelopeWhenNoActiveRun(): void
   {
     $userId = $this->insertUser();

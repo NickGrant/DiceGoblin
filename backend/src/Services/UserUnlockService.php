@@ -21,6 +21,7 @@ final class UserUnlockService
   public const FEATURE_ENERGY_75 = 'energy_cap_75';
   public const FEATURE_ENERGY_100 = 'energy_cap_100';
   public const FEATURE_D4_EXPLODE = 'explode_d4s';
+  public const FEATURE_WRONG_MACHINE = 'wrong_machine';
 
   public function __construct(
     private readonly PDO $pdo,

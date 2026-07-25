@@ -149,6 +149,7 @@ $router->get('/api/v1/debug/seed-tables', [$debug, 'seedTables']);
 $router->post('/api/v1/debug/grant/currency', [$debug, 'grantCurrency']);
 $router->post('/api/v1/debug/grant/unit', [$debug, 'grantUnit']);
 $router->post('/api/v1/debug/grant/dice', [$debug, 'grantDice']);
+$router->post('/api/v1/debug/grant/item', [$debug, 'grantItem']);
 $router->post('/api/v1/debug/grant/region-item', [$debug, 'grantRegionItem']);
 $router->post('/api/v1/debug/units/set-level', [$debug, 'setUnitLevel']);
 $router->post('/api/v1/debug/reset-account', [$debug, 'resetAccount']);

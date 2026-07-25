@@ -50,6 +50,19 @@ describe('DebugService', () => {
     expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 
+  it('grants a generic item and refreshes profile', async () => {
+    const response = { ok: true } as any;
+    apiHttp.postWithCsrf.and.resolveTo(response);
+
+    await service.grantItem('pig_ear', 2);
+
+    expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/debug/grant/item', {
+      item_slug: 'pig_ear',
+      quantity: 2,
+    });
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
+  });
+
   it('resets the account and refreshes profile', async () => {
     const response = { ok: true } as any;
     apiHttp.postWithCsrf.and.resolveTo(response);

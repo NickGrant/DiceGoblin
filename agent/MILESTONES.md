@@ -17,17 +17,15 @@ Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
 ### Current Code Context
 
-The current implementation persists kin identity through legacy `splice_variant` fields and stores older boss-item concepts through `region_items`. The July 25 roadmap now supersedes both terms for new work: use kin/lineage language and generic item ownership going forward.
+Generic `items` and `user_items` now provide the progression inventory foundation for Pig Kin materials and boss catalysts. The current implementation still persists kin identity through legacy `splice_variant` fields, so the next slice should avoid new splice terminology while planning the storage/API compatibility rename.
 
 ### Exit Criteria
 
-- A generic item catalog and ownership path exists.
-- New progression rewards no longer depend on `region_items`.
-- Profile/debug surfaces expose generic item quantities.
+- Account-level lineage unlock state exists.
+- Profile/debug surfaces expose owned lineages.
 - Player-facing UI renders kin language instead of splice language.
 - The next branch can implement account-level lineage unlocks and Pig Kin reconstruction costs.
 
 ### Related Issues
 
-- PIF-001: Add generic progression item foundation
 - KRB-001: Canonicalize kin and lineage terminology

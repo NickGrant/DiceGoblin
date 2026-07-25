@@ -38,10 +38,14 @@ These areas remain structurally stable for the rework:
 - `battle_logs`
 - `battle_rewards`
 - `chaos_encounter_results`
+- `items`
+- `user_items`
 - `region_items`
 - `user_region_items`
 
 They may need minor contract updates, but they are not the primary focus of the rework.
+
+`items` and `user_items` are the generic progression inventory path for lineage materials, boss catalysts, machine catalysts, unlock keys, and later consumables. `region_items` and `user_region_items` remain legacy compatibility tables and should not be extended for new progression rewards.
 
 ### 2.1 users
 

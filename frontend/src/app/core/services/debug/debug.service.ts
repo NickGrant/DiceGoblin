@@ -3,6 +3,7 @@ import {
   DebugCatalogResponse,
   DebugCurrencyGrantResponse,
   DebugGrantDieResponse,
+  DebugGrantItemResponse,
   DebugGrantRegionItemResponse,
   DebugGrantUnitResponse,
   DebugResetAccountResponse,
@@ -61,6 +62,16 @@ export class DebugService {
       '/api/v1/debug/grant/region-item',
       {
         region_item_slug: regionItemSlug,
+        quantity,
+      },
+    ));
+  }
+
+  async grantItem(itemSlug: string, quantity = 1): Promise<DebugGrantItemResponse> {
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<DebugGrantItemResponse>(
+      '/api/v1/debug/grant/item',
+      {
+        item_slug: itemSlug,
         quantity,
       },
     ));
