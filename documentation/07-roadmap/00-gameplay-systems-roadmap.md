@@ -68,42 +68,39 @@ These milestone lanes are complete in the archive and should be treated as imple
 - Expanded Run Encounters
 - Slot-Machine-Style Random Encounters
 - Complete Tier III Progression
+- Developer Seed Catalog Browser
+- Legacy Unit Dice Removal
 
 ## Active Planning Priority
 
-### Developer Seed Catalog Browser
+### Hybrid Seed Catalog Ownership
 
-Goal: make the developer panel a read-only inspection surface for seeded catalog tables so balancing and content review are faster.
+Goal: make database-backed, code-backed, and hybrid seeded data ownership explicit before moving more content out of raw SQL or adding richer behavior-bearing catalog rows.
 
 Minimum scope:
 
-- expose a backend debug endpoint that lists selected seeded tables and their rows
-- keep the endpoint read-only
-- make the frontend debug panel show a table picker and row viewer
-- include enough metadata for row counts, labels, and JSON fields to be understandable
-- avoid editing, deleting, or mutating seeded values
+- define criteria for database-owned, code/config-owned, and hybrid-owned data
+- classify every current table by ownership model
+- identify safe near-term candidates for codification or parity enforcement
+- keep player/runtime state database-owned unless a focused implementation issue proves otherwise
+- keep the seed browser as the read-only inspection surface for DB-backed catalog values
 
-Initial table candidates:
+Initial cleanup candidates:
 
-- `regions`
-- `unit_types`
-- `enemy_templates`
 - `dice_definitions`
-- `affix_definitions`
-- `loot_tables`
-- `encounter_templates`
-- `splice_variants`
-- `bounty_definitions`
+- dice rarity and sides vocabulary
+- run node type vocabulary
+- hybrid slug parity tests for ability, affix, bounty objective, enemy loadout, and encounter references
 
 Definition of done:
 
-- a developer can open the debug panel, choose a seeded table, and inspect the current seeded rows without using SQL directly
-- the API refuses unknown table names and never accepts write payloads
-- docs and tests describe the read-only support contract
+- a canonical ownership matrix exists for every current table
+- near-term code/config candidates are identified without forcing unrelated migrations
+- behavior-bearing catalog rows have an explicit parity-test strategy
 
 ## Next Gameplay Candidates
 
-After the seed browser, the strongest gameplay candidates are:
+After hybrid catalog ownership cleanup, the strongest gameplay candidates are:
 
 1. **Wrong Machine v2**
    - dice fabrication

@@ -6,6 +6,26 @@
 - Historical issue records can be retrieved from git when needed.
 
 ---
+id: DSB-001
+title: Add read-only seeded table browser to debug panel
+status: complete
+priority: medium
+milestone: Developer Support: Seed Catalog Browser
+description: Seeded catalog data was difficult to review without direct SQL access or source spelunking.
+acceptance_criteria:
+  - Add a read-only backend debug endpoint for allowlisted seeded tables.
+  - Include table metadata such as supported table names, labels, row counts, and columns.
+  - Add a debug-panel UI for choosing a table and inspecting seeded rows.
+  - Refuse unknown table names and avoid any edit/delete/write behavior.
+  - Document the seeded table browser contract and add backend/frontend coverage.
+current_code_references:
+  - backend/src/Controllers/DebugController.php
+  - backend/src/Services/DevToolsService.php
+  - frontend/src/app/pages/debug-page/debug-page.component.ts
+  - frontend/src/app/pages/debug-page/debug-page.component.html
+  - frontend/src/app/core/services/debug/debug.service.ts
+
+---
 id: LA-001
 title: Document local-auth roadmap and auth contract
 status: complete
