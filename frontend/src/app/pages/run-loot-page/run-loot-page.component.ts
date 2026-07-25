@@ -8,7 +8,7 @@ import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { resolveUnitSilhouetteUrl, resolveUnitThumbnailUrl } from '../../shared/ui/unit-art/unit-art';
-import { formatSpliceVariantLabel } from '../../shared/utils/unit-formatters';
+import { formatUnitKinLabel } from '../../shared/utils/unit-formatters';
 
 type LootRewardSummary = {
   teeth: number;
@@ -227,8 +227,8 @@ export class RunLootPageComponent {
 
   private unitRewardMeta(unit: RewardPreviewUnit): string {
     const typeName = unit.unit_type_name || 'Unit';
-    const spliceName = formatSpliceVariantLabel(unit.splice_variant_name, unit.splice_variant_slug);
-    return `${typeName} - ${spliceName}`;
+    const kinName = formatUnitKinLabel(unit);
+    return `${typeName} - ${kinName}`;
   }
 
   private unitRewardStats(unit: RewardPreviewUnit): Array<{ label: string; value: string }> {

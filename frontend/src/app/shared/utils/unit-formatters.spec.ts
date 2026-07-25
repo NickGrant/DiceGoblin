@@ -1,4 +1,4 @@
-import { formatSpliceVariantLabel, formatTier, humanizeAbilityId, resolveAbilityDisplayName, summarizeAbilityNames, toRomanNumeral } from './unit-formatters';
+import { formatKinLabel, formatTier, formatUnitKinLabel, humanizeAbilityId, resolveAbilityDisplayName, summarizeAbilityNames, toRomanNumeral } from './unit-formatters';
 
 describe('unit formatters', () => {
   it('formats tiers as roman numerals', () => {
@@ -12,10 +12,19 @@ describe('unit formatters', () => {
     expect(humanizeAbilityId('sleep_hex')).toBe('Sleep Hex');
   });
 
-  it('formats legacy splice variant labels as kin labels from names or slugs', () => {
-    expect(formatSpliceVariantLabel('Rat-Spliced', 'rat_splice')).toBe('Rat Kin');
-    expect(formatSpliceVariantLabel(null, 'toad_splice')).toBe('Toad Kin');
-    expect(formatSpliceVariantLabel(null, 'basic_goblin')).toBe('Basic Goblin');
+  it('formats legacy kin labels from names or slugs', () => {
+    expect(formatKinLabel('Rat-Spliced', 'rat_splice')).toBe('Rat Kin');
+    expect(formatKinLabel(null, 'toad_splice')).toBe('Toad Kin');
+    expect(formatKinLabel(null, 'basic_goblin')).toBe('Basic Goblin');
+  });
+
+  it('prefers kin aliases over legacy fields', () => {
+    expect(formatUnitKinLabel({
+      kin_name: 'Pig Kin',
+      kin_slug: 'pig_kin',
+      splice_variant_name: 'Rat-Spliced',
+      splice_variant_slug: 'rat_splice',
+    })).toBe('Pig Kin');
   });
 
   it('prefers catalog names when resolving ability labels', () => {

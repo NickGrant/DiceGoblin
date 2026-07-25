@@ -40,7 +40,7 @@ final class DevToolsService
     'run_nodes' => ['label' => 'Run Nodes', 'order_by' => '`run_id` DESC, `node_index` ASC'],
     'run_unit_state' => ['label' => 'Run Unit State', 'order_by' => '`run_id` DESC, `unit_instance_id` ASC'],
     'shop_daily_deals' => ['label' => 'Shop Daily Deals', 'order_by' => '`shop_date` DESC, `user_id` ASC, `deal_slot` ASC'],
-    'splice_variants' => ['label' => 'Splice Variants', 'order_by' => '`is_enabled` DESC, `grant_weight` DESC, `slug` ASC'],
+    'splice_variants' => ['label' => 'Kin Definitions (Legacy)', 'order_by' => '`is_enabled` DESC, `grant_weight` DESC, `slug` ASC'],
     'team_formation' => ['label' => 'Team Formation', 'order_by' => '`team_id` ASC, `cell` ASC'],
     'team_units' => ['label' => 'Team Units', 'order_by' => '`team_id` ASC, `unit_instance_id` ASC'],
     'teams' => ['label' => 'Teams', 'order_by' => '`id` DESC'],

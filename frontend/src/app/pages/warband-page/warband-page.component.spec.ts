@@ -143,7 +143,7 @@ describe('WarbandPageComponent', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.updateSpliceVariant('Toad Kin');
+    fixture.componentInstance.updateKin('Toad Kin');
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
@@ -214,14 +214,14 @@ describe('WarbandPageComponent', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.updateUnitType('Bruiser');
-    fixture.componentInstance.updateSpliceVariant('Rat Kin');
+    fixture.componentInstance.updateKin('Rat Kin');
     fixture.componentInstance.toggleUnitTier(2);
     fixture.componentInstance.updateLevelMin('2');
     fixture.componentInstance.updateLevelMax('6');
     fixture.componentInstance.clearUnitFilters();
 
     expect(fixture.componentInstance.selectedUnitType()).toBeNull();
-    expect(fixture.componentInstance.selectedSpliceVariant()).toBeNull();
+    expect(fixture.componentInstance.selectedKin()).toBeNull();
     expect(fixture.componentInstance.excludedUnitTiers()).toEqual([]);
     expect(fixture.componentInstance.selectedLevelMin()).toBeNull();
     expect(fixture.componentInstance.selectedLevelMax()).toBeNull();

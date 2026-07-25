@@ -259,13 +259,22 @@ final class UnitRepository
         $capstoneSelectionsByUnit[$uid] ?? []
       );
 
+      $kinSlug = (string)($u['splice_variant_slug'] ?? 'basic_goblin');
+      $kinName = (string)($u['splice_variant_name'] ?? 'Basic Goblin');
+      $kinDescription = (string)($u['splice_variant_description'] ?? '');
+      $kinPassiveSummary = (string)($u['splice_variant_passive_summary'] ?? '');
+
       $out[] = [
         'id' => $uid,
         'unit_type_id' => (string)$u['unit_type_id'],
-        'splice_variant_slug' => (string)($u['splice_variant_slug'] ?? 'basic_goblin'),
-        'splice_variant_name' => (string)($u['splice_variant_name'] ?? 'Basic Goblin'),
-        'splice_variant_description' => (string)($u['splice_variant_description'] ?? ''),
-        'splice_variant_passive_summary' => (string)($u['splice_variant_passive_summary'] ?? ''),
+        'kin_slug' => $kinSlug,
+        'kin_name' => $kinName,
+        'kin_description' => $kinDescription,
+        'kin_passive_summary' => $kinPassiveSummary,
+        'splice_variant_slug' => $kinSlug,
+        'splice_variant_name' => $kinName,
+        'splice_variant_description' => $kinDescription,
+        'splice_variant_passive_summary' => $kinPassiveSummary,
         'unit_type_slug' => (string)($u['unit_type_slug'] ?? ''),
         'name' => $u['display_name'] !== null ? (string)$u['display_name'] : (string)$u['unit_type_name'],
         'display_name' => $u['display_name'] !== null ? (string)$u['display_name'] : (string)$u['unit_type_name'],
