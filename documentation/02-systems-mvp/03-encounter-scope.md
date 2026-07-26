@@ -145,10 +145,17 @@ Generation rules:
 - the player may reroll one reel once through the backend
 - reroll state is stored with the result so refreshes and retries cannot reset it
 
+Current behavior:
+
+- finalizing a chaos result locks the reels to the node
+- the backend binds the result to a deterministic combat template and resolves it through the normal battle path
+- the player watches the resulting battle playback and claims rewards through the normal battle claim flow
+- richer reel-specific combat modifiers remain follow-up work
+
 Current foundation exclusions:
 
-- chaos results do not yet finalize into combat or claim rewards
-- Raw Chaos payouts, combat modifiers, and battle reward application remain follow-up work
+- exact authored enemy-shape construction from each reel combination remains follow-up work
+- bolstered enemy starts, ambush positioning rules, guaranteed loot variants, and more granular Raw Chaos tuning remain follow-up work
 
 ## Region Energy
 

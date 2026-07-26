@@ -134,7 +134,8 @@ Current behavior:
 - `chaos` nodes use dedicated slot-style reel endpoints:
   - generate creates or returns the persisted reel result
   - reroll changes one reel before completion when the reroll is still available
-  - finalize completes the node, applies the bounded persisted-result reward, stores the reward payload, and returns the same payout on retry
+  - finalize confirms the persisted reels, stores the bounded chaos bonus payload, binds a combat template, and is idempotent on retry
+  - after finalize, the normal node-resolution endpoint creates or returns the battle contract used by playback and reward claim
 - rest has explicit open and finalize steps
 - abandon and exit both produce summary-relevant run state
 

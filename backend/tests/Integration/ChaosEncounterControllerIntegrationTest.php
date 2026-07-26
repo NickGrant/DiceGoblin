@@ -3,8 +3,11 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Tests\Integration;
 
+use DiceGoblins\Controllers\BattleController;
 use DiceGoblins\Controllers\ChaosEncounterController;
+use DiceGoblins\Controllers\RunNodeController;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
+use PDO;
 
 final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
 {
@@ -84,15 +87,20 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $this->assertSame('invalid_chaos_node', (string)($invalidHazard['body']['error']['code'] ?? ''));
   }
 
-  public function testFinalizeAppliesPersistedRewardsOnceAndClearsNode(): void
+  public function testFinalizeLocksReelsThenResolveCreatesClaimableBattle(): void
   {
     $userId = $this->insertUser('chaos_finalize', 'Chaos Finalize User');
     $this->setSoftCurrency($userId, 10);
     $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $unitTypeId = $this->pickUnitTypeId();
     $runId = $this->insertRun($userId, $regionId, 515151, 'active');
     $nodeId = $this->insertRunNode($runId, 'chaos', 'available');
     $nextNodeId = $this->insertRunNode($runId, 'combat', 'locked');
     $this->insertRunEdge($runId, $nodeId, $nextNodeId);
+    $unitId = $this->insertUnit($userId, $unitTypeId);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 20);
 
     $this->authenticate($userId);
     $generate = $this->invoke(fn() => (new ChaosEncounterController())->generate((string)$runId, (string)$nodeId));
@@ -106,25 +114,44 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $this->assertSame(200, $firstFinalize['status'], json_encode($firstFinalize['body']));
     $firstData = $this->assertSuccess($firstFinalize);
     $firstRewards = is_array($firstData['rewards'] ?? null) ? $firstData['rewards'] : [];
-    $softAward = (int)($firstRewards['currency']['soft'] ?? 0);
 
     $this->assertSame('confirmed', (string)($firstData['chaos_result']['status'] ?? ''));
     $this->assertSame((float)($generatedResult['reward_multiplier'] ?? 0), (float)($firstRewards['reward_multiplier'] ?? -1));
-    $this->assertGreaterThanOrEqual(8, $softAward);
-    $this->assertSame(['' . $nextNodeId], $firstData['next']['unlocked_node_ids'] ?? []);
-    $this->assertSame('cleared', (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$nodeId]));
-    $this->assertSame('available', (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$nextNodeId]));
-    $this->assertSame((string)(10 + $softAward), (string)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame([], $firstData['next']['unlocked_node_ids'] ?? []);
+    $this->assertSame('available', (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$nodeId]));
+    $this->assertSame('locked', (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$nextNodeId]));
+    $this->assertSame('10', (string)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertNotSame('', (string)$this->scalar('SELECT `encounter_template_id` FROM `run_nodes` WHERE `id` = ?', [$nodeId]));
     $this->assertNotSame('', (string)$this->scalar('SELECT `finalized_rewards_json` FROM `chaos_encounter_results` WHERE `node_id` = ?', [$nodeId]));
 
     $this->authenticate($userId);
-    $secondFinalize = $this->invoke(fn() => (new ChaosEncounterController())->finalize((string)$runId, (string)$nodeId));
-    $this->assertSame(200, $secondFinalize['status'], json_encode($secondFinalize['body']));
-    $secondData = $this->assertSuccess($secondFinalize);
+    $resolve = $this->invoke(fn() => (new RunNodeController())->resolveNode((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $resolve['status'], json_encode($resolve['body']));
+    $resolveData = $this->assertSuccess($resolve);
+    $battleId = (int)($resolveData['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $battleId);
+    $this->assertSame('chaos', (string)($resolveData['battle']['log']['meta']['node_type'] ?? ''));
+    $this->assertIsArray($resolveData['battle']['log']['meta']['chaos'] ?? null);
+    $this->assertContains('battle_start', array_map(
+      static fn($event): string => is_array($event) ? (string)($event['type'] ?? '') : '',
+      is_array($resolveData['battle']['log']['events'] ?? null) ? $resolveData['battle']['log']['events'] : []
+    ));
 
-    $this->assertEquals($firstRewards, $secondData['rewards'] ?? null);
-    $this->assertSame([], $secondData['next']['unlocked_node_ids'] ?? null);
-    $this->assertSame((string)(10 + $softAward), (string)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
+    $storedRewards = json_decode((string)$this->scalar('SELECT `rewards_json` FROM `battle_rewards` WHERE `battle_id` = ?', [$battleId]), true);
+    $this->assertIsArray($storedRewards);
+    $this->assertIsArray($storedRewards['chaos_bonus'] ?? null);
+
+    $this->authenticate($userId);
+    $claim = $this->invoke(fn() => (new BattleController())->claimBattle((string)$battleId));
+    $this->assertSame(200, $claim['status'], json_encode($claim['body']));
+    $claimData = $this->assertSuccess($claim);
+
+    if ((string)($resolveData['battle']['outcome'] ?? '') === 'victory') {
+      $this->assertSame('cleared', (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$nodeId]));
+      $this->assertSame('available', (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$nextNodeId]));
+    }
+    $this->assertGreaterThan(10, (int)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('claimed', (string)($claimData['status'] ?? 'claimed'));
   }
 
   private function insertRunNode(int $runId, string $nodeType, string $status): int
@@ -144,6 +171,39 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
       VALUES (?, ?, ?)
     ');
     $stmt?->execute([$runId, $fromNodeId, $toNodeId]);
+  }
+
+  private function pickUnitTypeId(): int
+  {
+    $stmt = $this->pdo?->query('SELECT `id` FROM `unit_types` ORDER BY `id` ASC LIMIT 1');
+    $row = $stmt?->fetch(PDO::FETCH_ASSOC);
+    $this->assertIsArray($row, 'Expected seeded unit_types rows in test database.');
+    return (int)$row['id'];
+  }
+
+  private function insertUnit(int $userId, int $unitTypeId): int
+  {
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `tier`, `level`, `xp`, `locked`)
+      VALUES (?, ?, 1, 1, 0, 0)
+    ');
+    $stmt?->execute([$userId, $unitTypeId]);
+    return (int)$this->pdo?->lastInsertId();
+  }
+
+  private function insertTeamUnit(int $teamId, int $unitId): void
+  {
+    $stmt = $this->pdo?->prepare('INSERT INTO `team_units` (`team_id`, `unit_instance_id`) VALUES (?, ?)');
+    $stmt?->execute([$teamId, $unitId]);
+  }
+
+  private function insertRunUnitState(int $runId, int $unitId, int $hp): void
+  {
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `run_unit_state` (`run_id`, `unit_instance_id`, `current_hp`, `is_defeated`, `cooldowns_json`, `status_effects_json`)
+      VALUES (?, ?, ?, 0, ?, ?)
+    ');
+    $stmt?->execute([$runId, $unitId, $hp, '{}', '[]']);
   }
 
   /**

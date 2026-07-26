@@ -187,16 +187,20 @@ final class RunNodeController
         return;
       }
 
+      $chaosResult = null;
       if ((string)$node['node_type'] === 'chaos') {
-        $pdo->rollBack();
-        Response::json([
-          'ok' => false,
-          'error' => [
-            'code' => 'invalid_node_type',
-            'message' => 'Chaos nodes are generated via /api/v1/runs/:runId/nodes/:nodeId/chaos/generate.',
-          ],
-        ], 409);
-        return;
+        $chaosResult = $this->loadConfirmedChaosResultForUpdate($pdo, $nodeIdInt);
+        if ($chaosResult === null || $node['encounter_template_id'] === null) {
+          $pdo->rollBack();
+          Response::json([
+            'ok' => false,
+            'error' => [
+              'code' => 'chaos_not_finalized',
+              'message' => 'Chaos nodes must be generated and finalized before combat resolves.',
+            ],
+          ], 409);
+          return;
+        }
       }
 
       // Determine squad selection (defaults to active squad route/table naming remains team_id)
@@ -310,11 +314,22 @@ final class RunNodeController
         ], 409);
         return;
       }
+      if ((string)$node['node_type'] === 'chaos' && is_array($chaosResult)) {
+        $resolution['log']['meta']['chaos'] = $this->buildChaosLogMeta($chaosResult);
+      }
       $seed = (int)$resolution['seed'];
       $outcome = (string)$resolution['outcome'];
       $ticks = (int)$resolution['ticks'];
       $rounds = (int)$resolution['rounds'];
       $resolvedRewards = is_array($resolution['rewards'] ?? null) ? $resolution['rewards'] : [];
+      if ((string)$node['node_type'] === 'chaos') {
+        $chaosBonus = $this->loadConfirmedChaosRewards($pdo, $nodeIdInt);
+        if ($chaosBonus !== null) {
+          $resolvedRewards['chaos_bonus'] = $chaosBonus;
+          $currency = is_array($chaosBonus['currency'] ?? null) ? $chaosBonus['currency'] : [];
+          $resolution['currency_soft'] = (int)$resolution['currency_soft'] + max(0, (int)($currency['soft'] ?? 0));
+        }
+      }
       $grantedUnitIds = $svc['userAssetGrantService']->materializeRewardUnitGrants($userId, $resolvedRewards);
       $grantedDiceIds = $svc['userAssetGrantService']->materializeRewardDiceGrants($userId, $resolvedRewards);
       $grantedItems = $svc['userAssetGrantService']->materializeRewardItemGrants($userId, $resolvedRewards);
@@ -359,7 +374,7 @@ final class RunNodeController
         ]
       );
 
-      $isCombatLikeNode = ((string)$node['node_type'] === 'combat' || (string)$node['node_type'] === 'boss');
+      $isCombatLikeNode = in_array((string)$node['node_type'], ['combat', 'boss', 'chaos'], true);
       $runFailed = $isCombatLikeNode && $outcome === 'defeat';
 
       if ($runFailed) {
@@ -367,7 +382,7 @@ final class RunNodeController
       }
 
       $unlocked = [];
-      if (!$runFailed && ($outcome === 'victory' || $node['node_type'] !== 'combat')) {
+      if (!$runFailed && ($outcome === 'victory' || !$isCombatLikeNode)) {
         // Mark node cleared in DB and unlock downstream progression.
         $svc['runNodeRepo']->markCleared($runIdInt, $nodeIdInt);
         $unlocked = $this->unlockFromNode(
@@ -387,7 +402,7 @@ final class RunNodeController
             'id' => (string)$nodeIdInt,
             'status' => $runFailed
               ? 'failed'
-              : (($outcome === 'victory' || $node['node_type'] !== 'combat') ? 'completed' : 'available'),
+              : (($outcome === 'victory' || !$isCombatLikeNode) ? 'completed' : 'available'),
           ],
           'battle' => [
             'battle_id' => (string)$battleId,
@@ -598,6 +613,68 @@ final class RunNodeController
 
     $decoded = json_decode($metaJson, true);
     return is_array($decoded) ? $decoded : [];
+  }
+
+  /**
+   * @return array<string,mixed>|null
+   */
+  private function loadConfirmedChaosResultForUpdate(PDO $pdo, int $nodeId): ?array
+  {
+    $stmt = $pdo->prepare('
+      SELECT `id`, `reels_json`, `reward_multiplier`, `finalized_rewards_json`
+      FROM `chaos_encounter_results`
+      WHERE `node_id` = ?
+        AND `status` = \'confirmed\'
+      LIMIT 1
+      FOR UPDATE
+    ');
+    $stmt->execute([$nodeId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return is_array($row) ? $row : null;
+  }
+
+  /**
+   * @param array<string,mixed> $chaosResult
+   * @return array<string,mixed>
+   */
+  private function buildChaosLogMeta(array $chaosResult): array
+  {
+    $reels = json_decode((string)($chaosResult['reels_json'] ?? '[]'), true);
+    $reels = is_array($reels) ? array_values(array_filter($reels, 'is_array')) : [];
+    $rewards = json_decode((string)($chaosResult['finalized_rewards_json'] ?? ''), true);
+
+    return [
+      'reward_multiplier' => (float)($chaosResult['reward_multiplier'] ?? 1.0),
+      'summary' => [
+        'title' => implode(' + ', array_map(static fn(array $row): string => (string)($row['label'] ?? ''), $reels)),
+        'effect' => implode(' ', array_map(static fn(array $row): string => (string)($row['effect'] ?? ''), $reels)),
+      ],
+      'symbols' => array_map(static fn(array $row): string => (string)($row['symbol'] ?? ''), $reels),
+      'reels' => $reels,
+      'rewards' => is_array($rewards) ? $rewards : null,
+    ];
+  }
+
+  /**
+   * @return array<string,mixed>|null
+   */
+  private function loadConfirmedChaosRewards(PDO $pdo, int $nodeId): ?array
+  {
+    $stmt = $pdo->prepare('
+      SELECT `finalized_rewards_json`
+      FROM `chaos_encounter_results`
+      WHERE `node_id` = ?
+        AND `status` = \'confirmed\'
+      LIMIT 1
+    ');
+    $stmt->execute([$nodeId]);
+    $raw = $stmt->fetchColumn();
+    if (!is_string($raw) || $raw === '') {
+      return null;
+    }
+
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : null;
   }
 
   /**

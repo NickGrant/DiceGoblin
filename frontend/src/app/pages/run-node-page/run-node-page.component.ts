@@ -146,8 +146,11 @@ export class RunNodePageComponent implements OnDestroy {
   });
   readonly pageSubtitle = computed(() => {
     if (this.isChaosNode()) {
+      if (this.result()) {
+        return RunNodePageComponent.BATTLE_SUBTITLE;
+      }
       if (this.chaosIsFinalized()) {
-        return 'The payout is banked. The path ahead is open.';
+        return 'The reels are locked. Watch the fight play out, then claim the result.';
       }
       if (this.chaosResult()) {
         return 'The machine has settled. Reroll one reel or carry the risk forward.';
@@ -381,8 +384,9 @@ export class RunNodePageComponent implements OnDestroy {
       if (response.data.chaos_result.status === 'confirmed') {
         this.chaosCompletion.set({
           title: 'Chaos Settled',
-          message: `${response.data.chaos_result.summary.title} paid out and the path opened.`,
+          message: `${response.data.chaos_result.summary.title} is locked in. The fight is ready.`,
         });
+        await this.resolveNode();
       }
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to generate chaos encounter.');
@@ -427,6 +431,7 @@ export class RunNodePageComponent implements OnDestroy {
       }
       this.chaosResult.set(response.data.chaos_result);
       this.chaosCompletion.set(response.data.completion);
+      await this.resolveNode();
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to finalize chaos encounter.');
     } finally {
@@ -548,7 +553,7 @@ export class RunNodePageComponent implements OnDestroy {
   }
 
   isCombatLikeNodeType(nodeType: string | null | undefined): boolean {
-    return nodeType === 'combat' || nodeType === 'boss';
+    return nodeType === 'combat' || nodeType === 'boss' || nodeType === 'chaos';
   }
 
   private numberValue(value: unknown): number {

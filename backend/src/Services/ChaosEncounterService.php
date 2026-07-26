@@ -137,15 +137,11 @@ final class ChaosEncounterService
         throw new RuntimeException('chaos_result_not_generated');
       }
 
-      $unlocked = [];
       $rewards = $this->decodeFinalizedRewards($existing['finalized_rewards_json'] ?? null);
       if ((string)$existing['status'] !== 'confirmed' || $rewards === null) {
         $reels = $this->decodeReels((string)$existing['reels_json']);
         $rewards = $this->buildFinalizedRewards($reels, (float)$existing['reward_multiplier']);
-        $playerState = new PlayerStateRepository($this->pdo);
-        $playerState->ensurePlayerState($userId);
-        $playerState->getPlayerStateForUpdate($userId);
-        $this->applyFinalizedRewards($userId, $rewards);
+        $this->bindEncounterTemplate($runId, $nodeId, (int)$context['run']['region_id'], $reels, (int)$existing['seed']);
 
         $stmt = $this->pdo->prepare('
           UPDATE `chaos_encounter_results`
@@ -158,20 +154,16 @@ final class ChaosEncounterService
           json_encode($rewards, JSON_UNESCAPED_SLASHES),
           (int)$existing['id'],
         ]);
-
-        if ((string)$context['node']['status'] !== 'cleared') {
-          $runNodes = new RunNodeRepository($this->pdo);
-          $runNodes->markCleared($runId, $nodeId);
-          $unlocked = $this->unlockFromNode(new RunEdgeRepository($this->pdo), $runNodes, $runId, $nodeId);
-          $context['node']['status'] = 'cleared';
-        }
+      } elseif (($context['node']['encounter_template_id'] ?? null) === null) {
+        $reels = $this->decodeReels((string)$existing['reels_json']);
+        $this->bindEncounterTemplate($runId, $nodeId, (int)$context['run']['region_id'], $reels, (int)$existing['seed']);
       }
 
       $updated = $this->findForNodeForUpdate($nodeId) ?? $existing;
       $mapped = $this->mapResult($updated, $context);
       $mapped['completion'] = $this->completionCopy($mapped['chaos_result']['summary']['title'] ?? 'Chaos Result');
       $mapped['rewards'] = $rewards;
-      $mapped['next'] = ['unlocked_node_ids' => array_map('strval', $unlocked)];
+      $mapped['next'] = ['unlocked_node_ids' => []];
 
       $this->pdo->commit();
       return $mapped;
@@ -191,10 +183,12 @@ final class ChaosEncounterService
     $stmt = $this->pdo->prepare('
       SELECT
         rr.`id` AS `run_id`,
+        rr.`region_id`,
         rr.`status` AS `run_status`,
         rn.`id` AS `node_id`,
         rn.`node_type`,
-        rn.`status` AS `node_status`
+        rn.`status` AS `node_status`,
+        rn.`encounter_template_id`
       FROM `region_runs` rr
       JOIN `run_nodes` rn ON rn.`run_id` = rr.`id`
       WHERE rr.`id` = ?
@@ -221,12 +215,14 @@ final class ChaosEncounterService
     return [
       'run' => [
         'id' => (string)$row['run_id'],
+        'region_id' => (string)$row['region_id'],
         'status' => (string)$row['run_status'],
       ],
       'node' => [
         'id' => (string)$row['node_id'],
         'node_type' => (string)$row['node_type'],
         'status' => (string)$row['node_status'],
+        'encounter_template_id' => $row['encounter_template_id'] !== null ? (string)$row['encounter_template_id'] : null,
       ],
     ];
   }
@@ -434,6 +430,93 @@ final class ChaosEncounterService
   }
 
   /**
+   * @param array<int,array<string,mixed>> $reels
+   */
+  private function bindEncounterTemplate(int $runId, int $nodeId, int $regionId, array $reels, int $seed): void
+  {
+    $templateId = $this->selectEncounterTemplateId($regionId, $reels, $seed);
+    if ($templateId === null) {
+      throw new RuntimeException('chaos_no_encounter_template');
+    }
+
+    $stmt = $this->pdo->prepare('
+      UPDATE `run_nodes`
+      SET `encounter_template_id` = ?
+      WHERE `run_id` = ?
+        AND `id` = ?
+        AND `node_type` = \'chaos\'
+        AND `encounter_template_id` IS NULL
+      LIMIT 1
+    ');
+    $stmt->execute([$templateId, $runId, $nodeId]);
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $reels
+   */
+  private function selectEncounterTemplateId(int $regionId, array $reels, int $seed): ?int
+  {
+    $family = (string)($reels[0]['symbol'] ?? '');
+    $familyLike = match ($family) {
+      'pigs' => '%pig%',
+      'kobolds' => '%kobold%',
+      'frogmen' => '%frogman%',
+      default => '',
+    };
+
+    $candidateGroups = [];
+    if ($familyLike !== '') {
+      $candidateGroups[] = $this->loadCombatTemplateIds($regionId, $familyLike);
+      $candidateGroups[] = $this->loadCombatTemplateIds(null, $familyLike);
+    }
+    $candidateGroups[] = $this->loadCombatTemplateIds($regionId, '');
+    $candidateGroups[] = $this->loadCombatTemplateIds(null, '');
+
+    foreach ($candidateGroups as $candidates) {
+      if ($candidates === []) {
+        continue;
+      }
+
+      $index = $seed % count($candidates);
+      return $candidates[$index];
+    }
+
+    return null;
+  }
+
+  /**
+   * @return array<int,int>
+   */
+  private function loadCombatTemplateIds(?int $regionId, string $slugLike): array
+  {
+    $where = ['`slug` LIKE \'%\\_combat\\_%\''];
+    $params = [];
+    if ($regionId !== null) {
+      $where[] = '`region_id` = ?';
+      $params[] = $regionId;
+    }
+    if ($slugLike !== '') {
+      $where[] = '`slug` LIKE ?';
+      $params[] = $slugLike;
+    }
+
+    $stmt = $this->pdo->prepare('
+      SELECT `id`
+      FROM `encounter_templates`
+      WHERE ' . implode(' AND ', $where) . '
+      ORDER BY `id` ASC
+    ');
+    $stmt->execute($params);
+
+    $ids = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $ids[] = (int)$row['id'];
+    }
+
+    return $ids;
+  }
+
+  /**
    * @param array<string,mixed> $rewards
    */
   private function applyFinalizedRewards(int $userId, array $rewards): void
@@ -470,7 +553,7 @@ final class ChaosEncounterService
   {
     return [
       'title' => 'Chaos Settled',
-      'message' => sprintf('%s paid out and the path opened.', $title),
+      'message' => sprintf('%s is locked in. The fight is ready.', $title),
     ];
   }
 
