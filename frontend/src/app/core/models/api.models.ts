@@ -305,6 +305,66 @@ export type ItemRecord = {
 
 export type ProfileResponse = ApiResponse<ProfileData>;
 
+export type WrongMachineCostItem = {
+  item_slug: string;
+  quantity_required: number;
+  quantity_owned: number;
+  is_met: boolean;
+};
+
+export type WrongMachineMissingRequirement =
+  | { type: 'raw_chaos'; quantity_missing: number }
+  | { type: 'item'; item_slug: string; quantity_missing: number };
+
+export type WrongMachineReconstructionOption = {
+  lineage_slug: string;
+  kin_slug: string;
+  name: string;
+  description: string;
+  is_unlocked: boolean;
+  can_reconstruct: boolean;
+  cost: {
+    raw_chaos: {
+      quantity_required: number;
+      quantity_owned: number;
+      is_met: boolean;
+    };
+    items: WrongMachineCostItem[];
+  };
+  missing: WrongMachineMissingRequirement[];
+  grants: {
+    lineage_slug: string;
+    unit_type_slug: string;
+    unit_count: number;
+  };
+};
+
+export type WrongMachinePreviewData = {
+  feature_unlocked: boolean;
+  reconstructions: WrongMachineReconstructionOption[];
+};
+
+export type WrongMachineGrantedUnit = {
+  id: string;
+  unit_type_slug: string;
+  kin_slug: string;
+  splice_variant_slug?: string;
+};
+
+export type WrongMachineReconstructData = {
+  lineage: LineageUnlockRecord | null;
+  newly_reconstructed: boolean;
+  spent: {
+    raw_chaos: number;
+    items: Array<Record<string, unknown>>;
+  };
+  granted_unit: WrongMachineGrantedUnit | null;
+  preview: WrongMachineReconstructionOption;
+};
+
+export type WrongMachinePreviewResponse = ApiResponse<WrongMachinePreviewData>;
+export type WrongMachineReconstructResponse = ApiResponse<WrongMachineReconstructData>;
+
 export type AbilityCatalogEntry = {
   ability_id: string;
   type: 'active' | 'passive' | string;

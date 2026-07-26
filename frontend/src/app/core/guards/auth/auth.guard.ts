@@ -51,3 +51,4 @@ export const authChildGuard: CanActivateChildFn = async () => requireAuthenticat
 export const guestGuard: CanActivateFn = async () => requireGuestUser();
 export const shopFeatureGuard: CanActivateFn = async () => requireFeatureUnlock('shop');
 export const academyFeatureGuard: CanActivateFn = async () => requireFeatureUnlock('academy');
+export const wrongMachineFeatureGuard: CanActivateFn = async () => requireFeatureUnlock('wrong_machine');

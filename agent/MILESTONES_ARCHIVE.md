@@ -6,6 +6,30 @@
 - Historical milestone records can be retrieved from git when needed.
 
 ---
+name: Wrong Machine and Kin Foundation
+status: complete
+issues:
+  - KRB-001
+  - KRB-002
+  - KRB-003
+  - WMU-001
+description: Build the foundation for goblin-kin progression, generic progression items, and the Wrong Machine loop without extending superseded region-item or splice-variant terminology.
+goals:
+  - Add a generic item foundation for lineage materials, boss catalysts, machine catalysts, and unlock keys.
+  - Retire `region_items` as the path for new progression rewards and profile work.
+  - Canonicalize player-facing terminology around goblins, goblin-kin, kin, and lineages.
+  - Preserve Basic Goblins as the implicit default while preparing account-level lineage unlocks.
+  - Make Pig Kin the guaranteed first reconstruction path.
+  - Provide a player-facing Wrong Machine route for the first reconstruction.
+current_code_context: Generic `items` and `user_items` provide progression inventory, lineages are stored through `user_unlocks`, Pig Kin reconstruction is backend-authoritative and idempotent, and the frontend exposes a feature-gated Wrong Machine page after recovery.
+exit_criteria:
+  - Account-level lineage unlock state exists.
+  - Profile/debug surfaces expose owned lineages.
+  - Player-facing UI renders kin language instead of splice language.
+  - Pig Kin reconstruction has backend-owned cost preview, spending, lineage unlock, and tutorial unit grant behavior.
+  - Players can open the Wrong Machine after recovery and reconstruct Pig Kin from the normal UI.
+
+---
 name: Developer Support: Seed Catalog Browser
 status: complete
 issues:

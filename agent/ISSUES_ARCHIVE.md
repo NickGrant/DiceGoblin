@@ -6,6 +6,48 @@
 - Historical issue records can be retrieved from git when needed.
 
 ---
+id: WMU-001
+title: Add player-facing Wrong Machine reconstruction UI
+status: complete
+priority: high
+milestone: Wrong Machine and Kin Foundation
+description: Added an authenticated Wrong Machine page that previews Pig Kin reconstruction costs, shows missing materials, submits the backend reconstruction action, refreshes profile state, and links to the granted unit.
+acceptance_criteria:
+  - Add a feature-gated player-facing Wrong Machine route.
+  - Show backend-owned Pig Kin reconstruction cost preview.
+  - Disable reconstruction until the backend marks requirements as satisfied.
+  - Submit reconstruction through the existing CSRF-protected backend endpoint.
+  - Refresh profile state after reconstruction so currency, items, lineages, and units update.
+  - Expose the Wrong Machine in primary navigation once the `wrong_machine` feature is unlocked.
+current_code_references:
+  - frontend/src/app/pages/wrong-machine-page/wrong-machine-page.component.ts
+  - frontend/src/app/core/services/wrong-machine/wrong-machine.service.ts
+  - frontend/src/app/layout/command-controls/command-controls.component.ts
+  - frontend/src/app/app.routes.ts
+
+---
+id: KRB-003
+title: Add Wrong Machine reconstruction transaction
+status: complete
+priority: high
+milestone: Wrong Machine and Kin Foundation
+description: Added backend-authoritative Pig Kin reconstruction with cost preview, Wrong Machine feature gating, transactional Raw Chaos and item spending, lineage unlock grant, tutorial unit grant, and duplicate-request idempotency.
+acceptance_criteria:
+  - Add a backend service/API surface for reconstructing the first explicit lineage.
+  - Require the Wrong Machine feature before reconstruction actions succeed.
+  - Preview Pig Kin costs from backend-owned item and Raw Chaos requirements.
+  - Spend required materials and boss catalysts only when reconstruction succeeds.
+  - Grant the Pig Kin lineage and a Pig Kin unit atomically with the spend.
+  - Make duplicate reconstruction idempotent and never double-spend resources.
+  - Keep old migrations untouched.
+  - Do not add new `region_items` dependencies.
+current_code_references:
+  - backend/src/Services/WrongMachineReconstructionService.php
+  - backend/src/Controllers/WrongMachineController.php
+  - backend/tests/Integration/WrongMachineReconstructionControllerTest.php
+  - documentation/02-systems-mvp/13-wrong-machine-and-kin.md
+
+---
 id: BST-001
 title: Add backend simulation command foundation
 status: complete

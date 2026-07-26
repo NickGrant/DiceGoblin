@@ -1,0 +1,225 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.wrong-machine__alerts {
+  display: grid;
+  gap: 8px;
+}
+
+.wrong-machine {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.92fr) minmax(320px, 1.08fr);
+  gap: 18px;
+  min-width: 0;
+}
+
+.wrong-machine__stage,
+.wrong-machine__recipe,
+.wrong-machine__grant {
+  border: 1px solid rgba(58, 43, 31, 0.24);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(232, 223, 198, 0.9)),
+    center / 220px auto repeat var(--dg-proto-paper);
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.18);
+}
+
+.wrong-machine__stage {
+  display: grid;
+  align-content: center;
+  gap: 22px;
+  min-height: 420px;
+  padding: 28px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(91, 166, 146, 0.28), transparent 34%),
+    linear-gradient(160deg, rgba(38, 31, 26, 0.94), rgba(77, 60, 42, 0.92)),
+    center / cover no-repeat url('/assets/ui/biome/mystic_cave.png');
+  color: #fff4cf;
+}
+
+.wrong-machine__core {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(100%, 310px);
+  aspect-ratio: 1;
+  justify-self: center;
+}
+
+.wrong-machine__ring,
+.wrong-machine__spark {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.wrong-machine__ring--outer {
+  inset: 5%;
+  border: 10px solid rgba(255, 230, 177, 0.22);
+  box-shadow: inset 0 0 36px rgba(119, 238, 210, 0.24), 0 0 42px rgba(119, 238, 210, 0.22);
+}
+
+.wrong-machine__ring--inner {
+  inset: 23%;
+  border: 7px dashed rgba(255, 245, 210, 0.46);
+}
+
+.wrong-machine__spark {
+  inset: 36%;
+  display: grid;
+  place-items: center;
+  border: 3px solid rgba(255, 239, 190, 0.72);
+  background: rgba(24, 16, 15, 0.82);
+  box-shadow: 0 0 30px rgba(117, 226, 201, 0.46);
+}
+
+.wrong-machine__spark span {
+  font-size: 74px;
+  line-height: 1;
+}
+
+.wrong-machine__status,
+.wrong-machine__recipe-head,
+.wrong-machine__result,
+.wrong-machine__grant {
+  min-width: 0;
+}
+
+.wrong-machine__eyebrow {
+  margin: 0 0 6px;
+  color: rgba(111, 75, 30, 0.78);
+  font-size: 13px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.wrong-machine__stage .wrong-machine__eyebrow {
+  color: rgba(255, 235, 185, 0.78);
+}
+
+.wrong-machine__headline,
+.wrong-machine__title {
+  margin: 0;
+  color: #241710;
+  line-height: 0.94;
+}
+
+.wrong-machine__headline {
+  color: #fff4cf;
+  font-size: 38px;
+}
+
+.wrong-machine__title {
+  font-size: 32px;
+}
+
+.wrong-machine__status p,
+.wrong-machine__recipe p,
+.wrong-machine__result span {
+  margin: 0;
+  color: rgba(37, 21, 12, 0.72);
+  line-height: 1.4;
+}
+
+.wrong-machine__status p {
+  color: rgba(255, 244, 207, 0.82);
+}
+
+.wrong-machine__recipe {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  padding: 22px;
+}
+
+.wrong-machine__recipe-head,
+.wrong-machine__result,
+.wrong-machine__grant {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.wrong-machine__state {
+  flex: 0 0 auto;
+  padding: 0.42rem 0.7rem;
+  border: 1px solid rgba(104, 76, 42, 0.24);
+  border-radius: 999px;
+  background: rgba(229, 218, 196, 0.88);
+  color: rgba(73, 50, 25, 0.82);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.wrong-machine__state.is-ready,
+.wrong-machine__state.is-unlocked {
+  border-color: rgba(48, 119, 76, 0.24);
+  background: rgba(210, 234, 214, 0.9);
+  color: #2c633c;
+}
+
+.wrong-machine__cost-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.wrong-machine__cost {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(113, 77, 38, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 248, 230, 0.74);
+}
+
+.wrong-machine__cost.is-met {
+  border-color: rgba(54, 129, 82, 0.24);
+  background: rgba(226, 242, 224, 0.76);
+}
+
+.wrong-machine__cost span {
+  color: rgba(42, 28, 13, 0.68);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.wrong-machine__cost strong,
+.wrong-machine__result strong {
+  color: #25150c;
+}
+
+.wrong-machine__result > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.wrong-machine__grant {
+  grid-column: 1 / -1;
+  align-items: center;
+  padding: 18px 20px;
+}
+
+@media (max-width: 760px) {
+  .wrong-machine {
+    grid-template-columns: 1fr;
+  }
+
+  .wrong-machine__stage {
+    min-height: 340px;
+  }
+
+  .wrong-machine__recipe-head,
+  .wrong-machine__result,
+  .wrong-machine__grant {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

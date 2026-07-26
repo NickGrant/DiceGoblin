@@ -284,6 +284,22 @@ describe('CommandControlsComponent', () => {
     expect(router.serializeUrl(shopLink!.injector.get(RouterLink).urlTree!)).toBe('/shop');
   });
 
+  it('shows the Wrong Machine menu item after the unlock is earned', () => {
+    sessionService.featureUnlocks.set(['wrong_machine']);
+
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.componentInstance.mobileMenuOpen.set(true);
+    fixture.detectChanges();
+
+    const machineLink = fixture.debugElement
+      .queryAll(By.directive(RouterLink))
+      .find((debugElement) => debugElement.attributes['aria-label'] === 'Wrong Machine');
+
+    expect(machineLink).toBeDefined();
+    expect(machineLink!.nativeElement.textContent).toContain('Machine');
+    expect(router.serializeUrl(machineLink!.injector.get(RouterLink).urlTree!)).toBe('/wrong-machine');
+  });
+
   it('shows the academy menu item after the unlock is earned', () => {
     sessionService.featureUnlocks.set(['academy']);
 
@@ -327,6 +343,7 @@ describe('CommandControlsComponent', () => {
     expect(compiled.querySelector('.menu [aria-label="Start Run"]')).toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Continue Run"]')).toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Inventory"]')).toBeNull();
+    expect(compiled.querySelector('.menu [aria-label="Wrong Machine"]')).toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Shop"]')).toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Academy"]')).toBeNull();
     expect(compiled.querySelector('.menu [aria-label="Home"]')).not.toBeNull();
