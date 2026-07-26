@@ -219,7 +219,7 @@ describe('AcademyPageComponent', () => {
     ]);
     expect(component.unitUnlockDescription('support_banner_t1')).toContain('support specialist');
     expect(component.unitUnlockDescription('frontline_bruiser_t2')).toContain('heavier execution damage');
-    expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[0])).toBe('Available now');
+    expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[0])).toBe('Support Tier I');
     expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[1])).toBe('Requires: Complete any run');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('PRC');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('RES');

@@ -6,6 +6,7 @@ namespace DiceGoblins\Tests\Integration;
 use DiceGoblins\Controllers\GameplayController;
 use DiceGoblins\Services\DiceValuationService;
 use DiceGoblins\Services\UnitLoadoutService;
+use DiceGoblins\Services\UserUnlockService;
 use DiceGoblins\Tests\Support\BattleFlowIntegrationCase;
 
 final class DiceSalvageServiceIntegrationTest extends BattleFlowIntegrationCase
@@ -18,6 +19,7 @@ final class DiceSalvageServiceIntegrationTest extends BattleFlowIntegrationCase
   public function testSalvageDiceAwardsRawChaosAndDeletesUnequippedDie(): void
   {
     $userId = $this->insertUser('salvage_dice', 'Salvage Dice User');
+    $this->grantUnlock($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_WRONG_MACHINE);
     $diceDefinitionId = $this->pickAnyDiceDefinitionId();
     $diceId = $this->insertDiceInstance($userId, $diceDefinitionId);
 
@@ -46,6 +48,7 @@ final class DiceSalvageServiceIntegrationTest extends BattleFlowIntegrationCase
   public function testSalvageDiceBlocksEquippedDice(): void
   {
     $userId = $this->insertUser('salvage_equipped', 'Salvage Equipped User');
+    $this->grantUnlock($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_WRONG_MACHINE);
     [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
     $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
     $loadout = new UnitLoadoutService($this->pdo);
@@ -66,6 +69,30 @@ final class DiceSalvageServiceIntegrationTest extends BattleFlowIntegrationCase
     $this->assertSame(
       '1',
       (string)$this->scalar('SELECT COUNT(*) FROM `dice_instances` WHERE `id` = ?', [$diceId])
+    );
+  }
+
+  public function testSalvageDiceRequiresWrongMachineUnlock(): void
+  {
+    $userId = $this->insertUser('salvage_locked', 'Salvage Locked User');
+    $diceId = $this->insertDiceInstance($userId, $this->pickAnyDiceDefinitionId());
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new GameplayController();
+    $response = $this->invoke(fn() => $controller->salvageDice((string)$diceId));
+
+    $this->assertSame(403, $response['status'], json_encode($response['body']));
+    $this->assertSame('wrong_machine_locked', (string)($response['body']['error']['code'] ?? ''));
+    $this->assertSame(
+      '1',
+      (string)$this->scalar('SELECT COUNT(*) FROM `dice_instances` WHERE `id` = ?', [$diceId])
+    );
+    $this->assertSame(
+      '0',
+      (string)$this->scalar('SELECT `currency_raw_chaos` FROM `player_state` WHERE `user_id` = ?', [$userId])
     );
   }
 

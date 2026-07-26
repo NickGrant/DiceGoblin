@@ -10,7 +10,6 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faArrowDown,
   faArrowUp,
-  faChessBoard,
   faCrown,
   faHandFist,
   faHeartPulse,
@@ -130,7 +129,6 @@ export class UnitDetailsPageComponent {
   readonly faHeartPulse = faHeartPulse;
   readonly faHandFist = faHandFist;
   readonly faShieldHalved = faShieldHalved;
-  readonly faChessBoard = faChessBoard;
 
   readonly unitId = this.route.snapshot.paramMap.get('unitId') ?? '';
   readonly unit = computed<UnitRecord | null>(
@@ -364,7 +362,9 @@ export class UnitDetailsPageComponent {
     const unit = this.unit();
     return unit ? formatUnitKinLabel(unit) : 'Basic Goblin';
   });
-  readonly kinSummary = computed(() => this.unit()?.kin_passive_summary || this.unit()?.splice_variant_passive_summary || 'No kin modifier.');
+  readonly kinSummary = computed(() =>
+    this.normalizeKinSummary(this.unit()?.kin_passive_summary || this.unit()?.splice_variant_passive_summary),
+  );
   readonly tierRomanNumeral = computed(() => toRomanNumeral(this.unit()?.tier ?? 1));
   readonly portraitLoadFailed = signal(false);
   readonly unitPortraitUrl = computed(() => resolveUnitImageUrl(this.unit()?.unit_type_slug));
@@ -416,12 +416,6 @@ export class UnitDetailsPageComponent {
         label: 'Resolve',
         value: `${unit.total_resolve ?? 5}`,
         meta: 'Status resistance',
-      },
-      {
-        icon: this.faChessBoard,
-        label: 'Formation',
-        value: `${unit.formation_width || 1}x${unit.formation_height || 1}`,
-        meta: 'Board footprint',
       },
     ];
   });
@@ -750,6 +744,15 @@ export class UnitDetailsPageComponent {
 
   private slotKey(abilityId: string, slotIndex: number): string {
     return `${abilityId}:${slotIndex}`;
+  }
+
+  private normalizeKinSummary(value: string | null | undefined): string {
+    const normalized = value?.trim();
+    if (!normalized || normalized.toLowerCase() === 'no splice modifier.') {
+      return 'No kin trait.';
+    }
+
+    return normalized.replace(/\bsplice modifier\b/gi, 'kin trait');
   }
 }
 

@@ -478,6 +478,10 @@ final class GameplayController
         Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'Equipped dice cannot be salvaged.']], 400);
         return;
       }
+      if ($message === 'wrong_machine_locked') {
+        Response::json(['ok' => false, 'error' => ['code' => 'wrong_machine_locked', 'message' => 'Recover the Wrong Machine before salvaging dice into Raw Chaos.']], 403);
+        return;
+      }
       Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => $message]], 400);
     } catch (Throwable) {
       Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);

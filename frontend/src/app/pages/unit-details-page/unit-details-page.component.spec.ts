@@ -255,7 +255,7 @@ describe('UnitDetailsPageComponent', () => {
     expect(host.textContent).not.toContain('Mastered. Choose one capstone before any future promotion.');
     expect(host.textContent).not.toContain('None selected yet');
     expect(host.textContent).toContain('Academy');
-    expect(host.textContent).toContain('Formation');
+    expect(host.textContent).not.toContain('Formation');
     expect(host.textContent).not.toContain('Inherited Passives');
     expect(fixture.nativeElement.querySelector('.unit-thumbnail__image')?.getAttribute('src')).toBeTruthy();
 

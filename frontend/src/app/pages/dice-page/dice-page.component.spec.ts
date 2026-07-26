@@ -15,6 +15,7 @@ class DiceServiceStub {
 }
 
 class SessionServiceStub {
+  readonly wrongMachineUnlocked = signal(true);
   readonly profileData = signal({ dice: [], currency: { soft: 0, hard: 0, raw_chaos: 7 } });
   readonly units = signal([
     {

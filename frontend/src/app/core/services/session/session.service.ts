@@ -62,6 +62,7 @@ export class SessionService {
   readonly lineageUnlocks = computed(() => this.profileDataState()?.lineage_unlocks ?? []);
   readonly shopUnlocked = computed(() => this.featureUnlocks().includes('shop'));
   readonly academyUnlocked = computed(() => this.featureUnlocks().includes('academy'));
+  readonly wrongMachineUnlocked = computed(() => this.featureUnlocks().includes('wrong_machine'));
   readonly activeSquad = computed<TeamRecord | null>(
     () => this.profileDataState()?.squads.find((squad) => squad.is_active) ?? null,
   );

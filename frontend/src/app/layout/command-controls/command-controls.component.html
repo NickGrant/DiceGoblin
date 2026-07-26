@@ -17,7 +17,11 @@
     }
   </div>
 
-  <div class="slot slot-chaos" aria-hidden="true"></div>
+  <div class="slot slot-chaos" [attr.aria-label]="wrongMachineUnlocked() ? 'Raw Chaos' : null" [attr.aria-hidden]="wrongMachineUnlocked() ? null : 'true'">
+    @if (isAuthenticated() && wrongMachineUnlocked()) {
+    <span>Raw Chaos {{ rawChaosBalance() }}</span>
+    }
+  </div>
 
   <div class="slot slot-name" [attr.aria-label]="isAuthenticated() ? 'Commander name' : 'Guest label'">
     <span>{{ isAuthenticated() ? session().displayName : 'Guest' }}</span>

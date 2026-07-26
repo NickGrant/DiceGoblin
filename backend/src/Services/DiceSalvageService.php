@@ -36,6 +36,12 @@ final class DiceSalvageService
         throw new RuntimeException('equipped_dice_cannot_be_salvaged');
       }
 
+      $unlockService = new UserUnlockService($this->pdo);
+      if (!$unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_WRONG_MACHINE)) {
+        $this->pdo->rollBack();
+        throw new RuntimeException('wrong_machine_locked');
+      }
+
       $this->playerStateRepository->ensurePlayerState($userId);
       $state = $this->playerStateRepository->getPlayerStateForUpdate($userId);
       if (!is_array($state)) {
