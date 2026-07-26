@@ -16,76 +16,80 @@
 
   @if (result()) {
   <section class="loot-scene" [style.background-image]="lootBackgroundImage()">
-    <div class="loot-scene__header">
-      <div>
-        <h2 class="loot-scene__title dg-stencil">Treasure Found</h2>
-        <p class="loot-scene__copy">Sweep the cache, clock the spoils, and move before the tunnel closes in.</p>
-      </div>
-    </div>
-
-    <div class="loot-scene__body">
-      <div class="loot-masonry" aria-label="Loot rewards">
-        <article class="loot-card loot-card--teeth">
-          <img class="loot-payout__icon" src="/assets/ui/icons/tooth_64.png" alt="" aria-hidden="true" />
-          <div class="loot-payout__copy">
-            <strong class="loot-payout__value dg-stencil">{{ lootRewards()?.teeth ?? 0 }}</strong>
+    <div class="loot-scene__main">
+      <div class="loot-scene__content">
+        <div class="loot-scene__header">
+          <div>
+            <h2 class="loot-scene__title dg-stencil">Treasure Found</h2>
+            <p class="loot-scene__copy">Sweep the cache, clock the spoils, and move before the tunnel closes in.</p>
           </div>
-        </article>
+        </div>
 
-        @for (card of lootDiceCards(); track card.id) {
-        <article class="loot-card loot-card--dice">
-          <div class="loot-card__media">
-            <img [src]="card.imageUrl" [alt]="card.label" />
-          </div>
-          @if (card.meta) {
-          <p class="loot-card__title dg-stencil">{{ card.meta }}</p>
-          }
-        </article>
-        }
+        <div class="loot-scene__body">
+          <div class="loot-masonry" aria-label="Loot rewards">
+            <article class="loot-card loot-card--teeth">
+              <img class="loot-payout__icon" src="/assets/ui/icons/tooth_64.png" alt="" aria-hidden="true" />
+              <div class="loot-payout__copy">
+                <strong class="loot-payout__value dg-stencil">{{ lootRewards()?.teeth ?? 0 }}</strong>
+              </div>
+            </article>
 
-        @for (card of lootUnitCards(); track card.id) {
-        <article class="loot-card loot-card--unit">
-          <div class="loot-card__media">
-            <img [src]="card.imageUrl" [alt]="card.label" />
-          </div>
-          <div class="loot-card__copy">
-            <p class="loot-card__meta">{{ card.meta }}</p>
-            <h4 class="loot-card__title dg-stencil">{{ card.label }}</h4>
-            @if (card.stats?.length) {
-            <div class="loot-card__stats" aria-label="Unit stats">
-              @for (stat of card.stats; track stat.label) {
-              <span>
-                <span>{{ stat.label }}</span>
-                <strong>{{ stat.value }}</strong>
-              </span>
+            @for (card of lootDiceCards(); track card.id) {
+            <article class="loot-card loot-card--dice">
+              <div class="loot-card__media">
+                <img [src]="card.imageUrl" [alt]="card.label" />
+              </div>
+              @if (card.meta) {
+              <p class="loot-card__title dg-stencil">{{ card.meta }}</p>
               }
-            </div>
+            </article>
+            }
+
+            @for (card of lootUnitCards(); track card.id) {
+            <article class="loot-card loot-card--unit">
+              <div class="loot-card__media">
+                <img [src]="card.imageUrl" [alt]="card.label" />
+              </div>
+              <div class="loot-card__copy">
+                <p class="loot-card__meta">{{ card.meta }}</p>
+                <h4 class="loot-card__title dg-stencil">{{ card.label }}</h4>
+                @if (card.stats?.length) {
+                <div class="loot-card__stats" aria-label="Unit stats">
+                  @for (stat of card.stats; track stat.label) {
+                  <span>
+                    <span>{{ stat.label }}</span>
+                    <strong>{{ stat.value }}</strong>
+                  </span>
+                  }
+                </div>
+                }
+              </div>
+            </article>
+            }
+
+            @if (!hasLootRewards()) {
+            <dg-alert>This chest is resolved, but there are no item labels available to preview before claim.</dg-alert>
             }
           </div>
-        </article>
-        }
-
-        @if (!hasLootRewards()) {
-        <dg-alert>This chest is resolved, but there are no item labels available to preview before claim.</dg-alert>
-        }
+        </div>
       </div>
-    </div>
-
-    <div class="loot-scene__footer">
-      <div class="loot-scene__summary" aria-label="Loot summary">
-        <span>
-          <strong>{{ lootDiceCards().length }}</strong>
-          dice
-        </span>
-        <span>
-          <strong>{{ lootUnitCards().length }}</strong>
-          units
-        </span>
+      <aside class="loot-scene__rail" aria-label="Loot actions">
+        <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
+          {{ claimButtonLabel() }}
+        </button>
+        <img class="loot-scene__art" [src]="lootSceneArtUrl()" alt="Opened loot chest" />
+        <div class="loot-scene__summary" aria-label="Loot summary">
+          <span>
+            <strong>{{ lootDiceCards().length }}</strong>
+            dice
+          </span>
+          <span>
+            <strong>{{ lootUnitCards().length }}</strong>
+            units
+          </span>
+        </div>
+      </aside>
       </div>
-      <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
-        {{ claimButtonLabel() }}
-      </button>
-    </div>
   </section>
   }
 </page-frame>

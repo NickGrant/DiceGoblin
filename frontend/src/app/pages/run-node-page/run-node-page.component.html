@@ -123,17 +123,54 @@
             <h2 class="battle-scene__result dg-stencil">{{ battleResultHeadline() }}</h2>
             <p class="battle-scene__copy">{{ battleResultCopy() }}</p>
           </div>
+          @if (isCombatLikeNodeType(resolvedNodeType())) {
           <div class="battle-scene__topbar-actions">
             <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
               {{ claimButtonLabel() }}
             </button>
           </div>
+          }
         </div>
 
         @if (abilityCatalogError()) {
         <dg-alert tone="error">{{ abilityCatalogError() }}</dg-alert>
         }
 
+        @if (!isCombatLikeNodeType(resolvedNodeType())) {
+        <div class="node-result-layout">
+          <section class="node-result-layout__content" aria-label="Node result">
+            <div class="node-result-detail">
+              <p class="battle-scene__eyebrow dg-stencil">{{ nodeResultEventLabel() }}</p>
+              <h3 class="node-result-detail__title dg-stencil">{{ battleResultHeadline() }}</h3>
+              <p>{{ battleResultCopy() }}</p>
+            </div>
+            <div class="node-result-stats" aria-label="Node rewards">
+              <span>
+                <strong>{{ battleStatusLabel() }}</strong>
+                Status
+              </span>
+              <span>
+                <strong>{{ nodeResultRewardLabel() }}</strong>
+                Reward
+              </span>
+              <span>
+                <strong>{{ result()!.next.unlocked_node_ids.length }}</strong>
+                New paths
+              </span>
+            </div>
+          </section>
+
+          <aside class="node-result-layout__rail" aria-label="Node actions">
+            <div class="node-result-action">
+              <p class="battle-scene__eyebrow dg-stencil">{{ nodeResultActionTitle() }}</p>
+              <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
+                {{ nodeResultClaimLabel() }}
+              </button>
+            </div>
+            <img class="node-result-layout__art" [src]="nodeResultArtUrl()" [alt]="resolvedNodeType() + ' node result'" />
+          </aside>
+        </div>
+        } @else {
         <div class="battle-modebar">
           <div class="dg-proto-tabs" aria-label="Battle replay modes">
             @for (tab of battleViewTabs; track tab.id) {
@@ -312,6 +349,7 @@
           <p class="mb-0">No action events were captured for this node.</p>
           }
         </section>
+        }
         }
       </section>
     } @else {
