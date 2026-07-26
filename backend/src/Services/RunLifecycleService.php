@@ -195,6 +195,9 @@ final class RunLifecycleService
     $chaosBonus = is_array($rewards['chaos_bonus'] ?? null) ? $rewards['chaos_bonus'] : [];
     $chaosCurrency = is_array($chaosBonus['currency'] ?? null) ? $chaosBonus['currency'] : [];
     $rawChaosAward = max(0, (int)($chaosCurrency['raw_chaos'] ?? 0));
+    if ($rawChaosAward > 0 && !(new UserUnlockService($this->pdo))->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_WRONG_MACHINE)) {
+      $rawChaosAward = 0;
+    }
     $run = $this->runRepository->getRunForUser($userId, $runId);
     $runAlreadyEnded = is_array($run) && (string)($run['status'] ?? '') !== 'active';
 

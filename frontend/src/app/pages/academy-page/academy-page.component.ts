@@ -370,7 +370,7 @@ export class AcademyPageComponent {
       return `Requires: ${unmet.label}`;
     }
 
-    return entry.requirements?.length ? 'Requirements met' : 'Available now';
+    return `${this.roleLabel(entry.role)} Tier ${this.unitUnlockTierLabel(entry.unit_type_slug)}`;
   }
 
   unitUnlockDisabled(entry: AcademyUnitUnlockItem): boolean {
@@ -387,6 +387,11 @@ export class AcademyPageComponent {
 
   private statValue(value: number | null | undefined): string {
     return typeof value === 'number' ? `${value}` : '-';
+  }
+
+  private unitUnlockTierLabel(unitTypeSlug: string): string {
+    const match = unitTypeSlug.match(/_t(\d+)$/i);
+    return match ? toRomanNumeral(Number(match[1])) : 'I';
   }
 }
 

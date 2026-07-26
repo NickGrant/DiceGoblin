@@ -37,6 +37,13 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   readonly profile = this.sessionService.profile;
   readonly isAuthenticated = computed(() => this.session().isAuthenticated);
   readonly hasActiveRun = this.sessionService.hasActiveRun;
+  readonly wrongMachineUnlocked = computed(() => this.sessionService.featureUnlocks().includes('wrong_machine'));
+  readonly rawChaosBalance = computed(() => {
+    const service = this.sessionService as unknown as {
+      profileData?: () => { currency?: { raw_chaos?: number } } | null;
+    };
+    return service.profileData?.()?.currency?.raw_chaos ?? 0;
+  });
   readonly audioEnabled = this.audioDirector.isEnabled;
   readonly audioUnlocked = this.audioDirector.isUnlocked;
   readonly audioMuted = this.audioDirector.isMuted;

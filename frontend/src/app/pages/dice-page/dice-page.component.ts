@@ -32,6 +32,7 @@ export class DicePageComponent {
   private readonly router = inject(Router);
 
   readonly profileData = this.sessionService.profileData;
+  readonly wrongMachineUnlocked = this.sessionService.wrongMachineUnlocked;
   readonly dice = computed(() => this.sessionService.dice());
   readonly busyDiceId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
@@ -46,6 +47,11 @@ export class DicePageComponent {
   readonly sizeOptions = computed(() => buildDiceSizeOptions(this.dice()));
   readonly rarityOptions = computed(() => buildDiceRarityOptions(this.dice()));
   readonly rawChaosBalance = computed(() => this.profileData()?.currency?.raw_chaos ?? 0);
+  readonly pageSubtitle = computed(() =>
+    this.wrongMachineUnlocked()
+      ? 'Review owned dice, sell unused pieces, or salvage them into Raw Chaos.'
+      : 'Review owned dice, sell unused pieces, and prep the stash.',
+  );
   readonly filteredDice = computed(() =>
     filterAndSortDice(this.dice(), {
       selectedSize: this.selectedSize(),

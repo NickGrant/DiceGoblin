@@ -274,8 +274,8 @@ describe('HomePageComponent', () => {
       route: '/run/map',
       cta: 'Open Map',
     });
-    expect(compiled.textContent).toContain('Equip a die');
-    expect(compiled.textContent).toContain('Done');
+    expect(compiled.textContent).not.toContain('Equip a die');
+    expect(compiled.textContent).not.toContain('Done');
     expect(compiled.textContent).toContain('Claim a battle victory');
     expect(compiled.textContent).toContain('Next');
   });
