@@ -80,6 +80,10 @@
         <img class="loot-scene__art" [src]="lootSceneArtUrl()" alt="Opened loot chest" />
         <div class="loot-scene__summary" aria-label="Loot summary">
           <span>
+            <strong>{{ lootRewards()?.teeth ?? 0 }}</strong>
+            teeth
+          </span>
+          <span>
             <strong>{{ lootDiceCards().length }}</strong>
             dice
           </span>
