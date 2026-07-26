@@ -100,6 +100,7 @@ The first version runs inside the backend/Docker environment and supports determ
 ```text
 docker compose exec -T backend sh -lc "php bin/simulate.php --mode=battle --region=the_farm --node=combat --runs=100"
 docker compose exec -T backend sh -lc "php bin/simulate.php --mode=run --region=the_farm --runs=100 --format=json"
+docker compose exec -T backend sh -lc "php bin/simulate.php --mode=progression --goal=all --region=the_farm --runs=100 --max-runs=25 --format=json"
 ```
 
 The tool outputs machine-readable JSON with `--format=json` and a concise human-readable summary by default. JSON output lets later work compare balance changes in CI, scripts, spreadsheets, or dashboards without rewriting the simulator.
@@ -108,8 +109,11 @@ Current modes:
 
 - `battle`: resolves one node type repeatedly for a throwaway simulation account.
 - `run`: resolves a representative mini-path containing combat, loot, hazard, shrine, and boss nodes.
+- `progression`: repeatedly resolves the representative mini-path for each sample and reports named time-to-goal summaries.
 
-Progression-goal simulation remains deferred until the basic battle/run reports have been used against real tuning questions.
+Progression mode supports `--goal=all`, `first_promotion`, `next_region`, `wrong_machine`, and `pig_kin`. It reports achievement rate, p50, p75, p90, worst observed runs, failure reasons, and aggregate shortfalls. Pig Kin reports Raw Chaos, Pig Ear, and Mudking Crown Fragment shortfalls from the live reconstruction cost. The report includes an `assumptions` block that names the profile fixture, selected region, max runs, run model, and goal thresholds.
+
+The current progression model is intentionally conservative: it measures repeated representative run output, not a full player decision simulation with shop purchases, manual dice salvage, or roster promotion choices. That makes it useful for required-pacing sanity checks while keeping the report deterministic enough to compare in PRs.
 
 Safety requirements:
 
