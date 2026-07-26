@@ -26,6 +26,25 @@ exit_criteria:
   - Documentation explains how to interpret simulation output and attach it to balance PRs.
 
 ---
+name: Progression Rewards and Unlock Clarity
+status: complete
+issues:
+  - PRU-001
+  - PRU-003
+  - PRU-004
+description: Clarified story-gated unlock timing and made reward screens show progression unlocks, first-clear stolen pages, teeth totals, and special item drops.
+goals:
+  - Show newly unlocked systems as they become available.
+  - Surface first-clear codex additions as stolen pages.
+  - Include teeth and special item drops in reward summaries.
+  - Keep Wrong Machine, Tooth Merchant, and Raw Chaos timing backend-authoritative.
+current_code_context: Implementation touched RunLifecycleService, RunGraphGenerator, RunSummaryBuilder, battle and run reward contracts, run summary UI, run node UI, and backend/frontend regression coverage.
+exit_criteria:
+  - Reward screens show newly unlocked systems, stolen codex pages, teeth, and special item drops.
+  - Raw Chaos cannot be earned, tracked, or salvaged before Wrong Machine recovery.
+  - Regression tests cover unlock timing and reward presentation.
+
+---
 name: Chaos Encounters as Combat
 status: complete
 issues:
