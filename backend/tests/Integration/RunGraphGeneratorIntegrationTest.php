@@ -342,6 +342,25 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     }
   }
 
+  /**
+   * @dataProvider proceduralRegionProvider
+   */
+  public function testProceduralRegionsOmitChaosNodesWhenWrongMachineIsLocked(string $regionSlug): void
+  {
+    $regionId = $this->seededRegionId($regionSlug);
+    $generator = new RunGraphGenerator($this->pdo);
+
+    for ($seed = 1; $seed <= 20; $seed++) {
+      $graph = $generator->generate($regionId, $regionSlug, (string)$seed, false);
+      $chaosNodes = array_values(array_filter(
+        $graph['nodes'],
+        static fn(array $node): bool => (string)($node['node_type'] ?? '') === 'chaos',
+      ));
+
+      $this->assertSame([], $chaosNodes, sprintf('Seed %d for %s should not include a locked chaos node.', $seed, $regionSlug));
+    }
+  }
+
   public function testSwampsFavorBroadDeadEndHeavyLayouts(): void
   {
     $regionId = $this->seededRegionId('swamps');

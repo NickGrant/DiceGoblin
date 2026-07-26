@@ -113,7 +113,7 @@ final class RunGraphGenerator
   /**
    * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>}
    */
-  public function generate(int $regionId, string $regionSlug, string $seed): array
+  public function generate(int $regionId, string $regionSlug, string $seed, bool $allowChaosNodes = true): array
   {
     if ($regionSlug === 'mystic_cave') {
       return $this->generateMysticCave();
@@ -123,7 +123,7 @@ final class RunGraphGenerator
       return $this->generateFarm($regionId);
     }
 
-    return $this->generateProcedural($regionId, $regionSlug, $seed);
+    return $this->generateProcedural($regionId, $regionSlug, $seed, $allowChaosNodes);
   }
 
   /**
@@ -541,7 +541,7 @@ final class RunGraphGenerator
   /**
    * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>}
    */
-  public function generateProcedural(int $regionId, string $regionSlug, string $seed): array
+  public function generateProcedural(int $regionId, string $regionSlug, string $seed, bool $allowChaosNodes = true): array
   {
     $config = self::REGION_CONFIG[$regionSlug] ?? [
       'row_count' => 9,
@@ -678,9 +678,11 @@ final class RunGraphGenerator
     $this->addNearbyShortcutConnections($seedKey, $nodes, $edges, $travelColumns);
     $this->removeRedundantSameRowBypassEdges($nodes, $edges);
 
-    $this->assignProceduralNodeTypes($nodes, $edges, $seedKey, $config, $travelColumns);
+    $this->assignProceduralNodeTypes($nodes, $edges, $seedKey, $config, $travelColumns, $allowChaosNodes);
     $this->ensureAtLeastOneRestNode($nodes, $seedKey, $travelColumns);
-    $this->ensureAtLeastOneChaosNode($nodes, $seedKey, $travelColumns);
+    if ($allowChaosNodes) {
+      $this->ensureAtLeastOneChaosNode($nodes, $seedKey, $travelColumns);
+    }
     $nodes = $this->assignEncounterTemplates($regionId, $nodes, $seedKey);
     $this->validateGraph($nodes, $edges);
 
@@ -1945,7 +1947,7 @@ final class RunGraphGenerator
    * @param array<int,array{from:int,to:int}> $edges
    * @param array<string,int> $config
    */
-  private function assignProceduralNodeTypes(array &$nodes, array $edges, string $seedKey, array $config, int $travelColumns): void
+  private function assignProceduralNodeTypes(array &$nodes, array $edges, string $seedKey, array $config, int $travelColumns, bool $allowChaosNodes): void
   {
     $incoming = $this->incomingByNode($nodes, $edges);
     $outgoing = $this->outgoingByNode($nodes, $edges);
@@ -1996,6 +1998,9 @@ final class RunGraphGenerator
         $weights['shrine'] = 0;
       }
       if (in_array('chaos', $parentTypes, true)) {
+        $weights['chaos'] = 0;
+      }
+      if (!$allowChaosNodes) {
         $weights['chaos'] = 0;
       }
 
