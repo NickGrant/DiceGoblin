@@ -125,6 +125,77 @@ describe('WarbandPageComponent', () => {
     expect(host.querySelectorAll('dg-unit-bar').length).toBe(2);
   });
 
+  it('paginates large unit collections', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    sessionService.units.set(Array.from({ length: 14 }, (_, index) => ({
+      id: `u${index + 1}`,
+      name: `Unit ${String(index + 1).padStart(2, '0')}`,
+      unit_type_name: 'Bruiser',
+      splice_variant_slug: 'rat_splice',
+      splice_variant_name: 'Rat-Spliced',
+      tier: 1,
+      level: index + 1,
+      locked: false,
+    })));
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(12);
+    expect(host.textContent).toContain('Showing 1-12 of 14 filtered units.');
+    expect(host.textContent).toContain('Page 1 of 2');
+
+    fixture.componentInstance.nextUnitPage();
+    fixture.detectChanges();
+
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(2);
+    expect(host.textContent).toContain('Showing 13-14 of 14 filtered units.');
+
+    fixture.componentInstance.previousUnitPage();
+    fixture.detectChanges();
+
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(12);
+  });
+
+  it('resets unit pagination when filters change', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    sessionService.units.set([
+      ...Array.from({ length: 13 }, (_, index) => ({
+        id: `b${index + 1}`,
+        name: `Bruiser ${String(index + 1).padStart(2, '0')}`,
+        unit_type_name: 'Bruiser',
+        splice_variant_slug: 'rat_splice',
+        splice_variant_name: 'Rat-Spliced',
+        tier: 1,
+        level: index + 1,
+        locked: false,
+      })),
+      {
+        id: 'p1',
+        name: 'Muckjaw',
+        unit_type_name: 'Plaguehand',
+        splice_variant_slug: 'toad_splice',
+        splice_variant_name: 'Toad-Spliced',
+        tier: 2,
+        level: 6,
+        locked: false,
+      },
+    ]);
+    fixture.detectChanges();
+
+    fixture.componentInstance.nextUnitPage();
+    expect(fixture.componentInstance.clampedUnitPage()).toBe(2);
+
+    fixture.componentInstance.updateUnitType('Plaguehand');
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(fixture.componentInstance.clampedUnitPage()).toBe(1);
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(1);
+    expect(host.textContent).toContain('Muckjaw');
+  });
+
   it('filters units by selected unit type', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
