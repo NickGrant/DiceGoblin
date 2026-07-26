@@ -135,11 +135,34 @@ describe('DicePageComponent', () => {
     expect(inspectBodyText()).not.toContain('Working...');
   });
 
-  it('shows the current Raw Chaos balance', async () => {
+  it('does not duplicate the Raw Chaos balance in the dice inventory header', async () => {
     const fixture = await createComponent();
     const host: HTMLElement = fixture.nativeElement;
 
-    expect(host.textContent).toContain('Raw Chaos 7');
+    expect(host.textContent).toContain('Raw Chaos');
+    expect(host.textContent).not.toContain('Raw Chaos 7');
+  });
+
+  it('hides Raw Chaos and salvage before the Wrong Machine is unlocked', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    sessionService.wrongMachineUnlocked.set(false);
+    fixture.detectChanges();
+
+    component.previewDice('d2');
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const inspectText = host.querySelector('.dice-page__inspect')?.textContent ?? '';
+
+    expect(host.textContent).not.toContain('Raw Chaos 7');
+    expect(inspectText).toContain('Sell');
+    expect(inspectText).not.toContain('Salvage');
+
+    component.openSalvageConfirm(component.dice().find((die) => die.id === 'd2')!);
+
+    expect(component.pendingSalvageDice()).toBeNull();
   });
 
   it('uses the first filtered die as the default inspect target and supports hover preview', async () => {
