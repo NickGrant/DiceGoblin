@@ -19,6 +19,10 @@ Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `AGENTS.md`, `documentatio
 - Backend changes:
   - CI or host tools: `npm.cmd run test:backend`
   - Local Docker: `npm.cmd run test:backend:docker`
+- Balance-affecting backend, reward, economy, or seed-data changes:
+  - `npm.cmd run test:db:reset:docker`
+  - `npm.cmd run sim:balance:battle:farm:docker`
+  - `npm.cmd run sim:balance:run:farm:docker`
 
 Docker is the preferred local backend/PHP/database toolchain. CI/pipeline verification uses host PHP/Composer from GitHub Actions. If Docker is not running during local work, ask the user to start Docker before running backend or database verification.
 
@@ -43,7 +47,25 @@ Docker is the preferred local backend/PHP/database toolchain. CI/pipeline verifi
   - run progression
   - purchases and inventory mutations
   - squad/unit mutation flows
-- Balance-affecting changes should include simulation evidence once the repository simulation tool exists. Until then, PRs should describe the expected balance impact and any manual playtest coverage.
+- Balance-affecting changes should include simulation evidence from the repository simulator when the touched system can be represented by an existing suite. If no suite covers the change yet, PRs should say that directly and describe the expected balance impact plus any manual playtest coverage.
+
+## Balance Report Format
+
+Use this compact block in PR descriptions for balance-affecting changes:
+
+```markdown
+## Balance Impact
+- Intent: Keep early farm combat winnable while reducing free reward drift.
+- Expected player effect: Slightly slower teeth gain, no intended win-rate drop.
+
+## Simulation
+Command: `npm.cmd run sim:balance:run:farm:docker`
+Before: completion_rate 0.92, soft_currency_per_sample 34.4, rounds_p90 3
+After: completion_rate 0.92, soft_currency_per_sample 30.1, rounds_p90 3
+Notes: No change to boss clear rate in this sample; manual smoke still needed for reward feel.
+```
+
+Keep pasted report lines to the summary values that explain the review decision. Attach or reference the full JSON only when the change is large enough that reviewers need deeper inspection.
 
 ## Release Blocking
 - Blocking:
