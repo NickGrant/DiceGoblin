@@ -18,6 +18,8 @@ import { formatTier, formatUnitKinLabel } from '../../shared/utils/unit-formatte
   styleUrl: './warband-page.component.scss',
 })
 export class WarbandPageComponent {
+  private static readonly UNIT_PAGE_SIZE = 12;
+
   private readonly sessionService = inject(SessionService);
   private readonly squadService = inject(SquadService);
   private readonly router = inject(Router);
@@ -33,6 +35,8 @@ export class WarbandPageComponent {
   readonly selectedLevelMin = signal<number | null>(null);
   readonly selectedLevelMax = signal<number | null>(null);
   readonly selectedUnitSort = signal<'name-asc' | 'level-desc' | 'tier-desc'>('level-desc');
+  readonly unitPage = signal(1);
+  readonly unitPageSize = WarbandPageComponent.UNIT_PAGE_SIZE;
   readonly isSaving = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
@@ -106,6 +110,20 @@ export class WarbandPageComponent {
       }
     });
   });
+  readonly unitPageCount = computed(() => Math.max(1, Math.ceil(this.filteredUnits().length / this.unitPageSize)));
+  readonly clampedUnitPage = computed(() => Math.min(this.unitPage(), this.unitPageCount()));
+  readonly pagedUnits = computed(() => {
+    const start = (this.clampedUnitPage() - 1) * this.unitPageSize;
+    return this.filteredUnits().slice(start, start + this.unitPageSize);
+  });
+  readonly unitPageStart = computed(() => {
+    if (!this.filteredUnits().length) {
+      return 0;
+    }
+
+    return (this.clampedUnitPage() - 1) * this.unitPageSize + 1;
+  });
+  readonly unitPageEnd = computed(() => Math.min(this.clampedUnitPage() * this.unitPageSize, this.filteredUnits().length));
   readonly sortedSquads = computed(() =>
     [...this.squads()].sort((left, right) => {
       if (left.is_active === right.is_active) {
@@ -163,10 +181,12 @@ export class WarbandPageComponent {
 
   updateUnitType(value: string): void {
     this.selectedUnitType.set(value || null);
+    this.resetUnitPage();
   }
 
   updateKin(value: string): void {
     this.selectedKin.set(value || null);
+    this.resetUnitPage();
   }
 
   toggleUnitTier(tier: number): void {
@@ -178,6 +198,7 @@ export class WarbandPageComponent {
     }
 
     this.excludedUnitTiers.set([...excludedTiers].sort((a, b) => a - b));
+    this.resetUnitPage();
   }
 
   tierFilterLabel(tier: number): string {
@@ -202,6 +223,7 @@ export class WarbandPageComponent {
     if (nextValue !== null && currentMax !== null && nextValue > currentMax) {
       this.selectedLevelMax.set(nextValue);
     }
+    this.resetUnitPage();
   }
 
   updateLevelMax(value: string): void {
@@ -212,10 +234,12 @@ export class WarbandPageComponent {
     if (nextValue !== null && currentMin !== null && nextValue < currentMin) {
       this.selectedLevelMin.set(nextValue);
     }
+    this.resetUnitPage();
   }
 
   updateUnitSort(value: 'name-asc' | 'level-desc' | 'tier-desc'): void {
     this.selectedUnitSort.set(value);
+    this.resetUnitPage();
   }
 
   clearUnitFilters(): void {
@@ -225,6 +249,15 @@ export class WarbandPageComponent {
     this.selectedLevelMin.set(null);
     this.selectedLevelMax.set(null);
     this.selectedUnitSort.set('level-desc');
+    this.resetUnitPage();
+  }
+
+  previousUnitPage(): void {
+    this.unitPage.update((page) => Math.max(1, page - 1));
+  }
+
+  nextUnitPage(): void {
+    this.unitPage.update((page) => Math.min(this.unitPageCount(), page + 1));
   }
 
   async openUnit(unitId: string): Promise<void> {
@@ -243,6 +276,10 @@ export class WarbandPageComponent {
 
   private kinLabel(unit: Pick<UnitRecord, 'kin_name' | 'kin_slug' | 'splice_variant_name' | 'splice_variant_slug'>): string {
     return formatUnitKinLabel(unit);
+  }
+
+  private resetUnitPage(): void {
+    this.unitPage.set(1);
   }
 }
 

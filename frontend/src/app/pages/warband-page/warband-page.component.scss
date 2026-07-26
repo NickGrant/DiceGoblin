@@ -251,6 +251,23 @@
   font-size: 0.95rem;
 }
 
+.warband-units-controls__actions,
+.warband-units-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.warband-units-pager__status {
+  color: rgba(35, 39, 42, 0.72);
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
 .warband-units-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -340,5 +357,10 @@
 
   .warband-units-controls__footer {
     align-items: stretch;
+  }
+
+  .warband-units-controls__actions,
+  .warband-units-pager {
+    justify-content: stretch;
   }
 }

@@ -187,14 +187,27 @@
 
           <div class="warband-units-controls__footer">
             <p class="warband-units-controls__results">
-              Showing {{ filteredUnits().length }} of {{ units().length }} units.
+              Showing {{ unitPageStart() }}-{{ unitPageEnd() }} of {{ filteredUnits().length }} filtered units.
             </p>
-            <button dgCommandBtn="muted" type="button" (click)="clearUnitFilters()">Reset Filters</button>
+            <div class="warband-units-controls__actions">
+              @if (unitPageCount() > 1) {
+              <div class="warband-units-pager" aria-label="Unit pages">
+                <button dgCommandBtn="muted" type="button" (click)="previousUnitPage()" [disabled]="clampedUnitPage() <= 1">
+                  Previous
+                </button>
+                <span class="warband-units-pager__status">Page {{ clampedUnitPage() }} of {{ unitPageCount() }}</span>
+                <button dgCommandBtn="muted" type="button" (click)="nextUnitPage()" [disabled]="clampedUnitPage() >= unitPageCount()">
+                  Next
+                </button>
+              </div>
+              }
+              <button dgCommandBtn="muted" type="button" (click)="clearUnitFilters()">Reset Filters</button>
+            </div>
           </div>
         </section>
 
         <div class="warband-units-grid dg-motion-stagger">
-          @for (unit of filteredUnits(); track unit.id) {
+          @for (unit of pagedUnits(); track unit.id) {
           <button
             type="button"
             class="warband-units-grid__tile dg-proto-card"
