@@ -43,6 +43,7 @@ Docker is the preferred local backend/PHP/database toolchain. CI/pipeline verifi
   - run progression
   - purchases and inventory mutations
   - squad/unit mutation flows
+- Balance-affecting changes should include simulation evidence once the repository simulation tool exists. Until then, PRs should describe the expected balance impact and any manual playtest coverage.
 
 ## Release Blocking
 - Blocking:
@@ -57,5 +58,6 @@ Docker is the preferred local backend/PHP/database toolchain. CI/pipeline verifi
 - `documentation/ENGINEERING_STANDARDS.md`
 - `documentation/01-architecture/03-backend-api-contracts.md`
 - `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
+- `documentation/02-systems-mvp/14-balancing-strategy-and-simulation.md`
 - `documentation/05-playability-stability/00-release-gate-criteria.md`
 - `documentation/05-playability-stability/04-mobile-viewport-regression-checklist.md`
