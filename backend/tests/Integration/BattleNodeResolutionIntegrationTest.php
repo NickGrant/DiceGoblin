@@ -219,6 +219,50 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     }
   }
 
+  public function testFarmBossVictoryGrantsPigKinProgressionItems(): void
+  {
+    $userId = $this->insertUser();
+    $farmRegionId = (int)$this->scalar("SELECT `id` FROM `regions` WHERE `slug` = 'the_farm' LIMIT 1", []);
+    $this->assertGreaterThan(0, $farmRegionId);
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $farmRegionId, 73747576);
+    $nodeId = $this->insertRunNode($runId, 'boss', 'available');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    for ($i = 0; $i < 3; $i++) {
+      $unitId = $this->insertUnit($userId, $unitTypeId, 10, 0);
+      $this->insertTeamUnit($teamId, $unitId);
+      $this->insertRunUnitState($runId, $unitId, 40, false);
+    }
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new RunNodeController();
+    $response = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+
+    $battle = is_array($response['body']['data']['battle'] ?? null) ? $response['body']['data']['battle'] : [];
+    $this->assertSame('victory', (string)($battle['outcome'] ?? ''));
+    $preview = is_array($battle['reward_preview'] ?? null) ? $battle['reward_preview'] : [];
+    $previewItems = is_array($preview['items'] ?? null) ? $preview['items'] : [];
+    $this->assertNotEmpty($previewItems);
+
+    $itemSlugs = array_map(static fn(array $item): string => (string)($item['item_slug'] ?? ''), $previewItems);
+    $this->assertContains('pig_ear', $itemSlugs);
+    $this->assertContains('mudking_crown_fragment', $itemSlugs);
+
+    $battleId = (int)($battle['battle_id'] ?? 0);
+    $rewards = json_decode((string)$this->scalar('SELECT `rewards_json` FROM `battle_rewards` WHERE `battle_id` = ?', [$battleId]), true);
+    $this->assertIsArray($rewards);
+    $this->assertIsArray($rewards['item_grants'] ?? null);
+    $this->assertIsArray($rewards['granted_items'] ?? null);
+
+    $this->assertSame(2, $this->ownedItemQuantity($userId, 'pig_ear'));
+    $this->assertSame(1, $this->ownedItemQuantity($userId, 'mudking_crown_fragment'));
+  }
+
   public function testResolveNodeSchedulesMultipleRoundActionsAndExcludesPassives(): void
   {
     $userId = $this->insertUser();
@@ -534,5 +578,17 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertCount(1, $runRow);
     $this->assertSame('failed', (string)$runRow[0]['status']);
     $this->assertNotNull($runRow[0]['ended_at']);
+  }
+
+  private function ownedItemQuantity(int $userId, string $itemSlug): int
+  {
+    return (int)$this->scalar(
+      'SELECT COALESCE(ui.`quantity`, 0)
+       FROM `items` i
+       LEFT JOIN `user_items` ui ON ui.`item_id` = i.`id` AND ui.`user_id` = ?
+       WHERE i.`slug` = ?
+       LIMIT 1',
+      [$userId, $itemSlug]
+    );
   }
 }
