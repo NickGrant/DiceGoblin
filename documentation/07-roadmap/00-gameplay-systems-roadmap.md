@@ -70,33 +70,11 @@ These milestone lanes are complete in the archive and should be treated as imple
 - Complete Tier III Progression
 - Developer Seed Catalog Browser
 - Legacy Unit Dice Removal
+- Wrong Machine and Kin Foundation
 
 ## Active Planning Priority
 
-### Hybrid Seed Catalog Ownership
-
-Goal: make database-backed, code-backed, and hybrid seeded data ownership explicit before moving more content out of raw SQL or adding richer behavior-bearing catalog rows.
-
-Minimum scope:
-
-- define criteria for database-owned, code/config-owned, and hybrid-owned data
-- classify every current table by ownership model
-- identify safe near-term candidates for codification or parity enforcement
-- keep player/runtime state database-owned unless a focused implementation issue proves otherwise
-- keep the seed browser as the read-only inspection surface for DB-backed catalog values
-
-Initial cleanup candidates:
-
-- `dice_definitions`
-- dice rarity and sides vocabulary
-- run node type vocabulary
-- hybrid slug parity tests for ability, affix, bounty objective, enemy loadout, and encounter references
-
-Definition of done:
-
-- a canonical ownership matrix exists for every current table
-- near-term code/config candidates are identified without forcing unrelated migrations
-- behavior-bearing catalog rows have an explicit parity-test strategy
+No active planning priority is selected after the Wrong Machine and Kin Foundation branch. Promote the next implementation lane from the detailed roadmap when ready.
 
 ## Next Gameplay Candidates
 

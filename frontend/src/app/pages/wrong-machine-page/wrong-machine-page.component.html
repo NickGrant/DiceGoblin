@@ -1,0 +1,93 @@
+<page-frame
+  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Wrong Machine' }]"
+  title="Wrong Machine"
+  subtitle="Spend Raw Chaos and lineage materials to restore goblin-kin."
+>
+  @if (error() || message()) {
+  <div class="wrong-machine__alerts">
+    @if (error()) { <dg-alert tone="error">{{ error() }}</dg-alert> }
+    @if (message()) { <dg-alert tone="success">{{ message() }}</dg-alert> }
+  </div>
+  }
+
+  @if (loading()) {
+  <dg-alert>Listening to the machine warm up...</dg-alert>
+  } @else if (!featureUnlocked()) {
+  <dg-alert>The Wrong Machine has not been recovered yet.</dg-alert>
+  } @else {
+  <div class="wrong-machine">
+    <section class="wrong-machine__stage" aria-label="Wrong Machine reconstruction">
+      <div class="wrong-machine__core">
+        <div class="wrong-machine__ring wrong-machine__ring--outer"></div>
+        <div class="wrong-machine__ring wrong-machine__ring--inner"></div>
+        <div class="wrong-machine__spark">
+          <span class="dg-stencil">?</span>
+        </div>
+      </div>
+      <div class="wrong-machine__status">
+        <p class="wrong-machine__eyebrow dg-stencil">Recovered Contraption</p>
+        <h2 class="wrong-machine__headline dg-stencil">Chaos accepts useful ingredients.</h2>
+        <p>
+          Pig Kin is the protected first reconstruction. Completing it unlocks the lineage and grants one
+          usable Tier I goblin-kin unit.
+        </p>
+      </div>
+    </section>
+
+    @if (pigKin(); as option) {
+    <section class="wrong-machine__recipe" aria-label="Pig Kin reconstruction">
+      <div class="wrong-machine__recipe-head">
+        <div>
+          <p class="wrong-machine__eyebrow dg-stencil">First Reconstruction</p>
+          <h3 class="wrong-machine__title dg-stencil">{{ option.name }}</h3>
+          <p>{{ option.description }}</p>
+        </div>
+        <span class="wrong-machine__state" [class.is-ready]="option.can_reconstruct" [class.is-unlocked]="option.is_unlocked">
+          {{ option.is_unlocked ? 'Unlocked' : option.can_reconstruct ? 'Ready' : 'Incomplete' }}
+        </span>
+      </div>
+
+      <div class="wrong-machine__cost-grid">
+        <article class="wrong-machine__cost" [class.is-met]="option.cost.raw_chaos.is_met">
+          <span>Raw Chaos</span>
+          <strong>{{ rawChaosLabel() }}</strong>
+        </article>
+        @for (item of option.cost.items; track item.item_slug) {
+        <article class="wrong-machine__cost" [class.is-met]="item.is_met">
+          <span>{{ itemLabel(item.item_slug) }}</span>
+          <strong>{{ item.quantity_owned }}/{{ item.quantity_required }}</strong>
+        </article>
+        }
+      </div>
+
+      <div class="wrong-machine__result">
+        <div>
+          <strong>{{ missingLabel(option) }}</strong>
+          <span>Grants {{ option.grants.unit_count }} {{ option.name }} unit.</span>
+        </div>
+        <button
+          dgCommandBtn="primary"
+          type="button"
+          (click)="reconstruct(option)"
+          [disabled]="!option.can_reconstruct || option.is_unlocked || busyLineageSlug() === option.lineage_slug"
+        >
+          {{ reconstructButtonLabel(option) }}
+        </button>
+      </div>
+    </section>
+    } @else {
+    <dg-alert>No reconstruction recipes are currently available.</dg-alert>
+    }
+
+    @if (lastReconstruction()?.granted_unit; as unit) {
+    <section class="wrong-machine__grant" aria-label="Reconstruction result">
+      <div>
+        <p class="wrong-machine__eyebrow dg-stencil">New Kin</p>
+        <h3 class="wrong-machine__title dg-stencil">{{ lastReconstruction()?.lineage?.name ?? 'Kin Reconstructed' }}</h3>
+      </div>
+      <a dgCommandBtn="muted" [routerLink]="['/warband/units', unit.id]">View Unit</a>
+    </section>
+    }
+  </div>
+  }
+</page-frame>

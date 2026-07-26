@@ -8,6 +8,7 @@ Depends On: `documentation/README.md`, `agent/ISSUES.md`
 ----
 
 ## 2026-07-25
+- Added the player-facing Wrong Machine reconstruction UI and closed the Wrong Machine and Kin Foundation active agent milestone.
 - Added `documentation/02-systems-mvp/13-wrong-machine-and-kin.md` as the active contract for approved goblin-kin terminology, lineage ownership, Pig Kin first reconstruction, and deferred legacy splice compatibility work.
 - Updated `documentation/README.md` to include the Wrong Machine and kin contract in gameplay and warband task entry points.
 - Added `documentation/02-systems-mvp/14-balancing-strategy-and-simulation.md` to define balance goals, simulation metrics, and future simulation-tool expectations.

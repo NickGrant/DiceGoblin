@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { academyFeatureGuard, authChildGuard, authGuard, guestGuard, shopFeatureGuard } from './core/guards/auth/auth.guard';
+import { academyFeatureGuard, authChildGuard, authGuard, guestGuard, shopFeatureGuard, wrongMachineFeatureGuard } from './core/guards/auth/auth.guard';
 import { DebugPageComponent } from './pages/debug-page/debug-page.component';
 import { DicePageComponent } from './pages/dice-page/dice-page.component';
 import { LandingPageComponent } from './pages/landing-page/landing-page.component';
@@ -18,6 +18,7 @@ import { ShopPageComponent } from './pages/shop-page/shop-page.component';
 import { SquadDetailsPageComponent } from './pages/squad-details-page/squad-details-page.component';
 import { UnitDetailsPageComponent } from './pages/unit-details-page/unit-details-page.component';
 import { WarbandPageComponent } from './pages/warband-page/warband-page.component';
+import { WrongMachinePageComponent } from './pages/wrong-machine-page/wrong-machine-page.component';
 
 export const routes: Routes = [
   {
@@ -77,6 +78,12 @@ export const routes: Routes = [
         path: 'shop',
         component: ShopPageComponent,
         canActivate: [shopFeatureGuard],
+        data: { audio: { musicIntent: 'music.home' } },
+      },
+      {
+        path: 'wrong-machine',
+        component: WrongMachinePageComponent,
+        canActivate: [wrongMachineFeatureGuard],
         data: { audio: { musicIntent: 'music.home' } },
       },
       { path: 'run/map', component: RunMapPageComponent, data: { audio: { musicIntent: 'music.run' } } },
