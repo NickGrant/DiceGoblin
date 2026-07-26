@@ -6,6 +6,27 @@
 - Historical milestone records can be retrieved from git when needed.
 
 ---
+name: Chaos Encounters as Combat
+status: complete
+issues:
+  - CEC-001
+  - CEC-002
+  - CEC-003
+description: Matured chaos nodes from direct reel payouts into battle-backed encounters that lock the selected reels, bind an encounter template, resolve through deterministic combat, and claim rewards through the normal battle path.
+goals:
+  - Make chaos reel finalization backend-authoritative and idempotent.
+  - Create or return a persisted battle contract for finalized chaos nodes.
+  - Preserve chaos reel metadata in battle logs and reward previews.
+  - Transition the frontend from settled reels into combat playback.
+  - Document the richer reel authoring contract for future modifier and reward catalogs.
+current_code_context: Implementation touches ChaosEncounterService, RunNodeController, battle reward/log persistence, the Angular run-node page, and the chaos reel combat authoring documentation.
+exit_criteria:
+  - Chaos reel finalization creates or returns a persisted battle contract.
+  - Finalized chaos rewards are claimed through the same battle reward path as combat nodes.
+  - The frontend transitions from settled reels into combat playback instead of ending at a direct payout panel.
+  - Docs and tests describe the expectation clearly.
+
+---
 name: Wrong Machine and Kin Foundation
 status: complete
 issues:

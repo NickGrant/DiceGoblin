@@ -6,6 +6,55 @@
 - Historical issue records can be retrieved from git when needed.
 
 ---
+id: CEC-001
+title: Finalize chaos reels into battle-backed encounters
+status: complete
+priority: high
+milestone: Chaos Encounters as Combat
+description: Chaos reel finalization now locks the persisted reel result and binds the chaos node to a deterministic combat template so resolving the node produces a persisted battle instead of direct payout.
+acceptance_criteria:
+  - Finalizing a generated chaos result creates or returns one persisted battle for that run node.
+  - The battle log meta records the chaos reel summary and selected symbols.
+  - Existing finalized chaos results remain idempotent and do not duplicate rewards or battles.
+  - Backend integration coverage proves chaos finalization returns a battle payload with playback events.
+current_code_references:
+  - backend/src/Services/ChaosEncounterService.php
+  - backend/src/Controllers/ChaosEncounterController.php
+  - backend/src/Controllers/RunNodeController.php
+  - backend/tests/Integration/ChaosEncounterControllerIntegrationTest.php
+
+---
+id: CEC-002
+title: Transition chaos frontend into combat playback
+status: complete
+priority: high
+milestone: Chaos Encounters as Combat
+description: The chaos run-node UI now treats finalization as encounter locking, then resolves and renders the normal battle playback surface for the resulting fight.
+acceptance_criteria:
+  - The finalize button copy reflects starting/locking the encounter, not direct payout.
+  - A successful chaos finalize response sets the node result battle payload.
+  - Confirmed chaos nodes with an existing battle reopen into the battle playback surface.
+  - Frontend tests cover the chaos-to-playback transition.
+current_code_references:
+  - frontend/src/app/pages/run-node-page/run-node-page.component.ts
+  - frontend/src/app/pages/run-node-page/run-node-page.component.html
+  - frontend/src/app/pages/run-node-page/run-node-page.component.spec.ts
+
+---
+id: CEC-003
+title: Expand chaos reel combat authoring
+status: complete
+priority: medium
+milestone: Chaos Encounters as Combat
+description: Added the authoring contract for enemy-family, encounter-shape, and rule/reward reels, including deterministic backend authority and follow-up modifier hooks.
+acceptance_criteria:
+  - Document the authoring contract for chaos enemy family, encounter shape, and rule/reward effects.
+  - Add backlog-ready work for richer combat modifiers such as bolstered enemies, ambush opening state, guaranteed loot, and Raw Chaos reward hooks.
+  - Keep the current implementation deterministic and backend-authoritative while leaving room for catalog growth.
+current_code_references:
+  - documentation/02-systems-mvp/15-chaos-reel-combat-authoring.md
+
+---
 id: WMU-001
 title: Add player-facing Wrong Machine reconstruction UI
 status: complete
