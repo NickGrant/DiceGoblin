@@ -26,10 +26,34 @@
   gap: 0.75rem;
 }
 
-.dice-page__results {
+.dice-page__results-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   margin: 0.35rem 0 0;
+}
+
+.dice-page__results {
+  margin: 0;
   color: rgba(35, 39, 42, 0.72);
   font-size: 0.95rem;
+}
+
+.dice-page__pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.dice-page__page-count {
+  color: rgba(35, 39, 42, 0.72);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .dice-page__primary {
