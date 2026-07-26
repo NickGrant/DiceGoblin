@@ -210,6 +210,56 @@ export class RunNodePageComponent implements OnDestroy {
       ? 'The crew held the line. Review the sequence or skip straight to the payout.'
       : 'The squad got broken. Study the sequence, then decide how to regroup.';
   });
+  readonly nodeResultActionTitle = computed(() => {
+    switch (this.resolvedNodeType()) {
+      case 'shrine':
+        return 'Claim Favor';
+      case 'hazard':
+        return 'Continue Path';
+      default:
+        return 'Claim Rewards';
+    }
+  });
+  readonly nodeResultClaimLabel = computed(() => {
+    if (this.busy()) {
+      return 'Working...';
+    }
+
+    return this.nodeResultActionTitle();
+  });
+  readonly nodeResultArtUrl = computed(() => {
+    if (this.resolvedNodeType() === 'shrine') {
+      return '/assets/ui/node-art/shrines/good_a.png';
+    }
+
+    return resolveRegionBackgroundUrl(this.runRegionSlug(), this.runRegionTheme()) ?? '/assets/ui/biome/mystic_cave.png';
+  });
+  readonly nodeResultEventLabel = computed(() => {
+    const event = this.result()?.battle.log?.events?.[0] as Record<string, unknown> | undefined;
+    const message = typeof event?.['message'] === 'string' ? event['message'] : '';
+    return message ? this.humanizeId(message) : this.humanizeId(this.resolvedNodeType());
+  });
+  readonly nodeResultRewardLabel = computed(() => {
+    const preview = this.result()?.battle.reward_preview;
+    if (!preview) {
+      return 'No reward preview available.';
+    }
+
+    const labels: string[] = [];
+    if ((preview.currency_soft ?? 0) > 0) {
+      labels.push(`${preview.currency_soft} teeth`);
+    }
+    const diceCount = preview.dice?.length ?? preview.new_dice_labels?.length ?? 0;
+    if (diceCount > 0) {
+      labels.push(`${diceCount} dice`);
+    }
+    const unitCount = preview.units?.length ?? preview.new_unit_labels?.length ?? 0;
+    if (unitCount > 0) {
+      labels.push(`${unitCount} units`);
+    }
+
+    return labels.length ? labels.join(', ') : 'No material reward.';
+  });
   readonly playbackStepLabel = computed(() => {
     const step = this.playbackStep();
     if (!step) {

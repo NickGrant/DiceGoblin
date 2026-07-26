@@ -427,6 +427,70 @@ describe('RunNodePageComponent', () => {
     );
     expect(fixture.nativeElement.textContent).toContain('Shrine Node');
     expect(fixture.nativeElement.textContent).toContain('The path opened without a fight.');
+    expect(fixture.nativeElement.textContent).toContain('Claim Favor');
+    expect(fixture.nativeElement.querySelector('.node-result-layout')).not.toBeNull();
+    expect((fixture.nativeElement.querySelector('.node-result-layout__art') as HTMLImageElement)?.getAttribute('src')).toBe(
+      '/assets/ui/node-art/shrines/good_a.png',
+    );
+  });
+
+  it('uses the non-combat reward layout for hazard results', async () => {
+    const runService = new RunServiceStub();
+    runService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'swamps', region_theme: 'swamp' },
+        map: {
+          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'hazard', status: 'available' }],
+          edges: [],
+        },
+      },
+    });
+    runService.resolveNode.and.resolveTo({
+      ok: true,
+      data: {
+        node: { id: 'n1', status: 'completed' },
+        battle: {
+          battle_id: 'b-hazard',
+          outcome: 'victory',
+          rounds: 0,
+          ticks: 0,
+          status: 'completed',
+          reward_preview: { node_type: 'hazard', xp_total: 0, currency_soft: 0, new_unit_labels: [], new_dice_labels: [], units: [], dice: [] },
+          log: {
+            meta: { node_type: 'hazard' },
+            events: [{ type: 'node_effect', round: 0, tick: 0, node_type: 'hazard', message: 'hazard_avoided' }],
+          },
+        },
+        next: { unlocked_node_ids: ['n2'] },
+      },
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: runService },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    await fixture.componentInstance.resolveNode();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Hazard Node');
+    expect(fixture.nativeElement.textContent).toContain('Continue Path');
+    expect(fixture.nativeElement.textContent).toContain('Hazard Avoided');
+    expect(fixture.nativeElement.querySelector('.node-result-layout')).not.toBeNull();
   });
 
   it('shows generated chaos reels and finalizes rewards without resolving the node', async () => {

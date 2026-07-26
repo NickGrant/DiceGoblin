@@ -156,6 +156,9 @@ describe('RunLootPageComponent', () => {
     expect(host.textContent).toContain('Guard');
     expect(host.textContent).not.toContain('Battle Log');
     expect(host.textContent).not.toContain('bone d6');
+    expect(host.querySelector('.loot-scene__main')).not.toBeNull();
+    expect(host.querySelector('.loot-scene__rail')).not.toBeNull();
+    expect((host.querySelector('.loot-scene__art') as HTMLImageElement)?.getAttribute('src')).toBe('/assets/ui/node-art/loot/good_a.png');
 
     const diceImage = host.querySelector('.loot-card--dice img') as HTMLImageElement;
     expect(diceImage?.getAttribute('src')).toBe('/assets/ui/dice/bone_d6.png');

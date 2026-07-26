@@ -55,6 +55,7 @@ export class RunLootPageComponent {
   readonly lootBackgroundImage = computed(() =>
     `linear-gradient(180deg, rgba(24, 18, 12, 0.38), rgba(24, 18, 12, 0.74)), url('${this.lootBackgroundUrl()}')`,
   );
+  readonly lootSceneArtUrl = computed(() => '/assets/ui/node-art/loot/good_a.png');
   readonly lootRewards = computed<LootRewardSummary | null>(() => {
     const rewards = this.result()?.battle.reward_preview;
     if (!rewards || rewards.node_type !== 'loot') {
