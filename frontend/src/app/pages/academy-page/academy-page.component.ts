@@ -367,10 +367,32 @@ export class AcademyPageComponent {
   unitUnlockRequirementLabel(entry: AcademyUnitUnlockItem): string {
     const unmet = (entry.requirements ?? []).find((requirement) => !requirement.is_met);
     if (unmet) {
-      return `Requires: ${unmet.label}`;
+      const current = unmet.progress_current;
+      const target = unmet.progress_target;
+      const progress =
+        typeof current === 'number' && typeof target === 'number'
+          ? ` (${Math.max(0, current)}/${Math.max(0, target)})`
+          : '';
+      return `Requires: ${unmet.label}${progress}`;
     }
 
-    return `${this.roleLabel(entry.role)} Tier ${this.unitUnlockTierLabel(entry.unit_type_slug)}`;
+    return `Tier ${this.unitUnlockTierLabel(entry.unit_type_slug)} ${this.roleLabel(entry.role)} - adds future recruit and reward drops.`;
+  }
+
+  unitUnlockActionLabel(entry: AcademyUnitUnlockItem): string {
+    if (this.unlockingUnitTypeSlug() === entry.unit_type_slug) {
+      return 'Working...';
+    }
+    if (entry.is_available === false) {
+      return 'Locked';
+    }
+
+    const missingTeeth = entry.cost - profileSoftCurrency(this.profile());
+    if (missingTeeth > 0) {
+      return `Need ${missingTeeth} teeth`;
+    }
+
+    return 'Unlock';
   }
 
   unitUnlockDisabled(entry: AcademyUnitUnlockItem): boolean {
