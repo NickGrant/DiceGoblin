@@ -6,6 +6,28 @@
 - Historical issue records can be retrieved from git when needed.
 
 ---
+id: BST-001
+title: Add backend simulation command foundation
+status: complete
+priority: high
+milestone: Balance Simulation and Telemetry
+description: Added a backend/Docker-friendly simulation entrypoint for deterministic battle and representative run simulations with text and JSON reports.
+acceptance_criteria:
+  - Add a backend/Docker-friendly simulation entrypoint, such as `php bin/simulate.php`.
+  - Support at least battle simulation and run simulation modes.
+  - Allow deterministic seed batches with configurable sample count.
+  - Include starter/fresh-account fixtures and at least one region-appropriate comparison fixture.
+  - Output concise human-readable summaries.
+  - Output machine-readable JSON for later spreadsheet, CI, or dashboard use.
+  - Report win rate, average rounds, HP remaining, unit defeats, rewards earned, and progression item quantities.
+  - Keep simulation code read-only against production data and safe to run locally.
+  - Document usage in the balancing strategy doc or a linked simulation README.
+current_code_references:
+  - backend/bin/simulate.php
+  - backend/src/Services/BalanceSimulationService.php
+  - documentation/02-systems-mvp/14-balancing-strategy-and-simulation.md
+
+---
 id: KRB-002
 title: Add account-level lineage unlock state
 status: complete

@@ -1,0 +1,163 @@
+# Balancing Strategy and Simulation
+----
+
+Status: active
+Last Updated: 2026-07-25
+Owner: Product + Systems Design + Engineering
+Depends On: `documentation/02-systems-mvp/00-combat-system.md`, `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/02-units-and-progression.md`, `documentation/02-systems-mvp/04-loot-and-drop-scope.md`, `documentation/02-systems-mvp/13-wrong-machine-and-kin.md`
+
+## Purpose
+
+- Define how Dice Goblins should evaluate balance while the game is still changing quickly.
+- Separate numeric validation from player-feel validation.
+- Establish a future simulation tool as part of the normal design workflow.
+
+## Strategy
+
+Balance work should be treated as an evidence loop:
+
+1. Define the player outcome we want.
+2. Measure the current behavior.
+3. Change one or a small number of inputs.
+4. Simulate enough samples to understand the numeric impact.
+5. Playtest the result for clarity, pacing, and fun.
+6. Record the decision in docs, seed data, or backlog notes.
+
+Simulation should guide design decisions, not replace them. A result can be numerically fair and still feel confusing, slow, repetitive, or unrewarding.
+
+## Primary Balance Questions
+
+Early balancing should answer these questions before trying to tune every number perfectly:
+
+- How often does a fresh starter squad win each region's normal combat nodes?
+- How often does a fresh or appropriately leveled squad beat each region boss?
+- How many nodes does an average successful run clear?
+- How many rounds does an average battle last?
+- How often does a unit die or end combat at low HP?
+- How much XP, soft currency, Raw Chaos, and item progress does a player earn per run?
+- How many runs does it take to unlock a new feature, region, kin, or promotion?
+- How swingy are outcomes when the same setup is simulated across many deterministic seeds?
+- Which unit, dice, ability, or kin choices dominate the result space?
+- Which failures are caused by bad player choices versus impossible or hidden math?
+
+## Metrics To Track
+
+Combat simulation should report at least:
+
+- win rate
+- average rounds
+- round distribution
+- average unit HP remaining
+- defeat count per battle
+- damage dealt and received by unit
+- ability use frequency
+- dice contribution by size, rarity, and equipped slot
+- enemy survival and damage contribution
+
+Run simulation should report at least:
+
+- completion rate
+- average nodes resolved
+- average rewards earned
+- XP per deployed unit
+- currency per run
+- item quantities per run
+- boss clear rate
+- first-clear reward behavior
+- run failure cause when available
+
+Progression simulation should report at least:
+
+- runs to next region
+- runs to first promotion
+- runs to Wrong Machine unlock
+- runs to Pig Kin reconstruction
+- material shortfall by item
+- Raw Chaos availability
+- p50, p75, p90, and worst-observed time-to-goal
+
+## Balance Targets
+
+Initial targets are intentionally broad. They should become narrower only after local playtests and early player data expose real pain points.
+
+| Area | Starting Target |
+| --- | --- |
+| Early normal combat | Fresh starter squads should usually win, but with visible HP loss. |
+| Early boss combat | First boss victories should feel earned and may require a few upgrades or better dice use. |
+| Battle length | Most normal battles should resolve in a small number of rounds; bosses can last longer. |
+| Required progression | Required unlocks should not depend on unprotected rare drops. |
+| Kin unlock pacing | First Pig Kin reconstruction should be reachable soon after the Wrong Machine tutorial. |
+| Basic Goblin viability | Basic Goblins should remain usable after Pig Kin unlocks. |
+| Rewards | Repeated runs should produce visible progress even when they do not produce a major unlock. |
+| Variance | Randomness should create memorable differences without making the player feel the outcome was predetermined by bad luck. |
+
+## Simulation Tool Direction
+
+Because combat and run resolution are backend-authoritative, the preferred first tool is a repository-local simulation command rather than an external balancing platform.
+
+The first version runs inside the backend/Docker environment and supports deterministic seed batches such as:
+
+```text
+docker compose exec -T backend sh -lc "php bin/simulate.php --mode=battle --region=the_farm --node=combat --runs=100"
+docker compose exec -T backend sh -lc "php bin/simulate.php --mode=run --region=the_farm --runs=100 --format=json"
+```
+
+The tool outputs machine-readable JSON with `--format=json` and a concise human-readable summary by default. JSON output lets later work compare balance changes in CI, scripts, spreadsheets, or dashboards without rewriting the simulator.
+
+Current modes:
+
+- `battle`: resolves one node type repeatedly for a throwaway simulation account.
+- `run`: resolves a representative mini-path containing combat, loot, hazard, shrine, and boss nodes.
+
+Progression-goal simulation remains deferred until the basic battle/run reports have been used against real tuning questions.
+
+Safety requirements:
+
+- Simulations must not be exposed through public HTTP routes.
+- The CLI must refuse to run unless `APP_ENV` is an explicit local/test environment or `SIMULATION_ENABLED=1` is deliberately set.
+- Production deployments should avoid setting `SIMULATION_ENABLED=1`.
+- Simulations should use bounded sample counts and throwaway users that are cleaned up after each sample.
+
+## External Tools
+
+External tools can still help, but they should support the repository workflow rather than replace it.
+
+- Spreadsheets are useful for XP curves, costs, and quick expected-value checks.
+- Dice probability tools are useful for isolated dice odds.
+- Economy-flow tools can model sources, sinks, and long-term resource loops.
+- Product analytics tools become useful after real players produce event data.
+
+The custom simulator should remain the source of truth for backend-resolved combat, rewards, run nodes, kin gating, and progression pacing.
+
+## Manual Playtest Pairing
+
+Every simulation pass should be paired with at least one manual playtest path.
+
+Manual tests should watch for:
+
+- whether the UI explains why a result happened
+- whether the player has a clear next goal
+- whether a reward feels meaningful
+- whether failure feels recoverable
+- whether a new mechanic appears at the right moment
+- whether a powerful option is also easy to understand
+
+## Decision Rules
+
+- Prefer changing authored seed data before changing engine code when the problem is numeric tuning.
+- Prefer engine changes when many seed entries need the same workaround.
+- Treat p90 progression pain as more important than average progression comfort for required unlocks.
+- Do not buff rewards only because one short sample felt unlucky; inspect variance first.
+- Do not nerf player power only because one setup wins often; check whether it is expensive, rare, understandable, and fun.
+- Keep balance changes small enough that before/after simulation reports remain interpretable.
+
+## Validation Rules
+
+This balancing strategy is being followed when:
+
+- balance changes name the intended player outcome
+- simulations compare before and after behavior where feasible
+- required progression unlocks include p50 and p90 pacing checks
+- major combat changes include win-rate and battle-length checks
+- manual playtest notes capture player clarity and feel
+- simulation output is saved or summarized in PR descriptions for balance-affecting branches
