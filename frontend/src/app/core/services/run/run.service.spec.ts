@@ -110,6 +110,7 @@ describe('RunService', () => {
         units: [],
         dice: [],
       },
+      stolenPages: [],
       progressionDetail: [],
     });
     expect(sessionService.runProfileMutation).toHaveBeenCalled();
@@ -144,6 +145,7 @@ describe('RunService', () => {
       defeated: [],
       meta: null,
       rewardDetail: null,
+      stolenPages: [],
       progressionDetail: [],
     });
     service.clearSummary();

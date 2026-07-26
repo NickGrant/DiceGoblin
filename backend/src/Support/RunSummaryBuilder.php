@@ -90,8 +90,10 @@ final class RunSummaryBuilder
    *   reward_detail:array{
    *     currency_soft:int,
    *     units:array<int,array{unit_instance_id:string|null,label:string}>,
-   *     dice:array<int,array{dice_instance_id:string|null,label:string}>
+   *     dice:array<int,array{dice_instance_id:string|null,label:string}>,
+   *     items:array<int,array{item_slug:string,name:string,quantity:int,rarity:string}>
    *   },
+   *   stolen_pages:array<int,array{dialogue_id:string,title:string}>,
    *   progression_detail:array<int,array{
    *     unit_instance_id:string,
    *     label:string,
@@ -116,6 +118,8 @@ final class RunSummaryBuilder
     $xpByUnitId = [];
     $rewardUnits = [];
     $rewardDice = [];
+    $rewardItems = [];
+    $itemRewardCounts = [];
 
     foreach ($battleRows as $battle) {
       $teethTotal += max(0, (int)($battle['currency_soft'] ?? 0));
@@ -126,6 +130,11 @@ final class RunSummaryBuilder
       }
       foreach ($this->extractDiceRewardEntries($userId, $rewards) as $entry) {
         $rewardDice[] = $entry;
+      }
+      foreach ($this->extractItemRewardDetails($rewards) as $entry) {
+        $rewardItems[] = $entry;
+        $name = (string)$entry['name'];
+        $itemRewardCounts[$name] = ($itemRewardCounts[$name] ?? 0) + max(1, (int)$entry['quantity']);
       }
 
       foreach ($this->extractUnitRewardLabels($userId, $rewards) as $label) {
@@ -169,6 +178,9 @@ final class RunSummaryBuilder
     if (count($diceRewardCounts) > 0) {
       $rewardLines[] = 'New Dice: ' . $this->formatCountList($diceRewardCounts);
     }
+    if (count($itemRewardCounts) > 0) {
+      $rewardLines[] = 'Items: ' . $this->formatCountList($itemRewardCounts);
+    }
 
     $runState = is_array($terminalRunState) && count($terminalRunState) > 0
       ? $terminalRunState
@@ -185,7 +197,9 @@ final class RunSummaryBuilder
         'currency_soft' => $teethTotal,
         'units' => $rewardUnits,
         'dice' => $rewardDice,
+        'items' => $rewardItems,
       ],
+      'stolen_pages' => $this->loadStolenPages($userId, $runId),
       'progression_detail' => $progressionDetail,
     ];
   }
@@ -701,6 +715,51 @@ final class RunSummaryBuilder
     }
 
     return $details;
+  }
+
+  /**
+   * @return array<int,array{dialogue_id:string,title:string}>
+   */
+  private function loadStolenPages(int $userId, int $runId): array
+  {
+    $stmt = $this->pdo->prepare("
+      SELECT rn.`meta_json`
+      FROM `run_nodes` rn
+      JOIN `region_runs` rr ON rr.`id` = rn.`run_id`
+      WHERE rn.`run_id` = ?
+        AND rr.`user_id` = ?
+        AND rn.`node_type` = 'dialogue'
+        AND rn.`status` = 'cleared'
+      ORDER BY rn.`node_index` ASC
+    ");
+    $stmt->execute([$runId, $userId]);
+
+    $pages = [];
+    $seen = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $meta = json_decode((string)($row['meta_json'] ?? ''), true);
+      if (!is_array($meta)) {
+        continue;
+      }
+
+      $tags = is_array($meta['tags'] ?? null) ? array_map('strval', $meta['tags']) : [];
+      if (!in_array('lore', $tags, true)) {
+        continue;
+      }
+
+      $dialogueId = trim((string)($meta['dialogue_id'] ?? ''));
+      if ($dialogueId === '' || isset($seen[$dialogueId])) {
+        continue;
+      }
+
+      $seen[$dialogueId] = true;
+      $pages[] = [
+        'dialogue_id' => $dialogueId,
+        'title' => $this->prettifyId($dialogueId),
+      ];
+    }
+
+    return $pages;
   }
 
   /**

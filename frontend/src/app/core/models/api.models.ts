@@ -204,6 +204,13 @@ export type RewardPreviewDice = {
   affixes: DiceAffixRecord[];
 };
 
+export type RewardPreviewItem = {
+  item_slug: string;
+  name: string;
+  quantity: number;
+  rarity: string;
+};
+
 export type RegionUnlockRecord = {
   region_id: string;
   region_slug: string;
@@ -459,7 +466,9 @@ export type RunSummaryPayload = {
     currency_soft: number;
     units: Array<{ unit_instance_id: string | null; label: string }>;
     dice: Array<{ dice_instance_id: string | null; label: string }>;
+    items?: RewardPreviewItem[];
   };
+  stolen_pages?: Array<{ dialogue_id: string; title: string }>;
   progression_detail?: Array<{
     unit_instance_id: string;
     label: string;
@@ -598,8 +607,10 @@ export type ResolveNodeData = {
       currency_soft: number;
       new_unit_labels: string[];
       new_dice_labels: string[];
+      new_item_labels?: string[];
       units?: RewardPreviewUnit[];
       dice?: RewardPreviewDice[];
+      items?: RewardPreviewItem[];
     } | null;
     log: {
       meta?: Record<string, unknown>;

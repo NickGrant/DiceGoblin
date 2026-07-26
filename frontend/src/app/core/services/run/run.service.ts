@@ -28,6 +28,7 @@ export type RunSummaryState = {
   defeated: string[];
   meta: NonNullable<RunSummaryPayload['meta']> | null;
   rewardDetail: NonNullable<RunSummaryPayload['reward_detail']> | null;
+  stolenPages: NonNullable<RunSummaryPayload['stolen_pages']>;
   progressionDetail: NonNullable<RunSummaryPayload['progression_detail']>;
 };
 
@@ -51,6 +52,7 @@ export class RunService {
       defeated: summary?.defeated ?? [],
       meta: summary?.meta ?? null,
       rewardDetail: summary?.reward_detail ?? null,
+      stolenPages: summary?.stolen_pages ?? [],
       progressionDetail: summary?.progression_detail ?? [],
     };
   }
