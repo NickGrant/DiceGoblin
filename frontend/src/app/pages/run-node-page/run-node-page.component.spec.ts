@@ -171,17 +171,17 @@ class RunServiceStub {
         finalized_at: '2026-07-25 12:00:00',
       },
       run: { id: 'run-1', status: 'active' },
-      node: { id: 'n1', node_type: 'chaos', status: 'cleared' },
+      node: { id: 'n1', node_type: 'chaos', status: 'available' },
       completion: {
         title: 'Chaos Settled',
-        message: 'Frogmen + Ambush + Raw Chaos Spark paid out and the path opened.',
+        message: 'Frogmen + Ambush + Raw Chaos Spark is locked in. The fight is ready.',
       },
       rewards: {
         currency: { soft: 32, raw_chaos: 5 },
         reward_multiplier: 2.05,
         labels: ['32 Teeth', '5 Raw Chaos'],
       },
-      next: { unlocked_node_ids: ['n2'] },
+      next: { unlocked_node_ids: [] },
     },
   });
   claimBattleRewards = jasmine.createSpy('claimBattleRewards').and.resolveTo({
@@ -429,7 +429,7 @@ describe('RunNodePageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('The path opened without a fight.');
   });
 
-  it('shows generated chaos reels and finalizes rewards without resolving the node', async () => {
+  it('shows generated chaos reels and resolves battle playback after finalization', async () => {
     const runService = new RunServiceStub();
     runService.getCurrentRun.and.resolveTo({
       ok: true,
@@ -478,12 +478,12 @@ describe('RunNodePageComponent', () => {
     fixture.detectChanges();
 
     expect(runService.finalizeChaosEncounter).toHaveBeenCalledOnceWith('run-1', 'n1');
+    expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', 'n1');
     expect(fixture.componentInstance.chaosIsFinalized()).toBeTrue();
-    expect(fixture.nativeElement.textContent).toContain('Chaos Settled');
-    expect(fixture.nativeElement.textContent).toContain('32 Teeth');
-    expect(fixture.nativeElement.textContent).toContain('5 Raw Chaos');
-    expect(fixture.nativeElement.textContent).toContain('This chaos result is complete.');
-    expect(fixture.nativeElement.textContent).toContain('Back to Map');
+    expect(fixture.nativeElement.textContent).toContain('VICTORY');
+    expect(fixture.nativeElement.textContent).toContain('Claim Rewards');
+    expect(fixture.nativeElement.textContent).toContain('Acted Out');
+    expect(fixture.nativeElement.querySelector('.battle-scene__viewport')).not.toBeNull();
   });
 
   it('formats battle action log details for the node screen', async () => {

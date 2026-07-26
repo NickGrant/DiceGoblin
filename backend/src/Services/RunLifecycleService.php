@@ -188,6 +188,13 @@ final class RunLifecycleService
     $nodeType = (string)($battle['node_type'] ?? 'combat');
     $awardPerUnit = max(0, (int)$battle['xp_total']);
     $softCurrencyAward = max(0, (int)($battle['currency_soft'] ?? 0));
+    $rewards = json_decode((string)($battle['rewards_json'] ?? ''), true);
+    if (!is_array($rewards)) {
+      $rewards = [];
+    }
+    $chaosBonus = is_array($rewards['chaos_bonus'] ?? null) ? $rewards['chaos_bonus'] : [];
+    $chaosCurrency = is_array($chaosBonus['currency'] ?? null) ? $chaosBonus['currency'] : [];
+    $rawChaosAward = max(0, (int)($chaosCurrency['raw_chaos'] ?? 0));
     $run = $this->runRepository->getRunForUser($userId, $runId);
     $runAlreadyEnded = is_array($run) && (string)($run['status'] ?? '') !== 'active';
 
@@ -207,12 +214,13 @@ final class RunLifecycleService
         ],
         'currency' => [
           'soft_awarded' => $softCurrencyAward,
+          'raw_chaos_awarded' => $rawChaosAward,
         ],
         'updated_units' => [],
       ];
     }
 
-    if ($softCurrencyAward > 0) {
+    if ($softCurrencyAward > 0 || $rawChaosAward > 0) {
       $playerStateRepository = $this->playerStateRepository();
       $playerStateRepository->ensurePlayerState($userId);
       $playerState = $playerStateRepository->getPlayerStateForUpdate($userId);
@@ -220,6 +228,9 @@ final class RunLifecycleService
         $nextSoft = max(0, (int)$playerState['currency_soft'] + $softCurrencyAward);
         $nextHard = max(0, (int)$playerState['currency_hard']);
         $playerStateRepository->setCurrency($userId, $nextSoft, $nextHard);
+        if ($rawChaosAward > 0) {
+          $playerStateRepository->setRawChaos($userId, max(0, (int)$playerState['currency_raw_chaos'] + $rawChaosAward));
+        }
       }
     }
 
@@ -237,12 +248,13 @@ final class RunLifecycleService
         ],
         'currency' => [
           'soft_awarded' => $softCurrencyAward,
+          'raw_chaos_awarded' => $rawChaosAward,
         ],
         'updated_units' => [],
       ];
     }
 
-    $isCombatLikeNode = in_array($nodeType, ['combat', 'boss'], true);
+    $isCombatLikeNode = in_array($nodeType, ['combat', 'boss', 'chaos'], true);
     if (!$isCombatLikeNode) {
       return [
         'updated_run_unit_state' => $this->formatRunUnitStateSnapshot($runStateByUnitId),
@@ -254,6 +266,7 @@ final class RunLifecycleService
         ],
         'currency' => [
           'soft_awarded' => $softCurrencyAward,
+          'raw_chaos_awarded' => $rawChaosAward,
         ],
         'updated_units' => [],
       ];
@@ -398,6 +411,7 @@ final class RunLifecycleService
           ],
           'currency' => [
             'soft_awarded' => $softCurrencyAward,
+            'raw_chaos_awarded' => $rawChaosAward,
           ],
           'updated_units' => $updatedUnits,
         ];
@@ -414,6 +428,7 @@ final class RunLifecycleService
       ],
       'currency' => [
         'soft_awarded' => $softCurrencyAward,
+        'raw_chaos_awarded' => $rawChaosAward,
       ],
       'updated_units' => $updatedUnits,
     ];

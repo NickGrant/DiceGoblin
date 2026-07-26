@@ -15,7 +15,7 @@
   }
 
   <div class="node-screen">
-    @if (isChaosNode()) {
+    @if (isChaosNode() && !result()) {
       <section class="chaos-panel">
         <div class="chaos-panel__header">
           <div>
@@ -86,7 +86,7 @@
           <button dgCommandBtn="primary" type="button" [routerLink]="['/run/map']">Back to Map</button>
           } @else {
           <button dgCommandBtn="primary" type="button" (click)="finalizeChaosEncounter()" [disabled]="busy()">
-            {{ busy() ? 'Finalizing...' : 'Finalize Rewards' }}
+            {{ busy() ? 'Starting...' : 'Start Fight' }}
           </button>
           }
         </div>
