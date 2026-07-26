@@ -11,56 +11,6 @@ Use the same issue schema as `agent/ISSUES.md`.
 
 ## Backlog Issues
 
-## Progression Rewards and Unlock Clarity
-
-### Correct story-gated feature unlock timing
-
-**Milestone:** Progression Rewards and Unlock Clarity
-**Status:** Open
-**Priority:** High
-
-#### Problem
-Some feature unlocks are appearing at the wrong moment. Wrong Machine appears to unlock when Swamps starts instead of after the intended clear, and Tooth Merchant should unlock immediately when Mudking is beaten for the first time rather than from the following conversation.
-
-#### Acceptance Criteria
-
-- Wrong Machine unlocks only after the intended first Swamps completion or boss-clear gate.
-- Tooth Merchant unlocks immediately when Mudking is beaten for the first time.
-- Unlock checks are backend-authoritative and idempotent across replayed requests.
-- Automated coverage proves the features are unavailable before their gates and available immediately after.
-
-### Surface unlocks, stolen pages, and complete reward totals
-
-**Milestone:** Progression Rewards and Unlock Clarity
-**Status:** Open
-**Priority:** High
-
-#### Problem
-Rewards should make progression feel visible. Newly unlocked systems, first-clear codex additions, and teeth gains are either absent or too implicit in the reward flow.
-
-#### Acceptance Criteria
-
-- Reward screens show game unlocks as they become available, including Wrong Machine-style unlocks.
-- First-clear codex additions are represented as stolen pages and surfaced in rewards.
-- Reward summary totals include teeth gained alongside units and dice.
-- The rewards screen displays special item drops when earned.
-
-### Fix lineage item drops and reward presentation
-
-**Milestone:** Progression Rewards and Unlock Clarity
-**Status:** Open
-**Priority:** High
-
-#### Problem
-Pig Ear and Mudking Crown Fragment do not appear to be dropping reliably, and earned special items need to appear in the rewards screen.
-
-#### Acceptance Criteria
-
-- Pig Ear and Mudking Crown Fragment have verified drop conditions.
-- Earned special items persist to the player inventory or profile as intended.
-- Reward claim responses include earned special items.
-- Frontend reward presentation includes those items when present.
-
 ## Core UX Cleanup
 
 ### Refresh high-friction layouts and run presentation
