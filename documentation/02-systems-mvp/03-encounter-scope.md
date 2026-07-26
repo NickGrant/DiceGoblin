@@ -1,7 +1,7 @@
 # Encounter Scope
 
 Status: active  
-Last Updated: 2026-07-24  
+Last Updated: 2026-07-26  
 Owner: Systems Design  
 Depends On: `documentation/02-systems-mvp/04-loot-and-drop-scope.md`, `documentation/02-systems-mvp/05-save-and-resume-scope.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
 
@@ -115,6 +115,14 @@ Mystic Cave is currently a narrative onboarding region rather than a combat biom
 - Procedural regions may include shrine nodes as optional non-combat branches or late-path pauses.
 - Procedural regions include at least one chaos node that presents persisted reel results.
 - Authored dialogue nodes may be inserted into otherwise fixed or procedural graphs.
+
+### Target Procedural Replacement
+
+- Mountains and Swamps currently use the seeded lane-walker implementation in `RunGraphGenerator`.
+- `documentation/02-systems-mvp/15-pattern-based-run-map-generation.md` defines the proposed replacement contract.
+- The replacement builds a guaranteed start-to-boss spine from authored socketed patterns before expanding optional branches.
+- The replacement does not become current-state behavior until a region explicitly enables the new generator version.
+- Existing active runs continue from persisted nodes and edges and are never regenerated during migration.
 
 ## Encounter Exclusions
 
