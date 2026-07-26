@@ -2,7 +2,7 @@
 ----
 
 Status: active
-Last Updated: 2026-07-25
+Last Updated: 2026-07-26
 Owner: Product + Engineering
 Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
@@ -78,6 +78,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
   - `documentation/02-systems-mvp/13-wrong-machine-and-kin.md`
   - `documentation/02-systems-mvp/14-balancing-strategy-and-simulation.md`
+  - `documentation/02-systems-mvp/15-pattern-based-run-map-generation.md`
 - Future gameplay direction:
   - `documentation/00-overview/04-story-and-biome-progression.md`
   - `documentation/07-roadmap/00-gameplay-systems-roadmap.md`
@@ -126,6 +127,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/02-systems-mvp/06-run-resolution-scope.md`
   - `documentation/02-systems-mvp/08-encounter-reward-surface-rules.md`
   - `documentation/02-systems-mvp/14-balancing-strategy-and-simulation.md`
+  - `documentation/02-systems-mvp/15-pattern-based-run-map-generation.md`
   - `documentation/03-ux/03-encounter-flow-transition-matrix.md`
 - Onboarding and first-session flow:
   - `documentation/03-ux/09-first-session-player-journey.md`
@@ -138,6 +140,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/00-overview/04-story-and-biome-progression.md`
   - `documentation/07-roadmap/00-gameplay-systems-roadmap.md`
   - `documentation/02-systems-mvp/14-balancing-strategy-and-simulation.md`
+  - `documentation/02-systems-mvp/15-pattern-based-run-map-generation.md`
 - Page-by-page route breakdowns:
   - `documentation/06-page-analysis/00-index.md`
 
