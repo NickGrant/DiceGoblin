@@ -6,6 +6,75 @@
 - Historical issue records can be retrieved from git when needed.
 
 ---
+id: BST-002
+title: Add progression-goal simulation reports
+status: complete
+priority: medium
+milestone: Balance Simulation and Telemetry
+description: Added progression simulation mode for named goals with percentile reporting, failure reasons, and Pig Kin material/Raw Chaos shortfalls.
+acceptance_criteria:
+  - Add a progression simulation mode for named goals.
+  - Support goals for first promotion, next-region unlock, Wrong Machine unlock, and Pig Kin reconstruction.
+  - Report p50, p75, p90, worst-observed, and failure/shortfall reasons.
+  - Include material and Raw Chaos shortfall reporting for Pig Kin.
+  - Make assumptions explicit in the output, including strategy/profile fixture and sample count.
+current_code_references:
+  - backend/src/Services/BalanceSimulationService.php
+  - documentation/02-systems-mvp/14-balancing-strategy-and-simulation.md
+
+---
+id: BST-003
+title: Add balance report workflow to PR validation
+status: complete
+priority: medium
+milestone: Balance Simulation and Telemetry
+description: Added Docker-backed balance simulation npm shortcuts and a concise before/after report format for balance-affecting PRs.
+acceptance_criteria:
+  - Add npm scripts or documented commands for common simulation suites.
+  - Define a PR summary format for balance changes.
+  - Include before/after report examples.
+  - Keep reports small enough to paste into PR descriptions.
+  - Update testing strategy docs to reference the implemented command names.
+current_code_references:
+  - package.json
+  - documentation/TESTING_STRATEGY.md
+  - documentation/02-systems-mvp/14-balancing-strategy-and-simulation.md
+
+---
+id: PRU-001
+title: Correct story-gated feature unlock timing
+status: complete
+priority: high
+milestone: Progression Rewards and Unlock Clarity
+description: Shop/Tooth Merchant unlock now grants on victorious Farm boss claim, while Wrong Machine remains gated behind Swamps completion and both paths are backend-authoritative and idempotent.
+acceptance_criteria:
+  - Wrong Machine unlocks only after the intended first Swamps completion or boss-clear gate.
+  - Tooth Merchant unlocks immediately when Mudking is beaten for the first time.
+  - Unlock checks are backend-authoritative and idempotent across replayed requests.
+  - Automated coverage proves the features are unavailable before their gates and available immediately after.
+current_code_references:
+  - backend/src/Services/RunLifecycleService.php
+  - backend/tests/Integration/RunLifecycleServiceIntegrationTest.php
+
+---
+id: PRU-003
+title: Fix lineage item drops and reward presentation
+status: complete
+priority: high
+milestone: Progression Rewards and Unlock Clarity
+description: Farm pig-family victories now grant generic progression items, Mudking boss victories grant Pig Ears and Mudking Crown Fragment, and reward previews expose generic item details.
+acceptance_criteria:
+  - Pig Ear and Mudking Crown Fragment have verified drop conditions.
+  - Earned special items persist to the player inventory or profile as intended.
+  - Reward claim responses include earned special items.
+  - Frontend reward presentation includes those items when present.
+current_code_references:
+  - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
+  - backend/src/Controllers/RunNodeController.php
+  - backend/src/Support/RunSummaryBuilder.php
+  - backend/tests/Integration/BattleNodeResolutionIntegrationTest.php
+
+---
 id: CEC-001
 title: Finalize chaos reels into battle-backed encounters
 status: complete

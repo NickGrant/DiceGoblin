@@ -2,20 +2,18 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Balance Simulation and Telemetry
+## Progression Rewards and Unlock Clarity
 
 **Status:** Active
 
-Add repository-local tools for measuring combat, run, reward, and progression balance before and after gameplay tuning changes.
+Progression unlocks, first-clear codex additions, and reward summaries should clearly show what the player earned and when newly available systems become usable. Unlock timing must be backend-authoritative so rewards, currencies, shops, and codex discoveries cannot appear before their intended story gate.
 
 Success criteria:
 
-- A Docker-friendly simulation command can run large deterministic batches without the frontend.
-- Simulation fixtures cover fresh account, starter squad, region-appropriate squad, and at least one overleveled comparison profile.
-- Reports include p50, p75, p90, and worst-observed values for required progression goals.
-- Documentation explains how to interpret simulation output and attach it to balance PRs.
+- Reward screens show newly unlocked systems, stolen codex pages, teeth, and special item drops.
+- Raw Chaos cannot be earned, tracked, or salvaged before Wrong Machine recovery.
+- Regression tests cover unlock timing and reward presentation.
 
 ### Related Issues
 
-- BST-002: Add progression-goal simulation reports
-- BST-003: Add balance report workflow to PR validation
+- Surface unlocks, stolen pages, and complete reward totals

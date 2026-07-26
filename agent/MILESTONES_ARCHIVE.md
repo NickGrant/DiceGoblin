@@ -6,6 +6,26 @@
 - Historical milestone records can be retrieved from git when needed.
 
 ---
+name: Balance Simulation and Telemetry
+status: complete
+issues:
+  - BST-002
+  - BST-003
+description: Added repository-local balance simulation support for progression goals and a lightweight PR validation workflow for balance-affecting changes.
+goals:
+  - Build deterministic backend simulation commands for battles, runs, and progression goals.
+  - Produce machine-readable JSON plus concise human-readable summaries.
+  - Track win rate, battle length, HP pressure, reward throughput, item pacing, and time-to-goal percentiles.
+  - Make balance-affecting PRs easier to review with before/after evidence.
+  - Preserve manual playtesting as the source for clarity, fun, and player-feel validation.
+current_code_context: BalanceSimulationService supports battle, run, and progression modes; package scripts expose Docker-backed farm suites; testing and balance docs define the PR summary format.
+exit_criteria:
+  - A Docker-friendly simulation command can run large deterministic batches without the frontend.
+  - Simulation fixtures cover fresh account, starter squad, region-appropriate squad, and at least one overleveled comparison profile.
+  - Reports include p50, p75, p90, and worst-observed values for required progression goals.
+  - Documentation explains how to interpret simulation output and attach it to balance PRs.
+
+---
 name: Chaos Encounters as Combat
 status: complete
 issues:

@@ -8,25 +8,6 @@
 
 ## Backlog Milestones
 
-## Progression Rewards and Unlock Clarity
-
-**Status:** Planned
-
-Progression unlocks, first-clear codex additions, and reward summaries should clearly show what the player earned and when newly available systems become usable. Unlock timing must be backend-authoritative so rewards, currencies, shops, and codex discoveries cannot appear before their intended story gate.
-
-Success criteria:
-
-- Wrong Machine and Tooth Merchant unlock at the intended first-clear moments.
-- Reward screens show newly unlocked systems, stolen codex pages, teeth, and special item drops.
-- Raw Chaos cannot be earned, tracked, or salvaged before Wrong Machine recovery.
-- Regression tests cover unlock timing and reward presentation.
-
-### Related Issues
-
-- Correct story-gated feature unlock timing
-- Surface unlocks, stolen pages, and complete reward totals
-- Fix lineage item drops and reward presentation
-
 ## Core UX Cleanup
 
 **Status:** Planned
