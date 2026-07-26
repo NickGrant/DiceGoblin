@@ -140,9 +140,9 @@
         <div class="node-result-layout">
           <section class="node-result-layout__content" aria-label="Node result">
             <div class="node-result-detail">
-              <p class="battle-scene__eyebrow dg-stencil">{{ nodeResultEventLabel() }}</p>
-              <h3 class="node-result-detail__title dg-stencil">{{ battleResultHeadline() }}</h3>
-              <p>{{ battleResultCopy() }}</p>
+              <p class="battle-scene__eyebrow dg-stencil">{{ resolvedNodeType() | titlecase }} Result</p>
+              <h3 class="node-result-detail__title dg-stencil">{{ nodeResultEventLabel() }}</h3>
+              <p>{{ nodeResultDetailCopy() }}</p>
             </div>
             <div class="node-result-stats" aria-label="Node rewards">
               <span>
