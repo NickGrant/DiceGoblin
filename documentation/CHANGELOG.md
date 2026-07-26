@@ -1,11 +1,16 @@
 # Documentation Changelog
 
 Status: active  
-Last Updated: 2026-05-29  
+Last Updated: 2026-07-26  
 Owner: Product + Engineering  
 Depends On: `documentation/README.md`, `agent/ISSUES.md`
 
 ----
+
+## 2026-07-26
+- Added `documentation/02-systems-mvp/15-pattern-based-run-map-generation.md` as the proposed contract for authored socketed patterns, spine-first boss-route construction, branch expansion, deterministic weighting, validation, provenance, testing, and migration.
+- Updated encounter scope to distinguish the current seeded lane-walker from the proposed pattern-based replacement.
+- Updated the documentation index and run-system task entry points to include the new generation contract.
 
 ## 2026-07-25
 - Added the player-facing Wrong Machine reconstruction UI and closed the Wrong Machine and Kin Foundation active agent milestone.
