@@ -75,6 +75,25 @@ current_code_references:
   - backend/tests/Integration/BattleNodeResolutionIntegrationTest.php
 
 ---
+id: PRU-004
+title: Surface unlocks, stolen pages, and complete reward totals
+status: complete
+priority: high
+milestone: Progression Rewards and Unlock Clarity
+description: Reward summaries now surface newly unlocked systems, first-clear stolen codex pages, teeth totals, and generic item drops, with Raw Chaos earnings gated behind Wrong Machine recovery.
+acceptance_criteria:
+  - Reward screens show game unlocks as they become available, including Wrong Machine-style unlocks.
+  - First-clear codex additions are represented as stolen pages and surfaced in rewards.
+  - Reward summary totals include teeth gained alongside units and dice.
+  - The rewards screen displays special item drops when earned.
+current_code_references:
+  - backend/src/Support/RunSummaryBuilder.php
+  - backend/src/Services/RunGraphGenerator.php
+  - backend/tests/Integration/RunLifecycleServiceIntegrationTest.php
+  - frontend/src/app/pages/run-summary-page
+  - frontend/src/app/pages/run-node-page
+
+---
 id: CEC-001
 title: Finalize chaos reels into battle-backed encounters
 status: complete

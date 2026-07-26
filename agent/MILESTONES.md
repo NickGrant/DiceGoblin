@@ -2,18 +2,19 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Progression Rewards and Unlock Clarity
+## Inventory Scale and Actions
 
 **Status:** Active
 
-Progression unlocks, first-clear codex additions, and reward summaries should clearly show what the player earned and when newly available systems become usable. Unlock timing must be backend-authoritative so rewards, currencies, shops, and codex discoveries cannot appear before their intended story gate.
+Inventory screens should remain usable as collections grow, and unlocked item actions should appear consistently in the relevant inspect flows.
 
 Success criteria:
 
-- Reward screens show newly unlocked systems, stolen codex pages, teeth, and special item drops.
-- Raw Chaos cannot be earned, tracked, or salvaged before Wrong Machine recovery.
-- Regression tests cover unlock timing and reward presentation.
+- Dice, unit, and related collection screens paginate or otherwise chunk large inventories.
+- Dice inspect modals expose salvage only after Wrong Machine recovery.
+- Redundant dice badges and duplicate prototype chips stay out of inventory views.
 
 ### Related Issues
 
-- Surface unlocks, stolen pages, and complete reward totals
+- Add pagination to inventory collections
+- Complete unlocked dice action affordances
