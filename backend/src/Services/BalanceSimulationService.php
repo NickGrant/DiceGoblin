@@ -17,6 +17,29 @@ final class BalanceSimulationService
 {
   private const DEFAULT_SAMPLE_COUNT = 25;
   private const MAX_SAMPLE_COUNT = 10000;
+  private const DEFAULT_PROGRESSION_MAX_RUNS = 25;
+  /** @var array<string,array<string,int|string>> */
+  private const PROGRESSION_GOALS = [
+    'first_promotion' => [
+      'label' => 'First promotion-ready unit',
+      'xp_total' => 1000,
+    ],
+    'next_region' => [
+      'label' => 'Next region unlock',
+      'completed_runs' => 1,
+    ],
+    'wrong_machine' => [
+      'label' => 'Wrong Machine unlock',
+      'completed_runs' => 1,
+    ],
+    'pig_kin' => [
+      'label' => 'Pig Kin reconstruction',
+      'completed_runs' => 1,
+      'raw_chaos' => 5,
+      'pig_ear' => 3,
+      'mudking_crown_fragment' => 1,
+    ],
+  ];
 
   public function __construct(private readonly PDO $pdo)
   {
@@ -36,7 +59,15 @@ final class BalanceSimulationService
     return match ($mode) {
       'battle' => $this->simulateBattle($regionSlug, $this->stringOption($options, 'node', 'combat'), $sampleCount, $seedBase),
       'run' => $this->simulateRun($regionSlug, $sampleCount, $seedBase),
-      default => throw new RuntimeException("Unsupported simulation mode '{$mode}'. Use battle or run."),
+      'progression' => $this->simulateProgression(
+        $regionSlug,
+        $this->stringOption($options, 'goal', 'all'),
+        $sampleCount,
+        $seedBase,
+        $this->intOption($options, 'max-runs', self::DEFAULT_PROGRESSION_MAX_RUNS, 1, 250),
+        $this->stringOption($options, 'profile', 'fresh_starter')
+      ),
+      default => throw new RuntimeException("Unsupported simulation mode '{$mode}'. Use battle, run, or progression."),
     };
   }
 
@@ -69,6 +100,87 @@ final class BalanceSimulationService
     }
 
     return $this->buildReport('run', $regionSlug, ['node_types' => $nodeTypes], $samples);
+  }
+
+  /**
+   * @return array<string,mixed>
+   */
+  public function simulateProgression(
+    string $regionSlug,
+    string $goal,
+    int $sampleCount,
+    string $seedBase = 'balance-sim',
+    int $maxRuns = self::DEFAULT_PROGRESSION_MAX_RUNS,
+    string $profile = 'fresh_starter'
+  ): array {
+    $goals = $this->selectedProgressionGoals($goal);
+    $samples = [];
+    for ($i = 0; $i < $sampleCount; $i++) {
+      $samples[] = $this->simulateProgressionSample($regionSlug, $goals, $seedBase, $i, $maxRuns);
+    }
+
+    return $this->buildProgressionReport($regionSlug, $profile, $goals, $maxRuns, $samples);
+  }
+
+  /**
+   * @param list<string> $goals
+   * @return array<string,mixed>
+   */
+  private function simulateProgressionSample(string $regionSlug, array $goals, string $seedBase, int $sampleIndex, int $maxRuns): array
+  {
+    $progress = [
+      'xp_total' => 0,
+      'soft_currency' => 0,
+      'raw_chaos' => 0,
+      'completed_runs' => 0,
+      'items' => [],
+    ];
+    $goalResults = [];
+
+    for ($runNumber = 1; $runNumber <= $maxRuns; $runNumber++) {
+      $runSample = $this->simulateSample($regionSlug, ['combat', 'loot', 'hazard', 'shrine', 'boss'], "{$seedBase}|progression|{$sampleIndex}", $runNumber);
+      $this->applyRunProgress($progress, $runSample);
+
+      foreach ($goals as $goal) {
+        if (isset($goalResults[$goal])) {
+          continue;
+        }
+
+        $evaluation = $this->evaluateProgressionGoal($goal, $progress);
+        if ($evaluation['achieved']) {
+          $goalResults[$goal] = [
+            'achieved' => true,
+            'runs_to_goal' => $runNumber,
+            'shortfalls' => [],
+            'failure_reasons' => [],
+          ];
+        }
+      }
+    }
+
+    foreach ($goals as $goal) {
+      if (isset($goalResults[$goal])) {
+        continue;
+      }
+
+      $evaluation = $this->evaluateProgressionGoal($goal, $progress);
+      $goalResults[$goal] = [
+        'achieved' => false,
+        'runs_to_goal' => null,
+        'shortfalls' => $evaluation['shortfalls'],
+        'failure_reasons' => $evaluation['failure_reasons'],
+      ];
+    }
+
+    ksort($goalResults);
+    ksort($progress['items']);
+
+    return [
+      'sample_index' => $sampleIndex,
+      'max_runs' => $maxRuns,
+      'final_progress' => $progress,
+      'goals' => $goalResults,
+    ];
   }
 
   /**
@@ -235,12 +347,174 @@ final class BalanceSimulationService
       'ticks' => (int)$result['ticks'],
       'xp_total' => (int)$result['xp_total'],
       'currency_soft' => (int)$result['currency_soft'],
+      'currency_raw_chaos' => $this->extractRawChaos($rewards),
       'hp_remaining_pct' => $hp['remaining_pct'],
       'unit_defeats' => $hp['defeats'],
       'dice_grants' => count((array)($rewards['dice_grants'] ?? [])),
       'unit_grants' => count((array)($rewards['unit_grants'] ?? [])),
       'item_quantities' => $this->extractItemQuantities($rewards),
     ];
+  }
+
+  /**
+   * @param array<string,mixed> $progress
+   * @param array<string,mixed> $runSample
+   */
+  private function applyRunProgress(array &$progress, array $runSample): void
+  {
+    if (!empty($runSample['completed'])) {
+      $progress['completed_runs'] = (int)$progress['completed_runs'] + 1;
+    }
+
+    foreach ((array)($runSample['nodes'] ?? []) as $node) {
+      if (!is_array($node)) {
+        continue;
+      }
+
+      $progress['xp_total'] = (int)$progress['xp_total'] + max(0, (int)($node['xp_total'] ?? 0));
+      $progress['soft_currency'] = (int)$progress['soft_currency'] + max(0, (int)($node['currency_soft'] ?? 0));
+      $progress['raw_chaos'] = (int)$progress['raw_chaos'] + max(0, (int)($node['currency_raw_chaos'] ?? 0));
+
+      foreach ((array)($node['item_quantities'] ?? []) as $slug => $quantity) {
+        $slug = (string)$slug;
+        if ($slug === '') {
+          continue;
+        }
+        $progress['items'][$slug] = ((int)($progress['items'][$slug] ?? 0)) + max(0, (int)$quantity);
+      }
+    }
+  }
+
+  /**
+   * @param array<string,mixed> $progress
+   * @return array{achieved:bool,shortfalls:array<string,int>,failure_reasons:list<string>}
+   */
+  private function evaluateProgressionGoal(string $goal, array $progress): array
+  {
+    $requirements = self::PROGRESSION_GOALS[$goal] ?? null;
+    if ($requirements === null) {
+      throw new RuntimeException("Unsupported progression goal '{$goal}'.");
+    }
+
+    $shortfalls = [];
+    foreach ($requirements as $key => $required) {
+      if ($key === 'label' || !is_int($required)) {
+        continue;
+      }
+
+      $owned = match ($key) {
+        'xp_total', 'completed_runs', 'raw_chaos' => (int)($progress[$key] ?? 0),
+        default => (int)($progress['items'][$key] ?? 0),
+      };
+
+      if ($owned < $required) {
+        $shortfalls[$key] = $required - $owned;
+      }
+    }
+
+    return [
+      'achieved' => $shortfalls === [],
+      'shortfalls' => $shortfalls,
+      'failure_reasons' => array_keys($shortfalls),
+    ];
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function selectedProgressionGoals(string $goal): array
+  {
+    if ($goal === 'all') {
+      return array_keys(self::PROGRESSION_GOALS);
+    }
+    if (!array_key_exists($goal, self::PROGRESSION_GOALS)) {
+      throw new RuntimeException("Unsupported progression goal '{$goal}'. Use all, first_promotion, next_region, wrong_machine, or pig_kin.");
+    }
+
+    return [$goal];
+  }
+
+  /**
+   * @param list<string> $goals
+   * @param array<int,array<string,mixed>> $samples
+   * @return array<string,mixed>
+   */
+  private function buildProgressionReport(string $regionSlug, string $profile, array $goals, int $maxRuns, array $samples): array
+  {
+    $goalSummaries = [];
+    foreach ($goals as $goal) {
+      $goalSamples = array_map(static fn(array $sample): array => (array)($sample['goals'][$goal] ?? []), $samples);
+      $achieved = array_values(array_filter($goalSamples, static fn(array $sample): bool => !empty($sample['achieved'])));
+      $runsToGoal = array_values(array_map(static fn(array $sample): int => (int)$sample['runs_to_goal'], $achieved));
+      $failureReasons = [];
+      $shortfallTotals = [];
+
+      foreach ($goalSamples as $sample) {
+        if (!empty($sample['achieved'])) {
+          continue;
+        }
+        foreach ((array)($sample['failure_reasons'] ?? []) as $reason) {
+          $reason = (string)$reason;
+          $failureReasons[$reason] = ($failureReasons[$reason] ?? 0) + 1;
+        }
+        foreach ((array)($sample['shortfalls'] ?? []) as $key => $quantity) {
+          $key = (string)$key;
+          $shortfallTotals[$key] = ($shortfallTotals[$key] ?? 0) + (int)$quantity;
+        }
+      }
+
+      ksort($failureReasons);
+      ksort($shortfallTotals);
+      $sampleCount = max(1, count($goalSamples));
+      $goalSummaries[$goal] = [
+        'label' => (string)self::PROGRESSION_GOALS[$goal]['label'],
+        'requirements' => $this->progressionGoalRequirements($goal),
+        'achievement_rate' => round(count($achieved) / $sampleCount, 4),
+        'achieved_samples' => count($achieved),
+        'runs_p50' => $this->percentile($runsToGoal, 0.50),
+        'runs_p75' => $this->percentile($runsToGoal, 0.75),
+        'runs_p90' => $this->percentile($runsToGoal, 0.90),
+        'worst_observed_runs' => count($runsToGoal) > 0 ? max($runsToGoal) : null,
+        'failure_reasons' => $failureReasons,
+        'shortfall_totals' => $shortfallTotals,
+      ];
+    }
+
+    return [
+      'ok' => true,
+      'generated_at' => gmdate('c'),
+      'mode' => 'progression',
+      'region' => $regionSlug,
+      'config' => [
+        'samples' => max(1, count($samples)),
+        'max_runs' => $maxRuns,
+        'profile' => $profile,
+        'goals' => $goals,
+      ],
+      'assumptions' => [
+        'strategy' => 'fresh starter account repeatedly runs the representative mini-path for the selected region',
+        'profile_fixture' => $profile,
+        'run_model' => ['combat', 'loot', 'hazard', 'shrine', 'boss'],
+        'goal_requirements' => array_combine($goals, array_map(fn(string $goal): array => $this->progressionGoalRequirements($goal), $goals)),
+      ],
+      'summary' => $goalSummaries,
+      'samples' => $samples,
+    ];
+  }
+
+  /**
+   * @return array<string,int>
+   */
+  private function progressionGoalRequirements(string $goal): array
+  {
+    $requirements = [];
+    foreach (self::PROGRESSION_GOALS[$goal] ?? [] as $key => $value) {
+      if (is_int($value)) {
+        $requirements[$key] = $value;
+      }
+    }
+
+    return $requirements;
   }
 
   /**
@@ -320,6 +594,17 @@ final class BalanceSimulationService
 
     ksort($items);
     return $items;
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   */
+  private function extractRawChaos(array $rewards): int
+  {
+    $total = max(0, (int)($rewards['raw_chaos_awarded'] ?? 0));
+    $chaosBonus = is_array($rewards['chaos_bonus'] ?? null) ? $rewards['chaos_bonus'] : [];
+    $currency = is_array($chaosBonus['currency'] ?? null) ? $chaosBonus['currency'] : [];
+    return $total + max(0, (int)($currency['raw_chaos'] ?? 0));
   }
 
   /**
