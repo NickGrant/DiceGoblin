@@ -18,6 +18,12 @@ describe('unit-art helpers', () => {
     expect(resolveUnitImageUrl('kobold_shieldbearer')).toBe('/assets/ui/units/animated/kobold/shieldbearer/frame_0.png');
   });
 
+  it('resolves dialogue kobold scout portraits to an available kobold asset', () => {
+    expect(resolveUnitImageSlug('kobold_scout')).toBe('kobold_skirmisher');
+    expect(resolveUnitImageSlug('Scout')).toBe('kobold_skirmisher');
+    expect(resolveUnitImageUrl('kobold_scout')).toBe('/assets/ui/units/animated/kobold/skirmisher/frame_0.png');
+  });
+
   it('resolves tier one unit thumbnails from canonical slugs and names', () => {
     expect(resolveUnitThumbnailUrl('frontline_bruiser_t1')).toBe('/assets/ui/units/thumbnails/goblin/bruiser.png');
     expect(resolveUnitThumbnailUrl('Bannerbearer')).toBe('/assets/ui/units/thumbnails/goblin/bannerbearer.png');
