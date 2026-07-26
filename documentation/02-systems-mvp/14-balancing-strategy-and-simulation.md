@@ -102,6 +102,14 @@ docker compose exec -T backend sh -lc "php bin/simulate.php --mode=battle --regi
 docker compose exec -T backend sh -lc "php bin/simulate.php --mode=run --region=the_farm --runs=100 --format=json"
 ```
 
+Repository shortcuts cover the common farm suites used in PR validation:
+
+```text
+npm.cmd run test:db:reset:docker
+npm.cmd run sim:balance:battle:farm:docker
+npm.cmd run sim:balance:run:farm:docker
+```
+
 The tool outputs machine-readable JSON with `--format=json` and a concise human-readable summary by default. JSON output lets later work compare balance changes in CI, scripts, spreadsheets, or dashboards without rewriting the simulator.
 
 Current modes:
