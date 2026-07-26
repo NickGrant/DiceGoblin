@@ -741,8 +741,10 @@ final class RunNodeController
       'currency_soft' => max(0, (int)($rewardRow['currency_soft'] ?? 0)),
       'new_unit_labels' => array_values(is_array($labels['new_unit_labels'] ?? null) ? $labels['new_unit_labels'] : []),
       'new_dice_labels' => array_values(is_array($labels['new_dice_labels'] ?? null) ? $labels['new_dice_labels'] : []),
+      'new_item_labels' => array_values(is_array($labels['new_item_labels'] ?? null) ? $labels['new_item_labels'] : []),
       'units' => array_values(is_array($details['units'] ?? null) ? $details['units'] : []),
       'dice' => array_values(is_array($details['dice'] ?? null) ? $details['dice'] : []),
+      'items' => array_values(is_array($details['items'] ?? null) ? $details['items'] : []),
     ];
   }
 

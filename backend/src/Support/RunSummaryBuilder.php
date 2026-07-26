@@ -24,13 +24,14 @@ final class RunSummaryBuilder
 
   /**
    * @param array<string,mixed> $rewards
-   * @return array{new_unit_labels:array<int,string>,new_dice_labels:array<int,string>}
+   * @return array{new_unit_labels:array<int,string>,new_dice_labels:array<int,string>,new_item_labels:array<int,string>}
    */
   public function buildBattleRewardLabels(int $userId, array $rewards): array
   {
     return [
       'new_unit_labels' => $this->extractUnitRewardLabels($userId, $rewards),
       'new_dice_labels' => $this->extractDiceRewardLabels($userId, $rewards),
+      'new_item_labels' => $this->extractItemRewardLabels($rewards),
     ];
   }
 
@@ -66,6 +67,8 @@ final class RunSummaryBuilder
    *       value:float
    *     }>
    *   }>
+   *   },
+   *   items:array<int,array{item_slug:string,name:string,quantity:int,rarity:string}>
    * }
    */
   public function buildBattleRewardDetails(int $userId, array $rewards): array
@@ -73,6 +76,7 @@ final class RunSummaryBuilder
     return [
       'units' => $this->extractUnitRewardDetails($userId, $rewards),
       'dice' => $this->extractDiceRewardDetails($userId, $rewards),
+      'items' => $this->extractItemRewardDetails($rewards),
     ];
   }
 
@@ -649,6 +653,57 @@ final class RunSummaryBuilder
   }
 
   /**
+   * @param array<string,mixed> $rewards
+   * @return array<int,string>
+   */
+  private function extractItemRewardLabels(array $rewards): array
+  {
+    return array_values(array_map(
+      static fn(array $item): string => ((int)$item['quantity'] > 1)
+        ? sprintf('%s x%d', (string)$item['name'], (int)$item['quantity'])
+        : (string)$item['name'],
+      $this->extractItemRewardDetails($rewards)
+    ));
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   * @return array<int,array{item_slug:string,name:string,quantity:int,rarity:string}>
+   */
+  private function extractItemRewardDetails(array $rewards): array
+  {
+    $quantities = [];
+    foreach (['item_grants', 'granted_items'] as $key) {
+      $rows = is_array($rewards[$key] ?? null) ? $rewards[$key] : [];
+      foreach ($rows as $row) {
+        if (!is_array($row)) {
+          continue;
+        }
+        $slug = trim((string)($row['item_slug'] ?? ''));
+        if ($slug === '') {
+          continue;
+        }
+        $quantity = max(1, (int)($row['granted_quantity'] ?? $row['quantity'] ?? 1));
+        $quantities[$slug] = ($quantities[$slug] ?? 0) + $quantity;
+      }
+    }
+
+    $itemsBySlug = $this->loadItemsBySlug(array_keys($quantities));
+    $details = [];
+    foreach ($quantities as $slug => $quantity) {
+      $item = $itemsBySlug[$slug] ?? null;
+      $details[] = [
+        'item_slug' => (string)$slug,
+        'name' => (string)($item['name'] ?? $this->prettifyId((string)$slug)),
+        'quantity' => (int)$quantity,
+        'rarity' => (string)($item['rarity'] ?? 'common'),
+      ];
+    }
+
+    return $details;
+  }
+
+  /**
    * @param array<int,string> $slugs
    * @return array<string,string>
    */
@@ -686,6 +741,32 @@ final class RunSummaryBuilder
       $map[(string)$row['slug']] = [
         'name' => (string)$row['name'],
         'base_stats_json' => $row['base_stats_json'] ?? null,
+      ];
+    }
+
+    return $map;
+  }
+
+  /**
+   * @param array<int,string> $slugs
+   * @return array<string,array{name:string,rarity:string}>
+   */
+  private function loadItemsBySlug(array $slugs): array
+  {
+    $slugs = array_values(array_unique(array_filter(array_map('strval', $slugs), static fn(string $slug): bool => $slug !== '')));
+    if (count($slugs) === 0) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($slugs), '?'));
+    $stmt = $this->pdo->prepare("SELECT `slug`, `name`, `rarity` FROM `items` WHERE `slug` IN ($placeholders)");
+    $stmt->execute($slugs);
+
+    $map = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $map[(string)$row['slug']] = [
+        'name' => (string)$row['name'],
+        'rarity' => (string)$row['rarity'],
       ];
     }
 

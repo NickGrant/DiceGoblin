@@ -150,6 +150,7 @@ final class DeterministicRunNodeResolver
       'region_items' => [],
       'dice_grants' => [],
       'unit_grants' => [],
+      'item_grants' => [],
     ];
     if ($nodeType === 'loot') {
       $lootTableSlug = isset($encounter['reward_profile']['loot_table_slug'])
@@ -203,6 +204,10 @@ final class DeterministicRunNodeResolver
             'sides' => (int)$diceSpec['sides'],
           ];
         }
+      }
+
+      foreach ($this->progressionItemGrantsForVictory($nodeType, $enemyUnits) as $itemGrant) {
+        $rewards['item_grants'][] = $itemGrant;
       }
     }
 
@@ -269,6 +274,45 @@ final class DeterministicRunNodeResolver
         'events' => $events,
       ],
     ];
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $enemyUnits
+   * @return list<array{item_slug:string,quantity:int}>
+   */
+  private function progressionItemGrantsForVictory(string $nodeType, array $enemyUnits): array
+  {
+    if (!in_array($nodeType, ['combat', 'boss'], true)) {
+      return [];
+    }
+
+    $enemySlugs = array_values(array_unique(array_map(
+      static fn(array $unit): string => (string)($unit['slug'] ?? ''),
+      $enemyUnits
+    )));
+    $hasPigFamily = false;
+    $hasMudking = false;
+    foreach ($enemySlugs as $slug) {
+      if ($slug === '') {
+        continue;
+      }
+      if (str_contains($slug, 'pig') || str_contains($slug, 'boar') || $slug === 'mudking') {
+        $hasPigFamily = true;
+      }
+      if ($slug === 'mudking') {
+        $hasMudking = true;
+      }
+    }
+
+    $grants = [];
+    if ($hasPigFamily) {
+      $grants[] = ['item_slug' => 'pig_ear', 'quantity' => $nodeType === 'boss' ? 2 : 1];
+    }
+    if ($hasMudking && $nodeType === 'boss') {
+      $grants[] = ['item_slug' => 'mudking_crown_fragment', 'quantity' => 1];
+    }
+
+    return $grants;
   }
 
   /**
