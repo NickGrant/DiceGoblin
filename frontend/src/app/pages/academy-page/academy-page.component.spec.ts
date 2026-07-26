@@ -219,11 +219,16 @@ describe('AcademyPageComponent', () => {
     ]);
     expect(component.unitUnlockDescription('support_banner_t1')).toContain('support specialist');
     expect(component.unitUnlockDescription('frontline_bruiser_t2')).toContain('heavier execution damage');
-    expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[0])).toBe('Support Tier I');
-    expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[1])).toBe('Requires: Complete any run');
+    expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[0])).toBe(
+      'Tier I Support - adds future recruit and reward drops.',
+    );
+    expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[1])).toBe('Requires: Complete any run (0/1)');
+    expect(component.unitUnlockActionLabel(component.availableUnitUnlocks()[0])).toBe('Unlock');
+    expect(component.unitUnlockActionLabel(component.availableUnitUnlocks()[1])).toBe('Locked');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('PRC');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('RES');
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Requires: Complete any run');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Requires: Complete any run (0/1)');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Unlock');
     component.selectedUnitId.set('u1');
     await fixture.whenStable();
     fixture.detectChanges();
@@ -347,7 +352,7 @@ describe('AcademyPageComponent', () => {
 
     expect(lockedEntry).toBeTruthy();
     expect(component.unitUnlockDisabled(lockedEntry!)).toBeTrue();
-    expect(host.textContent).toContain('Requires: Complete any run');
+    expect(host.textContent).toContain('Requires: Complete any run (0/1)');
 
     const buttons = Array.from(host.querySelectorAll<HTMLButtonElement>('.academy-unlock-card'));
     const tierTwoButton = buttons.find((button) => button.textContent?.includes('Enforcer'));

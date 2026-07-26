@@ -60,9 +60,7 @@
             </div>
             <div class="academy-unlock-card__actions">
               <span class="academy-unlock-card__cost">{{ entry.cost }} Teeth</span>
-              @if (unlockingUnitTypeSlug() === entry.unit_type_slug) {
-              <span class="academy-unlock-card__state">Working...</span>
-              }
+              <span class="academy-unlock-card__state">{{ unitUnlockActionLabel(entry) }}</span>
             </div>
           </button>
           }
