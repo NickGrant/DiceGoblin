@@ -134,6 +134,60 @@ final class RunLifecycleServiceIntegrationTest extends BattleFlowIntegrationCase
     );
   }
 
+  public function testClaimingFarmBossVictoryUnlocksShopBeforeRunCompletion(): void
+  {
+    $userId = $this->insertUser();
+    $farmRegionId = (int)$this->scalar("SELECT `id` FROM `regions` WHERE `slug` = 'the_farm' LIMIT 1", []);
+    $mountainsRegionId = (int)$this->scalar("SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1", []);
+    $this->assertGreaterThan(0, $farmRegionId);
+    $this->assertGreaterThan(0, $mountainsRegionId);
+
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $farmRegionId, 41424344);
+    $bossNodeId = $this->insertRunNode($runId, 'boss', 'cleared');
+    $exitNodeId = $this->insertRunNode($runId, 'exit', 'available');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 12, false);
+
+    $battleId = $this->insertBattle($userId, $runId, $bossNodeId, $teamId, 'completed', 'victory', 91929394, 20, 2);
+    $this->insertBattleRewards($battleId, 8, 5, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+    ]);
+
+    $claim = $this->service()->claimBattle($userId, $battleId);
+    $snapshot = is_array($claim['claim_snapshot'] ?? null) ? $claim['claim_snapshot'] : [];
+
+    $this->assertTrue($claim['newly_claimed']);
+    $this->assertContains(UserUnlockService::FEATURE_SHOP, $snapshot['new_feature_unlocks'] ?? []);
+
+    $unlockService = new UserUnlockService($this->pdo);
+    $this->assertTrue($unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP));
+    $this->assertSame(
+      '1',
+      (string)$this->scalar(
+        "SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_namespace` = 'feature' AND `unlock_key` = ?",
+        [$userId, UserUnlockService::FEATURE_SHOP]
+      )
+    );
+
+    $complete = $this->service()->completeRun($userId, $runId, $farmRegionId, $exitNodeId);
+    $summary = is_array($complete['run_summary'] ?? null) ? $complete['run_summary'] : [];
+    $meta = is_array($summary['meta'] ?? null) ? $summary['meta'] : [];
+
+    $this->assertNotContains(UserUnlockService::FEATURE_SHOP, $meta['new_feature_unlocks'] ?? []);
+    $this->assertSame(
+      '1',
+      (string)$this->scalar(
+        "SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_namespace` = 'feature' AND `unlock_key` = ?",
+        [$userId, UserUnlockService::FEATURE_SHOP]
+      )
+    );
+  }
+
   public function testCompleteSwampsRunGrantsWrongMachineFeatureOnce(): void
   {
     $userId = $this->insertUser();

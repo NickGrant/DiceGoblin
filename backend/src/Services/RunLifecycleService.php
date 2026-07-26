@@ -200,6 +200,7 @@ final class RunLifecycleService
     }
     $run = $this->runRepository->getRunForUser($userId, $runId);
     $runAlreadyEnded = is_array($run) && (string)($run['status'] ?? '') !== 'active';
+    $newFeatureUnlocks = $this->unlockBattleClaimRewards($userId, $battle, $run);
 
     $runStateRows = $this->runRepository->getRunUnitStateForUpdate($runId);
     $runStateByUnitId = [];
@@ -219,6 +220,7 @@ final class RunLifecycleService
           'soft_awarded' => $softCurrencyAward,
           'raw_chaos_awarded' => $rawChaosAward,
         ],
+        'new_feature_unlocks' => $newFeatureUnlocks,
         'updated_units' => [],
       ];
     }
@@ -253,6 +255,7 @@ final class RunLifecycleService
           'soft_awarded' => $softCurrencyAward,
           'raw_chaos_awarded' => $rawChaosAward,
         ],
+        'new_feature_unlocks' => $newFeatureUnlocks,
         'updated_units' => [],
       ];
     }
@@ -271,6 +274,7 @@ final class RunLifecycleService
           'soft_awarded' => $softCurrencyAward,
           'raw_chaos_awarded' => $rawChaosAward,
         ],
+        'new_feature_unlocks' => $newFeatureUnlocks,
         'updated_units' => [],
       ];
     }
@@ -416,6 +420,7 @@ final class RunLifecycleService
             'soft_awarded' => $softCurrencyAward,
             'raw_chaos_awarded' => $rawChaosAward,
           ],
+          'new_feature_unlocks' => $newFeatureUnlocks,
           'updated_units' => $updatedUnits,
         ];
       }
@@ -433,8 +438,42 @@ final class RunLifecycleService
         'soft_awarded' => $softCurrencyAward,
         'raw_chaos_awarded' => $rawChaosAward,
       ],
+      'new_feature_unlocks' => $newFeatureUnlocks,
       'updated_units' => $updatedUnits,
     ];
+  }
+
+  /**
+   * @param array<string,mixed> $battle
+   * @param array<string,mixed>|null $run
+   * @return list<string>
+   */
+  private function unlockBattleClaimRewards(int $userId, array $battle, ?array $run): array
+  {
+    if ((string)($battle['outcome'] ?? '') !== 'victory' || (string)($battle['node_type'] ?? '') !== 'boss') {
+      return [];
+    }
+    if (!is_array($run)) {
+      return [];
+    }
+
+    $regionId = (int)($run['region_id'] ?? 0);
+    if ($regionId <= 0) {
+      return [];
+    }
+
+    $region = $this->regionRepository->getRegionById($regionId);
+    if ($region === null || (string)($region['slug'] ?? '') !== 'the_farm') {
+      return [];
+    }
+
+    $unlockService = new UserUnlockService($this->pdo);
+    if ($unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP)) {
+      return [];
+    }
+
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP);
+    return [UserUnlockService::FEATURE_SHOP];
   }
 
   /**
