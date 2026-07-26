@@ -13,12 +13,17 @@ class RunServiceStub {
     progression: ['Fang +30 XP'],
     survivors: ['Fang'],
     defeated: ['Muck'],
-    meta: null,
+    meta: {
+      new_feature_unlocks: ['wrong_machine'],
+      new_region_unlocks: ['mountains'],
+    },
     rewardDetail: {
       currency_soft: 125,
       units: [{ unit_instance_id: 'u1', label: 'Goblin Bruiser' }],
       dice: [{ dice_instance_id: 'd1', label: 'bone d8' }],
+      items: [{ item_slug: 'pig_ear', name: 'Pig Ear', quantity: 2, rarity: 'rare' }],
     },
+    stolenPages: [{ dialogue_id: 'mountains-archivist-first-contact', title: 'Archivist First Contact' }],
     progressionDetail: [
       {
         unit_instance_id: 'u1',
@@ -46,6 +51,7 @@ class SessionServiceStub {
   readonly profileData = signal<any>({
     feature_unlocks: [],
     seen_dialogues: [],
+    regions: [{ slug: 'mountains', name: 'Mountains' }],
   });
   readonly units = signal([
     {
@@ -91,8 +97,12 @@ describe('RunSummaryPageComponent', () => {
     expect(compiled.textContent).toContain('Fang');
     expect(compiled.textContent).toContain('d8');
     expect(compiled.textContent).toContain('Rare');
+    expect(compiled.textContent).toContain('Pig Ear x2');
+    expect(compiled.textContent).toContain('Wrong Machine');
+    expect(compiled.textContent).toContain('Mountains');
+    expect(compiled.textContent).toContain('Archivist First Contact');
     expect(compiled.textContent).toContain('Return Home');
-    expect(compiled.querySelectorAll('.run-summary-loot-masonry .loot-card')).toHaveSize(3);
+    expect(compiled.querySelectorAll('.run-summary-loot-masonry .loot-card')).toHaveSize(7);
     expect(compiled.querySelectorAll('dg-unit-bar')).toHaveSize(1);
     expect(compiled.querySelector('dg-unit-grid-object')).toBeNull();
   });

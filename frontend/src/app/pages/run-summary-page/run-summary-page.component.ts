@@ -35,6 +35,13 @@ type RewardDisplayCard = {
   imageUrl: string;
 };
 
+type RewardTextCard = {
+  id: string;
+  label: string;
+  meta: string;
+  imageUrl: string;
+};
+
 type SquadOutcomeUnit = {
   id: string;
   unit: UnitRecord;
@@ -103,6 +110,45 @@ export class RunSummaryPageComponent {
   });
   readonly rewardUnitCount = computed(() => this.rewardUnitCards().length);
   readonly rewardDiceCount = computed(() => this.rewardDiceCards().length);
+  readonly rewardItemCards = computed<RewardTextCard[]>(() => {
+    const items = this.summary()?.rewardDetail?.items ?? [];
+    return items.map((item, index) => ({
+      id: `reward-item-${item.item_slug}-${index}`,
+      label: item.quantity > 1 ? `${item.name} x${item.quantity}` : item.name,
+      meta: this.humanizeId(item.rarity || 'item'),
+      imageUrl: '/assets/ui/icons/icon_inventory.png',
+    }));
+  });
+  readonly unlockCards = computed<RewardTextCard[]>(() => {
+    const meta = this.summary()?.meta;
+    const featureUnlocks = meta?.new_feature_unlocks ?? [];
+    const regionUnlocks = meta?.new_region_unlocks ?? [];
+    const cards: RewardTextCard[] = featureUnlocks.map((unlock) => ({
+      id: `feature-unlock-${unlock}`,
+      label: this.featureUnlockLabel(unlock),
+      meta: 'Feature Unlocked',
+      imageUrl: this.featureUnlockIcon(unlock),
+    }));
+
+    for (const regionSlug of regionUnlocks) {
+      cards.push({
+        id: `region-unlock-${regionSlug}`,
+        label: this.regionUnlockLabel(regionSlug),
+        meta: 'Region Unlocked',
+        imageUrl: '/assets/ui/icons/icon_home.png',
+      });
+    }
+
+    return cards;
+  });
+  readonly stolenPageCards = computed<RewardTextCard[]>(() =>
+    (this.summary()?.stolenPages ?? []).map((page) => ({
+      id: `stolen-page-${page.dialogue_id}`,
+      label: page.title,
+      meta: 'Stolen Page',
+      imageUrl: '/assets/ui/icons/icon_guide.png',
+    })),
+  );
   readonly resultTitle = computed(() => {
     const status = this.summary()?.status ?? '';
     if (status.includes('abandon')) {
@@ -244,7 +290,10 @@ export class RunSummaryPageComponent {
     () =>
       this.rewardCurrency() <= 0 &&
       this.rewardUnitCards().length === 0 &&
-      this.rewardDiceCards().length === 0,
+      this.rewardDiceCards().length === 0 &&
+      this.rewardItemCards().length === 0 &&
+      this.unlockCards().length === 0 &&
+      this.stolenPageCards().length === 0,
   );
 
   diceLabel(die: DiceRecord): string {
@@ -419,6 +468,26 @@ export class RunSummaryPageComponent {
     const match = label.trim().match(/\bd(\d+)\b/i);
     const rarity = label.trim().match(/^(common|uncommon|rare|epic|legendary)\b/i)?.[1] ?? 'common';
     return resolveDiceArtStyles(rarity, Number(match?.[1] ?? 6), 96).imageUrl;
+  }
+
+  private featureUnlockLabel(unlock: string): string {
+    return this.humanizeId(unlock);
+  }
+
+  private featureUnlockIcon(unlock: string): string {
+    if (unlock === 'shop') {
+      return '/assets/ui/icons/icon_shop.png';
+    }
+    if (unlock === 'wrong_machine') {
+      return '/assets/ui/icons/icon_encounter_locked.png';
+    }
+
+    return '/assets/ui/icons/icon_home.png';
+  }
+
+  private regionUnlockLabel(regionSlug: string): string {
+    const region = this.profileData()?.regions?.find((entry) => entry.slug === regionSlug);
+    return region?.name ?? this.humanizeId(regionSlug);
   }
 
   private humanizeId(value: string): string {

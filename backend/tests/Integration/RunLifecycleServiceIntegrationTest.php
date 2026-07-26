@@ -104,6 +104,25 @@ final class RunLifecycleServiceIntegrationTest extends BattleFlowIntegrationCase
     $this->assertGreaterThan(0, $mountainsRegionId);
 
     $runId = $this->insertRun($userId, $farmRegionId, 40414243);
+    $teamId = $this->insertTeam($userId);
+    $battleNodeId = $this->insertRunNode($runId, 'combat', 'cleared');
+    $battleId = $this->insertBattle($userId, $runId, $battleNodeId, $teamId, 'claimed', 'victory', 40414244, 8, 1);
+    $this->insertBattleRewards($battleId, 0, 7, [
+      'item_grants' => [
+        ['item_slug' => 'pig_ear', 'quantity' => 2],
+      ],
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+    ]);
+    $dialogueMeta = json_encode([
+      'dialogue_id' => 'mountains-archivist-first-contact',
+      'tags' => ['lore'],
+    ], JSON_UNESCAPED_SLASHES);
+    $dialogueStmt = $this->pdo?->prepare('
+      INSERT INTO `run_nodes` (`run_id`, `node_index`, `node_type`, `status`, `encounter_template_id`, `meta_json`)
+      VALUES (?, ?, \'dialogue\', \'cleared\', NULL, ?)
+    ');
+    $dialogueStmt?->execute([$runId, random_int(10000, 19999), $dialogueMeta]);
     $exitNodeId = $this->insertRunNode($runId, 'exit', 'available');
 
     [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
@@ -122,6 +141,14 @@ final class RunLifecycleServiceIntegrationTest extends BattleFlowIntegrationCase
     $meta = is_array($summary['meta'] ?? null) ? $summary['meta'] : [];
     $this->assertContains('shop', $meta['new_feature_unlocks'] ?? []);
     $this->assertContains('mountains', $meta['new_region_unlocks'] ?? []);
+    $rewardDetail = is_array($summary['reward_detail'] ?? null) ? $summary['reward_detail'] : [];
+    $items = array_values(array_filter($rewardDetail['items'] ?? [], 'is_array'));
+    $this->assertCount(1, $items);
+    $this->assertSame('pig_ear', (string)($items[0]['item_slug'] ?? ''));
+    $this->assertSame(2, (int)($items[0]['quantity'] ?? 0));
+    $stolenPages = array_values(array_filter($summary['stolen_pages'] ?? [], 'is_array'));
+    $this->assertCount(1, $stolenPages);
+    $this->assertSame('mountains-archivist-first-contact', (string)($stolenPages[0]['dialogue_id'] ?? ''));
 
     $unlockService = new UserUnlockService($this->pdo);
     $this->assertTrue($unlockService->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_SHOP));

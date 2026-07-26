@@ -50,6 +50,42 @@
                 </article>
               }
 
+              @for (card of rewardItemCards(); track card.id) {
+                <article class="loot-card loot-card--item">
+                  <div class="loot-card__media loot-card__media--icon">
+                    <img [src]="card.imageUrl" [alt]="card.label" />
+                  </div>
+                  <div class="loot-card__copy">
+                    <p class="loot-card__meta">{{ card.meta }}</p>
+                    <h4 class="loot-card__title dg-stencil">{{ card.label }}</h4>
+                  </div>
+                </article>
+              }
+
+              @for (card of unlockCards(); track card.id) {
+                <article class="loot-card loot-card--unlock">
+                  <div class="loot-card__media loot-card__media--icon">
+                    <img [src]="card.imageUrl" [alt]="card.label" />
+                  </div>
+                  <div class="loot-card__copy">
+                    <p class="loot-card__meta">{{ card.meta }}</p>
+                    <h4 class="loot-card__title dg-stencil">{{ card.label }}</h4>
+                  </div>
+                </article>
+              }
+
+              @for (card of stolenPageCards(); track card.id) {
+                <article class="loot-card loot-card--page">
+                  <div class="loot-card__media loot-card__media--icon">
+                    <img [src]="card.imageUrl" [alt]="card.label" />
+                  </div>
+                  <div class="loot-card__copy">
+                    <p class="loot-card__meta">{{ card.meta }}</p>
+                    <h4 class="loot-card__title dg-stencil">{{ card.label }}</h4>
+                  </div>
+                </article>
+              }
+
               @for (card of rewardUnitCards(); track card.id) {
                 <article class="loot-card loot-card--unit">
                   <div class="loot-card__media">
