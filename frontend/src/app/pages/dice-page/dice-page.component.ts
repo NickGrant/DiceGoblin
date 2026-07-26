@@ -41,9 +41,11 @@ export class DicePageComponent {
   readonly selectedRarity = signal<string | null>(null);
   readonly selectedEquipFilter = signal<DiceEquipFilter>('all');
   readonly selectedSort = signal<DiceSortOption>('size-asc');
+  readonly page = signal(1);
   readonly hoveredDiceId = signal<string | null>(null);
   readonly pendingSellDiceId = signal<string | null>(null);
   readonly pendingSalvageDiceId = signal<string | null>(null);
+  readonly pageSize = 12;
   readonly sizeOptions = computed(() => buildDiceSizeOptions(this.dice()));
   readonly rarityOptions = computed(() => buildDiceRarityOptions(this.dice()));
   readonly rawChaosBalance = computed(() => this.profileData()?.currency?.raw_chaos ?? 0);
@@ -61,21 +63,27 @@ export class DicePageComponent {
       isEquipped: (diceId) => this.isEquippedAnywhere(diceId),
     }),
   );
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredDice().length / this.pageSize)));
+  readonly currentPage = computed(() => Math.min(this.page(), this.totalPages()));
+  readonly pagedDice = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filteredDice().slice(start, start + this.pageSize);
+  });
   readonly inspectedDice = computed(() => {
-    const filteredDice = this.filteredDice();
-    if (!filteredDice.length) {
+    const pagedDice = this.pagedDice();
+    if (!pagedDice.length) {
       return null;
     }
 
     const hoveredId = this.hoveredDiceId();
     if (hoveredId) {
-      const hoveredDie = filteredDice.find((die) => die.id === hoveredId);
+      const hoveredDie = pagedDice.find((die) => die.id === hoveredId);
       if (hoveredDie) {
         return hoveredDie;
       }
     }
 
-    return filteredDice[0] ?? null;
+    return pagedDice[0] ?? null;
   });
   readonly pendingSellDice = computed(() => this.dice().find((die) => die.id === this.pendingSellDiceId()) ?? null);
   readonly pendingSalvageDice = computed(() => this.dice().find((die) => die.id === this.pendingSalvageDiceId()) ?? null);
@@ -139,22 +147,36 @@ export class DicePageComponent {
 
   updateSize(value: string): void {
     this.selectedSize.set(value ? Number(value) : null);
+    this.resetPage();
   }
 
   updateRarity(value: string): void {
     this.selectedRarity.set(value || null);
+    this.resetPage();
   }
 
   updateEquipFilter(value: DiceEquipFilter): void {
     this.selectedEquipFilter.set(value);
+    this.resetPage();
   }
 
   updateSort(value: DiceSortOption): void {
     this.selectedSort.set(value);
+    this.resetPage();
   }
 
   previewDice(diceId: string): void {
     this.hoveredDiceId.set(diceId);
+  }
+
+  goToPreviousPage(): void {
+    this.hoveredDiceId.set(null);
+    this.page.set(Math.max(1, this.currentPage() - 1));
+  }
+
+  goToNextPage(): void {
+    this.hoveredDiceId.set(null);
+    this.page.set(Math.min(this.totalPages(), this.currentPage() + 1));
   }
 
   async activateDice(die: DiceRecord): Promise<void> {
@@ -275,5 +297,10 @@ export class DicePageComponent {
     }
 
     return normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
+  }
+
+  private resetPage(): void {
+    this.page.set(1);
+    this.hoveredDiceId.set(null);
   }
 }

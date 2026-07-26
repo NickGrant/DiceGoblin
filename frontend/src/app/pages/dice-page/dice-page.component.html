@@ -92,14 +92,39 @@
             </div>
           </div>
 
-          <p class="dice-page__results">Showing {{ filteredDice().length }} of {{ dice().length }} dice.</p>
+          <div class="dice-page__results-row">
+            <p class="dice-page__results">
+              Showing {{ pagedDice().length }} of {{ filteredDice().length }} dice.
+            </p>
+            @if (totalPages() > 1) {
+            <div class="dice-page__pager" aria-label="Dice inventory pages">
+              <button
+                dgCommandBtn="muted"
+                type="button"
+                (click)="goToPreviousPage()"
+                [disabled]="currentPage() <= 1"
+              >
+                Previous
+              </button>
+              <span class="dice-page__page-count">Page {{ currentPage() }} / {{ totalPages() }}</span>
+              <button
+                dgCommandBtn="muted"
+                type="button"
+                (click)="goToNextPage()"
+                [disabled]="currentPage() >= totalPages()"
+              >
+                Next
+              </button>
+            </div>
+            }
+          </div>
         </section>
 
-        @if (filteredDice().length) {
+        @if (pagedDice().length) {
         <div class="dice-page__inventory">
           <div class="dice-page__rail">
             <div class="dice-page__rail-layout dg-motion-stagger">
-              @for (die of filteredDice(); track die.id) {
+              @for (die of pagedDice(); track die.id) {
               <button
                 type="button"
                 class="dice-page__tile dg-proto-card"

@@ -77,6 +77,38 @@ describe('DicePageComponent', () => {
     expect(component.filteredDice().map((die) => die.id)).toEqual(['d3', 'd1', 'd2']);
   });
 
+  it('paginates filtered dice and resets to the first page when filters change', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    sessionService.dice.set(Array.from({ length: 13 }, (_, index) => ({
+      id: `d${index + 1}`,
+      sell_value: 5,
+      sides: 6,
+      rarity: index === 12 ? 'rare' : 'common',
+    })));
+    fixture.detectChanges();
+
+    expect(component.totalPages()).toBe(2);
+    expect(component.currentPage()).toBe(1);
+    expect(component.pagedDice()).toHaveSize(12);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Page 1 / 2');
+
+    component.goToNextPage();
+    fixture.detectChanges();
+
+    expect(component.currentPage()).toBe(2);
+    expect(component.pagedDice().map((die) => die.id)).toEqual(['d13']);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Page 2 / 2');
+
+    component.updateRarity('common');
+    fixture.detectChanges();
+
+    expect(component.currentPage()).toBe(1);
+    expect(component.filteredDice()).toHaveSize(12);
+    expect(component.pagedDice()).toHaveSize(12);
+  });
+
   it('shows a unit link for equipped dice and keeps sell and salvage for unequipped dice', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
