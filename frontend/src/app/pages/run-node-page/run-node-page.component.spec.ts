@@ -426,7 +426,10 @@ describe('RunNodePageComponent', () => {
       'The encounter is settled. Review the result, then claim what the run earned.',
     );
     expect(fixture.nativeElement.textContent).toContain('Shrine Node');
+    expect(fixture.nativeElement.textContent).toContain('Shrine Result');
+    expect(fixture.nativeElement.textContent).toContain('Shrine Favor Granted');
     expect(fixture.nativeElement.textContent).toContain('The path opened without a fight.');
+    expect(fixture.nativeElement.textContent).toContain('The favor is ready to claim.');
     expect(fixture.nativeElement.textContent).toContain('Claim Favor');
     expect(fixture.nativeElement.querySelector('.node-result-layout')).not.toBeNull();
     expect((fixture.nativeElement.querySelector('.node-result-layout__art') as HTMLImageElement)?.getAttribute('src')).toBe(
@@ -488,8 +491,10 @@ describe('RunNodePageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Hazard Node');
+    expect(fixture.nativeElement.textContent).toContain('Hazard Result');
     expect(fixture.nativeElement.textContent).toContain('Continue Path');
     expect(fixture.nativeElement.textContent).toContain('Hazard Avoided');
+    expect(fixture.nativeElement.textContent).toContain('The route is clear enough to continue.');
     expect(fixture.nativeElement.querySelector('.node-result-layout')).not.toBeNull();
   });
 

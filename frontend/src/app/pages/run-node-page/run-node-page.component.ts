@@ -223,6 +223,16 @@ export class RunNodePageComponent implements OnDestroy {
         return 'Claim Rewards';
     }
   });
+  readonly nodeResultDetailCopy = computed(() => {
+    switch (this.resolvedNodeType()) {
+      case 'shrine':
+        return 'The favor is ready to claim.';
+      case 'hazard':
+        return 'The route is clear enough to continue.';
+      default:
+        return 'Claim the result and keep moving.';
+    }
+  });
   readonly nodeResultClaimLabel = computed(() => {
     if (this.busy()) {
       return 'Working...';
