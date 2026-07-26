@@ -416,6 +416,7 @@ describe('RunNodePageComponent', () => {
 
     expect(runService.resolveNode).not.toHaveBeenCalled();
     expect(fixture.componentInstance.pageTitle()).toBe('Shrine Encounter');
+    expect(fixture.nativeElement.textContent).toContain('Approach Shrine');
 
     await fixture.componentInstance.resolveNode();
     fixture.detectChanges();
