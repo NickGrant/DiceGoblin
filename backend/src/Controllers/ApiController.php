@@ -375,7 +375,12 @@ final class ApiController
       // Create run + graph.
       $seed = random_int(1, 9223372036854775807);
       $graphGenerator = new RunGraphGenerator($pdo);
-      $graph = $graphGenerator->generate($regionId, (string)$region['slug'], (string)$seed);
+      $allowChaosNodes = (new UserUnlockService($pdo))->isUnlocked(
+        $userId,
+        UserUnlockService::NAMESPACE_FEATURE,
+        UserUnlockService::FEATURE_WRONG_MACHINE
+      );
+      $graph = $graphGenerator->generate($regionId, (string)$region['slug'], (string)$seed, $allowChaosNodes);
       $treasureSenseRevealChance = $this->activeTeamTreasureSenseRevealChance($pdo, $teamUnitIds);
       if ($treasureSenseRevealChance > 0.0) {
         $graph = $graphGenerator->applyTreasureSenseReveal($regionId, $graph, (string)$seed, $treasureSenseRevealChance);
