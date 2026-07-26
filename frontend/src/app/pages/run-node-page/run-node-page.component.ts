@@ -102,6 +102,29 @@ export class RunNodePageComponent implements OnDestroy {
   readonly combatAnimationFrameIndex = signal(0);
   readonly shouldAutoResolve = computed(() => AUTO_RESOLVE_NODE_TYPES.has(this.nodeType() ?? ''));
   readonly isChaosNode = computed(() => this.nodeType() === 'chaos');
+  readonly canManuallyResolve = computed(() => {
+    const nodeType = this.nodeType();
+    return !!nodeType
+      && !this.shouldAutoResolve()
+      && !this.isChaosNode()
+      && !['dialogue', 'exit', 'loot'].includes(nodeType);
+  });
+  readonly manualResolveButtonLabel = computed(() => {
+    if (this.busy()) {
+      return 'Resolving...';
+    }
+
+    switch (this.nodeType()) {
+      case 'shrine':
+        return 'Approach Shrine';
+      case 'hazard':
+        return 'Face Hazard';
+      case 'rest':
+        return 'Rest Here';
+      default:
+        return 'Resolve Encounter';
+    }
+  });
   readonly chaosRewards = computed(() => this.chaosResult()?.finalized_rewards ?? null);
   readonly chaosIsFinalized = computed(() => this.chaosResult()?.status === 'confirmed');
   readonly abilityCatalogError = this.abilityCatalogService.error;

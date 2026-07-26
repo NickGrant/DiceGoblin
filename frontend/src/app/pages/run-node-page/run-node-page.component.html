@@ -329,6 +329,10 @@
       <button dgCommandBtn="primary" type="button" class="mt-3" (click)="resolveNode()" [disabled]="busy() || loading()">
         {{ busy() ? 'Resolving...' : 'Retry Resolution' }}
       </button>
+      } @else if (canManuallyResolve()) {
+      <button dgCommandBtn="primary" type="button" class="mt-3" (click)="resolveNode()" [disabled]="busy() || loading()">
+        {{ manualResolveButtonLabel() }}
+      </button>
       }
     </div>
     }
