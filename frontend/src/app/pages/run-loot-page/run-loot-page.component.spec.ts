@@ -148,6 +148,7 @@ describe('RunLootPageComponent', () => {
     const host: HTMLElement = fixture.nativeElement;
     expect(host.textContent).toContain('Claim Treasure');
     expect(host.textContent).toContain('Treasure Found');
+    expect(host.textContent).toContain('teeth');
     expect(host.textContent).toContain('Brindle');
     expect(host.textContent).toContain('Warcaller');
     expect(host.textContent).toContain('Rat Kin');
@@ -158,6 +159,10 @@ describe('RunLootPageComponent', () => {
     expect(host.textContent).not.toContain('bone d6');
     expect(host.querySelector('.loot-scene__main')).not.toBeNull();
     expect(host.querySelector('.loot-scene__rail')).not.toBeNull();
+    expect(host.querySelector('.loot-scene__summary')?.textContent).toContain('5');
+    expect(host.querySelector('.loot-scene__summary')?.textContent).toContain('teeth');
+    expect(host.querySelector('.loot-scene__summary')?.textContent).toContain('dice');
+    expect(host.querySelector('.loot-scene__summary')?.textContent).toContain('units');
     expect((host.querySelector('.loot-scene__art') as HTMLImageElement)?.getAttribute('src')).toBe('/assets/ui/node-art/loot/good_a.png');
 
     const diceImage = host.querySelector('.loot-card--dice img') as HTMLImageElement;
