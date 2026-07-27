@@ -2,7 +2,7 @@ import { TitleCasePipe } from '@angular/common';
 import { Component, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BattlePlaybackActionStep, BattlePlaybackParticipant, BattlePlaybackSnapshot } from '../../core/battle-playback/battle-playback.models';
-import { ChaosEncounterData, ChaosFinalizeData, ResolveNodeData, UnitRecord } from '../../core/models/api.models';
+import { ChaosEncounterData, ChaosFinalizeData, CurrentRunNode, ResolveNodeData, UnitRecord } from '../../core/models/api.models';
 import { AbilityCatalogService } from '../../core/services/ability-catalog/ability-catalog.service';
 import { BattlePlaybackAdapterService } from '../../core/services/battle-playback/battle-playback-adapter.service';
 import { RunService } from '../../core/services/run/run.service';
@@ -14,6 +14,7 @@ import { PageFrameComponent } from '../../layout/page-frame/page-frame.component
 import { UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 import { resolvePrototypeEnemySpriteUrl, resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 import { resolveUnitAnimationFrameUrls } from '../../shared/ui/unit-art/unit-art';
+import { resolveNodeArtUrl } from '../../shared/ui/node-art/node-art';
 
 const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss']);
 
@@ -94,6 +95,7 @@ export class RunNodePageComponent implements OnDestroy {
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly nodeType = signal<string | null>(null);
+  readonly currentNode = signal<CurrentRunNode | null>(null);
   readonly battleViewMode = signal<BattleViewMode>('acted');
   readonly playbackIndex = signal(0);
   readonly playbackPaused = signal(false);
@@ -242,7 +244,7 @@ export class RunNodePageComponent implements OnDestroy {
   });
   readonly nodeResultArtUrl = computed(() => {
     if (this.resolvedNodeType() === 'shrine') {
-      return '/assets/ui/node-art/shrines/good_a.png';
+      return resolveNodeArtUrl(this.currentNode(), 'shrine');
     }
 
     return resolveRegionBackgroundUrl(this.runRegionSlug(), this.runRegionTheme()) ?? '/assets/ui/biome/mystic_cave.png';
@@ -331,6 +333,7 @@ export class RunNodePageComponent implements OnDestroy {
       }
 
       const currentNode = current.data.map?.nodes.find((node) => node.id === this.nodeId) ?? null;
+      this.currentNode.set(currentNode);
       this.nodeType.set(currentNode?.node_type ?? null);
       this.runId.set(current.data.run.run_id);
       this.runRegionSlug.set(current.data.run.region_slug ?? null);

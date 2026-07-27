@@ -9,6 +9,7 @@ import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { RunUnitFormationGridComponent } from '../../shared/ui/run-unit-formation-grid/run-unit-formation-grid.component';
+import { resolveNodeArtUrl } from '../../shared/ui/node-art/node-art';
 
 @Component({
   selector: 'app-run-map-page',
@@ -184,6 +185,13 @@ export class RunMapPageComponent {
   }
 
   iconForNode(node: CurrentRunNode): string {
+    if (node.node_type === 'loot') {
+      return resolveNodeArtUrl(node, 'loot');
+    }
+    if (node.node_type === 'shrine') {
+      return resolveNodeArtUrl(node, 'shrine');
+    }
+
     return this.iconForNodeType(node.node_type);
   }
 
