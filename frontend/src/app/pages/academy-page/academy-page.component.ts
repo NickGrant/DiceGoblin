@@ -350,12 +350,13 @@ export class AcademyPageComponent {
     return normalized.length ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Unit';
   }
 
-  roleInitial(value: string | null | undefined): string {
-    return this.roleLabel(value).charAt(0);
-  }
-
   unitUnlockMetaLabel(entry: AcademyUnitUnlockItem): string {
     return `${this.roleLabel(entry.role)} unit type - Tier ${this.unitUnlockTierLabel(entry.unit_type_slug)}`;
+  }
+
+  unitUnlockIconUrl(unitTypeSlug: string): string {
+    const role = this.unitUnlockThumbnailRole(unitTypeSlug);
+    return `/assets/ui/units/thumbnails/goblin/${role}.png`;
   }
 
   unitUnlockStats(entry: AcademyUnitUnlockItem): Array<{ label: string; value: string }> {
@@ -384,7 +385,7 @@ export class AcademyPageComponent {
       return `Requires: ${unmet.label}${progress}`;
     }
 
-    return `Tier ${this.unitUnlockTierLabel(entry.unit_type_slug)} ${this.roleLabel(entry.role)} - adds future recruit and reward drops.`;
+    return '';
   }
 
   unitUnlockActionLabel(entry: AcademyUnitUnlockItem): string {
@@ -422,6 +423,23 @@ export class AcademyPageComponent {
   private unitUnlockTierLabel(unitTypeSlug: string): string {
     const match = unitTypeSlug.match(/_t(\d+)$/i);
     return match ? toRomanNumeral(Number(match[1])) : 'I';
+  }
+
+  private unitUnlockThumbnailRole(unitTypeSlug: string): string {
+    if (unitTypeSlug.includes('guardian')) {
+      return 'guardian';
+    }
+    if (unitTypeSlug.includes('marksman') || unitTypeSlug.includes('trapper')) {
+      return 'marksman';
+    }
+    if (unitTypeSlug.includes('banner') || unitTypeSlug.includes('mascot')) {
+      return 'bannerbearer';
+    }
+    if (unitTypeSlug.includes('saboteur') || unitTypeSlug.includes('plaguehand')) {
+      return 'saboteur';
+    }
+
+    return 'bruiser';
   }
 }
 
