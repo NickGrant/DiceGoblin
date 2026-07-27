@@ -5,6 +5,34 @@ namespace DiceGoblins\Services;
 
 final class EncounterPrimitiveCatalog
 {
+  /** @var list<array{slug:string,primitive:string,regions:list<string>,min_depth:int,weight:int,result:array<string,mixed>}> */
+  private const HAZARD_EFFECTS = [
+    [
+      'slug' => 'hazard_cautious_footing',
+      'primitive' => 'route_pressure',
+      'regions' => ['the_farm', 'mountains', 'swamps'],
+      'min_depth' => 3,
+      'weight' => 5,
+      'result' => ['effect' => 'cautious_footing', 'pressure' => 'route'],
+    ],
+    [
+      'slug' => 'hazard_loose_scree',
+      'primitive' => 'hp_attrition',
+      'regions' => ['mountains'],
+      'min_depth' => 4,
+      'weight' => 3,
+      'result' => ['effect' => 'loose_scree', 'pressure' => 'hp_attrition'],
+    ],
+    [
+      'slug' => 'hazard_bog_mire',
+      'primitive' => 'kin_mitigation',
+      'regions' => ['swamps'],
+      'min_depth' => 4,
+      'weight' => 3,
+      'result' => ['effect' => 'bog_mire', 'pressure' => 'kin_mitigation', 'mitigated_by' => ['pig_kin']],
+    ],
+  ];
+
   /**
    * @return array<string,list<string>>
    */
@@ -40,19 +68,17 @@ final class EncounterPrimitiveCatalog
    *   result:array<string,mixed>
    * }
    */
-  public function resolveNodeEffect(string $nodeType, callable $nextInt): array
+  public function resolveNodeEffect(string $nodeType, callable $nextInt, ?string $effectSlug = null): array
   {
     if ($nodeType === 'hazard') {
+      $definition = $this->hazardEffectBySlug($effectSlug ?? '') ?? self::HAZARD_EFFECTS[0];
       return [
         'family' => 'hazard',
-        'slug' => 'hazard_cautious_footing',
-        'primitive' => 'route_pressure',
+        'slug' => (string)$definition['slug'],
+        'primitive' => (string)$definition['primitive'],
         'message' => 'hazard_avoided',
         'currency_soft' => 0,
-        'result' => [
-          'effect' => 'cautious_footing',
-          'pressure' => 'route',
-        ],
+        'result' => $definition['result'],
       ];
     }
 
@@ -81,5 +107,32 @@ final class EncounterPrimitiveCatalog
       'currency_soft' => $nodeType === 'loot' ? 8 : 0,
       'result' => [],
     ];
+  }
+
+  /**
+   * @return list<array{slug:string,primitive:string,regions:list<string>,min_depth:int,weight:int,result:array<string,mixed>}>
+   */
+  public function hazardEffectsForRegion(string $regionSlug, int $depth): array
+  {
+    return array_values(array_filter(
+      self::HAZARD_EFFECTS,
+      static fn(array $effect): bool => in_array($regionSlug, $effect['regions'], true)
+        && $depth >= (int)$effect['min_depth']
+        && (int)$effect['weight'] > 0
+    ));
+  }
+
+  /**
+   * @return array{slug:string,primitive:string,regions:list<string>,min_depth:int,weight:int,result:array<string,mixed>}|null
+   */
+  private function hazardEffectBySlug(string $slug): ?array
+  {
+    foreach (self::HAZARD_EFFECTS as $effect) {
+      if ((string)$effect['slug'] === $slug) {
+        return $effect;
+      }
+    }
+
+    return null;
   }
 }

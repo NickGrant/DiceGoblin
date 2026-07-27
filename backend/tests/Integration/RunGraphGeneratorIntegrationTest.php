@@ -391,6 +391,42 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
   /**
    * @dataProvider proceduralRegionProvider
    */
+  public function testProceduralHazardsUseAuthoredPrimitiveMetadata(string $regionSlug): void
+  {
+    $regionId = $this->seededRegionId($regionSlug);
+    $generator = new RunGraphGenerator($this->pdo);
+    $foundHazard = false;
+
+    for ($seed = 9000; $seed < 9050; $seed++) {
+      $graph = $generator->generate($regionId, $regionSlug, (string)$seed);
+      foreach ($graph['nodes'] as $node) {
+        if ((string)($node['node_type'] ?? '') !== 'hazard') {
+          continue;
+        }
+
+        $foundHazard = true;
+        $analysis = $this->analyzeGraph($graph);
+        $nodeIndex = (int)$node['node_index'];
+        $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+
+        $this->assertArrayHasKey($nodeIndex, $analysis['reachable_from_start']);
+        $this->assertSame('hazard', (string)($meta['encounter_family'] ?? ''));
+        $this->assertNotSame('', (string)($meta['encounter_effect_slug'] ?? ''));
+        $this->assertContains(
+          (string)($meta['encounter_primitive'] ?? ''),
+          ['route_pressure', 'hp_attrition', 'kin_mitigation']
+        );
+        $this->assertGreaterThanOrEqual(3, (int)($meta['col'] ?? 0));
+        $this->assertLessThan($analysis['boss_col'], (int)($meta['col'] ?? 0));
+      }
+    }
+
+    $this->assertTrue($foundHazard, "{$regionSlug} should generate authored hazard nodes across deterministic seeds.");
+  }
+
+  /**
+   * @dataProvider proceduralRegionProvider
+   */
   public function testProceduralRegionsOmitChaosNodesWhenWrongMachineIsLocked(string $regionSlug): void
   {
     $regionId = $this->seededRegionId($regionSlug);
