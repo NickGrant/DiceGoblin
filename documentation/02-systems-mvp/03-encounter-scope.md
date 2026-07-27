@@ -1,7 +1,7 @@
 # Encounter Scope
 
 Status: active  
-Last Updated: 2026-07-26  
+Last Updated: 2026-07-27  
 Owner: Systems Design  
 Depends On: `documentation/02-systems-mvp/04-loot-and-drop-scope.md`, `documentation/02-systems-mvp/05-save-and-resume-scope.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
 
@@ -115,6 +115,21 @@ Mystic Cave is currently a narrative onboarding region rather than a combat biom
 - Procedural regions may include shrine nodes as optional non-combat branches or late-path pauses.
 - Procedural regions include at least one chaos node that presents persisted reel results.
 - Authored dialogue nodes may be inserted into otherwise fixed or procedural graphs.
+
+## Node Quality Art
+
+Loot and shrine nodes carry optional display metadata so the map and node-detail screens can render the same quality-tier art:
+
+- `node_quality_tier`: one of `poor`, `good`, or `great`
+- `node_art_variant`: optional `a` or `b` override
+
+Current procedural generation assigns quality tiers after node types are finalized:
+
+- early loot or shrine nodes use `poor`
+- ordinary loot or shrine nodes use `good`
+- late-path or dead-end loot and shrine nodes use `great`
+
+The frontend resolves the A/B variant from `node_art_variant` when present. Otherwise, it uses persisted node id parity so a node keeps the same visual variant across refreshes. Older runs without quality metadata fall back to `good` art.
 
 ### Target Procedural Replacement
 
