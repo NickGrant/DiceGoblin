@@ -163,7 +163,14 @@ export class RunNodePageComponent implements OnDestroy {
     }
 
     if (!this.isCombatLikeNodeType(this.resolvedNodeType())) {
-      return 'The encounter is settled. Review the result, then claim what the run earned.';
+      switch (this.resolvedNodeType()) {
+        case 'shrine':
+          return 'The shrine answered. Claim favor to return to the route.';
+        case 'hazard':
+          return 'The hazard is handled. Continue when the path is clear.';
+        default:
+          return 'Review the result, then continue the route.';
+      }
     }
 
     return RunNodePageComponent.BATTLE_SUBTITLE;
@@ -206,7 +213,14 @@ export class RunNodePageComponent implements OnDestroy {
   );
   readonly battleResultCopy = computed(() => {
     if (!this.isCombatLikeNodeType(this.resolvedNodeType())) {
-      return 'The path opened without a fight. Claim the result and keep moving.';
+      switch (this.resolvedNodeType()) {
+        case 'shrine':
+          return 'A favor is ready. Claim it, then choose the next path.';
+        case 'hazard':
+          return 'The route is passable again. Continue from the map.';
+        default:
+          return 'The path opened without a fight. Claim the result and keep moving.';
+      }
     }
 
     return this.result()?.battle.outcome === 'victory'
@@ -223,12 +237,22 @@ export class RunNodePageComponent implements OnDestroy {
         return 'Claim Rewards';
     }
   });
+  readonly nodeResultEyebrow = computed(() => {
+    switch (this.resolvedNodeType()) {
+      case 'shrine':
+        return 'Favor Ready';
+      case 'hazard':
+        return 'Path Cleared';
+      default:
+        return `${this.humanizeId(this.resolvedNodeType())} Result`;
+    }
+  });
   readonly nodeResultDetailCopy = computed(() => {
     switch (this.resolvedNodeType()) {
       case 'shrine':
-        return 'The favor is ready to claim.';
+        return 'No combat log was needed for this node.';
       case 'hazard':
-        return 'The route is clear enough to continue.';
+        return 'No combat log was needed for this node.';
       default:
         return 'Claim the result and keep moving.';
     }

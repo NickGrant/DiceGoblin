@@ -423,14 +423,16 @@ describe('RunNodePageComponent', () => {
 
     expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', 'n1');
     expect(fixture.componentInstance.pageSubtitle()).toBe(
-      'The encounter is settled. Review the result, then claim what the run earned.',
+      'The shrine answered. Claim favor to return to the route.',
     );
-    expect(fixture.nativeElement.textContent).toContain('Shrine Node');
-    expect(fixture.nativeElement.textContent).toContain('Shrine Result');
+    expect(fixture.nativeElement.textContent).toContain('Favor Ready');
+    expect(fixture.nativeElement.textContent).toContain('Result Summary');
     expect(fixture.nativeElement.textContent).toContain('Shrine Favor Granted');
-    expect(fixture.nativeElement.textContent).toContain('The path opened without a fight.');
-    expect(fixture.nativeElement.textContent).toContain('The favor is ready to claim.');
+    expect(fixture.nativeElement.textContent).toContain('A favor is ready. Claim it, then choose the next path.');
+    expect(fixture.nativeElement.textContent).toContain('No combat log was needed for this node.');
     expect(fixture.nativeElement.textContent).toContain('Claim Favor');
+    expect(fixture.nativeElement.textContent).not.toContain('Shrine Node');
+    expect(fixture.nativeElement.textContent).not.toContain('Shrine Result');
     expect(fixture.nativeElement.querySelector('.node-result-layout')).not.toBeNull();
     expect((fixture.nativeElement.querySelector('.node-result-layout__art') as HTMLImageElement)?.getAttribute('src')).toBe(
       '/assets/ui/node-art/shrines/good_a.png',
@@ -490,11 +492,12 @@ describe('RunNodePageComponent', () => {
     await fixture.componentInstance.resolveNode();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Hazard Node');
-    expect(fixture.nativeElement.textContent).toContain('Hazard Result');
+    expect(fixture.nativeElement.textContent).toContain('Path Cleared');
+    expect(fixture.nativeElement.textContent).toContain('Result Summary');
     expect(fixture.nativeElement.textContent).toContain('Continue Path');
     expect(fixture.nativeElement.textContent).toContain('Hazard Avoided');
-    expect(fixture.nativeElement.textContent).toContain('The route is clear enough to continue.');
+    expect(fixture.nativeElement.textContent).toContain('The route is passable again. Continue from the map.');
+    expect(fixture.nativeElement.textContent).toContain('No combat log was needed for this node.');
     expect(fixture.nativeElement.querySelector('.node-result-layout')).not.toBeNull();
   });
 
