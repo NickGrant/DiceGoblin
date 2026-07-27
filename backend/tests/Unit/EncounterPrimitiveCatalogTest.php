@@ -24,10 +24,10 @@ final class EncounterPrimitiveCatalogTest extends TestCase
 
   public function testShrineResolutionIsDeterministicForProvidedRolls(): void
   {
-    $rolls = [1, 4];
+    $rolls = [4];
     $effect = (new EncounterPrimitiveCatalog())->resolveNodeEffect('shrine', static function () use (&$rolls): int {
       return array_shift($rolls) ?? 0;
-    });
+    }, 'shrine_rust_blessing');
 
     $this->assertSame('shrine', $effect['family']);
     $this->assertSame('shrine_rust_blessing', $effect['slug']);
@@ -83,6 +83,27 @@ final class EncounterPrimitiveCatalogTest extends TestCase
       $this->assertContains((string)$hazard['primitive'], $vocabulary);
       $this->assertNotSame([], $hazard['regions']);
       $this->assertGreaterThan(0, (int)$hazard['weight']);
+      $slugs[] = $slug;
+    }
+  }
+
+  public function testShrineCatalogMeetsInitialContentPackTarget(): void
+  {
+    $catalog = new EncounterPrimitiveCatalog();
+    $shrines = $catalog->shrineCatalog();
+    $vocabulary = $catalog->vocabulary()['shrine'];
+    $slugs = [];
+
+    $this->assertGreaterThanOrEqual(10, count($shrines));
+    foreach ($shrines as $shrine) {
+      $slug = (string)$shrine['slug'];
+      $this->assertStringStartsWith('shrine_', $slug);
+      $this->assertNotContains($slug, $slugs);
+      $this->assertContains((string)$shrine['primitive'], $vocabulary);
+      $this->assertNotSame([], $shrine['regions']);
+      $this->assertGreaterThan(0, (int)$shrine['weight']);
+      $this->assertNotSame('', (string)$shrine['title']);
+      $this->assertNotSame('', (string)$shrine['result_copy']);
       $slugs[] = $slug;
     }
   }

@@ -146,18 +146,25 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame('shrine_favor_granted', (string)($shrineRes['body']['data']['battle']['log']['events'][0]['message'] ?? ''));
     $shrineResult = $shrineRes['body']['data']['battle']['log']['events'][0]['shrine_result'] ?? null;
     $this->assertIsArray($shrineResult);
-    $this->assertContains((string)($shrineResult['favor'] ?? ''), ['bone_whisper', 'rust_blessing', 'bog_luck']);
-    $this->assertSame('small_reward', (string)($shrineRes['body']['data']['battle']['log']['events'][0]['primitive'] ?? ''));
+    $this->assertNotSame('', (string)($shrineResult['favor'] ?? ''));
+    $this->assertNotSame('', (string)($shrineResult['title'] ?? ''));
+    $this->assertContains(
+      (string)($shrineRes['body']['data']['battle']['log']['events'][0]['primitive'] ?? ''),
+      ['small_reward', 'cleansing', 'bargain', 'reroute', 'controlled_risk']
+    );
     [$shrineXp, $shrineSoft] = $this->battleRewardTuple($shrineBattleId);
     $this->assertSame(0, $shrineXp);
-    $this->assertGreaterThanOrEqual(4, $shrineSoft);
-    $this->assertLessThanOrEqual(8, $shrineSoft);
+    $this->assertGreaterThanOrEqual(2, $shrineSoft);
+    $this->assertLessThanOrEqual(10, $shrineSoft);
 
     $shrineRewardsRaw = (string)$this->scalar('SELECT `rewards_json` FROM `battle_rewards` WHERE `battle_id` = ?', [$shrineBattleId]);
     $shrineRewards = json_decode($shrineRewardsRaw, true);
     $this->assertIsArray($shrineRewards);
     $this->assertSame('shrine', (string)($shrineRewards['encounter_result']['family'] ?? ''));
-    $this->assertSame('small_reward', (string)($shrineRewards['encounter_result']['primitive'] ?? ''));
+    $this->assertContains(
+      (string)($shrineRewards['encounter_result']['primitive'] ?? ''),
+      ['small_reward', 'cleansing', 'bargain', 'reroute', 'controlled_risk']
+    );
     $this->assertStringStartsWith('shrine_', (string)($shrineRewards['encounter_result']['effect_slug'] ?? ''));
 
     $lootNodeId = $this->insertRunNode($runId, 'loot', 'available');

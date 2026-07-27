@@ -97,6 +97,20 @@ final class EncounterPrimitiveCatalog
     ],
   ];
 
+  /** @var list<array{slug:string,primitive:string,regions:list<string>,weight:int,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int}> */
+  private const SHRINE_EFFECTS = [
+    ['slug' => 'shrine_bone_whisper', 'primitive' => 'small_reward', 'regions' => ['the_farm', 'mountains', 'swamps'], 'weight' => 4, 'title' => 'Bone Whisper', 'result_copy' => 'The bones clatter into a useful omen.', 'favor' => 'bone_whisper', 'currency_min' => 4, 'currency_max' => 8],
+    ['slug' => 'shrine_rust_blessing', 'primitive' => 'small_reward', 'regions' => ['the_farm', 'mountains', 'swamps'], 'weight' => 4, 'title' => 'Rust Blessing', 'result_copy' => 'The shrine leaves a dull glint of favor behind.', 'favor' => 'rust_blessing', 'currency_min' => 4, 'currency_max' => 8],
+    ['slug' => 'shrine_bog_luck', 'primitive' => 'small_reward', 'regions' => ['swamps'], 'weight' => 4, 'title' => 'Bog Luck', 'result_copy' => 'The swamp gives back just enough to worry about why.', 'favor' => 'bog_luck', 'currency_min' => 4, 'currency_max' => 8],
+    ['slug' => 'shrine_clean_water', 'primitive' => 'cleansing', 'regions' => ['the_farm', 'swamps'], 'weight' => 2, 'title' => 'Clean Water', 'result_copy' => 'A clean sip steadies the warband.', 'favor' => 'clean_water', 'currency_min' => 3, 'currency_max' => 6],
+    ['slug' => 'shrine_crooked_bargain', 'primitive' => 'bargain', 'regions' => ['mountains', 'swamps'], 'weight' => 2, 'title' => 'Crooked Bargain', 'result_copy' => 'The offering feels uneven, but useful.', 'favor' => 'crooked_bargain', 'currency_min' => 5, 'currency_max' => 9],
+    ['slug' => 'shrine_hidden_footpath', 'primitive' => 'reroute', 'regions' => ['mountains', 'swamps'], 'weight' => 2, 'title' => 'Hidden Footpath', 'result_copy' => 'A safer path shows itself for a moment.', 'favor' => 'hidden_footpath', 'currency_min' => 2, 'currency_max' => 5],
+    ['slug' => 'shrine_cracked_lantern', 'primitive' => 'controlled_risk', 'regions' => ['mountains'], 'weight' => 2, 'title' => 'Cracked Lantern', 'result_copy' => 'The light burns wrong, but it still burns.', 'favor' => 'cracked_lantern', 'currency_min' => 6, 'currency_max' => 10],
+    ['slug' => 'shrine_seed_cache', 'primitive' => 'small_reward', 'regions' => ['the_farm'], 'weight' => 3, 'title' => 'Seed Cache', 'result_copy' => 'Something useful was buried here before you arrived.', 'favor' => 'seed_cache', 'currency_min' => 4, 'currency_max' => 7],
+    ['slug' => 'shrine_mirror_mud', 'primitive' => 'controlled_risk', 'regions' => ['swamps'], 'weight' => 2, 'title' => 'Mirror Mud', 'result_copy' => 'The reflection makes a promise it may not keep.', 'favor' => 'mirror_mud', 'currency_min' => 5, 'currency_max' => 9],
+    ['slug' => 'shrine_old_goblin_mark', 'primitive' => 'cleansing', 'regions' => ['the_farm', 'mountains', 'swamps'], 'weight' => 2, 'title' => 'Old Goblin Mark', 'result_copy' => 'An old mark remembers the shape of safe passage.', 'favor' => 'old_goblin_mark', 'currency_min' => 3, 'currency_max' => 6],
+  ];
+
   /**
    * @return array<string,list<string>>
    */
@@ -147,17 +161,20 @@ final class EncounterPrimitiveCatalog
     }
 
     if ($nodeType === 'shrine') {
-      $favorRoll = $nextInt(3);
-      $favor = ['bone_whisper', 'rust_blessing', 'bog_luck'][$favorRoll];
-      $currencySoft = 4 + $nextInt(5);
+      $definition = $this->shrineEffectBySlug($effectSlug ?? '') ?? $this->pickWeightedShrineEffect($nextInt);
+      $currencyMin = (int)$definition['currency_min'];
+      $currencyMax = max($currencyMin, (int)$definition['currency_max']);
+      $currencySoft = $currencyMin + $nextInt(($currencyMax - $currencyMin) + 1);
       return [
         'family' => 'shrine',
-        'slug' => "shrine_{$favor}",
-        'primitive' => 'small_reward',
+        'slug' => (string)$definition['slug'],
+        'primitive' => (string)$definition['primitive'],
         'message' => 'shrine_favor_granted',
         'currency_soft' => $currencySoft,
         'result' => [
-          'favor' => $favor,
+          'favor' => (string)$definition['favor'],
+          'title' => (string)$definition['title'],
+          'result_copy' => (string)$definition['result_copy'],
           'currency_soft' => $currencySoft,
         ],
       ];
@@ -192,6 +209,49 @@ final class EncounterPrimitiveCatalog
   public function hazardCatalog(): array
   {
     return self::HAZARD_EFFECTS;
+  }
+
+  /**
+   * @return list<array{slug:string,primitive:string,regions:list<string>,weight:int,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int}>
+   */
+  public function shrineCatalog(): array
+  {
+    return self::SHRINE_EFFECTS;
+  }
+
+  /**
+   * @return array{slug:string,primitive:string,regions:list<string>,weight:int,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int}
+   */
+  private function pickWeightedShrineEffect(callable $nextInt): array
+  {
+    $total = array_sum(array_map(static fn(array $effect): int => max(0, (int)$effect['weight']), self::SHRINE_EFFECTS));
+    $cursor = $nextInt(max(1, $total));
+    foreach (self::SHRINE_EFFECTS as $effect) {
+      $weight = max(0, (int)$effect['weight']);
+      if ($weight <= 0) {
+        continue;
+      }
+      if ($cursor < $weight) {
+        return $effect;
+      }
+      $cursor -= $weight;
+    }
+
+    return self::SHRINE_EFFECTS[0];
+  }
+
+  /**
+   * @return array{slug:string,primitive:string,regions:list<string>,weight:int,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int}|null
+   */
+  private function shrineEffectBySlug(string $slug): ?array
+  {
+    foreach (self::SHRINE_EFFECTS as $effect) {
+      if ((string)$effect['slug'] === $slug) {
+        return $effect;
+      }
+    }
+
+    return null;
   }
 
   /**
