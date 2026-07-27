@@ -87,6 +87,12 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $nodeStmt?->execute([$runId]);
     $nodeId = (int) $this->pdo?->lastInsertId();
 
+    $chaosStmt = $this->pdo?->prepare(
+      "INSERT INTO `chaos_encounter_results` (`user_id`, `run_id`, `node_id`, `seed`, `reels_json`, `reward_multiplier`)
+       VALUES (?, ?, ?, 99123, '{\"enemy_family\":{\"symbol\":\"farm_pigs\"},\"encounter_shape\":{\"symbol\":\"ambush\"},\"rule_reward\":{\"symbol\":\"raw_chaos_spark\"}}', 1.25)"
+    );
+    $chaosStmt?->execute([$userId, $runId, $nodeId]);
+
     $battleStmt = $this->pdo?->prepare(
       "INSERT INTO `battles` (`user_id`, `run_id`, `node_id`, `team_id`, `rules_version`, `seed`, `status`, `outcome`, `ticks`, `rounds`)
        VALUES (?, ?, ?, ?, 'combat_v1', 12345, 'completed', 'victory', 5, 1)"
@@ -104,6 +110,18 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
        VALUES (?, ?, ?, ?, ?, ?)'
     );
     $dealStmt?->execute([$userId, '2026-04-01', 10, 1, 1.0, $grantedDiceId]);
+
+    $bountyDefinitionStmt = $this->pdo?->prepare(
+      "INSERT INTO `bounty_definitions` (`slug`, `title`, `description`, `category`, `objective_json`, `reward_json`, `sort_order`)
+       VALUES (?, 'Reset QA Bounty', 'Reset should clear accepted bounties.', 'hunting', '{\"target\":\"qa\"}', '{\"teeth\":1}', 999)"
+    );
+    $bountyDefinitionStmt?->execute(['qa-reset-bounty-' . $userId]);
+    $bountyDefinitionId = (int) $this->pdo?->lastInsertId();
+    $bountyStmt = $this->pdo?->prepare(
+      "INSERT INTO `user_bounties` (`user_id`, `bounty_definition_id`, `status`, `progress_json`)
+       VALUES (?, ?, 'accepted', '{\"count\":1}')"
+    );
+    $bountyStmt?->execute([$userId, $bountyDefinitionId]);
 
     $reset = $service->resetAccount($userId);
 
@@ -123,6 +141,8 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $this->assertSame(0, (int) $this->scalar("SELECT COUNT(*) FROM `region_runs` WHERE `user_id` = ? AND `status` = 'active'", [$userId]));
     $this->assertSame(0, (int) $this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
     $this->assertSame(0, (int) $this->scalar('SELECT COUNT(*) FROM `shop_daily_deals` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame(0, (int) $this->scalar('SELECT COUNT(*) FROM `chaos_encounter_results` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame(0, (int) $this->scalar('SELECT COUNT(*) FROM `user_bounties` WHERE `user_id` = ?', [$userId]));
   }
 
   public function testSetUnitLevelClampsToOwnedUnitMaxLevel(): void

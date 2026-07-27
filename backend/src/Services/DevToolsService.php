@@ -362,6 +362,10 @@ final class DevToolsService
     );
     $this->execDelete('DELETE FROM `battles` WHERE `user_id` = ?', [$userId]);
 
+    if ($this->schemaHasTable('chaos_encounter_results')) {
+      $this->execDelete('DELETE FROM `chaos_encounter_results` WHERE `user_id` = ?', [$userId]);
+    }
+
     $this->execDelete(
       'DELETE re FROM `run_edges` re JOIN `region_runs` rr ON rr.`id` = re.`run_id` WHERE rr.`user_id` = ?',
       [$userId]
@@ -397,6 +401,9 @@ final class DevToolsService
     $this->execDelete('DELETE FROM `shop_daily_deals` WHERE `user_id` = ?', [$userId]);
 
     $this->execDelete('DELETE FROM `unit_promotions` WHERE `user_id` = ?', [$userId]);
+    if ($this->schemaHasTable('user_bounties')) {
+      $this->execDelete('DELETE FROM `user_bounties` WHERE `user_id` = ?', [$userId]);
+    }
     if ($this->schemaHasTable('user_items')) {
       $this->execDelete('DELETE FROM `user_items` WHERE `user_id` = ?', [$userId]);
     }
