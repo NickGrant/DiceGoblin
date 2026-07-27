@@ -28,23 +28,23 @@ describe('GuidePageComponent', () => {
     sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
   });
 
-  it('renders a separate how-to-play guide with map glossary content', () => {
+  it('renders a scannable field manual with the core guide sections', () => {
     const fixture = TestBed.createComponent(GuidePageComponent);
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Guide');
+    expect(text).toContain('Field Manual');
+    expect(text).toContain('Quick Reference');
     expect(text).toContain('How To Play');
     expect(text).toContain('Base Loop');
     expect(text).toContain('Combat Stats');
-    expect(text).toContain('Icon Reference');
-    expect(text).toContain('Unit type icons');
-    expect(text).toContain('Feature type icons');
+    expect(text).toContain('Starter classes and role lanes');
+    expect(text).toContain('Read size, material, and affixes together');
     expect(text).toContain('Frontline');
-    expect(text).toContain('Economy Upgrade');
-    expect(text).toContain('Dice Upgrade');
+    expect(text).toContain('Tier 1');
     expect(text).toContain('Map Glossary');
-    expect(text).toContain('Read the route before greed takes over');
+    expect(text).toContain('Read the route before spending energy');
     expect(text).not.toContain('Authenticated Codex');
     expect(text).not.toContain('Affix Archive');
   });
