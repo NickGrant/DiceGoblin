@@ -17,7 +17,6 @@ Success criteria:
 
 ### Related Issues
 
-- Seed initial shrine catalog
 - Expand chaos reel catalogs
 
 ## General Inventory and Consumables

@@ -209,6 +209,24 @@ current_code_references:
   - backend/tests/Unit/EncounterPrimitiveCatalogTest.php
   - documentation/02-systems-mvp/03-encounter-scope.md
 
+---
+id: ECP-002
+title: Seed initial shrine catalog
+status: complete
+priority: medium
+milestone: Encounter Content Pack
+description: Added ten backend-authored shrine definitions with stable slugs, approved primitives, region eligibility, weights, titles, result copy, and catalog coverage.
+acceptance_criteria:
+  - Ten shrine definitions are seeded or cataloged with stable slugs.
+  - Each shrine uses approved shrine primitives.
+  - Region eligibility, weight, player-facing title, and result copy are authored.
+  - Tests or seed validation prove all enabled shrines resolve through supported primitives.
+current_code_references:
+  - backend/src/Services/EncounterPrimitiveCatalog.php
+  - backend/tests/Unit/EncounterPrimitiveCatalogTest.php
+  - backend/tests/Integration/BattleNodeResolutionIntegrationTest.php
+  - documentation/02-systems-mvp/03-encounter-scope.md
+
 ## Wrong Machine and Kin Foundation
 
 ---

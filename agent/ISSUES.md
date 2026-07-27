@@ -4,22 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Encounter Content Pack
 
-### Seed initial shrine catalog
-
-**Milestone:** Encounter Content Pack
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-Shrine encounters exist, but the roadmap calls for ten authored shrine definitions with distinct bargains, rewards, or risks.
-
-#### Acceptance Criteria
-
-- Ten shrine definitions are seeded or cataloged with stable slugs.
-- Each shrine uses approved shrine primitives.
-- Region eligibility, weight, player-facing title, and result copy are authored.
-- Tests or seed validation prove all enabled shrines resolve through supported primitives.
-
 ### Expand chaos reel catalogs
 
 **Milestone:** Encounter Content Pack

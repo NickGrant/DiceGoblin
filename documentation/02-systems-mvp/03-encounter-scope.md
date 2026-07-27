@@ -205,7 +205,16 @@ Current primitive-backed effects:
 | `hazard` | `hazard_biting_reeds` | `hp_attrition` | Swamps from depth 3 onward. | Metadata-only HP pressure until attrition spending lands. |
 | `hazard` | `hazard_sinking_cache` | `item_pressure` | Swamps from depth 5 onward. | Metadata-only item pressure until item costs land. |
 | `hazard` | `hazard_wrong_turn` | `route_pressure` | Mountains and Swamps from depth 6 onward. | Metadata-only route pressure. |
-| `shrine` | `shrine_bone_whisper`, `shrine_rust_blessing`, `shrine_bog_luck` | `small_reward` | Any generated shrine. | Grants 4-8 soft currency and persists the favor result. |
+| `shrine` | `shrine_bone_whisper` | `small_reward` | Farm, Mountains, and Swamps. | Grants bounded soft currency and persists title/result copy. |
+| `shrine` | `shrine_rust_blessing` | `small_reward` | Farm, Mountains, and Swamps. | Grants bounded soft currency and persists title/result copy. |
+| `shrine` | `shrine_bog_luck` | `small_reward` | Swamps. | Grants bounded soft currency and persists title/result copy. |
+| `shrine` | `shrine_clean_water` | `cleansing` | Farm and Swamps. | Metadata-first cleansing favor with bounded soft currency. |
+| `shrine` | `shrine_crooked_bargain` | `bargain` | Mountains and Swamps. | Metadata-first bargain favor with bounded soft currency. |
+| `shrine` | `shrine_hidden_footpath` | `reroute` | Mountains and Swamps. | Metadata-first reroute favor with bounded soft currency. |
+| `shrine` | `shrine_cracked_lantern` | `controlled_risk` | Mountains. | Metadata-first controlled-risk favor with bounded soft currency. |
+| `shrine` | `shrine_seed_cache` | `small_reward` | Farm. | Grants bounded soft currency and persists title/result copy. |
+| `shrine` | `shrine_mirror_mud` | `controlled_risk` | Swamps. | Metadata-first controlled-risk favor with bounded soft currency. |
+| `shrine` | `shrine_old_goblin_mark` | `cleansing` | Farm, Mountains, and Swamps. | Metadata-first cleansing favor with bounded soft currency. |
 
 Procedural hazard population:
 
@@ -213,6 +222,7 @@ Procedural hazard population:
 - Hazard selection is weighted by the eligible effect definitions and stamped into node metadata as `encounter_family`, `encounter_effect_slug`, and `encounter_primitive`.
 - Shallow opening columns do not generate hazards, preserving early route readability.
 - If a generated hazard somehow has no eligible effect at metadata assignment time, the generator falls back to combat for that node instead of producing an unresolved hazard.
+- Shrine resolution chooses from the authored shrine catalog and persists `title`, `result_copy`, `favor`, and soft currency in the result payload.
 
 Authoring constraints:
 
