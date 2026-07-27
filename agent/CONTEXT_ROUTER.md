@@ -25,6 +25,7 @@
 - Seed catalog ownership and DB-vs-code decisions:
   - `documentation/01-architecture/08-seed-catalog-ownership.md`
 - Gameplay systems, combat, units, progression, loot, or runs:
+  - `documentation/09-active-system-structure/`
   - `documentation/02-systems-mvp/`
 - UX, navigation, layouts, and player-facing behavior:
   - `documentation/03-ux/`
