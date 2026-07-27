@@ -564,3 +564,23 @@ current_code_references:
   - frontend/src/app/pages/home-page
   - frontend/src/app/layout/page-frame
   - frontend/src/app/layout/command-controls
+
+---
+id: UAT-002
+title: Refine warband, unit, and squad-edit UX
+status: complete
+priority: high
+milestone: UAT Feedback Fix Round 1
+description: Added squad assignment filtering, simplified warband unit cards, moved active-squad slot labels inline with level, added stat hover explanations on unit details, and strengthened squad-edit drag/drop affordances for long available-unit lists.
+acceptance_criteria:
+  - Warband filters can show units assigned to a squad, units not assigned to a squad, or all units.
+  - Warband goblin cards no longer show stat blocks directly on the card.
+  - Unit slot marker appears inline with level on goblin cards.
+  - Individual unit stat hover states show tooltips explaining what each stat does.
+  - Squad edit remains easy to drag from when the available-unit list is long.
+  - Squad edit drop targets are visually obvious while a draggable unit is hovering over them.
+current_code_references:
+  - frontend/src/app/pages/warband-page
+  - frontend/src/app/shared/ui/unit-bar
+  - frontend/src/app/pages/unit-details-page
+  - frontend/src/app/pages/squad-details-page

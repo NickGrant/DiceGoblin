@@ -49,6 +49,7 @@
           </p>
           <div
             class="unit-pool"
+            [class.unit-pool--drop-ready]="draggingUnitId() && !squadLocked()"
             cdkDropList
             [id]="availableDropId"
             [cdkDropListDisabled]="squadLocked()"
@@ -60,6 +61,8 @@
               cdkDrag
               [cdkDragData]="unit.id"
               [cdkDragDisabled]="squadLocked() || !!unit.locked"
+              (cdkDragStarted)="beginUnitDrag(unit.id)"
+              (cdkDragEnded)="endUnitDrag()"
             >
               <dg-unit-thumbnail [unit]="unit" [locked]="!!unit.locked" />
               @if (unit.locked) {
@@ -92,6 +95,7 @@
             class="formation-cell"
             [class.formation-cell--occupied]="!!unitForCell(cell)"
             [class.formation-cell--disabled]="squadLocked()"
+            [class.formation-cell--drop-ready]="draggingUnitId() && !squadLocked()"
             cdkDropList
             [id]="dropListIdForCell(cell)"
             [cdkDropListDisabled]="squadLocked()"
@@ -106,6 +110,8 @@
                 cdkDrag
                 [cdkDragData]="unit.id"
                 [cdkDragDisabled]="squadLocked() || !!unit.locked"
+                (cdkDragStarted)="beginUnitDrag(unit.id)"
+                (cdkDragEnded)="endUnitDrag()"
               >
                 <dg-unit-thumbnail [unit]="unit" [locked]="!!unit.locked" [compact]="true" />
               </article>

@@ -19,20 +19,21 @@
       <span class="unit-bar__rank">
         <fa-icon class="unit-bar__role-icon" [icon]="roleIcon()" aria-hidden="true"></fa-icon>
         <span class="unit-bar__level">{{ levelLabel() }}</span>
+        @if (positionLabel()) {
+          <span class="unit-bar__position">{{ positionLabel() }}</span>
+        }
         <span [class]="tierIndicatorClass()" [attr.aria-label]="tierLabel()" [attr.title]="tierLabel()">
           <span class="visually-hidden">{{ tierLabel() }}</span>
         </span>
       </span>
-      @if (positionLabel()) {
-        <span class="unit-bar__position">{{ positionLabel() }}</span>
-      }
-      <span class="unit-bar__position">{{ spliceLabel() }}</span>
+      <span class="unit-bar__kin">{{ spliceLabel() }}</span>
       @if (defeated()) {
-        <span class="unit-bar__position">Defeated</span>
+        <span class="unit-bar__kin">Defeated</span>
       }
     </div>
 
     <div class="unit-bar__progress-list">
+      @if (showStats()) {
       <div class="unit-bar__stat-strip" aria-label="Combat stats">
         @for (stat of statStrip(); track stat.label) {
         <span class="unit-bar__stat">
@@ -41,6 +42,7 @@
         </span>
         }
       </div>
+      }
 
       <div class="unit-bar__progress-row">
         <span>HP</span>

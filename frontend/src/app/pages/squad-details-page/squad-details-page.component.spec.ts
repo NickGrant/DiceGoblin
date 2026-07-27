@@ -236,6 +236,37 @@ describe('SquadDetailsPageComponent', () => {
     expect(host.textContent).toContain('Drag units into formation slots');
   });
 
+  it('highlights drop targets while dragging a unit', async () => {
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.beginUnitDrag('u3');
+    fixture.detectChanges();
+
+    let host: HTMLElement = fixture.nativeElement;
+    expect(host.querySelector('.unit-pool--drop-ready')).not.toBeNull();
+    expect(host.querySelectorAll('.formation-cell--drop-ready').length).toBeGreaterThan(0);
+
+    fixture.componentInstance.endUnitDrag();
+    fixture.detectChanges();
+
+    host = fixture.nativeElement;
+    expect(host.querySelector('.unit-pool--drop-ready')).toBeNull();
+    expect(host.querySelector('.formation-cell--drop-ready')).toBeNull();
+  });
+
   it('blocks adding a new unit into an empty slot when the squad is already at cap', async () => {
     class CappedSessionServiceStub extends SessionServiceStub {
       override readonly squads = signal([

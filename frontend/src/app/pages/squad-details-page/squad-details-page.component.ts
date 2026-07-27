@@ -41,6 +41,7 @@ export class SquadDetailsPageComponent {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
+  readonly draggingUnitId = signal<string | null>(null);
   readonly squadLocked = computed(() => !!this.activeRun() && this.activeSquad()?.id === this.squadId);
   readonly selectedUnitCount = computed(() => {
     this.formationRevision();
@@ -126,6 +127,16 @@ export class SquadDetailsPageComponent {
   unitForCell(cell: string): UnitRecord | null {
     const unitId = this.formationAssignments.get(cell) ?? null;
     return unitId ? this.unitById(unitId) : null;
+  }
+
+  beginUnitDrag(unitId: string): void {
+    if (!this.squadLocked()) {
+      this.draggingUnitId.set(unitId);
+    }
+  }
+
+  endUnitDrag(): void {
+    this.draggingUnitId.set(null);
   }
 
   formationForSave(): TeamFormationCell[] {

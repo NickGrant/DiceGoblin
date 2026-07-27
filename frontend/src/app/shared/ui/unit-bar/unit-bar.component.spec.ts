@@ -38,6 +38,7 @@ describe('UnitBarComponent', () => {
     const fills = host.querySelectorAll('.unit-bar__progress-fill') as NodeListOf<HTMLElement>;
     const tierIcon = host.querySelector('.unit-bar__tier-icon') as HTMLElement;
     const roleIcon = host.querySelector('.unit-bar__role-icon');
+    const positionInRank = host.querySelector('.unit-bar__rank .unit-bar__position');
     expect(host.textContent).toContain('Fang');
     expect(host.textContent).toContain('Level 4');
     expect(host.textContent).toContain('Tier II');
@@ -49,10 +50,22 @@ describe('UnitBarComponent', () => {
     expect(host.textContent).toContain('RES');
     expect(host.textContent).toContain('6');
     expect(host.textContent).toContain('4');
+    expect(positionInRank?.textContent).toContain('Slot B2');
     expect(tierIcon.classList.contains('dg-tier-indicator--2')).toBeTrue();
     expect(tierIcon.getAttribute('aria-label')).toBe('Tier II');
     expect(roleIcon).not.toBeNull();
     expect(fills[0].style.width).toBe('60%');
     expect(fills[1].style.width).toBe('30%');
+  });
+
+  it('can hide combat stat blocks for compact roster cards', () => {
+    fixture.componentRef.setInput('showStats', false);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('.unit-bar__stat-strip')).toBeNull();
+    expect(host.textContent).toContain('12/20 HP');
+    expect(host.textContent).not.toContain('ATK');
+    expect(host.textContent).not.toContain('PRC');
   });
 });

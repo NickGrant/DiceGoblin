@@ -17,7 +17,6 @@ Success criteria:
 
 ### Related Issues
 
-- Refine warband, unit, and squad-edit UX
 - Clean up shop and academy presentation
 - Repair guide navigation and combat reference content
 

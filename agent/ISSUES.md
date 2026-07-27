@@ -4,24 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## UAT Feedback Fix Round 1
 
-### Refine warband, unit, and squad-edit UX
-
-**Milestone:** UAT Feedback Fix Round 1
-**Status:** Open
-**Priority:** High
-
-#### Problem
-Warband and squad-edit flows need clearer filtering, simpler unit cards, better stat explanations, and stronger drag/drop feedback.
-
-#### Acceptance Criteria
-
-- Warband filters can show units assigned to a squad, units not assigned to a squad, or all units.
-- Warband goblin cards no longer show stat blocks directly on the card.
-- Unit slot marker appears inline with level on goblin cards.
-- Individual unit stat hover states show tooltips explaining what each stat does.
-- Squad edit remains easy to drag from when the available-unit list is long.
-- Squad edit drop targets are visually obvious while a draggable unit is hovering over them.
-
 ### Clean up shop and academy presentation
 
 **Milestone:** UAT Feedback Fix Round 1

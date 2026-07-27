@@ -20,6 +20,7 @@ export class UnitBarComponent {
   readonly selected = input(false);
   readonly defeated = input(false);
   readonly compact = input(false);
+  readonly showStats = input(true);
 
   readonly resolvedCurrentHp = computed(() => this.currentHp() ?? this.unit().current_hp ?? this.unit().max_hp ?? 0);
   readonly resolvedMaxHp = computed(() => this.maxHp() ?? this.unit().max_hp ?? this.resolvedCurrentHp());

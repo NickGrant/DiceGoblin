@@ -68,7 +68,7 @@
 
         <ul class="unit-stat-list dg-list-reset">
           @for (stat of unitStatTiles(); track stat.label) {
-          <li class="unit-stat-row">
+          <li class="unit-stat-row" [attr.title]="stat.description" [attr.aria-label]="stat.label + ': ' + stat.description">
             <span class="unit-stat-row__icon">
               <fa-icon [icon]="stat.icon" aria-hidden="true"></fa-icon>
             </span>

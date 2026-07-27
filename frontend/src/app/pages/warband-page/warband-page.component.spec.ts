@@ -123,6 +123,43 @@ describe('WarbandPageComponent', () => {
     expect(grid).not.toBeNull();
     expect(tiles.length).toBe(2);
     expect(host.querySelectorAll('dg-unit-bar').length).toBe(2);
+    expect(host.querySelector('.warband-units-grid .unit-bar__stat-strip')).toBeNull();
+  });
+
+  it('filters units by squad assignment status', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    sessionService.units.set([
+      ...sessionService.units(),
+      {
+        id: 'u3',
+        name: 'Looseleaf',
+        unit_type_name: 'Marksman',
+        splice_variant_slug: 'rat_splice',
+        splice_variant_name: 'Rat-Spliced',
+        tier: 1,
+        level: 1,
+        locked: false,
+      },
+    ]);
+    fixture.detectChanges();
+
+    fixture.componentInstance.updateSquadAssignment('unassigned');
+    fixture.detectChanges();
+
+    let host: HTMLElement = fixture.nativeElement;
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(1);
+    expect(host.textContent).toContain('Looseleaf');
+    expect(host.textContent).not.toContain('Fang');
+
+    fixture.componentInstance.updateSquadAssignment('assigned');
+    fixture.detectChanges();
+
+    host = fixture.nativeElement;
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(2);
+    expect(host.textContent).toContain('Fang');
+    expect(host.textContent).toContain('Muckjaw');
+    expect(host.textContent).not.toContain('Looseleaf');
   });
 
   it('paginates large unit collections', () => {
@@ -293,6 +330,7 @@ describe('WarbandPageComponent', () => {
 
     expect(fixture.componentInstance.selectedUnitType()).toBeNull();
     expect(fixture.componentInstance.selectedKin()).toBeNull();
+    expect(fixture.componentInstance.selectedSquadAssignment()).toBe('all');
     expect(fixture.componentInstance.excludedUnitTiers()).toEqual([]);
     expect(fixture.componentInstance.selectedLevelMin()).toBeNull();
     expect(fixture.componentInstance.selectedLevelMax()).toBeNull();

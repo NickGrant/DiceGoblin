@@ -257,6 +257,8 @@ describe('UnitDetailsPageComponent', () => {
     expect(host.textContent).toContain('Academy');
     expect(host.textContent).not.toContain('Formation');
     expect(host.textContent).not.toContain('Inherited Passives');
+    expect(host.querySelector('.unit-stat-row[title*="Attack increases"]')).not.toBeNull();
+    expect(host.querySelector('.unit-stat-row[aria-label*="Resolve helps"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.unit-thumbnail__image')?.getAttribute('src')).toBeTruthy();
 
     component.setActiveTab('abilities');

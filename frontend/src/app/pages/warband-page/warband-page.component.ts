@@ -31,6 +31,7 @@ export class WarbandPageComponent {
   readonly activeSquad = this.sessionService.activeSquad;
   readonly selectedUnitType = signal<string | null>(null);
   readonly selectedKin = signal<string | null>(null);
+  readonly selectedSquadAssignment = signal<'all' | 'assigned' | 'unassigned'>('all');
   readonly excludedUnitTiers = signal<number[]>([]);
   readonly selectedLevelMin = signal<number | null>(null);
   readonly selectedLevelMax = signal<number | null>(null);
@@ -59,6 +60,7 @@ export class WarbandPageComponent {
     const excludedTiers = new Set(this.excludedUnitTiers());
     return this.availableUnitTiers().filter((tier) => !excludedTiers.has(tier));
   });
+  readonly assignedUnitIds = computed(() => new Set(this.squads().flatMap((squad) => squad.unit_ids ?? [])));
   readonly availableUnitLevels = computed(() => {
     const maxLevel = Math.max(
       1,
@@ -70,6 +72,8 @@ export class WarbandPageComponent {
   readonly filteredUnits = computed(() => {
     const selectedType = this.selectedUnitType();
     const selectedKin = this.selectedKin();
+    const selectedSquadAssignment = this.selectedSquadAssignment();
+    const assignedUnitIds = this.assignedUnitIds();
     const excludedTiers = new Set(this.excludedUnitTiers());
     const selectedLevelMin = this.selectedLevelMin();
     const selectedLevelMax = this.selectedLevelMax();
@@ -79,6 +83,14 @@ export class WarbandPageComponent {
       }
 
       if (selectedKin && this.kinLabel(unit) !== selectedKin) {
+        return false;
+      }
+
+      if (selectedSquadAssignment === 'assigned' && !assignedUnitIds.has(unit.id)) {
+        return false;
+      }
+
+      if (selectedSquadAssignment === 'unassigned' && assignedUnitIds.has(unit.id)) {
         return false;
       }
 
@@ -189,6 +201,11 @@ export class WarbandPageComponent {
     this.resetUnitPage();
   }
 
+  updateSquadAssignment(value: 'all' | 'assigned' | 'unassigned' | string): void {
+    this.selectedSquadAssignment.set(value === 'assigned' || value === 'unassigned' ? value : 'all');
+    this.resetUnitPage();
+  }
+
   toggleUnitTier(tier: number): void {
     const excludedTiers = new Set(this.excludedUnitTiers());
     if (excludedTiers.has(tier)) {
@@ -245,6 +262,7 @@ export class WarbandPageComponent {
   clearUnitFilters(): void {
     this.selectedUnitType.set(null);
     this.selectedKin.set(null);
+    this.selectedSquadAssignment.set('all');
     this.excludedUnitTiers.set([]);
     this.selectedLevelMin.set(null);
     this.selectedLevelMax.set(null);
