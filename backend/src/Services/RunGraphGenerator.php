@@ -192,7 +192,7 @@ final class RunGraphGenerator
     $graph = [
       'nodes' => [
         ['node_index' => 0, 'node_type' => 'combat', 'status' => 'available', 'encounter_template_id' => $templateIds['the_farm_mud_combat_1'] ?? null, 'meta' => ['col' => 0, 'row' => 1]],
-        ['node_index' => 1, 'node_type' => 'loot', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_loot_1'] ?? null, 'meta' => ['col' => 1, 'row' => 1]],
+        ['node_index' => 1, 'node_type' => 'loot', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_loot_1'] ?? null, 'meta' => ['col' => 1, 'row' => 1, 'node_quality_tier' => 'good']],
         ['node_index' => 2, 'node_type' => 'rest', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_rest_1'] ?? null, 'meta' => ['col' => 2, 'row' => 1]],
         ['node_index' => 3, 'node_type' => 'boss', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_mud_boss_1'] ?? null, 'meta' => ['col' => 3, 'row' => 1]],
         ['node_index' => 4, 'node_type' => 'exit', 'status' => 'locked', 'meta' => ['col' => 4, 'row' => 1]],
@@ -714,6 +714,7 @@ final class RunGraphGenerator
       $this->ensureAtLeastOneChaosNode($nodes, $seedKey, $travelColumns);
     }
     $this->assignHazardEffects($nodes, $seedKey, $regionSlug);
+    $this->assignNodeQualityTiers($nodes, $edges, $travelColumns);
     $nodes = $this->assignEncounterTemplates($regionId, $nodes, $seedKey);
     $this->validateGraph($nodes, $edges);
 
@@ -2190,6 +2191,38 @@ final class RunGraphGenerator
     $picked = $candidates[$pickIndex];
     $nodes[$picked]['node_type'] = 'chaos';
     $nodes[$picked]['encounter_template_id'] = null;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @param array<int,array{from:int,to:int}> $edges
+   */
+  private function assignNodeQualityTiers(array &$nodes, array $edges, int $travelColumns): void
+  {
+    $outgoing = $this->outgoingByNode($nodes, $edges);
+
+    foreach ($nodes as $index => $node) {
+      $nodeType = (string)($node['node_type'] ?? '');
+      if (!in_array($nodeType, ['loot', 'shrine'], true)) {
+        continue;
+      }
+
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $col = (int)($meta['col'] ?? 0);
+      $isDeadEnd = count($outgoing[(int)($node['node_index'] ?? $index)] ?? []) === 0;
+
+      $tier = 'good';
+      if ($isDeadEnd || $col >= max(3, $travelColumns - 1)) {
+        $tier = 'great';
+      } elseif ($col <= 2) {
+        $tier = 'poor';
+      }
+
+      $nodes[$index]['meta'] = [
+        ...$meta,
+        'node_quality_tier' => $tier,
+      ];
+    }
   }
 
   /**

@@ -12,7 +12,7 @@ class RunServiceStub {
       map: {
         nodes: [
           { id: 'n1', node_index: 0, node_type: 'combat', status: 'available' },
-          { id: 'n2', node_index: 1, node_type: 'exit', status: 'locked' },
+          { id: '8', node_index: 1, node_type: 'exit', status: 'locked' },
         ],
         edges: [],
       },
@@ -112,7 +112,14 @@ describe('RunMapPageComponent', () => {
     expect(fixture.componentInstance.pageTitle()).toBe('Continue Run - The Farm');
     expect(fixture.componentInstance.iconForNodeType('combat')).toContain('icon_encounter_combat.png');
     expect(fixture.componentInstance.iconForNodeType('hazard')).toContain('icon_encounter_locked.png');
-    expect(fixture.componentInstance.iconForNodeType('shrine')).toContain('/assets/ui/node-art/shrines/good_a.png');
+    expect(fixture.componentInstance.iconForNode({
+      id: '12',
+      run_id: 'run-1',
+      node_index: 2,
+      node_type: 'shrine',
+      status: 'locked',
+      meta: { node_quality_tier: 'great' },
+    })).toContain('/assets/ui/node-art/shrines/great_b.png');
     expect(fixture.componentInstance.iconForNodeType('exit')).toContain('icon_home.png');
     expect(fixture.componentInstance.mapBackgroundUrl()).toBe('/assets/ui/biome/farm.png');
     expect(fixture.componentInstance.nodeX(fixture.componentInstance.nodes()[1]!)).toBe(260);

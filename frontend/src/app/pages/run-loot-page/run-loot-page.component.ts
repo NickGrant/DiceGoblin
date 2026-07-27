@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { DiceAffixRecord, ResolveNodeData, RewardPreviewDice, RewardPreviewUnit } from '../../core/models/api.models';
+import { CurrentRunNode, DiceAffixRecord, ResolveNodeData, RewardPreviewDice, RewardPreviewUnit } from '../../core/models/api.models';
 import { resolveRegionTheme } from '../../core/regions/region-catalog';
 import { RunService } from '../../core/services/run/run.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
@@ -8,6 +8,7 @@ import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { resolveUnitSilhouetteUrl, resolveUnitThumbnailUrl } from '../../shared/ui/unit-art/unit-art';
+import { resolveNodeArtUrl } from '../../shared/ui/node-art/node-art';
 import { formatUnitKinLabel } from '../../shared/utils/unit-formatters';
 
 type LootRewardSummary = {
@@ -46,6 +47,7 @@ export class RunLootPageComponent {
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly regionTheme = signal<string | null>(null);
+  readonly currentNode = signal<CurrentRunNode | null>(null);
 
   readonly pageTitle = computed(() => RunLootPageComponent.LOOT_TITLE);
   readonly pageSubtitle = computed(() => this.result() ? RunLootPageComponent.LOOT_SUBTITLE : '');
@@ -55,7 +57,7 @@ export class RunLootPageComponent {
   readonly lootBackgroundImage = computed(() =>
     `linear-gradient(180deg, rgba(24, 18, 12, 0.38), rgba(24, 18, 12, 0.74)), url('${this.lootBackgroundUrl()}')`,
   );
-  readonly lootSceneArtUrl = computed(() => '/assets/ui/node-art/loot/good_a.png');
+  readonly lootSceneArtUrl = computed(() => resolveNodeArtUrl(this.currentNode(), 'loot'));
   readonly lootRewards = computed<LootRewardSummary | null>(() => {
     const rewards = this.result()?.battle.reward_preview;
     if (!rewards || rewards.node_type !== 'loot') {
@@ -108,6 +110,7 @@ export class RunLootPageComponent {
       }
 
       const currentNode = current.data.map?.nodes.find((node) => node.id === this.nodeId) ?? null;
+      this.currentNode.set(currentNode);
       this.runId.set(current.data.run.run_id);
       this.regionTheme.set(resolveRegionTheme(current.data.run.region_slug ?? null, current.data.run.region_theme ?? null));
 

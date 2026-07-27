@@ -27,6 +27,7 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
       array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']),
     );
     $this->assertSame('available', (string)$graph['nodes'][0]['status']);
+    $this->assertSame('good', (string)($graph['nodes'][1]['meta']['node_quality_tier'] ?? ''));
     $this->assertSame(
       [
         ['from' => 0, 'to' => 1],
@@ -422,6 +423,30 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     }
 
     $this->assertTrue($foundHazard, "{$regionSlug} should generate authored hazard nodes across deterministic seeds.");
+  }
+
+  /**
+   * @dataProvider proceduralRegionProvider
+   */
+  public function testProceduralLootAndShrineNodesReceiveQualityTiers(string $regionSlug): void
+  {
+    $regionId = $this->seededRegionId($regionSlug);
+    $generator = new RunGraphGenerator($this->pdo);
+
+    for ($seed = 1; $seed <= 40; $seed++) {
+      $graph = $generator->generate($regionId, $regionSlug, (string)$seed);
+      foreach ($graph['nodes'] as $node) {
+        if (!in_array((string)($node['node_type'] ?? ''), ['loot', 'shrine'], true)) {
+          continue;
+        }
+
+        $this->assertContains(
+          (string)($node['meta']['node_quality_tier'] ?? ''),
+          ['poor', 'good', 'great'],
+          sprintf('Seed %d %s node %d should have a supported quality tier.', $seed, $regionSlug, (int)$node['node_index']),
+        );
+      }
+    }
   }
 
   /**
