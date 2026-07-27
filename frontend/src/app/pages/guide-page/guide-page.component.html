@@ -1,194 +1,138 @@
 <page-frame
   [breadcrumbs]="breadcrumbs"
   title="Guide"
-  subtitle="How to play, how combat reads your stats, and what the run map icons mean."
+  subtitle="A compact field manual for squads, dice, combat, and routes."
   headerVariant="guide"
 >
-  <section class="dg-proto-shell guide-page">
-    <header class="dg-proto-hero guide-page__hero">
-      <div class="guide-page__hero-copy">
-        <p class="dg-proto-hero__eyebrow dg-stencil">How To Play</p>
-        <h2 class="dg-proto-hero__title">Build a squad, equip dice, survive the route, spend the loot.</h2>
-        <p class="dg-proto-hero__copy">
-          Dice Goblins is a squad-building run game. Most decisions happen before and after expeditions: who joins the squad, where they
-          stand, which dice power their abilities, and what upgrades you buy before the next attempt.
-        </p>
+  <section class="guide-page">
+    <aside class="guide-page__rail" aria-label="Guide sections">
+      <div class="guide-page__rail-header">
+        <img src="/assets/ui/icons/icon_guide.png" alt="" aria-hidden="true" />
+        <div>
+          <p>Field Manual</p>
+          <strong>Quick Reference</strong>
+        </div>
       </div>
+      <nav class="guide-page__nav">
+        <a href="#guide-loop">Base Loop</a>
+        <a href="#guide-combat">Combat Stats</a>
+        <a href="#guide-warband">Warband</a>
+        <a href="#guide-dice">Dice</a>
+        <a href="#guide-map">Map Glossary</a>
+      </nav>
+    </aside>
 
-      <div class="guide-page__hero-panel">
-        <span class="dg-proto-chip">Public Guide</span>
-        <ol class="guide-page__sequence">
-          <li>Assemble a squad with a front row that can hold and a back row that can finish fights.</li>
-          <li>Equip dice to the abilities that matter most for your plan.</li>
-          <li>Choose a region, push through nodes, then return home with rewards and upgrades.</li>
+    <div class="guide-page__content">
+      <section id="guide-loop" class="guide-band guide-band--intro">
+        <div class="guide-band__copy">
+          <p class="guide-page__eyebrow">How To Play</p>
+          <h2>Build the squad, wire the dice, clear the route, spend the haul.</h2>
+          <p>
+            Most power comes from decisions around the run: formation, ability dice, shop purchases, Academy growth, and knowing when a route is worth pushing.
+          </p>
+        </div>
+        <ol class="guide-page__steps">
+          @for (step of publicGuideSteps; track step.title) {
+          <li>
+            <span>{{ step.kicker }}</span>
+            <strong>{{ step.title }}</strong>
+            <p>{{ step.summary }}</p>
+          </li>
+          }
         </ol>
-      </div>
-    </header>
+      </section>
 
-    <section class="dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Base Loop</p>
-          <h3 class="dg-proto-section__title">What a successful account keeps doing</h3>
+      <section id="guide-combat" class="guide-band">
+        <header class="guide-section-heading">
+          <p>Combat Stats</p>
+          <h3>What battle numbers mean</h3>
+        </header>
+        <div class="guide-page__stat-grid">
+          @for (stat of combatStats; track stat.name) {
+          <article class="guide-stat">
+            <strong>{{ stat.name }}</strong>
+            <p>{{ stat.description }}</p>
+          </article>
+          }
         </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-      <div class="dg-proto-grid dg-proto-grid--three">
-        @for (step of publicGuideSteps; track step.title) {
-        <article class="dg-proto-card guide-page__step-card">
-          <span class="dg-proto-chip dg-proto-chip--small">{{ step.kicker }}</span>
-          <h4 class="dg-proto-card__title">{{ step.title }}</h4>
-          <p class="dg-proto-card__copy">{{ step.summary }}</p>
-        </article>
-        }
-      </div>
-    </section>
+      </section>
 
-    <section class="dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Combat Stats</p>
-          <h3 class="dg-proto-section__title">How numbers turn into battle results</h3>
-        </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-      <div class="dg-proto-grid dg-proto-grid--cards">
-        @for (stat of combatStats; track stat.name) {
-        <article class="dg-proto-card guide-page__stat-card">
-          <h4 class="dg-proto-card__title">{{ stat.name }}</h4>
-          <p class="dg-proto-card__copy">{{ stat.description }}</p>
-        </article>
-        }
-      </div>
-    </section>
-
-    <section class="dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Warband</p>
-          <h3 class="dg-proto-section__title">Starter classes and why they matter</h3>
-        </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-      <div class="dg-proto-grid dg-proto-grid--cards">
-        @for (unit of unitUnlocks; track unit.slug) {
-        <article class="dg-proto-card guide-page__unit-card">
-          <div class="dg-proto-card__media">
-            <img [src]="unitSpriteUrl(unit.slug)" [alt]="unit.name" class="dg-proto-sprite dg-proto-sprite--lg" />
+      <section id="guide-warband" class="guide-band">
+        <header class="guide-section-heading">
+          <p>Warband</p>
+          <h3>Starter classes and role lanes</h3>
+        </header>
+        <div class="guide-page__split">
+          <div class="guide-page__unit-list">
+            @for (unit of unitUnlocks; track unit.slug) {
+            <article class="guide-unit">
+              <img [src]="unitSpriteUrl(unit.slug)" [alt]="unit.name" />
+              <div>
+                <div class="guide-unit__title">
+                  <strong>{{ unit.name }}</strong>
+                  <span>{{ unit.role }} · Tier {{ unit.tier }} · Max {{ unit.maxLevel }}</span>
+                </div>
+                <p>{{ unit.summary }}</p>
+              </div>
+            </article>
+            }
           </div>
-          <div class="dg-proto-card__stats">
-            <span class="dg-proto-pill">{{ unit.role }}</span>
-            <span class="dg-proto-pill">Tier {{ unit.tier }}</span>
-            <span class="dg-proto-pill">Max {{ unit.maxLevel }}</span>
-          </div>
-          <h4 class="dg-proto-card__title">{{ unit.name }}</h4>
-          <p class="dg-proto-card__copy">{{ unit.summary }}</p>
-        </article>
-        }
-      </div>
-    </section>
-
-    <section class="dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Icon Reference</p>
-          <h3 class="dg-proto-section__title">How to read unit and feature categories</h3>
-        </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-      <div class="dg-proto-grid dg-proto-grid--two">
-        <article class="dg-proto-card guide-page__guide-panel">
-          <h4 class="dg-proto-card__title">Unit type icons</h4>
-          <div class="guide-page__stack">
+          <div class="guide-page__reference-grid guide-page__reference-grid--compact">
             @for (entry of unitTypeIcons; track entry.label) {
-            <div class="guide-page__mini-row guide-page__icon-row">
+            <article class="guide-reference">
               <fa-icon [icon]="entry.icon" aria-hidden="true"></fa-icon>
-              <div>
-                <strong>{{ entry.label }}</strong>
-                <p>{{ entry.description }}</p>
-              </div>
-            </div>
+              <strong>{{ entry.label }}</strong>
+              <p>{{ entry.description }}</p>
+            </article>
             }
           </div>
-        </article>
-
-        <article class="dg-proto-card guide-page__guide-panel">
-          <h4 class="dg-proto-card__title">Feature type icons</h4>
-          <div class="guide-page__stack">
-            @for (entry of featureTypeIcons; track entry.label) {
-            <div class="guide-page__mini-row guide-page__icon-row">
-              <fa-icon [icon]="entry.icon" aria-hidden="true"></fa-icon>
-              <div>
-                <strong>{{ entry.label }}</strong>
-                <p>{{ entry.description }}</p>
-              </div>
-            </div>
-            }
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Dice</p>
-          <h3 class="dg-proto-section__title">Rarity tells you ceiling. Affixes tell you intent.</h3>
         </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-      <div class="dg-proto-grid dg-proto-grid--two">
-        <article class="dg-proto-card guide-page__guide-panel">
-          <h4 class="dg-proto-card__title">Material ladder</h4>
-          <div class="guide-page__stack">
+      </section>
+
+      <section id="guide-dice" class="guide-band">
+        <header class="guide-section-heading">
+          <p>Dice</p>
+          <h3>Read size, material, and affixes together</h3>
+        </header>
+        <div class="guide-page__split">
+          <div class="guide-page__dice-ladder">
             @for (family of diceFamilies; track family.rarity) {
-            <div class="guide-page__mini-row">
+            <article class="guide-die-family">
               <img [src]="family.image" [alt]="family.rarity + ' die'" />
               <div>
                 <strong>{{ family.rarity }}</strong>
                 <p>{{ family.summary }}</p>
               </div>
-            </div>
+            </article>
             }
           </div>
-        </article>
-
-        <article class="dg-proto-card guide-page__guide-panel">
-          <h4 class="dg-proto-card__title">Standard die sizes</h4>
-          <div class="guide-page__stack">
+          <div class="guide-page__die-size-grid">
             @for (die of dieSizes; track die.label) {
-            <div class="guide-page__mini-row">
+            <article class="guide-die-size">
               <img [src]="die.image" [alt]="die.label" />
-              <div>
-                <strong>{{ die.label }}</strong>
-                <p>{{ die.summary }}</p>
-              </div>
-            </div>
+              <strong>{{ die.label }}</strong>
+              <p>{{ die.summary }}</p>
+            </article>
             }
           </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="dg-proto-section">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow dg-stencil">Map Glossary</p>
-          <h3 class="dg-proto-section__title">Read the route before greed takes over</h3>
         </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-      <div class="dg-proto-grid dg-proto-grid--cards">
-        @for (node of nodes; track node.name) {
-        <article class="dg-proto-card guide-page__node-card">
-          <div class="dg-proto-card__media">
-            <img [src]="node.icon" [alt]="node.name + ' icon'" class="guide-page__node-icon" />
-          </div>
-          <h4 class="dg-proto-card__title">{{ node.name }}</h4>
-          <p class="dg-proto-card__copy">{{ node.description }}</p>
-        </article>
-        }
-      </div>
-    </section>
+      </section>
+
+      <section id="guide-map" class="guide-band">
+        <header class="guide-section-heading">
+          <p>Map Glossary</p>
+          <h3>Read the route before spending energy</h3>
+        </header>
+        <div class="guide-page__node-grid">
+          @for (node of nodes; track node.name) {
+          <article class="guide-node">
+            <img [src]="node.icon" [alt]="node.name + ' icon'" />
+            <strong>{{ node.name }}</strong>
+            <p>{{ node.description }}</p>
+          </article>
+          }
+        </div>
+      </section>
+    </div>
   </section>
 </page-frame>
