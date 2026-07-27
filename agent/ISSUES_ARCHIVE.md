@@ -150,6 +150,28 @@ current_code_references:
   - documentation/02-systems-mvp/16-legacy-splice-storage-retirement.md
   - documentation/02-systems-mvp/13-wrong-machine-and-kin.md
 
+## Encounter Primitive Framework
+
+---
+id: EPF-001
+title: Define hazard and shrine effect primitives
+status: complete
+priority: high
+milestone: Encounter Primitive Framework
+description: Added a backend-owned encounter primitive catalog, routed current hazard and shrine resolution through primitive metadata, and documented the hazard/shrine vocabulary and authoring constraints.
+acceptance_criteria:
+  - Hazard primitive vocabulary supports HP attrition, temporary modifiers, currency/item pressure, route pressure, and kin-flavored mitigations.
+  - Shrine primitive vocabulary supports small rewards, cleansing, bargains, reroutes, and controlled risk.
+  - Primitive definitions are data-driven or code-cataloged consistently with seed ownership rules.
+  - Backend tests cover representative primitive resolution and idempotency.
+  - Documentation explains authoring constraints and player-facing expectations.
+current_code_references:
+  - backend/src/Services/EncounterPrimitiveCatalog.php
+  - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
+  - backend/tests/Unit/EncounterPrimitiveCatalogTest.php
+  - backend/tests/Integration/BattleNodeResolutionIntegrationTest.php
+  - documentation/02-systems-mvp/03-encounter-scope.md
+
 ## Wrong Machine and Kin Foundation
 
 ---

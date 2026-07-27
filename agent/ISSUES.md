@@ -4,23 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Encounter Primitive Framework
 
-### Define hazard and shrine effect primitives
-
-**Milestone:** Encounter Primitive Framework
-**Status:** Open
-**Priority:** High
-
-#### Problem
-Hazards and shrines should grow from a reusable effect vocabulary instead of bespoke one-off behavior. The framework needs backend-owned primitives before the content pack is seeded.
-
-#### Acceptance Criteria
-
-- Hazard primitive vocabulary supports HP attrition, temporary modifiers, currency/item pressure, route pressure, and kin-flavored mitigations.
-- Shrine primitive vocabulary supports small rewards, cleansing, bargains, reroutes, and controlled risk.
-- Primitive definitions are data-driven or code-cataloged consistently with seed ownership rules.
-- Backend tests cover representative primitive resolution and idempotency.
-- Documentation explains authoring constraints and player-facing expectations.
-
 ### Populate hazard nodes from authored rules
 
 **Milestone:** Encounter Primitive Framework

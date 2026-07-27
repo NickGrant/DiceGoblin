@@ -10,6 +10,7 @@ namespace DiceGoblins\Combat\Engine;
 
 use DiceGoblins\Combat\Abilities\AbilityRegistry;
 use DiceGoblins\Combat\Abilities\AbilityType;
+use DiceGoblins\Services\EncounterPrimitiveCatalog;
 use DiceGoblins\Services\SpliceVariantService;
 use DiceGoblins\Services\UnitProgressionService;
 use DiceGoblins\Services\UserUnlockService;
@@ -70,30 +71,21 @@ final class DeterministicRunNodeResolver
       $ticks = 0;
       $outcome = 'victory';
       $xpTotal = 0;
-      $shrineFavor = null;
-      if ($nodeType === 'shrine') {
-        $favorRoll = $this->nextInt($rngState, 3);
-        $shrineFavor = [
-          'favor' => ['bone_whisper', 'rust_blessing', 'bog_luck'][$favorRoll],
-          'currency_soft' => 4 + $this->nextInt($rngState, 5),
-        ];
-      }
-      $currencySoft = match ($nodeType) {
-        'loot' => 8,
-        'shrine' => (int)($shrineFavor['currency_soft'] ?? 0),
-        default => 0,
-      };
+      $nodeEffect = (new EncounterPrimitiveCatalog())->resolveNodeEffect(
+        $nodeType,
+        fn(int $max): int => $this->nextInt($rngState, $max)
+      );
+      $currencySoft = (int)$nodeEffect['currency_soft'];
       $events = [[
         'type' => 'node_effect',
         'round' => 0,
         'tick' => 0,
         'node_type' => $nodeType,
-        'message' => match ($nodeType) {
-          'hazard' => 'hazard_avoided',
-          'shrine' => 'shrine_favor_granted',
-          default => 'non_combat_resolution',
-        },
-        ...(is_array($shrineFavor) ? ['shrine_result' => $shrineFavor] : []),
+        'message' => (string)$nodeEffect['message'],
+        'effect_slug' => (string)$nodeEffect['slug'],
+        'primitive' => (string)$nodeEffect['primitive'],
+        ...($nodeType === 'shrine' ? ['shrine_result' => $nodeEffect['result']] : []),
+        ...($nodeType === 'hazard' ? ['hazard_result' => $nodeEffect['result']] : []),
       ]];
     } else {
       $difficulty = max(1, (int)$encounter['difficulty_rating']);
@@ -169,7 +161,18 @@ final class DeterministicRunNodeResolver
       $firstEvent = is_array($events[0] ?? null) ? $events[0] : [];
       $rewards['encounter_result'] = [
         'family' => 'shrine',
+        'primitive' => (string)($firstEvent['primitive'] ?? ''),
+        'effect_slug' => (string)($firstEvent['effect_slug'] ?? ''),
         'result' => is_array($firstEvent['shrine_result'] ?? null) ? $firstEvent['shrine_result'] : [],
+      ];
+    }
+    if ($nodeType === 'hazard') {
+      $firstEvent = is_array($events[0] ?? null) ? $events[0] : [];
+      $rewards['encounter_result'] = [
+        'family' => 'hazard',
+        'primitive' => (string)($firstEvent['primitive'] ?? ''),
+        'effect_slug' => (string)($firstEvent['effect_slug'] ?? ''),
+        'result' => is_array($firstEvent['hazard_result'] ?? null) ? $firstEvent['hazard_result'] : [],
       ];
     }
 

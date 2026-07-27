@@ -16,7 +16,6 @@ Success criteria:
 
 ### Related Issues
 
-- Define hazard and shrine effect primitives
 - Populate hazard nodes from authored rules
 
 ## Encounter Content Pack
