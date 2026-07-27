@@ -48,7 +48,9 @@
                 <g
                   class="run-map__node"
                   [class.run-map__node--available]="node.status === 'available'"
+                  [class.run-map__node--cleared]="node.status === 'cleared'"
                   [class.run-map__node--disabled]="node.status !== 'available'"
+                  [attr.data-node-type]="node.node_type"
                   role="button"
                   [attr.tabindex]="node.status === 'available' ? 0 : -1"
                   [attr.aria-label]="nodeTypeLabel(node.node_type) + ' node ' + node.status"
@@ -57,23 +59,29 @@
                   (keydown.space)="openNode(node); $event.preventDefault()"
                 >
                   <circle
+                    class="run-map__node-halo"
+                    [attr.cx]="nodeX(node)"
+                    [attr.cy]="nodeY(node)"
+                    r="39"
+                  ></circle>
+                  <circle
+                    class="run-map__node-disc"
                     [attr.cx]="nodeX(node)"
                     [attr.cy]="nodeY(node)"
                     r="34"
-                    [attr.fill]="
-                      node.status === 'available'
-                        ? '#b91c1c'
-                        : node.status === 'cleared'
-                          ? '#006f7a'
-                          : '#9ea6ad'
-                    "
+                  ></circle>
+                  <circle
+                    class="run-map__node-sheen"
+                    [attr.cx]="nodeX(node) - 8"
+                    [attr.cy]="nodeY(node) - 10"
+                    r="12"
                   ></circle>
                   <image
                     [attr.href]="iconForNode(node)"
-                    [attr.x]="nodeX(node) - 30"
-                    [attr.y]="nodeY(node) - 30"
-                    width="60"
-                    height="60"
+                    [attr.x]="nodeX(node) - 27"
+                    [attr.y]="nodeY(node) - 27"
+                    width="54"
+                    height="54"
                     preserveAspectRatio="xMidYMid meet"
                   ></image>
                 </g>

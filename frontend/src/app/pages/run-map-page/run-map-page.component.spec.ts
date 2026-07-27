@@ -72,6 +72,7 @@ describe('RunMapPageComponent', () => {
     expect(fixture.componentInstance.pageTitle()).toBe('Continue Run - The Farm');
     expect(fixture.componentInstance.iconForNodeType('combat')).toContain('icon_encounter_combat.png');
     expect(fixture.componentInstance.iconForNodeType('hazard')).toContain('icon_encounter_locked.png');
+    expect(fixture.componentInstance.iconForNodeType('shrine')).toContain('/assets/ui/node-art/shrines/good_a.png');
     expect(fixture.componentInstance.iconForNodeType('exit')).toContain('icon_home.png');
     expect(fixture.componentInstance.mapBackgroundUrl()).toBe('/assets/ui/biome/farm.png');
     expect(fixture.componentInstance.nodeX(fixture.componentInstance.nodes()[1]!)).toBe(260);
@@ -88,6 +89,8 @@ describe('RunMapPageComponent', () => {
     expect(host.querySelector('.run-unit-grid .unit-thumbnail__hp')).not.toBeNull();
     expect(host.querySelector('.run-unit-grid .unit-bar')).toBeNull();
     expect(host.querySelector('.run-unit-grid a')?.getAttribute('href')).toContain('/warband/units/u1');
+    expect(host.querySelector('.run-map__node-halo')).not.toBeNull();
+    expect(host.querySelector('[data-node-type="combat"] .run-map__node-disc')).not.toBeNull();
   });
 
   it('sizes the map from rendered node positions instead of a separate node-index guess', async () => {
