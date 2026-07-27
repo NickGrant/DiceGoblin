@@ -195,8 +195,16 @@ Current primitive-backed effects:
 | Node type | Effect slug | Primitive | Eligibility | Current result |
 | --- | --- | --- | --- | --- |
 | `hazard` | `hazard_cautious_footing` | `route_pressure` | Farm, Mountains, and Swamps from depth 3 onward. | Clears the hazard with no XP or currency reward. |
+| `hazard` | `hazard_mud_slick` | `temporary_modifier` | Farm from depth 3 onward. | Metadata-only precision pressure until temporary modifiers land. |
+| `hazard` | `hazard_broken_fence` | `route_pressure` | Farm from depth 4 onward. | Metadata-only route pressure. |
 | `hazard` | `hazard_loose_scree` | `hp_attrition` | Mountains from depth 4 onward. | Currently resolves as metadata-only pressure with no HP loss until attrition spending lands. |
+| `hazard` | `hazard_thin_air` | `temporary_modifier` | Mountains from depth 5 onward. | Metadata-only resolve pressure until temporary modifiers land. |
+| `hazard` | `hazard_toll_cairn` | `currency_pressure` | Mountains from depth 4 onward. | Metadata-only currency pressure until bargain costs land. |
+| `hazard` | `hazard_rust_thicket` | `item_pressure` | Mountains and Swamps from depth 5 onward. | Metadata-only item pressure until item costs land. |
 | `hazard` | `hazard_bog_mire` | `kin_mitigation` | Swamps from depth 4 onward. | Currently resolves as metadata-only Pig Kin mitigation setup until mitigation choices land. |
+| `hazard` | `hazard_biting_reeds` | `hp_attrition` | Swamps from depth 3 onward. | Metadata-only HP pressure until attrition spending lands. |
+| `hazard` | `hazard_sinking_cache` | `item_pressure` | Swamps from depth 5 onward. | Metadata-only item pressure until item costs land. |
+| `hazard` | `hazard_wrong_turn` | `route_pressure` | Mountains and Swamps from depth 6 onward. | Metadata-only route pressure. |
 | `shrine` | `shrine_bone_whisper`, `shrine_rust_blessing`, `shrine_bog_luck` | `small_reward` | Any generated shrine. | Grants 4-8 soft currency and persists the favor result. |
 
 Procedural hazard population:
