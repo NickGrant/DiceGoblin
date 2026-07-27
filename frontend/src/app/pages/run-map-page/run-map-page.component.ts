@@ -43,6 +43,8 @@ export class RunMapPageComponent {
     boss: '/assets/ui/icons/icon_encounter_boss.png',
     exit: '/assets/ui/icons/icon_home.png',
     dialogue: '/assets/ui/icons/icon_guide.png',
+    shrine: '/assets/ui/node-art/shrines/good_a.png',
+    chaos: '/assets/ui/icons/icon_encounter_boss.png',
     hazard: '/assets/ui/icons/icon_encounter_locked.png',
   };
 
