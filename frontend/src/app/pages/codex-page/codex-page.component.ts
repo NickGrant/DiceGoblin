@@ -14,7 +14,7 @@ import { resolveCompletedRegionSlugs } from '../../core/regions/region-catalog';
 import { FeatureUnlockCategoryLabel, resolveFeatureUnlockCategory } from '../../core/feature-unlocks/feature-unlock-categories';
 import { DialogueScript } from '../../core/dialogue/dialogue.models';
 import { DialogueService } from '../../core/services/dialogue/dialogue.service';
-import { DiceAffixRecord } from '../../core/models/api.models';
+import { DiceAffixRecord, ObjectiveRecord } from '../../core/models/api.models';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
@@ -22,7 +22,7 @@ import { resolvePrototypeEnemySpriteUrl } from '../../shared/ui/prototype-art/pr
 import { resolveUnitAnimationFrameUrls, resolveUnitSilhouetteUrl, resolveUnitThumbnailUrl } from '../../shared/ui/unit-art/unit-art';
 import { resolveFeatureUnlockIcon, resolveUnitRoleIcon } from '../../shared/ui/category-icons/category-icons';
 
-type CodexCategory = 'features' | 'units' | 'affixes' | 'enemies' | 'lore';
+type CodexCategory = 'features' | 'objectives' | 'units' | 'affixes' | 'enemies' | 'lore';
 
 type CodexUnit = {
   name: string;
@@ -365,6 +365,7 @@ export class CodexPageComponent implements OnInit, OnDestroy {
   protected readonly breadcrumbs = [{ label: 'Codex' }];
   protected readonly categories: ReadonlyArray<{ key: CodexCategory; label: string }> = [
     { key: 'features', label: 'Features' },
+    { key: 'objectives', label: 'Objectives' },
     { key: 'units', label: 'Units' },
     { key: 'affixes', label: 'Affixes' },
     { key: 'enemies', label: 'Enemies' },
@@ -396,6 +397,13 @@ export class CodexPageComponent implements OnInit, OnDestroy {
   ];
 
   protected readonly completedBiomeSlugs = computed(() => resolveCompletedRegionSlugs(this.profileData()));
+  protected readonly codexObjectives = computed<ReadonlyArray<ObjectiveRecord>>(() =>
+    [...(this.profileData()?.objectives ?? [])].sort((left, right) => {
+      const leftComplete = left.status === 'complete' ? 1 : 0;
+      const rightComplete = right.status === 'complete' ? 1 : 0;
+      return leftComplete - rightComplete || (right.priority ?? 0) - (left.priority ?? 0) || left.title.localeCompare(right.title);
+    }),
+  );
 
   protected readonly discoveredBiomeUnits = computed(() => {
     const completedBiomes = new Set(this.completedBiomeSlugs());
@@ -520,6 +528,20 @@ export class CodexPageComponent implements OnInit, OnDestroy {
 
   protected featureIcon(category: FeatureUnlockCategoryLabel): IconDefinition {
     return resolveFeatureUnlockIcon(category);
+  }
+
+  protected objectiveProgressLabel(objective: ObjectiveRecord): string {
+    const target = Math.max(1, objective.progress_target);
+    const current = Math.min(Math.max(0, objective.progress_current), target);
+    return `${current}/${target}`;
+  }
+
+  protected objectiveStatusLabel(objective: ObjectiveRecord): string {
+    if (objective.status === 'complete') {
+      return 'Complete';
+    }
+
+    return 'Current';
   }
 
   protected affixIcon(affix: CodexAffixEntry): IconDefinition {

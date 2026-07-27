@@ -30,6 +30,30 @@ class SessionServiceStub {
       { region_id: '2', region_slug: 'mountains', region_name: 'Mountains', unlocked_at: '2026-06-02T00:00:00Z' },
     ],
     active_run: { region_name: 'Mountains' },
+    objectives: [
+      {
+        id: 'equip-first-die',
+        title: 'Equip a die',
+        description: 'Attach at least one die to a raider ability before pushing deeper.',
+        status: 'complete',
+        priority: 100,
+        progress_current: 1,
+        progress_target: 1,
+        route: '/dice',
+        meta: {},
+      },
+      {
+        id: 'claim-first-victory',
+        title: 'Claim a battle victory',
+        description: 'Resolve and claim one victorious combat reward to grow the warband.',
+        status: 'active',
+        priority: 45,
+        progress_current: 0,
+        progress_target: 1,
+        route: '/run/map',
+        meta: {},
+      },
+    ],
   });
   readonly initialize = jasmine.createSpy('initialize').and.resolveTo();
 }
@@ -103,6 +127,7 @@ describe('CodexPageComponent', () => {
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Codex');
     expect(text).toContain('Features');
+    expect(text).toContain('Objectives');
     expect(text).toContain('Units');
     expect(text).toContain('Affixes');
     expect(text).toContain('Enemies');
@@ -140,6 +165,25 @@ describe('CodexPageComponent', () => {
     expect(text).toContain('Economy Upgrade - 500 teeth');
     expect(text).toContain('???');
     expect(text).toContain('Unlock to learn more.');
+  });
+
+  it('shows current and completed objectives in the codex archive', () => {
+    const fixture = TestBed.createComponent(CodexPageComponent);
+    const component = fixture.componentInstance as any;
+    component.setActiveCategory('objectives');
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    const objectiveEntries = Array.from(fixture.nativeElement.querySelectorAll('.objective-entry')) as HTMLElement[];
+
+    expect(text).toContain('Objective Archive');
+    expect(objectiveEntries.length).toBe(2);
+    expect(objectiveEntries[0].textContent).toContain('Claim a battle victory');
+    expect(objectiveEntries[0].textContent).toContain('Current');
+    expect(objectiveEntries[0].textContent).toContain('0/1');
+    expect(objectiveEntries[1].textContent).toContain('Equip a die');
+    expect(objectiveEntries[1].textContent).toContain('Complete');
+    expect(objectiveEntries[1].textContent).toContain('1/1');
   });
 
   it('shows all units as a locked and unlocked hierarchy on a separate category', () => {

@@ -39,6 +39,9 @@
           @case ('features') {
             <ng-container [ngTemplateOutlet]="featuresTemplate"></ng-container>
           }
+          @case ('objectives') {
+            <ng-container [ngTemplateOutlet]="objectivesTemplate"></ng-container>
+          }
           @case ('units') {
             <ng-container [ngTemplateOutlet]="unitsTemplate"></ng-container>
           }
@@ -80,6 +83,36 @@
             <p>Unlock to learn more.</p>
           </div>
           }
+        </article>
+      }
+    </div>
+  </section>
+</ng-template>
+
+<ng-template #objectivesTemplate>
+  <section class="dg-proto-section">
+    <div class="dg-proto-section__header">
+      <div>
+        <p class="dg-proto-section__eyebrow dg-stencil">Objective Archive</p>
+        <h3 class="dg-proto-section__title">Current and completed objectives</h3>
+      </div>
+    </div>
+    <div class="entries objective-entries">
+      @for (objective of codexObjectives(); track objective.id) {
+        <article class="entry objective-entry" [class.is-complete]="objective.status === 'complete'">
+          <div class="objective-copy">
+            <strong>{{ objective.title }}</strong>
+            <p>{{ objective.description }}</p>
+          </div>
+          <div class="objective-meta">
+            <span>{{ objectiveStatusLabel(objective) }}</span>
+            <strong>{{ objectiveProgressLabel(objective) }}</strong>
+          </div>
+        </article>
+      } @empty {
+        <article class="dg-proto-card dg-proto-card--locked">
+          <h4 class="dg-proto-card__title">No objectives recorded yet</h4>
+          <p class="dg-proto-card__copy">Objective history will appear here once the account starts receiving guidance.</p>
         </article>
       }
     </div>

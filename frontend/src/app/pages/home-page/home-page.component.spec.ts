@@ -232,7 +232,7 @@ describe('HomePageComponent', () => {
     expect(component.nextProgressionAction().route).toBe('/academy');
   });
 
-  it('uses backend objectives for the current action and objective checklist', () => {
+  it('uses only the current backend objective for the home guidance action', () => {
     sessionService.profileData.update((profile) => ({
       ...profile,
       objectives: [
@@ -277,6 +277,6 @@ describe('HomePageComponent', () => {
     expect(compiled.textContent).not.toContain('Equip a die');
     expect(compiled.textContent).not.toContain('Done');
     expect(compiled.textContent).toContain('Claim a battle victory');
-    expect(compiled.textContent).toContain('Next');
+    expect(compiled.querySelector('.home-proto__objective-list')).toBeNull();
   });
 });
