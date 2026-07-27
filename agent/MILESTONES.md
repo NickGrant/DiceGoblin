@@ -13,6 +13,7 @@ Success criteria:
 - Fresh-account UAT covers Farm, Mountains, Swamps, Wrong Machine recovery, Mystic Cave return, and first Pig Kin reconstruction.
 - Repeat-run behavior is checked for story, stolen pages, and unlock messaging.
 - Encounter variety and consumable pacing are sampled across multiple regions and seeds.
+- Evidence is captured from `documentation/05-playability-stability/05-july-roadmap-uat-evidence.md`.
 - Any UAT failures are logged with reproduction notes and player-facing severity.
 
 ### Related Issues

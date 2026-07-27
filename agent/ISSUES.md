@@ -18,7 +18,7 @@ The July 25 roadmap implementation is complete at the planned issue-slice level,
 #### Acceptance Criteria
 
 - A fresh account is played through Farm, Mountains, Swamps, Wrong Machine recovery, Mystic Cave return, and first Pig Kin reconstruction.
-- UAT notes capture story comprehension, unlock timing, reward visibility, and any blocking progression failures.
+- UAT notes are captured in `documentation/05-playability-stability/05-july-roadmap-uat-evidence.md` or copied from its template, including story comprehension, unlock timing, reward visibility, and any blocking progression failures.
 - Repeat-run behavior is checked for first-clear story, stolen pages, and unlock messaging.
 - Any player-facing failures are logged as new active issues with severity and reproduction notes.
 - If no blockers are found, the issue is archived with the UAT evidence location.
@@ -38,7 +38,7 @@ Hazard, shrine, chaos, healing-consumable, and energy-consumable systems are imp
 - Healing consumables are checked against rest-node value and attrition pressure.
 - Energy consumables are checked against energy caps and intended pacing.
 - Encounter copy is checked for readability and result clarity.
-- Any balance or content-repeat issues are logged with affected region, run seed when available, and expected tuning direction.
+- Any balance or content-repeat issues are logged with affected region, run seed when available, expected tuning direction, and evidence copied from `documentation/05-playability-stability/05-july-roadmap-uat-evidence.md`.
 
 ## UAT Polish Backlog
 
