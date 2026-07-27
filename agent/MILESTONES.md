@@ -2,26 +2,9 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Opening Arc Story Audit
-
-**Status:** Active
-
-Audit and complete the Wrong Machine narrative route from Mountains discovery through Swamps recovery and the first post-recovery Mystic Cave reconstruction prompt.
-
-Success criteria:
-
-- Mountains and Swamps story beats match the July roadmap or have documented equivalents.
-- Wrong Machine feature state remains backend-owned and idempotent.
-- Mystic Cave explains reconstruction only after recovery.
-- Repeat runs avoid replaying all one-time exposition.
-
-### Related Issues
-
-- Verify Wrong Machine story beat coverage
-
 ## Kin Pool and Balance Completion
 
-**Status:** Planned
+**Status:** Active
 
 Finish the first kin reconstruction loop by verifying random reward pools, reviewing Pig Kin balance, and planning the legacy storage rename without risking compatibility.
 

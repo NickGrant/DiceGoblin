@@ -75,6 +75,27 @@ current_code_references:
   - backend/tests/Integration/BattleNodeResolutionIntegrationTest.php
   - documentation/02-systems-mvp/13-wrong-machine-and-kin.md
 
+## Opening Arc Story Audit
+
+---
+id: OAR-001
+title: Verify Wrong Machine story beat coverage
+status: complete
+priority: high
+milestone: Opening Arc Story Audit
+description: Added Swamps Wrong Machine story dialogue coverage, feature-gated post-recovery Mystic Cave reconstruction dialogue, supplemental dialogue scripts, and backend graph tests for fresh and repeat story behavior.
+acceptance_criteria:
+  - Mountains contains discovery and completion dialogue that points players toward the Swamps.
+  - Swamps contains opening, investigation, boss confrontation, and machine recovery dialogue or documented equivalent scenes.
+  - Post-recovery Mystic Cave dialogue explains Raw Chaos, lineage materials, and the first reconstruction path.
+  - Repeat runs do not replay every first-clear exposition beat.
+  - Missing beats are added with backend-owned feature state and dialogue state remaining idempotent.
+current_code_references:
+  - backend/src/Services/RunGraphGenerator.php
+  - backend/tests/Integration/RunGraphGeneratorIntegrationTest.php
+  - frontend/src/app/core/services/dialogue/dialogue.service.ts
+  - frontend/public/assets/data/dialogue/dialogue-scripts-2026-07-25.json
+
 ## Wrong Machine and Kin Foundation
 
 ---

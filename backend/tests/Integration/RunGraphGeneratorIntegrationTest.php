@@ -79,6 +79,26 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertSame([['from' => 0, 'to' => 1]], $graph['edges']);
   }
 
+  public function testRecoveredWrongMachineShowsMysticCaveReconstructionPrompt(): void
+  {
+    $userId = $this->insertUser();
+    $this->grantUnlock($userId, 'dialogue', 'start-run-kickoff');
+    $this->grantUnlock($userId, 'feature', 'wrong_machine');
+    $regionId = $this->seededRegionId('mystic_cave');
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $graph = $generator->applyDialogueNodes(
+      $userId,
+      'mystic_cave',
+      $generator->generate($regionId, 'mystic_cave', 'mystic-recovered-seed'),
+    );
+
+    $dialogueIds = $this->dialogueIds($graph);
+    $this->assertContains('mystic-cave-wrong-machine-recovered', $dialogueIds);
+    $this->assertNotContains('mystic-cave-wrong-machine-reminder', $dialogueIds);
+    $this->assertSame('mystic-cave-wrong-machine-recovered', (string)($graph['nodes'][0]['meta']['dialogue_id'] ?? ''));
+  }
+
   /**
    * @dataProvider proceduralRegionProvider
    */
@@ -201,6 +221,60 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertNotContains('mountains-archivist-first-contact', $dialogueIds);
     $this->assertContains('mountains-wrong-machine-search-repeat', $dialogueIds);
     $this->assertSame('mountains-wrong-machine-search-repeat', (string)($graph['nodes'][$analysis['start_index']]['meta']['dialogue_id'] ?? ''));
+  }
+
+  public function testFreshSwampsRunInsertsWrongMachineRecoveryArc(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->seededRegionId('swamps');
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $graph = $generator->applyDialogueNodes(
+      $userId,
+      'swamps',
+      $generator->generate($regionId, 'swamps', 'swamp-story-seed'),
+    );
+    $analysis = $this->analyzeGraph($graph);
+    $dialogueIds = $this->dialogueIds($graph);
+
+    $this->assertContains('swamps-forbidden-machine-opening', $dialogueIds);
+    $this->assertContains('swamps-machine-investigation', $dialogueIds);
+    $this->assertContains('swamps-bog-tyrant-confrontation', $dialogueIds);
+    $this->assertContains('swamps-wrong-machine-recovery', $dialogueIds);
+    $this->assertSame('swamps-forbidden-machine-opening', (string)($graph['nodes'][$analysis['start_index']]['meta']['dialogue_id'] ?? ''));
+    $this->assertLessThan(
+      array_search('swamps-bog-tyrant-confrontation', $dialogueIds, true),
+      array_search('swamps-machine-investigation', $dialogueIds, true),
+    );
+    $this->assertDialogueImmediatelyPrecedes($graph, 'swamps-bog-tyrant-confrontation', 'boss');
+    $this->assertDialogueImmediatelyPrecedes($graph, 'swamps-wrong-machine-recovery', 'exit');
+  }
+
+  public function testRepeatSwampsRunKeepsBossConfrontationWithoutOneTimeExposition(): void
+  {
+    $userId = $this->insertUser();
+    foreach ([
+      'swamps-forbidden-machine-opening',
+      'swamps-machine-investigation',
+      'swamps-wrong-machine-recovery',
+    ] as $dialogueId) {
+      $this->grantUnlock($userId, 'dialogue', $dialogueId);
+    }
+    $regionId = $this->seededRegionId('swamps');
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $graph = $generator->applyDialogueNodes(
+      $userId,
+      'swamps',
+      $generator->generate($regionId, 'swamps', 'swamp-repeat-seed'),
+    );
+    $dialogueIds = $this->dialogueIds($graph);
+
+    $this->assertNotContains('swamps-forbidden-machine-opening', $dialogueIds);
+    $this->assertNotContains('swamps-machine-investigation', $dialogueIds);
+    $this->assertNotContains('swamps-wrong-machine-recovery', $dialogueIds);
+    $this->assertContains('swamps-bog-tyrant-confrontation', $dialogueIds);
+    $this->assertDialogueImmediatelyPrecedes($graph, 'swamps-bog-tyrant-confrontation', 'boss');
   }
 
   public function testMountainsCompactRowsAndBreakStraightawaysForReferenceSeed(): void

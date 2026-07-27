@@ -8,7 +8,7 @@ use RuntimeException;
 
 final class RunGraphGenerator
 {
-  /** @var array<int,array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string}> */
+  /** @var array<int,array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string,requires_feature?:string,excludes_feature?:string}> */
   private const DIALOGUE_NODE_DEFINITIONS = [
     [
       'region_slug' => 'mystic_cave',
@@ -24,6 +24,16 @@ final class RunGraphGenerator
       'one_time' => false,
       'tags' => [],
       'requires_seen_dialogue' => 'start-run-kickoff',
+      'excludes_feature' => 'wrong_machine',
+    ],
+    [
+      'region_slug' => 'mystic_cave',
+      'dialogue_id' => 'mystic-cave-wrong-machine-recovered',
+      'placement' => 'start',
+      'one_time' => true,
+      'tags' => ['lore'],
+      'requires_seen_dialogue' => 'start-run-kickoff',
+      'requires_feature' => 'wrong_machine',
     ],
     [
       'region_slug' => 'the_farm',
@@ -64,6 +74,34 @@ final class RunGraphGenerator
     [
       'region_slug' => 'mountains',
       'dialogue_id' => 'mountains-swamps-lead',
+      'placement' => 'before_exit',
+      'one_time' => true,
+      'tags' => ['lore'],
+    ],
+    [
+      'region_slug' => 'swamps',
+      'dialogue_id' => 'swamps-forbidden-machine-opening',
+      'placement' => 'start',
+      'one_time' => true,
+      'tags' => ['lore'],
+    ],
+    [
+      'region_slug' => 'swamps',
+      'dialogue_id' => 'swamps-machine-investigation',
+      'placement' => 'before_boss',
+      'one_time' => true,
+      'tags' => ['lore'],
+    ],
+    [
+      'region_slug' => 'swamps',
+      'dialogue_id' => 'swamps-bog-tyrant-confrontation',
+      'placement' => 'before_boss',
+      'one_time' => false,
+      'tags' => [],
+    ],
+    [
+      'region_slug' => 'swamps',
+      'dialogue_id' => 'swamps-wrong-machine-recovery',
       'placement' => 'before_exit',
       'one_time' => true,
       'tags' => ['lore'],
@@ -216,6 +254,16 @@ final class RunGraphGenerator
         $definition['dialogue_id'] = 'farm-boss-intro-shop-unlocked';
       }
 
+      $requiredFeature = trim((string)($definition['requires_feature'] ?? ''));
+      if ($requiredFeature !== '' && !$this->hasFeatureUnlock($userId, $requiredFeature)) {
+        continue;
+      }
+
+      $excludedFeature = trim((string)($definition['excludes_feature'] ?? ''));
+      if ($excludedFeature !== '' && $this->hasFeatureUnlock($userId, $excludedFeature)) {
+        continue;
+      }
+
       $requiredSeenDialogue = trim((string)($definition['requires_seen_dialogue'] ?? ''));
       if ($requiredSeenDialogue !== '' && !isset($seenDialogues[$requiredSeenDialogue])) {
         continue;
@@ -235,7 +283,7 @@ final class RunGraphGenerator
   }
 
   /**
-   * @return array<int,array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string}>
+   * @return array<int,array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string,requires_feature?:string,excludes_feature?:string}>
    */
   private function dialogueNodeDefinitionsForRegion(string $regionSlug): array
   {
@@ -357,7 +405,7 @@ final class RunGraphGenerator
 
   /**
    * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
-   * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string} $definition
+   * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string,requires_feature?:string,excludes_feature?:string} $definition
    * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>}
    */
   private function insertDialogueNode(array $graph, array $definition): array
@@ -372,7 +420,7 @@ final class RunGraphGenerator
 
   /**
    * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
-   * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string} $definition
+   * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string,requires_feature?:string,excludes_feature?:string} $definition
    * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>}
    */
   private function insertDialogueAtStart(array $graph, array $definition): array
@@ -406,7 +454,7 @@ final class RunGraphGenerator
 
   /**
    * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
-   * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string} $definition
+   * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string,requires_feature?:string,excludes_feature?:string} $definition
    * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>}
    */
   private function insertDialogueBeforeType(array $graph, array $definition, string $targetType): array
@@ -458,7 +506,7 @@ final class RunGraphGenerator
   }
 
   /**
-   * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string} $definition
+   * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string,requires_feature?:string,excludes_feature?:string} $definition
    * @return array<string,mixed>
    */
   private function dialogueNode(int $nodeIndex, array $definition, string $status, int $col, int $row): array

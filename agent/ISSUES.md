@@ -2,25 +2,6 @@
 ----
 Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
-## Opening Arc Story Audit
-
-### Verify Wrong Machine story beat coverage
-
-**Milestone:** Opening Arc Story Audit
-**Status:** Open
-**Priority:** High
-
-#### Problem
-Wrong Machine unlock timing is backend-owned, but the exact Mountains, Swamps, and Mystic Cave dialogue beats from the July roadmap need a content audit so the player can understand why the machine matters and when reconstruction begins.
-
-#### Acceptance Criteria
-
-- Mountains contains discovery and completion dialogue that points players toward the Swamps.
-- Swamps contains opening, investigation, boss confrontation, and machine recovery dialogue or documented equivalent scenes.
-- Post-recovery Mystic Cave dialogue explains Raw Chaos, lineage materials, and the first reconstruction path.
-- Repeat runs do not replay every first-clear exposition beat.
-- Missing beats are added with backend-owned feature state and dialogue state remaining idempotent.
-
 ## Kin Pool and Balance Completion
 
 ### Gate random kin rewards by owned lineages

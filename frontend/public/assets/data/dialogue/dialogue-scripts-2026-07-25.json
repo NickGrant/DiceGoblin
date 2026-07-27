@@ -1,0 +1,185 @@
+{
+  "scripts": [
+    {
+      "id": "mystic-cave-wrong-machine-recovered",
+      "title": "The Machine Comes Home",
+      "summary": "The Whim explains that the recovered Wrong Machine can restore kin forms from Raw Chaos and lineage materials.",
+      "tags": ["lore"],
+      "trigger": {
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
+        "region_slug": "mystic_cave",
+        "tags": ["lore"]
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/mystic_cave.png"
+      },
+      "speakers": [
+        { "id": "player", "side": "left", "party": "player", "role": "player", "portrait_url": "/assets/ui/units/animated/goblin/base/frame_0.png" },
+        { "id": "whim", "side": "right", "name": "The Whim", "portrait_url": "/assets/ui/units/animated/whim/base/frame_0.png", "party": "neutral", "role": "npc" }
+      ],
+      "start_step_id": "whim-you-found-it",
+      "steps": [
+        { "id": "whim-you-found-it", "speaker_id": "whim", "text": "You found it.", "next_step_id": "player-wrong-machine" },
+        { "id": "player-wrong-machine", "speaker_id": "player", "text": "It kept being wrong at everything.", "next_step_id": "whim-correct" },
+        { "id": "whim-correct", "speaker_id": "whim", "text": "Correct. That is what makes it the Wrong Machine.", "next_step_id": "whim-order" },
+        { "id": "whim-order", "speaker_id": "whim", "text": "Order did not merely kill goblins. It separated all the forms goblins might become and nailed them into tidy little categories.", "next_step_id": "player-forms" },
+        { "id": "player-forms", "speaker_id": "player", "text": "Can we steal them back?", "next_step_id": "whim-inputs" },
+        { "id": "whim-inputs", "speaker_id": "whim", "text": "With Raw Chaos, lineage scraps, and a machine that refuses to behave, yes.", "next_step_id": "whim-first" },
+        { "id": "whim-first", "speaker_id": "whim", "text": "Start with Pig Kin. The Farm has already given you the shape of that answer.", "next_step_id": "player-ready" },
+        {
+          "id": "player-ready",
+          "speaker_id": "player",
+          "text": "...",
+          "choices": [
+            { "id": "build", "label": "Feed the machine.", "next_step_id": "whim-build" },
+            { "id": "bite", "label": "Does it bite?", "next_step_id": "whim-bite" },
+            { "id": "wrong", "label": "What if it gets more wrong?", "next_step_id": "whim-wrong" }
+          ]
+        },
+        { "id": "whim-build", "speaker_id": "whim", "text": "A practical and alarming instinct. Good.", "next_step_id": "whim-go" },
+        { "id": "whim-bite", "speaker_id": "whim", "text": "Only concepts, mostly. Keep your fingers out anyway.", "next_step_id": "whim-go" },
+        { "id": "whim-wrong", "speaker_id": "whim", "text": "Then it is improving.", "next_step_id": "whim-go" },
+        { "id": "whim-go", "speaker_id": "whim", "text": "Go on. Put possibility back where the Archivist left absence." }
+      ]
+    },
+    {
+      "id": "swamps-forbidden-machine-opening",
+      "title": "Contraband In The Reeds",
+      "summary": "The Swamps establish the Wrong Machine as forbidden property held by the Bog Tyrant.",
+      "tags": ["lore"],
+      "trigger": {
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
+        "region_slug": "swamps",
+        "tags": ["lore"]
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/swamp.png"
+      },
+      "speakers": [
+        { "id": "player", "side": "left", "party": "player", "role": "player" },
+        { "id": "frog-warden", "side": "right", "name": "Frog Warden", "portrait_unit_slug": "frogman_spearhunter", "party": "enemy", "role": "npc" }
+      ],
+      "start_step_id": "warden-halt",
+      "steps": [
+        { "id": "warden-halt", "speaker_id": "frog-warden", "text": "Halt at the clean water line.", "next_step_id": "player-clean" },
+        { "id": "player-clean", "speaker_id": "player", "text": "This is the clean part?", "next_step_id": "warden-law" },
+        { "id": "warden-law", "speaker_id": "frog-warden", "text": "By order of the Bog Tyrant and the Library compact, unstable mechanisms remain impounded.", "next_step_id": "player-machine" },
+        { "id": "player-machine", "speaker_id": "player", "text": "We came for the Wrong Machine.", "next_step_id": "warden-fear" },
+        { "id": "warden-fear", "speaker_id": "frog-warden", "text": "Then you came for a flood with gears. The machine makes old things possible again.", "next_step_id": "warden-trophy" },
+        { "id": "warden-trophy", "speaker_id": "frog-warden", "text": "The Tyrant keeps it as a trophy because trophies do not wake up when watched.", "next_step_id": "player-choice" },
+        {
+          "id": "player-choice",
+          "speaker_id": "player",
+          "text": "...",
+          "choices": [
+            { "id": "violence", "label": "Then stop watching.", "next_step_id": "warden-violence" },
+            { "id": "greed", "label": "Trophies can be stolen.", "next_step_id": "warden-greed" },
+            { "id": "logic", "label": "If it wakes up, it wants us.", "next_step_id": "warden-logic" }
+          ]
+        },
+        { "id": "warden-violence", "speaker_id": "frog-warden", "text": "The reeds will do the watching after we are done.", "next_step_id": "warden-end" },
+        { "id": "warden-greed", "speaker_id": "frog-warden", "text": "Many thieves become useful warning lumps.", "next_step_id": "warden-end" },
+        { "id": "warden-logic", "speaker_id": "frog-warden", "text": "That is precisely the fear.", "next_step_id": "warden-end" },
+        { "id": "warden-end", "speaker_id": "frog-warden", "text": "Turn back, goblin. The swamp keeps what sinks." }
+      ]
+    },
+    {
+      "id": "swamps-machine-investigation",
+      "title": "The Machine's Wake",
+      "summary": "A mid-run Swamps scene reveals that the machine constructs from chaos and was moved intact.",
+      "tags": ["lore"],
+      "trigger": {
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
+        "region_slug": "swamps",
+        "tags": ["lore"]
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/swamp.png"
+      },
+      "speakers": [
+        { "id": "player", "side": "left", "party": "player", "role": "player" },
+        { "id": "frog-tinker", "side": "right", "name": "Frog Tinker", "portrait_unit_slug": "frogman_wardrummer", "party": "enemy", "role": "npc" }
+      ],
+      "start_step_id": "tinker-scraps",
+      "steps": [
+        { "id": "tinker-scraps", "speaker_id": "frog-tinker", "text": "Do not touch those scraps. They are evidence.", "next_step_id": "player-evidence" },
+        { "id": "player-evidence", "speaker_id": "player", "text": "They are humming.", "next_step_id": "tinker-chaos" },
+        { "id": "tinker-chaos", "speaker_id": "frog-tinker", "text": "Because the machine builds with chaos the way normal machines build with bolts.", "next_step_id": "tinker-stable" },
+        { "id": "tinker-stable", "speaker_id": "frog-tinker", "text": "Every part we stabilized became useless. Every part we left wrong kept trying to assemble something.", "next_step_id": "player-something" },
+        { "id": "player-something", "speaker_id": "player", "text": "Something goblin?", "next_step_id": "tinker-materials" },
+        { "id": "tinker-materials", "speaker_id": "frog-tinker", "text": "Something with tusk-memory in it. Farm materials, old mud, crown-metal. It remembers shapes.", "next_step_id": "player-good" },
+        { "id": "player-good", "speaker_id": "player", "text": "Good. We brought pockets.", "next_step_id": "tinker-end" },
+        { "id": "tinker-end", "speaker_id": "frog-tinker", "text": "That is not how evidence works." }
+      ]
+    },
+    {
+      "id": "swamps-bog-tyrant-confrontation",
+      "title": "The Bog Tyrant's Refusal",
+      "summary": "The Bog Tyrant refuses to surrender the Wrong Machine and forces the boss fight.",
+      "trigger": {
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
+        "region_slug": "swamps"
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/swamp.png"
+      },
+      "speakers": [
+        { "id": "player", "side": "left", "party": "player", "role": "player" },
+        { "id": "bog-tyrant", "side": "right", "name": "Bog Tyrant", "portrait_unit_slug": "frogman_bog_tyrant", "party": "enemy", "role": "npc" }
+      ],
+      "start_step_id": "tyrant-arrival",
+      "steps": [
+        { "id": "tyrant-arrival", "speaker_id": "bog-tyrant", "text": "So the little impossible thing has reached my court.", "next_step_id": "player-machine" },
+        { "id": "player-machine", "speaker_id": "player", "text": "Give back the Wrong Machine.", "next_step_id": "tyrant-no" },
+        { "id": "tyrant-no", "speaker_id": "bog-tyrant", "text": "No. It is dangerous in the hands of creatures who mistake appetite for destiny.", "next_step_id": "player-choice" },
+        {
+          "id": "player-choice",
+          "speaker_id": "player",
+          "text": "...",
+          "choices": [
+            { "id": "violence", "label": "Then destiny is hungry.", "next_step_id": "tyrant-violence" },
+            { "id": "greed", "label": "It already belongs to us.", "next_step_id": "tyrant-greed" },
+            { "id": "logic", "label": "Wrong things go with goblins.", "next_step_id": "tyrant-logic" }
+          ]
+        },
+        { "id": "tyrant-violence", "speaker_id": "bog-tyrant", "text": "The swamp has swallowed hungrier mouths.", "next_step_id": "tyrant-fight" },
+        { "id": "tyrant-greed", "speaker_id": "bog-tyrant", "text": "Possession is proven by survival.", "next_step_id": "tyrant-fight" },
+        { "id": "tyrant-logic", "speaker_id": "bog-tyrant", "text": "Then I will make one fewer wrong thing.", "next_step_id": "tyrant-fight" },
+        { "id": "tyrant-fight", "speaker_id": "bog-tyrant", "text": "Come take it from the mud." }
+      ]
+    },
+    {
+      "id": "swamps-wrong-machine-recovery",
+      "title": "Recovered Wrong Machine",
+      "summary": "The defeated Swamps route confirms recovery of the Wrong Machine and points the player back to Mystic Cave.",
+      "tags": ["lore"],
+      "trigger": {
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
+        "region_slug": "swamps",
+        "tags": ["lore"]
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/swamp.png"
+      },
+      "speakers": [
+        { "id": "player", "side": "left", "party": "player", "role": "player" },
+        { "id": "whim", "side": "right", "name": "The Whim", "portrait_url": "/assets/ui/units/animated/whim/base/frame_0.png", "party": "neutral", "role": "npc" }
+      ],
+      "start_step_id": "player-found",
+      "steps": [
+        { "id": "player-found", "speaker_id": "player", "text": "We found the machine.", "next_step_id": "whim-hear" },
+        { "id": "whim-hear", "speaker_id": "whim", "text": "I can hear it being wrong from here.", "next_step_id": "player-heavy" },
+        { "id": "player-heavy", "speaker_id": "player", "text": "It is heavier than it looks.", "next_step_id": "whim-good" },
+        { "id": "whim-good", "speaker_id": "whim", "text": "Good machines are heavy. Wrong machines are persuasive.", "next_step_id": "whim-return" },
+        { "id": "whim-return", "speaker_id": "whim", "text": "Bring it back to the cave. Do not let it convince anyone to climb inside.", "next_step_id": "player-anyone" },
+        { "id": "player-anyone", "speaker_id": "player", "text": "Anyone specific?", "next_step_id": "whim-you" },
+        { "id": "whim-you", "speaker_id": "whim", "text": "You. I meant you." }
+      ]
+    }
+  ]
+}

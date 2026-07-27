@@ -42,7 +42,18 @@ export class DialogueService {
   }
 
   private async fetchLibrary(): Promise<DialogueLibraryDefinition> {
-    const response = await fetch('/assets/data/dialogue/dialogue-scripts.json', {
+    const [coreLibrary, roadmapLibrary] = await Promise.all([
+      this.fetchLibraryFile('/assets/data/dialogue/dialogue-scripts.json'),
+      this.fetchLibraryFile('/assets/data/dialogue/dialogue-scripts-2026-07-25.json'),
+    ]);
+
+    return {
+      scripts: [...coreLibrary.scripts, ...roadmapLibrary.scripts],
+    };
+  }
+
+  private async fetchLibraryFile(url: string): Promise<DialogueLibraryDefinition> {
+    const response = await fetch(url, {
       headers: { Accept: 'application/json' },
     });
 

@@ -40,6 +40,24 @@ exit_criteria:
   - Reward payloads, run summaries, and profile inventory stay aligned.
 
 ---
+name: Opening Arc Story Audit
+status: complete
+issues:
+  - OAR-001
+description: Completed the Wrong Machine narrative route from Mountains discovery through Swamps recovery and the first post-recovery Mystic Cave reconstruction prompt.
+goals:
+  - Audit existing Mountains dialogue coverage.
+  - Add missing Swamps opening, investigation, boss, and machine recovery story beats.
+  - Replace the Mystic Cave reminder with a post-recovery reconstruction prompt after Wrong Machine unlock.
+  - Keep one-time dialogue and feature-gated dialogue backend-authoritative.
+current_code_context: RunGraphGenerator owns dialogue placement, feature gating, and one-time replay rules; the frontend dialogue service merges the core and 7/25 supplemental script libraries; RunGraphGeneratorIntegrationTest covers fresh/repeat Swamps and post-recovery Mystic Cave behavior.
+exit_criteria:
+  - Mountains and Swamps story beats match the July roadmap or have documented equivalents.
+  - Wrong Machine feature state remains backend-owned and idempotent.
+  - Mystic Cave explains reconstruction only after recovery.
+  - Repeat runs avoid replaying all one-time exposition.
+
+---
 name: Wrong Machine and Kin Foundation
 status: complete
 issues:
