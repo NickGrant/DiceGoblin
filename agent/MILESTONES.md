@@ -4,7 +4,7 @@ Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
 ## UAT Feedback Fix Round 2
 
-**Status:** Active
+**Status:** Planned
 
 Address run-event blockers found during UAT across rest recovery, shrine/hazard resolution clarity, chaos reel application, post-Wrong-Machine dialogue, and voluntary run-return framing.
 

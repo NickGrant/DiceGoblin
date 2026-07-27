@@ -53,6 +53,7 @@ describe('LandingPageComponent', () => {
     expect(logo.getAttribute('src')).toContain('/assets/ui/branding/hero-logo.png');
     expect(heading.classList).toContain('visually-hidden');
     expect(guideLink.textContent).toContain('How to Play');
+    expect(guideLink.querySelector('.landing-guide-link__arrow')).not.toBeNull();
     expect(text).toContain('Dice Goblins');
     expect(text).toContain('Turn-based run battles');
     expect(text).toContain('How to Play');
