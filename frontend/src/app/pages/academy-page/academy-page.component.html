@@ -1,7 +1,7 @@
 <page-frame
   [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Academy' }]"
   title="Academy"
-  subtitle="Promote veteran units here. Unit unlock research will live here as well."
+  subtitle="Research unit types and promote veteran units."
 >
   @if (error() || message() || unitLocked()) {
   <div class="vstack gap-2 mb-3">
@@ -19,19 +19,23 @@
 
   <div class="academy-page__grid">
     <div class="academy-page__column">
-      <section class="dg-card p-3 p-lg-4 h-100">
-        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+      <section class="academy-panel academy-panel--research">
+        <div class="academy-panel__header">
           <div>
             <h2 class="dg-stencil mb-1">Research Wing</h2>
             <p class="mb-0">Spend teeth here to unlock additional Tier I unit types for loot and shop access.</p>
           </div>
-          <span class="dg-chip">Teeth {{ profile().softCurrency }}</span>
+          <span class="academy-wallet">
+            <span>Teeth</span>
+            <strong>{{ profile().softCurrency }}</strong>
+            <img src="/assets/ui/icons/tooth_16.png" alt="" aria-hidden="true" />
+          </span>
         </div>
 
         @if (loadingUnlocks()) {
         <dg-alert>Loading unit unlocks...</dg-alert>
         } @else if (availableUnitUnlocks().length) {
-        <div class="vstack gap-2">
+        <div class="academy-unlock-list">
           @for (entry of availableUnitUnlocks(); track entry.unit_type_slug) {
           <button
             class="academy-unlock-card"
@@ -39,10 +43,13 @@
             (click)="unlockUnitType(entry.unit_type_slug)"
             [disabled]="unitUnlockDisabled(entry)"
           >
-            <div>
-              <p class="academy-label mb-1">{{ roleLabel(entry.role) }}</p>
+            <div class="academy-unlock-card__icon" aria-hidden="true">
+              {{ roleInitial(entry.role) }}
+            </div>
+            <div class="academy-unlock-card__body">
+              <p class="academy-label mb-1">{{ unitUnlockMetaLabel(entry) }}</p>
               <h3 class="dg-stencil mb-1">{{ entry.name }}</h3>
-              <p class="mb-0">{{ unitUnlockDescription(entry.unit_type_slug) }}</p>
+              <p class="academy-unlock-card__description mb-0">{{ unitUnlockDescription(entry.unit_type_slug) }}</p>
               <p
                 class="academy-unlock-card__requirement mb-0"
                 [class.academy-unlock-card__requirement--met]="entry.is_available !== false"
@@ -59,7 +66,10 @@
               </div>
             </div>
             <div class="academy-unlock-card__actions">
-              <span class="academy-unlock-card__cost">{{ entry.cost }} Teeth</span>
+              <span class="academy-unlock-card__cost">
+                <strong>{{ entry.cost }}</strong>
+                <img src="/assets/ui/icons/tooth_16.png" alt="" aria-hidden="true" />
+              </span>
               <span class="academy-unlock-card__state">{{ unitUnlockActionLabel(entry) }}</span>
             </div>
           </button>
@@ -72,8 +82,8 @@
     </div>
 
     <div class="academy-page__column">
-      <section class="dg-card p-3 p-lg-4 h-100">
-        <div class="mb-3">
+      <section class="academy-panel">
+        <div class="academy-panel__header academy-panel__header--simple">
           <h2 class="dg-stencil mb-1">Promotion Hall</h2>
           <p class="mb-0">Choose a primary unit, then consume two matching promotion-ready units to promote it.</p>
         </div>
