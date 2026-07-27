@@ -16,7 +16,6 @@ Success criteria:
 
 ### Related Issues
 
-- Gate random kin rewards by owned lineages
 - Run kin balance simulation review
 - Plan legacy splice storage retirement
 

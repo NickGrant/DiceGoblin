@@ -82,6 +82,16 @@ The first reconstruction path is Pig Kin. Its required materials are currently p
 
 Future Mountains or Swamps lineage materials should use the same generic item inventory path and must declare their protection rule before becoming required for campaign progression.
 
+## Current Random Reward Pool Audit
+
+Random unit grants are user-aware:
+
+- Basic Goblin is always eligible through the implicit default lineage.
+- Explicit lineages enter the random pool only after the account owns that lineage.
+- Authored reward payloads that name a specific kin bypass the random pool and may grant that kin directly.
+
+This keeps special story or reconstruction rewards authorable without letting locked kin appear in ordinary recruitment rolls.
+
 ## Balance Boundaries
 
 Kin identity should remain smaller than class identity.

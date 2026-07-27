@@ -4,22 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Kin Pool and Balance Completion
 
-### Gate random kin rewards by owned lineages
-
-**Milestone:** Kin Pool and Balance Completion
-**Status:** Open
-**Priority:** High
-
-#### Problem
-Pig Kin reconstruction is complete, but random recruitment and unit reward pools must be verified so accounts only roll kin they own unless a reward explicitly grants a specific lineage.
-
-#### Acceptance Criteria
-
-- New random unit grants use Basic Goblin plus account-owned lineages as the default eligible kin pool.
-- Explicit reward payloads may still grant a specific kin when authored to do so.
-- Frontend profile/debug surfaces continue to show owned lineages clearly.
-- Backend tests cover default accounts, Pig Kin unlocked accounts, and explicit kin grants.
-
 ### Run kin balance simulation review
 
 **Milestone:** Kin Pool and Balance Completion

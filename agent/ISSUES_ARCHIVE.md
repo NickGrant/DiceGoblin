@@ -96,6 +96,28 @@ current_code_references:
   - frontend/src/app/core/services/dialogue/dialogue.service.ts
   - frontend/public/assets/data/dialogue/dialogue-scripts-2026-07-25.json
 
+## Kin Pool and Balance Completion
+
+---
+id: KPB-001
+title: Gate random kin rewards by owned lineages
+status: complete
+priority: high
+milestone: Kin Pool and Balance Completion
+description: Verified random unit grants use the user-aware kin pool, with Basic Goblin implicit for every account and explicit lineages included only after unlock, while authored reward payloads may still grant a specific kin directly.
+acceptance_criteria:
+  - New random unit grants use Basic Goblin plus account-owned lineages as the default eligible kin pool.
+  - Explicit reward payloads may still grant a specific kin when authored to do so.
+  - Frontend profile/debug surfaces continue to show owned lineages clearly.
+  - Backend tests cover default accounts, Pig Kin unlocked accounts, and explicit kin grants.
+current_code_references:
+  - backend/src/Services/SpliceVariantService.php
+  - backend/src/Services/OwnedUnitGrantService.php
+  - backend/src/Services/UserAssetGrantService.php
+  - backend/tests/Integration/UserAssetGrantServiceIntegrationTest.php
+  - backend/tests/Integration/DevToolsServiceIntegrationTest.php
+  - backend/tests/Integration/ApiControllerEnvelopeContractTest.php
+
 ## Wrong Machine and Kin Foundation
 
 ---
