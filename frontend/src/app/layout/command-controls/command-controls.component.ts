@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, OnDestroy, computed, inject, signal } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faVolumeHigh, faVolumeOff, faVolumeXmark } from '@fortawesome/free-solid-svg-icons';
+import { faVolumeHigh, faVolumeOff, faVolumeXmark, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AudioDirectorService } from '../../core/services/audio/audio-director.service';
 import { SessionService } from '../../core/services/session/session.service';
@@ -50,6 +50,7 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   readonly faVolumeHigh = faVolumeHigh;
   readonly faVolumeOff = faVolumeOff;
   readonly faVolumeXmark = faVolumeXmark;
+  readonly faRawChaos = faWandMagicSparkles;
   readonly mobileMenuOpen = signal(false);
   readonly navItems: readonly HudNavItem[] = [
     {

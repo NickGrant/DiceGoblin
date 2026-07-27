@@ -247,6 +247,7 @@ describe('CommandControlsComponent', () => {
     expect(menu?.textContent).toContain('Guide');
     expect(menu?.textContent).toContain('Codex');
     expect(menu?.textContent).toContain('Logout');
+    expect(window.getComputedStyle(menu!).animationName).toContain('menu-enter');
   });
 
   it('preloads dropdown frame art before the menu is opened', () => {

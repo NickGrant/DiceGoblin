@@ -89,6 +89,22 @@ The voluntary run exit is framed as `Abandon Run` and `Run Abandoned`, which rea
 
 ## UAT Feedback Fix Round 1
 
+### Polish home navigation and command controls
+
+**Milestone:** UAT Feedback Fix Round 1
+**Status:** In Progress
+**Priority:** Medium
+
+#### Problem
+Home and global command controls need the remaining UAT affordance polish so navigation reads clearly and unlocked Raw Chaos has a recognizable tracker.
+
+#### Acceptance Criteria
+
+- Home breadcrumbs do not include an `HQ` link.
+- Home utilities do not include the removed formation, map, and unlocks summary cards.
+- The Raw Chaos tracker uses a recognizable icon once the Wrong Machine is unlocked.
+- The dropdown menu opens with a small slide-down and fade-in animation.
+
 ### Refine warband, unit, and squad-edit UX
 
 **Milestone:** UAT Feedback Fix Round 1
