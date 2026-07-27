@@ -154,6 +154,64 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $this->assertSame('claimed', (string)($claimData['status'] ?? 'claimed'));
   }
 
+  public function testFinalizeHonorsCrossBiomeFamilyAndRewardReels(): void
+  {
+    $userId = $this->insertUser('chaos_cross_family', 'Chaos Cross Family User');
+    $swampsRegionId = (int)$this->scalar("SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1", []);
+    $this->assertGreaterThan(0, $swampsRegionId);
+
+    $runId = $this->insertRun($userId, $swampsRegionId, 626262, 'active');
+    $nodeId = $this->insertRunNode($runId, 'chaos', 'available');
+    $reels = [[
+      'reel_index' => 0,
+      'reel' => 'enemy_family',
+      'symbol' => 'pigs',
+      'label' => 'Pigs',
+      'weight' => 30,
+      'risk' => 1,
+      'effect' => 'Pig-family pressure.',
+    ], [
+      'reel_index' => 1,
+      'reel' => 'encounter_shape',
+      'symbol' => 'horde',
+      'label' => 'Horde',
+      'weight' => 30,
+      'risk' => 2,
+      'effect' => 'More bodies than usual.',
+    ], [
+      'reel_index' => 2,
+      'reel' => 'rule_reward',
+      'symbol' => 'guaranteed_loot',
+      'label' => 'Guaranteed Loot',
+      'weight' => 30,
+      'risk' => 1,
+      'effect' => 'Victory promises extra loot.',
+    ]];
+    $this->insertChaosResult($userId, $runId, $nodeId, 707070, $reels, 1.6);
+
+    $this->authenticate($userId);
+    $finalize = $this->invoke(fn() => (new ChaosEncounterController())->finalize((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $finalize['status'], json_encode($finalize['body']));
+    $data = $this->assertSuccess($finalize);
+    $rewards = is_array($data['rewards'] ?? null) ? $data['rewards'] : [];
+
+    $boundTemplateSlug = (string)$this->scalar(
+      'SELECT et.`slug`
+       FROM `run_nodes` rn
+       JOIN `encounter_templates` et ON et.`id` = rn.`encounter_template_id`
+       WHERE rn.`id` = ?
+       LIMIT 1',
+      [$nodeId]
+    );
+    $this->assertStringContainsString('mud', $boundTemplateSlug);
+    $this->assertStringNotContainsString('frogman', $boundTemplateSlug);
+    $this->assertSame('pigs', (string)($rewards['applied_reels']['enemy_family']['symbol'] ?? ''));
+    $this->assertSame('horde', (string)($rewards['applied_reels']['encounter_shape']['symbol'] ?? ''));
+    $this->assertSame('guaranteed_loot', (string)($rewards['applied_reels']['rule_reward']['symbol'] ?? ''));
+    $this->assertSame([['rarity' => 'common', 'sides' => 6]], $rewards['dice_grants'] ?? null);
+    $this->assertContains('1 Common D6', is_array($rewards['labels'] ?? null) ? $rewards['labels'] : []);
+  }
+
   private function insertRunNode(int $runId, string $nodeType, string $status): int
   {
     $stmt = $this->pdo?->prepare('
@@ -204,6 +262,32 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
       VALUES (?, ?, ?, 0, ?, ?)
     ');
     $stmt?->execute([$runId, $unitId, $hp, '{}', '[]']);
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $reels
+   */
+  private function insertChaosResult(
+    int $userId,
+    int $runId,
+    int $nodeId,
+    int $seed,
+    array $reels,
+    float $rewardMultiplier
+  ): void {
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `chaos_encounter_results` (
+        `user_id`, `run_id`, `node_id`, `status`, `seed`, `reels_json`, `reward_multiplier`
+      ) VALUES (?, ?, ?, \'generated\', ?, ?, ?)
+    ');
+    $stmt?->execute([
+      $userId,
+      $runId,
+      $nodeId,
+      $seed,
+      json_encode($reels, JSON_UNESCAPED_SLASHES),
+      $rewardMultiplier,
+    ]);
   }
 
   /**

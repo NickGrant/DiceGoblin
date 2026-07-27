@@ -418,6 +418,9 @@ final class ChaosEncounterService
     if ($rawChaos > 0) {
       $labels[] = sprintf('%d Raw Chaos', $rawChaos);
     }
+    if (in_array('guaranteed_loot', $symbols, true)) {
+      $labels[] = '1 Common D6';
+    }
 
     return [
       'currency' => [
@@ -425,6 +428,10 @@ final class ChaosEncounterService
         'raw_chaos' => $rawChaos,
       ],
       'reward_multiplier' => $rewardMultiplier,
+      'applied_reels' => $this->appliedReelSummary($reels),
+      'dice_grants' => in_array('guaranteed_loot', $symbols, true)
+        ? [['rarity' => 'common', 'sides' => 6]]
+        : [],
       'labels' => $labels,
     ];
   }
@@ -457,8 +464,9 @@ final class ChaosEncounterService
   private function selectEncounterTemplateId(int $regionId, array $reels, int $seed): ?int
   {
     $family = (string)($reels[0]['symbol'] ?? '');
+    $shape = (string)($reels[1]['symbol'] ?? '');
     $familyLike = match ($family) {
-      'pigs' => '%pig%',
+      'pigs' => '%mud%',
       'kobolds' => '%kobold%',
       'frogmen' => '%frogman%',
       default => '',
@@ -466,28 +474,34 @@ final class ChaosEncounterService
 
     $candidateGroups = [];
     if ($familyLike !== '') {
-      $candidateGroups[] = $this->loadCombatTemplateIds($regionId, $familyLike);
-      $candidateGroups[] = $this->loadCombatTemplateIds(null, $familyLike);
+      $candidateGroups[] = $this->loadCombatTemplateCandidates($regionId, $familyLike);
+      $candidateGroups[] = $this->loadCombatTemplateCandidates(null, $familyLike);
     }
-    $candidateGroups[] = $this->loadCombatTemplateIds($regionId, '');
-    $candidateGroups[] = $this->loadCombatTemplateIds(null, '');
+    $candidateGroups[] = $this->loadCombatTemplateCandidates($regionId, '');
+    $candidateGroups[] = $this->loadCombatTemplateCandidates(null, '');
 
     foreach ($candidateGroups as $candidates) {
       if ($candidates === []) {
         continue;
       }
 
-      $index = $seed % count($candidates);
-      return $candidates[$index];
+      $ranked = $this->rankCandidatesForShape($candidates, $shape);
+      $bestScore = $this->shapeScore($ranked[0], $shape);
+      $bestCandidates = array_values(array_filter(
+        $ranked,
+        fn(array $candidate): bool => $this->shapeScore($candidate, $shape) === $bestScore
+      ));
+      $index = $seed % count($bestCandidates);
+      return (int)$bestCandidates[$index]['id'];
     }
 
     return null;
   }
 
   /**
-   * @return array<int,int>
+   * @return array<int,array{id:int,slug:string,enemy_set_json:string}>
    */
-  private function loadCombatTemplateIds(?int $regionId, string $slugLike): array
+  private function loadCombatTemplateCandidates(?int $regionId, string $slugLike): array
   {
     $where = ['`slug` LIKE \'%\\_combat\\_%\''];
     $params = [];
@@ -501,19 +515,120 @@ final class ChaosEncounterService
     }
 
     $stmt = $this->pdo->prepare('
-      SELECT `id`
+      SELECT `id`, `slug`, `enemy_set_json`
       FROM `encounter_templates`
       WHERE ' . implode(' AND ', $where) . '
       ORDER BY `id` ASC
     ');
     $stmt->execute($params);
 
-    $ids = [];
+    $candidates = [];
     foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-      $ids[] = (int)$row['id'];
+      $candidates[] = [
+        'id' => (int)$row['id'],
+        'slug' => (string)($row['slug'] ?? ''),
+        'enemy_set_json' => (string)($row['enemy_set_json'] ?? ''),
+      ];
     }
 
-    return $ids;
+    return $candidates;
+  }
+
+  /**
+   * @param array<int,array{id:int,slug:string,enemy_set_json:string}> $candidates
+   * @return array<int,array{id:int,slug:string,enemy_set_json:string}>
+   */
+  private function rankCandidatesForShape(array $candidates, string $shape): array
+  {
+    usort($candidates, function (array $left, array $right) use ($shape): int {
+      $leftScore = $this->shapeScore($left, $shape);
+      $rightScore = $this->shapeScore($right, $shape);
+      if ($leftScore !== $rightScore) {
+        return $rightScore <=> $leftScore;
+      }
+
+      return ((int)$left['id']) <=> ((int)$right['id']);
+    });
+
+    return $candidates;
+  }
+
+  /**
+   * @param array{id:int,slug:string,enemy_set_json:string} $candidate
+   */
+  private function shapeScore(array $candidate, string $shape): int
+  {
+    $enemySet = json_decode((string)$candidate['enemy_set_json'], true);
+    $units = is_array($enemySet) && is_array($enemySet['units'] ?? null)
+      ? array_values(array_filter($enemySet['units'], 'is_array'))
+      : [];
+    $slugs = array_map(static fn(array $unit): string => (string)($unit['enemy_template_slug'] ?? ''), $units);
+
+    return match ($shape) {
+      'horde' => count($units),
+      'armored_frontline' => $this->containsAny($slugs, ['shieldbearer', 'bruiser', 'mudwrestler']) ? 10 : 0,
+      'ranged_backline' => $this->containsAny($slugs, ['sharpshooter', 'spearhunter', 'slinger']) ? 10 : 0,
+      'ambush' => $this->positionSpreadScore($units),
+      default => 0,
+    };
+  }
+
+  /**
+   * @param array<int,string> $values
+   * @param array<int,string> $needles
+   */
+  private function containsAny(array $values, array $needles): bool
+  {
+    foreach ($values as $value) {
+      foreach ($needles as $needle) {
+        if ($needle !== '' && str_contains($value, $needle)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $units
+   */
+  private function positionSpreadScore(array $units): int
+  {
+    $columns = [];
+    foreach ($units as $unit) {
+      $pos = is_array($unit['pos'] ?? null) ? $unit['pos'] : [];
+      $columns[(int)($pos['x'] ?? 0)] = true;
+    }
+
+    return count($columns);
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $reels
+   * @return array<string,array<string,string>>
+   */
+  private function appliedReelSummary(array $reels): array
+  {
+    $summary = [];
+    foreach ($reels as $reel) {
+      if (!is_array($reel)) {
+        continue;
+      }
+
+      $key = (string)($reel['reel'] ?? '');
+      if ($key === '') {
+        continue;
+      }
+
+      $summary[$key] = [
+        'symbol' => (string)($reel['symbol'] ?? ''),
+        'label' => (string)($reel['label'] ?? ''),
+        'effect' => (string)($reel['effect'] ?? ''),
+      ];
+    }
+
+    return $summary;
   }
 
   /**
