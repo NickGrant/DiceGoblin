@@ -287,7 +287,7 @@ final class DeterministicRunNodeResolver
     }
 
     $enemySlugs = array_values(array_unique(array_map(
-      static fn(array $unit): string => (string)($unit['slug'] ?? ''),
+      static fn(array $unit): string => (string)($unit['template_slug'] ?? $unit['slug'] ?? $unit['id'] ?? ''),
       $enemyUnits
     )));
     $hasPigFamily = false;
@@ -547,7 +547,7 @@ final class DeterministicRunNodeResolver
   }
 
   /**
-     * @return array{difficulty_rating:int,description:string,reward_profile:array<string,mixed>,units:array<int,array{id:string,pos:array{x:int,y:int},formation:array{w:int,h:int},attack:int,defense:int,max_hp:int,current_hp:int,abilities:array<int,string>,passive_abilities:array<int,string>,combat_affixes:array{damage_flat:int,below_half_bonus:float},ability_dice:array<string,array<int,array{kind:string,dice_instance_id:?string,sides:int,affixes:array<int,array{slug:string,value:float}>}>>,passive_dice:array<int,array{kind:string,dice_instance_id:?string,sides:int,affixes:array<int,array{slug:string,value:float}>}>,xp_reward:int}>}
+     * @return array{difficulty_rating:int,description:string,reward_profile:array<string,mixed>,units:array<int,array{id:string,template_slug:string,pos:array{x:int,y:int},formation:array{w:int,h:int},attack:int,defense:int,max_hp:int,current_hp:int,abilities:array<int,string>,passive_abilities:array<int,string>,combat_affixes:array{damage_flat:int,below_half_bonus:float},ability_dice:array<string,array<int,array{kind:string,dice_instance_id:?string,sides:int,affixes:array<int,array{slug:string,value:float}>}>>,passive_dice:array<int,array{kind:string,dice_instance_id:?string,sides:int,affixes:array<int,array{slug:string,value:float}>}>,xp_reward:int}>}
    */
   private function loadEncounter(?int $encounterTemplateId): array
   {
@@ -658,6 +658,7 @@ final class DeterministicRunNodeResolver
 
       $units[] = [
         'id' => $instanceId,
+        'template_slug' => $slug,
         'pos' => $pos,
         'formation' => $footprint,
         'attack' => max(1, (int)($baseStats['attack'] ?? 1)),

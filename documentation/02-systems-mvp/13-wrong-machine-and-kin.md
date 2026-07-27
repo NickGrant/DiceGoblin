@@ -69,6 +69,19 @@ Required progression items follow these rules:
 - Spending must never allow negative quantities.
 - Reward claim remains the preferred point for durable item, unlock, and one-time bundle grants.
 
+## Current Progression Reward Audit
+
+The first reconstruction path is Pig Kin. Its required materials are currently protected by Farm pig-family combat rewards:
+
+| Region | Current required material role | Protection status |
+| --- | --- | --- |
+| Farm | Pig Ear lineage material from pig-family victories | Deterministic on eligible pig-family combat and boss victories. |
+| Farm | Mudking Crown Fragment boss catalyst | Guaranteed on Mudking boss victory. |
+| Mountains | No required first-reconstruction material currently assigned | No campaign-critical material depends on Mountains random drops yet. |
+| Swamps | No required first-reconstruction material currently assigned | Wrong Machine unlock is story/progression gated, not item-drop gated. |
+
+Future Mountains or Swamps lineage materials should use the same generic item inventory path and must declare their protection rule before becoming required for campaign progression.
+
 ## Balance Boundaries
 
 Kin identity should remain smaller than class identity.

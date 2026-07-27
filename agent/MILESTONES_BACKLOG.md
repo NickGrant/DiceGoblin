@@ -8,18 +8,4 @@
 
 ## Backlog Milestones
 
-## Node Quality Art Expansion
-
-**Status:** Planned
-
-Loot and shrine node presentation should use the generated quality-tier assets, including controlled variant selection, while preserving backend-authoritative rewards.
-
-Success criteria:
-
-- Loot and shrine nodes select an appropriate quality tier.
-- A/B variants are chosen deterministically or by a documented randomization rule.
-- Reward and node visuals remain aligned with the underlying reward table.
-
-### Related Issues
-
-- Implement loot and shrine quality tiers
+No deferred milestones are currently tracked outside the active 7/25 roadmap execution lane.

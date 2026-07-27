@@ -227,6 +227,10 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $teamId = $this->insertTeam($userId);
     $runId = $this->insertRun($userId, $farmRegionId, 73747576);
     $nodeId = $this->insertRunNode($runId, 'boss', 'available');
+    $farmBossTemplateId = (int)$this->scalar("SELECT `id` FROM `encounter_templates` WHERE `slug` = 'the_farm_mud_boss_1' LIMIT 1", []);
+    $this->assertGreaterThan(0, $farmBossTemplateId);
+    $updateNode = $this->pdo?->prepare('UPDATE `run_nodes` SET `encounter_template_id` = ? WHERE `id` = ?');
+    $updateNode?->execute([$farmBossTemplateId, $nodeId]);
 
     [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
     for ($i = 0; $i < 3; $i++) {
@@ -261,6 +265,16 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
 
     $this->assertSame(2, $this->ownedItemQuantity($userId, 'pig_ear'));
     $this->assertSame(1, $this->ownedItemQuantity($userId, 'mudking_crown_fragment'));
+
+    $second = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $second['status'], json_encode($second['body']));
+    $this->assertSame($battleId, (int)($second['body']['data']['battle']['battle_id'] ?? 0));
+    $this->assertSame(2, $this->ownedItemQuantity($userId, 'pig_ear'));
+    $this->assertSame(1, $this->ownedItemQuantity($userId, 'mudking_crown_fragment'));
+    $this->assertSame(
+      '1',
+      (string)$this->scalar('SELECT COUNT(*) FROM `battle_rewards` WHERE `battle_id` = ?', [$battleId])
+    );
   }
 
   public function testResolveNodeSchedulesMultipleRoundActionsAndExcludesPassives(): void
