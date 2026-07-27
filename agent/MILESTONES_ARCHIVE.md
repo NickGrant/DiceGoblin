@@ -223,3 +223,20 @@ exit_criteria:
   - Dice and unit inventories remain stable across filters, sorts, and page changes.
   - Dice inspect modals expose salvage only after Wrong Machine unlock.
   - Raw Chaos cannot be earned through run or salvage flows before Wrong Machine recovery.
+
+---
+name: General Inventory and Consumables
+status: complete
+issues:
+  - GIC-001
+  - GIC-002
+description: Used the generic item foundation to add player-facing healing and energy consumables with backend-authoritative spending and cap rules.
+goals:
+  - Add between-encounter unit healing consumables for active-run wounded units.
+  - Add energy recovery consumables that respect effective energy caps.
+  - Keep all item spending transactional and covered by integration tests.
+current_code_context: Generic item migrations 75 and 76 seed healing and energy consumables, ConsumableItemService owns transactional effects, GameplayController exposes CSRF-protected endpoints, the run map surfaces healing supplies, and command controls expose energy item use.
+exit_criteria:
+  - Healing consumables can be used outside combat.
+  - Energy consumables respect caps and pacing.
+  - Spending and restoration are backend-authoritative and covered by tests.

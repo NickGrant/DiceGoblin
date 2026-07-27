@@ -528,6 +528,22 @@ export type RunUnitHealingData = {
 
 export type RunUnitHealingResponse = ApiResponse<RunUnitHealingData>;
 
+export type EnergyRestoreData = {
+  item: {
+    item_slug: string;
+    quantity: number;
+    spent_quantity: number;
+  };
+  energy: {
+    amount: number;
+    current_before: number;
+    current_after: number;
+    max: number;
+  };
+};
+
+export type EnergyRestoreResponse = ApiResponse<EnergyRestoreData>;
+
 export type ChaosReelRecord = {
   reel_index: number;
   reel: string;

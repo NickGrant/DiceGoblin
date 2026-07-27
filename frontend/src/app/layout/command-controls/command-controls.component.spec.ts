@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideRouter, Router, RouterLink } from '@angular/router';
 import { CommandControlsComponent } from './command-controls.component';
+import { ApiHttpService } from '../../core/services/api-http/api-http.service';
 import { AudioDirectorService } from '../../core/services/audio/audio-director.service';
 import { SessionService } from '../../core/services/session/session.service';
 
@@ -18,9 +19,34 @@ class SessionServiceStub {
     softCurrency: 93,
   });
 
+  readonly profileData = signal({
+    items: [
+      {
+        item_id: 'i1',
+        item_slug: 'travel_ration',
+        name: 'Travel Ration',
+        description: 'Restores energy.',
+        category: 'consumable',
+        quantity: 1,
+        rarity: 'common',
+        source_region_slug: null,
+        source_region_name: null,
+        source_family_slug: null,
+        icon_key: 'item_travel_ration',
+        lore_key: 'energy_consumable',
+        is_visible_before_discovery: true,
+        is_spendable: true,
+        is_primary_progression: false,
+        meta: { effect: { type: 'restore_energy', amount: 10 } },
+      },
+    ],
+  });
   readonly featureUnlocks = signal(['shop']);
   readonly hasActiveRun = signal(false);
   readonly logout = jasmine.createSpy('logout').and.resolveTo();
+  readonly runProfileMutation = jasmine
+    .createSpy('runProfileMutation')
+    .and.callFake(async <T>(operation: () => Promise<T>): Promise<T> => operation());
 }
 
 class AudioDirectorServiceStub {
@@ -29,6 +55,16 @@ class AudioDirectorServiceStub {
   readonly isMuted = signal(false);
   readonly enableSound = jasmine.createSpy('enableSound').and.resolveTo();
   readonly toggleMute = jasmine.createSpy('toggleMute');
+}
+
+class ApiHttpServiceStub {
+  readonly postWithCsrf = jasmine.createSpy('postWithCsrf').and.resolveTo({
+    ok: true,
+    data: {
+      item: { item_slug: 'travel_ration', quantity: 0, spent_quantity: 1 },
+      energy: { amount: 8, current_before: 12, current_after: 20, max: 20 },
+    },
+  });
 }
 
 describe('CommandControlsComponent', () => {
@@ -64,6 +100,10 @@ describe('CommandControlsComponent', () => {
           useClass: SessionServiceStub,
         },
         {
+          provide: ApiHttpService,
+          useClass: ApiHttpServiceStub,
+        },
+        {
           provide: AudioDirectorService,
           useClass: AudioDirectorServiceStub,
         },
@@ -95,6 +135,35 @@ describe('CommandControlsComponent', () => {
     expect(compiled.textContent).toContain('12 / 20');
     expect(compiled.textContent).toContain('93');
     expect(compiled.textContent).toContain('Enable Sound');
+    expect(compiled.querySelector('.energy-use')).not.toBeNull();
+  });
+
+  it('uses an energy consumable from the energy slot', async () => {
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.detectChanges();
+
+    const apiHttp = TestBed.inject(ApiHttpService) as unknown as ApiHttpServiceStub;
+    const button = fixture.nativeElement.querySelector('.energy-use') as HTMLButtonElement;
+    button.click();
+    await fixture.whenStable();
+
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
+    expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/items/energy/restore', {
+      item_slug: 'travel_ration',
+    });
+  });
+
+  it('hides the energy item control when energy is full', () => {
+    sessionService.profile.set({
+      energyCurrent: 20,
+      energyMax: 20,
+      softCurrency: 93,
+    });
+
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.energy-use')).toBeNull();
   });
 
   it('enables sound when the audio control is pressed before unlock', async () => {

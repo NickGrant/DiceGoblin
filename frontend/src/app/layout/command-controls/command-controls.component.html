@@ -3,6 +3,18 @@
     @if (isAuthenticated()) {
     <img class="slot-icon" src="/assets/ui/icons/energy_64.png" alt="" />
     <span>{{ profile().energyCurrent }} / {{ profile().energyMax }}</span>
+    @if (selectedEnergyConsumable()) {
+    <button
+      class="energy-use"
+      type="button"
+      [attr.aria-label]="energyUseLabel()"
+      [attr.title]="energyUseLabel()"
+      [disabled]="energyUseWorking()"
+      (click)="restoreEnergy()"
+    >
+      +
+    </button>
+    }
     } @else {
     <span>--</span>
     }
