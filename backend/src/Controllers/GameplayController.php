@@ -546,6 +546,49 @@ final class GameplayController
     }
   }
 
+  public function restoreEnergyWithItem(): void
+  {
+    $svc = $this->services();
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
+      return;
+    }
+
+    $body = $this->readJsonBody();
+    if ($body === null) {
+      return;
+    }
+
+    $itemSlug = trim((string)($body['item_slug'] ?? ''));
+    if ($itemSlug === '') {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'item_slug is required.']], 400);
+      return;
+    }
+
+    try {
+      Response::json([
+        'ok' => true,
+        'data' => $svc['consumableItemService']->restoreEnergy($userId, $itemSlug),
+      ]);
+    } catch (RuntimeException $e) {
+      $message = $e->getMessage();
+      $status = match ($message) {
+        'energy_full', 'insufficient_items' => 409,
+        'item_not_energy_consumable' => 400,
+        default => 400,
+      };
+      $publicMessage = match ($message) {
+        'energy_full' => 'Energy is already full.',
+        'insufficient_items' => 'Not enough items.',
+        'item_not_energy_consumable' => 'Item cannot restore energy.',
+        default => $message,
+      };
+      Response::json(['ok' => false, 'error' => ['code' => $message, 'message' => $publicMessage]], $status);
+    } catch (Throwable) {
+      Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
+    }
+  }
+
   private function handleAbilitySlotDiceMutation(?string $unitInstanceId, ?string $abilityId, ?string $slotIndex, bool $isAssign): void
   {
     $svc = $this->services();

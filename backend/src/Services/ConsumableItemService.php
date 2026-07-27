@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Services;
 
+use DiceGoblins\Repositories\EnergyRepository;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -93,6 +94,72 @@ final class ConsumableItemService
   }
 
   /**
+   * @return array{
+   *   item:array{item_slug:string,quantity:int,spent_quantity:int},
+   *   energy:array{amount:int,current_before:int,current_after:int,max:int}
+   * }
+   */
+  public function restoreEnergy(int $userId, string $itemSlug): array
+  {
+    $itemSlug = trim($itemSlug);
+    if ($itemSlug === '') {
+      throw new RuntimeException('item_slug_required');
+    }
+
+    try {
+      $this->pdo->beginTransaction();
+
+      $energyRepo = new EnergyRepository($this->pdo);
+      $energyRepo->ensureEnergyState($userId);
+      $energy = $energyRepo->getEnergyStateForUpdate($userId);
+      if (!is_array($energy)) {
+        throw new RuntimeException('energy_state_unavailable');
+      }
+
+      $effectiveMax = UserUnlockService::resolveEnergyMaxFromFeatureUnlocks(
+        (new UserUnlockService($this->pdo))->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_FEATURE)
+      );
+      $current = min(max(0, (int)$energy['energy_current']), $effectiveMax);
+      if ($current >= $effectiveMax) {
+        throw new RuntimeException('energy_full');
+      }
+
+      $item = $this->energyItemForUpdate($itemSlug);
+      if ($item === null) {
+        throw new RuntimeException('item_not_energy_consumable');
+      }
+
+      $restoreAmount = max(1, (int)($item['restore_amount'] ?? 0));
+      $nextCurrent = min($effectiveMax, $current + $restoreAmount);
+      $spent = $this->itemInventoryService->spendBySlugForUpdate($userId, $itemSlug, 1);
+
+      $stmt = $this->pdo->prepare('
+        UPDATE `energy_state`
+        SET `energy_max` = ?, `energy_current` = ?, `last_regen_at` = UTC_TIMESTAMP()
+        WHERE `user_id` = ?
+      ');
+      $stmt->execute([$effectiveMax, $nextCurrent, $userId]);
+
+      $this->pdo->commit();
+
+      return [
+        'item' => $spent,
+        'energy' => [
+          'amount' => $nextCurrent - $current,
+          'current_before' => $current,
+          'current_after' => $nextCurrent,
+          'max' => $effectiveMax,
+        ],
+      ];
+    } catch (Throwable $e) {
+      if ($this->pdo->inTransaction()) {
+        $this->pdo->rollBack();
+      }
+      throw $e;
+    }
+  }
+
+  /**
    * @return array<string,mixed>|null
    */
   private function activeRunForUpdate(int $userId, int $runId): ?array
@@ -155,6 +222,38 @@ final class ConsumableItemService
     }
 
     return ['heal_amount' => $amount];
+  }
+
+  /**
+   * @return array{restore_amount:int}|null
+   */
+  private function energyItemForUpdate(string $itemSlug): ?array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT `category`, `is_spendable`, `meta_json`
+      FROM `items`
+      WHERE `slug` = ?
+      LIMIT 1
+      FOR UPDATE
+    ');
+    $stmt->execute([$itemSlug]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!is_array($row) || (string)$row['category'] !== 'consumable' || (int)$row['is_spendable'] !== 1) {
+      return null;
+    }
+
+    $meta = $this->decodeJsonObject($row['meta_json'] ?? null);
+    $effect = is_array($meta['effect'] ?? null) ? $meta['effect'] : [];
+    if ((string)($effect['type'] ?? '') !== 'restore_energy') {
+      return null;
+    }
+
+    $amount = (int)($effect['amount'] ?? 0);
+    if ($amount <= 0) {
+      return null;
+    }
+
+    return ['restore_amount' => $amount];
   }
 
   /**
