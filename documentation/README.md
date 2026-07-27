@@ -65,6 +65,8 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/01-architecture/08-seed-catalog-ownership.md`
   - `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
   - `documentation/01-architecture/06-angular-component-service-inventory.md`
+- Documentation and LLM context architecture:
+  - `documentation/01-architecture/09-llm-knowledge-architecture-and-token-efficiency.md`
 - Gameplay systems:
   - `documentation/02-systems-mvp/00-combat-system.md`
   - `documentation/02-systems-mvp/01-dice-system.md`
@@ -115,6 +117,11 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/01-architecture/05-angular-frontend-architecture-plan.md`
   - `documentation/01-architecture/06-angular-component-service-inventory.md`
   - `documentation/03-ux/`
+- Documentation, agent context, and knowledge architecture:
+  - `documentation/01-architecture/09-llm-knowledge-architecture-and-token-efficiency.md`
+  - `agent/LLM_CONTEXT.md`
+  - `agent/CONTEXT_ROUTER.md`
+  - `documentation/STYLE_GUIDE.md`
 - Warband, squads, units, and dice:
   - `documentation/02-systems-mvp/01-dice-system.md`
   - `documentation/02-systems-mvp/02-units-and-progression.md`
