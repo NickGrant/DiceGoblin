@@ -59,13 +59,48 @@ final class UserAssetGrantServiceIntegrationTest extends BattleFlowIntegrationCa
 
     try {
       $this->prepareBasicAndPigOnlyRandomPool();
+      $variantService = new SpliceVariantService($this->pdo);
 
+      $this->assertSame(1, $variantService->totalEnabledWeightForUser($userId));
+      $this->assertSame(SpliceVariantService::BASIC_GOBLIN, $variantService->rollVariantSlugForUser($userId, 0));
       $granted = $this->service()->grantUnitBySlug($userId, 'frontline_bruiser_t1');
 
       $this->assertSame(SpliceVariantService::BASIC_GOBLIN, (string)($granted['splice_variant_slug'] ?? ''));
       $this->assertSame(
         SpliceVariantService::BASIC_GOBLIN,
         (string)$this->scalar('SELECT `splice_variant_slug` FROM `unit_instances` WHERE `id` = ?', [(int)$granted['id']])
+      );
+    } finally {
+      $this->restoreSpliceVariants($snapshot);
+    }
+  }
+
+  public function testExplicitRewardPayloadCanGrantLockedKin(): void
+  {
+    $userId = $this->insertUser();
+    $unlockService = new UserUnlockService($this->pdo);
+    $unlockService->grant($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'frontline_bruiser_t1');
+    $snapshot = $this->snapshotSpliceVariants();
+
+    try {
+      $this->prepareBasicAndPigOnlyRandomPool();
+      $this->assertFalse((new LineageUnlockService($this->pdo))->isUnlocked($userId, LineageUnlockService::PIG_KIN));
+
+      $created = $this->service()->materializeRewardUnitGrants($userId, [
+        'unit_grants' => [
+          [
+            'unit_type_slug' => 'frontline_bruiser_t1',
+            'splice_variant_slug' => LineageUnlockService::PIG_KIN,
+            'tier' => 1,
+            'level' => 1,
+          ],
+        ],
+      ]);
+
+      $this->assertCount(1, $created);
+      $this->assertSame(
+        LineageUnlockService::PIG_KIN,
+        (string)$this->scalar('SELECT `splice_variant_slug` FROM `unit_instances` WHERE `id` = ?', [(int)$created[0]])
       );
     } finally {
       $this->restoreSpliceVariants($snapshot);
