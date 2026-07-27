@@ -504,6 +504,7 @@ export type RestFinalizeData = {
   node: { id: string; status: string };
   next: { unlocked_node_ids: string[] };
   progression: RestFinalizeProgression[];
+  run_unit_state?: RestRunUnitState[];
 };
 
 export type RestOpenResponse = ApiResponse<RestOpenData>;

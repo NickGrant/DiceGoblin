@@ -136,7 +136,7 @@ export class RunService {
       {},
     ));
     if (response.ok) {
-      this.summaryState.set(this.mapSummaryState('Run Abandoned', response.data.status, response.data.run_summary));
+      this.summaryState.set(this.mapSummaryState('Returned Home', response.data.status, response.data.run_summary));
     }
     return response;
   }

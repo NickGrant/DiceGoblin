@@ -22,7 +22,19 @@ class RunServiceStub {
       ],
     },
   });
-  finalizeRest = jasmine.createSpy('finalizeRest').and.resolveTo({ ok: true });
+  finalizeRest = jasmine.createSpy('finalizeRest').and.resolveTo({
+    ok: true,
+    data: {
+      run_id: 'run-1',
+      node: { id: 'n1', status: 'completed' },
+      next: { unlocked_node_ids: [] },
+      progression: [],
+      run_unit_state: [
+        { unit_instance_id: 'u1', current_hp: 10, is_defeated: false, status_effects: [] },
+        { unit_instance_id: 'u2', current_hp: 12, is_defeated: false, status_effects: [] },
+      ],
+    },
+  });
 }
 
 class SessionServiceStub {
@@ -86,6 +98,8 @@ describe('RunRestPageComponent', () => {
 
     await fixture.componentInstance.finalizeRest();
 
+    expect(fixture.componentInstance.restingUnits().map((entry) => entry.currentHp)).toEqual([10, 12]);
+    expect(fixture.componentInstance.restingUnits().some((entry) => entry.defeated)).toBeFalse();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/run/map');
   });
 });

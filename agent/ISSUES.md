@@ -2,6 +2,91 @@
 ----
 Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
+## UAT Feedback Fix Round 2
+
+### Repair run event node resolution and visibility
+
+**Milestone:** UAT Feedback Fix Round 2
+**Status:** In Review
+**Priority:** High
+
+#### Problem
+Rest, shrine, and hazard nodes are unclear or misleading during UAT: rest appears not to fully heal, shrine/hazard nodes add an unnecessary approach step, and non-combat effects are not visible enough in the result UI.
+
+#### Acceptance Criteria
+
+- Rest finalize returns refreshed run unit HP state and the frontend consumes it.
+- Shrine nodes resolve directly from the map node screen without a separate approach click.
+- Hazard nodes resolve directly from the map node screen without a separate approach click.
+- Shrine result screens show a player-readable effect label and detail.
+- Hazard result screens show a player-readable effect label and detail.
+- Existing run-node and rest-page tests cover the updated behavior.
+
+### Fix chaos reel encounter application
+
+**Milestone:** UAT Feedback Fix Round 2
+**Status:** Open
+**Priority:** High
+
+#### Problem
+Chaos reels appear to show cross-biome results, but combat may still fall back to the current biome template and may not visibly apply encounter-shape or rule/reward reels.
+
+#### Acceptance Criteria
+
+- Enemy-family reels select matching encounter families even when the current biome lacks that family.
+- Encounter-shape reels have observable combat setup changes or clearly visible fallback copy.
+- Rule/reward reels are applied to the finalized battle/reward payload.
+- Chaos battle previews and/or logs expose the applied reel effects so UAT can verify them.
+- Backend tests cover at least two cross-biome family reel outcomes.
+
+### Surface active run effects
+
+**Milestone:** UAT Feedback Fix Round 2
+**Status:** Open
+**Priority:** High
+
+#### Problem
+If shrine, hazard, or chaos outcomes apply persistent run effects, players have no clear place to see which effects are currently active.
+
+#### Acceptance Criteria
+
+- Backend exposes current active run effects in the current-run response or another stable run-state endpoint.
+- Run map shows active effect names and concise descriptions near the squad/map controls.
+- Run node result screens identify whether an effect is immediate-only or persists after leaving the node.
+- Tests cover displaying at least one active shrine/hazard/chaos effect.
+
+### Add post-Wrong-Machine mountain dialogue
+
+**Milestone:** UAT Feedback Fix Round 2
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+The Whim and mountain kobold dialogue do not yet branch after the Wrong Machine is unlocked, leaving important post-recovery story beats missing.
+
+#### Acceptance Criteria
+
+- The Whim has a post-Wrong-Machine dialogue option or branch.
+- Mountain kobolds have a post-Wrong-Machine dialogue option or branch.
+- Dialogue unlock requirements prevent the new branches from appearing before Wrong Machine recovery.
+- Dialogue tests or seed validation cover the new branch availability.
+
+### Reflavor voluntary run return
+
+**Milestone:** UAT Feedback Fix Round 2
+**Status:** In Review
+**Priority:** Medium
+
+#### Problem
+The voluntary run exit is framed as `Abandon Run` and `Run Abandoned`, which reads like failure even when the player is intentionally returning home.
+
+#### Acceptance Criteria
+
+- Run map action is labeled `Return Home`.
+- The run summary title for abandoned status is player-facing as `Returned Home`.
+- Service summary state uses the same returned-home copy.
+- Tests cover the updated title.
+
 ## UAT Feedback Fix Round 1
 
 ### Refine warband, unit, and squad-edit UX
