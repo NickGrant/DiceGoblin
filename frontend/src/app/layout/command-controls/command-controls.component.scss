@@ -19,6 +19,20 @@
   grid-template-columns: 98px 91px 93px 273px 47px 77px;
 }
 
+.menu-preload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.menu-preload img {
+  width: 1px;
+  height: 1px;
+}
+
 .slot {
   display: flex;
   align-items: center;
