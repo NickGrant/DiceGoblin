@@ -172,6 +172,24 @@ current_code_references:
   - backend/tests/Integration/BattleNodeResolutionIntegrationTest.php
   - documentation/02-systems-mvp/03-encounter-scope.md
 
+---
+id: EPF-002
+title: Populate hazard nodes from authored rules
+status: complete
+priority: medium
+milestone: Encounter Primitive Framework
+description: Added region/depth eligible authored hazard effects, allowed procedural graph generation to select hazard nodes only where eligible rules exist, stamped selected effect metadata into nodes, and covered the placement contract with generator tests.
+acceptance_criteria:
+  - Hazard node selection respects region eligibility and weighting.
+  - Generated runs remain connected and preserve existing boss, rest, loot, shrine, chaos, and exit guarantees.
+  - Fallback behavior is documented for regions with sparse hazard catalogs.
+  - Backend generator coverage protects the placement contract.
+current_code_references:
+  - backend/src/Services/EncounterPrimitiveCatalog.php
+  - backend/src/Services/RunGraphGenerator.php
+  - backend/tests/Integration/RunGraphGeneratorIntegrationTest.php
+  - documentation/02-systems-mvp/03-encounter-scope.md
+
 ## Wrong Machine and Kin Foundation
 
 ---

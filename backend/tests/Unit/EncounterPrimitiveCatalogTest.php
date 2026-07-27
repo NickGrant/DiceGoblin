@@ -46,4 +46,25 @@ final class EncounterPrimitiveCatalogTest extends TestCase
     $this->assertSame('route_pressure', $effect['primitive']);
     $this->assertSame(0, $effect['currency_soft']);
   }
+
+  public function testHazardRulesRespectRegionAndDepth(): void
+  {
+    $catalog = new EncounterPrimitiveCatalog();
+
+    $this->assertSame([], $catalog->hazardEffectsForRegion('mountains', 2));
+
+    $mountainSlugs = array_map(
+      static fn(array $effect): string => (string)$effect['slug'],
+      $catalog->hazardEffectsForRegion('mountains', 4)
+    );
+    $swampSlugs = array_map(
+      static fn(array $effect): string => (string)$effect['slug'],
+      $catalog->hazardEffectsForRegion('swamps', 4)
+    );
+
+    $this->assertContains('hazard_cautious_footing', $mountainSlugs);
+    $this->assertContains('hazard_loose_scree', $mountainSlugs);
+    $this->assertContains('hazard_bog_mire', $swampSlugs);
+    $this->assertNotContains('hazard_loose_scree', $swampSlugs);
+  }
 }

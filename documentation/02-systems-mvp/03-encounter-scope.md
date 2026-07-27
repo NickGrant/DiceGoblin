@@ -192,10 +192,19 @@ Shrine primitives:
 
 Current primitive-backed effects:
 
-| Node type | Effect slug | Primitive | Current result |
-| --- | --- | --- | --- |
-| `hazard` | `hazard_cautious_footing` | `route_pressure` | Clears the hazard with no XP or currency reward. |
-| `shrine` | `shrine_bone_whisper`, `shrine_rust_blessing`, `shrine_bog_luck` | `small_reward` | Grants 4-8 soft currency and persists the favor result. |
+| Node type | Effect slug | Primitive | Eligibility | Current result |
+| --- | --- | --- | --- | --- |
+| `hazard` | `hazard_cautious_footing` | `route_pressure` | Farm, Mountains, and Swamps from depth 3 onward. | Clears the hazard with no XP or currency reward. |
+| `hazard` | `hazard_loose_scree` | `hp_attrition` | Mountains from depth 4 onward. | Currently resolves as metadata-only pressure with no HP loss until attrition spending lands. |
+| `hazard` | `hazard_bog_mire` | `kin_mitigation` | Swamps from depth 4 onward. | Currently resolves as metadata-only Pig Kin mitigation setup until mitigation choices land. |
+| `shrine` | `shrine_bone_whisper`, `shrine_rust_blessing`, `shrine_bog_luck` | `small_reward` | Any generated shrine. | Grants 4-8 soft currency and persists the favor result. |
+
+Procedural hazard population:
+
+- Procedural node selection includes hazards only when the region and depth have at least one eligible authored hazard effect.
+- Hazard selection is weighted by the eligible effect definitions and stamped into node metadata as `encounter_family`, `encounter_effect_slug`, and `encounter_primitive`.
+- Shallow opening columns do not generate hazards, preserving early route readability.
+- If a generated hazard somehow has no eligible effect at metadata assignment time, the generator falls back to combat for that node instead of producing an unresolved hazard.
 
 Authoring constraints:
 
@@ -203,7 +212,7 @@ Authoring constraints:
 - Node effects must persist their `effect_slug`, `primitive`, and result payload in the battle log or reward payload.
 - Hazard and shrine effects must be idempotent when a resolved node is revisited.
 - Hazard and shrine effects must not award combat XP unless the encounter scope is explicitly updated.
-- Content catalogs may choose effects by region, depth, weight, and progression context after the population issue lands.
+- Content catalogs may choose effects by region, depth, weight, and progression context.
 
 ## Region Energy
 

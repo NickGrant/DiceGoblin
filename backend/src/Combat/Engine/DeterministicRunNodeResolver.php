@@ -29,7 +29,7 @@ final class DeterministicRunNodeResolver
 
   /**
    * @param array{id:string,seed:string} $run
-   * @param array{id:string,node_type:string,encounter_template_id:?string} $node
+   * @param array{id:string,node_type:string,encounter_template_id:?string,meta_json?:?string} $node
    * @return array{
    *   seed:int,
    *   outcome:string,
@@ -46,6 +46,7 @@ final class DeterministicRunNodeResolver
     $runId = (int)$run['id'];
     $nodeId = (int)$node['id'];
     $nodeType = (string)$node['node_type'];
+    $nodeMeta = $this->decodeJsonObject($node['meta_json'] ?? null);
     $encounterTemplateId = $node['encounter_template_id'] !== null ? (int)$node['encounter_template_id'] : null;
 
     $playerUnits = $this->loadPlayerUnits($userId, $teamId, $runId);
@@ -73,7 +74,8 @@ final class DeterministicRunNodeResolver
       $xpTotal = 0;
       $nodeEffect = (new EncounterPrimitiveCatalog())->resolveNodeEffect(
         $nodeType,
-        fn(int $max): int => $this->nextInt($rngState, $max)
+        fn(int $max): int => $this->nextInt($rngState, $max),
+        isset($nodeMeta['encounter_effect_slug']) ? (string)$nodeMeta['encounter_effect_slug'] : null
       );
       $currencySoft = (int)$nodeEffect['currency_soft'];
       $events = [[

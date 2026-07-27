@@ -2,25 +2,9 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Encounter Primitive Framework
-
-**Status:** Active
-
-Define reusable hazard and shrine primitives before expanding content breadth, keeping effects backend-authoritative and aligned with seed/catalog ownership rules.
-
-Success criteria:
-
-- Hazard and shrine primitive vocabularies are documented and implemented.
-- Hazard population respects region eligibility, weighting, and run graph guarantees.
-- Representative primitive resolution is covered by backend tests.
-
-### Related Issues
-
-- Populate hazard nodes from authored rules
-
 ## Encounter Content Pack
 
-**Status:** Planned
+**Status:** Active
 
 Seed the initial roadmap content pack for hazards, shrines, and expanded chaos reels once the primitive framework is stable.
 

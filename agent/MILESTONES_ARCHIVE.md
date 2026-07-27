@@ -76,6 +76,23 @@ exit_criteria:
   - Legacy storage retirement has an inventory, phased migration plan, and named test gates.
 
 ---
+name: Encounter Primitive Framework
+status: complete
+issues:
+  - EPF-001
+  - EPF-002
+description: Defined backend-owned hazard and shrine primitive vocabularies, routed current hazard/shrine resolution through primitive metadata, and added authored hazard selection rules to procedural generation.
+goals:
+  - Define reusable hazard and shrine primitive vocabularies before expanding content.
+  - Keep primitive resolution backend-authoritative and deterministic.
+  - Populate hazard nodes only when eligible region/depth rules exist.
+current_code_context: EncounterPrimitiveCatalog owns primitive/effect definitions, DeterministicRunNodeResolver persists primitive metadata during non-combat resolution, and RunGraphGenerator stamps authored hazard effects into eligible procedural nodes.
+exit_criteria:
+  - Hazard and shrine primitive vocabularies are documented and implemented.
+  - Hazard population respects region eligibility, weighting, and run graph guarantees.
+  - Representative primitive resolution and hazard placement are covered by backend tests.
+
+---
 name: Wrong Machine and Kin Foundation
 status: complete
 issues:

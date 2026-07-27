@@ -2,24 +2,6 @@
 ----
 Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
-## Encounter Primitive Framework
-
-### Populate hazard nodes from authored rules
-
-**Milestone:** Encounter Primitive Framework
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-Hazard node placement exists, but regions need authored population rules so hazards can be selected intentionally by biome, depth, and progression context.
-
-#### Acceptance Criteria
-
-- Hazard node selection respects region eligibility and weighting.
-- Generated runs remain connected and preserve existing boss, rest, loot, shrine, chaos, and exit guarantees.
-- Fallback behavior is documented for regions with sparse hazard catalogs.
-- Backend generator coverage protects the placement contract.
-
 ## Encounter Content Pack
 
 ### Seed initial hazard catalog
