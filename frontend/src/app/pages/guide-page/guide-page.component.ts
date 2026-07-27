@@ -24,6 +24,11 @@ type GuideStep = {
   summary: string;
 };
 
+type GuideNavSection = {
+  label: string;
+  targetId: string;
+};
+
 type GuideUnit = {
   name: string;
   slug: string;
@@ -113,6 +118,16 @@ export class GuidePageComponent implements OnInit {
 
   protected readonly breadcrumbs = [{ label: 'Guide' }];
 
+  protected readonly navSections: ReadonlyArray<GuideNavSection> = [
+    { label: 'Base Loop', targetId: 'guide-loop' },
+    { label: 'Combat Stats', targetId: 'guide-combat' },
+    { label: 'Unit Actions', targetId: 'guide-actions' },
+    { label: 'Combat Math', targetId: 'guide-calculation' },
+    { label: 'Warband', targetId: 'guide-warband' },
+    { label: 'Dice', targetId: 'guide-dice' },
+    { label: 'Map Glossary', targetId: 'guide-map' },
+  ];
+
   protected readonly unitUnlocks: ReadonlyArray<GuideUnit> = [
     {
       name: 'Bruiser',
@@ -123,36 +138,12 @@ export class GuidePageComponent implements OnInit {
       summary: 'A durable frontliner that can promote early at level 6 or master the class at level 10 for a passive capstone.',
     },
     {
-      name: 'Guardian',
-      slug: 'frontline_guardian_t1',
-      role: 'Frontline',
-      tier: 1,
-      maxLevel: 10,
-      summary: 'A shield-first defender that can hold for a level 10 capstone or branch early into pure tanking or anti-armor roles.',
-    },
-    {
       name: 'Marksman',
       slug: 'backline_marksman_t1',
       role: 'Backline',
       tier: 1,
       maxLevel: 10,
       summary: 'A back-row damage dealer that can rush promotion at level 6 or stay to earn a targeting-focused capstone at level 10.',
-    },
-    {
-      name: 'Bannerbearer',
-      slug: 'support_banner_t1',
-      role: 'Support',
-      tier: 1,
-      maxLevel: 10,
-      summary: 'A support specialist that can master bolster-focused capstones, branch into offensive or luck-based support, and eventually chain into Warchanter.',
-    },
-    {
-      name: 'Saboteur',
-      slug: 'control_saboteur_t1',
-      role: 'Utility',
-      tier: 1,
-      maxLevel: 10,
-      summary: 'A disruptive debuffer that can promote from level 6, master stronger control passives, and eventually chain into Venomwright.',
     },
   ];
 
@@ -200,6 +191,26 @@ export class GuidePageComponent implements OnInit {
       description: 'A higher-stakes combat encounter that follows the same core combat rules as other battles.',
     },
     {
+      name: 'Dialogue',
+      icon: '/assets/ui/icons/icon_guide.png',
+      description: 'A story or discovery beat. Some dialogue nodes add codex context or unlock follow-up routes.',
+    },
+    {
+      name: 'Shrine',
+      icon: '/assets/ui/node-art/shrines/good_a.png',
+      description: 'A risk or boon event that can change run rewards, HP pressure, or combat conditions.',
+    },
+    {
+      name: 'Chaos',
+      icon: '/assets/ui/icons/icon_encounter_boss.png',
+      description: 'A Wrong Machine encounter that twists normal combat rules and can pay out Raw Chaos once unlocked.',
+    },
+    {
+      name: 'Hazard',
+      icon: '/assets/ui/icons/icon_encounter_locked.png',
+      description: 'A route obstacle that resolves as a non-combat run event and can pressure resources before the next node.',
+    },
+    {
       name: 'Exit',
       icon: '/assets/ui/icons/icon_home.png',
       description: 'Finish a successful run and move to the summary screen for rewards and cleanup.',
@@ -233,12 +244,56 @@ export class GuidePageComponent implements OnInit {
       description: 'Softens incoming hits and makes durable frontliners much better at buying time.',
     },
     {
+      name: 'Precision',
+      description: 'Reduces the chance that offensive actions miss and helps reliable attackers land their key turns.',
+    },
+    {
+      name: 'Resolve',
+      description: 'Helps resist harmful statuses and pressure from control-focused enemies or hazards.',
+    },
+    {
       name: 'HP',
       description: 'Determines how much punishment a unit can take before being defeated for the current run.',
     },
     {
       name: 'Ability dice',
       description: 'The die assigned to an ability contributes the roll value, while affixes bend the result toward damage, defense, or special payoff.',
+    },
+  ];
+
+  protected readonly actionSteps: ReadonlyArray<GuideStep> = [
+    {
+      kicker: 'Schedule',
+      title: 'Equipped active abilities build a 20-tick loop',
+      summary: 'Each active ability has a speed cost. The engine adds those costs in loadout order and fires the ability when its trigger tick arrives.',
+    },
+    {
+      kicker: 'Fill',
+      title: 'Fast basic actions fill unused time',
+      summary: 'If a unit has room left in the loop, repeatable basic actions can fill the remaining ticks. With no valid active ability, the unit falls back to a basic melee attack.',
+    },
+    {
+      kicker: 'Status',
+      title: 'Statuses tick before actions',
+      summary: 'Poison, sleep, guard, marks, and similar effects are processed before each side acts on a tick, so control effects can stop or reshape planned actions.',
+    },
+  ];
+
+  protected readonly calculationSteps: ReadonlyArray<GuideStep> = [
+    {
+      kicker: 'Hit',
+      title: 'Precision checks whether an attack misses',
+      summary: 'Low Precision can turn an offensive action into a miss before damage is calculated. Better Precision means fewer wasted turns.',
+    },
+    {
+      kicker: 'Damage',
+      title: 'Attack, Defense, dice, and variance set the hit value',
+      summary: 'Damage starts from attacker Attack against target Defense, then adds the ability die result, small variance, and any affix or passive modifiers.',
+    },
+    {
+      kicker: 'Effects',
+      title: 'Affixes and statuses bend the final result',
+      summary: 'Explode, Execute, defense ignore, marks, poison, guard stacks, and similar effects can multiply damage, add flat value, or apply lingering pressure.',
     },
   ];
 
@@ -260,6 +315,11 @@ export class GuidePageComponent implements OnInit {
 
   protected unitSpriteUrl(unitSlug: string): string {
     return resolvePrototypeUnitSpriteUrl(unitSlug);
+  }
+
+  protected scrollToSection(event: Event, targetId: string): void {
+    event.preventDefault();
+    document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   private diceImage(rarity: string, sides: number): string {

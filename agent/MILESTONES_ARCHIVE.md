@@ -241,3 +241,24 @@ exit_criteria:
   - Energy consumables are implemented.
   - Spending and restoration are transactional and cap-aware.
   - Balance feel is deferred to UAT evidence.
+
+---
+name: UAT Feedback Fix Round 1
+status: complete
+issues:
+  - UAT-001
+  - UAT-002
+  - UAT-003
+  - UAT-004
+description: Addressed the first concrete UAT feedback batch across landing/home navigation, warband management, commerce/academy presentation, and guide usability.
+goals:
+  - Make landing, home, and menu affordances clearer and less cluttered.
+  - Make warband cards, filters, unit stat explanations, and squad drag/drop interactions easier to use.
+  - Remove redundant shop and academy indicators and use available iconography.
+  - Repair guide navigation and core map/class/combat references.
+current_code_context: Landing/home/menu PR, warband/squad UX PR, shop/academy presentation PR, and guide reference PR define the completed first UAT feedback round.
+exit_criteria:
+  - Landing, home, and menu affordances are clearer.
+  - Warband and squad-edit UAT polish is implemented.
+  - Shop and academy duplicate indicators and placeholder iconography are removed.
+  - Guide navigation works and current route/combat references are accurate.

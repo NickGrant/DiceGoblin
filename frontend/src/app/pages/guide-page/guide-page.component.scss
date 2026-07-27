@@ -136,6 +136,7 @@
 
 .guide-band__copy p,
 .guide-page__steps p,
+.guide-action p,
 .guide-stat p,
 .guide-unit p,
 .guide-reference p,
@@ -162,6 +163,7 @@
 }
 
 .guide-page__steps li,
+.guide-action,
 .guide-stat,
 .guide-unit,
 .guide-reference,
@@ -179,7 +181,18 @@
   padding: 12px;
 }
 
-.guide-page__steps span {
+.guide-page__steps--cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.guide-action {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+}
+
+.guide-page__steps span,
+.guide-action span {
   color: rgba(107, 62, 20, 0.82);
   font-size: 11px;
   font-weight: 900;
@@ -188,6 +201,7 @@
 }
 
 .guide-page__steps strong,
+.guide-action strong,
 .guide-stat strong,
 .guide-unit strong,
 .guide-reference strong,
@@ -318,7 +332,7 @@
   }
 
   .guide-page__nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   }
 
   .guide-band--intro,
@@ -328,6 +342,10 @@
 
   .guide-page__stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guide-page__steps--cards {
+    grid-template-columns: 1fr;
   }
 }
 

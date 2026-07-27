@@ -602,3 +602,19 @@ acceptance_criteria:
 current_code_references:
   - frontend/src/app/pages/shop-page
   - frontend/src/app/pages/academy-page
+
+---
+id: UAT-004
+title: Repair guide navigation and combat reference content
+status: complete
+priority: high
+milestone: UAT Feedback Fix Round 1
+description: Repaired guide side navigation with explicit scroll handling, expanded map glossary coverage, limited starter class coverage to Bruiser and Marksman, and added player-readable sections for unit action scheduling and combat calculation.
+acceptance_criteria:
+  - Guide sidenav links scroll or route to the intended sections.
+  - Map glossary includes the missing icon types used by current run maps.
+  - Starter classes section only shows Bruiser and Marksman.
+  - Guide includes a section explaining how unit actions are determined.
+  - Guide includes a section explaining how combat is calculated at a player-understandable level.
+current_code_references:
+  - frontend/src/app/pages/guide-page

@@ -4,23 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## UAT Feedback Fix Round 1
 
-### Repair guide navigation and combat reference content
-
-**Milestone:** UAT Feedback Fix Round 1
-**Status:** Open
-**Priority:** High
-
-#### Problem
-The guide is currently unreliable for UAT because side navigation links do not work and important reference content is missing or inaccurate.
-
-#### Acceptance Criteria
-
-- Guide sidenav links scroll or route to the intended sections.
-- Map glossary includes the missing icon types used by current run maps.
-- Starter classes section only shows Bruiser and Marksman.
-- Guide includes a section explaining how unit actions are determined.
-- Guide includes a section explaining how combat is calculated at a player-understandable level.
-
 ## Critical Path UAT
 
 ### Continue fresh-account July roadmap UAT

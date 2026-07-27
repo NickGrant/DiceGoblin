@@ -39,14 +39,45 @@ describe('GuidePageComponent', () => {
     expect(text).toContain('How To Play');
     expect(text).toContain('Base Loop');
     expect(text).toContain('Combat Stats');
+    expect(text).toContain('Unit Actions');
+    expect(text).toContain('Combat Math');
+    expect(text).toContain('How units decide when to act');
+    expect(text).toContain('How attacks become results');
+    expect(text).toContain('20-tick loop');
+    expect(text).toContain('Precision checks whether an attack misses');
     expect(text).toContain('Starter classes and role lanes');
     expect(text).toContain('Read size, material, and affixes together');
     expect(text).toContain('Frontline');
     expect(text).toContain('Tier 1');
+    expect(text).toContain('Bruiser');
+    expect(text).toContain('Marksman');
+    expect(text).not.toContain('Guardian');
+    expect(text).not.toContain('Bannerbearer');
+    expect(text).not.toContain('Saboteur');
     expect(text).toContain('Map Glossary');
     expect(text).toContain('Read the route before spending energy');
+    expect(text).toContain('Dialogue');
+    expect(text).toContain('Shrine');
+    expect(text).toContain('Chaos');
+    expect(text).toContain('Hazard');
     expect(text).not.toContain('Authenticated Codex');
     expect(text).not.toContain('Affix Archive');
+  });
+
+  it('scrolls sidenav links to their guide sections', () => {
+    const fixture = TestBed.createComponent(GuidePageComponent);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const actionsSection = host.querySelector('#guide-actions') as HTMLElement;
+    const actionsLink = Array.from(host.querySelectorAll<HTMLAnchorElement>('.guide-page__nav a'))
+      .find((link) => link.getAttribute('href') === '#guide-actions');
+    actionsSection.scrollIntoView = jasmine.createSpy('scrollIntoView');
+
+    actionsLink?.click();
+
+    expect(actionsLink).toBeDefined();
+    expect(actionsSection.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
   });
 
   it('initializes session state on init', () => {

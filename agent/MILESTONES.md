@@ -2,23 +2,6 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## UAT Feedback Fix Round 1
-
-**Status:** Active
-
-Address the first concrete UAT feedback batch across landing/home navigation, warband management, commerce/academy presentation, and guide usability.
-
-Success criteria:
-
-- Landing, home, and menu affordances are clearer and less cluttered.
-- Warband cards, filters, unit stat explanations, and squad drag/drop interactions are easier to use.
-- Shop and academy remove redundant indicators and use available iconography.
-- Guide navigation works and core map/class/combat references are accurate.
-
-### Related Issues
-
-- Repair guide navigation and combat reference content
-
 ## Critical Path UAT
 
 **Status:** Planned

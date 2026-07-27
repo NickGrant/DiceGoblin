@@ -14,11 +14,9 @@
         </div>
       </div>
       <nav class="guide-page__nav">
-        <a href="#guide-loop">Base Loop</a>
-        <a href="#guide-combat">Combat Stats</a>
-        <a href="#guide-warband">Warband</a>
-        <a href="#guide-dice">Dice</a>
-        <a href="#guide-map">Map Glossary</a>
+        @for (section of navSections; track section.targetId) {
+        <a [href]="'#' + section.targetId" (click)="scrollToSection($event, section.targetId)">{{ section.label }}</a>
+        }
       </nav>
     </aside>
 
@@ -57,6 +55,38 @@
         </div>
       </section>
 
+      <section id="guide-actions" class="guide-band">
+        <header class="guide-section-heading">
+          <p>Unit Actions</p>
+          <h3>How units decide when to act</h3>
+        </header>
+        <div class="guide-page__steps guide-page__steps--cards">
+          @for (step of actionSteps; track step.title) {
+          <article class="guide-action">
+            <span>{{ step.kicker }}</span>
+            <strong>{{ step.title }}</strong>
+            <p>{{ step.summary }}</p>
+          </article>
+          }
+        </div>
+      </section>
+
+      <section id="guide-calculation" class="guide-band">
+        <header class="guide-section-heading">
+          <p>Combat Math</p>
+          <h3>How attacks become results</h3>
+        </header>
+        <div class="guide-page__steps guide-page__steps--cards">
+          @for (step of calculationSteps; track step.title) {
+          <article class="guide-action">
+            <span>{{ step.kicker }}</span>
+            <strong>{{ step.title }}</strong>
+            <p>{{ step.summary }}</p>
+          </article>
+          }
+        </div>
+      </section>
+
       <section id="guide-warband" class="guide-band">
         <header class="guide-section-heading">
           <p>Warband</p>
@@ -70,7 +100,7 @@
               <div>
                 <div class="guide-unit__title">
                   <strong>{{ unit.name }}</strong>
-                  <span>{{ unit.role }} · Tier {{ unit.tier }} · Max {{ unit.maxLevel }}</span>
+                  <span>{{ unit.role }} - Tier {{ unit.tier }} - Max {{ unit.maxLevel }}</span>
                 </div>
                 <p>{{ unit.summary }}</p>
               </div>
