@@ -10,6 +10,7 @@ namespace DiceGoblins\Combat\Engine;
 
 use DiceGoblins\Combat\Abilities\AbilityRegistry;
 use DiceGoblins\Combat\Abilities\AbilityType;
+use DiceGoblins\Services\EncounterPrimitiveCatalog;
 use DiceGoblins\Services\SpliceVariantService;
 use DiceGoblins\Services\UnitProgressionService;
 use DiceGoblins\Services\UserUnlockService;
@@ -72,44 +73,33 @@ final class DeterministicRunNodeResolver
       $ticks = 0;
       $outcome = 'victory';
       $xpTotal = 0;
-      $shrineFavor = null;
-      if ($nodeType === 'shrine') {
-        $favorRoll = $this->nextInt($rngState, 3);
-        $shrineFavor = [
-          'favor' => ['bone_whisper', 'rust_blessing', 'bog_luck'][$favorRoll],
-          'currency_soft' => 4 + $this->nextInt($rngState, 5),
-        ];
-      }
-      $currencySoft = match ($nodeType) {
-        'loot' => 8,
-        'shrine' => (int)($shrineFavor['currency_soft'] ?? 0),
-        default => 0,
-      };
+      $nodeEffect = (new EncounterPrimitiveCatalog())->resolveNodeEffect(
+        $nodeType,
+        fn(int $max): int => $this->nextInt($rngState, $max)
+      );
+      $currencySoft = (int)$nodeEffect['currency_soft'];
       $events = [[
         'type' => 'node_effect',
         'round' => 0,
         'tick' => 0,
         'node_type' => $nodeType,
-        'message' => match ($nodeType) {
-          'hazard' => 'hazard_avoided',
-          'shrine' => 'shrine_favor_granted',
-          default => 'non_combat_resolution',
-        },
+        'message' => (string)$nodeEffect['message'],
+        'effect_slug' => (string)$nodeEffect['slug'],
+        'primitive' => (string)$nodeEffect['primitive'],
         'label' => match ($nodeType) {
-          'hazard' => 'Hazard Avoided',
-          'shrine' => 'Shrine Favor Granted',
+          'hazard' => $this->humanizeId((string)$nodeEffect['slug']),
+          'shrine' => $this->humanizeId((string)$nodeEffect['slug']),
           'rest' => 'Full Recovery',
           default => 'Path Cleared',
         },
         'detail' => match ($nodeType) {
-          'hazard' => 'The squad picks through the danger without a fight.',
-          'shrine' => is_array($shrineFavor)
-            ? sprintf('%s grants %d teeth.', $this->humanizeId((string)$shrineFavor['favor']), (int)$shrineFavor['currency_soft'])
-            : 'The shrine grants a small favor.',
+          'hazard' => $this->describeNodeEffect($nodeType, $nodeEffect),
+          'shrine' => $this->describeNodeEffect($nodeType, $nodeEffect),
           'rest' => 'The squad returns to full health.',
           default => 'The route opens without a fight.',
         },
-        ...(is_array($shrineFavor) ? ['shrine_result' => $shrineFavor] : []),
+        ...($nodeType === 'shrine' ? ['shrine_result' => $nodeEffect['result']] : []),
+        ...($nodeType === 'hazard' ? ['hazard_result' => $nodeEffect['result']] : []),
       ]];
     } else {
       $difficulty = max(1, (int)$encounter['difficulty_rating']);
@@ -170,7 +160,18 @@ final class DeterministicRunNodeResolver
       $firstEvent = is_array($events[0] ?? null) ? $events[0] : [];
       $rewards['encounter_result'] = [
         'family' => 'shrine',
+        'primitive' => (string)($firstEvent['primitive'] ?? ''),
+        'effect_slug' => (string)($firstEvent['effect_slug'] ?? ''),
         'result' => is_array($firstEvent['shrine_result'] ?? null) ? $firstEvent['shrine_result'] : [],
+      ];
+    }
+    if ($nodeType === 'hazard') {
+      $firstEvent = is_array($events[0] ?? null) ? $events[0] : [];
+      $rewards['encounter_result'] = [
+        'family' => 'hazard',
+        'primitive' => (string)($firstEvent['primitive'] ?? ''),
+        'effect_slug' => (string)($firstEvent['effect_slug'] ?? ''),
+        'result' => is_array($firstEvent['hazard_result'] ?? null) ? $firstEvent['hazard_result'] : [],
       ];
     }
 
@@ -4691,6 +4692,33 @@ final class DeterministicRunNodeResolver
     $exists = ((int)$stmt->fetchColumn()) > 0;
     $this->schemaPresenceCache[$cacheKey] = $exists;
     return $exists;
+  }
+
+  /**
+   * @param array{slug:string,message:string,primitive:string,currency_soft:int,result:array<string,mixed>} $nodeEffect
+   */
+  private function describeNodeEffect(string $nodeType, array $nodeEffect): string
+  {
+    $result = is_array($nodeEffect['result'] ?? null) ? $nodeEffect['result'] : [];
+    $currencySoft = (int)($nodeEffect['currency_soft'] ?? 0);
+    $effectName = $this->humanizeId((string)($nodeEffect['slug'] ?? $nodeEffect['message'] ?? 'effect'));
+
+    if ($nodeType === 'shrine') {
+      return $currencySoft > 0
+        ? sprintf('%s grants %d teeth.', $effectName, $currencySoft)
+        : sprintf('%s settles over the squad.', $effectName);
+    }
+
+    if ($nodeType === 'hazard') {
+      $damage = (int)($result['damage_each'] ?? $result['damage'] ?? 0);
+      if ($damage > 0) {
+        return sprintf('%s deals %d damage across the squad.', $effectName, $damage);
+      }
+
+      return sprintf('%s changes the path ahead.', $effectName);
+    }
+
+    return sprintf('%s resolves without a fight.', $effectName);
   }
 
   private function humanizeId(string $value): string

@@ -165,6 +165,46 @@ Current foundation exclusions:
 - exact authored enemy-shape construction from each reel combination remains follow-up work
 - bolstered enemy starts, ambush positioning rules, guaranteed loot variants, and more granular Raw Chaos tuning remain follow-up work
 
+## Hazard And Shrine Primitives
+
+Hazards and shrines resolve through a backend-owned primitive vocabulary before richer authored catalogs are seeded. The current implementation keeps the launch behavior intentionally small while giving future content a stable effect language.
+
+Hazard primitives:
+
+| Primitive | Intended use |
+| --- | --- |
+| `hp_attrition` | Bounded between-combat HP pressure on one or more run units. |
+| `temporary_modifier` | Short-lived stat or status pressure that expires after a known scope. |
+| `currency_pressure` | Small soft-currency or Raw Chaos costs, losses, or gated choices. |
+| `item_pressure` | Generic item costs, losses, or required-key checks. |
+| `route_pressure` | Path, branch, or node-state pressure without direct combat rewards. |
+| `kin_mitigation` | Optional reduced risk or alternate copy for owned lineages. |
+
+Shrine primitives:
+
+| Primitive | Intended use |
+| --- | --- |
+| `small_reward` | Bounded non-XP rewards such as soft currency, items, or minor dice support. |
+| `cleansing` | Remove or soften temporary run pressure. |
+| `bargain` | Exchange currency, items, HP pressure, or risk for a visible reward. |
+| `reroute` | Open, reveal, or improve a route choice without breaking graph guarantees. |
+| `controlled_risk` | Offer an explicit chance or deterministic tradeoff with bounded downside. |
+
+Current primitive-backed effects:
+
+| Node type | Effect slug | Primitive | Current result |
+| --- | --- | --- | --- |
+| `hazard` | `hazard_cautious_footing` | `route_pressure` | Clears the hazard with no XP or currency reward. |
+| `shrine` | `shrine_bone_whisper`, `shrine_rust_blessing`, `shrine_bog_luck` | `small_reward` | Grants 4-8 soft currency and persists the favor result. |
+
+Authoring constraints:
+
+- Primitive resolution is backend-authoritative and deterministic from the run/node seed context.
+- Node effects must persist their `effect_slug`, `primitive`, and result payload in the battle log or reward payload.
+- Hazard and shrine effects must be idempotent when a resolved node is revisited.
+- Hazard and shrine effects must not award combat XP unless the encounter scope is explicitly updated.
+- Content catalogs may choose effects by region, depth, weight, and progression context after the population issue lands.
+
 ## Region Energy
 
 - Region energy cost is region-specific.
