@@ -132,8 +132,7 @@
   min-width: 0;
 }
 
-.shop-deal__eyebrow,
-.shop-page__wallet span {
+.shop-deal__eyebrow {
   margin: 0;
   color: rgba(37, 21, 12, 0.68);
   font-size: 11px;
@@ -382,32 +381,6 @@
   object-fit: contain;
   object-position: center bottom;
   filter: drop-shadow(0 18px 20px rgba(0, 0, 0, 0.42));
-}
-
-.shop-page__wallet {
-  display: grid;
-  grid-template-columns: auto auto 16px;
-  gap: 8px;
-  align-items: center;
-  padding: 9px 12px;
-  border: 2px solid rgba(255, 229, 178, 0.32);
-  background: rgba(30, 20, 13, 0.82);
-  color: #fff2c9;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
-}
-
-.shop-page__wallet span {
-  color: rgba(255, 242, 201, 0.76);
-}
-
-.shop-page__wallet strong {
-  font-size: 18px;
-  line-height: 1;
-}
-
-.shop-page__wallet img {
-  width: 16px;
-  height: 16px;
 }
 
 @media (max-width: 1100px) {

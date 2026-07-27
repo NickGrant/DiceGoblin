@@ -584,3 +584,21 @@ current_code_references:
   - frontend/src/app/shared/ui/unit-bar
   - frontend/src/app/pages/unit-details-page
   - frontend/src/app/pages/squad-details-page
+
+---
+id: UAT-003
+title: Clean up shop and academy presentation
+status: complete
+priority: medium
+milestone: UAT Feedback Fix Round 1
+description: Removed redundant shop and academy tooth indicators, simplified daily deal naming, and replaced Academy research placeholder letters with shared role icons plus tier indicator marks while suppressing filler requirement copy.
+acceptance_criteria:
+  - Shop second daily deal title does not include `Deal 2:`.
+  - Shop removes the redundant bottom-screen teeth indicator.
+  - Academy research wing removes the redundant tooth indicator.
+  - Academy replaces single-letter placeholders with available icons.
+  - Academy uses available tier icons where tier information is shown.
+  - Academy removes the line matching `Tier x role - add future recruit...`.
+current_code_references:
+  - frontend/src/app/pages/shop-page
+  - frontend/src/app/pages/academy-page

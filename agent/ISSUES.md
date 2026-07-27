@@ -4,24 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## UAT Feedback Fix Round 1
 
-### Clean up shop and academy presentation
-
-**Milestone:** UAT Feedback Fix Round 1
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-Shop and academy screens have duplicate currency indicators and placeholder iconography that make the UI feel rougher than the newer shop-style surfaces.
-
-#### Acceptance Criteria
-
-- Shop second daily deal title does not include `Deal 2:`.
-- Shop removes the redundant bottom-screen teeth indicator.
-- Academy research wing removes the redundant tooth indicator.
-- Academy replaces single-letter placeholders with available icons.
-- Academy uses available tier icons where tier information is shown.
-- Academy removes the line matching `Tier x role - add future recruit...`.
-
 ### Repair guide navigation and combat reference content
 
 **Milestone:** UAT Feedback Fix Round 1

@@ -234,8 +234,10 @@ describe('ShopPageComponent', () => {
     expect(compiled.textContent).toContain('PRC');
     expect(compiled.textContent).toContain('RES');
     expect(compiled.textContent).toContain('Sharp');
-    expect(compiled.textContent).toContain('Deal 2: Heavy');
+    expect(compiled.textContent).toContain('Heavy');
+    expect(compiled.textContent).not.toContain('Deal 2:');
     expect(compiled.querySelector('.shop-unit__cost')?.textContent).toContain('15');
+    expect(compiled.querySelector('.shop-page__wallet')).toBeNull();
   });
 
   it('shows Academy under feature unlocks and purchases it from that tab', async () => {

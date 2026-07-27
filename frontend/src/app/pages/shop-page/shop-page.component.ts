@@ -137,7 +137,7 @@ export class ShopPageComponent {
   }
 
   dailyDealLabel(item: ShopDailyDeal): string {
-    return item.slot && item.slot > 1 ? `Deal ${item.slot}: ${item.affix.name}` : item.affix.name;
+    return item.affix.name;
   }
 
   purchaseBusy(itemType: 'basic_unit' | 'basic_dice' | 'daily_deal', productId: string): boolean {

@@ -17,7 +17,6 @@ Success criteria:
 
 ### Related Issues
 
-- Clean up shop and academy presentation
 - Repair guide navigation and combat reference content
 
 ## Critical Path UAT

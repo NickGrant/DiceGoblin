@@ -1,6 +1,8 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   AcademyUnitUnlockItem,
   PromotionOptionRecord,
@@ -16,11 +18,12 @@ import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { resolveAbilityDisplayName, summarizeAbilityNames, toRomanNumeral } from '../../shared/utils/unit-formatters';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
+import { resolveUnitRoleIcon } from '../../shared/ui/category-icons/category-icons';
 
 @Component({
   selector: 'app-academy-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, FormsModule],
+  imports: [DgAlertComponent, DgCommandBtnDirective, FontAwesomeModule, PageFrameComponent, FormsModule],
   templateUrl: './academy-page.component.html',
   styleUrl: './academy-page.component.scss',
 })
@@ -350,12 +353,17 @@ export class AcademyPageComponent {
     return normalized.length ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Unit';
   }
 
-  roleInitial(value: string | null | undefined): string {
-    return this.roleLabel(value).charAt(0);
+  unitUnlockRoleIcon(entry: AcademyUnitUnlockItem): IconDefinition {
+    return resolveUnitRoleIcon(entry.role ?? entry.unit_type_slug);
   }
 
   unitUnlockMetaLabel(entry: AcademyUnitUnlockItem): string {
     return `${this.roleLabel(entry.role)} unit type - Tier ${this.unitUnlockTierLabel(entry.unit_type_slug)}`;
+  }
+
+  unitUnlockTierClass(entry: AcademyUnitUnlockItem): string {
+    const tierNumber = this.unitUnlockTierNumber(entry.unit_type_slug);
+    return `academy-unlock-card__tier dg-tier-indicator dg-tier-indicator--${tierNumber}`;
   }
 
   unitUnlockStats(entry: AcademyUnitUnlockItem): Array<{ label: string; value: string }> {
@@ -384,7 +392,7 @@ export class AcademyPageComponent {
       return `Requires: ${unmet.label}${progress}`;
     }
 
-    return `Tier ${this.unitUnlockTierLabel(entry.unit_type_slug)} ${this.roleLabel(entry.role)} - adds future recruit and reward drops.`;
+    return '';
   }
 
   unitUnlockActionLabel(entry: AcademyUnitUnlockItem): string {
@@ -419,9 +427,13 @@ export class AcademyPageComponent {
     return typeof value === 'number' ? `${value}` : '-';
   }
 
-  private unitUnlockTierLabel(unitTypeSlug: string): string {
+  unitUnlockTierLabel(unitTypeSlug: string): string {
+    return toRomanNumeral(this.unitUnlockTierNumber(unitTypeSlug));
+  }
+
+  private unitUnlockTierNumber(unitTypeSlug: string): number {
     const match = unitTypeSlug.match(/_t(\d+)$/i);
-    return match ? toRomanNumeral(Number(match[1])) : 'I';
+    return match ? Math.max(1, Math.min(5, Number(match[1]))) : 1;
   }
 }
 
