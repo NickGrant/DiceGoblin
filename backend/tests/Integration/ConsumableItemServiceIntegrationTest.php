@@ -70,6 +70,71 @@ final class ConsumableItemServiceIntegrationTest extends BattleFlowIntegrationCa
     $this->assertSame(13, (int)($response['body']['data']['healing']['hp_after'] ?? 0));
   }
 
+  public function testEnergyConsumableSpendsItemAndRestoresUpToCap(): void
+  {
+    $userId = $this->insertUser('energy_item_cap', 'Energy Item Cap');
+    $this->setEnergy($userId, 45, 50);
+    $this->grantItem($userId, 'sparkroot_tonic', 2);
+
+    $result = $this->service()->restoreEnergy($userId, 'sparkroot_tonic');
+
+    $this->assertSame(1, (int)$result['item']['quantity']);
+    $this->assertSame(5, (int)$result['energy']['amount']);
+    $this->assertSame(45, (int)$result['energy']['current_before']);
+    $this->assertSame(50, (int)$result['energy']['current_after']);
+    $this->assertSame(50, (int)$result['energy']['max']);
+    $this->assertSame('50', (string)$this->scalar('SELECT `energy_current` FROM `energy_state` WHERE `user_id` = ?', [$userId]));
+  }
+
+  public function testEnergyConsumableUsesUnlockedEnergyCap(): void
+  {
+    $userId = $this->insertUser('energy_item_unlock_cap', 'Energy Item Unlock Cap');
+    $this->grantUnlock($userId, 'feature', 'energy_cap_75');
+    $this->setEnergy($userId, 60, 50);
+    $this->grantItem($userId, 'sparkroot_tonic', 1);
+
+    $result = $this->service()->restoreEnergy($userId, 'sparkroot_tonic');
+
+    $this->assertSame(15, (int)$result['energy']['amount']);
+    $this->assertSame(75, (int)$result['energy']['current_after']);
+    $this->assertSame(75, (int)$result['energy']['max']);
+    $this->assertSame('75', (string)$this->scalar('SELECT `energy_max` FROM `energy_state` WHERE `user_id` = ?', [$userId]));
+  }
+
+  public function testEnergyConsumableDoesNotSpendWhenEnergyIsFull(): void
+  {
+    $userId = $this->insertUser('energy_item_full', 'Energy Item Full');
+    $this->setEnergy($userId, 50, 50);
+    $this->grantItem($userId, 'travel_ration', 1);
+
+    $this->expectExceptionMessage('energy_full');
+
+    try {
+      $this->service()->restoreEnergy($userId, 'travel_ration');
+    } finally {
+      $this->assertSame('1', (string)$this->ownedItemQuantity($userId, 'travel_ration'));
+    }
+  }
+
+  public function testControllerEnergyRestoreEndpointUsesJsonItemSlug(): void
+  {
+    $userId = $this->insertUser('energy_item_endpoint', 'Energy Item Endpoint');
+    $this->setEnergy($userId, 40, 50);
+    $this->grantItem($userId, 'travel_ration', 1);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+    $this->setJsonBody(['item_slug' => 'travel_ration']);
+
+    $response = $this->invoke(fn() => (new GameplayController())->restoreEnergyWithItem());
+
+    $this->assertSame(200, $response['status']);
+    $this->assertTrue((bool)($response['body']['ok'] ?? false));
+    $this->assertSame(50, (int)($response['body']['data']['energy']['current_after'] ?? 0));
+    $this->assertSame('travel_ration', (string)($response['body']['data']['item']['item_slug'] ?? ''));
+  }
+
   public function testHealingConsumableRevivesDefeatedRunUnitWithoutExceedingMaxHp(): void
   {
     $userId = $this->insertUser('heal_item_revive', 'Heal Item Revive');

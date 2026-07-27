@@ -1,0 +1,63 @@
+INSERT INTO `items` (
+  `slug`,
+  `name`,
+  `description`,
+  `category`,
+  `source_region_id`,
+  `source_family_slug`,
+  `rarity`,
+  `is_stackable`,
+  `is_visible_before_discovery`,
+  `is_spendable`,
+  `is_primary_progression`,
+  `icon_key`,
+  `lore_key`,
+  `meta_json`
+)
+VALUES
+(
+  'travel_ration',
+  'Travel Ration',
+  'A packed bite that restores a small amount of energy before the next run.',
+  'consumable',
+  NULL,
+  NULL,
+  'common',
+  1,
+  1,
+  1,
+  0,
+  'item_travel_ration',
+  'energy_consumable',
+  JSON_OBJECT('effect', JSON_OBJECT('type', 'restore_energy', 'amount', 10))
+),
+(
+  'sparkroot_tonic',
+  'Sparkroot Tonic',
+  'A sharp tonic that restores a larger amount of energy without exceeding the current cap.',
+  'consumable',
+  NULL,
+  NULL,
+  'uncommon',
+  1,
+  1,
+  1,
+  0,
+  'item_sparkroot_tonic',
+  'energy_consumable',
+  JSON_OBJECT('effect', JSON_OBJECT('type', 'restore_energy', 'amount', 25))
+)
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `description` = VALUES(`description`),
+  `category` = VALUES(`category`),
+  `source_region_id` = VALUES(`source_region_id`),
+  `source_family_slug` = VALUES(`source_family_slug`),
+  `rarity` = VALUES(`rarity`),
+  `is_stackable` = VALUES(`is_stackable`),
+  `is_visible_before_discovery` = VALUES(`is_visible_before_discovery`),
+  `is_spendable` = VALUES(`is_spendable`),
+  `is_primary_progression` = VALUES(`is_primary_progression`),
+  `icon_key` = VALUES(`icon_key`),
+  `lore_key` = VALUES(`lore_key`),
+  `meta_json` = VALUES(`meta_json`);
