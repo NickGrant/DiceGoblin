@@ -67,4 +67,23 @@ final class EncounterPrimitiveCatalogTest extends TestCase
     $this->assertContains('hazard_bog_mire', $swampSlugs);
     $this->assertNotContains('hazard_loose_scree', $swampSlugs);
   }
+
+  public function testHazardCatalogMeetsInitialContentPackTarget(): void
+  {
+    $catalog = new EncounterPrimitiveCatalog();
+    $hazards = $catalog->hazardCatalog();
+    $vocabulary = $catalog->vocabulary()['hazard'];
+    $slugs = [];
+
+    $this->assertGreaterThanOrEqual(10, count($hazards));
+    foreach ($hazards as $hazard) {
+      $slug = (string)$hazard['slug'];
+      $this->assertStringStartsWith('hazard_', $slug);
+      $this->assertNotContains($slug, $slugs);
+      $this->assertContains((string)$hazard['primitive'], $vocabulary);
+      $this->assertNotSame([], $hazard['regions']);
+      $this->assertGreaterThan(0, (int)$hazard['weight']);
+      $slugs[] = $slug;
+    }
+  }
 }

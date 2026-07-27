@@ -4,22 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Encounter Content Pack
 
-### Seed initial hazard catalog
-
-**Milestone:** Encounter Content Pack
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-The July roadmap calls for ten authored hazards. The content pack should seed enough variety for early regions without creating ten bespoke backend systems.
-
-#### Acceptance Criteria
-
-- Ten hazard definitions are seeded or cataloged with stable slugs.
-- Each hazard uses approved hazard primitives.
-- Region eligibility, weight, player-facing title, and result copy are authored.
-- Tests or seed validation prove all enabled hazards resolve through supported primitives.
-
 ### Seed initial shrine catalog
 
 **Milestone:** Encounter Content Pack

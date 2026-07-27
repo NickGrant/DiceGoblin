@@ -442,7 +442,7 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
         $this->assertNotSame('', (string)($meta['encounter_effect_slug'] ?? ''));
         $this->assertContains(
           (string)($meta['encounter_primitive'] ?? ''),
-          ['route_pressure', 'hp_attrition', 'kin_mitigation']
+          ['route_pressure', 'hp_attrition', 'temporary_modifier', 'currency_pressure', 'item_pressure', 'kin_mitigation']
         );
         $this->assertGreaterThanOrEqual(3, (int)($meta['col'] ?? 0));
         $this->assertLessThan($analysis['boss_col'], (int)($meta['col'] ?? 0));

@@ -190,6 +190,25 @@ current_code_references:
   - backend/tests/Integration/RunGraphGeneratorIntegrationTest.php
   - documentation/02-systems-mvp/03-encounter-scope.md
 
+## Encounter Content Pack
+
+---
+id: ECP-001
+title: Seed initial hazard catalog
+status: complete
+priority: medium
+milestone: Encounter Content Pack
+description: Expanded the backend-authored hazard catalog past the ten-entry target with stable slugs, approved primitives, region/depth eligibility, and unit coverage that validates catalog shape.
+acceptance_criteria:
+  - Ten hazard definitions are seeded or cataloged with stable slugs.
+  - Each hazard uses approved hazard primitives.
+  - Region eligibility, weight, player-facing title, and result copy are authored.
+  - Tests or seed validation prove all enabled hazards resolve through supported primitives.
+current_code_references:
+  - backend/src/Services/EncounterPrimitiveCatalog.php
+  - backend/tests/Unit/EncounterPrimitiveCatalogTest.php
+  - documentation/02-systems-mvp/03-encounter-scope.md
+
 ## Wrong Machine and Kin Foundation
 
 ---
