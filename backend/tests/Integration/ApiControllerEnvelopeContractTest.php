@@ -292,6 +292,8 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsArray($data['map']['edges'] ?? null);
     $this->assertArrayHasKey('run_unit_state', $data);
     $this->assertIsArray($data['run_unit_state']);
+    $this->assertArrayHasKey('active_run_effects', $data);
+    $this->assertIsArray($data['active_run_effects']);
 
     $run = is_array($data['run']) ? $data['run'] : [];
     $this->assertArrayHasKey('run_id', $run);
@@ -314,6 +316,43 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
       $this->assertArrayHasKey('from_node_id', $firstEdge);
       $this->assertArrayHasKey('to_node_id', $firstEdge);
     }
+  }
+
+  public function testCurrentRunReturnsClearedNodeEffectSummaries(): void
+  {
+    $userId = $this->insertUser('current_run_effects', 'Current Run Effects User');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId);
+    $nodeId = $this->insertRunNode($runId, 0, 'shrine', 'cleared');
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'claimed', 'victory');
+    $this->insertBattleLog($battleId, [
+      'meta' => ['node_type' => 'shrine'],
+      'events' => [[
+        'type' => 'node_effect',
+        'round' => 0,
+        'tick' => 0,
+        'node_type' => 'shrine',
+        'label' => 'Shrine Favor Granted',
+        'detail' => 'Bone Whisper grants 7 teeth.',
+      ]],
+    ]);
+
+    $_SESSION['user_id'] = $userId;
+
+    $controller = new ApiController();
+    $response = $this->invoke(fn() => $controller->currentRun());
+
+    $this->assertSame(200, $response['status']);
+    $data = $this->assertSuccessEnvelopeShape($response);
+    $effects = is_array($data['active_run_effects'] ?? null) ? $data['active_run_effects'] : [];
+    $this->assertCount(1, $effects);
+    $effect = is_array($effects[0] ?? null) ? $effects[0] : [];
+    $this->assertSame((string)$nodeId, (string)($effect['node_id'] ?? ''));
+    $this->assertSame('shrine', (string)($effect['node_type'] ?? ''));
+    $this->assertSame('Shrine Favor Granted', (string)($effect['label'] ?? ''));
+    $this->assertSame('Bone Whisper grants 7 teeth.', (string)($effect['detail'] ?? ''));
+    $this->assertSame('immediate', (string)($effect['persistence'] ?? ''));
   }
 
   /**
@@ -366,5 +405,14 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     ');
     $stmt?->execute([$userId, $runId, $nodeId, $teamId, $status, $outcome]);
     return (int)$this->pdo?->lastInsertId();
+  }
+
+  /**
+   * @param array<string,mixed> $log
+   */
+  private function insertBattleLog(int $battleId, array $log): void
+  {
+    $stmt = $this->pdo?->prepare('INSERT INTO `battle_logs` (`battle_id`, `log_json`) VALUES (?, ?)');
+    $stmt?->execute([$battleId, json_encode($log, JSON_UNESCAPED_SLASHES)]);
   }
 }

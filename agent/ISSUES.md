@@ -42,7 +42,7 @@ Chaos reels appear to show cross-biome results, but combat may still fall back t
 ### Surface active run effects
 
 **Milestone:** UAT Feedback Fix Round 2
-**Status:** Open
+**Status:** In Review
 **Priority:** High
 
 #### Problem

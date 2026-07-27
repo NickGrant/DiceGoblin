@@ -361,6 +361,122 @@ final class RunRepository
   }
 
   /**
+   * Return player-facing summaries for cleared run nodes that affect the route.
+   *
+   * @return array<int,array{
+   *   id:string,
+   *   node_id:string,
+   *   node_type:string,
+   *   label:string,
+   *   detail:string,
+   *   persistence:string,
+   *   source:string
+   * }>
+   */
+  public function getActiveRunEffects(int $runId): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT
+        rn.`id` AS `node_id`,
+        rn.`node_type`,
+        rn.`node_index`,
+        b.`id` AS `battle_id`,
+        bl.`log_json`
+      FROM `run_nodes` rn
+      JOIN `battles` b ON b.`run_id` = rn.`run_id` AND b.`node_id` = rn.`id`
+      LEFT JOIN `battle_logs` bl ON bl.`battle_id` = b.`id`
+      WHERE rn.`run_id` = ?
+        AND rn.`status` = \'cleared\'
+        AND rn.`node_type` IN (\'shrine\', \'hazard\', \'chaos\')
+      ORDER BY rn.`node_index` ASC, b.`id` ASC
+    ');
+    $stmt->execute([$runId]);
+
+    $effects = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $effect = $this->activeRunEffectFromRow($row);
+      if ($effect !== null) {
+        $effects[] = $effect;
+      }
+    }
+
+    return $effects;
+  }
+
+  /**
+   * @param array<string,mixed> $row
+   * @return array{
+   *   id:string,
+   *   node_id:string,
+   *   node_type:string,
+   *   label:string,
+   *   detail:string,
+   *   persistence:string,
+   *   source:string
+   * }|null
+   */
+  private function activeRunEffectFromRow(array $row): ?array
+  {
+    $nodeType = (string)($row['node_type'] ?? '');
+    $nodeId = (string)($row['node_id'] ?? '');
+    $battleId = (string)($row['battle_id'] ?? '');
+    $log = json_decode((string)($row['log_json'] ?? ''), true);
+    $log = is_array($log) ? $log : [];
+
+    if ($nodeType === 'chaos') {
+      $meta = is_array($log['meta'] ?? null) ? $log['meta'] : [];
+      $chaos = is_array($meta['chaos'] ?? null) ? $meta['chaos'] : [];
+      $summary = is_array($chaos['summary'] ?? null) ? $chaos['summary'] : [];
+      $label = trim((string)($summary['title'] ?? 'Chaos Reel'));
+      $detail = trim((string)($summary['effect'] ?? 'The finalized chaos reel shaped this encounter.'));
+
+      return [
+        'id' => 'battle-' . $battleId . '-chaos',
+        'node_id' => $nodeId,
+        'node_type' => $nodeType,
+        'label' => $label !== '' ? $label : 'Chaos Reel',
+        'detail' => $detail !== '' ? $detail : 'The finalized chaos reel shaped this encounter.',
+        'persistence' => 'encounter',
+        'source' => 'Chaos',
+      ];
+    }
+
+    $event = null;
+    $events = is_array($log['events'] ?? null) ? $log['events'] : [];
+    foreach ($events as $candidate) {
+      if (!is_array($candidate)) {
+        continue;
+      }
+
+      if ((string)($candidate['type'] ?? '') === 'node_effect') {
+        $event = $candidate;
+        break;
+      }
+    }
+
+    if ($event === null) {
+      return null;
+    }
+
+    $fallbackLabel = $nodeType === 'shrine' ? 'Shrine Favor' : 'Hazard Cleared';
+    $fallbackDetail = $nodeType === 'shrine'
+      ? 'The shrine granted a run result.'
+      : 'The hazard was resolved on this route.';
+    $label = trim((string)($event['label'] ?? ''));
+    $detail = trim((string)($event['detail'] ?? ''));
+
+    return [
+      'id' => 'battle-' . $battleId . '-' . $nodeType,
+      'node_id' => $nodeId,
+      'node_type' => $nodeType,
+      'label' => $label !== '' ? $label : $fallbackLabel,
+      'detail' => $detail !== '' ? $detail : $fallbackDetail,
+      'persistence' => 'immediate',
+      'source' => $nodeType === 'shrine' ? 'Shrine' : 'Hazard',
+    ];
+  }
+
+  /**
    * Upsert a single unit's run state.
    * This is useful after a battle to persist HP/cooldowns/effects.
    *

@@ -20,6 +20,17 @@ class RunServiceStub {
         { unit_instance_id: 'u1', current_hp: 6, is_defeated: false, status_effects: [] },
         { unit_instance_id: 'u2', current_hp: 0, is_defeated: true, status_effects: [] },
       ],
+      active_run_effects: [
+        {
+          id: 'battle-1-shrine',
+          node_id: 'n3',
+          node_type: 'shrine',
+          label: 'Shrine Favor Granted',
+          detail: 'Bone Whisper grants 7 teeth.',
+          persistence: 'immediate',
+          source: 'Shrine',
+        },
+      ],
     },
   });
   abandonRun = jasmine.createSpy('abandonRun').and.resolveTo({ ok: true });
@@ -85,6 +96,9 @@ describe('RunMapPageComponent', () => {
     expect(host.textContent).toContain('Continue Run - The Farm');
     expect(host.textContent).toContain('Fang');
     expect(host.textContent).toContain('Lv 3');
+    expect(host.textContent).toContain('Run Effects');
+    expect(host.textContent).toContain('Shrine Favor Granted');
+    expect(host.textContent).toContain('Bone Whisper grants 7 teeth.');
     expect(host.querySelector('.run-unit-grid .unit-thumbnail')).not.toBeNull();
     expect(host.querySelector('.run-unit-grid .unit-thumbnail__hp')).not.toBeNull();
     expect(host.querySelector('.run-unit-grid .unit-bar')).toBeNull();
