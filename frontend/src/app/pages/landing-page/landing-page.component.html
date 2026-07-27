@@ -1,14 +1,25 @@
 <section class="landing-page">
-  <div class="container-xl landing-page__shell">
-    <div class="landing-frame page-frame dg-surface-banner">
-      <div class="row">
-        <div class="col-4 d-flex">
-          <img class="landing-logo" src="/assets/ui/branding/hero-logo.png" alt="Dice Goblins logo" />
-        </div>
-        <div class="col-8">
-          <p class="dg-surface-banner__eyebrow dg-stencil">Dice Goblins</p>
-          <h1>Report for Duty</h1>
-          <p class="dg-surface-banner__copy">Rally your warband, manage your supplies, and prepare for the next raid.</p>
+  <div class="landing-page__shell">
+    <div class="landing-copy">
+      <img class="landing-logo" src="/assets/ui/branding/hero-logo.png" alt="Dice Goblins logo" />
+      <p class="landing-copy__eyebrow dg-stencil">Tactical dice raids</p>
+      <h1>Dice Goblins</h1>
+      <p class="landing-copy__lede">
+        Build a scrappy warband, slot strange dice into combat abilities, and push through branching runs for teeth, loot, and bad ideas.
+      </p>
+      <div class="landing-beats" aria-label="Game highlights">
+        <span>Turn-based run battles</span>
+        <span>Dice-driven loadouts</span>
+        <span>Permanent camp unlocks</span>
+      </div>
+      <a class="landing-guide-link" routerLink="/guide">How to Play</a>
+    </div>
+
+    <aside class="landing-auth" aria-label="Account access">
+      <div class="landing-auth__header">
+        <p class="landing-copy__eyebrow dg-stencil">Account</p>
+        <h2>{{ authMode() === 'register' ? 'Create your warband' : authMode() === 'forgot' || authMode() === 'reset' ? 'Recover access' : 'Continue raiding' }}</h2>
+      </div>
           <form class="local-auth" (ngSubmit)="submitLocalAuth()">
             <div class="local-auth__tabs" aria-label="Local account mode">
               <button
@@ -112,10 +123,7 @@
           </form>
           <div class="landing-actions">
             <a dgCommandBtn="teal" [href]="discordLoginUrl">Sign in through Discord</a>
-            <a dgCommandBtn="teal" routerLink="/guide">How to Play</a>
           </div>
-        </div>
-      </div>
-    </div>
+    </aside>
   </div>
 </section>
