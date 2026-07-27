@@ -1,7 +1,7 @@
 # Loot and Drop Scope
 
 Status: active  
-Last Updated: 2026-06-21  
+Last Updated: 2026-07-27  
 Owner: Systems Design + Engineering  
 Depends On: `documentation/02-systems-mvp/01-dice-system.md`, `documentation/02-systems-mvp/03-encounter-scope.md`
 
@@ -49,6 +49,8 @@ The player profile also tracks `region_items`, which remain part of the persiste
   - teeth
   - dice labels
   - unit labels
+- Loot node visuals use the run node's `node_quality_tier` metadata when present.
+- Older loot nodes without quality metadata render as `good` quality.
 
 ## Unit Rewards
 
