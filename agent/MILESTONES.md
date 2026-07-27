@@ -2,90 +2,40 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Opening Arc Story Audit
+## Critical Path UAT
 
 **Status:** Active
 
-Audit and complete the Wrong Machine narrative route from Mountains discovery through Swamps recovery and the first post-recovery Mystic Cave reconstruction prompt.
+Validate the completed July 25 roadmap through the player-facing critical path and turn observed failures into severity-ranked issues.
 
 Success criteria:
 
-- Mountains and Swamps story beats match the July roadmap or have documented equivalents.
-- Wrong Machine feature state remains backend-owned and idempotent.
-- Mystic Cave explains reconstruction only after recovery.
-- Repeat runs avoid replaying all one-time exposition.
+- Fresh-account UAT covers Farm, Mountains, Swamps, Wrong Machine recovery, Mystic Cave return, and first Pig Kin reconstruction.
+- Repeat-run behavior is checked for story, stolen pages, and unlock messaging.
+- Reward summaries, unlocks, Raw Chaos gating, special item rewards, and Wrong Machine actions are verified in-game.
+- Encounter variety and consumable pacing are sampled across multiple regions and seeds.
+- Any UAT failures are logged with reproduction notes and player-facing severity.
 
 ### Related Issues
 
-- Verify Wrong Machine story beat coverage
+- Run fresh-account July roadmap UAT
+- Verify reward and unlock clarity in UAT
+- Validate encounter and consumable feel
 
-## Kin Pool and Balance Completion
+## UAT Polish Backlog
 
 **Status:** Planned
 
-Finish the first kin reconstruction loop by verifying random reward pools, reviewing Pig Kin balance, and planning the legacy storage rename without risking compatibility.
+Convert UAT observations into focused release-hardening issues and confirm merge/artifact hygiene before broader release validation.
 
 Success criteria:
 
-- Random kin rewards are limited to Basic Goblin plus owned lineages unless explicitly authored otherwise.
-- Pig Kin balance is reviewed through representative simulations.
-- Legacy `splice_variant` storage/API usage has a compatibility-aware retirement plan.
+- Frontend polish and copy findings are grouped by severity.
+- High-severity UAT findings are promoted into implementation-ready issues.
+- Low-severity improvements are deferred without blocking release hardening.
+- `main`, roadmap analysis, active tracker, and generated-artifact policy are reconciled.
 
 ### Related Issues
 
-- Gate random kin rewards by owned lineages
-- Run kin balance simulation review
-- Plan legacy splice storage retirement
-
-## Encounter Primitive Framework
-
-**Status:** Planned
-
-Define reusable hazard and shrine primitives before expanding content breadth, keeping effects backend-authoritative and aligned with seed/catalog ownership rules.
-
-Success criteria:
-
-- Hazard and shrine primitive vocabularies are documented and implemented.
-- Hazard population respects region eligibility, weighting, and run graph guarantees.
-- Representative primitive resolution is covered by backend tests.
-
-### Related Issues
-
-- Define hazard and shrine effect primitives
-- Populate hazard nodes from authored rules
-
-## Encounter Content Pack
-
-**Status:** Planned
-
-Seed the initial roadmap content pack for hazards, shrines, and expanded chaos reels once the primitive framework is stable.
-
-Success criteria:
-
-- Ten hazards are authored through approved primitives.
-- Ten shrines are authored through approved primitives.
-- Chaos reels reach the target launch breadth or a documented launch-equivalent set.
-- Seed validation or backend tests prove enabled entries can resolve safely.
-
-### Related Issues
-
-- Seed initial hazard catalog
-- Seed initial shrine catalog
-- Expand chaos reel catalogs
-
-## General Inventory and Consumables
-
-**Status:** Planned
-
-Use the generic item foundation to add between-encounter healing and energy consumables after the core progression and encounter work is stable.
-
-Success criteria:
-
-- Healing consumables can be used outside combat.
-- Energy consumables respect caps and pacing.
-- Spending and restoration are backend-authoritative and covered by tests.
-
-### Related Issues
-
-- Add between-encounter unit healing consumables
-- Add player energy recovery consumables
+- Triage frontend polish findings from UAT
+- Confirm release merge and generated-artifact hygiene
