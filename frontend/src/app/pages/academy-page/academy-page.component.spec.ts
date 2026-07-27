@@ -219,17 +219,17 @@ describe('AcademyPageComponent', () => {
     ]);
     expect(component.unitUnlockDescription('support_banner_t1')).toContain('support specialist');
     expect(component.unitUnlockDescription('frontline_bruiser_t2')).toContain('heavier execution damage');
-    expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[0])).toBe(
-      'Tier I Support - adds future recruit and reward drops.',
-    );
+    expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[0])).toBe('');
     expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[1])).toBe('Requires: Complete any run (0/1)');
     expect(component.unitUnlockActionLabel(component.availableUnitUnlocks()[0])).toBe('Unlock');
     expect(component.unitUnlockActionLabel(component.availableUnitUnlocks()[1])).toBe('Locked');
     expect(component.unitUnlockMetaLabel(component.availableUnitUnlocks()[0])).toBe('Support unit type - Tier I');
+    expect(component.unitUnlockIconUrl('support_banner_t1')).toBe('/assets/ui/units/thumbnails/goblin/bannerbearer.png');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('PRC');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('RES');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Support unit type - Tier I');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Requires: Complete any run (0/1)');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('adds future recruit');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Unlock');
     component.selectedUnitId.set('u1');
     await fixture.whenStable();

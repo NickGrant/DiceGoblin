@@ -39,35 +39,6 @@
   color: rgba(255, 242, 201, 0.76);
 }
 
-.academy-wallet {
-  display: grid;
-  grid-template-columns: auto auto 16px;
-  gap: 8px;
-  align-items: center;
-  padding: 9px 12px;
-  border: 2px solid rgba(255, 229, 178, 0.32);
-  background: rgba(30, 20, 13, 0.82);
-  color: #fff2c9;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
-}
-
-.academy-wallet span {
-  color: rgba(255, 242, 201, 0.72);
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-.academy-wallet strong {
-  line-height: 1;
-}
-
-.academy-wallet img {
-  width: 16px;
-  height: 16px;
-}
-
 .academy-unlock-list {
   display: grid;
   gap: 12px;
@@ -120,16 +91,12 @@
 }
 
 .academy-unlock-card__icon {
-  display: inline-grid;
-  place-items: center;
   width: 42px;
   height: 42px;
   border: 2px solid rgba(255, 229, 178, 0.28);
   background: rgba(255, 242, 201, 0.1);
-  color: #fff2c9;
-  font-size: 22px;
-  font-weight: 900;
-  text-transform: uppercase;
+  object-fit: contain;
+  image-rendering: auto;
 }
 
 .academy-unlock-card__body {

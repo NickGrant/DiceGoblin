@@ -25,11 +25,6 @@
             <h2 class="dg-stencil mb-1">Research Wing</h2>
             <p class="mb-0">Spend teeth here to unlock additional Tier I unit types for loot and shop access.</p>
           </div>
-          <span class="academy-wallet">
-            <span>Teeth</span>
-            <strong>{{ profile().softCurrency }}</strong>
-            <img src="/assets/ui/icons/tooth_16.png" alt="" aria-hidden="true" />
-          </span>
         </div>
 
         @if (loadingUnlocks()) {
@@ -43,19 +38,19 @@
             (click)="unlockUnitType(entry.unit_type_slug)"
             [disabled]="unitUnlockDisabled(entry)"
           >
-            <div class="academy-unlock-card__icon" aria-hidden="true">
-              {{ roleInitial(entry.role) }}
-            </div>
+            <img class="academy-unlock-card__icon" [src]="unitUnlockIconUrl(entry.unit_type_slug)" [alt]="entry.name" />
             <div class="academy-unlock-card__body">
               <p class="academy-label mb-1">{{ unitUnlockMetaLabel(entry) }}</p>
               <h3 class="dg-stencil mb-1">{{ entry.name }}</h3>
               <p class="academy-unlock-card__description mb-0">{{ unitUnlockDescription(entry.unit_type_slug) }}</p>
+              @if (unitUnlockRequirementLabel(entry); as requirementLabel) {
               <p
                 class="academy-unlock-card__requirement mb-0"
                 [class.academy-unlock-card__requirement--met]="entry.is_available !== false"
               >
-                {{ unitUnlockRequirementLabel(entry) }}
+                {{ requirementLabel }}
               </p>
+              }
               <div class="academy-unlock-card__stats" aria-label="Combat stats">
                 @for (stat of unitUnlockStats(entry); track stat.label) {
                 <span>

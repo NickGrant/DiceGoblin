@@ -7,7 +7,7 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 ### Repair run event node resolution and visibility
 
 **Milestone:** UAT Feedback Fix Round 2
-**Status:** In Review
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
@@ -74,7 +74,7 @@ The Whim and mountain kobold dialogue do not yet branch after the Wrong Machine 
 ### Reflavor voluntary run return
 
 **Milestone:** UAT Feedback Fix Round 2
-**Status:** In Review
+**Status:** In Progress
 **Priority:** Medium
 
 #### Problem
@@ -110,7 +110,7 @@ Warband and squad-edit flows need clearer filtering, simpler unit cards, better 
 ### Clean up shop and academy presentation
 
 **Milestone:** UAT Feedback Fix Round 1
-**Status:** Open
+**Status:** In Progress
 **Priority:** Medium
 
 #### Problem
