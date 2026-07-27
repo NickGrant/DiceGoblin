@@ -2,7 +2,7 @@
 ----
 
 Status: active
-Last Updated: 2026-07-26
+Last Updated: 2026-07-27
 Owner: Product + Engineering
 Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 
@@ -29,10 +29,11 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 7. `documentation/03-ux/00-ux-and-debug-scope.md`
 8. `documentation/00-overview/02-glossary.md`
 9. `documentation/01-architecture/04-data-model.md`
-10. `documentation/02-systems-mvp/` docs relevant to the system being changed
-11. `documentation/03-ux/` docs relevant to the player flow being changed
-12. `documentation/07-roadmap/00-gameplay-systems-roadmap.md` for future gameplay direction
-13. `documentation/05-playability-stability/` for release validation
+10. `documentation/09-active-system-structure/` docs relevant to the implemented system being changed
+11. `documentation/02-systems-mvp/` docs relevant to the system being changed
+12. `documentation/03-ux/` docs relevant to the player flow being changed
+13. `documentation/07-roadmap/00-gameplay-systems-roadmap.md` for future gameplay direction
+14. `documentation/05-playability-stability/` for release validation
 
 ## Current-State Rule
 
@@ -68,6 +69,13 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 - Documentation and LLM context architecture:
   - `documentation/01-architecture/09-llm-knowledge-architecture-and-token-efficiency.md`
 - Gameplay systems:
+  - `documentation/09-active-system-structure/00-index.md`
+  - `documentation/09-active-system-structure/01-unit-naming.md`
+  - `documentation/09-active-system-structure/02-unit-stat-advancement.md`
+  - `documentation/09-active-system-structure/03-combat-resolution.md`
+  - `documentation/09-active-system-structure/04-dialogue-flow-determination.md`
+  - `documentation/09-active-system-structure/05-run-node-generation.md`
+  - `documentation/09-active-system-structure/06-loot-determination.md`
   - `documentation/02-systems-mvp/00-combat-system.md`
   - `documentation/02-systems-mvp/01-dice-system.md`
   - `documentation/02-systems-mvp/02-units-and-progression.md`
@@ -123,12 +131,17 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `agent/CONTEXT_ROUTER.md`
   - `documentation/STYLE_GUIDE.md`
 - Warband, squads, units, and dice:
+  - `documentation/09-active-system-structure/01-unit-naming.md`
+  - `documentation/09-active-system-structure/02-unit-stat-advancement.md`
   - `documentation/02-systems-mvp/01-dice-system.md`
   - `documentation/02-systems-mvp/02-units-and-progression.md`
   - `documentation/02-systems-mvp/13-wrong-machine-and-kin.md`
   - `documentation/02-systems-mvp/12-academy-and-feature-unlocks.md`
   - `documentation/03-ux/02-warband-management.md`
 - Runs, encounters, loot, and summaries:
+  - `documentation/09-active-system-structure/03-combat-resolution.md`
+  - `documentation/09-active-system-structure/05-run-node-generation.md`
+  - `documentation/09-active-system-structure/06-loot-determination.md`
   - `documentation/02-systems-mvp/03-encounter-scope.md`
   - `documentation/02-systems-mvp/04-loot-and-drop-scope.md`
   - `documentation/02-systems-mvp/06-run-resolution-scope.md`
@@ -140,6 +153,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/03-ux/09-first-session-player-journey.md`
   - `documentation/02-systems-mvp/03-encounter-scope.md`
 - Lore, dialogue, and biome planning:
+  - `documentation/09-active-system-structure/04-dialogue-flow-determination.md`
   - `documentation/00-overview/03-world-and-lore.md`
   - `documentation/00-overview/04-story-and-biome-progression.md`
   - `frontend/public/assets/data/dialogue/dialogue-scripts.json`
