@@ -45,6 +45,8 @@ describe('LandingPageComponent', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Dice Goblins');
+    expect(text).toContain('Turn-based run battles');
     expect(text).toContain('How to Play');
   });
 
