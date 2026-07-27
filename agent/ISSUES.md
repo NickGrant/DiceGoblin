@@ -4,24 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## UAT Feedback Fix Round 1
 
-### Polish landing, home, and menu affordances
-
-**Milestone:** UAT Feedback Fix Round 1
-**Status:** Open
-**Priority:** High
-
-#### Problem
-Landing and home have several affordance and clutter issues from UAT that make navigation and core status less clear.
-
-#### Acceptance Criteria
-
-- Landing page replaces the H1 text treatment with the existing logo treatment from above.
-- The "How to play" action is visually distinguishable as a link/button, not as another passive tag.
-- Home breadcrumbs do not include an `HQ` link.
-- Home utilities remove the formation, map, and unlocks section.
-- Raw Chaos has a proper icon wherever it is tracked or surfaced.
-- Dropdown/menu opening uses a small slide-down plus fade-in animation without flicker.
-
 ### Refine warband, unit, and squad-edit UX
 
 **Milestone:** UAT Feedback Fix Round 1

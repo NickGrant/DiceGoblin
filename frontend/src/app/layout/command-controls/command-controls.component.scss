@@ -48,7 +48,8 @@
 }
 
 .slot-energy,
-.slot-teeth {
+.slot-teeth,
+.slot-chaos {
   gap: 4px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.78);
 }
@@ -58,6 +59,24 @@
   height: 16px;
   object-fit: contain;
   flex: 0 0 auto;
+}
+
+.raw-chaos-icon {
+  position: relative;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  transform: rotate(45deg);
+  border: 2px solid #f7d6ff;
+  border-radius: 4px 8px 4px 8px;
+  background:
+    radial-gradient(circle at 32% 32%, #fff7ff 0 12%, transparent 13%),
+    linear-gradient(135deg, #f089ff, #6c44d9 58%, #251449);
+  box-shadow:
+    0 0 0 1px rgba(42, 20, 73, 0.5),
+    0 0 10px rgba(222, 125, 255, 0.56),
+    0 1px 2px rgba(0, 0, 0, 0.68);
 }
 
 .slot-name {
@@ -190,6 +209,8 @@
   background-position: center top 89px;
   background-repeat: repeat-y;
   background-size: 273px auto;
+  transform-origin: top center;
+  animation: menu-enter 160ms ease-out both;
 }
 
 .menu::before,
@@ -283,4 +304,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@keyframes menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

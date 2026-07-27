@@ -19,7 +19,8 @@
 
   <div class="slot slot-chaos" [attr.aria-label]="wrongMachineUnlocked() ? 'Raw Chaos' : null" [attr.aria-hidden]="wrongMachineUnlocked() ? null : 'true'">
     @if (isAuthenticated() && wrongMachineUnlocked()) {
-    <span>Raw Chaos {{ rawChaosBalance() }}</span>
+    <span class="raw-chaos-icon" aria-hidden="true"></span>
+    <span>{{ rawChaosBalance() }}</span>
     }
   </div>
 

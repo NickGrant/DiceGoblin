@@ -117,8 +117,9 @@ describe('HomePageComponent', () => {
       route: '/regions',
       cta: 'Choose Region',
     });
-    expect(compiled.textContent).toContain('2/4 squad slots filled');
-    expect(compiled.textContent).toContain('0/2 regions cleared');
+    expect(compiled.textContent).not.toContain('Formation');
+    expect(compiled.textContent).not.toContain('Map');
+    expect(compiled.textContent).not.toContain('Unlocks');
   });
 
   it('links current squad units to their details pages', () => {
@@ -212,7 +213,8 @@ describe('HomePageComponent', () => {
 
     expect(component.nextProgressionAction().title).toBe('Assign raiders before launching');
     expect(component.nextProgressionAction().route).toBe('/warband');
-    expect(compiled.textContent).toContain('0/4 squad slots filled');
+    expect(compiled.textContent).toContain('Assign a squad before the next raid.');
+    expect(compiled.textContent).not.toContain('squad slots filled');
   });
 
   it('prioritizes academy progression when a squad unit can promote', () => {

@@ -17,7 +17,6 @@ Success criteria:
 
 ### Related Issues
 
-- Polish landing, home, and menu affordances
 - Refine warband, unit, and squad-edit UX
 - Clean up shop and academy presentation
 - Repair guide navigation and combat reference content

@@ -542,3 +542,25 @@ current_code_references:
   - backend/src/Services/ItemInventoryService.php
   - frontend/src/app/layout/command-controls
   - documentation/07-roadmap/2026-07-25-completion-analysis.md
+
+## UAT Feedback Fix Round 1
+
+---
+id: UAT-001
+title: Polish landing, home, and menu affordances
+status: complete
+priority: high
+milestone: UAT Feedback Fix Round 1
+description: Addressed landing/home/menu UAT findings by making the landing logo the visible brand mark, clarifying the guide action, removing redundant home utility chips, suppressing the extra home breadcrumb, adding a Raw Chaos HUD icon, and animating dropdown menu entry.
+acceptance_criteria:
+  - Landing page replaces the visible H1 text treatment with the existing logo treatment.
+  - The "How to play" action is visually distinguishable as a link/button.
+  - Home breadcrumbs do not include an `HQ` link.
+  - Home utilities remove the formation, map, and unlocks section.
+  - Raw Chaos has a proper icon wherever it is tracked in the command controls.
+  - Dropdown/menu opening uses a small slide-down plus fade-in animation without flicker.
+current_code_references:
+  - frontend/src/app/pages/landing-page
+  - frontend/src/app/pages/home-page
+  - frontend/src/app/layout/page-frame
+  - frontend/src/app/layout/command-controls
