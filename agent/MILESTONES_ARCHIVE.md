@@ -152,3 +152,92 @@ exit_criteria:
   - Dice and unit inventories remain stable across filters, sorts, and page changes.
   - Dice inspect modals expose salvage only after Wrong Machine unlock.
   - Raw Chaos cannot be earned through run or salvage flows before Wrong Machine recovery.
+
+---
+name: Opening Arc Story Audit
+status: complete
+issues:
+  - OAR-001
+description: Completed and audited the Wrong Machine opening arc from Mountains discovery through Swamps recovery and post-recovery Mystic Cave reconstruction guidance.
+goals:
+  - Make the Wrong Machine story understandable before and after recovery.
+  - Keep story, feature, and dialogue state backend-owned and idempotent.
+  - Avoid confusing repeat-run exposition.
+current_code_context: Run lifecycle, run graph generation, and authored dialogue state now support the implemented Wrong Machine opening arc. The July 25 completion analysis records UAT as the remaining validation step.
+exit_criteria:
+  - Mountains and Swamps story beats have implemented or documented equivalents.
+  - Wrong Machine recovery is tied to backend-owned state.
+  - Mystic Cave reconstruction guidance appears only after recovery.
+  - Repeat runs do not replay the full first-clear exposition chain.
+
+---
+name: Kin Pool and Balance Completion
+status: complete
+issues:
+  - KPB-001
+  - KPB-002
+  - KPB-003
+description: Finished the first kin reconstruction loop by verifying random reward pools, reviewing Pig Kin balance, and planning legacy storage retirement.
+goals:
+  - Limit random kin rewards to Basic Goblin plus owned lineages unless explicitly authored.
+  - Compare Basic Goblin and Pig Kin through representative simulations.
+  - Plan the compatibility-aware retirement of legacy `splice_variant` storage.
+current_code_context: Lineage unlock services, reward-pool tests, balance simulation notes, and the July 25 completion analysis define the completed first-lineage posture.
+exit_criteria:
+  - Random kin rewards respect owned lineages.
+  - Pig Kin balance has no known release-blocking simulation concern.
+  - Legacy storage rename is documented as deferred-by-design future work.
+
+---
+name: Encounter Primitive Framework
+status: complete
+issues:
+  - EPF-001
+  - EPF-002
+description: Defined reusable hazard and shrine primitives and connected procedural hazard population to authored region/depth rules.
+goals:
+  - Replace one-off hazard and shrine behavior with reusable primitive metadata.
+  - Keep primitive resolution backend-authoritative and idempotent.
+  - Select hazards by authored eligibility and weighting without breaking run graph guarantees.
+current_code_context: Encounter primitive catalogs, deterministic node resolution, run graph generation, and backend coverage define the completed framework.
+exit_criteria:
+  - Hazard and shrine primitive vocabularies exist.
+  - Hazard population respects region, depth, and graph guarantees.
+  - Representative primitive resolution is covered.
+
+---
+name: Encounter Content Pack
+status: complete
+issues:
+  - ECP-001
+  - ECP-002
+  - ECP-003
+description: Seeded the initial launch-breadth content pack for hazards, shrines, and chaos reels.
+goals:
+  - Author at least ten hazards through approved primitives.
+  - Author at least ten shrines through approved primitives.
+  - Expand chaos enemy-family, encounter-shape, and rule/reward reels to the launch breadth target.
+current_code_context: Seeded encounter catalogs, chaos reel authoring documentation, and validation coverage define the implemented content pack. UAT remains responsible for variety feel.
+exit_criteria:
+  - Ten hazards are enabled.
+  - Ten shrines are enabled.
+  - Chaos reels meet the ten-entry launch breadth target or documented equivalent.
+  - Enabled entries resolve safely.
+
+---
+name: General Inventory and Consumables
+status: complete
+issues:
+  - GIC-001
+  - GIC-002
+description: Added healing and energy consumables through the generic item foundation.
+goals:
+  - Let players use unit healing consumables outside active combat.
+  - Let players use energy recovery consumables without exceeding caps.
+  - Keep consumable spend and restoration backend-authoritative.
+current_code_context: Generic item catalog entries, item inventory services, backend consumable APIs, and frontend run/control surfaces define the completed consumable implementation.
+exit_criteria:
+  - Healing consumables are implemented.
+  - Energy consumables are implemented.
+  - Spending and restoration are transactional and cap-aware.
+  - Balance feel is deferred to UAT evidence.

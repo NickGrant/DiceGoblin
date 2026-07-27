@@ -365,3 +365,180 @@ current_code_references:
   - backend/src/Services/RunLifecycleService.php
   - frontend/src/app/layout/command-controls
   - frontend/src/app/pages/dice-page
+
+## Late July Roadmap Completion
+
+---
+id: OAR-001
+title: Complete Wrong Machine opening arc dialogue coverage
+status: complete
+priority: high
+milestone: Opening Arc Story Audit
+description: Completed the Mountains, Swamps, and post-recovery Mystic Cave story coverage needed for the Wrong Machine opening arc, with repeat-run behavior remaining backend-owned and idempotent.
+acceptance_criteria:
+  - Mountains discovery and completion dialogue points players toward the Swamps.
+  - Swamps includes opening, investigation, boss confrontation, and machine recovery coverage.
+  - Post-recovery Mystic Cave dialogue explains Raw Chaos, lineage materials, and the first reconstruction path.
+  - Repeat runs avoid replaying all one-time exposition beats.
+current_code_references:
+  - backend/src/Services/RunLifecycleService.php
+  - backend/src/Services/RunGraphGenerator.php
+  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+
+---
+id: KPB-001
+title: Verify owned-lineage random reward pools
+status: complete
+priority: high
+milestone: Kin Pool and Balance Completion
+description: Verified that random kin rewards use Basic Goblin plus account-owned lineages by default while allowing explicitly authored lineage grants.
+acceptance_criteria:
+  - Default accounts roll Basic Goblin as the eligible baseline.
+  - Pig Kin unlocked accounts can roll Pig Kin through owned-lineage eligibility.
+  - Explicit authored lineage grants remain allowed.
+  - Backend coverage protects default, unlocked, and explicit-grant cases.
+current_code_references:
+  - backend/src/Services/LineageUnlockService.php
+  - backend/tests/Integration
+  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+
+---
+id: KPB-002
+title: Run representative Pig Kin balance simulation review
+status: complete
+priority: medium
+milestone: Kin Pool and Balance Completion
+description: Ran representative Basic Goblin and Pig Kin balance simulations across early-region contexts and documented the resulting no-blocker balance posture.
+acceptance_criteria:
+  - Representative simulations compare Basic Goblin and Pig Kin units in Farm, Mountains, and Swamps contexts.
+  - Results identify stat or passive tuning risks before more kin are added.
+  - Findings are documented with recommended balance changes or a clear no-change decision.
+current_code_references:
+  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+
+---
+id: KPB-003
+title: Plan legacy splice storage retirement
+status: complete
+priority: medium
+milestone: Kin Pool and Balance Completion
+description: Planned the compatibility-aware retirement of legacy `splice_variant` storage/API naming while keeping current durable fields intact.
+acceptance_criteria:
+  - Current `splice_variant` storage/API usage is inventoried.
+  - A forward migration and response compatibility plan is documented.
+  - No player-facing UI introduces new "splice" terminology.
+  - Required tests before a future storage rename are named.
+current_code_references:
+  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+
+---
+id: EPF-001
+title: Define hazard and shrine effect primitives
+status: complete
+priority: high
+milestone: Encounter Primitive Framework
+description: Defined reusable hazard and shrine primitive vocabularies so encounter content can grow through authored rules instead of one-off handlers.
+acceptance_criteria:
+  - Hazard primitives cover HP attrition, temporary modifiers, currency/item pressure, route pressure, and kin-flavored mitigations.
+  - Shrine primitives cover small rewards, cleansing, bargains, reroutes, and controlled risk.
+  - Primitive definitions follow seed/catalog ownership rules.
+  - Representative primitive resolution and idempotency are covered.
+current_code_references:
+  - backend/src/Combat/Engine
+  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+
+---
+id: EPF-002
+title: Populate hazard nodes from authored rules
+status: complete
+priority: medium
+milestone: Encounter Primitive Framework
+description: Connected hazard node population to authored region/depth rules while preserving run graph guarantees.
+acceptance_criteria:
+  - Hazard selection respects region eligibility and weighting.
+  - Generated runs remain connected and preserve boss, rest, loot, shrine, chaos, and exit guarantees.
+  - Sparse-catalog fallback behavior is documented or protected by tests.
+  - Backend generator coverage protects placement contracts.
+current_code_references:
+  - backend/src/Services/RunGraphGenerator.php
+  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+
+---
+id: ECP-001
+title: Seed initial hazard catalog
+status: complete
+priority: medium
+milestone: Encounter Content Pack
+description: Seeded the initial ten-entry hazard catalog using approved hazard primitives and authored region eligibility.
+acceptance_criteria:
+  - Ten hazard definitions exist with stable slugs.
+  - Each hazard uses approved hazard primitives.
+  - Region eligibility, weight, title, and result copy are authored.
+  - Enabled hazards resolve through supported primitives.
+current_code_references:
+  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+
+---
+id: ECP-002
+title: Seed initial shrine catalog
+status: complete
+priority: medium
+milestone: Encounter Content Pack
+description: Seeded the initial ten-entry shrine catalog using approved shrine primitives and authored reward/risk copy.
+acceptance_criteria:
+  - Ten shrine definitions exist with stable slugs.
+  - Each shrine uses approved shrine primitives.
+  - Region eligibility, weight, title, and result copy are authored.
+  - Enabled shrines resolve through supported primitives.
+current_code_references:
+  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+
+---
+id: ECP-003
+title: Expand chaos reel catalogs
+status: complete
+priority: medium
+milestone: Encounter Content Pack
+description: Expanded enemy-family, encounter-shape, and rule/reward chaos reels to the launch breadth target while preserving Raw Chaos gating.
+acceptance_criteria:
+  - Enemy-family, encounter-shape, and rule/reward reels each contain ten enabled entries or documented launch equivalents.
+  - Entries are weighted and eligible by region where appropriate.
+  - Raw Chaos rewards remain gated behind Wrong Machine recovery.
+  - Enabled reel entries can finalize into valid combat encounters.
+current_code_references:
+  - documentation/02-systems-mvp/15-chaos-reel-combat-authoring.md
+  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+
+---
+id: GIC-001
+title: Add between-encounter unit healing consumables
+status: complete
+priority: low
+milestone: General Inventory and Consumables
+description: Added healing consumables through the generic item foundation with backend-authoritative spend and frontend run-surface actions.
+acceptance_criteria:
+  - Healing consumable definitions exist in the generic item catalog.
+  - Players can use healing consumables only outside active combat resolution.
+  - Item spending is backend-authoritative and transactional.
+  - Frontend run surfaces expose the action where it naturally belongs.
+current_code_references:
+  - backend/src/Services/ItemInventoryService.php
+  - frontend/src/app/pages/run-map-page
+  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+
+---
+id: GIC-002
+title: Add player energy recovery consumables
+status: complete
+priority: low
+milestone: General Inventory and Consumables
+description: Added energy recovery consumables through the generic item foundation with backend-authoritative spend and energy-cap handling.
+acceptance_criteria:
+  - Energy consumable definitions exist in the generic item catalog.
+  - Use rules respect energy caps and intended pacing.
+  - Item spending and energy restoration are backend-authoritative.
+  - Cap behavior, insufficient item cases, and duplicate requests are covered.
+current_code_references:
+  - backend/src/Services/ItemInventoryService.php
+  - frontend/src/app/layout/command-controls
+  - documentation/07-roadmap/2026-07-25-completion-analysis.md
