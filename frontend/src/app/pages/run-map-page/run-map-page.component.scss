@@ -1,5 +1,9 @@
+:host ::ng-deep page-frame > .page-frame__body {
+  padding-top: 0.5rem;
+}
+
 .run-map-proto {
-  padding: 0 1rem 1rem;
+  padding: 0 0.75rem 0.75rem;
 }
 
 .run-map-scene__layout {
@@ -24,7 +28,7 @@
   min-height: 580px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 1rem;
+  padding: 0.75rem;
   border-radius: 1rem;
   background-color: rgba(20, 31, 24, 0.94);
   background-position: center;

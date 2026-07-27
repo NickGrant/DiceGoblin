@@ -2,6 +2,10 @@
   position: relative;
 }
 
+:host ::ng-deep page-frame > .page-frame__body {
+  padding-top: 0.5rem;
+}
+
 .run-summary-shell--dialogue-open {
   min-height: 42rem;
 }
@@ -13,7 +17,7 @@
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  padding: 1rem 0;
+  padding: 0.5rem 0;
   background: linear-gradient(180deg, rgba(24, 18, 13, 0.18), rgba(24, 18, 13, 0.42));
 }
 
@@ -24,8 +28,8 @@
 .run-summary-stack {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 0 1rem 1rem;
+  gap: 1rem;
+  padding: 0 0.75rem 0.75rem;
 }
 
 .run-summary-hero {
@@ -50,7 +54,7 @@
 }
 
 .run-summary-subheading {
-  margin: 0 0 0.85rem;
+  margin: 0 0 0.65rem;
   color: rgba(71, 41, 16, 0.74);
   font-size: 0.82rem;
   letter-spacing: 0.1em;
@@ -76,7 +80,7 @@
 
 @media (min-width: 761px) {
   .run-summary-shell--dialogue-open {
-    min-height: 46rem;
+    min-height: 44rem;
   }
 
   .run-summary-unit-list {
