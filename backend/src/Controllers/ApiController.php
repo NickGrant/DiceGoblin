@@ -198,6 +198,7 @@ final class ApiController
             'edges' => $services['runRepo']->getRunEdges($runId),
           ],
           'run_unit_state' => $services['runRepo']->getRunUnitState($runId),
+          'active_run_effects' => $services['runRepo']->getActiveRunEffects($runId),
         ],
       ]);
     } catch (Throwable $e) {

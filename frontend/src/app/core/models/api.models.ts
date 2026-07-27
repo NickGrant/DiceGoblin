@@ -443,10 +443,21 @@ export type RestRunUnitState = {
   updated_at?: string;
 };
 
+export type ActiveRunEffect = {
+  id: string;
+  node_id: string;
+  node_type: string;
+  label: string;
+  detail: string;
+  persistence: 'immediate' | 'encounter' | 'persistent' | string;
+  source: string;
+};
+
 export type CurrentRunData = {
   run: CurrentRunRecord | null;
   map: CurrentRunMap | null;
   run_unit_state?: RestRunUnitState[];
+  active_run_effects?: ActiveRunEffect[];
 };
 
 export type RunResponse = ApiResponse<CurrentRunData>;

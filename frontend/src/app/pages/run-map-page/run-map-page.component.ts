@@ -126,6 +126,7 @@ export class RunMapPageComponent {
     return buildFormationGrid(this.activeSquad()?.formation, this.runUnitById());
   });
   readonly renderedEdges = computed(() => this.buildRenderedEdges(this.nodes(), this.edges()));
+  readonly activeRunEffects = computed(() => this.runData()?.active_run_effects ?? []);
 
   constructor() {
     void this.load();

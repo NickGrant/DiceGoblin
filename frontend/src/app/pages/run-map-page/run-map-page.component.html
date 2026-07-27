@@ -90,6 +90,28 @@
           </div>
         </div>
         <div class="run-map-meta">
+          <section class="run-effects" aria-label="Run effects">
+            <div class="run-effects__header">
+              <p class="run-effects__eyebrow dg-stencil">Run Effects</p>
+              <strong>{{ activeRunEffects().length }}</strong>
+            </div>
+            @if (activeRunEffects().length) {
+              <div class="run-effects__list">
+                @for (effect of activeRunEffects(); track effect.id) {
+                  <article class="run-effect" [attr.data-effect-type]="effect.node_type">
+                    <div>
+                      <p class="run-effect__source dg-stencil">{{ effect.source }}</p>
+                      <h3>{{ effect.label }}</h3>
+                    </div>
+                    <p>{{ effect.detail }}</p>
+                    <span>{{ effect.persistence }}</span>
+                  </article>
+                }
+              </div>
+            } @else {
+              <p class="run-effects__empty">No run effects active.</p>
+            }
+          </section>
           <dg-run-unit-formation-grid [cells]="formationGrid()" />
           <button
             dgCommandBtn="primary"
