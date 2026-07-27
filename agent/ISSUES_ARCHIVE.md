@@ -227,6 +227,23 @@ current_code_references:
   - backend/tests/Integration/BattleNodeResolutionIntegrationTest.php
   - documentation/02-systems-mvp/03-encounter-scope.md
 
+---
+id: ECP-003
+title: Expand chaos reel catalogs
+status: complete
+priority: medium
+milestone: Encounter Content Pack
+description: Expanded enemy-family, encounter-shape, and rule/reward reels to ten entries each, documented launch-equivalent behavior, and added backend coverage for reel catalog shape.
+acceptance_criteria:
+  - Enemy-family, encounter-shape, and rule/reward reels each contain ten enabled entries or documented launch equivalents.
+  - Entries are weighted and eligible by region where appropriate.
+  - Raw Chaos rewards remain gated behind Wrong Machine recovery.
+  - Backend tests or seed validation prove every enabled reel entry can finalize into a valid combat encounter.
+current_code_references:
+  - backend/src/Services/ChaosEncounterService.php
+  - backend/tests/Integration/ChaosEncounterControllerIntegrationTest.php
+  - documentation/02-systems-mvp/15-chaos-reel-combat-authoring.md
+
 ## Wrong Machine and Kin Foundation
 
 ---

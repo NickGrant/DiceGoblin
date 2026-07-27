@@ -4,22 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Encounter Content Pack
 
-### Expand chaos reel catalogs
-
-**Milestone:** Encounter Content Pack
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-Chaos encounters are battle-backed and documented, but the roadmap's full enemy-family, encounter-shape, and rule/reward reel breadth still needs authored catalog expansion.
-
-#### Acceptance Criteria
-
-- Enemy-family, encounter-shape, and rule/reward reels each contain ten enabled entries or documented launch equivalents.
-- Entries are weighted and eligible by region where appropriate.
-- Raw Chaos rewards remain gated behind Wrong Machine recovery.
-- Backend tests or seed validation prove every enabled reel entry can finalize into a valid combat encounter.
-
 ## General Inventory and Consumables
 
 ### Add between-encounter unit healing consumables

@@ -93,6 +93,24 @@ exit_criteria:
   - Representative primitive resolution and hazard placement are covered by backend tests.
 
 ---
+name: Encounter Content Pack
+status: complete
+issues:
+  - ECP-001
+  - ECP-002
+  - ECP-003
+description: Seeded the initial authored hazard, shrine, and chaos reel content pack against the July roadmap breadth targets.
+goals:
+  - Author at least ten hazards through approved primitives.
+  - Author at least ten shrines through approved primitives.
+  - Expand all three chaos reels to the target launch breadth.
+current_code_context: EncounterPrimitiveCatalog owns hazard and shrine entries, ChaosEncounterService owns reel pools, and backend tests validate catalog shape and supported primitive usage.
+exit_criteria:
+  - Hazard and shrine catalogs meet or exceed ten entries.
+  - Chaos enemy-family, encounter-shape, and rule/reward reels each meet ten entries.
+  - Catalog entries are weighted, named, and covered by backend validation.
+
+---
 name: Wrong Machine and Kin Foundation
 status: complete
 issues:
