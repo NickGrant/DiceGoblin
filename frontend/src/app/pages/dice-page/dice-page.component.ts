@@ -48,7 +48,6 @@ export class DicePageComponent {
   readonly pageSize = 12;
   readonly sizeOptions = computed(() => buildDiceSizeOptions(this.dice()));
   readonly rarityOptions = computed(() => buildDiceRarityOptions(this.dice()));
-  readonly rawChaosBalance = computed(() => this.profileData()?.currency?.raw_chaos ?? 0);
   readonly pageSubtitle = computed(() =>
     this.wrongMachineUnlocked()
       ? 'Review owned dice, sell unused pieces, or salvage them into Raw Chaos.'
@@ -198,6 +197,10 @@ export class DicePageComponent {
   }
 
   openSalvageConfirm(die: DiceRecord): void {
+    if (!this.wrongMachineUnlocked()) {
+      return;
+    }
+
     this.pendingSellDiceId.set(null);
     this.pendingSalvageDiceId.set(die.id);
   }
