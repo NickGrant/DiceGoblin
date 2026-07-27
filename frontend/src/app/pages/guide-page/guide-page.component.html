@@ -14,11 +14,11 @@
         </div>
       </div>
       <nav class="guide-page__nav">
-        <a href="#guide-loop">Base Loop</a>
-        <a href="#guide-combat">Combat Stats</a>
-        <a href="#guide-warband">Warband</a>
-        <a href="#guide-dice">Dice</a>
-        <a href="#guide-map">Map Glossary</a>
+        <a href="#guide-loop" (click)="scrollToGuideSection('guide-loop', $event)">Base Loop</a>
+        <a href="#guide-combat" (click)="scrollToGuideSection('guide-combat', $event)">Combat Stats</a>
+        <a href="#guide-warband" (click)="scrollToGuideSection('guide-warband', $event)">Warband</a>
+        <a href="#guide-dice" (click)="scrollToGuideSection('guide-dice', $event)">Dice</a>
+        <a href="#guide-map" (click)="scrollToGuideSection('guide-map', $event)">Map Glossary</a>
       </nav>
     </aside>
 
@@ -45,7 +45,7 @@
       <section id="guide-combat" class="guide-band">
         <header class="guide-section-heading">
           <p>Combat Stats</p>
-          <h3>What battle numbers mean</h3>
+          <h3>How actions and damage resolve</h3>
         </header>
         <div class="guide-page__stat-grid">
           @for (stat of combatStats; track stat.name) {

@@ -123,36 +123,12 @@ export class GuidePageComponent implements OnInit {
       summary: 'A durable frontliner that can promote early at level 6 or master the class at level 10 for a passive capstone.',
     },
     {
-      name: 'Guardian',
-      slug: 'frontline_guardian_t1',
-      role: 'Frontline',
-      tier: 1,
-      maxLevel: 10,
-      summary: 'A shield-first defender that can hold for a level 10 capstone or branch early into pure tanking or anti-armor roles.',
-    },
-    {
       name: 'Marksman',
       slug: 'backline_marksman_t1',
       role: 'Backline',
       tier: 1,
       maxLevel: 10,
       summary: 'A back-row damage dealer that can rush promotion at level 6 or stay to earn a targeting-focused capstone at level 10.',
-    },
-    {
-      name: 'Bannerbearer',
-      slug: 'support_banner_t1',
-      role: 'Support',
-      tier: 1,
-      maxLevel: 10,
-      summary: 'A support specialist that can master bolster-focused capstones, branch into offensive or luck-based support, and eventually chain into Warchanter.',
-    },
-    {
-      name: 'Saboteur',
-      slug: 'control_saboteur_t1',
-      role: 'Utility',
-      tier: 1,
-      maxLevel: 10,
-      summary: 'A disruptive debuffer that can promote from level 6, master stronger control passives, and eventually chain into Venomwright.',
     },
   ];
 
@@ -193,6 +169,26 @@ export class GuidePageComponent implements OnInit {
       name: 'Rest',
       icon: '/assets/ui/icons/icon_encounter_rest.png',
       description: 'Fully heal run units, clear defeated flags, and reset cooldowns and statuses before continuing.',
+    },
+    {
+      name: 'Shrine',
+      icon: '/assets/ui/node-art/shrines/good_a.png',
+      description: 'Resolve a route event for a visible favor result, usually without a fight.',
+    },
+    {
+      name: 'Hazard',
+      icon: '/assets/ui/icons/icon_encounter_locked.png',
+      description: 'Handle route danger and review the result before returning to the map.',
+    },
+    {
+      name: 'Chaos',
+      icon: '/assets/ui/icons/icon_encounter_boss.png',
+      description: 'Spin the Wrong Machine reels, lock the result, then fight the altered encounter.',
+    },
+    {
+      name: 'Dialogue',
+      icon: '/assets/ui/icons/icon_guide.png',
+      description: 'Read story scenes and stolen-page discoveries that can unlock new context.',
     },
     {
       name: 'Boss',
@@ -240,6 +236,18 @@ export class GuidePageComponent implements OnInit {
       name: 'Ability dice',
       description: 'The die assigned to an ability contributes the roll value, while affixes bend the result toward damage, defense, or special payoff.',
     },
+    {
+      name: 'Action order',
+      description: 'Units act when their equipped abilities are ready. Lower speed costs cycle sooner, so loadout choices determine who acts most often.',
+    },
+    {
+      name: 'Damage flow',
+      description: 'Attacks combine ability value, die roll, and Attack, then the target Defense reduces the hit before HP is removed.',
+    },
+    {
+      name: 'Precision and Resolve',
+      description: 'Precision helps offensive effects land. Resolve helps resist harmful statuses and keeps fragile units from folding to control.',
+    },
   ];
 
   protected readonly unitTypeIcons: ReadonlyArray<GuideIconEntry> = [
@@ -260,6 +268,11 @@ export class GuidePageComponent implements OnInit {
 
   protected unitSpriteUrl(unitSlug: string): string {
     return resolvePrototypeUnitSpriteUrl(unitSlug);
+  }
+
+  protected scrollToGuideSection(sectionId: string, event: Event): void {
+    event.preventDefault();
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   private diceImage(rarity: string, sides: number): string {

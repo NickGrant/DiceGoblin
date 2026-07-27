@@ -7,7 +7,7 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 ### Repair run event node resolution and visibility
 
 **Milestone:** UAT Feedback Fix Round 2
-**Status:** In Review
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
@@ -25,7 +25,7 @@ Rest, shrine, and hazard nodes are unclear or misleading during UAT: rest appear
 ### Fix chaos reel encounter application
 
 **Milestone:** UAT Feedback Fix Round 2
-**Status:** In Review
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
@@ -42,7 +42,7 @@ Chaos reels appear to show cross-biome results, but combat may still fall back t
 ### Surface active run effects
 
 **Milestone:** UAT Feedback Fix Round 2
-**Status:** In Review
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
@@ -58,7 +58,7 @@ If shrine, hazard, or chaos outcomes apply persistent run effects, players have 
 ### Add post-Wrong-Machine mountain dialogue
 
 **Milestone:** UAT Feedback Fix Round 2
-**Status:** In Review
+**Status:** In Progress
 **Priority:** Medium
 
 #### Problem
@@ -74,7 +74,7 @@ The Whim and mountain kobold dialogue do not yet branch after the Wrong Machine 
 ### Reflavor voluntary run return
 
 **Milestone:** UAT Feedback Fix Round 2
-**Status:** In Review
+**Status:** In Progress
 **Priority:** Medium
 
 #### Problem
@@ -128,7 +128,7 @@ Shop and academy screens have duplicate currency indicators and placeholder icon
 ### Repair guide navigation and combat reference content
 
 **Milestone:** UAT Feedback Fix Round 1
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
