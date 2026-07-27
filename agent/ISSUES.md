@@ -2,37 +2,36 @@
 ----
 Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
-## Inventory Scale and Actions
+## Core UX Cleanup
 
-### Add pagination to inventory collections
+### Refresh guide and run-map presentation
 
-**Milestone:** Inventory Scale and Actions
+**Milestone:** Core UX Cleanup
 **Status:** Open
 **Priority:** High
 
 #### Problem
-Inventories for dice, units, and related collections will become unwieldy as player collections grow.
+Several core screens still feel visually stale or structurally hard to use. The guide page needs a full rework around player tasks, and the run icon set needs a cohesive refresh.
 
 #### Acceptance Criteria
 
-- Dice inventory supports pagination or an equivalent chunking control.
-- Unit inventory supports pagination or an equivalent chunking control.
-- Empty, filtered, and final-page states are clear and stable.
-- Existing sort/filter behavior continues to work with pagination.
+- Run icons are refreshed as a cohesive set.
+- Guide page layout is rebuilt around scannable player tasks and reference sections.
+- The revised guide remains linked to current systems and avoids obsolete terminology.
+- Focused frontend coverage protects the guide layout's main sections.
 
-### Complete unlocked dice action affordances
+### Rework Academy and Shrine copy density
 
-**Milestone:** Inventory Scale and Actions
+**Milestone:** Core UX Cleanup
 **Status:** Open
 **Priority:** Medium
 
 #### Problem
-Dice inventory should avoid duplicate clutter and expose salvage only when the player has unlocked the Wrong Machine.
+Academy should feel closer to the shop UI, unit types should show their tier, and shrine currently repeats too much messaging. Vague phrases like "available now" and "requirements met" do not tell players what they need to know.
 
 #### Acceptance Criteria
 
-- Dice inspect modal includes salvage only after Wrong Machine unlock.
-- Players cannot earn or salvage Raw Chaos until Wrong Machine is unlocked.
-- Raw Chaos tracker appears in the controls area after Wrong Machine unlock.
-- Rarity and "Raw Chaos ready" badges are removed from dice inventory tiles.
-- Duplicate `.dg-proto-chip` information is removed where it does not add unique value.
+- Academy list presentation is visually aligned with shop patterns.
+- Academy unit entries show role/type and tier in player-facing language.
+- Shrine screen removes duplicate messaging while preserving required state and consequence text.
+- Generic "available now" and "requirements met" labels are replaced with specific unlock/status information.
