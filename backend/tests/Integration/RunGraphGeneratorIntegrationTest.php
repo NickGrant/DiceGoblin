@@ -75,8 +75,31 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     );
     $this->assertSame('available', (string)$graph['nodes'][0]['status']);
     $this->assertSame('mystic-cave-wrong-machine-reminder', (string)($graph['nodes'][0]['meta']['dialogue_id'] ?? ''));
+    $this->assertNotContains('mystic-cave-wrong-machine-recovered', $this->dialogueIds($graph));
     $this->assertSame('locked', (string)$graph['nodes'][1]['status']);
     $this->assertSame([['from' => 0, 'to' => 1]], $graph['edges']);
+  }
+
+  public function testWrongMachineRecoveredShowsWhimRecoveryDialogue(): void
+  {
+    $userId = $this->insertUser();
+    $this->grantUnlock($userId, 'dialogue', 'start-run-kickoff');
+    $this->grantUnlock($userId, 'feature', 'wrong_machine');
+    $regionId = $this->seededRegionId('mystic_cave');
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $graph = $generator->applyDialogueNodes(
+      $userId,
+      'mystic_cave',
+      $generator->generate($regionId, 'mystic_cave', 'mystic-seed'),
+    );
+    $dialogueIds = $this->dialogueIds($graph);
+
+    $this->assertCount(2, $graph['nodes']);
+    $this->assertContains('mystic-cave-wrong-machine-recovered', $dialogueIds);
+    $this->assertNotContains('mystic-cave-wrong-machine-reminder', $dialogueIds);
+    $this->assertSame('mystic-cave-wrong-machine-recovered', (string)($graph['nodes'][0]['meta']['dialogue_id'] ?? ''));
+    $this->assertSame('available', (string)$graph['nodes'][0]['status']);
   }
 
   /**
@@ -200,7 +223,30 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
 
     $this->assertNotContains('mountains-archivist-first-contact', $dialogueIds);
     $this->assertContains('mountains-wrong-machine-search-repeat', $dialogueIds);
+    $this->assertNotContains('mountains-kobold-machine-recovered', $dialogueIds);
     $this->assertSame('mountains-wrong-machine-search-repeat', (string)($graph['nodes'][$analysis['start_index']]['meta']['dialogue_id'] ?? ''));
+  }
+
+  public function testWrongMachineRecoveredUsesMountainRecoveryDialogue(): void
+  {
+    $userId = $this->insertUser();
+    $this->grantUnlock($userId, 'dialogue', 'mountains-archivist-first-contact');
+    $this->grantUnlock($userId, 'feature', 'wrong_machine');
+    $regionId = $this->seededRegionId('mountains');
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $graph = $generator->applyDialogueNodes(
+      $userId,
+      'mountains',
+      $generator->generate($regionId, 'mountains', 'mountain-recovered-seed'),
+    );
+    $dialogueIds = $this->dialogueIds($graph);
+
+    $this->assertNotContains('mountains-archivist-first-contact', $dialogueIds);
+    $this->assertNotContains('mountains-wrong-machine-search-repeat', $dialogueIds);
+    $this->assertNotContains('mountains-kobold-machine-trail', $dialogueIds);
+    $this->assertContains('mountains-kobold-machine-recovered', $dialogueIds);
+    $this->assertDialogueImmediatelyPrecedes($graph, 'mountains-kobold-machine-recovered', 'boss');
   }
 
   public function testMountainsCompactRowsAndBreakStraightawaysForReferenceSeed(): void
