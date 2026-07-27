@@ -180,10 +180,41 @@
     min-width: 0;
   }
 
+  .objective-entries,
   .affix-entries,
   .enemy-entries,
   .lore-entries {
     gap: 0.65rem;
+  }
+
+  .objective-entry {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+
+    &.is-complete {
+      opacity: 0.72;
+    }
+  }
+
+  .objective-copy {
+    min-width: 0;
+  }
+
+  .objective-meta {
+    display: grid;
+    justify-items: end;
+    gap: 0.15rem;
+    color: rgba(38, 22, 13, 0.76);
+    font-size: 0.82rem;
+    font-weight: 900;
+    line-height: 1.1;
+    text-transform: uppercase;
+
+    strong {
+      margin: 0;
+      color: #26160d;
+      font-size: 1rem;
+    }
   }
 
   .affix-entry {

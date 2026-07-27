@@ -87,20 +87,6 @@
           <span class="home-proto__guidance-cta">{{ nextProgressionAction().cta }}</span>
         </a>
 
-        @if (currentObjective(); as objective) {
-          <div class="home-proto__objective-list" aria-label="Objectives">
-              <a
-                class="home-proto__route-card home-proto__objective-row"
-                [class.home-proto__objective-row--complete]="objective.status === 'complete'"
-                [routerLink]="objective.route"
-              >
-                <span class="home-proto__objective-status">Next</span>
-                <strong>{{ objective.title }}</strong>
-                <span>{{ objectiveProgressLabel(objective) }}</span>
-              </a>
-          </div>
-        }
-
         <div class="home-proto__progress-list" aria-label="Progression snapshot">
           <div class="home-proto__route-card home-proto__progress-chip">
             <strong>{{ squadStatusLabel() }}</strong>
