@@ -132,6 +132,7 @@
 }
 
 .unit-stat-row {
+  position: relative;
   display: grid;
   grid-template-columns: 2.15rem minmax(0, 1fr) auto auto;
   align-items: center;
@@ -143,6 +144,40 @@
   background:
     linear-gradient(180deg, rgba(255, 253, 247, 0.86), rgba(240, 229, 204, 0.72)),
     center / 220px auto repeat var(--dg-proto-paper);
+}
+
+.unit-stat-row::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.45rem);
+  z-index: 4;
+  width: min(15.5rem, calc(100vw - 2rem));
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(35, 39, 42, 0.18);
+  border-radius: 6px;
+  background: rgba(37, 21, 12, 0.94);
+  color: #fffaf0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.unit-stat-row:hover::after,
+.unit-stat-row:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.unit-stat-row:focus-visible {
+  outline: 2px solid rgba(168, 102, 33, 0.28);
+  outline-offset: 2px;
 }
 
 .unit-stat-row__icon {

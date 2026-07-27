@@ -68,7 +68,13 @@
 
         <ul class="unit-stat-list dg-list-reset">
           @for (stat of unitStatTiles(); track stat.label) {
-          <li class="unit-stat-row">
+          <li
+            class="unit-stat-row"
+            tabindex="0"
+            [attr.title]="stat.tooltip"
+            [attr.data-tooltip]="stat.tooltip"
+            [attr.aria-label]="stat.label + ': ' + stat.value + '. ' + stat.tooltip"
+          >
             <span class="unit-stat-row__icon">
               <fa-icon [icon]="stat.icon" aria-hidden="true"></fa-icon>
             </span>
