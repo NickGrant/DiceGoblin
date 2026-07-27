@@ -93,6 +93,20 @@ final class DeterministicRunNodeResolver
           'shrine' => 'shrine_favor_granted',
           default => 'non_combat_resolution',
         },
+        'label' => match ($nodeType) {
+          'hazard' => 'Hazard Avoided',
+          'shrine' => 'Shrine Favor Granted',
+          'rest' => 'Full Recovery',
+          default => 'Path Cleared',
+        },
+        'detail' => match ($nodeType) {
+          'hazard' => 'The squad picks through the danger without a fight.',
+          'shrine' => is_array($shrineFavor)
+            ? sprintf('%s grants %d teeth.', $this->humanizeId((string)$shrineFavor['favor']), (int)$shrineFavor['currency_soft'])
+            : 'The shrine grants a small favor.',
+          'rest' => 'The squad returns to full health.',
+          default => 'The route opens without a fight.',
+        },
         ...(is_array($shrineFavor) ? ['shrine_result' => $shrineFavor] : []),
       ]];
     } else {
@@ -4709,6 +4723,17 @@ final class DeterministicRunNodeResolver
     $exists = ((int)$stmt->fetchColumn()) > 0;
     $this->schemaPresenceCache[$cacheKey] = $exists;
     return $exists;
+  }
+
+  private function humanizeId(string $value): string
+  {
+    $segments = preg_split('/[_#\s-]+/', trim($value)) ?: [];
+    $words = array_map(
+      static fn(string $segment): string => ucfirst($segment),
+      array_filter($segments, static fn(string $segment): bool => $segment !== '')
+    );
+
+    return implode(' ', $words);
   }
 
   private function pickUnitTypeSlug(int $userId, string &$state): ?string

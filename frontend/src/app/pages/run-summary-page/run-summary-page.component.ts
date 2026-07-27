@@ -152,7 +152,7 @@ export class RunSummaryPageComponent {
   readonly resultTitle = computed(() => {
     const status = this.summary()?.status ?? '';
     if (status.includes('abandon')) {
-      return 'Run Abandoned';
+      return 'Returned Home';
     }
     if (status.includes('fail') || status.includes('defeat')) {
       return 'Run Failed';

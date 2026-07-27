@@ -111,6 +111,7 @@ final class GameplayController
       $svc['runNodeRepo']->markCleared($runIdInt, $nodeIdInt);
       $unlocked = $this->unlockFromNode($svc['runEdgeRepo'], $svc['runNodeRepo'], $runIdInt, $nodeIdInt);
       $progression = $svc['runRepo']->applyAutoLevelForRunUnits($runIdInt, $userId);
+      $runState = $svc['runRepo']->getRunUnitState($runIdInt);
 
       $pdo->commit();
       Response::json([
@@ -120,6 +121,7 @@ final class GameplayController
           'node' => ['id' => (string)$nodeIdInt, 'status' => 'completed'],
           'next' => ['unlocked_node_ids' => array_map('strval', $unlocked)],
           'progression' => $progression,
+          'run_unit_state' => $runState,
         ],
       ]);
     } catch (Throwable $e) {

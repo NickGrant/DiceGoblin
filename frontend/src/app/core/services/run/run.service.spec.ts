@@ -98,7 +98,7 @@ describe('RunService', () => {
     await service.abandonRun('7');
 
     expect(service.summary()).toEqual({
-      title: 'Run Abandoned',
+      title: 'Returned Home',
       status: 'abandoned',
       rewards: ['tooth'],
       progression: ['node 3'],

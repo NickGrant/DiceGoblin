@@ -364,7 +364,7 @@ describe('RunNodePageComponent', () => {
     expect(runService.resolveNode).not.toHaveBeenCalled();
   });
 
-  it('keeps shrine encounters on the node screen until manually resolved', async () => {
+  it('auto-resolves shrine encounters and shows the favor result', async () => {
     const runService = new RunServiceStub();
     runService.getCurrentRun.and.resolveTo({
       ok: true,
@@ -414,13 +414,6 @@ describe('RunNodePageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(runService.resolveNode).not.toHaveBeenCalled();
-    expect(fixture.componentInstance.pageTitle()).toBe('Shrine Encounter');
-    expect(fixture.nativeElement.textContent).toContain('Approach Shrine');
-
-    await fixture.componentInstance.resolveNode();
-    fixture.detectChanges();
-
     expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', 'n1');
     expect(fixture.componentInstance.pageSubtitle()).toBe(
       'The shrine answered. Claim favor to return to the route.',
@@ -429,7 +422,7 @@ describe('RunNodePageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Result Summary');
     expect(fixture.nativeElement.textContent).toContain('Shrine Favor Granted');
     expect(fixture.nativeElement.textContent).toContain('A favor is ready. Claim it, then choose the next path.');
-    expect(fixture.nativeElement.textContent).toContain('No combat log was needed for this node.');
+    expect(fixture.nativeElement.textContent).toContain('This favor is now visible in the result before you return to the route.');
     expect(fixture.nativeElement.textContent).toContain('Claim Favor');
     expect(fixture.nativeElement.textContent).not.toContain('Shrine Node');
     expect(fixture.nativeElement.textContent).not.toContain('Shrine Result');
@@ -489,15 +482,13 @@ describe('RunNodePageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    await fixture.componentInstance.resolveNode();
-    fixture.detectChanges();
-
+    expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', 'n1');
     expect(fixture.nativeElement.textContent).toContain('Path Cleared');
     expect(fixture.nativeElement.textContent).toContain('Result Summary');
     expect(fixture.nativeElement.textContent).toContain('Continue Path');
     expect(fixture.nativeElement.textContent).toContain('Hazard Avoided');
     expect(fixture.nativeElement.textContent).toContain('The route is passable again. Continue from the map.');
-    expect(fixture.nativeElement.textContent).toContain('No combat log was needed for this node.');
+    expect(fixture.nativeElement.textContent).toContain('This hazard result is now visible before you return to the route.');
     expect(fixture.nativeElement.querySelector('.node-result-layout')).not.toBeNull();
   });
 

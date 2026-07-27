@@ -106,6 +106,11 @@ export class RunRestPageComponent {
         this.error.set(response.error.message);
         return;
       }
+      if (response.data.run_unit_state?.length) {
+        this.restData.update((current) => current
+          ? { ...current, status: 'completed', run_unit_state: response.data.run_unit_state ?? current.run_unit_state }
+          : current);
+      }
       await this.router.navigateByUrl('/run/map');
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to rest.');

@@ -110,7 +110,7 @@ describe('RunSummaryPageComponent', () => {
   it('uses structured summary snapshots for current progression values', async () => {
     class CleanupRunServiceStub {
       readonly summary = signal({
-        title: 'Run Abandoned',
+        title: 'Returned Home',
         status: 'abandoned',
         rewards: [],
         progression: ['Boghand +20 XP'],
@@ -186,7 +186,7 @@ describe('RunSummaryPageComponent', () => {
   it('renders zero-xp run units from progression detail so no deployed unit disappears', async () => {
     class FullRunSummaryServiceStub {
       readonly summary = signal({
-        title: 'Run Abandoned',
+        title: 'Returned Home',
         status: 'abandoned',
         rewards: [],
         progression: ['Boghand +20 XP'],

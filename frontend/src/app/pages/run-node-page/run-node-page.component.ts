@@ -15,7 +15,7 @@ import { UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit
 import { resolvePrototypeEnemySpriteUrl, resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 import { resolveUnitAnimationFrameUrls } from '../../shared/ui/unit-art/unit-art';
 
-const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss']);
+const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss', 'shrine', 'hazard']);
 
 type BattleViewMode = 'acted' | 'log';
 
@@ -116,9 +116,9 @@ export class RunNodePageComponent implements OnDestroy {
 
     switch (this.nodeType()) {
       case 'shrine':
-        return 'Approach Shrine';
+        return 'Resolve Shrine';
       case 'hazard':
-        return 'Face Hazard';
+        return 'Resolve Hazard';
       case 'rest':
         return 'Rest Here';
       default:
@@ -215,9 +215,9 @@ export class RunNodePageComponent implements OnDestroy {
     if (!this.isCombatLikeNodeType(this.resolvedNodeType())) {
       switch (this.resolvedNodeType()) {
         case 'shrine':
-          return 'A favor is ready. Claim it, then choose the next path.';
+          return this.nodeResultEventDetail() || 'A favor is ready. Claim it, then choose the next path.';
         case 'hazard':
-          return 'The route is passable again. Continue from the map.';
+          return this.nodeResultEventDetail() || 'The route is passable again. Continue from the map.';
         default:
           return 'The path opened without a fight. Claim the result and keep moving.';
       }
@@ -250,9 +250,9 @@ export class RunNodePageComponent implements OnDestroy {
   readonly nodeResultDetailCopy = computed(() => {
     switch (this.resolvedNodeType()) {
       case 'shrine':
-        return 'No combat log was needed for this node.';
+        return 'This favor is now visible in the result before you return to the route.';
       case 'hazard':
-        return 'No combat log was needed for this node.';
+        return 'This hazard result is now visible before you return to the route.';
       default:
         return 'Claim the result and keep moving.';
     }
@@ -273,8 +273,31 @@ export class RunNodePageComponent implements OnDestroy {
   });
   readonly nodeResultEventLabel = computed(() => {
     const event = this.result()?.battle.log?.events?.[0] as Record<string, unknown> | undefined;
+    const label = typeof event?.['label'] === 'string' ? event['label'] : '';
+    if (label) {
+      return label;
+    }
     const message = typeof event?.['message'] === 'string' ? event['message'] : '';
     return message ? this.humanizeId(message) : this.humanizeId(this.resolvedNodeType());
+  });
+  readonly nodeResultEventDetail = computed(() => {
+    const event = this.result()?.battle.log?.events?.[0] as Record<string, unknown> | undefined;
+    const detail = typeof event?.['detail'] === 'string' ? event['detail'] : '';
+    if (detail) {
+      return detail;
+    }
+
+    const shrineResult = event?.['shrine_result'];
+    if (shrineResult && typeof shrineResult === 'object' && !Array.isArray(shrineResult)) {
+      const favor = typeof (shrineResult as Record<string, unknown>)['favor'] === 'string'
+        ? (shrineResult as Record<string, unknown>)['favor'] as string
+        : '';
+      if (favor) {
+        return `${this.humanizeId(favor)} settled over the warband.`;
+      }
+    }
+
+    return '';
   });
   readonly nodeResultRewardLabel = computed(() => {
     const preview = this.result()?.battle.reward_preview;
