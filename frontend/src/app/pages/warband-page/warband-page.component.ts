@@ -35,6 +35,7 @@ export class WarbandPageComponent {
   readonly selectedLevelMin = signal<number | null>(null);
   readonly selectedLevelMax = signal<number | null>(null);
   readonly selectedUnitSort = signal<'name-asc' | 'level-desc' | 'tier-desc'>('level-desc');
+  readonly squadAssignmentFilter = signal<'all' | 'assigned' | 'unassigned'>('all');
   readonly unitPage = signal(1);
   readonly unitPageSize = WarbandPageComponent.UNIT_PAGE_SIZE;
   readonly isSaving = signal(false);
@@ -67,13 +68,24 @@ export class WarbandPageComponent {
 
     return Array.from({ length: maxLevel }, (_, index) => index + 1);
   });
+  readonly assignedUnitIds = computed(() => new Set(this.squads().flatMap((squad) => squad.unit_ids)));
   readonly filteredUnits = computed(() => {
     const selectedType = this.selectedUnitType();
     const selectedKin = this.selectedKin();
     const excludedTiers = new Set(this.excludedUnitTiers());
     const selectedLevelMin = this.selectedLevelMin();
     const selectedLevelMax = this.selectedLevelMax();
+    const squadAssignmentFilter = this.squadAssignmentFilter();
+    const assignedUnitIds = this.assignedUnitIds();
     const filtered = this.units().filter((unit) => {
+      if (squadAssignmentFilter === 'assigned' && !assignedUnitIds.has(unit.id)) {
+        return false;
+      }
+
+      if (squadAssignmentFilter === 'unassigned' && assignedUnitIds.has(unit.id)) {
+        return false;
+      }
+
       if (selectedType && this.unitTypeLabel(unit) !== selectedType) {
         return false;
       }
@@ -242,6 +254,11 @@ export class WarbandPageComponent {
     this.resetUnitPage();
   }
 
+  updateSquadAssignmentFilter(value: 'all' | 'assigned' | 'unassigned'): void {
+    this.squadAssignmentFilter.set(value);
+    this.resetUnitPage();
+  }
+
   clearUnitFilters(): void {
     this.selectedUnitType.set(null);
     this.selectedKin.set(null);
@@ -249,6 +266,7 @@ export class WarbandPageComponent {
     this.selectedLevelMin.set(null);
     this.selectedLevelMax.set(null);
     this.selectedUnitSort.set('level-desc');
+    this.squadAssignmentFilter.set('all');
     this.resetUnitPage();
   }
 

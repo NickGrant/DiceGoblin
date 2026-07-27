@@ -92,7 +92,7 @@ The voluntary run exit is framed as `Abandon Run` and `Run Abandoned`, which rea
 ### Refine warband, unit, and squad-edit UX
 
 **Milestone:** UAT Feedback Fix Round 1
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

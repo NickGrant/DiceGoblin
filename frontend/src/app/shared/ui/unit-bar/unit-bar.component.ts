@@ -17,6 +17,8 @@ export class UnitBarComponent {
   readonly currentHp = input<number | null>(null);
   readonly maxHp = input<number | null>(null);
   readonly positionLabel = input<string | null>(null);
+  readonly inlinePosition = input(false);
+  readonly showStats = input(true);
   readonly selected = input(false);
   readonly defeated = input(false);
   readonly compact = input(false);

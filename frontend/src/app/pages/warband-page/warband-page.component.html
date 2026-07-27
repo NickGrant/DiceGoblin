@@ -117,6 +117,39 @@
             </div>
 
             <div class="warband-units-controls__filter">
+              <span class="form-label" id="warband-squad-filter-label">Squad</span>
+              <div class="warband-squad-filter" role="group" aria-labelledby="warband-squad-filter-label">
+                <button
+                  type="button"
+                  class="warband-squad-filter__option"
+                  [class.is-selected]="squadAssignmentFilter() === 'all'"
+                  [attr.aria-pressed]="squadAssignmentFilter() === 'all'"
+                  (click)="updateSquadAssignmentFilter('all')"
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  class="warband-squad-filter__option"
+                  [class.is-selected]="squadAssignmentFilter() === 'assigned'"
+                  [attr.aria-pressed]="squadAssignmentFilter() === 'assigned'"
+                  (click)="updateSquadAssignmentFilter('assigned')"
+                >
+                  In Squad
+                </button>
+                <button
+                  type="button"
+                  class="warband-squad-filter__option"
+                  [class.is-selected]="squadAssignmentFilter() === 'unassigned'"
+                  [attr.aria-pressed]="squadAssignmentFilter() === 'unassigned'"
+                  (click)="updateSquadAssignmentFilter('unassigned')"
+                >
+                  Unassigned
+                </button>
+              </div>
+            </div>
+
+            <div class="warband-units-controls__filter">
               <label class="form-label" for="warband-unit-sort">Sort</label>
               <select
                 id="warband-unit-sort"
@@ -214,7 +247,7 @@
             (click)="openUnit(unit.id)"
             [attr.aria-label]="unit.name + ' ' + (unit.unit_type_name || unit.unit_type_slug || 'Unit')"
           >
-            <dg-unit-bar [unit]="unit" [positionLabel]="unitPositionLabel(unit)" />
+            <dg-unit-bar [unit]="unit" [positionLabel]="unitPositionLabel(unit)" [inlinePosition]="true" [showStats]="false" />
           </button>
           }
         </div>

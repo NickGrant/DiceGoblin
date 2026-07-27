@@ -201,6 +201,47 @@
   align-items: center;
 }
 
+.warband-squad-filter {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  min-height: 46px;
+  align-items: center;
+  padding: 0.2rem;
+  border: 1px solid rgba(35, 39, 42, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 252, 246, 0.58);
+}
+
+.warband-squad-filter__option {
+  min-height: 2.25rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(37, 21, 12, 0.72);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.warband-squad-filter__option.is-selected {
+  border-color: rgba(95, 65, 31, 0.22);
+  background: rgba(94, 107, 60, 0.16);
+  color: #25150c;
+}
+
+.warband-squad-filter__option:hover,
+.warband-squad-filter__option:focus-visible {
+  border-color: rgba(168, 102, 33, 0.35);
+}
+
+.warband-squad-filter__option:focus-visible {
+  outline: 2px solid rgba(168, 102, 33, 0.28);
+  outline-offset: 2px;
+}
+
 .warband-tier-filter__option {
   display: inline-flex;
   align-items: center;
