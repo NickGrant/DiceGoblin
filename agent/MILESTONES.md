@@ -2,19 +2,19 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Inventory Scale and Actions
+## Core UX Cleanup
 
 **Status:** Active
 
-Inventory screens should remain usable as collections grow, and unlocked item actions should appear consistently in the relevant inspect flows.
+Several high-traffic screens need focused visual cleanup so they are easier to scan, less repetitive, and closer to the strongest existing shop-style presentation.
 
 Success criteria:
 
-- Dice, unit, and related collection screens paginate or otherwise chunk large inventories.
-- Dice inspect modals expose salvage only after Wrong Machine recovery.
-- Redundant dice badges and duplicate prototype chips stay out of inventory views.
+- Run maps use a refreshed, cohesive icon set.
+- The guide page is rebuilt around player jobs and current terminology.
+- Academy and shrine screens reduce duplicate messaging and use clearer unlock/tier language.
 
 ### Related Issues
 
-- Add pagination to inventory collections
-- Complete unlocked dice action affordances
+- Refresh guide and run-map presentation
+- Rework Academy and Shrine copy density

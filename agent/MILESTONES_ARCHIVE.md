@@ -387,3 +387,20 @@ exit_criteria:
   - Chaos nodes are reachable and visually distinct on run maps.
   - One reroll may be used before finalization.
   - Finalize applies rewards once, clears the node, and unlocks downstream progression.
+
+---
+name: Inventory Scale and Actions
+status: complete
+issues:
+  - ISA-001
+  - ISA-002
+description: Kept growing inventory screens usable and aligned dice actions with Wrong Machine unlock progression.
+goals:
+  - Paginate dice, unit, and related collection screens.
+  - Expose salvage only after Wrong Machine recovery.
+  - Remove redundant dice badges and duplicate prototype chips from inventory views.
+current_code_context: Implementation touched the Angular dice and warband pages, command controls, dice salvage UI, backend Raw Chaos award gating, and focused frontend/backend coverage.
+exit_criteria:
+  - Dice and unit inventories remain stable across filters, sorts, and page changes.
+  - Dice inspect modals expose salvage only after Wrong Machine unlock.
+  - Raw Chaos cannot be earned through run or salvage flows before Wrong Machine recovery.

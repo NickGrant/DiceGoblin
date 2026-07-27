@@ -903,3 +903,54 @@ current_code_references:
   - backend/tests/Integration/ApiControllerEnvelopeContractTest.php
   - documentation/01-architecture/03-backend-api-contracts.md
   - documentation/01-architecture/04-data-model.md
+
+---
+id: ISA-001
+title: Add pagination to inventory collections
+status: complete
+priority: high
+milestone: Inventory Scale and Actions
+description: Dice and unit inventories now chunk large collections with stable page controls that preserve filtering, sorting, and clear empty/final-page states.
+acceptance_criteria:
+  - Dice inventory supports pagination or an equivalent chunking control.
+  - Unit inventory supports pagination or an equivalent chunking control.
+  - Empty, filtered, and final-page states are clear and stable.
+  - Existing sort/filter behavior continues to work with pagination.
+current_code_references:
+  - frontend/src/app/pages/dice-page
+  - frontend/src/app/pages/warband-page
+
+---
+id: ISA-002
+title: Complete unlocked dice action affordances
+status: complete
+priority: medium
+milestone: Inventory Scale and Actions
+description: Dice inventory now hides duplicate badge clutter, exposes salvage only after Wrong Machine recovery, and keeps Raw Chaos earning and controls behind the unlock.
+acceptance_criteria:
+  - Dice inspect modal includes salvage only after Wrong Machine unlock.
+  - Players cannot earn or salvage Raw Chaos until Wrong Machine is unlocked.
+  - Raw Chaos tracker appears in the controls area after Wrong Machine unlock.
+  - Rarity and "Raw Chaos ready" badges are removed from dice inventory tiles.
+  - Duplicate `.dg-proto-chip` information is removed where it does not add unique value.
+current_code_references:
+  - backend/src/Controllers/GameplayController.php
+  - backend/src/Services/DiceSalvageService.php
+  - backend/src/Services/RunLifecycleService.php
+  - frontend/src/app/layout/command-controls
+  - frontend/src/app/pages/dice-page
+
+---
+id: CUX-001
+title: Repair flickering and missing visual assets
+status: complete
+priority: medium
+milestone: Core UX Cleanup
+description: Dropdown frame art is now preloaded before menu open, and kobold dialogue aliases resolve to available animated unit assets.
+acceptance_criteria:
+  - Dropdown menu assets are preloaded or otherwise available before first open.
+  - Kobold dialogue image paths resolve correctly in the built app.
+  - Visual asset regressions are covered with a focused smoke test or documented manual check.
+current_code_references:
+  - frontend/src/app/layout/command-controls
+  - frontend/src/app/shared/ui/unit-art
