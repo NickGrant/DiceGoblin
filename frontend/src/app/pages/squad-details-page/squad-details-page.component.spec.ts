@@ -176,6 +176,57 @@ describe('SquadDetailsPageComponent', () => {
     expect(fixture.componentInstance.formationAssignments.get('C3')).toBe('u3');
   });
 
+  it('highlights drop targets while a draggable unit is hovering', async () => {
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.handleDropListEntered('formation-cell-C3');
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.querySelector('#formation-cell-C3')?.classList.contains('formation-cell--drop-hover')).toBeTrue();
+
+    fixture.componentInstance.handleDropListExited('formation-cell-C3');
+    fixture.detectChanges();
+
+    expect(host.querySelector('#formation-cell-C3')?.classList.contains('formation-cell--drop-hover')).toBeFalse();
+  });
+
+  it('clears drop target highlighting when a unit is dropped', async () => {
+    await TestBed.configureTestingModule({
+      imports: [SquadDetailsPageComponent],
+      providers: [
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: SquadService, useClass: SquadServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ squadId: 's1' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SquadDetailsPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.handleDropListEntered('formation-cell-C3');
+    fixture.componentInstance.dropUnit(buildDropEvent('available-drop', 'u3'), { type: 'cell', cell: 'C3' });
+
+    expect(fixture.componentInstance.hoveredDropListId()).toBeNull();
+    expect(fixture.componentInstance.formationAssignments.get('C3')).toBe('u3');
+  });
+
   it('swaps a dragged formation unit into a new occupied slot', async () => {
     class FilledSessionServiceStub extends SessionServiceStub {
       override readonly squads = signal([

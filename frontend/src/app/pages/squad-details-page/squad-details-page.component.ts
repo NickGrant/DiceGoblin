@@ -41,6 +41,7 @@ export class SquadDetailsPageComponent {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
+  readonly hoveredDropListId = signal<string | null>(null);
   readonly squadLocked = computed(() => !!this.activeRun() && this.activeSquad()?.id === this.squadId);
   readonly selectedUnitCount = computed(() => {
     this.formationRevision();
@@ -76,6 +77,7 @@ export class SquadDetailsPageComponent {
   }
 
   dropUnit(event: CdkDragDrop<unknown>, target: DropTarget): void {
+    this.hoveredDropListId.set(null);
     if (this.squadLocked()) {
       return;
     }
@@ -147,6 +149,22 @@ export class SquadDetailsPageComponent {
 
   dropListIdForCell(cell: string): string {
     return `${CELL_DROP_PREFIX}${cell}`;
+  }
+
+  handleDropListEntered(dropListId: string): void {
+    if (!this.squadLocked()) {
+      this.hoveredDropListId.set(dropListId);
+    }
+  }
+
+  handleDropListExited(dropListId: string): void {
+    if (this.hoveredDropListId() === dropListId) {
+      this.hoveredDropListId.set(null);
+    }
+  }
+
+  isDropListHovered(dropListId: string): boolean {
+    return this.hoveredDropListId() === dropListId;
   }
 
   async save(): Promise<void> {

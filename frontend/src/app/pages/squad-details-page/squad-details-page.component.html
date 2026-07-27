@@ -49,9 +49,12 @@
           </p>
           <div
             class="unit-pool"
+            [class.unit-pool--drop-hover]="isDropListHovered(availableDropId)"
             cdkDropList
             [id]="availableDropId"
             [cdkDropListDisabled]="squadLocked()"
+            (cdkDropListEntered)="handleDropListEntered(availableDropId)"
+            (cdkDropListExited)="handleDropListExited(availableDropId)"
             (cdkDropListDropped)="dropUnit($event, { type: 'available' })"
           >
             @for (unit of availablePoolUnits(); track unit.id) {
@@ -92,9 +95,12 @@
             class="formation-cell"
             [class.formation-cell--occupied]="!!unitForCell(cell)"
             [class.formation-cell--disabled]="squadLocked()"
+            [class.formation-cell--drop-hover]="isDropListHovered(dropListIdForCell(cell))"
             cdkDropList
             [id]="dropListIdForCell(cell)"
             [cdkDropListDisabled]="squadLocked()"
+            (cdkDropListEntered)="handleDropListEntered(dropListIdForCell(cell))"
+            (cdkDropListExited)="handleDropListExited(dropListIdForCell(cell))"
             (cdkDropListDropped)="dropUnit($event, { type: 'cell', cell })"
           >
             <div class="formation-cell__label">
