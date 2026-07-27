@@ -9,15 +9,22 @@ import { SquadService } from '../../core/services/squad/squad.service';
 class SessionServiceStub {
   readonly profile = signal({ activeSquadName: 'Alpha' });
   readonly squads = signal([
-    { id: '1', name: 'Alpha', is_active: true, unit_ids: ['u1'] },
-    { id: '2', name: 'Beta', is_active: false, unit_ids: ['u1', 'u2'] },
+    { id: '1', name: 'Alpha', is_active: true, unit_ids: ['u1'], formation: [{ cell: 'A1', unit_instance_id: 'u1' }] },
+    { id: '2', name: 'Beta', is_active: false, unit_ids: ['u1', 'u2'], formation: [] },
   ]);
   readonly units = signal([
     { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', splice_variant_slug: 'rat_splice', splice_variant_name: 'Rat-Spliced', tier: 1, level: 2, locked: false },
     { id: 'u2', name: 'Muckjaw', unit_type_name: 'Plaguehand', splice_variant_slug: 'toad_splice', splice_variant_name: 'Toad-Spliced', tier: 2, level: 6, locked: false },
+    { id: 'u3', name: 'Pebble', unit_type_name: 'Marksman', splice_variant_slug: 'rat_splice', splice_variant_name: 'Rat-Spliced', tier: 1, level: 1, locked: false },
   ]);
   readonly profileData = signal({ active_run: null });
-  readonly activeSquad = signal({ id: '1', name: 'Alpha', is_active: true, unit_ids: ['u1'] } as any);
+  readonly activeSquad = signal({
+    id: '1',
+    name: 'Alpha',
+    is_active: true,
+    unit_ids: ['u1'],
+    formation: [{ cell: 'A1', unit_instance_id: 'u1' }],
+  } as any);
 }
 
 class SquadServiceStub {
@@ -121,8 +128,45 @@ describe('WarbandPageComponent', () => {
     const tiles = host.querySelectorAll('.warband-units-grid__tile');
 
     expect(grid).not.toBeNull();
-    expect(tiles.length).toBe(2);
-    expect(host.querySelectorAll('dg-unit-bar').length).toBe(2);
+    expect(tiles.length).toBe(3);
+    expect(host.querySelectorAll('dg-unit-bar').length).toBe(3);
+  });
+
+  it('filters units by squad assignment', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.updateSquadAssignmentFilter('unassigned');
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(1);
+    expect(host.textContent).toContain('Pebble');
+    expect(host.textContent).not.toContain('Fang');
+
+    fixture.componentInstance.updateSquadAssignmentFilter('assigned');
+    fixture.detectChanges();
+
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(2);
+    expect(host.textContent).toContain('Fang');
+    expect(host.textContent).toContain('Muckjaw');
+    expect(host.textContent).not.toContain('Pebble');
+  });
+
+  it('renders warband unit cards without stat strips and keeps slot beside level', () => {
+    const fixture = TestBed.createComponent(WarbandPageComponent);
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const fangTile = Array.from(host.querySelectorAll('.warband-units-grid__tile')).find((tile) =>
+      tile.textContent?.includes('Fang'),
+    ) as HTMLElement | undefined;
+    const rank = fangTile?.querySelector('.unit-bar__rank');
+
+    expect(fangTile).toBeDefined();
+    expect(fangTile?.querySelector('.unit-bar__stat-strip')).toBeNull();
+    expect(rank?.textContent).toContain('Level 2');
+    expect(rank?.textContent).toContain('Slot A1');
   });
 
   it('paginates large unit collections', () => {
@@ -262,7 +306,7 @@ describe('WarbandPageComponent', () => {
     expect(buttons[1].classList.contains('is-selected')).toBeFalse();
     expect(buttons[1].getAttribute('aria-pressed')).toBe('false');
     expect(disabledMark?.classList.contains('dg-tier-indicator--muted')).toBeTrue();
-    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(1);
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(2);
   });
 
   it('filters units by selected level range', () => {
@@ -289,6 +333,7 @@ describe('WarbandPageComponent', () => {
     fixture.componentInstance.toggleUnitTier(2);
     fixture.componentInstance.updateLevelMin('2');
     fixture.componentInstance.updateLevelMax('6');
+    fixture.componentInstance.updateSquadAssignmentFilter('assigned');
     fixture.componentInstance.clearUnitFilters();
 
     expect(fixture.componentInstance.selectedUnitType()).toBeNull();
@@ -296,6 +341,7 @@ describe('WarbandPageComponent', () => {
     expect(fixture.componentInstance.excludedUnitTiers()).toEqual([]);
     expect(fixture.componentInstance.selectedLevelMin()).toBeNull();
     expect(fixture.componentInstance.selectedLevelMax()).toBeNull();
+    expect(fixture.componentInstance.squadAssignmentFilter()).toBe('all');
   });
 
   it('opens a unit directly when a grid tile is activated', async () => {
