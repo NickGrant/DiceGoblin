@@ -57,8 +57,19 @@ final class BalanceSimulationService
     $seedBase = $this->stringOption($options, 'seed', 'balance-sim');
 
     return match ($mode) {
-      'battle' => $this->simulateBattle($regionSlug, $this->stringOption($options, 'node', 'combat'), $sampleCount, $seedBase),
-      'run' => $this->simulateRun($regionSlug, $sampleCount, $seedBase),
+      'battle' => $this->simulateBattle(
+        $regionSlug,
+        $this->stringOption($options, 'node', 'combat'),
+        $sampleCount,
+        $seedBase,
+        $this->stringOption($options, 'profile', 'fresh_starter')
+      ),
+      'run' => $this->simulateRun(
+        $regionSlug,
+        $sampleCount,
+        $seedBase,
+        $this->stringOption($options, 'profile', 'fresh_starter')
+      ),
       'progression' => $this->simulateProgression(
         $regionSlug,
         $this->stringOption($options, 'goal', 'all'),
@@ -74,32 +85,45 @@ final class BalanceSimulationService
   /**
    * @return array<string,mixed>
    */
-  public function simulateBattle(string $regionSlug, string $nodeType, int $sampleCount, string $seedBase = 'balance-sim'): array
+  public function simulateBattle(
+    string $regionSlug,
+    string $nodeType,
+    int $sampleCount,
+    string $seedBase = 'balance-sim',
+    string $profile = 'fresh_starter'
+  ): array
   {
+    $this->assertSupportedProfile($profile);
     if (!in_array($nodeType, ['combat', 'boss', 'loot', 'hazard', 'shrine', 'rest'], true)) {
       throw new RuntimeException("Unsupported battle simulation node type '{$nodeType}'.");
     }
 
     $samples = [];
     for ($i = 0; $i < $sampleCount; $i++) {
-      $samples[] = $this->simulateSample($regionSlug, [$nodeType], $seedBase, $i);
+      $samples[] = $this->simulateSample($regionSlug, [$nodeType], $seedBase, $i, $profile);
     }
 
-    return $this->buildReport('battle', $regionSlug, ['node_type' => $nodeType], $samples);
+    return $this->buildReport('battle', $regionSlug, ['node_type' => $nodeType, 'profile' => $profile], $samples);
   }
 
   /**
    * @return array<string,mixed>
    */
-  public function simulateRun(string $regionSlug, int $sampleCount, string $seedBase = 'balance-sim'): array
+  public function simulateRun(
+    string $regionSlug,
+    int $sampleCount,
+    string $seedBase = 'balance-sim',
+    string $profile = 'fresh_starter'
+  ): array
   {
+    $this->assertSupportedProfile($profile);
     $nodeTypes = ['combat', 'loot', 'hazard', 'shrine', 'boss'];
     $samples = [];
     for ($i = 0; $i < $sampleCount; $i++) {
-      $samples[] = $this->simulateSample($regionSlug, $nodeTypes, $seedBase, $i);
+      $samples[] = $this->simulateSample($regionSlug, $nodeTypes, $seedBase, $i, $profile);
     }
 
-    return $this->buildReport('run', $regionSlug, ['node_types' => $nodeTypes], $samples);
+    return $this->buildReport('run', $regionSlug, ['node_types' => $nodeTypes, 'profile' => $profile], $samples);
   }
 
   /**
@@ -113,10 +137,11 @@ final class BalanceSimulationService
     int $maxRuns = self::DEFAULT_PROGRESSION_MAX_RUNS,
     string $profile = 'fresh_starter'
   ): array {
+    $this->assertSupportedProfile($profile);
     $goals = $this->selectedProgressionGoals($goal);
     $samples = [];
     for ($i = 0; $i < $sampleCount; $i++) {
-      $samples[] = $this->simulateProgressionSample($regionSlug, $goals, $seedBase, $i, $maxRuns);
+      $samples[] = $this->simulateProgressionSample($regionSlug, $goals, $seedBase, $i, $maxRuns, $profile);
     }
 
     return $this->buildProgressionReport($regionSlug, $profile, $goals, $maxRuns, $samples);
@@ -126,7 +151,14 @@ final class BalanceSimulationService
    * @param list<string> $goals
    * @return array<string,mixed>
    */
-  private function simulateProgressionSample(string $regionSlug, array $goals, string $seedBase, int $sampleIndex, int $maxRuns): array
+  private function simulateProgressionSample(
+    string $regionSlug,
+    array $goals,
+    string $seedBase,
+    int $sampleIndex,
+    int $maxRuns,
+    string $profile
+  ): array
   {
     $progress = [
       'xp_total' => 0,
@@ -138,7 +170,13 @@ final class BalanceSimulationService
     $goalResults = [];
 
     for ($runNumber = 1; $runNumber <= $maxRuns; $runNumber++) {
-      $runSample = $this->simulateSample($regionSlug, ['combat', 'loot', 'hazard', 'shrine', 'boss'], "{$seedBase}|progression|{$sampleIndex}", $runNumber);
+      $runSample = $this->simulateSample(
+        $regionSlug,
+        ['combat', 'loot', 'hazard', 'shrine', 'boss'],
+        "{$seedBase}|progression|{$sampleIndex}",
+        $runNumber,
+        $profile
+      );
       $this->applyRunProgress($progress, $runSample);
 
       foreach ($goals as $goal) {
@@ -187,13 +225,20 @@ final class BalanceSimulationService
    * @param list<string> $nodeTypes
    * @return array<string,mixed>
    */
-  private function simulateSample(string $regionSlug, array $nodeTypes, string $seedBase, int $sampleIndex): array
+  private function simulateSample(
+    string $regionSlug,
+    array $nodeTypes,
+    string $seedBase,
+    int $sampleIndex,
+    string $profile
+  ): array
   {
     $userId = 0;
 
     try {
       $userId = $this->createSimulationUser($sampleIndex);
       $this->bootstrapSimulationUser($userId);
+      $this->applySimulationProfile($userId, $profile);
 
       $region = (new RegionRepository($this->pdo))->getRegionBySlug($regionSlug);
       if ($region === null) {
@@ -286,6 +331,38 @@ final class BalanceSimulationService
       new StarterPackProvisioningService()
     );
     $bootstrapper->ensureBaseline($userId);
+  }
+
+  private function applySimulationProfile(int $userId, string $profile): void
+  {
+    $this->assertSupportedProfile($profile);
+
+    if ($profile === 'fresh_starter' || $profile === 'basic_goblin_starter') {
+      $stmt = $this->pdo->prepare('
+        UPDATE `unit_instances`
+        SET `splice_variant_slug` = ?
+        WHERE `user_id` = ?
+      ');
+      $stmt->execute([SpliceVariantService::BASIC_GOBLIN, $userId]);
+      return;
+    }
+
+    if ($profile === 'pig_kin_starter') {
+      (new LineageUnlockService($this->pdo))->grant($userId, LineageUnlockService::PIG_KIN);
+      $stmt = $this->pdo->prepare('
+        UPDATE `unit_instances`
+        SET `splice_variant_slug` = ?
+        WHERE `user_id` = ?
+      ');
+      $stmt->execute([LineageUnlockService::PIG_KIN, $userId]);
+    }
+  }
+
+  private function assertSupportedProfile(string $profile): void
+  {
+    if (!in_array($profile, ['fresh_starter', 'basic_goblin_starter', 'pig_kin_starter'], true)) {
+      throw new RuntimeException("Unsupported simulation profile '{$profile}'. Use fresh_starter, basic_goblin_starter, or pig_kin_starter.");
+    }
   }
 
   private function insertSimulationNode(int $runId, int $nodeIndex, string $nodeType, int $regionId): int

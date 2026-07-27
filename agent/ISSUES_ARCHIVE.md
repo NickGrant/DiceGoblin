@@ -118,6 +118,22 @@ current_code_references:
   - backend/tests/Integration/DevToolsServiceIntegrationTest.php
   - backend/tests/Integration/ApiControllerEnvelopeContractTest.php
 
+---
+id: KPB-002
+title: Run kin balance simulation review
+status: complete
+priority: medium
+milestone: Kin Pool and Balance Completion
+description: Added Basic Goblin and Pig Kin starter simulation profiles, ran representative Farm, Mountains, and Swamps run simulations, and documented a no-change decision because Pig Kin did not outperform Basic Goblins in clear rate or node win rate.
+acceptance_criteria:
+  - Representative simulations compare Basic Goblin and Pig Kin units in Farm, Mountains, and Swamps contexts.
+  - Results identify any stat/passive tuning risks before more kin are added.
+  - Findings are documented with recommended balance changes or a clear no-change decision.
+current_code_references:
+  - backend/src/Services/BalanceSimulationService.php
+  - backend/tests/Integration/BalanceSimulationServiceIntegrationTest.php
+  - documentation/02-systems-mvp/14-balancing-strategy-and-simulation.md
+
 ## Wrong Machine and Kin Foundation
 
 ---

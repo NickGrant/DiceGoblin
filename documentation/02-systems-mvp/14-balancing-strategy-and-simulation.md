@@ -101,6 +101,7 @@ The first version runs inside the backend/Docker environment and supports determ
 docker compose exec -T backend sh -lc "php bin/simulate.php --mode=battle --region=the_farm --node=combat --runs=100"
 docker compose exec -T backend sh -lc "php bin/simulate.php --mode=run --region=the_farm --runs=100 --format=json"
 docker compose exec -T backend sh -lc "php bin/simulate.php --mode=progression --goal=all --region=the_farm --runs=100 --max-runs=25 --format=json"
+docker compose exec -T backend sh -lc "php bin/simulate.php --mode=run --region=the_farm --profile=pig_kin_starter --runs=100 --format=json"
 ```
 
 Repository shortcuts cover the common farm suites used in PR validation:
@@ -119,9 +120,36 @@ Current modes:
 - `run`: resolves a representative mini-path containing combat, loot, hazard, shrine, and boss nodes.
 - `progression`: repeatedly resolves the representative mini-path for each sample and reports named time-to-goal summaries.
 
+Simulation profiles:
+
+- `fresh_starter`: the normal starter bootstrap profile.
+- `basic_goblin_starter`: the starter squad forced to Basic Goblin kin for comparison.
+- `pig_kin_starter`: the starter squad forced to Pig Kin with the Pig Kin lineage unlocked for comparison.
+
 Progression mode supports `--goal=all`, `first_promotion`, `next_region`, `wrong_machine`, and `pig_kin`. It reports achievement rate, p50, p75, p90, worst observed runs, failure reasons, and aggregate shortfalls. Pig Kin reports Raw Chaos, Pig Ear, and Mudking Crown Fragment shortfalls from the live reconstruction cost. The report includes an `assumptions` block that names the profile fixture, selected region, max runs, run model, and goal thresholds.
 
 The current progression model is intentionally conservative: it measures repeated representative run output, not a full player decision simulation with shop purchases, manual dice salvage, or roster promotion choices. That makes it useful for required-pacing sanity checks while keeping the report deterministic enough to compare in PRs.
+
+## Kin Balance Review 2026-07-25
+
+Command pattern:
+
+```text
+docker compose exec -T backend sh -lc "APP_ENV=test DB_DSN='mysql:host=db;port=3306;dbname=goblin_test;charset=utf8mb4' DB_USER='dice_test' DB_PASS='dicepass_test' php bin/simulate.php --mode=run --region=<region> --profile=<profile> --runs=25 --seed=kin-balance-2026-07-25 --format=json"
+```
+
+Observed representative run results:
+
+| Region | Profile | Completion | Node win | Avg nodes | Avg rounds | HP remaining | Defeats/sample |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Farm | Basic Goblin starter | 1.0000 | 1.0000 | 5.00 | 0.4320 | 0.9644 | 0.00 |
+| Farm | Pig Kin starter | 1.0000 | 1.0000 | 5.00 | 0.4480 | 0.8815 | 0.00 |
+| Mountains | Basic Goblin starter | 0.0000 | 0.8000 | 5.00 | 0.8640 | 0.7034 | 4.00 |
+| Mountains | Pig Kin starter | 0.0000 | 0.8000 | 5.00 | 0.9360 | 0.6593 | 3.48 |
+| Swamps | Basic Goblin starter | 0.0000 | 0.8000 | 5.00 | 1.3360 | 0.6630 | 5.92 |
+| Swamps | Pig Kin starter | 0.0000 | 0.8000 | 5.00 | 1.3360 | 0.5988 | 5.88 |
+
+Decision: no Pig Kin stat tuning is required from this pass. Pig Kin did not improve clear rate or node win rate over Basic Goblin in Farm, Mountains, or Swamps, and the HP remaining deltas point toward higher pressure rather than dominance. Keep Pig Kin's current numeric package while future kin passives are added behind the same profile-comparison gate.
 
 Safety requirements:
 

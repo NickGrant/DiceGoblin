@@ -16,7 +16,6 @@ Success criteria:
 
 ### Related Issues
 
-- Run kin balance simulation review
 - Plan legacy splice storage retirement
 
 ## Encounter Primitive Framework

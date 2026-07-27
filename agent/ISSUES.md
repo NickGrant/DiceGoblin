@@ -4,21 +4,6 @@ Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
 ## Kin Pool and Balance Completion
 
-### Run kin balance simulation review
-
-**Milestone:** Kin Pool and Balance Completion
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-Kin should add identity without making Basic Goblins obsolete or overpowering class and promotion choices. The available simulation tooling should be used before adding more lineages.
-
-#### Acceptance Criteria
-
-- Representative simulations compare Basic Goblin and Pig Kin units in Farm, Mountains, and Swamps contexts.
-- Results identify any stat/passive tuning risks before more kin are added.
-- Findings are documented with recommended balance changes or a clear no-change decision.
-
 ### Plan legacy splice storage retirement
 
 **Milestone:** Kin Pool and Balance Completion
