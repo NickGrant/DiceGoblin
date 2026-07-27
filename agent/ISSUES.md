@@ -2,16 +2,89 @@
 ----
 Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
+## UAT Feedback Fix Round 1
+
+### Polish landing, home, and menu affordances
+
+**Milestone:** UAT Feedback Fix Round 1
+**Status:** Open
+**Priority:** High
+
+#### Problem
+Landing and home have several affordance and clutter issues from UAT that make navigation and core status less clear.
+
+#### Acceptance Criteria
+
+- Landing page replaces the H1 text treatment with the existing logo treatment from above.
+- The "How to play" action is visually distinguishable as a link/button, not as another passive tag.
+- Home breadcrumbs do not include an `HQ` link.
+- Home utilities remove the formation, map, and unlocks section.
+- Raw Chaos has a proper icon wherever it is tracked or surfaced.
+- Dropdown/menu opening uses a small slide-down plus fade-in animation without flicker.
+
+### Refine warband, unit, and squad-edit UX
+
+**Milestone:** UAT Feedback Fix Round 1
+**Status:** Open
+**Priority:** High
+
+#### Problem
+Warband and squad-edit flows need clearer filtering, simpler unit cards, better stat explanations, and stronger drag/drop feedback.
+
+#### Acceptance Criteria
+
+- Warband filters can show units assigned to a squad, units not assigned to a squad, or all units.
+- Warband goblin cards no longer show stat blocks directly on the card.
+- Unit slot marker appears inline with level on goblin cards.
+- Individual unit stat hover states show tooltips explaining what each stat does.
+- Squad edit remains easy to drag from when the available-unit list is long.
+- Squad edit drop targets are visually obvious while a draggable unit is hovering over them.
+
+### Clean up shop and academy presentation
+
+**Milestone:** UAT Feedback Fix Round 1
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+Shop and academy screens have duplicate currency indicators and placeholder iconography that make the UI feel rougher than the newer shop-style surfaces.
+
+#### Acceptance Criteria
+
+- Shop second daily deal title does not include `Deal 2:`.
+- Shop removes the redundant bottom-screen teeth indicator.
+- Academy research wing removes the redundant tooth indicator.
+- Academy replaces single-letter placeholders with available icons.
+- Academy uses available tier icons where tier information is shown.
+- Academy removes the line matching `Tier x role - add future recruit...`.
+
+### Repair guide navigation and combat reference content
+
+**Milestone:** UAT Feedback Fix Round 1
+**Status:** Open
+**Priority:** High
+
+#### Problem
+The guide is currently unreliable for UAT because side navigation links do not work and important reference content is missing or inaccurate.
+
+#### Acceptance Criteria
+
+- Guide sidenav links scroll or route to the intended sections.
+- Map glossary includes the missing icon types used by current run maps.
+- Starter classes section only shows Bruiser and Marksman.
+- Guide includes a section explaining how unit actions are determined.
+- Guide includes a section explaining how combat is calculated at a player-understandable level.
+
 ## Critical Path UAT
 
-### Run fresh-account July roadmap UAT
+### Continue fresh-account July roadmap UAT
 
 **Milestone:** Critical Path UAT
 **Status:** Open
 **Priority:** High
 
 #### Problem
-The July 25 roadmap implementation is complete at the planned issue-slice level, but the full player path still needs fresh-account UAT evidence before final release hardening.
+The July 25 roadmap implementation is complete at the planned issue-slice level, but the full player path still needs continued fresh-account UAT evidence before final release hardening.
 
 #### Acceptance Criteria
 
@@ -20,23 +93,6 @@ The July 25 roadmap implementation is complete at the planned issue-slice level,
 - Repeat-run behavior is checked for first-clear story, stolen pages, and unlock messaging.
 - Any player-facing failures are logged as new active issues with severity and reproduction notes.
 - If no blockers are found, the issue is archived with the UAT evidence location.
-
-### Verify reward and unlock clarity in UAT
-
-**Milestone:** Critical Path UAT
-**Status:** Open
-**Priority:** High
-
-#### Problem
-Reward and unlock systems were implemented across many slices, so UAT should verify that the combined player-facing summary is understandable rather than only technically present.
-
-#### Acceptance Criteria
-
-- Rewards visibly include teeth, units, dice, generic items, stolen codex pages, feature unlocks, and special catalysts when earned.
-- Wrong Machine, Tooth Merchant, Raw Chaos, dice salvage, and Pig Kin reconstruction unlock at the intended moments.
-- Players cannot earn or spend Raw Chaos before Wrong Machine recovery.
-- Pig Ear and Mudking Crown Fragment rewards appear when earned and are inspectable afterward.
-- Any confusing or missing reward presentation is logged as a follow-up issue with screenshots or reproduction notes where practical.
 
 ### Validate encounter and consumable feel
 
@@ -56,23 +112,6 @@ Hazard, shrine, chaos, healing-consumable, and energy-consumable systems are imp
 - Any balance or content-repeat issues are logged with affected region, run seed when available, and expected tuning direction.
 
 ## UAT Polish Backlog
-
-### Triage frontend polish findings from UAT
-
-**Milestone:** UAT Polish Backlog
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-Remaining roadmap risk is expected to come from mobile/desktop polish and copy clarity on the critical path rather than missing backend systems.
-
-#### Acceptance Criteria
-
-- UAT findings for home, run map, run node, rest, summary, inventory, Wrong Machine, Academy, shop, guide, and login are grouped by player-facing severity.
-- Remaining visible "splice" terminology is logged unless it is explicitly documenting legacy storage.
-- Layout issues include viewport, route, and reproduction details.
-- High-severity polish issues are promoted into their own active implementation issues.
-- Low-severity or speculative improvements are moved to backlog rather than blocking release hardening.
 
 ### Confirm release merge and generated-artifact hygiene
 
