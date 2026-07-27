@@ -13,8 +13,10 @@ use DiceGoblins\Repositories\RunEdgeRepository;
 use DiceGoblins\Repositories\RunNodeRepository;
 use DiceGoblins\Repositories\RunRepository;
 use DiceGoblins\Repositories\UnitRepository;
+use DiceGoblins\Services\ConsumableItemService;
 use DiceGoblins\Services\DiceSalvageService;
 use DiceGoblins\Services\EconomyModifierService;
+use DiceGoblins\Services\ItemInventoryService;
 use DiceGoblins\Services\PromotionService;
 use DiceGoblins\Services\UnitCapstoneService;
 use DiceGoblins\Services\UnitLoadoutService;
@@ -490,6 +492,60 @@ final class GameplayController
     }
   }
 
+  public function healRunUnitWithItem(?string $runId = null, ?string $unitInstanceId = null): void
+  {
+    $svc = $this->services();
+    $userId = $this->requireMutationUserId($svc['sessionService'], $svc['csrfService']);
+    if ($userId === null) {
+      return;
+    }
+
+    $runIdInt = $this->requirePositiveInt($runId, 'runId');
+    $unitIdInt = $this->requirePositiveInt($unitInstanceId, 'unitInstanceId');
+    if ($runIdInt === null || $unitIdInt === null) {
+      return;
+    }
+
+    $body = $this->readJsonBody();
+    if ($body === null) {
+      return;
+    }
+
+    $itemSlug = trim((string)($body['item_slug'] ?? ''));
+    if ($itemSlug === '') {
+      Response::json(['ok' => false, 'error' => ['code' => 'validation_error', 'message' => 'item_slug is required.']], 400);
+      return;
+    }
+
+    try {
+      Response::json([
+        'ok' => true,
+        'data' => $svc['consumableItemService']->healRunUnit($userId, $runIdInt, $unitIdInt, $itemSlug),
+      ]);
+    } catch (RuntimeException $e) {
+      $message = $e->getMessage();
+      $status = match ($message) {
+        'run_not_active', 'combat_resolution_active', 'unit_not_wounded' => 409,
+        'unit_not_in_run' => 404,
+        'insufficient_items' => 409,
+        'item_not_healing_consumable' => 400,
+        default => 400,
+      };
+      $publicMessage = match ($message) {
+        'run_not_active' => 'Run is not active.',
+        'combat_resolution_active' => 'Healing items cannot be used while combat is resolving.',
+        'unit_not_wounded' => 'Unit is already at full health.',
+        'unit_not_in_run' => 'Unit is not part of this run.',
+        'insufficient_items' => 'Not enough items.',
+        'item_not_healing_consumable' => 'Item cannot heal run units.',
+        default => $message,
+      };
+      Response::json(['ok' => false, 'error' => ['code' => $message, 'message' => $publicMessage]], $status);
+    } catch (Throwable) {
+      Response::json(['ok' => false, 'error' => ['code' => 'server_error', 'message' => 'Unexpected error.']], 500);
+    }
+  }
+
   private function handleAbilitySlotDiceMutation(?string $unitInstanceId, ?string $abilityId, ?string $slotIndex, bool $isAssign): void
   {
     $svc = $this->services();
@@ -644,6 +700,7 @@ final class GameplayController
       'diceRepo' => new DiceRepository($pdo),
       'playerStateRepo' => new PlayerStateRepository($pdo),
       'diceSalvageService' => new DiceSalvageService($pdo, new DiceRepository($pdo), new PlayerStateRepository($pdo)),
+      'consumableItemService' => new ConsumableItemService($pdo, new ItemInventoryService($pdo)),
       'unitLoadoutService' => new UnitLoadoutService($pdo),
       'promotionService' => new PromotionService($pdo),
       'unitCapstoneService' => new UnitCapstoneService($pdo),
