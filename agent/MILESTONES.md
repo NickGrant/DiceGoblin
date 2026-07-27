@@ -16,5 +16,4 @@ Success criteria:
 
 ### Related Issues
 
-- Add between-encounter unit healing consumables
 - Add player energy recovery consumables

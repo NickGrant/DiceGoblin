@@ -91,6 +91,37 @@
         </div>
         <div class="run-map-meta">
           <dg-run-unit-formation-grid [cells]="formationGrid()" />
+          @if (statusMessage()) {
+            <dg-alert>{{ statusMessage() }}</dg-alert>
+          }
+          @if (healingConsumables().length && woundedRunUnits().length) {
+            <section class="run-supplies" aria-label="Run supplies">
+              <h2>Run Supplies</h2>
+              @for (entry of woundedRunUnits(); track entry.unit_instance_id) {
+                <div class="run-supplies__unit">
+                  <div>
+                    <strong>{{ entry.unit?.name ?? 'Unit' }}</strong>
+                    <span>{{ entry.currentHp }}/{{ entry.maxHp }} HP</span>
+                  </div>
+                  <div class="run-supplies__actions">
+                    @for (item of healingConsumables(); track item.item_slug) {
+                      <button
+                        dgCommandBtn="muted"
+                        type="button"
+                        (click)="healUnit(entry.unit_instance_id, item.item_slug)"
+                        [disabled]="
+                          working() ||
+                          healingAction() === healingActionKey(entry.unit_instance_id, item.item_slug)
+                        "
+                      >
+                        {{ item.name }} ({{ item.quantity }})
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </section>
+          }
           <button
             dgCommandBtn="primary"
             type="button"
