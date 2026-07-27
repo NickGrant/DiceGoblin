@@ -143,6 +143,7 @@ $router->post('/api/v1/runs/:runId/abandon', [$api, 'abandonRun']);
 $router->post('/api/v1/runs/:runId/exit', [$api, 'exitRun']);
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/open', [$gameplay, 'openRest']);
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/finalize', [$gameplay, 'finalizeRest']);
+$router->post('/api/v1/runs/:runId/units/:unitInstanceId/items/heal', [$gameplay, 'healRunUnitWithItem']);
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/chaos/generate', [$chaosEncounter, 'generate']);
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/chaos/reroll', [$chaosEncounter, 'reroll']);
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/chaos/finalize', [$chaosEncounter, 'finalize']);
