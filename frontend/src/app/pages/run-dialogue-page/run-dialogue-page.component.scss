@@ -1,7 +1,11 @@
+:host ::ng-deep page-frame > .page-frame__body {
+  padding-top: 0.5rem;
+}
+
 .dialogue-status {
   display: grid;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .run-dialogue {
