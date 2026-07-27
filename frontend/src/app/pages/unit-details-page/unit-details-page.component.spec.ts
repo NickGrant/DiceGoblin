@@ -266,6 +266,19 @@ describe('UnitDetailsPageComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.ability-icon-button').length).toBeGreaterThan(0);
   });
 
+  it('adds explanatory hover tooltips to unit stat rows', async () => {
+    const fixture = await createComponent();
+    const host: HTMLElement = fixture.nativeElement;
+    const statRows = Array.from(host.querySelectorAll('.unit-stat-row')) as HTMLElement[];
+    const attackRow = statRows.find((row) => row.textContent?.includes('Attack'));
+    const resolveRow = statRows.find((row) => row.textContent?.includes('Resolve'));
+
+    expect(attackRow?.getAttribute('title')).toBe('Attack increases the damage this unit deals with attack actions.');
+    expect(attackRow?.getAttribute('data-tooltip')).toBe('Attack increases the damage this unit deals with attack actions.');
+    expect(attackRow?.getAttribute('aria-label')).toContain('Attack');
+    expect(resolveRow?.getAttribute('title')).toBe('Resolve helps resist harmful status effects and pressure.');
+  });
+
   it('displays a selected capstone like a normal passive ability', async () => {
     const fixture = await createComponent();
     const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
