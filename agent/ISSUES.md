@@ -25,7 +25,7 @@ Rest, shrine, and hazard nodes are unclear or misleading during UAT: rest appear
 ### Fix chaos reel encounter application
 
 **Milestone:** UAT Feedback Fix Round 2
-**Status:** Open
+**Status:** In Review
 **Priority:** High
 
 #### Problem
@@ -58,7 +58,7 @@ If shrine, hazard, or chaos outcomes apply persistent run effects, players have 
 ### Add post-Wrong-Machine mountain dialogue
 
 **Milestone:** UAT Feedback Fix Round 2
-**Status:** Open
+**Status:** In Review
 **Priority:** Medium
 
 #### Problem
