@@ -103,7 +103,7 @@ Kin identity should remain smaller than class identity.
 
 ## Deferred Work
 
-- Rename legacy splice storage and API compatibility fields.
+- Execute the dedicated legacy splice storage retirement plan in `documentation/02-systems-mvp/16-legacy-splice-storage-retirement.md`.
 - Add player-facing Wrong Machine UI beyond debug/dev testing surfaces.
 - Add specific-unit evolution into a kin.
 - Define the full kin passive vocabulary and balance budget.

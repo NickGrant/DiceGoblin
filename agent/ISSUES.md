@@ -2,24 +2,6 @@
 ----
 Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
-## Kin Pool and Balance Completion
-
-### Plan legacy splice storage retirement
-
-**Milestone:** Kin Pool and Balance Completion
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-Player-facing copy now favors kin and lineage terminology, but legacy `splice_variant` storage and API compatibility remain. A compatibility-aware migration plan is needed before renaming durable fields.
-
-#### Acceptance Criteria
-
-- Current `splice_variant` storage/API usage is inventoried.
-- A forward migration and response compatibility plan is documented.
-- No player-facing UI introduces new "splice" terminology.
-- The plan names tests required before any storage rename ships.
-
 ## Encounter Primitive Framework
 
 ### Define hazard and shrine effect primitives

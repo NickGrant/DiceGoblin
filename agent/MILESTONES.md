@@ -2,25 +2,9 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Kin Pool and Balance Completion
-
-**Status:** Active
-
-Finish the first kin reconstruction loop by verifying random reward pools, reviewing Pig Kin balance, and planning the legacy storage rename without risking compatibility.
-
-Success criteria:
-
-- Random kin rewards are limited to Basic Goblin plus owned lineages unless explicitly authored otherwise.
-- Pig Kin balance is reviewed through representative simulations.
-- Legacy `splice_variant` storage/API usage has a compatibility-aware retirement plan.
-
-### Related Issues
-
-- Plan legacy splice storage retirement
-
 ## Encounter Primitive Framework
 
-**Status:** Planned
+**Status:** Active
 
 Define reusable hazard and shrine primitives before expanding content breadth, keeping effects backend-authoritative and aligned with seed/catalog ownership rules.
 

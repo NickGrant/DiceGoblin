@@ -58,6 +58,24 @@ exit_criteria:
   - Repeat runs avoid replaying all one-time exposition.
 
 ---
+name: Kin Pool and Balance Completion
+status: complete
+issues:
+  - KPB-001
+  - KPB-002
+  - KPB-003
+description: Completed the first Pig Kin reward and balance cleanup by verifying owned-lineage random rewards, comparing Basic Goblin and Pig Kin simulation profiles, and planning the legacy splice storage rename.
+goals:
+  - Keep random kin rewards limited to Basic Goblin plus owned lineages unless explicitly authored otherwise.
+  - Review Pig Kin balance through representative Farm, Mountains, and Swamps simulations.
+  - Document a compatibility-aware retirement plan for legacy `splice_variant` storage and API fields.
+current_code_context: SpliceVariantService and unit grant services enforce owned-lineage random pools, BalanceSimulationService supports kin comparison profiles, and the Wrong Machine/kin docs now point to the storage retirement plan.
+exit_criteria:
+  - Random kin rewards are covered by default-account, Pig Kin unlocked, and explicit reward payload tests.
+  - Pig Kin has a recorded no-change balance decision from representative simulations.
+  - Legacy storage retirement has an inventory, phased migration plan, and named test gates.
+
+---
 name: Wrong Machine and Kin Foundation
 status: complete
 issues:

@@ -134,6 +134,22 @@ current_code_references:
   - backend/tests/Integration/BalanceSimulationServiceIntegrationTest.php
   - documentation/02-systems-mvp/14-balancing-strategy-and-simulation.md
 
+---
+id: KPB-003
+title: Plan legacy splice storage retirement
+status: complete
+priority: medium
+milestone: Kin Pool and Balance Completion
+description: Inventoried legacy splice storage, backend compatibility fields, and frontend fallback usage, then documented a phased kin-storage migration plan with required backend and frontend test coverage.
+acceptance_criteria:
+  - Current `splice_variant` storage/API usage is inventoried.
+  - A forward migration and response compatibility plan is documented.
+  - No player-facing UI introduces new "splice" terminology.
+  - The plan names tests required before any storage rename ships.
+current_code_references:
+  - documentation/02-systems-mvp/16-legacy-splice-storage-retirement.md
+  - documentation/02-systems-mvp/13-wrong-machine-and-kin.md
+
 ## Wrong Machine and Kin Foundation
 
 ---
