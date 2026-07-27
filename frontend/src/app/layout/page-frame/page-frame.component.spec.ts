@@ -64,4 +64,34 @@ describe('PageFrameComponent', () => {
     expect(links[0].textContent).toContain('HQ');
     expect(current.textContent).toContain('Shop');
   });
+
+  it('does not add an HQ crumb on the home page', async () => {
+    @Component({
+      standalone: true,
+      imports: [PageFrameComponent],
+      template: `
+        <page-frame
+          title="Title"
+          [breadcrumbs]="[{ label: 'Home' }]"
+        />
+      `,
+    })
+    class HomeBreadcrumbHostComponent {}
+
+    await TestBed.configureTestingModule({
+      imports: [HomeBreadcrumbHostComponent],
+      providers: [provideRouter([])],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(HomeBreadcrumbHostComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const links = compiled.querySelectorAll('nav.page-frame__breadcrumbs a');
+    const current = compiled.querySelector('nav.page-frame__breadcrumbs [aria-current="page"]') as HTMLElement;
+
+    expect(links.length).toBe(0);
+    expect(current.textContent).toContain('Home');
+    expect(compiled.textContent).not.toContain('HQ');
+  });
 });

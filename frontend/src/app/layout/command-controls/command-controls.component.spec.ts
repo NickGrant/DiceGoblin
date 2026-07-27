@@ -18,6 +18,12 @@ class SessionServiceStub {
     softCurrency: 93,
   });
 
+  readonly profileData = signal({
+    currency: {
+      raw_chaos: 7,
+    },
+  });
+
   readonly featureUnlocks = signal(['shop']);
   readonly hasActiveRun = signal(false);
   readonly logout = jasmine.createSpy('logout').and.resolveTo();
@@ -314,6 +320,20 @@ describe('CommandControlsComponent', () => {
     expect(machineLink).toBeDefined();
     expect(machineLink!.nativeElement.textContent).toContain('Machine');
     expect(router.serializeUrl(machineLink!.injector.get(RouterLink).urlTree!)).toBe('/wrong-machine');
+  });
+
+  it('shows Raw Chaos as an icon and balance after the Wrong Machine unlock', () => {
+    sessionService.featureUnlocks.set(['wrong_machine']);
+
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const chaosSlot = compiled.querySelector('.slot-chaos') as HTMLElement;
+
+    expect(chaosSlot.getAttribute('aria-label')).toBe('Raw Chaos');
+    expect(chaosSlot.querySelector('.raw-chaos-icon')).not.toBeNull();
+    expect(chaosSlot.textContent?.trim()).toBe('7');
   });
 
   it('shows the academy menu item after the unlock is earned', () => {

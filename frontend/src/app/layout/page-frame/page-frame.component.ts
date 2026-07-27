@@ -28,6 +28,10 @@ export class PageFrameComponent {
     const inputCrumbs = [...this.breadcrumbs()];
     const first = inputCrumbs[0];
 
+    if (first && first.route === undefined && first.label.trim().toLowerCase() === 'home') {
+      return inputCrumbs;
+    }
+
     let homeLabel = 'HQ';
     let remaining = inputCrumbs;
 

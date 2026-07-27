@@ -44,7 +44,15 @@ describe('LandingPageComponent', () => {
     const fixture = TestBed.createComponent(LandingPageComponent);
     fixture.detectChanges();
 
+    const compiled = fixture.nativeElement as HTMLElement;
     const text = fixture.nativeElement.textContent as string;
+    const logo = compiled.querySelector('.landing-logo') as HTMLImageElement;
+    const heading = compiled.querySelector('h1') as HTMLElement;
+    const guideLink = compiled.querySelector('.landing-guide-link') as HTMLAnchorElement;
+
+    expect(logo.getAttribute('src')).toContain('/assets/ui/branding/hero-logo.png');
+    expect(heading.classList).toContain('visually-hidden');
+    expect(guideLink.textContent).toContain('How to Play');
     expect(text).toContain('Dice Goblins');
     expect(text).toContain('Turn-based run battles');
     expect(text).toContain('How to Play');

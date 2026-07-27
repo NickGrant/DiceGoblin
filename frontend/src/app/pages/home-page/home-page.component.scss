@@ -44,7 +44,6 @@
 .home-proto__squad-list,
 .home-proto__route-list,
 .home-proto__mission-panel,
-.home-proto__progress-list,
 .home-proto__objective-list {
   display: grid;
   gap: 12px;
@@ -69,7 +68,6 @@
 
 .home-proto__empty,
 .home-proto__mission-step p,
-.home-proto__progress-chip span,
 .home-proto__route-card span {
   margin: 0;
   color: rgba(49, 30, 18, 0.78);
@@ -158,8 +156,7 @@
   color: #24150d;
 }
 
-.home-proto__route-card--guidance,
-.home-proto__progress-chip {
+.home-proto__route-card--guidance {
   display: grid;
   gap: 6px;
 }
@@ -182,21 +179,6 @@
 
 .home-proto__guidance-cta {
   color: #3a531c;
-}
-
-.home-proto__progress-chip {
-  min-height: 58px;
-}
-
-.home-proto__progress-chip strong {
-  font-size: 13px;
-  line-height: 1.2;
-}
-
-.home-proto__progress-chip span {
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
 }
 
 .home-proto__route-card {

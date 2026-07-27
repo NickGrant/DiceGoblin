@@ -45,14 +45,9 @@
   text-transform: uppercase;
 }
 
-.landing-copy h1,
 .landing-auth h2 {
   margin: 0;
   line-height: 0.92;
-}
-
-.landing-copy h1 {
-  font-size: clamp(3.2rem, 11vw, 6.5rem);
 }
 
 .landing-auth h2 {
@@ -92,7 +87,26 @@
 }
 
 .landing-guide-link {
-  padding: 0.65rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.72rem 1rem;
+  border-color: rgba(255, 244, 223, 0.62);
+  background: linear-gradient(180deg, rgba(141, 179, 65, 0.96), rgba(67, 99, 37, 0.96));
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.24);
+  transition:
+    transform 140ms ease,
+    filter 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.landing-guide-link:hover,
+.landing-guide-link:focus-visible {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.3);
+  outline: none;
 }
 
 .landing-auth {
