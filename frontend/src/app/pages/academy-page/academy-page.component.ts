@@ -350,6 +350,14 @@ export class AcademyPageComponent {
     return normalized.length ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Unit';
   }
 
+  roleInitial(value: string | null | undefined): string {
+    return this.roleLabel(value).charAt(0);
+  }
+
+  unitUnlockMetaLabel(entry: AcademyUnitUnlockItem): string {
+    return `${this.roleLabel(entry.role)} unit type - Tier ${this.unitUnlockTierLabel(entry.unit_type_slug)}`;
+  }
+
   unitUnlockStats(entry: AcademyUnitUnlockItem): Array<{ label: string; value: string }> {
     return [
       { label: 'ATK', value: this.statValue(entry.total_attack) },

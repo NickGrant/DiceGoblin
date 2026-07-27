@@ -225,8 +225,10 @@ describe('AcademyPageComponent', () => {
     expect(component.unitUnlockRequirementLabel(component.availableUnitUnlocks()[1])).toBe('Requires: Complete any run (0/1)');
     expect(component.unitUnlockActionLabel(component.availableUnitUnlocks()[0])).toBe('Unlock');
     expect(component.unitUnlockActionLabel(component.availableUnitUnlocks()[1])).toBe('Locked');
+    expect(component.unitUnlockMetaLabel(component.availableUnitUnlocks()[0])).toBe('Support unit type - Tier I');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('PRC');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('RES');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Support unit type - Tier I');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Requires: Complete any run (0/1)');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Unlock');
     component.selectedUnitId.set('u1');
