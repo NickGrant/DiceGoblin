@@ -27,6 +27,7 @@ The enemy family reel chooses the preferred enemy catalog:
 - `kobolds` prefers kobold-family encounter templates.
 - `frogmen` prefers frogman-family encounter templates.
 - `mixed` may use the broadest regional combat pool.
+- `mudkin`, `rust_cult`, `strays`, `bogbound`, `summit_raiders`, and `echoes` are launch-breadth entries that currently fall back through the normal template selection path until dedicated families are seeded.
 
 If no family-specific template exists, the backend should fall back to regional combat templates, then global combat templates.
 
@@ -38,6 +39,7 @@ The encounter shape reel describes the fight's tactical texture:
 - `armored_frontline` biases toward tougher front-rank enemies.
 - `ranged_backline` biases toward protected ranged pressure.
 - `ambush` biases toward a dangerous opening state.
+- `split_lane`, `heavy_anchor`, `glass_cannon`, `staggered_wave`, `shield_wall`, and `isolated_elite` are launch-breadth entries that currently express metadata pressure before bespoke shape filters land.
 
 The first implementation may map shape onto existing templates. Richer implementations should encode the selected shape in resolver metadata and apply it as a deterministic modifier.
 
@@ -49,8 +51,17 @@ The rule/reward reel chooses the special battle hook:
 - `volatile_dice` can increase variance or roll pressure.
 - `guaranteed_loot` can add a loot reward hook after victory.
 - `raw_chaos_spark` can add Raw Chaos to the chaos bonus when the player has unlocked the relevant system.
+- `teeth_rain`, `wounded_start`, `lucky_break`, `double_or_nothing`, `scrap_cache`, and `spiteful_rules` are launch-breadth entries that currently affect risk, multiplier, copy, and future hook metadata.
 
 Rule effects should be represented in battle metadata even before every rule has bespoke combat logic. This keeps playback, reward previews, and future balancing tools aligned.
+
+Current launch breadth:
+
+| Reel | Enabled entries | Launch interpretation |
+| --- | ---: | --- |
+| Enemy family | 10 | Existing family filters where possible, then regional/global combat fallback. |
+| Encounter shape | 10 | Metadata and risk contribution until bespoke template filters land. |
+| Rule/reward | 10 | Reward multiplier, copy, and existing Raw Chaos/loot hooks where supported. |
 
 ## Battle Metadata
 

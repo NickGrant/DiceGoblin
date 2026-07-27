@@ -62,6 +62,29 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $this->assertSame('chaos_reroll_spent', (string)($secondReroll['body']['error']['code'] ?? ''));
   }
 
+  public function testReelCatalogMeetsLaunchBreadthTarget(): void
+  {
+    $catalog = (new \DiceGoblins\Services\ChaosEncounterService($this->pdo))->reelCatalog();
+
+    $this->assertCount(3, $catalog);
+    foreach ([0 => 'enemy_family', 1 => 'encounter_shape', 2 => 'rule_reward'] as $index => $reelName) {
+      $pool = $catalog[$index] ?? [];
+      $symbols = [];
+
+      $this->assertGreaterThanOrEqual(10, count($pool), "{$reelName} should have at least ten entries.");
+      foreach ($pool as $entry) {
+        $symbol = (string)($entry['symbol'] ?? '');
+        $this->assertNotSame('', $symbol);
+        $this->assertNotContains($symbol, $symbols);
+        $this->assertNotSame('', (string)($entry['label'] ?? ''));
+        $this->assertNotSame('', (string)($entry['effect'] ?? ''));
+        $this->assertGreaterThan(0, (int)($entry['weight'] ?? 0));
+        $this->assertGreaterThanOrEqual(1, (int)($entry['risk'] ?? 0));
+        $symbols[] = $symbol;
+      }
+    }
+  }
+
   public function testGenerateRejectsWrongOwnerAndInvalidNodeTypes(): void
   {
     $ownerId = $this->insertUser('chaos_owner', 'Chaos Owner');
