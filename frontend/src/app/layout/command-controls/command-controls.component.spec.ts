@@ -243,6 +243,22 @@ describe('CommandControlsComponent', () => {
     expect(menu?.textContent).toContain('Logout');
   });
 
+  it('preloads dropdown frame art before the menu is opened', () => {
+    const fixture = TestBed.createComponent(CommandControlsComponent);
+    fixture.detectChanges();
+
+    const preloadImages = Array.from(
+      fixture.nativeElement.querySelectorAll('.menu-preload img'),
+    ) as HTMLImageElement[];
+
+    expect(preloadImages.map((image) => image.getAttribute('src'))).toEqual([
+      '/assets/ui/header/menu-top-frame.png',
+      '/assets/ui/header/menu-center-frame.png',
+      '/assets/ui/header/menu-bottom-frame.png',
+      '/assets/ui/header/floating-header-menu-row.png',
+    ]);
+  });
+
   it('hides the academy menu item until the unlock is earned', () => {
     sessionService.featureUnlocks.set([]);
 

@@ -22,6 +22,7 @@ describe('unit-art helpers', () => {
     expect(resolveUnitImageSlug('kobold_scout')).toBe('kobold_skirmisher');
     expect(resolveUnitImageSlug('Scout')).toBe('kobold_skirmisher');
     expect(resolveUnitImageUrl('kobold_scout')).toBe('/assets/ui/units/animated/kobold/skirmisher/frame_0.png');
+    expect(resolveUnitImageUrl('Kobold Sentry')).toBe('/assets/ui/units/animated/kobold/skirmisher/frame_0.png');
   });
 
   it('resolves tier one unit thumbnails from canonical slugs and names', () => {
