@@ -21,6 +21,8 @@ final class RunPatternSimulationService
     $successes = 0;
     $validationFailures = [];
     $nodeCounts = [];
+    $branchCounts = [];
+    $backtracks = [];
     $patternFrequency = [];
 
     for ($i = 1; $i <= $runs; $i++) {
@@ -38,6 +40,10 @@ final class RunPatternSimulationService
 
       $nodeCount = count($assembly['graph']['nodes']);
       $nodeCounts[] = $nodeCount;
+      $branchCount = $this->branchCount($assembly['graph']['nodes']);
+      $branchCounts[] = $branchCount;
+      $traceCounters = is_array($assembly['trace']['counters'] ?? null) ? $assembly['trace']['counters'] : [];
+      $backtracks[] = (int)($traceCounters['backtracks'] ?? 0);
       foreach ($assembly['graph']['nodes'] as $node) {
         $patternKey = (string)($node['pattern_key'] ?? '');
         if ($patternKey !== '') {
@@ -50,6 +56,8 @@ final class RunPatternSimulationService
         'valid' => $valid,
         'node_count' => $nodeCount,
         'edge_count' => count($assembly['graph']['edges']),
+        'branch_count' => $branchCount,
+        'backtracks' => (int)($traceCounters['backtracks'] ?? 0),
         'errors' => $assembly['validation']['errors'],
       ];
     }
@@ -63,14 +71,40 @@ final class RunPatternSimulationService
       'runs' => $runs,
       'successes' => $successes,
       'success_rate' => round($successes / $runs, 4),
+      'fallback_rate' => 0.0,
       'validation_failures' => $validationFailures,
       'node_count' => [
         'min' => min($nodeCounts),
         'max' => max($nodeCounts),
         'avg' => round(array_sum($nodeCounts) / count($nodeCounts), 2),
       ],
+      'branch_count' => [
+        'min' => min($branchCounts),
+        'max' => max($branchCounts),
+        'avg' => round(array_sum($branchCounts) / count($branchCounts), 2),
+      ],
+      'backtracks' => [
+        'min' => min($backtracks),
+        'max' => max($backtracks),
+        'avg' => round(array_sum($backtracks) / count($backtracks), 2),
+      ],
       'pattern_frequency' => $patternFrequency,
       'results' => $results,
     ];
+  }
+
+  /**
+   * @param list<array<string,mixed>> $nodes
+   */
+  private function branchCount(array $nodes): int
+  {
+    $branches = [];
+    foreach ($nodes as $node) {
+      $branchKey = (string)($node['branch_key'] ?? '');
+      if ($branchKey !== '') {
+        $branches[$branchKey] = true;
+      }
+    }
+    return count($branches);
   }
 }

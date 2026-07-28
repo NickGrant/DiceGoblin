@@ -41,7 +41,10 @@ final class RunPatternSimulationServiceIntegrationTest extends IntegrationTestCa
     $this->assertSame(1.0, $simulation['success_rate']);
     $this->assertSame([], $simulation['validation_failures']);
     $this->assertGreaterThanOrEqual(10, $simulation['node_count']['min']);
+    $this->assertGreaterThanOrEqual(1, $simulation['branch_count']['min']);
+    $this->assertSame(0.0, $simulation['fallback_rate']);
     $this->assertArrayHasKey('shared_boss_exit_terminal@1', $simulation['pattern_frequency']);
+    $this->assertArrayHasKey('shared_chaos_step@1', $simulation['pattern_frequency']);
     $this->assertCount(5, $simulation['results']);
   }
 }

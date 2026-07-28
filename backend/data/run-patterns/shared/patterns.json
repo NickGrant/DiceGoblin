@@ -52,6 +52,22 @@
       ]
     },
     {
+      "slug": "shared_chaos_step",
+      "version": 1,
+      "status": "enabled",
+      "tags": ["chaos", "spine", "fallback"],
+      "allowed_transforms": ["identity", "mirror_y"],
+      "node_cost": 1,
+      "nodes": [
+        { "key": "chaos", "type": "chaos", "x": 0, "y": 0, "role": "pressure", "tags": ["chaos"] }
+      ],
+      "edges": [],
+      "sockets": [
+        { "id": "entry_left", "kind": "entry", "node": "chaos", "direction": "left", "path_eligibility": ["spine"] },
+        { "id": "exit_right", "kind": "exit", "node": "chaos", "direction": "right", "path_eligibility": ["spine"] }
+      ]
+    },
+    {
       "slug": "shared_shrine_combat_loot_branch",
       "version": 1,
       "status": "enabled",
@@ -62,7 +78,7 @@
       "nodes": [
         { "key": "shrine", "type": "shrine", "x": 0, "y": 0, "role": "entry", "tags": ["preparation"] },
         { "key": "combat", "type": "combat", "x": 1, "y": 0, "role": "continuation", "tags": ["required_within_pattern"] },
-        { "key": "loot", "type": "loot", "x": 1, "y": -1, "role": "optional_terminal", "tags": ["reward"] }
+        { "key": "loot", "type": "loot", "x": 2, "y": -1, "role": "optional_terminal", "tags": ["reward"] }
       ],
       "edges": [
         { "from": "shrine", "to": "combat" },

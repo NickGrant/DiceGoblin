@@ -37,11 +37,11 @@ final class RunPatternCatalogRepositoryIntegrationTest extends IntegrationTestCa
     $this->assertSame(12, (int)$profile['budgets']['total_nodes']['target']);
 
     $spineRules = $repository->listEnabledRules('mountains', 'pattern-v1', 'spine');
-    $this->assertCount(2, $spineRules);
-    $this->assertSame(['shared_combat_step', 'shared_hazard_rest'], array_column($spineRules, 'pattern_slug'));
+    $this->assertCount(3, $spineRules);
+    $this->assertSame(['shared_combat_step', 'shared_hazard_rest', 'shared_chaos_step'], array_column($spineRules, 'pattern_slug'));
 
     $patterns = $repository->listEnabledPatternDefinitions();
-    $this->assertCount(6, $patterns);
+    $this->assertCount(7, $patterns);
     $this->assertSame('shared_boss_exit_terminal', $patterns[0]['slug']);
     $this->assertSame('shared_boss_exit_terminal', $patterns[0]['definition']['slug']);
   }
