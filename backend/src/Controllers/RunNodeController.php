@@ -375,11 +375,7 @@ final class RunNodeController
       );
 
       $isCombatLikeNode = in_array((string)$node['node_type'], ['combat', 'boss', 'chaos'], true);
-      $runFailed = $isCombatLikeNode && $outcome === 'defeat';
-
-      if ($runFailed) {
-        $svc['runLifecycleService']->failRun($userId, $runIdInt);
-      }
+      $runFailed = false;
 
       $unlocked = [];
       if (!$runFailed && ($outcome === 'victory' || !$isCombatLikeNode)) {

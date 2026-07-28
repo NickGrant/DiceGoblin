@@ -33,14 +33,8 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
 
     $battleId = (int)($first['body']['data']['battle']['battle_id'] ?? 0);
     $this->assertGreaterThan(0, $battleId);
-    $firstOutcome = (string)($first['body']['data']['battle']['outcome'] ?? '');
-    if ($firstOutcome === 'defeat') {
-      $this->assertSame(409, $second['status']);
-      $this->assertSame('run_not_active', (string)($second['body']['error']['code'] ?? ''));
-    } else {
-      $this->assertSame(200, $second['status']);
-      $this->assertSame($battleId, (int)($second['body']['data']['battle']['battle_id'] ?? 0));
-    }
+    $this->assertSame(200, $second['status']);
+    $this->assertSame($battleId, (int)($second['body']['data']['battle']['battle_id'] ?? 0));
 
     $logRaw = $this->scalar('SELECT `log_json` FROM `battle_logs` WHERE `battle_id` = ?', [$battleId]);
     $log = json_decode((string)$logRaw, true);
@@ -91,14 +85,8 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $newBattleId = (int)($first['body']['data']['battle']['battle_id'] ?? 0);
     $this->assertGreaterThan(0, $newBattleId);
     $this->assertNotSame($oldBattleId, $newBattleId);
-    $newOutcome = (string)($first['body']['data']['battle']['outcome'] ?? '');
-    if ($newOutcome === 'defeat') {
-      $this->assertSame(409, $second['status']);
-      $this->assertSame('run_not_active', (string)($second['body']['error']['code'] ?? ''));
-    } else {
-      $this->assertSame(200, $second['status']);
-      $this->assertSame($newBattleId, (int)($second['body']['data']['battle']['battle_id'] ?? 0));
-    }
+    $this->assertSame(200, $second['status']);
+    $this->assertSame($newBattleId, (int)($second['body']['data']['battle']['battle_id'] ?? 0));
 
     $this->assertSame(
       '0',
@@ -566,7 +554,7 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame(false, (bool)($slotTraces[0]['empty_slot'] ?? true));
   }
 
-  public function testResolveNodeDefeatEndsRunImmediately(): void
+  public function testResolveNodeDefeatDoesNotEndRunBeforeClaim(): void
   {
     $userId = $this->insertUser();
     $regionId = $this->insertRegion();
@@ -586,12 +574,12 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $outcome = (string)($battle['outcome'] ?? '');
     $this->assertSame('defeat', $outcome);
 
-    $this->assertSame('failed', (string)($response['body']['data']['node']['status'] ?? ''));
+    $this->assertSame('available', (string)($response['body']['data']['node']['status'] ?? ''));
 
     $runRow = $this->rows('SELECT `status`, `ended_at` FROM `region_runs` WHERE `id` = ? LIMIT 1', [$runId]);
     $this->assertCount(1, $runRow);
-    $this->assertSame('failed', (string)$runRow[0]['status']);
-    $this->assertNotNull($runRow[0]['ended_at']);
+    $this->assertSame('active', (string)$runRow[0]['status']);
+    $this->assertNull($runRow[0]['ended_at']);
   }
 
   private function ownedItemQuantity(int $userId, string $itemSlug): int
