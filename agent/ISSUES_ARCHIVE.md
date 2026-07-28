@@ -2,6 +2,90 @@
 ----
 Completed issue entries retained only when they provide 7/25 roadmap execution context.
 
+## Combat Resolution Correctness
+
+---
+id: CRC-001
+title: Remove score-based combat outcome fallback
+status: complete
+priority: high
+milestone: Combat Resolution Correctness
+description: Combat outcomes now come from simulated battle events instead of player/enemy score estimates.
+acceptance_criteria:
+  - Combat outcome is determined by simulated events, not by a score fallback.
+  - Score fallback metadata and result initialization are removed.
+  - Integration coverage proves long combat resolves through events.
+current_code_references:
+  - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
+  - backend/tests/Integration/DeterministicRunNodeResolverFormationIntegrationTest.php
+  - documentation/09-active-system-structure/03-combat-resolution.md
+
+---
+id: CRC-002
+title: Remove arbitrary combat round cutoff
+status: complete
+priority: high
+milestone: Combat Resolution Correctness
+description: Combat now continues until a terminal event state or explicit engine safety cap instead of the old 3-5 round planning window.
+acceptance_criteria:
+  - The ordinary 3-5 round cutoff is removed.
+  - The safety cap is exceptional engine protection.
+  - Battle logs still report actual round and tick timing.
+current_code_references:
+  - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
+  - backend/tests/Integration/DeterministicRunNodeResolverFormationIntegrationTest.php
+  - documentation/09-active-system-structure/03-combat-resolution.md
+
+---
+id: CRC-003
+title: Require explicit ability sets for every combatant
+status: complete
+priority: high
+milestone: Combat Resolution Correctness
+description: Combatants with missing, empty, unknown, or passive-only active schedules now fail validation instead of receiving a hidden basic attack.
+acceptance_criteria:
+  - The automatic basic attack schedule fallback is removed.
+  - Missing or unschedulable ability sets fail before combat proceeds.
+  - Player loadout mutation rejects empty active schedules before deleting existing rows.
+current_code_references:
+  - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
+  - backend/src/Services/UnitLoadoutService.php
+  - backend/tests/Unit/Combat/DeterministicRunNodeResolverPrimitivesTest.php
+  - backend/tests/Integration/UnitLoadoutServiceIntegrationTest.php
+
+---
+id: CRC-004
+title: Remove automatic tick autofill behavior
+status: complete
+priority: high
+milestone: Combat Resolution Correctness
+description: Ability scheduling now preserves authored gaps and no longer auto-fills unused ticks with repeatable filler actions.
+acceptance_criteria:
+  - Only explicit equipped/authored abilities are scheduled.
+  - Sparse schedules retain unused ticks.
+  - Tests assert no hidden filler actions are inserted.
+current_code_references:
+  - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
+  - backend/tests/Integration/BattleNodeResolutionIntegrationTest.php
+  - documentation/09-active-system-structure/03-combat-resolution.md
+
+---
+id: CRC-005
+title: Apply full dice roll values in combat math
+status: complete
+priority: high
+milestone: Combat Resolution Correctness
+description: Combat dice now contribute the full rolled value, with trace copy describing contribution instead of centered modifiers.
+acceptance_criteria:
+  - Combat dice math applies full roll totals.
+  - Battle traces expose player-readable full-roll contribution.
+  - Tests cover exploding dice and slot contribution trace behavior.
+current_code_references:
+  - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
+  - backend/tests/Unit/Combat/DeterministicRunNodeResolverPrimitivesTest.php
+  - backend/tests/Integration/BattleNodeResolutionIntegrationTest.php
+  - documentation/09-active-system-structure/03-combat-resolution.md
+
 ## Progression Rewards and Unlock Clarity
 
 ---

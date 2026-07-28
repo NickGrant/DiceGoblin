@@ -3,6 +3,29 @@
 Completed milestone entries retained only when they provide 7/25 roadmap execution context.
 
 ---
+name: Combat Resolution Correctness
+status: complete
+issues:
+  - CRC-001
+  - CRC-002
+  - CRC-003
+  - CRC-004
+  - CRC-005
+description: Removed hidden combat fallback behavior so outcomes, action timing, and dice effects are driven by authored combat data and simulated events.
+goals:
+  - Resolve combat from terminal event state instead of score estimates.
+  - Remove ordinary short round cutoffs.
+  - Require explicit schedulable active abilities for every combatant.
+  - Preserve authored schedule gaps rather than adding hidden filler actions.
+  - Apply full dice roll values and describe their contribution clearly.
+current_code_context: DeterministicRunNodeResolver, UnitLoadoutService, focused backend tests, and combat system documentation now carry the corrected event-only combat rules.
+exit_criteria:
+  - Combat outcomes are event-only.
+  - Combat scheduling has no basic-attack fallback or tick autofill.
+  - Empty player loadouts are rejected before mutation.
+  - Full dice roll contribution is covered by tests and documentation.
+
+---
 name: Progression Rewards and Unlock Clarity
 status: complete
 issues:

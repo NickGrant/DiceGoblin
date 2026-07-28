@@ -2,29 +2,6 @@
 ----
 Active milestones only. Move completed entries to `agent/MILESTONES_ARCHIVE.md`.
 
-## Combat Resolution Correctness
-
-**Status:** Planned
-
-Remove hidden fallback behavior from combat resolution so battle outcomes, action timing, and dice effects are driven by authored combat data and simulated events.
-
-Success criteria:
-
-- Combat outcomes are always determined by resolved combat events, not score-based fallback estimates.
-- Combat is not cut off by the current 3-5 round planning window.
-- Player units and enemies require explicit schedulable ability sets.
-- Ability schedules do not auto-fill unused ticks with hidden repeat actions.
-- Dice rolls apply the full intended value, and combat logs explain their contribution clearly.
-- Active system documentation is updated after implementation to describe the corrected rules.
-
-### Related Issues
-
-- Remove score-based combat outcome fallback
-- Remove arbitrary combat round cutoff
-- Require explicit ability sets for every combatant
-- Remove automatic tick autofill behavior
-- Apply full dice roll values in combat math
-
 ## UAT Feedback Fix Round 2
 
 **Status:** Planned
