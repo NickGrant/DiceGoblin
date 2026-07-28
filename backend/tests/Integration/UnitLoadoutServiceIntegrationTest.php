@@ -34,6 +34,26 @@ final class UnitLoadoutServiceIntegrationTest extends IntegrationTestCase
     $service->replaceEquippedAbilities($unitId, ['sleep_dart']);
   }
 
+  public function testReplaceEquippedAbilitiesRejectsEmptyLoadoutWithoutClearingExistingAbilities(): void
+  {
+    $userId = $this->seedStarterUser();
+    $unitId = $this->loadStarterUnitId($userId, 'frontline_bruiser_t1');
+
+    $before = $this->equippedAbilityIds($unitId);
+    $this->assertNotSame([], $before);
+
+    $service = new UnitLoadoutService($this->pdo);
+
+    try {
+      $service->replaceEquippedAbilities($unitId, ['', '   ']);
+      $this->fail('Expected an empty active loadout to be rejected.');
+    } catch (RuntimeException $e) {
+      $this->assertStringContainsString('At least one active ability', $e->getMessage());
+    }
+
+    $this->assertSame($before, $this->equippedAbilityIds($unitId));
+  }
+
   public function testReplaceEquippedAbilitiesAllowsDuplicateAbilitiesWithinBudget(): void
   {
     $userId = $this->seedStarterUser();
@@ -144,6 +164,20 @@ final class UnitLoadoutServiceIntegrationTest extends IntegrationTestCase
     ');
     $stmt->execute([$userId]);
     return (int)$stmt->fetchColumn();
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function equippedAbilityIds(int $unitId): array
+  {
+    return array_map(
+      static fn(array $row): string => (string)$row['ability_id'],
+      $this->rows(
+        'SELECT `ability_id` FROM `unit_instance_equipped_abilities` WHERE `unit_instance_id` = ? ORDER BY `equip_order` ASC, `id` ASC',
+        [$unitId]
+      )
+    );
   }
 
   private function pickAnyDiceDefinitionId(): int

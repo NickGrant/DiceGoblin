@@ -159,6 +159,43 @@ final class GameplayUnitDetailsEndpointTest extends BattleFlowIntegrationCase
     $this->assertGreaterThan(0, (int)$stored[0]['speed_cost']);
   }
 
+  public function testReplaceEquippedAbilitiesEndpointRejectsEmptyActiveLoadout(): void
+  {
+    $userId = $this->insertUser('empty_loadout', 'Empty Loadout User');
+    [$unitTypeId, ] = $this->loadUnitType('frontline_bruiser_t1');
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, $unitTypeId);
+    $before = array_map(
+      static fn(array $row): string => (string)$row['ability_id'],
+      $this->rows(
+        'SELECT `ability_id` FROM `unit_instance_equipped_abilities` WHERE `unit_instance_id` = ? ORDER BY `equip_order` ASC, `id` ASC',
+        [$unitId]
+      )
+    );
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+    $this->setJsonBody([
+      'ability_ids' => [],
+    ]);
+
+    $controller = new GameplayController();
+    $response = $this->invoke(fn() => $controller->replaceEquippedAbilities((string)$unitId));
+
+    $this->assertSame(400, $response['status'], json_encode($response['body']));
+    $this->assertSame('validation_error', (string)($response['body']['error']['code'] ?? ''));
+    $this->assertStringContainsString('At least one active ability', (string)($response['body']['error']['message'] ?? ''));
+    $after = array_map(
+      static fn(array $row): string => (string)$row['ability_id'],
+      $this->rows(
+        'SELECT `ability_id` FROM `unit_instance_equipped_abilities` WHERE `unit_instance_id` = ? ORDER BY `equip_order` ASC, `id` ASC',
+        [$unitId]
+      )
+    );
+    $this->assertSame($before, $after);
+  }
+
   public function testPromoteUnitEndpointHonorsSelectedDestinationAndUnlocksNewBranchAbilities(): void
   {
     $userId = $this->insertUser('promo_dest', 'Promotion Destination User');
