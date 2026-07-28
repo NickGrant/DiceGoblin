@@ -852,3 +852,26 @@ current_code_references:
   - frontend/src/app/pages/home-page
   - frontend/src/app/layout/page-frame
   - frontend/src/app/layout/command-controls
+
+## Pattern-Based Run Map Generation
+
+---
+id: PRG-001
+title: Add pattern catalog schema and validation
+status: complete
+priority: medium
+milestone: Pattern-Based Run Map Generation
+description: Added authored run-pattern source files, runtime catalog storage, sync tooling, validator coverage, variant compilation, and repository access without changing live region generation.
+acceptance_criteria:
+  - Structured pattern/profile source files are introduced under the documented `backend/data/run-patterns/` ownership model.
+  - Runtime catalog storage or sync behavior is defined without making raw SQL the primary authoring surface.
+  - Pattern, socket, transform, region-rule, fallback-set, and profile validation are implemented.
+  - Validation proves enabled patterns have legal node keys, sockets, internal edges, transforms, and phase rules.
+  - No live region generation behavior changes in this foundation slice.
+current_code_references:
+  - backend/data/run-patterns/
+  - backend/migrations/78_run_pattern_catalog_storage.sql
+  - backend/src/Services/RunPatternCatalogValidator.php
+  - backend/src/Services/RunPatternCatalogSyncService.php
+  - backend/src/Services/RunPatternVariantCompiler.php
+  - backend/src/Repositories/RunPatternCatalogRepository.php

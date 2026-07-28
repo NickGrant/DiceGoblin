@@ -52,7 +52,6 @@ Success criteria:
 
 ### Related Issues
 
-- Add pattern catalog schema and validation
 - Implement pattern-v1 assembler behind generator version
 - Opt Mountains into pattern-v1 maps
 - Opt Swamps into pattern-v1 maps

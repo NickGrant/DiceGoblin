@@ -59,23 +59,6 @@ The roadmap work moved through many stacked PRs, so release readiness needs a fi
 
 ## Pattern-Based Run Map Generation
 
-### Add pattern catalog schema and validation
-
-**Milestone:** Pattern-Based Run Map Generation
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-`documentation/02-systems-mvp/15-pattern-based-run-map-generation.md` defines a pattern-catalog replacement for the lane-walker map generator, but the catalog schema, seed/sync path, and validation gates are not yet planned into active work.
-
-#### Acceptance Criteria
-
-- Structured pattern/profile source files are introduced under the documented `backend/data/run-patterns/` ownership model.
-- Runtime catalog storage or sync behavior is defined without making raw SQL the primary authoring surface.
-- Pattern, socket, transform, region-rule, fallback-set, and profile validation are implemented.
-- Validation proves enabled patterns have legal node keys, sockets, internal edges, transforms, and phase rules.
-- No live region generation behavior changes in this foundation slice.
-
 ### Implement pattern-v1 assembler behind generator version
 
 **Milestone:** Pattern-Based Run Map Generation
