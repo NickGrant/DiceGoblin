@@ -96,8 +96,8 @@ final class SpliceVariantService
       return [
         'slug' => self::BASIC_GOBLIN,
         'name' => 'Basic Goblin',
-        'description' => 'Baseline goblin stock with no splice tendency.',
-        'passive_summary' => 'No splice modifier.',
+        'description' => 'Baseline goblin stock with no kin tendency.',
+        'passive_summary' => 'No kin trait.',
         'stat_modifiers' => [],
       ];
     }
