@@ -644,7 +644,7 @@ Before persistence:
 - assign contiguous `node_index` values
 - rewrite edges to final node indexes
 - assign initial node statuses
-- produce generation summary metadata
+- produce generation summary metadata, including node counts, pattern frequency, spine depth, branch count, and boss-route distances
 - run all graph validators
 
 Persistence remains transactional through the run repository.
