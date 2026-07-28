@@ -43,6 +43,7 @@ final class RunPatternGenerationSummaryService
       'pattern_frequency' => $patternFrequency,
       'spine_depth' => $this->spineDepth($nodes),
       'branch_count' => $this->branchCount($nodes),
+      'boss_path' => $this->bossPathMetrics($nodes, $edges),
       'story_placement_requests' => array_values(array_filter(
         is_array($request['story_placement_requests'] ?? null) ? $request['story_placement_requests'] : [],
         'is_array',
@@ -83,5 +84,75 @@ final class RunPatternGenerationSummaryService
       }
     }
     return count($branches);
+  }
+
+  /**
+   * @param list<array<string,mixed>> $nodes
+   * @param list<array<string,mixed>> $edges
+   * @return array{start_to_boss:int|null,boss_to_exit:int|null}
+   */
+  private function bossPathMetrics(array $nodes, array $edges): array
+  {
+    $start = $this->firstNodeKeyByType($nodes, 'start');
+    $boss = $this->firstNodeKeyByType($nodes, 'boss');
+    $exit = $this->firstNodeKeyByType($nodes, 'exit');
+
+    return [
+      'start_to_boss' => $start !== null && $boss !== null
+        ? $this->shortestPathLength($start, $boss, $edges)
+        : null,
+      'boss_to_exit' => $boss !== null && $exit !== null
+        ? $this->shortestPathLength($boss, $exit, $edges)
+        : null,
+    ];
+  }
+
+  /**
+   * @param list<array<string,mixed>> $nodes
+   */
+  private function firstNodeKeyByType(array $nodes, string $type): ?string
+  {
+    foreach ($nodes as $node) {
+      if ((string)($node['type'] ?? $node['node_type'] ?? '') === $type) {
+        $key = (string)($node['key'] ?? $node['node_key'] ?? '');
+        return $key === '' ? null : $key;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * @param list<array<string,mixed>> $edges
+   */
+  private function shortestPathLength(string $from, string $to, array $edges): ?int
+  {
+    $adjacency = [];
+    foreach ($edges as $edge) {
+      $source = (string)($edge['from'] ?? $edge['from_node_key'] ?? '');
+      $target = (string)($edge['to'] ?? $edge['to_node_key'] ?? '');
+      if ($source !== '' && $target !== '') {
+        $adjacency[$source][] = $target;
+      }
+    }
+
+    $queue = [[$from, 0]];
+    $seen = [];
+    while ($queue !== []) {
+      [$current, $distance] = array_shift($queue);
+      if (!is_string($current) || isset($seen[$current])) {
+        continue;
+      }
+      if ($current === $to) {
+        return (int)$distance;
+      }
+
+      $seen[$current] = true;
+      foreach ($adjacency[$current] ?? [] as $next) {
+        $queue[] = [$next, ((int)$distance) + 1];
+      }
+    }
+
+    return null;
   }
 }
