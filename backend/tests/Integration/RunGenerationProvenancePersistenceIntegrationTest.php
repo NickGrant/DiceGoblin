@@ -64,6 +64,15 @@ final class RunGenerationProvenancePersistenceIntegrationTest extends Integratio
     $this->assertIsArray($summary);
     $this->assertSame(3, (int)$summary['node_count']);
     $this->assertSame([], $summary['validation_failures']);
+
+    $activeRun = (new RunRepository($this->pdo))->getActiveRunForUser($userId);
+    $this->assertIsArray($activeRun);
+    $this->assertSame('pattern-v1', $activeRun['generator_version']);
+    $this->assertSame(1, $activeRun['generation_profile_version']);
+    $this->assertSame(str_repeat('b', 64), $activeRun['pattern_catalog_hash']);
+    $this->assertSame(0, $activeRun['generation_attempt']);
+    $this->assertSame(3, (int)($activeRun['generation_summary']['node_count'] ?? 0));
+    $this->assertSame([], $activeRun['generation_summary']['validation_failures'] ?? null);
   }
 
   private function seededRegionId(string $slug): int

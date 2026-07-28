@@ -33,13 +33,29 @@ final class RunRepository
    *   seed:string,
    *   status:string,
    *   started_at:string,
-   *   ended_at:?string
+   *   ended_at:?string,
+   *   generator_version:?string,
+   *   generation_profile_version:?int,
+   *   pattern_catalog_hash:?string,
+   *   generation_attempt:?int,
+   *   generation_summary:array<string,mixed>|null
    * }|null
    */
   public function getActiveRunForUser(int $userId): ?array
   {
     $stmt = $this->pdo->prepare('
-      SELECT `id`, `region_id`, `seed`, `status`, `started_at`, `ended_at`
+      SELECT
+        `id`,
+        `region_id`,
+        `seed`,
+        `status`,
+        `started_at`,
+        `ended_at`,
+        `generator_version`,
+        `generation_profile_version`,
+        `pattern_catalog_hash`,
+        `generation_attempt`,
+        `generation_summary_json`
       FROM `region_runs`
       WHERE `user_id` = ?
         AND `status` = \'active\'
@@ -60,7 +76,25 @@ final class RunRepository
       'status' => (string)$r['status'],
       'started_at' => (string)$r['started_at'],
       'ended_at' => $r['ended_at'] !== null ? (string)$r['ended_at'] : null,
+      'generator_version' => $r['generator_version'] !== null ? (string)$r['generator_version'] : null,
+      'generation_profile_version' => $r['generation_profile_version'] !== null ? (int)$r['generation_profile_version'] : null,
+      'pattern_catalog_hash' => $r['pattern_catalog_hash'] !== null ? (string)$r['pattern_catalog_hash'] : null,
+      'generation_attempt' => $r['generation_attempt'] !== null ? (int)$r['generation_attempt'] : null,
+      'generation_summary' => $this->decodeGenerationSummary($r['generation_summary_json'] ?? null),
     ];
+  }
+
+  /**
+   * @return array<string,mixed>|null
+   */
+  private function decodeGenerationSummary(mixed $summaryJson): ?array
+  {
+    if (!is_string($summaryJson) || trim($summaryJson) === '') {
+      return null;
+    }
+
+    $decoded = json_decode($summaryJson, true);
+    return is_array($decoded) ? $decoded : null;
   }
 
   /**

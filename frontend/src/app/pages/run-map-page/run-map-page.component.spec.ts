@@ -302,6 +302,92 @@ describe('RunMapPageComponent', () => {
     expect(longJumpEdge?.path).toBe('M 260 54 C 344 54, 596 222, 680 222');
   });
 
+  it('shows pattern generation metadata when a generated run includes provenance', async () => {
+    class PatternRunServiceStub extends RunServiceStub {
+      override getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
+        ok: true,
+        data: {
+          run: {
+            run_id: 'run-5',
+            region_id: '2',
+            region_slug: 'mountains',
+            region_theme: 'mountain',
+            status: 'active',
+            generator_version: 'pattern-v1',
+            generation_profile_version: 1,
+            pattern_catalog_hash: 'abcdef1234567890',
+            generation_attempt: 0,
+            generation_summary: {
+              node_count: 5,
+              branch_count: 1,
+              spine_depth: 3,
+              boss_path: { start_to_boss: 2, boss_to_exit: 1 },
+            },
+          },
+          map: {
+            nodes: [
+              {
+                id: 'n1',
+                run_id: 'run-5',
+                node_index: 0,
+                node_type: 'combat',
+                status: 'available',
+                meta: {
+                  col: 0,
+                  row: 1,
+                  generation: {
+                    path_role: 'spine',
+                    depth: 0,
+                    pattern_key: 'shared_start_single@1',
+                  },
+                },
+              },
+              {
+                id: 'n2',
+                run_id: 'run-5',
+                node_index: 1,
+                node_type: 'boss',
+                status: 'locked',
+                meta: {
+                  col: 1,
+                  row: 1,
+                  generation: {
+                    path_role: 'spine',
+                    depth: 2,
+                    pattern_key: 'shared_boss_exit_terminal@1',
+                  },
+                },
+              },
+            ],
+            edges: [{ edge_id: 'e1', run_id: 'run-5', from_node_id: 'n1', to_node_id: 'n2' }],
+          },
+          run_unit_state: [],
+        },
+      });
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: PatternRunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.textContent).toContain('Generation');
+    expect(host.textContent).toContain('pattern-v1');
+    expect(host.textContent).toContain('2 to boss, 1 to exit');
+    expect(host.textContent).toContain('Combat · spine · depth 0');
+    expect(host.textContent).toContain('shared_boss_exit_terminal@1');
+    expect(host.querySelector('.run-map__pattern-label')?.textContent?.trim()).toBe('0');
+  });
+
   it('navigates to summary after abandoning a run', async () => {
     await TestBed.configureTestingModule({
       imports: [RunMapPageComponent],
