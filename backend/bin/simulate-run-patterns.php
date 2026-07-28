@@ -101,6 +101,7 @@ function outputResult(array $result, string $format): void
   echo sprintf('- spine_depth: %s' . PHP_EOL, json_encode($result['spine_depth'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- backtracks: %s' . PHP_EOL, json_encode($result['backtracks'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- duration_ms: %s' . PHP_EOL, json_encode($result['duration_ms'], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- boss_path: %s' . PHP_EOL, json_encode($result['boss_path'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- validation_failures: %s' . PHP_EOL, json_encode($result['validation_failures'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- node_type_frequency: %s' . PHP_EOL, json_encode($result['node_type_frequency'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- pattern_frequency: %s' . PHP_EOL, json_encode($result['pattern_frequency'], JSON_UNESCAPED_SLASHES));
