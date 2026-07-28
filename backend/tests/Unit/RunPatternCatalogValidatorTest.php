@@ -14,10 +14,10 @@ final class RunPatternCatalogValidatorTest extends TestCase
 
     $this->assertTrue($result['valid'], implode("\n", $result['errors']));
     $this->assertSame([], $result['errors']);
-    $this->assertSame(6, $result['pattern_count']);
-    $this->assertSame(12, $result['rule_count']);
+    $this->assertSame(7, $result['pattern_count']);
+    $this->assertSame(14, $result['rule_count']);
     $this->assertSame(2, $result['profile_count']);
-    $this->assertSame(10, $result['variant_count']);
+    $this->assertSame(12, $result['variant_count']);
     $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $result['catalog_hash']);
   }
 

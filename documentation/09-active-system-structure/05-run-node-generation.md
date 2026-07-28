@@ -111,7 +111,7 @@ See `04-dialogue-flow-determination.md` for dialogue gating details.
 
 - loads synced pattern profiles, region rules, definitions, and compiled variants;
 - builds a deterministic generation request with catalog hash and profile version;
-- assembles a preview graph from start, spine, and terminal patterns;
+- assembles a preview graph from start, required spine, terminal, and optional direct-cap branch patterns;
 - validates the preview graph for reachability, boss gating, overlaps, edge endpoints, and unresolved visible sockets;
 - normalizes the preview graph into existing `run_nodes` and `run_edges` shape;
 - assigns hazard metadata, loot/shrine quality tiers, encounter templates, and final run graph validation;
@@ -130,3 +130,5 @@ flowchart TD
 ```
 
 Remaining rollout work is still tracked in the Pattern-Based Run Map Generation milestone: richer branch/cap assembly, Mountains and Swamps opt-in evidence, story placement requests, and committed simulation quality gates.
+
+Current optional branches use cap patterns directly attached to spine nodes. This preserves the existing runtime invariant that a dead-end node must be optional from a parent that also has a boss route. Longer branch chains and merge-back branch motifs remain future pattern-v1 assembler work.

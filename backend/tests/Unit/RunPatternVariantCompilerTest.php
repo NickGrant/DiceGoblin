@@ -19,8 +19,8 @@ final class RunPatternVariantCompilerTest extends TestCase
       ['shared_shrine_combat_loot_branch@1:identity', 'shared_shrine_combat_loot_branch@1:mirror_y'],
       array_map(static fn(array $variant): string => (string)$variant['variant_key'], $variants)
     );
-    $this->assertSame(['width' => 2, 'height' => 2, 'min_x' => 0, 'max_x' => 1, 'min_y' => 0, 'max_y' => 1], $variants[0]['footprint']);
-    $this->assertSame(['width' => 2, 'height' => 2, 'min_x' => 0, 'max_x' => 1, 'min_y' => 0, 'max_y' => 1], $variants[1]['footprint']);
+    $this->assertSame(['width' => 3, 'height' => 2, 'min_x' => 0, 'max_x' => 2, 'min_y' => 0, 'max_y' => 1], $variants[0]['footprint']);
+    $this->assertSame(['width' => 3, 'height' => 2, 'min_x' => 0, 'max_x' => 2, 'min_y' => 0, 'max_y' => 1], $variants[1]['footprint']);
 
     $identityLoot = $this->nodeByKey($variants[0], 'loot');
     $mirroredLoot = $this->nodeByKey($variants[1], 'loot');

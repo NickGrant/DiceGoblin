@@ -22,7 +22,7 @@
     "required_node_types": ["boss", "exit", "rest", "chaos"],
     "boss_requires_spine": true,
     "exit_requires_boss_parent": true,
-    "fallback_patterns": ["shared_start_single", "shared_combat_step", "shared_loot_cap", "shared_boss_exit_terminal"]
+    "fallback_patterns": ["shared_start_single", "shared_combat_step", "shared_chaos_step", "shared_loot_cap", "shared_boss_exit_terminal"]
   },
   "retry_policy": { "candidate_retries": 20, "backtrack_depth": 4, "generation_attempts": 3 },
   "weight_policy": { "prefer_recovery_after_hazard": 1.4, "prefer_reward_on_branch": 1.25 }

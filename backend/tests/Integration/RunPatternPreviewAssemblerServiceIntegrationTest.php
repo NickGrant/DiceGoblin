@@ -39,8 +39,11 @@ final class RunPatternPreviewAssemblerServiceIntegrationTest extends Integration
     $this->assertSame($result['graph'], $sameResult['graph']);
     $this->assertGreaterThanOrEqual(10, count($result['graph']['nodes']));
     $this->assertContains('start', array_column($result['graph']['nodes'], 'type'));
+    $this->assertContains('chaos', array_column($result['graph']['nodes'], 'type'));
+    $this->assertContains('rest', array_column($result['graph']['nodes'], 'type'));
     $this->assertContains('boss', array_column($result['graph']['nodes'], 'type'));
     $this->assertContains('exit', array_column($result['graph']['nodes'], 'type'));
+    $this->assertGreaterThanOrEqual(1, count(array_unique(array_filter(array_column($result['graph']['nodes'], 'branch_key')))));
     $this->assertGreaterThanOrEqual(1, $result['trace']['counters']['placements']);
   }
 }
