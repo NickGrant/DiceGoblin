@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Services;
 
+use DiceGoblins\Repositories\RunPatternCatalogRepository;
 use PDO;
 use RuntimeException;
 
@@ -135,12 +136,28 @@ final class RunGraphGenerator
    */
   public function generate(int $regionId, string $regionSlug, string $seed, bool $allowChaosNodes = true): array
   {
+    return $this->generateWithVersion($regionId, $regionSlug, $seed, $allowChaosNodes, 'lane-v1');
+  }
+
+  /**
+   * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>}
+   */
+  public function generateWithVersion(int $regionId, string $regionSlug, string $seed, bool $allowChaosNodes = true, string $generatorVersion = 'lane-v1'): array
+  {
     if ($regionSlug === 'mystic_cave') {
       return $this->generateMysticCave();
     }
 
     if ($regionSlug === 'the_farm') {
       return $this->generateFarm($regionId);
+    }
+
+    if ($generatorVersion === 'pattern-v1') {
+      return $this->generatePatternV1($regionId, $regionSlug, $seed, $allowChaosNodes);
+    }
+
+    if ($generatorVersion !== 'lane-v1') {
+      throw new RuntimeException("Unsupported run graph generator version {$generatorVersion}.");
     }
 
     return $this->generateProcedural($regionId, $regionSlug, $seed, $allowChaosNodes);
@@ -717,6 +734,112 @@ final class RunGraphGenerator
     $this->assignNodeQualityTiers($nodes, $edges, $travelColumns);
     $nodes = $this->assignEncounterTemplates($regionId, $nodes, $seedKey);
     $this->validateGraph($nodes, $edges);
+
+    return ['nodes' => $nodes, 'edges' => $edges];
+  }
+
+  /**
+   * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>, generation:array<string,mixed>}
+   */
+  public function generatePatternV1(int $regionId, string $regionSlug, string $seed, bool $allowChaosNodes = true): array
+  {
+    $request = (new RunPatternGenerationRequestBuilder(new RunPatternCatalogRepository($this->pdo)))
+      ->build($regionSlug, $seed, 'pattern-v1');
+    $assembly = (new RunPatternPreviewAssemblerService())->assemble($request);
+    if (!$assembly['validation']['valid']) {
+      throw new RuntimeException('Pattern run graph generation failed validation: ' . implode(', ', $assembly['validation']['errors']));
+    }
+
+    $graph = $this->runtimeGraphFromPatternAssembly($assembly['graph'], $request);
+    if (!$allowChaosNodes) {
+      foreach ($graph['nodes'] as $index => $node) {
+        if ((string)($node['node_type'] ?? '') === 'chaos') {
+          $graph['nodes'][$index]['node_type'] = 'combat';
+        }
+      }
+    }
+
+    $this->assignHazardEffects($graph['nodes'], $seed . '|pattern-v1', $regionSlug);
+    $this->assignNodeQualityTiers($graph['nodes'], $graph['edges'], $this->maxRunColumn($graph['nodes']));
+    $graph['nodes'] = $this->assignEncounterTemplates($regionId, $graph['nodes'], $seed . '|pattern-v1');
+    $this->validateGraph($graph['nodes'], $graph['edges']);
+
+    $summary = (new RunPatternGenerationSummaryService())->summarize($request, $assembly['graph'], $assembly['trace']);
+    return [
+      'nodes' => $graph['nodes'],
+      'edges' => $graph['edges'],
+      'generation' => [
+        ...$summary,
+        'generation_attempt' => 0,
+      ],
+    ];
+  }
+
+  /**
+   * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $patternGraph
+   * @param array<string,mixed> $request
+   * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>}
+   */
+  private function runtimeGraphFromPatternAssembly(array $patternGraph, array $request): array
+  {
+    $patternNodes = array_values(array_filter($patternGraph['nodes'] ?? [], 'is_array'));
+    usort($patternNodes, static function (array $left, array $right): int {
+      $leftX = (int)($left['x'] ?? 0);
+      $rightX = (int)($right['x'] ?? 0);
+      if ($leftX !== $rightX) {
+        return $leftX <=> $rightX;
+      }
+
+      $leftY = (int)($left['y'] ?? 0);
+      $rightY = (int)($right['y'] ?? 0);
+      if ($leftY !== $rightY) {
+        return $leftY <=> $rightY;
+      }
+
+      return strcmp((string)($left['key'] ?? ''), (string)($right['key'] ?? ''));
+    });
+
+    $keyToIndex = [];
+    $nodes = [];
+    foreach ($patternNodes as $nodeIndex => $node) {
+      $key = (string)($node['key'] ?? '');
+      $keyToIndex[$key] = $nodeIndex;
+      $sourceType = (string)($node['source_type'] ?? $node['type'] ?? 'combat');
+      $nodeType = (string)($node['type'] ?? $sourceType);
+      if ($nodeType === 'start') {
+        $nodeType = $sourceType !== 'start' ? $sourceType : 'combat';
+      }
+
+      $nodes[] = [
+        'node_index' => $nodeIndex,
+        'node_type' => $nodeType,
+        'status' => $nodeIndex === 0 ? 'available' : 'locked',
+        'encounter_template_id' => null,
+        'meta' => [
+          'col' => (int)($node['x'] ?? 0),
+          'row' => (int)($node['y'] ?? 0),
+          'generation' => [
+            'generator_version' => 'pattern-v1',
+            'profile_version' => (int)($request['profile_version'] ?? 0),
+            'catalog_hash' => (string)($request['catalog_hash'] ?? ''),
+            'pattern_key' => (string)($node['pattern_key'] ?? ''),
+            'local_node_key' => (string)($node['key'] ?? ''),
+            'path_role' => (string)($node['path_role'] ?? ''),
+            'depth' => (int)($node['depth'] ?? 0),
+            'tags' => is_array($node['tags'] ?? null) ? array_values($node['tags']) : [],
+          ],
+        ],
+      ];
+    }
+
+    $edges = [];
+    foreach (array_values(array_filter($patternGraph['edges'] ?? [], 'is_array')) as $edge) {
+      $from = $keyToIndex[(string)($edge['from'] ?? '')] ?? null;
+      $to = $keyToIndex[(string)($edge['to'] ?? '')] ?? null;
+      if ($from !== null && $to !== null) {
+        $this->appendEdge($edges, $from, $to);
+      }
+    }
 
     return ['nodes' => $nodes, 'edges' => $edges];
   }
@@ -2296,6 +2419,20 @@ final class RunGraphGenerator
     foreach ($nodes as $node) {
       $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
       $max = max($max, (int)($meta['row'] ?? 0));
+    }
+
+    return $max;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   */
+  private function maxRunColumn(array $nodes): int
+  {
+    $max = 0;
+    foreach ($nodes as $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $max = max($max, (int)($meta['col'] ?? 0));
     }
 
     return $max;
