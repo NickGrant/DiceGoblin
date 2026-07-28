@@ -29,10 +29,10 @@ The 2026-07-28 Swamps gate run passed when executed sequentially against the Doc
 | Success rate | `1.0` |
 | Fallback rate | `0.0` |
 | Validation failures | `0` |
-| Branch count min/max/avg | `3 / 3 / 3.0` |
+| Branch count min/max/avg | `4 / 4 / 4.0` |
 | Backtracks min/max/avg | `0 / 0 / 0.0` |
-| Node count min/max/avg | `17 / 18 / 17.44` |
-| Spine depth min/max/avg | `13 / 14 / 13.44` |
+| Node count min/max/avg | `30 / 31 / 30.16` |
+| Spine depth min/max/avg | `25 / 26 / 25.16` |
 
 ## Distribution Notes
 
@@ -47,6 +47,8 @@ The gate output includes boss, exit, chaos, combat, hazard, loot, rest, and star
 
 This confirms the automated Swamps catalog path can satisfy required rest, chaos, boss, exit, branch, and cap contracts for the committed gate seed suite.
 
+The raised 2026-07-28 profile budget intentionally moves Swamps closer to the old `lane-v1` graph scale while keeping pattern-v1 less sprawling. The current gate keeps four optional cap branches and a boss route around 24-25 steps.
+
 ## Operational Note
 
 The Mountains and Swamps gate scripts both sync the pattern catalog into the same Docker test database. Run them sequentially during local review to avoid transient catalog-sync deadlocks.
@@ -55,4 +57,4 @@ The Mountains and Swamps gate scripts both sync the pattern catalog into the sam
 
 - Compare player-facing pacing against current `lane-v1` samples.
 - Complete manual sample review for readability, route choice, repeated motifs, recovery placement, and boss approach pacing.
-- Decide whether the current smaller pattern-v1 graph size and higher branch count are desirable before enabling `RUN_PATTERN_V1_REGIONS=swamps`.
+- Complete a manual map review before enabling `RUN_PATTERN_V1_REGIONS=swamps`.

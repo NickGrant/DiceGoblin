@@ -34,7 +34,7 @@ final class RunPatternCatalogRepositoryIntegrationTest extends IntegrationTestCa
     $this->assertIsArray($profile);
     $this->assertSame('mountains', $profile['region_slug']);
     $this->assertSame(1, $profile['profile_version']);
-    $this->assertSame(12, (int)$profile['budgets']['total_nodes']['target']);
+    $this->assertSame(22, (int)$profile['budgets']['total_nodes']['target']);
 
     $spineRules = $repository->listEnabledRules('mountains', 'pattern-v1', 'spine');
     $this->assertCount(3, $spineRules);
