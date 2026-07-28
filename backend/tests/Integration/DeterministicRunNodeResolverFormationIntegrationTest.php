@@ -13,6 +13,83 @@ final class DeterministicRunNodeResolverFormationIntegrationTest extends Integra
     return 'Set TEST_DB_DSN to run deterministic resolver footprint integration tests.';
   }
 
+  public function testResolveContinuesCombatBeyondFiveRoundsUntilEventsReachOutcome(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 62626262);
+
+    $enemySlug = 'qa-long-fight-enemy-' . bin2hex(random_bytes(4));
+    $encounterSlug = 'qa-long-fight-' . bin2hex(random_bytes(4));
+    $unitTypeSlug = 'qa-long-fight-unit-' . bin2hex(random_bytes(4));
+    $encounterId = null;
+    $unitTypeId = null;
+    $unitId = null;
+
+    try {
+      $unitTypeId = $this->insertUnitType(
+        $unitTypeSlug,
+        [
+          'attack' => 1,
+          'defense' => 0,
+          'max_hp' => 80,
+        ],
+        ['basic_attack_melee']
+      );
+      $unitId = $this->insertUnitInstance($userId, $unitTypeId);
+      $this->insertTeamUnitRow($teamId, $unitId);
+      $this->insertRunUnitStateRow($runId, $unitId, 80);
+
+      $this->insertEnemyTemplate(
+        $enemySlug,
+        [
+          'attack' => 1,
+          'defense' => 0,
+          'max_hp' => 80,
+        ],
+        ['basic_attack_melee']
+      );
+      $encounterId = $this->insertEncounterTemplate(
+        $encounterSlug,
+        $regionId,
+        [
+          'teams' => [[
+            'units' => [[
+              'enemy_template_slug' => $enemySlug,
+              'pos' => ['x' => 1, 'y' => 1],
+            ]],
+          ]],
+        ]
+      );
+
+      $resolver = new DeterministicRunNodeResolver($this->pdo);
+      $result = $resolver->resolve(
+        $userId,
+        $teamId,
+        ['id' => (string)$runId, 'seed' => '62626262'],
+        ['id' => '1', 'node_type' => 'combat', 'encounter_template_id' => (string)$encounterId]
+      );
+
+      $this->assertContains((string)($result['outcome'] ?? ''), ['victory', 'defeat']);
+      $this->assertGreaterThan(5, (int)($result['rounds'] ?? 0));
+
+      $log = is_array($result['log'] ?? null) ? $result['log'] : [];
+      $events = is_array($log['events'] ?? null) ? $log['events'] : [];
+      $battleEnd = null;
+      foreach ($events as $event) {
+        if (is_array($event) && (string)($event['type'] ?? '') === 'battle_end') {
+          $battleEnd = $event;
+        }
+      }
+
+      $this->assertIsArray($battleEnd, 'Expected a terminal battle_end event.');
+      $this->assertGreaterThan(5, (int)($battleEnd['round'] ?? 0));
+    } finally {
+      $this->cleanupResolverFixture($runId, $teamId, $unitId, $unitTypeId, $encounterId, [$enemySlug]);
+    }
+  }
+
   public function testResolveAppliesBackRowMeleeModifierToLargeEnemyFootprints(): void
   {
     $userId = $this->insertUser();
