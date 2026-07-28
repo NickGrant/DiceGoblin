@@ -36,6 +36,7 @@ use DiceGoblins\Services\ObjectiveService;
 use DiceGoblins\Services\ProfileService;
 use DiceGoblins\Services\ProfileDtoMapper;
 use DiceGoblins\Services\RunGraphGenerator;
+use DiceGoblins\Services\RunGeneratorVersionSelector;
 use DiceGoblins\Services\RunLifecycleService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\SquadCapacityService;
@@ -381,7 +382,8 @@ final class ApiController
         UserUnlockService::NAMESPACE_FEATURE,
         UserUnlockService::FEATURE_WRONG_MACHINE
       );
-      $graph = $graphGenerator->generate($regionId, (string)$region['slug'], (string)$seed, $allowChaosNodes);
+      $generatorVersion = (new RunGeneratorVersionSelector())->generatorVersionForRegion((string)$region['slug']);
+      $graph = $graphGenerator->generateWithVersion($regionId, (string)$region['slug'], (string)$seed, $allowChaosNodes, $generatorVersion);
       $treasureSenseRevealChance = $this->activeTeamTreasureSenseRevealChance($pdo, $teamUnitIds);
       if ($treasureSenseRevealChance > 0.0) {
         $graph = $graphGenerator->applyTreasureSenseReveal($regionId, $graph, (string)$seed, $treasureSenseRevealChance);
@@ -393,7 +395,8 @@ final class ApiController
         $regionId,
         (string)$seed,
         $graph['nodes'],
-        $graph['edges']
+        $graph['edges'],
+        is_array($graph['generation'] ?? null) ? $graph['generation'] : null
       );
       $services['runRepo']->seedRunUnitStateFromTeam(
         (int)$created['run_id'],
