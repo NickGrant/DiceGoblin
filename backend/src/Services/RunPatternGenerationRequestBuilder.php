@@ -45,6 +45,7 @@ final class RunPatternGenerationRequestBuilder
       'rules_by_phase' => $this->rulesByPhase($rules),
       'patterns_by_key' => $patterns,
       'variants_by_pattern_key' => $variants,
+      'story_placement_requests' => [],
     ];
   }
 

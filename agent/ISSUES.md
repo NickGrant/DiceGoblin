@@ -127,6 +127,12 @@ Current dialogue insertion can mutate completed graphs after topology generation
 - Post-hoc dialogue insertion remains only as a temporary adapter for unmigrated regions.
 - Tests prove migrated story placements satisfy graph validation and do not bypass required boss routes.
 
+#### Progress
+
+- Pattern-v1 now resolves user-specific start, before-boss, and before-exit dialogue placement requests before assembly and persists those requests in generation provenance.
+- Lane-v1 still uses the temporary post-generation dialogue insertion adapter.
+- Future pattern work still needs explicit after-start, depth-range, and branch-terminal placement support if/when active story definitions require those shapes.
+
 ### Add pattern generation debug and simulation gates
 
 **Milestone:** Pattern-Based Run Map Generation

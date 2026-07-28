@@ -142,8 +142,14 @@ final class RunGraphGenerator
   /**
    * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>}
    */
-  public function generateWithVersion(int $regionId, string $regionSlug, string $seed, bool $allowChaosNodes = true, string $generatorVersion = 'lane-v1'): array
-  {
+  public function generateWithVersion(
+    int $regionId,
+    string $regionSlug,
+    string $seed,
+    bool $allowChaosNodes = true,
+    string $generatorVersion = 'lane-v1',
+    array $storyPlacementRequests = []
+  ): array {
     if ($regionSlug === 'mystic_cave') {
       return $this->generateMysticCave();
     }
@@ -153,7 +159,7 @@ final class RunGraphGenerator
     }
 
     if ($generatorVersion === 'pattern-v1') {
-      return $this->generatePatternV1($regionId, $regionSlug, $seed, $allowChaosNodes);
+      return $this->generatePatternV1($regionId, $regionSlug, $seed, $allowChaosNodes, $storyPlacementRequests);
     }
 
     if ($generatorVersion !== 'lane-v1') {
@@ -233,9 +239,9 @@ final class RunGraphGenerator
    */
   public function applyDialogueNodes(int $userId, string $regionSlug, array $graph): array
   {
-    $definitions = $this->dialogueNodeDefinitionsForRegion($regionSlug);
     $seenDialogues = $this->seenDialogueSet($userId);
     $graph = $this->removeSeenOneTimeDialogueNodes($graph, $seenDialogues);
+    $definitions = $this->eligibleDialogueNodeDefinitions($userId, $regionSlug, $seenDialogues);
 
     if ($definitions === []) {
       $graph = $this->normalizeNodeIndexes($graph);
@@ -243,12 +249,50 @@ final class RunGraphGenerator
       return $graph;
     }
 
-    $hasShop = $this->hasFeatureUnlock($userId, 'shop');
     foreach ($definitions as $definition) {
       if ($regionSlug === 'mystic_cave' && $definition['dialogue_id'] === 'start-run-kickoff') {
         continue;
       }
 
+      $graph = $this->insertDialogueNode($graph, $definition);
+    }
+
+    $graph = $this->normalizeNodeIndexes($graph);
+    $this->validateGraph($graph['nodes'], $graph['edges']);
+
+    return $graph;
+  }
+
+  /**
+   * @return list<array{dialogue_id:string,placement:string,one_time:bool,tags:list<string>}>
+   */
+  public function buildDialoguePlacementRequests(int $userId, string $regionSlug): array
+  {
+    return array_map(
+      static fn(array $definition): array => [
+        'dialogue_id' => (string)$definition['dialogue_id'],
+        'placement' => (string)$definition['placement'],
+        'one_time' => (bool)$definition['one_time'],
+        'tags' => array_values(array_map('strval', $definition['tags'])),
+      ],
+      $this->eligibleDialogueNodeDefinitions($userId, $regionSlug, $this->seenDialogueSet($userId)),
+    );
+  }
+
+  /**
+   * @param array<string,bool> $seenDialogues
+   * @return array<int,array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string,requires_feature_unlock?:string,excludes_feature_unlock?:string}>
+   */
+  private function eligibleDialogueNodeDefinitions(int $userId, string $regionSlug, array $seenDialogues): array
+  {
+    $definitions = $this->dialogueNodeDefinitionsForRegion($regionSlug);
+    if ($definitions === []) {
+      return [];
+    }
+
+    $hasShop = $this->hasFeatureUnlock($userId, 'shop');
+    $eligible = [];
+    foreach ($definitions as $definition) {
       if ($definition['dialogue_id'] === 'farm-boss-intro' && $hasShop) {
         $definition['dialogue_id'] = 'farm-boss-intro-shop-unlocked';
       }
@@ -272,13 +316,10 @@ final class RunGraphGenerator
         continue;
       }
 
-      $graph = $this->insertDialogueNode($graph, $definition);
+      $eligible[] = $definition;
     }
 
-    $graph = $this->normalizeNodeIndexes($graph);
-    $this->validateGraph($graph['nodes'], $graph['edges']);
-
-    return $graph;
+    return $eligible;
   }
 
   /**
@@ -741,10 +782,16 @@ final class RunGraphGenerator
   /**
    * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>, generation:array<string,mixed>}
    */
-  public function generatePatternV1(int $regionId, string $regionSlug, string $seed, bool $allowChaosNodes = true): array
-  {
+  public function generatePatternV1(
+    int $regionId,
+    string $regionSlug,
+    string $seed,
+    bool $allowChaosNodes = true,
+    array $storyPlacementRequests = []
+  ): array {
     $request = (new RunPatternGenerationRequestBuilder(new RunPatternCatalogRepository($this->pdo)))
       ->build($regionSlug, $seed, 'pattern-v1');
+    $request['story_placement_requests'] = $this->normalizedStoryPlacementRequests($storyPlacementRequests);
     $assembly = (new RunPatternPreviewAssemblerService())->assemble($request);
     if (!$assembly['validation']['valid']) {
       throw new RuntimeException('Pattern run graph generation failed validation: ' . implode(', ', $assembly['validation']['errors']));
@@ -828,6 +875,7 @@ final class RunGraphGenerator
             'depth' => (int)($node['depth'] ?? 0),
             'tags' => is_array($node['tags'] ?? null) ? array_values($node['tags']) : [],
           ],
+          ...$this->patternDialogueMeta($node),
         ],
       ];
     }
@@ -842,6 +890,53 @@ final class RunGraphGenerator
     }
 
     return ['nodes' => $nodes, 'edges' => $edges];
+  }
+
+  /**
+   * @param list<array<string,mixed>> $requests
+   * @return list<array{dialogue_id:string,placement:string,one_time:bool,tags:list<string>}>
+   */
+  private function normalizedStoryPlacementRequests(array $requests): array
+  {
+    $normalized = [];
+    foreach ($requests as $request) {
+      if (!is_array($request)) {
+        continue;
+      }
+
+      $dialogueId = trim((string)($request['dialogue_id'] ?? ''));
+      $placement = trim((string)($request['placement'] ?? ''));
+      if ($dialogueId === '' || !in_array($placement, ['start', 'before_boss', 'before_exit'], true)) {
+        continue;
+      }
+
+      $normalized[] = [
+        'dialogue_id' => $dialogueId,
+        'placement' => $placement,
+        'one_time' => (bool)($request['one_time'] ?? false),
+        'tags' => array_values(array_map('strval', is_array($request['tags'] ?? null) ? $request['tags'] : [])),
+      ];
+    }
+
+    return $normalized;
+  }
+
+  /**
+   * @param array<string,mixed> $node
+   * @return array<string,mixed>
+   */
+  private function patternDialogueMeta(array $node): array
+  {
+    if ((string)($node['source_type'] ?? '') !== 'dialogue' && !isset($node['dialogue_id'])) {
+      return [];
+    }
+
+    return [
+      'dialogue_id' => (string)($node['dialogue_id'] ?? ''),
+      'one_time' => (bool)($node['one_time'] ?? false),
+      'placement' => (string)($node['placement'] ?? ''),
+      'tags' => array_values(array_map('strval', is_array($node['tags'] ?? null) ? $node['tags'] : [])),
+    ];
   }
 
   /**
