@@ -20,15 +20,23 @@ $region = (string)($options['region'] ?? 'mountains');
 $runs = (int)($options['runs'] ?? 25);
 $seed = (string)($options['seed'] ?? 'pattern-sim');
 $generatorVersion = (string)($options['generator'] ?? 'pattern-v1');
+$gate = (bool)($options['gate'] ?? false);
 
 try {
   $pdo = $processDbEnv !== [] ? pdoFromProcessDbEnv($processDbEnv) : Db::pdo();
-  $simulation = (new RunPatternSimulationService(
+  $simulator = new RunPatternSimulationService(
     new RunPatternGenerationRequestBuilder(new RunPatternCatalogRepository($pdo))
-  ))->simulate($region, $runs, $seed, $generatorVersion);
+  );
+  $simulation = $simulator->simulate($region, $runs, $seed, $generatorVersion);
+  if ($gate) {
+    $simulation['gate'] = $simulator->evaluateGate($simulation, gateOptions($options));
+  }
 
   outputResult($simulation, $format);
-  exit(((int)$simulation['successes']) === ((int)$simulation['runs']) ? 0 : 1);
+  $passed = $gate
+    ? (bool)($simulation['gate']['passed'] ?? false)
+    : ((int)$simulation['successes']) === ((int)$simulation['runs']);
+  exit($passed ? 0 : 1);
 } catch (Throwable $throwable) {
   fwrite(STDERR, 'Run pattern simulation failed: ' . $throwable->getMessage() . PHP_EOL);
   exit(1);
@@ -86,9 +94,50 @@ function outputResult(array $result, string $format): void
   );
   echo sprintf('- runs: %d' . PHP_EOL, (int)$result['runs']);
   echo sprintf('- success_rate: %.4f' . PHP_EOL, (float)$result['success_rate']);
+  echo sprintf('- fallback_rate: %.4f' . PHP_EOL, (float)$result['fallback_rate']);
   echo sprintf('- node_count: %s' . PHP_EOL, json_encode($result['node_count'], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- edge_count: %s' . PHP_EOL, json_encode($result['edge_count'], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- branch_count: %s' . PHP_EOL, json_encode($result['branch_count'], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- spine_depth: %s' . PHP_EOL, json_encode($result['spine_depth'], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- backtracks: %s' . PHP_EOL, json_encode($result['backtracks'], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- duration_ms: %s' . PHP_EOL, json_encode($result['duration_ms'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- validation_failures: %s' . PHP_EOL, json_encode($result['validation_failures'], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- node_type_frequency: %s' . PHP_EOL, json_encode($result['node_type_frequency'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- pattern_frequency: %s' . PHP_EOL, json_encode($result['pattern_frequency'], JSON_UNESCAPED_SLASHES));
+  if (isset($result['gate']) && is_array($result['gate'])) {
+    echo sprintf('- gate: %s' . PHP_EOL, ((bool)($result['gate']['passed'] ?? false)) ? 'passed' : 'failed');
+    foreach (array_values(array_filter(is_array($result['gate']['checks'] ?? null) ? $result['gate']['checks'] : [], 'is_array')) as $check) {
+      echo sprintf(
+        '  - %s: %s (actual=%s expected=%s)' . PHP_EOL,
+        (string)($check['name'] ?? 'unknown'),
+        (bool)($check['passed'] ?? false) ? 'passed' : 'failed',
+        json_encode($check['actual'] ?? null, JSON_UNESCAPED_SLASHES),
+        json_encode($check['expected'] ?? null, JSON_UNESCAPED_SLASHES),
+      );
+    }
+  }
+}
+
+/**
+ * @param array<string,mixed> $options
+ * @return array<string,mixed>
+ */
+function gateOptions(array $options): array
+{
+  $mapping = [
+    'min-success-rate' => 'min_success_rate',
+    'max-fallback-rate' => 'max_fallback_rate',
+    'max-backtracks-avg' => 'max_backtracks_avg',
+    'min-branch-count' => 'min_branch_count',
+  ];
+
+  $gateOptions = [];
+  foreach ($mapping as $cliKey => $optionKey) {
+    if (array_key_exists($cliKey, $options)) {
+      $gateOptions[$optionKey] = $options[$cliKey];
+    }
+  }
+  return $gateOptions;
 }
 
 /**

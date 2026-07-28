@@ -149,3 +149,9 @@ The pattern system needs diagnostic visibility before rollout, otherwise invalid
 - Debug map tooling can inspect pattern provenance, spine nodes, depth, pattern slug/version, and fallback use.
 - Simulation reports success rate, fallback rate, backtracks, generation duration, node distributions, pattern frequency, and boss path metrics.
 - Quality gates require valid graphs, no boss bypasses, no unreachable nodes, no overlaps, and no unresolved visible sockets across the committed seed suite.
+
+#### Progress
+
+- Pattern simulation now reports success rate, fallback rate, validation failures, node/edge distributions, branch counts, spine depth, backtracks, generation duration, node-type frequency, and pattern frequency.
+- `run-patterns:gate:mountains:docker` and `run-patterns:gate:swamps:docker` run committed 25-seed gates with strict validity, fallback, branch-count, and backtrack thresholds.
+- Boss path metrics and frontend debug-map overlays remain future work.

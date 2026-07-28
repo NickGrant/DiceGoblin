@@ -119,6 +119,7 @@ See `04-dialogue-flow-determination.md` for dialogue gating details.
 - normalizes the preview graph into existing `run_nodes` and `run_edges` shape;
 - assigns hazard metadata, loot/shrine quality tiers, encounter templates, and final run graph validation;
 - returns bounded generation metadata for `region_runs` provenance when persisted by `RunRepository::createRunGraph()`.
+- can be simulated through `run-patterns:gate:mountains:docker` and `run-patterns:gate:swamps:docker`, which fail when validation, fallback, branch-count, or backtrack thresholds are not met.
 
 ```mermaid
 flowchart TD
