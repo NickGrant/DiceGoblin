@@ -195,7 +195,8 @@ final class RunRepository
     int $regionId,
     int|string $seed,
     array $nodes,
-    array $edges
+    array $edges,
+    ?array $generation = null
   ): array {
     $ownsTx = false;
 
@@ -206,6 +207,9 @@ final class RunRepository
       }
 
       $runId = $this->createRun($userId, $regionId, (string)$seed);
+      if ($generation !== null) {
+        $this->updateRunGenerationMetadata($runId, $generation);
+      }
 
       $nodeIdByIndex = $this->insertRunNodes($runId, $nodes);
 
@@ -222,6 +226,39 @@ final class RunRepository
       }
       throw $e;
     }
+  }
+
+  /**
+   * @param array<string,mixed> $generation
+   */
+  public function updateRunGenerationMetadata(int $runId, array $generation): void
+  {
+    $summaryJson = $generation['generation_summary_json'] ?? $generation;
+    if (is_array($summaryJson)) {
+      $summaryJson = json_encode($summaryJson, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+    if ($summaryJson !== null && !is_string($summaryJson)) {
+      throw new RuntimeException('Invalid generation summary metadata.');
+    }
+
+    $stmt = $this->pdo->prepare('
+      UPDATE `region_runs`
+      SET
+        `generator_version` = ?,
+        `generation_profile_version` = ?,
+        `pattern_catalog_hash` = ?,
+        `generation_attempt` = ?,
+        `generation_summary_json` = ?
+      WHERE `id` = ?
+    ');
+    $stmt->execute([
+      $generation['generator_version'] ?? null,
+      isset($generation['profile_version']) ? (int)$generation['profile_version'] : null,
+      $generation['catalog_hash'] ?? null,
+      isset($generation['generation_attempt']) ? (int)$generation['generation_attempt'] : null,
+      $summaryJson,
+      $runId,
+    ]);
   }
 
 
