@@ -86,6 +86,10 @@ function compareGenerators(RunGraphGenerator $generator, int $regionId, string $
   $patternNodeCounts = [];
   $laneEdgeCounts = [];
   $patternEdgeCounts = [];
+  $laneStartToBossPaths = [];
+  $patternStartToBossPaths = [];
+  $laneBossToExitPaths = [];
+  $patternBossToExitPaths = [];
   $laneTypes = [];
   $patternTypes = [];
 
@@ -100,6 +104,10 @@ function compareGenerators(RunGraphGenerator $generator, int $regionId, string $
     $patternNodeCounts[] = $patternSummary['node_count'];
     $laneEdgeCounts[] = $laneSummary['edge_count'];
     $patternEdgeCounts[] = $patternSummary['edge_count'];
+    pushNullableMetric($laneStartToBossPaths, $laneSummary['boss_path']['start_to_boss']);
+    pushNullableMetric($patternStartToBossPaths, $patternSummary['boss_path']['start_to_boss']);
+    pushNullableMetric($laneBossToExitPaths, $laneSummary['boss_path']['boss_to_exit']);
+    pushNullableMetric($patternBossToExitPaths, $patternSummary['boss_path']['boss_to_exit']);
     mergeCounts($laneTypes, $laneSummary['node_types']);
     mergeCounts($patternTypes, $patternSummary['node_types']);
 
@@ -110,6 +118,8 @@ function compareGenerators(RunGraphGenerator $generator, int $regionId, string $
       'delta' => [
         'node_count' => $patternSummary['node_count'] - $laneSummary['node_count'],
         'edge_count' => $patternSummary['edge_count'] - $laneSummary['edge_count'],
+        'start_to_boss' => nullableDelta($patternSummary['boss_path']['start_to_boss'], $laneSummary['boss_path']['start_to_boss']),
+        'boss_to_exit' => nullableDelta($patternSummary['boss_path']['boss_to_exit'], $laneSummary['boss_path']['boss_to_exit']),
       ],
     ];
   }
@@ -122,11 +132,19 @@ function compareGenerators(RunGraphGenerator $generator, int $regionId, string $
     'lane_v1' => [
       'node_count' => distribution($laneNodeCounts),
       'edge_count' => distribution($laneEdgeCounts),
+      'boss_path' => [
+        'start_to_boss' => nullableDistribution($laneStartToBossPaths),
+        'boss_to_exit' => nullableDistribution($laneBossToExitPaths),
+      ],
       'node_types' => $laneTypes,
     ],
     'pattern_v1' => [
       'node_count' => distribution($patternNodeCounts),
       'edge_count' => distribution($patternEdgeCounts),
+      'boss_path' => [
+        'start_to_boss' => nullableDistribution($patternStartToBossPaths),
+        'boss_to_exit' => nullableDistribution($patternBossToExitPaths),
+      ],
       'node_types' => $patternTypes,
     ],
     'results' => $rows,
@@ -135,7 +153,7 @@ function compareGenerators(RunGraphGenerator $generator, int $regionId, string $
 
 /**
  * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $graph
- * @return array{node_count:int,edge_count:int,node_types:array<string,int>,available_count:int,has_generation:bool}
+ * @return array{node_count:int,edge_count:int,node_types:array<string,int>,available_count:int,has_generation:bool,boss_path:array{start_to_boss:int|null,boss_to_exit:int|null}}
  */
 function graphSummary(array $graph): array
 {
@@ -155,7 +173,92 @@ function graphSummary(array $graph): array
     'node_types' => $nodeTypes,
     'available_count' => $available,
     'has_generation' => is_array($graph['generation'] ?? null),
+    'boss_path' => bossPathMetrics(
+      array_values(array_filter($graph['nodes'] ?? [], 'is_array')),
+      array_values(array_filter($graph['edges'] ?? [], 'is_array')),
+    ),
   ];
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ * @param list<array<string,mixed>> $edges
+ * @return array{start_to_boss:int|null,boss_to_exit:int|null}
+ */
+function bossPathMetrics(array $nodes, array $edges): array
+{
+  $start = firstNodeIndexByType($nodes, 'start') ?? firstNodeIndexByStatus($nodes, 'available');
+  $boss = firstNodeIndexByType($nodes, 'boss');
+  $exit = firstNodeIndexByType($nodes, 'exit');
+
+  return [
+    'start_to_boss' => $start !== null && $boss !== null
+      ? shortestPathLength($start, $boss, $edges)
+      : null,
+    'boss_to_exit' => $boss !== null && $exit !== null
+      ? shortestPathLength($boss, $exit, $edges)
+      : null,
+  ];
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ */
+function firstNodeIndexByType(array $nodes, string $type): ?int
+{
+  foreach ($nodes as $node) {
+    if ((string)($node['node_type'] ?? $node['type'] ?? '') === $type) {
+      return isset($node['node_index']) ? (int)$node['node_index'] : null;
+    }
+  }
+  return null;
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ */
+function firstNodeIndexByStatus(array $nodes, string $status): ?int
+{
+  foreach ($nodes as $node) {
+    if ((string)($node['status'] ?? '') === $status) {
+      return isset($node['node_index']) ? (int)$node['node_index'] : null;
+    }
+  }
+  return null;
+}
+
+/**
+ * @param list<array<string,mixed>> $edges
+ */
+function shortestPathLength(int $from, int $to, array $edges): ?int
+{
+  $adjacency = [];
+  foreach ($edges as $edge) {
+    $source = isset($edge['from']) ? (int)$edge['from'] : null;
+    $target = isset($edge['to']) ? (int)$edge['to'] : null;
+    if ($source !== null && $target !== null) {
+      $adjacency[$source][] = $target;
+    }
+  }
+
+  $queue = [[$from, 0]];
+  $seen = [];
+  while ($queue !== []) {
+    [$current, $distance] = array_shift($queue);
+    if (isset($seen[$current])) {
+      continue;
+    }
+    if ($current === $to) {
+      return (int)$distance;
+    }
+
+    $seen[$current] = true;
+    foreach ($adjacency[$current] ?? [] as $next) {
+      $queue[] = [(int)$next, ((int)$distance) + 1];
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -180,6 +283,36 @@ function distribution(array $values): array
     'max' => max($values),
     'avg' => round(array_sum($values) / count($values), 2),
   ];
+}
+
+/**
+ * @param list<int> $values
+ */
+function pushNullableMetric(array &$values, mixed $value): void
+{
+  if (is_numeric($value)) {
+    $values[] = (int)$value;
+  }
+}
+
+/**
+ * @param list<int> $values
+ * @return array{min:int|null,max:int|null,avg:float|null}
+ */
+function nullableDistribution(array $values): array
+{
+  if ($values === []) {
+    return ['min' => null, 'max' => null, 'avg' => null];
+  }
+
+  return distribution($values);
+}
+
+function nullableDelta(mixed $left, mixed $right): ?int
+{
+  return is_numeric($left) && is_numeric($right)
+    ? (int)$left - (int)$right
+    : null;
 }
 
 /**
