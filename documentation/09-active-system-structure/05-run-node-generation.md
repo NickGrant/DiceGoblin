@@ -42,6 +42,8 @@ The farm uses fixed encounter templates for its combat, loot, rest, and boss nod
 
 The default generator version is `lane-v1`. API run creation uses `RunGeneratorVersionSelector`, which only returns `pattern-v1` for regions listed in `RUN_PATTERN_V1_REGIONS`. With the default empty value, Mountains and Swamps still use `lane-v1`.
 
+When `pattern-v1` is selected, user-specific story beats are resolved before topology assembly as `story_placement_requests`. Those requests currently cover the same start, before-boss, and before-exit placements used by the legacy lane graph mutator, but the pattern path places them inside the assembled graph before validation and provenance persistence.
+
 | Region | Rows | Travel columns | Paths | Opening rows | Lane gap | Dead ends | Dead-end chain | Rest weight | Loot weight | Combat weight |
 | --- | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: |
 | `mountains` | `9` | `8` | `3` | `3` | `2` | `2-3` | `1` | `1` | `2` | `5` |
@@ -112,6 +114,7 @@ See `04-dialogue-flow-determination.md` for dialogue gating details.
 - loads synced pattern profiles, region rules, definitions, and compiled variants;
 - builds a deterministic generation request with catalog hash and profile version;
 - assembles a preview graph from start, required spine, terminal, and optional direct-cap branch patterns;
+- places requested start, before-boss, and before-exit story nodes inside the preview graph;
 - validates the preview graph for reachability, boss gating, overlaps, edge endpoints, and unresolved visible sockets;
 - normalizes the preview graph into existing `run_nodes` and `run_edges` shape;
 - assigns hazard metadata, loot/shrine quality tiers, encounter templates, and final run graph validation;

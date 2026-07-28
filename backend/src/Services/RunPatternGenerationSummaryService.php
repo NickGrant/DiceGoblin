@@ -43,6 +43,10 @@ final class RunPatternGenerationSummaryService
       'pattern_frequency' => $patternFrequency,
       'spine_depth' => $this->spineDepth($nodes),
       'branch_count' => $this->branchCount($nodes),
+      'story_placement_requests' => array_values(array_filter(
+        is_array($request['story_placement_requests'] ?? null) ? $request['story_placement_requests'] : [],
+        'is_array',
+      )),
       'trace' => [
         'counters' => is_array($traceSummary['counters'] ?? null) ? $traceSummary['counters'] : [],
         'event_count' => (int)($traceSummary['event_count'] ?? 0),

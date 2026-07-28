@@ -383,12 +383,24 @@ final class ApiController
         UserUnlockService::FEATURE_WRONG_MACHINE
       );
       $generatorVersion = (new RunGeneratorVersionSelector())->generatorVersionForRegion((string)$region['slug']);
-      $graph = $graphGenerator->generateWithVersion($regionId, (string)$region['slug'], (string)$seed, $allowChaosNodes, $generatorVersion);
+      $storyPlacementRequests = $generatorVersion === 'pattern-v1'
+        ? $graphGenerator->buildDialoguePlacementRequests($userId, (string)$region['slug'])
+        : [];
+      $graph = $graphGenerator->generateWithVersion(
+        $regionId,
+        (string)$region['slug'],
+        (string)$seed,
+        $allowChaosNodes,
+        $generatorVersion,
+        $storyPlacementRequests
+      );
       $treasureSenseRevealChance = $this->activeTeamTreasureSenseRevealChance($pdo, $teamUnitIds);
       if ($treasureSenseRevealChance > 0.0) {
         $graph = $graphGenerator->applyTreasureSenseReveal($regionId, $graph, (string)$seed, $treasureSenseRevealChance);
       }
-      $graph = $graphGenerator->applyDialogueNodes($userId, (string)$region['slug'], $graph);
+      if ($generatorVersion !== 'pattern-v1') {
+        $graph = $graphGenerator->applyDialogueNodes($userId, (string)$region['slug'], $graph);
+      }
 
       $created = $services['runRepo']->createRunGraph(
         $userId,

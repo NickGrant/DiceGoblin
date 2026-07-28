@@ -193,6 +193,59 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertSame('pattern-v1', (string)($graph['nodes'][0]['meta']['generation']['generator_version'] ?? ''));
   }
 
+  public function testBuildsUserSpecificDialoguePlacementRequestsForPatternGeneration(): void
+  {
+    $userId = $this->insertUser();
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $freshRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
+
+    $this->assertSame(
+      ['mountains-archivist-first-contact', 'mountains-kobold-machine-trail', 'mountains-swamps-lead'],
+      array_column($freshRequests, 'dialogue_id'),
+    );
+    $this->assertSame(['start', 'before_boss', 'before_exit'], array_column($freshRequests, 'placement'));
+
+    $this->grantUnlock($userId, 'dialogue', 'mountains-archivist-first-contact');
+    $repeatRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
+
+    $this->assertContains('mountains-wrong-machine-search-repeat', array_column($repeatRequests, 'dialogue_id'));
+    $this->assertNotContains('mountains-archivist-first-contact', array_column($repeatRequests, 'dialogue_id'));
+
+    $this->grantUnlock($userId, 'feature', 'wrong_machine');
+    $recoveredRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
+
+    $this->assertContains('mountains-kobold-machine-recovered', array_column($recoveredRequests, 'dialogue_id'));
+    $this->assertNotContains('mountains-kobold-machine-trail', array_column($recoveredRequests, 'dialogue_id'));
+    $this->assertNotContains('mountains-wrong-machine-search-repeat', array_column($recoveredRequests, 'dialogue_id'));
+  }
+
+  public function testPatternV1PlacesStoryRequestsInsideRuntimeGraph(): void
+  {
+    (new RunPatternCatalogSyncService($this->pdo))->syncDefaultCatalog();
+
+    $regionId = $this->seededRegionId('mountains');
+    $generator = new RunGraphGenerator($this->pdo);
+    $storyRequests = [
+      ['dialogue_id' => 'qa-start-story', 'placement' => 'start', 'one_time' => true, 'tags' => ['lore']],
+      ['dialogue_id' => 'qa-boss-story', 'placement' => 'before_boss', 'one_time' => false, 'tags' => []],
+      ['dialogue_id' => 'qa-exit-story', 'placement' => 'before_exit', 'one_time' => true, 'tags' => ['lore']],
+    ];
+
+    $graph = $generator->generateWithVersion($regionId, 'mountains', 'pattern-story-seed', true, 'pattern-v1', $storyRequests);
+    $analysis = $this->analyzeGraph($graph);
+
+    $this->assertSame($storyRequests, $graph['generation']['story_placement_requests']);
+    $this->assertContains('qa-start-story', $this->dialogueIds($graph));
+    $this->assertContains('qa-boss-story', $this->dialogueIds($graph));
+    $this->assertContains('qa-exit-story', $this->dialogueIds($graph));
+    $this->assertSame('qa-start-story', (string)($graph['nodes'][$analysis['start_index']]['meta']['dialogue_id'] ?? ''));
+    $this->assertDialogueImmediatelyPrecedes($graph, 'qa-boss-story', 'boss');
+    $this->assertDialogueImmediatelyPrecedes($graph, 'qa-exit-story', 'exit');
+    $this->assertTrue(isset($analysis['reachable_from_start'][$analysis['boss_index']]));
+    $this->assertTrue(isset($analysis['reachable_from_boss'][$analysis['exit_index']]));
+  }
+
   public function testDefaultProceduralGenerationStillUsesLaneV1Shape(): void
   {
     (new RunPatternCatalogSyncService($this->pdo))->syncDefaultCatalog();

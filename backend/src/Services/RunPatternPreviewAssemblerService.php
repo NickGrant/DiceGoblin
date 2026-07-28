@@ -36,6 +36,7 @@ final class RunPatternPreviewAssemblerService
     }
 
     $graph = $this->attachBranches($request, $graph, $rng, $trace);
+    $graph = $this->applyStoryPlacementRequests($graph, $request);
 
     $validation = $this->validator->validate($graph);
     if (!$validation['valid']) {
@@ -376,5 +377,140 @@ final class RunPatternPreviewAssemblerService
       }
     }
     return null;
+  }
+
+  /**
+   * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $graph
+   * @param array<string,mixed> $request
+   * @return array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>}
+   */
+  private function applyStoryPlacementRequests(array $graph, array $request): array
+  {
+    $storyRequests = array_values(array_filter(
+      is_array($request['story_placement_requests'] ?? null) ? $request['story_placement_requests'] : [],
+      'is_array',
+    ));
+
+    foreach ($storyRequests as $index => $storyRequest) {
+      $placement = (string)($storyRequest['placement'] ?? '');
+      $graph = match ($placement) {
+        'start' => $this->insertStartStoryNode($graph, $storyRequest, $index),
+        'before_boss' => $this->insertStoryNodeBeforeType($graph, $storyRequest, $index, 'boss'),
+        'before_exit' => $this->insertStoryNodeBeforeType($graph, $storyRequest, $index, 'exit'),
+        default => $graph,
+      };
+    }
+
+    return $graph;
+  }
+
+  /**
+   * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $graph
+   * @param array<string,mixed> $storyRequest
+   * @return array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>}
+   */
+  private function insertStartStoryNode(array $graph, array $storyRequest, int $index): array
+  {
+    foreach ($graph['nodes'] as $nodeIndex => $node) {
+      $graph['nodes'][$nodeIndex]['x'] = (int)($node['x'] ?? 0) + 1;
+      $graph['nodes'][$nodeIndex]['depth'] = (int)($node['depth'] ?? 0) + 1;
+      if ((string)($node['type'] ?? '') === 'start') {
+        $graph['nodes'][$nodeIndex]['type'] = (string)($node['source_type'] ?? 'combat');
+      }
+    }
+
+    $incoming = [];
+    foreach ($graph['edges'] as $edge) {
+      $incoming[(string)($edge['to'] ?? '')] = true;
+    }
+
+    $roots = [];
+    foreach ($graph['nodes'] as $node) {
+      $key = (string)($node['key'] ?? '');
+      if ($key !== '' && !isset($incoming[$key])) {
+        $roots[] = $key;
+      }
+    }
+
+    if ($roots === []) {
+      return $graph;
+    }
+
+    $storyNode = $this->storyNode($storyRequest, $index, 'start', 0, (int)($graph['nodes'][0]['y'] ?? 0));
+    $graph['nodes'][] = $storyNode;
+    foreach ($roots as $rootKey) {
+      $graph['edges'][] = ['from' => $storyNode['key'], 'to' => $rootKey];
+    }
+
+    return $graph;
+  }
+
+  /**
+   * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $graph
+   * @param array<string,mixed> $storyRequest
+   * @return array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>}
+   */
+  private function insertStoryNodeBeforeType(array $graph, array $storyRequest, int $index, string $targetType): array
+  {
+    $target = null;
+    foreach ($graph['nodes'] as $node) {
+      if ((string)($node['type'] ?? '') === $targetType) {
+        $target = $node;
+        break;
+      }
+    }
+
+    if ($target === null) {
+      return $graph;
+    }
+
+    $targetKey = (string)($target['key'] ?? '');
+    $targetX = (int)($target['x'] ?? 0);
+    foreach ($graph['nodes'] as $nodeIndex => $node) {
+      $x = (int)($node['x'] ?? 0);
+      if ($x >= $targetX) {
+        $graph['nodes'][$nodeIndex]['x'] = $x + 1;
+        $graph['nodes'][$nodeIndex]['depth'] = (int)($node['depth'] ?? $x) + 1;
+      }
+    }
+
+    $storyNode = $this->storyNode($storyRequest, $index, 'dialogue', $targetX, (int)($target['y'] ?? 0));
+    $rewired = [];
+    foreach ($graph['edges'] as $edge) {
+      if ((string)($edge['to'] ?? '') === $targetKey) {
+        $rewired[] = ['from' => (string)$edge['from'], 'to' => $storyNode['key']];
+        continue;
+      }
+
+      $rewired[] = $edge;
+    }
+    $rewired[] = ['from' => $storyNode['key'], 'to' => $targetKey];
+
+    $graph['nodes'][] = $storyNode;
+    $graph['edges'] = $rewired;
+
+    return $graph;
+  }
+
+  /**
+   * @param array<string,mixed> $storyRequest
+   * @return array<string,mixed>
+   */
+  private function storyNode(array $storyRequest, int $index, string $type, int $x, int $y): array
+  {
+    return [
+      'key' => 'story:' . $index . ':' . (string)($storyRequest['dialogue_id'] ?? 'dialogue'),
+      'type' => $type,
+      'source_type' => 'dialogue',
+      'x' => $x,
+      'y' => $y,
+      'pattern_key' => 'story_request',
+      'path_role' => 'story',
+      'depth' => $x,
+      'dialogue_id' => (string)($storyRequest['dialogue_id'] ?? ''),
+      'one_time' => (bool)($storyRequest['one_time'] ?? false),
+      'placement' => (string)($storyRequest['placement'] ?? ''),
+      'tags' => array_values(array_map('strval', is_array($storyRequest['tags'] ?? null) ? $storyRequest['tags'] : [])),
+    ];
   }
 }
