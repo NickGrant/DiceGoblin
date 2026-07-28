@@ -20,7 +20,7 @@ final class RunPatternPreviewAssemblerService
    */
   public function assemble(array $request): array
   {
-    $trace = new RunPatternGenerationTrace();
+    $trace = new RunPatternGenerationTrace(startedAtMs: $this->nowMs());
     $rng = new DeterministicRandom((string)($request['seed'] ?? 'pattern-preview'));
     $graph = ['nodes' => [], 'edges' => []];
     $cursorX = 0;
@@ -45,9 +45,14 @@ final class RunPatternPreviewAssemblerService
 
     return [
       'graph' => $graph,
-      'trace' => $trace->summary(),
+      'trace' => $trace->summary($this->nowMs()),
       'validation' => $validation,
     ];
+  }
+
+  private function nowMs(): int
+  {
+    return (int)round(microtime(true) * 1000);
   }
 
   /**
