@@ -2,6 +2,171 @@
 ----
 Completed issue entries retained only when they provide 7/25 roadmap execution context.
 
+## UAT Feedback Fix Round 2
+
+---
+id: UAT2-001
+title: Repair run event node resolution and visibility
+status: complete
+priority: high
+milestone: UAT Feedback Fix Round 2
+description: Rest, shrine, and hazard nodes now resolve with refreshed unit state and player-readable non-combat result copy, without the old extra approach step for shrine and hazard nodes.
+acceptance_criteria:
+  - Rest finalize returns refreshed run unit HP state and the frontend consumes it.
+  - Shrine and hazard nodes resolve directly from the map node screen.
+  - Shrine and hazard result screens show labels, details, and encounter result payloads.
+  - Run-node and rest-page tests cover the behavior.
+current_code_references:
+  - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
+  - backend/src/Repositories/RunRepository.php
+  - frontend/src/app/pages/run-node-page/run-node-page.component.ts
+  - frontend/src/app/pages/run-rest-page/run-rest-page.component.ts
+
+---
+id: UAT2-002
+title: Fix chaos reel encounter application
+status: complete
+priority: high
+milestone: UAT Feedback Fix Round 2
+description: Chaos reels now apply finalized enemy-family, encounter-shape, rule, and reward effects through backend-owned chaos encounter results.
+acceptance_criteria:
+  - Enemy-family reels can select matching encounter families across regions.
+  - Encounter-shape and rule/reward reels are applied to finalized battle and reward payloads.
+  - Chaos battle previews and logs expose applied reel effects for UAT.
+  - Backend integration tests cover cross-biome reel behavior.
+current_code_references:
+  - backend/src/Services/ChaosEncounterService.php
+  - backend/src/Controllers/RunNodeController.php
+  - backend/tests/Integration/ChaosEncounterControllerIntegrationTest.php
+  - frontend/src/app/pages/run-node-page/run-node-page.component.ts
+
+---
+id: UAT2-003
+title: Surface active run effects
+status: complete
+priority: high
+milestone: UAT Feedback Fix Round 2
+description: Current-run payloads expose active shrine, hazard, and chaos effects, and the run map presents those effects near the map controls.
+acceptance_criteria:
+  - Backend exposes current active run effects.
+  - Run map shows active effect names and concise descriptions.
+  - Run node result screens identify visible immediate or persistent effect details.
+  - Tests cover at least one active run effect.
+current_code_references:
+  - backend/src/Controllers/ApiController.php
+  - backend/src/Repositories/RunRepository.php
+  - frontend/src/app/pages/run-map-page/run-map-page.component.ts
+  - frontend/src/app/pages/run-map-page/run-map-page.component.html
+
+---
+id: UAT2-004
+title: Add post-Wrong-Machine mountain dialogue
+status: complete
+priority: medium
+milestone: UAT Feedback Fix Round 2
+description: The Whim, Mystic Cave, and mountain kobold dialogue now branch after Wrong Machine recovery through feature-gated dialogue placement.
+acceptance_criteria:
+  - The Whim and mountain kobolds have post-Wrong-Machine branches.
+  - Dialogue unlock requirements prevent recovery branches from appearing early.
+  - Run graph and dialogue tests cover branch availability.
+current_code_references:
+  - backend/src/Services/RunGraphGenerator.php
+  - backend/tests/Integration/RunGraphGeneratorIntegrationTest.php
+  - frontend/public/assets/data/dialogue/dialogue-scripts.json
+  - documentation/09-active-system-structure/04-dialogue-flow-determination.md
+
+---
+id: UAT2-005
+title: Reflavor voluntary run return
+status: complete
+priority: medium
+milestone: UAT Feedback Fix Round 2
+description: Voluntary run exit is now framed as Return Home / Returned Home instead of abandon/failure language.
+acceptance_criteria:
+  - Run map action is labeled `Return Home`.
+  - Run summary title for abandoned status is player-facing as `Returned Home`.
+  - Service summary state uses the returned-home copy.
+  - Tests cover the updated title.
+current_code_references:
+  - frontend/src/app/pages/run-map-page/run-map-page.component.html
+  - frontend/src/app/pages/run-summary-page/run-summary-page.component.ts
+  - frontend/src/app/core/services/run/run.service.ts
+  - frontend/src/app/pages/run-summary-page/run-summary-page.component.spec.ts
+
+## UAT Feedback Fix Round 1
+
+---
+id: UAT1-001
+title: Polish home navigation and command controls
+status: complete
+priority: medium
+milestone: UAT Feedback Fix Round 1
+description: Home navigation and command controls were cleaned up with corrected breadcrumbs, less utility clutter, a Raw Chaos tracker icon, and animated dropdown behavior.
+acceptance_criteria:
+  - Home breadcrumbs omit the extra HQ link.
+  - Removed formation, map, and unlock summary cards from home utilities.
+  - Raw Chaos tracker uses an icon after Wrong Machine unlock.
+  - Dropdown menu opens with slide-down/fade-in animation.
+current_code_references:
+  - frontend/src/app/pages/home-page/home-page.component.html
+  - frontend/src/app/layout/page-frame/page-frame.component.ts
+  - frontend/src/app/layout/command-controls/command-controls.component.ts
+  - frontend/src/app/layout/command-controls/command-controls.component.scss
+
+---
+id: UAT1-002
+title: Refine warband, unit, and squad-edit UX
+status: complete
+priority: high
+milestone: UAT Feedback Fix Round 1
+description: Warband filtering, unit card density, unit stat explanations, and squad drag/drop feedback were improved for UAT.
+acceptance_criteria:
+  - Warband filters units by squad assignment.
+  - Warband cards no longer show full stat blocks.
+  - Slot marker appears inline with level.
+  - Unit stat hover tooltips explain each stat.
+  - Squad edit supports long available-unit lists and obvious drop-target feedback.
+current_code_references:
+  - frontend/src/app/pages/warband-page/warband-page.component.ts
+  - frontend/src/app/pages/unit-details-page/unit-details-page.component.scss
+  - frontend/src/app/pages/squad-details-page/squad-details-page.component.html
+  - frontend/src/app/pages/squad-details-page/squad-details-page.component.scss
+
+---
+id: UAT1-003
+title: Clean up shop and academy presentation
+status: complete
+priority: medium
+milestone: UAT Feedback Fix Round 1
+description: Shop and academy presentation now remove duplicate currency copy and use the available iconography and tier presentation.
+acceptance_criteria:
+  - Shop second daily deal title omits `Deal 2:`.
+  - Shop and academy remove redundant tooth indicators.
+  - Academy uses available icons and tier icons.
+  - Placeholder role/future-recruit copy is removed.
+current_code_references:
+  - frontend/src/app/pages/shop-page/shop-page.component.html
+  - frontend/src/app/pages/shop-page/shop-page.component.spec.ts
+  - frontend/src/app/pages/academy-page/academy-page.component.html
+  - frontend/src/app/pages/academy-page/academy-page.component.ts
+
+---
+id: UAT1-004
+title: Repair guide navigation and combat reference content
+status: complete
+priority: high
+milestone: UAT Feedback Fix Round 1
+description: Guide navigation, map glossary, starter class list, and player-readable combat/action explanation content were repaired.
+acceptance_criteria:
+  - Guide sidenav links scroll to intended sections.
+  - Map glossary includes current run-map icon types.
+  - Starter classes only show Bruiser and Marksman.
+  - Guide explains unit action determination and combat calculation.
+current_code_references:
+  - frontend/src/app/pages/guide-page/guide-page.component.ts
+  - frontend/src/app/pages/guide-page/guide-page.component.html
+  - frontend/src/app/pages/guide-page/guide-page.component.spec.ts
+
 ## Combat Resolution Correctness
 
 ---

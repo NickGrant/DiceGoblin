@@ -3,6 +3,49 @@
 Completed milestone entries retained only when they provide 7/25 roadmap execution context.
 
 ---
+name: UAT Feedback Fix Round 2
+status: complete
+issues:
+  - UAT2-001
+  - UAT2-002
+  - UAT2-003
+  - UAT2-004
+  - UAT2-005
+description: Addressed the second UAT blocker batch across rest recovery, shrine/hazard result clarity, chaos reel application, post-Wrong-Machine dialogue, and voluntary run-return framing.
+goals:
+  - Make rest, shrine, and hazard nodes resolve with clear immediate outcomes.
+  - Apply chaos reel families, shapes, rules, and rewards through backend-owned state.
+  - Surface persistent run effects in current-run state and map UI.
+  - Add post-recovery story branches for the Wrong Machine arc.
+  - Reframe voluntary run exit as returning home.
+current_code_context: DeterministicRunNodeResolver, ChaosEncounterService, RunRepository, RunGraphGenerator, run-node UI, run-map UI, run summary UI, and dialogue data now carry the UAT Round 2 fixes.
+exit_criteria:
+  - Non-combat node results are player-readable.
+  - Chaos reel effects are verifiable from previews/logs/rewards.
+  - Active run effects are visible to players.
+  - Wrong Machine recovery changes later dialogue.
+  - Return-home copy replaces abandon/failure copy.
+
+---
+name: UAT Feedback Fix Round 1
+status: complete
+issues:
+  - UAT1-001
+  - UAT1-002
+  - UAT1-003
+  - UAT1-004
+description: Addressed the first UAT polish batch across landing/home navigation, command controls, warband management, shop/academy presentation, and guide usability.
+goals:
+  - Make landing, home, and menu affordances clearer.
+  - Improve warband filters, cards, unit stat explanations, and squad drag/drop interactions.
+  - Remove duplicate shop/academy indicators and use available iconography.
+  - Repair guide navigation and player-readable combat/map/class references.
+current_code_context: PageFrame, CommandControls, Home, Warband, SquadDetails, UnitDetails, Shop, Academy, and Guide frontend surfaces carry the completed UAT Round 1 fixes.
+exit_criteria:
+  - UAT Round 1 feedback is represented by tests or stable component behavior.
+  - Active tracker no longer lists completed UAT Round 1 work.
+
+---
 name: Combat Resolution Correctness
 status: complete
 issues:
