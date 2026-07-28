@@ -661,6 +661,30 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     ]);
   }
 
+  public function testRollActionDiceUsesFullRollTotalAsContribution(): void
+  {
+    $state = str_repeat('d', 64);
+
+    $roll = $this->invokePrivate('rollActionDice', [
+      &$state,
+      [[
+        'kind' => 'test_die',
+        'dice_instance_id' => 'die-1',
+        'sides' => 1,
+        'affixes' => [
+          ['slug' => 'explode_once', 'value' => 1.0],
+        ],
+      ]],
+      'basic_attack_melee',
+      'player',
+    ]);
+
+    $this->assertSame(2, (int)($roll['slot_traces'][0]['roll_total'] ?? 0));
+    $this->assertSame(2, (int)($roll['slot_traces'][0]['contribution'] ?? 0));
+    $this->assertSame(2, (int)($roll['dice_modifier'] ?? 0));
+    $this->assertStringContainsString('contribution +2', (string)($roll['slot_trace_summary'] ?? ''));
+  }
+
   public function testDeriveSupportOutcomeUsesHalfDieGuardStacksForTauntingGuard(): void
   {
     $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
