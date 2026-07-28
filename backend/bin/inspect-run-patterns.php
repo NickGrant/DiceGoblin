@@ -6,6 +6,7 @@ use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Env;
 use DiceGoblins\Repositories\RunPatternCatalogRepository;
 use DiceGoblins\Services\RunPatternGenerationRequestBuilder;
+use DiceGoblins\Services\RunPatternPreviewAssemblerService;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';
 Autoloader::register(__DIR__ . '/../src');
@@ -18,6 +19,7 @@ $format = (string)($options['format'] ?? 'text');
 $region = (string)($options['region'] ?? 'mountains');
 $seed = (string)($options['seed'] ?? 'inspect');
 $generatorVersion = (string)($options['generator'] ?? 'pattern-v1');
+$assemble = (bool)($options['assemble'] ?? false);
 
 try {
   $pdo = $processDbEnv !== [] ? pdoFromProcessDbEnv($processDbEnv) : Db::pdo();
@@ -33,6 +35,10 @@ try {
     'variant_count' => variantCount($request['variants_by_pattern_key']),
     'patterns' => patternRows($request['patterns_by_key'], $request['variants_by_pattern_key']),
   ];
+  if ($assemble) {
+    $assembly = (new RunPatternPreviewAssemblerService())->assemble($request);
+    $result['assembly'] = assemblySummary($assembly);
+  }
 
   outputResult($result, $format);
   exit(0);
@@ -137,6 +143,126 @@ function patternRows(array $patterns, array $variants): array
     ];
   }
   return $rows;
+}
+
+/**
+ * @param array{graph:array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>},trace:array<string,mixed>,validation:array{valid:bool,errors:list<string>}} $assembly
+ * @return array<string,mixed>
+ */
+function assemblySummary(array $assembly): array
+{
+  $nodes = array_values(array_filter($assembly['graph']['nodes'] ?? [], 'is_array'));
+  $edges = array_values(array_filter($assembly['graph']['edges'] ?? [], 'is_array'));
+  return [
+    'valid' => (bool)($assembly['validation']['valid'] ?? false),
+    'errors' => array_values(array_map('strval', is_array($assembly['validation']['errors'] ?? null) ? $assembly['validation']['errors'] : [])),
+    'node_count' => count($nodes),
+    'edge_count' => count($edges),
+    'node_types' => nodeTypeCounts($nodes),
+    'pattern_frequency' => patternFrequency($nodes),
+    'spine_depth' => spineDepth($nodes),
+    'branch_count' => branchCount($nodes),
+    'nodes' => assemblyNodeRows($nodes),
+    'trace' => [
+      'counters' => is_array($assembly['trace']['counters'] ?? null) ? $assembly['trace']['counters'] : [],
+      'duration_ms' => $assembly['trace']['duration_ms'] ?? null,
+      'event_count' => (int)($assembly['trace']['event_count'] ?? 0),
+      'truncated' => (bool)($assembly['trace']['truncated'] ?? false),
+    ],
+  ];
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ * @return array<string,int>
+ */
+function nodeTypeCounts(array $nodes): array
+{
+  $counts = [];
+  foreach ($nodes as $node) {
+    $type = (string)($node['type'] ?? $node['node_type'] ?? 'unknown');
+    $counts[$type] = ($counts[$type] ?? 0) + 1;
+  }
+  ksort($counts);
+  return $counts;
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ * @return array<string,int>
+ */
+function patternFrequency(array $nodes): array
+{
+  $counts = [];
+  foreach ($nodes as $node) {
+    $patternKey = (string)($node['pattern_key'] ?? '');
+    if ($patternKey !== '') {
+      $counts[$patternKey] = ($counts[$patternKey] ?? 0) + 1;
+    }
+  }
+  ksort($counts);
+  return $counts;
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ */
+function spineDepth(array $nodes): int
+{
+  $max = 0;
+  foreach ($nodes as $node) {
+    if ((string)($node['path_role'] ?? '') === 'spine') {
+      $max = max($max, (int)($node['depth'] ?? 0));
+    }
+  }
+  return $max;
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ */
+function branchCount(array $nodes): int
+{
+  $branches = [];
+  foreach ($nodes as $node) {
+    $branchKey = (string)($node['branch_key'] ?? '');
+    if ($branchKey !== '') {
+      $branches[$branchKey] = true;
+    }
+  }
+  return count($branches);
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ * @return list<array<string,mixed>>
+ */
+function assemblyNodeRows(array $nodes): array
+{
+  usort($nodes, static function (array $left, array $right): int {
+    $leftX = (int)($left['x'] ?? 0);
+    $rightX = (int)($right['x'] ?? 0);
+    if ($leftX !== $rightX) {
+      return $leftX <=> $rightX;
+    }
+    $leftY = (int)($left['y'] ?? 0);
+    $rightY = (int)($right['y'] ?? 0);
+    return $leftY <=> $rightY;
+  });
+
+  return array_map(
+    static fn(array $node): array => [
+      'key' => (string)($node['key'] ?? ''),
+      'type' => (string)($node['type'] ?? 'unknown'),
+      'x' => (int)($node['x'] ?? 0),
+      'y' => (int)($node['y'] ?? 0),
+      'pattern_key' => (string)($node['pattern_key'] ?? ''),
+      'path_role' => (string)($node['path_role'] ?? ''),
+      'depth' => (int)($node['depth'] ?? 0),
+      'branch_key' => (string)($node['branch_key'] ?? ''),
+    ],
+    $nodes,
+  );
 }
 
 /**
