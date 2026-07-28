@@ -320,6 +320,7 @@ describe('CommandControlsComponent', () => {
 
     expect(machineLink).toBeDefined();
     expect(machineLink!.nativeElement.textContent).toContain('Machine');
+    expect(machineLink!.nativeElement.querySelector('.menu-item-icon')?.getAttribute('src')).toBe('/assets/ui/icons/icon_encounter_locked.png');
     expect(router.serializeUrl(machineLink!.injector.get(RouterLink).urlTree!)).toBe('/wrong-machine');
   });
 
