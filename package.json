@@ -23,6 +23,8 @@
     "build:frontend": "npm --prefix frontend run build",
     "sim:balance:battle:farm:docker": "docker compose exec -T backend sh -lc \"APP_ENV=test DB_DSN='mysql:host=db;port=3306;dbname=goblin_test;charset=utf8mb4' DB_USER='dice_test' DB_PASS='dicepass_test' php bin/simulate.php --mode=battle --region=the_farm --node=combat --runs=25\"",
     "sim:balance:run:farm:docker": "docker compose exec -T backend sh -lc \"APP_ENV=test DB_DSN='mysql:host=db;port=3306;dbname=goblin_test;charset=utf8mb4' DB_USER='dice_test' DB_PASS='dicepass_test' php bin/simulate.php --mode=run --region=the_farm --runs=25 --format=json\"",
+    "run-patterns:validate:docker": "docker compose exec -T backend sh -lc \"php bin/sync-run-patterns.php --dry-run --format=json\"",
+    "run-patterns:sync:docker": "docker compose exec -T backend sh -lc \"php bin/sync-run-patterns.php --format=json\"",
     "verify:full": "npm run llm:check && npm run docs:lint && npm run test:backend && npm run test:frontend && npm run build:frontend && npm run bundle:check",
     "startup:check": "node scripts/startup-check.mjs",
     "llm:check": "npm run startup:check && npm run backlog:validate"
