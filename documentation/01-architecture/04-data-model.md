@@ -258,6 +258,68 @@ Notes:
 - active-slot limits, board rotation, reward claims, and progress event handling are future service work
 - bounty progress must be backend-authored and idempotent once those services are introduced
 
+## 9. Pattern-Based Run Map Catalog
+
+`backend/data/run-patterns/` is the authoring source of truth for `pattern-v1` run-map patterns, region rules, and generation profiles.
+The database tables below are a runtime mirror for lookup, debug inspection, provenance, and future tooling; raw SQL should not become the primary pattern editing surface.
+
+### 9.1 run_pattern_definitions
+
+Stores immutable authored pattern versions.
+
+Columns:
+- stable `slug`
+- positive `version`
+- lifecycle `status`: draft, enabled, or disabled
+- `definition_json` containing the authored local graph, sockets, transforms, tags, and metadata
+- `content_hash` for drift detection
+
+Uniqueness:
+- (`slug`, `version`)
+- `content_hash`
+
+### 9.2 run_pattern_region_rules
+
+Stores region and phase eligibility for pattern versions.
+
+Columns:
+- `pattern_definition_id`
+- `region_id`
+- `generator_version`
+- `base_weight`
+- `allowed_phase`
+- depth bounds
+- max-per-run and cooldown limits
+- `enabled`
+- optional `weight_modifiers_json`
+
+### 9.3 run_generation_profiles
+
+Stores active region profile versions for a generator version.
+
+Columns:
+- `region_id`
+- `generator_version`
+- `profile_version`
+- `enabled`
+- `bounds_json`
+- `budgets_json`
+- `requirements_json`
+- `retry_policy_json`
+- `weight_policy_json`
+- `content_hash`
+
+### 9.4 region_runs provenance
+
+Pattern-generated runs can record:
+- `generator_version`
+- `generation_profile_version`
+- `pattern_catalog_hash`
+- `generation_attempt`
+- `generation_summary_json`
+
+These fields are nullable so existing lane-generated and fixed authored runs remain compatible while regions are migrated gradually.
+
 ## 9. Battles and Logs
 
 `battles` remain the authoritative battle record.
