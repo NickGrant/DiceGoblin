@@ -3,6 +3,8 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, computed, inject, sign
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faVolumeHigh, faVolumeOff, faVolumeXmark, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { EnergyRestoreResponse, ItemRecord } from '../../core/models/api.models';
+import { ApiHttpService } from '../../core/services/api-http/api-http.service';
 import { AudioDirectorService } from '../../core/services/audio/audio-director.service';
 import { SessionService } from '../../core/services/session/session.service';
 
@@ -25,6 +27,7 @@ type HudNavItem = {
 })
 export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   private readonly sessionService = inject(SessionService);
+  private readonly apiHttp = inject(ApiHttpService);
   private readonly audioDirector = inject(AudioDirectorService);
   private readonly router = inject(Router);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
@@ -47,6 +50,22 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   readonly audioEnabled = this.audioDirector.isEnabled;
   readonly audioUnlocked = this.audioDirector.isUnlocked;
   readonly audioMuted = this.audioDirector.isMuted;
+  readonly energyUseWorking = signal(false);
+  readonly energyUseError = signal<string | null>(null);
+  readonly energyConsumables = computed(() =>
+    (this.sessionService.profileData()?.items ?? [])
+      .map((item) => this.mapEnergyConsumable(item))
+      .filter((item): item is { item_slug: string; name: string; quantity: number; amount: number } => item !== null),
+  );
+  readonly selectedEnergyConsumable = computed(() => {
+    const missing = Math.max(0, this.profile().energyMax - this.profile().energyCurrent);
+    if (missing <= 0) {
+      return null;
+    }
+
+    const items = [...this.energyConsumables()].sort((left, right) => left.amount - right.amount);
+    return items.find((item) => item.amount >= missing) ?? items.at(-1) ?? null;
+  });
   readonly faVolumeHigh = faVolumeHigh;
   readonly faVolumeOff = faVolumeOff;
   readonly faVolumeXmark = faVolumeXmark;
@@ -178,6 +197,35 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
     this.audioDirector.toggleMute();
   }
 
+  async restoreEnergy(): Promise<void> {
+    const item = this.selectedEnergyConsumable();
+    if (!item || this.energyUseWorking()) {
+      return;
+    }
+
+    this.energyUseWorking.set(true);
+    this.energyUseError.set(null);
+    try {
+      const response = await this.sessionService.runProfileMutation(() =>
+        this.apiHttp.postWithCsrf<EnergyRestoreResponse>('/api/v1/items/energy/restore', {
+          item_slug: item.item_slug,
+        }),
+      );
+      if (!response.ok) {
+        this.energyUseError.set(response.error.message);
+      }
+    } catch (error) {
+      this.energyUseError.set(error instanceof Error ? error.message : 'Unable to restore energy.');
+    } finally {
+      this.energyUseWorking.set(false);
+    }
+  }
+
+  energyUseLabel(): string {
+    const item = this.selectedEnergyConsumable();
+    return item ? `Use ${item.name}` : 'Use energy item';
+  }
+
   audioControlLabel(): string {
     if (!this.audioUnlocked()) {
       return 'Enable Sound';
@@ -242,5 +290,34 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
   private syncHudHeight(): void {
     const hudHeight = Math.ceil(this.elementRef.nativeElement.getBoundingClientRect().height);
     this.document.documentElement.style.setProperty('--command-controls-height', `${hudHeight}px`);
+  }
+
+  private mapEnergyConsumable(
+    item: ItemRecord,
+  ): { item_slug: string; name: string; quantity: number; amount: number } | null {
+    const effect = item.meta?.['effect'];
+    if (!effect || typeof effect !== 'object' || Array.isArray(effect)) {
+      return null;
+    }
+
+    const type = String((effect as Record<string, unknown>)['type'] ?? '');
+    const amount = Number((effect as Record<string, unknown>)['amount'] ?? 0);
+    if (
+      item.category !== 'consumable' ||
+      !item.is_spendable ||
+      type !== 'restore_energy' ||
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      item.quantity <= 0
+    ) {
+      return null;
+    }
+
+    return {
+      item_slug: item.item_slug,
+      name: item.name,
+      quantity: item.quantity,
+      amount,
+    };
   }
 }

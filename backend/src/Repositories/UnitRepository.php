@@ -176,6 +176,8 @@ final class UnitRepository
         ut.`attack_per_level`,
         ut.`defense_per_level`,
         ut.`max_hp_per_level`,
+        ut.`precision_per_level`,
+        ut.`resolve_per_level`,
         ui.`display_name`,
         ui.`tier`,
         ui.`level`,
@@ -232,8 +234,16 @@ final class UnitRepository
         $level,
         (int)$u['max_hp_per_level']
       );
-      $totalPrecision = $this->unitProgression->precision($baseStats);
-      $totalResolve = $this->unitProgression->resolve($baseStats);
+      $totalPrecision = $this->unitProgression->totalPrecisionForLevel(
+        $baseStats,
+        $level,
+        (int)$u['precision_per_level']
+      );
+      $totalResolve = $this->unitProgression->totalResolveForLevel(
+        $baseStats,
+        $level,
+        (int)$u['resolve_per_level']
+      );
       $xpToNext = $this->unitProgression->xpToNextLevel($tier, $level, $maxLevel, $xp);
       $footprint = FormationGeometry::footprintFromStats(
         $baseStats

@@ -371,7 +371,7 @@ describe('RunNodePageComponent', () => {
       data: {
         run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'mountains', region_theme: 'mountain' },
         map: {
-          nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'shrine', status: 'available' }],
+          nodes: [{ id: '12', run_id: 'run-1', node_index: 0, node_type: 'shrine', status: 'available', meta: { node_quality_tier: 'poor' } }],
           edges: [],
         },
       },
@@ -405,7 +405,7 @@ describe('RunNodePageComponent', () => {
         { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: '12' }) } },
         },
       ],
     }).compileComponents();
@@ -414,7 +414,7 @@ describe('RunNodePageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', 'n1');
+    expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', '12');
     expect(fixture.componentInstance.pageSubtitle()).toBe(
       'The shrine answered. Claim favor to return to the route.',
     );
@@ -428,7 +428,7 @@ describe('RunNodePageComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Shrine Result');
     expect(fixture.nativeElement.querySelector('.node-result-layout')).not.toBeNull();
     expect((fixture.nativeElement.querySelector('.node-result-layout__art') as HTMLImageElement)?.getAttribute('src')).toBe(
-      '/assets/ui/node-art/shrines/good_a.png',
+      '/assets/ui/node-art/shrines/poor_b.png',
     );
   });
 

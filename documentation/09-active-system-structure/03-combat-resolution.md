@@ -75,8 +75,8 @@ The engine has an explicit safety cap of `200` rounds to prevent an infinite loo
 - Each round has `20` ticks.
 - Combat continues until one side is defeated, or until the explicit unresolved-combat safety cap is reached.
 - Active abilities are scheduled in equip order by cumulative speed.
-- If no active ability can be scheduled, the unit receives a fallback `basic_attack_melee` at tick `4`.
-- Repeatable filler abilities can fill remaining ticks when they fit inside the 20-tick round.
+- Combatants must have at least one explicit schedulable active ability.
+- Unused ticks remain empty; the scheduler does not auto-repeat filler actions.
 
 ```mermaid
 flowchart LR
@@ -90,10 +90,10 @@ flowchart LR
 
 ## Dice Rolls
 
-Each ability rolls its provided dice pool. Empty pools produce a zero modifier. For each die, the roll total contributes:
+Each ability rolls its provided dice pool. Empty pools contribute `0`. For each die slot, the full roll total contributes to the action:
 
 ```text
-roll_total - ceil(sides / 2)
+roll_total
 ```
 
 Dice with the `explode_once` affix roll one extra die when the first roll equals the die's side count.

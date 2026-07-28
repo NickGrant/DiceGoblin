@@ -14,6 +14,7 @@ import {
   ResolveNodeResponse,
   RestFinalizeResponse,
   RestOpenResponse,
+  RunUnitHealingResponse,
   RunResponse,
 } from '../../models/api.models';
 import { ApiHttpService } from '../api-http/api-http.service';
@@ -207,6 +208,13 @@ export class RunService {
     return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<RestFinalizeResponse>(
       `/api/v1/runs/${runId}/nodes/${nodeId}/rest/finalize`,
       {},
+    ));
+  }
+
+  healRunUnit(runId: string, unitInstanceId: string, itemSlug: string): Promise<RunUnitHealingResponse> {
+    return this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<RunUnitHealingResponse>(
+      `/api/v1/runs/${runId}/units/${unitInstanceId}/items/heal`,
+      { item_slug: itemSlug },
     ));
   }
 

@@ -415,6 +415,45 @@ current_code_references:
 ## Inventory And Reward UX Supporting The Roadmap
 
 ---
+id: GIC-001
+title: Add between-encounter unit healing consumables
+status: complete
+priority: low
+milestone: General Inventory and Consumables
+description: Added spendable healing consumables to the generic item catalog, a transactional backend run-unit healing endpoint, and a run-map supplies panel for wounded active-run units.
+acceptance_criteria:
+  - Healing consumable definitions exist in the generic item catalog.
+  - Players can use healing consumables only outside active combat resolution.
+  - Item spending is backend-authoritative, transactional, and idempotent where retries are possible.
+  - Frontend inventory or run surfaces expose the action where it naturally belongs.
+current_code_references:
+  - backend/migrations/75_seed_healing_consumables.sql
+  - backend/src/Services/ConsumableItemService.php
+  - backend/src/Controllers/GameplayController.php
+  - backend/tests/Integration/ConsumableItemServiceIntegrationTest.php
+  - frontend/src/app/pages/run-map-page
+  - frontend/src/app/core/services/run/run.service.ts
+
+---
+id: GIC-002
+title: Add player energy recovery consumables
+status: complete
+priority: low
+milestone: General Inventory and Consumables
+description: Added spendable energy consumables to the generic item catalog, a transactional backend restore endpoint, and a compact energy-slot action that uses owned energy items below cap.
+acceptance_criteria:
+  - Energy consumable definitions exist in the generic item catalog.
+  - Use rules respect energy caps and do not bypass intended pacing.
+  - Item spending and energy restoration are backend-authoritative.
+  - Tests cover cap behavior, insufficient item cases, and duplicate requests.
+current_code_references:
+  - backend/migrations/76_seed_energy_consumables.sql
+  - backend/src/Services/ConsumableItemService.php
+  - backend/src/Controllers/GameplayController.php
+  - backend/tests/Integration/ConsumableItemServiceIntegrationTest.php
+  - frontend/src/app/layout/command-controls
+
+---
 id: ISA-001
 title: Add pagination to inventory collections
 status: complete

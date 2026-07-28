@@ -192,7 +192,7 @@ final class RunGraphGenerator
     $graph = [
       'nodes' => [
         ['node_index' => 0, 'node_type' => 'combat', 'status' => 'available', 'encounter_template_id' => $templateIds['the_farm_mud_combat_1'] ?? null, 'meta' => ['col' => 0, 'row' => 1]],
-        ['node_index' => 1, 'node_type' => 'loot', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_loot_1'] ?? null, 'meta' => ['col' => 1, 'row' => 1]],
+        ['node_index' => 1, 'node_type' => 'loot', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_loot_1'] ?? null, 'meta' => ['col' => 1, 'row' => 1, 'node_quality_tier' => 'good']],
         ['node_index' => 2, 'node_type' => 'rest', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_rest_1'] ?? null, 'meta' => ['col' => 2, 'row' => 1]],
         ['node_index' => 3, 'node_type' => 'boss', 'status' => 'locked', 'encounter_template_id' => $templateIds['the_farm_mud_boss_1'] ?? null, 'meta' => ['col' => 3, 'row' => 1]],
         ['node_index' => 4, 'node_type' => 'exit', 'status' => 'locked', 'meta' => ['col' => 4, 'row' => 1]],
@@ -708,11 +708,13 @@ final class RunGraphGenerator
     $this->addNearbyShortcutConnections($seedKey, $nodes, $edges, $travelColumns);
     $this->removeRedundantSameRowBypassEdges($nodes, $edges);
 
-    $this->assignProceduralNodeTypes($nodes, $edges, $seedKey, $config, $travelColumns, $allowChaosNodes);
+    $this->assignProceduralNodeTypes($nodes, $edges, $seedKey, $regionSlug, $config, $travelColumns, $allowChaosNodes);
     $this->ensureAtLeastOneRestNode($nodes, $seedKey, $travelColumns);
     if ($allowChaosNodes) {
       $this->ensureAtLeastOneChaosNode($nodes, $seedKey, $travelColumns);
     }
+    $this->assignHazardEffects($nodes, $seedKey, $regionSlug);
+    $this->assignNodeQualityTiers($nodes, $edges, $travelColumns);
     $nodes = $this->assignEncounterTemplates($regionId, $nodes, $seedKey);
     $this->validateGraph($nodes, $edges);
 
@@ -1977,7 +1979,7 @@ final class RunGraphGenerator
    * @param array<int,array{from:int,to:int}> $edges
    * @param array<string,int> $config
    */
-  private function assignProceduralNodeTypes(array &$nodes, array $edges, string $seedKey, array $config, int $travelColumns, bool $allowChaosNodes): void
+  private function assignProceduralNodeTypes(array &$nodes, array $edges, string $seedKey, string $regionSlug, array $config, int $travelColumns, bool $allowChaosNodes): void
   {
     $incoming = $this->incomingByNode($nodes, $edges);
     $outgoing = $this->outgoingByNode($nodes, $edges);
@@ -1994,13 +1996,15 @@ final class RunGraphGenerator
         continue;
       }
 
+      $hazardRules = (new EncounterPrimitiveCatalog())->hazardEffectsForRegion($regionSlug, $col);
       $isDeadEnd = count($outgoing[$index] ?? []) === 0;
       $weights = $isDeadEnd
-        ? ['loot' => 50, 'rest' => 30, 'combat' => 20, 'shrine' => 1, 'chaos' => 1]
+        ? ['loot' => 50, 'rest' => 30, 'combat' => 20, 'hazard' => $hazardRules !== [] ? 6 : 0, 'shrine' => 1, 'chaos' => 1]
         : [
           'combat' => (int)$config['combat_weight'],
           'loot' => (int)$config['loot_weight'],
           'rest' => (int)$config['rest_weight'],
+          'hazard' => $hazardRules !== [] ? 2 : 0,
           'shrine' => 1,
           'chaos' => 1,
         ];
@@ -2008,6 +2012,7 @@ final class RunGraphGenerator
       if ($col <= 2) {
         $weights['combat'] += 4;
         $weights['rest'] = 0;
+        $weights['hazard'] = 0;
         $weights['shrine'] = 0;
         $weights['chaos'] = 0;
       }
@@ -2026,6 +2031,9 @@ final class RunGraphGenerator
       }
       if (in_array('shrine', $parentTypes, true)) {
         $weights['shrine'] = 0;
+      }
+      if (in_array('hazard', $parentTypes, true)) {
+        $weights['hazard'] = 0;
       }
       if (in_array('chaos', $parentTypes, true)) {
         $weights['chaos'] = 0;
@@ -2094,6 +2102,62 @@ final class RunGraphGenerator
   /**
    * @param array<int,array<string,mixed>> $nodes
    */
+  private function assignHazardEffects(array &$nodes, string $seedKey, string $regionSlug): void
+  {
+    $catalog = new EncounterPrimitiveCatalog();
+
+    foreach ($nodes as $index => $node) {
+      if ((string)($node['node_type'] ?? '') !== 'hazard') {
+        continue;
+      }
+
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $col = (int)($meta['col'] ?? 0);
+      $effects = $catalog->hazardEffectsForRegion($regionSlug, $col);
+      if ($effects === []) {
+        $nodes[$index]['node_type'] = 'combat';
+        continue;
+      }
+
+      $effect = $this->pickWeightedHazardEffect($seedKey . '|hazard-effect|' . $index, $effects);
+      $nodes[$index]['meta'] = [
+        ...$meta,
+        'encounter_family' => 'hazard',
+        'encounter_effect_slug' => (string)$effect['slug'],
+        'encounter_primitive' => (string)$effect['primitive'],
+      ];
+    }
+  }
+
+  /**
+   * @param list<array{slug:string,primitive:string,regions:list<string>,min_depth:int,weight:int,result:array<string,mixed>}> $effects
+   * @return array{slug:string,primitive:string,regions:list<string>,min_depth:int,weight:int,result:array<string,mixed>}
+   */
+  private function pickWeightedHazardEffect(string $seedKey, array $effects): array
+  {
+    $total = array_sum(array_map(static fn(array $effect): int => max(0, (int)$effect['weight']), $effects));
+    if ($total <= 0) {
+      return $effects[0];
+    }
+
+    $cursor = $this->randBetween($seedKey, 0, $total - 1);
+    foreach ($effects as $effect) {
+      $weight = max(0, (int)$effect['weight']);
+      if ($weight <= 0) {
+        continue;
+      }
+      if ($cursor < $weight) {
+        return $effect;
+      }
+      $cursor -= $weight;
+    }
+
+    return $effects[0];
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   */
   private function ensureAtLeastOneChaosNode(array &$nodes, string $seedKey, int $travelColumns): void
   {
     foreach ($nodes as $node) {
@@ -2127,6 +2191,38 @@ final class RunGraphGenerator
     $picked = $candidates[$pickIndex];
     $nodes[$picked]['node_type'] = 'chaos';
     $nodes[$picked]['encounter_template_id'] = null;
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $nodes
+   * @param array<int,array{from:int,to:int}> $edges
+   */
+  private function assignNodeQualityTiers(array &$nodes, array $edges, int $travelColumns): void
+  {
+    $outgoing = $this->outgoingByNode($nodes, $edges);
+
+    foreach ($nodes as $index => $node) {
+      $nodeType = (string)($node['node_type'] ?? '');
+      if (!in_array($nodeType, ['loot', 'shrine'], true)) {
+        continue;
+      }
+
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $col = (int)($meta['col'] ?? 0);
+      $isDeadEnd = count($outgoing[(int)($node['node_index'] ?? $index)] ?? []) === 0;
+
+      $tier = 'good';
+      if ($isDeadEnd || $col >= max(3, $travelColumns - 1)) {
+        $tier = 'great';
+      } elseif ($col <= 2) {
+        $tier = 'poor';
+      }
+
+      $nodes[$index]['meta'] = [
+        ...$meta,
+        'node_quality_tier' => $tier,
+      ];
+    }
   }
 
   /**

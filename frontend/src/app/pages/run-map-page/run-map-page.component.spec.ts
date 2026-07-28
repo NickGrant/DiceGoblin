@@ -12,7 +12,7 @@ class RunServiceStub {
       map: {
         nodes: [
           { id: 'n1', node_index: 0, node_type: 'combat', status: 'available' },
-          { id: 'n2', node_index: 1, node_type: 'exit', status: 'locked' },
+          { id: '8', node_index: 1, node_type: 'exit', status: 'locked' },
         ],
         edges: [],
       },
@@ -35,12 +35,41 @@ class RunServiceStub {
   });
   abandonRun = jasmine.createSpy('abandonRun').and.resolveTo({ ok: true });
   exitRun = jasmine.createSpy('exitRun').and.resolveTo({ ok: true });
+  healRunUnit = jasmine.createSpy('healRunUnit').and.resolveTo({
+    ok: true,
+    data: {
+      run_id: 'run-1',
+      unit_instance_id: 'u1',
+      item: { item_slug: 'field_poultice', quantity: 0, spent_quantity: 1 },
+      healing: { amount: 4, hp_before: 6, hp_after: 10, max_hp: 10, is_defeated: false },
+    },
+  });
 }
 
 class SessionServiceStub {
   readonly profileData = () =>
     ({
       active_run: { run_id: 'run-1', region_id: '1', region_slug: 'the_farm', region_theme: 'farm' },
+      items: [
+        {
+          item_id: 'i1',
+          item_slug: 'field_poultice',
+          name: 'Field Poultice',
+          description: 'Patches up one unit.',
+          category: 'consumable',
+          quantity: 1,
+          rarity: 'common',
+          source_region_slug: null,
+          source_region_name: null,
+          source_family_slug: null,
+          icon_key: 'item_field_poultice',
+          lore_key: 'healing_consumable',
+          is_visible_before_discovery: true,
+          is_spendable: true,
+          is_primary_progression: false,
+          meta: { effect: { type: 'heal_run_unit_hp', amount: 10 } },
+        },
+      ],
       regions: [
         { id: '1', slug: 'the_farm', name: 'The Farm', theme: 'farm', recommended_level: 1, energy_cost: 3, is_enabled: true, is_unlocked: true, is_completed: false, unlocked_at: '2026-06-01T00:00:00Z' },
       ],
@@ -83,7 +112,14 @@ describe('RunMapPageComponent', () => {
     expect(fixture.componentInstance.pageTitle()).toBe('Continue Run - The Farm');
     expect(fixture.componentInstance.iconForNodeType('combat')).toContain('icon_encounter_combat.png');
     expect(fixture.componentInstance.iconForNodeType('hazard')).toContain('icon_encounter_locked.png');
-    expect(fixture.componentInstance.iconForNodeType('shrine')).toContain('/assets/ui/node-art/shrines/good_a.png');
+    expect(fixture.componentInstance.iconForNode({
+      id: '12',
+      run_id: 'run-1',
+      node_index: 2,
+      node_type: 'shrine',
+      status: 'locked',
+      meta: { node_quality_tier: 'great' },
+    })).toContain('/assets/ui/node-art/shrines/great_b.png');
     expect(fixture.componentInstance.iconForNodeType('exit')).toContain('icon_home.png');
     expect(fixture.componentInstance.mapBackgroundUrl()).toBe('/assets/ui/biome/farm.png');
     expect(fixture.componentInstance.nodeX(fixture.componentInstance.nodes()[1]!)).toBe(260);
@@ -95,6 +131,8 @@ describe('RunMapPageComponent', () => {
     const host: HTMLElement = fixture.nativeElement;
     expect(host.textContent).toContain('Continue Run - The Farm');
     expect(host.textContent).toContain('Fang');
+    expect(host.textContent).toContain('Run Supplies');
+    expect(host.textContent).toContain('Field Poultice (1)');
     expect(host.textContent).toContain('Lv 3');
     expect(host.textContent).toContain('Run Effects');
     expect(host.textContent).toContain('Shrine Favor Granted');
@@ -105,6 +143,29 @@ describe('RunMapPageComponent', () => {
     expect(host.querySelector('.run-unit-grid a')?.getAttribute('href')).toContain('/warband/units/u1');
     expect(host.querySelector('.run-map__node-halo')).not.toBeNull();
     expect(host.querySelector('[data-node-type="combat"] .run-map__node-disc')).not.toBeNull();
+  });
+
+  it('uses healing consumables from the run supplies panel', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const runService = TestBed.inject(RunService) as unknown as RunServiceStub;
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    await fixture.componentInstance.healUnit('u1', 'field_poultice');
+    fixture.detectChanges();
+
+    expect(runService.healRunUnit).toHaveBeenCalledWith('run-1', 'u1', 'field_poultice');
+    expect(fixture.componentInstance.runUnits()[0].currentHp).toBe(10);
+    expect(fixture.nativeElement.textContent).toContain('Fang healed to 10/10.');
   });
 
   it('sizes the map from rendered node positions instead of a separate node-index guess', async () => {

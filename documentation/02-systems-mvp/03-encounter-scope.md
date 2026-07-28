@@ -1,7 +1,7 @@
 # Encounter Scope
 
 Status: active  
-Last Updated: 2026-07-26  
+Last Updated: 2026-07-27  
 Owner: Systems Design  
 Depends On: `documentation/02-systems-mvp/04-loot-and-drop-scope.md`, `documentation/02-systems-mvp/05-save-and-resume-scope.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
 
@@ -116,6 +116,21 @@ Mystic Cave is currently a narrative onboarding region rather than a combat biom
 - Procedural regions include at least one chaos node that presents persisted reel results.
 - Authored dialogue nodes may be inserted into otherwise fixed or procedural graphs.
 
+## Node Quality Art
+
+Loot and shrine nodes carry optional display metadata so the map and node-detail screens can render the same quality-tier art:
+
+- `node_quality_tier`: one of `poor`, `good`, or `great`
+- `node_art_variant`: optional `a` or `b` override
+
+Current procedural generation assigns quality tiers after node types are finalized:
+
+- early loot or shrine nodes use `poor`
+- ordinary loot or shrine nodes use `good`
+- late-path or dead-end loot and shrine nodes use `great`
+
+The frontend resolves the A/B variant from `node_art_variant` when present. Otherwise, it uses persisted node id parity so a node keeps the same visual variant across refreshes. Older runs without quality metadata fall back to `good` art.
+
 ### Target Procedural Replacement
 
 - Mountains and Swamps currently use the seeded lane-walker implementation in `RunGraphGenerator`.
@@ -164,6 +179,73 @@ Current foundation exclusions:
 
 - exact authored enemy-shape construction from each reel combination remains follow-up work
 - bolstered enemy starts, ambush positioning rules, guaranteed loot variants, and more granular Raw Chaos tuning remain follow-up work
+
+## Hazard And Shrine Primitives
+
+Hazards and shrines resolve through a backend-owned primitive vocabulary before richer authored catalogs are seeded. The current implementation keeps the launch behavior intentionally small while giving future content a stable effect language.
+
+Hazard primitives:
+
+| Primitive | Intended use |
+| --- | --- |
+| `hp_attrition` | Bounded between-combat HP pressure on one or more run units. |
+| `temporary_modifier` | Short-lived stat or status pressure that expires after a known scope. |
+| `currency_pressure` | Small soft-currency or Raw Chaos costs, losses, or gated choices. |
+| `item_pressure` | Generic item costs, losses, or required-key checks. |
+| `route_pressure` | Path, branch, or node-state pressure without direct combat rewards. |
+| `kin_mitigation` | Optional reduced risk or alternate copy for owned lineages. |
+
+Shrine primitives:
+
+| Primitive | Intended use |
+| --- | --- |
+| `small_reward` | Bounded non-XP rewards such as soft currency, items, or minor dice support. |
+| `cleansing` | Remove or soften temporary run pressure. |
+| `bargain` | Exchange currency, items, HP pressure, or risk for a visible reward. |
+| `reroute` | Open, reveal, or improve a route choice without breaking graph guarantees. |
+| `controlled_risk` | Offer an explicit chance or deterministic tradeoff with bounded downside. |
+
+Current primitive-backed effects:
+
+| Node type | Effect slug | Primitive | Eligibility | Current result |
+| --- | --- | --- | --- | --- |
+| `hazard` | `hazard_cautious_footing` | `route_pressure` | Farm, Mountains, and Swamps from depth 3 onward. | Clears the hazard with no XP or currency reward. |
+| `hazard` | `hazard_mud_slick` | `temporary_modifier` | Farm from depth 3 onward. | Metadata-only precision pressure until temporary modifiers land. |
+| `hazard` | `hazard_broken_fence` | `route_pressure` | Farm from depth 4 onward. | Metadata-only route pressure. |
+| `hazard` | `hazard_loose_scree` | `hp_attrition` | Mountains from depth 4 onward. | Currently resolves as metadata-only pressure with no HP loss until attrition spending lands. |
+| `hazard` | `hazard_thin_air` | `temporary_modifier` | Mountains from depth 5 onward. | Metadata-only resolve pressure until temporary modifiers land. |
+| `hazard` | `hazard_toll_cairn` | `currency_pressure` | Mountains from depth 4 onward. | Metadata-only currency pressure until bargain costs land. |
+| `hazard` | `hazard_rust_thicket` | `item_pressure` | Mountains and Swamps from depth 5 onward. | Metadata-only item pressure until item costs land. |
+| `hazard` | `hazard_bog_mire` | `kin_mitigation` | Swamps from depth 4 onward. | Currently resolves as metadata-only Pig Kin mitigation setup until mitigation choices land. |
+| `hazard` | `hazard_biting_reeds` | `hp_attrition` | Swamps from depth 3 onward. | Metadata-only HP pressure until attrition spending lands. |
+| `hazard` | `hazard_sinking_cache` | `item_pressure` | Swamps from depth 5 onward. | Metadata-only item pressure until item costs land. |
+| `hazard` | `hazard_wrong_turn` | `route_pressure` | Mountains and Swamps from depth 6 onward. | Metadata-only route pressure. |
+| `shrine` | `shrine_bone_whisper` | `small_reward` | Farm, Mountains, and Swamps. | Grants bounded soft currency and persists title/result copy. |
+| `shrine` | `shrine_rust_blessing` | `small_reward` | Farm, Mountains, and Swamps. | Grants bounded soft currency and persists title/result copy. |
+| `shrine` | `shrine_bog_luck` | `small_reward` | Swamps. | Grants bounded soft currency and persists title/result copy. |
+| `shrine` | `shrine_clean_water` | `cleansing` | Farm and Swamps. | Metadata-first cleansing favor with bounded soft currency. |
+| `shrine` | `shrine_crooked_bargain` | `bargain` | Mountains and Swamps. | Metadata-first bargain favor with bounded soft currency. |
+| `shrine` | `shrine_hidden_footpath` | `reroute` | Mountains and Swamps. | Metadata-first reroute favor with bounded soft currency. |
+| `shrine` | `shrine_cracked_lantern` | `controlled_risk` | Mountains. | Metadata-first controlled-risk favor with bounded soft currency. |
+| `shrine` | `shrine_seed_cache` | `small_reward` | Farm. | Grants bounded soft currency and persists title/result copy. |
+| `shrine` | `shrine_mirror_mud` | `controlled_risk` | Swamps. | Metadata-first controlled-risk favor with bounded soft currency. |
+| `shrine` | `shrine_old_goblin_mark` | `cleansing` | Farm, Mountains, and Swamps. | Metadata-first cleansing favor with bounded soft currency. |
+
+Procedural hazard population:
+
+- Procedural node selection includes hazards only when the region and depth have at least one eligible authored hazard effect.
+- Hazard selection is weighted by the eligible effect definitions and stamped into node metadata as `encounter_family`, `encounter_effect_slug`, and `encounter_primitive`.
+- Shallow opening columns do not generate hazards, preserving early route readability.
+- If a generated hazard somehow has no eligible effect at metadata assignment time, the generator falls back to combat for that node instead of producing an unresolved hazard.
+- Shrine resolution chooses from the authored shrine catalog and persists `title`, `result_copy`, `favor`, and soft currency in the result payload.
+
+Authoring constraints:
+
+- Primitive resolution is backend-authoritative and deterministic from the run/node seed context.
+- Node effects must persist their `effect_slug`, `primitive`, and result payload in the battle log or reward payload.
+- Hazard and shrine effects must be idempotent when a resolved node is revisited.
+- Hazard and shrine effects must not award combat XP unless the encounter scope is explicitly updated.
+- Content catalogs may choose effects by region, depth, weight, and progression context.
 
 ## Region Energy
 

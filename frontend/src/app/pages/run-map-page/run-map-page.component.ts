@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { CurrentRunData, CurrentRunEdge, CurrentRunNode } from '../../core/models/api.models';
+import { CurrentRunData, CurrentRunEdge, CurrentRunNode, ItemRecord } from '../../core/models/api.models';
 import { resolveRunRegionBackgroundUrl } from '../../core/regions/region-catalog';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
@@ -9,6 +9,7 @@ import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { RunUnitFormationGridComponent } from '../../shared/ui/run-unit-formation-grid/run-unit-formation-grid.component';
+import { resolveNodeArtUrl } from '../../shared/ui/node-art/node-art';
 
 @Component({
   selector: 'app-run-map-page',
@@ -55,7 +56,9 @@ export class RunMapPageComponent {
   readonly runData = signal<CurrentRunData | null>(null);
   readonly loading = signal(true);
   readonly working = signal(false);
+  readonly healingAction = signal<string | null>(null);
   readonly error = signal<string | null>(null);
+  readonly statusMessage = signal<string | null>(null);
 
   readonly nodes = computed(() => this.runData()?.map?.nodes ?? []);
   readonly edges = computed(() => this.runData()?.map?.edges ?? []);
@@ -122,6 +125,14 @@ export class RunMapPageComponent {
   readonly runUnitById = computed(
     () => new Map(this.runUnits().map((entry) => [entry.unit_instance_id, entry])),
   );
+  readonly woundedRunUnits = computed(() =>
+    this.runUnits().filter((entry) => entry.currentHp < entry.maxHp),
+  );
+  readonly healingConsumables = computed(() =>
+    (this.sessionService.profileData()?.items ?? [])
+      .map((item) => this.mapHealingConsumable(item))
+      .filter((item): item is { item_slug: string; name: string; quantity: number; amount: number } => item !== null),
+  );
   readonly formationGrid = computed(() => {
     return buildFormationGrid(this.activeSquad()?.formation, this.runUnitById());
   });
@@ -185,6 +196,13 @@ export class RunMapPageComponent {
   }
 
   iconForNode(node: CurrentRunNode): string {
+    if (node.node_type === 'loot') {
+      return resolveNodeArtUrl(node, 'loot');
+    }
+    if (node.node_type === 'shrine') {
+      return resolveNodeArtUrl(node, 'shrine');
+    }
+
     return this.iconForNodeType(node.node_type);
   }
 
@@ -244,6 +262,58 @@ export class RunMapPageComponent {
       this.error.set(error instanceof Error ? error.message : 'Unable to abandon run.');
     } finally {
       this.working.set(false);
+    }
+  }
+
+  healingActionKey(unitInstanceId: string, itemSlug: string): string {
+    return `${unitInstanceId}:${itemSlug}`;
+  }
+
+  async healUnit(unitInstanceId: string, itemSlug: string): Promise<void> {
+    const run = this.run();
+    if (!run) {
+      return;
+    }
+
+    const actionKey = this.healingActionKey(unitInstanceId, itemSlug);
+    this.healingAction.set(actionKey);
+    this.error.set(null);
+    this.statusMessage.set(null);
+
+    try {
+      const response = await this.runService.healRunUnit(run.run_id, unitInstanceId, itemSlug);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+
+      const healing = response.data.healing;
+      this.runData.update((current) => {
+        if (!current) {
+          return current;
+        }
+
+        return {
+          ...current,
+          run_unit_state: (current.run_unit_state ?? []).map((state) =>
+            state.unit_instance_id === unitInstanceId
+              ? {
+                  ...state,
+                  hp: healing.hp_after,
+                  current_hp: healing.hp_after,
+                  is_defeated: healing.is_defeated,
+                }
+              : state,
+          ),
+        };
+      });
+
+      const unitName = this.runUnits().find((entry) => entry.unit_instance_id === unitInstanceId)?.unit?.name ?? 'Unit';
+      this.statusMessage.set(`${unitName} healed to ${healing.hp_after}/${healing.max_hp}.`);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to use healing item.');
+    } finally {
+      this.healingAction.set(null);
     }
   }
 
@@ -420,5 +490,34 @@ export class RunMapPageComponent {
     }
 
     return longestSpan;
+  }
+
+  private mapHealingConsumable(
+    item: ItemRecord,
+  ): { item_slug: string; name: string; quantity: number; amount: number } | null {
+    const effect = item.meta?.['effect'];
+    if (!effect || typeof effect !== 'object' || Array.isArray(effect)) {
+      return null;
+    }
+
+    const type = String((effect as Record<string, unknown>)['type'] ?? '');
+    const amount = Number((effect as Record<string, unknown>)['amount'] ?? 0);
+    if (
+      item.category !== 'consumable' ||
+      !item.is_spendable ||
+      type !== 'heal_run_unit_hp' ||
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      item.quantity <= 0
+    ) {
+      return null;
+    }
+
+    return {
+      item_slug: item.item_slug,
+      name: item.name,
+      quantity: item.quantity,
+      amount,
+    };
   }
 }

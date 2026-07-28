@@ -24,4 +24,13 @@ final class UnitProgressionServiceTest extends TestCase
     $this->assertSame(7, $service->precision($stats));
     $this->assertSame(4, $service->resolve($stats));
   }
+
+  public function testPrecisionAndResolveScaleByLevel(): void
+  {
+    $service = new UnitProgressionService();
+    $stats = ['precision' => 6, 'resolve' => 4];
+
+    $this->assertSame(9, $service->totalPrecisionForLevel($stats, 4, 1));
+    $this->assertSame(10, $service->totalResolveForLevel($stats, 4, 2));
+  }
 }

@@ -3196,6 +3196,147 @@ ON DUPLICATE KEY UPDATE
 
 -- END MIGRATION: 74_seed_pig_kin_variant.sql
 
+-- BEGIN MIGRATION: 75_seed_healing_consumables.sql
+INSERT INTO `items` (
+  `slug`,
+  `name`,
+  `description`,
+  `category`,
+  `source_region_id`,
+  `source_family_slug`,
+  `rarity`,
+  `is_stackable`,
+  `is_visible_before_discovery`,
+  `is_spendable`,
+  `is_primary_progression`,
+  `icon_key`,
+  `lore_key`,
+  `meta_json`
+)
+VALUES
+(
+  'field_poultice',
+  'Field Poultice',
+  'A quick wrap for patching up a wounded unit between encounters.',
+  'consumable',
+  NULL,
+  NULL,
+  'common',
+  1,
+  1,
+  1,
+  0,
+  'item_field_poultice',
+  'healing_consumable',
+  JSON_OBJECT('effect', JSON_OBJECT('type', 'heal_run_unit_hp', 'amount', 10))
+),
+(
+  'hearty_bone_broth',
+  'Hearty Bone Broth',
+  'A stronger recovery draught that brings one run unit back from the edge.',
+  'consumable',
+  NULL,
+  NULL,
+  'uncommon',
+  1,
+  1,
+  1,
+  0,
+  'item_hearty_bone_broth',
+  'healing_consumable',
+  JSON_OBJECT('effect', JSON_OBJECT('type', 'heal_run_unit_hp', 'amount', 25))
+)
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `description` = VALUES(`description`),
+  `category` = VALUES(`category`),
+  `source_region_id` = VALUES(`source_region_id`),
+  `source_family_slug` = VALUES(`source_family_slug`),
+  `rarity` = VALUES(`rarity`),
+  `is_stackable` = VALUES(`is_stackable`),
+  `is_visible_before_discovery` = VALUES(`is_visible_before_discovery`),
+  `is_spendable` = VALUES(`is_spendable`),
+  `is_primary_progression` = VALUES(`is_primary_progression`),
+  `icon_key` = VALUES(`icon_key`),
+  `lore_key` = VALUES(`lore_key`),
+  `meta_json` = VALUES(`meta_json`);
+
+-- END MIGRATION: 75_seed_healing_consumables.sql
+
+-- BEGIN MIGRATION: 76_seed_energy_consumables.sql
+INSERT INTO `items` (
+  `slug`,
+  `name`,
+  `description`,
+  `category`,
+  `source_region_id`,
+  `source_family_slug`,
+  `rarity`,
+  `is_stackable`,
+  `is_visible_before_discovery`,
+  `is_spendable`,
+  `is_primary_progression`,
+  `icon_key`,
+  `lore_key`,
+  `meta_json`
+)
+VALUES
+(
+  'travel_ration',
+  'Travel Ration',
+  'A packed bite that restores a small amount of energy before the next run.',
+  'consumable',
+  NULL,
+  NULL,
+  'common',
+  1,
+  1,
+  1,
+  0,
+  'item_travel_ration',
+  'energy_consumable',
+  JSON_OBJECT('effect', JSON_OBJECT('type', 'restore_energy', 'amount', 10))
+),
+(
+  'sparkroot_tonic',
+  'Sparkroot Tonic',
+  'A sharp tonic that restores a larger amount of energy without exceeding the current cap.',
+  'consumable',
+  NULL,
+  NULL,
+  'uncommon',
+  1,
+  1,
+  1,
+  0,
+  'item_sparkroot_tonic',
+  'energy_consumable',
+  JSON_OBJECT('effect', JSON_OBJECT('type', 'restore_energy', 'amount', 25))
+)
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `description` = VALUES(`description`),
+  `category` = VALUES(`category`),
+  `source_region_id` = VALUES(`source_region_id`),
+  `source_family_slug` = VALUES(`source_family_slug`),
+  `rarity` = VALUES(`rarity`),
+  `is_stackable` = VALUES(`is_stackable`),
+  `is_visible_before_discovery` = VALUES(`is_visible_before_discovery`),
+  `is_spendable` = VALUES(`is_spendable`),
+  `is_primary_progression` = VALUES(`is_primary_progression`),
+  `icon_key` = VALUES(`icon_key`),
+  `lore_key` = VALUES(`lore_key`),
+  `meta_json` = VALUES(`meta_json`);
+
+-- END MIGRATION: 76_seed_energy_consumables.sql
+
+-- BEGIN MIGRATION: 77_unit_type_precision_resolve_growth.sql
+ALTER TABLE `unit_types`
+  ADD COLUMN `precision_per_level` INT NOT NULL DEFAULT 1 AFTER `max_hp_per_level`,
+  ADD COLUMN `resolve_per_level` INT NOT NULL DEFAULT 1 AFTER `precision_per_level`;
+
+-- END MIGRATION: 77_unit_type_precision_resolve_growth.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 -- Dice Goblins â€” MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46

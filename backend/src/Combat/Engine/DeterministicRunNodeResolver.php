@@ -10,6 +10,7 @@ namespace DiceGoblins\Combat\Engine;
 
 use DiceGoblins\Combat\Abilities\AbilityRegistry;
 use DiceGoblins\Combat\Abilities\AbilityType;
+use DiceGoblins\Services\EncounterPrimitiveCatalog;
 use DiceGoblins\Services\SpliceVariantService;
 use DiceGoblins\Services\UnitProgressionService;
 use DiceGoblins\Services\UserUnlockService;
@@ -30,7 +31,7 @@ final class DeterministicRunNodeResolver
 
   /**
    * @param array{id:string,seed:string} $run
-   * @param array{id:string,node_type:string,encounter_template_id:?string} $node
+   * @param array{id:string,node_type:string,encounter_template_id:?string,meta_json?:?string} $node
    * @return array{
    *   seed:int,
    *   outcome:string,
@@ -47,6 +48,7 @@ final class DeterministicRunNodeResolver
     $runId = (int)$run['id'];
     $nodeId = (int)$node['id'];
     $nodeType = (string)$node['node_type'];
+    $nodeMeta = $this->decodeJsonObject($node['meta_json'] ?? null);
     $encounterTemplateId = $node['encounter_template_id'] !== null ? (int)$node['encounter_template_id'] : null;
 
     $playerUnits = $this->loadPlayerUnits($userId, $teamId, $runId);
@@ -72,44 +74,34 @@ final class DeterministicRunNodeResolver
       $ticks = 0;
       $outcome = 'victory';
       $xpTotal = 0;
-      $shrineFavor = null;
-      if ($nodeType === 'shrine') {
-        $favorRoll = $this->nextInt($rngState, 3);
-        $shrineFavor = [
-          'favor' => ['bone_whisper', 'rust_blessing', 'bog_luck'][$favorRoll],
-          'currency_soft' => 4 + $this->nextInt($rngState, 5),
-        ];
-      }
-      $currencySoft = match ($nodeType) {
-        'loot' => 8,
-        'shrine' => (int)($shrineFavor['currency_soft'] ?? 0),
-        default => 0,
-      };
+      $nodeEffect = (new EncounterPrimitiveCatalog())->resolveNodeEffect(
+        $nodeType,
+        fn(int $max): int => $this->nextInt($rngState, $max),
+        isset($nodeMeta['encounter_effect_slug']) ? (string)$nodeMeta['encounter_effect_slug'] : null
+      );
+      $currencySoft = (int)$nodeEffect['currency_soft'];
       $events = [[
         'type' => 'node_effect',
         'round' => 0,
         'tick' => 0,
         'node_type' => $nodeType,
-        'message' => match ($nodeType) {
-          'hazard' => 'hazard_avoided',
-          'shrine' => 'shrine_favor_granted',
-          default => 'non_combat_resolution',
-        },
+        'message' => (string)$nodeEffect['message'],
+        'effect_slug' => (string)$nodeEffect['slug'],
+        'primitive' => (string)$nodeEffect['primitive'],
         'label' => match ($nodeType) {
-          'hazard' => 'Hazard Avoided',
-          'shrine' => 'Shrine Favor Granted',
+          'hazard' => $this->humanizeId((string)$nodeEffect['slug']),
+          'shrine' => $this->humanizeId((string)$nodeEffect['slug']),
           'rest' => 'Full Recovery',
           default => 'Path Cleared',
         },
         'detail' => match ($nodeType) {
-          'hazard' => 'The squad picks through the danger without a fight.',
-          'shrine' => is_array($shrineFavor)
-            ? sprintf('%s grants %d teeth.', $this->humanizeId((string)$shrineFavor['favor']), (int)$shrineFavor['currency_soft'])
-            : 'The shrine grants a small favor.',
+          'hazard' => $this->describeNodeEffect($nodeType, $nodeEffect),
+          'shrine' => $this->describeNodeEffect($nodeType, $nodeEffect),
           'rest' => 'The squad returns to full health.',
           default => 'The route opens without a fight.',
         },
-        ...(is_array($shrineFavor) ? ['shrine_result' => $shrineFavor] : []),
+        ...($nodeType === 'shrine' ? ['shrine_result' => $nodeEffect['result']] : []),
+        ...($nodeType === 'hazard' ? ['hazard_result' => $nodeEffect['result']] : []),
       ]];
     } else {
       $difficulty = max(1, (int)$encounter['difficulty_rating']);
@@ -170,7 +162,18 @@ final class DeterministicRunNodeResolver
       $firstEvent = is_array($events[0] ?? null) ? $events[0] : [];
       $rewards['encounter_result'] = [
         'family' => 'shrine',
+        'primitive' => (string)($firstEvent['primitive'] ?? ''),
+        'effect_slug' => (string)($firstEvent['effect_slug'] ?? ''),
         'result' => is_array($firstEvent['shrine_result'] ?? null) ? $firstEvent['shrine_result'] : [],
+      ];
+    }
+    if ($nodeType === 'hazard') {
+      $firstEvent = is_array($events[0] ?? null) ? $events[0] : [];
+      $rewards['encounter_result'] = [
+        'family' => 'hazard',
+        'primitive' => (string)($firstEvent['primitive'] ?? ''),
+        'effect_slug' => (string)($firstEvent['effect_slug'] ?? ''),
+        'result' => is_array($firstEvent['hazard_result'] ?? null) ? $firstEvent['hazard_result'] : [],
       ];
     }
 
@@ -358,6 +361,8 @@ final class DeterministicRunNodeResolver
         ut.`attack_per_level`,
         ut.`defense_per_level`,
         ut.`max_hp_per_level`,
+        ut.`precision_per_level`,
+        ut.`resolve_per_level`,
         rus.`current_hp` AS `run_current_hp`
       FROM `team_units` tu
       JOIN `unit_instances` ui ON ui.`id` = tu.`unit_instance_id`
@@ -388,8 +393,8 @@ final class DeterministicRunNodeResolver
       $attack = $progression->totalAttackForLevel($baseStats, $level, (int)$row['attack_per_level']);
       $defense = $progression->totalDefenseForLevel($baseStats, $level, (int)$row['defense_per_level']);
       $maxHp = $progression->maxHpForLevel($baseStats, $level, (int)$row['max_hp_per_level']);
-      $precision = $progression->precision($baseStats);
-      $resolve = $progression->resolve($baseStats);
+      $precision = $progression->totalPrecisionForLevel($baseStats, $level, (int)$row['precision_per_level']);
+      $resolve = $progression->totalResolveForLevel($baseStats, $level, (int)$row['resolve_per_level']);
       $footprint = FormationGeometry::footprintFromStats($baseStats);
       $currentHp = $row['run_current_hp'] !== null
         ? max(0, min($maxHp, (int)$row['run_current_hp']))
@@ -1518,45 +1523,8 @@ final class DeterministicRunNodeResolver
       ];
     }
 
-    $fillerCandidates = array_values(array_filter(
-      $orderedActives,
-      fn(array $entry): bool => $this->isRepeatableFillerAbility($entry, $registry)
-    ));
-
-    while (count($fillerCandidates) > 0 && $cumulativeTick < 20) {
-      $scheduled = false;
-      $remainingTicks = 20 - $cumulativeTick;
-      foreach ($fillerCandidates as $entry) {
-        $speed = (int)$entry['speed'];
-        if ($speed > $remainingTicks) {
-          continue;
-        }
-
-        $cumulativeTick += $speed;
-        $schedule[] = [
-          'ability_id' => (string)$entry['ability_id'],
-          'speed' => $speed,
-          'target' => (string)$entry['target'],
-          'trigger_tick' => $cumulativeTick,
-          'equip_order' => (int)$entry['equip_order'],
-        ];
-        $scheduled = true;
-        break;
-      }
-
-      if (!$scheduled) {
-        break;
-      }
-    }
-
     if (count($schedule) === 0) {
-      $schedule[] = [
-        'ability_id' => 'basic_attack_melee',
-        'speed' => 4,
-        'target' => 'enemy_front_prefer',
-        'trigger_tick' => 4,
-        'equip_order' => 0,
-      ];
+      throw new RuntimeException('combat_ability_schedule_empty');
     }
 
     usort($schedule, static function (array $a, array $b): int {
@@ -3020,6 +2988,7 @@ final class DeterministicRunNodeResolver
    *     sides:int,
    *     rolls:array<int,array{sides:int,roll:int}>,
    *     roll_total:int,
+   *     contribution:int,
    *     modifier:int,
    *     empty_slot:bool
    *   }>,
@@ -3084,8 +3053,8 @@ final class DeterministicRunNodeResolver
         $diceRolls[] = $entry;
       }
 
-      $slotModifier = $rollTotal - (int)ceil($sides / 2);
-      $modifier += $slotModifier;
+      $slotContribution = $rollTotal;
+      $modifier += $slotContribution;
       $diceLabel = $diceUsed[$index]['dice_instance_id'] !== null
         ? sprintf('dice#%s', $diceUsed[$index]['dice_instance_id'])
         : sprintf('%s_%s_slot_%d', $side, $abilityId, $index + 1);
@@ -3103,15 +3072,16 @@ final class DeterministicRunNodeResolver
         'sides' => $sides,
         'rolls' => $rollEntries,
         'roll_total' => $rollTotal,
-        'modifier' => $slotModifier,
+        'contribution' => $slotContribution,
+        'modifier' => $slotContribution,
         'empty_slot' => (string)$diceUsed[$index]['kind'] === 'empty_slot',
       ];
       $slotTraceParts[] = sprintf(
-        'slot%d=%s => %s (mod %+d)',
+        'slot%d=%s => %s (contribution %+d)',
         $index + 1,
         $slotLabel,
         $rollLabel,
-        $slotModifier
+        $slotContribution
       );
       $diceOutcomeParts[] = count($rollEntries) > 1
         ? sprintf('%s rolled d%d = %s (explode => %d)', $diceLabel, $sides, $rollLabel, $rollTotal)
@@ -4345,13 +4315,16 @@ final class DeterministicRunNodeResolver
     $entries = [];
     foreach ($abilityIds as $abilityId) {
       $id = trim((string)$abilityId);
-      if ($id === '' || !$registry->has($id)) {
+      if ($id === '') {
         continue;
+      }
+      if (!$registry->has($id)) {
+        throw new RuntimeException('combat_unknown_ability');
       }
 
       $def = $registry->get($id);
       if ($def->type !== AbilityType::Active || $def->speed === null) {
-        continue;
+        throw new RuntimeException('combat_unschedulable_ability');
       }
 
       $entries[] = [
@@ -4363,38 +4336,6 @@ final class DeterministicRunNodeResolver
     }
 
     return $entries;
-  }
-
-  /**
-   * @param array{ability_id:string,speed:int,target:string,equip_order:int} $entry
-   */
-  private function isRepeatableFillerAbility(array $entry, AbilityRegistry $registry): bool
-  {
-    $abilityId = trim((string)($entry['ability_id'] ?? ''));
-    if ($abilityId === '' || !$registry->has($abilityId)) {
-      return false;
-    }
-
-    $definition = $registry->get($abilityId);
-    if ($definition->type !== AbilityType::Active || $definition->speed === null) {
-      return false;
-    }
-
-    $target = (string)($entry['target'] ?? '');
-    if (!str_starts_with($target, 'enemy_')) {
-      return false;
-    }
-
-    if (in_array($abilityId, ['basic_attack_melee', 'basic_attack_ranged'], true)) {
-      return true;
-    }
-
-    $powerRatio = $definition->defaultParams['power_ratio'] ?? null;
-    if (is_numeric($powerRatio) && (float)$powerRatio > 0.0) {
-      return true;
-    }
-
-    return in_array('damage', $definition->tags, true);
   }
 
   private function deriveStatusDurationRounds(AbilityRegistry $abilityRegistry, string $abilityId, ?string $status): ?int
@@ -4691,6 +4632,33 @@ final class DeterministicRunNodeResolver
     $exists = ((int)$stmt->fetchColumn()) > 0;
     $this->schemaPresenceCache[$cacheKey] = $exists;
     return $exists;
+  }
+
+  /**
+   * @param array{slug:string,message:string,primitive:string,currency_soft:int,result:array<string,mixed>} $nodeEffect
+   */
+  private function describeNodeEffect(string $nodeType, array $nodeEffect): string
+  {
+    $result = is_array($nodeEffect['result'] ?? null) ? $nodeEffect['result'] : [];
+    $currencySoft = (int)($nodeEffect['currency_soft'] ?? 0);
+    $effectName = $this->humanizeId((string)($nodeEffect['slug'] ?? $nodeEffect['message'] ?? 'effect'));
+
+    if ($nodeType === 'shrine') {
+      return $currencySoft > 0
+        ? sprintf('%s grants %d teeth.', $effectName, $currencySoft)
+        : sprintf('%s settles over the squad.', $effectName);
+    }
+
+    if ($nodeType === 'hazard') {
+      $damage = (int)($result['damage_each'] ?? $result['damage'] ?? 0);
+      if ($damage > 0) {
+        return sprintf('%s deals %d damage across the squad.', $effectName, $damage);
+      }
+
+      return sprintf('%s changes the path ahead.', $effectName);
+    }
+
+    return sprintf('%s resolves without a fight.', $effectName);
   }
 
   private function humanizeId(string $value): string

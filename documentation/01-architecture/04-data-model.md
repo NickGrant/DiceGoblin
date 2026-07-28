@@ -73,7 +73,7 @@ Rules:
 `unit_types` remain the authored source of:
 - role
 - base stats
-- per-level growth
+- per-level growth for attack, defense, max HP, precision, and resolve
 - max level
 - promotion eligibility level
 - level-10 capstone choices

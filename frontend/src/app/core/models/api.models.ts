@@ -521,6 +521,41 @@ export type RestFinalizeData = {
 export type RestOpenResponse = ApiResponse<RestOpenData>;
 export type RestFinalizeResponse = ApiResponse<RestFinalizeData>;
 
+export type RunUnitHealingData = {
+  run_id: string;
+  unit_instance_id: string;
+  item: {
+    item_slug: string;
+    quantity: number;
+    spent_quantity: number;
+  };
+  healing: {
+    amount: number;
+    hp_before: number;
+    hp_after: number;
+    max_hp: number;
+    is_defeated: boolean;
+  };
+};
+
+export type RunUnitHealingResponse = ApiResponse<RunUnitHealingData>;
+
+export type EnergyRestoreData = {
+  item: {
+    item_slug: string;
+    quantity: number;
+    spent_quantity: number;
+  };
+  energy: {
+    amount: number;
+    current_before: number;
+    current_after: number;
+    max: number;
+  };
+};
+
+export type EnergyRestoreResponse = ApiResponse<EnergyRestoreData>;
+
 export type ChaosReelRecord = {
   reel_index: number;
   reel: string;

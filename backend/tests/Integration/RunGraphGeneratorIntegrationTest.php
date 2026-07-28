@@ -27,6 +27,7 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
       array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']),
     );
     $this->assertSame('available', (string)$graph['nodes'][0]['status']);
+    $this->assertSame('good', (string)($graph['nodes'][1]['meta']['node_quality_tier'] ?? ''));
     $this->assertSame(
       [
         ['from' => 0, 'to' => 1],
@@ -384,6 +385,66 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
         $this->assertNull($chaosNode['encounter_template_id'] ?? null);
         $this->assertGreaterThan(2, (int)$chaosNode['meta']['col']);
         $this->assertLessThan($analysis['boss_col'], (int)$chaosNode['meta']['col']);
+      }
+    }
+  }
+
+  /**
+   * @dataProvider proceduralRegionProvider
+   */
+  public function testProceduralHazardsUseAuthoredPrimitiveMetadata(string $regionSlug): void
+  {
+    $regionId = $this->seededRegionId($regionSlug);
+    $generator = new RunGraphGenerator($this->pdo);
+    $foundHazard = false;
+
+    for ($seed = 9000; $seed < 9050; $seed++) {
+      $graph = $generator->generate($regionId, $regionSlug, (string)$seed);
+      foreach ($graph['nodes'] as $node) {
+        if ((string)($node['node_type'] ?? '') !== 'hazard') {
+          continue;
+        }
+
+        $foundHazard = true;
+        $analysis = $this->analyzeGraph($graph);
+        $nodeIndex = (int)$node['node_index'];
+        $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+
+        $this->assertArrayHasKey($nodeIndex, $analysis['reachable_from_start']);
+        $this->assertSame('hazard', (string)($meta['encounter_family'] ?? ''));
+        $this->assertNotSame('', (string)($meta['encounter_effect_slug'] ?? ''));
+        $this->assertContains(
+          (string)($meta['encounter_primitive'] ?? ''),
+          ['route_pressure', 'hp_attrition', 'temporary_modifier', 'currency_pressure', 'item_pressure', 'kin_mitigation']
+        );
+        $this->assertGreaterThanOrEqual(3, (int)($meta['col'] ?? 0));
+        $this->assertLessThan($analysis['boss_col'], (int)($meta['col'] ?? 0));
+      }
+    }
+
+    $this->assertTrue($foundHazard, "{$regionSlug} should generate authored hazard nodes across deterministic seeds.");
+  }
+
+  /**
+   * @dataProvider proceduralRegionProvider
+   */
+  public function testProceduralLootAndShrineNodesReceiveQualityTiers(string $regionSlug): void
+  {
+    $regionId = $this->seededRegionId($regionSlug);
+    $generator = new RunGraphGenerator($this->pdo);
+
+    for ($seed = 1; $seed <= 40; $seed++) {
+      $graph = $generator->generate($regionId, $regionSlug, (string)$seed);
+      foreach ($graph['nodes'] as $node) {
+        if (!in_array((string)($node['node_type'] ?? ''), ['loot', 'shrine'], true)) {
+          continue;
+        }
+
+        $this->assertContains(
+          (string)($node['meta']['node_quality_tier'] ?? ''),
+          ['poor', 'good', 'great'],
+          sprintf('Seed %d %s node %d should have a supported quality tier.', $seed, $regionSlug, (int)$node['node_index']),
+        );
       }
     }
   }

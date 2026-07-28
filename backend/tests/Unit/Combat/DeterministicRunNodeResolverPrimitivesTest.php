@@ -585,7 +585,7 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
     );
   }
 
-  public function testBuildActiveAbilityScheduleFillsRemainingTicksWithRepeatableAttacks(): void
+  public function testBuildActiveAbilityScheduleUsesOnlyAuthoredActives(): void
   {
     $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
     $registry = $registryClass->newInstance();
@@ -595,14 +595,14 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
       $registry,
     ]);
 
-    $this->assertSame([4, 14, 18], array_column($schedule, 'trigger_tick'));
+    $this->assertSame([4, 14], array_column($schedule, 'trigger_tick'));
     $this->assertSame(
-      ['basic_attack_melee', 'shield_up', 'basic_attack_melee'],
+      ['basic_attack_melee', 'shield_up'],
       array_column($schedule, 'ability_id')
     );
   }
 
-  public function testBuildActiveAbilityScheduleDoesNotRepeatSupportAbilitiesAsFiller(): void
+  public function testBuildActiveAbilityScheduleLeavesUnusedTicksEmpty(): void
   {
     $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
     $registry = $registryClass->newInstance();
@@ -612,11 +612,77 @@ final class DeterministicRunNodeResolverPrimitivesTest extends TestCase
       $registry,
     ]);
 
-    $this->assertSame([4, 14, 18], array_column($schedule, 'trigger_tick'));
+    $this->assertSame([4, 14], array_column($schedule, 'trigger_tick'));
     $this->assertSame(
-      ['basic_attack_melee', 'bolster_ally', 'basic_attack_melee'],
+      ['basic_attack_melee', 'bolster_ally'],
       array_column($schedule, 'ability_id')
     );
+  }
+
+  public function testBuildActiveAbilityScheduleRejectsEmptyLoadouts(): void
+  {
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('combat_ability_schedule_empty');
+
+    $this->invokePrivate('buildActiveAbilitySchedule', [
+      [],
+      $registry,
+    ]);
+  }
+
+  public function testBuildActiveAbilityScheduleRejectsUnknownAbilities(): void
+  {
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('combat_unknown_ability');
+
+    $this->invokePrivate('buildActiveAbilitySchedule', [
+      ['missing_ability'],
+      $registry,
+    ]);
+  }
+
+  public function testBuildActiveAbilityScheduleRejectsPassiveOnlyLoadouts(): void
+  {
+    $registryClass = new ReflectionClass('DiceGoblins\\Combat\\Abilities\\AbilityRegistry');
+    $registry = $registryClass->newInstance();
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('combat_unschedulable_ability');
+
+    $this->invokePrivate('buildActiveAbilitySchedule', [
+      ['dumb_luck'],
+      $registry,
+    ]);
+  }
+
+  public function testRollActionDiceUsesFullRollTotalAsContribution(): void
+  {
+    $state = str_repeat('d', 64);
+
+    $roll = $this->invokePrivate('rollActionDice', [
+      &$state,
+      [[
+        'kind' => 'test_die',
+        'dice_instance_id' => 'die-1',
+        'sides' => 1,
+        'affixes' => [
+          ['slug' => 'explode_once', 'value' => 1.0],
+        ],
+      ]],
+      'basic_attack_melee',
+      'player',
+    ]);
+
+    $this->assertSame(2, (int)($roll['slot_traces'][0]['roll_total'] ?? 0));
+    $this->assertSame(2, (int)($roll['slot_traces'][0]['contribution'] ?? 0));
+    $this->assertSame(2, (int)($roll['dice_modifier'] ?? 0));
+    $this->assertStringContainsString('contribution +2', (string)($roll['slot_trace_summary'] ?? ''));
   }
 
   public function testDeriveSupportOutcomeUsesHalfDieGuardStacksForTauntingGuard(): void

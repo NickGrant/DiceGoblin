@@ -129,6 +129,8 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertIsArray($hazardPreview);
     $this->assertSame('hazard', (string)($hazardPreview['node_type'] ?? ''));
     $this->assertSame('hazard_avoided', (string)($hazardRes['body']['data']['battle']['log']['events'][0]['message'] ?? ''));
+    $this->assertSame('route_pressure', (string)($hazardRes['body']['data']['battle']['log']['events'][0]['primitive'] ?? ''));
+    $this->assertSame('hazard_cautious_footing', (string)($hazardRes['body']['data']['battle']['log']['events'][0]['effect_slug'] ?? ''));
     [$hazardXp, $hazardSoft] = $this->battleRewardTuple($hazardBattleId);
     $this->assertSame(0, $hazardXp);
     $this->assertSame(0, $hazardSoft);
@@ -144,16 +146,26 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame('shrine_favor_granted', (string)($shrineRes['body']['data']['battle']['log']['events'][0]['message'] ?? ''));
     $shrineResult = $shrineRes['body']['data']['battle']['log']['events'][0]['shrine_result'] ?? null;
     $this->assertIsArray($shrineResult);
-    $this->assertContains((string)($shrineResult['favor'] ?? ''), ['bone_whisper', 'rust_blessing', 'bog_luck']);
+    $this->assertNotSame('', (string)($shrineResult['favor'] ?? ''));
+    $this->assertNotSame('', (string)($shrineResult['title'] ?? ''));
+    $this->assertContains(
+      (string)($shrineRes['body']['data']['battle']['log']['events'][0]['primitive'] ?? ''),
+      ['small_reward', 'cleansing', 'bargain', 'reroute', 'controlled_risk']
+    );
     [$shrineXp, $shrineSoft] = $this->battleRewardTuple($shrineBattleId);
     $this->assertSame(0, $shrineXp);
-    $this->assertGreaterThanOrEqual(4, $shrineSoft);
-    $this->assertLessThanOrEqual(8, $shrineSoft);
+    $this->assertGreaterThanOrEqual(2, $shrineSoft);
+    $this->assertLessThanOrEqual(10, $shrineSoft);
 
     $shrineRewardsRaw = (string)$this->scalar('SELECT `rewards_json` FROM `battle_rewards` WHERE `battle_id` = ?', [$shrineBattleId]);
     $shrineRewards = json_decode($shrineRewardsRaw, true);
     $this->assertIsArray($shrineRewards);
     $this->assertSame('shrine', (string)($shrineRewards['encounter_result']['family'] ?? ''));
+    $this->assertContains(
+      (string)($shrineRewards['encounter_result']['primitive'] ?? ''),
+      ['small_reward', 'cleansing', 'bargain', 'reroute', 'controlled_risk']
+    );
+    $this->assertStringStartsWith('shrine_', (string)($shrineRewards['encounter_result']['effect_slug'] ?? ''));
 
     $lootNodeId = $this->insertRunNode($runId, 'loot', 'available');
     $lootRes = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$lootNodeId));
@@ -167,13 +179,15 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame(8, (int)($lootPreview['currency_soft'] ?? -1));
     $this->assertIsArray($lootPreview['units'] ?? null);
     $this->assertIsArray($lootPreview['dice'] ?? null);
-    $this->assertNotEmpty($lootPreview['dice']);
-    $firstLootDie = $lootPreview['dice'][0];
-    $this->assertIsArray($firstLootDie);
-    $this->assertArrayHasKey('label', $firstLootDie);
-    $this->assertArrayHasKey('material', $firstLootDie);
-    $this->assertArrayHasKey('sides', $firstLootDie);
-    $this->assertIsArray($firstLootDie['affixes'] ?? null);
+    $this->assertNotSame([], array_merge($lootPreview['units'], $lootPreview['dice']));
+    if (count($lootPreview['dice']) > 0) {
+      $firstLootDie = $lootPreview['dice'][0];
+      $this->assertIsArray($firstLootDie);
+      $this->assertArrayHasKey('label', $firstLootDie);
+      $this->assertArrayHasKey('material', $firstLootDie);
+      $this->assertArrayHasKey('sides', $firstLootDie);
+      $this->assertIsArray($firstLootDie['affixes'] ?? null);
+    }
     [$lootXp, $lootSoft] = $this->battleRewardTuple($lootBattleId);
     $this->assertSame(0, $lootXp);
     $this->assertSame(8, $lootSoft);
@@ -407,9 +421,9 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
 
     $this->assertContains(4, $playerRoundOneTicks);
     $this->assertContains(12, $playerRoundOneTicks);
-    $this->assertContains(16, $playerRoundOneTicks);
+    $this->assertNotContains(16, $playerRoundOneTicks);
     $this->assertNotContains(8, $playerRoundOneTicks, 'The second equipped ability should fire at cumulative tick 12, not at its raw speed tick.');
-    $this->assertGreaterThanOrEqual(3, count($playerRoundOneTicks), 'Remaining round budget should allow a repeated attack action when it fits.');
+    $this->assertCount(2, $playerRoundOneTicks, 'Unused round ticks should remain empty instead of repeating filler actions.');
   }
 
   public function testResolveNodeUsesD1FallbackForPlayerEmptyDiceSlots(): void
@@ -472,7 +486,8 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame(1, (int)($diceRolls[0]['roll'] ?? 0));
     $this->assertSame(0, (int)($slotTraces[0]['slot_index'] ?? -1));
     $this->assertSame(true, (bool)($slotTraces[0]['empty_slot'] ?? false));
-    $this->assertStringContainsString('slot1=empty_slot(d1) => 1 (mod +0)', (string)($playerAction['slot_trace_summary'] ?? ''));
+    $this->assertSame(1, (int)($slotTraces[0]['contribution'] ?? 0));
+    $this->assertStringContainsString('slot1=empty_slot(d1) => 1 (contribution +1)', (string)($playerAction['slot_trace_summary'] ?? ''));
   }
 
   public function testResolveNodeUsesBoundAbilityDiceInsteadOfLegacyUnitPool(): void

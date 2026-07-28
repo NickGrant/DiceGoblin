@@ -9,7 +9,7 @@ class RunServiceStub {
     data: {
       run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'the_farm', region_theme: 'farm' },
       map: {
-        nodes: [{ id: 'n1', run_id: 'run-1', node_index: 0, node_type: 'loot', status: 'available' }],
+        nodes: [{ id: '8', run_id: 'run-1', node_index: 0, node_type: 'loot', status: 'available', meta: { node_quality_tier: 'great' } }],
         edges: [],
       },
     },
@@ -89,10 +89,7 @@ describe('RunLootPageComponent', () => {
       providers: [
         provideRouter([]),
         { provide: RunService, useClass: RunServiceStub },
-        {
-          provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: 'n1' }) } },
-        },
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: '8' }) } } },
       ],
     }).compileComponents();
 
@@ -163,7 +160,7 @@ describe('RunLootPageComponent', () => {
     expect(host.querySelector('.loot-scene__summary')?.textContent).toContain('teeth');
     expect(host.querySelector('.loot-scene__summary')?.textContent).toContain('dice');
     expect(host.querySelector('.loot-scene__summary')?.textContent).toContain('units');
-    expect((host.querySelector('.loot-scene__art') as HTMLImageElement)?.getAttribute('src')).toBe('/assets/ui/node-art/loot/good_a.png');
+    expect((host.querySelector('.loot-scene__art') as HTMLImageElement)?.getAttribute('src')).toBe('/assets/ui/node-art/loot/great_b.png');
 
     const diceImage = host.querySelector('.loot-card--dice img') as HTMLImageElement;
     expect(diceImage?.getAttribute('src')).toBe('/assets/ui/dice/bone_d6.png');

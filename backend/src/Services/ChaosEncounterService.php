@@ -19,24 +19,50 @@ final class ChaosEncounterService
       ['symbol' => 'kobolds', 'label' => 'Kobolds', 'weight' => 30, 'risk' => 2, 'effect' => 'Trap-ready kobold pressure.'],
       ['symbol' => 'frogmen', 'label' => 'Frogmen', 'weight' => 25, 'risk' => 2, 'effect' => 'Swamp attrition pressure.'],
       ['symbol' => 'mixed', 'label' => 'Mixed Mob', 'weight' => 15, 'risk' => 3, 'effect' => 'A messy mixed-family pull.'],
+      ['symbol' => 'mudkin', 'label' => 'Mudkin', 'weight' => 12, 'risk' => 1, 'effect' => 'Farm muck pressure.'],
+      ['symbol' => 'rust_cult', 'label' => 'Rust Cult', 'weight' => 10, 'risk' => 3, 'effect' => 'Unstable machine-touched pressure.'],
+      ['symbol' => 'strays', 'label' => 'Strays', 'weight' => 12, 'risk' => 1, 'effect' => 'Low-rank scavenger pressure.'],
+      ['symbol' => 'bogbound', 'label' => 'Bogbound', 'weight' => 10, 'risk' => 2, 'effect' => 'Sticky swamp pressure.'],
+      ['symbol' => 'summit_raiders', 'label' => 'Summit Raiders', 'weight' => 10, 'risk' => 2, 'effect' => 'Mountain ambusher pressure.'],
+      ['symbol' => 'echoes', 'label' => 'Echoes', 'weight' => 6, 'risk' => 3, 'effect' => 'Unclear copied-family pressure.'],
     ],
     1 => [
       ['symbol' => 'horde', 'label' => 'Horde', 'weight' => 30, 'risk' => 2, 'effect' => 'More bodies than usual.'],
       ['symbol' => 'armored_frontline', 'label' => 'Armored Frontline', 'weight' => 25, 'risk' => 2, 'effect' => 'A tougher front rank.'],
       ['symbol' => 'ranged_backline', 'label' => 'Ranged Backline', 'weight' => 25, 'risk' => 2, 'effect' => 'Backline pressure.'],
       ['symbol' => 'ambush', 'label' => 'Ambush', 'weight' => 20, 'risk' => 3, 'effect' => 'A dangerous opening position.'],
+      ['symbol' => 'split_lane', 'label' => 'Split Lane', 'weight' => 14, 'risk' => 2, 'effect' => 'Pressure arrives from separated lanes.'],
+      ['symbol' => 'heavy_anchor', 'label' => 'Heavy Anchor', 'weight' => 12, 'risk' => 2, 'effect' => 'One stubborn threat holds the line.'],
+      ['symbol' => 'glass_cannon', 'label' => 'Glass Cannon', 'weight' => 12, 'risk' => 3, 'effect' => 'Fragile enemies hit harder.'],
+      ['symbol' => 'staggered_wave', 'label' => 'Staggered Wave', 'weight' => 10, 'risk' => 2, 'effect' => 'Enemy pressure arrives unevenly.'],
+      ['symbol' => 'shield_wall', 'label' => 'Shield Wall', 'weight' => 10, 'risk' => 3, 'effect' => 'Defense-heavy formation pressure.'],
+      ['symbol' => 'isolated_elite', 'label' => 'Isolated Elite', 'weight' => 8, 'risk' => 3, 'effect' => 'One dangerous enemy carries the fight.'],
     ],
     2 => [
       ['symbol' => 'bolstered_enemies', 'label' => 'Bolstered Enemies', 'weight' => 25, 'risk' => 3, 'effect' => 'Enemies begin with a small advantage.'],
       ['symbol' => 'volatile_dice', 'label' => 'Volatile Dice', 'weight' => 25, 'risk' => 2, 'effect' => 'Dice volatility increases risk and payout.'],
       ['symbol' => 'guaranteed_loot', 'label' => 'Guaranteed Loot', 'weight' => 30, 'risk' => 1, 'effect' => 'Victory promises extra loot.'],
       ['symbol' => 'raw_chaos_spark', 'label' => 'Raw Chaos Spark', 'weight' => 20, 'risk' => 2, 'effect' => 'Victory can feed later chaos systems.'],
+      ['symbol' => 'teeth_rain', 'label' => 'Teeth Rain', 'weight' => 18, 'risk' => 1, 'effect' => 'Victory leans toward extra teeth.'],
+      ['symbol' => 'wounded_start', 'label' => 'Wounded Start', 'weight' => 12, 'risk' => 3, 'effect' => 'The fight starts under attrition pressure.'],
+      ['symbol' => 'lucky_break', 'label' => 'Lucky Break', 'weight' => 12, 'risk' => 1, 'effect' => 'A small mercy offsets the chaos.'],
+      ['symbol' => 'double_or_nothing', 'label' => 'Double Or Nothing', 'weight' => 8, 'risk' => 4, 'effect' => 'High risk threatens a bigger payout.'],
+      ['symbol' => 'scrap_cache', 'label' => 'Scrap Cache', 'weight' => 12, 'risk' => 1, 'effect' => 'Victory may uncover useful scrap.'],
+      ['symbol' => 'spiteful_rules', 'label' => 'Spiteful Rules', 'weight' => 8, 'risk' => 3, 'effect' => 'The encounter bends against comfort.'],
     ],
   ];
 
   public function __construct(
     private readonly PDO $pdo,
   ) {}
+
+  /**
+   * @return array<int,array<int,array<string,mixed>>>
+   */
+  public function reelCatalog(): array
+  {
+    return self::REEL_POOLS;
+  }
 
   /**
    * @return array<string,mixed>
