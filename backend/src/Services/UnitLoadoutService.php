@@ -148,6 +148,10 @@ final class UnitLoadoutService
       $normalizedAbilityIds[] = $normalizedAbilityId;
     }
 
+    if (count($normalizedAbilityIds) === 0) {
+      throw new RuntimeException('At least one active ability must be equipped.');
+    }
+
     $totalBudget = array_sum(array_map(fn(string $abilityId): int => $this->speedCostForAbility($abilityId), $normalizedAbilityIds));
     if ($totalBudget > self::MAX_EQUIP_BUDGET) {
       throw new RuntimeException('Equipped abilities exceed the 20-point speed budget.');
