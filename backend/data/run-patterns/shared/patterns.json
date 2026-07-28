@@ -1,0 +1,110 @@
+{
+  "catalog_version": 1,
+  "patterns": [
+    {
+      "slug": "shared_start_single",
+      "version": 1,
+      "status": "enabled",
+      "tags": ["start", "fallback"],
+      "allowed_transforms": ["identity"],
+      "node_cost": 1,
+      "nodes": [
+        { "key": "start", "type": "combat", "x": 0, "y": 0, "role": "start", "tags": ["start"] }
+      ],
+      "edges": [],
+      "sockets": [
+        { "id": "exit_right", "kind": "exit", "node": "start", "direction": "right", "path_eligibility": ["spine"] }
+      ]
+    },
+    {
+      "slug": "shared_combat_step",
+      "version": 1,
+      "status": "enabled",
+      "tags": ["combat", "spine", "fallback"],
+      "allowed_transforms": ["identity", "mirror_y"],
+      "node_cost": 1,
+      "nodes": [
+        { "key": "combat", "type": "combat", "x": 0, "y": 0, "role": "continuation", "tags": ["combat"] }
+      ],
+      "edges": [],
+      "sockets": [
+        { "id": "entry_left", "kind": "entry", "node": "combat", "direction": "left", "path_eligibility": ["spine", "branch"] },
+        { "id": "exit_right", "kind": "exit", "node": "combat", "direction": "right", "path_eligibility": ["spine", "branch"] }
+      ]
+    },
+    {
+      "slug": "shared_hazard_rest",
+      "version": 1,
+      "status": "enabled",
+      "tags": ["hazard", "recovery", "branch"],
+      "allowed_transforms": ["identity", "mirror_y"],
+      "node_cost": 2,
+      "nodes": [
+        { "key": "hazard", "type": "hazard", "x": 0, "y": 0, "role": "pressure", "tags": ["hazard"] },
+        { "key": "rest", "type": "rest", "x": 1, "y": 0, "role": "recovery", "tags": ["recovery"] }
+      ],
+      "edges": [
+        { "from": "hazard", "to": "rest" }
+      ],
+      "sockets": [
+        { "id": "entry_left", "kind": "entry", "node": "hazard", "direction": "left", "path_eligibility": ["spine", "branch"] },
+        { "id": "exit_right", "kind": "exit", "node": "rest", "direction": "right", "path_eligibility": ["spine", "branch"] }
+      ]
+    },
+    {
+      "slug": "shared_shrine_combat_loot_branch",
+      "version": 1,
+      "status": "enabled",
+      "tags": ["shrine", "combat", "optional_reward", "medium"],
+      "allowed_transforms": ["identity", "mirror_y"],
+      "node_cost": 3,
+      "limits": { "max_per_run": 1, "cooldown_patterns": 4 },
+      "nodes": [
+        { "key": "shrine", "type": "shrine", "x": 0, "y": 0, "role": "entry", "tags": ["preparation"] },
+        { "key": "combat", "type": "combat", "x": 1, "y": 0, "role": "continuation", "tags": ["required_within_pattern"] },
+        { "key": "loot", "type": "loot", "x": 1, "y": -1, "role": "optional_terminal", "tags": ["reward"] }
+      ],
+      "edges": [
+        { "from": "shrine", "to": "combat" },
+        { "from": "combat", "to": "loot" }
+      ],
+      "sockets": [
+        { "id": "entry_left", "kind": "entry", "node": "shrine", "direction": "left", "path_eligibility": ["spine", "branch"] },
+        { "id": "exit_right", "kind": "exit", "node": "combat", "direction": "right", "path_eligibility": ["spine", "branch"] }
+      ]
+    },
+    {
+      "slug": "shared_loot_cap",
+      "version": 1,
+      "status": "enabled",
+      "tags": ["loot", "cap", "fallback"],
+      "allowed_transforms": ["identity", "mirror_y"],
+      "node_cost": 1,
+      "nodes": [
+        { "key": "loot", "type": "loot", "x": 0, "y": 0, "role": "terminal_reward", "tags": ["reward"] }
+      ],
+      "edges": [],
+      "sockets": [
+        { "id": "entry_left", "kind": "entry", "node": "loot", "direction": "left", "path_eligibility": ["branch"] }
+      ]
+    },
+    {
+      "slug": "shared_boss_exit_terminal",
+      "version": 1,
+      "status": "enabled",
+      "tags": ["boss", "exit", "terminal", "fallback"],
+      "allowed_transforms": ["identity"],
+      "node_cost": 2,
+      "nodes": [
+        { "key": "boss", "type": "boss", "x": 0, "y": 0, "role": "boss", "tags": ["boss"] },
+        { "key": "exit", "type": "exit", "x": 1, "y": 0, "role": "exit", "tags": ["exit"] }
+      ],
+      "edges": [
+        { "from": "boss", "to": "exit" }
+      ],
+      "sockets": [
+        { "id": "entry_left", "kind": "entry", "node": "boss", "direction": "left", "path_eligibility": ["spine"] }
+      ]
+    }
+  ]
+}

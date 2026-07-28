@@ -1,0 +1,29 @@
+{
+  "region_slug": "mountains",
+  "generator_version": "pattern-v1",
+  "profile_version": 1,
+  "enabled": true,
+  "bounds": { "min_col": 0, "max_col": 10, "min_row": 0, "max_row": 4, "origin": { "x": 0, "y": 2 } },
+  "budgets": {
+    "total_nodes": { "min": 8, "target": 12, "max": 16, "hard": true },
+    "spine_nodes": { "min": 6, "target": 8, "max": 10, "hard": true },
+    "branch_nodes": { "min": 1, "target": 3, "max": 6, "hard": false },
+    "combat_nodes": { "min": 3, "target": 5, "max": 8, "hard": true },
+    "reward_nodes": { "min": 1, "target": 2, "max": 4, "hard": false },
+    "recovery_nodes": { "min": 1, "target": 2, "max": 3, "hard": true },
+    "hazard_nodes": { "min": 1, "target": 2, "max": 3, "hard": false },
+    "shrine_nodes": { "min": 0, "target": 1, "max": 2, "hard": false },
+    "chaos_nodes": { "min": 1, "target": 1, "max": 2, "hard": true },
+    "branch_count": { "min": 1, "target": 2, "max": 3, "hard": false },
+    "frontier_count": { "min": 1, "target": 2, "max": 4, "hard": false },
+    "pattern_instances": { "min": 5, "target": 8, "max": 12, "hard": true }
+  },
+  "requirements": {
+    "required_node_types": ["boss", "exit", "rest", "chaos"],
+    "boss_requires_spine": true,
+    "exit_requires_boss_parent": true,
+    "fallback_patterns": ["shared_start_single", "shared_combat_step", "shared_loot_cap", "shared_boss_exit_terminal"]
+  },
+  "retry_policy": { "candidate_retries": 20, "backtrack_depth": 4, "generation_attempts": 3 },
+  "weight_policy": { "prefer_recovery_after_hazard": 1.4, "prefer_reward_on_branch": 1.25 }
+}

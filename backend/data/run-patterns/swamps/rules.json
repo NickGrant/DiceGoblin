@@ -1,0 +1,12 @@
+{
+  "region_slug": "swamps",
+  "generator_version": "pattern-v1",
+  "rules": [
+    { "pattern_slug": "shared_start_single", "pattern_version": 1, "base_weight": 100, "allowed_phase": "start", "min_depth": 0, "max_depth": 0, "max_per_run": 1, "cooldown_patterns": 0, "enabled": true },
+    { "pattern_slug": "shared_combat_step", "pattern_version": 1, "base_weight": 65, "allowed_phase": "spine", "min_depth": 1, "max_depth": 8, "max_per_run": 5, "cooldown_patterns": 1, "enabled": true },
+    { "pattern_slug": "shared_hazard_rest", "pattern_version": 1, "base_weight": 70, "allowed_phase": "spine", "min_depth": 3, "max_depth": 8, "max_per_run": 3, "cooldown_patterns": 2, "enabled": true },
+    { "pattern_slug": "shared_shrine_combat_loot_branch", "pattern_version": 1, "base_weight": 60, "allowed_phase": "branch", "min_depth": 2, "max_depth": 8, "max_per_run": 2, "cooldown_patterns": 3, "enabled": true },
+    { "pattern_slug": "shared_loot_cap", "pattern_version": 1, "base_weight": 100, "allowed_phase": "cap", "min_depth": 2, "max_depth": null, "max_per_run": 4, "cooldown_patterns": 1, "enabled": true },
+    { "pattern_slug": "shared_boss_exit_terminal", "pattern_version": 1, "base_weight": 100, "allowed_phase": "terminal", "min_depth": 6, "max_depth": 10, "max_per_run": 1, "cooldown_patterns": 0, "enabled": true }
+  ]
+}
