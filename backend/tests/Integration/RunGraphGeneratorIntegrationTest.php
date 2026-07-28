@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Services\RunGraphGenerator;
+use DiceGoblins\Services\RunPatternCatalogSyncService;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
@@ -164,6 +165,47 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
 
     $this->assertSame($graphA, $graphB, 'Same seed must produce the same graph.');
     $this->assertNotSame($graphA, $graphC, 'Different seeds should usually produce different graphs.');
+  }
+
+  public function testPatternV1GeneratesRuntimeGraphBehindExplicitVersion(): void
+  {
+    (new RunPatternCatalogSyncService($this->pdo))->syncDefaultCatalog();
+
+    $regionId = $this->seededRegionId('mountains');
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $graph = $generator->generateWithVersion($regionId, 'mountains', 'pattern-runtime-seed', true, 'pattern-v1');
+    $analysis = $this->analyzeGraph($graph);
+
+    $this->assertSame('pattern-v1', $graph['generation']['generator_version']);
+    $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', (string)$graph['generation']['catalog_hash']);
+    $this->assertCount(1, array_values(array_filter(
+      $graph['nodes'],
+      static fn(array $node): bool => (string)$node['status'] === 'available',
+    )));
+    $this->assertContains('boss', array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']));
+    $this->assertContains('exit', array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']));
+    $this->assertTrue(isset($analysis['reachable_from_start'][$analysis['boss_index']]));
+    $this->assertTrue(isset($analysis['reachable_from_boss'][$analysis['exit_index']]));
+    $this->assertSame([], $analysis['backward_edges']);
+    $this->assertSame([], $analysis['duplicate_edges']);
+    $this->assertSame([], $analysis['crossing_edges']);
+    $this->assertSame('pattern-v1', (string)($graph['nodes'][0]['meta']['generation']['generator_version'] ?? ''));
+  }
+
+  public function testDefaultProceduralGenerationStillUsesLaneV1Shape(): void
+  {
+    (new RunPatternCatalogSyncService($this->pdo))->syncDefaultCatalog();
+
+    $regionId = $this->seededRegionId('mountains');
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $defaultGraph = $generator->generate($regionId, 'mountains', 'pattern-runtime-seed');
+    $patternGraph = $generator->generateWithVersion($regionId, 'mountains', 'pattern-runtime-seed', true, 'pattern-v1');
+
+    $this->assertArrayNotHasKey('generation', $defaultGraph);
+    $this->assertArrayHasKey('generation', $patternGraph);
+    $this->assertNotSame($defaultGraph['nodes'], $patternGraph['nodes']);
   }
 
   public function testMountainsGenerateMultiLaneHorizontalRoutes(): void
