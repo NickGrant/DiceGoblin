@@ -162,6 +162,7 @@ function assemblySummary(array $assembly): array
     'pattern_frequency' => patternFrequency($nodes),
     'spine_depth' => spineDepth($nodes),
     'branch_count' => branchCount($nodes),
+    'map_ascii' => assemblyAsciiMap($nodes),
     'nodes' => assemblyNodeRows($nodes),
     'trace' => [
       'counters' => is_array($assembly['trace']['counters'] ?? null) ? $assembly['trace']['counters'] : [],
@@ -170,6 +171,76 @@ function assemblySummary(array $assembly): array
       'truncated' => (bool)($assembly['trace']['truncated'] ?? false),
     ],
   ];
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ * @return array{lines:list<string>,legend:array<string,string>}
+ */
+function assemblyAsciiMap(array $nodes): array
+{
+  if ($nodes === []) {
+    return ['lines' => [], 'legend' => []];
+  }
+
+  $points = [];
+  $minX = PHP_INT_MAX;
+  $maxX = PHP_INT_MIN;
+  $minY = PHP_INT_MAX;
+  $maxY = PHP_INT_MIN;
+  foreach ($nodes as $node) {
+    $x = (int)($node['x'] ?? 0);
+    $y = (int)($node['y'] ?? 0);
+    $minX = min($minX, $x);
+    $maxX = max($maxX, $x);
+    $minY = min($minY, $y);
+    $maxY = max($maxY, $y);
+    $points["{$x}:{$y}"][] = nodeTypeSymbol((string)($node['type'] ?? 'unknown'));
+  }
+
+  $lines = [];
+  for ($y = $minY; $y <= $maxY; $y++) {
+    $cells = [];
+    for ($x = $minX; $x <= $maxX; $x++) {
+      $symbols = $points["{$x}:{$y}"] ?? [];
+      $cells[] = $symbols === []
+        ? '..'
+        : str_pad(implode('', array_slice($symbols, 0, 2)), 2, '.', STR_PAD_RIGHT);
+    }
+    $lines[] = sprintf('y%+d %s', $y, implode(' ', $cells));
+  }
+
+  return [
+    'lines' => $lines,
+    'legend' => [
+      'S' => 'start',
+      'C' => 'combat',
+      'K' => 'chaos',
+      'R' => 'rest',
+      'H' => 'hazard',
+      'L' => 'loot',
+      'D' => 'dialogue',
+      'B' => 'boss',
+      'E' => 'exit',
+      '?' => 'unknown',
+    ],
+  ];
+}
+
+function nodeTypeSymbol(string $type): string
+{
+  return match ($type) {
+    'start' => 'S',
+    'combat' => 'C',
+    'chaos' => 'K',
+    'rest' => 'R',
+    'hazard' => 'H',
+    'loot' => 'L',
+    'dialogue' => 'D',
+    'boss' => 'B',
+    'exit' => 'E',
+    default => '?',
+  };
 }
 
 /**
