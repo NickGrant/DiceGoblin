@@ -300,3 +300,107 @@ The roadmap work moved through many stacked PRs, so release readiness needs a fi
 - Generated frontend artifacts are either intentionally included or intentionally omitted according to release policy.
 - A final validation command set is documented before UAT-confirmed fixes are merged.
 - Any merge-order or missing-commit concern is logged as a blocker with exact commit/PR references.
+
+## Pattern-Based Run Map Generation
+
+### Add pattern catalog schema and validation
+
+**Milestone:** Pattern-Based Run Map Generation
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+`documentation/02-systems-mvp/15-pattern-based-run-map-generation.md` defines a pattern-catalog replacement for the lane-walker map generator, but the catalog schema, seed/sync path, and validation gates are not yet planned into active work.
+
+#### Acceptance Criteria
+
+- Structured pattern/profile source files are introduced under the documented `backend/data/run-patterns/` ownership model.
+- Runtime catalog storage or sync behavior is defined without making raw SQL the primary authoring surface.
+- Pattern, socket, transform, region-rule, fallback-set, and profile validation are implemented.
+- Validation proves enabled patterns have legal node keys, sockets, internal edges, transforms, and phase rules.
+- No live region generation behavior changes in this foundation slice.
+
+### Implement pattern-v1 assembler behind generator version
+
+**Milestone:** Pattern-Based Run Map Generation
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+The current `RunGraphGenerator` lane-walker strategy remains the runtime source of truth. The pattern assembler needs to exist as a separate versioned strategy before any region opts in.
+
+#### Acceptance Criteria
+
+- `pattern-v1` is implemented separately from the current lane generator.
+- Generation builds a start pattern, guaranteed boss spine, terminal boss/exit segment, optional branches, caps, and encounter-template binding before persistence.
+- Invalid graphs fail closed before `run_nodes` or `run_edges` are persisted.
+- Generation provenance records generator version, profile version, catalog hash, attempt, and summary metadata.
+- Deterministic fixture and property-style tests cover valid graph creation and failure fallback behavior.
+
+### Opt Mountains into pattern-v1 maps
+
+**Milestone:** Pattern-Based Run Map Generation
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+Mountains is one of the first procedural combat regions targeted for pattern-based generation and needs its own profile, pattern inventory, and rollout evidence.
+
+#### Acceptance Criteria
+
+- A Mountains pattern/profile catalog preserves required rest, chaos, boss, exit, story, reward, and path-length contracts.
+- `lane-v1` and `pattern-v1` are compared across a deterministic seed batch.
+- Simulation output reports node counts, spine depth, branch count, fallback rate, and validation failures.
+- Manual sample review confirms readable left-to-right flow and meaningful route choices.
+- New Mountains runs use `pattern-v1` only after the validation and review gates pass.
+
+### Opt Swamps into pattern-v1 maps
+
+**Milestone:** Pattern-Based Run Map Generation
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+Swamps needs a separate pattern/profile pass after Mountains because it has wider branching, different recovery pressure, and Wrong Machine progression significance.
+
+#### Acceptance Criteria
+
+- A Swamps pattern/profile catalog supports wider branching and stronger regional recovery/reward variation.
+- Required rest, chaos, boss, exit, story, reward, and path-length contracts are preserved.
+- Deterministic and simulation tests cover Swamps-specific generation distributions.
+- Manual sample review accepts repeated motifs, route choices, and boss approach pacing.
+- New Swamps runs use `pattern-v1` only after the validation and review gates pass.
+
+### Migrate story placement into generation requests
+
+**Milestone:** Pattern-Based Run Map Generation
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+Current dialogue insertion can mutate completed graphs after topology generation. Pattern generation should treat story requirements as first-class placement requests so they cannot invalidate provenance, boss depth, or socket closure.
+
+#### Acceptance Criteria
+
+- Current start, after-start, depth-range, before-boss, before-exit, and branch-terminal dialogue placements are represented as generation requests.
+- One-time and prerequisite state are resolved before topology assembly.
+- Required story placement participates in start, spine, branch, or terminal planning.
+- Post-hoc dialogue insertion remains only as a temporary adapter for unmigrated regions.
+- Tests prove migrated story placements satisfy graph validation and do not bypass required boss routes.
+
+### Add pattern generation debug and simulation gates
+
+**Milestone:** Pattern-Based Run Map Generation
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+The pattern system needs diagnostic visibility before rollout, otherwise invalid candidates, fallback usage, repetition, and poor distribution will be hard to evaluate during UAT.
+
+#### Acceptance Criteria
+
+- Local/test generation traces record profile/catalog versions, candidate rejection reasons, placements, backtracks, caps, encounter binding, and validation failures.
+- Persisted run summaries include bounded generation metadata suitable for support and debug inspection.
+- Debug map tooling can inspect pattern provenance, spine nodes, depth, pattern slug/version, and fallback use.
+- Simulation reports success rate, fallback rate, backtracks, generation duration, node distributions, pattern frequency, and boss path metrics.
+- Quality gates require valid graphs, no boss bypasses, no unreachable nodes, no overlaps, and no unresolved visible sockets across the committed seed suite.

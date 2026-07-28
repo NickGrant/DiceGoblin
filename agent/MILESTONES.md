@@ -100,3 +100,26 @@ Success criteria:
 ### Related Issues
 
 - Confirm release merge and generated-artifact hygiene
+
+## Pattern-Based Run Map Generation
+
+**Status:** Planned
+
+Implement the `pattern-v1` spine-first map-generation contract from `documentation/02-systems-mvp/15-pattern-based-run-map-generation.md` for migrated procedural combat regions while preserving persisted-run compatibility.
+
+Success criteria:
+
+- Authored pattern/profile catalogs are validated before use.
+- `pattern-v1` builds valid start, spine, boss/exit, branch, cap, and encounter-binding topology behind a generator version.
+- Mountains and Swamps opt in only after deterministic tests, simulation gates, and manual map review pass.
+- Story placement requests participate in generation instead of mutating completed graphs.
+- Generation provenance, debug inspection, and simulation reporting expose enough detail for support and tuning.
+
+### Related Issues
+
+- Add pattern catalog schema and validation
+- Implement pattern-v1 assembler behind generator version
+- Opt Mountains into pattern-v1 maps
+- Opt Swamps into pattern-v1 maps
+- Migrate story placement into generation requests
+- Add pattern generation debug and simulation gates
