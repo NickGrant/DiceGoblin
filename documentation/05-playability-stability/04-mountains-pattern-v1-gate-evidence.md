@@ -29,10 +29,10 @@ The 2026-07-28 Mountains gate run passed.
 | Success rate | `1.0` |
 | Fallback rate | `0.0` |
 | Validation failures | `0` |
-| Branch count min/max/avg | `2 / 2 / 2.0` |
+| Branch count min/max/avg | `3 / 3 / 3.0` |
 | Backtracks min/max/avg | `0 / 0 / 0.0` |
-| Node count min/max/avg | `14 / 15 / 14.32` |
-| Spine depth min/max/avg | `11 / 12 / 11.32` |
+| Node count min/max/avg | `25 / 26 / 25.32` |
+| Spine depth min/max/avg | `21 / 22 / 21.32` |
 
 ## Distribution Notes
 
@@ -47,8 +47,10 @@ The gate output includes boss, exit, chaos, combat, hazard, loot, rest, and star
 
 This confirms the automated Mountains catalog path can satisfy required rest, chaos, boss, exit, branch, and cap contracts for the committed gate seed suite.
 
+The raised 2026-07-28 profile budget intentionally moves Mountains closer to the old `lane-v1` graph scale while keeping pattern-v1 less sprawling. The current gate keeps three optional cap branches and a boss route around 20-21 steps.
+
 ## Remaining Rollout Work
 
 - Compare player-facing pacing against current `lane-v1` samples.
 - Complete manual sample review for left-to-right readability, route choice, repeated motifs, and boss approach pacing.
-- Decide whether the current smaller pattern-v1 graph size is desirable before enabling `RUN_PATTERN_V1_REGIONS=mountains`.
+- Complete a manual map review before enabling `RUN_PATTERN_V1_REGIONS=mountains`.

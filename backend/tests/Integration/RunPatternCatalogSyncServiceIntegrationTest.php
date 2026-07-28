@@ -30,12 +30,12 @@ final class RunPatternCatalogSyncServiceIntegrationTest extends IntegrationTestC
 
     $result = $service->syncDefaultCatalog();
 
-    $this->assertSame(6, $result['patterns']);
-    $this->assertSame(12, $result['rules']);
+    $this->assertSame(7, $result['patterns']);
+    $this->assertSame(14, $result['rules']);
     $this->assertSame(2, $result['profiles']);
     $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $result['catalog_hash']);
-    $this->assertSame('6', (string)$this->scalar('SELECT COUNT(*) FROM `run_pattern_definitions`', []));
-    $this->assertSame('12', (string)$this->scalar('SELECT COUNT(*) FROM `run_pattern_region_rules`', []));
+    $this->assertSame('7', (string)$this->scalar('SELECT COUNT(*) FROM `run_pattern_definitions`', []));
+    $this->assertSame('14', (string)$this->scalar('SELECT COUNT(*) FROM `run_pattern_region_rules`', []));
     $this->assertSame('2', (string)$this->scalar('SELECT COUNT(*) FROM `run_generation_profiles`', []));
 
     $mountainsBudgetRaw = (string)$this->scalar(
@@ -47,12 +47,12 @@ final class RunPatternCatalogSyncServiceIntegrationTest extends IntegrationTestC
     );
     $mountainsBudget = json_decode($mountainsBudgetRaw, true);
     $this->assertIsArray($mountainsBudget);
-    $this->assertSame(12, (int)($mountainsBudget['total_nodes']['target'] ?? 0));
+    $this->assertSame(22, (int)($mountainsBudget['total_nodes']['target'] ?? 0));
 
     $secondResult = $service->syncDefaultCatalog();
     $this->assertSame($result, $secondResult);
-    $this->assertSame('6', (string)$this->scalar('SELECT COUNT(*) FROM `run_pattern_definitions`', []));
-    $this->assertSame('12', (string)$this->scalar('SELECT COUNT(*) FROM `run_pattern_region_rules`', []));
+    $this->assertSame('7', (string)$this->scalar('SELECT COUNT(*) FROM `run_pattern_definitions`', []));
+    $this->assertSame('14', (string)$this->scalar('SELECT COUNT(*) FROM `run_pattern_region_rules`', []));
     $this->assertSame('2', (string)$this->scalar('SELECT COUNT(*) FROM `run_generation_profiles`', []));
   }
 }
