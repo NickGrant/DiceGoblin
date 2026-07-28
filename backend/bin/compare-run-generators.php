@@ -1,0 +1,248 @@
+<?php
+declare(strict_types=1);
+
+use DiceGoblins\Core\Autoloader;
+use DiceGoblins\Core\Db;
+use DiceGoblins\Core\Env;
+use DiceGoblins\Services\RunGraphGenerator;
+
+require_once __DIR__ . '/../src/Core/Autoloader.php';
+Autoloader::register(__DIR__ . '/../src');
+$processDbEnv = processDbEnv();
+Env::load(__DIR__ . '/../.env');
+restoreProcessDbEnv($processDbEnv);
+
+$options = parseOptions($argv);
+$format = (string)($options['format'] ?? 'text');
+$regionSlug = (string)($options['region'] ?? 'mountains');
+$runs = max(1, (int)($options['runs'] ?? 10));
+$seedPrefix = (string)($options['seed'] ?? 'generator-compare');
+
+try {
+  $pdo = $processDbEnv !== [] ? pdoFromProcessDbEnv($processDbEnv) : Db::pdo();
+  $regionId = regionId($pdo, $regionSlug);
+  $generator = new RunGraphGenerator($pdo);
+  $result = compareGenerators($generator, $regionId, $regionSlug, $seedPrefix, $runs);
+
+  outputResult($result, $format);
+  exit(0);
+} catch (Throwable $throwable) {
+  fwrite(STDERR, 'Run generator comparison failed: ' . $throwable->getMessage() . PHP_EOL);
+  exit(1);
+}
+
+/**
+ * @param list<string> $argv
+ * @return array<string,mixed>
+ */
+function parseOptions(array $argv): array
+{
+  $options = [];
+  for ($i = 1; $i < count($argv); $i++) {
+    $arg = $argv[$i];
+    if (!str_starts_with($arg, '--')) {
+      continue;
+    }
+
+    $arg = substr($arg, 2);
+    if (str_contains($arg, '=')) {
+      [$key, $value] = explode('=', $arg, 2);
+      $options[$key] = $value;
+      continue;
+    }
+
+    $key = $arg;
+    $value = $argv[$i + 1] ?? null;
+    if ($value !== null && !str_starts_with($value, '--')) {
+      $options[$key] = $value;
+      $i++;
+      continue;
+    }
+
+    $options[$key] = true;
+  }
+
+  return $options;
+}
+
+function regionId(PDO $pdo, string $regionSlug): int
+{
+  $stmt = $pdo->prepare('SELECT `id` FROM `regions` WHERE `slug` = ? LIMIT 1');
+  $stmt->execute([$regionSlug]);
+  $id = $stmt->fetchColumn();
+  if ($id === false) {
+    throw new RuntimeException("Unknown region {$regionSlug}.");
+  }
+  return (int)$id;
+}
+
+/**
+ * @return array<string,mixed>
+ */
+function compareGenerators(RunGraphGenerator $generator, int $regionId, string $regionSlug, string $seedPrefix, int $runs): array
+{
+  $rows = [];
+  $laneNodeCounts = [];
+  $patternNodeCounts = [];
+  $laneEdgeCounts = [];
+  $patternEdgeCounts = [];
+  $laneTypes = [];
+  $patternTypes = [];
+
+  for ($i = 1; $i <= $runs; $i++) {
+    $seed = "{$seedPrefix}-{$i}";
+    $lane = $generator->generateWithVersion($regionId, $regionSlug, $seed, true, 'lane-v1');
+    $pattern = $generator->generateWithVersion($regionId, $regionSlug, $seed, true, 'pattern-v1');
+    $laneSummary = graphSummary($lane);
+    $patternSummary = graphSummary($pattern);
+
+    $laneNodeCounts[] = $laneSummary['node_count'];
+    $patternNodeCounts[] = $patternSummary['node_count'];
+    $laneEdgeCounts[] = $laneSummary['edge_count'];
+    $patternEdgeCounts[] = $patternSummary['edge_count'];
+    mergeCounts($laneTypes, $laneSummary['node_types']);
+    mergeCounts($patternTypes, $patternSummary['node_types']);
+
+    $rows[] = [
+      'seed' => $seed,
+      'lane_v1' => $laneSummary,
+      'pattern_v1' => $patternSummary,
+      'delta' => [
+        'node_count' => $patternSummary['node_count'] - $laneSummary['node_count'],
+        'edge_count' => $patternSummary['edge_count'] - $laneSummary['edge_count'],
+      ],
+    ];
+  }
+
+  ksort($laneTypes);
+  ksort($patternTypes);
+  return [
+    'region_slug' => $regionSlug,
+    'runs' => $runs,
+    'lane_v1' => [
+      'node_count' => distribution($laneNodeCounts),
+      'edge_count' => distribution($laneEdgeCounts),
+      'node_types' => $laneTypes,
+    ],
+    'pattern_v1' => [
+      'node_count' => distribution($patternNodeCounts),
+      'edge_count' => distribution($patternEdgeCounts),
+      'node_types' => $patternTypes,
+    ],
+    'results' => $rows,
+  ];
+}
+
+/**
+ * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $graph
+ * @return array{node_count:int,edge_count:int,node_types:array<string,int>,available_count:int,has_generation:bool}
+ */
+function graphSummary(array $graph): array
+{
+  $nodeTypes = [];
+  $available = 0;
+  foreach (array_values(array_filter($graph['nodes'] ?? [], 'is_array')) as $node) {
+    $type = (string)($node['node_type'] ?? 'unknown');
+    $nodeTypes[$type] = ($nodeTypes[$type] ?? 0) + 1;
+    if ((string)($node['status'] ?? '') === 'available') {
+      $available++;
+    }
+  }
+  ksort($nodeTypes);
+  return [
+    'node_count' => count($graph['nodes'] ?? []),
+    'edge_count' => count($graph['edges'] ?? []),
+    'node_types' => $nodeTypes,
+    'available_count' => $available,
+    'has_generation' => is_array($graph['generation'] ?? null),
+  ];
+}
+
+/**
+ * @param array<string,int> $target
+ * @param array<string,int> $source
+ */
+function mergeCounts(array &$target, array $source): void
+{
+  foreach ($source as $key => $value) {
+    $target[$key] = ($target[$key] ?? 0) + (int)$value;
+  }
+}
+
+/**
+ * @param list<int> $values
+ * @return array{min:int,max:int,avg:float}
+ */
+function distribution(array $values): array
+{
+  return [
+    'min' => min($values),
+    'max' => max($values),
+    'avg' => round(array_sum($values) / count($values), 2),
+  ];
+}
+
+/**
+ * @param array<string,mixed> $result
+ */
+function outputResult(array $result, string $format): void
+{
+  if ($format === 'json') {
+    echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL;
+    return;
+  }
+
+  echo 'Run generator comparison' . PHP_EOL;
+  echo sprintf('- region: %s' . PHP_EOL, (string)$result['region_slug']);
+  echo sprintf('- runs: %d' . PHP_EOL, (int)$result['runs']);
+  echo sprintf('- lane_v1: %s' . PHP_EOL, json_encode($result['lane_v1'], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- pattern_v1: %s' . PHP_EOL, json_encode($result['pattern_v1'], JSON_UNESCAPED_SLASHES));
+}
+
+/**
+ * @return array<string,string>
+ */
+function processDbEnv(): array
+{
+  $values = [];
+  foreach (['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASS'] as $key) {
+    $value = getenv($key);
+    if ($value !== false) {
+      $values[$key] = $value;
+    }
+  }
+  return $values;
+}
+
+/**
+ * @param array<string,string> $values
+ */
+function restoreProcessDbEnv(array $values): void
+{
+  foreach ($values as $key => $value) {
+    putenv("{$key}={$value}");
+    $_ENV[$key] = $value;
+    $_SERVER[$key] = $value;
+  }
+}
+
+/**
+ * @param array<string,string> $values
+ */
+function pdoFromProcessDbEnv(array $values): PDO
+{
+  $host = $values['DB_HOST'] ?? 'db';
+  $port = $values['DB_PORT'] ?? '3306';
+  $db = $values['DB_NAME'] ?? '';
+  $user = $values['DB_USER'] ?? '';
+  $pass = $values['DB_PASS'] ?? '';
+  if ($db === '' || $user === '') {
+    throw new RuntimeException('DB_NAME and DB_USER are required when overriding DB env vars.');
+  }
+
+  return new PDO("mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4", $user, $pass, [
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES => false,
+  ]);
+}
