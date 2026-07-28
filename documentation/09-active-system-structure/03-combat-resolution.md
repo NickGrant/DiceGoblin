@@ -50,62 +50,30 @@ The resolver handles these node types without round simulation.
 
 ## Combat Node Math
 
-The `score` is not a player-facing score, rating, or reward value. It is an internal fallback decision used to choose an initial win/loss result before the detailed combat event simulation is checked.
+Combat outcome is determined by simulated combat events. The resolver no longer uses player-power versus enemy-power scoring as a fallback win/loss estimate.
 
 ```mermaid
 flowchart TD
   A[Combat, boss, or chaos node] --> B[Load player units]
   A --> C[Load encounter enemies]
-  B --> D[Compute player power]
-  C --> E[Compute enemy power]
-  E --> F[Apply difficulty multiplier]
-  D --> G[Score = player power - enemy power + variance]
-  F --> G
-  G --> H[Initial outcome]
-  H --> I[Build combat events]
-  I --> J{One side defeated?}
-  J -- player alive only --> K[victory]
-  J -- enemy alive only --> L[defeat]
-  J -- both alive/dead or no override --> M[initial outcome]
+  B --> D[Build player schedules and HP state]
+  C --> E[Build enemy schedules and HP state]
+  D --> F[Simulate rounds and ticks]
+  E --> F
+  F --> G{One side defeated?}
+  G -- enemies defeated, players alive --> H[victory]
+  G -- players defeated, enemies alive --> I[defeat]
+  G -- no clear terminal result by safety cap --> J[combat_unresolved error]
 ```
 
-Power uses:
+`buildCombatEvents()` simulates rounds, ticks, actions, damage, statuses, and deaths. If that simulation ends with enemies dead and players alive, the outcome is `victory`. If it ends with players dead and enemies alive, the outcome is `defeat`.
 
-```text
-attack * 1.4 + defense * 1.1 + max_hp * 0.35 + ability_count * 1.25
-```
-
-Enemy power is multiplied by:
-
-```text
-1.0 + ((difficulty_rating - 1) * 0.07)
-```
-
-The initial outcome variance is a deterministic roll from `-10` through `10`, multiplied by `0.4`.
-
-That means the score can move by at most `-4.0` to `+4.0` from variance.
-
-Example:
-
-```text
-player_power = 42
-enemy_power = 39
-variance = -5
-
-score = (42 - 39) + (-5 * 0.4)
-score = 3 - 2
-score = 1
-initial outcome = victory
-```
-
-If the score is `0` or higher, the initial outcome is `victory`. If it is below `0`, the initial outcome is `defeat`.
-
-After that, `buildCombatEvents()` simulates rounds, ticks, actions, damage, statuses, and deaths. If that simulation ends with enemies dead and players alive, the outcome becomes `victory`. If it ends with players dead and enemies alive, the outcome becomes `defeat`. If the simulation does not clearly prove either side won, the resolver keeps the score-based initial outcome.
+The engine has an explicit safety cap of `200` rounds to prevent an infinite loop. Hitting that cap without a clear terminal state raises `combat_unresolved`; it does not award a fallback victory or defeat.
 
 ## Round and Action Timing
 
 - Each round has `20` ticks.
-- Planned combat length is `3-5` rounds before event simulation can end it sooner.
+- Combat continues until one side is defeated, or until the explicit unresolved-combat safety cap is reached.
 - Active abilities are scheduled in equip order by cumulative speed.
 - If no active ability can be scheduled, the unit receives a fallback `basic_attack_melee` at tick `4`.
 - Repeatable filler abilities can fill remaining ticks when they fit inside the 20-tick round.

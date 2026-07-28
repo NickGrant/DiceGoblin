@@ -19,6 +19,8 @@ use RuntimeException;
 
 final class DeterministicRunNodeResolver
 {
+  private const MAX_COMBAT_ROUNDS = 200;
+
   /** @var array<string,bool> */
   private array $schemaPresenceCache = [];
 
@@ -111,36 +113,21 @@ final class DeterministicRunNodeResolver
       ]];
     } else {
       $difficulty = max(1, (int)$encounter['difficulty_rating']);
-      $rounds = 3 + $this->nextInt($rngState, 3); // 3-5 rounds
-      $ticks = $rounds * $ticksPerRound;
-
-      $playerPower = $this->sumPower($playerUnits);
-      $enemyPower = $this->sumPower($enemyUnits) * (1.0 + (($difficulty - 1) * 0.07));
-
-      // Deterministic variance avoids fixed outcomes with near-equal power.
-      $variance = $this->nextInt($rngState, 21) - 10;
-      $score = ($playerPower - $enemyPower) + ($variance * 0.4);
-      $outcome = $score >= 0.0 ? 'victory' : 'defeat';
 
       $combatResult = $this->buildCombatEvents(
         $rngState,
-        $rounds,
         $ticksPerRound,
         $playerUnits,
-        $enemyUnits,
-        $playerPower,
-        $enemyPower
+        $enemyUnits
       );
       $events = $combatResult['events'];
 
-      $simulatedOutcome = null;
       if ($combatResult['enemy_alive'] === false && $combatResult['player_alive'] === true) {
-        $simulatedOutcome = 'victory';
+        $outcome = 'victory';
       } elseif ($combatResult['player_alive'] === false && $combatResult['enemy_alive'] === true) {
-        $simulatedOutcome = 'defeat';
-      }
-      if ($simulatedOutcome !== null) {
-        $outcome = $simulatedOutcome;
+        $outcome = 'defeat';
+      } else {
+        throw new RuntimeException('combat_unresolved');
       }
 
       $rounds = max(1, (int)$combatResult['ended_round']);
@@ -772,21 +759,6 @@ final class DeterministicRunNodeResolver
   }
 
   /**
-   * @param array<int, array{attack:int,defense:int,max_hp:int,abilities:array<int,string>}> $units
-   */
-  private function sumPower(array $units): float
-  {
-    $sum = 0.0;
-    foreach ($units as $unit) {
-      $sum += ((float)$unit['attack'] * 1.4)
-        + ((float)$unit['defense'] * 1.1)
-        + ((float)$unit['max_hp'] * 0.35)
-        + ((float)count($unit['abilities']) * 1.25);
-    }
-    return $sum;
-  }
-
-  /**
    * @param array<int, array{xp_reward:int}> $enemyUnits
    */
   private function computeXpTotal(array $enemyUnits, int $difficulty, string $outcome): int
@@ -814,12 +786,9 @@ final class DeterministicRunNodeResolver
    */
   private function buildCombatEvents(
     string $rngState,
-    int $rounds,
     int $ticksPerRound,
     array $playerUnits,
     array $enemyUnits,
-    float $playerPower,
-    float $enemyPower,
   ): array {
     $events = [[
       'type' => 'battle_start',
@@ -827,8 +796,7 @@ final class DeterministicRunNodeResolver
       'tick' => 0,
       'player_unit_count' => count($playerUnits),
       'enemy_unit_count' => count($enemyUnits),
-      'player_power' => round($playerPower, 2),
-      'enemy_power' => round($enemyPower, 2),
+      'max_rounds' => self::MAX_COMBAT_ROUNDS,
     ]];
 
     if (count($playerUnits) === 0 || count($enemyUnits) === 0) {
@@ -882,7 +850,7 @@ final class DeterministicRunNodeResolver
     $sleepBlockedUntilTick = [];
     $preferredTargetByActor = [];
 
-    for ($round = 1; $round <= $rounds; $round++) {
+    for ($round = 1; $round <= self::MAX_COMBAT_ROUNDS; $round++) {
       $playerDamagedThisRound = [];
       $enemyDamagedThisRound = [];
       $roundStartTick = (($round - 1) * $ticksPerRound) + 1;
