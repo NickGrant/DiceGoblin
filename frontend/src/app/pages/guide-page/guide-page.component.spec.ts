@@ -49,7 +49,8 @@ describe('GuidePageComponent', () => {
     expect(text).not.toContain('Guardian');
     expect(text).not.toContain('Bannerbearer');
     expect(text).not.toContain('Saboteur');
-    expect(text).toContain('Tier 1');
+    expect(text).toContain('Frontline / Tier 1 / Max 10');
+    expect(text).not.toContain('·');
     expect(text).toContain('Map Glossary');
     expect(text).toContain('Shrine');
     expect(text).toContain('Hazard');
