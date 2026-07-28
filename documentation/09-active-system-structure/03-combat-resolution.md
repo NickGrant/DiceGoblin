@@ -90,10 +90,10 @@ flowchart LR
 
 ## Dice Rolls
 
-Each ability rolls its provided dice pool. Empty pools produce a zero modifier. For each die, the roll total contributes:
+Each ability rolls its provided dice pool. Empty pools contribute `0`. For each die slot, the full roll total contributes to the action:
 
 ```text
-roll_total - ceil(sides / 2)
+roll_total
 ```
 
 Dice with the `explode_once` affix roll one extra die when the first roll equals the die's side count.

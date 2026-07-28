@@ -2986,6 +2986,7 @@ final class DeterministicRunNodeResolver
    *     sides:int,
    *     rolls:array<int,array{sides:int,roll:int}>,
    *     roll_total:int,
+   *     contribution:int,
    *     modifier:int,
    *     empty_slot:bool
    *   }>,
@@ -3050,8 +3051,8 @@ final class DeterministicRunNodeResolver
         $diceRolls[] = $entry;
       }
 
-      $slotModifier = $rollTotal - (int)ceil($sides / 2);
-      $modifier += $slotModifier;
+      $slotContribution = $rollTotal;
+      $modifier += $slotContribution;
       $diceLabel = $diceUsed[$index]['dice_instance_id'] !== null
         ? sprintf('dice#%s', $diceUsed[$index]['dice_instance_id'])
         : sprintf('%s_%s_slot_%d', $side, $abilityId, $index + 1);
@@ -3069,15 +3070,16 @@ final class DeterministicRunNodeResolver
         'sides' => $sides,
         'rolls' => $rollEntries,
         'roll_total' => $rollTotal,
-        'modifier' => $slotModifier,
+        'contribution' => $slotContribution,
+        'modifier' => $slotContribution,
         'empty_slot' => (string)$diceUsed[$index]['kind'] === 'empty_slot',
       ];
       $slotTraceParts[] = sprintf(
-        'slot%d=%s => %s (mod %+d)',
+        'slot%d=%s => %s (contribution %+d)',
         $index + 1,
         $slotLabel,
         $rollLabel,
-        $slotModifier
+        $slotContribution
       );
       $diceOutcomeParts[] = count($rollEntries) > 1
         ? sprintf('%s rolled d%d = %s (explode => %d)', $diceLabel, $sides, $rollLabel, $rollTotal)

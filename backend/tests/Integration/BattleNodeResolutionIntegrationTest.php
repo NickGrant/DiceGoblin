@@ -486,7 +486,8 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame(1, (int)($diceRolls[0]['roll'] ?? 0));
     $this->assertSame(0, (int)($slotTraces[0]['slot_index'] ?? -1));
     $this->assertSame(true, (bool)($slotTraces[0]['empty_slot'] ?? false));
-    $this->assertStringContainsString('slot1=empty_slot(d1) => 1 (mod +0)', (string)($playerAction['slot_trace_summary'] ?? ''));
+    $this->assertSame(1, (int)($slotTraces[0]['contribution'] ?? 0));
+    $this->assertStringContainsString('slot1=empty_slot(d1) => 1 (contribution +1)', (string)($playerAction['slot_trace_summary'] ?? ''));
   }
 
   public function testResolveNodeUsesBoundAbilityDiceInsteadOfLegacyUnitPool(): void
