@@ -872,8 +872,8 @@ final class RunSummaryBuilder
     return [
       'slug' => 'basic_goblin',
       'name' => 'Basic Goblin',
-      'description' => 'Baseline goblin stock with no splice tendency.',
-      'passive_summary' => 'No splice modifier.',
+      'description' => 'Baseline goblin stock with no kin tendency.',
+      'passive_summary' => 'No kin trait.',
     ];
   }
 

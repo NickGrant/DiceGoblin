@@ -43,6 +43,15 @@ final class UserAssetGrantServiceIntegrationTest extends BattleFlowIntegrationCa
     );
   }
 
+  public function testMissingKinDefinitionUsesKinTraitFallbackCopy(): void
+  {
+    $description = (new SpliceVariantService($this->pdo))->describeVariant('missing_kin');
+
+    $this->assertSame(SpliceVariantService::BASIC_GOBLIN, $description['slug']);
+    $this->assertSame('Baseline goblin stock with no kin tendency.', $description['description']);
+    $this->assertSame('No kin trait.', $description['passive_summary']);
+  }
+
   public function testRandomUnitGrantFallsBackToBasicWhenOnlyExplicitKinIsLocked(): void
   {
     $userId = $this->insertUser();
