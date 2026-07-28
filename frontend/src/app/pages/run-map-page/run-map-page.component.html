@@ -84,12 +84,50 @@
                     height="54"
                     preserveAspectRatio="xMidYMid meet"
                   ></image>
+                  @if (patternNodeDepthLabel(node); as depthLabel) {
+                    <text
+                      class="run-map__pattern-label"
+                      [attr.x]="nodeX(node)"
+                      [attr.y]="nodeY(node) + 52"
+                      text-anchor="middle"
+                    >
+                      {{ depthLabel }}
+                    </text>
+                  }
                 </g>
               }
             </svg>
           </div>
         </div>
         <div class="run-map-meta">
+          @if (patternDebugRows().length || patternNodeRows().length) {
+            <section class="run-effects run-generation" aria-label="Run generation">
+              <div class="run-generation__header">
+                <p class="run-effects__eyebrow dg-stencil">Generation</p>
+                <strong>{{ patternNodeRows().length }}</strong>
+              </div>
+              @if (patternDebugRows().length) {
+                <dl class="run-generation__stats">
+                  @for (row of patternDebugRows(); track row[0]) {
+                    <div>
+                      <dt>{{ row[0] }}</dt>
+                      <dd>{{ row[1] }}</dd>
+                    </div>
+                  }
+                </dl>
+              }
+              @if (patternNodeRows().length) {
+                <div class="run-generation__nodes">
+                  @for (row of patternNodeRows(); track row.id) {
+                    <div class="run-generation__node">
+                      <span>{{ row.label }}</span>
+                      <small>{{ row.detail }}</small>
+                    </div>
+                  }
+                </div>
+              }
+            </section>
+          }
           <section class="run-effects" aria-label="Run effects">
             <div class="run-effects__header">
               <p class="run-effects__eyebrow dg-stencil">Run Effects</p>

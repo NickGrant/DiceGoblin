@@ -405,6 +405,11 @@ export type CurrentRunRecord = {
   status: string;
   started_at: string;
   ended_at: string | null;
+  generator_version?: string | null;
+  generation_profile_version?: number | null;
+  pattern_catalog_hash?: string | null;
+  generation_attempt?: number | null;
+  generation_summary?: Record<string, unknown> | null;
 };
 
 export type RunNodeStatus = 'available' | 'locked' | 'cleared' | string;

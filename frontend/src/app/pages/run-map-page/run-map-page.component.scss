@@ -27,7 +27,8 @@
   color: #f4ead3;
 }
 
-.run-effects__header {
+.run-effects__header,
+.run-generation__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -35,7 +36,8 @@
   margin-bottom: 0.65rem;
 }
 
-.run-effects__header strong {
+.run-effects__header strong,
+.run-generation__header strong {
   display: inline-grid;
   place-items: center;
   min-width: 1.85rem;
@@ -44,6 +46,73 @@
   background: rgba(245, 207, 88, 0.16);
   color: #f5cf58;
   font-size: 0.95rem;
+}
+
+.run-generation__header {
+  margin-bottom: 0;
+}
+
+.run-generation__header strong {
+  background: rgba(114, 193, 207, 0.16);
+  color: #9ee7ee;
+}
+
+.run-generation__stats {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.run-generation__stats div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid rgba(236, 249, 248, 0.09);
+}
+
+.run-generation__stats dt,
+.run-generation__stats dd {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+
+.run-generation__stats dt {
+  color: rgba(236, 249, 248, 0.68);
+}
+
+.run-generation__stats dd {
+  max-width: 12rem;
+  color: #ecf9f8;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.run-generation__nodes {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 14rem;
+  overflow: auto;
+}
+
+.run-generation__node {
+  padding: 0.5rem;
+  border: 1px solid rgba(236, 249, 248, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.run-generation__node span {
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.run-generation__node small {
+  color: rgba(236, 249, 248, 0.62);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
 }
 
 .run-effects__eyebrow,
@@ -292,6 +361,16 @@
 
 .run-map__node image {
   filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.46));
+}
+
+.run-map__pattern-label {
+  fill: #ecf9f8;
+  paint-order: stroke;
+  stroke: rgba(8, 13, 14, 0.88);
+  stroke-width: 4;
+  font-size: 0.78rem;
+  font-weight: 700;
+  pointer-events: none;
 }
 
 .run-map__node--cleared {

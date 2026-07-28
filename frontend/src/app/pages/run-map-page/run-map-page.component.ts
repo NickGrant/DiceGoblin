@@ -138,6 +138,30 @@ export class RunMapPageComponent {
   });
   readonly renderedEdges = computed(() => this.buildRenderedEdges(this.nodes(), this.edges()));
   readonly activeRunEffects = computed(() => this.runData()?.active_run_effects ?? []);
+  readonly generationSummary = computed(() => this.run()?.generation_summary ?? null);
+  readonly patternDebugRows = computed(() => {
+    const run = this.run();
+    const summary = this.generationSummary();
+    if (!run?.generator_version && !summary) {
+      return [];
+    }
+
+    return [
+      ['Generator', run?.generator_version ?? this.summaryString(summary, 'generator_version') ?? 'Unknown'],
+      ['Profile', this.summaryString(summary, 'profile_version') ?? this.optionalNumberLabel(run?.generation_profile_version)],
+      ['Nodes', this.summaryString(summary, 'node_count')],
+      ['Branches', this.summaryString(summary, 'branch_count')],
+      ['Spine', this.summaryString(summary, 'spine_depth')],
+      ['Boss route', this.bossRouteLabel(summary)],
+      ['Attempt', this.optionalNumberLabel(run?.generation_attempt)],
+      ['Catalog', this.catalogHashLabel(run?.pattern_catalog_hash ?? this.summaryString(summary, 'catalog_hash'))],
+    ].filter((row): row is [string, string] => typeof row[1] === 'string' && row[1].trim() !== '');
+  });
+  readonly patternNodeRows = computed(() =>
+    this.nodes()
+      .map((node) => this.patternNodeRow(node))
+      .filter((row): row is { id: string; label: string; detail: string } => row !== null),
+  );
 
   constructor() {
     void this.load();
@@ -211,6 +235,15 @@ export class RunMapPageComponent {
       RunMapPageComponent.ENCOUNTER_ICON_MAP[nodeType] ??
       '/assets/ui/icons/icon_encounter_locked.png'
     );
+  }
+
+  patternNodeDepthLabel(node: CurrentRunNode): string | null {
+    const generation = this.nodeGenerationMeta(node);
+    if (!generation) {
+      return null;
+    }
+
+    return String(this.numberFromUnknown(generation['depth']) ?? node.node_index);
   }
 
   nodeTypeLabel(nodeType: string): string {
@@ -519,5 +552,85 @@ export class RunMapPageComponent {
       quantity: item.quantity,
       amount,
     };
+  }
+
+  private patternNodeRow(node: CurrentRunNode): { id: string; label: string; detail: string } | null {
+    const generation = this.nodeGenerationMeta(node);
+    if (!generation) {
+      return null;
+    }
+
+    const role = String(generation['path_role'] ?? '').trim();
+    const depth = this.numberFromUnknown(generation['depth']);
+    const patternKey = String(generation['pattern_key'] ?? '').trim();
+    const labelParts = [this.nodeTypeLabel(node.node_type)];
+    if (role) {
+      labelParts.push(role);
+    }
+    if (depth !== null) {
+      labelParts.push(`depth ${depth}`);
+    }
+
+    return {
+      id: node.id,
+      label: labelParts.join(' · '),
+      detail: patternKey || 'pattern-v1',
+    };
+  }
+
+  private nodeGenerationMeta(node: CurrentRunNode): Record<string, unknown> | null {
+    const generation = node.meta?.['generation'];
+    return generation && typeof generation === 'object' && !Array.isArray(generation)
+      ? generation as Record<string, unknown>
+      : null;
+  }
+
+  private summaryString(summary: Record<string, unknown> | null, key: string): string | null {
+    if (!summary || !(key in summary)) {
+      return null;
+    }
+
+    const value = summary[key];
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return String(value);
+    }
+
+    return null;
+  }
+
+  private optionalNumberLabel(value: number | null | undefined): string | null {
+    return typeof value === 'number' && Number.isFinite(value) ? String(value) : null;
+  }
+
+  private bossRouteLabel(summary: Record<string, unknown> | null): string | null {
+    const bossPath = summary?.['boss_path'];
+    if (!bossPath || typeof bossPath !== 'object' || Array.isArray(bossPath)) {
+      return null;
+    }
+
+    const values = bossPath as Record<string, unknown>;
+    const startToBoss = this.numberFromUnknown(values['start_to_boss']);
+    const bossToExit = this.numberFromUnknown(values['boss_to_exit']);
+    if (startToBoss === null && bossToExit === null) {
+      return null;
+    }
+
+    return `${startToBoss ?? '?'} to boss, ${bossToExit ?? '?'} to exit`;
+  }
+
+  private catalogHashLabel(value: string | null | undefined): string | null {
+    if (!value) {
+      return null;
+    }
+
+    return value.length > 12 ? value.slice(0, 12) : value;
+  }
+
+  private numberFromUnknown(value: unknown): number | null {
+    const numeric = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
   }
 }
