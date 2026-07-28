@@ -1518,45 +1518,8 @@ final class DeterministicRunNodeResolver
       ];
     }
 
-    $fillerCandidates = array_values(array_filter(
-      $orderedActives,
-      fn(array $entry): bool => $this->isRepeatableFillerAbility($entry, $registry)
-    ));
-
-    while (count($fillerCandidates) > 0 && $cumulativeTick < 20) {
-      $scheduled = false;
-      $remainingTicks = 20 - $cumulativeTick;
-      foreach ($fillerCandidates as $entry) {
-        $speed = (int)$entry['speed'];
-        if ($speed > $remainingTicks) {
-          continue;
-        }
-
-        $cumulativeTick += $speed;
-        $schedule[] = [
-          'ability_id' => (string)$entry['ability_id'],
-          'speed' => $speed,
-          'target' => (string)$entry['target'],
-          'trigger_tick' => $cumulativeTick,
-          'equip_order' => (int)$entry['equip_order'],
-        ];
-        $scheduled = true;
-        break;
-      }
-
-      if (!$scheduled) {
-        break;
-      }
-    }
-
     if (count($schedule) === 0) {
-      $schedule[] = [
-        'ability_id' => 'basic_attack_melee',
-        'speed' => 4,
-        'target' => 'enemy_front_prefer',
-        'trigger_tick' => 4,
-        'equip_order' => 0,
-      ];
+      throw new RuntimeException('combat_ability_schedule_empty');
     }
 
     usort($schedule, static function (array $a, array $b): int {
@@ -4345,13 +4308,16 @@ final class DeterministicRunNodeResolver
     $entries = [];
     foreach ($abilityIds as $abilityId) {
       $id = trim((string)$abilityId);
-      if ($id === '' || !$registry->has($id)) {
+      if ($id === '') {
         continue;
+      }
+      if (!$registry->has($id)) {
+        throw new RuntimeException('combat_unknown_ability');
       }
 
       $def = $registry->get($id);
       if ($def->type !== AbilityType::Active || $def->speed === null) {
-        continue;
+        throw new RuntimeException('combat_unschedulable_ability');
       }
 
       $entries[] = [
@@ -4363,38 +4329,6 @@ final class DeterministicRunNodeResolver
     }
 
     return $entries;
-  }
-
-  /**
-   * @param array{ability_id:string,speed:int,target:string,equip_order:int} $entry
-   */
-  private function isRepeatableFillerAbility(array $entry, AbilityRegistry $registry): bool
-  {
-    $abilityId = trim((string)($entry['ability_id'] ?? ''));
-    if ($abilityId === '' || !$registry->has($abilityId)) {
-      return false;
-    }
-
-    $definition = $registry->get($abilityId);
-    if ($definition->type !== AbilityType::Active || $definition->speed === null) {
-      return false;
-    }
-
-    $target = (string)($entry['target'] ?? '');
-    if (!str_starts_with($target, 'enemy_')) {
-      return false;
-    }
-
-    if (in_array($abilityId, ['basic_attack_melee', 'basic_attack_ranged'], true)) {
-      return true;
-    }
-
-    $powerRatio = $definition->defaultParams['power_ratio'] ?? null;
-    if (is_numeric($powerRatio) && (float)$powerRatio > 0.0) {
-      return true;
-    }
-
-    return in_array('damage', $definition->tags, true);
   }
 
   private function deriveStatusDurationRounds(AbilityRegistry $abilityRegistry, string $abilityId, ?string $status): ?int

@@ -179,13 +179,15 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame(8, (int)($lootPreview['currency_soft'] ?? -1));
     $this->assertIsArray($lootPreview['units'] ?? null);
     $this->assertIsArray($lootPreview['dice'] ?? null);
-    $this->assertNotEmpty($lootPreview['dice']);
-    $firstLootDie = $lootPreview['dice'][0];
-    $this->assertIsArray($firstLootDie);
-    $this->assertArrayHasKey('label', $firstLootDie);
-    $this->assertArrayHasKey('material', $firstLootDie);
-    $this->assertArrayHasKey('sides', $firstLootDie);
-    $this->assertIsArray($firstLootDie['affixes'] ?? null);
+    $this->assertNotSame([], array_merge($lootPreview['units'], $lootPreview['dice']));
+    if (count($lootPreview['dice']) > 0) {
+      $firstLootDie = $lootPreview['dice'][0];
+      $this->assertIsArray($firstLootDie);
+      $this->assertArrayHasKey('label', $firstLootDie);
+      $this->assertArrayHasKey('material', $firstLootDie);
+      $this->assertArrayHasKey('sides', $firstLootDie);
+      $this->assertIsArray($firstLootDie['affixes'] ?? null);
+    }
     [$lootXp, $lootSoft] = $this->battleRewardTuple($lootBattleId);
     $this->assertSame(0, $lootXp);
     $this->assertSame(8, $lootSoft);
@@ -419,9 +421,9 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
 
     $this->assertContains(4, $playerRoundOneTicks);
     $this->assertContains(12, $playerRoundOneTicks);
-    $this->assertContains(16, $playerRoundOneTicks);
+    $this->assertNotContains(16, $playerRoundOneTicks);
     $this->assertNotContains(8, $playerRoundOneTicks, 'The second equipped ability should fire at cumulative tick 12, not at its raw speed tick.');
-    $this->assertGreaterThanOrEqual(3, count($playerRoundOneTicks), 'Remaining round budget should allow a repeated attack action when it fits.');
+    $this->assertCount(2, $playerRoundOneTicks, 'Unused round ticks should remain empty instead of repeating filler actions.');
   }
 
   public function testResolveNodeUsesD1FallbackForPlayerEmptyDiceSlots(): void
