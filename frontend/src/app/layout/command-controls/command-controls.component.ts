@@ -93,7 +93,7 @@ export class CommandControlsComponent implements AfterViewInit, OnDestroy {
       id: 'wrong-machine',
       label: () => 'Machine',
       ariaLabel: () => 'Wrong Machine',
-      icon: '/assets/ui/icons/icon_inventory.png',
+      icon: '/assets/ui/icons/icon_encounter_locked.png',
       authenticatedRoute: () => '/wrong-machine',
       publicRoute: null,
       isVisible: () =>
