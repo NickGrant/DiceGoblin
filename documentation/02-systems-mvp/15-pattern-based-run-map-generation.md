@@ -1031,6 +1031,13 @@ The debug map surface should be able to overlay:
 - pattern slug/version
 - rejected or reserved cells when viewing a captured local trace
 
+Manual review can also use the Docker inspection commands:
+
+- `npm.cmd run run-patterns:inspect-assembly:mountains:docker`
+- `npm.cmd run run-patterns:inspect-assembly:swamps:docker`
+
+The JSON `assembly.map_ascii.lines` output is a compact grid preview for checking left-to-right flow, row balance, boss placement, and branch readability before clicking through runs in the frontend.
+
 ## Testing Strategy
 
 ### Catalog validation tests
