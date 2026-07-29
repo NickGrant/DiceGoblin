@@ -36,7 +36,10 @@ final class RunPatternPreviewAssemblerService
       $graph['edges'] = [...$graph['edges'], ...$placement['edges']];
       $tail = $placement['tail'];
       $cursorX += (int)$placement['width'];
-      $trace->placement($segment['phase'], $segment['pattern_key'], ['node_count' => count($placement['nodes'])]);
+      $trace->placement($segment['phase'], $segment['pattern_key'], [
+        'node_count' => count($placement['nodes']),
+        'cost' => (int)($segment['variant']['node_cost'] ?? count($placement['nodes'])),
+      ]);
     }
 
     $graph = $this->breakLongSpineRows($graph);
@@ -314,6 +317,8 @@ final class RunPatternPreviewAssemblerService
       $trace->placement('branch', $branch['pattern_key'], [
         'branch_key' => $branchKey,
         'rejoins' => (string)$target['key'],
+        'node_count' => count($placement['nodes']),
+        'cost' => (int)($branch['variant']['node_cost'] ?? count($placement['nodes'])),
       ]);
       $branchCount++;
     }

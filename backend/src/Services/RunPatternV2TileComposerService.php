@@ -122,6 +122,7 @@ final class RunPatternV2TileComposerService
       $cursorX = $placed['max_x'] + 1;
       $trace->placement($placement['phase'], $placement['pattern_key'], [
         'node_count' => count($placed['nodes']),
+        'cost' => (int)($placement['tile']['cost'] ?? count($placed['nodes'])),
         'roots' => count($placed['roots']),
         'sinks' => count($placed['sinks']),
       ]);

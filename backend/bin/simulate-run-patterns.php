@@ -97,6 +97,7 @@ function outputResult(array $result, string $format): void
   echo sprintf('- fallback_rate: %.4f' . PHP_EOL, (float)$result['fallback_rate']);
   echo sprintf('- node_count: %s' . PHP_EOL, json_encode($result['node_count'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- edge_count: %s' . PHP_EOL, json_encode($result['edge_count'], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- cost: %s' . PHP_EOL, json_encode($result['cost'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- branch_count: %s' . PHP_EOL, json_encode($result['branch_count'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- spine_depth: %s' . PHP_EOL, json_encode($result['spine_depth'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- max_straight_spine_nodes: %s' . PHP_EOL, json_encode($result['max_straight_spine_nodes'], JSON_UNESCAPED_SLASHES));

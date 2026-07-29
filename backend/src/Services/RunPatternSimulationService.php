@@ -24,6 +24,7 @@ final class RunPatternSimulationService
     $branchCounts = [];
     $backtracks = [];
     $edgeCounts = [];
+    $costs = [];
     $spineDepths = [];
     $straightSpineRuns = [];
     $occupiedRows = [];
@@ -51,6 +52,8 @@ final class RunPatternSimulationService
       $nodeCounts[] = $nodeCount;
       $edgeCount = count($assembly['graph']['edges']);
       $edgeCounts[] = $edgeCount;
+      $cost = $this->assemblyCost($assembly['trace']);
+      $costs[] = $cost;
       $branchCount = $this->branchCount($assembly['graph']['nodes']);
       $branchCounts[] = $branchCount;
       $spineDepth = $this->spineDepth($assembly['graph']['nodes']);
@@ -90,6 +93,7 @@ final class RunPatternSimulationService
         'valid' => $valid,
         'node_count' => $nodeCount,
         'edge_count' => $edgeCount,
+        'cost' => $cost,
         'branch_count' => $branchCount,
         'spine_depth' => $spineDepth,
         'max_straight_spine_nodes' => $straightSpineRun,
@@ -123,6 +127,11 @@ final class RunPatternSimulationService
         'min' => min($edgeCounts),
         'max' => max($edgeCounts),
         'avg' => round(array_sum($edgeCounts) / count($edgeCounts), 2),
+      ],
+      'cost' => [
+        'min' => min($costs),
+        'max' => max($costs),
+        'avg' => round(array_sum($costs) / count($costs), 2),
       ],
       'branch_count' => [
         'min' => min($branchCounts),
@@ -284,6 +293,22 @@ final class RunPatternSimulationService
       }
     }
     return count($branches);
+  }
+
+  /**
+   * @param array<string,mixed> $trace
+   */
+  private function assemblyCost(array $trace): int
+  {
+    $cost = 0;
+    foreach (array_values(array_filter(is_array($trace['events'] ?? null) ? $trace['events'] : [], 'is_array')) as $event) {
+      if ((string)($event['type'] ?? '') !== 'placement') {
+        continue;
+      }
+      $context = is_array($event['context'] ?? null) ? $event['context'] : [];
+      $cost += (int)($context['cost'] ?? 0);
+    }
+    return $cost;
   }
 
   /**
