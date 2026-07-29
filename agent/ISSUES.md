@@ -251,6 +251,7 @@ V2 maps need inspection and quality gates before runtime rollout, especially aro
 - Pattern-V2 composition now honors per-pattern `max_per_run` and the profile pattern-instance budget; the 25-seed Mountains V2 gate passes with at least 2 branches, 3 occupied rows, and 10 occupied columns in every sample.
 - Added committed Docker commands for the strict Mountains Pattern-V2 gate and Pattern-V1 vs Pattern-V2 comparison evidence, including branch count, occupied row/column, straight-spine, and boss-path metrics.
 - Pattern inspection text output now summarizes assembly validity, shape metrics, and the ASCII map directly, with a committed Docker command for Mountains Pattern-V2 inspection.
+- The committed Mountains Pattern-V2 comparison command now defaults to text summaries so rollout checks report the important V1/V2 deltas without dumping every seed row.
 
 ### Opt Mountains into pattern-v2 maps
 
