@@ -261,7 +261,8 @@ Notes:
 ## 9. Pattern-Based Run Map Catalog
 
 `backend/data/run-patterns/` is the authoring source of truth for `pattern-v1` run-map patterns, region rules, and generation profiles.
-The database tables below are a runtime mirror for lookup, debug inspection, provenance, and future tooling; raw SQL should not become the primary pattern editing surface.
+`pattern-v2` content is database-owned and seeded through forward-only migrations because production cannot rely on command-line catalogue sync.
+The database tables below are the runtime lookup surface for both generators, but their source-of-truth differs by generator version: V1 mirrors repository JSON, while V2 is authored in migrations.
 
 ### 9.1 run_pattern_definitions
 
@@ -271,7 +272,7 @@ Columns:
 - stable `slug`
 - positive `version`
 - lifecycle `status`: draft, enabled, or disabled
-- `definition_json` containing the authored local graph, sockets, transforms, tags, and metadata
+- `definition_json` containing authored pattern content; V1 uses local graph/sockets/transforms, while V2 uses grid cells, connector cells, explicit connections, and perimeter exits
 - `content_hash` for drift detection
 
 Uniqueness:
@@ -317,6 +318,8 @@ Pattern-generated runs can record:
 - `pattern_catalog_hash`
 - `generation_attempt`
 - `generation_summary_json`
+
+Fixed authored runs can also record `fixed-v1` provenance so Farm and Mystic Cave share the same frontend renderer metadata contract as Pattern-V2 regions.
 
 These fields are nullable so existing lane-generated and fixed authored runs remain compatible while regions are migrated gradually.
 

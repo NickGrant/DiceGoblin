@@ -275,6 +275,7 @@ Mountains should move to pattern-v2 only after the catalogue and composer produc
 #### Progress
 
 - Runtime selection now supports `RUN_PATTERN_V2_REGIONS` with precedence over `RUN_PATTERN_V1_REGIONS`, and API run creation routes Pattern-V2 story placement through the pre-generation request path.
+- Local UAT configuration now consistently documents Mountains and Swamps as Pattern-V2 opt-ins through Docker and `.env.example`.
 
 ### Opt Swamps into pattern-v2 maps
 
@@ -299,6 +300,7 @@ Swamps should move to Pattern-V2 after Mountains so UAT uses the same tile-compo
 - Forward migration 84 seeds Swamps Pattern-V2 start, broad braid, pressure fork, boss/exit, region rules, and profile content.
 - The Swamps Pattern-V2 Docker gate currently passes 25/25 seeds with no fallback, 5 occupied rows, 17-18 occupied columns, 4 branches, and no validation failures.
 - Local Docker configuration now opts both Mountains and Swamps into Pattern-V2 for UAT.
+- `.env.example` now mirrors the local UAT opt-in with `RUN_PATTERN_V2_REGIONS=mountains,swamps` for direct backend runs.
 
 ### Move remaining biomes to the consistent run rendering path
 
