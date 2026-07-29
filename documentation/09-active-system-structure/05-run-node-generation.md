@@ -137,3 +137,26 @@ flowchart TD
 Remaining rollout work is still tracked in the Pattern-Based Run Map Generation milestone: richer branch catalog variety, Mountains and Swamps opt-in evidence, story placement requests, and committed simulation quality gates.
 
 Current optional branches use branch patterns that leave the spine, add branch-lane content, and reconnect to a later spine node. Branch placement divides eligible spine sources into early, middle, and late bands before applying fallbacks, which keeps the branch budget from being spent entirely near the start of a run. Each branch slot alternates its preferred lanes above and below the middle spine, and branch variants are tried in deterministic order for each lane so repeated maps do not collapse into a two-row top-line/down-branch shape. Branch-local loot can still appear as an optional reward off that branch segment. The simulation gate also reports `max_straight_spine_nodes` and defaults that limit to `3`; the current row cadence keeps the committed Mountains and Swamps gate suites at `2`.
+
+## Pattern-V2 Boundary
+
+`pattern-v2` is planned as a tile/grid composer for squarer maps with more occupied rows and fewer columns. Unlike the current V1 catalogue, V2 pattern definitions are database-owned content seeded through forward-only migrations. The repository must not keep a second JSON source-of-truth copy for V2 patterns; JSON exports or debug views are diagnostics only.
+
+The initial V2 contract uses rectangular tile definitions with:
+
+- `width`, `height`, `cost`, and `tags`;
+- a nested `grid` array where encounter cells define real run nodes;
+- `connector` cells that mean "draw/connect through this location" and do not create runtime nodes;
+- explicit `connections` between real node keys, optionally with `through` connector coordinates;
+- perimeter `exits` with row, column, and direction metadata.
+
+```mermaid
+flowchart LR
+  A[Migration-seeded pattern-v2 rows] --> B[RunPatternGenerationRequestBuilder]
+  B --> C[RunPatternV2GridCompiler]
+  C --> D[Compiled grid tiles]
+  D --> E[Future tile composer]
+  E --> F[Runtime nodes and edges]
+```
+
+The first V2 implementation slice only seeds and compiles the DB-owned tile catalogue for explicit tooling. Runtime generation remains on `lane-v1` or `pattern-v1` until the V2 composer, preview tooling, simulation gates, and Mountains opt-in issue are complete.

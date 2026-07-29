@@ -85,6 +85,9 @@ The contract is a stable slug:
 | `enemy_templates` | Hybrid-owned catalog | Rows store enemy stats/loadouts; combat behavior and abilities are code-owned. | Keep DB; add stronger ability/loadout parity tests. |
 | `encounter_templates` | Hybrid-owned catalog | Rows store authored encounter composition; node generation and combat rules are code-owned. | Keep DB; validate referenced regions/enemies/ability slugs. |
 | `loot_tables` | Database-owned catalog | Authored reward weights need inspection and balancing. | Keep DB; candidate for structured source seeds. |
+| `run_pattern_definitions` | Database-owned catalog | V2 run-map tiles need production-safe migration seeding and debug inspection; JSON files must not become a second source of truth for V2. | Keep DB; seed V2 rows through forward-only migrations and treat exports as diagnostics only. |
+| `run_pattern_region_rules` | Database-owned catalog | Region-specific pattern selection and rollout rules must be deployable without command-line sync on production. | Keep DB; seed V2 rules through migrations. |
+| `run_generation_profiles` | Database-owned catalog | Generator budgets, bounds, and requirements control runtime map topology and need environment-visible inspection. | Keep DB; seed V2 profiles through migrations. |
 | `bounty_definitions` | Hybrid-owned catalog | Rows store objectives/rewards; objective evaluation behavior is code-owned. | Keep DB; enforce objective-kind handler parity. |
 | `splice_variants` | Hybrid-owned catalog | Rows store modifiers and display copy; future passive behavior would be code-owned. | Keep DB; enforce passive/effect slugs if added. |
 | `affix_definitions` | Hybrid-owned catalog | Rows store affix metadata and values; affix behavior is code-owned. | Keep DB; enforce behavior-kind/slug handler parity. |

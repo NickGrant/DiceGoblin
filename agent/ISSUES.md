@@ -157,3 +157,90 @@ The pattern system needs diagnostic visibility before rollout, otherwise invalid
 - Pattern-v1 profile budgets were raised before UAT to reduce the map-size gap versus lane-v1: Mountains now gates at roughly 26-27 nodes with 3 branches; Swamps now gates at roughly 33-34 nodes with 4 branches.
 - Pattern-v1 branch topology now uses reconnecting branch segments instead of shallow cap-only offshoots, rejects non-forward/crossing edges, and simulation gates report/enforce a maximum of 3 consecutive same-row spine nodes; the current committed gates hold at 2.
 - Boss path metrics and frontend debug-map overlays remain future work.
+
+## Pattern-V2 Run Map Generation
+
+### Seed database-owned pattern-v2 tile catalog
+
+**Milestone:** Pattern-V2 Run Map Generation
+**Status:** Open
+**Priority:** High
+
+#### Problem
+
+Pattern-v2 needs a tile catalogue that can generate squarer maps, but production content cannot rely on command-line sync tools or a duplicated JSON source of truth.
+
+#### Acceptance Criteria
+
+- Pattern-v2 starter, middle, connector/reward, and terminal tile definitions are seeded through forward-only migrations.
+- The seeded profile and rules can be loaded from `run_pattern_definitions`, `run_pattern_region_rules`, and `run_generation_profiles`.
+- Connector cells are represented as edge/waypoint authoring metadata and do not compile into runtime node rows.
+- Request building for `pattern-v2` returns compiled grid tiles instead of V1 transform variants.
+- Tests prove the V2 request path can load DB-owned grid tiles.
+
+### Validate pattern-v2 grid catalog contracts
+
+**Milestone:** Pattern-V2 Run Map Generation
+**Status:** Open
+**Priority:** High
+
+#### Problem
+
+The V2 catalogue introduces grid cells, connector cells, explicit connections, and perimeter exits that need validation before any assembler relies on them.
+
+#### Acceptance Criteria
+
+- Pattern-v2 validation rejects invalid width/height, malformed grids, out-of-bounds exits, unknown connection endpoints, duplicate node keys, and connector cells treated as runtime nodes.
+- Validation supports DB-loaded V2 definitions without requiring JSON files.
+- Tests cover valid and invalid V2 catalog examples.
+
+### Implement pattern-v2 tile composer
+
+**Milestone:** Pattern-V2 Run Map Generation
+**Status:** Open
+**Priority:** High
+
+#### Problem
+
+Pattern-v1 remains spine-first and cannot reliably produce the square, multi-row map shape desired for long-term run generation.
+
+#### Acceptance Criteria
+
+- A `pattern-v2` assembler composes grid tiles into a global map within width, height, and cost budgets.
+- Tiles connect through compatible perimeter exits while preserving forward progression.
+- Internal connector cells create edges/waypoints only.
+- The composed graph preserves required node types, boss gating, exit gating, reachability, and no-crossing constraints.
+- The composer is deterministic by seed and remains behind explicit `pattern-v2` tooling until opt-in.
+
+### Add pattern-v2 preview and simulation gates
+
+**Milestone:** Pattern-V2 Run Map Generation
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+
+V2 maps need inspection and quality gates before runtime rollout, especially around occupied rows, occupied columns, crossing edges, and dead-end sockets.
+
+#### Acceptance Criteria
+
+- Preview tooling renders V2 assembled maps with nodes, connectors, exits, and generated edges.
+- Simulation reports success rate, fallback rate, occupied rows, occupied columns, cost, node count, crossing failures, and boss path metrics.
+- Gates fail on invalid graphs, excessive width, insufficient row usage, branchless boss approaches, and unresolved required exits.
+
+### Opt Mountains into pattern-v2 maps
+
+**Milestone:** Pattern-V2 Run Map Generation
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+
+Mountains should move to pattern-v2 only after the catalogue and composer produce a stable square map shape that survives UAT.
+
+#### Acceptance Criteria
+
+- Mountains pattern-v2 simulation and preview samples pass review.
+- Pattern-v2 output is compared against pattern-v1 for node count, row usage, route choice, and boss pacing.
+- Runtime selection supports Mountains opt-in without affecting other regions.
+- New Mountains runs use pattern-v2 only after validation, review, and rollout notes are complete.

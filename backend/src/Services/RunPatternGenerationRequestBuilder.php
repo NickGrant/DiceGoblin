@@ -10,7 +10,8 @@ final class RunPatternGenerationRequestBuilder
 {
   public function __construct(
     private readonly RunPatternCatalogRepository $catalog,
-    private readonly RunPatternVariantCompiler $variantCompiler = new RunPatternVariantCompiler()
+    private readonly RunPatternVariantCompiler $variantCompiler = new RunPatternVariantCompiler(),
+    private readonly RunPatternV2GridCompiler $v2GridCompiler = new RunPatternV2GridCompiler()
   ) {
   }
 
@@ -30,10 +31,8 @@ final class RunPatternGenerationRequestBuilder
     }
 
     $patterns = $this->patternsByKey($this->catalog->listEnabledPatternDefinitions(), $rules);
-    $variants = [];
-    foreach ($patterns as $patternKey => $pattern) {
-      $variants[$patternKey] = $this->variantCompiler->compile($pattern['definition']);
-    }
+    $variants = $generatorVersion === 'pattern-v2' ? [] : $this->compileVariants($patterns);
+    $tiles = $generatorVersion === 'pattern-v2' ? $this->compileV2Tiles($patterns) : [];
 
     return [
       'region_slug' => $regionSlug,
@@ -45,8 +44,37 @@ final class RunPatternGenerationRequestBuilder
       'rules_by_phase' => $this->rulesByPhase($rules),
       'patterns_by_key' => $patterns,
       'variants_by_pattern_key' => $variants,
+      'tiles_by_pattern_key' => $tiles,
       'story_placement_requests' => [],
     ];
+  }
+
+  /**
+   * @param array<string,array<string,mixed>> $patterns
+   * @return array<string,list<array<string,mixed>>>
+   */
+  private function compileVariants(array $patterns): array
+  {
+    $variants = [];
+    foreach ($patterns as $patternKey => $pattern) {
+      $variants[$patternKey] = $this->variantCompiler->compile($pattern['definition']);
+    }
+
+    return $variants;
+  }
+
+  /**
+   * @param array<string,array<string,mixed>> $patterns
+   * @return array<string,array<string,mixed>>
+   */
+  private function compileV2Tiles(array $patterns): array
+  {
+    $tiles = [];
+    foreach ($patterns as $patternKey => $pattern) {
+      $tiles[$patternKey] = $this->v2GridCompiler->compile($pattern['definition']);
+    }
+
+    return $tiles;
   }
 
   /**

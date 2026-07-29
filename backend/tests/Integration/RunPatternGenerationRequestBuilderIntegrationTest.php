@@ -49,4 +49,101 @@ final class RunPatternGenerationRequestBuilderIntegrationTest extends Integratio
     $this->assertCount(1, $variants);
     $this->assertSame('shared_start_single@1:identity', $variants[0]['variant_key']);
   }
+
+  public function testBuildsPatternV2GenerationRequestWithGridTiles(): void
+  {
+    $this->seedPatternV2Fixture();
+
+    $builder = new RunPatternGenerationRequestBuilder(new RunPatternCatalogRepository($this->pdo));
+    $request = $builder->build('mountains', 'v2-seed-1', 'pattern-v2');
+
+    $this->assertSame('pattern-v2', $request['generator_version']);
+    $this->assertSame([], $request['variants_by_pattern_key']);
+    $this->assertArrayHasKey('v2_test_start@1', $request['tiles_by_pattern_key']);
+    $this->assertSame(3, $request['tiles_by_pattern_key']['v2_test_start@1']['width']);
+    $this->assertSame(2, $request['tiles_by_pattern_key']['v2_test_start@1']['height']);
+    $this->assertSame(['start_node', 'combat_node'], array_column($request['tiles_by_pattern_key']['v2_test_start@1']['nodes'], 'key'));
+    $this->assertSame([['row' => 0, 'col' => 1]], $request['tiles_by_pattern_key']['v2_test_start@1']['connectors']);
+  }
+
+  private function seedPatternV2Fixture(): void
+  {
+    $regionId = (int)$this->scalar('SELECT `id` FROM `regions` WHERE `slug` = ?', ['mountains']);
+    $definition = [
+      'schema_version' => 'pattern-v2',
+      'slug' => 'v2_test_start',
+      'version' => 1,
+      'status' => 'enabled',
+      'width' => 3,
+      'height' => 2,
+      'cost' => 2,
+      'tags' => ['start', 'mountain'],
+      'grid' => [
+        [
+          ['key' => 'start_node', 'type' => 'combat', 'role' => 'start'],
+          ['type' => 'connector'],
+          ['key' => 'combat_node', 'type' => 'combat', 'difficulty' => 'easy'],
+        ],
+        [null, null, null],
+      ],
+      'connections' => [
+        ['from' => 'start_node', 'to' => 'combat_node', 'through' => [['row' => 0, 'col' => 1]]],
+      ],
+      'exits' => [
+        ['row' => 0, 'col' => 2, 'direction' => 'right'],
+      ],
+    ];
+    $definitionJson = json_encode($definition, JSON_UNESCAPED_SLASHES);
+    $this->assertIsString($definitionJson);
+
+    $stmt = $this->pdo->prepare('
+      INSERT INTO `run_pattern_definitions` (`slug`, `version`, `status`, `definition_json`, `content_hash`)
+      VALUES (?, ?, ?, ?, ?)
+    ');
+    $stmt->execute(['v2_test_start', 1, 'enabled', $definitionJson, hash('sha256', $definitionJson)]);
+    $patternId = (int)$this->pdo->lastInsertId();
+
+    $stmt = $this->pdo->prepare('
+      INSERT INTO `run_pattern_region_rules` (
+        `pattern_definition_id`, `region_id`, `generator_version`, `base_weight`, `allowed_phase`,
+        `min_depth`, `max_depth`, `max_per_run`, `cooldown_patterns`, `enabled`, `weight_modifiers_json`
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ');
+    $stmt->execute([$patternId, $regionId, 'pattern-v2', 100, 'start', 0, 0, 1, 0, 1, '{}']);
+
+    $profile = [
+      'region_slug' => 'mountains',
+      'generator_version' => 'pattern-v2',
+      'profile_version' => 1,
+      'enabled' => true,
+      'bounds' => ['min_col' => 0, 'max_col' => 8, 'min_row' => 0, 'max_row' => 5],
+      'budgets' => ['cost' => ['min' => 2, 'target' => 2, 'max' => 2, 'hard' => true]],
+      'requirements' => ['required_tags' => ['start']],
+      'retry_policy' => ['generation_attempts' => 1],
+      'weight_policy' => [],
+    ];
+    $profileJson = json_encode($profile, JSON_UNESCAPED_SLASHES);
+    $this->assertIsString($profileJson);
+
+    $stmt = $this->pdo->prepare('
+      INSERT INTO `run_generation_profiles` (
+        `region_id`, `generator_version`, `profile_version`, `enabled`,
+        `bounds_json`, `budgets_json`, `requirements_json`, `retry_policy_json`, `weight_policy_json`, `content_hash`
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ');
+    $stmt->execute([
+      $regionId,
+      'pattern-v2',
+      1,
+      1,
+      json_encode($profile['bounds'], JSON_UNESCAPED_SLASHES),
+      json_encode($profile['budgets'], JSON_UNESCAPED_SLASHES),
+      json_encode($profile['requirements'], JSON_UNESCAPED_SLASHES),
+      json_encode($profile['retry_policy'], JSON_UNESCAPED_SLASHES),
+      json_encode($profile['weight_policy'], JSON_UNESCAPED_SLASHES),
+      hash('sha256', $profileJson),
+    ]);
+  }
 }
