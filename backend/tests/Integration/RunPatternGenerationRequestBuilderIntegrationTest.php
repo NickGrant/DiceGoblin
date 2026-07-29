@@ -180,6 +180,7 @@ final class RunPatternGenerationRequestBuilderIntegrationTest extends Integratio
       '80_fix_pattern_v2_perimeter_exits.sql',
       '81_seed_pattern_v2_dense_mountain_tiles.sql',
       '82_compact_mountains_pattern_v2_profile.sql',
+      '83_remove_pattern_v2_placeholder_mountain_dialogue.sql',
     ] as $filename) {
       $path = dirname(__DIR__, 2) . '/migrations/' . $filename;
       $sql = file_get_contents($path);
