@@ -244,6 +244,7 @@ V2 maps need inspection and quality gates before runtime rollout, especially aro
 - Pattern simulation now reports occupied row and occupied column distributions for every generator version.
 - Simulation gate options now support minimum occupied rows and columns, giving Pattern-V2 review a direct shape-quality gate once V2 assembly lands.
 - Pattern inspection now reports V2 tile counts plus per-tile dimensions, cost, runtime node count, connector count, edge count, exit count, and tags.
+- Added `run-patterns:gate:mountains:v2:docker` as the committed Mountains Pattern-V2 simulation gate command for rollout review.
 
 ### Opt Mountains into pattern-v2 maps
 
