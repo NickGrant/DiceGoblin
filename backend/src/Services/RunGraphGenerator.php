@@ -158,8 +158,8 @@ final class RunGraphGenerator
       return $this->generateFarm($regionId);
     }
 
-    if ($generatorVersion === 'pattern-v1') {
-      return $this->generatePatternV1($regionId, $regionSlug, $seed, $allowChaosNodes, $storyPlacementRequests);
+    if ($generatorVersion === 'pattern-v1' || $generatorVersion === 'pattern-v2') {
+      return $this->generatePatternVersion($regionId, $regionSlug, $seed, $allowChaosNodes, $generatorVersion, $storyPlacementRequests);
     }
 
     if ($generatorVersion !== 'lane-v1') {
@@ -789,8 +789,22 @@ final class RunGraphGenerator
     bool $allowChaosNodes = true,
     array $storyPlacementRequests = []
   ): array {
+    return $this->generatePatternVersion($regionId, $regionSlug, $seed, $allowChaosNodes, 'pattern-v1', $storyPlacementRequests);
+  }
+
+  /**
+   * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>, generation:array<string,mixed>}
+   */
+  private function generatePatternVersion(
+    int $regionId,
+    string $regionSlug,
+    string $seed,
+    bool $allowChaosNodes,
+    string $generatorVersion,
+    array $storyPlacementRequests = []
+  ): array {
     $request = (new RunPatternGenerationRequestBuilder(new RunPatternCatalogRepository($this->pdo)))
-      ->build($regionSlug, $seed, 'pattern-v1');
+      ->build($regionSlug, $seed, $generatorVersion);
     $request['story_placement_requests'] = $this->normalizedStoryPlacementRequests($storyPlacementRequests);
     $assembly = (new RunPatternPreviewAssemblerService())->assemble($request);
     if (!$assembly['validation']['valid']) {
@@ -806,9 +820,9 @@ final class RunGraphGenerator
       }
     }
 
-    $this->assignHazardEffects($graph['nodes'], $seed . '|pattern-v1', $regionSlug);
+    $this->assignHazardEffects($graph['nodes'], $seed . '|' . $generatorVersion, $regionSlug);
     $this->assignNodeQualityTiers($graph['nodes'], $graph['edges'], $this->maxRunColumn($graph['nodes']));
-    $graph['nodes'] = $this->assignEncounterTemplates($regionId, $graph['nodes'], $seed . '|pattern-v1');
+    $graph['nodes'] = $this->assignEncounterTemplates($regionId, $graph['nodes'], $seed . '|' . $generatorVersion);
     $this->validateGraph($graph['nodes'], $graph['edges']);
 
     $summary = (new RunPatternGenerationSummaryService())->summarize($request, $assembly['graph'], $assembly['trace']);
@@ -866,7 +880,7 @@ final class RunGraphGenerator
           'col' => (int)($node['x'] ?? 0),
           'row' => (int)($node['y'] ?? 0),
           'generation' => [
-            'generator_version' => 'pattern-v1',
+            'generator_version' => (string)($request['generator_version'] ?? 'pattern-v1'),
             'profile_version' => (int)($request['profile_version'] ?? 0),
             'catalog_hash' => (string)($request['catalog_hash'] ?? ''),
             'pattern_key' => (string)($node['pattern_key'] ?? ''),
