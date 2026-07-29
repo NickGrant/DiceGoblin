@@ -17,6 +17,7 @@ Depends On: `documentation/05-playability-stability/01-critical-path-playtest-sc
 - Record run seed, region, account state, and major unlock state whenever available.
 - Convert high-confidence defects into issues immediately.
 - Convert unclear feel problems into balance questions until at least two comparable runs have evidence.
+- Pair region-pacing UAT notes with `npm.cmd run sim:balance:run:uat-regions:docker` when the issue is about attrition, reward feel, or comparative Farm/Mountains/Swamps pressure.
 
 ## Session Header
 
