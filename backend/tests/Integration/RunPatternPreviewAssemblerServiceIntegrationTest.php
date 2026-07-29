@@ -57,6 +57,25 @@ final class RunPatternPreviewAssemblerServiceIntegrationTest extends Integration
     $this->assertGreaterThanOrEqual(1, $result['trace']['counters']['placements']);
   }
 
+  public function testAssemblesPatternV2PreviewGraphFromSeededDatabaseCatalog(): void
+  {
+    $this->applyPatternV2Migration();
+    $request = (new RunPatternGenerationRequestBuilder(new RunPatternCatalogRepository($this->pdo)))->build('mountains', 'preview-v2-seed-1', 'pattern-v2');
+
+    $result = (new RunPatternPreviewAssemblerService())->assemble($request);
+    $sameResult = (new RunPatternPreviewAssemblerService())->assemble($request);
+
+    $this->assertTrue($result['validation']['valid'], implode(', ', $result['validation']['errors']));
+    $this->assertSame($result['graph'], $sameResult['graph']);
+    $this->assertGreaterThanOrEqual(15, count($result['graph']['nodes']));
+    $this->assertContains('start', array_column($result['graph']['nodes'], 'type'));
+    $this->assertContains('rest', array_column($result['graph']['nodes'], 'type'));
+    $this->assertContains('boss', array_column($result['graph']['nodes'], 'type'));
+    $this->assertContains('exit', array_column($result['graph']['nodes'], 'type'));
+    $this->assertGreaterThanOrEqual(3, count(array_unique(array_column($result['graph']['nodes'], 'y'))));
+    $this->assertGreaterThanOrEqual(4, $result['trace']['counters']['placements']);
+  }
+
   /**
    * @param list<array<string,mixed>> $nodes
    * @return list<int>
@@ -266,5 +285,13 @@ final class RunPatternPreviewAssemblerServiceIntegrationTest extends Integration
     }
 
     return $value > 0 ? 1 : 2;
+  }
+
+  private function applyPatternV2Migration(): void
+  {
+    $path = dirname(__DIR__, 2) . '/migrations/79_seed_pattern_v2_catalog.sql';
+    $sql = file_get_contents($path);
+    $this->assertIsString($sql);
+    $this->pdo->exec($sql);
   }
 }
