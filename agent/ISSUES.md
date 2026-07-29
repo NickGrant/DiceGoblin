@@ -225,6 +225,7 @@ Pattern-v1 remains spine-first and cannot reliably produce the square, multi-row
 - Pattern-V2 can now be requested through the runtime run graph generator with the same persistence-facing node, edge, encounter, hazard, quality-tier, and provenance shape used by Pattern-V1.
 - Terminal V2 reward sinks now route onward into the exit so runtime validation does not leave post-boss reward dead ends.
 - Mountains Pattern-V2 now has a forward-migration dense five-row braid tile and profile version 2 so more node budget is spent vertically before runtime opt-in.
+- Runtime Pattern-V2 node metadata now carries preview coordinates and branch keys, and generation summaries include occupied row/column and straight-spine metrics for debug inspection.
 
 ### Add pattern-v2 preview and simulation gates
 

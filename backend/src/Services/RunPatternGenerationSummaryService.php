@@ -43,6 +43,9 @@ final class RunPatternGenerationSummaryService
       'pattern_frequency' => $patternFrequency,
       'spine_depth' => $this->spineDepth($nodes),
       'branch_count' => $this->branchCount($nodes),
+      'occupied_rows' => $this->occupiedCoordinateCount($nodes, 'y'),
+      'occupied_columns' => $this->occupiedCoordinateCount($nodes, 'x'),
+      'max_straight_spine_nodes' => $this->maxStraightSpineNodes($nodes),
       'boss_path' => $this->bossPathMetrics($nodes, $edges),
       'story_placement_requests' => array_values(array_filter(
         is_array($request['story_placement_requests'] ?? null) ? $request['story_placement_requests'] : [],
@@ -84,6 +87,68 @@ final class RunPatternGenerationSummaryService
       }
     }
     return count($branches);
+  }
+
+  /**
+   * @param list<array<string,mixed>> $nodes
+   */
+  private function occupiedCoordinateCount(array $nodes, string $coordinate): int
+  {
+    $occupied = [];
+    foreach ($nodes as $node) {
+      if (array_key_exists($coordinate, $node)) {
+        $occupied[(int)$node[$coordinate]] = true;
+      }
+    }
+    return count($occupied);
+  }
+
+  /**
+   * @param list<array<string,mixed>> $nodes
+   */
+  private function maxStraightSpineNodes(array $nodes): int
+  {
+    $spine = array_values(array_filter($nodes, static function (array $node): bool {
+      return (string)($node['path_role'] ?? '') === 'spine';
+    }));
+    if ($spine === []) {
+      return 0;
+    }
+
+    usort($spine, static function (array $left, array $right): int {
+      $leftX = (int)($left['x'] ?? 0);
+      $rightX = (int)($right['x'] ?? 0);
+      if ($leftX !== $rightX) {
+        return $leftX <=> $rightX;
+      }
+      return ((int)($left['depth'] ?? 0)) <=> ((int)($right['depth'] ?? 0));
+    });
+
+    $max = 1;
+    $current = 1;
+    $previous = null;
+    foreach ($spine as $node) {
+      $type = (string)($node['type'] ?? $node['node_type'] ?? '');
+      if (in_array($type, ['boss', 'exit'], true)) {
+        $previous = null;
+        $current = 1;
+        continue;
+      }
+
+      if ($previous !== null
+        && (int)($node['x'] ?? 0) === ((int)($previous['x'] ?? 0)) + 1
+        && (int)($node['y'] ?? 0) === (int)($previous['y'] ?? 0)
+      ) {
+        $current++;
+      } else {
+        $current = 1;
+      }
+
+      $max = max($max, $current);
+      $previous = $node;
+    }
+
+    return $max;
   }
 
   /**
