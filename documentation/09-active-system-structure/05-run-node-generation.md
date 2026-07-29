@@ -40,7 +40,7 @@ The farm uses fixed encounter templates for its combat, loot, rest, and boss nod
 
 ## Procedural Region Defaults
 
-The default generator version is `lane-v1`. API run creation uses `RunGeneratorVersionSelector`, which only returns `pattern-v1` for regions listed in `RUN_PATTERN_V1_REGIONS`. With the default empty value, Mountains and Swamps still use `lane-v1`.
+The default generator version is `lane-v1`. API run creation uses `RunGeneratorVersionSelector`, which only returns `pattern-v1` for regions listed in `RUN_PATTERN_V1_REGIONS`. Local Docker UAT currently sets `RUN_PATTERN_V1_REGIONS=mountains`, so new Mountains runs use `pattern-v1`; Swamps still uses `lane-v1` until its rollout gate is accepted.
 
 When `pattern-v1` is selected, user-specific story beats are resolved before topology assembly as `story_placement_requests`. Those requests currently cover the same start, before-boss, and before-exit placements used by the legacy lane graph mutator, but the pattern path places them inside the assembled graph before validation and provenance persistence.
 
@@ -109,7 +109,7 @@ See `04-dialogue-flow-determination.md` for dialogue gating details.
 
 ## Pattern-V1 Boundary
 
-`pattern-v1` is present as an explicit runtime path but is not the default for any region unless `RUN_PATTERN_V1_REGIONS` opts that region in. The pattern path currently:
+`pattern-v1` is present as an explicit runtime path and is active for local Docker Mountains runs through `RUN_PATTERN_V1_REGIONS=mountains`. Other regions continue using `lane-v1` unless the environment opts them in. The pattern path currently:
 
 - loads synced pattern profiles, region rules, definitions, and compiled variants;
 - builds a deterministic generation request with catalog hash and profile version;
