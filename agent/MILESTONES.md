@@ -57,3 +57,25 @@ Success criteria:
 - Opt Swamps into pattern-v1 maps
 - Migrate story placement into generation requests
 - Add pattern generation debug and simulation gates
+
+## Pattern-V2 Run Map Generation
+
+**Status:** Planned
+
+Build a database-owned tile/catalogue generator that composes squarer, multi-row run maps from authored grid patterns without keeping a JSON source-of-truth copy.
+
+Success criteria:
+
+- Pattern-v2 definitions, region rules, and profiles are seeded through forward-only migrations.
+- Grid patterns support width, height, cost, tags, node cells, connector cells, explicit connections, and perimeter exits.
+- Connector cells compile to edge/waypoint metadata only; they do not create runtime run nodes.
+- The assembler composes compact maps across multiple rows and fewer columns while preserving reachability, boss gating, and no-crossing validation.
+- Mountains opts into pattern-v2 only after preview tooling, deterministic tests, simulation gates, and manual review pass.
+
+### Related Issues
+
+- Seed database-owned pattern-v2 tile catalog
+- Validate pattern-v2 grid catalog contracts
+- Implement pattern-v2 tile composer
+- Add pattern-v2 preview and simulation gates
+- Opt Mountains into pattern-v2 maps

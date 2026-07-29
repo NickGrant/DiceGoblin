@@ -34,9 +34,9 @@ final class RunPatternCatalogSyncServiceIntegrationTest extends IntegrationTestC
     $this->assertSame(14, $result['rules']);
     $this->assertSame(2, $result['profiles']);
     $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $result['catalog_hash']);
-    $this->assertSame('7', (string)$this->scalar('SELECT COUNT(*) FROM `run_pattern_definitions`', []));
-    $this->assertSame('14', (string)$this->scalar('SELECT COUNT(*) FROM `run_pattern_region_rules`', []));
-    $this->assertSame('2', (string)$this->scalar('SELECT COUNT(*) FROM `run_generation_profiles`', []));
+    $this->assertSame('7', (string)$this->scalar("SELECT COUNT(*) FROM `run_pattern_definitions` WHERE `slug` NOT LIKE 'v2\\_%'", []));
+    $this->assertSame('14', (string)$this->scalar("SELECT COUNT(*) FROM `run_pattern_region_rules` WHERE `generator_version` = 'pattern-v1'", []));
+    $this->assertSame('2', (string)$this->scalar("SELECT COUNT(*) FROM `run_generation_profiles` WHERE `generator_version` = 'pattern-v1'", []));
 
     $mountainsBudgetRaw = (string)$this->scalar(
       "SELECT `budgets_json`
@@ -51,8 +51,8 @@ final class RunPatternCatalogSyncServiceIntegrationTest extends IntegrationTestC
 
     $secondResult = $service->syncDefaultCatalog();
     $this->assertSame($result, $secondResult);
-    $this->assertSame('7', (string)$this->scalar('SELECT COUNT(*) FROM `run_pattern_definitions`', []));
-    $this->assertSame('14', (string)$this->scalar('SELECT COUNT(*) FROM `run_pattern_region_rules`', []));
-    $this->assertSame('2', (string)$this->scalar('SELECT COUNT(*) FROM `run_generation_profiles`', []));
+    $this->assertSame('7', (string)$this->scalar("SELECT COUNT(*) FROM `run_pattern_definitions` WHERE `slug` NOT LIKE 'v2\\_%'", []));
+    $this->assertSame('14', (string)$this->scalar("SELECT COUNT(*) FROM `run_pattern_region_rules` WHERE `generator_version` = 'pattern-v1'", []));
+    $this->assertSame('2', (string)$this->scalar("SELECT COUNT(*) FROM `run_generation_profiles` WHERE `generator_version` = 'pattern-v1'", []));
   }
 }
