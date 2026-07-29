@@ -193,6 +193,34 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertSame('pattern-v1', (string)($graph['nodes'][0]['meta']['generation']['generator_version'] ?? ''));
   }
 
+  public function testPatternV2GeneratesRuntimeGraphBehindExplicitVersion(): void
+  {
+    $this->applyMigration('79_seed_pattern_v2_catalog.sql');
+    $this->applyMigration('80_fix_pattern_v2_perimeter_exits.sql');
+
+    $regionId = $this->seededRegionId('mountains');
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $graph = $generator->generateWithVersion($regionId, 'mountains', 'pattern-v2-runtime-seed', true, 'pattern-v2');
+    $analysis = $this->analyzeGraph($graph);
+
+    $this->assertSame('pattern-v2', $graph['generation']['generator_version']);
+    $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', (string)$graph['generation']['catalog_hash']);
+    $this->assertGreaterThanOrEqual(18, count($graph['nodes']));
+    $this->assertGreaterThanOrEqual(3, $analysis['distinct_row_count']);
+    $this->assertGreaterThanOrEqual(2, $graph['generation']['branch_count']);
+    $this->assertContains('boss', array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']));
+    $this->assertContains('exit', array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']));
+    $this->assertContains('rest', array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']));
+    $this->assertContains('chaos', array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']));
+    $this->assertTrue(isset($analysis['reachable_from_start'][$analysis['boss_index']]));
+    $this->assertTrue(isset($analysis['reachable_from_boss'][$analysis['exit_index']]));
+    $this->assertSame([], $analysis['backward_edges']);
+    $this->assertSame([], $analysis['duplicate_edges']);
+    $this->assertSame([], $analysis['crossing_edges']);
+    $this->assertSame('pattern-v2', (string)($graph['nodes'][0]['meta']['generation']['generator_version'] ?? ''));
+  }
+
   public function testBuildsUserSpecificDialoguePlacementRequestsForPatternGeneration(): void
   {
     $userId = $this->insertUser();
@@ -656,6 +684,14 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $regionId = (int)$this->scalar('SELECT `id` FROM `regions` WHERE `slug` = ? LIMIT 1', [$slug]);
     $this->assertGreaterThan(0, $regionId, sprintf('Seeded region `%s` must exist.', $slug));
     return $regionId;
+  }
+
+  private function applyMigration(string $filename): void
+  {
+    $path = dirname(__DIR__, 2) . '/migrations/' . $filename;
+    $sql = file_get_contents($path);
+    $this->assertIsString($sql);
+    $this->pdo->exec($sql);
   }
 
   /**

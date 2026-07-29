@@ -222,6 +222,8 @@ Pattern-v1 remains spine-first and cannot reliably produce the square, multi-row
 - Added the first Pattern-V2 tile composer for explicit `pattern-v2` preview/simulation requests.
 - Composer places DB-loaded grid tiles, keeps connector cells out of runtime nodes, bridges tile sinks to compatible next-tile roots, and validates the assembled graph before returning it.
 - Docker DB sampling for Mountains Pattern-V2 produced 10/10 valid previews with 25-32 nodes, 2-3 internal branches, and at most 3 consecutive same-row spine nodes.
+- Pattern-V2 can now be requested through the runtime run graph generator with the same persistence-facing node, edge, encounter, hazard, quality-tier, and provenance shape used by Pattern-V1.
+- Terminal V2 reward sinks now route onward into the exit so runtime validation does not leave post-boss reward dead ends.
 
 ### Add pattern-v2 preview and simulation gates
 
@@ -244,6 +246,7 @@ V2 maps need inspection and quality gates before runtime rollout, especially aro
 - Pattern simulation now reports occupied row and occupied column distributions for every generator version.
 - Simulation gate options now support minimum occupied rows and columns, giving Pattern-V2 review a direct shape-quality gate once V2 assembly lands.
 - Pattern inspection now reports V2 tile counts plus per-tile dimensions, cost, runtime node count, connector count, edge count, exit count, and tags.
+- A 25-seed Mountains Pattern-V2 sample generated valid graphs with no validation failures, but some seeds still fall to 18 nodes and 1 branch; catalogue/budget tuning is still needed before Mountains runtime opt-in.
 
 ### Opt Mountains into pattern-v2 maps
 

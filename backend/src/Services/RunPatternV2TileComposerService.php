@@ -172,8 +172,9 @@ final class RunPatternV2TileComposerService
   private function placeTile(string $phase, string $patternKey, array $tile, int $offsetX, int $offsetY, int $instance): array
   {
     $nodes = [];
-    $localPositions = $this->forwardPositions($tile);
-    $branchKeys = $this->localBranchKeys($tile, $patternKey, $instance);
+    $tileEdges = $this->tileEdges($tile, $phase);
+    $localPositions = $this->forwardPositions($tile, $tileEdges);
+    $branchKeys = $this->localBranchKeys($tile, $tileEdges, $patternKey, $instance);
     $keyMap = [];
     foreach (array_values(array_filter(is_array($tile['nodes'] ?? null) ? $tile['nodes'] : [], 'is_array')) as $node) {
       $sourceKey = (string)($node['key'] ?? '');
@@ -205,7 +206,7 @@ final class RunPatternV2TileComposerService
     $edges = [];
     $incoming = [];
     $outgoing = [];
-    foreach (array_values(array_filter(is_array($tile['edges'] ?? null) ? $tile['edges'] : [], 'is_array')) as $edge) {
+    foreach ($tileEdges as $edge) {
       $from = $keyMap[(string)($edge['from'] ?? '')] ?? null;
       $to = $keyMap[(string)($edge['to'] ?? '')] ?? null;
       if ($from === null || $to === null) {
@@ -241,9 +242,52 @@ final class RunPatternV2TileComposerService
 
   /**
    * @param array<string,mixed> $tile
+   * @return list<array<string,mixed>>
+   */
+  private function tileEdges(array $tile, string $phase): array
+  {
+    $edges = array_values(array_filter(is_array($tile['edges'] ?? null) ? $tile['edges'] : [], 'is_array'));
+    if ($phase !== 'terminal') {
+      return $edges;
+    }
+
+    $nodeTypes = [];
+    foreach (array_values(array_filter(is_array($tile['nodes'] ?? null) ? $tile['nodes'] : [], 'is_array')) as $node) {
+      $key = (string)($node['key'] ?? '');
+      if ($key !== '') {
+        $nodeTypes[$key] = (string)($node['type'] ?? '');
+      }
+    }
+
+    $exitKey = array_search('exit', $nodeTypes, true);
+    if (!is_string($exitKey)) {
+      return $edges;
+    }
+
+    $outgoing = [];
+    foreach ($edges as $edge) {
+      $from = (string)($edge['from'] ?? '');
+      if ($from !== '') {
+        $outgoing[$from] = true;
+      }
+    }
+
+    foreach ($nodeTypes as $nodeKey => $nodeType) {
+      if ($nodeKey === $exitKey || $nodeType === 'exit' || isset($outgoing[$nodeKey])) {
+        continue;
+      }
+
+      $edges[] = ['from' => $nodeKey, 'to' => $exitKey];
+    }
+
+    return $edges;
+  }
+
+  /**
+   * @param array<string,mixed> $tile
    * @return array<string,string>
    */
-  private function localBranchKeys(array $tile, string $patternKey, int $instance): array
+  private function localBranchKeys(array $tile, array $tileEdges, string $patternKey, int $instance): array
   {
     $nodeKeys = [];
     foreach (array_values(array_filter(is_array($tile['nodes'] ?? null) ? $tile['nodes'] : [], 'is_array')) as $node) {
@@ -258,7 +302,7 @@ final class RunPatternV2TileComposerService
     foreach (array_keys($nodeKeys) as $key) {
       $adjacency[$key] = [];
     }
-    foreach (array_values(array_filter(is_array($tile['edges'] ?? null) ? $tile['edges'] : [], 'is_array')) as $edge) {
+    foreach ($tileEdges as $edge) {
       $from = (string)($edge['from'] ?? '');
       $to = (string)($edge['to'] ?? '');
       if (!isset($nodeKeys[$from], $nodeKeys[$to])) {
@@ -300,7 +344,7 @@ final class RunPatternV2TileComposerService
    * @param array<string,mixed> $tile
    * @return array<string,array{x:int,y:int}>
    */
-  private function forwardPositions(array $tile): array
+  private function forwardPositions(array $tile, array $tileEdges): array
   {
     $positions = [];
     foreach (array_values(array_filter(is_array($tile['nodes'] ?? null) ? $tile['nodes'] : [], 'is_array')) as $node) {
@@ -312,7 +356,7 @@ final class RunPatternV2TileComposerService
 
     for ($pass = 0; $pass < count($positions) + 1; $pass++) {
       $changed = false;
-      foreach (array_values(array_filter(is_array($tile['edges'] ?? null) ? $tile['edges'] : [], 'is_array')) as $edge) {
+      foreach ($tileEdges as $edge) {
         $from = (string)($edge['from'] ?? '');
         $to = (string)($edge['to'] ?? '');
         if (!isset($positions[$from], $positions[$to])) {
