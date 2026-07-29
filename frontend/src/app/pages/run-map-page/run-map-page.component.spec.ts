@@ -424,6 +424,9 @@ describe('RunMapPageComponent', () => {
     expect(host.textContent).toContain('Combat · spine · depth 0');
     expect(host.textContent).toContain('shared_boss_exit_terminal@1');
     expect(host.querySelector('.run-map__pattern-label')?.textContent?.trim()).toBe('0');
+    expect(host.querySelectorAll('.run-map__debug-grid-line').length).toBeGreaterThan(0);
+    expect(host.textContent).toContain('x0');
+    expect(host.textContent).toContain('y1');
   });
 
   it('uses generation coordinates without showing debug metadata when dev panel is disabled', async () => {
@@ -498,6 +501,7 @@ describe('RunMapPageComponent', () => {
     expect(component.patternNodeDepthLabel(node)).toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('Generation');
     expect(fixture.nativeElement.querySelector('.run-map__pattern-label')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.run-map__debug-grid')).toBeNull();
   });
 
   it('navigates to summary after abandoning a run', async () => {

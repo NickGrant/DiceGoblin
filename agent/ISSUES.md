@@ -157,7 +157,7 @@ The pattern system needs diagnostic visibility before rollout, otherwise invalid
 - `run-patterns:gate:mountains:docker` and `run-patterns:gate:swamps:docker` run committed 25-seed gates with strict validity, fallback, branch-count, and backtrack thresholds.
 - Pattern-v1 profile budgets were raised before UAT to reduce the map-size gap versus lane-v1: Mountains now gates at roughly 26-27 nodes with 3 branches; Swamps now gates at roughly 33-34 nodes with 4 branches.
 - Pattern-v1 branch topology now uses reconnecting branch segments instead of shallow cap-only offshoots, rejects non-forward/crossing edges, and simulation gates report/enforce a maximum of 3 consecutive same-row spine nodes; the current committed gates hold at 2.
-- Boss path metrics and frontend debug-map overlays remain future work.
+- Boss path metrics are included in simulation output and the dev-only frontend run map now renders a coordinate grid overlay for generation review.
 
 ## Pattern-V2 Run Map Generation
 

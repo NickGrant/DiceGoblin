@@ -114,6 +114,30 @@ export class RunMapPageComponent {
   });
   readonly mapWidth = computed(() => this.nodeLayoutBounds().width);
   readonly mapHeight = computed(() => this.nodeLayoutBounds().height);
+  readonly generationGridColumns = computed(() => {
+    if (!this.showGenerationDebug) {
+      return [];
+    }
+
+    return this.uniqueSortedCoordinates(this.nodes().map((node) => this.nodeMetaColumn(node)))
+      .map((column) => ({
+        value: column,
+        x: RunMapPageComponent.MAP_HORIZONTAL_PADDING +
+          column * RunMapPageComponent.MAP_NODE_HORIZONTAL_GAP,
+      }));
+  });
+  readonly generationGridRows = computed(() => {
+    if (!this.showGenerationDebug) {
+      return [];
+    }
+
+    return this.uniqueSortedCoordinates(this.nodes().map((node) => this.nodeMetaRow(node)))
+      .map((row) => ({
+        value: row,
+        y: RunMapPageComponent.MAP_VERTICAL_PADDING +
+          row * RunMapPageComponent.MAP_ROW_VERTICAL_GAP,
+      }));
+  });
   readonly runUnits = computed(() => {
     const unitsById = new Map(this.sessionService.units().map((unit) => [unit.id, unit]));
     return (this.runData()?.run_unit_state ?? []).map((state) => ({
@@ -656,5 +680,10 @@ export class RunMapPageComponent {
   private numberFromUnknown(value: unknown): number | null {
     const numeric = typeof value === 'number' ? value : Number(value);
     return Number.isFinite(numeric) ? numeric : null;
+  }
+
+  private uniqueSortedCoordinates(values: number[]): number[] {
+    return [...new Set(values.filter((value) => Number.isFinite(value)))]
+      .sort((left, right) => left - right);
   }
 }

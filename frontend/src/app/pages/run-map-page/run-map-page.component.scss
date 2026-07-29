@@ -247,6 +247,26 @@
   min-width: 100%;
 }
 
+.run-map__debug-grid {
+  pointer-events: none;
+}
+
+.run-map__debug-grid-line {
+  stroke: rgba(158, 231, 238, 0.2);
+  stroke-width: 1;
+  stroke-dasharray: 6 8;
+}
+
+.run-map__debug-grid-label {
+  fill: rgba(236, 249, 248, 0.74);
+  paint-order: stroke;
+  stroke: rgba(8, 13, 14, 0.82);
+  stroke-width: 3;
+  font-size: 0.72rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
 .run-map__edge {
   fill: none;
   stroke-width: 8;
