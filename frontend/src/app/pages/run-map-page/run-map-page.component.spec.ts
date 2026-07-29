@@ -260,6 +260,49 @@ describe('RunMapPageComponent', () => {
     expect(renderedEdges.find((edge) => edge.edgeId === 'e5')?.path).toBe('M 400 222 L 540 222');
   });
 
+  it('renders stored connector waypoints as edge segments', async () => {
+    class WaypointRunServiceStub extends RunServiceStub {
+      override getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
+        ok: true,
+        data: {
+          run: { run_id: 'run-waypoints', region_id: '2', region_slug: 'mountains', region_theme: 'mountain', status: 'active' },
+          map: {
+            nodes: [
+              { id: 'n1', run_id: 'run-waypoints', node_index: 0, node_type: 'combat', status: 'cleared', meta: { col: 0, row: 1 } },
+              { id: 'n2', run_id: 'run-waypoints', node_index: 1, node_type: 'loot', status: 'available', meta: { col: 2, row: 1 } },
+            ],
+            edges: [
+              {
+                edge_id: 'waypoint-edge',
+                run_id: 'run-waypoints',
+                from_node_id: 'n1',
+                to_node_id: 'n2',
+                meta: { through: [{ x: 1, y: 0 }] },
+              },
+            ],
+          },
+          run_unit_state: [],
+        },
+      });
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: WaypointRunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const edge = fixture.componentInstance.renderedEdges().find((candidate) => candidate.edgeId === 'waypoint-edge');
+    expect(edge?.path).toBe('M 120 222 L 260 90 L 400 222');
+  });
+
   it('colors run-map edges by directed progression instead of either endpoint availability', async () => {
     await TestBed.configureTestingModule({
       imports: [RunMapPageComponent],

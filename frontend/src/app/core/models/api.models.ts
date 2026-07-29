@@ -430,6 +430,8 @@ export type CurrentRunEdge = {
   run_id: string;
   from_node_id: string;
   to_node_id: string;
+  meta_json?: string | null;
+  meta?: Record<string, unknown> | null;
 };
 
 export type CurrentRunMap = {

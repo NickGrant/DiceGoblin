@@ -4320,6 +4320,12 @@ ON DUPLICATE KEY UPDATE
 
 -- END MIGRATION: 84_seed_pattern_v2_swamp_tiles.sql
 
+-- BEGIN MIGRATION: 85_add_run_edge_meta.sql
+ALTER TABLE `run_edges`
+  ADD COLUMN `meta_json` JSON NULL AFTER `to_node_id`;
+
+-- END MIGRATION: 85_add_run_edge_meta.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
 -- Dice Goblins â€” MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46

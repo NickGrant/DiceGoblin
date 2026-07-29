@@ -102,14 +102,34 @@ export class RunService {
   }
 
   private normalizeCurrentRunEdge(edge: CurrentRunEdge, index: number): CurrentRunEdge {
-    if (edge.edge_id) {
-      return edge;
+    const normalized = edge.edge_id
+      ? edge
+      : {
+          ...edge,
+          edge_id: `${edge.from_node_id}->${edge.to_node_id}#${index}`,
+        };
+
+    if (normalized.meta && typeof normalized.meta === 'object') {
+      return normalized;
     }
 
-    return {
-      ...edge,
-      edge_id: `${edge.from_node_id}->${edge.to_node_id}#${index}`,
-    };
+    if (!normalized.meta_json) {
+      return normalized;
+    }
+
+    try {
+      const parsed = JSON.parse(normalized.meta_json);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return normalized;
+      }
+
+      return {
+        ...normalized,
+        meta: parsed as Record<string, unknown>,
+      };
+    } catch {
+      return normalized;
+    }
   }
 
   async getCurrentRun(): Promise<RunResponse> {
