@@ -1,4 +1,11 @@
 # Squad Details Page Analysis
+----
+
+Status: active  
+Last Updated: 2026-07-29  
+Owner: UX + Engineering  
+Depends On: `documentation/06-page-analysis/00-index.md`, `documentation/03-ux/08-page-layout-zones.md`  
+
 
 Route: `/warband/squads/:squadId`  
 Auth: authenticated  
