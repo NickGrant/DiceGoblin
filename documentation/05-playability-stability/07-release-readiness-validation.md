@@ -22,6 +22,7 @@ npm.cmd run release:check
 This verifies:
 - required active tracker and UAT documents exist
 - `frontend/dist` has no uncommitted generated-artifact changes
+- source, test, documentation, and agent tracker files have no uncommitted changes
 - startup context validation passes
 - backlog validation passes
 - documentation lint runs without hard failure

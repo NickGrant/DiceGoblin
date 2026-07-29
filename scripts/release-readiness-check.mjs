@@ -73,6 +73,19 @@ function assertGeneratedArtifactHygiene() {
   }
 }
 
+function assertWorktreeHygiene() {
+  const status = capture("git", ["status", "--porcelain"]);
+  const nonGeneratedChanges = status
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line !== "")
+    .filter((line) => !line.includes("frontend/dist/") && !line.endsWith("frontend/dist"));
+
+  if (nonGeneratedChanges.length > 0) {
+    throw new Error(`Release readiness requires a clean source worktree:\n${nonGeneratedChanges.join("\n")}`);
+  }
+}
+
 function printContext() {
   const branch = capture("git", ["branch", "--show-current"]) || "(detached)";
   const head = capture("git", ["rev-parse", "--short", "HEAD"]);
@@ -86,6 +99,7 @@ try {
   printContext();
   assertRequiredFiles();
   assertGeneratedArtifactHygiene();
+  assertWorktreeHygiene();
 
   for (const [command, args] of quickCommands) {
     run(command, args);
