@@ -18,6 +18,7 @@ Depends On: `documentation/05-playability-stability/01-critical-path-playtest-sc
 - Convert high-confidence defects into issues immediately.
 - Convert unclear feel problems into balance questions until at least two comparable runs have evidence.
 - Pair region-pacing UAT notes with `npm.cmd run sim:balance:run:uat-regions:docker` when the issue is about attrition, reward feel, or comparative Farm/Mountains/Swamps pressure.
+- Pair procedural map-shape UAT notes with `npm.cmd run run-patterns:gate:v2-uat:docker` when the issue is about Pattern-V2 route choice, occupied rows/columns, branch counts, or boss approach pacing in Mountains and Swamps.
 
 ## Session Header
 
@@ -85,6 +86,7 @@ Answer these before or during the first full pass. Treat them as target hypothes
 
 ### Mountains
 - [ ] Mountains unlock timing feels correct.
+- [ ] Pattern-V2 gate and comparison output still passes before visual map-shape notes are treated as current.
 - [ ] Attrition pressure is noticeable but not punishing.
 - [ ] Hazards are visible and their outcomes are clear.
 - [ ] Shrines are visible and their outcomes are clear.
@@ -94,6 +96,7 @@ Answer these before or during the first full pass. Treat them as target hypothes
 
 ### Swamps
 - [ ] Swamps unlock timing feels correct.
+- [ ] Pattern-V2 gate and comparison output still passes before visual map-shape notes are treated as current.
 - [ ] Map width and route choice feel meaningfully different from Mountains.
 - [ ] Wrong Machine unlock occurs at the intended moment.
 - [ ] Raw Chaos is not earned before Wrong Machine unlock.
