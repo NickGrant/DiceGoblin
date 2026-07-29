@@ -20,6 +20,10 @@ final class RunPatternPreviewAssemblerService
    */
   public function assemble(array $request): array
   {
+    if ((string)($request['generator_version'] ?? '') === 'pattern-v2') {
+      return (new RunPatternV2TileComposerService())->assemble($request, $this->validator);
+    }
+
     $trace = new RunPatternGenerationTrace(startedAtMs: $this->nowMs());
     $rng = new DeterministicRandom((string)($request['seed'] ?? 'pattern-preview'));
     $graph = ['nodes' => [], 'edges' => []];

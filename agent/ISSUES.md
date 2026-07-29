@@ -212,6 +212,12 @@ Pattern-v1 remains spine-first and cannot reliably produce the square, multi-row
 - The composed graph preserves required node types, boss gating, exit gating, reachability, and no-crossing constraints.
 - The composer is deterministic by seed and remains behind explicit `pattern-v2` tooling until opt-in.
 
+#### Progress
+
+- Added the first Pattern-V2 tile composer for explicit `pattern-v2` preview/simulation requests.
+- Composer places DB-loaded grid tiles, keeps connector cells out of runtime nodes, bridges tile sinks to compatible next-tile roots, and validates the assembled graph before returning it.
+- Docker DB sampling for Mountains Pattern-V2 produced 10/10 valid previews with 25-32 nodes, 2-3 internal branches, and at most 3 consecutive same-row spine nodes.
+
 ### Add pattern-v2 preview and simulation gates
 
 **Milestone:** Pattern-V2 Run Map Generation
