@@ -180,6 +180,8 @@ final class RunPatternSimulationService
     $maxStraightSpineNodes = (int)($options['max_straight_spine_nodes'] ?? 3);
     $minOccupiedRows = (int)($options['min_occupied_rows'] ?? 1);
     $minOccupiedColumns = (int)($options['min_occupied_columns'] ?? 1);
+    $maxOccupiedRows = isset($options['max_occupied_rows']) ? (int)$options['max_occupied_rows'] : null;
+    $maxOccupiedColumns = isset($options['max_occupied_columns']) ? (int)$options['max_occupied_columns'] : null;
 
     $checks[] = $this->check(
       'success_rate',
@@ -230,6 +232,15 @@ final class RunPatternSimulationService
       (int)($simulation['occupied_rows']['min'] ?? 0),
       'Every generated graph must occupy at least the configured number of rows.'
     );
+    if ($maxOccupiedRows !== null) {
+      $checks[] = $this->check(
+        'occupied_rows_max',
+        (int)($simulation['occupied_rows']['max'] ?? PHP_INT_MAX) <= $maxOccupiedRows,
+        $maxOccupiedRows,
+        (int)($simulation['occupied_rows']['max'] ?? PHP_INT_MAX),
+        'Generated graphs must not exceed the configured maximum occupied rows.'
+      );
+    }
     $checks[] = $this->check(
       'occupied_columns_min',
       (int)($simulation['occupied_columns']['min'] ?? 0) >= $minOccupiedColumns,
@@ -237,6 +248,15 @@ final class RunPatternSimulationService
       (int)($simulation['occupied_columns']['min'] ?? 0),
       'Every generated graph must occupy at least the configured number of columns.'
     );
+    if ($maxOccupiedColumns !== null) {
+      $checks[] = $this->check(
+        'occupied_columns_max',
+        (int)($simulation['occupied_columns']['max'] ?? PHP_INT_MAX) <= $maxOccupiedColumns,
+        $maxOccupiedColumns,
+        (int)($simulation['occupied_columns']['max'] ?? PHP_INT_MAX),
+        'Generated graphs must not exceed the configured maximum occupied columns.'
+      );
+    }
 
     $passed = true;
     foreach ($checks as $check) {
