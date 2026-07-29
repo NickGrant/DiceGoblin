@@ -17,12 +17,14 @@ $format = (string)($options['format'] ?? 'text');
 $regionSlug = (string)($options['region'] ?? 'mountains');
 $runs = max(1, (int)($options['runs'] ?? 10));
 $seedPrefix = (string)($options['seed'] ?? 'generator-compare');
+$baselineVersion = (string)($options['baseline'] ?? 'lane-v1');
+$candidateVersion = (string)($options['candidate'] ?? 'pattern-v1');
 
 try {
   $pdo = $processDbEnv !== [] ? pdoFromProcessDbEnv($processDbEnv) : Db::pdo();
   $regionId = regionId($pdo, $regionSlug);
   $generator = new RunGraphGenerator($pdo);
-  $result = compareGenerators($generator, $regionId, $regionSlug, $seedPrefix, $runs);
+  $result = compareGenerators($generator, $regionId, $regionSlug, $seedPrefix, $runs, $baselineVersion, $candidateVersion);
 
   outputResult($result, $format);
   exit(0);
@@ -79,81 +81,60 @@ function regionId(PDO $pdo, string $regionSlug): int
 /**
  * @return array<string,mixed>
  */
-function compareGenerators(RunGraphGenerator $generator, int $regionId, string $regionSlug, string $seedPrefix, int $runs): array
+function compareGenerators(
+  RunGraphGenerator $generator,
+  int $regionId,
+  string $regionSlug,
+  string $seedPrefix,
+  int $runs,
+  string $baselineVersion,
+  string $candidateVersion
+): array
 {
   $rows = [];
-  $laneNodeCounts = [];
-  $patternNodeCounts = [];
-  $laneEdgeCounts = [];
-  $patternEdgeCounts = [];
-  $laneStartToBossPaths = [];
-  $patternStartToBossPaths = [];
-  $laneBossToExitPaths = [];
-  $patternBossToExitPaths = [];
-  $laneTypes = [];
-  $patternTypes = [];
+  $baselineMetrics = emptyMetrics();
+  $candidateMetrics = emptyMetrics();
 
   for ($i = 1; $i <= $runs; $i++) {
     $seed = "{$seedPrefix}-{$i}";
-    $lane = $generator->generateWithVersion($regionId, $regionSlug, $seed, true, 'lane-v1');
-    $pattern = $generator->generateWithVersion($regionId, $regionSlug, $seed, true, 'pattern-v1');
-    $laneSummary = graphSummary($lane);
-    $patternSummary = graphSummary($pattern);
+    $baseline = $generator->generateWithVersion($regionId, $regionSlug, $seed, true, $baselineVersion);
+    $candidate = $generator->generateWithVersion($regionId, $regionSlug, $seed, true, $candidateVersion);
+    $baselineSummary = graphSummary($baseline);
+    $candidateSummary = graphSummary($candidate);
 
-    $laneNodeCounts[] = $laneSummary['node_count'];
-    $patternNodeCounts[] = $patternSummary['node_count'];
-    $laneEdgeCounts[] = $laneSummary['edge_count'];
-    $patternEdgeCounts[] = $patternSummary['edge_count'];
-    pushNullableMetric($laneStartToBossPaths, $laneSummary['boss_path']['start_to_boss']);
-    pushNullableMetric($patternStartToBossPaths, $patternSummary['boss_path']['start_to_boss']);
-    pushNullableMetric($laneBossToExitPaths, $laneSummary['boss_path']['boss_to_exit']);
-    pushNullableMetric($patternBossToExitPaths, $patternSummary['boss_path']['boss_to_exit']);
-    mergeCounts($laneTypes, $laneSummary['node_types']);
-    mergeCounts($patternTypes, $patternSummary['node_types']);
+    recordMetrics($baselineMetrics, $baselineSummary);
+    recordMetrics($candidateMetrics, $candidateSummary);
 
     $rows[] = [
       'seed' => $seed,
-      'lane_v1' => $laneSummary,
-      'pattern_v1' => $patternSummary,
+      $baselineVersion => $baselineSummary,
+      $candidateVersion => $candidateSummary,
       'delta' => [
-        'node_count' => $patternSummary['node_count'] - $laneSummary['node_count'],
-        'edge_count' => $patternSummary['edge_count'] - $laneSummary['edge_count'],
-        'start_to_boss' => nullableDelta($patternSummary['boss_path']['start_to_boss'], $laneSummary['boss_path']['start_to_boss']),
-        'boss_to_exit' => nullableDelta($patternSummary['boss_path']['boss_to_exit'], $laneSummary['boss_path']['boss_to_exit']),
+        'node_count' => $candidateSummary['node_count'] - $baselineSummary['node_count'],
+        'edge_count' => $candidateSummary['edge_count'] - $baselineSummary['edge_count'],
+        'branch_count' => $candidateSummary['branch_count'] - $baselineSummary['branch_count'],
+        'occupied_rows' => $candidateSummary['occupied_rows'] - $baselineSummary['occupied_rows'],
+        'occupied_columns' => $candidateSummary['occupied_columns'] - $baselineSummary['occupied_columns'],
+        'start_to_boss' => nullableDelta($candidateSummary['boss_path']['start_to_boss'], $baselineSummary['boss_path']['start_to_boss']),
+        'boss_to_exit' => nullableDelta($candidateSummary['boss_path']['boss_to_exit'], $baselineSummary['boss_path']['boss_to_exit']),
       ],
     ];
   }
 
-  ksort($laneTypes);
-  ksort($patternTypes);
   return [
     'region_slug' => $regionSlug,
     'runs' => $runs,
-    'lane_v1' => [
-      'node_count' => distribution($laneNodeCounts),
-      'edge_count' => distribution($laneEdgeCounts),
-      'boss_path' => [
-        'start_to_boss' => nullableDistribution($laneStartToBossPaths),
-        'boss_to_exit' => nullableDistribution($laneBossToExitPaths),
-      ],
-      'node_types' => $laneTypes,
-    ],
-    'pattern_v1' => [
-      'node_count' => distribution($patternNodeCounts),
-      'edge_count' => distribution($patternEdgeCounts),
-      'boss_path' => [
-        'start_to_boss' => nullableDistribution($patternStartToBossPaths),
-        'boss_to_exit' => nullableDistribution($patternBossToExitPaths),
-      ],
-      'node_types' => $patternTypes,
-    ],
+    'baseline_version' => $baselineVersion,
+    'candidate_version' => $candidateVersion,
+    $baselineVersion => summarizeMetrics($baselineMetrics),
+    $candidateVersion => summarizeMetrics($candidateMetrics),
     'results' => $rows,
   ];
 }
 
 /**
  * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $graph
- * @return array{node_count:int,edge_count:int,node_types:array<string,int>,available_count:int,has_generation:bool,boss_path:array{start_to_boss:int|null,boss_to_exit:int|null}}
+ * @return array{node_count:int,edge_count:int,branch_count:int,occupied_rows:int,occupied_columns:int,max_straight_spine_nodes:int,node_types:array<string,int>,available_count:int,has_generation:bool,boss_path:array{start_to_boss:int|null,boss_to_exit:int|null}}
  */
 function graphSummary(array $graph): array
 {
@@ -170,6 +151,12 @@ function graphSummary(array $graph): array
   return [
     'node_count' => count($graph['nodes'] ?? []),
     'edge_count' => count($graph['edges'] ?? []),
+    'branch_count' => is_numeric($graph['generation']['branch_count'] ?? null)
+      ? (int)$graph['generation']['branch_count']
+      : branchCount(array_values(array_filter($graph['nodes'] ?? [], 'is_array'))),
+    'occupied_rows' => occupiedCoordinateCount(array_values(array_filter($graph['nodes'] ?? [], 'is_array')), 'y'),
+    'occupied_columns' => occupiedCoordinateCount(array_values(array_filter($graph['nodes'] ?? [], 'is_array')), 'x'),
+    'max_straight_spine_nodes' => maxStraightSpineNodes(array_values(array_filter($graph['nodes'] ?? [], 'is_array'))),
     'node_types' => $nodeTypes,
     'available_count' => $available,
     'has_generation' => is_array($graph['generation'] ?? null),
@@ -199,6 +186,170 @@ function bossPathMetrics(array $nodes, array $edges): array
       ? shortestPathLength($boss, $exit, $edges)
       : null,
   ];
+}
+
+/**
+ * @return array<string,mixed>
+ */
+function emptyMetrics(): array
+{
+  return [
+    'node_count' => [],
+    'edge_count' => [],
+    'branch_count' => [],
+    'occupied_rows' => [],
+    'occupied_columns' => [],
+    'max_straight_spine_nodes' => [],
+    'start_to_boss' => [],
+    'boss_to_exit' => [],
+    'node_types' => [],
+  ];
+}
+
+/**
+ * @param array<string,mixed> $metrics
+ * @param array<string,mixed> $summary
+ */
+function recordMetrics(array &$metrics, array $summary): void
+{
+  foreach (['node_count', 'edge_count', 'branch_count', 'occupied_rows', 'occupied_columns', 'max_straight_spine_nodes'] as $key) {
+    $metrics[$key][] = (int)($summary[$key] ?? 0);
+  }
+  pushNullableMetric($metrics['start_to_boss'], $summary['boss_path']['start_to_boss'] ?? null);
+  pushNullableMetric($metrics['boss_to_exit'], $summary['boss_path']['boss_to_exit'] ?? null);
+  mergeCounts($metrics['node_types'], is_array($summary['node_types'] ?? null) ? $summary['node_types'] : []);
+}
+
+/**
+ * @param array<string,mixed> $metrics
+ * @return array<string,mixed>
+ */
+function summarizeMetrics(array $metrics): array
+{
+  $nodeTypes = is_array($metrics['node_types'] ?? null) ? $metrics['node_types'] : [];
+  ksort($nodeTypes);
+  return [
+    'node_count' => distribution($metrics['node_count']),
+    'edge_count' => distribution($metrics['edge_count']),
+    'branch_count' => distribution($metrics['branch_count']),
+    'occupied_rows' => distribution($metrics['occupied_rows']),
+    'occupied_columns' => distribution($metrics['occupied_columns']),
+    'max_straight_spine_nodes' => distribution($metrics['max_straight_spine_nodes']),
+    'boss_path' => [
+      'start_to_boss' => nullableDistribution($metrics['start_to_boss']),
+      'boss_to_exit' => nullableDistribution($metrics['boss_to_exit']),
+    ],
+    'node_types' => $nodeTypes,
+  ];
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ */
+function branchCount(array $nodes): int
+{
+  $branches = [];
+  foreach ($nodes as $node) {
+    $branchKey = (string)nodeGenerationValue($node, 'branch_key', '');
+    if ($branchKey !== '') {
+      $branches[$branchKey] = true;
+    }
+  }
+  return count($branches);
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ */
+function occupiedCoordinateCount(array $nodes, string $coordinate): int
+{
+  $occupied = [];
+  foreach ($nodes as $node) {
+    $value = nodeGenerationValue($node, $coordinate, null);
+    if ($value === null) {
+      $metaCoordinate = $coordinate === 'x' ? 'col' : ($coordinate === 'y' ? 'row' : $coordinate);
+      $value = is_array($node['meta'] ?? null) ? ($node['meta'][$metaCoordinate] ?? null) : null;
+    }
+
+    if ($value !== null) {
+      $occupied[(int)$value] = true;
+    }
+  }
+  return count($occupied);
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ */
+function maxStraightSpineNodes(array $nodes): int
+{
+  $spine = array_values(array_filter($nodes, static function (array $node): bool {
+    return (string)nodeGenerationValue($node, 'path_role', '') === 'spine';
+  }));
+  if ($spine === []) {
+    return 0;
+  }
+
+  usort($spine, static function (array $left, array $right): int {
+    $leftX = (int)nodeGenerationValue($left, 'x', is_array($left['meta'] ?? null) ? ($left['meta']['col'] ?? 0) : 0);
+    $rightX = (int)nodeGenerationValue($right, 'x', is_array($right['meta'] ?? null) ? ($right['meta']['col'] ?? 0) : 0);
+    if ($leftX !== $rightX) {
+      return $leftX <=> $rightX;
+    }
+    return ((int)nodeGenerationValue($left, 'depth', 0)) <=> ((int)nodeGenerationValue($right, 'depth', 0));
+  });
+
+  $max = 1;
+  $current = 1;
+  $previous = null;
+  foreach ($spine as $node) {
+    $type = (string)($node['type'] ?? $node['node_type'] ?? '');
+    if (in_array($type, ['boss', 'exit'], true)) {
+      $previous = null;
+      $current = 1;
+      continue;
+    }
+
+    $x = (int)nodeGenerationValue($node, 'x', is_array($node['meta'] ?? null) ? ($node['meta']['col'] ?? 0) : 0);
+    $y = (int)nodeGenerationValue($node, 'y', is_array($node['meta'] ?? null) ? ($node['meta']['row'] ?? 0) : 0);
+    $previousX = is_array($previous) ? (int)nodeGenerationValue($previous, 'x', is_array($previous['meta'] ?? null) ? ($previous['meta']['col'] ?? 0) : 0) : 0;
+    $previousY = is_array($previous) ? (int)nodeGenerationValue($previous, 'y', is_array($previous['meta'] ?? null) ? ($previous['meta']['row'] ?? 0) : 0) : 0;
+    if ($previous !== null
+      && $x === $previousX + 1
+      && $y === $previousY
+    ) {
+      $current++;
+    } else {
+      $current = 1;
+    }
+
+    $max = max($max, $current);
+    $previous = $node;
+  }
+
+  return $max;
+}
+
+function nodeGenerationValue(array $node, string $key, mixed $default = null): mixed
+{
+  if (array_key_exists($key, $node)) {
+    return $node[$key];
+  }
+
+  $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+  $generation = is_array($meta['generation'] ?? null) ? $meta['generation'] : [];
+  if (array_key_exists($key, $generation)) {
+    return $generation[$key];
+  }
+
+  if ($key === 'x' && array_key_exists('col', $meta)) {
+    return $meta['col'];
+  }
+  if ($key === 'y' && array_key_exists('row', $meta)) {
+    return $meta['row'];
+  }
+
+  return $default;
 }
 
 /**
@@ -328,8 +479,10 @@ function outputResult(array $result, string $format): void
   echo 'Run generator comparison' . PHP_EOL;
   echo sprintf('- region: %s' . PHP_EOL, (string)$result['region_slug']);
   echo sprintf('- runs: %d' . PHP_EOL, (int)$result['runs']);
-  echo sprintf('- lane_v1: %s' . PHP_EOL, json_encode($result['lane_v1'], JSON_UNESCAPED_SLASHES));
-  echo sprintf('- pattern_v1: %s' . PHP_EOL, json_encode($result['pattern_v1'], JSON_UNESCAPED_SLASHES));
+  $baseline = (string)$result['baseline_version'];
+  $candidate = (string)$result['candidate_version'];
+  echo sprintf('- baseline: %s %s' . PHP_EOL, $baseline, json_encode($result[$baseline], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- candidate: %s %s' . PHP_EOL, $candidate, json_encode($result[$candidate], JSON_UNESCAPED_SLASHES));
 }
 
 /**
