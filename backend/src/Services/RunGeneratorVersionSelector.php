@@ -9,16 +9,21 @@ final class RunGeneratorVersionSelector
 {
   public function generatorVersionForRegion(string $regionSlug): string
   {
-    $enabledRegions = $this->enabledPatternRegions();
-    return isset($enabledRegions[$regionSlug]) ? 'pattern-v1' : 'lane-v1';
+    $enabledPatternV2Regions = $this->enabledPatternRegions('RUN_PATTERN_V2_REGIONS');
+    if (isset($enabledPatternV2Regions[$regionSlug])) {
+      return 'pattern-v2';
+    }
+
+    $enabledPatternV1Regions = $this->enabledPatternRegions('RUN_PATTERN_V1_REGIONS');
+    return isset($enabledPatternV1Regions[$regionSlug]) ? 'pattern-v1' : 'lane-v1';
   }
 
   /**
    * @return array<string,true>
    */
-  private function enabledPatternRegions(): array
+  private function enabledPatternRegions(string $envKey): array
   {
-    $raw = trim((string)Env::get('RUN_PATTERN_V1_REGIONS', ''));
+    $raw = trim((string)Env::get($envKey, ''));
     if ($raw === '') {
       return [];
     }

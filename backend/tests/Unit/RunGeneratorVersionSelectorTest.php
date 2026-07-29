@@ -8,25 +8,22 @@ use PHPUnit\Framework\TestCase;
 
 final class RunGeneratorVersionSelectorTest extends TestCase
 {
-  private ?string $previousEnv = null;
+  private ?string $previousPatternV1Env = null;
+  private ?string $previousPatternV2Env = null;
 
   protected function setUp(): void
   {
     parent::setUp();
-    $value = getenv('RUN_PATTERN_V1_REGIONS');
-    $this->previousEnv = $value === false ? null : $value;
+    $patternV1 = getenv('RUN_PATTERN_V1_REGIONS');
+    $patternV2 = getenv('RUN_PATTERN_V2_REGIONS');
+    $this->previousPatternV1Env = $patternV1 === false ? null : $patternV1;
+    $this->previousPatternV2Env = $patternV2 === false ? null : $patternV2;
   }
 
   protected function tearDown(): void
   {
-    if ($this->previousEnv === null) {
-      putenv('RUN_PATTERN_V1_REGIONS');
-      unset($_ENV['RUN_PATTERN_V1_REGIONS'], $_SERVER['RUN_PATTERN_V1_REGIONS']);
-    } else {
-      putenv('RUN_PATTERN_V1_REGIONS=' . $this->previousEnv);
-      $_ENV['RUN_PATTERN_V1_REGIONS'] = $this->previousEnv;
-      $_SERVER['RUN_PATTERN_V1_REGIONS'] = $this->previousEnv;
-    }
+    $this->restoreEnv('RUN_PATTERN_V1_REGIONS', $this->previousPatternV1Env);
+    $this->restoreEnv('RUN_PATTERN_V2_REGIONS', $this->previousPatternV2Env);
 
     parent::tearDown();
   }
@@ -34,6 +31,7 @@ final class RunGeneratorVersionSelectorTest extends TestCase
   public function testDefaultsToLaneV1(): void
   {
     $this->setEnv('');
+    $this->setEnv('', 'RUN_PATTERN_V2_REGIONS');
 
     $this->assertSame('lane-v1', (new RunGeneratorVersionSelector())->generatorVersionForRegion('mountains'));
   }
@@ -41,6 +39,7 @@ final class RunGeneratorVersionSelectorTest extends TestCase
   public function testOptedInRegionsUsePatternV1(): void
   {
     $this->setEnv('mountains, swamps');
+    $this->setEnv('', 'RUN_PATTERN_V2_REGIONS');
 
     $selector = new RunGeneratorVersionSelector();
 
@@ -49,10 +48,35 @@ final class RunGeneratorVersionSelectorTest extends TestCase
     $this->assertSame('lane-v1', $selector->generatorVersionForRegion('the_farm'));
   }
 
-  private function setEnv(string $value): void
+  public function testOptedInPatternV2RegionsUsePatternV2(): void
   {
-    putenv('RUN_PATTERN_V1_REGIONS=' . $value);
-    $_ENV['RUN_PATTERN_V1_REGIONS'] = $value;
-    $_SERVER['RUN_PATTERN_V1_REGIONS'] = $value;
+    $this->setEnv('swamps');
+    $this->setEnv('mountains, swamps', 'RUN_PATTERN_V2_REGIONS');
+
+    $selector = new RunGeneratorVersionSelector();
+
+    $this->assertSame('pattern-v2', $selector->generatorVersionForRegion('mountains'));
+    $this->assertSame('pattern-v2', $selector->generatorVersionForRegion('swamps'));
+    $this->assertSame('lane-v1', $selector->generatorVersionForRegion('the_farm'));
+  }
+
+  private function setEnv(string $value, string $key = 'RUN_PATTERN_V1_REGIONS'): void
+  {
+    putenv($key . '=' . $value);
+    $_ENV[$key] = $value;
+    $_SERVER[$key] = $value;
+  }
+
+  private function restoreEnv(string $key, ?string $value): void
+  {
+    if ($value === null) {
+      putenv($key);
+      unset($_ENV[$key], $_SERVER[$key]);
+      return;
+    }
+
+    putenv($key . '=' . $value);
+    $_ENV[$key] = $value;
+    $_SERVER[$key] = $value;
   }
 }
