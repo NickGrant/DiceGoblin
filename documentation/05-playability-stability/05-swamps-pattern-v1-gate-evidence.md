@@ -1,7 +1,7 @@
 # Swamps Pattern-V1 Gate Evidence
 
 Status: Draft
-Last Updated: 2026-07-28
+Last Updated: 2026-07-29
 Owner: Engineering
 Depends On: `agent/ISSUES.md`, `documentation/09-active-system-structure/05-run-node-generation.md`
 
@@ -20,7 +20,7 @@ npm.cmd run run-patterns:gate:swamps:docker
 
 ## Gate Result
 
-The 2026-07-28 Swamps gate run passed when executed sequentially against the Docker test database.
+The 2026-07-29 Swamps gate run passed when executed sequentially against the Docker test database.
 
 | Metric | Result |
 | --- | ---: |
@@ -31,8 +31,11 @@ The 2026-07-28 Swamps gate run passed when executed sequentially against the Doc
 | Validation failures | `0` |
 | Branch count min/max/avg | `4 / 4 / 4.0` |
 | Backtracks min/max/avg | `0 / 0 / 0.0` |
-| Node count min/max/avg | `30 / 31 / 30.16` |
-| Spine depth min/max/avg | `25 / 26 / 25.16` |
+| Node count min/max/avg | `33 / 34 / 33.12` |
+| Edge count min/max/avg | `36 / 37 / 36.12` |
+| Spine depth min/max/avg | `20 / 21 / 20.12` |
+| Max straight spine nodes min/max/avg | `2 / 2 / 2.0` |
+| Boss path start-to-boss min/max/avg | `19 / 20 / 19.12` |
 
 ## Distribution Notes
 
@@ -42,12 +45,12 @@ The gate output includes boss, exit, chaos, combat, hazard, loot, rest, and star
 - `shared_combat_step@1`
 - `shared_hazard_rest@1`
 - `shared_chaos_step@1`
-- `shared_loot_cap@1`
+- `shared_shrine_combat_loot_branch@1`
 - `shared_boss_exit_terminal@1`
 
-This confirms the automated Swamps catalog path can satisfy required rest, chaos, boss, exit, branch, and cap contracts for the committed gate seed suite.
+This confirms the automated Swamps catalog path can satisfy required rest, chaos, boss, exit, reconnecting branch, and branch reward contracts for the committed gate seed suite.
 
-The raised 2026-07-28 profile budget intentionally moves Swamps closer to the old `lane-v1` graph scale while keeping pattern-v1 less sprawling. The current gate keeps four optional cap branches and a boss route around 24-25 steps.
+The raised profile budget and branch topology pass intentionally move Swamps closer to the old `lane-v1` graph scale while keeping pattern-v1 less sprawling. The current gate keeps four reconnecting branch paths, branch-local loot, a boss route around 19-20 steps, and no more than two same-row spine nodes in a row.
 
 ## Operational Note
 

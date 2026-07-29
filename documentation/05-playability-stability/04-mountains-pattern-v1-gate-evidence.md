@@ -1,7 +1,7 @@
 # Mountains Pattern-V1 Gate Evidence
 
 Status: Draft
-Last Updated: 2026-07-28
+Last Updated: 2026-07-29
 Owner: Engineering
 Depends On: `agent/ISSUES.md`, `documentation/09-active-system-structure/05-run-node-generation.md`
 
@@ -20,7 +20,7 @@ npm.cmd run run-patterns:gate:mountains:docker
 
 ## Gate Result
 
-The 2026-07-28 Mountains gate run passed.
+The 2026-07-29 Mountains gate run passed.
 
 | Metric | Result |
 | --- | ---: |
@@ -31,8 +31,11 @@ The 2026-07-28 Mountains gate run passed.
 | Validation failures | `0` |
 | Branch count min/max/avg | `3 / 3 / 3.0` |
 | Backtracks min/max/avg | `0 / 0 / 0.0` |
-| Node count min/max/avg | `25 / 26 / 25.32` |
-| Spine depth min/max/avg | `21 / 22 / 21.32` |
+| Node count min/max/avg | `26 / 27 / 26.24` |
+| Edge count min/max/avg | `28 / 29 / 28.24` |
+| Spine depth min/max/avg | `16 / 17 / 16.24` |
+| Max straight spine nodes min/max/avg | `2 / 2 / 2.0` |
+| Boss path start-to-boss min/max/avg | `15 / 16 / 15.24` |
 
 ## Distribution Notes
 
@@ -42,12 +45,12 @@ The gate output includes boss, exit, chaos, combat, hazard, loot, rest, and star
 - `shared_combat_step@1`
 - `shared_hazard_rest@1`
 - `shared_chaos_step@1`
-- `shared_loot_cap@1`
+- `shared_shrine_combat_loot_branch@1`
 - `shared_boss_exit_terminal@1`
 
-This confirms the automated Mountains catalog path can satisfy required rest, chaos, boss, exit, branch, and cap contracts for the committed gate seed suite.
+This confirms the automated Mountains catalog path can satisfy required rest, chaos, boss, exit, reconnecting branch, and branch reward contracts for the committed gate seed suite.
 
-The raised 2026-07-28 profile budget intentionally moves Mountains closer to the old `lane-v1` graph scale while keeping pattern-v1 less sprawling. The current gate keeps three optional cap branches and a boss route around 20-21 steps.
+The raised profile budget and branch topology pass intentionally move Mountains closer to the old `lane-v1` graph scale while keeping pattern-v1 less sprawling. The current gate keeps three reconnecting branch paths, branch-local loot, a boss route around 15-16 steps, and no more than two same-row spine nodes in a row.
 
 ## Remaining Rollout Work
 

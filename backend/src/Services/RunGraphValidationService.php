@@ -33,6 +33,8 @@ final class RunGraphValidationService
 
     $errors = array_merge($errors, $this->overlapErrors($nodes));
     $errors = array_merge($errors, $this->openSocketErrors($nodes));
+    $errors = array_merge($errors, $this->nonForwardEdgeErrors($nodes, $edges));
+    $errors = array_merge($errors, $this->crossingEdgeErrors($nodes, $edges));
 
     if ($start !== null) {
       $reachable = $this->reachableFrom($start, $adjacency);
@@ -211,5 +213,141 @@ final class RunGraphValidationService
       }
     }
     return $errors;
+  }
+
+  /**
+   * @param list<array<string,mixed>> $nodes
+   * @param list<array<string,mixed>> $edges
+   * @return list<string>
+   */
+  private function crossingEdgeErrors(array $nodes, array $edges): array
+  {
+    $nodesByKey = [];
+    foreach ($nodes as $node) {
+      $key = (string)($node['key'] ?? $node['node_key'] ?? '');
+      if ($key !== '') {
+        $nodesByKey[$key] = $node;
+      }
+    }
+
+    $errors = [];
+    $edgeCount = count($edges);
+    for ($leftIndex = 0; $leftIndex < $edgeCount; $leftIndex++) {
+      $leftEdge = $edges[$leftIndex];
+      for ($rightIndex = $leftIndex + 1; $rightIndex < $edgeCount; $rightIndex++) {
+        $rightEdge = $edges[$rightIndex];
+        $leftFrom = (string)($leftEdge['from'] ?? $leftEdge['from_node_key'] ?? '');
+        $leftTo = (string)($leftEdge['to'] ?? $leftEdge['to_node_key'] ?? '');
+        $rightFrom = (string)($rightEdge['from'] ?? $rightEdge['from_node_key'] ?? '');
+        $rightTo = (string)($rightEdge['to'] ?? $rightEdge['to_node_key'] ?? '');
+        if ($leftFrom === '' || $leftTo === '' || $rightFrom === '' || $rightTo === '') {
+          continue;
+        }
+        if ($leftFrom === $rightFrom || $leftFrom === $rightTo || $leftTo === $rightFrom || $leftTo === $rightTo) {
+          continue;
+        }
+
+        $a = $nodesByKey[$leftFrom] ?? null;
+        $b = $nodesByKey[$leftTo] ?? null;
+        $c = $nodesByKey[$rightFrom] ?? null;
+        $d = $nodesByKey[$rightTo] ?? null;
+        if ($a === null || $b === null || $c === null || $d === null) {
+          continue;
+        }
+
+        if ($this->segmentsIntersect(
+          (int)($a['x'] ?? 0),
+          (int)($a['y'] ?? 0),
+          (int)($b['x'] ?? 0),
+          (int)($b['y'] ?? 0),
+          (int)($c['x'] ?? 0),
+          (int)($c['y'] ?? 0),
+          (int)($d['x'] ?? 0),
+          (int)($d['y'] ?? 0),
+        )) {
+          $errors[] = "edge_crossing:{$leftFrom}:{$leftTo}:{$rightFrom}:{$rightTo}";
+        }
+      }
+    }
+
+    return $errors;
+  }
+
+  /**
+   * @param list<array<string,mixed>> $nodes
+   * @param list<array<string,mixed>> $edges
+   * @return list<string>
+   */
+  private function nonForwardEdgeErrors(array $nodes, array $edges): array
+  {
+    $nodesByKey = [];
+    foreach ($nodes as $node) {
+      $key = (string)($node['key'] ?? $node['node_key'] ?? '');
+      if ($key !== '') {
+        $nodesByKey[$key] = $node;
+      }
+    }
+
+    $errors = [];
+    foreach ($edges as $index => $edge) {
+      $from = (string)($edge['from'] ?? $edge['from_node_key'] ?? '');
+      $to = (string)($edge['to'] ?? $edge['to_node_key'] ?? '');
+      $fromNode = $nodesByKey[$from] ?? null;
+      $toNode = $nodesByKey[$to] ?? null;
+      if ($fromNode === null || $toNode === null) {
+        continue;
+      }
+
+      if ((int)($toNode['x'] ?? 0) <= (int)($fromNode['x'] ?? 0)) {
+        $errors[] = "non_forward_edge:{$index}:{$from}:{$to}";
+      }
+    }
+
+    return $errors;
+  }
+
+  private function segmentsIntersect(int $ax, int $ay, int $bx, int $by, int $cx, int $cy, int $dx, int $dy): bool
+  {
+    $o1 = $this->orientation($ax, $ay, $bx, $by, $cx, $cy);
+    $o2 = $this->orientation($ax, $ay, $bx, $by, $dx, $dy);
+    $o3 = $this->orientation($cx, $cy, $dx, $dy, $ax, $ay);
+    $o4 = $this->orientation($cx, $cy, $dx, $dy, $bx, $by);
+
+    if ($o1 !== $o2 && $o3 !== $o4) {
+      return true;
+    }
+
+    if ($o1 === 0 && $this->onSegment($ax, $ay, $bx, $by, $cx, $cy)) {
+      return true;
+    }
+    if ($o2 === 0 && $this->onSegment($ax, $ay, $bx, $by, $dx, $dy)) {
+      return true;
+    }
+    if ($o3 === 0 && $this->onSegment($cx, $cy, $dx, $dy, $ax, $ay)) {
+      return true;
+    }
+    if ($o4 === 0 && $this->onSegment($cx, $cy, $dx, $dy, $bx, $by)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private function orientation(int $ax, int $ay, int $bx, int $by, int $cx, int $cy): int
+  {
+    $value = (($by - $ay) * ($cx - $bx)) - (($bx - $ax) * ($cy - $by));
+    if ($value === 0) {
+      return 0;
+    }
+
+    return $value > 0 ? 1 : 2;
+  }
+
+  private function onSegment(int $ax, int $ay, int $bx, int $by, int $px, int $py): bool
+  {
+    return $px >= min($ax, $bx)
+      && $px <= max($ax, $bx)
+      && $py >= min($ay, $by)
+      && $py <= max($ay, $by);
   }
 }

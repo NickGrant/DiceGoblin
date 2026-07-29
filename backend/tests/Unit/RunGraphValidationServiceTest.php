@@ -70,4 +70,25 @@ final class RunGraphValidationServiceTest extends TestCase
     $this->assertContains('open_visible_socket:exit:east', $result['errors']);
     $this->assertContains('unreachable_node:loot', $result['errors']);
   }
+
+  public function testRejectsNonForwardEdges(): void
+  {
+    $result = (new RunGraphValidationService())->validate([
+      'nodes' => [
+        ['key' => 'start', 'type' => 'start', 'x' => 0, 'y' => 0],
+        ['key' => 'combat', 'type' => 'combat', 'x' => 1, 'y' => 0],
+        ['key' => 'boss', 'type' => 'boss', 'x' => 2, 'y' => 0],
+        ['key' => 'exit', 'type' => 'exit', 'x' => 3, 'y' => 0],
+      ],
+      'edges' => [
+        ['from' => 'start', 'to' => 'combat'],
+        ['from' => 'combat', 'to' => 'boss'],
+        ['from' => 'boss', 'to' => 'combat'],
+        ['from' => 'boss', 'to' => 'exit'],
+      ],
+    ]);
+
+    $this->assertFalse($result['valid']);
+    $this->assertContains('non_forward_edge:2:boss:combat', $result['errors']);
+  }
 }

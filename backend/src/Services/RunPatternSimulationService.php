@@ -25,6 +25,7 @@ final class RunPatternSimulationService
     $backtracks = [];
     $edgeCounts = [];
     $spineDepths = [];
+    $straightSpineRuns = [];
     $durations = [];
     $startToBossPaths = [];
     $bossToExitPaths = [];
@@ -52,6 +53,8 @@ final class RunPatternSimulationService
       $branchCounts[] = $branchCount;
       $spineDepth = $this->spineDepth($assembly['graph']['nodes']);
       $spineDepths[] = $spineDepth;
+      $straightSpineRun = $this->maxStraightSpineNodes($assembly['graph']['nodes']);
+      $straightSpineRuns[] = $straightSpineRun;
       $traceCounters = is_array($assembly['trace']['counters'] ?? null) ? $assembly['trace']['counters'] : [];
       $backtracks[] = (int)($traceCounters['backtracks'] ?? 0);
       $duration = $assembly['trace']['duration_ms'] ?? null;
@@ -83,6 +86,7 @@ final class RunPatternSimulationService
         'edge_count' => $edgeCount,
         'branch_count' => $branchCount,
         'spine_depth' => $spineDepth,
+        'max_straight_spine_nodes' => $straightSpineRun,
         'boss_path' => $bossPaths,
         'backtracks' => (int)($traceCounters['backtracks'] ?? 0),
         'duration_ms' => $duration,
@@ -122,6 +126,11 @@ final class RunPatternSimulationService
         'max' => max($spineDepths),
         'avg' => round(array_sum($spineDepths) / count($spineDepths), 2),
       ],
+      'max_straight_spine_nodes' => [
+        'min' => min($straightSpineRuns),
+        'max' => max($straightSpineRuns),
+        'avg' => round(array_sum($straightSpineRuns) / count($straightSpineRuns), 2),
+      ],
       'backtracks' => [
         'min' => min($backtracks),
         'max' => max($backtracks),
@@ -150,6 +159,7 @@ final class RunPatternSimulationService
     $maxFallbackRate = (float)($options['max_fallback_rate'] ?? 0.0);
     $maxBacktracksAvg = (float)($options['max_backtracks_avg'] ?? 0.0);
     $minBranchCount = (int)($options['min_branch_count'] ?? 1);
+    $maxStraightSpineNodes = (int)($options['max_straight_spine_nodes'] ?? 3);
 
     $checks[] = $this->check(
       'success_rate',
@@ -185,6 +195,13 @@ final class RunPatternSimulationService
       $maxBacktracksAvg,
       (float)($simulation['backtracks']['avg'] ?? 0.0),
       'Average backtracks must not exceed the configured maximum.'
+    );
+    $checks[] = $this->check(
+      'max_straight_spine_nodes',
+      (int)($simulation['max_straight_spine_nodes']['max'] ?? PHP_INT_MAX) <= $maxStraightSpineNodes,
+      $maxStraightSpineNodes,
+      (int)($simulation['max_straight_spine_nodes']['max'] ?? PHP_INT_MAX),
+      'Generated spine routes must not contain more than the configured number of consecutive same-row nodes.'
     );
 
     $passed = true;
@@ -226,6 +243,54 @@ final class RunPatternSimulationService
         $max = max($max, (int)($node['depth'] ?? 0));
       }
     }
+    return $max;
+  }
+
+  /**
+   * @param list<array<string,mixed>> $nodes
+   */
+  private function maxStraightSpineNodes(array $nodes): int
+  {
+    $spine = array_values(array_filter($nodes, static function (array $node): bool {
+      return (string)($node['path_role'] ?? '') === 'spine';
+    }));
+    if ($spine === []) {
+      return 0;
+    }
+
+    usort($spine, static function (array $left, array $right): int {
+      $leftX = (int)($left['x'] ?? 0);
+      $rightX = (int)($right['x'] ?? 0);
+      if ($leftX !== $rightX) {
+        return $leftX <=> $rightX;
+      }
+      return ((int)($left['depth'] ?? 0)) <=> ((int)($right['depth'] ?? 0));
+    });
+
+    $max = 1;
+    $current = 1;
+    $previous = null;
+    foreach ($spine as $node) {
+      $type = (string)($node['type'] ?? $node['node_type'] ?? '');
+      if (in_array($type, ['boss', 'exit'], true)) {
+        $previous = null;
+        $current = 1;
+        continue;
+      }
+
+      if ($previous !== null
+        && (int)($node['x'] ?? 0) === ((int)($previous['x'] ?? 0)) + 1
+        && (int)($node['y'] ?? 0) === (int)($previous['y'] ?? 0)
+      ) {
+        $current++;
+      } else {
+        $current = 1;
+      }
+
+      $max = max($max, $current);
+      $previous = $node;
+    }
+
     return $max;
   }
 

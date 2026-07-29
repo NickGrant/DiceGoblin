@@ -212,7 +212,7 @@ export class RunMapPageComponent {
     if (fromNode?.status === 'cleared' && toNode?.status === 'cleared') {
       return 'cleared';
     }
-    if (fromNode?.status === 'available' || toNode?.status === 'available') {
+    if (fromNode?.status === 'cleared' && toNode?.status === 'available') {
       return 'available';
     }
 

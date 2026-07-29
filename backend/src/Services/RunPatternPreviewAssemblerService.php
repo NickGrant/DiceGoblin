@@ -35,6 +35,7 @@ final class RunPatternPreviewAssemblerService
       $trace->placement($segment['phase'], $segment['pattern_key'], ['node_count' => count($placement['nodes'])]);
     }
 
+    $graph = $this->breakLongSpineRows($graph);
     $graph = $this->attachBranches($request, $graph, $rng, $trace);
     $graph = $this->applyStoryPlacementRequests($graph, $request);
 
@@ -64,7 +65,7 @@ final class RunPatternPreviewAssemblerService
     $segments = [];
     $segments[] = $this->chooseSegment($request, 'start', $rng);
 
-    $target = (int)($request['profile']['budgets']['total_nodes']['target'] ?? 10);
+    $target = (int)($request['profile']['budgets']['spine_nodes']['target'] ?? $request['profile']['budgets']['total_nodes']['target'] ?? 10);
     $currentNodes = (int)$segments[0]['variant']['node_cost'];
     $terminal = $this->chooseSegment($request, 'terminal', $rng);
     $terminalCost = (int)$terminal['variant']['node_cost'];
@@ -243,43 +244,268 @@ final class RunPatternPreviewAssemblerService
    */
   private function attachBranches(array $request, array $graph, DeterministicRandom $rng, RunPatternGenerationTrace $trace): array
   {
-    $capRules = is_array($request['rules_by_phase']['cap'] ?? null) ? $request['rules_by_phase']['cap'] : [];
-    if ($capRules === []) {
+    $branchRules = is_array($request['rules_by_phase']['branch'] ?? null) ? $request['rules_by_phase']['branch'] : [];
+    if ($branchRules === []) {
       return $graph;
     }
 
     $branchBudget = is_array($request['profile']['budgets']['branch_count'] ?? null) ? $request['profile']['budgets']['branch_count'] : [];
     $targetBranches = max(0, (int)($branchBudget['target'] ?? 1));
-    $maxByRule = max(1, max(array_map(static fn(array $rule): int => (int)($rule['max_per_run'] ?? 1), $capRules)));
+    $maxByRule = max(1, max(array_map(static fn(array $rule): int => (int)($rule['max_per_run'] ?? 1), $branchRules)));
     $desiredBranches = min($targetBranches, $maxByRule);
     if ($desiredBranches <= 0) {
       return $graph;
     }
 
-    $sources = $this->branchSources($graph);
     $branchCount = 0;
-    foreach ($sources as $source) {
-      if ($branchCount >= $desiredBranches) {
-        break;
+    foreach ($this->branchSourceBands($graph, $desiredBranches) as $branchIndex => $sources) {
+      $placement = null;
+      $target = null;
+      $branchKey = 'branch-' . ($branchCount + 1);
+      $branches = $this->branchSegmentCandidates($request, $rng->fork('branch-' . $branchIndex));
+
+      foreach ($sources as $source) {
+        foreach ($this->branchLaneRows($source, $request, $branchIndex) as $offsetY) {
+          foreach ($branches as $branch) {
+            $offsetX = (int)$source['x'] + 1;
+            if ($this->wouldOverlap($graph, $branch['variant'], $offsetX, $offsetY)) {
+              $trace->candidateRejected('branch', $branch['pattern_key'], 'overlap', ['branch_key' => $branchKey, 'row' => $offsetY]);
+              continue;
+            }
+            if ($this->wouldExceedBounds($branch['variant'], $offsetX, $offsetY, $request)) {
+              $trace->candidateRejected('branch', $branch['pattern_key'], 'bounds', ['branch_key' => $branchKey, 'row' => $offsetY]);
+              continue;
+            }
+
+            $candidatePlacement = $this->placeVariant('branch', $branch['pattern_key'], $branch['variant'], $offsetX, $offsetY, (string)$source['key'], $branchKey);
+            $candidateTarget = $this->branchRejoinTarget($graph, (string)$source['key'], $candidatePlacement);
+            if ($candidateTarget === null) {
+              $trace->candidateRejected('branch', $branch['pattern_key'], 'missing_rejoin_target', ['branch_key' => $branchKey, 'row' => $offsetY]);
+              continue;
+            }
+
+            $candidatePlacement['edges'][] = ['from' => (string)$candidatePlacement['tail'], 'to' => (string)$candidateTarget['key']];
+            $candidateGraph = [
+              'nodes' => [...$graph['nodes'], ...$candidatePlacement['nodes']],
+              'edges' => [...$graph['edges'], ...$candidatePlacement['edges']],
+            ];
+            if ($this->hasCrossingEdges($candidateGraph)) {
+              $trace->candidateRejected('branch', $branch['pattern_key'], 'crossing_edges', ['branch_key' => $branchKey, 'row' => $offsetY]);
+              continue;
+            }
+
+            $placement = $candidatePlacement;
+            $target = $candidateTarget;
+            break 3;
+          }
+        }
       }
 
-      $cap = $this->chooseSegment($request, 'cap', $rng->fork('cap-' . $branchCount));
-      $branchKey = 'branch-' . ($branchCount + 1);
-      $offsetX = (int)$source['x'] + 1;
-      $offsetY = 1 + ($branchCount % 3);
-      if ($this->wouldOverlap($graph, $cap['variant'], $offsetX, $offsetY)) {
-        $trace->candidateRejected('cap', $cap['pattern_key'], 'overlap', ['branch' => $branchKey]);
+      if ($placement === null || $target === null) {
         continue;
       }
 
-      $capPlacement = $this->placeVariant('cap', $cap['pattern_key'], $cap['variant'], $offsetX, $offsetY, (string)$source['key'], $branchKey);
-      $graph['nodes'] = [...$graph['nodes'], ...$capPlacement['nodes']];
-      $graph['edges'] = [...$graph['edges'], ...$capPlacement['edges']];
-      $trace->placement('cap', $cap['pattern_key'], ['branch_key' => $branchKey]);
+      $graph['nodes'] = [...$graph['nodes'], ...$placement['nodes']];
+      $graph['edges'] = [...$graph['edges'], ...$placement['edges']];
+      $trace->placement('branch', $branch['pattern_key'], [
+        'branch_key' => $branchKey,
+        'rejoins' => (string)$target['key'],
+      ]);
       $branchCount++;
     }
 
     return $graph;
+  }
+
+  /**
+   * @param array<string,mixed> $request
+   * @return list<array{phase:string,pattern_key:string,variant:array<string,mixed>}>
+   */
+  private function branchSegmentCandidates(array $request, DeterministicRandom $rng): array
+  {
+    $rules = is_array($request['rules_by_phase']['branch'] ?? null) ? $request['rules_by_phase']['branch'] : [];
+    if ($rules === []) {
+      return [];
+    }
+
+    $rule = $rng->weightedChoice($rules, static fn(array $rule): int => (int)($rule['base_weight'] ?? 0));
+    $patternKey = (string)$rule['pattern_slug'] . '@' . (int)$rule['pattern_version'];
+    $variants = is_array($request['variants_by_pattern_key'][$patternKey] ?? null) ? array_values($request['variants_by_pattern_key'][$patternKey]) : [];
+    if ($variants === []) {
+      throw new RuntimeException("No variants are available for {$patternKey}.");
+    }
+
+    $startIndex = $rng->nextInt(0, count($variants) - 1);
+    $ordered = [...array_slice($variants, $startIndex), ...array_slice($variants, 0, $startIndex)];
+
+    return array_map(static fn(array $variant): array => [
+      'phase' => 'branch',
+      'pattern_key' => $patternKey,
+      'variant' => $variant,
+    ], $ordered);
+  }
+
+  /**
+   * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $graph
+   * @return list<list<array<string,mixed>>>
+   */
+  private function branchSourceBands(array $graph, int $desiredBranches): array
+  {
+    $sources = $this->branchSources($graph);
+    if ($desiredBranches <= 0 || $sources === []) {
+      return [];
+    }
+
+    $bands = array_fill(0, $desiredBranches, []);
+    $lastIndex = count($sources) - 1;
+    foreach ($sources as $sourceIndex => $source) {
+      $bandIndex = $lastIndex === 0
+        ? 0
+        : min($desiredBranches - 1, (int)floor(($sourceIndex / ($lastIndex + 1)) * $desiredBranches));
+      $bands[$bandIndex][] = $source;
+    }
+
+    $fallback = $sources;
+    usort($fallback, static function (array $left, array $right): int {
+      $leftX = (int)($left['x'] ?? 0);
+      $rightX = (int)($right['x'] ?? 0);
+      return $rightX <=> $leftX;
+    });
+
+    foreach ($bands as $bandIndex => $bandSources) {
+      $keys = [];
+      foreach ($bandSources as $source) {
+        $keys[(string)($source['key'] ?? '')] = true;
+      }
+
+      foreach ($fallback as $source) {
+        $key = (string)($source['key'] ?? '');
+        if (isset($keys[$key])) {
+          continue;
+        }
+
+        $bands[$bandIndex][] = $source;
+      }
+    }
+
+    return $bands;
+  }
+
+  /**
+   * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $graph
+   * @return array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>}
+   */
+  private function breakLongSpineRows(array $graph): array
+  {
+    $spineIndexes = [];
+    foreach ($graph['nodes'] as $index => $node) {
+      if ((string)($node['path_role'] ?? '') === 'spine') {
+        $spineIndexes[] = $index;
+      }
+    }
+
+    usort($spineIndexes, static function (int $left, int $right) use ($graph): int {
+      return ((int)($graph['nodes'][$left]['x'] ?? 0)) <=> ((int)($graph['nodes'][$right]['x'] ?? 0));
+    });
+
+    $rowCycle = [1, 1, 2, 2, 1, 2];
+    foreach ($spineIndexes as $sequence => $nodeIndex) {
+      $type = (string)($graph['nodes'][$nodeIndex]['type'] ?? '');
+      if ($type === 'exit') {
+        continue;
+      }
+
+      $graph['nodes'][$nodeIndex]['y'] = $rowCycle[$sequence % count($rowCycle)];
+    }
+
+    return $graph;
+  }
+
+  /**
+   * @return list<int>
+   */
+  private function branchLaneRows(array $source, array $request, int $branchIndex): array
+  {
+    $bounds = is_array($request['profile']['bounds'] ?? null) ? $request['profile']['bounds'] : [];
+    $minRow = (int)($bounds['min_row'] ?? 0);
+    $maxRow = max(2, (int)($bounds['max_row'] ?? 4));
+    $sourceY = (int)($source['y'] ?? 0);
+
+    $upperRows = [];
+    for ($row = $sourceY - 1; $row >= $minRow; $row--) {
+      $upperRows[] = $row;
+    }
+
+    $lowerRows = [];
+    for ($row = $sourceY + 1; $row <= $maxRow; $row++) {
+      $lowerRows[] = $row;
+    }
+
+    $preferred = $branchIndex % 2 === 0
+      ? [...$upperRows, ...$lowerRows]
+      : [...$lowerRows, ...$upperRows];
+
+    if ($preferred === []) {
+      $preferred = range($minRow, $maxRow);
+    }
+
+    return array_values(array_filter(
+      array_values(array_unique($preferred)),
+      static fn(int $row): bool => $row >= $minRow && $row <= $maxRow,
+    ));
+  }
+
+  /**
+   * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $graph
+   */
+  private function branchRejoinTarget(array $graph, string $sourceKey, array $placement): ?array
+  {
+    $source = $this->nodeByKey($graph, $sourceKey);
+    $tail = $this->nodeByKey($placement, (string)($placement['tail'] ?? ''));
+    if ($source === null || $tail === null) {
+      return null;
+    }
+
+    $sourceX = (int)($source['x'] ?? 0);
+    $tailX = (int)($tail['x'] ?? 0);
+    $candidates = [];
+    foreach ($graph['nodes'] as $node) {
+      if ((string)($node['path_role'] ?? '') !== 'spine') {
+        continue;
+      }
+      $type = (string)($node['type'] ?? '');
+      if (in_array($type, ['start', 'boss', 'exit'], true)) {
+        continue;
+      }
+
+      $x = (int)($node['x'] ?? 0);
+      if ($x <= $tailX || $x < ($sourceX + 3) || $x > ($sourceX + 6)) {
+        continue;
+      }
+
+      $candidates[] = $node;
+    }
+
+    usort($candidates, static function (array $left, array $right): int {
+      return ((int)($left['x'] ?? 0)) <=> ((int)($right['x'] ?? 0));
+    });
+
+    return $candidates[0] ?? null;
+  }
+
+  /**
+   * @param array{nodes:list<array<string,mixed>>} $graph
+   * @return array<string,mixed>|null
+   */
+  private function nodeByKey(array $graph, string $key): ?array
+  {
+    foreach ($graph['nodes'] as $node) {
+      if ((string)($node['key'] ?? '') === $key) {
+        return $node;
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -368,6 +594,130 @@ final class RunPatternPreviewAssemblerService
     }
 
     return false;
+  }
+
+  /**
+   * @param array<string,mixed> $variant
+   * @param array<string,mixed> $request
+   */
+  private function wouldExceedBounds(array $variant, int $offsetX, int $offsetY, array $request): bool
+  {
+    $bounds = is_array($request['profile']['bounds'] ?? null) ? $request['profile']['bounds'] : [];
+    $minCol = (int)($bounds['min_col'] ?? 0);
+    $maxCol = (int)($bounds['max_col'] ?? PHP_INT_MAX);
+    $minRow = (int)($bounds['min_row'] ?? 0);
+    $maxRow = (int)($bounds['max_row'] ?? PHP_INT_MAX);
+
+    foreach (array_values(array_filter(is_array($variant['nodes'] ?? null) ? $variant['nodes'] : [], 'is_array')) as $node) {
+      $x = $offsetX + (int)($node['x'] ?? 0);
+      $y = $offsetY + (int)($node['y'] ?? 0);
+      if ($x < $minCol || $x > $maxCol || $y < $minRow || $y > $maxRow) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $graph
+   */
+  private function hasCrossingEdges(array $graph): bool
+  {
+    $nodesByKey = [];
+    foreach ($graph['nodes'] as $node) {
+      $key = (string)($node['key'] ?? $node['node_key'] ?? '');
+      if ($key !== '') {
+        $nodesByKey[$key] = $node;
+      }
+    }
+
+    $edges = $graph['edges'];
+    $edgeCount = count($edges);
+    for ($leftIndex = 0; $leftIndex < $edgeCount; $leftIndex++) {
+      $leftEdge = $edges[$leftIndex];
+      for ($rightIndex = $leftIndex + 1; $rightIndex < $edgeCount; $rightIndex++) {
+        $rightEdge = $edges[$rightIndex];
+        $leftFrom = (string)($leftEdge['from'] ?? $leftEdge['from_node_key'] ?? '');
+        $leftTo = (string)($leftEdge['to'] ?? $leftEdge['to_node_key'] ?? '');
+        $rightFrom = (string)($rightEdge['from'] ?? $rightEdge['from_node_key'] ?? '');
+        $rightTo = (string)($rightEdge['to'] ?? $rightEdge['to_node_key'] ?? '');
+        if ($leftFrom === '' || $leftTo === '' || $rightFrom === '' || $rightTo === '') {
+          continue;
+        }
+        if ($leftFrom === $rightFrom || $leftFrom === $rightTo || $leftTo === $rightFrom || $leftTo === $rightTo) {
+          continue;
+        }
+
+        $a = $nodesByKey[$leftFrom] ?? null;
+        $b = $nodesByKey[$leftTo] ?? null;
+        $c = $nodesByKey[$rightFrom] ?? null;
+        $d = $nodesByKey[$rightTo] ?? null;
+        if ($a === null || $b === null || $c === null || $d === null) {
+          continue;
+        }
+
+        if ($this->segmentsIntersect(
+          (int)($a['x'] ?? 0),
+          (int)($a['y'] ?? 0),
+          (int)($b['x'] ?? 0),
+          (int)($b['y'] ?? 0),
+          (int)($c['x'] ?? 0),
+          (int)($c['y'] ?? 0),
+          (int)($d['x'] ?? 0),
+          (int)($d['y'] ?? 0),
+        )) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private function segmentsIntersect(int $ax, int $ay, int $bx, int $by, int $cx, int $cy, int $dx, int $dy): bool
+  {
+    $o1 = $this->orientation($ax, $ay, $bx, $by, $cx, $cy);
+    $o2 = $this->orientation($ax, $ay, $bx, $by, $dx, $dy);
+    $o3 = $this->orientation($cx, $cy, $dx, $dy, $ax, $ay);
+    $o4 = $this->orientation($cx, $cy, $dx, $dy, $bx, $by);
+
+    if ($o1 !== $o2 && $o3 !== $o4) {
+      return true;
+    }
+
+    if ($o1 === 0 && $this->onSegment($ax, $ay, $bx, $by, $cx, $cy)) {
+      return true;
+    }
+    if ($o2 === 0 && $this->onSegment($ax, $ay, $bx, $by, $dx, $dy)) {
+      return true;
+    }
+    if ($o3 === 0 && $this->onSegment($cx, $cy, $dx, $dy, $ax, $ay)) {
+      return true;
+    }
+    if ($o4 === 0 && $this->onSegment($cx, $cy, $dx, $dy, $bx, $by)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private function orientation(int $ax, int $ay, int $bx, int $by, int $cx, int $cy): int
+  {
+    $value = (($by - $ay) * ($cx - $bx)) - (($bx - $ax) * ($cy - $by));
+    if ($value === 0) {
+      return 0;
+    }
+
+    return $value > 0 ? 1 : 2;
+  }
+
+  private function onSegment(int $ax, int $ay, int $bx, int $by, int $px, int $py): bool
+  {
+    return $px >= min($ax, $bx)
+      && $px <= max($ax, $bx)
+      && $py >= min($ay, $by)
+      && $py <= max($ay, $by);
   }
 
   /**

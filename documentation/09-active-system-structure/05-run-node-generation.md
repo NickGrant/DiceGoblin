@@ -2,7 +2,7 @@
 ----
 
 Status: active
-Last Updated: 2026-07-28
+Last Updated: 2026-07-29
 Owner: Engineering
 Depends On: `backend/src/Services/RunGraphGenerator.php`, `backend/src/Repositories/RunRepository.php`
 
@@ -113,13 +113,14 @@ See `04-dialogue-flow-determination.md` for dialogue gating details.
 
 - loads synced pattern profiles, region rules, definitions, and compiled variants;
 - builds a deterministic generation request with catalog hash and profile version;
-- assembles a preview graph from start, required spine, terminal, and optional direct-cap branch patterns;
+- assembles a preview graph from start, required spine, terminal, and optional reconnecting branch patterns;
+- bends the spine after at most three same-row nodes and keeps non-exit spine nodes on middle rows so branch lanes have room above and below the main trail;
 - places requested start, before-boss, and before-exit story nodes inside the preview graph;
-- validates the preview graph for reachability, boss gating, overlaps, edge endpoints, and unresolved visible sockets;
+- validates the preview graph for reachability, boss gating, overlaps, edge endpoints, non-forward edges, crossing edges, and unresolved visible sockets;
 - normalizes the preview graph into existing `run_nodes` and `run_edges` shape;
 - assigns hazard metadata, loot/shrine quality tiers, encounter templates, and final run graph validation;
 - returns bounded generation metadata for `region_runs` provenance when persisted by `RunRepository::createRunGraph()`.
-- can be simulated through `run-patterns:gate:mountains:docker` and `run-patterns:gate:swamps:docker`, which fail when validation, fallback, branch-count, or backtrack thresholds are not met.
+- can be simulated through `run-patterns:gate:mountains:docker` and `run-patterns:gate:swamps:docker`, which fail when validation, fallback, branch-count, straight-spine, or backtrack thresholds are not met.
 
 ```mermaid
 flowchart TD
@@ -133,6 +134,6 @@ flowchart TD
   H --> I[Persist graph and generation provenance]
 ```
 
-Remaining rollout work is still tracked in the Pattern-Based Run Map Generation milestone: richer branch/cap assembly, Mountains and Swamps opt-in evidence, story placement requests, and committed simulation quality gates.
+Remaining rollout work is still tracked in the Pattern-Based Run Map Generation milestone: richer branch catalog variety, Mountains and Swamps opt-in evidence, story placement requests, and committed simulation quality gates.
 
-Current optional branches use cap patterns directly attached to spine nodes. This preserves the existing runtime invariant that a dead-end node must be optional from a parent that also has a boss route. Longer branch chains and merge-back branch motifs remain future pattern-v1 assembler work.
+Current optional branches use branch patterns that leave the spine, add branch-lane content, and reconnect to a later spine node. Branch placement divides eligible spine sources into early, middle, and late bands before applying fallbacks, which keeps the branch budget from being spent entirely near the start of a run. Each branch slot alternates its preferred lanes above and below the middle spine, and branch variants are tried in deterministic order for each lane so repeated maps do not collapse into a two-row top-line/down-branch shape. Branch-local loot can still appear as an optional reward off that branch segment. The simulation gate also reports `max_straight_spine_nodes` and defaults that limit to `3`; the current row cadence keeps the committed Mountains and Swamps gate suites at `2`.

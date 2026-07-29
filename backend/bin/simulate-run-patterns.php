@@ -99,6 +99,7 @@ function outputResult(array $result, string $format): void
   echo sprintf('- edge_count: %s' . PHP_EOL, json_encode($result['edge_count'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- branch_count: %s' . PHP_EOL, json_encode($result['branch_count'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- spine_depth: %s' . PHP_EOL, json_encode($result['spine_depth'], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- max_straight_spine_nodes: %s' . PHP_EOL, json_encode($result['max_straight_spine_nodes'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- backtracks: %s' . PHP_EOL, json_encode($result['backtracks'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- duration_ms: %s' . PHP_EOL, json_encode($result['duration_ms'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- boss_path: %s' . PHP_EOL, json_encode($result['boss_path'], JSON_UNESCAPED_SLASHES));
@@ -130,6 +131,7 @@ function gateOptions(array $options): array
     'max-fallback-rate' => 'max_fallback_rate',
     'max-backtracks-avg' => 'max_backtracks_avg',
     'min-branch-count' => 'min_branch_count',
+    'max-straight-spine-nodes' => 'max_straight_spine_nodes',
   ];
 
   $gateOptions = [];
