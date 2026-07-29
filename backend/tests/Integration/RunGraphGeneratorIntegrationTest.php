@@ -199,6 +199,7 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->applyMigration('80_fix_pattern_v2_perimeter_exits.sql');
     $this->applyMigration('81_seed_pattern_v2_dense_mountain_tiles.sql');
     $this->applyMigration('82_compact_mountains_pattern_v2_profile.sql');
+    $this->applyMigration('83_remove_pattern_v2_placeholder_mountain_dialogue.sql');
 
     $regionId = $this->seededRegionId('mountains');
     $generator = new RunGraphGenerator($this->pdo);
@@ -216,6 +217,7 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertContains('exit', array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']));
     $this->assertContains('rest', array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']));
     $this->assertContains('chaos', array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']));
+    $this->assertSame([], $this->dialogueIds($graph), 'Pattern-V2 tiles should not embed placeholder dialogue ids.');
     $this->assertTrue(isset($analysis['reachable_from_start'][$analysis['boss_index']]));
     $this->assertTrue(isset($analysis['reachable_from_boss'][$analysis['exit_index']]));
     $this->assertSame([], $analysis['backward_edges']);
@@ -279,6 +281,38 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertSame('qa-start-story', (string)($graph['nodes'][$analysis['start_index']]['meta']['dialogue_id'] ?? ''));
     $this->assertDialogueImmediatelyPrecedes($graph, 'qa-boss-story', 'boss');
     $this->assertDialogueImmediatelyPrecedes($graph, 'qa-exit-story', 'exit');
+    $this->assertTrue(isset($analysis['reachable_from_start'][$analysis['boss_index']]));
+    $this->assertTrue(isset($analysis['reachable_from_boss'][$analysis['exit_index']]));
+  }
+
+  public function testPatternV2PlacesStoryRequestsInsideRuntimeGraph(): void
+  {
+    $this->applyMigration('79_seed_pattern_v2_catalog.sql');
+    $this->applyMigration('80_fix_pattern_v2_perimeter_exits.sql');
+    $this->applyMigration('81_seed_pattern_v2_dense_mountain_tiles.sql');
+    $this->applyMigration('82_compact_mountains_pattern_v2_profile.sql');
+    $this->applyMigration('83_remove_pattern_v2_placeholder_mountain_dialogue.sql');
+
+    $regionId = $this->seededRegionId('mountains');
+    $generator = new RunGraphGenerator($this->pdo);
+    $storyRequests = [
+      ['dialogue_id' => 'mountains-archivist-first-contact', 'placement' => 'start', 'one_time' => true, 'tags' => ['lore']],
+      ['dialogue_id' => 'mountains-kobold-machine-trail', 'placement' => 'before_boss', 'one_time' => true, 'tags' => ['lore']],
+      ['dialogue_id' => 'mountains-swamps-lead', 'placement' => 'before_exit', 'one_time' => true, 'tags' => ['lore']],
+    ];
+
+    $graph = $generator->generateWithVersion($regionId, 'mountains', 'pattern-v2-story-seed', true, 'pattern-v2', $storyRequests);
+    $analysis = $this->analyzeGraph($graph);
+    $dialogueIds = $this->dialogueIds($graph);
+
+    $this->assertSame($storyRequests, $graph['generation']['story_placement_requests']);
+    $this->assertContains('mountains-archivist-first-contact', $dialogueIds);
+    $this->assertContains('mountains-kobold-machine-trail', $dialogueIds);
+    $this->assertContains('mountains-swamps-lead', $dialogueIds);
+    $this->assertNotContains('mountain_start', $dialogueIds);
+    $this->assertSame('mountains-archivist-first-contact', (string)($graph['nodes'][$analysis['start_index']]['meta']['dialogue_id'] ?? ''));
+    $this->assertDialogueImmediatelyPrecedes($graph, 'mountains-kobold-machine-trail', 'boss');
+    $this->assertDialogueImmediatelyPrecedes($graph, 'mountains-swamps-lead', 'exit');
     $this->assertTrue(isset($analysis['reachable_from_start'][$analysis['boss_index']]));
     $this->assertTrue(isset($analysis['reachable_from_boss'][$analysis['exit_index']]));
   }
