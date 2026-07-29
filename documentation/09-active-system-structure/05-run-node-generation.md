@@ -40,9 +40,9 @@ The farm uses fixed encounter templates for its combat, loot, rest, and boss nod
 
 ## Procedural Region Defaults
 
-The default generator version is `lane-v1`. API run creation uses `RunGeneratorVersionSelector`, which only returns `pattern-v1` for regions listed in `RUN_PATTERN_V1_REGIONS`. Local Docker UAT currently sets `RUN_PATTERN_V1_REGIONS=mountains`, so new Mountains runs use `pattern-v1`; Swamps still uses `lane-v1` until its rollout gate is accepted.
+The default generator version is `lane-v1`. API run creation uses `RunGeneratorVersionSelector`, which returns `pattern-v2` for regions listed in `RUN_PATTERN_V2_REGIONS`, otherwise `pattern-v1` for regions listed in `RUN_PATTERN_V1_REGIONS`, otherwise `lane-v1`. Local Docker UAT can opt a region into either pattern generation path without changing code; `RUN_PATTERN_V2_REGIONS` takes precedence when a region appears in both lists.
 
-When `pattern-v1` is selected, user-specific story beats are resolved before topology assembly as `story_placement_requests`. Those requests currently cover the same start, before-boss, and before-exit placements used by the legacy lane graph mutator, but the pattern path places them inside the assembled graph before validation and provenance persistence.
+When `pattern-v1` or `pattern-v2` is selected, user-specific story beats are resolved before topology assembly as `story_placement_requests`. Those requests currently cover the same start, before-boss, and before-exit placements used by the legacy lane graph mutator, but the pattern path places them inside the assembled graph before validation and provenance persistence.
 
 | Region | Rows | Travel columns | Paths | Opening rows | Lane gap | Dead ends | Dead-end chain | Rest weight | Loot weight | Combat weight |
 | --- | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: |
@@ -140,7 +140,7 @@ Current optional branches use branch patterns that leave the spine, add branch-l
 
 ## Pattern-V2 Boundary
 
-`pattern-v2` is planned as a tile/grid composer for squarer maps with more occupied rows and fewer columns. Unlike the current V1 catalogue, V2 pattern definitions are database-owned content seeded through forward-only migrations. The repository must not keep a second JSON source-of-truth copy for V2 patterns; JSON exports or debug views are diagnostics only.
+`pattern-v2` is a tile/grid composer for squarer maps with more occupied rows and fewer columns. Unlike the current V1 catalogue, V2 pattern definitions are database-owned content seeded through forward-only migrations. The repository must not keep a second JSON source-of-truth copy for V2 patterns; JSON exports or debug views are diagnostics only.
 
 The initial V2 contract uses rectangular tile definitions with:
 
@@ -159,4 +159,4 @@ flowchart LR
   E --> F[Runtime nodes and edges]
 ```
 
-The first V2 implementation slice only seeds and compiles the DB-owned tile catalogue for explicit tooling. Runtime generation remains on `lane-v1` or `pattern-v1` until the V2 composer, preview tooling, simulation gates, and Mountains opt-in issue are complete.
+V2 runtime generation is available behind explicit version selection and `RUN_PATTERN_V2_REGIONS` region opt-in. Mountains should only be added to that env list after the V2 catalogue, simulation gates, and manual map review are accepted.

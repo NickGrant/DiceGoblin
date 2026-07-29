@@ -266,3 +266,7 @@ Mountains should move to pattern-v2 only after the catalogue and composer produc
 - Pattern-v2 output is compared against pattern-v1 for node count, row usage, route choice, and boss pacing.
 - Runtime selection supports Mountains opt-in without affecting other regions.
 - New Mountains runs use pattern-v2 only after validation, review, and rollout notes are complete.
+
+#### Progress
+
+- Runtime selection now supports `RUN_PATTERN_V2_REGIONS` with precedence over `RUN_PATTERN_V1_REGIONS`, and API run creation routes Pattern-V2 story placement through the pre-generation request path.
