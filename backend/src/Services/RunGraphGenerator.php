@@ -194,6 +194,7 @@ final class RunGraphGenerator
         ['from' => 0, 'to' => 1],
       ],
     ];
+    $graph = $this->annotateFixedGraph($graph, 'mystic_cave');
 
     $this->validateGraph($graph['nodes'], $graph['edges']);
 
@@ -227,6 +228,7 @@ final class RunGraphGenerator
         ['from' => 3, 'to' => 4],
       ],
     ];
+    $graph = $this->annotateFixedGraph($graph, 'the_farm');
 
     $this->validateGraph($graph['nodes'], $graph['edges']);
 
@@ -245,6 +247,7 @@ final class RunGraphGenerator
 
     if ($definitions === []) {
       $graph = $this->normalizeNodeIndexes($graph);
+      $graph = $this->refreshFixedGraphAnnotation($graph, $regionSlug);
       $this->validateGraph($graph['nodes'], $graph['edges']);
       return $graph;
     }
@@ -258,6 +261,7 @@ final class RunGraphGenerator
     }
 
     $graph = $this->normalizeNodeIndexes($graph);
+    $graph = $this->refreshFixedGraphAnnotation($graph, $regionSlug);
     $this->validateGraph($graph['nodes'], $graph['edges']);
 
     return $graph;
@@ -565,6 +569,155 @@ final class RunGraphGenerator
         'tags' => $definition['tags'],
       ],
     ];
+  }
+
+  /**
+   * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
+   * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>,generation:array<string,mixed>}
+   */
+  private function refreshFixedGraphAnnotation(array $graph, string $regionSlug): array
+  {
+    $generation = is_array($graph['generation'] ?? null) ? $graph['generation'] : [];
+    if (($generation['generator_version'] ?? null) !== 'fixed-v1') {
+      return $graph;
+    }
+
+    return $this->annotateFixedGraph($graph, $regionSlug);
+  }
+
+  /**
+   * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
+   * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>,generation:array<string,mixed>}
+   */
+  private function annotateFixedGraph(array $graph, string $regionSlug): array
+  {
+    $nodeCount = count($graph['nodes']);
+    $edgeCount = count($graph['edges']);
+    $maxCol = 0;
+    $rows = [];
+    $nodeTypes = [];
+
+    foreach ($graph['nodes'] as $index => $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $col = (int)($meta['col'] ?? (int)($node['node_index'] ?? $index));
+      $row = (int)($meta['row'] ?? 1);
+      $nodeType = (string)($node['node_type'] ?? '');
+      $nodeIndex = (int)($node['node_index'] ?? $index);
+
+      $maxCol = max($maxCol, $col);
+      $rows[$row] = true;
+      $nodeTypes[$nodeType] = ($nodeTypes[$nodeType] ?? 0) + 1;
+
+      $graph['nodes'][$index]['meta'] = [
+        ...$meta,
+        'col' => $col,
+        'row' => $row,
+        'generation' => [
+          'generator_version' => 'fixed-v1',
+          'path_role' => $this->fixedPathRole($nodeType),
+          'depth' => $col,
+          'pattern_key' => $regionSlug . '_fixed@1',
+          'branch_key' => 'fixed-main',
+          'x' => $col,
+          'y' => $row,
+          'source_node_index' => $nodeIndex,
+        ],
+      ];
+    }
+
+    ksort($nodeTypes);
+
+    $graph['generation'] = [
+      'generator_version' => 'fixed-v1',
+      'profile_version' => 1,
+      'catalog_hash' => hash('sha256', $regionSlug . '|fixed-v1'),
+      'generation_attempt' => 0,
+      'node_count' => $nodeCount,
+      'edge_count' => $edgeCount,
+      'branch_count' => 0,
+      'spine_depth' => $maxCol,
+      'occupied_rows' => count($rows),
+      'occupied_columns' => $maxCol + 1,
+      'max_straight_spine_nodes' => $nodeCount,
+      'boss_path' => $this->fixedBossPathSummary($graph),
+      'node_types' => $nodeTypes,
+      'region_slug' => $regionSlug,
+    ];
+
+    return $graph;
+  }
+
+  private function fixedPathRole(string $nodeType): string
+  {
+    return match ($nodeType) {
+      'boss' => 'boss',
+      'exit' => 'exit',
+      'dialogue' => 'story',
+      default => 'spine',
+    };
+  }
+
+  /**
+   * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
+   * @return array{start_to_boss:?int,boss_to_exit:?int}
+   */
+  private function fixedBossPathSummary(array $graph): array
+  {
+    $startIndex = null;
+    $bossIndex = null;
+    $exitIndex = null;
+
+    foreach ($graph['nodes'] as $node) {
+      if ((string)($node['status'] ?? '') === 'available' && $startIndex === null) {
+        $startIndex = (int)$node['node_index'];
+      }
+      if ((string)($node['node_type'] ?? '') === 'boss') {
+        $bossIndex = (int)$node['node_index'];
+      }
+      if ((string)($node['node_type'] ?? '') === 'exit') {
+        $exitIndex = (int)$node['node_index'];
+      }
+    }
+
+    $outgoing = $this->outgoingByNode($graph['nodes'], $graph['edges']);
+
+    return [
+      'start_to_boss' => $startIndex !== null && $bossIndex !== null
+        ? $this->shortestEdgeDistance($startIndex, $bossIndex, $outgoing)
+        : null,
+      'boss_to_exit' => $bossIndex !== null && $exitIndex !== null
+        ? $this->shortestEdgeDistance($bossIndex, $exitIndex, $outgoing)
+        : null,
+    ];
+  }
+
+  /**
+   * @param array<int,array<int,int>> $outgoing
+   */
+  private function shortestEdgeDistance(int $startIndex, int $targetIndex, array $outgoing): ?int
+  {
+    $queue = [[$startIndex, 0]];
+    $visited = [];
+
+    while ($queue !== []) {
+      [$current, $distance] = array_shift($queue);
+      if (isset($visited[$current])) {
+        continue;
+      }
+
+      if ($current === $targetIndex) {
+        return $distance;
+      }
+
+      $visited[$current] = true;
+      foreach ($outgoing[$current] ?? [] as $next) {
+        if (!isset($visited[$next])) {
+          $queue[] = [$next, $distance + 1];
+        }
+      }
+    }
+
+    return null;
   }
 
   /**
