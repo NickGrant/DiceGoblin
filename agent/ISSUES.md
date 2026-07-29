@@ -38,6 +38,10 @@ Hazard, shrine, chaos, healing-consumable, and energy-consumable systems are imp
 - Encounter copy is checked for readability and result clarity.
 - Any balance or content-repeat issues are logged with affected region, run seed when available, and expected tuning direction.
 
+#### Progress
+
+- Added Docker balance simulation shortcuts for Mountains and Swamps plus an aggregate Farm/Mountains/Swamps run command for UAT region-pacing evidence.
+
 ## UAT Polish Backlog
 
 ### Confirm release merge and generated-artifact hygiene
