@@ -110,6 +110,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
   - `documentation/05-playability-stability/02-first-release-manual-gate-evidence.md`
   - `documentation/05-playability-stability/03-first-release-checklist.md`
   - `documentation/05-playability-stability/04-mobile-viewport-regression-checklist.md`
+  - `documentation/05-playability-stability/07-release-readiness-validation.md`
   - `documentation/CHANGELOG.md`
 
 ## Task Entry Points

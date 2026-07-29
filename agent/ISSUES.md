@@ -57,6 +57,10 @@ The roadmap work moved through many stacked PRs, so release readiness needs a fi
 - A final validation command set is documented before UAT-confirmed fixes are merged.
 - Any merge-order or missing-commit concern is logged as a blocker with exact commit/PR references.
 
+#### Progress
+
+- Added a release-readiness validation command plan that checks tracker/docs hygiene, generated frontend artifact cleanliness, and the heavier Docker/frontend gates needed before final release handoff.
+
 ## Pattern-Based Run Map Generation
 
 ### Implement pattern-v1 assembler behind generator version

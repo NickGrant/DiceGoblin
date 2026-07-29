@@ -17,6 +17,8 @@
     "test:db:provision:docker": "docker compose exec -T db mysql -uroot -prootpass -e \"CREATE DATABASE IF NOT EXISTS goblin_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS 'dice_test'@'%' IDENTIFIED BY 'dicepass_test'; GRANT ALL PRIVILEGES ON goblin_test.* TO 'dice_test'@'%'; FLUSH PRIVILEGES;\"",
     "test:db:reset:docker": "powershell -NoProfile -Command \"docker compose exec -T db mysql -uroot -prootpass -e \\\"DROP DATABASE IF EXISTS goblin_test; CREATE DATABASE goblin_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON goblin_test.* TO 'dice_test'@'%'; FLUSH PRIVILEGES;\\\"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Get-Content -Raw backend/migrations/schema_all.sql | docker compose exec -T db mysql -uroot -prootpass goblin_test\"",
     "docs:lint": "node scripts/lint-doc-headers.mjs",
+    "release:check": "node scripts/release-readiness-check.mjs",
+    "release:check:full": "node scripts/release-readiness-check.mjs --full",
     "test:backend": "composer --working-dir=backend test",
     "test:backend:docker": "docker compose exec -T backend sh -lc \"TEST_DB_DSN='mysql:host=db;port=3306;dbname=goblin_test;charset=utf8mb4' TEST_DB_USER='dice_test' TEST_DB_PASS='dicepass_test' php vendor/bin/phpunit -c phpunit.xml.dist --stderr\"",
     "test:frontend": "npm --prefix frontend run test",
