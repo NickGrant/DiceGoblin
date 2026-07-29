@@ -70,7 +70,8 @@ Success criteria:
 - Grid patterns support width, height, cost, tags, node cells, connector cells, explicit connections, and perimeter exits.
 - Connector cells compile to edge/waypoint metadata only; they do not create runtime run nodes.
 - The assembler composes compact maps across multiple rows and fewer columns while preserving reachability, boss gating, and no-crossing validation.
-- Mountains opts into pattern-v2 only after preview tooling, deterministic tests, simulation gates, and manual review pass.
+- Mountains and Swamps opt into pattern-v2 only after preview tooling, deterministic tests, simulation gates, and manual review pass.
+- Farm and Mystic Cave keep their authored graph simplicity while moving toward the same frontend rendering contract as the procedural biomes.
 
 ### Related Issues
 
@@ -79,3 +80,5 @@ Success criteria:
 - Implement pattern-v2 tile composer
 - Add pattern-v2 preview and simulation gates
 - Opt Mountains into pattern-v2 maps
+- Opt Swamps into pattern-v2 maps
+- Move remaining biomes to the consistent run rendering path

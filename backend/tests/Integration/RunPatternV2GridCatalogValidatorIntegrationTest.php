@@ -20,13 +20,14 @@ final class RunPatternV2GridCatalogValidatorIntegrationTest extends IntegrationT
     $this->applyMigration('80_fix_pattern_v2_perimeter_exits.sql');
     $this->applyMigration('81_seed_pattern_v2_dense_mountain_tiles.sql');
     $this->applyMigration('83_remove_pattern_v2_placeholder_mountain_dialogue.sql');
+    $this->applyMigration('84_seed_pattern_v2_swamp_tiles.sql');
 
     $definitions = (new RunPatternCatalogRepository($this->pdo))->listEnabledPatternDefinitions();
     $result = (new RunPatternV2GridCatalogValidator())->validateDefinitions($definitions);
 
     $this->assertTrue($result['valid'], implode("\n", $result['errors']));
     $this->assertSame([], $result['errors']);
-    $this->assertSame(5, $result['pattern_count']);
+    $this->assertSame(9, $result['pattern_count']);
   }
 
   private function applyMigration(string $filename): void

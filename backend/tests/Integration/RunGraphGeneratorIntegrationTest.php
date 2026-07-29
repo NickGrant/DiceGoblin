@@ -195,11 +195,7 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
 
   public function testPatternV2GeneratesRuntimeGraphBehindExplicitVersion(): void
   {
-    $this->applyMigration('79_seed_pattern_v2_catalog.sql');
-    $this->applyMigration('80_fix_pattern_v2_perimeter_exits.sql');
-    $this->applyMigration('81_seed_pattern_v2_dense_mountain_tiles.sql');
-    $this->applyMigration('82_compact_mountains_pattern_v2_profile.sql');
-    $this->applyMigration('83_remove_pattern_v2_placeholder_mountain_dialogue.sql');
+    $this->applyPatternV2Migrations();
 
     $regionId = $this->seededRegionId('mountains');
     $generator = new RunGraphGenerator($this->pdo);
@@ -230,6 +226,38 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertArrayHasKey('occupied_rows', $graph['generation']);
     $this->assertArrayHasKey('occupied_columns', $graph['generation']);
     $this->assertArrayHasKey('max_straight_spine_nodes', $graph['generation']);
+  }
+
+  public function testSwampsPatternV2GeneratesBroadCompactRuntimeGraph(): void
+  {
+    $this->applyPatternV2Migrations();
+
+    $regionId = $this->seededRegionId('swamps');
+    $generator = new RunGraphGenerator($this->pdo);
+
+    $graph = $generator->generateWithVersion($regionId, 'swamps', 'swamps-v2-runtime-seed', true, 'pattern-v2');
+    $analysis = $this->analyzeGraph($graph);
+    $nodeTypes = array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']);
+
+    $this->assertSame('pattern-v2', $graph['generation']['generator_version']);
+    $this->assertSame(1, (int)$graph['generation']['profile_version']);
+    $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', (string)$graph['generation']['catalog_hash']);
+    $this->assertGreaterThanOrEqual(38, count($graph['nodes']));
+    $this->assertGreaterThanOrEqual(5, $analysis['distinct_row_count']);
+    $this->assertLessThanOrEqual(20, (int)$graph['generation']['occupied_columns']);
+    $this->assertGreaterThanOrEqual(3, $graph['generation']['branch_count']);
+    $this->assertContains('boss', $nodeTypes);
+    $this->assertContains('exit', $nodeTypes);
+    $this->assertContains('rest', $nodeTypes);
+    $this->assertContains('chaos', $nodeTypes);
+    $this->assertContains('hazard', $nodeTypes);
+    $this->assertSame([], $this->dialogueIds($graph), 'Swamps Pattern-V2 tiles should not embed placeholder dialogue ids.');
+    $this->assertTrue(isset($analysis['reachable_from_start'][$analysis['boss_index']]));
+    $this->assertTrue(isset($analysis['reachable_from_boss'][$analysis['exit_index']]));
+    $this->assertSame([], $analysis['backward_edges']);
+    $this->assertSame([], $analysis['duplicate_edges']);
+    $this->assertSame([], $analysis['crossing_edges']);
+    $this->assertSame('pattern-v2', (string)($graph['nodes'][0]['meta']['generation']['generator_version'] ?? ''));
   }
 
   public function testBuildsUserSpecificDialoguePlacementRequestsForPatternGeneration(): void
@@ -287,11 +315,7 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
 
   public function testPatternV2PlacesStoryRequestsInsideRuntimeGraph(): void
   {
-    $this->applyMigration('79_seed_pattern_v2_catalog.sql');
-    $this->applyMigration('80_fix_pattern_v2_perimeter_exits.sql');
-    $this->applyMigration('81_seed_pattern_v2_dense_mountain_tiles.sql');
-    $this->applyMigration('82_compact_mountains_pattern_v2_profile.sql');
-    $this->applyMigration('83_remove_pattern_v2_placeholder_mountain_dialogue.sql');
+    $this->applyPatternV2Migrations();
 
     $regionId = $this->seededRegionId('mountains');
     $generator = new RunGraphGenerator($this->pdo);
@@ -735,6 +759,20 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $sql = file_get_contents($path);
     $this->assertIsString($sql);
     $this->pdo->exec($sql);
+  }
+
+  private function applyPatternV2Migrations(): void
+  {
+    foreach ([
+      '79_seed_pattern_v2_catalog.sql',
+      '80_fix_pattern_v2_perimeter_exits.sql',
+      '81_seed_pattern_v2_dense_mountain_tiles.sql',
+      '82_compact_mountains_pattern_v2_profile.sql',
+      '83_remove_pattern_v2_placeholder_mountain_dialogue.sql',
+      '84_seed_pattern_v2_swamp_tiles.sql',
+    ] as $filename) {
+      $this->applyMigration($filename);
+    }
   }
 
   /**
