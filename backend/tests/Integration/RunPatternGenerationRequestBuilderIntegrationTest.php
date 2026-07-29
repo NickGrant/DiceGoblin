@@ -75,7 +75,7 @@ final class RunPatternGenerationRequestBuilderIntegrationTest extends Integratio
 
     $this->assertSame('mountains', $request['region_slug']);
     $this->assertSame('pattern-v2', $request['generator_version']);
-    $this->assertSame(2, $request['profile_version']);
+    $this->assertSame(3, $request['profile_version']);
     $this->assertSame([], $request['variants_by_pattern_key']);
     $this->assertSame(['spine', 'start', 'terminal'], array_keys($request['rules_by_phase']));
     $this->assertCount(5, $request['patterns_by_key']);
@@ -179,6 +179,7 @@ final class RunPatternGenerationRequestBuilderIntegrationTest extends Integratio
       '79_seed_pattern_v2_catalog.sql',
       '80_fix_pattern_v2_perimeter_exits.sql',
       '81_seed_pattern_v2_dense_mountain_tiles.sql',
+      '82_compact_mountains_pattern_v2_profile.sql',
     ] as $filename) {
       $path = dirname(__DIR__, 2) . '/migrations/' . $filename;
       $sql = file_get_contents($path);

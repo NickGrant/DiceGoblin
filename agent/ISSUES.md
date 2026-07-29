@@ -227,6 +227,7 @@ Pattern-v1 remains spine-first and cannot reliably produce the square, multi-row
 - Terminal V2 reward sinks now route onward into the exit so runtime validation does not leave post-boss reward dead ends.
 - Mountains Pattern-V2 now has a forward-migration dense five-row braid tile and profile version 2 so more node budget is spent vertically before runtime opt-in.
 - Runtime Pattern-V2 node metadata now carries preview coordinates and branch keys, and generation summaries include occupied row/column and straight-spine metrics for debug inspection.
+- Mountains Pattern-V2 profile version 3 tightens the shape target after dense-tile validation: five occupied rows, max 20 occupied columns, and roughly 30-35 runtime nodes across the committed gate seed suite.
 
 ### Add pattern-v2 preview and simulation gates
 
