@@ -43,6 +43,7 @@ final class RunPatternSimulationServiceIntegrationTest extends IntegrationTestCa
     $this->assertGreaterThanOrEqual(10, $simulation['node_count']['min']);
     $this->assertGreaterThanOrEqual(9, $simulation['spine_depth']['min']);
     $this->assertGreaterThanOrEqual(1, $simulation['branch_count']['min']);
+    $this->assertLessThanOrEqual(3, $simulation['max_straight_spine_nodes']['max']);
     $this->assertGreaterThanOrEqual(1, $simulation['edge_count']['min']);
     $this->assertArrayHasKey('combat', $simulation['node_type_frequency']);
     $this->assertSame(0.0, $simulation['fallback_rate']);
@@ -60,7 +61,7 @@ final class RunPatternSimulationServiceIntegrationTest extends IntegrationTestCa
 
     $this->assertTrue($gate['passed'], json_encode($gate['checks'], JSON_UNESCAPED_SLASHES));
     $this->assertSame(
-      ['success_rate', 'fallback_rate', 'validation_failures', 'branch_count_min', 'backtracks_avg'],
+      ['success_rate', 'fallback_rate', 'validation_failures', 'branch_count_min', 'backtracks_avg', 'max_straight_spine_nodes'],
       array_column($gate['checks'], 'name'),
     );
   }

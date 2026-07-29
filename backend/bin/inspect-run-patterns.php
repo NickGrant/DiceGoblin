@@ -161,6 +161,7 @@ function assemblySummary(array $assembly): array
     'node_types' => nodeTypeCounts($nodes),
     'pattern_frequency' => patternFrequency($nodes),
     'spine_depth' => spineDepth($nodes),
+    'max_straight_spine_nodes' => maxStraightSpineNodes($nodes),
     'branch_count' => branchCount($nodes),
     'map_ascii' => assemblyAsciiMap($nodes),
     'nodes' => assemblyNodeRows($nodes),
@@ -218,6 +219,7 @@ function assemblyAsciiMap(array $nodes): array
       'K' => 'chaos',
       'R' => 'rest',
       'H' => 'hazard',
+      'N' => 'shrine',
       'L' => 'loot',
       'D' => 'dialogue',
       'B' => 'boss',
@@ -235,6 +237,7 @@ function nodeTypeSymbol(string $type): string
     'chaos' => 'K',
     'rest' => 'R',
     'hazard' => 'H',
+    'shrine' => 'N',
     'loot' => 'L',
     'dialogue' => 'D',
     'boss' => 'B',
@@ -302,6 +305,54 @@ function branchCount(array $nodes): int
     }
   }
   return count($branches);
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ */
+function maxStraightSpineNodes(array $nodes): int
+{
+  $spine = array_values(array_filter($nodes, static function (array $node): bool {
+    return (string)($node['path_role'] ?? '') === 'spine';
+  }));
+  if ($spine === []) {
+    return 0;
+  }
+
+  usort($spine, static function (array $left, array $right): int {
+    $leftX = (int)($left['x'] ?? 0);
+    $rightX = (int)($right['x'] ?? 0);
+    if ($leftX !== $rightX) {
+      return $leftX <=> $rightX;
+    }
+    return ((int)($left['depth'] ?? 0)) <=> ((int)($right['depth'] ?? 0));
+  });
+
+  $max = 1;
+  $current = 1;
+  $previous = null;
+  foreach ($spine as $node) {
+    $type = (string)($node['type'] ?? $node['node_type'] ?? '');
+    if (in_array($type, ['boss', 'exit'], true)) {
+      $previous = null;
+      $current = 1;
+      continue;
+    }
+
+    if ($previous !== null
+      && (int)($node['x'] ?? 0) === ((int)($previous['x'] ?? 0)) + 1
+      && (int)($node['y'] ?? 0) === (int)($previous['y'] ?? 0)
+    ) {
+      $current++;
+    } else {
+      $current = 1;
+    }
+
+    $max = max($max, $current);
+    $previous = $node;
+  }
+
+  return $max;
 }
 
 /**

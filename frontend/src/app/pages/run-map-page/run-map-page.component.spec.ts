@@ -256,6 +256,38 @@ describe('RunMapPageComponent', () => {
     expect(renderedEdges.find((edge) => edge.edgeId === 'e5')?.path).toBe('M 400 222 L 540 222');
   });
 
+  it('colors run-map edges by directed progression instead of either endpoint availability', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+    const component = fixture.componentInstance;
+    component.runData.set({
+      run: { run_id: 'run-directed', region_id: '2', region_slug: 'mountains', region_theme: 'mountain', status: 'active' },
+      map: {
+        nodes: [
+          { id: 'cleared', run_id: 'run-directed', node_index: 0, node_type: 'combat', status: 'cleared', meta: { col: 0, row: 1 } },
+          { id: 'locked-parent', run_id: 'run-directed', node_index: 1, node_type: 'combat', status: 'locked', meta: { col: 0, row: 2 } },
+          { id: 'available-rejoin', run_id: 'run-directed', node_index: 2, node_type: 'rest', status: 'available', meta: { col: 1, row: 1 } },
+          { id: 'cleared-rejoin', run_id: 'run-directed', node_index: 3, node_type: 'rest', status: 'cleared', meta: { col: 2, row: 1 } },
+        ],
+        edges: [],
+      },
+      run_unit_state: [],
+    } as any);
+
+    expect(component.edgeState({ run_id: 'run-directed', from_node_id: 'cleared', to_node_id: 'available-rejoin' })).toBe('available');
+    expect(component.edgeState({ run_id: 'run-directed', from_node_id: 'locked-parent', to_node_id: 'available-rejoin' })).toBe('locked');
+    expect(component.edgeState({ run_id: 'run-directed', from_node_id: 'cleared', to_node_id: 'cleared-rejoin' })).toBe('cleared');
+  });
+
   it('pushes long-jump side lanes farther from the center row', async () => {
     class LongJumpRunServiceStub extends RunServiceStub {
       override getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
