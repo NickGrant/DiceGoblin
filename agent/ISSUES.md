@@ -254,6 +254,7 @@ V2 maps need inspection and quality gates before runtime rollout, especially aro
 - Added committed Docker commands for the strict Mountains Pattern-V2 gate and Pattern-V1 vs Pattern-V2 comparison evidence, including branch count, occupied row/column, straight-spine, and boss-path metrics.
 - Pattern inspection text output now summarizes assembly validity, shape metrics, and the ASCII map directly, with a committed Docker command for Mountains Pattern-V2 inspection.
 - The committed Mountains Pattern-V2 comparison command now defaults to text summaries so rollout checks report the important V1/V2 deltas without dumping every seed row.
+- Runtime API contract coverage now starts Mountains and Swamps Pattern-V2 runs through `/api/v1/runs`, then verifies `/api/v1/runs/current` exposes generator provenance, node coordinates, edge waypoint metadata, and no runtime connector nodes.
 
 ### Opt Mountains into pattern-v2 maps
 
@@ -275,6 +276,7 @@ Mountains should move to pattern-v2 only after the catalogue and composer produc
 #### Progress
 
 - Runtime selection now supports `RUN_PATTERN_V2_REGIONS` with precedence over `RUN_PATTERN_V1_REGIONS`, and API run creation routes Pattern-V2 story placement through the pre-generation request path.
+- The current-run API contract now proves Mountains Pattern-V2 opt-in reaches the shared map renderer with persisted generation coordinates and connector waypoint edge metadata.
 - Local UAT configuration now consistently documents Mountains and Swamps as Pattern-V2 opt-ins through Docker and `.env.example`.
 
 ### Opt Swamps into pattern-v2 maps
@@ -300,6 +302,7 @@ Swamps should move to Pattern-V2 after Mountains so UAT uses the same tile-compo
 - Forward migration 84 seeds Swamps Pattern-V2 start, broad braid, pressure fork, boss/exit, region rules, and profile content.
 - The Swamps Pattern-V2 Docker gate currently passes 25/25 seeds with no fallback, 5 occupied rows, 17-18 occupied columns, 4 branches, and no validation failures.
 - Local Docker configuration now opts both Mountains and Swamps into Pattern-V2 for UAT.
+- The current-run API contract now proves Swamps Pattern-V2 opt-in reaches the shared map renderer with persisted generation coordinates and connector waypoint edge metadata.
 - `.env.example` now mirrors the local UAT opt-in with `RUN_PATTERN_V2_REGIONS=mountains,swamps` for direct backend runs.
 
 ### Move remaining biomes to the consistent run rendering path

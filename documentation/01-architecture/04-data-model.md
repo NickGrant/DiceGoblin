@@ -323,6 +323,15 @@ Fixed authored runs can also record `fixed-v1` provenance so Farm and Mystic Cav
 
 These fields are nullable so existing lane-generated and fixed authored runs remain compatible while regions are migrated gradually.
 
+### 9.5 run_edges rendering metadata
+
+`run_edges.meta_json` stores optional renderer-facing metadata for persisted graph edges. Pattern-V2 connector cells compile into `through` waypoint coordinates in this field, which lets the shared run-map renderer draw authored connector routes without creating runtime `connector` nodes.
+
+The current contract is intentionally small:
+- `through`: ordered grid coordinates shaped like `{ "x": 4, "y": 2 }`
+
+Old runs and generators can leave this field null; edge traversal still depends only on `from_node_id` and `to_node_id`.
+
 ## 9. Battles and Logs
 
 `battles` remain the authoritative battle record.
