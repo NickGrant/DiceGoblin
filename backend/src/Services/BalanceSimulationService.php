@@ -55,8 +55,9 @@ final class BalanceSimulationService
     $regionSlug = $this->stringOption($options, 'region', 'the_farm');
     $sampleCount = $this->intOption($options, 'runs', self::DEFAULT_SAMPLE_COUNT, 1, self::MAX_SAMPLE_COUNT);
     $seedBase = $this->stringOption($options, 'seed', 'balance-sim');
+    $summaryOnly = $this->boolOption($options, 'summary-only', false);
 
-    return match ($mode) {
+    $report = match ($mode) {
       'battle' => $this->simulateBattle(
         $regionSlug,
         $this->stringOption($options, 'node', 'combat'),
@@ -80,6 +81,8 @@ final class BalanceSimulationService
       ),
       default => throw new RuntimeException("Unsupported simulation mode '{$mode}'. Use battle, run, or progression."),
     };
+
+    return $summaryOnly ? $this->withoutSamples($report) : $report;
   }
 
   /**
@@ -786,6 +789,47 @@ final class BalanceSimulationService
   {
     $value = (int)($options[$key] ?? $default);
     return max($min, min($max, $value));
+  }
+
+  /**
+   * @param array<string,mixed> $options
+   */
+  private function boolOption(array $options, string $key, bool $default): bool
+  {
+    if (!array_key_exists($key, $options)) {
+      return $default;
+    }
+
+    $value = $options[$key];
+    if (is_bool($value)) {
+      return $value;
+    }
+
+    $normalized = strtolower(trim((string)$value));
+    if (in_array($normalized, ['1', 'true', 'yes', 'on'], true)) {
+      return true;
+    }
+    if (in_array($normalized, ['0', 'false', 'no', 'off'], true)) {
+      return false;
+    }
+
+    return $default;
+  }
+
+  /**
+   * @param array<string,mixed> $report
+   * @return array<string,mixed>
+   */
+  private function withoutSamples(array $report): array
+  {
+    $config = is_array($report['config'] ?? null) ? $report['config'] : [];
+    $report['config'] = [
+      ...$config,
+      'summary_only' => true,
+    ];
+    unset($report['samples']);
+
+    return $report;
   }
 
   private function deleteSimulationUser(int $userId): void

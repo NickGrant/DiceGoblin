@@ -43,6 +43,27 @@ final class BalanceSimulationServiceIntegrationTest extends IntegrationTestCase
     $this->assertCount(2, $report['samples']);
   }
 
+  public function testRunCanReturnSummaryOnlyReport(): void
+  {
+    $service = new BalanceSimulationService($this->pdo);
+
+    $report = $service->run([
+      'mode' => 'run',
+      'region' => 'the_farm',
+      'runs' => 2,
+      'seed' => 'qa-summary-only-run-sim',
+      'profile' => 'pig_kin_starter',
+      'summary-only' => true,
+    ]);
+
+    $this->assertTrue($report['ok']);
+    $this->assertSame('run', $report['mode']);
+    $this->assertSame(2, $report['config']['samples']);
+    $this->assertTrue($report['config']['summary_only']);
+    $this->assertArrayHasKey('completion_rate', $report['summary']);
+    $this->assertArrayNotHasKey('samples', $report);
+  }
+
   public function testProfileFixtureMustBeSupported(): void
   {
     $this->expectException(\RuntimeException::class);
