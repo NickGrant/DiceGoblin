@@ -128,6 +128,22 @@ function outputAssemblyText(array $assembly): void
       echo '    ' . $line . PHP_EOL;
     }
   }
+
+  $edges = array_values(array_filter(is_array($assembly['edges'] ?? null) ? $assembly['edges'] : [], 'is_array'));
+  if ($edges !== []) {
+    echo '  - edges:' . PHP_EOL;
+    foreach (array_slice($edges, 0, 24) as $edge) {
+      echo sprintf(
+        '    - %s -> %s%s',
+        (string)($edge['from'] ?? ''),
+        (string)($edge['to'] ?? ''),
+        (int)($edge['waypoint_count'] ?? 0) > 0 ? ' via ' . json_encode($edge['waypoints'], JSON_UNESCAPED_SLASHES) : '',
+      ) . PHP_EOL;
+    }
+    if (count($edges) > 24) {
+      echo sprintf('    - ... %d more edges', count($edges) - 24) . PHP_EOL;
+    }
+  }
 }
 
 /**
@@ -219,6 +235,7 @@ function assemblySummary(array $assembly): array
     'occupied_columns' => occupiedCoordinateCount($nodes, 'x'),
     'map_ascii' => assemblyAsciiMap($nodes),
     'nodes' => assemblyNodeRows($nodes),
+    'edges' => assemblyEdgeRows($edges),
     'trace' => [
       'counters' => is_array($assembly['trace']['counters'] ?? null) ? $assembly['trace']['counters'] : [],
       'duration_ms' => $assembly['trace']['duration_ms'] ?? null,
@@ -421,6 +438,33 @@ function maxStraightSpineNodes(array $nodes): int
   }
 
   return $max;
+}
+
+/**
+ * @param list<array<string,mixed>> $edges
+ * @return list<array<string,mixed>>
+ */
+function assemblyEdgeRows(array $edges): array
+{
+  return array_map(
+    static function (array $edge): array {
+      $waypoints = array_values(array_filter(is_array($edge['through'] ?? null) ? $edge['through'] : [], 'is_array'));
+
+      return [
+        'from' => (string)($edge['from'] ?? ''),
+        'to' => (string)($edge['to'] ?? ''),
+        'waypoint_count' => count($waypoints),
+        'waypoints' => array_map(
+          static fn(array $waypoint): array => [
+            'x' => (int)($waypoint['x'] ?? $waypoint['col'] ?? 0),
+            'y' => (int)($waypoint['y'] ?? $waypoint['row'] ?? 0),
+          ],
+          $waypoints,
+        ),
+      ];
+    },
+    $edges,
+  );
 }
 
 /**
