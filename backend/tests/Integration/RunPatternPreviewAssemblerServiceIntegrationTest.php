@@ -74,6 +74,7 @@ final class RunPatternPreviewAssemblerServiceIntegrationTest extends Integration
     $this->assertContains('exit', array_column($result['graph']['nodes'], 'type'));
     $this->assertGreaterThanOrEqual(3, count(array_unique(array_column($result['graph']['nodes'], 'y'))));
     $this->assertGreaterThanOrEqual(4, $result['trace']['counters']['placements']);
+    $this->assertTrue($this->hasConnectorWaypointEdge($result['graph']['edges']));
   }
 
   /**
@@ -210,6 +211,20 @@ final class RunPatternPreviewAssemblerServiceIntegrationTest extends Integration
       if ((string)($source['branch_key'] ?? '') !== ''
         && (string)($target['path_role'] ?? '') === 'spine'
       ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * @param list<array<string,mixed>> $edges
+   */
+  private function hasConnectorWaypointEdge(array $edges): bool
+  {
+    foreach ($edges as $edge) {
+      if (count(is_array($edge['through'] ?? null) ? $edge['through'] : []) > 0) {
         return true;
       }
     }

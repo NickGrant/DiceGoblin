@@ -227,7 +227,12 @@ final class RunPatternV2TileComposerService
       if ($from === null || $to === null) {
         continue;
       }
-      $edges[] = ['from' => $from, 'to' => $to];
+      $edgeRow = ['from' => $from, 'to' => $to];
+      $through = $this->globalWaypoints($edge, $offsetX, $offsetY);
+      if ($through !== []) {
+        $edgeRow['through'] = $through;
+      }
+      $edges[] = $edgeRow;
       $incoming[$to] = true;
       $outgoing[$from] = true;
     }
@@ -253,6 +258,23 @@ final class RunPatternV2TileComposerService
       'sinks' => $sinks,
       'max_x' => $maxX,
     ];
+  }
+
+  /**
+   * @param array<string,mixed> $edge
+   * @return list<array{x:int,y:int}>
+   */
+  private function globalWaypoints(array $edge, int $offsetX, int $offsetY): array
+  {
+    $waypoints = [];
+    foreach (array_values(array_filter(is_array($edge['through'] ?? null) ? $edge['through'] : [], 'is_array')) as $waypoint) {
+      $waypoints[] = [
+        'x' => $offsetX + (int)($waypoint['x'] ?? $waypoint['col'] ?? 0),
+        'y' => $offsetY + (int)($waypoint['y'] ?? $waypoint['row'] ?? 0),
+      ];
+    }
+
+    return $waypoints;
   }
 
   /**
