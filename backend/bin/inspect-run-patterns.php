@@ -33,7 +33,8 @@ try {
     'phase_rule_counts' => phaseRuleCounts($request['rules_by_phase']),
     'pattern_count' => count($request['patterns_by_key']),
     'variant_count' => variantCount($request['variants_by_pattern_key']),
-    'patterns' => patternRows($request['patterns_by_key'], $request['variants_by_pattern_key']),
+    'tile_count' => count($request['tiles_by_pattern_key']),
+    'patterns' => patternRows($request['patterns_by_key'], $request['variants_by_pattern_key'], $request['tiles_by_pattern_key']),
   ];
   if ($assemble) {
     $assembly = (new RunPatternPreviewAssemblerService())->assemble($request);
@@ -130,19 +131,42 @@ function variantCount(array $variantsByPattern): int
 /**
  * @param array<string,array<string,mixed>> $patterns
  * @param array<string,list<array<string,mixed>>> $variants
+ * @param array<string,array<string,mixed>> $tiles
  * @return list<array<string,mixed>>
  */
-function patternRows(array $patterns, array $variants): array
+function patternRows(array $patterns, array $variants, array $tiles): array
 {
   $rows = [];
   foreach ($patterns as $key => $pattern) {
-    $rows[] = [
+    $row = [
       'pattern_key' => $key,
       'content_hash' => (string)$pattern['content_hash'],
       'variant_count' => count($variants[$key] ?? []),
     ];
+    if (isset($tiles[$key]) && is_array($tiles[$key])) {
+      $row['tile'] = tileSummary($tiles[$key]);
+    }
+    $rows[] = $row;
   }
   return $rows;
+}
+
+/**
+ * @param array<string,mixed> $tile
+ * @return array<string,mixed>
+ */
+function tileSummary(array $tile): array
+{
+  return [
+    'width' => (int)($tile['width'] ?? 0),
+    'height' => (int)($tile['height'] ?? 0),
+    'cost' => (int)($tile['cost'] ?? 0),
+    'node_count' => count(is_array($tile['nodes'] ?? null) ? $tile['nodes'] : []),
+    'connector_count' => count(is_array($tile['connectors'] ?? null) ? $tile['connectors'] : []),
+    'edge_count' => count(is_array($tile['edges'] ?? null) ? $tile['edges'] : []),
+    'exit_count' => count(is_array($tile['exits'] ?? null) ? $tile['exits'] : []),
+    'tags' => array_values(array_map('strval', is_array($tile['tags'] ?? null) ? $tile['tags'] : [])),
+  ];
 }
 
 /**
