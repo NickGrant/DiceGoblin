@@ -316,3 +316,9 @@ Farm and Mystic Cave are authored/linear runs rather than procedural Pattern-V2 
 - The frontend does not need biome-specific legacy rendering branches for active run maps.
 - Linear/story regions remain intentionally simple while matching the node, edge, unlock, and traversal contracts used by Pattern-V2 maps.
 - Regression tests cover Farm, Mystic Cave, Mountains, and Swamps rendering-facing graph contracts.
+
+#### Progress
+
+- Farm and Mystic Cave now emit `fixed-v1` run-level and node-level generation metadata while remaining authored linear graphs.
+- The run-map component now uses generation `x`/`y` coordinates when present, with `meta.col`/`meta.row` retained as a backward-compatible fallback.
+- Generation diagnostics and node depth labels are gated behind the dev-panel flag so normalized metadata does not add player-facing clutter to every run.

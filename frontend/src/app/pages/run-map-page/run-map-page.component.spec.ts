@@ -93,6 +93,10 @@ class SessionServiceStub {
 }
 
 describe('RunMapPageComponent', () => {
+  afterEach(() => {
+    delete window.__DICE_GOBLIN_CONFIG__;
+  });
+
   it('loads current run data and can continue', async () => {
     await TestBed.configureTestingModule({
       imports: [RunMapPageComponent],
@@ -335,6 +339,8 @@ describe('RunMapPageComponent', () => {
   });
 
   it('shows pattern generation metadata when a generated run includes provenance', async () => {
+    window.__DICE_GOBLIN_CONFIG__ = { enableDevPanel: true };
+
     class PatternRunServiceStub extends RunServiceStub {
       override getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
         ok: true,
@@ -418,6 +424,80 @@ describe('RunMapPageComponent', () => {
     expect(host.textContent).toContain('Combat · spine · depth 0');
     expect(host.textContent).toContain('shared_boss_exit_terminal@1');
     expect(host.querySelector('.run-map__pattern-label')?.textContent?.trim()).toBe('0');
+  });
+
+  it('uses generation coordinates without showing debug metadata when dev panel is disabled', async () => {
+    class FixedRunServiceStub extends RunServiceStub {
+      override getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
+        ok: true,
+        data: {
+          run: {
+            run_id: 'run-fixed',
+            region_id: '1',
+            region_slug: 'the_farm',
+            region_theme: 'farm',
+            status: 'active',
+            generator_version: 'fixed-v1',
+            generation_profile_version: 1,
+            pattern_catalog_hash: 'fixedhash',
+            generation_attempt: 0,
+            generation_summary: {
+              generator_version: 'fixed-v1',
+              node_count: 2,
+              occupied_columns: 6,
+            },
+          },
+          map: {
+            nodes: [
+              {
+                id: 'n1',
+                run_id: 'run-fixed',
+                node_index: 0,
+                node_type: 'combat',
+                status: 'available',
+                meta: {
+                  col: 0,
+                  row: 1,
+                  generation: {
+                    generator_version: 'fixed-v1',
+                    x: 4,
+                    y: 2,
+                    depth: 4,
+                    path_role: 'spine',
+                    pattern_key: 'the_farm_fixed@1',
+                  },
+                },
+              },
+            ],
+            edges: [],
+          },
+          run_unit_state: [],
+        },
+      });
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: FixedRunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const node = component.nodes()[0]!;
+    expect(component.nodeX(node)).toBe(680);
+    expect(component.nodeY(node)).toBe(354);
+    expect(component.patternDebugRows()).toEqual([]);
+    expect(component.patternNodeRows()).toEqual([]);
+    expect(component.patternNodeDepthLabel(node)).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Generation');
+    expect(fixture.nativeElement.querySelector('.run-map__pattern-label')).toBeNull();
   });
 
   it('navigates to summary after abandoning a run', async () => {
