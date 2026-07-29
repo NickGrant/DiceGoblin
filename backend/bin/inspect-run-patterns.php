@@ -94,11 +94,39 @@ function outputResult(array $result, string $format): void
 
   echo 'Run pattern catalog inspection' . PHP_EOL;
   foreach ($result as $key => $value) {
+    if ($key === 'assembly' && is_array($value)) {
+      outputAssemblyText($value);
+      continue;
+    }
     if (is_array($value)) {
       echo sprintf('- %s: %s', $key, json_encode($value, JSON_UNESCAPED_SLASHES)) . PHP_EOL;
       continue;
     }
     echo sprintf('- %s: %s', $key, (string)$value) . PHP_EOL;
+  }
+}
+
+/**
+ * @param array<string,mixed> $assembly
+ */
+function outputAssemblyText(array $assembly): void
+{
+  echo '- assembly:' . PHP_EOL;
+  echo sprintf('  - valid: %s', (bool)($assembly['valid'] ?? false) ? 'true' : 'false') . PHP_EOL;
+  echo sprintf('  - errors: %s', json_encode($assembly['errors'] ?? [], JSON_UNESCAPED_SLASHES)) . PHP_EOL;
+  foreach (['node_count', 'edge_count', 'branch_count', 'spine_depth', 'max_straight_spine_nodes', 'occupied_rows', 'occupied_columns'] as $metric) {
+    echo sprintf('  - %s: %s', $metric, json_encode($assembly[$metric] ?? null, JSON_UNESCAPED_SLASHES)) . PHP_EOL;
+  }
+  echo sprintf('  - node_types: %s', json_encode($assembly['node_types'] ?? [], JSON_UNESCAPED_SLASHES)) . PHP_EOL;
+  echo sprintf('  - pattern_frequency: %s', json_encode($assembly['pattern_frequency'] ?? [], JSON_UNESCAPED_SLASHES)) . PHP_EOL;
+
+  $map = is_array($assembly['map_ascii'] ?? null) ? $assembly['map_ascii'] : [];
+  $lines = array_values(array_map('strval', is_array($map['lines'] ?? null) ? $map['lines'] : []));
+  if ($lines !== []) {
+    echo '  - map:' . PHP_EOL;
+    foreach ($lines as $line) {
+      echo '    ' . $line . PHP_EOL;
+    }
   }
 }
 
@@ -187,6 +215,8 @@ function assemblySummary(array $assembly): array
     'spine_depth' => spineDepth($nodes),
     'max_straight_spine_nodes' => maxStraightSpineNodes($nodes),
     'branch_count' => branchCount($nodes),
+    'occupied_rows' => occupiedCoordinateCount($nodes, 'y'),
+    'occupied_columns' => occupiedCoordinateCount($nodes, 'x'),
     'map_ascii' => assemblyAsciiMap($nodes),
     'nodes' => assemblyNodeRows($nodes),
     'trace' => [
@@ -196,6 +226,20 @@ function assemblySummary(array $assembly): array
       'truncated' => (bool)($assembly['trace']['truncated'] ?? false),
     ],
   ];
+}
+
+/**
+ * @param list<array<string,mixed>> $nodes
+ */
+function occupiedCoordinateCount(array $nodes, string $coordinate): int
+{
+  $occupied = [];
+  foreach ($nodes as $node) {
+    if (array_key_exists($coordinate, $node)) {
+      $occupied[(int)$node[$coordinate]] = true;
+    }
+  }
+  return count($occupied);
 }
 
 /**
