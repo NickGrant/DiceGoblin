@@ -20,7 +20,9 @@ flowchart TD
   B -- other --> E[Select generator version]
   E -- lane-v1 --> E1[Generate procedural graph]
   E -- pattern-v1 opt-in --> E2[Generate pattern preview graph]
+  E -- pattern-v2 opt-in --> E4[Compose grid tile graph]
   E2 --> E3[Normalize to runtime graph]
+  E4 --> E3
   E1 --> F
   E3 --> F
   C --> F[Apply dialogue nodes]
@@ -40,7 +42,7 @@ The farm uses fixed encounter templates for its combat, loot, rest, and boss nod
 
 ## Procedural Region Defaults
 
-The default generator version is `lane-v1`. API run creation uses `RunGeneratorVersionSelector`, which returns `pattern-v2` for regions listed in `RUN_PATTERN_V2_REGIONS`, otherwise `pattern-v1` for regions listed in `RUN_PATTERN_V1_REGIONS`, otherwise `lane-v1`. Local Docker UAT can opt a region into either pattern generation path without changing code; `RUN_PATTERN_V2_REGIONS` takes precedence when a region appears in both lists.
+The default generator version is `lane-v1`. API run creation uses `RunGeneratorVersionSelector`, which returns `pattern-v2` for regions listed in `RUN_PATTERN_V2_REGIONS`, otherwise `pattern-v1` for regions listed in `RUN_PATTERN_V1_REGIONS`, otherwise `lane-v1`. Local Docker UAT opts `mountains,swamps` into Pattern-V2 through `docker-compose.yml`, and the tracked `.env.example` mirrors that local UAT default for direct backend runs. `RUN_PATTERN_V2_REGIONS` takes precedence when a region appears in both lists.
 
 When `pattern-v1` or `pattern-v2` is selected, user-specific story beats are resolved before topology assembly as `story_placement_requests`. Those requests currently cover the same start, before-boss, and before-exit placements used by the legacy lane graph mutator, but the pattern path places them inside the assembled graph before validation and provenance persistence.
 
@@ -159,4 +161,4 @@ flowchart LR
   E --> F[Runtime nodes and edges]
 ```
 
-V2 runtime generation is available behind explicit version selection and `RUN_PATTERN_V2_REGIONS` region opt-in. Local Docker UAT currently opts in `mountains,swamps`. Both use database-owned pattern definitions, region rules, and generation profiles seeded through forward-only migrations, with committed simulation gates for occupied rows, occupied columns, branch count, fallback rate, and graph validity. Farm and Mystic Cave remain authored linear graphs; the remaining consistency work is to keep those simple run shapes on the same frontend rendering contract rather than making them procedural.
+V2 runtime generation is available behind explicit version selection and `RUN_PATTERN_V2_REGIONS` region opt-in. Local Docker UAT currently opts in `mountains,swamps`, and the same value is documented in `.env.example` for direct local backend runs. Both use database-owned pattern definitions, region rules, and generation profiles seeded through forward-only migrations, with committed simulation gates for occupied rows, occupied columns, branch count, fallback rate, and graph validity. Farm and Mystic Cave remain authored linear graphs but now emit `fixed-v1` provenance and node coordinates so the shared frontend renderer can consume every active region through the same metadata contract.
