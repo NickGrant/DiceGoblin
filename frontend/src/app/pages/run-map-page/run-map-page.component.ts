@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { isDevPanelEnabled } from '../../core/config/runtime-config';
 import { CurrentRunData, CurrentRunEdge, CurrentRunNode, ItemRecord } from '../../core/models/api.models';
 import { resolveRunRegionBackgroundUrl } from '../../core/regions/region-catalog';
 import { RunService } from '../../core/services/run/run.service';
@@ -59,6 +60,7 @@ export class RunMapPageComponent {
   readonly healingAction = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly statusMessage = signal<string | null>(null);
+  readonly showGenerationDebug = isDevPanelEnabled();
 
   readonly nodes = computed(() => this.runData()?.map?.nodes ?? []);
   readonly edges = computed(() => this.runData()?.map?.edges ?? []);
@@ -140,6 +142,10 @@ export class RunMapPageComponent {
   readonly activeRunEffects = computed(() => this.runData()?.active_run_effects ?? []);
   readonly generationSummary = computed(() => this.run()?.generation_summary ?? null);
   readonly patternDebugRows = computed(() => {
+    if (!this.showGenerationDebug) {
+      return [];
+    }
+
     const run = this.run();
     const summary = this.generationSummary();
     if (!run?.generator_version && !summary) {
@@ -157,11 +163,15 @@ export class RunMapPageComponent {
       ['Catalog', this.catalogHashLabel(run?.pattern_catalog_hash ?? this.summaryString(summary, 'catalog_hash'))],
     ].filter((row): row is [string, string] => typeof row[1] === 'string' && row[1].trim() !== '');
   });
-  readonly patternNodeRows = computed(() =>
-    this.nodes()
+  readonly patternNodeRows = computed(() => {
+    if (!this.showGenerationDebug) {
+      return [];
+    }
+
+    return this.nodes()
       .map((node) => this.patternNodeRow(node))
-      .filter((row): row is { id: string; label: string; detail: string } => row !== null),
-  );
+      .filter((row): row is { id: string; label: string; detail: string } => row !== null);
+  });
 
   constructor() {
     void this.load();
@@ -238,6 +248,10 @@ export class RunMapPageComponent {
   }
 
   patternNodeDepthLabel(node: CurrentRunNode): string | null {
+    if (!this.showGenerationDebug) {
+      return null;
+    }
+
     const generation = this.nodeGenerationMeta(node);
     if (!generation) {
       return null;
@@ -371,12 +385,22 @@ export class RunMapPageComponent {
   }
 
   private nodeMetaColumn(node: CurrentRunNode): number {
+    const generationX = this.numberFromUnknown(this.nodeGenerationMeta(node)?.['x']);
+    if (generationX !== null) {
+      return generationX;
+    }
+
     const raw = node.meta?.['col'];
     const column = typeof raw === 'number' ? raw : Number(raw);
     return Number.isFinite(column) ? column : node.node_index;
   }
 
   private nodeMetaRow(node: CurrentRunNode): number {
+    const generationY = this.numberFromUnknown(this.nodeGenerationMeta(node)?.['y']);
+    if (generationY !== null) {
+      return generationY;
+    }
+
     const raw = node.meta?.['row'];
     const row = typeof raw === 'number' ? raw : Number(raw);
     if (Number.isFinite(row)) {
