@@ -21,7 +21,14 @@ final class RunPatternPreviewAssemblerService
   public function assemble(array $request): array
   {
     if ((string)($request['generator_version'] ?? '') === 'pattern-v2') {
-      return (new RunPatternV2TileComposerService())->assemble($request, $this->validator);
+      $result = (new RunPatternV2TileComposerService())->assemble($request, $this->validator);
+      $graph = $this->applyStoryPlacementRequests($result['graph'], $request);
+
+      return [
+        ...$result,
+        'graph' => $graph,
+        'validation' => $this->validator->validate($graph),
+      ];
     }
 
     $trace = new RunPatternGenerationTrace(startedAtMs: $this->nowMs());
