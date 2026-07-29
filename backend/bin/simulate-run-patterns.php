@@ -100,6 +100,8 @@ function outputResult(array $result, string $format): void
   echo sprintf('- branch_count: %s' . PHP_EOL, json_encode($result['branch_count'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- spine_depth: %s' . PHP_EOL, json_encode($result['spine_depth'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- max_straight_spine_nodes: %s' . PHP_EOL, json_encode($result['max_straight_spine_nodes'], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- occupied_rows: %s' . PHP_EOL, json_encode($result['occupied_rows'], JSON_UNESCAPED_SLASHES));
+  echo sprintf('- occupied_columns: %s' . PHP_EOL, json_encode($result['occupied_columns'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- backtracks: %s' . PHP_EOL, json_encode($result['backtracks'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- duration_ms: %s' . PHP_EOL, json_encode($result['duration_ms'], JSON_UNESCAPED_SLASHES));
   echo sprintf('- boss_path: %s' . PHP_EOL, json_encode($result['boss_path'], JSON_UNESCAPED_SLASHES));
@@ -132,6 +134,8 @@ function gateOptions(array $options): array
     'max-backtracks-avg' => 'max_backtracks_avg',
     'min-branch-count' => 'min_branch_count',
     'max-straight-spine-nodes' => 'max_straight_spine_nodes',
+    'min-occupied-rows' => 'min_occupied_rows',
+    'min-occupied-columns' => 'min_occupied_columns',
   ];
 
   $gateOptions = [];

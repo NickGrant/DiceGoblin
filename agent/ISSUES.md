@@ -234,6 +234,11 @@ V2 maps need inspection and quality gates before runtime rollout, especially aro
 - Simulation reports success rate, fallback rate, occupied rows, occupied columns, cost, node count, crossing failures, and boss path metrics.
 - Gates fail on invalid graphs, excessive width, insufficient row usage, branchless boss approaches, and unresolved required exits.
 
+#### Progress
+
+- Pattern simulation now reports occupied row and occupied column distributions for every generator version.
+- Simulation gate options now support minimum occupied rows and columns, giving Pattern-V2 review a direct shape-quality gate once V2 assembly lands.
+
 ### Opt Mountains into pattern-v2 maps
 
 **Milestone:** Pattern-V2 Run Map Generation

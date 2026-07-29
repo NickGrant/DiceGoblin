@@ -44,6 +44,8 @@ final class RunPatternSimulationServiceIntegrationTest extends IntegrationTestCa
     $this->assertGreaterThanOrEqual(9, $simulation['spine_depth']['min']);
     $this->assertGreaterThanOrEqual(1, $simulation['branch_count']['min']);
     $this->assertLessThanOrEqual(3, $simulation['max_straight_spine_nodes']['max']);
+    $this->assertGreaterThanOrEqual(3, $simulation['occupied_rows']['min']);
+    $this->assertGreaterThanOrEqual(10, $simulation['occupied_columns']['min']);
     $this->assertGreaterThanOrEqual(1, $simulation['edge_count']['min']);
     $this->assertArrayHasKey('combat', $simulation['node_type_frequency']);
     $this->assertSame(0.0, $simulation['fallback_rate']);
@@ -57,11 +59,20 @@ final class RunPatternSimulationServiceIntegrationTest extends IntegrationTestCa
 
     $gate = (new RunPatternSimulationService(
       new RunPatternGenerationRequestBuilder(new RunPatternCatalogRepository($this->pdo))
-    ))->evaluateGate($simulation);
+    ))->evaluateGate($simulation, ['min_occupied_rows' => 3, 'min_occupied_columns' => 10]);
 
     $this->assertTrue($gate['passed'], json_encode($gate['checks'], JSON_UNESCAPED_SLASHES));
     $this->assertSame(
-      ['success_rate', 'fallback_rate', 'validation_failures', 'branch_count_min', 'backtracks_avg', 'max_straight_spine_nodes'],
+      [
+        'success_rate',
+        'fallback_rate',
+        'validation_failures',
+        'branch_count_min',
+        'backtracks_avg',
+        'max_straight_spine_nodes',
+        'occupied_rows_min',
+        'occupied_columns_min',
+      ],
       array_column($gate['checks'], 'name'),
     );
   }

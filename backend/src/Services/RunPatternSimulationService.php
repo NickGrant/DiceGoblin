@@ -26,6 +26,8 @@ final class RunPatternSimulationService
     $edgeCounts = [];
     $spineDepths = [];
     $straightSpineRuns = [];
+    $occupiedRows = [];
+    $occupiedColumns = [];
     $durations = [];
     $startToBossPaths = [];
     $bossToExitPaths = [];
@@ -55,6 +57,10 @@ final class RunPatternSimulationService
       $spineDepths[] = $spineDepth;
       $straightSpineRun = $this->maxStraightSpineNodes($assembly['graph']['nodes']);
       $straightSpineRuns[] = $straightSpineRun;
+      $occupiedRowCount = $this->occupiedCoordinateCount($assembly['graph']['nodes'], 'y');
+      $occupiedRows[] = $occupiedRowCount;
+      $occupiedColumnCount = $this->occupiedCoordinateCount($assembly['graph']['nodes'], 'x');
+      $occupiedColumns[] = $occupiedColumnCount;
       $traceCounters = is_array($assembly['trace']['counters'] ?? null) ? $assembly['trace']['counters'] : [];
       $backtracks[] = (int)($traceCounters['backtracks'] ?? 0);
       $duration = $assembly['trace']['duration_ms'] ?? null;
@@ -87,6 +93,8 @@ final class RunPatternSimulationService
         'branch_count' => $branchCount,
         'spine_depth' => $spineDepth,
         'max_straight_spine_nodes' => $straightSpineRun,
+        'occupied_rows' => $occupiedRowCount,
+        'occupied_columns' => $occupiedColumnCount,
         'boss_path' => $bossPaths,
         'backtracks' => (int)($traceCounters['backtracks'] ?? 0),
         'duration_ms' => $duration,
@@ -131,6 +139,16 @@ final class RunPatternSimulationService
         'max' => max($straightSpineRuns),
         'avg' => round(array_sum($straightSpineRuns) / count($straightSpineRuns), 2),
       ],
+      'occupied_rows' => [
+        'min' => min($occupiedRows),
+        'max' => max($occupiedRows),
+        'avg' => round(array_sum($occupiedRows) / count($occupiedRows), 2),
+      ],
+      'occupied_columns' => [
+        'min' => min($occupiedColumns),
+        'max' => max($occupiedColumns),
+        'avg' => round(array_sum($occupiedColumns) / count($occupiedColumns), 2),
+      ],
       'backtracks' => [
         'min' => min($backtracks),
         'max' => max($backtracks),
@@ -160,6 +178,8 @@ final class RunPatternSimulationService
     $maxBacktracksAvg = (float)($options['max_backtracks_avg'] ?? 0.0);
     $minBranchCount = (int)($options['min_branch_count'] ?? 1);
     $maxStraightSpineNodes = (int)($options['max_straight_spine_nodes'] ?? 3);
+    $minOccupiedRows = (int)($options['min_occupied_rows'] ?? 1);
+    $minOccupiedColumns = (int)($options['min_occupied_columns'] ?? 1);
 
     $checks[] = $this->check(
       'success_rate',
@@ -202,6 +222,20 @@ final class RunPatternSimulationService
       $maxStraightSpineNodes,
       (int)($simulation['max_straight_spine_nodes']['max'] ?? PHP_INT_MAX),
       'Generated spine routes must not contain more than the configured number of consecutive same-row nodes.'
+    );
+    $checks[] = $this->check(
+      'occupied_rows_min',
+      (int)($simulation['occupied_rows']['min'] ?? 0) >= $minOccupiedRows,
+      $minOccupiedRows,
+      (int)($simulation['occupied_rows']['min'] ?? 0),
+      'Every generated graph must occupy at least the configured number of rows.'
+    );
+    $checks[] = $this->check(
+      'occupied_columns_min',
+      (int)($simulation['occupied_columns']['min'] ?? 0) >= $minOccupiedColumns,
+      $minOccupiedColumns,
+      (int)($simulation['occupied_columns']['min'] ?? 0),
+      'Every generated graph must occupy at least the configured number of columns.'
     );
 
     $passed = true;
@@ -292,6 +326,23 @@ final class RunPatternSimulationService
     }
 
     return $max;
+  }
+
+  /**
+   * @param list<array<string,mixed>> $nodes
+   */
+  private function occupiedCoordinateCount(array $nodes, string $coordinate): int
+  {
+    $occupied = [];
+    foreach ($nodes as $node) {
+      if (!array_key_exists($coordinate, $node)) {
+        continue;
+      }
+
+      $occupied[(int)$node[$coordinate]] = true;
+    }
+
+    return count($occupied);
   }
 
   /**
