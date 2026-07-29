@@ -322,3 +322,5 @@ Farm and Mystic Cave are authored/linear runs rather than procedural Pattern-V2 
 - Farm and Mystic Cave now emit `fixed-v1` run-level and node-level generation metadata while remaining authored linear graphs.
 - The run-map component now uses generation `x`/`y` coordinates when present, with `meta.col`/`meta.row` retained as a backward-compatible fallback.
 - Generation diagnostics and node depth labels are gated behind the dev-panel flag so normalized metadata does not add player-facing clutter to every run.
+- Added a shared backend renderer-contract regression for Farm, Mystic Cave, Mountains Pattern-V2, and Swamps Pattern-V2 generation metadata.
+- Pattern-V2 assembly now applies story placement requests before final validation, matching the migrated Pattern-V1 dialogue flow.

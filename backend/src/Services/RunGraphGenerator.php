@@ -776,7 +776,11 @@ final class RunGraphGenerator
       $this->appendEdge($edges, $from, $to);
     }
 
-    return ['nodes' => $nodes, 'edges' => $edges];
+    return [
+      ...$graph,
+      'nodes' => $nodes,
+      'edges' => $edges,
+    ];
   }
 
   /**

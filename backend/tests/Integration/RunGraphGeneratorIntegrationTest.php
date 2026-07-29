@@ -277,6 +277,27 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertSame('pattern-v2', (string)($graph['nodes'][0]['meta']['generation']['generator_version'] ?? ''));
   }
 
+  /**
+   * @dataProvider activeRegionRendererContractProvider
+   */
+  public function testActiveRunRegionsExposeSharedRendererGenerationContract(
+    string $regionSlug,
+    string $generatorVersion,
+    string $seed
+  ): void {
+    if ($generatorVersion === 'pattern-v2') {
+      $this->applyPatternV2Migrations();
+    }
+
+    $regionId = $this->seededRegionId($regionSlug);
+    $generator = new RunGraphGenerator($this->pdo);
+    $graph = $generatorVersion === 'pattern-v2'
+      ? $generator->generateWithVersion($regionId, $regionSlug, $seed, true, $generatorVersion)
+      : $generator->generate($regionId, $regionSlug, $seed);
+
+    $this->assertRendererGenerationContract($graph, $regionSlug, $generatorVersion);
+  }
+
   public function testBuildsUserSpecificDialoguePlacementRequestsForPatternGeneration(): void
   {
     $userId = $this->insertUser();
@@ -763,6 +784,19 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     ];
   }
 
+  /**
+   * @return array<int,array{0:string,1:string,2:string}>
+   */
+  public function activeRegionRendererContractProvider(): array
+  {
+    return [
+      ['the_farm', 'fixed-v1', 'renderer-contract-farm'],
+      ['mystic_cave', 'fixed-v1', 'renderer-contract-mystic'],
+      ['mountains', 'pattern-v2', 'renderer-contract-mountains-v2'],
+      ['swamps', 'pattern-v2', 'renderer-contract-swamps-v2'],
+    ];
+  }
+
   private function seededRegionId(string $slug): int
   {
     $regionId = (int)$this->scalar('SELECT `id` FROM `regions` WHERE `slug` = ? LIMIT 1', [$slug]);
@@ -789,6 +823,38 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
       '84_seed_pattern_v2_swamp_tiles.sql',
     ] as $filename) {
       $this->applyMigration($filename);
+    }
+  }
+
+  /**
+   * @param array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>, generation: array<string,mixed>} $graph
+   */
+  private function assertRendererGenerationContract(array $graph, string $regionSlug, string $generatorVersion): void
+  {
+    $this->assertArrayHasKey('generation', $graph);
+    $this->assertSame($generatorVersion, (string)($graph['generation']['generator_version'] ?? ''));
+    $this->assertSame($regionSlug, (string)($graph['generation']['region_slug'] ?? ''));
+    $this->assertSame(count($graph['nodes']), (int)($graph['generation']['node_count'] ?? -1));
+    $this->assertSame(count($graph['edges']), (int)($graph['generation']['edge_count'] ?? -1));
+    $this->assertGreaterThan(0, (int)($graph['generation']['occupied_rows'] ?? 0));
+    $this->assertGreaterThan(0, (int)($graph['generation']['occupied_columns'] ?? 0));
+    $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', (string)($graph['generation']['catalog_hash'] ?? ''));
+    $this->assertArrayHasKey('boss_path', $graph['generation']);
+
+    foreach ($graph['nodes'] as $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $generation = is_array($meta['generation'] ?? null) ? $meta['generation'] : [];
+
+      $this->assertNotSame([], $generation, sprintf('%s node %d should expose generation metadata.', $regionSlug, (int)$node['node_index']));
+      $this->assertSame($generatorVersion, (string)($generation['generator_version'] ?? ''));
+      $this->assertArrayHasKey('path_role', $generation);
+      $this->assertArrayHasKey('depth', $generation);
+      $this->assertArrayHasKey('pattern_key', $generation);
+      $this->assertArrayHasKey('branch_key', $generation);
+      $this->assertArrayHasKey('x', $generation);
+      $this->assertArrayHasKey('y', $generation);
+      $this->assertSame((int)($meta['col'] ?? -1), (int)$generation['x']);
+      $this->assertSame((int)($meta['row'] ?? -1), (int)$generation['y']);
     }
   }
 
