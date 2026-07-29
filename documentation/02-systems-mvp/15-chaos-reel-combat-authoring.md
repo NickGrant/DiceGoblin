@@ -1,6 +1,11 @@
 # Chaos Reel Combat Authoring
 ----
 
+Status: active  
+Last Updated: 2026-07-29  
+Owner: Design + Engineering  
+Depends On: `documentation/02-systems-mvp/14-balancing-strategy-and-simulation.md`, `documentation/09-active-system-structure/05-run-node-generation.md`  
+
 ## Purpose
 
 Chaos nodes are battle-backed encounters. The reels are not direct payout buttons; they are an authoring layer that selects combat pressure and reward hooks before the normal battle playback and reward claim flow.
