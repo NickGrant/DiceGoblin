@@ -53,4 +53,4 @@ The raised 2026-07-28 profile budget intentionally moves Mountains closer to the
 
 - Compare player-facing pacing against current `lane-v1` samples.
 - Complete manual sample review for left-to-right readability, route choice, repeated motifs, and boss approach pacing.
-- Complete a manual map review before enabling `RUN_PATTERN_V1_REGIONS=mountains`.
+- Mountains is enabled for local Docker UAT through `RUN_PATTERN_V1_REGIONS=mountains`; complete manual map review before accepting the rollout beyond UAT.
