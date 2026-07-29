@@ -109,7 +109,7 @@ See `04-dialogue-flow-determination.md` for dialogue gating details.
 
 ## Pattern-V1 Boundary
 
-`pattern-v1` is present as an explicit runtime path and is active for local Docker Mountains runs through `RUN_PATTERN_V1_REGIONS=mountains`. Other regions continue using `lane-v1` unless the environment opts them in. The pattern path currently:
+`pattern-v1` is present as an explicit runtime path. Pattern-V2 now takes precedence for any region listed in `RUN_PATTERN_V2_REGIONS`, so local Docker UAT uses V2 for Mountains and Swamps while other procedural regions continue using `lane-v1` unless the environment opts them into a pattern path. The pattern path currently:
 
 - loads synced pattern profiles, region rules, definitions, and compiled variants;
 - builds a deterministic generation request with catalog hash and profile version;
@@ -134,7 +134,7 @@ flowchart TD
   H --> I[Persist graph and generation provenance]
 ```
 
-Remaining rollout work is still tracked in the Pattern-Based Run Map Generation milestone: richer branch catalog variety, Mountains and Swamps opt-in evidence, story placement requests, and committed simulation quality gates.
+Remaining rollout work is tracked in the Pattern-V2 Run Map Generation milestone: expanding consistent map rendering to the remaining authored/linear biomes and continuing manual UAT on migrated procedural biomes.
 
 Current optional branches use branch patterns that leave the spine, add branch-lane content, and reconnect to a later spine node. Branch placement divides eligible spine sources into early, middle, and late bands before applying fallbacks, which keeps the branch budget from being spent entirely near the start of a run. Each branch slot alternates its preferred lanes above and below the middle spine, and branch variants are tried in deterministic order for each lane so repeated maps do not collapse into a two-row top-line/down-branch shape. Branch-local loot can still appear as an optional reward off that branch segment. The simulation gate also reports `max_straight_spine_nodes` and defaults that limit to `3`; the current row cadence keeps the committed Mountains and Swamps gate suites at `2`.
 
@@ -155,8 +155,8 @@ flowchart LR
   A[Migration-seeded pattern-v2 rows] --> B[RunPatternGenerationRequestBuilder]
   B --> C[RunPatternV2GridCompiler]
   C --> D[Compiled grid tiles]
-  D --> E[Future tile composer]
+  D --> E[RunPatternV2TileComposerService]
   E --> F[Runtime nodes and edges]
 ```
 
-V2 runtime generation is available behind explicit version selection and `RUN_PATTERN_V2_REGIONS` region opt-in. Mountains should only be added to that env list after the V2 catalogue, simulation gates, and manual map review are accepted.
+V2 runtime generation is available behind explicit version selection and `RUN_PATTERN_V2_REGIONS` region opt-in. Local Docker UAT currently opts in `mountains,swamps`. Both use database-owned pattern definitions, region rules, and generation profiles seeded through forward-only migrations, with committed simulation gates for occupied rows, occupied columns, branch count, fallback rate, and graph validity. Farm and Mystic Cave remain authored linear graphs; the remaining consistency work is to keep those simple run shapes on the same frontend rendering contract rather than making them procedural.

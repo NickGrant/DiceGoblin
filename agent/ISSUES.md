@@ -275,3 +275,44 @@ Mountains should move to pattern-v2 only after the catalogue and composer produc
 #### Progress
 
 - Runtime selection now supports `RUN_PATTERN_V2_REGIONS` with precedence over `RUN_PATTERN_V1_REGIONS`, and API run creation routes Pattern-V2 story placement through the pre-generation request path.
+
+### Opt Swamps into pattern-v2 maps
+
+**Milestone:** Pattern-V2 Run Map Generation
+**Status:** Open
+**Priority:** High
+
+#### Problem
+
+Swamps should move to Pattern-V2 after Mountains so UAT uses the same tile-composed map engine for the two procedural combat biomes.
+
+#### Acceptance Criteria
+
+- Swamps Pattern-V2 definitions, region rules, and profile are seeded through a forward-only migration.
+- Swamps Pattern-V2 maps use broad multi-row branching with no fallback, backward traversal, crossing edges, or long straight-line routes across the committed seed gate.
+- Swamps runtime generation can explicitly request `pattern-v2` and preserves required boss, exit, rest, chaos, hazard, and reward nodes.
+- Local Docker UAT opts Swamps into Pattern-V2 without affecting production configuration outside migration-backed catalogue content.
+- Tests and simulation scripts cover Swamps Pattern-V2 request loading, catalog validation, runtime graph shape, and deterministic gate metrics.
+
+#### Progress
+
+- Forward migration 84 seeds Swamps Pattern-V2 start, broad braid, pressure fork, boss/exit, region rules, and profile content.
+- The Swamps Pattern-V2 Docker gate currently passes 25/25 seeds with no fallback, 5 occupied rows, 17-18 occupied columns, 4 branches, and no validation failures.
+- Local Docker configuration now opts both Mountains and Swamps into Pattern-V2 for UAT.
+
+### Move remaining biomes to the consistent run rendering path
+
+**Milestone:** Pattern-V2 Run Map Generation
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+
+Farm and Mystic Cave are authored/linear runs rather than procedural Pattern-V2 regions, but they should still render through the same frontend map path so all biomes share one consistent run presentation.
+
+#### Acceptance Criteria
+
+- Farm and Mystic Cave run graphs expose enough layout/provenance metadata for the shared map renderer.
+- The frontend does not need biome-specific legacy rendering branches for active run maps.
+- Linear/story regions remain intentionally simple while matching the node, edge, unlock, and traversal contracts used by Pattern-V2 maps.
+- Regression tests cover Farm, Mystic Cave, Mountains, and Swamps rendering-facing graph contracts.

@@ -92,6 +92,32 @@ final class RunPatternGenerationRequestBuilderIntegrationTest extends Integratio
     $this->assertContains('boss', array_column($request['tiles_by_pattern_key']['v2_mountain_boss_exit@1']['nodes'], 'type'));
   }
 
+  public function testBuildsSwampsPatternV2GenerationRequestFromMigrationSeededCatalog(): void
+  {
+    $this->applyPatternV2Migration();
+
+    $builder = new RunPatternGenerationRequestBuilder(new RunPatternCatalogRepository($this->pdo));
+    $request = $builder->build('swamps', 'swamps-v2-seeded-catalog', 'pattern-v2');
+
+    $this->assertSame('swamps', $request['region_slug']);
+    $this->assertSame('pattern-v2', $request['generator_version']);
+    $this->assertSame(1, $request['profile_version']);
+    $this->assertSame([], $request['variants_by_pattern_key']);
+    $this->assertSame(['spine', 'start', 'terminal'], array_keys($request['rules_by_phase']));
+    $this->assertCount(5, $request['patterns_by_key']);
+    $this->assertCount(5, $request['tiles_by_pattern_key']);
+    $this->assertArrayHasKey('v2_swamp_start_marsh@1', $request['tiles_by_pattern_key']);
+    $this->assertArrayHasKey('v2_swamp_broad_braid@1', $request['tiles_by_pattern_key']);
+    $this->assertArrayHasKey('v2_swamp_pressure_fork@1', $request['tiles_by_pattern_key']);
+    $this->assertArrayHasKey('v2_general_loot_connector@1', $request['tiles_by_pattern_key']);
+    $this->assertArrayHasKey('v2_swamp_boss_exit@1', $request['tiles_by_pattern_key']);
+    $this->assertSame(5, $request['tiles_by_pattern_key']['v2_swamp_broad_braid@1']['height']);
+    $this->assertSame(5, $request['tiles_by_pattern_key']['v2_swamp_pressure_fork@1']['height']);
+    $this->assertSame(['start', 'swamp', 'marsh'], $request['tiles_by_pattern_key']['v2_swamp_start_marsh@1']['tags']);
+    $this->assertContains('hazard', array_column($request['tiles_by_pattern_key']['v2_swamp_pressure_fork@1']['nodes'], 'type'));
+    $this->assertContains('boss', array_column($request['tiles_by_pattern_key']['v2_swamp_boss_exit@1']['nodes'], 'type'));
+  }
+
   private function seedPatternV2Fixture(): void
   {
     $regionId = (int)$this->scalar('SELECT `id` FROM `regions` WHERE `slug` = ?', ['mountains']);
@@ -181,6 +207,7 @@ final class RunPatternGenerationRequestBuilderIntegrationTest extends Integratio
       '81_seed_pattern_v2_dense_mountain_tiles.sql',
       '82_compact_mountains_pattern_v2_profile.sql',
       '83_remove_pattern_v2_placeholder_mountain_dialogue.sql',
+      '84_seed_pattern_v2_swamp_tiles.sql',
     ] as $filename) {
       $path = dirname(__DIR__, 2) . '/migrations/' . $filename;
       $sql = file_get_contents($path);
