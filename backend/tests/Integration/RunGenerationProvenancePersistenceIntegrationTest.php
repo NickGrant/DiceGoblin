@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Repositories\RunRepository;
+use DiceGoblins\Services\RunGraphGenerator;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class RunGenerationProvenancePersistenceIntegrationTest extends IntegrationTestCase
@@ -73,6 +74,34 @@ final class RunGenerationProvenancePersistenceIntegrationTest extends Integratio
     $this->assertSame(0, $activeRun['generation_attempt']);
     $this->assertSame(3, (int)($activeRun['generation_summary']['node_count'] ?? 0));
     $this->assertSame([], $activeRun['generation_summary']['validation_failures'] ?? null);
+  }
+
+  public function testFixedRunGenerationMetadataPersistsForSharedMapRendering(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->seededRegionId('the_farm');
+    $graph = (new RunGraphGenerator($this->pdo))->generate($regionId, 'the_farm', '12346');
+
+    $created = (new RunRepository($this->pdo))->createRunGraph(
+      $userId,
+      $regionId,
+      12346,
+      $graph['nodes'],
+      $graph['edges'],
+      $graph['generation']
+    );
+
+    $activeRun = (new RunRepository($this->pdo))->getActiveRunForUser($userId);
+    $this->assertIsArray($activeRun);
+    $this->assertSame('fixed-v1', $activeRun['generator_version']);
+    $this->assertSame(5, (int)($activeRun['generation_summary']['node_count'] ?? 0));
+    $this->assertSame(5, (int)($activeRun['generation_summary']['occupied_columns'] ?? 0));
+
+    $nodes = (new RunRepository($this->pdo))->getRunNodes((int)$created['run_id']);
+    $firstNodeMeta = json_decode((string)($nodes[0]['meta_json'] ?? ''), true);
+    $this->assertIsArray($firstNodeMeta);
+    $this->assertSame('fixed-v1', (string)($firstNodeMeta['generation']['generator_version'] ?? ''));
+    $this->assertSame('the_farm_fixed@1', (string)($firstNodeMeta['generation']['pattern_key'] ?? ''));
   }
 
   private function seededRegionId(string $slug): int

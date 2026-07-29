@@ -29,6 +29,12 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     );
     $this->assertSame('available', (string)$graph['nodes'][0]['status']);
     $this->assertSame('good', (string)($graph['nodes'][1]['meta']['node_quality_tier'] ?? ''));
+    $this->assertSame('fixed-v1', (string)$graph['generation']['generator_version']);
+    $this->assertSame(5, (int)$graph['generation']['node_count']);
+    $this->assertSame(5, (int)$graph['generation']['occupied_columns']);
+    $this->assertSame(3, (int)($graph['generation']['boss_path']['start_to_boss'] ?? 0));
+    $this->assertSame('fixed-v1', (string)($graph['nodes'][0]['meta']['generation']['generator_version'] ?? ''));
+    $this->assertSame('the_farm_fixed@1', (string)($graph['nodes'][0]['meta']['generation']['pattern_key'] ?? ''));
     $this->assertSame(
       [
         ['from' => 0, 'to' => 1],
@@ -54,6 +60,12 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     );
     $this->assertSame('available', (string)$graph['nodes'][0]['status']);
     $this->assertSame('start-run-kickoff', (string)($graph['nodes'][0]['meta']['dialogue_id'] ?? ''));
+    $this->assertSame('fixed-v1', (string)$graph['generation']['generator_version']);
+    $this->assertSame(2, (int)$graph['generation']['node_count']);
+    $this->assertSame(2, (int)$graph['generation']['occupied_columns']);
+    $this->assertNull($graph['generation']['boss_path']['start_to_boss']);
+    $this->assertSame('fixed-v1', (string)($graph['nodes'][0]['meta']['generation']['generator_version'] ?? ''));
+    $this->assertSame('story', (string)($graph['nodes'][0]['meta']['generation']['path_role'] ?? ''));
     $this->assertSame([['from' => 0, 'to' => 1]], $graph['edges']);
   }
 
@@ -79,6 +91,9 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertSame('mystic-cave-wrong-machine-reminder', (string)($graph['nodes'][0]['meta']['dialogue_id'] ?? ''));
     $this->assertNotContains('mystic-cave-wrong-machine-recovered', $this->dialogueIds($graph));
     $this->assertSame('locked', (string)$graph['nodes'][1]['status']);
+    $this->assertSame('fixed-v1', (string)$graph['generation']['generator_version']);
+    $this->assertSame(2, (int)$graph['generation']['node_count']);
+    $this->assertSame('fixed-v1', (string)($graph['nodes'][0]['meta']['generation']['generator_version'] ?? ''));
     $this->assertSame([['from' => 0, 'to' => 1]], $graph['edges']);
   }
 
@@ -102,6 +117,8 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertNotContains('mystic-cave-wrong-machine-reminder', $dialogueIds);
     $this->assertSame('mystic-cave-wrong-machine-recovered', (string)($graph['nodes'][0]['meta']['dialogue_id'] ?? ''));
     $this->assertSame('available', (string)$graph['nodes'][0]['status']);
+    $this->assertSame('fixed-v1', (string)$graph['generation']['generator_version']);
+    $this->assertSame(2, (int)$graph['generation']['node_count']);
   }
 
   /**
