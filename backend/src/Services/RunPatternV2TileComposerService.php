@@ -50,13 +50,14 @@ final class RunPatternV2TileComposerService
     $budget = is_array($request['profile']['budgets']['cost'] ?? null) ? $request['profile']['budgets']['cost'] : [];
     $targetCost = max(1, (int)($budget['target'] ?? 18));
     $currentCost = (int)$placements[0]['tile']['cost'] + (int)$terminal['tile']['cost'];
-
-    $spineRules = is_array($request['rules_by_phase']['spine'] ?? null) ? $request['rules_by_phase']['spine'] : [];
-    $maxSpineTiles = max(1, max(array_map(static fn(array $rule): int => (int)($rule['max_per_run'] ?? 1), $spineRules ?: [['max_per_run' => 1]])));
-    while ($currentCost < $targetCost && count($placements) <= $maxSpineTiles) {
-      $tile = $this->chooseTile($request, 'spine', $rng);
+    $instanceBudget = is_array($request['profile']['budgets']['pattern_instances'] ?? null) ? $request['profile']['budgets']['pattern_instances'] : [];
+    $maxInstances = max(3, (int)($instanceBudget['max'] ?? 8));
+    $counts = [$placements[0]['pattern_key'] => 1];
+    while ($currentCost < $targetCost && count($placements) + 1 < $maxInstances) {
+      $tile = $this->chooseTile($request, 'spine', $rng, $counts);
       $placements[] = $tile;
       $currentCost += (int)$tile['tile']['cost'];
+      $counts[$tile['pattern_key']] = ($counts[$tile['pattern_key']] ?? 0) + 1;
     }
 
     $placements[] = $terminal;
@@ -67,14 +68,27 @@ final class RunPatternV2TileComposerService
    * @param array<string,mixed> $request
    * @return array{phase:string,pattern_key:string,tile:array<string,mixed>}
    */
-  private function chooseTile(array $request, string $phase, DeterministicRandom $rng): array
+  private function chooseTile(array $request, string $phase, DeterministicRandom $rng, array $countsByPatternKey = []): array
   {
     $rules = is_array($request['rules_by_phase'][$phase] ?? null) ? $request['rules_by_phase'][$phase] : [];
     if ($rules === []) {
       throw new RuntimeException("No {$phase} rules are available for pattern-v2 composition.");
     }
 
-    $rule = $rng->weightedChoice($rules, static fn(array $rule): int => (int)($rule['base_weight'] ?? 0));
+    $eligibleRules = [];
+    foreach ($rules as $rule) {
+      $patternKey = (string)$rule['pattern_slug'] . '@' . (int)$rule['pattern_version'];
+      $maxPerRun = (int)($rule['max_per_run'] ?? 0);
+      if ($maxPerRun > 0 && (int)($countsByPatternKey[$patternKey] ?? 0) >= $maxPerRun) {
+        continue;
+      }
+      $eligibleRules[] = $rule;
+    }
+    if ($eligibleRules === []) {
+      throw new RuntimeException("No eligible {$phase} rules remain for pattern-v2 composition.");
+    }
+
+    $rule = $rng->weightedChoice($eligibleRules, static fn(array $rule): int => (int)($rule['base_weight'] ?? 0));
     $patternKey = (string)$rule['pattern_slug'] . '@' . (int)$rule['pattern_version'];
     $tile = is_array($request['tiles_by_pattern_key'][$patternKey] ?? null) ? $request['tiles_by_pattern_key'][$patternKey] : null;
     if ($tile === null) {
