@@ -35,6 +35,43 @@
               [style.width.px]="mapWidth()"
               [style.height.px]="mapHeight()"
             >
+              @if (showGenerationDebug) {
+                <g class="run-map__debug-grid" aria-hidden="true">
+                  @for (column of generationGridColumns(); track column.value) {
+                    <line
+                      class="run-map__debug-grid-line"
+                      [attr.x1]="column.x"
+                      y1="0"
+                      [attr.x2]="column.x"
+                      [attr.y2]="mapHeight()"
+                    ></line>
+                    <text
+                      class="run-map__debug-grid-label"
+                      [attr.x]="column.x"
+                      y="18"
+                      text-anchor="middle"
+                    >
+                      x{{ column.value }}
+                    </text>
+                  }
+                  @for (row of generationGridRows(); track row.value) {
+                    <line
+                      class="run-map__debug-grid-line"
+                      x1="0"
+                      [attr.y1]="row.y"
+                      [attr.x2]="mapWidth()"
+                      [attr.y2]="row.y"
+                    ></line>
+                    <text
+                      class="run-map__debug-grid-label"
+                      x="8"
+                      [attr.y]="row.y - 8"
+                    >
+                      y{{ row.value }}
+                    </text>
+                  }
+                </g>
+              }
               @for (edge of renderedEdges(); track edge.edgeId) {
                 <path
                   class="run-map__edge"
