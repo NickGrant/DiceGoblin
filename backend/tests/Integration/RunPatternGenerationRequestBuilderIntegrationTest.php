@@ -66,6 +66,30 @@ final class RunPatternGenerationRequestBuilderIntegrationTest extends Integratio
     $this->assertSame([['row' => 0, 'col' => 1]], $request['tiles_by_pattern_key']['v2_test_start@1']['connectors']);
   }
 
+  public function testBuildsPatternV2GenerationRequestFromMigrationSeededCatalog(): void
+  {
+    $this->applyPatternV2Migration();
+
+    $builder = new RunPatternGenerationRequestBuilder(new RunPatternCatalogRepository($this->pdo));
+    $request = $builder->build('mountains', 'v2-seeded-catalog', 'pattern-v2');
+
+    $this->assertSame('mountains', $request['region_slug']);
+    $this->assertSame('pattern-v2', $request['generator_version']);
+    $this->assertSame(1, $request['profile_version']);
+    $this->assertSame([], $request['variants_by_pattern_key']);
+    $this->assertSame(['spine', 'start', 'terminal'], array_keys($request['rules_by_phase']));
+    $this->assertCount(4, $request['patterns_by_key']);
+    $this->assertCount(4, $request['tiles_by_pattern_key']);
+    $this->assertArrayHasKey('v2_mountain_start_cluster@1', $request['tiles_by_pattern_key']);
+    $this->assertArrayHasKey('v2_mountain_braided_combat@1', $request['tiles_by_pattern_key']);
+    $this->assertArrayHasKey('v2_general_loot_connector@1', $request['tiles_by_pattern_key']);
+    $this->assertArrayHasKey('v2_mountain_boss_exit@1', $request['tiles_by_pattern_key']);
+    $this->assertSame(3, $request['tiles_by_pattern_key']['v2_mountain_start_cluster@1']['height']);
+    $this->assertSame(5, $request['tiles_by_pattern_key']['v2_mountain_braided_combat@1']['width']);
+    $this->assertSame(['start', 'mountain'], $request['tiles_by_pattern_key']['v2_mountain_start_cluster@1']['tags']);
+    $this->assertContains('boss', array_column($request['tiles_by_pattern_key']['v2_mountain_boss_exit@1']['nodes'], 'type'));
+  }
+
   private function seedPatternV2Fixture(): void
   {
     $regionId = (int)$this->scalar('SELECT `id` FROM `regions` WHERE `slug` = ?', ['mountains']);
@@ -145,5 +169,13 @@ final class RunPatternGenerationRequestBuilderIntegrationTest extends Integratio
       json_encode($profile['weight_policy'], JSON_UNESCAPED_SLASHES),
       hash('sha256', $profileJson),
     ]);
+  }
+
+  private function applyPatternV2Migration(): void
+  {
+    $path = dirname(__DIR__, 2) . '/migrations/79_seed_pattern_v2_catalog.sql';
+    $sql = file_get_contents($path);
+    $this->assertIsString($sql);
+    $this->pdo->exec($sql);
   }
 }
