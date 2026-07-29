@@ -153,6 +153,7 @@ The pattern system needs diagnostic visibility before rollout, otherwise invalid
 #### Progress
 
 - Pattern simulation now reports success rate, fallback rate, validation failures, node/edge distributions, branch counts, spine depth, backtracks, generation duration, node-type frequency, and pattern frequency.
+- Pattern simulation now also reports authored assembly cost distributions from placement trace events.
 - `run-patterns:gate:mountains:docker` and `run-patterns:gate:swamps:docker` run committed 25-seed gates with strict validity, fallback, branch-count, and backtrack thresholds.
 - Pattern-v1 profile budgets were raised before UAT to reduce the map-size gap versus lane-v1: Mountains now gates at roughly 26-27 nodes with 3 branches; Swamps now gates at roughly 33-34 nodes with 4 branches.
 - Pattern-v1 branch topology now uses reconnecting branch segments instead of shallow cap-only offshoots, rejects non-forward/crossing edges, and simulation gates report/enforce a maximum of 3 consecutive same-row spine nodes; the current committed gates hold at 2.

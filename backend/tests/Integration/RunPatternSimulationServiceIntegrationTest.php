@@ -47,6 +47,8 @@ final class RunPatternSimulationServiceIntegrationTest extends IntegrationTestCa
     $this->assertGreaterThanOrEqual(3, $simulation['occupied_rows']['min']);
     $this->assertGreaterThanOrEqual(10, $simulation['occupied_columns']['min']);
     $this->assertGreaterThanOrEqual(1, $simulation['edge_count']['min']);
+    $this->assertGreaterThanOrEqual(1, $simulation['cost']['min']);
+    $this->assertArrayHasKey('cost', $simulation['results'][0]);
     $this->assertArrayHasKey('combat', $simulation['node_type_frequency']);
     $this->assertSame(0.0, $simulation['fallback_rate']);
     $this->assertSame(0.0, $simulation['backtracks']['avg']);
