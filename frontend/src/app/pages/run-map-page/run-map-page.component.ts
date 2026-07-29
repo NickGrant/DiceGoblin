@@ -512,8 +512,14 @@ export class RunMapPageComponent {
         RunMapPageComponent.MAP_EDGE_CURVE_LEAD_MAX,
         Math.max(RunMapPageComponent.MAP_EDGE_CURVE_LEAD_MIN, Math.round((x2 - x1) * 0.35)),
       );
-      const path =
-        sourceOffset === 0 && targetOffset === 0 && y1 === y2
+      const waypoints = this.edgeWaypoints(edge);
+      const path = waypoints.length
+        ? [
+            `M ${x1} ${y1 + sourceOffset}`,
+            ...waypoints.map((point) => `L ${point.x} ${point.y}`),
+            `L ${x2} ${y2 + targetOffset}`,
+          ].join(' ')
+        : sourceOffset === 0 && targetOffset === 0 && y1 === y2
           ? `M ${x1} ${y1} L ${x2} ${y2}`
           : `M ${x1} ${y1} C ${x1 + curveLead} ${y1 + sourceOffset}, ${x2 - curveLead} ${y2 + targetOffset}, ${x2} ${y2}`;
 
@@ -536,6 +542,33 @@ export class RunMapPageComponent {
     }
 
     return (edgeIndex - (siblings.length - 1) / 2) * RunMapPageComponent.MAP_EDGE_FAN_OFFSET;
+  }
+
+  private edgeWaypoints(edge: CurrentRunEdge): Array<{ x: number; y: number }> {
+    const through = edge.meta?.['through'];
+    if (!Array.isArray(through)) {
+      return [];
+    }
+
+    return through
+      .map((point) => {
+        if (!point || typeof point !== 'object' || Array.isArray(point)) {
+          return null;
+        }
+
+        const values = point as Record<string, unknown>;
+        const gridX = this.numberFromUnknown(values['x'] ?? values['col']);
+        const gridY = this.numberFromUnknown(values['y'] ?? values['row']);
+        if (gridX === null || gridY === null) {
+          return null;
+        }
+
+        return {
+          x: RunMapPageComponent.MAP_HORIZONTAL_PADDING + gridX * RunMapPageComponent.MAP_NODE_HORIZONTAL_GAP,
+          y: RunMapPageComponent.MAP_VERTICAL_PADDING + gridY * RunMapPageComponent.MAP_ROW_VERTICAL_GAP,
+        };
+      })
+      .filter((point): point is { x: number; y: number } => point !== null);
   }
 
   private edgeSortValue(node: CurrentRunNode | undefined): number {

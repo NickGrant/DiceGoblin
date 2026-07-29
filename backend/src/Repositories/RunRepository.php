@@ -217,7 +217,7 @@ final class RunRepository
    *
    * $edges input shape (by node_index):
    *  [
-   *    ['from' => 0, 'to' => 1],
+   *    ['from' => 0, 'to' => 1, 'meta' => ['through' => [['x' => 1, 'y' => 0]]]],
    *    ['from' => 0, 'to' => 2],
    *    ...
    *  ]
@@ -335,12 +335,12 @@ final class RunRepository
   /**
    * Fetch run edges for a run (node ids).
    *
-   * @return array<int, array{from_node_id:string,to_node_id:string}>
+   * @return array<int, array{from_node_id:string,to_node_id:string,meta_json:?string}>
    */
   public function getRunEdges(int $runId): array
   {
     $stmt = $this->pdo->prepare('
-      SELECT `from_node_id`, `to_node_id`
+      SELECT `from_node_id`, `to_node_id`, `meta_json`
       FROM `run_edges`
       WHERE `run_id` = ?
       ORDER BY `from_node_id` ASC, `to_node_id` ASC
@@ -352,6 +352,7 @@ final class RunRepository
     return array_map(static fn(array $r): array => [
       'from_node_id' => (string)$r['from_node_id'],
       'to_node_id' => (string)$r['to_node_id'],
+      'meta_json' => $r['meta_json'] !== null ? (string)$r['meta_json'] : null,
     ], $rows);
   }
 
@@ -949,7 +950,7 @@ final class RunRepository
    * Insert edges by node_index using a node_id map.
    *
    * @param array<int,int> $nodeIdByIndex
-   * @param array<int, array{from:int,to:int}> $edges
+   * @param array<int, array<string,mixed>> $edges
    */
   private function insertRunEdgesByIndex(int $runId, array $nodeIdByIndex, array $edges): void
   {
@@ -968,17 +969,42 @@ final class RunRepository
         throw new RuntimeException('Edge references unknown node_index.');
       }
 
-      $valuesSql[] = '(?, ?, ?)';
+      $meta = $this->edgeMetaJson($e);
+
+      $valuesSql[] = '(?, ?, ?, ?)';
       $params[] = $runId;
       $params[] = $nodeIdByIndex[$fromIdx];
       $params[] = $nodeIdByIndex[$toIdx];
+      $params[] = $meta;
     }
 
     $sql = '
-      INSERT INTO `run_edges` (`run_id`, `from_node_id`, `to_node_id`)
+      INSERT INTO `run_edges` (`run_id`, `from_node_id`, `to_node_id`, `meta_json`)
       VALUES ' . implode(',', $valuesSql);
 
     $stmt = $this->pdo->prepare($sql);
     $stmt->execute($params);
+  }
+
+  /**
+   * @param array<string,mixed> $edge
+   */
+  private function edgeMetaJson(array $edge): ?string
+  {
+    $meta = is_array($edge['meta'] ?? null) ? $edge['meta'] : [];
+    if (is_array($edge['through'] ?? null)) {
+      $meta['through'] = array_values(array_filter($edge['through'], 'is_array'));
+    }
+
+    if ($meta === []) {
+      return null;
+    }
+
+    $json = json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (!is_string($json)) {
+      throw new RuntimeException('Invalid run edge metadata.');
+    }
+
+    return $json;
   }
 }

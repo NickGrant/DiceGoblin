@@ -132,7 +132,7 @@ final class RunGraphGenerator
   ) {}
 
   /**
-   * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>}
+   * @return array{nodes: array<int,array<string,mixed>>, edges: array<int,array<string,mixed>>}
    */
   public function generate(int $regionId, string $regionSlug, string $seed, bool $allowChaosNodes = true): array
   {
@@ -1059,7 +1059,16 @@ final class RunGraphGenerator
       $from = $keyToIndex[(string)($edge['from'] ?? '')] ?? null;
       $to = $keyToIndex[(string)($edge['to'] ?? '')] ?? null;
       if ($from !== null && $to !== null) {
-        $this->appendEdge($edges, $from, $to);
+        $runtimeEdge = ['from' => $from, 'to' => $to];
+        $through = array_values(array_filter(is_array($edge['through'] ?? null) ? $edge['through'] : [], 'is_array'));
+        if ($through !== []) {
+          $runtimeEdge['through'] = array_map(static fn(array $waypoint): array => [
+            'x' => (int)($waypoint['x'] ?? $waypoint['col'] ?? 0),
+            'y' => (int)($waypoint['y'] ?? $waypoint['row'] ?? 0),
+          ], $through);
+        }
+
+        $edges[] = $runtimeEdge;
       }
     }
 

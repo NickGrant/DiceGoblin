@@ -76,6 +76,33 @@ final class RunGenerationProvenancePersistenceIntegrationTest extends Integratio
     $this->assertSame([], $activeRun['generation_summary']['validation_failures'] ?? null);
   }
 
+  public function testCreateRunGraphPersistsOptionalEdgeMetadata(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->seededRegionId('mountains');
+
+    $created = (new RunRepository($this->pdo))->createRunGraph(
+      $userId,
+      $regionId,
+      12347,
+      [
+        ['node_index' => 0, 'node_type' => 'combat', 'status' => 'available', 'meta' => ['col' => 0, 'row' => 1]],
+        ['node_index' => 1, 'node_type' => 'loot', 'status' => 'locked', 'meta' => ['col' => 2, 'row' => 1]],
+      ],
+      [
+        ['from' => 0, 'to' => 1, 'through' => [['x' => 1, 'y' => 0]]],
+      ]
+    );
+
+    $edges = (new RunRepository($this->pdo))->getRunEdges((int)$created['run_id']);
+    $this->assertCount(1, $edges);
+    $this->assertIsString($edges[0]['meta_json']);
+
+    $meta = json_decode((string)$edges[0]['meta_json'], true);
+    $this->assertIsArray($meta);
+    $this->assertSame([['x' => 1, 'y' => 0]], $meta['through'] ?? null);
+  }
+
   public function testFixedRunGenerationMetadataPersistsForSharedMapRendering(): void
   {
     $userId = $this->insertUser();
