@@ -194,6 +194,11 @@ The V2 catalogue introduces grid cells, connector cells, explicit connections, a
 - Validation supports DB-loaded V2 definitions without requiring JSON files.
 - Tests cover valid and invalid V2 catalog examples.
 
+#### Progress
+
+- Added a V2 grid catalog validator for DB-loaded definitions and migration-seeded catalogue validation.
+- Tightened the initial V2 seed exits so perimeter exits are enforced before composer work begins.
+
 ### Implement pattern-v2 tile composer
 
 **Milestone:** Pattern-V2 Run Map Generation
