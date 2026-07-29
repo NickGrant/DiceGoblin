@@ -20,11 +20,11 @@ final class RunPatternGenerationSummaryServiceTest extends TestCase
       ],
       [
         'nodes' => [
-          ['key' => 'start', 'type' => 'start', 'pattern_key' => 'shared_start_single@1', 'path_role' => 'spine', 'depth' => 0],
-          ['key' => 'combat', 'type' => 'combat', 'pattern_key' => 'shared_combat_step@1', 'path_role' => 'spine', 'depth' => 1],
-          ['key' => 'boss', 'type' => 'boss', 'pattern_key' => 'shared_boss_exit_terminal@1', 'path_role' => 'spine', 'depth' => 2],
-          ['key' => 'exit', 'type' => 'exit', 'pattern_key' => 'shared_boss_exit_terminal@1', 'path_role' => 'spine', 'depth' => 3],
-          ['key' => 'loot', 'type' => 'loot', 'pattern_key' => 'shared_loot_cap@1', 'branch_key' => 'branch-1'],
+          ['key' => 'start', 'type' => 'start', 'pattern_key' => 'shared_start_single@1', 'path_role' => 'spine', 'depth' => 0, 'x' => 0, 'y' => 1],
+          ['key' => 'combat', 'type' => 'combat', 'pattern_key' => 'shared_combat_step@1', 'path_role' => 'spine', 'depth' => 1, 'x' => 1, 'y' => 1],
+          ['key' => 'boss', 'type' => 'boss', 'pattern_key' => 'shared_boss_exit_terminal@1', 'path_role' => 'spine', 'depth' => 2, 'x' => 2, 'y' => 1],
+          ['key' => 'exit', 'type' => 'exit', 'pattern_key' => 'shared_boss_exit_terminal@1', 'path_role' => 'spine', 'depth' => 3, 'x' => 3, 'y' => 1],
+          ['key' => 'loot', 'type' => 'loot', 'pattern_key' => 'shared_loot_cap@1', 'branch_key' => 'branch-1', 'x' => 2, 'y' => 2],
         ],
         'edges' => [
           ['from' => 'start', 'to' => 'combat'],
@@ -48,6 +48,9 @@ final class RunPatternGenerationSummaryServiceTest extends TestCase
     $this->assertSame(['boss' => 1, 'combat' => 1, 'exit' => 1, 'loot' => 1, 'start' => 1], $summary['node_types']);
     $this->assertSame(3, $summary['spine_depth']);
     $this->assertSame(1, $summary['branch_count']);
+    $this->assertSame(2, $summary['occupied_rows']);
+    $this->assertSame(4, $summary['occupied_columns']);
+    $this->assertSame(2, $summary['max_straight_spine_nodes']);
     $this->assertSame(['start_to_boss' => 2, 'boss_to_exit' => 1], $summary['boss_path']);
     $this->assertSame(3, $summary['trace']['counters']['placements']);
   }

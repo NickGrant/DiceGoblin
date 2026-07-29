@@ -221,6 +221,12 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertSame([], $analysis['duplicate_edges']);
     $this->assertSame([], $analysis['crossing_edges']);
     $this->assertSame('pattern-v2', (string)($graph['nodes'][0]['meta']['generation']['generator_version'] ?? ''));
+    $this->assertArrayHasKey('x', $graph['nodes'][0]['meta']['generation']);
+    $this->assertArrayHasKey('y', $graph['nodes'][0]['meta']['generation']);
+    $this->assertArrayHasKey('branch_key', $graph['nodes'][0]['meta']['generation']);
+    $this->assertArrayHasKey('occupied_rows', $graph['generation']);
+    $this->assertArrayHasKey('occupied_columns', $graph['generation']);
+    $this->assertArrayHasKey('max_straight_spine_nodes', $graph['generation']);
   }
 
   public function testBuildsUserSpecificDialoguePlacementRequestsForPatternGeneration(): void
