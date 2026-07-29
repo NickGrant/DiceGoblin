@@ -135,7 +135,9 @@ function gateOptions(array $options): array
     'min-branch-count' => 'min_branch_count',
     'max-straight-spine-nodes' => 'max_straight_spine_nodes',
     'min-occupied-rows' => 'min_occupied_rows',
+    'max-occupied-rows' => 'max_occupied_rows',
     'min-occupied-columns' => 'min_occupied_columns',
+    'max-occupied-columns' => 'max_occupied_columns',
   ];
 
   $gateOptions = [];

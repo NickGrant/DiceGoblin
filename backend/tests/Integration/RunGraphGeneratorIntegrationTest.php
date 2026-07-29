@@ -197,6 +197,7 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
   {
     $this->applyMigration('79_seed_pattern_v2_catalog.sql');
     $this->applyMigration('80_fix_pattern_v2_perimeter_exits.sql');
+    $this->applyMigration('81_seed_pattern_v2_dense_mountain_tiles.sql');
 
     $regionId = $this->seededRegionId('mountains');
     $generator = new RunGraphGenerator($this->pdo);
@@ -205,9 +206,10 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $analysis = $this->analyzeGraph($graph);
 
     $this->assertSame('pattern-v2', $graph['generation']['generator_version']);
+    $this->assertSame(2, (int)$graph['generation']['profile_version']);
     $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', (string)$graph['generation']['catalog_hash']);
-    $this->assertGreaterThanOrEqual(18, count($graph['nodes']));
-    $this->assertGreaterThanOrEqual(3, $analysis['distinct_row_count']);
+    $this->assertGreaterThanOrEqual(30, count($graph['nodes']));
+    $this->assertGreaterThanOrEqual(5, $analysis['distinct_row_count']);
     $this->assertGreaterThanOrEqual(2, $graph['generation']['branch_count']);
     $this->assertContains('boss', array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']));
     $this->assertContains('exit', array_map(static fn(array $node): string => (string)$node['node_type'], $graph['nodes']));

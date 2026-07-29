@@ -75,17 +75,19 @@ final class RunPatternGenerationRequestBuilderIntegrationTest extends Integratio
 
     $this->assertSame('mountains', $request['region_slug']);
     $this->assertSame('pattern-v2', $request['generator_version']);
-    $this->assertSame(1, $request['profile_version']);
+    $this->assertSame(2, $request['profile_version']);
     $this->assertSame([], $request['variants_by_pattern_key']);
     $this->assertSame(['spine', 'start', 'terminal'], array_keys($request['rules_by_phase']));
-    $this->assertCount(4, $request['patterns_by_key']);
-    $this->assertCount(4, $request['tiles_by_pattern_key']);
+    $this->assertCount(5, $request['patterns_by_key']);
+    $this->assertCount(5, $request['tiles_by_pattern_key']);
     $this->assertArrayHasKey('v2_mountain_start_cluster@1', $request['tiles_by_pattern_key']);
     $this->assertArrayHasKey('v2_mountain_braided_combat@1', $request['tiles_by_pattern_key']);
+    $this->assertArrayHasKey('v2_mountain_dense_braid@1', $request['tiles_by_pattern_key']);
     $this->assertArrayHasKey('v2_general_loot_connector@1', $request['tiles_by_pattern_key']);
     $this->assertArrayHasKey('v2_mountain_boss_exit@1', $request['tiles_by_pattern_key']);
     $this->assertSame(3, $request['tiles_by_pattern_key']['v2_mountain_start_cluster@1']['height']);
     $this->assertSame(5, $request['tiles_by_pattern_key']['v2_mountain_braided_combat@1']['width']);
+    $this->assertSame(5, $request['tiles_by_pattern_key']['v2_mountain_dense_braid@1']['height']);
     $this->assertSame(['start', 'mountain'], $request['tiles_by_pattern_key']['v2_mountain_start_cluster@1']['tags']);
     $this->assertContains('boss', array_column($request['tiles_by_pattern_key']['v2_mountain_boss_exit@1']['nodes'], 'type'));
   }
@@ -173,9 +175,15 @@ final class RunPatternGenerationRequestBuilderIntegrationTest extends Integratio
 
   private function applyPatternV2Migration(): void
   {
-    $path = dirname(__DIR__, 2) . '/migrations/79_seed_pattern_v2_catalog.sql';
-    $sql = file_get_contents($path);
-    $this->assertIsString($sql);
-    $this->pdo->exec($sql);
+    foreach ([
+      '79_seed_pattern_v2_catalog.sql',
+      '80_fix_pattern_v2_perimeter_exits.sql',
+      '81_seed_pattern_v2_dense_mountain_tiles.sql',
+    ] as $filename) {
+      $path = dirname(__DIR__, 2) . '/migrations/' . $filename;
+      $sql = file_get_contents($path);
+      $this->assertIsString($sql);
+      $this->pdo->exec($sql);
+    }
   }
 }

@@ -224,6 +224,7 @@ Pattern-v1 remains spine-first and cannot reliably produce the square, multi-row
 - Docker DB sampling for Mountains Pattern-V2 produced 10/10 valid previews with 25-32 nodes, 2-3 internal branches, and at most 3 consecutive same-row spine nodes.
 - Pattern-V2 can now be requested through the runtime run graph generator with the same persistence-facing node, edge, encounter, hazard, quality-tier, and provenance shape used by Pattern-V1.
 - Terminal V2 reward sinks now route onward into the exit so runtime validation does not leave post-boss reward dead ends.
+- Mountains Pattern-V2 now has a forward-migration dense five-row braid tile and profile version 2 so more node budget is spent vertically before runtime opt-in.
 
 ### Add pattern-v2 preview and simulation gates
 
