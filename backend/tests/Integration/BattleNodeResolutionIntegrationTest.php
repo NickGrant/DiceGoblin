@@ -159,6 +159,7 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $shrinePreview = $shrineRes['body']['data']['battle']['reward_preview'] ?? null;
     $this->assertIsArray($shrinePreview);
     $this->assertSame('shrine', (string)($shrinePreview['node_type'] ?? ''));
+    $this->assertIsArray($shrinePreview['encounter_result'] ?? null);
     $this->assertSame('shrine_favor_granted', (string)($shrineRes['body']['data']['battle']['log']['events'][0]['message'] ?? ''));
     $shrineResult = $shrineRes['body']['data']['battle']['log']['events'][0]['shrine_result'] ?? null;
     $this->assertIsArray($shrineResult);
@@ -166,7 +167,7 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertNotSame('', (string)($shrineResult['title'] ?? ''));
     $this->assertContains(
       (string)($shrineRes['body']['data']['battle']['log']['events'][0]['primitive'] ?? ''),
-      ['grant_teeth', 'heal_random_unit', 'drain_highest_life_heal_rest', 'squad_damage_next_combat', 'double_run_teeth', 'clear_random_combat_node']
+      ['grant_teeth', 'heal_random_unit', 'drain_highest_life_heal_rest', 'squad_damage_next_combat', 'double_run_teeth', 'upgrade_run_unit_tier', 'clear_random_combat_node']
     );
     [$shrineXp, $shrineSoft] = $this->battleRewardTuple($shrineBattleId);
     $this->assertSame(0, $shrineXp);
@@ -179,7 +180,7 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame('shrine', (string)($shrineRewards['encounter_result']['family'] ?? ''));
     $this->assertContains(
       (string)($shrineRewards['encounter_result']['primitive'] ?? ''),
-      ['grant_teeth', 'heal_random_unit', 'drain_highest_life_heal_rest', 'squad_damage_next_combat', 'double_run_teeth', 'clear_random_combat_node']
+      ['grant_teeth', 'heal_random_unit', 'drain_highest_life_heal_rest', 'squad_damage_next_combat', 'double_run_teeth', 'upgrade_run_unit_tier', 'clear_random_combat_node']
     );
     $this->assertStringStartsWith('shrine_', (string)($shrineRewards['encounter_result']['effect_slug'] ?? ''));
     $this->assertIsArray($shrineRewards['encounter_result']['result']['effect'] ?? null);

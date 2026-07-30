@@ -525,6 +525,7 @@ final class RunLifecycleService
       'drain_highest_life_heal_rest' => $this->applyShrineDrainAndHeal($userId, $runId, $effect, $runStateByUnitId),
       'squad_damage_next_combat' => $this->applyShrineSquadDamageEffect($runId, $effect, $runStateByUnitId),
       'clear_random_combat_node' => $this->applyShrineClearCombatNode($runId, $nodeId),
+      'upgrade_run_unit_tier' => $this->applyShrineUnitTierUpgrade($userId, $runId, $nodeId, $effect),
       default => [],
     };
   }
@@ -749,6 +750,164 @@ final class RunLifecycleService
       'cleared_node_id' => (string)$clearedNodeId,
       'unlocked_node_ids' => $unlocked,
     ]];
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @return list<array<string,mixed>>
+   */
+  private function applyShrineUnitTierUpgrade(int $userId, int $runId, int $nodeId, array $effect): array
+  {
+    $eligibleUnitIds = $this->eligibleRunRewardUnitIdsBeforeNode($runId, $nodeId);
+    if ($eligibleUnitIds === []) {
+      return [];
+    }
+
+    $unitsById = $this->loadUpgradeableRewardUnitsForUpdate($userId, $eligibleUnitIds);
+    $eligible = [];
+    $tierIncrease = max(1, (int)($effect['tier_increase'] ?? 1));
+    $maxTier = max(1, (int)($effect['max_tier'] ?? 3));
+    foreach ($eligibleUnitIds as $unitId) {
+      $unit = $unitsById[$unitId] ?? null;
+      if (!is_array($unit)) {
+        continue;
+      }
+      $target = $this->upgradeTargetUnitType((string)$unit['unit_type_slug'], (int)$unit['tier'], $tierIncrease, $maxTier);
+      if (is_array($target)) {
+        $unit['target'] = $target;
+        $eligible[] = $unit;
+      }
+    }
+
+    if ($eligible === []) {
+      return [];
+    }
+
+    $pick = $eligible[$this->deterministicIndex("shrine-unit-upgrade|{$runId}|{$nodeId}", count($eligible))];
+    $target = is_array($pick['target'] ?? null) ? $pick['target'] : [];
+    $targetTier = max(1, (int)($target['tier'] ?? ((int)$pick['tier'] + $tierIncrease)));
+    $unitId = (int)$pick['id'];
+
+    $stmt = $this->pdo->prepare('
+      UPDATE `unit_instances`
+      SET `unit_type_id` = ?, `tier` = ?, `level` = 1, `xp` = 0
+      WHERE `id` = ? AND `user_id` = ?
+    ');
+    $stmt->execute([(int)$target['id'], $targetTier, $unitId, $userId]);
+    (new UnitLoadoutService($this->pdo))->initializeUnit($unitId, (int)$target['id']);
+
+    return [[
+      'type' => 'upgrade_run_unit_tier',
+      'unit_instance_id' => (string)$unitId,
+      'unit_type_slug_before' => (string)$pick['unit_type_slug'],
+      'unit_type_name_before' => (string)$pick['unit_type_name'],
+      'tier_before' => (int)$pick['tier'],
+      'unit_type_slug_after' => (string)$target['slug'],
+      'unit_type_name_after' => (string)$target['name'],
+      'tier_after' => $targetTier,
+    ]];
+  }
+
+  /**
+   * @return list<int>
+   */
+  private function eligibleRunRewardUnitIdsBeforeNode(int $runId, int $nodeId): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT br.`rewards_json`
+      FROM `battle_rewards` br
+      JOIN `battles` b ON b.`id` = br.`battle_id`
+      JOIN `run_nodes` current_node ON current_node.`id` = ?
+      JOIN `run_nodes` earned_node
+        ON earned_node.`id` = b.`node_id`
+       AND earned_node.`run_id` = b.`run_id`
+      WHERE b.`run_id` = ?
+        AND earned_node.`node_index` < current_node.`node_index`
+      ORDER BY earned_node.`node_index` ASC, b.`id` ASC
+    ');
+    $stmt->execute([$nodeId, $runId]);
+
+    $ids = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $rewards = json_decode((string)($row['rewards_json'] ?? ''), true);
+      $unitIds = is_array($rewards) && is_array($rewards['new_unit_instance_ids'] ?? null)
+        ? $rewards['new_unit_instance_ids']
+        : [];
+      foreach ($unitIds as $unitId) {
+        $id = (int)$unitId;
+        if ($id > 0 && !in_array($id, $ids, true)) {
+          $ids[] = $id;
+        }
+      }
+    }
+
+    return $ids;
+  }
+
+  /**
+   * @param list<int> $unitIds
+   * @return array<int,array{id:int,unit_type_id:int,unit_type_slug:string,unit_type_name:string,tier:int}>
+   */
+  private function loadUpgradeableRewardUnitsForUpdate(int $userId, array $unitIds): array
+  {
+    $unitIds = array_values(array_unique(array_filter($unitIds, static fn(int $id): bool => $id > 0)));
+    if ($unitIds === []) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
+    $stmt = $this->pdo->prepare("
+      SELECT ui.`id`, ui.`unit_type_id`, ui.`tier`, ut.`slug` AS `unit_type_slug`, ut.`name` AS `unit_type_name`
+      FROM `unit_instances` ui
+      JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+      WHERE ui.`user_id` = ? AND ui.`id` IN ($placeholders)
+      FOR UPDATE
+    ");
+    $stmt->execute(array_merge([$userId], $unitIds));
+
+    $units = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $units[(int)$row['id']] = [
+        'id' => (int)$row['id'],
+        'unit_type_id' => (int)$row['unit_type_id'],
+        'unit_type_slug' => (string)$row['unit_type_slug'],
+        'unit_type_name' => (string)$row['unit_type_name'],
+        'tier' => max(1, (int)$row['tier']),
+      ];
+    }
+
+    return $units;
+  }
+
+  /**
+   * @return array{id:int,slug:string,name:string,tier:int}|null
+   */
+  private function upgradeTargetUnitType(string $currentSlug, int $currentTier, int $tierIncrease, int $maxTier): ?array
+  {
+    $stem = preg_replace('/_t\d+$/', '', $currentSlug);
+    if (!is_string($stem) || $stem === '') {
+      return null;
+    }
+
+    $targetTier = min($maxTier, max(1, $currentTier) + $tierIncrease);
+    if ($targetTier <= $currentTier) {
+      return null;
+    }
+
+    $targetSlug = "{$stem}_t{$targetTier}";
+    $stmt = $this->pdo->prepare('SELECT `id`, `slug`, `name` FROM `unit_types` WHERE `slug` = ? LIMIT 1');
+    $stmt->execute([$targetSlug]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!is_array($row)) {
+      return null;
+    }
+
+    return [
+      'id' => (int)$row['id'],
+      'slug' => (string)$row['slug'],
+      'name' => (string)$row['name'],
+      'tier' => $targetTier,
+    ];
   }
 
   private function deterministicIndex(string $seed, int $count): int

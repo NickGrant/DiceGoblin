@@ -120,6 +120,7 @@ final class RunSummaryBuilder
     $rewardDice = [];
     $rewardItems = [];
     $itemRewardCounts = [];
+    $shrineUpgradeCounts = [];
 
     foreach ($battleRows as $battle) {
       $teethTotal += max(0, (int)($battle['currency_soft'] ?? 0));
@@ -147,6 +148,9 @@ final class RunSummaryBuilder
       $claimSnapshot = $rewards['claim_snapshot'] ?? null;
       if (!is_array($claimSnapshot)) {
         continue;
+      }
+      foreach ($this->extractShrineUpgradeLabels($claimSnapshot) as $label) {
+        $shrineUpgradeCounts[$label] = ($shrineUpgradeCounts[$label] ?? 0) + 1;
       }
       $xp = $claimSnapshot['xp'] ?? null;
       if (!is_array($xp)) {
@@ -180,6 +184,9 @@ final class RunSummaryBuilder
     }
     if (count($itemRewardCounts) > 0) {
       $rewardLines[] = 'Items: ' . $this->formatCountList($itemRewardCounts);
+    }
+    if (count($shrineUpgradeCounts) > 0) {
+      $rewardLines[] = 'Shrine Upgrades: ' . $this->formatCountList($shrineUpgradeCounts);
     }
 
     $runState = is_array($terminalRunState) && count($terminalRunState) > 0
@@ -352,6 +359,29 @@ final class RunSummaryBuilder
     }
 
     return $map;
+  }
+
+  /**
+   * @param array<string,mixed> $claimSnapshot
+   * @return list<string>
+   */
+  private function extractShrineUpgradeLabels(array $claimSnapshot): array
+  {
+    $effects = is_array($claimSnapshot['shrine_effects'] ?? null) ? $claimSnapshot['shrine_effects'] : [];
+    $labels = [];
+    foreach ($effects as $effect) {
+      if (!is_array($effect) || (string)($effect['type'] ?? '') !== 'upgrade_run_unit_tier') {
+        continue;
+      }
+      $before = trim((string)($effect['unit_type_name_before'] ?? ''));
+      $after = trim((string)($effect['unit_type_name_after'] ?? ''));
+      if ($before === '' || $after === '') {
+        continue;
+      }
+      $labels[] = "{$before} -> {$after}";
+    }
+
+    return $labels;
   }
 
   /**

@@ -226,6 +226,7 @@ Current primitive-backed effects:
 | `shrine` | `shrine_old_goblin_mark` | `squad_damage_next_combat` | Farm, Mountains, and Swamps. | Persists a next-combat run modifier for the squad; combat consumes it after one eligible fight. |
 | `shrine` | `shrine_hidden_footpath` | `clear_random_combat_node` | Mountains and Swamps. | Clears one available combat node on the map when claimed. |
 | `shrine` | `shrine_bog_luck` | `double_run_teeth` | Swamps. | Awards teeth equal to claimed teeth already earned earlier in the run. |
+| `shrine` | `shrine_borrowed_future` | `upgrade_run_unit_tier` | Farm, Mountains, and Swamps. | Upgrades one unit gained earlier in the run to the next authored unit-type tier when possible. |
 | `shrine` | `shrine_crooked_bargain` | `drain_highest_life_heal_rest` | Mountains and Swamps. | Presents a declineable bargain; accepting drains the healthiest unit to heal the rest, declining clears the claim without applying either side. |
 
 Procedural hazard population:

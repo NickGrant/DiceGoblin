@@ -8,6 +8,7 @@ use DiceGoblins\Repositories\RunNodeRepository;
 use DiceGoblins\Repositories\RunRepository;
 use DiceGoblins\Services\RunLifecycleService;
 use DiceGoblins\Services\UserUnlockService;
+use DiceGoblins\Support\RunSummaryBuilder;
 use DiceGoblins\Tests\Support\BattleFlowIntegrationCase;
 
 final class RunLifecycleServiceIntegrationTest extends BattleFlowIntegrationCase
@@ -454,6 +455,160 @@ final class RunLifecycleServiceIntegrationTest extends BattleFlowIntegrationCase
     $this->expectException(\RuntimeException::class);
     $this->expectExceptionMessage('shrine_not_declineable');
     $this->service()->claimBattle($userId, $battleId, 'decline');
+  }
+
+  public function testClaimShrineCanUpgradeUnitGainedEarlierInRun(): void
+  {
+    $userId = $this->insertUser('shrine_unit_upgrade', 'Shrine Unit Upgrade');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 12131415);
+    $priorNodeId = $this->insertRunNode($runId, 'combat', 'cleared');
+    $shrineNodeId = $this->insertRunNode($runId, 'shrine', 'cleared');
+    $this->pdo?->prepare('UPDATE `run_nodes` SET `node_index` = ? WHERE `id` = ?')->execute([1, $priorNodeId]);
+    $this->pdo?->prepare('UPDATE `run_nodes` SET `node_index` = ? WHERE `id` = ?')->execute([2, $shrineNodeId]);
+
+    $bruiserTypeId = (int)$this->scalar("SELECT `id` FROM `unit_types` WHERE `slug` = 'frontline_bruiser_t1' LIMIT 1", []);
+    $enforcerTypeId = (int)$this->scalar("SELECT `id` FROM `unit_types` WHERE `slug` = 'frontline_bruiser_t2' LIMIT 1", []);
+    $this->assertGreaterThan(0, $bruiserTypeId);
+    $this->assertGreaterThan(0, $enforcerTypeId);
+
+    $rewardedUnitId = $this->insertUnit($userId, $bruiserTypeId, 3, 40);
+    $this->insertTeamUnit($teamId, $rewardedUnitId);
+    $this->insertRunUnitState($runId, $rewardedUnitId, 12, false);
+
+    $priorBattleId = $this->insertBattle($userId, $runId, $priorNodeId, $teamId, 'claimed', 'victory', 3333, 20, 1);
+    $this->insertBattleRewards($priorBattleId, 0, 0, [
+      'new_unit_instance_ids' => [(string)$rewardedUnitId],
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+    ]);
+    $shrineBattleId = $this->insertBattle($userId, $runId, $shrineNodeId, $teamId, 'completed', 'victory', 4444, 0, 0);
+    $this->insertBattleRewards($shrineBattleId, 0, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'encounter_result' => [
+        'family' => 'shrine',
+        'primitive' => 'upgrade_run_unit_tier',
+        'effect_slug' => 'shrine_borrowed_future',
+        'result' => [
+          'effect' => ['type' => 'upgrade_run_unit_tier', 'tier_increase' => 1, 'max_tier' => 3],
+        ],
+      ],
+    ]);
+
+    $claim = $this->service()->claimBattle($userId, $shrineBattleId);
+    $snapshot = is_array($claim['claim_snapshot'] ?? null) ? $claim['claim_snapshot'] : [];
+
+    $this->assertSame((string)$enforcerTypeId, (string)$this->scalar('SELECT `unit_type_id` FROM `unit_instances` WHERE `id` = ?', [$rewardedUnitId]));
+    $this->assertSame('2', (string)$this->scalar('SELECT `tier` FROM `unit_instances` WHERE `id` = ?', [$rewardedUnitId]));
+    $this->assertSame('1', (string)$this->scalar('SELECT `level` FROM `unit_instances` WHERE `id` = ?', [$rewardedUnitId]));
+    $this->assertSame('0', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$rewardedUnitId]));
+    $this->assertSame('upgrade_run_unit_tier', (string)($snapshot['shrine_effects'][0]['type'] ?? ''));
+    $this->assertSame('frontline_bruiser_t1', (string)($snapshot['shrine_effects'][0]['unit_type_slug_before'] ?? ''));
+    $this->assertSame('frontline_bruiser_t2', (string)($snapshot['shrine_effects'][0]['unit_type_slug_after'] ?? ''));
+
+    $summary = (new RunSummaryBuilder($this->pdo))->buildRunSummary($userId, $runId);
+    $this->assertContains('Shrine Upgrades: Bruiser -> Enforcer', $summary['rewards'] ?? []);
+  }
+
+  public function testClaimShrineUnitUpgradeDoesNothingWithoutEligibleUnit(): void
+  {
+    $userId = $this->insertUser('shrine_unit_upgrade_none', 'Shrine Unit Upgrade None');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 15161718);
+    $shrineNodeId = $this->insertRunNode($runId, 'shrine', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 12, false);
+
+    $shrineBattleId = $this->insertBattle($userId, $runId, $shrineNodeId, $teamId, 'completed', 'victory', 5555, 0, 0);
+    $this->insertBattleRewards($shrineBattleId, 0, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'encounter_result' => [
+        'family' => 'shrine',
+        'primitive' => 'upgrade_run_unit_tier',
+        'effect_slug' => 'shrine_borrowed_future',
+        'result' => [
+          'effect' => ['type' => 'upgrade_run_unit_tier', 'tier_increase' => 1, 'max_tier' => 3],
+        ],
+      ],
+    ]);
+
+    $claim = $this->service()->claimBattle($userId, $shrineBattleId);
+    $snapshot = is_array($claim['claim_snapshot'] ?? null) ? $claim['claim_snapshot'] : [];
+
+    $this->assertSame([], $snapshot['shrine_effects'] ?? []);
+    $this->assertSame('1', (string)$this->scalar('SELECT `tier` FROM `unit_instances` WHERE `id` = ?', [$unitId]));
+  }
+
+  public function testClaimShrineUnitUpgradeSelectsOneEligibleUnitFromMultipleRewards(): void
+  {
+    $userId = $this->insertUser('shrine_unit_upgrade_many', 'Shrine Unit Upgrade Many');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 18192021);
+    $priorNodeId = $this->insertRunNode($runId, 'combat', 'cleared');
+    $shrineNodeId = $this->insertRunNode($runId, 'shrine', 'cleared');
+    $this->pdo?->prepare('UPDATE `run_nodes` SET `node_index` = ? WHERE `id` = ?')->execute([1, $priorNodeId]);
+    $this->pdo?->prepare('UPDATE `run_nodes` SET `node_index` = ? WHERE `id` = ?')->execute([2, $shrineNodeId]);
+
+    $bruiserTypeId = (int)$this->scalar("SELECT `id` FROM `unit_types` WHERE `slug` = 'frontline_bruiser_t1' LIMIT 1", []);
+    $marksmanTypeId = (int)$this->scalar("SELECT `id` FROM `unit_types` WHERE `slug` = 'backline_marksman_t1' LIMIT 1", []);
+    $this->assertGreaterThan(0, $bruiserTypeId);
+    $this->assertGreaterThan(0, $marksmanTypeId);
+
+    $firstUnitId = $this->insertUnit($userId, $bruiserTypeId, 2, 20);
+    $secondUnitId = $this->insertUnit($userId, $marksmanTypeId, 2, 20);
+    $this->insertTeamUnit($teamId, $firstUnitId);
+    $this->insertTeamUnit($teamId, $secondUnitId);
+    $this->insertRunUnitState($runId, $firstUnitId, 12, false);
+    $this->insertRunUnitState($runId, $secondUnitId, 12, false);
+
+    $priorBattleId = $this->insertBattle($userId, $runId, $priorNodeId, $teamId, 'claimed', 'victory', 6666, 20, 1);
+    $this->insertBattleRewards($priorBattleId, 0, 0, [
+      'new_unit_instance_ids' => [(string)$firstUnitId, (string)$secondUnitId],
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+    ]);
+    $shrineBattleId = $this->insertBattle($userId, $runId, $shrineNodeId, $teamId, 'completed', 'victory', 7777, 0, 0);
+    $this->insertBattleRewards($shrineBattleId, 0, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'encounter_result' => [
+        'family' => 'shrine',
+        'primitive' => 'upgrade_run_unit_tier',
+        'effect_slug' => 'shrine_borrowed_future',
+        'result' => [
+          'effect' => ['type' => 'upgrade_run_unit_tier', 'tier_increase' => 1, 'max_tier' => 3],
+        ],
+      ],
+    ]);
+
+    $claim = $this->service()->claimBattle($userId, $shrineBattleId);
+    $snapshot = is_array($claim['claim_snapshot'] ?? null) ? $claim['claim_snapshot'] : [];
+    $effect = is_array($snapshot['shrine_effects'][0] ?? null) ? $snapshot['shrine_effects'][0] : [];
+
+    $this->assertSame('upgrade_run_unit_tier', (string)($effect['type'] ?? ''));
+    $upgradedId = (int)($effect['unit_instance_id'] ?? 0);
+    $this->assertContains($upgradedId, [$firstUnitId, $secondUnitId]);
+
+    $tiers = $this->rows(
+      'SELECT `id`, `tier` FROM `unit_instances` WHERE `id` IN (?, ?) ORDER BY `id` ASC',
+      [$firstUnitId, $secondUnitId]
+    );
+    $this->assertCount(2, $tiers);
+    $upgradedCount = 0;
+    foreach ($tiers as $row) {
+      if ((int)$row['tier'] === 2) {
+        $upgradedCount++;
+      }
+    }
+    $this->assertSame(1, $upgradedCount);
   }
 
   private function service(): RunLifecycleService

@@ -105,6 +105,7 @@ final class EncounterPrimitiveCatalog
     ['slug' => 'shrine_old_goblin_mark', 'primitive' => 'squad_damage_next_combat', 'regions' => ['the_farm', 'mountains', 'swamps'], 'qualities' => ['good', 'great'], 'weights' => ['good' => 4, 'great' => 6], 'title' => 'Old Goblin Mark', 'result_copy' => 'An old mark sharpens the next fight.', 'favor' => 'old_goblin_mark', 'currency_min' => 0, 'currency_max' => 0, 'effect' => ['type' => 'squad_damage_next_combat', 'damage_multiplier' => 1.10], 'cost' => []],
     ['slug' => 'shrine_hidden_footpath', 'primitive' => 'clear_random_combat_node', 'regions' => ['mountains', 'swamps'], 'qualities' => ['good', 'great'], 'weights' => ['good' => 3, 'great' => 5], 'title' => 'Hidden Footpath', 'result_copy' => 'A hostile patrol gets lost before the warband reaches it.', 'favor' => 'hidden_footpath', 'currency_min' => 0, 'currency_max' => 0, 'effect' => ['type' => 'clear_random_combat_node'], 'cost' => []],
     ['slug' => 'shrine_bog_luck', 'primitive' => 'double_run_teeth', 'regions' => ['swamps'], 'qualities' => ['good', 'great'], 'weights' => ['good' => 2, 'great' => 6], 'title' => 'Bog Luck', 'result_copy' => 'The swamp doubles what the run has already shaken loose.', 'favor' => 'bog_luck', 'currency_min' => 0, 'currency_max' => 0, 'effect' => ['type' => 'double_run_teeth'], 'cost' => []],
+    ['slug' => 'shrine_borrowed_future', 'primitive' => 'upgrade_run_unit_tier', 'regions' => ['the_farm', 'mountains', 'swamps'], 'qualities' => ['great'], 'weights' => ['great' => 4], 'title' => 'Borrowed Future', 'result_copy' => 'A newly found goblin comes back sharper than before.', 'favor' => 'borrowed_future', 'currency_min' => 0, 'currency_max' => 0, 'effect' => ['type' => 'upgrade_run_unit_tier', 'tier_increase' => 1, 'max_tier' => 3], 'cost' => []],
     ['slug' => 'shrine_crooked_bargain', 'primitive' => 'drain_highest_life_heal_rest', 'regions' => ['mountains', 'swamps'], 'qualities' => ['good', 'great'], 'weights' => ['good' => 2, 'great' => 5], 'title' => 'Crooked Bargain', 'result_copy' => 'The healthiest goblin pays for everyone else to stand tall.', 'favor' => 'crooked_bargain', 'currency_min' => 0, 'currency_max' => 0, 'effect' => ['type' => 'drain_highest_life_heal_rest', 'drain_pct' => 50], 'cost' => ['declineable' => true]],
   ];
 
@@ -128,6 +129,7 @@ final class EncounterPrimitiveCatalog
         'drain_highest_life_heal_rest',
         'squad_damage_next_combat',
         'double_run_teeth',
+        'upgrade_run_unit_tier',
         'clear_random_combat_node',
       ],
     ];

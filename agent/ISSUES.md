@@ -88,6 +88,7 @@ Shrines currently behave like simple reward nodes and do not use node quality to
 
 - Backend shrine catalogue now supports quality-weighted generated effects for teeth, healing, drain-and-heal, next-combat damage metadata, double run teeth, and clearing an available combat node.
 - Merged in PR #230.
+- Added a generated unit-upgrade shrine effect that targets units gained earlier in the run.
 
 ### Add declineable shrine offer flow
 
@@ -147,6 +148,10 @@ The requested “reroll one random unit gained in run to a higher tier” shrine
 - The selected unit is upgraded or rerolled to a higher tier according to authored tier rules.
 - Reward preview, claim response, and run summary show the upgraded unit clearly.
 - Tests cover no eligible unit, one eligible unit, and multiple eligible units.
+
+#### Progress
+
+- Added backend claim-time support for upgrading an earlier run reward unit to the next authored unit-type tier.
 
 ### UAT and tune shrine effect weights
 
