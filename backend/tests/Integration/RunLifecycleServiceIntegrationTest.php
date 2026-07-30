@@ -457,6 +457,53 @@ final class RunLifecycleServiceIntegrationTest extends BattleFlowIntegrationCase
     $this->service()->claimBattle($userId, $battleId, 'decline');
   }
 
+  public function testClaimShrineCanApplyRunStatModifierForNextCombat(): void
+  {
+    $userId = $this->insertUser('shrine_stat_modifier', 'Shrine Stat Modifier');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 72737475);
+    $nodeId = $this->insertRunNode($runId, 'shrine', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 10, false);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'victory', 73747576, 0, 0);
+    $this->insertBattleRewards($battleId, 0, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'encounter_result' => [
+        'family' => 'shrine',
+        'primitive' => 'run_stat_modifier_next_combat',
+        'effect_slug' => 'shrine_stone_hide',
+        'result' => [
+          'effect' => [
+            'type' => 'run_stat_modifier_next_combat',
+            'stat_multipliers' => ['defense' => 1.25],
+            'stat_adders' => ['resolve' => 2],
+          ],
+        ],
+      ],
+    ]);
+
+    $claim = $this->service()->claimBattle($userId, $battleId);
+    $snapshot = is_array($claim['claim_snapshot'] ?? null) ? $claim['claim_snapshot'] : [];
+    $effect = is_array($snapshot['shrine_effects'][0] ?? null) ? $snapshot['shrine_effects'][0] : [];
+
+    $this->assertSame('run_stat_modifier_next_combat', (string)($effect['type'] ?? ''));
+    $this->assertSame(1.25, (float)($effect['stat_multipliers']['defense'] ?? 0.0));
+    $this->assertSame(2, (int)($effect['stat_adders']['resolve'] ?? 0));
+    $this->assertSame([(string)$unitId], $effect['applied_unit_instance_ids'] ?? []);
+
+    $statusEffects = json_decode((string)$this->scalar('SELECT `status_effects_json` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?', [$runId, $unitId]), true);
+    $this->assertIsArray($statusEffects);
+    $this->assertSame('run_stat_modifier_next_combat', (string)($statusEffects[0]['type'] ?? ''));
+    $this->assertSame(1, (int)($statusEffects[0]['remaining_combats'] ?? 0));
+    $this->assertSame('shrine', (string)($statusEffects[0]['source'] ?? ''));
+  }
+
   public function testClaimShrineCanUpgradeUnitGainedEarlierInRun(): void
   {
     $userId = $this->insertUser('shrine_unit_upgrade', 'Shrine Unit Upgrade');

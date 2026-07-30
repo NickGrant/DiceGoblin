@@ -17,7 +17,7 @@ final class EncounterPrimitiveCatalogTest extends TestCase
       $vocabulary['hazard']
     );
     $this->assertSame(
-      ['grant_teeth', 'heal_random_unit', 'drain_highest_life_heal_rest', 'squad_damage_next_combat', 'double_run_teeth', 'upgrade_run_unit_tier', 'clear_random_combat_node'],
+      ['grant_teeth', 'heal_random_unit', 'drain_highest_life_heal_rest', 'squad_damage_next_combat', 'run_stat_modifier_next_combat', 'double_run_teeth', 'upgrade_run_unit_tier', 'clear_random_combat_node'],
       $vocabulary['shrine']
     );
   }
@@ -109,7 +109,7 @@ final class EncounterPrimitiveCatalogTest extends TestCase
     $vocabulary = $catalog->vocabulary()['shrine'];
     $slugs = [];
 
-    $this->assertGreaterThanOrEqual(8, count($shrines));
+    $this->assertGreaterThanOrEqual(10, count($shrines));
     foreach ($shrines as $shrine) {
       $slug = (string)$shrine['slug'];
       $this->assertStringStartsWith('shrine_', $slug);
@@ -125,5 +125,7 @@ final class EncounterPrimitiveCatalogTest extends TestCase
       $this->assertNotSame('', (string)($shrine['effect']['type'] ?? ''));
       $slugs[] = $slug;
     }
+    $this->assertContains('shrine_stone_hide', $slugs);
+    $this->assertContains('shrine_clear_eye', $slugs);
   }
 }

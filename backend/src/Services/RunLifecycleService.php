@@ -524,6 +524,7 @@ final class RunLifecycleService
       'heal_random_unit' => $this->applyShrineRandomHeal($userId, $runId, $nodeId, $effect, $runStateByUnitId),
       'drain_highest_life_heal_rest' => $this->applyShrineDrainAndHeal($userId, $runId, $effect, $runStateByUnitId),
       'squad_damage_next_combat' => $this->applyShrineSquadDamageEffect($runId, $effect, $runStateByUnitId),
+      'run_stat_modifier_next_combat', 'stat_modifier_next_combat', 'squad_stat_modifier_next_combat' => $this->applyShrineRunStatModifierEffect($runId, $effect, $runStateByUnitId),
       'clear_random_combat_node' => $this->applyShrineClearCombatNode($runId, $nodeId),
       'upgrade_run_unit_tier' => $this->applyShrineUnitTierUpgrade($userId, $runId, $nodeId, $effect),
       default => [],
@@ -718,6 +719,93 @@ final class RunLifecycleService
       'damage_multiplier' => $multiplier,
       'applied_unit_instance_ids' => $applied,
     ]];
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @param array<int,array{unit_instance_id:string,current_hp:int,is_defeated:bool,cooldowns_json:string,status_effects_json:string}> $runStateByUnitId
+   * @return list<array<string,mixed>>
+   */
+  private function applyShrineRunStatModifierEffect(int $runId, array $effect, array &$runStateByUnitId): array
+  {
+    $statMultipliers = $this->normalizeShrineFloatMap($effect['stat_multipliers'] ?? []);
+    $statAdders = $this->normalizeShrineIntMap($effect['stat_adders'] ?? []);
+    $allowedMultipliers = array_flip(['attack', 'defense', 'precision', 'resolve', 'damage']);
+    $allowedAdders = array_flip(['attack', 'defense', 'precision', 'resolve']);
+    $statMultipliers = array_intersect_key($statMultipliers, $allowedMultipliers);
+    $statAdders = array_intersect_key($statAdders, $allowedAdders);
+    if ($statMultipliers === [] && $statAdders === []) {
+      return [];
+    }
+
+    $effectType = in_array((string)($effect['type'] ?? ''), ['stat_modifier_next_combat', 'squad_stat_modifier_next_combat'], true)
+      ? (string)$effect['type']
+      : 'run_stat_modifier_next_combat';
+    $effectRow = [
+      'type' => $effectType,
+      'stat_multipliers' => $statMultipliers,
+      'stat_adders' => $statAdders,
+      'remaining_combats' => 1,
+      'source' => 'shrine',
+    ];
+    $applied = [];
+    foreach ($runStateByUnitId as $unitId => &$state) {
+      if (!empty($state['is_defeated'])) {
+        continue;
+      }
+      $effects = json_decode((string)$state['status_effects_json'], true);
+      $effects = is_array($effects) ? $effects : [];
+      $effects[] = $effectRow;
+      $state['status_effects_json'] = json_encode($effects, JSON_UNESCAPED_SLASHES);
+      $this->runRepository->upsertRunUnitState($runId, $unitId, (int)$state['current_hp'], !empty($state['is_defeated']), (string)$state['cooldowns_json'], (string)$state['status_effects_json']);
+      $applied[] = (string)$unitId;
+    }
+    unset($state);
+
+    return $applied === [] ? [] : [[
+      'type' => $effectType,
+      'stat_multipliers' => $statMultipliers,
+      'stat_adders' => $statAdders,
+      'applied_unit_instance_ids' => $applied,
+    ]];
+  }
+
+  /**
+   * @return array<string,float>
+   */
+  private function normalizeShrineFloatMap(mixed $value): array
+  {
+    if (!is_array($value)) {
+      return [];
+    }
+
+    $out = [];
+    foreach ($value as $key => $raw) {
+      if (is_numeric($raw)) {
+        $out[(string)$key] = (float)$raw;
+      }
+    }
+
+    return $out;
+  }
+
+  /**
+   * @return array<string,int>
+   */
+  private function normalizeShrineIntMap(mixed $value): array
+  {
+    if (!is_array($value)) {
+      return [];
+    }
+
+    $out = [];
+    foreach ($value as $key => $raw) {
+      if (is_numeric($raw)) {
+        $out[(string)$key] = (int)$raw;
+      }
+    }
+
+    return $out;
   }
 
   /**
