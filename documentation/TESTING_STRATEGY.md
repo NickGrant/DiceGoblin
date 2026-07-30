@@ -24,6 +24,7 @@ Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `AGENTS.md`, `documentatio
   - `npm.cmd run sim:balance:battle:farm:docker`
   - `npm.cmd run sim:balance:run:farm:docker`
   - when the change affects Mountains, Swamps, or July roadmap pacing, also run `npm.cmd run sim:balance:run:uat-regions:docker`
+  - when the change affects shrine catalog weights or shrine effect eligibility, run `npm.cmd run sim:shrines:docker`
 
 Docker is the preferred local backend/PHP/database toolchain. CI/pipeline verification uses host PHP/Composer from GitHub Actions. If Docker is not running during local work, ask the user to start Docker before running backend or database verification.
 

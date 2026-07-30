@@ -67,92 +67,6 @@ The roadmap work moved through many stacked PRs, so release readiness needs a fi
 
 ## Shrine Expansion
 
-### Add generated quality-weighted shrine effects
-
-**Milestone:** Shrine Expansion
-**Status:** Open
-**Priority:** High
-
-#### Problem
-Shrines currently behave like simple reward nodes and do not use node quality to produce meaningfully different generated outcomes.
-
-#### Acceptance Criteria
-
-- Shrine nodes generate an effect at encounter time from region, run seed, node id, and quality.
-- Shrine node metadata stores quality/rendering context only, not preselected effect slugs.
-- Poor, good, and great shrine qualities have different weighted effect pools.
-- Generated shrine results persist through battle logs/rewards so repeated claims are idempotent.
-- Backend tests cover effect generation and claim-time application.
-
-#### Progress
-
-- Backend shrine catalogue now supports quality-weighted generated effects for teeth, healing, drain-and-heal, next-combat damage metadata, double run teeth, and clearing an available combat node.
-- Merged in PR #230.
-- Added a generated unit-upgrade shrine effect that targets units gained earlier in the run.
-
-### Add declineable shrine offer flow
-
-**Milestone:** Shrine Expansion
-**Status:** Open
-**Priority:** High
-
-#### Problem
-Some shrine effects should include costs or negative outcomes, but the current shrine page auto-resolves immediately and gives the player no chance to decline.
-
-#### Acceptance Criteria
-
-- Shrine nodes with costs generate a persisted offer before applying effects.
-- The frontend presents accept and decline actions for costly shrines.
-- Declining clears or exits the shrine according to the chosen design without applying the positive or negative effect.
-- Accepting applies both cost and reward exactly once.
-- API and frontend tests cover accept, decline, refresh, and idempotent repeat calls.
-
-#### Progress
-
-- Added accept/decline claim decisions for declineable shrine results, preserving idempotent claim snapshots.
-- Added shrine bargain UI actions and metadata-driven cost copy for generated declineable shrine offers.
-- Added backend lifecycle tests and frontend service/page specs for declineable shrine decisions.
-
-### Consume shrine combat modifiers in battle resolution
-
-**Milestone:** Shrine Expansion
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-The next-combat squad damage shrine can be persisted as run-unit effect metadata, but combat resolution does not yet consume run-unit status effects.
-
-#### Acceptance Criteria
-
-- `squad_damage_next_combat` increases squad damage by the authored multiplier for the next combat-like node.
-- The modifier is consumed after one eligible combat.
-- Combat logs identify the shrine modifier contribution.
-- Tests prove the modifier applies once and then expires.
-
-#### Progress
-
-- Added generic next-combat run stat modifier support for damage plus attack, defense, precision, and resolve.
-
-### Add shrine unit-upgrade reward effect
-
-**Milestone:** Shrine Expansion
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-The requested “reroll one random unit gained in run to a higher tier” shrine needs reward-history and unit-instance mutation rules that are broader than the first backend shrine effect slice.
-
-#### Acceptance Criteria
-
-- The shrine can select one unit gained during the current run.
-- The selected unit is upgraded or rerolled to a higher tier according to authored tier rules.
-- Reward preview, claim response, and run summary show the upgraded unit clearly.
-- Tests cover no eligible unit, one eligible unit, and multiple eligible units.
-
-#### Progress
-
-- Added backend claim-time support for upgrading an earlier run reward unit to the next authored unit-type tier.
-
 ### UAT and tune shrine effect weights
 
 **Milestone:** Shrine Expansion
@@ -168,4 +82,8 @@ Shrine weights and quality pools need hands-on validation once the new generated
 - Generated effects feel appropriate to quality and region.
 - Costly shrines are clear enough that declining feels intentional rather than like a missed reward.
 - Balance changes are captured with evidence packets before tuning.
+
+#### Progress
+
+- Added `npm.cmd run sim:shrines:docker` plus region-specific shrine sampler shortcuts for distribution evidence.
 

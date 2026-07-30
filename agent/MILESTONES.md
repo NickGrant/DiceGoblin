@@ -52,9 +52,5 @@ Success criteria:
 
 ### Related Issues
 
-- Add generated quality-weighted shrine effects
-- Add declineable shrine offer flow
-- Consume shrine combat modifiers in battle resolution
-- Add shrine unit-upgrade reward effect
 - UAT and tune shrine effect weights
 
