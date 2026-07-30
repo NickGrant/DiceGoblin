@@ -42,7 +42,7 @@ Units, dice, and items are materialized when the node is resolved. Currency and 
 | `chaos` | Uses combat resolution and battle claim behavior, but current reward rolls are not in the combat/boss/loot grant set. |
 | `rest` | No loot grant payload. |
 | `hazard` | No loot grant payload. |
-| `shrine` | No unit/dice/item grants in the normal loot payload; resolves a generated shrine effect that can grant teeth, heal run units, persist run-state metadata, double earlier run teeth, or clear an available combat node. Costly shrines surface accept/decline actions before claim-time effects are applied. |
+| `shrine` | No unit/dice/item grants in the normal loot payload; resolves a generated shrine effect that can grant teeth, heal run units, persist run-state metadata, double earlier run teeth, upgrade a unit gained earlier in the run, or clear an available combat node. Costly shrines surface accept/decline actions before claim-time effects are applied. |
 
 Declining a declineable shrine stores a normal claim snapshot with zero awarded currency, no XP, and no shrine effects. Repeating the claim returns that stored decision rather than reapplying or changing the offer.
 
