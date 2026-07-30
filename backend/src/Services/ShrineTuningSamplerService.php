@@ -81,10 +81,15 @@ final class ShrineTuningSamplerService
 
     ksort($effects);
     ksort($primitives);
+    $primitivePercentages = [];
+    foreach ($primitives as $primitive => $count) {
+      $primitivePercentages[$primitive] = round(($count / $samples) * 100, 1);
+    }
 
     return [
       'effect_counts' => $effects,
       'primitive_counts' => $primitives,
+      'primitive_percentages' => $primitivePercentages,
       'declineable_count' => $declineableCount,
       'avg_currency_soft' => round($currencyTotal / $samples, 2),
     ];

@@ -70,6 +70,11 @@ type ShrineOfferViewModel = {
   declineable: boolean;
 };
 
+type ShrineEffectSummaryViewModel = {
+  label: string;
+  detail: string;
+};
+
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
@@ -306,6 +311,65 @@ export class RunNodePageComponent implements OnDestroy {
     };
   });
   readonly isDeclineableShrineOffer = computed(() => Boolean(this.shrineOffer()?.declineable));
+  readonly shrineEffectSummary = computed<ShrineEffectSummaryViewModel | null>(() => {
+    if (this.resolvedNodeType() !== 'shrine') {
+      return null;
+    }
+
+    const result = this.shrineResultPayload();
+    const effect = result?.['effect'];
+    const effectRecord = effect && typeof effect === 'object' && !Array.isArray(effect)
+      ? effect as Record<string, unknown>
+      : {};
+    const type = typeof effectRecord['type'] === 'string' ? effectRecord['type'] : '';
+
+    switch (type) {
+      case 'grant_teeth':
+        return {
+          label: 'Teeth',
+          detail: this.nodeResultRewardLabel(),
+        };
+      case 'heal_random_unit':
+        return {
+          label: 'Healing',
+          detail: `Heals one wounded unit for ${this.percentLabel(effectRecord['amount_pct'], 35)} of max life.`,
+        };
+      case 'drain_highest_life_heal_rest':
+        return {
+          label: 'Bargain',
+          detail: `Fully heals the squad after the healthiest unit pays ${this.percentLabel(effectRecord['drain_pct'], 50)} life.`,
+        };
+      case 'squad_damage_next_combat':
+        return {
+          label: 'Next Combat',
+          detail: `${this.multiplierBonusLabel(effectRecord['damage_multiplier'], 1.10)} damage for the squad.`,
+        };
+      case 'run_stat_modifier_next_combat':
+      case 'stat_modifier_next_combat':
+      case 'squad_stat_modifier_next_combat':
+        return {
+          label: 'Next Combat',
+          detail: this.describeShrineStatModifier(effectRecord),
+        };
+      case 'double_run_teeth':
+        return {
+          label: 'Teeth',
+          detail: 'Doubles teeth already claimed during this run.',
+        };
+      case 'upgrade_run_unit_tier':
+        return {
+          label: 'Recruit Upgrade',
+          detail: 'Upgrades one unit gained earlier in this run to a higher tier.',
+        };
+      case 'clear_random_combat_node':
+        return {
+          label: 'Route',
+          detail: 'Clears one available combat node and opens any newly reachable paths.',
+        };
+      default:
+        return null;
+    }
+  });
   readonly nodeResultArtUrl = computed(() => {
     if (this.resolvedNodeType() === 'shrine') {
       return resolveNodeArtUrl(this.currentNode(), 'shrine');
@@ -666,6 +730,44 @@ export class RunNodePageComponent implements OnDestroy {
     }
 
     return 'Cost: this shrine has a negative side effect.';
+  }
+
+  private describeShrineStatModifier(effect: Record<string, unknown>): string {
+    const parts: string[] = [];
+    const multipliers = this.recordValue(effect['stat_multipliers']);
+    const adders = this.recordValue(effect['stat_adders']);
+    for (const [stat, raw] of Object.entries(multipliers)) {
+      const multiplier = Number(raw);
+      if (Number.isFinite(multiplier) && multiplier > 0 && Math.abs(multiplier - 1) > 0.0001) {
+        parts.push(`${this.multiplierBonusLabel(multiplier, 1)} ${this.humanizeId(stat)}`);
+      }
+    }
+    for (const [stat, raw] of Object.entries(adders)) {
+      const amount = Number(raw);
+      if (Number.isFinite(amount) && amount !== 0) {
+        parts.push(`${amount > 0 ? '+' : ''}${amount} ${this.humanizeId(stat)}`);
+      }
+    }
+
+    return parts.length ? `${parts.join(', ')} for the squad.` : 'Improves the squad for the next combat.';
+  }
+
+  private recordValue(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : {};
+  }
+
+  private percentLabel(value: unknown, fallback: number): string {
+    const numeric = Number(value ?? fallback);
+    return `${Number.isFinite(numeric) ? numeric : fallback}%`;
+  }
+
+  private multiplierBonusLabel(value: unknown, fallback: number): string {
+    const multiplier = Number(value ?? fallback);
+    const safeMultiplier = Number.isFinite(multiplier) ? multiplier : fallback;
+    const bonus = Math.round((safeMultiplier - 1) * 100);
+    return bonus >= 0 ? `+${bonus}%` : `${bonus}%`;
   }
 
   private mapActionStep(step: BattlePlaybackActionStep): BattleLogActionViewModel {

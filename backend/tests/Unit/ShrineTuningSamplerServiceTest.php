@@ -22,6 +22,8 @@ final class ShrineTuningSamplerServiceTest extends TestCase
     $this->assertArrayHasKey('poor', $first['regions']['mountains']);
     $this->assertArrayHasKey('good', $first['regions']['mountains']);
     $this->assertArrayHasKey('great', $first['regions']['mountains']);
+    $this->assertArrayHasKey('primitive_percentages', $first['regions']['mountains']['good']);
+    $this->assertGreaterThan(0, array_sum($first['regions']['mountains']['good']['primitive_percentages']));
   }
 
   public function testDeclineableShrinesAreExcludedUnlessRequested(): void

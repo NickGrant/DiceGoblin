@@ -54,7 +54,7 @@ Use `npm.cmd run sim:shrines:docker` to sample generated shrine effect distribut
 - `npm.cmd run sim:shrines:mountains:docker`
 - `npm.cmd run sim:shrines:swamps:docker`
 
-The sampler reports effect counts, primitive counts, average soft-currency output, and declineable-offer counts for each quality tier. Add `--format=json` when calling `backend/bin/sample-shrines.php` directly if raw evidence needs to be saved for tuning notes.
+The sampler reports effect counts, primitive counts, primitive mix percentages, average soft-currency output, and declineable-offer counts for each quality tier. Add `--format=json` when calling `backend/bin/sample-shrines.php` directly if raw evidence needs to be saved for tuning notes.
 
 ## Unit and Dice Grant Chances
 
