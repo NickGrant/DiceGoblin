@@ -22,12 +22,12 @@ class RunServiceStub {
       ],
       active_run_effects: [
         {
-          id: 'battle-1-shrine',
-          node_id: 'n3',
+          id: 'run-status-shrine-defense',
+          node_id: '',
           node_type: 'shrine',
-          label: 'Shrine Favor Granted',
-          detail: 'Bone Whisper grants 7 teeth.',
-          persistence: 'immediate',
+          label: 'Shrine Battle Effect',
+          detail: '+25% Defense for 2 units during the next combat.',
+          persistence: 'next combat',
           source: 'Shrine',
         },
       ],
@@ -139,8 +139,8 @@ describe('RunMapPageComponent', () => {
     expect(host.textContent).toContain('Field Poultice (1)');
     expect(host.textContent).toContain('Lv 3');
     expect(host.textContent).toContain('Run Effects');
-    expect(host.textContent).toContain('Shrine Favor Granted');
-    expect(host.textContent).toContain('Bone Whisper grants 7 teeth.');
+    expect(host.textContent).toContain('Shrine Battle Effect');
+    expect(host.textContent).toContain('+25% Defense for 2 units during the next combat.');
     expect(host.querySelector('.run-unit-grid .unit-thumbnail')).not.toBeNull();
     expect(host.querySelector('.run-unit-grid .unit-thumbnail__hp')).not.toBeNull();
     expect(host.querySelector('.run-unit-grid .unit-bar')).toBeNull();
@@ -303,7 +303,7 @@ describe('RunMapPageComponent', () => {
     expect(edge?.path).toBe('M 120 222 L 260 90 L 400 222');
   });
 
-  it('colors run-map edges by directed progression instead of either endpoint availability', async () => {
+  it('colors run-map edges by connected progression state', async () => {
     await TestBed.configureTestingModule({
       imports: [RunMapPageComponent],
       providers: [
@@ -331,6 +331,7 @@ describe('RunMapPageComponent', () => {
     } as any);
 
     expect(component.edgeState({ run_id: 'run-directed', from_node_id: 'cleared', to_node_id: 'available-rejoin' })).toBe('available');
+    expect(component.edgeState({ run_id: 'run-directed', from_node_id: 'available-rejoin', to_node_id: 'cleared' })).toBe('available');
     expect(component.edgeState({ run_id: 'run-directed', from_node_id: 'locked-parent', to_node_id: 'available-rejoin' })).toBe('locked');
     expect(component.edgeState({ run_id: 'run-directed', from_node_id: 'cleared', to_node_id: 'cleared-rejoin' })).toBe('cleared');
   });

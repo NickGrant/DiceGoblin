@@ -708,7 +708,7 @@ final class ChaosEncounterService
     int $fromNodeId
   ): array {
     $unlocked = [];
-    foreach ($edges->getToNodeIdsFrom($runId, $fromNodeId) as $toId) {
+    foreach ($edges->getConnectedNodeIds($runId, $fromNodeId) as $toId) {
       if ($nodes->setAvailableIfLocked($runId, $toId)) {
         $unlocked[] = $toId;
       }

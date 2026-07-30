@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Repositories\RunRepository;
+use DiceGoblins\Repositories\RunNodeRepository;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class RunRepositoryNodeTypesIntegrationTest extends IntegrationTestCase
@@ -32,6 +33,29 @@ final class RunRepositoryNodeTypesIntegrationTest extends IntegrationTestCase
       (int)$this->scalar(
         'SELECT COUNT(*) FROM `run_nodes` WHERE `run_id` = ? AND `node_type` IN (?, ?, ?)',
         [$result['run_id'], 'hazard', 'shrine', 'chaos']
+      )
+    );
+  }
+
+  public function testClearedNodesUnlockConnectedNodesRegardlessOfStoredEdgeDirection(): void
+  {
+    $userId = $this->insertUser('qa_connected_unlocks', 'QA Connected Unlocks');
+    $regionId = $this->insertRegion(0, true, 'qa-connected-unlocks', 'QA Connected Unlocks');
+
+    $result = (new RunRepository($this->pdo))->createRunGraph($userId, $regionId, 654321, [
+      ['node_index' => 0, 'node_type' => 'combat', 'status' => 'cleared'],
+      ['node_index' => 1, 'node_type' => 'combat', 'status' => 'locked'],
+    ], [
+      ['from' => 1, 'to' => 0],
+    ]);
+
+    $unlocked = (new RunNodeRepository($this->pdo))->syncAvailableNodesFromClearedParents((int)$result['run_id']);
+    $this->assertSame([(string)$result['node_id_by_index'][1]], $unlocked);
+    $this->assertSame(
+      'available',
+      (string)$this->scalar(
+        'SELECT `status` FROM `run_nodes` WHERE `id` = ?',
+        [$result['node_id_by_index'][1]]
       )
     );
   }

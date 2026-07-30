@@ -325,6 +325,50 @@
   background: linear-gradient(180deg, rgba(20, 18, 15, 0.88), rgba(11, 10, 9, 0.8));
 }
 
+.battle-run-effects {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(124, 197, 145, 0.28);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(31, 51, 30, 0.78), rgba(14, 21, 14, 0.72));
+}
+
+.battle-run-effects__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.65rem;
+}
+
+.battle-run-effect {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid rgba(199, 237, 157, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.battle-run-effect span {
+  color: rgba(248, 240, 221, 0.7);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.battle-run-effect strong {
+  color: #c7ed9d;
+}
+
+.battle-run-effect p {
+  margin: 0;
+  color: rgba(248, 240, 221, 0.82);
+}
+
 .battle-modebar .dg-proto-tabs {
   padding: 0.15rem;
 }

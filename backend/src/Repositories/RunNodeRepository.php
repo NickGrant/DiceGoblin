@@ -125,10 +125,12 @@ final class RunNodeRepository
   }
 
   /**
-   * Reopen any locked node that is reachable from at least one cleared parent.
+   * Reopen any locked node that is connected to at least one cleared node.
    *
-   * This preserves the intended OR-style branch progression for converging paths
-   * and also self-heals stale availability if an earlier unlock step was missed.
+   * This preserves the intended OR-style branch progression for visual map
+   * connections, including branches that travel up-left or otherwise look
+   * backward on the rendered map, and also self-heals stale availability if an
+   * earlier unlock step was missed.
    *
    * @return array<int,string>
    */
@@ -139,13 +141,16 @@ final class RunNodeRepository
       FROM `run_nodes` child
       JOIN `run_edges` re
         ON re.`run_id` = child.`run_id`
-       AND re.`to_node_id` = child.`id`
-      JOIN `run_nodes` parent
-        ON parent.`id` = re.`from_node_id`
-       AND parent.`run_id` = child.`run_id`
+       AND (re.`to_node_id` = child.`id` OR re.`from_node_id` = child.`id`)
+      JOIN `run_nodes` neighbor
+        ON neighbor.`run_id` = child.`run_id`
+       AND neighbor.`id` = CASE
+          WHEN re.`to_node_id` = child.`id` THEN re.`from_node_id`
+          ELSE re.`to_node_id`
+        END
       WHERE child.`run_id` = ?
         AND child.`status` = \'locked\'
-        AND parent.`status` = \'cleared\'
+        AND neighbor.`status` = \'cleared\'
     ');
     $select->execute([$runId]);
     $nodeIds = array_values(array_map('intval', $select->fetchAll(PDO::FETCH_COLUMN)));

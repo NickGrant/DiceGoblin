@@ -208,6 +208,21 @@
           <div class="battle-hud__status">{{ playbackStepLabel() }}</div>
         </div>
 
+        @if (battleRunEffects().length) {
+        <section class="battle-run-effects" aria-label="Battle effects">
+          <p class="battle-scene__eyebrow dg-stencil">Battle Effects</p>
+          <div class="battle-run-effects__list">
+            @for (effect of battleRunEffects(); track effect.id) {
+            <article class="battle-run-effect">
+              <span>{{ effect.source }}</span>
+              <strong>{{ effect.label }}</strong>
+              <p>{{ effect.detail }}</p>
+            </article>
+            }
+          </div>
+        </section>
+        }
+
         @if (battleViewMode() === 'acted') {
         <div class="battle-scene__viewport">
           <div class="battle-scene__vignette"></div>

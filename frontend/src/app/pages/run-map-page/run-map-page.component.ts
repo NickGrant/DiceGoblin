@@ -243,10 +243,16 @@ export class RunMapPageComponent {
     const fromNode = this.nodeById(edge.from_node_id);
     const toNode = this.nodeById(edge.to_node_id);
 
-    if (fromNode?.status === 'cleared' && toNode?.status === 'cleared') {
+    const fromStatus = fromNode?.status ?? 'locked';
+    const toStatus = toNode?.status ?? 'locked';
+
+    if (fromStatus === 'cleared' && toStatus === 'cleared') {
       return 'cleared';
     }
-    if (fromNode?.status === 'cleared' && toNode?.status === 'available') {
+    if (
+      (fromStatus === 'cleared' && toStatus === 'available') ||
+      (fromStatus === 'available' && toStatus === 'cleared')
+    ) {
       return 'available';
     }
 
