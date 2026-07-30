@@ -100,6 +100,16 @@ function printTextReport(array $report): void
       foreach ($counts as $slug => $count) {
         echo sprintf("    %s: %d\n", (string)$slug, (int)$count);
       }
+      $percentages = is_array($summary['primitive_percentages'] ?? null) ? $summary['primitive_percentages'] : [];
+      if ($percentages !== []) {
+        echo "    primitive mix: ";
+        echo implode(', ', array_map(
+          static fn(string $primitive, mixed $percentage): string => sprintf('%s %s%%', $primitive, (string)$percentage),
+          array_keys($percentages),
+          array_values($percentages)
+        ));
+        echo PHP_EOL;
+      }
     }
     echo PHP_EOL;
   }

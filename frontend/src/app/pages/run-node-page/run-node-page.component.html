@@ -144,6 +144,13 @@
               <h3 class="node-result-detail__title dg-stencil">{{ nodeResultEventLabel() }}</h3>
               <p>{{ nodeResultDetailCopy() }}</p>
             </div>
+            @if (shrineEffectSummary(); as effectSummary) {
+            <div class="node-result-effect" aria-label="Shrine effect">
+              <p class="battle-scene__eyebrow dg-stencil">Effect</p>
+              <strong>{{ effectSummary.label }}</strong>
+              <span>{{ effectSummary.detail }}</span>
+            </div>
+            }
             <div class="node-result-stats" aria-label="Node rewards">
               <span>
                 <strong>{{ battleStatusLabel() }}</strong>

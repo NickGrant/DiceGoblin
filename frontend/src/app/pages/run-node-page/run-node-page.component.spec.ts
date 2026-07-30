@@ -386,7 +386,25 @@ describe('RunNodePageComponent', () => {
           rounds: 0,
           ticks: 0,
           status: 'completed',
-          reward_preview: { node_type: 'shrine', xp_total: 0, currency_soft: 6, new_unit_labels: [], new_dice_labels: [], units: [], dice: [] },
+          reward_preview: {
+            node_type: 'shrine',
+            xp_total: 0,
+            currency_soft: 6,
+            new_unit_labels: [],
+            new_dice_labels: [],
+            units: [],
+            dice: [],
+            encounter_result: {
+              family: 'shrine',
+              primitive: 'grant_teeth',
+              effect_slug: 'shrine_bone_whisper',
+              result: {
+                title: 'Bone Whisper',
+                result_copy: 'The bones clatter into a useful omen.',
+                effect: { type: 'grant_teeth' },
+              },
+            },
+          },
           log: {
             meta: { node_type: 'shrine' },
             events: [{ type: 'node_effect', round: 0, tick: 0, node_type: 'shrine', message: 'shrine_favor_granted' }],
@@ -423,6 +441,9 @@ describe('RunNodePageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Shrine Favor Granted');
     expect(fixture.nativeElement.textContent).toContain('A favor is ready. Claim it, then choose the next path.');
     expect(fixture.nativeElement.textContent).toContain('This favor is now visible in the result before you return to the route.');
+    expect(fixture.nativeElement.textContent).toContain('Effect');
+    expect(fixture.nativeElement.textContent).toContain('Teeth');
+    expect(fixture.nativeElement.textContent).toContain('6 teeth');
     expect(fixture.nativeElement.textContent).toContain('Claim Favor');
     expect(fixture.nativeElement.textContent).not.toContain('Shrine Node');
     expect(fixture.nativeElement.textContent).not.toContain('Shrine Result');
@@ -430,6 +451,85 @@ describe('RunNodePageComponent', () => {
     expect((fixture.nativeElement.querySelector('.node-result-layout__art') as HTMLImageElement)?.getAttribute('src')).toBe(
       '/assets/ui/node-art/shrines/poor_b.png',
     );
+  });
+
+  it('summarizes non-currency shrine effects before claim', async () => {
+    const runService = new RunServiceStub();
+    runService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'mountains', region_theme: 'mountain' },
+        map: {
+          nodes: [{ id: '12', run_id: 'run-1', node_index: 0, node_type: 'shrine', status: 'available', meta: { node_quality_tier: 'great' } }],
+          edges: [],
+        },
+      },
+    });
+    runService.resolveNode.and.resolveTo({
+      ok: true,
+      data: {
+        node: { id: '12', status: 'completed' },
+        battle: {
+          battle_id: 'b-shrine-stat',
+          outcome: 'victory',
+          rounds: 0,
+          ticks: 0,
+          status: 'completed',
+          reward_preview: {
+            node_type: 'shrine',
+            xp_total: 0,
+            currency_soft: 0,
+            new_unit_labels: [],
+            new_dice_labels: [],
+            units: [],
+            dice: [],
+            encounter_result: {
+              family: 'shrine',
+              primitive: 'run_stat_modifier_next_combat',
+              effect_slug: 'shrine_stone_hide',
+              result: {
+                title: 'Stone Hide',
+                result_copy: 'A slab-mark settles over the squad before the next fight.',
+                effect: {
+                  type: 'run_stat_modifier_next_combat',
+                  stat_multipliers: { defense: 1.25 },
+                  stat_adders: { resolve: 2 },
+                },
+              },
+            },
+          },
+          log: {
+            meta: { node_type: 'shrine' },
+            events: [{ type: 'node_effect', round: 0, tick: 0, node_type: 'shrine', message: 'shrine_favor_granted' }],
+          },
+        },
+        next: { unlocked_node_ids: [] },
+      },
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: runService },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: '12' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Effect');
+    expect(text).toContain('Next Combat');
+    expect(text).toContain('+25% Defense, +2 Resolve for the squad.');
+    expect(text).toContain('No material reward.');
   });
 
   it('shows accept and decline actions for declineable shrine bargains', async () => {

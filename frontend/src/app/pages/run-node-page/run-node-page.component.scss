@@ -266,6 +266,25 @@
   color: rgba(248, 240, 221, 0.84);
 }
 
+.node-result-effect {
+  display: grid;
+  gap: 6px;
+  max-width: 680px;
+  padding: 12px;
+  border: 1px solid rgba(124, 197, 145, 0.3);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(67, 99, 57, 0.24), rgba(28, 45, 29, 0.2));
+}
+
+.node-result-effect strong {
+  color: #c7ed9d;
+  font-size: 18px;
+}
+
+.node-result-effect span {
+  color: rgba(248, 240, 221, 0.86);
+}
+
 .node-result-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
