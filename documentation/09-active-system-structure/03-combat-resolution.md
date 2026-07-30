@@ -46,7 +46,7 @@ The resolver handles these node types without round simulation.
 | `rest` | `victory` | `Full Recovery`, zero XP, zero ticks, zero rounds. |
 | `loot` | `victory` | `Loot Cache`, `8` soft currency before reward rolls. |
 | `hazard` | `victory` | `Hazard Avoided`, zero XP, zero currency. |
-| `shrine` | `victory` | Generated quality-weighted shrine effect from the encounter catalogue; may grant teeth, heal, persist a run modifier, or clear an available combat node. |
+| `shrine` | `victory` | Generated quality-weighted shrine effect from the encounter catalogue; may grant teeth, heal, persist next-combat damage/stat modifiers, or clear an available combat node. |
 
 ## Combat Node Math
 
@@ -72,7 +72,7 @@ The engine has an explicit safety cap of `200` rounds to prevent an infinite loo
 
 ## Run Combat Modifiers
 
-Before combat starts, active run-unit effects can modify combat stats for the next eligible fight. Shrine modifiers currently use this path.
+Before combat starts, active run-unit effects can modify combat stats for the next eligible fight. Shrine modifiers currently use this path for damage, attack, defense, precision, and resolve.
 
 - `stat_multipliers` can adjust `attack`, `defense`, `precision`, `resolve`, or combat `damage`.
 - `stat_adders` can adjust `attack`, `defense`, `precision`, or `resolve`.
