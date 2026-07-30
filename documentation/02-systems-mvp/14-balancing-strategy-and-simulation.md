@@ -124,7 +124,7 @@ npm.cmd run sim:balance:run:uat-regions:docker
 
 The aggregate `sim:balance:run:uat-regions:docker` command runs Farm, Mountains, and Swamps representative run simulations in sequence after the test database has been reset, using concise text summaries. Use it when UAT feedback is about overall region pacing, attrition, or reward feel rather than an isolated combat node. Use the per-region `sim:balance:run:<region>:docker` commands when full JSON samples are needed for deeper comparison.
 
-The tool outputs machine-readable JSON with `--format=json` and a concise human-readable summary by default. JSON output lets later work compare balance changes in CI, scripts, spreadsheets, or dashboards without rewriting the simulator.
+The tool outputs machine-readable JSON with `--format=json` and a concise human-readable summary by default. JSON output lets later work compare balance changes in CI, scripts, spreadsheets, or dashboards without rewriting the simulator. Add `--summary-only` to JSON commands when the aggregate `summary` block is enough and the per-sample payload would make review output too noisy.
 
 Current modes:
 
