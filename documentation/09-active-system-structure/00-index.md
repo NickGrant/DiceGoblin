@@ -26,6 +26,7 @@ Depends On: `documentation/README.md`, `documentation/01-architecture/04-data-mo
 4. `04-dialogue-flow-determination.md`
 5. `05-run-node-generation.md`
 6. `06-loot-determination.md`
+7. `07-hazard-severity-and-downsides.md`
 
 ## Source Map
 

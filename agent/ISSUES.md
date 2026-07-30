@@ -89,3 +89,91 @@ Shrine weights and quality pools need hands-on validation once the new generated
 - Added pre-claim shrine effect summaries on the node result screen and primitive mix percentages in shrine tuning samples.
 - Added `documentation/05-playability-stability/09-shrine-tuning-sample-evidence.md` as the baseline shrine distribution evidence packet for UAT.
 
+## Hazard Expansion
+
+### Define generated hazard severity catalog
+
+**Milestone:** Hazard Expansion
+**Status:** Open
+**Priority:** High
+
+#### Problem
+Hazard nodes currently have authored primitive metadata, but most outcomes are still metadata-only pressure. The next hazard pass needs generated effects similar to shrines: severity-weighted, region-aware, persisted when encountered, and broad enough for at least ten initial downside options.
+
+#### Acceptance Criteria
+
+- Hazard nodes use a severity tier for generation and player-facing copy.
+- Existing `poor`, `good`, and `great` node quality metadata is either mapped to hazard-facing severity or replaced with an explicit hazard severity contract.
+- The exact hazard effect is generated at encounter time from region, severity, seed context, and catalog weights, then persisted for idempotency.
+- The initial catalog contains at least ten enabled options across immediate, choice-based, delayed, route, item, currency, HP, and kin-mitigated pressure.
+- Hazard definitions do not require duplicating exact generated outcomes in map-node metadata.
+- Unit tests cover severity filtering, weighted selection, fallback behavior, and vocabulary validity.
+
+### Implement hazard choice and mitigation flow
+
+**Milestone:** Hazard Expansion
+**Status:** Open
+**Priority:** High
+
+#### Problem
+Some hazards should offer explicit tradeoffs, such as taking damage or paying teeth, and some should be declineable or mitigated by owned kin/progression context. The current auto-resolve flow has no player decision point for hazards.
+
+#### Acceptance Criteria
+
+- Hazard resolution can return a persisted offer with two or more choices when the selected effect requires a decision.
+- Frontend hazard result screens present available choices clearly and disable unavailable costs, such as insufficient teeth.
+- Claim/apply endpoints persist the selected hazard decision and return the same decision on retry.
+- Mitigated hazards can present reduced downside or alternate copy when the player meets the mitigation condition.
+- Integration tests cover choice acceptance, unavailable option handling, retry idempotency, and mitigation selection.
+
+### Apply immediate and delayed hazard downsides
+
+**Milestone:** Hazard Expansion
+**Status:** Open
+**Priority:** High
+
+#### Problem
+Hazard result payloads need to change player/run state instead of only clearing the node. Immediate downsides should apply at claim time, while delayed effects such as next-combat defense penalties should be visible and consumed by combat.
+
+#### Acceptance Criteria
+
+- Immediate HP, teeth, item, and route/node-state downsides apply exactly once at hazard claim time.
+- Delayed next-combat stat modifiers support attack, defense, precision, resolve, and damage-style multipliers or adders.
+- Delayed hazard effects appear in active run effects before combat and are removed or marked consumed after the next eligible fight.
+- Hazard effects never grant combat XP unless a later encounter-scope change explicitly allows it.
+- Backend and frontend tests cover state application, active effect visibility, and delayed effect consumption.
+
+### Add hazard tuning sampler and evidence packet
+
+**Milestone:** Hazard Expansion
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+Shrines now have sampling shortcuts and an evidence packet for UAT tuning. Hazards need the same support so severity distribution, downside pressure, and choice frequency can be reviewed before balance passes.
+
+#### Acceptance Criteria
+
+- A Docker-safe hazard sampler reports generated effect counts by region and severity.
+- Sampler output includes primitive mix, choice-offer counts, average teeth pressure, average HP pressure, delayed-effect counts, and mitigation counts when applicable.
+- Region-specific shortcuts exist for Farm, Mountains, and Swamps.
+- A documentation evidence packet records baseline samples and the first tuning notes.
+- `docs:lint`, `backlog:validate`, and the relevant backend tests pass.
+
+### UAT and tune hazard severity weights
+
+**Milestone:** Hazard Expansion
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+Once generated hazards are implemented, severity and downside weights need player-facing validation across several seeds to ensure hazards feel meaningful without turning every branch into punishment.
+
+#### Acceptance Criteria
+
+- Farm, Mountains, and Swamps hazard samples are reviewed across minor, moderate, and severe hazard tiers.
+- Immediate, choice-based, delayed, and mitigated hazard outcomes are all seen in UAT or sampler evidence.
+- Player-facing copy makes the downside and any available choice understandable before final claim.
+- Balance changes are captured with evidence packets before tuning.
+- Any blocker found during shrine or hazard UAT is split into a separate high-priority issue with reproduction notes.
+

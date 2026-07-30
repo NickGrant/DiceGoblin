@@ -54,3 +54,26 @@ Success criteria:
 
 - UAT and tune shrine effect weights
 
+## Hazard Expansion
+
+**Status:** Planned
+
+Expand hazard nodes from metadata-only obstacles into generated severity-weighted downside encounters with visible immediate effects, optional choices, delayed run modifiers, and UAT-ready tuning hooks.
+
+Success criteria:
+
+- Hazard severity changes the generated downside pool and weights.
+- Hazard outcomes are generated at encounter time and persisted as results, not preselected as exact effect metadata on map nodes.
+- At least ten enabled hazard options exist in the initial generated batch.
+- Immediate effects, choice-based costs, and delayed next-combat effects apply exactly once.
+- Player-facing screens show what happened, what choice is available, and what delayed effects are active.
+- Tests, docs, and sampling evidence cover generation, application, idempotency, and balance distribution.
+
+### Related Issues
+
+- Define generated hazard severity catalog
+- Implement hazard choice and mitigation flow
+- Apply immediate and delayed hazard downsides
+- Add hazard tuning sampler and evidence packet
+- UAT and tune hazard severity weights
+
