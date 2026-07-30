@@ -135,6 +135,16 @@ describe('RunService', () => {
     expect(sessionService.runProfileMutation).toHaveBeenCalled();
   });
 
+  it('sends the shrine claim decision when claiming battle rewards', async () => {
+    const response = { ok: true, data: { status: 'claimed' } } as any;
+    apiHttp.postWithCsrf.and.resolveTo(response);
+
+    await service.claimBattleRewards('battle-1', 'decline');
+
+    expect(apiHttp.postWithCsrf).toHaveBeenCalledWith('/api/v1/battles/battle-1/claim', { action: 'decline' });
+    expect(sessionService.runProfileMutation).toHaveBeenCalled();
+  });
+
   it('clears summary state', () => {
     (service as any).summaryState.set({
       title: 'x',

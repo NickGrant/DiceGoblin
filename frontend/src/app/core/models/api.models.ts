@@ -665,6 +665,7 @@ export type ResolveNodeData = {
       units?: RewardPreviewUnit[];
       dice?: RewardPreviewDice[];
       items?: RewardPreviewItem[];
+      encounter_result?: Record<string, unknown> | null;
     } | null;
     log: {
       meta?: Record<string, unknown>;
@@ -712,6 +713,7 @@ export type BattleClaimData = {
     ignored_at_cap_unit_instance_ids: string[];
   };
   updated_units?: Array<{ id: string; xp: number; level: number; name?: string }>;
+  shrine_decision?: 'accept' | 'decline' | string | null;
   run_summary?: RunSummaryPayload;
 };
 

@@ -63,6 +63,13 @@ type BattlePlaybackParticipantStateViewModel = {
   isTarget: boolean;
 };
 
+type ShrineOfferViewModel = {
+  title: string;
+  resultCopy: string;
+  costCopy: string;
+  declineable: boolean;
+};
+
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
@@ -232,7 +239,7 @@ export class RunNodePageComponent implements OnDestroy {
   readonly nodeResultActionTitle = computed(() => {
     switch (this.resolvedNodeType()) {
       case 'shrine':
-        return 'Claim Favor';
+        return this.isDeclineableShrineOffer() ? 'Shrine Bargain' : 'Claim Favor';
       case 'hazard':
         return 'Continue Path';
       default:
@@ -252,6 +259,9 @@ export class RunNodePageComponent implements OnDestroy {
   readonly nodeResultDetailCopy = computed(() => {
     switch (this.resolvedNodeType()) {
       case 'shrine':
+        if (this.isDeclineableShrineOffer()) {
+          return 'This shrine asks for something in return. Accept the bargain to apply both sides, or decline and leave it untouched.';
+        }
         return 'This favor is now visible in the result before you return to the route.';
       case 'hazard':
         return 'This hazard result is now visible before you return to the route.';
@@ -264,8 +274,38 @@ export class RunNodePageComponent implements OnDestroy {
       return 'Working...';
     }
 
+    if (this.isDeclineableShrineOffer()) {
+      return 'Accept Bargain';
+    }
+
     return this.nodeResultActionTitle();
   });
+  readonly shrineOffer = computed<ShrineOfferViewModel | null>(() => {
+    const result = this.shrineResultPayload();
+    if (!result) {
+      return null;
+    }
+
+    const title = typeof result['title'] === 'string' && result['title'].trim()
+      ? result['title'].trim()
+      : this.nodeResultEventLabel();
+    const resultCopy = typeof result['result_copy'] === 'string' && result['result_copy'].trim()
+      ? result['result_copy'].trim()
+      : this.nodeResultEventDetail();
+    const cost = result['cost'];
+    const costRecord = cost && typeof cost === 'object' && !Array.isArray(cost)
+      ? cost as Record<string, unknown>
+      : {};
+    const declineable = Boolean(result['declineable']) || Boolean(costRecord['declineable']);
+
+    return {
+      title,
+      resultCopy,
+      costCopy: this.describeShrineCost(result, costRecord),
+      declineable,
+    };
+  });
+  readonly isDeclineableShrineOffer = computed(() => Boolean(this.shrineOffer()?.declineable));
   readonly nodeResultArtUrl = computed(() => {
     if (this.resolvedNodeType() === 'shrine') {
       return resolveNodeArtUrl(this.currentNode(), 'shrine');
@@ -499,7 +539,7 @@ export class RunNodePageComponent implements OnDestroy {
     }
   }
 
-  async claimRewards(): Promise<void> {
+  async claimRewards(action: 'accept' | 'decline' = 'accept'): Promise<void> {
     const battleId = this.result()?.battle.battle_id;
     if (!battleId) {
       await this.router.navigateByUrl('/run/map');
@@ -509,7 +549,7 @@ export class RunNodePageComponent implements OnDestroy {
     this.busy.set(true);
     this.error.set(null);
     try {
-      const response = await this.runService.claimBattleRewards(battleId);
+      const response = await this.runService.claimBattleRewards(battleId, action);
       if (!response.ok) {
         this.error.set(response.error.message);
         return;
@@ -524,6 +564,14 @@ export class RunNodePageComponent implements OnDestroy {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  async acceptShrineOffer(): Promise<void> {
+    await this.claimRewards('accept');
+  }
+
+  async declineShrineOffer(): Promise<void> {
+    await this.claimRewards('decline');
   }
 
   setBattleView(mode: BattleViewMode): void {
@@ -581,6 +629,43 @@ export class RunNodePageComponent implements OnDestroy {
     }
 
     return frames[this.combatAnimationFrameIndex() % frames.length] ?? participant.spriteUrl;
+  }
+
+  private shrineResultPayload(): Record<string, unknown> | null {
+    const previewResult = this.result()?.battle.reward_preview?.encounter_result;
+    if (previewResult && typeof previewResult === 'object' && !Array.isArray(previewResult)) {
+      const nested = previewResult['result'];
+      if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+        return nested as Record<string, unknown>;
+      }
+    }
+
+    const event = this.result()?.battle.log?.events?.[0] as Record<string, unknown> | undefined;
+    const shrineResult = event?.['shrine_result'];
+    return shrineResult && typeof shrineResult === 'object' && !Array.isArray(shrineResult)
+      ? shrineResult as Record<string, unknown>
+      : null;
+  }
+
+  private describeShrineCost(result: Record<string, unknown>, cost: Record<string, unknown>): string {
+    const effect = result['effect'];
+    const effectRecord = effect && typeof effect === 'object' && !Array.isArray(effect)
+      ? effect as Record<string, unknown>
+      : {};
+    const effectType = typeof effectRecord['type'] === 'string' ? effectRecord['type'] : '';
+
+    if (effectType === 'drain_highest_life_heal_rest') {
+      const drainPct = Number(effectRecord['drain_pct'] ?? 0);
+      return drainPct > 0
+        ? `Cost: the healthiest unit loses ${drainPct}% life.`
+        : 'Cost: the healthiest unit pays life.';
+    }
+
+    if (typeof cost['copy'] === 'string' && cost['copy'].trim()) {
+      return cost['copy'].trim();
+    }
+
+    return 'Cost: this shrine has a negative side effect.';
   }
 
   private mapActionStep(step: BattlePlaybackActionStep): BattleLogActionViewModel {

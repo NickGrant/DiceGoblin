@@ -106,6 +106,12 @@ Some shrine effects should include costs or negative outcomes, but the current s
 - Accepting applies both cost and reward exactly once.
 - API and frontend tests cover accept, decline, refresh, and idempotent repeat calls.
 
+#### Progress
+
+- Added accept/decline claim decisions for declineable shrine results, preserving idempotent claim snapshots.
+- Added shrine bargain UI actions and metadata-driven cost copy for generated declineable shrine offers.
+- Added backend lifecycle tests and frontend service/page specs for declineable shrine decisions.
+
 ### Consume shrine combat modifiers in battle resolution
 
 **Milestone:** Shrine Expansion

@@ -203,10 +203,10 @@ export class RunService {
     ));
   }
 
-  async claimBattleRewards(battleId: string): Promise<BattleClaimResponse> {
+  async claimBattleRewards(battleId: string, action: 'accept' | 'decline' = 'accept'): Promise<BattleClaimResponse> {
     const response = await this.sessionService.runProfileMutation(() => this.apiHttp.postWithCsrf<BattleClaimResponse>(
       `/api/v1/battles/${battleId}/claim`,
-      {},
+      { action },
     ));
     if (response.ok && response.data.run_summary) {
       this.summaryState.set(

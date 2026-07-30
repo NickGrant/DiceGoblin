@@ -752,6 +752,7 @@ final class RunNodeController
       'units' => array_values(is_array($details['units'] ?? null) ? $details['units'] : []),
       'dice' => array_values(is_array($details['dice'] ?? null) ? $details['dice'] : []),
       'items' => array_values(is_array($details['items'] ?? null) ? $details['items'] : []),
+      'encounter_result' => is_array($rewards['encounter_result'] ?? null) ? $rewards['encounter_result'] : null,
     ];
   }
 

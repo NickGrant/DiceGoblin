@@ -163,9 +163,23 @@
           <aside class="node-result-layout__rail" aria-label="Node actions">
             <div class="node-result-action">
               <p class="battle-scene__eyebrow dg-stencil">{{ nodeResultActionTitle() }}</p>
+              @if (isDeclineableShrineOffer() && shrineOffer(); as offer) {
+              <h3 class="node-result-action__title dg-stencil">{{ offer.title }}</h3>
+              <p class="node-result-action__copy">{{ offer.resultCopy }}</p>
+              <p class="node-result-action__cost">{{ offer.costCopy }}</p>
+              <div class="node-result-action__buttons">
+                <button dgCommandBtn="primary" type="button" (click)="acceptShrineOffer()" [disabled]="busy()">
+                  {{ nodeResultClaimLabel() }}
+                </button>
+                <button dgCommandBtn="muted" type="button" (click)="declineShrineOffer()" [disabled]="busy()">
+                  {{ busy() ? 'Working...' : 'Decline' }}
+                </button>
+              </div>
+              } @else {
               <button dgCommandBtn="primary" type="button" (click)="claimRewards()" [disabled]="busy()">
                 {{ nodeResultClaimLabel() }}
               </button>
+              }
             </div>
             <img class="node-result-layout__art" [src]="nodeResultArtUrl()" [alt]="resolvedNodeType() + ' node result'" />
           </aside>

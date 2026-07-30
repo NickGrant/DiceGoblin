@@ -130,7 +130,20 @@ final class BattleController
     $pdo = $svc['pdo'];
 
     try {
-      $claimResult = $svc['runLifecycleService']->claimBattle($userId, $battleIdInt);
+      $body = $this->readJsonBody();
+      if ($body === null) {
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => 'validation_error',
+            'message' => 'Invalid JSON body.',
+          ],
+        ], 400);
+        return;
+      }
+
+      $claimAction = isset($body['action']) ? (string)$body['action'] : 'accept';
+      $claimResult = $svc['runLifecycleService']->claimBattle($userId, $battleIdInt, $claimAction);
       $this->respondClaimed(
         $battleIdInt,
         $claimResult['battle'],
@@ -173,6 +186,19 @@ final class BattleController
             'message' => 'Invalid battle outcome state.',
           ],
         ], 500);
+        return;
+      }
+
+      if ($e->getMessage() === 'invalid_claim_action' || $e->getMessage() === 'shrine_not_declineable') {
+        Response::json([
+          'ok' => false,
+          'error' => [
+            'code' => $e->getMessage(),
+            'message' => $e->getMessage() === 'shrine_not_declineable'
+              ? 'This shrine cannot be declined.'
+              : 'Invalid claim action.',
+          ],
+        ], 409);
         return;
       }
 
@@ -263,6 +289,7 @@ final class BattleController
           'ignored_at_cap_unit_instance_ids' => [],
         ],
         'shrine_effects' => is_array($claimSnapshot['shrine_effects'] ?? null) ? $claimSnapshot['shrine_effects'] : [],
+        'shrine_decision' => isset($claimSnapshot['shrine_decision']) ? (string)$claimSnapshot['shrine_decision'] : null,
         'updated_units' => $updatedUnits,
         'run_summary' => $runSummary,
       ],
@@ -366,5 +393,19 @@ final class BattleController
       return null;
     }
     return $v;
+  }
+
+  /**
+   * @return array<string,mixed>|null
+   */
+  private function readJsonBody(): ?array
+  {
+    $raw = file_get_contents('php://input');
+    if ($raw === false || trim($raw) === '') {
+      return [];
+    }
+
+    $data = json_decode($raw, true);
+    return is_array($data) ? $data : null;
   }
 }

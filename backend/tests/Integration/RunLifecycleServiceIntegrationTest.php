@@ -373,6 +373,89 @@ final class RunLifecycleServiceIntegrationTest extends BattleFlowIntegrationCase
     $this->assertSame(7, (int)($snapshot['shrine_effects'][0]['soft_awarded'] ?? 0));
   }
 
+  public function testDeclineableShrineCanBeClaimedAsDeclinedWithoutApplyingEffects(): void
+  {
+    $userId = $this->insertUser('shrine_decline_claim', 'Shrine Decline Claim');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 61626364);
+    $nodeId = $this->insertRunNode($runId, 'shrine', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $healthyId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $woundedId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $healthyId);
+    $this->insertTeamUnit($teamId, $woundedId);
+    $this->insertRunUnitState($runId, $healthyId, 10, false);
+    $this->insertRunUnitState($runId, $woundedId, 1, false);
+    $this->setSoftCurrency($userId, 3);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'victory', 61626365, 0, 0);
+    $this->insertBattleRewards($battleId, 0, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'encounter_result' => [
+        'family' => 'shrine',
+        'primitive' => 'drain_highest_life_heal_rest',
+        'effect_slug' => 'shrine_crooked_bargain',
+        'result' => [
+          'effect' => ['type' => 'drain_highest_life_heal_rest', 'drain_pct' => 50],
+          'cost' => ['declineable' => true],
+          'declineable' => true,
+        ],
+      ],
+    ]);
+
+    $first = $this->service()->claimBattle($userId, $battleId, 'decline');
+    $second = $this->service()->claimBattle($userId, $battleId, 'accept');
+    $snapshot = is_array($first['claim_snapshot'] ?? null) ? $first['claim_snapshot'] : [];
+
+    $this->assertTrue($first['newly_claimed']);
+    $this->assertFalse($second['newly_claimed']);
+    $this->assertSame('decline', (string)($snapshot['shrine_decision'] ?? ''));
+    $this->assertSame([], $snapshot['shrine_effects'] ?? null);
+    $this->assertSame('10', (string)$this->scalar('SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?', [$runId, $healthyId]));
+    $this->assertSame('1', (string)$this->scalar('SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?', [$runId, $woundedId]));
+    $this->assertSame('3', (string)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
+    [, $storedSoft] = $this->battleRewardTuple($battleId);
+    $this->assertSame(0, $storedSoft);
+    $this->assertEquals($snapshot, $second['claim_snapshot'] ?? null);
+  }
+
+  public function testNonDeclineableShrineRejectsDeclineAction(): void
+  {
+    $userId = $this->insertUser('shrine_decline_reject', 'Shrine Decline Reject');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 62636465);
+    $nodeId = $this->insertRunNode($runId, 'shrine', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 1, false);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'victory', 62636466, 0, 0);
+    $this->insertBattleRewards($battleId, 0, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'encounter_result' => [
+        'family' => 'shrine',
+        'primitive' => 'heal_random_unit',
+        'effect_slug' => 'shrine_clean_water',
+        'result' => [
+          'effect' => ['type' => 'heal_random_unit', 'amount_pct' => 50],
+          'cost' => [],
+          'declineable' => false,
+        ],
+      ],
+    ]);
+
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('shrine_not_declineable');
+    $this->service()->claimBattle($userId, $battleId, 'decline');
+  }
+
   private function service(): RunLifecycleService
   {
     $pdo = $this->pdo;
