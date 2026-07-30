@@ -70,6 +70,16 @@ flowchart TD
 
 The engine has an explicit safety cap of `200` rounds to prevent an infinite loop. Hitting that cap without a clear terminal state raises `combat_unresolved`; it does not award a fallback victory or defeat.
 
+## Run Combat Modifiers
+
+Before combat starts, active run-unit effects can modify combat stats for the next eligible fight. Shrine modifiers currently use this path.
+
+- `stat_multipliers` can adjust `attack`, `defense`, `precision`, `resolve`, or combat `damage`.
+- `stat_adders` can adjust `attack`, `defense`, `precision`, or `resolve`.
+- Applied modifiers are included in participant metadata under `run_combat_modifiers`.
+- Damage modifiers are listed in action `affix_outcome` text as `run modifier damage xN`.
+- After a new combat-like node is resolved, next-combat modifiers are decremented or removed from `run_unit_state.status_effects_json` and logged under `run_combat_modifiers_consumed`.
+
 ## Round and Action Timing
 
 - Each round has `20` ticks.

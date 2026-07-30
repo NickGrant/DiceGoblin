@@ -87,6 +87,7 @@ Shrines currently behave like simple reward nodes and do not use node quality to
 #### Progress
 
 - Backend shrine catalogue now supports quality-weighted generated effects for teeth, healing, drain-and-heal, next-combat damage metadata, double run teeth, and clearing an available combat node.
+- Merged in PR #230.
 
 ### Add declineable shrine offer flow
 
@@ -120,6 +121,10 @@ The next-combat squad damage shrine can be persisted as run-unit effect metadata
 - The modifier is consumed after one eligible combat.
 - Combat logs identify the shrine modifier contribution.
 - Tests prove the modifier applies once and then expires.
+
+#### Progress
+
+- Added generic next-combat run stat modifier support for damage plus attack, defense, precision, and resolve.
 
 ### Add shrine unit-upgrade reward effect
 

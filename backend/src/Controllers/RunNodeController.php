@@ -27,6 +27,7 @@ use DiceGoblins\Repositories\TeamRepository;
 use DiceGoblins\Repositories\UserRepository;
 
 use DiceGoblins\Services\CsrfService;
+use DiceGoblins\Services\RunCombatModifierService;
 use DiceGoblins\Services\RunLifecycleService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\SquadCapacityService;
@@ -317,6 +318,17 @@ final class RunNodeController
       if ((string)$node['node_type'] === 'chaos' && is_array($chaosResult)) {
         $resolution['log']['meta']['chaos'] = $this->buildChaosLogMeta($chaosResult);
       }
+      $isCombatLikeNode = in_array((string)$node['node_type'], ['combat', 'boss', 'chaos'], true);
+      if ($isCombatLikeNode) {
+        $consumedRunModifiers = (new RunCombatModifierService())->consumeNextCombatModifiers(
+          $pdo,
+          $runIdInt,
+          $teamUnitIds
+        );
+        if ($consumedRunModifiers !== []) {
+          $resolution['log']['meta']['run_combat_modifiers_consumed'] = $consumedRunModifiers;
+        }
+      }
       $seed = (int)$resolution['seed'];
       $outcome = (string)$resolution['outcome'];
       $ticks = (int)$resolution['ticks'];
@@ -374,7 +386,6 @@ final class RunNodeController
         ]
       );
 
-      $isCombatLikeNode = in_array((string)$node['node_type'], ['combat', 'boss', 'chaos'], true);
       $runFailed = false;
 
       $unlocked = [];
