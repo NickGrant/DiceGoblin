@@ -27,6 +27,7 @@ sequenceDiagram
   C->>I: materialize item grants
   C->>C: store completed battle and reward snapshot
   L->>L: apply currency and XP when claimed
+  L->>L: apply or decline persisted shrine offers
 ```
 
 Units, dice, and items are materialized when the node is resolved. Currency and XP are applied when the completed battle is claimed.
@@ -41,7 +42,9 @@ Units, dice, and items are materialized when the node is resolved. Currency and 
 | `chaos` | Uses combat resolution and battle claim behavior, but current reward rolls are not in the combat/boss/loot grant set. |
 | `rest` | No loot grant payload. |
 | `hazard` | No loot grant payload. |
-| `shrine` | No unit/dice/item grants in the normal loot payload; resolves a generated shrine effect that can grant teeth, heal run units, persist run-state metadata, double earlier run teeth, or clear an available combat node. |
+| `shrine` | No unit/dice/item grants in the normal loot payload; resolves a generated shrine effect that can grant teeth, heal run units, persist run-state metadata, double earlier run teeth, or clear an available combat node. Costly shrines surface accept/decline actions before claim-time effects are applied. |
+
+Declining a declineable shrine stores a normal claim snapshot with zero awarded currency, no XP, and no shrine effects. Repeating the claim returns that stored decision rather than reapplying or changing the offer.
 
 ## Unit and Dice Grant Chances
 

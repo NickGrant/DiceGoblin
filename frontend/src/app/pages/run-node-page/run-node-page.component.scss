@@ -206,6 +206,33 @@
   gap: 10px;
 }
 
+.node-result-action__title {
+  margin: 0;
+  color: #fff6df;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.node-result-action__copy,
+.node-result-action__cost {
+  margin: 0;
+  color: rgba(248, 240, 221, 0.82);
+}
+
+.node-result-action__cost {
+  padding: 0.65rem 0.7rem;
+  border: 1px solid rgba(247, 203, 119, 0.28);
+  border-radius: 8px;
+  background: rgba(247, 203, 119, 0.1);
+  color: #f7cb77;
+  font-weight: 800;
+}
+
+.node-result-action__buttons {
+  display: grid;
+  gap: 8px;
+}
+
 .node-result-action .dg-command-btn {
   width: 100%;
 }

@@ -432,6 +432,95 @@ describe('RunNodePageComponent', () => {
     );
   });
 
+  it('shows accept and decline actions for declineable shrine bargains', async () => {
+    const runService = new RunServiceStub();
+    runService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'mountains', region_theme: 'mountain' },
+        map: {
+          nodes: [{ id: '12', run_id: 'run-1', node_index: 0, node_type: 'shrine', status: 'available', meta: { node_quality_tier: 'great' } }],
+          edges: [],
+        },
+      },
+    });
+    runService.resolveNode.and.resolveTo({
+      ok: true,
+      data: {
+        node: { id: '12', status: 'completed' },
+        battle: {
+          battle_id: 'b-bargain',
+          outcome: 'victory',
+          rounds: 0,
+          ticks: 0,
+          status: 'completed',
+          reward_preview: {
+            node_type: 'shrine',
+            xp_total: 0,
+            currency_soft: 0,
+            new_unit_labels: [],
+            new_dice_labels: [],
+            units: [],
+            dice: [],
+            encounter_result: {
+              family: 'shrine',
+              primitive: 'drain_highest_life_heal_rest',
+              effect_slug: 'shrine_crooked_bargain',
+              result: {
+                title: 'Crooked Bargain',
+                result_copy: 'The healthiest goblin pays for everyone else to stand tall.',
+                effect: { type: 'drain_highest_life_heal_rest', drain_pct: 50 },
+                cost: { declineable: true },
+                declineable: true,
+              },
+            },
+          },
+          log: {
+            meta: { node_type: 'shrine' },
+            events: [{ type: 'node_effect', round: 0, tick: 0, node_type: 'shrine', message: 'shrine_favor_granted' }],
+          },
+        },
+        next: { unlocked_node_ids: [] },
+      },
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: runService },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: '12' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigateByUrl').and.resolveTo(true);
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Shrine Bargain');
+    expect(text).toContain('Crooked Bargain');
+    expect(text).toContain('Cost: the healthiest unit loses 50% life.');
+    expect(text).toContain('Accept Bargain');
+    expect(text).toContain('Decline');
+
+    const declineButton = Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'Decline');
+    expect(declineButton).toBeTruthy();
+    declineButton?.click();
+    await fixture.whenStable();
+
+    expect(runService.claimBattleRewards).toHaveBeenCalledWith('b-bargain', 'decline');
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/run/map');
+  });
+
   it('uses the non-combat reward layout for hazard results', async () => {
     const runService = new RunServiceStub();
     runService.getCurrentRun.and.resolveTo({

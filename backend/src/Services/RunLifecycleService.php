@@ -102,9 +102,14 @@ final class RunLifecycleService
    *   newly_claimed: bool
    * }
    */
-  public function claimBattle(int $userId, int $battleId): array
+  public function claimBattle(int $userId, int $battleId, string $claimAction = 'accept'): array
   {
-    return $this->withinTransaction(function () use ($userId, $battleId): array {
+    $claimAction = strtolower(trim($claimAction));
+    if (!in_array($claimAction, ['accept', 'decline'], true)) {
+      throw new RuntimeException('invalid_claim_action');
+    }
+
+    return $this->withinTransaction(function () use ($userId, $battleId, $claimAction): array {
       $battle = $this->battleRepository()->getForClaimForUpdate($battleId, $userId);
       if ($battle === null) {
         throw new RuntimeException('battle_not_found');
@@ -126,12 +131,20 @@ final class RunLifecycleService
         throw new RuntimeException('battle_not_completed');
       }
 
-      $claimSnapshot = $this->applyBattleRewardsAndXp($userId, $battle);
-
       $rewards = json_decode($battle['rewards_json'], true);
       if (!is_array($rewards)) {
         $rewards = [];
       }
+
+      if ($claimAction === 'decline') {
+        if ((string)($battle['node_type'] ?? '') !== 'shrine' || !$this->shrineCanBeDeclined($rewards)) {
+          throw new RuntimeException('shrine_not_declineable');
+        }
+        $claimSnapshot = $this->buildDeclinedShrineClaimSnapshot((int)$battle['run_id']);
+      } else {
+        $claimSnapshot = $this->applyBattleRewardsAndXp($userId, $battle);
+      }
+
       $rewards['claim_snapshot'] = $claimSnapshot;
       $this->battleRewardsRepository()->updateRewardsJsonAndCurrencySoft(
         $battleId,
@@ -525,6 +538,54 @@ final class RunLifecycleService
     $encounter = is_array($rewards['encounter_result'] ?? null) ? $rewards['encounter_result'] : [];
     $result = is_array($encounter['result'] ?? null) ? $encounter['result'] : [];
     return is_array($result['effect'] ?? null) ? $result['effect'] : [];
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   */
+  private function shrineCanBeDeclined(array $rewards): bool
+  {
+    $encounter = is_array($rewards['encounter_result'] ?? null) ? $rewards['encounter_result'] : [];
+    $result = is_array($encounter['result'] ?? null) ? $encounter['result'] : [];
+    $cost = is_array($result['cost'] ?? null) ? $result['cost'] : [];
+    return !empty($result['declineable']) || !empty($cost['declineable']);
+  }
+
+  /**
+   * @return array<string,mixed>
+   */
+  private function buildDeclinedShrineClaimSnapshot(int $runId): array
+  {
+    return [
+      'updated_run_unit_state' => $this->formatRunUnitStateSnapshot($this->runStateByUnitId($runId)),
+      'run_resolution' => null,
+      'xp' => [
+        'award_per_unit' => 0,
+        'applied_unit_instance_ids' => [],
+        'ignored_at_cap_unit_instance_ids' => [],
+      ],
+      'currency' => [
+        'soft_awarded' => 0,
+        'raw_chaos_awarded' => 0,
+      ],
+      'shrine_effects' => [],
+      'shrine_decision' => 'decline',
+      'new_feature_unlocks' => [],
+      'updated_units' => [],
+    ];
+  }
+
+  /**
+   * @return array<int,array{unit_instance_id:string,current_hp:int,is_defeated:bool,cooldowns_json:string,status_effects_json:string}>
+   */
+  private function runStateByUnitId(int $runId): array
+  {
+    $rows = $this->runRepository->getRunUnitStateForUpdate($runId);
+    $byUnitId = [];
+    foreach ($rows as $row) {
+      $byUnitId[(int)$row['unit_instance_id']] = $row;
+    }
+    return $byUnitId;
   }
 
   /**

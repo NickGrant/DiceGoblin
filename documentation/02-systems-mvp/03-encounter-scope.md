@@ -226,7 +226,7 @@ Current primitive-backed effects:
 | `shrine` | `shrine_old_goblin_mark` | `squad_damage_next_combat` | Farm, Mountains, and Swamps. | Persists a next-combat run modifier for the squad; combat consumes it after one eligible fight. |
 | `shrine` | `shrine_hidden_footpath` | `clear_random_combat_node` | Mountains and Swamps. | Clears one available combat node on the map when claimed. |
 | `shrine` | `shrine_bog_luck` | `double_run_teeth` | Swamps. | Awards teeth equal to claimed teeth already earned earlier in the run. |
-| `shrine` | `shrine_crooked_bargain` | `drain_highest_life_heal_rest` | Mountains and Swamps. | Drains the healthiest unit to heal the rest; this is marked declineable for the upcoming offer flow. |
+| `shrine` | `shrine_crooked_bargain` | `drain_highest_life_heal_rest` | Mountains and Swamps. | Presents a declineable bargain; accepting drains the healthiest unit to heal the rest, declining clears the claim without applying either side. |
 
 Procedural hazard population:
 
@@ -235,7 +235,7 @@ Procedural hazard population:
 - Shallow opening columns do not generate hazards, preserving early route readability.
 - If a generated hazard somehow has no eligible effect at metadata assignment time, the generator falls back to combat for that node instead of producing an unresolved hazard.
 - Shrine resolution chooses from the authored shrine catalog using region and quality-weighted pools, then persists `title`, `result_copy`, `favor`, `quality`, `effect`, optional `cost`, and soft currency in the result payload.
-- Costly shrine effects require a shrine-offer accept/decline flow before they should be enabled in player-facing auto-resolution; declineable catalogue entries are excluded from the current auto-generated picker.
+- Costly shrine effects use the persisted result as an offer: accepting claims the reward and applies the cost exactly once, while declining marks the battle reward claimed with no positive or negative shrine effect.
 - Next-combat run modifiers support generic `stat_multipliers` and `stat_adders` for `attack`, `defense`, `precision`, and `resolve`, plus a `damage` multiplier applied through combat affixes.
 
 Authoring constraints:
