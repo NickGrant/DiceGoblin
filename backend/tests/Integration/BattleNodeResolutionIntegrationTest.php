@@ -8,6 +8,22 @@ use DiceGoblins\Tests\Support\BattleFlowIntegrationCase;
 
 final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCase
 {
+  /** @var list<int> */
+  private array $trackedEncounterTemplateIds = [];
+
+  /** @var list<int> */
+  private array $trackedEnemyTemplateIds = [];
+
+  protected function tearDown(): void
+  {
+    $pdo = $this->pdo;
+    parent::tearDown();
+
+    if ($pdo instanceof \PDO) {
+      $this->deleteTrackedTemplateRows($pdo);
+    }
+  }
+
   protected function integrationSkipMessage(): string
   {
     return 'Set TEST_DB_DSN to run battle resolution integration tests.';
@@ -374,6 +390,8 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $teamId = $this->insertTeam($userId);
     $runId = $this->insertRun($userId, $regionId, 81818181);
     $nodeId = $this->insertRunNode($runId, 'combat', 'available');
+    $templateId = $this->insertDurableCombatTemplate('qa_cumulative_ticks_durable');
+    $this->pdo?->prepare('UPDATE `run_nodes` SET `encounter_template_id` = ? WHERE `id` = ?')->execute([$templateId, $nodeId]);
 
     $stmt = $this->pdo->prepare("SELECT `id` FROM `unit_types` WHERE `slug` = 'frontline_bruiser_t1' LIMIT 1");
     $stmt->execute();
@@ -425,6 +443,86 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertNotContains(16, $playerRoundOneTicks);
     $this->assertNotContains(8, $playerRoundOneTicks, 'The second equipped ability should fire at cumulative tick 12, not at its raw speed tick.');
     $this->assertCount(2, $playerRoundOneTicks, 'Unused round ticks should remain empty instead of repeating filler actions.');
+  }
+
+  public function testResolveNodeConsumesRunCombatStatModifiersAfterOneCombat(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 62626262);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'available');
+
+    $stmt = $this->pdo->prepare("SELECT `id` FROM `unit_types` WHERE `slug` = 'frontline_bruiser_t1' LIMIT 1");
+    $stmt->execute();
+    $unitTypeId = (int)$stmt->fetchColumn();
+    $this->assertGreaterThan(0, $unitTypeId);
+
+    $unitId = $this->insertUnit($userId, $unitTypeId, 10, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 40, false);
+    $effects = [[
+      'type' => 'stat_modifier_next_combat',
+      'source' => 'shrine',
+      'remaining_combats' => 1,
+      'stat_multipliers' => [
+        'damage' => 1.1,
+        'defense' => 1.25,
+      ],
+      'stat_adders' => [
+        'precision' => 2,
+      ],
+    ]];
+    $this->pdo?->prepare('
+      UPDATE `run_unit_state`
+      SET `status_effects_json` = ?
+      WHERE `run_id` = ? AND `unit_instance_id` = ?
+    ')->execute([json_encode($effects, JSON_UNESCAPED_SLASHES), $runId, $unitId]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $response = $this->invoke(fn() => (new RunNodeController())->resolveNode((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+
+    $battleId = (int)($response['body']['data']['battle']['battle_id'] ?? 0);
+    $this->assertGreaterThan(0, $battleId);
+    $log = json_decode((string)$this->scalar('SELECT `log_json` FROM `battle_logs` WHERE `battle_id` = ?', [$battleId]), true);
+    $this->assertIsArray($log);
+
+    $playerParticipants = is_array($log['meta']['participants']['player'] ?? null) ? $log['meta']['participants']['player'] : [];
+    $participant = null;
+    foreach ($playerParticipants as $row) {
+      if (is_array($row) && (string)($row['unit_instance_id'] ?? '') === (string)$unitId) {
+        $participant = $row;
+        break;
+      }
+    }
+    $this->assertIsArray($participant);
+    $this->assertSame('stat_modifier_next_combat', (string)($participant['run_combat_modifiers'][0]['type'] ?? ''));
+    $this->assertSame(1.1, (float)($participant['run_combat_modifiers'][0]['stat_multipliers']['damage'] ?? 0.0));
+
+    $actions = array_values(array_filter(
+      is_array($log['events'] ?? null) ? $log['events'] : [],
+      static fn($event): bool => is_array($event)
+        && (string)($event['type'] ?? '') === 'action'
+        && (string)($event['side'] ?? '') === 'player'
+        && (string)($event['actor_unit_instance_id'] ?? '') === (string)$unitId
+    ));
+    $this->assertNotSame([], $actions);
+    $affixText = implode(' ', array_map(static fn(array $event): string => (string)($event['affix_outcome'] ?? ''), $actions));
+    $this->assertStringContainsString('run modifier damage x1.1', $affixText);
+
+    $consumed = is_array($log['meta']['run_combat_modifiers_consumed'] ?? null) ? $log['meta']['run_combat_modifiers_consumed'] : [];
+    $this->assertSame((string)$unitId, (string)($consumed[0]['unit_instance_id'] ?? ''));
+    $this->assertSame('stat_modifier_next_combat', (string)($consumed[0]['type'] ?? ''));
+    $this->assertSame('[]', (string)$this->scalar('SELECT `status_effects_json` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?', [$runId, $unitId]));
+
+    $second = $this->invoke(fn() => (new RunNodeController())->resolveNode((string)$runId, (string)$nodeId));
+    $this->assertSame(200, $second['status'], json_encode($second['body']));
+    $this->assertSame($battleId, (int)($second['body']['data']['battle']['battle_id'] ?? 0));
+    $this->assertSame('[]', (string)$this->scalar('SELECT `status_effects_json` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?', [$runId, $unitId]));
   }
 
   public function testResolveNodeUsesD1FallbackForPlayerEmptyDiceSlots(): void
@@ -608,5 +706,87 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
        LIMIT 1',
       [$userId, $itemSlug]
     );
+  }
+
+  private function insertDurableCombatTemplate(string $slug): int
+  {
+    $token = bin2hex(random_bytes(3));
+    $enemySlug = $slug . '_enemy_' . $token;
+    $enemyTemplateId = $this->insertDurableEnemyTemplate($enemySlug);
+    $this->assertGreaterThan(0, $enemyTemplateId);
+
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `encounter_templates` (`slug`, `region_id`, `difficulty_rating`, `enemy_set_json`, `reward_profile_json`)
+      VALUES (?, ?, ?, ?, ?)
+    ');
+    $stmt?->execute([
+      $slug . '_' . $token,
+      null,
+      1,
+      json_encode([
+        'teams' => [[
+          'units' => [[
+            'enemy_template_slug' => $enemySlug,
+            'pos' => ['x' => 1, 'y' => 1],
+          ]],
+        ]],
+      ], JSON_UNESCAPED_SLASHES),
+      '{}',
+    ]);
+
+    $templateId = (int)$this->pdo?->lastInsertId();
+    $this->trackedEncounterTemplateIds[] = $templateId;
+    return $templateId;
+  }
+
+  private function insertDurableEnemyTemplate(string $slug): int
+  {
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `enemy_templates` (`slug`, `name`, `tier`, `role`, `base_stats_json`, `ability_set_json`, `xp_reward`)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    ');
+    $stmt?->execute([
+      $slug,
+      'Durable Timing Dummy',
+      1,
+      'bruiser',
+      json_encode([
+        'attack' => 1,
+        'defense' => 2,
+        'precision' => 1,
+        'resolve' => 1,
+        'max_hp' => 250,
+      ], JSON_UNESCAPED_SLASHES),
+      json_encode([
+        'actives' => ['basic_attack_melee'],
+        'passives' => [],
+      ], JSON_UNESCAPED_SLASHES),
+      1,
+    ]);
+
+    $enemyTemplateId = (int)$this->pdo?->lastInsertId();
+    $this->trackedEnemyTemplateIds[] = $enemyTemplateId;
+    return $enemyTemplateId;
+  }
+
+  private function deleteTrackedTemplateRows(\PDO $pdo): void
+  {
+    if ($this->trackedEncounterTemplateIds !== []) {
+      $ids = array_values(array_unique(array_filter($this->trackedEncounterTemplateIds, static fn(int $id): bool => $id > 0)));
+      if ($ids !== []) {
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $pdo->prepare("DELETE FROM `encounter_templates` WHERE `id` IN ($placeholders)");
+        $stmt->execute($ids);
+      }
+    }
+
+    if ($this->trackedEnemyTemplateIds !== []) {
+      $ids = array_values(array_unique(array_filter($this->trackedEnemyTemplateIds, static fn(int $id): bool => $id > 0)));
+      if ($ids !== []) {
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $pdo->prepare("DELETE FROM `enemy_templates` WHERE `id` IN ($placeholders)");
+        $stmt->execute($ids);
+      }
+    }
   }
 }

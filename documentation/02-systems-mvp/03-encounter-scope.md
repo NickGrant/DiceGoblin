@@ -223,7 +223,7 @@ Current primitive-backed effects:
 | `shrine` | `shrine_bone_whisper` | `grant_teeth` | Farm, Mountains, and Swamps. | Grants bounded teeth, weighted more often on poor shrines. |
 | `shrine` | `shrine_rust_blessing` | `grant_teeth` | Farm, Mountains, and Swamps. | Grants bounded teeth, weighted more often on poor shrines. |
 | `shrine` | `shrine_clean_water` | `heal_random_unit` | Farm and Swamps. | Heals one wounded run unit when claimed. |
-| `shrine` | `shrine_old_goblin_mark` | `squad_damage_next_combat` | Farm, Mountains, and Swamps. | Persists next-combat damage metadata for the squad; combat consumption is follow-up work. |
+| `shrine` | `shrine_old_goblin_mark` | `squad_damage_next_combat` | Farm, Mountains, and Swamps. | Persists a next-combat run modifier for the squad; combat consumes it after one eligible fight. |
 | `shrine` | `shrine_hidden_footpath` | `clear_random_combat_node` | Mountains and Swamps. | Clears one available combat node on the map when claimed. |
 | `shrine` | `shrine_bog_luck` | `double_run_teeth` | Swamps. | Awards teeth equal to claimed teeth already earned earlier in the run. |
 | `shrine` | `shrine_crooked_bargain` | `drain_highest_life_heal_rest` | Mountains and Swamps. | Drains the healthiest unit to heal the rest; this is marked declineable for the upcoming offer flow. |
@@ -236,6 +236,7 @@ Procedural hazard population:
 - If a generated hazard somehow has no eligible effect at metadata assignment time, the generator falls back to combat for that node instead of producing an unresolved hazard.
 - Shrine resolution chooses from the authored shrine catalog using region and quality-weighted pools, then persists `title`, `result_copy`, `favor`, `quality`, `effect`, optional `cost`, and soft currency in the result payload.
 - Costly shrine effects require a shrine-offer accept/decline flow before they should be enabled in player-facing auto-resolution; declineable catalogue entries are excluded from the current auto-generated picker.
+- Next-combat run modifiers support generic `stat_multipliers` and `stat_adders` for `attack`, `defense`, `precision`, and `resolve`, plus a `damage` multiplier applied through combat affixes.
 
 Authoring constraints:
 

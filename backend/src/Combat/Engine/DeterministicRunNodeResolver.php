@@ -11,6 +11,7 @@ namespace DiceGoblins\Combat\Engine;
 use DiceGoblins\Combat\Abilities\AbilityRegistry;
 use DiceGoblins\Combat\Abilities\AbilityType;
 use DiceGoblins\Services\EncounterPrimitiveCatalog;
+use DiceGoblins\Services\RunCombatModifierService;
 use DiceGoblins\Services\SpliceVariantService;
 use DiceGoblins\Services\UnitProgressionService;
 use DiceGoblins\Services\UserUnlockService;
@@ -261,6 +262,7 @@ final class DeterministicRunNodeResolver
               'max_hp' => (int)$u['max_hp'],
               'current_hp' => (int)$u['current_hp'],
               'abilities' => $u['abilities'],
+              'run_combat_modifiers' => is_array($u['run_combat_modifiers'] ?? null) ? $u['run_combat_modifiers'] : [],
             ], $playerUnits),
             'enemy' => array_map(static fn(array $u): array => [
               'slug' => (string)$u['id'],
@@ -381,7 +383,8 @@ final class DeterministicRunNodeResolver
         ut.`max_hp_per_level`,
         ut.`precision_per_level`,
         ut.`resolve_per_level`,
-        rus.`current_hp` AS `run_current_hp`
+        rus.`current_hp` AS `run_current_hp`,
+        rus.`status_effects_json` AS `run_status_effects_json`
       FROM `team_units` tu
       JOIN `unit_instances` ui ON ui.`id` = tu.`unit_instance_id`
       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
@@ -443,6 +446,8 @@ final class DeterministicRunNodeResolver
           'damage_flat' => 0,
           'below_half_bonus' => 0.0,
         ],
+        'run_status_effects' => $this->decodeJsonList($row['run_status_effects_json'] ?? null),
+        'run_combat_modifiers' => [],
         'ability_dice' => [],
         'passive_dice' => [],
       ];
@@ -539,6 +544,7 @@ final class DeterministicRunNodeResolver
       $unit['passive_dice'] = array_values($passiveDiceByUnitId[$unitId] ?? []);
       $this->applyPassiveAbilityAffixesToUnit($unit, $abilityRegistry);
       $this->applyPassiveDiceAffixesToUnit($unit);
+      $unit = (new RunCombatModifierService())->applyModifiersToUnit($unit);
     }
     unset($unit);
 
@@ -2175,6 +2181,15 @@ final class DeterministicRunNodeResolver
       $affixOutcomeParts[] = sprintf(
         'damaged target x%s',
         rtrim(rtrim(number_format(1 + $damagedEnemyBonusPct, 2, '.', ''), '0'), '.')
+      );
+    }
+
+    $runDamageMultiplier = (float)($combatAffixes['run_damage_multiplier'] ?? 1.0);
+    if (abs($runDamageMultiplier - 1.0) > 0.0001) {
+      $rawDamage = (int)floor($rawDamage * max(0.1, $runDamageMultiplier));
+      $affixOutcomeParts[] = sprintf(
+        'run modifier damage x%s',
+        rtrim(rtrim(number_format($runDamageMultiplier, 2, '.', ''), '0'), '.')
       );
     }
 
@@ -4463,6 +4478,23 @@ final class DeterministicRunNodeResolver
     if (is_string($raw)) {
       $decoded = json_decode($raw, true);
       return is_array($decoded) ? $decoded : [];
+    }
+
+    return [];
+  }
+
+  /**
+   * @return list<mixed>
+   */
+  private function decodeJsonList(mixed $raw): array
+  {
+    if (is_array($raw)) {
+      return array_is_list($raw) ? $raw : [];
+    }
+
+    if (is_string($raw)) {
+      $decoded = json_decode($raw, true);
+      return is_array($decoded) && array_is_list($decoded) ? $decoded : [];
     }
 
     return [];
