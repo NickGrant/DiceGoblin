@@ -41,7 +41,7 @@ Units, dice, and items are materialized when the node is resolved. Currency and 
 | `chaos` | Uses combat resolution and battle claim behavior, but current reward rolls are not in the combat/boss/loot grant set. |
 | `rest` | No loot grant payload. |
 | `hazard` | No loot grant payload. |
-| `shrine` | No unit/dice/item grants; can grant soft currency through resolver metadata. |
+| `shrine` | No unit/dice/item grants in the normal loot payload; resolves a generated shrine effect that can grant teeth, heal run units, persist run-state metadata, double earlier run teeth, or clear an available combat node. |
 
 ## Unit and Dice Grant Chances
 

@@ -51,6 +51,24 @@ final class BattleRewardsRepository
   }
 
   /**
+   * @param array<string,mixed> $rewards
+   */
+  public function updateRewardsJsonAndCurrencySoft(int $battleId, array $rewards, int $currencySoft): void
+  {
+    $stmt = $this->pdo->prepare('
+      UPDATE `battle_rewards`
+      SET `rewards_json` = ?, `currency_soft` = ?
+      WHERE `battle_id` = ?
+      LIMIT 1
+    ');
+    $stmt->execute([
+      json_encode($rewards, JSON_UNESCAPED_SLASHES),
+      max(0, $currencySoft),
+      $battleId,
+    ]);
+  }
+
+  /**
    * @return array{xp_total:int,currency_soft:int,rewards_json:string}|null
    */
   public function getForBattle(int $battleId): ?array

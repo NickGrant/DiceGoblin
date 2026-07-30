@@ -150,11 +150,11 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertNotSame('', (string)($shrineResult['title'] ?? ''));
     $this->assertContains(
       (string)($shrineRes['body']['data']['battle']['log']['events'][0]['primitive'] ?? ''),
-      ['small_reward', 'cleansing', 'bargain', 'reroute', 'controlled_risk']
+      ['grant_teeth', 'heal_random_unit', 'drain_highest_life_heal_rest', 'squad_damage_next_combat', 'double_run_teeth', 'clear_random_combat_node']
     );
     [$shrineXp, $shrineSoft] = $this->battleRewardTuple($shrineBattleId);
     $this->assertSame(0, $shrineXp);
-    $this->assertGreaterThanOrEqual(2, $shrineSoft);
+    $this->assertGreaterThanOrEqual(0, $shrineSoft);
     $this->assertLessThanOrEqual(10, $shrineSoft);
 
     $shrineRewardsRaw = (string)$this->scalar('SELECT `rewards_json` FROM `battle_rewards` WHERE `battle_id` = ?', [$shrineBattleId]);
@@ -163,9 +163,10 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $this->assertSame('shrine', (string)($shrineRewards['encounter_result']['family'] ?? ''));
     $this->assertContains(
       (string)($shrineRewards['encounter_result']['primitive'] ?? ''),
-      ['small_reward', 'cleansing', 'bargain', 'reroute', 'controlled_risk']
+      ['grant_teeth', 'heal_random_unit', 'drain_highest_life_heal_rest', 'squad_damage_next_combat', 'double_run_teeth', 'clear_random_combat_node']
     );
     $this->assertStringStartsWith('shrine_', (string)($shrineRewards['encounter_result']['effect_slug'] ?? ''));
+    $this->assertIsArray($shrineRewards['encounter_result']['result']['effect'] ?? null);
 
     $lootNodeId = $this->insertRunNode($runId, 'loot', 'available');
     $lootRes = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$lootNodeId));

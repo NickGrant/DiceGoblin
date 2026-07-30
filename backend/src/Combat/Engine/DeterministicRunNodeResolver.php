@@ -74,10 +74,15 @@ final class DeterministicRunNodeResolver
       $ticks = 0;
       $outcome = 'victory';
       $xpTotal = 0;
+      $quality = isset($nodeMeta['node_quality_tier']) ? (string)$nodeMeta['node_quality_tier'] : 'good';
       $nodeEffect = (new EncounterPrimitiveCatalog())->resolveNodeEffect(
         $nodeType,
         fn(int $max): int => $this->nextInt($rngState, $max),
-        isset($nodeMeta['encounter_effect_slug']) ? (string)$nodeMeta['encounter_effect_slug'] : null
+        $nodeType === 'shrine' ? null : (isset($nodeMeta['encounter_effect_slug']) ? (string)$nodeMeta['encounter_effect_slug'] : null),
+        [
+          'region_slug' => $this->regionSlugForRun((int)$run['region_id']),
+          'quality' => $quality,
+        ]
       );
       $currencySoft = (int)$nodeEffect['currency_soft'];
       $events = [[
@@ -88,6 +93,7 @@ final class DeterministicRunNodeResolver
         'message' => (string)$nodeEffect['message'],
         'effect_slug' => (string)$nodeEffect['slug'],
         'primitive' => (string)$nodeEffect['primitive'],
+        'quality' => $quality,
         'label' => match ($nodeType) {
           'hazard' => $this->humanizeId((string)$nodeEffect['slug']),
           'shrine' => $this->humanizeId((string)$nodeEffect['slug']),
@@ -317,6 +323,18 @@ final class DeterministicRunNodeResolver
     }
 
     return $grants;
+  }
+
+  private function regionSlugForRun(int $regionId): string
+  {
+    if ($regionId <= 0) {
+      return '';
+    }
+
+    $stmt = $this->pdo->prepare('SELECT `slug` FROM `regions` WHERE `id` = ? LIMIT 1');
+    $stmt->execute([$regionId]);
+    $slug = $stmt->fetchColumn();
+    return is_string($slug) ? $slug : '';
   }
 
   /**
@@ -4644,9 +4662,13 @@ final class DeterministicRunNodeResolver
     $effectName = $this->humanizeId((string)($nodeEffect['slug'] ?? $nodeEffect['message'] ?? 'effect'));
 
     if ($nodeType === 'shrine') {
+      $copy = trim((string)($result['result_copy'] ?? ''));
+      if ($copy === '') {
+        $copy = sprintf('%s settles over the squad.', $effectName);
+      }
       return $currencySoft > 0
-        ? sprintf('%s grants %d teeth.', $effectName, $currencySoft)
-        : sprintf('%s settles over the squad.', $effectName);
+        ? sprintf('%s %s grants %d teeth.', $copy, $effectName, $currencySoft)
+        : $copy;
     }
 
     if ($nodeType === 'hazard') {

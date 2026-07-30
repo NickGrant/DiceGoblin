@@ -292,6 +292,87 @@ final class RunLifecycleServiceIntegrationTest extends BattleFlowIntegrationCase
     $this->assertIsArray($storedRewards['claim_snapshot'] ?? null);
   }
 
+  public function testClaimShrineAppliesGeneratedHealingEffect(): void
+  {
+    $userId = $this->insertUser('shrine_heal_claim', 'Shrine Heal Claim');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 71727374);
+    $nodeId = $this->insertRunNode($runId, 'shrine', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 1, false);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'victory', 81828384, 0, 0);
+    $this->insertBattleRewards($battleId, 0, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'encounter_result' => [
+        'family' => 'shrine',
+        'primitive' => 'heal_random_unit',
+        'effect_slug' => 'shrine_clean_water',
+        'result' => [
+          'effect' => ['type' => 'heal_random_unit', 'amount_pct' => 50],
+        ],
+      ],
+    ]);
+
+    $claim = $this->service()->claimBattle($userId, $battleId);
+    $snapshot = is_array($claim['claim_snapshot'] ?? null) ? $claim['claim_snapshot'] : [];
+
+    $this->assertTrue($claim['newly_claimed']);
+    $this->assertSame('claimed', (string)$claim['battle']['status']);
+    $this->assertGreaterThan(1, (int)$this->scalar('SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?', [$runId, $unitId]));
+    $this->assertSame('heal_random_unit', (string)($snapshot['shrine_effects'][0]['type'] ?? ''));
+    $this->assertSame((string)$unitId, (string)($snapshot['shrine_effects'][0]['unit_instance_id'] ?? ''));
+  }
+
+  public function testClaimShrineCanDoubleClaimedRunTeethSoFar(): void
+  {
+    $userId = $this->insertUser('shrine_double_teeth', 'Shrine Double Teeth');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 91929394);
+    $priorNodeId = $this->insertRunNode($runId, 'combat', 'cleared');
+    $shrineNodeId = $this->insertRunNode($runId, 'shrine', 'cleared');
+    $this->pdo?->prepare('UPDATE `run_nodes` SET `node_index` = ? WHERE `id` = ?')->execute([1, $priorNodeId]);
+    $this->pdo?->prepare('UPDATE `run_nodes` SET `node_index` = ? WHERE `id` = ?')->execute([2, $shrineNodeId]);
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 10, false);
+    $this->setSoftCurrency($userId, 3);
+
+    $priorBattleId = $this->insertBattle($userId, $runId, $priorNodeId, $teamId, 'claimed', 'victory', 1111, 20, 1);
+    $this->insertBattleRewards($priorBattleId, 0, 7, ['new_dice_instance_ids' => [], 'region_items' => []]);
+    $shrineBattleId = $this->insertBattle($userId, $runId, $shrineNodeId, $teamId, 'completed', 'victory', 2222, 0, 0);
+    $this->insertBattleRewards($shrineBattleId, 0, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'encounter_result' => [
+        'family' => 'shrine',
+        'primitive' => 'double_run_teeth',
+        'effect_slug' => 'shrine_bog_luck',
+        'result' => [
+          'effect' => ['type' => 'double_run_teeth'],
+        ],
+      ],
+    ]);
+
+    $claim = $this->service()->claimBattle($userId, $shrineBattleId);
+    $snapshot = is_array($claim['claim_snapshot'] ?? null) ? $claim['claim_snapshot'] : [];
+
+    $this->assertSame('10', (string)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
+    [, $storedShrineSoft] = $this->battleRewardTuple($shrineBattleId);
+    $this->assertSame(7, $storedShrineSoft);
+    $this->assertSame(7, (int)($snapshot['currency']['soft_awarded'] ?? 0));
+    $this->assertSame('double_run_teeth', (string)($snapshot['shrine_effects'][0]['type'] ?? ''));
+    $this->assertSame(7, (int)($snapshot['shrine_effects'][0]['soft_awarded'] ?? 0));
+  }
+
   private function service(): RunLifecycleService
   {
     $pdo = $this->pdo;

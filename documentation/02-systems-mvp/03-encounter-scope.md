@@ -182,7 +182,7 @@ Current foundation exclusions:
 
 ## Hazard And Shrine Primitives
 
-Hazards and shrines resolve through a backend-owned primitive vocabulary before richer authored catalogs are seeded. The current implementation keeps the launch behavior intentionally small while giving future content a stable effect language.
+Hazards and shrines resolve through a backend-owned primitive vocabulary before richer authored catalogs are seeded. Shrine nodes use map metadata for quality/rendering context, but the actual shrine effect is generated when the shrine is encountered and then persisted in the battle log/reward result for idempotency.
 
 Hazard primitives:
 
@@ -220,16 +220,13 @@ Current primitive-backed effects:
 | `hazard` | `hazard_biting_reeds` | `hp_attrition` | Swamps from depth 3 onward. | Metadata-only HP pressure until attrition spending lands. |
 | `hazard` | `hazard_sinking_cache` | `item_pressure` | Swamps from depth 5 onward. | Metadata-only item pressure until item costs land. |
 | `hazard` | `hazard_wrong_turn` | `route_pressure` | Mountains and Swamps from depth 6 onward. | Metadata-only route pressure. |
-| `shrine` | `shrine_bone_whisper` | `small_reward` | Farm, Mountains, and Swamps. | Grants bounded soft currency and persists title/result copy. |
-| `shrine` | `shrine_rust_blessing` | `small_reward` | Farm, Mountains, and Swamps. | Grants bounded soft currency and persists title/result copy. |
-| `shrine` | `shrine_bog_luck` | `small_reward` | Swamps. | Grants bounded soft currency and persists title/result copy. |
-| `shrine` | `shrine_clean_water` | `cleansing` | Farm and Swamps. | Metadata-first cleansing favor with bounded soft currency. |
-| `shrine` | `shrine_crooked_bargain` | `bargain` | Mountains and Swamps. | Metadata-first bargain favor with bounded soft currency. |
-| `shrine` | `shrine_hidden_footpath` | `reroute` | Mountains and Swamps. | Metadata-first reroute favor with bounded soft currency. |
-| `shrine` | `shrine_cracked_lantern` | `controlled_risk` | Mountains. | Metadata-first controlled-risk favor with bounded soft currency. |
-| `shrine` | `shrine_seed_cache` | `small_reward` | Farm. | Grants bounded soft currency and persists title/result copy. |
-| `shrine` | `shrine_mirror_mud` | `controlled_risk` | Swamps. | Metadata-first controlled-risk favor with bounded soft currency. |
-| `shrine` | `shrine_old_goblin_mark` | `cleansing` | Farm, Mountains, and Swamps. | Metadata-first cleansing favor with bounded soft currency. |
+| `shrine` | `shrine_bone_whisper` | `grant_teeth` | Farm, Mountains, and Swamps. | Grants bounded teeth, weighted more often on poor shrines. |
+| `shrine` | `shrine_rust_blessing` | `grant_teeth` | Farm, Mountains, and Swamps. | Grants bounded teeth, weighted more often on poor shrines. |
+| `shrine` | `shrine_clean_water` | `heal_random_unit` | Farm and Swamps. | Heals one wounded run unit when claimed. |
+| `shrine` | `shrine_old_goblin_mark` | `squad_damage_next_combat` | Farm, Mountains, and Swamps. | Persists next-combat damage metadata for the squad; combat consumption is follow-up work. |
+| `shrine` | `shrine_hidden_footpath` | `clear_random_combat_node` | Mountains and Swamps. | Clears one available combat node on the map when claimed. |
+| `shrine` | `shrine_bog_luck` | `double_run_teeth` | Swamps. | Awards teeth equal to claimed teeth already earned earlier in the run. |
+| `shrine` | `shrine_crooked_bargain` | `drain_highest_life_heal_rest` | Mountains and Swamps. | Drains the healthiest unit to heal the rest; this is marked declineable for the upcoming offer flow. |
 
 Procedural hazard population:
 
@@ -237,7 +234,8 @@ Procedural hazard population:
 - Hazard selection is weighted by the eligible effect definitions and stamped into node metadata as `encounter_family`, `encounter_effect_slug`, and `encounter_primitive`.
 - Shallow opening columns do not generate hazards, preserving early route readability.
 - If a generated hazard somehow has no eligible effect at metadata assignment time, the generator falls back to combat for that node instead of producing an unresolved hazard.
-- Shrine resolution chooses from the authored shrine catalog and persists `title`, `result_copy`, `favor`, and soft currency in the result payload.
+- Shrine resolution chooses from the authored shrine catalog using region and quality-weighted pools, then persists `title`, `result_copy`, `favor`, `quality`, `effect`, optional `cost`, and soft currency in the result payload.
+- Costly shrine effects require a shrine-offer accept/decline flow before they should be enabled in player-facing auto-resolution; declineable catalogue entries are excluded from the current auto-generated picker.
 
 Authoring constraints:
 
