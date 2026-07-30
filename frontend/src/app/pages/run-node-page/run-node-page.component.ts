@@ -75,6 +75,13 @@ type ShrineEffectSummaryViewModel = {
   detail: string;
 };
 
+type BattleRunEffectViewModel = {
+  id: string;
+  source: string;
+  label: string;
+  detail: string;
+};
+
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
@@ -446,6 +453,7 @@ export class RunNodePageComponent implements OnDestroy {
   readonly enemyPlaybackParticipants = computed(() => this.buildParticipantStates('enemy'));
   readonly battleOutcomeLabel = computed(() => this.humanizeId(this.result()?.battle.outcome ?? 'pending'));
   readonly battleStatusLabel = computed(() => this.humanizeId(this.result()?.battle.status ?? 'pending'));
+  readonly battleRunEffects = computed<BattleRunEffectViewModel[]>(() => this.buildBattleRunEffects());
   private playbackTimer: ReturnType<typeof window.setTimeout> | null = null;
   private actionTransitionTimer: ReturnType<typeof window.setTimeout> | null = null;
   private combatAnimationTimer: ReturnType<typeof window.setInterval> | null = null;
@@ -768,6 +776,72 @@ export class RunNodePageComponent implements OnDestroy {
     const safeMultiplier = Number.isFinite(multiplier) ? multiplier : fallback;
     const bonus = Math.round((safeMultiplier - 1) * 100);
     return bonus >= 0 ? `+${bonus}%` : `${bonus}%`;
+  }
+
+  private buildBattleRunEffects(): BattleRunEffectViewModel[] {
+    const participants = this.recordValue(this.result()?.battle.log?.meta?.['participants']);
+    const playerRows = Array.isArray(participants['player']) ? participants['player'] : [];
+    const summaries = new Map<string, { source: string; type: string; detail: string; unitIds: Set<string> }>();
+
+    for (const row of playerRows) {
+      if (!row || typeof row !== 'object' || Array.isArray(row)) {
+        continue;
+      }
+      const record = row as Record<string, unknown>;
+      const unitId = String(record['unit_instance_id'] ?? record['participant_id'] ?? '');
+      const modifiers = Array.isArray(record['run_combat_modifiers']) ? record['run_combat_modifiers'] : [];
+      for (const modifier of modifiers) {
+        if (!modifier || typeof modifier !== 'object' || Array.isArray(modifier)) {
+          continue;
+        }
+        const effect = modifier as Record<string, unknown>;
+        const type = typeof effect['type'] === 'string' ? effect['type'] : 'run_modifier';
+        const source = typeof effect['source'] === 'string' && effect['source'].trim() ? effect['source'].trim() : 'run';
+        const detail = this.describeBattleRunEffect(effect);
+        const key = JSON.stringify({
+          type,
+          source,
+          detail,
+        });
+        if (!summaries.has(key)) {
+          summaries.set(key, { source, type, detail, unitIds: new Set<string>() });
+        }
+        if (unitId) {
+          summaries.get(key)?.unitIds.add(unitId);
+        }
+      }
+    }
+
+    return Array.from(summaries.entries()).map(([key, summary]) => {
+      const unitCount = summary.unitIds.size;
+      const unitCopy = unitCount === 1 ? '1 unit' : `${unitCount} units`;
+      return {
+        id: key,
+        source: this.humanizeId(summary.source),
+        label: `${this.humanizeId(summary.source)} Battle Effect`,
+        detail: `${summary.detail} affecting ${unitCopy}.`,
+      };
+    });
+  }
+
+  private describeBattleRunEffect(effect: Record<string, unknown>): string {
+    const parts: string[] = [];
+    const multipliers = this.recordValue(effect['stat_multipliers']);
+    const adders = this.recordValue(effect['stat_adders']);
+    for (const [stat, raw] of Object.entries(multipliers)) {
+      const multiplier = Number(raw);
+      if (Number.isFinite(multiplier) && Math.abs(multiplier - 1) > 0.0001) {
+        parts.push(`${this.multiplierBonusLabel(multiplier, 1)} ${this.humanizeId(stat)}`);
+      }
+    }
+    for (const [stat, raw] of Object.entries(adders)) {
+      const amount = Number(raw);
+      if (Number.isFinite(amount) && amount !== 0) {
+        parts.push(`${amount > 0 ? '+' : ''}${amount} ${this.humanizeId(stat)}`);
+      }
+    }
+
+    return parts.length ? parts.join(', ') : 'Combat modifier';
   }
 
   private mapActionStep(step: BattlePlaybackActionStep): BattleLogActionViewModel {

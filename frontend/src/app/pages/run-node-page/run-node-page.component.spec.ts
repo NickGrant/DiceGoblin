@@ -28,6 +28,36 @@ class RunServiceStub {
         status: 'completed',
         reward_preview: null,
         log: {
+          meta: {
+            participants: {
+              player: [
+                {
+                  unit_instance_id: 'u1',
+                  run_combat_modifiers: [
+                    {
+                      type: 'run_stat_modifier_next_combat',
+                      source: 'shrine',
+                      remaining_combats: 1,
+                      stat_multipliers: { defense: 1.25, damage: 1.1 },
+                      stat_adders: { resolve: 2 },
+                    },
+                  ],
+                },
+                {
+                  unit_instance_id: 'u2',
+                  run_combat_modifiers: [
+                    {
+                      type: 'run_stat_modifier_next_combat',
+                      source: 'shrine',
+                      remaining_combats: 1,
+                      stat_multipliers: { defense: 1.25, damage: 1.1 },
+                      stat_adders: { resolve: 2 },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
           events: [
             {
               type: 'action',
@@ -786,6 +816,9 @@ describe('RunNodePageComponent', () => {
     expect(host.textContent).toContain('VICTORY');
     expect(host.textContent).toContain('Acted Out');
     expect(host.textContent).toContain('Log View');
+    expect(host.textContent).toContain('Battle Effects');
+    expect(host.textContent).toContain('Shrine Battle Effect');
+    expect(host.textContent).toContain('+25% Defense, +10% Damage, +2 Resolve affecting 2 units.');
     expect(host.textContent).toContain('Ashback');
     expect(host.textContent).toContain('Heavy Strike');
     expect(host.textContent).toContain('Goblin Raider');

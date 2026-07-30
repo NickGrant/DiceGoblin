@@ -433,7 +433,7 @@ final class RunRepository
   }
 
   /**
-   * Return player-facing summaries for cleared run nodes that affect the route.
+   * Return player-facing summaries for effects that still affect the current run.
    *
    * @return array<int,array{
    *   id:string,
@@ -447,37 +447,11 @@ final class RunRepository
    */
   public function getActiveRunEffects(int $runId): array
   {
-    $stmt = $this->pdo->prepare('
-      SELECT
-        rn.`id` AS `node_id`,
-        rn.`node_type`,
-        rn.`node_index`,
-        b.`id` AS `battle_id`,
-        bl.`log_json`
-      FROM `run_nodes` rn
-      JOIN `battles` b ON b.`run_id` = rn.`run_id` AND b.`node_id` = rn.`id`
-      LEFT JOIN `battle_logs` bl ON bl.`battle_id` = b.`id`
-      WHERE rn.`run_id` = ?
-        AND rn.`status` = \'cleared\'
-        AND rn.`node_type` IN (\'shrine\', \'hazard\', \'chaos\')
-      ORDER BY rn.`node_index` ASC, b.`id` ASC
-    ');
-    $stmt->execute([$runId]);
-
-    $effects = [];
-    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-      $effect = $this->activeRunEffectFromRow($row);
-      if ($effect !== null) {
-        $effects[] = $effect;
-      }
-    }
-
-    return $effects;
+    return $this->activeRunEffectsFromUnitState($runId);
   }
 
   /**
-   * @param array<string,mixed> $row
-   * @return array{
+   * @return array<int,array{
    *   id:string,
    *   node_id:string,
    *   node_type:string,
@@ -485,67 +459,193 @@ final class RunRepository
    *   detail:string,
    *   persistence:string,
    *   source:string
-   * }|null
+   * }>
    */
-  private function activeRunEffectFromRow(array $row): ?array
+  private function activeRunEffectsFromUnitState(int $runId): array
   {
-    $nodeType = (string)($row['node_type'] ?? '');
-    $nodeId = (string)($row['node_id'] ?? '');
-    $battleId = (string)($row['battle_id'] ?? '');
-    $log = json_decode((string)($row['log_json'] ?? ''), true);
-    $log = is_array($log) ? $log : [];
+    $rows = $this->getRunUnitState($runId);
+    $summaries = [];
 
-    if ($nodeType === 'chaos') {
-      $meta = is_array($log['meta'] ?? null) ? $log['meta'] : [];
-      $chaos = is_array($meta['chaos'] ?? null) ? $meta['chaos'] : [];
-      $summary = is_array($chaos['summary'] ?? null) ? $chaos['summary'] : [];
-      $label = trim((string)($summary['title'] ?? 'Chaos Reel'));
-      $detail = trim((string)($summary['effect'] ?? 'The finalized chaos reel shaped this encounter.'));
-
-      return [
-        'id' => 'battle-' . $battleId . '-chaos',
-        'node_id' => $nodeId,
-        'node_type' => $nodeType,
-        'label' => $label !== '' ? $label : 'Chaos Reel',
-        'detail' => $detail !== '' ? $detail : 'The finalized chaos reel shaped this encounter.',
-        'persistence' => 'encounter',
-        'source' => 'Chaos',
-      ];
-    }
-
-    $event = null;
-    $events = is_array($log['events'] ?? null) ? $log['events'] : [];
-    foreach ($events as $candidate) {
-      if (!is_array($candidate)) {
+    foreach ($rows as $row) {
+      $rawEffects = json_decode((string)($row['status_effects_json'] ?? ''), true);
+      if (!is_array($rawEffects)) {
         continue;
       }
 
-      if ((string)($candidate['type'] ?? '') === 'node_effect') {
-        $event = $candidate;
-        break;
+      foreach ($rawEffects as $rawEffect) {
+        if (!is_array($rawEffect)) {
+          continue;
+        }
+
+        $effect = $this->normalizeActiveRunStatusEffect($rawEffect);
+        if ($effect === null) {
+          continue;
+        }
+
+        $key = $this->activeRunStatusEffectKey($effect);
+        if (!isset($summaries[$key])) {
+          $summaries[$key] = [
+            'effect' => $effect,
+            'unit_ids' => [],
+          ];
+        }
+        $summaries[$key]['unit_ids'][] = (string)$row['unit_instance_id'];
       }
     }
 
-    if ($event === null) {
+    $out = [];
+    foreach ($summaries as $key => $summary) {
+      $effect = $summary['effect'];
+      $source = $this->humanizeId((string)$effect['source']);
+      $nodeType = in_array((string)$effect['source'], ['shrine', 'hazard'], true) ? (string)$effect['source'] : 'run';
+      $unitCount = count(array_unique($summary['unit_ids']));
+      $out[] = [
+        'id' => 'run-status-' . $key,
+        'node_id' => '',
+        'node_type' => $nodeType,
+        'label' => $source . ' Battle Effect',
+        'detail' => $this->describeActiveRunStatusEffect($effect, $unitCount),
+        'persistence' => 'next combat',
+        'source' => $source,
+      ];
+    }
+
+    return $out;
+  }
+
+  /**
+   * @param array<string,mixed> $rawEffect
+   * @return array{type:string,source:string,remaining_combats:int,stat_multipliers:array<string,float>,stat_adders:array<string,int>}|null
+   */
+  private function normalizeActiveRunStatusEffect(array $rawEffect): ?array
+  {
+    $type = trim((string)($rawEffect['type'] ?? ''));
+    if (!in_array($type, ['squad_damage_next_combat', 'stat_modifier_next_combat', 'squad_stat_modifier_next_combat', 'run_stat_modifier_next_combat'], true)) {
       return null;
     }
 
-    $fallbackLabel = $nodeType === 'shrine' ? 'Shrine Favor' : 'Hazard Cleared';
-    $fallbackDetail = $nodeType === 'shrine'
-      ? 'The shrine granted a run result.'
-      : 'The hazard was resolved on this route.';
-    $label = trim((string)($event['label'] ?? ''));
-    $detail = trim((string)($event['detail'] ?? ''));
+    $remainingCombats = max(0, (int)($rawEffect['remaining_combats'] ?? 0));
+    if ($remainingCombats <= 0) {
+      return null;
+    }
+
+    $statMultipliers = $this->normalizeFloatMap($rawEffect['stat_multipliers'] ?? []);
+    $statAdders = $this->normalizeIntMap($rawEffect['stat_adders'] ?? []);
+    if ($type === 'squad_damage_next_combat') {
+      $damageMultiplier = (float)($rawEffect['damage_multiplier'] ?? 1.0);
+      if ($damageMultiplier > 0.0 && abs($damageMultiplier - 1.0) > 0.0001) {
+        $statMultipliers['damage'] = $damageMultiplier;
+      }
+    }
+
+    $statMultipliers = array_intersect_key($statMultipliers, array_flip(['attack', 'defense', 'precision', 'resolve', 'damage']));
+    $statAdders = array_intersect_key($statAdders, array_flip(['attack', 'defense', 'precision', 'resolve']));
+    if ($statMultipliers === [] && $statAdders === []) {
+      return null;
+    }
 
     return [
-      'id' => 'battle-' . $battleId . '-' . $nodeType,
-      'node_id' => $nodeId,
-      'node_type' => $nodeType,
-      'label' => $label !== '' ? $label : $fallbackLabel,
-      'detail' => $detail !== '' ? $detail : $fallbackDetail,
-      'persistence' => 'immediate',
-      'source' => $nodeType === 'shrine' ? 'Shrine' : 'Hazard',
+      'type' => $type,
+      'source' => trim((string)($rawEffect['source'] ?? 'run')) ?: 'run',
+      'remaining_combats' => $remainingCombats,
+      'stat_multipliers' => $statMultipliers,
+      'stat_adders' => $statAdders,
     ];
+  }
+
+  /**
+   * @param array{type:string,source:string,remaining_combats:int,stat_multipliers:array<string,float>,stat_adders:array<string,int>} $effect
+   */
+  private function activeRunStatusEffectKey(array $effect): string
+  {
+    return sha1(json_encode([
+      'type' => $effect['type'],
+      'source' => $effect['source'],
+      'remaining_combats' => $effect['remaining_combats'],
+      'stat_multipliers' => $effect['stat_multipliers'],
+      'stat_adders' => $effect['stat_adders'],
+    ], JSON_UNESCAPED_SLASHES) ?: (string)microtime(true));
+  }
+
+  /**
+   * @param array{type:string,source:string,remaining_combats:int,stat_multipliers:array<string,float>,stat_adders:array<string,int>} $effect
+   */
+  private function describeActiveRunStatusEffect(array $effect, int $unitCount): string
+  {
+    $parts = $this->describeModifierParts($effect['stat_multipliers'], $effect['stat_adders']);
+    $unitCopy = $unitCount === 1 ? '1 unit' : $unitCount . ' units';
+    $scope = $effect['remaining_combats'] === 1 ? 'the next combat' : $effect['remaining_combats'] . ' combats';
+    return ($parts !== [] ? implode(', ', $parts) : 'Combat modifiers') . ' for ' . $unitCopy . ' during ' . $scope . '.';
+  }
+
+  /**
+   * @param array<string,float> $statMultipliers
+   * @param array<string,int> $statAdders
+   * @return list<string>
+   */
+  private function describeModifierParts(array $statMultipliers, array $statAdders): array
+  {
+    $parts = [];
+    foreach ($statMultipliers as $stat => $multiplier) {
+      if (abs($multiplier - 1.0) <= 0.0001) {
+        continue;
+      }
+      $bonus = (int)round(($multiplier - 1.0) * 100);
+      $parts[] = ($bonus >= 0 ? '+' : '') . $bonus . '% ' . $this->humanizeId($stat);
+    }
+    foreach ($statAdders as $stat => $amount) {
+      if ($amount === 0) {
+        continue;
+      }
+      $parts[] = ($amount > 0 ? '+' : '') . $amount . ' ' . $this->humanizeId($stat);
+    }
+
+    return $parts;
+  }
+
+  /**
+   * @return array<string,float>
+   */
+  private function normalizeFloatMap(mixed $value): array
+  {
+    if (!is_array($value)) {
+      return [];
+    }
+
+    $out = [];
+    foreach ($value as $key => $raw) {
+      if (is_numeric($raw)) {
+        $out[(string)$key] = (float)$raw;
+      }
+    }
+
+    return $out;
+  }
+
+  /**
+   * @return array<string,int>
+   */
+  private function normalizeIntMap(mixed $value): array
+  {
+    if (!is_array($value)) {
+      return [];
+    }
+
+    $out = [];
+    foreach ($value as $key => $raw) {
+      if (is_numeric($raw)) {
+        $out[(string)$key] = (int)$raw;
+      }
+    }
+
+    return $out;
+  }
+
+  private function humanizeId(string $value): string
+  {
+    $segments = preg_split('/[_#\s-]+/', $value) ?: [];
+    $segments = array_values(array_filter($segments, static fn(string $segment): bool => $segment !== ''));
+    return implode(' ', array_map(static fn(string $segment): string => ucfirst($segment), $segments));
   }
 
   /**

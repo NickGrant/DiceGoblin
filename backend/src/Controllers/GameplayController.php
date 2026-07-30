@@ -651,7 +651,7 @@ final class GameplayController
 
   private function unlockFromNode(RunEdgeRepository $edges, RunNodeRepository $nodes, int $runId, int $fromNodeId): array
   {
-    $toIds = $edges->getToNodeIdsFrom($runId, $fromNodeId);
+    $toIds = $edges->getConnectedNodeIds($runId, $fromNodeId);
     $unlocked = [];
     foreach ($toIds as $toId) {
       if ($nodes->setAvailableIfLocked($runId, $toId)) {

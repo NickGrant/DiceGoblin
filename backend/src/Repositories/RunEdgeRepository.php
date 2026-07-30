@@ -32,6 +32,26 @@ final class RunEdgeRepository
   }
 
   /**
+   * @return array<int,int> connected node ids
+   */
+  public function getConnectedNodeIds(int $runId, int $nodeId): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT
+        CASE
+          WHEN `from_node_id` = ? THEN `to_node_id`
+          ELSE `from_node_id`
+        END AS `connected_node_id`
+      FROM `run_edges`
+      WHERE `run_id` = ?
+        AND (`from_node_id` = ? OR `to_node_id` = ?)
+    ');
+    $stmt->execute([$nodeId, $runId, $nodeId, $nodeId]);
+
+    return array_values(array_unique(array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN))));
+  }
+
+  /**
    * Count how many prerequisite parent nodes are NOT cleared.
    */
   public function countUnclearedPrerequisites(int $runId, int $toNodeId): int

@@ -318,12 +318,33 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     }
   }
 
-  public function testCurrentRunReturnsClearedNodeEffectSummaries(): void
+  public function testCurrentRunReturnsOnlyOngoingBattleEffectSummaries(): void
   {
     $userId = $this->insertUser('current_run_effects', 'Current Run Effects User');
     $regionId = $this->insertRegion();
     $teamId = $this->insertTeam($userId);
     $runId = $this->insertRun($userId, $regionId);
+    $unitTypeId = (int)$this->scalar('SELECT `id` FROM `unit_types` ORDER BY `id` ASC LIMIT 1', []);
+    $this->assertGreaterThan(0, $unitTypeId);
+    $unitInsert = $this->pdo?->prepare('
+      INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `tier`, `level`, `xp`, `locked`)
+      VALUES (?, ?, 1, 1, 0, 0)
+    ');
+    $unitInsert?->execute([$userId, $unitTypeId]);
+    $unitId = (int)$this->pdo?->lastInsertId();
+    $statusEffects = [[
+      'type' => 'run_stat_modifier_next_combat',
+      'source' => 'shrine',
+      'remaining_combats' => 1,
+      'stat_multipliers' => ['defense' => 1.25],
+      'stat_adders' => ['resolve' => 2],
+    ]];
+    $stateInsert = $this->pdo?->prepare('
+      INSERT INTO `run_unit_state` (`run_id`, `unit_instance_id`, `current_hp`, `is_defeated`, `cooldowns_json`, `status_effects_json`)
+      VALUES (?, ?, 20, 0, \'{}\', ?)
+    ');
+    $stateInsert?->execute([$runId, $unitId, json_encode($statusEffects, JSON_UNESCAPED_SLASHES)]);
+
     $nodeId = $this->insertRunNode($runId, 0, 'shrine', 'cleared');
     $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'claimed', 'victory');
     $this->insertBattleLog($battleId, [
@@ -337,6 +358,20 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
         'detail' => 'Bone Whisper grants 7 teeth.',
       ]],
     ]);
+    $chaosNodeId = $this->insertRunNode($runId, 1, 'chaos', 'cleared');
+    $chaosBattleId = $this->insertBattle($userId, $runId, $chaosNodeId, $teamId, 'claimed', 'victory');
+    $this->insertBattleLog($chaosBattleId, [
+      'meta' => [
+        'node_type' => 'chaos',
+        'chaos' => [
+          'summary' => [
+            'title' => 'Kobolds + Ambush + Teeth Rain',
+            'effect' => 'A chaos roll shaped one fight.',
+          ],
+        ],
+      ],
+      'events' => [],
+    ]);
 
     $_SESSION['user_id'] = $userId;
 
@@ -348,11 +383,11 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $effects = is_array($data['active_run_effects'] ?? null) ? $data['active_run_effects'] : [];
     $this->assertCount(1, $effects);
     $effect = is_array($effects[0] ?? null) ? $effects[0] : [];
-    $this->assertSame((string)$nodeId, (string)($effect['node_id'] ?? ''));
+    $this->assertSame('', (string)($effect['node_id'] ?? ''));
     $this->assertSame('shrine', (string)($effect['node_type'] ?? ''));
-    $this->assertSame('Shrine Favor Granted', (string)($effect['label'] ?? ''));
-    $this->assertSame('Bone Whisper grants 7 teeth.', (string)($effect['detail'] ?? ''));
-    $this->assertSame('immediate', (string)($effect['persistence'] ?? ''));
+    $this->assertSame('Shrine Battle Effect', (string)($effect['label'] ?? ''));
+    $this->assertSame('+25% Defense, +2 Resolve for 1 unit during the next combat.', (string)($effect['detail'] ?? ''));
+    $this->assertSame('next combat', (string)($effect['persistence'] ?? ''));
   }
 
   /**
