@@ -2,6 +2,203 @@
 ----
 Completed issue entries retained only when they provide 7/25 roadmap execution context.
 
+## Pattern-V2 Run Map Generation
+
+---
+id: PV2-001
+title: Seed database-owned Pattern-V2 tile catalog
+status: complete
+priority: high
+milestone: Pattern-V2 Run Map Generation
+description: Pattern-V2 starter, middle, connector/reward, and terminal tile definitions are seeded through forward-only migrations, with no JSON source-of-truth copy for V2 content.
+acceptance_criteria:
+  - Pattern-V2 definitions, region rules, and profiles load from database tables.
+  - Connector cells remain edge/waypoint authoring metadata rather than runtime run nodes.
+  - Request building for Pattern-V2 returns compiled grid tiles.
+current_code_references:
+  - backend/migrations
+  - backend/src/Repositories/RunPatternCatalogRepository.php
+  - backend/src/Services/RunPatternGenerationRequestBuilder.php
+
+---
+id: PV2-002
+title: Validate Pattern-V2 grid catalog contracts
+status: complete
+priority: high
+milestone: Pattern-V2 Run Map Generation
+description: Grid catalogue validation now rejects malformed V2 definitions before composer work depends on them.
+acceptance_criteria:
+  - Invalid dimensions, grids, exits, connections, duplicate node keys, and connector runtime-node misuse are rejected.
+  - DB-loaded V2 definitions are covered by validation tests.
+current_code_references:
+  - backend/src/Services/RunPatternV2GridCatalogValidator.php
+  - backend/tests/Unit/RunPatternV2GridCatalogValidatorTest.php
+  - backend/tests/Integration/RunPatternV2GridCatalogValidatorIntegrationTest.php
+
+---
+id: PV2-003
+title: Implement Pattern-V2 tile composer
+status: complete
+priority: high
+milestone: Pattern-V2 Run Map Generation
+description: Pattern-V2 composes DB-loaded grid tiles into validated global run maps with connector waypoints, branch keys, generation coordinates, and runtime graph normalization.
+acceptance_criteria:
+  - Tiles compose within profile budgets and preserve forward progression.
+  - Required boss, exit, reachability, and no-crossing constraints are validated.
+  - Composer output is deterministic by seed and available through explicit Pattern-V2 requests.
+current_code_references:
+  - backend/src/Services/RunPatternV2TileComposerService.php
+  - backend/src/Services/RunGraphValidationService.php
+  - backend/src/Services/RunGraphGenerator.php
+  - backend/tests/Unit/RunPatternV2TileComposerServiceTest.php
+
+---
+id: PV2-004
+title: Add Pattern-V2 preview and simulation gates
+status: complete
+priority: medium
+milestone: Pattern-V2 Run Map Generation
+description: Preview, inspection, comparison, and simulation tooling expose Pattern-V2 validity, branch, shape, cost, pattern-frequency, and boss-path metrics for rollout review.
+acceptance_criteria:
+  - Simulation reports occupied rows/columns, branch count, fallback rate, validation failures, and boss path metrics.
+  - Gates fail on invalid graphs, excessive width, insufficient rows, weak branch counts, or long straight routes.
+  - Docker shortcuts run Mountains and Swamps V2 gates and V1/V2 comparisons.
+current_code_references:
+  - backend/bin/simulate-run-patterns.php
+  - backend/bin/inspect-run-patterns.php
+  - backend/bin/compare-run-generators.php
+  - backend/src/Services/RunPatternSimulationService.php
+  - package.json
+
+---
+id: PV2-005
+title: Opt Mountains into Pattern-V2 maps
+status: complete
+priority: medium
+milestone: Pattern-V2 Run Map Generation
+description: Mountains can run through Pattern-V2 via generator selection and local UAT opt-in, with API contract tests proving persisted generation metadata reaches the shared run-map renderer.
+acceptance_criteria:
+  - Runtime selection supports Mountains Pattern-V2 opt-in.
+  - Mountains Pattern-V2 gate and comparison evidence pass deterministic seed suites.
+  - Current-run API exposes Pattern-V2 node coordinates and connector waypoint edge metadata.
+current_code_references:
+  - backend/src/Services/RunGeneratorVersionSelector.php
+  - backend/tests/Integration/PatternV2RuntimeApiContractIntegrationTest.php
+  - docker-compose.yml
+  - backend/.env.example
+
+---
+id: PV2-006
+title: Opt Swamps into Pattern-V2 maps
+status: complete
+priority: high
+milestone: Pattern-V2 Run Map Generation
+description: Swamps now has migration-seeded Pattern-V2 content and local UAT opt-in, preserving required boss, exit, rest, chaos, hazard, shrine, and reward contracts.
+acceptance_criteria:
+  - Swamps Pattern-V2 definitions, rules, and profile are migration-seeded.
+  - Swamps deterministic gates pass with no fallback, no backward traversal, no crossing edges, and required row/branch shape.
+  - Current-run API contract covers Swamps Pattern-V2 rendering metadata.
+current_code_references:
+  - backend/migrations
+  - backend/tests/Integration/RunPatternGenerationRequestBuilderIntegrationTest.php
+  - backend/tests/Integration/PatternV2RuntimeApiContractIntegrationTest.php
+  - package.json
+
+---
+id: PV2-007
+title: Move remaining biomes to the consistent run rendering path
+status: complete
+priority: medium
+milestone: Pattern-V2 Run Map Generation
+description: Farm and Mystic Cave remain authored linear graphs while exposing `fixed-v1` provenance and node coordinates for the same frontend renderer contract used by Pattern-V2 maps.
+acceptance_criteria:
+  - Farm and Mystic Cave expose generation metadata and coordinates.
+  - Frontend map rendering consumes generation coordinates when present.
+  - Regression tests cover Farm, Mystic Cave, Mountains Pattern-V2, and Swamps Pattern-V2 renderer-facing graph contracts.
+current_code_references:
+  - backend/src/Services/RunGraphGenerator.php
+  - backend/tests/Integration/RunGraphGeneratorIntegrationTest.php
+  - frontend/src/app/pages/run-map-page/run-map-page.component.ts
+
+## Pattern-Based Run Map Generation
+
+---
+id: PBM-001
+title: Implement Pattern-V1 assembler behind generator version
+status: complete
+priority: medium
+milestone: Pattern-Based Run Map Generation
+description: Pattern-V1 exists as a separate versioned generator path with topology assembly, encounter binding, validation, provenance, and deterministic test coverage.
+acceptance_criteria:
+  - Pattern-V1 builds start, spine, boss/exit, branch, cap, and encounter-bound topology.
+  - Invalid graphs fail before persistence.
+  - Generation provenance records version, profile, catalogue, attempt, and summary metadata.
+current_code_references:
+  - backend/src/Services/RunGraphGenerator.php
+  - backend/src/Services/RunPatternPreviewAssemblerService.php
+  - backend/tests/Integration/RunGraphGeneratorIntegrationTest.php
+
+---
+id: PBM-002
+title: Opt Mountains into Pattern-V1 maps
+status: complete
+priority: medium
+milestone: Pattern-Based Run Map Generation
+description: Mountains received Pattern-V1 catalogue/profile content and deterministic comparison/gate evidence before the later Pattern-V2 opt-in superseded it for local UAT.
+acceptance_criteria:
+  - Mountains Pattern-V1 preserves required node, boss, exit, story, and reward contracts.
+  - Simulation reports node count, branch count, spine depth, fallback rate, and validation failures.
+current_code_references:
+  - backend/data/run-patterns
+  - backend/bin/simulate-run-patterns.php
+  - documentation/05-playability-stability/04-mountains-pattern-v1-gate-evidence.md
+
+---
+id: PBM-003
+title: Opt Swamps into Pattern-V1 maps
+status: complete
+priority: medium
+milestone: Pattern-Based Run Map Generation
+description: Swamps received wider Pattern-V1 catalogue/profile content and deterministic gate evidence before the later Pattern-V2 opt-in superseded it for local UAT.
+acceptance_criteria:
+  - Swamps Pattern-V1 preserves required rest, chaos, boss, exit, story, reward, and path-length contracts.
+  - Simulation covers Swamps-specific branch, recovery, and reward distribution.
+current_code_references:
+  - backend/data/run-patterns
+  - backend/bin/simulate-run-patterns.php
+  - documentation/05-playability-stability/05-swamps-pattern-v1-gate-evidence.md
+
+---
+id: PBM-004
+title: Migrate story placement into generation requests
+status: complete
+priority: medium
+milestone: Pattern-Based Run Map Generation
+description: Pattern paths resolve start, before-boss, and before-exit story placement requests before graph validation and persistence.
+acceptance_criteria:
+  - User-specific story requirements are resolved before topology assembly.
+  - Pattern story placements do not bypass required boss or exit routes.
+current_code_references:
+  - backend/src/Services/RunGraphGenerator.php
+  - backend/tests/Integration/RunGraphGeneratorIntegrationTest.php
+  - documentation/09-active-system-structure/05-run-node-generation.md
+
+---
+id: PBM-005
+title: Add pattern generation debug and simulation gates
+status: complete
+priority: medium
+milestone: Pattern-Based Run Map Generation
+description: Pattern simulation and inspection tooling expose validation, fallback, branch, backtrack, duration, frequency, occupied-coordinate, and boss-path metrics.
+acceptance_criteria:
+  - Debug tooling reports generation provenance and shape metrics.
+  - Simulation gates fail on invalid graphs, fallback, excessive backtracks, weak branches, or long straight routes.
+current_code_references:
+  - backend/src/Services/RunPatternSimulationService.php
+  - backend/bin/inspect-run-patterns.php
+  - backend/bin/compare-run-generators.php
+  - package.json
+
 ## UAT Feedback Fix Round 2
 
 ---

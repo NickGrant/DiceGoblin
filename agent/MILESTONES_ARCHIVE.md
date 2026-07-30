@@ -3,6 +3,54 @@
 Completed milestone entries retained only when they provide 7/25 roadmap execution context.
 
 ---
+name: Pattern-V2 Run Map Generation
+status: complete
+issues:
+  - PV2-001
+  - PV2-002
+  - PV2-003
+  - PV2-004
+  - PV2-005
+  - PV2-006
+  - PV2-007
+description: Built the database-owned Pattern-V2 tile composer and moved Mountains and Swamps to the shared runtime generation/rendering path while preserving authored linear maps for Farm and Mystic Cave.
+goals:
+  - Seed Pattern-V2 definitions, region rules, and profiles through forward-only migrations.
+  - Validate grid cells, connector cells, explicit connections, and perimeter exits before assembly.
+  - Compose compact multi-row maps with connector waypoints and no runtime connector nodes.
+  - Gate Mountains and Swamps with deterministic simulation checks for branches, occupied rows/columns, straight routes, fallback rate, and graph validity.
+  - Normalize renderer-facing generation metadata across Farm, Mystic Cave, Mountains, and Swamps.
+current_code_context: RunPatternGenerationRequestBuilder, RunPatternV2GridCompiler, RunPatternV2TileComposerService, RunGraphGenerator, RunRepository, run-map frontend rendering, PatternV2RuntimeApiContractIntegrationTest, and RunGraphGeneratorIntegrationTest carry the completed V2 path.
+exit_criteria:
+  - Mountains and Swamps can be opted into Pattern-V2 through `RUN_PATTERN_V2_REGIONS`.
+  - Pattern-V2 catalogue content is database-owned and migration-seeded.
+  - Connector cells compile to edge waypoint metadata only.
+  - Current-run API payloads expose generator provenance, node coordinates, and edge waypoints for the shared renderer.
+  - Farm and Mystic Cave expose `fixed-v1` metadata for the same renderer contract.
+
+---
+name: Pattern-Based Run Map Generation
+status: complete
+issues:
+  - PBM-001
+  - PBM-002
+  - PBM-003
+  - PBM-004
+  - PBM-005
+description: Implemented the original Pattern-V1 spine-first run-map generator, simulation gates, generation provenance, story placement requests, and Mountains/Swamps rollout evidence before the V2 tile composer superseded it for local UAT.
+goals:
+  - Add a separate versioned pattern assembler behind generator selection.
+  - Preserve boss/exit routing, branch topology, encounter binding, and graph validation.
+  - Move story placement into generation requests for migrated pattern paths.
+  - Provide debug and simulation tooling for fallback, backtrack, branch, and boss-path review.
+  - Use Pattern-V1 as the comparison baseline for Pattern-V2 rollout.
+current_code_context: RunGraphGenerator, RunPatternPreviewAssemblerService, RunPatternSimulationService, compare-run-generators tooling, and pattern-v1 catalogue data remain available as the baseline generation path.
+exit_criteria:
+  - Pattern-V1 generates valid Mountains and Swamps candidate maps behind explicit version selection.
+  - Simulation gates report branch, straight-spine, backtrack, occupied coordinate, and boss-path metrics.
+  - Pattern-V2 now owns active Mountains/Swamps UAT opt-in, leaving Pattern-V1 as baseline/fallback comparison context.
+
+---
 name: UAT Feedback Fix Round 2
 status: complete
 issues:
