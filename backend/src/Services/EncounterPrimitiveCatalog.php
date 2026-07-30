@@ -5,95 +5,172 @@ namespace DiceGoblins\Services;
 
 final class EncounterPrimitiveCatalog
 {
-  /** @var list<array{slug:string,primitive:string,regions:list<string>,min_depth:int,weight:int,result:array<string,mixed>}> */
+  /** @var list<array{slug:string,primitive:string,regions:list<string>,severities:list<string>,weights:array<string,int>,min_depth:int,title:string,result_copy:string,result:array<string,mixed>}> */
   private const HAZARD_EFFECTS = [
     [
       'slug' => 'hazard_cautious_footing',
       'primitive' => 'route_pressure',
       'regions' => ['the_farm', 'mountains', 'swamps'],
+      'severities' => ['minor', 'moderate'],
+      'weights' => ['minor' => 8, 'moderate' => 4],
       'min_depth' => 3,
-      'weight' => 5,
-      'result' => ['effect' => 'cautious_footing', 'pressure' => 'route'],
+      'title' => 'Cautious Footing',
+      'result_copy' => 'The squad slows down and loses momentum on the route.',
+      'result' => ['effect' => ['type' => 'route_pressure', 'pressure' => 'route']],
     ],
     [
       'slug' => 'hazard_mud_slick',
       'primitive' => 'temporary_modifier',
       'regions' => ['the_farm'],
+      'severities' => ['minor', 'moderate'],
+      'weights' => ['minor' => 6, 'moderate' => 5],
       'min_depth' => 3,
-      'weight' => 3,
-      'result' => ['effect' => 'mud_slick', 'pressure' => 'temporary_modifier', 'stat' => 'precision'],
+      'title' => 'Mud Slick',
+      'result_copy' => 'Mud gums up the squad before the next fight.',
+      'result' => ['effect' => ['type' => 'run_stat_modifier_next_combat', 'stat_adders' => ['precision' => -2]]],
     ],
     [
       'slug' => 'hazard_broken_fence',
       'primitive' => 'route_pressure',
       'regions' => ['the_farm'],
+      'severities' => ['minor'],
+      'weights' => ['minor' => 4],
       'min_depth' => 4,
-      'weight' => 2,
-      'result' => ['effect' => 'broken_fence', 'pressure' => 'route'],
+      'title' => 'Broken Fence',
+      'result_copy' => 'The route snarls into a slow detour.',
+      'result' => ['effect' => ['type' => 'route_pressure', 'pressure' => 'route']],
+    ],
+    [
+      'slug' => 'hazard_splintered_trap',
+      'primitive' => 'hp_attrition',
+      'regions' => ['the_farm', 'mountains'],
+      'severities' => ['minor', 'moderate'],
+      'weights' => ['minor' => 5, 'moderate' => 3],
+      'min_depth' => 3,
+      'title' => 'Splintered Trap',
+      'result_copy' => 'A crude trap bites one unlucky unit.',
+      'result' => ['effect' => ['type' => 'damage_random_unit', 'damage' => 5]],
+    ],
+    [
+      'slug' => 'hazard_bad_rations',
+      'primitive' => 'temporary_modifier',
+      'regions' => ['the_farm', 'swamps'],
+      'severities' => ['minor', 'moderate'],
+      'weights' => ['minor' => 4, 'moderate' => 4],
+      'min_depth' => 3,
+      'title' => 'Bad Rations',
+      'result_copy' => 'Something disagrees with the squad before the next fight.',
+      'result' => ['effect' => ['type' => 'run_stat_modifier_next_combat', 'stat_adders' => ['resolve' => -2]]],
     ],
     [
       'slug' => 'hazard_loose_scree',
       'primitive' => 'hp_attrition',
       'regions' => ['mountains'],
+      'severities' => ['minor', 'moderate', 'severe'],
+      'weights' => ['minor' => 4, 'moderate' => 6, 'severe' => 3],
       'min_depth' => 4,
-      'weight' => 3,
-      'result' => ['effect' => 'loose_scree', 'pressure' => 'hp_attrition'],
+      'title' => 'Loose Scree',
+      'result_copy' => 'The slope gives way under the warband.',
+      'result' => ['effect' => ['type' => 'damage_squad', 'damage' => 3]],
     ],
     [
       'slug' => 'hazard_thin_air',
       'primitive' => 'temporary_modifier',
       'regions' => ['mountains'],
+      'severities' => ['moderate', 'severe'],
+      'weights' => ['moderate' => 5, 'severe' => 4],
       'min_depth' => 5,
-      'weight' => 2,
-      'result' => ['effect' => 'thin_air', 'pressure' => 'temporary_modifier', 'stat' => 'resolve'],
+      'title' => 'Thin Air',
+      'result_copy' => 'The climb steals breath before the next fight.',
+      'result' => ['effect' => ['type' => 'run_stat_modifier_next_combat', 'stat_multipliers' => ['resolve' => 0.85]]],
     ],
     [
       'slug' => 'hazard_toll_cairn',
       'primitive' => 'currency_pressure',
       'regions' => ['mountains'],
+      'severities' => ['minor', 'moderate'],
+      'weights' => ['minor' => 3, 'moderate' => 5],
       'min_depth' => 4,
-      'weight' => 2,
-      'result' => ['effect' => 'toll_cairn', 'pressure' => 'currency'],
+      'title' => 'Toll Cairn',
+      'result_copy' => 'The stones take their old road-price.',
+      'result' => ['effect' => ['type' => 'lose_teeth', 'amount' => 6]],
     ],
     [
       'slug' => 'hazard_rust_thicket',
       'primitive' => 'item_pressure',
       'regions' => ['mountains', 'swamps'],
+      'severities' => ['moderate', 'severe'],
+      'weights' => ['moderate' => 4, 'severe' => 3],
       'min_depth' => 5,
-      'weight' => 2,
-      'result' => ['effect' => 'rust_thicket', 'pressure' => 'item'],
+      'title' => 'Rust Thicket',
+      'result_copy' => 'Rusty growth dulls the squad before the next fight.',
+      'result' => ['effect' => ['type' => 'run_stat_modifier_next_combat', 'stat_multipliers' => ['attack' => 0.9]]],
     ],
     [
       'slug' => 'hazard_bog_mire',
       'primitive' => 'kin_mitigation',
       'regions' => ['swamps'],
+      'severities' => ['minor', 'moderate'],
+      'weights' => ['minor' => 5, 'moderate' => 4],
       'min_depth' => 4,
-      'weight' => 3,
-      'result' => ['effect' => 'bog_mire', 'pressure' => 'kin_mitigation', 'mitigated_by' => ['pig_kin']],
+      'title' => 'Bog Mire',
+      'result_copy' => 'The mire pulls at the squad until somebody hauls them loose.',
+      'result' => ['effect' => ['type' => 'damage_random_unit', 'damage' => 4], 'mitigated_by' => ['pig_kin']],
     ],
     [
       'slug' => 'hazard_biting_reeds',
       'primitive' => 'hp_attrition',
       'regions' => ['swamps'],
+      'severities' => ['minor', 'moderate', 'severe'],
+      'weights' => ['minor' => 4, 'moderate' => 6, 'severe' => 3],
       'min_depth' => 3,
-      'weight' => 3,
-      'result' => ['effect' => 'biting_reeds', 'pressure' => 'hp_attrition'],
+      'title' => 'Biting Reeds',
+      'result_copy' => 'The reeds rake across every exposed ankle.',
+      'result' => ['effect' => ['type' => 'damage_squad', 'damage' => 2]],
     ],
     [
       'slug' => 'hazard_sinking_cache',
       'primitive' => 'item_pressure',
       'regions' => ['swamps'],
+      'severities' => ['moderate'],
+      'weights' => ['moderate' => 3],
       'min_depth' => 5,
-      'weight' => 2,
-      'result' => ['effect' => 'sinking_cache', 'pressure' => 'item'],
+      'title' => 'Sinking Cache',
+      'result_copy' => 'Salvage sinks into the muck before the squad can grab it.',
+      'result' => ['effect' => ['type' => 'lose_teeth', 'amount' => 8]],
     ],
     [
       'slug' => 'hazard_wrong_turn',
       'primitive' => 'route_pressure',
       'regions' => ['mountains', 'swamps'],
+      'severities' => ['moderate', 'severe'],
+      'weights' => ['moderate' => 2, 'severe' => 3],
       'min_depth' => 6,
-      'weight' => 1,
-      'result' => ['effect' => 'wrong_turn', 'pressure' => 'route'],
+      'title' => 'Wrong Turn',
+      'result_copy' => 'The wrong path leaves the squad exposed before the next fight.',
+      'result' => ['effect' => ['type' => 'run_stat_modifier_next_combat', 'stat_multipliers' => ['defense' => 0.85]]],
+    ],
+    [
+      'slug' => 'hazard_black_gnats',
+      'primitive' => 'temporary_modifier',
+      'regions' => ['swamps'],
+      'severities' => ['minor', 'moderate'],
+      'weights' => ['minor' => 5, 'moderate' => 4],
+      'min_depth' => 3,
+      'title' => 'Black Gnats',
+      'result_copy' => 'A biting cloud breaks the squad focus.',
+      'result' => ['effect' => ['type' => 'run_stat_modifier_next_combat', 'stat_adders' => ['precision' => -1, 'resolve' => -1]]],
+    ],
+    [
+      'slug' => 'hazard_collapse_warning',
+      'primitive' => 'choice_pressure',
+      'regions' => ['mountains', 'swamps'],
+      'severities' => ['severe'],
+      'weights' => ['severe' => 0],
+      'min_depth' => 6,
+      'title' => 'Collapse Warning',
+      'result_copy' => 'A bad passage demands a hard choice.',
+      'result' => ['effect' => ['type' => 'choice_offer'], 'choices' => [['type' => 'damage_squad', 'damage' => 10], ['type' => 'lose_teeth', 'amount' => 10]]],
     ],
   ];
 
@@ -124,6 +201,7 @@ final class EncounterPrimitiveCatalog
         'item_pressure',
         'route_pressure',
         'kin_mitigation',
+        'choice_pressure',
       ],
       'shrine' => [
         'grant_teeth',
@@ -152,14 +230,21 @@ final class EncounterPrimitiveCatalog
   public function resolveNodeEffect(string $nodeType, callable $nextInt, ?string $effectSlug = null, array $context = []): array
   {
     if ($nodeType === 'hazard') {
-      $definition = $this->hazardEffectBySlug($effectSlug ?? '') ?? self::HAZARD_EFFECTS[0];
+      $regionSlug = trim((string)($context['region_slug'] ?? ''));
+      $severity = $this->normalizeHazardSeverity((string)($context['severity'] ?? $context['quality'] ?? 'moderate'));
+      $definition = $this->hazardEffectBySlug($effectSlug ?? '') ?? $this->pickWeightedHazardEffect($nextInt, $regionSlug, $severity);
       return [
         'family' => 'hazard',
         'slug' => (string)$definition['slug'],
         'primitive' => (string)$definition['primitive'],
-        'message' => 'hazard_avoided',
+        'message' => 'hazard_resolved',
         'currency_soft' => 0,
-        'result' => $definition['result'],
+        'result' => [
+          'title' => (string)$definition['title'],
+          'result_copy' => (string)$definition['result_copy'],
+          'severity' => $severity,
+          ...$definition['result'],
+        ],
       ];
     }
 
@@ -201,7 +286,7 @@ final class EncounterPrimitiveCatalog
   }
 
   /**
-   * @return list<array{slug:string,primitive:string,regions:list<string>,min_depth:int,weight:int,result:array<string,mixed>}>
+   * @return list<array{slug:string,primitive:string,regions:list<string>,severities:list<string>,weights:array<string,int>,min_depth:int,title:string,result_copy:string,result:array<string,mixed>}>
    */
   public function hazardEffectsForRegion(string $regionSlug, int $depth): array
   {
@@ -209,12 +294,12 @@ final class EncounterPrimitiveCatalog
       self::HAZARD_EFFECTS,
       static fn(array $effect): bool => in_array($regionSlug, $effect['regions'], true)
         && $depth >= (int)$effect['min_depth']
-        && (int)$effect['weight'] > 0
+        && array_sum(array_map('intval', $effect['weights'])) > 0
     ));
   }
 
   /**
-   * @return list<array{slug:string,primitive:string,regions:list<string>,min_depth:int,weight:int,result:array<string,mixed>}>
+   * @return list<array{slug:string,primitive:string,regions:list<string>,severities:list<string>,weights:array<string,int>,min_depth:int,title:string,result_copy:string,result:array<string,mixed>}>
    */
   public function hazardCatalog(): array
   {
@@ -268,6 +353,39 @@ final class EncounterPrimitiveCatalog
   }
 
   /**
+   * @return array{slug:string,primitive:string,regions:list<string>,severities:list<string>,weights:array<string,int>,min_depth:int,title:string,result_copy:string,result:array<string,mixed>}
+   */
+  private function pickWeightedHazardEffect(callable $nextInt, string $regionSlug, string $severity): array
+  {
+    $effects = array_values(array_filter(self::HAZARD_EFFECTS, static function (array $effect) use ($regionSlug, $severity): bool {
+      return ($regionSlug === '' || in_array($regionSlug, $effect['regions'], true))
+        && in_array($severity, $effect['severities'], true)
+        && max(0, (int)($effect['weights'][$severity] ?? 0)) > 0;
+    }));
+    if ($effects === []) {
+      $effects = array_values(array_filter(self::HAZARD_EFFECTS, static fn(array $effect): bool =>
+        in_array('moderate', $effect['severities'], true)
+          && max(0, (int)($effect['weights']['moderate'] ?? 0)) > 0
+      ));
+    }
+
+    $total = array_sum(array_map(static fn(array $effect): int => max(0, (int)($effect['weights'][$severity] ?? $effect['weights']['moderate'] ?? 0)), $effects));
+    $cursor = $nextInt(max(1, $total));
+    foreach ($effects as $effect) {
+      $weight = max(0, (int)($effect['weights'][$severity] ?? $effect['weights']['moderate'] ?? 0));
+      if ($weight <= 0) {
+        continue;
+      }
+      if ($cursor < $weight) {
+        return $effect;
+      }
+      $cursor -= $weight;
+    }
+
+    return $effects[0];
+  }
+
+  /**
    * @return array{slug:string,primitive:string,regions:list<string>,qualities:list<string>,weights:array<string,int>,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int,effect:array<string,mixed>,cost:array<string,mixed>}|null
    */
   private function shrineEffectBySlug(string $slug): ?array
@@ -286,8 +404,17 @@ final class EncounterPrimitiveCatalog
     return in_array($quality, ['poor', 'good', 'great'], true) ? $quality : 'good';
   }
 
+  private function normalizeHazardSeverity(string $severity): string
+  {
+    return match ($severity) {
+      'poor', 'minor' => 'minor',
+      'great', 'severe' => 'severe',
+      default => 'moderate',
+    };
+  }
+
   /**
-   * @return array{slug:string,primitive:string,regions:list<string>,min_depth:int,weight:int,result:array<string,mixed>}|null
+   * @return array{slug:string,primitive:string,regions:list<string>,severities:list<string>,weights:array<string,int>,min_depth:int,title:string,result_copy:string,result:array<string,mixed>}|null
    */
   private function hazardEffectBySlug(string $slug): ?array
   {

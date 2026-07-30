@@ -234,6 +234,9 @@ final class RunLifecycleService
     $shrineEffects = $nodeType === 'shrine'
       ? $this->applyShrineClaimEffects($userId, $runId, (int)$battle['node_id'], $rewards, $runStateByUnitId)
       : [];
+    $hazardEffects = $nodeType === 'hazard'
+      ? $this->applyHazardClaimEffects($userId, $runId, (int)$battle['node_id'], $rewards, $runStateByUnitId)
+      : [];
     if ($shrineCurrencyBonus > 0) {
       array_unshift($shrineEffects, [
         'type' => 'double_run_teeth',
@@ -254,6 +257,7 @@ final class RunLifecycleService
           'raw_chaos_awarded' => $rawChaosAward,
         ],
         'shrine_effects' => $shrineEffects,
+        'hazard_effects' => $hazardEffects,
         'new_feature_unlocks' => $newFeatureUnlocks,
         'updated_units' => [],
       ];
@@ -290,6 +294,7 @@ final class RunLifecycleService
           'raw_chaos_awarded' => $rawChaosAward,
         ],
         'shrine_effects' => $shrineEffects,
+        'hazard_effects' => $hazardEffects,
         'new_feature_unlocks' => $newFeatureUnlocks,
         'updated_units' => [],
       ];
@@ -310,6 +315,7 @@ final class RunLifecycleService
           'raw_chaos_awarded' => $rawChaosAward,
         ],
         'shrine_effects' => $shrineEffects,
+        'hazard_effects' => $hazardEffects,
         'new_feature_unlocks' => $newFeatureUnlocks,
         'updated_units' => [],
       ];
@@ -457,6 +463,7 @@ final class RunLifecycleService
             'raw_chaos_awarded' => $rawChaosAward,
           ],
           'shrine_effects' => $shrineEffects,
+          'hazard_effects' => $hazardEffects,
           'new_feature_unlocks' => $newFeatureUnlocks,
           'updated_units' => $updatedUnits,
         ];
@@ -476,6 +483,7 @@ final class RunLifecycleService
         'raw_chaos_awarded' => $rawChaosAward,
       ],
       'shrine_effects' => $shrineEffects,
+      'hazard_effects' => $hazardEffects,
       'new_feature_unlocks' => $newFeatureUnlocks,
       'updated_units' => $updatedUnits,
     ];
@@ -540,6 +548,181 @@ final class RunLifecycleService
     $encounter = is_array($rewards['encounter_result'] ?? null) ? $rewards['encounter_result'] : [];
     $result = is_array($encounter['result'] ?? null) ? $encounter['result'] : [];
     return is_array($result['effect'] ?? null) ? $result['effect'] : [];
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   * @param array<int,array{unit_instance_id:string,current_hp:int,is_defeated:bool,cooldowns_json:string,status_effects_json:string}> $runStateByUnitId
+   * @return list<array<string,mixed>>
+   */
+  private function applyHazardClaimEffects(int $userId, int $runId, int $nodeId, array $rewards, array &$runStateByUnitId): array
+  {
+    $effect = $this->hazardEffect($rewards);
+    $type = (string)($effect['type'] ?? '');
+    if ($type === '') {
+      return [];
+    }
+
+    return match ($type) {
+      'damage_random_unit' => $this->applyHazardRandomDamage($runId, $nodeId, $effect, $runStateByUnitId),
+      'damage_squad' => $this->applyHazardSquadDamage($runId, $effect, $runStateByUnitId),
+      'lose_teeth' => $this->applyHazardTeethLoss($userId, $effect),
+      'run_stat_modifier_next_combat', 'stat_modifier_next_combat', 'squad_stat_modifier_next_combat' => $this->applyHazardRunStatModifierEffect($runId, $effect, $runStateByUnitId),
+      'route_pressure' => [[
+        'type' => 'route_pressure',
+        'pressure' => (string)($effect['pressure'] ?? 'route'),
+      ]],
+      default => [],
+    };
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   * @return array<string,mixed>
+   */
+  private function hazardEffect(array $rewards): array
+  {
+    $encounter = is_array($rewards['encounter_result'] ?? null) ? $rewards['encounter_result'] : [];
+    $result = is_array($encounter['result'] ?? null) ? $encounter['result'] : [];
+    return is_array($result['effect'] ?? null) ? $result['effect'] : [];
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @param array<int,array{unit_instance_id:string,current_hp:int,is_defeated:bool,cooldowns_json:string,status_effects_json:string}> $runStateByUnitId
+   * @return list<array<string,mixed>>
+   */
+  private function applyHazardRandomDamage(int $runId, int $nodeId, array $effect, array &$runStateByUnitId): array
+  {
+    $candidates = array_values(array_filter(array_keys($runStateByUnitId), fn(int $unitId): bool =>
+      empty($runStateByUnitId[$unitId]['is_defeated']) && (int)$runStateByUnitId[$unitId]['current_hp'] > 1
+    ));
+    if ($candidates === []) {
+      return [];
+    }
+
+    $pick = $candidates[$this->deterministicIndex("hazard-damage|{$runId}|{$nodeId}", count($candidates))];
+    $damage = max(1, (int)($effect['damage'] ?? 1));
+    $before = max(0, (int)$runStateByUnitId[$pick]['current_hp']);
+    $after = max(1, $before - $damage);
+    $runStateByUnitId[$pick]['current_hp'] = $after;
+    $runStateByUnitId[$pick]['is_defeated'] = false;
+    $this->runRepository->upsertRunUnitState($runId, $pick, $after, false, (string)$runStateByUnitId[$pick]['cooldowns_json'], (string)$runStateByUnitId[$pick]['status_effects_json']);
+
+    return [[
+      'type' => 'damage_random_unit',
+      'unit_instance_id' => (string)$pick,
+      'damage' => $before - $after,
+      'hp_before' => $before,
+      'hp_after' => $after,
+    ]];
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @param array<int,array{unit_instance_id:string,current_hp:int,is_defeated:bool,cooldowns_json:string,status_effects_json:string}> $runStateByUnitId
+   * @return list<array<string,mixed>>
+   */
+  private function applyHazardSquadDamage(int $runId, array $effect, array &$runStateByUnitId): array
+  {
+    $damage = max(1, (int)($effect['damage'] ?? 1));
+    $changes = [];
+    foreach ($runStateByUnitId as $unitId => &$state) {
+      if (!empty($state['is_defeated']) || (int)$state['current_hp'] <= 1) {
+        continue;
+      }
+      $before = max(0, (int)$state['current_hp']);
+      $after = max(1, $before - $damage);
+      $state['current_hp'] = $after;
+      $state['is_defeated'] = false;
+      $this->runRepository->upsertRunUnitState($runId, $unitId, $after, false, (string)$state['cooldowns_json'], (string)$state['status_effects_json']);
+      $changes[] = [
+        'unit_instance_id' => (string)$unitId,
+        'damage' => $before - $after,
+        'hp_before' => $before,
+        'hp_after' => $after,
+      ];
+    }
+    unset($state);
+
+    return $changes === [] ? [] : [[
+      'type' => 'damage_squad',
+      'damage' => $damage,
+      'changes' => $changes,
+    ]];
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @return list<array<string,mixed>>
+   */
+  private function applyHazardTeethLoss(int $userId, array $effect): array
+  {
+    $amount = max(1, (int)($effect['amount'] ?? 1));
+    $playerStateRepository = $this->playerStateRepository();
+    $playerStateRepository->ensurePlayerState($userId);
+    $playerState = $playerStateRepository->getPlayerStateForUpdate($userId);
+    if (!is_array($playerState)) {
+      return [];
+    }
+
+    $before = max(0, (int)$playerState['currency_soft']);
+    $lost = min($before, $amount);
+    $playerStateRepository->setCurrency($userId, $before - $lost, max(0, (int)$playerState['currency_hard']));
+
+    return [[
+      'type' => 'lose_teeth',
+      'requested_amount' => $amount,
+      'soft_lost' => $lost,
+      'soft_before' => $before,
+      'soft_after' => $before - $lost,
+    ]];
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @param array<int,array{unit_instance_id:string,current_hp:int,is_defeated:bool,cooldowns_json:string,status_effects_json:string}> $runStateByUnitId
+   * @return list<array<string,mixed>>
+   */
+  private function applyHazardRunStatModifierEffect(int $runId, array $effect, array &$runStateByUnitId): array
+  {
+    $statMultipliers = $this->normalizeShrineFloatMap($effect['stat_multipliers'] ?? []);
+    $statAdders = $this->normalizeShrineIntMap($effect['stat_adders'] ?? []);
+    $allowedMultipliers = array_flip(['attack', 'defense', 'precision', 'resolve', 'damage']);
+    $allowedAdders = array_flip(['attack', 'defense', 'precision', 'resolve']);
+    $statMultipliers = array_intersect_key($statMultipliers, $allowedMultipliers);
+    $statAdders = array_intersect_key($statAdders, $allowedAdders);
+    if ($statMultipliers === [] && $statAdders === []) {
+      return [];
+    }
+
+    $effectRow = [
+      'type' => 'run_stat_modifier_next_combat',
+      'stat_multipliers' => $statMultipliers,
+      'stat_adders' => $statAdders,
+      'remaining_combats' => 1,
+      'source' => 'hazard',
+    ];
+    $applied = [];
+    foreach ($runStateByUnitId as $unitId => &$state) {
+      if (!empty($state['is_defeated'])) {
+        continue;
+      }
+      $effects = json_decode((string)$state['status_effects_json'], true);
+      $effects = is_array($effects) ? $effects : [];
+      $effects[] = $effectRow;
+      $state['status_effects_json'] = json_encode($effects, JSON_UNESCAPED_SLASHES);
+      $this->runRepository->upsertRunUnitState($runId, $unitId, (int)$state['current_hp'], !empty($state['is_defeated']), (string)$state['cooldowns_json'], (string)$state['status_effects_json']);
+      $applied[] = (string)$unitId;
+    }
+    unset($state);
+
+    return $applied === [] ? [] : [[
+      'type' => 'run_stat_modifier_next_combat',
+      'stat_multipliers' => $statMultipliers,
+      'stat_adders' => $statAdders,
+      'applied_unit_instance_ids' => $applied,
+    ]];
   }
 
   /**

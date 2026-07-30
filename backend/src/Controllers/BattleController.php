@@ -289,6 +289,7 @@ final class BattleController
           'ignored_at_cap_unit_instance_ids' => [],
         ],
         'shrine_effects' => is_array($claimSnapshot['shrine_effects'] ?? null) ? $claimSnapshot['shrine_effects'] : [],
+        'hazard_effects' => is_array($claimSnapshot['hazard_effects'] ?? null) ? $claimSnapshot['hazard_effects'] : [],
         'shrine_decision' => isset($claimSnapshot['shrine_decision']) ? (string)$claimSnapshot['shrine_decision'] : null,
         'updated_units' => $updatedUnits,
         'run_summary' => $runSummary,

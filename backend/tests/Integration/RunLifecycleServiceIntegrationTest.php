@@ -658,6 +658,138 @@ final class RunLifecycleServiceIntegrationTest extends BattleFlowIntegrationCase
     $this->assertSame(1, $upgradedCount);
   }
 
+  public function testClaimHazardAppliesRandomUnitDamageOnce(): void
+  {
+    $userId = $this->insertUser('hazard_random_damage', 'Hazard Random Damage');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 24252627);
+    $nodeId = $this->insertRunNode($runId, 'hazard', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $firstUnitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $secondUnitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $firstUnitId);
+    $this->insertTeamUnit($teamId, $secondUnitId);
+    $this->insertRunUnitState($runId, $firstUnitId, 10, false);
+    $this->insertRunUnitState($runId, $secondUnitId, 10, false);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'victory', 25262728, 0, 0);
+    $this->insertBattleRewards($battleId, 0, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'encounter_result' => [
+        'family' => 'hazard',
+        'primitive' => 'hp_attrition',
+        'effect_slug' => 'hazard_splintered_trap',
+        'result' => [
+          'effect' => ['type' => 'damage_random_unit', 'damage' => 4],
+        ],
+      ],
+    ]);
+
+    $first = $this->service()->claimBattle($userId, $battleId);
+    $second = $this->service()->claimBattle($userId, $battleId);
+    $snapshot = is_array($first['claim_snapshot'] ?? null) ? $first['claim_snapshot'] : [];
+    $effect = is_array($snapshot['hazard_effects'][0] ?? null) ? $snapshot['hazard_effects'][0] : [];
+
+    $this->assertTrue($first['newly_claimed']);
+    $this->assertFalse($second['newly_claimed']);
+    $this->assertSame('damage_random_unit', (string)($effect['type'] ?? ''));
+    $this->assertSame(4, (int)($effect['damage'] ?? 0));
+    $this->assertSame(6, (int)($effect['hp_after'] ?? 0));
+
+    $rows = $this->rows(
+      'SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` IN (?, ?) ORDER BY `unit_instance_id` ASC',
+      [$runId, $firstUnitId, $secondUnitId]
+    );
+    $hpValues = array_values(array_map(static fn(array $row): int => (int)$row['current_hp'], $rows));
+    sort($hpValues);
+    $this->assertSame([6, 10], $hpValues);
+  }
+
+  public function testClaimHazardCanRemoveTeeth(): void
+  {
+    $userId = $this->insertUser('hazard_teeth_loss', 'Hazard Teeth Loss');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 27282930);
+    $nodeId = $this->insertRunNode($runId, 'hazard', 'cleared');
+    $this->setSoftCurrency($userId, 5);
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 10, false);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'victory', 28293031, 0, 0);
+    $this->insertBattleRewards($battleId, 0, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'encounter_result' => [
+        'family' => 'hazard',
+        'primitive' => 'currency_pressure',
+        'effect_slug' => 'hazard_toll_cairn',
+        'result' => [
+          'effect' => ['type' => 'lose_teeth', 'amount' => 8],
+        ],
+      ],
+    ]);
+
+    $claim = $this->service()->claimBattle($userId, $battleId);
+    $snapshot = is_array($claim['claim_snapshot'] ?? null) ? $claim['claim_snapshot'] : [];
+    $effect = is_array($snapshot['hazard_effects'][0] ?? null) ? $snapshot['hazard_effects'][0] : [];
+
+    $this->assertSame('0', (string)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('lose_teeth', (string)($effect['type'] ?? ''));
+    $this->assertSame(8, (int)($effect['requested_amount'] ?? 0));
+    $this->assertSame(5, (int)($effect['soft_lost'] ?? 0));
+  }
+
+  public function testClaimHazardCanApplyNextCombatPenalty(): void
+  {
+    $userId = $this->insertUser('hazard_next_combat', 'Hazard Next Combat');
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 30313233);
+    $nodeId = $this->insertRunNode($runId, 'hazard', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 10, false);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'victory', 31323334, 0, 0);
+    $this->insertBattleRewards($battleId, 0, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'encounter_result' => [
+        'family' => 'hazard',
+        'primitive' => 'temporary_modifier',
+        'effect_slug' => 'hazard_wrong_turn',
+        'result' => [
+          'effect' => [
+            'type' => 'run_stat_modifier_next_combat',
+            'stat_multipliers' => ['defense' => 0.85],
+            'stat_adders' => ['precision' => -1],
+          ],
+        ],
+      ],
+    ]);
+
+    $claim = $this->service()->claimBattle($userId, $battleId);
+    $snapshot = is_array($claim['claim_snapshot'] ?? null) ? $claim['claim_snapshot'] : [];
+    $effect = is_array($snapshot['hazard_effects'][0] ?? null) ? $snapshot['hazard_effects'][0] : [];
+    $statusEffects = json_decode((string)$this->scalar('SELECT `status_effects_json` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_instance_id` = ?', [$runId, $unitId]), true);
+
+    $this->assertSame('run_stat_modifier_next_combat', (string)($effect['type'] ?? ''));
+    $this->assertSame(0.85, (float)($effect['stat_multipliers']['defense'] ?? 0.0));
+    $this->assertSame(-1, (int)($effect['stat_adders']['precision'] ?? 0));
+    $this->assertIsArray($statusEffects);
+    $this->assertSame('hazard', (string)($statusEffects[0]['source'] ?? ''));
+    $this->assertSame(1, (int)($statusEffects[0]['remaining_combats'] ?? 0));
+  }
+
   private function service(): RunLifecycleService
   {
     $pdo = $this->pdo;

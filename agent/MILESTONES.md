@@ -38,7 +38,7 @@ Success criteria:
 
 ## Shrine Expansion
 
-**Status:** Active
+**Status:** Planned
 
 Expand shrine nodes from simple teeth grants into generated quality-weighted shrine encounters with visible effects, optional costs, and UAT-ready tuning hooks.
 
@@ -56,7 +56,7 @@ Success criteria:
 
 ## Hazard Expansion
 
-**Status:** Planned
+**Status:** Active
 
 Expand hazard nodes from metadata-only obstacles into generated severity-weighted downside encounters with visible immediate effects, optional choices, delayed run modifiers, and UAT-ready tuning hooks.
 

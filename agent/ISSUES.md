@@ -111,6 +111,11 @@ Hazard nodes currently have authored primitive metadata, but most outcomes are s
 - Hazard definitions do not require duplicating exact generated outcomes in map-node metadata.
 - Unit tests cover severity filtering, weighted selection, fallback behavior, and vocabulary validity.
 
+#### Progress
+
+- Added severity-weighted generated hazard definitions with named titles/copy and ten enabled automatic downside options plus a planned choice-pressure entry held at zero weight until choice UI lands.
+- Changed hazard resolution to generate the exact effect at encounter time from region and severity instead of trusting map-node effect metadata.
+
 ### Implement hazard choice and mitigation flow
 
 **Milestone:** Hazard Expansion
@@ -144,6 +149,11 @@ Hazard result payloads need to change player/run state instead of only clearing 
 - Delayed hazard effects appear in active run effects before combat and are removed or marked consumed after the next eligible fight.
 - Hazard effects never grant combat XP unless a later encounter-scope change explicitly allows it.
 - Backend and frontend tests cover state application, active effect visibility, and delayed effect consumption.
+
+#### Progress
+
+- Implemented automatic hazard claim effects for random-unit HP attrition, squad HP attrition, teeth loss, route pressure summaries, and next-combat stat penalties sourced from hazards.
+- Added lifecycle integration coverage for idempotent HP attrition, teeth loss, and delayed next-combat hazard penalties.
 
 ### Add hazard tuning sampler and evidence packet
 

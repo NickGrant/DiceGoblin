@@ -706,6 +706,8 @@ export type BattleClaimData = {
     [key: string]: unknown;
   };
   updated_run_unit_state?: RestRunUnitState[];
+  shrine_effects?: Array<Record<string, unknown>>;
+  hazard_effects?: Array<Record<string, unknown>>;
   run_resolution?: { run_id: string; status: string } | null;
   xp?: {
     award_per_unit: number;

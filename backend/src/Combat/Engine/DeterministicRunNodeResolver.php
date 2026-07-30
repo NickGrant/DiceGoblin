@@ -79,10 +79,11 @@ final class DeterministicRunNodeResolver
       $nodeEffect = (new EncounterPrimitiveCatalog())->resolveNodeEffect(
         $nodeType,
         fn(int $max): int => $this->nextInt($rngState, $max),
-        $nodeType === 'shrine' ? null : (isset($nodeMeta['encounter_effect_slug']) ? (string)$nodeMeta['encounter_effect_slug'] : null),
+        in_array($nodeType, ['hazard', 'shrine'], true) ? null : (isset($nodeMeta['encounter_effect_slug']) ? (string)$nodeMeta['encounter_effect_slug'] : null),
         [
           'region_slug' => $this->regionSlugForRun((int)$run['region_id']),
           'quality' => $quality,
+          'severity' => $quality,
         ]
       );
       $currencySoft = (int)$nodeEffect['currency_soft'];
@@ -4704,12 +4705,19 @@ final class DeterministicRunNodeResolver
     }
 
     if ($nodeType === 'hazard') {
+      $copy = trim((string)($result['result_copy'] ?? ''));
+      if ($copy !== '') {
+        return $copy;
+      }
+
+      $effect = is_array($result['effect'] ?? null) ? $result['effect'] : [];
       $damage = (int)($result['damage_each'] ?? $result['damage'] ?? 0);
+      $damage = max($damage, (int)($effect['damage'] ?? 0));
       if ($damage > 0) {
         return sprintf('%s deals %d damage across the squad.', $effectName, $damage);
       }
 
-      return sprintf('%s changes the path ahead.', $effectName);
+      return sprintf('%s leaves the squad worse off.', $effectName);
     }
 
     return sprintf('%s resolves without a fight.', $effectName);
