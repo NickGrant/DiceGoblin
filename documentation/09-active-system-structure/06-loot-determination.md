@@ -46,6 +46,16 @@ Units, dice, and items are materialized when the node is resolved. Currency and 
 
 Declining a declineable shrine stores a normal claim snapshot with zero awarded currency, no XP, and no shrine effects. Repeating the claim returns that stored decision rather than reapplying or changing the offer.
 
+## Shrine Tuning Samples
+
+Use `npm.cmd run sim:shrines:docker` to sample generated shrine effect distribution across Farm, Mountains, and Swamps by quality tier. Region-specific shortcuts are also available:
+
+- `npm.cmd run sim:shrines:farm:docker`
+- `npm.cmd run sim:shrines:mountains:docker`
+- `npm.cmd run sim:shrines:swamps:docker`
+
+The sampler reports effect counts, primitive counts, average soft-currency output, and declineable-offer counts for each quality tier. Add `--format=json` when calling `backend/bin/sample-shrines.php` directly if raw evidence needs to be saved for tuning notes.
+
 ## Unit and Dice Grant Chances
 
 | Node type | Unit grant chance | Dice grant chance | Guarantee |

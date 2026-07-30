@@ -1072,3 +1072,79 @@ current_code_references:
   - backend/src/Services/RunPatternCatalogSyncService.php
   - backend/src/Services/RunPatternVariantCompiler.php
   - backend/src/Repositories/RunPatternCatalogRepository.php
+
+## Shrine Expansion
+
+---
+id: SHR-001
+title: Add generated quality-weighted shrine effects
+status: complete
+priority: high
+milestone: Shrine Expansion
+description: Added backend-generated shrine outcomes selected from region and quality weighted pools, with persisted reward/log results and claim-time effects for teeth, healing, route clearing, next-combat modifiers, double teeth, and unit upgrades.
+acceptance_criteria:
+  - Shrine nodes generate an effect at encounter time from region, run seed, node id, and quality.
+  - Shrine node metadata stores quality/rendering context only, not preselected effect slugs.
+  - Poor, good, and great shrine qualities have different weighted effect pools.
+  - Generated shrine results persist through battle logs/rewards so repeated claims are idempotent.
+  - Backend tests cover effect generation and claim-time application.
+current_code_references:
+  - backend/src/Services/EncounterPrimitiveCatalog.php
+  - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
+  - backend/src/Services/RunLifecycleService.php
+  - backend/tests/Integration/RunLifecycleServiceIntegrationTest.php
+
+---
+id: SHR-002
+title: Add declineable shrine offer flow
+status: complete
+priority: high
+milestone: Shrine Expansion
+description: Added accept and decline claim decisions for costly shrine bargains, including frontend actions, backend guards, and idempotent declined claim snapshots.
+acceptance_criteria:
+  - Shrine nodes with costs generate a persisted offer before applying effects.
+  - The frontend presents accept and decline actions for costly shrines.
+  - Declining clears or exits the shrine according to the chosen design without applying the positive or negative effect.
+  - Accepting applies both cost and reward exactly once.
+  - API and frontend tests cover accept, decline, refresh, and idempotent repeat calls.
+current_code_references:
+  - backend/src/Controllers/BattleController.php
+  - backend/src/Services/RunLifecycleService.php
+  - frontend/src/app/pages/run-node-page/run-node-page.component.ts
+  - frontend/src/app/core/services/run/run.service.ts
+
+---
+id: SHR-003
+title: Consume shrine combat modifiers in battle resolution
+status: complete
+priority: medium
+milestone: Shrine Expansion
+description: Added generic next-combat run modifiers for damage, attack, defense, precision, and resolve, with combat log metadata and one-combat consumption.
+acceptance_criteria:
+  - `squad_damage_next_combat` increases squad damage by the authored multiplier for the next combat-like node.
+  - The modifier is consumed after one eligible combat.
+  - Combat logs identify the shrine modifier contribution.
+  - Tests prove the modifier applies once and then expires.
+current_code_references:
+  - backend/src/Services/RunCombatModifierService.php
+  - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
+  - backend/src/Controllers/RunNodeController.php
+  - backend/tests/Unit/RunCombatModifierServiceTest.php
+
+---
+id: SHR-004
+title: Add shrine unit-upgrade reward effect
+status: complete
+priority: medium
+milestone: Shrine Expansion
+description: Added the Borrowed Future shrine effect that upgrades one eligible unit gained earlier in the run to the next authored unit-type tier and reports the result in claim snapshots and run summaries.
+acceptance_criteria:
+  - The shrine can select one unit gained during the current run.
+  - The selected unit is upgraded or rerolled to a higher tier according to authored tier rules.
+  - Reward preview, claim response, and run summary show the upgraded unit clearly.
+  - Tests cover no eligible unit, one eligible unit, and multiple eligible units.
+current_code_references:
+  - backend/src/Services/EncounterPrimitiveCatalog.php
+  - backend/src/Services/RunLifecycleService.php
+  - backend/src/Support/RunSummaryBuilder.php
+  - backend/tests/Integration/RunLifecycleServiceIntegrationTest.php
