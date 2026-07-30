@@ -36,3 +36,25 @@ Success criteria:
 
 - Confirm release merge and generated-artifact hygiene
 
+## Shrine Expansion
+
+**Status:** Active
+
+Expand shrine nodes from simple teeth grants into generated quality-weighted shrine encounters with visible effects, optional costs, and UAT-ready tuning hooks.
+
+Success criteria:
+
+- Shrine quality changes the generated option pool and weights.
+- Shrine effects can grant teeth, heal, apply run-state changes, affect routing, and prepare future combat modifiers.
+- Costly shrine offers can be declined before effects are applied.
+- Shrine outcomes are generated at encounter time and persisted as results, not preprogrammed into node metadata.
+- Tests and docs cover effect generation, application, idempotency, and known follow-up behavior.
+
+### Related Issues
+
+- Add generated quality-weighted shrine effects
+- Add declineable shrine offer flow
+- Consume shrine combat modifiers in battle resolution
+- Add shrine unit-upgrade reward effect
+- UAT and tune shrine effect weights
+

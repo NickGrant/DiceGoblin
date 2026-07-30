@@ -97,18 +97,15 @@ final class EncounterPrimitiveCatalog
     ],
   ];
 
-  /** @var list<array{slug:string,primitive:string,regions:list<string>,weight:int,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int}> */
+  /** @var list<array{slug:string,primitive:string,regions:list<string>,qualities:list<string>,weights:array<string,int>,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int,effect:array<string,mixed>,cost:array<string,mixed>}> */
   private const SHRINE_EFFECTS = [
-    ['slug' => 'shrine_bone_whisper', 'primitive' => 'small_reward', 'regions' => ['the_farm', 'mountains', 'swamps'], 'weight' => 4, 'title' => 'Bone Whisper', 'result_copy' => 'The bones clatter into a useful omen.', 'favor' => 'bone_whisper', 'currency_min' => 4, 'currency_max' => 8],
-    ['slug' => 'shrine_rust_blessing', 'primitive' => 'small_reward', 'regions' => ['the_farm', 'mountains', 'swamps'], 'weight' => 4, 'title' => 'Rust Blessing', 'result_copy' => 'The shrine leaves a dull glint of favor behind.', 'favor' => 'rust_blessing', 'currency_min' => 4, 'currency_max' => 8],
-    ['slug' => 'shrine_bog_luck', 'primitive' => 'small_reward', 'regions' => ['swamps'], 'weight' => 4, 'title' => 'Bog Luck', 'result_copy' => 'The swamp gives back just enough to worry about why.', 'favor' => 'bog_luck', 'currency_min' => 4, 'currency_max' => 8],
-    ['slug' => 'shrine_clean_water', 'primitive' => 'cleansing', 'regions' => ['the_farm', 'swamps'], 'weight' => 2, 'title' => 'Clean Water', 'result_copy' => 'A clean sip steadies the warband.', 'favor' => 'clean_water', 'currency_min' => 3, 'currency_max' => 6],
-    ['slug' => 'shrine_crooked_bargain', 'primitive' => 'bargain', 'regions' => ['mountains', 'swamps'], 'weight' => 2, 'title' => 'Crooked Bargain', 'result_copy' => 'The offering feels uneven, but useful.', 'favor' => 'crooked_bargain', 'currency_min' => 5, 'currency_max' => 9],
-    ['slug' => 'shrine_hidden_footpath', 'primitive' => 'reroute', 'regions' => ['mountains', 'swamps'], 'weight' => 2, 'title' => 'Hidden Footpath', 'result_copy' => 'A safer path shows itself for a moment.', 'favor' => 'hidden_footpath', 'currency_min' => 2, 'currency_max' => 5],
-    ['slug' => 'shrine_cracked_lantern', 'primitive' => 'controlled_risk', 'regions' => ['mountains'], 'weight' => 2, 'title' => 'Cracked Lantern', 'result_copy' => 'The light burns wrong, but it still burns.', 'favor' => 'cracked_lantern', 'currency_min' => 6, 'currency_max' => 10],
-    ['slug' => 'shrine_seed_cache', 'primitive' => 'small_reward', 'regions' => ['the_farm'], 'weight' => 3, 'title' => 'Seed Cache', 'result_copy' => 'Something useful was buried here before you arrived.', 'favor' => 'seed_cache', 'currency_min' => 4, 'currency_max' => 7],
-    ['slug' => 'shrine_mirror_mud', 'primitive' => 'controlled_risk', 'regions' => ['swamps'], 'weight' => 2, 'title' => 'Mirror Mud', 'result_copy' => 'The reflection makes a promise it may not keep.', 'favor' => 'mirror_mud', 'currency_min' => 5, 'currency_max' => 9],
-    ['slug' => 'shrine_old_goblin_mark', 'primitive' => 'cleansing', 'regions' => ['the_farm', 'mountains', 'swamps'], 'weight' => 2, 'title' => 'Old Goblin Mark', 'result_copy' => 'An old mark remembers the shape of safe passage.', 'favor' => 'old_goblin_mark', 'currency_min' => 3, 'currency_max' => 6],
+    ['slug' => 'shrine_bone_whisper', 'primitive' => 'grant_teeth', 'regions' => ['the_farm', 'mountains', 'swamps'], 'qualities' => ['poor', 'good', 'great'], 'weights' => ['poor' => 8, 'good' => 5, 'great' => 3], 'title' => 'Bone Whisper', 'result_copy' => 'The bones clatter into a useful omen.', 'favor' => 'bone_whisper', 'currency_min' => 4, 'currency_max' => 8, 'effect' => ['type' => 'grant_teeth'], 'cost' => []],
+    ['slug' => 'shrine_rust_blessing', 'primitive' => 'grant_teeth', 'regions' => ['the_farm', 'mountains', 'swamps'], 'qualities' => ['poor', 'good', 'great'], 'weights' => ['poor' => 7, 'good' => 5, 'great' => 3], 'title' => 'Rust Blessing', 'result_copy' => 'The shrine leaves a dull glint of favor behind.', 'favor' => 'rust_blessing', 'currency_min' => 4, 'currency_max' => 8, 'effect' => ['type' => 'grant_teeth'], 'cost' => []],
+    ['slug' => 'shrine_clean_water', 'primitive' => 'heal_random_unit', 'regions' => ['the_farm', 'swamps'], 'qualities' => ['poor', 'good', 'great'], 'weights' => ['poor' => 4, 'good' => 6, 'great' => 5], 'title' => 'Clean Water', 'result_copy' => 'A clean sip steadies one wounded goblin.', 'favor' => 'clean_water', 'currency_min' => 0, 'currency_max' => 0, 'effect' => ['type' => 'heal_random_unit', 'amount_pct' => 35], 'cost' => []],
+    ['slug' => 'shrine_old_goblin_mark', 'primitive' => 'squad_damage_next_combat', 'regions' => ['the_farm', 'mountains', 'swamps'], 'qualities' => ['good', 'great'], 'weights' => ['good' => 4, 'great' => 6], 'title' => 'Old Goblin Mark', 'result_copy' => 'An old mark sharpens the next fight.', 'favor' => 'old_goblin_mark', 'currency_min' => 0, 'currency_max' => 0, 'effect' => ['type' => 'squad_damage_next_combat', 'damage_multiplier' => 1.10], 'cost' => []],
+    ['slug' => 'shrine_hidden_footpath', 'primitive' => 'clear_random_combat_node', 'regions' => ['mountains', 'swamps'], 'qualities' => ['good', 'great'], 'weights' => ['good' => 3, 'great' => 5], 'title' => 'Hidden Footpath', 'result_copy' => 'A hostile patrol gets lost before the warband reaches it.', 'favor' => 'hidden_footpath', 'currency_min' => 0, 'currency_max' => 0, 'effect' => ['type' => 'clear_random_combat_node'], 'cost' => []],
+    ['slug' => 'shrine_bog_luck', 'primitive' => 'double_run_teeth', 'regions' => ['swamps'], 'qualities' => ['good', 'great'], 'weights' => ['good' => 2, 'great' => 6], 'title' => 'Bog Luck', 'result_copy' => 'The swamp doubles what the run has already shaken loose.', 'favor' => 'bog_luck', 'currency_min' => 0, 'currency_max' => 0, 'effect' => ['type' => 'double_run_teeth'], 'cost' => []],
+    ['slug' => 'shrine_crooked_bargain', 'primitive' => 'drain_highest_life_heal_rest', 'regions' => ['mountains', 'swamps'], 'qualities' => ['good', 'great'], 'weights' => ['good' => 2, 'great' => 5], 'title' => 'Crooked Bargain', 'result_copy' => 'The healthiest goblin pays for everyone else to stand tall.', 'favor' => 'crooked_bargain', 'currency_min' => 0, 'currency_max' => 0, 'effect' => ['type' => 'drain_highest_life_heal_rest', 'drain_pct' => 50], 'cost' => ['declineable' => true]],
   ];
 
   /**
@@ -126,11 +123,12 @@ final class EncounterPrimitiveCatalog
         'kin_mitigation',
       ],
       'shrine' => [
-        'small_reward',
-        'cleansing',
-        'bargain',
-        'reroute',
-        'controlled_risk',
+        'grant_teeth',
+        'heal_random_unit',
+        'drain_highest_life_heal_rest',
+        'squad_damage_next_combat',
+        'double_run_teeth',
+        'clear_random_combat_node',
       ],
     ];
   }
@@ -146,7 +144,7 @@ final class EncounterPrimitiveCatalog
    *   result:array<string,mixed>
    * }
    */
-  public function resolveNodeEffect(string $nodeType, callable $nextInt, ?string $effectSlug = null): array
+  public function resolveNodeEffect(string $nodeType, callable $nextInt, ?string $effectSlug = null, array $context = []): array
   {
     if ($nodeType === 'hazard') {
       $definition = $this->hazardEffectBySlug($effectSlug ?? '') ?? self::HAZARD_EFFECTS[0];
@@ -161,7 +159,10 @@ final class EncounterPrimitiveCatalog
     }
 
     if ($nodeType === 'shrine') {
-      $definition = $this->shrineEffectBySlug($effectSlug ?? '') ?? $this->pickWeightedShrineEffect($nextInt);
+      $regionSlug = trim((string)($context['region_slug'] ?? ''));
+      $quality = $this->normalizeShrineQuality((string)($context['quality'] ?? 'good'));
+      $allowDeclineable = !empty($context['allow_declineable']);
+      $definition = $this->shrineEffectBySlug($effectSlug ?? '') ?? $this->pickWeightedShrineEffect($nextInt, $regionSlug, $quality, $allowDeclineable);
       $currencyMin = (int)$definition['currency_min'];
       $currencyMax = max($currencyMin, (int)$definition['currency_max']);
       $currencySoft = $currencyMin + $nextInt(($currencyMax - $currencyMin) + 1);
@@ -176,6 +177,10 @@ final class EncounterPrimitiveCatalog
           'title' => (string)$definition['title'],
           'result_copy' => (string)$definition['result_copy'],
           'currency_soft' => $currencySoft,
+          'quality' => $quality,
+          'effect' => $definition['effect'],
+          'cost' => $definition['cost'],
+          'declineable' => !empty($definition['cost']['declineable']),
         ],
       ];
     }
@@ -212,7 +217,7 @@ final class EncounterPrimitiveCatalog
   }
 
   /**
-   * @return list<array{slug:string,primitive:string,regions:list<string>,weight:int,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int}>
+   * @return list<array{slug:string,primitive:string,regions:list<string>,qualities:list<string>,weights:array<string,int>,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int,effect:array<string,mixed>,cost:array<string,mixed>}>
    */
   public function shrineCatalog(): array
   {
@@ -220,14 +225,31 @@ final class EncounterPrimitiveCatalog
   }
 
   /**
-   * @return array{slug:string,primitive:string,regions:list<string>,weight:int,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int}
+   * @return array{slug:string,primitive:string,regions:list<string>,qualities:list<string>,weights:array<string,int>,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int,effect:array<string,mixed>,cost:array<string,mixed>}
    */
-  private function pickWeightedShrineEffect(callable $nextInt): array
+  private function pickWeightedShrineEffect(callable $nextInt, string $regionSlug, string $quality, bool $allowDeclineable = false): array
   {
-    $total = array_sum(array_map(static fn(array $effect): int => max(0, (int)$effect['weight']), self::SHRINE_EFFECTS));
+    $effects = array_values(array_filter(self::SHRINE_EFFECTS, static function (array $effect) use ($regionSlug, $quality, $allowDeclineable): bool {
+      $regions = $effect['regions'];
+      $qualities = $effect['qualities'];
+      $cost = is_array($effect['cost'] ?? null) ? $effect['cost'] : [];
+      return ($regionSlug === '' || in_array($regionSlug, $regions, true))
+        && in_array($quality, $qualities, true)
+        && ($allowDeclineable || empty($cost['declineable']))
+        && max(0, (int)($effect['weights'][$quality] ?? 0)) > 0;
+    }));
+    if ($effects === []) {
+      $effects = array_values(array_filter(self::SHRINE_EFFECTS, static function (array $effect) use ($allowDeclineable): bool {
+        $cost = is_array($effect['cost'] ?? null) ? $effect['cost'] : [];
+        return in_array('good', $effect['qualities'], true)
+          && ($allowDeclineable || empty($cost['declineable']));
+      }));
+    }
+
+    $total = array_sum(array_map(static fn(array $effect): int => max(0, (int)($effect['weights'][$quality] ?? $effect['weights']['good'] ?? 0)), $effects));
     $cursor = $nextInt(max(1, $total));
-    foreach (self::SHRINE_EFFECTS as $effect) {
-      $weight = max(0, (int)$effect['weight']);
+    foreach ($effects as $effect) {
+      $weight = max(0, (int)($effect['weights'][$quality] ?? $effect['weights']['good'] ?? 0));
       if ($weight <= 0) {
         continue;
       }
@@ -237,11 +259,11 @@ final class EncounterPrimitiveCatalog
       $cursor -= $weight;
     }
 
-    return self::SHRINE_EFFECTS[0];
+    return $effects[0];
   }
 
   /**
-   * @return array{slug:string,primitive:string,regions:list<string>,weight:int,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int}|null
+   * @return array{slug:string,primitive:string,regions:list<string>,qualities:list<string>,weights:array<string,int>,title:string,result_copy:string,favor:string,currency_min:int,currency_max:int,effect:array<string,mixed>,cost:array<string,mixed>}|null
    */
   private function shrineEffectBySlug(string $slug): ?array
   {
@@ -252,6 +274,11 @@ final class EncounterPrimitiveCatalog
     }
 
     return null;
+  }
+
+  private function normalizeShrineQuality(string $quality): string
+  {
+    return in_array($quality, ['poor', 'good', 'great'], true) ? $quality : 'good';
   }
 
   /**

@@ -46,7 +46,7 @@ The resolver handles these node types without round simulation.
 | `rest` | `victory` | `Full Recovery`, zero XP, zero ticks, zero rounds. |
 | `loot` | `victory` | `Loot Cache`, `8` soft currency before reward rolls. |
 | `hazard` | `victory` | `Hazard Avoided`, zero XP, zero currency. |
-| `shrine` | `victory` | Random favor from `bone_whisper`, `rust_blessing`, or `bog_luck`; `4-8` soft currency. |
+| `shrine` | `victory` | Generated quality-weighted shrine effect from the encounter catalogue; may grant teeth, heal, persist a run modifier, or clear an available combat node. |
 
 ## Combat Node Math
 

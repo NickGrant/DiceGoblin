@@ -17,7 +17,7 @@ final class EncounterPrimitiveCatalogTest extends TestCase
       $vocabulary['hazard']
     );
     $this->assertSame(
-      ['small_reward', 'cleansing', 'bargain', 'reroute', 'controlled_risk'],
+      ['grant_teeth', 'heal_random_unit', 'drain_highest_life_heal_rest', 'squad_damage_next_combat', 'double_run_teeth', 'clear_random_combat_node'],
       $vocabulary['shrine']
     );
   }
@@ -31,10 +31,25 @@ final class EncounterPrimitiveCatalogTest extends TestCase
 
     $this->assertSame('shrine', $effect['family']);
     $this->assertSame('shrine_rust_blessing', $effect['slug']);
-    $this->assertSame('small_reward', $effect['primitive']);
+    $this->assertSame('grant_teeth', $effect['primitive']);
     $this->assertSame(8, $effect['currency_soft']);
     $this->assertSame('rust_blessing', $effect['result']['favor']);
     $this->assertSame(8, $effect['result']['currency_soft']);
+    $this->assertSame('grant_teeth', $effect['result']['effect']['type']);
+  }
+
+  public function testGeneratedShrinesRespectRegionAndQualityWeights(): void
+  {
+    $effect = (new EncounterPrimitiveCatalog())->resolveNodeEffect('shrine', static fn(): int => 0, null, [
+      'region_slug' => 'swamps',
+      'quality' => 'great',
+    ]);
+
+    $this->assertSame('shrine', $effect['family']);
+    $this->assertStringStartsWith('shrine_', $effect['slug']);
+    $this->assertSame('great', $effect['result']['quality']);
+    $this->assertContains($effect['primitive'], (new EncounterPrimitiveCatalog())->vocabulary()['shrine']);
+    $this->assertIsArray($effect['result']['effect']);
   }
 
   public function testHazardResolutionUsesRoutePressurePrimitive(): void
@@ -94,16 +109,20 @@ final class EncounterPrimitiveCatalogTest extends TestCase
     $vocabulary = $catalog->vocabulary()['shrine'];
     $slugs = [];
 
-    $this->assertGreaterThanOrEqual(10, count($shrines));
+    $this->assertGreaterThanOrEqual(7, count($shrines));
     foreach ($shrines as $shrine) {
       $slug = (string)$shrine['slug'];
       $this->assertStringStartsWith('shrine_', $slug);
       $this->assertNotContains($slug, $slugs);
       $this->assertContains((string)$shrine['primitive'], $vocabulary);
       $this->assertNotSame([], $shrine['regions']);
-      $this->assertGreaterThan(0, (int)$shrine['weight']);
+      $this->assertNotSame([], $shrine['qualities']);
+      $this->assertNotSame([], $shrine['weights']);
+      $this->assertGreaterThan(0, array_sum(array_map('intval', $shrine['weights'])));
       $this->assertNotSame('', (string)$shrine['title']);
       $this->assertNotSame('', (string)$shrine['result_copy']);
+      $this->assertIsArray($shrine['effect']);
+      $this->assertNotSame('', (string)($shrine['effect']['type'] ?? ''));
       $slugs[] = $slug;
     }
   }

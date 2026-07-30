@@ -133,10 +133,15 @@ final class RunLifecycleService
         $rewards = [];
       }
       $rewards['claim_snapshot'] = $claimSnapshot;
-      $this->battleRewardsRepository()->updateRewardsJson($battleId, $rewards);
+      $this->battleRewardsRepository()->updateRewardsJsonAndCurrencySoft(
+        $battleId,
+        $rewards,
+        (int)($claimSnapshot['currency']['soft_awarded'] ?? $battle['currency_soft'] ?? 0)
+      );
       $this->battleRepository()->markClaimedIfCompleted($battleId, $userId);
 
       $battle['status'] = 'claimed';
+      $battle['currency_soft'] = (int)($claimSnapshot['currency']['soft_awarded'] ?? $battle['currency_soft'] ?? 0);
       $battle['rewards_json'] = json_encode($rewards, JSON_UNESCAPED_SLASHES);
 
       return [
@@ -198,6 +203,12 @@ final class RunLifecycleService
     if ($rawChaosAward > 0 && !(new UserUnlockService($this->pdo))->isUnlocked($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_WRONG_MACHINE)) {
       $rawChaosAward = 0;
     }
+    $shrineCurrencyBonus = $nodeType === 'shrine'
+      ? $this->shrineCurrencyBonus($runId, (int)$battle['node_id'], $rewards)
+      : 0;
+    if ($shrineCurrencyBonus > 0) {
+      $softCurrencyAward += $shrineCurrencyBonus;
+    }
     $run = $this->runRepository->getRunForUser($userId, $runId);
     $runAlreadyEnded = is_array($run) && (string)($run['status'] ?? '') !== 'active';
     $newFeatureUnlocks = $this->unlockBattleClaimRewards($userId, $battle, $run);
@@ -206,6 +217,15 @@ final class RunLifecycleService
     $runStateByUnitId = [];
     foreach ($runStateRows as $row) {
       $runStateByUnitId[(int)$row['unit_instance_id']] = $row;
+    }
+    $shrineEffects = $nodeType === 'shrine'
+      ? $this->applyShrineClaimEffects($userId, $runId, (int)$battle['node_id'], $rewards, $runStateByUnitId)
+      : [];
+    if ($shrineCurrencyBonus > 0) {
+      array_unshift($shrineEffects, [
+        'type' => 'double_run_teeth',
+        'soft_awarded' => $shrineCurrencyBonus,
+      ]);
     }
     if (count($runStateByUnitId) === 0) {
       return [
@@ -220,6 +240,7 @@ final class RunLifecycleService
           'soft_awarded' => $softCurrencyAward,
           'raw_chaos_awarded' => $rawChaosAward,
         ],
+        'shrine_effects' => $shrineEffects,
         'new_feature_unlocks' => $newFeatureUnlocks,
         'updated_units' => [],
       ];
@@ -255,6 +276,7 @@ final class RunLifecycleService
           'soft_awarded' => $softCurrencyAward,
           'raw_chaos_awarded' => $rawChaosAward,
         ],
+        'shrine_effects' => $shrineEffects,
         'new_feature_unlocks' => $newFeatureUnlocks,
         'updated_units' => [],
       ];
@@ -274,6 +296,7 @@ final class RunLifecycleService
           'soft_awarded' => $softCurrencyAward,
           'raw_chaos_awarded' => $rawChaosAward,
         ],
+        'shrine_effects' => $shrineEffects,
         'new_feature_unlocks' => $newFeatureUnlocks,
         'updated_units' => [],
       ];
@@ -420,6 +443,7 @@ final class RunLifecycleService
             'soft_awarded' => $softCurrencyAward,
             'raw_chaos_awarded' => $rawChaosAward,
           ],
+          'shrine_effects' => $shrineEffects,
           'new_feature_unlocks' => $newFeatureUnlocks,
           'updated_units' => $updatedUnits,
         ];
@@ -438,9 +462,241 @@ final class RunLifecycleService
         'soft_awarded' => $softCurrencyAward,
         'raw_chaos_awarded' => $rawChaosAward,
       ],
+      'shrine_effects' => $shrineEffects,
       'new_feature_unlocks' => $newFeatureUnlocks,
       'updated_units' => $updatedUnits,
     ];
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   */
+  private function shrineCurrencyBonus(int $runId, int $nodeId, array $rewards): int
+  {
+    $effect = $this->shrineEffect($rewards);
+    if ((string)($effect['type'] ?? '') !== 'double_run_teeth') {
+      return 0;
+    }
+
+    $stmt = $this->pdo->prepare('
+      SELECT COALESCE(SUM(br.`currency_soft`), 0)
+      FROM `battle_rewards` br
+      JOIN `battles` b ON b.`id` = br.`battle_id`
+      JOIN `run_nodes` current_node ON current_node.`id` = ?
+      JOIN `run_nodes` earned_node
+        ON earned_node.`id` = b.`node_id`
+       AND earned_node.`run_id` = b.`run_id`
+      WHERE b.`run_id` = ?
+        AND b.`status` = \'claimed\'
+        AND earned_node.`node_index` < current_node.`node_index`
+    ');
+    $stmt->execute([$nodeId, $runId]);
+    return max(0, (int)$stmt->fetchColumn());
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   * @param array<int,array{unit_instance_id:string,current_hp:int,is_defeated:bool,cooldowns_json:string,status_effects_json:string}> $runStateByUnitId
+   * @return list<array<string,mixed>>
+   */
+  private function applyShrineClaimEffects(int $userId, int $runId, int $nodeId, array $rewards, array &$runStateByUnitId): array
+  {
+    $effect = $this->shrineEffect($rewards);
+    $type = (string)($effect['type'] ?? '');
+    if ($type === '') {
+      return [];
+    }
+
+    return match ($type) {
+      'heal_random_unit' => $this->applyShrineRandomHeal($userId, $runId, $nodeId, $effect, $runStateByUnitId),
+      'drain_highest_life_heal_rest' => $this->applyShrineDrainAndHeal($userId, $runId, $effect, $runStateByUnitId),
+      'squad_damage_next_combat' => $this->applyShrineSquadDamageEffect($runId, $effect, $runStateByUnitId),
+      'clear_random_combat_node' => $this->applyShrineClearCombatNode($runId, $nodeId),
+      default => [],
+    };
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   * @return array<string,mixed>
+   */
+  private function shrineEffect(array $rewards): array
+  {
+    $encounter = is_array($rewards['encounter_result'] ?? null) ? $rewards['encounter_result'] : [];
+    $result = is_array($encounter['result'] ?? null) ? $encounter['result'] : [];
+    return is_array($result['effect'] ?? null) ? $result['effect'] : [];
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @param array<int,array{unit_instance_id:string,current_hp:int,is_defeated:bool,cooldowns_json:string,status_effects_json:string}> $runStateByUnitId
+   * @return list<array<string,mixed>>
+   */
+  private function applyShrineRandomHeal(int $userId, int $runId, int $nodeId, array $effect, array &$runStateByUnitId): array
+  {
+    $maxHpByUnit = $this->getUnitMaxHpByIdsForUser($userId, array_keys($runStateByUnitId));
+    $candidates = [];
+    foreach ($runStateByUnitId as $unitId => $state) {
+      $maxHp = max(1, (int)($maxHpByUnit[$unitId] ?? 1));
+      $currentHp = max(0, (int)$state['current_hp']);
+      if ($currentHp < $maxHp) {
+        $candidates[] = $unitId;
+      }
+    }
+    if ($candidates === []) {
+      return [];
+    }
+
+    $pick = $candidates[$this->deterministicIndex("shrine-heal|{$runId}|{$nodeId}", count($candidates))];
+    $maxHp = max(1, (int)($maxHpByUnit[$pick] ?? 1));
+    $before = max(0, (int)$runStateByUnitId[$pick]['current_hp']);
+    $amountPct = max(1, (int)($effect['amount_pct'] ?? 35));
+    $amount = max(1, (int)ceil($maxHp * ($amountPct / 100)));
+    $after = min($maxHp, $before + $amount);
+    $runStateByUnitId[$pick]['current_hp'] = $after;
+    $runStateByUnitId[$pick]['is_defeated'] = $after <= 0;
+    $this->runRepository->upsertRunUnitState($runId, $pick, $after, $after <= 0, (string)$runStateByUnitId[$pick]['cooldowns_json'], (string)$runStateByUnitId[$pick]['status_effects_json']);
+
+    return [[
+      'type' => 'heal_random_unit',
+      'unit_instance_id' => (string)$pick,
+      'hp_before' => $before,
+      'hp_after' => $after,
+    ]];
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @param array<int,array{unit_instance_id:string,current_hp:int,is_defeated:bool,cooldowns_json:string,status_effects_json:string}> $runStateByUnitId
+   * @return list<array<string,mixed>>
+   */
+  private function applyShrineDrainAndHeal(int $userId, int $runId, array $effect, array &$runStateByUnitId): array
+  {
+    $maxHpByUnit = $this->getUnitMaxHpByIdsForUser($userId, array_keys($runStateByUnitId));
+    $donorId = null;
+    $donorHp = -1;
+    foreach ($runStateByUnitId as $unitId => $state) {
+      $currentHp = max(0, (int)$state['current_hp']);
+      if ($currentHp > $donorHp) {
+        $donorId = $unitId;
+        $donorHp = $currentHp;
+      }
+    }
+    if ($donorId === null || count($runStateByUnitId) < 2) {
+      return [];
+    }
+
+    $drainPct = max(1, min(95, (int)($effect['drain_pct'] ?? 50)));
+    $drain = max(1, (int)floor($donorHp * ($drainPct / 100)));
+    $donorAfter = max(1, $donorHp - $drain);
+    $changes = [[
+      'unit_instance_id' => (string)$donorId,
+      'hp_before' => $donorHp,
+      'hp_after' => $donorAfter,
+      'role' => 'donor',
+    ]];
+    $runStateByUnitId[$donorId]['current_hp'] = $donorAfter;
+    $runStateByUnitId[$donorId]['is_defeated'] = false;
+    $this->runRepository->upsertRunUnitState($runId, $donorId, $donorAfter, false, (string)$runStateByUnitId[$donorId]['cooldowns_json'], (string)$runStateByUnitId[$donorId]['status_effects_json']);
+
+    foreach ($runStateByUnitId as $unitId => &$state) {
+      if ($unitId === $donorId) {
+        continue;
+      }
+      $before = max(0, (int)$state['current_hp']);
+      $after = max(1, (int)($maxHpByUnit[$unitId] ?? $before));
+      $state['current_hp'] = $after;
+      $state['is_defeated'] = false;
+      $this->runRepository->upsertRunUnitState($runId, $unitId, $after, false, (string)$state['cooldowns_json'], (string)$state['status_effects_json']);
+      $changes[] = [
+        'unit_instance_id' => (string)$unitId,
+        'hp_before' => $before,
+        'hp_after' => $after,
+        'role' => 'healed',
+      ];
+    }
+    unset($state);
+
+    return [[
+      'type' => 'drain_highest_life_heal_rest',
+      'changes' => $changes,
+    ]];
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @param array<int,array{unit_instance_id:string,current_hp:int,is_defeated:bool,cooldowns_json:string,status_effects_json:string}> $runStateByUnitId
+   * @return list<array<string,mixed>>
+   */
+  private function applyShrineSquadDamageEffect(int $runId, array $effect, array &$runStateByUnitId): array
+  {
+    $multiplier = (float)($effect['damage_multiplier'] ?? 1.10);
+    $effectRow = [
+      'type' => 'squad_damage_next_combat',
+      'damage_multiplier' => $multiplier,
+      'remaining_combats' => 1,
+      'source' => 'shrine',
+    ];
+    $applied = [];
+    foreach ($runStateByUnitId as $unitId => &$state) {
+      if (!empty($state['is_defeated'])) {
+        continue;
+      }
+      $effects = json_decode((string)$state['status_effects_json'], true);
+      $effects = is_array($effects) ? $effects : [];
+      $effects[] = $effectRow;
+      $state['status_effects_json'] = json_encode($effects, JSON_UNESCAPED_SLASHES);
+      $this->runRepository->upsertRunUnitState($runId, $unitId, (int)$state['current_hp'], !empty($state['is_defeated']), (string)$state['cooldowns_json'], (string)$state['status_effects_json']);
+      $applied[] = (string)$unitId;
+    }
+    unset($state);
+
+    return $applied === [] ? [] : [[
+      'type' => 'squad_damage_next_combat',
+      'damage_multiplier' => $multiplier,
+      'applied_unit_instance_ids' => $applied,
+    ]];
+  }
+
+  /**
+   * @return list<array<string,mixed>>
+   */
+  private function applyShrineClearCombatNode(int $runId, int $nodeId): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT `id`
+      FROM `run_nodes`
+      WHERE `run_id` = ?
+        AND `id` != ?
+        AND `node_type` = \'combat\'
+        AND `status` = \'available\'
+      ORDER BY `node_index` ASC
+      FOR UPDATE
+    ');
+    $stmt->execute([$runId, $nodeId]);
+    $nodeIds = array_values(array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN)));
+    if ($nodeIds === []) {
+      return [];
+    }
+
+    $clearedNodeId = $nodeIds[$this->deterministicIndex("shrine-clear-combat|{$runId}|{$nodeId}", count($nodeIds))];
+    $this->runNodeRepository->markCleared($runId, $clearedNodeId);
+    $unlocked = $this->runNodeRepository->syncAvailableNodesFromClearedParents($runId);
+
+    return [[
+      'type' => 'clear_random_combat_node',
+      'cleared_node_id' => (string)$clearedNodeId,
+      'unlocked_node_ids' => $unlocked,
+    ]];
+  }
+
+  private function deterministicIndex(string $seed, int $count): int
+  {
+    if ($count <= 1) {
+      return 0;
+    }
+
+    return ((int)base_convert(substr(hash('sha256', $seed), 0, 8), 16, 10)) % $count;
   }
 
   /**

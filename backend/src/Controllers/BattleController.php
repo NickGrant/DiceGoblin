@@ -241,6 +241,10 @@ final class BattleController
     $rewards = array_merge($rewards, $rewardLabels);
 
     $updatedUnits = $this->normalizeUpdatedUnits($claimSnapshot['updated_units'] ?? []);
+    $softAwarded = max(
+      0,
+      (int)($claimSnapshot['currency']['soft_awarded'] ?? $battle['currency_soft'] ?? 0)
+    );
 
     Response::json([
       'ok' => true,
@@ -249,7 +253,7 @@ final class BattleController
         'status' => 'claimed',
         'rewards' => array_merge([
           'xp_total' => (int)$battle['xp_total'],
-          'currency_soft' => max(0, (int)($battle['currency_soft'] ?? 0)),
+          'currency_soft' => $softAwarded,
         ], $rewards),
         'updated_run_unit_state' => $claimSnapshot['updated_run_unit_state'] ?? [],
         'run_resolution' => $claimSnapshot['run_resolution'] ?? null,
@@ -258,6 +262,7 @@ final class BattleController
           'applied_unit_instance_ids' => [],
           'ignored_at_cap_unit_instance_ids' => [],
         ],
+        'shrine_effects' => is_array($claimSnapshot['shrine_effects'] ?? null) ? $claimSnapshot['shrine_effects'] : [],
         'updated_units' => $updatedUnits,
         'run_summary' => $runSummary,
       ],
