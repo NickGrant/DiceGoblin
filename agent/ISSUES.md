@@ -87,4 +87,5 @@ Shrine weights and quality pools need hands-on validation once the new generated
 
 - Added `npm.cmd run sim:shrines:docker` plus region-specific shrine sampler shortcuts for distribution evidence.
 - Added pre-claim shrine effect summaries on the node result screen and primitive mix percentages in shrine tuning samples.
+- Added `documentation/05-playability-stability/09-shrine-tuning-sample-evidence.md` as the baseline shrine distribution evidence packet for UAT.
 
