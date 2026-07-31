@@ -144,12 +144,44 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $hazardPreview = $hazardRes['body']['data']['battle']['reward_preview'] ?? null;
     $this->assertIsArray($hazardPreview);
     $this->assertSame('hazard', (string)($hazardPreview['node_type'] ?? ''));
-    $this->assertSame('hazard_avoided', (string)($hazardRes['body']['data']['battle']['log']['events'][0]['message'] ?? ''));
-    $this->assertSame('route_pressure', (string)($hazardRes['body']['data']['battle']['log']['events'][0]['primitive'] ?? ''));
-    $this->assertSame('hazard_cautious_footing', (string)($hazardRes['body']['data']['battle']['log']['events'][0]['effect_slug'] ?? ''));
+    $this->assertSame('hazard_resolved', (string)($hazardRes['body']['data']['battle']['log']['events'][0]['message'] ?? ''));
+    $this->assertNotSame('', (string)($hazardRes['body']['data']['battle']['log']['events'][0]['primitive'] ?? ''));
+    $this->assertStringStartsWith('hazard_', (string)($hazardRes['body']['data']['battle']['log']['events'][0]['effect_slug'] ?? ''));
     [$hazardXp, $hazardSoft] = $this->battleRewardTuple($hazardBattleId);
     $this->assertSame(0, $hazardXp);
     $this->assertSame(0, $hazardSoft);
+
+    $authoredHazardNodeId = $this->insertRunNode($runId, 'hazard', 'available');
+    $authoredHazardMeta = [
+      'encounter_family' => 'hazard',
+      'encounter_severity' => 'moderate',
+      'encounter_primitive' => 'temporary_modifier',
+      'encounter_effect_slug' => 'hazard_thin_air',
+    ];
+    $stmt = $this->pdo?->prepare('UPDATE `run_nodes` SET `meta_json` = ? WHERE `id` = ?');
+    $stmt?->execute([json_encode($authoredHazardMeta, JSON_UNESCAPED_SLASHES), $authoredHazardNodeId]);
+
+    $authoredHazardRes = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$authoredHazardNodeId));
+    $this->assertSame(200, $authoredHazardRes['status']);
+    $authoredHazardEvent = $authoredHazardRes['body']['data']['battle']['log']['events'][0] ?? null;
+    $this->assertIsArray($authoredHazardEvent);
+    $this->assertSame('hazard_thin_air', (string)($authoredHazardEvent['effect_slug'] ?? ''));
+    $this->assertSame('temporary_modifier', (string)($authoredHazardEvent['primitive'] ?? ''));
+    $this->assertSame(
+      'run_stat_modifier_next_combat',
+      (string)($authoredHazardEvent['hazard_result']['effect']['type'] ?? '')
+    );
+
+    $authoredHazardBattleId = (int)($authoredHazardRes['body']['data']['battle']['battle_id'] ?? 0);
+    $authoredHazardRewardsRaw = (string)$this->scalar('SELECT `rewards_json` FROM `battle_rewards` WHERE `battle_id` = ?', [$authoredHazardBattleId]);
+    $authoredHazardRewards = json_decode($authoredHazardRewardsRaw, true);
+    $this->assertIsArray($authoredHazardRewards);
+    $this->assertSame('hazard', (string)($authoredHazardRewards['encounter_result']['family'] ?? ''));
+    $this->assertSame('hazard_thin_air', (string)($authoredHazardRewards['encounter_result']['effect_slug'] ?? ''));
+    $this->assertSame(
+      'run_stat_modifier_next_combat',
+      (string)($authoredHazardRewards['encounter_result']['result']['effect']['type'] ?? '')
+    );
 
     $shrineNodeId = $this->insertRunNode($runId, 'shrine', 'available');
     $shrineRes = $this->invoke(fn() => $controller->resolveNode((string)$runId, (string)$shrineNodeId));

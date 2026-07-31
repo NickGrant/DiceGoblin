@@ -562,6 +562,95 @@ describe('RunNodePageComponent', () => {
     expect(text).toContain('No material reward.');
   });
 
+  it('summarizes hazard effects before claim', async () => {
+    const runService = new RunServiceStub();
+    runService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: { run_id: 'run-1', region_id: 'region-1', region_slug: 'mountains', region_theme: 'mountain' },
+        map: {
+          nodes: [{ id: '18', run_id: 'run-1', node_index: 0, node_type: 'hazard', status: 'available' }],
+          edges: [],
+        },
+      },
+    });
+    runService.resolveNode.and.resolveTo({
+      ok: true,
+      data: {
+        node: { id: '18', status: 'completed' },
+        battle: {
+          battle_id: 'b-hazard',
+          outcome: 'victory',
+          rounds: 0,
+          ticks: 0,
+          status: 'completed',
+          reward_preview: {
+            node_type: 'hazard',
+            xp_total: 0,
+            currency_soft: 0,
+            new_unit_labels: [],
+            new_dice_labels: [],
+            units: [],
+            dice: [],
+            encounter_result: {
+              family: 'hazard',
+              primitive: 'temporary_modifier',
+              effect_slug: 'hazard_thin_air',
+              result: {
+                effect: {
+                  type: 'run_stat_modifier_next_combat',
+                  stat_multipliers: { resolve: 0.85 },
+                },
+              },
+            },
+          },
+          log: {
+            meta: { node_type: 'hazard' },
+            events: [{
+              type: 'node_effect',
+              round: 0,
+              tick: 0,
+              node_type: 'hazard',
+              message: 'hazard_resolved',
+              effect_slug: 'hazard_thin_air',
+              primitive: 'temporary_modifier',
+              label: 'Thin Air',
+              detail: 'The climb steals breath before the next fight.',
+            }],
+          },
+        },
+        next: { unlocked_node_ids: [] },
+      },
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [RunNodePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useValue: runService },
+        { provide: SessionService, useClass: SessionServiceStub },
+        { provide: AbilityCatalogService, useClass: AbilityCatalogServiceStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ nodeId: '18' }) } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunNodePageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(runService.resolveNode).toHaveBeenCalledOnceWith('run-1', '18');
+    expect(text).toContain('Path Cleared');
+    expect(text).toContain('Thin Air');
+    expect(text).toContain('This hazard result is now visible before you return to the route.');
+    expect(text).toContain('Effect');
+    expect(text).toContain('Next Combat');
+    expect(text).toContain('-15% Resolve for the squad.');
+  });
+
   it('shows accept and decline actions for declineable shrine bargains', async () => {
     const runService = new RunServiceStub();
     runService.getCurrentRun.and.resolveTo({
