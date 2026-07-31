@@ -1,6 +1,6 @@
 <page-frame
   [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Inventory' }]"
-  title="Dice Inventory"
+  title="Inventory"
   [subtitle]="pageSubtitle()"
 >
   @if (error() || message()) {
@@ -25,6 +25,26 @@
             </div>
           </div>
           <div class="dg-proto-divider" aria-hidden="true"></div>
+          <div class="dice-page__tabs" aria-label="Inventory type">
+            <button
+              type="button"
+              class="dice-page__tab"
+              [class.is-active]="inventoryTab() === 'dice'"
+              (click)="showDiceInventory()"
+            >
+              Dice
+            </button>
+            <button
+              type="button"
+              class="dice-page__tab"
+              [class.is-active]="inventoryTab() === 'consumables'"
+              (click)="showConsumableInventory()"
+            >
+              Consumables
+            </button>
+          </div>
+
+          @if (inventoryTab() === 'dice') {
           <div class="dice-page__filters">
             <div class="dice-page__filter">
               <label class="form-label" for="dice-size-filter">Size</label>
@@ -112,8 +132,37 @@
             </div>
             }
           </div>
+          } @else {
+          <div class="dice-page__results-row">
+            <p class="dice-page__results">
+              Showing {{ pagedConsumables().length }} of {{ consumables().length }} consumables.
+            </p>
+            @if (consumableTotalPages() > 1) {
+            <div class="dice-page__pager" aria-label="Consumable inventory pages">
+              <button
+                dgCommandBtn="muted"
+                type="button"
+                (click)="goToPreviousConsumablePage()"
+                [disabled]="consumableCurrentPage() <= 1"
+              >
+                Previous
+              </button>
+              <span class="dice-page__page-count">Page {{ consumableCurrentPage() }} / {{ consumableTotalPages() }}</span>
+              <button
+                dgCommandBtn="muted"
+                type="button"
+                (click)="goToNextConsumablePage()"
+                [disabled]="consumableCurrentPage() >= consumableTotalPages()"
+              >
+                Next
+              </button>
+            </div>
+            }
+          </div>
+          }
         </section>
 
+        @if (inventoryTab() === 'dice') {
         @if (pagedDice().length) {
         <div class="dice-page__inventory">
           <div class="dice-page__rail">
@@ -147,10 +196,43 @@
         } @else {
         <dg-alert>No dice available.</dg-alert>
         }
+        } @else {
+        @if (pagedConsumables().length) {
+        <div class="dice-page__inventory">
+          <div class="dice-page__rail">
+            <div class="dice-page__rail-layout dice-page__rail-layout--compact dg-motion-stagger">
+              @for (item of pagedConsumables(); track item.item_slug) {
+              <button
+                type="button"
+                class="dice-page__tile dice-page__tile--consumable dg-proto-card"
+                [class.is-selected]="isInspectingConsumable(item.item_slug)"
+                (focus)="previewConsumable(item.item_slug)"
+                (mouseenter)="previewConsumable(item.item_slug)"
+                [attr.aria-label]="item.name + ' quantity ' + item.quantity"
+              >
+                <span class="dice-page__item-icon" aria-hidden="true">{{ consumableIconLabel(item) }}</span>
+                <span class="dice-page__tile-copy">
+                  <span class="dice-page__tile-name">{{ item.name }}</span>
+                  <span class="dice-page__tile-meta">{{ consumableEffectLabel(item) }}</span>
+                </span>
+                <span class="dg-proto-card__stats">
+                  <span class="dg-proto-pill">x{{ item.quantity }}</span>
+                  <span class="dg-proto-pill">{{ consumableRarityLabel(item) }}</span>
+                </span>
+              </button>
+              }
+            </div>
+          </div>
+        </div>
+        } @else {
+        <dg-alert>No consumables available.</dg-alert>
+        }
+        }
       </div>
 
-      @if (inspectedDice(); as die) {
       <aside focusLayoutPanel class="dice-page__inspect dg-proto-sidebar">
+        @if (inventoryTab() === 'dice') {
+        @if (inspectedDice(); as die) {
         <div class="dice-page__inspect-head">
           <div>
             <p class="dice-page__inspect-kicker">{{ rarityLabel(die) }} Die</p>
@@ -219,8 +301,34 @@
             }
           </section>
         </div>
+        }
+        } @else {
+        @if (inspectedConsumable(); as item) {
+        <div class="dice-page__inspect-head">
+          <div>
+            <p class="dice-page__inspect-kicker">{{ consumableRarityLabel(item) }} Consumable</p>
+            <h2 class="dice-page__inspect-title">{{ item.name }}</h2>
+          </div>
+          <span class="dice-page__inspect-state">x{{ item.quantity }}</span>
+        </div>
+
+        <div class="dice-page__item-inspect-icon" aria-hidden="true">{{ consumableIconLabel(item) }}</div>
+
+        <div class="dice-page__inspect-stats">
+          <span class="dg-proto-pill">{{ consumableEffectLabel(item) }}</span>
+          @if (item.source_region_name) {
+          <span class="dg-proto-pill">{{ item.source_region_name }}</span>
+          }
+        </div>
+
+        <div class="dice-page__inspect-body">
+          <section class="dice-page__inspect-section">
+            <p class="dice-page__item-description">{{ item.description }}</p>
+          </section>
+        </div>
+        }
+        }
       </aside>
-      }
     </dg-focus-layout>
   </section>
 

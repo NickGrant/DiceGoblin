@@ -687,6 +687,10 @@ export type ResolveNodeData = {
   next: {
     unlocked_node_ids: string[];
   };
+  rewards?: {
+    feature_unlocks: string[];
+    item_grants: Array<{ item_slug: string; quantity: number; granted_quantity: number }>;
+  };
 };
 
 export type ResolveNodeResponse = ApiResponse<ResolveNodeData>;

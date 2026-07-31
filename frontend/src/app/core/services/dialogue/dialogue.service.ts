@@ -5,6 +5,10 @@ import { ApiHttpService } from '../api-http/api-http.service';
 
 @Injectable({ providedIn: 'root' })
 export class DialogueService {
+  private readonly libraryUrls = [
+    '/assets/data/dialogue/dialogue-scripts.json',
+    '/assets/data/dialogue/consumable-dialogue-scripts.json',
+  ];
   private libraryPromise: Promise<DialogueLibraryDefinition> | null = null;
 
   constructor(private readonly apiHttp: ApiHttpService) {}
@@ -42,7 +46,12 @@ export class DialogueService {
   }
 
   private async fetchLibrary(): Promise<DialogueLibraryDefinition> {
-    const response = await fetch('/assets/data/dialogue/dialogue-scripts.json', {
+    const libraries = await Promise.all(this.libraryUrls.map((url) => this.fetchSingleLibrary(url)));
+    return { scripts: libraries.flatMap((library) => library.scripts) };
+  }
+
+  private async fetchSingleLibrary(url: string): Promise<DialogueLibraryDefinition> {
+    const response = await fetch(url, {
       headers: { Accept: 'application/json' },
     });
 
@@ -51,10 +60,10 @@ export class DialogueService {
     }
 
     const payload = await response.json();
-    const scripts = Array.isArray((payload as DialogueLibraryDefinition).scripts)
-      ? (payload as DialogueLibraryDefinition).scripts
-      : [];
-
-    return { scripts };
+    return {
+      scripts: Array.isArray((payload as DialogueLibraryDefinition).scripts)
+        ? (payload as DialogueLibraryDefinition).scripts
+        : [],
+    };
   }
 }

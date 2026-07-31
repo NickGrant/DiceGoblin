@@ -1,0 +1,79 @@
+{
+  "scripts": [
+    {
+      "id": "mountains-traveler-consumable-gifts",
+      "title": "Far Gifts",
+      "summary": "A lost traveler mistakes the goblin for a mountain local and shares supplies from another road.",
+      "tags": ["consumables", "traveler"],
+      "trigger": {
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
+        "region_slug": "mountains",
+        "tags": ["consumables"]
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/mountain.png"
+      },
+      "speakers": [
+        {
+          "id": "player",
+          "side": "left",
+          "party": "player",
+          "role": "player"
+        },
+        {
+          "id": "traveler",
+          "side": "right",
+          "name": "Far Traveler",
+          "portrait_url": "/assets/ui/units/animated/goblin/frogman/frame_0.png",
+          "party": "neutral",
+          "role": "npc"
+        }
+      ],
+      "start_step_id": "traveler-hail",
+      "steps": [
+        {
+          "id": "traveler-hail",
+          "speaker_id": "traveler",
+          "text": "Hello there, small mountain local. I seem to have taken a heroic number of wrong turns.",
+          "next_step_id": "player-local"
+        },
+        {
+          "id": "player-local",
+          "speaker_id": "player",
+          "text": "I am a goblin.",
+          "next_step_id": "traveler-kind"
+        },
+        {
+          "id": "traveler-kind",
+          "speaker_id": "traveler",
+          "text": "Is that a kind of local? Wonderful. I was told locals are good luck if treated politely.",
+          "next_step_id": "player-gifts"
+        },
+        {
+          "id": "player-gifts",
+          "speaker_id": "player",
+          "text": "Polite locals often receive gifts.",
+          "next_step_id": "traveler-supplies"
+        },
+        {
+          "id": "traveler-supplies",
+          "speaker_id": "traveler",
+          "text": "Then please accept these. A field poultice for wounds and a travel ration for weary bones.",
+          "next_step_id": "player-accept"
+        },
+        {
+          "id": "player-accept",
+          "speaker_id": "player",
+          "text": "I will be extremely local with them.",
+          "next_step_id": "traveler-farewell"
+        },
+        {
+          "id": "traveler-farewell",
+          "speaker_id": "traveler",
+          "text": "Splendid. If anyone asks, I was never lost. I was expanding the map."
+        }
+      ]
+    }
+  ]
+}

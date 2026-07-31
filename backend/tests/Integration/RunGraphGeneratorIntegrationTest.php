@@ -306,16 +306,23 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $freshRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
 
     $this->assertSame(
-      ['mountains-archivist-first-contact', 'mountains-kobold-machine-trail', 'mountains-swamps-lead'],
+      ['mountains-archivist-first-contact', 'mountains-kobold-machine-trail', 'mountains-swamps-lead', 'mountains-traveler-consumable-gifts'],
       array_column($freshRequests, 'dialogue_id'),
     );
-    $this->assertSame(['start', 'before_boss', 'before_exit'], array_column($freshRequests, 'placement'));
+    $this->assertSame(['start', 'before_boss', 'before_exit', 'random'], array_column($freshRequests, 'placement'));
+    $travelerRequest = $freshRequests[3];
+    $this->assertSame(['consumables'], $travelerRequest['completion_rewards']['feature_unlocks'] ?? []);
+    $this->assertSame('field_poultice', (string)($travelerRequest['completion_rewards']['item_grants'][0]['item_slug'] ?? ''));
 
     $this->grantUnlock($userId, 'dialogue', 'mountains-archivist-first-contact');
     $repeatRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
 
     $this->assertContains('mountains-wrong-machine-search-repeat', array_column($repeatRequests, 'dialogue_id'));
     $this->assertNotContains('mountains-archivist-first-contact', array_column($repeatRequests, 'dialogue_id'));
+
+    $this->grantUnlock($userId, 'feature', 'consumables');
+    $postConsumablesRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
+    $this->assertNotContains('mountains-traveler-consumable-gifts', array_column($postConsumablesRequests, 'dialogue_id'));
 
     $this->grantUnlock($userId, 'feature', 'wrong_machine');
     $recoveredRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
@@ -335,6 +342,16 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
       ['dialogue_id' => 'qa-start-story', 'placement' => 'start', 'one_time' => true, 'tags' => ['lore']],
       ['dialogue_id' => 'qa-boss-story', 'placement' => 'before_boss', 'one_time' => false, 'tags' => []],
       ['dialogue_id' => 'qa-exit-story', 'placement' => 'before_exit', 'one_time' => true, 'tags' => ['lore']],
+      [
+        'dialogue_id' => 'qa-random-story',
+        'placement' => 'random',
+        'one_time' => false,
+        'tags' => ['consumables'],
+        'completion_rewards' => [
+          'feature_unlocks' => ['consumables'],
+          'item_grants' => [['item_slug' => 'field_poultice', 'quantity' => 1]],
+        ],
+      ],
     ];
 
     $graph = $generator->generateWithVersion($regionId, 'mountains', 'pattern-story-seed', true, 'pattern-v1', $storyRequests);
@@ -344,9 +361,11 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertContains('qa-start-story', $this->dialogueIds($graph));
     $this->assertContains('qa-boss-story', $this->dialogueIds($graph));
     $this->assertContains('qa-exit-story', $this->dialogueIds($graph));
+    $this->assertContains('qa-random-story', $this->dialogueIds($graph));
     $this->assertSame('qa-start-story', (string)($graph['nodes'][$analysis['start_index']]['meta']['dialogue_id'] ?? ''));
     $this->assertDialogueImmediatelyPrecedes($graph, 'qa-boss-story', 'boss');
     $this->assertDialogueImmediatelyPrecedes($graph, 'qa-exit-story', 'exit');
+    $this->assertSame(['consumables'], $this->dialogueNodeMeta($graph, 'qa-random-story')['completion_rewards']['feature_unlocks'] ?? []);
     $this->assertTrue(isset($analysis['reachable_from_start'][$analysis['boss_index']]));
     $this->assertTrue(isset($analysis['reachable_from_boss'][$analysis['exit_index']]));
   }
@@ -361,6 +380,16 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
       ['dialogue_id' => 'mountains-archivist-first-contact', 'placement' => 'start', 'one_time' => true, 'tags' => ['lore']],
       ['dialogue_id' => 'mountains-kobold-machine-trail', 'placement' => 'before_boss', 'one_time' => true, 'tags' => ['lore']],
       ['dialogue_id' => 'mountains-swamps-lead', 'placement' => 'before_exit', 'one_time' => true, 'tags' => ['lore']],
+      [
+        'dialogue_id' => 'mountains-traveler-consumable-gifts',
+        'placement' => 'random',
+        'one_time' => false,
+        'tags' => ['consumables'],
+        'completion_rewards' => [
+          'feature_unlocks' => ['consumables'],
+          'item_grants' => [['item_slug' => 'travel_ration', 'quantity' => 1]],
+        ],
+      ],
     ];
 
     $graph = $generator->generateWithVersion($regionId, 'mountains', 'pattern-v2-story-seed', true, 'pattern-v2', $storyRequests);
@@ -371,10 +400,12 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertContains('mountains-archivist-first-contact', $dialogueIds);
     $this->assertContains('mountains-kobold-machine-trail', $dialogueIds);
     $this->assertContains('mountains-swamps-lead', $dialogueIds);
+    $this->assertContains('mountains-traveler-consumable-gifts', $dialogueIds);
     $this->assertNotContains('mountain_start', $dialogueIds);
     $this->assertSame('mountains-archivist-first-contact', (string)($graph['nodes'][$analysis['start_index']]['meta']['dialogue_id'] ?? ''));
     $this->assertDialogueImmediatelyPrecedes($graph, 'mountains-kobold-machine-trail', 'boss');
     $this->assertDialogueImmediatelyPrecedes($graph, 'mountains-swamps-lead', 'exit');
+    $this->assertSame(['consumables'], $this->dialogueNodeMeta($graph, 'mountains-traveler-consumable-gifts')['completion_rewards']['feature_unlocks'] ?? []);
     $this->assertTrue(isset($analysis['reachable_from_start'][$analysis['boss_index']]));
     $this->assertTrue(isset($analysis['reachable_from_boss'][$analysis['exit_index']]));
   }
@@ -1028,6 +1059,22 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     }
 
     return $ids;
+  }
+
+  /**
+   * @param array{nodes: array<int,array<string,mixed>>, edges: array<int,array{from:int,to:int}>} $graph
+   * @return array<string,mixed>
+   */
+  private function dialogueNodeMeta(array $graph, string $dialogueId): array
+  {
+    foreach ($graph['nodes'] as $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      if ((string)($node['node_type'] ?? '') === 'dialogue' && (string)($meta['dialogue_id'] ?? '') === $dialogueId) {
+        return $meta;
+      }
+    }
+
+    $this->fail(sprintf('Dialogue `%s` should exist.', $dialogueId));
   }
 
   /**

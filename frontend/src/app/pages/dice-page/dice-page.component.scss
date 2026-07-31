@@ -26,6 +26,53 @@
   gap: 0.75rem;
 }
 
+.dice-page__tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+  align-self: flex-start;
+  padding: 0.25rem;
+  border: 1px solid rgba(92, 69, 40, 0.18);
+  border-radius: 8px;
+  background: rgba(246, 238, 218, 0.82);
+}
+
+.dice-page__tab {
+  appearance: none;
+  min-width: 7rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(54, 38, 22, 0.72);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  padding: 0.55rem 0.75rem;
+  text-transform: uppercase;
+  transition:
+    background 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.dice-page__tab:hover,
+.dice-page__tab:focus-visible {
+  color: #2a1b10;
+  transform: translateY(-1px);
+}
+
+.dice-page__tab:focus-visible {
+  outline: 2px solid rgba(168, 102, 33, 0.35);
+  outline-offset: 2px;
+}
+
+.dice-page__tab.is-active {
+  background: #fdf8ea;
+  color: #26180d;
+  box-shadow: 0 8px 18px rgba(60, 40, 20, 0.1);
+}
+
 .dice-page__results-row {
   display: flex;
   flex-wrap: wrap;
@@ -66,6 +113,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: 0.95rem;
+}
+
+.dice-page__rail-layout--compact {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 }
 
 .dice-page__tile {
@@ -114,6 +165,46 @@
 .dice-page__tile-meta {
   color: rgba(37, 21, 12, 0.72);
   font-size: 0.88rem;
+}
+
+.dice-page__tile--consumable {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 9.5rem;
+}
+
+.dice-page__tile--consumable .dg-proto-card__stats {
+  grid-column: 1 / -1;
+}
+
+.dice-page__item-icon,
+.dice-page__item-inspect-icon {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(89, 67, 40, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(255, 252, 239, 0.95), rgba(220, 236, 219, 0.92)),
+    #f8efda;
+  color: #2e5b36;
+  font-family: var(--font-display, 'Bebas Neue', sans-serif);
+  font-weight: 900;
+  letter-spacing: 0;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.38);
+}
+
+.dice-page__item-icon {
+  width: 4.5rem;
+  height: 4.5rem;
+  font-size: 2.4rem;
+}
+
+.dice-page__item-inspect-icon {
+  width: 100%;
+  min-height: 10rem;
+  font-size: 4rem;
 }
 
 .dice-page__inspect {
@@ -240,6 +331,12 @@
 .dice-page__inspect-affix-copy {
   color: rgba(36, 27, 19, 0.86);
   line-height: 1.4;
+}
+
+.dice-page__item-description {
+  margin: 0;
+  color: rgba(36, 27, 19, 0.88);
+  line-height: 1.5;
 }
 
 @media (min-width: 441px) {
