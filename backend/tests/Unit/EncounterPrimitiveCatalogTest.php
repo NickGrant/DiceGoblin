@@ -13,7 +13,7 @@ final class EncounterPrimitiveCatalogTest extends TestCase
     $vocabulary = (new EncounterPrimitiveCatalog())->vocabulary();
 
     $this->assertSame(
-      ['hp_attrition', 'temporary_modifier', 'currency_pressure', 'item_pressure', 'route_pressure', 'kin_mitigation'],
+      ['hp_attrition', 'temporary_modifier', 'currency_pressure', 'item_pressure', 'route_pressure', 'kin_mitigation', 'choice_pressure'],
       $vocabulary['hazard']
     );
     $this->assertSame(
@@ -52,13 +52,18 @@ final class EncounterPrimitiveCatalogTest extends TestCase
     $this->assertIsArray($effect['result']['effect']);
   }
 
-  public function testHazardResolutionUsesRoutePressurePrimitive(): void
+  public function testGeneratedHazardsRespectRegionAndSeverityWeights(): void
   {
-    $effect = (new EncounterPrimitiveCatalog())->resolveNodeEffect('hazard', static fn(): int => 0);
+    $effect = (new EncounterPrimitiveCatalog())->resolveNodeEffect('hazard', static fn(): int => 0, null, [
+      'region_slug' => 'mountains',
+      'severity' => 'severe',
+    ]);
 
     $this->assertSame('hazard', $effect['family']);
-    $this->assertSame('hazard_cautious_footing', $effect['slug']);
-    $this->assertSame('route_pressure', $effect['primitive']);
+    $this->assertStringStartsWith('hazard_', $effect['slug']);
+    $this->assertSame('severe', $effect['result']['severity']);
+    $this->assertContains($effect['primitive'], (new EncounterPrimitiveCatalog())->vocabulary()['hazard']);
+    $this->assertIsArray($effect['result']['effect']);
     $this->assertSame(0, $effect['currency_soft']);
   }
 
@@ -97,9 +102,19 @@ final class EncounterPrimitiveCatalogTest extends TestCase
       $this->assertNotContains($slug, $slugs);
       $this->assertContains((string)$hazard['primitive'], $vocabulary);
       $this->assertNotSame([], $hazard['regions']);
-      $this->assertGreaterThan(0, (int)$hazard['weight']);
+      $this->assertNotSame([], $hazard['severities']);
+      $this->assertNotSame([], $hazard['weights']);
+      $this->assertNotSame('', (string)$hazard['title']);
+      $this->assertNotSame('', (string)$hazard['result_copy']);
+      $this->assertIsArray($hazard['result']['effect'] ?? null);
+      $this->assertGreaterThanOrEqual(0, array_sum(array_map('intval', $hazard['weights'])));
       $slugs[] = $slug;
     }
+    $this->assertContains('hazard_collapse_warning', $slugs);
+    $this->assertGreaterThanOrEqual(10, count(array_filter(
+      $hazards,
+      static fn(array $hazard): bool => array_sum(array_map('intval', $hazard['weights'])) > 0
+    )));
   }
 
   public function testShrineCatalogMeetsInitialContentPackTarget(): void

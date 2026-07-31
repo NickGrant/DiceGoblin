@@ -2514,16 +2514,18 @@ final class RunGraphGenerator
 
       $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
       $col = (int)($meta['col'] ?? 0);
+      $severity = $this->hazardSeverityFromQuality((string)($meta['node_quality_tier'] ?? 'good'));
       $effects = $catalog->hazardEffectsForRegion($regionSlug, $col);
       if ($effects === []) {
         $nodes[$index]['node_type'] = 'combat';
         continue;
       }
 
-      $effect = $this->pickWeightedHazardEffect($seedKey . '|hazard-effect|' . $index, $effects);
+      $effect = $this->pickWeightedHazardEffect($seedKey . '|hazard-effect|' . $index, $effects, $severity);
       $nodes[$index]['meta'] = [
         ...$meta,
         'encounter_family' => 'hazard',
+        'encounter_severity' => $severity,
         'encounter_effect_slug' => (string)$effect['slug'],
         'encounter_primitive' => (string)$effect['primitive'],
       ];
@@ -2531,19 +2533,27 @@ final class RunGraphGenerator
   }
 
   /**
-   * @param list<array{slug:string,primitive:string,regions:list<string>,min_depth:int,weight:int,result:array<string,mixed>}> $effects
-   * @return array{slug:string,primitive:string,regions:list<string>,min_depth:int,weight:int,result:array<string,mixed>}
+   * @param list<array{slug:string,primitive:string,regions:list<string>,severities:list<string>,weights:array<string,int>,min_depth:int,title:string,result_copy:string,result:array<string,mixed>}> $effects
+   * @return array{slug:string,primitive:string,regions:list<string>,severities:list<string>,weights:array<string,int>,min_depth:int,title:string,result_copy:string,result:array<string,mixed>}
    */
-  private function pickWeightedHazardEffect(string $seedKey, array $effects): array
+  private function pickWeightedHazardEffect(string $seedKey, array $effects, string $severity): array
   {
-    $total = array_sum(array_map(static fn(array $effect): int => max(0, (int)$effect['weight']), $effects));
+    $eligible = array_values(array_filter($effects, static fn(array $effect): bool =>
+      in_array($severity, $effect['severities'], true)
+        && max(0, (int)($effect['weights'][$severity] ?? 0)) > 0
+    ));
+    if ($eligible === []) {
+      $eligible = $effects;
+    }
+
+    $total = array_sum(array_map(static fn(array $effect): int => max(0, (int)($effect['weights'][$severity] ?? $effect['weights']['moderate'] ?? 0)), $eligible));
     if ($total <= 0) {
-      return $effects[0];
+      return $eligible[0];
     }
 
     $cursor = $this->randBetween($seedKey, 0, $total - 1);
-    foreach ($effects as $effect) {
-      $weight = max(0, (int)$effect['weight']);
+    foreach ($eligible as $effect) {
+      $weight = max(0, (int)($effect['weights'][$severity] ?? $effect['weights']['moderate'] ?? 0));
       if ($weight <= 0) {
         continue;
       }
@@ -2553,7 +2563,16 @@ final class RunGraphGenerator
       $cursor -= $weight;
     }
 
-    return $effects[0];
+    return $eligible[0];
+  }
+
+  private function hazardSeverityFromQuality(string $quality): string
+  {
+    return match ($quality) {
+      'poor' => 'minor',
+      'great' => 'severe',
+      default => 'moderate',
+    };
   }
 
   /**
