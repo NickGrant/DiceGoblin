@@ -76,14 +76,16 @@ final class DeterministicRunNodeResolver
       $outcome = 'victory';
       $xpTotal = 0;
       $quality = isset($nodeMeta['node_quality_tier']) ? (string)$nodeMeta['node_quality_tier'] : 'good';
+      $effectSlug = isset($nodeMeta['encounter_effect_slug']) ? (string)$nodeMeta['encounter_effect_slug'] : null;
+      $hazardSeverity = isset($nodeMeta['encounter_severity']) ? (string)$nodeMeta['encounter_severity'] : $quality;
       $nodeEffect = (new EncounterPrimitiveCatalog())->resolveNodeEffect(
         $nodeType,
         fn(int $max): int => $this->nextInt($rngState, $max),
-        in_array($nodeType, ['hazard', 'shrine'], true) ? null : (isset($nodeMeta['encounter_effect_slug']) ? (string)$nodeMeta['encounter_effect_slug'] : null),
+        $effectSlug,
         [
           'region_slug' => $this->regionSlugForRun((int)$run['region_id']),
           'quality' => $quality,
-          'severity' => $quality,
+          'severity' => $hazardSeverity,
         ]
       );
       $currencySoft = (int)$nodeEffect['currency_soft'];

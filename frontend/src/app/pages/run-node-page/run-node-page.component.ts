@@ -377,6 +377,50 @@ export class RunNodePageComponent implements OnDestroy {
         return null;
     }
   });
+  readonly hazardEffectSummary = computed<ShrineEffectSummaryViewModel | null>(() => {
+    if (this.resolvedNodeType() !== 'hazard') {
+      return null;
+    }
+
+    const result = this.hazardResultPayload();
+    const effect = result?.['effect'];
+    const effectRecord = effect && typeof effect === 'object' && !Array.isArray(effect)
+      ? effect as Record<string, unknown>
+      : {};
+    const type = typeof effectRecord['type'] === 'string' ? effectRecord['type'] : '';
+
+    switch (type) {
+      case 'damage_random_unit':
+        return {
+          label: 'Damage',
+          detail: `Damages one unit for ${this.numberLabel(effectRecord['damage'], 1)} life.`,
+        };
+      case 'damage_squad':
+        return {
+          label: 'Squad Damage',
+          detail: `Damages each living unit for ${this.numberLabel(effectRecord['damage'], 1)} life.`,
+        };
+      case 'lose_teeth':
+        return {
+          label: 'Teeth Lost',
+          detail: `Loses up to ${this.numberLabel(effectRecord['amount'], 1)} teeth.`,
+        };
+      case 'run_stat_modifier_next_combat':
+      case 'stat_modifier_next_combat':
+      case 'squad_stat_modifier_next_combat':
+        return {
+          label: 'Next Combat',
+          detail: this.describeShrineStatModifier(effectRecord),
+        };
+      case 'route_pressure':
+        return {
+          label: 'Route',
+          detail: 'The path is cleared without a lasting battle effect.',
+        };
+      default:
+        return null;
+    }
+  });
   readonly nodeResultArtUrl = computed(() => {
     if (this.resolvedNodeType() === 'shrine') {
       return resolveNodeArtUrl(this.currentNode(), 'shrine');
@@ -719,6 +763,22 @@ export class RunNodePageComponent implements OnDestroy {
       : null;
   }
 
+  private hazardResultPayload(): Record<string, unknown> | null {
+    const previewResult = this.result()?.battle.reward_preview?.encounter_result;
+    if (previewResult && typeof previewResult === 'object' && !Array.isArray(previewResult)) {
+      const nested = previewResult['result'];
+      if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+        return nested as Record<string, unknown>;
+      }
+    }
+
+    const event = this.result()?.battle.log?.events?.[0] as Record<string, unknown> | undefined;
+    const hazardResult = event?.['hazard_result'];
+    return hazardResult && typeof hazardResult === 'object' && !Array.isArray(hazardResult)
+      ? hazardResult as Record<string, unknown>
+      : null;
+  }
+
   private describeShrineCost(result: Record<string, unknown>, cost: Record<string, unknown>): string {
     const effect = result['effect'];
     const effectRecord = effect && typeof effect === 'object' && !Array.isArray(effect)
@@ -776,6 +836,11 @@ export class RunNodePageComponent implements OnDestroy {
     const safeMultiplier = Number.isFinite(multiplier) ? multiplier : fallback;
     const bonus = Math.round((safeMultiplier - 1) * 100);
     return bonus >= 0 ? `+${bonus}%` : `${bonus}%`;
+  }
+
+  private numberLabel(value: unknown, fallback: number): string {
+    const numeric = Number(value ?? fallback);
+    return String(Number.isFinite(numeric) ? numeric : fallback);
   }
 
   private buildBattleRunEffects(): BattleRunEffectViewModel[] {
