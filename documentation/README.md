@@ -163,6 +163,7 @@ Depends On: `README.md`, `documentation/STYLE_GUIDE.md`
 - Future gameplay planning:
   - `documentation/00-overview/04-story-and-biome-progression.md`
   - `documentation/07-roadmap/00-gameplay-systems-roadmap.md`
+  - `documentation/07-roadmap/2026-07-30-first-pig-kin-demo-roadmap.md`
   - `documentation/02-systems-mvp/14-balancing-strategy-and-simulation.md`
   - `documentation/02-systems-mvp/15-pattern-based-run-map-generation.md`
 - Page-by-page route breakdowns:

@@ -1,13 +1,13 @@
-# July Roadmap UAT Balance Checklist
+# First Pig Kin Demo UAT Balance Checklist
 ----
 
-Status: active  
-Last Updated: 2026-07-28  
-Owner: Product + Design + QA  
+Status: active
+Last Updated: 2026-07-30
+Owner: Product + Design + QA
 Depends On: `documentation/05-playability-stability/01-critical-path-playtest-script.md`, `documentation/05-playability-stability/02-player-friction-severity-rubric.md`, `agent/ISSUES.md`
 
 ## Purpose
-- Provide a shared worksheet for UAT and balance review after the July 25 roadmap implementation.
+- Provide a shared worksheet for UAT and balance review before the first Pig Kin demo release.
 - Capture design intent, observed player experience, and follow-up tuning work in one repeatable format.
 - Separate blockers, feel problems, and future balance targets before creating implementation issues.
 
@@ -24,7 +24,7 @@ Depends On: `documentation/05-playability-stability/01-critical-path-playtest-sc
 ## Session Header
 
 ```yaml
-session_id: JULY-UAT-YYYYMMDD-<initials>-<seq>
+session_id: PIG-KIN-DEMO-UAT-YYYYMMDD-<initials>-<seq>
 tester:
 agent_partner:
 build_ref:
@@ -240,7 +240,7 @@ issue_candidate:
   seed:
   unlock_state:
   reproduction_steps:
-    - 
+    -
   expected:
   actual:
   player_impact:
@@ -259,10 +259,10 @@ balance_question:
   current_observation:
   desired_feel:
   metrics_needed:
-    - 
+    -
   sample_count_needed:
   possible_tuning_levers:
-    - 
+    -
 ```
 
 ## Tuning Lever Map

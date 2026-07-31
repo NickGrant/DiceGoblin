@@ -2,190 +2,227 @@
 ----
 Active issues only. Move completed entries to `agent/ISSUES_ARCHIVE.md`.
 
-## Critical Path UAT
+## First Pig Kin Demo Release
 
-### Continue fresh-account July roadmap UAT
+### Complete first Pig Kin critical-path UAT
 
-**Milestone:** Critical Path UAT
+**Milestone:** First Pig Kin Demo Release
 **Status:** Open
 **Priority:** High
 
 #### Problem
-The July 25 roadmap implementation is complete at the planned issue-slice level, but the full player path still needs continued fresh-account UAT evidence before final release hardening.
+The next formal demo should stop at the moment the player creates their first Pig Kin. The full path needs one fresh-account UAT pass after the remaining demo fixes land.
 
 #### Acceptance Criteria
 
-- A fresh account is played through Farm, Mountains, Swamps, Wrong Machine recovery, Mystic Cave return, and first Pig Kin reconstruction.
-- UAT notes capture story comprehension, unlock timing, reward visibility, and any blocking progression failures.
-- Repeat-run behavior is checked for first-clear story, stolen pages, and unlock messaging.
-- Any player-facing failures are logged as new active issues with severity and reproduction notes.
-- If no blockers are found, the issue is archived with the UAT evidence location.
+- A fresh account reaches Mystic Cave, Farm, Mountains, Swamps, Wrong Machine recovery, Mystic Cave return, and first Pig Kin reconstruction.
+- Required Pig Kin materials, Raw Chaos, and catalyst progress cannot be lost to random chance or unclear gating.
+- First-time and repeat-run story beats do not replay in a confusing order.
+- Rewards, stolen pages, unlocks, items, Raw Chaos, and Pig Kin creation are visible at the expected moments.
+- Any blocker is logged as a high-priority issue with reproduction notes.
+- The demo branch/build receives a final pass using the release gate checklist.
 
-### Validate encounter and consumable feel
+### Finish required demo dialogue and repeat-run story clarity
 
-**Milestone:** Critical Path UAT
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-Hazard, shrine, chaos, healing-consumable, and energy-consumable systems are implemented, but their combined pacing and variety need hands-on validation across several seeds.
-
-#### Acceptance Criteria
-
-- Multiple Farm, Mountains, and Swamps runs are sampled for hazard, shrine, and chaos variety.
-- Healing consumables are checked against rest-node value and attrition pressure.
-- Energy consumables are checked against energy caps and intended pacing.
-- Encounter copy is checked for readability and result clarity.
-- Any balance or content-repeat issues are logged with affected region, run seed when available, and expected tuning direction.
-
-#### Progress
-
-- Added Docker balance simulation shortcuts for Mountains and Swamps plus an aggregate Farm/Mountains/Swamps run command for UAT region-pacing evidence.
-
-## UAT Polish Backlog
-
-### Confirm release merge and generated-artifact hygiene
-
-**Milestone:** UAT Polish Backlog
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-The roadmap work moved through many stacked PRs, so release readiness needs a final hygiene pass that confirms `main` includes the intended stack and generated artifacts follow repository policy.
-
-#### Acceptance Criteria
-
-- `main` is synced with `origin/main` before release validation begins.
-- The July 25 completion analysis and active tracker agree on remaining work.
-- Generated frontend artifacts are either intentionally included or intentionally omitted according to release policy.
-- A final validation command set is documented before UAT-confirmed fixes are merged.
-- Any merge-order or missing-commit concern is logged as a blocker with exact commit/PR references.
-
-#### Progress
-
-- Added a release-readiness validation command plan that checks tracker/docs hygiene, generated frontend artifact cleanliness, and the heavier Docker/frontend gates needed before final release handoff.
-
-## Shrine Expansion
-
-### UAT and tune shrine effect weights
-
-**Milestone:** Shrine Expansion
-**Status:** Open
-**Priority:** Medium
-
-#### Problem
-Shrine weights and quality pools need hands-on validation once the new generated effects are available in run maps.
-
-#### Acceptance Criteria
-
-- Farm, Mountains, and Swamps shrine samples are reviewed across poor, good, and great shrine qualities.
-- Generated effects feel appropriate to quality and region.
-- Costly shrines are clear enough that declining feels intentional rather than like a missed reward.
-- Balance changes are captured with evidence packets before tuning.
-
-#### Progress
-
-- Added `npm.cmd run sim:shrines:docker` plus region-specific shrine sampler shortcuts for distribution evidence.
-- Added pre-claim shrine effect summaries on the node result screen and primitive mix percentages in shrine tuning samples.
-- Added `documentation/05-playability-stability/09-shrine-tuning-sample-evidence.md` as the baseline shrine distribution evidence packet for UAT.
-- Filtered active run effects to only ongoing next-combat effects and surfaced battle-affecting run modifiers on the battle screen.
-- Removed cleared chaos results from ongoing run effects and made connected map paths unlock/render correctly even when an edge travels visually backward.
-
-## Hazard Expansion
-
-### Define generated hazard severity catalog
-
-**Milestone:** Hazard Expansion
+**Milestone:** First Pig Kin Demo Release
 **Status:** Open
 **Priority:** High
 
 #### Problem
-Hazard nodes currently have authored primitive metadata, but most outcomes are still metadata-only pressure. The next hazard pass needs generated effects similar to shrines: severity-weighted, region-aware, persisted when encountered, and broad enough for at least ten initial downside options.
+The demo path needs all required story and post-Wrong-Machine dialogue to carry the player cleanly to the first Pig Kin without relying on outside explanation.
 
 #### Acceptance Criteria
 
-- Hazard nodes use a severity tier for generation and player-facing copy.
-- Existing `poor`, `good`, and `great` node quality metadata is either mapped to hazard-facing severity or replaced with an explicit hazard severity contract.
-- The exact hazard effect is generated at encounter time from region, severity, seed context, and catalog weights, then persisted for idempotency.
-- The initial catalog contains at least ten enabled options across immediate, choice-based, delayed, route, item, currency, HP, and kin-mitigated pressure.
-- Hazard definitions do not require duplicating exact generated outcomes in map-node metadata.
-- Unit tests cover severity filtering, weighted selection, fallback behavior, and vocabulary validity.
+- Required Farm, Mountains, Swamps, Wrong Machine recovery, Mystic Cave return, and first Pig Kin dialogue exists and loads.
+- The Whim and relevant biome characters have appropriate post-Wrong-Machine dialogue.
+- One-time dialogue and repeat-run dialogue are clearly separated.
+- Dialogue-driven codex/stolen-page unlocks appear in the right run results.
+- Missing scripts fail gracefully in development and are covered by tests or data validation.
 
-#### Progress
+### Rework objectives for demo guidance
 
-- Added severity-weighted generated hazard definitions with named titles/copy and ten enabled automatic downside options plus a planned choice-pressure entry held at zero weight until choice UI lands.
-- Changed hazard resolution to generate the exact effect at encounter time from region and severity instead of trusting map-node effect metadata.
-
-### Implement hazard choice and mitigation flow
-
-**Milestone:** Hazard Expansion
+**Milestone:** First Pig Kin Demo Release
 **Status:** Open
 **Priority:** High
 
 #### Problem
-Some hazards should offer explicit tradeoffs, such as taking damage or paying teeth, and some should be declineable or mitigated by owned kin/progression context. The current auto-resolve flow has no player decision point for hazards.
+Objectives should guide the player toward the next critical Pig Kin demo action without cluttering Home with the full objective backlog.
 
 #### Acceptance Criteria
 
-- Hazard resolution can return a persisted offer with two or more choices when the selected effect requires a decision.
-- Frontend hazard result screens present available choices clearly and disable unavailable costs, such as insufficient teeth.
-- Claim/apply endpoints persist the selected hazard decision and return the same decision on retry.
-- Mitigated hazards can present reduced downside or alternate copy when the player meets the mitigation condition.
-- Integration tests cover choice acceptance, unavailable option handling, retry idempotency, and mitigation selection.
+- Home shows only the current objective.
+- The full objective list moves to the codex or another appropriate reference surface.
+- Objective text covers the demo chain through first Pig Kin reconstruction.
+- Completed or unavailable objectives do not remain as distracting Home UI.
+- Objective state is backend-authoritative enough to survive refresh and repeat runs.
 
-### Apply immediate and delayed hazard downsides
+### Validate and revise chaos nodes for demo
 
-**Milestone:** Hazard Expansion
+**Milestone:** First Pig Kin Demo Release
 **Status:** Open
 **Priority:** High
 
 #### Problem
-Hazard result payloads need to change player/run state instead of only clearing the node. Immediate downsides should apply at claim time, while delayed effects such as next-combat defense penalties should be visible and consumed by combat.
+Chaos nodes are central to Raw Chaos and the Wrong Machine loop, but their reels, rewards, combat effects, and one-fight duration need focused verification before demo release.
 
 #### Acceptance Criteria
 
-- Immediate HP, teeth, item, and route/node-state downsides apply exactly once at hazard claim time.
-- Delayed next-combat stat modifiers support attack, defense, precision, resolve, and damage-style multipliers or adders.
-- Delayed hazard effects appear in active run effects before combat and are removed or marked consumed after the next eligible fight.
-- Hazard effects never grant combat XP unless a later encounter-scope change explicitly allows it.
-- Backend and frontend tests cover state application, active effect visibility, and delayed effect consumption.
+- Chaos reel results affect the intended single fight only.
+- Enemy family, encounter shape, rule, and reward reels all apply according to their authored meanings.
+- Raw Chaos rewards remain gated behind Wrong Machine unlock rules.
+- Battle logs expose enough data for QA to verify applied chaos effects.
+- Chaos nodes do not create progression dead ends or repeated reward exploits.
 
-#### Progress
+### Finish hazard behavior needed for demo UAT
 
-- Implemented automatic hazard claim effects for random-unit HP attrition, squad HP attrition, teeth loss, route pressure summaries, and next-combat stat penalties sourced from hazards.
-- Added lifecycle integration coverage for idempotent HP attrition, teeth loss, and delayed next-combat hazard penalties.
+**Milestone:** First Pig Kin Demo Release
+**Status:** Open
+**Priority:** High
 
-### Add hazard tuning sampler and evidence packet
+#### Problem
+Generated hazards need enough real behavior and visibility to support demo UAT without turning optional branches into confusing punishment.
 
-**Milestone:** Hazard Expansion
+#### Acceptance Criteria
+
+- Automatic generated hazard effects apply exactly once and are visible in claim results.
+- Delayed hazard effects appear as active run effects and are consumed after the next eligible combat.
+- Choice and mitigation hazards are either implemented with clear UI or held out of weighted generation for the demo.
+- A hazard sampler or evidence packet exists for Farm, Mountains, and Swamps.
+- Hazard balance notes are captured before final demo tuning.
+
+### Verify consumable unlocks, inventory, and balance
+
+**Milestone:** First Pig Kin Demo Release
 **Status:** Open
 **Priority:** Medium
 
 #### Problem
-Shrines now have sampling shortcuts and an evidence packet for UAT tuning. Hazards need the same support so severity distribution, downside pressure, and choice frequency can be reviewed before balance passes.
+Healing and energy consumables exist, but the demo needs verification that unlock timing, inventory UI, and scarcity support the first Pig Kin path.
 
 #### Acceptance Criteria
 
-- A Docker-safe hazard sampler reports generated effect counts by region and severity.
-- Sampler output includes primitive mix, choice-offer counts, average teeth pressure, average HP pressure, delayed-effect counts, and mitigation counts when applicable.
-- Region-specific shortcuts exist for Farm, Mountains, and Swamps.
-- A documentation evidence packet records baseline samples and the first tuning notes.
-- `docs:lint`, `backlog:validate`, and the relevant backend tests pass.
+- Consumable item unlocks happen at intended points.
+- The player can inspect owned consumables in an inventory UI.
+- Healing consumables work between encounters and do not erase rest-node value.
+- Energy consumables work from the intended surfaces and do not bypass demo pacing.
+- Consumable use is transactional, capped where applicable, and covered by tests.
 
-### UAT and tune hazard severity weights
+### Rework Wrong Machine first-reconstruction UI
 
-**Milestone:** Hazard Expansion
+**Milestone:** First Pig Kin Demo Release
+**Status:** Open
+**Priority:** High
+
+#### Problem
+The Wrong Machine is the demo finale, so its UI needs to make eligibility, costs, Raw Chaos, lineage unlocks, and Pig Kin creation feel deliberate and understandable.
+
+#### Acceptance Criteria
+
+- The first Pig Kin reconstruction flow is clear without debug/dev framing.
+- Required materials, catalyst, and Raw Chaos are readable before confirmation.
+- Missing requirements clearly tell the player what to do next.
+- Successful reconstruction shows the lineage unlock and granted Pig Kin unit.
+- Duplicate reconstruction remains idempotent and does not spend materials.
+
+### Stabilize academy promotion flow for demo
+
+**Milestone:** First Pig Kin Demo Release
 **Status:** Open
 **Priority:** Medium
 
 #### Problem
-Once generated hazards are implemented, severity and downside weights need player-facing validation across several seeds to ensure hazards feel meaningful without turning every branch into punishment.
+Academy promotion UI is currently difficult to use and visually out of step with the shop-style progression surfaces.
 
 #### Acceptance Criteria
 
-- Farm, Mountains, and Swamps hazard samples are reviewed across minor, moderate, and severe hazard tiers.
-- Immediate, choice-based, delayed, and mitigated hazard outcomes are all seen in UAT or sampler evidence.
-- Player-facing copy makes the downside and any available choice understandable before final claim.
-- Balance changes are captured with evidence packets before tuning.
-- Any blocker found during shrine or hazard UAT is split into a separate high-priority issue with reproduction notes.
+- Academy layout is reworked toward the shop UI style.
+- Promotion options are readable, selectable, and confirmable.
+- Unit tiers and requirements are visible without noisy placeholder copy.
+- Existing academy unlock and research behavior remains intact.
+- Promotion flow is usable on desktop and mobile.
 
+### Polish warband and unit management for demo
+
+**Milestone:** First Pig Kin Demo Release
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+Warband, squad, and unit screens need enough polish to support demo preparation and first Pig Kin review.
+
+#### Acceptance Criteria
+
+- Warband filtering, squad membership visibility, and unit card density support fast squad setup.
+- Unit detail screens explain stats clearly and avoid legacy splice terminology.
+- Squad editing remains usable when the available-unit list is long.
+- Pig Kin identity is visible after reconstruction.
+- Dice/unit/inventory pagination remains intact.
+
+### Review guide and codex navigation/content
+
+**Milestone:** First Pig Kin Demo Release
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+Guide and codex surfaces should explain the demo game clearly, and their navigation should feel consistent.
+
+#### Acceptance Criteria
+
+- Guide content accurately covers map nodes, starter classes, combat/action timing, dice, rewards, hazards, shrines, chaos, consumables, and first Pig Kin goals.
+- Guide side navigation works.
+- Codex navigation is restyled to match the guide navigation pattern.
+- Codex entries earned during the demo path are discoverable.
+- Outdated or duplicate guide/codex copy is removed.
+
+### Convert run-node resolution toward modal presentation
+
+**Milestone:** First Pig Kin Demo Release
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+Most non-map node results should resolve in modal-style presentations so run flow feels lighter and less like a full page transition for simple outcomes.
+
+#### Acceptance Criteria
+
+- Candidate node types for modal resolution are identified.
+- Non-combat node result UI uses modal presentation where appropriate.
+- Combat and chaos playback keep enough space for readable logs and animations.
+- Claim, retry, refresh, and error states remain safe.
+- Mobile layout is checked for modal overflow and action accessibility.
+
+### Enable post-Wrong-Machine Farm generated-map behavior
+
+**Milestone:** First Pig Kin Demo Release
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+The Farm can stay tutorial-fixed early, but after Wrong Machine recovery it should move toward the shared generated-map experience for repeat play.
+
+#### Acceptance Criteria
+
+- Farm remains appropriate for first-time onboarding before Wrong Machine recovery.
+- After Wrong Machine unlock, Farm run generation can use the generated map engine or an equivalent repeat-run profile.
+- Generated Farm maps preserve boss/material guarantees needed for Pig Kin progression.
+- The shared map renderer handles the Farm repeat-run graph without special-case UI.
+- Tests or simulation gates cover boss reachability and required reward protection.
+
+### Complete demo release hardening
+
+**Milestone:** First Pig Kin Demo Release
+**Status:** Open
+**Priority:** High
+
+#### Problem
+Before the formal demo handoff, `main`, production migrations, generated artifacts, debug toggles, and release evidence need one final reconciliation.
+
+#### Acceptance Criteria
+
+- `main` is synced and contains all intended demo PRs.
+- Production-required migrations are listed and verified.
+- Generated frontend artifacts are intentionally included or intentionally omitted according to release policy.
+- Debug/dev surfaces are disabled in the release environment.
+- Automated backend/frontend gates pass or accepted exceptions are documented.
+- Formal demo notes record the build ref, known issues, and UAT evidence location.

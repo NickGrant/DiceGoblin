@@ -1,10 +1,11 @@
 # July 25, 2026 Roadmap Completion Analysis
 ----
 
-Status: active  
-Last Updated: 2026-07-27  
-Owner: Product + Engineering  
+Status: historical
+Last Updated: 2026-07-30
+Owner: Product + Engineering
 Depends On: `documentation/07-roadmap/2026-07-25.md`
+Superseded By: `documentation/07-roadmap/2026-07-30-first-pig-kin-demo-roadmap.md`
 
 ## Summary
 
@@ -53,7 +54,7 @@ The work is ready to move from implementation into UAT and issue reporting. The 
 
 ## Remaining Work Source
 
-The roadmap implementation phase is complete enough to switch to UAT-driven issue reporting. Remaining work should be created from observed UAT findings rather than preplanned roadmap gaps.
+The July 25 roadmap implementation phase is complete enough to keep as historical context. Current planning has moved to the first Pig Kin demo release target, where active work is limited to making the player path through first Pig Kin creation stable and presentable.
 
 Recommended UAT focus areas:
 
