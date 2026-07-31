@@ -41,8 +41,12 @@ final class RunPatternCatalogRepositoryIntegrationTest extends IntegrationTestCa
     $this->assertSame(['shared_combat_step', 'shared_hazard_rest', 'shared_chaos_step'], array_column($spineRules, 'pattern_slug'));
 
     $patterns = $repository->listEnabledPatternDefinitions();
-    $this->assertCount(7, $patterns);
-    $this->assertSame('shared_boss_exit_terminal', $patterns[0]['slug']);
-    $this->assertSame('shared_boss_exit_terminal', $patterns[0]['definition']['slug']);
+    $v1Patterns = array_values(array_filter(
+      $patterns,
+      static fn(array $pattern): bool => !str_starts_with((string)($pattern['slug'] ?? ''), 'v2_')
+    ));
+    $this->assertCount(7, $v1Patterns);
+    $this->assertSame('shared_boss_exit_terminal', $v1Patterns[0]['slug']);
+    $this->assertSame('shared_boss_exit_terminal', $v1Patterns[0]['definition']['slug']);
   }
 }

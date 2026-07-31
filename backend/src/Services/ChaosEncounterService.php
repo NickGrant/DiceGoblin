@@ -15,42 +15,45 @@ final class ChaosEncounterService
   /** @var array<int,array<int,array<string,mixed>>> */
   private const REEL_POOLS = [
     0 => [
-      ['symbol' => 'pigs', 'label' => 'Pigs', 'weight' => 30, 'risk' => 1, 'effect' => 'Pig-family pressure.'],
-      ['symbol' => 'kobolds', 'label' => 'Kobolds', 'weight' => 30, 'risk' => 2, 'effect' => 'Trap-ready kobold pressure.'],
-      ['symbol' => 'frogmen', 'label' => 'Frogmen', 'weight' => 25, 'risk' => 2, 'effect' => 'Swamp attrition pressure.'],
-      ['symbol' => 'mixed', 'label' => 'Mixed Mob', 'weight' => 15, 'risk' => 3, 'effect' => 'A messy mixed-family pull.'],
-      ['symbol' => 'mudkin', 'label' => 'Mudkin', 'weight' => 12, 'risk' => 1, 'effect' => 'Farm muck pressure.'],
-      ['symbol' => 'rust_cult', 'label' => 'Rust Cult', 'weight' => 10, 'risk' => 3, 'effect' => 'Unstable machine-touched pressure.'],
-      ['symbol' => 'strays', 'label' => 'Strays', 'weight' => 12, 'risk' => 1, 'effect' => 'Low-rank scavenger pressure.'],
-      ['symbol' => 'bogbound', 'label' => 'Bogbound', 'weight' => 10, 'risk' => 2, 'effect' => 'Sticky swamp pressure.'],
-      ['symbol' => 'summit_raiders', 'label' => 'Summit Raiders', 'weight' => 10, 'risk' => 2, 'effect' => 'Mountain ambusher pressure.'],
-      ['symbol' => 'echoes', 'label' => 'Echoes', 'weight' => 6, 'risk' => 3, 'effect' => 'Unclear copied-family pressure.'],
+      ['symbol' => 'local_patrol', 'label' => 'Local Patrol', 'category' => 'general', 'encounter_kind' => 'local_regular', 'risk' => 1, 'effect' => 'A familiar patrol stumbles into the wrong machine wake.'],
+      ['symbol' => 'local_hardpoint', 'label' => 'Local Hardpoint', 'category' => 'general', 'encounter_kind' => 'local_regular', 'risk' => 2, 'effect' => 'A sturdier local formation answers the noise.'],
+      ['symbol' => 'local_horde', 'label' => 'Local Horde', 'category' => 'general', 'encounter_kind' => 'local_regular', 'risk' => 2, 'effect' => 'Too many local fighters arrive at once.'],
+      ['symbol' => 'chaos_easy_treasure', 'label' => 'Treasure Crew', 'category' => 'general', 'encounter_kind' => 'treasure', 'risk' => 0, 'effect' => 'A barely hostile treasure crew panics into the path.'],
+      ['symbol' => 'chaos_boss_echo', 'label' => 'Boss Echo', 'category' => 'general', 'encounter_kind' => 'boss', 'risk' => 5, 'effect' => 'A boss echo tears loose from somewhere it should not be.'],
+      ['symbol' => 'chaos_only_elite', 'label' => 'Wrong Machine Elite', 'category' => 'general', 'encounter_kind' => 'chaos_elite', 'risk' => 5, 'effect' => 'A machine-made threat that only appears in chaos nodes enters the fight.'],
+      ['symbol' => 'kobold_raiders', 'label' => 'Kobold Raiders', 'category' => 'mountains', 'encounter_kind' => 'family_regular', 'family_like' => '%kobold%', 'risk' => 2, 'effect' => 'Mountain raiders take advantage of the broken route.'],
+      ['symbol' => 'kobold_command', 'label' => 'Kobold Command', 'category' => 'mountains', 'encounter_kind' => 'family_regular', 'family_like' => '%kobold%', 'risk' => 3, 'effect' => 'Kobold commanders arrive with a sharper formation.'],
+      ['symbol' => 'frogman_hunters', 'label' => 'Frogman Hunters', 'category' => 'swamps', 'encounter_kind' => 'family_regular', 'family_like' => '%frogman%', 'risk' => 2, 'effect' => 'Swamp hunters pull the fight into their rhythm.'],
+      ['symbol' => 'frogman_court', 'label' => 'Bog Court', 'category' => 'swamps', 'encounter_kind' => 'family_regular', 'family_like' => '%frogman%', 'risk' => 3, 'effect' => 'A swamp court gathers around the chaos.'],
     ],
     1 => [
-      ['symbol' => 'horde', 'label' => 'Horde', 'weight' => 30, 'risk' => 2, 'effect' => 'More bodies than usual.'],
-      ['symbol' => 'armored_frontline', 'label' => 'Armored Frontline', 'weight' => 25, 'risk' => 2, 'effect' => 'A tougher front rank.'],
-      ['symbol' => 'ranged_backline', 'label' => 'Ranged Backline', 'weight' => 25, 'risk' => 2, 'effect' => 'Backline pressure.'],
-      ['symbol' => 'ambush', 'label' => 'Ambush', 'weight' => 20, 'risk' => 3, 'effect' => 'A dangerous opening position.'],
-      ['symbol' => 'split_lane', 'label' => 'Split Lane', 'weight' => 14, 'risk' => 2, 'effect' => 'Pressure arrives from separated lanes.'],
-      ['symbol' => 'heavy_anchor', 'label' => 'Heavy Anchor', 'weight' => 12, 'risk' => 2, 'effect' => 'One stubborn threat holds the line.'],
-      ['symbol' => 'glass_cannon', 'label' => 'Glass Cannon', 'weight' => 12, 'risk' => 3, 'effect' => 'Fragile enemies hit harder.'],
-      ['symbol' => 'staggered_wave', 'label' => 'Staggered Wave', 'weight' => 10, 'risk' => 2, 'effect' => 'Enemy pressure arrives unevenly.'],
-      ['symbol' => 'shield_wall', 'label' => 'Shield Wall', 'weight' => 10, 'risk' => 3, 'effect' => 'Defense-heavy formation pressure.'],
-      ['symbol' => 'isolated_elite', 'label' => 'Isolated Elite', 'weight' => 8, 'risk' => 3, 'effect' => 'One dangerous enemy carries the fight.'],
+      ['symbol' => 'front_flip', 'label' => 'Front Line Flip', 'category' => 'general', 'risk' => 2, 'effect' => 'Front and back positions trade places before the fight.', 'combat_effect' => ['type' => 'flip_positions', 'side' => 'player']],
+      ['symbol' => 'enemy_retreat', 'label' => 'Staggered Retreat', 'category' => 'general', 'risk' => 1, 'effect' => 'Enemies are shoved backward before the first strike.', 'combat_effect' => ['type' => 'shift_positions', 'side' => 'enemy', 'dx' => 1]],
+      ['symbol' => 'knife_range', 'label' => 'Knife Range', 'category' => 'general', 'risk' => 2, 'effect' => 'Backline units lose focus in the cramped approach.', 'combat_effect' => ['type' => 'position_stat_modifier', 'side' => 'all', 'position' => 'back', 'stat_multipliers' => ['precision' => 0.9]]],
+      ['symbol' => 'machine_fervor', 'label' => 'Machine Fervor', 'category' => 'general', 'risk' => 2, 'effect' => 'Every unit hits harder under the machine-hum.', 'combat_effect' => ['type' => 'stat_modifier', 'side' => 'all', 'stat_multipliers' => ['damage' => 1.1]]],
+      ['symbol' => 'softened_blows', 'label' => 'Softened Blows', 'category' => 'general', 'risk' => 1, 'effect' => 'The fight begins under a dulling pressure.', 'combat_effect' => ['type' => 'stat_modifier', 'side' => 'all', 'stat_multipliers' => ['attack' => 0.9]]],
+      ['symbol' => 'raw_edge', 'label' => 'Raw Edge', 'category' => 'general', 'risk' => 3, 'effect' => 'Enemies strike harder, but their guard slips.', 'combat_effect' => ['type' => 'stat_modifier', 'side' => 'enemy', 'stat_multipliers' => ['damage' => 1.2, 'defense' => 0.85]]],
+      ['symbol' => 'falling_rocks', 'label' => 'Falling Rocks', 'category' => 'mountains', 'risk' => 2, 'effect' => 'A cliff-face sheds stone across the whole fight.', 'combat_effect' => ['type' => 'damage_side', 'side' => 'all', 'damage' => 10]],
+      ['symbol' => 'cliffside_scree', 'label' => 'Cliffside Scree', 'category' => 'mountains', 'risk' => 2, 'effect' => 'Loose stone punishes the exposed front.', 'combat_effect' => ['type' => 'position_stat_modifier', 'side' => 'all', 'position' => 'front', 'stat_adders' => ['defense' => -1]]],
+      ['symbol' => 'high_ground', 'label' => 'High Ground', 'category' => 'mountains', 'risk' => 2, 'effect' => 'Backline fighters find better angles.', 'combat_effect' => ['type' => 'position_stat_modifier', 'side' => 'all', 'position' => 'back', 'stat_adders' => ['precision' => 2]]],
+      ['symbol' => 'bog_drag', 'label' => 'Bog Drag', 'category' => 'swamps', 'risk' => 2, 'effect' => 'The muck drags the front rank off balance.', 'combat_effect' => ['type' => 'position_stat_modifier', 'side' => 'all', 'position' => 'front', 'stat_multipliers' => ['resolve' => 0.85]]],
+      ['symbol' => 'mire_breath', 'label' => 'Mire Breath', 'category' => 'swamps', 'risk' => 1, 'effect' => 'The back rank steadies while the mire closes in.', 'combat_effect' => ['type' => 'position_stat_modifier', 'side' => 'player', 'position' => 'back', 'stat_multipliers' => ['defense' => 1.15]]],
     ],
     2 => [
-      ['symbol' => 'bolstered_enemies', 'label' => 'Bolstered Enemies', 'weight' => 25, 'risk' => 3, 'effect' => 'Enemies begin with a small advantage.'],
-      ['symbol' => 'volatile_dice', 'label' => 'Volatile Dice', 'weight' => 25, 'risk' => 2, 'effect' => 'Dice volatility increases risk and payout.'],
-      ['symbol' => 'guaranteed_loot', 'label' => 'Guaranteed Loot', 'weight' => 30, 'risk' => 1, 'effect' => 'Victory promises extra loot.'],
-      ['symbol' => 'raw_chaos_spark', 'label' => 'Raw Chaos Spark', 'weight' => 20, 'risk' => 2, 'effect' => 'Victory can feed later chaos systems.'],
-      ['symbol' => 'teeth_rain', 'label' => 'Teeth Rain', 'weight' => 18, 'risk' => 1, 'effect' => 'Victory leans toward extra teeth.'],
-      ['symbol' => 'wounded_start', 'label' => 'Wounded Start', 'weight' => 12, 'risk' => 3, 'effect' => 'The fight starts under attrition pressure.'],
-      ['symbol' => 'lucky_break', 'label' => 'Lucky Break', 'weight' => 12, 'risk' => 1, 'effect' => 'A small mercy offsets the chaos.'],
-      ['symbol' => 'double_or_nothing', 'label' => 'Double Or Nothing', 'weight' => 8, 'risk' => 4, 'effect' => 'High risk threatens a bigger payout.'],
-      ['symbol' => 'scrap_cache', 'label' => 'Scrap Cache', 'weight' => 12, 'risk' => 1, 'effect' => 'Victory may uncover useful scrap.'],
-      ['symbol' => 'spiteful_rules', 'label' => 'Spiteful Rules', 'weight' => 8, 'risk' => 3, 'effect' => 'The encounter bends against comfort.'],
+      ['symbol' => 'plain_payout', 'label' => 'Clean Payout', 'category' => 'general', 'risk' => 1, 'effect' => 'Victory pays a clean chaos bounty.', 'reward' => ['soft_multiplier' => 1.0]],
+      ['symbol' => 'teeth_rain', 'label' => 'Teeth Rain', 'category' => 'general', 'risk' => 1, 'effect' => 'Victory shakes extra teeth loose.', 'reward' => ['soft_multiplier' => 1.25]],
+      ['symbol' => 'guaranteed_loot', 'label' => 'Guaranteed Loot', 'category' => 'general', 'risk' => 1, 'effect' => 'Victory promises an extra die.', 'reward' => ['dice_grants' => [['rarity' => 'common', 'sides' => 6]]]],
+      ['symbol' => 'raw_chaos_spark', 'label' => 'Raw Chaos Spark', 'category' => 'general', 'risk' => 2, 'effect' => 'Victory may feed later machine work.', 'reward' => ['raw_chaos' => 3]],
+      ['symbol' => 'fat_spark', 'label' => 'Fat Spark', 'category' => 'general', 'risk' => 3, 'effect' => 'Victory can spill a stronger Raw Chaos reward.', 'reward' => ['raw_chaos' => 5]],
+      ['symbol' => 'double_or_nothing', 'label' => 'Double Or Nothing', 'category' => 'general', 'risk' => 4, 'effect' => 'Victory pays heavily, defeat pays nothing extra.', 'reward' => ['soft_multiplier' => 1.8]],
+      ['symbol' => 'rusted_purse', 'label' => 'Rusted Purse', 'category' => 'general', 'risk' => 0, 'effect' => 'The payout rusts smaller than expected.', 'reward' => ['soft_multiplier' => 0.75]],
+      ['symbol' => 'mountain_cache', 'label' => 'Mountain Cache', 'category' => 'mountains', 'risk' => 1, 'effect' => 'Victory may uncover a mountain cache.', 'reward' => ['soft_multiplier' => 1.15, 'dice_grants' => [['rarity' => 'common', 'sides' => 8]]]],
+      ['symbol' => 'swamp_cache', 'label' => 'Swamp Cache', 'category' => 'swamps', 'risk' => 1, 'effect' => 'Victory may pull salvage from the muck.', 'reward' => ['soft_multiplier' => 1.15, 'dice_grants' => [['rarity' => 'common', 'sides' => 8]]]],
+      ['symbol' => 'thin_pickings', 'label' => 'Thin Pickings', 'category' => 'general', 'risk' => 0, 'effect' => 'The machine eats some of the payout.', 'reward' => ['soft_multiplier' => 0.6]],
     ],
   ];
+
+  private const PAID_REROLL_COSTS = [10, 25, 50];
 
   public function __construct(
     private readonly PDO $pdo,
@@ -76,7 +79,7 @@ final class ChaosEncounterService
 
       if ($existing === null) {
         $seed = $this->seedFor($userId, $runId, $nodeId, 0);
-        $reels = $this->generateReels($seed, null, null);
+        $reels = $this->generateReels($seed, null, null, $this->regionSlugForId((int)$context['run']['region_id']));
         $this->insertResult($userId, $runId, $nodeId, $seed, $reels);
         $existing = $this->findForNodeForUpdate($nodeId);
       }
@@ -112,14 +115,15 @@ final class ChaosEncounterService
         $this->pdo->rollBack();
         throw new RuntimeException('chaos_result_confirmed');
       }
-      if ((int)$existing['manipulation_count'] >= 1) {
-        $this->pdo->rollBack();
-        throw new RuntimeException('chaos_reroll_spent');
+      $manipulationCount = (int)$existing['manipulation_count'];
+      $paidCost = $this->rerollCostForCount($manipulationCount);
+      if ($paidCost > 0) {
+        $this->chargeSoftCurrency($userId, $paidCost);
       }
 
       $currentReels = $this->decodeReels((string)$existing['reels_json']);
-      $seed = $this->seedFor($userId, $runId, $nodeId, $reelIndex + 10);
-      $reels = $this->generateReels($seed, $reelIndex, $currentReels);
+      $seed = $this->seedFor($userId, $runId, $nodeId, $reelIndex + 10 + ($manipulationCount * 101));
+      $reels = $this->generateReels($seed, $reelIndex, $currentReels, $this->regionSlugForId((int)$context['run']['region_id']));
       $stmt = $this->pdo->prepare('
         UPDATE `chaos_encounter_results`
         SET `status` = \'manipulated\',
@@ -127,7 +131,7 @@ final class ChaosEncounterService
             `reels_json` = ?,
             `reward_multiplier` = ?,
             `rerolled_reel_index` = ?,
-            `manipulation_count` = 1
+            `manipulation_count` = `manipulation_count` + 1
         WHERE `id` = ?
       ');
       $stmt->execute([
@@ -294,7 +298,7 @@ final class ChaosEncounterService
    * @param array<int,array<string,mixed>>|null $currentReels
    * @return array<int,array<string,mixed>>
    */
-  private function generateReels(int $seed, ?int $rerollIndex, ?array $currentReels): array
+  private function generateReels(int $seed, ?int $rerollIndex, ?array $currentReels, string $regionSlug): array
   {
     $reels = [];
     foreach (self::REEL_POOLS as $index => $pool) {
@@ -303,9 +307,10 @@ final class ChaosEncounterService
         continue;
       }
 
-      $picked = $this->weightedPick($pool, $seed + ($index * 7919));
+      $eligiblePool = $this->eligiblePoolForRegion($pool, $regionSlug);
+      $picked = $this->pickFromPool($eligiblePool, $seed + ($index * 7919));
       if ($rerollIndex === $index && is_array($currentReels[$index] ?? null) && $picked['symbol'] === ($currentReels[$index]['symbol'] ?? null)) {
-        $picked = $this->nextPoolSymbol($pool, (string)$picked['symbol']);
+        $picked = $this->nextPoolSymbol($eligiblePool, (string)$picked['symbol']);
       }
 
       $reels[$index] = [
@@ -313,9 +318,20 @@ final class ChaosEncounterService
         'reel' => ['enemy_family', 'encounter_shape', 'rule_reward'][$index],
         'symbol' => (string)$picked['symbol'],
         'label' => (string)$picked['label'],
-        'weight' => (int)$picked['weight'],
+        'category' => (string)($picked['category'] ?? 'general'),
+        'weight' => 1,
         'risk' => (int)$picked['risk'],
         'effect' => (string)$picked['effect'],
+        ...($index === 0 ? [
+          'encounter_kind' => (string)($picked['encounter_kind'] ?? 'local_regular'),
+          'family_like' => (string)($picked['family_like'] ?? ''),
+        ] : []),
+        ...($index === 1 && is_array($picked['combat_effect'] ?? null) ? [
+          'combat_effect' => $picked['combat_effect'],
+        ] : []),
+        ...($index === 2 && is_array($picked['reward'] ?? null) ? [
+          'reward' => $picked['reward'],
+        ] : []),
       ];
     }
 
@@ -327,18 +343,23 @@ final class ChaosEncounterService
    * @param array<int,array<string,mixed>> $pool
    * @return array<string,mixed>
    */
-  private function weightedPick(array $pool, int $seed): array
+  private function pickFromPool(array $pool, int $seed): array
   {
-    $total = array_sum(array_map(static fn(array $row): int => max(1, (int)$row['weight']), $pool));
-    $roll = $seed % max(1, $total);
-    foreach ($pool as $row) {
-      $roll -= max(1, (int)$row['weight']);
-      if ($roll < 0) {
-        return $row;
-      }
-    }
+    return $pool[$seed % max(1, count($pool))] ?? $pool[0];
+  }
 
-    return $pool[0];
+  /**
+   * @param array<int,array<string,mixed>> $pool
+   * @return array<int,array<string,mixed>>
+   */
+  private function eligiblePoolForRegion(array $pool, string $regionSlug): array
+  {
+    $eligible = array_values(array_filter($pool, static function (array $row) use ($regionSlug): bool {
+      $category = (string)($row['category'] ?? 'general');
+      return $category === 'general' || $category === $regionSlug;
+    }));
+
+    return $eligible !== [] ? $eligible : $pool;
   }
 
   /**
@@ -360,6 +381,50 @@ final class ChaosEncounterService
   {
     $hex = substr(hash('sha256', implode('|', ['chaos_v1', $userId, $runId, $nodeId, $salt])), 0, 8);
     return (int)(hexdec($hex) % 2147483647);
+  }
+
+  private function rerollCostForCount(int $manipulationCount): int
+  {
+    if ($manipulationCount <= 0) {
+      return 0;
+    }
+
+    $index = min(count(self::PAID_REROLL_COSTS) - 1, $manipulationCount - 1);
+    return self::PAID_REROLL_COSTS[$index] ?? 50;
+  }
+
+  private function chargeSoftCurrency(int $userId, int $amount): void
+  {
+    $amount = max(0, $amount);
+    if ($amount <= 0) {
+      return;
+    }
+
+    $playerStateRepository = new PlayerStateRepository($this->pdo);
+    $playerStateRepository->ensurePlayerState($userId);
+    $state = $playerStateRepository->getPlayerStateForUpdate($userId);
+    if (!is_array($state)) {
+      throw new RuntimeException('chaos_reroll_unaffordable');
+    }
+
+    $current = max(0, (int)($state['currency_soft'] ?? 0));
+    if ($current < $amount) {
+      throw new RuntimeException('chaos_reroll_unaffordable');
+    }
+
+    $playerStateRepository->setCurrency($userId, $current - $amount, max(0, (int)($state['currency_hard'] ?? 0)));
+  }
+
+  private function regionSlugForId(int $regionId): string
+  {
+    if ($regionId <= 0) {
+      return '';
+    }
+
+    $stmt = $this->pdo->prepare('SELECT `slug` FROM `regions` WHERE `id` = ? LIMIT 1');
+    $stmt->execute([$regionId]);
+    $slug = $stmt->fetchColumn();
+    return is_string($slug) ? $slug : '';
   }
 
   /**
@@ -392,6 +457,7 @@ final class ChaosEncounterService
     $status = (string)($row['status'] ?? 'generated');
     $isConfirmed = $status === 'confirmed';
     $manipulationCount = (int)($row['manipulation_count'] ?? 0);
+    $nextRerollCost = $this->rerollCostForCount($manipulationCount);
 
     return [
       'chaos_result' => [
@@ -401,9 +467,12 @@ final class ChaosEncounterService
         'reels' => $reels,
         'reward_multiplier' => (float)($row['reward_multiplier'] ?? $this->rewardMultiplier($reels)),
         'manipulation' => [
-          'available' => !$isConfirmed && $manipulationCount < 1,
+          'available' => !$isConfirmed,
           'rerolled_reel_index' => $row['rerolled_reel_index'] !== null ? (int)$row['rerolled_reel_index'] : null,
-          'remaining' => $isConfirmed ? 0 : max(0, 1 - $manipulationCount),
+          'remaining' => $isConfirmed ? 0 : 1,
+          'count' => $manipulationCount,
+          'next_cost' => $isConfirmed ? null : $nextRerollCost,
+          'next_cost_label' => $nextRerollCost > 0 ? sprintf('%d teeth', $nextRerollCost) : 'Free',
         ],
         'summary' => $this->summary($reels),
         'finalized_rewards' => $finalizedRewards,
@@ -433,19 +502,20 @@ final class ChaosEncounterService
   private function buildFinalizedRewards(array $reels, float $rewardMultiplier): array
   {
     $risk = array_sum(array_map(static fn(array $row): int => max(0, (int)($row['risk'] ?? 0)), $reels));
-    $symbols = array_map(static fn(array $row): string => (string)($row['symbol'] ?? ''), $reels);
-    $baseSoft = 8 + ($risk * 2) + (in_array('guaranteed_loot', $symbols, true) ? 4 : 0);
-    $soft = max(8, min(40, (int)round($baseSoft * max(1.0, $rewardMultiplier))));
-    $rawChaos = in_array('raw_chaos_spark', $symbols, true)
-      ? max(1, min(5, (int)ceil($rewardMultiplier * 2)))
-      : 0;
+    $rewardReel = $this->reelByName($reels, 'rule_reward');
+    $reward = is_array($rewardReel['reward'] ?? null) ? $rewardReel['reward'] : [];
+    $baseSoft = 8 + ($risk * 2);
+    $softMultiplier = is_numeric($reward['soft_multiplier'] ?? null) ? (float)$reward['soft_multiplier'] : 1.0;
+    $soft = max(0, min(60, (int)round($baseSoft * max(0.0, $softMultiplier) * max(1.0, $rewardMultiplier))));
+    $rawChaos = max(0, (int)($reward['raw_chaos'] ?? 0));
+    $diceGrants = is_array($reward['dice_grants'] ?? null) ? array_values(array_filter($reward['dice_grants'], 'is_array')) : [];
 
     $labels = [sprintf('%d Teeth', $soft)];
     if ($rawChaos > 0) {
       $labels[] = sprintf('%d Raw Chaos', $rawChaos);
     }
-    if (in_array('guaranteed_loot', $symbols, true)) {
-      $labels[] = '1 Common D6';
+    foreach ($diceGrants as $grant) {
+      $labels[] = sprintf('1 %s D%d', ucfirst((string)($grant['rarity'] ?? 'common')), max(1, (int)($grant['sides'] ?? 6)));
     }
 
     return [
@@ -455,11 +525,45 @@ final class ChaosEncounterService
       ],
       'reward_multiplier' => $rewardMultiplier,
       'applied_reels' => $this->appliedReelSummary($reels),
-      'dice_grants' => in_array('guaranteed_loot', $symbols, true)
-        ? [['rarity' => 'common', 'sides' => 6]]
-        : [],
+      'combat_modifiers' => $this->combatModifiersFromReels($reels),
+      'dice_grants' => $diceGrants,
       'labels' => $labels,
     ];
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $reels
+   * @return array<string,mixed>
+   */
+  private function reelByName(array $reels, string $name): array
+  {
+    foreach ($reels as $reel) {
+      if (is_array($reel) && (string)($reel['reel'] ?? '') === $name) {
+        return $reel;
+      }
+    }
+
+    return [];
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $reels
+   * @return list<array<string,mixed>>
+   */
+  private function combatModifiersFromReels(array $reels): array
+  {
+    $shape = $this->reelByName($reels, 'encounter_shape');
+    $effect = is_array($shape['combat_effect'] ?? null) ? $shape['combat_effect'] : [];
+    if ($effect === []) {
+      return [];
+    }
+
+    return [[
+      'source' => 'chaos',
+      'label' => (string)($shape['label'] ?? 'Chaos Rule'),
+      'description' => (string)($shape['effect'] ?? ''),
+      'effect' => $effect,
+    ]];
   }
 
   /**
@@ -489,14 +593,23 @@ final class ChaosEncounterService
    */
   private function selectEncounterTemplateId(int $regionId, array $reels, int $seed): ?int
   {
-    $family = (string)($reels[0]['symbol'] ?? '');
-    $shape = (string)($reels[1]['symbol'] ?? '');
-    $familyLike = match ($family) {
-      'pigs' => '%mud%',
-      'kobolds' => '%kobold%',
-      'frogmen' => '%frogman%',
-      default => '',
-    };
+    $encounterReel = $this->reelByName($reels, 'enemy_family');
+    $kind = (string)($encounterReel['encounter_kind'] ?? 'local_regular');
+    $shapeReel = $this->reelByName($reels, 'encounter_shape');
+    $shape = (string)($shapeReel['symbol'] ?? '');
+    $familyLike = (string)($encounterReel['family_like'] ?? '');
+
+    if ($kind === 'treasure') {
+      return $this->selectFromCandidates($this->loadTemplateCandidatesBySlug('%chaos_treasure%'), $shape, $seed);
+    }
+
+    if ($kind === 'boss') {
+      return $this->selectFromCandidates($this->loadBossTemplateCandidates(), $shape, $seed);
+    }
+
+    if ($kind === 'chaos_elite') {
+      return $this->selectFromCandidates($this->loadTemplateCandidatesBySlug('%chaos_elite%'), $shape, $seed);
+    }
 
     $candidateGroups = [];
     if ($familyLike !== '') {
@@ -522,6 +635,24 @@ final class ChaosEncounterService
     }
 
     return null;
+  }
+
+  /**
+   * @param array<int,array{id:int,slug:string,enemy_set_json:string}> $candidates
+   */
+  private function selectFromCandidates(array $candidates, string $shape, int $seed): ?int
+  {
+    if ($candidates === []) {
+      return null;
+    }
+
+    $ranked = $this->rankCandidatesForShape($candidates, $shape);
+    $bestScore = $this->shapeScore($ranked[0], $shape);
+    $bestCandidates = array_values(array_filter(
+      $ranked,
+      fn(array $candidate): bool => $this->shapeScore($candidate, $shape) === $bestScore
+    ));
+    return (int)$bestCandidates[$seed % count($bestCandidates)]['id'];
   }
 
   /**
@@ -561,6 +692,39 @@ final class ChaosEncounterService
   }
 
   /**
+   * @return array<int,array{id:int,slug:string,enemy_set_json:string}>
+   */
+  private function loadTemplateCandidatesBySlug(string $slugLike): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT `id`, `slug`, `enemy_set_json`
+      FROM `encounter_templates`
+      WHERE `slug` LIKE ?
+      ORDER BY `id` ASC
+    ');
+    $stmt->execute([$slugLike]);
+
+    $candidates = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+      $candidates[] = [
+        'id' => (int)$row['id'],
+        'slug' => (string)($row['slug'] ?? ''),
+        'enemy_set_json' => (string)($row['enemy_set_json'] ?? ''),
+      ];
+    }
+
+    return $candidates;
+  }
+
+  /**
+   * @return array<int,array{id:int,slug:string,enemy_set_json:string}>
+   */
+  private function loadBossTemplateCandidates(): array
+  {
+    return $this->loadTemplateCandidatesBySlug('%\\_boss\\_%');
+  }
+
+  /**
    * @param array<int,array{id:int,slug:string,enemy_set_json:string}> $candidates
    * @return array<int,array{id:int,slug:string,enemy_set_json:string}>
    */
@@ -584,10 +748,7 @@ final class ChaosEncounterService
    */
   private function shapeScore(array $candidate, string $shape): int
   {
-    $enemySet = json_decode((string)$candidate['enemy_set_json'], true);
-    $units = is_array($enemySet) && is_array($enemySet['units'] ?? null)
-      ? array_values(array_filter($enemySet['units'], 'is_array'))
-      : [];
+    $units = $this->extractTemplateUnits((string)$candidate['enemy_set_json']);
     $slugs = array_map(static fn(array $unit): string => (string)($unit['enemy_template_slug'] ?? ''), $units);
 
     return match ($shape) {
@@ -595,8 +756,39 @@ final class ChaosEncounterService
       'armored_frontline' => $this->containsAny($slugs, ['shieldbearer', 'bruiser', 'mudwrestler']) ? 10 : 0,
       'ranged_backline' => $this->containsAny($slugs, ['sharpshooter', 'spearhunter', 'slinger']) ? 10 : 0,
       'ambush' => $this->positionSpreadScore($units),
+      'chaos_only_elite' => $this->containsAny($slugs, ['chaos_']) ? 10 : 0,
       default => 0,
     };
+  }
+
+  /**
+   * @return array<int,array<string,mixed>>
+   */
+  private function extractTemplateUnits(string $enemySetJson): array
+  {
+    $enemySet = json_decode($enemySetJson, true);
+    if (!is_array($enemySet)) {
+      return [];
+    }
+
+    if (is_array($enemySet['units'] ?? null)) {
+      return array_values(array_filter($enemySet['units'], 'is_array'));
+    }
+
+    $units = [];
+    $teams = is_array($enemySet['teams'] ?? null) ? $enemySet['teams'] : [];
+    foreach ($teams as $team) {
+      if (!is_array($team) || !is_array($team['units'] ?? null)) {
+        continue;
+      }
+      foreach ($team['units'] as $unit) {
+        if (is_array($unit)) {
+          $units[] = $unit;
+        }
+      }
+    }
+
+    return $units;
   }
 
   /**

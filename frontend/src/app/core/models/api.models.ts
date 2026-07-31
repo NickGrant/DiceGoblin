@@ -568,9 +568,14 @@ export type ChaosReelRecord = {
   reel: string;
   symbol: string;
   label: string;
+  category?: string;
   weight: number;
   risk: number;
   effect: string;
+  encounter_kind?: string;
+  family_like?: string;
+  combat_effect?: Record<string, unknown>;
+  reward?: Record<string, unknown>;
 };
 
 export type ChaosEncounterData = {
@@ -584,6 +589,9 @@ export type ChaosEncounterData = {
       available: boolean;
       rerolled_reel_index: number | null;
       remaining: number;
+      count?: number;
+      next_cost?: number | null;
+      next_cost_label?: string;
     };
     summary: {
       title: string;
@@ -611,6 +619,9 @@ export type ChaosFinalizedRewards = {
     raw_chaos: number;
   };
   reward_multiplier: number;
+  applied_reels?: Record<string, { symbol: string; label: string; effect: string }>;
+  combat_modifiers?: Array<Record<string, unknown>>;
+  dice_grants?: Array<Record<string, unknown>>;
   labels: string[];
 };
 

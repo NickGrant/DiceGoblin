@@ -55,8 +55,15 @@ final class DeterministicRunNodeResolver
     $playerUnits = $this->loadPlayerUnits($userId, $teamId, $runId);
     $encounter = $this->loadEncounter($encounterTemplateId);
     $enemyUnits = $encounter['units'];
+    $chaosCombatEffects = [];
+    if ($nodeType === 'chaos') {
+      $chaosCombatEffects = $this->loadConfirmedChaosCombatEffects($nodeId);
+      if ($chaosCombatEffects !== []) {
+        $chaosCombatEffects = $this->applyChaosCombatEffects($chaosCombatEffects, $playerUnits, $enemyUnits);
+      }
+    }
 
-    if (($nodeType === 'combat' || $nodeType === 'boss') && count($enemyUnits) === 0) {
+    if (($nodeType === 'combat' || $nodeType === 'boss' || $nodeType === 'chaos') && count($enemyUnits) === 0) {
       throw new RuntimeException('combat_no_enemies');
     }
 
@@ -247,6 +254,7 @@ final class DeterministicRunNodeResolver
           'encounter_template_id' => $encounterTemplateId,
           'encounter_description' => (string)($encounter['description'] ?? ''),
           'difficulty_rating' => (int)$encounter['difficulty_rating'],
+          ...($chaosCombatEffects !== [] ? ['chaos_combat_effects' => $chaosCombatEffects] : []),
           'participants' => [
             'player' => array_map(static fn(array $u): array => [
               'unit_instance_id' => (string)$u['id'],
@@ -340,6 +348,294 @@ final class DeterministicRunNodeResolver
     $stmt->execute([$regionId]);
     $slug = $stmt->fetchColumn();
     return is_string($slug) ? $slug : '';
+  }
+
+  /**
+   * @return list<array<string,mixed>>
+   */
+  private function loadConfirmedChaosCombatEffects(int $nodeId): array
+  {
+    if ($nodeId <= 0) {
+      return [];
+    }
+
+    $stmt = $this->pdo->prepare('
+      SELECT `finalized_rewards_json`
+      FROM `chaos_encounter_results`
+      WHERE `node_id` = ?
+        AND `status` = \'confirmed\'
+      LIMIT 1
+    ');
+    $stmt->execute([$nodeId]);
+    $raw = $stmt->fetchColumn();
+    if (!is_string($raw) || $raw === '') {
+      return [];
+    }
+
+    $decoded = json_decode($raw, true);
+    $modifiers = is_array($decoded) && is_array($decoded['combat_modifiers'] ?? null)
+      ? $decoded['combat_modifiers']
+      : [];
+    return array_values(array_filter($modifiers, 'is_array'));
+  }
+
+  /**
+   * @param list<array<string,mixed>> $modifiers
+   * @param array<int,array<string,mixed>> $playerUnits
+   * @param array<int,array<string,mixed>> $enemyUnits
+   * @return list<array<string,mixed>>
+   */
+  private function applyChaosCombatEffects(array $modifiers, array &$playerUnits, array &$enemyUnits): array
+  {
+    $applied = [];
+    foreach ($modifiers as $modifier) {
+      $effect = is_array($modifier['effect'] ?? null) ? $modifier['effect'] : [];
+      $type = (string)($effect['type'] ?? '');
+      if ($type === '') {
+        continue;
+      }
+
+      $summary = [
+        'source' => 'chaos',
+        'label' => (string)($modifier['label'] ?? 'Chaos Rule'),
+        'description' => (string)($modifier['description'] ?? ''),
+        'type' => $type,
+      ];
+
+      if ($type === 'flip_positions') {
+        $changed = $this->applyChaosPositionFlip($effect, $playerUnits, $enemyUnits);
+        $applied[] = [...$summary, 'changed_units' => $changed];
+        continue;
+      }
+
+      if ($type === 'shift_positions') {
+        $changed = $this->applyChaosPositionShift($effect, $playerUnits, $enemyUnits);
+        $applied[] = [...$summary, 'changed_units' => $changed];
+        continue;
+      }
+
+      if ($type === 'damage_side') {
+        $changed = $this->applyChaosDamageSide($effect, $playerUnits, $enemyUnits);
+        $applied[] = [...$summary, 'changed_units' => $changed];
+        continue;
+      }
+
+      if ($type === 'stat_modifier' || $type === 'position_stat_modifier') {
+        $changed = $this->applyChaosStatModifier($effect, $playerUnits, $enemyUnits);
+        $applied[] = [...$summary, 'changed_units' => $changed];
+      }
+    }
+
+    return $applied;
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @param array<int,array<string,mixed>> $playerUnits
+   * @param array<int,array<string,mixed>> $enemyUnits
+   * @return list<array<string,mixed>>
+   */
+  private function applyChaosPositionFlip(array $effect, array &$playerUnits, array &$enemyUnits): array
+  {
+    $changed = [];
+    foreach ($this->chaosTargetSideNames($effect) as $side) {
+      $units = &$this->chaosUnitsForSide($side, $playerUnits, $enemyUnits);
+      foreach ($units as &$unit) {
+        $before = $unit['pos'];
+        $unit['pos']['x'] = 2 - max(0, min(2, (int)($unit['pos']['x'] ?? 1)));
+        $changed[] = ['side' => $side, 'id' => (string)$unit['id'], 'from' => $before, 'to' => $unit['pos']];
+      }
+      unset($unit);
+    }
+    unset($units);
+
+    return $changed;
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @param array<int,array<string,mixed>> $playerUnits
+   * @param array<int,array<string,mixed>> $enemyUnits
+   * @return list<array<string,mixed>>
+   */
+  private function applyChaosPositionShift(array $effect, array &$playerUnits, array &$enemyUnits): array
+  {
+    $dx = (int)($effect['dx'] ?? 0);
+    $dy = (int)($effect['dy'] ?? 0);
+    $changed = [];
+    foreach ($this->chaosTargetSideNames($effect) as $side) {
+      $units = &$this->chaosUnitsForSide($side, $playerUnits, $enemyUnits);
+      foreach ($units as &$unit) {
+        $before = $unit['pos'];
+        $unit['pos']['x'] = max(0, min(2, (int)($unit['pos']['x'] ?? 1) + $dx));
+        $unit['pos']['y'] = max(0, min(2, (int)($unit['pos']['y'] ?? 1) + $dy));
+        $changed[] = ['side' => $side, 'id' => (string)$unit['id'], 'from' => $before, 'to' => $unit['pos']];
+      }
+      unset($unit);
+    }
+    unset($units);
+
+    return $changed;
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @param array<int,array<string,mixed>> $playerUnits
+   * @param array<int,array<string,mixed>> $enemyUnits
+   * @return list<array<string,mixed>>
+   */
+  private function applyChaosDamageSide(array $effect, array &$playerUnits, array &$enemyUnits): array
+  {
+    $damage = max(0, (int)($effect['damage'] ?? 0));
+    if ($damage <= 0) {
+      return [];
+    }
+
+    $changed = [];
+    foreach ($this->chaosTargetSideNames($effect) as $side) {
+      $units = &$this->chaosUnitsForSide($side, $playerUnits, $enemyUnits);
+      foreach ($units as &$unit) {
+        $before = max(0, (int)($unit['current_hp'] ?? $unit['max_hp'] ?? 1));
+        $after = max(1, $before - $damage);
+        $unit['current_hp'] = $after;
+        $changed[] = ['side' => $side, 'id' => (string)$unit['id'], 'hp_before' => $before, 'hp_after' => $after];
+      }
+      unset($unit);
+    }
+    unset($units);
+
+    return $changed;
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @param array<int,array<string,mixed>> $playerUnits
+   * @param array<int,array<string,mixed>> $enemyUnits
+   * @return list<array<string,mixed>>
+   */
+  private function applyChaosStatModifier(array $effect, array &$playerUnits, array &$enemyUnits): array
+  {
+    $multipliers = $this->normalizeChaosFloatMap($effect['stat_multipliers'] ?? []);
+    $adders = $this->normalizeChaosIntMap($effect['stat_adders'] ?? []);
+    if ($multipliers === [] && $adders === []) {
+      return [];
+    }
+
+    $changed = [];
+    foreach ($this->chaosTargetSideNames($effect) as $side) {
+      $units = &$this->chaosUnitsForSide($side, $playerUnits, $enemyUnits);
+      foreach ($units as &$unit) {
+        if (!$this->chaosUnitMatchesPosition($unit, (string)($effect['position'] ?? 'all'))) {
+          continue;
+        }
+        $before = [
+          'attack' => (int)($unit['attack'] ?? 1),
+          'defense' => (int)($unit['defense'] ?? 0),
+          'precision' => (int)($unit['precision'] ?? 5),
+          'resolve' => (int)($unit['resolve'] ?? 5),
+        ];
+        foreach (['attack', 'defense', 'precision', 'resolve'] as $stat) {
+          $base = max($stat === 'defense' ? 0 : 1, (int)($unit[$stat] ?? ($stat === 'defense' ? 0 : 1)));
+          $added = $base + (int)($adders[$stat] ?? 0);
+          $unit[$stat] = max($stat === 'defense' ? 0 : 1, (int)floor($added * max(0.1, (float)($multipliers[$stat] ?? 1.0))));
+        }
+        if (isset($multipliers['damage'])) {
+          $combatAffixes = is_array($unit['combat_affixes'] ?? null) ? $unit['combat_affixes'] : [];
+          $combatAffixes['run_damage_multiplier'] = (float)($combatAffixes['run_damage_multiplier'] ?? 1.0) * max(0.1, (float)$multipliers['damage']);
+          $unit['combat_affixes'] = $combatAffixes;
+        }
+        $changed[] = ['side' => $side, 'id' => (string)$unit['id'], 'before' => $before, 'after' => [
+          'attack' => (int)$unit['attack'],
+          'defense' => (int)$unit['defense'],
+          'precision' => (int)$unit['precision'],
+          'resolve' => (int)$unit['resolve'],
+        ]];
+      }
+      unset($unit);
+    }
+    unset($units);
+
+    return $changed;
+  }
+
+  /**
+   * @param array<string,mixed> $effect
+   * @return list<string>
+   */
+  private function chaosTargetSideNames(array $effect): array
+  {
+    $side = (string)($effect['side'] ?? 'all');
+    if ($side === 'player' || $side === 'enemy') {
+      return [$side];
+    }
+
+    return ['player', 'enemy'];
+  }
+
+  /**
+   * @param array<int,array<string,mixed>> $playerUnits
+   * @param array<int,array<string,mixed>> $enemyUnits
+   * @return array<int,array<string,mixed>>
+   */
+  private function &chaosUnitsForSide(string $side, array &$playerUnits, array &$enemyUnits): array
+  {
+    if ($side === 'enemy') {
+      return $enemyUnits;
+    }
+
+    return $playerUnits;
+  }
+
+  /**
+   * @param array<string,mixed> $unit
+   */
+  private function chaosUnitMatchesPosition(array $unit, string $position): bool
+  {
+    $x = (int)($unit['pos']['x'] ?? 1);
+    return match ($position) {
+      'front' => $x <= 0,
+      'middle' => $x === 1,
+      'back' => $x >= 2,
+      default => true,
+    };
+  }
+
+  /**
+   * @return array<string,float>
+   */
+  private function normalizeChaosFloatMap(mixed $value): array
+  {
+    if (!is_array($value)) {
+      return [];
+    }
+
+    $out = [];
+    foreach ($value as $key => $raw) {
+      if (is_numeric($raw) && in_array((string)$key, ['attack', 'defense', 'precision', 'resolve', 'damage'], true)) {
+        $out[(string)$key] = (float)$raw;
+      }
+    }
+
+    return $out;
+  }
+
+  /**
+   * @return array<string,int>
+   */
+  private function normalizeChaosIntMap(mixed $value): array
+  {
+    if (!is_array($value)) {
+      return [];
+    }
+
+    $out = [];
+    foreach ($value as $key => $raw) {
+      if (is_numeric($raw) && in_array((string)$key, ['attack', 'defense', 'precision', 'resolve'], true)) {
+        $out[(string)$key] = (int)$raw;
+      }
+    }
+
+    return $out;
   }
 
   /**
