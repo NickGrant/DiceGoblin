@@ -1,14 +1,14 @@
 # First Release Manual Gate Evidence
 ----
 
-Status: active  
-Last Updated: 2026-04-01  
-Owner: QA + Product + Engineering  
+Status: historical
+Last Updated: 2026-07-30
+Owner: QA + Product + Engineering
 Depends On: `documentation/05-playability-stability/00-release-gate-criteria.md`, `documentation/05-playability-stability/01-critical-path-playtest-script.md`, `documentation/CHANGELOG.md`
 
 ## Purpose
-- Capture the concrete manual evidence gathered for the first-release closeout pass.
-- Record observed behavior for the critical-path scenarios required before moving beyond Milestone 31.
+- Preserve historical manual evidence from an earlier first-release closeout pass.
+- Do not use this as the current demo release checklist; use `03-first-release-checklist.md` instead.
 
 ## Execution Summary
 - Environment:
@@ -19,7 +19,7 @@ Depends On: `documentation/05-playability-stability/00-release-gate-criteria.md`
   - used a local authenticated session for user `1` to execute API-backed release checks
   - validated reset/bootstrap against the live backend, not debug scene fixtures
 - Result:
-  - manual gate scenarios required for Milestone 31 passed
+  - manual gate scenarios required for the historical milestone passed
   - one blocker was found during execution (`reset-account` 500 due to undeleted `shop_daily_deals` rows) and fixed in the same pass before final evidence was recorded
 
 ## Evidence

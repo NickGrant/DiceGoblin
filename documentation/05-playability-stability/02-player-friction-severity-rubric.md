@@ -1,14 +1,14 @@
 # Player Friction Severity Rubric
 ----
 
-Status: active  
-Last Updated: 2026-03-04  
-Owner: Design + Product  
+Status: active
+Last Updated: 2026-07-30
+Owner: Design + Product
 Depends On: `documentation/03-ux/00-ux-and-debug-scope.md`, `agent/ISSUES.md`
 
 ## Purpose
 - Standardize severity assignment for UX and playability defects.
-- Improve prioritization consistency during Milestone 6 polish and triage.
+- Improve prioritization consistency during demo polish and triage.
 
 ## Dimensions
 - Clarity:
@@ -24,7 +24,7 @@ Depends On: `documentation/03-ux/00-ux-and-debug-scope.md`, `agent/ISSUES.md`
 - `high`:
   - Player is blocked, soft-locked, or misled into irreversible bad state.
   - Core loop cannot continue reliably.
-  - Requires immediate fix before milestone close.
+  - Requires immediate fix before demo milestone close.
 - `medium`:
   - Player can continue, but flow is confusing, error-prone, or disproportionately frustrating.
   - Causes repeat retries, unclear outcomes, or likely abandonment risk in first sessions.
