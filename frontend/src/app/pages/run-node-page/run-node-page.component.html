@@ -48,8 +48,12 @@
               (click)="rerollChaosReel(reel.reel_index)"
               [disabled]="busy() || chaosIsFinalized() || !chaos.manipulation.available"
             >
-              @if (chaos.manipulation.rerolled_reel_index === reel.reel_index) {
+              @if (chaosIsFinalized() && chaos.manipulation.rerolled_reel_index === reel.reel_index) {
                 Rerolled
+              } @else if (chaos.manipulation.rerolled_reel_index === reel.reel_index && (chaos.manipulation.next_cost ?? 0) > 0) {
+                Reroll Again ({{ chaos.manipulation.next_cost_label ?? (chaos.manipulation.next_cost + ' teeth') }})
+              } @else if ((chaos.manipulation.next_cost ?? 0) > 0) {
+                Reroll ({{ chaos.manipulation.next_cost_label ?? (chaos.manipulation.next_cost + ' teeth') }})
               } @else {
                 Reroll Reel
               }
@@ -77,9 +81,9 @@
             @if (chaosIsFinalized()) {
               This chaos result is complete.
             } @else if (chaos.manipulation.available) {
-              One reroll remains. This result is bound to the node.
+              The first reroll is free. Further reel changes spend teeth before the fight starts.
             } @else {
-              The reroll is spent. This result is locked to the run node.
+              This result is locked to the run node.
             }
           </p>
           @if (chaosIsFinalized()) {

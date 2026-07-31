@@ -142,7 +142,7 @@ class RunServiceStub {
           { reel_index: 2, reel: 'rule_reward', symbol: 'guaranteed_loot', label: 'Guaranteed Loot', weight: 30, risk: 1, effect: 'Victory promises extra loot.' },
         ],
         reward_multiplier: 1.9,
-        manipulation: { available: true, rerolled_reel_index: null, remaining: 1 },
+        manipulation: { available: true, rerolled_reel_index: null, remaining: 1, count: 0, next_cost: 0, next_cost_label: 'Free' },
         summary: {
           title: 'Kobolds + Ambush + Guaranteed Loot',
           effect: 'Trap-ready kobold pressure. A dangerous opening position. Victory promises extra loot.',
@@ -165,7 +165,7 @@ class RunServiceStub {
           { reel_index: 2, reel: 'rule_reward', symbol: 'guaranteed_loot', label: 'Guaranteed Loot', weight: 30, risk: 1, effect: 'Victory promises extra loot.' },
         ],
         reward_multiplier: 1.9,
-        manipulation: { available: false, rerolled_reel_index: 0, remaining: 0 },
+        manipulation: { available: true, rerolled_reel_index: 0, remaining: 1, count: 1, next_cost: 10, next_cost_label: '10 teeth' },
         summary: {
           title: 'Frogmen + Ambush + Guaranteed Loot',
           effect: 'Swamp attrition pressure. A dangerous opening position. Victory promises extra loot.',
@@ -188,7 +188,7 @@ class RunServiceStub {
           { reel_index: 2, reel: 'rule_reward', symbol: 'raw_chaos_spark', label: 'Raw Chaos Spark', weight: 20, risk: 2, effect: 'Victory can feed later chaos systems.' },
         ],
         reward_multiplier: 2.05,
-        manipulation: { available: false, rerolled_reel_index: 0, remaining: 0 },
+        manipulation: { available: false, rerolled_reel_index: 0, remaining: 0, count: 1, next_cost: null, next_cost_label: '10 teeth' },
         summary: {
           title: 'Frogmen + Ambush + Raw Chaos Spark',
           effect: 'Swamp attrition pressure. A dangerous opening position. Victory can feed later chaos systems.',
@@ -843,7 +843,7 @@ describe('RunNodePageComponent', () => {
 
     expect(runService.rerollChaosEncounter).toHaveBeenCalledOnceWith('run-1', 'n1', 0);
     expect(fixture.nativeElement.textContent).toContain('Frogmen + Ambush + Guaranteed Loot');
-    expect(fixture.nativeElement.textContent).toContain('The reroll is spent.');
+    expect(fixture.nativeElement.textContent).toContain('Further reel changes spend teeth');
 
     await fixture.componentInstance.finalizeChaosEncounter();
     fixture.detectChanges();

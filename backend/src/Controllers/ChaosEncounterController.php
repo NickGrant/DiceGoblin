@@ -97,7 +97,7 @@ final class ChaosEncounterController
     $message = $e->getMessage();
     $status = match ($message) {
       'run_node_not_found', 'chaos_result_not_generated' => 404,
-      'run_not_active', 'node_not_available', 'invalid_chaos_node', 'chaos_reroll_spent', 'chaos_result_confirmed' => 409,
+      'run_not_active', 'node_not_available', 'invalid_chaos_node', 'chaos_reroll_spent', 'chaos_reroll_unaffordable', 'chaos_result_confirmed' => 409,
       default => 400,
     };
     $code = in_array($message, [
@@ -107,6 +107,7 @@ final class ChaosEncounterController
       'node_not_available',
       'invalid_chaos_node',
       'chaos_reroll_spent',
+      'chaos_reroll_unaffordable',
       'chaos_result_confirmed',
       'invalid_reel_index',
     ], true) ? $message : 'validation_error';

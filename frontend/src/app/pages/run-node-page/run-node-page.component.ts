@@ -877,7 +877,7 @@ export class RunNodePageComponent implements OnDestroy {
       }
     }
 
-    return Array.from(summaries.entries()).map(([key, summary]) => {
+    const runEffects = Array.from(summaries.entries()).map(([key, summary]) => {
       const unitCount = summary.unitIds.size;
       const unitCopy = unitCount === 1 ? '1 unit' : `${unitCount} units`;
       return {
@@ -887,6 +887,33 @@ export class RunNodePageComponent implements OnDestroy {
         detail: `${summary.detail} affecting ${unitCopy}.`,
       };
     });
+
+    const chaosEffects = Array.isArray(this.result()?.battle.log?.meta?.['chaos_combat_effects'])
+      ? this.result()!.battle.log!.meta!['chaos_combat_effects'] as unknown[]
+      : [];
+    for (const [index, raw] of chaosEffects.entries()) {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        continue;
+      }
+      const effect = raw as Record<string, unknown>;
+      const changedUnits = Array.isArray(effect['changed_units']) ? effect['changed_units'] : [];
+      const affectedCopy = changedUnits.length === 1 ? '1 unit' : `${changedUnits.length} units`;
+      const label = typeof effect['label'] === 'string' && effect['label'].trim()
+        ? effect['label'].trim()
+        : 'Chaos Rule';
+      const description = typeof effect['description'] === 'string' && effect['description'].trim()
+        ? effect['description'].trim()
+        : this.humanizeId(String(effect['type'] ?? 'chaos_effect'));
+
+      runEffects.push({
+        id: `chaos-${index}-${label}`,
+        source: 'Chaos',
+        label,
+        detail: `${description} Affected ${affectedCopy}.`,
+      });
+    }
+
+    return runEffects;
   }
 
   private describeBattleRunEffect(effect: Record<string, unknown>): string {

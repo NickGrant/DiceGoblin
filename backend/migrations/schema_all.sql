@@ -1,8 +1,8 @@
-﻿-- AUTO-GENERATED FILE. DO NOT EDIT.
+-- AUTO-GENERATED FILE. DO NOT EDIT.
 -- Source: C:\xampp\htdocs\dice-goblin\backend\migrations
 
 -- BEGIN MIGRATION: 00_setup.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -24,7 +24,7 @@ SET FOREIGN_KEY_CHECKS=0;
 -- END MIGRATION: 00_setup.sql
 
 -- BEGIN MIGRATION: 01_users.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -48,7 +48,7 @@ CREATE TABLE `users` (
 -- END MIGRATION: 01_users.sql
 
 -- BEGIN MIGRATION: 02_regions.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -75,7 +75,7 @@ CREATE TABLE `regions` (
 -- END MIGRATION: 02_regions.sql
 
 -- BEGIN MIGRATION: 03_unit_types.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -105,7 +105,7 @@ CREATE TABLE `unit_types` (
 -- END MIGRATION: 03_unit_types.sql
 
 -- BEGIN MIGRATION: 04_dice_definitions.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -128,7 +128,7 @@ CREATE TABLE `dice_definitions` (
 -- END MIGRATION: 04_dice_definitions.sql
 
 -- BEGIN MIGRATION: 05_affix_definitions.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -157,7 +157,7 @@ CREATE TABLE `affix_definitions` (
 -- END MIGRATION: 05_affix_definitions.sql
 
 -- BEGIN MIGRATION: 06_enemy_templates.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -186,7 +186,7 @@ CREATE TABLE `enemy_templates` (
 -- END MIGRATION: 06_enemy_templates.sql
 
 -- BEGIN MIGRATION: 07_loot_tables.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -210,7 +210,7 @@ CREATE TABLE `loot_tables` (
 -- END MIGRATION: 07_loot_tables.sql
 
 -- BEGIN MIGRATION: 08_player_state.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -234,7 +234,7 @@ CREATE TABLE `player_state` (
 -- END MIGRATION: 08_player_state.sql
 
 -- BEGIN MIGRATION: 09_energy_state.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -259,7 +259,7 @@ CREATE TABLE `energy_state` (
 -- END MIGRATION: 09_energy_state.sql
 
 -- BEGIN MIGRATION: 10_teams.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -284,7 +284,7 @@ CREATE TABLE `teams` (
 -- END MIGRATION: 10_teams.sql
 
 -- BEGIN MIGRATION: 11_region_unlocks.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -306,7 +306,7 @@ CREATE TABLE `region_unlocks` (
 -- END MIGRATION: 11_region_unlocks.sql
 
 -- BEGIN MIGRATION: 12_region_runs.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -335,7 +335,7 @@ CREATE TABLE `region_runs` (
 -- END MIGRATION: 12_region_runs.sql
 
 -- BEGIN MIGRATION: 13_encounter_templates.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -362,7 +362,7 @@ CREATE TABLE `encounter_templates` (
 -- END MIGRATION: 13_encounter_templates.sql
 
 -- BEGIN MIGRATION: 14_region_items.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -387,7 +387,7 @@ CREATE TABLE `region_items` (
 -- END MIGRATION: 14_region_items.sql
 
 -- BEGIN MIGRATION: 15_unit_instances.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -417,7 +417,7 @@ CREATE TABLE `unit_instances` (
 -- END MIGRATION: 15_unit_instances.sql
 
 -- BEGIN MIGRATION: 16_dice_instances.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -443,7 +443,7 @@ CREATE TABLE `dice_instances` (
 -- END MIGRATION: 16_dice_instances.sql
 
 -- BEGIN MIGRATION: 17_run_nodes.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -473,7 +473,7 @@ CREATE TABLE `run_nodes` (
 -- END MIGRATION: 17_run_nodes.sql
 
 -- BEGIN MIGRATION: 18_user_region_items.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -495,7 +495,7 @@ CREATE TABLE `user_region_items` (
 -- END MIGRATION: 18_user_region_items.sql
 
 -- BEGIN MIGRATION: 19_team_units.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -517,7 +517,7 @@ CREATE TABLE `team_units` (
 -- END MIGRATION: 19_team_units.sql
 
 -- BEGIN MIGRATION: 20_team_formation.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -540,7 +540,7 @@ CREATE TABLE `team_formation` (
 -- END MIGRATION: 20_team_formation.sql
 
 -- BEGIN MIGRATION: 21_run_unit_state.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -567,7 +567,7 @@ CREATE TABLE `run_unit_state` (
 -- END MIGRATION: 21_run_unit_state.sql
 
 -- BEGIN MIGRATION: 22_unit_promotions.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -592,7 +592,7 @@ CREATE TABLE `unit_promotions` (
 -- END MIGRATION: 22_unit_promotions.sql
 
 -- BEGIN MIGRATION: 23_dice_instance_affixes.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -614,7 +614,7 @@ CREATE TABLE `dice_instance_affixes` (
 -- END MIGRATION: 23_dice_instance_affixes.sql
 
 -- BEGIN MIGRATION: 24_unit_dice.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -638,7 +638,7 @@ CREATE TABLE `unit_dice` (
 -- END MIGRATION: 24_unit_dice.sql
 
 -- BEGIN MIGRATION: 25_run_edges.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -661,7 +661,7 @@ CREATE TABLE `run_edges` (
 -- END MIGRATION: 25_run_edges.sql
 
 -- BEGIN MIGRATION: 26_battles.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -697,7 +697,7 @@ CREATE TABLE `battles` (
 -- END MIGRATION: 26_battles.sql
 
 -- BEGIN MIGRATION: 27_battle_logs.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -718,7 +718,7 @@ CREATE TABLE `battle_logs` (
 -- END MIGRATION: 27_battle_logs.sql
 
 -- BEGIN MIGRATION: 28_battle_rewards.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --
@@ -1526,7 +1526,7 @@ SET `description` = CASE
   WHEN `slug` LIKE 'swamps\\_frogman\\_boss\\_%' THEN
     'The swamp goes still. Something immense rises from the black water.'
   WHEN `slug` LIKE 'swamps\\_frogman\\_combat\\_%' THEN
-    'Wet reeds part and frogmen emergeâ€”quiet, patient, and hard to kill.'
+    'Wet reeds part and frogmen emerge—quiet, patient, and hard to kill.'
   ELSE `description`
 END
 WHERE `description` = '';
@@ -1543,12 +1543,12 @@ INSERT INTO `encounter_templates` (
   `reward_profile_json`
 )
 VALUES
-  -- MOUNTAINS (Kobolds) â€” LOOT x3
+  -- MOUNTAINS (Kobolds) — LOOT x3
   (
     'mountains_kobold_loot_1',
     (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
     1,
-    'Before you lies a pile of bones and scraps. Underneath, something glintsâ€”salvage worth keeping.',
+    'Before you lies a pile of bones and scraps. Underneath, something glints—salvage worth keeping.',
     JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
     JSON_OBJECT('version', 1, 'type', 'loot', 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
   ),
@@ -1569,7 +1569,7 @@ VALUES
     JSON_OBJECT('version', 1, 'type', 'loot', 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
   ),
 
-  -- MOUNTAINS (Kobolds) â€” REST x2
+  -- MOUNTAINS (Kobolds) — REST x2
   (
     'mountains_kobold_rest_1',
     (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
@@ -1582,12 +1582,12 @@ VALUES
     'mountains_kobold_rest_2',
     (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
     2,
-    'Warm air rises from a crack in the stone. It is not safe, but it is quietâ€”for now.',
+    'Warm air rises from a crack in the stone. It is not safe, but it is quiet—for now.',
     JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
     JSON_OBJECT('version', 1, 'type', 'rest', 'effect', 'recover')
   ),
 
-  -- SWAMPS (Frogmen) â€” LOOT x3
+  -- SWAMPS (Frogmen) — LOOT x3
   (
     'swamps_frogman_loot_1',
     (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
@@ -1608,12 +1608,12 @@ VALUES
     'swamps_frogman_loot_3',
     (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
     3,
-    'Something is tangled in the reedsâ€”gear left behind in a hurry. You take what you can.',
+    'Something is tangled in the reeds—gear left behind in a hurry. You take what you can.',
     JSON_OBJECT('version', 2, 'teams', JSON_ARRAY()),
     JSON_OBJECT('version', 1, 'type', 'loot', 'loot_table_slug', 'frogman_basic_loot', 'rolls', 1)
   ),
 
-  -- SWAMPS (Frogmen) â€” REST x2
+  -- SWAMPS (Frogmen) — REST x2
   (
     'swamps_frogman_rest_1',
     (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
@@ -4326,8 +4326,138 @@ ALTER TABLE `run_edges`
 
 -- END MIGRATION: 85_add_run_edge_meta.sql
 
+-- BEGIN MIGRATION: 86_seed_chaos_encounter_templates.sql
+INSERT INTO `enemy_templates` (
+  `slug`,
+  `name`,
+  `tier`,
+  `role`,
+  `base_stats_json`,
+  `ability_set_json`,
+  `xp_reward`,
+  `tags_json`
+)
+VALUES
+  (
+    'chaos_treasure_scavenger',
+    'Chaos Treasure Scavenger',
+    1,
+    'support',
+    JSON_OBJECT('version', 1, 'attack', 1, 'defense', 0, 'max_hp', 6, 'precision', 1, 'resolve', 1),
+    JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('basic_attack_melee'), 'passives', JSON_ARRAY()),
+    2,
+    JSON_OBJECT('faction', 'chaos', 'archetype', 'treasure', 'damage_profile', 'melee')
+  ),
+  (
+    'chaos_faultbrute',
+    'Chaos Faultbrute',
+    3,
+    'frontline',
+    JSON_OBJECT('version', 1, 'attack', 10, 'defense', 8, 'max_hp', 58, 'precision', 5, 'resolve', 7),
+    JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('basic_attack_melee', 'heavy_strike'), 'passives', JSON_ARRAY('thick_hide')),
+    35,
+    JSON_OBJECT('faction', 'chaos', 'archetype', 'elite', 'damage_profile', 'melee')
+  ),
+  (
+    'chaos_glass_cannon',
+    'Chaos Glass Cannon',
+    3,
+    'backline',
+    JSON_OBJECT('version', 1, 'attack', 14, 'defense', 1, 'max_hp', 24, 'precision', 8, 'resolve', 4),
+    JSON_OBJECT('version', 1, 'actives', JSON_ARRAY('basic_attack_ranged', 'aimed_shot'), 'passives', JSON_ARRAY('sharpshooter')),
+    35,
+    JSON_OBJECT('faction', 'chaos', 'archetype', 'elite', 'damage_profile', 'ranged')
+  )
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `tier` = VALUES(`tier`),
+  `role` = VALUES(`role`),
+  `base_stats_json` = VALUES(`base_stats_json`),
+  `ability_set_json` = VALUES(`ability_set_json`),
+  `xp_reward` = VALUES(`xp_reward`),
+  `tags_json` = VALUES(`tags_json`);
+
+INSERT INTO `encounter_templates` (
+  `slug`,
+  `region_id`,
+  `difficulty_rating`,
+  `description`,
+  `enemy_set_json`,
+  `reward_profile_json`
+)
+VALUES
+  (
+    'chaos_treasure_combat_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mystic_cave' LIMIT 1),
+    1,
+    'A barely hostile treasure crew tumbles out of the Wrong Machine wake.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY(JSON_OBJECT('team_id', 'A', 'label', 'Treasure Crew', 'units', JSON_ARRAY(
+      JSON_OBJECT('enemy_template_slug', 'chaos_treasure_scavenger', 'pos', JSON_OBJECT('x', 2, 'y', 0)),
+      JSON_OBJECT('enemy_template_slug', 'chaos_treasure_scavenger', 'pos', JSON_OBJECT('x', 2, 'y', 2))
+    )))),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
+  ),
+  (
+    'mountains_chaos_elite_combat_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
+    5,
+    'A mountain fault opens into a machine-made elite formation.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY(JSON_OBJECT('team_id', 'A', 'label', 'Faultline Elite', 'units', JSON_ARRAY(
+      JSON_OBJECT('enemy_template_slug', 'chaos_faultbrute', 'pos', JSON_OBJECT('x', 0, 'y', 1)),
+      JSON_OBJECT('enemy_template_slug', 'chaos_glass_cannon', 'pos', JSON_OBJECT('x', 2, 'y', 0)),
+      JSON_OBJECT('enemy_template_slug', 'kobold_sharpshooter', 'pos', JSON_OBJECT('x', 2, 'y', 2))
+    )))),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
+  ),
+  (
+    'swamps_chaos_elite_combat_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
+    5,
+    'The swamp buckles around a machine-made elite formation.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY(JSON_OBJECT('team_id', 'A', 'label', 'Mire Fault Elite', 'units', JSON_ARRAY(
+      JSON_OBJECT('enemy_template_slug', 'chaos_faultbrute', 'pos', JSON_OBJECT('x', 0, 'y', 1)),
+      JSON_OBJECT('enemy_template_slug', 'frogman_wardrummer', 'pos', JSON_OBJECT('x', 1, 'y', 0)),
+      JSON_OBJECT('enemy_template_slug', 'chaos_glass_cannon', 'pos', JSON_OBJECT('x', 2, 'y', 2))
+    )))),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'frogman_basic_loot', 'rolls', 1)
+  ),
+  (
+    'mountains_kobold_chaos_combat_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'mountains' LIMIT 1),
+    4,
+    'A chaos-skewed kobold formation spills across the mountain route.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY(JSON_OBJECT('team_id', 'A', 'label', 'Kobold Chaos Band', 'units', JSON_ARRAY(
+      JSON_OBJECT('enemy_template_slug', 'kobold_shieldbearer', 'pos', JSON_OBJECT('x', 0, 'y', 0)),
+      JSON_OBJECT('enemy_template_slug', 'kobold_warchief', 'pos', JSON_OBJECT('x', 1, 'y', 1)),
+      JSON_OBJECT('enemy_template_slug', 'kobold_sharpshooter', 'pos', JSON_OBJECT('x', 2, 'y', 0)),
+      JSON_OBJECT('enemy_template_slug', 'kobold_skirmisher', 'pos', JSON_OBJECT('x', 2, 'y', 2))
+    )))),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'kobold_basic_loot', 'rolls', 1)
+  ),
+  (
+    'swamps_frogman_chaos_combat_1',
+    (SELECT `id` FROM `regions` WHERE `slug` = 'swamps' LIMIT 1),
+    4,
+    'A chaos-skewed frogman formation pulls the route into the muck.',
+    JSON_OBJECT('version', 2, 'teams', JSON_ARRAY(JSON_OBJECT('team_id', 'A', 'label', 'Frogman Chaos Court', 'units', JSON_ARRAY(
+      JSON_OBJECT('enemy_template_slug', 'frogman_bog_tyrant', 'pos', JSON_OBJECT('x', 0, 'y', 1)),
+      JSON_OBJECT('enemy_template_slug', 'frogman_spearhunter', 'pos', JSON_OBJECT('x', 1, 'y', 0)),
+      JSON_OBJECT('enemy_template_slug', 'frogman_wardrummer', 'pos', JSON_OBJECT('x', 1, 'y', 2)),
+      JSON_OBJECT('enemy_template_slug', 'frogman_spearhunter', 'pos', JSON_OBJECT('x', 2, 'y', 1))
+    )))),
+    JSON_OBJECT('version', 1, 'loot_table_slug', 'frogman_basic_loot', 'rolls', 1)
+  )
+ON DUPLICATE KEY UPDATE
+  `region_id` = VALUES(`region_id`),
+  `difficulty_rating` = VALUES(`difficulty_rating`),
+  `description` = VALUES(`description`),
+  `enemy_set_json` = VALUES(`enemy_set_json`),
+  `reward_profile_json` = VALUES(`reward_profile_json`);
+
+-- END MIGRATION: 86_seed_chaos_encounter_templates.sql
+
 -- BEGIN MIGRATION: 99_finalize.sql
--- Dice Goblins â€” MySQL Schema (MVP)
+-- Dice Goblins — MySQL Schema (MVP)
 -- Generated: 2026-01-11 08:27:46
 -- Source: design-docs-final/09-data-model.md
 --

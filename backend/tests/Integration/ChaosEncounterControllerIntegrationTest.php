@@ -16,9 +16,10 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     return 'Set TEST_DB_DSN to run chaos encounter integration tests.';
   }
 
-  public function testGenerateIsIdempotentAndRerollIsSingleUse(): void
+  public function testGenerateIsIdempotentAndRerollsEscalateAfterFreeUse(): void
   {
     $userId = $this->insertUser('chaos_encounter', 'Chaos Encounter User');
+    $this->setSoftCurrency($userId, 20);
     $regionId = $this->insertRegion();
     $runId = $this->insertRun($userId, $regionId, 424242, 'active');
     $nodeId = $this->insertRunNode($runId, 'chaos', 'available');
@@ -32,6 +33,7 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $this->assertCount(3, is_array($firstResult['reels'] ?? null) ? $firstResult['reels'] : []);
     $this->assertGreaterThan(1.0, (float)($firstResult['reward_multiplier'] ?? 0));
     $this->assertSame(true, (bool)($firstResult['manipulation']['available'] ?? false));
+    $this->assertSame(0, (int)($firstResult['manipulation']['next_cost'] ?? -1));
 
     $this->authenticate($userId);
     $second = $this->invoke(fn() => (new ChaosEncounterController())->generate((string)$runId, (string)$nodeId));
@@ -47,8 +49,10 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $rerollResult = $this->assertSuccess($reroll)['chaos_result'] ?? [];
     $this->assertIsArray($rerollResult);
     $this->assertSame('manipulated', (string)($rerollResult['status'] ?? ''));
-    $this->assertSame(false, (bool)($rerollResult['manipulation']['available'] ?? true));
+    $this->assertSame(true, (bool)($rerollResult['manipulation']['available'] ?? false));
     $this->assertSame(0, (int)($rerollResult['manipulation']['rerolled_reel_index'] ?? -1));
+    $this->assertSame(1, (int)($rerollResult['manipulation']['count'] ?? 0));
+    $this->assertSame(10, (int)($rerollResult['manipulation']['next_cost'] ?? 0));
     $this->assertNotSame($originalFirstReel, (string)($rerollResult['reels'][0]['symbol'] ?? ''));
 
     $stored = (string)$this->scalar('SELECT `reels_json` FROM `chaos_encounter_results` WHERE `node_id` = ?', [$nodeId]);
@@ -58,8 +62,18 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $this->authenticate($userId);
     $this->setJsonBody(['reel_index' => 1]);
     $secondReroll = $this->invoke(fn() => (new ChaosEncounterController())->reroll((string)$runId, (string)$nodeId));
-    $this->assertSame(409, $secondReroll['status'], json_encode($secondReroll['body']));
-    $this->assertSame('chaos_reroll_spent', (string)($secondReroll['body']['error']['code'] ?? ''));
+    $this->assertSame(200, $secondReroll['status'], json_encode($secondReroll['body']));
+    $secondRerollResult = $this->assertSuccess($secondReroll)['chaos_result'] ?? [];
+    $this->assertIsArray($secondRerollResult);
+    $this->assertSame(2, (int)($secondRerollResult['manipulation']['count'] ?? 0));
+    $this->assertSame(25, (int)($secondRerollResult['manipulation']['next_cost'] ?? 0));
+    $this->assertSame('10', (string)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
+
+    $this->authenticate($userId);
+    $this->setJsonBody(['reel_index' => 2]);
+    $unaffordable = $this->invoke(fn() => (new ChaosEncounterController())->reroll((string)$runId, (string)$nodeId));
+    $this->assertSame(409, $unaffordable['status'], json_encode($unaffordable['body']));
+    $this->assertSame('chaos_reroll_unaffordable', (string)($unaffordable['body']['error']['code'] ?? ''));
   }
 
   public function testReelCatalogMeetsLaunchBreadthTarget(): void
@@ -78,8 +92,8 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
         $this->assertNotContains($symbol, $symbols);
         $this->assertNotSame('', (string)($entry['label'] ?? ''));
         $this->assertNotSame('', (string)($entry['effect'] ?? ''));
-        $this->assertGreaterThan(0, (int)($entry['weight'] ?? 0));
-        $this->assertGreaterThanOrEqual(1, (int)($entry['risk'] ?? 0));
+        $this->assertNotSame('', (string)($entry['category'] ?? ''));
+        $this->assertGreaterThanOrEqual(0, (int)($entry['risk'] ?? 0));
         $symbols[] = $symbol;
       }
     }
@@ -155,6 +169,7 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $this->assertGreaterThan(0, $battleId);
     $this->assertSame('chaos', (string)($resolveData['battle']['log']['meta']['node_type'] ?? ''));
     $this->assertIsArray($resolveData['battle']['log']['meta']['chaos'] ?? null);
+    $this->assertIsArray($resolveData['battle']['log']['meta']['chaos_combat_effects'] ?? null);
     $this->assertContains('battle_start', array_map(
       static fn($event): string => is_array($event) ? (string)($event['type'] ?? '') : '',
       is_array($resolveData['battle']['log']['events'] ?? null) ? $resolveData['battle']['log']['events'] : []
@@ -172,8 +187,8 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     if ((string)($resolveData['battle']['outcome'] ?? '') === 'victory') {
       $this->assertSame('cleared', (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$nodeId]));
       $this->assertSame('available', (string)$this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$nextNodeId]));
+      $this->assertGreaterThan(10, (int)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
     }
-    $this->assertGreaterThan(10, (int)$this->scalar('SELECT `currency_soft` FROM `player_state` WHERE `user_id` = ?', [$userId]));
     $this->assertSame('claimed', (string)($claimData['status'] ?? 'claimed'));
   }
 
@@ -188,27 +203,34 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
     $reels = [[
       'reel_index' => 0,
       'reel' => 'enemy_family',
-      'symbol' => 'pigs',
-      'label' => 'Pigs',
-      'weight' => 30,
-      'risk' => 1,
-      'effect' => 'Pig-family pressure.',
+      'symbol' => 'frogman_court',
+      'label' => 'Bog Court',
+      'category' => 'swamps',
+      'weight' => 1,
+      'risk' => 3,
+      'effect' => 'A swamp court gathers around the chaos.',
+      'encounter_kind' => 'family_regular',
+      'family_like' => '%frogman%',
     ], [
       'reel_index' => 1,
       'reel' => 'encounter_shape',
-      'symbol' => 'horde',
-      'label' => 'Horde',
-      'weight' => 30,
+      'symbol' => 'bog_drag',
+      'label' => 'Bog Drag',
+      'category' => 'swamps',
+      'weight' => 1,
       'risk' => 2,
-      'effect' => 'More bodies than usual.',
+      'effect' => 'The muck drags the front rank off balance.',
+      'combat_effect' => ['type' => 'position_stat_modifier', 'side' => 'all', 'position' => 'front', 'stat_multipliers' => ['resolve' => 0.85]],
     ], [
       'reel_index' => 2,
       'reel' => 'rule_reward',
       'symbol' => 'guaranteed_loot',
       'label' => 'Guaranteed Loot',
-      'weight' => 30,
+      'category' => 'general',
+      'weight' => 1,
       'risk' => 1,
       'effect' => 'Victory promises extra loot.',
+      'reward' => ['dice_grants' => [['rarity' => 'common', 'sides' => 6]]],
     ]];
     $this->insertChaosResult($userId, $runId, $nodeId, 707070, $reels, 1.6);
 
@@ -226,12 +248,12 @@ final class ChaosEncounterControllerIntegrationTest extends IntegrationTestCase
        LIMIT 1',
       [$nodeId]
     );
-    $this->assertStringContainsString('mud', $boundTemplateSlug);
-    $this->assertStringNotContainsString('frogman', $boundTemplateSlug);
-    $this->assertSame('pigs', (string)($rewards['applied_reels']['enemy_family']['symbol'] ?? ''));
-    $this->assertSame('horde', (string)($rewards['applied_reels']['encounter_shape']['symbol'] ?? ''));
+    $this->assertStringContainsString('frogman', $boundTemplateSlug);
+    $this->assertSame('frogman_court', (string)($rewards['applied_reels']['enemy_family']['symbol'] ?? ''));
+    $this->assertSame('bog_drag', (string)($rewards['applied_reels']['encounter_shape']['symbol'] ?? ''));
     $this->assertSame('guaranteed_loot', (string)($rewards['applied_reels']['rule_reward']['symbol'] ?? ''));
-    $this->assertSame([['rarity' => 'common', 'sides' => 6]], $rewards['dice_grants'] ?? null);
+    $this->assertEquals([['rarity' => 'common', 'sides' => 6]], $rewards['dice_grants'] ?? null);
+    $this->assertCount(1, is_array($rewards['combat_modifiers'] ?? null) ? $rewards['combat_modifiers'] : []);
     $this->assertContains('1 Common D6', is_array($rewards['labels'] ?? null) ? $rewards['labels'] : []);
   }
 
