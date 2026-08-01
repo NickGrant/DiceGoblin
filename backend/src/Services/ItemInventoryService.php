@@ -8,8 +8,13 @@ use RuntimeException;
 
 final class ItemInventoryService
 {
-  public function __construct(private readonly PDO $pdo)
-  {
+  private CodexOwnershipService $codexOwnershipService;
+
+  public function __construct(
+    private readonly PDO $pdo,
+    ?CodexOwnershipService $codexOwnershipService = null,
+  ) {
+    $this->codexOwnershipService = $codexOwnershipService ?? new CodexOwnershipService($pdo);
   }
 
   /**
@@ -129,6 +134,7 @@ final class ItemInventoryService
       ON DUPLICATE KEY UPDATE `quantity` = `quantity` + VALUES(`quantity`)
     ');
     $stmt->execute([$userId, $itemId, $quantity]);
+    $this->codexOwnershipService->grant($userId, CodexOwnershipService::TYPE_ITEM, $itemSlug, 'owned_item');
 
     return [
       'item_slug' => $itemSlug,

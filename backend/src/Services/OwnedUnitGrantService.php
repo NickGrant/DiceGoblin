@@ -13,6 +13,8 @@ final class OwnedUnitGrantService
   private UnitNameGenerator $unitNameGenerator;
   private UnitLoadoutService $unitLoadoutService;
   private SpliceVariantService $spliceVariantService;
+  private LineageUnlockService $lineageUnlockService;
+  private CodexOwnershipService $codexOwnershipService;
 
   public function __construct(
     private readonly PDO $pdo,
@@ -20,11 +22,15 @@ final class OwnedUnitGrantService
     ?UnitNameGenerator $unitNameGenerator = null,
     ?UnitLoadoutService $unitLoadoutService = null,
     ?SpliceVariantService $spliceVariantService = null,
+    ?LineageUnlockService $lineageUnlockService = null,
+    ?CodexOwnershipService $codexOwnershipService = null,
   ) {
     $this->unitRepo = $unitRepo ?? new UnitRepository($pdo);
     $this->unitNameGenerator = $unitNameGenerator ?? new UnitNameGenerator();
     $this->unitLoadoutService = $unitLoadoutService ?? new UnitLoadoutService($pdo);
     $this->spliceVariantService = $spliceVariantService ?? new SpliceVariantService($pdo);
+    $this->lineageUnlockService = $lineageUnlockService ?? new LineageUnlockService($pdo);
+    $this->codexOwnershipService = $codexOwnershipService ?? new CodexOwnershipService($pdo);
   }
 
   /**
@@ -84,6 +90,9 @@ final class OwnedUnitGrantService
       $resolvedSpliceVariantSlug,
     );
     $this->unitLoadoutService->initializeUnit($unitId, $unitTypeId);
+    $this->unlockLineageForKin($userId, $resolvedSpliceVariantSlug);
+    $this->codexOwnershipService->grant($userId, CodexOwnershipService::TYPE_UNIT_TYPE, $unitTypeSlug, 'owned_unit');
+    $this->codexOwnershipService->grant($userId, CodexOwnershipService::TYPE_KIN, $resolvedSpliceVariantSlug, 'owned_unit');
 
     return [
       'id' => $unitId,
@@ -136,5 +145,19 @@ final class OwnedUnitGrantService
     }
 
     return $this->spliceVariantService->rollVariantSlugForUser($userId);
+  }
+
+  private function unlockLineageForKin(int $userId, string $kinSlug): void
+  {
+    foreach ($this->lineageUnlockService->listCatalog() as $lineage) {
+      $lineageSlug = (string)$lineage['lineage_slug'];
+      if ($lineageSlug === LineageUnlockService::BASIC_GOBLIN) {
+        continue;
+      }
+      if ($kinSlug === $lineageSlug || $kinSlug === (string)$lineage['kin_slug']) {
+        $this->lineageUnlockService->grant($userId, $lineageSlug);
+        return;
+      }
+    }
   }
 }

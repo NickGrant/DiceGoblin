@@ -28,12 +28,12 @@ final class UserUnlockService
     private readonly PDO $pdo,
   ) {}
 
-  public function grant(int $userId, string $namespace, string $unlockKey): void
+  public function grant(int $userId, string $namespace, string $unlockKey): bool
   {
     $namespace = trim($namespace);
     $unlockKey = trim($unlockKey);
     if ($userId <= 0 || $namespace === '' || $unlockKey === '') {
-      return;
+      return false;
     }
 
     $stmt = $this->pdo->prepare('
@@ -41,6 +41,14 @@ final class UserUnlockService
       VALUES (?, ?, ?)
     ');
     $stmt->execute([$userId, $namespace, $unlockKey]);
+    $created = $stmt->rowCount() > 0;
+
+    $codexType = $this->codexTypeForNamespace($namespace);
+    if ($codexType !== null) {
+      (new CodexOwnershipService($this->pdo))->grant($userId, $codexType, $unlockKey, $this->codexSourceForNamespace($namespace));
+    }
+
+    return $created;
   }
 
   /**
@@ -63,6 +71,28 @@ final class UserUnlockService
     ');
     $stmt->execute([$userId, $namespace, $unlockKey]);
     return (bool)$stmt->fetchColumn();
+  }
+
+  private function codexTypeForNamespace(string $namespace): ?string
+  {
+    return match ($namespace) {
+      self::NAMESPACE_FEATURE => CodexOwnershipService::TYPE_FEATURE,
+      self::NAMESPACE_UNIT_TYPE => CodexOwnershipService::TYPE_UNIT_TYPE,
+      self::NAMESPACE_DIALOGUE => CodexOwnershipService::TYPE_LORE,
+      self::NAMESPACE_LINEAGE => CodexOwnershipService::TYPE_KIN,
+      default => null,
+    };
+  }
+
+  private function codexSourceForNamespace(string $namespace): string
+  {
+    return match ($namespace) {
+      self::NAMESPACE_FEATURE => 'feature_unlock',
+      self::NAMESPACE_UNIT_TYPE => 'unit_type_unlock',
+      self::NAMESPACE_DIALOGUE => 'dialogue',
+      self::NAMESPACE_LINEAGE => 'lineage_unlock',
+      default => 'unlock',
+    };
   }
 
   /**
