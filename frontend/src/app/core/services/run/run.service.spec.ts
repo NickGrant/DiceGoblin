@@ -88,6 +88,7 @@ describe('RunService', () => {
             currency_soft: 0,
             units: [],
             dice: [],
+            codex: [{ entry_type: 'enemy', entry_key: 'mudwrestler', label: 'Enemy: Mudwrestler' }],
           },
           progression_detail: [],
         },
@@ -109,8 +110,10 @@ describe('RunService', () => {
         currency_soft: 0,
         units: [],
         dice: [],
+        codex: [{ entry_type: 'enemy', entry_key: 'mudwrestler', label: 'Enemy: Mudwrestler' }],
       },
       stolenPages: [],
+      codexPages: [{ entry_type: 'enemy', entry_key: 'mudwrestler', label: 'Enemy: Mudwrestler' }],
       progressionDetail: [],
     });
     expect(sessionService.runProfileMutation).toHaveBeenCalled();
@@ -156,6 +159,7 @@ describe('RunService', () => {
       meta: null,
       rewardDetail: null,
       stolenPages: [],
+      codexPages: [],
       progressionDetail: [],
     });
     service.clearSummary();

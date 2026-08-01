@@ -142,12 +142,20 @@ export class RunSummaryPageComponent {
     return cards;
   });
   readonly stolenPageCards = computed<RewardTextCard[]>(() =>
-    (this.summary()?.stolenPages ?? []).map((page) => ({
+    [
+      ...(this.summary()?.stolenPages ?? []).map((page) => ({
       id: `stolen-page-${page.dialogue_id}`,
       label: page.title,
       meta: 'Stolen Page',
       imageUrl: '/assets/ui/icons/icon_guide.png',
-    })),
+      })),
+      ...(this.summary()?.codexPages ?? []).map((page) => ({
+        id: `codex-page-${page.entry_type}-${page.entry_key}`,
+        label: page.label,
+        meta: 'Codex Page',
+        imageUrl: '/assets/ui/icons/icon_guide.png',
+      })),
+    ],
   );
   readonly resultTitle = computed(() => {
     const status = this.summary()?.status ?? '';

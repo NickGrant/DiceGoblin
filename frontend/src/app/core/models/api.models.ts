@@ -501,6 +501,7 @@ export type RunSummaryPayload = {
     units: Array<{ unit_instance_id: string | null; label: string }>;
     dice: Array<{ dice_instance_id: string | null; label: string }>;
     items?: RewardPreviewItem[];
+    codex?: Array<{ entry_type: string; entry_key: string; label: string }>;
   };
   stolen_pages?: Array<{ dialogue_id: string; title: string }>;
   progression_detail?: Array<{
