@@ -55,6 +55,17 @@
           </article>
           }
         </div>
+        <div class="guide-page__combat-flow" aria-label="Combat action flow">
+          @for (step of combatFlowSteps; track step.label) {
+          <article class="guide-flow-step">
+            <span>{{ step.label }}</span>
+            <div>
+              <strong>{{ step.title }}</strong>
+              <p>{{ step.description }}</p>
+            </div>
+          </article>
+          }
+        </div>
       </section>
 
       <section id="guide-warband" class="guide-band">

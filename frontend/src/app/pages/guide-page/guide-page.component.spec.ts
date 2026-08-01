@@ -42,6 +42,12 @@ describe('GuidePageComponent', () => {
     expect(text).toContain('Starter classes and role lanes');
     expect(text).toContain('Action order');
     expect(text).toContain('Damage flow');
+    expect(text).toContain('Ready abilities');
+    expect(text).toContain('Pick the action');
+    expect(text).toContain('Roll the assigned die');
+    expect(text).toContain('Apply stats and effects');
+    expect(text).toContain('Update the board');
+    expect(text).toContain('The full die roll is added to the action');
     expect(text).toContain('Read size, material, and affixes together');
     expect(text).toContain('Frontline');
     expect(text).toContain('Bruiser');
