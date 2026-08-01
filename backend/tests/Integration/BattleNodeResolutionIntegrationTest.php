@@ -271,6 +271,45 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     }
   }
 
+  public function testCompleteDialogueNodeAppliesConsumableUnlockRewards(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $runId = $this->insertRun($userId, $regionId, 80818283);
+    $nodeId = $this->insertRunNode($runId, 'dialogue', 'available');
+    $meta = [
+      'dialogue_id' => 'mountains-traveler-consumable-gifts',
+      'completion_rewards' => [
+        'feature_unlocks' => ['consumables'],
+        'item_grants' => [
+          ['item_slug' => 'field_poultice', 'quantity' => 1],
+          ['item_slug' => 'travel_ration', 'quantity' => 1],
+        ],
+      ],
+    ];
+    $this->pdo?->prepare('UPDATE `run_nodes` SET `meta_json` = ? WHERE `id` = ?')
+      ->execute([json_encode($meta, JSON_UNESCAPED_SLASHES), $nodeId]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $response = $this->invoke(fn() => (new RunNodeController())->completeDialogueNode((string)$runId, (string)$nodeId));
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $this->assertSame(true, $response['body']['ok'] ?? null);
+    $this->assertSame(['consumables'], $response['body']['data']['rewards']['feature_unlocks'] ?? []);
+    $this->assertSame(
+      1,
+      (int)$this->scalar(
+        'SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_namespace` = ? AND `unlock_key` = ?',
+        [$userId, 'feature', 'consumables']
+      )
+    );
+    $this->assertSame(1, $this->ownedItemQuantity($userId, 'field_poultice'));
+    $this->assertSame(1, $this->ownedItemQuantity($userId, 'travel_ration'));
+  }
+
   public function testFarmBossVictoryGrantsPigKinProgressionItems(): void
   {
     $userId = $this->insertUser();

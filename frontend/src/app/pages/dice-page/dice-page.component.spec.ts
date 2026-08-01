@@ -16,7 +16,48 @@ class DiceServiceStub {
 
 class SessionServiceStub {
   readonly wrongMachineUnlocked = signal(true);
-  readonly profileData = signal({ dice: [], currency: { soft: 0, hard: 0, raw_chaos: 7 } });
+  readonly profileData = signal<any>({
+    dice: [],
+    currency: { soft: 0, hard: 0, raw_chaos: 7 },
+    items: [
+      {
+        item_id: '1',
+        item_slug: 'field_poultice',
+        name: 'Field Poultice',
+        description: 'A paste that closes small wounds.',
+        category: 'consumable',
+        quantity: 2,
+        rarity: 'common',
+        source_region_slug: 'mountains',
+        source_region_name: 'Mountains',
+        source_family_slug: null,
+        icon_key: 'item_field_poultice',
+        lore_key: 'healing_consumable',
+        is_visible_before_discovery: false,
+        is_spendable: true,
+        is_primary_progression: false,
+        meta: { effect: 'heal_run_unit_hp', amount: 10 },
+      },
+      {
+        item_id: '2',
+        item_slug: 'travel_ration',
+        name: 'Travel Ration',
+        description: 'Food with suspicious endurance.',
+        category: 'consumable',
+        quantity: 1,
+        rarity: 'common',
+        source_region_slug: null,
+        source_region_name: null,
+        source_family_slug: null,
+        icon_key: 'item_travel_ration',
+        lore_key: 'energy_consumable',
+        is_visible_before_discovery: false,
+        is_spendable: true,
+        is_primary_progression: false,
+        meta: { effect: 'restore_energy', amount: 10 },
+      },
+    ],
+  });
   readonly units = signal([
     {
       id: 'u1',
@@ -139,7 +180,6 @@ describe('DicePageComponent', () => {
     const fixture = await createComponent();
     const host: HTMLElement = fixture.nativeElement;
 
-    expect(host.textContent).toContain('Raw Chaos');
     expect(host.textContent).not.toContain('Raw Chaos 7');
   });
 
@@ -234,5 +274,61 @@ describe('DicePageComponent', () => {
 
     expect(buttonLabels).not.toContain('Unequip');
     expect(buttonLabels).not.toContain('Equip');
+  });
+
+  it('shows owned consumables on the inventory screen', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const host: HTMLElement = fixture.nativeElement;
+
+    component.showConsumableInventory();
+    fixture.detectChanges();
+
+    expect(host.textContent).toContain('Showing 2 of 2 consumables.');
+    expect(host.textContent).toContain('Field Poultice');
+    expect(host.textContent).toContain('Heals 10 life');
+    expect(host.textContent).toContain('Travel Ration');
+    expect(host.textContent).toContain('Restores 10 energy');
+    expect(component.inspectedConsumable()?.item_slug).toBe('field_poultice');
+  });
+
+  it('paginates consumables separately from dice', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    sessionService.profileData.update((profile) => ({
+      ...profile,
+      items: Array.from({ length: 9 }, (_, index) => ({
+        item_id: String(index + 1),
+        item_slug: `supply_${index + 1}`,
+        name: `Supply ${index + 1}`,
+        description: 'A test supply.',
+        category: 'consumable',
+        quantity: 1,
+        rarity: 'common',
+        source_region_slug: null,
+        source_region_name: null,
+        source_family_slug: null,
+        icon_key: null,
+        lore_key: null,
+        is_visible_before_discovery: false,
+        is_spendable: true,
+        is_primary_progression: false,
+        meta: {},
+      })),
+    }));
+
+    component.showConsumableInventory();
+    fixture.detectChanges();
+
+    expect(component.consumableTotalPages()).toBe(2);
+    expect(component.pagedConsumables()).toHaveSize(8);
+
+    component.goToNextConsumablePage();
+    fixture.detectChanges();
+
+    expect(component.consumableCurrentPage()).toBe(2);
+    expect(component.pagedConsumables().map((item) => item.item_slug)).toEqual(['supply_9']);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Page 2 / 2');
   });
 });

@@ -768,6 +768,7 @@ final class RunPatternPreviewAssemblerService
         'start' => $this->insertStartStoryNode($graph, $storyRequest, $index),
         'before_boss' => $this->insertStoryNodeBeforeType($graph, $storyRequest, $index, 'boss'),
         'before_exit' => $this->insertStoryNodeBeforeType($graph, $storyRequest, $index, 'exit'),
+        'random' => $this->insertStoryNodeAtRandomSegment($graph, $storyRequest, $index),
         default => $graph,
       };
     }
@@ -864,12 +865,96 @@ final class RunPatternPreviewAssemblerService
   }
 
   /**
+   * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $graph
+   * @param array<string,mixed> $storyRequest
+   * @return array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>}
+   */
+  private function insertStoryNodeAtRandomSegment(array $graph, array $storyRequest, int $index): array
+  {
+    $nodeByKey = [];
+    $incomingCounts = [];
+    foreach ($graph['nodes'] as $node) {
+      $key = (string)($node['key'] ?? '');
+      if ($key !== '') {
+        $nodeByKey[$key] = $node;
+      }
+    }
+    foreach ($graph['edges'] as $edge) {
+      $to = (string)($edge['to'] ?? '');
+      if ($to !== '') {
+        $incomingCounts[$to] = ($incomingCounts[$to] ?? 0) + 1;
+      }
+    }
+
+    $candidates = [];
+    foreach ($graph['edges'] as $edge) {
+      $fromKey = (string)($edge['from'] ?? '');
+      $toKey = (string)($edge['to'] ?? '');
+      $source = $nodeByKey[$fromKey] ?? null;
+      $target = $nodeByKey[$toKey] ?? null;
+      if ($source === null || $target === null || ($incomingCounts[$toKey] ?? 0) !== 1) {
+        continue;
+      }
+
+      $sourceType = (string)($source['type'] ?? '');
+      $targetType = (string)($target['type'] ?? '');
+      if ($sourceType === 'dialogue' || in_array($targetType, ['dialogue', 'boss', 'exit'], true)) {
+        continue;
+      }
+
+      $sourceX = (int)($source['x'] ?? 0);
+      $targetX = (int)($target['x'] ?? 0);
+      if ($targetX <= $sourceX) {
+        continue;
+      }
+
+      $candidates[] = [
+        'from' => $fromKey,
+        'to' => $toKey,
+        'x' => $targetX,
+        'y' => (int)($target['y'] ?? 0),
+      ];
+    }
+
+    if ($candidates === []) {
+      return $this->insertStoryNodeBeforeType($graph, $storyRequest, $index, 'boss');
+    }
+
+    $picked = $candidates[$this->stableStoryRequestIndex($storyRequest, $graph, count($candidates))];
+    $targetX = (int)$picked['x'];
+    foreach ($graph['nodes'] as $nodeIndex => $node) {
+      $x = (int)($node['x'] ?? 0);
+      if ($x >= $targetX) {
+        $graph['nodes'][$nodeIndex]['x'] = $x + 1;
+        $graph['nodes'][$nodeIndex]['depth'] = (int)($node['depth'] ?? $x) + 1;
+      }
+    }
+
+    $storyNode = $this->storyNode($storyRequest, $index, 'dialogue', $targetX, (int)$picked['y']);
+    $rewired = [];
+    foreach ($graph['edges'] as $edge) {
+      if ((string)($edge['from'] ?? '') === (string)$picked['from'] && (string)($edge['to'] ?? '') === (string)$picked['to']) {
+        $rewired[] = ['from' => (string)$picked['from'], 'to' => $storyNode['key']];
+        $rewired[] = ['from' => $storyNode['key'], 'to' => (string)$picked['to']];
+        continue;
+      }
+
+      $rewired[] = $edge;
+    }
+
+    $graph['nodes'][] = $storyNode;
+    $graph['edges'] = $rewired;
+
+    return $graph;
+  }
+
+  /**
    * @param array<string,mixed> $storyRequest
    * @return array<string,mixed>
    */
   private function storyNode(array $storyRequest, int $index, string $type, int $x, int $y): array
   {
-    return [
+    $node = [
       'key' => 'story:' . $index . ':' . (string)($storyRequest['dialogue_id'] ?? 'dialogue'),
       'type' => $type,
       'source_type' => 'dialogue',
@@ -883,5 +968,29 @@ final class RunPatternPreviewAssemblerService
       'placement' => (string)($storyRequest['placement'] ?? ''),
       'tags' => array_values(array_map('strval', is_array($storyRequest['tags'] ?? null) ? $storyRequest['tags'] : [])),
     ];
+
+    if (is_array($storyRequest['completion_rewards'] ?? null)) {
+      $node['completion_rewards'] = $storyRequest['completion_rewards'];
+    }
+
+    return $node;
+  }
+
+  /**
+   * @param array<string,mixed> $storyRequest
+   * @param array{nodes:list<array<string,mixed>>,edges:list<array<string,mixed>>} $graph
+   */
+  private function stableStoryRequestIndex(array $storyRequest, array $graph, int $count): int
+  {
+    if ($count <= 1) {
+      return 0;
+    }
+
+    $fingerprint = (string)($storyRequest['dialogue_id'] ?? 'dialogue') . '|' . count($graph['nodes']) . '|' . count($graph['edges']);
+    foreach ($graph['nodes'] as $node) {
+      $fingerprint .= '|' . (string)($node['key'] ?? '') . ':' . (int)($node['x'] ?? 0) . ':' . (int)($node['y'] ?? 0);
+    }
+
+    return abs((int)crc32($fingerprint)) % $count;
   }
 }

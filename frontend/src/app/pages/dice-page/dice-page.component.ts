@@ -2,7 +2,7 @@ import { TitleCasePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { DiceRecord } from '../../core/models/api.models';
+import { DiceRecord, ItemRecord } from '../../core/models/api.models';
 import { DiceService } from '../../core/services/dice/dice.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
@@ -34,6 +34,7 @@ export class DicePageComponent {
   readonly profileData = this.sessionService.profileData;
   readonly wrongMachineUnlocked = this.sessionService.wrongMachineUnlocked;
   readonly dice = computed(() => this.sessionService.dice());
+  readonly inventoryTab = signal<'dice' | 'consumables'>('dice');
   readonly busyDiceId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly message = signal<string | null>(null);
@@ -42,16 +43,24 @@ export class DicePageComponent {
   readonly selectedEquipFilter = signal<DiceEquipFilter>('all');
   readonly selectedSort = signal<DiceSortOption>('size-asc');
   readonly page = signal(1);
+  readonly consumablePage = signal(1);
   readonly hoveredDiceId = signal<string | null>(null);
+  readonly hoveredItemSlug = signal<string | null>(null);
   readonly pendingSellDiceId = signal<string | null>(null);
   readonly pendingSalvageDiceId = signal<string | null>(null);
   readonly pageSize = 12;
+  readonly consumablePageSize = 8;
+  readonly consumables = computed(() =>
+    (this.profileData()?.items ?? [])
+      .filter((item) => item.category === 'consumable')
+      .sort((left, right) => left.name.localeCompare(right.name)),
+  );
   readonly sizeOptions = computed(() => buildDiceSizeOptions(this.dice()));
   readonly rarityOptions = computed(() => buildDiceRarityOptions(this.dice()));
   readonly pageSubtitle = computed(() =>
     this.wrongMachineUnlocked()
-      ? 'Review owned dice, sell unused pieces, or salvage them into Raw Chaos.'
-      : 'Review owned dice, sell unused pieces, and prep the stash.',
+      ? 'Review owned dice, consumables, and supplies for the next run.'
+      : 'Review owned dice and the supplies gathered on the road.',
   );
   readonly filteredDice = computed(() =>
     filterAndSortDice(this.dice(), {
@@ -64,9 +73,15 @@ export class DicePageComponent {
   );
   readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredDice().length / this.pageSize)));
   readonly currentPage = computed(() => Math.min(this.page(), this.totalPages()));
+  readonly consumableTotalPages = computed(() => Math.max(1, Math.ceil(this.consumables().length / this.consumablePageSize)));
+  readonly consumableCurrentPage = computed(() => Math.min(this.consumablePage(), this.consumableTotalPages()));
   readonly pagedDice = computed(() => {
     const start = (this.currentPage() - 1) * this.pageSize;
     return this.filteredDice().slice(start, start + this.pageSize);
+  });
+  readonly pagedConsumables = computed(() => {
+    const start = (this.consumableCurrentPage() - 1) * this.consumablePageSize;
+    return this.consumables().slice(start, start + this.consumablePageSize);
   });
   readonly inspectedDice = computed(() => {
     const pagedDice = this.pagedDice();
@@ -86,6 +101,22 @@ export class DicePageComponent {
   });
   readonly pendingSellDice = computed(() => this.dice().find((die) => die.id === this.pendingSellDiceId()) ?? null);
   readonly pendingSalvageDice = computed(() => this.dice().find((die) => die.id === this.pendingSalvageDiceId()) ?? null);
+  readonly inspectedConsumable = computed(() => {
+    const pagedConsumables = this.pagedConsumables();
+    if (!pagedConsumables.length) {
+      return null;
+    }
+
+    const hoveredSlug = this.hoveredItemSlug();
+    if (hoveredSlug) {
+      const hoveredItem = pagedConsumables.find((item) => item.item_slug === hoveredSlug);
+      if (hoveredItem) {
+        return hoveredItem;
+      }
+    }
+
+    return pagedConsumables[0] ?? null;
+  });
   readonly inspectedAffixDetails = computed(() =>
     (this.inspectedDice()?.affixes ?? [])
       .map((affix) => ({
@@ -164,8 +195,20 @@ export class DicePageComponent {
     this.resetPage();
   }
 
+  showDiceInventory(): void {
+    this.inventoryTab.set('dice');
+  }
+
+  showConsumableInventory(): void {
+    this.inventoryTab.set('consumables');
+  }
+
   previewDice(diceId: string): void {
     this.hoveredDiceId.set(diceId);
+  }
+
+  previewConsumable(itemSlug: string): void {
+    this.hoveredItemSlug.set(itemSlug);
   }
 
   goToPreviousPage(): void {
@@ -176,6 +219,16 @@ export class DicePageComponent {
   goToNextPage(): void {
     this.hoveredDiceId.set(null);
     this.page.set(Math.min(this.totalPages(), this.currentPage() + 1));
+  }
+
+  goToPreviousConsumablePage(): void {
+    this.hoveredItemSlug.set(null);
+    this.consumablePage.set(Math.max(1, this.consumableCurrentPage() - 1));
+  }
+
+  goToNextConsumablePage(): void {
+    this.hoveredItemSlug.set(null);
+    this.consumablePage.set(Math.min(this.consumableTotalPages(), this.consumableCurrentPage() + 1));
   }
 
   async activateDice(die: DiceRecord): Promise<void> {
@@ -243,6 +296,10 @@ export class DicePageComponent {
     return this.inspectedDice()?.id === diceId;
   }
 
+  isInspectingConsumable(itemSlug: string): boolean {
+    return this.inspectedConsumable()?.item_slug === itemSlug;
+  }
+
   diceTitle(die: DiceRecord | null): string {
     if (!die) {
       return 'd6';
@@ -273,6 +330,35 @@ export class DicePageComponent {
 
   inspectArtUrl(die: DiceRecord | null): string {
     return resolveDiceArtStyles(die?.rarity, die?.sides, 132).imageUrl;
+  }
+
+  consumableEffectLabel(item: ItemRecord | null): string {
+    const effect = String(item?.meta?.['effect'] ?? '');
+    const amount = Number(item?.meta?.['amount'] ?? 0);
+    if (effect === 'heal_run_unit_hp') {
+      return amount > 0 ? `Heals ${amount} life` : 'Healing item';
+    }
+    if (effect === 'restore_energy') {
+      return amount > 0 ? `Restores ${amount} energy` : 'Energy item';
+    }
+
+    return item?.is_spendable ? 'Consumable' : 'Supply';
+  }
+
+  consumableRarityLabel(item: ItemRecord | null): string {
+    return this.normalizeLabel(item?.rarity, 'Common');
+  }
+
+  consumableIconLabel(item: ItemRecord | null): string {
+    const effect = String(item?.meta?.['effect'] ?? '');
+    if (effect === 'heal_run_unit_hp') {
+      return '+';
+    }
+    if (effect === 'restore_energy') {
+      return 'E';
+    }
+
+    return (item?.name?.trim().charAt(0) || '?').toUpperCase();
   }
 
   private resolveAffixName(affix: { name?: string | null; affix_slug?: string | null }): string {

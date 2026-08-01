@@ -9,7 +9,7 @@ use RuntimeException;
 
 final class RunGraphGenerator
 {
-  /** @var array<int,array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string,requires_feature_unlock?:string,excludes_feature_unlock?:string}> */
+  /** @var array<int,array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string,requires_feature_unlock?:string,excludes_feature_unlock?:string,completion_rewards?:array<string,mixed>}> */
   private const DIALOGUE_NODE_DEFINITIONS = [
     [
       'region_slug' => 'mystic_cave',
@@ -88,6 +88,21 @@ final class RunGraphGenerator
       'placement' => 'before_exit',
       'one_time' => true,
       'tags' => ['lore'],
+    ],
+    [
+      'region_slug' => 'mountains',
+      'dialogue_id' => 'mountains-traveler-consumable-gifts',
+      'placement' => 'random',
+      'one_time' => false,
+      'tags' => ['consumables', 'traveler'],
+      'excludes_feature_unlock' => 'consumables',
+      'completion_rewards' => [
+        'feature_unlocks' => ['consumables'],
+        'item_grants' => [
+          ['item_slug' => 'field_poultice', 'quantity' => 1],
+          ['item_slug' => 'travel_ration', 'quantity' => 1],
+        ],
+      ],
     ],
   ];
 
@@ -268,19 +283,33 @@ final class RunGraphGenerator
   }
 
   /**
-   * @return list<array{dialogue_id:string,placement:string,one_time:bool,tags:list<string>}>
+   * @return list<array{dialogue_id:string,placement:string,one_time:bool,tags:list<string>,completion_rewards?:array<string,mixed>}>
    */
   public function buildDialoguePlacementRequests(int $userId, string $regionSlug): array
   {
     return array_map(
-      static fn(array $definition): array => [
-        'dialogue_id' => (string)$definition['dialogue_id'],
-        'placement' => (string)$definition['placement'],
-        'one_time' => (bool)$definition['one_time'],
-        'tags' => array_values(array_map('strval', $definition['tags'])),
-      ],
+      fn(array $definition): array => $this->dialoguePlacementRequest($definition),
       $this->eligibleDialogueNodeDefinitions($userId, $regionSlug, $this->seenDialogueSet($userId)),
     );
+  }
+
+  /**
+   * @return array{dialogue_id:string,placement:string,one_time:bool,tags:list<string>,completion_rewards?:array<string,mixed>}
+   */
+  private function dialoguePlacementRequest(array $definition): array
+  {
+    $request = [
+      'dialogue_id' => (string)$definition['dialogue_id'],
+      'placement' => (string)$definition['placement'],
+      'one_time' => (bool)$definition['one_time'],
+      'tags' => array_values(array_map('strval', $definition['tags'])),
+    ];
+
+    if (is_array($definition['completion_rewards'] ?? null)) {
+      $request['completion_rewards'] = $definition['completion_rewards'];
+    }
+
+    return $request;
   }
 
   /**
@@ -458,6 +487,7 @@ final class RunGraphGenerator
       'start' => $this->insertDialogueAtStart($graph, $definition),
       'before_boss' => $this->insertDialogueBeforeType($graph, $definition, 'boss'),
       'before_exit' => $this->insertDialogueBeforeType($graph, $definition, 'exit'),
+      'random' => $this->insertDialogueAtRandomPathSegment($graph, $definition),
       default => $graph,
     };
   }
@@ -550,24 +580,115 @@ final class RunGraphGenerator
   }
 
   /**
+   * @param array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>} $graph
+   * @param array<string,mixed> $definition
+   * @return array{nodes:array<int,array<string,mixed>>,edges:array<int,array{from:int,to:int}>}
+   */
+  private function insertDialogueAtRandomPathSegment(array $graph, array $definition): array
+  {
+    $nodeByIndex = [];
+    $incomingCounts = [];
+    foreach ($graph['nodes'] as $node) {
+      $nodeByIndex[(int)$node['node_index']] = $node;
+    }
+    foreach ($graph['edges'] as $edge) {
+      $incomingCounts[(int)$edge['to']] = ($incomingCounts[(int)$edge['to']] ?? 0) + 1;
+    }
+
+    $candidates = [];
+    foreach ($graph['edges'] as $edge) {
+      $from = (int)$edge['from'];
+      $to = (int)$edge['to'];
+      $source = $nodeByIndex[$from] ?? null;
+      $target = $nodeByIndex[$to] ?? null;
+      if ($source === null || $target === null || ($incomingCounts[$to] ?? 0) !== 1) {
+        continue;
+      }
+
+      $sourceType = (string)($source['node_type'] ?? '');
+      $targetType = (string)($target['node_type'] ?? '');
+      if ($sourceType === 'dialogue' || in_array($targetType, ['dialogue', 'boss', 'exit'], true)) {
+        continue;
+      }
+
+      $sourceMeta = is_array($source['meta'] ?? null) ? $source['meta'] : [];
+      $targetMeta = is_array($target['meta'] ?? null) ? $target['meta'] : [];
+      $sourceCol = (int)($sourceMeta['col'] ?? 0);
+      $targetCol = (int)($targetMeta['col'] ?? 0);
+      if ($targetCol <= $sourceCol) {
+        continue;
+      }
+
+      $candidates[] = [
+        'from' => $from,
+        'to' => $to,
+        'col' => $targetCol,
+        'row' => (int)($targetMeta['row'] ?? 0),
+      ];
+    }
+
+    if ($candidates === []) {
+      return $this->insertDialogueBeforeType($graph, $definition, 'boss');
+    }
+
+    $candidateIndex = $this->stableIndexForDefinition($definition, $graph, count($candidates));
+    $picked = $candidates[$candidateIndex];
+    $targetCol = (int)$picked['col'];
+
+    foreach ($graph['nodes'] as $index => $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $col = (int)($meta['col'] ?? 0);
+      if ($col >= $targetCol) {
+        $graph['nodes'][$index]['meta'] = [
+          ...$meta,
+          'col' => $col + 1,
+        ];
+      }
+    }
+
+    $dialogueIndex = $this->nextNodeIndex($graph['nodes']);
+    $graph['nodes'][] = $this->dialogueNode($dialogueIndex, $definition, 'locked', $targetCol, (int)$picked['row']);
+
+    $rewiredEdges = [];
+    foreach ($graph['edges'] as $edge) {
+      if ((int)$edge['from'] === (int)$picked['from'] && (int)$edge['to'] === (int)$picked['to']) {
+        $this->appendEdge($rewiredEdges, (int)$picked['from'], $dialogueIndex);
+        $this->appendEdge($rewiredEdges, $dialogueIndex, (int)$picked['to']);
+        continue;
+      }
+
+      $this->appendEdge($rewiredEdges, (int)$edge['from'], (int)$edge['to']);
+    }
+    $graph['edges'] = $rewiredEdges;
+
+    return $graph;
+  }
+
+  /**
    * @param array{region_slug:string,dialogue_id:string,placement:string,one_time:bool,tags:array<int,string>,requires_seen_dialogue?:string,requires_feature_unlock?:string,excludes_feature_unlock?:string} $definition
    * @return array<string,mixed>
    */
   private function dialogueNode(int $nodeIndex, array $definition, string $status, int $col, int $row): array
   {
+    $meta = [
+      'col' => $col,
+      'row' => $row,
+      'dialogue_id' => $definition['dialogue_id'],
+      'one_time' => $definition['one_time'],
+      'placement' => $definition['placement'],
+      'tags' => $definition['tags'],
+    ];
+
+    if (is_array($definition['completion_rewards'] ?? null)) {
+      $meta['completion_rewards'] = $definition['completion_rewards'];
+    }
+
     return [
       'node_index' => $nodeIndex,
       'node_type' => 'dialogue',
       'status' => $status,
       'encounter_template_id' => null,
-      'meta' => [
-        'col' => $col,
-        'row' => $row,
-        'dialogue_id' => $definition['dialogue_id'],
-        'one_time' => $definition['one_time'],
-        'placement' => $definition['placement'],
-        'tags' => $definition['tags'],
-      ],
+      'meta' => $meta,
     ];
   }
 
@@ -1077,7 +1198,7 @@ final class RunGraphGenerator
 
   /**
    * @param list<array<string,mixed>> $requests
-   * @return list<array{dialogue_id:string,placement:string,one_time:bool,tags:list<string>}>
+   * @return list<array{dialogue_id:string,placement:string,one_time:bool,tags:list<string>,completion_rewards?:array<string,mixed>}>
    */
   private function normalizedStoryPlacementRequests(array $requests): array
   {
@@ -1089,16 +1210,21 @@ final class RunGraphGenerator
 
       $dialogueId = trim((string)($request['dialogue_id'] ?? ''));
       $placement = trim((string)($request['placement'] ?? ''));
-      if ($dialogueId === '' || !in_array($placement, ['start', 'before_boss', 'before_exit'], true)) {
+      if ($dialogueId === '' || !in_array($placement, ['start', 'before_boss', 'before_exit', 'random'], true)) {
         continue;
       }
 
-      $normalized[] = [
+      $entry = [
         'dialogue_id' => $dialogueId,
         'placement' => $placement,
         'one_time' => (bool)($request['one_time'] ?? false),
         'tags' => array_values(array_map('strval', is_array($request['tags'] ?? null) ? $request['tags'] : [])),
       ];
+      if (is_array($request['completion_rewards'] ?? null)) {
+        $entry['completion_rewards'] = $request['completion_rewards'];
+      }
+
+      $normalized[] = $entry;
     }
 
     return $normalized;
@@ -1114,12 +1240,36 @@ final class RunGraphGenerator
       return [];
     }
 
-    return [
+    $meta = [
       'dialogue_id' => (string)($node['dialogue_id'] ?? ''),
       'one_time' => (bool)($node['one_time'] ?? false),
       'placement' => (string)($node['placement'] ?? ''),
       'tags' => array_values(array_map('strval', is_array($node['tags'] ?? null) ? $node['tags'] : [])),
     ];
+
+    if (is_array($node['completion_rewards'] ?? null)) {
+      $meta['completion_rewards'] = $node['completion_rewards'];
+    }
+
+    return $meta;
+  }
+
+  /**
+   * @param array<string,mixed> $definition
+   */
+  private function stableIndexForDefinition(array $definition, array $graph, int $count): int
+  {
+    if ($count <= 1) {
+      return 0;
+    }
+
+    $fingerprint = (string)($definition['dialogue_id'] ?? 'dialogue') . '|' . count($graph['nodes']) . '|' . count($graph['edges']);
+    foreach ($graph['nodes'] as $node) {
+      $meta = is_array($node['meta'] ?? null) ? $node['meta'] : [];
+      $fingerprint .= '|' . (int)($node['node_index'] ?? 0) . ':' . (int)($meta['col'] ?? 0) . ':' . (int)($meta['row'] ?? 0);
+    }
+
+    return abs((int)crc32($fingerprint)) % $count;
   }
 
   /**

@@ -551,8 +551,13 @@ final class RunNodeController
       }
 
       $unlocked = [];
+      $completionRewards = [
+        'feature_unlocks' => [],
+        'item_grants' => [],
+      ];
       if ((string)$node['status'] !== 'cleared') {
         $svc['userUnlockService']->grant($userId, UserUnlockService::NAMESPACE_DIALOGUE, $dialogueId);
+        $completionRewards = $this->applyDialogueCompletionRewards($svc, $userId, $meta);
         $svc['runNodeRepo']->markCleared($runIdInt, $nodeIdInt);
         $unlocked = $this->unlockFromNode(
           $svc['runEdgeRepo'],
@@ -575,6 +580,7 @@ final class RunNodeController
           'next' => [
             'unlocked_node_ids' => array_map('strval', $unlocked),
           ],
+          'rewards' => $completionRewards,
         ],
       ]);
     } catch (Throwable $e) {
@@ -620,6 +626,50 @@ final class RunNodeController
 
     $decoded = json_decode($metaJson, true);
     return is_array($decoded) ? $decoded : [];
+  }
+
+  /**
+   * @param array<string,mixed> $svc
+   * @param array<string,mixed> $meta
+   * @return array{feature_unlocks:list<string>,item_grants:list<array{item_slug:string,quantity:int,granted_quantity:int}>}
+   */
+  private function applyDialogueCompletionRewards(array $svc, int $userId, array $meta): array
+  {
+    $rewardMeta = is_array($meta['completion_rewards'] ?? null) ? $meta['completion_rewards'] : [];
+    $featureUnlocks = [];
+
+    foreach (array_values(array_filter(is_array($rewardMeta['feature_unlocks'] ?? null) ? $rewardMeta['feature_unlocks'] : [], 'is_string')) as $featureKey) {
+      $featureKey = trim($featureKey);
+      if ($featureKey === '') {
+        continue;
+      }
+
+      $svc['userUnlockService']->grant($userId, UserUnlockService::NAMESPACE_FEATURE, $featureKey);
+      $featureUnlocks[] = $featureKey;
+    }
+
+    $itemRewards = ['item_grants' => []];
+    foreach (array_values(array_filter(is_array($rewardMeta['item_grants'] ?? null) ? $rewardMeta['item_grants'] : [], 'is_array')) as $grant) {
+      $itemSlug = trim((string)($grant['item_slug'] ?? ''));
+      $quantity = max(0, min(99, (int)($grant['quantity'] ?? 0)));
+      if ($itemSlug === '' || $quantity <= 0) {
+        continue;
+      }
+
+      $itemRewards['item_grants'][] = [
+        'item_slug' => $itemSlug,
+        'quantity' => $quantity,
+      ];
+    }
+
+    $itemGrants = $itemRewards['item_grants'] === []
+      ? []
+      : $svc['userAssetGrantService']->materializeRewardItemGrants($userId, $itemRewards);
+
+    return [
+      'feature_unlocks' => array_values(array_unique($featureUnlocks)),
+      'item_grants' => $itemGrants,
+    ];
   }
 
   /**
