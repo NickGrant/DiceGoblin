@@ -548,7 +548,7 @@ describe('RunMapPageComponent', () => {
     expect(fixture.nativeElement.querySelector('.run-map__debug-grid')).toBeNull();
   });
 
-  it('navigates to summary after abandoning a run', async () => {
+  it('navigates to summary after returning home from a run', async () => {
     await TestBed.configureTestingModule({
       imports: [RunMapPageComponent],
       providers: [
@@ -563,7 +563,7 @@ describe('RunMapPageComponent', () => {
     const fixture = TestBed.createComponent(RunMapPageComponent);
     await fixture.whenStable();
 
-    await fixture.componentInstance.abandonRun();
+    await fixture.componentInstance.returnHome();
 
     expect(router.navigateByUrl).toHaveBeenCalledWith('/run/summary');
   });
