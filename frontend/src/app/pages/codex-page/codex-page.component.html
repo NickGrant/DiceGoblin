@@ -21,18 +21,28 @@
     </div>
 
     <div class="layout">
-      <nav aria-label="Codex categories">
-        @for (category of categories; track category.key) {
-          <button
-            type="button"
-            [class.is-active]="activeCategory() === category.key"
-            [attr.aria-current]="activeCategory() === category.key ? 'page' : null"
-            (click)="setActiveCategory(category.key)"
-          >
-            {{ category.label }}
-          </button>
-        }
-      </nav>
+      <aside class="codex-rail" aria-label="Codex sections">
+        <div class="codex-rail__header">
+          <img src="/assets/ui/icons/icon_guide.png" alt="" aria-hidden="true" />
+          <div>
+            <p>Codex Archive</p>
+            <strong>Recovered Records</strong>
+          </div>
+        </div>
+        <nav class="codex-rail__nav" aria-label="Codex categories">
+          @for (category of categories; track category.key) {
+            <button
+              type="button"
+              [class.is-active]="activeCategory() === category.key"
+              [attr.aria-current]="activeCategory() === category.key ? 'page' : null"
+              (click)="setActiveCategory(category.key)"
+            >
+              <strong>{{ category.label }}</strong>
+              <span>{{ category.summary }}</span>
+            </button>
+          }
+        </nav>
+      </aside>
 
       <div>
         @switch (activeCategory()) {

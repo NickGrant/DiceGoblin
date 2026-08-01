@@ -24,6 +24,12 @@ import { resolveFeatureUnlockIcon, resolveUnitRoleIcon } from '../../shared/ui/c
 
 type CodexCategory = 'features' | 'objectives' | 'units' | 'affixes' | 'enemies' | 'lore';
 
+type CodexCategoryNavItem = {
+  key: CodexCategory;
+  label: string;
+  summary: string;
+};
+
 type CodexUnit = {
   name: string;
   slug: string;
@@ -363,13 +369,13 @@ export class CodexPageComponent implements OnInit, OnDestroy {
   protected readonly pageTitle = 'Codex';
   protected readonly pageSubtitle = 'A living record of your unlocks, sightings, and discoveries.';
   protected readonly breadcrumbs = [{ label: 'Codex' }];
-  protected readonly categories: ReadonlyArray<{ key: CodexCategory; label: string }> = [
-    { key: 'features', label: 'Features' },
-    { key: 'objectives', label: 'Objectives' },
-    { key: 'units', label: 'Units' },
-    { key: 'affixes', label: 'Affixes' },
-    { key: 'enemies', label: 'Enemies' },
-    { key: 'lore', label: 'Lore' },
+  protected readonly categories: ReadonlyArray<CodexCategoryNavItem> = [
+    { key: 'features', label: 'Features', summary: 'Permanent account upgrades' },
+    { key: 'objectives', label: 'Objectives', summary: 'Current and cleared guidance' },
+    { key: 'units', label: 'Units', summary: 'Known warband classes' },
+    { key: 'affixes', label: 'Affixes', summary: 'Discovered die traits' },
+    { key: 'enemies', label: 'Enemies', summary: 'Recorded hostile units' },
+    { key: 'lore', label: 'Lore', summary: 'Recovered story pages' },
   ];
 
   protected readonly unitTree = UNIT_TREE;
