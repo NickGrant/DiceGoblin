@@ -24,7 +24,7 @@ final class RunSummaryBuilder
 
   /**
    * @param array<string,mixed> $rewards
-   * @return array{new_unit_labels:array<int,string>,new_dice_labels:array<int,string>,new_item_labels:array<int,string>}
+   * @return array{new_unit_labels:array<int,string>,new_dice_labels:array<int,string>,new_item_labels:array<int,string>,new_codex_labels:array<int,string>}
    */
   public function buildBattleRewardLabels(int $userId, array $rewards): array
   {
@@ -32,6 +32,7 @@ final class RunSummaryBuilder
       'new_unit_labels' => $this->extractUnitRewardLabels($userId, $rewards),
       'new_dice_labels' => $this->extractDiceRewardLabels($userId, $rewards),
       'new_item_labels' => $this->extractItemRewardLabels($rewards),
+      'new_codex_labels' => $this->extractCodexRewardLabels($rewards),
     ];
   }
 
@@ -68,7 +69,8 @@ final class RunSummaryBuilder
    *     }>
    *   }>
    *   },
-   *   items:array<int,array{item_slug:string,name:string,quantity:int,rarity:string}>
+   *   items:array<int,array{item_slug:string,name:string,quantity:int,rarity:string}>,
+   *   codex:array<int,array{entry_type:string,entry_key:string,label:string,source:string}>
    * }
    */
   public function buildBattleRewardDetails(int $userId, array $rewards): array
@@ -77,6 +79,7 @@ final class RunSummaryBuilder
       'units' => $this->extractUnitRewardDetails($userId, $rewards),
       'dice' => $this->extractDiceRewardDetails($userId, $rewards),
       'items' => $this->extractItemRewardDetails($rewards),
+      'codex' => $this->extractCodexRewardDetails($rewards),
     ];
   }
 
@@ -119,7 +122,9 @@ final class RunSummaryBuilder
     $rewardUnits = [];
     $rewardDice = [];
     $rewardItems = [];
+    $rewardCodexEntries = [];
     $itemRewardCounts = [];
+    $codexRewardCounts = [];
     $shrineUpgradeCounts = [];
 
     foreach ($battleRows as $battle) {
@@ -136,6 +141,11 @@ final class RunSummaryBuilder
         $rewardItems[] = $entry;
         $name = (string)$entry['name'];
         $itemRewardCounts[$name] = ($itemRewardCounts[$name] ?? 0) + max(1, (int)$entry['quantity']);
+      }
+      foreach ($this->extractCodexRewardDetails($rewards) as $entry) {
+        $rewardCodexEntries[] = $entry;
+        $label = (string)$entry['label'];
+        $codexRewardCounts[$label] = ($codexRewardCounts[$label] ?? 0) + 1;
       }
 
       foreach ($this->extractUnitRewardLabels($userId, $rewards) as $label) {
@@ -185,6 +195,9 @@ final class RunSummaryBuilder
     if (count($itemRewardCounts) > 0) {
       $rewardLines[] = 'Items: ' . $this->formatCountList($itemRewardCounts);
     }
+    if (count($codexRewardCounts) > 0) {
+      $rewardLines[] = 'Codex Pages: ' . $this->formatCountList($codexRewardCounts);
+    }
     if (count($shrineUpgradeCounts) > 0) {
       $rewardLines[] = 'Shrine Upgrades: ' . $this->formatCountList($shrineUpgradeCounts);
     }
@@ -205,6 +218,7 @@ final class RunSummaryBuilder
         'units' => $rewardUnits,
         'dice' => $rewardDice,
         'items' => $rewardItems,
+        'codex' => $rewardCodexEntries,
       ],
       'stolen_pages' => $this->loadStolenPages($userId, $runId),
       'progression_detail' => $progressionDetail,
@@ -753,6 +767,75 @@ final class RunSummaryBuilder
     }
 
     return $details;
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   * @return array<int,string>
+   */
+  private function extractCodexRewardLabels(array $rewards): array
+  {
+    return array_values(array_map(
+      static fn(array $entry): string => (string)$entry['label'],
+      $this->extractCodexRewardDetails($rewards)
+    ));
+  }
+
+  /**
+   * @param array<string,mixed> $rewards
+   * @return array<int,array{entry_type:string,entry_key:string,label:string,source:string}>
+   */
+  private function extractCodexRewardDetails(array $rewards): array
+  {
+    $rows = is_array($rewards['codex_entries'] ?? null) ? $rewards['codex_entries'] : [];
+    $entries = [];
+    foreach ($rows as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $entryType = trim((string)($row['entry_type'] ?? ''));
+      $entryKey = trim((string)($row['entry_key'] ?? ''));
+      if ($entryType === '' || $entryKey === '') {
+        continue;
+      }
+      $entries[] = [
+        'entry_type' => $entryType,
+        'entry_key' => $entryKey,
+        'label' => $this->codexEntryLabel($entryType, $entryKey),
+        'source' => trim((string)($row['source'] ?? '')),
+      ];
+    }
+
+    return $entries;
+  }
+
+  private function codexEntryLabel(string $entryType, string $entryKey): string
+  {
+    $name = match ($entryType) {
+      'enemy' => $this->enemyName($entryKey),
+      'biome' => $this->regionName($entryKey),
+      default => null,
+    };
+
+    return ($name !== null && $name !== '')
+      ? sprintf('%s: %s', $this->prettifyId($entryType), $name)
+      : sprintf('%s: %s', $this->prettifyId($entryType), $this->prettifyId($entryKey));
+  }
+
+  private function enemyName(string $slug): ?string
+  {
+    $stmt = $this->pdo->prepare('SELECT `name` FROM `enemy_templates` WHERE `slug` = ? LIMIT 1');
+    $stmt->execute([$slug]);
+    $name = $stmt->fetchColumn();
+    return is_string($name) && $name !== '' ? $name : null;
+  }
+
+  private function regionName(string $slug): ?string
+  {
+    $stmt = $this->pdo->prepare('SELECT `name` FROM `regions` WHERE `slug` = ? LIMIT 1');
+    $stmt->execute([$slug]);
+    $name = $stmt->fetchColumn();
+    return is_string($name) && $name !== '' ? $name : null;
   }
 
   /**
