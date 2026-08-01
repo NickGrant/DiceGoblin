@@ -24,6 +24,7 @@ class RunServiceStub {
       items: [{ item_slug: 'pig_ear', name: 'Pig Ear', quantity: 2, rarity: 'rare' }],
     },
     stolenPages: [{ dialogue_id: 'mountains-archivist-first-contact', title: 'Archivist First Contact' }],
+    codexPages: [{ entry_type: 'enemy', entry_key: 'mudwrestler', label: 'Enemy: Mudwrestler' }],
     progressionDetail: [
       {
         unit_instance_id: 'u1',
@@ -101,8 +102,9 @@ describe('RunSummaryPageComponent', () => {
     expect(compiled.textContent).toContain('Wrong Machine');
     expect(compiled.textContent).toContain('Mountains');
     expect(compiled.textContent).toContain('Archivist First Contact');
+    expect(compiled.textContent).toContain('Enemy: Mudwrestler');
     expect(compiled.textContent).toContain('Return Home');
-    expect(compiled.querySelectorAll('.run-summary-loot-masonry .loot-card')).toHaveSize(7);
+    expect(compiled.querySelectorAll('.run-summary-loot-masonry .loot-card')).toHaveSize(8);
     expect(compiled.querySelectorAll('dg-unit-bar')).toHaveSize(1);
     expect(compiled.querySelector('dg-unit-grid-object')).toBeNull();
   });
