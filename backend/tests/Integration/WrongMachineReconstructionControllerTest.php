@@ -30,7 +30,7 @@ final class WrongMachineReconstructionControllerTest extends IntegrationTestCase
     $this->assertFalse((bool)($recipe['can_reconstruct'] ?? true));
   }
 
-  public function testReconstructSpendsCostsGrantsLineageAndTutorialUnit(): void
+  public function testReconstructSpendsCostsGrantsLineageAndFallbackUnitWhenNoUnitTypesUnlocked(): void
   {
     $userId = $this->preparedUser();
     $_SESSION['user_id'] = $userId;
@@ -45,6 +45,7 @@ final class WrongMachineReconstructionControllerTest extends IntegrationTestCase
     $this->assertTrue((bool)($data['newly_reconstructed'] ?? false));
     $this->assertSame(LineageUnlockService::PIG_KIN, (string)($data['lineage']['lineage_slug'] ?? ''));
     $this->assertSame(LineageUnlockService::PIG_KIN, (string)($data['granted_unit']['kin_slug'] ?? ''));
+    $this->assertSame('frontline_bruiser_t1', (string)($data['granted_unit']['unit_type_slug'] ?? ''));
 
     $this->assertSame('1', (string)$this->scalar(
       'SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_namespace` = ? AND `unlock_key` = ?',
@@ -56,6 +57,31 @@ final class WrongMachineReconstructionControllerTest extends IntegrationTestCase
     $this->assertSame('1', (string)$this->scalar(
       'SELECT COUNT(*) FROM `unit_instances` WHERE `user_id` = ? AND `splice_variant_slug` = ?',
       [$userId, LineageUnlockService::PIG_KIN]
+    ));
+  }
+
+  public function testReconstructGrantsPigKinUsingUnlockedUnitType(): void
+  {
+    $userId = $this->preparedUser();
+    $this->grantUnlock($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'backline_marksman_t1');
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $this->setJsonBody(['lineage_slug' => LineageUnlockService::PIG_KIN]);
+    $response = $this->invoke(fn() => (new WrongMachineController())->reconstruct());
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $data = is_array($response['body']['data'] ?? null) ? $response['body']['data'] : [];
+    $this->assertTrue((bool)($data['newly_reconstructed'] ?? false));
+    $this->assertSame(LineageUnlockService::PIG_KIN, (string)($data['granted_unit']['kin_slug'] ?? ''));
+    $this->assertSame('backline_marksman_t1', (string)($data['granted_unit']['unit_type_slug'] ?? ''));
+    $this->assertSame('1', (string)$this->scalar(
+      'SELECT COUNT(*)
+       FROM `unit_instances` ui
+       JOIN `unit_types` ut ON ut.`id` = ui.`unit_type_id`
+       WHERE ui.`user_id` = ? AND ui.`splice_variant_slug` = ? AND ut.`slug` = ?',
+      [$userId, LineageUnlockService::PIG_KIN, 'backline_marksman_t1']
     ));
   }
 

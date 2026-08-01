@@ -10,9 +10,10 @@ use Throwable;
 
 final class WrongMachineReconstructionService
 {
+  private const FALLBACK_UNIT_TYPE_SLUG = 'frontline_bruiser_t1';
+
   private const PIG_KIN_COST = [
     'lineage_slug' => LineageUnlockService::PIG_KIN,
-    'unit_type_slug' => 'frontline_bruiser_t1',
     'raw_chaos' => 5,
     'items' => [
       ['item_slug' => 'pig_ear', 'quantity' => 3],
@@ -95,9 +96,10 @@ final class WrongMachineReconstructionService
 
       $playerStateRepository->setRawChaos($userId, $ownedRawChaos - $rawChaosCost);
       $this->lineageUnlockService()->grant($userId, LineageUnlockService::PIG_KIN);
+      $unitTypeSlug = $this->selectUnlockedUnitTypeSlug($userId);
       $grantedUnit = $this->userAssetGrantService()->grantUnitBySlug(
         $userId,
-        (string)self::PIG_KIN_COST['unit_type_slug'],
+        $unitTypeSlug,
         1,
         1,
         0,
@@ -178,10 +180,47 @@ final class WrongMachineReconstructionService
       'missing' => $missing,
       'grants' => [
         'lineage_slug' => LineageUnlockService::PIG_KIN,
-        'unit_type_slug' => (string)self::PIG_KIN_COST['unit_type_slug'],
+        'unit_type_slug' => null,
+        'unit_type_source' => 'random_unlocked',
+        'fallback_unit_type_slug' => self::FALLBACK_UNIT_TYPE_SLUG,
         'unit_count' => 1,
       ],
     ];
+  }
+
+  private function selectUnlockedUnitTypeSlug(int $userId): string
+  {
+    $eligibleSlugs = $this->eligibleUnlockedUnitTypeSlugs($userId);
+    if ($eligibleSlugs === []) {
+      return self::FALLBACK_UNIT_TYPE_SLUG;
+    }
+
+    return $eligibleSlugs[random_int(0, count($eligibleSlugs) - 1)];
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function eligibleUnlockedUnitTypeSlugs(int $userId): array
+  {
+    $unlockedSlugs = $this->userUnlockService()->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_UNIT_TYPE);
+    if ($unlockedSlugs === []) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($unlockedSlugs), '?'));
+    $stmt = $this->pdo->prepare("
+      SELECT `slug`
+      FROM `unit_types`
+      WHERE `slug` IN ($placeholders)
+      ORDER BY `slug` ASC
+    ");
+    $stmt->execute($unlockedSlugs);
+
+    return array_values(array_map(
+      static fn(mixed $value): string => (string)$value,
+      $stmt->fetchAll(PDO::FETCH_COLUMN)
+    ));
   }
 
   private function hasWrongMachine(int $userId): bool

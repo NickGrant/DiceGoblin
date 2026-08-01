@@ -32,3 +32,24 @@ Success criteria:
 - Convert run-node resolution toward modal presentation
 - Enable post-Wrong-Machine Farm generated-map behavior
 - Complete demo release hardening
+
+## Codex Discovery Reward Rework
+
+**Status:** Planned
+
+Rework Codex acquisition so enemy and biome records feel stolen or earned, while unlockable systems record themselves when the player actually receives access.
+
+Success criteria:
+
+- Defeated enemy copies can roll one-time enemy Codex page drops as combat loot.
+- Bosses grant their enemy page and biome page on first completed run for that biome.
+- Features, unit types, kin, affixes, and items grant Codex entries when the player first obtains or unlocks the thing.
+- Lore/stolen pages continue to unlock when encountered through dialogue.
+- Codex entries show useful known data such as enemy stats and abilities, with placeholders for locked entries.
+
+### Related Issues
+
+- Add durable Codex entry ownership and profile payload support
+- Award enemy and biome Codex pages through combat/run rewards
+- Award Codex entries from unlock and item acquisition events
+- Expand Codex and reward UI for useful discovered entries

@@ -2,6 +2,29 @@
 ----
 Completed issue entries retained only when they provide 7/25 roadmap execution context.
 
+## First Pig Kin Demo Release
+
+---
+id: FPK-001
+title: Align Wrong Machine kin creation and random drop eligibility
+status: complete
+priority: high
+milestone: First Pig Kin Demo Release
+description: Wrong Machine reconstruction now creates the requested kin/lineage while selecting the unit type from valid player-unlocked unit types, with a safe starter fallback for accounts that have no eligible unit-type unlocks.
+acceptance_criteria:
+  - Wrong Machine reconstruction always grants a unit with the reconstructed kin/lineage slug.
+  - The granted unit type is randomly selected from the player's unlocked unit types instead of a fixed tutorial unit type.
+  - If the player has no eligible unlocked unit types, reconstruction uses a deterministic safe starter fallback.
+  - The first successful reconstruction unlocks that kin/lineage before or with the granted unit.
+  - Random unit grants include the new kin only after the lineage unlock exists.
+  - Locked kin never appear in ordinary random unit drops.
+  - Tests cover first reconstruction, duplicate reconstruction, unlocked-unit-type selection, fallback behavior, and post-unlock random drop eligibility.
+current_code_references:
+  - backend/src/Services/WrongMachineReconstructionService.php
+  - backend/src/Services/SpliceVariantService.php
+  - backend/tests/Integration/WrongMachineReconstructionControllerTest.php
+  - backend/tests/Integration/UserAssetGrantServiceIntegrationTest.php
+
 ## Pattern-V2 Run Map Generation
 
 ---

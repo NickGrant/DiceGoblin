@@ -226,3 +226,73 @@ Before the formal demo handoff, `main`, production migrations, generated artifac
 - Debug/dev surfaces are disabled in the release environment.
 - Automated backend/frontend gates pass or accepted exceptions are documented.
 - Formal demo notes record the build ref, known issues, and UAT evidence location.
+
+## Codex Discovery Reward Rework
+
+### Add durable Codex entry ownership and profile payload support
+
+**Milestone:** Codex Discovery Reward Rework
+**Status:** Open
+**Priority:** High
+
+#### Problem
+Codex discovery is currently inferred from several unrelated profile fields. The loot-based model needs durable ownership by entry type/key.
+
+#### Acceptance Criteria
+
+- A durable Codex ownership store supports entry categories for enemies, biomes, features, unit types, kin, affixes, items, and lore.
+- Existing feature, unit type, dialogue, lineage, region, dice affix, and inventory data can seed or map to Codex ownership without duplicate visible entries.
+- Profile/Codex payloads expose owned entries and locked placeholders separately enough for the UI to render both.
+- Data migration/backfill is forward-only and safe for existing accounts.
+
+### Award enemy and biome Codex pages through combat/run rewards
+
+**Milestone:** Codex Discovery Reward Rework
+**Status:** Open
+**Priority:** High
+
+#### Problem
+Enemy and biome Codex pages should feel stolen from the field rather than automatically inferred from biome completion.
+
+#### Acceptance Criteria
+
+- Only enemy copies actually defeated in a victorious combat can roll enemy Codex drops.
+- Each defeated copy rolls independently, but already-owned enemy entries never drop again.
+- Common enemy rates are tuned so typical 2-3 copy encounters take roughly 3-4 similar groups on average to discover.
+- Boss enemy pages and biome pages are awarded together on the first completed run for that biome.
+- New Codex drops appear in combat/run rewards and run summary without duplicating previously owned pages.
+
+### Award Codex entries from unlock and item acquisition events
+
+**Milestone:** Codex Discovery Reward Rework
+**Status:** Open
+**Priority:** High
+
+#### Problem
+Unlockable game systems should document themselves at the moment the player actually receives the thing.
+
+#### Acceptance Criteria
+
+- Feature entries unlock when the feature unlock is granted.
+- Unit type entries unlock when the player first owns a unit of that type.
+- Kin entries unlock when the player first owns a unit with that kin.
+- Affix entries unlock when a die with that affix is earned or purchased.
+- Item entries unlock when the player receives the first copy of that item.
+- Lore entries continue to unlock when the relevant dialogue/stolen page is encountered.
+
+### Expand Codex and reward UI for useful discovered entries
+
+**Milestone:** Codex Discovery Reward Rework
+**Status:** Open
+**Priority:** Medium
+
+#### Problem
+Codex entries need to become useful records, not just names, while locked entries should preserve discovery goals.
+
+#### Acceptance Criteria
+
+- Locked Codex entries render as placeholders rather than disappearing.
+- Enemy entries show useful discovered data, including biome, role, stats, and abilities.
+- Biome, feature, unit type, kin, affix, item, and lore entries render from the unified Codex ownership model.
+- Reward screens distinguish newly stolen/found Codex pages from ordinary loot.
+- Tests cover locked placeholders, newly awarded entries, and no-repeat behavior.
