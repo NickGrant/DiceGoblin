@@ -9,12 +9,15 @@ use RuntimeException;
 final class OwnedDiceGrantService
 {
   private DiceAffixService $diceAffixService;
+  private CodexOwnershipService $codexOwnershipService;
 
   public function __construct(
     private readonly PDO $pdo,
     ?DiceAffixService $diceAffixService = null,
+    ?CodexOwnershipService $codexOwnershipService = null,
   ) {
     $this->diceAffixService = $diceAffixService ?? new DiceAffixService($pdo);
+    $this->codexOwnershipService = $codexOwnershipService ?? new CodexOwnershipService($pdo);
   }
 
   /**
@@ -43,6 +46,7 @@ final class OwnedDiceGrantService
     } else {
       $this->diceAffixService->assignAffixesToDiceInstance($diceInstanceId);
     }
+    $this->grantAffixCodexEntries($userId, $diceInstanceId);
 
     return [
       'id' => $diceInstanceId,
@@ -146,6 +150,25 @@ final class OwnedDiceGrantService
         $affixDefinitionId,
         (float)($affix['value'] ?? 0.0),
       ]);
+    }
+  }
+
+  private function grantAffixCodexEntries(int $userId, int $diceInstanceId): void
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT DISTINCT ad.`slug`
+      FROM `dice_instance_affixes` dia
+      JOIN `affix_definitions` ad ON ad.`id` = dia.`affix_definition_id`
+      WHERE dia.`dice_instance_id` = ?
+      ORDER BY ad.`slug` ASC
+    ');
+    $stmt->execute([$diceInstanceId]);
+
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $slug) {
+      $slug = trim((string)$slug);
+      if ($slug !== '') {
+        $this->codexOwnershipService->grant($userId, CodexOwnershipService::TYPE_AFFIX, $slug, 'owned_die');
+      }
     }
   }
 }

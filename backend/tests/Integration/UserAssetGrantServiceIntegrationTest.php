@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Services\UserAssetGrantService;
+use DiceGoblins\Services\CodexOwnershipService;
 use DiceGoblins\Services\LineageUnlockService;
 use DiceGoblins\Services\SpliceVariantService;
 use DiceGoblins\Services\UserUnlockService;
@@ -102,6 +103,10 @@ final class UserAssetGrantServiceIntegrationTest extends BattleFlowIntegrationCa
         LineageUnlockService::PIG_KIN,
         (string)$this->scalar('SELECT `splice_variant_slug` FROM `unit_instances` WHERE `id` = ?', [(int)$created[0]])
       );
+      $this->assertTrue((new LineageUnlockService($this->pdo))->isUnlocked($userId, LineageUnlockService::PIG_KIN));
+      $this->assertTrue((new SpliceVariantService($this->pdo))->totalEnabledWeightForUser($userId) > 1);
+      $this->assertCodexOwned($userId, CodexOwnershipService::TYPE_KIN, LineageUnlockService::PIG_KIN);
+      $this->assertCodexOwned($userId, CodexOwnershipService::TYPE_UNIT_TYPE, 'frontline_bruiser_t1');
     } finally {
       $this->restoreSpliceVariants($snapshot);
     }
@@ -181,6 +186,26 @@ final class UserAssetGrantServiceIntegrationTest extends BattleFlowIntegrationCa
     $this->assertCount(2, $created);
     $diceCount = (int)$this->scalar('SELECT COUNT(*) FROM `dice_instances` WHERE `user_id` = ?', [$userId]);
     $this->assertSame(2, $diceCount);
+    $affixCount = (int)$this->scalar(
+      'SELECT COUNT(DISTINCT ad.`slug`)
+       FROM `dice_instance_affixes` dia
+       JOIN `affix_definitions` ad ON ad.`id` = dia.`affix_definition_id`
+       WHERE dia.`dice_instance_id` = ?',
+      [(int)$created[1]]
+    );
+    $codexAffixCount = (int)$this->scalar(
+      'SELECT COUNT(*)
+       FROM `user_codex_entries` uce
+       WHERE uce.`user_id` = ? AND uce.`entry_type` = ? AND uce.`entry_key` IN (
+         SELECT DISTINCT ad.`slug`
+         FROM `dice_instance_affixes` dia
+         JOIN `affix_definitions` ad ON ad.`id` = dia.`affix_definition_id`
+         WHERE dia.`dice_instance_id` = ?
+       )',
+      [$userId, CodexOwnershipService::TYPE_AFFIX, (int)$created[1]]
+    );
+    $this->assertGreaterThan(0, $affixCount);
+    $this->assertSame($affixCount, $codexAffixCount);
   }
 
   public function testMaterializeRewardItemGrantsAccumulatesGenericItems(): void
@@ -209,11 +234,34 @@ final class UserAssetGrantServiceIntegrationTest extends BattleFlowIntegrationCa
         [$userId, 'pig_ear']
       )
     );
+    $this->assertCodexOwned($userId, CodexOwnershipService::TYPE_ITEM, 'pig_ear');
+  }
+
+  public function testUnlockGrantsCodexEntryAtUnlockTime(): void
+  {
+    $userId = $this->insertUser();
+
+    (new UserUnlockService($this->pdo))->grant($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_WRONG_MACHINE);
+
+    $this->assertCodexOwned($userId, CodexOwnershipService::TYPE_FEATURE, UserUnlockService::FEATURE_WRONG_MACHINE);
   }
 
   private function service(): UserAssetGrantService
   {
     return new UserAssetGrantService($this->pdo);
+  }
+
+  private function assertCodexOwned(int $userId, string $entryType, string $entryKey): void
+  {
+    $this->assertSame(
+      '1',
+      (string)$this->scalar(
+        'SELECT COUNT(*)
+         FROM `user_codex_entries`
+         WHERE `user_id` = ? AND `entry_type` = ? AND `entry_key` = ?',
+        [$userId, $entryType, $entryKey]
+      )
+    );
   }
 
   /**
