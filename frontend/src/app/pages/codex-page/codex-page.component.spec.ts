@@ -54,6 +54,19 @@ class SessionServiceStub {
         meta: {},
       },
     ],
+    codex: {
+      owned_entries: [],
+      owned_by_type: {
+        feature: ['academy', 'sell_bonus'],
+        unit_type: ['support_banner_t1'],
+        affix: ['bulwark_plus', 'execute_below_half'],
+        enemy: ['mudwrestler', 'mudslinger', 'mudking'],
+        lore: ['start-run-kickoff', 'mountains-archivist-first-contact', 'farm-shop-unlock'],
+        biome: [],
+        kin: [],
+        item: [],
+      },
+    },
   });
   readonly initialize = jasmine.createSpy('initialize').and.resolveTo();
 }
