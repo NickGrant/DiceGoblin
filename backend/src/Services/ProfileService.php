@@ -62,6 +62,9 @@ final class ProfileService
     $lineageUnlocks = (new LineageUnlockService($this->pdo))->listForUser($userId);
     $seenDialogues = (new UserUnlockService($this->pdo))
       ->listUnlockedKeys($userId, UserUnlockService::NAMESPACE_DIALOGUE);
+    $codexOwnershipService = new CodexOwnershipService($this->pdo);
+    $codexOwnershipService->syncDerivedEntriesForUser($userId);
+    $codex = $codexOwnershipService->profilePayload($userId);
     $squadUnitCap = SquadCapacityService::resolveCapFromFeatureUnlocks($featureUnlocks);
 
     // Squads/Teams (membership + formation)
@@ -116,7 +119,8 @@ final class ProfileService
       $items,
       $regionItems,
       $activeRun,
-      $objectives
+      $objectives,
+      $codex
     );
   }
 

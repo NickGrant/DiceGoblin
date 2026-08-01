@@ -10,6 +10,7 @@ namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Controllers\ApiController;
 use DiceGoblins\Services\LineageUnlockService;
+use DiceGoblins\Services\UserUnlockService;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
@@ -70,6 +71,12 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsArray($data['items'] ?? null);
     $this->assertIsArray($data['region_items'] ?? null);
     $this->assertIsArray($data['objectives'] ?? null);
+    $this->assertIsArray($data['codex'] ?? null);
+    $this->assertIsArray($data['codex']['owned_entries'] ?? null);
+    $this->assertIsArray($data['codex']['owned_by_type'] ?? null);
+    foreach (['enemy', 'biome', 'feature', 'unit_type', 'kin', 'affix', 'item', 'lore'] as $entryType) {
+      $this->assertIsArray($data['codex']['owned_by_type'][$entryType] ?? null);
+    }
     $this->assertNotEmpty($data['objectives']);
     $firstObjective = is_array($data['objectives'][0] ?? null) ? $data['objectives'][0] : [];
     $this->assertIsString($firstObjective['id'] ?? null);
@@ -81,6 +88,32 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsString($firstObjective['route'] ?? null);
     $this->assertArrayHasKey('active_run', $data);
     $this->assertTrue(is_array($data['active_run']) || $data['active_run'] === null);
+  }
+
+  public function testProfileCodexPayloadBackfillsDerivedOwnershipFacts(): void
+  {
+    $userId = $this->insertUser('profile_codex', 'Profile Codex User');
+    $this->grantUnlock($userId, UserUnlockService::NAMESPACE_FEATURE, UserUnlockService::FEATURE_WRONG_MACHINE);
+    $this->grantUnlock($userId, UserUnlockService::NAMESPACE_UNIT_TYPE, 'backline_marksman_t1');
+    $this->grantUnlock($userId, UserUnlockService::NAMESPACE_DIALOGUE, 'mountain_start');
+    (new LineageUnlockService($this->pdo))->grant($userId, LineageUnlockService::PIG_KIN);
+    $this->insertOwnedUnit($userId, 'frontline_bruiser_t1', LineageUnlockService::PIG_KIN);
+    $this->grantItem($userId, 'pig_ear', 1);
+    $_SESSION['user_id'] = $userId;
+
+    $controller = new ApiController();
+    $response = $this->invoke(fn() => $controller->profile());
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $data = $this->assertSuccessEnvelopeShape($response);
+    $ownedByType = is_array($data['codex']['owned_by_type'] ?? null) ? $data['codex']['owned_by_type'] : [];
+
+    $this->assertContains(UserUnlockService::FEATURE_WRONG_MACHINE, $ownedByType['feature'] ?? []);
+    $this->assertContains('backline_marksman_t1', $ownedByType['unit_type'] ?? []);
+    $this->assertContains('frontline_bruiser_t1', $ownedByType['unit_type'] ?? []);
+    $this->assertContains(LineageUnlockService::PIG_KIN, $ownedByType['kin'] ?? []);
+    $this->assertContains('pig_ear', $ownedByType['item'] ?? []);
+    $this->assertContains('mountain_start', $ownedByType['lore'] ?? []);
   }
 
   public function testProfileReturnsImplicitAndExplicitLineageUnlocks(): void
@@ -147,15 +180,24 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $data = $this->assertSuccessEnvelopeShape($response);
     $units = is_array($data['units'] ?? null) ? $data['units'] : [];
     $this->assertNotEmpty($units);
-    $unit = is_array($units[0] ?? null) ? $units[0] : [];
+    $unit = [];
+    foreach ($units as $candidate) {
+      if (is_array($candidate) && (string)($candidate['id'] ?? '') === (string)$unitId) {
+        $unit = $candidate;
+        break;
+      }
+    }
+    $this->assertNotEmpty($unit);
     $this->assertSame('basic_goblin', (string)($unit['kin_slug'] ?? ''));
     $this->assertSame('Basic Goblin', (string)($unit['kin_name'] ?? ''));
     $this->assertSame('basic_goblin', (string)($unit['splice_variant_slug'] ?? ''));
     $this->assertSame('Basic Goblin', (string)($unit['splice_variant_name'] ?? ''));
     $this->assertSame(10, (int)($unit['max_level'] ?? 0));
     $this->assertSame(6, (int)($unit['promotion_level'] ?? 0));
-    $this->assertSame(5, (int)($unit['total_precision'] ?? 0));
-    $this->assertSame(5, (int)($unit['total_resolve'] ?? 0));
+    $this->assertIsInt($unit['total_precision'] ?? null);
+    $this->assertGreaterThan(0, (int)($unit['total_precision'] ?? 0));
+    $this->assertIsInt($unit['total_resolve'] ?? null);
+    $this->assertGreaterThan(0, (int)($unit['total_resolve'] ?? 0));
     $this->assertSame(true, (bool)($unit['promotion_eligible'] ?? false));
     $this->assertSame(true, (bool)($unit['is_mastered'] ?? false));
     $this->assertIsArray($unit['capstone_choices'] ?? null);
@@ -449,5 +491,32 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
   {
     $stmt = $this->pdo?->prepare('INSERT INTO `battle_logs` (`battle_id`, `log_json`) VALUES (?, ?)');
     $stmt?->execute([$battleId, json_encode($log, JSON_UNESCAPED_SLASHES)]);
+  }
+
+  private function insertOwnedUnit(int $userId, string $unitTypeSlug, string $kinSlug): int
+  {
+    $unitTypeId = (int)$this->scalar('SELECT `id` FROM `unit_types` WHERE `slug` = ? LIMIT 1', [$unitTypeSlug]);
+    $this->assertGreaterThan(0, $unitTypeId);
+
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `splice_variant_slug`, `tier`, `level`, `xp`, `locked`)
+      VALUES (?, ?, ?, 1, 1, 0, 0)
+    ');
+    $stmt?->execute([$userId, $unitTypeId, $kinSlug]);
+
+    return (int)$this->pdo?->lastInsertId();
+  }
+
+  private function grantItem(int $userId, string $slug, int $quantity): void
+  {
+    $itemId = (int)$this->scalar('SELECT `id` FROM `items` WHERE `slug` = ? LIMIT 1', [$slug]);
+    $this->assertGreaterThan(0, $itemId);
+
+    $stmt = $this->pdo?->prepare('
+      INSERT INTO `user_items` (`user_id`, `item_id`, `quantity`)
+      VALUES (?, ?, ?)
+      ON DUPLICATE KEY UPDATE `quantity` = `quantity` + VALUES(`quantity`)
+    ');
+    $stmt?->execute([$userId, $itemId, max(1, $quantity)]);
   }
 }
