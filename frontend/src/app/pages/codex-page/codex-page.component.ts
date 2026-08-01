@@ -14,7 +14,7 @@ import { resolveCompletedRegionSlugs } from '../../core/regions/region-catalog';
 import { FeatureUnlockCategoryLabel, resolveFeatureUnlockCategory } from '../../core/feature-unlocks/feature-unlock-categories';
 import { DialogueScript } from '../../core/dialogue/dialogue.models';
 import { DialogueService } from '../../core/services/dialogue/dialogue.service';
-import { DiceAffixRecord, ObjectiveRecord } from '../../core/models/api.models';
+import { ObjectiveRecord } from '../../core/models/api.models';
 import { SessionService } from '../../core/services/session/session.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
@@ -41,6 +41,7 @@ type CodexUnit = {
 };
 
 type GuideAffix = {
+  slug: string;
   name: string;
   rarity: string;
   description: string;
@@ -381,12 +382,12 @@ export class CodexPageComponent implements OnInit, OnDestroy {
   protected readonly unitTree = UNIT_TREE;
 
   protected readonly affixes: ReadonlyArray<GuideAffix> = [
-    { name: 'Atk+', rarity: 'Common', description: '+1 damage on attack rolls.' },
-    { name: 'Guard+', rarity: 'Common', description: '+1 defense while this die is equipped.' },
-    { name: 'Bulwark', rarity: 'Uncommon', description: '+10% defense while this die is equipped.' },
-    { name: 'Precision', rarity: 'Uncommon', description: '+10% attack while this die is equipped.' },
-    { name: 'Execute', rarity: 'Rare', description: 'When the target is below 50% HP, deal 15% more damage.' },
-    { name: 'Explode', rarity: 'Rare', description: 'When this die rolls max, roll again once and combine the result.' },
+    { slug: 'attack_flat', name: 'Atk+', rarity: 'Common', description: '+1 damage on attack rolls.' },
+    { slug: 'defense_flat', name: 'Guard+', rarity: 'Common', description: '+1 defense while this die is equipped.' },
+    { slug: 'bulwark_plus', name: 'Bulwark', rarity: 'Uncommon', description: '+10% defense while this die is equipped.' },
+    { slug: 'precision_plus', name: 'Precision', rarity: 'Uncommon', description: '+10% attack while this die is equipped.' },
+    { slug: 'execute_below_half', name: 'Execute', rarity: 'Rare', description: 'When the target is below 50% HP, deal 15% more damage.' },
+    { slug: 'explode_once', name: 'Explode', rarity: 'Rare', description: 'When this die rolls max, roll again once and combine the result.' },
   ];
 
   protected readonly unlocks: ReadonlyArray<GuideUnlock> = [
@@ -419,10 +420,11 @@ export class CodexPageComponent implements OnInit, OnDestroy {
   protected readonly codexMetrics = computed<ReadonlyArray<CodexMetric>>(() => {
     const profile = this.profileData();
     const completedRegions = this.completedBiomeSlugs().length;
-    const unlockedFeatures = profile?.feature_unlocks.length ?? 0;
+    const unlockedFeatures = this.unlocks.filter((unlock) => this.hasAcquiredFeatureUnlock(unlock.key)).length;
     const unlockedUnits = this.unlockedUnitCount();
-    const seenAffixes = this.discoveredAffixNames().size;
+    const seenAffixes = this.discoveredAffixSlugs().size;
     const loreCount = this.codexLoreEntries().length;
+    const discoveredEnemyCount = this.discoveredEnemySlugs().size;
 
     return [
       {
@@ -451,23 +453,23 @@ export class CodexPageComponent implements OnInit, OnDestroy {
       },
       {
         label: 'Defeated enemy types',
-        value: `${this.discoveredBiomeUnits().length}/${BIOME_GUIDE_UNITS.length}`,
+        value: `${discoveredEnemyCount}/${BIOME_GUIDE_UNITS.length}`,
         detail: completedRegions ? `${completedRegions} cleared region${completedRegions === 1 ? '' : 's'} feeding the bestiary.` : 'Clear regions to confirm enemy records.',
-        progressPercent: this.percent(this.discoveredBiomeUnits().length, BIOME_GUIDE_UNITS.length),
+        progressPercent: this.percent(discoveredEnemyCount, BIOME_GUIDE_UNITS.length),
       },
     ];
   });
 
   protected readonly codexAffixEntries = computed<ReadonlyArray<CodexAffixEntry>>(() => {
-    const discovered = this.discoveredAffixNames();
+    const discovered = this.discoveredAffixSlugs();
     return this.affixes.map((affix) => ({
       ...affix,
-      discovered: discovered.has(this.normalizeKey(affix.name)),
+      discovered: discovered.has(affix.slug),
     }));
   });
 
   protected readonly codexEnemyEntries = computed<ReadonlyArray<CodexEnemyEntry>>(() => {
-    const discovered = new Set(this.discoveredBiomeUnits().map((unit) => unit.slug));
+    const discovered = this.discoveredEnemySlugs();
     return BIOME_GUIDE_UNITS.map((unit) => ({
       ...unit,
       discovered: discovered.has(unit.slug),
@@ -517,7 +519,7 @@ export class CodexPageComponent implements OnInit, OnDestroy {
       return false;
     }
 
-    return this.profileData()?.feature_unlocks.includes(unlockKey) ?? false;
+    return this.isCodexOwned('feature', unlockKey) || (this.profileData()?.feature_unlocks.includes(unlockKey) ?? false);
   }
 
   protected hasAcquiredUnitUnlock(unitSlug: string): boolean {
@@ -525,7 +527,7 @@ export class CodexPageComponent implements OnInit, OnDestroy {
       return false;
     }
 
-    return this.profileData()?.unit_type_unlocks.includes(unitSlug) ?? false;
+    return this.isCodexOwned('unit_type', unitSlug) || (this.profileData()?.unit_type_unlocks.includes(unitSlug) ?? false);
   }
 
   protected roleIcon(role: string): IconDefinition {
@@ -627,13 +629,27 @@ export class CodexPageComponent implements OnInit, OnDestroy {
     this.guideUnitFrameIndexes.update((current) => ({ ...current, [unitSlug]: 0 }));
   }
 
-  private discoveredAffixNames(): Set<string> {
+  private discoveredAffixSlugs(): Set<string> {
+    const codexAffixes = this.codexKeysForType('affix');
+    if (codexAffixes !== null) {
+      return codexAffixes;
+    }
+
     return new Set(
       (this.profileData()?.dice ?? [])
         .flatMap((die) => die.affixes ?? [])
-        .map((affix) => this.affixKey(affix))
+        .map((affix) => affix.affix_slug ?? '')
         .filter((value): value is string => value.length > 0),
     );
+  }
+
+  private discoveredEnemySlugs(): Set<string> {
+    const codexEnemies = this.codexKeysForType('enemy');
+    if (codexEnemies !== null) {
+      return codexEnemies;
+    }
+
+    return new Set(this.discoveredBiomeUnits().map((unit) => unit.slug));
   }
 
   private flattenedUnits(): ReadonlyArray<CodexUnit> {
@@ -653,12 +669,21 @@ export class CodexPageComponent implements OnInit, OnDestroy {
     return this.flattenedUnits().filter((unit) => this.hasAcquiredUnitUnlock(unit.slug)).length;
   }
 
-  private affixKey(affix: DiceAffixRecord): string {
-    return this.normalizeKey(affix.name ?? affix.affix_slug ?? '');
-  }
-
   private normalizeKey(value: string): string {
     return value.trim().toLowerCase().replace(/\s+/g, '');
+  }
+
+  private codexKeysForType(entryType: string): Set<string> | null {
+    const ownedByType = this.profileData()?.codex?.owned_by_type;
+    if (!ownedByType || !Object.prototype.hasOwnProperty.call(ownedByType, entryType)) {
+      return null;
+    }
+
+    return new Set((ownedByType[entryType] ?? []).map((key) => key.trim()).filter((key) => key.length > 0));
+  }
+
+  private isCodexOwned(entryType: string, entryKey: string): boolean {
+    return this.codexKeysForType(entryType)?.has(entryKey) ?? false;
   }
 
   private normalizeBiomeSlug(value: string): string {
@@ -674,7 +699,8 @@ export class CodexPageComponent implements OnInit, OnDestroy {
   }
 
   private async loadLoreDialogues(): Promise<void> {
-    const seenDialogues = Array.from(new Set(this.profileData()?.seen_dialogues ?? []));
+    const loreKeys = this.codexKeysForType('lore');
+    const seenDialogues = Array.from(new Set(loreKeys !== null ? Array.from(loreKeys) : (this.profileData()?.seen_dialogues ?? [])));
     if (!seenDialogues.length) {
       this.codexLoreEntries.set([]);
       return;
