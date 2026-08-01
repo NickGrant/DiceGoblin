@@ -125,9 +125,15 @@ describe('CodexPageComponent', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
+    const rail = fixture.nativeElement.querySelector('.codex-rail') as HTMLElement;
     expect(text).toContain('Codex');
+    expect(rail).not.toBeNull();
+    expect(rail.textContent).toContain('Codex Archive');
+    expect(rail.textContent).toContain('Recovered Records');
     expect(text).toContain('Features');
+    expect(text).toContain('Permanent account upgrades');
     expect(text).toContain('Objectives');
+    expect(text).toContain('Current and cleared guidance');
     expect(text).toContain('Units');
     expect(text).toContain('Affixes');
     expect(text).toContain('Enemies');
