@@ -181,6 +181,80 @@
   color: #fff2c9;
 }
 
+.promotion-destination-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.promotion-destination-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem 0.8rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 229, 178, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 242, 201, 0.08);
+  color: #fff2c9;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.promotion-destination-card:hover:not(:disabled),
+.promotion-destination-card:focus-visible:not(:disabled),
+.promotion-destination-card.is-selected {
+  transform: translateY(-1px);
+  border-color: rgba(255, 229, 178, 0.58);
+  background: rgba(255, 242, 201, 0.16);
+  outline: none;
+}
+
+.promotion-destination-card:disabled {
+  cursor: default;
+  opacity: 0.62;
+}
+
+.promotion-destination-card strong,
+.promotion-destination-card small,
+.promotion-destination-card__meta,
+.promotion-destination-card__branch,
+.promotion-destination-card__grants {
+  display: block;
+}
+
+.promotion-destination-card strong {
+  color: #fff2c9;
+  line-height: 1.1;
+}
+
+.promotion-destination-card small,
+.promotion-destination-card__branch,
+.promotion-destination-card__grants {
+  color: rgba(255, 242, 201, 0.72);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.promotion-destination-card__meta {
+  align-self: start;
+  color: #f4c875;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.promotion-destination-card__branch,
+.promotion-destination-card__grants {
+  grid-column: 1 / -1;
+}
+
 .promote-row {
   display: flex;
   align-items: center;

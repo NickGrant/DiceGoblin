@@ -335,6 +335,33 @@ describe('AcademyPageComponent', () => {
     expect(host.textContent).toContain('Menacing Follow Through');
   });
 
+  it('renders promotion destinations as selectable cards', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    const cards = Array.from(host.querySelectorAll<HTMLButtonElement>('.promotion-destination-card'));
+
+    expect(cards.length).toBe(1);
+    expect(cards[0].textContent).toContain('Enforcer');
+    expect(cards[0].textContent).toContain('Chain promotion');
+    expect(cards[0].textContent).toContain('Tier II');
+    expect(cards[0].textContent).toContain('Skullcrack');
+    expect(cards[0].getAttribute('aria-selected')).toBe('true');
+
+    component.selectedDestination.set('');
+    fixture.detectChanges();
+    expect(cards[0].getAttribute('aria-selected')).toBe('false');
+
+    cards[0].click();
+    fixture.detectChanges();
+
+    expect(component.selectedDestination()).toBe('enforcer');
+    expect(cards[0].getAttribute('aria-selected')).toBe('true');
+  });
+
   it('unlocks a unit type through the academy service', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;

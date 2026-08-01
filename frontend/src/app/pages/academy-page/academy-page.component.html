@@ -182,16 +182,35 @@
 
         @if (promotionOptions().length) {
         <label class="form-label">Destination</label>
-        <select
-          class="dg-select mb-3"
-          [ngModel]="selectedDestination()"
-          (ngModelChange)="selectedDestination.set($event)"
-        >
-          <option value="">No destination override</option>
+        <div class="promotion-destination-list mb-3" role="listbox" aria-label="Promotion destinations">
           @for (option of promotionOptions(); track option.target_unit_type_id + ':' + option.mode) {
-          <option [value]="option.target_unit_type_id">{{ promotionOptionLabel(option) }}</option>
+          <button
+            class="promotion-destination-card"
+            [class.is-selected]="selectedDestination() === option.target_unit_type_id"
+            type="button"
+            role="option"
+            [attr.aria-selected]="selectedDestination() === option.target_unit_type_id"
+            [disabled]="busy() || unitLocked()"
+            (click)="selectedDestination.set(option.target_unit_type_id)"
+          >
+            <span>
+              <strong>{{ option.target_unit_type_name }}</strong>
+              <small>{{ option.mode === 'sideways' ? 'Sideways branch' : 'Chain promotion' }}</small>
+            </span>
+            <span class="promotion-destination-card__meta">
+              Tier {{ toRomanNumeral(option.target_tier) }}
+            </span>
+            @if (option.mode === 'sideways' && option.target_unit_type_name !== option.branch_unit_type_name) {
+            <span class="promotion-destination-card__branch">Via {{ option.branch_unit_type_name }}</span>
+            }
+            <span class="promotion-destination-card__grants">
+              Active: {{ summarizeAbilityList(option.promotion_grants?.actives) }}
+              <br />
+              Passive: {{ summarizeAbilityList(option.promotion_grants?.passives) }}
+            </span>
+          </button>
           }
-        </select>
+        </div>
 
         @if (selectedPromotionOption(); as promotionOption) {
         <div class="vstack gap-2 mb-3">
