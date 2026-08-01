@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Controllers\ApiController;
+use DiceGoblins\Services\CodexOwnershipService;
 use DiceGoblins\Services\LineageUnlockService;
 use DiceGoblins\Services\UserUnlockService;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
@@ -74,8 +75,10 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsArray($data['codex'] ?? null);
     $this->assertIsArray($data['codex']['owned_entries'] ?? null);
     $this->assertIsArray($data['codex']['owned_by_type'] ?? null);
+    $this->assertIsArray($data['codex']['details_by_type'] ?? null);
     foreach (['enemy', 'biome', 'feature', 'unit_type', 'kin', 'affix', 'item', 'lore'] as $entryType) {
       $this->assertIsArray($data['codex']['owned_by_type'][$entryType] ?? null);
+      $this->assertIsArray($data['codex']['details_by_type'][$entryType] ?? null);
     }
     $this->assertNotEmpty($data['objectives']);
     $firstObjective = is_array($data['objectives'][0] ?? null) ? $data['objectives'][0] : [];
@@ -99,6 +102,7 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     (new LineageUnlockService($this->pdo))->grant($userId, LineageUnlockService::PIG_KIN);
     $this->insertOwnedUnit($userId, 'frontline_bruiser_t1', LineageUnlockService::PIG_KIN);
     $this->grantItem($userId, 'pig_ear', 1);
+    (new CodexOwnershipService($this->pdo))->grant($userId, CodexOwnershipService::TYPE_ENEMY, 'mudwrestler', 'combat_drop');
     $_SESSION['user_id'] = $userId;
 
     $controller = new ApiController();
@@ -114,6 +118,26 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertContains(LineageUnlockService::PIG_KIN, $ownedByType['kin'] ?? []);
     $this->assertContains('pig_ear', $ownedByType['item'] ?? []);
     $this->assertContains('mountain_start', $ownedByType['lore'] ?? []);
+    $this->assertContains('mudwrestler', $ownedByType['enemy'] ?? []);
+
+    $detailsByType = is_array($data['codex']['details_by_type'] ?? null) ? $data['codex']['details_by_type'] : [];
+    $unitDetails = is_array($detailsByType['unit_type'] ?? null) ? $detailsByType['unit_type'] : [];
+    $enemyDetails = is_array($detailsByType['enemy'] ?? null) ? $detailsByType['enemy'] : [];
+    $bruiserDetails = $this->detailByKey($unitDetails, 'frontline_bruiser_t1');
+    $mudwrestlerDetails = $this->detailByKey($enemyDetails, 'mudwrestler');
+
+    $this->assertSame('Bruiser', (string)($bruiserDetails['label'] ?? ''));
+    $this->assertSame(1, (int)($bruiserDetails['tier'] ?? 0));
+    $this->assertIsArray($bruiserDetails['stats'] ?? null);
+    $this->assertArrayHasKey('attack', $bruiserDetails['stats']);
+    $this->assertIsArray($bruiserDetails['growth'] ?? null);
+    $this->assertArrayHasKey('max_hp', $bruiserDetails['growth']);
+    $this->assertIsArray($bruiserDetails['abilities']['actives'] ?? null);
+
+    $this->assertSame('Mudwrestler', (string)($mudwrestlerDetails['label'] ?? ''));
+    $this->assertIsArray($mudwrestlerDetails['stats'] ?? null);
+    $this->assertArrayHasKey('defense', $mudwrestlerDetails['stats']);
+    $this->assertIsArray($mudwrestlerDetails['abilities']['actives'] ?? null);
   }
 
   public function testProfileReturnsImplicitAndExplicitLineageUnlocks(): void
@@ -446,6 +470,21 @@ final class ApiControllerEnvelopeContractTest extends IntegrationTestCase
     $this->assertIsArray($response['body']['data']);
 
     return $response['body']['data'];
+  }
+
+  /**
+   * @param list<array<string,mixed>> $details
+   * @return array<string,mixed>
+   */
+  private function detailByKey(array $details, string $entryKey): array
+  {
+    foreach ($details as $detail) {
+      if ((string)($detail['entry_key'] ?? '') === $entryKey) {
+        return $detail;
+      }
+    }
+
+    return [];
   }
 
   private function insertRunNode(int $runId, int $nodeIndex, string $nodeType, string $status): int

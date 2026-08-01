@@ -77,7 +77,7 @@ final class CodexOwnershipService
   }
 
   /**
-   * @return array{owned_entries:list<array{entry_type:string,entry_key:string,source:string,metadata:array<string,mixed>,discovered_at:string}>,owned_by_type:array<string,list<string>>}
+   * @return array{owned_entries:list<array{entry_type:string,entry_key:string,source:string,metadata:array<string,mixed>,discovered_at:string}>,owned_by_type:array<string,list<string>>,details_by_type:array<string,list<array<string,mixed>>>}
    */
   public function profilePayload(int $userId): array
   {
@@ -98,6 +98,7 @@ final class CodexOwnershipService
     return [
       'owned_entries' => $ownedEntries,
       'owned_by_type' => $ownedByType,
+      'details_by_type' => $this->detailsByType($ownedByType),
     ];
   }
 
@@ -217,6 +218,176 @@ final class CodexOwnershipService
       GROUP BY rr.`user_id`, r.`slug`
     ');
     $stmt->execute([self::TYPE_BIOME, 'completed_run', $userId]);
+  }
+
+  /**
+   * @param array<string,list<string>> $ownedByType
+   * @return array<string,list<array<string,mixed>>>
+   */
+  private function detailsByType(array $ownedByType): array
+  {
+    $details = [];
+    foreach (self::ENTRY_TYPES as $type) {
+      $details[$type] = [];
+    }
+
+    $details[self::TYPE_UNIT_TYPE] = $this->unitTypeDetails($ownedByType[self::TYPE_UNIT_TYPE] ?? []);
+    $details[self::TYPE_ENEMY] = $this->enemyDetails($ownedByType[self::TYPE_ENEMY] ?? []);
+
+    return $details;
+  }
+
+  /**
+   * @param list<string> $slugs
+   * @return list<array<string,mixed>>
+   */
+  private function unitTypeDetails(array $slugs): array
+  {
+    $slugs = $this->cleanKeys($slugs);
+    if ($slugs === []) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($slugs), '?'));
+    $stmt = $this->pdo->prepare("
+      SELECT
+        `slug`,
+        `name`,
+        `role`,
+        `base_stats_json`,
+        `ability_set_json`,
+        `max_level`,
+        `attack_per_level`,
+        `defense_per_level`,
+        `max_hp_per_level`,
+        `precision_per_level`,
+        `resolve_per_level`
+      FROM `unit_types`
+      WHERE `slug` IN ($placeholders)
+      ORDER BY `slug` ASC
+    ");
+    $stmt->execute($slugs);
+
+    return array_map(fn(array $row): array => [
+      'entry_type' => self::TYPE_UNIT_TYPE,
+      'entry_key' => (string)$row['slug'],
+      'label' => (string)$row['name'],
+      'role' => (string)$row['role'],
+      'tier' => $this->tierFromSlug((string)$row['slug']),
+      'max_level' => (int)$row['max_level'],
+      'stats' => $this->normalizeStats($this->decodeMetadata($row['base_stats_json'] ?? null)),
+      'growth' => [
+        'attack' => (int)$row['attack_per_level'],
+        'defense' => (int)$row['defense_per_level'],
+        'max_hp' => (int)$row['max_hp_per_level'],
+        'precision' => (int)$row['precision_per_level'],
+        'resolve' => (int)$row['resolve_per_level'],
+      ],
+      'abilities' => $this->normalizeAbilitySet($this->decodeMetadata($row['ability_set_json'] ?? null)),
+    ], $stmt->fetchAll(PDO::FETCH_ASSOC));
+  }
+
+  /**
+   * @param list<string> $slugs
+   * @return list<array<string,mixed>>
+   */
+  private function enemyDetails(array $slugs): array
+  {
+    $slugs = $this->cleanKeys($slugs);
+    if ($slugs === []) {
+      return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($slugs), '?'));
+    $stmt = $this->pdo->prepare("
+      SELECT
+        `slug`,
+        `name`,
+        `tier`,
+        `role`,
+        `base_stats_json`,
+        `ability_set_json`,
+        `equipped_abilities_json`,
+        `xp_reward`,
+        `tags_json`
+      FROM `enemy_templates`
+      WHERE `slug` IN ($placeholders)
+      ORDER BY `slug` ASC
+    ");
+    $stmt->execute($slugs);
+
+    return array_map(fn(array $row): array => [
+      'entry_type' => self::TYPE_ENEMY,
+      'entry_key' => (string)$row['slug'],
+      'label' => (string)$row['name'],
+      'role' => (string)$row['role'],
+      'tier' => (int)$row['tier'],
+      'xp_reward' => (int)$row['xp_reward'],
+      'stats' => $this->normalizeStats($this->decodeMetadata($row['base_stats_json'] ?? null)),
+      'abilities' => $this->normalizeAbilitySet($this->decodeMetadata($row['ability_set_json'] ?? null)),
+      'equipped_abilities' => $this->stringList((array)($this->decodeMetadata($row['equipped_abilities_json'] ?? null)['equipped'] ?? [])),
+      'tags' => $this->stringList($this->decodeMetadata($row['tags_json'] ?? null)),
+    ], $stmt->fetchAll(PDO::FETCH_ASSOC));
+  }
+
+  /**
+   * @param list<string> $keys
+   * @return list<string>
+   */
+  private function cleanKeys(array $keys): array
+  {
+    return array_values(array_unique(array_filter(array_map(
+      static fn(string $key): string => trim($key),
+      $keys
+    ), static fn(string $key): bool => $key !== '')));
+  }
+
+  /**
+   * @param array<string,mixed> $raw
+   * @return array{attack:int,defense:int,max_hp:int,precision:int,resolve:int}
+   */
+  private function normalizeStats(array $raw): array
+  {
+    return [
+      'attack' => (int)($raw['attack'] ?? 0),
+      'defense' => (int)($raw['defense'] ?? 0),
+      'max_hp' => (int)($raw['max_hp'] ?? 0),
+      'precision' => (int)($raw['precision'] ?? 0),
+      'resolve' => (int)($raw['resolve'] ?? 0),
+    ];
+  }
+
+  /**
+   * @param array<string,mixed> $raw
+   * @return array{actives:list<string>,passives:list<string>}
+   */
+  private function normalizeAbilitySet(array $raw): array
+  {
+    return [
+      'actives' => $this->stringList((array)($raw['actives'] ?? [])),
+      'passives' => $this->stringList((array)($raw['passives'] ?? [])),
+    ];
+  }
+
+  /**
+   * @param array<mixed> $raw
+   * @return list<string>
+   */
+  private function stringList(array $raw): array
+  {
+    return array_values(array_filter(array_map(
+      static fn(mixed $value): string => trim((string)$value),
+      $raw
+    ), static fn(string $value): bool => $value !== ''));
+  }
+
+  private function tierFromSlug(string $slug): int
+  {
+    if (preg_match('/_t(\d+)$/', $slug, $matches)) {
+      return max(1, (int)$matches[1]);
+    }
+
+    return 1;
   }
 
   private function normalizeEntryType(string $entryType): ?string
