@@ -52,6 +52,7 @@ final class DevToolsService
     'unit_promotions' => ['label' => 'Unit Promotions', 'order_by' => '`id` DESC'],
     'unit_types' => ['label' => 'Unit Types', 'order_by' => '`role` ASC, `slug` ASC'],
     'user_bounties' => ['label' => 'User Bounties', 'order_by' => '`user_id` ASC, `bounty_definition_id` ASC'],
+    'user_codex_entries' => ['label' => 'User Codex Entries', 'order_by' => '`user_id` ASC, `entry_type` ASC, `entry_key` ASC'],
     'user_grants' => ['label' => 'User Grants', 'order_by' => '`id` DESC'],
     'user_items' => ['label' => 'User Items', 'order_by' => '`user_id` ASC, `item_id` ASC'],
     'user_region_items' => ['label' => 'User Region Items', 'order_by' => '`user_id` ASC, `region_item_id` ASC'],
@@ -394,6 +395,24 @@ final class DevToolsService
         [$userId]
       );
     }
+    if ($this->schemaHasTable('unit_instance_capstone_choices')) {
+      $this->execDelete(
+        'DELETE ucc FROM `unit_instance_capstone_choices` ucc JOIN `unit_instances` ui ON ui.`id` = ucc.`unit_instance_id` WHERE ui.`user_id` = ?',
+        [$userId]
+      );
+    }
+    if ($this->schemaHasTable('unit_instance_equipped_abilities')) {
+      $this->execDelete(
+        'DELETE uea FROM `unit_instance_equipped_abilities` uea JOIN `unit_instances` ui ON ui.`id` = uea.`unit_instance_id` WHERE ui.`user_id` = ?',
+        [$userId]
+      );
+    }
+    if ($this->schemaHasTable('unit_instance_unlocked_abilities')) {
+      $this->execDelete(
+        'DELETE uua FROM `unit_instance_unlocked_abilities` uua JOIN `unit_instances` ui ON ui.`id` = uua.`unit_instance_id` WHERE ui.`user_id` = ?',
+        [$userId]
+      );
+    }
     $this->execDelete(
       'DELETE dia FROM `dice_instance_affixes` dia JOIN `dice_instances` di ON di.`id` = dia.`dice_instance_id` WHERE di.`user_id` = ?',
       [$userId]
@@ -403,6 +422,9 @@ final class DevToolsService
     $this->execDelete('DELETE FROM `unit_promotions` WHERE `user_id` = ?', [$userId]);
     if ($this->schemaHasTable('user_bounties')) {
       $this->execDelete('DELETE FROM `user_bounties` WHERE `user_id` = ?', [$userId]);
+    }
+    if ($this->schemaHasTable('user_codex_entries')) {
+      $this->execDelete('DELETE FROM `user_codex_entries` WHERE `user_id` = ?', [$userId]);
     }
     if ($this->schemaHasTable('user_items')) {
       $this->execDelete('DELETE FROM `user_items` WHERE `user_id` = ?', [$userId]);

@@ -77,9 +77,35 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $this->unlockRegion($userId, $regionId);
     $this->setEnergy($userId, 9, 50);
     $service->grantCurrency($userId, 120, 0);
-    $service->grantUnits($userId, 'frontline_bruiser_t1', 1);
+    $units = $service->grantUnits($userId, 'frontline_bruiser_t1', 1);
+    $grantedUnitId = (int)($units[0]['id'] ?? 0);
+    $grantedUnitTypeId = (int)$this->scalar('SELECT `unit_type_id` FROM `unit_instances` WHERE `id` = ? LIMIT 1', [$grantedUnitId]);
     $dice = $service->grantDice($userId, 6, 'rare', 1);
     $grantedDiceId = (int) ($dice[0]['id'] ?? 0);
+
+    $unlockedAbilityStmt = $this->pdo?->prepare(
+      "INSERT INTO `unit_instance_unlocked_abilities` (`unit_instance_id`, `ability_id`, `source_tier`, `source_unit_type_id`)
+       VALUES (?, 'reset_test_active', 1, ?)"
+    );
+    $unlockedAbilityStmt?->execute([$grantedUnitId, $grantedUnitTypeId]);
+
+    $equippedAbilityStmt = $this->pdo?->prepare(
+      "INSERT INTO `unit_instance_equipped_abilities` (`unit_instance_id`, `ability_id`, `equip_order`, `speed_cost`)
+       VALUES (?, 'reset_test_active', 99, 1)"
+    );
+    $equippedAbilityStmt?->execute([$grantedUnitId]);
+
+    $capstoneStmt = $this->pdo?->prepare(
+      "INSERT INTO `unit_instance_capstone_choices` (`unit_instance_id`, `source_unit_type_id`, `ability_id`)
+       VALUES (?, ?, 'reset_test_capstone')"
+    );
+    $capstoneStmt?->execute([$grantedUnitId, $grantedUnitTypeId]);
+
+    $codexStmt = $this->pdo?->prepare(
+      "INSERT INTO `user_codex_entries` (`user_id`, `entry_type`, `entry_key`, `source`, `metadata_json`)
+       VALUES (?, 'enemy', 'mudwrestler', 'reset_test', JSON_OBJECT('qa', true))"
+    );
+    $codexStmt?->execute([$userId]);
 
     $nodeStmt = $this->pdo?->prepare(
       "INSERT INTO `run_nodes` (`run_id`, `node_index`, `node_type`, `status`, `encounter_template_id`, `meta_json`) VALUES (?, 1, 'combat', 'available', NULL, NULL)"
@@ -143,6 +169,31 @@ final class DevToolsServiceIntegrationTest extends IntegrationTestCase
     $this->assertSame(0, (int) $this->scalar('SELECT COUNT(*) FROM `shop_daily_deals` WHERE `user_id` = ?', [$userId]));
     $this->assertSame(0, (int) $this->scalar('SELECT COUNT(*) FROM `chaos_encounter_results` WHERE `user_id` = ?', [$userId]));
     $this->assertSame(0, (int) $this->scalar('SELECT COUNT(*) FROM `user_bounties` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame(0, (int) $this->scalar(
+      'SELECT COUNT(*)
+       FROM `unit_instance_unlocked_abilities` uua
+       JOIN `unit_instances` ui ON ui.`id` = uua.`unit_instance_id`
+       WHERE ui.`user_id` = ? AND uua.`ability_id` = ?',
+      [$userId, 'reset_test_active']
+    ));
+    $this->assertSame(0, (int) $this->scalar(
+      'SELECT COUNT(*)
+       FROM `unit_instance_equipped_abilities` uea
+       JOIN `unit_instances` ui ON ui.`id` = uea.`unit_instance_id`
+       WHERE ui.`user_id` = ? AND uea.`ability_id` = ?',
+      [$userId, 'reset_test_active']
+    ));
+    $this->assertSame(0, (int) $this->scalar(
+      'SELECT COUNT(*)
+       FROM `unit_instance_capstone_choices` ucc
+       JOIN `unit_instances` ui ON ui.`id` = ucc.`unit_instance_id`
+       WHERE ui.`user_id` = ? AND ucc.`ability_id` = ?',
+      [$userId, 'reset_test_capstone']
+    ));
+    $this->assertSame(0, (int) $this->scalar(
+      'SELECT COUNT(*) FROM `user_codex_entries` WHERE `user_id` = ? AND `entry_type` = ? AND `entry_key` = ?',
+      [$userId, 'enemy', 'mudwrestler']
+    ));
   }
 
   public function testSetUnitLevelClampsToOwnedUnitMaxLevel(): void
