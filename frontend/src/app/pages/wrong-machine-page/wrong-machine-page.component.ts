@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   WrongMachineReconstructData,
+  WrongMachineCostItem,
   WrongMachineReconstructionOption,
 } from '../../core/models/api.models';
 import { WrongMachineService } from '../../core/services/wrong-machine/wrong-machine.service';
@@ -30,6 +31,22 @@ export class WrongMachinePageComponent {
   readonly rawChaosLabel = computed(() => {
     const rawChaos = this.pigKin()?.cost.raw_chaos;
     return rawChaos ? `${rawChaos.quantity_owned}/${rawChaos.quantity_required}` : '0/0';
+  });
+  readonly stageSummary = computed(() => {
+    const option = this.pigKin();
+    if (!option) {
+      return 'No reconstruction recipe is currently loaded.';
+    }
+
+    if (option.is_unlocked) {
+      return `${option.name} is already restored. The lineage is available in your warband.`;
+    }
+
+    if (option.can_reconstruct) {
+      return `${option.name} is ready. Confirm reconstruction to unlock the lineage and grant a new unit.`;
+    }
+
+    return `Recover ${this.missingLabel(option)} to complete the first reconstruction.`;
   });
 
   constructor() {
@@ -109,11 +126,37 @@ export class WrongMachinePageComponent {
     }).join(', ');
   }
 
+  rawChaosProgress(option: WrongMachineReconstructionOption): number {
+    return this.progressPercent(option.cost.raw_chaos.quantity_owned, option.cost.raw_chaos.quantity_required);
+  }
+
+  itemProgress(item: WrongMachineCostItem): number {
+    return this.progressPercent(item.quantity_owned, item.quantity_required);
+  }
+
+  requirementLabel(isMet: boolean): string {
+    return isMet ? 'Ready' : 'Needed';
+  }
+
+  grantLabel(option: WrongMachineReconstructionOption): string {
+    const count = Math.max(0, option.grants.unit_count);
+    const unitCopy = count === 1 ? 'unit' : 'units';
+    return `${count} ${option.name} ${unitCopy}`;
+  }
+
   itemLabel(itemSlug: string): string {
     return itemSlug
       .split('_')
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ');
+  }
+
+  private progressPercent(current: number, target: number): number {
+    if (target <= 0) {
+      return 100;
+    }
+
+    return Math.min(100, Math.max(0, Math.round((current / target) * 100)));
   }
 
   private reconstructionMessage(data: WrongMachineReconstructData): string {

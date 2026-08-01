@@ -26,11 +26,24 @@
       </div>
       <div class="wrong-machine__status">
         <p class="wrong-machine__eyebrow dg-stencil">Recovered Contraption</p>
-        <h2 class="wrong-machine__headline dg-stencil">Chaos accepts useful ingredients.</h2>
-        <p>
-          Pig Kin is the protected first reconstruction. Completing it unlocks the lineage and grants one
-          usable Tier I goblin-kin unit.
-        </p>
+        <h2 class="wrong-machine__headline dg-stencil">First lineage reconstruction</h2>
+        <p>{{ stageSummary() }}</p>
+        @if (pigKin(); as option) {
+        <dl class="wrong-machine__stage-facts" aria-label="Reconstruction summary">
+          <div>
+            <dt>Lineage</dt>
+            <dd>{{ option.name }}</dd>
+          </div>
+          <div>
+            <dt>Raw Chaos</dt>
+            <dd>{{ rawChaosLabel() }}</dd>
+          </div>
+          <div>
+            <dt>Reward</dt>
+            <dd>{{ grantLabel(option) }}</dd>
+          </div>
+        </dl>
+        }
       </div>
     </section>
 
@@ -47,23 +60,48 @@
         </span>
       </div>
 
+      <div class="wrong-machine__section-heading">
+        <strong>Requirements</strong>
+        <span>{{ missingLabel(option) }}</span>
+      </div>
+
       <div class="wrong-machine__cost-grid">
         <article class="wrong-machine__cost" [class.is-met]="option.cost.raw_chaos.is_met">
-          <span>Raw Chaos</span>
-          <strong>{{ rawChaosLabel() }}</strong>
+          <div class="wrong-machine__cost-row">
+            <span>Raw Chaos</span>
+            <strong>{{ rawChaosLabel() }}</strong>
+          </div>
+          <div class="wrong-machine__meter" aria-hidden="true">
+            <div class="wrong-machine__meter-fill" [style.width.%]="rawChaosProgress(option)"></div>
+          </div>
+          <small>{{ requirementLabel(option.cost.raw_chaos.is_met) }}</small>
         </article>
         @for (item of option.cost.items; track item.item_slug) {
         <article class="wrong-machine__cost" [class.is-met]="item.is_met">
-          <span>{{ itemLabel(item.item_slug) }}</span>
-          <strong>{{ item.quantity_owned }}/{{ item.quantity_required }}</strong>
+          <div class="wrong-machine__cost-row">
+            <span>{{ itemLabel(item.item_slug) }}</span>
+            <strong>{{ item.quantity_owned }}/{{ item.quantity_required }}</strong>
+          </div>
+          <div class="wrong-machine__meter" aria-hidden="true">
+            <div class="wrong-machine__meter-fill" [style.width.%]="itemProgress(item)"></div>
+          </div>
+          <small>{{ requirementLabel(item.is_met) }}</small>
         </article>
         }
       </div>
 
+      <div class="wrong-machine__grant-preview" aria-label="Reconstruction reward">
+        <img src="/assets/ui/units/animated/goblin/pig/frame_0.png" alt="" />
+        <div>
+          <strong>{{ grantLabel(option) }}</strong>
+          <span>Unlocks {{ option.name }} and immediately adds the reconstructed unit to your warband.</span>
+        </div>
+      </div>
+
       <div class="wrong-machine__result">
         <div>
-          <strong>{{ missingLabel(option) }}</strong>
-          <span>Grants {{ option.grants.unit_count }} {{ option.name }} unit.</span>
+          <strong>{{ option.can_reconstruct ? 'Ready to reconstruct.' : 'Reconstruction blocked.' }}</strong>
+          <span>{{ option.can_reconstruct ? 'Materials are prepared and will be spent on confirmation.' : missingLabel(option) }}</span>
         </div>
         <button
           dgCommandBtn="primary"
@@ -81,9 +119,11 @@
 
     @if (lastReconstruction()?.granted_unit; as unit) {
     <section class="wrong-machine__grant" aria-label="Reconstruction result">
+      <img src="/assets/ui/units/animated/goblin/pig/frame_0.png" alt="" />
       <div>
         <p class="wrong-machine__eyebrow dg-stencil">New Kin</p>
         <h3 class="wrong-machine__title dg-stencil">{{ lastReconstruction()?.lineage?.name ?? 'Kin Reconstructed' }}</h3>
+        <p>A reconstructed goblin has joined the warband.</p>
       </div>
       <a dgCommandBtn="muted" [routerLink]="['/warband/units', unit.id]">View Unit</a>
     </section>

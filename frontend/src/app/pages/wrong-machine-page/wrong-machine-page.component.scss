@@ -127,6 +127,44 @@
   color: rgba(255, 244, 207, 0.82);
 }
 
+.wrong-machine__stage-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 18px 0 0;
+}
+
+.wrong-machine__stage-facts div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 230, 177, 0.24);
+  border-radius: 8px;
+  background: rgba(20, 14, 11, 0.48);
+}
+
+.wrong-machine__stage-facts dt,
+.wrong-machine__stage-facts dd {
+  margin: 0;
+}
+
+.wrong-machine__stage-facts dt {
+  color: rgba(255, 235, 185, 0.72);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.wrong-machine__stage-facts dd {
+  overflow-wrap: anywhere;
+  color: #fff4cf;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
 .wrong-machine__recipe {
   display: grid;
   gap: 18px;
@@ -163,6 +201,30 @@
   color: #2c633c;
 }
 
+.wrong-machine__section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.wrong-machine__section-heading strong {
+  color: #25150c;
+  font-size: 14px;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.wrong-machine__section-heading span {
+  color: rgba(45, 28, 14, 0.68);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: right;
+}
+
 .wrong-machine__cost-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -171,7 +233,8 @@
 
 .wrong-machine__cost {
   display: grid;
-  gap: 5px;
+  gap: 8px;
+  min-height: 104px;
   padding: 12px;
   border: 1px solid rgba(113, 77, 38, 0.2);
   border-radius: 8px;
@@ -183,16 +246,84 @@
   background: rgba(226, 242, 224, 0.76);
 }
 
-.wrong-machine__cost span {
+.wrong-machine__cost-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.wrong-machine__cost-row span {
   color: rgba(42, 28, 13, 0.68);
   font-size: 12px;
   font-weight: 900;
+  line-height: 1.2;
   text-transform: uppercase;
 }
 
-.wrong-machine__cost strong,
+.wrong-machine__cost-row strong,
 .wrong-machine__result strong {
   color: #25150c;
+}
+
+.wrong-machine__cost small {
+  color: rgba(43, 28, 14, 0.66);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.wrong-machine__meter {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(68, 45, 23, 0.18);
+}
+
+.wrong-machine__meter-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #5f9171, #e3b655);
+}
+
+.wrong-machine__grant-preview {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(113, 77, 38, 0.2);
+  border-radius: 8px;
+  background: rgba(245, 235, 206, 0.72);
+}
+
+.wrong-machine__grant-preview img,
+.wrong-machine__grant > img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.24));
+}
+
+.wrong-machine__grant-preview div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.wrong-machine__grant-preview strong {
+  color: #25150c;
+  line-height: 1.15;
+}
+
+.wrong-machine__grant-preview span,
+.wrong-machine__grant p {
+  margin: 0;
+  color: rgba(37, 21, 12, 0.72);
+  line-height: 1.35;
 }
 
 .wrong-machine__result > div {
@@ -202,6 +333,8 @@
 }
 
 .wrong-machine__grant {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
   grid-column: 1 / -1;
   align-items: center;
   padding: 18px 20px;
@@ -216,10 +349,26 @@
     min-height: 340px;
   }
 
+  .wrong-machine__stage-facts {
+    grid-template-columns: 1fr;
+  }
+
   .wrong-machine__recipe-head,
   .wrong-machine__result,
-  .wrong-machine__grant {
+  .wrong-machine__section-heading {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
+  }
+
+  .wrong-machine__section-heading span {
+    text-align: left;
+  }
+
+  .wrong-machine__grant {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .wrong-machine__grant a {
+    grid-column: 1 / -1;
   }
 }

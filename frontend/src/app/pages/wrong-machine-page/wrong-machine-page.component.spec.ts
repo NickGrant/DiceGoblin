@@ -86,6 +86,8 @@ describe('WrongMachinePageComponent', () => {
     expect(compiled.textContent).toContain('Pig Kin');
     expect(compiled.textContent).toContain('5/5');
     expect(compiled.textContent).toContain('Pig Ear');
+    expect(compiled.textContent).toContain('All reconstruction requirements are ready.');
+    expect(compiled.textContent).toContain('1 Pig Kin unit');
     expect(compiled.textContent).toContain('Reconstruct Kin');
 
     const button = compiled.querySelector('button') as HTMLButtonElement;
@@ -95,7 +97,56 @@ describe('WrongMachinePageComponent', () => {
 
     expect(wrongMachineService.reconstruct).toHaveBeenCalledOnceWith('pig_kin');
     expect(compiled.textContent).toContain('Pig Kin reconstructed');
+    expect(compiled.textContent).toContain('A reconstructed goblin has joined the warband.');
     expect(compiled.textContent).toContain('View Unit');
+  });
+
+  it('shows missing reconstruction requirements without allowing reconstruction', async () => {
+    wrongMachineService.getReconstructions.and.resolveTo({
+      ok: true,
+      data: {
+        feature_unlocked: true,
+        reconstructions: [
+          {
+            lineage_slug: 'pig_kin',
+            kin_slug: 'pig_kin',
+            name: 'Pig Kin',
+            description: 'Reconstruct the first goblin-kin lineage from Farm materials.',
+            is_unlocked: false,
+            can_reconstruct: false,
+            cost: {
+              raw_chaos: { quantity_required: 5, quantity_owned: 2, is_met: false },
+              items: [
+                { item_slug: 'pig_ear', quantity_required: 3, quantity_owned: 1, is_met: false },
+                { item_slug: 'mudking_crown_fragment', quantity_required: 1, quantity_owned: 1, is_met: true },
+              ],
+            },
+            missing: [
+              { type: 'raw_chaos', quantity_missing: 3 },
+              { type: 'item', item_slug: 'pig_ear', quantity_missing: 2 },
+            ],
+            grants: { lineage_slug: 'pig_kin', unit_type_slug: 'frontline_bruiser_t1', unit_count: 1 },
+          },
+        ],
+      },
+    });
+
+    const fixture = TestBed.createComponent(WrongMachinePageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Recover 3 Raw Chaos, 2 Pig Ear');
+    expect(compiled.textContent).toContain('Reconstruction blocked.');
+    expect(compiled.textContent).toContain('2/5');
+    expect(compiled.textContent).toContain('1/3');
+    expect(compiled.textContent).toContain('Needed');
+
+    const button = compiled.querySelector('button') as HTMLButtonElement;
+    expect(button.disabled).toBeTrue();
+    button.click();
+
+    expect(wrongMachineService.reconstruct).not.toHaveBeenCalled();
   });
 
   it('shows the locked state when the feature has not been recovered', async () => {
