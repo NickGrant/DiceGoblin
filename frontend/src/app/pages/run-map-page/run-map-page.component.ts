@@ -322,7 +322,7 @@ export class RunMapPageComponent {
     await this.router.navigate(['/run/node', node.id]);
   }
 
-  async abandonRun(): Promise<void> {
+  async returnHome(): Promise<void> {
     if (!this.run()) {
       return;
     }
@@ -336,7 +336,7 @@ export class RunMapPageComponent {
       }
       await this.router.navigateByUrl('/run/summary');
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Unable to abandon run.');
+      this.error.set(error instanceof Error ? error.message : 'Unable to return home.');
     } finally {
       this.working.set(false);
     }
