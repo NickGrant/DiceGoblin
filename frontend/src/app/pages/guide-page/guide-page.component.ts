@@ -69,6 +69,12 @@ type GuideCombatStat = {
   description: string;
 };
 
+type GuideCombatFlowStep = {
+  label: string;
+  title: string;
+  description: string;
+};
+
 type GuideIconEntry = {
   label: string;
   icon: IconDefinition;
@@ -247,6 +253,34 @@ export class GuidePageComponent implements OnInit {
     {
       name: 'Precision and Resolve',
       description: 'Precision helps offensive effects land. Resolve helps resist harmful statuses and keeps fragile units from folding to control.',
+    },
+  ];
+
+  protected readonly combatFlowSteps: ReadonlyArray<GuideCombatFlowStep> = [
+    {
+      label: '01',
+      title: 'Ready abilities',
+      description: 'Each unit uses its equipped abilities. Lower speed costs become ready sooner, so loadout speed shapes action frequency.',
+    },
+    {
+      label: '02',
+      title: 'Pick the action',
+      description: 'When an ability is ready, the unit follows that ability definition for target rules, effect type, and any special conditions.',
+    },
+    {
+      label: '03',
+      title: 'Roll the assigned die',
+      description: 'The full die roll is added to the action. Affixes and combat effects can then adjust damage, defense, healing, or control.',
+    },
+    {
+      label: '04',
+      title: 'Apply stats and effects',
+      description: 'Offense combines ability value, die roll, Attack, and bonuses. The target uses Defense and active effects to soften hits.',
+    },
+    {
+      label: '05',
+      title: 'Update the board',
+      description: 'HP, defeated state, cooldowns, statuses, and one-fight effects update before the next ready action is evaluated.',
     },
   ];
 

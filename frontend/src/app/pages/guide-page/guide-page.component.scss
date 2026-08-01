@@ -163,6 +163,7 @@
 
 .guide-page__steps li,
 .guide-stat,
+.guide-flow-step,
 .guide-unit,
 .guide-reference,
 .guide-die-family,
@@ -177,6 +178,38 @@
   display: grid;
   gap: 5px;
   padding: 12px;
+}
+
+.guide-page__combat-flow {
+  display: grid;
+  gap: 8px;
+}
+
+.guide-flow-step {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+}
+
+.guide-flow-step > span {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(74, 43, 20, 0.24);
+  border-radius: 50%;
+  color: #4a2b14;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.guide-flow-step strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #24150d;
 }
 
 .guide-page__steps span {
