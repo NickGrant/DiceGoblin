@@ -4,6 +4,11 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Controllers\BattleController;
+use DiceGoblins\Repositories\RegionRepository;
+use DiceGoblins\Repositories\RunNodeRepository;
+use DiceGoblins\Repositories\RunRepository;
+use DiceGoblins\Services\CodexOwnershipService;
+use DiceGoblins\Services\RunLifecycleService;
 use DiceGoblins\Tests\Support\BattleFlowIntegrationCase;
 
 final class BattleClaimProgressionIntegrationTest extends BattleFlowIntegrationCase
@@ -276,6 +281,133 @@ final class BattleClaimProgressionIntegrationTest extends BattleFlowIntegrationC
     $this->assertCount(1, $matchingProgression);
   }
 
+  public function testClaimVictoryCanAwardEnemyCodexPageFromDefeatedCopies(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 11224488);
+    $nodeId = $this->insertRunNode($runId, 'combat', 'cleared');
+
+    [$unitTypeId, ] = $this->pickUnitTypeForProgressTest();
+    $unitId = $this->insertUnit($userId, $unitTypeId, 1, 0);
+    $this->insertTeamUnit($teamId, $unitId);
+    $this->insertRunUnitState($runId, $unitId, 12, false);
+
+    $battleId = $this->insertBattle($userId, $runId, $nodeId, $teamId, 'completed', 'victory', 1, 40, 2);
+    $seed = $this->firstEnemyCodexDropSeed($battleId, 'mudwrestler');
+    $this->pdo?->prepare('UPDATE `battles` SET `seed` = ? WHERE `id` = ?')->execute([$seed, $battleId]);
+    $this->insertBattleRewards($battleId, 10, 0, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+    ]);
+    $this->insertBattleLog($battleId, [
+      'meta' => [
+        'participants' => [
+          'enemy' => [
+            ['id' => 'mudwrestler', 'template_slug' => 'mudwrestler'],
+          ],
+        ],
+      ],
+      'events' => [],
+    ]);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['csrf_token'] = 'valid_csrf';
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'valid_csrf';
+
+    $controller = new BattleController();
+    $first = $this->invoke(fn() => $controller->claimBattle((string)$battleId));
+    $second = $this->invoke(fn() => $controller->claimBattle((string)$battleId));
+
+    $this->assertSame(200, $first['status'], json_encode($first['body']));
+    $this->assertSame(200, $second['status'], json_encode($second['body']));
+
+    $firstData = is_array($first['body']['data'] ?? null) ? $first['body']['data'] : [];
+    $secondData = is_array($second['body']['data'] ?? null) ? $second['body']['data'] : [];
+    $firstRewards = is_array($firstData['rewards'] ?? null) ? $firstData['rewards'] : [];
+    $runSummary = is_array($firstData['run_summary'] ?? null) ? $firstData['run_summary'] : [];
+    $codexEntries = array_values(array_filter($firstRewards['codex_entries'] ?? [], 'is_array'));
+
+    $this->assertEquals($firstData, $secondData, 'Codex page rewards should be idempotent after claim.');
+    $this->assertCount(1, $codexEntries);
+    $this->assertSame('enemy', (string)($codexEntries[0]['entry_type'] ?? ''));
+    $this->assertSame('mudwrestler', (string)($codexEntries[0]['entry_key'] ?? ''));
+    $this->assertSame(['Enemy: Mudwrestler'], $firstRewards['new_codex_labels'] ?? null);
+    $this->assertContains('Codex Pages: Enemy: Mudwrestler', $runSummary['rewards'] ?? []);
+    $this->assertSame('1', (string)$this->scalar(
+      'SELECT COUNT(*) FROM `user_codex_entries` WHERE `user_id` = ? AND `entry_type` = ? AND `entry_key` = ?',
+      [$userId, CodexOwnershipService::TYPE_ENEMY, 'mudwrestler']
+    ));
+  }
+
+  public function testCompleteRunAwardsFirstBiomeAndBossCodexPages(): void
+  {
+    $userId = $this->insertUser();
+    $regionId = $this->insertRegion();
+    $regionSlug = (string)$this->scalar('SELECT `slug` FROM `regions` WHERE `id` = ? LIMIT 1', [$regionId]);
+    $teamId = $this->insertTeam($userId);
+    $runId = $this->insertRun($userId, $regionId, 33445566);
+    $bossNodeId = $this->insertRunNode($runId, 'boss', 'cleared');
+
+    $battleId = $this->insertBattle($userId, $runId, $bossNodeId, $teamId, 'claimed', 'victory', 777, 50, 3);
+    $this->insertBattleRewards($battleId, 15, 5, [
+      'new_dice_instance_ids' => [],
+      'region_items' => [],
+      'claim_snapshot' => [
+        'updated_run_unit_state' => [],
+        'run_resolution' => null,
+        'xp' => [
+          'award_per_unit' => 15,
+          'applied_unit_instance_ids' => [],
+          'ignored_at_cap_unit_instance_ids' => [],
+        ],
+        'currency' => ['soft_awarded' => 5],
+        'updated_units' => [],
+      ],
+    ]);
+    $this->insertBattleLog($battleId, [
+      'meta' => [
+        'participants' => [
+          'enemy' => [
+            ['id' => 'mudking', 'template_slug' => 'mudking'],
+          ],
+        ],
+      ],
+      'events' => [],
+    ]);
+
+    $service = new RunLifecycleService(
+      $this->pdo,
+      new RunRepository($this->pdo),
+      new RegionRepository($this->pdo),
+      new RunNodeRepository($this->pdo)
+    );
+    $result = $service->completeRun($userId, $runId, $regionId, null);
+    $meta = is_array($result['run_summary']['meta'] ?? null) ? $result['run_summary']['meta'] : [];
+    $codexEntries = array_values(array_filter($meta['new_codex_entries'] ?? [], 'is_array'));
+
+    $this->assertSame('completed', (string)($result['status'] ?? ''));
+    $this->assertCount(2, $codexEntries);
+    $this->assertContains($regionSlug, array_map(static fn(array $entry): string => (string)($entry['entry_key'] ?? ''), $codexEntries));
+    $this->assertContains('mudking', array_map(static fn(array $entry): string => (string)($entry['entry_key'] ?? ''), $codexEntries));
+    $codexRewardLines = array_values(array_filter(
+      $result['run_summary']['rewards'] ?? [],
+      static fn(mixed $line): bool => is_string($line) && str_starts_with($line, 'Codex Pages:')
+    ));
+    $this->assertCount(1, $codexRewardLines);
+    $this->assertStringContainsString('Enemy: Mudking', $codexRewardLines[0]);
+    $this->assertStringContainsString('Biome: ' . (string)$this->scalar('SELECT `name` FROM `regions` WHERE `id` = ? LIMIT 1', [$regionId]), $codexRewardLines[0]);
+    $this->assertSame('1', (string)$this->scalar(
+      'SELECT COUNT(*) FROM `user_codex_entries` WHERE `user_id` = ? AND `entry_type` = ? AND `entry_key` = ?',
+      [$userId, CodexOwnershipService::TYPE_BIOME, $regionSlug]
+    ));
+    $this->assertSame('1', (string)$this->scalar(
+      'SELECT COUNT(*) FROM `user_codex_entries` WHERE `user_id` = ? AND `entry_type` = ? AND `entry_key` = ?',
+      [$userId, CodexOwnershipService::TYPE_ENEMY, 'mudking']
+    ));
+  }
+
   public function testClaimLootBattleDoesNotDamageRunUnits(): void
   {
     $userId = $this->insertUser();
@@ -424,5 +556,27 @@ final class BattleClaimProgressionIntegrationTest extends BattleFlowIntegrationC
     $this->assertSame('claimed', (string)$this->scalar('SELECT `status` FROM `battles` WHERE `id` = ?', [$battleId]));
     $this->assertSame('12', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$unitA]));
     $this->assertSame('9', (string)$this->scalar('SELECT `xp` FROM `unit_instances` WHERE `id` = ?', [$unitB]));
+  }
+
+  /**
+   * @param array<string,mixed> $log
+   */
+  private function insertBattleLog(int $battleId, array $log): void
+  {
+    $stmt = $this->pdo?->prepare('INSERT INTO `battle_logs` (`battle_id`, `log_json`) VALUES (?, ?)');
+    $stmt?->execute([$battleId, json_encode($log, JSON_UNESCAPED_SLASHES)]);
+  }
+
+  private function firstEnemyCodexDropSeed(int $battleId, string $enemySlug): int
+  {
+    for ($seed = 1; $seed < 100000; $seed++) {
+      $hash = hash('sha256', implode('|', ['codex_enemy_drop_v1', (string)$seed, (string)$battleId, $enemySlug, '0']));
+      $roll = ((int)base_convert(substr($hash, 0, 8), 16, 10)) % 100;
+      if ($roll < 13) {
+        return $seed;
+      }
+    }
+
+    $this->fail('Unable to find deterministic Codex drop seed.');
   }
 }

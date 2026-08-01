@@ -17,6 +17,8 @@ use Throwable;
 
 final class RunLifecycleService
 {
+  private const ENEMY_CODEX_DROP_CHANCE_PERCENT = 13;
+
   public function __construct(
     private readonly PDO $pdo,
     private readonly RunRepository $runRepository,
@@ -81,7 +83,13 @@ final class RunLifecycleService
       $runSummary = $this->buildRunSummary($userId, $runId);
       $this->runRepository->applyRunEndCleanup($runId, $userId, false);
       $this->runRepository->endRun($userId, $runId, 'completed');
-      $runSummary['meta'] = $this->unlockSuccessfulCompletionRewards($userId, $regionId);
+      $runSummary['meta'] = $this->unlockSuccessfulCompletionRewards($userId, $runId, $regionId);
+      $this->appendCodexEntriesToRunSummary(
+        $runSummary,
+        is_array($runSummary['meta']['new_codex_entries'] ?? null)
+          ? $runSummary['meta']['new_codex_entries']
+          : []
+      );
 
       return [
         'run_id' => (string)$runId,
@@ -145,6 +153,9 @@ final class RunLifecycleService
         $claimSnapshot = $this->applyBattleRewardsAndXp($userId, $battle);
       }
 
+      if (is_array($claimSnapshot['new_codex_entries'] ?? null) && $claimSnapshot['new_codex_entries'] !== []) {
+        $rewards['codex_entries'] = $claimSnapshot['new_codex_entries'];
+      }
       $rewards['claim_snapshot'] = $claimSnapshot;
       $this->battleRewardsRepository()->updateRewardsJsonAndCurrencySoft(
         $battleId,
@@ -225,6 +236,10 @@ final class RunLifecycleService
     $run = $this->runRepository->getRunForUser($userId, $runId);
     $runAlreadyEnded = is_array($run) && (string)($run['status'] ?? '') !== 'active';
     $newFeatureUnlocks = $this->unlockBattleClaimRewards($userId, $battle, $run);
+    $newCodexEntries = $this->awardBattleCodexEntries($userId, $battle);
+    if ($newCodexEntries !== []) {
+      $rewards['codex_entries'] = $newCodexEntries;
+    }
 
     $runStateRows = $this->runRepository->getRunUnitStateForUpdate($runId);
     $runStateByUnitId = [];
@@ -259,6 +274,7 @@ final class RunLifecycleService
         'shrine_effects' => $shrineEffects,
         'hazard_effects' => $hazardEffects,
         'new_feature_unlocks' => $newFeatureUnlocks,
+        'new_codex_entries' => $newCodexEntries,
         'updated_units' => [],
       ];
     }
@@ -296,6 +312,7 @@ final class RunLifecycleService
         'shrine_effects' => $shrineEffects,
         'hazard_effects' => $hazardEffects,
         'new_feature_unlocks' => $newFeatureUnlocks,
+        'new_codex_entries' => $newCodexEntries,
         'updated_units' => [],
       ];
     }
@@ -317,6 +334,7 @@ final class RunLifecycleService
         'shrine_effects' => $shrineEffects,
         'hazard_effects' => $hazardEffects,
         'new_feature_unlocks' => $newFeatureUnlocks,
+        'new_codex_entries' => $newCodexEntries,
         'updated_units' => [],
       ];
     }
@@ -465,6 +483,7 @@ final class RunLifecycleService
           'shrine_effects' => $shrineEffects,
           'hazard_effects' => $hazardEffects,
           'new_feature_unlocks' => $newFeatureUnlocks,
+          'new_codex_entries' => $newCodexEntries,
           'updated_units' => $updatedUnits,
         ];
       }
@@ -485,6 +504,7 @@ final class RunLifecycleService
       'shrine_effects' => $shrineEffects,
       'hazard_effects' => $hazardEffects,
       'new_feature_unlocks' => $newFeatureUnlocks,
+      'new_codex_entries' => $newCodexEntries,
       'updated_units' => $updatedUnits,
     ];
   }
@@ -1224,6 +1244,185 @@ final class RunLifecycleService
   }
 
   /**
+   * @param array<string,mixed> $battle
+   * @return list<array{entry_type:string,entry_key:string,source:string}>
+   */
+  private function awardBattleCodexEntries(int $userId, array $battle): array
+  {
+    if ((string)($battle['outcome'] ?? '') !== 'victory') {
+      return [];
+    }
+
+    $nodeType = (string)($battle['node_type'] ?? '');
+    if (!in_array($nodeType, ['combat', 'boss', 'chaos'], true)) {
+      return [];
+    }
+
+    $battleId = (int)($battle['id'] ?? 0);
+    if ($battleId <= 0) {
+      return [];
+    }
+
+    $enemyCopies = $this->defeatedEnemyCopySlugsForBattle($userId, $battleId);
+    if ($enemyCopies === []) {
+      return [];
+    }
+
+    $codexOwnershipService = new CodexOwnershipService($this->pdo);
+    $newEntries = [];
+    foreach ($enemyCopies as $copyIndex => $enemySlug) {
+      if ($enemySlug === '' || $codexOwnershipService->isOwned($userId, CodexOwnershipService::TYPE_ENEMY, $enemySlug)) {
+        continue;
+      }
+
+      if (!$this->codexDropRollSucceeded((string)($battle['seed'] ?? ''), $battleId, $enemySlug, $copyIndex)) {
+        continue;
+      }
+
+      if ($codexOwnershipService->grant($userId, CodexOwnershipService::TYPE_ENEMY, $enemySlug, 'combat_drop', [
+        'battle_id' => (string)$battleId,
+        'node_type' => $nodeType,
+      ])) {
+        $newEntries[] = [
+          'entry_type' => CodexOwnershipService::TYPE_ENEMY,
+          'entry_key' => $enemySlug,
+          'source' => 'combat_drop',
+        ];
+      }
+    }
+
+    return $newEntries;
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function defeatedEnemyCopySlugsForBattle(int $userId, int $battleId): array
+  {
+    $logRow = $this->battleLogRepository()->getForUser($battleId, $userId);
+    $log = is_array($logRow) ? json_decode((string)($logRow['log_json'] ?? ''), true) : null;
+    if (!is_array($log)) {
+      return [];
+    }
+
+    $enemies = $log['meta']['participants']['enemy'] ?? null;
+    if (!is_array($enemies)) {
+      return [];
+    }
+
+    $slugs = [];
+    foreach ($enemies as $enemy) {
+      if (!is_array($enemy)) {
+        continue;
+      }
+      $slug = trim((string)($enemy['template_slug'] ?? $enemy['slug'] ?? $enemy['id'] ?? ''));
+      if ($slug !== '') {
+        $slugs[] = preg_replace('/#\d+$/', '', $slug) ?? $slug;
+      }
+    }
+
+    return $slugs;
+  }
+
+  private function codexDropRollSucceeded(string $battleSeed, int $battleId, string $enemySlug, int $copyIndex): bool
+  {
+    $hash = hash('sha256', implode('|', ['codex_enemy_drop_v1', $battleSeed, $battleId, $enemySlug, $copyIndex]));
+    $roll = ((int)base_convert(substr($hash, 0, 8), 16, 10)) % 100;
+    return $roll < self::ENEMY_CODEX_DROP_CHANCE_PERCENT;
+  }
+
+  /**
+   * @param array<string,mixed> $runSummary
+   * @param array<int,mixed> $codexEntries
+   */
+  private function appendCodexEntriesToRunSummary(array &$runSummary, array $codexEntries): void
+  {
+    $details = [];
+    $counts = [];
+    foreach ($codexEntries as $entry) {
+      if (!is_array($entry)) {
+        continue;
+      }
+      $entryType = trim((string)($entry['entry_type'] ?? ''));
+      $entryKey = trim((string)($entry['entry_key'] ?? ''));
+      if ($entryType === '' || $entryKey === '') {
+        continue;
+      }
+      $label = $this->codexEntryLabel($entryType, $entryKey);
+      $details[] = [
+        'entry_type' => $entryType,
+        'entry_key' => $entryKey,
+        'label' => $label,
+        'source' => trim((string)($entry['source'] ?? '')),
+      ];
+      $counts[$label] = ($counts[$label] ?? 0) + 1;
+    }
+
+    if ($details === []) {
+      return;
+    }
+
+    if (!is_array($runSummary['reward_detail'] ?? null)) {
+      $runSummary['reward_detail'] = [];
+    }
+    $existingDetails = is_array($runSummary['reward_detail']['codex'] ?? null)
+      ? $runSummary['reward_detail']['codex']
+      : [];
+    $runSummary['reward_detail']['codex'] = array_merge($existingDetails, $details);
+
+    $runSummary['rewards'] = is_array($runSummary['rewards'] ?? null) ? $runSummary['rewards'] : [];
+    $runSummary['rewards'][] = 'Codex Pages: ' . $this->formatCodexCountList($counts);
+  }
+
+  private function codexEntryLabel(string $entryType, string $entryKey): string
+  {
+    $name = match ($entryType) {
+      CodexOwnershipService::TYPE_ENEMY => $this->enemyName($entryKey),
+      CodexOwnershipService::TYPE_BIOME => $this->regionName($entryKey),
+      default => null,
+    };
+
+    return ($name !== null && $name !== '')
+      ? sprintf('%s: %s', $this->prettifyCodexId($entryType), $name)
+      : sprintf('%s: %s', $this->prettifyCodexId($entryType), $this->prettifyCodexId($entryKey));
+  }
+
+  private function enemyName(string $slug): ?string
+  {
+    $stmt = $this->pdo->prepare('SELECT `name` FROM `enemy_templates` WHERE `slug` = ? LIMIT 1');
+    $stmt->execute([$slug]);
+    $name = $stmt->fetchColumn();
+    return is_string($name) && $name !== '' ? $name : null;
+  }
+
+  private function regionName(string $slug): ?string
+  {
+    $stmt = $this->pdo->prepare('SELECT `name` FROM `regions` WHERE `slug` = ? LIMIT 1');
+    $stmt->execute([$slug]);
+    $name = $stmt->fetchColumn();
+    return is_string($name) && $name !== '' ? $name : null;
+  }
+
+  private function prettifyCodexId(string $value): string
+  {
+    return ucwords(str_replace(['_', '-'], ' ', trim($value)));
+  }
+
+  /**
+   * @param array<string,int> $counts
+   */
+  private function formatCodexCountList(array $counts): string
+  {
+    ksort($counts, SORT_NATURAL | SORT_FLAG_CASE);
+    $parts = [];
+    foreach ($counts as $label => $count) {
+      $parts[] = $count > 1 ? sprintf('%s x%d', $label, $count) : $label;
+    }
+
+    return implode(', ', $parts);
+  }
+
+  /**
    * @param array<int,array{
    *   unit_instance_id:string,
    *   current_hp:int,
@@ -1411,10 +1610,11 @@ final class RunLifecycleService
    *   completed_region_slug:?string,
    *   completed_region_name:?string,
    *   new_feature_unlocks:array<int,string>,
-   *   new_region_unlocks:array<int,string>
+   *   new_region_unlocks:array<int,string>,
+   *   new_codex_entries:array<int,array{entry_type:string,entry_key:string,source:string}>
    * }
    */
-  private function unlockSuccessfulCompletionRewards(int $userId, int $completedRegionId): array
+  private function unlockSuccessfulCompletionRewards(int $userId, int $runId, int $completedRegionId): array
   {
     if ($completedRegionId <= 0) {
       return [
@@ -1422,6 +1622,7 @@ final class RunLifecycleService
         'completed_region_name' => null,
         'new_feature_unlocks' => [],
         'new_region_unlocks' => [],
+        'new_codex_entries' => [],
       ];
     }
 
@@ -1432,13 +1633,33 @@ final class RunLifecycleService
         'completed_region_name' => null,
         'new_feature_unlocks' => [],
         'new_region_unlocks' => [],
+        'new_codex_entries' => [],
       ];
     }
 
     $newFeatureUnlocks = [];
     $newRegionUnlocks = [];
+    $newCodexEntries = [];
     $completedRegionSlug = (string)$completedRegion['slug'];
     $unlockService = new UserUnlockService($this->pdo);
+    $codexOwnershipService = new CodexOwnershipService($this->pdo);
+
+    if ($codexOwnershipService->grant($userId, CodexOwnershipService::TYPE_BIOME, $completedRegionSlug, 'completed_run')) {
+      $newCodexEntries[] = [
+        'entry_type' => CodexOwnershipService::TYPE_BIOME,
+        'entry_key' => $completedRegionSlug,
+        'source' => 'completed_run',
+      ];
+      foreach ($this->bossEnemySlugsDefeatedInRun($userId, $runId) as $enemySlug) {
+        if ($codexOwnershipService->grant($userId, CodexOwnershipService::TYPE_ENEMY, $enemySlug, 'completed_biome_boss')) {
+          $newCodexEntries[] = [
+            'entry_type' => CodexOwnershipService::TYPE_ENEMY,
+            'entry_key' => $enemySlug,
+            'source' => 'completed_biome_boss',
+          ];
+        }
+      }
+    }
 
     if (
       $completedRegionSlug === 'the_farm'
@@ -1463,6 +1684,7 @@ final class RunLifecycleService
         'completed_region_name' => (string)($completedRegion['name'] ?? ''),
         'new_feature_unlocks' => $newFeatureUnlocks,
         'new_region_unlocks' => $newRegionUnlocks,
+        'new_codex_entries' => $newCodexEntries,
       ];
     }
 
@@ -1473,6 +1695,7 @@ final class RunLifecycleService
         'completed_region_name' => (string)($completedRegion['name'] ?? ''),
         'new_feature_unlocks' => $newFeatureUnlocks,
         'new_region_unlocks' => $newRegionUnlocks,
+        'new_codex_entries' => $newCodexEntries,
       ];
     }
 
@@ -1486,6 +1709,33 @@ final class RunLifecycleService
       'completed_region_name' => (string)($completedRegion['name'] ?? ''),
       'new_feature_unlocks' => $newFeatureUnlocks,
       'new_region_unlocks' => $newRegionUnlocks,
+      'new_codex_entries' => $newCodexEntries,
     ];
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function bossEnemySlugsDefeatedInRun(int $userId, int $runId): array
+  {
+    $stmt = $this->pdo->prepare('
+      SELECT DISTINCT et.`slug`
+      FROM `region_runs` rr
+      JOIN `run_nodes` rn ON rn.`run_id` = rr.`id`
+      JOIN `battles` b ON b.`run_id` = rr.`id` AND b.`node_id` = rn.`id`
+      JOIN `battle_logs` bl ON bl.`battle_id` = b.`id`
+      JOIN `enemy_templates` et ON JSON_SEARCH(bl.`log_json`, \'one\', et.`slug`, NULL, \'$.meta.participants.enemy[*].template_slug\') IS NOT NULL
+      WHERE rr.`user_id` = ?
+        AND rr.`id` = ?
+        AND rn.`node_type` = \'boss\'
+        AND b.`outcome` = \'victory\'
+        AND b.`status` = \'claimed\'
+    ');
+    $stmt->execute([$userId, $runId]);
+
+    return array_values(array_map(
+      static fn(mixed $value): string => (string)$value,
+      $stmt->fetchAll(PDO::FETCH_COLUMN)
+    ));
   }
 }
