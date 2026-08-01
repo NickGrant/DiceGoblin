@@ -252,6 +252,21 @@ export type ObjectiveRecord = {
   meta: Record<string, unknown>;
 };
 
+export type CodexEntryType = 'enemy' | 'biome' | 'feature' | 'unit_type' | 'kin' | 'affix' | 'item' | 'lore';
+
+export type CodexOwnedEntry = {
+  entry_type: CodexEntryType | string;
+  entry_key: string;
+  source: string;
+  metadata: Record<string, unknown>;
+  discovered_at: string;
+};
+
+export type CodexProfileData = {
+  owned_entries: CodexOwnedEntry[];
+  owned_by_type: Record<CodexEntryType | string, string[]>;
+};
+
 export type ProfileData = {
   server_time_iso: string;
   squads: TeamRecord[];
@@ -279,6 +294,7 @@ export type ProfileData = {
   region_items: RegionItemRecord[];
   active_run: ProfileActiveRun | null;
   objectives: ObjectiveRecord[];
+  codex?: CodexProfileData;
 };
 
 export type LineageUnlockRecord = {

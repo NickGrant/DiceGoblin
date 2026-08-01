@@ -258,6 +258,9 @@ abstract class IntegrationTestCase extends TestCase
     if ($this->schemaHasTable('user_bounties')) {
       $this->execDeleteByUserIds("DELETE FROM `user_bounties` WHERE `user_id` IN ($placeholders)", $userIds);
     }
+    if ($this->schemaHasTable('user_codex_entries')) {
+      $this->execDeleteByUserIds("DELETE FROM `user_codex_entries` WHERE `user_id` IN ($placeholders)", $userIds);
+    }
     $this->execDeleteByUserIds("DELETE FROM `user_grants` WHERE `user_id` IN ($placeholders)", $userIds);
     if ($this->schemaHasTable('user_unlocks')) {
       $this->execDeleteByUserIds("DELETE FROM `user_unlocks` WHERE `user_id` IN ($placeholders)", $userIds);
