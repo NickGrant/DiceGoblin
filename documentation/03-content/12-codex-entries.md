@@ -123,6 +123,8 @@ Owning any valid die made from an enabled material discovers that material's pag
 - Independent rarity values and legacy affix combinations are not identities.
 - No material page may advertise `d12`, `d20`, or another inactive size.
 
+Cardboard is the neutral baseline material. Its page records that it is Common, supports every active size, and has no special effect; it is still an explicit material identity rather than missing data.
+
 ### Common
 
 - `cardboard`
