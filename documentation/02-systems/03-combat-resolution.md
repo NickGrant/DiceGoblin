@@ -104,7 +104,7 @@ flowchart LR
   A[Round starts] --> B[Status phase]
   B --> C[Player scheduled actions]
   C --> D[Enemy scheduled actions]
-  D --> E{Living units remain?]
+  D --> E{Living units remain?}
   E -- yes --> F[Next tick or round]
   E -- no --> G[End combat]
 ```
@@ -155,7 +155,7 @@ XP is based on enemy `xp_reward` totals. If enemy XP is empty or zero, the fallb
 
 | Outcome | XP | Teeth |
 | --- | --- | --- |
-| Victory | Full computed XP | `(5 × difficulty_rating) + 0–5`, plus any capped material reward markers |
+| Victory | Full computed XP | `(5 × difficulty_rating) + 0–5`, plus capped material reward markers |
 | Defeat | `floor(full XP × 0.25)` | `0` |
 
 XP and Teeth are applied when the battle is claimed, not merely when the node is resolved. Material-generated reward markers are part of the same idempotent claim transaction.
