@@ -20,109 +20,166 @@ Tags:
 
 ## Purpose
 
-Define the canonical run dialogue currently available in Dice Goblins. This document owns each script's identity, title, narrative purpose, participants, region, placement, eligibility, repeatability, choice structure, completion rewards, and Lore Codex classification.
+Define the canonical run dialogue for the current four-region campaign. This document owns every dialogue identity, authored title and summary, narrative purpose, spoken participants, region, placement, eligibility, repeatability, choice structure, completion reward, recurring-variation requirement, and Lore Codex classification.
 
-Dialogue-node placement algorithms, seen-state persistence, route unlocking, script loading, presentation defaults, and completion transactions belong in system or technical documentation.
+Dialogue-node insertion algorithms, seen-state persistence, route unlocking, deterministic variant selection, script loading, presentation defaults, and completion transactions belong in system or technical documentation.
+
+This catalog defines intended content. Any current runtime or script data that does not yet match it is implementation drift to be corrected.
 
 ## Catalog Rules
 
-- **Participants** lists characters who have spoken lines in the script. Characters mentioned in conversation are not participants unless they speak.
-- **One-time** dialogue stops appearing after the player completes that dialogue id once.
-- **Recurring** dialogue may appear on every eligible run.
+- **Participants** are characters with spoken lines. Mentioned characters, silent figures, machines, and environmental effects are not participants.
+- Every script must have an authored title and summary. Humanized identifier fallbacks are not valid final presentation.
+- **One-time** dialogue stops appearing after its dialogue id is completed once.
 - **Conditional recurring** dialogue repeats only while its stated progression condition remains true.
-- **Self-disabling one-shot** dialogue is not marked one-time, but completion permanently changes its eligibility so it cannot normally recur.
-- Completing any dialogue records that dialogue id as seen. Seen state only suppresses entries identified as one-time unless another eligibility rule uses the seen id.
-- Only scripts explicitly classified as **Lore** in this catalog are canonical Lore Codex entries. Dialogue-only scripts remain valid dialogue content without becoming Lore pages.
+- **Recurring** dialogue remains eligible on later runs after its prerequisite story state is reached.
+- One-time milestone reactions must not recur merely because their prerequisite remains true.
+- Completing any dialogue records that dialogue id as seen. Seen state suppresses one-time entries and may gate later entries.
+- Only scripts explicitly classified as **Lore** here are canonical Lore Codex entries.
+- Current player choices are **voice choices**. They express personality but do not alter rewards, relationships, eligibility, combat state, or future dialogue.
+- Recurring dialogue must use a variation pool and must not replay the same full exchange on every eligible run.
 
-## Current Scope
+## Canonical Scope
 
-The current dialogue set contains:
+The complete current-campaign dialogue plan contains:
 
-- **11** run-placement definitions
-- **12** script ids
-- **5** explicitly one-time scripts
-- **6** recurring or conditionally recurring scripts
-- **1** self-disabling one-shot script
-- **7** Lore Codex scripts
-- **5** dialogue-only scripts
+- **15** run-placement definitions
+- **16** script ids
+- **10** one-time scripts
+- **4** conditional recurring scripts
+- **2** recurring scripts
+- **9** Lore Codex scripts
+- **7** dialogue-only scripts
+- **9** spoken participant identities
 
-The script count is one greater than the placement-definition count because the Farm boss introduction selects one of two scripts based on whether the Shop is unlocked.
+The script count is one greater than the placement-definition count because the Farm boss placement selects one of two scripts based on Shop ownership.
+
+## Repeatability Vocabulary
+
+| Type | Content meaning | Current count |
+| --- | --- | ---: |
+| One-time | A story, tutorial, reward, or milestone scene that is permanently suppressed after completion. | 10 |
+| Conditional recurring | A reminder or unresolved-conflict scene that remains eligible only while a progression condition is true. | 4 |
+| Recurring | A revisit scene that remains eligible after its story state is established. | 2 |
 
 ## Mystic Cave Dialogue
 
-| Key | Title | Placement | Participants | Repeatability | Eligibility | Player choices | Completion effect | Classification |
-| --- | --- | --- | --- | --- | --- | ---: | --- | --- |
-| `start-run-kickoff` | The Whim's First Fragment | Start | Player Goblin, The Whim | One-time | First unresolved Mystic Cave introduction | 3 | Establishes `start-run-kickoff` as seen. | Lore |
-| `mystic-cave-wrong-machine-reminder` | A Marvelous Defect | Start | Player Goblin, The Whim | Conditional recurring | Requires `start-run-kickoff`; available while the Wrong Machine is locked | 0 | None beyond seen-state recording. | Dialogue only |
-| `mystic-cave-wrong-machine-recovered` | The Machine Comes Home | Start | Player Goblin, The Whim | Conditional recurring | Requires `start-run-kickoff` and the Wrong Machine unlock | 3 | None beyond seen-state recording. | Lore |
+| Key | Title | Summary | Placement | Participants | Repeatability | Eligibility | Choices | Completion effect | Classification |
+| --- | --- | --- | --- | --- | --- | --- | ---: | --- | --- |
+| `start-run-kickoff` | The Whim's First Fragment | The Whim gives its newly restored goblin a shape, a purpose, and a first destination. | Start | Player Goblin, The Whim | One-time | First unresolved Mystic Cave introduction | 3 | Records the introduction as complete. | Lore |
+| `mystic-cave-wrong-machine-reminder` | A Marvelous Defect | The Whim points its fragment toward the Wrong Machine and offers exactly enough warning to make it irresistible. | Start | Player Goblin, The Whim | Conditional recurring | Requires `start-run-kickoff`; available while the Wrong Machine is locked | 0 | None beyond seen-state recording. | Dialogue only |
+| `mystic-cave-wrong-machine-recovered` | The Machine Comes Home | The Whim reacts to the recovered Wrong Machine and explains the reconstruction work it makes possible. | Start | Player Goblin, The Whim | One-time | Requires `start-run-kickoff` and the Wrong Machine unlock; unavailable after completion | 3 | Records The Whim's recovery reaction as complete. | Lore |
 
-### Narrative Role
+### Mystic Cave Narrative Requirements
 
-- **The Whim's First Fragment** introduces the player, goblin extinction, The Archivist, the Farm, the Mudking, and the Tooth Collector. It also transforms the player's presentation from primordial fragment to Basic Goblin.
-- **A Marvelous Defect** reminds the player to recover the Wrong Machine without advancing permanent progression.
-- **The Machine Comes Home** explains Raw Chaos, restored goblin possibilities, and the Wrong Machine's role after its recovery.
+- **The Whim's First Fragment** introduces goblin extinction, The Archivist, the Farm, the Mudking, and the Tooth Collector. It transforms the player's presentation from primordial fragment to Basic Goblin.
+- **A Marvelous Defect** is a short reminder, not a repeated exposition scene. Its variants should emphasize urgency, unsafe machine behavior, or The Whim's delight at the machine's impossibility.
+- **The Machine Comes Home** is a milestone reaction and therefore occurs once. It explains Raw Chaos, restored goblin possibilities, and why the machine's return escalates the conflict with The Archivist.
 
 ## Farm Dialogue
 
-| Key | Title | Placement | Participants | Repeatability | Eligibility | Player choices | Completion effect | Classification |
-| --- | --- | --- | --- | --- | --- | ---: | --- | --- |
-| `farm-boss-intro` | Farm Boss Intro | Before boss | Player Goblin, Mudking | Conditional recurring | Used while the Shop is locked | 3 | None beyond seen-state recording. | Dialogue only |
-| `farm-boss-intro-shop-unlocked` | Farm Boss Intro Shop Unlocked | Before boss | Player Goblin, Mudking | Recurring | Replaces `farm-boss-intro` after the Shop is unlocked | 3 | None beyond seen-state recording. | Dialogue only |
-| `farm-shop-unlock` | The Tooth Collector Freed | Before exit | The Tooth Collector, Mudking | One-time | Available until completed once | 0 | Introduces the Shop and the Tooth Collector; the Shop unlock itself is awarded by Farm progression rather than this dialogue completion. | Lore |
+| Key | Title | Summary | Placement | Participants | Repeatability | Eligibility | Choices | Completion effect | Classification |
+| --- | --- | --- | --- | --- | --- | --- | ---: | --- | --- |
+| `farm-boss-intro` | Mud in the Way | The Mudking claims the Farm, its mud, and the imprisoned Tooth Collector before the first confrontation. | Before boss | Player Goblin, Mudking | Conditional recurring | Used while the Shop is locked | 3 | None beyond seen-state recording. | Dialogue only |
+| `farm-boss-intro-shop-unlocked` | Back Into the Pen | The Mudking recognizes the returning goblin and turns another Farm visit into a personal rematch. | Before boss | Player Goblin, Mudking | Recurring | Replaces `farm-boss-intro` after the Shop is unlocked | 3 | None beyond seen-state recording. | Dialogue only |
+| `farm-shop-unlock` | The Tooth Collector Freed | The defeated Mudking releases the Tooth Collector, who establishes the exchange of teeth for useful goods. | Before exit | Player Goblin, The Tooth Collector, Mudking | One-time | Available until completed once after the first Mudking victory | 0 | Introduces the Shop and records the rescue scene. Shop ownership remains part of Farm progression. | Lore |
 
 ### Farm Boss Variant Rule
 
-The Farm has one recurring boss-introduction placement with two canonical scripts:
+The Farm has one boss-dialogue placement with two canonical script states:
 
-- before Shop ownership, use `farm-boss-intro`
+- while Shop ownership is absent, use `farm-boss-intro`
 - after Shop ownership, use `farm-boss-intro-shop-unlocked`
 
-Both scripts depict a confrontation with the Mudking, but the second assumes the Tooth Collector has already been freed and frames the encounter as a rematch.
+The first script may recur after an unsuccessful Farm attempt, but it should use a shortened reprise after its first completion rather than replaying the entire introductory exchange.
 
-### Narrative Role
+### Farm Narrative Requirements
 
-- **Farm Boss Intro** establishes the Mudking's claim over the Farm and the imprisoned Tooth Collector.
-- **Farm Boss Intro Shop Unlocked** acknowledges repeat visits and the consequences of the first Farm victory.
-- **The Tooth Collector Freed** introduces the Tooth Collector's exchange of monster teeth for useful goods. The player is present contextually but has no spoken lines in the current script.
+- **Mud in the Way** establishes the Mudking's territorial authority and identifies the Tooth Collector as his prisoner.
+- **Back Into the Pen** acknowledges previous Farm damage and treats later battles as increasingly personal rematches.
+- **The Tooth Collector Freed** includes at least one spoken acknowledgment from the Player Goblin. The Tooth Collector explains that ordinary monster teeth are currency and offers to exchange them for useful goods. The scene does not imply that every tooth has a hidden metaphysical purpose.
 
 ## Mountains Dialogue
 
-| Key | Title | Placement | Participants | Repeatability | Eligibility | Player choices | Completion effect | Classification |
-| --- | --- | --- | --- | --- | --- | ---: | --- | --- |
-| `mountains-archivist-first-contact` | The Archivist Takes Notice | Start | Player Goblin, The Archivist | One-time | Available until completed once | 3 | Establishes first contact and enables the repeat search dialogue. | Lore |
-| `mountains-wrong-machine-search-repeat` | The High Pass Search | Start | Player Goblin, Kobold Scout | Conditional recurring | Requires Archivist first contact; available while the Wrong Machine is locked | 0 | None beyond seen-state recording. | Dialogue only |
-| `mountains-kobold-machine-trail` | Kobold Evidence | Before boss | Player Goblin, Kobold Sentry | One-time | Available while the Wrong Machine is locked and until completed once | 0 | Establishes the machine trail toward the Swamps. | Lore |
-| `mountains-kobold-machine-recovered` | The Recovered Contraption | Before boss | Player Goblin, Kobold Sentry | Conditional recurring | Available after the Wrong Machine is unlocked | 3 | None beyond seen-state recording. | Lore |
-| `mountains-swamps-lead` | Toward the Swamps | Before exit | Player Goblin, The Archivist | One-time | Available until completed once | 3 | Establishes the Swamps and Bog Tyrant as the next Wrong Machine lead. | Lore |
-| `mountains-traveler-consumable-gifts` | Far Gifts | Random route position | Player Goblin, Far Traveler | Self-disabling one-shot | Available while the `consumables` progression flag is absent | 0 | Grants Field Poultice ×1, Travel Ration ×1, and records the `consumables` progression flag. | Dialogue only |
+| Key | Title | Summary | Placement | Participants | Repeatability | Eligibility | Choices | Completion effect | Classification |
+| --- | --- | --- | --- | --- | --- | --- | ---: | --- | --- |
+| `mountains-archivist-first-contact` | The Archivist Takes Notice | The Archivist discovers that a goblin exists and decides the record must be corrected. | Start | Player Goblin, The Archivist | One-time | Available until completed once | 3 | Enables the unresolved-machine search state. | Lore |
+| `mountains-wrong-machine-search-repeat` | The High Pass Search | A kobold scout warns the goblin about the unsafe but functional machine hidden beyond the pass. | Start | Player Goblin, Kobold Scout | Conditional recurring | Requires Archivist first contact; available while the Wrong Machine is locked | 0 | None beyond seen-state recording. | Dialogue only |
+| `mountains-kobold-machine-trail` | Kobold Evidence | A kobold sentry identifies old goblin tool marks and traces the Wrong Machine toward the Swamps. | Before boss | Player Goblin, Kobold Sentry | One-time | Available while the Wrong Machine is locked and until completed once | 0 | Establishes the machine trail toward the Swamps. | Lore |
+| `mountains-kobold-machine-recovered` | The Recovered Contraption | A kobold sentry realizes that the goblins recovered the machine the Mountains tried to keep documented and distant. | Before boss | Player Goblin, Kobold Sentry | One-time | Available after the Wrong Machine is unlocked and until completed once | 3 | Records the kobolds' recovery reaction as complete. | Lore |
+| `mountains-swamps-lead` | Toward the Swamps | The Archivist names the Bog Tyrant as the Wrong Machine's guardian and warns the goblin away. | Before exit | Player Goblin, The Archivist | One-time | Available until completed once | 3 | Establishes the Swamps and Bog Tyrant as the next campaign objective. | Lore |
+| `mountains-traveler-consumable-gifts` | Far Gifts | A lost traveler mistakes the goblin for a mountain local and shares supplies from another road. | Random route position | Player Goblin, Far Traveler | One-time | Available until completed once | 0 | Grants Field Poultice ×1 and Travel Ration ×1. | Dialogue only |
 
-### Narrative Role
+### Mountains Narrative Requirements
 
-- **The Archivist Takes Notice** establishes The Archivist's awareness of the player and frames the goblin as an error in the official record.
-- **The High Pass Search** provides a recurring reminder that the Wrong Machine lies beyond the Mountains.
-- **Kobold Evidence** identifies goblin construction marks and confirms the machine was taken toward the Swamps.
-- **The Recovered Contraption** reacts to the player returning after the Wrong Machine has already been recovered.
-- **Toward the Swamps** escalates The Archivist's threat and names the Bog Tyrant as the machine's guardian.
-- **Far Gifts** introduces healing and Energy consumables through a lost traveler and supplies the player's first examples.
+- **The Archivist Takes Notice** frames the Player Goblin as an error rather than a survivor and establishes The Archivist's detached but hostile voice.
+- **The High Pass Search** is a short recurring reminder. Its variants should rotate between dangerous route advice, evidence that the machine moved south, and signs that Library agents are closing in.
+- **Kobold Evidence** confirms that the machine is genuinely goblin-made and works precisely because it rejects stable construction.
+- **The Recovered Contraption** is a one-time milestone reaction. It should not recur on every Mountains visit after recovery.
+- **Toward the Swamps** escalates The Archivist's response and makes clear that the Bog Tyrant guards the machine from use, not merely theft.
+- **Far Gifts** is a true one-time tutorial encounter. Its own seen state suppresses recurrence; it does not create a pseudo-feature named `consumables`.
+
+## Swamps Dialogue
+
+| Key | Title | Summary | Placement | Participants | Repeatability | Eligibility | Choices | Completion effect | Classification |
+| --- | --- | --- | --- | --- | --- | --- | ---: | --- | --- |
+| `swamps-bog-tyrant-first-confrontation` | Contraband of the Bog | The Bog Tyrant reveals that the Wrong Machine is dangerous contraband and refuses to surrender it. | Before boss | Player Goblin, Bog Tyrant | One-time | Wrong Machine locked; first Bog Tyrant confrontation not yet completed | 3 | Establishes the machine-defense conflict. | Lore |
+| `swamps-bog-tyrant-machine-defense-repeat` | Still Under Guard | The Bog Tyrant continues defending the Wrong Machine after surviving an earlier challenge. | Before boss | Player Goblin, Bog Tyrant | Conditional recurring | Requires the first confrontation; available while the Wrong Machine remains locked | 0 | None beyond seen-state recording. | Dialogue only |
+| `swamps-wrong-machine-recovered` | The Wrong Machine Reclaimed | The defeated Bog Tyrant yields the machine and warns what its return will bring. | Before exit | Player Goblin, Bog Tyrant | One-time | First victorious Swamps run while the Wrong Machine is locked | 3 | Unlocks the Wrong Machine and records its recovery. | Lore |
+| `swamps-bog-tyrant-rematch` | The Bog Remembers | The Bog Tyrant confronts the goblin who stole the Wrong Machine and destabilized his rule. | Before boss | Player Goblin, Bog Tyrant | Recurring | Available after the Wrong Machine is unlocked | 3 | None beyond seen-state recording. | Dialogue only |
+
+### Swamps Story Sequence
+
+The Swamps arc follows this order:
+
+1. **Contraband of the Bog** introduces the Bog Tyrant and establishes why the frogmen hold the Wrong Machine.
+2. If the player returns before defeating him, **Still Under Guard** supplies shorter confrontation variants without replaying the full reveal.
+3. After the first Bog Tyrant victory, **The Wrong Machine Reclaimed** completes the opening campaign arc and unlocks the Wrong Machine.
+4. Later Swamps visits use **The Bog Remembers**, which treats the fight as a rematch and never implies that the machine can be recovered a second time.
+
+### Required Beats: Contraband of the Bog
+
+- The Bog Tyrant recognizes the player as a living goblin.
+- He identifies the Wrong Machine as working contraband rather than broken machinery.
+- He states that frogman control prevents the machine from returning settled things to possibility.
+- His relationship with the Library is pragmatic: he benefits from regional authority and is expected to keep the machine contained.
+- The Player Goblin receives three voice choices expressing violence, greed, or goblin logic.
+- Every branch ends with the Bog Tyrant refusing surrender and initiating the boss battle.
+
+### Required Beats: The Wrong Machine Reclaimed
+
+- The defeated Bog Tyrant allows the goblins to take the machine but does not endorse its use.
+- He warns that The Archivist will notice as soon as it begins operating.
+- The machine hums, shudders, or otherwise reacts, but it is not a speaking participant.
+- The Player Goblin receives three voice choices focused on rebuilding goblins, making useful disasters, or openly provoking The Archivist.
+- Every branch ends with the machine returning to goblin control and the Wrong Machine feature becoming available.
+
+### Required Beats: The Bog Remembers
+
+- The Bog Tyrant acknowledges that the machine is gone and cannot be reclaimed from this battle.
+- His anger centers on lost authority, regional instability, and humiliation rather than repeating the original containment exposition.
+- The scene remains short enough for recurring use.
+- Voice choices may taunt the Tyrant, demand more teeth, or claim ownership of the swamp through goblin logic.
 
 ## Participant Index
 
-| Participant | Role in current dialogue | Current scripts |
+| Participant | Narrative role | Canonical scripts |
 | --- | --- | --- |
-| Player Goblin | Player viewpoint and selectable voice | All current scripts except `farm-shop-unlock` |
+| Player Goblin | Player viewpoint and selectable voice | Every script |
 | The Whim | Creator, guide, and chaos-aligned patron | `start-run-kickoff`, `mystic-cave-wrong-machine-reminder`, `mystic-cave-wrong-machine-recovered` |
 | Mudking | Farm ruler, boss, and recurring antagonist | `farm-boss-intro`, `farm-boss-intro-shop-unlocked`, `farm-shop-unlock` |
-| The Tooth Collector | Economy character freed from the Mudking | `farm-shop-unlock` |
+| The Tooth Collector | Economy character rescued from the Mudking | `farm-shop-unlock` |
 | The Archivist | Central order-aligned antagonist | `mountains-archivist-first-contact`, `mountains-swamps-lead` |
-| Kobold Scout | Recurring mountain route informant | `mountains-wrong-machine-search-repeat` |
+| Kobold Scout | Recurring route informant | `mountains-wrong-machine-search-repeat` |
 | Kobold Sentry | Technical witness to the Wrong Machine trail | `mountains-kobold-machine-trail`, `mountains-kobold-machine-recovered` |
 | Far Traveler | Neutral visitor who introduces consumables | `mountains-traveler-consumable-gifts` |
+| Bog Tyrant | Swamp ruler, Wrong Machine jailer, and recurring boss | All four Swamps scripts |
 
-The Bog Tyrant and the Wrong Machine are discussed but do not currently speak in any canonical dialogue.
+The Wrong Machine is an active scene object but not a speaking participant in the current campaign.
 
-## Choice Structure
+## Player Voice Choice Policy
 
-Seven scripts contain a three-option player response:
+Ten scripts contain a three-option Player Goblin response:
 
 - `start-run-kickoff`
 - `mystic-cave-wrong-machine-recovered`
@@ -131,52 +188,90 @@ Seven scripts contain a three-option player response:
 - `mountains-archivist-first-contact`
 - `mountains-kobold-machine-recovered`
 - `mountains-swamps-lead`
+- `swamps-bog-tyrant-first-confrontation`
+- `swamps-wrong-machine-recovered`
+- `swamps-bog-tyrant-rematch`
 
-Current choices express different shades of goblin personality—usually violence, greed, or goblin logic—but reconverge before the script ends. They do not currently change rewards, future eligibility, relationships, or persistent narrative state.
+Current options should normally represent:
 
-The remaining five scripts are linear.
+- **Violence:** direct threats, confidence, or enthusiasm for fighting.
+- **Greed:** teeth, loot, ownership, or transactional self-interest.
+- **Goblin logic:** internally consistent nonsense, technical literalism, or opportunistic reinterpretation.
+
+These are voice choices only. They reconverge within the current scene and are not persisted. A future relationship or branching-story system must introduce a separate choice classification rather than silently changing the meaning of these existing options.
+
+The remaining six scripts are linear.
+
+## Recurring Variation Requirements
+
+Recurring dialogue uses the same dialogue identity but contains a minimum of three authored exchange variants. Variant selection must avoid an immediate repeat for the same player when alternatives are available.
+
+| Dialogue family | Minimum variants | Required variation topics |
+| --- | ---: | --- |
+| `mystic-cave-wrong-machine-reminder` | 3 | The machine's impossible behavior; The Whim's impatience; a warning not to climb inside it. |
+| `farm-boss-intro-shop-unlocked` | 3 | Damage from prior visits; new but ineffective defenses; Mudking's resentment over the Tooth Collector and hidden teeth. |
+| `mountains-wrong-machine-search-repeat` | 3 | Trapped or unstable routes; tool marks leading south; Library agents or inspectors approaching. |
+| `swamps-bog-tyrant-machine-defense-repeat` | 3 | Continued containment duty; failed attempts to stabilize the machine; growing fear that goblins will reclaim it. |
+| `swamps-bog-tyrant-rematch` | 3 | Lost authority; swamp instability after recovery; personal humiliation and revenge. |
+
+The conditional pre-Shop Farm confrontation may use one shortened reprise after the introductory exchange if the player returns before unlocking the Shop.
+
+Recurring variants should be shorter than milestone scenes and must not repeatedly deliver information the player has already canonically learned.
 
 ## Lore Codex Entries
 
-The following seven dialogue scripts are canonical Lore Codex entries:
+The following nine scripts are canonical Lore Codex entries:
 
 | Dialogue key | Lore title | Discovery condition |
 | --- | --- | --- |
 | `start-run-kickoff` | The Whim's First Fragment | Complete the dialogue. |
-| `mystic-cave-wrong-machine-recovered` | The Machine Comes Home | Complete the dialogue after recovering the Wrong Machine. |
-| `farm-shop-unlock` | The Tooth Collector Freed | Complete the Farm exit dialogue. |
+| `mystic-cave-wrong-machine-recovered` | The Machine Comes Home | Complete the one-time reaction after recovering the Wrong Machine. |
+| `farm-shop-unlock` | The Tooth Collector Freed | Complete the Farm rescue dialogue. |
 | `mountains-archivist-first-contact` | The Archivist Takes Notice | Complete the first-contact dialogue. |
 | `mountains-kobold-machine-trail` | Kobold Evidence | Complete the one-time machine-trail dialogue. |
-| `mountains-kobold-machine-recovered` | The Recovered Contraption | Complete the dialogue after recovering the Wrong Machine. |
+| `mountains-kobold-machine-recovered` | The Recovered Contraption | Complete the one-time kobold reaction after recovery. |
 | `mountains-swamps-lead` | Toward the Swamps | Complete the Mountains exit dialogue. |
+| `swamps-bog-tyrant-first-confrontation` | Contraband of the Bog | Complete the first Bog Tyrant confrontation. |
+| `swamps-wrong-machine-recovered` | The Wrong Machine Reclaimed | Complete the Swamps recovery dialogue. |
 
-The other five script ids are valid dialogue content but are not Lore pages. Completing them may still create seen-state records used by dialogue progression.
+The other seven script ids are valid dialogue content but are not Lore pages. Completing them creates seen-state records only.
 
 ## Completion Rewards
 
-Only one current dialogue directly grants assets:
-
 | Dialogue | Permanent progression | Items |
 | --- | --- | --- |
-| `mountains-traveler-consumable-gifts` | Records the `consumables` progression flag, preventing the encounter from being offered again | Field Poultice ×1; Travel Ration ×1 |
+| `mountains-traveler-consumable-gifts` | One-time completion recorded by the dialogue's own seen state | Field Poultice ×1; Travel Ration ×1 |
+| `swamps-wrong-machine-recovered` | Unlocks the Wrong Machine | None |
 
-The `consumables` key is a dialogue-progression flag rather than a canonical player-facing feature. It should not appear as a Shop feature or Codex feature entry unless a separate content decision gives it an independent feature identity.
+No generic dialogue-completion key should be exposed as a player-facing feature unless that feature has its own canonical content definition.
 
-## Open Questions
+## Narrative Continuity Rules
 
-- **No Swamps dialogue exists.** The current story direction calls for the Bog Tyrant confrontation and recovery of the Wrong Machine in the Swamps, but no current Swamps script covers those events.
-- **Farm boss titles are presentation fallbacks.** `farm-boss-intro` and `farm-boss-intro-shop-unlocked` have no authored titles or summaries beyond their generated id-based presentation.
-- **Recurring dialogue has no variation pool.** Every eligible revisit repeats the same full script. Future recurring content may need alternate lines, weighted variants, or escalating states.
-- **Choices are non-persistent.** Current response branches establish tone only. A future system should explicitly decide whether choices remain expressive or begin affecting relationships, rewards, or later scripts.
-- **Lore ownership must respect content classification.** Seen-state records for dialogue-only scripts must not automatically become Lore Codex pages.
-- **The `consumables` progression flag is stored like a feature.** Its canonical role is only to record completion of Far Gifts and suppress repeat placement; generic feature presentation should not expose it as a normal feature.
-- **The Farm Shop scene omits the player as a speaker.** This may be intentional staging, but the scene should be reviewed if the player is expected to acknowledge the Tooth Collector directly.
+- The Tooth Collector cannot speak as a rescued hub character before `farm-shop-unlock` is complete.
+- The Archivist first addresses the player in `mountains-archivist-first-contact`; later Archivist dialogue assumes that contact.
+- No dialogue may state that the Wrong Machine is broken or malfunctioning. Its name is a proper name and its impossible operation is intentional.
+- Pre-recovery dialogue treats the machine as controlled by the Bog Tyrant. Post-recovery dialogue treats it as permanently returned to goblin control.
+- The Bog Tyrant remains available as a recurring regional ruler after defeat.
+- The Wrong Machine does not speak in the current campaign.
+- Completing a recurring dialogue does not make it a Lore entry unless explicitly listed above.
+
+## Resolved Content Decisions
+
+- The Farm boss scripts now have authored titles and summaries.
+- The Player Goblin speaks in the Tooth Collector rescue scene.
+- The Swamps now have a complete confrontation, failed-attempt, recovery, and rematch sequence.
+- Wrong Machine recovery is a one-time Swamps milestone rather than an off-screen feature award.
+- The Whim and kobold post-recovery reactions are one-time milestone scenes.
+- Far Gifts is explicitly one-time and uses its own seen state instead of a pseudo-feature flag.
+- Current choices are canonically voice-only and non-persistent.
+- Recurring dialogue requires authored variation pools.
+- Lore ownership is explicit and is not inferred from generic dialogue seen state.
 
 ## Maintenance Notes
 
-- Add a dialogue entry here before or alongside adding its script or run placement.
-- Every entry must identify its spoken participants and effective repeatability.
-- Keep placement, eligibility, completion rewards, and Lore classification synchronized with related content catalogs.
-- Do not infer Lore status from the existence of a seen-state key; Lore classification must be explicit.
-- Keep route insertion, persistence, API behavior, script materialization, and presentation defaults in system or technical documentation.
-- Planning-only story beats do not become current dialogue until they receive a complete catalog entry and script.
+- Add or revise a dialogue entry here before or alongside its script and run placement.
+- Every script must identify spoken participants, repeatability, eligibility, title, summary, and Lore classification.
+- Keep placement, completion rewards, and progression conditions synchronized with biome, item, reward, and Codex catalogs.
+- Do not infer Lore status from a dialogue seen-state key.
+- Keep route insertion, persistence, deterministic selection, API behavior, script materialization, and presentation fallbacks outside this document.
+- Recurring dialogue must remain concise, state-aware, and varied.
