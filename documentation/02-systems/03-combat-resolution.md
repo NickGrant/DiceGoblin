@@ -12,6 +12,7 @@ Depends On:
 Category: 02-systems
 Tags:
   - systems
+  - combat
 ---
 
 # Combat Resolution
@@ -89,7 +90,7 @@ Before combat starts, active run-unit effects can modify combat stats for the ne
 - Applied modifiers appear in participant metadata under `run_combat_modifiers`.
 - After a combat-like node resolves, next-combat modifiers are decremented or removed and logged under `run_combat_modifiers_consumed`.
 
-Passive material effects such as Iron, Glass, Lead, Brass, Phoenix Ash, or Living Bone are separate equipped-die effects. They do not consume next-combat run modifiers.
+Passive material effects such as Iron, Glass, Lead, Brass, Phoenix Ash, or Living Bone are separate equipped-die effects. They do not consume next-combat run modifiers. Cardboard has no combat effect and contributes only its rolled value.
 
 ## Round and Action Timing
 
@@ -121,6 +122,8 @@ Every owned die participating in target-state combat has exactly:
 - one canonical material that permits that size
 
 No current combat die uses `d12` or `d20`.
+
+Cardboard is the neutral material, permits every active size, and applies no special combat behavior. A Cardboard die still has explicit material identity; it is not equivalent to a missing material value.
 
 ### Resolution Order
 
@@ -171,4 +174,5 @@ Combat resolution is aligned when:
 - passive caps and once-per-action, once-per-round, or once-per-battle limits are enforced
 - Gold markers cannot duplicate Teeth across claim retries
 - fatal-damage prevention and revival use a stable order
+- Cardboard applies no special combat effect
 - no `d12` or `d20` die enters current combat
