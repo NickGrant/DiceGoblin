@@ -59,7 +59,7 @@ Canonical content catalogs are the source of truth for what content exists and f
 
 The permanent target-state die identity is one active die size plus one material. The active sizes are `d4`, `d6`, `d8`, and `d10` only.
 
-The Dice Material Catalog defines the initial 32-material roster. Permanent affixes are retired from the target model and remain only as migration inputs until implementation cutover.
+The Dice Material Catalog defines the initial 32-material roster. Cardboard is the neutral default material, is valid on every active size, and has no special effect. Permanent affixes are retired from the target model and remain only as migration inputs until implementation cutover.
 
 ## Deferred Catalogs
 
