@@ -36,7 +36,7 @@ Status resistance, tick processing, die scaling, application order, targeting re
 | `bolstered` | Bolstered | Increases Defense. Bolster Ally and Shield Up currently provide a base `25%` Defense increase; passive effects may add an Attack bonus. | 2 | Reapplication refreshes duration and retains the strongest authored Defense and Attack values. | Shield Up, Bolster Ally, Rally Rhythm, Morale Goblin |
 | `warcry` | Warcry | Increases Attack. Warcry provides a base `18%`; Swamp Holler provides a base `14%`. | 2 | Reapplication refreshes duration; source and passive modifiers determine strength. | Warcry, Swamp Holler, Chant of Violence |
 | `lucky` | Lucky | Adds a base `+2` to the next eligible action result. | Up to 2 | Consumed by the next eligible action. | Lucky Chant |
-| `guard_stacks` | Guard Stacks | Redirects the next eligible hostile attack to the guarded unit. Each stack reduces that attack's damage by `1`. | 2 | Taunting Guard grants a die-scaled number of stacks up to `4`; all stacks are consumed by the next incoming attack. | Taunting Guard, Unmoving |
+| `taunting_guard` | Taunting Guard | Redirects the next eligible hostile attack to the guarded unit. Each Guard stack reduces that attack's damage by `1`. | 2 | Grants a die-scaled number of Guard stacks up to `4`; all stacks are consumed by the next incoming attack. | Taunting Guard, Unmoving |
 | `shield_set` | Shield Set | Grants `+1` Defense per stack. | 1 | Gains one stack when attacked, up to `3`; Wall of Scrap raises the cap to `5`. | Shield Set, Wall of Scrap |
 | `brawl_hardened_stacks` | Brawl Hardened | Each stack reduces damage from the next incoming attack by `1`. | Until consumed | Gains one stack when attacked, up to `3`; all stacks are consumed by the next incoming attack. | Brawl Hardened |
 | `crowd_favorite` | Crowd Favorite | Adds `+1` damage per stack. | Battle | Gains one stack when damaged, up to `5`. | Crowd Favorite |
@@ -61,7 +61,7 @@ Status resistance, tick processing, die scaling, application order, targeting re
 | Classification | Statuses |
 | --- | --- |
 | Buffs | `bolstered`, `warcry`, `lucky` |
-| Defensive stack conditions | `guard_stacks`, `shield_set`, `brawl_hardened_stacks` |
+| Defensive stack conditions | `taunting_guard`, `shield_set`, `brawl_hardened_stacks` |
 | Offensive stack conditions | `crowd_favorite` |
 | Control debuffs | `sleep`, `wrestled`, `snared` |
 | Damage or vulnerability debuffs | `poison`, `marked`, `cracked_armor`, `menaced`, `fuse_lit` |
@@ -81,6 +81,7 @@ They track whether a passive can trigger or has already triggered. Their player-
 
 ## Open Questions
 
+- Combat implementation currently stores Taunting Guard under the internal key `guard_stacks`. It should align to the canonical `taunting_guard` key or explicitly translate that implementation detail at the content boundary.
 - `snared` is current content but has no unique mechanical effect beyond counting as a distinct debuff. It needs an authored gameplay identity or an explicit decision to remain a setup-only marker.
 - Combat implementation supports a `bleeding` vulnerability status, but no current non-dice unit or enemy ability canonically applies it. It is not current status content until an ability or encounter deliberately introduces it.
 - Status presentation needs a consistent player-facing rule for showing exact remaining rounds, stack counts, and source-modified strength.
