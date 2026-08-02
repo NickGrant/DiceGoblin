@@ -1,11 +1,12 @@
 ---
 Title: "Seed Catalog Ownership"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-02
 Owner: Engineering
 Depends On:
   - documentation/05-technical/04-data-model.md
   - documentation/05-technical/03-backend-api-contracts.md
+  - documentation/02-systems/08-dice-material-model.md
   - backend/migrations/schema_all.sql
 Category: 05-technical
 Tags:
@@ -75,8 +76,8 @@ The contract is a stable slug:
 | `unit_instance_equipped_abilities` | Database-owned | Mutable per-unit loadout order. | Keep DB. |
 | `unit_instance_capstone_choices` | Database-owned | Persistent lineage choice state. | Keep DB. |
 | `unit_ability_dice` | Database-owned | Runtime binding from unit ability slots to owned dice. | Keep DB. |
-| `dice_instances` | Database-owned | Player-owned dice inventory. | Keep DB. |
-| `dice_instance_affixes` | Database-owned | Rolled per-die affix values. | Keep DB. |
+| `dice_instances` | Database-owned | Player-owned dice inventory and equipment identity. | Keep DB; target instances should reference one size and one material, with rarity derived from material. |
+| `dice_instance_affixes` | Database-owned legacy | Rolled per-die affix values in the current implementation. Permanent instance affixes are absent from the target model. | Freeze as migration input; stop extending the model and remove after owned dice are converted to valid size-material pairs. |
 | `region_runs` | Database-owned | Mutable run lifecycle state. | Keep DB. |
 | `run_nodes` | Database-owned with code-backed enum pressure | Runtime node graph, but `node_type` is currently an enum-like primitive. | Keep table DB; consider moving node-type constants to code/config with migration discipline. |
 | `run_edges` | Database-owned | Runtime graph connectivity. | Keep DB. |
@@ -98,16 +99,49 @@ The contract is a stable slug:
 | `run_generation_profiles` | Database-owned catalog | Generator budgets, bounds, and requirements control runtime map topology and need environment-visible inspection. | Keep DB; seed V2 profiles through migrations. |
 | `bounty_definitions` | Hybrid-owned catalog | Rows store objectives/rewards; objective evaluation behavior is code-owned. | Keep DB; enforce objective-kind handler parity. |
 | `splice_variants` | Hybrid-owned catalog | Rows store modifiers and display copy; future passive behavior would be code-owned. | Keep DB; enforce passive/effect slugs if added. |
-| `affix_definitions` | Hybrid-owned catalog | Rows store affix metadata and values; affix behavior is code-owned. | Keep DB; enforce behavior-kind/slug handler parity. |
-| `dice_definitions` | Code/config-owned candidate | Small matrix of sides, rarity, and slot capacity. It is queryable today but behaves like a stable primitive. | Consider moving source of truth to code/config and seeding DB for joins/debug. |
+| `affix_definitions` | Hybrid-owned legacy catalog | Rows store legacy affix metadata and values while code owns affix behavior. Permanent affixes are retired from the target dice model. | Freeze new content; use rows to drive an explicit convert, merge, relocate, or remove decision, then retire the catalog. |
+| `dice_definitions` | Code/config-owned size primitive candidate | The current table mixes sides, independent rarity, and affix-slot capacity. The target model needs active size primitives and base values, while rarity belongs to materials and affix capacity disappears. | Do not extend rarity or slot-capacity behavior; separate size primitives during the material migration. |
+| `dice_materials` | Planned hybrid-owned catalog | Target rows should store stable material key, display data, rarity, allowed sizes, effect parameters, stacking metadata, valuation, tags, and enabled state; code owns executable effect handlers. | Add only after the canonical Dice Material Catalog is authored; enforce material-key and behavior-handler parity. |
 | `unit_dice` | Removed | Legacy generic unit dice binding replaced by `unit_ability_dice`. | No action; migration 70 drops it. |
+
+## Dice Material Target Contract
+
+The target dice ownership split is:
+
+- size vocabulary and base size values are small stable primitives
+- material definitions are authored hybrid-owned content
+- material behavior is executed by code through a stable material key or effect-handler key
+- die instances store ownership, equipment, size, and material identity
+- rarity is derived from material
+- permanent affix relationship rows are not retained
+
+A material catalog row should remain inspectable and balanceable without embedding executable logic in SQL. Its effect key and parameters must resolve to registered behavior, and its allowed-size data must resolve only to active size primitives.
+
+## Dice Migration Direction
+
+Implementation reconciliation should proceed without creating a long-lived hybrid between old and new dice models.
+
+The migration should:
+
+1. author and seed the material catalog
+2. add target material references and validation
+3. deterministically map every owned die to one valid size-material pair
+4. preserve equipment bindings and ownership
+5. switch generation, combat, valuation, shop, salvage, profile, and Codex behavior to material identity
+6. stop reading independent rarity and per-instance affixes
+7. remove legacy affix relationships and definitions after compatibility is no longer required
+
+Legacy affix tables may remain temporarily for rollback or audit, but no target-state feature should depend on them after the cutover.
 
 ## Recommended Cleanup Order
 
-1. Add parity tests for hybrid behavior-bearing slugs.
-2. Codify the smallest primitives first: dice sides, dice rarity, and node type vocabulary.
-3. Move large catalog authoring out of raw SQL only after the seed browser and parity tests make review safe.
-4. Keep all player, run, inventory, battle, auth, and audit tables database-owned.
+1. Author the Dice Material Catalog and its stable behavior vocabulary.
+2. Add parity validation for material keys, effect handlers, rarity, allowed sizes, and generation coverage.
+3. Reconcile dice storage and migrate owned dice without breaking ability-slot bindings.
+4. Remove independent rarity, affix-capacity, affix-generation, and affix-valuation behavior.
+5. Continue parity work for other hybrid behavior-bearing slugs.
+6. Move large catalog authoring out of raw SQL only after the seed browser and parity tests make review safe.
+7. Keep all player, run, inventory, battle, auth, and audit tables database-owned.
 
 ## Hybrid Contract Tests
 
@@ -116,5 +150,13 @@ Hybrid-owned tables should have focused tests for:
 - every enabled catalog row that names behavior has a registered handler
 - every JSON field that references another catalog row resolves successfully
 - disabled or future rows are explicitly excluded from runtime selection
+
+Dice materials additionally require tests for:
+- every enabled material has exactly one supported rarity
+- every enabled material has at least one active allowed size
+- every allowed size resolves to an active size primitive
+- every enabled material's effect key resolves to a registered handler or explicit neutral behavior
+- every selectable size and reward source has a non-empty eligible material pool
+- no die instance contains an invalid size-material pair
 
 The debug seed browser remains the inspection surface for database-backed values. It should not become an editor until ownership, validation, and rollback rules are defined separately.
