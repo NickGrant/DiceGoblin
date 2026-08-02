@@ -17,9 +17,7 @@ Tags:
 
 ## Purpose
 
-Identify the canonical document for each category of authored game content. Where a canonical catalog has not yet been written, this map records temporary implementation references that must be reconciled when that catalog is created.
-
-Once a category has a canonical content document, implementation files are consumers of that document rather than competing sources of truth.
+Identify the canonical document for each category of authored game content. Once a category has a canonical content document, implementation files are consumers of that document rather than competing sources of truth.
 
 ## Content Categories
 
@@ -38,23 +36,21 @@ Once a category has a canonical content document, implementation files are consu
 | Loot and reward profiles | `documentation/03-content/11-loot-and-reward-profiles.md` | Canonical | Defines active node-and-outcome reward chances, guarantees, currency, and item grants. |
 | Codex entries | `documentation/03-content/12-codex-entries.md` | Canonical | Defines current Codex categories, eligible keys, and discovery conditions. |
 | Dialogue and lore | `documentation/03-content/13-dialogue-and-lore.md` | Canonical | Defines current scripts, participants, placement, eligibility, repeatability, choices, completion rewards, and Lore classification. |
-| Dice materials | Not yet created | Interim | The canonical target rules are defined in `documentation/02-systems/08-dice-material-model.md`; a material catalog must still define the concrete roster, rarity, effects, allowed sizes, stacking, valuation, and presentation. |
+| Dice materials | `documentation/03-content/14-dice-materials.md` | Canonical | Defines the 32-material initial roster, rarity, effects, allowed active sizes, stacking, valuation, starter assignment, Codex identity, and legacy-affix disposition. |
 
-## Retired Target Content Model
+## Dice Content Boundary
 
-Permanent die affixes are not a target-state content category.
+The permanent target-state die identity is defined by:
 
-Existing affix definitions, rarity-based affix capacity, and per-instance affix records are legacy migration inputs. Their effects must eventually be converted into materials, merged into another material, moved to another system, or removed according to the Dice Material Identity and Generation model.
+```text
+die size + material
+```
+
+The active sizes are `d4`, `d6`, `d8`, and `d10`. No current material supports `d12`, `d20`, or another size.
+
+Permanent die affixes are not a target-state content category. Existing affix definitions, rarity-based affix capacity, and per-instance affix records are legacy migration inputs. Their effects must be converted into materials, merged into another material, moved to another system, or removed according to the Dice Material Identity and Generation model and Dice Material Catalog.
 
 Temporary run effects and global feature rules may still modify dice, but they are not permanent affixes attached to die instances.
-
-## Interim Implementation References
-
-These references help locate existing content while canonical catalogs are still missing. They are discovery aids, not durable content authority.
-
-| Category | Temporary references |
-| --- | --- |
-| Dice materials | Legacy dice definitions, rarity and affix data, current combat and inventory behavior, and the canonical target rules in `documentation/02-systems/08-dice-material-model.md`. |
 
 ## Catalog Writing Rules
 
@@ -69,4 +65,4 @@ These references help locate existing content while canonical catalogs are still
 
 ## Review Boundary
 
-A category remains `Interim` until its existing implementation data, player-facing copy, and relevant design decisions have been reconciled into a canonical catalog.
+A category is canonical only after its implementation data, player-facing copy, and relevant design decisions have been reconciled into a complete catalog. All current content categories now have a canonical catalog; implementation drift remains tracked in the individual documents.
