@@ -7,6 +7,7 @@ Depends On:
   - documentation/03-content/08-encounter-templates.md
   - documentation/03-content/09-hazards-and-shrines.md
   - documentation/03-content/10-items-and-consumables.md
+  - documentation/03-content/13-dialogue-and-lore.md
   - documentation/02-systems/06-loot-determination.md
 Category: 03-content
 Tags:
@@ -20,7 +21,7 @@ Tags:
 
 ## Purpose
 
-Define the canonical reward profiles currently attached to run-node outcomes. This document owns authored reward chances, guarantees, currency ranges, progression-item grants, and the distinction between normal rewards and generated encounter effects.
+Define the canonical reward profiles currently attached to run-node outcomes. This document owns authored reward chances, guarantees, currency ranges, progression-item grants, dialogue completion grants, and the distinction between normal rewards and generated encounter effects.
 
 Deterministic randomization, reward materialization, inventory transactions, claim idempotency, XP application, and unlock persistence belong in system or technical documentation.
 
@@ -36,6 +37,7 @@ Deterministic randomization, reward materialization, inventory transactions, cla
 | Rest node | `0` | `0` | `0%` | `0%` | None | Restores the squad to full run health. |
 | Hazard node | `0` | `0` | `0%` | `0%` | None | Resolves the selected hazard outcome instead of normal loot. |
 | Shrine node | `0` | Effect-defined | `0%` | `0%` | None | Resolves a shrine favor; declineable offers require an accept or decline decision. |
+| Dialogue completion | `0` | `0` | `0%` | `0%` | Script-defined | Only Far Gifts currently grants assets. |
 
 ## Unit Grant Pool
 
@@ -60,6 +62,16 @@ Current kin eligibility is defined by the kin catalog. This reward profile does 
 | Encounter contains the Mudking | Boss victory | Mudking Crown Fragment × `1` |
 
 Progression-item grants are additive. A Mudking boss victory therefore grants two Pig Ears and one Mudking Crown Fragment.
+
+## Dialogue Completion Grants
+
+| Dialogue | Repeatability | Permanent progression | Item grants |
+| --- | --- | --- | --- |
+| `mountains-traveler-consumable-gifts` | Self-disabling one-shot | Records the `consumables` progression flag so the encounter is not normally offered again | Field Poultice × `1`; Travel Ration × `1` |
+
+No other current dialogue grants direct currency, units, dice, or items.
+
+The `consumables` key is a dialogue-progression flag rather than a canonical player-facing feature. It exists to record completion of the introductory consumable encounter.
 
 ## Generated Hazard and Shrine Rewards
 
@@ -99,6 +111,7 @@ Codex pages are independent from normal unit, die, item, and currency grants.
 - Each defeated enemy copy in a victorious combat, boss, or chaos encounter has a `13%` deterministic chance to award that enemy's Codex entry when it is not already owned.
 - Completing a biome awards the biome Codex entry.
 - When a biome entry is first awarded, defeated boss enemies from that completed run are also awarded as Codex entries.
+- Completing a dialogue classified as Lore awards its Lore Codex entry.
 
 Full category and discovery rules are defined in the Codex catalog.
 
@@ -119,14 +132,15 @@ Encounter templates may still carry these identifiers as inactive metadata. Thei
 
 - Named loot-table metadata should either be removed from encounter templates or restored as an intentional reward-authoring layer. Maintaining ignored references creates misleading content data.
 - Chaos victories currently receive XP and Teeth but are excluded from normal unit, die, and item grant rolls. The intended long-term chaos reward identity needs an explicit decision.
-- The four consumables have no canonical acquisition profile.
+- Hearty Bone Broth and Sparkroot Tonic have no canonical acquisition profile.
+- Field Poultice and Travel Ration have introductory grants but no renewable acquisition profile.
 - Mountains and Swamps have no modern progression-item drops despite older Roc Egg and Gator Head concepts.
 - Reward tuning currently applies the same unit and die chances to normal combat and bosses. Bosses may need a distinct guaranteed or elevated profile.
 
 ## Maintenance Notes
 
 - Change reward chances and guarantees here before or alongside runtime tuning.
-- Keep item grants synchronized with the item catalog.
+- Keep item grants synchronized with the item and dialogue catalogs.
 - Keep encounter difficulty synchronized with the encounter catalog.
 - Do not treat inactive named loot tables as content authority.
 - Keep grant selection algorithms, deterministic rolls, materialization, and claim handling in system documentation.
