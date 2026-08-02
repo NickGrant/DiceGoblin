@@ -16,46 +16,36 @@ Tags:
 
 ## Purpose
 
-Catalog the goblin kin types currently recognized as game content. The implementation stores these records in `splice_variants`, but the player-facing concept is kin.
+Define the canonical goblin kin types and the authored traits that distinguish them. Only kin listed in this document are part of the current content set.
+
+Unlock behavior, reward eligibility, and stat-resolution formulas belong in system documentation. This document defines which kin exist and the modifiers associated with them.
 
 ## Scope
 
 - Content category: Goblin kin types.
-- Current implementation source: `backend/migrations/63_seed_splice_variants.sql` and `backend/migrations/74_seed_pig_kin_variant.sql`.
-- Player-facing surface: Wrong Machine results, unit identity, Warband displays, rewards, and Codex entries.
-- Related system docs: Wrong Machine, kin unlock, reward eligibility, and unit stat resolution documentation.
+- Player-facing surfaces: Unit identity, Warband displays, kin unlocks, rewards, and Codex entries.
+- Related system docs: Kin unlocking, reward eligibility, unit generation, and stat resolution.
 
 ## Reading the Catalog
 
 - Stat modifiers use `Attack / Defense / Max HP / Precision / Resolve` order.
-- Grant weight is implementation metadata and does not by itself determine whether a kin type is currently eligible from every reward source.
-- This catalog intentionally recognizes only Basic Goblin and Pig Kin as current kin types.
+- A value of `0` means the kin does not modify that stat.
+- Content keys are stable identifiers used to connect this catalog to implementation and saved data.
 
 ## Entries
 
-| Key | Display name | Description | Stat modifiers | Passive summary | Grant weight | Primary seed | Player-facing status | Notes |
-| --- | --- | --- | --- | --- | ---: | --- | --- | --- |
-| `basic_goblin` | Basic Goblin | Baseline goblin stock with no splice tendency. | `0 / 0 / 0 / 0 / 0` | No splice modifier. | 60 | `63_seed_splice_variants.sql` | Current | Default goblin kin and baseline comparison point. |
-| `pig_kin` | Pig Kin | Stubborn farmyard goblin-kin with a thicker hide and a slightly slower hand. | `0 / +1 / +2 / -1 / +1` | +1 Defense, +2 HP, +1 Resolve, -1 Precision. | 12 | `74_seed_pig_kin_variant.sql` | Current | Farm-associated unlock and progression kin. |
-
-## Legacy Implementation Records
-
-Migration 63 also seeds the following `splice_variants` records:
-
-| Key | Display name | Migration state | Content status | Notes |
-| --- | --- | --- | --- | --- |
-| `rat_splice` | Rat-Spliced | Seeded with `is_enabled = 1` | Not a current kin type | Retained as an older splice implementation record. |
-| `toad_splice` | Toad-Spliced | Seeded with `is_enabled = 1` | Not a current kin type | Retained as an older splice implementation record. |
-| `bat_splice` | Bat-Spliced | Seeded with `is_enabled = 1` | Not a current kin type | Retained as an older splice implementation record. |
-
-These records should not be added to player-facing kin catalogs solely because they remain present in migration history. Reintroducing one as a current kin type requires an explicit content decision and corresponding documentation update.
+| Key | Display name | Description | Stat modifiers | Gameplay identity | Content status | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| `basic_goblin` | Basic Goblin | Baseline goblin stock with no specialized kin traits. | `0 / 0 / 0 / 0 / 0` | Neutral baseline with no stat adjustments. | Active | Default kin and comparison point for other kin types. |
+| `pig_kin` | Pig Kin | Stubborn farmyard goblin-kin with thicker hides and a less precise fighting style. | `0 / +1 / +2 / -1 / +1` | More durable and resolute, but less precise. | Active | Associated with progression through The Farm. |
 
 ## Open Questions
 
-- The database seed state still marks the three legacy splice records as enabled. Their runtime eligibility should remain governed by the current reward and unlock rules until the storage model is cleaned up or the content is formally reintroduced.
+- None.
 
 ## Maintenance Notes
 
-- Treat the content decision in this catalog as authoritative for which records are current kin types.
-- Update the catalog when a kin type is formally introduced, removed, renamed, or receives new stat modifiers.
-- Keep reward weighting, unlock conditions, and stat-resolution formulas in their respective system documents.
+- Adding a kin type requires adding it to this catalog and defining its identity, modifiers, and progression association.
+- Content changes should update this catalog before or alongside implementation changes.
+- A mismatch between this catalog and runtime data is implementation drift; it does not make an undocumented kin type canonical.
+- Keep unlock conditions, reward weighting, generation rules, and stat-resolution formulas in their respective system documents.
