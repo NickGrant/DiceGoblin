@@ -198,7 +198,9 @@ This roster adds **32 canonical material Codex keys**.
 | `execute_below_half` | Butcher's Tooth | Only `d8` and `d10`; smaller dice use deterministic Rare fallback. |
 | `explode_once` | Powder Keg | Only `d4` and `d6`; larger dice use deterministic Rare fallback. |
 
-Rarity-only dice preserve active size and legacy rarity where an eligible material exists. Starter Common d4 dice become Cardboard d4. Other choices are deterministic using the die identifier. If a rarity-size pair has no material, use the nearest lower eligible rarity and record the downgrade.
+Rarity-only dice preserve active size and legacy rarity where an eligible material exists. Starter and explicitly neutral Common dice become Cardboard while preserving their active size. Other choices are deterministic using the die identifier. If a rarity-size pair has no material, use the nearest lower eligible rarity and record the downgrade.
+
+Cardboard is not a universal silent fallback for malformed content. Generation and migration may choose it only through an authored neutral-die rule or an explicit conversion rule.
 
 Multi-affix dice preserve size, owner, and highest valid legacy rarity, then select deterministically from eligible materials. No affix remains as hidden secondary behavior. Removed affixes must be retained only in migration audit data.
 
