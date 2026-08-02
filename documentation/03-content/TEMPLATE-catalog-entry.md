@@ -15,28 +15,38 @@ Tags:
 
 ## Purpose
 
-Use this template when adding concrete content catalog docs for unit types, kin, enemies, biomes, items, affixes, encounters, dialogue groups, or codex categories.
+Use this template when adding canonical content catalogs for unit types, kin, enemies, biomes, items, affixes, encounters, dialogue groups, or codex categories.
+
+A completed catalog defines the intended content for its scope. Implementation data must be maintained to match it.
 
 ## Scope
 
 - Content category:
-- Current implementation source:
-- Player-facing surface:
+- Player-facing surfaces:
 - Related system docs:
+- Related lore docs:
+
+## Reading the Catalog
+
+- Define the meaning and order of compact value columns.
+- Explain any stable identifier or content-status conventions.
+- Point readers to system documents for mechanics that should not be duplicated here.
 
 ## Entries
 
-| Key | Display name | Source | Player-facing status | Notes |
-| --- | --- | --- | --- | --- |
-| `example_key` | Example Name | `path/to/source` | Visible / Hidden / Debug-only | Replace with actual content. |
+| Key | Display name | Classification | Authored values | Content status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `example_key` | Example Name | Example category | Replace with category-specific values. | Active / Planned / Retired | Describe the intended player-facing identity. |
 
 ## Open Questions
 
-- List any entries that need design or narrative review.
-- List any entries where source data and documentation disagree.
+- List unresolved content-design or narrative decisions.
+- Do not use this section to make implementation drift ambiguous; track mismatches as engineering work.
 
 ## Maintenance Notes
 
+- Update this catalog before or alongside implementation changes.
+- Treat undocumented implementation-only records as non-canonical until a content decision adds them here.
 - Keep rules and formulas in system docs.
-- Keep API/storage details in technical docs.
-- Keep story implications in lore docs unless this catalog is only recording a content key or display label.
+- Keep APIs, storage details, migrations, and implementation paths in technical docs.
+- Keep story implications in lore docs unless the catalog is defining a concrete content label or identity.
