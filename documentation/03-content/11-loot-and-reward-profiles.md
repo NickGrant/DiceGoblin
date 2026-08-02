@@ -1,13 +1,14 @@
 ---
 Title: "Loot and Reward Profile Catalog"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-02
 Owner: Content Design + Systems Design
 Depends On:
   - documentation/03-content/08-encounter-templates.md
   - documentation/03-content/09-hazards-and-shrines.md
   - documentation/03-content/10-items-and-consumables.md
   - documentation/03-content/13-dialogue-and-lore.md
+  - documentation/03-content/14-dice-materials.md
   - documentation/02-systems/06-loot-determination.md
 Category: 03-content
 Tags:
@@ -21,29 +22,29 @@ Tags:
 
 ## Purpose
 
-Define the canonical reward profiles currently attached to run-node outcomes. This document owns authored reward chances, guarantees, currency ranges, progression-item grants, dialogue completion grants, and the distinction between normal rewards and generated encounter effects.
+Define canonical reward profiles attached to run-node outcomes. This document owns authored chances, guarantees, currency ranges, progression-item grants, dialogue grants, material-generated reward bonuses, and the distinction between normal rewards and generated encounter effects.
 
 Deterministic randomization, reward materialization, inventory transactions, claim idempotency, XP application, and unlock persistence belong in system or technical documentation.
 
 ## Current Reward Profiles
 
-| Node and outcome | XP | Teeth | Unit grant | Die grant | Item grant | Guarantee or special behavior |
+| Node and outcome | XP | Teeth | Unit grant | Die grant | Item grant | Special behavior |
 | --- | --- | --- | ---: | ---: | --- | --- |
 | Loot node | `0` | `8` | `55%` | `80%` | None by default | If neither unit nor die succeeds, one die is guaranteed. |
-| Combat victory | Sum of defeated enemy XP | `(5 × difficulty) + 0–5` | `20%` | `35%` | Eligible progression items | No general grant guarantee. |
-| Boss victory | Sum of defeated enemy XP | `(5 × difficulty) + 0–5` | `20%` | `35%` | Eligible progression items | No general grant guarantee. |
-| Combat or boss defeat | `25%` of full encounter XP, rounded down | `0` | `0%` | `0%` | None | Run defeat behavior is resolved separately. |
-| Chaos victory | Sum of defeated enemy XP | `(5 × difficulty) + 0–5` | `0%` in the current normal grant profile | `0%` in the current normal grant profile | None in the current normal grant profile | Chaos bonuses and Raw Chaos are separate gated systems. |
-| Rest node | `0` | `0` | `0%` | `0%` | None | Restores the squad to full run health. |
-| Hazard node | `0` | `0` | `0%` | `0%` | None | Resolves the selected hazard outcome instead of normal loot. |
-| Shrine node | `0` | Effect-defined | `0%` | `0%` | None | Resolves a shrine favor; declineable offers require an accept or decline decision. |
-| Dialogue completion | `0` | `0` | `0%` | `0%` | Script-defined | May grant one-time tutorial items or permanent story progression. |
+| Combat victory | Sum of defeated enemy XP | `(5 × difficulty) + 0–5` | `20%` | `35%` | Eligible progression items | Material reward markers may add capped Teeth. |
+| Boss victory | Sum of defeated enemy XP | `(5 × difficulty) + 0–5` | `20%` | `35%` | Eligible progression items | Material reward markers may add capped Teeth. |
+| Combat or boss defeat | `25%` of full XP, rounded down | `0` | `0%` | `0%` | None | Victory-only material markers grant nothing. |
+| Chaos victory | Sum of defeated enemy XP | `(5 × difficulty) + 0–5` | `0%` in normal profile | `0%` in normal profile | None in normal profile | Chaos bonuses and Raw Chaos are separate gated systems. |
+| Rest node | `0` | `0` | `0%` | `0%` | None | Restores squad to full run health. |
+| Hazard node | `0` | `0` | `0%` | `0%` | None | Resolves hazard outcome instead of normal loot. |
+| Shrine node | `0` | Effect-defined | `0%` | `0%` | None | Resolves shrine favor. |
+| Dialogue completion | `0` | `0` | `0%` | `0%` | Script-defined | May grant tutorial items or progression. |
 
 ## Unit Grant Pool
 
-A successful unit grant selects one currently unlocked Tier 1 unit type and one currently eligible kin type.
+A successful unit grant selects one unlocked Tier 1 unit type and one eligible kin.
 
-Current Tier 1 unit candidates are defined by the unit type catalog:
+Tier 1 candidates:
 
 - Bruiser
 - Guardian
@@ -51,105 +52,107 @@ Current Tier 1 unit candidates are defined by the unit type catalog:
 - Bannerbearer
 - Saboteur
 
-Current kin eligibility is defined by the kin catalog. This reward profile does not independently unlock unit types or kin types.
+This profile does not independently unlock unit types or kin.
+
+## Die Grant Identity
+
+A successful die grant selects:
+
+1. one active die size from the source size profile
+2. one rarity using the source or standard material rarity profile
+3. one enabled material of that rarity that explicitly allows the selected size
+
+The only active sizes are `d4`, `d6`, `d8`, and `d10`. Rewards must not create `d12`, `d20`, materialless dice, independent-rarity dice, or material-plus-affix dice.
+
+Cardboard is the neutral Common material and is valid on every active size. A source that intentionally grants an ordinary die should grant an explicit Cardboard size-material pair rather than omitting material identity.
+
+The standard material rarity profile and complete material-size matrix are defined in the Dice Material Catalog.
 
 ## Progression Item Grants
 
 | Defeated enemy condition | Node requirement | Grant |
 | --- | --- | --- |
-| Encounter contains a pig-family enemy or the Mudking | Combat victory | Pig Ear × `1` |
-| Encounter contains a pig-family enemy or the Mudking | Boss victory | Pig Ear × `2` |
-| Encounter contains the Mudking | Boss victory | Mudking Crown Fragment × `1` |
+| Encounter contains a pig-family enemy or Mudking | Combat victory | Pig Ear × `1` |
+| Encounter contains a pig-family enemy or Mudking | Boss victory | Pig Ear × `2` |
+| Encounter contains Mudking | Boss victory | Mudking Crown Fragment × `1` |
 
-Progression-item grants are additive. A Mudking boss victory therefore grants two Pig Ears and one Mudking Crown Fragment.
+A Mudking boss victory therefore grants two Pig Ears and one Crown Fragment.
 
 ## Dialogue Completion Grants
 
 | Dialogue | Repeatability | Permanent progression | Item grants |
 | --- | --- | --- | --- |
-| `mountains-traveler-consumable-gifts` | One-time | Completion is recorded by the dialogue's own seen state | Field Poultice × `1`; Travel Ration × `1` |
-| `swamps-wrong-machine-recovered` | One-time | Unlocks the Wrong Machine | None |
+| `mountains-traveler-consumable-gifts` | One-time | Recorded by the dialogue's seen state | Field Poultice × `1`; Travel Ration × `1` |
+| `swamps-wrong-machine-recovered` | One-time | Unlocks Wrong Machine | None |
 
-No other current dialogue grants direct currency, units, dice, items, or features.
-
-Dialogue rewards must be idempotent. Replaying a completed node or retrying a completion request must not duplicate item grants or progression unlocks.
+No other current dialogue grants direct currency, units, dice, items, or features. Dialogue rewards are idempotent.
 
 ## Wrong Machine Recovery Reward
 
-- The first Bog Tyrant victory opens `swamps-wrong-machine-recovered` before the Swamps exit.
-- Completing the dialogue grants the Wrong Machine feature and records the dialogue as seen.
-- Swamps completion may verify or idempotently grant the feature as a safety boundary, but the authored reward moment is the recovery dialogue.
-- Later Swamps runs do not grant the Wrong Machine again.
+- First Bog Tyrant victory opens `swamps-wrong-machine-recovered` before exit.
+- Completing it grants Wrong Machine and records the dialogue as seen.
+- Standard Swamps completion may verify the feature idempotently.
+- Later runs do not grant it again.
+
+## Material-Generated Battle Rewards
+
+Gold is the only initial material that directly modifies a claimed battle reward.
+
+| Material | Trigger | Reward | Cap | Outcome requirement |
+| --- | --- | --- | --- | --- |
+| `gold` | Natural maximum roll while participating in battle | `+2` Teeth per qualifying marker | First two markers; `+4` Teeth maximum per battle | Victory |
+
+Gold markers are persisted in the deterministic battle result. They are not calculated again during claim and cannot duplicate across retries. They add to normal victory Teeth after the base combat reward is determined.
+
+No other current material directly grants XP, Teeth, units, dice, items, Raw Chaos, or Codex pages as a battle reward. Material Codex discovery is derived from owning the die, not from rolling it.
 
 ## Generated Hazard and Shrine Rewards
 
-Hazards and shrines do not use the normal unit, die, or item grant chances.
+Hazards and shrines do not use normal unit, die, or item chances.
 
-### Hazard Outcomes
+Hazards may damage units, remove Teeth, apply next-combat penalties, create route pressure, offer downside choices, or allow kin mitigation.
 
-Hazards may:
+Shrines may grant Teeth, restore health, provide next-combat modifiers, double earned Teeth, improve a found unit, clear a combat node, or offer a declineable sacrifice.
 
-- damage one unit or the full squad
-- remove Teeth
-- apply a next-combat stat penalty
-- create route pressure
-- offer a downside choice
-- allow kin-based mitigation
-
-The exact effects and selection weights are defined in the hazard and shrine catalog.
-
-### Shrine Outcomes
-
-Shrines may:
-
-- grant Teeth
-- restore run-unit health
-- provide next-combat damage or stat bonuses
-- double Teeth already earned during the run
-- improve a unit found earlier in the run
-- clear a future combat node
-- offer a declineable sacrifice for squad recovery
-
-The exact effects and selection weights are defined in the hazard and shrine catalog.
+Exact effects and weights are defined in the Hazard and Shrine Catalog.
 
 ## Codex Rewards
 
-Codex pages are independent from normal unit, die, item, and currency grants.
+Codex pages are independent from normal grants.
 
-- Each defeated enemy copy in a victorious combat, boss, or chaos encounter has a `13%` deterministic chance to award that enemy's Codex entry when it is not already owned.
-- Completing a biome awards the biome Codex entry.
-- When a biome entry is first awarded, defeated boss enemies from that completed run are also awarded as Codex entries.
-- Completing a dialogue classified as Lore awards its Lore Codex entry.
+- Each defeated enemy copy in a victorious combat, boss, or chaos encounter has a `13%` deterministic page chance when not owned.
+- Completing a biome awards its page.
+- First biome-page award also grants defeated boss pages from that completed run.
+- Completing canonical Lore dialogue awards its Lore page.
+- Owning a die awards the page for its material.
 
-Full category and discovery rules are defined in the Codex catalog.
+Full rules are defined in the Codex Catalog.
 
 ## Non-Current Named Loot Tables
 
-The following named loot-table records remain in implementation data but do not determine current reward grants:
+These implementation records do not determine current grants:
 
 - `kobold_basic_loot`
 - `kobold_boss_loot`
 - `frogman_basic_loot`
 - `frogman_boss_loot`
 
-Their older contents include fixed Teeth bands, material-specific dice pools, faction-specific unit pools, Roc Egg, and Gator Head. Those values are not canonical reward content because the current reward resolver uses the node-and-outcome profiles defined above.
-
-Encounter templates may still carry these identifiers as inactive metadata. Their presence does not reactivate the old tables.
+Their older fixed Teeth bands, old material pools, faction unit pools, Roc Egg, and Gator Head are not canonical. Encounter metadata does not reactivate them.
 
 ## Open Questions
 
-- Named loot-table metadata should either be removed from encounter templates or restored as an intentional reward-authoring layer. Maintaining ignored references creates misleading content data.
-- Chaos victories currently receive XP and Teeth but are excluded from normal unit, die, and item grant rolls. The intended long-term chaos reward identity needs an explicit decision.
-- Hearty Bone Broth and Sparkroot Tonic have no canonical acquisition profile.
-- Field Poultice and Travel Ration have introductory grants but no renewable acquisition profile.
-- Mountains and Swamps have no modern progression-item drops despite older Roc Egg and Gator Head concepts.
-- Reward tuning currently applies the same unit and die chances to normal combat and bosses. Bosses may need a distinct guaranteed or elevated profile.
+- Named loot-table metadata should be removed or deliberately restored as an authoring layer.
+- Chaos victories receive XP and Teeth but no normal unit, die, or item rolls.
+- Hearty Bone Broth and Sparkroot Tonic lack acquisition profiles.
+- Field Poultice and Travel Ration lack renewable acquisition.
+- Mountains and Swamps lack modern progression-item drops.
+- Combat and boss nodes currently share unit and die grant chances.
+- Source-specific material pools, guarantees, and regional weighting remain to be authored if standard unrestricted generation is insufficient.
 
 ## Maintenance Notes
 
-- Change reward chances and guarantees here before or alongside runtime tuning.
-- Keep item and feature grants synchronized with the item, biome, and dialogue catalogs.
-- Keep encounter difficulty synchronized with the encounter catalog.
-- Do not treat inactive named loot tables as content authority.
-- Keep grant selection algorithms, deterministic rolls, materialization, and claim handling in system documentation.
-- Dice identities and affixes belong in their future dedicated catalogs and are intentionally not defined here.
+- Change reward chances and guarantees here before or alongside tuning.
+- Keep item and feature grants synchronized with item, biome, and dialogue catalogs.
+- Keep die grants synchronized with the Dice Material Catalog.
+- Do not treat inactive loot tables or legacy affix data as authority.
+- Keep algorithms, deterministic rolls, materialization, and claim handling in system documentation.

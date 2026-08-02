@@ -52,13 +52,20 @@ Canonical content catalogs are the source of truth for what content exists and f
 - `11-loot-and-reward-profiles.md`
 - `12-codex-entries.md`
 - `13-dialogue-and-lore.md`
+- `14-dice-materials.md`
 - `TEMPLATE-catalog-entry.md`
+
+## Dice Content
+
+The permanent target-state die identity is one active die size plus one material. The active sizes are `d4`, `d6`, `d8`, and `d10` only.
+
+The Dice Material Catalog defines the initial 32-material roster. Cardboard is the explicit neutral default material: it is valid on every active size and has no special effect. Missing material data is invalid and must not be interpreted as Cardboard.
+
+Permanent affixes are retired from the target model and remain only as migration inputs until implementation cutover.
 
 ## Deferred Catalogs
 
-- Dice materials. The governing target rules are defined in `documentation/02-systems/08-dice-material-model.md`; the concrete material roster is not yet canonical.
-
-Permanent die affixes are not a deferred catalog. They are retired from the target model and remain only as implementation migration inputs.
+None. All current authored content categories have a canonical catalog.
 
 ## Child Folders
 
