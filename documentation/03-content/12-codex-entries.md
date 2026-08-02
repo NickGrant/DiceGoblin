@@ -1,7 +1,7 @@
 ---
 Title: "Codex Entry Catalog"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-02
 Owner: Content Design + Narrative Design
 Depends On:
   - documentation/03-content/01-unit-types.md
@@ -10,6 +10,7 @@ Depends On:
   - documentation/03-content/06-biomes-and-regions.md
   - documentation/03-content/10-items-and-consumables.md
   - documentation/03-content/13-dialogue-and-lore.md
+  - documentation/02-systems/08-dice-material-model.md
 Category: 03-content
 Tags:
   - content
@@ -24,7 +25,7 @@ Tags:
 
 Define the canonical categories and discovery rules for the Dice Goblins Codex. This document identifies which current content keys are eligible for Codex ownership, how each category is discovered, and which categories remain intentionally deferred.
 
-Profile payload shape, persistence, synchronization jobs, deterministic rolls, and UI rendering belong in technical or UX documentation. The detailed content of a unit, enemy, kin, biome, item, or dialogue remains owned by its primary catalog.
+Profile payload shape, persistence, synchronization jobs, deterministic rolls, and UI rendering belong in technical or UX documentation. The detailed content of a unit, enemy, kin, biome, item, dialogue, or dice material remains owned by its primary catalog.
 
 ## Current Category Model
 
@@ -37,9 +38,11 @@ Profile payload shape, persistence, synchronization jobs, deterministic rolls, a
 | `kin` | Kin Type Catalog | Unlock the kin or own a unit of that kin | 2 | Active |
 | `item` | Item and Consumable Catalog | Own at least one copy of the item | 6 | Active |
 | `lore` | Dialogue and Lore Catalog | Complete a dialogue explicitly classified as Lore | 9 | Active |
-| `affix` | Future dice-affix catalog | Own a die carrying the affix | Not cataloged here | Deferred by scope |
+| `material` | Future Dice Material Catalog | Own a die made from the material | Not cataloged here | Deferred by scope |
 
 The current non-dice Codex contains **67 canonical entry keys**.
+
+Permanent die affixes are not a target-state Codex category. Existing affix ownership or storage records must not be promoted into new Codex pages.
 
 ## Enemy Entries
 
@@ -86,6 +89,8 @@ The Codex records player-facing feature ownership. Costs, prerequisites, and mec
 
 Dialogue seen-state keys are not features. Far Gifts is suppressed by completion of its own one-time dialogue id and does not create a `consumables` feature.
 
+Global dice features such as Exploding D4s remain feature entries. They are not permanent die affixes and do not replace the material Codex category.
+
 ## Unit-Type Entries
 
 Every active unit type in the Unit Type Catalog is eligible for a Codex entry.
@@ -119,6 +124,21 @@ Implementation-only splice records are not valid Codex content unless they are f
 | `sparkroot_tonic` | Sparkroot Tonic | Own at least one Sparkroot Tonic. |
 
 The obsolete Roc Egg and Gator Head records are not Codex entries because they are not current canonical items.
+
+## Material Entries
+
+Material pages are deferred until the Dice Material Catalog defines the concrete material roster.
+
+The intended discovery rule is:
+
+- owning at least one die made from an enabled material discovers that material's Codex page
+- size does not create a separate page for the same material
+- owning multiple sizes of one material does not create duplicate entries
+- a material page describes the material's rarity, behavior, allowed sizes, and identity
+
+A die's material is the source key. Independent rarity values, legacy affix rows, and affix combinations are not Codex identities.
+
+The material category remains inactive until concrete material keys and player-facing page content are canonical.
 
 ## Lore Entries
 
@@ -163,7 +183,7 @@ They maintain seen state for progression, repeatability, or variation selection 
 | `owned_unit` | Unit-type or kin page derived from current ownership. |
 | `owned_item` | Item page derived from positive inventory quantity. |
 | `dialogue` | Lore page awarded by completion of a dialogue explicitly classified as Lore. |
-| `owned_die` | Affix page derived from an owned die; deferred from this catalog. |
+| `owned_die` | Material page derived from the material of an owned die; deferred until the material catalog is active. |
 
 ## Reconciliation Requirements
 
@@ -171,20 +191,21 @@ They maintain seen state for progression, repeatability, or variation selection 
 - Generic dialogue-to-Lore synchronization must use the nine canonical Lore ids rather than all seen dialogue keys.
 - Generic feature synchronization must not interpret dialogue seen state as feature ownership.
 - Field Poultice and Travel Ration have a canonical first-discovery path through Far Gifts. Hearty Bone Broth and Sparkroot Tonic remain without acquisition sources.
+- Future dice ownership synchronization must award material pages from canonical material keys, not from independent rarity or legacy affix records.
 
 ## Open Questions
 
 - Detailed Codex payloads are currently authored for unit types and enemies, while biome, feature, kin, item, and Lore entries may rely on prettified keys or dialogue scripts. These categories need dedicated title, description, art, and summary presentation.
 - Hearty Bone Broth and Sparkroot Tonic cannot normally be discovered until acquisition sources are authored.
 - Enemy discovery at `13%` per defeated copy may create uneven page acquisition across rare bosses and common grunts. Boss completion awards mitigate this only for defeated biome bosses.
-- Feature keys involving dice behavior remain valid feature entries, but their detailed mechanical explanations should be reconciled when the dice catalog is written.
-- Affix entry definitions remain intentionally deferred and should not be inferred from storage records alone.
+- Feature keys involving dice behavior remain valid feature entries, but their interaction with material behavior must be reconciled during dice implementation.
+- Material entry definitions remain intentionally deferred and must not be inferred from legacy affix definitions or storage records.
 
 ## Maintenance Notes
 
 - A Codex entry key must refer to content already defined in its primary canonical catalog.
 - Add new entry categories here before exposing them through ownership or profile APIs.
-- Keep discovery conditions synchronized with reward, progression, and dialogue catalogs.
-- Do not duplicate full unit, enemy, biome, kin, item, or dialogue definitions here.
+- Keep discovery conditions synchronized with reward, progression, dialogue, and material catalogs.
+- Do not duplicate full unit, enemy, biome, kin, item, dialogue, or material definitions here.
 - Keep persistence, synchronization, API details, and deterministic roll implementation outside this document.
 - Do not promote storage namespace keys into Codex content without an authored entry and player-facing identity.

@@ -1,7 +1,7 @@
 ---
 Title: "Content Documentation"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-02
 Owner: Content Design
 Depends On:
   - documentation/README.md
@@ -14,7 +14,7 @@ Tags:
 
 ## Purpose
 
-Catalog concrete authored content such as units, kin, enemies, abilities, biomes, statuses, encounters, run effects, items, rewards, Codex entries, dialogue, and lore.
+Catalog concrete authored content such as units, kin, enemies, abilities, biomes, statuses, encounters, run effects, items, rewards, Codex entries, dialogue, lore, and dice materials.
 
 Canonical content catalogs are the source of truth for what content exists and for its authored values. Runtime data, seed data, and presentation code must remain consistent with them.
 
@@ -34,6 +34,7 @@ Canonical content catalogs are the source of truth for what content exists and f
 - Define shared abilities and statuses once and reference those definitions from every content package that uses them.
 - Keep generated behavior separate from authored entries: encounter placement is a system concern, while encounter formations and presentation are content.
 - For dialogue, explicitly document spoken participants, effective repeatability, eligibility, choices, completion rewards, and Lore classification.
+- For dice materials, explicitly document rarity, effect, allowed sizes, stacking behavior, valuation, and enabled state. Do not infer material identity from legacy rarity or affix records.
 
 ## Documents
 
@@ -55,7 +56,9 @@ Canonical content catalogs are the source of truth for what content exists and f
 
 ## Deferred Catalogs
 
-- Dice definitions and affixes.
+- Dice materials. The governing target rules are defined in `documentation/02-systems/08-dice-material-model.md`; the concrete material roster is not yet canonical.
+
+Permanent die affixes are not a deferred catalog. They are retired from the target model and remain only as implementation migration inputs.
 
 ## Child Folders
 

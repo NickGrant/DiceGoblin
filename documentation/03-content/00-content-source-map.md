@@ -1,10 +1,11 @@
 ---
 Title: "Content Source Map"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-02
 Owner: Content Design + Engineering
 Depends On:
   - documentation/03-content/README.md
+  - documentation/02-systems/08-dice-material-model.md
   - documentation/05-technical/09-seed-catalog-ownership.md
 Category: 03-content
 Tags:
@@ -37,7 +38,15 @@ Once a category has a canonical content document, implementation files are consu
 | Loot and reward profiles | `documentation/03-content/11-loot-and-reward-profiles.md` | Canonical | Defines active node-and-outcome reward chances, guarantees, currency, and item grants. |
 | Codex entries | `documentation/03-content/12-codex-entries.md` | Canonical | Defines current Codex categories, eligible keys, and discovery conditions. |
 | Dialogue and lore | `documentation/03-content/13-dialogue-and-lore.md` | Canonical | Defines current scripts, participants, placement, eligibility, repeatability, choices, completion rewards, and Lore classification. |
-| Dice definitions and affixes | Not yet created | Interim | Existing implementation data must be reconciled when separate dice and affix catalogs are authored. |
+| Dice materials | Not yet created | Interim | The canonical target rules are defined in `documentation/02-systems/08-dice-material-model.md`; a material catalog must still define the concrete roster, rarity, effects, allowed sizes, stacking, valuation, and presentation. |
+
+## Retired Target Content Model
+
+Permanent die affixes are not a target-state content category.
+
+Existing affix definitions, rarity-based affix capacity, and per-instance affix records are legacy migration inputs. Their effects must eventually be converted into materials, merged into another material, moved to another system, or removed according to the Dice Material Identity and Generation model.
+
+Temporary run effects and global feature rules may still modify dice, but they are not permanent affixes attached to die instances.
 
 ## Interim Implementation References
 
@@ -45,7 +54,7 @@ These references help locate existing content while canonical catalogs are still
 
 | Category | Temporary references |
 | --- | --- |
-| Dice definitions and affixes | Dice definition, rarity, material, and affix data plus current combat and inventory behavior. |
+| Dice materials | Legacy dice definitions, rarity and affix data, current combat and inventory behavior, and the canonical target rules in `documentation/02-systems/08-dice-material-model.md`. |
 
 ## Catalog Writing Rules
 
@@ -56,6 +65,7 @@ These references help locate existing content while canonical catalogs are still
 - When implementation and a canonical catalog disagree, treat the mismatch as implementation drift and resolve it explicitly.
 - Cross-reference shared content rather than creating competing definitions in multiple catalogs.
 - Dialogue entries must explicitly identify participants, effective repeatability, and Lore classification rather than relying on storage flags.
+- Dice material entries must explicitly identify rarity, effect, allowed sizes, stacking behavior, valuation, and enabled state rather than relying on independent rarity or affix records.
 
 ## Review Boundary
 
