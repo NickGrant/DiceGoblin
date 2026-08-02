@@ -59,19 +59,19 @@ The placement layer uses two kinds of state:
 
 An explicit one-time entry is excluded after its own seen id exists. A recurring entry ignores its own seen id but may still become ineligible because a required or excluded progression condition changes.
 
-Milestone reactions are one-time even when their prerequisite remains true. For example, acquiring the Wrong Machine makes post-recovery reactions eligible, but completing each reaction suppresses it permanently.
+Milestone reactions are one-time even when their prerequisite remains true. Acquiring a feature or completing a story milestone may make a reaction eligible, but completing that reaction suppresses it permanently when the catalog marks it one-time.
 
-Dialogue seen state must not be stored as or inferred to be feature ownership. Far Gifts uses its own one-time dialogue id rather than a separate `consumables` feature flag.
+Dialogue seen state must not be stored as or inferred to be feature ownership. A one-time tutorial or reward dialogue should normally use its own seen id unless it grants a genuine player-facing feature.
 
 ## Stateful Script Selection
 
-Some run placements select among multiple script states:
+A single authored placement may select among multiple script states according to content-defined progression and seen-state gates. Typical states include:
 
-- the Farm boss placement uses the first confrontation while Shop is locked and the rematch script after Shop unlock
-- the Swamps boss placement uses the first confrontation, an unresolved-machine defense repeat, or a post-recovery rematch based on seen state and Wrong Machine ownership
-- the first successful Swamps exit inserts the one-time recovery script before the run can complete
+- an initial confrontation
+- an unresolved-objective repeat
+- a post-progression rematch or reaction
 
-State selection must occur before recurring-variant selection.
+State selection must occur before recurring-variant selection. The system does not assign special resolution behavior to a region merely because its dialogue represents a major story milestone.
 
 ## Recurring Variant Selection
 
@@ -183,21 +183,23 @@ Completion may grant:
 - canonical feature progression
 - item stacks
 
-Current direct completion rewards are Far Gifts' introductory items and the Wrong Machine unlock from the Swamps recovery scene.
+The specific rewards belong to the Dialogue and Lore Catalog and related reward catalogs.
 
 Completion must be idempotent. Retrying the request must not duplicate item grants, Lore pages, or feature unlocks.
 
-## Swamps Recovery Boundary
+## Progression-Gated Dialogue Nodes
 
-The first successful Swamps run requires the following order:
+A dialogue may represent a major milestone and grant progression without requiring a separate regional completion flow.
 
-1. Defeat the Bog Tyrant.
-2. Unlock the before-exit dialogue `swamps-wrong-machine-recovered`.
-3. Complete the dialogue and grant the Wrong Machine feature.
-4. Unlock or complete the exit.
-5. Finish normal Swamps completion processing.
+The ordinary run graph provides the sequencing:
 
-The exit must not bypass the recovery dialogue while the Wrong Machine remains locked. Later Swamps runs omit the recovery scene and use the post-recovery boss dialogue state.
+1. The prerequisite node is cleared.
+2. The dialogue node becomes available through its normal incoming edge.
+3. Completing the dialogue applies its authored rewards.
+4. The dialogue node clears and unlocks its normal downstream nodes.
+5. Run progression continues through the standard node and exit rules.
+
+A required `before_exit` dialogue therefore prevents access to the exit by ordinary graph connectivity. It does not require a region-specific completion endpoint, transaction type, or post-boss resolution subsystem.
 
 ## Lore Ownership Boundary
 
@@ -215,11 +217,12 @@ Dialogue flow is aligned when:
 - every placed dialogue id and recurring variant has a canonical content definition and loadable script
 - every canonical script has an authored title and summary
 - effective repeatability matches the content catalog
-- stateful boss-dialogue selection respects progression and seen state
+- stateful dialogue selection respects progression and seen state
 - recurring variants avoid immediate repetition when alternatives exist
 - selected variants remain stable for the persisted run
 - participant and Lore classification are not inferred from storage namespaces
 - one-time entries are excluded after completion
 - completion rewards are applied once and remain idempotent
-- the first Swamps exit cannot bypass Wrong Machine recovery
+- required dialogue nodes gate downstream nodes through ordinary graph connectivity
+- no region uses a special dialogue-completion flow unless a separate system requirement explicitly demands one
 - downstream nodes unlock only after successful dialogue completion
