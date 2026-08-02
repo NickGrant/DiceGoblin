@@ -25,6 +25,9 @@ Tags:
 ## Documents
 
 - `00-content-source-map.md`
+- `01-unit-types.md`
+- `02-kin-types.md`
+- `03-enemy-types.md`
 - `TEMPLATE-catalog-entry.md`
 
 ## Child Folders
