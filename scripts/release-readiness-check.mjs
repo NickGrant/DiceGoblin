@@ -9,8 +9,8 @@ const npmBin = process.platform === "win32" ? "npm.cmd" : "npm";
 const requiredFiles = [
   "agent/ISSUES.md",
   "agent/MILESTONES.md",
-  "documentation/07-roadmap/2026-07-25-completion-analysis.md",
-  "documentation/05-playability-stability/06-july-roadmap-uat-balance-checklist.md",
+  "documentation/07-development-path/2026-07-25-completion-analysis.md",
+  "documentation/06-testing-release/07-july-roadmap-uat-balance-checklist.md",
 ];
 
 const quickCommands = [

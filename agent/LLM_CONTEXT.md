@@ -21,10 +21,11 @@
 - `agent/BACKLOG_OPERATIONS.md` for roadmap/triage/dependency policy decisions
 - `README.md` for repository-level setup or command questions
 - `documentation/README.md` only when a broader documentation index is needed
-- `documentation/01-architecture/` docs for API and system-contract decisions
-- `documentation/02-systems-mvp/` docs for gameplay rules and scope
-- `documentation/03-ux/` docs for UX and visual behavior
-- `documentation/08-json-schema/` only when editing schema contracts
+- `documentation/05-technical/` docs for API, architecture, data model, and schema decisions
+- `documentation/02-systems/` docs for gameplay rules, current system behavior, and legacy MVP reference
+- `documentation/04-ux/` docs for UX, visual behavior, and route analysis
+- `documentation/01-lore/` docs for story, setting, and biome progression direction
+- `documentation/06-testing-release/` docs for release validation, UAT, and QA checklists
 - `agent/ISSUES_ARCHIVE.md` only for historical context and reopened items
 - `agent/MILESTONES_ARCHIVE.md` only for historical context
 
@@ -32,6 +33,7 @@
 - `frontend/dist/`
 - `frontend/node_modules/`
 - `raw-assets/`
+- `documentation/archive/`
 - `agent/ROLE_CLARIFICATION.md` (log file; load only when explicitly requested)
 - binary assets (`*.jpg`, `*.png`, audio/video files)
 - generated bundles, maps, and lock output not relevant to the task

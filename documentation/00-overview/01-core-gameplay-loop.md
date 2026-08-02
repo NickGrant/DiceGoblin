@@ -1,9 +1,18 @@
-# Core Gameplay Loop
+---
+Title: "Core Gameplay Loop"
+Status: Canonical
+Last Updated: 2026-08-01
+Owner: Product
+Depends On:
+  - documentation/05-technical/02-frontend-state-and-scene-contracts.md
+  - documentation/02-systems/mvp-reference/03-encounter-scope.md
+  - documentation/02-systems/mvp-reference/06-run-resolution-scope.md
+Category: 00-overview
+Tags:
+  - overview
+---
 
-Status: active  
-Last Updated: 2026-07-24  
-Owner: Product  
-Depends On: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/02-systems-mvp/03-encounter-scope.md`, `documentation/02-systems-mvp/06-run-resolution-scope.md`
+# Core Gameplay Loop
 
 ## Purpose
 
@@ -90,4 +99,4 @@ The current implementation supports these progression ideas:
 ## Notes For Future Documentation
 
 - If current code behavior and older subsystem docs disagree, treat this file as the higher-level player-flow source of truth and update the narrower docs to match.
-- Future gameplay direction is tracked in `documentation/07-roadmap/00-gameplay-systems-roadmap.md`.
+- Future gameplay direction is tracked in `documentation/07-development-path/00-gameplay-systems-roadmap.md`.

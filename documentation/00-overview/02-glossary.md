@@ -1,10 +1,19 @@
-# Game Glossary (Milestone 0)
+---
+Title: "Game Glossary"
+Status: Canonical
+Last Updated: 2026-08-01
+Owner: Product
+Depends On:
+  - documentation/00-overview/01-core-gameplay-loop.md
+  - documentation/01-lore/00-world-and-lore.md
+  - documentation/01-lore/01-story-and-biome-progression.md
+  - documentation/README.md
+Category: 00-overview
+Tags:
+  - overview
+---
 
-Status: active  
-Last Updated: 2026-07-24  
-Owner: Product + Engineering  
-Depends On: `documentation/00-overview/01-core-gameplay-loop.md`, `documentation/00-overview/03-world-and-lore.md`, `documentation/00-overview/04-story-and-biome-progression.md`, `documentation/README.md`
-
+# Game Glossary
 
 This document defines the canonical terminology used throughout the game's design, implementation, and documentation.  
 Any term used in code, UI, or design discussions must appear in this glossary.

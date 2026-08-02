@@ -141,7 +141,7 @@ goals:
 - keep balance-sensitive changes explicit and documented
 constraints:
 - cannot silently rebalance mechanics without user instruction
-- cannot bypass documented alpha launch scope in `documentation/02-systems-mvp/`
+- cannot bypass documented alpha launch scope in `documentation/02-systems/mvp-reference/`
 risk-tolerance:
 - low tolerance for hidden mechanical regressions
 - low tolerance for undocumented rules divergence
