@@ -36,7 +36,7 @@ Identify the canonical document for each category of authored game content. Once
 | Loot and reward profiles | `documentation/03-content/11-loot-and-reward-profiles.md` | Canonical | Defines active node-and-outcome reward chances, guarantees, currency, and item grants. |
 | Codex entries | `documentation/03-content/12-codex-entries.md` | Canonical | Defines current Codex categories, eligible keys, and discovery conditions. |
 | Dialogue and lore | `documentation/03-content/13-dialogue-and-lore.md` | Canonical | Defines current scripts, participants, placement, eligibility, repeatability, choices, completion rewards, and Lore classification. |
-| Dice materials | `documentation/03-content/14-dice-materials.md` | Canonical | Defines the 32-material initial roster, rarity, effects, allowed active sizes, stacking, valuation, starter assignment, Codex identity, and legacy-affix disposition. |
+| Dice materials | `documentation/03-content/14-dice-materials.md` | Canonical | Defines the 32-material initial roster, rarity, effects, allowed active sizes, stacking, valuation, starter assignment, Codex identity, and legacy-affix disposition. Cardboard is the neutral all-size baseline. |
 
 ## Dice Content Boundary
 
@@ -47,6 +47,8 @@ die size + material
 ```
 
 The active sizes are `d4`, `d6`, `d8`, and `d10`. No current material supports `d12`, `d20`, or another size.
+
+Cardboard is the explicit neutral material for ordinary dice. It is valid on every active size and has no special effect. Missing material data is invalid and is not another form of Cardboard.
 
 Permanent die affixes are not a target-state content category. Existing affix definitions, rarity-based affix capacity, and per-instance affix records are legacy migration inputs. Their effects must be converted into materials, merged into another material, moved to another system, or removed according to the Dice Material Identity and Generation model and Dice Material Catalog.
 
