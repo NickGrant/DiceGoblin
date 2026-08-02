@@ -1,7 +1,7 @@
 ---
 Title: "Systems Documentation"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-02
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/README.md
@@ -14,7 +14,7 @@ Tags:
 
 ## Purpose
 
-- How implemented and planned game systems work, including combat, runs, loot, units, progression, hazards, and multiplayer concepts.
+- How implemented and planned game systems work, including combat, runs, loot, units, progression, hazards, dice, and multiplayer concepts.
 
 ## Status Guidance
 
@@ -32,6 +32,7 @@ Tags:
 - `05-run-node-generation.md`
 - `06-loot-determination.md`
 - `07-hazard-severity-and-downsides.md`
+- `08-dice-material-model.md`
 
 ## Child Folders
 
