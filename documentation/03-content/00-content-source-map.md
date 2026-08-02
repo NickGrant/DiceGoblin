@@ -24,18 +24,20 @@ Once a category has a canonical content document, implementation files are consu
 
 | Category | Canonical content document | Status | Notes |
 | --- | --- | --- | --- |
-| Biomes and regions | Not yet created | Interim | Current region data must be reviewed when the biome and region catalog is authored. |
 | Unit types | `documentation/03-content/01-unit-types.md` | Canonical | Defines current unit identities, roles, stats, growth, and native ability packages. |
 | Kin types | `documentation/03-content/02-kin-types.md` | Canonical | Defines the complete current kin set and each kin's stat identity. |
 | Enemy types | `documentation/03-content/03-enemy-types.md` | Canonical | Defines current enemy identities, factions, stats, rewards, and native ability packages. |
-| Unit and shared abilities | `documentation/03-content/04-unit-abilities.md` | Canonical | Defines current player abilities and the shared abilities that retain the same behavior when assigned to enemies. |
-| Enemy-exclusive abilities | `documentation/03-content/05-enemy-abilities.md` | Canonical | Defines faction-specific enemy abilities and records current enemy use of shared abilities. |
+| Unit and shared abilities | `documentation/03-content/04-unit-abilities.md` | Canonical | Defines current player abilities and shared abilities used by enemies. |
+| Enemy-exclusive abilities | `documentation/03-content/05-enemy-abilities.md` | Canonical | Defines faction-specific enemy abilities and records enemy use of shared abilities. |
+| Biomes and regions | `documentation/03-content/06-biomes-and-regions.md` | Canonical | Defines current playable regions, progression order, native factions, bosses, themes, and completion rewards. |
+| Status effects | `documentation/03-content/07-status-effects.md` | Canonical | Defines player-visible buffs, debuffs, stack conditions, durations, and authored effects. |
+| Encounter templates | `documentation/03-content/08-encounter-templates.md` | Canonical | Defines current combat, boss, loot, rest, and chaos encounter formations and presentation. |
+| Hazards and shrines | `documentation/03-content/09-hazards-and-shrines.md` | Canonical | Defines current generated run hazards and shrine favors, including selection values and outcomes. |
+| Items and consumables | `documentation/03-content/10-items-and-consumables.md` | Canonical | Defines current progression materials, catalysts, healing items, and energy items. |
+| Loot and reward profiles | `documentation/03-content/11-loot-and-reward-profiles.md` | Canonical | Defines active node-and-outcome reward chances, guarantees, currency, and item grants. |
+| Codex entries | `documentation/03-content/12-codex-entries.md` | Canonical | Defines current Codex categories, eligible keys, and discovery conditions. |
 | Dice definitions and affixes | Not yet created | Interim | Existing implementation data must be reconciled when separate dice and affix catalogs are authored. |
-| Items and consumables | Not yet created | Interim | The future catalog should distinguish progression materials, catalysts, healing items, and energy items. |
-| Encounters | Not yet created | Interim | The future catalog should identify combat, boss, loot, rest, dialogue, hazard, shrine, and chaos encounters. |
-| Hazards and shrines | Not yet created | Interim | Current behavior is summarized in system documentation, but individual content entries still need a catalog. |
 | Dialogue and lore unlocks | Not yet created | Interim | A complete catalog requires narrative review and should not be inferred only from implementation keys. |
-| Codex entries | Not yet created | Interim | Catalog ownership should be established after the Codex Discovery Reward Rework settles the content model. |
 
 ## Interim Implementation References
 
@@ -43,13 +45,8 @@ These references help locate existing content while canonical catalogs are still
 
 | Category | Temporary references |
 | --- | --- |
-| Biomes and regions | Region seed data, run graph generation, and frontend region presentation data. |
-| Dice definitions and affixes | Dice definition, rarity, material, and affix seed data. |
-| Items and consumables | Item definitions, reward grants, and consumable services. |
-| Encounters | Encounter definitions and run generation services. |
-| Hazards and shrines | Encounter primitive definitions and related system documentation. |
-| Dialogue and lore unlocks | Dialogue scripts, dialogue services, and run graph generation. |
-| Codex entries | Codex ownership services and current discovery reward work. |
+| Dice definitions and affixes | Dice definition, rarity, material, and affix data plus current combat and inventory behavior. |
+| Dialogue and lore unlocks | Dialogue scripts, dialogue services, run graph generation, and narrative planning documents. |
 
 ## Catalog Writing Rules
 
@@ -58,6 +55,7 @@ These references help locate existing content while canonical catalogs are still
 - Rules, formulas, targeting, generation behavior, and progression mechanics belong in system documentation.
 - New content should be added to its canonical catalog before or alongside implementation work.
 - When implementation and a canonical catalog disagree, treat the mismatch as implementation drift and resolve it explicitly.
+- Cross-reference shared content rather than creating competing definitions in multiple catalogs.
 
 ## Review Boundary
 
