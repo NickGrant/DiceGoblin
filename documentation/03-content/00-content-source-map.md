@@ -16,29 +16,47 @@ Tags:
 
 ## Purpose
 
-- Map concrete game-content categories to their current implementation sources.
-- Keep `03-content/` useful before full catalog docs are written.
-- Provide a clean stopping point before deeper review of existing doc sections, seed rows, and player-facing copy.
+Identify the canonical document for each category of authored game content. Where a canonical catalog has not yet been written, this map records temporary implementation references that must be reconciled when that catalog is created.
+
+Once a category has a canonical content document, implementation files are consumers of that document rather than competing sources of truth.
 
 ## Content Categories
 
-| Category | Current source of truth | Notes |
-| --- | --- | --- |
-| Biomes and regions | `backend/migrations/02_regions.sql`, `backend/src/Services/RunGraphGenerator.php`, `frontend/src/app/core/regions/region-catalog.ts` | Region docs should reconcile seed data, generated-map behavior, and visual theme helpers. |
-| Unit types | `backend/migrations/03_unit_types.sql`, `backend/migrations/30_seed_unit_types.sql`, later unit rebalance migrations | Full catalog requires reviewing tier names, stats, ability sets, and unlock rules. |
-| Kin and lineages | legacy splice migrations/services plus Wrong Machine services | Player-facing docs should use kin/lineage language while noting legacy storage only when relevant. |
-| Enemies | `backend/migrations/06_enemy_templates.sql`, `backend/migrations/31_seed_enemy_templates.sql`, rebalance migrations, encounter templates | Full catalog requires enemy stats, families, abilities, regions, and boss status. |
-| Dice definitions and affixes | `backend/migrations/04_dice_definitions.sql`, `backend/migrations/37_seed_dice_definitions.sql`, dice affix migrations | Full catalog should separate dice size/rarity from affix behavior. |
-| Items and consumables | generic item migrations/services and reward grant paths | Full catalog should distinguish progression materials, catalysts, healing items, and energy items. |
-| Encounters | `backend/migrations/13_encounter_templates.sql`, `backend/migrations/34_seed_encounter_templates.sql`, run generation services | Full catalog should identify combat, boss, loot, rest, dialogue, hazard, shrine, and chaos use. |
-| Hazards and shrines | `backend/src/Services/EncounterPrimitiveCatalog.php` | Current behavior is summarized in `documentation/02-systems/07-hazard-severity-and-downsides.md`; content catalog can later list each slug. |
-| Dialogue and lore unlocks | `frontend/public/assets/data/dialogue/dialogue-scripts.json`, dialogue services, run graph generation | Full catalog requires narrative review and should not be inferred only from file names. |
-| Codex entries | current codex ownership/services and upcoming Codex Discovery Reward Rework | The ownership model is actively changing, so catalog docs should stay light until that work lands. |
+| Category | Canonical content document | Status | Notes |
+| --- | --- | --- | --- |
+| Biomes and regions | Not yet created | Interim | Current region data must be reviewed when the biome and region catalog is authored. |
+| Unit types | `documentation/03-content/01-unit-types.md` | Canonical | Defines current unit identities, roles, stats, growth, and ability packages. |
+| Kin types | `documentation/03-content/02-kin-types.md` | Canonical | Defines the complete current kin set and each kin's stat identity. |
+| Enemy types | `documentation/03-content/03-enemy-types.md` | Canonical | Defines current enemy identities, factions, stats, abilities, and rewards. |
+| Dice definitions and affixes | Not yet created | Interim | Existing implementation data must be reconciled when separate dice and affix catalogs are authored. |
+| Items and consumables | Not yet created | Interim | The future catalog should distinguish progression materials, catalysts, healing items, and energy items. |
+| Encounters | Not yet created | Interim | The future catalog should identify combat, boss, loot, rest, dialogue, hazard, shrine, and chaos encounters. |
+| Hazards and shrines | Not yet created | Interim | Current behavior is summarized in system documentation, but individual content entries still need a catalog. |
+| Dialogue and lore unlocks | Not yet created | Interim | A complete catalog requires narrative review and should not be inferred only from implementation keys. |
+| Codex entries | Not yet created | Interim | Catalog ownership should be established after the Codex Discovery Reward Rework settles the content model. |
 
-## Catalog Writing Rule
+## Interim Implementation References
 
-Catalog docs should describe concrete authored content and point to system docs for rules. For example, an enemy catalog can list enemy family, biome, stats, and abilities, but combat targeting or XP formulas belong in `02-systems/`.
+These references help locate existing content while canonical catalogs are still missing. They are discovery aids, not durable content authority.
+
+| Category | Temporary references |
+| --- | --- |
+| Biomes and regions | Region seed data, run graph generation, and frontend region presentation data. |
+| Dice definitions and affixes | Dice definition, rarity, material, and affix seed data. |
+| Items and consumables | Item definitions, reward grants, and consumable services. |
+| Encounters | Encounter definitions and run generation services. |
+| Hazards and shrines | Encounter primitive definitions and related system documentation. |
+| Dialogue and lore unlocks | Dialogue scripts, dialogue services, and run graph generation. |
+| Codex entries | Codex ownership services and current discovery reward work. |
+
+## Catalog Writing Rules
+
+- Canonical catalogs define concrete authored content: identity, display name, classification, authored values, and intended player-facing role.
+- Implementation paths, storage details, migrations, and API contracts belong in technical documentation.
+- Rules, formulas, targeting, generation behavior, and progression mechanics belong in system documentation.
+- New content should be added to its canonical catalog before or alongside implementation work.
+- When implementation and a canonical catalog disagree, treat the mismatch as implementation drift and resolve it explicitly.
 
 ## Review Boundary
 
-Creating complete content catalogs requires reviewing seed SQL, code-owned catalogs, frontend data files, and existing documentation sections for duplicated or misplaced content. That deeper pass is intentionally deferred from this structural cleanup.
+A category remains `Interim` until its existing implementation data, player-facing copy, and relevant design decisions have been reconciled into a canonical catalog.
