@@ -14,7 +14,7 @@ Tags:
 
 ## Purpose
 
-Catalog concrete authored content such as units, kin, enemies, biomes, items, affixes, encounters, and codex entries.
+Catalog concrete authored content such as units, kin, enemies, abilities, biomes, items, affixes, encounters, and codex entries.
 
 Canonical content catalogs are the source of truth for what content exists and for its authored values. Runtime data, seed data, and presentation code must remain consistent with them.
 
@@ -31,6 +31,7 @@ Canonical content catalogs are the source of truth for what content exists and f
 - Treat implementation mismatches as drift to be corrected, not as implicit content changes.
 - Keep game rules and formulas in system documentation.
 - Keep storage, APIs, migrations, and implementation paths in technical documentation.
+- Define shared abilities once and reference that definition from every unit or enemy package that uses them.
 
 ## Documents
 
@@ -38,6 +39,8 @@ Canonical content catalogs are the source of truth for what content exists and f
 - `01-unit-types.md`
 - `02-kin-types.md`
 - `03-enemy-types.md`
+- `04-unit-abilities.md`
+- `05-enemy-abilities.md`
 - `TEMPLATE-catalog-entry.md`
 
 ## Child Folders
