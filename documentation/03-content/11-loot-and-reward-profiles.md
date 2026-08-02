@@ -37,7 +37,7 @@ Deterministic randomization, reward materialization, inventory transactions, cla
 | Rest node | `0` | `0` | `0%` | `0%` | None | Restores the squad to full run health. |
 | Hazard node | `0` | `0` | `0%` | `0%` | None | Resolves the selected hazard outcome instead of normal loot. |
 | Shrine node | `0` | Effect-defined | `0%` | `0%` | None | Resolves a shrine favor; declineable offers require an accept or decline decision. |
-| Dialogue completion | `0` | `0` | `0%` | `0%` | Script-defined | Only Far Gifts currently grants assets. |
+| Dialogue completion | `0` | `0` | `0%` | `0%` | Script-defined | May grant one-time tutorial items or permanent story progression. |
 
 ## Unit Grant Pool
 
@@ -67,11 +67,19 @@ Progression-item grants are additive. A Mudking boss victory therefore grants tw
 
 | Dialogue | Repeatability | Permanent progression | Item grants |
 | --- | --- | --- | --- |
-| `mountains-traveler-consumable-gifts` | Self-disabling one-shot | Records the `consumables` progression flag so the encounter is not normally offered again | Field Poultice × `1`; Travel Ration × `1` |
+| `mountains-traveler-consumable-gifts` | One-time | Completion is recorded by the dialogue's own seen state | Field Poultice × `1`; Travel Ration × `1` |
+| `swamps-wrong-machine-recovered` | One-time | Unlocks the Wrong Machine | None |
 
-No other current dialogue grants direct currency, units, dice, or items.
+No other current dialogue grants direct currency, units, dice, items, or features.
 
-The `consumables` key is a dialogue-progression flag rather than a canonical player-facing feature. It exists to record completion of the introductory consumable encounter.
+Dialogue rewards must be idempotent. Replaying a completed node or retrying a completion request must not duplicate item grants or progression unlocks.
+
+## Wrong Machine Recovery Reward
+
+- The first Bog Tyrant victory opens `swamps-wrong-machine-recovered` before the Swamps exit.
+- Completing the dialogue grants the Wrong Machine feature and records the dialogue as seen.
+- Swamps completion may verify or idempotently grant the feature as a safety boundary, but the authored reward moment is the recovery dialogue.
+- Later Swamps runs do not grant the Wrong Machine again.
 
 ## Generated Hazard and Shrine Rewards
 
@@ -140,7 +148,7 @@ Encounter templates may still carry these identifiers as inactive metadata. Thei
 ## Maintenance Notes
 
 - Change reward chances and guarantees here before or alongside runtime tuning.
-- Keep item grants synchronized with the item and dialogue catalogs.
+- Keep item and feature grants synchronized with the item, biome, and dialogue catalogs.
 - Keep encounter difficulty synchronized with the encounter catalog.
 - Do not treat inactive named loot tables as content authority.
 - Keep grant selection algorithms, deterministic rolls, materialization, and claim handling in system documentation.
