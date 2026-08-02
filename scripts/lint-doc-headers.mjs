@@ -13,7 +13,7 @@ const encodingCorruptionChecks = [
 ];
 const excludes = new Set([
   "documentation/archive",
-  "documentation/08-json-schema",
+  "documentation/05-technical/json-schema",
 ]);
 
 function walk(dir, out = []) {
@@ -39,6 +39,16 @@ function lintFile(absPath) {
   const headerWindow = raw.split(/\r?\n/).slice(0, 24).join("\n");
   const missing = requiredHeaders.filter((header) => !headerWindow.includes(header));
   const encodingHits = [];
+  const structureHits = [];
+
+  if (!raw.startsWith("---\n") && !raw.startsWith("---\r\n")) {
+    structureHits.push("missing YAML frontmatter fence");
+  }
+
+  const bodyWithoutFrontmatter = raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n+/, "");
+  if (/^Status:\s|^Last Updated:\s|^Owner:\s|^Depends On:\s/m.test(bodyWithoutFrontmatter)) {
+    structureHits.push("inline metadata outside frontmatter");
+  }
 
   for (const check of encodingCorruptionChecks) {
     check.regex.lastIndex = 0;
@@ -48,8 +58,8 @@ function lintFile(absPath) {
     }
   }
 
-  if (missing.length === 0 && encodingHits.length === 0) return null;
-  return { rel, missing, encodingHits };
+  if (missing.length === 0 && encodingHits.length === 0 && structureHits.length === 0) return null;
+  return { rel, missing, encodingHits, structureHits };
 }
 
 if (!fs.existsSync(docsRoot)) {
@@ -75,6 +85,9 @@ for (const warning of warnings) {
   }
   if (warning.encodingHits.length > 0) {
     parts.push(`encoding flags: ${warning.encodingHits.join("; ")}`);
+  }
+  if (warning.structureHits.length > 0) {
+    parts.push(`structure flags: ${warning.structureHits.join("; ")}`);
   }
   console.log(`- ${warning.rel}: ${parts.join(" | ")}`);
 }

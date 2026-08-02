@@ -1,15 +1,24 @@
-# Dice Goblins - Project Overview
+---
+Title: "Dice Goblins - Project Overview"
+Status: Canonical
+Last Updated: 2026-08-01
+Owner: Product
+Depends On:
+  - documentation/00-overview/01-core-gameplay-loop.md
+  - documentation/01-lore/00-world-and-lore.md
+  - documentation/05-technical/02-frontend-state-and-scene-contracts.md
+  - documentation/04-ux/00-ux-and-debug-scope.md
+Category: 00-overview
+Tags:
+  - overview
+---
 
-Status: active  
-Last Updated: 2026-07-24  
-Owner: Product  
-Depends On: `documentation/00-overview/01-core-gameplay-loop.md`, `documentation/00-overview/03-world-and-lore.md`, `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`, `documentation/03-ux/00-ux-and-debug-scope.md`
+# Dice Goblins - Project Overview
 
 ## Purpose
 
-- Describe the game as it currently exists in the alpha launch.
+- Describe the game as it currently exists.
 - Give new readers a reliable product-level summary before they dive into systems or code.
-- Establish which experience assumptions are current and which older ideas are no longer the default.
 
 ## Current Game Summary
 
@@ -126,8 +135,8 @@ These points reflect the current product direction rather than older planning id
 ## Canonical Follow-Up Docs
 
 - Core loop: `documentation/00-overview/01-core-gameplay-loop.md`
-- World and lore: `documentation/00-overview/03-world-and-lore.md`
-- Frontend route and state behavior: `documentation/01-architecture/02-frontend-state-and-scene-contracts.md`
-- Backend/API surface: `documentation/01-architecture/03-backend-api-contracts.md`
-- UX and player-facing scope: `documentation/03-ux/00-ux-and-debug-scope.md`
-- Future gameplay systems: `documentation/07-roadmap/00-gameplay-systems-roadmap.md`
+- World and lore: `documentation/01-lore/00-world-and-lore.md`
+- Frontend route and state behavior: `documentation/05-technical/02-frontend-state-and-scene-contracts.md`
+- Backend/API surface: `documentation/05-technical/03-backend-api-contracts.md`
+- UX and player-facing scope: `documentation/04-ux/00-ux-and-debug-scope.md`
+- Future gameplay systems: `documentation/07-development-path/00-gameplay-systems-roadmap.md`

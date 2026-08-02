@@ -174,7 +174,7 @@ acceptance_criteria:
 current_code_references:
   - backend/data/run-patterns
   - backend/bin/simulate-run-patterns.php
-  - documentation/05-playability-stability/04-mountains-pattern-v1-gate-evidence.md
+  - documentation/06-testing-release/evidence/01-mountains-pattern-v1-gate-evidence.md
 
 ---
 id: PBM-003
@@ -189,7 +189,7 @@ acceptance_criteria:
 current_code_references:
   - backend/data/run-patterns
   - backend/bin/simulate-run-patterns.php
-  - documentation/05-playability-stability/05-swamps-pattern-v1-gate-evidence.md
+  - documentation/06-testing-release/evidence/02-swamps-pattern-v1-gate-evidence.md
 
 ---
 id: PBM-004
@@ -204,7 +204,7 @@ acceptance_criteria:
 current_code_references:
   - backend/src/Services/RunGraphGenerator.php
   - backend/tests/Integration/RunGraphGeneratorIntegrationTest.php
-  - documentation/09-active-system-structure/05-run-node-generation.md
+  - documentation/02-systems/05-run-node-generation.md
 
 ---
 id: PBM-005
@@ -293,7 +293,7 @@ current_code_references:
   - backend/src/Services/RunGraphGenerator.php
   - backend/tests/Integration/RunGraphGeneratorIntegrationTest.php
   - frontend/public/assets/data/dialogue/dialogue-scripts.json
-  - documentation/09-active-system-structure/04-dialogue-flow-determination.md
+  - documentation/02-systems/04-dialogue-flow-determination.md
 
 ---
 id: UAT2-005
@@ -403,7 +403,7 @@ acceptance_criteria:
 current_code_references:
   - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
   - backend/tests/Integration/DeterministicRunNodeResolverFormationIntegrationTest.php
-  - documentation/09-active-system-structure/03-combat-resolution.md
+  - documentation/02-systems/03-combat-resolution.md
 
 ---
 id: CRC-002
@@ -419,7 +419,7 @@ acceptance_criteria:
 current_code_references:
   - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
   - backend/tests/Integration/DeterministicRunNodeResolverFormationIntegrationTest.php
-  - documentation/09-active-system-structure/03-combat-resolution.md
+  - documentation/02-systems/03-combat-resolution.md
 
 ---
 id: CRC-003
@@ -452,7 +452,7 @@ acceptance_criteria:
 current_code_references:
   - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
   - backend/tests/Integration/BattleNodeResolutionIntegrationTest.php
-  - documentation/09-active-system-structure/03-combat-resolution.md
+  - documentation/02-systems/03-combat-resolution.md
 
 ---
 id: CRC-005
@@ -469,7 +469,7 @@ current_code_references:
   - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
   - backend/tests/Unit/Combat/DeterministicRunNodeResolverPrimitivesTest.php
   - backend/tests/Integration/BattleNodeResolutionIntegrationTest.php
-  - documentation/09-active-system-structure/03-combat-resolution.md
+  - documentation/02-systems/03-combat-resolution.md
 
 ## Progression Rewards and Unlock Clarity
 
@@ -542,7 +542,7 @@ acceptance_criteria:
 current_code_references:
   - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
   - backend/tests/Integration/BattleNodeResolutionIntegrationTest.php
-  - documentation/02-systems-mvp/13-wrong-machine-and-kin.md
+  - documentation/02-systems/mvp-reference/13-wrong-machine-and-kin.md
 
 ## Wrong Machine and Kin Foundation
 
@@ -569,8 +569,8 @@ current_code_references:
   - backend/src/Controllers/RunNodeController.php
   - backend/tests/Integration/UserAssetGrantServiceIntegrationTest.php
   - backend/tests/Integration/ApiControllerEnvelopeContractTest.php
-  - documentation/01-architecture/03-backend-api-contracts.md
-  - documentation/01-architecture/04-data-model.md
+  - documentation/05-technical/03-backend-api-contracts.md
+  - documentation/05-technical/04-data-model.md
 
 ---
 id: KRB-001
@@ -587,7 +587,7 @@ acceptance_criteria:
 current_code_references:
   - backend/src/Services/KinLabelService.php
   - frontend/src/app/shared/utils/kin-label.ts
-  - documentation/01-architecture/03-backend-api-contracts.md
+  - documentation/05-technical/03-backend-api-contracts.md
 
 ---
 id: KRB-002
@@ -629,7 +629,7 @@ current_code_references:
   - backend/src/Services/WrongMachineReconstructionService.php
   - backend/src/Controllers/WrongMachineController.php
   - backend/tests/Integration/WrongMachineReconstructionControllerTest.php
-  - documentation/02-systems-mvp/13-wrong-machine-and-kin.md
+  - documentation/02-systems/mvp-reference/13-wrong-machine-and-kin.md
 
 ---
 id: WMU-001
@@ -667,7 +667,7 @@ current_code_references:
   - backend/migrations/64_add_raw_chaos_currency.sql
   - backend/src/Services/DiceSalvageService.php
   - frontend/src/app/pages/dice-page
-  - documentation/02-systems-mvp/01-dice-system.md
+  - documentation/02-systems/mvp-reference/01-dice-system.md
 
 ## Encounter Foundations
 
@@ -687,7 +687,7 @@ current_code_references:
   - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
   - backend/src/Services/RunGraphGenerator.php
   - frontend/src/app/pages/run-node-page
-  - documentation/02-systems-mvp/03-encounter-scope.md
+  - documentation/02-systems/mvp-reference/03-encounter-scope.md
 
 ---
 id: SME-001
@@ -705,8 +705,8 @@ current_code_references:
   - backend/src/Services/ChaosEncounterService.php
   - backend/src/Controllers/ChaosEncounterController.php
   - backend/tests/Integration/ChaosEncounterControllerIntegrationTest.php
-  - documentation/01-architecture/03-backend-api-contracts.md
-  - documentation/01-architecture/04-data-model.md
+  - documentation/05-technical/03-backend-api-contracts.md
+  - documentation/05-technical/04-data-model.md
 
 ---
 id: SME-002
@@ -725,7 +725,7 @@ current_code_references:
   - backend/src/Services/RunGraphGenerator.php
   - backend/src/Services/ChaosEncounterService.php
   - frontend/src/app/pages/run-node-page
-  - documentation/02-systems-mvp/03-encounter-scope.md
+  - documentation/02-systems/mvp-reference/03-encounter-scope.md
 
 ---
 id: SME-003
@@ -745,8 +745,8 @@ current_code_references:
   - backend/src/Controllers/ChaosEncounterController.php
   - backend/tests/Integration/ChaosEncounterControllerIntegrationTest.php
   - frontend/src/app/pages/run-node-page
-  - documentation/01-architecture/03-backend-api-contracts.md
-  - documentation/01-architecture/04-data-model.md
+  - documentation/05-technical/03-backend-api-contracts.md
+  - documentation/05-technical/04-data-model.md
 
 ---
 id: CEC-001
@@ -795,7 +795,7 @@ acceptance_criteria:
   - Add backlog-ready work for richer combat modifiers such as bolstered enemies, ambush opening state, guaranteed loot, and Raw Chaos reward hooks.
   - Keep the current implementation deterministic and backend-authoritative while leaving room for catalog growth.
 current_code_references:
-  - documentation/02-systems-mvp/15-chaos-reel-combat-authoring.md
+  - documentation/02-systems/mvp-reference/15-chaos-reel-combat-authoring.md
 
 ## Inventory And Reward UX Supporting The Roadmap
 
@@ -891,7 +891,7 @@ acceptance_criteria:
 current_code_references:
   - backend/src/Services/RunLifecycleService.php
   - backend/src/Services/RunGraphGenerator.php
-  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+  - documentation/07-development-path/2026-07-25-completion-analysis.md
 
 ---
 id: KPB-001
@@ -908,7 +908,7 @@ acceptance_criteria:
 current_code_references:
   - backend/src/Services/LineageUnlockService.php
   - backend/tests/Integration
-  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+  - documentation/07-development-path/2026-07-25-completion-analysis.md
 
 ---
 id: KPB-002
@@ -922,7 +922,7 @@ acceptance_criteria:
   - Results identify stat or passive tuning risks before more kin are added.
   - Findings are documented with recommended balance changes or a clear no-change decision.
 current_code_references:
-  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+  - documentation/07-development-path/2026-07-25-completion-analysis.md
 
 ---
 id: KPB-003
@@ -937,7 +937,7 @@ acceptance_criteria:
   - No player-facing UI introduces new "splice" terminology.
   - Required tests before a future storage rename are named.
 current_code_references:
-  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+  - documentation/07-development-path/2026-07-25-completion-analysis.md
 
 ---
 id: EPF-001
@@ -953,7 +953,7 @@ acceptance_criteria:
   - Representative primitive resolution and idempotency are covered.
 current_code_references:
   - backend/src/Combat/Engine
-  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+  - documentation/07-development-path/2026-07-25-completion-analysis.md
 
 ---
 id: EPF-002
@@ -969,7 +969,7 @@ acceptance_criteria:
   - Backend generator coverage protects placement contracts.
 current_code_references:
   - backend/src/Services/RunGraphGenerator.php
-  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+  - documentation/07-development-path/2026-07-25-completion-analysis.md
 
 ---
 id: ECP-001
@@ -984,7 +984,7 @@ acceptance_criteria:
   - Region eligibility, weight, title, and result copy are authored.
   - Enabled hazards resolve through supported primitives.
 current_code_references:
-  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+  - documentation/07-development-path/2026-07-25-completion-analysis.md
 
 ---
 id: ECP-002
@@ -999,7 +999,7 @@ acceptance_criteria:
   - Region eligibility, weight, title, and result copy are authored.
   - Enabled shrines resolve through supported primitives.
 current_code_references:
-  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+  - documentation/07-development-path/2026-07-25-completion-analysis.md
 
 ---
 id: ECP-003
@@ -1014,8 +1014,8 @@ acceptance_criteria:
   - Raw Chaos rewards remain gated behind Wrong Machine recovery.
   - Enabled reel entries can finalize into valid combat encounters.
 current_code_references:
-  - documentation/02-systems-mvp/15-chaos-reel-combat-authoring.md
-  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+  - documentation/02-systems/mvp-reference/15-chaos-reel-combat-authoring.md
+  - documentation/07-development-path/2026-07-25-completion-analysis.md
 
 ---
 id: GIC-001
@@ -1032,7 +1032,7 @@ acceptance_criteria:
 current_code_references:
   - backend/src/Services/ItemInventoryService.php
   - frontend/src/app/pages/run-map-page
-  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+  - documentation/07-development-path/2026-07-25-completion-analysis.md
 
 ---
 id: GIC-002
@@ -1049,7 +1049,7 @@ acceptance_criteria:
 current_code_references:
   - backend/src/Services/ItemInventoryService.php
   - frontend/src/app/layout/command-controls
-  - documentation/07-roadmap/2026-07-25-completion-analysis.md
+  - documentation/07-development-path/2026-07-25-completion-analysis.md
 
 ## UAT Feedback Fix Round 1
 

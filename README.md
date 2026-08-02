@@ -101,7 +101,7 @@ npm run test:backend:docker
 ## Documentation
 Start with:
 - `documentation/00-overview/00-project-overview.md`
-- `documentation/01-architecture/00-tech-stack.md`
+- `documentation/05-technical/00-tech-stack.md`
 - `documentation/README.md`
 
 ## Agent Workflow
