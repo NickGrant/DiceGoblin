@@ -125,7 +125,7 @@ Owning any valid die made from an enabled material discovers that material's pag
 
 ### Common
 
-- `scrap_wood`
+- `cardboard`
 - `bone`
 - `iron`
 - `copper`
