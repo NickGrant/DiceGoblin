@@ -9,6 +9,7 @@ Depends On:
   - documentation/03-content/03-enemy-types.md
   - documentation/03-content/06-biomes-and-regions.md
   - documentation/03-content/10-items-and-consumables.md
+  - documentation/03-content/13-dialogue-and-lore.md
 Category: 03-content
 Tags:
   - content
@@ -23,7 +24,7 @@ Tags:
 
 Define the canonical categories and discovery rules for the Dice Goblins Codex. This document identifies which current content keys are eligible for Codex ownership, how each category is discovered, and which categories remain intentionally deferred.
 
-Profile payload shape, persistence, synchronization jobs, deterministic rolls, and UI rendering belong in technical or UX documentation. The detailed content of a unit, enemy, kin, biome, or item remains owned by its primary catalog.
+Profile payload shape, persistence, synchronization jobs, deterministic rolls, and UI rendering belong in technical or UX documentation. The detailed content of a unit, enemy, kin, biome, item, or dialogue remains owned by its primary catalog.
 
 ## Current Category Model
 
@@ -35,10 +36,10 @@ Profile payload shape, persistence, synchronization jobs, deterministic rolls, a
 | `unit_type` | Unit Type Catalog | Unlock the unit type or own a unit of that type | 20 | Active |
 | `kin` | Kin Type Catalog | Unlock the kin or own a unit of that kin | 2 | Active |
 | `item` | Item and Consumable Catalog | Own at least one copy of the item | 6 | Active |
+| `lore` | Dialogue and Lore Catalog | Complete a dialogue explicitly classified as Lore | 7 | Active |
 | `affix` | Future dice-affix catalog | Own a die carrying the affix | Not cataloged here | Deferred by scope |
-| `lore` | Future dialogue and lore catalog | Receive the corresponding lore/dialogue unlock | Not cataloged here | Deferred by scope |
 
-The current non-dice, non-dialogue Codex contains **58 canonical entry keys**.
+The current non-dice Codex contains **65 canonical entry keys**.
 
 ## Enemy Entries
 
@@ -81,7 +82,9 @@ Biome discovery records completion, not merely access or run creation.
 | `explode_d4s` | Exploding D4s | Gives eligible d4s one explosion when they roll their maximum value. | Receive the corresponding feature unlock. |
 | `wrong_machine` | Wrong Machine | Opens Raw Chaos and kin-reconstruction progression. | Complete the Swamps. |
 
-The Codex records feature ownership. Costs, prerequisites, and mechanical execution remain in feature-system documentation.
+The Codex records player-facing feature ownership. Costs, prerequisites, and mechanical execution remain in feature-system documentation.
+
+The `consumables` progression flag awarded by Far Gifts is not a canonical feature entry. Its current role is to record completion of that dialogue and suppress repeat placement; it has no independent player-facing feature identity.
 
 ## Unit-Type Entries
 
@@ -110,12 +113,38 @@ Implementation-only splice records are not valid Codex content unless they are f
 | --- | --- | --- |
 | `pig_ear` | Pig Ear | Own at least one Pig Ear. |
 | `mudking_crown_fragment` | Mudking Crown Fragment | Own at least one Crown Fragment. |
-| `field_poultice` | Field Poultice | Own at least one Field Poultice. |
+| `field_poultice` | Field Poultice | Own at least one Field Poultice; first available through Far Gifts. |
 | `hearty_bone_broth` | Hearty Bone Broth | Own at least one Hearty Bone Broth. |
-| `travel_ration` | Travel Ration | Own at least one Travel Ration. |
+| `travel_ration` | Travel Ration | Own at least one Travel Ration; first available through Far Gifts. |
 | `sparkroot_tonic` | Sparkroot Tonic | Own at least one Sparkroot Tonic. |
 
 The obsolete Roc Egg and Gator Head records are not Codex entries because they are not current canonical items.
+
+## Lore Entries
+
+Lore entries are dialogue scripts explicitly classified as Lore in the Dialogue and Lore Catalog. Completing an ordinary dialogue does not automatically make it a Lore page.
+
+| Key | Display title | Participants | Discovery condition |
+| --- | --- | --- | --- |
+| `start-run-kickoff` | The Whim's First Fragment | Player Goblin, The Whim | Complete the one-time Mystic Cave introduction. |
+| `mystic-cave-wrong-machine-recovered` | The Machine Comes Home | Player Goblin, The Whim | Complete the dialogue after recovering the Wrong Machine. |
+| `farm-shop-unlock` | The Tooth Collector Freed | The Tooth Collector, Mudking | Complete the one-time Farm exit dialogue. |
+| `mountains-archivist-first-contact` | The Archivist Takes Notice | Player Goblin, The Archivist | Complete the one-time first-contact dialogue. |
+| `mountains-kobold-machine-trail` | Kobold Evidence | Player Goblin, Kobold Sentry | Complete the one-time machine-trail dialogue. |
+| `mountains-kobold-machine-recovered` | The Recovered Contraption | Player Goblin, Kobold Sentry | Complete the dialogue after recovering the Wrong Machine. |
+| `mountains-swamps-lead` | Toward the Swamps | Player Goblin, The Archivist | Complete the one-time Mountains exit dialogue. |
+
+### Dialogue-Only Keys
+
+The following scripts are current dialogue but are not canonical Lore pages:
+
+- `mystic-cave-wrong-machine-reminder`
+- `farm-boss-intro`
+- `farm-boss-intro-shop-unlocked`
+- `mountains-wrong-machine-search-repeat`
+- `mountains-traveler-consumable-gifts`
+
+They may maintain seen-state records for progression or repeatability, but those records do not define Codex content.
 
 ## Discovery Source Vocabulary
 
@@ -124,26 +153,35 @@ The obsolete Roc Egg and Gator Head records are not Codex entries because they a
 | `combat_drop` | Enemy page awarded from a victorious encounter roll. |
 | `completed_biome_boss` | Boss enemy page awarded with first completion of its biome. |
 | `completed_run` | Biome page awarded by successful completion. |
-| `feature_unlock` | Feature page awarded when the feature is unlocked. |
+| `feature_unlock` | Feature page awarded when a canonical player-facing feature is unlocked. |
 | `unit_type_unlock` | Unit-type page awarded by research or progression unlock. |
 | `lineage_unlock` | Kin page awarded by lineage unlock. |
 | `owned_unit` | Unit-type or kin page derived from current ownership. |
 | `owned_item` | Item page derived from positive inventory quantity. |
+| `dialogue` | Lore page awarded by completion of a dialogue explicitly classified as Lore. |
 | `owned_die` | Affix page derived from an owned die; deferred from this catalog. |
-| `dialogue` | Lore page derived from dialogue progression; deferred from this catalog. |
+
+## Reconciliation Findings
+
+- Seen dialogue and Lore ownership are not equivalent. Five current scripts are dialogue-only and should not appear as Lore pages.
+- The `consumables` progression flag is stored in the feature namespace but is not a canonical player-facing feature or Codex feature entry.
+- Field Poultice and Travel Ration now have a canonical discovery path through Far Gifts. Hearty Bone Broth and Sparkroot Tonic remain without acquisition sources.
 
 ## Open Questions
 
-- Detailed Codex payloads are currently authored for unit types and enemies, while biome, feature, kin, and item entries may rely on prettified keys. These categories need dedicated title, description, art, and summary presentation.
-- Consumable item pages cannot normally be discovered until acquisition sources are authored.
+- Current ownership synchronization may mirror every dialogue seen-state key into the Lore category. It should be narrowed to the seven canonical Lore ids or replaced by an explicit Lore-award rule.
+- Generic feature synchronization may expose the `consumables` progression flag as a feature page. It should be excluded unless it receives an authored feature identity.
+- Detailed Codex payloads are currently authored for unit types and enemies, while biome, feature, kin, item, and Lore entries may rely on prettified keys or dialogue scripts. These categories need dedicated title, description, art, and summary presentation.
+- Hearty Bone Broth and Sparkroot Tonic cannot normally be discovered until acquisition sources are authored.
 - Enemy discovery at `13%` per defeated copy may create uneven page acquisition across rare bosses and common grunts. Boss completion awards mitigate this only for defeated biome bosses.
 - Feature keys involving dice behavior remain valid feature entries, but their detailed mechanical explanations should be reconciled when the dice catalog is written.
-- Affix and lore entry sets are intentionally deferred and should not be inferred from storage records alone.
+- Affix entry definitions remain intentionally deferred and should not be inferred from storage records alone.
 
 ## Maintenance Notes
 
 - A Codex entry key must refer to content already defined in its primary canonical catalog.
 - Add new entry categories here before exposing them through ownership or profile APIs.
-- Keep discovery conditions synchronized with reward and progression catalogs.
-- Do not duplicate full unit, enemy, biome, kin, or item definitions here.
+- Keep discovery conditions synchronized with reward, progression, and dialogue catalogs.
+- Do not duplicate full unit, enemy, biome, kin, item, or dialogue definitions here.
 - Keep persistence, synchronization, API details, and deterministic roll implementation outside this document.
+- Do not promote storage namespace keys into Codex content without an authored entry and player-facing identity.
