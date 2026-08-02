@@ -36,10 +36,10 @@ Profile payload shape, persistence, synchronization jobs, deterministic rolls, a
 | `unit_type` | Unit Type Catalog | Unlock the unit type or own a unit of that type | 20 | Active |
 | `kin` | Kin Type Catalog | Unlock the kin or own a unit of that kin | 2 | Active |
 | `item` | Item and Consumable Catalog | Own at least one copy of the item | 6 | Active |
-| `lore` | Dialogue and Lore Catalog | Complete a dialogue explicitly classified as Lore | 7 | Active |
+| `lore` | Dialogue and Lore Catalog | Complete a dialogue explicitly classified as Lore | 9 | Active |
 | `affix` | Future dice-affix catalog | Own a die carrying the affix | Not cataloged here | Deferred by scope |
 
-The current non-dice Codex contains **65 canonical entry keys**.
+The current non-dice Codex contains **67 canonical entry keys**.
 
 ## Enemy Entries
 
@@ -69,7 +69,7 @@ Biome discovery records completion, not merely access or run creation.
 
 | Key | Display name | Player-facing identity | Known discovery path |
 | --- | --- | --- | --- |
-| `shop` | Shop | Opens persistent buying, selling, and daily-deal surfaces. | Defeat the Farm boss or complete The Farm. |
+| `shop` | Shop | Opens persistent buying, selling, and daily-deal surfaces. | Defeat the Farm boss and complete Farm progression. |
 | `academy` | Academy | Opens unit research, promotion planning, and mastery selection. | Purchase the Academy feature unlock. |
 | `bigger_squad` | Bigger Squad | Raises squad capacity from `4` to `6`. | Purchase the feature unlock. |
 | `biggerest_squad` | Biggerest Squad | Raises squad capacity from `6` to `9`. | Purchase after Bigger Squad. |
@@ -80,11 +80,11 @@ Biome discovery records completion, not merely access or run creation.
 | `energy_cap_75` | Energy Capacity 75 | Raises maximum Energy to `75`. | Receive the corresponding feature unlock. |
 | `energy_cap_100` | Energy Capacity 100 | Raises maximum Energy to `100`. | Receive the corresponding feature unlock. |
 | `explode_d4s` | Exploding D4s | Gives eligible d4s one explosion when they roll their maximum value. | Receive the corresponding feature unlock. |
-| `wrong_machine` | Wrong Machine | Opens Raw Chaos and kin-reconstruction progression. | Complete the Swamps. |
+| `wrong_machine` | Wrong Machine | Opens Raw Chaos and kin-reconstruction progression. | Complete `swamps-wrong-machine-recovered` during the first successful Swamps run. |
 
 The Codex records player-facing feature ownership. Costs, prerequisites, and mechanical execution remain in feature-system documentation.
 
-The `consumables` progression flag awarded by Far Gifts is not a canonical feature entry. Its current role is to record completion of that dialogue and suppress repeat placement; it has no independent player-facing feature identity.
+Dialogue seen-state keys are not features. Far Gifts is suppressed by completion of its own one-time dialogue id and does not create a `consumables` feature.
 
 ## Unit-Type Entries
 
@@ -127,24 +127,28 @@ Lore entries are dialogue scripts explicitly classified as Lore in the Dialogue 
 | Key | Display title | Participants | Discovery condition |
 | --- | --- | --- | --- |
 | `start-run-kickoff` | The Whim's First Fragment | Player Goblin, The Whim | Complete the one-time Mystic Cave introduction. |
-| `mystic-cave-wrong-machine-recovered` | The Machine Comes Home | Player Goblin, The Whim | Complete the dialogue after recovering the Wrong Machine. |
-| `farm-shop-unlock` | The Tooth Collector Freed | The Tooth Collector, Mudking | Complete the one-time Farm exit dialogue. |
+| `mystic-cave-wrong-machine-recovered` | The Machine Comes Home | Player Goblin, The Whim | Complete the one-time Whim reaction after recovery. |
+| `farm-shop-unlock` | The Tooth Collector Freed | Player Goblin, The Tooth Collector, Mudking | Complete the one-time Farm rescue dialogue. |
 | `mountains-archivist-first-contact` | The Archivist Takes Notice | Player Goblin, The Archivist | Complete the one-time first-contact dialogue. |
 | `mountains-kobold-machine-trail` | Kobold Evidence | Player Goblin, Kobold Sentry | Complete the one-time machine-trail dialogue. |
-| `mountains-kobold-machine-recovered` | The Recovered Contraption | Player Goblin, Kobold Sentry | Complete the dialogue after recovering the Wrong Machine. |
+| `mountains-kobold-machine-recovered` | The Recovered Contraption | Player Goblin, Kobold Sentry | Complete the one-time kobold reaction after recovery. |
 | `mountains-swamps-lead` | Toward the Swamps | Player Goblin, The Archivist | Complete the one-time Mountains exit dialogue. |
+| `swamps-bog-tyrant-first-confrontation` | Contraband of the Bog | Player Goblin, Bog Tyrant | Complete the first Bog Tyrant confrontation. |
+| `swamps-wrong-machine-recovered` | The Wrong Machine Reclaimed | Player Goblin, Bog Tyrant | Complete the first successful Swamps recovery dialogue. |
 
 ### Dialogue-Only Keys
 
-The following scripts are current dialogue but are not canonical Lore pages:
+The following seven scripts are canonical dialogue but are not Lore pages:
 
 - `mystic-cave-wrong-machine-reminder`
 - `farm-boss-intro`
 - `farm-boss-intro-shop-unlocked`
 - `mountains-wrong-machine-search-repeat`
 - `mountains-traveler-consumable-gifts`
+- `swamps-bog-tyrant-machine-defense-repeat`
+- `swamps-bog-tyrant-rematch`
 
-They may maintain seen-state records for progression or repeatability, but those records do not define Codex content.
+They maintain seen state for progression, repeatability, or variation selection without defining Codex pages.
 
 ## Discovery Source Vocabulary
 
@@ -161,16 +165,15 @@ They may maintain seen-state records for progression or repeatability, but those
 | `dialogue` | Lore page awarded by completion of a dialogue explicitly classified as Lore. |
 | `owned_die` | Affix page derived from an owned die; deferred from this catalog. |
 
-## Reconciliation Findings
+## Reconciliation Requirements
 
-- Seen dialogue and Lore ownership are not equivalent. Five current scripts are dialogue-only and should not appear as Lore pages.
-- The `consumables` progression flag is stored in the feature namespace but is not a canonical player-facing feature or Codex feature entry.
-- Field Poultice and Travel Ration now have a canonical discovery path through Far Gifts. Hearty Bone Broth and Sparkroot Tonic remain without acquisition sources.
+- Seen dialogue and Lore ownership must remain separate. Seven current scripts are dialogue-only and must not appear as Lore pages.
+- Generic dialogue-to-Lore synchronization must use the nine canonical Lore ids rather than all seen dialogue keys.
+- Generic feature synchronization must not interpret dialogue seen state as feature ownership.
+- Field Poultice and Travel Ration have a canonical first-discovery path through Far Gifts. Hearty Bone Broth and Sparkroot Tonic remain without acquisition sources.
 
 ## Open Questions
 
-- Current ownership synchronization may mirror every dialogue seen-state key into the Lore category. It should be narrowed to the seven canonical Lore ids or replaced by an explicit Lore-award rule.
-- Generic feature synchronization may expose the `consumables` progression flag as a feature page. It should be excluded unless it receives an authored feature identity.
 - Detailed Codex payloads are currently authored for unit types and enemies, while biome, feature, kin, item, and Lore entries may rely on prettified keys or dialogue scripts. These categories need dedicated title, description, art, and summary presentation.
 - Hearty Bone Broth and Sparkroot Tonic cannot normally be discovered until acquisition sources are authored.
 - Enemy discovery at `13%` per defeated copy may create uneven page acquisition across rare bosses and common grunts. Boss completion awards mitigate this only for defeated biome bosses.
