@@ -64,6 +64,8 @@ A successful die grant selects:
 
 The only active sizes are `d4`, `d6`, `d8`, and `d10`. Rewards must not create `d12`, `d20`, materialless dice, independent-rarity dice, or material-plus-affix dice.
 
+Cardboard is the neutral Common material and is valid on every active size. A source that intentionally grants an ordinary die should grant an explicit Cardboard size-material pair rather than omitting material identity.
+
 The standard material rarity profile and complete material-size matrix are defined in the Dice Material Catalog.
 
 ## Progression Item Grants
