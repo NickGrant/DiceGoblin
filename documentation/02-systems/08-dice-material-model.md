@@ -23,7 +23,7 @@ Tags:
 
 Define the canonical target model for permanent dice identity, rarity, material eligibility, generation, effect resolution, stacking, valuation, and migration from the legacy affix model.
 
-This document owns system rules. The concrete material roster, effect values, drop weights, display copy, art, and material-specific size lists belong in a future Dice Material Catalog. Storage tables, migrations, APIs, and behavior-handler implementation belong in technical documentation and code.
+This document owns system rules. The concrete material roster, effect values, drop weights, display copy, art, and material-specific size lists belong in the Dice Material Catalog. Storage tables, migrations, APIs, and behavior-handler implementation belong in technical documentation and code.
 
 ## Target-State Boundary
 
@@ -70,13 +70,16 @@ A mechanically complete owned die contains:
 
 Two dice with the same size and material are mechanically identical. Instance identity exists for inventory ownership, equipment, sale, salvage, and audit purposes; it must not introduce hidden rolls, quality values, or undeclared bonuses.
 
-Every die must have a material. A null, missing, or implicit material is invalid target-state data. A deliberately neutral common die must use an authored baseline material whose effect is explicitly defined as neutral.
+Every die must have a material. A null, missing, or implicit material is invalid target-state data.
+
+Cardboard is the explicit neutral baseline material. It is Common, supports every active size (`d4`, `d6`, `d8`, and `d10`), and has no special effect. Ordinary dice use Cardboard rather than a null or inferred material value.
 
 ### Display Identity
 
 The default player-facing name should be material-led, such as:
 
 ```text
+Cardboard d6
 Peach Pit d4
 Glass d10
 ```
@@ -150,7 +153,7 @@ A material-size pair is valid only when:
 2. the material is enabled
 3. the material's allowed-size list contains the size
 
-There is no implicit "all sizes" default. Supporting every active size must be an explicit and exceptional content decision.
+There is no implicit "all sizes" default. Supporting every active size must be an explicit content decision. Cardboard deliberately supports every active size because it is the neutral baseline material.
 
 ### Size-Breadth Guidance
 
@@ -191,6 +194,7 @@ The material catalog must maintain the following coverage:
 - every enabled material supports at least one active size
 - every generation source has at least one eligible material for every size it can select
 - every material effect is reviewed at the minimum and maximum size in its allowlist
+- Cardboard remains eligible on every active size unless the baseline-material decision is deliberately replaced
 
 Changing a material's allowed-size list is a content change. Removing a size requires a migration decision for owned dice already using that pair.
 
@@ -235,6 +239,7 @@ An empty eligible-material pool is a content error. Runtime generation must not:
 - attach a material that does not allow the selected size
 - silently fall back to legacy rarity-only dice
 - silently add an affix
+- silently substitute Cardboard unless the source explicitly allows baseline fallback
 
 Content validation should detect empty pools before release.
 
@@ -266,6 +271,8 @@ The behavior may read authored context such as:
 Unless explicitly defined as passive, a material effect resolves only when its die participates in an ability roll. Merely owning or equipping the die does not activate it.
 
 A die triggers its material effect at most once for one roll event unless the material explicitly defines multiple sub-events. Reopening a combat result or retrying an idempotent request must not trigger the effect again.
+
+Cardboard defines no material effect and therefore adds no trigger beyond the normal die roll.
 
 ## Stacking and Duplicate Materials
 
@@ -299,7 +306,7 @@ A material is ready for the catalog when it satisfies all of the following:
 - it does not depend on a hidden affix or undeclared instance roll
 - any drawback is visible to the player
 
-A material may intentionally be neutral for baseline dice, but neutrality must be authored rather than represented by missing data.
+Cardboard is the deliberate exception to the noticeable-effect guideline because its authored purpose is to provide the explicit neutral baseline. Neutrality must not be represented by missing data.
 
 Minor numerical bonuses may be used, but a material should not exist solely to provide an imperceptible percentage difference. Materials are the primary source of permanent die variety.
 
@@ -331,7 +338,7 @@ They must not create invalid material-size combinations.
 
 ### Codex
 
-The future material catalog is the key source for material Codex pages. Owning a die with a material may discover that material's page. Permanent affix Codex pages are not part of the target model.
+The Dice Material Catalog is the key source for material Codex pages. Owning a die with a material may discover that material's page. Permanent affix Codex pages are not part of the target model.
 
 ## Valuation
 
@@ -348,6 +355,8 @@ The material modifier subsumes the legacy independent rarity bonus and affix pre
 A rarity tier may define a default modifier band, but the material catalog owns the final authored modifier. A risky or highly specialized material may be valued differently from another material of the same rarity.
 
 Raw Chaos salvage likewise derives from size and material. The exact salvage formula may differ from shop value, but it must not depend on removed affix slots or affix rarity.
+
+Cardboard uses the neutral `1.00x` value and salvage modifiers.
 
 ## Material Mutability
 
@@ -397,24 +406,22 @@ Migration must define deterministic handling for:
 
 The migration must not retain hybrid dice containing both a material effect and permanent affixes.
 
-The exact conversion table is a separate implementation and content decision. Existing affix rows remain evidence for that decision, not target-state content.
+Starter and explicitly neutral legacy dice migrate to Cardboard while preserving their active size. The exact conversion table for other dice remains a separate implementation and content decision. Existing affix rows remain evidence for that decision, not target-state content.
 
-## Deferred Material-Catalog Decisions
+## Resolved Material-Catalog Decisions
 
-The future Dice Material Catalog must resolve:
+The Dice Material Catalog defines:
 
-- the initial material roster
+- the initial 32-material roster
 - each material's stable key, rarity, effect, allowed sizes, tags, and valuation
-- generation weights by source and rarity
-- exact effect-handler vocabulary
-- per-size common coverage
+- standard generation weights by rarity
+- exact effect-handler requirements
+- per-size coverage
 - legacy affix-to-material mappings
-- starter-die material assignments
-- material Codex titles, descriptions, and art
-- whether any material is unique or otherwise quantity-limited
-- future support for `d12`, `d20`, or other sizes
-
-The material catalog remains incomplete until those concrete entries are authored and reconciled with implementation.
+- Cardboard as the starter and neutral baseline material
+- material Codex keys and discovery identity
+- no unique or quantity-limited materials in the initial roster
+- no current support for `d12`, `d20`, or other sizes
 
 ## Validation Rules
 
@@ -429,6 +436,7 @@ The target dice model is aligned when:
 - authored guarantees still validate material-size compatibility
 - generation pools cannot become empty for a selectable size
 - every material defines effect, rarity, allowed sizes, stacking, and valuation
+- Cardboard supports every active size and has no special effect
 - material effects resolve idempotently with their declared trigger
 - shop value and salvage do not depend on legacy affix premiums
 - migration produces no hybrid material-plus-affix dice
