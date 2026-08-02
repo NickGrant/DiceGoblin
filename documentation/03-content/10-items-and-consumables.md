@@ -7,6 +7,7 @@ Depends On:
   - documentation/03-content/02-kin-types.md
   - documentation/03-content/06-biomes-and-regions.md
   - documentation/03-content/11-loot-and-reward-profiles.md
+  - documentation/03-content/13-dialogue-and-lore.md
 Category: 03-content
 Tags:
   - content
@@ -47,7 +48,7 @@ Inventory storage, transaction handling, shop pricing, grant APIs, and consumpti
 
 | Key | Display name | Description | Category | Rarity | Effect | Use restrictions | Current acquisition |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `field_poultice` | Field Poultice | A quick wrap for patching up a wounded unit between encounters. | Consumable | Common | Restores `10` HP to one run unit. | Active run; outside unresolved combat; target must be wounded. | No canonical acquisition source currently defined. |
+| `field_poultice` | Field Poultice | A quick wrap for patching up a wounded unit between encounters. | Consumable | Common | Restores `10` HP to one run unit. | Active run; outside unresolved combat; target must be wounded. | Guaranteed quantity `1` from first completion of `mountains-traveler-consumable-gifts`. |
 | `hearty_bone_broth` | Hearty Bone Broth | A stronger recovery draught that brings one run unit back from the edge. | Consumable | Uncommon | Restores `25` HP to one run unit. | Active run; outside unresolved combat; target must be wounded. | No canonical acquisition source currently defined. |
 
 Healing cannot exceed the unit's maximum HP. A healing consumable may restore a defeated run unit when the resulting HP is above zero.
@@ -56,10 +57,19 @@ Healing cannot exceed the unit's maximum HP. A healing consumable may restore a 
 
 | Key | Display name | Description | Category | Rarity | Effect | Use restrictions | Current acquisition |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `travel_ration` | Travel Ration | A packed bite that restores a small amount of energy before the next run. | Consumable | Common | Restores `10` Energy. | Energy must be below the player's current maximum. | No canonical acquisition source currently defined. |
+| `travel_ration` | Travel Ration | A packed bite that restores a small amount of energy before the next run. | Consumable | Common | Restores `10` Energy. | Energy must be below the player's current maximum. | Guaranteed quantity `1` from first completion of `mountains-traveler-consumable-gifts`. |
 | `sparkroot_tonic` | Sparkroot Tonic | A sharp tonic that restores a larger amount of energy without exceeding the current cap. | Consumable | Uncommon | Restores `25` Energy. | Energy must be below the player's current maximum. | No canonical acquisition source currently defined. |
 
 Energy restoration cannot exceed the player's current Energy cap.
+
+## Consumable Introduction
+
+The dialogue **Far Gifts** introduces the consumable system through a lost traveler in the Mountains. Its first completion grants:
+
+- Field Poultice ×1
+- Travel Ration ×1
+
+The dialogue records a progression flag and normally cannot recur, so these are one-time introductory grants rather than renewable acquisition sources.
 
 ## Item Category Summary
 
@@ -83,7 +93,8 @@ Reintroducing either item requires a complete entry in this catalog, including i
 
 ## Open Questions
 
-- The four consumables have complete use effects but no canonical acquisition source. They need explicit shop, loot, crafting, or grant placement before they are normally obtainable.
+- Hearty Bone Broth and Sparkroot Tonic have complete use effects but no canonical acquisition source. They need explicit shop, loot, crafting, or grant placement before they are normally obtainable.
+- Field Poultice and Travel Ration have only one-time introductory grants. Renewable acquisition must be defined if they are intended to support sustained consumable use.
 - Pig Kin reconstruction costs and the division of cost between Pig Ears, Crown Fragments, and Raw Chaos need a canonical system-level definition.
 - Future biome materials should follow the generic item model rather than creating parallel region-item storage.
 - Item-facing Codex presentation needs authored descriptions and icons to remain synchronized with this catalog.
@@ -91,7 +102,7 @@ Reintroducing either item requires a complete entry in this catalog, including i
 ## Maintenance Notes
 
 - Add an item here before or alongside any grant, shop offer, crafting recipe, or progression requirement that uses it.
-- Keep acquisition synchronized with the reward profile catalog.
+- Keep acquisition synchronized with the reward profile and dialogue catalogs.
 - Keep kin materials synchronized with the kin and biome catalogs.
 - Treat storage-only item records as implementation drift until deliberately accepted as content.
 - Keep inventory mutations, transactions, validation, and API contracts outside this document.

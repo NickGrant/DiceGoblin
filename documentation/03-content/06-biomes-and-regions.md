@@ -6,6 +6,7 @@ Owner: Content Design + Narrative Design
 Depends On:
   - documentation/03-content/02-kin-types.md
   - documentation/03-content/03-enemy-types.md
+  - documentation/03-content/13-dialogue-and-lore.md
   - documentation/01-lore/01-story-and-biome-progression.md
 Category: 03-content
 Tags:
@@ -27,7 +28,7 @@ Run-map generation, node frequency, unlock persistence, and completion processin
 
 - Content category: Current playable biomes and regions.
 - Player-facing surfaces: Region selection, run maps, combat backgrounds, completion summaries, the Codex, and campaign progression.
-- Related content docs: Enemy types, kin types, encounters, hazards, shrines, items, and reward profiles.
+- Related content docs: Enemy types, kin types, encounters, dialogue, hazards, shrines, items, and reward profiles.
 
 ## Current Progression
 
@@ -38,9 +39,9 @@ Mystic Cave → The Farm → Mountains → Swamps
 | Key | Display name | Order | Theme | Recommended level | Energy cost | Native enemy identity | Boss or climax | Completion progression | Content status |
 | --- | --- | ---: | --- | ---: | ---: | --- | --- | --- | --- |
 | `mystic_cave` | Mystic Cave | 1 | Mystic cave | 1 | 0 | No conventional native faction; associated with The Whim and chaos manifestations | The player's manifestation and stabilization into a Basic Goblin | Unlocks The Farm | Active |
-| `the_farm` | The Farm | 2 | Farm | 1 | 3 | Pigs | Mudking | Unlocks shop access, Mountains, and the Pig Kin progression path | Active |
+| `the_farm` | The Farm | 2 | Farm | 1 | 3 | Pigs | Mudking | Unlocks Shop access, Mountains, and the Pig Kin progression path | Active |
 | `mountains` | Mountains | 3 | Mountain | 1 | 5 | Kobolds | Kobold Warchief | Unlocks Swamps | Active |
-| `swamps` | Swamps | 4 | Swamp | 1 | 5 | Frogmen | Bog Tyrant | Unlocks the Wrong Machine feature; currently ends the playable region sequence | Active |
+| `swamps` | Swamps | 4 | Swamp | 1 | 5 | Frogmen | Bog Tyrant and recovery of the Wrong Machine | Unlocks the Wrong Machine during the first successful recovery sequence; currently ends the playable region sequence | Active |
 
 ## Biome Identities
 
@@ -58,7 +59,7 @@ Mystic Cave → The Farm → Mountains → Swamps
 - **Visual identity:** muddy fields, fences, feed stores, hay, farm structures, and pig-controlled territory.
 - **Native faction:** pigs.
 - **Boss:** Mudking.
-- **Progression identity:** introduces Pig Ears and the Mudking Crown Fragment, rescues the Tooth Collector, opens the shop, and establishes Pig Kin as the first unlockable kin.
+- **Progression identity:** introduces Pig Ears and the Mudking Crown Fragment, rescues the Tooth Collector, opens the Shop, and establishes Pig Kin as the first unlockable kin.
 
 ### Mountains
 
@@ -74,7 +75,15 @@ Mystic Cave → The Farm → Mountains → Swamps
 - **Visual identity:** black water, reeds, dry islands, standing stones, scavenged structures, and frogman territory.
 - **Native faction:** frogmen.
 - **Boss:** Bog Tyrant.
-- **Progression identity:** returns the Wrong Machine to goblin control and enables later kin-reconstruction systems.
+- **Progression identity:** the Bog Tyrant holds the Wrong Machine as dangerous contraband. The first successful Swamps run includes a before-exit recovery scene that returns the machine to goblin control and unlocks its feature. Later Swamps runs treat the Bog Tyrant as a recurring regional ruler and rematch boss.
+
+## Wrong Machine Recovery Boundary
+
+- The Wrong Machine is not recovered merely by entering the Swamps.
+- The first Bog Tyrant victory opens the one-time dialogue `swamps-wrong-machine-recovered` before the player exits the run.
+- Completing that dialogue is the authored moment when the machine returns to goblin control and the Wrong Machine feature unlocks.
+- Successful Swamps completion may verify or idempotently grant the same unlock, but it must not create a second narrative recovery.
+- Subsequent Swamps dialogue and completion summaries assume the machine is already under goblin control.
 
 ## Current Kin Relationships
 
@@ -96,8 +105,9 @@ Planning references to Lizard Kin, Frog Kin, or later biome lineages are future 
 
 ## Maintenance Notes
 
-- Add a region here before or alongside its implementation, art, encounters, and progression hooks.
+- Add a region here before or alongside its implementation, art, encounters, dialogue, and progression hooks.
 - Keep native factions and bosses synchronized with the enemy and encounter catalogs.
+- Keep story progression synchronized with the dialogue catalog.
 - Keep kin relationships synchronized with the kin and item catalogs.
 - Treat planning-only chapter names as non-current until promoted into this catalog.
 - Keep run generation, unlock evaluation, and completion mechanics in system documentation.
