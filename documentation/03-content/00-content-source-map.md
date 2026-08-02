@@ -36,8 +36,8 @@ Once a category has a canonical content document, implementation files are consu
 | Items and consumables | `documentation/03-content/10-items-and-consumables.md` | Canonical | Defines current progression materials, catalysts, healing items, and energy items. |
 | Loot and reward profiles | `documentation/03-content/11-loot-and-reward-profiles.md` | Canonical | Defines active node-and-outcome reward chances, guarantees, currency, and item grants. |
 | Codex entries | `documentation/03-content/12-codex-entries.md` | Canonical | Defines current Codex categories, eligible keys, and discovery conditions. |
+| Dialogue and lore | `documentation/03-content/13-dialogue-and-lore.md` | Canonical | Defines current scripts, participants, placement, eligibility, repeatability, choices, completion rewards, and Lore classification. |
 | Dice definitions and affixes | Not yet created | Interim | Existing implementation data must be reconciled when separate dice and affix catalogs are authored. |
-| Dialogue and lore unlocks | Not yet created | Interim | A complete catalog requires narrative review and should not be inferred only from implementation keys. |
 
 ## Interim Implementation References
 
@@ -46,7 +46,6 @@ These references help locate existing content while canonical catalogs are still
 | Category | Temporary references |
 | --- | --- |
 | Dice definitions and affixes | Dice definition, rarity, material, and affix data plus current combat and inventory behavior. |
-| Dialogue and lore unlocks | Dialogue scripts, dialogue services, run graph generation, and narrative planning documents. |
 
 ## Catalog Writing Rules
 
@@ -56,6 +55,7 @@ These references help locate existing content while canonical catalogs are still
 - New content should be added to its canonical catalog before or alongside implementation work.
 - When implementation and a canonical catalog disagree, treat the mismatch as implementation drift and resolve it explicitly.
 - Cross-reference shared content rather than creating competing definitions in multiple catalogs.
+- Dialogue entries must explicitly identify participants, effective repeatability, and Lore classification rather than relying on storage flags.
 
 ## Review Boundary
 
