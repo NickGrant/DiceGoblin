@@ -1,7 +1,7 @@
 ---
 Title: "Active System Structure Index"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-02
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/README.md
@@ -18,14 +18,16 @@ Tags:
 - Capture how major gameplay systems work in the current implementation.
 - Document defaults, fallback behavior, and backend/frontend handoff points.
 - Provide exact system-flow references before older planning docs or roadmap notes.
+- Identify canonical target-state system documents whose implementation is still being reconciled.
 
 ## Scope
 
-- These docs describe implemented behavior as of 2026-07-27.
+- Active-system documents describe implemented behavior unless they explicitly identify themselves as a canonical target model.
 - These docs do not replace API contracts, data model references, or future roadmap documents.
-- When a source file and this documentation disagree, treat the source file as authoritative and update this directory.
+- When implementation and a current-behavior document disagree, update the current-behavior document.
+- When implementation and a canonical target-model document disagree, treat the mismatch as implementation drift to be resolved deliberately.
 
-## System Documents
+## Active System Documents
 
 1. `01-unit-naming.md`
 2. `02-unit-stat-advancement.md`
@@ -35,6 +37,10 @@ Tags:
 6. `06-loot-determination.md`
 7. `07-hazard-severity-and-downsides.md`
 
+## Canonical Target-State Documents
+
+- `08-dice-material-model.md` defines the replacement permanent dice model: die size plus one behavior-bearing material, material-derived rarity, explicit material-size eligibility, and no permanent affix layer. Existing rarity and affix implementation remains migration work until reconciled.
+
 ## Source Map
 
 ```mermaid
@@ -43,6 +49,7 @@ flowchart TD
   A --> C[Run Systems]
   A --> D[Reward Systems]
   A --> E[Dialogue Systems]
+  A --> F[Dice Systems]
 
   B --> B1[UnitNameGenerator]
   B --> B2[OwnedUnitGrantService]
@@ -61,10 +68,14 @@ flowchart TD
   E --> E2[RunNodeController]
   E --> E3[RunDialoguePageComponent]
   E --> E4[DialogueService]
+
+  F --> F1[Dice material target model]
+  F --> F2[Legacy dice and affix implementation]
 ```
 
 ## Reading Guidance
 
 - For current behavior, start here before reading `documentation/02-systems/mvp-reference/`.
+- For the intended permanent dice replacement, read `08-dice-material-model.md` before legacy dice references or implementation data.
 - For schema and persistence details, pair these docs with `documentation/05-technical/04-data-model.md`.
 - For player-facing layout and interaction, pair these docs with `documentation/04-ux/`.
