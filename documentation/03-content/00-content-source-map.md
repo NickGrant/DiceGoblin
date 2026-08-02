@@ -25,9 +25,11 @@ Once a category has a canonical content document, implementation files are consu
 | Category | Canonical content document | Status | Notes |
 | --- | --- | --- | --- |
 | Biomes and regions | Not yet created | Interim | Current region data must be reviewed when the biome and region catalog is authored. |
-| Unit types | `documentation/03-content/01-unit-types.md` | Canonical | Defines current unit identities, roles, stats, growth, and ability packages. |
+| Unit types | `documentation/03-content/01-unit-types.md` | Canonical | Defines current unit identities, roles, stats, growth, and native ability packages. |
 | Kin types | `documentation/03-content/02-kin-types.md` | Canonical | Defines the complete current kin set and each kin's stat identity. |
-| Enemy types | `documentation/03-content/03-enemy-types.md` | Canonical | Defines current enemy identities, factions, stats, abilities, and rewards. |
+| Enemy types | `documentation/03-content/03-enemy-types.md` | Canonical | Defines current enemy identities, factions, stats, rewards, and native ability packages. |
+| Unit and shared abilities | `documentation/03-content/04-unit-abilities.md` | Canonical | Defines current player abilities and the shared abilities that retain the same behavior when assigned to enemies. |
+| Enemy-exclusive abilities | `documentation/03-content/05-enemy-abilities.md` | Canonical | Defines faction-specific enemy abilities and records current enemy use of shared abilities. |
 | Dice definitions and affixes | Not yet created | Interim | Existing implementation data must be reconciled when separate dice and affix catalogs are authored. |
 | Items and consumables | Not yet created | Interim | The future catalog should distinguish progression materials, catalysts, healing items, and energy items. |
 | Encounters | Not yet created | Interim | The future catalog should identify combat, boss, loot, rest, dialogue, hazard, shrine, and chaos encounters. |
