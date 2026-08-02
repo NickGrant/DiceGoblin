@@ -41,7 +41,8 @@ Component: `DicePageComponent`
 ### Dice Rail
 
 - One compact `dg-dice-grid-object` tile per die.
-- Tile identity is material-led, such as `Peach Pit d4` or `Glass d10`.
+- Tile identity is material-led, such as `Cardboard d6`, `Peach Pit d4`, or `Glass d10`.
+- Cardboard communicates an ordinary die with no special material effect; it is not represented by missing material data.
 - Rarity color and label are derived from material.
 - Equipped state marker appears when the die is bound to an ability slot.
 
