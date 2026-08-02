@@ -71,7 +71,7 @@ Within the selected rarity, eligible materials have equal base weight. A source 
 
 | Key | Material | Sizes | Effect and trigger | Stacking | Value | Salvage | Tags |
 | --- | --- | --- | --- | --- | ---: | ---: | --- |
-| `scrap_wood` | Scrap Wood | `d4`, `d6`, `d8`, `d10` | No special combat effect. Explicit neutral baseline. | None. | `1.00x` | `1.00x` | baseline, neutral, starter |
+| `cardboard` | Cardboard | `d4`, `d6`, `d8`, `d10` | No special combat effect. Explicit neutral baseline. | None. | `1.00x` | `1.00x` | baseline, neutral, starter |
 | `bone` | Bone | `d4`, `d6`, `d8`, `d10` | Each participating Bone die adds `+1` final direct damage when its ability deals direct damage. | Additive per die; excludes indirect damage. | `1.05x` | `1.05x` | offense, flat-damage |
 | `iron` | Iron | `d6`, `d8`, `d10` | Grants `+1` Defense while equipped. | Additive to `+3` Defense per unit. | `1.05x` | `1.05x` | defense, passive |
 | `copper` | Copper | `d4`, `d6`, `d8`, `d10` | An even natural roll adds `+1` to this die result. | Per die; result may exceed side count. | `1.08x` | `1.05x` | roll-control, consistency |
@@ -176,10 +176,10 @@ Gold creates deterministic battle reward markers. Markers are capped, victory-on
 All starter-equipped dice are:
 
 ```text
-Scrap Wood d4
+Cardboard d4
 ```
 
-Scrap Wood is the only default. Missing material data is invalid and must not be interpreted as Scrap Wood.
+Cardboard is the only default material. It is valid on every active die size and has no special effect. Missing material data is invalid and must not be interpreted as Cardboard.
 
 ## Codex
 
@@ -198,7 +198,7 @@ This roster adds **32 canonical material Codex keys**.
 | `execute_below_half` | Butcher's Tooth | Only `d8` and `d10`; smaller dice use deterministic Rare fallback. |
 | `explode_once` | Powder Keg | Only `d4` and `d6`; larger dice use deterministic Rare fallback. |
 
-Rarity-only dice preserve active size and legacy rarity where an eligible material exists. Starter Common d4 dice become Scrap Wood d4. Other choices are deterministic using the die identifier. If a rarity-size pair has no material, use the nearest lower eligible rarity and record the downgrade.
+Rarity-only dice preserve active size and legacy rarity where an eligible material exists. Starter Common d4 dice become Cardboard d4. Other choices are deterministic using the die identifier. If a rarity-size pair has no material, use the nearest lower eligible rarity and record the downgrade.
 
 Multi-affix dice preserve size, owner, and highest valid legacy rarity, then select deterministically from eligible materials. No affix remains as hidden secondary behavior. Removed affixes must be retained only in migration audit data.
 
@@ -216,7 +216,8 @@ Implementation is aligned when:
 - every pair uses only `d4`, `d6`, `d8`, or `d10`
 - rarity is derived from material
 - generation uses the rarity profile after size selection
-- starter dice are Scrap Wood d4
+- starter dice are Cardboard d4
+- Cardboard is valid on every active size and has no special effect
 - all caps and once-per-action or once-per-battle limits are enforced
 - effects follow the declared order and remain deterministic
 - Gold claims are idempotent
