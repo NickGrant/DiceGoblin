@@ -14,7 +14,7 @@ Tags:
 
 ## Purpose
 
-Catalog concrete authored content such as units, kin, enemies, abilities, biomes, statuses, encounters, run effects, items, rewards, and Codex entries.
+Catalog concrete authored content such as units, kin, enemies, abilities, biomes, statuses, encounters, run effects, items, rewards, Codex entries, dialogue, and lore.
 
 Canonical content catalogs are the source of truth for what content exists and for its authored values. Runtime data, seed data, and presentation code must remain consistent with them.
 
@@ -33,6 +33,7 @@ Canonical content catalogs are the source of truth for what content exists and f
 - Keep storage, APIs, migrations, and implementation paths in technical documentation.
 - Define shared abilities and statuses once and reference those definitions from every content package that uses them.
 - Keep generated behavior separate from authored entries: encounter placement is a system concern, while encounter formations and presentation are content.
+- For dialogue, explicitly document spoken participants, effective repeatability, eligibility, choices, completion rewards, and Lore classification.
 
 ## Documents
 
@@ -49,12 +50,12 @@ Canonical content catalogs are the source of truth for what content exists and f
 - `10-items-and-consumables.md`
 - `11-loot-and-reward-profiles.md`
 - `12-codex-entries.md`
+- `13-dialogue-and-lore.md`
 - `TEMPLATE-catalog-entry.md`
 
 ## Deferred Catalogs
 
 - Dice definitions and affixes.
-- Dialogue groups and lore unlocks.
 
 ## Child Folders
 
