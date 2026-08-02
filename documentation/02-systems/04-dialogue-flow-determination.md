@@ -19,9 +19,9 @@ Tags:
 
 ## Purpose
 
-Dialogue flow determines which authored dialogue entries are inserted into a run, which script is displayed, how player progression affects eligibility, and how completion is recorded.
+Dialogue flow determines which authored dialogue entries are inserted into a run, which script and recurring variant are displayed, how player progression affects eligibility, and how completion is recorded.
 
-The canonical script list, participants, narrative purpose, eligibility, effective repeatability, choices, completion rewards, and Lore classification are defined in the Dialogue and Lore Catalog. This system document owns the selection and completion process, not the dialogue content itself.
+The canonical script list, participants, narrative purpose, eligibility, repeatability, variant requirements, choices, completion rewards, and Lore classification are defined in the Dialogue and Lore Catalog. This system document owns selection and completion behavior, not dialogue content.
 
 ## Run Graph Insertion
 
@@ -32,9 +32,10 @@ flowchart TD
   C --> D[Evaluate requirements and exclusions]
   D --> E{Entry eligible?}
   E -- no --> F[Skip entry]
-  E -- yes --> G[Insert dialogue node at authored placement]
-  G --> H[Normalize node indexes]
-  H --> I[Persist run graph]
+  E -- yes --> G[Resolve script state]
+  G --> H[Insert dialogue node at authored placement]
+  H --> I[Normalize node indexes]
+  I --> J[Persist run graph]
 ```
 
 A placement request may:
@@ -43,6 +44,7 @@ A placement request may:
 - require a progression or feature unlock
 - exclude a progression or feature unlock
 - stop appearing after its dialogue id has been seen
+- select an initial, unresolved-conflict, or post-progression script state
 - target `start`, `before_boss`, `before_exit`, or a random route position
 - carry completion rewards
 
@@ -53,15 +55,53 @@ The content catalog defines which current dialogue uses each option.
 The placement layer uses two kinds of state:
 
 1. **Seen state** records that a dialogue id has been completed.
-2. **Progression state** records feature, story, or reward conditions used by eligibility rules.
+2. **Progression state** records canonical feature or story conditions used by eligibility rules.
 
 An explicit one-time entry is excluded after its own seen id exists. A recurring entry ignores its own seen id but may still become ineligible because a required or excluded progression condition changes.
 
-This means implementation-level `one_time = false` does not always mean the player can encounter the dialogue repeatedly. A completion reward may change eligibility and create an effective self-disabling one-shot. Effective repeatability is therefore defined in the content catalog rather than inferred solely from one storage flag.
+Milestone reactions are one-time even when their prerequisite remains true. For example, acquiring the Wrong Machine makes post-recovery reactions eligible, but completing each reaction suppresses it permanently.
 
-## Script Selection
+Dialogue seen state must not be stored as or inferred to be feature ownership. Far Gifts uses its own one-time dialogue id rather than a separate `consumables` feature flag.
 
-Run dialogue nodes carry `meta.dialogue_id`. The run dialogue page loads the active run, finds the route node, verifies that it is an available dialogue node, and asks the dialogue service for that exact script id.
+## Stateful Script Selection
+
+Some run placements select among multiple script states:
+
+- the Farm boss placement uses the first confrontation while Shop is locked and the rematch script after Shop unlock
+- the Swamps boss placement uses the first confrontation, an unresolved-machine defense repeat, or a post-recovery rematch based on seen state and Wrong Machine ownership
+- the first successful Swamps exit inserts the one-time recovery script before the run can complete
+
+State selection must occur before recurring-variant selection.
+
+## Recurring Variant Selection
+
+Recurring dialogue identities contain authored variation pools. The content catalog defines the minimum variant count and required topics for each pool.
+
+Variant selection must:
+
+- use only variants belonging to the selected dialogue identity
+- avoid the player's immediately previous variant when another eligible variant exists
+- remain deterministic for the persisted run once selected
+- preserve the dialogue's participants, narrative state, completion behavior, and Lore classification
+- avoid replaying milestone exposition already established by one-time scenes
+
+The selected variant key should be persisted in node metadata or an equivalent run snapshot so reopening the node does not produce different dialogue.
+
+```mermaid
+flowchart TD
+  A[Select eligible dialogue identity] --> B{Has recurring variation pool?}
+  B -- no --> C[Use canonical script]
+  B -- yes --> D[Load eligible variants]
+  D --> E[Exclude immediate previous variant when possible]
+  E --> F[Select deterministically]
+  F --> G[Persist dialogue id and variant key]
+  C --> H[Insert node]
+  G --> H
+```
+
+## Script Loading
+
+Run dialogue nodes carry `meta.dialogue_id` and may carry `meta.dialogue_variant_id`. The run dialogue page loads the active run, finds the route node, verifies that it is available, and asks the dialogue service for the exact script state.
 
 ```mermaid
 sequenceDiagram
@@ -71,20 +111,20 @@ sequenceDiagram
   participant L as Dialogue libraries
 
   P->>R: Load current run
-  R-->>P: Return run graph
+  R-->>P: Return run graph with dialogue id and optional variant
   P->>P: Find dialogue node by route id
-  P->>D: Load exact dialogue id with player context
+  P->>D: Load exact dialogue state with player context
   D->>L: Load and combine script libraries
   D-->>P: Return materialized script
 ```
 
-Exact-id selection takes precedence over trigger matching for run nodes. Trigger metadata remains useful for script organization and non-run dialogue lookup.
+Exact-id and persisted-variant selection take precedence over trigger matching for run nodes. Trigger metadata remains useful for organization and non-run dialogue lookup.
 
 ## Materialization Defaults
 
-The dialogue service fills missing presentation data before the component renders the script.
+The dialogue service may fill missing presentation data so malformed content can still be diagnosed, but every canonical dialogue must author its final title and summary.
 
-| Field | Default |
+| Field | Fallback |
 | --- | --- |
 | Title | Humanized script id. |
 | Summary | `Recovered dialogue from your journey.` |
@@ -99,17 +139,17 @@ The dialogue service fills missing presentation data before the component render
 | Player reveal between delay | At least `0`; default `220`. |
 | Player reveal final hold | At least `300`; default `2000`. |
 
-Missing authored presentation should be treated as content incompleteness even when these defaults allow the script to render.
+Use of title or summary fallbacks in current content is implementation drift, not valid authored presentation.
 
 ## Choice Traversal
 
-Dialogue choices select the next step within the current script. Current choices do not create persistent relationship values, alternate rewards, or future eligibility changes.
+Current player choices are voice choices. They select a short response branch within the current script and reconverge before completion. They do not create persistent relationship values, alternate rewards, combat modifiers, or future eligibility changes.
 
 ```mermaid
 flowchart TD
   A[Render current step] --> B{Step has choices?}
   B -- no --> C[Advance to next_step_id]
-  B -- yes --> D[Player selects choice]
+  B -- yes --> D[Player selects voice choice]
   D --> E[Advance to choice next_step_id]
   C --> F{Another step?}
   E --> F
@@ -117,7 +157,7 @@ flowchart TD
   F -- no --> G[Complete dialogue node]
 ```
 
-Any future persistent choice consequence must be authored as content and supported by an explicit system rule rather than inferred from a branch id.
+Any future persistent choice consequence must use a separately authored choice classification and explicit persistence rule rather than changing the meaning of current voice-choice ids.
 
 ## Completion
 
@@ -125,41 +165,61 @@ Any future persistent choice consequence must be authored as content and support
 flowchart TD
   A[Player completes dialogue] --> B[Validate active owned run]
   B --> C[Validate node is dialogue and available]
-  C --> D[Validate dialogue id]
+  C --> D[Validate dialogue id and persisted variant]
   D --> E{Node already cleared?}
   E -- yes --> F[Return stored completion state]
   E -- no --> G[Record dialogue id as seen]
-  G --> H[Apply authored completion rewards]
-  H --> I[Mark node cleared]
-  I --> J[Unlock downstream nodes]
-  J --> F
+  G --> H[Award Lore page when classified]
+  H --> I[Apply authored item or feature rewards]
+  I --> J[Mark node cleared]
+  J --> K[Unlock downstream nodes]
+  K --> F
 ```
 
 Completion may grant:
 
-- seen-state progression
-- feature or progression flags
+- dialogue seen state
+- an explicitly classified Lore page
+- canonical feature progression
 - item stacks
 
-The current completion-reward package is defined in the Dialogue and Lore Catalog and Loot and Reward Profile Catalog.
+Current direct completion rewards are Far Gifts' introductory items and the Wrong Machine unlock from the Swamps recovery scene.
+
+Completion must be idempotent. Retrying the request must not duplicate item grants, Lore pages, or feature unlocks.
+
+## Swamps Recovery Boundary
+
+The first successful Swamps run requires the following order:
+
+1. Defeat the Bog Tyrant.
+2. Unlock the before-exit dialogue `swamps-wrong-machine-recovered`.
+3. Complete the dialogue and grant the Wrong Machine feature.
+4. Unlock or complete the exit.
+5. Finish normal Swamps completion processing.
+
+The exit must not bypass the recovery dialogue while the Wrong Machine remains locked. Later Swamps runs omit the recovery scene and use the post-recovery boss dialogue state.
 
 ## Lore Ownership Boundary
 
 Seen dialogue and Lore ownership are separate concepts:
 
 - every completed dialogue needs seen state for progression and idempotency
-- only dialogue explicitly classified as Lore should create a Lore Codex page
+- only dialogue explicitly classified as Lore creates a Lore Codex page
 
-Generic synchronization must not turn every seen dialogue key into Lore content. The canonical Lore set is defined by the Dialogue and Lore Catalog.
+Generic synchronization must use the canonical Lore allowlist from the Dialogue and Lore Catalog rather than converting all seen dialogue keys.
 
 ## Validation Rules
 
 Dialogue flow is aligned when:
 
-- every placed dialogue id has a canonical content entry and a loadable script
+- every placed dialogue id and recurring variant has a canonical content definition and loadable script
+- every canonical script has an authored title and summary
 - effective repeatability matches the content catalog
+- stateful boss-dialogue selection respects progression and seen state
+- recurring variants avoid immediate repetition when alternatives exist
+- selected variants remain stable for the persisted run
 - participant and Lore classification are not inferred from storage namespaces
 - one-time entries are excluded after completion
-- recurring entries remain eligible only while their authored conditions are true
 - completion rewards are applied once and remain idempotent
+- the first Swamps exit cannot bypass Wrong Machine recovery
 - downstream nodes unlock only after successful dialogue completion
