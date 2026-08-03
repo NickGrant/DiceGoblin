@@ -31,13 +31,15 @@ describe('TabStripComponent', () => {
     const fixture = TestBed.createComponent(HostComponent);
     fixture.detectChanges();
 
-    const buttons = fixture.nativeElement.querySelectorAll('.tab-strip__button') as NodeListOf<HTMLButtonElement>;
+    const buttons = fixture.nativeElement.querySelectorAll('button[role="tab"]') as NodeListOf<HTMLButtonElement>;
     expect(buttons.length).toBe(2);
-    expect(buttons[0].classList.contains('is-active')).toBeTrue();
+    expect(buttons[0].getAttribute('aria-selected')).toBe('true');
+    expect(buttons[0].hasAttribute('data-active')).toBeTrue();
 
     buttons[1].click();
     fixture.detectChanges();
 
-    expect(buttons[1].classList.contains('is-active')).toBeTrue();
+    expect(buttons[1].getAttribute('aria-selected')).toBe('true');
+    expect(buttons[1].hasAttribute('data-active')).toBeTrue();
   });
 });

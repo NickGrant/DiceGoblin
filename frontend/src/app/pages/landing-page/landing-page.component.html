@@ -1,73 +1,148 @@
-<section class="landing-page">
-  <div class="landing-page__shell">
-    <div class="landing-copy">
-      <img class="landing-logo" src="/assets/ui/branding/hero-logo.png" alt="Dice Goblins logo" />
-      <p class="landing-copy__eyebrow dg-stencil">Tactical dice raids</p>
-      <h1 class="visually-hidden">Dice Goblins</h1>
-      <p class="landing-copy__lede">
-        Build a scrappy warband, slot strange dice into combat abilities, and push through branching runs for teeth, loot, and bad ideas.
-      </p>
-      <div class="landing-beats" aria-label="Game highlights">
-        <span>Turn-based run battles</span>
-        <span>Dice-driven loadouts</span>
-        <span>Permanent camp unlocks</span>
+<div class="landing-redesign" [class.is-rotation-dismissed]="rotationReminderDismissed()">
+  @if (!rotationReminderDismissed()) {
+    <section class="rotation-reminder" aria-labelledby="rotation-title">
+      <header class="rotation-reminder__brand">
+        <span class="landing-logo-mark" aria-hidden="true">x</span>
+        <strong>Dice Goblins</strong>
+        <span>Tabletop Sandbox</span>
+      </header>
+
+      <div class="rotation-reminder__visual" aria-hidden="true">
+        <img src="/assets/ui/dice/bone_d4.png" alt="" />
+        <img src="/assets/ui/dice/bone_d6.png" alt="" />
+        <img src="/assets/ui/dice/bone_d8.png" alt="" />
+        <span class="rotation-reminder__phone"></span>
       </div>
-      <a class="landing-guide-link" routerLink="/guide">
-        <span>How to Play</span>
-        <span class="landing-guide-link__arrow" aria-hidden="true">></span>
+
+      <div class="rotation-reminder__copy">
+        <h2 id="rotation-title">Rotate Your Device</h2>
+        <p>
+          Dice Goblins is best experienced in landscape mode. Flip your phone to start rolling the
+          bones!
+        </p>
+      </div>
+
+      <footer class="rotation-reminder__actions">
+        <p>Tip: Make sure your system's Portrait Orientation Lock is turned off.</p>
+        <button dgButton="secondary" type="button" (click)="dismissRotationReminder()">
+          Enter Sandbox Anyway
+        </button>
+      </footer>
+    </section>
+  }
+
+  <main class="landing-main">
+    <nav class="landing-nav" aria-label="Landing navigation">
+      <a class="landing-nav__brand" href="#top" aria-label="Dice Goblins home">
+        <span class="landing-logo-mark" aria-hidden="true">x</span>
+        <span>Dice Goblins</span>
       </a>
-    </div>
-
-    <aside class="landing-auth" aria-label="Account access">
-      <div class="landing-auth__header">
-        <p class="landing-copy__eyebrow dg-stencil">Account</p>
-        <h2>{{ authMode() === 'register' ? 'Create your warband' : authMode() === 'forgot' || authMode() === 'reset' ? 'Recover access' : 'Continue raiding' }}</h2>
+      <div class="landing-nav__actions">
+        <a class="landing-guide-link" routerLink="/guide">How to Play</a>
+        <a dgButton="primary" size="sm" href="#join">Sign In</a>
       </div>
-          <form class="local-auth" (ngSubmit)="submitLocalAuth()">
-            <div class="local-auth__tabs" aria-label="Local account mode">
-              <button
-                type="button"
-                class="local-auth__tab"
-                [class.is-active]="authMode() === 'login'"
-                (click)="setAuthMode('login')"
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                class="local-auth__tab"
-                [class.is-active]="authMode() === 'register'"
-                (click)="setAuthMode('register')"
-              >
-                Register
-              </button>
-              <button
-                type="button"
-                class="local-auth__tab"
-                [class.is-active]="authMode() === 'forgot' || authMode() === 'reset'"
-                (click)="setAuthMode('forgot')"
-              >
-                Reset
-              </button>
+    </nav>
+
+    <section id="top" class="landing-hero" aria-labelledby="landing-title">
+      <div class="landing-hero__dice" aria-hidden="true">
+        <img src="/assets/ui/dice/bone_d20.png" alt="" />
+        <img src="/assets/ui/dice/bone_d8.png" alt="" />
+        <img src="/assets/ui/dice/bone_d6.png" alt="" />
+        <img src="/assets/ui/dice/bone_d12.png" alt="" />
+      </div>
+
+      <div class="landing-hero__content">
+        <div class="landing-hero__copy">
+          <p class="landing-kicker">A chaos roguelite</p>
+          <h1 id="landing-title">
+            <span>Dice</span>
+            <span>Goblins</span>
+          </h1>
+          <p>
+            The Grand Library ordered the world. Classified it. Erased you from it. Raise your
+            warband, gather the dice, and tear that order apart.
+          </p>
+
+          <dl class="landing-stats" aria-label="Game highlights">
+            <div>
+              <dt>8</dt>
+              <dd>Goblin Lineages</dd>
             </div>
+            <div>
+              <dt>Unlimited</dt>
+              <dd>Procedural Runs</dd>
+            </div>
+            <div>
+              <dt>100+</dt>
+              <dd>Dice Affixes</dd>
+            </div>
+          </dl>
 
-            @if (authMode() === 'register') {
-              <label class="local-auth__field">
-                <span>Display Name</span>
-                <input
-                  name="displayName"
-                  type="text"
-                  autocomplete="nickname"
-                  maxlength="128"
-                  [(ngModel)]="displayName"
-                  [disabled]="busy()"
-                />
-              </label>
-            }
+          <div class="landing-hero__actions">
+            <a dgButton="primary" href="#join">Begin the Chaos</a>
+            <a dgButton="ghost" routerLink="/guide">How to Play</a>
+          </div>
+        </div>
 
-            @if (authMode() !== 'reset') {
+        <figure class="landing-hero__art">
+          <img
+            class="landing-hero__character"
+            src="/assets/ui/units/animated/whim/base/frame_0.png"
+            alt="The Whim, patron deity of chaos and goblinkind"
+          />
+          <figcaption>
+            <span>Your Patron</span>
+            <strong>The Whim</strong>
+          </figcaption>
+        </figure>
+      </div>
+
+      <a class="landing-scroll" href="#join">Scroll to learn more</a>
+    </section>
+
+    <section id="join" class="landing-join" aria-labelledby="join-title">
+      <header class="landing-section-heading landing-section-heading--center">
+        <p class="landing-kicker">Join the warband</p>
+        <h2 id="join-title">The Whim is calling</h2>
+        <p>Free to play. No installation required.</p>
+      </header>
+
+      <aside class="landing-auth" aria-label="Account access">
+        <dg-tab-strip
+          [items]="authTabs"
+          [activeId]="authMode() === 'reset' ? 'forgot' : authMode()"
+          ariaLabel="Local account mode"
+          (selected)="selectAuthMode($event)"
+        />
+
+        <form class="local-auth" (ngSubmit)="submitLocalAuth()">
+          <a
+            class="landing-auth__discord"
+            dgButton="special"
+            [fullWidth]="true"
+            [href]="discordLoginUrl"
+            >Continue with Discord</a
+          >
+
+          <div class="landing-auth__divider"><span>or</span></div>
+
+          @if (authMode() === 'register') {
             <label class="local-auth__field">
-              <span>Email</span>
+              <span>Display Name</span>
+              <input
+                name="displayName"
+                type="text"
+                autocomplete="nickname"
+                maxlength="128"
+                [(ngModel)]="displayName"
+                [disabled]="busy()"
+              />
+            </label>
+          }
+
+          @if (authMode() !== 'reset') {
+            <label class="local-auth__field">
+              <span>Email or Username</span>
               <input
                 name="email"
                 type="email"
@@ -77,23 +152,23 @@
                 [disabled]="busy()"
               />
             </label>
-            }
+          }
 
-            @if (authMode() === 'reset') {
-              <label class="local-auth__field">
-                <span>Reset Token</span>
-                <input
-                  name="resetToken"
-                  type="text"
-                  required
-                  autocomplete="one-time-code"
-                  [(ngModel)]="resetToken"
-                  [disabled]="busy()"
-                />
-              </label>
-            }
+          @if (authMode() === 'reset') {
+            <label class="local-auth__field">
+              <span>Reset Token</span>
+              <input
+                name="resetToken"
+                type="text"
+                required
+                autocomplete="one-time-code"
+                [(ngModel)]="resetToken"
+                [disabled]="busy()"
+              />
+            </label>
+          }
 
-            @if (authMode() !== 'forgot') {
+          @if (authMode() !== 'forgot') {
             <label class="local-auth__field">
               <span>{{ authMode() === 'reset' ? 'New Password' : 'Password' }}</span>
               <input
@@ -106,27 +181,115 @@
                 [disabled]="busy()"
               />
             </label>
-            }
+          }
 
-            @if (error()) {
-              <p class="local-auth__error">{{ error() }}</p>
-            }
+          @if (error()) {
+            <dg-alert tone="error">{{ error() }}</dg-alert>
+          }
 
-            @if (success()) {
-              <p class="local-auth__success">{{ success() }}</p>
-            }
+          @if (success()) {
+            <dg-alert tone="success">{{ success() }}</dg-alert>
+          }
 
-            @if (resetTokenHint) {
-              <p class="local-auth__token">{{ resetTokenHint }}</p>
-            }
+          @if (resetTokenHint) {
+            <p class="local-auth__token">{{ resetTokenHint }}</p>
+          }
 
-            <button dgCommandBtn="primary" type="submit" [disabled]="busy()">
+          <div class="landing-auth__actions">
+            <button dgButton="primary" type="submit" [disabled]="busy()">
               {{ submitLabel() }}
             </button>
-          </form>
-          <div class="landing-actions">
-            <a dgCommandBtn="teal" [href]="discordLoginUrl">Sign in through Discord</a>
+            @if (authMode() !== 'forgot' && authMode() !== 'reset') {
+              <button dgButton="ghost" type="button" (click)="setAuthMode('forgot')">
+                Forgot password?
+              </button>
+            }
           </div>
-    </aside>
-  </div>
-</section>
+        </form>
+
+        <p class="landing-auth__switch">
+          New here?
+          <button type="button" (click)="setAuthMode('register')">Create an account</button>
+          <a routerLink="/guide">How to Play</a>
+        </p>
+      </aside>
+
+      <figure class="landing-join__collector" aria-label="Tooth Collector tribute">
+        <img
+          src="/assets/ui/units/animated/tooth_collector/base/frame_0.png"
+          alt="The Tooth Collector carrying tribute"
+        />
+        <figcaption>
+          <strong>Tooth Collector</strong>
+          <span>Accepts teeth as tribute</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <section class="landing-nemesis" aria-labelledby="nemesis-title">
+      <div>
+        <p class="landing-kicker">Your Nemesis</p>
+        <h2 id="nemesis-title">The Archivist does not consider you an enemy. You are an error.</h2>
+        <p>
+          Goblinkind was eradicated through classification. When the Library names a thing it
+          controls it. When it controls a thing it can erase it. You are still here because the
+          record is not yet complete.
+        </p>
+        <span dgChip="neutral" active> Threat Level <strong>Existential</strong> </span>
+      </div>
+      <img
+        src="/assets/ui/units/animated/archivist/base/frame_0.png"
+        alt="The Archivist, champion of order and eradicator of goblinkind"
+      />
+    </section>
+
+    <section class="landing-method" aria-labelledby="method-title">
+      <header class="landing-section-heading">
+        <p class="landing-kicker">How it works</p>
+        <h2 id="method-title">Chaos has a method</h2>
+      </header>
+
+      <div class="landing-feature-grid">
+        <article>
+          <img src="/assets/ui/biome/mountain.png" alt="Mountain biome background" />
+          <p>01 - Recruit</p>
+          <h3>Raise Your Warband</h3>
+          <p>
+            Goblins do not wait to be born. They manifest from cracks in the ordered world and rally
+            to your banner.
+          </p>
+        </article>
+        <article>
+          <img src="/assets/ui/biome/mystic_cave.png" alt="Mystic Cave biome background" />
+          <p>02 - Equip</p>
+          <h3>Gather the Dice</h3>
+          <p>
+            Dice are shards of ancient chaos. Loot them, bind affixes, and let your squads roll the
+            world sideways.
+          </p>
+        </article>
+        <article>
+          <img src="/assets/ui/biome/swamp.png" alt="Swamp biome background" />
+          <p>03 - Raid</p>
+          <h3>Break the Record</h3>
+          <p>
+            Every region you raid, every archivist you defeat, and every stolen page cracks the
+            Library's control.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <footer class="landing-footer">
+      <a class="landing-nav__brand" href="#top">
+        <span class="landing-logo-mark" aria-hidden="true">x</span>
+        <span>Dice Goblins</span>
+      </a>
+      <nav aria-label="Footer navigation">
+        <a routerLink="/guide">How to Play</a>
+        <a href="#top">Privacy</a>
+      </nav>
+      <p>&copy; 2026 Dice Goblins</p>
+    </footer>
+  </main>
+</div>

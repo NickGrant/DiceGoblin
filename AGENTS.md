@@ -45,9 +45,6 @@ This file defines the always-loaded project contract for coding agents in this r
 - Avoid unrelated refactors unless required to safely complete the task.
 - Keep documentation and tests aligned with behavior changes.
 - In PowerShell, do not chain commands with `&&`; run sequential commands separately.
-- Treat generated artifacts like `frontend/dist` as policy-controlled output:
-  - include them only when the user explicitly asks to commit everything
-  - otherwise prefer source-only commits and call out generated changes separately
 
 ## Special Triggers
 - If the user asks to assume a role, follow `agent/ROLES.md`.

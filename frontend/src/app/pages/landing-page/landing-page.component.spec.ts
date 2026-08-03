@@ -46,17 +46,37 @@ describe('LandingPageComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     const text = fixture.nativeElement.textContent as string;
-    const logo = compiled.querySelector('.landing-logo') as HTMLImageElement;
+    const brand = compiled.querySelector('.landing-nav__brand') as HTMLAnchorElement;
     const heading = compiled.querySelector('h1') as HTMLElement;
     const guideLink = compiled.querySelector('.landing-guide-link') as HTMLAnchorElement;
+    const whim = compiled.querySelector('.landing-hero__character') as HTMLImageElement;
 
-    expect(logo.getAttribute('src')).toContain('/assets/ui/branding/hero-logo.png');
-    expect(heading.classList).toContain('visually-hidden');
+    expect(brand.textContent).toContain('Dice Goblins');
+    expect(heading.textContent).toContain('Dice');
+    expect(heading.textContent).toContain('Goblins');
     expect(guideLink.textContent).toContain('How to Play');
-    expect(guideLink.querySelector('.landing-guide-link__arrow')).not.toBeNull();
+    expect(whim.getAttribute('src')).toContain('/assets/ui/units/animated/whim/base/frame_0.png');
     expect(text).toContain('Dice Goblins');
-    expect(text).toContain('Turn-based run battles');
+    expect(text).toContain('A chaos roguelite');
+    expect(text).toContain('Goblin Lineages');
     expect(text).toContain('How to Play');
+  });
+
+  it('dismisses the portrait rotation reminder', async () => {
+    await TestBed.configureTestingModule({
+      imports: [LandingPageComponent],
+      providers: [provideRouter([]), { provide: SessionService, useValue: sessionService }],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(LandingPageComponent);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    expect(component.rotationReminderDismissed()).toBeFalse();
+
+    component.dismissRotationReminder();
+
+    expect(component.rotationReminderDismissed()).toBeTrue();
   });
 
   it('submits local sign in credentials', async () => {

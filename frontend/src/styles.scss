@@ -1,55 +1,9 @@
+@use 'styles/tokens';
+@use 'styles/components';
 @use 'styles/surfaces';
 @use 'styles/prototype';
+@use 'styles/landing';
 @import 'bootstrap/dist/css/bootstrap.min.css';
-
-:root {
-  --dg-cream: #f3efe0;
-  --dg-red: #b91c1c;
-  --dg-slate: #4f5a65;
-  --dg-teal: #006f7a;
-  --dg-charcoal: #23272a;
-  --dg-olive: #5e6b3c;
-  --dg-brass: #8a6d3b;
-  --dg-accent-warm: #f4b38b;
-  --dg-accent-warm-bright: #fff0d3;
-  --dg-shadow: rgba(18, 18, 18, 0.5);
-  --dg-card-shadow: 0 14px 28px rgba(0, 0, 0, 0.32);
-  --dg-frame-border: rgba(35, 39, 42, 0.72);
-  --dg-frame-fill: rgba(243, 239, 224, 0.9);
-  --dg-content-fill: rgba(243, 239, 224, 0.95);
-  --dg-muted-fill: rgba(79, 90, 101, 0.15);
-  --dg-border-subtle: rgba(35, 39, 42, 0.12);
-  --dg-border-soft: rgba(35, 39, 42, 0.2);
-  --dg-text-muted: rgba(35, 39, 42, 0.58);
-  --dg-text-muted-strong: rgba(35, 39, 42, 0.72);
-  --dg-text-on-dark-muted: rgba(243, 239, 224, 0.92);
-  --dg-text-on-dark-soft: rgba(243, 239, 224, 0.7);
-  --dg-cream-strong: #fff7e7;
-  --dg-overlay-dark-soft: rgba(35, 39, 42, 0.2);
-  --dg-overlay-dark-strong: rgba(35, 39, 42, 0.36);
-  --dg-overlay-dark-fade: rgba(35, 39, 42, 0.04);
-  --dg-panel-dark: rgba(24, 26, 28, 0.78);
-  --dg-surface-banner-image-default: url('/assets/ui/banner_background.jpg');
-  --dg-surface-banner-eyebrow: var(--dg-accent-warm);
-  --dg-surface-banner-overlay-strong: var(--dg-overlay-dark-strong);
-  --dg-surface-banner-overlay-soft: var(--dg-overlay-dark-fade);
-  --dg-surface-banner-panel: var(--dg-panel-dark);
-  --dg-media-card-border-strong: rgba(35, 39, 42, 0.66);
-  --dg-media-card-overlay-strong: rgba(18, 18, 18, 0.9);
-  --dg-media-card-shadow-strong: 0 18px 28px rgba(0, 0, 0, 0.16);
-  --dg-app-shell-max-width: 117.5rem;
-  --dg-shell-max-width: 96rem;
-  --dg-shell-page-max-width: 90rem;
-  --dg-shell-gutter: clamp(0.7rem, 2vw, 1.5rem);
-  --dg-breakpoint-mobile-max: 440px;
-  --dg-breakpoint-tablet-max: 760px;
-  --dg-motion-duration-route: 320ms;
-  --dg-motion-duration-surface: 240ms;
-  --dg-motion-duration-panel: 200ms;
-  --dg-motion-ease-emphatic: cubic-bezier(0.22, 1, 0.36, 1);
-  --dg-motion-ease-panel: cubic-bezier(0.2, 0.9, 0.25, 1);
-  --dg-motion-stagger-step: 55ms;
-}
 
 *,
 *::before,
@@ -69,9 +23,9 @@ app-root {
 
 body {
   margin: 0;
-  font-family: 'IBM Plex Sans Condensed', 'Roboto Condensed', Arial, sans-serif;
+  font-family: var(--dg-font-body);
   color: var(--dg-charcoal);
-  background: #1c242b;
+  background: var(--dg-color-parchment-700);
 }
 
 h1,
@@ -80,7 +34,7 @@ h3,
 h4,
 h5,
 .dg-stencil {
-  font-family: 'Big Shoulders Stencil Text', 'Saira Stencil One', Impact, sans-serif;
+  font-family: var(--dg-font-display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -191,17 +145,21 @@ app-root .frame > * {
   justify-content: center;
   gap: 0.5rem;
   min-height: 48px;
-  padding: 0.75rem 1.1rem;
-  border: 2px solid rgba(35, 39, 42, 0.78);
-  background: linear-gradient(180deg, #f6f1e4 0%, #e2dbc6 100%);
-  color: var(--dg-charcoal);
+  padding: var(--dg-component-button-padding);
+  border: 1px solid var(--dg-border-strong);
+  border-radius: var(--dg-component-button-radius);
+  background: var(--dg-action-secondary);
+  color: var(--dg-action-secondary-text);
+  font-family: var(--dg-font-ui);
+  font-size: var(--dg-type-ui-button-size);
+  font-weight: var(--dg-font-weight-bold);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--dg-type-ui-button-letter-spacing);
   transition:
     transform 120ms ease,
     box-shadow 120ms ease,
     background-color 120ms ease;
-  box-shadow: 0 6px 0 rgba(35, 39, 42, 0.28);
+  box-shadow: var(--dg-elevation-sm);
 }
 
 .dg-command-btn__cost {
@@ -219,39 +177,48 @@ app-root .frame > * {
 
 .dg-command-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 0 rgba(35, 39, 42, 0.3);
+  background: var(--dg-action-secondary-hover);
+  box-shadow: var(--dg-elevation-md);
 }
 
 .dg-command-btn:active {
   transform: translateY(2px);
-  box-shadow: 0 3px 0 rgba(35, 39, 42, 0.3);
+  box-shadow: var(--dg-inset-medium);
 }
 
 .dg-command-btn--primary {
-  background: linear-gradient(180deg, #d14337 0%, #8f1717 100%);
-  color: var(--dg-cream);
+  border-color: var(--dg-color-neutral-white);
+  background: var(--dg-action-primary);
+  color: var(--dg-action-primary-text);
+  font-weight: var(--dg-font-weight-extrabold);
 }
 
 .dg-command-btn--teal {
-  background: linear-gradient(180deg, #0d7d88 0%, #03535b 100%);
-  color: var(--dg-cream);
+  border-color: var(--dg-color-neutral-white);
+  background: var(--dg-status-info);
+  color: var(--dg-text-on-action);
 }
 
 .dg-command-btn--muted {
-  background: linear-gradient(180deg, #66717d 0%, #414950 100%);
-  color: var(--dg-cream);
+  border-color: var(--dg-border-strong);
+  background: var(--dg-bg-hero);
+  color: var(--dg-text-tertiary);
 }
 
 .dg-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.35rem 0.65rem;
-  border: 1px solid rgba(35, 39, 42, 0.2);
-  background: rgba(243, 239, 224, 0.7);
+  padding: var(--dg-space-3) var(--dg-space-6);
+  border: 1px solid var(--dg-border-default);
+  border-radius: var(--dg-component-chip-radius);
+  background: var(--dg-action-secondary);
+  color: var(--dg-action-secondary-text);
+  font-family: var(--dg-font-ui);
+  font-weight: var(--dg-font-weight-bold);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.78rem;
+  letter-spacing: var(--dg-type-ui-button-letter-spacing);
+  font-size: var(--dg-type-ui-tag-size);
 }
 
 .dg-tier-indicator {
@@ -338,13 +305,14 @@ app-root .frame > * {
 }
 
 .dg-card {
-  border: 2px solid rgba(35, 39, 42, 0.2);
-  background: rgba(243, 239, 224, 0.88);
-  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--dg-border-default);
+  border-radius: var(--dg-component-panel-radius);
+  background: var(--dg-bg-card);
+  box-shadow: var(--dg-elevation-md);
 }
 
 .dg-card-muted {
-  background: rgba(79, 90, 101, 0.08);
+  background: var(--dg-bg-sunken);
 }
 
 .dg-command-btn:disabled,
@@ -361,8 +329,9 @@ app-root .frame > * {
   width: 100%;
   min-height: 46px;
   padding: 0.7rem 0.85rem;
-  border: 2px solid rgba(35, 39, 42, 0.3);
-  background: rgba(255, 252, 246, 0.95);
+  border: 1px solid var(--dg-border-default);
+  border-radius: var(--dg-radius-md);
+  background: var(--dg-bg-elevated);
   color: var(--dg-charcoal);
 }
 

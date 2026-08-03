@@ -1,10 +1,11 @@
 import { Component, input, output } from '@angular/core';
-import { DgCommandBtnDirective } from '../dg-command-btn/dg-command-btn.directive';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
+import { DgButtonDirective } from '../dg-button/dg-button.directive';
 
 @Component({
   selector: 'dg-confirm-modal',
   standalone: true,
-  imports: [DgCommandBtnDirective],
+  imports: [CdkTrapFocus, DgButtonDirective],
   templateUrl: './confirm-modal.component.html',
   styleUrl: './confirm-modal.component.scss',
 })
