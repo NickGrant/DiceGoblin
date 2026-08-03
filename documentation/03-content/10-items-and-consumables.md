@@ -1,13 +1,14 @@
 ---
 Title: "Item and Consumable Catalog"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-02
 Owner: Content Design
 Depends On:
   - documentation/03-content/02-kin-types.md
   - documentation/03-content/06-biomes-and-regions.md
   - documentation/03-content/11-loot-and-reward-profiles.md
   - documentation/03-content/13-dialogue-and-lore.md
+  - documentation/02-systems/09-kin-reconstruction.md
 Category: 03-content
 Tags:
   - content
@@ -30,19 +31,24 @@ Inventory storage, transaction handling, shop pricing, grant APIs, and consumpti
 - **Visible before discovery** controls whether the item may be shown before the player owns it.
 - **Primary progression** marks items required for a major permanent progression path.
 - Acquisition sources are listed only where the current content explicitly guarantees or rolls the item.
+- A repeatable reconstruction ingredient remains useful after first kin discovery because later recipes continue producing units.
 
 ## Kin Progression Materials
 
 | Key | Display name | Description | Category | Rarity | Visible before discovery | Primary progression | Current acquisition | Authored use |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `pig_ear` | Pig Ear | A stubborn scrap of pig-kin possibility. The Wrong Machine will know what to do with it. | Lineage material | Common | Yes | Yes | Pig-family combat victory: `1`; pig-family boss victory: `2` | Material for Pig Kin reconstruction. |
-| `mudking_crown_fragment` | Mudking Crown Fragment | A boss-won catalyst heavy with farmyard authority. | Boss catalyst | Rare | No | Yes | Mudking boss victory: `1` | Boss catalyst for Pig Kin reconstruction. |
+| `pig_ear` | Pig Ear | A stubborn scrap of pig-kin possibility. The Wrong Machine will know what to do with it. | Lineage material | Common | Yes | Yes | Pig-family combat victory: `1`; pig-family boss victory: `2` | Spend `10` with one Crown Fragment and `25` Raw Chaos to produce one Pig Kin unit. |
+| `mudking_crown_fragment` | Mudking Crown Fragment | A boss-won catalyst heavy with farmyard authority. | Boss catalyst | Rare | No | Yes | Mudking boss victory: `1` | Spend `1` with ten Pig Ears and `25` Raw Chaos to produce one Pig Kin unit. |
 
 ### Pig Kin Material Identity
 
 - Pig Ears are repeatable faction materials and may be earned before the Wrong Machine is unlocked.
 - The Mudking Crown Fragment is a boss-specific catalyst and should remain visually and narratively distinct from ordinary Pig Ears.
-- Exact reconstruction costs belong in Wrong Machine system documentation, but both items are canonically tied to Pig Kin.
+- The complete current Pig Kin recipe is `10` Pig Ears, `1` Mudking Crown Fragment, and `25` Raw Chaos.
+- Every successful recipe completion produces one Pig Kin unit.
+- The first produced Pig Kin also establishes Pig Kin discovery, Codex ownership, and ordinary reward-pool eligibility.
+- Pig Ear and Crown Fragment rewards continue after discovery because the recipe remains repeatable.
+- The one-time reconstruction tutorial may fill only missing Pig Ears and Raw Chaos required for the first recipe; it grants no surplus and does not duplicate the guaranteed Crown Fragment.
 
 ## Healing Consumables
 
@@ -75,8 +81,8 @@ The dialogue records a progression flag and normally cannot recur, so these are 
 
 | Category | Current items | Content role |
 | --- | --- | --- |
-| Lineage material | Pig Ear | Repeatable faction material used to reconstruct a kin type. |
-| Boss catalyst | Mudking Crown Fragment | Rare boss-specific requirement for permanent progression. |
+| Lineage material | Pig Ear | Repeatable faction material spent each time the Wrong Machine produces a Pig Kin unit. |
+| Boss catalyst | Mudking Crown Fragment | Repeatable boss-linked ingredient spent each time the Wrong Machine produces a Pig Kin unit. |
 | Healing consumable | Field Poultice, Hearty Bone Broth | Preserve run-unit health between encounters. |
 | Energy consumable | Travel Ration, Sparkroot Tonic | Restore the resource used to begin expeditions. |
 
@@ -95,7 +101,6 @@ Reintroducing either item requires a complete entry in this catalog, including i
 
 - Hearty Bone Broth and Sparkroot Tonic have complete use effects but no canonical acquisition source. They need explicit shop, loot, crafting, or grant placement before they are normally obtainable.
 - Field Poultice and Travel Ration have only one-time introductory grants. Renewable acquisition must be defined if they are intended to support sustained consumable use.
-- Pig Kin reconstruction costs and the division of cost between Pig Ears, Crown Fragments, and Raw Chaos need a canonical system-level definition.
 - Future biome materials should follow the generic item model rather than creating parallel region-item storage.
 - Item-facing Codex presentation needs authored descriptions and icons to remain synchronized with this catalog.
 
@@ -103,6 +108,6 @@ Reintroducing either item requires a complete entry in this catalog, including i
 
 - Add an item here before or alongside any grant, shop offer, crafting recipe, or progression requirement that uses it.
 - Keep acquisition synchronized with the reward profile and dialogue catalogs.
-- Keep kin materials synchronized with the kin and biome catalogs.
+- Keep kin materials synchronized with the kin, reconstruction, and biome catalogs.
 - Treat storage-only item records as implementation drift until deliberately accepted as content.
 - Keep inventory mutations, transactions, validation, and API contracts outside this document.
