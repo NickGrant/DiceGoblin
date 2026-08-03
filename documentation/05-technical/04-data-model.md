@@ -1,34 +1,47 @@
 ---
-Title: "Dice Goblins - Data Model (Authoritative Rework Contract)"
+Title: "Dice Goblins - Data Model and Target-State Migration Contract"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-02
 Owner: Engineering
 Depends On:
   - backend/migrations/schema_all.sql
-  - documentation/02-systems/mvp-reference/00-combat-system.md
-  - documentation/02-systems/mvp-reference/01-dice-system.md
-  - documentation/02-systems/mvp-reference/02-units-and-progression.md
+  - documentation/02-systems/03-combat-resolution.md
+  - documentation/02-systems/08-dice-material-model.md
+  - documentation/02-systems/09-kin-reconstruction.md
+  - documentation/05-technical/09-seed-catalog-ownership.md
 Category: 05-technical
 Tags:
   - technical
 ---
 
-# Dice Goblins - Data Model (Authoritative Rework Contract)
+# Dice Goblins - Data Model and Target-State Migration Contract
 
-This document defines the canonical target data model for the current combat/loadout rework.  
-Implementation may land incrementally, but new schema and migration work should move toward this contract rather than the superseded pooled-dice model.
+## Purpose
+
+Define the canonical technical data-model direction for current combat/loadout behavior, permanent dice materials, and repeatable kin reconstruction.
+
+This document distinguishes two forms of truth:
+
+- **Implemented schema:** the physical tables and compatibility columns currently present in `backend/migrations/schema_all.sql` and consumed by runtime code.
+- **Canonical target state:** the schema direction that new migrations and service changes must move toward.
+
+When the implemented schema and this target contract disagree, the difference is implementation drift. Documentation must describe that drift explicitly rather than treating legacy storage as a competing design.
 
 ## 1. Guiding Principles
 
-- The backend is authoritative.
+- The backend is authoritative for persistent player, unit, run, combat, reward, and reconstruction state.
 - Player-facing names are labels, not identifiers.
-- Combat inputs must be persistable and replayable.
-- Prefer explicit relational structures over broad JSON where the data must be edited, validated, or migrated.
-- Enemy combat behavior should be data-authored per enemy type, not hand-scripted per enemy instance.
+- Combat and reconstruction inputs must be persistable, auditable, and safe to retry.
+- Prefer explicit relational structures where data needs validation, joins, migration, or administrative inspection.
+- Behavior-bearing authored rows use stable keys; executable behavior remains code-owned through registries and handlers.
+- Owned-unit state is the authority for whether a player owns a kin.
+- Derived discovery, Codex, or reward-eligibility state must be repairable from durable ownership.
+- A target-state die has exactly one active size and one material.
 
 ## 2. Stable Global Tables
 
-These areas remain structurally stable for the rework:
+These areas remain structurally stable even when individual contracts require additional fields or compatibility cleanup:
+
 - `users`
 - `player_state`
 - `energy_state`
@@ -51,134 +64,164 @@ These areas remain structurally stable for the rework:
 - `items`
 - `user_items`
 - `user_unlocks`
+- `user_grants`
 - `region_items`
 - `user_region_items`
 
-They may need minor contract updates, but they are not the primary focus of the rework.
+`items` and `user_items` are the generic progression-inventory path for lineage materials, boss catalysts, machine inputs, unlock keys, and consumables. `region_items` and `user_region_items` remain legacy compatibility tables and must not be extended for new progression rewards.
 
-`items` and `user_items` are the generic progression inventory path for lineage materials, boss catalysts, machine catalysts, unlock keys, and later consumables. `user_unlocks` stores explicit account-level lineage unlocks under the `lineage` namespace; Basic Goblin is implicit for every account and should not need a row. `region_items` and `user_region_items` remain legacy compatibility tables and should not be extended for new progression rewards.
+`user_unlocks` remains appropriate for explicit feature and unit-type unlocks. A kin-related row may persist discovery or ordinary-reward eligibility as a derived account projection, but it is not the source of truth for kin ownership. Basic Goblin is implicit for every account and does not require a row.
 
-### 2.1 users
+`user_grants` or another durable request ledger may support idempotent account grants. Repeatable reconstruction requires a request-level idempotency record that distinguishes a retry from a new deliberate recipe use.
 
-`users` is the canonical local account row regardless of provider. Discord OAuth and local credentials both resolve to a local `users.id`.
+## 3. Authentication and Accounts
 
-Current credential fields:
+### 3.1 `users`
+
+`users` is the canonical local account row regardless of authentication provider. Discord OAuth and local credentials both resolve to a local `users.id`.
+
+Current credential fields include:
+
 - `discord_id` for Discord OAuth identities; nullable for local-only users
 - `local_email` for normalized email sign-in; nullable for Discord-only users
 - `password_hash` for local credential verification; nullable for Discord-only users
 - `display_name` and `avatar_url` for player-facing identity
 
-Related credential table:
-- `password_reset_tokens` stores one-hour hashed reset tokens for local accounts, with `used_at` marking consumed or superseded tokens
+Related credential storage:
+
+- `password_reset_tokens` stores one-hour hashed reset tokens, with `used_at` marking consumed or superseded tokens
 
 Rules:
+
 - never store raw passwords
-- never store raw password reset tokens
+- never store raw password-reset tokens
 - never expose credential fields through session or profile payloads
 - keep provider-specific identifiers unique when present
 
-## 3. Unit Types and Enemy Types
+## 4. Unit Types and Enemy Types
 
-### 3.1 unit_types
+### 4.1 `unit_types`
+
 `unit_types` remain the authored source of:
+
 - role
 - base stats
 - per-level growth for attack, defense, max HP, precision, and resolve
 - max level
-- promotion eligibility level
-- level-10 capstone choices
-- authored ability packages by tier/path
+- promotion eligibility
+- capstone choices
+- authored ability packages by tier or path
 
-`ability_set_json` should no longer be interpreted as "everything this unit auto-uses in combat."
-It should represent authored ability packages that feed:
-- unlocked ability inheritance
-- promotion-entry grants when the unit type is selected as a destination
-- default equipped starter or migration loadouts where applicable
+`ability_set_json` represents authored ability packages that feed:
 
-`promotion_grants_json` was removed in migration 71. Promotion previews may still expose a `promotion_grants` response object, but it is derived from the destination type's `ability_set_json`.
+- unlocked-ability inheritance
+- promotion-entry grants
+- starter or migration loadouts where applicable
+
+It must not be interpreted as the complete ordered set that a unit automatically executes in combat.
+
+`promotion_grants_json` was removed in migration 71. Promotion previews may still expose a derived `promotion_grants` response object.
 
 `max_equipped_dice` was removed in migration 72. Dice capacity is derived from equipped active abilities and their registered dice-slot requirements.
 
-### 3.2 enemy_templates
+### 4.2 `enemy_templates`
+
 `enemy_templates` remain the authored source of:
+
 - base stats
 - role
-- xp reward
+- XP reward
 - ability catalog
+- authored equipped-ability order
 
-Enemy definitions must additionally own an authored equipped-ability order for combat scheduling.
-All enemies of one enemy type use that same authored loadout.
+All enemies of one enemy type use the same authored loadout unless a later system explicitly introduces variants.
 
-Recommended contract:
-- keep `ability_set_json` for authored enemy ability catalog
-- add explicit equipped-loadout storage, either:
-  - `equipped_abilities_json`, or
-  - a normalized child table if editing/reporting needs justify it
+The equipped loadout may remain in validated JSON or move to a normalized child table when editing, reporting, or parity requirements justify it.
 
-## 4. Unit Instances
+## 5. Unit Instances and Kin Identity
 
-### 4.1 unit_instances
-`unit_instances` remain the player's persistent unit object and should additionally own:
-- `display_name`
-- persistent current type reference
+### 5.1 `unit_instances`
+
+`unit_instances` are the persistent player-owned unit objects and own:
+
+- display name
+- current unit-type reference
 - tier
 - level
-- xp
-- any locking/protection flags
+- XP
+- combat configuration
+- persistent kin identity
+- locking or protection flags where applicable
 
-`unit_instances` should no longer be treated as fully defined by only `unit_type_id`.
-The unit now also owns combat-configuration state.
+Current storage may still expose legacy `splice_variant_*` columns and relationships. Target-state services and payloads use `kin_*` terminology. Storage renaming is a compatibility migration and must not be conflated with the behavioral contract.
 
-### 4.2 Promotion Path History
-Promotion history must be queryable well enough to validate sideways promotion eligibility.
+A unit's persisted kin identity is durable ownership evidence. The system must not infer that a player does not own a kin merely because a secondary discovery or unlock row is absent.
 
-This can be represented by:
-- richer `unit_promotions` history, or
-- explicit path-history state on `unit_instances`, or
-- both
+### 5.2 First-Ownership Projections
 
-Whatever shape is chosen must support validation without relying on player-facing names or lossy inference.
+The transition from no owned unit of a kin to at least one owned unit may update several projections:
 
-### 4.3 Capstone Lineage State
-Capstone selection needs explicit persistence separate from authored unit-type data.
+- kin discovery state
+- Codex ownership
+- ordinary unit-grant or recruitment eligibility
+- milestone presentation state
+
+These projections may use `user_unlocks`, a future dedicated kin-state table, or a unified Codex ownership store. Whatever storage is selected must satisfy these rules:
+
+- owned units remain the authority for ownership
+- projections are idempotent
+- missing projections can be repaired from owned units
+- a projection cannot authorize deletion or replacement of a legitimate unit
+- first-ownership effects do not repeat on later units of the same kin
+
+### 5.3 Promotion Path History
+
+Promotion history must support sideways-promotion validation and player-support audit needs.
+
+This can be represented by richer `unit_promotions` history, explicit path-history state on `unit_instances`, or both. Validation must not rely on player-facing names or lossy inference.
+
+### 5.4 Capstone State
+
+Capstone selection requires explicit per-unit persistence separate from authored unit-type data.
 
 Recommended shape:
 
-### unit_instance_capstone_choices
-Columns:
+#### `unit_instance_capstone_choices`
+
 - `unit_instance_id`
 - `source_unit_type_id`
 - `ability_id`
 - `created_at`
 - `updated_at`
 
-Notes:
-- the row is keyed by unit lineage plus authored source type, not only current type
-- the selected capstone should also be present in `unit_instance_unlocked_abilities` so inheritance continues to use the normal unlocked-ability path after promotion
+The selected capstone should also participate in the normal unlocked-ability path so inheritance remains consistent after promotion.
 
-## 5. Ability Persistence
+## 6. Ability Persistence
 
-The schema now needs to distinguish three layers:
+The schema distinguishes three layers:
+
 1. authored ability packages on unit types
 2. cumulative unlocked abilities on unit instances
 3. ordered equipped abilities on unit instances
 
-Recommended normalized shape:
+### 6.1 `unit_instance_unlocked_abilities`
 
-### unit_instance_unlocked_abilities
-Stores which base abilities a unit has access to.
+Stores which base abilities a unit can equip.
 
-Columns:
+Representative fields:
+
 - `unit_instance_id`
 - `ability_slug` or `ability_id`
 - `source_tier`
 - `source_unit_type_id`
 - `created_at`
 
-### unit_instance_equipped_abilities
-Stores ordered loadout entries.
+### 6.2 `unit_instance_equipped_abilities`
 
-Columns:
+Stores the ordered loadout.
+
+Representative fields:
+
 - `id`
 - `unit_instance_id`
 - `ability_slug` or `ability_id`
@@ -187,33 +230,118 @@ Columns:
 - `created_at`
 - `updated_at`
 
-Notes:
-- duplicate rows are allowed for duplicate equips
-- equip budget validation should happen server-side
+Duplicate rows are allowed when duplicate equips are allowed. Equip-budget validation remains server-side.
 
-## 6. Dice Inventory and Ability-Slot Binding
+## 7. Dice Inventory and Material Identity
 
-### 6.1 dice_definitions
-Still defines:
-- sides
+### 7.1 Target Identity
+
+A target-state die is:
+
+```text
+die size + material
+```
+
+The active sizes are `d4`, `d6`, `d8`, and `d10`.
+
+Every owned die must reference:
+
+- one active size definition
+- one enabled material that permits that size
+- one owner
+- equipment state when bound to an ability slot
+
+A missing material is invalid target-state data. Neutral dice use the explicit Cardboard material.
+
+### 7.2 Size Definitions
+
+The existing `dice_definitions` table currently mixes size, independent rarity, and affix capacity. During material migration it should become a size-only primitive or be replaced by an equivalent size catalog.
+
+Target size data owns:
+
+- stable size identity
+- number of sides
+- base sale value
+- base salvage value where applicable
+- enabled state
+
+Target size data does not own:
+
+- independent rarity
+- affix-slot capacity
+- permanent behavior
+
+### 7.3 `dice_materials`
+
+`dice_materials` is a planned hybrid-owned authored catalog.
+
+Target fields include:
+
+- stable `slug`
+- display name
 - rarity
-- slot capacity
+- effect-handler key or explicit neutral behavior
+- effect parameters
+- stacking metadata
+- value modifier
+- salvage modifier
+- tags
+- enabled state
+- created and updated timestamps where operationally useful
 
-### 6.2 affix_definitions
-Still defines the fixed alpha-launch affix pool and authored affix metadata.
+Executable behavior is resolved through the material's stable effect key. Enabled behavior-bearing rows must have registered handlers.
 
-### 6.3 dice_instances
-Still represents player-owned dice.
+### 7.4 Material-Size Eligibility
 
-### 6.4 ability-slot binding
-The old `unit_dice` contract has been removed. Dice are now bound to a base ability slot instead of a generic unit slot.
+Material-size compatibility must be queryable and validated. The preferred normalized shape is:
 
-The canonical model is a binding from unit + base ability + slot index to die instance.
+#### `dice_material_allowed_sizes`
 
-Recommended shape:
+- `dice_material_id`
+- `dice_definition_id`
 
-### unit_ability_dice
-Columns:
+Primary key:
+
+- (`dice_material_id`, `dice_definition_id`)
+
+A validated structured field on `dice_materials` is acceptable only while the catalog remains small and parity checks enforce the same guarantees. There is no implicit all-sizes default.
+
+### 7.5 `dice_instances`
+
+`dice_instances` remain the player-owned inventory records.
+
+Target identity fields include:
+
+- owner
+- size definition
+- material
+- audit and lifecycle timestamps
+
+Rarity is derived from material. If an independent rarity column is retained temporarily, it is compatibility data and must match the material; it must not influence generation, combat, sale, salvage, or presentation independently.
+
+Two dice with the same size and material are mechanically identical. Instance identity exists for ownership, equipment, mutation safety, and audit rather than hidden quality rolls.
+
+### 7.6 Legacy Affix Storage
+
+`affix_definitions` and per-instance affix rows are migration inputs only.
+
+Permanent affixes must not participate in target-state:
+
+- generation
+- combat resolution
+- valuation
+- salvage
+- Codex identity
+- profile presentation
+
+Each owned die must migrate to one valid size-material pair. The final state must not retain hybrid material-plus-affix dice.
+
+### 7.7 Ability-Slot Binding
+
+The old `unit_dice` contract has been removed. Dice bind to a base ability slot through `unit_ability_dice`.
+
+Representative fields:
+
 - `unit_instance_id`
 - `ability_slug` or `ability_id`
 - `slot_index`
@@ -221,198 +349,243 @@ Columns:
 - `created_at`
 - `updated_at`
 
-PK:
+Primary key:
+
 - (`unit_instance_id`, `ability_slug` or `ability_id`, `slot_index`)
 
-Notes:
-- this table binds dice to the base ability configuration
-- repeated equipped copies of the same ability all read from the same slot rows
-- absent rows are interpreted as empty slots that resolve as `1`
+This binding is preserved through material migration. Empty-slot fallback behavior belongs to combat-system documentation and is not encoded as an implicit Cardboard die.
 
-## 7. Starter Unit Seeding
+## 8. Starter Unit Seeding
 
-Initial unit grants must seed:
+Initial unit grants seed:
+
 - generated display names
 - default unlocked abilities
 - default equipped ability order
-- common `d4` dice into all starter ability slots
+- explicit Cardboard `d4` dice for starter ability slots that require dice
 
-This should be handled in bootstrap or account-seed logic, not as implicit frontend-only setup.
+Bootstrap or account-seed services own this work. The frontend must not synthesize starter dice or infer Cardboard from a missing material.
 
-## 8. Bounty Board Foundation
+## 9. Wrong Machine Reconstruction
 
-### 8.1 bounty_definitions
+### 9.1 Recipe Identity
 
-`bounty_definitions` stores authored contract templates that can appear on a future bounty board.
+A reconstruction operation uses a stable recipe key such as `reconstruct_pig_kin`.
 
-Current foundation columns:
-- stable `slug`
-- player-facing title and description
-- category: hunting, region, or challenge
-- `objective_json` for event/filter/target requirements
-- `reward_json` for backend-authored payout details
-- enabled and sort-order fields for board curation
+Recipe content owns:
 
-### 8.2 user_bounties
+- required feature
+- output kin
+- output unit count
+- eligible output unit-type pool
+- item costs
+- Raw Chaos cost
+- enabled state
 
-`user_bounties` stores the player's accepted bounty state.
+The current Pig Kin values are owned by `documentation/02-systems/09-kin-reconstruction.md`. Technical storage must consume those authored values rather than establish a competing balance source.
 
-Current foundation columns:
+### 9.2 Repeatable Production
+
+Every committed recipe completion creates one new unit. A kin discovery or eligibility row is not the recipe's primary output and must not be used to block later deliberate recipe uses.
+
+The transaction must atomically:
+
+1. validate access, recipe, capacity, items, and currency
+2. resolve the output unit type once
+3. spend all authored inputs
+4. create the unit with the recipe's kin
+5. determine whether the account owned that kin before the transaction
+6. apply first-ownership projections when required
+7. persist the complete idempotent result
+8. commit all changes together
+
+### 9.3 Reconstruction Request Ledger
+
+Repeatable reconstruction requires a durable idempotency boundary separate from kin discovery.
+
+Recommended shape:
+
+#### `wrong_machine_reconstruction_requests`
+
+- `id`
 - `user_id`
-- `bounty_definition_id`
-- status: accepted, completed, claimed, or abandoned
-- `progress_json` for idempotent backend-owned progress
-- accepted, completed, claimed, and updated timestamps
+- `idempotency_key`
+- `recipe_key`
+- `status`: pending, completed, or failed
+- `result_json`
+- `created_at`
+- `completed_at`
 
-Notes:
-- active-slot limits, board rotation, reward claims, and progress event handling are future service work
-- bounty progress must be backend-authored and idempotent once those services are introduced
+Constraints:
 
-## 9. Pattern-Based Run Map Catalog
+- unique (`user_id`, `idempotency_key`)
+- a completed retry returns the stored result
+- a new deliberate production uses a new idempotency key
+- the output unit type and produced unit id are part of the stored result
 
-`backend/data/run-patterns/` is the authoring source of truth for `pattern-v1` run-map patterns, region rules, and generation profiles.
-`pattern-v2` content is database-owned and seeded through forward-only migrations because production cannot rely on command-line catalogue sync.
-The database tables below are the runtime lookup surface for both generators, but their source-of-truth differs by generator version: V1 mirrors repository JSON, while V2 is authored in migrations.
+An existing generic idempotency ledger may be reused if it can enforce these semantics without conflating a retry with permanent kin discovery.
 
-### 9.1 run_pattern_definitions
+### 9.4 First-Ownership State
 
-Stores immutable authored pattern versions.
+When the transaction creates the first owned unit of a kin, the same commit may add or repair:
 
-Columns:
-- stable `slug`
-- positive `version`
-- lifecycle `status`: draft, enabled, or disabled
-- `definition_json` containing authored pattern content; V1 uses local graph/sockets/transforms, while V2 uses grid cells, connector cells, explicit connections, and perimeter exits
-- `content_hash` for drift detection
+- kin discovery
+- Codex ownership
+- ordinary unit-grant eligibility
+- milestone flags required for presentation
 
-Uniqueness:
-- (`slug`, `version`)
-- `content_hash`
+Later reconstruction transactions do not repeat those side effects but still spend the full recipe and create a unit.
 
-### 9.2 run_pattern_region_rules
+### 9.5 Current Implementation Drift
 
-Stores region and phase eligibility for pattern versions.
+The current Wrong Machine service predates the approved repeatable-production contract. As of this document update, implementation still:
 
-Columns:
-- `pattern_definition_id`
-- `region_id`
-- `generator_version`
-- `base_weight`
-- `allowed_phase`
-- depth bounds
-- max-per-run and cooldown limits
-- `enabled`
-- optional `weight_modifiers_json`
+- uses a one-time lineage-unlock row to block later reconstruction
+- uses legacy Pig Kin costs instead of the canonical recipe values
+- returns success without a unit when the lineage row already exists
+- lacks a request-level idempotency key
+- selects the output unit type through a fresh random call rather than a retry-stable resolution
+- presents lineage unlock as the primary state transition
 
-### 9.3 run_generation_profiles
+Those behaviors are migration work. They do not redefine the target contract.
 
-Stores active region profile versions for a generator version.
+## 10. Bounty Board Foundation
 
-Columns:
-- `region_id`
-- `generator_version`
-- `profile_version`
-- `enabled`
-- `bounds_json`
-- `budgets_json`
-- `requirements_json`
-- `retry_policy_json`
-- `weight_policy_json`
-- `content_hash`
+### 10.1 `bounty_definitions`
 
-### 9.4 region_runs provenance
+Stores authored contract templates:
 
-Pattern-generated runs can record:
-- `generator_version`
-- `generation_profile_version`
-- `pattern_catalog_hash`
-- `generation_attempt`
-- `generation_summary_json`
+- stable slug
+- title and description
+- category
+- `objective_json`
+- `reward_json`
+- enabled and sort-order fields
 
-Fixed authored runs can also record `fixed-v1` provenance so Farm and Mystic Cave share the same frontend renderer metadata contract as Pattern-V2 regions.
+### 10.2 `user_bounties`
 
-These fields are nullable so existing lane-generated and fixed authored runs remain compatible while regions are migrated gradually.
+Stores accepted player bounty state:
 
-### 9.5 run_edges rendering metadata
+- user and definition references
+- accepted, completed, claimed, or abandoned status
+- idempotent progress data
+- lifecycle timestamps
 
-`run_edges.meta_json` stores optional renderer-facing metadata for persisted graph edges. Pattern-V2 connector cells compile into `through` waypoint coordinates in this field, which lets the shared run-map renderer draw authored connector routes without creating runtime `connector` nodes.
+Progress remains backend-authored and idempotent.
 
-The current contract is intentionally small:
-- `through`: ordered grid coordinates shaped like `{ "x": 4, "y": 2 }`
+## 11. Pattern-Based Run Map Catalog
 
-Old runs and generators can leave this field null; edge traversal still depends only on `from_node_id` and `to_node_id`.
+`backend/data/run-patterns/` is the authoring source for Pattern V1. Pattern V2 content is database-owned and seeded through forward-only migrations because production cannot depend on command-line catalog synchronization.
 
-## 9. Battles and Logs
+### 11.1 `run_pattern_definitions`
 
-`battles` remain the authoritative battle record.
+Stores immutable authored pattern versions, lifecycle status, definition JSON, and content hash.
 
-`battle_logs.log_json` must now be able to explain:
+### 11.2 `run_pattern_region_rules`
+
+Stores region and phase eligibility, weights, depth bounds, limits, cooldowns, and optional modifiers.
+
+### 11.3 `run_generation_profiles`
+
+Stores active region profile versions, bounds, budgets, requirements, retry policy, weight policy, and content hash.
+
+### 11.4 `region_runs` Provenance
+
+Generated runs may record generator version, generation-profile version, pattern-catalog hash, attempt count, and generation summary. Fixed authored runs may record `fixed-v1` provenance while sharing the frontend renderer contract.
+
+### 11.5 `run_edges` Rendering Metadata
+
+`run_edges.meta_json` may store ordered `through` grid coordinates for authored connector routes. Traversal remains defined by `from_node_id` and `to_node_id`.
+
+## 12. Battles and Logs
+
+`battles` remain the authoritative battle records.
+
+`battle_logs.log_json` must be capable of explaining:
+
 - equipped ability instance fired
 - cumulative tick scheduling
 - slot values consumed
-- empty-slot `1` contribution
+- empty-slot fallback contribution when applicable
+- die size and material identity for every participating die
+- material effect trigger and resolved result
 - enemy authored loadout participation
 
-The old pooled-dice combat interpretation should not appear in new logs.
+Reopening a result or retrying an idempotent request must not execute material behavior again.
 
-### 9.1 chaos_encounter_results
+### 12.1 `chaos_encounter_results`
 
-`chaos_encounter_results` stores persisted slot-machine-style chaos encounter results for generated `chaos` run nodes.
+Stores one persisted chaos result per run node, including deterministic seed, reel state, reward multiplier, finalized reward payload, reroll state, and finalization timestamp.
 
-Current foundation columns:
-- owning `user_id`, `run_id`, and one unique `node_id`
-- `status`: generated, manipulated, or confirmed
-- deterministic `seed`
-- `reels_json` containing the three authored reel outputs
-- `reward_multiplier` derived from the generated risk score
-- `finalized_rewards_json` containing the backend-authored payout applied when the node is completed
-- `rerolled_reel_index` and `manipulation_count` for one allowed player reroll
-- `finalized_at` for the durable completion timestamp
+Refreshes return the existing row. Finalization applies the stored payout once and returns the same result on retry.
 
-Rules:
-- one run node can have only one generated chaos result
-- refreshes return the existing row instead of rerolling
-- one reroll may change exactly one reel, then manipulation is spent
-- reward scaling is derived from the same persisted reel result that communicates risk
-- finalization applies the stored reward payload once, marks the node cleared, and returns the same payout on retry
-- full chaos combat generation remains follow-up work
-
-## 10. Rewards and Promotions
+## 13. Rewards and Promotions
 
 `unit_promotions` should retain enough detail to explain:
+
 - source unit
 - consumed units
 - destination type
-- optional region item consumption
+- optional item consumption
 - promotion path used
 
-This history is important both for player support/debugging and sideways-promotion eligibility.
+Reward and shop records that create dice must resolve one valid size-material pair. Sale and salvage values derive from size and material rather than affix premiums or independent rarity.
 
-## 11. Migration Expectations
+## 14. Migration Expectations
 
-The ability-loadout rework migrated runtime dice assignment to `unit_ability_dice` and removed the legacy `unit_dice` table in migration 70.
+### 14.1 Ability Loadout
 
-Remaining migration concerns for future combat/loadout changes:
-- existing authored unit ability data
-- existing enemy template combat definitions
-- existing starter grant logic
-- active runs or resumable battle snapshots
+Runtime dice assignment migrated to `unit_ability_dice`, and migration 70 removed `unit_dice`.
 
-Recommended migration stance:
-- treat active runs as incompatible unless a clear snapshot migration is implemented
-- author enemy equipped-loadout data before enabling scheduler changes
+Remaining combat/loadout concerns include authored enemy loadouts, starter grant alignment, and active-run compatibility when scheduler behavior changes.
 
-## 12. Normalization Guidance
+### 14.2 Dice Material Migration
 
-As implementation lands, prefer normalization over further drift:
-- compact legacy migration history into a smaller set of canonical migrations once the rework stabilizes
-- avoid growing parallel pooled-dice and ability-slot schemas long-term
-- keep test fixtures aligned to the new normalized model instead of preserving legacy abstractions indefinitely
+The migration sequence should:
 
-## 13. Explicitly Superseded Model
+1. seed the canonical material catalog
+2. add material references and material-size validation
+3. deterministically map every owned die to one valid size-material pair
+4. preserve owner and ability-slot bindings
+5. switch generation, combat, profile, shop, sale, salvage, and Codex behavior to materials
+6. stop reading independent rarity and permanent affixes
+7. remove legacy affix relationships after compatibility is no longer required
 
-The following model is no longer canonical:
-- unit-scoped combat dice pools
+Starter and neutral legacy dice migrate to Cardboard while preserving size.
+
+### 14.3 Kin Reconstruction Migration
+
+The migration sequence should:
+
+1. treat owned units as kin-ownership authority
+2. backfill or repair discovery and eligibility projections from existing units
+3. replace one-time lineage gating with repeatable recipe validation
+4. add request-level idempotency
+5. adopt the canonical Pig Kin recipe values
+6. return the produced unit as the primary result
+7. allow later recipes to create additional units
+8. preserve compatibility fields only until clients use the new result contract
+
+## 15. Normalization Guidance
+
+As implementation lands:
+
+- avoid long-lived parallel legacy and target models
+- keep test fixtures aligned to the target contract
+- use compatibility aliases at API boundaries rather than duplicating behavioral authority
+- keep content values in canonical content/system sources and technical storage contracts in this document
+- compact migration history only after the target model is stable and production-safe
+
+## 16. Explicitly Superseded Models
+
+The following are not canonical target-state behavior:
+
+- unit-scoped shared combat dice pools
 - combat consumption ordering from a shared pool
 - enemy scheduling driven only by modulo speed triggers
 - promotion as ability replacement instead of cumulative inheritance
+- materialless or rarity-only owned dice
+- permanent per-instance dice affixes
+- rarity-controlled affix capacity
+- lineage-unlock rows as the authority for kin ownership
+- one-time reconstruction that stops producing units after first discovery
