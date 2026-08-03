@@ -1,12 +1,14 @@
 ---
 Title: "Gameplay Systems Roadmap"
 Status: Needs Review
-Last Updated: 2026-08-01
+Last Updated: 2026-08-02
 Owner: Product
 Depends On:
   - agent/ISSUES.md
   - agent/MILESTONES.md
   - documentation/07-development-path/2026-07-30-first-pig-kin-demo-roadmap.md
+  - documentation/07-development-path/01-base-game-content-roster.md
+  - documentation/07-development-path/02-night-expansion-content-roster.md
 Category: 07-development-path
 Tags:
   - development-path
@@ -36,24 +38,48 @@ Work before that point should improve:
 - current-objective guidance;
 - chaos, hazard, shrine, and consumable reliability;
 - Wrong Machine first-reconstruction presentation;
-- academy, promotion, warband, unit, guide, codex, and run-node usability;
+- academy, promotion, warband, unit, guide, Codex, and run-node usability;
 - release hardening and UAT evidence.
 
-## Post-Demo Expansion
+## Approved Post-Demo Content Direction
 
-After the demo release, the roadmap expands toward a fuller campaign:
+The complete planned base game contains ten standard progression biomes plus two special biomes:
 
-- roughly ten total biomes before the finale;
-- additional kin lineages beyond Pig Kin;
-- richer affixes and dice progression;
-- more biome-specific materials, bosses, hazards, shrines, chaos outcomes, and dialogue;
-- the final Library encounter arc.
+```text
+Mystic Cave
+  → The Farm
+  → Mountains
+  → Swamps
+  → Island
+  → Tundra
+  → Volcano
+  → Wasteland
+  → River
+  → Orchard
+  → Savanna
+  → The Library
+```
 
-Post-demo work lives in `agent/MILESTONES_BACKLOG.md` and `agent/ISSUES_BACKLOG.md` until the demo milestone closes.
+The authoritative biome, enemy-family, and kin pairings are defined in `documentation/07-development-path/01-base-game-content-roster.md`.
+
+Post-demo development expands toward:
+
+- the remaining base-game kin lineages beyond Pig Kin;
+- biome-specific enemy rosters, bosses, materials, hazards, shrines, encounters, rewards, dialogue, and art;
+- richer dice progression after the current material model stabilizes;
+- the final Library encounter arc;
+- optional routes, backtracking, advanced progression, and repeatable endgame content.
+
+The first expansion, **Night**, is separately allocated to Ruins, Meadow, and Cemetery with Raccoon, Moth, and Crow Kin. Its authoritative planning roster is `documentation/07-development-path/02-night-expansion-content-roster.md`.
+
+Post-demo base-game work and Night expansion work remain in backlog tracker files until deliberately promoted into the active milestone.
 
 ## Roadmap Maintenance Rules
 
 - Keep only the current implementation lane in active tracker files.
 - Keep future campaign expansion in backlog tracker files until promoted.
+- Use the approved roster documents for future biome, enemy-family, and kin allocation.
+- Keep Mountains and Swamps plural in player-facing and planning documentation.
 - Treat `documentation/07-development-path/2026-07-25-roadmap.md` and `documentation/07-development-path/2026-07-25-completion-analysis.md` as historical implementation context.
+- Treat the older proposed Chapters 5-11 in `documentation/01-lore/01-story-and-biome-progression.md` as superseded by the approved base-game roster.
 - Update this file when the active milestone or release boundary changes.
