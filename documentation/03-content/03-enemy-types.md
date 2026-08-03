@@ -123,4 +123,3 @@ A planned enemy family becomes current only after this catalog defines concrete 
 - Update approved roster documents before changing future biome-family allocation.
 - A mismatch between this catalog and runtime data is implementation drift; it does not redefine intended current enemy content.
 - Keep encounter lineups, placement, targeting, and ability mechanics in their respective system or encounter documents.
-- Keep Mountains and Swamps plural when naming the regions.
