@@ -40,6 +40,7 @@ Tags:
 ## Canonical Target-State Documents
 
 - `08-dice-material-model.md` defines the replacement permanent dice model: die size plus one behavior-bearing material, material-derived rarity, explicit material-size eligibility, and no permanent affix layer. Existing rarity and affix implementation remains migration work until reconciled.
+- `09-kin-reconstruction.md` defines the repeatable Wrong Machine production contract: every recipe creates one unit, first ownership establishes Codex and reward eligibility, and Pig Kin remains the only current reconstruction recipe.
 
 ## Source Map
 
@@ -50,6 +51,7 @@ flowchart TD
   A --> D[Reward Systems]
   A --> E[Dialogue Systems]
   A --> F[Dice Systems]
+  A --> G[Kin Reconstruction]
 
   B --> B1[UnitNameGenerator]
   B --> B2[OwnedUnitGrantService]
@@ -71,11 +73,17 @@ flowchart TD
 
   F --> F1[Dice material target model]
   F --> F2[Legacy dice and affix implementation]
+
+  G --> G1[Wrong Machine feature]
+  G --> G2[Repeatable kin recipes]
+  G --> G3[First-ownership discovery]
+  G --> G4[Eligible kin reward pools]
 ```
 
 ## Reading Guidance
 
 - For current behavior, start here before reading `documentation/02-systems/mvp-reference/`.
 - For the intended permanent dice replacement, read `08-dice-material-model.md` before legacy dice references or implementation data.
+- For Pig Kin production and first-ownership behavior, read `09-kin-reconstruction.md` before legacy splice-variant or lineage roadmap references.
 - For schema and persistence details, pair these docs with `documentation/05-technical/04-data-model.md`.
 - For player-facing layout and interaction, pair these docs with `documentation/04-ux/`.
