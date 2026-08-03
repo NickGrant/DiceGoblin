@@ -116,4 +116,3 @@ A name in an approved planning roster is not sufficient for runtime use.
 - Content changes should update this catalog before or alongside implementation changes.
 - A mismatch between this catalog and runtime data is implementation drift; it does not make an undocumented kin current.
 - Keep reconstruction, first-ownership behavior, reward weighting, generation rules, and stat-resolution formulas in their respective system documents.
-- Keep Mountains and Swamps plural when naming their associated regions.
