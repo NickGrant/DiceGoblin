@@ -1,341 +1,216 @@
-<page-frame
-  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Inventory' }]"
-  title="Inventory"
-  [subtitle]="pageSubtitle()"
->
-  @if (error() || message()) {
-  <div class="vstack gap-2 mb-3">
-    @if (error()) {
-    <dg-alert tone="error">{{ error() }}</dg-alert>
-    }
-    @if (message()) {
-    <dg-alert tone="success">{{ message() }}</dg-alert>
-    }
-  </div>
-  }
-
-  <section class="dice-page">
-    <dg-focus-layout class="dice-page__layout" panelWidth="21rem">
-      <div focusLayoutPrimary class="dice-page__primary">
-        <section class="dice-page__controls dg-proto-section">
-          <div class="dg-proto-section__header">
-            <div>
-              <p class="dg-proto-section__eyebrow">Camp Stock</p>
-              <h2 class="dg-proto-section__title">Inventory</h2>
-            </div>
-          </div>
-          <div class="dg-proto-divider" aria-hidden="true"></div>
-          <div class="dice-page__tabs" aria-label="Inventory type">
-            <button
-              type="button"
-              class="dice-page__tab"
-              [class.is-active]="inventoryTab() === 'dice'"
-              (click)="showDiceInventory()"
-            >
-              Dice
-            </button>
-            <button
-              type="button"
-              class="dice-page__tab"
-              [class.is-active]="inventoryTab() === 'consumables'"
-              (click)="showConsumableInventory()"
-            >
-              Consumables
-            </button>
-          </div>
-
-          @if (inventoryTab() === 'dice') {
-          <div class="dice-page__filters">
-            <div class="dice-page__filter">
-              <label class="form-label" for="dice-size-filter">Size</label>
-              <select
-                id="dice-size-filter"
-                class="dg-select"
-                [ngModel]="selectedSize() ?? ''"
-                (ngModelChange)="updateSize($event)"
-              >
-                <option value="">All sizes</option>
-                @for (size of sizeOptions(); track size) {
-                <option [value]="size">d{{ size }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="dice-page__filter">
-              <label class="form-label" for="dice-rarity-filter">Rarity</label>
-              <select
-                id="dice-rarity-filter"
-                class="dg-select"
-                [ngModel]="selectedRarity() ?? ''"
-                (ngModelChange)="updateRarity($event)"
-              >
-                <option value="">All rarities</option>
-                @for (rarity of rarityOptions(); track rarity) {
-                <option [value]="rarity">{{ rarity | titlecase }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="dice-page__filter">
-              <label class="form-label" for="dice-equip-filter">Equip State</label>
-              <select
-                id="dice-equip-filter"
-                class="dg-select"
-                [ngModel]="selectedEquipFilter()"
-                (ngModelChange)="updateEquipFilter($event)"
-              >
-                <option value="all">All dice</option>
-                <option value="equipped">Equipped only</option>
-                <option value="unequipped">Unequipped only</option>
-              </select>
-            </div>
-
-            <div class="dice-page__filter">
-              <label class="form-label" for="dice-sort">Sort</label>
-              <select
-                id="dice-sort"
-                class="dg-select"
-                [ngModel]="selectedSort()"
-                (ngModelChange)="updateSort($event)"
-              >
-                <option value="size-asc">Size: Small to Large</option>
-                <option value="size-desc">Size: Large to Small</option>
-                <option value="rarity-asc">Rarity: Common to Legendary</option>
-                <option value="rarity-desc">Rarity: Legendary to Common</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="dice-page__results-row">
-            <p class="dice-page__results">
-              Showing {{ pagedDice().length }} of {{ filteredDice().length }} dice.
-            </p>
-            @if (totalPages() > 1) {
-            <div class="dice-page__pager" aria-label="Dice inventory pages">
-              <button
-                dgCommandBtn="muted"
-                type="button"
-                (click)="goToPreviousPage()"
-                [disabled]="currentPage() <= 1"
-              >
-                Previous
-              </button>
-              <span class="dice-page__page-count">Page {{ currentPage() }} / {{ totalPages() }}</span>
-              <button
-                dgCommandBtn="muted"
-                type="button"
-                (click)="goToNextPage()"
-                [disabled]="currentPage() >= totalPages()"
-              >
-                Next
-              </button>
-            </div>
-            }
-          </div>
-          } @else {
-          <div class="dice-page__results-row">
-            <p class="dice-page__results">
-              Showing {{ pagedConsumables().length }} of {{ consumables().length }} consumables.
-            </p>
-            @if (consumableTotalPages() > 1) {
-            <div class="dice-page__pager" aria-label="Consumable inventory pages">
-              <button
-                dgCommandBtn="muted"
-                type="button"
-                (click)="goToPreviousConsumablePage()"
-                [disabled]="consumableCurrentPage() <= 1"
-              >
-                Previous
-              </button>
-              <span class="dice-page__page-count">Page {{ consumableCurrentPage() }} / {{ consumableTotalPages() }}</span>
-              <button
-                dgCommandBtn="muted"
-                type="button"
-                (click)="goToNextConsumablePage()"
-                [disabled]="consumableCurrentPage() >= consumableTotalPages()"
-              >
-                Next
-              </button>
-            </div>
-            }
-          </div>
-          }
-        </section>
-
-        @if (inventoryTab() === 'dice') {
-        @if (pagedDice().length) {
-        <div class="dice-page__inventory">
-          <div class="dice-page__rail">
-            <div class="dice-page__rail-layout dg-motion-stagger">
-              @for (die of pagedDice(); track die.id) {
-              <button
-                type="button"
-                class="dice-page__tile dg-proto-card"
-                [class.is-selected]="isInspecting(die.id)"
-                (click)="activateDice(die)"
-                (focus)="previewDice(die.id)"
-                (mouseenter)="previewDice(die.id)"
-                [attr.aria-label]="diceTitle(die) + ' ' + sizeLabel(die) + ' ' + rarityLabel(die)"
-              >
-                <span class="dice-page__tile-media dg-proto-card__media">
-                  <img class="dice-page__tile-image" [src]="inspectArtUrl(die)" [alt]="diceTitle(die)" />
-                </span>
-                <span class="dice-page__tile-copy">
-                  <span class="dice-page__tile-name">{{ diceTitle(die) }}</span>
-                  <span class="dice-page__tile-meta">{{ sizeLabel(die) }}</span>
-                </span>
-                <span class="dg-proto-card__stats">
-                  <span class="dg-proto-pill">{{ sizeLabel(die) }}</span>
-                  <span class="dg-proto-pill">{{ isEquippedAnywhere(die.id) ? 'Equipped' : 'Loose' }}</span>
-                </span>
-              </button>
-              }
-            </div>
-          </div>
-        </div>
-        } @else {
-        <dg-alert>No dice available.</dg-alert>
+<page-frame [showHeader]="false">
+  <section class="dice-inventory" aria-labelledby="dice-inventory-title">
+    @if (error() || message()) {
+      <div class="dice-inventory__alerts">
+        @if (error()) {
+          <dg-alert tone="error">{{ error() }}</dg-alert>
         }
-        } @else {
-        @if (pagedConsumables().length) {
-        <div class="dice-page__inventory">
-          <div class="dice-page__rail">
-            <div class="dice-page__rail-layout dice-page__rail-layout--compact dg-motion-stagger">
-              @for (item of pagedConsumables(); track item.item_slug) {
-              <button
-                type="button"
-                class="dice-page__tile dice-page__tile--consumable dg-proto-card"
-                [class.is-selected]="isInspectingConsumable(item.item_slug)"
-                (focus)="previewConsumable(item.item_slug)"
-                (mouseenter)="previewConsumable(item.item_slug)"
-                [attr.aria-label]="item.name + ' quantity ' + item.quantity"
-              >
-                <span class="dice-page__item-icon" aria-hidden="true">{{ consumableIconLabel(item) }}</span>
-                <span class="dice-page__tile-copy">
-                  <span class="dice-page__tile-name">{{ item.name }}</span>
-                  <span class="dice-page__tile-meta">{{ consumableEffectLabel(item) }}</span>
-                </span>
-                <span class="dg-proto-card__stats">
-                  <span class="dg-proto-pill">x{{ item.quantity }}</span>
-                  <span class="dg-proto-pill">{{ consumableRarityLabel(item) }}</span>
-                </span>
-              </button>
-              }
-            </div>
-          </div>
-        </div>
-        } @else {
-        <dg-alert>No consumables available.</dg-alert>
-        }
+        @if (message()) {
+          <dg-alert tone="success">{{ message() }}</dg-alert>
         }
       </div>
+    }
 
-      <aside focusLayoutPanel class="dice-page__inspect dg-proto-sidebar">
-        @if (inventoryTab() === 'dice') {
-        @if (inspectedDice(); as die) {
-        <div class="dice-page__inspect-head">
+    <div class="dice-inventory__main">
+      <section class="dice-inventory__collection">
+        <header class="dice-inventory__header">
           <div>
-            <p class="dice-page__inspect-kicker">{{ rarityLabel(die) }} Die</p>
-            <h2 class="dice-page__inspect-title">{{ diceTitle(die) }}</h2>
+            <h1 id="dice-inventory-title">Dice Inventory</h1>
+            <p>{{ dice().length }} dice collected</p>
           </div>
-          @if (isEquippedAnywhere(die.id)) {
-          <span class="dice-page__inspect-state is-equipped">Equipped</span>
-          } @else {
-          <span class="dice-page__inspect-state">Loose</span>
-          }
-        </div>
+        </header>
 
-        <div class="dice-page__inspect-art dg-proto-card__media dg-proto-card__media--wide">
-          <img class="dice-page__inspect-image" [src]="inspectArtUrl(die)" [alt]="diceTitle(die)" />
-        </div>
+        <section class="dice-inventory__filters" aria-label="Dice inventory filters">
+          <label class="dice-inventory__search">
+            <span>Search dice</span>
+            <input
+              type="search"
+              placeholder="Search dice..."
+              [ngModel]="searchTerm()"
+              (ngModelChange)="updateSearch($event)"
+            />
+          </label>
 
-        <div class="dice-page__inspect-stats">
-          <span class="dg-proto-pill">{{ sizeLabel(die) }}</span>
-          <span class="dg-proto-pill">{{ die.sell_value ?? 0 }} teeth</span>
-        </div>
+          <label>
+            <span>Material</span>
+            <select [ngModel]="selectedMaterial()" (ngModelChange)="updateMaterial($event)">
+              <option value="all">Material: All</option>
+              <option value="cardboard">Cardboard</option>
+              <option value="wood">Wood</option>
+              <option value="bone">Bone</option>
+              <option value="metal">Metal</option>
+              <option value="gemstone">Gemstone</option>
+            </select>
+          </label>
 
-        <div class="dice-page__inspect-body">
-          @if (inspectedAffixDetails().length) {
-          <section class="dice-page__inspect-section">
-            <h3 class="dice-page__inspect-label">Affixes</h3>
-            <ul class="dice-page__inspect-affixes">
-              @for (affix of inspectedAffixDetails(); track affix.name + affix.description) {
-              <li class="dice-page__inspect-affix">
-                @if (affix.name) {
-                <span class="dice-page__inspect-affix-name">{{ affix.name }}</span>
-                }
-                @if (affix.description) {
-                <span class="dice-page__inspect-affix-copy">{{ affix.description }}</span>
-                }
-              </li>
-              }
-            </ul>
-          </section>
-          }
+          <label>
+            <span>Sort</span>
+            <select [ngModel]="selectedSort()" (ngModelChange)="updateSort($event)">
+              <option value="rarity-desc">Sort: By Rarity</option>
+              <option value="rarity-asc">Rarity: Common First</option>
+              <option value="size-asc">Size: Small First</option>
+              <option value="size-desc">Size: Large First</option>
+            </select>
+          </label>
 
-          <section class="dice-page__inspect-section">
-            @if (equippedUnit(die.id); as unit) {
-              <a dgCommandBtn="primary" [routerLink]="['/warband/units', unit.id]">View {{ unit.name }}</a>
-            } @else {
-              <div class="dice-page__inspect-actions">
+          <div class="dice-inventory__sizes" role="group" aria-label="Die type">
+            <button
+              type="button"
+              [attr.aria-pressed]="selectedSize() === null"
+              (click)="selectSize(null)"
+            >
+              All
+            </button>
+            @for (size of dieSizes; track size) {
               <button
-                dgCommandBtn
                 type="button"
-                [teethCost]="die.sell_value ?? null"
-                (click)="activateDice(die)"
-                [disabled]="busyDiceId() === die.id"
+                [attr.aria-pressed]="selectedSize() === size"
+                (click)="selectSize(size)"
               >
-                {{ busyDiceId() === die.id ? 'Working...' : 'Sell' }}
+                D{{ size }}
               </button>
-              @if (wrongMachineUnlocked()) {
+            }
+          </div>
+        </section>
+
+        @if (filteredDice().length) {
+          <div class="dice-inventory__results">
+            <p>
+              Showing {{ pagedDice().length }} of {{ filteredDice().length }} dice
+            </p>
+            @if (totalPages() > 1) {
+              <nav class="dice-inventory__pager" aria-label="Dice inventory pages">
                 <button
-                  dgCommandBtn="muted"
+                  dgButton="secondary"
+                  size="sm"
                   type="button"
-                  (click)="openSalvageConfirm(die)"
-                  [disabled]="busyDiceId() === die.id"
+                  (click)="goToPreviousPage()"
+                  [disabled]="currentPage() <= 1"
                 >
-                  Salvage
+                  Previous
                 </button>
-              }
-              </div>
+                <span>Page {{ currentPage() }} / {{ totalPages() }}</span>
+                <button
+                  dgButton="secondary"
+                  size="sm"
+                  type="button"
+                  (click)="goToNextPage()"
+                  [disabled]="currentPage() >= totalPages()"
+                >
+                  Next
+                </button>
+              </nav>
+            }
+          </div>
+
+          <div class="dice-inventory__grid">
+            @for (die of pagedDice(); track die.id) {
+              <button
+                type="button"
+                class="dice-card"
+                [class.is-selected]="isInspecting(die.id)"
+                (click)="inspectDice(die)"
+                [attr.aria-label]="diceTitle(die) + ', ' + sizeLabel(die) + ', ' + rarityLabel(die)"
+              >
+                <span class="dice-card__art">
+                  <img [src]="inspectArtUrl(die)" [alt]="diceTitle(die)" />
+                </span>
+                <span class="dice-card__body">
+                  <span class="dice-card__title">{{ diceTitle(die) }}</span>
+                  <span class="dice-card__meta">{{ sizeLabel(die) }}</span>
+                  <span class="dice-card__badges">
+                    <span dgChip="trait">{{ rarityLabel(die) }}</span>
+                    <span dgChip="neutral">{{ materialLabel(die) }}</span>
+                  </span>
+                  <span class="dice-card__stat">{{ cardStatLabel(die) }}</span>
+                  <span class="dice-card__state">
+                    @if (equippedUnit(die.id); as unit) {
+                      Equipped: {{ unit.name }}
+                    } @else {
+                      Available
+                    }
+                  </span>
+                </span>
+              </button>
+            }
+          </div>
+        } @else {
+          <dg-alert>No dice match these filters.</dg-alert>
+        }
+      </section>
+
+      <aside class="dice-inspector" aria-label="Inspect Die">
+        @if (inspectedDice(); as die) {
+          <header class="dice-inspector__header">
+            <h2>Inspect Die</h2>
+            <button type="button" aria-label="Reset inspected die" (click)="closeInspectPanel()">X</button>
+          </header>
+
+          <div class="dice-inspector__art">
+            <img [src]="inspectArtUrl(die)" [alt]="diceTitle(die)" />
+          </div>
+
+          <section class="dice-inspector__summary">
+            <div>
+              <h3>{{ diceTitle(die) }}</h3>
+              <p>{{ sizeLabel(die) }}</p>
+            </div>
+            <span dgChip="trait">{{ rarityLabel(die) }}</span>
+          </section>
+
+          <p class="dice-inspector__material">{{ materialLabel(die) }}</p>
+          <p class="dice-inspector__lore">{{ diceLore(die) }}</p>
+
+          <section class="dice-inspector__effects">
+            <h3>Die Effects</h3>
+            @for (effect of inspectedEffects(); track effect.label + effect.description) {
+              <article>
+                <span aria-hidden="true">{{ effect.icon }}</span>
+                <div>
+                  <h4>{{ effect.label }}</h4>
+                  <p>{{ effect.description }}</p>
+                </div>
+              </article>
             }
           </section>
-        </div>
-        }
-        } @else {
-        @if (inspectedConsumable(); as item) {
-        <div class="dice-page__inspect-head">
-          <div>
-            <p class="dice-page__inspect-kicker">{{ consumableRarityLabel(item) }} Consumable</p>
-            <h2 class="dice-page__inspect-title">{{ item.name }}</h2>
-          </div>
-          <span class="dice-page__inspect-state">x{{ item.quantity }}</span>
-        </div>
 
-        <div class="dice-page__item-inspect-icon" aria-hidden="true">{{ consumableIconLabel(item) }}</div>
-
-        <div class="dice-page__inspect-stats">
-          <span class="dg-proto-pill">{{ consumableEffectLabel(item) }}</span>
-          @if (item.source_region_name) {
-          <span class="dg-proto-pill">{{ item.source_region_name }}</span>
+          @if (equippedUnit(die.id); as unit) {
+            <section class="dice-inspector__equipped">
+              <p>Currently Equipped by</p>
+              <h3>{{ unit.name }}</h3>
+              <a dgButton="secondary" size="sm" [routerLink]="['/warband/units', unit.id]">View Unit -&gt;</a>
+            </section>
           }
-        </div>
 
-        <div class="dice-page__inspect-body">
-          <section class="dice-page__inspect-section">
-            <p class="dice-page__item-description">{{ item.description }}</p>
-          </section>
-        </div>
-        }
+          <footer class="dice-inspector__actions">
+            <button
+              dgButton="secondary"
+              type="button"
+              [disabled]="busyDiceId() === die.id"
+              (click)="openSellConfirm(die)"
+            >
+              Sell for {{ sellValueLabel(die) }}
+            </button>
+            @if (wrongMachineUnlocked()) {
+              <button
+                dgButton="ghost"
+                type="button"
+                [disabled]="busyDiceId() === die.id"
+                (click)="openSalvageConfirm(die)"
+              >
+                {{ salvageLabel(die) }}
+              </button>
+            }
+          </footer>
         }
       </aside>
-    </dg-focus-layout>
+    </div>
   </section>
 
   <dg-confirm-modal
     [open]="!!pendingSellDiceId()"
     title="Sell Die"
-    [message]="'Sell ' + (diceTitle(pendingSellDice()) || 'this die') + ' for ' + (pendingSellDice()?.sell_value ?? 0) + ' teeth?'"
+    [message]="'Sell ' + (diceTitle(pendingSellDice()) || 'this die') + ' for ' + (pendingSellDice()?.sell_value ?? 0) + ' gold?'"
     confirmLabel="Sell"
     cancelLabel="Keep It"
     [busy]="!!busyDiceId()"
