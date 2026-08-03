@@ -10,25 +10,27 @@ Depends On:
   - documentation/03-content/13-dialogue-and-lore.md
   - documentation/03-content/14-dice-materials.md
   - documentation/02-systems/06-loot-determination.md
+  - documentation/02-systems/09-kin-reconstruction.md
 Category: 03-content
 Tags:
   - content
   - loot
   - rewards
   - runs
+  - kin
 ---
 
 # Loot and Reward Profile Catalog
 
 ## Purpose
 
-Define canonical reward profiles attached to run-node outcomes. This document owns authored chances, guarantees, currency ranges, progression-item grants, dialogue grants, material-generated reward bonuses, and the distinction between normal rewards and generated encounter effects.
+Define canonical reward profiles attached to run-node outcomes. This document owns authored chances, guarantees, currency ranges, progression-item grants, dialogue grants, material-generated reward bonuses, reconstruction outputs, and the distinction between normal rewards and generated encounter effects.
 
-Deterministic randomization, reward materialization, inventory transactions, claim idempotency, XP application, and unlock persistence belong in system or technical documentation.
+Deterministic randomization, reward materialization, inventory transactions, claim idempotency, XP application, reconstruction transactions, and unlock persistence belong in system or technical documentation.
 
 ## Current Reward Profiles
 
-| Node and outcome | XP | Teeth | Unit grant | Die grant | Item grant | Special behavior |
+| Source and outcome | XP | Teeth | Unit grant | Die grant | Item grant | Special behavior |
 | --- | --- | --- | ---: | ---: | --- | --- |
 | Loot node | `0` | `8` | `55%` | `80%` | None by default | If neither unit nor die succeeds, one die is guaranteed. |
 | Combat victory | Sum of defeated enemy XP | `(5 × difficulty) + 0–5` | `20%` | `35%` | Eligible progression items | Material reward markers may add capped Teeth. |
@@ -39,12 +41,13 @@ Deterministic randomization, reward materialization, inventory transactions, cla
 | Hazard node | `0` | `0` | `0%` | `0%` | None | Resolves hazard outcome instead of normal loot. |
 | Shrine node | `0` | Effect-defined | `0%` | `0%` | None | Resolves shrine favor. |
 | Dialogue completion | `0` | `0` | `0%` | `0%` | Script-defined | May grant tutorial items or progression. |
+| Pig Kin reconstruction | `0` | `0` | Exactly one Pig Kin unit | `0%` | Consumes recipe inputs | Repeatable; first unit also establishes discovery and reward eligibility. |
 
-## Unit Grant Pool
+## Ordinary Unit Grant Pool
 
-A successful unit grant selects one unlocked Tier 1 unit type and one eligible kin.
+A successful normal unit grant selects one unlocked Tier-1 unit type and one account-eligible kin.
 
-Tier 1 candidates:
+Tier-1 candidates:
 
 - Bruiser
 - Guardian
@@ -52,7 +55,28 @@ Tier 1 candidates:
 - Bannerbearer
 - Saboteur
 
-This profile does not independently unlock unit types or kin.
+### Current kin eligibility
+
+| Account state | Eligible kin |
+| --- | --- |
+| Before first Pig Kin ownership | Basic Goblin |
+| After first Pig Kin ownership | Basic Goblin, Pig Kin |
+
+Normal reward profiles do not independently discover Pig Kin. The first Pig Kin is produced by the Wrong Machine recipe. Once the player owns a Pig Kin unit, future applicable unit grants may select Pig Kin.
+
+Basic Goblin remains an intentional result after discovery and is not a failed Pig Kin roll.
+
+## Pig Kin Reconstruction Output
+
+The current recipe is:
+
+| Recipe | Inputs | Output | First-ownership addition |
+| --- | --- | --- | --- |
+| `reconstruct_pig_kin` | Pig Ear × `10`; Mudking Crown Fragment × `1`; Raw Chaos × `25` | One level-1 Tier-1 Pig Kin unit | Pig Kin Codex discovery and ordinary unit-grant eligibility |
+
+Every successful recipe completion creates one unit. Later completions continue creating Pig Kin units and do not repeat first-ownership presentation or Codex awards.
+
+The recipe's Tier-1 unit type is selected from the player's unlocked Tier-1 candidate pool using deterministic standard unit-grant selection. The output kin is always Pig Kin.
 
 ## Die Grant Identity
 
@@ -78,6 +102,19 @@ The standard material rarity profile and complete material-size matrix are defin
 
 A Mudking boss victory therefore grants two Pig Ears and one Crown Fragment.
 
+These grants continue after Pig Kin is discovered. They are repeatable production inputs, not obsolete unlock tokens.
+
+## First-Reconstruction Tutorial Subsidy
+
+The first Pig Kin reconstruction tutorial may supply only the missing amount required for one recipe:
+
+- Pig Ears up to a total of `10`
+- Raw Chaos up to a total of `25`
+
+Already-owned quantities count. The subsidy grants no surplus and does not grant another Crown Fragment because Mudking boss victory already guarantees that catalyst.
+
+The subsidy is one-time and idempotent. The full recipe is still consumed when the unit is produced.
+
 ## Dialogue Completion Grants
 
 | Dialogue | Repeatability | Permanent progression | Item grants |
@@ -85,7 +122,9 @@ A Mudking boss victory therefore grants two Pig Ears and one Crown Fragment.
 | `mountains-traveler-consumable-gifts` | One-time | Recorded by the dialogue's seen state | Field Poultice × `1`; Travel Ration × `1` |
 | `swamps-wrong-machine-recovered` | One-time | Unlocks Wrong Machine | None |
 
-No other current dialogue grants direct currency, units, dice, items, or features. Dialogue rewards are idempotent.
+No current dialogue directly creates a Pig Kin unit. The post-recovery Mystic Cave scene introduces reconstruction, while the actual unit is produced by the Wrong Machine transaction.
+
+Other dialogue rewards are idempotent.
 
 ## Wrong Machine Recovery Reward
 
@@ -93,6 +132,7 @@ No other current dialogue grants direct currency, units, dice, items, or feature
 - Completing it grants Wrong Machine and records the dialogue as seen.
 - Standard Swamps completion may verify the feature idempotently.
 - Later runs do not grant it again.
+- Wrong Machine ownership enables the Pig Kin reconstruction interface; it does not itself grant Pig Kin.
 
 ## Material-Generated Battle Rewards
 
@@ -118,13 +158,16 @@ Exact effects and weights are defined in the Hazard and Shrine Catalog.
 
 ## Codex Rewards
 
-Codex pages are independent from normal grants.
+Codex pages are independent from normal grants except when ownership itself is the discovery condition.
 
 - Each defeated enemy copy in a victorious combat, boss, or chaos encounter has a `13%` deterministic page chance when not owned.
 - Completing a biome awards its page.
 - First biome-page award also grants defeated boss pages from that completed run.
 - Completing canonical Lore dialogue awards its Lore page.
 - Owning a die awards the page for its material.
+- Producing the first Pig Kin unit awards or derives the Pig Kin page.
+
+Later Pig Kin reconstructions do not award duplicate Codex pages.
 
 Full rules are defined in the Codex Catalog.
 
@@ -152,7 +195,8 @@ Their older fixed Teeth bands, old material pools, faction unit pools, Roc Egg, 
 ## Maintenance Notes
 
 - Change reward chances and guarantees here before or alongside tuning.
-- Keep item and feature grants synchronized with item, biome, and dialogue catalogs.
+- Keep item and feature grants synchronized with item, biome, dialogue, and reconstruction catalogs.
+- Keep ordinary kin eligibility synchronized with Kin Reconstruction and Loot Determination.
 - Keep die grants synchronized with the Dice Material Catalog.
 - Do not treat inactive loot tables or legacy affix data as authority.
-- Keep algorithms, deterministic rolls, materialization, and claim handling in system documentation.
+- Keep algorithms, deterministic rolls, materialization, reconstruction transactions, and claim handling in system documentation.
