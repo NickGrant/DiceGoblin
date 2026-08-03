@@ -1,102 +1,108 @@
-<div class="slots" [class.is-open]="mobileMenuOpen()">
-  <div class="slot slot-energy" aria-label="Energy">
-    @if (isAuthenticated()) {
-    <img class="slot-icon" src="/assets/ui/icons/energy_64.png" alt="" />
-    <span>{{ profile().energyCurrent }} / {{ profile().energyMax }}</span>
-    @if (selectedEnergyConsumable()) {
-    <button
-      class="energy-use"
-      type="button"
-      [attr.aria-label]="energyUseLabel()"
-      [attr.title]="energyUseLabel()"
-      [disabled]="energyUseWorking()"
-      (click)="restoreEnergy()"
-    >
-      +
-    </button>
-    }
-    } @else {
-    <span>--</span>
-    }
-  </div>
+<header class="nav-header" [class.is-open]="mobileMenuOpen()">
+  <a class="nav-header__brand" [routerLink]="isAuthenticated() ? '/home' : '/login'" aria-label="Dice Goblins home">
+    <span class="nav-header__mark" aria-hidden="true">×</span>
+    <strong>Dice Goblins</strong>
+  </a>
 
-  <div class="slot slot-teeth" aria-label="Teeth">
-    @if (isAuthenticated()) {
-    <img class="slot-icon" src="/assets/ui/icons/tooth_64.png" alt="" />
-    <span>{{ profile().softCurrency }}</span>
-    } @else {
-    <span>--</span>
+  <nav class="nav-header__links" aria-label="Primary navigation">
+    @for (item of visibleNavItems(); track item.id) {
+      <a
+        [routerLink]="navRoute(item)"
+        routerLinkActive="is-active"
+        [attr.aria-label]="navAriaLabel(item)"
+      >
+        {{ navLabel(item) }}
+      </a>
     }
-  </div>
+  </nav>
 
-  <div class="slot slot-chaos" [attr.aria-label]="wrongMachineUnlocked() ? 'Raw Chaos' : null" [attr.aria-hidden]="wrongMachineUnlocked() ? null : 'true'">
+  <div class="nav-header__resources" aria-label="Resources">
+    <span dgChip="buff">
+      <img src="/assets/ui/icons/energy_16.png" alt="" />
+      {{ isAuthenticated() ? profile().energyCurrent + '/' + profile().energyMax + ' Energy' : '--' }}
+      @if (isAuthenticated() && selectedEnergyConsumable()) {
+        <button
+          class="nav-header__resource-action"
+          type="button"
+          [attr.aria-label]="energyUseLabel()"
+          [attr.title]="energyUseLabel()"
+          [disabled]="energyUseWorking()"
+          (click)="restoreEnergy()"
+        >
+          +
+        </button>
+      }
+    </span>
+    <span dgChip="pending">
+      <img src="/assets/ui/icons/tooth_16.png" alt="" />
+      {{ isAuthenticated() ? profile().softCurrency + ' Teeth' : '--' }}
+    </span>
     @if (isAuthenticated() && wrongMachineUnlocked()) {
-    <fa-icon class="raw-chaos-icon" [icon]="faRawChaos" aria-hidden="true"></fa-icon>
-    <span>{{ rawChaosBalance() }}</span>
+      <span dgChip="status">
+        <fa-icon [icon]="faRawChaos" aria-hidden="true"></fa-icon>
+        {{ rawChaosBalance() }} Chaos
+      </span>
     }
   </div>
 
-  <div class="slot slot-name" [attr.aria-label]="isAuthenticated() ? 'Commander name' : 'Guest label'">
-    <span>{{ isAuthenticated() ? session().displayName : 'Guest' }}</span>
+  <div class="nav-header__profile" [attr.aria-label]="isAuthenticated() ? 'Commander profile' : 'Guest profile'">
+    <span class="nav-header__avatar" aria-hidden="true"></span>
+    <span class="nav-header__identity">
+      <strong>{{ isAuthenticated() ? session().displayName : 'Guest' }}</strong>
+      @if (isAuthenticated()) {
+        <small>War Chief</small>
+      }
+    </span>
   </div>
 
-  <div class="slot slot-audio">
+  <div class="nav-header__actions">
     @if (audioEnabled()) {
-    <button
-      class="audio-control"
-      type="button"
-      [attr.aria-label]="audioControlAriaLabel()"
-      [attr.title]="audioControlAriaLabel()"
-      (click)="activateAudioControl()"
-    >
-      <fa-icon [icon]="audioControlIcon()" aria-hidden="true"></fa-icon>
-      <span class="visually-hidden">{{ audioControlLabel() }}</span>
-    </button>
+      <button
+        dgButton="ghost"
+        size="sm"
+        type="button"
+        [attr.aria-label]="audioControlAriaLabel()"
+        [attr.title]="audioControlAriaLabel()"
+        (click)="activateAudioControl()"
+      >
+        <fa-icon [icon]="audioControlIcon()" aria-hidden="true"></fa-icon>
+        <span class="nav-header__action-label">{{ audioControlLabel() }}</span>
+      </button>
     }
-  </div>
 
-  <div class="slot slot-menu">
     <button
-      class="menu-toggle"
+      dgButton="secondary"
+      size="sm"
+      class="nav-header__menu-toggle"
       [class.is-active]="mobileMenuOpen()"
       type="button"
       [attr.aria-label]="menuToggleLabel()"
       [attr.aria-expanded]="mobileMenuOpen()"
       (click)="toggleMobileMenu()"
     >
-      <span class="menu-toggle-box" aria-hidden="true">
-        <span class="menu-toggle-inner"></span>
-      </span>
-      <span class="visually-hidden">{{ menuToggleLabel() }}</span>
+      Menu
     </button>
   </div>
-</div>
-
-<div class="menu-preload" aria-hidden="true">
-  <img src="/assets/ui/header/menu-top-frame.png" alt="" />
-  <img src="/assets/ui/header/menu-center-frame.png" alt="" />
-  <img src="/assets/ui/header/menu-bottom-frame.png" alt="" />
-  <img src="/assets/ui/header/floating-header-menu-row.png" alt="" />
-</div>
+</header>
 
 @if (mobileMenuOpen()) {
-<nav class="menu" aria-label="Primary navigation links">
-  @for (item of visibleNavItems(); track item.id) {
-  <a
-    class="menu-item"
-    [routerLink]="navRoute(item)"
-    routerLinkActive="is-active"
-    [attr.aria-label]="navAriaLabel(item)"
-    (click)="closeMobileMenu()"
-  >
-    <img class="menu-item-icon" [src]="item.icon" alt="" />
-    <span class="menu-item-label">{{ navLabel(item) }}</span>
-  </a>
-  }
+  <nav class="nav-menu" aria-label="Primary navigation menu">
+    @for (item of visibleNavItems(); track item.id) {
+      <a
+        class="nav-menu__item"
+        [routerLink]="navRoute(item)"
+        routerLinkActive="is-active"
+        [attr.aria-label]="navAriaLabel(item)"
+        (click)="closeMobileMenu()"
+      >
+        <img [src]="item.icon" alt="" />
+        <span>{{ navLabel(item) }}</span>
+      </a>
+    }
 
-  <button class="menu-item menu-item-action" type="button" (click)="isAuthenticated() ? logout() : login()">
-    <img class="menu-item-icon" [src]="authActionIcon()" alt="" />
-    <span class="menu-item-label">{{ authActionLabel() }}</span>
-  </button>
-</nav>
+    <button class="nav-menu__item" type="button" (click)="isAuthenticated() ? logout() : login()">
+      <img [src]="authActionIcon()" alt="" />
+      <span>{{ authActionLabel() }}</span>
+    </button>
+  </nav>
 }

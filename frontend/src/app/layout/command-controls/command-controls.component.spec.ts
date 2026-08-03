@@ -135,10 +135,11 @@ describe('CommandControlsComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.textContent).toContain('Nick');
-    expect(compiled.textContent).toContain('12 / 20');
+    expect(compiled.textContent).toContain('War Chief');
+    expect(compiled.textContent).toContain('12/20 Energy');
     expect(compiled.textContent).toContain('93');
     expect(compiled.textContent).toContain('Enable Sound');
-    expect(compiled.querySelector('.energy-use')).not.toBeNull();
+    expect(compiled.querySelector('.nav-header__resource-action')).not.toBeNull();
   });
 
   it('uses an energy consumable from the energy slot', async () => {
@@ -146,7 +147,7 @@ describe('CommandControlsComponent', () => {
     fixture.detectChanges();
 
     const apiHttp = TestBed.inject(ApiHttpService) as unknown as ApiHttpServiceStub;
-    const button = fixture.nativeElement.querySelector('.energy-use') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.nav-header__resource-action') as HTMLButtonElement;
     button.click();
     await fixture.whenStable();
 
@@ -166,14 +167,14 @@ describe('CommandControlsComponent', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.energy-use')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.nav-header__resource-action')).toBeNull();
   });
 
   it('enables sound when the audio control is pressed before unlock', async () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('.audio-control') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('[aria-label="Enable sound"]') as HTMLButtonElement;
     button.click();
     await fixture.whenStable();
 
@@ -187,7 +188,7 @@ describe('CommandControlsComponent', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('.audio-control') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('[aria-label="Mute sound"]') as HTMLButtonElement;
     button.click();
     await fixture.whenStable();
 
@@ -274,7 +275,7 @@ describe('CommandControlsComponent', () => {
     fixture.componentInstance.mobileMenuOpen.set(true);
     fixture.detectChanges();
 
-    const buttons = fixture.nativeElement.querySelectorAll('.menu-item-action') as NodeListOf<HTMLButtonElement>;
+    const buttons = fixture.nativeElement.querySelectorAll('.nav-menu__item[type="button"]') as NodeListOf<HTMLButtonElement>;
     const button = buttons[0];
     button.click();
     await fixture.whenStable();
@@ -282,26 +283,26 @@ describe('CommandControlsComponent', () => {
     expect(sessionService.logout).toHaveBeenCalled();
   });
 
-  it('renders the floating header art assets', () => {
+  it('renders the tokenized nav header', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(window.getComputedStyle(compiled).backgroundImage).toContain('floating-header-bar.png');
-    expect(compiled.querySelector('.slots')).not.toBeNull();
-    expect(compiled.querySelector('.menu-toggle-box')).not.toBeNull();
-    expect(compiled.querySelector('.menu-toggle-inner')).not.toBeNull();
+    expect(compiled.querySelector('.nav-header')).not.toBeNull();
+    expect(compiled.querySelector('.nav-header__brand')?.textContent).toContain('Dice Goblins');
+    expect(compiled.querySelector('.nav-header__resources')).not.toBeNull();
+    expect(compiled.querySelector('.nav-header__profile')?.textContent).toContain('War Chief');
   });
 
   it('opens a labeled dropdown menu from the arrow toggle', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
-    const toggle = fixture.nativeElement.querySelector('.menu-toggle') as HTMLButtonElement;
+    const toggle = fixture.nativeElement.querySelector('.nav-header__menu-toggle') as HTMLButtonElement;
     toggle.click();
     fixture.detectChanges();
 
-    const menu = fixture.nativeElement.querySelector('.menu') as HTMLElement | null;
+    const menu = fixture.nativeElement.querySelector('.nav-menu') as HTMLElement | null;
     expect(menu).not.toBeNull();
     expect(toggle.classList.contains('is-active')).toBeTrue();
     expect(menu?.textContent).toContain('Home');
@@ -313,23 +314,13 @@ describe('CommandControlsComponent', () => {
     expect(menu?.textContent).toContain('Guide');
     expect(menu?.textContent).toContain('Codex');
     expect(menu?.textContent).toContain('Logout');
-    expect(window.getComputedStyle(menu!).animationName).toContain('menu-enter');
   });
 
-  it('preloads dropdown frame art before the menu is opened', () => {
+  it('does not render the mobile menu before it is opened', () => {
     const fixture = TestBed.createComponent(CommandControlsComponent);
     fixture.detectChanges();
 
-    const preloadImages = Array.from(
-      fixture.nativeElement.querySelectorAll('.menu-preload img'),
-    ) as HTMLImageElement[];
-
-    expect(preloadImages.map((image) => image.getAttribute('src'))).toEqual([
-      '/assets/ui/header/menu-top-frame.png',
-      '/assets/ui/header/menu-center-frame.png',
-      '/assets/ui/header/menu-bottom-frame.png',
-      '/assets/ui/header/floating-header-menu-row.png',
-    ]);
+    expect(fixture.nativeElement.querySelector('.nav-menu')).toBeNull();
   });
 
   it('hides the academy menu item until the unlock is earned', () => {
@@ -340,7 +331,7 @@ describe('CommandControlsComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const academyItem = compiled.querySelector('.menu [aria-label="Academy"]');
+    const academyItem = compiled.querySelector('.nav-menu [aria-label="Academy"]');
 
     expect(academyItem).toBeNull();
   });
@@ -353,7 +344,7 @@ describe('CommandControlsComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const shopItem = compiled.querySelector('.menu [aria-label="Shop"]');
+    const shopItem = compiled.querySelector('.nav-menu [aria-label="Shop"]');
 
     expect(shopItem).toBeNull();
   });
@@ -386,7 +377,8 @@ describe('CommandControlsComponent', () => {
 
     expect(machineLink).toBeDefined();
     expect(machineLink!.nativeElement.textContent).toContain('Machine');
-    expect(machineLink!.nativeElement.querySelector('.menu-item-icon')?.getAttribute('src')).toBe('/assets/ui/icons/icon_encounter_locked.png');
+    const machineMenuItem = fixture.nativeElement.querySelector('.nav-menu [aria-label="Wrong Machine"]') as HTMLElement;
+    expect(machineMenuItem.querySelector('img')?.getAttribute('src')).toBe('/assets/ui/icons/icon_encounter_locked.png');
     expect(router.serializeUrl(machineLink!.injector.get(RouterLink).urlTree!)).toBe('/wrong-machine');
   });
 
@@ -397,11 +389,12 @@ describe('CommandControlsComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const chaosSlot = compiled.querySelector('.slot-chaos') as HTMLElement;
+    const chaosSlot = Array.from(compiled.querySelectorAll('.nav-header__resources [data-dg-chip]'))
+      .find((element) => element.textContent?.includes('Chaos')) as HTMLElement;
 
-    expect(chaosSlot.getAttribute('aria-label')).toBe('Raw Chaos');
-    expect(chaosSlot.querySelector('.raw-chaos-icon')).not.toBeNull();
-    expect(chaosSlot.textContent?.trim()).toBe('7');
+    expect(chaosSlot).toBeDefined();
+    expect(chaosSlot.querySelector('fa-icon')).not.toBeNull();
+    expect(chaosSlot.textContent).toContain('7 Chaos');
   });
 
   it('shows the academy menu item after the unlock is earned', () => {
@@ -412,7 +405,7 @@ describe('CommandControlsComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.menu [aria-label="Academy"]')).not.toBeNull();
+    expect(compiled.querySelector('.nav-menu [aria-label="Academy"]')).not.toBeNull();
   });
 
   it('closes the dropdown after tapping a menu link', () => {
@@ -423,7 +416,7 @@ describe('CommandControlsComponent', () => {
     component.mobileMenuOpen.set(true);
     fixture.detectChanges();
 
-    const mobileLink = fixture.nativeElement.querySelector('.menu a') as HTMLAnchorElement;
+    const mobileLink = fixture.nativeElement.querySelector('.nav-menu a') as HTMLAnchorElement;
     mobileLink.click();
     fixture.detectChanges();
 
@@ -441,18 +434,18 @@ describe('CommandControlsComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.slot-name')?.textContent).toContain('Guest');
-    expect(compiled.querySelector('.slot-energy')?.textContent).toContain('--');
-    expect(compiled.querySelector('.menu [aria-label="Warband"]')).toBeNull();
-    expect(compiled.querySelector('.menu [aria-label="Start Run"]')).toBeNull();
-    expect(compiled.querySelector('.menu [aria-label="Continue Run"]')).toBeNull();
-    expect(compiled.querySelector('.menu [aria-label="Inventory"]')).toBeNull();
-    expect(compiled.querySelector('.menu [aria-label="Wrong Machine"]')).toBeNull();
-    expect(compiled.querySelector('.menu [aria-label="Shop"]')).toBeNull();
-    expect(compiled.querySelector('.menu [aria-label="Academy"]')).toBeNull();
-    expect(compiled.querySelector('.menu [aria-label="Home"]')).not.toBeNull();
-    expect(compiled.querySelector('.menu [aria-label="Guide"]')).not.toBeNull();
-    expect(compiled.querySelector('.menu [aria-label="Codex"]')).toBeNull();
-    expect(compiled.querySelector('.menu-item-action')?.textContent).toContain('Login');
+    expect(compiled.querySelector('.nav-header__profile')?.textContent).toContain('Guest');
+    expect(compiled.querySelector('.nav-header__resources')?.textContent).toContain('--');
+    expect(compiled.querySelector('.nav-menu [aria-label="Warband"]')).toBeNull();
+    expect(compiled.querySelector('.nav-menu [aria-label="Start Run"]')).toBeNull();
+    expect(compiled.querySelector('.nav-menu [aria-label="Continue Run"]')).toBeNull();
+    expect(compiled.querySelector('.nav-menu [aria-label="Inventory"]')).toBeNull();
+    expect(compiled.querySelector('.nav-menu [aria-label="Wrong Machine"]')).toBeNull();
+    expect(compiled.querySelector('.nav-menu [aria-label="Shop"]')).toBeNull();
+    expect(compiled.querySelector('.nav-menu [aria-label="Academy"]')).toBeNull();
+    expect(compiled.querySelector('.nav-menu [aria-label="Home"]')).not.toBeNull();
+    expect(compiled.querySelector('.nav-menu [aria-label="Guide"]')).not.toBeNull();
+    expect(compiled.querySelector('.nav-menu [aria-label="Codex"]')).toBeNull();
+    expect(compiled.querySelector('.nav-menu__item[type="button"]')?.textContent).toContain('Login');
   });
 });
