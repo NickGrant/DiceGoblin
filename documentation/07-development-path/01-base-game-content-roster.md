@@ -25,15 +25,6 @@ Define the approved biome, native enemy-family, and goblin-kin roster for the co
 
 This document is canonical for the planned release roster. It does **not** make future biomes, enemy units, kin statistics, encounters, rewards, or reconstruction recipes current playable content. Current content remains owned by the catalogs under `documentation/03-content/` and must be promoted there as each phase enters implementation.
 
-## Naming Standard
-
-The official region names are plural:
-
-- **Mountains**, not Mountain
-- **Swamps**, not Swamp
-
-The existing stable region keys remain `mountains` and `swamps`.
-
 ## Base-Game Structure
 
 The complete base game contains:
@@ -97,7 +88,6 @@ Ruins, Meadow, Cemetery, Raccoons, Moths, Crows, and their associated kin are no
 
 ## Maintenance Notes
 
-- Keep Mountains and Swamps plural in player-facing and planning documentation.
 - Update this document when the approved roster, sequence, or biome-family-kin pairing changes.
 - Update current content catalogs separately when a planned entry enters implementation.
 - Do not move Night expansion content into the base-game roster without an explicit release-scope decision.
