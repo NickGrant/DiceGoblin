@@ -46,14 +46,10 @@ Approved planning content is deliberately separated from current content catalog
 
 | Planning scope | Canonical planning document | What it owns | Current-content effect |
 | --- | --- | --- | --- |
-| Base game | `documentation/07-development-path/01-base-game-content-roster.md` | Ten standard biomes, Mystic Cave and Library special-biome roles, native enemy families, associated kin, working order, and naming standards. | None until each entry is promoted into the current catalogs. |
+| Base game | `documentation/07-development-path/01-base-game-content-roster.md` | Ten standard biomes, Mystic Cave and Library special-biome roles, native enemy families, associated kin, and working order. | None until each entry is promoted into the current catalogs. |
 | First expansion: Night | `documentation/07-development-path/02-night-expansion-content-roster.md` | Ruins/Raccoons/Raccoon Kin, Meadow/Moths/Moth Kin, and Cemetery/Crows/Crow Kin. | Excluded from base-game runtime and current Codex counts until expansion activation. |
 
 A future name or pairing may be approved planning without having current stats, keys, abilities, encounters, recipes, rewards, or art. Runtime generation must use only current catalog entries.
-
-## Biome Naming Boundary
-
-The official player-facing names are **Mountains** and **Swamps**. Singular Mountain or Swamp may describe a theme or terrain type, but must not replace the region display names.
 
 ## Dice Content Boundary
 
