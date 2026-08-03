@@ -79,7 +79,6 @@ Post-demo base-game work and Night expansion work remain in backlog tracker file
 - Keep only the current implementation lane in active tracker files.
 - Keep future campaign expansion in backlog tracker files until promoted.
 - Use the approved roster documents for future biome, enemy-family, and kin allocation.
-- Keep Mountains and Swamps plural in player-facing and planning documentation.
 - Treat `documentation/07-development-path/2026-07-25-roadmap.md` and `documentation/07-development-path/2026-07-25-completion-analysis.md` as historical implementation context.
 - Treat the older proposed Chapters 5-11 in `documentation/01-lore/01-story-and-biome-progression.md` as superseded by the approved base-game roster.
 - Update this file when the active milestone or release boundary changes.
