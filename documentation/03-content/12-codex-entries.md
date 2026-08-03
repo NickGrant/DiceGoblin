@@ -11,6 +11,7 @@ Depends On:
   - documentation/03-content/10-items-and-consumables.md
   - documentation/03-content/13-dialogue-and-lore.md
   - documentation/03-content/14-dice-materials.md
+  - documentation/02-systems/09-kin-reconstruction.md
 Category: 03-content
 Tags:
   - content
@@ -33,7 +34,7 @@ Define the canonical Codex categories, eligible keys, and discovery rules. Profi
 | `biome` | Biome and Region Catalog | Complete the biome | 4 | Active |
 | `feature` | Feature catalog below | Receive the feature unlock | 12 | Active |
 | `unit_type` | Unit Type Catalog | Unlock the unit type or own a unit of that type | 20 | Active |
-| `kin` | Kin Type Catalog | Unlock the kin or own a unit of that kin | 2 | Active |
+| `kin` | Kin Type Catalog | Own at least one unit of the kin | 2 | Active |
 | `item` | Item and Consumable Catalog | Own at least one copy | 6 | Active |
 | `lore` | Dialogue and Lore Catalog | Complete dialogue explicitly classified as Lore | 9 | Active |
 | `material` | Dice Material Catalog | Own a die made from the material | 32 | Active |
@@ -95,8 +96,18 @@ The catalog contains twenty unit types across Bruiser, Guardian, Marksman, Banne
 
 | Key | Display name | Discovery |
 | --- | --- | --- |
-| `basic_goblin` | Basic Goblin | Receive the lineage unlock or own a Basic Goblin. |
-| `pig_kin` | Pig Kin | Receive the lineage unlock or own a Pig Kin unit. |
+| `basic_goblin` | Basic Goblin | Own a Basic Goblin unit; normally established by the initial goblin manifestation. |
+| `pig_kin` | Pig Kin | Own the first Pig Kin unit; normally produced by `reconstruct_pig_kin`. |
+
+Kin discovery is based on first durable ownership, not on paying for a standalone unlock.
+
+For Pig Kin:
+
+- every successful reconstruction produces one Pig Kin unit
+- the first produced unit awards or derives the Pig Kin Codex entry
+- later reconstructions create additional units without duplicating the page
+- first ownership also enables Pig Kin for applicable future ordinary unit grants
+- an account that already owns Pig Kin but lacks its page should be repaired by ownership synchronization
 
 Implementation-only splice records are not Codex content unless first added to the Kin Type Catalog.
 
@@ -211,8 +222,8 @@ These remain dialogue without Lore pages:
 | `completed_run` | Biome page awarded by successful completion. |
 | `feature_unlock` | Feature page awarded by canonical feature ownership. |
 | `unit_type_unlock` | Unit-type page awarded by research or progression. |
-| `lineage_unlock` | Kin page awarded by lineage unlock. |
-| `owned_unit` | Unit-type or kin page derived from ownership. |
+| `first_kin_ownership` | Kin page established by owning the first unit of that kin. |
+| `owned_unit` | Unit-type or kin page derived or repaired from durable ownership. |
 | `owned_item` | Item page derived from positive inventory quantity. |
 | `dialogue` | Lore page awarded by canonical Lore dialogue completion. |
 | `owned_die` | Material page derived from an owned die's canonical material key. |
@@ -221,6 +232,8 @@ These remain dialogue without Lore pages:
 
 - Dialogue seen state and Lore ownership remain separate.
 - Feature synchronization must not interpret dialogue state as features.
+- Pig Kin Codex ownership must be created or repaired from first durable Pig Kin ownership, not from a recipe-unlock toggle alone.
+- Later Pig Kin reconstructions must not create duplicate Codex awards.
 - Material synchronization uses the 32 canonical material keys, not rarity or affixes.
 - One material page is awarded per material regardless of die size.
 - Field Poultice and Travel Ration have first-discovery paths through Far Gifts; Hearty Bone Broth and Sparkroot Tonic still need acquisition sources.
@@ -236,6 +249,6 @@ These remain dialogue without Lore pages:
 
 - Every key must exist in its primary canonical catalog.
 - Add categories before exposing them through ownership or profile APIs.
-- Keep discovery synchronized with rewards, progression, dialogue, and materials.
+- Keep discovery synchronized with rewards, progression, dialogue, materials, and reconstruction.
 - Persistence, synchronization, API behavior, and deterministic implementation remain outside this document.
 - Do not promote storage keys into Codex content without authored player-facing identity.
