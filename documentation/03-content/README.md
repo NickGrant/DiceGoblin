@@ -41,7 +41,6 @@ Approved future content rosters are maintained under `documentation/07-developme
 - Keep generated behavior separate from authored entries: encounter placement is a system concern, while encounter formations and presentation are content.
 - For dialogue, explicitly document spoken participants, effective repeatability, eligibility, choices, completion rewards, and Lore classification.
 - For dice materials, explicitly document rarity, effect, allowed sizes, stacking behavior, valuation, and enabled state. Do not infer material identity from legacy rarity or affix records.
-- Keep Mountains and Swamps plural when referring to the region display names.
 
 ## Documents
 
