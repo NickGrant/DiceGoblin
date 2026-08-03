@@ -32,15 +32,6 @@ Run-map generation, node frequency, unlock persistence, and completion processin
 - Player-facing surfaces: Region selection, run maps, combat backgrounds, completion summaries, the Codex, and campaign progression.
 - Related content docs: Enemy types, kin types, encounters, dialogue, hazards, shrines, items, and reward profiles.
 
-## Region Naming Standard
-
-The official region display names are:
-
-- **Mountains**
-- **Swamps**
-
-Do not use Mountain or Swamp as replacement display names. Singular forms may still describe terrain, themes, or individual geographic features.
-
 ## Current Progression
 
 ```text
@@ -139,5 +130,4 @@ Ruins, Meadow, and Cemetery are reserved for the first expansion, **Night**. The
 - Keep story progression synchronized with the dialogue catalog.
 - Keep kin relationships synchronized with the kin and item catalogs.
 - Use the approved roster documents for planning allocation, then promote complete packages into current catalogs.
-- Keep Mountains and Swamps plural in region display names.
 - Keep run generation, unlock evaluation, and completion mechanics in system documentation.
