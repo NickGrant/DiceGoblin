@@ -1,5 +1,6 @@
 :host {
   --command-controls-height: 125px;
+  --dg-floating-header-height: 52px;
   display: block;
   min-height: 100vh;
 }
@@ -110,6 +111,10 @@
   display: block;
   position: relative;
   background: var(--dg-bg-page);
+}
+
+.app-shell:not(.app-shell--guest) .app-shell__frame {
+  padding-top: var(--dg-floating-header-height);
 }
 
 .status-card {

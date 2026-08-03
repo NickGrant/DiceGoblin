@@ -4,11 +4,8 @@ import { RouterLink } from '@angular/router';
 import { DiceAffixRecord, DiceRecord } from '../../core/models/api.models';
 import { DiceService } from '../../core/services/dice/dice.service';
 import { SessionService } from '../../core/services/session/session.service';
-import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { ConfirmModalComponent } from '../../shared/ui/confirm-modal/confirm-modal.component';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
-import { DgButtonDirective } from '../../shared/ui/dg-button/dg-button.directive';
-import { DgChipDirective } from '../../shared/ui/dg-chip/dg-chip.directive';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { DiceSortOption, filterAndSortDice } from '../../shared/ui/dice-display/dice-display.utils';
 
@@ -20,7 +17,7 @@ type DiceEffectDetail = {
   description: string;
 };
 
-const DIE_SIZES = [4, 6, 8, 10, 12, 20] as const;
+const DIE_SIZES = [4, 6, 8, 10] as const;
 
 const MATERIAL_BY_RARITY: Record<string, Exclude<DiceMaterial, 'all'>> = {
   common: 'cardboard',
@@ -36,10 +33,7 @@ const MATERIAL_BY_RARITY: Record<string, Exclude<DiceMaterial, 'all'>> = {
   imports: [
     ConfirmModalComponent,
     DgAlertComponent,
-    DgButtonDirective,
-    DgChipDirective,
     FormsModule,
-    PageFrameComponent,
     RouterLink,
   ],
   templateUrl: './dice-page.component.html',
@@ -62,11 +56,12 @@ export class DicePageComponent {
   readonly selectedSize = signal<number | null>(null);
   readonly selectedSort = signal<DiceSortOption>('rarity-desc');
   readonly selectedDiceId = signal<string | null>(null);
+  readonly detailHidden = signal(true);
   readonly page = signal(1);
   readonly pendingSellDiceId = signal<string | null>(null);
   readonly pendingSalvageDiceId = signal<string | null>(null);
   readonly dieSizes = DIE_SIZES;
-  readonly pageSize = 8;
+  readonly pageSize = 10;
 
   readonly filteredDice = computed(() => {
     const searchTerm = this.searchTerm().trim().toLowerCase();
@@ -91,17 +86,16 @@ export class DicePageComponent {
   });
 
   readonly inspectedDice = computed(() => {
-    const dice = this.pagedDice();
-    if (!dice.length) {
+    if (this.detailHidden()) {
       return null;
     }
 
     const selectedId = this.selectedDiceId();
-    if (selectedId) {
-      return dice.find((die) => die.id === selectedId) ?? dice[0];
+    if (!selectedId) {
+      return null;
     }
 
-    return dice[0];
+    return this.pagedDice().find((die) => die.id === selectedId) ?? null;
   });
 
   readonly pendingSellDice = computed(() => this.dice().find((die) => die.id === this.pendingSellDiceId()) ?? null);
@@ -129,20 +123,24 @@ export class DicePageComponent {
   }
 
   inspectDice(die: DiceRecord): void {
+    this.detailHidden.set(false);
     this.selectedDiceId.set(die.id);
   }
 
   closeInspectPanel(): void {
+    this.detailHidden.set(true);
     this.selectedDiceId.set(null);
   }
 
   goToPreviousPage(): void {
     this.page.set(Math.max(1, this.currentPage() - 1));
+    this.detailHidden.set(true);
     this.selectedDiceId.set(null);
   }
 
   goToNextPage(): void {
     this.page.set(Math.min(this.totalPages(), this.currentPage() + 1));
+    this.detailHidden.set(true);
     this.selectedDiceId.set(null);
   }
 
@@ -185,6 +183,15 @@ export class DicePageComponent {
     return this.normalizeLabel(die?.rarity, 'Common');
   }
 
+  rarityTone(die: DiceRecord | null): string {
+    const rarity = (die?.rarity ?? 'common').trim().toLowerCase();
+    if (rarity === 'epic') {
+      return 'very-rare';
+    }
+
+    return rarity || 'common';
+  }
+
   sizeLabel(die: DiceRecord | null): string {
     return `D${die?.sides ?? 6}`;
   }
@@ -222,12 +229,12 @@ export class DicePageComponent {
   }
 
   sellValueLabel(die: DiceRecord | null): string {
-    return `${die?.sell_value ?? 0} Gold`;
+    return `${die?.sell_value ?? 0} Teeth`;
   }
 
   salvageLabel(die: DiceRecord | null): string {
     const estimate = Math.max(1, Math.floor((die?.sell_value ?? die?.value ?? 5) / 3));
-    return `Salvage (${estimate} Raw Chaos)`;
+    return `Salvage (Gives ${estimate} Shards)`;
   }
 
   openSellConfirm(die: DiceRecord): void {
@@ -428,6 +435,7 @@ export class DicePageComponent {
 
   private resetPage(): void {
     this.page.set(1);
+    this.detailHidden.set(true);
     this.selectedDiceId.set(null);
   }
 }

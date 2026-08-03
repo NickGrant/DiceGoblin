@@ -63,16 +63,18 @@ describe('DicePageComponent', () => {
     return fixture;
   }
 
-  it('renders the Figma dice inventory shell with a selected detail panel', async () => {
+  it('renders the Figma dice inventory shell without selecting a die by default', async () => {
     const fixture = await createComponent();
     const host: HTMLElement = fixture.nativeElement;
 
     expect(host.textContent).toContain('Dice Inventory');
     expect(host.textContent).toContain('3 dice collected');
     expect(host.querySelectorAll('.dice-card')).toHaveSize(3);
-    expect(host.textContent).toContain('Showing 3 of 3 dice');
-    expect(host.querySelector('.dice-inspector')?.textContent).toContain('Gemstone D10');
+    expect(host.querySelector('.dice-detail')).toBeNull();
+    expect(host.querySelector('.dice-card.is-selected')).toBeNull();
     expect(host.textContent).toContain('Search dice');
+    expect(host.textContent).not.toContain('D12');
+    expect(host.textContent).not.toContain('D20');
     expect(host.textContent).not.toContain('Consumables');
   });
 
@@ -92,18 +94,40 @@ describe('DicePageComponent', () => {
     expect(component.filteredDice().map((die) => die.id)).toEqual(['d3']);
   });
 
-  it('paginates dice eight at a time and resets pagination when filters change', async () => {
+  it('hides the detail rail when the close button clears the selected die', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const host: HTMLElement = fixture.nativeElement;
+
+    component.inspectDice(component.dice().find((die) => die.id === 'd1')!);
+    fixture.detectChanges();
+
+    expect(host.querySelector('.dice-detail')).not.toBeNull();
+
+    component.closeInspectPanel();
+    fixture.detectChanges();
+
+    expect(component.inspectedDice()).toBeNull();
+    expect(host.querySelector('.dice-detail')).toBeNull();
+
+    component.inspectDice(component.dice().find((die) => die.id === 'd2')!);
+    fixture.detectChanges();
+
+    expect(host.querySelector('.dice-detail')?.textContent).toContain('Cardboard D4');
+  });
+
+  it('paginates dice ten at a time and resets pagination when filters change', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
     const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
     sessionService.dice.set(
-      Array.from({ length: 9 }, (_, index) => ({
+      Array.from({ length: 11 }, (_, index) => ({
         id: `d${index + 1}`,
         display_name: `Cardboard D6 ${index + 1}`,
         sell_value: 6,
         value: 6,
         sides: 6,
-        rarity: index === 8 ? 'rare' : 'common',
+        rarity: index === 10 ? 'rare' : 'common',
         affixes: [],
       })),
     );
@@ -111,8 +135,8 @@ describe('DicePageComponent', () => {
 
     expect(component.totalPages()).toBe(2);
     expect(component.currentPage()).toBe(1);
-    expect(component.pagedDice()).toHaveSize(8);
-    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.dice-card')).toHaveSize(8);
+    expect(component.pagedDice()).toHaveSize(10);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.dice-card')).toHaveSize(10);
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Page 1 / 2');
 
     component.goToNextPage();
@@ -130,7 +154,7 @@ describe('DicePageComponent', () => {
     expect(component.filteredDice().length).toBeGreaterThan(0);
   });
 
-  it('uses selected dice for inspection and falls back when filters exclude it', async () => {
+  it('uses selected dice for inspection and clears inspection when filters exclude it', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
 
@@ -138,13 +162,13 @@ describe('DicePageComponent', () => {
     fixture.detectChanges();
 
     expect(component.inspectedDice()?.id).toBe('d1');
-    expect((fixture.nativeElement as HTMLElement).querySelector('.dice-inspector')?.textContent).toContain('Bone D8');
+    expect((fixture.nativeElement as HTMLElement).querySelector('.dice-detail')?.textContent).toContain('Bone D8');
 
     component.updateSearch('cardboard');
     fixture.detectChanges();
 
-    expect(component.inspectedDice()?.id).toBe('d2');
-    expect((fixture.nativeElement as HTMLElement).querySelector('.dice-inspector')?.textContent).toContain('Cardboard D4');
+    expect(component.inspectedDice()).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.dice-detail')).toBeNull();
   });
 
   it('reports ability-slot and equipped dice as equipped', async () => {
@@ -175,7 +199,7 @@ describe('DicePageComponent', () => {
       .queryAll(By.directive(RouterLink))
       .find((element) => element.nativeElement.textContent?.includes('View Unit'));
 
-    expect(host.querySelector('.dice-inspector')?.textContent).toContain('Currently Equipped by');
+    expect(host.querySelector('.dice-detail')?.textContent).toContain('Currently Equipped by');
     expect(unitLinkDebug).toBeDefined();
     expect(unitLinkDebug!.injector.get(RouterLink).href).toContain('/warband/units/u1');
   });
@@ -186,10 +210,14 @@ describe('DicePageComponent', () => {
     const diceService = TestBed.inject(DiceService) as unknown as DiceServiceStub;
     const die = component.dice().find((entry) => entry.id === 'd2')!;
 
+    component.inspectDice(die);
+    fixture.detectChanges();
+
     component.openSellConfirm(die);
     fixture.detectChanges();
 
     expect(component.pendingSellDice()?.id).toBe('d2');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Sell for 8 Teeth');
 
     await component.confirmSellDice();
     fixture.detectChanges();
@@ -216,7 +244,7 @@ describe('DicePageComponent', () => {
     sessionService.wrongMachineUnlocked.set(false);
     fixture.detectChanges();
 
-    expect((fixture.nativeElement as HTMLElement).querySelector('.dice-inspector')?.textContent).not.toContain('Salvage');
+    expect((fixture.nativeElement as HTMLElement).querySelector('.dice-detail')?.textContent).not.toContain('Salvage');
 
     component.openSalvageConfirm(die);
 
