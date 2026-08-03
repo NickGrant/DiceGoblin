@@ -1,10 +1,12 @@
 ---
 Title: "Enemy Type Catalog"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-02
 Owner: Content Design
 Depends On:
   - documentation/03-content/00-content-source-map.md
+  - documentation/07-development-path/01-base-game-content-roster.md
+  - documentation/07-development-path/02-night-expansion-content-roster.md
 Category: 03-content
 Tags:
   - content
@@ -16,9 +18,11 @@ Tags:
 
 ## Purpose
 
-Define the canonical enemy types, their faction identity, combat values, rewards, and ability packages. Implementation data must remain consistent with this catalog.
+Define the canonical current enemy types, their faction identity, combat values, rewards, and ability packages. Implementation data must remain consistent with this catalog.
 
-Encounter composition, placement, targeting, and combat formulas belong in system or encounter documentation. This document defines which enemy types exist and the authored values assigned to them.
+Encounter composition, placement, targeting, and combat formulas belong in system or encounter documentation. This document defines which concrete enemy units currently exist and the authored values assigned to them.
+
+Approved future enemy families are recorded separately. A family name and biome pairing do not create current enemy units without complete entries.
 
 ## Scope
 
@@ -32,8 +36,9 @@ Encounter composition, placement, targeting, and combat formulas belong in syste
 - Ability names are canonical content keys. Their mechanical definitions belong in the ability catalog and combat system documentation.
 - Tier indicates the enemy's general content tier, not an encounter's total difficulty.
 - XP is the base reward assigned to defeating one instance of the enemy.
+- Approved planning families do not yet define unit slugs, roles, stats, abilities, XP, bosses, or encounters.
 
-## Entries
+## Current Entries
 
 ### Pigs
 
@@ -69,12 +74,52 @@ Encounter composition, placement, targeting, and combat formulas belong in syste
 | `chaos_faultbrute` | Chaos Faultbrute | 3 | Frontline | `10 / 8 / 58 / 5 / 7` | `basic_attack_melee`, `heavy_strike` | `thick_hide` | 35 | Elite | Active | Heavy chaos elite built to anchor mixed enemy formations. |
 | `chaos_glass_cannon` | Chaos Glass Cannon | 3 | Backline | `14 / 1 / 24 / 8 / 4` | `basic_attack_ranged`, `aimed_shot` | `sharpshooter` | 35 | Elite | Active | High-damage ranged chaos elite with minimal defenses. |
 
+## Approved Base-Game Enemy Families
+
+| Biome | Enemy family | Planning status | High-level identity |
+| --- | --- | --- | --- |
+| The Farm | Pigs | Current | Farmyard occupiers led by the Mudking. |
+| Mountains | Kobolds | Current | Tinkerers, trap makers, and scrap-built defenders. |
+| Swamps | Frogmen | Current | Marsh fighters, hunters, supporters, and regional rulers. |
+| Island | Monkeys | Approved post-demo planning | Agile thieves and climbers organized into harvesting crews, coastal patrols, and treetop guards. |
+| Tundra | Walrusfolk | Approved post-demo planning | Large scavengers divided into hauling crews, hunters, and armored defenders. |
+| Volcano | Salamanders | Approved post-demo planning | Heat-resistant scavengers forced into foundry and weapon-making roles. |
+| Wasteland | Vultures | Approved post-demo planning | Carrion scavengers assigned to battlefield cleaning, corpse collection, and equipment reclamation. |
+| River | Otters | Approved post-demo planning | Playful thieves forced to operate dams, ferries, locks, and checkpoints. |
+| Orchard | Wasps | Approved post-demo planning | Fruit thieves reorganized into harvesting, pollination, and defense castes. |
+| Savanna | Hyenas | Approved post-demo planning | Pack scavengers subjected to strict hunting ranks and coordinated formations. |
+
+Mystic Cave uses chaos beings rather than a standard creature-family progression package. The Library uses The Archivist's order-aligned forces, including armored humanoid defenders, and requires a future concrete enemy roster.
+
+The complete allocation is owned by `documentation/07-development-path/01-base-game-content-roster.md`.
+
+## Night Expansion Enemy Families
+
+| Biome | Enemy family | Planning status | High-level identity |
+| --- | --- | --- | --- |
+| Ruins | Raccoons | Reserved for Night | Artifact thieves forced to catalogue and preserve what they would rather dismantle or hoard. |
+| Meadow | Moths | Reserved for Night | Nocturnal creatures made into lantern keepers and signal-tower attendants. |
+| Cemetery | Crows | Reserved for Night | Scavengers turned into undertakers, grave wardens, and custodians of the dead. |
+
+These families are excluded from base-game encounters, rewards, and Codex pools. Their allocation is owned by `documentation/07-development-path/02-night-expansion-content-roster.md`.
+
+## Promotion Requirements
+
+A planned enemy family becomes current only after this catalog defines concrete unit entries and the surrounding catalogs define:
+
+- unit keys, display names, roles, tiers, stats, abilities, passives, XP, and archetypes;
+- boss or climax identity;
+- encounter formations and biome placement;
+- reward, item, Codex, dialogue, and art integration;
+- any family-specific ability definitions.
+
 ## Open Questions
 
-- None.
+- Concrete unit rosters and bosses for every post-Swamps base-game biome, The Library, and all Night regions remain future design work.
 
 ## Maintenance Notes
 
 - Content changes should update this catalog before or alongside implementation changes.
-- A mismatch between this catalog and runtime data is implementation drift; it does not redefine the intended enemy content.
+- Update approved roster documents before changing future biome-family allocation.
+- A mismatch between this catalog and runtime data is implementation drift; it does not redefine intended current enemy content.
 - Keep encounter lineups, placement, targeting, and ability mechanics in their respective system or encounter documents.

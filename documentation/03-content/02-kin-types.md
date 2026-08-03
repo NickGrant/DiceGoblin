@@ -6,6 +6,8 @@ Owner: Content Design
 Depends On:
   - documentation/03-content/00-content-source-map.md
   - documentation/02-systems/09-kin-reconstruction.md
+  - documentation/07-development-path/01-base-game-content-roster.md
+  - documentation/07-development-path/02-night-expansion-content-roster.md
 Category: 03-content
 Tags:
   - content
@@ -17,14 +19,16 @@ Tags:
 
 ## Purpose
 
-Define the canonical goblin kin types and the authored traits that distinguish them. Only kin listed in this document are part of the current content set.
+Define the canonical current goblin kin types and the authored traits that distinguish them. Only kin in the current-entry table are active content.
 
-Reconstruction, first-ownership behavior, reward eligibility, and stat-resolution formulas belong in system documentation. This document defines which kin exist and the modifiers associated with them.
+Reconstruction, first-ownership behavior, reward eligibility, and stat-resolution formulas belong in system documentation. This document defines which current kin exist and the modifiers associated with them.
+
+Approved future kin names and biome relationships are recorded separately from current entries so planning decisions do not create incomplete runtime content.
 
 ## Scope
 
 - Content category: Goblin kin types.
-- Player-facing surfaces: Unit identity, Warband displays, Wrong Machine recipes, rewards, and Codex entries.
+- Player-facing surfaces: Unit identity, Warband displays, Wrong Machine recipes, rewards, recruitment, and Codex entries.
 - Related system docs: Kin reconstruction, reward eligibility, unit generation, and stat resolution.
 
 ## Reading the Catalog
@@ -33,8 +37,9 @@ Reconstruction, first-ownership behavior, reward eligibility, and stat-resolutio
 - A value of `0` means the kin does not modify that stat.
 - Content keys are stable identifiers used to connect this catalog to implementation and saved data.
 - A kin may be both a unit identity and the output identity of a repeatable Wrong Machine recipe.
+- Approved planning names without keys, modifiers, acquisition, and mechanics are not current kin definitions.
 
-## Entries
+## Current Entries
 
 | Key | Display name | Description | Stat modifiers | Gameplay identity | Current acquisition | Content status | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -45,7 +50,7 @@ Reconstruction, first-ownership behavior, reward eligibility, and stat-resolutio
 
 Basic Goblin and Pig Kin are the complete current kin roster.
 
-Planning references to Lizard Kin, Frog Kin, or later biome lineages are next-phase concepts. They are not current content, do not belong in current reward pools, and do not have current reconstruction recipes.
+Later base-game and Night kin are approved planning concepts only. They are not current content, do not belong in current reward pools, and do not have current reconstruction recipes.
 
 ## Pig Kin Ownership Contract
 
@@ -56,14 +61,58 @@ Planning references to Lizard Kin, Frog Kin, or later biome lineages are next-ph
 - Existing units are not transformed into Pig Kin in the current phase.
 - Pig Kin persists through promotion like any other unit kin.
 
+## Approved Base-Game Planning Roster
+
+| Associated biome | Planned kin | Planning status |
+| --- | --- | --- |
+| The Farm | Pig Kin | Current |
+| Mountains | Lizard Kin | Approved post-demo planning |
+| Swamps | Frog Kin | Approved post-demo planning |
+| Island | Monkey Kin | Approved post-demo planning |
+| Tundra | Walrus Kin | Approved post-demo planning |
+| Volcano | Salamander Kin | Approved post-demo planning |
+| Wasteland | Vulture Kin | Approved post-demo planning |
+| River | Otter Kin | Approved post-demo planning |
+| Orchard | Wasp Kin | Approved post-demo planning |
+| Savanna | Hyena Kin | Approved post-demo planning |
+
+Mystic Cave establishes Basic Goblin and is not another enemy-derived kin recipe. The Library has no standard enemy-derived kin pairing currently approved.
+
+The full roster identity and sequence are owned by `documentation/07-development-path/01-base-game-content-roster.md`.
+
+## Night Expansion Planning Roster
+
+| Associated biome | Planned kin | Planning status |
+| --- | --- | --- |
+| Ruins | Raccoon Kin | Reserved for Night |
+| Meadow | Moth Kin | Reserved for Night |
+| Cemetery | Crow Kin | Reserved for Night |
+
+These kin are excluded from base-game reward, recruitment, reconstruction, and Codex pools. The allocation is owned by `documentation/07-development-path/02-night-expansion-content-roster.md`.
+
+## Promotion Requirements
+
+A planned kin becomes current only after this catalog defines at least:
+
+- a stable key and display name;
+- description and gameplay identity;
+- complete stat modifiers or equivalent mechanical contract;
+- acquisition and reconstruction relationship;
+- first-ownership, reward, and recruitment eligibility;
+- Codex presentation and art direction;
+- synchronization with its biome, enemy family, items, and rewards.
+
+A name in an approved planning roster is not sufficient for runtime use.
+
 ## Open Questions
 
-- None for the current Pig Kin phase.
+- Mechanical identities, modifiers, recipes, materials, catalysts, and traversal roles for all post-Pig and Night kin remain future design work.
 
 ## Maintenance Notes
 
-- Adding a kin type requires adding it to this catalog and defining its identity, modifiers, acquisition, and progression association.
+- Adding a current kin requires adding a complete entry to the current table.
 - Add a Wrong Machine recipe to the reconstruction system before presenting a kin as reconstructable.
+- Update the approved roster documents before changing future biome-kin allocation.
 - Content changes should update this catalog before or alongside implementation changes.
-- A mismatch between this catalog and runtime data is implementation drift; it does not make an undocumented kin type canonical.
-- Keep reconstruction, unlock conditions, reward weighting, generation rules, and stat-resolution formulas in their respective system documents.
+- A mismatch between this catalog and runtime data is implementation drift; it does not make an undocumented kin current.
+- Keep reconstruction, first-ownership behavior, reward weighting, generation rules, and stat-resolution formulas in their respective system documents.
