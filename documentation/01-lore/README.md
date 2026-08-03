@@ -38,8 +38,6 @@ Its older proposed Chapters 5-11 are superseded and are not the approved biome s
 - `documentation/07-development-path/01-base-game-content-roster.md` for the complete base-game biome, enemy-family, and kin roster;
 - `documentation/07-development-path/02-night-expansion-content-roster.md` for the first expansion, **Night**.
 
-The official region names are **Mountains** and **Swamps**.
-
 ## Child Folders
 
 - None.
