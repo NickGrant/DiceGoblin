@@ -1,10 +1,6 @@
-<page-frame
-  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Run' }]"
-  [title]="pageTitle()"
-  subtitle="Plot the next node and keep the squad moving."
->
+<section class="run-map-screen" aria-labelledby="run-map-title">
   @if (loading() || error()) {
-    <div class="vstack gap-2 mb-3">
+    <div class="run-map-screen__alerts">
       @if (loading()) {
         <dg-alert>Loading run map...</dg-alert>
       }
@@ -15,222 +11,260 @@
   }
 
   @if (run()) {
-    <div class="run-map-proto dg-proto-shell">
-      <div class="run-map-scene__layout">
-        <div class="run-map-shell">
-          <div
-            class="run-map-scroll"
-            [style.background-image]="
-              mapBackgroundUrl()
-                ? 'linear-gradient(rgba(17, 25, 20, 0.34), rgba(17, 25, 20, 0.5)), url(' +
-                  mapBackgroundUrl() +
-                  ')'
-                : null
-            "
-          >
-            <svg
-              class="run-map"
-              [attr.viewBox]="'0 0 ' + mapWidth() + ' ' + mapHeight()"
-              preserveAspectRatio="xMinYMid meet"
-              [style.width.px]="mapWidth()"
-              [style.height.px]="mapHeight()"
-            >
-              @if (showGenerationDebug) {
-                <g class="run-map__debug-grid" aria-hidden="true">
-                  @for (column of generationGridColumns(); track column.value) {
-                    <line
-                      class="run-map__debug-grid-line"
-                      [attr.x1]="column.x"
-                      y1="0"
-                      [attr.x2]="column.x"
-                      [attr.y2]="mapHeight()"
-                    ></line>
-                    <text
-                      class="run-map__debug-grid-label"
-                      [attr.x]="column.x"
-                      y="18"
-                      text-anchor="middle"
-                    >
-                      x{{ column.value }}
-                    </text>
-                  }
-                  @for (row of generationGridRows(); track row.value) {
-                    <line
-                      class="run-map__debug-grid-line"
-                      x1="0"
-                      [attr.y1]="row.y"
-                      [attr.x2]="mapWidth()"
-                      [attr.y2]="row.y"
-                    ></line>
-                    <text
-                      class="run-map__debug-grid-label"
-                      x="8"
-                      [attr.y]="row.y - 8"
-                    >
-                      y{{ row.value }}
-                    </text>
-                  }
-                </g>
-              }
-              @for (edge of renderedEdges(); track edge.edgeId) {
-                <path
-                  class="run-map__edge"
-                  [class.run-map__edge--available]="edge.state === 'available'"
-                  [class.run-map__edge--cleared]="edge.state === 'cleared'"
-                  [class.run-map__edge--locked]="edge.state === 'locked'"
-                  [attr.d]="edge.path"
-                ></path>
-              }
-              @for (node of nodes(); track node.id) {
-                <g
-                  class="run-map__node"
-                  [class.run-map__node--available]="node.status === 'available'"
-                  [class.run-map__node--cleared]="node.status === 'cleared'"
-                  [class.run-map__node--disabled]="node.status !== 'available'"
-                  [attr.data-node-type]="node.node_type"
-                  role="button"
-                  [attr.tabindex]="node.status === 'available' ? 0 : -1"
-                  [attr.aria-label]="nodeTypeLabel(node.node_type) + ' node ' + node.status"
-                  (click)="openNode(node)"
-                  (keydown.enter)="openNode(node)"
-                  (keydown.space)="openNode(node); $event.preventDefault()"
-                >
-                  <circle
-                    class="run-map__node-halo"
-                    [attr.cx]="nodeX(node)"
-                    [attr.cy]="nodeY(node)"
-                    r="39"
-                  ></circle>
-                  <circle
-                    class="run-map__node-disc"
-                    [attr.cx]="nodeX(node)"
-                    [attr.cy]="nodeY(node)"
-                    r="34"
-                  ></circle>
-                  <circle
-                    class="run-map__node-sheen"
-                    [attr.cx]="nodeX(node) - 8"
-                    [attr.cy]="nodeY(node) - 10"
-                    r="12"
-                  ></circle>
-                  <image
-                    [attr.href]="iconForNode(node)"
-                    [attr.x]="nodeX(node) - 27"
-                    [attr.y]="nodeY(node) - 27"
-                    width="54"
-                    height="54"
-                    preserveAspectRatio="xMidYMid meet"
-                  ></image>
-                  @if (patternNodeDepthLabel(node); as depthLabel) {
-                    <text
-                      class="run-map__pattern-label"
-                      [attr.x]="nodeX(node)"
-                      [attr.y]="nodeY(node) + 52"
-                      text-anchor="middle"
-                    >
-                      {{ depthLabel }}
-                    </text>
-                  }
-                </g>
-              }
-            </svg>
+    <div class="run-map-workspace">
+      <aside class="campaign-scroll" aria-label="Current expedition">
+        <section class="campaign-scroll__region">
+          <span>Current Expedition</span>
+          <h1 id="run-map-title">{{ pageTitle() }}</h1>
+        </section>
+
+        <section class="campaign-scroll__progress" aria-label="Run progress">
+          <div>
+            <span>Run Progress</span>
+            <strong>{{ runProgressPercent() }}%</strong>
           </div>
-        </div>
-        <div class="run-map-meta">
-          @if (patternDebugRows().length || patternNodeRows().length) {
-            <section class="run-effects run-generation" aria-label="Run generation">
-              <div class="run-generation__header">
-                <p class="run-effects__eyebrow dg-stencil">Generation</p>
-                <strong>{{ patternNodeRows().length }}</strong>
-              </div>
-              @if (patternDebugRows().length) {
-                <dl class="run-generation__stats">
-                  @for (row of patternDebugRows(); track row[0]) {
-                    <div>
-                      <dt>{{ row[0] }}</dt>
-                      <dd>{{ row[1] }}</dd>
-                    </div>
-                  }
-                </dl>
-              }
-              @if (patternNodeRows().length) {
-                <div class="run-generation__nodes">
-                  @for (row of patternNodeRows(); track row.id) {
-                    <div class="run-generation__node">
-                      <span>{{ row.label }}</span>
-                      <small>{{ row.detail }}</small>
-                    </div>
-                  }
-                </div>
-              }
-            </section>
-          }
-          <section class="run-effects" aria-label="Run effects">
-            <div class="run-effects__header">
-              <p class="run-effects__eyebrow dg-stencil">Run Effects</p>
-              <strong>{{ activeRunEffects().length }}</strong>
-            </div>
-            @if (activeRunEffects().length) {
-              <div class="run-effects__list">
-                @for (effect of activeRunEffects(); track effect.id) {
-                  <article class="run-effect" [attr.data-effect-type]="effect.node_type">
-                    <div>
-                      <p class="run-effect__source dg-stencil">{{ effect.source }}</p>
-                      <h3>{{ effect.label }}</h3>
-                    </div>
-                    <p>{{ effect.detail }}</p>
-                    <span>{{ effect.persistence }}</span>
-                  </article>
+          <span>
+            <span [style.width.%]="runProgressPercent()"></span>
+          </span>
+        </section>
+
+        <hr />
+
+        <section class="campaign-scroll__squad" aria-label="Squad status">
+          <h2>{{ activeSquad()?.name ?? 'Active Squad' }} (Squad)</h2>
+          <div class="campaign-squad-grid">
+            @for (entry of sidebarUnits(); track entry.cell) {
+              <article [class.is-empty]="entry.empty">
+                @if (!entry.empty) {
+                  <strong>{{ entry.name }}</strong>
+                  <span>{{ entry.status }}</span>
                 }
-              </div>
-            } @else {
-              <p class="run-effects__empty">No run effects active.</p>
+              </article>
+            }
+          </div>
+        </section>
+
+        @if (statusMessage()) {
+          <dg-alert>{{ statusMessage() }}</dg-alert>
+        }
+
+        @if (activeRunEffects().length) {
+          <section class="campaign-scroll__effects" aria-label="Run effects">
+            <h2>Run Effects</h2>
+            @for (effect of activeRunEffects(); track effect.id) {
+              <article>
+                <strong>{{ effect.label }}</strong>
+                <span>{{ effect.detail }}</span>
+              </article>
             }
           </section>
-          <dg-run-unit-formation-grid [cells]="formationGrid()" />
-          @if (statusMessage()) {
-            <dg-alert>{{ statusMessage() }}</dg-alert>
-          }
-          @if (healingConsumables().length && woundedRunUnits().length) {
-            <section class="run-supplies" aria-label="Run supplies">
-              <h2>Run Supplies</h2>
-              @for (entry of woundedRunUnits(); track entry.unit_instance_id) {
-                <div class="run-supplies__unit">
-                  <div>
-                    <strong>{{ entry.unit?.name ?? 'Unit' }}</strong>
-                    <span>{{ entry.currentHp }}/{{ entry.maxHp }} HP</span>
-                  </div>
-                  <div class="run-supplies__actions">
-                    @for (item of healingConsumables(); track item.item_slug) {
-                      <button
-                        dgCommandBtn="muted"
-                        type="button"
-                        (click)="healUnit(entry.unit_instance_id, item.item_slug)"
-                        [disabled]="
-                          working() ||
-                          healingAction() === healingActionKey(entry.unit_instance_id, item.item_slug)
-                        "
-                      >
-                        {{ item.name }} ({{ item.quantity }})
-                      </button>
-                    }
-                  </div>
+        }
+
+        @if (healingConsumables().length && woundedRunUnits().length) {
+          <section class="campaign-scroll__supplies" aria-label="Run supplies">
+            <h2>Run Supplies</h2>
+            @for (entry of woundedRunUnits(); track entry.unit_instance_id) {
+              <article>
+                <div>
+                  <strong>{{ entry.unit?.name ?? 'Unit' }}</strong>
+                  <span>{{ entry.currentHp }}/{{ entry.maxHp }} HP</span>
                 </div>
-              }
-            </section>
-          }
-          <button
-            dgCommandBtn="primary"
-            type="button"
-            (click)="returnHome()"
-            [disabled]="working()"
+                @for (item of healingConsumables(); track item.item_slug) {
+                  <button
+                    type="button"
+                    (click)="healUnit(entry.unit_instance_id, item.item_slug)"
+                    [disabled]="working() || healingAction() === healingActionKey(entry.unit_instance_id, item.item_slug)"
+                  >
+                    {{ item.name }} ({{ item.quantity }})
+                  </button>
+                }
+              </article>
+            }
+          </section>
+        }
+
+        <button class="campaign-scroll__abandon" type="button" (click)="returnHome()" [disabled]="working()">
+          Abandon Run
+        </button>
+      </aside>
+
+      <main class="adventure-map-container" aria-label="Adventure map">
+        <div
+          class="treasure-map-canvas"
+          [style.background-image]="mapBackgroundUrl() ? 'url(' + mapBackgroundUrl() + ')' : null"
+        >
+          <svg
+            class="run-map"
+            [attr.viewBox]="'0 0 ' + mapWidth() + ' ' + mapHeight()"
+            preserveAspectRatio="xMidYMid meet"
+            [style.width.px]="mapWidth()"
+            [style.height.px]="mapHeight()"
           >
-            Return Home
-          </button>
+            @for (edge of renderedEdges(); track edge.edgeId) {
+              <path
+                class="run-map__edge"
+                [class.run-map__edge--available]="edge.state === 'available'"
+                [class.run-map__edge--cleared]="edge.state === 'cleared'"
+                [class.run-map__edge--locked]="edge.state === 'locked'"
+                [attr.d]="edge.path"
+              ></path>
+            }
+            @for (node of nodes(); track node.id) {
+              <g
+                class="run-map__node"
+                [class.run-map__node--available]="node.status === 'available'"
+                [class.run-map__node--cleared]="node.status === 'cleared'"
+                [class.run-map__node--encountered]="node.status === 'cleared' || node.status === 'completed'"
+                [class.run-map__node--disabled]="node.status !== 'available'"
+                [attr.data-node-type]="node.node_type"
+                role="button"
+                [attr.tabindex]="node.status === 'available' ? 0 : -1"
+                [attr.aria-label]="nodeTypeLabel(node.node_type) + ' node ' + node.status"
+                (click)="openNode(node)"
+                (keydown.enter)="openNode(node)"
+                (keydown.space)="openNode(node); $event.preventDefault()"
+              >
+                <circle class="run-map__node-halo" [attr.cx]="nodeX(node)" [attr.cy]="nodeY(node)" r="39"></circle>
+                <circle class="run-map__node-disc" [attr.cx]="nodeX(node)" [attr.cy]="nodeY(node)" r="34"></circle>
+                <circle class="run-map__node-sheen" [attr.cx]="nodeX(node) - 8" [attr.cy]="nodeY(node) - 10" r="12"></circle>
+                <image
+                  [attr.href]="iconForNode(node)"
+                  [attr.x]="nodeX(node) - 27"
+                  [attr.y]="nodeY(node) - 27"
+                  width="54"
+                  height="54"
+                  preserveAspectRatio="xMidYMid meet"
+                ></image>
+              </g>
+            }
+          </svg>
         </div>
-      </div>
+      </main>
     </div>
-  } @else {
-    <dg-alert>No active run.</dg-alert>
+
+    @if (modalKind()) {
+      <div class="run-modal-backdrop" role="presentation">
+        <section
+          class="run-encounter-modal"
+          [attr.data-modal-kind]="modalKind()"
+          role="dialog"
+          aria-modal="true"
+          [attr.aria-labelledby]="'run-modal-title'"
+        >
+          @if (modalKind() === 'dialogue') {
+            <div class="run-encounter-modal__dialogue">
+              <header>
+                <div>
+                  <p>{{ modalEyebrow() }}</p>
+                  <h2 id="run-modal-title">{{ modalTitle() }}</h2>
+                </div>
+                <button type="button" (click)="closeModal()" [disabled]="modalLoading() || working()" aria-label="Close encounter">X</button>
+              </header>
+              @if (modalLoading()) {
+                <dg-alert>Loading dialogue...</dg-alert>
+              } @else if (modalDialogueScript()) {
+                <dg-dialogue-stage [script]="modalDialogueScript()!" (complete)="completeDialogueModal()" />
+              }
+            </div>
+          } @else {
+            <div class="run-encounter-modal__info">
+              <header>
+                <p>{{ modalEyebrow() }}</p>
+                <h2 id="run-modal-title">{{ modalTitle() }}</h2>
+                @if (modalKind() === 'shrine') {
+                  <span>{{ nodeResultEffectLabel() }}</span>
+                }
+              </header>
+
+              <p class="run-encounter-modal__copy">"{{ modalDescription() }}"</p>
+
+              <hr />
+
+              @if (modalLoading()) {
+                <dg-alert>Resolving encounter...</dg-alert>
+              } @else if (modalKind() === 'loot') {
+                <section class="run-modal-rewards" aria-label="Loot claimed">
+                  <h3>Loot Claimed:</h3>
+                  @for (item of modalLootItems(); track item.id) {
+                    <article>
+                      <span [attr.data-tone]="item.tone">{{ item.icon }}</span>
+                      <div>
+                        <strong>{{ item.label }}</strong>
+                        @if (item.detail) {
+                          <em>({{ item.detail }})</em>
+                        }
+                      </div>
+                    </article>
+                  }
+                  @if (!modalLootItems().length) {
+                    <p>No loot preview is available.</p>
+                  }
+                </section>
+              } @else if (modalKind() === 'rest') {
+                <section class="run-modal-rest-list" aria-label="Warband HP">
+                  @for (unit of modalRestUnits(); track unit.id) {
+                    <article>
+                      <strong>{{ unit.name }}</strong>
+                      <span><span [style.width.%]="unit.hpPercent"></span></span>
+                      <small>{{ unit.currentHp }}/{{ unit.maxHp }}</small>
+                      <em [attr.data-tone]="unit.recoveryTone">{{ unit.recoveryLabel }}</em>
+                    </article>
+                  }
+                </section>
+              } @else {
+                <section class="run-modal-effect" aria-label="Encounter effect">
+                  <div>
+                    <strong>{{ modalKind() === 'hazard' ? 'Effect:' : 'Boon:' }}</strong>
+                    <span>{{ nodeResultEffectDetail() }}</span>
+                  </div>
+                  @if (modalKind() === 'shrine') {
+                    @if (shrineCostLabel(); as costLabel) {
+                      <div>
+                        <strong>Cost:</strong>
+                        <span>{{ costLabel }}</span>
+                      </div>
+                    }
+                  }
+                </section>
+              }
+
+              <hr />
+
+              <footer>
+                @if (modalKind() === 'loot') {
+                  <button class="run-modal-primary" type="button" (click)="claimModalRewards()" [disabled]="working()">
+                    {{ working() ? 'Working...' : 'Claim Treasure' }}
+                  </button>
+                } @else if (modalKind() === 'rest') {
+                  <button class="run-modal-primary" type="button" (click)="finalizeRestModal()" [disabled]="working()">
+                    {{ working() ? 'Making Camp...' : 'Make Camp (+HP)' }}
+                  </button>
+                } @else if (modalKind() === 'shrine') {
+                  <button class="run-modal-primary" type="button" (click)="claimModalRewards('accept')" [disabled]="working()">
+                    {{ working() ? 'Working...' : 'Claim Blessing' }}
+                  </button>
+                  <button class="run-modal-secondary" type="button" (click)="claimModalRewards('decline')" [disabled]="working()">
+                    Leave Shrine
+                  </button>
+                } @else {
+                  <button class="run-modal-primary" type="button" (click)="claimModalRewards()" [disabled]="working()">
+                    {{ working() ? 'Working...' : 'Continue' }}
+                  </button>
+                }
+              </footer>
+            </div>
+
+            <aside class="run-encounter-modal__art" aria-label="Encounter artwork">
+              <span>{{ modalKind() === 'loot' ? 'Rare Cache' : modalKind() === 'shrine' ? 'Ancient Relic' : modalKind() === 'rest' ? 'Camp' : 'Route' }}</span>
+              <img [src]="modalArtUrl()" [alt]="modalTitle() + ' artwork'" />
+            </aside>
+          }
+        </section>
+      </div>
+    }
+  } @else if (!loading()) {
+    <section class="run-map-screen__empty">
+      <dg-alert>No active run.</dg-alert>
+    </section>
   }
-</page-frame>
+</section>

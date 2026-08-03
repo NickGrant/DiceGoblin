@@ -35,6 +35,55 @@ class RunServiceStub {
   });
   abandonRun = jasmine.createSpy('abandonRun').and.resolveTo({ ok: true });
   exitRun = jasmine.createSpy('exitRun').and.resolveTo({ ok: true });
+  resolveNode = jasmine.createSpy('resolveNode').and.resolveTo({
+    ok: true,
+    data: {
+      node: { id: 'loot-1', status: 'cleared' },
+      battle: {
+        battle_id: 'battle-loot',
+        outcome: 'victory',
+        rounds: 0,
+        ticks: 0,
+        status: 'resolved',
+        reward_preview: {
+          node_type: 'loot',
+          xp_total: 0,
+          currency_soft: 32,
+          new_unit_labels: [],
+          new_dice_labels: ['Bone d8'],
+        },
+        log: { events: [] },
+      },
+      next: { unlocked_node_ids: [] },
+    },
+  });
+  claimBattleRewards = jasmine.createSpy('claimBattleRewards').and.resolveTo({
+    ok: true,
+    data: {
+      battle_id: 'battle-loot',
+      status: 'claimed',
+      rewards: {},
+      run_resolution: { run_id: 'run-1', status: 'active' },
+    },
+  });
+  openRest = jasmine.createSpy('openRest').and.resolveTo({
+    ok: true,
+    data: {
+      run_id: 'run-1',
+      node_id: 'rest-1',
+      status: 'open',
+      run_unit_state: [{ unit_instance_id: 'u1', current_hp: 6, is_defeated: false, status_effects: [] }],
+    },
+  });
+  finalizeRest = jasmine.createSpy('finalizeRest').and.resolveTo({
+    ok: true,
+    data: {
+      run_id: 'run-1',
+      node: { id: 'rest-1', status: 'cleared' },
+      next: { unlocked_node_ids: [] },
+      progression: [],
+    },
+  });
   healRunUnit = jasmine.createSpy('healRunUnit').and.resolveTo({
     ok: true,
     data: {
@@ -113,7 +162,7 @@ describe('RunMapPageComponent', () => {
 
     expect(fixture.componentInstance.run()?.run_id).toBe('run-1');
     expect(fixture.componentInstance.loading()).toBeFalse();
-    expect(fixture.componentInstance.pageTitle()).toBe('Continue Run - The Farm');
+    expect(fixture.componentInstance.pageTitle()).toBe('The Farm');
     expect(fixture.componentInstance.iconForNodeType('combat')).toContain('icon_encounter_combat.png');
     expect(fixture.componentInstance.iconForNodeType('hazard')).toContain('icon_encounter_locked.png');
     expect(fixture.componentInstance.iconForNode({
@@ -133,18 +182,17 @@ describe('RunMapPageComponent', () => {
     expect(fixture.componentInstance.formationGrid().length).toBe(9);
     expect(fixture.componentInstance.formationGrid().find((cell) => cell.cell === 'A1')?.entry?.currentHp).toBe(6);
     const host: HTMLElement = fixture.nativeElement;
-    expect(host.textContent).toContain('Continue Run - The Farm');
+    expect(host.textContent).toContain('Current Expedition');
+    expect(host.textContent).toContain('The Farm');
     expect(host.textContent).toContain('Fang');
     expect(host.textContent).toContain('Run Supplies');
     expect(host.textContent).toContain('Field Poultice (1)');
-    expect(host.textContent).toContain('Lv 3');
+    expect(host.textContent).toContain('HP 60%');
     expect(host.textContent).toContain('Run Effects');
     expect(host.textContent).toContain('Shrine Battle Effect');
     expect(host.textContent).toContain('+25% Defense for 2 units during the next combat.');
-    expect(host.querySelector('.run-unit-grid .unit-thumbnail')).not.toBeNull();
-    expect(host.querySelector('.run-unit-grid .unit-thumbnail__hp')).not.toBeNull();
-    expect(host.querySelector('.run-unit-grid .unit-bar')).toBeNull();
-    expect(host.querySelector('.run-unit-grid a')?.getAttribute('href')).toContain('/warband/units/u1');
+    expect(host.querySelector('.campaign-squad-grid')).not.toBeNull();
+    expect(host.querySelector('.campaign-squad-grid article')?.textContent).toContain('Fang');
     expect(host.querySelector('.run-map__node-halo')).not.toBeNull();
     expect(host.querySelector('[data-node-type="combat"] .run-map__node-disc')).not.toBeNull();
   });
@@ -382,7 +430,7 @@ describe('RunMapPageComponent', () => {
     expect(longJumpEdge?.path).toBe('M 260 54 C 344 54, 596 222, 680 222');
   });
 
-  it('shows pattern generation metadata when a generated run includes provenance', async () => {
+  it('uses pattern generation metadata for the dev map overlay without rendering a sidebar panel', async () => {
     window.__DICE_GOBLIN_CONFIG__ = { enableDevPanel: true };
 
     class PatternRunServiceStub extends RunServiceStub {
@@ -462,15 +510,15 @@ describe('RunMapPageComponent', () => {
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
-    expect(host.textContent).toContain('Generation');
-    expect(host.textContent).toContain('pattern-v1');
-    expect(host.textContent).toContain('2 to boss, 1 to exit');
-    expect(host.textContent).toContain('Combat · spine · depth 0');
-    expect(host.textContent).toContain('shared_boss_exit_terminal@1');
-    expect(host.querySelector('.run-map__pattern-label')?.textContent?.trim()).toBe('0');
-    expect(host.querySelectorAll('.run-map__debug-grid-line').length).toBeGreaterThan(0);
-    expect(host.textContent).toContain('x0');
-    expect(host.textContent).toContain('y1');
+    expect(host.textContent).not.toContain('Generation');
+    expect(host.textContent).not.toContain('pattern-v1');
+    expect(host.textContent).not.toContain('2 to boss, 1 to exit');
+    expect(host.textContent).not.toContain('Combat · spine · depth 0');
+    expect(host.textContent).not.toContain('shared_boss_exit_terminal@1');
+    expect(host.querySelector('.run-map__pattern-label')).toBeNull();
+    expect(host.querySelector('.run-map__debug-grid')).toBeNull();
+    expect(host.textContent).not.toContain('x0');
+    expect(host.textContent).not.toContain('y1');
   });
 
   it('uses generation coordinates without showing debug metadata when dev panel is disabled', async () => {
@@ -568,7 +616,7 @@ describe('RunMapPageComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/run/summary');
   });
 
-  it('opens available loot nodes on the loot route', async () => {
+  it('opens available loot nodes in a map modal', async () => {
     await TestBed.configureTestingModule({
       imports: [RunMapPageComponent],
       providers: [
@@ -580,6 +628,7 @@ describe('RunMapPageComponent', () => {
 
     const router = TestBed.inject(Router);
     spyOn(router, 'navigate').and.resolveTo(true);
+    const runService = TestBed.inject(RunService) as unknown as RunServiceStub;
     const fixture = TestBed.createComponent(RunMapPageComponent);
     await fixture.whenStable();
 
@@ -591,6 +640,102 @@ describe('RunMapPageComponent', () => {
       status: 'available',
     });
 
-    expect(router.navigate).toHaveBeenCalledWith(['/run/loot', 'loot-1']);
+    fixture.detectChanges();
+
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(runService.resolveNode).toHaveBeenCalledWith('run-1', 'loot-1');
+    expect(fixture.componentInstance.modalKind()).toBe('loot');
+    expect(fixture.nativeElement.textContent).toContain('Claim Treasure');
+  });
+
+  it('only shows shrine cost when the shrine result has an actual cost', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+    const component = fixture.componentInstance;
+
+    component.modalKind.set('shrine');
+    component.modalNode.set({
+      id: 'shrine-free',
+      run_id: 'run-1',
+      node_index: 2,
+      node_type: 'shrine',
+      status: 'available',
+    });
+    component.modalResult.set({
+      node: { id: 'shrine-free', status: 'cleared' },
+      battle: {
+        battle_id: 'shrine-free-battle',
+        outcome: 'victory',
+        rounds: 0,
+        ticks: 0,
+        status: 'resolved',
+        reward_preview: {
+          node_type: 'shrine',
+          xp_total: 0,
+          currency_soft: 12,
+          new_unit_labels: [],
+          new_dice_labels: [],
+          encounter_result: {
+            family: 'shrine',
+            primitive: 'grant_teeth',
+            result: {
+              title: 'Loose Tooth',
+              effect: { type: 'grant_teeth' },
+            },
+          },
+        },
+        log: { events: [] },
+      },
+      next: { unlocked_node_ids: [] },
+    } as any);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Boon:');
+    expect(fixture.nativeElement.textContent).toContain('12 teeth');
+    expect(fixture.nativeElement.textContent).not.toContain('Cost:');
+
+    component.modalResult.set({
+      node: { id: 'shrine-cost', status: 'cleared' },
+      battle: {
+        battle_id: 'shrine-cost-battle',
+        outcome: 'victory',
+        rounds: 0,
+        ticks: 0,
+        status: 'resolved',
+        reward_preview: {
+          node_type: 'shrine',
+          xp_total: 0,
+          currency_soft: 0,
+          new_unit_labels: [],
+          new_dice_labels: [],
+          encounter_result: {
+            family: 'shrine',
+            primitive: 'drain_highest_life_heal_rest',
+            result: {
+              title: 'Crooked Bargain',
+              effect: { type: 'drain_highest_life_heal_rest', drain_pct: 50 },
+              cost: { declineable: true },
+            },
+          },
+        },
+        log: { events: [] },
+      },
+      next: { unlocked_node_ids: [] },
+    } as any);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Boon:');
+    expect(fixture.nativeElement.textContent).toContain('Fully heals the squad.');
+    expect(fixture.nativeElement.textContent).toContain('Cost:');
+    expect(fixture.nativeElement.textContent).toContain('The healthiest unit loses 50% life.');
   });
 });

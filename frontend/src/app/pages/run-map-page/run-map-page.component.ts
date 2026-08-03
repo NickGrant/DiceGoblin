@@ -1,30 +1,63 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { isDevPanelEnabled } from '../../core/config/runtime-config';
-import { CurrentRunData, CurrentRunEdge, CurrentRunNode, ItemRecord } from '../../core/models/api.models';
+import { DialogueScript, DialogueTriggerContext } from '../../core/dialogue/dialogue.models';
+import {
+  CurrentRunData,
+  CurrentRunEdge,
+  CurrentRunNode,
+  ItemRecord,
+  ResolveNodeData,
+  RestOpenData,
+  RewardPreviewDice,
+  RewardPreviewUnit,
+} from '../../core/models/api.models';
 import { resolveRunRegionBackgroundUrl } from '../../core/regions/region-catalog';
+import { DialogueService } from '../../core/services/dialogue/dialogue.service';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { buildFormationGrid } from '../../shared/formation/formation';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
-import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { RunUnitFormationGridComponent } from '../../shared/ui/run-unit-formation-grid/run-unit-formation-grid.component';
+import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
 import { resolveNodeArtUrl } from '../../shared/ui/node-art/node-art';
+import { formatUnitKinLabel } from '../../shared/utils/unit-formatters';
+
+type RunEncounterModalKind = 'loot' | 'rest' | 'dialogue' | 'shrine' | 'hazard';
+
+type RunModalLootItem = {
+  id: string;
+  icon: string;
+  tone: 'teeth' | 'dice' | 'unit' | 'item';
+  label: string;
+  detail: string | null;
+};
+
+type RunModalUnitStatus = {
+  id: string;
+  name: string;
+  currentHp: number;
+  maxHp: number;
+  hpPercent: number;
+  recoveryLabel: string;
+  recoveryTone: 'healed' | 'full';
+};
 
 @Component({
   selector: 'app-run-map-page',
   standalone: true,
   imports: [
     DgAlertComponent,
-    DgCommandBtnDirective,
-    PageFrameComponent,
-    RunUnitFormationGridComponent,
+    DgDialogueStageComponent,
   ],
   templateUrl: './run-map-page.component.html',
   styleUrl: './run-map-page.component.scss',
+  host: {
+    '[attr.data-page]': "'run-map'",
+  },
 })
 export class RunMapPageComponent {
+  private static readonly PLAYER_DIALOGUE_PORTRAIT =
+    '/assets/ui/units/animated/goblin/base/frame_0.png';
   private static readonly MAP_MIN_WIDTH = 920;
   private static readonly MAP_MIN_HEIGHT = 320;
   private static readonly MAP_NODE_RADIUS = 34;
@@ -53,6 +86,7 @@ export class RunMapPageComponent {
   private readonly router = inject(Router);
   private readonly runService = inject(RunService);
   private readonly sessionService = inject(SessionService);
+  private readonly dialogueService = inject(DialogueService);
 
   readonly runData = signal<CurrentRunData | null>(null);
   readonly loading = signal(true);
@@ -60,6 +94,12 @@ export class RunMapPageComponent {
   readonly healingAction = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly statusMessage = signal<string | null>(null);
+  readonly modalKind = signal<RunEncounterModalKind | null>(null);
+  readonly modalNode = signal<CurrentRunNode | null>(null);
+  readonly modalResult = signal<ResolveNodeData | null>(null);
+  readonly modalRestData = signal<RestOpenData | null>(null);
+  readonly modalDialogueScript = signal<DialogueScript | null>(null);
+  readonly modalLoading = signal(false);
   readonly showGenerationDebug = isDevPanelEnabled();
 
   readonly nodes = computed(() => this.runData()?.map?.nodes ?? []);
@@ -86,7 +126,15 @@ export class RunMapPageComponent {
   });
   readonly pageTitle = computed(() => {
     const regionName = this.regionName();
-    return regionName ? `Continue Run - ${regionName}` : 'Continue Run';
+    return regionName ?? 'Current Expedition';
+  });
+  readonly runProgressPercent = computed(() => {
+    const nodes = this.nodes();
+    if (!nodes.length) {
+      return 0;
+    }
+
+    return Math.round((nodes.filter((node) => node.status === 'cleared').length / nodes.length) * 100);
   });
   readonly activeSquad = this.sessionService.activeSquad;
   readonly mapBackgroundUrl = computed(() => resolveRunRegionBackgroundUrl(this.run()));
@@ -162,6 +210,21 @@ export class RunMapPageComponent {
   readonly formationGrid = computed(() => {
     return buildFormationGrid(this.activeSquad()?.formation, this.runUnitById());
   });
+  readonly sidebarUnits = computed(() =>
+    this.formationGrid().map((cell) => {
+      const entry = cell.entry;
+      if (!entry) {
+        return { cell: cell.cell, empty: true as const };
+      }
+
+      return {
+        cell: cell.cell,
+        empty: false as const,
+        name: entry.unit?.name ?? 'Unit',
+        status: entry.defeated ? 'DOWN' : `HP ${this.percentFromHp(entry.currentHp, entry.maxHp)}%`,
+      };
+    }),
+  );
   readonly renderedEdges = computed(() => this.buildRenderedEdges(this.nodes(), this.edges()));
   readonly activeRunEffects = computed(() => this.runData()?.active_run_effects ?? []);
   readonly generationSummary = computed(() => this.run()?.generation_summary ?? null);
@@ -195,6 +258,152 @@ export class RunMapPageComponent {
     return this.nodes()
       .map((node) => this.patternNodeRow(node))
       .filter((row): row is { id: string; label: string; detail: string } => row !== null);
+  });
+  readonly modalLootItems = computed<RunModalLootItem[]>(() => {
+    const preview = this.modalResult()?.battle.reward_preview;
+    if (!preview) {
+      return [];
+    }
+
+    const items: RunModalLootItem[] = [];
+    if ((preview.currency_soft ?? 0) > 0) {
+      items.push({
+        id: 'teeth',
+        icon: 'tooth',
+        tone: 'teeth',
+        label: `${preview.currency_soft} Teeth`,
+        detail: 'Dental currency, regrettably spendable.',
+      });
+    }
+
+    const dice = preview.dice?.length
+      ? preview.dice
+      : preview.new_dice_labels.map((label) => this.diceRewardFromLabel(label));
+    for (const [index, die] of dice.entries()) {
+      items.push({
+        id: die.dice_instance_id ?? `die-${index}-${die.label}`,
+        icon: `d${die.sides || this.diceSidesFromLabel(die.label)}`,
+        tone: 'dice',
+        label: die.label,
+        detail: this.formatAffixNames(die.affixes),
+      });
+    }
+
+    const units = preview.units?.length
+      ? preview.units
+      : preview.new_unit_labels.map((label) => this.unitRewardFromLabel(label));
+    for (const [index, unit] of units.entries()) {
+      items.push({
+        id: unit.unit_instance_id ?? `unit-${index}-${unit.name}`,
+        icon: 'sword',
+        tone: 'unit',
+        label: `${unit.name} (Unit)`,
+        detail: `${unit.unit_type_name || 'Unit'} - ${formatUnitKinLabel(unit)}`,
+      });
+    }
+
+    for (const [index, item] of (preview.items ?? []).entries()) {
+      items.push({
+        id: `${item.item_slug}-${index}`,
+        icon: '+',
+        tone: 'item',
+        label: `${item.quantity} ${item.name}`,
+        detail: item.rarity ? this.humanizeId(item.rarity) : null,
+      });
+    }
+
+    for (const [index, label] of (preview.new_item_labels ?? []).entries()) {
+      items.push({
+        id: `item-label-${index}-${label}`,
+        icon: '+',
+        tone: 'item',
+        label,
+        detail: null,
+      });
+    }
+
+    return items;
+  });
+  readonly modalRestUnits = computed<RunModalUnitStatus[]>(() => {
+    const unitsById = new Map(this.sessionService.units().map((unit) => [unit.id, unit]));
+    return (this.modalRestData()?.run_unit_state ?? []).map((state) => {
+      const unit = unitsById.get(state.unit_instance_id);
+      const currentHp = state.current_hp ?? state.hp ?? 0;
+      const maxHp = unit?.max_hp ?? state.current_hp ?? state.hp ?? 0;
+      const recovery = Math.max(0, maxHp - currentHp);
+      return {
+        id: state.unit_instance_id,
+        name: unit?.name ?? 'Unit',
+        currentHp,
+        maxHp,
+        hpPercent: this.percentFromHp(currentHp, maxHp),
+        recoveryLabel: recovery > 0 ? `+${recovery}HP` : 'FULL',
+        recoveryTone: recovery > 0 ? 'healed' : 'full',
+      };
+    });
+  });
+  readonly modalTitle = computed(() => {
+    switch (this.modalKind()) {
+      case 'loot':
+        return 'Hidden Cache';
+      case 'rest':
+        return 'Goblin Campfire';
+      case 'dialogue':
+        return this.modalDialogueScript()?.title ?? 'Roadside Conversation';
+      case 'shrine':
+        return this.nodeResultEventLabel() || 'Ancient Shrine';
+      case 'hazard':
+        return this.nodeResultEventLabel() || 'Path Hazard';
+      default:
+        return 'Encounter';
+    }
+  });
+  readonly modalEyebrow = computed(() => {
+    switch (this.modalKind()) {
+      case 'loot':
+        return 'Treasure Found';
+      case 'rest':
+        return 'Rest Stop';
+      case 'dialogue':
+        return 'Conversation';
+      case 'shrine':
+        return 'Shrine Encountered';
+      case 'hazard':
+        return 'Hazard Encountered';
+      default:
+        return 'Encounter';
+    }
+  });
+  readonly modalDescription = computed(() => {
+    switch (this.modalKind()) {
+      case 'loot':
+        return 'A goblin stash, barely hidden beneath a pile of suspicious mushrooms. The shiny loot spills out invitingly as you kick it open.';
+      case 'rest':
+        return 'The logs crackle warmly as the warband rests from their tedious journey.';
+      case 'dialogue':
+        return this.modalDialogueScript()?.summary ?? 'The path pauses for words before blades.';
+      case 'shrine':
+        return this.nodeResultEventDetail() || 'The ancient stone totem hums with forgotten power as you approach.';
+      case 'hazard':
+        return this.nodeResultEventDetail() || 'The path bites back, but the warband can push through.';
+      default:
+        return '';
+    }
+  });
+  readonly modalArtUrl = computed(() => {
+    const node = this.modalNode();
+    switch (this.modalKind()) {
+      case 'loot':
+        return resolveNodeArtUrl(node, 'loot');
+      case 'rest':
+        return resolveNodeArtUrl(node, 'rest');
+      case 'shrine':
+        return resolveNodeArtUrl(node, 'shrine');
+      case 'hazard':
+        return resolveNodeArtUrl(node, 'hazard');
+      default:
+        return this.mapBackgroundUrl() ?? '/assets/ui/biome/mystic_cave.png';
+    }
   });
 
   constructor() {
@@ -300,17 +509,22 @@ export class RunMapPageComponent {
     }
 
     if (node.node_type === 'rest') {
-      await this.router.navigate(['/run/rest', node.id]);
+      await this.openRestModal(node);
       return;
     }
 
     if (node.node_type === 'loot') {
-      await this.router.navigate(['/run/loot', node.id]);
+      await this.openResolvedNodeModal(node, 'loot');
       return;
     }
 
     if (node.node_type === 'dialogue') {
-      await this.router.navigate(['/run/dialogue', node.id]);
+      await this.openDialogueModal(node);
+      return;
+    }
+
+    if (node.node_type === 'shrine' || node.node_type === 'hazard') {
+      await this.openResolvedNodeModal(node, node.node_type);
       return;
     }
 
@@ -320,6 +534,94 @@ export class RunMapPageComponent {
     }
 
     await this.router.navigate(['/run/node', node.id]);
+  }
+
+  closeModal(): void {
+    if (this.modalLoading() || this.working()) {
+      return;
+    }
+
+    this.clearModal();
+  }
+
+  async claimModalRewards(action: 'accept' | 'decline' = 'accept'): Promise<void> {
+    const battleId = this.modalResult()?.battle.battle_id;
+    if (!battleId) {
+      this.clearModal();
+      return;
+    }
+
+    this.working.set(true);
+    this.error.set(null);
+    try {
+      const response = await this.runService.claimBattleRewards(battleId, action);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+
+      if (response.data.run_resolution?.status && response.data.run_resolution.status !== 'active') {
+        await this.router.navigateByUrl('/run/summary');
+        return;
+      }
+
+      this.clearModal();
+      await this.load();
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to claim encounter.');
+    } finally {
+      this.working.set(false);
+    }
+  }
+
+  async finalizeRestModal(): Promise<void> {
+    const run = this.run();
+    const node = this.modalNode();
+    if (!run || !node) {
+      return;
+    }
+
+    this.working.set(true);
+    this.error.set(null);
+    try {
+      const response = await this.runService.finalizeRest(run.run_id, node.id);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+
+      this.clearModal();
+      await this.load();
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to make camp.');
+    } finally {
+      this.working.set(false);
+    }
+  }
+
+  async completeDialogueModal(): Promise<void> {
+    const run = this.run();
+    const node = this.modalNode();
+    if (!run || !node || this.working()) {
+      return;
+    }
+
+    this.working.set(true);
+    this.error.set(null);
+    try {
+      const response = await this.runService.completeDialogueNode(run.run_id, node.id);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+
+      this.clearModal();
+      await this.load();
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to complete dialogue.');
+    } finally {
+      this.working.set(false);
+    }
   }
 
   async returnHome(): Promise<void> {
@@ -412,6 +714,377 @@ export class RunMapPageComponent {
     } finally {
       this.working.set(false);
     }
+  }
+
+  nodeResultEventLabel(): string {
+    const event = this.modalResult()?.battle.log?.events?.[0] as Record<string, unknown> | undefined;
+    const label = typeof event?.['label'] === 'string' ? event['label'] : '';
+    if (label.trim()) {
+      return label.trim();
+    }
+
+    const message = typeof event?.['message'] === 'string' ? event['message'] : '';
+    if (message.trim()) {
+      return this.humanizeId(message);
+    }
+
+    return this.humanizeId(this.modalNode()?.node_type ?? 'encounter');
+  }
+
+  nodeResultEventDetail(): string {
+    const event = this.modalResult()?.battle.log?.events?.[0] as Record<string, unknown> | undefined;
+    const detail = typeof event?.['detail'] === 'string' ? event['detail'] : '';
+    if (detail.trim()) {
+      return detail.trim();
+    }
+
+    const result = this.nodeResultPayload();
+    const resultCopy = typeof result?.['result_copy'] === 'string' ? result['result_copy'] : '';
+    if (resultCopy.trim()) {
+      return resultCopy.trim();
+    }
+
+    const favor = typeof result?.['favor'] === 'string' ? result['favor'] : '';
+    return favor.trim() ? `${this.humanizeId(favor)} settled over the warband.` : '';
+  }
+
+  nodeResultEffectLabel(): string {
+    const result = this.nodeResultPayload();
+    const effect = result?.['effect'];
+    const effectRecord = effect && typeof effect === 'object' && !Array.isArray(effect)
+      ? effect as Record<string, unknown>
+      : {};
+    const type = typeof effectRecord['type'] === 'string' ? effectRecord['type'] : '';
+
+    if (this.modalKind() === 'hazard') {
+      return this.humanizeId(type || 'hazard effect');
+    }
+
+    const title = typeof result?.['title'] === 'string' ? result['title'] : '';
+    return title.trim() ? title.trim() : this.humanizeId(type || 'blessing');
+  }
+
+  nodeResultEffectDetail(): string {
+    const result = this.nodeResultPayload();
+    const effect = result?.['effect'];
+    const effectRecord = effect && typeof effect === 'object' && !Array.isArray(effect)
+      ? effect as Record<string, unknown>
+      : {};
+    const type = typeof effectRecord['type'] === 'string' ? effectRecord['type'] : '';
+
+    switch (type) {
+      case 'grant_teeth':
+        return this.modalResultRewardLabel();
+      case 'heal_random_unit':
+        return `Heals one wounded unit for ${this.percentLabel(effectRecord['amount_pct'], 35)} of max life.`;
+      case 'drain_highest_life_heal_rest':
+        return 'Fully heals the squad.';
+      case 'damage_random_unit':
+        return `Damages one unit for ${this.numberLabel(effectRecord['damage'], 1)} life.`;
+      case 'damage_squad':
+        return `Damages each living unit for ${this.numberLabel(effectRecord['damage'], 1)} life.`;
+      case 'lose_teeth':
+        return `Loses up to ${this.numberLabel(effectRecord['amount'], 1)} teeth.`;
+      case 'squad_damage_next_combat':
+        return `${this.multiplierBonusLabel(effectRecord['damage_multiplier'], 1.10)} damage for the squad.`;
+      case 'run_stat_modifier_next_combat':
+      case 'stat_modifier_next_combat':
+      case 'squad_stat_modifier_next_combat':
+        return this.describeStatModifier(effectRecord);
+      default:
+        return this.modalKind() === 'hazard'
+          ? 'The route is cleared and the warband can continue.'
+          : 'The shrine favor is ready to claim.';
+    }
+  }
+
+  shrineCostLabel(): string | null {
+    if (this.modalKind() !== 'shrine') {
+      return null;
+    }
+
+    const result = this.nodeResultPayload();
+    const effect = result?.['effect'];
+    const effectRecord = effect && typeof effect === 'object' && !Array.isArray(effect)
+      ? effect as Record<string, unknown>
+      : {};
+    const effectType = typeof effectRecord['type'] === 'string' ? effectRecord['type'] : '';
+
+    if (effectType === 'drain_highest_life_heal_rest') {
+      const drainPct = Number(effectRecord['drain_pct'] ?? 0);
+      return drainPct > 0
+        ? `The healthiest unit loses ${drainPct}% life.`
+        : 'The healthiest unit pays life.';
+    }
+
+    const cost = result?.['cost'];
+    const costRecord = cost && typeof cost === 'object' && !Array.isArray(cost)
+      ? cost as Record<string, unknown>
+      : null;
+    if (!costRecord) {
+      return null;
+    }
+
+    const copy = typeof costRecord['copy'] === 'string' ? costRecord['copy'].trim() : '';
+    if (copy) {
+      return copy.replace(/^Cost:\s*/i, '');
+    }
+
+    return 'This shrine has a negative side effect.';
+  }
+
+  modalResultRewardLabel(): string {
+    const preview = this.modalResult()?.battle.reward_preview;
+    if (!preview) {
+      return 'No material reward.';
+    }
+
+    const labels: string[] = [];
+    if ((preview.currency_soft ?? 0) > 0) {
+      labels.push(`${preview.currency_soft} teeth`);
+    }
+    if ((preview.dice?.length ?? preview.new_dice_labels.length) > 0) {
+      labels.push(`${preview.dice?.length ?? preview.new_dice_labels.length} dice`);
+    }
+    if ((preview.units?.length ?? preview.new_unit_labels.length) > 0) {
+      labels.push(`${preview.units?.length ?? preview.new_unit_labels.length} units`);
+    }
+    if ((preview.items?.length ?? preview.new_item_labels?.length ?? 0) > 0) {
+      labels.push(`${preview.items?.length ?? preview.new_item_labels?.length ?? 0} items`);
+    }
+
+    return labels.length ? labels.join(', ') : 'No material reward.';
+  }
+
+  private async openResolvedNodeModal(node: CurrentRunNode, kind: 'loot' | 'shrine' | 'hazard'): Promise<void> {
+    const run = this.run();
+    if (!run) {
+      return;
+    }
+
+    this.prepareModal(node, kind);
+    try {
+      const response = await this.runService.resolveNode(run.run_id, node.id);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+
+      this.modalResult.set(response.data);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to resolve encounter.');
+    } finally {
+      this.modalLoading.set(false);
+    }
+  }
+
+  private async openRestModal(node: CurrentRunNode): Promise<void> {
+    const run = this.run();
+    if (!run) {
+      return;
+    }
+
+    this.prepareModal(node, 'rest');
+    try {
+      const response = await this.runService.openRest(run.run_id, node.id);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+
+      this.modalRestData.set(response.data);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to open rest stop.');
+    } finally {
+      this.modalLoading.set(false);
+    }
+  }
+
+  private async openDialogueModal(node: CurrentRunNode): Promise<void> {
+    const run = this.run();
+    if (!run) {
+      return;
+    }
+
+    this.prepareModal(node, 'dialogue');
+    try {
+      const dialogueId = this.dialogueIdForNode(node);
+      if (!dialogueId) {
+        this.error.set('Dialogue node is missing its script id.');
+        return;
+      }
+
+      const script = await this.dialogueService.getDialogueById(dialogueId, {
+        scene: 'run-dialogue',
+        nodeType: node.node_type,
+        regionSlug: run.region_slug ?? null,
+        regionId: run.region_id ?? null,
+        tags: this.dialogueTagsForNode(node),
+        playerName: this.sessionService.session().displayName,
+        playerPortraitUrl: RunMapPageComponent.PLAYER_DIALOGUE_PORTRAIT,
+      } satisfies DialogueTriggerContext);
+      if (!script) {
+        this.error.set(`Dialogue script "${dialogueId}" could not be loaded.`);
+        return;
+      }
+
+      this.modalDialogueScript.set(script);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to load dialogue.');
+    } finally {
+      this.modalLoading.set(false);
+    }
+  }
+
+  private prepareModal(node: CurrentRunNode, kind: RunEncounterModalKind): void {
+    this.error.set(null);
+    this.statusMessage.set(null);
+    this.modalKind.set(kind);
+    this.modalNode.set(node);
+    this.modalResult.set(null);
+    this.modalRestData.set(null);
+    this.modalDialogueScript.set(null);
+    this.modalLoading.set(true);
+  }
+
+  private clearModal(): void {
+    this.modalKind.set(null);
+    this.modalNode.set(null);
+    this.modalResult.set(null);
+    this.modalRestData.set(null);
+    this.modalDialogueScript.set(null);
+    this.modalLoading.set(false);
+  }
+
+  private nodeResultPayload(): Record<string, unknown> | null {
+    const previewResult = this.modalResult()?.battle.reward_preview?.encounter_result;
+    if (previewResult && typeof previewResult === 'object' && !Array.isArray(previewResult)) {
+      const nested = previewResult['result'];
+      if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+        return nested as Record<string, unknown>;
+      }
+    }
+
+    const event = this.modalResult()?.battle.log?.events?.[0] as Record<string, unknown> | undefined;
+    const key = this.modalKind() === 'hazard' ? 'hazard_result' : 'shrine_result';
+    const result = event?.[key];
+    return result && typeof result === 'object' && !Array.isArray(result)
+      ? result as Record<string, unknown>
+      : null;
+  }
+
+  private dialogueIdForNode(node: CurrentRunNode): string | null {
+    const value = node.meta?.['dialogue_id'];
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  }
+
+  private dialogueTagsForNode(node: CurrentRunNode): string[] {
+    const value = node.meta?.['tags'];
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0);
+  }
+
+  private percentFromHp(currentHp: number, maxHp: number): number {
+    if (maxHp <= 0) {
+      return 0;
+    }
+
+    return Math.round((Math.max(0, Math.min(currentHp, maxHp)) / maxHp) * 100);
+  }
+
+  private diceRewardFromLabel(label: string): RewardPreviewDice {
+    const sides = this.diceSidesFromLabel(label);
+    const material = label.trim().split(/\s+/)[0]?.toLowerCase() ?? 'cardboard';
+
+    return {
+      dice_instance_id: null,
+      label,
+      rarity: 'common',
+      material,
+      sides,
+      affixes: [],
+    };
+  }
+
+  private diceSidesFromLabel(label: string): number {
+    const match = label.trim().match(/\bd(\d+)\b/i);
+    const sides = Number(match?.[1] ?? 6);
+    return Number.isFinite(sides) ? sides : 6;
+  }
+
+  private unitRewardFromLabel(label: string): RewardPreviewUnit {
+    return {
+      unit_instance_id: null,
+      name: label,
+      unit_type_slug: null,
+      unit_type_name: label,
+      splice_variant_slug: null,
+      splice_variant_name: null,
+      tier: 1,
+      level: 1,
+    };
+  }
+
+  private formatAffixNames(affixes: RewardPreviewDice['affixes']): string | null {
+    const names = affixes
+      .map((affix) => (affix.name ?? this.humanizeId(affix.affix_slug ?? '')).trim())
+      .filter((name) => name.length > 0);
+
+    return names.length > 0 ? names.join(' ') : null;
+  }
+
+  private describeStatModifier(effect: Record<string, unknown>): string {
+    const parts: string[] = [];
+    const multipliers = this.recordValue(effect['stat_multipliers']);
+    const adders = this.recordValue(effect['stat_adders']);
+    for (const [stat, raw] of Object.entries(multipliers)) {
+      const multiplier = Number(raw);
+      if (Number.isFinite(multiplier) && multiplier > 0 && Math.abs(multiplier - 1) > 0.0001) {
+        parts.push(`${this.multiplierBonusLabel(multiplier, 1)} ${this.humanizeId(stat)}`);
+      }
+    }
+    for (const [stat, raw] of Object.entries(adders)) {
+      const amount = Number(raw);
+      if (Number.isFinite(amount) && amount !== 0) {
+        parts.push(`${amount > 0 ? '+' : ''}${amount} ${this.humanizeId(stat)}`);
+      }
+    }
+
+    return parts.length ? `${parts.join(', ')} for the squad.` : 'Improves the squad for the next combat.';
+  }
+
+  private recordValue(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : {};
+  }
+
+  private percentLabel(value: unknown, fallback: number): string {
+    const numeric = Number(value ?? fallback);
+    return `${Number.isFinite(numeric) ? numeric : fallback}%`;
+  }
+
+  private multiplierBonusLabel(value: unknown, fallback: number): string {
+    const multiplier = Number(value ?? fallback);
+    const safeMultiplier = Number.isFinite(multiplier) ? multiplier : fallback;
+    const bonus = Math.round((safeMultiplier - 1) * 100);
+    return bonus >= 0 ? `+${bonus}%` : `${bonus}%`;
+  }
+
+  private numberLabel(value: unknown, fallback: number): string {
+    const numeric = Number(value ?? fallback);
+    return String(Number.isFinite(numeric) ? numeric : fallback);
+  }
+
+  private humanizeId(value: string): string {
+    return value
+      .split(/[_#\s-]/g)
+      .filter((segment) => segment.length)
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(' ');
   }
 
   private nodeMetaColumn(node: CurrentRunNode): number {
