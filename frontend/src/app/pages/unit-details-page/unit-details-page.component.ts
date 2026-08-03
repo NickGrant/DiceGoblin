@@ -31,14 +31,11 @@ import { AbilityCatalogService } from '../../core/services/ability-catalog/abili
 import { SessionService } from '../../core/services/session/session.service';
 import { UnitService } from '../../core/services/unit/unit.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
-import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
-import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { DicePickerModalComponent } from '../../shared/ui/dice-picker-modal/dice-picker-modal.component';
 import { type TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
 import { formatUnitKinLabel, humanizeAbilityId, normalizeAbilityId, resolveAbilityDisplayName, toRomanNumeral } from '../../shared/utils/unit-formatters';
 import { resolveUnitImageUrl } from '../../shared/ui/unit-art/unit-art';
-import { UnitThumbnailComponent } from '../../shared/ui/unit-thumbnail/unit-thumbnail.component';
 
 type AbilitySlotViewModel = {
   abilityId: string;
@@ -92,6 +89,11 @@ type DiceAssignmentRecord = {
   diceId: string;
 };
 
+type AbilityTagViewModel = {
+  label: string;
+  tone: 'basic' | 'kin' | 'class' | 'attack' | 'warning' | 'capstone' | 'passive';
+};
+
 @Component({
   selector: 'app-unit-details-page',
   standalone: true,
@@ -100,16 +102,16 @@ type DiceAssignmentRecord = {
     CdkDragHandle,
     CdkDropList,
     DgAlertComponent,
-    DgCommandBtnDirective,
-    PageFrameComponent,
     DicePickerModalComponent,
     FontAwesomeModule,
     FormsModule,
     RouterLink,
-    UnitThumbnailComponent,
   ],
   templateUrl: './unit-details-page.component.html',
   styleUrl: './unit-details-page.component.scss',
+  host: {
+    '[attr.data-page]': "'unit-edit'",
+  },
 })
 export class UnitDetailsPageComponent {
   private static readonly LOADOUT_SPEED_BUDGET = 20;
@@ -426,6 +428,9 @@ export class UnitDetailsPageComponent {
       },
     ];
   });
+  readonly combatStatTiles = computed(() =>
+    this.unitStatTiles().filter((stat) => ['Attack', 'Defense', 'Precision', 'Resolve'].includes(stat.label)),
+  );
 
   constructor() {
     this.renameValue = this.unit()?.name ?? '';
@@ -447,6 +452,79 @@ export class UnitDetailsPageComponent {
 
   handleTabSelection(tabId: string): void {
     this.setActiveTab(tabId === 'abilities' ? 'abilities' : 'stats');
+  }
+
+  xpPercent(): number {
+    const unit = this.unit();
+    if (!unit) {
+      return 0;
+    }
+
+    const xp = Number(unit.xp ?? 0);
+    const xpToNext = Number(unit.xp_to_next_level ?? 0);
+    if (xpToNext <= 0) {
+      return unit.is_mastered ? 100 : 60;
+    }
+
+    return Math.max(0, Math.min(100, Math.round((xp / xpToNext) * 100)));
+  }
+
+  budgetPercent(): number {
+    return Math.max(0, Math.min(100, Math.round((this.totalEquippedSpeed() / 20) * 100)));
+  }
+
+  remainingBudget(): number {
+    return Math.max(0, 20 - this.totalEquippedSpeed());
+  }
+
+  abilityTags(abilityId: string, fallback: 'active' | 'passive' | 'capstone' = 'active'): AbilityTagViewModel[] {
+    const ability = this.abilityCatalog().get(abilityId);
+    const labels = new Set<string>();
+    labels.add(fallback === 'capstone' ? 'Capstone' : fallback === 'passive' ? 'Passive' : 'Basic');
+
+    for (const tag of ability?.tags ?? []) {
+      if (typeof tag === 'string' && tag.trim()) {
+        labels.add(tag.trim());
+      }
+    }
+
+    const normalizedId = abilityId.toLowerCase();
+    if (normalizedId.includes('guard') || normalizedId.includes('hide') || normalizedId.includes('wall')) {
+      labels.add('Defense');
+    }
+    if (normalizedId.includes('strike') || normalizedId.includes('attack') || normalizedId.includes('finisher')) {
+      labels.add('Attack');
+    }
+    if (normalizedId.includes('rush') || normalizedId.includes('move') || normalizedId.includes('charge')) {
+      labels.add('Movement');
+    }
+
+    return Array.from(labels).slice(0, 3).map((label) => ({ label, tone: this.tagTone(label) }));
+  }
+
+  diceSlotIndexes(count: number): number[] {
+    return Array.from({ length: Math.max(0, count) }, (_unused, index) => index);
+  }
+
+  equippedDiceSlots(abilityId: string): AbilitySlotViewModel['slots'] {
+    const slots = this.abilitySlotsFor(abilityId)?.slots;
+    if (slots?.length) {
+      return slots;
+    }
+
+    return this.diceSlotIndexes(this.abilityCatalog().get(abilityId)?.dice_cost ?? 0).map((slotIndex) => ({
+      slotIndex,
+      die: null,
+    }));
+  }
+
+  suggestedDieSize(ability: AbilityLoadoutViewModel, slotIndex: number): number {
+    const assigned = this.abilitySlotsFor(ability.abilityId)?.slots[slotIndex]?.die?.sides;
+    if (assigned) {
+      return assigned;
+    }
+
+    return ability.diceCost > 1 && slotIndex === 0 ? 8 : 6;
   }
 
   addAbilityToLoadout(abilityId: string, insertIndex?: number): void {
@@ -751,6 +829,30 @@ export class UnitDetailsPageComponent {
 
   private slotKey(abilityId: string, slotIndex: number): string {
     return `${abilityId}:${slotIndex}`;
+  }
+
+  private tagTone(label: string): AbilityTagViewModel['tone'] {
+    const normalized = label.toLowerCase();
+    if (normalized.includes('capstone')) {
+      return 'capstone';
+    }
+    if (normalized.includes('passive') || normalized.includes('innate') || normalized.includes('natural')) {
+      return 'passive';
+    }
+    if (normalized.includes('pig') || normalized.includes('kin')) {
+      return 'kin';
+    }
+    if (normalized.includes('attack') || normalized.includes('stun')) {
+      return 'attack';
+    }
+    if (normalized.includes('defense') || normalized.includes('contempt')) {
+      return 'warning';
+    }
+    if (normalized.includes('movement') || normalized.includes('basic')) {
+      return 'basic';
+    }
+
+    return 'class';
   }
 
   private normalizeKinSummary(value: string | null | undefined): string {

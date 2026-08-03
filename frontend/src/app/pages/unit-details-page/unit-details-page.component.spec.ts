@@ -237,17 +237,16 @@ describe('UnitDetailsPageComponent', () => {
     expect(component.tierRomanNumeral()).toBe('I');
     expect(host.textContent).toContain('Tier');
     expect(host.textContent).toContain('I');
-    expect(host.textContent).toContain('10/10');
+    expect(host.textContent).toContain('Lv 10 - Tier I');
     expect(host.textContent).toContain('Attack');
     expect(host.textContent).toContain('Precision');
     expect(host.textContent).toContain('Defense');
     expect(host.textContent).toContain('Resolve');
-    expect(host.textContent).toContain('Kin');
     expect(host.textContent).toContain('Bat Kin');
-    expect(host.textContent).toContain('+1 Attack, +1 Precision, -1 HP.');
     expect(host.textContent).toContain('Eligible now (unlocked at level 6)');
-    expect(host.textContent).toContain('Static Abilities');
-    expect(host.textContent).toContain('Choose Capstone');
+    expect(host.textContent).toContain('Passive Abilities');
+    expect(host.textContent).toContain('Capstone Ability');
+    expect(host.textContent).toContain('Choose One');
     expect(host.textContent).toContain('Brawl Hardened');
     expect(host.textContent).toContain('Gain protective stacks when attacked.');
     expect(host.textContent).toContain('Finisher');
@@ -258,6 +257,9 @@ describe('UnitDetailsPageComponent', () => {
     expect(host.textContent).not.toContain('Formation');
     expect(host.textContent).not.toContain('Inherited Passives');
     expect(fixture.nativeElement.querySelector('.unit-thumbnail__image')?.getAttribute('src')).toBeTruthy();
+    expect(host.querySelector('.unit-dashboard')?.children[0].classList.contains('unit-panel--capstone')).toBeTrue();
+    expect(host.querySelector('.unit-dashboard')?.children[1].classList.contains('unit-panel--budget')).toBeTrue();
+    expect(host.querySelector('.unit-dashboard')?.children[2].classList.contains('unit-panel--active')).toBeTrue();
 
     component.setActiveTab('abilities');
     fixture.detectChanges();
@@ -336,6 +338,30 @@ describe('UnitDetailsPageComponent', () => {
 
     component.openDicePicker('heavy_strike', 'Heavy Strike', 0);
     expect(component.pickerAvailableDice().map((die) => die.id)).toEqual(['d1', 'd2']);
+  });
+
+  it('renders clickable equipped and empty dice indicators for learned abilities', async () => {
+    const fixture = await createComponent();
+    const host: HTMLElement = fixture.nativeElement;
+
+    const equippedDie = host.querySelector<HTMLButtonElement>(
+      '.unit-panel--active .unit-die[data-sides="8"]',
+    );
+    const emptyDie = host.querySelector<HTMLButtonElement>(
+      '.unit-panel--active .unit-die[data-empty="true"]',
+    );
+
+    expect(equippedDie?.textContent?.trim()).toBe('8');
+    expect(emptyDie?.textContent).toContain('Empty dice slot');
+
+    emptyDie?.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.pickerState()).toEqual({
+      abilityId: 'guard',
+      abilityName: 'Guard',
+      slotIndex: 0,
+    });
   });
 
   it('edits and saves the combat loadout through unit service', async () => {
