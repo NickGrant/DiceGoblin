@@ -1,7 +1,7 @@
 ---
 Title: "Enemy Type Catalog"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-03
 Owner: Content Design
 Depends On:
   - documentation/03-content/00-content-source-map.md
@@ -55,7 +55,7 @@ Approved future enemy families are recorded separately. A family name and biome 
 | `kobold_skirmisher` | Kobold Skirmisher | 1 | Backline | `6 / 2 / 18 / 6 / 4` | `bomb_toss`, `basic_attack_ranged` | `sharpshooter` | 10 | Grunt | Active | Mobile bomb-throwing ranged enemy. |
 | `kobold_shieldbearer` | Kobold Shieldbearer | 1 | Frontline | `3 / 6 / 28 / 4 / 6` | `basic_attack_melee`, `taunting_guard` | `shield_set`, `wall_of_scrap`, `unmoving` | 10 | Grunt | Active | Defensive frontline enemy that protects the formation. |
 | `kobold_sharpshooter` | Kobold Sharpshooter | 2 | Backline | `9 / 3 / 22 / 7 / 4` | `basic_attack_ranged`, `disarming_shot`, `aimed_shot` | `sharpshooter`, `clean_shot` | 15 | Elite | Active | Precision-focused ranged elite. |
-| `kobold_warchief` | Kobold Warchief | 3 | Backline | `11 / 4 / 42 / 7 / 5` | `bomb_toss`, `basic_attack_ranged`, `aimed_shot` | `sharpshooter`, `patient_aim`, `dumb_luck` | 30 | Boss | Active | Kobold boss combining explosives with accurate ranged attacks. |
+| `kobold_warchief` | Kobold Chief Engineer | 3 | Backline | `11 / 4 / 42 / 7 / 5` | `bomb_toss`, `basic_attack_ranged`, `aimed_shot` | `sharpshooter`, `patient_aim`, `dumb_luck` | 30 | Boss | Active | Mountain boss and head of the kobolds' technical hierarchy, combining explosives with accurate ranged attacks. The key remains a legacy implementation identifier pending a future data migration. |
 
 ### Frogmen
 
@@ -74,13 +74,25 @@ Approved future enemy families are recorded separately. A family name and biome 
 | `chaos_faultbrute` | Chaos Faultbrute | 3 | Frontline | `10 / 8 / 58 / 5 / 7` | `basic_attack_melee`, `heavy_strike` | `thick_hide` | 35 | Elite | Active | Heavy chaos elite built to anchor mixed enemy formations. |
 | `chaos_glass_cannon` | Chaos Glass Cannon | 3 | Backline | `14 / 1 / 24 / 8 / 4` | `basic_attack_ranged`, `aimed_shot` | `sharpshooter` | 35 | Elite | Active | High-damage ranged chaos elite with minimal defenses. |
 
+## Current Faction Character Identity
+
+Current enemy families preserve a constrained goblin impulse beneath their ordered form:
+
+| Faction | Preserved goblin trait | Ordered expression | Voice direction |
+| --- | --- | --- | --- |
+| Pigs | Messiness and indulgence | Managed farms, pens, territorial ownership, and productive filth | Dumb and pompous |
+| Kobolds | Curiosity and unsafe experimentation | Engineering, documentation, traps, and workshops | Skittery and nerdy |
+| Frogmen | Aggression and dominance | Enforcement, hierarchy, tolls, and regional control | Loud and direct |
+
+Detailed boss motivations and dialogue guidance belong in `documentation/01-lore/02-character-profiles.md`.
+
 ## Approved Base-Game Enemy Families
 
 | Biome | Enemy family | Planning status | High-level identity |
 | --- | --- | --- | --- |
 | The Farm | Pigs | Current | Farmyard occupiers led by the Mudking. |
-| Mountains | Kobolds | Current | Tinkerers, trap makers, and scrap-built defenders. |
-| Swamps | Frogmen | Current | Marsh fighters, hunters, supporters, and regional rulers. |
+| Mountains | Kobolds | Current | Curious tinkerers, trap makers, and scrap-built defenders led by the Chief Engineer. |
+| Swamps | Frogmen | Current | Loud marsh fighters, hunters, supporters, and regional bullies. |
 | Island | Monkeys | Approved post-demo planning | Agile thieves and climbers organized into harvesting crews, coastal patrols, and treetop guards. |
 | Tundra | Walrusfolk | Approved post-demo planning | Large scavengers divided into hauling crews, hunters, and armored defenders. |
 | Volcano | Salamanders | Approved post-demo planning | Heat-resistant scavengers forced into foundry and weapon-making roles. |
@@ -116,10 +128,11 @@ A planned enemy family becomes current only after this catalog defines concrete 
 ## Open Questions
 
 - Concrete unit rosters and bosses for every post-Swamps base-game biome, The Library, and all Night regions remain future design work.
+- The legacy key `kobold_warchief` should eventually be migrated to a title-neutral or Chief Engineer-specific key across runtime data and assets. That migration is intentionally outside this documentation-only change.
 
 ## Maintenance Notes
 
 - Content changes should update this catalog before or alongside implementation changes.
 - Update approved roster documents before changing future biome-family allocation.
-- A mismatch between this catalog and runtime data is implementation drift; it does not redefine intended current enemy content.
+- A mismatch between this catalog and runtime data is implementation drift; it does not redefine intended current content.
 - Keep encounter lineups, placement, targeting, and ability mechanics in their respective system or encounter documents.
