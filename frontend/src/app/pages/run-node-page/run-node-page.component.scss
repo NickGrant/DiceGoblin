@@ -1,9 +1,6 @@
 :host {
   display: block;
-}
-
-:host ::ng-deep page-frame > .page-frame__body {
-  padding-top: 0.5rem;
+  min-height: 100%;
 }
 
 .node-screen {

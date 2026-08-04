@@ -1,0 +1,129 @@
+@if (open()) {
+  <div class="select-modal-backdrop" (click)="close()">
+    <section
+      class="select-modal"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="title()"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="select-modal__header">
+        <h2>{{ title() }}</h2>
+        <button class="select-modal__icon-button" type="button" aria-label="Close" (click)="close()" [disabled]="busy()">
+          <fa-icon [icon]="faXmark" aria-hidden="true"></fa-icon>
+        </button>
+      </header>
+
+      <label class="select-modal__search">
+        <fa-icon [icon]="faMagnifyingGlass" aria-hidden="true"></fa-icon>
+        <input type="search" placeholder="Search dice..." [ngModel]="query()" (ngModelChange)="query.set($event)" />
+      </label>
+
+      <div class="select-modal__controls" aria-label="Die filters">
+        @if (!isFilterHidden('status')) {
+          <select
+            aria-label="Status"
+            [disabled]="isFilterLocked('status')"
+            [ngModel]="statusFilter()"
+            (ngModelChange)="updateStatus($event)"
+          >
+            <option value="all">Status</option>
+            <option value="equipped">Equipped</option>
+            <option value="unequipped">Available</option>
+          </select>
+        }
+
+        @if (!isFilterHidden('rarity')) {
+          <select
+            aria-label="Rarity"
+            [disabled]="isFilterLocked('rarity')"
+            [ngModel]="rarityFilter() ?? ''"
+            (ngModelChange)="updateRarity($event)"
+          >
+            <option value="">Rarity</option>
+            @for (rarity of rarityOptions(); track rarity) {
+              <option [value]="rarity">{{ rarity | titlecase }}</option>
+            }
+          </select>
+        }
+
+        @if (!isFilterHidden('size')) {
+          <select
+            aria-label="Size"
+            [disabled]="isFilterLocked('size')"
+            [ngModel]="sizeFilter() ?? ''"
+            (ngModelChange)="updateSize($event)"
+          >
+            <option value="">Size</option>
+            @for (size of sizeOptions(); track size) {
+              <option [value]="size">D{{ size }}</option>
+            }
+          </select>
+        }
+      </div>
+
+      <div class="select-modal__grid" aria-label="Dice">
+        @if (allowEmptySelection() && page() === 1) {
+          <button
+            class="die-card die-card--empty"
+            type="button"
+            [attr.aria-pressed]="activeDieId() === null"
+            [attr.data-selected]="activeDieId() === null ? '' : null"
+            (click)="clearSelection()"
+          >
+            <span class="die-card__empty-mark" aria-hidden="true">+</span>
+            <strong>Empty Slot</strong>
+            <span>No die equipped</span>
+          </button>
+        }
+
+        @for (die of pagedDice(); track die.id) {
+          <button
+            class="die-card"
+            type="button"
+            [attr.aria-pressed]="isActive(die)"
+            [attr.data-selected]="isActive(die) ? '' : null"
+            (click)="chooseDie(die)"
+          >
+            <span class="die-card__image">
+              <img [src]="diceArtUrl(die)" [alt]="diceTitle(die)" />
+            </span>
+            <span class="die-card__meta">
+              <span>
+                <strong>{{ diceTitle(die) }}</strong>
+                <small [attr.data-rarity]="rarityTone(die)">{{ rarityTone(die) | uppercase }}</small>
+              </span>
+              <span>{{ affixLabel(die) }}</span>
+              <span [attr.data-equipped]="isEquipped(die.id) ? '' : null">{{ statusLabel(die) }}</span>
+            </span>
+          </button>
+        } @empty {
+          <p class="select-modal__empty">No dice match these filters.</p>
+        }
+      </div>
+
+      <footer class="select-modal__footer">
+        <div class="select-modal__pagination" aria-label="Pagination">
+          <button class="select-modal__icon-button" type="button" (click)="previousPage()" [disabled]="page() <= 1">
+            <fa-icon [icon]="faChevronLeft" aria-hidden="true"></fa-icon>
+            <span class="visually-hidden">Previous page</span>
+          </button>
+          <span>{{ page() }} / {{ totalPages() }}</span>
+          <button class="select-modal__icon-button" type="button" (click)="nextPage()" [disabled]="page() >= totalPages()">
+            <fa-icon [icon]="faChevronRight" aria-hidden="true"></fa-icon>
+            <span class="visually-hidden">Next page</span>
+          </button>
+        </div>
+
+        <div class="select-modal__actions">
+          <button dgButton="secondary" type="button" (click)="close()" [disabled]="busy()">Cancel</button>
+          <button dgButton="primary" type="button" (click)="confirm()" [disabled]="busy() || (!allowEmptySelection() && !selectedDie())">
+            {{ busy() ? 'Working...' : 'Select' }}
+          </button>
+        </div>
+      </footer>
+    </section>
+  </div>
+}

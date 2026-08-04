@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
 import { RunMapPageComponent } from './run-map-page.component';
 import { RunService } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 
 class RunServiceStub {
+  summary = signal<any>(null);
   getCurrentRun = jasmine.createSpy('getCurrentRun').and.resolveTo({
     ok: true,
     data: {
@@ -93,6 +95,7 @@ class RunServiceStub {
       healing: { amount: 4, hp_before: 6, hp_after: 10, max_hp: 10, is_defeated: false },
     },
   });
+  clearSummary = jasmine.createSpy('clearSummary').and.callFake(() => this.summary.set(null));
 }
 
 class SessionServiceStub {
@@ -128,6 +131,7 @@ class SessionServiceStub {
     { id: 'u1', name: 'Fang', unit_type_name: 'Bruiser', level: 3, tier: 2, max_hp: 10 },
     { id: 'u2', name: 'Moss', unit_type_name: 'Guardian', level: 4, tier: 1, max_hp: 12 },
   ] as any[];
+  readonly dice = () => [];
   readonly activeSquad = () =>
     ({
       id: 's1',
@@ -186,7 +190,9 @@ describe('RunMapPageComponent', () => {
     expect(host.textContent).toContain('The Farm');
     expect(host.textContent).toContain('Fang');
     expect(host.textContent).toContain('Run Supplies');
-    expect(host.textContent).toContain('Field Poultice (1)');
+    expect(host.textContent).toContain('Field Poultice');
+    expect(host.textContent).toContain('1 owned');
+    expect(host.textContent).toContain('Pick Goblin');
     expect(host.textContent).toContain('HP 60%');
     expect(host.textContent).toContain('Run Effects');
     expect(host.textContent).toContain('Shrine Battle Effect');
@@ -218,6 +224,37 @@ describe('RunMapPageComponent', () => {
     expect(runService.healRunUnit).toHaveBeenCalledWith('run-1', 'u1', 'field_poultice');
     expect(fixture.componentInstance.runUnits()[0].currentHp).toBe(10);
     expect(fixture.nativeElement.textContent).toContain('Fang healed to 10/10.');
+  });
+
+  it('opens the unit picker to target healing consumables', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const runService = TestBed.inject(RunService) as unknown as RunServiceStub;
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const supplyButton = fixture.nativeElement.querySelector('.campaign-scroll__supplies button') as HTMLButtonElement;
+    supplyButton.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.healingPickerItemSlug()).toBe('field_poultice');
+    expect(fixture.nativeElement.textContent).toContain('Choose a Goblin');
+    expect(fixture.nativeElement.textContent).toContain('Fang');
+
+    const component = fixture.componentInstance;
+    await component.healSelectedUnit(component.healingPickerUnits()[0]!);
+    fixture.detectChanges();
+
+    expect(runService.healRunUnit).toHaveBeenCalledWith('run-1', 'u1', 'field_poultice');
+    expect(component.healingPickerItemSlug()).toBeNull();
   });
 
   it('sizes the map from rendered node positions instead of a separate node-index guess', async () => {
@@ -596,7 +633,7 @@ describe('RunMapPageComponent', () => {
     expect(fixture.nativeElement.querySelector('.run-map__debug-grid')).toBeNull();
   });
 
-  it('navigates to summary after returning home from a run', async () => {
+  it('shows the run complete modal after abandoning a run', async () => {
     await TestBed.configureTestingModule({
       imports: [RunMapPageComponent],
       providers: [
@@ -608,12 +645,230 @@ describe('RunMapPageComponent', () => {
 
     const router = TestBed.inject(Router);
     spyOn(router, 'navigateByUrl').and.resolveTo(true);
+    const runService = TestBed.inject(RunService) as unknown as RunServiceStub;
+    runService.abandonRun.and.callFake(async () => {
+      runService.summary.set({
+        title: 'Returned Home',
+        status: 'abandoned',
+        rewards: [],
+        progression: [],
+        survivors: [],
+        defeated: [],
+        meta: { completed_region_name: 'The Farm' },
+        rewardDetail: {
+          currency_soft: 12,
+          units: [],
+          dice: [],
+          items: [],
+        },
+        stolenPages: [],
+        codexPages: [],
+        progressionDetail: [],
+      });
+      return { ok: true, data: { run_id: 'run-1', status: 'abandoned' } } as any;
+    });
     const fixture = TestBed.createComponent(RunMapPageComponent);
     await fixture.whenStable();
 
     await fixture.componentInstance.returnHome();
+    fixture.detectChanges();
 
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/run/summary');
+    const text = fixture.nativeElement.textContent;
+    expect(router.navigateByUrl).not.toHaveBeenCalledWith('/run/summary');
+    expect(text).toContain('Run Complete!');
+    expect(text).toContain('Return to Camp');
+  });
+
+  it('shows the run complete modal after exiting from the map', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigateByUrl').and.resolveTo(true);
+    const runService = TestBed.inject(RunService) as unknown as RunServiceStub;
+    runService.exitRun.and.callFake(async () => {
+      runService.summary.set({
+        title: 'Run Complete',
+        status: 'completed',
+        rewards: [],
+        progression: [],
+        survivors: [],
+        defeated: [],
+        meta: { completed_region_name: 'The Farm' },
+        rewardDetail: {
+          currency_soft: 248,
+          units: [{ unit_instance_id: 'u-new', label: 'Briarfang' }],
+          dice: [{ dice_instance_id: 'd-new', label: 'Bone d8' }],
+          items: [],
+        },
+        stolenPages: [],
+        codexPages: [],
+        progressionDetail: [
+          { unit_instance_id: 'u1', label: 'Fang', xp_gained: 120, level_gain_count: 1 },
+          { unit_instance_id: 'u2', label: 'Moss', xp_gained: 95, is_defeated: true },
+        ],
+      });
+      return { ok: true, data: { run_id: 'run-1', status: 'completed' } } as any;
+    });
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+
+    await fixture.componentInstance.finishRun();
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(router.navigateByUrl).not.toHaveBeenCalledWith('/run/summary');
+    expect(text).toContain('Run Complete!');
+    expect(text).toContain('Victory');
+    expect(text).toContain('Fang');
+    expect(text).toContain('+120 XP');
+    expect(text).toContain('LEVEL UP!');
+    expect(text).toContain('Moss');
+    expect(text).toContain('DEAD');
+    expect(text).toContain('248');
+    expect(text).toContain('Bone d8');
+    expect(text).toContain('Briarfang');
+    expect(text).toContain('Return to Camp');
+  });
+
+  it('shows the run failed modal after claiming a failing combat result', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigateByUrl').and.resolveTo(true);
+    const runService = TestBed.inject(RunService) as unknown as RunServiceStub;
+    runService.claimBattleRewards.and.callFake(async () => {
+      runService.summary.set({
+        title: 'Run Failed',
+        status: 'failed',
+        rewards: [],
+        progression: [],
+        survivors: [],
+        defeated: ['Moss'],
+        meta: { completed_region_name: 'The Farm' },
+        rewardDetail: {
+          currency_soft: 84,
+          units: [],
+          dice: [{ dice_instance_id: 'd-wood', label: 'Wood d6' }],
+          items: [],
+        },
+        stolenPages: [],
+        codexPages: [],
+        progressionDetail: [
+          { unit_instance_id: 'u1', label: 'Fang', xp_gained: 65 },
+          { unit_instance_id: 'u2', label: 'Moss', xp_gained: 0, is_defeated: true },
+        ],
+      });
+      return {
+        ok: true,
+        data: {
+          battle_id: 'battle-fail',
+          status: 'claimed',
+          rewards: {},
+          run_resolution: { run_id: 'run-1', status: 'failed' },
+        },
+      } as any;
+    });
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+    const component = fixture.componentInstance;
+    component.modalNode.set({ id: 'n1', node_index: 0, node_type: 'combat', status: 'available' } as any);
+    component.modalResult.set({
+      node: { id: 'n1', status: 'cleared' },
+      battle: { battle_id: 'battle-fail', outcome: 'defeat', rounds: 1, ticks: 1, status: 'resolved', log: null },
+      next: { unlocked_node_ids: [] },
+    } as any);
+    component.modalKind.set('combat-result');
+
+    await component.claimModalRewards();
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(router.navigateByUrl).not.toHaveBeenCalledWith('/run/summary');
+    expect(text).toContain('Run Failed');
+    expect(text).toContain('Defeated');
+    expect(text).toContain('84');
+    expect(text).toContain('Wood d6');
+
+    const returnButton = fixture.nativeElement.querySelector('.end-run-modal__actions button') as HTMLButtonElement;
+    returnButton.click();
+
+    expect(runService.clearSummary).toHaveBeenCalled();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/');
+  });
+
+  it('does not show the run complete modal after claiming an active node result', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const runService = TestBed.inject(RunService) as unknown as RunServiceStub;
+    runService.claimBattleRewards.and.callFake(async () => {
+      runService.summary.set({
+        title: 'Run Summary',
+        status: 'active',
+        rewards: [],
+        progression: [],
+        survivors: [],
+        defeated: [],
+        meta: { completed_region_name: 'The Farm' },
+        rewardDetail: {
+          currency_soft: 12,
+          units: [],
+          dice: [],
+          items: [],
+        },
+        stolenPages: [],
+        codexPages: [],
+        progressionDetail: [],
+      });
+      return {
+        ok: true,
+        data: {
+          battle_id: 'battle-loot',
+          status: 'claimed',
+          rewards: {},
+          run_resolution: { run_id: 'run-1', status: 'active' },
+        },
+      } as any;
+    });
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+    const component = fixture.componentInstance;
+    component.modalNode.set({ id: 'loot-1', node_index: 0, node_type: 'loot', status: 'available' } as any);
+    component.modalResult.set({
+      node: { id: 'loot-1', status: 'cleared' },
+      battle: { battle_id: 'battle-loot', outcome: 'victory', rounds: 0, ticks: 0, status: 'resolved', log: null },
+      next: { unlocked_node_ids: [] },
+    } as any);
+    component.modalKind.set('loot');
+
+    await component.claimModalRewards();
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(runService.clearSummary).toHaveBeenCalled();
+    expect(component.endRunSummary()).toBeNull();
+    expect(text).not.toContain('Run Complete!');
+    expect(text).not.toContain('Run Failed');
   });
 
   it('opens available loot nodes in a map modal', async () => {
@@ -646,6 +901,183 @@ describe('RunMapPageComponent', () => {
     expect(runService.resolveNode).toHaveBeenCalledWith('run-1', 'loot-1');
     expect(fixture.componentInstance.modalKind()).toBe('loot');
     expect(fixture.nativeElement.textContent).toContain('Claim Treasure');
+  });
+
+  it('shows a neutral loading state before resolved encounter modals render', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const runService = TestBed.inject(RunService) as unknown as RunServiceStub;
+    let resolveEncounter!: (value: any) => void;
+    runService.resolveNode.and.returnValue(new Promise((resolve) => {
+      resolveEncounter = resolve;
+    }));
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+
+    const openPromise = fixture.componentInstance.openNode({
+      id: 'loot-1',
+      run_id: 'run-1',
+      node_index: 0,
+      node_type: 'loot',
+      status: 'available',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.modalLoading()).toBeTrue();
+    expect(fixture.componentInstance.modalKind()).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Resolving Encounter');
+    expect(fixture.nativeElement.textContent).not.toContain('Hidden Cache');
+
+    resolveEncounter({
+      ok: true,
+      data: {
+        node: { id: 'loot-1', status: 'cleared' },
+        battle: {
+          battle_id: 'battle-loot',
+          outcome: 'victory',
+          rounds: 0,
+          ticks: 0,
+          status: 'resolved',
+          reward_preview: {
+            node_type: 'loot',
+            xp_total: 0,
+            currency_soft: 32,
+            new_unit_labels: [],
+            new_dice_labels: ['Bone d8'],
+          },
+          log: { events: [] },
+        },
+        next: { unlocked_node_ids: [] },
+      },
+    });
+    await openPromise;
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.modalLoading()).toBeFalse();
+    expect(fixture.componentInstance.modalKind()).toBe('loot');
+    expect(fixture.nativeElement.textContent).toContain('Hidden Cache');
+  });
+
+  it('resolves available combat nodes in map modals without navigating', async () => {
+    await TestBed.configureTestingModule({
+      imports: [RunMapPageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: RunService, useClass: RunServiceStub },
+        { provide: SessionService, useClass: SessionServiceStub },
+      ],
+    }).compileComponents();
+
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.resolveTo(true);
+    const runService = TestBed.inject(RunService) as unknown as RunServiceStub;
+    runService.resolveNode.and.resolveTo({
+      ok: true,
+      data: {
+        node: { id: 'n1', status: 'cleared' },
+        battle: {
+          battle_id: 'battle-combat',
+          outcome: 'victory',
+          rounds: 1,
+          ticks: 3,
+          status: 'resolved',
+          reward_preview: {
+            node_type: 'combat',
+            xp_total: 20,
+            currency_soft: 12,
+            new_unit_labels: [],
+            new_dice_labels: [],
+          },
+          log: {
+            events: [
+              {
+                type: 'action',
+                round: 1,
+                tick: 3,
+                side: 'player',
+                actor_unit_instance_id: 'u1',
+                actor_hp_after: 8,
+                actor_max_hp: 10,
+                target_enemy_slug: 'skeleton_warrior',
+                target_hp_after: 0,
+                target_max_hp: 10,
+                ability_id: 'cleave',
+                ability_outcome: '10 damage dealt and bleeding applied',
+              },
+              {
+                type: 'action',
+                round: 1,
+                tick: 6,
+                side: 'enemy',
+                actor_enemy_slug: 'kobold_skirmisher',
+                actor_hp_after: 4,
+                actor_max_hp: 10,
+                target_unit_instance_id: 'u1',
+                target_hp_after: 6,
+                target_max_hp: 10,
+                ability_id: 'slash',
+                ability_outcome: '2 damage dealt',
+              },
+            ],
+          },
+        },
+        next: { unlocked_node_ids: [] },
+      },
+    });
+    const fixture = TestBed.createComponent(RunMapPageComponent);
+    await fixture.whenStable();
+
+    await fixture.componentInstance.openNode({
+      id: 'n1',
+      run_id: 'run-1',
+      node_index: 0,
+      node_type: 'combat',
+      status: 'available',
+    });
+    fixture.detectChanges();
+
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(runService.resolveNode).toHaveBeenCalledWith('run-1', 'n1');
+    expect(fixture.componentInstance.modalKind()).toBe('combat-result');
+    expect(fixture.nativeElement.textContent).toContain('Combat Won!');
+    expect(fixture.nativeElement.textContent).toContain('Review Combat');
+
+    fixture.componentInstance.reviewCombat();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.modalKind()).toBe('combat-replay');
+    expect(fixture.nativeElement.textContent).toContain('Your Warband');
+    expect(fixture.nativeElement.textContent).toContain('Enemies');
+
+    fixture.componentInstance.setBattleReplayView('log');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Round 1');
+    expect(fixture.nativeElement.textContent).toContain('Fang');
+    expect(fixture.nativeElement.textContent).toContain('Skeleton Warrior');
+    expect(fixture.nativeElement.textContent).toContain('10 DMG');
+
+    jasmine.clock().install();
+    try {
+      fixture.componentInstance.setBattleReplayView('playback');
+      fixture.componentInstance.toggleBattlePlayback();
+      expect(fixture.componentInstance.battlePlaybackPaused()).toBeFalse();
+
+      jasmine.clock().tick(1400);
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.battlePlaybackIndex()).toBe(1);
+      expect(fixture.nativeElement.textContent).toContain('Kobold Skirmisher');
+    } finally {
+      jasmine.clock().uninstall();
+    }
   });
 
   it('only shows shrine cost when the shrine result has an actual cost', async () => {

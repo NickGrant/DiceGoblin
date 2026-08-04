@@ -1,5 +1,6 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { BattlePlaybackActionStep, BattlePlaybackParticipant, BattlePlaybackSnapshot } from '../../core/battle-playback/battle-playback.models';
 import { isDevPanelEnabled } from '../../core/config/runtime-config';
 import { DialogueScript, DialogueTriggerContext } from '../../core/dialogue/dialogue.models';
 import {
@@ -11,18 +12,24 @@ import {
   RestOpenData,
   RewardPreviewDice,
   RewardPreviewUnit,
+  UnitRecord,
 } from '../../core/models/api.models';
 import { resolveRunRegionBackgroundUrl } from '../../core/regions/region-catalog';
+import { BattlePlaybackAdapterService } from '../../core/services/battle-playback/battle-playback-adapter.service';
 import { DialogueService } from '../../core/services/dialogue/dialogue.service';
-import { RunService } from '../../core/services/run/run.service';
+import { RunService, RunSummaryState } from '../../core/services/run/run.service';
 import { SessionService } from '../../core/services/session/session.service';
 import { buildFormationGrid } from '../../shared/formation/formation';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-dialogue-stage.component';
 import { resolveNodeArtUrl } from '../../shared/ui/node-art/node-art';
+import { resolvePrototypeEnemySpriteUrl, resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
+import { UnitSelectModalComponent } from '../../shared/ui/unit-select-modal/unit-select-modal.component';
+import { resolveUnitAnimationFrameUrls } from '../../shared/ui/unit-art/unit-art';
 import { formatUnitKinLabel } from '../../shared/utils/unit-formatters';
 
-type RunEncounterModalKind = 'loot' | 'rest' | 'dialogue' | 'shrine' | 'hazard';
+type RunEncounterModalKind = 'loot' | 'rest' | 'dialogue' | 'shrine' | 'hazard' | 'combat-result' | 'combat-replay';
+type BattleReplayViewMode = 'playback' | 'log';
 
 type RunModalLootItem = {
   id: string;
@@ -42,12 +49,74 @@ type RunModalUnitStatus = {
   recoveryTone: 'healed' | 'full';
 };
 
+type CombatReplayParticipantViewModel = {
+  participantId: string;
+  side: 'player' | 'enemy';
+  name: string;
+  spriteUrl: string;
+  spriteFrameUrls: string[];
+  currentHp: number;
+  maxHp: number;
+  hpPercent: number;
+  isActor: boolean;
+  isTarget: boolean;
+  isDefeated: boolean;
+};
+
+type CombatReplaySlotViewModel = {
+  id: string;
+  empty: boolean;
+  participant: CombatReplayParticipantViewModel | null;
+};
+
+type CombatLogRowViewModel = {
+  id: string;
+  round: number;
+  tickLabel: string;
+  actorName: string;
+  actorSide: 'player' | 'enemy';
+  abilityName: string;
+  targetName: string;
+  targetSide: 'player' | 'enemy';
+  effectLabel: string;
+  effectTone: 'damage' | 'buff' | 'condition' | 'pending';
+  isActive: boolean;
+};
+
+type EndRunUnitRow = {
+  id: string;
+  name: string;
+  currentHp: number;
+  maxHp: number;
+  hpPercent: number;
+  xpLabel: string | null;
+  defeated: boolean;
+  leveledUp: boolean;
+};
+
+type EndRunRewardItem = {
+  id: string;
+  kind: 'teeth' | 'dice' | 'unit' | 'item' | 'codex';
+  label: string;
+  detail: string | null;
+  rarity: string | null;
+  sides: number | null;
+};
+
+type EndRunMetric = {
+  id: string;
+  label: string;
+  value: string;
+  tone: 'default' | 'success' | 'danger';
+};
+
 @Component({
   selector: 'app-run-map-page',
   standalone: true,
   imports: [
     DgAlertComponent,
     DgDialogueStageComponent,
+    UnitSelectModalComponent,
   ],
   templateUrl: './run-map-page.component.html',
   styleUrl: './run-map-page.component.scss',
@@ -55,7 +124,7 @@ type RunModalUnitStatus = {
     '[attr.data-page]': "'run-map'",
   },
 })
-export class RunMapPageComponent {
+export class RunMapPageComponent implements OnDestroy {
   private static readonly PLAYER_DIALOGUE_PORTRAIT =
     '/assets/ui/units/animated/goblin/base/frame_0.png';
   private static readonly MAP_MIN_WIDTH = 920;
@@ -70,6 +139,9 @@ export class RunMapPageComponent {
   private static readonly MAP_EDGE_FAN_OFFSET = 18;
   private static readonly MAP_EDGE_CURVE_LEAD_MIN = 42;
   private static readonly MAP_EDGE_CURVE_LEAD_MAX = 84;
+  private static readonly COMBAT_SPRITE_FALLBACK = '/assets/ui/units/animated/goblin/base/frame_0.png';
+  private static readonly BATTLE_PLAYBACK_INTERVAL_MS = 1300;
+  private static readonly BATTLE_SPRITE_FRAME_INTERVAL_MS = 180;
 
   private static readonly ENCOUNTER_ICON_MAP: Record<string, string> = {
     combat: '/assets/ui/icons/icon_encounter_combat.png',
@@ -87,11 +159,13 @@ export class RunMapPageComponent {
   private readonly runService = inject(RunService);
   private readonly sessionService = inject(SessionService);
   private readonly dialogueService = inject(DialogueService);
+  private readonly battlePlaybackAdapter = inject(BattlePlaybackAdapterService);
 
   readonly runData = signal<CurrentRunData | null>(null);
   readonly loading = signal(true);
   readonly working = signal(false);
   readonly healingAction = signal<string | null>(null);
+  readonly healingPickerItemSlug = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly statusMessage = signal<string | null>(null);
   readonly modalKind = signal<RunEncounterModalKind | null>(null);
@@ -100,7 +174,19 @@ export class RunMapPageComponent {
   readonly modalRestData = signal<RestOpenData | null>(null);
   readonly modalDialogueScript = signal<DialogueScript | null>(null);
   readonly modalLoading = signal(false);
+  readonly battleReplayViewMode = signal<BattleReplayViewMode>('playback');
+  readonly battlePlaybackIndex = signal(0);
+  readonly battlePlaybackPaused = signal(true);
+  readonly battleSpriteFrameIndex = signal(0);
   readonly showGenerationDebug = isDevPanelEnabled();
+  private readonly rawEndRunSummary = computed(() => this.runService.summary?.() ?? null);
+  readonly endRunSummary = computed(() => {
+    const summary = this.rawEndRunSummary();
+    return this.isTerminalRunSummaryStatus(summary?.status) ? summary : null;
+  });
+
+  private battlePlaybackTimer: number | null = null;
+  private battleSpriteFrameTimer: number | null = null;
 
   readonly nodes = computed(() => this.runData()?.map?.nodes ?? []);
   readonly edges = computed(() => this.runData()?.map?.edges ?? []);
@@ -202,6 +288,20 @@ export class RunMapPageComponent {
   readonly woundedRunUnits = computed(() =>
     this.runUnits().filter((entry) => entry.currentHp < entry.maxHp),
   );
+  readonly healingPickerUnits = computed<UnitRecord[]>(() => {
+    const woundedIds = new Set(this.woundedRunUnits().map((entry) => entry.unit_instance_id));
+    const squadIds = new Set(this.activeSquad()?.unit_ids ?? []);
+    return this.sessionService.units()
+      .filter((unit) => woundedIds.has(unit.id) && (!squadIds.size || squadIds.has(unit.id)))
+      .map((unit) => {
+        const runUnit = this.runUnitById().get(unit.id);
+        return {
+          ...unit,
+          current_hp: runUnit?.currentHp ?? unit.current_hp ?? unit.max_hp ?? 0,
+          max_hp: runUnit?.maxHp ?? unit.max_hp,
+        };
+      });
+  });
   readonly healingConsumables = computed(() =>
     (this.sessionService.profileData()?.items ?? [])
       .map((item) => this.mapHealingConsumable(item))
@@ -405,9 +505,75 @@ export class RunMapPageComponent {
         return this.mapBackgroundUrl() ?? '/assets/ui/biome/mystic_cave.png';
     }
   });
+  readonly battlePlaybackSnapshot = computed(() =>
+    this.battlePlaybackAdapter.createSnapshot({
+      runId: this.run()?.run_id ?? null,
+      nodeId: this.modalNode()?.id ?? '',
+      regionTheme: this.run()?.region_theme ?? null,
+      result: this.modalResult(),
+      playerUnits: this.sessionService.units(),
+      diceInventory: this.sessionService.dice(),
+      abilityNames: new Map(),
+    }),
+  );
+  readonly battleTimeline = computed(() => this.battlePlaybackSnapshot()?.timeline ?? []);
+  readonly battlePlaybackStepCount = computed(() => this.battleTimeline().length);
+  readonly battlePlaybackMaxIndex = computed(() => Math.max(0, this.battlePlaybackStepCount() - 1));
+  readonly battlePlaybackStep = computed(() => this.battleTimeline()[this.battlePlaybackIndex()] ?? null);
+  readonly battlePlaybackMetric = computed(() => {
+    const step = this.battlePlaybackStep();
+    return step ? `ROUND ${step.round} - TICK ${step.tick}` : 'COMBAT RESOLVED';
+  });
+  readonly combatSummaryTitle = computed(() =>
+    this.modalResult()?.battle.outcome === 'victory' ? 'Combat Won!' : 'Combat Lost',
+  );
+  readonly combatSummaryEyebrow = computed(() =>
+    this.modalResult()?.battle.outcome === 'victory' ? 'Victory' : 'Defeated',
+  );
+  readonly combatSummarySubtitle = computed(() => {
+    const outcome = this.modalResult()?.battle.outcome;
+    const enemy = this.oppositionSummary();
+    return outcome === 'victory'
+      ? `${this.defeatedEnemyCount()} ${enemy} Defeated`
+      : `Overwhelmed by ${enemy}`;
+  });
+  readonly combatSummaryUnits = computed(() => this.buildCombatSummaryUnits());
+  readonly combatSummaryRewards = computed(() => this.modalLootItems());
+  readonly playerCombatSlots = computed(() => this.buildCombatSlots('player'));
+  readonly enemyCombatSlots = computed(() => this.buildCombatSlots('enemy'));
+  readonly combatLogRows = computed(() => this.buildCombatLogRows());
+  readonly combatLogRounds = computed(() => {
+    const groups = new Map<number, CombatLogRowViewModel[]>();
+    for (const row of this.combatLogRows()) {
+      groups.set(row.round, [...(groups.get(row.round) ?? []), row]);
+    }
+    return Array.from(groups.entries()).map(([round, rows]) => ({ round, rows }));
+  });
+  readonly endRunTone = computed<'victory' | 'defeat'>(() =>
+    this.isDefeatRunSummaryStatus(this.endRunSummary()?.status) ? 'defeat' : 'victory',
+  );
+  readonly endRunTitle = computed(() =>
+    this.endRunTone() === 'defeat' ? 'Run Failed' : 'Run Complete!',
+  );
+  readonly endRunEyebrow = computed(() =>
+    this.endRunTone() === 'defeat' ? '✦ Defeated ✦' : '★ Victory ★',
+  );
+  readonly endRunSubtitle = computed(() => {
+    const regionName = this.regionName() ?? this.endRunSummary()?.meta?.completed_region_name ?? 'Current Region';
+    const depth = this.clearedNodeCount();
+    return depth > 0 ? `${regionName} - Depth ${depth}` : regionName;
+  });
+  readonly endRunUnits = computed<EndRunUnitRow[]>(() => this.buildEndRunUnitRows());
+  readonly endRunRewards = computed<EndRunRewardItem[]>(() => this.buildEndRunRewards(this.endRunSummary()));
+  readonly endRunMetrics = computed<EndRunMetric[]>(() => this.buildEndRunMetrics());
 
   constructor() {
     void this.load();
+  }
+
+  ngOnDestroy(): void {
+    this.clearBattlePlaybackTimer();
+    this.clearBattleSpriteFrameTimer();
   }
 
   async load(): Promise<void> {
@@ -528,6 +694,11 @@ export class RunMapPageComponent {
       return;
     }
 
+    if (this.isCombatLikeNodeType(node.node_type)) {
+      await this.openCombatResultModal(node);
+      return;
+    }
+
     if (node.node_type === 'exit') {
       await this.finishRun();
       return;
@@ -542,6 +713,62 @@ export class RunMapPageComponent {
     }
 
     this.clearModal();
+  }
+
+  reviewCombat(): void {
+    if (!this.modalResult()) {
+      return;
+    }
+
+    this.modalKind.set('combat-replay');
+    this.battleReplayViewMode.set('playback');
+    this.battlePlaybackIndex.set(0);
+    this.battlePlaybackPaused.set(true);
+    this.battleSpriteFrameIndex.set(0);
+    this.clearBattlePlaybackTimer();
+    this.clearBattleSpriteFrameTimer();
+  }
+
+  backToCombatResult(): void {
+    if (!this.modalResult()) {
+      return;
+    }
+
+    this.modalKind.set('combat-result');
+    this.battlePlaybackPaused.set(true);
+    this.clearBattlePlaybackTimer();
+    this.clearBattleSpriteFrameTimer();
+  }
+
+  setBattleReplayView(mode: BattleReplayViewMode): void {
+    this.battleReplayViewMode.set(mode);
+    this.syncBattleSpriteAnimation();
+  }
+
+  previousBattleStep(): void {
+    this.pauseBattlePlayback();
+    this.battlePlaybackIndex.update((index) => Math.max(0, index - 1));
+    this.restartBattleSpriteAnimation();
+  }
+
+  nextBattleStep(): void {
+    this.pauseBattlePlayback();
+    this.battlePlaybackIndex.update((index) => Math.min(this.battlePlaybackMaxIndex(), index + 1));
+    this.restartBattleSpriteAnimation();
+  }
+
+  toggleBattlePlayback(): void {
+    if (!this.battlePlaybackPaused()) {
+      this.pauseBattlePlayback();
+      return;
+    }
+
+    if (this.battlePlaybackIndex() >= this.battlePlaybackMaxIndex()) {
+      this.battlePlaybackIndex.set(0);
+    }
+    this.battlePlaybackPaused.set(false);
+    this.restartBattleSpriteAnimation();
+    this.scheduleBattlePlayback();
   }
 
   async claimModalRewards(action: 'accept' | 'decline' = 'accept'): Promise<void> {
@@ -561,10 +788,11 @@ export class RunMapPageComponent {
       }
 
       if (response.data.run_resolution?.status && response.data.run_resolution.status !== 'active') {
-        await this.router.navigateByUrl('/run/summary');
+        this.clearModal();
         return;
       }
 
+      this.runService.clearSummary();
       this.clearModal();
       await this.load();
     } catch (error) {
@@ -636,7 +864,7 @@ export class RunMapPageComponent {
         this.error.set(response.error.message);
         return;
       }
-      await this.router.navigateByUrl('/run/summary');
+      this.clearModal();
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to return home.');
     } finally {
@@ -708,12 +936,50 @@ export class RunMapPageComponent {
         this.error.set(response.error.message);
         return;
       }
-      await this.router.navigateByUrl('/run/summary');
+      this.clearModal();
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to exit run.');
     } finally {
       this.working.set(false);
     }
+  }
+
+  openHealingPicker(itemSlug: string): void {
+    if (this.working() || this.healingPickerUnits().length === 0) {
+      return;
+    }
+
+    this.error.set(null);
+    this.healingPickerItemSlug.set(itemSlug);
+  }
+
+  closeHealingPicker(): void {
+    if (this.working()) {
+      return;
+    }
+
+    this.healingPickerItemSlug.set(null);
+  }
+
+  async healSelectedUnit(unit: UnitRecord): Promise<void> {
+    const itemSlug = this.healingPickerItemSlug();
+    if (!itemSlug) {
+      return;
+    }
+
+    await this.healUnit(unit.id, itemSlug);
+    if (!this.error()) {
+      this.healingPickerItemSlug.set(null);
+    }
+  }
+
+  async returnToCampFromEndRun(): Promise<void> {
+    if (this.working()) {
+      return;
+    }
+
+    this.runService.clearSummary();
+    await this.router.navigateByUrl('/');
   }
 
   nodeResultEventLabel(): string {
@@ -856,13 +1122,252 @@ export class RunMapPageComponent {
     return labels.length ? labels.join(', ') : 'No material reward.';
   }
 
-  private async openResolvedNodeModal(node: CurrentRunNode, kind: 'loot' | 'shrine' | 'hazard'): Promise<void> {
+  combatSpriteUrl(participant: CombatReplayParticipantViewModel | null): string {
+    if (!participant) {
+      return '';
+    }
+
+    if (!participant.isActor || !participant.spriteFrameUrls.length) {
+      return participant.spriteUrl;
+    }
+
+    return participant.spriteFrameUrls[this.battleSpriteFrameIndex() % participant.spriteFrameUrls.length] ?? participant.spriteUrl;
+  }
+
+  rewardDieImageUrl(reward: EndRunRewardItem): string {
+    const rarity = reward.rarity ?? 'common';
+    const sides = reward.sides ?? this.diceSidesFromLabel(reward.label);
+    const material = this.diceMaterialFromRarity(rarity);
+    return `/assets/ui/dice/${material}_d${sides}.png`;
+  }
+
+  combatTargetEffectLabel(participant: CombatReplayParticipantViewModel): string | null {
+    const step = this.battlePlaybackStep();
+    if (!step || step.target.participantId !== participant.participantId) {
+      return null;
+    }
+
+    const damage = step.resultSummary.match(/(\d+)\s+damage/i);
+    return damage ? `-${damage[1]}` : null;
+  }
+
+  combatActionStatusLabel(step: BattlePlaybackActionStep): string | null {
+    const condition = step.resultSummary.match(/(poisoned|poison|bleeding|bleed|sleep|bolstered|defensive buff)[^|.]*/i);
+    return condition ? `Applied: ${this.humanizeId(condition[0])}` : null;
+  }
+
+  private buildEndRunUnitRows(): EndRunUnitRow[] {
+    const summary = this.endRunSummary();
+    const progressionById = new Map((summary?.progressionDetail ?? []).map((entry) => [entry.unit_instance_id, entry]));
+    const defeatedLabels = new Set((summary?.defeated ?? []).map((label) => label.trim().toLowerCase()));
+    const squadIds = new Set(this.activeSquad()?.unit_ids ?? []);
+    const runUnits = this.runUnits().filter((entry) => !squadIds.size || squadIds.has(entry.unit_instance_id));
+
+    return runUnits.map((entry) => {
+      const progression = progressionById.get(entry.unit_instance_id);
+      const name = progression?.label ?? entry.unit?.name ?? 'Unit';
+      const defeated = !!progression?.is_defeated || entry.defeated || defeatedLabels.has(name.toLowerCase());
+      const currentHp = defeated ? 0 : entry.currentHp;
+      const maxHp = Math.max(1, entry.maxHp);
+      return {
+        id: entry.unit_instance_id,
+        name,
+        currentHp,
+        maxHp,
+        hpPercent: this.percentFromHp(currentHp, maxHp),
+        xpLabel: typeof progression?.xp_gained === 'number' ? `+${progression.xp_gained} XP` : null,
+        defeated,
+        leveledUp: (progression?.level_gain_count ?? 0) > 0,
+      };
+    });
+  }
+
+  private isTerminalRunSummaryStatus(status: string | null | undefined): boolean {
+    const normalizedStatus = (status ?? '').toLowerCase();
+    return [
+      'abandoned',
+      'complete',
+      'completed',
+      'defeated',
+      'failed',
+      'lost',
+      'succeeded',
+      'success',
+      'victory',
+      'won',
+    ].includes(normalizedStatus);
+  }
+
+  private isDefeatRunSummaryStatus(status: string | null | undefined): boolean {
+    return ['defeated', 'failed', 'lost'].includes((status ?? '').toLowerCase());
+  }
+
+  private buildEndRunRewards(summary: RunSummaryState | null): EndRunRewardItem[] {
+    const rewards: EndRunRewardItem[] = [];
+    const detail = summary?.rewardDetail;
+    if ((detail?.currency_soft ?? 0) > 0) {
+      rewards.push({
+        id: 'teeth',
+        kind: 'teeth',
+        label: `${detail!.currency_soft}`,
+        detail: 'Teeth',
+        rarity: null,
+        sides: null,
+      });
+    }
+
+    for (const [index, die] of (detail?.dice ?? []).entries()) {
+      rewards.push({
+        id: die.dice_instance_id ?? `die-${index}-${die.label}`,
+        kind: 'dice',
+        label: die.label,
+        detail: null,
+        rarity: this.rarityFromRewardLabel(die.label),
+        sides: this.diceSidesFromLabel(die.label),
+      });
+    }
+
+    for (const [index, unit] of (detail?.units ?? []).entries()) {
+      rewards.push({
+        id: unit.unit_instance_id ?? `unit-${index}-${unit.label}`,
+        kind: 'unit',
+        label: unit.label,
+        detail: 'Unit',
+        rarity: null,
+        sides: null,
+      });
+    }
+
+    for (const [index, item] of (detail?.items ?? []).entries()) {
+      rewards.push({
+        id: `${item.item_slug}-${index}`,
+        kind: 'item',
+        label: `${item.quantity} ${item.name}`,
+        detail: item.rarity ? this.humanizeId(item.rarity) : null,
+        rarity: item.rarity ?? null,
+        sides: null,
+      });
+    }
+
+    for (const [index, page] of (summary?.codexPages ?? []).entries()) {
+      rewards.push({
+        id: `codex-${page.entry_type}-${page.entry_key}-${index}`,
+        kind: 'codex',
+        label: page.label,
+        detail: 'Codex',
+        rarity: null,
+        sides: null,
+      });
+    }
+
+    return rewards;
+  }
+
+  private buildEndRunMetrics(): EndRunMetric[] {
+    const visitedNodes = this.endRunVisitedNodes();
+    const battleNodes = visitedNodes.filter((node) => this.isCombatLikeNodeType(node.node_type));
+    const battleWins = battleNodes.filter((node) => node.status === 'cleared' || node.status === 'completed').length;
+    const totalBattleEstimate = Math.max(battleNodes.length, battleWins);
+    const visitedCount = visitedNodes.length;
+    const totalNodes = this.nodes().length;
+
+    return [
+      {
+        id: 'battles',
+        label: 'Battles Won',
+        value: `${battleWins}/${Math.max(1, totalBattleEstimate)}`,
+        tone: this.endRunTone() === 'defeat' ? 'danger' : 'success',
+      },
+      {
+        id: 'nodes',
+        label: 'Nodes Visited',
+        value: `${visitedCount}/${Math.max(visitedCount, totalNodes)}`,
+        tone: 'default',
+      },
+      {
+        id: 'shrines',
+        label: 'Shrines',
+        value: `${visitedNodes.filter((node) => node.node_type === 'shrine').length}`,
+        tone: 'default',
+      },
+      {
+        id: 'hazards',
+        label: 'Hazards Survived',
+        value: `${visitedNodes.filter((node) => node.node_type === 'hazard').length}`,
+        tone: 'default',
+      },
+    ];
+  }
+
+  private endRunVisitedNodes(): CurrentRunNode[] {
+    const visited = new Map<string, CurrentRunNode>();
+    for (const node of this.nodes()) {
+      if (node.status === 'cleared' || node.status === 'completed') {
+        visited.set(node.id, node);
+      }
+    }
+
+    const modalNode = this.modalNode();
+    if (modalNode) {
+      visited.set(modalNode.id, modalNode);
+    }
+
+    return Array.from(visited.values());
+  }
+
+  private clearedNodeCount(): number {
+    return this.endRunVisitedNodes().length;
+  }
+
+  private rarityFromRewardLabel(label: string): string | null {
+    const normalized = label.toLowerCase();
+    for (const rarity of ['legendary', 'epic', 'rare', 'uncommon', 'common']) {
+      if (normalized.includes(rarity)) {
+        return rarity;
+      }
+    }
+
+    if (normalized.includes('bone')) {
+      return 'rare';
+    }
+    if (normalized.includes('metal')) {
+      return 'epic';
+    }
+    if (normalized.includes('gemstone')) {
+      return 'legendary';
+    }
+    if (normalized.includes('wood')) {
+      return 'uncommon';
+    }
+
+    return 'common';
+  }
+
+  private diceMaterialFromRarity(rarity: string): string {
+    switch (rarity.toLowerCase()) {
+      case 'uncommon':
+        return 'wood';
+      case 'rare':
+        return 'bone';
+      case 'epic':
+        return 'metal';
+      case 'legendary':
+        return 'gemstone';
+      default:
+        return 'cardboard';
+    }
+  }
+
+  private async openCombatResultModal(node: CurrentRunNode): Promise<void> {
     const run = this.run();
     if (!run) {
       return;
     }
 
-    this.prepareModal(node, kind);
+    this.prepareModal(node);
+    this.battleReplayViewMode.set('playback');
+    this.battlePlaybackIndex.set(0);
+    this.battlePlaybackPaused.set(true);
     try {
       const response = await this.runService.resolveNode(run.run_id, node.id);
       if (!response.ok) {
@@ -871,6 +1376,30 @@ export class RunMapPageComponent {
       }
 
       this.modalResult.set(response.data);
+      this.modalKind.set('combat-result');
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Unable to resolve combat.');
+    } finally {
+      this.modalLoading.set(false);
+    }
+  }
+
+  private async openResolvedNodeModal(node: CurrentRunNode, kind: 'loot' | 'shrine' | 'hazard'): Promise<void> {
+    const run = this.run();
+    if (!run) {
+      return;
+    }
+
+    this.prepareModal(node);
+    try {
+      const response = await this.runService.resolveNode(run.run_id, node.id);
+      if (!response.ok) {
+        this.error.set(response.error.message);
+        return;
+      }
+
+      this.modalResult.set(response.data);
+      this.modalKind.set(kind);
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to resolve encounter.');
     } finally {
@@ -884,7 +1413,7 @@ export class RunMapPageComponent {
       return;
     }
 
-    this.prepareModal(node, 'rest');
+    this.prepareModal(node);
     try {
       const response = await this.runService.openRest(run.run_id, node.id);
       if (!response.ok) {
@@ -893,6 +1422,7 @@ export class RunMapPageComponent {
       }
 
       this.modalRestData.set(response.data);
+      this.modalKind.set('rest');
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to open rest stop.');
     } finally {
@@ -906,7 +1436,7 @@ export class RunMapPageComponent {
       return;
     }
 
-    this.prepareModal(node, 'dialogue');
+    this.prepareModal(node);
     try {
       const dialogueId = this.dialogueIdForNode(node);
       if (!dialogueId) {
@@ -929,6 +1459,7 @@ export class RunMapPageComponent {
       }
 
       this.modalDialogueScript.set(script);
+      this.modalKind.set('dialogue');
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to load dialogue.');
     } finally {
@@ -936,10 +1467,10 @@ export class RunMapPageComponent {
     }
   }
 
-  private prepareModal(node: CurrentRunNode, kind: RunEncounterModalKind): void {
+  private prepareModal(node: CurrentRunNode): void {
     this.error.set(null);
     this.statusMessage.set(null);
-    this.modalKind.set(kind);
+    this.modalKind.set(null);
     this.modalNode.set(node);
     this.modalResult.set(null);
     this.modalRestData.set(null);
@@ -954,6 +1485,250 @@ export class RunMapPageComponent {
     this.modalRestData.set(null);
     this.modalDialogueScript.set(null);
     this.modalLoading.set(false);
+    this.battleReplayViewMode.set('playback');
+    this.battlePlaybackIndex.set(0);
+    this.battlePlaybackPaused.set(true);
+    this.battleSpriteFrameIndex.set(0);
+    this.clearBattlePlaybackTimer();
+    this.clearBattleSpriteFrameTimer();
+  }
+
+  private buildCombatSlots(side: 'player' | 'enemy'): CombatReplaySlotViewModel[] {
+    const participants = this.buildCombatParticipantStates(side);
+    const slots: CombatReplaySlotViewModel[] = participants.slice(0, 9).map((participant) => ({
+      id: participant.participantId,
+      empty: false,
+      participant,
+    }));
+
+    while (slots.length < 9) {
+      slots.push({
+        id: `${side}-empty-${slots.length}`,
+        empty: true,
+        participant: null,
+      });
+    }
+
+    return slots;
+  }
+
+  private buildCombatParticipantStates(side: 'player' | 'enemy'): CombatReplayParticipantViewModel[] {
+    const snapshot = this.battlePlaybackSnapshot();
+    if (!snapshot) {
+      return [];
+    }
+
+    const activeStep = this.battlePlaybackStep();
+    const participants = snapshot.participants[side];
+    const hpByParticipant = new Map<string, number>();
+    for (const participant of participants) {
+      hpByParticipant.set(participant.participantId, participant.startingHp || participant.maxHp);
+    }
+
+    const participantIds = new Set(participants.map((participant) => participant.participantId));
+    for (const step of snapshot.timeline.slice(0, this.battlePlaybackIndex() + 1)) {
+      if (step.actor.participantId && participantIds.has(step.actor.participantId)) {
+        hpByParticipant.set(step.actor.participantId, step.actor.currentHp);
+      }
+      if (step.target.participantId && participantIds.has(step.target.participantId)) {
+        hpByParticipant.set(step.target.participantId, step.target.currentHp);
+      }
+    }
+
+    return participants.map((participant) => {
+      const currentHp = Math.max(0, hpByParticipant.get(participant.participantId) ?? participant.startingHp ?? participant.maxHp);
+      const maxHp = Math.max(1, participant.maxHp);
+      const spriteFrameUrls = this.resolveCombatParticipantSpriteFrames(participant, side);
+      return {
+        participantId: participant.participantId,
+        side,
+        name: participant.name,
+        spriteUrl: spriteFrameUrls[0] ?? this.resolveCombatParticipantSprite(participant, side),
+        spriteFrameUrls,
+        currentHp,
+        maxHp,
+        hpPercent: this.percentFromHp(currentHp, maxHp),
+        isActor: activeStep?.actor.participantId === participant.participantId,
+        isTarget: activeStep?.target.participantId === participant.participantId,
+        isDefeated: currentHp <= 0,
+      };
+    });
+  }
+
+  private buildCombatSummaryUnits(): RunModalUnitStatus[] {
+    return this.buildCombatParticipantStates('player').map((participant) => ({
+      id: participant.participantId,
+      name: participant.name,
+      currentHp: participant.currentHp,
+      maxHp: participant.maxHp,
+      hpPercent: participant.hpPercent,
+      recoveryLabel: participant.isDefeated ? 'DEAD' : this.combatXpLabel(),
+      recoveryTone: participant.isDefeated ? 'full' : 'healed',
+    }));
+  }
+
+  private buildCombatLogRows(): CombatLogRowViewModel[] {
+    return this.battleTimeline().map((step, index) => ({
+      id: `${step.round}-${step.tick}-${index}`,
+      round: step.round,
+      tickLabel: `Tick ${step.tick}`,
+      actorName: step.actor.name,
+      actorSide: step.side,
+      abilityName: step.abilityName,
+      targetName: step.target.name,
+      targetSide: step.side === 'player' ? 'enemy' : 'player',
+      effectLabel: this.effectBadgeLabel(step),
+      effectTone: this.effectBadgeTone(step),
+      isActive: index === this.battlePlaybackIndex(),
+    }));
+  }
+
+  effectBadgeLabel(step: BattlePlaybackActionStep): string {
+    const summary = step.resultSummary.trim();
+    if (!summary) {
+      return 'Pending';
+    }
+
+    const damage = summary.match(/(\d+)\s+damage/i);
+    const condition = summary.match(/(poisoned|poison|bleeding|bleed|sleep|bolstered|defensive buff)[^|.]*/i);
+    if (damage && condition) {
+      return `${damage[1]} DMG + ${this.humanizeId(condition[0])}`;
+    }
+    if (damage) {
+      return `${damage[1]} DMG`;
+    }
+    if (condition) {
+      return this.humanizeId(condition[0]);
+    }
+
+    return summary.split('|')[0]?.trim() || 'Resolved';
+  }
+
+  private effectBadgeTone(step: BattlePlaybackActionStep): 'damage' | 'buff' | 'condition' | 'pending' {
+    const summary = step.resultSummary.toLowerCase();
+    if (!summary.trim()) {
+      return 'pending';
+    }
+    if (summary.includes('bolster') || summary.includes('defense') || summary.includes('heal')) {
+      return 'buff';
+    }
+    if (summary.includes('poison') || summary.includes('bleed') || summary.includes('sleep')) {
+      return 'condition';
+    }
+    return 'damage';
+  }
+
+  private combatXpLabel(): string {
+    const xp = this.modalResult()?.battle.reward_preview?.xp_total ?? 0;
+    return xp > 0 ? `+${xp} XP` : 'XP pending';
+  }
+
+  private defeatedEnemyCount(): number {
+    return this.buildCombatParticipantStates('enemy').filter((participant) => participant.isDefeated).length;
+  }
+
+  private oppositionSummary(): string {
+    const enemies = this.battlePlaybackSnapshot()?.participants.enemy ?? [];
+    if (!enemies.length) {
+      return 'the enemy';
+    }
+
+    const firstName = enemies[0]?.name ?? 'Enemy';
+    return enemies.length === 1 ? firstName : `${firstName} Group`;
+  }
+
+  private isCombatLikeNodeType(nodeType: string | null | undefined): boolean {
+    return nodeType === 'combat' || nodeType === 'boss';
+  }
+
+  private scheduleBattlePlayback(): void {
+    this.clearBattlePlaybackTimer();
+    if (this.battlePlaybackPaused() || this.battlePlaybackStepCount() <= 1) {
+      return;
+    }
+
+    this.battlePlaybackTimer = window.setInterval(() => {
+      const nextIndex = this.battlePlaybackIndex() + 1;
+      if (nextIndex > this.battlePlaybackMaxIndex()) {
+        this.pauseBattlePlayback();
+        return;
+      }
+
+      this.battlePlaybackIndex.set(nextIndex);
+      this.restartBattleSpriteAnimation();
+      if (nextIndex >= this.battlePlaybackMaxIndex()) {
+        this.pauseBattlePlayback();
+      }
+    }, RunMapPageComponent.BATTLE_PLAYBACK_INTERVAL_MS);
+  }
+
+  private pauseBattlePlayback(): void {
+    this.battlePlaybackPaused.set(true);
+    this.clearBattlePlaybackTimer();
+    this.clearBattleSpriteFrameTimer();
+    this.battleSpriteFrameIndex.set(0);
+  }
+
+  private restartBattleSpriteAnimation(): void {
+    this.battleSpriteFrameIndex.set(0);
+    this.syncBattleSpriteAnimation();
+  }
+
+  private syncBattleSpriteAnimation(): void {
+    this.clearBattleSpriteFrameTimer();
+    if (this.battlePlaybackPaused() || this.battleReplayViewMode() !== 'playback' || !this.battlePlaybackStep()) {
+      return;
+    }
+
+    this.battleSpriteFrameTimer = window.setInterval(() => {
+      this.battleSpriteFrameIndex.update((index) => (index + 1) % 4);
+    }, RunMapPageComponent.BATTLE_SPRITE_FRAME_INTERVAL_MS);
+  }
+
+  private clearBattlePlaybackTimer(): void {
+    if (this.battlePlaybackTimer === null) {
+      return;
+    }
+
+    window.clearInterval(this.battlePlaybackTimer);
+    this.battlePlaybackTimer = null;
+  }
+
+  private clearBattleSpriteFrameTimer(): void {
+    if (this.battleSpriteFrameTimer === null) {
+      return;
+    }
+
+    window.clearInterval(this.battleSpriteFrameTimer);
+    this.battleSpriteFrameTimer = null;
+  }
+
+  private resolveCombatParticipantSprite(participant: BattlePlaybackParticipant, side: 'player' | 'enemy'): string {
+    if (side === 'player') {
+      return resolvePrototypeUnitSpriteUrl(participant.spriteKey);
+    }
+
+    const spriteKey = participant.spriteKey.toLowerCase();
+    const hasKnownEnemyArt = ['frogman', 'goblin', 'kobold', 'pig'].some((prefix) => spriteKey.startsWith(prefix));
+    return hasKnownEnemyArt
+      ? resolvePrototypeEnemySpriteUrl(participant.spriteKey)
+      : RunMapPageComponent.COMBAT_SPRITE_FALLBACK;
+  }
+
+  private resolveCombatParticipantSpriteFrames(participant: BattlePlaybackParticipant, side: 'player' | 'enemy'): string[] {
+    if (side === 'player') {
+      const frames = resolveUnitAnimationFrameUrls(participant.spriteKey);
+      return frames.length ? frames : [resolvePrototypeUnitSpriteUrl(participant.spriteKey)];
+    }
+
+    const spriteKey = participant.spriteKey.toLowerCase();
+    const hasKnownEnemyArt = ['frogman', 'goblin', 'kobold', 'pig'].some((prefix) => spriteKey.startsWith(prefix));
+    if (!hasKnownEnemyArt) {
+      return [RunMapPageComponent.COMBAT_SPRITE_FALLBACK];
+    }
+
+    const frames = resolveUnitAnimationFrameUrls(participant.spriteKey);
+    return frames.length ? frames : [resolvePrototypeEnemySpriteUrl(participant.spriteKey)];
   }
 
   private nodeResultPayload(): Record<string, unknown> | null {

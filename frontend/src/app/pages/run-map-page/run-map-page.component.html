@@ -63,21 +63,19 @@
         @if (healingConsumables().length && woundedRunUnits().length) {
           <section class="campaign-scroll__supplies" aria-label="Run supplies">
             <h2>Run Supplies</h2>
-            @for (entry of woundedRunUnits(); track entry.unit_instance_id) {
+            @for (item of healingConsumables(); track item.item_slug) {
               <article>
                 <div>
-                  <strong>{{ entry.unit?.name ?? 'Unit' }}</strong>
-                  <span>{{ entry.currentHp }}/{{ entry.maxHp }} HP</span>
+                  <strong>{{ item.name }}</strong>
+                  <span>{{ item.quantity }} owned</span>
                 </div>
-                @for (item of healingConsumables(); track item.item_slug) {
-                  <button
-                    type="button"
-                    (click)="healUnit(entry.unit_instance_id, item.item_slug)"
-                    [disabled]="working() || healingAction() === healingActionKey(entry.unit_instance_id, item.item_slug)"
-                  >
-                    {{ item.name }} ({{ item.quantity }})
-                  </button>
-                }
+                <button
+                  type="button"
+                  (click)="openHealingPicker(item.item_slug)"
+                  [disabled]="working() || healingPickerUnits().length === 0"
+                >
+                  Pick Goblin
+                </button>
               </article>
             }
           </section>
@@ -142,8 +140,305 @@
       </main>
     </div>
 
-    @if (modalKind()) {
+    @if (endRunSummary(); as summary) {
+      <div class="end-run-backdrop" role="presentation">
+        <section
+          class="end-run-modal"
+          [attr.data-outcome]="endRunTone()"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="end-run-title"
+        >
+          <header class="end-run-modal__banner">
+            <p>{{ endRunEyebrow() }}</p>
+            <h2 id="end-run-title">{{ endRunTitle() }}</h2>
+            <span>{{ endRunSubtitle() }}</span>
+          </header>
+
+          <div class="end-run-modal__body">
+            <section class="end-run-section" aria-label="Warband status">
+              <h3>Warband Status</h3>
+              <div class="end-run-section__line"></div>
+              <div class="end-run-warband">
+                @for (unit of endRunUnits(); track unit.id) {
+                  <article [class.is-defeated]="unit.defeated">
+                    <div class="end-run-warband__left">
+                      <strong>{{ unit.name }}</strong>
+                      <span><span [style.width.%]="unit.hpPercent"></span></span>
+                      <small>{{ unit.currentHp }}/{{ unit.maxHp }}</small>
+                    </div>
+                    <div class="end-run-warband__right">
+                      @if (unit.defeated) {
+                        <em>DEAD</em>
+                      } @else if (unit.xpLabel) {
+                        <span>{{ unit.xpLabel }}</span>
+                      }
+                      @if (unit.leveledUp) {
+                        <b>LEVEL UP!</b>
+                      }
+                    </div>
+                  </article>
+                } @empty {
+                  <p>No warband status was reported.</p>
+                }
+              </div>
+            </section>
+
+            <section class="end-run-section" aria-label="Loot acquired">
+              <h3>Loot Acquired</h3>
+              <div class="end-run-section__line"></div>
+              <div class="end-run-loot">
+                @for (reward of endRunRewards(); track reward.id) {
+                  @if (reward.kind === 'teeth') {
+                    <article class="end-run-loot__teeth">
+                      <strong>🦷 {{ reward.label }}</strong>
+                      <span>{{ reward.detail }}</span>
+                    </article>
+                  } @else if (reward.kind === 'dice') {
+                    <article class="end-run-loot__die">
+                      <span><img [src]="rewardDieImageUrl(reward)" [alt]="reward.label" /></span>
+                      <strong>{{ reward.label }}</strong>
+                      @if (reward.rarity) {
+                        <small>{{ reward.rarity }}</small>
+                      }
+                    </article>
+                  } @else {
+                    <article class="end-run-loot__item" [attr.data-kind]="reward.kind">
+                      <strong>{{ reward.label }}</strong>
+                      @if (reward.detail) {
+                        <span>{{ reward.detail }}</span>
+                      }
+                    </article>
+                  }
+                } @empty {
+                  <p>No loot was acquired.</p>
+                }
+              </div>
+            </section>
+
+            <section class="end-run-section" aria-label="Run summary">
+              <h3>Run Summary</h3>
+              <div class="end-run-section__line"></div>
+              <div class="end-run-metrics">
+                @for (metric of endRunMetrics(); track metric.id) {
+                  <article [attr.data-tone]="metric.tone">
+                    <span>{{ metric.label }}</span>
+                    <strong>{{ metric.value }}</strong>
+                  </article>
+                }
+              </div>
+            </section>
+          </div>
+
+          <footer class="end-run-modal__actions">
+            <button type="button" (click)="returnToCampFromEndRun()" [disabled]="working()">
+              Return to Camp
+            </button>
+          </footer>
+        </section>
+      </div>
+    }
+
+    @if (modalLoading() || modalKind()) {
       <div class="run-modal-backdrop" role="presentation">
+        @if (modalLoading()) {
+          <section class="run-modal-loading" role="dialog" aria-modal="true" aria-live="polite">
+            <span></span>
+            <h2>Resolving Encounter</h2>
+            <p>The field is catching up.</p>
+          </section>
+        } @else if (modalKind() === 'combat-result') {
+          <section
+            class="combat-result-modal"
+            [class.combat-result-modal--defeat]="modalResult()?.battle?.outcome !== 'victory'"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="combat-result-title"
+          >
+            <header class="combat-result-modal__banner">
+              <p>{{ combatSummaryEyebrow() }}</p>
+              <h2 id="combat-result-title">{{ combatSummaryTitle() }}</h2>
+              <span>{{ combatSummarySubtitle() }}</span>
+            </header>
+
+            <div class="combat-result-modal__body">
+              <section class="combat-result-section" aria-label="Warband status">
+                <h3>Warband Status</h3>
+                <div class="combat-result-section__line"></div>
+                <div class="combat-result-warband">
+                  @for (unit of combatSummaryUnits(); track unit.id) {
+                    <article [class.is-defeated]="unit.recoveryLabel === 'DEAD'">
+                      <div>
+                        <strong>{{ unit.name }}</strong>
+                        <span><span [style.width.%]="unit.hpPercent"></span></span>
+                        <small>{{ unit.currentHp }}/{{ unit.maxHp }}</small>
+                      </div>
+                      <em>{{ unit.recoveryLabel }}</em>
+                    </article>
+                  }
+                </div>
+              </section>
+
+              <section class="combat-result-section" aria-label="Loot acquired">
+                <h3>Loot Acquired</h3>
+                <div class="combat-result-section__line"></div>
+                <div class="combat-result-loot">
+                  @for (reward of combatSummaryRewards(); track reward.id) {
+                    <article [attr.data-kind]="reward.tone">
+                      <strong>{{ reward.label }}</strong>
+                      @if (reward.detail) {
+                        <span>{{ reward.detail }}</span>
+                      }
+                    </article>
+                  }
+                  @if (!combatSummaryRewards().length) {
+                    <p>No loot preview is available yet.</p>
+                  }
+                </div>
+              </section>
+            </div>
+
+            <footer class="combat-result-modal__actions">
+              <button class="combat-result-modal__review" type="button" (click)="reviewCombat()" [disabled]="working() || modalLoading()">
+                Review Combat
+              </button>
+              <button class="combat-result-modal__continue" type="button" (click)="claimModalRewards()" [disabled]="working() || modalLoading()">
+                {{ working() ? 'Working...' : 'Continue' }}
+              </button>
+            </footer>
+          </section>
+        } @else if (modalKind() === 'combat-replay') {
+          <section class="combat-replay-card" role="dialog" aria-modal="true" aria-labelledby="combat-replay-title">
+            <header class="combat-replay-card__topbar">
+              <div class="combat-replay-tabs" aria-label="Combat review views">
+                <button type="button" [class.is-active]="battleReplayViewMode() === 'playback'" (click)="setBattleReplayView('playback')">
+                  Playback
+                </button>
+                <button type="button" [class.is-active]="battleReplayViewMode() === 'log'" (click)="setBattleReplayView('log')">
+                  Battle Log
+                </button>
+              </div>
+              <div class="combat-replay-card__metrics">
+                <h2 id="combat-replay-title">{{ battlePlaybackMetric() }}</h2>
+                <p>Encounter Playback</p>
+              </div>
+              <div class="combat-replay-controls">
+                <button type="button" (click)="previousBattleStep()" [disabled]="battlePlaybackIndex() <= 0" aria-label="Previous action">&lt;</button>
+                <button type="button" class="is-primary" (click)="toggleBattlePlayback()" [attr.aria-label]="battlePlaybackPaused() ? 'Play combat replay' : 'Pause combat replay'">
+                  {{ battlePlaybackPaused() ? '▶' : 'Ⅱ' }}
+                </button>
+                <button type="button" (click)="toggleBattlePlayback()" [disabled]="battlePlaybackPaused()" aria-label="Pause combat replay">Ⅱ</button>
+                <button type="button" (click)="nextBattleStep()" [disabled]="battlePlaybackIndex() >= battlePlaybackMaxIndex()" aria-label="Next action">&gt;</button>
+                <span>2x</span>
+                <button type="button" class="combat-replay-close" (click)="backToCombatResult()" aria-label="Close combat review">X</button>
+              </div>
+            </header>
+
+            <div class="combat-replay-card__rule"></div>
+
+            @if (battleReplayViewMode() === 'playback') {
+              <div class="combat-replay-battlefield">
+                <section class="combat-replay-side combat-replay-side--player" aria-label="Your warband">
+                  <h3>Your Warband</h3>
+                  <div class="combat-replay-grid">
+                    @for (slot of playerCombatSlots(); track slot.id) {
+                      <article class="combat-replay-slot" [class.is-empty]="slot.empty" [class.is-active]="slot.participant?.isActor" [class.is-target]="slot.participant?.isTarget">
+                        <div>
+                          @if (slot.participant) {
+                            <img [src]="combatSpriteUrl(slot.participant)" [alt]="slot.participant.name" />
+                            @if (combatTargetEffectLabel(slot.participant); as effectLabel) {
+                              <b>{{ effectLabel }}</b>
+                            }
+                          }
+                        </div>
+                        @if (slot.participant) {
+                          <strong>{{ slot.participant.name }}</strong>
+                          <span><span [style.width.%]="slot.participant.hpPercent"></span></span>
+                        }
+                      </article>
+                    }
+                  </div>
+                </section>
+
+                <section class="combat-replay-action" aria-label="Current combat action">
+                  <h3>VS</h3>
+                  <div>
+                    @if (battlePlaybackStep(); as step) {
+                      <strong>{{ step.actor.name }} uses {{ step.abilityName }}</strong>
+                      <p>{{ effectBadgeLabel(step) }}</p>
+                      @if (combatActionStatusLabel(step); as statusLabel) {
+                        <span>{{ statusLabel }}</span>
+                      }
+                    } @else {
+                      <strong>Combat resolved</strong>
+                      <p>No action events were captured for this node.</p>
+                    }
+                  </div>
+                </section>
+
+                <section class="combat-replay-side combat-replay-side--enemy" aria-label="Enemies">
+                  <h3>Enemies</h3>
+                  <div class="combat-replay-grid">
+                    @for (slot of enemyCombatSlots(); track slot.id) {
+                      <article class="combat-replay-slot" [class.is-empty]="slot.empty" [class.is-active]="slot.participant?.isActor" [class.is-target]="slot.participant?.isTarget">
+                        <div>
+                          @if (slot.participant) {
+                            <img [src]="combatSpriteUrl(slot.participant)" [alt]="slot.participant.name" />
+                            @if (combatTargetEffectLabel(slot.participant); as effectLabel) {
+                              <b>{{ effectLabel }}</b>
+                            }
+                          }
+                        </div>
+                        @if (slot.participant) {
+                          <strong>{{ slot.participant.name }}</strong>
+                          <span><span [style.width.%]="slot.participant.hpPercent"></span></span>
+                        }
+                      </article>
+                    }
+                  </div>
+                </section>
+              </div>
+            } @else {
+              <section class="combat-log-body" aria-label="Battle log">
+                @for (round of combatLogRounds(); track round.round) {
+                  <h3>Round {{ round.round }}</h3>
+                  @for (entry of round.rows; track entry.id) {
+                    <article [class.is-active]="entry.isActive">
+                      <span>{{ entry.tickLabel }}</span>
+                      <p>
+                        <strong [attr.data-side]="entry.actorSide">{{ entry.actorName }}</strong>
+                        uses {{ entry.abilityName }}
+                        <em>></em>
+                        <strong [attr.data-side]="entry.targetSide">{{ entry.targetName }}</strong>
+                      </p>
+                      <b [attr.data-tone]="entry.effectTone">{{ entry.effectLabel }}</b>
+                    </article>
+                  }
+                }
+              </section>
+            }
+
+            <div class="combat-replay-minimap" aria-label="Warband vitality minimap">
+              <p>Warband Vitality Minimap</p>
+              <div>
+                @for (slot of playerCombatSlots(); track slot.id) {
+                  @if (slot.participant) {
+                    <span data-side="player"><i></i>{{ slot.participant.name }} <strong>{{ slot.participant.isDefeated ? 'DEAD' : slot.participant.hpPercent + '%' }}</strong></span>
+                  }
+                }
+              </div>
+              <em>VS</em>
+              <div>
+                @for (slot of enemyCombatSlots(); track slot.id) {
+                  @if (slot.participant) {
+                    <span data-side="enemy"><i></i>{{ slot.participant.name }} <strong>{{ slot.participant.isDefeated ? 'DEAD' : slot.participant.hpPercent + '%' }}</strong></span>
+                  }
+                }
+              </div>
+            </div>
+
+          </section>
+        } @else {
         <section
           class="run-encounter-modal"
           [attr.data-modal-kind]="modalKind()"
@@ -160,9 +455,7 @@
                 </div>
                 <button type="button" (click)="closeModal()" [disabled]="modalLoading() || working()" aria-label="Close encounter">X</button>
               </header>
-              @if (modalLoading()) {
-                <dg-alert>Loading dialogue...</dg-alert>
-              } @else if (modalDialogueScript()) {
+              @if (modalDialogueScript()) {
                 <dg-dialogue-stage [script]="modalDialogueScript()!" (complete)="completeDialogueModal()" />
               }
             </div>
@@ -180,9 +473,7 @@
 
               <hr />
 
-              @if (modalLoading()) {
-                <dg-alert>Resolving encounter...</dg-alert>
-              } @else if (modalKind() === 'loot') {
+              @if (modalKind() === 'loot') {
                 <section class="run-modal-rewards" aria-label="Loot claimed">
                   <h3>Loot Claimed:</h3>
                   @for (item of modalLootItems(); track item.id) {
@@ -260,6 +551,7 @@
             </aside>
           }
         </section>
+        }
       </div>
     }
   } @else if (!loading()) {
@@ -267,4 +559,15 @@
       <dg-alert>No active run.</dg-alert>
     </section>
   }
+
+  <dg-unit-select-modal
+    [open]="healingPickerItemSlug() !== null"
+    title="Choose a Goblin"
+    [units]="healingPickerUnits()"
+    [selectedUnitId]="null"
+    [hiddenFilters]="['kin', 'unitType', 'tier', 'levelMin', 'levelMax']"
+    [busy]="working()"
+    (dismissed)="closeHealingPicker()"
+    (selected)="healSelectedUnit($event)"
+  />
 </section>

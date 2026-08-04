@@ -302,14 +302,18 @@
       </main>
     </div>
 
-    <dg-dice-picker-modal
+    <dg-die-select-modal
       [open]="!!pickerState()"
-      [slotLabel]="pickerSlotLabel()"
+      [title]="pickerSlotLabel() || 'Select Die'"
       [dice]="pickerAvailableDice()"
-      [selectedDiceId]="pickerSelectedDiceId()"
+      [selectedDieId]="pickerSelectedDiceId()"
+      [equippedDiceIds]="pickerEquippedDiceIds()"
+      [lockedFilters]="dicePickerLockedFilters"
+      [hiddenFilters]="dicePickerHiddenFilters"
+      [allowEmptySelection]="true"
       [busy]="pickerBusy()"
       (dismissed)="closeDicePicker()"
-      (selected)="applyDiceSelection($event)"
+      (selected)="applyDiceSelection($event?.id ?? null)"
     />
   </section>
 } @else {

@@ -1,0 +1,161 @@
+@if (open()) {
+  <div class="select-modal-backdrop" (click)="close()">
+    <section
+      class="select-modal"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="title()"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="select-modal__header">
+        <h2>{{ title() }}</h2>
+        <button class="select-modal__icon-button" type="button" aria-label="Close" (click)="close()" [disabled]="busy()">
+          <fa-icon [icon]="faXmark" aria-hidden="true"></fa-icon>
+        </button>
+      </header>
+
+      <div class="select-modal__filter-bar">
+        <label class="select-modal__search">
+          <fa-icon [icon]="faMagnifyingGlass" aria-hidden="true"></fa-icon>
+          <input type="search" placeholder="Search goblins..." [ngModel]="query()" (ngModelChange)="query.set($event)" />
+        </label>
+
+        <div class="select-modal__controls" aria-label="Unit filters">
+          @if (!isFilterHidden('kin')) {
+            <select
+              aria-label="Kin"
+              [disabled]="isFilterLocked('kin')"
+              [ngModel]="kinFilter() ?? ''"
+              (ngModelChange)="updateKin($event)"
+            >
+              <option value="">Kin</option>
+              @for (kin of kinOptions(); track kin) {
+                <option [value]="kin">{{ kin | titlecase }}</option>
+              }
+            </select>
+          }
+
+          @if (!isFilterHidden('unitType')) {
+            <select
+              aria-label="Unit Type"
+              [disabled]="isFilterLocked('unitType')"
+              [ngModel]="unitTypeFilter() ?? ''"
+              (ngModelChange)="updateUnitType($event)"
+            >
+              <option value="">Unit Type</option>
+              @for (unitType of unitTypeOptions(); track unitType) {
+                <option [value]="unitType">{{ unitType | titlecase }}</option>
+              }
+            </select>
+          }
+
+          @if (!isFilterHidden('tier')) {
+            <select
+              aria-label="Tier"
+              [disabled]="isFilterLocked('tier')"
+              [ngModel]="tierFilter() ?? ''"
+              (ngModelChange)="updateTier($event)"
+            >
+              <option value="">Tier</option>
+              @for (tier of tierOptions(); track tier) {
+                <option [value]="tier">{{ tier }}</option>
+              }
+            </select>
+          }
+
+          @if (!isFilterHidden('levelMin')) {
+            <input
+              aria-label="Minimum level"
+              type="number"
+              min="1"
+              placeholder="Lv"
+              [disabled]="isFilterLocked('levelMin')"
+              [ngModel]="levelMinFilter() ?? ''"
+              (ngModelChange)="updateLevelMin($event)"
+            />
+          }
+
+          @if (!isFilterHidden('levelMin') && !isFilterHidden('levelMax')) {
+            <span class="select-modal__range-divider" aria-hidden="true">-</span>
+          }
+
+          @if (!isFilterHidden('levelMax')) {
+            <input
+              aria-label="Maximum level"
+              type="number"
+              min="1"
+              placeholder="Lv"
+              [disabled]="isFilterLocked('levelMax')"
+              [ngModel]="levelMaxFilter() ?? ''"
+              (ngModelChange)="updateLevelMax($event)"
+            />
+          }
+        </div>
+      </div>
+
+      <div class="select-modal__grid" aria-label="Units">
+        @for (unit of pagedUnits(); track unit.id) {
+          <button
+            class="unit-card"
+            type="button"
+            [attr.aria-pressed]="isActive(unit)"
+            [attr.data-selected]="isActive(unit) ? '' : null"
+            (click)="chooseUnit(unit)"
+          >
+            <span class="unit-card__avatar">
+              @if (unitThumbnailUrl(unit); as thumbnailUrl) {
+                <img [src]="thumbnailUrl" [alt]="unit.name" />
+              }
+            </span>
+            <span class="unit-card__info">
+              <span class="unit-card__title-row">
+                <strong>{{ unit.name }}</strong>
+                <span class="unit-card__badges">
+                  <small data-tone="kin">{{ kinLabel(unit) }}</small>
+                  <small data-tone="class">{{ unitTypeLabel(unit) }}</small>
+                </span>
+              </span>
+              <span class="unit-card__stats">
+                <span>HP <strong>{{ unit.current_hp ?? unit.max_hp ?? 0 }}</strong></span>
+                <span aria-hidden="true">.</span>
+                <span>Lv <strong>{{ unit.level }}</strong></span>
+                <span aria-hidden="true">.</span>
+                <span>Tier <strong>{{ unit.tier ?? 1 }}</strong></span>
+                <span class="unit-card__xp" aria-label="Experience">
+                  <span>XP</span>
+                  <span><span [style.width.%]="xpPercent(unit)"></span></span>
+                  <strong>{{ unit.xp ?? 0 }}/{{ unit.xp_to_next_level ?? 0 }}</strong>
+                </span>
+              </span>
+            </span>
+          </button>
+        } @empty {
+          <p class="select-modal__empty">No units match these filters.</p>
+        }
+      </div>
+
+      <footer class="select-modal__footer">
+        <div class="select-modal__pagination" aria-label="Pagination">
+          <button class="select-modal__icon-button" type="button" (click)="previousPage()" [disabled]="page() <= 1">
+            <fa-icon [icon]="faChevronLeft" aria-hidden="true"></fa-icon>
+            <span class="visually-hidden">Previous page</span>
+          </button>
+          <span>{{ page() }} / {{ totalPages() }}</span>
+          <button class="select-modal__icon-button" type="button" (click)="nextPage()" [disabled]="page() >= totalPages()">
+            <fa-icon [icon]="faChevronRight" aria-hidden="true"></fa-icon>
+            <span class="visually-hidden">Next page</span>
+          </button>
+        </div>
+
+        <div class="select-modal__actions">
+          <button dgButton="secondary" type="button" (click)="close()" [disabled]="busy()">Cancel</button>
+          <button dgButton="primary" type="button" (click)="confirm()" [disabled]="busy() || !selectedUnit()">
+            {{ busy() ? 'Working...' : 'Select' }}
+          </button>
+        </div>
+      </footer>
+    </section>
+  </div>
+}
