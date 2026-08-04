@@ -1,7 +1,7 @@
 ---
 Title: "Enemy Ability Catalog"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-03
 Owner: Content Design
 Depends On:
   - documentation/03-content/03-enemy-types.md
@@ -54,7 +54,7 @@ Encounter composition, action scheduling, target resolution, die scaling, status
 
 | Key | Display name | Speed | Dice cost | Default target | Base effect | Current users |
 | --- | --- | ---: | ---: | --- | --- | --- |
-| `bomb_toss` | Bomb Toss | 8 | 1 | Back enemy preferred | Deals `0.75x` ranged damage and applies `fuse_lit`; after `1` round, the bomb detonates for a base `0.90x` damage ratio. | Kobold Skirmisher, Kobold Warchief |
+| `bomb_toss` | Bomb Toss | 8 | 1 | Back enemy preferred | Deals `0.75x` ranged damage and applies `fuse_lit`; after `1` round, the bomb detonates for a base `0.90x` damage ratio. | Kobold Skirmisher, Kobold Chief Engineer |
 
 ### Frogmen
 
@@ -71,9 +71,9 @@ The following abilities are canonically defined in `04-unit-abilities.md`. Enemy
 | Ability | Current enemy users |
 | --- | --- |
 | `basic_attack_melee` | Mudwrestler, Mudking, Kobold Shieldbearer, Frogman Bruiser, Frogman Spearhunter, Frogman Wardrummer, Bog Tyrant, Chaos Treasure Scavenger, Chaos Faultbrute |
-| `basic_attack_ranged` | Mudslinger, Kobold Skirmisher, Kobold Sharpshooter, Kobold Warchief, Chaos Glass Cannon |
+| `basic_attack_ranged` | Mudslinger, Kobold Skirmisher, Kobold Sharpshooter, Kobold Chief Engineer, Chaos Glass Cannon |
 | `heavy_strike` | Frogman Spearhunter, Chaos Faultbrute |
-| `aimed_shot` | Kobold Sharpshooter, Kobold Warchief, Chaos Glass Cannon |
+| `aimed_shot` | Kobold Sharpshooter, Kobold Chief Engineer, Chaos Glass Cannon |
 | `skullcrack` | Bog Tyrant |
 | `taunting_guard` | Kobold Shieldbearer |
 | `disarming_shot` | Kobold Sharpshooter |
@@ -85,13 +85,13 @@ The following passives are canonically defined in `04-unit-abilities.md`. Their 
 | Ability | Current enemy users |
 | --- | --- |
 | `thick_hide` | Mudking, Frogman Bruiser, Bog Tyrant, Chaos Faultbrute |
-| `sharpshooter` | Kobold Skirmisher, Kobold Sharpshooter, Kobold Warchief, Chaos Glass Cannon |
+| `sharpshooter` | Kobold Skirmisher, Kobold Sharpshooter, Kobold Chief Engineer, Chaos Glass Cannon |
 | `shield_set` | Kobold Shieldbearer |
 | `wall_of_scrap` | Kobold Shieldbearer |
 | `unmoving` | Kobold Shieldbearer |
 | `clean_shot` | Kobold Sharpshooter |
-| `patient_aim` | Kobold Warchief |
-| `dumb_luck` | Kobold Warchief |
+| `patient_aim` | Kobold Chief Engineer |
+| `dumb_luck` | Kobold Chief Engineer |
 | `brawl_hardened` | Frogman Bruiser |
 | `find_the_gap` | Frogman Spearhunter |
 | `chant_of_violence` | Frogman Wardrummer |
@@ -101,7 +101,7 @@ The following passives are canonically defined in `04-unit-abilities.md`. Their 
 ## Faction Ability Identity
 
 - **Farm pigs** use mud, forced engagement, and Defense reduction to disrupt formation stability.
-- **Kobolds** combine explosives, accurate ranged attacks, and layered defensive passives.
+- **Kobolds** combine explosives, accurate ranged attacks, layered defensive passives, and unreliable experimentation.
 - **Frogmen** combine durable melee pressure, armor exploitation, and formation-wide offensive support.
 - **Chaos beings** currently use extreme stat profiles paired with shared baseline abilities rather than a distinct exclusive ability package.
 
@@ -109,6 +109,7 @@ The following passives are canonically defined in `04-unit-abilities.md`. Their 
 
 - Chaos beings do not yet have a faction-exclusive ability identity. Their current distinction comes from stat profiles and encounter composition.
 - No current enemy-exclusive passive abilities exist. Future faction passives should be defined here rather than added as undocumented variations of shared unit passives.
+- The runtime enemy key remains `kobold_warchief` until a later data migration; this catalog uses the canonical player-facing title.
 
 ## Maintenance Notes
 
