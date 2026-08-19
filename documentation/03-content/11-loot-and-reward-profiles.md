@@ -119,7 +119,8 @@ The subsidy is one-time and idempotent. The full recipe is still consumed when t
 
 | Dialogue | Repeatability | Permanent progression | Item grants |
 | --- | --- | --- | --- |
-| `mountains-traveler-consumable-gifts` | One-time | Recorded by the dialogue's seen state | Field Poultice × `1`; Travel Ration × `1` |
+| `mountains-llamaver-energy-gift` | One-time | Recorded by the dialogue's seen state | Travel Ration x `1` |
+| `mountains-llamaver-health-gift` | One-time | Requires `mountains-llamaver-energy-gift`; recorded by the dialogue's seen state | Field Poultice x `1` |
 | `swamps-wrong-machine-recovered` | One-time | Unlocks Wrong Machine | None |
 
 No current dialogue directly creates a Pig Kin unit. The post-recovery Mystic Cave scene introduces reconstruction, while the actual unit is produced by the Wrong Machine transaction.
@@ -200,3 +201,4 @@ Their older fixed Teeth bands, old material pools, faction unit pools, Roc Egg, 
 - Keep die grants synchronized with the Dice Material Catalog.
 - Do not treat inactive loot tables or legacy affix data as authority.
 - Keep algorithms, deterministic rolls, materialization, reconstruction transactions, and claim handling in system documentation.
+

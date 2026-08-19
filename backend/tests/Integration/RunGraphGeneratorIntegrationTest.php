@@ -306,13 +306,13 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $freshRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
 
     $this->assertSame(
-      ['mountains-archivist-first-contact', 'mountains-kobold-machine-trail', 'mountains-swamps-lead', 'mountains-traveler-consumable-gifts'],
+      ['mountains-archivist-first-contact', 'mountains-kobold-machine-trail', 'mountains-swamps-lead', 'mountains-llamaver-energy-gift'],
       array_column($freshRequests, 'dialogue_id'),
     );
     $this->assertSame(['start', 'before_boss', 'before_exit', 'random'], array_column($freshRequests, 'placement'));
-    $travelerRequest = $freshRequests[3];
-    $this->assertSame(['consumables'], $travelerRequest['completion_rewards']['feature_unlocks'] ?? []);
-    $this->assertSame('field_poultice', (string)($travelerRequest['completion_rewards']['item_grants'][0]['item_slug'] ?? ''));
+    $energyRequest = $freshRequests[3];
+    $this->assertSame(['consumables'], $energyRequest['completion_rewards']['feature_unlocks'] ?? []);
+    $this->assertSame('travel_ration', (string)($energyRequest['completion_rewards']['item_grants'][0]['item_slug'] ?? ''));
 
     $this->grantUnlock($userId, 'dialogue', 'mountains-archivist-first-contact');
     $repeatRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
@@ -320,9 +320,23 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertContains('mountains-wrong-machine-search-repeat', array_column($repeatRequests, 'dialogue_id'));
     $this->assertNotContains('mountains-archivist-first-contact', array_column($repeatRequests, 'dialogue_id'));
 
+    $this->grantUnlock($userId, 'dialogue', 'mountains-llamaver-energy-gift');
+    $healthRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
+    $this->assertNotContains('mountains-llamaver-energy-gift', array_column($healthRequests, 'dialogue_id'));
+    $this->assertContains('mountains-llamaver-health-gift', array_column($healthRequests, 'dialogue_id'));
+    $healthRequest = array_values(array_filter(
+      $healthRequests,
+      static fn(array $request): bool => ($request['dialogue_id'] ?? null) === 'mountains-llamaver-health-gift',
+    ))[0] ?? [];
+    $this->assertSame('field_poultice', (string)($healthRequest['completion_rewards']['item_grants'][0]['item_slug'] ?? ''));
+
     $this->grantUnlock($userId, 'feature', 'consumables');
     $postConsumablesRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
-    $this->assertNotContains('mountains-traveler-consumable-gifts', array_column($postConsumablesRequests, 'dialogue_id'));
+    $this->assertContains('mountains-llamaver-health-gift', array_column($postConsumablesRequests, 'dialogue_id'));
+
+    $this->grantUnlock($userId, 'dialogue', 'mountains-llamaver-health-gift');
+    $postHealthRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
+    $this->assertNotContains('mountains-llamaver-health-gift', array_column($postHealthRequests, 'dialogue_id'));
 
     $this->grantUnlock($userId, 'feature', 'wrong_machine');
     $recoveredRequests = $generator->buildDialoguePlacementRequests($userId, 'mountains');
@@ -381,9 +395,9 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
       ['dialogue_id' => 'mountains-kobold-machine-trail', 'placement' => 'before_boss', 'one_time' => true, 'tags' => ['lore']],
       ['dialogue_id' => 'mountains-swamps-lead', 'placement' => 'before_exit', 'one_time' => true, 'tags' => ['lore']],
       [
-        'dialogue_id' => 'mountains-traveler-consumable-gifts',
+        'dialogue_id' => 'mountains-llamaver-energy-gift',
         'placement' => 'random',
-        'one_time' => false,
+        'one_time' => true,
         'tags' => ['consumables'],
         'completion_rewards' => [
           'feature_unlocks' => ['consumables'],
@@ -400,12 +414,12 @@ final class RunGraphGeneratorIntegrationTest extends IntegrationTestCase
     $this->assertContains('mountains-archivist-first-contact', $dialogueIds);
     $this->assertContains('mountains-kobold-machine-trail', $dialogueIds);
     $this->assertContains('mountains-swamps-lead', $dialogueIds);
-    $this->assertContains('mountains-traveler-consumable-gifts', $dialogueIds);
+    $this->assertContains('mountains-llamaver-energy-gift', $dialogueIds);
     $this->assertNotContains('mountain_start', $dialogueIds);
     $this->assertSame('mountains-archivist-first-contact', (string)($graph['nodes'][$analysis['start_index']]['meta']['dialogue_id'] ?? ''));
     $this->assertDialogueImmediatelyPrecedes($graph, 'mountains-kobold-machine-trail', 'boss');
     $this->assertDialogueImmediatelyPrecedes($graph, 'mountains-swamps-lead', 'exit');
-    $this->assertSame(['consumables'], $this->dialogueNodeMeta($graph, 'mountains-traveler-consumable-gifts')['completion_rewards']['feature_unlocks'] ?? []);
+    $this->assertSame(['consumables'], $this->dialogueNodeMeta($graph, 'mountains-llamaver-energy-gift')['completion_rewards']['feature_unlocks'] ?? []);
     $this->assertTrue(isset($analysis['reachable_from_start'][$analysis['boss_index']]));
     $this->assertTrue(isset($analysis['reachable_from_boss'][$analysis['exit_index']]));
   }

@@ -54,7 +54,7 @@ Inventory storage, transaction handling, shop pricing, grant APIs, and consumpti
 
 | Key | Display name | Description | Category | Rarity | Effect | Use restrictions | Current acquisition |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `field_poultice` | Field Poultice | A quick wrap for patching up a wounded unit between encounters. | Consumable | Common | Restores `10` HP to one run unit. | Active run; outside unresolved combat; target must be wounded. | Guaranteed quantity `1` from first completion of `mountains-traveler-consumable-gifts`. |
+| `field_poultice` | Field Poultice | A quick wrap for patching up a wounded unit between encounters. | Consumable | Common | Restores `10` HP to one run unit. | Active run; outside unresolved combat; target must be wounded. | Guaranteed quantity `1` from first completion of `mountains-llamaver-health-gift`. |
 | `hearty_bone_broth` | Hearty Bone Broth | A stronger recovery draught that brings one run unit back from the edge. | Consumable | Uncommon | Restores `25` HP to one run unit. | Active run; outside unresolved combat; target must be wounded. | No canonical acquisition source currently defined. |
 
 Healing cannot exceed the unit's maximum HP. A healing consumable may restore a defeated run unit when the resulting HP is above zero.
@@ -63,19 +63,19 @@ Healing cannot exceed the unit's maximum HP. A healing consumable may restore a 
 
 | Key | Display name | Description | Category | Rarity | Effect | Use restrictions | Current acquisition |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `travel_ration` | Travel Ration | A packed bite that restores a small amount of energy before the next run. | Consumable | Common | Restores `10` Energy. | Energy must be below the player's current maximum. | Guaranteed quantity `1` from first completion of `mountains-traveler-consumable-gifts`. |
+| `travel_ration` | Travel Ration | A packed bite that restores a small amount of energy before the next run. | Consumable | Common | Restores `10` Energy. | Energy must be below the player's current maximum. | Guaranteed quantity `1` from first completion of `mountains-llamaver-energy-gift`. |
 | `sparkroot_tonic` | Sparkroot Tonic | A sharp tonic that restores a larger amount of energy without exceeding the current cap. | Consumable | Uncommon | Restores `25` Energy. | Energy must be below the player's current maximum. | No canonical acquisition source currently defined. |
 
 Energy restoration cannot exceed the player's current Energy cap.
 
 ## Consumable Introduction
 
-The dialogue **Far Gifts** introduces the consumable system through a lost traveler in the Mountains. Its first completion grants:
+Llamaver introduces the consumable system through two one-time traveler encounters in the Mountains:
 
-- Field Poultice ×1
-- Travel Ration ×1
+- **A Brightly Misplaced Supply** grants Travel Ration x1 and introduces energy restoration.
+- **The Other Useful Bundle** requires the first Llamaver encounter and grants Field Poultice x1 to introduce healing.
 
-The dialogue records a progression flag and normally cannot recur, so these are one-time introductory grants rather than renewable acquisition sources.
+Each dialogue records its own seen state and cannot recur, so these are one-time introductory grants rather than renewable acquisition sources.
 
 ## Item Category Summary
 

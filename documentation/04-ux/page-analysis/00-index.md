@@ -41,6 +41,7 @@ Public routes still render the global HUD, but with guest-safe behavior:
 
 ## Route Inventory
 
+- [figma-update-inventory.md](./figma-update-inventory.md)
 - [01-login.md](./01-login.md)
 - [02-guide-public.md](./02-guide-public.md)
 - [04-home.md](./04-home.md)

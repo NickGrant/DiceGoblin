@@ -278,11 +278,10 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
     $runId = $this->insertRun($userId, $regionId, 80818283);
     $nodeId = $this->insertRunNode($runId, 'dialogue', 'available');
     $meta = [
-      'dialogue_id' => 'mountains-traveler-consumable-gifts',
+      'dialogue_id' => 'mountains-llamaver-energy-gift',
       'completion_rewards' => [
         'feature_unlocks' => ['consumables'],
         'item_grants' => [
-          ['item_slug' => 'field_poultice', 'quantity' => 1],
           ['item_slug' => 'travel_ration', 'quantity' => 1],
         ],
       ],
@@ -306,7 +305,6 @@ final class BattleNodeResolutionIntegrationTest extends BattleFlowIntegrationCas
         [$userId, 'feature', 'consumables']
       )
     );
-    $this->assertSame(1, $this->ownedItemQuantity($userId, 'field_poultice'));
     $this->assertSame(1, $this->ownedItemQuantity($userId, 'travel_ration'));
   }
 

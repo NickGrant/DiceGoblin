@@ -91,16 +91,27 @@ final class RunGraphGenerator
     ],
     [
       'region_slug' => 'mountains',
-      'dialogue_id' => 'mountains-traveler-consumable-gifts',
+      'dialogue_id' => 'mountains-llamaver-energy-gift',
       'placement' => 'random',
-      'one_time' => false,
+      'one_time' => true,
       'tags' => ['consumables', 'traveler'],
-      'excludes_feature_unlock' => 'consumables',
       'completion_rewards' => [
         'feature_unlocks' => ['consumables'],
         'item_grants' => [
-          ['item_slug' => 'field_poultice', 'quantity' => 1],
           ['item_slug' => 'travel_ration', 'quantity' => 1],
+        ],
+      ],
+    ],
+    [
+      'region_slug' => 'mountains',
+      'dialogue_id' => 'mountains-llamaver-health-gift',
+      'placement' => 'random',
+      'one_time' => true,
+      'tags' => ['consumables', 'traveler'],
+      'requires_seen_dialogue' => 'mountains-llamaver-energy-gift',
+      'completion_rewards' => [
+        'item_grants' => [
+          ['item_slug' => 'field_poultice', 'quantity' => 1],
         ],
       ],
     ],

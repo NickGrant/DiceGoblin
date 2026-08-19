@@ -56,13 +56,14 @@ Repeat-run story inventory is designed around the expected number of opportuniti
 
 The current dialogue inventory contains:
 
-- **21 script ids**
-- **13 one-time scripts**
-- **5 conditional recurring scripts**
-- **3 recurring scripts**
-- **9 existing Lore Codex scripts**
-- **12 dialogue-only scripts**
-- **10 spoken participant identities**
+- **16** run-placement definitions
+- **17** script ids
+- **11** one-time scripts
+- **4** conditional recurring scripts
+- **2** recurring scripts
+- **9** Lore Codex scripts
+- **8** dialogue-only scripts
+- **9** spoken participant identities
 
 The Farm boss uses one placement that selects between its pre-Shop and post-Shop script states. Mountain and Swamp boss placements use ordered eligibility so only one boss conversation is selected per run.
 
@@ -122,33 +123,17 @@ The Farm boss uses one placement that selects between its pre-Shop and post-Shop
 | `mountains-chief-engineer-spark-confession` | The Unscheduled Output | On a later visit, the Chief Engineer admits that kobold experiments released one impossible spark before the Machine was transferred. | Before boss | Player Goblin, Kobold Chief Engineer | One-time | Requires `mountains-kobold-machine-recovered`; unavailable after completion | 0 | Reveals the likely source of the player's manifestation. | Dialogue only |
 | `mountains-chief-engineer-prior-custody` | Before the Workshop | The Chief Engineer reveals that The Archivist's records begin before kobold custody and that another group originally found the Machine. | Before boss | Player Goblin, Kobold Chief Engineer | Recurring | Requires `mountains-chief-engineer-spark-confession` | 0 | First completion establishes the later-biome finder hook; later uses rotate technical banter. | Dialogue only |
 | `mountains-swamps-lead` | Toward the Swamps | The Archivist names the Bog Tyrant as the Wrong Machine's guardian and warns the goblin away. | Before exit | Player Goblin, The Archivist | One-time | Available until completed once | 3 | Establishes the Swamps and Bog Tyrant as the next campaign objective. | Lore |
-| `mountains-traveler-consumable-gifts` | Far Gifts | A lost traveler mistakes the goblin for a mountain local and shares supplies from another road. | Random route position | Player Goblin, Far Traveler | One-time | Available until completed once | 0 | Grants Field Poultice ×1 and Travel Ration ×1. | Dialogue only |
-
-### Mountains Boss Sequence
-
-Before recovery, the boss placement selects:
-
-1. `mountains-kobold-machine-trail` for the first confrontation.
-2. `mountains-chief-engineer-containment-repeat` on later attempts while the Machine remains locked.
-
-After recovery, the placement selects in order:
-
-1. `mountains-kobold-machine-recovered`.
-2. `mountains-chief-engineer-spark-confession`.
-3. `mountains-chief-engineer-prior-custody`, which then remains the recurring Mountain boss conversation family.
-
-Only one boss conversation appears in a run.
+| `mountains-llamaver-energy-gift` | A Brightly Misplaced Supply | Llamaver mistakes the goblin for someone expected, or possibly unexpected, and shares an energy-restoring ration first. | Random route position | Player Goblin, Llamaver | One-time | Available until completed once | 0 | Unlocks consumables and grants Travel Ration x1. | Dialogue only |
+| `mountains-llamaver-health-gift` | The Other Useful Bundle | Llamaver remembers the second half of their helpful errand and offers a field poultice for wounded run units. | Random route position | Player Goblin, Llamaver | One-time | Requires `mountains-llamaver-energy-gift`; available until completed once | 0 | Grants Field Poultice x1. | Dialogue only |
 
 ### Mountains Narrative Requirements
 
-- The Chief Engineer is skittery, nerdy, technically capable, and frightened by the consequences of his own curiosity.
-- The canonical player-facing title is **Kobold Chief Engineer**. The legacy implementation key may remain `kobold_warchief` until data migration.
-- **The Chief Engineer's Record** establishes that The Archivist assigned the Machine to the kobolds for analysis. It does not yet reveal the spark or original finder.
-- **Controlled Conditions** rotates between containment devices, nervous denials, and warnings not to touch untested equipment.
-- **The Recovered Contraption** focuses on panic that the Machine is operating again and that The Archivist may inspect the original experiment.
-- **The Unscheduled Output** reveals that kobold experimentation released a single impossible spark. The Chief Engineer describes it as an unexpected successful output rather than a mistake.
-- **Before the Workshop** establishes that the kobolds were not the original finders. The current campaign does not name the earlier group.
-- **Toward the Swamps** makes clear that the Bog Tyrant guards the Machine from use, not merely theft.
+- **The Archivist Takes Notice** frames the Player Goblin as an error rather than a survivor and establishes The Archivist's detached but hostile voice.
+- **The High Pass Search** is a short recurring reminder. Its variants should rotate between dangerous route advice, evidence that the machine moved south, and signs that Library agents are closing in.
+- **Kobold Evidence** confirms that the machine is genuinely goblin-made and works precisely because it rejects stable construction.
+- **The Recovered Contraption** is a one-time milestone reaction. It should not recur on every Mountains visit after recovery.
+- **Toward the Swamps** escalates The Archivist's response and makes clear that the Bog Tyrant guards the machine from use, not merely theft.
+- **A Brightly Misplaced Supply** and **The Other Useful Bundle** are a two-part consumable tutorial. Llamaver is nonbinary, inattentive, and optimistic: they lose the thread, recover it cheerfully, and treat mistakes as promising discoveries. The first encounter introduces energy consumables and the second introduces health consumables. Each encounter's own seen state suppresses recurrence; the first encounter may still grant the consumables feature unlock needed by runtime systems.
 
 ## Swamps Dialogue
 
@@ -220,11 +205,12 @@ This deliberately limits the short pre-recovery window to two dialogue identitie
 | Mudking | Farm ruler, boss, and recurring antagonist | Farm boss scripts and Shop rescue |
 | The Tooth Collector | Economy character rescued from the Mudking | `farm-shop-unlock` |
 | The Archivist | Central order-aligned antagonist | `mountains-archivist-first-contact`, `mountains-swamps-lead` |
-| Kobold Scout | Route informant | `mountains-wrong-machine-search-repeat` |
-| Kobold Chief Engineer | Mountain boss, technical authority, and keeper of the experiment's secret | All Mountain boss scripts |
-| Far Traveler | Neutral visitor who introduces consumables | `mountains-traveler-consumable-gifts` |
-| Bog Tyrant | Swamp ruler, Wrong Machine jailer, and recurring boss | All Swamp scripts |
-| The Wrong Machine | Active scene object only; never a speaking participant | — |
+| Kobold Scout | Recurring route informant | `mountains-wrong-machine-search-repeat` |
+| Kobold Sentry | Technical witness to the Wrong Machine trail | `mountains-kobold-machine-trail`, `mountains-kobold-machine-recovered` |
+| Llamaver | Nonbinary, inattentive, optimistic traveler who introduces consumables | `mountains-llamaver-energy-gift`, `mountains-llamaver-health-gift` |
+| Bog Tyrant | Swamp ruler, Wrong Machine jailer, and recurring boss | All four Swamps scripts |
+
+The Wrong Machine is an active scene object but not a speaking participant in the current campaign.
 
 ## Player Voice Choice Policy
 
@@ -255,28 +241,65 @@ These are voice choices only and reconverge inside the current scene.
 
 | Dialogue family | Minimum variants | Required variation topics |
 | --- | ---: | --- |
-| `mystic-cave-wrong-machine-reminder` | 3 | Impossible behavior; The Whim's impatience; warning not to climb inside. |
-| `farm-boss-intro-shop-unlocked` | 3 | Prior damage; ineffective defenses; resentment over the Collector and teeth. |
-| `mountains-wrong-machine-search-repeat` | 3 | Trapped routes; technical evidence; Library inspectors approaching. |
-| `mountains-chief-engineer-containment-repeat` | 3 | Untested containment; nervous denials; hazardous workshop etiquette. |
-| `mountains-chief-engineer-prior-custody` | 3 | Incomplete records; original finder clues; curiosity about the active Machine. |
-| `swamps-bog-tyrant-machine-defense-repeat` | 3 | Continued guard duty; fear of another incident; direct threats. |
-| `swamps-bog-tyrant-before-kobolds` | 3 | Original finder refusal; lost authority; swamp instability and revenge. |
+| `mystic-cave-wrong-machine-reminder` | 3 | The machine's impossible behavior; The Whim's impatience; a warning not to climb inside it. |
+| `farm-boss-intro-shop-unlocked` | 3 | Damage from prior visits; new but ineffective defenses; Mudking's resentment over the Tooth Collector and hidden teeth. |
+| `mountains-wrong-machine-search-repeat` | 3 | Trapped or unstable routes; tool marks leading south; Library agents or inspectors approaching. |
+| `swamps-bog-tyrant-machine-defense-repeat` | 3 | Continued containment duty; failed attempts to stabilize the machine; growing fear that goblins will reclaim it. |
+| `swamps-bog-tyrant-rematch` | 3 | Lost authority; swamp instability after recovery; personal humiliation and revenge. |
 
-## Story Revelation Ladder
+The conditional pre-Shop Farm confrontation may use one shortened reprise after the introductory exchange if the player returns before unlocking the Shop.
 
-The Wrong Machine history should become clear in this order:
+Recurring variants should be shorter than milestone scenes and must not repeatedly deliver information the player has already canonically learned.
 
-1. The Machine is goblin-made and dangerous but functional.
-2. The Archivist possessed it and assigned it to the kobolds for controlled study.
-3. The kobolds experimented beyond their instructions.
-4. The Machine produced or released one impossible spark.
-5. The Whim used that spark to manifest the player.
-6. The frogmen received the Machine to keep it physically contained.
-7. The Archivist obtained the Machine from an earlier group that originally found it.
-8. A later biome introduces that group and completes the earlier custody story.
+## Lore Codex Entries
 
-No current single conversation should deliver the entire ladder.
+The following nine scripts are canonical Lore Codex entries:
+
+| Dialogue key | Lore title | Discovery condition |
+| --- | --- | --- |
+| `start-run-kickoff` | The Whim's First Fragment | Complete the dialogue. |
+| `mystic-cave-wrong-machine-recovered` | The Machine Comes Home | Complete the one-time reaction after recovering the Wrong Machine. |
+| `farm-shop-unlock` | The Tooth Collector Freed | Complete the Farm rescue dialogue. |
+| `mountains-archivist-first-contact` | The Archivist Takes Notice | Complete the first-contact dialogue. |
+| `mountains-kobold-machine-trail` | Kobold Evidence | Complete the one-time machine-trail dialogue. |
+| `mountains-kobold-machine-recovered` | The Recovered Contraption | Complete the one-time kobold reaction after recovery. |
+| `mountains-swamps-lead` | Toward the Swamps | Complete the Mountains exit dialogue. |
+| `swamps-bog-tyrant-first-confrontation` | Contraband of the Bog | Complete the first Bog Tyrant confrontation. |
+| `swamps-wrong-machine-recovered` | The Wrong Machine Reclaimed | Complete the Swamps recovery dialogue. |
+
+The other eight script ids are valid dialogue content but are not Lore pages. Completing them creates seen-state records only.
+
+## Completion Rewards
+
+| Dialogue | Permanent progression | Items |
+| --- | --- | --- |
+| `mountains-llamaver-energy-gift` | Unlocks consumables; one-time completion recorded by the dialogue's own seen state | Travel Ration x1 |
+| `mountains-llamaver-health-gift` | One-time completion recorded by the dialogue's own seen state | Field Poultice x1 |
+| `swamps-wrong-machine-recovered` | Unlocks the Wrong Machine | None |
+
+No generic dialogue-completion key should be exposed as a player-facing feature unless that feature has its own canonical content definition.
+
+## Narrative Continuity Rules
+
+- The Tooth Collector cannot speak as a rescued hub character before `farm-shop-unlock` is complete.
+- The Archivist first addresses the player in `mountains-archivist-first-contact`; later Archivist dialogue assumes that contact.
+- No dialogue may state that the Wrong Machine is broken or malfunctioning. Its name is a proper name and its impossible operation is intentional.
+- Pre-recovery dialogue treats the machine as controlled by the Bog Tyrant. Post-recovery dialogue treats it as permanently returned to goblin control.
+- The Bog Tyrant remains available as a recurring regional ruler after defeat.
+- The Wrong Machine does not speak in the current campaign.
+- Completing a recurring dialogue does not make it a Lore entry unless explicitly listed above.
+
+## Resolved Content Decisions
+
+- The Farm boss scripts now have authored titles and summaries.
+- The Player Goblin speaks in the Tooth Collector rescue scene.
+- The Swamps now have a complete confrontation, failed-attempt, recovery, and rematch sequence.
+- Wrong Machine recovery is a one-time Swamps milestone rather than an off-screen feature award.
+- The Whim and kobold post-recovery reactions are one-time milestone scenes.
+- Llamaver's consumable introduction is split into energy first, then health, and both scenes use their own seen state for suppression.
+- Current choices are canonically voice-only and non-persistent.
+- Recurring dialogue requires authored variation pools.
+- Lore ownership is explicit and is not inferred from generic dialogue seen state.
 
 ## Maintenance Notes
 

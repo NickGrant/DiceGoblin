@@ -1,9 +1,9 @@
 {
   "scripts": [
     {
-      "id": "mountains-traveler-consumable-gifts",
-      "title": "Far Gifts",
-      "summary": "A lost traveler mistakes the goblin for a mountain local and shares supplies from another road.",
+      "id": "mountains-llamaver-energy-gift",
+      "title": "A Brightly Misplaced Supply",
+      "summary": "Llamaver mistakes the goblin for someone expected, or possibly unexpected, and shares an energy-restoring ration first.",
       "tags": ["consumables", "traveler"],
       "trigger": {
         "scene": "run-dialogue",
@@ -22,56 +22,131 @@
           "role": "player"
         },
         {
-          "id": "traveler",
+          "id": "llamaver",
           "side": "right",
-          "name": "Far Traveler",
-          "portrait_url": "/assets/ui/units/animated/goblin/frogman/frame_0.png",
+          "name": "Llamaver",
+          "portrait_url": "/assets/ui/units/animated/llamaver/frame_0.png",
           "party": "neutral",
           "role": "npc"
         }
       ],
-      "start_step_id": "traveler-hail",
+      "start_step_id": "llamaver-oh-good",
       "steps": [
         {
-          "id": "traveler-hail",
-          "speaker_id": "traveler",
-          "text": "Hello there, small mountain local. I seem to have taken a heroic number of wrong turns.",
-          "next_step_id": "player-local"
+          "id": "llamaver-oh-good",
+          "speaker_id": "llamaver",
+          "text": "Oh good, you found me. Or I found this ridge. Either way, tremendous progress.",
+          "next_step_id": "player-found"
         },
         {
-          "id": "player-local",
+          "id": "player-found",
           "speaker_id": "player",
-          "text": "I am a goblin.",
-          "next_step_id": "traveler-kind"
+          "text": "Were you looking for me?",
+          "next_step_id": "llamaver-considers"
         },
         {
-          "id": "traveler-kind",
-          "speaker_id": "traveler",
-          "text": "Is that a kind of local? Wonderful. I was told locals are good luck if treated politely.",
-          "next_step_id": "player-gifts"
+          "id": "llamaver-considers",
+          "speaker_id": "llamaver",
+          "text": "I was looking for the next helpful person. You are next, and possibly helpful. Splendid fit.",
+          "next_step_id": "player-gift"
         },
         {
-          "id": "player-gifts",
+          "id": "player-gift",
           "speaker_id": "player",
-          "text": "Polite locals often receive gifts.",
-          "next_step_id": "traveler-supplies"
+          "text": "Helpful people give things.",
+          "next_step_id": "llamaver-ration"
         },
         {
-          "id": "traveler-supplies",
-          "speaker_id": "traveler",
-          "text": "Then please accept these. A field poultice for wounds and a travel ration for weary bones.",
+          "id": "llamaver-ration",
+          "speaker_id": "llamaver",
+          "text": "Yes, exactly. Here, an energizing travel ration. I packed it for a climb, or a nap, or both in the wrong order.",
+          "next_step_id": "player-energy"
+        },
+        {
+          "id": "player-energy",
+          "speaker_id": "player",
+          "text": "I will spend it incorrectly.",
+          "next_step_id": "llamaver-best"
+        },
+        {
+          "id": "llamaver-best",
+          "speaker_id": "llamaver",
+          "text": "Wonderful. Incorrect use is often how maps learn new roads."
+        }
+      ]
+    },
+    {
+      "id": "mountains-llamaver-health-gift",
+      "title": "The Other Useful Bundle",
+      "summary": "Llamaver remembers the second half of their helpful errand and offers a field poultice for wounded run units.",
+      "tags": ["consumables", "traveler"],
+      "trigger": {
+        "scene": "run-dialogue",
+        "node_type": "dialogue",
+        "region_slug": "mountains",
+        "tags": ["consumables"]
+      },
+      "presentation": {
+        "background_url": "/assets/ui/biome/mountain.png"
+      },
+      "speakers": [
+        {
+          "id": "player",
+          "side": "left",
+          "party": "player",
+          "role": "player"
+        },
+        {
+          "id": "llamaver",
+          "side": "right",
+          "name": "Llamaver",
+          "portrait_url": "/assets/ui/units/animated/llamaver/frame_0.png",
+          "party": "neutral",
+          "role": "npc"
+        }
+      ],
+      "start_step_id": "llamaver-there-you-are",
+      "steps": [
+        {
+          "id": "llamaver-there-you-are",
+          "speaker_id": "llamaver",
+          "text": "There you are. I remembered the thing I forgot, which means I almost did not forget it.",
+          "next_step_id": "player-thing"
+        },
+        {
+          "id": "player-thing",
+          "speaker_id": "player",
+          "text": "Give me the thing before you forget again.",
+          "next_step_id": "llamaver-wise"
+        },
+        {
+          "id": "llamaver-wise",
+          "speaker_id": "llamaver",
+          "text": "Wise. Direct. A little alarming. This bundle patches wounds when the road gets too enthusiastic.",
+          "next_step_id": "player-health"
+        },
+        {
+          "id": "player-health",
+          "speaker_id": "player",
+          "text": "The road has been biting.",
+          "next_step_id": "llamaver-poultice"
+        },
+        {
+          "id": "llamaver-poultice",
+          "speaker_id": "llamaver",
+          "text": "Then this field poultice is perfectly timed, unless it was meant for yesterday. Still useful. Probably fresher than yesterday.",
           "next_step_id": "player-accept"
         },
         {
           "id": "player-accept",
           "speaker_id": "player",
-          "text": "I will be extremely local with them.",
-          "next_step_id": "traveler-farewell"
+          "text": "Good. I like useful maybe-medicine.",
+          "next_step_id": "llamaver-bright"
         },
         {
-          "id": "traveler-farewell",
-          "speaker_id": "traveler",
-          "text": "Splendid. If anyone asks, I was never lost. I was expanding the map."
+          "id": "llamaver-bright",
+          "speaker_id": "llamaver",
+          "text": "That is the spirit. Keep enough of yourself attached to enjoy the view."
         }
       ]
     }

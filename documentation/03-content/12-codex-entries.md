@@ -117,9 +117,9 @@ Implementation-only splice records are not Codex content unless first added to t
 | --- | --- | --- |
 | `pig_ear` | Pig Ear | Own at least one. |
 | `mudking_crown_fragment` | Mudking Crown Fragment | Own at least one. |
-| `field_poultice` | Field Poultice | Own at least one; first available through Far Gifts. |
+| `field_poultice` | Field Poultice | Own at least one; first available through Llamaver's health gift. |
 | `hearty_bone_broth` | Hearty Bone Broth | Own at least one. |
-| `travel_ration` | Travel Ration | Own at least one; first available through Far Gifts. |
+| `travel_ration` | Travel Ration | Own at least one; first available through Llamaver's energy gift. |
 | `sparkroot_tonic` | Sparkroot Tonic | Own at least one. |
 
 Roc Egg and Gator Head are obsolete records and are not current entries.
@@ -209,7 +209,8 @@ These remain dialogue without Lore pages:
 - `farm-boss-intro`
 - `farm-boss-intro-shop-unlocked`
 - `mountains-wrong-machine-search-repeat`
-- `mountains-traveler-consumable-gifts`
+- `mountains-llamaver-energy-gift`
+- `mountains-llamaver-health-gift`
 - `swamps-bog-tyrant-machine-defense-repeat`
 - `swamps-bog-tyrant-rematch`
 
@@ -236,7 +237,7 @@ These remain dialogue without Lore pages:
 - Later Pig Kin reconstructions must not create duplicate Codex awards.
 - Material synchronization uses the 32 canonical material keys, not rarity or affixes.
 - One material page is awarded per material regardless of die size.
-- Field Poultice and Travel Ration have first-discovery paths through Far Gifts; Hearty Bone Broth and Sparkroot Tonic still need acquisition sources.
+- Field Poultice and Travel Ration have first-discovery paths through Llamaver's two consumable gifts; Hearty Bone Broth and Sparkroot Tonic still need acquisition sources.
 
 ## Open Questions
 
