@@ -1,10 +1,14 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ObjectiveRecord, ProfileData, RegionRecord, UnitRecord } from '../../core/models/api.models';
+import { CurrentRunData, ObjectiveRecord, ProfileData, RegionRecord, UnitRecord } from '../../core/models/api.models';
 import { SessionService } from '../../core/services/session/session.service';
-import { isDevPanelEnabled } from '../../core/config/runtime-config';
+import { RunService } from '../../core/services/run/run.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { UnitBarComponent } from '../../shared/ui/unit-bar/unit-bar.component';
+import { DgChipDirective } from '../../shared/ui/dg-chip/dg-chip.directive';
+import { DgProgressComponent } from '../../shared/ui/dg-progress/dg-progress.component';
+import { UnitThumbnailComponent } from '../../shared/ui/unit-thumbnail/unit-thumbnail.component';
+import { resolveRunRegionBackgroundUrl } from '../../core/regions/region-catalog';
+import { formatUnitKinLabel } from '../../shared/utils/unit-formatters';
 
 type DashboardAction = {
   eyebrow: string;
@@ -14,22 +18,40 @@ type DashboardAction = {
   cta: string;
 };
 
+type CommandTile = {
+  label: string;
+  detail: string;
+  route: string;
+  icon: string;
+};
+
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [RouterLink, PageFrameComponent, UnitBarComponent],
+  imports: [RouterLink, PageFrameComponent, DgChipDirective, DgProgressComponent, UnitThumbnailComponent],
   templateUrl: './home-page.component.html',
   styleUrl: './home-page.component.scss',
 })
 export class HomePageComponent {
   private readonly sessionService = inject(SessionService);
+  private readonly runService = inject(RunService);
+  private loadedRunId: string | null = null;
+
   readonly profileData = this.sessionService.profileData;
+  readonly profile = this.sessionService.profile;
+  readonly session = this.sessionService.session;
   readonly shopUnlocked = this.sessionService.shopUnlocked;
   readonly academyUnlocked = this.sessionService.academyUnlocked;
+  readonly wrongMachineUnlocked = this.sessionService.wrongMachineUnlocked;
   readonly hasActiveRun = this.sessionService.hasActiveRun;
   readonly activeSquad = this.sessionService.activeSquad;
+  readonly squadUnitCap = this.sessionService.squadUnitCap;
   readonly units = this.sessionService.units;
-  readonly devPanelEnabled = isDevPanelEnabled();
+  readonly dice = this.sessionService.dice;
+  readonly currentRunData = signal<CurrentRunData | null>(null);
+  readonly runProgressLoading = signal(false);
+  readonly runProgressError = signal<string | null>(null);
+
   readonly primaryRoute = computed(() => (this.hasActiveRun() ? '/run/map' : '/regions'));
   readonly subtitle = computed(() =>
     this.hasActiveRun()
@@ -44,6 +66,40 @@ export class HomePageComponent {
       .filter((unit): unit is NonNullable<typeof unit> => unit !== null);
   });
   readonly activeRun = computed(() => this.profileData()?.active_run ?? null);
+  readonly heroBackgroundUrl = computed(() =>
+    resolveRunRegionBackgroundUrl(this.activeRun()) ?? '/assets/ui/biome/mystic_cave.png',
+  );
+  readonly heroRegionLabel = computed(() => this.biomeLabel(this.activeRun()?.region_name ?? this.activeRun()?.region_slug));
+  readonly heroTitle = computed(() =>
+    this.hasActiveRun() ? `Raid the ${this.heroRegionLabel()}` : 'Choose the Next Raid',
+  );
+  readonly heroEyebrow = computed(() => (this.hasActiveRun() ? 'Active Run' : 'Camp Ready'));
+  readonly heroCta = computed(() => (this.hasActiveRun() ? 'Continue Run' : 'Start Run'));
+  readonly heroEnergyLabel = computed(() => {
+    const cost = this.activeRun()?.energy_cost;
+    return typeof cost === 'number' ? `${cost} energy cost` : 'Energy ready';
+  });
+  readonly runNodeLabel = computed(() => {
+    if (!this.hasActiveRun()) {
+      return 'No active run';
+    }
+
+    const nodes = this.currentRunData()?.map?.nodes ?? [];
+    if (this.runProgressLoading() && !nodes.length) {
+      return 'Loading nodes';
+    }
+    if (!nodes.length) {
+      return 'Node --/--';
+    }
+
+    const sorted = [...nodes].sort((left, right) => left.node_index - right.node_index);
+    const current = sorted.find((node) => node.status === 'available')
+      ?? sorted.find((node) => node.status !== 'cleared')
+      ?? sorted.at(-1);
+    const currentPosition = current ? sorted.indexOf(current) + 1 : 1;
+
+    return `Node ${currentPosition}/${sorted.length}`;
+  });
   readonly profileObjectives = computed(() => this.profileData()?.objectives ?? []);
   readonly currentObjective = computed(
     () => this.profileObjectives().find((objective) => objective.status !== 'complete') ?? null,
@@ -82,10 +138,120 @@ export class HomePageComponent {
     const featureUnlockCount = this.profileData()?.feature_unlocks?.length ?? 0;
     return `${featureUnlockCount} features unlocked`;
   });
+  readonly commandTiles = computed<CommandTile[]>(() => [
+    {
+      label: 'Warband',
+      detail: `${this.units().length} units recruited`,
+      route: '/warband',
+      icon: '/assets/ui/icons/icon_warband.png',
+    },
+    {
+      label: 'Inventory',
+      detail: `${this.dice().length} dice`,
+      route: '/dice',
+      icon: '/assets/ui/icons/icon_inventory.png',
+    },
+    {
+      label: 'Shop',
+      detail: 'Tooth Collector',
+      route: '/shop',
+      icon: '/assets/ui/icons/icon_shop.png',
+    },
+    {
+      label: 'Academy',
+      detail: `${this.sessionService.unitTypeUnlocks().length} unlocks made`,
+      route: '/academy',
+      icon: '/assets/ui/icons/icon_guide.png',
+    },
+    {
+      label: 'Wrong Machine',
+      detail: 'Pig Kin results',
+      route: '/wrong-machine',
+      icon: '/assets/ui/icons/icon_encounter_locked.png',
+    },
+    {
+      label: 'Codex',
+      detail: 'Lore & records',
+      route: '/codex',
+      icon: '/assets/ui/icons/icon_guide.png',
+    },
+  ]);
+
+  constructor() {
+    effect(() => {
+      const runId = this.activeRun()?.run_id ?? null;
+      if (!runId) {
+        this.loadedRunId = null;
+        this.currentRunData.set(null);
+        this.runProgressError.set(null);
+        this.runProgressLoading.set(false);
+        return;
+      }
+
+      if (this.loadedRunId === runId) {
+        return;
+      }
+
+      this.loadedRunId = runId;
+      void this.loadCurrentRun(runId);
+    });
+  }
 
   rewardLabelForUnitCount(): string {
     const count = this.activeSquadUnits().length;
     return `${count} ${count === 1 ? 'raider' : 'raiders'} ready`;
+  }
+
+  unitHp(unit: UnitRecord): number {
+    return Math.max(0, unit.current_hp ?? unit.max_hp ?? 0);
+  }
+
+  unitXpToNext(unit: UnitRecord): number {
+    return Math.max(0, unit.xp_to_next_level ?? 0);
+  }
+
+  unitXpMax(unit: UnitRecord): number {
+    const xp = Math.max(0, unit.xp ?? 0);
+    return xp + this.unitXpToNext(unit);
+  }
+
+  unitKinLabel(unit: UnitRecord): string {
+    return formatUnitKinLabel(unit);
+  }
+
+  rawChaosBalance(): number {
+    return this.profileData()?.currency.raw_chaos ?? 0;
+  }
+
+  private async loadCurrentRun(runId: string): Promise<void> {
+    this.runProgressLoading.set(true);
+    this.runProgressError.set(null);
+
+    try {
+      const response = await this.runService.getCurrentRun();
+      if (this.loadedRunId !== runId) {
+        return;
+      }
+
+      if (response.ok) {
+        this.currentRunData.set(response.data);
+        return;
+      }
+
+      this.currentRunData.set(null);
+      this.runProgressError.set(response.error.message);
+    } catch (error) {
+      if (this.loadedRunId !== runId) {
+        return;
+      }
+
+      this.currentRunData.set(null);
+      this.runProgressError.set(error instanceof Error ? error.message : 'Unable to load run progress.');
+    } finally {
+      if (this.loadedRunId === runId) {
+        this.runProgressLoading.set(false);
+      }
+    }
   }
 
   private resolveNextProgressionAction(): DashboardAction {
@@ -237,5 +403,14 @@ export class HomePageComponent {
     }
 
     return 'Choose Region';
+  }
+
+  private biomeLabel(value: string | null | undefined): string {
+    const normalized = (value ?? 'Mystic Cave')
+      .replace(/^the[\s_-]+/i, '')
+      .replace(/[_-]+/g, ' ')
+      .trim();
+
+    return normalized || 'Mystic Cave';
   }
 }

@@ -2,7 +2,15 @@ import { TitleCasePipe } from '@angular/common';
 import { Component, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BattlePlaybackActionStep, BattlePlaybackParticipant, BattlePlaybackSnapshot } from '../../core/battle-playback/battle-playback.models';
-import { ChaosEncounterData, ChaosFinalizeData, CurrentRunNode, ResolveNodeData, UnitRecord } from '../../core/models/api.models';
+import {
+  ChaosEncounterData,
+  ChaosFinalizeData,
+  CurrentRunNode,
+  ResolveNodeData,
+  RewardPreviewDice,
+  RewardPreviewUnit,
+  UnitRecord,
+} from '../../core/models/api.models';
 import { AbilityCatalogService } from '../../core/services/ability-catalog/ability-catalog.service';
 import { BattlePlaybackAdapterService } from '../../core/services/battle-playback/battle-playback-adapter.service';
 import { RunService } from '../../core/services/run/run.service';
@@ -10,11 +18,11 @@ import { SessionService } from '../../core/services/session/session.service';
 import { resolveRegionBackgroundUrl } from '../../core/regions/region-catalog';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { UnitGridObjectProgressBar } from '../../shared/ui/unit-grid-object/unit-grid-object.component';
 import { resolvePrototypeEnemySpriteUrl, resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 import { resolveUnitAnimationFrameUrls } from '../../shared/ui/unit-art/unit-art';
 import { resolveNodeArtUrl } from '../../shared/ui/node-art/node-art';
+import { formatUnitKinLabel } from '../../shared/utils/unit-formatters';
 
 const AUTO_RESOLVE_NODE_TYPES = new Set(['combat', 'boss', 'shrine', 'hazard']);
 
@@ -82,12 +90,33 @@ type BattleRunEffectViewModel = {
   detail: string;
 };
 
+type CombatSummaryUnitViewModel = {
+  id: string;
+  name: string;
+  currentHp: number;
+  maxHp: number;
+  hpPercent: number;
+  xpLabel: string;
+  statusLabel: string;
+  isDefeated: boolean;
+};
+
+type CombatSummaryRewardViewModel = {
+  id: string;
+  kind: 'teeth' | 'dice' | 'unit' | 'item' | 'codex';
+  label: string;
+  detail: string;
+};
+
 @Component({
   selector: 'app-run-node-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RouterLink, TitleCasePipe],
+  imports: [DgAlertComponent, DgCommandBtnDirective, RouterLink, TitleCasePipe],
   templateUrl: './run-node-page.component.html',
   styleUrl: './run-node-page.component.scss',
+  host: {
+    '[attr.data-page]': "'run-node'",
+  },
 })
 export class RunNodePageComponent implements OnDestroy {
   private static readonly BATTLE_TITLE = 'BATTLE!';
@@ -121,6 +150,7 @@ export class RunNodePageComponent implements OnDestroy {
   readonly playbackSpeed = signal(1);
   readonly actionTransitioning = signal(false);
   readonly combatAnimationFrameIndex = signal(0);
+  readonly combatResultModalOpen = signal(true);
   readonly shouldAutoResolve = computed(() => AUTO_RESOLVE_NODE_TYPES.has(this.nodeType() ?? ''));
   readonly isChaosNode = computed(() => this.nodeType() === 'chaos');
   readonly canManuallyResolve = computed(() => {
@@ -498,6 +528,18 @@ export class RunNodePageComponent implements OnDestroy {
   readonly battleOutcomeLabel = computed(() => this.humanizeId(this.result()?.battle.outcome ?? 'pending'));
   readonly battleStatusLabel = computed(() => this.humanizeId(this.result()?.battle.status ?? 'pending'));
   readonly battleRunEffects = computed<BattleRunEffectViewModel[]>(() => this.buildBattleRunEffects());
+  readonly combatSummaryUnits = computed<CombatSummaryUnitViewModel[]>(() => this.buildCombatSummaryUnits());
+  readonly combatSummaryRewards = computed<CombatSummaryRewardViewModel[]>(() => this.buildCombatSummaryRewards());
+  readonly combatSummaryEyebrow = computed(() => this.result()?.battle.outcome === 'victory' ? 'Victory' : 'Defeated');
+  readonly combatSummaryTitle = computed(() => this.result()?.battle.outcome === 'victory' ? 'Combat Won!' : 'Combat Lost');
+  readonly combatSummarySubtitle = computed(() => {
+    if (this.result()?.battle.outcome !== 'victory') {
+      return `Overwhelmed by ${this.oppositionSummary()}`;
+    }
+
+    return `${this.defeatedEnemyCount()} ${this.oppositionSummary()} Defeated`;
+  });
+  readonly combatSummaryContinueLabel = computed(() => this.busy() ? 'Working...' : 'Continue');
   private playbackTimer: ReturnType<typeof window.setTimeout> | null = null;
   private actionTransitionTimer: ReturnType<typeof window.setTimeout> | null = null;
   private combatAnimationTimer: ReturnType<typeof window.setInterval> | null = null;
@@ -576,6 +618,9 @@ export class RunNodePageComponent implements OnDestroy {
         return;
       }
       this.result.set(response.data);
+      if (this.isCombatLikeNodeType(response.data.battle.reward_preview?.node_type ?? this.nodeType())) {
+        this.combatResultModalOpen.set(true);
+      }
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to resolve node.');
     } finally {
@@ -688,6 +733,19 @@ export class RunNodePageComponent implements OnDestroy {
 
   async declineShrineOffer(): Promise<void> {
     await this.claimRewards('decline');
+  }
+
+  closeCombatResultModal(): void {
+    this.combatResultModalOpen.set(false);
+    this.playbackPaused.set(true);
+    this.clearPlaybackTimer();
+    this.clearCombatAnimationTimer();
+  }
+
+  openCombatResultModal(): void {
+    this.combatResultModalOpen.set(true);
+    this.playbackPaused.set(false);
+    this.setBattleView('acted');
   }
 
   setBattleView(mode: BattleViewMode): void {
@@ -916,6 +974,151 @@ export class RunNodePageComponent implements OnDestroy {
     return runEffects;
   }
 
+  private buildCombatSummaryUnits(): CombatSummaryUnitViewModel[] {
+    const snapshot = this.battlePlaybackSnapshot();
+    if (!snapshot || !this.isCombatLikeNodeType(this.resolvedNodeType())) {
+      return [];
+    }
+
+    const hpByParticipant = new Map<string, number>();
+    for (const participant of snapshot.participants.player) {
+      hpByParticipant.set(participant.participantId, participant.startingHp || participant.maxHp);
+    }
+    const playerIds = new Set(snapshot.participants.player.map((participant) => participant.participantId));
+
+    for (const step of snapshot.timeline) {
+      if (step.actor.participantId && playerIds.has(step.actor.participantId)) {
+        hpByParticipant.set(step.actor.participantId, step.actor.currentHp);
+      }
+      if (step.target.participantId && playerIds.has(step.target.participantId)) {
+        hpByParticipant.set(step.target.participantId, step.target.currentHp);
+      }
+    }
+
+    const xpLabel = this.combatXpLabel();
+    return snapshot.participants.player.map((participant) => {
+      const currentHp = Math.max(0, hpByParticipant.get(participant.participantId) ?? participant.startingHp ?? participant.maxHp);
+      const maxHp = Math.max(1, participant.maxHp);
+      return {
+        id: participant.participantId,
+        name: participant.name,
+        currentHp,
+        maxHp,
+        hpPercent: Math.round((Math.min(currentHp, maxHp) / maxHp) * 100),
+        xpLabel: currentHp <= 0 ? 'Dead' : xpLabel,
+        statusLabel: currentHp <= 0 ? 'DEAD' : `${currentHp}/${maxHp}`,
+        isDefeated: currentHp <= 0,
+      };
+    });
+  }
+
+  private buildCombatSummaryRewards(): CombatSummaryRewardViewModel[] {
+    const preview = this.result()?.battle.reward_preview;
+    if (!preview) {
+      return [];
+    }
+
+    const rewards: CombatSummaryRewardViewModel[] = [];
+    if ((preview.currency_soft ?? 0) > 0) {
+      rewards.push({
+        id: 'teeth',
+        kind: 'teeth',
+        label: `${preview.currency_soft}`,
+        detail: 'Teeth',
+      });
+    }
+
+    const dice = preview.dice?.length
+      ? preview.dice
+      : (preview.new_dice_labels ?? []).map((label) => this.diceRewardFromLabel(label));
+    for (const [index, die] of dice.entries()) {
+      rewards.push({
+        id: die.dice_instance_id ?? `die-${index}-${die.label}`,
+        kind: 'dice',
+        label: die.label,
+        detail: this.formatAffixNames(die.affixes) ?? this.humanizeId(die.rarity || 'dice'),
+      });
+    }
+
+    const units = preview.units?.length
+      ? preview.units
+      : (preview.new_unit_labels ?? []).map((label) => this.unitRewardFromLabel(label));
+    for (const [index, unit] of units.entries()) {
+      rewards.push({
+        id: unit.unit_instance_id ?? `unit-${index}-${unit.name}`,
+        kind: 'unit',
+        label: unit.name,
+        detail: `${unit.unit_type_name || 'Unit'} - ${formatUnitKinLabel(unit)}`,
+      });
+    }
+
+    for (const [index, item] of (preview.items ?? []).entries()) {
+      rewards.push({
+        id: `${item.item_slug}-${index}`,
+        kind: 'item',
+        label: `${item.quantity} ${item.name}`,
+        detail: item.rarity ? this.humanizeId(item.rarity) : 'Item',
+      });
+    }
+
+    const codexRewards = (preview as Record<string, unknown>)['codex'];
+    const codexEntries = Array.isArray(codexRewards) ? codexRewards : [];
+    for (const [index, entry] of codexEntries.entries()) {
+      const record = entry && typeof entry === 'object' && !Array.isArray(entry)
+        ? entry as Record<string, unknown>
+        : {};
+      const entryKey = typeof record['entry_key'] === 'string' ? record['entry_key'] : String(index);
+      const label = typeof record['label'] === 'string' ? record['label'] : this.humanizeId(entryKey);
+      rewards.push({
+        id: `codex-${index}-${entryKey}`,
+        kind: 'codex',
+        label,
+        detail: 'Codex Page',
+      });
+    }
+
+    return rewards;
+  }
+
+  private combatXpLabel(): string {
+    const xp = this.result()?.battle.reward_preview?.xp_total ?? 0;
+    return xp > 0 ? `+${xp} XP` : 'XP pending';
+  }
+
+  private defeatedEnemyCount(): number {
+    const snapshot = this.battlePlaybackSnapshot();
+    if (!snapshot) {
+      return 0;
+    }
+
+    const hpByParticipant = new Map<string, number>();
+    for (const participant of snapshot.participants.enemy) {
+      hpByParticipant.set(participant.participantId, participant.startingHp || participant.maxHp);
+    }
+    const enemyIds = new Set(snapshot.participants.enemy.map((participant) => participant.participantId));
+
+    for (const step of snapshot.timeline) {
+      if (step.actor.participantId && enemyIds.has(step.actor.participantId)) {
+        hpByParticipant.set(step.actor.participantId, step.actor.currentHp);
+      }
+      if (step.target.participantId && enemyIds.has(step.target.participantId)) {
+        hpByParticipant.set(step.target.participantId, step.target.currentHp);
+      }
+    }
+
+    return Array.from(hpByParticipant.values()).filter((hp) => hp <= 0).length;
+  }
+
+  private oppositionSummary(): string {
+    const enemies = this.battlePlaybackSnapshot()?.participants.enemy ?? [];
+    if (!enemies.length) {
+      return 'the enemy';
+    }
+
+    const firstName = enemies[0]?.name ?? 'Enemy';
+    return enemies.length === 1 ? firstName : `${firstName} Group`;
+  }
+
   private describeBattleRunEffect(effect: Record<string, unknown>): string {
     const parts: string[] = [];
     const multipliers = this.recordValue(effect['stat_multipliers']);
@@ -963,6 +1166,47 @@ export class RunNodePageComponent implements OnDestroy {
       .filter((segment) => segment.length)
       .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
       .join(' ');
+  }
+
+  private diceRewardFromLabel(label: string): RewardPreviewDice {
+    const sides = this.diceSidesFromLabel(label);
+    const material = label.trim().split(/\s+/)[0]?.toLowerCase() ?? 'cardboard';
+
+    return {
+      dice_instance_id: null,
+      label,
+      rarity: 'common',
+      material,
+      sides,
+      affixes: [],
+    };
+  }
+
+  private diceSidesFromLabel(label: string): number {
+    const match = label.trim().match(/\bd(\d+)\b/i);
+    const sides = Number(match?.[1] ?? 6);
+    return Number.isFinite(sides) ? sides : 6;
+  }
+
+  private unitRewardFromLabel(label: string): RewardPreviewUnit {
+    return {
+      unit_instance_id: null,
+      name: label,
+      unit_type_slug: null,
+      unit_type_name: label,
+      splice_variant_slug: null,
+      splice_variant_name: null,
+      tier: 1,
+      level: 1,
+    };
+  }
+
+  private formatAffixNames(affixes: RewardPreviewDice['affixes']): string | null {
+    const names = affixes
+      .map((affix) => (affix.name ?? this.humanizeId(affix.affix_slug ?? '')).trim())
+      .filter((name) => name.length > 0);
+
+    return names.length > 0 ? names.join(' ') : null;
   }
 
   isCombatLikeNodeType(nodeType: string | null | undefined): boolean {

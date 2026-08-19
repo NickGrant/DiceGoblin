@@ -1,15 +1,21 @@
 import { CurrentRunNode } from '../../../core/models/api.models';
 
-export type NodeArtKind = 'loot' | 'shrine';
+export type NodeArtKind = 'hazard' | 'loot' | 'rest' | 'shrine';
 export type NodeQualityTier = 'poor' | 'good' | 'great';
 export type NodeArtVariant = 'a' | 'b';
 
 const NODE_ART_FOLDER: Record<NodeArtKind, string> = {
+  hazard: 'hazard',
   loot: 'loot',
+  rest: 'rest',
   shrine: 'shrines',
 };
 
 export function resolveNodeArtUrl(node: CurrentRunNode | null | undefined, kind: NodeArtKind): string {
+  if (kind === 'rest') {
+    return '/assets/ui/node-art/rest/good_a.png';
+  }
+
   const tier = resolveNodeQualityTier(node);
   const variant = resolveNodeArtVariant(node);
   return `/assets/ui/node-art/${NODE_ART_FOLDER[kind]}/${tier}_${variant}.png`;

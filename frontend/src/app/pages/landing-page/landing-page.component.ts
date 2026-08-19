@@ -3,21 +3,39 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { resolveApiBaseUrl } from '../../core/config/runtime-config';
 import { SessionService } from '../../core/services/session/session.service';
-import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
+import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
+import { DgButtonDirective } from '../../shared/ui/dg-button/dg-button.directive';
+import { DgChipDirective } from '../../shared/ui/dg-chip/dg-chip.directive';
+import { TabStripComponent, TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
+
+type AuthMode = 'login' | 'register' | 'forgot' | 'reset';
 
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [DgCommandBtnDirective, FormsModule, RouterLink],
+  imports: [
+    DgAlertComponent,
+    DgButtonDirective,
+    DgChipDirective,
+    FormsModule,
+    RouterLink,
+    TabStripComponent,
+  ],
   templateUrl: './landing-page.component.html',
   styleUrl: './landing-page.component.scss',
 })
 export class LandingPageComponent {
   readonly discordLoginUrl = `${resolveApiBaseUrl()}/auth/discord/start`;
-  readonly authMode = signal<'login' | 'register' | 'forgot' | 'reset'>('login');
+  readonly authMode = signal<AuthMode>('login');
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
+  readonly rotationReminderDismissed = signal(false);
+  readonly authTabs: ReadonlyArray<TabStripItem> = [
+    { id: 'login', label: 'Sign In' },
+    { id: 'register', label: 'Register' },
+    { id: 'forgot', label: 'Recovery' },
+  ];
 
   email = '';
   password = '';
@@ -27,13 +45,23 @@ export class LandingPageComponent {
 
   constructor(private readonly sessionService: SessionService) {}
 
-  setAuthMode(mode: 'login' | 'register' | 'forgot' | 'reset'): void {
+  setAuthMode(mode: AuthMode): void {
     this.authMode.set(mode);
     this.error.set(null);
     this.success.set(null);
     if (mode !== 'reset') {
       this.resetTokenHint = '';
     }
+  }
+
+  selectAuthMode(mode: string): void {
+    if (mode === 'login' || mode === 'register' || mode === 'forgot') {
+      this.setAuthMode(mode);
+    }
+  }
+
+  dismissRotationReminder(): void {
+    this.rotationReminderDismissed.set(true);
   }
 
   async submitLocalAuth(): Promise<void> {
@@ -75,13 +103,13 @@ export class LandingPageComponent {
   submitLabel(): string {
     switch (this.authMode()) {
       case 'register':
-        return 'Create Account';
+        return 'Claim Warband';
       case 'forgot':
-        return 'Reset Password';
+        return 'Recover Access';
       case 'reset':
         return 'Save Password';
       default:
-        return 'Sign In';
+        return 'Enter the Chaos';
     }
   }
 
@@ -98,4 +126,3 @@ export class LandingPageComponent {
     }
   }
 }
-

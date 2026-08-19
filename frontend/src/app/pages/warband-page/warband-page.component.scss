@@ -1,407 +1,734 @@
 :host {
   display: block;
-  height: 100%;
+  min-height: 100%;
+  color: #2a2015;
+  font-family: var(--dg-font-ui);
 }
 
-.warband-page {
-  gap: 1.15rem;
-  padding-inline: 1rem;
+.warband {
+  min-height: calc(100vh - 52px);
+  padding: 24px;
+  background: #f5e6c8;
 }
 
-.warband-squads-section,
-.warband-units-section {
-  padding: 1.05rem;
+.warband__alerts {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.warband-hero {
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #fcf5e3;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  padding: 16px 24px 24px;
+}
+
+.warband-hero__copy {
+  width: min(500px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.warband-hero h1,
+.warband-section h2,
+.squad-card h3,
+.warband-unit-card strong,
+.warband-hero p,
+.warband-hero dl,
+.warband-hero dd,
+.warband-roster__content p {
+  margin: 0;
+}
+
+.warband-hero h1 {
+  color: #3d2e1f;
+  font-family: var(--dg-font-display);
+  font-size: 48px;
+  font-weight: var(--dg-font-weight-bold);
+  line-height: 1.28;
+}
+
+.warband-hero p {
+  color: #73614d;
+  font-size: 18px;
+  font-weight: var(--dg-font-weight-semibold);
+  line-height: 1.22;
+}
+
+.warband-hero__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 12px;
+}
+
+.warband-hero__stats div,
+.squad-card__title,
+.squad-card__meta,
+.warband-roster-header > div,
+.warband-unit-card__stats,
+.warband-unit-card__xp {
+  display: flex;
+  align-items: center;
+}
+
+.warband-hero__stats div {
+  gap: 6px;
+}
+
+.warband-hero__stats dt {
+  width: 18px;
+  overflow: hidden;
+  color: #d7a936;
+  font-size: 0;
+}
+
+.warband-hero__stats dt::before,
+.squad-card__meta span::before {
+  content: '*';
+  font-size: 18px;
+}
+
+.warband-hero__stats dd {
+  color: #73614d;
+  font-size: 16px;
+  font-weight: var(--dg-font-weight-bold);
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.warband-section {
+  margin-top: 32px;
+}
+
+.warband-section__header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 36px;
+}
+
+.warband-section__header > span {
+  height: 2px;
+  background: #c8b888;
+}
+
+.warband-section h2 {
+  color: #1e2410;
+  font-family: var(--dg-font-display);
+  font-size: 28px;
+  font-weight: var(--dg-font-weight-bold);
+  line-height: 1.28;
+}
+
+.warband-section h2 span {
+  color: #6a6440;
+  font-family: var(--dg-font-ui);
+  font-size: 16px;
+  font-weight: var(--dg-font-weight-semibold);
+}
+
+.warband-section__create {
+  border: 0;
+  background: transparent;
+  color: #2f5b20;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--dg-font-weight-bold);
 }
 
 .squad-grid {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .squad-card {
   position: relative;
-  display: grid;
-  grid-template-columns: 52px minmax(0, max-content);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 142px;
+  border: 2px solid #c8b888;
+  border-radius: 12px;
+  background: #f5e6c8;
+  box-shadow: 0 4px 3px rgba(0, 0, 0, 0.12);
+  padding: 16px;
+}
+
+.squad-card__header,
+.warband-unit-card__header {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   min-width: 0;
-  min-height: 86px;
-  width: fit-content;
-  max-width: 100%;
-  padding: 10px;
-  border: 1px solid rgba(91, 59, 29, 0.16);
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 252, 243, 0.94), rgba(239, 229, 203, 0.86)),
-    center / 220px auto repeat var(--dg-proto-paper);
-  transition:
-    transform 150ms ease,
-    box-shadow 150ms ease,
-    filter 150ms ease;
 }
 
-.squad-card.is-active {
-  box-shadow: 0 0 0 2px rgba(94, 107, 60, 0.2);
-}
-
-.squad-card:hover,
-.squad-card:has(.squad-card__body--link:focus-visible),
-.squad-card:not(.is-active):not(.is-locked):has(.squad-card__activate:hover),
-.squad-card:not(.is-active):not(.is-locked):has(.squad-card__activate:focus-visible) {
-  transform: translateY(-3px);
-  filter: saturate(1.08);
-}
-
-.squad-card.is-locked::before {
-  content: 'LOCKED';
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  z-index: 2;
-  color: rgba(143, 23, 23, 0.78);
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  line-height: 1;
-}
-
-.squad-card__status {
-  display: grid;
-  place-items: center;
-  min-width: 0;
-}
-
-.squad-card__activate {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-
-.squad-card__activate:focus-visible {
-  outline: 2px solid rgba(185, 28, 28, 0.28);
-  outline-offset: 2px;
-}
-
-.squad-card__activate:disabled {
-  cursor: default;
-}
-
-.squad-card__active-mark {
-  --squad-active-fill: #f2384a;
-
-  position: relative;
-  isolation: isolate;
-  display: block;
-  width: 26px;
-  height: 26px;
-}
-
-.squad-card__active-mark::before,
-.squad-card__active-mark::after {
-  content: '';
-  position: absolute;
-  width: 18px;
-  height: 18px;
-}
-
-.squad-card__active-mark::before {
-  left: 8px;
-  top: 8px;
-  z-index: 1;
-  background: var(--squad-active-fill);
-}
-
-.squad-card__active-mark::after {
-  left: 2px;
-  top: 2px;
-  z-index: 2;
-  border: 3px solid #050505;
-  background: transparent;
-}
-
-.squad-card__active-mark--muted {
-  --squad-active-fill: #87909a;
-}
-
-.squad-card__body {
-  display: grid;
+.squad-card__title {
   gap: 8px;
   min-width: 0;
-  max-width: 18rem;
-  padding-inline-end: 4.5rem;
-  text-decoration: none;
 }
 
-.squad-card__body--link:focus-visible {
-  outline: 2px solid rgba(168, 102, 33, 0.35);
-  outline-offset: 2px;
-}
-
-.squad-card__name {
+.squad-card h3 {
   min-width: 0;
-  color: #25150c;
-  font-size: 20px;
-  line-height: 0.92;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  color: #1e2410;
+  font-family: var(--dg-font-display);
+  font-size: 18px;
+  font-weight: var(--dg-font-weight-bold);
+  line-height: 1.28;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.squad-card__icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #e2d4b7;
+  color: #2a2015;
+  font-size: 0;
+}
+
+.squad-card__icon::before {
+  content: attr(data-icon);
+  font-size: 12px;
+  font-weight: var(--dg-font-weight-bold);
+}
+
+.squad-card__capacity {
+  border-radius: 4px;
+  background: #ddd0aa;
+  color: #1e2410;
+  font-family: var(--dg-font-data);
+  font-size: 12px;
+  font-weight: var(--dg-font-weight-bold);
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 
 .squad-card__meta {
-  display: inline-flex;
-  justify-self: start;
-  min-height: 22px;
-  align-items: center;
-  padding: 2px 7px;
-  border: 1px solid rgba(35, 39, 42, 0.14);
-  background: rgba(255, 252, 246, 0.72);
-  color: rgba(37, 21, 12, 0.74);
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 4px;
 }
 
-.warband-units-roster {
-  min-width: 0;
-  display: grid;
-  gap: 1rem;
+.squad-card__meta p:first-child {
+  color: #6a6440;
+  font-size: 14px;
+  font-weight: var(--dg-font-weight-semibold);
 }
 
-.warband-units-controls {
-  padding: 1rem;
-  border-radius: 1rem;
-  background:
-    linear-gradient(180deg, rgba(255, 252, 244, 0.88), rgba(234, 221, 193, 0.92)),
-    center / cover no-repeat var(--dg-proto-paper);
-  border: 1px solid rgba(95, 65, 31, 0.16);
+.squad-card__meta p:last-child {
+  color: #1e2410;
+  font-size: 13px;
+  font-weight: var(--dg-font-weight-semibold);
 }
 
-.warband-units-controls__filters {
-  display: grid;
-  gap: 0.75rem;
+.squad-card__meta p[data-threat='Low']::before {
+  background: #d24a39;
 }
 
-.warband-units-controls__range {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 0.5rem;
+.squad-card__meta p[data-threat='Moderate']::before,
+.squad-card__meta p[data-threat='High']::before {
+  background: #00b42a;
 }
 
-.warband-tier-filter {
+.squad-card__meta p[data-threat='N/A']::before {
+  display: none;
+}
+
+.squad-card__meta p[data-threat]::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  margin-right: 4px;
+  border-radius: 50%;
+}
+
+.squad-card__edit {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  min-height: 46px;
-  align-items: center;
-}
-
-.warband-squad-filter {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  min-height: 46px;
-  align-items: center;
-  padding: 0.2rem;
-  border: 1px solid rgba(35, 39, 42, 0.12);
-  border-radius: 8px;
-  background: rgba(255, 252, 246, 0.58);
-}
-
-.warband-squad-filter__option {
-  min-height: 2.25rem;
-  padding: 0.35rem 0.65rem;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: rgba(37, 21, 12, 0.72);
-  font-size: 0.74rem;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.warband-squad-filter__option.is-selected {
-  border-color: rgba(95, 65, 31, 0.22);
-  background: rgba(94, 107, 60, 0.16);
-  color: #25150c;
-}
-
-.warband-squad-filter__option:hover,
-.warband-squad-filter__option:focus-visible {
-  border-color: rgba(168, 102, 33, 0.35);
-}
-
-.warband-squad-filter__option:focus-visible {
-  outline: 2px solid rgba(168, 102, 33, 0.28);
-  outline-offset: 2px;
-}
-
-.warband-tier-filter__option {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 3.1rem;
-  min-height: 2.7rem;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  transition:
-    transform 120ms ease;
-}
-
-.warband-tier-filter__option:hover,
-.warband-tier-filter__option:focus-visible {
-  transform: translateY(-1px);
-}
-
-.warband-tier-filter__option:focus-visible {
-  outline: 2px solid rgba(185, 28, 28, 0.28);
-  outline-offset: 2px;
-}
-
-.warband-tier-filter__mark {
-  font-size: 1.55rem;
-}
-
-.warband-units-controls__range-separator {
-  color: rgba(35, 39, 42, 0.68);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.warband-units-controls__footer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.9rem;
-}
-
-.warband-units-controls__results {
-  margin: 0;
-  color: rgba(35, 39, 42, 0.72);
-  font-size: 0.95rem;
-}
-
-.warband-units-controls__actions,
-.warband-units-pager {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.warband-units-pager__status {
-  color: rgba(35, 39, 42, 0.72);
-  font-size: 0.85rem;
-  font-weight: 800;
-  line-height: 1.1;
-  text-transform: uppercase;
-}
-
-.warband-units-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
-}
-
-.warband-units-grid__tile {
-  appearance: none;
-  border: 0;
+  min-height: 33px;
+  margin-top: auto;
   border-radius: 8px;
-  padding: 0;
+  background: #5b8c3e;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: var(--dg-font-weight-bold);
+  line-height: 1.2;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.squad-card__activate {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.warband-roster-header > div {
+  gap: 12px;
+  min-width: 0;
+}
+
+.warband-roster-tabs,
+.warband-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.warband-roster-tabs button,
+.warband-filter-pills button {
+  min-height: 26px;
+  border: 1px solid #c8b888;
+  border-radius: 8px;
+  background: #ddd0aa;
+  color: #6a6440;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--dg-font-weight-bold);
+  padding: 6px 12px;
+}
+
+.warband-filter-pills button {
+  min-height: 25px;
+  border-radius: 2px;
+  background: #f5ede0;
+  color: #2a2015;
+  font-size: 11px;
+  padding: 6px 10px;
+  text-transform: uppercase;
+}
+
+.warband-roster-tabs button.is-selected,
+.warband-filter-pills button.is-selected {
+  background: #5b8c3e;
+  color: #ffffff;
+}
+
+.warband-roster {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.warband-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-self: start;
+  border: 1px solid #c8b888;
+  border-radius: 16px;
+  background: #ead5a8;
+  padding: 16px 24px 24px;
+}
+
+.warband-filter-group {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.warband-filter-group > span,
+.warband-mobile-controls label span {
+  color: #8f704d;
+  font-size: 11px;
+  font-weight: var(--dg-font-weight-bold);
+  text-transform: uppercase;
+}
+
+.warband-filter-group input,
+.warband-filter-group select,
+.warband-mobile-controls input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid #c8b888;
+  border-radius: 2px;
+  background: #f5ede0;
+  color: #2a2015;
+  font: inherit;
+  font-size: 12px;
+  padding: 9px 10px;
+}
+
+.warband-roster__content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.warband-mobile-controls {
+  display: none;
+}
+
+.warband-unit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.warband-unit-card {
+  min-width: 0;
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  border: 1px solid #c8b48c;
+  border-radius: 10px;
+  background: #faf3e0;
+  color: #2a2015;
+  cursor: pointer;
+  padding: 10px 12px;
   text-align: left;
+}
+
+.warband-unit-card img {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.warband-unit-card__info {
+  min-width: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.warband-unit-card strong {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--dg-font-display);
+  font-size: 15px;
+  line-height: 1.28;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.warband-unit-card__badges {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.warband-unit-card__badges span {
+  border-radius: 4px;
+  background: #6b3a6b;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: var(--dg-font-weight-bold);
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.warband-unit-card__badges span:last-child {
+  background: #e8843c;
+}
+
+.warband-unit-card__stats {
+  gap: 6px;
+  overflow: hidden;
+  color: #786446;
+  font-size: 11px;
+  font-weight: var(--dg-font-weight-semibold);
+  white-space: nowrap;
+}
+
+.warband-unit-card__stats span:not(:first-child)::before {
+  content: '.';
+  margin-right: 6px;
+  color: #b4a082;
+  font-weight: var(--dg-font-weight-bold);
+}
+
+.warband-unit-card__stats strong {
+  color: #2a2015;
+  font-family: var(--dg-font-ui);
+  font-size: 12px;
+}
+
+.warband-unit-card__stats span:first-child strong {
+  color: #3c781e;
+}
+
+.warband-unit-card__xp {
+  justify-content: flex-end;
+  gap: 4px;
+  color: #786446;
+  font-size: 10px;
+  font-weight: var(--dg-font-weight-semibold);
+}
+
+.warband-unit-card__xp > span:nth-child(2) {
+  width: 80px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #e2d4b7;
+}
+
+.warband-unit-card__xp > span:nth-child(2) span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #f2c94c;
+}
+
+.warband-pager {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.warband-pager button {
+  border: 1px solid #9e8256;
+  border-radius: 8px;
   background: transparent;
-  transition:
-    transform 150ms ease,
-    filter 150ms ease;
+  color: #2a2015;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--dg-font-weight-bold);
+  padding: 6px 10px;
 }
 
-.warband-units-grid__tile:hover,
-.warband-units-grid__tile:focus-visible {
-  transform: translateY(-3px);
-  filter: saturate(1.08);
+.warband-pager button:disabled {
+  opacity: 0.45;
 }
 
-.warband-units-grid__tile:focus-visible {
-  outline: 2px solid rgba(168, 102, 33, 0.35);
+.warband-pager span {
+  color: #73614d;
+  font-size: 12px;
+  font-weight: var(--dg-font-weight-bold);
+  text-transform: uppercase;
+}
+
+.warband-section button:focus-visible,
+.warband-section a:focus-visible,
+.warband-filter-group input:focus,
+.warband-filter-group select:focus {
+  outline: 2px solid #5b8c3e;
   outline-offset: 2px;
 }
 
-@media (max-width: 760px) {
-  .squad-card:hover,
-  .squad-card:has(.squad-card__body--link:focus-visible),
-  .squad-card:not(.is-active):not(.is-locked):has(.squad-card__activate:hover),
-  .squad-card:not(.is-active):not(.is-locked):has(.squad-card__activate:focus-visible),
-  .warband-units-grid__tile:hover,
-  .warband-units-grid__tile:focus-visible {
-    transform: none;
-  }
-}
-
-@media (min-width: 441px) {
-  .warband-units-controls__filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 1120px) {
+  .warband {
+    padding: 12px 16px 24px;
   }
 
-  .warband-units-controls__filter--range {
-    grid-column: 1 / -1;
+  .warband-hero {
+    min-height: 74px;
+    border: 1px solid #c8b888;
+    border-radius: 8px;
+    box-shadow: none;
+    padding: 8px;
   }
 
-  .warband-units-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 761px) {
-  .warband-units-controls__filters {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .warband-hero__copy {
+    width: 100%;
+    gap: 2px;
   }
 
-  .warband-units-controls__filter--range {
-    grid-column: auto;
+  .warband-hero h1 {
+    font-size: 23px;
   }
 
-  .warband-units-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .warband-hero p {
+    font-size: 12px;
   }
-}
 
-@media (max-width: 440px) {
-  .warband-page {
-    padding-inline: 0.75rem;
+  .warband-hero__stats {
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  .warband-hero__stats dt {
+    width: 12px;
+  }
+
+  .warband-hero__stats dd {
+    font-size: 12px;
+  }
+
+  .warband-section {
+    margin-top: 12px;
+  }
+
+  .warband-section__header {
+    display: flex;
+    justify-content: space-between;
+    min-height: 18px;
+  }
+
+  .warband-section__header > span,
+  .warband-filters,
+  .warband-roster-header .warband-roster-tabs {
+    display: none;
+  }
+
+  .warband-section h2 {
+    font-size: 18px;
+  }
+
+  .warband-section h2 span,
+  .warband-section__create {
+    font-size: 12px;
   }
 
   .squad-grid {
+    max-height: 137px;
+    display: flex;
     flex-direction: column;
-    align-items: stretch;
+    gap: 4px;
+    overflow-y: auto;
+    margin-top: 4px;
   }
 
   .squad-card {
-    grid-template-columns: 44px minmax(0, 1fr);
-    width: 100%;
+    min-height: 43px;
+    gap: 2px;
+    border-width: 1px;
+    border-radius: 4px;
+    box-shadow: none;
+    padding: 6px;
   }
 
-  .squad-card__body {
-    padding-inline-end: 3.75rem;
+  .squad-card__icon,
+  .squad-card__capacity {
+    display: none;
   }
 
-  .warband-units-controls__footer {
-    align-items: stretch;
+  .squad-card h3 {
+    font-size: 13px;
   }
 
-  .warband-units-controls__actions,
-  .warband-units-pager {
-    justify-content: stretch;
+  .squad-card__meta {
+    justify-content: flex-start;
+    padding-top: 0;
+  }
+
+  .squad-card__meta p {
+    font-size: 11px !important;
+  }
+
+  .squad-card__edit {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    min-height: 16px;
+    margin-top: -8px;
+    border-radius: 4px;
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+
+  .warband-roster {
+    display: block;
+    margin-top: 6px;
+  }
+
+  .warband-mobile-controls {
+    display: grid;
+    gap: 6px;
+  }
+
+  .warband-mobile-controls label {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .warband-mobile-controls label span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .warband-mobile-controls input {
+    width: 180px;
+    min-height: 17px;
+    border-radius: 999px;
+    padding: 2px 8px;
+  }
+
+  .warband-mobile-controls .warband-roster-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .warband-mobile-controls .warband-roster-tabs button {
+    min-height: 16px;
+    border-radius: 999px;
+    font-size: 10px;
+    padding: 2px 10px;
+  }
+
+  .warband-mobile-controls p {
+    display: flex;
+    justify-content: space-between;
+    color: #2a2015;
+    font-size: 10px;
+    font-weight: var(--dg-font-weight-semibold);
+  }
+
+  .warband-unit-grid {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .warband-unit-card {
+    min-height: 56px;
+    border-radius: 8px;
+    padding: 6px;
+  }
+
+  .warband-unit-card img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .warband-unit-card strong {
+    font-size: 15px;
+  }
+
+  .warband-unit-card__stats,
+  .warband-unit-card__badges span {
+    font-size: 10px;
+  }
+
+  .warband-unit-card__xp {
+    display: none;
   }
 }

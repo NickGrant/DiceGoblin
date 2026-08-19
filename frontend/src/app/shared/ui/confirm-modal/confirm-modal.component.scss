@@ -17,13 +17,11 @@
 
 .confirm-modal {
   width: min(32rem, 100%);
-  border: 1px solid rgba(98, 70, 35, 0.26);
-  border-radius: 1.5rem;
-  background:
-    linear-gradient(180deg, rgba(251, 245, 228, 0.98), rgba(236, 228, 206, 0.96)),
-    rgba(255, 255, 255, 0.82);
-  box-shadow: 0 18px 34px rgba(52, 34, 17, 0.22);
-  padding: 1.25rem;
+  padding: var(--dg-space-7);
+  border: 1px solid var(--dg-border-default);
+  border-radius: var(--dg-radius-2xl);
+  background: var(--dg-bg-elevated);
+  box-shadow: var(--dg-elevation-xl);
 }
 
 .confirm-modal--danger {

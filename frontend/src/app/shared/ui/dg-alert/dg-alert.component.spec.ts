@@ -6,12 +6,11 @@ describe('DgAlertComponent', () => {
     const fixture = TestBed.createComponent(DgAlertComponent);
     fixture.detectChanges();
 
-    const alert = fixture.nativeElement.querySelector('.dg-alert') as HTMLDivElement;
+    const alert = fixture.nativeElement as HTMLElement;
 
     expect(alert.getAttribute('role')).toBe('status');
     expect(alert.getAttribute('aria-live')).toBe('polite');
-    expect(alert.classList.contains('dg-alert--error')).toBeFalse();
-    expect(alert.classList.contains('dg-alert--success')).toBeFalse();
+    expect(alert.getAttribute('data-dg-alert')).toBe('info');
   });
 
   it('uses assertive alert semantics for error tone', () => {
@@ -19,11 +18,11 @@ describe('DgAlertComponent', () => {
     fixture.componentRef.setInput('tone', 'error');
     fixture.detectChanges();
 
-    const alert = fixture.nativeElement.querySelector('.dg-alert') as HTMLDivElement;
+    const alert = fixture.nativeElement as HTMLElement;
 
     expect(alert.getAttribute('role')).toBe('alert');
     expect(alert.getAttribute('aria-live')).toBe('assertive');
-    expect(alert.classList.contains('dg-alert--error')).toBeTrue();
+    expect(alert.getAttribute('data-dg-alert')).toBe('error');
   });
 
   it('applies the success tone class', () => {
@@ -31,9 +30,9 @@ describe('DgAlertComponent', () => {
     fixture.componentRef.setInput('tone', 'success');
     fixture.detectChanges();
 
-    const alert = fixture.nativeElement.querySelector('.dg-alert') as HTMLDivElement;
+    const alert = fixture.nativeElement as HTMLElement;
 
-    expect(alert.classList.contains('dg-alert--success')).toBeTrue();
+    expect(alert.getAttribute('data-dg-alert')).toBe('success');
     expect(alert.getAttribute('role')).toBe('status');
   });
 });

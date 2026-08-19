@@ -1,262 +1,262 @@
-<page-frame
-  [breadcrumbs]="[{ label: 'HQ', route: '/home' }, { label: 'Warband' }]"
-  title="Warband Management"
-  subtitle="Review your units and saved squads."
->
+<section class="warband" aria-labelledby="warband-title">
   @if (error() || message() || activeRun()) {
-  <div class="vstack gap-2 mb-3">
-    @if (error()) {
-    <dg-alert tone="error">{{ error() }}</dg-alert>
-    }
-    @if (message()) {
-    <dg-alert tone="success">{{ message() }}</dg-alert>
-    }
-    @if (activeRun()) {
-    <dg-alert>Squads and Squad members are locked while on a run.</dg-alert>
-    }
-  </div>
+    <div class="warband__alerts">
+      @if (error()) {
+        <dg-alert tone="error">{{ error() }}</dg-alert>
+      }
+      @if (message()) {
+        <dg-alert tone="success">{{ message() }}</dg-alert>
+      }
+      @if (activeRun()) {
+        <dg-alert>Squads and Squad members are locked while on a run.</dg-alert>
+      }
+    </div>
   }
 
-  <div class="warband-page dg-proto-shell">
-    <section class="warband-squads-section dg-proto-section dg-motion-surface-enter">
-      <div class="dg-proto-section__header">
+  <header class="warband-hero">
+    <div class="warband-hero__copy">
+      <h1 id="warband-title">YOUR WARBAND</h1>
+      <p>Recruit chaotic little troublemakers, form rowdy squads, and roll high to conquer the Brackwater Swamps!</p>
+      <dl class="warband-hero__stats" aria-label="Warband summary">
         <div>
-          <p class="dg-proto-section__eyebrow">Command Rosters</p>
-          <h2 class="dg-proto-section__title">Squads</h2>
+          <dt aria-label="Recruited">users</dt>
+          <dd><strong>{{ units().length }}</strong> RECRUITED</dd>
         </div>
-        <button dgCommandBtn="primary" type="button" (click)="createSquad()" [disabled]="isSaving()">
-          {{ isSaving() ? 'Saving...' : 'Create Squad' }}
-        </button>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
+        <div>
+          <dt aria-label="Active squads">shield</dt>
+          <dd><strong>{{ activeSquadCount() }}</strong>/6 SQUADS</dd>
+        </div>
+        <div>
+          <dt aria-label="War power">star</dt>
+          <dd><strong>{{ totalWarPower() }}</strong> WAR POWER</dd>
+        </div>
+      </dl>
+    </div>
+  </header>
 
-      @if (squads().length) {
+  <section class="warband-section warband-section--squads" aria-labelledby="warband-squads-title">
+    <header class="warband-section__header">
+      <h2 id="warband-squads-title">Active Squads <span>(Max 6)</span></h2>
+      <span aria-hidden="true"></span>
+      <button class="warband-section__create" type="button" (click)="createSquad()" [disabled]="isSaving()">
+        {{ isSaving() ? 'Saving...' : '+ Create New' }}
+      </button>
+    </header>
+
+    @if (squads().length) {
       <div class="squad-grid">
-        @for (squad of sortedSquads(); track squad.id) {
-        <article class="squad-card" [class.is-active]="squad.is_active" [class.is-locked]="isSquadLocked(squad.id)">
-          <div class="squad-card__status">
-            @if (!isSquadLocked(squad.id) && !squad.is_active) {
-            <button
-              class="squad-card__activate"
-              type="button"
-              [attr.aria-label]="'Set ' + squad.name + ' as the active squad'"
-              (click)="activateSquad(squad.id)"
-              [disabled]="isSaving()"
-            >
-              <span class="squad-card__active-mark squad-card__active-mark--muted" aria-hidden="true"></span>
-            </button>
+        @for (squad of sortedSquads(); track squad.id; let index = $index) {
+          <article
+            class="squad-card"
+            [class.is-active]="squad.is_active"
+            [class.is-locked]="isSquadLocked(squad.id)"
+          >
+            <header class="squad-card__header">
+              <div class="squad-card__title">
+                <span class="squad-card__icon" [attr.data-icon]="squadIcon(index)" aria-hidden="true"></span>
+                <h3>{{ squad.name }}</h3>
+              </div>
+              <span class="squad-card__capacity">{{ squadCapacityLabel(squad) }}</span>
+            </header>
+            <div class="squad-card__meta">
+              <p><span aria-hidden="true">star</span> Power: {{ squadPower(squad) }}</p>
+              <p [attr.data-threat]="squadThreatLabel(squad)">{{ squadThreatLabel(squad) }}</p>
+            </div>
+            @if (isSquadLocked(squad.id)) {
+              <span class="squad-card__edit" aria-label="Locked squad">Locked</span>
             } @else {
-            <span
-              class="squad-card__active-mark"
-              [class.squad-card__active-mark--muted]="!squad.is_active"
-              [attr.aria-label]="squad.is_active ? 'Active squad' : 'Inactive squad'"
-              role="img"
-            ></span>
+              <a class="squad-card__edit squad-card__body--link" [routerLink]="['/warband/squads', squad.id]">
+                <span class="visually-hidden">{{ squad.name }}</span>
+                Edit Squad -&gt;
+              </a>
             }
-          </div>
-          @if (isSquadLocked(squad.id)) {
-          <span class="squad-card__body" aria-label="Locked squad">
-            <strong class="squad-card__name dg-stencil">{{ squad.name }}</strong>
-            <span class="squad-card__meta">{{ squad.unit_ids.length }} units</span>
-          </span>
-          } @else {
-          <a class="squad-card__body squad-card__body--link" [routerLink]="['/warband/squads', squad.id]">
-            <strong class="squad-card__name dg-stencil">{{ squad.name }}</strong>
-            <span class="squad-card__meta">{{ squad.unit_ids.length }} units</span>
-          </a>
-          }
-        </article>
+            @if (!squad.is_active && !isSquadLocked(squad.id)) {
+              <button
+                class="squad-card__activate"
+                type="button"
+                [attr.aria-label]="'Set ' + squad.name + ' as the active squad'"
+                (click)="activateSquad(squad.id)"
+                [disabled]="isSaving()"
+              >
+                Set Active
+              </button>
+            }
+          </article>
         }
       </div>
-      } @else {
+    } @else {
       <dg-alert>No squads available.</dg-alert>
-      }
-    </section>
+    }
+  </section>
 
-    <section class="warband-units-section dg-proto-section dg-motion-surface-enter">
-      <div class="dg-proto-section__header">
-        <div>
-          <p class="dg-proto-section__eyebrow">Ready Roster</p>
-          <h2 class="dg-proto-section__title">Units</h2>
-        </div>
-      </div>
-      <div class="dg-proto-divider" aria-hidden="true"></div>
-
-      @if (filteredUnits().length) {
-      <div class="warband-units-roster">
-        <section class="warband-units-controls">
-          <div class="warband-units-controls__filters">
-            <div class="warband-units-controls__filter">
-              <label class="form-label" for="warband-unit-type-filter">Unit Type</label>
-              <select
-                id="warband-unit-type-filter"
-                class="dg-select"
-                [ngModel]="selectedUnitType() ?? ''"
-                (ngModelChange)="updateUnitType($event)"
-              >
-                <option value="">All unit types</option>
-                @for (unitType of availableUnitTypes(); track unitType) {
-                <option [value]="unitType">{{ unitType }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="warband-units-controls__filter">
-              <label class="form-label" for="warband-splice-filter">Kin</label>
-              <select
-                id="warband-splice-filter"
-                class="dg-select"
-                [ngModel]="selectedKin() ?? ''"
-                (ngModelChange)="updateKin($event)"
-              >
-                <option value="">All kin</option>
-                @for (kin of availableKinLabels(); track kin) {
-                <option [value]="kin">{{ kin }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="warband-units-controls__filter">
-              <span class="form-label" id="warband-squad-filter-label">Squad</span>
-              <div class="warband-squad-filter" role="group" aria-labelledby="warband-squad-filter-label">
-                <button
-                  type="button"
-                  class="warband-squad-filter__option"
-                  [class.is-selected]="squadAssignmentFilter() === 'all'"
-                  [attr.aria-pressed]="squadAssignmentFilter() === 'all'"
-                  (click)="updateSquadAssignmentFilter('all')"
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  class="warband-squad-filter__option"
-                  [class.is-selected]="squadAssignmentFilter() === 'assigned'"
-                  [attr.aria-pressed]="squadAssignmentFilter() === 'assigned'"
-                  (click)="updateSquadAssignmentFilter('assigned')"
-                >
-                  In Squad
-                </button>
-                <button
-                  type="button"
-                  class="warband-squad-filter__option"
-                  [class.is-selected]="squadAssignmentFilter() === 'unassigned'"
-                  [attr.aria-pressed]="squadAssignmentFilter() === 'unassigned'"
-                  (click)="updateSquadAssignmentFilter('unassigned')"
-                >
-                  Unassigned
-                </button>
-              </div>
-            </div>
-
-            <div class="warband-units-controls__filter">
-              <label class="form-label" for="warband-unit-sort">Sort</label>
-              <select
-                id="warband-unit-sort"
-                class="dg-select"
-                [ngModel]="selectedUnitSort()"
-                (ngModelChange)="updateUnitSort($event)"
-              >
-                <option value="level-desc">Level: High to Low</option>
-                <option value="tier-desc">Tier: High to Low</option>
-                <option value="name-asc">Name: A to Z</option>
-              </select>
-            </div>
-
-            <div class="warband-units-controls__filter">
-              <span class="form-label" id="warband-unit-tier-filter-label">Tier</span>
-              <div
-                class="warband-tier-filter"
-                role="group"
-                aria-labelledby="warband-unit-tier-filter-label"
-              >
-                @for (tier of availableUnitTiers(); track tier) {
-                <button
-                  class="warband-tier-filter__option"
-                  [class.is-selected]="isUnitTierSelected(tier)"
-                  type="button"
-                  [attr.aria-pressed]="isUnitTierSelected(tier)"
-                  [attr.aria-label]="'Tier ' + tierFilterLabel(tier)"
-                  (click)="toggleUnitTier(tier)"
-                >
-                  <span [class]="tierFilterClass(tier)" aria-hidden="true"></span>
-                  <span class="visually-hidden">Tier {{ tierFilterLabel(tier) }}</span>
-                </button>
-                }
-              </div>
-            </div>
-
-            <div class="warband-units-controls__filter warband-units-controls__filter--range">
-              <label class="form-label" for="warband-unit-level-min">Level Range</label>
-              <div class="warband-units-controls__range">
-                <select
-                  id="warband-unit-level-min"
-                  class="dg-select"
-                  [ngModel]="selectedLevelMin() ?? ''"
-                  (ngModelChange)="updateLevelMin($event)"
-                >
-                  <option value="">Min</option>
-                  @for (level of availableUnitLevels(); track level) {
-                  <option [value]="level">{{ level }}</option>
-                  }
-                </select>
-
-                <span class="warband-units-controls__range-separator" aria-hidden="true">to</span>
-
-                <select
-                  id="warband-unit-level-max"
-                  class="dg-select"
-                  [ngModel]="selectedLevelMax() ?? ''"
-                  (ngModelChange)="updateLevelMax($event)"
-                >
-                  <option value="">Max</option>
-                  @for (level of availableUnitLevels(); track level) {
-                  <option [value]="level">{{ level }}</option>
-                  }
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="warband-units-controls__footer">
-            <p class="warband-units-controls__results">
-              Showing {{ unitPageStart() }}-{{ unitPageEnd() }} of {{ filteredUnits().length }} filtered units.
-            </p>
-            <div class="warband-units-controls__actions">
-              @if (unitPageCount() > 1) {
-              <div class="warband-units-pager" aria-label="Unit pages">
-                <button dgCommandBtn="muted" type="button" (click)="previousUnitPage()" [disabled]="clampedUnitPage() <= 1">
-                  Previous
-                </button>
-                <span class="warband-units-pager__status">Page {{ clampedUnitPage() }} of {{ unitPageCount() }}</span>
-                <button dgCommandBtn="muted" type="button" (click)="nextUnitPage()" [disabled]="clampedUnitPage() >= unitPageCount()">
-                  Next
-                </button>
-              </div>
-              }
-              <button dgCommandBtn="muted" type="button" (click)="clearUnitFilters()">Reset Filters</button>
-            </div>
-          </div>
-        </section>
-
-        <div class="warband-units-grid dg-motion-stagger">
-          @for (unit of pagedUnits(); track unit.id) {
-          <button
-            type="button"
-            class="warband-units-grid__tile dg-proto-card"
-            (click)="openUnit(unit.id)"
-            [attr.aria-label]="unit.name + ' ' + (unit.unit_type_name || unit.unit_type_slug || 'Unit')"
-          >
-            <dg-unit-bar [unit]="unit" [positionLabel]="unitPositionLabel(unit)" [inlinePosition]="true" [showStats]="false" />
-          </button>
+  <section class="warband-section warband-section--roster" aria-labelledby="warband-roster-title">
+    <header class="warband-section__header warband-roster-header">
+      <div>
+        <h2 id="warband-roster-title">All Goblins</h2>
+        <div class="warband-roster-tabs" role="group" aria-label="Unit class filter">
+          @for (unitType of unitTypeFilters(); track unitType) {
+            <button
+              type="button"
+              [class.is-selected]="(selectedUnitType() ?? 'All') === unitType"
+              [attr.aria-pressed]="(selectedUnitType() ?? 'All') === unitType"
+              (click)="updateUnitType(unitType)"
+            >
+              {{ unitType }}@if (unitType === 'All') { ({{ units().length }}) }
+            </button>
           }
         </div>
       </div>
-      } @else if (units().length) {
-      <dg-alert>No units match the selected filters.</dg-alert>
-      } @else {
-      <dg-alert>No units available.</dg-alert>
-      }
-    </section>
-  </div>
-</page-frame>
+      <span aria-hidden="true"></span>
+    </header>
+
+    <div class="warband-roster">
+      <aside class="warband-filters" aria-label="Roster filters">
+        <label class="warband-filter-group warband-filter-group--search">
+          <span>Search Goblins</span>
+          <input
+            type="search"
+            placeholder="Enter unit name..."
+            [ngModel]="unitSearchTerm()"
+            (ngModelChange)="updateUnitSearch($event)"
+          />
+        </label>
+
+        <div class="warband-filter-group">
+          <span>Kin Group</span>
+          <div class="warband-filter-pills" role="group" aria-label="Kin filter">
+            @for (kin of kinFilters(); track kin) {
+              <button
+                type="button"
+                [class.is-selected]="(selectedKin() ?? 'All') === kin"
+                [attr.aria-pressed]="(selectedKin() ?? 'All') === kin"
+                (click)="updateKin(kin)"
+              >
+                {{ kin }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="warband-filter-group">
+          <span>Status</span>
+          <div class="warband-filter-pills" role="group" aria-label="Squad assignment filter">
+            <button
+              type="button"
+              [class.is-selected]="squadAssignmentFilter() === 'all'"
+              [attr.aria-pressed]="squadAssignmentFilter() === 'all'"
+              (click)="updateSquadAssignmentFilter('all')"
+            >
+              All
+            </button>
+            <button
+              type="button"
+              [class.is-selected]="squadAssignmentFilter() === 'assigned'"
+              [attr.aria-pressed]="squadAssignmentFilter() === 'assigned'"
+              (click)="updateSquadAssignmentFilter('assigned')"
+            >
+              In Squad
+            </button>
+            <button
+              type="button"
+              [class.is-selected]="squadAssignmentFilter() === 'unassigned'"
+              [attr.aria-pressed]="squadAssignmentFilter() === 'unassigned'"
+              (click)="updateSquadAssignmentFilter('unassigned')"
+            >
+              Unassigned
+            </button>
+          </div>
+        </div>
+
+        <label class="warband-filter-group">
+          <span>Sort By</span>
+          <select [ngModel]="selectedUnitSort()" (ngModelChange)="updateUnitSort($event)">
+            <option value="level-desc">Level (High to Low)</option>
+            <option value="tier-desc">Tier (High to Low)</option>
+            <option value="name-asc">Name (A to Z)</option>
+          </select>
+        </label>
+      </aside>
+
+      <div class="warband-roster__content">
+        <div class="warband-mobile-controls">
+          <label>
+            <span>Search roster</span>
+            <input
+              type="search"
+              placeholder="Search roster..."
+              [ngModel]="unitSearchTerm()"
+              (ngModelChange)="updateUnitSearch($event)"
+            />
+          </label>
+          <div class="warband-roster-tabs" role="group" aria-label="Mobile unit class filter">
+            @for (unitType of unitTypeFilters(); track unitType) {
+              <button
+                type="button"
+                [class.is-selected]="(selectedUnitType() ?? 'All') === unitType"
+                [attr.aria-pressed]="(selectedUnitType() ?? 'All') === unitType"
+                (click)="updateUnitType(unitType)"
+              >
+                {{ unitType }}@if (unitType === 'All') { ({{ units().length }}) }
+              </button>
+            }
+          </div>
+          <p>
+            Kin: {{ selectedKin() ?? 'All' }} · Status: {{ squadAssignmentFilter() }} · Sort: {{ selectedUnitSort() }}
+          </p>
+        </div>
+
+        @if (filteredUnits().length) {
+          <p class="warband-roster__summary">
+            Showing {{ unitPageStart() }}-{{ unitPageEnd() }} of {{ filteredUnits().length }} filtered units.
+          </p>
+          <div class="warband-unit-grid warband-units-grid">
+            @for (unit of pagedUnits(); track unit.id) {
+              <button
+                type="button"
+                class="warband-unit-card warband-units-grid__tile"
+                (click)="openUnit(unit.id)"
+                [attr.aria-label]="unit.name + ' ' + (unit.unit_type_name || unit.unit_type_slug || 'Unit')"
+              >
+                <img [src]="unitThumbnailUrl(unit)" [alt]="unitTypeLabel(unit) + ' portrait'" />
+                <span class="warband-unit-card__info">
+                  <span class="warband-unit-card__header">
+                    <strong>{{ unit.name }}</strong>
+                    <span class="warband-unit-card__badges">
+                      <span>{{ kinLabel(unit) }}</span>
+                      <span>{{ unitTypeLabel(unit) }}</span>
+                    </span>
+                  </span>
+                  <span class="warband-unit-card__stats">
+                    <span>HP <strong>{{ unit.max_hp ?? unit.current_hp ?? 0 }}</strong></span>
+                    <span>Lv <strong>{{ unit.level || 1 }}</strong></span>
+                    <span>Tier <strong>{{ formatTier(unit.tier) ?? 'I' }}</strong></span>
+                    @if (unitPositionLabel(unit); as position) {
+                      <span>{{ position }}</span>
+                    }
+                  </span>
+                  <span class="warband-unit-card__xp">
+                    <span>XP</span>
+                    <span><span [style.width.%]="xpPercent(unit)"></span></span>
+                    <span>{{ xpLabel(unit) }}</span>
+                  </span>
+                </span>
+              </button>
+            }
+          </div>
+
+          @if (unitPageCount() > 1) {
+            <nav class="warband-pager" aria-label="Unit pages">
+              <button type="button" (click)="previousUnitPage()" [disabled]="clampedUnitPage() <= 1">Previous</button>
+              <span>Page {{ clampedUnitPage() }} / {{ unitPageCount() }}</span>
+              <button type="button" (click)="nextUnitPage()" [disabled]="clampedUnitPage() >= unitPageCount()">Next</button>
+            </nav>
+          }
+        } @else if (units().length) {
+          <dg-alert>No units match the selected filters.</dg-alert>
+        } @else {
+          <dg-alert>No units available.</dg-alert>
+        }
+      </div>
+    </div>
+  </section>
+</section>

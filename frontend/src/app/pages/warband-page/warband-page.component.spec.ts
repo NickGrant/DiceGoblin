@@ -101,7 +101,7 @@ describe('WarbandPageComponent', () => {
 
     const host: HTMLElement = fixture.nativeElement;
     expect(host.querySelector('.warband-units-inspect__panel')).toBeNull();
-    expect(host.querySelector('.warband-units-roster')).not.toBeNull();
+    expect(host.querySelector('.warband-roster')).not.toBeNull();
   });
 
   it('marks the active squad as locked during an active run', () => {
@@ -119,7 +119,7 @@ describe('WarbandPageComponent', () => {
     expect(lockedLink).toBeNull();
   });
 
-  it('renders units in the full-width roster grid', () => {
+  it('renders units in the Figma roster grid', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
@@ -129,7 +129,8 @@ describe('WarbandPageComponent', () => {
 
     expect(grid).not.toBeNull();
     expect(tiles.length).toBe(3);
-    expect(host.querySelectorAll('dg-unit-bar').length).toBe(3);
+    expect(host.querySelectorAll('.warband-unit-card').length).toBe(3);
+    expect(host.querySelectorAll('dg-unit-bar').length).toBe(0);
   });
 
   it('filters units by squad assignment', () => {
@@ -153,7 +154,7 @@ describe('WarbandPageComponent', () => {
     expect(host.textContent).not.toContain('Pebble');
   });
 
-  it('renders warband unit cards without stat strips and keeps slot beside level', () => {
+  it('renders warband unit cards with compact stats and assigned slot', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
@@ -161,18 +162,17 @@ describe('WarbandPageComponent', () => {
     const fangTile = Array.from(host.querySelectorAll('.warband-units-grid__tile')).find((tile) =>
       tile.textContent?.includes('Fang'),
     ) as HTMLElement | undefined;
-    const rank = fangTile?.querySelector('.unit-bar__rank');
 
     expect(fangTile).toBeDefined();
     expect(fangTile?.querySelector('.unit-bar__stat-strip')).toBeNull();
-    expect(rank?.textContent).toContain('Level 2');
-    expect(rank?.textContent).toContain('Slot A1');
+    expect(fangTile?.textContent).toContain('Lv 2');
+    expect(fangTile?.textContent).toContain('Slot A1');
   });
 
   it('paginates large unit collections', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
-    sessionService.units.set(Array.from({ length: 14 }, (_, index) => ({
+    sessionService.units.set(Array.from({ length: 16 }, (_, index) => ({
       id: `u${index + 1}`,
       name: `Unit ${String(index + 1).padStart(2, '0')}`,
       unit_type_name: 'Bruiser',
@@ -185,27 +185,27 @@ describe('WarbandPageComponent', () => {
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
-    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(12);
-    expect(host.textContent).toContain('Showing 1-12 of 14 filtered units.');
-    expect(host.textContent).toContain('Page 1 of 2');
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(15);
+    expect(host.textContent).toContain('Showing 1-15 of 16 filtered units.');
+    expect(host.textContent).toContain('Page 1 / 2');
 
     fixture.componentInstance.nextUnitPage();
     fixture.detectChanges();
 
-    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(2);
-    expect(host.textContent).toContain('Showing 13-14 of 14 filtered units.');
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(1);
+    expect(host.textContent).toContain('Showing 16-16 of 16 filtered units.');
 
     fixture.componentInstance.previousUnitPage();
     fixture.detectChanges();
 
-    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(12);
+    expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(15);
   });
 
   it('resets unit pagination when filters change', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
     sessionService.units.set([
-      ...Array.from({ length: 13 }, (_, index) => ({
+      ...Array.from({ length: 16 }, (_, index) => ({
         id: `b${index + 1}`,
         name: `Bruiser ${String(index + 1).padStart(2, '0')}`,
         unit_type_name: 'Bruiser',
@@ -283,29 +283,20 @@ describe('WarbandPageComponent', () => {
     expect(host.textContent).toContain('Muckjaw');
   });
 
-  it('renders tier filter options as roman numeral buttons', () => {
+  it('keeps tier filtering available through component state', () => {
     const fixture = TestBed.createComponent(WarbandPageComponent);
     fixture.detectChanges();
 
     const host: HTMLElement = fixture.nativeElement;
-    const buttons = Array.from(host.querySelectorAll('.warband-tier-filter__option')) as HTMLButtonElement[];
-    const marks = Array.from(host.querySelectorAll('.warband-tier-filter__mark')) as HTMLElement[];
 
-    expect(buttons.length).toBe(2);
-    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual(['Tier I', 'Tier II']);
-    expect(marks[0].classList.contains('dg-tier-indicator--1')).toBeTrue();
-    expect(marks[1].classList.contains('dg-tier-indicator--2')).toBeTrue();
-    expect(marks.every((mark) => !mark.classList.contains('dg-tier-indicator--muted'))).toBeTrue();
-    expect(buttons.every((button) => button.getAttribute('aria-pressed') === 'true')).toBeTrue();
+    expect(fixture.componentInstance.availableUnitTiers()).toEqual([1, 2]);
+    expect(fixture.componentInstance.tierFilterLabel(1)).toBe('I');
+    expect(fixture.componentInstance.tierFilterLabel(2)).toBe('II');
 
-    buttons[1].click();
+    fixture.componentInstance.toggleUnitTier(2);
     fixture.detectChanges();
 
     expect(fixture.componentInstance.excludedUnitTiers()).toEqual([2]);
-    const disabledMark = buttons[1].querySelector('.warband-tier-filter__mark');
-    expect(buttons[1].classList.contains('is-selected')).toBeFalse();
-    expect(buttons[1].getAttribute('aria-pressed')).toBe('false');
-    expect(disabledMark?.classList.contains('dg-tier-indicator--muted')).toBeTrue();
     expect(host.querySelectorAll('.warband-units-grid__tile').length).toBe(2);
   });
 

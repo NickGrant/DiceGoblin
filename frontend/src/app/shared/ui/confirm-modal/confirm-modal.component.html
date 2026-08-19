@@ -3,6 +3,8 @@
     <section
       class="confirm-modal"
       [class.confirm-modal--danger]="tone() === 'danger'"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
       role="dialog"
       aria-modal="true"
       [attr.aria-label]="title()"
@@ -17,10 +19,10 @@
       </div>
 
       <div class="confirm-modal__actions">
-        <button dgCommandBtn="muted" type="button" (click)="close()" [disabled]="busy()">
+        <button dgButton="ghost" type="button" (click)="close()" [disabled]="busy()">
           {{ cancelLabel() }}
         </button>
-        <button [dgCommandBtn]="tone() === 'danger' ? 'primary' : 'teal'" type="button" (click)="confirm()" [disabled]="busy()">
+        <button [dgButton]="tone() === 'danger' ? 'danger' : 'primary'" type="button" (click)="confirm()" [disabled]="busy()">
           {{ busy() ? 'Working...' : confirmLabel() }}
         </button>
       </div>

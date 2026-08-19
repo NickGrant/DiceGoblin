@@ -5,20 +5,22 @@ import { UnitRecord } from '../../core/models/api.models';
 import { SessionService } from '../../core/services/session/session.service';
 import { SquadService } from '../../core/services/squad/squad.service';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
-import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
-import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
-import { UnitBarComponent } from '../../shared/ui/unit-bar/unit-bar.component';
+import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
+import { resolveUnitThumbnailUrl } from '../../shared/ui/unit-art/unit-art';
 import { formatTier, formatUnitKinLabel } from '../../shared/utils/unit-formatters';
 
 @Component({
   selector: 'app-warband-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RouterLink, FormsModule, UnitBarComponent],
+  imports: [DgAlertComponent, RouterLink, FormsModule],
   templateUrl: './warband-page.component.html',
   styleUrl: './warband-page.component.scss',
+  host: {
+    '[attr.data-page]': "'warband'",
+  },
 })
 export class WarbandPageComponent {
-  private static readonly UNIT_PAGE_SIZE = 12;
+  private static readonly UNIT_PAGE_SIZE = 15;
 
   private readonly sessionService = inject(SessionService);
   private readonly squadService = inject(SquadService);
@@ -31,6 +33,7 @@ export class WarbandPageComponent {
   readonly activeSquad = this.sessionService.activeSquad;
   readonly selectedUnitType = signal<string | null>(null);
   readonly selectedKin = signal<string | null>(null);
+  readonly unitSearchTerm = signal('');
   readonly excludedUnitTiers = signal<number[]>([]);
   readonly selectedLevelMin = signal<number | null>(null);
   readonly selectedLevelMax = signal<number | null>(null);
@@ -69,9 +72,12 @@ export class WarbandPageComponent {
     return Array.from({ length: maxLevel }, (_, index) => index + 1);
   });
   readonly assignedUnitIds = computed(() => new Set(this.squads().flatMap((squad) => squad.unit_ids)));
+  readonly activeSquadCount = computed(() => this.squads().filter((squad) => squad.is_active || squad.unit_ids.length > 0).length);
+  readonly totalWarPower = computed(() => this.squads().reduce((total, squad) => total + this.squadPower(squad), 0));
   readonly filteredUnits = computed(() => {
     const selectedType = this.selectedUnitType();
     const selectedKin = this.selectedKin();
+    const searchTerm = this.unitSearchTerm().trim().toLowerCase();
     const excludedTiers = new Set(this.excludedUnitTiers());
     const selectedLevelMin = this.selectedLevelMin();
     const selectedLevelMax = this.selectedLevelMax();
@@ -83,6 +89,10 @@ export class WarbandPageComponent {
       }
 
       if (squadAssignmentFilter === 'unassigned' && assignedUnitIds.has(unit.id)) {
+        return false;
+      }
+
+      if (searchTerm && !this.unitSearchText(unit).includes(searchTerm)) {
         return false;
       }
 
@@ -122,6 +132,8 @@ export class WarbandPageComponent {
       }
     });
   });
+  readonly unitTypeFilters = computed(() => ['All', ...this.availableUnitTypes()]);
+  readonly kinFilters = computed(() => ['All', ...this.availableKinLabels()]);
   readonly unitPageCount = computed(() => Math.max(1, Math.ceil(this.filteredUnits().length / this.unitPageSize)));
   readonly clampedUnitPage = computed(() => Math.min(this.unitPage(), this.unitPageCount()));
   readonly pagedUnits = computed(() => {
@@ -192,12 +204,17 @@ export class WarbandPageComponent {
   }
 
   updateUnitType(value: string): void {
-    this.selectedUnitType.set(value || null);
+    this.selectedUnitType.set(value && value !== 'All' ? value : null);
     this.resetUnitPage();
   }
 
   updateKin(value: string): void {
-    this.selectedKin.set(value || null);
+    this.selectedKin.set(value && value !== 'All' ? value : null);
+    this.resetUnitPage();
+  }
+
+  updateUnitSearch(value: string): void {
+    this.unitSearchTerm.set(value);
     this.resetUnitPage();
   }
 
@@ -215,6 +232,10 @@ export class WarbandPageComponent {
 
   tierFilterLabel(tier: number): string {
     return formatTier(tier) ?? `${tier}`;
+  }
+
+  formatTier(tier: number | null | undefined): string | null {
+    return formatTier(tier);
   }
 
   tierFilterClass(tier: number): string {
@@ -282,22 +303,106 @@ export class WarbandPageComponent {
     await this.router.navigate(['/warband/units', unitId]);
   }
 
+  squadCapacityLabel(squad: { unit_ids: string[]; formation?: unknown[] }): string {
+    const capacity = Array.isArray(squad.formation) && squad.formation.length > 0 ? squad.formation.length : 9;
+    return `${squad.unit_ids.length}/${capacity}`;
+  }
+
+  squadPower(squad: { unit_ids: string[] }): number {
+    const unitMap = new Map(this.units().map((unit) => [unit.id, unit]));
+    return squad.unit_ids.reduce((total, unitId) => total + this.unitPower(unitMap.get(unitId)), 0);
+  }
+
+  squadThreatLabel(squad: { unit_ids: string[] }): string {
+    const power = this.squadPower(squad);
+    if (power <= 0) {
+      return 'N/A';
+    }
+
+    if (power >= 160) {
+      return 'High';
+    }
+
+    if (power >= 90) {
+      return 'Moderate';
+    }
+
+    return 'Low';
+  }
+
+  squadIcon(index: number): string {
+    return ['x', 'skull', 'shield', 'sword', 'gear', 'eye'][index % 6];
+  }
+
+  unitPower(unit: UnitRecord | null | undefined): number {
+    if (!unit) {
+      return 0;
+    }
+
+    return (
+      (unit.max_hp ?? 0) +
+      (unit.total_attack ?? 0) * 3 +
+      (unit.total_defense ?? 0) * 2 +
+      (unit.total_precision ?? 0) +
+      (unit.total_resolve ?? 0) +
+      (unit.level ?? 1) * 4 +
+      (unit.tier ?? 1) * 12
+    );
+  }
+
+  unitThumbnailUrl(unit: UnitRecord): string {
+    return (
+      resolveUnitThumbnailUrl(unit.unit_type_slug) ??
+      resolveUnitThumbnailUrl(unit.unit_type_name) ??
+      resolvePrototypeUnitSpriteUrl(unit)
+    );
+  }
+
+  xpPercent(unit: UnitRecord): number {
+    const xp = Number(unit.xp ?? 0);
+    const xpToNext = Number(unit.xp_to_next_level ?? 0);
+    if (xpToNext <= 0) {
+      return unit.is_mastered ? 100 : 60;
+    }
+
+    return Math.max(0, Math.min(100, Math.round((xp / xpToNext) * 100)));
+  }
+
+  xpLabel(unit: UnitRecord): string {
+    const xp = Number(unit.xp ?? 0);
+    const xpToNext = Number(unit.xp_to_next_level ?? 0);
+    return xpToNext > 0 ? `${xp}/${xpToNext}` : unit.is_mastered ? 'Mastered' : `${this.xpPercent(unit)}%`;
+  }
+
   unitPositionLabel(unit: UnitRecord): string | null {
     const activeSquad = this.activeSquad();
     const assignment = activeSquad?.formation?.find((entry) => entry.unit_instance_id === unit.id);
     return assignment ? `Slot ${assignment.cell}` : null;
   }
 
-  private unitTypeLabel(unit: { unit_type_name?: string; unit_type_slug?: string }): string {
+  unitTypeLabel(unit: { unit_type_name?: string; unit_type_slug?: string }): string {
     return (unit.unit_type_name || unit.unit_type_slug || 'Unknown').trim();
   }
 
-  private kinLabel(unit: Pick<UnitRecord, 'kin_name' | 'kin_slug' | 'splice_variant_name' | 'splice_variant_slug'>): string {
+  kinLabel(unit: Pick<UnitRecord, 'kin_name' | 'kin_slug' | 'splice_variant_name' | 'splice_variant_slug'>): string {
     return formatUnitKinLabel(unit);
   }
 
   private resetUnitPage(): void {
     this.unitPage.set(1);
+  }
+
+  private unitSearchText(unit: UnitRecord): string {
+    return [
+      unit.name,
+      this.unitTypeLabel(unit),
+      this.kinLabel(unit),
+      formatTier(unit.tier),
+      `${unit.level ?? 1}`,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
   }
 }
 

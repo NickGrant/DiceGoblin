@@ -1,0 +1,19 @@
+@if (heading() || actionLabel()) {
+  <header>
+    @if (heading()) {
+      <h2>{{ heading() }}</h2>
+    }
+    @if (actionLabel()) {
+      <button
+        dgButton="secondary"
+        size="sm"
+        type="button"
+        [attr.aria-label]="actionAriaLabel() || actionLabel()"
+        (click)="action.emit()"
+      >
+        {{ actionLabel() }}
+      </button>
+    }
+  </header>
+}
+<ng-content />

@@ -1,130 +1,102 @@
-<page-frame
-  [breadcrumbs]="[{ label: 'Home' }]"
-  title="Prep the warband, then send them raiding."
-  [subtitle]="subtitle()"
-  headerVariant="home"
->
-  <div class="home-proto dg-proto-shell">
-    <div class="home-proto__command-table">
-      <aside class="home-proto__rail home-proto__rail--squad dg-proto-sidebar">
-        <div class="home-proto__rail-header">
-          <div>
-            <h3 class="dg-proto-section__title">Current Squad</h3>
-          </div>
-          <a class="home-proto__rail-link" routerLink="/warband">Manage</a>
+<page-frame [showHeader]="false">
+  <section class="home-page" aria-label="Camp home">
+    <div class="home-page__main">
+      <a class="home-hero" [routerLink]="primaryRoute()" [style.background-image]="'url(' + heroBackgroundUrl() + ')'">
+        <span class="home-hero__shade" aria-hidden="true"></span>
+        <span class="home-hero__top">
+          <span dgChip="trait" active>Region: {{ heroRegionLabel() }}</span>
+          <span class="home-hero__node">{{ runNodeLabel() }}</span>
+        </span>
+
+        <span class="home-hero__body">
+          <span class="home-hero__meta">
+            <span dgChip="pending">{{ heroEnergyLabel() }}</span>
+            <span>{{ heroEyebrow() }}</span>
+          </span>
+          <strong>{{ heroTitle() }}</strong>
+          @if (runProgressError()) {
+            <span class="home-hero__error">{{ runProgressError() }}</span>
+          }
+          <span class="home-hero__cta">{{ heroCta() }} -></span>
+        </span>
+      </a>
+
+      <aside class="home-squad" aria-label="Active squad">
+        <header class="home-squad__header">
+          <span>
+            <strong>{{ activeSquad()?.name || 'No Squad Assigned' }}</strong>
+            <small>Active Squad · {{ activeSquadUnits().length }} of {{ squadUnitCap() }} Slots</small>
+          </span>
+          <a routerLink="/warband">Edit -></a>
+        </header>
+
+        <div class="home-squad__list">
+          @for (unit of activeSquadUnits(); track unit.id) {
+            <a class="home-unit" [routerLink]="['/warband/units', unit.id]">
+              <dg-unit-thumbnail [unit]="unit" [compact]="true" [showCopy]="false" />
+              <span class="home-unit__body">
+                <span class="home-unit__head">
+                  <strong>{{ unit.name }}</strong>
+                  <span class="home-unit__badges">
+                    <span dgChip="trait">{{ unitKinLabel(unit) }}</span>
+                    <span dgChip="pending">{{ unit.unit_type_name || 'Unit' }}</span>
+                  </span>
+                </span>
+                <span class="home-unit__stats">
+                  <span>HP <b>{{ unitHp(unit) }}</b></span>
+                  <span>Lv <b>{{ unit.level || 1 }}</b></span>
+                  <span>Tier <b>{{ unit.tier || 1 }}</b></span>
+                </span>
+                <span class="home-unit__xp">
+                  <span>XP</span>
+                  <dg-progress
+                    [value]="unit.xp || 0"
+                    [max]="unitXpMax(unit)"
+                    size="compact"
+                    [showValue]="false"
+                    [ariaLabel]="unit.name + ' experience'"
+                  />
+                  <b>{{ unit.xp || 0 }}/{{ unitXpMax(unit) }}</b>
+                </span>
+              </span>
+            </a>
+          } @empty {
+            <p class="home-squad__empty">Assign a squad before the next raid.</p>
+          }
         </div>
-        <div class="dg-proto-divider"></div>
-        @if (activeSquadUnits().length) {
-          <div class="home-proto__squad-list">
-            @for (unit of activeSquadUnits(); track unit.id) {
-              <a class="home-proto__squad-unit-link" [routerLink]="['/warband/units', unit.id]">
-                <dg-unit-bar [unit]="unit" [compact]="true" />
-              </a>
-            }
-          </div>
-        } @else {
-          <p class="home-proto__empty mb-0">Assign a squad before the next raid.</p>
+
+        @if (activeSquadUnits().length < squadUnitCap()) {
+          <a class="home-squad__empty-slot" routerLink="/warband">
+            + Slot {{ activeSquadUnits().length + 1 }} Empty
+          </a>
         }
       </aside>
-
-      <section class="home-proto__mission-board dg-proto-section">
-        <a class="home-proto__mission-card" [routerLink]="primaryRoute()">
-          <img
-            [src]="
-              hasActiveRun()
-                ? '/assets/ui/panels/home_continue_run.jpg'
-                : '/assets/ui/panels/home_start_run.jpg'
-            "
-            alt=""
-          />
-          <div class="home-proto__mission-body">
-            <div class="home-proto__mission-panel">
-              <div class="home-proto__mission-step">
-                <span>1</span>
-                <div>
-                  <strong>{{
-                    hasActiveRun() ? 'Check the route' : 'Choose the hunting ground'
-                  }}</strong>
-                  <p>
-                    {{ activeRun()?.region_name || 'Each biome shapes the danger and rewards.' }}
-                  </p>
-                </div>
-              </div>
-              <div class="home-proto__mission-step">
-                <span>2</span>
-                <div>
-                  <strong>Commit the squad</strong>
-                  <p>{{ rewardLabelForUnitCount() }} and ready to cause trouble.</p>
-                </div>
-              </div>
-              <div class="home-proto__mission-step">
-                <span>3</span>
-                <div>
-                  <strong>{{ hasActiveRun() ? 'Resume the push' : 'Start the run' }}</strong>
-                  <p>{{ subtitle() }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </a>
-      </section>
-
-      <aside class="home-proto__rail home-proto__rail--routes dg-proto-sidebar">
-        <div class="home-proto__rail-header">
-          <div>
-            <h3 class="dg-proto-section__title">Utilities</h3>
-          </div>
-        </div>
-        <div class="dg-proto-divider"></div>
-
-        <a
-          class="home-proto__route-card home-proto__route-card--guidance"
-          [routerLink]="nextProgressionAction().route"
-        >
-          <span class="home-proto__guidance-eyebrow">{{ nextProgressionAction().eyebrow }}</span>
-          <strong>{{ nextProgressionAction().title }}</strong>
-          <span>{{ nextProgressionAction().body }}</span>
-          <span class="home-proto__guidance-cta">{{ nextProgressionAction().cta }}</span>
-        </a>
-
-        <div class="home-proto__route-list">
-          <a class="home-proto__route-card" routerLink="/warband">
-            <strong>Warband</strong>
-            <span>Squads, roles, and formation.</span>
-          </a>
-
-          @if (academyUnlocked()) {
-            <a class="home-proto__route-card" routerLink="/academy">
-              <strong>Academy</strong>
-              <span>Train up fresh troublemakers.</span>
-            </a>
-          }
-
-          @if (shopUnlocked()) {
-            <a class="home-proto__route-card" routerLink="/shop">
-              <strong>Shop</strong>
-              <span>Trade teeth for tools and recruits.</span>
-            </a>
-          } @else {
-            <div class="home-proto__route-card home-proto__route-card--locked" aria-disabled="true">
-              <strong>Shop Locked</strong>
-              <span>Defeat The Farm to free the Tooth Collector.</span>
-            </div>
-          }
-
-          <a class="home-proto__route-card" routerLink="/dice">
-            <strong>Inventory</strong>
-            <span>Sort dice, compare rarity, prep the stash.</span>
-          </a>
-
-          @if (devPanelEnabled) {
-            <a class="home-proto__route-card" routerLink="/debug">
-              <strong>Dev Panel</strong>
-              <span>Capture states and test flow quickly.</span>
-            </a>
-          }
-        </div>
-      </aside>
     </div>
-  </div>
+
+    <section class="home-objective" aria-labelledby="home-current-objective">
+      <span id="home-current-objective">Current Objective</span>
+      @if (currentObjective(); as objective) {
+        <h2>{{ objective.title }}</h2>
+        <p>{{ objective.description }}</p>
+      } @else {
+        <h2>{{ nextProgressionAction().title }}</h2>
+        <p>{{ nextProgressionAction().body }}</p>
+      }
+    </section>
+
+    <section class="home-command" aria-labelledby="home-camp-command">
+      <h2 id="home-camp-command">Camp Command</h2>
+      <div class="home-command__grid">
+        @for (tile of commandTiles(); track tile.label) {
+          <a class="home-command__tile" [routerLink]="tile.route">
+            <span class="home-command__icon">
+              <img [src]="tile.icon" alt="" />
+            </span>
+            <strong>{{ tile.label }}</strong>
+            <small>{{ tile.detail }}</small>
+          </a>
+        }
+      </div>
+    </section>
+  </section>
 </page-frame>

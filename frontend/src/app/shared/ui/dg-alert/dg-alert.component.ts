@@ -4,38 +4,33 @@ import { Component, input } from '@angular/core';
   selector: 'dg-alert',
   standalone: true,
   host: {
-    style: 'display: block;',
+    '[attr.data-dg-alert]': 'tone()',
+    '[attr.role]': 'tone() === "error" ? "alert" : "status"',
+    '[attr.aria-live]': 'tone() === "error" ? "assertive" : "polite"',
   },
   styles: [
     `
-      .dg-alert {
-        padding: 0.9rem 1rem;
-        border: 2px solid rgba(35, 39, 42, 0.2);
-        background: rgba(243, 239, 224, 0.9);
+      :host {
+        display: block;
+        padding: var(--dg-space-5) var(--dg-space-6);
+        border: 1px solid var(--dg-border-default);
+        border-radius: var(--dg-radius-lg);
+        background: var(--dg-bg-card);
+        color: var(--dg-text-primary);
       }
 
-      .dg-alert--error {
-        border-color: rgba(185, 28, 28, 0.45);
-        background: rgba(185, 28, 28, 0.12);
+      :host([data-dg-alert='error']) {
+        border-color: var(--dg-status-danger);
+        background: color-mix(in srgb, var(--dg-status-danger) 12%, var(--dg-bg-card));
       }
 
-      .dg-alert--success {
-        border-color: rgba(0, 111, 122, 0.4);
-        background: rgba(0, 111, 122, 0.1);
+      :host([data-dg-alert='success']) {
+        border-color: var(--dg-status-success);
+        background: color-mix(in srgb, var(--dg-status-success) 12%, var(--dg-bg-card));
       }
     `,
   ],
-  template: `
-    <div
-      class="dg-alert"
-      [class.dg-alert--error]="tone() === 'error'"
-      [class.dg-alert--success]="tone() === 'success'"
-      [attr.role]="tone() === 'error' ? 'alert' : 'status'"
-      [attr.aria-live]="tone() === 'error' ? 'assertive' : 'polite'"
-    >
-      <ng-content />
-    </div>
-  `,
+  template: `<ng-content />`,
 })
 export class DgAlertComponent {
   readonly tone = input<'info' | 'error' | 'success'>('info');

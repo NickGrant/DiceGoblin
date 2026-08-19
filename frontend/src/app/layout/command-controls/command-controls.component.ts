@@ -7,6 +7,8 @@ import { EnergyRestoreResponse, ItemRecord } from '../../core/models/api.models'
 import { ApiHttpService } from '../../core/services/api-http/api-http.service';
 import { AudioDirectorService } from '../../core/services/audio/audio-director.service';
 import { SessionService } from '../../core/services/session/session.service';
+import { DgButtonDirective } from '../../shared/ui/dg-button/dg-button.directive';
+import { DgChipDirective } from '../../shared/ui/dg-chip/dg-chip.directive';
 
 type HudNavItem = {
   readonly id: string;
@@ -21,7 +23,7 @@ type HudNavItem = {
 @Component({
   selector: 'app-command-controls',
   standalone: true,
-  imports: [FontAwesomeModule, RouterLink, RouterLinkActive],
+  imports: [FontAwesomeModule, RouterLink, RouterLinkActive, DgButtonDirective, DgChipDirective],
   templateUrl: './command-controls.component.html',
   styleUrl: './command-controls.component.scss',
 })

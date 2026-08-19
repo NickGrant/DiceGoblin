@@ -1,0 +1,4 @@
+<span [style.--dg-progress-value]="percentStyle()"></span>
+@if (showValue() && size() === 'standard') {
+  <output>{{ clampedValue() }}/{{ max() }}</output>
+}

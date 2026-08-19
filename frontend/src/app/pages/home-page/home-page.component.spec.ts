@@ -4,6 +4,7 @@ import { By } from '@angular/platform-browser';
 import { RouterLink, provideRouter } from '@angular/router';
 import { HomePageComponent } from './home-page.component';
 import { SessionService } from '../../core/services/session/session.service';
+import { RunService } from '../../core/services/run/run.service';
 
 type ProfileState = {
   activeRunId: string | null;
@@ -13,6 +14,12 @@ type ProfileState = {
 };
 
 class SessionServiceStub {
+  readonly session = signal({
+    isAuthenticated: true,
+    displayName: 'Nick',
+    userId: 'u1',
+    csrfToken: 'csrf',
+  });
   readonly profile = signal<ProfileState>({
     activeRunId: null,
     activeSquadName: 'Alpha Squad',
@@ -23,10 +30,15 @@ class SessionServiceStub {
   readonly hasActiveRun = signal(false);
   readonly shopUnlocked = signal(false);
   readonly academyUnlocked = signal(false);
+  readonly wrongMachineUnlocked = signal(false);
+  readonly unitTypeUnlocks = signal<string[]>([]);
+  readonly dice = signal<any[]>([{ id: 'd1' }]);
   readonly profileData = signal<any>({
     active_run: null,
-    dice: [{ id: 'd1' }],
+    currency: { soft: 93, raw_chaos: 0 },
+    energy: { current: 12, max: 20 },
     feature_unlocks: [],
+    objectives: [],
     regions: [
       {
         id: '1',
@@ -82,8 +94,25 @@ class SessionServiceStub {
 
 describe('HomePageComponent', () => {
   let sessionService: SessionServiceStub;
+  let runService: jasmine.SpyObj<Pick<RunService, 'getCurrentRun'>>;
 
   beforeEach(async () => {
+    runService = jasmine.createSpyObj<Pick<RunService, 'getCurrentRun'>>('RunService', ['getCurrentRun']);
+    runService.getCurrentRun.and.resolveTo({
+      ok: true,
+      data: {
+        run: null,
+        map: {
+          nodes: [
+            { id: 'n1', run_id: 'run-7', node_index: 0, node_type: 'combat', status: 'cleared' },
+            { id: 'n2', run_id: 'run-7', node_index: 1, node_type: 'boss', status: 'available' },
+            { id: 'n3', run_id: 'run-7', node_index: 2, node_type: 'exit', status: 'locked' },
+          ],
+          edges: [],
+        },
+      },
+    });
+
     await TestBed.configureTestingModule({
       imports: [HomePageComponent],
       providers: [
@@ -91,6 +120,10 @@ describe('HomePageComponent', () => {
         {
           provide: SessionService,
           useClass: SessionServiceStub,
+        },
+        {
+          provide: RunService,
+          useValue: runService,
         },
       ],
     }).compileComponents();
@@ -104,11 +137,13 @@ describe('HomePageComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.textContent).toContain('Start the run');
-    expect(compiled.textContent).toContain('Each biome shapes the danger and rewards.');
-    expect(compiled.textContent).toContain('Shop Locked');
-    expect(compiled.textContent).toContain('Defeat The Farm to free the Tooth Collector.');
-    expect(compiled.textContent).not.toContain('Academy');
+    expect(compiled.textContent).toContain('Choose the Next Raid');
+    expect(compiled.textContent).toContain('Start Run');
+    expect(compiled.textContent).toContain('Inventory');
+    expect(compiled.textContent).toContain('1 dice');
+    expect(compiled.textContent).toContain('Academy');
+    expect(compiled.textContent).not.toContain('NEXT REGION');
+    expect(runService.getCurrentRun).not.toHaveBeenCalled();
     expect(fixture.componentInstance.primaryRoute()).toBe('/regions');
     expect(fixture.componentInstance.nextProgressionAction()).toEqual({
       eyebrow: 'Next Region',
@@ -119,7 +154,6 @@ describe('HomePageComponent', () => {
     });
     expect(compiled.textContent).not.toContain('Formation');
     expect(compiled.textContent).not.toContain('Map');
-    expect(compiled.textContent).not.toContain('Unlocks');
   });
 
   it('links current squad units to their details pages', () => {
@@ -134,7 +168,7 @@ describe('HomePageComponent', () => {
     expect(unitLink!.injector.get(RouterLink).href).toContain('/warband/units/u1');
   });
 
-  it('shows continue-run copy when an active run exists', () => {
+  it('shows continue-run copy and loads node progress when an active run exists', async () => {
     sessionService.hasActiveRun.set(true);
     sessionService.shopUnlocked.set(true);
     sessionService.academyUnlocked.set(true);
@@ -148,10 +182,14 @@ describe('HomePageComponent', () => {
       active_run: {
         run_id: 'run-7',
         region_name: 'The Farm',
+        region_slug: 'the_farm',
         seed: 'abc123',
+        energy_cost: 3,
       },
-      dice: [{ id: 'd1' }],
+      currency: { soft: 93, raw_chaos: 0 },
+      energy: { current: 12, max: 20 },
       feature_unlocks: ['shop', 'academy'],
+      objectives: [],
       regions: [
         {
           id: '1',
@@ -178,22 +216,22 @@ describe('HomePageComponent', () => {
 
     const fixture = TestBed.createComponent(HomePageComponent);
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
 
     const component = fixture.componentInstance;
     const compiled = fixture.nativeElement as HTMLElement;
-    const primaryImage = compiled.querySelector(
-      '.home-proto__mission-card img',
-    ) as HTMLImageElement;
 
-    expect(compiled.textContent).toContain('Resume the push');
-    expect(compiled.textContent).toContain('The Farm');
+    expect(compiled.textContent).toContain('Continue Run');
+    expect(compiled.textContent).toContain('Raid the Farm');
+    expect(compiled.textContent).toContain('Node 2/3');
     expect(compiled.textContent).toContain('Shop');
     expect(compiled.textContent).toContain('Academy');
-    expect(compiled.textContent).toContain('Current Squad');
+    expect(compiled.textContent).toContain('Active Squad');
+    expect(runService.getCurrentRun).toHaveBeenCalledOnceWith();
     expect(component.primaryRoute()).toBe('/run/map');
     expect(component.nextProgressionAction().title).toBe('Continue The Farm');
     expect(component.nextProgressionAction().route).toBe('/run/map');
-    expect(primaryImage.getAttribute('src')).toContain('home_continue_run.jpg');
   });
 
   it('prioritizes squad assignment when the active squad is empty', () => {
@@ -279,6 +317,6 @@ describe('HomePageComponent', () => {
     expect(compiled.textContent).not.toContain('Equip a die');
     expect(compiled.textContent).not.toContain('Done');
     expect(compiled.textContent).toContain('Claim a battle victory');
-    expect(compiled.querySelector('.home-proto__objective-list')).toBeNull();
+    expect(compiled.querySelector('.home-objective')).not.toBeNull();
   });
 });

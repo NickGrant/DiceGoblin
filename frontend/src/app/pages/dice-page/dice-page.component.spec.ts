@@ -1,10 +1,10 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { Router, RouterLink, provideRouter } from '@angular/router';
-import { DicePageComponent } from './dice-page.component';
+import { RouterLink, provideRouter } from '@angular/router';
 import { DiceService } from '../../core/services/dice/dice.service';
 import { SessionService } from '../../core/services/session/session.service';
+import { DicePageComponent } from './dice-page.component';
 
 class DiceServiceStub {
   sellDice = jasmine.createSpy('sellDice').and.resolveTo({ ok: true, data: { sell_value: 12 } });
@@ -16,59 +16,34 @@ class DiceServiceStub {
 
 class SessionServiceStub {
   readonly wrongMachineUnlocked = signal(true);
-  readonly profileData = signal<any>({
-    dice: [],
-    currency: { soft: 0, hard: 0, raw_chaos: 7 },
-    items: [
-      {
-        item_id: '1',
-        item_slug: 'field_poultice',
-        name: 'Field Poultice',
-        description: 'A paste that closes small wounds.',
-        category: 'consumable',
-        quantity: 2,
-        rarity: 'common',
-        source_region_slug: 'mountains',
-        source_region_name: 'Mountains',
-        source_family_slug: null,
-        icon_key: 'item_field_poultice',
-        lore_key: 'healing_consumable',
-        is_visible_before_discovery: false,
-        is_spendable: true,
-        is_primary_progression: false,
-        meta: { effect: 'heal_run_unit_hp', amount: 10 },
-      },
-      {
-        item_id: '2',
-        item_slug: 'travel_ration',
-        name: 'Travel Ration',
-        description: 'Food with suspicious endurance.',
-        category: 'consumable',
-        quantity: 1,
-        rarity: 'common',
-        source_region_slug: null,
-        source_region_name: null,
-        source_family_slug: null,
-        icon_key: 'item_travel_ration',
-        lore_key: 'energy_consumable',
-        is_visible_before_discovery: false,
-        is_spendable: true,
-        is_primary_progression: false,
-        meta: { effect: 'restore_energy', amount: 10 },
-      },
-    ],
-  });
   readonly units = signal([
     {
       id: 'u1',
       name: 'Fang',
       ability_dice: [{ ability_id: 'heavy_strike', slot_index: 0, dice_instance_id: 'd1' }],
+      equipped_dice: [],
     },
   ] as any[]);
   readonly dice = signal([
-    { id: 'd1', sell_value: 12, sides: 8, rarity: 'rare', affixes: [{ name: 'Bulwark', description: 'Increase defense by 1.' }] },
-    { id: 'd2', sell_value: 8, sides: 4, rarity: 'common' },
-    { id: 'd3', sell_value: 15, sides: 10, rarity: 'epic', affixes: [{ name: 'Oracle', description: 'Peek the next result.' }] },
+    {
+      id: 'd1',
+      display_name: 'Bone D8',
+      sell_value: 12,
+      value: 8,
+      sides: 8,
+      rarity: 'rare',
+      affixes: [{ name: 'Bulwark', description: 'Increase defense by 1.', value: 1 }],
+    },
+    { id: 'd2', display_name: 'Cardboard D4', sell_value: 8, value: 4, sides: 4, rarity: 'common', affixes: [] },
+    {
+      id: 'd3',
+      display_name: 'Gemstone D10',
+      sell_value: 15,
+      value: 10,
+      sides: 10,
+      rarity: 'legendary',
+      affixes: [{ name: 'Oracle', description: 'Peek the next result.', value: 2 }],
+    },
   ] as any[]);
 }
 
@@ -88,247 +63,191 @@ describe('DicePageComponent', () => {
     return fixture;
   }
 
-  it('reports ability-slot dice as equipped', async () => {
+  it('renders the Figma dice inventory shell without selecting a die by default', async () => {
     const fixture = await createComponent();
+    const host: HTMLElement = fixture.nativeElement;
 
-    const component = fixture.componentInstance;
-    expect(component.isEquippedAnywhere('d1')).toBeTrue();
-    expect(component.equippedUnit('d1')).toEqual({ id: 'u1', name: 'Fang' });
-    expect(component.equippedUnit('d2')).toBeNull();
-    expect(component.dice().map((die) => die.id)).toEqual(['d1', 'd2', 'd3']);
+    expect(host.textContent).toContain('Dice Inventory');
+    expect(host.textContent).toContain('3 dice collected');
+    expect(host.querySelectorAll('.dice-card')).toHaveSize(3);
+    expect(host.querySelector('.dice-detail')).toBeNull();
+    expect(host.querySelector('.dice-card.is-selected')).toBeNull();
+    expect(host.textContent).toContain('Search dice');
+    expect(host.textContent).not.toContain('D12');
+    expect(host.textContent).not.toContain('D20');
+    expect(host.textContent).not.toContain('Consumables');
   });
 
-  it('filters by equip state, size, and rarity and sorts by rarity', async () => {
+  it('filters dice by search text, material, and die size', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
 
-    component.updateEquipFilter('unequipped');
-    expect(component.filteredDice().map((die) => die.id)).toEqual(['d2', 'd3']);
+    component.updateSearch('bone');
+    expect(component.filteredDice().map((die) => die.id)).toEqual(['d1']);
 
-    component.updateSize('10');
-    expect(component.filteredDice().map((die) => die.id)).toEqual(['d3']);
-
-    component.updateSize('');
-    component.updateRarity('common');
+    component.updateSearch('');
+    component.updateMaterial('cardboard');
     expect(component.filteredDice().map((die) => die.id)).toEqual(['d2']);
 
-    component.updateRarity('');
-    component.updateEquipFilter('all');
-    component.updateSort('rarity-desc');
-    expect(component.filteredDice().map((die) => die.id)).toEqual(['d3', 'd1', 'd2']);
+    component.updateMaterial('all');
+    component.selectSize(10);
+    expect(component.filteredDice().map((die) => die.id)).toEqual(['d3']);
   });
 
-  it('paginates filtered dice and resets to the first page when filters change', async () => {
+  it('hides the detail rail when the close button clears the selected die', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const host: HTMLElement = fixture.nativeElement;
+
+    component.inspectDice(component.dice().find((die) => die.id === 'd1')!);
+    fixture.detectChanges();
+
+    expect(host.querySelector('.dice-detail')).not.toBeNull();
+
+    component.closeInspectPanel();
+    fixture.detectChanges();
+
+    expect(component.inspectedDice()).toBeNull();
+    expect(host.querySelector('.dice-detail')).toBeNull();
+
+    component.inspectDice(component.dice().find((die) => die.id === 'd2')!);
+    fixture.detectChanges();
+
+    expect(host.querySelector('.dice-detail')?.textContent).toContain('Cardboard D4');
+  });
+
+  it('paginates dice ten at a time and resets pagination when filters change', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
     const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
-    sessionService.dice.set(Array.from({ length: 13 }, (_, index) => ({
-      id: `d${index + 1}`,
-      sell_value: 5,
-      sides: 6,
-      rarity: index === 12 ? 'rare' : 'common',
-    })));
+    sessionService.dice.set(
+      Array.from({ length: 11 }, (_, index) => ({
+        id: `d${index + 1}`,
+        display_name: `Cardboard D6 ${index + 1}`,
+        sell_value: 6,
+        value: 6,
+        sides: 6,
+        rarity: index === 10 ? 'rare' : 'common',
+        affixes: [],
+      })),
+    );
     fixture.detectChanges();
 
     expect(component.totalPages()).toBe(2);
     expect(component.currentPage()).toBe(1);
-    expect(component.pagedDice()).toHaveSize(12);
+    expect(component.pagedDice()).toHaveSize(10);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.dice-card')).toHaveSize(10);
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Page 1 / 2');
 
     component.goToNextPage();
     fixture.detectChanges();
 
     expect(component.currentPage()).toBe(2);
-    expect(component.pagedDice().map((die) => die.id)).toEqual(['d13']);
+    expect(component.pagedDice()).toHaveSize(1);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.dice-card')).toHaveSize(1);
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Page 2 / 2');
 
-    component.updateRarity('common');
+    component.updateSearch('Cardboard D6 1');
     fixture.detectChanges();
 
     expect(component.currentPage()).toBe(1);
-    expect(component.filteredDice()).toHaveSize(12);
-    expect(component.pagedDice()).toHaveSize(12);
+    expect(component.filteredDice().length).toBeGreaterThan(0);
   });
 
-  it('shows a unit link for equipped dice and keeps sell and salvage for unequipped dice', async () => {
+  it('uses selected dice for inspection and clears inspection when filters exclude it', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+
+    component.inspectDice(component.dice().find((die) => die.id === 'd1')!);
+    fixture.detectChanges();
+
+    expect(component.inspectedDice()?.id).toBe('d1');
+    expect((fixture.nativeElement as HTMLElement).querySelector('.dice-detail')?.textContent).toContain('Bone D8');
+
+    component.updateSearch('cardboard');
+    fixture.detectChanges();
+
+    expect(component.inspectedDice()).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.dice-detail')).toBeNull();
+  });
+
+  it('reports ability-slot and equipped dice as equipped', async () => {
+    const fixture = await createComponent();
+    const component = fixture.componentInstance;
+    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+
+    sessionService.units.update((units) => [
+      ...units,
+      { id: 'u2', name: 'Mog', ability_dice: [], equipped_dice: [{ dice_instance_id: 'd2', slot_index: 0 }] },
+    ]);
+
+    expect(component.isEquippedAnywhere('d1')).toBeTrue();
+    expect(component.isEquippedAnywhere('d2')).toBeTrue();
+    expect(component.equippedUnit('d1')).toEqual({ id: 'u1', name: 'Fang' });
+    expect(component.equippedUnit('d2')).toEqual({ id: 'u2', name: 'Mog' });
+  });
+
+  it('links equipped dice to the owning unit', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
     const host: HTMLElement = fixture.nativeElement;
 
-    const inspectBodyText = () => host.querySelector('.dice-page__inspect')?.textContent ?? '';
-
-    component.previewDice('d1');
+    component.inspectDice(component.dice().find((die) => die.id === 'd1')!);
     fixture.detectChanges();
 
     const unitLinkDebug = fixture.debugElement
       .queryAll(By.directive(RouterLink))
-      .find((element) => element.nativeElement.textContent?.includes('View Fang'));
+      .find((element) => element.nativeElement.textContent?.includes('View Unit'));
 
+    expect(host.querySelector('.dice-detail')?.textContent).toContain('Currently Equipped by');
     expect(unitLinkDebug).toBeDefined();
     expect(unitLinkDebug!.injector.get(RouterLink).href).toContain('/warband/units/u1');
-    expect(inspectBodyText()).toContain('View Fang');
-
-    component.previewDice('d2');
-    fixture.detectChanges();
-
-    expect(inspectBodyText()).toContain('Sell');
-    expect(inspectBodyText()).toContain('Salvage');
-    expect(inspectBodyText()).not.toContain('Working...');
   });
 
-  it('does not duplicate the Raw Chaos balance in the dice inventory header', async () => {
-    const fixture = await createComponent();
-    const host: HTMLElement = fixture.nativeElement;
-
-    expect(host.textContent).not.toContain('Raw Chaos 7');
-  });
-
-  it('hides Raw Chaos and salvage before the Wrong Machine is unlocked', async () => {
-    const fixture = await createComponent();
-    const component = fixture.componentInstance;
-    const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
-    sessionService.wrongMachineUnlocked.set(false);
-    fixture.detectChanges();
-
-    component.previewDice('d2');
-    fixture.detectChanges();
-
-    const host: HTMLElement = fixture.nativeElement;
-    const inspectText = host.querySelector('.dice-page__inspect')?.textContent ?? '';
-
-    expect(host.textContent).not.toContain('Raw Chaos 7');
-    expect(inspectText).toContain('Sell');
-    expect(inspectText).not.toContain('Salvage');
-
-    component.openSalvageConfirm(component.dice().find((die) => die.id === 'd2')!);
-
-    expect(component.pendingSalvageDice()).toBeNull();
-  });
-
-  it('uses the first filtered die as the default inspect target and supports hover preview', async () => {
-    const fixture = await createComponent();
-    const component = fixture.componentInstance;
-    const host: HTMLElement = fixture.nativeElement;
-    const selectedLabel = () =>
-      (host.querySelector('.dice-page__tile.is-selected') as HTMLButtonElement | null)?.getAttribute('aria-label') ?? '';
-    const inspectBodyText = () => host.querySelector('.dice-page__inspect')?.textContent ?? '';
-
-    expect(component.inspectedDice()?.id).toBe('d2');
-    expect(selectedLabel()).toContain('d4');
-    expect(inspectBodyText()).toContain('d4');
-
-    const tiles = Array.from(host.querySelectorAll('.dice-page__tile')) as HTMLButtonElement[];
-    const epicTile = tiles.find((tile) => tile.getAttribute('aria-label')?.includes('Oracle d10 d10 Epic'));
-    expect(epicTile).toBeDefined();
-
-    epicTile!.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-    fixture.detectChanges();
-
-    expect(component.inspectedDice()?.id).toBe('d3');
-    expect(selectedLabel()).toContain('Oracle d10');
-    expect(inspectBodyText()).toContain('Oracle d10');
-  });
-
-  it('opens a sell confirmation for unequipped dice', async () => {
-    const fixture = await createComponent();
-    const component = fixture.componentInstance;
-
-    await component.activateDice(component.dice().find((die) => die.id === 'd2')!);
-
-    expect(component.pendingSellDice()?.id).toBe('d2');
-  });
-
-  it('opens a salvage confirmation and calls the salvage service', async () => {
+  it('opens sell and salvage confirmations and calls the service', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
     const diceService = TestBed.inject(DiceService) as unknown as DiceServiceStub;
+    const die = component.dice().find((entry) => entry.id === 'd2')!;
 
-    component.openSalvageConfirm(component.dice().find((die) => die.id === 'd2')!);
+    component.inspectDice(die);
     fixture.detectChanges();
 
-    expect(component.pendingSalvageDice()?.id).toBe('d2');
+    component.openSellConfirm(die);
+    fixture.detectChanges();
+
+    expect(component.pendingSellDice()?.id).toBe('d2');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Sell for 8 Teeth');
+
+    await component.confirmSellDice();
+    fixture.detectChanges();
+
+    expect(diceService.sellDice).toHaveBeenCalledWith('d2');
+    expect(component.pendingSellDice()).toBeNull();
+
+    component.openSalvageConfirm(die);
+    fixture.detectChanges();
 
     await component.confirmSalvageDice();
     fixture.detectChanges();
 
     expect(diceService.salvageDice).toHaveBeenCalledWith('d2');
-    expect(component.pendingSalvageDice()).toBeNull();
     expect(component.message()).toBe('Salvaged die for 3 Raw Chaos.');
   });
 
-  it('navigates directly for equipped dice clicks', async () => {
-    const fixture = await createComponent();
-    const component = fixture.componentInstance;
-    const router = TestBed.inject(Router);
-    spyOn(router, 'navigate').and.resolveTo(true);
-
-    await component.activateDice(component.dice().find((die) => die.id === 'd1')!);
-
-    expect(router.navigate).toHaveBeenCalledWith(['/warband/units', 'u1']);
-  });
-
-  it('does not expose legacy equip controls in inventory mode', async () => {
-    const fixture = await createComponent();
-    const host: HTMLElement = fixture.nativeElement;
-    const buttonLabels = Array.from(host.querySelectorAll('button')).map((button) => button.textContent?.trim() ?? '');
-
-    expect(buttonLabels).not.toContain('Unequip');
-    expect(buttonLabels).not.toContain('Equip');
-  });
-
-  it('shows owned consumables on the inventory screen', async () => {
-    const fixture = await createComponent();
-    const component = fixture.componentInstance;
-    const host: HTMLElement = fixture.nativeElement;
-
-    component.showConsumableInventory();
-    fixture.detectChanges();
-
-    expect(host.textContent).toContain('Showing 2 of 2 consumables.');
-    expect(host.textContent).toContain('Field Poultice');
-    expect(host.textContent).toContain('Heals 10 life');
-    expect(host.textContent).toContain('Travel Ration');
-    expect(host.textContent).toContain('Restores 10 energy');
-    expect(component.inspectedConsumable()?.item_slug).toBe('field_poultice');
-  });
-
-  it('paginates consumables separately from dice', async () => {
+  it('hides salvage before the Wrong Machine is unlocked', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
     const sessionService = TestBed.inject(SessionService) as unknown as SessionServiceStub;
-    sessionService.profileData.update((profile) => ({
-      ...profile,
-      items: Array.from({ length: 9 }, (_, index) => ({
-        item_id: String(index + 1),
-        item_slug: `supply_${index + 1}`,
-        name: `Supply ${index + 1}`,
-        description: 'A test supply.',
-        category: 'consumable',
-        quantity: 1,
-        rarity: 'common',
-        source_region_slug: null,
-        source_region_name: null,
-        source_family_slug: null,
-        icon_key: null,
-        lore_key: null,
-        is_visible_before_discovery: false,
-        is_spendable: true,
-        is_primary_progression: false,
-        meta: {},
-      })),
-    }));
+    const die = component.dice().find((entry) => entry.id === 'd2')!;
 
-    component.showConsumableInventory();
+    sessionService.wrongMachineUnlocked.set(false);
     fixture.detectChanges();
 
-    expect(component.consumableTotalPages()).toBe(2);
-    expect(component.pagedConsumables()).toHaveSize(8);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.dice-detail')?.textContent).not.toContain('Salvage');
 
-    component.goToNextConsumablePage();
-    fixture.detectChanges();
+    component.openSalvageConfirm(die);
 
-    expect(component.consumableCurrentPage()).toBe(2);
-    expect(component.pagedConsumables().map((item) => item.item_slug)).toEqual(['supply_9']);
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Page 2 / 2');
+    expect(component.pendingSalvageDice()).toBeNull();
   });
 });
