@@ -60,25 +60,39 @@
   position: relative;
   appearance: none;
   width: 100%;
-  border: 0;
+  border: 1px solid transparent;
+  border-radius: 12px;
   background: transparent;
   text-align: left;
   transition:
     transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
     box-shadow 160ms ease,
     opacity 160ms ease;
 }
 
-.region-page__tile:hover,
-.region-page__tile:focus-visible,
-.region-page__tile.is-selected {
+.region-page__tile:hover:not(:disabled),
+.region-page__tile:focus-visible {
   transform: translateY(-2px);
-  box-shadow: 0 0 0 2px rgba(149, 87, 23, 0.4);
+  border-color: rgba(200, 184, 136, 0.88);
+  background: rgba(234, 213, 168, 0.26);
+  box-shadow: 0 3px 4px rgba(42, 32, 21, 0.14);
+}
+
+.region-page__tile.is-selected {
+  border: 2px solid #f2c94c;
+  background: rgba(242, 223, 184, 0.34);
+  box-shadow: 0 3px 4px rgba(242, 201, 76, 0.19);
 }
 
 .region-page__tile:focus-visible {
-  outline: 2px solid rgba(168, 102, 33, 0.35);
+  outline: 2px solid var(--dg-border-focus);
   outline-offset: 2px;
+}
+
+.region-page__tile:disabled {
+  cursor: default;
 }
 
 .region-page__tile.is-locked {
