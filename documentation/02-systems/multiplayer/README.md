@@ -1,31 +1,29 @@
 ---
 Title: "Multiplayer Systems Reference"
-Status: Canonical
-Last Updated: 2026-08-01
+Status: Future / Conceptual
+Last Updated: 2026-08-19
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/README.md
+  - documentation/02-systems/README.md
 Category: 02-systems
 Tags:
   - systems
+  - multiplayer
 ---
 
 # Multiplayer Systems Reference
 
 ## Purpose
 
-- Future multiplayer and union influence design notes that are not part of the current demo critical path.
+Future multiplayer and union-influence design notes that are not part of the current gameplay critical path.
 
-## Status Guidance
-
-- `Canonical` documents are the default source of truth for their scope.
-- `Needs Review` documents are useful but should be verified before making implementation decisions from them.
-- `Legacy Reference` documents are preserved for history, migration context, or comparison and do not override canonical docs.
+These documents remain visible from the canonical systems inventory, but they do not describe current runtime behavior.
 
 ## Documents
 
-- `00-multiplayer-philosophy.md`
-- `01-union-influence.md`
+- `multiplayer-philosophy.md`
+- `union-influence.md`
 
 ## Child Folders
 

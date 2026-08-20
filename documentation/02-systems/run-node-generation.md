@@ -1,7 +1,7 @@
 ---
 Title: "Run Node Generation"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-19
 Owner: Systems Design + Engineering
 Depends On:
   - backend/src/Services/RunGraphGenerator.php
@@ -114,7 +114,7 @@ flowchart TD
 
 After the base graph is generated, `applyDialogueNodes()` can insert dialogue nodes for the region. Inserted dialogue nodes use metadata such as `dialogue_id`, `one_time`, and `tags`. Seen one-time dialogue can be removed from future graphs while preserving connectivity.
 
-See `04-dialogue-flow-determination.md` for dialogue gating details.
+See `dialogue-flow-determination.md` for dialogue gating details.
 
 ## Pattern-V1 Boundary
 

@@ -1,10 +1,10 @@
 ---
 Title: "Dice Material Identity and Generation"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-19
 Owner: Systems Design + Content Design
 Depends On:
-  - documentation/02-systems/03-combat-resolution.md
+  - documentation/02-systems/combat-resolution.md
   - documentation/03-content/00-content-source-map.md
   - documentation/03-content/11-loot-and-reward-profiles.md
   - documentation/02-systems/mvp-reference/01-dice-system.md

@@ -1,7 +1,7 @@
 ---
 Title: "Documentation Index"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-19
 Owner: Product + Engineering
 Depends On:
   - AGENTS.md
@@ -33,7 +33,7 @@ Tags:
 
 - `00-overview/`: high-level product overview, core loop, and glossary.
 - `01-lore/`: setting, story, narrative tone, and biome progression direction.
-- `02-systems/`: current gameplay behavior and canonical target-state system contracts, plus legacy MVP and multiplayer references.
+- `02-systems/`: canonical gameplay-system inventory, current behavior and target-state contracts, explicit documentation gaps, plus legacy MVP and multiplayer references.
 - `03-content/`: catalog-style documents for units, kin, enemies, biomes, items, dice materials, encounters, rewards, and Codex entries.
 - `04-ux/`: player experience, visual design, onboarding, and page-by-page analysis.
 - `05-technical/`: architecture, API contracts, data model, frontend state, seed ownership, and schemas.
@@ -48,8 +48,8 @@ Tags:
 2. `documentation/00-overview/01-core-gameplay-loop.md`
 3. `documentation/01-lore/00-world-and-lore.md`
 4. `documentation/00-overview/02-glossary.md`
-5. `documentation/02-systems/00-current-system-index.md`
-6. The relevant canonical system document under `documentation/02-systems/`
+5. `documentation/02-systems/README.md`
+6. The relevant canonical system document under `documentation/02-systems/`, or the evidence linked from the system inventory when canonical coverage is missing.
 7. `documentation/05-technical/02-frontend-state-and-scene-contracts.md`
 8. `documentation/05-technical/03-backend-api-contracts.md`
 9. `documentation/05-technical/04-data-model.md`
@@ -58,14 +58,15 @@ Tags:
 12. `documentation/06-testing-release/00-testing-strategy.md`
 13. `documentation/07-development-path/2026-07-30-first-pig-kin-demo-roadmap.md`
 
-For permanent dice work, the relevant system document is `documentation/02-systems/08-dice-material-model.md`.
+For permanent dice work, the relevant system document is `documentation/02-systems/dice-material-model.md`.
 
-For Wrong Machine and kin production, the relevant system document is `documentation/02-systems/09-kin-reconstruction.md`.
+For Wrong Machine and kin production, the relevant system document is `documentation/02-systems/kin-reconstruction.md`.
 
 ## Current-State Rule
 
 - If a narrow subsystem document conflicts with a current-state overview, technical contract, or active issue, use the newer authoritative source and update the stale document during the work.
-- `documentation/02-systems/` is the first stop for gameplay behavior and target-state system rules.
+- `documentation/02-systems/README.md` is the first stop for gameplay systems and documentation coverage; every meaningful gameplay system should remain visible there even when its canonical contract is missing.
+- `documentation/02-systems/` owns gameplay behavior and target-state system rules.
 - `documentation/05-technical/` owns current route/schema evidence and target implementation direction; it must identify legacy compatibility rather than silently redefining system behavior.
 - Implementation and tests remain the evidence for what currently runs.
 - `documentation/02-systems/mvp-reference/` is background, not default authority.
@@ -76,6 +77,6 @@ For Wrong Machine and kin production, the relevant system document is `documenta
 
 - Every documentation folder should have a `README.md`.
 - Every Markdown documentation file should start with YAML frontmatter containing `Title`, `Status`, `Last Updated`, `Owner`, `Depends On`, `Category`, and `Tags`.
-- When moving a document, update `agent/CONTEXT_ROUTER.md`, relevant folder READMEs, and scripts that refer to the old path.
+- When moving a document, update this index, `agent/CONTEXT_ROUTER.md` when routing changes, relevant folder READMEs, internal references, and scripts that refer to the old path.
 - Prefer moving uncertain material to `Needs Review` or `Legacy Reference` before deleting it.
 - Do not hide implementation drift by rewriting an approved target-state system contract around legacy runtime behavior.

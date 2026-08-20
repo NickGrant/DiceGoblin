@@ -1,10 +1,10 @@
 ---
 Title: "Combat Resolution"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-19
 Owner: Systems Design + Engineering
 Depends On:
-  - documentation/02-systems/08-dice-material-model.md
+  - documentation/02-systems/dice-material-model.md
   - documentation/03-content/14-dice-materials.md
   - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
   - backend/src/Controllers/RunNodeController.php

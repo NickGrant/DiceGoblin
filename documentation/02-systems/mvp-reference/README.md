@@ -1,10 +1,11 @@
 ---
 Title: "MVP Systems Reference"
-Status: Canonical
-Last Updated: 2026-08-01
+Status: Legacy Reference
+Last Updated: 2026-08-19
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/README.md
+  - documentation/02-systems/README.md
 Category: 02-systems
 Tags:
   - systems
@@ -15,13 +16,21 @@ Tags:
 
 ## Purpose
 
-- Older MVP-era system contracts and rework plans preserved as reference while canonical system docs are reviewed.
+Older MVP-era system contracts and rework plans preserved for historical context, comparison, and source material while canonical system coverage is completed.
+
+These documents are not the default source of truth. Start with `documentation/02-systems/README.md` and use this folder only when the inventory points here or when historical design context is useful.
+
+## Numbering
+
+The numeric prefixes in this folder are historical identifiers only. They do not indicate current priority, recommended reading order, implementation order, or authority.
+
+Duplicate numbers are intentionally left alone rather than creating rename churn in legacy references. Active canonical system documents no longer use numeric filename prefixes.
 
 ## Status Guidance
 
-- `Canonical` documents are the default source of truth for their scope.
-- `Needs Review` documents are useful but should be verified before making implementation decisions from them.
-- `Legacy Reference` documents are preserved for history, migration context, or comparison and do not override canonical docs.
+- `Canonical Current` and `Canonical Target` system contracts live in the parent systems folder and override these references for their stated scope.
+- Material here should be treated as `Legacy Reference` unless a newer canonical document explicitly incorporates it.
+- When this folder is the only documentation for an implemented system, the parent systems inventory should still mark that system `Missing Canonical`.
 
 ## Documents
 
