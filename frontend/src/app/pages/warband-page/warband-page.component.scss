@@ -141,7 +141,7 @@
   color: #2f5b20;
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
 }
 
@@ -206,7 +206,7 @@
 
 .squad-card__icon::before {
   content: attr(data-icon);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
 }
 
@@ -215,7 +215,7 @@
   background: #ddd0aa;
   color: #1e2410;
   font-family: var(--dg-font-data);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   padding: 2px 8px;
   white-space: nowrap;
@@ -229,13 +229,13 @@
 
 .squad-card__meta p:first-child {
   color: #6a6440;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
 }
 
 .squad-card__meta p:last-child {
   color: #1e2410;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
 }
 
@@ -270,7 +270,7 @@
   border-radius: 8px;
   background: #5b8c3e;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   line-height: 1.2;
   text-decoration: none;
@@ -306,7 +306,7 @@
   color: #6a6440;
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   padding: 6px 12px;
 }
@@ -316,7 +316,7 @@
   border-radius: 2px;
   background: #f5ede0;
   color: #2a2015;
-  font-size: 11px;
+  font-size: 16px;
   padding: 6px 10px;
   text-transform: uppercase;
 }
@@ -355,7 +355,7 @@
 .warband-filter-group > span,
 .warband-mobile-controls label span {
   color: #8f704d;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   text-transform: uppercase;
 }
@@ -370,7 +370,7 @@
   background: #f5ede0;
   color: #2a2015;
   font: inherit;
-  font-size: 12px;
+  font-size: 16px;
   padding: 9px 10px;
 }
 
@@ -428,7 +428,7 @@
   min-width: 0;
   overflow: hidden;
   font-family: var(--dg-font-display);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.28;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -444,7 +444,7 @@
   border-radius: 4px;
   background: #6b3a6b;
   color: #ffffff;
-  font-size: 9px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   padding: 2px 6px;
   white-space: nowrap;
@@ -458,7 +458,7 @@
   gap: 6px;
   overflow: hidden;
   color: #786446;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   white-space: nowrap;
 }
@@ -473,7 +473,7 @@
 .warband-unit-card__stats strong {
   color: #2a2015;
   font-family: var(--dg-font-ui);
-  font-size: 12px;
+  font-size: 16px;
 }
 
 .warband-unit-card__stats span:first-child strong {
@@ -484,7 +484,7 @@
   justify-content: flex-end;
   gap: 4px;
   color: #786446;
-  font-size: 10px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
 }
 
@@ -517,7 +517,7 @@
   color: #2a2015;
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   padding: 6px 10px;
 }
@@ -528,7 +528,7 @@
 
 .warband-pager span {
   color: #73614d;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   text-transform: uppercase;
 }
@@ -564,7 +564,7 @@
   }
 
   .warband-hero p {
-    font-size: 12px;
+    font-size: 16px;
   }
 
   .warband-hero__stats {
@@ -578,7 +578,7 @@
   }
 
   .warband-hero__stats dd {
-    font-size: 12px;
+    font-size: 16px;
   }
 
   .warband-section {
@@ -603,7 +603,7 @@
 
   .warband-section h2 span,
   .warband-section__create {
-    font-size: 12px;
+    font-size: 16px;
   }
 
   .squad-grid {
@@ -630,7 +630,7 @@
   }
 
   .squad-card h3 {
-    font-size: 13px;
+    font-size: 16px;
   }
 
   .squad-card__meta {
@@ -639,7 +639,7 @@
   }
 
   .squad-card__meta p {
-    font-size: 11px !important;
+    font-size: 16px !important;
   }
 
   .squad-card__edit {
@@ -649,7 +649,7 @@
     min-height: 16px;
     margin-top: -8px;
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 16px;
     padding: 2px 8px;
   }
 
@@ -690,7 +690,7 @@
   .warband-mobile-controls .warband-roster-tabs button {
     min-height: 16px;
     border-radius: 999px;
-    font-size: 10px;
+    font-size: 16px;
     padding: 2px 10px;
   }
 
@@ -698,7 +698,7 @@
     display: flex;
     justify-content: space-between;
     color: #2a2015;
-    font-size: 10px;
+    font-size: 16px;
     font-weight: var(--dg-font-weight-semibold);
   }
 
@@ -719,12 +719,12 @@
   }
 
   .warband-unit-card strong {
-    font-size: 15px;
+    font-size: 16px;
   }
 
   .warband-unit-card__stats,
   .warband-unit-card__badges span {
-    font-size: 10px;
+    font-size: 16px;
   }
 
   .warband-unit-card__xp {

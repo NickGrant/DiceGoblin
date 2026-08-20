@@ -31,6 +31,7 @@ Tags:
 - `2026-07-25-completion-analysis.md`
 - `2026-07-25-roadmap.md`
 - `2026-07-30-first-pig-kin-demo-roadmap.md`
+- `2026-08-19-figma-architecture-audit-plan.md`
 - `CHANGELOG.md`
 
 ## Content Planning Authority

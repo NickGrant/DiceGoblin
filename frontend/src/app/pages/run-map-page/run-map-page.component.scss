@@ -65,7 +65,7 @@
 .run-encounter-modal header p,
 .run-modal-rewards h3 {
   color: #8f704d;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   line-height: 1.2;
   text-transform: uppercase;
@@ -95,7 +95,7 @@
 .campaign-scroll__progress strong {
   color: #2a2015;
   font-family: var(--dg-font-data);
-  font-size: 12px;
+  font-size: 16px;
 }
 
 .campaign-scroll__progress > span,
@@ -154,7 +154,7 @@
 .campaign-squad-grid strong {
   overflow: hidden;
   color: #2a2015;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -162,7 +162,7 @@
 
 .campaign-squad-grid span {
   color: #6a6440;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   text-transform: uppercase;
 }
@@ -186,13 +186,13 @@
 .campaign-scroll__effects article strong,
 .campaign-scroll__supplies article strong {
   color: #2a2015;
-  font-size: 12px;
+  font-size: 16px;
 }
 
 .campaign-scroll__effects article span,
 .campaign-scroll__supplies article span {
   color: #6a6440;
-  font-size: 11px;
+  font-size: 16px;
   line-height: 1.25;
 }
 
@@ -207,7 +207,7 @@
   border-radius: 8px;
   cursor: pointer;
   font: inherit;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   line-height: 1.2;
   padding: 10px 14px;
@@ -432,7 +432,7 @@
 
 .end-run-modal__banner p {
   color: #d4a96a;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -521,7 +521,7 @@
 .end-run-warband strong {
   min-width: 80px;
   color: #2a2015;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
 }
 
@@ -552,7 +552,7 @@
 .end-run-warband small {
   color: #2a2015;
   font-family: var(--dg-font-data);
-  font-size: 11px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
 }
 
@@ -563,7 +563,7 @@
 
 .end-run-warband__right span {
   color: #5b8c3e;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
 }
 
@@ -571,13 +571,13 @@
   border-radius: 4px;
   background: #d4a96a;
   color: #2a2015;
-  font-size: 10px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-extrabold);
   padding: 4px 8px;
 }
 
 .end-run-warband em {
-  font-size: 12px;
+  font-size: 16px;
   font-style: normal;
   font-weight: var(--dg-font-weight-bold);
 }
@@ -615,7 +615,7 @@
 .end-run-loot__teeth span,
 .end-run-loot__item span {
   color: #8c7d61;
-  font-size: 9px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -651,7 +651,7 @@
   overflow: hidden;
   color: #2a2015;
   font-family: var(--dg-font-display);
-  font-size: 13px;
+  font-size: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -660,7 +660,7 @@
   border-radius: 3px;
   background: #8b5cf6;
   color: #fff;
-  font-size: 8px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   padding: 1px 4px;
   text-transform: uppercase;
@@ -677,7 +677,7 @@
 .end-run-loot__item strong {
   color: #2a2015;
   font-family: var(--dg-font-display);
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .end-run-metrics {
@@ -692,13 +692,13 @@
   gap: 8px;
   align-items: center;
   color: #6a6440;
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .end-run-metrics strong {
   color: #1e2410;
   font-family: var(--dg-font-data);
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .end-run-metrics article[data-tone='success'] strong {
@@ -829,13 +829,13 @@
 }
 
 .run-encounter-modal__info header span {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
 }
 
 .run-encounter-modal__copy {
   color: #5c5248;
-  font-size: 14px;
+  font-size: 16px;
   font-style: italic;
   line-height: 1.4;
 }
@@ -864,7 +864,7 @@
   border-radius: 4px;
   background: #f2c94c;
   color: #2a2015;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
 }
 
@@ -894,13 +894,13 @@
 .run-modal-rewards strong,
 .run-modal-effect strong {
   color: #2a2015;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .run-modal-rewards em,
 .run-modal-effect span {
   color: #5c5248;
-  font-size: 12px;
+  font-size: 16px;
   font-style: normal;
 }
 
@@ -915,17 +915,17 @@
 }
 
 .run-modal-rest-list strong {
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .run-modal-rest-list small {
-  font-size: 11px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
 }
 
 .run-modal-rest-list em {
   color: #6a6440;
-  font-size: 11px;
+  font-size: 16px;
   font-style: normal;
   font-weight: var(--dg-font-weight-bold);
 }
@@ -999,7 +999,7 @@
   border-radius: 4px;
   background: rgb(232 132 60 / 19%);
   color: #f2c94c;
-  font-size: 9px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   padding: 5px 10px;
   text-transform: uppercase;

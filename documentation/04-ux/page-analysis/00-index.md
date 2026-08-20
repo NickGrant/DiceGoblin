@@ -1,7 +1,7 @@
 ---
 Title: "Page Analysis Index"
 Status: Needs Review
-Last Updated: 2026-08-01
+Last Updated: 2026-08-19
 Owner: Product + UX
 Depends On:
   - documentation/05-technical/02-frontend-state-and-scene-contracts.md
@@ -45,7 +45,7 @@ Public routes still render the global HUD, but with guest-safe behavior:
 - [01-login.md](./01-login.md)
 - [02-guide-public.md](./02-guide-public.md)
 - [04-home.md](./04-home.md)
-- [05-field-guide.md](./05-field-guide.md) (codex route)
+- [05-codex.md](./05-codex.md)
 - [06-academy.md](./06-academy.md)
 - [07-regions.md](./07-regions.md)
 - [08-warband.md](./08-warband.md)
@@ -58,3 +58,4 @@ Public routes still render the global HUD, but with guest-safe behavior:
 - [15-run-rest.md](./15-run-rest.md)
 - [16-run-summary.md](./16-run-summary.md)
 - [17-debug.md](./17-debug.md)
+- [18-wrong-machine.md](./18-wrong-machine.md)

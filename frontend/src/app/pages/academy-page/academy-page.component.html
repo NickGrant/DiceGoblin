@@ -17,8 +17,16 @@
   </div>
   }
 
-  <div class="academy-page__grid">
-    <div class="academy-page__column">
+  <div class="academy-page">
+    <dg-tab-strip
+      ariaLabel="Academy sections"
+      [items]="tabs"
+      [activeId]="activeTab()"
+      (selected)="selectTab($event)"
+    ></dg-tab-strip>
+
+    @if (activeTab() === 'research') {
+    <div class="academy-page__tab-panel" role="tabpanel">
       <section class="academy-panel academy-panel--research">
         <div class="academy-panel__header">
           <div>
@@ -75,8 +83,10 @@
         }
       </section>
     </div>
+    }
 
-    <div class="academy-page__column">
+    @if (activeTab() === 'promotions') {
+    <div class="academy-page__tab-panel" role="tabpanel">
       <section class="academy-panel">
         <div class="academy-panel__header academy-panel__header--simple">
           <h2 class="dg-stencil mb-1">Promotion Hall</h2>
@@ -302,5 +312,6 @@
         }
       </section>
     </div>
+    }
   </div>
 </page-frame>

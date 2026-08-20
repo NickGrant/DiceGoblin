@@ -57,8 +57,8 @@ describe('PageFrameComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const links = compiled.querySelectorAll('nav.page-frame__breadcrumbs a');
-    const current = compiled.querySelector('nav.page-frame__breadcrumbs [aria-current="page"]') as HTMLElement;
+    const links = compiled.querySelectorAll('nav.page-hero__breadcrumbs a');
+    const current = compiled.querySelector('nav.page-hero__breadcrumbs [aria-current="page"]') as HTMLElement;
 
     expect(links.length).toBe(1);
     expect(links[0].textContent).toContain('HQ');
@@ -87,8 +87,8 @@ describe('PageFrameComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const links = compiled.querySelectorAll('nav.page-frame__breadcrumbs a');
-    const current = compiled.querySelector('nav.page-frame__breadcrumbs [aria-current="page"]') as HTMLElement;
+    const links = compiled.querySelectorAll('nav.page-hero__breadcrumbs a');
+    const current = compiled.querySelector('nav.page-hero__breadcrumbs [aria-current="page"]') as HTMLElement;
 
     expect(links.length).toBe(0);
     expect(current.textContent).toContain('Home');

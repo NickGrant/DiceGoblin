@@ -1,26 +1,12 @@
 @if (showHeader()) {
-  <section class="page-frame__header page-frame__header--{{ headerVariant() }} dg-motion-panel-enter">
-    <nav class="page-frame__breadcrumbs" aria-label="Breadcrumb">
-      <ol>
-        @for (crumb of normalizedBreadcrumbs(); track crumb.label + '-' + $index; let isLast = $last) {
-          <li>
-            @if (crumb.route && !isLast) {
-              <a class="dg-stencil" [routerLink]="crumb.route">{{ crumb.label }}</a>
-            } @else {
-              <span class="dg-stencil" [attr.aria-current]="isLast ? 'page' : null">
-                {{ crumb.label }}
-              </span>
-            }
-          </li>
-        }
-      </ol>
-    </nav>
-
-    <h1 class="mb-2">{{ title() }}</h1>
-    @if (subtitle(); as subtitle) {
-      <p class="mb-0">{{ subtitle }}</p>
-    }
-  </section>
+  <page-hero
+    class="dg-motion-panel-enter"
+    [breadcrumbs]="normalizedBreadcrumbs()"
+    [title]="title()"
+    [subtitle]="subtitle()"
+    [mode]="heroMode()"
+    [backgroundUrl]="resolvedHeroBackgroundUrl()"
+  />
 }
 <main class="page-frame__body dg-motion-stagger">
   <ng-content />

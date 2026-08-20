@@ -133,24 +133,22 @@ describe('CodexPageComponent', () => {
     dialogueService = TestBed.inject(DialogueService) as unknown as DialogueServiceStub;
   });
 
-  it('renders codex progress and vertical category navigation', () => {
+  it('renders codex progress and top category tabs', () => {
     const fixture = TestBed.createComponent(CodexPageComponent);
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
-    const rail = fixture.nativeElement.querySelector('.codex-rail') as HTMLElement;
+    const tabs = fixture.nativeElement.querySelector('dg-tab-strip.codex-tabs') as HTMLElement;
     expect(text).toContain('Codex');
-    expect(rail).not.toBeNull();
-    expect(rail.textContent).toContain('Codex Archive');
-    expect(rail.textContent).toContain('Recovered Records');
-    expect(text).toContain('Features');
-    expect(text).toContain('Permanent account upgrades');
-    expect(text).toContain('Objectives');
-    expect(text).toContain('Current and cleared guidance');
-    expect(text).toContain('Units');
-    expect(text).toContain('Affixes');
-    expect(text).toContain('Enemies');
-    expect(text).toContain('Lore');
+    expect(tabs).not.toBeNull();
+    expect(tabs.textContent).toContain('Features');
+    expect(tabs.textContent).toContain('Permanent account upgrades');
+    expect(tabs.textContent).toContain('Objectives');
+    expect(tabs.textContent).toContain('Current and cleared guidance');
+    expect(tabs.textContent).toContain('Units');
+    expect(tabs.textContent).toContain('Affixes');
+    expect(tabs.textContent).toContain('Enemies');
+    expect(tabs.textContent).toContain('Lore');
     expect(text).toContain('Feature Unlocks');
     expect(text).not.toContain('Map Glossary');
   });
@@ -159,7 +157,9 @@ describe('CodexPageComponent', () => {
     const fixture = TestBed.createComponent(CodexPageComponent);
     fixture.detectChanges();
 
-    const heading = fixture.nativeElement.querySelector('.stat-head') as HTMLElement;
+    const progressCard = fixture.nativeElement.querySelector('dg-requirement-card') as HTMLElement;
+    const heading = progressCard?.querySelector('.requirement-card__row') as HTMLElement;
+    expect(progressCard).not.toBeNull();
     expect(heading).not.toBeNull();
     expect(heading.querySelector('span')?.textContent).toContain('Feature unlocks');
     expect(heading.querySelector('strong')?.textContent).toContain('2/10');
