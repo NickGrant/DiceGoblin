@@ -1,6 +1,6 @@
 ---
 Title: "Multiplayer Systems Reference"
-Status: Future / Conceptual
+Status: Canonical
 Last Updated: 2026-08-19
 Owner: Systems Design + Engineering
 Depends On:
