@@ -11,7 +11,6 @@
   min-height: 0;
 }
 
-.guide-page__rail,
 .guide-band {
   border: 1px solid rgba(47, 29, 16, 0.26);
   border-radius: 8px;
@@ -19,31 +18,20 @@
 }
 
 .guide-page__rail {
-  position: sticky;
-  top: 14px;
-  display: grid;
-  gap: 14px;
-  padding: 14px;
-  background:
+  --dg-section-rail-bg:
     linear-gradient(180deg, rgba(31, 21, 15, 0.94), rgba(61, 39, 20, 0.9)),
     center / cover no-repeat var(--dg-proto-paper);
-  color: #fff2c9;
+  --dg-section-rail-border: rgba(47, 29, 16, 0.26);
+  --dg-section-rail-text: #fff2c9;
+  --dg-section-rail-heading: #fff2c9;
+  --dg-section-rail-muted: rgba(255, 242, 201, 0.68);
+  --dg-section-rail-item-bg: transparent;
+  --dg-section-rail-item-border: rgba(255, 229, 178, 0.24);
+  --dg-section-rail-item-hover-bg: rgba(255, 242, 201, 0.12);
+  --dg-section-rail-item-hover-border: rgba(255, 229, 178, 0.52);
+  --dg-section-rail-shadow: 0 16px 30px rgba(41, 25, 14, 0.14);
 }
 
-.guide-page__rail-header {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-}
-
-.guide-page__rail-header img {
-  width: 42px;
-  height: 42px;
-  object-fit: contain;
-}
-
-.guide-page__rail-header p,
 .guide-section-heading p,
 .guide-page__eyebrow {
   margin: 0;
@@ -52,45 +40,6 @@
   letter-spacing: 1px;
   line-height: 1;
   text-transform: uppercase;
-}
-
-.guide-page__rail-header p {
-  color: rgba(255, 242, 201, 0.68);
-}
-
-.guide-page__rail-header strong {
-  display: block;
-  margin-top: 4px;
-  font-size: 17px;
-  line-height: 1;
-}
-
-.guide-page__nav {
-  display: grid;
-  gap: 8px;
-}
-
-.guide-page__nav a {
-  display: block;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 229, 178, 0.24);
-  color: #fff2c9;
-  font-size: 13px;
-  font-weight: 900;
-  text-decoration: none;
-  text-transform: uppercase;
-  transition:
-    background 120ms ease,
-    border-color 120ms ease,
-    transform 120ms ease;
-}
-
-.guide-page__nav a:hover,
-.guide-page__nav a:focus-visible {
-  transform: translateX(2px);
-  border-color: rgba(255, 229, 178, 0.52);
-  background: rgba(255, 242, 201, 0.12);
-  outline: none;
 }
 
 .guide-page__content {
@@ -350,10 +299,6 @@
     position: static;
   }
 
-  .guide-page__nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
   .guide-band--intro,
   .guide-page__split {
     grid-template-columns: 1fr;
@@ -365,7 +310,6 @@
 }
 
 @media (max-width: 760px) {
-  .guide-page__nav,
   .guide-page__stat-grid,
   .guide-page__reference-grid--compact,
   .guide-page__die-size-grid {

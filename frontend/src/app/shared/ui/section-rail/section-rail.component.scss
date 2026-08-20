@@ -1,4 +1,15 @@
 :host {
+  --dg-section-rail-bg: var(--dg-bg-card);
+  --dg-section-rail-border: var(--dg-border-subtle);
+  --dg-section-rail-text: var(--dg-text-secondary);
+  --dg-section-rail-heading: var(--dg-text-primary);
+  --dg-section-rail-muted: var(--dg-text-tertiary);
+  --dg-section-rail-item-bg: var(--dg-bg-card);
+  --dg-section-rail-item-border: var(--dg-border-subtle);
+  --dg-section-rail-item-hover-bg: var(--dg-bg-card-hover);
+  --dg-section-rail-item-hover-border: var(--dg-color-parchment-800);
+  --dg-section-rail-shadow: none;
+
   display: block;
 }
 
@@ -7,6 +18,12 @@ aside {
   top: var(--dg-space-6);
   display: grid;
   gap: var(--dg-space-5);
+  padding: var(--dg-space-5);
+  border: 1px solid var(--dg-section-rail-border);
+  border-radius: var(--dg-radius-lg);
+  background: var(--dg-section-rail-bg);
+  box-shadow: var(--dg-section-rail-shadow);
+  color: var(--dg-section-rail-text);
 }
 
 .section-rail__header {
@@ -28,7 +45,7 @@ aside {
 }
 
 .section-rail__header p {
-  color: var(--dg-text-tertiary);
+  color: var(--dg-section-rail-muted);
   font-family: var(--dg-font-ui);
   font-size: 11px;
   font-weight: var(--dg-font-weight-semibold);
@@ -38,7 +55,7 @@ aside {
 
 .section-rail__header strong {
   display: block;
-  color: var(--dg-text-primary);
+  color: var(--dg-section-rail-heading);
   font-family: var(--dg-font-heading);
   font-size: 18px;
   line-height: 1.1;
@@ -56,10 +73,10 @@ button {
   width: 100%;
   min-width: 0;
   padding: var(--dg-space-4);
-  border: 1px solid var(--dg-border-subtle);
+  border: 1px solid var(--dg-section-rail-item-border);
   border-radius: var(--dg-radius-md);
-  background: var(--dg-bg-card);
-  color: var(--dg-text-secondary);
+  background: var(--dg-section-rail-item-bg);
+  color: var(--dg-section-rail-text);
   font: inherit;
   line-height: 1.2;
   text-align: left;
@@ -75,9 +92,10 @@ a:hover,
 button:hover:not(:disabled),
 a[data-active],
 button[data-active] {
-  border-color: var(--dg-color-parchment-800);
-  color: var(--dg-text-primary);
-  transform: translateY(-1px);
+  background: var(--dg-section-rail-item-hover-bg);
+  border-color: var(--dg-section-rail-item-hover-border);
+  color: var(--dg-section-rail-heading);
+  transform: translateX(2px);
 }
 
 a:focus-visible,
@@ -103,7 +121,7 @@ strong {
 }
 
 span {
-  color: var(--dg-text-tertiary);
+  color: var(--dg-section-rail-muted);
   font-size: 12px;
 }
 

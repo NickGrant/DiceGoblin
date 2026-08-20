@@ -17,6 +17,7 @@ import { FEATURE_UNLOCK_CATEGORY_DETAILS, FeatureUnlockCategoryLabel } from '../
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { resolveDiceArtStyles } from '../../shared/ui/dice-art/dice-art';
 import { resolvePrototypeUnitSpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
+import { DgSectionRailItem, SectionRailComponent } from '../../shared/ui/section-rail/section-rail.component';
 
 type GuideStep = {
   kicker: string;
@@ -110,7 +111,7 @@ const PUBLIC_GUIDE_STEPS: ReadonlyArray<GuideStep> = [
 @Component({
   selector: 'app-guide-page',
   standalone: true,
-  imports: [FontAwesomeModule, PageFrameComponent],
+  imports: [FontAwesomeModule, PageFrameComponent, SectionRailComponent],
   templateUrl: './guide-page.component.html',
   styleUrl: './guide-page.component.scss',
 })
@@ -118,6 +119,13 @@ export class GuidePageComponent implements OnInit {
   private readonly sessionService = inject(SessionService);
 
   protected readonly breadcrumbs = [{ label: 'Guide' }];
+  protected readonly guideSections: ReadonlyArray<DgSectionRailItem> = [
+    { id: 'guide-loop', label: 'Base Loop', href: '#guide-loop' },
+    { id: 'guide-combat', label: 'Combat Stats', href: '#guide-combat' },
+    { id: 'guide-warband', label: 'Warband', href: '#guide-warband' },
+    { id: 'guide-dice', label: 'Dice', href: '#guide-dice' },
+    { id: 'guide-map', label: 'Map Glossary', href: '#guide-map' },
+  ];
 
   protected readonly unitUnlocks: ReadonlyArray<GuideUnit> = [
     {

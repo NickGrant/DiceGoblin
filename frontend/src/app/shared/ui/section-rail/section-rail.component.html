@@ -1,4 +1,4 @@
-<aside aria-label="{{ ariaLabel() }}">
+<aside [attr.aria-label]="ariaLabel()">
   @if (heading() || kicker() || iconSrc()) {
   <div class="section-rail__header">
     @if (iconSrc()) {

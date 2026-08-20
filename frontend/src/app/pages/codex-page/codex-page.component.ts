@@ -21,6 +21,7 @@ import { DgDialogueStageComponent } from '../../shared/ui/dg-dialogue-stage/dg-d
 import { resolvePrototypeEnemySpriteUrl } from '../../shared/ui/prototype-art/prototype-art';
 import { resolveUnitAnimationFrameUrls, resolveUnitSilhouetteUrl, resolveUnitThumbnailUrl } from '../../shared/ui/unit-art/unit-art';
 import { resolveFeatureUnlockIcon, resolveUnitRoleIcon } from '../../shared/ui/category-icons/category-icons';
+import { DgSectionRailItem, SectionRailComponent } from '../../shared/ui/section-rail/section-rail.component';
 
 type CodexCategory = 'features' | 'objectives' | 'units' | 'affixes' | 'enemies' | 'lore';
 
@@ -350,7 +351,7 @@ const UNIT_TREE: ReadonlyArray<CodexUnit> = [
 @Component({
   selector: 'app-codex-page',
   standalone: true,
-  imports: [DgDialogueStageComponent, FontAwesomeModule, NgTemplateOutlet, PageFrameComponent],
+  imports: [DgDialogueStageComponent, FontAwesomeModule, NgTemplateOutlet, PageFrameComponent, SectionRailComponent],
   templateUrl: './codex-page.component.html',
   styleUrl: './codex-page.component.scss',
 })
@@ -378,6 +379,13 @@ export class CodexPageComponent implements OnInit, OnDestroy {
     { key: 'enemies', label: 'Enemies', summary: 'Recorded hostile units' },
     { key: 'lore', label: 'Lore', summary: 'Recovered story pages' },
   ];
+  protected readonly categoryRailItems = computed<ReadonlyArray<DgSectionRailItem>>(() =>
+    this.categories.map((category) => ({
+      id: category.key,
+      label: category.label,
+      summary: category.summary,
+    })),
+  );
 
   protected readonly unitTree = UNIT_TREE;
 
@@ -502,8 +510,12 @@ export class CodexPageComponent implements OnInit, OnDestroy {
     this.guideUnitAnimationTimers.clear();
   }
 
-  protected setActiveCategory(category: CodexCategory): void {
-    this.activeCategory.set(category);
+  protected setActiveCategory(category: string): void {
+    if (!this.categories.some((item) => item.key === category)) {
+      return;
+    }
+
+    this.activeCategory.set(category as CodexCategory);
   }
 
   protected replayLoreDialogue(entry: CodexLoreEntry): void {
