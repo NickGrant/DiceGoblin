@@ -19,11 +19,12 @@ import { FeatureUnlockCategoryLabel, resolveFeatureUnlockCategory } from '../../
 import { UnitBarComponent } from '../../shared/ui/unit-bar/unit-bar.component';
 import { resolveFeatureUnlockIcon } from '../../shared/ui/category-icons/category-icons';
 import { formatKinLabel } from '../../shared/utils/unit-formatters';
+import { TabStripComponent, TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
 
 @Component({
   selector: 'app-shop-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, FontAwesomeModule, PageFrameComponent, UnitBarComponent],
+  imports: [DgAlertComponent, DgCommandBtnDirective, FontAwesomeModule, PageFrameComponent, TabStripComponent, UnitBarComponent],
   templateUrl: './shop-page.component.html',
   styleUrl: './shop-page.component.scss',
 })
@@ -42,6 +43,10 @@ export class ShopPageComponent {
   };
 
   readonly activeTab = signal<'supplies' | 'feature_unlocks'>('supplies');
+  readonly tabs: ReadonlyArray<TabStripItem> = [
+    { id: 'supplies', label: 'Loot', kicker: 'Shop' },
+    { id: 'feature_unlocks', label: 'Unlocks', kicker: 'Camp' },
+  ];
   readonly catalog = signal<ShopCatalogData | null>(null);
   readonly loading = signal(true);
   readonly busyKey = signal<string | null>(null);

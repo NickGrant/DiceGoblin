@@ -129,28 +129,13 @@
     </div>
 
     <aside class="shop-page__merchant" aria-label="Tooth Collector">
-      <div class="shop-page__mode-switch" role="tablist" aria-label="Shop categories">
-        <button
-          class="shop-mode"
-          [class.shop-mode--selected]="activeTab() === 'supplies'"
-          type="button"
-          role="tab"
-          [attr.aria-selected]="activeTab() === 'supplies'"
-          (click)="selectTab('supplies')"
-        >
-          Loot
-        </button>
-        <button
-          class="shop-mode"
-          [class.shop-mode--selected]="activeTab() === 'feature_unlocks'"
-          type="button"
-          role="tab"
-          [attr.aria-selected]="activeTab() === 'feature_unlocks'"
-          (click)="selectTab('feature_unlocks')"
-        >
-          Unlocks
-        </button>
-      </div>
+      <dg-tab-strip
+        class="shop-page__mode-switch"
+        ariaLabel="Shop categories"
+        [items]="tabs"
+        [activeId]="activeTab()"
+        (selected)="selectTab($event)"
+      ></dg-tab-strip>
       <img
         class="shop-page__collector"
         src="/assets/ui/units/animated/tooth_collector/base/frame_0.png"

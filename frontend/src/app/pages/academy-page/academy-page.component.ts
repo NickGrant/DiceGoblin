@@ -16,11 +16,12 @@ import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
 import { resolveAbilityDisplayName, summarizeAbilityNames, toRomanNumeral } from '../../shared/utils/unit-formatters';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
+import { TabStripComponent, TabStripItem } from '../../shared/ui/tab-strip/tab-strip.component';
 
 @Component({
   selector: 'app-academy-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, FormsModule],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, FormsModule, TabStripComponent],
   templateUrl: './academy-page.component.html',
   styleUrl: './academy-page.component.scss',
 })
@@ -53,6 +54,11 @@ export class AcademyPageComponent {
   readonly activeSquad = this.sessionService.activeSquad;
   readonly hasActiveRun = this.sessionService.hasActiveRun;
   readonly selectedUnitId = signal(this.route.snapshot.queryParamMap.get('unitId') ?? '');
+  readonly activeTab = signal<'research' | 'promotions'>('research');
+  readonly tabs: ReadonlyArray<TabStripItem> = [
+    { id: 'research', label: 'Research', kicker: 'Academy' },
+    { id: 'promotions', label: 'Promotions', kicker: 'Warband' },
+  ];
   readonly promotionOptions = signal<PromotionOptionRecord[]>([]);
   readonly promotionContext = signal<PromotionOptionsData | null>(null);
   readonly unitUnlockCatalog = signal<AcademyUnitUnlockItem[]>([]);
@@ -410,6 +416,10 @@ export class AcademyPageComponent {
       profileSoftCurrency(this.profile()) < entry.cost ||
       entry.is_available === false
     );
+  }
+
+  selectTab(tabId: string): void {
+    this.activeTab.set(tabId === 'promotions' ? 'promotions' : 'research');
   }
 
   toRomanNumeral(value: number | null | undefined): string {

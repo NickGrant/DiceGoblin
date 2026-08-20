@@ -342,13 +342,17 @@
 }
 
 .shop-page__mode-switch {
-  display: grid;
-  gap: 10px;
   width: 242px;
   padding-top: 4px;
 }
 
-.shop-mode {
+:host ::ng-deep .shop-page__mode-switch nav {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+:host ::ng-deep .shop-page__mode-switch button {
+  justify-items: start;
   width: 100%;
   padding: 13px 16px;
   border: 2px solid rgba(255, 229, 178, 0.38);
@@ -356,19 +360,13 @@
   background: rgba(30, 20, 13, 0.84);
   color: var(--dg-cream);
   font-size: 15px;
-  font-weight: 900;
   letter-spacing: 1px;
-  text-align: left;
   text-transform: uppercase;
-  transition:
-    border-color 120ms ease,
-    background 120ms ease,
-    transform 120ms ease;
 }
 
-.shop-mode:hover,
-.shop-mode:focus-visible,
-.shop-mode--selected {
+:host ::ng-deep .shop-page__mode-switch button:hover,
+:host ::ng-deep .shop-page__mode-switch button:focus-visible,
+:host ::ng-deep .shop-page__mode-switch button[data-active] {
   transform: translateX(-3px);
   border-color: var(--dg-accent-warm-bright);
   background: rgba(102, 65, 22, 0.92);
