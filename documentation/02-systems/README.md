@@ -48,19 +48,19 @@ Start here, find the system, then follow its canonical document or supporting ev
 
 | System | Documentation | Canonical document or current reference |
 | --- | --- | --- |
-| Warband and squad composition | `Missing Canonical` | `documentation/04-ux/02-warband-management.md`; current Warband and squad routes/runtime |
+| Warband and squad composition | `Canonical Current` | `warband-and-formation.md` |
 | Unit naming | `Canonical Current` | `unit-naming.md` |
 | Unit stats and advancement | `Canonical Current` | `unit-stat-advancement.md` |
-| Unit promotion | `Missing Canonical` | `backend/src/Services/PromotionService.php`; `mvp-reference/10-promotion-structure-evaluation.md` |
-| Ability loadouts and ability unlock progression | `Missing Canonical` | current combat/runtime ability model; `mvp-reference/09-ability-loadout-combat-rework-plan.md`; `mvp-reference/11-unit-progression-rework.md` |
-| Formation and positioning | `Missing Canonical` | current combat targeting/runtime and warband UX |
+| Unit promotion | `Canonical Current` | `unit-promotion.md` |
+| Ability loadouts and ability unlock progression | `Canonical Current` | `ability-loadouts-and-dice-binding.md` |
+| Formation and positioning | `Canonical Current` | `warband-and-formation.md` |
 
 ### Combat
 
 | System | Documentation | Canonical document or current reference |
 | --- | --- | --- |
 | Combat lifecycle and deterministic resolution | `Canonical Current` | `combat-resolution.md` |
-| Ability execution and target resolution | `Missing Canonical` | `backend/src/Combat/Engine/`; current ability and targeting implementation |
+| Target resolution and ability targeting | `Canonical Current` | `target-resolution.md` |
 | Damage, combat modifiers, and status effects | `Missing Canonical` | `backend/src/Combat/Engine/`; `mvp-reference/07-combat-math-and-modifiers.md` |
 | Enemy action selection | `Missing Canonical` | current combat engine and enemy decision implementation |
 
@@ -70,7 +70,7 @@ Start here, find the system, then follow its canonical document or supporting ev
 | --- | --- | --- |
 | Permanent dice identity and material model | `Canonical Target` | `dice-material-model.md` |
 | Dice acquisition and ownership | `Missing Canonical` | current reward/inventory implementation; `mvp-reference/01-dice-system.md` |
-| Dice equipment and loadouts | `Missing Canonical` | current Dice management surface and combat ability-slot model |
+| Dice equipment and loadouts | `Canonical Current` | `ability-loadouts-and-dice-binding.md` |
 | Dice rolling, spending, and material effect resolution | `Missing Canonical` | `combat-resolution.md`; current combat Dice implementation |
 | Dice salvage and Raw Chaos | `Canonical Current` | `dice-salvage-and-raw-chaos.md` |
 
@@ -121,19 +121,23 @@ Start here, find the system, then follow its canonical document or supporting ev
 
 - `unit-naming.md`
 - `unit-stat-advancement.md`
+- `unit-promotion.md`
+- `ability-loadouts-and-dice-binding.md`
+- `warband-and-formation.md`
 - `combat-resolution.md`
+- `target-resolution.md`
 - `dialogue-flow-determination.md`
 - `run-node-generation.md`
 - `loot-determination.md`
 - `hazard-severity-and-downsides.md`
 - `dice-material-model.md`
+- `dice-salvage-and-raw-chaos.md`
 - `kin-reconstruction.md`
 - `objectives-and-demo-guidance.md`
 - `consumables-and-inventory-use.md`
 - `codex-ownership-and-discovery.md`
 - `chaos-encounter-reels.md`
 - `bounty-board.md`
-- `dice-salvage-and-raw-chaos.md`
 
 The inventory above, not this shorter list, defines the expected breadth of systems documentation.
 
