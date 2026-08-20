@@ -1,0 +1,20 @@
+<div class="requirement-card__row">
+  <span>{{ label() }}</span>
+  @if (value()) {
+  <strong>{{ value() }}</strong>
+  }
+</div>
+
+@if (showProgress()) {
+<dg-progress
+  size="compact"
+  [value]="current()"
+  [max]="max()"
+  [showValue]="false"
+  [ariaLabel]="label() + ' progress'"
+></dg-progress>
+}
+
+@if (detail()) {
+<small>{{ detail() }}</small>
+}

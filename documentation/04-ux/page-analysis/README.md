@@ -1,7 +1,7 @@
 ---
 Title: "Page Analysis Reference"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-08-19
 Owner: Product + UX
 Depends On:
   - documentation/README.md
@@ -29,7 +29,7 @@ Tags:
 - `01-login.md`
 - `02-guide-public.md`
 - `04-home.md`
-- `05-field-guide.md`
+- `05-codex.md`
 - `06-academy.md`
 - `07-regions.md`
 - `08-warband.md`
@@ -42,6 +42,7 @@ Tags:
 - `15-run-rest.md`
 - `16-run-summary.md`
 - `17-debug.md`
+- `18-wrong-machine.md`
 
 ## Child Folders
 

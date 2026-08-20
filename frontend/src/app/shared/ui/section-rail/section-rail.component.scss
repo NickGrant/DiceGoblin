@@ -1,0 +1,118 @@
+:host {
+  display: block;
+}
+
+aside {
+  position: sticky;
+  top: var(--dg-space-6);
+  display: grid;
+  gap: var(--dg-space-5);
+}
+
+.section-rail__header {
+  display: flex;
+  gap: var(--dg-space-4);
+  align-items: center;
+  min-width: 0;
+}
+
+.section-rail__header img {
+  width: 42px;
+  height: 42px;
+  image-rendering: pixelated;
+}
+
+.section-rail__header p,
+.section-rail__header strong {
+  margin: 0;
+}
+
+.section-rail__header p {
+  color: var(--dg-text-tertiary);
+  font-family: var(--dg-font-ui);
+  font-size: 11px;
+  font-weight: var(--dg-font-weight-semibold);
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.section-rail__header strong {
+  display: block;
+  color: var(--dg-text-primary);
+  font-family: var(--dg-font-heading);
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.section-rail__nav {
+  display: grid;
+  gap: var(--dg-space-3);
+}
+
+a,
+button {
+  display: grid;
+  gap: var(--dg-space-2);
+  width: 100%;
+  min-width: 0;
+  padding: var(--dg-space-4);
+  border: 1px solid var(--dg-border-subtle);
+  border-radius: var(--dg-radius-md);
+  background: var(--dg-bg-card);
+  color: var(--dg-text-secondary);
+  font: inherit;
+  line-height: 1.2;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+a:hover,
+button:hover:not(:disabled),
+a[data-active],
+button[data-active] {
+  border-color: var(--dg-color-parchment-800);
+  color: var(--dg-text-primary);
+  transform: translateY(-1px);
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--dg-border-focus);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+strong,
+span {
+  min-width: 0;
+}
+
+strong {
+  font-family: var(--dg-font-ui);
+  font-size: 13px;
+  font-weight: var(--dg-font-weight-bold);
+}
+
+span {
+  color: var(--dg-text-tertiary);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  aside {
+    position: static;
+  }
+
+  .section-rail__nav {
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  }
+}

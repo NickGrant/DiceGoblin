@@ -1,0 +1,50 @@
+<aside aria-label="{{ ariaLabel() }}">
+  @if (heading() || kicker() || iconSrc()) {
+  <div class="section-rail__header">
+    @if (iconSrc()) {
+    <img [src]="iconSrc()" [alt]="iconAlt()" [attr.aria-hidden]="iconAlt() ? null : 'true'" />
+    }
+    <div>
+      @if (kicker()) {
+      <p>{{ kicker() }}</p>
+      }
+      @if (heading()) {
+      <strong>{{ heading() }}</strong>
+      }
+    </div>
+  </div>
+  }
+
+  <nav class="section-rail__nav" [attr.aria-label]="ariaLabel()">
+    @for (item of items(); track item.id) {
+      @if (item.href && !item.disabled) {
+      <a
+        [href]="item.href"
+        [attr.data-active]="isActive(item) ? '' : null"
+        [attr.aria-current]="isActive(item) ? 'page' : null"
+        [attr.aria-label]="item.ariaLabel || item.label"
+        (click)="select(item, $event)"
+      >
+        <strong>{{ item.label }}</strong>
+        @if (item.summary) {
+        <span>{{ item.summary }}</span>
+        }
+      </a>
+      } @else {
+      <button
+        type="button"
+        [disabled]="item.disabled"
+        [attr.data-active]="isActive(item) ? '' : null"
+        [attr.aria-current]="isActive(item) ? 'page' : null"
+        [attr.aria-label]="item.ariaLabel || item.label"
+        (click)="select(item, $event)"
+      >
+        <strong>{{ item.label }}</strong>
+        @if (item.summary) {
+        <span>{{ item.summary }}</span>
+        }
+      </button>
+      }
+    }
+  </nav>
+</aside>
