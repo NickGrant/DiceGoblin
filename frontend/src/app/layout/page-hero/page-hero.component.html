@@ -1,0 +1,28 @@
+<section
+  class="page-hero"
+  [attr.data-mode]="mode()"
+  [style.--page-hero-image]="backgroundStyle()"
+>
+  <nav class="page-hero__breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      @for (crumb of breadcrumbs(); track crumb.label + '-' + $index; let isLast = $last) {
+        <li>
+          @if (crumb.route && !isLast) {
+            <a class="dg-stencil" [routerLink]="crumb.route">{{ crumb.label }}</a>
+          } @else {
+            <span class="dg-stencil" [attr.aria-current]="isLast ? 'page' : null">
+              {{ crumb.label }}
+            </span>
+          }
+        </li>
+      }
+    </ol>
+  </nav>
+
+  <div class="page-hero__copy">
+    <h1>{{ title() }}</h1>
+    @if (subtitle(); as subtitle) {
+      <p>{{ subtitle }}</p>
+    }
+  </div>
+</section>

@@ -24,6 +24,8 @@ app-root {
 body {
   margin: 0;
   font-family: var(--dg-font-body);
+  font-size: 16px;
+  line-height: 1.45;
   color: var(--dg-charcoal);
   background: var(--dg-color-parchment-700);
 }

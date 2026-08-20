@@ -5,15 +5,12 @@
   headerVariant="guide"
 >
   <section class="guide-page">
-    <dg-section-rail
-      class="guide-page__rail"
+    <dg-tab-strip
       ariaLabel="Guide sections"
-      kicker="Field Manual"
-      heading="Quick Reference"
-      iconSrc="/assets/ui/icons/icon_guide.png"
       [items]="guideSections"
-      (selected)="scrollToGuideSection($event.item.id, $event.event)"
-    ></dg-section-rail>
+      [activeId]="activeGuideSection()"
+      (selected)="scrollToGuideSection($event)"
+    ></dg-tab-strip>
 
     <div class="guide-page__content">
       <section id="guide-loop" class="guide-band guide-band--intro">

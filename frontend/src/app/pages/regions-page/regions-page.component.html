@@ -16,21 +16,20 @@
   }
 
   <div class="region-page-shell">
-    <section class="region-page dg-proto-shell">
-      <section class="region-page__layout dg-proto-split">
-        <div class="region-page__primary dg-proto-section">
-          <div class="dg-proto-section__header">
+    <section class="region-page">
+      <section class="region-page__layout">
+        <div class="region-page__primary">
+          <div class="region-page__section-header">
             <div>
-              <p class="dg-proto-section__eyebrow">Route board</p>
-              <h2 class="dg-proto-section__title">Pick the next job</h2>
+              <p class="region-page__eyebrow">Route board</p>
+              <h2>Pick the next job</h2>
             </div>
           </div>
-          <div class="dg-proto-divider"></div>
-          <div class="region-page__rail-layout">
+          <div class="region-page__list" role="list" aria-label="Available regions">
             @for (region of regions(); track region.slug) {
               <button
                 type="button"
-                class="region-page__tile dg-proto-card"
+                class="region-page__tile"
                 [class.is-selected]="inspectedRegion()?.slug === region.slug"
                 [class.is-locked]="!region.is_unlocked"
                 (click)="activateRegion(region)"
@@ -47,9 +46,9 @@
                   >
                     {{ regionStateLabel(region) }}
                   </span>
-                  <span class="dg-proto-pill">Lv {{ region.recommended_level }}+</span>
+                  <span class="region-page__level">Lv {{ region.recommended_level }}+</span>
                 </div>
-                <div class="region-page__tile-art dg-proto-card__media">
+                <div class="region-page__tile-art">
                   <img
                     class="region-page__tile-badge"
                     [class.is-locked]="!region.is_unlocked"
@@ -58,11 +57,11 @@
                   />
                 </div>
                 <div class="region-page__tile-body">
-                  <h3 class="dg-proto-card__title">{{ region.name }}</h3>
-                  <p class="dg-proto-card__copy">{{ region.summary }}</p>
+                  <h3>{{ region.name }}</h3>
+                  <p>{{ region.summary }}</p>
                 </div>
                 <div class="region-page__tile-footer">
-                  <span class="dg-proto-chip dg-proto-chip--small">
+                  <span class="region-page__energy-chip">
                     <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
                     {{ region.energy_cost }}
                   </span>
@@ -74,16 +73,14 @@
         </div>
 
         @if (inspectedRegion(); as region) {
-          <aside class="region-page__inspect dg-proto-sidebar">
+          <aside class="region-page__inspect">
             <div class="region-page__inspect-art" [class.is-locked]="!region.is_unlocked">
               <div class="region-page__chips">
-                <span class="dg-proto-chip dg-proto-chip--small region-page__energy-chip">
+                <span class="region-page__energy-chip">
                   <img src="/assets/ui/icons/energy_16.png" alt="" aria-hidden="true" />
                   {{ region.energy_cost }}
                 </span>
-                <span class="dg-proto-chip dg-proto-chip--small"
-                  >Level {{ region.recommended_level }}+</span
-                >
+                <span class="region-page__level">Level {{ region.recommended_level }}+</span>
               </div>
               <span
                 class="region-page__inspect-state"

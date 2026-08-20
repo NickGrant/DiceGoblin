@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { PageHeroComponent, PageHeroMode } from '../page-hero/page-hero.component';
 
 export interface PageFrameBreadcrumb {
   label: string;
@@ -11,7 +11,7 @@ export type PageFrameHeaderVariant = 'red' | 'guide' | 'home';
 @Component({
   selector: 'page-frame',
   standalone: true,
-  imports: [RouterLink],
+  imports: [PageHeroComponent],
   templateUrl: './page-frame.component.html',
   styleUrl: './page-frame.component.scss',
   host: {
@@ -24,6 +24,20 @@ export class PageFrameComponent {
   readonly subtitle = input<string | null>(null);
   readonly showHeader = input(true);
   readonly headerVariant = input<PageFrameHeaderVariant>('red');
+  readonly heroMode = input<PageHeroMode>('normal');
+  readonly heroBackgroundUrl = input<string | null>(null);
+  readonly resolvedHeroBackgroundUrl = computed(() => {
+    const explicit = this.heroBackgroundUrl();
+    if (explicit) {
+      return explicit;
+    }
+
+    return {
+      guide: '/assets/ui/biome/mountain.png',
+      home: '/assets/ui/banner_background.jpg',
+      red: null,
+    }[this.headerVariant()];
+  });
   readonly normalizedBreadcrumbs = computed<readonly PageFrameBreadcrumb[]>(() => {
     const inputCrumbs = [...this.breadcrumbs()];
     const first = inputCrumbs[0];
