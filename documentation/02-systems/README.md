@@ -83,6 +83,7 @@ Start here, find the system, then follow its canonical document or supporting ev
 | Dialogue flow and gating | `Canonical Current` | `dialogue-flow-determination.md` |
 | Hazard severity and downsides | `Canonical Current` | `hazard-severity-and-downsides.md` |
 | Rest and recovery nodes | `Missing Canonical` | current run rest route and run-node resolution behavior |
+| Shrines and temporary run effects | `Missing Canonical` | current shrine generation/claim behavior in `loot-determination.md` and run lifecycle implementation |
 | Chaos encounters | `Missing Canonical` | `backend/src/Services/ChaosEncounterService.php`; `mvp-reference/15-chaos-reel-combat-authoring.md` |
 
 ### Rewards and Economy
