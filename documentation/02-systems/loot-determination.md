@@ -1,10 +1,10 @@
 ---
 Title: "Loot Determination"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-19
 Owner: Systems Design + Engineering
 Depends On:
-  - documentation/02-systems/09-kin-reconstruction.md
+  - documentation/02-systems/kin-reconstruction.md
   - backend/src/Combat/Engine/DeterministicRunNodeResolver.php
   - backend/src/Controllers/RunNodeController.php
   - backend/src/Services/UserAssetGrantService.php
@@ -45,7 +45,7 @@ sequenceDiagram
 
 Units, dice, and items are materialized when the node is resolved. Currency and XP are applied when the completed battle is claimed.
 
-Wrong Machine reconstruction is not a normal node-reward roll. It is a separate transactional production flow defined in `09-kin-reconstruction.md`.
+Wrong Machine reconstruction is not a normal node-reward roll. It is a separate transactional production flow defined in `kin-reconstruction.md`.
 
 ## Node Reward Defaults
 
@@ -121,7 +121,7 @@ A successful reconstruction:
 - never rolls Basic Goblin as the output kin
 - establishes Pig Kin ordinary-drop eligibility only when it creates the player's first Pig Kin
 
-The complete transaction and first-ownership rules are defined in `09-kin-reconstruction.md`.
+The complete transaction and first-ownership rules are defined in `kin-reconstruction.md`.
 
 ## Dice Grant Selection
 

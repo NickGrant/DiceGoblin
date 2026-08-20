@@ -1,7 +1,7 @@
 ---
 Title: "Kin Reconstruction and First Ownership"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-19
 Owner: Systems Design + Product
 Depends On:
   - documentation/03-content/02-kin-types.md
@@ -9,7 +9,7 @@ Depends On:
   - documentation/03-content/11-loot-and-reward-profiles.md
   - documentation/03-content/12-codex-entries.md
   - documentation/03-content/13-dialogue-and-lore.md
-  - documentation/02-systems/06-loot-determination.md
+  - documentation/02-systems/loot-determination.md
 Category: 02-systems
 Tags:
   - systems
