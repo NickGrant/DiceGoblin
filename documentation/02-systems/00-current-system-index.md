@@ -1,7 +1,7 @@
 ---
 Title: "Active System Structure Index"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-20
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/README.md
@@ -38,6 +38,12 @@ Tags:
 5. `05-run-node-generation.md`
 6. `06-loot-determination.md`
 7. `07-hazard-severity-and-downsides.md`
+8. `10-objectives-and-demo-guidance.md`
+9. `11-consumables-and-inventory-use.md`
+10. `12-codex-ownership-and-discovery.md`
+11. `13-chaos-encounter-reels.md`
+12. `14-bounty-board.md`
+13. `15-dice-salvage-and-raw-chaos.md`
 
 ## Canonical Target-State Documents
 

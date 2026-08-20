@@ -1,7 +1,7 @@
 ---
 Title: "Systems Documentation"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-20
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/README.md
@@ -36,6 +36,12 @@ Tags:
 - `07-hazard-severity-and-downsides.md`
 - `08-dice-material-model.md`
 - `09-kin-reconstruction.md`
+- `10-objectives-and-demo-guidance.md`
+- `11-consumables-and-inventory-use.md`
+- `12-codex-ownership-and-discovery.md`
+- `13-chaos-encounter-reels.md`
+- `14-bounty-board.md`
+- `15-dice-salvage-and-raw-chaos.md`
 
 ## Reading Guidance
 
