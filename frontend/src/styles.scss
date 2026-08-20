@@ -30,6 +30,11 @@ body {
   background: var(--dg-color-parchment-700);
 }
 
+small,
+.small {
+  font-size: 16px;
+}
+
 h1,
 h2,
 h3,
@@ -409,7 +414,7 @@ app-root .frame > * {
 
 .loot-payout__label {
   color: rgba(248, 240, 221, 0.72);
-  font-size: 13px;
+  font-size: 16px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -481,7 +486,7 @@ app-root .frame > * {
 
 .loot-card__meta {
   color: rgba(50, 31, 17, 0.72);
-  font-size: 0.78rem;
+  font-size: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -508,7 +513,7 @@ app-root .frame > * {
   border: 1px solid rgba(35, 39, 42, 0.12);
   background: rgba(255, 252, 246, 0.62);
   color: rgba(37, 21, 12, 0.72);
-  font-size: 0.64rem;
+  font-size: 1rem;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -536,7 +541,7 @@ app-root .frame > * {
   flex-wrap: wrap;
   gap: 10px;
   color: rgba(248, 240, 221, 0.78);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -577,7 +582,7 @@ app-root .frame > * {
 
 .run-node-screen__header p {
   color: #8f704d;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   text-transform: uppercase;
 }
@@ -595,7 +600,7 @@ app-root .frame > * {
   padding: 9px 16px;
   background: #faf3e0;
   color: #2a2015;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   text-decoration: none;
   text-transform: uppercase;
@@ -657,7 +662,7 @@ app-root .frame > * {
 }
 
 .combat-result-modal__banner p {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 900;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -759,7 +764,7 @@ app-root .frame > * {
 .combat-result-warband em,
 .combat-result-loot span {
   color: rgb(74 48 30 / 72%);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 800;
 }
 
@@ -910,7 +915,7 @@ app-root .frame > * {
 }
 
 .combat-encounter-modal__header p {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 900;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1049,7 +1054,7 @@ app-root .frame > * {
   padding: 4px 8px;
   background: #fcf5e3;
   color: #2a2015;
-  font-size: 10px;
+  font-size: 16px;
   font-weight: 900;
   text-transform: uppercase;
 }
@@ -1118,7 +1123,7 @@ app-root .frame > * {
   background: transparent;
   color: #847665;
   padding: 8px 14px;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 900;
 }
 
@@ -1154,7 +1159,7 @@ app-root .frame > * {
 .combat-replay-card__metrics p,
 .combat-replay-minimap p {
   color: #8a755e;
-  font-size: 9px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   text-transform: uppercase;
 }
@@ -1188,7 +1193,7 @@ app-root .frame > * {
   border-radius: 4px;
   padding: 6px 12px;
   font-family: var(--dg-font-data);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
 }
 
@@ -1222,7 +1227,7 @@ app-root .frame > * {
 }
 
 .combat-replay-side h3 {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   text-transform: uppercase;
 }
@@ -1298,7 +1303,7 @@ app-root .frame > * {
   max-width: 100px;
   overflow: hidden;
   color: #3d3324;
-  font-size: 10px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   text-align: center;
   text-overflow: ellipsis;
@@ -1356,7 +1361,7 @@ app-root .frame > * {
 .combat-replay-action p {
   border-top: 1px solid #d4a96a;
   color: #e0362d;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   line-height: 1.25;
   padding-top: 10px;
@@ -1364,7 +1369,7 @@ app-root .frame > * {
 
 .combat-replay-action span {
   color: #9b5cff;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 900;
 }
 
@@ -1381,7 +1386,7 @@ app-root .frame > * {
   background: #2a2015;
   color: #f5ede0;
   font-family: var(--dg-font-display);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
   padding: 10px 16px;
   text-transform: uppercase;
@@ -1404,7 +1409,7 @@ app-root .frame > * {
 .combat-log-body article > span {
   color: #8c7a61;
   font-family: var(--dg-font-data);
-  font-size: 11px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
 }
 
@@ -1414,7 +1419,7 @@ app-root .frame > * {
   gap: 4px;
   align-items: center;
   color: #2a2015;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .combat-log-body em {
@@ -1426,7 +1431,7 @@ app-root .frame > * {
   border: 1px solid currentColor;
   border-radius: 4px;
   background: rgb(0 0 0 / 4%);
-  font-size: 12px;
+  font-size: 16px;
   padding: 4px 8px;
 }
 
@@ -1477,7 +1482,7 @@ app-root .frame > * {
   border-radius: 4px;
   background: #fbf3df;
   color: #2a2015;
-  font-size: 10px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   padding: 4px 8px;
   text-transform: uppercase;

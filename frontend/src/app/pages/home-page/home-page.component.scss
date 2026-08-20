@@ -62,7 +62,7 @@
   border-radius: var(--dg-radius-md);
   background: rgb(42 32 21 / 86%);
   color: var(--dg-color-parchment-50);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   line-height: 1;
   text-transform: uppercase;
@@ -92,7 +92,7 @@
   align-items: center;
   gap: var(--dg-space-4);
   color: var(--dg-color-parchment-50);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   text-transform: uppercase;
 }
@@ -159,7 +159,7 @@
 
 .home-squad__header a {
   color: var(--dg-color-purple-400);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   text-transform: uppercase;
 }
@@ -224,7 +224,7 @@
 
 .home-unit__stats,
 .home-unit__xp {
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1;
 }
 
@@ -266,7 +266,7 @@
 .home-objective > span {
   color: var(--dg-status-warning);
   font-family: var(--dg-font-display);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   text-transform: uppercase;
 }
@@ -280,7 +280,7 @@
 
 .home-objective p {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.45;
 }
 
@@ -323,11 +323,11 @@
 }
 
 .home-command__tile strong {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .home-command__tile small {
-  font-size: 12px;
+  font-size: 16px;
 }
 
 @media (max-width: 1080px) {

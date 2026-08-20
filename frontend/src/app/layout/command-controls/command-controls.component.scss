@@ -69,7 +69,7 @@
   padding-block: var(--dg-space-5);
   color: var(--dg-text-inverse);
   font-family: var(--dg-font-ui);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   white-space: nowrap;
 }
@@ -146,7 +146,7 @@
 .nav-header__identity strong {
   max-width: 110px;
   overflow: hidden;
-  font-size: 13px;
+  font-size: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -154,7 +154,7 @@
 .nav-header__identity small {
   color: var(--dg-text-inverse);
   font-family: var(--dg-font-ui);
-  font-size: 11px;
+  font-size: 16px;
 }
 
 .nav-header__actions {
@@ -187,7 +187,7 @@
   background: transparent;
   color: var(--dg-text-primary);
   font-family: var(--dg-font-ui);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   text-align: left;
   cursor: pointer;

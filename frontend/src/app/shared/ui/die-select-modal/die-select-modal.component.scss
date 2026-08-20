@@ -84,7 +84,7 @@
   background: #fff8ed;
   color: var(--dg-text-secondary);
   font-family: var(--dg-font-ui);
-  font-size: 0.84rem;
+  font-size: 1rem;
 }
 
 .select-modal__search input {
@@ -114,7 +114,7 @@
   background: var(--dg-action-secondary);
   color: var(--dg-text-primary);
   font-family: var(--dg-font-ui);
-  font-size: 0.72rem;
+  font-size: 1rem;
   font-weight: var(--dg-font-weight-bold);
 }
 
@@ -174,7 +174,7 @@
   white-space: nowrap;
   color: var(--dg-text-secondary);
   font-family: var(--dg-font-ui);
-  font-size: 0.72rem;
+  font-size: 1rem;
 }
 
 .die-card__meta > span:first-child {
@@ -182,7 +182,7 @@
   gap: var(--dg-space-2);
   color: var(--dg-text-primary);
   font-family: var(--dg-font-display);
-  font-size: 0.88rem;
+  font-size: 1rem;
 }
 
 .die-card__meta small {
@@ -191,7 +191,7 @@
   background: var(--dg-rarity-common);
   color: var(--dg-color-neutral-white);
   font-family: var(--dg-font-ui);
-  font-size: 0.5rem;
+  font-size: 1rem;
   font-weight: var(--dg-font-weight-bold);
 }
 

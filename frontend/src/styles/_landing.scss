@@ -67,7 +67,7 @@ app-landing-page {
   background: var(--dg-action-primary);
   color: var(--dg-color-neutral-white);
   font-family: var(--dg-font-data);
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: var(--dg-font-weight-bold);
 }
 
@@ -130,7 +130,7 @@ app-landing-page {
   margin: 0;
   color: var(--dg-action-primary-hover);
   font-family: var(--dg-font-ui);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   line-height: 18px;
   letter-spacing: 0.03em;
@@ -197,7 +197,7 @@ app-landing-page {
 
 .landing-stats dd {
   color: var(--dg-color-parchment-800);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -255,7 +255,7 @@ app-landing-page {
 .landing-hero__art figcaption span,
 .landing-join__collector figcaption span {
   color: var(--dg-action-special, var(--dg-rarity-epic));
-  font-size: 10px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -311,7 +311,7 @@ app-landing-page {
   bottom: var(--dg-space-9);
   translate: 50% 0;
   color: var(--dg-color-parchment-800);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   letter-spacing: 0.03em;
   text-decoration: none;
@@ -390,7 +390,7 @@ app-landing-page {
   align-items: center;
   gap: var(--dg-space-5);
   color: var(--dg-color-parchment-800);
-  font-size: 12px;
+  font-size: 16px;
 }
 
 .landing-auth__divider::before,
@@ -405,7 +405,7 @@ app-landing-page {
   display: grid;
   gap: var(--dg-space-3);
   color: var(--dg-color-parchment-800);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   letter-spacing: 0.03em;
 }
@@ -441,14 +441,14 @@ app-landing-page {
   background: var(--dg-bg-card);
   color: var(--dg-text-primary);
   font-family: var(--dg-font-data);
-  font-size: 12px;
+  font-size: 16px;
 }
 
 .landing-auth__switch {
   margin: 0;
   padding: 0 var(--dg-space-8) var(--dg-space-8);
   color: var(--dg-color-parchment-800);
-  font-size: 12px;
+  font-size: 16px;
   text-align: center;
 }
 
@@ -571,7 +571,7 @@ app-landing-page {
   margin-top: var(--dg-space-8);
   margin-bottom: var(--dg-space-4);
   color: var(--dg-action-primary-hover);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -592,7 +592,7 @@ app-landing-page {
 
 .landing-footer {
   border-top: 1px solid var(--dg-border-default);
-  font-size: 12px;
+  font-size: 16px;
 }
 
 .landing-footer nav {
@@ -742,7 +742,7 @@ app-landing-page {
   }
 
   .landing-hero__copy > p {
-    font-size: 14px;
+    font-size: 16px;
     line-height: 20px;
   }
 
@@ -774,7 +774,7 @@ app-landing-page {
   .landing-hero__actions [data-dg-button] {
     min-height: 38px;
     padding: var(--dg-space-4) var(--dg-space-5);
-    font-size: 12px;
+    font-size: 16px;
   }
 
   .landing-scroll,
@@ -843,7 +843,7 @@ app-landing-page {
 
   .rotation-reminder__brand span:last-child {
     color: var(--dg-action-primary);
-    font-size: 12px;
+    font-size: 16px;
     font-weight: var(--dg-font-weight-semibold);
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -942,7 +942,7 @@ app-landing-page {
 
   .rotation-reminder__actions p {
     color: var(--dg-color-parchment-700);
-    font-size: 13px;
+    font-size: 16px;
     line-height: 18px;
   }
 }
