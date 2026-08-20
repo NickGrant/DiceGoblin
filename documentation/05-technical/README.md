@@ -5,7 +5,7 @@ Last Updated: 2026-08-20
 Owner: Engineering
 Depends On:
   - documentation/README.md
-  - documentation/02-systems/00-current-system-index.md
+  - documentation/02-systems/README.md
 Category: 05-technical
 Tags:
   - technical
@@ -38,9 +38,9 @@ For cross-layer gameplay work:
 5. Read `09-seed-catalog-ownership.md` for database/config/hybrid ownership.
 6. Inspect implementation and tests to measure remaining drift.
 
-For dice migration, begin with `documentation/02-systems/08-dice-material-model.md`.
+For dice migration, begin with `documentation/02-systems/dice-material-model.md`.
 
-For Wrong Machine and kin production, begin with `documentation/02-systems/09-kin-reconstruction.md`.
+For Wrong Machine and kin production, begin with `documentation/02-systems/kin-reconstruction.md`.
 
 ## Documents
 

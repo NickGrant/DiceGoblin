@@ -5,7 +5,7 @@ Last Updated: 2026-08-20
 Owner: Product + Engineering
 Depends On:
   - documentation/README.md
-  - documentation/02-systems/00-current-system-index.md
+  - documentation/02-systems/README.md
 Category: 08-operations
 Tags:
   - documentation
@@ -28,8 +28,8 @@ Tags:
 
 ## Current
 
-- `documentation/02-systems/00-current-system-index.md`
-- active system docs under `documentation/02-systems/01-*.md` through `15-*.md`, with explicit drift sections where needed
+- `documentation/02-systems/README.md`
+- active semantic system docs linked from the systems inventory, with explicit drift sections where needed
 - `documentation/03-content/00-content-source-map.md`
 - `documentation/03-content/10-items-and-consumables.md`
 - `documentation/03-content/12-codex-entries.md`

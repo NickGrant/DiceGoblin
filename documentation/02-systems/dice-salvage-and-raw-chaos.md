@@ -6,7 +6,7 @@ Owner: Systems Design + Engineering
 Depends On:
   - backend/src/Services/DiceSalvageService.php
   - backend/src/Controllers/GameplayController.php
-  - documentation/02-systems/08-dice-material-model.md
+  - documentation/02-systems/dice-material-model.md
 Category: 02-systems
 Tags:
   - systems

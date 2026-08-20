@@ -7,7 +7,7 @@ Depends On:
   - agent/ISSUES.md
   - documentation/04-ux/page-analysis/figma-update-inventory.md
   - documentation/04-ux/page-analysis/00-index.md
-  - documentation/02-systems/00-current-system-index.md
+  - documentation/02-systems/README.md
   - documentation/05-technical/03-backend-api-contracts.md
   - documentation/05-technical/04-data-model.md
 Category: 07-development-path
@@ -162,7 +162,7 @@ Recommended categories:
 
 - Outdated: MVP reference, multiplayer planning, dated audits that are still labeled canonical.
 - Unsure: page-analysis docs, LLM knowledge architecture plan, catalog open-question sections.
-- Current: current-system index, run-node generation, hazard severity, content source map, dialogue/lore catalog, frontend state contracts.
+- Current: systems inventory and current system contracts, run-node generation, hazard severity, content source map, dialogue/lore catalog, frontend state contracts.
 - Needs implemented: kin reconstruction target, dice material model, backend API/data-model target contracts, Codex discovery target work.
 
 Immediate doc work:
@@ -170,8 +170,8 @@ Immediate doc work:
 - Keep the dedicated Wrong Machine page-analysis doc aligned as implementation changes.
 - Keep the Codex-specific page-analysis filename and indexes aligned as implementation changes.
 - Add live-route analysis docs for Run Dialogue and Run Loot later, though they are not in the current Figma queue.
-- Update `documentation/02-systems/00-current-system-index.md` to include implemented systems that are missing from the active list.
-- Add short current-system docs for objectives, consumables, Codex ownership, chaos encounter reels, bounty board, and dice salvage/Raw Chaos.
+- Keep `documentation/02-systems/README.md` aligned with implemented systems and documentation coverage.
+- Maintain the short current-system docs for objectives, consumables, Codex ownership, chaos encounter reels, bounty board, and dice salvage/Raw Chaos.
 - Add current-runtime drift sections to combat resolution, loot determination, and kin reconstruction.
 - Fix mojibake artifacts in content docs.
 - Split metadata meaning so implemented-current and approved-target docs are distinguishable.

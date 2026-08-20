@@ -7,7 +7,7 @@ Depends On:
   - documentation/05-technical/03-backend-api-contracts.md
   - documentation/05-technical/04-data-model.md
   - documentation/05-technical/09-seed-catalog-ownership.md
-  - documentation/02-systems/09-kin-reconstruction.md
+  - documentation/02-systems/kin-reconstruction.md
 Category: 05-technical
 Tags:
   - technical

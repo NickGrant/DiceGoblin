@@ -6,7 +6,7 @@ Owner: Product + UX
 Depends On:
   - documentation/04-ux/page-analysis/00-index.md
   - documentation/04-ux/08-page-layout-zones.md
-  - documentation/02-systems/09-kin-reconstruction.md
+  - documentation/02-systems/kin-reconstruction.md
 Category: 04-ux
 Tags:
   - ux

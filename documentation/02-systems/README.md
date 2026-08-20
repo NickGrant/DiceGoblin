@@ -1,7 +1,7 @@
 ---
 Title: "Systems Documentation"
 Status: Canonical
-Last Updated: 2026-08-19
+Last Updated: 2026-08-20
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/README.md
@@ -72,6 +72,7 @@ Start here, find the system, then follow its canonical document or supporting ev
 | Dice acquisition and ownership | `Missing Canonical` | current reward/inventory implementation; `mvp-reference/01-dice-system.md` |
 | Dice equipment and loadouts | `Missing Canonical` | current Dice management surface and combat ability-slot model |
 | Dice rolling, spending, and material effect resolution | `Missing Canonical` | `combat-resolution.md`; current combat Dice implementation |
+| Dice salvage and Raw Chaos | `Canonical Current` | `dice-salvage-and-raw-chaos.md` |
 
 ### Runs and Encounters
 
@@ -84,7 +85,7 @@ Start here, find the system, then follow its canonical document or supporting ev
 | Hazard severity and downsides | `Canonical Current` | `hazard-severity-and-downsides.md` |
 | Rest and recovery nodes | `Missing Canonical` | current run rest route and run-node resolution behavior |
 | Shrines and temporary run effects | `Missing Canonical` | current shrine generation/claim behavior in `loot-determination.md` and run lifecycle implementation |
-| Chaos encounters | `Missing Canonical` | `backend/src/Services/ChaosEncounterService.php`; `mvp-reference/15-chaos-reel-combat-authoring.md` |
+| Chaos encounters | `Canonical Current` | `chaos-encounter-reels.md` |
 
 ### Rewards and Economy
 
@@ -92,11 +93,12 @@ Start here, find the system, then follow its canonical document or supporting ev
 | --- | --- | --- |
 | Loot determination | `Canonical Current` | `loot-determination.md` |
 | Reward materialization and owned-item inventory | `Missing Canonical` | `backend/src/Services/UserAssetGrantService.php`; `backend/src/Services/ItemInventoryService.php` |
+| Consumables and inventory use | `Canonical Current` | `consumables-and-inventory-use.md` |
 | Teeth and player currencies | `Missing Canonical` | current player-state, reward, Academy, and shop behavior |
 | Shop and purchasing | `Missing Canonical` | current Shop route and feature gate |
 | Energy and regeneration | `Missing Canonical` | `backend/src/Services/EnergyService.php` |
-| Objectives and objective rewards | `Missing Canonical` | `backend/src/Services/ObjectiveService.php` |
-| Bounty Board | `Missing Canonical` | `backend/src/Services/BountyBoardService.php` |
+| Objectives and demo guidance | `Canonical Current` | `objectives-and-demo-guidance.md` |
+| Bounty Board | `Canonical Current` | `bounty-board.md` |
 
 ### Progression, Unlocks, and Collection
 
@@ -105,7 +107,7 @@ Start here, find the system, then follow its canonical document or supporting ev
 | Academy and unit-type unlocks | `Missing Canonical` | `backend/src/Services/AcademyService.php`; `mvp-reference/12-academy-and-feature-unlocks.md` |
 | Feature unlocks and progression gates | `Missing Canonical` | current unlock services and route feature guards; `mvp-reference/12-academy-and-feature-unlocks.md` |
 | Region/biome access and progression | `Missing Canonical` | current Regions surface, run creation rules, and lore/content progression references |
-| Codex discovery and ownership | `Missing Canonical` | `backend/src/Services/CodexOwnershipService.php`; `documentation/03-content/12-codex-entries.md` |
+| Codex discovery and ownership | `Canonical Current` | `codex-ownership-and-discovery.md` |
 | Kin reconstruction and first ownership | `Canonical Target` | `kin-reconstruction.md` |
 
 ### Multiplayer
@@ -126,6 +128,12 @@ Start here, find the system, then follow its canonical document or supporting ev
 - `hazard-severity-and-downsides.md`
 - `dice-material-model.md`
 - `kin-reconstruction.md`
+- `objectives-and-demo-guidance.md`
+- `consumables-and-inventory-use.md`
+- `codex-ownership-and-discovery.md`
+- `chaos-encounter-reels.md`
+- `bounty-board.md`
+- `dice-salvage-and-raw-chaos.md`
 
 The inventory above, not this shorter list, defines the expected breadth of systems documentation.
 
