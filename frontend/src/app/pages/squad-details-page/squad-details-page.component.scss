@@ -4,7 +4,7 @@
 }
 
 .formation-help {
-  font-size: 0.82rem;
+  font-size: 1rem;
   color: var(--dg-text-muted-strong);
 }
 
@@ -142,13 +142,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  font-size: 0.8rem;
+  font-size: 1rem;
   color: var(--dg-text-muted);
 }
 
 .squad-lock-note {
   color: var(--dg-red, #8f1717);
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 @media (max-width: 760px) {

@@ -4,7 +4,7 @@
 
 nav {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8rem, max-content));
+  grid-template-columns: repeat(auto-fit, minmax(10rem, max-content));
   gap: var(--dg-space-4);
   align-items: end;
 }
@@ -21,9 +21,9 @@ button {
   background: transparent;
   color: var(--dg-text-secondary);
   font-family: var(--dg-font-ui);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
-  line-height: 1;
+  line-height: 1.15;
   text-align: left;
   cursor: pointer;
   transition:
@@ -53,7 +53,7 @@ span {
 
 [data-kicker] {
   color: var(--dg-text-tertiary);
-  font-size: 10px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   letter-spacing: 0;
   text-transform: uppercase;
@@ -61,6 +61,6 @@ span {
 
 @media (max-width: 760px) {
   nav {
-    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
   }
 }

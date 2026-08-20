@@ -4,45 +4,29 @@
   [subtitle]="pageSubtitle"
   headerVariant="guide"
 >
-  <section class="dg-proto-shell codex">
+  <section class="codex">
     <div class="stats">
       @for (metric of codexMetrics(); track metric.label) {
-        <article class="dg-proto-kpi">
-          <div class="stat-head">
-            <span>{{ metric.label }}</span>
-            <strong>{{ metric.value }}</strong>
-          </div>
-          <div class="dg-proto-progress" aria-hidden="true">
-            <div class="dg-proto-progress__fill" [style.width.%]="metric.progressPercent"></div>
-          </div>
-          <p class="stat-copy">{{ metric.detail }}</p>
-        </article>
+        <dg-requirement-card
+          [label]="metric.label"
+          [value]="metric.value"
+          [detail]="metric.detail"
+          [current]="metric.progressPercent"
+          [max]="100"
+          [met]="metric.progressPercent >= 100"
+          [tone]="metric.progressPercent >= 100 ? 'met' : 'pending'"
+        ></dg-requirement-card>
       }
     </div>
 
     <div class="layout">
-      <aside class="codex-rail" aria-label="Codex sections">
-        <div class="codex-rail__header">
-          <img src="/assets/ui/icons/icon_guide.png" alt="" aria-hidden="true" />
-          <div>
-            <p>Codex Archive</p>
-            <strong>Recovered Records</strong>
-          </div>
-        </div>
-        <nav class="codex-rail__nav" aria-label="Codex categories">
-          @for (category of categories; track category.key) {
-            <button
-              type="button"
-              [class.is-active]="activeCategory() === category.key"
-              [attr.aria-current]="activeCategory() === category.key ? 'page' : null"
-              (click)="setActiveCategory(category.key)"
-            >
-              <strong>{{ category.label }}</strong>
-              <span>{{ category.summary }}</span>
-            </button>
-          }
-        </nav>
-      </aside>
+      <dg-tab-strip
+        class="codex-tabs"
+        ariaLabel="Codex categories"
+        [items]="categoryTabs()"
+        [activeId]="activeCategory()"
+        (selected)="setActiveCategory($event)"
+      ></dg-tab-strip>
 
       <div>
         @switch (activeCategory()) {
@@ -71,11 +55,11 @@
 </page-frame>
 
 <ng-template #featuresTemplate>
-  <section class="dg-proto-section">
-    <div class="dg-proto-section__header">
+  <section class="codex-section">
+    <div class="codex-section__header">
       <div>
-        <p class="dg-proto-section__eyebrow dg-stencil">Feature Unlocks</p>
-        <h3 class="dg-proto-section__title">Permanent account upgrades</h3>
+        <p class="codex-section__eyebrow dg-stencil">Feature Unlocks</p>
+        <h3 class="codex-section__title">Permanent account upgrades</h3>
       </div>
     </div>
     <div class="entries">
@@ -100,11 +84,11 @@
 </ng-template>
 
 <ng-template #objectivesTemplate>
-  <section class="dg-proto-section">
-    <div class="dg-proto-section__header">
+  <section class="codex-section">
+    <div class="codex-section__header">
       <div>
-        <p class="dg-proto-section__eyebrow dg-stencil">Objective Archive</p>
-        <h3 class="dg-proto-section__title">Current and completed objectives</h3>
+        <p class="codex-section__eyebrow dg-stencil">Objective Archive</p>
+        <h3 class="codex-section__title">Current and completed objectives</h3>
       </div>
     </div>
     <div class="entries objective-entries">
@@ -120,9 +104,9 @@
           </div>
         </article>
       } @empty {
-        <article class="dg-proto-card dg-proto-card--locked">
-          <h4 class="dg-proto-card__title">No objectives recorded yet</h4>
-          <p class="dg-proto-card__copy">Objective history will appear here once the account starts receiving guidance.</p>
+        <article class="codex-empty codex-empty--locked">
+          <h4>No objectives recorded yet</h4>
+          <p>Objective history will appear here once the account starts receiving guidance.</p>
         </article>
       }
     </div>
@@ -130,11 +114,11 @@
 </ng-template>
 
 <ng-template #unitsTemplate>
-  <section class="dg-proto-section">
-    <div class="dg-proto-section__header">
+  <section class="codex-section">
+    <div class="codex-section__header">
       <div>
-        <p class="dg-proto-section__eyebrow dg-stencil">Unit Types</p>
-        <h3 class="dg-proto-section__title">Unlockable unit types</h3>
+        <p class="codex-section__eyebrow dg-stencil">Unit Types</p>
+        <h3 class="codex-section__title">Unlockable unit types</h3>
       </div>
     </div>
     <div class="entries unit-tree">
@@ -179,11 +163,11 @@
 </ng-template>
 
 <ng-template #affixesTemplate>
-  <section class="dg-proto-section">
-    <div class="dg-proto-section__header">
+  <section class="codex-section">
+    <div class="codex-section__header">
       <div>
-        <p class="dg-proto-section__eyebrow dg-stencil">Affix Archive</p>
-        <h3 class="dg-proto-section__title">Seen affixes and their current definitions</h3>
+        <p class="codex-section__eyebrow dg-stencil">Affix Archive</p>
+        <h3 class="codex-section__title">Seen affixes and their current definitions</h3>
       </div>
     </div>
     <div class="entries affix-entries">
@@ -208,11 +192,11 @@
 </ng-template>
 
 <ng-template #enemiesTemplate>
-  <section class="dg-proto-section">
-    <div class="dg-proto-section__header">
+  <section class="codex-section">
+    <div class="codex-section__header">
       <div>
-        <p class="dg-proto-section__eyebrow dg-stencil">Enemy Record</p>
-        <h3 class="dg-proto-section__title">Defeated enemy types by cleared biome</h3>
+        <p class="codex-section__eyebrow dg-stencil">Enemy Record</p>
+        <h3 class="codex-section__title">Defeated enemy types by cleared biome</h3>
       </div>
     </div>
     <div class="entries enemy-entries">
@@ -255,14 +239,14 @@
 </ng-template>
 
 <ng-template #loreTemplate>
-  <section class="dg-proto-section">
-    <div class="dg-proto-section__header">
+  <section class="codex-section">
+    <div class="codex-section__header">
       <div>
-        <p class="dg-proto-section__eyebrow dg-stencil">Lore Archive</p>
-        <h3 class="dg-proto-section__title">Unlocked story beats and dialogue fragments</h3>
+        <p class="codex-section__eyebrow dg-stencil">Lore Archive</p>
+        <h3 class="codex-section__title">Unlocked story beats and dialogue fragments</h3>
       </div>
     </div>
-    <div class="dg-proto-divider" aria-hidden="true"></div>
+    <div class="codex-divider" aria-hidden="true"></div>
     @if (codexLoreEntries().length) {
       <div class="entries lore-entries">
         @for (entry of codexLoreEntries(); track entry.id) {
@@ -276,9 +260,9 @@
         }
       </div>
     } @else {
-      <article class="dg-proto-card dg-proto-card--locked">
-        <h4 class="dg-proto-card__title">No lore pages unlocked yet</h4>
-        <p class="dg-proto-card__copy">Seen dialogue entries will appear here once this account starts uncovering story moments.</p>
+      <article class="codex-empty codex-empty--locked">
+        <h4>No lore pages unlocked yet</h4>
+        <p>Seen dialogue entries will appear here once this account starts uncovering story moments.</p>
       </article>
     }
   </section>

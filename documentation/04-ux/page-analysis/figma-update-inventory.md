@@ -27,10 +27,12 @@ Tags:
 | Surface | Route or component | Existing analysis | Scope | Notes |
 | --- | --- | --- | --- | --- |
 | Start Run | `/regions` start-run controls | [07-regions.md](./07-regions.md) | Update run-start card/button states. | Can use a hover/active treatment similar to Dice Inventory. |
-| Wrong Machine | `/wrong-machine` | Missing dedicated page-analysis doc | Full page update. | Add dedicated page-analysis doc before or alongside implementation. |
+| Wrong Machine | `/wrong-machine` | [18-wrong-machine.md](./18-wrong-machine.md) | Full page update. | Use shared requirement/cost and result-preview primitives while preserving first-reconstruction behavior. |
 | Shop: Loot | `/shop` supplies/loot mode | [12-shop.md](./12-shop.md) | Update shop loot/supplies presentation. | Keep repeatable purchase flow readable and consistent with updated object-card patterns. |
 | Shop: Unlocks | `/shop` feature unlock mode | [12-shop.md](./12-shop.md) | Update long-term unlock presentation. | Preserve locked, available, purchased, requirement, and busy states. |
 | Academy | `/academy` | [06-academy.md](./06-academy.md) | Update research and promotion flow. | Active demo issue calls for a shop-style academy layout. |
+| Guide | `/guide` | [02-guide-public.md](./02-guide-public.md) | Update public guide presentation. | Keep the side-navigation and explanatory content easy to scan before login. |
+| Codex | `/codex` | [05-codex.md](./05-codex.md) | Update codex presentation and navigation. | Align codex navigation with the updated guide pattern. |
 
 ## Reference Treatments
 
@@ -39,7 +41,6 @@ Tags:
 
 ## Missing Inventory Docs
 
-- Wrong Machine needs a dedicated page-analysis file.
 - Run Dialogue and Run Loot are live routes without dedicated page-analysis files, but they are not currently in this Figma update queue.
 
 ## Maintenance Notes

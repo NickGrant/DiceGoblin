@@ -110,7 +110,7 @@
   min-height: 1.5rem;
   padding: 0.22rem 0.5rem;
   background: rgba(243, 239, 224, 0.94);
-  font-size: 0.62rem;
+  font-size: 1rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -188,7 +188,7 @@
   gap: 0.28rem;
   min-width: 0;
   padding-inline: var(--unit-card-cell-pad-x);
-  font-size: clamp(0.72rem, 1.34vw, 0.98rem);
+  font-size: 1rem;
   font-weight: 700;
   color: #f4ead1;
   text-align: center;
@@ -216,7 +216,7 @@
 
 .unit-grid-object__type {
   width: 100%;
-  font-size: clamp(0.9rem, 1.45vw, 1.02rem);
+  font-size: clamp(1rem, 1.45vw, 1.02rem);
   line-height: 1;
   text-align: center;
   color: rgba(52, 39, 23, 0.96);
@@ -266,7 +266,7 @@
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
-  font-size: 0.62rem;
+  font-size: 1rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgba(62, 48, 29, 0.88);
@@ -281,7 +281,7 @@
   border: 1px solid rgba(183, 138, 37, 0.45);
   background: rgba(183, 138, 37, 0.14);
   color: var(--dg-ink);
-  font-size: 0.56rem;
+  font-size: 1rem;
   letter-spacing: 0.08em;
 }
 
@@ -303,7 +303,7 @@
 @media (min-width: 441px) {
   .unit-grid-object__tag,
   .unit-grid-object__lock {
-    font-size: 0.68rem;
+    font-size: 1rem;
   }
 
   .unit-grid-object__nameplate h2 {
@@ -311,7 +311,7 @@
   }
 
   .unit-grid-object__progress-meta {
-    font-size: 0.66rem;
+    font-size: 1rem;
   }
 }
 

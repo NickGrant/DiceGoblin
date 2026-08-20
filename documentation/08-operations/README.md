@@ -28,6 +28,7 @@ Tags:
 - `01-llm-knowledge-architecture-and-token-efficiency.md`
 - `02-documentation-style-guide.md`
 - `03-documentation-content-audit-2026-08-01.md`
+- `04-documentation-classification-2026-08-20.md`
 
 ## Child Folders
 

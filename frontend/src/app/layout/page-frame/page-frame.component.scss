@@ -1,6 +1,4 @@
 :host {
-  --page-frame-edge: 1rem;
-  --page-frame-header-bottom: 1rem;
   --page-frame-body: 1rem;
 
   display: flex;
@@ -8,114 +6,12 @@
   width: 100%;
   min-height: 100%;
   margin-inline: auto;
-}
-
-.page-frame__header {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-end;
-  padding:
-    var(--page-frame-edge)
-    var(--page-frame-edge)
-    var(--page-frame-header-bottom);
-  color: var(--dg-cream);
-  background-position: center;
-  background-size: cover;
-  border-bottom: 2px solid rgba(35, 39, 42, 0.5);
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
-}
-
-.page-frame__header--red {
-  background-image:
-    linear-gradient(var(--dg-overlay-dark-soft), var(--dg-overlay-dark-soft)),
-    url('/assets/ui/textures/red.png');
-}
-
-.page-frame__header--guide {
-  background-image:
-    linear-gradient(135deg, rgba(20, 31, 44, 0.78), rgba(78, 52, 24, 0.52)),
-    url('/assets/ui/biome/mountain.png');
-}
-
-.page-frame__header--guide::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at top right, rgba(255, 240, 211, 0.18), transparent 36%),
-    linear-gradient(180deg, rgba(10, 12, 14, 0.04), rgba(10, 12, 14, 0.32));
-}
-
-.page-frame__header--home {
-  background-image:
-    linear-gradient(var(--dg-surface-banner-overlay-strong), var(--dg-surface-banner-overlay-soft)),
-    var(--dg-surface-banner-image-default);
-}
-
-.page-frame__header--home :is(h1, p) {
-  position: relative;
-  display: block;
-  width: fit-content;
-  max-width: min(52rem, 100%);
-  padding-inline: 0.35rem;
-  background: linear-gradient(90deg, rgba(44, 27, 17, 0.7), rgba(44, 27, 17, 0.28));
-  box-decoration-break: clone;
+  padding: var(--page-frame-body) var(--page-frame-body) 0;
 }
 
 .page-frame__body {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  padding: var(--page-frame-body) var(--page-frame-body) 0;
-}
-
-.page-frame__breadcrumbs {
-  ol {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.45rem;
-    margin: 0 0 0.45rem;
-    padding: 0;
-    list-style: none;
-  }
-
-  li {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-  }
-
-  li:not(:last-child)::after {
-    content: '/';
-    color: var(--dg-text-on-dark-soft);
-    font-weight: 700;
-  }
-
-  :is(span, a) {
-    font-size: 0.95rem;
-  }
-
-  a {
-    color: var(--dg-accent-warm);
-    text-decoration: none;
-  }
-
-  a:hover {
-    color: var(--dg-accent-warm-bright);
-    text-decoration: underline;
-  }
-
-  span {
-    color: var(--dg-text-on-dark-muted);
-  }
-}
-
-@media (min-width: 441px) {
-  :host {
-    --page-frame-header-bottom: 1.35rem;
-  }
+  padding-top: var(--page-frame-body);
 }

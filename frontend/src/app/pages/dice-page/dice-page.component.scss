@@ -94,7 +94,7 @@
   background: #f5e6c8;
   color: #3e2a15;
   font: inherit;
-  font-size: 13px;
+  font-size: 16px;
   padding: 8px 12px;
 }
 
@@ -153,7 +153,7 @@
   color: #3e2a15;
   cursor: pointer;
   font: inherit;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   padding: 4px 10px;
 }
@@ -227,7 +227,7 @@
 .dice-card__title {
   min-width: 0;
   overflow: hidden;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -236,7 +236,7 @@
 
 .dice-card__size {
   color: #7e674e;
-  font-size: 12px;
+  font-size: 16px;
   white-space: nowrap;
 }
 
@@ -256,7 +256,7 @@
   border-radius: 8px;
   background: #a0a0a0;
   color: #3e2a15;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   padding: 4px 10px;
   text-transform: uppercase;
@@ -294,7 +294,7 @@
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.06);
   color: #3e2a15;
-  font-size: 12px;
+  font-size: 16px;
   padding: 2px 8px;
   white-space: nowrap;
 }
@@ -311,7 +311,7 @@
   border-radius: 6px;
   background: rgba(91, 140, 62, 0.13);
   color: #3e2a15;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-semibold);
   padding: 4px 8px;
   text-overflow: ellipsis;
@@ -346,7 +346,7 @@
   color: #3e2a15;
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   padding: 6px 10px;
 }
@@ -357,7 +357,7 @@
 
 .dice-inventory__pager span {
   color: #7e674e;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   text-transform: uppercase;
 }
@@ -457,14 +457,14 @@
 
 .dice-detail__meta-row p {
   color: #7e674e;
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.2;
 }
 
 .dice-detail__lore {
   border-block: 1px solid #c8b888;
   color: #7e674e;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.5;
   padding-block: 12px;
 }
@@ -476,7 +476,7 @@
 }
 
 .dice-detail__effects h3 {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .dice-detail__effects article {
@@ -495,7 +495,7 @@
   background: rgba(91, 140, 62, 0.13);
   color: #5b8c3e;
   font-family: var(--dg-font-data);
-  font-size: 10px;
+  font-size: 16px;
 }
 
 .dice-detail__effects article[data-effect='1'] > span {
@@ -516,14 +516,14 @@
 }
 
 .dice-detail__effects h4 {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   line-height: 1.2;
 }
 
 .dice-detail__effects p {
   color: #7e674e;
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.2;
 }
 
@@ -548,13 +548,13 @@
 
 .dice-detail__equipped p {
   color: #7e674e;
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1.2;
 }
 
 .dice-detail__equipped a {
   color: #8b5b8b;
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1.2;
   text-decoration: underline;
 }
@@ -577,7 +577,7 @@
   background: #e8843c;
   color: #ffffff;
   font-family: var(--dg-font-display);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   line-height: 1.28;
   padding: 14px;
@@ -587,7 +587,7 @@
   border: 1px solid #9e8256;
   background: transparent;
   color: #3e2a15;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: var(--dg-font-weight-bold);
   line-height: 1.2;
   padding: 12px;
@@ -617,7 +617,7 @@
   }
 
   .dice-inventory__header p {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .dice-inventory__filters {
@@ -633,7 +633,7 @@
   .dice-inventory__filters select {
     height: 26px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 16px;
     padding: 6px 10px;
   }
 
@@ -703,31 +703,31 @@
   }
 
   .dice-card__title {
-    font-size: 13px;
+    font-size: 16px;
   }
 
   .dice-card__size {
-    font-size: 11px;
+    font-size: 16px;
   }
 
   .dice-badge {
     min-height: 18px;
     border-radius: 6px;
-    font-size: 10px;
+    font-size: 16px;
     padding: 3px 8px;
   }
 
   .dice-card__stat {
     min-height: 16px;
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 16px;
     padding: 2px 6px;
   }
 
   .dice-card__status {
     min-height: 18px;
     gap: 4px;
-    font-size: 10px;
+    font-size: 16px;
     padding: 3px 6px;
   }
 
@@ -779,11 +779,11 @@
   }
 
   .dice-detail__meta-row p {
-    font-size: 12px;
+    font-size: 16px;
   }
 
   .dice-detail__lore {
-    font-size: 12px;
+    font-size: 16px;
     font-style: italic;
     line-height: 1.4;
     padding-block: 8px;
@@ -794,7 +794,7 @@
   }
 
   .dice-detail__effects h3 {
-    font-size: 12px;
+    font-size: 16px;
   }
 
   .dice-detail__effects article {
@@ -805,12 +805,12 @@
     width: 20px;
     height: 20px;
     border-radius: 4px;
-    font-size: 9px;
+    font-size: 16px;
   }
 
   .dice-detail__effects h4,
   .dice-detail__effects p {
-    font-size: 11px;
+    font-size: 16px;
   }
 
   .dice-detail__actions {
@@ -826,18 +826,18 @@
 
   .dice-detail__equipped p,
   .dice-detail__equipped a {
-    font-size: 11px;
+    font-size: 16px;
   }
 
   .dice-detail__sell {
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 16px;
     padding: 10px;
   }
 
   .dice-detail__salvage {
     border-radius: 8px;
-    font-size: 12px;
+    font-size: 16px;
     padding: 8px;
   }
 }

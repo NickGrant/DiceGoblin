@@ -1,7 +1,7 @@
 ---
 Title: "Technical Documentation"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-20
 Owner: Engineering
 Depends On:
   - documentation/README.md
@@ -54,6 +54,7 @@ For Wrong Machine and kin production, begin with `documentation/02-systems/09-ki
 - `07-angular-component-service-inventory.md`
 - `08-hybrid-phaser-audio-architecture.md`
 - `09-seed-catalog-ownership.md`
+- `10-db-reset-and-api-architecture-review.md`
 
 ## Current Migration Boundaries
 

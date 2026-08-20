@@ -325,6 +325,7 @@ describe('AcademyPageComponent', () => {
 
   it('renders promotion preview warnings and immediate grant summaries', async () => {
     const fixture = await createComponent();
+    fixture.componentInstance.selectTab('promotions');
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -338,6 +339,7 @@ describe('AcademyPageComponent', () => {
   it('renders promotion destinations as selectable cards', async () => {
     const fixture = await createComponent();
     const component = fixture.componentInstance;
+    component.selectTab('promotions');
     await fixture.whenStable();
     fixture.detectChanges();
 

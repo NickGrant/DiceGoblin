@@ -66,27 +66,25 @@
       </div>
 
       <div class="wrong-machine__cost-grid">
-        <article class="wrong-machine__cost" [class.is-met]="option.cost.raw_chaos.is_met">
-          <div class="wrong-machine__cost-row">
-            <span>Raw Chaos</span>
-            <strong>{{ rawChaosLabel() }}</strong>
-          </div>
-          <div class="wrong-machine__meter" aria-hidden="true">
-            <div class="wrong-machine__meter-fill" [style.width.%]="rawChaosProgress(option)"></div>
-          </div>
-          <small>{{ requirementLabel(option.cost.raw_chaos.is_met) }}</small>
-        </article>
+        <dg-requirement-card
+          label="Raw Chaos"
+          [value]="rawChaosLabel()"
+          [current]="option.cost.raw_chaos.quantity_owned"
+          [max]="option.cost.raw_chaos.quantity_required"
+          [met]="option.cost.raw_chaos.is_met"
+          [tone]="option.cost.raw_chaos.is_met ? 'met' : 'blocked'"
+          [detail]="requirementLabel(option.cost.raw_chaos.is_met)"
+        ></dg-requirement-card>
         @for (item of option.cost.items; track item.item_slug) {
-        <article class="wrong-machine__cost" [class.is-met]="item.is_met">
-          <div class="wrong-machine__cost-row">
-            <span>{{ itemLabel(item.item_slug) }}</span>
-            <strong>{{ item.quantity_owned }}/{{ item.quantity_required }}</strong>
-          </div>
-          <div class="wrong-machine__meter" aria-hidden="true">
-            <div class="wrong-machine__meter-fill" [style.width.%]="itemProgress(item)"></div>
-          </div>
-          <small>{{ requirementLabel(item.is_met) }}</small>
-        </article>
+        <dg-requirement-card
+          [label]="itemLabel(item.item_slug)"
+          [value]="item.quantity_owned + '/' + item.quantity_required"
+          [current]="item.quantity_owned"
+          [max]="item.quantity_required"
+          [met]="item.is_met"
+          [tone]="item.is_met ? 'met' : 'blocked'"
+          [detail]="requirementLabel(item.is_met)"
+        ></dg-requirement-card>
         }
       </div>
 

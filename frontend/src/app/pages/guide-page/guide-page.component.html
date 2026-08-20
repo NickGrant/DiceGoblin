@@ -5,22 +5,12 @@
   headerVariant="guide"
 >
   <section class="guide-page">
-    <aside class="guide-page__rail" aria-label="Guide sections">
-      <div class="guide-page__rail-header">
-        <img src="/assets/ui/icons/icon_guide.png" alt="" aria-hidden="true" />
-        <div>
-          <p>Field Manual</p>
-          <strong>Quick Reference</strong>
-        </div>
-      </div>
-      <nav class="guide-page__nav">
-        <a href="#guide-loop" (click)="scrollToGuideSection('guide-loop', $event)">Base Loop</a>
-        <a href="#guide-combat" (click)="scrollToGuideSection('guide-combat', $event)">Combat Stats</a>
-        <a href="#guide-warband" (click)="scrollToGuideSection('guide-warband', $event)">Warband</a>
-        <a href="#guide-dice" (click)="scrollToGuideSection('guide-dice', $event)">Dice</a>
-        <a href="#guide-map" (click)="scrollToGuideSection('guide-map', $event)">Map Glossary</a>
-      </nav>
-    </aside>
+    <dg-tab-strip
+      ariaLabel="Guide sections"
+      [items]="guideSections"
+      [activeId]="activeGuideSection()"
+      (selected)="scrollToGuideSection($event)"
+    ></dg-tab-strip>
 
     <div class="guide-page__content">
       <section id="guide-loop" class="guide-band guide-band--intro">
