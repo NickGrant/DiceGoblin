@@ -231,61 +231,8 @@
   gap: 10px;
 }
 
-.wrong-machine__cost {
-  display: grid;
-  gap: 8px;
-  min-height: 104px;
-  padding: 12px;
-  border: 1px solid rgba(113, 77, 38, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 248, 230, 0.74);
-}
-
-.wrong-machine__cost.is-met {
-  border-color: rgba(54, 129, 82, 0.24);
-  background: rgba(226, 242, 224, 0.76);
-}
-
-.wrong-machine__cost-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  min-width: 0;
-}
-
-.wrong-machine__cost-row span {
-  color: rgba(42, 28, 13, 0.68);
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.wrong-machine__cost-row strong,
 .wrong-machine__result strong {
   color: #25150c;
-}
-
-.wrong-machine__cost small {
-  color: rgba(43, 28, 14, 0.66);
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.wrong-machine__meter {
-  overflow: hidden;
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(68, 45, 23, 0.18);
-}
-
-.wrong-machine__meter-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #5f9171, #e3b655);
 }
 
 .wrong-machine__grant-preview {

@@ -2,18 +2,18 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   WrongMachineReconstructData,
-  WrongMachineCostItem,
   WrongMachineReconstructionOption,
 } from '../../core/models/api.models';
 import { WrongMachineService } from '../../core/services/wrong-machine/wrong-machine.service';
 import { PageFrameComponent } from '../../layout/page-frame/page-frame.component';
 import { DgAlertComponent } from '../../shared/ui/dg-alert/dg-alert.component';
 import { DgCommandBtnDirective } from '../../shared/ui/dg-command-btn/dg-command-btn.directive';
+import { RequirementCardComponent } from '../../shared/ui/requirement-card/requirement-card.component';
 
 @Component({
   selector: 'app-wrong-machine-page',
   standalone: true,
-  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RouterLink],
+  imports: [DgAlertComponent, DgCommandBtnDirective, PageFrameComponent, RequirementCardComponent, RouterLink],
   templateUrl: './wrong-machine-page.component.html',
   styleUrl: './wrong-machine-page.component.scss',
 })
@@ -126,14 +126,6 @@ export class WrongMachinePageComponent {
     }).join(', ');
   }
 
-  rawChaosProgress(option: WrongMachineReconstructionOption): number {
-    return this.progressPercent(option.cost.raw_chaos.quantity_owned, option.cost.raw_chaos.quantity_required);
-  }
-
-  itemProgress(item: WrongMachineCostItem): number {
-    return this.progressPercent(item.quantity_owned, item.quantity_required);
-  }
-
   requirementLabel(isMet: boolean): string {
     return isMet ? 'Ready' : 'Needed';
   }
@@ -149,14 +141,6 @@ export class WrongMachinePageComponent {
       .split('_')
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ');
-  }
-
-  private progressPercent(current: number, target: number): number {
-    if (target <= 0) {
-      return 100;
-    }
-
-    return Math.min(100, Math.max(0, Math.round((current / target) * 100)));
   }
 
   private reconstructionMessage(data: WrongMachineReconstructData): string {
