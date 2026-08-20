@@ -34,8 +34,6 @@ describe('GuidePageComponent', () => {
 
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Guide');
-    expect(text).toContain('Field Manual');
-    expect(text).toContain('Quick Reference');
     expect(text).toContain('How To Play');
     expect(text).toContain('Base Loop');
     expect(text).toContain('Combat Stats');
@@ -67,17 +65,15 @@ describe('GuidePageComponent', () => {
     expect(text).not.toContain('Affix Archive');
   });
 
-  it('scrolls to guide sections from sidenav links', () => {
+  it('scrolls to guide sections from the top tab strip', () => {
     const fixture = TestBed.createComponent(GuidePageComponent);
     fixture.detectChanges();
     const target = fixture.nativeElement.querySelector('#guide-map') as HTMLElement;
     const scrollSpy = spyOn(target, 'scrollIntoView');
-    const event = new MouseEvent('click');
-    spyOn(event, 'preventDefault');
 
-    (fixture.componentInstance as any).scrollToGuideSection('guide-map', event);
+    (fixture.componentInstance as any).scrollToGuideSection('guide-map');
 
-    expect(event.preventDefault).toHaveBeenCalled();
+    expect((fixture.componentInstance as any).activeGuideSection()).toBe('guide-map');
     expect(scrollSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
   });
 
