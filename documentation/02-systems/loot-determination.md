@@ -1,7 +1,7 @@
 ---
 Title: "Loot Determination"
 Status: Canonical
-Last Updated: 2026-08-19
+Last Updated: 2026-08-23
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/02-systems/kin-reconstruction.md
@@ -125,14 +125,13 @@ The complete transaction and first-ownership rules are defined in `kin-reconstru
 
 ## Dice Grant Selection
 
-The target dice identity is one active size plus one canonical material. The current legacy implementation may still load `dice_definitions`; implementation reconciliation must follow the Dice Material Catalog and Dice Material Identity model.
+Dice rewards use the current dice generation model: size and rarity are selected according to the source profile, material remains part of the die, and permanent affixes may be generated according to rarity-driven affix capacity.
 
-A target-state die reward selects:
+The active alpha-launch combat sizes are `d4`, `d6`, `d8`, and `d10`.
 
-1. one active size
-2. one eligible material that permits that size
+Materials and affixes are complementary properties. Reward generation must not treat affixes as legacy data or assume that a material replaces rarity and permanent affixes.
 
-Rewards must not create a materialless die or a permanent-affix die.
+Until a canonical dice-content catalog is authored, `mvp-reference/01-dice-system.md` plus the current dice definition/material/affix implementation remain the supporting source for detailed generation rules.
 
 ## Progression Item Grants
 
@@ -164,7 +163,7 @@ This subsidy is tutorial progression, not a normal combat, boss, or loot-node re
 | Grant type | Materialization behavior |
 | --- | --- |
 | Unit | Malformed grants are ignored. Slug must be unlocked for the user. Tier is clamped to `1-3`; level is at least `1`; XP starts at `0`; generated display name is used. Runtime grant exceptions are skipped. Kin must be valid for the grant source: account-eligible for ordinary grants or recipe-forced for reconstruction. |
-| Dice | Malformed grants are ignored. Target-state identity requires one active size and one allowed material. Runtime grant exceptions are skipped. |
+| Dice | Malformed grants are ignored. The granted die must resolve to valid current dice definition/material/affix data for its source. Runtime grant exceptions are skipped. |
 | Item | Slug is required and quantity is at least `1`. Items are granted as inventory stacks. Runtime grant exceptions are skipped. |
 
 ## Raw Chaos Gate
@@ -183,4 +182,5 @@ Loot and unit eligibility are aligned when:
 - Basic Goblin remains eligible after Pig Kin discovery
 - reconstruction always forces Pig Kin and always creates one unit
 - Pig material drops continue after discovery
+- dice rewards retain the current rarity/material/affix model
 - retries do not duplicate reward grants, subsidies, or reconstruction results
