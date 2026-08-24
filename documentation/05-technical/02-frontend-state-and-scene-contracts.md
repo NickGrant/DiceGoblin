@@ -1,15 +1,14 @@
 ---
 Title: "Frontend Route and State Contracts"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-23
 Owner: Engineering
 Depends On:
   - frontend/src/app/app.routes.ts
   - frontend/src/app/core/services/session/session.service.ts
   - frontend/src/app/core/services/run/run.service.ts
   - frontend/src/app/core/services/wrong-machine/wrong-machine.service.ts
-  - documentation/02-systems/08-dice-material-model.md
-  - documentation/02-systems/09-kin-reconstruction.md
+  - documentation/02-systems/kin-reconstruction.md
   - documentation/05-technical/03-backend-api-contracts.md
 Category: 05-technical
 Tags:
@@ -22,19 +21,19 @@ Tags:
 
 - Describe the current Angular route surface in implementation-facing language.
 - Clarify which frontend state lives at session, profile, run, reconstruction, summary, and debug levels.
-- Identify target-state presentation contracts where the backend still exposes legacy dice or lineage compatibility fields.
+- Identify target-state presentation contracts where the backend still exposes lineage compatibility fields.
 - Keep route truth synchronized with `frontend/src/app/app.routes.ts`.
 
 ## Contract Boundary
 
-The frontend consumes backend-authored state; it does not invent durable progression, derive hidden eligibility, or synthesize missing materials.
+The frontend consumes backend-authored state; it does not invent durable progression or derive hidden eligibility.
 
 This document distinguishes:
 
 - **Current route and service ownership:** what the Angular application currently ships.
 - **Target presentation state:** approved semantics that may still require backend or frontend migration.
 
-Compatibility aliases may remain in models during migration, but new UI work should use kin, recipe, and material terminology.
+Compatibility aliases may remain in models during migration, but new kin and reconstruction UI work should use kin and recipe terminology.
 
 ## Shell Model
 
@@ -91,27 +90,16 @@ The profile is refreshed after most successful mutations. Components should not 
 
 ### Dice Presentation State
 
-Current dice models may still include independent rarity and affix data because the runtime migration is incomplete.
+Dice presentation follows the current material-plus-affix model.
 
-Target dice presentation is material-led:
-
-- display identity is material plus size, such as `Cardboard d4`
-- rarity is read from the material
-- effect summary and tags are read from the material definition
-- sale and salvage values are backend-authored
+- die size and rarity remain player-facing properties
+- material remains part of die identity
+- permanent affixes remain attached to the die instance and are displayed when present
+- rarity continues to govern affix capacity under the current dice contract
+- sale and salvage values remain backend-authored
 - equipment location is associated with the die instance
-- permanent affixes are compatibility-only and eventually disappear
 
-The UI must not treat a missing material as neutral. Cardboard is an explicit material.
-
-Filters and sorting should migrate from affix-oriented identity toward:
-
-- size
-- material
-- material rarity
-- material tags
-- equipped versus unequipped state
-- value or salvage value where relevant
+Filters and sorting may use size, rarity, material, affix information, equip state, and backend-authored value as appropriate to the current surface.
 
 ### Kin Ownership and Eligibility State
 
@@ -195,7 +183,7 @@ Responsibilities:
 - set unit level
 - reset account
 
-Target dice grants must specify or resolve a valid size-material pair. Debug UI should not establish a permanent dependency on legacy affix creation.
+Debug dice grants should remain compatible with the current rarity, material, and affix model rather than assuming a material-only replacement.
 
 ## Current Route Table
 
@@ -227,7 +215,7 @@ Authenticated Codex route.
 
 - Tracks account discovery across supported categories.
 - Uses locked placeholders for undiscovered entries where implemented.
-- Current compatibility may still include affix-oriented entries; target dice discovery uses materials.
+- Dice discovery remains compatible with affix-oriented Codex entries until the deferred dice-content catalog is authored.
 
 ### `/field-guide`
 
@@ -281,7 +269,7 @@ Dice inventory route.
 - Filters and sorts owned dice.
 - Shows equipment usage.
 - Sells eligible dice.
-- Must migrate presentation from independent rarity/affixes to size/material identity.
+- Displays current rarity, material, and affix identity rather than treating affixes as migration-only data.
 
 ### `/shop`
 
@@ -289,7 +277,7 @@ Feature-gated economy route.
 
 - Displays starter offers, daily deals, and feature unlocks.
 - Disables unavailable, unaffordable, or already-completed purchases.
-- Target dice offers display valid size-material outcomes rather than rarity-plus-affix construction.
+- Dice offers remain compatible with the current rarity, material, and affix construction.
 
 ### `/wrong-machine`
 
@@ -360,21 +348,18 @@ Environment-gated operator route.
 - Retry-sensitive asset creation must use backend idempotency rather than relying only on disabled buttons.
 - Errors preserve enough local state for the player to understand whether anything was spent or created.
 - A successful reconstruction must not be reduced to a generic toast; the produced unit and spent recipe need deliberate result presentation.
-- A material migration must not cause components to independently recompute rarity, value, or effect behavior.
 
 ## Current Naming Rules
 
 - Player-facing UI prefers `squad`; backend compatibility still uses `team` in routes and some payloads.
 - Player-facing and new implementation surfaces prefer `kin`; legacy storage and payloads may still expose `lineage` or `splice_variant` compatibility fields.
 - Reconstruction UI refers to recipes and produced units rather than treating lineage unlock as the repeatable action.
-- Dice UI refers to explicit materials in the target model; affixes are legacy compatibility data.
+- Dice UI uses the current rarity, material, and affix vocabulary.
 
 ## Implementation Drift to Track
 
 - Wrong Machine frontend models currently mirror a one-time lineage-unlock response rather than the repeatable recipe result contract.
 - Reconstruction requests do not yet carry a request-level idempotency key.
-- Dice surfaces still depend on independent rarity and permanent affix data.
-- Material-based filtering, Codex identity, and effect presentation are not yet the active runtime path.
 - Some profile fields conflate kin discovery, eligibility, and ownership through legacy lineage state.
 
 These gaps should be resolved through implementation work, not hidden by route-local inference.
