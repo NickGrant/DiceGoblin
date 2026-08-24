@@ -1,14 +1,13 @@
 ---
 Title: "Backend API Contracts - Current Alpha and Target-State Boundaries"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-23
 Owner: Engineering
 Depends On:
   - backend/public/index.php
   - backend/src/Controllers/
   - frontend/src/app/core/services/api-http/api-http.service.ts
-  - documentation/02-systems/08-dice-material-model.md
-  - documentation/02-systems/09-kin-reconstruction.md
+  - documentation/02-systems/kin-reconstruction.md
   - documentation/05-technical/04-data-model.md
 Category: 05-technical
 Tags:
@@ -98,22 +97,20 @@ Current unit records expose `kin_*` aliases plus legacy `splice_variant_*` field
 
 Current profile and Wrong Machine behavior still expose explicit lineage-unlock state through `lineage_unlocks`. That field may remain as a compatibility projection for discovery and ordinary unit-grant eligibility, but it must not be treated as the authority for whether the account owns a kin. Durable owned units are the ownership authority.
 
-### Target dice payload
+### Dice payload
 
-Every target-state owned die exposes enough data to render and resolve its complete permanent identity:
+Owned-die payloads remain compatible with the current rarity, material, and affix model. Surfaces may require:
 
 - die instance id
 - active size or sides
-- material key and display identity
-- material-derived rarity
-- material summary and tags where needed by the surface
+- rarity
+- material identity where present
+- permanent affixes and their authored metadata
 - equipment binding or usage information
 - backend-authored sale value
 - backend-authored salvage value
 
-A target-state die does not require permanent affix fields. During migration, legacy affix fields may remain in payloads as compatibility-only data, but new clients and new surfaces should not depend on them.
-
-Material is required. A null material must not be interpreted as Cardboard; Cardboard is an explicit material value.
+Materials and affixes are separate permanent properties. API clients must not treat affixes as compatibility-only data or assume that material identity replaces the current rarity/affix contract.
 
 ### Target kin and first-ownership payload
 
@@ -128,12 +125,13 @@ These may currently map through `lineage_unlocks` or other compatibility data. T
 
 ### Compatibility plan
 
-The current unit, shop, reward, and reconstruction payloads may still carry legacy names because those names match current storage. New response objects should prefer:
+The current unit and reconstruction payloads may still carry legacy names because those names match current storage. New response objects should prefer:
 
 - `kin_*` for unit identity
 - `recipe_*` for reconstruction identity
-- `material_*` for permanent dice identity
 - `first_discovery` for the one-time ownership transition
+
+Dice payloads continue to use the existing rarity, material, and affix concepts until a separate dice redesign is deliberately approved.
 
 Storage renames should occur only after API aliases and client migrations are in place.
 
@@ -224,8 +222,7 @@ Current behavior:
 - Shop returns starter inventory, daily deals, and feature unlocks.
 - Academy returns unit-type unlock catalog entries with backend-authored availability and requirements.
 - Purchases and unlocks refresh profile state after success.
-
-Target dice offers should identify explicit size-material pairs or a backend-authored valid generation rule. They must not generate independent rarity or permanent affixes.
+- Dice offers remain compatible with the current size, rarity, material, and affix generation model.
 
 ## Bounty Board
 
@@ -281,8 +278,7 @@ Current behavior:
 - Node resolution may already include the battle log used by the frontend.
 - Direct log retrieval remains available.
 - Claim finalizes rewards and may finalize run summary state.
-
-Target battle logs identify each participating die by size and material and record material triggers and outcomes. Legacy affix trigger data must not remain required after material migration.
+- Battle logs may include die size, rarity/material identity, and affix trigger outcomes needed to explain current combat behavior.
 
 ## Units and Progression
 
@@ -303,8 +299,7 @@ Current behavior:
 - Promotion options are fetched separately from profile.
 - Promotion, capstone, rename, loadout, and dice-slot mutations refresh profile afterward.
 - Dice sale and salvage block equipped dice and refresh profile state.
-
-Target sale and salvage values derive from size and material. They must not depend on independent rarity, affix slots, or affix premiums.
+- Dice value and salvage remain backend-authoritative and may depend on size, die rarity, material, and affix rarity under the current model.
 
 ## Squads and Teams
 
@@ -319,9 +314,9 @@ Backend route names remain `teams` for compatibility. Player-facing surfaces use
 
 ## Codex Boundary
 
-Current Codex discovery is inferred from several profile fields and still includes legacy affix-oriented behavior in some surfaces.
+Current Codex discovery is inferred from several profile fields and includes affix-oriented behavior in dice surfaces.
 
-Target dice discovery is material-based. Owning a die with a material may award that material's Codex entry. Permanent affix entries are not part of the target dice model.
+Affix discovery remains compatible with the current material-plus-affix dice model. Material identity does not replace or retire affix pages. A later dedicated dice-content catalog should reconcile the exact player-facing material and affix entries before expanding the Codex contract.
 
 A later unified Codex ownership migration may change persistence and payload shape. Until then, API documentation must not imply that inferred fields are equivalent to a durable unified ownership store.
 
@@ -340,7 +335,7 @@ Current routes:
 
 These routes are non-production testing tools gated by runtime configuration.
 
-A target dice-grant request must create a valid size-material pair. Compatibility-only rarity or affix inputs must not remain required after material migration.
+Dice-grant debug behavior should remain compatible with the current rarity, material, and affix contract.
 
 ## Documentation Rule
 
