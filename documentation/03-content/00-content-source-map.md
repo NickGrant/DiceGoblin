@@ -1,11 +1,10 @@
 ---
 Title: "Content Source Map"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-23
 Owner: Content Design + Engineering
 Depends On:
   - documentation/03-content/README.md
-  - documentation/02-systems/08-dice-material-model.md
   - documentation/05-technical/09-seed-catalog-ownership.md
   - documentation/07-development-path/01-base-game-content-roster.md
   - documentation/07-development-path/02-night-expansion-content-roster.md
@@ -19,7 +18,9 @@ Tags:
 
 ## Purpose
 
-Identify the canonical document for each category of authored game content. Once a category has a canonical content document, implementation files are consumers of that document rather than competing sources of truth.
+Identify the canonical document for each category of authored game content. Where a canonical catalog has not yet been written, this map records temporary implementation references that must be reconciled when that catalog is created.
+
+Once a category has a canonical content document, implementation files are consumers of that document rather than competing sources of truth.
 
 ## Current Content Categories
 
@@ -38,7 +39,7 @@ Identify the canonical document for each category of authored game content. Once
 | Loot and reward profiles | `documentation/03-content/11-loot-and-reward-profiles.md` | Canonical | Defines active node-and-outcome reward chances, guarantees, currency, and item grants. |
 | Codex entries | `documentation/03-content/12-codex-entries.md` | Canonical | Defines current Codex categories, eligible keys, and discovery conditions. |
 | Dialogue and lore | `documentation/03-content/13-dialogue-and-lore.md` | Canonical | Defines current scripts, participants, placement, eligibility, repeatability, choices, completion rewards, and Lore classification. |
-| Dice materials | `documentation/03-content/14-dice-materials.md` | Canonical | Defines the 32-material initial roster, rarity, effects, allowed active sizes, stacking, valuation, starter assignment, Codex identity, and legacy-affix disposition. Cardboard is the neutral all-size baseline. |
+| Dice definitions, materials, and affixes | Not yet created | Interim | Existing dice definition, rarity, material, and affix data must be reconciled when a canonical dice-content catalog is authored. |
 
 ## Approved Future Roster Sources
 
@@ -51,21 +52,19 @@ Approved planning content is deliberately separated from current content catalog
 
 A future name or pairing may be approved planning without having current stats, keys, abilities, encounters, recipes, rewards, or art. Runtime generation must use only current catalog entries.
 
+## Interim Implementation References
+
+These references help locate existing content while canonical catalogs are still missing. They are discovery aids, not durable content authority.
+
+| Category | Temporary references |
+| --- | --- |
+| Dice definitions, materials, and affixes | Dice definition, rarity, material, and affix data plus current combat, inventory, reward, and Codex behavior. `documentation/02-systems/mvp-reference/01-dice-system.md` remains a useful supporting contract. |
+
 ## Dice Content Boundary
 
-The permanent target-state die identity is defined by:
+The current dice model retains separate permanent identity layers for die size/rarity, material, and affixes. Materials do not replace affixes, and affix capacity remains part of the existing rarity-driven dice model until a future change is deliberately approved.
 
-```text
-die size + material
-```
-
-The active sizes are `d4`, `d6`, `d8`, and `d10`. No current material supports `d12`, `d20`, or another size.
-
-Cardboard is the explicit neutral material for ordinary dice. It is valid on every active size and has no special effect. Missing material data is invalid and is not another form of Cardboard.
-
-Permanent die affixes are not a target-state content category. Existing affix definitions, rarity-based affix capacity, and per-instance affix records are legacy migration inputs. Their effects must be converted into materials, merged into another material, moved to another system, or removed according to the Dice Material Identity and Generation model and Dice Material Catalog.
-
-Temporary run effects and global feature rules may still modify dice, but they are not permanent affixes attached to die instances.
+The active alpha-launch combat sizes remain `d4`, `d6`, `d8`, and `d10` as documented in `documentation/02-systems/mvp-reference/01-dice-system.md`.
 
 ## Catalog Writing Rules
 
@@ -77,10 +76,9 @@ Temporary run effects and global feature rules may still modify dice, but they a
 - When implementation and a current canonical catalog disagree, treat the mismatch as implementation drift and resolve it explicitly.
 - Cross-reference shared content rather than creating competing definitions in multiple catalogs.
 - Dialogue entries must explicitly identify participants, effective repeatability, and Lore classification rather than relying on storage flags.
-- Dice material entries must explicitly identify rarity, effect, allowed sizes, stacking behavior, valuation, and enabled state rather than relying on independent rarity or affix records.
 
 ## Review Boundary
 
-A category is current and canonical only after its implementation data, player-facing copy, and relevant design decisions have been reconciled into a complete catalog. All current content categories have a canonical catalog; implementation drift remains tracked in the individual documents.
+A category is current and canonical only after its implementation data, player-facing copy, and relevant design decisions have been reconciled into a complete catalog. Dice content remains `Interim`; implementation data is still the primary evidence for its concrete material and affix roster.
 
 The approved base-game and Night rosters are canonical only for future content allocation. They do not bypass the content-promotion requirements of the current catalogs.
