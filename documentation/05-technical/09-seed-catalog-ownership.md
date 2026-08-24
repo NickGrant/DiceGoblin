@@ -1,13 +1,12 @@
 ---
 Title: "Seed Catalog Ownership"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-23
 Owner: Engineering
 Depends On:
   - documentation/05-technical/04-data-model.md
   - documentation/05-technical/03-backend-api-contracts.md
-  - documentation/02-systems/08-dice-material-model.md
-  - documentation/02-systems/09-kin-reconstruction.md
+  - documentation/02-systems/kin-reconstruction.md
   - backend/migrations/schema_all.sql
 Category: 05-technical
 Tags:
@@ -81,8 +80,8 @@ The contract is a stable slug:
 | `unit_instance_equipped_abilities` | Database-owned | Mutable per-unit loadout order. | Keep DB. |
 | `unit_instance_capstone_choices` | Database-owned | Persistent per-unit capstone selection state. | Keep DB. |
 | `unit_ability_dice` | Database-owned | Runtime binding from unit ability slots to owned dice. | Keep DB. |
-| `dice_instances` | Database-owned | Player-owned dice inventory and equipment identity. | Keep DB; target instances reference one size and one material, with rarity derived from material. |
-| `dice_instance_affixes` | Database-owned legacy | Rolled per-die affix values in the current implementation. | Freeze as migration input and remove after valid size-material conversion. |
+| `dice_instances` | Database-owned | Player-owned dice inventory and equipment identity. | Keep DB; preserve current size/rarity, material, and permanent-affix relationships. |
+| `dice_instance_affixes` | Database-owned | Permanent rolled per-die affix values. | Keep DB as part of the current dice model. |
 | `region_runs` | Database-owned | Mutable run lifecycle state. | Keep DB. |
 | `run_nodes` | Database-owned with code-backed enum pressure | Runtime node graph with enum-like node types. | Keep DB; keep node-type constants versioned and validated. |
 | `run_edges` | Database-owned | Runtime graph connectivity. | Keep DB. |
@@ -104,41 +103,35 @@ The contract is a stable slug:
 | `run_generation_profiles` | Database-owned catalog | Runtime topology budgets, bounds, and requirements. | Keep DB; seed through migrations. |
 | `bounty_definitions` | Hybrid-owned catalog | Rows store objectives and rewards; evaluation behavior is code-owned. | Keep DB; enforce objective-handler parity. |
 | `splice_variants` | Hybrid-owned legacy-named catalog | Rows currently store kin modifiers and display copy. | Keep during compatibility period; new contracts use kin terminology and must not infer ownership from catalog rows. |
-| `affix_definitions` | Hybrid-owned legacy catalog | Rows store legacy affix metadata while code owns behavior. | Freeze new content; convert, merge, relocate, or remove before retirement. |
-| `dice_definitions` | Code/config-owned size primitive candidate | Current table mixes sides, independent rarity, and affix capacity. | Separate size/base-value behavior during material migration; stop extending rarity or affix capacity. |
-| `dice_materials` | Planned hybrid-owned catalog | Target rows store material identity, rarity, effects, stacking, valuation, tags, and enabled state. | Seed from the canonical material catalog and enforce handler parity. |
-| `dice_material_allowed_sizes` | Planned database-owned relationship | Explicit material-size compatibility requires validation and querying. | Add with the material catalog unless equivalent validated structured storage is deliberately chosen. |
+| `affix_definitions` | Hybrid-owned catalog | Rows store permanent dice-affix metadata while code owns behavior. | Keep DB and reconcile through the future canonical dice-content catalog. |
+| `dice_definitions` | Database/hybrid-owned catalog | Current rows carry die sides, rarity, affix capacity, and related authored data. | Keep current contract; do not strip rarity or affix capacity for an unapproved material-only migration. |
+| dice material data | Hybrid-owned/current implementation | Materials are a separate die property with authored identity/behavior. | Preserve alongside rarity and affixes; reconcile ownership details in the future dice-content catalog. |
 | `unit_dice` | Removed | Legacy generic unit dice binding replaced by `unit_ability_dice`. | No action; migration 70 removed it. |
 
-## Dice Material Target Contract
+## Current Dice Ownership Contract
 
-The target dice ownership split is:
+The current dice ownership split is:
 
-- size vocabulary and base values are small stable primitives
-- material definitions are authored hybrid-owned content
-- material behavior is executed by code through a stable effect key
-- die instances store ownership, equipment, size, and material identity
-- rarity is derived from material
-- allowed sizes are explicit
-- permanent affix relationship rows are not retained
+- die definitions retain sides, rarity, and affix-capacity data
+- material remains a separate authored property of a die
+- affix definitions remain authored hybrid-owned content
+- die instances own player inventory identity and per-instance permanent affixes
+- ability-slot bindings remain database-owned through `unit_ability_dice`
+- executable material or affix behavior remains code-owned where handlers are required
 
-A material row remains inspectable and balanceable without embedding executable logic in SQL. Its effect key and parameters resolve to registered behavior, and its allowed sizes resolve only to active size primitives.
+Materials and affixes are complementary parts of the current system. No approved migration replaces permanent affixes with behavior-bearing materials or derives rarity solely from material.
 
-## Dice Migration Direction
+## Dice Reconciliation Direction
 
-Implementation reconciliation should avoid a long-lived hybrid between old and new dice models.
+Future cleanup should improve clarity without changing the approved dice model by accident:
 
-The migration should:
+1. document the current material and affix catalogs canonically
+2. keep stable material and affix slugs aligned with behavior handlers
+3. validate rarity-driven affix capacity and generated instance relationships
+4. preserve owned-die and ability-slot bindings during schema cleanup
+5. keep sale, salvage, profile, shop, combat, and Codex behavior consistent with the current material-plus-affix model
 
-1. author and seed the material catalog
-2. add material references and size-eligibility validation
-3. deterministically map every owned die to one valid size-material pair
-4. preserve ownership and ability-slot bindings
-5. switch generation, combat, valuation, shop, salvage, profile, and Codex behavior to material identity
-6. stop reading independent rarity and per-instance affixes
-7. remove legacy affix relationships and definitions after compatibility ends
-
-Legacy affix tables may remain temporarily for rollback or audit, but no target-state feature should depend on them after cutover.
+Do not retire independent rarity, affix definitions, or per-instance affixes as part of documentation cleanup.
 
 ## Kin Reconstruction Target Contract
 
@@ -158,12 +151,10 @@ A reconstruction request record should retain enough result data to return the s
 
 1. Reconcile Wrong Machine storage and service behavior with repeatable production and request-level idempotency.
 2. Backfill or repair kin discovery/eligibility projections from durable owned units.
-3. Add material catalog parity validation for keys, handlers, rarity, allowed sizes, and generation coverage.
-4. Reconcile dice storage and migrate owned dice without breaking ability-slot bindings.
-5. Remove independent rarity, affix-capacity, affix-generation, and affix-valuation behavior.
-6. Continue parity work for other hybrid behavior-bearing slugs.
-7. Move large catalog authoring out of raw SQL only after inspection and parity tests make review safe.
-8. Keep all player, run, inventory, battle, auth, and audit state database-owned.
+3. Document and validate the existing dice material and affix catalogs without changing their ownership model.
+4. Continue parity work for hybrid behavior-bearing slugs.
+5. Move large catalog authoring out of raw SQL only after inspection and parity tests make review safe.
+6. Keep all player, run, inventory, battle, auth, and audit state database-owned.
 
 ## Hybrid Contract Tests
 
@@ -174,14 +165,13 @@ Hybrid-owned tables should have focused tests for:
 - JSON references resolve to valid catalog rows
 - disabled or future rows are excluded from runtime selection
 
-Dice materials additionally require tests for:
+Dice additionally require tests that preserve the current contract, including:
 
-- exactly one supported rarity per enabled material
-- at least one active allowed size per enabled material
-- valid active-size references
-- registered effect handler or explicit neutral behavior
-- non-empty eligible material pools for every selectable size and reward source
-- no invalid owned size-material pairs
+- valid rarity and affix-capacity relationships
+- valid material references where material is required by current implementation
+- registered material/affix handlers where behavior-bearing slugs use code
+- valid per-instance affix relationships
+- valid ability-slot bindings and owned-die references
 
 Kin reconstruction additionally requires tests for:
 

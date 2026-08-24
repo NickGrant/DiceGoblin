@@ -1,7 +1,7 @@
 ---
 Title: "Systems Documentation"
 Status: Canonical
-Last Updated: 2026-08-20
+Last Updated: 2026-08-23
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/README.md
@@ -68,10 +68,10 @@ Start here, find the system, then follow its canonical document or supporting ev
 
 | System | Documentation | Canonical document or current reference |
 | --- | --- | --- |
-| Permanent dice identity and material model | `Canonical Target` | `dice-material-model.md` |
+| Dice identity, rarity, materials, and affixes | `Missing Canonical` | current dice storage/runtime; `mvp-reference/01-dice-system.md` |
 | Dice acquisition and ownership | `Missing Canonical` | current reward/inventory implementation; `mvp-reference/01-dice-system.md` |
 | Dice equipment and loadouts | `Canonical Current` | `ability-loadouts-and-dice-binding.md` |
-| Dice rolling, spending, and material effect resolution | `Missing Canonical` | `combat-resolution.md`; current combat Dice implementation |
+| Dice rolling, spending, and affix resolution | `Missing Canonical` | `combat-resolution.md`; current combat Dice implementation |
 | Dice salvage and Raw Chaos | `Canonical Current` | `dice-salvage-and-raw-chaos.md` |
 
 ### Runs and Encounters
@@ -130,7 +130,6 @@ Start here, find the system, then follow its canonical document or supporting ev
 - `run-node-generation.md`
 - `loot-determination.md`
 - `hazard-severity-and-downsides.md`
-- `dice-material-model.md`
 - `dice-salvage-and-raw-chaos.md`
 - `kin-reconstruction.md`
 - `objectives-and-demo-guidance.md`
@@ -159,10 +158,6 @@ When implementation shape matters, pair the system contract with:
 - `documentation/05-technical/09-seed-catalog-ownership.md`
 
 ## Known Target-State Drift
-
-### Dice
-
-The approved target model is size plus material. Runtime storage and payloads may still expose independent rarity, affix definitions, per-instance affixes, or affix-based value/Codex behavior. Those fields are migration and compatibility surfaces, not competing target-state identity.
 
 ### Kin Reconstruction
 

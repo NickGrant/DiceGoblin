@@ -1,12 +1,11 @@
 ---
 Title: "Ability Loadouts and Dice Binding"
 Status: Canonical
-Last Updated: 2026-08-20
+Last Updated: 2026-08-23
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/02-systems/combat-resolution.md
   - documentation/02-systems/unit-promotion.md
-  - documentation/02-systems/dice-material-model.md
   - backend/src/Services/UnitLoadoutService.php
   - backend/src/Repositories/UnitRepository.php
   - backend/src/Combat/Abilities/AbilityDefinition.php
@@ -152,7 +151,7 @@ Because that virtual die is a `d1`, it always contributes `1` to the ability's r
 Empty slots:
 
 - are not owned dice
-- have no material or permanent die effect
+- have no material, rarity, or affixes
 - cannot be sold or salvaged
 - still produce a deterministic slot trace in combat logs
 
@@ -169,7 +168,7 @@ For each scheduled active ability:
 
 The battle log records the equipped ability instance index, dice used, slot traces, and roll outcome so the resolved configuration can be audited.
 
-See `combat-resolution.md` for the complete action and material-effect order.
+See `combat-resolution.md` for the complete action and die-effect order.
 
 ## Mutation Window
 
@@ -193,7 +192,6 @@ Current behavior differs in at least these areas:
 
 - unused round ticks are not filled by repeated hostile abilities
 - the current combat system uses persisted equipped ability order directly
-- permanent dice behavior is moving toward the canonical size-plus-material model rather than the legacy permanent affix model
 
 When this document and `mvp-reference/09-ability-loadout-combat-rework-plan.md` disagree, use this document and `combat-resolution.md`.
 
@@ -202,5 +200,5 @@ When this document and `mvp-reference/09-ability-loadout-combat-rework-plan.md` 
 - `combat-resolution.md` — deterministic scheduling and action resolution
 - `target-resolution.md` — how an active ability chooses its target
 - `unit-promotion.md` — how ability access persists through promotion
-- `dice-material-model.md` — target-state permanent die identity and effects
+- `mvp-reference/01-dice-system.md` — current dice rarity and affix reference
 - `documentation/04-ux/02-warband-management.md` — player-facing unit management responsibilities

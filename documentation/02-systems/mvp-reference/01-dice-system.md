@@ -1,10 +1,9 @@
 ---
 Title: "Dice System - Alpha Launch (Authoritative Rework Contract)"
 Status: Legacy Reference
-Last Updated: 2026-08-02
+Last Updated: 2026-08-23
 Owner: Systems Design + Engineering
 Depends On:
-  - documentation/02-systems/08-dice-material-model.md
   - documentation/02-systems/mvp-reference/00-combat-system.md
   - documentation/02-systems/mvp-reference/07-combat-math-and-modifiers.md
 Category: 02-systems
@@ -15,18 +14,8 @@ Tags:
 
 # Dice System - Alpha Launch (Authoritative Rework Contract)
 
-## Supersession Note
-
-This document preserves the earlier alpha-launch contract for migration and comparison.
-
-The canonical target model in `documentation/02-systems/08-dice-material-model.md` supersedes this document's independent die rarity, rarity-based bonus-slot capacity, permanent affix pool, affix-generation rules, affix premiums, and affix-dependent salvage rules.
-
-The target permanent identity is one die size plus one behavior-bearing material. Existing rarity and affix implementation remains migration work.
-
-Ability-slot binding, explicit empty-slot behavior, ownership, and equipment concepts recorded here remain useful historical context but must be reconciled with current canonical system and technical documentation before implementation decisions are made from them.
-
-This document was the authoritative specification for the alpha-launch dice system.  
-Any dice mechanic not explicitly included here was out of scope for that alpha launch.
+This document is the authoritative specification for the alpha-launch dice system.  
+Any dice mechanic not explicitly included here is out of scope for the alpha launch.
 
 ## 1. Design Goals
 

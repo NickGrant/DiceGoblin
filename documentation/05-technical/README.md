@@ -1,7 +1,7 @@
 ---
 Title: "Technical Documentation"
 Status: Canonical
-Last Updated: 2026-08-20
+Last Updated: 2026-08-23
 Owner: Engineering
 Depends On:
   - documentation/README.md
@@ -34,11 +34,11 @@ For cross-layer gameplay work:
 1. Read the relevant system contract under `documentation/02-systems/`.
 2. Read `02-frontend-state-and-scene-contracts.md` for Angular route and state ownership.
 3. Read `03-backend-api-contracts.md` for routes and payload boundaries.
-4. Read `04-data-model.md` for physical-schema and target-state storage direction.
+4. Read `04-data-model.md` for physical-schema and approved target-state storage direction.
 5. Read `09-seed-catalog-ownership.md` for database/config/hybrid ownership.
 6. Inspect implementation and tests to measure remaining drift.
 
-For dice migration, begin with `documentation/02-systems/dice-material-model.md`.
+For current dice behavior, use `documentation/02-systems/mvp-reference/01-dice-system.md` together with current implementation until a canonical dice-content/system replacement is authored. Materials and permanent affixes remain part of the active model.
 
 For Wrong Machine and kin production, begin with `documentation/02-systems/kin-reconstruction.md`.
 
@@ -60,9 +60,9 @@ For Wrong Machine and kin production, begin with `documentation/02-systems/kin-r
 
 ### Dice
 
-- Current implementation may still contain independent rarity and permanent affix storage.
-- Target identity is one active size plus one material.
-- Technical contracts must describe compatibility fields as migration inputs, not target-state features.
+- No material-only dice migration is approved.
+- Current size/rarity, material, and permanent-affix data remain active parts of the dice contract.
+- Technical cleanup must not treat rarity or affixes as migration-only fields unless a future dice-system change explicitly supersedes them.
 
 ### Kin reconstruction
 
