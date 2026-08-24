@@ -1,7 +1,7 @@
 ---
 Title: "Codex Entry Catalog"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-23
 Owner: Content Design + Narrative Design
 Depends On:
   - documentation/03-content/01-unit-types.md
@@ -10,8 +10,7 @@ Depends On:
   - documentation/03-content/06-biomes-and-regions.md
   - documentation/03-content/10-items-and-consumables.md
   - documentation/03-content/13-dialogue-and-lore.md
-  - documentation/03-content/14-dice-materials.md
-  - documentation/02-systems/09-kin-reconstruction.md
+  - documentation/02-systems/kin-reconstruction.md
 Category: 03-content
 Tags:
   - content
@@ -37,11 +36,11 @@ Define the canonical Codex categories, eligible keys, and discovery rules. Profi
 | `kin` | Kin Type Catalog | Own at least one unit of the kin | 2 | Active |
 | `item` | Item and Consumable Catalog | Own at least one copy | 6 | Active |
 | `lore` | Dialogue and Lore Catalog | Complete dialogue explicitly classified as Lore | 9 | Active |
-| `material` | Dice Material Catalog | Own a die made from the material | 32 | Active |
+| `affix` | Future dice-affix catalog | Own a die carrying the affix | Not cataloged here | Deferred by scope |
 
-The current Codex contains **99 canonical entry keys**.
+The current non-dice Codex contains **67 canonical entry keys**.
 
-Permanent die affixes are not a Codex category. Existing affix storage records must not create pages.
+Dice materials remain part of die identity but do not replace the affix Codex category. A dedicated canonical dice/material/affix catalog has not yet been written.
 
 ## Enemy Entries
 
@@ -80,7 +79,7 @@ Biome discovery records completion, not access or run creation.
 | `explode_d4s` | Exploding D4s | Gives eligible d4s one non-recursive explosion on maximum roll. | Receive the unlock. |
 | `wrong_machine` | Wrong Machine | Opens Raw Chaos and kin reconstruction. | Complete `swamps-wrong-machine-recovered`. |
 
-Dialogue seen-state keys are not features. Global dice features remain feature pages; they are not permanent materials or affixes.
+Dialogue seen-state keys are not features.
 
 ## Unit-Type Entries
 
@@ -124,66 +123,14 @@ Implementation-only splice records are not Codex content unless first added to t
 
 Roc Egg and Gator Head are obsolete records and are not current entries.
 
-## Material Entries
+## Affix Entries
 
-Owning any valid die made from an enabled material discovers that material's page.
+Affix Codex entries remain part of the current dice model, but their concrete authored catalog is intentionally deferred.
 
-- A material has one page regardless of supported or owned die sizes.
-- Owning multiple sizes or copies does not create duplicate entries.
-- Pages show rarity, effect, active allowed sizes, stacking, valuation class, tags, and representative art.
-- Independent rarity values and legacy affix combinations are not identities.
-- No material page may advertise `d12`, `d20`, or another inactive size.
-
-Cardboard is the neutral baseline material. Its page records that it is Common, supports every active size, and has no special effect; it is still an explicit material identity rather than missing data.
-
-### Common
-
-- `cardboard`
-- `bone`
-- `iron`
-- `copper`
-- `clay`
-- `flint`
-- `chalk`
-- `leather`
-
-### Uncommon
-
-- `peach_pit`
-- `glass`
-- `lead`
-- `obsidian`
-- `rubber`
-- `amber`
-- `salt`
-- `brass`
-
-### Rare
-
-- `powder_keg`
-- `butchers_tooth`
-- `bloodstone`
-- `sporewood`
-- `moonstone`
-- `rusted_iron`
-- `gold`
-
-### Epic
-
-- `porcelain`
-- `diamond`
-- `voidstone`
-- `phoenix_ash`
-- `clockwork_brass`
-
-### Legendary
-
-- `chaos_shard`
-- `living_bone`
-- `star_metal`
-- `worldroot`
-
-The Dice Material Catalog owns the titles, effects, allowed sizes, stacking, valuation, and tags for these entries.
+- Owning a die carrying an affix may discover that affix's page through the current acquisition/discovery flow.
+- A die may carry multiple permanent affixes according to its rarity-driven capacity.
+- Materials and affixes are separate die properties; material identity does not retire or replace affix identity.
+- Do not infer a complete player-facing affix catalog from storage records alone. The dedicated dice-content catalog should reconcile keys, display names, effects, rarity, and presentation before this section becomes canonical content authority.
 
 ## Lore Entries
 
@@ -227,7 +174,7 @@ These remain dialogue without Lore pages:
 | `owned_unit` | Unit-type or kin page derived or repaired from durable ownership. |
 | `owned_item` | Item page derived from positive inventory quantity. |
 | `dialogue` | Lore page awarded by canonical Lore dialogue completion. |
-| `owned_die` | Material page derived from an owned die's canonical material key. |
+| `owned_die` | Affix page derived from an owned die; concrete affix content remains deferred. |
 
 ## Reconciliation Requirements
 
@@ -235,21 +182,20 @@ These remain dialogue without Lore pages:
 - Feature synchronization must not interpret dialogue state as features.
 - Pig Kin Codex ownership must be created or repaired from first durable Pig Kin ownership, not from a recipe-unlock toggle alone.
 - Later Pig Kin reconstructions must not create duplicate Codex awards.
-- Material synchronization uses the 32 canonical material keys, not rarity or affixes.
-- One material page is awarded per material regardless of die size.
+- Affix discovery remains compatible with the existing material-plus-affix dice model.
 - Field Poultice and Travel Ration have first-discovery paths through Llamaver's two consumable gifts; Hearty Bone Broth and Sparkroot Tonic still need acquisition sources.
 
 ## Open Questions
 
-- Detailed payloads remain strongest for units and enemies; biome, feature, kin, item, Lore, and material presentation need complete authored art and descriptive copy.
+- Detailed payloads remain strongest for units and enemies; biome, feature, kin, item, Lore, and affix presentation need complete authored art and descriptive copy.
 - Hearty Bone Broth and Sparkroot Tonic cannot normally be discovered until acquisition sources exist.
 - Enemy page acquisition may remain uneven between common enemies and rare bosses.
-- Feature interactions with material behavior require implementation reconciliation.
+- Affix entry definitions remain intentionally deferred and should not be inferred from storage records alone.
 
 ## Maintenance Notes
 
 - Every key must exist in its primary canonical catalog.
 - Add categories before exposing them through ownership or profile APIs.
-- Keep discovery synchronized with rewards, progression, dialogue, materials, and reconstruction.
+- Keep discovery synchronized with rewards, progression, dialogue, dice affixes, and reconstruction.
 - Persistence, synchronization, API behavior, and deterministic implementation remain outside this document.
 - Do not promote storage keys into Codex content without authored player-facing identity.
