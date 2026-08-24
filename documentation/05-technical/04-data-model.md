@@ -1,13 +1,12 @@
 ---
 Title: "Dice Goblins - Data Model and Target-State Migration Contract"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-23
 Owner: Engineering
 Depends On:
   - backend/migrations/schema_all.sql
-  - documentation/02-systems/03-combat-resolution.md
-  - documentation/02-systems/08-dice-material-model.md
-  - documentation/02-systems/09-kin-reconstruction.md
+  - documentation/02-systems/combat-resolution.md
+  - documentation/02-systems/kin-reconstruction.md
   - documentation/05-technical/09-seed-catalog-ownership.md
 Category: 05-technical
 Tags:
@@ -18,14 +17,14 @@ Tags:
 
 ## Purpose
 
-Define the canonical technical data-model direction for current combat/loadout behavior, permanent dice materials, and repeatable kin reconstruction.
+Define the canonical technical data-model direction for current combat/loadout behavior and repeatable kin reconstruction while preserving the current dice rarity, material, and affix model.
 
 This document distinguishes two forms of truth:
 
 - **Implemented schema:** the physical tables and compatibility columns currently present in `backend/migrations/schema_all.sql` and consumed by runtime code.
-- **Canonical target state:** the schema direction that new migrations and service changes must move toward.
+- **Canonical target state:** the schema direction that approved migrations and service changes must move toward.
 
-When the implemented schema and this target contract disagree, the difference is implementation drift. Documentation must describe that drift explicitly rather than treating legacy storage as a competing design.
+When the implemented schema and an approved target contract disagree, the difference is implementation drift. Documentation must describe that drift explicitly rather than treating legacy storage as a competing design.
 
 ## 1. Guiding Principles
 
@@ -36,7 +35,7 @@ When the implemented schema and this target contract disagree, the difference is
 - Behavior-bearing authored rows use stable keys; executable behavior remains code-owned through registries and handlers.
 - Owned-unit state is the authority for whether a player owns a kin.
 - Derived discovery, Codex, or reward-eligibility state must be repairable from durable ownership.
-- A target-state die has exactly one active size and one material.
+- Dice retain their current size/rarity, material, and permanent-affix data model unless a future redesign is explicitly approved.
 
 ## 2. Stable Global Tables
 
@@ -232,111 +231,38 @@ Representative fields:
 
 Duplicate rows are allowed when duplicate equips are allowed. Equip-budget validation remains server-side.
 
-## 7. Dice Inventory and Material Identity
+## 7. Dice Inventory and Ability-Slot Binding
 
-### 7.1 Target Identity
+### 7.1 `dice_definitions`
 
-A target-state die is:
+The current dice definition model owns authored die characteristics including:
 
-```text
-die size + material
-```
-
-The active sizes are `d4`, `d6`, `d8`, and `d10`.
-
-Every owned die must reference:
-
-- one active size definition
-- one enabled material that permits that size
-- one owner
-- equipment state when bound to an ability slot
-
-A missing material is invalid target-state data. Neutral dice use the explicit Cardboard material.
-
-### 7.2 Size Definitions
-
-The existing `dice_definitions` table currently mixes size, independent rarity, and affix capacity. During material migration it should become a size-only primitive or be replaced by an equivalent size catalog.
-
-Target size data owns:
-
-- stable size identity
-- number of sides
-- base sale value
-- base salvage value where applicable
-- enabled state
-
-Target size data does not own:
-
-- independent rarity
-- affix-slot capacity
-- permanent behavior
-
-### 7.3 `dice_materials`
-
-`dice_materials` is a planned hybrid-owned authored catalog.
-
-Target fields include:
-
-- stable `slug`
-- display name
+- sides
 - rarity
-- effect-handler key or explicit neutral behavior
-- effect parameters
-- stacking metadata
-- value modifier
-- salvage modifier
-- tags
-- enabled state
-- created and updated timestamps where operationally useful
+- affix-slot capacity
+- backend-owned valuation inputs
 
-Executable behavior is resolved through the material's stable effect key. Enabled behavior-bearing rows must have registered handlers.
+The current alpha-launch combat sizes are `d4`, `d6`, `d8`, and `d10`.
 
-### 7.4 Material-Size Eligibility
+### 7.2 Materials
 
-Material-size compatibility must be queryable and validated. The preferred normalized shape is:
+Material remains a separate die property in the current game. Material data may influence identity or authored behavior, but it does not replace rarity or permanent affixes.
 
-#### `dice_material_allowed_sizes`
+A future canonical dice-content catalog should reconcile material keys, display identity, and behavior without assuming a material-only redesign.
 
-- `dice_material_id`
-- `dice_definition_id`
+### 7.3 `affix_definitions`
 
-Primary key:
+`affix_definitions` defines permanent dice-affix metadata used by the current rarity-driven model.
 
-- (`dice_material_id`, `dice_definition_id`)
+Affixes remain attached to die instances, and rarity continues to control affix capacity. Their concrete player-facing catalog is currently deferred, but the storage is active game data rather than migration-only input.
 
-A validated structured field on `dice_materials` is acceptable only while the catalog remains small and parity checks enforce the same guarantees. There is no implicit all-sizes default.
+### 7.4 `dice_instances`
 
-### 7.5 `dice_instances`
+`dice_instances` remain the player-owned dice inventory records and preserve the die's current size/definition, material data, rarity relationship, and per-instance affix relationships as applicable.
 
-`dice_instances` remain the player-owned inventory records.
+Instance identity is required for ownership, equipment, sale, salvage, audit, and permanent affix assignment.
 
-Target identity fields include:
-
-- owner
-- size definition
-- material
-- audit and lifecycle timestamps
-
-Rarity is derived from material. If an independent rarity column is retained temporarily, it is compatibility data and must match the material; it must not influence generation, combat, sale, salvage, or presentation independently.
-
-Two dice with the same size and material are mechanically identical. Instance identity exists for ownership, equipment, mutation safety, and audit rather than hidden quality rolls.
-
-### 7.6 Legacy Affix Storage
-
-`affix_definitions` and per-instance affix rows are migration inputs only.
-
-Permanent affixes must not participate in target-state:
-
-- generation
-- combat resolution
-- valuation
-- salvage
-- Codex identity
-- profile presentation
-
-Each owned die must migrate to one valid size-material pair. The final state must not retain hybrid material-plus-affix dice.
-
-### 7.7 Ability-Slot Binding
+### 7.5 Ability-Slot Binding
 
 The old `unit_dice` contract has been removed. Dice bind to a base ability slot through `unit_ability_dice`.
 
@@ -353,7 +279,7 @@ Primary key:
 
 - (`unit_instance_id`, `ability_slug` or `ability_id`, `slot_index`)
 
-This binding is preserved through material migration. Empty-slot fallback behavior belongs to combat-system documentation and is not encoded as an implicit Cardboard die.
+Repeated equipped copies of the same base ability read from the same slot rows. Empty-slot fallback behavior belongs to combat-system documentation.
 
 ## 8. Starter Unit Seeding
 
@@ -362,9 +288,9 @@ Initial unit grants seed:
 - generated display names
 - default unlocked abilities
 - default equipped ability order
-- explicit Cardboard `d4` dice for starter ability slots that require dice
+- common `d4` dice for starter ability slots that require dice
 
-Bootstrap or account-seed services own this work. The frontend must not synthesize starter dice or infer Cardboard from a missing material.
+Bootstrap or account-seed services own this work. The frontend must not synthesize starter inventory as durable state.
 
 ## 9. Wrong Machine Reconstruction
 
@@ -382,7 +308,7 @@ Recipe content owns:
 - Raw Chaos cost
 - enabled state
 
-The current Pig Kin values are owned by `documentation/02-systems/09-kin-reconstruction.md`. Technical storage must consume those authored values rather than establish a competing balance source.
+The current Pig Kin values are owned by `documentation/02-systems/kin-reconstruction.md`. Technical storage must consume those authored values rather than establish a competing balance source.
 
 ### 9.2 Repeatable Production
 
@@ -507,11 +433,9 @@ Generated runs may record generator version, generation-profile version, pattern
 - cumulative tick scheduling
 - slot values consumed
 - empty-slot fallback contribution when applicable
-- die size and material identity for every participating die
-- material effect trigger and resolved result
+- participating die identity needed to explain the action
+- permanent affix triggers and outcomes when applicable
 - enemy authored loadout participation
-
-Reopening a result or retrying an idempotent request must not execute material behavior again.
 
 ### 12.1 `chaos_encounter_results`
 
@@ -529,7 +453,7 @@ Refreshes return the existing row. Finalization applies the stored payout once a
 - optional item consumption
 - promotion path used
 
-Reward and shop records that create dice must resolve one valid size-material pair. Sale and salvage values derive from size and material rather than affix premiums or independent rarity.
+Reward and shop records that create dice remain compatible with the current size, rarity, material, and affix generation model. Sale and salvage values are backend-authoritative and may include rarity and affix premiums.
 
 ## 14. Migration Expectations
 
@@ -539,21 +463,7 @@ Runtime dice assignment migrated to `unit_ability_dice`, and migration 70 remove
 
 Remaining combat/loadout concerns include authored enemy loadouts, starter grant alignment, and active-run compatibility when scheduler behavior changes.
 
-### 14.2 Dice Material Migration
-
-The migration sequence should:
-
-1. seed the canonical material catalog
-2. add material references and material-size validation
-3. deterministically map every owned die to one valid size-material pair
-4. preserve owner and ability-slot bindings
-5. switch generation, combat, profile, shop, sale, salvage, and Codex behavior to materials
-6. stop reading independent rarity and permanent affixes
-7. remove legacy affix relationships after compatibility is no longer required
-
-Starter and neutral legacy dice migrate to Cardboard while preserving size.
-
-### 14.3 Kin Reconstruction Migration
+### 14.2 Kin Reconstruction Migration
 
 The migration sequence should:
 
@@ -566,15 +476,17 @@ The migration sequence should:
 7. allow later recipes to create additional units
 8. preserve compatibility fields only until clients use the new result contract
 
+No dice material-only migration is approved. Rarity and permanent affix storage remain part of the current dice model.
+
 ## 15. Normalization Guidance
 
 As implementation lands:
 
 - avoid long-lived parallel legacy and target models
-- keep test fixtures aligned to the target contract
+- keep test fixtures aligned to approved contracts
 - use compatibility aliases at API boundaries rather than duplicating behavioral authority
 - keep content values in canonical content/system sources and technical storage contracts in this document
-- compact migration history only after the target model is stable and production-safe
+- compact migration history only after the relevant target model is stable and production-safe
 
 ## 16. Explicitly Superseded Models
 
@@ -584,8 +496,7 @@ The following are not canonical target-state behavior:
 - combat consumption ordering from a shared pool
 - enemy scheduling driven only by modulo speed triggers
 - promotion as ability replacement instead of cumulative inheritance
-- materialless or rarity-only owned dice
-- permanent per-instance dice affixes
-- rarity-controlled affix capacity
 - lineage-unlock rows as the authority for kin ownership
 - one-time reconstruction that stops producing units after first discovery
+
+Permanent per-instance dice affixes and rarity-controlled affix capacity are **not** superseded by this document.
