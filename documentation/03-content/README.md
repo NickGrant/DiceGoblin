@@ -1,7 +1,7 @@
 ---
 Title: "Content Documentation"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-23
 Owner: Content Design
 Depends On:
   - documentation/README.md
@@ -16,7 +16,7 @@ Tags:
 
 ## Purpose
 
-Catalog concrete authored content such as units, kin, enemies, abilities, biomes, statuses, encounters, run effects, items, rewards, Codex entries, dialogue, lore, and dice materials.
+Catalog concrete authored content such as units, kin, enemies, abilities, biomes, statuses, encounters, run effects, items, rewards, Codex entries, dialogue, and lore.
 
 Canonical current content catalogs are the source of truth for what content exists now and for its authored values. Runtime data, seed data, and presentation code must remain consistent with them.
 
@@ -40,7 +40,6 @@ Approved future content rosters are maintained under `documentation/07-developme
 - Define shared abilities and statuses once and reference those definitions from every content package that uses them.
 - Keep generated behavior separate from authored entries: encounter placement is a system concern, while encounter formations and presentation are content.
 - For dialogue, explicitly document spoken participants, effective repeatability, eligibility, choices, completion rewards, and Lore classification.
-- For dice materials, explicitly document rarity, effect, allowed sizes, stacking behavior, valuation, and enabled state. Do not infer material identity from legacy rarity or affix records.
 
 ## Documents
 
@@ -58,7 +57,6 @@ Approved future content rosters are maintained under `documentation/07-developme
 - `11-loot-and-reward-profiles.md`
 - `12-codex-entries.md`
 - `13-dialogue-and-lore.md`
-- `14-dice-materials.md`
 - `TEMPLATE-catalog-entry.md`
 
 ## Approved Planning Rosters
@@ -70,15 +68,11 @@ Planned entries must not enter current encounters, rewards, reconstruction, recr
 
 ## Dice Content
 
-The permanent target-state die identity is one active die size plus one material. The active sizes are `d4`, `d6`, `d8`, and `d10` only.
-
-The Dice Material Catalog defines the initial 32-material roster. Cardboard is the explicit neutral default material: it is valid on every active size and has no special effect. Missing material data is invalid and must not be interpreted as Cardboard.
-
-Permanent affixes are retired from the target model and remain only as migration inputs until implementation cutover.
+Dice continue to use the existing size, rarity, material, and affix model. The current repository does not have a standalone canonical dice-content catalog; use runtime data and `documentation/02-systems/mvp-reference/01-dice-system.md` as supporting references until that catalog is written.
 
 ## Deferred Catalogs
 
-None. All current authored content categories have a canonical catalog.
+- Dice definitions, materials, and affixes.
 
 Approved future content remains deliberately incomplete until promoted.
 
