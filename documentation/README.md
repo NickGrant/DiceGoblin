@@ -1,7 +1,7 @@
 ---
 Title: "Documentation Index"
 Status: Canonical
-Last Updated: 2026-08-19
+Last Updated: 2026-08-23
 Owner: Product + Engineering
 Depends On:
   - AGENTS.md
@@ -34,7 +34,7 @@ Tags:
 - `00-overview/`: high-level product overview, core loop, and glossary.
 - `01-lore/`: setting, story, narrative tone, and biome progression direction.
 - `02-systems/`: canonical gameplay-system inventory, current behavior and target-state contracts, explicit documentation gaps, plus legacy MVP and multiplayer references.
-- `03-content/`: catalog-style documents for units, kin, enemies, biomes, items, dice materials, encounters, rewards, and Codex entries.
+- `03-content/`: catalog-style documents for units, kin, enemies, biomes, items, dice content, encounters, rewards, and Codex entries.
 - `04-ux/`: player experience, visual design, onboarding, and page-by-page analysis.
 - `05-technical/`: architecture, API contracts, data model, frontend state, seed ownership, and schemas.
 - `06-testing-release/`: testing strategy, release gates, UAT scripts, validation checklists, and evidence.
@@ -58,7 +58,7 @@ Tags:
 12. `documentation/06-testing-release/00-testing-strategy.md`
 13. `documentation/07-development-path/2026-07-30-first-pig-kin-demo-roadmap.md`
 
-For permanent dice work, the relevant system document is `documentation/02-systems/dice-material-model.md`.
+For current dice work, use `documentation/02-systems/mvp-reference/01-dice-system.md` together with current implementation evidence until a new canonical dice-system/content contract is authored. The active model retains materials and permanent affixes.
 
 For Wrong Machine and kin production, the relevant system document is `documentation/02-systems/kin-reconstruction.md`.
 
@@ -69,7 +69,7 @@ For Wrong Machine and kin production, the relevant system document is `documenta
 - `documentation/02-systems/` owns gameplay behavior and target-state system rules.
 - `documentation/05-technical/` owns current route/schema evidence and target implementation direction; it must identify legacy compatibility rather than silently redefining system behavior.
 - Implementation and tests remain the evidence for what currently runs.
-- `documentation/02-systems/mvp-reference/` is background, not default authority.
+- `documentation/02-systems/mvp-reference/` is background unless a system inventory row explicitly uses it as the best available current reference.
 - `documentation/04-ux/page-analysis/` contains route audits and should be treated as targeted UX context rather than global design law.
 - Active issue and milestone state lives in `agent/ISSUES.md` and `agent/MILESTONES.md`.
 
