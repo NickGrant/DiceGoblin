@@ -1,16 +1,15 @@
 ---
 Title: "Loot and Reward Profile Catalog"
 Status: Canonical
-Last Updated: 2026-08-02
+Last Updated: 2026-08-23
 Owner: Content Design + Systems Design
 Depends On:
   - documentation/03-content/08-encounter-templates.md
   - documentation/03-content/09-hazards-and-shrines.md
   - documentation/03-content/10-items-and-consumables.md
   - documentation/03-content/13-dialogue-and-lore.md
-  - documentation/03-content/14-dice-materials.md
-  - documentation/02-systems/06-loot-determination.md
-  - documentation/02-systems/09-kin-reconstruction.md
+  - documentation/02-systems/loot-determination.md
+  - documentation/02-systems/kin-reconstruction.md
 Category: 03-content
 Tags:
   - content
@@ -24,7 +23,7 @@ Tags:
 
 ## Purpose
 
-Define canonical reward profiles attached to run-node outcomes. This document owns authored chances, guarantees, currency ranges, progression-item grants, dialogue grants, material-generated reward bonuses, reconstruction outputs, and the distinction between normal rewards and generated encounter effects.
+Define canonical reward profiles attached to run-node outcomes. This document owns authored chances, guarantees, currency ranges, progression-item grants, dialogue grants, reconstruction outputs, and the distinction between normal rewards and generated encounter effects.
 
 Deterministic randomization, reward materialization, inventory transactions, claim idempotency, XP application, reconstruction transactions, and unlock persistence belong in system or technical documentation.
 
@@ -33,9 +32,9 @@ Deterministic randomization, reward materialization, inventory transactions, cla
 | Source and outcome | XP | Teeth | Unit grant | Die grant | Item grant | Special behavior |
 | --- | --- | --- | ---: | ---: | --- | --- |
 | Loot node | `0` | `8` | `55%` | `80%` | None by default | If neither unit nor die succeeds, one die is guaranteed. |
-| Combat victory | Sum of defeated enemy XP | `(5 × difficulty) + 0–5` | `20%` | `35%` | Eligible progression items | Material reward markers may add capped Teeth. |
-| Boss victory | Sum of defeated enemy XP | `(5 × difficulty) + 0–5` | `20%` | `35%` | Eligible progression items | Material reward markers may add capped Teeth. |
-| Combat or boss defeat | `25%` of full XP, rounded down | `0` | `0%` | `0%` | None | Victory-only material markers grant nothing. |
+| Combat victory | Sum of defeated enemy XP | `(5 × difficulty) + 0–5` | `20%` | `35%` | Eligible progression items | No general grant guarantee. |
+| Boss victory | Sum of defeated enemy XP | `(5 × difficulty) + 0–5` | `20%` | `35%` | Eligible progression items | No general grant guarantee. |
+| Combat or boss defeat | `25%` of full XP, rounded down | `0` | `0%` | `0%` | None | Run defeat behavior is resolved separately. |
 | Chaos victory | Sum of defeated enemy XP | `(5 × difficulty) + 0–5` | `0%` in normal profile | `0%` in normal profile | None in normal profile | Chaos bonuses and Raw Chaos are separate gated systems. |
 | Rest node | `0` | `0` | `0%` | `0%` | None | Restores squad to full run health. |
 | Hazard node | `0` | `0` | `0%` | `0%` | None | Resolves hazard outcome instead of normal loot. |
@@ -78,19 +77,13 @@ Every successful recipe completion creates one unit. Later completions continue 
 
 The recipe's Tier-1 unit type is selected from the player's unlocked Tier-1 candidate pool using deterministic standard unit-grant selection. The output kin is always Pig Kin.
 
-## Die Grant Identity
+## Die Grants
 
-A successful die grant selects:
+A successful die grant uses the current dice generation contract and authored runtime data for size, rarity, material, and affixes.
 
-1. one active die size from the source size profile
-2. one rarity using the source or standard material rarity profile
-3. one enabled material of that rarity that explicitly allows the selected size
+The active alpha-launch combat sizes are `d4`, `d6`, `d8`, and `d10`. Materials remain part of die identity, but they do not replace permanent affixes. Rarity continues to control affix capacity, and affixes remain fixed on the die instance after generation.
 
-The only active sizes are `d4`, `d6`, `d8`, and `d10`. Rewards must not create `d12`, `d20`, materialless dice, independent-rarity dice, or material-plus-affix dice.
-
-Cardboard is the neutral Common material and is valid on every active size. A source that intentionally grants an ordinary die should grant an explicit Cardboard size-material pair rather than omitting material identity.
-
-The standard material rarity profile and complete material-size matrix are defined in the Dice Material Catalog.
+Until a canonical dice-content catalog is written, use `documentation/02-systems/mvp-reference/01-dice-system.md` together with current dice definition, material, affix, reward, and inventory implementation as the supporting source for die-generation details.
 
 ## Progression Item Grants
 
@@ -135,18 +128,6 @@ Other dialogue rewards are idempotent.
 - Later runs do not grant it again.
 - Wrong Machine ownership enables the Pig Kin reconstruction interface; it does not itself grant Pig Kin.
 
-## Material-Generated Battle Rewards
-
-Gold is the only initial material that directly modifies a claimed battle reward.
-
-| Material | Trigger | Reward | Cap | Outcome requirement |
-| --- | --- | --- | --- | --- |
-| `gold` | Natural maximum roll while participating in battle | `+2` Teeth per qualifying marker | First two markers; `+4` Teeth maximum per battle | Victory |
-
-Gold markers are persisted in the deterministic battle result. They are not calculated again during claim and cannot duplicate across retries. They add to normal victory Teeth after the base combat reward is determined.
-
-No other current material directly grants XP, Teeth, units, dice, items, Raw Chaos, or Codex pages as a battle reward. Material Codex discovery is derived from owning the die, not from rolling it.
-
 ## Generated Hazard and Shrine Rewards
 
 Hazards and shrines do not use normal unit, die, or item chances.
@@ -165,7 +146,7 @@ Codex pages are independent from normal grants except when ownership itself is t
 - Completing a biome awards its page.
 - First biome-page award also grants defeated boss pages from that completed run.
 - Completing canonical Lore dialogue awards its Lore page.
-- Owning a die awards the page for its material.
+- First acquisition of an affix may award that affix's Codex page through the current acquisition/discovery flow.
 - Producing the first Pig Kin unit awards or derives the Pig Kin page.
 
 Later Pig Kin reconstructions do not award duplicate Codex pages.
@@ -191,14 +172,11 @@ Their older fixed Teeth bands, old material pools, faction unit pools, Roc Egg, 
 - Field Poultice and Travel Ration lack renewable acquisition.
 - Mountains and Swamps lack modern progression-item drops.
 - Combat and boss nodes currently share unit and die grant chances.
-- Source-specific material pools, guarantees, and regional weighting remain to be authored if standard unrestricted generation is insufficient.
 
 ## Maintenance Notes
 
 - Change reward chances and guarantees here before or alongside tuning.
 - Keep item and feature grants synchronized with item, biome, dialogue, and reconstruction catalogs.
 - Keep ordinary kin eligibility synchronized with Kin Reconstruction and Loot Determination.
-- Keep die grants synchronized with the Dice Material Catalog.
-- Do not treat inactive loot tables or legacy affix data as authority.
+- Keep die grants synchronized with the current dice definition, material, and affix contract until a canonical dice-content catalog is created.
 - Keep algorithms, deterministic rolls, materialization, reconstruction transactions, and claim handling in system documentation.
-
