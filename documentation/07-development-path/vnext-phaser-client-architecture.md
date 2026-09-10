@@ -69,7 +69,7 @@ Do not translate every former Angular gameplay page into a Phaser Scene.
 
 Scenes represent major rendering/lifecycle modes. Lighter screens/views handle navigation inside those modes.
 
-Accepted starting direction:
+vNext uses three major gameplay scenes:
 
 ```text
 Boot / Loading
@@ -99,9 +99,35 @@ BattleScene
 - authoritative battle playback
 ```
 
-Exact scene boundaries may be refined during implementation, but UI destinations such as Academy and Shop should not become separate scenes merely because they were separate Angular pages.
+`GameScene`, `RunScene`, and `BattleScene` are accepted architectural boundaries rather than provisional candidates.
 
-Battle remains a strong candidate for a dedicated scene because it has distinct actor, timeline, camera, animation, effects, and cleanup requirements.
+`GameScene` owns ordinary between-run play and Camp-facing management experiences. Destinations such as Academy, Shop, Warband, and Unit Detail are screens/views inside that scene rather than independent Phaser scenes.
+
+`RunScene` owns the active-run experience: map navigation, node presentation, run-specific dialogue/interactions, reward presentation, and run completion/failure presentation. Run screens share a scene because they operate against the same active-run context and benefit from shared map/run assets and transitions.
+
+`BattleScene` owns battle playback because combat has a distinct actor, timeline, camera, animation, effects, and cleanup lifecycle. Battle is presentation of an already-authoritative server result and does not become the owner of gameplay resolution.
+
+Boot and Loading remain lifecycle/setup scenes as needed, but they are not additional gameplay modes.
+
+The persistent GameRuntime survives transitions between all three gameplay scenes. Scene changes must not recreate application-level API, state/cache, content, audio, input, or configuration services.
+
+Typical transitions are:
+
+```text
+GameScene -> RunScene
+- player successfully starts or resumes a run
+
+RunScene -> BattleScene
+- a resolved node produces battle playback
+
+BattleScene -> RunScene
+- playback completes or is recovered/skipped
+
+RunScene -> GameScene
+- run reaches a terminal state and the player returns to Camp
+```
+
+UI destinations should not become separate scenes merely because they were separate Angular pages. A new scene should be introduced only when a feature has a genuinely distinct rendering/lifecycle mode comparable to active-run play or battle playback.
 
 ## Phaser Navigation
 
@@ -125,6 +151,8 @@ Logical destinations may include concepts such as:
 - run summary
 
 The client should maintain its own navigation history so Back/Escape/controller-back can return naturally through gameplay screens. Browser URL synchronization is optional and must not become the authority for in-game navigation.
+
+Scene transitions and screen navigation are distinct concepts. Screen history applies within a scene; transitions between `GameScene`, `RunScene`, and `BattleScene` are driven by gameplay lifecycle rather than by treating scenes as ordinary navigation pages.
 
 ## Client State Is a Cache
 
