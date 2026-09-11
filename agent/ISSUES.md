@@ -6,7 +6,7 @@
 
 ### Establish authored ContentRegistry and client projection
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
@@ -31,7 +31,7 @@ Load other decision docs only if implementation reaches their domain.
 - Keep player-conditioned/revealed content out of the static public projection. This package does not implement player authorization/discovery APIs; it establishes the boundary only.
 - Produce a deterministic content revision/manifest hash (or equivalent deterministic revision) shared by server content and the generated client projection. Identical canonical content must produce the same revision; relevant content changes must change it. Bootstrap compatibility enforcement is a later package.
 - The client projection is generated/derived build output, not a separately authored gameplay catalog. Do not require a checked-in monolithic server aggregate bundle.
-- Move the temporary starting-Energy balance input into canonical authored configuration consumed through `ContentRegistry` by authoritative account creation, then remove `VNEXT_INITIAL_ENERGY` as a runtime/test environment source. The database must remain free of a starting-Energy default and `energy_max` remains derived/unpersisted.
+- Move the temporary starting-Energy environment input into canonical authored configuration consumed through `ContentRegistry` by authoritative account creation, then remove that runtime/test configuration source. The database must remain free of a starting-Energy default and `energy_max` remains derived/unpersisted.
 - Preserve the fresh vNext database baseline and registered auth/session/health behavior. Do not re-register prototype gameplay routes or recreate prototype SQL catalogs.
 - Add focused automated tests for registry loading, validation failures, duplicate/reference handling as applicable, client projection privacy/allowlisting, deterministic revision behavior, and starting-Energy consumption through account provisioning.
 - Add/update the narrow repository verification command(s) needed so content validation/projection integrity runs in normal package verification/CI paths.

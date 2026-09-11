@@ -4,10 +4,7 @@
       "id": "region.the_farm",
       "type": "region",
       "display_name": "The Farm",
-      "description": "Defend a battered farmstead from the first signs of Chaos.",
-      "art_key": "region-the-farm",
-      "encounter_weight": 100,
-      "server_notes": "Walking-skeleton region; encounter composition remains server-authoritative."
+      "art_key": "farm"
     }
   ]
 }

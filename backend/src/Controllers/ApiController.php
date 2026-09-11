@@ -81,10 +81,10 @@ final class ApiController
    */
   public function session(): void
   {
-    $services = $this->services();
+    $core = ControllerServiceFactory::buildCore(Db::pdo());
 
     try {
-      $payload = $services['sessionService']->getSessionPayload();
+      $payload = $core['sessionService']->getSessionPayload();
 
       Response::json([
         'ok' => true,

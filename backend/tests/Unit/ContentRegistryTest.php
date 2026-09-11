@@ -22,8 +22,13 @@ final class ContentRegistryTest extends TestCase
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
 
-    $this->assertSame(10, $registry->startingEnergy());
-    $this->assertSame('The Farm', $registry->definition('region.the_farm')['display_name']);
+    $this->assertSame(50, $registry->startingEnergy());
+    $this->assertSame([
+      'id' => 'region.the_farm',
+      'type' => 'region',
+      'display_name' => 'The Farm',
+      'art_key' => 'farm',
+    ], $registry->definition('region.the_farm'));
     $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $registry->revision());
   }
 
@@ -49,7 +54,7 @@ final class ContentRegistryTest extends TestCase
     $config = fn(string $id = 'config.gameplay', string $region = 'region.the_farm'): array => [
       'id' => $id, 'type' => 'gameplay_config', 'starting_energy' => 10, 'starting_region_id' => $region,
     ];
-    $region = ['id' => 'region.the_farm', 'type' => 'region', 'display_name' => 'Farm', 'description' => 'A farm.', 'art_key' => 'farm', 'encounter_weight' => 1];
+    $region = ['id' => 'region.the_farm', 'type' => 'region', 'display_name' => 'Farm', 'art_key' => 'farm'];
     return [
       'shape' => [['one.json' => ['definitions' => 'nope']], 'definitions array'],
       'invalid id' => [['one.json' => ['definitions' => [$config('Bad ID')]]], 'invalid stable id'],
@@ -75,10 +80,13 @@ final class ContentRegistryTest extends TestCase
     $encoded = json_encode($projection, JSON_THROW_ON_ERROR);
 
     $this->assertSame($registry->revision(), $projection['revision']);
-    $this->assertSame('The Farm', $projection['content']['regions']['region.the_farm']['display_name']);
-    $this->assertStringNotContainsString('encounter_weight', $encoded);
-    $this->assertStringNotContainsString('server_notes', $encoded);
+    $this->assertSame([
+      'id' => 'region.the_farm',
+      'display_name' => 'The Farm',
+      'art_key' => 'farm',
+    ], $projection['content']['regions']['region.the_farm']);
     $this->assertStringNotContainsString('starting_energy', $encoded);
+    $this->assertStringNotContainsString('starting_region_id', $encoded);
     $this->assertStringNotContainsString('new_private_field', $encoded);
   }
 

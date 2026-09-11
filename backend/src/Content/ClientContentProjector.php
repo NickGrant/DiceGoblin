@@ -5,7 +5,7 @@ namespace DiceGoblins\Content;
 
 final class ClientContentProjector
 {
-  private const REGION_FIELDS = ['id', 'display_name', 'description', 'art_key'];
+  private const REGION_FIELDS = ['id', 'display_name', 'art_key'];
 
   /** @return array{revision: string, content: array{regions: array<string, array<string, mixed>>}} */
   public function project(ContentRegistry $registry): array

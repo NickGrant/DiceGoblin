@@ -65,9 +65,7 @@ final class ContentValidator
         throw new ContentValidationException("{$location} region id must use the region namespace.");
       }
       $this->requireNonEmptyString($definition, 'display_name', $location);
-      $this->requireNonEmptyString($definition, 'description', $location);
       $this->requireNonEmptyString($definition, 'art_key', $location);
-      $this->requireIntegerInRange($definition, 'encounter_weight', 1, 1000000, $location);
       return;
     }
 

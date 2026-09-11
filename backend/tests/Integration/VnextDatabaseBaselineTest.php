@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Content\ContentRegistry;
+use DiceGoblins\Controllers\ControllerServiceFactory;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\AccountCreationService;
@@ -30,6 +31,16 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $this->assertSame('NULL', (string)$energyDefault);
     $roleChecks = $this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND CONSTRAINT_TYPE = 'CHECK'", []);
     $this->assertSame('0', (string)$roleChecks);
+  }
+
+  public function testActiveCoreCompositionExcludesDormantPrototypeServices(): void
+  {
+    $core = ControllerServiceFactory::buildCore($this->pdo);
+
+    $this->assertSame(
+      ['userRepo', 'playerStateRepo', 'csrfService', 'sessionService', 'accountCreationService', 'passwordResetService'],
+      array_keys($core),
+    );
   }
 
   public function testLocalAccountCreationAtomicallyPersistsCredentialsAndPlayerState(): void

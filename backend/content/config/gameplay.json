@@ -3,7 +3,7 @@
     {
       "id": "config.gameplay",
       "type": "gameplay_config",
-      "starting_energy": 10,
+      "starting_energy": 50,
       "starting_region_id": "region.the_farm"
     }
   ]
