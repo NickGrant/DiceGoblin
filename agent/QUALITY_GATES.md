@@ -27,6 +27,18 @@ Centralize verification and documentation-hygiene rules for the active vNext imp
   - run the repository documentation/context check when available;
   - review references for deleted/superseded paths and conflicting authority.
 
+## Prototype Reuse Gate
+Before replacing a substantive prototype subsystem, inspect the implementation that currently provides the behavior and classify relevant source, tests, assets, and infrastructure as:
+
+- **Keep** — compatible with vNext boundaries and safe to retain substantially as-is.
+- **Adapt** — valuable implementation/algorithm, but it must move behind or conform to a vNext boundary.
+- **Rebuild** — behavior remains useful but the implementation shape conflicts with accepted vNext architecture strongly enough that reuse would preserve the wrong abstraction.
+- **Retire** — behavior/implementation is obsolete and should be deleted once its replacement no longer depends on it.
+
+Accepted vNext decisions determine architecture; prototype source does not override them. Conversely, a rewrite must not discard working algorithms or tests merely because they originated in the prototype.
+
+Do not maintain a permanent legacy-source archive inside the active branch. Git history is the archive. Keep still-needed prototype code in its existing location until the replacing slice is proven; then delete obsolete code in the same or immediately following scoped work.
+
 ## Minimum Mixed-Change Verification
 Use the current commands/scripts in the repository. At minimum, mixed frontend/backend work should run the applicable backend tests, frontend tests/build, and documentation/context checks. If a command has changed, update this file or `agent/QUALITY_GATES.md` references rather than preserving an obsolete command for documentation compatibility.
 
@@ -41,7 +53,7 @@ If verification fails, report the failing check and actionable error. Distinguis
 - Accepted vNext decision documents override prototype source shape.
 
 ## Context Guardrails
-Load the smallest authoritative set needed for the task. Do not search deleted docs/Git history for design direction unless historical recovery is explicitly required. Source/tests may be inspected to preserve algorithms or behavior, but source does not override accepted vNext architecture.
+Load the smallest authoritative set needed for the task. Do not search deleted docs/Git history for design direction unless historical recovery is explicitly required. Current source/tests should be inspected when replacing a subsystem so useful algorithms or behavior are not lost, but source does not override accepted vNext architecture.
 
 ## Feature Intake
 For new feature work, capture behavior, constraints, data/authority implications, UX, error handling, and verification needs. Place the feature within the accepted vNext architecture before implementation. Do not revive prototype patterns merely because they provide a nearby implementation example.
