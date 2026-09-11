@@ -1,0 +1,202 @@
+import { ClientContentLoadError, ClientContentLoader } from './client-content-registry';
+import { GameStore } from './game-store';
+import { RuntimeApiClient, RuntimeApiError } from './runtime-api-client';
+import { RuntimeStartup } from './runtime-startup';
+import { GAME_SCENE_KEY, nextSceneForStartup, startupMessage } from '../scenes/runtime-scenes';
+
+describe('RuntimeStartup', () => {
+  const revision = 'a'.repeat(64);
+
+  function projection(contentRevision = revision): unknown {
+    return {
+      revision: contentRevision,
+      content: {
+        regions: {
+          'region.the_farm': {
+            id: 'region.the_farm',
+            display_name: 'The Farm',
+            art_key: 'farm',
+          },
+        },
+      },
+    };
+  }
+
+  function bootstrap(contentRevision = revision): unknown {
+    return {
+      ok: true,
+      data: {
+        account: { id: '42', display_name: 'Test Goblin', role: 'user' },
+        player: {
+          teeth: 123,
+          raw_chaos: 7,
+          energy: {
+            current: 41,
+            normal_max: 50,
+            regeneration_per_hour: 12,
+            regeneration_interval_seconds: 300,
+            last_regeneration_at: '2026-09-11T00:00:00Z',
+            next_regeneration_at: '2026-09-11T00:05:00Z',
+            fully_regenerated_at: '2026-09-11T00:45:00Z',
+          },
+          player_revision: 29,
+        },
+        session: { authenticated: true, csrf_token: 'csrf-test' },
+        server_time: '2026-09-11T00:01:00Z',
+        content_revision: contentRevision,
+        progression: { unlock_ids: [] },
+        active_squad: null,
+        active_run: null,
+      },
+    };
+  }
+
+  function harness(
+    projectionResult: unknown = projection(),
+    bootstrapResult: unknown = bootstrap(),
+  ): {
+    startup: RuntimeStartup;
+    apiClient: jasmine.SpyObj<RuntimeApiClient>;
+    contentLoader: jasmine.SpyObj<ClientContentLoader>;
+    store: GameStore;
+  } {
+    const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
+    apiClient.getBootstrap.and.resolveTo(bootstrapResult);
+    const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', [
+      'loadProjection',
+    ]);
+    contentLoader.loadProjection.and.resolveTo(projectionResult);
+    const store = new GameStore();
+    return {
+      startup: new RuntimeStartup(apiClient, contentLoader, store),
+      apiClient,
+      contentLoader,
+      store,
+    };
+  }
+
+  it('hydrates the authoritative GameStore and activates content before becoming ready', async () => {
+    const { startup, store } = harness();
+
+    const state = await startup.start();
+
+    expect(state).toEqual({ status: 'ready' });
+    expect(startup.contentRegistry?.get('region.the_farm')?.display_name).toBe('The Farm');
+    expect(store.bootstrap?.account.display_name).toBe('Test Goblin');
+    expect(store.bootstrap?.player.teeth).toBe(123);
+    expect(store.bootstrap?.player.raw_chaos).toBe(7);
+    expect(store.bootstrap?.player.energy.current).toBe(41);
+    expect(store.bootstrap?.session.csrf_token).toBe('csrf-test');
+    expect(store.bootstrap?.server_time).toBe('2026-09-11T00:01:00Z');
+    expect(store.bootstrap?.progression.unlock_ids).toEqual([]);
+    expect(store.bootstrap?.active_squad).toBeNull();
+    expect(store.bootstrap?.active_run).toBeNull();
+    expect(store.playerRevision).toBe(29);
+    expect(nextSceneForStartup(state)).toBe(GAME_SCENE_KEY);
+  });
+
+  it('fails safely when the client projection is malformed and never requests bootstrap', async () => {
+    const { startup, apiClient } = harness({ revision, content: { regions: [] } });
+
+    expect(await startup.start()).toEqual({
+      status: 'failure',
+      reason: 'client-content-malformed',
+    });
+    expect(apiClient.getBootstrap).not.toHaveBeenCalled();
+    expect(nextSceneForStartup(startup.state)).toBeNull();
+  });
+
+  it('fails safely when bootstrap is malformed', async () => {
+    const { startup, store } = harness(projection(), {
+      ok: true,
+      data: { content_revision: revision },
+    });
+
+    expect(await startup.start()).toEqual({ status: 'failure', reason: 'bootstrap-malformed' });
+    expect(store.bootstrap).toBeNull();
+    expect(startup.contentRegistry).toBeNull();
+    expect(nextSceneForStartup(startup.state)).toBeNull();
+  });
+
+  it('blocks GameScene and exposes content-mismatch when revisions differ', async () => {
+    const serverRevision = 'b'.repeat(64);
+    const { startup, store } = harness(projection(), bootstrap(serverRevision));
+
+    expect(await startup.start()).toEqual({
+      status: 'content-mismatch',
+      clientRevision: revision,
+      serverRevision,
+    });
+    expect(store.bootstrap).toBeNull();
+    expect(startup.contentRegistry).toBeNull();
+    expect(nextSceneForStartup(startup.state)).toBeNull();
+  });
+
+  it('never selects GameScene for loading or any startup failure state', () => {
+    expect(nextSceneForStartup({ status: 'loading' })).toBeNull();
+    expect(nextSceneForStartup({ status: 'failure', reason: 'bootstrap-malformed' })).toBeNull();
+    expect(
+      nextSceneForStartup({
+        status: 'content-mismatch',
+        clientRevision: revision,
+        serverRevision: 'b'.repeat(64),
+      }),
+    ).toBeNull();
+  });
+
+  it('provides safe Phaser-owned loading, mismatch, and failure messages', () => {
+    expect(startupMessage({ status: 'loading' })).toBe('Loading game…');
+    expect(
+      startupMessage({
+        status: 'content-mismatch',
+        clientRevision: revision,
+        serverRevision: 'b'.repeat(64),
+      }),
+    ).toContain('update is required');
+    expect(startupMessage({ status: 'failure', reason: 'unauthorized' })).toContain(
+      'session has expired',
+    );
+    expect(startupMessage({ status: 'failure', reason: 'bootstrap-request' })).not.toContain(
+      'bootstrap',
+    );
+  });
+
+  it('controls client-content request failures', async () => {
+    const { startup, contentLoader } = harness();
+    contentLoader.loadProjection.and.rejectWith(new ClientContentLoadError('request'));
+
+    expect(await startup.start()).toEqual({ status: 'failure', reason: 'client-content-request' });
+    expect(nextSceneForStartup(startup.state)).toBeNull();
+  });
+
+  it('controls bootstrap HTTP and unauthorized failures', async () => {
+    const unauthorized = harness();
+    unauthorized.apiClient.getBootstrap.and.rejectWith(new RuntimeApiError('unauthorized', 401));
+    expect(await unauthorized.startup.start()).toEqual({
+      status: 'failure',
+      reason: 'unauthorized',
+    });
+
+    const unavailable = harness();
+    unavailable.apiClient.getBootstrap.and.rejectWith(new RuntimeApiError('http', 503));
+    expect(await unavailable.startup.start()).toEqual({
+      status: 'failure',
+      reason: 'bootstrap-request',
+    });
+  });
+
+  it('performs at most one content and bootstrap request when startup is observed repeatedly', async () => {
+    const { startup, apiClient, contentLoader } = harness();
+
+    const [first, second, third] = await Promise.all([
+      startup.start(),
+      startup.start(),
+      startup.start(),
+    ]);
+
+    expect(first).toBe(second);
+    expect(second).toBe(third);
+    expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
+    expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+  });
+});

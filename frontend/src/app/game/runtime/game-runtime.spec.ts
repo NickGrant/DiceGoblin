@@ -7,6 +7,9 @@ import {
   RunScene,
   BattleScene,
 } from '../scenes/runtime-scenes';
+import { ClientContentLoader } from './client-content-registry';
+import { RuntimeApiClient } from './runtime-api-client';
+import { RuntimeStartup } from './runtime-startup';
 import { GameRuntime, PhaserGameFactory, PhaserGameHandle } from './game-runtime';
 
 describe('GameRuntime', () => {
@@ -97,7 +100,127 @@ describe('GameRuntime', () => {
     expect(createGame).toHaveBeenCalledTimes(1);
   });
 
-  it('does not require backend or bootstrap requests to mount', () => {
+  it('shares startup services and cache across scenes without refetching startup resources', async () => {
+    const revision = 'a'.repeat(64);
+    const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
+    apiClient.getBootstrap.and.resolveTo({
+      ok: true,
+      data: {
+        account: { id: '1', display_name: 'Goblin', role: 'user' },
+        player: {
+          teeth: 0,
+          raw_chaos: 0,
+          energy: {
+            current: 50,
+            normal_max: 50,
+            regeneration_per_hour: 12,
+            regeneration_interval_seconds: 300,
+            last_regeneration_at: '2026-09-11T00:00:00Z',
+            next_regeneration_at: null,
+            fully_regenerated_at: null,
+          },
+          player_revision: 1,
+        },
+        session: { authenticated: true, csrf_token: 'csrf' },
+        server_time: '2026-09-11T00:00:00Z',
+        content_revision: revision,
+        progression: { unlock_ids: [] },
+        active_squad: null,
+        active_run: null,
+      },
+    });
+    const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', [
+      'loadProjection',
+    ]);
+    contentLoader.loadProjection.and.resolveTo({
+      revision,
+      content: {
+        regions: {
+          'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
+        },
+      },
+    });
+    const startup = new RuntimeStartup(apiClient, contentLoader);
+    const runtime = new GameRuntime(createGame, startup);
+    runtime.mount(parent);
+    const scenes = configs[0].scene as Phaser.Scene[];
+
+    await startup.start();
+    for (const scene of scenes.slice(1) as Array<GameScene | RunScene | BattleScene>) {
+      scene.init();
+      expect(scene.runtimeStartup).toBe(startup);
+      expect(scene.runtimeStartup.store).toBe(startup.store);
+      expect(scene.runtimeStartup.contentRegistry).toBe(startup.contentRegistry);
+      await scene.runtimeStartup.start();
+    }
+
+    expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
+    expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+    expect(startup.store.playerRevision).toBe(1);
+  });
+
+  it('discards startup cache on destroy so a fresh runtime can bootstrap independently', async () => {
+    const makeStartup = (playerRevision: number): RuntimeStartup => {
+      const revision = 'a'.repeat(64);
+      const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', [
+        'getBootstrap',
+      ]);
+      apiClient.getBootstrap.and.resolveTo({
+        ok: true,
+        data: {
+          account: { id: String(playerRevision), display_name: 'Goblin', role: 'user' },
+          player: {
+            teeth: 0,
+            raw_chaos: 0,
+            energy: {
+              current: 50,
+              normal_max: 50,
+              regeneration_per_hour: 12,
+              regeneration_interval_seconds: 300,
+              last_regeneration_at: '2026-09-11T00:00:00Z',
+              next_regeneration_at: null,
+              fully_regenerated_at: null,
+            },
+            player_revision: playerRevision,
+          },
+          session: { authenticated: true, csrf_token: 'csrf' },
+          server_time: '2026-09-11T00:00:00Z',
+          content_revision: revision,
+          progression: { unlock_ids: [] },
+          active_squad: null,
+          active_run: null,
+        },
+      });
+      const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', [
+        'loadProjection',
+      ]);
+      contentLoader.loadProjection.and.resolveTo({
+        revision,
+        content: {
+          regions: {
+            'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
+          },
+        },
+      });
+      return new RuntimeStartup(apiClient, contentLoader);
+    };
+    const firstStartup = makeStartup(1);
+    const firstRuntime = new GameRuntime(createGame, firstStartup);
+    firstRuntime.mount(parent);
+    await firstStartup.start();
+    firstRuntime.destroy();
+
+    const secondStartup = makeStartup(2);
+    const secondRuntime = new GameRuntime(createGame, secondStartup);
+    secondRuntime.mount(parent);
+    await secondStartup.start();
+
+    expect(firstStartup.store.bootstrap).toBeNull();
+    expect(firstStartup.contentRegistry).toBeNull();
+    expect(secondStartup.store.playerRevision).toBe(2);
+  });
+
+  it('does not fetch before Phaser enters its BootScene lifecycle', () => {
     const fetchSpy = spyOn(window, 'fetch');
     const runtime = new GameRuntime(createGame);
 
