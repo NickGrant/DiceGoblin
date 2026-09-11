@@ -1,0 +1,17 @@
+:host,
+.game-host,
+.game-host__mount {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+}
+
+:host {
+  overflow: hidden;
+  background: #171b20;
+}
+
+.game-host__mount {
+  position: relative;
+}

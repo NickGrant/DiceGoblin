@@ -1,5 +1,9 @@
-<div class="app-shell" [class.app-shell--guest]="!isAuthenticated()">
-  @if (isLandscapeGateActive()) {
+<div
+  class="app-shell"
+  [class.app-shell--guest]="!isAuthenticated()"
+  [class.app-shell--game]="isGameRoute()"
+>
+  @if (!isGameRoute() && isLandscapeGateActive()) {
     <section class="orientation-gate" aria-live="polite" aria-label="Rotate device prompt">
       <div class="orientation-gate__panel dg-card">
         <div class="orientation-gate__icon" aria-hidden="true">
@@ -12,11 +16,11 @@
     </section>
   } @else {
   <div class="app-shell__frame">
-    @if (isAuthenticated()) {
+    @if (isAuthenticated() && !isGameRoute()) {
       <app-command-controls></app-command-controls>
     }
 
-    @if (isLoading() || error()) {
+    @if (!isGameRoute() && (isLoading() || error())) {
       <div class="dg-card status-card" [class.status-card--error]="!!error()">
         <strong class="dg-stencil">{{ error() ? 'Comms Disrupted' : 'Loading Registry Data' }}</strong>
         <span>{{ error() || 'Syncing camp records.' }}</span>

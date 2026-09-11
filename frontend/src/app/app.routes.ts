@@ -46,6 +46,12 @@ export const routes: Routes = [
     canActivateChild: [authChildGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
+      {
+        path: 'game',
+        loadComponent: () =>
+          import('./game/game-host.component').then((module) => module.GameHostComponent),
+        data: { audio: { musicIntent: null, ambienceIntent: null } },
+      },
       { path: 'home', component: HomePageComponent, data: { audio: { musicIntent: 'music.home' } } },
       {
         path: 'codex',

@@ -91,4 +91,25 @@ describe('App', () => {
     expect(host.querySelector('app-command-controls')).toBeNull();
     expect(host.querySelector('.orientation-gate')).not.toBeNull();
   });
+
+  it('gives /game a clean shell without prototype chrome or orientation gating', async () => {
+    await TestBed.compileComponents();
+
+    const session = TestBed.inject(SessionService) as unknown as SessionServiceStub;
+    const viewportOrientation = TestBed.inject(ViewportOrientationService) as unknown as ViewportOrientationServiceStub;
+    session.session.set({ isAuthenticated: true, displayName: 'Goblin' });
+    session.isLoading.set(true);
+    viewportOrientation.isLandscapeGateActive.set(true);
+
+    const fixture = TestBed.createComponent(App);
+    fixture.componentInstance.isGameRoute.set(true);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector('.app-shell--game')).not.toBeNull();
+    expect(host.querySelector('router-outlet')).not.toBeNull();
+    expect(host.querySelector('app-command-controls')).toBeNull();
+    expect(host.querySelector('.status-card')).toBeNull();
+    expect(host.querySelector('.orientation-gate')).toBeNull();
+  });
 });

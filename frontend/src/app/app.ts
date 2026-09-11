@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, computed, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
@@ -31,6 +31,7 @@ export class App implements OnInit {
   readonly error = this.sessionService.error;
   readonly isAuthenticated = computed(() => this.sessionService.session().isAuthenticated);
   readonly isLandscapeGateActive = this.viewportOrientation.isLandscapeGateActive;
+  readonly isGameRoute = signal(this.matchesGameRoute(this.router.url));
 
   ngOnInit(): void {
     this.initializeDebugCaptureState();
@@ -43,6 +44,7 @@ export class App implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => {
+        this.isGameRoute.set(this.matchesGameRoute(this.router.url));
         this.audioDirector.setRouteContext(resolveRouteAudioContext(this.router.routerState.snapshot.root));
         this.syncDebugCaptureState();
       });
@@ -89,5 +91,10 @@ export class App implements OnInit {
     const route = resolveDebugCaptureRoute(this.debugCaptureRequest);
     const normalizedCurrentPath = this.router.url.split('?')[0] ?? '';
     publishDebugCaptureState(this.debugCaptureRequest, route, !route || normalizedCurrentPath === route);
+  }
+
+  private matchesGameRoute(url: string): boolean {
+    const path = url.split(/[?#]/, 1)[0];
+    return path === '/game' || path.startsWith('/game/');
   }
 }

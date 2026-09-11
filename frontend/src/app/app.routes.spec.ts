@@ -22,4 +22,15 @@ describe('routes', () => {
     expect(wrongMachineRoute?.component).toBe(WrongMachinePageComponent);
     expect(wrongMachineRoute?.canActivate?.length).toBe(1);
   });
+
+  it('lazy-loads /game inside the existing authenticated route boundary', () => {
+    const shellRoute = routes.find((route) => route.path === '');
+    const gameRoute = shellRoute?.children?.find((route) => route.path === 'game');
+
+    expect(shellRoute?.canActivate?.length).toBe(1);
+    expect(shellRoute?.canActivateChild?.length).toBe(1);
+    expect(gameRoute?.loadComponent).toBeDefined();
+    expect(gameRoute?.component).toBeUndefined();
+    expect(gameRoute?.data?.['audio']).toEqual({ musicIntent: null, ambienceIntent: null });
+  });
 });
