@@ -4,7 +4,7 @@ Status: Canonical
 Last Updated: 2026-09-10
 Owner: Systems Design + Engineering
 Depends On:
-  - documentation/03-content/01-unit-types.md
+  - documentation/07-development-path/vnext-authored-content-model.md
   - documentation/07-development-path/vnext-storage-model.md
 Category: 02-systems
 Tags: [systems, units, progression]
@@ -20,4 +20,4 @@ Outside a run, unit presentation may derive current HP from max HP. During a run
 
 XP/progression granted by authoritative resolution is applied as part of that command's transaction. It is not deferred to a separate reward-claim operation.
 
-Exact XP curves and level formulas are balance/content rules and should be kept in the authored/system contract that owns them when vNext progression is implemented rather than inferred from prototype services.
+Exact XP curves, growth values, and level formulas must be deliberately recovered/reconciled into canonical authored JSON when unit progression is implemented rather than inferred from prototype services or removed catalogs.
