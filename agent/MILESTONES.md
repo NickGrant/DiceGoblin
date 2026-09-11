@@ -21,7 +21,7 @@ Prove the smallest real vNext path:
 - Superseded prototype paths are removed only after replacements are proven; later reuse candidates remain until their owning package.
 
 ### Related Issues
-- Establish Phaser startup state and content compatibility gate
+- Render minimal authoritative Camp in `GameScene`
 
 ### Package Queue
 Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
@@ -30,8 +30,8 @@ Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 3. ~~Authored content registry + client projection.~~ Complete and architecturally approved.
 4. ~~vNext game bootstrap query.~~ Complete and architecturally approved.
 5. ~~Persistent Phaser runtime mounted at `/game`.~~ Complete and architecturally approved.
-6. **Phaser startup state + content compatibility gate.** Current.
-7. Minimal authoritative Camp.
+6. ~~Phaser startup state + content compatibility gate.~~ Complete and architecturally approved.
+7. **Minimal authoritative Camp.** Current.
 8. Responsive landscape host behavior.
 9. Walking-skeleton end-to-end verification/closure.
 
