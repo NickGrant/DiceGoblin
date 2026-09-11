@@ -4,49 +4,30 @@ Active vNext issues only. Prototype/demo issues were intentionally removed from 
 
 ## Milestone 1 - Walking Skeleton
 
-Milestone 1 is intentionally sequential. Complete these packages in order unless the user explicitly reprioritizes them. Do not pull Milestone 2+ gameplay into the skeleton merely because a future bootstrap field or architecture document mentions it.
+Milestone 1 is intentionally sequential. Complete these packages in order unless the user explicitly reprioritizes them. The prototype reuse/disposition audit is complete and recorded in `documentation/07-development-path/vnext-prototype-code-disposition.md`.
 
-### Inventory and classify prototype code for vNext reuse
+Before replacing a substantive prototype subsystem, inspect its current implementation/tests and apply the map's **Keep / Adapt / Rebuild / Retire** guidance. Do not pull Milestone 2+ gameplay into the skeleton merely because a future contract mentions it.
+
+### Establish the fresh vNext database baseline
 
 **Milestone:** Milestone 1 - Walking Skeleton
 **Status:** Open
 **Priority:** High
 
 #### Problem
-The vNext overhaul intentionally rejects several prototype architectural boundaries, but the existing source contains working algorithms, authentication/session plumbing, infrastructure, tests, assets, and game behavior that may be worth preserving. Beginning implementation without a deliberate disposition pass risks either carrying forward the wrong abstractions or unnecessarily rewriting proven work.
+The current migration chain represents the prototype and includes authored catalogs and runtime structures that vNext rejected. Establish a clean database path for authentication and minimum bootstrap player state without throwing away reusable auth/session behavior or prematurely implementing later gameplay domains.
 
 #### Acceptance Criteria
-- Inspect the current backend, frontend, database/migration, testing/tooling, authored/static-data, and relevant asset/infrastructure areas at a level sufficient to guide vNext migration decisions.
-- Create `documentation/07-development-path/vnext-prototype-code-disposition.md` as a temporary implementation-phase map of relevant prototype areas.
-- Classify relevant code/areas as **Keep**, **Adapt**, **Rebuild**, or **Retire**, with a concise rationale tied to accepted vNext decisions.
-- Identify high-value algorithms/implementations that should be preserved even if their current service/controller/storage wrapper is replaced. The pass must explicitly evaluate existing combat/targeting, run generation/pattern logic, authentication/session behavior, testing/dev tooling, asset handling, and other obviously reusable infrastructure rather than assuming rewrite-by-default.
-- Identify prototype architecture that must not be copied forward, including Angular gameplay-page orchestration, catch-all/profile-style state flow, SQL-authored gameplay catalogs, legacy claim semantics, and catch-all backend services/controllers where they conflict with accepted vNext boundaries.
-- For each **Adapt**, **Rebuild**, or **Retire** area, identify the vNext milestone/package expected to supersede it when reasonably known.
-- Do not move legacy source into a permanent `archive/` directory. Git history is the archive.
-- Do not delete still-useful prototype source merely because it is classified `Retire`; deletion occurs when the replacing slice is proven and no active dependency remains. Obviously inert generated/obsolete code may be removed only when the pass can prove it is unused and removal is within scope.
-- Update agent/context guidance if needed so later coding work consults the disposition map before replacing a classified subsystem.
-- This package is analysis/documentation/low-risk cleanup only; it does not begin the vNext schema, ContentRegistry, bootstrap, Phaser runtime, or later gameplay implementation.
-
-### Establish the fresh vNext database baseline
-
-**Milestone:** Milestone 1 - Walking Skeleton
-**Status:** Blocked
-**Priority:** High
-**blocked_by:** Inventory and classify prototype code for vNext reuse
-
-#### Problem
-The current migration chain represents the prototype and includes authored catalogs and runtime structures that vNext explicitly rejected. The first implementation step needs a clean database path that supports authentication and the minimum mutable player state required by the walking skeleton without prematurely implementing later gameplay domains.
-
-#### Acceptance Criteria
-- Consult the prototype disposition map before replacing schema/auth persistence so reusable authentication/session behavior is intentionally preserved where appropriate.
-- A completely empty MySQL database can be initialized through a vNext migration/baseline path without replaying the prototype migration chain.
-- Prototype authored-catalog tables such as regions, unit types, dice definitions/affixes, enemies, loot tables, and similar static content are not recreated in MySQL.
-- The baseline includes only account/authentication persistence required by the accepted active authentication flows and the minimum `user_state` persistence required by bootstrap.
-- `user_state` supports Teeth, Raw Chaos, current Energy, Energy regeneration timing, and monotonic `player_revision`; values that belong to later domains are not modeled early merely to make the schema look complete.
-- Account creation/provisioning establishes required player state through an authoritative mutation path; `GET /api/v1/game/bootstrap` will not need to create missing state as a side effect.
-- Existing authentication/session behavior required to reach an authenticated `/game` route continues to work against the fresh schema.
-- Automated backend/database verification proves initialization from an empty database and basic account/player-state persistence.
-- Unit, dice, squad, run, battle, reward, objective, Codex, inventory, Shop, Academy, and Wrong Machine persistence remains deferred unless a table is strictly required by the authentication/player-state baseline.
+- Consult the prototype disposition map before replacing schema/auth persistence.
+- A completely empty MySQL database initializes through a vNext baseline without replaying the prototype migration chain.
+- SQL-authored gameplay catalogs such as regions, unit types, dice definitions/affixes, enemies, loot tables, or run-pattern catalogs are not recreated.
+- Implement only accepted account/auth persistence plus minimum `user_state` required for the walking skeleton.
+- `user_state` supports Teeth, Raw Chaos, current Energy, Energy regeneration timing, and monotonic `player_revision`; derived Energy max is not persisted.
+- Account creation/provisioning establishes required player state through an authoritative mutation; read endpoints do not create missing state.
+- Preserve applicable password/OAuth/session/CSRF/reset-token safety behavior identified as reusable while conforming storage to the accepted `users` / local credentials / external identities model.
+- Existing authentication/session behavior needed to reach authenticated `/game` works against the fresh schema.
+- Automated database/backend verification proves initialization from empty DB and account/player-state persistence.
+- Unit, dice, squad, run, battle, reward, objective, Codex, inventory, Shop, Academy, Wrong Machine, and starter-gameplay provisioning remain deferred unless strictly required by auth/player state.
 
 ### Establish the authored content registry and client projection
 
@@ -55,19 +36,15 @@ The current migration chain represents the prototype and includes authored catal
 **Priority:** High
 **blocked_by:** Establish the fresh vNext database baseline
 
-#### Problem
-vNext needs to prove its JSON-authored-content boundary before gameplay systems are rebuilt. The server requires a normalized registry and validation path, while Phaser must receive only explicitly allowlisted public content and a compatible content revision.
-
 #### Acceptance Criteria
-- Consult the prototype disposition map for reusable content-loading/build/testing infrastructure while rejecting SQL-authored catalog ownership.
-- A canonical Git-tracked JSON content location and loading convention exists for vNext.
-- The PHP `ContentRegistry` loads and normalizes the minimal real authored content required by the walking skeleton; do not bulk-port prototype catalogs or invent a large speculative catalog.
-- Structural validation catches malformed definitions and duplicate/invalid stable IDs relevant to the initial content set.
-- A client-projection build/path is deny-by-default: only explicitly allowlisted fields/definitions can enter the browser-facing projection.
-- Automated verification proves that a newly added/non-allowlisted server field does not appear in the client projection.
+- Establish canonical Git-tracked JSON location/loading convention; no duplicate MySQL catalog.
+- PHP `ContentRegistry` loads/normalizes only minimal real content needed by the skeleton.
+- Structural validation catches malformed definitions and duplicate/invalid stable IDs in the initial set.
+- Client projection is explicit allowlist/deny-by-default; new server-only fields cannot leak automatically.
+- Automated test proves a non-allowlisted field is absent from the client projection.
 - Backend and client projection expose the same deterministic content/build revision or manifest hash.
-- Content validation/projection can run in normal local/CI verification without requiring authored JSON to be duplicated into MySQL.
-- Generated artifacts, if any, are treated as build output rather than a second manually maintained source of truth.
+- Validation/projection work in normal local/CI flow; generated projections are build output, not a second authored source.
+- Mine reusable build/validation infrastructure from the disposition map without restoring SQL catalog ownership.
 
 ### Implement the vNext game bootstrap query
 
@@ -76,19 +53,15 @@ vNext needs to prove its JSON-authored-content boundary before gameplay systems 
 **Priority:** High
 **blocked_by:** Establish the fresh vNext database baseline; Establish the authored content registry and client projection
 
-#### Problem
-Phaser needs one authoritative entry query that proves the new HTTP -> application query -> repository/content-registry boundaries and provides enough state to enter Camp without reviving the prototype catch-all profile model.
-
 #### Acceptance Criteria
-- Consult the disposition map before replacing bootstrap/profile-related code; reuse useful repository/session behavior only when it conforms to the accepted vNext boundaries.
-- `GET /api/v1/game/bootstrap` exists and requires the accepted authenticated cookie/session context.
-- The controller is a thin HTTP adapter and delegates bootstrap composition to the application/query layer rather than querying PDO or implementing game rules itself.
-- Bootstrap returns the accepted Milestone 1 subset: account summary, Teeth, Raw Chaos, current/calculated-max Energy and regeneration timing, `player_revision`, session/CSRF metadata needed by the client, and server content revision.
-- Bootstrap returns explicit empty/null representations for accepted domains not implemented yet, including unlocks/progression summary, active squad, and active run, rather than creating placeholder persistence for Milestones 2-3.
-- Calculated values such as Energy maximum come from the appropriate authored/domain rule rather than being duplicated as mutable database state.
-- The query is read-only; missing required player state is reported as an integrity/provisioning error rather than silently created by GET.
-- Unauthorized behavior and the successful fresh-account bootstrap path are covered by backend tests.
-- No `/profile`-style catch-all response, prototype compatibility translation, or gameplay mutation is introduced.
+- `GET /api/v1/game/bootstrap` requires accepted cookie/session authentication.
+- Thin controller delegates composition to application/query layer; no controller PDO/gameplay orchestration.
+- Return Milestone 1 state: account summary, Teeth, Raw Chaos, current/calculated-max Energy and regen timing, `player_revision`, required session/CSRF metadata, and server content revision.
+- Return explicit null/empty later-domain values for unlock/progression summary, active squad, and active run rather than implementing Milestones 2-3 storage early.
+- Energy max derives from appropriate authored/domain rule rather than mutable DB state.
+- Query is read-only; missing player state is an integrity/provisioning error rather than GET-side creation.
+- Cover unauthorized and fresh-account success paths with backend tests.
+- Do not reintroduce `/profile`, compatibility translation, or read-side mutation.
 
 ### Mount the persistent Phaser runtime at `/game`
 
@@ -97,18 +70,14 @@ Phaser needs one authoritative entry query that proves the new HTTP -> applicati
 **Priority:** High
 **blocked_by:** Implement the vNext game bootstrap query
 
-#### Problem
-The accepted client architecture requires Angular to become a platform host at `/game`, with Phaser owning gameplay after mount. The repository currently has an Angular application but no vNext Phaser runtime root.
-
 #### Acceptance Criteria
-- Consult the disposition map for reusable Angular auth/routing, assets, visual infrastructure, audio/Phaser utilities, and testing helpers before replacing gameplay-page architecture.
-- Phaser is an explicit frontend dependency and a vNext game-client source boundary exists separate from Angular page/component gameplay code.
-- Authenticated navigation to `/game` renders a dedicated Angular `GameHost`-style surface and mounts exactly one Phaser runtime.
-- The Angular host owns runtime creation/destruction and route lifecycle only; it does not fetch bootstrap/gameplay data or maintain gameplay state on Phaser's behalf.
-- Leaving `/game` destroys the Phaser runtime cleanly without leaving duplicate canvases/listeners; returning creates one fresh runtime.
-- Existing website/auth/account responsibilities remain Angular-owned.
-- Prototype Angular gameplay pages/services are not copied into the new runtime and are not treated as the architecture to preserve.
-- Route/host lifecycle behavior is covered by frontend tests where practical.
+- Phaser is an explicit frontend dependency and vNext game-client source boundary exists separately from Angular gameplay pages.
+- Authenticated `/game` renders a dedicated Angular host and mounts exactly one Phaser runtime.
+- Angular host owns creation/destruction/route lifecycle only; it does not fetch bootstrap or maintain gameplay state for Phaser.
+- Leaving `/game` destroys runtime cleanly; returning creates one runtime without duplicate canvases/listeners.
+- Preserve/adapt Angular auth/platform shell and relevant reusable API/orientation/audio/debug infrastructure identified by the disposition map.
+- Prototype Angular gameplay pages/services are not copied into the Phaser architecture.
+- Cover route/host lifecycle behavior with frontend tests where practical.
 
 ### Implement Phaser startup state and the compatibility gate
 
@@ -117,19 +86,15 @@ The accepted client architecture requires Angular to become a platform host at `
 **Priority:** High
 **blocked_by:** Mount the persistent Phaser runtime at `/game`; Establish the authored content registry and client projection; Implement the vNext game bootstrap query
 
-#### Problem
-The persistent Phaser application needs the minimum application-level infrastructure to load public content, obtain authoritative bootstrap state, cache it, verify compatibility, and enter `GameScene` without turning scenes into service containers.
-
 #### Acceptance Criteria
-- Reuse/adapt existing Phaser/audio/asset/testing infrastructure identified by the disposition map when it fits the new persistent-runtime boundary rather than recreating equivalent utilities without reason.
-- A long-lived game runtime owns the API client, bootstrap/player-state cache, client content registry, runtime configuration, and navigation/lifecycle services needed by the slice.
-- Boot/loading lifecycle loads the client-safe content projection and calls `GET /api/v1/game/bootstrap` directly from Phaser-owned infrastructure.
-- The client stores the returned `player_revision` and treats server state as authoritative cache data rather than mutating durable state optimistically.
-- Client and server content revisions are compared before normal gameplay begins.
-- A revision mismatch blocks entry into normal gameplay and presents a clear reload/update path; incompatible catalogs are never silently used together.
-- Authentication/bootstrap/content-load failures produce a controlled startup error state rather than an unhandled blank canvas.
-- Successful startup transitions into the persistent `GameScene`; application-level runtime services survive screen changes and are not recreated by the scene.
-- The implementation does not introduce `RunScene`, `BattleScene`, Warband data loading, or other later-milestone behavior beyond interfaces/placeholders genuinely needed for the runtime boundary.
+- Long-lived GameRuntime owns Phaser API client, bootstrap/player cache, client ContentRegistry, runtime configuration, and needed navigation/lifecycle services.
+- Adapt existing request semantics where useful, but Phaser's gameplay API client is framework-neutral and not Angular-service-owned.
+- Boot/loading loads client-safe projection and calls bootstrap directly through Phaser-owned infrastructure.
+- Store `player_revision`; backend state is authoritative cache data.
+- Compare client/server content revision before normal gameplay; mismatch blocks entry with clear reload/update flow.
+- Auth/bootstrap/content failures render controlled startup error state rather than blank canvas.
+- Successful startup reaches persistent `GameScene`; runtime services survive screen changes.
+- Do not implement RunScene, BattleScene, Warband loading, or later gameplay beyond minimal interfaces/placeholders.
 
 ### Render the minimal authoritative Camp
 
@@ -138,17 +103,14 @@ The persistent Phaser application needs the minimum application-level infrastruc
 **Priority:** High
 **blocked_by:** Implement Phaser startup state and the compatibility gate
 
-#### Problem
-The walking skeleton is not complete until the new architecture produces a real gameplay surface. Camp should prove that Phaser can render meaningful game presentation from authoritative bootstrap state without prematurely implementing the Warband or other management systems.
-
 #### Acceptance Criteria
-- `GameScene` opens on a Camp screen/view owned entirely by Phaser.
-- Camp visibly renders authoritative bootstrap information sufficient to prove the data path, including player identity and current Teeth, Raw Chaos, and Energy/current-max state.
-- Presentation uses the retained Dice Goblins visual direction and existing appropriate assets where useful; it is a minimal game screen rather than a diagnostic JSON dump or recreated Angular card page.
-- The Camp screen reads public presentation content through the client content registry where authored content is involved.
-- No unit roster, dice inventory, squad editor, Academy, Shop, Wrong Machine, region/run flow, combat, reward, or onboarding functionality is implemented in this package.
-- Re-entering/re-rendering the Camp does not refetch or recreate application-level runtime services unnecessarily.
-- A deterministic fixture/debug path exists for rendering the Camp state without requiring unrelated gameplay progression, sufficient for responsive/visual verification.
+- `GameScene` opens on Phaser-owned Camp screen/view.
+- Render authoritative player identity, Teeth, Raw Chaos, and Energy current/max to prove the full data path.
+- Use retained visual direction and appropriate existing assets; this is a minimal game screen, not JSON/debug output or an Angular card page.
+- Authored presentation data, where used, comes through client ContentRegistry.
+- Do not implement roster, dice inventory, squad editor, Academy, Shop, Wrong Machine, regions/runs, combat, rewards, or onboarding.
+- Re-rendering Camp does not recreate/refetch application-level runtime state unnecessarily.
+- Provide deterministic fixture/debug state sufficient for visual/responsive verification, adapting existing debug/screenshot concepts where useful.
 
 ### Implement responsive landscape host behavior
 
@@ -157,18 +119,15 @@ The walking skeleton is not complete until the new architecture produces a real 
 **Priority:** High
 **blocked_by:** Render the minimal authoritative Camp
 
-#### Problem
-The new Phaser architecture establishes responsive and mobile rules at the runtime level. Those rules need to be proven now so later screens do not bake in desktop-only assumptions.
-
 #### Acceptance Criteria
-- Phaser uses `1600 x 900` as the reference composition while mapping logical space to the available physical viewport without independently stretching game objects.
-- The Camp remains usable in representative Compact landscape, Standard/reference `1600 x 900`, and Wide landscape viewports.
-- Important Camp UI is positioned using safe edges/anchors/layout regions rather than arbitrary per-device coordinates.
-- Device/browser safe insets are respected for critical interactive/status UI.
-- Mobile portrait blocks/obscures gameplay with a full-screen rotate-device presentation rather than attempting a portrait gameplay layout.
-- Rotating portrait -> landscape restores the same live Phaser runtime/state and performs resize/reflow rather than rebooting or re-bootstraping the game.
-- Desktop portrait/narrow-window behavior is sensible and does not incorrectly depend on mobile orientation APIs.
-- Responsive/orientation behavior has automated coverage where practical plus deterministic visual checks for Compact, reference, and Wide layouts.
+- Use `1600 x 900` logical reference composition with proportional physical scaling and no independent object stretching.
+- Camp remains usable at representative Compact landscape, reference `1600 x 900`, and Wide landscape viewports.
+- Critical UI uses safe edges/anchors/layout regions and respects device safe insets.
+- Mobile portrait obscures/blocks gameplay with full-screen rotate-device presentation rather than portrait gameplay layout.
+- Portrait -> landscape restores same live runtime/state with resize/reflow, not reboot/re-bootstrap.
+- Desktop narrow/portrait behavior is sensible and does not incorrectly rely on mobile APIs.
+- Adapt existing viewport-orientation logic/tests where useful, but final ownership is GameHost/GameRuntime.
+- Add automated coverage where practical and deterministic visual checks for Compact/reference/Wide.
 
 ### Verify and close the walking skeleton
 
@@ -177,17 +136,12 @@ The new Phaser architecture establishes responsive and mobile rules at the runti
 **Priority:** High
 **blocked_by:** Implement responsive landscape host behavior
 
-#### Problem
-Milestone 1 establishes architectural precedents used by every later vertical slice. It should close only after the entire path works from a fresh database and the implementation agrees with the accepted vNext decisions.
-
 #### Acceptance Criteria
-- Review the prototype disposition map against what actually shipped: update classifications where implementation taught us something, record which legacy paths are now safe to remove, and preserve later-milestone reuse candidates.
-- A fresh-database verification proves: create/authenticate a player -> enter `/game` -> mount Phaser -> load compatible client content -> fetch authoritative bootstrap -> reach Camp.
-- Content structural/semantic validation and client-projection allowlist/secrecy checks pass.
-- Backend bootstrap tests, frontend host/runtime tests, and normal backend/frontend build/test gates pass.
-- Camp is visually checked at Compact landscape, `1600 x 900`, and Wide landscape, and portrait mobile shows the rotate-device gate.
-- Content-version mismatch is explicitly tested and prevents normal gameplay.
-- No implementation added a second gameplay authority in Angular, a MySQL-authored catalog, a prototype `/profile` dependency, or gameplay systems assigned to Milestone 2+.
-- Prototype paths actually superseded by Milestone 1 are removed when no longer required; prototype code reserved for later reuse remains in place and classified rather than being deleted prematurely.
-- Documentation/agent context is updated only for architecture that actually shipped; accepted vNext decisions are amended if implementation required an intentional architectural change.
-- On successful completion, mark Milestone 1 complete and make Milestone 2 - Warband the next planning target rather than beginning it implicitly in the same change.
+- Fresh DB path proves: create/authenticate player -> `/game` -> Phaser mount -> compatible client content -> authoritative bootstrap -> Camp.
+- Content validation/projection secrecy tests, backend bootstrap tests, frontend host/runtime tests, and applicable builds/checks pass.
+- Visually verify Camp at Compact, `1600 x 900`, Wide, plus mobile portrait rotate-device state.
+- Explicitly test content-version mismatch blocking gameplay.
+- No second gameplay authority in Angular, MySQL-authored catalog, prototype `/profile` dependency, or Milestone 2+ gameplay was introduced.
+- Reconcile `vnext-prototype-code-disposition.md` with what actually shipped; remove only prototype paths truly superseded by Milestone 1 and preserve later reuse candidates.
+- Update documentation only for architecture that actually shipped; amend an accepted decision if implementation intentionally changes it.
+- Mark Milestone 1 complete and make Milestone 2 - Warband the next planning target rather than beginning it implicitly.
