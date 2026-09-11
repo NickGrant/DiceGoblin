@@ -4,45 +4,50 @@
 
 ## Milestone 1 - Walking Skeleton
 
-### Establish responsive landscape game-host behavior
+### Verify and close the vNext walking skeleton
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Complete the accepted vNext gameplay presentation boundary by making the persistent Phaser runtime and current Camp composition respond correctly to supported landscape viewports. Establish the 1600x900 logical reference model, calculated viewport/layout regions, Compact/Standard/Wide landscape modes, device safe-inset handling, and a mobile-portrait rotate-device gate that preserves the mounted runtime and authoritative state. This package proves responsive host/runtime behavior; it does not add gameplay domains or perform Milestone 1 closure/UAT.
+Milestone 1 now has all intended implementation slices: fresh vNext persistence, canonical authored content and client projection, authenticated bootstrap, persistent Phaser `/game` runtime, compatibility-gated startup, authoritative Camp, and responsive/orientation behavior. Prove those approved pieces operate as one coherent walking skeleton, remove only live prototype wiring that is now conclusively superseded, and leave Milestone 1 technically complete and ready for manual user UAT. This is a closure/verification package, not a feature package and not the beginning of Warband.
 
 #### Required Context
-- `documentation/07-development-path/vnext-phaser-client-architecture.md` — Responsive Rendering, Variable Landscape Viewport, Anchoring and Layout Regions, Responsive Layout Modes, Game Scale versus Layout Scale, Device Safe Insets, Responsive Verification, Mobile Orientation
-- `documentation/04-ux/01-visual-design-guide.md` — canonical visual direction
-- `documentation/07-development-path/vnext-game-overhaul.md` — Milestone 1 walking-skeleton exit criteria
-- Current `frontend/src/app/game/` runtime, host, scenes, Camp screen, startup/store, and tests
-- Current deterministic capture tooling and `agent/QUALITY_GATES.md`
-- Existing Angular `ViewportOrientationService` only as prototype/reuse evidence; it is not the vNext `/game` responsive authority
+- `documentation/07-development-path/vnext-game-overhaul.md` — Milestone 1 outcome/exit criteria
+- `documentation/07-development-path/vnext-phaser-client-architecture.md` — implemented Angular/Phaser, startup, state-cache, responsive, and orientation boundaries
+- `documentation/07-development-path/vnext-prototype-code-disposition.md` — removal/reuse rules; Git history is the archive
+- `documentation/07-development-path/vnext-authored-content-model.md` — canonical content/client projection boundary
+- `documentation/07-development-path/vnext-storage-model.md` — fresh vNext persistence baseline
+- `documentation/07-development-path/vnext-api-contract-model.md` and `vnext-endpoint-inventory.md` — auth/bootstrap contracts
+- `agent/QUALITY_GATES.md` and current root `package.json` scripts
+- Current backend baseline/auth/bootstrap/content implementation and tests
+- Current Angular shell/routes/session initialization and `frontend/src/app/game/` runtime/startup/Camp/responsive implementation
 
-Load other decision docs only if implementation reaches their domain.
+Load other decision docs only if verification reaches their domain.
 
 #### Acceptance Criteria
-- Treat `1600 x 900` as the primary logical reference composition. Physical display pixels must not become screen-specific positioning coordinates, and individual objects must not be stretched independently to fill arbitrary aspect ratios.
-- Establish a small runtime-owned responsive/viewport boundary that derives the current effective logical viewport, responsive layout class, and safe usable regions/insets. It belongs to the persistent game runtime and survives scene/screen changes; do not make Angular gameplay services the responsive authority.
-- Support the accepted landscape layout classes: Compact, Standard, and Wide. Now that Camp exists, choose/document deterministic breakpoint thresholds based on representative viewport behavior rather than user-agent/device-name branches. Breakpoints must cause meaningful composition changes, not create independently maintained desktop/mobile screens.
-- Preserve a central 16:9/reference-safe composition while allowing wider landscape displays to expose useful peripheral horizontal space. Critical information must remain inside the safe gameplay region and must not require ultrawide space.
-- Update Camp to consume calculated layout regions/anchors rather than relying on its current 720px minimum panel and one-shot absolute composition. Camp must remain the same screen/information architecture across modes while margins, decoration, plaque arrangement/sizing, and other presentation may adapt where needed.
-- Resizing a landscape viewport must reflow/recompose the active Camp without recreating `GameRuntime`, `RuntimeStartup`, `GameStore`, `ClientContentRegistry`, or refetching bootstrap/client content. The authoritative player state and active screen remain intact across resize.
-- Critical player-facing Camp content — identity, Teeth, Raw Chaos, Energy current/normal maximum, including overcap such as `57 / 50` — must remain readable and unobscured in representative Compact, Standard, and Wide landscape viewports.
-- Respect device safe insets for critical/interactable UI so landscape cutouts, rounded corners, and gesture regions cannot obscure status/control regions. Decorative backgrounds may extend outside safe regions. Use a framework-neutral browser/runtime measurement boundary appropriate to Phaser; do not create an Angular gameplay-state bridge.
-- Mobile gameplay is landscape-only. On a phone-class/mobile-coarse-pointer portrait viewport, obscure/block normal game interaction with a full-screen rotate-device presentation owned by the game host/runtime boundary. Do not design a portrait gameplay layout.
-- The portrait gate must preserve the mounted runtime, startup/cache state, active scene/screen, and authoritative Camp values. Rotating back to landscape must resize/reflow and resume the same gameplay state without rebootstrap, content reload, or route navigation.
-- Do not indiscriminately block ordinary desktop portrait/narrow browser windows as though every portrait viewport were a phone. Use a deterministic capability/viewport heuristic and cover it with tests; exact implementation may adapt useful behavior from the prototype orientation service without making that Angular service authoritative for `/game`.
-- Browser/native orientation locking may be attempted only as progressive enhancement; correct behavior must not depend on a successful lock.
-- Preserve the current Angular `/game` ownership boundary: Angular authenticates/routes and mounts/destroys the runtime. Do not restore prototype Angular command controls, status cards, orientation UI, gameplay APIs, or page-level gameplay state over the Phaser surface.
-- Preserve startup/content compatibility behavior and the approved Camp authoritative-state boundary. Responsive/orientation changes must not alter bootstrap contracts, content exposure, Energy rules, or introduce new API calls.
-- Do not add Warband, regions/run creation, squads/units/dice, Shop, Academy, Wrong Machine, Codex/objectives, gameplay navigation framework, battle/run behavior, final audio migration, or other Milestone 2+ systems.
-- Add deterministic frontend coverage for viewport classification, logical/reference-space calculation, safe-region calculation, Camp reflow across modes, resize without runtime/cache replacement or startup refetch, mobile portrait gating, state preservation while gated, and recovery to landscape.
-- Produce deterministic Camp visual captures for representative Compact landscape, the 1600x900 Standard reference, and Wide landscape. Also verify the mobile portrait rotate-device presentation. Use the existing capture tooling where applicable rather than inventing a separate screenshot framework.
-- If this package resolves previously deferred responsive breakpoint/viewport rules into durable implementation decisions, reconcile those concrete values/rules into the accepted Phaser client architecture documentation rather than leaving source code as the only authority.
+- Treat the eight previously approved Milestone 1 packages as established architecture. Do not redesign them during closure unless verification exposes a genuine defect.
+- Prove the intended real path coherently: authenticated Angular shell -> `/game` -> one persistent Phaser runtime -> generated client-safe content -> authenticated `GET /api/v1/game/bootstrap` -> MySQL-backed player state -> exact content-revision compatibility -> runtime `GameStore` -> authoritative responsive Camp.
+- Prove a fresh/empty vNext test database initializes from the current baseline without replaying the prototype migration chain, SQL-authored gameplay catalogs, or read-side provisioning. Verify the expected Milestone 1 tables/contracts and local/external account creation/player-state initialization behavior through existing tests/gates.
+- Prove canonical authored JSON validates, the generated browser projection is current, server-private fields do not leak through the client projection, and client/server content revisions agree in successful startup.
+- Prove authenticated bootstrap remains read-only and preserves approved semantics including missing-state integrity failure, derived Energy max/rate, deterministic regeneration, and legitimate overcap Energy.
+- Prove successful runtime startup performs the required content/bootstrap reads once, hydrates application-lifetime content/store state, and reaches Camp only after exact revision compatibility. Preserve controlled unauthorized, malformed-content/bootstrap, request-failure, and content-mismatch paths.
+- Prove Camp renders only authoritative Milestone 1 state (identity, Teeth, Raw Chaos, Energy) and preserves values such as `57 / 50` across resize/orientation changes.
+- Prove Compact, Standard `1600 x 900`, and Wide landscape layouts plus touch-first portrait gating using the stable deterministic capture viewports documented in the Phaser architecture. Review captures for clipping, overlap, unsafe-edge placement, stretched assets, status loss, and obvious regressions.
+- Prove portrait gating blocks interaction without destroying/recreating `GameRuntime`, startup, `GameStore`, content registry, or active Camp; returning to landscape reflows/resumes without content/bootstrap refetch.
+- Reconcile the live Angular routing boundary now that `/game` is proven. Authenticated default gameplay entry must resolve to `/game`, and obsolete Angular gameplay routes must not remain an active parallel game client. Retain public/auth/account/debug/tooling routes that still have a current shell purpose. Do not route Phaser gameplay back into prototype Angular pages.
+- Remove the live shell dependency on the prototype gameplay profile for normal vNext authenticated startup. Angular session initialization should establish shell/auth identity without calling obsolete `/profile` gameplay state; Phaser bootstrap remains the gameplay state authority. Preserve login/logout/password-reset/session-expiration behavior needed by the platform shell.
+- Do not mass-delete prototype gameplay page/service/test source merely because its live routes/orchestration are retired. Keep source/assets/tests that are still migration evidence or reuse candidates for Milestones 2+ until their owning package extracts/replaces them. Delete only implementation that has no remaining live dependency or future reuse value and whose replacement is proven.
+- Inspect guards, command controls, route-audio/orientation wiring, profile synchronization, and other prototype shell composition touched by route retirement. Remove active gameplay-only composition that becomes unreachable/obsolete, but do not turn closure into broad aesthetic or architectural cleanup.
+- Ensure `/game` does not trigger prototype gameplay API calls as a side effect of Angular shell startup. The expected network ownership is Angular session/auth where needed, then Phaser client content/bootstrap for gameplay.
+- Add or adapt focused integration/regression coverage for the closure changes, especially authenticated default routing, prototype gameplay route retirement, auth-only shell initialization, `/game` ownership, and any stale live dependency removed. Prefer existing test/capture infrastructure; do not build a general E2E framework unless a small addition is necessary to prove the walking slice.
+- Where practical with the repository's existing local/Docker tooling, exercise the walking slice against the real PHP/MySQL backend rather than relying exclusively on mocked browser fixtures. If environment limitations prevent a real-browser cross-stack check, report the limitation explicitly and rely on the strongest existing backend integration + frontend runtime/capture evidence rather than claiming an end-to-end result that did not run.
+- Run the complete applicable Milestone 1 gates. `npm run verify:full` is the baseline aggregate gate; additionally run fresh DB reset/provision/backend integration paths and deterministic responsive captures as required by `agent/QUALITY_GATES.md`. Use Docker variants where that is the repository-supported way to prove MySQL behavior.
+- Review failures rather than blindly changing product behavior to make tests green. New Milestone 1 failures block closure; clearly pre-existing unrelated failures must be reported with evidence.
+- Reconcile active documentation only where implementation/closure changed durable behavior. Do not create a completed-roadmap archive, UAT report, legacy-reference tree, or dated closure document merely to preserve history; Git history remains the archive.
+- Do not implement Milestone 2 Warband, units/dice/squad persistence, lazy domain queries, gameplay navigation, region/run creation, combat, economy, or later systems.
 
 #### Completion
-Run applicable frontend/layout/context/build gates from `agent/QUALITY_GATES.md`: frontend tests, production build, deterministic visual captures/review for Compact/1600x900/Wide, portrait-gate verification, and relevant context/docs checks. Run bundle check if runtime/bundle composition changes. Leave this package active for architectural/UX review; do not promote or begin the walking-skeleton closure package in the same change.
+Run and report the meaningful applicable commands, including `npm run verify:full`, fresh vNext database verification using the repository-supported test/Docker commands, and deterministic Phaser captures for Compact landscape, Standard `1600 x 900`, Wide landscape, and touch-first portrait gating. Verify the resulting authenticated/default route and `/game` network ownership after retiring live prototype gameplay routing/profile coupling.
 
-Manual user UAT is intentionally deferred until Milestone 1 is technically complete. Do not treat manual UAT as an acceptance criterion for this package.
+Leave this package **In Progress** for final architectural review. Do not mark Milestone 1 complete and do not begin Milestone 2 in the same coding-agent pass. After this package is reviewed and approved, planning will mark Milestone 1 technically complete and the resulting build will be handed to the user for manual UAT.
