@@ -254,11 +254,68 @@ If future hidden mechanics require meaningful secrecy from motivated players, se
 
 ## Responsive Rendering
 
-Phaser should use a stable logical coordinate system with scaling and responsive layout rules rather than positioning gameplay purely in raw physical pixels.
+vNext uses a `1600 x 900` logical reference design space. This is the primary coordinate system used when composing and manually tuning gameplay screens.
 
-This enables manual layout tuning against predictable logical dimensions while still adapting to different desktop, tablet, and mobile landscape sizes.
+The reference resolution is not a requirement that the physical display be 1600 x 900. Phaser maps logical coordinates to physical pixels while preserving aspect proportions. Game objects must not be stretched independently to fill arbitrary physical resolutions.
 
-Exact logical base resolution and breakpoint values are implementation details to be selected during the first representative vNext screens.
+A reference point such as `(800, 450)` therefore represents the center of the reference composition rather than a physical device pixel.
+
+### Variable landscape viewport
+
+`1600 x 900` is the reference composition, not a permanently letterboxed viewport. The effective logical viewport may become wider or narrower as the available landscape aspect ratio changes.
+
+The runtime should preserve the logical scale while exposing additional horizontal space on wider displays or reducing peripheral horizontal space on narrower supported landscape displays. The central reference composition remains the baseline safe gameplay area.
+
+Critical gameplay information and controls must not depend on extra-wide space being available. Background art, scenery, particles, atmosphere, and appropriate peripheral UI may expand into additional width.
+
+### Anchoring and layout regions
+
+Screens should primarily position important UI relative to anchors, safe edges, and calculated layout regions rather than assuming fixed absolute screen coordinates.
+
+Typical examples include:
+
+- navigation anchored to a safe left edge
+- currencies/status anchored to a safe right edge
+- primary titles centered within an available region
+- dialogue presentation anchored to the bottom-center safe region
+- grids and major content panels centered or fitted within calculated content regions
+
+Screens own their overall layout and provide bounded regions to reusable UI components. Reusable components should generally lay themselves out within the region provided by their parent rather than independently assuming viewport coordinates.
+
+This keeps manual screen tuning predictable while allowing the same component to participate in different responsive compositions.
+
+### Responsive layout modes
+
+vNext begins with three conceptual landscape layout classes:
+
+- **Compact landscape** — phones and narrow supported landscape viewports
+- **Standard** — layouts around the 16:9 reference composition
+- **Wide** — ultrawide displays and unusually wide landscape devices
+
+Breakpoint thresholds are intentionally deferred until representative Camp and Unit Detail screens can be tested at real viewport sizes. Breakpoints should make meaningful composition adjustments rather than create separately maintained desktop and mobile interfaces.
+
+Compact mode may tighten margins, reduce optional decorative space, or moderately resize/rearrange selected presentation elements. Fundamental information architecture and interaction patterns should remain consistent between modes.
+
+### Game scale versus layout scale
+
+Two concepts must remain distinct:
+
+- **Game scaling** maps logical units to physical pixels. This should normally happen automatically at the runtime/renderer level.
+- **Layout scaling** intentionally changes the size or arrangement of UI because the available logical region requires a different composition.
+
+Developers manually tuning a screen should normally work in logical coordinates. Physical screen resolution should rarely require screen-specific positioning values.
+
+### Device safe insets
+
+Interactive and critical UI must respect usable device safe insets so landscape phone cutouts, rounded corners, and gesture areas do not obscure controls or information.
+
+Safe inset handling is separate from the central 1600 x 900 reference composition. Backgrounds and decorative presentation may extend beyond safe insets when visually appropriate; critical interactive UI should not.
+
+### Responsive verification
+
+Day-to-day screen composition should primarily target the 1600 x 900 reference viewport and then be verified against representative compact, standard, and wide landscape viewports.
+
+Deterministic visual testing should eventually capture important screens in all three layout classes. Responsive failures should first be treated as anchoring, region-layout, or breakpoint-composition problems rather than solved through arbitrary per-resolution coordinates.
 
 ## Mobile Orientation
 
@@ -310,7 +367,7 @@ Deterministic Phaser screen/scene capture remains an important development capab
 
 Representative states such as Camp, Academy, Warband, Unit Detail, Run Map, Battle, and Reward presentation should be renderable from deterministic fixtures or debug state without manually playing through the game.
 
-This supports screenshot regression, UX review, art iteration, and future automated development workflows.
+This supports screenshot regression, UX review, art iteration, responsive-layout verification, and future automated development workflows.
 
 ## Angular/Phaser Boundary Rule
 
@@ -332,7 +389,8 @@ After the architecture is implemented and stabilized, its durable concepts must 
 - how client cache invalidation and authoritative state work
 - what authored content is allowed in the browser
 - how player-conditioned content is exposed
-- how responsive scaling and landscape-only mobile behavior work
+- how the 1600 x 900 reference space, responsive layout modes, anchors, layout regions, and safe insets work
+- how landscape-only mobile behavior works
 - where API, audio, assets, and battle playback responsibilities belong
 
 The implementation is not considered documentation-complete merely because this transitional vNext decision file exists.
