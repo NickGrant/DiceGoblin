@@ -21,15 +21,15 @@ Prove the smallest real vNext path:
 - Superseded prototype paths are removed only after replacements are proven; later reuse candidates remain until their owning package.
 
 ### Related Issues
-- Implement vNext game bootstrap query
+- Mount persistent Phaser runtime at `/game`
 
 ### Package Queue
 Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 1. ~~Inventory/classify prototype code for vNext reuse.~~ Complete.
 2. ~~Fresh vNext database baseline.~~ Complete and architecturally approved.
 3. ~~Authored content registry + client projection.~~ Complete and architecturally approved.
-4. **vNext game bootstrap query.** Current.
-5. Persistent Phaser runtime mounted at `/game`.
+4. ~~vNext game bootstrap query.~~ Complete and architecturally approved.
+5. **Persistent Phaser runtime mounted at `/game`.** Current.
 6. Phaser startup state + content compatibility gate.
 7. Minimal authoritative Camp.
 8. Responsive landscape host behavior.
