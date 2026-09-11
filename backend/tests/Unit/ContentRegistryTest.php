@@ -23,6 +23,8 @@ final class ContentRegistryTest extends TestCase
     $registry = ContentRegistry::load($this->canonicalRoot());
 
     $this->assertSame(50, $registry->startingEnergy());
+    $this->assertSame(50, $registry->energyNormalMaximum());
+    $this->assertSame(12, $registry->energyRegenerationPerHour());
     $this->assertSame([
       'id' => 'region.the_farm',
       'type' => 'region',
@@ -52,7 +54,12 @@ final class ContentRegistryTest extends TestCase
   public function invalidContentProvider(): array
   {
     $config = fn(string $id = 'config.gameplay', string $region = 'region.the_farm'): array => [
-      'id' => $id, 'type' => 'gameplay_config', 'starting_energy' => 10, 'starting_region_id' => $region,
+      'id' => $id,
+      'type' => 'gameplay_config',
+      'starting_energy' => 10,
+      'energy_normal_max' => 20,
+      'energy_regeneration_per_hour' => 12,
+      'starting_region_id' => $region,
     ];
     $region = ['id' => 'region.the_farm', 'type' => 'region', 'display_name' => 'Farm', 'art_key' => 'farm'];
     return [
@@ -63,6 +70,8 @@ final class ContentRegistryTest extends TestCase
         'b.json' => ['definitions' => [$region]],
       ], "Duplicate stable id 'region.the_farm'"],
       'range' => [['one.json' => ['definitions' => [array_merge($config(), ['starting_energy' => -1]), $region]]], 'starting_energy'],
+      'normal max range' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_normal_max' => 0]), $region]]], 'energy_normal_max'],
+      'regen rate interval' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_regeneration_per_hour' => 7]), $region]]], 'divide evenly'],
       'broken reference' => [['one.json' => ['definitions' => [$config('config.gameplay', 'region.missing'), $region]]], 'references missing region'],
     ];
   }

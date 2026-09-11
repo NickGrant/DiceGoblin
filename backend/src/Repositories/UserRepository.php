@@ -99,5 +99,18 @@ final class UserRepository
     return $row ? ['id' => (string)$row['id'], 'display_name' => (string)$row['display_name'], 'avatar_url' => $row['avatar_url'] !== null ? (string)$row['avatar_url'] : null] : null;
   }
 
+  /** @return array{id:string,display_name:string,role:string}|null */
+  public function getGameIdentity(int $userId): ?array
+  {
+    $stmt = $this->pdo->prepare('SELECT `id`, `display_name`, `role` FROM `users` WHERE `id` = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $row ? [
+      'id' => (string)$row['id'],
+      'display_name' => (string)$row['display_name'],
+      'role' => (string)$row['role'],
+    ] : null;
+  }
+
   private function normalizeEmail(string $email): string { return strtolower(trim($email)); }
 }

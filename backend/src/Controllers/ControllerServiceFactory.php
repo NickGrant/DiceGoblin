@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Controllers;
 
+use DiceGoblins\Application\Queries\GameBootstrapQuery;
 use DiceGoblins\Content\ContentRegistry;
+use DiceGoblins\Domain\Energy\EnergyCalculator;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\CsrfService;
@@ -15,14 +17,13 @@ use PDO;
 final class ControllerServiceFactory
 {
   /**
-   * Shared auth/bootstrap graph used by API mutation/read controllers.
+   * Content-independent infrastructure shared by API controllers.
    *
    * @return array{
    *   userRepo: UserRepository,
    *   playerStateRepo: PlayerStateRepository,
    *   csrfService: CsrfService,
    *   sessionService: SessionService,
-   *   accountCreationService: AccountCreationService,
    *   passwordResetService: PasswordResetService
    * }
    */
@@ -31,8 +32,6 @@ final class ControllerServiceFactory
     $userRepo = new UserRepository($pdo);
     $playerStateRepo = new PlayerStateRepository($pdo);
     $csrfService = new CsrfService();
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
-    $accountCreationService = new AccountCreationService($pdo, $userRepo, $playerStateRepo, $content->startingEnergy());
     $passwordResetService = new PasswordResetService($pdo, $userRepo);
     $sessionService = new SessionService($userRepo, $csrfService);
 
@@ -41,8 +40,37 @@ final class ControllerServiceFactory
       'playerStateRepo' => $playerStateRepo,
       'csrfService' => $csrfService,
       'sessionService' => $sessionService,
-      'accountCreationService' => $accountCreationService,
       'passwordResetService' => $passwordResetService,
     ];
+  }
+
+  /**
+   * Adds the one validated registry shared by content-dependent operations in
+   * the current composition graph.
+   *
+   * @param array<string,mixed>|null $core
+   * @return array<string,mixed>
+   */
+  public static function buildContentAware(PDO $pdo, ?array $core = null, ?ContentRegistry $content = null): array
+  {
+    $core ??= self::buildCore($pdo);
+    $content ??= ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+
+    return array_merge($core, [
+      'contentRegistry' => $content,
+      'accountCreationService' => new AccountCreationService(
+        $pdo,
+        $core['userRepo'],
+        $core['playerStateRepo'],
+        $content->startingEnergy(),
+      ),
+      'gameBootstrapQuery' => new GameBootstrapQuery(
+        $core['userRepo'],
+        $core['playerStateRepo'],
+        $content,
+        $core['csrfService'],
+        new EnergyCalculator(),
+      ),
+    ]);
   }
 }

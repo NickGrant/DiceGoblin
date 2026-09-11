@@ -56,7 +56,7 @@ final class AuthController
     }
 
     try {
-      $services = $this->services();
+      $services = $this->services(true);
 
       if ($services['userRepo']->getUserByLocalEmail($email) !== null) {
         $this->jsonAuthError('email_already_registered', 'That email is already registered.', 409);
@@ -336,7 +336,7 @@ final class AuthController
 
     // Upsert local user + establish session
     try {
-      $services = $this->services();
+      $services = $this->services(true);
 
       $providerEmail = isset($me['email']) && is_string($me['email']) ? $me['email'] : null;
       $userId = $services['accountCreationService']->findOrCreateExternal('discord', $discordId, $displayName, $avatarUrl, $providerEmail);
@@ -397,21 +397,30 @@ final class AuthController
    * @return array{
    *   userRepo: UserRepository,
    *   sessionService: SessionService,
-   *   accountCreationService: \DiceGoblins\Services\AccountCreationService,
+   *   accountCreationService?: \DiceGoblins\Services\AccountCreationService,
    *   passwordResetService: \DiceGoblins\Services\PasswordResetService
    * }
    */
-  private function services(): array
+  private function services(bool $requiresContent = false): array
   {
     $pdo = Db::pdo();
     $core = ControllerServiceFactory::buildCore($pdo);
 
-    return [
+    if ($requiresContent) {
+      $core = ControllerServiceFactory::buildContentAware($pdo, $core);
+    }
+
+    $services = [
       'userRepo' => $core['userRepo'],
       'sessionService' => $core['sessionService'],
-      'accountCreationService' => $core['accountCreationService'],
       'passwordResetService' => $core['passwordResetService'],
     ];
+
+    if (isset($core['accountCreationService'])) {
+      $services['accountCreationService'] = $core['accountCreationService'];
+    }
+
+    return $services;
   }
 
   private function redirectWithError(string $code, string $details): void

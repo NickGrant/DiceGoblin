@@ -11,6 +11,7 @@ use DiceGoblins\Core\Env;
 use DiceGoblins\Core\Router;
 use DiceGoblins\Controllers\ApiController;
 use DiceGoblins\Controllers\AuthController;
+use DiceGoblins\Controllers\GameBootstrapController;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';
 Autoloader::register(__DIR__ . '/../src');
@@ -92,6 +93,7 @@ $router = new Router();
 
 $api = new ApiController();
 $auth = new AuthController();
+$gameBootstrap = new GameBootstrapController();
 
 // Auth
 $router->get('/auth/discord/start', [$auth, 'discordStart']);
@@ -105,6 +107,7 @@ $router->post('/api/v1/auth/logout', [$auth, 'logout']);
 // API
 $router->get('/api/v1/health', [$api, 'health']);
 $router->get('/api/v1/session', [$api, 'session']);
+$router->get('/api/v1/game/bootstrap', [$gameBootstrap, 'bootstrap']);
 
 // Prototype gameplay controllers remain in source as migration evidence, but their
 // routes are intentionally not registered against the fresh vNext schema. Each

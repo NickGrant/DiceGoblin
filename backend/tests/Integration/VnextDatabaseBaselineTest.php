@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Content\ContentRegistry;
+use DiceGoblins\Controllers\ApiController;
 use DiceGoblins\Controllers\ControllerServiceFactory;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserRepository;
@@ -38,9 +39,17 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $core = ControllerServiceFactory::buildCore($this->pdo);
 
     $this->assertSame(
-      ['userRepo', 'playerStateRepo', 'csrfService', 'sessionService', 'accountCreationService', 'passwordResetService'],
+      ['userRepo', 'playerStateRepo', 'csrfService', 'sessionService', 'passwordResetService'],
       array_keys($core),
     );
+    $this->assertArrayNotHasKey('contentRegistry', $core);
+    $this->assertArrayNotHasKey('accountCreationService', $core);
+
+    $contentAware = ControllerServiceFactory::buildContentAware($this->pdo, $core, $this->contentRegistry());
+    $this->assertSame($core['sessionService'], $contentAware['sessionService']);
+    $this->assertArrayHasKey('contentRegistry', $contentAware);
+    $this->assertArrayHasKey('accountCreationService', $contentAware);
+    $this->assertArrayHasKey('gameBootstrapQuery', $contentAware);
   }
 
   public function testLocalAccountCreationAtomicallyPersistsCredentialsAndPlayerState(): void
@@ -134,6 +143,22 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $stmt = $this->pdo?->prepare('SELECT COUNT(*) FROM `user_state` WHERE `user_id` = ?');
     $stmt?->execute([$userId]);
     $this->assertSame(0, (int)$stmt?->fetchColumn());
+  }
+
+  public function testSessionEndpointRemainsContentIndependent(): void
+  {
+    $users = new UserRepository($this->pdo);
+    $userId = $users->createUser('Session-only Goblin', null);
+    $this->trackUserId($userId);
+    $_SESSION['user_id'] = $userId;
+
+    $response = $this->invoke(fn() => (new ApiController())->session());
+
+    $this->assertSame(200, $response['status']);
+    $this->assertSame(true, $response['body']['ok'] ?? null);
+    $this->assertSame(true, $response['body']['data']['authenticated'] ?? null);
+    $this->assertSame((string)$userId, $response['body']['data']['user']['id'] ?? null);
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `user_state` WHERE `user_id` = ?', [$userId]));
   }
 
   private function accountCreationService(UserRepository $users, PlayerStateRepository $states): AccountCreationService

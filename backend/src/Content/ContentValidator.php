@@ -56,6 +56,11 @@ final class ContentValidator
     if ($type === 'gameplay_config') {
       $this->requireExactId($definition, 'config.gameplay', $location);
       $this->requireIntegerInRange($definition, 'starting_energy', 0, 1000000, $location);
+      $this->requireIntegerInRange($definition, 'energy_normal_max', 1, 1000000, $location);
+      $this->requireIntegerInRange($definition, 'energy_regeneration_per_hour', 1, 3600, $location);
+      if (3600 % (int)$definition['energy_regeneration_per_hour'] !== 0) {
+        throw new ContentValidationException("{$location} field 'energy_regeneration_per_hour' must divide evenly into 3600 seconds.");
+      }
       $this->requireStableId($definition, 'starting_region_id', $location);
       return;
     }

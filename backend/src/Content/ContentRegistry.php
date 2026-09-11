@@ -76,6 +76,16 @@ final class ContentRegistry
     return (int)$this->definition('config.gameplay')['starting_energy'];
   }
 
+  public function energyNormalMaximum(): int
+  {
+    return (int)$this->definition('config.gameplay')['energy_normal_max'];
+  }
+
+  public function energyRegenerationPerHour(): int
+  {
+    return (int)$this->definition('config.gameplay')['energy_regeneration_per_hour'];
+  }
+
   /** @param array<string, array<string, mixed>> $definitions */
   private static function revisionFor(array $definitions): string
   {

@@ -1,0 +1,168 @@
+<?php
+declare(strict_types=1);
+
+namespace DiceGoblins\Tests\Integration;
+
+use DateTimeImmutable;
+use DateTimeZone;
+use DiceGoblins\Content\ContentRegistry;
+use DiceGoblins\Controllers\ControllerServiceFactory;
+use DiceGoblins\Controllers\GameBootstrapController;
+use DiceGoblins\Tests\Support\IntegrationTestCase;
+
+final class GameBootstrapControllerTest extends IntegrationTestCase
+{
+  protected function supportsVnextBaseline(): bool
+  {
+    return true;
+  }
+
+  public function testUnauthenticatedBootstrapIsRejected(): void
+  {
+    $response = $this->invoke(fn() => (new GameBootstrapController())->bootstrap());
+
+    $this->assertSame(401, $response['status']);
+    $this->assertSame(false, $response['body']['ok'] ?? null);
+    $this->assertSame('unauthorized', $response['body']['error']['code'] ?? null);
+  }
+
+  public function testFreshAuthenticatedAccountReceivesMilestoneOneBootstrap(): void
+  {
+    $userId = $this->createAccount('fresh-bootstrap@example.test', 'Fresh Bootstrap');
+    $_SESSION['user_id'] = $userId;
+
+    $response = $this->invoke(fn() => (new GameBootstrapController())->bootstrap());
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $data = $response['body']['data'] ?? [];
+    $this->assertSame(true, $response['body']['ok'] ?? null);
+    $this->assertSame((string)$userId, $data['account']['id'] ?? null);
+    $this->assertSame('Fresh Bootstrap', $data['account']['display_name'] ?? null);
+    $this->assertSame('user', $data['account']['role'] ?? null);
+    $this->assertSame(0, $data['player']['teeth'] ?? null);
+    $this->assertSame(0, $data['player']['raw_chaos'] ?? null);
+    $this->assertSame(50, $data['player']['energy']['current'] ?? null);
+    $this->assertSame(50, $data['player']['energy']['normal_max'] ?? null);
+    $this->assertSame(12, $data['player']['energy']['regeneration_per_hour'] ?? null);
+    $this->assertSame(300, $data['player']['energy']['regeneration_interval_seconds'] ?? null);
+    $this->assertIsString($data['player']['energy']['last_regeneration_at'] ?? null);
+    $this->assertNull($data['player']['energy']['next_regeneration_at'] ?? null);
+    $this->assertNull($data['player']['energy']['fully_regenerated_at'] ?? null);
+    $this->assertSame(1, $data['player']['player_revision'] ?? null);
+    $this->assertSame(true, $data['session']['authenticated'] ?? null);
+    $this->assertIsString($data['session']['csrf_token'] ?? null);
+    $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', (string)($data['server_time'] ?? ''));
+    $this->assertSame($this->contentRegistry()->revision(), $data['content_revision'] ?? null);
+    $this->assertSame(['unlock_ids' => []], $data['progression'] ?? null);
+    $this->assertArrayHasKey('active_squad', $data);
+    $this->assertNull($data['active_squad']);
+    $this->assertArrayHasKey('active_run', $data);
+    $this->assertNull($data['active_run']);
+  }
+
+  public function testBootstrapUsesAuthoritativeRowsAndDoesNotPersistCalculatedEnergy(): void
+  {
+    $userId = $this->createAccount('authoritative-bootstrap@example.test', 'Original Name');
+    $this->pdo?->prepare("UPDATE `users` SET `display_name` = 'Database Goblin', `role` = 'admin' WHERE `id` = ?")->execute([$userId]);
+    $this->pdo?->prepare('UPDATE `user_state` SET `teeth` = 4321, `raw_chaos` = 87, `energy_current` = 41, `energy_last_regen_at` = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 10 MINUTE), `player_revision` = 29 WHERE `user_id` = ?')->execute([$userId]);
+    $before = $this->playerStateRow($userId);
+    $_SESSION['user_id'] = $userId;
+
+    $response = $this->invoke(fn() => (new GameBootstrapController())->bootstrap());
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $data = $response['body']['data'] ?? [];
+    $this->assertSame('Database Goblin', $data['account']['display_name'] ?? null);
+    $this->assertSame('admin', $data['account']['role'] ?? null);
+    $this->assertSame(4321, $data['player']['teeth'] ?? null);
+    $this->assertSame(87, $data['player']['raw_chaos'] ?? null);
+    $this->assertSame(43, $data['player']['energy']['current'] ?? null);
+    $this->assertSame(29, $data['player']['player_revision'] ?? null);
+    $this->assertSame($before, $this->playerStateRow($userId));
+  }
+
+  public function testMissingPlayerStateReturnsControlledIntegrityFailureWithoutProvisioning(): void
+  {
+    $core = ControllerServiceFactory::buildCore($this->pdo);
+    $userId = $core['userRepo']->createUser('State-less Bootstrap', null);
+    $this->trackUserId($userId);
+    $_SESSION['user_id'] = $userId;
+
+    $response = $this->invoke(fn() => (new GameBootstrapController())->bootstrap());
+
+    $this->assertSame(500, $response['status']);
+    $this->assertSame('player_state_integrity_error', $response['body']['error']['code'] ?? null);
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `user_state` WHERE `user_id` = ?', [$userId]));
+  }
+
+  public function testBootstrapDerivesMaximumAndRegenerationRateFromInjectedAuthoredContent(): void
+  {
+    $userId = $this->createAccount('authored-energy@example.test', 'Authored Energy');
+    $this->pdo?->prepare('UPDATE `user_state` SET `energy_current` = 70, `energy_last_regen_at` = ? WHERE `user_id` = ?')
+      ->execute(['2026-09-10 12:00:00', $userId]);
+    $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $this->contentRegistry(80, 6));
+
+    $data = $services['gameBootstrapQuery']->execute(
+      $userId,
+      new DateTimeImmutable('2026-09-10 12:00:00', new DateTimeZone('UTC')),
+    );
+
+    $this->assertSame(80, $data['player']['energy']['normal_max'] ?? null);
+    $this->assertSame(6, $data['player']['energy']['regeneration_per_hour'] ?? null);
+    $this->assertSame(600, $data['player']['energy']['regeneration_interval_seconds'] ?? null);
+  }
+
+  private function createAccount(string $email, string $displayName): int
+  {
+    $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $this->contentRegistry());
+    $userId = $services['accountCreationService']->createLocal(
+      $email,
+      password_hash('test-password', PASSWORD_DEFAULT),
+      $displayName,
+    );
+    $this->trackUserId($userId);
+    return $userId;
+  }
+
+  /** @return array<string,mixed> */
+  private function playerStateRow(int $userId): array
+  {
+    $stmt = $this->pdo?->prepare('SELECT `teeth`, `raw_chaos`, `energy_current`, `energy_last_regen_at`, `player_revision`, `created_at`, `updated_at` FROM `user_state` WHERE `user_id` = ?');
+    $stmt?->execute([$userId]);
+    $row = $stmt?->fetch(\PDO::FETCH_ASSOC);
+    return is_array($row) ? $row : [];
+  }
+
+  private function contentRegistry(int $normalMaximum = 50, int $regenerationPerHour = 12): ContentRegistry
+  {
+    if ($normalMaximum === 50 && $regenerationPerHour === 12) {
+      return ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    }
+
+    $root = sys_get_temp_dir() . '/dice-goblins-bootstrap-content-' . bin2hex(random_bytes(6));
+    mkdir($root, 0777, true);
+    $document = [
+      'definitions' => [
+        [
+          'id' => 'config.gameplay',
+          'type' => 'gameplay_config',
+          'starting_energy' => 50,
+          'energy_normal_max' => $normalMaximum,
+          'energy_regeneration_per_hour' => $regenerationPerHour,
+          'starting_region_id' => 'region.the_farm',
+        ],
+        [
+          'id' => 'region.the_farm',
+          'type' => 'region',
+          'display_name' => 'The Farm',
+          'art_key' => 'farm',
+        ],
+      ],
+    ];
+    file_put_contents($root . '/content.json', json_encode($document, JSON_THROW_ON_ERROR));
+    $registry = ContentRegistry::load($root);
+    unlink($root . '/content.json');
+    rmdir($root);
+    return $registry;
+  }
+}
