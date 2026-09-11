@@ -1,26 +1,19 @@
 # Agent Workspace
-----
 
-## Purpose
-Keep coding-agent execution context aligned with the vNext overhaul and separate from game/project documentation.
+`AGENTS.md` is the coding-agent contract.
 
-## Default Context
-- `LLM_CONTEXT.md`
-- `CONTEXT_ROUTER.md`
-- `ISSUES.md`
-- `MILESTONES.md`
-- `QUALITY_GATES.md` when verification is relevant
+## Normal Implementation
+Load `agent/ISSUES.md` plus the touched source/tests. It contains one execution-ready package. Use `agent/CONTEXT_ROUTER.md` only to locate additional authority and `agent/QUALITY_GATES.md` at verification time.
 
-## Planning
-- `BACKLOG_OPERATIONS.md` defines issue/milestone workflow.
-- `ISSUES_BACKLOG.md` and `MILESTONES_BACKLOG.md` contain only explicitly deferred vNext execution inventory; they are not alternative roadmaps.
-- The full 0-14 roadmap lives in `documentation/07-development-path/vnext-game-overhaul.md`.
+## Sequencing
+- `MILESTONES.md` — active milestone and short package queue; load for sequencing/package promotion.
+- `BACKLOG_OPERATIONS.md` — just-in-time issue workflow; load when updating execution state.
+- `ISSUES_BACKLOG.md` / `MILESTONES_BACKLOG.md` — explicitly deferred work only.
+- Full roadmap — `documentation/07-development-path/vnext-game-overhaul.md`.
 
-## Roles
-- `ROLES.md` and `ROLE_CATALOG.md` are loaded only when role guidance is actually needed.
-- `ROLE_CLARIFICATION.md` records role-specific clarifications where applicable.
+## Optional Context
+- `LLM_CONTEXT.md` summarizes context-loading policy; it is not additional required implementation context.
+- `ROLES.md` / `ROLE_CATALOG.md` are explicit-user-request review lenses only.
+- `ROLE_CLARIFICATION.md` is historical/supporting role-policy context only.
 
-## Historical Context
-Historical issues, milestones, prototype plans, and removed documentation are recovered from Git history only when explicitly required. The vNext branch does not keep parallel agent archive files as an alternate context source.
-
-`AGENTS.md` remains the root coding-agent entry point.
+Git history is the archive for completed/superseded execution state. Do not create parallel archive files.
