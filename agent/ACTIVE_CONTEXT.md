@@ -7,9 +7,14 @@ Owner: Product + Engineering
 Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `documentation/07-development-path/vnext-game-overhaul.md`
 
 ## Current Focus
-Milestone 0 reconciliation/documentation cleanup is complete. The next target is **Milestone 1 - Walking Skeleton**.
+**Milestone 1 - Walking Skeleton is active.** Its dependency-ordered implementation packages are defined in `agent/ISSUES.md`.
 
-Before implementation, decompose Milestone 1 into dependency-ordered work packages covering only the minimum fresh DB, authored-content/projection, PHP bootstrap/infrastructure, Angular `/game` host, Phaser runtime/GameScene/Camp, responsive/orientation behavior, and verification needed to prove the skeleton.
+The current execution target is **Establish the fresh vNext database baseline**. Complete that issue and its verification before unblocking the authored-content package.
+
+The walking skeleton proves only the minimum architecture required to reach a responsive Phaser Camp from an authenticated Angular `/game` route using real PHP/MySQL bootstrap state and client-safe authored content.
+
+## Scope Guard
+Do not pull Warband, units/dice/squads, Farm/run creation, combat, rewards, economy, permanent progression, kin, encounter depth, Codex/objectives, or onboarding implementation into Milestone 1 unless a minimal interface/null contract is strictly required by the walking skeleton.
 
 ## Working Agreement
 - Active execution: `agent/ISSUES.md`, `agent/MILESTONES.md`.
