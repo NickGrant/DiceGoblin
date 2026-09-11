@@ -24,7 +24,7 @@ final class ContentRegistryTest extends TestCase
 
     $this->assertSame(50, $registry->startingEnergy());
     $this->assertSame(50, $registry->energyNormalMaximum());
-    $this->assertSame(12, $registry->energyRegenerationPerHour());
+    $this->assertSame(12.0, $registry->energyRegenerationPerHour());
     $this->assertSame([
       'id' => 'region.the_farm',
       'type' => 'region',
@@ -71,9 +71,31 @@ final class ContentRegistryTest extends TestCase
       ], "Duplicate stable id 'region.the_farm'"],
       'range' => [['one.json' => ['definitions' => [array_merge($config(), ['starting_energy' => -1]), $region]]], 'starting_energy'],
       'normal max range' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_normal_max' => 0]), $region]]], 'energy_normal_max'],
-      'regen rate interval' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_regeneration_per_hour' => 7]), $region]]], 'divide evenly'],
+      'zero regen rate' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_regeneration_per_hour' => 0]), $region]]], 'positive number'],
+      'negative regen rate' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_regeneration_per_hour' => -2.5]), $region]]], 'positive number'],
       'broken reference' => [['one.json' => ['definitions' => [$config('config.gameplay', 'region.missing'), $region]]], 'references missing region'],
     ];
+  }
+
+  public function testPositiveNonEvenAndFractionalRegenerationRatesAreValidAuthoredContent(): void
+  {
+    foreach ([7, 7.25] as $rate) {
+      $root = $this->rootWithFiles([
+        "rate-{$rate}.json" => ['definitions' => [
+          [
+            'id' => 'config.gameplay',
+            'type' => 'gameplay_config',
+            'starting_energy' => 50,
+            'energy_normal_max' => 50,
+            'energy_regeneration_per_hour' => $rate,
+            'starting_region_id' => 'region.the_farm',
+          ],
+          ['id' => 'region.the_farm', 'type' => 'region', 'display_name' => 'Farm', 'art_key' => 'farm'],
+        ]],
+      ]);
+
+      $this->assertSame((float)$rate, ContentRegistry::load($root)->energyRegenerationPerHour());
+    }
   }
 
   public function testProjectionIsAllowlistedAndSharesRevision(): void

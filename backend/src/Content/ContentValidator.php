@@ -57,10 +57,7 @@ final class ContentValidator
       $this->requireExactId($definition, 'config.gameplay', $location);
       $this->requireIntegerInRange($definition, 'starting_energy', 0, 1000000, $location);
       $this->requireIntegerInRange($definition, 'energy_normal_max', 1, 1000000, $location);
-      $this->requireIntegerInRange($definition, 'energy_regeneration_per_hour', 1, 3600, $location);
-      if (3600 % (int)$definition['energy_regeneration_per_hour'] !== 0) {
-        throw new ContentValidationException("{$location} field 'energy_regeneration_per_hour' must divide evenly into 3600 seconds.");
-      }
+      $this->requirePositiveNumber($definition, 'energy_regeneration_per_hour', $location);
       $this->requireStableId($definition, 'starting_region_id', $location);
       return;
     }
@@ -122,6 +119,15 @@ final class ContentValidator
     $value = $definition[$field] ?? null;
     if (!is_int($value) || $value < $minimum || $value > $maximum) {
       throw new ContentValidationException("{$location} field '{$field}' must be an integer from {$minimum} to {$maximum}.");
+    }
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function requirePositiveNumber(array $definition, string $field, string $location): void
+  {
+    $value = $definition[$field] ?? null;
+    if ((!is_int($value) && !is_float($value)) || !is_finite((float)$value) || $value <= 0) {
+      throw new ContentValidationException("{$location} field '{$field}' must be a positive number.");
     }
   }
 }

@@ -11,14 +11,14 @@ final class EnergyView
   public function __construct(
     public readonly int $current,
     public readonly int $normalMaximum,
-    public readonly int $regenerationPerHour,
-    public readonly int $regenerationIntervalSeconds,
+    public readonly float $regenerationPerHour,
+    public readonly float $regenerationIntervalSeconds,
     public readonly DateTimeImmutable $persistedLastRegenerationAt,
     public readonly ?DateTimeImmutable $nextRegenerationAt,
     public readonly ?DateTimeImmutable $fullyRegeneratedAt,
   ) {}
 
-  /** @return array{current:int,normal_max:int,regeneration_per_hour:int,regeneration_interval_seconds:int,last_regeneration_at:string,next_regeneration_at:?string,fully_regenerated_at:?string} */
+  /** @return array{current:int,normal_max:int,regeneration_per_hour:float,regeneration_interval_seconds:float,last_regeneration_at:string,next_regeneration_at:?string,fully_regenerated_at:?string} */
   public function toArray(): array
   {
     return [

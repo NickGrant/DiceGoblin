@@ -13,7 +13,7 @@ final class EnergyCalculator
     int $persistedCurrent,
     DateTimeImmutable $persistedLastRegenerationAt,
     int $normalMaximum,
-    int $regenerationPerHour,
+    float $regenerationPerHour,
     DateTimeImmutable $now,
   ): EnergyView {
     if ($persistedCurrent < 0) {
@@ -22,11 +22,11 @@ final class EnergyCalculator
     if ($normalMaximum <= 0) {
       throw new InvalidArgumentException('Normal Energy maximum must be positive.');
     }
-    if ($regenerationPerHour <= 0 || 3600 % $regenerationPerHour !== 0) {
-      throw new InvalidArgumentException('Energy regeneration rate must be positive and divide evenly into one hour.');
+    if (!is_finite($regenerationPerHour) || $regenerationPerHour <= 0) {
+      throw new InvalidArgumentException('Energy regeneration rate must be a positive finite number.');
     }
 
-    $intervalSeconds = intdiv(3600, $regenerationPerHour);
+    $intervalSeconds = 3600.0 / $regenerationPerHour;
 
     if ($persistedCurrent >= $normalMaximum) {
       return new EnergyView(
@@ -41,7 +41,7 @@ final class EnergyCalculator
     }
 
     $elapsedSeconds = max(0, $now->getTimestamp() - $persistedLastRegenerationAt->getTimestamp());
-    $elapsedTicks = intdiv($elapsedSeconds, $intervalSeconds);
+    $elapsedTicks = (int)floor(($elapsedSeconds * $regenerationPerHour) / 3600.0);
     $effectiveCurrent = min($normalMaximum, $persistedCurrent + $elapsedTicks);
 
     if ($effectiveCurrent >= $normalMaximum) {
@@ -56,10 +56,12 @@ final class EnergyCalculator
       );
     }
 
-    $effectiveTickAnchor = $persistedLastRegenerationAt->modify('+' . ($elapsedTicks * $intervalSeconds) . ' seconds');
-    $nextRegenerationAt = $effectiveTickAnchor->modify("+{$intervalSeconds} seconds");
-    $missingEnergy = $normalMaximum - $effectiveCurrent;
-    $fullyRegeneratedAt = $nextRegenerationAt->modify('+' . (($missingEnergy - 1) * $intervalSeconds) . ' seconds');
+    $nextRegenerationAt = $persistedLastRegenerationAt->modify(
+      '+' . $this->secondsUntilTick($elapsedTicks + 1, $regenerationPerHour) . ' seconds',
+    );
+    $fullyRegeneratedAt = $persistedLastRegenerationAt->modify(
+      '+' . $this->secondsUntilTick($normalMaximum - $persistedCurrent, $regenerationPerHour) . ' seconds',
+    );
 
     return new EnergyView(
       $effectiveCurrent,
@@ -70,5 +72,10 @@ final class EnergyCalculator
       $nextRegenerationAt,
       $fullyRegeneratedAt,
     );
+  }
+
+  private function secondsUntilTick(int $tickNumber, float $regenerationPerHour): int
+  {
+    return (int)ceil(($tickNumber * 3600.0) / $regenerationPerHour);
   }
 }

@@ -95,21 +95,26 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
     $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `user_state` WHERE `user_id` = ?', [$userId]));
   }
 
-  public function testBootstrapDerivesMaximumAndRegenerationRateFromInjectedAuthoredContent(): void
+  public function testBootstrapUsesNonEvenAuthoredRateDeterministicallyWithoutDurableWrites(): void
   {
     $userId = $this->createAccount('authored-energy@example.test', 'Authored Energy');
-    $this->pdo?->prepare('UPDATE `user_state` SET `energy_current` = 70, `energy_last_regen_at` = ? WHERE `user_id` = ?')
+    $this->pdo?->prepare('UPDATE `user_state` SET `energy_current` = 20, `energy_last_regen_at` = ? WHERE `user_id` = ?')
       ->execute(['2026-09-10 12:00:00', $userId]);
-    $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $this->contentRegistry(80, 6));
+    $before = $this->playerStateRow($userId);
+    $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $this->contentRegistry(50, 7.0));
 
     $data = $services['gameBootstrapQuery']->execute(
       $userId,
-      new DateTimeImmutable('2026-09-10 12:00:00', new DateTimeZone('UTC')),
+      new DateTimeImmutable('2026-09-10 13:00:00', new DateTimeZone('UTC')),
     );
 
-    $this->assertSame(80, $data['player']['energy']['normal_max'] ?? null);
-    $this->assertSame(6, $data['player']['energy']['regeneration_per_hour'] ?? null);
-    $this->assertSame(600, $data['player']['energy']['regeneration_interval_seconds'] ?? null);
+    $this->assertSame(50, $data['player']['energy']['normal_max'] ?? null);
+    $this->assertSame(7.0, $data['player']['energy']['regeneration_per_hour'] ?? null);
+    $this->assertSame(27, $data['player']['energy']['current'] ?? null);
+    $this->assertEqualsWithDelta(514.285714, (float)($data['player']['energy']['regeneration_interval_seconds'] ?? 0), 0.000001);
+    $this->assertSame('2026-09-10T13:08:35Z', $data['player']['energy']['next_regeneration_at'] ?? null);
+    $this->assertSame('2026-09-10T16:17:09Z', $data['player']['energy']['fully_regenerated_at'] ?? null);
+    $this->assertSame($before, $this->playerStateRow($userId));
   }
 
   private function createAccount(string $email, string $displayName): int
@@ -133,9 +138,9 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
     return is_array($row) ? $row : [];
   }
 
-  private function contentRegistry(int $normalMaximum = 50, int $regenerationPerHour = 12): ContentRegistry
+  private function contentRegistry(int $normalMaximum = 50, float $regenerationPerHour = 12.0): ContentRegistry
   {
-    if ($normalMaximum === 50 && $regenerationPerHour === 12) {
+    if ($normalMaximum === 50 && $regenerationPerHour === 12.0) {
       return ContentRegistry::load(dirname(__DIR__, 2) . '/content');
     }
 

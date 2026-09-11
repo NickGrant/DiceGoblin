@@ -6,7 +6,7 @@
 
 ### Implement vNext game bootstrap query
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

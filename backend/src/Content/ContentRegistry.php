@@ -81,9 +81,9 @@ final class ContentRegistry
     return (int)$this->definition('config.gameplay')['energy_normal_max'];
   }
 
-  public function energyRegenerationPerHour(): int
+  public function energyRegenerationPerHour(): float
   {
-    return (int)$this->definition('config.gameplay')['energy_regeneration_per_hour'];
+    return (float)$this->definition('config.gameplay')['energy_regeneration_per_hour'];
   }
 
   /** @param array<string, array<string, mixed>> $definitions */
