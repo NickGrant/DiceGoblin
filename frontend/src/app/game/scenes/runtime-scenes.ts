@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
+import { GameStore } from '../runtime/game-store';
 import { RuntimeStartup, RuntimeStartupSnapshot } from '../runtime/runtime-startup';
+import { CampScreen, GameSceneScreen } from '../screens/camp-screen';
 
 export const BOOT_SCENE_KEY = 'BootScene';
 export const GAME_SCENE_KEY = 'GameScene';
@@ -115,8 +117,21 @@ export class BootScene extends Phaser.Scene {
 }
 
 export class GameScene extends RuntimeScene {
-  constructor(runtimeState: RuntimeLifecycleState, runtimeStartup: RuntimeStartup) {
+  private activeScreen: GameSceneScreen | null = null;
+
+  constructor(
+    runtimeState: RuntimeLifecycleState,
+    runtimeStartup: RuntimeStartup,
+    private readonly createCampScreen: (
+      scene: Phaser.Scene,
+      store: GameStore,
+    ) => GameSceneScreen = (scene, store) => new CampScreen(scene, store),
+  ) {
     super(GAME_SCENE_KEY, runtimeState, runtimeStartup);
+  }
+
+  preload(): void {
+    CampScreen.preload(this);
   }
 
   create(): void {
@@ -124,7 +139,24 @@ export class GameScene extends RuntimeScene {
       this.scene.start(BOOT_SCENE_KEY);
       return;
     }
-    this.renderPlaceholder('Dice Goblins', 'Persistent Phaser runtime mounted');
+
+    this.showCamp();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroyActiveScreen());
+  }
+
+  showCamp(): void {
+    this.destroyActiveScreen();
+    this.activeScreen = this.createCampScreen(this, this.runtimeStartup.store);
+    this.activeScreen.create();
+  }
+
+  get activeScreenKey(): GameSceneScreen['key'] | null {
+    return this.activeScreen?.key ?? null;
+  }
+
+  private destroyActiveScreen(): void {
+    this.activeScreen?.destroy();
+    this.activeScreen = null;
   }
 }
 

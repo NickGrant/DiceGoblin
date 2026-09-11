@@ -6,7 +6,7 @@
 
 ### Render minimal authoritative Camp in `GameScene`
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
