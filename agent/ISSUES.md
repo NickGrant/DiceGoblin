@@ -4,38 +4,39 @@
 
 ## Milestone 1 - Walking Skeleton
 
-### Establish authored ContentRegistry and client projection
+### Implement vNext game bootstrap query
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Establish JSON-authored gameplay content as the single source of static game definitions, with a validated server registry and a deny-by-default client projection derived from that same source. This package must prove the content boundary needed by later bootstrap/Phaser work without prematurely migrating the full game catalog.
+Implement the authenticated, read-only bootstrap query that gives the future Phaser runtime the authoritative Milestone 1 state needed to enter Camp, without recreating the prototype catch-all profile contract or prematurely building later gameplay domains.
 
 #### Required Context
-- `documentation/07-development-path/vnext-authored-content-model.md`
-- `documentation/07-development-path/vnext-phaser-client-architecture.md` — Client Authored Content Boundary and Content Version Compatibility
-- `documentation/07-development-path/vnext-backend-internal-architecture.md` — ContentRegistry / ContentValidator boundaries
-- `documentation/07-development-path/vnext-prototype-code-disposition.md` — authored-content/catalog guidance
-- Current source/build/test infrastructure touched by the implementation
+- `documentation/07-development-path/vnext-api-contract-model.md` — Game Bootstrap, Query/Command Boundary, Player Revision
+- `documentation/07-development-path/vnext-endpoint-inventory.md` — `GET /api/v1/game/bootstrap`
+- `documentation/07-development-path/vnext-backend-internal-architecture.md` — Controllers, Queries/Read Models, ContentRegistry
+- `documentation/07-development-path/vnext-storage-model.md` — account/auth and `user_state`
+- `documentation/07-development-path/vnext-energy-model.md` — regeneration/overcap semantics
+- `documentation/07-development-path/vnext-authored-content-model.md` — authored balance/config authority
+- Current vNext auth/session, `user_state`, ContentRegistry, composition, and tests touched by the implementation
 
 Load other decision docs only if implementation reaches their domain.
 
 #### Acceptance Criteria
-- Add a canonical Git-tracked JSON content root and a maintainable file organization consistent with the accepted hybrid content model. Do not migrate the entire prototype catalog in this package; include only the minimum real content/configuration needed to prove the architecture and support the walking skeleton.
-- Implement a server-side `ContentRegistry` that loads the canonical JSON into one logical registry keyed by stable durable IDs or equivalent typed keys. File paths are authoring organization, not runtime identity.
-- Implement automated `ContentValidator` coverage for the content introduced in this package, including malformed JSON/shape errors, invalid or duplicate stable IDs, required fields/ranges, and cross-reference validation where references exist. Validation failures must fail the content/build verification path rather than surface first during gameplay.
-- Keep authored JSON declarative. Do not create a generic scripting/rule language, YAML/CSV parallel sources, SQL catalog synchronization, or a second manually maintained content catalog.
-- Implement an explicit allowlisted client projection derived from canonical content. New canonical fields are server-private by default; projection code/schema must opt fields into browser-visible output.
-- Prove by automated test that representative server-only fields/content cannot appear in the generated client projection unless explicitly allowlisted. Do not use blacklist filtering, minification, obfuscation, or client-side encryption as secrecy controls.
-- Keep player-conditioned/revealed content out of the static public projection. This package does not implement player authorization/discovery APIs; it establishes the boundary only.
-- Produce a deterministic content revision/manifest hash (or equivalent deterministic revision) shared by server content and the generated client projection. Identical canonical content must produce the same revision; relevant content changes must change it. Bootstrap compatibility enforcement is a later package.
-- The client projection is generated/derived build output, not a separately authored gameplay catalog. Do not require a checked-in monolithic server aggregate bundle.
-- Move the temporary starting-Energy environment input into canonical authored configuration consumed through `ContentRegistry` by authoritative account creation, then remove that runtime/test configuration source. The database must remain free of a starting-Energy default and `energy_max` remains derived/unpersisted.
-- Preserve the fresh vNext database baseline and registered auth/session/health behavior. Do not re-register prototype gameplay routes or recreate prototype SQL catalogs.
-- Add focused automated tests for registry loading, validation failures, duplicate/reference handling as applicable, client projection privacy/allowlisting, deterministic revision behavior, and starting-Energy consumption through account provisioning.
-- Add/update the narrow repository verification command(s) needed so content validation/projection integrity runs in normal package verification/CI paths.
-- Do not implement `/api/v1/game/bootstrap`, Phaser `GameRuntime`, `ClientContentRegistry` runtime behavior, gameplay screens, units/dice/squads/runs/combat, or broader catalog migration in this package.
+- Add authenticated `GET /api/v1/game/bootstrap` under the existing cookie/session model. Unauthenticated requests return the established unauthorized API response; do not add another authentication mechanism.
+- Keep the controller thin. Implement a purpose-built application query/read model that composes account identity, mutable `user_state`, authored configuration, content revision, and session/CSRF metadata. Do not resurrect `/profile` or put bootstrap assembly into a catch-all gameplay service.
+- For Milestone 1, return the implemented subset only: account ID/display name/role; Teeth; Raw Chaos; effective current Energy; calculated normal Energy maximum; Energy regeneration timing needed for presentation; `player_revision`; session/CSRF metadata as required by the future Phaser API client; and the server canonical content revision.
+- Represent accepted-but-not-yet-implemented bootstrap domains explicitly as empty/null rather than creating their persistence early: unlock/progression summary empty; active squad null; active run null. Do not add unit, dice, squad, run, unlock, Codex, objective, inventory, Shop, Academy, Wrong Machine, reward, or battle storage for this package.
+- Bootstrap is a query. It must not provision missing `user_state`, advance persisted Energy timestamps/current values, grant anything, increment `player_revision`, or otherwise mutate durable player state. An authenticated user missing required `user_state` is an integrity/provisioning error, not a reason for GET-side repair.
+- Move the remaining baseline Energy tuning required by the query into canonical authored configuration rather than SQL or environment variables. Preserve existing behavior unless intentionally changed later: normal/base maximum 50 and regeneration rate 12 Energy/hour. Starting Energy remains 50. Do not persist `energy_max` or regeneration rate in `user_state`.
+- Calculate the bootstrap Energy view from persisted `energy_current` + `energy_last_regen_at` and authored Energy rules without writing during the GET. Natural regeneration caps at normal max; an already-overcapped current value is preserved and does not regenerate further. Keep this calculation reusable/deterministic and outside controllers/repositories.
+- Do not introduce Energy-cap upgrade persistence or prototype feature-unlock tables merely to calculate max in Milestone 1. The current normal max is the authored base max; later permanent progression may modify the calculation when its owning package exists.
+- Return the same canonical content revision represented by the generated client projection. Do not implement client-side revision comparison/mismatch blocking yet; that belongs to Phaser startup.
+- Preserve registered auth/session/health behavior and the approved fresh database/content architecture. Do not re-register prototype gameplay routes.
+- Avoid repeatedly parsing the authored catalog within one request and avoid making content-independent `/session` depend on loading ContentRegistry. Establish a small composition boundary that can share/inject the validated registry into content-dependent operations without introducing a dependency-injection framework or broad container rewrite.
+- Add focused automated coverage for unauthorized bootstrap; fresh authenticated account bootstrap; account/user-state mapping; authored content revision; read-only behavior; missing-user-state integrity behavior; Energy regeneration calculation including cap and overcap cases; and explicit empty/null later-domain representations.
+- Do not implement Phaser runtime/client state, Angular `/game` host changes, Camp rendering, client content compatibility enforcement, later collection queries, or gameplay mutations in this package.
 
 #### Completion
-Run applicable backend/content/context gates from `agent/QUALITY_GATES.md`. Leave this package active for architectural review; do not promote or begin the bootstrap package in the same change.
+Run applicable backend/content/context gates from `agent/QUALITY_GATES.md`. Leave this package active for architectural review; do not promote or begin the persistent Phaser runtime package in the same change.
