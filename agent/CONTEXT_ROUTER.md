@@ -1,56 +1,30 @@
 # Context Router
-----
 
-## Purpose
-- Route coding and design work to the smallest current vNext context set.
-- Avoid loading superseded prototype decisions into implementation context.
+Use this only when the current issue/source does not make the required authority obvious. Load the narrow file, not its whole directory.
 
-## Default Load
-- `AGENTS.md`
-- `agent/LLM_CONTEXT.md`
-- `agent/ISSUES.md`
-- `agent/MILESTONES.md`
-- this file
+| Task / question | Load |
+| --- | --- |
+| Overall vNext sequence/status | `documentation/07-development-path/vnext-game-overhaul.md` |
+| Prototype reuse/migration | `documentation/07-development-path/vnext-prototype-code-disposition.md` |
+| Backend layering/transactions | `documentation/07-development-path/vnext-backend-internal-architecture.md` |
+| API semantics | `documentation/07-development-path/vnext-api-contract-model.md`; endpoint names only if needed: `vnext-endpoint-inventory.md` |
+| Database/runtime storage | `documentation/07-development-path/vnext-storage-model.md` |
+| Authored JSON/content ownership | `documentation/07-development-path/vnext-authored-content-model.md` |
+| Phaser/Angular boundary, client state, responsive rules | `documentation/07-development-path/vnext-phaser-client-architecture.md` |
+| Rewards/unlocks/idempotency | `documentation/07-development-path/vnext-reward-unlock-model.md` |
+| Currency/economy | `documentation/07-development-path/vnext-currency-economy-model.md` |
+| Energy | `documentation/07-development-path/vnext-energy-model.md` |
+| Progression/Codex/objectives | `documentation/07-development-path/vnext-progression-state-model.md` |
+| Preserved gameplay/combat rule | `documentation/02-systems/README.md`, then one relevant system doc |
+| Visual direction | `documentation/04-ux/01-visual-design-guide.md` |
+| Product terminology/core loop | `documentation/00-overview/02-glossary.md` and, only if needed, `01-core-gameplay-loop.md` |
+| Lore/character voice | relevant file under `documentation/01-lore/` |
+| Testing philosophy | `documentation/06-testing-release/00-testing-strategy.md` |
+| Engineering/documentation policy | relevant file under `documentation/08-operations/` |
+| Base-game biome allocation | `documentation/07-development-path/01-base-game-content-roster.md` |
 
-## Primary vNext Route
-For architecture, implementation planning, APIs, storage, authored content, progression, economy, rewards, or Phaser structure:
-- `documentation/07-development-path/vnext-game-overhaul.md`
-- then the relevant `documentation/07-development-path/vnext-*.md` accepted decision document.
-
-## Topic Routes
-- Game overview and loop:
-  - `documentation/00-overview/00-project-overview.md`
-  - `documentation/00-overview/01-core-gameplay-loop.md`
-  - `documentation/00-overview/02-glossary.md`
-- Lore and character tone:
-  - `documentation/01-lore/00-world-and-lore.md`
-  - `documentation/01-lore/02-character-profiles.md`
-- Gameplay systems and combat behavior:
-  - `documentation/02-systems/README.md`
-  - then the narrow relevant system document.
-- Authored content design references:
-  - `documentation/03-content/README.md`
-  - then the relevant retained catalog.
-  - During vNext these Markdown catalogs are migration/design references; canonical runtime authored definitions move to JSON as their milestone is implemented.
-- UX and visual direction:
-  - `documentation/04-ux/01-visual-design-guide.md`
-  - `documentation/07-development-path/vnext-phaser-client-architecture.md`
-- Technical architecture:
-  - `documentation/05-technical/00-tech-stack.md`
-  - `documentation/05-technical/01-authentication-and-sessions.md`
-  - relevant accepted vNext architecture/contract document under `07-development-path`.
-- Testing and verification philosophy:
-  - `documentation/06-testing-release/00-testing-strategy.md`
-  - `agent/QUALITY_GATES.md` for current commands.
-- Approved future base-game biome roster:
-  - `documentation/07-development-path/01-base-game-content-roster.md`
-- Documentation and engineering standards:
-  - `documentation/08-operations/00-engineering-standards.md`
-  - `documentation/08-operations/02-documentation-style-guide.md`
-
-## Retrieval Rules
-- Prefer accepted vNext decisions over prototype implementation shape.
-- Do not search Git history for design guidance unless the user explicitly asks for history, rationale, or recovery of a removed idea.
-- Do not infer current requirements from deleted paths referenced by old commits.
-- Load implementation source when needed to preserve useful algorithms or measure migration work, not to revive superseded architecture.
-- Prefer the smallest authoritative context set that can prove an implementation decision correct or incorrect.
+Rules:
+- Accepted vNext decisions override conflicting prototype implementation shape.
+- Source/tests are required evidence when replacing behavior, but are not architectural authority.
+- Markdown content catalogs are design/migration references until their domain moves to canonical authored JSON.
+- Do not search Git history or deleted docs for current requirements unless the user explicitly asks for history/recovery.
