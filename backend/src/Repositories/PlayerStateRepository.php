@@ -27,10 +27,11 @@ final class PlayerStateRepository
   }
 
   /** Called only by an authoritative account-creation mutation. */
-  public function createInitialState(int $userId): void
+  public function createInitialState(int $userId, int $initialEnergy): void
   {
     if ($userId <= 0) throw new RuntimeException('userId must be positive.');
-    $this->pdo->prepare('INSERT INTO `user_state` (`user_id`) VALUES (?)')->execute([$userId]);
+    if ($initialEnergy < 0) throw new RuntimeException('initialEnergy cannot be negative.');
+    $this->pdo->prepare('INSERT INTO `user_state` (`user_id`, `energy_current`) VALUES (?, ?)')->execute([$userId, $initialEnergy]);
   }
 
   /** @return array{teeth:int,raw_chaos:int,energy_current:int,energy_last_regen_at:string,player_revision:int}|null */

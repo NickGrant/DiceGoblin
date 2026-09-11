@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Repositories;
 
 use PDO;
-use Throwable;
+use RuntimeException;
 
 final class UserRepository
 {
@@ -46,7 +46,12 @@ final class UserRepository
 
   public function createExternalIdentity(int $userId, string $provider, string $providerUserId, ?string $providerEmail = null): void
   {
-    $this->pdo->prepare('INSERT INTO `user_external_identities` (`user_id`, `provider`, `provider_user_id`, `provider_email`) VALUES (?, ?, ?, ?)')->execute([$userId, trim($provider), trim($providerUserId), $providerEmail]);
+    $provider = trim($provider);
+    $providerUserId = trim($providerUserId);
+    if ($provider === '' || strlen($provider) > 32 || $providerUserId === '' || strlen($providerUserId) > 128) {
+      throw new RuntimeException('External provider identity is invalid.');
+    }
+    $this->pdo->prepare('INSERT INTO `user_external_identities` (`user_id`, `provider`, `provider_user_id`, `provider_email`) VALUES (?, ?, ?, ?)')->execute([$userId, $provider, $providerUserId, $providerEmail]);
   }
 
   public function updateUserProfile(int $userId, string $displayName, ?string $avatarUrl): void
@@ -54,31 +59,35 @@ final class UserRepository
     $this->pdo->prepare('UPDATE `users` SET `display_name` = ?, `avatar_url` = ? WHERE `id` = ?')->execute([trim($displayName) ?: 'Goblin', $avatarUrl, $userId]);
   }
 
-  public function createPasswordResetToken(int $userId, string $tokenHash, string $expiresAt): void
+  public function supersedeActivePasswordResetTokens(int $userId): void
   {
-    try {
-      $this->pdo->beginTransaction();
-      $this->pdo->prepare('UPDATE `password_reset_tokens` SET `used_at` = UTC_TIMESTAMP() WHERE `user_id` = ? AND `used_at` IS NULL')->execute([$userId]);
-      $this->pdo->prepare('INSERT INTO `password_reset_tokens` (`user_id`, `token_hash`, `expires_at`) VALUES (?, ?, ?)')->execute([$userId, $tokenHash, $expiresAt]);
-      $this->pdo->commit();
-    } catch (Throwable $e) { if ($this->pdo->inTransaction()) $this->pdo->rollBack(); throw $e; }
+    $this->pdo->prepare('UPDATE `password_reset_tokens` SET `used_at` = UTC_TIMESTAMP() WHERE `user_id` = ? AND `used_at` IS NULL')->execute([$userId]);
   }
 
-  public function consumePasswordResetToken(string $tokenHash, string $passwordHash): ?int
+  public function insertPasswordResetToken(int $userId, string $tokenHash, string $expiresAt): void
   {
-    try {
-      $this->pdo->beginTransaction();
-      $stmt = $this->pdo->prepare('SELECT `id`, `user_id` FROM `password_reset_tokens` WHERE `token_hash` = ? AND `used_at` IS NULL AND `expires_at` > UTC_TIMESTAMP() LIMIT 1 FOR UPDATE');
-      $stmt->execute([$tokenHash]);
-      $token = $stmt->fetch(PDO::FETCH_ASSOC);
-      if (!$token) { $this->pdo->rollBack(); return null; }
-      $update = $this->pdo->prepare('UPDATE `user_local_credentials` SET `password_hash` = ? WHERE `user_id` = ?');
-      $update->execute([$passwordHash, (int)$token['user_id']]);
-      if ($update->rowCount() !== 1) { $this->pdo->rollBack(); return null; }
-      $this->pdo->prepare('UPDATE `password_reset_tokens` SET `used_at` = UTC_TIMESTAMP() WHERE `id` = ?')->execute([(int)$token['id']]);
-      $this->pdo->commit();
-      return (int)$token['user_id'];
-    } catch (Throwable $e) { if ($this->pdo->inTransaction()) $this->pdo->rollBack(); throw $e; }
+    $this->pdo->prepare('INSERT INTO `password_reset_tokens` (`user_id`, `token_hash`, `expires_at`) VALUES (?, ?, ?)')->execute([$userId, $tokenHash, $expiresAt]);
+  }
+
+  /** @return array{id:int,user_id:int}|null */
+  public function lockActivePasswordResetToken(string $tokenHash): ?array
+  {
+    $stmt = $this->pdo->prepare('SELECT `id`, `user_id` FROM `password_reset_tokens` WHERE `token_hash` = ? AND `used_at` IS NULL AND `expires_at` > UTC_TIMESTAMP() LIMIT 1 FOR UPDATE');
+    $stmt->execute([$tokenHash]);
+    $token = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $token ? ['id' => (int)$token['id'], 'user_id' => (int)$token['user_id']] : null;
+  }
+
+  public function updateLocalPasswordHash(int $userId, string $passwordHash): bool
+  {
+    $stmt = $this->pdo->prepare('UPDATE `user_local_credentials` SET `password_hash` = ? WHERE `user_id` = ?');
+    $stmt->execute([$passwordHash, $userId]);
+    return $stmt->rowCount() === 1;
+  }
+
+  public function markPasswordResetTokenUsed(int $tokenId): void
+  {
+    $this->pdo->prepare('UPDATE `password_reset_tokens` SET `used_at` = UTC_TIMESTAMP() WHERE `id` = ?')->execute([$tokenId]);
   }
 
   /** @return array{id:string,display_name:string,avatar_url:?string}|null */

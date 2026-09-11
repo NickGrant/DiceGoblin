@@ -8,9 +8,9 @@ use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\AccountCreationService;
 use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\SessionService;
-use DiceGoblins\Tests\Support\DatabaseTestCase;
+use DiceGoblins\Tests\Support\IntegrationTestCase;
 
-final class VnextDatabaseBaselineTest extends DatabaseTestCase
+final class VnextDatabaseBaselineTest extends IntegrationTestCase
 {
   protected function supportsVnextBaseline(): bool
   {
@@ -19,22 +19,26 @@ final class VnextDatabaseBaselineTest extends DatabaseTestCase
 
   public function testBaselineContainsOnlyAcceptedPackageTablesAndColumns(): void
   {
-    $tables = $this->testPdo?->query('SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME')->fetchAll(\PDO::FETCH_COLUMN);
+    $tables = $this->pdo?->query('SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME')->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame(['password_reset_tokens', 'user_external_identities', 'user_local_credentials', 'user_state', 'users'], $tables);
 
-    $columns = $this->testPdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_state' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
+    $columns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_state' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame(['user_id', 'teeth', 'raw_chaos', 'energy_current', 'energy_last_regen_at', 'player_revision', 'created_at', 'updated_at'], $columns);
     $this->assertNotContains('energy_max', $columns);
+    $energyDefault = $this->scalar("SELECT COALESCE(COLUMN_DEFAULT, 'NULL') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_state' AND COLUMN_NAME = 'energy_current'", []);
+    $this->assertSame('NULL', (string)$energyDefault);
+    $roleChecks = $this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND CONSTRAINT_TYPE = 'CHECK'", []);
+    $this->assertSame('0', (string)$roleChecks);
   }
 
   public function testLocalAccountCreationAtomicallyPersistsCredentialsAndPlayerState(): void
   {
-    $this->testPdo?->rollBack();
-    $users = new UserRepository($this->testPdo);
-    $states = new PlayerStateRepository($this->testPdo);
-    $service = new AccountCreationService($this->testPdo, $users, $states);
+    $users = new UserRepository($this->pdo);
+    $states = new PlayerStateRepository($this->pdo);
+    $service = new AccountCreationService($this->pdo, $users, $states);
     $hash = password_hash('secret-pass', PASSWORD_DEFAULT);
-    $userId = $service->createLocal('  FRESH@example.test ', $hash, 'Fresh Goblin');
+    $userId = $service->createLocal('  FRESH@example.test ', $hash, 'Fresh Goblin', 17);
+    $this->trackUserId($userId);
 
     $credential = $users->getUserByLocalEmail('fresh@example.test');
     $state = $states->getPlayerState($userId);
@@ -42,21 +46,80 @@ final class VnextDatabaseBaselineTest extends DatabaseTestCase
     $this->assertTrue(password_verify('secret-pass', (string)($credential['password_hash'] ?? '')));
     $this->assertSame(0, $state['teeth'] ?? null);
     $this->assertSame(0, $state['raw_chaos'] ?? null);
-    $this->assertSame(50, $state['energy_current'] ?? null);
+    $this->assertSame(17, $state['energy_current'] ?? null);
     $this->assertSame(1, $state['player_revision'] ?? null);
-    $this->testPdo?->prepare('DELETE FROM `users` WHERE `id` = ?')->execute([$userId]);
+  }
+
+  public function testExternalAuthenticationCreatesOnceAndUpdatesExistingProfile(): void
+  {
+    $users = new UserRepository($this->pdo);
+    $states = new PlayerStateRepository($this->pdo);
+    $service = new AccountCreationService($this->pdo, $users, $states);
+
+    $userId = $service->findOrCreateExternal('discord', 'provider-123', 'First Name', 'https://example.test/first.png', 23, 'first@example.test');
+    $this->trackUserId($userId);
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `users` WHERE `id` = ?', [$userId]));
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_external_identities` WHERE `user_id` = ? AND `provider` = ? AND `provider_user_id` = ?', [$userId, 'discord', 'provider-123']));
+    $this->assertSame(23, $states->getPlayerState($userId)['energy_current'] ?? null);
+
+    $resolvedId = $service->findOrCreateExternal('discord', 'provider-123', 'Updated Name', 'https://example.test/updated.png', 99, 'updated@example.test');
+    $this->assertSame($userId, $resolvedId);
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `users` WHERE `id` = ?', [$userId]));
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_external_identities` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('Updated Name', (string)$this->scalar('SELECT `display_name` FROM `users` WHERE `id` = ?', [$userId]));
+    $this->assertSame('https://example.test/updated.png', (string)$this->scalar('SELECT `avatar_url` FROM `users` WHERE `id` = ?', [$userId]));
+    $this->assertSame(23, $states->getPlayerState($userId)['energy_current'] ?? null);
+  }
+
+  public function testDuplicateLocalCredentialRollsBackNewUserAndState(): void
+  {
+    $users = new UserRepository($this->pdo);
+    $states = new PlayerStateRepository($this->pdo);
+    $service = new AccountCreationService($this->pdo, $users, $states);
+    $firstUserId = $service->createLocal('unique@example.test', password_hash('password-one', PASSWORD_DEFAULT), 'First', 17);
+    $this->trackUserId($firstUserId);
+    $before = (int)$this->scalar('SELECT COUNT(*) FROM `users`', []);
+
+    try {
+      $service->createLocal('UNIQUE@example.test', password_hash('password-two', PASSWORD_DEFAULT), 'Second', 31);
+      $this->fail('Expected duplicate email to fail.');
+    } catch (\PDOException $e) {
+      $this->assertSame('23000', (string)$e->getCode());
+    }
+
+    $this->assertSame($before, (int)$this->scalar('SELECT COUNT(*) FROM `users`', []));
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_state` WHERE `user_id` = ?', [$firstUserId]));
+  }
+
+  public function testExternalIdentityFailureRollsBackUserAndState(): void
+  {
+    $users = new UserRepository($this->pdo);
+    $service = new AccountCreationService($this->pdo, $users, new PlayerStateRepository($this->pdo));
+    $before = (int)$this->scalar('SELECT COUNT(*) FROM `users`', []);
+
+    try {
+      $service->findOrCreateExternal('discord', str_repeat('x', 129), 'Rollback Goblin', null, 17);
+      $this->fail('Expected oversized provider identity to fail.');
+    } catch (\RuntimeException $e) {
+      $this->assertSame('External provider identity is invalid.', $e->getMessage());
+    }
+
+    $this->assertSame($before, (int)$this->scalar('SELECT COUNT(*) FROM `users`', []));
+    $this->assertSame('0', (string)$this->scalar("SELECT COUNT(*) FROM `user_external_identities` WHERE `provider_user_id` = ?", [str_repeat('x', 128)]));
   }
 
   public function testSessionReadDoesNotProvisionMissingPlayerState(): void
   {
-    $users = new UserRepository($this->testPdo);
+    $users = new UserRepository($this->pdo);
     $userId = $users->createUser('State-less Goblin', null);
     $_SESSION['user_id'] = $userId;
 
     $payload = (new SessionService($users, new CsrfService()))->getSessionPayload();
 
     $this->assertTrue($payload['authenticated']);
-    $stmt = $this->testPdo?->prepare('SELECT COUNT(*) FROM `user_state` WHERE `user_id` = ?');
+    $this->trackUserId($userId);
+    $stmt = $this->pdo?->prepare('SELECT COUNT(*) FROM `user_state` WHERE `user_id` = ?');
     $stmt?->execute([$userId]);
     $this->assertSame(0, (int)$stmt?->fetchColumn());
   }

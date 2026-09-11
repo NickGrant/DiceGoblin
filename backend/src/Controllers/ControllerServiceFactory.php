@@ -9,6 +9,7 @@ use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\AccountCreationService;
 use DiceGoblins\Services\PlayerBootstrapper;
+use DiceGoblins\Services\PasswordResetService;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\StarterPackProvisioningService;
 use PDO;
@@ -37,6 +38,7 @@ final class ControllerServiceFactory
     $starterPackProvisioningService = new StarterPackProvisioningService();
     $bootstrapper = new PlayerBootstrapper($playerStateRepo, $energyRepo, $starterPackProvisioningService);
     $accountCreationService = new AccountCreationService($pdo, $userRepo, $playerStateRepo);
+    $passwordResetService = new PasswordResetService($pdo, $userRepo);
     $sessionService = new SessionService($userRepo, $csrfService);
 
     return [
@@ -48,6 +50,7 @@ final class ControllerServiceFactory
       'bootstrapper' => $bootstrapper,
       'sessionService' => $sessionService,
       'accountCreationService' => $accountCreationService,
+      'passwordResetService' => $passwordResetService,
     ];
   }
 }

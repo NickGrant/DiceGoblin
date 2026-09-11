@@ -17,19 +17,19 @@ final class AccountCreationService
     private readonly PlayerStateRepository $playerState,
   ) {}
 
-  public function createLocal(string $email, string $passwordHash, string $displayName): int
+  public function createLocal(string $email, string $passwordHash, string $displayName, int $initialEnergy): int
   {
-    return $this->transactional(function () use ($email, $passwordHash, $displayName): int {
+    return $this->transactional(function () use ($email, $passwordHash, $displayName, $initialEnergy): int {
       $userId = $this->users->createUser($displayName, null);
       $this->users->createLocalCredential($userId, $email, $passwordHash);
-      $this->playerState->createInitialState($userId);
+      $this->playerState->createInitialState($userId, $initialEnergy);
       return $userId;
     });
   }
 
-  public function findOrCreateExternal(string $provider, string $providerUserId, string $displayName, ?string $avatarUrl, ?string $providerEmail = null): int
+  public function findOrCreateExternal(string $provider, string $providerUserId, string $displayName, ?string $avatarUrl, int $initialEnergy, ?string $providerEmail = null): int
   {
-    return $this->transactional(function () use ($provider, $providerUserId, $displayName, $avatarUrl, $providerEmail): int {
+    return $this->transactional(function () use ($provider, $providerUserId, $displayName, $avatarUrl, $initialEnergy, $providerEmail): int {
       $existing = $this->users->getUserByExternalIdentity($provider, $providerUserId, true);
       if ($existing !== null) {
         $userId = (int)$existing['id'];
@@ -38,7 +38,7 @@ final class AccountCreationService
       }
       $userId = $this->users->createUser($displayName, $avatarUrl);
       $this->users->createExternalIdentity($userId, $provider, $providerUserId, $providerEmail);
-      $this->playerState->createInitialState($userId);
+      $this->playerState->createInitialState($userId, $initialEnergy);
       return $userId;
     });
   }

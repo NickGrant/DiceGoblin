@@ -10,17 +10,7 @@ use DiceGoblins\Core\Autoloader;
 use DiceGoblins\Core\Env;
 use DiceGoblins\Core\Router;
 use DiceGoblins\Controllers\ApiController;
-use DiceGoblins\Controllers\AcademyController;
 use DiceGoblins\Controllers\AuthController;
-use DiceGoblins\Controllers\BattleController;
-use DiceGoblins\Controllers\BountyBoardController;
-use DiceGoblins\Controllers\ChaosEncounterController;
-use DiceGoblins\Controllers\DebugController;
-use DiceGoblins\Controllers\GameplayController;
-use DiceGoblins\Controllers\RunNodeController;
-use DiceGoblins\Controllers\ShopController;
-use DiceGoblins\Controllers\TeamController;
-use DiceGoblins\Controllers\WrongMachineController;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';
 Autoloader::register(__DIR__ . '/../src');
@@ -101,17 +91,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
 $router = new Router();
 
 $api = new ApiController();
-$academy = new AcademyController();
 $auth = new AuthController();
-$battle = new BattleController();
-$bountyBoard = new BountyBoardController();
-$chaosEncounter = new ChaosEncounterController();
-$debug = new DebugController();
-$gameplay = new GameplayController();
-$runNode = new RunNodeController();
-$shop = new ShopController();
-$team = new TeamController();
-$wrongMachine = new WrongMachineController();
 
 // Auth
 $router->get('/auth/discord/start', [$auth, 'discordStart']);
@@ -125,61 +105,10 @@ $router->post('/api/v1/auth/logout', [$auth, 'logout']);
 // API
 $router->get('/api/v1/health', [$api, 'health']);
 $router->get('/api/v1/session', [$api, 'session']);
-$router->get('/api/v1/profile', [$api, 'profile']);
-$router->post('/api/v1/dialogues/:dialogueId/seen', [$api, 'markDialogueSeen']);
-$router->get('/api/v1/academy', [$academy, 'catalog']);
-$router->post('/api/v1/academy/unlock-unit-type', [$academy, 'unlockUnitType']);
-$router->get('/api/v1/shop', [$shop, 'catalog']);
-$router->post('/api/v1/shop/purchase', [$shop, 'purchase']);
-$router->get('/api/v1/bounties', [$bountyBoard, 'board']);
-$router->post('/api/v1/bounties/accept', [$bountyBoard, 'accept']);
-$router->post('/api/v1/bounties/sync', [$bountyBoard, 'sync']);
-$router->post('/api/v1/bounties/:userBountyId/claim', [$bountyBoard, 'claim']);
-$router->get('/api/v1/wrong-machine/reconstructions', [$wrongMachine, 'reconstructions']);
-$router->post('/api/v1/wrong-machine/reconstruct', [$wrongMachine, 'reconstruct']);
-$router->get('/api/v1/runs/current', [$api, 'currentRun']);
-$router->post('/api/v1/runs', [$api, 'createRun']);
-$router->post('/api/v1/runs/:runId/abandon', [$api, 'abandonRun']);
-$router->post('/api/v1/runs/:runId/exit', [$api, 'exitRun']);
-$router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/open', [$gameplay, 'openRest']);
-$router->post('/api/v1/runs/:runId/nodes/:nodeId/rest/finalize', [$gameplay, 'finalizeRest']);
-$router->post('/api/v1/runs/:runId/units/:unitInstanceId/items/heal', [$gameplay, 'healRunUnitWithItem']);
-$router->post('/api/v1/items/energy/restore', [$gameplay, 'restoreEnergyWithItem']);
-$router->post('/api/v1/runs/:runId/nodes/:nodeId/chaos/generate', [$chaosEncounter, 'generate']);
-$router->post('/api/v1/runs/:runId/nodes/:nodeId/chaos/reroll', [$chaosEncounter, 'reroll']);
-$router->post('/api/v1/runs/:runId/nodes/:nodeId/chaos/finalize', [$chaosEncounter, 'finalize']);
-$router->get('/api/v1/abilities', [$api, 'abilities']);
-// Debug / dev-only endpoints
-$router->get('/api/v1/debug/catalog', [$debug, 'catalog']);
-$router->get('/api/v1/debug/seed-tables', [$debug, 'seedTables']);
-$router->post('/api/v1/debug/grant/currency', [$debug, 'grantCurrency']);
-$router->post('/api/v1/debug/grant/unit', [$debug, 'grantUnit']);
-$router->post('/api/v1/debug/grant/dice', [$debug, 'grantDice']);
-$router->post('/api/v1/debug/grant/item', [$debug, 'grantItem']);
-$router->post('/api/v1/debug/grant/lineage', [$debug, 'grantLineage']);
-$router->post('/api/v1/debug/grant/region-item', [$debug, 'grantRegionItem']);
-$router->post('/api/v1/debug/units/set-level', [$debug, 'setUnitLevel']);
-$router->post('/api/v1/debug/reset-account', [$debug, 'resetAccount']);
 
-$router->post('/api/v1/runs/:runId/nodes/:nodeId/resolve', [$runNode, 'resolveNode']);
-$router->post('/api/v1/runs/:runId/nodes/:nodeId/dialogue/complete', [$runNode, 'completeDialogueNode']);
-$router->get('/api/v1/battles/:battleId/log',[$battle, 'getBattleLog']);
-$router->post('/api/v1/battles/:battleId/claim',[$battle, 'claimBattle']);
-// Compatibility-critical identifiers remain `teams` in route keys.
-$router->get('/api/v1/units/:unitInstanceId/promotion-options', [$gameplay, 'getPromotionOptions']);
-$router->post('/api/v1/units/:unitInstanceId/promote', [$gameplay, 'promoteUnit']);
-$router->put('/api/v1/units/:unitInstanceId/capstone', [$gameplay, 'selectCapstone']);
-$router->patch('/api/v1/units/:unitInstanceId/name', [$gameplay, 'renameUnit']);
-$router->put('/api/v1/units/:unitInstanceId/loadout', [$gameplay, 'replaceEquippedAbilities']);
-$router->put('/api/v1/units/:unitInstanceId/abilities/:abilityId/slots/:slotIndex/dice', [$gameplay, 'assignAbilitySlotDie']);
-$router->delete('/api/v1/units/:unitInstanceId/abilities/:abilityId/slots/:slotIndex/dice', [$gameplay, 'clearAbilitySlotDie']);
-$router->post('/api/v1/dice/:diceInstanceId/sell', [$gameplay, 'sellDice']);
-$router->post('/api/v1/dice/:diceInstanceId/salvage', [$gameplay, 'salvageDice']);
-
-$router->post('/api/v1/teams', [$team, 'createTeam']);
-$router->post('/api/v1/teams/:teamId/activate', [$team, 'activateTeam']);
-$router->put('/api/v1/teams/:teamId', [$team, 'updateTeam']);
-$router->delete('/api/v1/teams/:teamId', [$team, 'deleteTeam']);
+// Prototype gameplay controllers remain in source as migration evidence, but their
+// routes are intentionally not registered against the fresh vNext schema. Each
+// owning milestone will register its accepted replacement endpoints when proven.
 
 // Dispatch
 $router->dispatch();

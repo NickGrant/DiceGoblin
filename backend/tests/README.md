@@ -29,3 +29,4 @@
 - `DatabaseTestCase` wraps each test in a transaction and rolls back after each test.
 - Use SQL fixtures under `backend/tests/Fixtures/`.
 - Reset the test database by loading `backend/migrations/vnext_baseline.sql` into the Docker `goblin_test` database.
+- The fresh baseline activates only vNext database/auth/session integration tests. Prototype gameplay integration tests are retained as migration evidence and report explicit skips until their owning milestones replace their schema and routes.

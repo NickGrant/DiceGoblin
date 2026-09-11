@@ -143,6 +143,32 @@ final class AuthControllerLocalAuthTest extends IntegrationTestCase
     $this->assertArrayNotHasKey('reset_token', $response['body']['data'] ?? []);
   }
 
+  public function testPasswordResetSupersedesPriorTokenAndConsumedTokenCannotBeReused(): void
+  {
+    $email = 'reset-safety-' . bin2hex(random_bytes(4)) . '@example.test';
+    $this->insertLocalUser($email, 'old-password');
+
+    $this->setJsonBody(['email' => $email]);
+    $first = $this->invoke(fn() => (new AuthController())->requestPasswordReset());
+    $this->setJsonBody(['email' => $email]);
+    $second = $this->invoke(fn() => (new AuthController())->requestPasswordReset());
+
+    $this->setJsonBody(['token' => $first['body']['data']['reset_token'], 'password' => 'first-new-password']);
+    $superseded = $this->invoke(fn() => (new AuthController())->confirmPasswordReset());
+    $this->assertSame(400, $superseded['status']);
+    $this->assertSame('password_reset_invalid', $superseded['body']['error']['code'] ?? null);
+
+    $this->setJsonBody(['token' => $second['body']['data']['reset_token'], 'password' => 'second-new-password']);
+    $consumed = $this->invoke(fn() => (new AuthController())->confirmPasswordReset());
+    $this->assertSame(200, $consumed['status']);
+
+    $_SESSION = [];
+    $this->setJsonBody(['token' => $second['body']['data']['reset_token'], 'password' => 'third-new-password']);
+    $reused = $this->invoke(fn() => (new AuthController())->confirmPasswordReset());
+    $this->assertSame(400, $reused['status']);
+    $this->assertSame('password_reset_invalid', $reused['body']['error']['code'] ?? null);
+  }
+
   public function testPasswordResetConfirmRejectsInvalidToken(): void
   {
     $this->setJsonBody([
@@ -158,6 +184,20 @@ final class AuthControllerLocalAuthTest extends IntegrationTestCase
     $this->assertArrayNotHasKey('user_id', $_SESSION);
   }
 
+  public function testPasswordResetConfirmRejectsExpiredToken(): void
+  {
+    $userId = $this->insertLocalUser('expired-' . bin2hex(random_bytes(4)) . '@example.test', 'old-password');
+    $token = bin2hex(random_bytes(32));
+    $this->pdo?->prepare('INSERT INTO `password_reset_tokens` (`user_id`, `token_hash`, `expires_at`) VALUES (?, ?, ?)')
+      ->execute([$userId, hash('sha256', $token), '2000-01-01 00:00:00']);
+
+    $this->setJsonBody(['token' => $token, 'password' => 'new-password']);
+    $response = $this->invoke(fn() => (new AuthController())->confirmPasswordReset());
+
+    $this->assertSame(400, $response['status']);
+    $this->assertSame('password_reset_invalid', $response['body']['error']['code'] ?? null);
+  }
+
   private function insertLocalUser(string $email, string $password): int
   {
     $stmt = $this->pdo?->prepare('INSERT INTO `users` (`display_name`) VALUES (?)');
@@ -165,7 +205,7 @@ final class AuthControllerLocalAuthTest extends IntegrationTestCase
     $userId = (int)$this->pdo?->lastInsertId();
     $credential = $this->pdo?->prepare('INSERT INTO `user_local_credentials` (`user_id`, `email`, `password_hash`) VALUES (?, ?, ?)');
     $credential?->execute([$userId, strtolower($email), password_hash($password, PASSWORD_DEFAULT)]);
-    $this->pdo?->prepare('INSERT INTO `user_state` (`user_id`) VALUES (?)')->execute([$userId]);
+    $this->pdo?->prepare('INSERT INTO `user_state` (`user_id`, `energy_current`) VALUES (?, ?)')->execute([$userId, 17]);
     $this->trackUserId($userId);
     return $userId;
   }
