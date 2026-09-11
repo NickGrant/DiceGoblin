@@ -2,34 +2,25 @@
 ----
 
 ## Purpose
-- Keep agent-operation files separate from game/project documentation.
-- Centralize backlog control, role definitions, context manifests, and agent workflow references.
+Keep coding-agent execution context aligned with the vNext overhaul and separate from game/project documentation.
 
-## Core Files
-- `ISSUES.md`
-- `ISSUES_BACKLOG.md`
-- `ISSUES_ARCHIVE.md`
-- `MILESTONES.md`
-- `MILESTONES_BACKLOG.md`
-- `MILESTONES_ARCHIVE.md`
-- `CONTEXT_ROUTER.md`
-- `ROLES.md`
-- `ROLE_CATALOG.md`
+## Default Context
 - `LLM_CONTEXT.md`
-- `ROLE_CLARIFICATION.md`
+- `CONTEXT_ROUTER.md`
+- `ISSUES.md`
+- `MILESTONES.md`
+- `QUALITY_GATES.md` when verification is relevant
 
-## Workflow Docs
-- `BACKLOG_OPERATIONS.md`
-- `QUALITY_GATES.md`
-- `ACTIVE_CONTEXT.md`
-- `CURRENT_STATUS_EVALUATION.md`
-- `07-llm-ops/`
+## Planning
+- `BACKLOG_OPERATIONS.md` defines issue/milestone workflow.
+- `ISSUES_BACKLOG.md` and `MILESTONES_BACKLOG.md` contain only explicitly deferred vNext execution inventory; they are not alternative roadmaps.
+- The full 0-14 roadmap lives in `documentation/07-development-path/vnext-game-overhaul.md`.
 
-## Automation Helpers
-- `npm.cmd run backlog -- ...` manages issue and milestone records without manual file editing.
-- `npm.cmd run agent:docs -- role list|show ...` retrieves role details without loading the full role catalog into context.
-- `npm.cmd run agent:docs -- role-clarification add|list ...` appends and inspects clarification log entries without loading the entire log file.
+## Roles
+- `ROLES.md` and `ROLE_CATALOG.md` are loaded only when role guidance is actually needed.
+- `ROLE_CLARIFICATION.md` records role-specific clarifications where applicable.
 
-## Root Exceptions
-- `AGENTS.md` stays at repo root as the primary entrypoint for coding agents.
-- `README.md` stays at repo root as the primary repository overview.
+## Historical Context
+Historical issues, milestones, prototype plans, and removed documentation are recovered from Git history only when explicitly required. The vNext branch does not keep parallel agent archive files as an alternate context source.
+
+`AGENTS.md` remains the root coding-agent entry point.

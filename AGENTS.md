@@ -2,51 +2,42 @@
 ----
 
 ## Purpose
-This file defines the always-loaded project contract for coding agents in this repository.
+This file defines the always-loaded project contract for coding agents working on the `vnext-game-overhaul` branch.
 
 ## Startup Behavior
-- On each new user turn, check for and read these files if they exist:
-  - `agent/LLM_CONTEXT.md`
-  - `agent/ISSUES.md`
-  - `agent/MILESTONES.md`
-- Use `agent/CONTEXT_ROUTER.md` as the default retrieval map for any additional project or documentation context.
-- Read `agent/ROLES.md` only when:
-  - the user asks to assume a role
-  - the task is explicitly role-based
-  - role guidance is needed to resolve an execution decision
-- Treat `agent/ISSUES.md` and `agent/MILESTONES.md` as the active execution source of truth.
-- Treat `agent/ISSUES_BACKLOG.md` and `agent/MILESTONES_BACKLOG.md` as planning-only context loaded on demand.
-- Treat `agent/ISSUES_ARCHIVE.md` and `agent/MILESTONES_ARCHIVE.md` as historical context loaded on demand.
-- Prefer running:
-  - `npm.cmd run startup:check`
-  - `npm.cmd run backlog:validate`
-  - `npm.cmd run llm:check`
+On each new user turn:
+- read `agent/LLM_CONTEXT.md`, `agent/ISSUES.md`, and `agent/MILESTONES.md`;
+- use `agent/CONTEXT_ROUTER.md` for additional context;
+- use `documentation/07-development-path/vnext-game-overhaul.md` as the implementation roadmap;
+- load only the narrow accepted vNext decision/system documents needed for the task.
+
+Treat `agent/ISSUES.md` and `agent/MILESTONES.md` as active execution state. Backlog files are planning-only and currently contain no independent product requirements.
+
+## Authority Rules
+- Accepted vNext decision documents override prototype implementation shape.
+- The active documentation tree contains current intent; Git history is the archive.
+- Do not search Git history or resurrect deleted docs as design authority unless the user explicitly asks to recover/reconsider old behavior.
+- Prototype source/tests may be inspected as migration evidence for useful algorithms/content, but they do not override accepted vNext decisions.
+- A removed catalog or design document is not permission to invent replacement behavior; reconcile historical/source evidence deliberately when that milestone reaches implementation.
 
 ## Canonical References
-- Workspace index: `agent/README.md`
-- Context-loading policy: `agent/LLM_CONTEXT.md`
-- Context retrieval map: `agent/CONTEXT_ROUTER.md`
-- Role activation and summaries: `agent/ROLES.md`
-- Full role definitions and clarification logging: `agent/ROLE_CATALOG.md`
-- Backlog sequencing, issue/milestone workflow, and batching: `agent/BACKLOG_OPERATIONS.md`
-- Verification, doc hygiene, feature intake, and spec activation: `agent/QUALITY_GATES.md`
-- Current status evaluation workflow: `agent/CURRENT_STATUS_EVALUATION.md`
-
-## Instruction Precedence
-- Follow platform/system/developer safety instructions first.
-- Then follow this `AGENTS.md`.
-- Then follow `agent/ROLES.md`, `agent/ISSUES.md`, and `agent/MILESTONES.md`.
-- Then follow other referenced agent docs.
-- Then follow user task details.
+- Repository overview: `README.md`
+- Documentation map: `documentation/README.md`
+- vNext roadmap: `documentation/07-development-path/vnext-game-overhaul.md`
+- Agent workspace: `agent/README.md`
+- Context policy: `agent/LLM_CONTEXT.md`
+- Context router: `agent/CONTEXT_ROUTER.md`
+- Active execution: `agent/ISSUES.md`, `agent/MILESTONES.md`
+- Sequencing workflow: `agent/BACKLOG_OPERATIONS.md`
+- Verification: `agent/QUALITY_GATES.md`
+- Roles when explicitly needed: `agent/ROLES.md`, `agent/ROLE_CATALOG.md`
 
 ## Execution Defaults
-- Work from `agent/ISSUES.md` and `agent/MILESTONES.md` unless the user explicitly asks for planning/backlog work.
-- Keep changes scoped to the requested task.
-- Avoid unrelated refactors unless required to safely complete the task.
-- Keep documentation and tests aligned with behavior changes.
-- In PowerShell, do not chain commands with `&&`; run sequential commands separately.
+- Work from the active/next vNext milestone and its execution-ready issues.
+- Build milestone-sized vertical capabilities rather than horizontally porting the prototype.
+- Keep documentation/tests aligned with accepted behavior.
+- Remove obsolete compatibility surfaces when their vNext replacement is proven instead of preserving them for historical reasons.
+- Prefer current repository verification scripts; if a documented command is stale, fix the documentation rather than preserving the obsolete workflow.
 
-## Special Triggers
-- If the user asks to assume a role, follow `agent/ROLES.md`.
-- If detailed role definitions are needed after role activation, load `agent/ROLE_CATALOG.md`.
-- If the user asks for `current status evaluation`, execute `agent/CURRENT_STATUS_EVALUATION.md`.
+## Instruction Precedence
+Follow platform/system/developer instructions, then this repository contract, then active project/role guidance, then the user's task details.

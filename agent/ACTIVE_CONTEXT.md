@@ -2,24 +2,17 @@
 ----
 
 Status: active
-Last Updated: 2026-07-24
+Last Updated: 2026-09-10
 Owner: Product + Engineering
-Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `documentation/README.md`
-
-## Purpose
-- Fast startup snapshot for current delivery focus.
+Depends On: `agent/ISSUES.md`, `agent/MILESTONES.md`, `documentation/07-development-path/vnext-game-overhaul.md`
 
 ## Current Focus
-- Execute from `agent/ISSUES.md` and `agent/MILESTONES.md` only.
-- Current active lane: Expanded Combat Stats.
-- Prioritize turning Precision and Resolve from schema-visible fields into deterministic combat behavior, seed tuning, logs, and comparison UI.
+Milestone 0 reconciliation/documentation cleanup is complete. The next target is **Milestone 1 - Walking Skeleton**.
 
-## Key Risks
-- Combat balance drift if Precision and Resolve formulas are too swingy.
-- API/doc drift while roadmap foundations are promoted into implemented systems.
-- Migration sequencing around roadmap schema files 59-61 during production deploys.
+Before implementation, decompose Milestone 1 into dependency-ordered work packages covering only the minimum fresh DB, authored-content/projection, PHP bootstrap/infrastructure, Angular `/game` host, Phaser runtime/GameScene/Camp, responsive/orientation behavior, and verification needed to prove the skeleton.
 
 ## Working Agreement
 - Active execution: `agent/ISSUES.md`, `agent/MILESTONES.md`.
-- Deferred planning: backlog files.
-- Historical context: archive files on demand.
+- Roadmap: `documentation/07-development-path/vnext-game-overhaul.md`.
+- Architecture: relevant accepted `documentation/07-development-path/vnext-*.md` decisions.
+- Historical context: Git history only when explicitly needed.
