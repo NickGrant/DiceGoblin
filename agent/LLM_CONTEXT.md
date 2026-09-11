@@ -1,45 +1,27 @@
-# LLM Context Manifest
-----
+# Context Manifest
 
 ## Purpose
-Keep coding-agent context small, current, and aligned with the vNext overhaul.
+Keep implementation context small. `AGENTS.md` defines startup, authority, execution, and completion rules; do not duplicate them here.
 
-## Always Include
-- `AGENTS.md`
-- `agent/ISSUES.md`
-- `agent/MILESTONES.md`
-- `agent/CONTEXT_ROUTER.md`
+## Default Implementation Context
+- `AGENTS.md` (automatically applicable project contract)
+- `agent/ISSUES.md` (single current execution package)
+- current source/tests directly touched by the package
 
-## vNext Context Rule
-The active branch intentionally removes superseded documentation instead of keeping an in-tree legacy archive. Git history is the historical source.
+Everything else is demand-driven.
 
-For implementation work, prefer:
-1. the active milestone in `agent/MILESTONES.md`;
-2. `documentation/07-development-path/vnext-game-overhaul.md`;
-3. the narrow accepted vNext decision documents required by the task;
-4. current system/content documents when they describe gameplay that must be preserved;
-5. source/tests as implementation evidence.
+## Load When Needed
+- `agent/CONTEXT_ROUTER.md` — when the authoritative document for a question is unclear.
+- `agent/QUALITY_GATES.md` — before verification/completion.
+- `agent/MILESTONES.md` and the vNext roadmap — sequencing, package completion, or planning.
+- `documentation/07-development-path/vnext-prototype-code-disposition.md` — before replacing a prototype subsystem.
+- Relevant accepted `vnext-*.md` decision docs — only for domains touched by the current package.
+- System/content/UX/lore docs — only when their behavior or presentation is being changed.
+- Role files — only when the user explicitly requests a role/review lens.
+- Git history — only for explicit historical recovery/investigation.
 
-Do not use prototype behavior to override an accepted vNext decision.
+## Exclude by Default
+Do not recursively load documentation directories, future issue details, backlog files, role catalogs, `frontend/dist/`, `frontend/node_modules/`, `raw-assets/`, generated artifacts, or unrelated source.
 
-## Include On Demand
-- `documentation/00-overview/` for product terminology and core loop.
-- `documentation/01-lore/` for setting and character voice.
-- `documentation/02-systems/` for preserved gameplay rules.
-- `documentation/03-content/` for retained content-design references.
-- `documentation/04-ux/01-visual-design-guide.md` for visual direction.
-- `documentation/05-technical/` plus accepted vNext decision docs for technical work.
-- `documentation/06-testing-release/00-testing-strategy.md` and `agent/QUALITY_GATES.md` for verification.
-- `documentation/08-operations/` for engineering/documentation standards.
-- backlog files only when explicitly doing backlog/planning work.
-- archive files under `agent/` only for historical investigation or reopened work.
-
-## Prefer Excluding
-- `frontend/dist/`
-- `frontend/node_modules/`
-- `raw-assets/`
-- generated artifacts unrelated to the task
-- Git history and deleted documentation unless history is explicitly required
-
-## Context Budget
-Load summaries/indexes first, then the narrow contract, then implementation. Do not recursively load a whole documentation bucket merely because one file in it is relevant.
+## Refresh Triggers
+Do not reread unchanged files each turn. Refresh context when the work package/scope changes, a referenced file was modified, a conflict appears, or prior context is no longer reliable.
