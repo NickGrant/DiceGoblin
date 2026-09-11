@@ -1,0 +1,13 @@
+{
+    "revision": "4a3028bb1e8c63ce228257d15848c6d646287c985b3bb8f45b1032f99a87d4e2",
+    "content": {
+        "regions": {
+            "region.the_farm": {
+                "id": "region.the_farm",
+                "display_name": "The Farm",
+                "description": "Defend a battered farmstead from the first signs of Chaos.",
+                "art_key": "region-the-farm"
+            }
+        }
+    }
+}

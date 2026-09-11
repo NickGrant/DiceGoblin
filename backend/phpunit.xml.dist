@@ -8,7 +8,6 @@
 >
   <php>
     <!-- Test fixture only; production must configure this transitional input explicitly. -->
-    <env name="VNEXT_INITIAL_ENERGY" value="17"/>
   </php>
   <testsuites>
     <testsuite name="backend">

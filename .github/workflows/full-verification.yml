@@ -40,6 +40,9 @@ jobs:
       - name: Run documentation lint (warning mode)
         run: npm run docs:lint
 
+      - name: Validate authored content and client projection
+        run: npm run content:validate
+
       - name: Run backend tests
         run: npm run test:backend
 

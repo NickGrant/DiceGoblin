@@ -67,7 +67,6 @@ final class AuthController
         $email,
         password_hash($password, PASSWORD_DEFAULT),
         $displayName,
-        $this->initialEnergy(),
       );
       $this->regenerateActiveSessionId();
       $services['sessionService']->establishSession($userId);
@@ -340,7 +339,7 @@ final class AuthController
       $services = $this->services();
 
       $providerEmail = isset($me['email']) && is_string($me['email']) ? $me['email'] : null;
-      $userId = $services['accountCreationService']->findOrCreateExternal('discord', $discordId, $displayName, $avatarUrl, $this->initialEnergy(), $providerEmail);
+      $userId = $services['accountCreationService']->findOrCreateExternal('discord', $discordId, $displayName, $avatarUrl, $providerEmail);
       $this->regenerateActiveSessionId();
 
       // Establish minimal session (only user_id + rotated CSRF token)
@@ -474,16 +473,6 @@ final class AuthController
   {
     return Env::get('LOCAL_AUTH_EXPOSE_RESET_TOKEN', '0') === '1'
       || Env::get('APP_ENV', 'dev') !== 'prod';
-  }
-
-  /** Transitional input until the authored ContentRegistry owns balance values. */
-  private function initialEnergy(): int
-  {
-    $configured = Env::get('VNEXT_INITIAL_ENERGY', '');
-    if (!is_string($configured) || !preg_match('/^\d+$/', $configured)) {
-      throw new \RuntimeException('VNEXT_INITIAL_ENERGY must be configured as a non-negative integer.');
-    }
-    return (int)$configured;
   }
 
   private function frontendBaseUrl(): string

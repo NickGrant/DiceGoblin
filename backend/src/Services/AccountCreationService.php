@@ -15,21 +15,22 @@ final class AccountCreationService
     private readonly PDO $pdo,
     private readonly UserRepository $users,
     private readonly PlayerStateRepository $playerState,
+    private readonly int $initialEnergy,
   ) {}
 
-  public function createLocal(string $email, string $passwordHash, string $displayName, int $initialEnergy): int
+  public function createLocal(string $email, string $passwordHash, string $displayName): int
   {
-    return $this->transactional(function () use ($email, $passwordHash, $displayName, $initialEnergy): int {
+    return $this->transactional(function () use ($email, $passwordHash, $displayName): int {
       $userId = $this->users->createUser($displayName, null);
       $this->users->createLocalCredential($userId, $email, $passwordHash);
-      $this->playerState->createInitialState($userId, $initialEnergy);
+      $this->playerState->createInitialState($userId, $this->initialEnergy);
       return $userId;
     });
   }
 
-  public function findOrCreateExternal(string $provider, string $providerUserId, string $displayName, ?string $avatarUrl, int $initialEnergy, ?string $providerEmail = null): int
+  public function findOrCreateExternal(string $provider, string $providerUserId, string $displayName, ?string $avatarUrl, ?string $providerEmail = null): int
   {
-    return $this->transactional(function () use ($provider, $providerUserId, $displayName, $avatarUrl, $initialEnergy, $providerEmail): int {
+    return $this->transactional(function () use ($provider, $providerUserId, $displayName, $avatarUrl, $providerEmail): int {
       $existing = $this->users->getUserByExternalIdentity($provider, $providerUserId, true);
       if ($existing !== null) {
         $userId = (int)$existing['id'];
@@ -38,7 +39,7 @@ final class AccountCreationService
       }
       $userId = $this->users->createUser($displayName, $avatarUrl);
       $this->users->createExternalIdentity($userId, $provider, $providerUserId, $providerEmail);
-      $this->playerState->createInitialState($userId, $initialEnergy);
+      $this->playerState->createInitialState($userId, $this->initialEnergy);
       return $userId;
     });
   }

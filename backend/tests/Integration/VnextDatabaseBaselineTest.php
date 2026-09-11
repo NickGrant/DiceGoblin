@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Tests\Integration;
 
+use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\AccountCreationService;
@@ -35,9 +36,9 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
   {
     $users = new UserRepository($this->pdo);
     $states = new PlayerStateRepository($this->pdo);
-    $service = new AccountCreationService($this->pdo, $users, $states);
+    $service = $this->accountCreationService($users, $states);
     $hash = password_hash('secret-pass', PASSWORD_DEFAULT);
-    $userId = $service->createLocal('  FRESH@example.test ', $hash, 'Fresh Goblin', 17);
+    $userId = $service->createLocal('  FRESH@example.test ', $hash, 'Fresh Goblin');
     $this->trackUserId($userId);
 
     $credential = $users->getUserByLocalEmail('fresh@example.test');
@@ -46,7 +47,7 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $this->assertTrue(password_verify('secret-pass', (string)($credential['password_hash'] ?? '')));
     $this->assertSame(0, $state['teeth'] ?? null);
     $this->assertSame(0, $state['raw_chaos'] ?? null);
-    $this->assertSame(17, $state['energy_current'] ?? null);
+    $this->assertSame($this->contentRegistry()->startingEnergy(), $state['energy_current'] ?? null);
     $this->assertSame(1, $state['player_revision'] ?? null);
   }
 
@@ -54,35 +55,35 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
   {
     $users = new UserRepository($this->pdo);
     $states = new PlayerStateRepository($this->pdo);
-    $service = new AccountCreationService($this->pdo, $users, $states);
+    $service = $this->accountCreationService($users, $states);
 
-    $userId = $service->findOrCreateExternal('discord', 'provider-123', 'First Name', 'https://example.test/first.png', 23, 'first@example.test');
+    $userId = $service->findOrCreateExternal('discord', 'provider-123', 'First Name', 'https://example.test/first.png', 'first@example.test');
     $this->trackUserId($userId);
     $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `users` WHERE `id` = ?', [$userId]));
     $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_external_identities` WHERE `user_id` = ? AND `provider` = ? AND `provider_user_id` = ?', [$userId, 'discord', 'provider-123']));
-    $this->assertSame(23, $states->getPlayerState($userId)['energy_current'] ?? null);
+    $this->assertSame($this->contentRegistry()->startingEnergy(), $states->getPlayerState($userId)['energy_current'] ?? null);
 
-    $resolvedId = $service->findOrCreateExternal('discord', 'provider-123', 'Updated Name', 'https://example.test/updated.png', 99, 'updated@example.test');
+    $resolvedId = $service->findOrCreateExternal('discord', 'provider-123', 'Updated Name', 'https://example.test/updated.png', 'updated@example.test');
     $this->assertSame($userId, $resolvedId);
     $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `users` WHERE `id` = ?', [$userId]));
     $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_external_identities` WHERE `user_id` = ?', [$userId]));
     $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_state` WHERE `user_id` = ?', [$userId]));
     $this->assertSame('Updated Name', (string)$this->scalar('SELECT `display_name` FROM `users` WHERE `id` = ?', [$userId]));
     $this->assertSame('https://example.test/updated.png', (string)$this->scalar('SELECT `avatar_url` FROM `users` WHERE `id` = ?', [$userId]));
-    $this->assertSame(23, $states->getPlayerState($userId)['energy_current'] ?? null);
+    $this->assertSame($this->contentRegistry()->startingEnergy(), $states->getPlayerState($userId)['energy_current'] ?? null);
   }
 
   public function testDuplicateLocalCredentialRollsBackNewUserAndState(): void
   {
     $users = new UserRepository($this->pdo);
     $states = new PlayerStateRepository($this->pdo);
-    $service = new AccountCreationService($this->pdo, $users, $states);
-    $firstUserId = $service->createLocal('unique@example.test', password_hash('password-one', PASSWORD_DEFAULT), 'First', 17);
+    $service = $this->accountCreationService($users, $states);
+    $firstUserId = $service->createLocal('unique@example.test', password_hash('password-one', PASSWORD_DEFAULT), 'First');
     $this->trackUserId($firstUserId);
     $before = (int)$this->scalar('SELECT COUNT(*) FROM `users`', []);
 
     try {
-      $service->createLocal('UNIQUE@example.test', password_hash('password-two', PASSWORD_DEFAULT), 'Second', 31);
+      $service->createLocal('UNIQUE@example.test', password_hash('password-two', PASSWORD_DEFAULT), 'Second');
       $this->fail('Expected duplicate email to fail.');
     } catch (\PDOException $e) {
       $this->assertSame('23000', (string)$e->getCode());
@@ -95,11 +96,11 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
   public function testExternalIdentityFailureRollsBackUserAndState(): void
   {
     $users = new UserRepository($this->pdo);
-    $service = new AccountCreationService($this->pdo, $users, new PlayerStateRepository($this->pdo));
+    $service = $this->accountCreationService($users, new PlayerStateRepository($this->pdo));
     $before = (int)$this->scalar('SELECT COUNT(*) FROM `users`', []);
 
     try {
-      $service->findOrCreateExternal('discord', str_repeat('x', 129), 'Rollback Goblin', null, 17);
+      $service->findOrCreateExternal('discord', str_repeat('x', 129), 'Rollback Goblin', null);
       $this->fail('Expected oversized provider identity to fail.');
     } catch (\RuntimeException $e) {
       $this->assertSame('External provider identity is invalid.', $e->getMessage());
@@ -122,5 +123,15 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $stmt = $this->pdo?->prepare('SELECT COUNT(*) FROM `user_state` WHERE `user_id` = ?');
     $stmt?->execute([$userId]);
     $this->assertSame(0, (int)$stmt?->fetchColumn());
+  }
+
+  private function accountCreationService(UserRepository $users, PlayerStateRepository $states): AccountCreationService
+  {
+    return new AccountCreationService($this->pdo, $users, $states, $this->contentRegistry()->startingEnergy());
+  }
+
+  private function contentRegistry(): ContentRegistry
+  {
+    return ContentRegistry::load(dirname(__DIR__, 2) . '/content');
   }
 }

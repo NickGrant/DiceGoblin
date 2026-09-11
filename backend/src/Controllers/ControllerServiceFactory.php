@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Controllers;
 
+use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Repositories\EnergyRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserRepository;
@@ -37,7 +38,8 @@ final class ControllerServiceFactory
     $csrfService = new CsrfService();
     $starterPackProvisioningService = new StarterPackProvisioningService();
     $bootstrapper = new PlayerBootstrapper($playerStateRepo, $energyRepo, $starterPackProvisioningService);
-    $accountCreationService = new AccountCreationService($pdo, $userRepo, $playerStateRepo);
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $accountCreationService = new AccountCreationService($pdo, $userRepo, $playerStateRepo, $content->startingEnergy());
     $passwordResetService = new PasswordResetService($pdo, $userRepo);
     $sessionService = new SessionService($userRepo, $csrfService);
 
