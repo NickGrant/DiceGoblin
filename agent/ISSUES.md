@@ -4,39 +4,39 @@
 
 ## Milestone 1 - Walking Skeleton
 
-### Implement vNext game bootstrap query
+### Mount persistent Phaser runtime at `/game`
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Implement the authenticated, read-only bootstrap query that gives the future Phaser runtime the authoritative Milestone 1 state needed to enter Camp, without recreating the prototype catch-all profile contract or prematurely building later gameplay domains.
+Establish the accepted Angular/Phaser ownership boundary by adding one authenticated Angular `/game` host that creates a single persistent Phaser runtime for gameplay and destroys it only when the host is left. This package proves runtime ownership and lifecycle without beginning bootstrap/content startup orchestration, Camp, or responsive gameplay behavior.
 
 #### Required Context
-- `documentation/07-development-path/vnext-api-contract-model.md` — Game Bootstrap, Query/Command Boundary, Player Revision
-- `documentation/07-development-path/vnext-endpoint-inventory.md` — `GET /api/v1/game/bootstrap`
-- `documentation/07-development-path/vnext-backend-internal-architecture.md` — Controllers, Queries/Read Models, ContentRegistry
-- `documentation/07-development-path/vnext-storage-model.md` — account/auth and `user_state`
-- `documentation/07-development-path/vnext-energy-model.md` — regeneration/overcap semantics
-- `documentation/07-development-path/vnext-authored-content-model.md` — authored balance/config authority
-- Current vNext auth/session, `user_state`, ContentRegistry, composition, and tests touched by the implementation
+- `documentation/07-development-path/vnext-phaser-client-architecture.md` — Angular/Phaser Boundary Rule, Persistent Game Runtime, Scene and Screen Model, Phaser Navigation
+- `documentation/07-development-path/vnext-game-overhaul.md` — Milestone 1 walking-skeleton architecture
+- `documentation/07-development-path/vnext-prototype-code-disposition.md` — frontend/prototype reuse guidance
+- Current Angular routing/root-shell/session implementation and frontend test/build configuration touched by the implementation
 
 Load other decision docs only if implementation reaches their domain.
 
 #### Acceptance Criteria
-- Add authenticated `GET /api/v1/game/bootstrap` under the existing cookie/session model. Unauthenticated requests return the established unauthorized API response; do not add another authentication mechanism.
-- Keep the controller thin. Implement a purpose-built application query/read model that composes account identity, mutable `user_state`, authored configuration, content revision, and session/CSRF metadata. Do not resurrect `/profile` or put bootstrap assembly into a catch-all gameplay service.
-- For Milestone 1, return the implemented subset only: account ID/display name/role; Teeth; Raw Chaos; effective current Energy; calculated normal Energy maximum; Energy regeneration timing needed for presentation; `player_revision`; session/CSRF metadata as required by the future Phaser API client; and the server canonical content revision.
-- Represent accepted-but-not-yet-implemented bootstrap domains explicitly as empty/null rather than creating their persistence early: unlock/progression summary empty; active squad null; active run null. Do not add unit, dice, squad, run, unlock, Codex, objective, inventory, Shop, Academy, Wrong Machine, reward, or battle storage for this package.
-- Bootstrap is a query. It must not provision missing `user_state`, advance persisted Energy timestamps/current values, grant anything, increment `player_revision`, or otherwise mutate durable player state. An authenticated user missing required `user_state` is an integrity/provisioning error, not a reason for GET-side repair.
-- Move the remaining baseline Energy tuning required by the query into canonical authored configuration rather than SQL or environment variables. Preserve existing behavior unless intentionally changed later: normal/base maximum 50 and regeneration rate 12 Energy/hour. Starting Energy remains 50. Do not persist `energy_max` or regeneration rate in `user_state`.
-- Calculate the bootstrap Energy view from persisted `energy_current` + `energy_last_regen_at` and authored Energy rules without writing during the GET. Natural regeneration caps at normal max; an already-overcapped current value is preserved and does not regenerate further. Keep this calculation reusable/deterministic and outside controllers/repositories.
-- Do not introduce Energy-cap upgrade persistence or prototype feature-unlock tables merely to calculate max in Milestone 1. The current normal max is the authored base max; later permanent progression may modify the calculation when its owning package exists.
-- Return the same canonical content revision represented by the generated client projection. Do not implement client-side revision comparison/mismatch blocking yet; that belongs to Phaser startup.
-- Preserve registered auth/session/health behavior and the approved fresh database/content architecture. Do not re-register prototype gameplay routes.
-- Avoid repeatedly parsing the authored catalog within one request and avoid making content-independent `/session` depend on loading ContentRegistry. Establish a small composition boundary that can share/inject the validated registry into content-dependent operations without introducing a dependency-injection framework or broad container rewrite.
-- Add focused automated coverage for unauthorized bootstrap; fresh authenticated account bootstrap; account/user-state mapping; authored content revision; read-only behavior; missing-user-state integrity behavior; Energy regeneration calculation including cap and overcap cases; and explicit empty/null later-domain representations.
-- Do not implement Phaser runtime/client state, Angular `/game` host changes, Camp rendering, client content compatibility enforcement, later collection queries, or gameplay mutations in this package.
+- Add Phaser as an explicit frontend dependency using the current supported Phaser 3 line unless the repository already establishes a compatible version during implementation. Do not load Phaser from a CDN or global script.
+- Add authenticated Angular route `/game` using the existing session/auth guard behavior. Angular remains responsible for entering/leaving the route and hosting the runtime; do not add another authentication path.
+- Add one narrow Angular game-host component whose gameplay responsibility is limited to providing the DOM mount point and creating/destroying the Phaser runtime with Angular lifecycle. It must not become a gameplay API/state/navigation orchestrator.
+- Mount exactly one Phaser `Game` instance for one live host component. Angular change detection, route events, or ordinary Phaser scene/screen transitions must not create duplicate canvases or duplicate runtime instances.
+- Destroy the Phaser instance and runtime-owned resources when the Angular game host is destroyed/left. Re-entering `/game` may create a fresh runtime; ordinary in-game navigation must not.
+- Establish an intentional `GameRuntime` (or equivalently clear application-level runtime boundary) that owns the persistent Phaser application lifetime and is the future home for application-level API/cache/content/navigation/assets/audio/input/configuration/responsive concerns. Do not implement those later subsystems speculatively in this package.
+- Establish the accepted scene boundaries needed to prove lifecycle: Boot/Loading setup as needed plus `GameScene`, `RunScene`, and `BattleScene`. These may be minimal placeholders in this package. Do not turn Camp/Warband/Shop/etc. into separate Phaser scenes.
+- Prove that application-level runtime state/services survive transitions between gameplay scenes rather than being recreated with each scene. Use the smallest deterministic test/instrumentation needed to demonstrate the ownership boundary.
+- The `/game` surface must be Phaser-owned presentation. Do not render the prototype Angular gameplay command controls, page chrome, gameplay status/loading cards, or prototype gameplay pages on top of/inside the Phaser host. Angular public/auth/account shell behavior outside `/game` must continue to work.
+- Do not delete prototype Angular gameplay pages/routes/services merely because `/game` now exists. They remain migration/reuse evidence until their accepted Phaser replacements are proven by owning packages.
+- Do not make Angular services fetch `/api/v1/game/bootstrap` or relay gameplay API state into Phaser. Phaser will communicate directly with PHP once startup/API work is implemented.
+- Do not fetch or consume `game-content.json`, compare content revisions, call `/api/v1/game/bootstrap`, establish the real Phaser API client/GameStore/ClientContentRegistry, or implement mismatch/reload behavior in this package. Those belong to the next startup/content-compatibility package.
+- Do not implement Camp gameplay/presentation, run flow, battle playback, domain screens, gameplay navigation history, asset bundles, final audio migration, responsive layout modes, safe-inset behavior, or the mobile portrait gate in this package unless a tiny lifecycle stub is strictly necessary to prove runtime mounting.
+- Preserve the approved backend/bootstrap/content behavior. This package should not require backend API/schema changes.
+- Add focused automated frontend coverage for the Angular host/runtime lifecycle and single-instance behavior, plus the smallest Phaser/runtime tests needed to prove persistent ownership across scene transitions. Keep tests deterministic and avoid requiring real backend state for this package.
+- Ensure the normal frontend build/test path includes the new Phaser integration without introducing duplicate framework bundles or relying on browser globals.
 
 #### Completion
-Run applicable backend/content/context gates from `agent/QUALITY_GATES.md`. Leave this package active for architectural review; do not promote or begin the persistent Phaser runtime package in the same change.
+Run applicable frontend/context/build gates from `agent/QUALITY_GATES.md`, including frontend tests and production build. Leave this package active for architectural review; do not promote or begin the Phaser startup/content-compatibility package in the same change.
