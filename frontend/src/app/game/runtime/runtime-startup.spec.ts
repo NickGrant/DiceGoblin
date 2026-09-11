@@ -22,7 +22,7 @@ describe('RuntimeStartup', () => {
     };
   }
 
-  function bootstrap(contentRevision = revision): unknown {
+  function bootstrap(contentRevision = revision, energyCurrent = 41): unknown {
     return {
       ok: true,
       data: {
@@ -31,7 +31,7 @@ describe('RuntimeStartup', () => {
           teeth: 123,
           raw_chaos: 7,
           energy: {
-            current: 41,
+            current: energyCurrent,
             normal_max: 50,
             regeneration_per_hour: 12,
             regeneration_interval_seconds: 300,
@@ -93,6 +93,35 @@ describe('RuntimeStartup', () => {
     expect(store.bootstrap?.active_run).toBeNull();
     expect(store.playerRevision).toBe(29);
     expect(nextSceneForStartup(state)).toBe(GAME_SCENE_KEY);
+  });
+
+  it('accepts and preserves authoritative overcap Energy through compatible startup', async () => {
+    const { startup, store, apiClient, contentLoader } = harness(
+      projection(),
+      bootstrap(revision, 57),
+    );
+
+    const firstState = await startup.start();
+    const secondState = await startup.start();
+
+    expect(firstState).toEqual({ status: 'ready' });
+    expect(secondState).toBe(firstState);
+    expect(store.bootstrap?.player.energy.current).toBe(57);
+    expect(store.bootstrap?.player.energy.normal_max).toBe(50);
+    expect(startup.contentRegistry?.revision).toBe(revision);
+    expect(store.bootstrap?.content_revision).toBe(revision);
+    expect(nextSceneForStartup(firstState)).toBe(GAME_SCENE_KEY);
+    expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
+    expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+  });
+
+  it('still rejects negative current Energy as malformed bootstrap', async () => {
+    const { startup, store } = harness(projection(), bootstrap(revision, -1));
+
+    expect(await startup.start()).toEqual({ status: 'failure', reason: 'bootstrap-malformed' });
+    expect(store.bootstrap).toBeNull();
+    expect(startup.contentRegistry).toBeNull();
+    expect(nextSceneForStartup(startup.state)).toBeNull();
   });
 
   it('fails safely when the client projection is malformed and never requests bootstrap', async () => {

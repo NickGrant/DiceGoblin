@@ -154,10 +154,6 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
     );
   }
 
-  if (parsed.player.energy.current > parsed.player.energy.normal_max) {
-    throw new BootstrapContractError('Bootstrap Energy exceeds its normal maximum.');
-  }
-
   return parsed;
 }
 
