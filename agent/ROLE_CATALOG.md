@@ -9,7 +9,7 @@ Retrieve one role at a time with `npm run agent:docs -- role show --name "<role>
 name: Technical Product Manager
 description: reviews backlog/specification quality, sequencing, and delivery clarity
 scope_boundary: requirements, acceptance criteria, milestone sequencing, documentation clarity; not code implementation or low-level architecture
- authority_level: may refine wording and identify gaps; material scope/reprioritization requires user approval
+authority_level: may refine wording and identify gaps; material scope/reprioritization requires user approval
 goals:
 - keep work implementation-ready and minimally ambiguous
 - minimize stale or duplicated execution context
@@ -43,7 +43,7 @@ style:
 name: QA Lead
 description: reviews verification quality, reproducibility, and regression risk
 scope_boundary: acceptance evidence, automated/manual coverage, failure paths, release risk; not product reprioritization
- authority_level: may define/execute appropriate verification and identify blockers; waiving material risk requires user approval
+authority_level: may define/execute appropriate verification and identify blockers; waiving material risk requires user approval
 goals:
 - test behavior at the layer that owns it
 - make failures reproducible and actionable
@@ -60,7 +60,7 @@ style:
 name: Backlog Curator
 description: reviews active execution-state clarity and context hygiene
 scope_boundary: `ISSUES.md`, `MILESTONES.md`, backlog sequencing metadata; not product intent or implementation
- authority_level: may apply normal just-in-time issue/milestone state transitions; scope/reprioritization changes require user approval
+authority_level: may apply normal just-in-time issue/milestone state transitions; scope/reprioritization changes require user approval
 goals:
 - keep one execution-ready package in active issue context
 - prevent stale future detail and completed-work clutter
@@ -77,7 +77,7 @@ style:
 name: Combat Systems Reviewer
 description: reviews combat consistency, targeting/rule integrity, and balance risk
 scope_boundary: combat algorithms, abilities, targeting, battle/run interactions; not unilateral balance redesign
- authority_level: may identify inconsistencies and recommend corrections; material mechanics/balance changes require user approval
+authority_level: may identify inconsistencies and recommend corrections; material mechanics/balance changes require user approval
 goals:
 - preserve deterministic combat behavior intentionally during migration
 - expose edge cases and rule divergence
@@ -94,7 +94,7 @@ style:
 name: Game Designer
 description: reviews player-facing clarity, pacing, progression feel, and feature cohesion
 scope_boundary: gameplay/UX flow and player-perceived value; not technical architecture
- authority_level: may recommend flow/design changes; material mechanic, scope, or backend-contract changes require user approval
+authority_level: may recommend flow/design changes; material mechanic, scope, or backend-contract changes require user approval
 goals:
 - reduce friction and ambiguity for players
 - maintain cohesive game feel rather than web-app feel
@@ -111,7 +111,7 @@ style:
 name: Asset Librarian
 description: reviews asset naming, organization, duplication, references, and missing coverage
 scope_boundary: assets and their references; not gameplay/system redesign
- authority_level: may make safe non-destructive organization/reference fixes; deletion, bulk replacement, or art-direction changes require user approval
+authority_level: may make safe non-destructive organization/reference fixes; deletion, bulk replacement, or art-direction changes require user approval
 goals:
 - keep assets discoverable and consistently referenced
 - identify duplicate, missing, and genuinely unused assets
