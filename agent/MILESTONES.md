@@ -21,7 +21,7 @@ Prove the smallest real vNext path:
 - Superseded prototype paths are removed only after replacements are proven; later reuse candidates remain until their owning package.
 
 ### Related Issues
-- Render minimal authoritative Camp in `GameScene`
+- Establish responsive landscape game-host behavior
 
 ### Package Queue
 Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
@@ -31,8 +31,11 @@ Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 4. ~~vNext game bootstrap query.~~ Complete and architecturally approved.
 5. ~~Persistent Phaser runtime mounted at `/game`.~~ Complete and architecturally approved.
 6. ~~Phaser startup state + content compatibility gate.~~ Complete and architecturally approved.
-7. **Minimal authoritative Camp.** Current.
-8. Responsive landscape host behavior.
+7. ~~Minimal authoritative Camp.~~ Complete and architecturally approved.
+8. **Responsive landscape host behavior.** Current.
 9. Walking-skeleton end-to-end verification/closure.
+
+### UAT Sequencing
+Manual user UAT is deferred until Milestone 1 is technically complete. Finish and architecturally approve package 8, then complete package 9's automated/end-to-end closure gates. After Milestone 1 is marked complete, hand the resulting build to the user for UAT. Do not make manual UAT a blocker inside packages 8 or 9.
 
 Do not begin Milestone 2 (Warband) or later gameplay while Milestone 1 is active.
