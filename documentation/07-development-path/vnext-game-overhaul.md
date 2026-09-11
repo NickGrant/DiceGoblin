@@ -1,22 +1,29 @@
 ---
 Title: "Dice Goblins vNext Game Overhaul"
-Status: Working Draft
-Last Updated: 2026-09-09
+Status: Active Implementation Plan
+Last Updated: 2026-09-10
 Owner: Product + Engineering
 Depends On:
   - documentation/00-overview/00-project-overview.md
   - documentation/00-overview/01-core-gameplay-loop.md
-  - documentation/02-systems/README.md
-  - documentation/05-technical/00-tech-stack.md
-  - documentation/05-technical/04-data-model.md
-  - documentation/05-technical/08-hybrid-phaser-audio-architecture.md
+  - documentation/07-development-path/vnext-reward-unlock-model.md
+  - documentation/07-development-path/vnext-currency-economy-model.md
+  - documentation/07-development-path/vnext-energy-model.md
+  - documentation/07-development-path/vnext-progression-state-model.md
+  - documentation/07-development-path/vnext-authored-content-model.md
+  - documentation/07-development-path/vnext-storage-model.md
+  - documentation/07-development-path/vnext-api-contract-model.md
+  - documentation/07-development-path/vnext-endpoint-inventory.md
+  - documentation/07-development-path/vnext-backend-internal-architecture.md
+  - documentation/07-development-path/vnext-phaser-client-architecture.md
 Category: 07-development-path
 Tags:
   - vnext
   - architecture
+  - implementation-plan
   - phaser
+  - php
   - database
-  - progression
   - overhaul
 ---
 
@@ -24,354 +31,384 @@ Tags:
 
 ## Purpose
 
-Dice Goblins vNext is a deliberate implementation reset built from the game that exists today rather than from the assumptions of the original browser prototype.
+Dice Goblins vNext is a deliberate implementation reset built around the game Dice Goblins has become rather than the assumptions of the original browser prototype.
 
-The overhaul takes a small step backward in implementation maturity in exchange for a substantial step forward in product cohesion. It preserves the game's identity, core systems, authored content, and useful assets while allowing frontend architecture, backend boundaries, progression contracts, reward flow, unlock flow, and database design to be rebuilt around the game Dice Goblins has become.
+This document is the implementation roadmap and status tracker for the overhaul. Dedicated accepted vNext decision documents are authoritative for their individual domains and explain the detailed contracts behind this plan. This file should summarize those decisions rather than redefine competing versions of them.
 
 The working branch is `vnext-game-overhaul`.
 
-## Confirmed Constraints
+## Planning Status
+
+Milestone 0 reconciliation completed on 2026-09-10. The earlier horizontal rewrite plan has been replaced by walking implementation slices that exercise Phaser, PHP, authored content, and MySQL together as early as possible.
+
+The next implementation target is **Milestone 1 - Walking Skeleton**.
+
+## Confirmed Product and Technical Boundaries
 
 - Existing production/runtime player data does not need to migrate into vNext.
-- Backward compatibility with the current database schema is not a requirement.
-- Existing migration history is design evidence, not a contract that vNext must preserve.
-- Dice Goblins remains web-delivered for this overhaul.
-- PHP remains the authoritative backend unless a later explicit architecture decision changes that.
-- MySQL remains the persistent runtime datastore unless a later explicit architecture decision changes that.
-- Angular remains available for the public website, authentication, account/platform surfaces, and hosting the game runtime.
-- Phaser becomes the primary game client and owns gameplay presentation and gameplay UI.
-- Mobile packaging is a future requirement to remain compatible with, not an immediate release target.
-- Existing game rules should be preserved by default, but systems may be simplified, generalized, removed, or redesigned when current implementation history has produced unnecessary complexity.
-
-## Target Client Boundary
-
-The intended target is a website that hosts a game, rather than an Angular application that occasionally embeds Phaser.
-
-### Angular owns
-
-- public and marketing pages
-- authentication and session entry flow
-- account/platform pages that are not part of gameplay
-- route protection for the game entry point
-- one persistent host boundary for the Phaser runtime
-- platform bootstrap and catastrophic host-level error states
-
-### Phaser owns
-
-- all player-facing gameplay screens
-- all in-game navigation
-- game HUD and menus
-- camp/home presentation
-- warband and squad management
-- unit and dice management
-- Academy, shop, Wrong Machine, Codex, and other game systems
-- region selection and run presentation
-- encounters, dialogue, battle playback, rewards, and run summaries
-- game audio, animation, transitions, particles, camera behavior, and game-specific input
-- responsive gameplay composition for desktop first and later mobile readiness
-
-### Backend owns
-
-- authoritative player state
-- authoritative collection and progression state
-- validation of all gameplay mutations
-- run generation and lifecycle
-- encounter and combat resolution
-- reward generation and materialization
-- purchases, recipes, upgrades, promotions, unlocks, and other progression transactions
-- idempotency and transactional safety
-
-Phaser should be treated as a first-class API client rather than a renderer subordinate to Angular. Angular establishes or verifies the browser session; Phaser consumes gameplay APIs using that authenticated session.
-
-## Architecture Principles
-
-1. **Design current-state first.** vNext models the game we intend to ship, not every state the prototype passed through.
-2. **Backend authority remains explicit.** Presentation may be richer and more immediate, but player-affecting state changes are validated and committed by the server.
-3. **Game presentation and game rules stay separate.** Phaser interprets authoritative state and results; it does not become a second combat or progression engine.
-4. **Definitions and instances stay distinct.** Authored unit, die, item, region, encounter, reward, unlock, and recipe definitions are not player-owned records.
-5. **Facts, rewards, and unlocks are different concepts.** A progression event records what happened; a reward/grant transfers assets; an unlock records persistent access or entitlement.
-6. **All grants share one transactional application path.** Combat, dialogue, bounties, purchases, crafting, tutorials, and administrative grants may originate differently but should not each reinvent currency, inventory, die, unit, or unlock mutation logic.
-7. **Authored content is not migration history.** Balance/content revisions should not normally require one new SQL migration per tuning change.
-8. **Migration count starts over.** Once the target schema is approved and implemented, vNext should establish a clean baseline rather than replaying the prototype's historical schema evolution.
-9. **Mobile readiness begins at the UI architecture.** Responsive scaling, pointer/touch semantics, safe layout regions, and asset budgets should be considered while building the new Phaser UI even though native/mobile packaging comes later.
-10. **Vertical slices prove architecture.** Avoid rewriting every subsystem in parallel before one complete player loop works end to end.
-
-## Proposed Overhaul Phases
-
-### Phase 0 - Isolate the Rewrite
-
-Status: Started.
-
-- branch from `main` into `vnext-game-overhaul`
-- treat current implementation and documentation as reference material
-- do not preserve runtime data compatibility
-- keep `main` stable while vNext design and implementation are incomplete
-
-Exit condition: the overhaul can make breaking schema, API, and frontend decisions without destabilizing the current product branch.
-
-### Phase 1 - Reconcile the Game Specification
-
-Before deep implementation, inventory every active gameplay system and classify it as:
-
-- preserve
-- simplify
-- redesign
-- remove
-- defer
-
-Update the overview, gameplay loop, system inventory, technical architecture, and UX direction so that they describe one coherent vNext target rather than a mixture of current implementation, target-state drift, and historical MVP assumptions.
-
-Priority missing or incomplete contracts include:
-
-- run lifecycle
-- encounter resolution
-- damage/modifier/status resolution
-- enemy action selection
-- dice acquisition and runtime material behavior
-- reward materialization
-- currencies and economy
-- shop
-- energy
-- Academy progression
-- feature unlocks
-- region progression
+- Backward compatibility with the prototype database schema or API is not required.
+- Existing migration history is design evidence, not an installation contract.
+- Dice Goblins remains web-delivered for the vNext overhaul.
+- PHP remains the authoritative gameplay backend.
+- MySQL stores mutable player/runtime state.
+- Authored gameplay definitions live in Git-tracked JSON and are referenced by stable IDs; MySQL does not maintain a required duplicate authored catalog.
+- Angular owns the public website, authentication/account shell, and the `/game` hosting boundary.
+- Phaser is the game client and directly consumes the authenticated PHP gameplay API.
+- Mobile native packaging is a future concern, but responsive landscape/mobile readiness is part of the vNext client architecture now.
+- Existing gameplay algorithms and content should be preserved when they still serve the current design; prototype architecture and compatibility surfaces are not preserved merely because they exist.
 
-Exit condition: core gameplay and progression can be described without relying on implementation archaeology.
+## Accepted Architecture Summary
 
-### Phase 2 - Redesign Progression, Rewards, and Economy
+### Player state, progression, and rewards
 
-Establish distinct contracts for:
+- Successful gameplay/transaction resolutions may emit semantic events which resolve authored reward definitions.
+- Reward randomness is finalized exactly once and grants are applied transactionally/idempotently.
+- Ordinary rewards are applied immediately during authoritative resolution; reward/claim UI is presentation and acknowledgment, not delayed ownership.
+- Duplicate unique rewards resolve to nothing unless a future mechanic explicitly changes that rule.
+- Unlocks represent permanent capabilities/access and Codex entries represent unique knowledge.
+- Objectives, runs, units, dice, inventory, and other mutable concepts keep state in the domain that owns the behavior rather than a generic progression/history layer.
 
-- progression events
-- reward definitions/profiles
-- finalized grant bundles
-- grant application and idempotency
-- currencies
-- stackable inventory items
-- owned unit instances
-- owned die instances
-- feature/content unlock entitlements
-- region completion/progression
-- Codex discovery
-- recipes and crafting/reconstruction
-- purchases and Academy transactions
+### Economy and Energy
 
-The goal is not to force all concepts into one generic table. The goal is to centralize mutation semantics while allowing each durable domain to retain an appropriate normalized model.
+- Teeth and Raw Chaos share currency/wallet semantics but serve different economic roles.
+- Teeth buy ordinary repeatable goods and services.
+- Raw Chaos primarily changes player capability, with the Wrong Machine as the intentional repeatable exception.
+- Energy is a regenerating pacing resource rather than currency.
+- Energy is spent exactly once when run creation successfully commits; active runs have no ongoing Energy cost.
 
-Exit condition: every major way a player gains, spends, unlocks, discovers, crafts, or purchases something has an explicit and non-overlapping lifecycle.
+### Storage and authored content
 
-### Phase 3 - Design the vNext Data Model
+- vNext starts from a clean MySQL baseline optimized for the approved model.
+- Git-tracked JSON is authoritative for static gameplay definitions and tuning.
+- Runtime MySQL records reference authored content by durable stable string IDs.
+- Content changes are ordinary reviewed JSON changes, not SQL migrations.
+- The server consumes the complete authored registry.
+- Phaser receives allowlisted client-safe projections plus player-conditioned/revealed information from PHP; server-only probabilities, hidden rules, and unrevealed information are not intentionally shipped to the browser.
 
-Create the database from the approved current-state domain model instead of incrementally transforming the prototype schema.
+### API and backend
 
-Recommended data domains:
+- The gameplay API remains under `/api/v1` unless an explicit versioning decision later changes it.
+- Reads are domain-oriented queries; mutations are explicit player-intent commands.
+- Collection endpoints return compact summaries and detail endpoints return the mutable state required by individual-object screens.
+- Commands involving spending, durable creation, randomness, or gameplay resolution have an idempotency boundary.
+- Mutation responses return affected authoritative state plus `player_revision`, not a catch-all profile reload.
+- Backend internals follow HTTP/controller -> application command/query -> domain rules/engines -> repositories/content registry.
+- Application operations own transaction boundaries. Controllers remain thin. Repositories remain persistence-focused.
+- Combat and run generation remain computational engines where practical and should not own HTTP/persistence orchestration.
+- vNext remains one PHP application and one MySQL database; microservices, asynchronous messaging, and full event sourcing are not part of this overhaul.
 
-- accounts and identities
-- player profile and currencies
-- authored content catalogs
-- warband and unit instances
-- dice instances and equipment
-- stackable inventory
-- squads and formations
-- progression and unlocks
-- region progression and Codex discovery
-- runs and encounter state
-- combat results/events
-- transactional grant/idempotency records
+### Phaser client
 
-Separate schema evolution from authored content revision. Establish a small vNext baseline and reserve later migrations for actual schema evolution.
+- Angular mounts/destroys the game but does not orchestrate normal gameplay once Phaser is running.
+- A persistent Phaser runtime owns API access, cache/store, navigation, content registry, assets, audio, input, and responsive/orientation infrastructure.
+- The three major gameplay scenes are `GameScene`, `RunScene`, and `BattleScene`; Boot/Loading are setup lifecycle scenes.
+- Ordinary destinations such as Camp, Warband, Unit Detail, Academy, Shop, and Wrong Machine are screens/views rather than one scene per former Angular page.
+- Phaser state is explicitly a cache of authoritative server state and lazy-loads large domains when needed.
+- The reference design space is 1600x900. Rendering preserves proportions, effective logical width adapts to landscape aspect ratio, and screens use anchors/calculated layout regions rather than raw physical-pixel placement.
+- Compact, Standard, and Wide landscape layout modes provide limited responsive composition changes.
+- Mobile gameplay is landscape-only. Portrait blocks/obscures gameplay with a rotate-device presentation while preserving the active game state.
 
-Exit condition: a clean database can be created from scratch and fully support the approved vNext vertical slice without legacy compatibility columns or obsolete tables.
+## Implementation Strategy
 
-### Phase 4 - Establish the vNext Backend Contract
+The overhaul uses walking slices rather than completing every backend or frontend layer in isolation.
 
-Reshape backend APIs around game use cases rather than around Angular page composition.
+> Every milestone should leave a working vertical capability that crosses Phaser -> API -> domain logic -> MySQL where applicable.
 
-Key goals:
+Shared infrastructure should be implemented only as far as the next vertical capability requires, then exercised immediately through the real client/server path. This reduces the risk of building large abstractions before the game demonstrates that they fit.
 
-- one intentional game bootstrap contract
-- stable domain-oriented DTOs
-- explicit command/mutation endpoints
-- reusable transaction and grant infrastructure
-- deterministic/idempotent encounter and reward finalization
-- no presentation-specific API coupling
-- preserve deterministic combat and run-generation capabilities that remain valuable
+## Milestone Plan
 
-Exit condition: a non-Angular game client can drive one complete game loop using the backend API alone.
+### Milestone 0 - Reconcile the vNext Plan
 
-### Phase 5 - Establish the Persistent Phaser Runtime
+**Status: Complete (2026-09-10).**
 
-Replace Angular-owned gameplay routing with one persistent Phaser-hosted game application.
+Scope:
 
-Initial client foundation should include:
+- make this document the primary overhaul roadmap/status tracker;
+- make dedicated accepted vNext decision documents normative for their scopes;
+- remove stale assumptions about database-owned authored catalogs, Angular-owned gameplay, claim-based ordinary rewards, and horizontal layer-by-layer rewriting;
+- index vNext documents so the architecture is discoverable;
+- identify implementation details that may remain deferred until the milestone that needs them.
 
-- boot/loading flow
-- game state/cache layer
-- API client
-- screen/navigation manager
-- event/message bus where useful
-- reusable game UI primitives
-- responsive scale/layout rules
-- input abstraction suitable for pointer and future touch
-- asset registry/loading strategy
-- audio ownership
-- deterministic debug/screenshot hooks
-
-Angular should mount and destroy the runtime, but should not coordinate normal in-game screen transitions.
-
-Exit condition: authenticated entry reaches a Phaser-owned game shell that can load authoritative player state and navigate between placeholder gameplay screens without Angular gameplay routes.
-
-### Phase 6 - Build One End-to-End Vertical Slice
-
-Prove the new architecture before porting every subsystem.
-
-The recommended slice is:
-
-1. enter the game through Angular-authenticated bootstrap
-2. arrive in the Phaser camp/home experience
-3. inspect/edit the active squad
-4. select an available combat-capable region
-5. start or resume a run
-6. navigate the run map
-7. resolve one combat encounter on the backend
-8. play the authoritative result in Phaser
-9. present and claim finalized rewards
-10. persist progression and return to the run/camp flow
+Exit criterion: planning describes one coherent target without requiring prototype archaeology or contradicting accepted vNext decisions.
 
-The Farm is a strong initial combat slice because it exercises combat, units, dice, rewards, progression, and game presentation without requiring every later biome system.
+### Milestone 1 - Walking Skeleton
 
-Exit condition: the primary architectural path is proven from authentication through persistent reward application.
+**Status: Next.**
 
-### Phase 7 - Migrate Remaining Game Systems
+Scope:
 
-Move systems into the vNext contracts one domain at a time, including:
+- establish the working clean-schema baseline foundation for account/user state required by bootstrap;
+- establish server authored-content registry and client-safe content projection pipeline;
+- establish transaction, idempotency, and `player_revision` infrastructure to the extent required by the first slice;
+- create the Angular `/game` host boundary;
+- create persistent Phaser runtime plus Boot/Loading/GameScene foundation;
+- implement the 1600x900 responsive layout model and landscape-only mobile orientation gate;
+- implement the game bootstrap API and GameStore bootstrap state;
+- render a minimal Phaser-owned Camp from real authoritative server state;
+- enforce client/server content compatibility/version checking.
 
-- Mystic Cave onboarding and dialogue
-- full warband/unit progression
-- dice inventory, materials, salvage, and loadouts
-- Academy
-- shop
-- Wrong Machine and kin reconstruction
-- Mountains and Swamps procedural runs
-- rest, hazards, shrines, and chaos encounters
-- Codex
-- bounty/objective systems
-- consumables
-- run summary and failure/recovery flows
-
-Delete obsolete compatibility surfaces instead of carrying them indefinitely.
-
-Exit condition: vNext reaches feature parity with the intentionally preserved current game surface.
-
-### Phase 8 - Game Feel, Release Hardening, and Mobile Readiness
-
-Once the architecture is stable, invest in the leap-forward experience:
-
-- camp as the persistent game-world mental model
-- animated game-native navigation
-- transitions and feedback for progression changes
-- battle playback quality and speed controls
-- richer reward presentation
-- character reactions and dialogue staging
-- keyboard/controller/touch strategy where appropriate
-- responsive layouts and safe areas
-- performance and asset-memory budgets
-- future packaging evaluation for mobile and potentially desktop distribution
-
-## Database Reset Policy
-
-The current migration sequence will not be carried forward as the runtime installation contract for vNext.
-
-After the vNext model is approved:
-
-- create a clean baseline schema representing the intended starting state
-- keep Git history as the archive of prototype migrations rather than copying obsolete SQL into a permanent legacy runtime folder
-- reserve future numbered migrations for structural schema changes after the baseline
-- keep authored content and balance data outside the schema-migration lifecycle wherever practical
-- make content loading/import deterministic and validated
-- make a fresh local/test database the default vNext development workflow
-
-The exact baseline file layout and content-catalog ownership model remain architecture decisions to finalize before deleting the current migration chain from the vNext branch.
-
-## Reward and Unlock Direction
-
-The current reward system should be replaced by a clearer conceptual pipeline:
-
-```text
-Gameplay fact / transaction intent
-            |
-            v
-Progression or transaction rule
-            |
-            +----> state transition / entitlement when applicable
-            |
-            v
-Finalized Grant Bundle
-            |
-            v
-Transactional Grant Application
-            |
-            +----> currency
-            +----> items
-            +----> unit instances
-            +----> die instances
-            +----> unlock entitlements
-            +----> XP/progression effects where appropriate
-```
-
-Examples:
-
-- A boss victory is a progression fact and reward source. It may both finalize a reward bundle and satisfy a region-progression rule.
-- A region completion is persistent progression state. It may cause another region entitlement to be granted, but the completion record and the entitlement are not the same concept.
-- A shop purchase is not a reward. It spends assets and uses the common grant/application path to create the purchased result.
-- Wrong Machine reconstruction is not a normal loot reward. It is a recipe transaction that consumes assets, creates a unit, and may emit first-ownership progression effects.
-- Codex discovery is collection/progression state and should not be overloaded into generic feature-unlock semantics unless the design explicitly treats the page itself as a granted asset.
-
-## Content and Migration Direction
-
-The prototype frequently uses migrations to introduce or rebalance authored content. vNext should instead distinguish:
-
-- schema: relational structure and constraints
-- code: executable behavior and handlers
-- authored content: version-controlled definitions and tuning data
-- runtime data: player state and generated state
-
-A likely target is version-controlled authored content with deterministic validation/import into MySQL when relational runtime access is valuable. Final ownership rules should be decided per content category rather than requiring every piece of game content to use one storage mechanism.
-
-## Immediate Architecture Decisions to Resolve
-
-Before broad implementation, resolve these decision groups:
-
-1. **Game-client state model:** Phaser navigation, cached authoritative state, invalidation/refresh rules, and API error recovery.
-2. **Game bootstrap/API shape:** what Phaser receives at startup versus what remains lazy-loaded.
-3. **Reward/grant model:** finalized rewards, claims, grant bundles, transactions, and idempotency.
-4. **Progression/unlock model:** features, unit types, regions, kin eligibility, Codex, tutorials, objectives, and completion state.
-5. **Currency/economy model:** Teeth, Raw Chaos, energy, pricing, purchases, sinks, and whether currencies share one storage model.
-6. **Authored-content ownership:** which catalogs belong in version-controlled data, database tables, code registries, or presentation manifests.
-7. **Baseline database layout:** domains, constraints, history/audit requirements, and the new migration convention.
-8. **Backend service boundaries:** which existing services survive, which merge behind shared infrastructure, and which large orchestration services should be decomposed.
-9. **Phaser UI architecture:** screen versus scene boundaries, reusable UI components, scaling, input, accessibility strategy, and deterministic visual testing.
-10. **First vertical slice:** exact Farm/new-player path and the minimum systems required to prove the architecture.
-
-## Non-Goals for the Initial Overhaul
-
-- migrating current player/runtime data
-- preserving obsolete schema/API compatibility purely for historical reasons
-- converting the backend away from PHP without a separate decision
-- converting the database away from MySQL without a separate decision
-- rewriting the product in Godot during this initiative
-- shipping native mobile clients before the web vNext architecture is stable
-- porting every current Angular gameplay page one-for-one before the new Phaser game shell is proven
+Exit criterion: an authenticated player enters `/game`, Phaser starts, verifies compatible content, retrieves real server state, and renders a minimal Camp. Angular does not own gameplay state or gameplay API orchestration.
+
+### Milestone 2 - Warband
+
+Scope:
+
+- units, dice, and squads persistence/query contracts needed by the player-facing collection;
+- lazy GameStore domain loading and invalidation;
+- Camp navigation into Warband and Unit Detail;
+- nine-position squad editing;
+- unit ability/loadout ordering and exact dice bindings;
+- persistence/reload behavior for configuration changes;
+- establish responsive behavior using Camp, Warband, and Unit Detail as representative Compact/Standard/Wide screens.
+
+Exit criterion: a player can inspect real owned units/dice, configure units and a squad through Phaser, reload/reconnect, and observe the same authoritative configuration.
+
+### Milestone 3 - Enter the Farm
+
+Scope:
+
+- Energy run-start semantics;
+- region/unlock availability required for Farm;
+- Farm authored content required to generate the first run;
+- run persistence and topology generation;
+- `RunScene` and run-map presentation;
+- start, resume, and abandon flows;
+- active-run configuration locking needed by the slice.
+
+Exit criterion: starting Farm consumes Energy exactly once, creates and renders a persisted run, and reconnecting resumes the same authoritative run.
+
+### Milestone 4 - Combat
+
+Scope:
+
+- adapt the existing combat/targeting algorithms to vNext inputs without reintroducing persistence concerns into the engine;
+- authoritative combat-node resolution;
+- run-unit HP/state persistence;
+- battle result/playback representation and persistence;
+- `BattleScene` playback;
+- `RunScene -> BattleScene -> RunScene` lifecycle;
+- reconnect/recovery behavior for already-finalized combat.
+
+Exit criterion: a Farm combat node resolves exactly once on PHP, Phaser plays that authoritative result, and post-battle run state survives reload/reconnect.
+
+### Milestone 5 - Complete the Farm Slice
+
+Scope:
+
+- semantic events and authored reward resolution;
+- transactional/idempotent grant application;
+- XP and unit progression needed by the slice;
+- Teeth/Raw Chaos grants where applicable;
+- reward presentation without claim-based ownership;
+- Farm boss/Mudking resolution;
+- success/failure/abandon terminal run behavior;
+- Mudking completion event granting the Mountains unlock.
+
+Exit criterion: a player can complete the Camp -> Farm -> combat -> Mudking -> automatic rewards -> Mountains unlock -> Camp loop without double grants, rerolls, delayed claim ownership, or client-side gameplay authority.
+
+**Architecture checkpoint:** pause broad migration here and evaluate whether the vNext architecture is working cleanly before moving the remaining systems. Fix structural problems here rather than carrying them through later milestones.
+
+### Milestone 6 - Prove Region Generalization
+
+Scope:
+
+- Mountains authored region content required for play;
+- kobold enemies and Mountain presentation/assets;
+- Mountain run configuration through the same run-generation/runtime architecture;
+- region progression into/out of Mountains as currently designed;
+- remove Farm-specific assumptions discovered while introducing the second standard region.
+
+Exit criterion: Mountains operates through the same architecture as Farm without duplicating region-specific controllers, persistence models, scenes, or orchestration. Adding a second region is primarily a content/configuration exercise rather than a new architecture project.
+
+### Milestone 7 - Economy and Inventory
+
+Scope:
+
+- Shop query/purchase flow;
+- Teeth earn/spend loop;
+- stackable inventory and consumables;
+- Energy recharge consumables;
+- ordinary dice/unit purchases as applicable;
+- die sale/salvage and relevant valuation rules;
+- idempotent spending/asset-creation behavior.
+
+Exit criterion: earnings from play feed a functional repeatable economy and inventory loop whose durable transactions obey the vNext command/reward boundaries.
+
+### Milestone 8 - Permanent Progression
+
+Scope:
+
+- Academy query/action flow;
+- Raw Chaos permanent-upgrade economy;
+- unit-type and feature/capability unlocks;
+- unit promotion and durable promotion history;
+- ability acquisition/capstone-as-ability behavior;
+- derived upgrades such as Energy-capacity increases.
+
+Exit criterion: players can make meaningful persistent account and unit progression choices between runs without generic story/progression flags or prototype capstone-specific persistence.
+
+### Milestone 9 - Kin and Wrong Machine
+
+Scope:
+
+- kin-restoration unlock state;
+- Wrong Machine state/presentation;
+- first-time reconstruction behavior;
+- repeat deterministic reconstruction behavior;
+- Pig Kin and Lizard Kin reconstruction integration;
+- Raw Chaos costs and exactly-once unit creation;
+- kin-specific authored presentation/gameplay integration required by the current design.
+
+Exit criterion: the core kin restoration/reconstruction loop works end-to-end, including the distinction between first restoration and later exact reconstruction.
+
+### Milestone 10 - Run Encounter Depth
+
+Scope:
+
+- Rest encounters;
+- hazards and shrines retained by the current design;
+- Chaos encounters;
+- run modifiers and scalar runtime state;
+- contextual in-run consumable use such as healing;
+- specialized interactive node commands only when a mechanic requires persistent intermediate authoritative state;
+- reconnect/recovery for multi-step node interactions.
+
+Exit criterion: runs support reusable non-combat encounter patterns without pushing encounter-specific state into generic catch-all storage or creating unnecessary specialized APIs.
+
+### Milestone 11 - Knowledge and Objectives
+
+Scope:
+
+- Codex ownership/presentation;
+- important dialogue knowledge through unique Codex rewards;
+- server-authorized dialogue choices where hidden conditions matter;
+- replay behavior without generic dialogue-seen state;
+- objective progress/lifecycle;
+- bounties as an authored objective type;
+- gameplay facts advancing objectives;
+- automatic objective-completion reward application rather than sync/claim flows.
+
+Exit criterion: knowledge, dialogue gating, objectives, and bounties operate through their approved domains without generic story flags, bounty synchronization, or ordinary reward-claim endpoints.
+
+### Milestone 12 - Mystic Cave and Onboarding
+
+Scope:
+
+- new-player provisioning required by the current onboarding design;
+- Mystic Cave special-biome presentation;
+- The Whim introduction and dialogue/tutorial staging;
+- tutorialization of the actual vNext game loop;
+- Wrong Machine introduction and special-biome interactions;
+- fresh-account path through the systems now implemented.
+
+Exit criterion: a genuinely fresh account can enter the game and learn the intended vNext systems through the actual player experience rather than debug provisioning or developer knowledge.
+
+### Milestone 13 - Swamp and Parity Audit
+
+Scope:
+
+- Swamp authored region content required for play;
+- frogmen enemies and Frog Kin integration;
+- third-region repeatability check after economy, progression, kin, encounter, knowledge, and objective systems exist;
+- audit prototype features against the intentional vNext preserve/simplify/remove/defer decisions;
+- implement any intentionally preserved functionality not already covered by prior milestones;
+- explicitly retire features that are no longer part of the game rather than carrying accidental compatibility.
+
+Exit criterion: vNext has intentional feature parity with the game being replaced and a third standard region demonstrates that the complete architecture remains reusable.
+
+### Milestone 14 - Hardening and Cutover
+
+Scope:
+
+- remove obsolete Angular gameplay pages/services and compatibility routing;
+- remove superseded API endpoints, old `team` terminology, claim/sync compatibility paths, and obsolete schema support;
+- finalize the clean vNext baseline schema and future migration convention;
+- implement scheduled retention/cleanup behavior for eligible battle playback, idempotency/event records, and retired assets;
+- security and client-content-exposure review;
+- responsive/device/landscape coverage;
+- performance and asset-memory budgets;
+- visual/game-feel polish and battle playback quality;
+- reconcile transitional vNext decision documents into canonical `05-technical` and relevant `02-systems` documentation.
+
+Exit criterion: a clean installation represents the production architecture, the prototype implementation is no longer needed to operate or explain the game, and future feature work can follow canonical documentation rather than overhaul notes.
+
+## Overhaul Scope Boundary
+
+The vNext overhaul does **not** require completion of the entire approved future base-game content roster.
+
+Farm, Mountains, and Swamp are used during the overhaul because they progressively prove the architecture. Later standard biomes, The Library finale, and expansion content remain product/content milestones after the technical overhaul unless an explicit planning decision pulls them into scope.
+
+The overhaul is therefore complete when the intentionally preserved current game is implemented cleanly on the vNext architecture—not when every approved future biome has shipped.
+
+## Persistent Quality Gates
+
+Quality gates should grow with the milestones rather than waiting for final hardening.
+
+At minimum:
+
+- a fresh local/test database must remain capable of booting the current vNext application;
+- authored-content validation must reject invalid IDs/references and invalid client projections;
+- client artifacts must not intentionally contain server-only authored fields;
+- gameplay mutations that spend resources, create durable assets, invoke randomness, or resolve gameplay require retry/idempotency coverage;
+- finalized rewards must not reroll on retry/reconnect/re-presentation;
+- important Phaser screens should gain deterministic capture fixtures and Compact/Standard/Wide visual coverage as they are implemented;
+- backend computational engines should remain testable without HTTP presentation or direct persistence orchestration where practical;
+- milestone exit criteria should be exercised through the actual Phaser/API path rather than only through isolated unit tests.
+
+## Deferred Decisions
+
+Implementation details that do not block the current milestone should remain deferred until real behavior provides enough evidence to decide them. Current examples include:
+
+- exact Compact/Standard/Wide breakpoint thresholds;
+- exact response/error envelope details and error-code vocabulary;
+- exact specialized Rest/Chaos interactive node routes and payloads;
+- exact retention durations;
+- optional ETag/cache refinements;
+- richer future reward-choice mechanics;
+- packaging strategy for native mobile/desktop distribution.
+
+Deferral is intentional when the underlying architecture already provides a place for the future decision.
+
+## Documentation Lifecycle
+
+The vNext files under `07-development-path` are authoritative implementation decisions during the overhaul. They are not intended to become permanent parallel architecture documentation after cutover.
+
+As systems stabilize:
+
+- implementation details should be checked against the accepted decision documents;
+- material architectural deviations should update the relevant decision document rather than silently drift;
+- once vNext is stable, durable technical choices move into canonical `05-technical` documentation;
+- durable gameplay/system contracts move into the relevant `02-systems` documentation;
+- obsolete prototype-era canonical documents should be revised or marked as legacy so future feature work has one source of truth.
+
+Milestone 14 is not documentation-complete until this reconciliation has occurred.
+
+## Non-Goals
+
+- migrating current player/runtime data;
+- preserving obsolete schema/API compatibility for historical reasons;
+- moving the authoritative backend away from PHP as part of this overhaul;
+- moving persistent runtime storage away from MySQL as part of this overhaul;
+- rewriting Dice Goblins in Godot during vNext;
+- shipping native mobile clients before the web architecture is stable;
+- supporting portrait mobile gameplay;
+- shipping server-only authored data to Phaser for convenience;
+- implementing the entire future base-game biome roster as a prerequisite for vNext cutover;
+- porting every existing Angular gameplay page one-for-one into Phaser scenes.
 
 ## Definition of Success
 
-The overhaul is successful when Dice Goblins still contains the game players recognize, but its implementation behaves like a deliberately built game rather than a browser application that accumulated game systems over time:
+The overhaul succeeds when Dice Goblins still contains the game players recognize, but the implementation behaves like a deliberately built game rather than a browser application that accumulated game systems over time:
 
-- Phaser is the cohesive player-facing game runtime.
-- Angular is a thin web/platform shell.
-- PHP exposes a coherent authoritative game API.
-- MySQL represents the current domain without prototype-era compatibility baggage.
-- rewards, progression, unlocks, purchases, crafting, and ownership have explicit non-overlapping contracts.
-- content revision no longer produces unnecessary schema migrations.
-- one clean baseline can create the complete development database.
-- future game features can be added without repeating the architectural drift that motivated vNext.
+- Phaser is the cohesive player-facing game runtime;
+- Angular is a thin web/platform shell;
+- PHP exposes a coherent authoritative game API;
+- MySQL represents mutable player/runtime state without prototype-era compatibility baggage;
+- Git-tracked JSON owns authored gameplay content;
+- secret authored mechanics are not intentionally exposed to the browser;
+- rewards, progression, unlocks, purchases, reconstruction, objectives, and ownership have explicit non-overlapping contracts;
+- one clean baseline can create the complete vNext database;
+- Farm, Mountains, and Swamp demonstrate repeatable region architecture;
+- responsive landscape play is a first-class client behavior;
+- future game features can be added by following canonical system/technical documentation rather than rediscovering architecture from source code.
