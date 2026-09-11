@@ -20,6 +20,9 @@ Prove the smallest real vNext path:
 - Required backend/frontend/content/responsive gates pass.
 - Superseded prototype paths are removed only after replacements are proven; later reuse candidates remain until their owning package.
 
+### Related Issues
+- Establish the fresh vNext database baseline
+
 ### Package Queue
 Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 1. ~~Inventory/classify prototype code for vNext reuse.~~ Complete.
