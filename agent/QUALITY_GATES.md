@@ -2,63 +2,46 @@
 ----
 
 ## Purpose
-- Centralize verification, doc-hygiene, and intake rules that do not need to live in the always-loaded root agent contract.
+Centralize verification and documentation-hygiene rules for the active vNext implementation.
 
 ## Verification Matrix
 - Frontend/Phaser behavior changes:
-  - run relevant frontend tests/build
-  - do a brief manual UX sanity check
-  - when visual evidence would help, use `skills/scene-screenshot/SKILL.md`
+  - run relevant frontend tests/build;
+  - perform a brief UX sanity check;
+  - use deterministic Phaser scene/screen capture when visual evidence helps;
+  - verify Compact, 1600x900 reference, and Wide landscape behavior when layout is affected;
+  - verify the portrait rotate-device gate when game-host/orientation behavior is affected.
 - Backend/PHP API changes:
-  - run targeted endpoint validation
-  - check JSON response contract behavior
+  - run targeted command/query/endpoint tests;
+  - verify auth, CSRF, ownership, validation, and transaction failure paths where applicable.
 - Data/schema changes:
-  - validate migration order
-  - verify required seed/artifact files exist
+  - prove a fresh vNext database can be created from the current clean baseline;
+  - do not require prototype migration history or SQL-authored gameplay catalogs.
+- Authored-content changes:
+  - validate JSON structure and cross-references;
+  - validate stable IDs;
+  - verify client projections contain only allowlisted fields and no known server-only information.
+- Spending/random/durable/gameplay commands:
+  - verify idempotent retries do not double-spend, duplicate assets, or reroll finalized results.
 - Documentation-only changes:
-  - run `npm.cmd run llm:check`
-  - review reference consistency
+  - run the repository documentation/context check when available;
+  - review references for deleted/superseded paths and conflicting authority.
 
-## Verification Requirements
-- After code changes, run relevant tests/builds when available.
-- Report pass/fail status clearly.
-- Use Docker for local backend/PHP/database verification. If Docker is not running during local work, ask the user to start Docker before attempting backend or database commands. Keep root test scripts compatible with CI host tools unless a script is explicitly Docker-local.
-- Minimum pre-commit verification for mixed frontend/backend work:
-  - `npm.cmd run llm:check`
-  - `npm.cmd run test:backend`
-  - `npm.cmd --prefix frontend run test`
-  - `npm.cmd --prefix frontend run build`
-- If any build/test command fails:
-  - report the failing command immediately
-  - summarize the most actionable errors
-  - state whether the failure looks pre-existing or introduced by the current change
-- If a requested verification cannot be run, say why.
+## Minimum Mixed-Change Verification
+Use the current commands/scripts in the repository. At minimum, mixed frontend/backend work should run the applicable backend tests, frontend tests/build, and documentation/context checks. If a command has changed, update this file or `agent/QUALITY_GATES.md` references rather than preserving an obsolete command for documentation compatibility.
+
+## Failure Reporting
+If verification fails, report the failing check and actionable error. Distinguish known pre-existing failures from failures introduced by the current work when that can be established.
 
 ## Documentation Hygiene
-- Keep active docs concise and current.
-- Move historical or superseded detail to archive docs.
-- When issue or milestone status changes, update only the minimum relevant active docs plus archive movement.
-- If a documentation cleanup is directly related to the current task, fold it into the active change.
-- If it is unrelated, prefer opening an issue instead of expanding scope.
+- The active branch contains current guidance, not an in-tree historical archive.
+- Delete or rewrite superseded documentation when a vNext contract replaces it.
+- Git history is the archive.
+- Broken references to deleted documentation are defects.
+- Accepted vNext decision documents override prototype source shape.
 
-## Context Budget Guardrails
-- Treat context-budget limits as soft targets, not hard stop rules.
-- Preferred targets:
-  - `AGENTS.md` under ~220 lines
-  - `agent/ROLES.md` under ~180 lines
-  - `agent/ISSUES.md` under ~250 lines
-  - `agent/MILESTONES.md` under ~120 lines
-- Prefer archive movement and reference docs over duplicating policy in multiple active files.
+## Context Guardrails
+Load the smallest authoritative set needed for the task. Do not search deleted docs/Git history for design direction unless historical recovery is explicitly required. Source/tests may be inspected to preserve algorithms or behavior, but source does not override accepted vNext architecture.
 
 ## Feature Intake
-- For new feature requests:
-  - capture behavior, constraints, and success criteria
-  - evaluate gaps in rules, state flow, UX, data, error handling, and testability
-  - ask concise clarification questions until the request is implementation-ready
-  - update relevant `documentation/` files when requirements are sufficiently defined
-- Default UX/system-placement bias toward persistent management surfaces rather than temporary rest-node or run-scoped variants unless the user explicitly wants the run-scoped exception.
-
-## Spec Activation
-- Treat rebuild/spec/reference docs as inactive planning material unless the user explicitly declares them active execution artifacts.
-- Do not treat creative exploration docs or asset bundles as implementation-authoritative by default.
-- When the user introduces a new doc or asset bundle, ask then whether it should be treated as implementation-relevant or exploratory reference.
+For new feature work, capture behavior, constraints, data/authority implications, UX, error handling, and verification needs. Place the feature within the accepted vNext architecture before implementation. Do not revive prototype patterns merely because they provide a nearby implementation example.
