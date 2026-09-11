@@ -9,7 +9,7 @@
 **Status:** Open
 **Priority:** High
 
-#### Goal
+#### Problem
 Create the smallest clean MySQL/auth/player-state foundation needed for the walking skeleton without replaying prototype migrations or implementing later gameplay domains.
 
 #### Required Context
