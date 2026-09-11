@@ -26,6 +26,11 @@ function parseArgs(argv) {
     timeoutMs: DEFAULT_WAIT_TIMEOUT_MS,
     useExistingServer: false,
     fullPage: false,
+    width: 1440,
+    height: 900,
+    mobile: false,
+    expectLayout: '',
+    expectGate: '',
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -87,6 +92,25 @@ function parseArgs(argv) {
       case "--full-page":
         options.fullPage = true;
         break;
+      case "--width":
+        options.width = Number.parseInt(next ?? '1440', 10);
+        index += 1;
+        break;
+      case "--height":
+        options.height = Number.parseInt(next ?? '900', 10);
+        index += 1;
+        break;
+      case "--mobile":
+        options.mobile = true;
+        break;
+      case "--expect-layout":
+        options.expectLayout = next ?? '';
+        index += 1;
+        break;
+      case "--expect-gate":
+        options.expectGate = next ?? '';
+        index += 1;
+        break;
       case "--help":
         printHelp();
         process.exit(0);
@@ -121,7 +145,64 @@ Options:
   --settle-ms <ms>          Extra wait after the scene signals ready (default: ${DEFAULT_SETTLE_MS})
   --timeout-ms <ms>         Overall timeout waiting for app and scene readiness
   --full-page               Capture full page instead of viewport only
+  --width <px>              Browser CSS viewport width (default: 1440)
+  --height <px>             Browser CSS viewport height (default: 900)
+  --mobile                  Emulate touch/mobile input capabilities
+  --expect-layout <mode>    Require compact | standard | wide runtime mode
+  --expect-gate <state>     Require active | inactive portrait-gate state
 `);
+}
+
+async function installGameFixtureRoutes(page, options) {
+  if (!['camp', 'camp-portrait'].includes(options.scene.trim().toLowerCase())) return;
+
+  const revision = 'a'.repeat(64);
+  await page.route('**/game-content.json', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      revision,
+      content: {
+        regions: {
+          'region.the_farm': {
+            id: 'region.the_farm',
+            display_name: 'The Farm',
+            art_key: 'farm',
+          },
+        },
+      },
+    }),
+  }));
+  await page.route('**/api/v1/game/bootstrap', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      ok: true,
+      data: {
+        account: { id: options.userId, display_name: options.displayName, role: 'user' },
+        player: {
+          teeth: 1234,
+          raw_chaos: 17,
+          energy: {
+            current: 57,
+            normal_max: 50,
+            regeneration_per_hour: 12,
+            regeneration_interval_seconds: 300,
+            last_regeneration_at: '2026-09-11T00:00:00Z',
+            next_regeneration_at: null,
+            fully_regenerated_at: null,
+          },
+          player_revision: 3,
+        },
+        session: { authenticated: true, csrf_token: 'debug-csrf-token' },
+        server_time: '2026-09-11T00:00:00Z',
+        content_revision: revision,
+        progression: { unlock_ids: [] },
+        active_squad: null,
+        active_run: null,
+      },
+    }),
+  }));
 }
 
 function createCaptureUrl(options) {
@@ -192,7 +273,6 @@ function startDevServer(options) {
       options.host,
       "--port",
       options.port,
-      "--strictPort",
     ],
     {
       cwd: process.cwd(),
@@ -202,6 +282,23 @@ function startDevServer(options) {
   );
 
   return child;
+}
+
+async function stopDevServer(child) {
+  if (!child?.pid) return;
+  if (process.platform !== 'win32') {
+    child.kill();
+    return;
+  }
+
+  await new Promise((resolve) => {
+    const killer = spawn('taskkill', ['/pid', `${child.pid}`, '/T', '/F'], {
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    killer.once('close', resolve);
+    killer.once('error', resolve);
+  });
 }
 
 async function captureScene(options) {
@@ -228,7 +325,13 @@ async function captureScene(options) {
 
     const browser = await chromium.launch();
     try {
-      const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+      const context = await browser.newContext({
+        viewport: { width: options.width, height: options.height },
+        isMobile: options.mobile,
+        hasTouch: options.mobile,
+      });
+      const page = await context.newPage();
+      await installGameFixtureRoutes(page, options);
       page.on("pageerror", (error) => {
         pageErrors.push(error instanceof Error ? error.message : String(error));
       });
@@ -266,6 +369,39 @@ async function captureScene(options) {
         ) {
           throw new Error(`Timed out waiting for debug scene '${options.scene}' to become ready.`);
         }
+        if (options.expectLayout) {
+          await page.waitForSelector(
+            `[data-game-layout="${options.expectLayout}"]`,
+            { timeout: options.timeoutMs },
+          );
+        }
+        if (options.expectGate) {
+          await page.waitForSelector(
+            `[data-game-orientation-gate="${options.expectGate}"]`,
+            { timeout: options.timeoutMs },
+          );
+        }
+        if (['camp', 'camp-portrait'].includes(options.scene.trim().toLowerCase())) {
+          await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
+          await page.waitForSelector('[data-game-screen="camp"]', { timeout: options.timeoutMs });
+          const runtimeMetrics = await page.evaluate(() => {
+            const host = document.querySelector('.game-host__mount');
+            const canvas = host?.querySelector('canvas');
+            const rect = canvas?.getBoundingClientRect();
+            return {
+              hostWidth: host?.clientWidth,
+              hostHeight: host?.clientHeight,
+              canvasWidth: canvas?.width,
+              canvasHeight: canvas?.height,
+              canvasCssWidth: rect?.width,
+              canvasCssHeight: rect?.height,
+              layout: host?.getAttribute('data-game-layout'),
+              gate: host?.getAttribute('data-game-orientation-gate'),
+              screen: host?.getAttribute('data-game-screen'),
+            };
+          });
+          console.log(`Runtime metrics: ${JSON.stringify(runtimeMetrics)}`);
+        }
       } catch (error) {
         const debugState = await readDebugState(page);
         const diagnostics = [
@@ -289,6 +425,35 @@ async function captureScene(options) {
         await page.waitForTimeout(options.settleMs);
       }
 
+      if (options.expectLayout || options.expectGate) {
+        const settledRuntimeState = await page.evaluate(() => {
+          const host = document.querySelector('.game-host__mount');
+          return {
+            layout: host?.getAttribute('data-game-layout') ?? '',
+            gate: host?.getAttribute('data-game-orientation-gate') ?? '',
+          };
+        });
+        if (options.expectLayout && settledRuntimeState.layout !== options.expectLayout) {
+          throw new Error(
+            `Expected settled runtime layout '${options.expectLayout}', got '${settledRuntimeState.layout}'.`,
+          );
+        }
+        if (options.expectGate && settledRuntimeState.gate !== options.expectGate) {
+          throw new Error(
+            `Expected settled orientation gate '${options.expectGate}', got '${settledRuntimeState.gate}'.`,
+          );
+        }
+      }
+
+      if (pageErrors.length > 0 || requestFailures.length > 0) {
+        throw new Error([
+          `Capture encountered browser errors for '${options.scene}'.`,
+          pageErrors.length > 0 ? `Page errors: ${pageErrors.join(' | ')}` : '',
+          requestFailures.length > 0 ? `Request failures: ${requestFailures.join(' | ')}` : '',
+          consoleMessages.length > 0 ? `Recent console: ${consoleMessages.slice(-12).join(' | ')}` : '',
+        ].filter(Boolean).join('\n'));
+      }
+
       await page.screenshot({
         path: outputPath,
         fullPage: options.fullPage,
@@ -309,7 +474,7 @@ async function captureScene(options) {
     throw error;
   } finally {
     if (serverProcess) {
-      serverProcess.kill();
+      await stopDevServer(serverProcess);
     }
   }
 }

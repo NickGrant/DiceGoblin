@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GameStore } from '../runtime/game-store';
 import { RuntimeStartup, RuntimeStartupSnapshot } from '../runtime/runtime-startup';
+import { RuntimeViewport } from '../runtime/runtime-viewport';
 import { CampScreen, GameSceneScreen } from '../screens/camp-screen';
 
 export const BOOT_SCENE_KEY = 'BootScene';
@@ -32,6 +33,7 @@ abstract class RuntimeScene extends Phaser.Scene {
     private readonly runtimeSceneKey: GameplaySceneKey,
     readonly runtimeState: RuntimeLifecycleState,
     readonly runtimeStartup: RuntimeStartup,
+    readonly runtimeViewport: RuntimeViewport,
   ) {
     super({ key: runtimeSceneKey });
   }
@@ -69,12 +71,15 @@ export class BootScene extends Phaser.Scene {
   constructor(
     readonly runtimeState: RuntimeLifecycleState,
     readonly runtimeStartup: RuntimeStartup,
+    readonly runtimeViewport: RuntimeViewport,
   ) {
     super({ key: BOOT_SCENE_KEY });
   }
 
   create(): void {
     this.runtimeState.recordSceneEntry(BOOT_SCENE_KEY);
+    (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
+      ?.setAttribute('data-game-screen', 'boot');
     const centerX = this.scale.width / 2;
     const centerY = this.scale.height / 2;
     this.add
@@ -118,16 +123,19 @@ export class BootScene extends Phaser.Scene {
 
 export class GameScene extends RuntimeScene {
   private activeScreen: GameSceneScreen | null = null;
+  private unsubscribeViewport: (() => void) | null = null;
 
   constructor(
     runtimeState: RuntimeLifecycleState,
     runtimeStartup: RuntimeStartup,
+    runtimeViewport: RuntimeViewport,
     private readonly createCampScreen: (
       scene: Phaser.Scene,
       store: GameStore,
-    ) => GameSceneScreen = (scene, store) => new CampScreen(scene, store),
+      viewport: RuntimeViewport,
+    ) => GameSceneScreen = (scene, store, viewport) => new CampScreen(scene, store, viewport),
   ) {
-    super(GAME_SCENE_KEY, runtimeState, runtimeStartup);
+    super(GAME_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
   }
 
   preload(): void {
@@ -140,13 +148,26 @@ export class GameScene extends RuntimeScene {
       return;
     }
 
+    (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
+      ?.setAttribute('data-game-screen', 'camp');
     this.showCamp();
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroyActiveScreen());
+    this.unsubscribeViewport = this.runtimeViewport.subscribe((snapshot) => {
+      this.activeScreen?.reflow(snapshot);
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.unsubscribeViewport?.();
+      this.unsubscribeViewport = null;
+      this.destroyActiveScreen();
+    });
   }
 
   showCamp(): void {
     this.destroyActiveScreen();
-    this.activeScreen = this.createCampScreen(this, this.runtimeStartup.store);
+    this.activeScreen = this.createCampScreen(
+      this,
+      this.runtimeStartup.store,
+      this.runtimeViewport,
+    );
     this.activeScreen.create();
   }
 
@@ -161,8 +182,12 @@ export class GameScene extends RuntimeScene {
 }
 
 export class RunScene extends RuntimeScene {
-  constructor(runtimeState: RuntimeLifecycleState, runtimeStartup: RuntimeStartup) {
-    super(RUN_SCENE_KEY, runtimeState, runtimeStartup);
+  constructor(
+    runtimeState: RuntimeLifecycleState,
+    runtimeStartup: RuntimeStartup,
+    runtimeViewport: RuntimeViewport,
+  ) {
+    super(RUN_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
   }
 
   create(): void {
@@ -171,8 +196,12 @@ export class RunScene extends RuntimeScene {
 }
 
 export class BattleScene extends RuntimeScene {
-  constructor(runtimeState: RuntimeLifecycleState, runtimeStartup: RuntimeStartup) {
-    super(BATTLE_SCENE_KEY, runtimeState, runtimeStartup);
+  constructor(
+    runtimeState: RuntimeLifecycleState,
+    runtimeStartup: RuntimeStartup,
+    runtimeViewport: RuntimeViewport,
+  ) {
+    super(BATTLE_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
   }
 
   create(): void {
@@ -201,11 +230,12 @@ export function startupMessage(state: RuntimeStartupSnapshot): string {
 export function createRuntimeScenes(
   runtimeState: RuntimeLifecycleState,
   runtimeStartup: RuntimeStartup,
+  runtimeViewport: RuntimeViewport,
 ): Phaser.Scene[] {
   return [
-    new BootScene(runtimeState, runtimeStartup),
-    new GameScene(runtimeState, runtimeStartup),
-    new RunScene(runtimeState, runtimeStartup),
-    new BattleScene(runtimeState, runtimeStartup),
+    new BootScene(runtimeState, runtimeStartup, runtimeViewport),
+    new GameScene(runtimeState, runtimeStartup, runtimeViewport),
+    new RunScene(runtimeState, runtimeStartup, runtimeViewport),
+    new BattleScene(runtimeState, runtimeStartup, runtimeViewport),
   ];
 }

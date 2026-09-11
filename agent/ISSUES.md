@@ -6,7 +6,7 @@
 
 ### Establish responsive landscape game-host behavior
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

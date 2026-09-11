@@ -11,9 +11,16 @@ import { GameBootstrapData, GameStore } from '../runtime/game-store';
 import { RuntimeApiClient } from '../runtime/runtime-api-client';
 import { RuntimeStartup } from '../runtime/runtime-startup';
 import {
+  RuntimeViewport,
+  RuntimeViewportEnvironment,
+  ViewportMeasurement,
+  calculateRuntimeViewport,
+} from '../runtime/runtime-viewport';
+import {
   CampScreen,
   CampStateUnavailableError,
   GameSceneScreen,
+  createCampLayout,
   createCampViewModel,
 } from './camp-screen';
 
@@ -54,6 +61,16 @@ describe('CampScreen', () => {
     const store = new GameStore();
     store.hydrateBootstrap(data);
     return store;
+  }
+
+  function viewportSnapshot(width: number, height: number) {
+    return calculateRuntimeViewport({
+      cssWidth: width,
+      cssHeight: height,
+      safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 },
+      coarsePointer: false,
+      noHover: false,
+    });
   }
 
   it('derives identity, Teeth, Raw Chaos, and Energy only from authoritative bootstrap state', () => {
@@ -99,10 +116,67 @@ describe('CampScreen', () => {
   });
 
   it('is a GameScene-owned screen boundary rather than another Phaser Scene', () => {
-    const screen = new CampScreen({} as Phaser.Scene, storeWith(bootstrap()));
+    const screen = new CampScreen(
+      {} as Phaser.Scene,
+      storeWith(bootstrap()),
+      new RuntimeViewport(),
+    );
 
     expect(screen.key).toBe('camp');
     expect(screen instanceof Phaser.Scene).toBeFalse();
+  });
+
+  it('keeps the panel and every resource region inside usable bounds in all modes', () => {
+    const snapshots = [
+      viewportSnapshot(844, 390),
+      viewportSnapshot(1600, 900),
+      viewportSnapshot(2560, 1080),
+      calculateRuntimeViewport({
+        cssWidth: 844,
+        cssHeight: 390,
+        safeInsetsCss: { top: 0, right: 21, bottom: 18, left: 47 },
+        coarsePointer: true,
+        noHover: true,
+      }),
+    ];
+
+    for (const snapshot of snapshots) {
+      const layout = createCampLayout(snapshot);
+      for (const region of [layout.panel, ...layout.resourcePlaques]) {
+        expect(region.x).toBeGreaterThanOrEqual(snapshot.safeBounds.x);
+        expect(region.y).toBeGreaterThanOrEqual(snapshot.safeBounds.y);
+        expect(region.right).toBeLessThanOrEqual(snapshot.safeBounds.right);
+        expect(region.bottom).toBeLessThanOrEqual(snapshot.safeBounds.bottom);
+      }
+    }
+  });
+
+  it('uses a distinct Compact composition while retaining the same Camp regions', () => {
+    const compact = createCampLayout(viewportSnapshot(844, 390));
+    const standard = createCampLayout(viewportSnapshot(1600, 900));
+    const wide = createCampLayout(viewportSnapshot(2560, 1080));
+
+    expect(compact.mode).toBe('compact');
+    expect(compact.panel.height).toBeGreaterThan(standard.panel.height);
+    expect(compact.resourceValueFontSize).toBeGreaterThan(standard.resourceValueFontSize);
+    expect(standard.mode).toBe('standard');
+    expect(wide.mode).toBe('wide');
+    expect(wide.panel.width).toBeGreaterThan(standard.panel.width);
+    expect(compact.resourcePlaques.length).toBe(3);
+  });
+
+  it('does not transform authoritative values when layout mode changes', () => {
+    const store = storeWith(bootstrap('Grizzlewick', 80, 9, 57, 50));
+    const before = createCampViewModel(store);
+
+    createCampLayout(viewportSnapshot(844, 390));
+    createCampLayout(viewportSnapshot(1600, 900));
+    createCampLayout(viewportSnapshot(2560, 1080));
+
+    const after = createCampViewModel(store);
+    expect(after).toEqual(before);
+    expect(after.energyText).toBe('57 / 50');
+    expect(after.isEnergyOvercap).toBeTrue();
   });
 
   it('does not create Camp before startup is ready', () => {
@@ -112,7 +186,12 @@ describe('CampScreen', () => {
     ]);
     const startup = new RuntimeStartup(apiClient, contentLoader);
     const screenFactory = jasmine.createSpy('screenFactory');
-    const gameScene = new GameScene(new RuntimeLifecycleState(), startup, screenFactory);
+    const gameScene = new GameScene(
+      new RuntimeLifecycleState(),
+      startup,
+      new RuntimeViewport(),
+      screenFactory,
+    );
     const start = jasmine.createSpy('start');
     (gameScene as unknown as { scene: { start: jasmine.Spy } }).scene = { start };
 
@@ -143,13 +222,20 @@ describe('CampScreen', () => {
     const screenFactory = jasmine
       .createSpy('screenFactory')
       .and.callFake((_scene: Phaser.Scene, _store: GameStore) => {
-        const screen = jasmine.createSpyObj<GameSceneScreen>('CampScreen', ['create', 'destroy'], {
-          key: 'camp',
-        });
+        const screen = jasmine.createSpyObj<GameSceneScreen>(
+          'CampScreen',
+          ['create', 'reflow', 'destroy'],
+          { key: 'camp' },
+        );
         createdScreens.push(screen);
         return screen;
       });
-    const gameScene = new GameScene(new RuntimeLifecycleState(), startup, screenFactory);
+    const gameScene = new GameScene(
+      new RuntimeLifecycleState(),
+      startup,
+      new RuntimeViewport(),
+      screenFactory,
+    );
 
     const state = await startup.start();
     expect(nextSceneForStartup(state)).toBe(GAME_SCENE_KEY);
@@ -162,6 +248,55 @@ describe('CampScreen', () => {
     expect(createdScreens[0].destroy).toHaveBeenCalledTimes(1);
     expect(createdScreens[1].create).toHaveBeenCalledTimes(1);
     expect(gameScene.activeScreenKey).toBe('camp');
+    expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+    expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
+  });
+
+  it('reflows the same active Camp screen on resize without refetching or replacing authority', async () => {
+    const revision = 'a'.repeat(64);
+    const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
+    apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap('Grizzlewick', 80, 9, 57, 50) });
+    const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
+    contentLoader.loadProjection.and.resolveTo({
+      revision,
+      content: { regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } } },
+    });
+    let currentMeasurement: ViewportMeasurement = {
+      cssWidth: 1600, cssHeight: 900,
+      safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 },
+      coarsePointer: false, noHover: false,
+    };
+    let resize: (() => void) | null = null;
+    const environment: RuntimeViewportEnvironment = {
+      measure: () => currentMeasurement,
+      listen: (_parent, listener) => {
+        resize = listener;
+        return () => undefined;
+      },
+    };
+    const viewport = new RuntimeViewport(environment);
+    viewport.mount(document.createElement('div'));
+    const startup = new RuntimeStartup(apiClient, contentLoader);
+    const screen = jasmine.createSpyObj<GameSceneScreen>('CampScreen', ['create', 'reflow', 'destroy'], { key: 'camp' });
+    const factory = jasmine.createSpy('factory').and.returnValue(screen);
+    const scene = new GameScene(new RuntimeLifecycleState(), startup, viewport, factory);
+    const shutdown = jasmine.createSpy('shutdown');
+    (scene as unknown as { cameras: unknown; events: unknown }).cameras = {
+      main: { setOrigin: () => ({ setZoom: () => ({ setScroll: () => undefined }) }) },
+    };
+    (scene as unknown as { events: unknown }).events = { once: shutdown };
+    await startup.start();
+    const store = startup.store;
+
+    scene.create();
+    currentMeasurement = { ...currentMeasurement, cssWidth: 844, cssHeight: 390 };
+    (resize as unknown as () => void)();
+
+    expect(factory).toHaveBeenCalledTimes(1);
+    expect(screen.reflow).toHaveBeenCalledOnceWith(jasmine.objectContaining({ layoutClass: 'compact' }));
+    expect(startup.store).toBe(store);
+    expect(startup.store.bootstrap?.player.energy.current).toBe(57);
+    expect(startup.store.bootstrap?.player.energy.normal_max).toBe(50);
     expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
     expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
   });

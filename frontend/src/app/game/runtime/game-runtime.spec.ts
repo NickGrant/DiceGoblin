@@ -11,6 +11,11 @@ import { ClientContentLoader } from './client-content-registry';
 import { RuntimeApiClient } from './runtime-api-client';
 import { RuntimeStartup } from './runtime-startup';
 import { GameRuntime, PhaserGameFactory, PhaserGameHandle } from './game-runtime';
+import {
+  RuntimeViewport,
+  RuntimeViewportEnvironment,
+  ViewportMeasurement,
+} from './runtime-viewport';
 
 describe('GameRuntime', () => {
   let parent: HTMLElement;
@@ -227,5 +232,105 @@ describe('GameRuntime', () => {
     runtime.mount(parent);
 
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('preserves runtime authority while a phone portrait gate blocks and restores input', async () => {
+    const revision = 'a'.repeat(64);
+    const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
+    apiClient.getBootstrap.and.resolveTo({
+      ok: true,
+      data: {
+        account: { id: '1', display_name: 'Goblin', role: 'user' },
+        player: {
+          teeth: 80,
+          raw_chaos: 9,
+          energy: {
+            current: 57,
+            normal_max: 50,
+            regeneration_per_hour: 12,
+            regeneration_interval_seconds: 300,
+            last_regeneration_at: '2026-09-11T00:00:00Z',
+            next_regeneration_at: null,
+            fully_regenerated_at: null,
+          },
+          player_revision: 7,
+        },
+        session: { authenticated: true, csrf_token: 'csrf' },
+        server_time: '2026-09-11T00:00:00Z',
+        content_revision: revision,
+        progression: { unlock_ids: [] },
+        active_squad: null,
+        active_run: null,
+      },
+    });
+    const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
+    contentLoader.loadProjection.and.resolveTo({
+      revision,
+      content: { regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } } },
+    });
+    const startup = new RuntimeStartup(apiClient, contentLoader);
+    let measurement: ViewportMeasurement = {
+      cssWidth: 844,
+      cssHeight: 390,
+      safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 },
+      coarsePointer: true,
+      noHover: true,
+    };
+    let resize: (() => void) | null = null;
+    const stop = jasmine.createSpy('stop');
+    const environment: RuntimeViewportEnvironment = {
+      measure: () => measurement,
+      listen: (_parent, listener) => {
+        resize = listener;
+        return stop;
+      },
+    };
+    const viewport = new RuntimeViewport(environment);
+    const scale = jasmine.createSpyObj('scale', ['resize']);
+    const game = {
+      input: { enabled: true },
+      scale,
+      destroy: jasmine.createSpy('destroy'),
+    } satisfies PhaserGameHandle;
+    const localFactory = jasmine.createSpy<PhaserGameFactory>('factory').and.returnValue(game);
+    const runtime = new GameRuntime(localFactory, startup, viewport);
+
+    runtime.mount(parent);
+    await startup.start();
+    const store = startup.store;
+    const contentRegistry = startup.contentRegistry;
+    expect(parent.dataset['gameLayout']).toBe('compact');
+    expect(parent.dataset['gameOrientationGate']).toBe('inactive');
+    expect(game.input.enabled).toBeTrue();
+
+    measurement = { ...measurement, cssWidth: 390, cssHeight: 844 };
+    (resize as unknown as () => void)();
+
+    expect(localFactory).toHaveBeenCalledTimes(1);
+    expect(runtime.startup.store).toBe(store);
+    expect(runtime.startup.contentRegistry).toBe(contentRegistry);
+    expect(game.input.enabled).toBeFalse();
+    expect(game.destroy).not.toHaveBeenCalled();
+    expect(parent.dataset['gameOrientationGate']).toBe('active');
+    expect(parent.querySelector('[data-game-portrait-gate="active"]')).not.toBeNull();
+    expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+    expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
+
+    measurement = { ...measurement, cssWidth: 844, cssHeight: 390 };
+    (resize as unknown as () => void)();
+
+    expect(localFactory).toHaveBeenCalledTimes(1);
+    expect(game.input.enabled).toBeTrue();
+    expect(runtime.startup.contentRegistry).toBe(contentRegistry);
+    expect(game.destroy).not.toHaveBeenCalled();
+    expect(parent.dataset['gameOrientationGate']).toBe('inactive');
+    expect(startup.store.bootstrap?.player.energy.current).toBe(57);
+    expect(startup.store.bootstrap?.player.energy.normal_max).toBe(50);
+    expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+    expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
+
+    runtime.destroy();
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(parent.querySelector('[data-game-portrait-gate]')).toBeNull();
   });
 });

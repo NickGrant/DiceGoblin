@@ -292,7 +292,15 @@ vNext begins with three conceptual landscape layout classes:
 - **Standard** — layouts around the 16:9 reference composition
 - **Wide** — ultrawide displays and unusually wide landscape devices
 
-Breakpoint thresholds are intentionally deferred until representative Camp and Unit Detail screens can be tested at real viewport sizes. Breakpoints should make meaningful composition adjustments rather than create separately maintained desktop and mobile interfaces.
+The runtime fixes the reference logical height at `900` in supported landscape and derives game scale as the smaller of available CSS height divided by `900` and available CSS width divided by the minimum supported logical width of `1200`. Effective logical dimensions are the CSS viewport dimensions divided by that single game scale. Wider landscapes therefore expose peripheral logical width without stretching objects; viewports narrower than `4:3` retain a `1200`-unit logical width and may expose additional vertical space.
+
+After converting device safe insets to logical units, layout classification uses these resolved rules:
+
+- **Compact** when CSS viewport height is at most `599`, or safe logical width is below `1440`.
+- **Wide** when safe logical width is at least `1920` and CSS viewport height is at least `720`.
+- **Standard** otherwise, including the `1600 x 900` reference viewport.
+
+The CSS-height constraints represent actual legibility and interaction space. In particular, a short landscape phone remains Compact even when its aspect ratio produces more than `1920` logical units of width. Camp uses Compact to enlarge text and plaques in logical space and compress decorative spacing; Standard and Wide retain the same information architecture with different bounded panel widths and margins.
 
 Compact mode may tighten margins, reduce optional decorative space, or moderately resize/rearrange selected presentation elements. Fundamental information architecture and interaction patterns should remain consistent between modes.
 
@@ -311,11 +319,15 @@ Interactive and critical UI must respect usable device safe insets so landscape 
 
 Safe inset handling is separate from the central 1600 x 900 reference composition. Backgrounds and decorative presentation may extend beyond safe insets when visually appropriate; critical interactive UI should not.
 
+The runtime measures browser `safe-area-inset-*` values in CSS pixels and divides them by the current game scale before publishing logical insets and safe bounds to screens. Raw CSS inset values must not be used as Phaser coordinates.
+
 ### Responsive verification
 
 Day-to-day screen composition should primarily target the 1600 x 900 reference viewport and then be verified against representative compact, standard, and wide landscape viewports.
 
-Deterministic visual testing should eventually capture important screens in all three layout classes. Responsive failures should first be treated as anchoring, region-layout, or breakpoint-composition problems rather than solved through arbitrary per-resolution coordinates.
+Deterministic visual testing captures important screens in all three layout classes. Responsive failures should first be treated as anchoring, region-layout, or breakpoint-composition problems rather than solved through arbitrary per-resolution coordinates.
+
+The stable Camp verification viewports are `844 x 390` with mobile/touch capabilities for Compact landscape, `1600 x 900` for Standard, and `2560 x 1080` for Wide. The rotate-device presentation is captured at `390 x 844` with mobile/touch capabilities.
 
 ## Mobile Orientation
 
@@ -333,6 +345,8 @@ When a mobile device is in portrait orientation:
 The orientation gate belongs at the game host/runtime level rather than in individual gameplay scenes.
 
 Browser/native orientation locking may be attempted as progressive enhancement where supported, but correct behavior must not depend on the browser successfully forcing orientation.
+
+The portrait gate applies when the viewport is portrait, has a coarse pointer or no-hover capability, and its largest CSS dimension is at most `932`. Orientation alone never classifies a desktop browser as a phone, and larger tablet-class portrait viewports are not blocked by this phone rule.
 
 ## Asset Loading
 
