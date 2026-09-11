@@ -1,39 +1,18 @@
 ---
-Title: "Testing And Release Documentation"
+Title: "Testing and Release Documentation"
 Status: Canonical
-Last Updated: 2026-08-01
-Owner: Product + QA + Engineering
+Last Updated: 2026-09-10
+Owner: QA + Engineering
 Depends On:
   - documentation/README.md
 Category: 06-testing-release
-Tags:
-  - testing-release
+Tags: [testing, vnext]
 ---
 
-# Testing And Release Documentation
+# Testing and Release Documentation
 
-## Purpose
+The active vNext testing contract is `00-testing-strategy.md`.
 
-- Testing strategy, release gates, UAT scripts, checklists, readiness validation, and evidence templates.
+Prototype release checklists, July UAT plans, old mobile-portrait regression matrices, and completed evidence packets were removed. They are available through Git history if an historical comparison is needed.
 
-## Status Guidance
-
-- `Canonical` documents are the default source of truth for their scope.
-- `Needs Review` documents are useful but should be verified before making implementation decisions from them.
-- `Legacy Reference` documents are preserved for history, migration context, or comparison and do not override canonical docs.
-
-## Documents
-
-- `00-testing-strategy.md`
-- `01-release-gate-criteria.md`
-- `02-critical-path-playtest-script.md`
-- `04-player-friction-severity-rubric.md`
-- `05-first-release-checklist.md`
-- `06-mobile-viewport-regression-checklist.md`
-- `07-july-roadmap-uat-balance-checklist.md`
-- `08-release-readiness-validation.md`
-- `09-uat-balance-evidence-template.md`
-
-## Child Folders
-
-- `evidence/`
+Current executable commands/checks belong in `agent/QUALITY_GATES.md`; this folder defines durable testing principles so command names may evolve without duplicating them across documentation.

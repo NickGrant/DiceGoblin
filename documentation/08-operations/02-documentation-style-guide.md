@@ -1,37 +1,34 @@
 ---
 Title: "Documentation Style Guide"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-09-10
 Owner: Engineering
 Depends On:
   - documentation/README.md
 Category: 08-operations
-Tags:
-  - operations
+Tags: [operations, documentation]
 ---
 
 # Documentation Style Guide
 
 ## Purpose
-- Keep docs consistent, compact, and machine-readable.
+Keep documentation compact, current, and safe for human and coding-agent retrieval.
 
-## Encoding and Characters
-- UTF-8 for markdown files.
-- Prefer ASCII punctuation (`-`, `->`, straight quotes).
-- Avoid mojibake artifacts.
+## Active-Tree Rule
+The active vNext documentation tree describes current intent. Git history is the archive.
 
-## Required Metadata (High-Impact Docs)
-- `Status`
-- `Last Updated` (YYYY-MM-DD)
-- `Owner`
-- `Depends On`
+Do not keep superseded proposals, completed audits, old release evidence, abandoned experiments, or prototype implementation contracts as `Legacy Reference` files in the active tree. Recover history from Git only when needed.
 
-## Structure Rules
-- Start with purpose/scope.
-- Prefer short sections and direct references to source-of-truth docs.
-- Avoid duplicated policy text; reference canonical docs instead.
+## Metadata
+High-impact Markdown documents include `Status`, `Last Updated`, `Owner`, `Depends On`, `Category`, and `Tags`.
 
-## Hygiene Rules
-- Active work in `agent/ISSUES.md` and `agent/MILESTONES.md`.
-- Archive completed items promptly.
-- Record major doc contract changes in `documentation/07-development-path/CHANGELOG.md`.
+## Writing
+- Start with purpose/scope or the governing decision.
+- State durable rules, not implementation archaeology.
+- Prefer one authoritative owner for a concept and link to it rather than duplicating policy.
+- Distinguish authored game rules from current prototype implementation evidence.
+- Do not document unresolved speculation as if it were an accepted target.
+- Keep transitional vNext decision records under `07-development-path/` until implementation stabilizes, then reconcile durable concepts into canonical system/technical docs.
+
+## Hygiene
+When a contract changes, update/delete conflicting docs and routing references in the same work. Broken references to removed documents are defects, not historical breadcrumbs.

@@ -2,8 +2,8 @@
 ----
 
 ## Purpose
-- Keep default context small.
-- Route targeted questions to the narrowest relevant source.
+- Route coding and design work to the smallest current vNext context set.
+- Avoid loading superseded prototype decisions into implementation context.
 
 ## Default Load
 - `AGENTS.md`
@@ -12,53 +12,45 @@
 - `agent/MILESTONES.md`
 - this file
 
-## Retrieval Routes
-- Game overview or glossary:
+## Primary vNext Route
+For architecture, implementation planning, APIs, storage, authored content, progression, economy, rewards, or Phaser structure:
+- `documentation/07-development-path/vnext-game-overhaul.md`
+- then the relevant `documentation/07-development-path/vnext-*.md` accepted decision document.
+
+## Topic Routes
+- Game overview and loop:
   - `documentation/00-overview/00-project-overview.md`
   - `documentation/00-overview/01-core-gameplay-loop.md`
   - `documentation/00-overview/02-glossary.md`
-- Lore, story, and biome progression:
-  - `documentation/01-lore/README.md`
+- Lore and character tone:
   - `documentation/01-lore/00-world-and-lore.md`
-  - `documentation/01-lore/01-story-and-biome-progression.md`
-- Frontend architecture, routes, state, or API contracts:
-  - `documentation/05-technical/02-frontend-state-and-scene-contracts.md`
-  - `documentation/05-technical/03-backend-api-contracts.md`
-  - `documentation/05-technical/04-data-model.md`
-- Seed catalog ownership and DB-vs-code decisions:
-  - `documentation/05-technical/09-seed-catalog-ownership.md`
-- Gameplay systems, combat, units, progression, loot, or runs:
+  - `documentation/01-lore/02-character-profiles.md`
+- Gameplay systems and combat behavior:
   - `documentation/02-systems/README.md`
-  - `documentation/02-systems/`
-  - `documentation/02-systems/mvp-reference/`
-- Content catalogs, units, kin, enemies, biomes, items, affixes, encounters, or codex entries:
+  - then the narrow relevant system document.
+- Authored content design references:
   - `documentation/03-content/README.md`
-- UX, navigation, layouts, and player-facing behavior:
-  - `documentation/04-ux/README.md`
-  - `documentation/04-ux/`
-  - `documentation/04-ux/page-analysis/`
-- Release validation, testing, and quality gates:
+  - then the relevant retained catalog.
+  - During vNext these Markdown catalogs are migration/design references; canonical runtime authored definitions move to JSON as their milestone is implemented.
+- UX and visual direction:
+  - `documentation/04-ux/01-visual-design-guide.md`
+  - `documentation/07-development-path/vnext-phaser-client-architecture.md`
+- Technical architecture:
+  - `documentation/05-technical/00-tech-stack.md`
+  - `documentation/05-technical/01-authentication-and-sessions.md`
+  - relevant accepted vNext architecture/contract document under `07-development-path`.
+- Testing and verification philosophy:
   - `documentation/06-testing-release/00-testing-strategy.md`
-  - `documentation/06-testing-release/`
-  - `agent/QUALITY_GATES.md`
-- Development path, roadmap, demo planning, or changelog:
-  - `documentation/07-development-path/README.md`
-  - `documentation/07-development-path/`
-- Documentation maintenance, engineering standards, or LLM context architecture:
-  - `documentation/08-operations/README.md`
-  - `documentation/08-operations/`
-- Backlog sequencing or issue-selection policy:
-  - `agent/BACKLOG_OPERATIONS.md`
-- Role-driven work:
-  - `agent/ROLES.md`
-  - `agent/ROLE_CATALOG.md`
-- Historical or planning-only context:
-  - `agent/ISSUES_BACKLOG.md`
-  - `agent/MILESTONES_BACKLOG.md`
-  - `agent/ISSUES_ARCHIVE.md`
-  - `agent/MILESTONES_ARCHIVE.md`
+  - `agent/QUALITY_GATES.md` for current commands.
+- Approved future base-game biome roster:
+  - `documentation/07-development-path/01-base-game-content-roster.md`
+- Documentation and engineering standards:
+  - `documentation/08-operations/00-engineering-standards.md`
+  - `documentation/08-operations/02-documentation-style-guide.md`
 
 ## Retrieval Rules
-- Prefer the smallest doc set that answers the current question.
-- Do not load `README.md` or `documentation/README.md` by default.
-- Load archives only for reopened work, audits, or historical comparison.
+- Prefer accepted vNext decisions over prototype implementation shape.
+- Do not search Git history for design guidance unless the user explicitly asks for history, rationale, or recovery of a removed idea.
+- Do not infer current requirements from deleted paths referenced by old commits.
+- Load implementation source when needed to preserve useful algorithms or measure migration work, not to revive superseded architecture.
+- Prefer the smallest authoritative context set that can prove an implementation decision correct or incorrect.

@@ -1,38 +1,22 @@
 ---
 Title: "UX Documentation"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-09-10
 Owner: Product + UX
 Depends On:
   - documentation/README.md
+  - documentation/07-development-path/vnext-phaser-client-architecture.md
 Category: 04-ux
-Tags:
-  - ux
+Tags: [ux, vnext]
 ---
 
 # UX Documentation
 
-## Purpose
-
-- Player experience, visual design, page flow, onboarding, and route-level usability references.
-
-## Status Guidance
-
-- `Canonical` documents are the default source of truth for their scope.
-- `Needs Review` documents are useful but should be verified before making implementation decisions from them.
-- `Legacy Reference` documents are preserved for history, migration context, or comparison and do not override canonical docs.
-
-## Documents
-
-- `00-ux-and-debug-scope.md`
+The active vNext tree keeps one durable visual-style source here:
 - `01-visual-design-guide.md`
-- `02-warband-management.md`
-- `03-encounter-flow-transition-matrix.md`
-- `04-combat-viewer-readability.md`
-- `07-dice-pool-consumption-and-refresh-cues.md`
-- `08-page-layout-zones.md`
-- `09-first-session-player-journey.md`
 
-## Child Folders
+Prototype Angular page analyses, route transition matrices, portrait-mobile layouts, demo-specific onboarding, and page-specific implementation contracts were removed. They described the UI being replaced.
 
-- `page-analysis/`
+Current gameplay UI architecture, responsive behavior, landscape-only mobile policy, content exposure, navigation, and scene/screen boundaries are defined in `07-development-path/vnext-phaser-client-architecture.md` until implementation stabilizes and canonical UX contracts are rebuilt from the Phaser game.
+
+Screen-specific UX documents should be added only when they describe an implemented/approved vNext screen and provide durable guidance beyond the shared client architecture.

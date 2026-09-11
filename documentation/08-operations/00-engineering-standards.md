@@ -1,160 +1,43 @@
 ---
 Title: "Engineering Standards"
 Status: Canonical
-Last Updated: 2026-08-01
+Last Updated: 2026-09-10
 Owner: Engineering
 Depends On:
   - documentation/06-testing-release/00-testing-strategy.md
-  - documentation/05-technical/05-angular-frontend-architecture-plan.md
-  - documentation/05-technical/07-angular-component-service-inventory.md
+  - documentation/07-development-path/vnext-game-overhaul.md
 Category: 08-operations
-Tags:
-  - operations
+Tags: [operations, engineering, vnext]
 ---
 
 # Engineering Standards
 
-## Purpose
-- Define project-wide coding standards for frontend implementation and shared engineering practices.
-- Keep TypeScript, HTML, SCSS, testing, and architecture decisions consistent.
+## Architectural Authority
+Implementation follows accepted vNext decisions. Prototype code is migration evidence, not authority when it conflicts with those decisions.
 
-## Scope
-- These standards apply to active source code in `frontend/src/`.
-- Backend code may follow local backend idioms, but testing and architecture expectations still apply.
+- Angular owns web/auth/account shell and Phaser hosting, not gameplay pages/services.
+- Phaser owns gameplay presentation/navigation/cache/API interaction after mount.
+- PHP owns authoritative gameplay and application transactions.
+- Repositories own persistence; domain/engine rules should not depend on HTTP.
+- Canonical authored gameplay content is JSON; MySQL stores mutable runtime/player state.
 
-## Test Coverage
+## Change Scope
+Build milestone-sized vertical capabilities. Avoid unrelated refactors, but remove obsolete compatibility code when the vNext slice that replaces it is proven. Do not preserve a prototype abstraction solely to reduce diff size.
 
-### Minimum Expectations
-- Every behavior change should be verified at the level where the behavior lives.
-- New user-facing logic should ship with automated coverage unless the change is purely presentational.
-- Bug fixes should add a regression test when the failure can be reproduced in an automated way.
+## Types and Boundaries
+Prefer explicit typed contracts at important API/application/engine/client boundaries. Avoid unstructured catch-all state and god services. Do not create abstraction layers without a concrete responsibility.
 
-### Frontend Coverage Rules
-- Services:
-  - cover success paths
-  - cover important failure handling
-  - cover state refresh or mutation behavior
-- Page components:
-  - cover route-driven state
-  - cover loading, empty, error, and success states when present
-  - cover CTA enable/disable behavior when it affects user flow
-- Shared UI primitives:
-  - test logic, accessibility, and stateful behavior
-  - do not add shallow tests for style-only wrappers
+## Testing
+Test behavior at its owning layer and satisfy applicable gates in `documentation/06-testing-release/00-testing-strategy.md` and `agent/QUALITY_GATES.md`. Durable spending/randomness/gameplay commands require idempotency coverage. Fresh-database support is a permanent vNext requirement.
 
-### Coverage Priorities
-- High priority:
-  - authentication/session bootstrap
-  - run progression
-  - profile-refreshing mutations
-  - squad/unit/dice management
-  - shop purchases
-- Medium priority:
-  - page-level conditional rendering
-  - reusable directives/components with non-trivial inputs
-  - debug tooling
-- Low priority:
-  - static markup-only sections
-  - purely decorative SCSS changes verified visually
+## Frontend
+Gameplay UI is Phaser-first. Reusable UI should accept calculated layout regions rather than hardcoding physical screen pixels. Preserve the 1600x900 reference coordinate model, landscape-only mobile rule, and deterministic screenshot capability.
 
-### When Manual Verification Is Enough
-- Cosmetic spacing, typography, and art-placement changes can rely on screenshot/manual verification when no logic changed.
-- Manual-only verification is not enough for new service logic, mutation flows, or contract-sensitive state handling.
+## Backend
+Controllers are HTTP adapters. Application operations represent complete player intentions and own transaction boundaries. Domain rules/engines stay computational where practical. Repositories remain SQL/persistence focused. Avoid nested independent transactions.
 
-## SCSS Standards
-- Keep styles close to the feature that owns them:
-  - page styles in page SCSS
-  - layout styles in layout SCSS
-  - shared primitive styles only when reused
-- Prefer existing tokens and variables from `frontend/src/styles.scss` before adding new raw colors.
-- Use class-based styling; avoid broad tag selectors unless scoped inside a component stylesheet.
-- Avoid deep selector chains and brittle DOM-coupled selectors.
-- Favor readable layout primitives:
-  - flex
-  - grid
-  - spacing via gap/padding/margin
-- Do not encode product logic in SCSS class names.
-- Keep motion subtle and purposeful.
-- For image-backed layouts:
-  - use explicit sizing and alignment rules
-  - verify with screenshots
-  - use art-aligned offsets only when the layout intentionally depends on the art
+## Content
+Stable authored IDs are durable contracts. Validate cross-references in CI. Client content is allowlisted; new canonical fields are private by default unless explicitly projected.
 
-## HTML Standards
-- Keep templates declarative and readable.
-- Move transformation logic out of templates and into component fields, computed values, or helper methods.
-- Prefer Angular built-in control flow:
-  - `@if`
-  - `@for`
-  - `@switch`
-- Do not introduce new `*ngIf` or `*ngFor` usage unless a third-party integration specifically requires the legacy directive form.
-- Prefer semantic elements when they improve meaning:
-  - `button` for actions
-  - `a` for navigation
-  - headings in a valid hierarchy
-- Accessibility is required:
-  - meaningful text or `aria-label` for controls
-  - keyboard reachability
-  - status/alert semantics in shared feedback components
-- Avoid duplicated structural shells when a shared component already exists.
-- Split large templates into smaller components before they become difficult to scan.
-
-## TypeScript Standards
-- Prefer typed contracts over `any`.
-- Keep data mapping and mutation logic in services or clearly owned page-level state, not scattered across templates.
-- Use Angular signals/computed state for local reactive state in the current frontend architecture.
-- Prefer signal-based component APIs for new shared primitives and local UI state over decorator-era patterns when practical.
-- Prefer `inject()` in standalone Angular code for consistency with the existing codebase.
-- Keep component classes focused on view state and orchestration.
-- Services should own:
-  - API calls
-  - mutation flows
-  - state refresh/invalidation
-  - payload shaping when reused across pages
-- Avoid large utility-style god files.
-- Add helper methods when they improve clarity, but avoid abstraction that hides simple intent.
-- Default to explicit return types on exported functions and non-trivial methods.
-
-## Code Architecture
-
-### Ownership Boundaries
-- Pages own route-level composition.
-- Layout components own shell framing and persistent navigation.
-- Shared UI components own reusable presentation patterns.
-- Services own network access and domain mutations.
-- Models define typed contracts shared across pages and services.
-
-### Preferred Structure
-- Keep files in feature folders:
-  - `pages/<feature-page>/`
-  - `layout/<feature>/`
-  - `shared/ui/<primitive>/`
-  - `core/services/<domain>/`
-- Extend existing feature folders before introducing new top-level patterns.
-
-### Architectural Rules
-- Do not let pages call raw `fetch`; all HTTP goes through the API service layer.
-- Do not let templates assemble backend payloads.
-- Keep session/profile refresh behavior centralized instead of reimplemented per page.
-- Reuse shared primitives before duplicating frame, alert, or command-button patterns.
-- Prefer Angular CDK primitives when they materially improve accessibility, focus management, overlays, drag/drop, portals, or large-list rendering.
-- Do not add CDK abstractions where native HTML plus the current shared primitives already cover the need cleanly.
-- Introduce a new shared component only when:
-  - the structure is repeated
-  - the naming is stable
-  - the abstraction reduces duplication without hiding intent
-- Prefer directives over wrapper components when behavior must apply to multiple native elements.
-
-## Review Checklist
-- Does the change follow the existing route/service/component ownership model?
-- Is the logic covered by the right level of automated test?
-- Is the template readable without embedding business logic?
-- Is the SCSS scoped, maintainable, and aligned with project tokens?
-- Did the change reuse an existing shared primitive where appropriate?
-- Were docs updated if contracts or engineering conventions changed?
-
-## References
-- `documentation/06-testing-release/00-testing-strategy.md`
-- `documentation/05-technical/05-angular-frontend-architecture-plan.md`
-- `documentation/05-technical/07-angular-component-service-inventory.md`
-- `documentation/04-ux/08-page-layout-zones.md`
+## Documentation
+Current intent belongs in the active tree; history belongs in Git. Update or delete conflicting documentation as part of the same change that changes the contract.
