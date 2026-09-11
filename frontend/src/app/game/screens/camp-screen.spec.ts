@@ -264,7 +264,7 @@ describe('CampScreen', () => {
     let currentMeasurement: ViewportMeasurement = {
       cssWidth: 1600, cssHeight: 900,
       safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 },
-      coarsePointer: false, noHover: false,
+      coarsePointer: true, noHover: true,
     };
     let resize: (() => void) | null = null;
     const environment: RuntimeViewportEnvironment = {
@@ -291,9 +291,23 @@ describe('CampScreen', () => {
     scene.create();
     currentMeasurement = { ...currentMeasurement, cssWidth: 844, cssHeight: 390 };
     (resize as unknown as () => void)();
+    currentMeasurement = { ...currentMeasurement, cssWidth: 768, cssHeight: 1024 };
+    (resize as unknown as () => void)();
+    currentMeasurement = { ...currentMeasurement, cssWidth: 1024, cssHeight: 768 };
+    (resize as unknown as () => void)();
 
     expect(factory).toHaveBeenCalledTimes(1);
-    expect(screen.reflow).toHaveBeenCalledOnceWith(jasmine.objectContaining({ layoutClass: 'compact' }));
+    expect(screen.reflow.calls.count()).toBe(3);
+    expect(screen.reflow.calls.argsFor(0)[0]).toEqual(jasmine.objectContaining({
+      layoutClass: 'compact',
+      portraitGateActive: false,
+    }));
+    expect(screen.reflow.calls.argsFor(1)[0]).toEqual(jasmine.objectContaining({
+      portraitGateActive: true,
+    }));
+    expect(screen.reflow.calls.argsFor(2)[0]).toEqual(jasmine.objectContaining({
+      portraitGateActive: false,
+    }));
     expect(startup.store).toBe(store);
     expect(startup.store.bootstrap?.player.energy.current).toBe(57);
     expect(startup.store.bootstrap?.player.energy.normal_max).toBe(50);

@@ -346,7 +346,7 @@ The orientation gate belongs at the game host/runtime level rather than in indiv
 
 Browser/native orientation locking may be attempted as progressive enhancement where supported, but correct behavior must not depend on the browser successfully forcing orientation.
 
-The portrait gate applies when the viewport is portrait, has a coarse pointer or no-hover capability, and its largest CSS dimension is at most `932`. Orientation alone never classifies a desktop browser as a phone, and larger tablet-class portrait viewports are not blocked by this phone rule.
+The portrait gate applies when a touch-first viewport is portrait. Touch-first capability is identified through coarse-pointer or no-hover browser characteristics, so the landscape-only policy applies to both phone- and tablet-class mobile gameplay. Orientation alone does not gate an ordinary fine-pointer, hover-capable desktop window, and capability detection is preferred over user-agent or device-model detection.
 
 ## Asset Loading
 

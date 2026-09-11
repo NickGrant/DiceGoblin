@@ -234,7 +234,7 @@ describe('GameRuntime', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('preserves runtime authority while a phone portrait gate blocks and restores input', async () => {
+  it('preserves runtime authority while a touch-first tablet portrait gate blocks interaction', async () => {
     const revision = 'a'.repeat(64);
     const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
     apiClient.getBootstrap.and.resolveTo({
@@ -270,8 +270,8 @@ describe('GameRuntime', () => {
     });
     const startup = new RuntimeStartup(apiClient, contentLoader);
     let measurement: ViewportMeasurement = {
-      cssWidth: 844,
-      cssHeight: 390,
+      cssWidth: 1024,
+      cssHeight: 768,
       safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 },
       coarsePointer: true,
       noHover: true,
@@ -292,7 +292,11 @@ describe('GameRuntime', () => {
       scale,
       destroy: jasmine.createSpy('destroy'),
     } satisfies PhaserGameHandle;
-    const localFactory = jasmine.createSpy<PhaserGameFactory>('factory').and.returnValue(game);
+    const canvas = document.createElement('canvas');
+    const localFactory = jasmine.createSpy<PhaserGameFactory>('factory').and.callFake((config) => {
+      (config.parent as HTMLElement).appendChild(canvas);
+      return game;
+    });
     const runtime = new GameRuntime(localFactory, startup, viewport);
 
     runtime.mount(parent);
@@ -302,25 +306,28 @@ describe('GameRuntime', () => {
     expect(parent.dataset['gameLayout']).toBe('compact');
     expect(parent.dataset['gameOrientationGate']).toBe('inactive');
     expect(game.input.enabled).toBeTrue();
+    expect(canvas.inert).toBeFalse();
 
-    measurement = { ...measurement, cssWidth: 390, cssHeight: 844 };
+    measurement = { ...measurement, cssWidth: 768, cssHeight: 1024 };
     (resize as unknown as () => void)();
 
     expect(localFactory).toHaveBeenCalledTimes(1);
     expect(runtime.startup.store).toBe(store);
     expect(runtime.startup.contentRegistry).toBe(contentRegistry);
     expect(game.input.enabled).toBeFalse();
+    expect(canvas.inert).toBeTrue();
     expect(game.destroy).not.toHaveBeenCalled();
     expect(parent.dataset['gameOrientationGate']).toBe('active');
     expect(parent.querySelector('[data-game-portrait-gate="active"]')).not.toBeNull();
     expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
     expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
 
-    measurement = { ...measurement, cssWidth: 844, cssHeight: 390 };
+    measurement = { ...measurement, cssWidth: 1024, cssHeight: 768 };
     (resize as unknown as () => void)();
 
     expect(localFactory).toHaveBeenCalledTimes(1);
     expect(game.input.enabled).toBeTrue();
+    expect(canvas.inert).toBeFalse();
     expect(runtime.startup.contentRegistry).toBe(contentRegistry);
     expect(game.destroy).not.toHaveBeenCalled();
     expect(parent.dataset['gameOrientationGate']).toBe('inactive');

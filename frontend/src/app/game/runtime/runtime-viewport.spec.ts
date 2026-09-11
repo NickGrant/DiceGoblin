@@ -1,7 +1,6 @@
 import {
   COMPACT_MAX_CSS_HEIGHT,
   COMPACT_MIN_SAFE_LOGICAL_WIDTH,
-  PHONE_MAX_LARGEST_DIMENSION,
   RuntimeViewport,
   RuntimeViewportEnvironment,
   ViewportMeasurement,
@@ -108,25 +107,39 @@ describe('runtime viewport calculations', () => {
     });
   });
 
-  it('gates only portrait phone-class coarse/no-hover viewports', () => {
+  it('gates a touch-first phone in portrait but not landscape', () => {
     const phonePortrait = calculateRuntimeViewport(
       measurement(390, 844, { coarsePointer: true }),
     );
     const phoneLandscape = calculateRuntimeViewport(
       measurement(844, 390, { coarsePointer: true }),
     );
-    const desktopPortrait = calculateRuntimeViewport(measurement(390, 844));
-    const tabletPortrait = calculateRuntimeViewport(
-      measurement(768, 1024, { coarsePointer: true }),
-    );
 
-    expect(phonePortrait.phoneClass).toBeTrue();
+    expect(phonePortrait.touchFirst).toBeTrue();
     expect(phonePortrait.portraitGateActive).toBeTrue();
     expect(phoneLandscape.portraitGateActive).toBeFalse();
-    expect(desktopPortrait.portraitGateActive).toBeFalse();
-    expect(tabletPortrait.portraitGateActive).toBeFalse();
-    expect(Math.max(phonePortrait.cssWidth, phonePortrait.cssHeight))
-      .toBeLessThanOrEqual(PHONE_MAX_LARGEST_DIMENSION);
+  });
+
+  it('gates a coarse-pointer or no-hover tablet in portrait but not landscape', () => {
+    const tabletPortrait = calculateRuntimeViewport(
+      measurement(768, 1024, { noHover: true }),
+    );
+    const tabletLandscape = calculateRuntimeViewport(
+      measurement(1024, 768, { coarsePointer: true }),
+    );
+
+    expect(tabletPortrait.touchFirst).toBeTrue();
+    expect(tabletPortrait.portraitGateActive).toBeTrue();
+    expect(tabletLandscape.portraitGateActive).toBeFalse();
+  });
+
+  it('does not gate desktop portrait windows with normal pointer and hover capability', () => {
+    const tabletSizedDesktop = calculateRuntimeViewport(measurement(768, 1024));
+    const largeDesktopPortrait = calculateRuntimeViewport(measurement(1200, 1920));
+
+    expect(tabletSizedDesktop.touchFirst).toBeFalse();
+    expect(tabletSizedDesktop.portraitGateActive).toBeFalse();
+    expect(largeDesktopPortrait.portraitGateActive).toBeFalse();
   });
 });
 

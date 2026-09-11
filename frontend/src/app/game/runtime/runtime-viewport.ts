@@ -5,7 +5,6 @@ export const COMPACT_MAX_CSS_HEIGHT = 599;
 export const COMPACT_MIN_SAFE_LOGICAL_WIDTH = 1440;
 export const WIDE_MIN_SAFE_LOGICAL_WIDTH = 1920;
 export const WIDE_MIN_CSS_HEIGHT = 720;
-export const PHONE_MAX_LARGEST_DIMENSION = 932;
 
 export type ResponsiveLayoutClass = 'compact' | 'standard' | 'wide';
 
@@ -43,7 +42,7 @@ export interface RuntimeViewportSnapshot {
   readonly safeInsets: Insets;
   readonly safeBounds: Bounds;
   readonly referenceBounds: Bounds;
-  readonly phoneClass: boolean;
+  readonly touchFirst: boolean;
   readonly portraitGateActive: boolean;
 }
 
@@ -87,11 +86,8 @@ export function calculateRuntimeViewport(
   const safeWidth = Math.max(0, logicalWidth - safeInsets.left - safeInsets.right);
   const safeHeight = Math.max(0, logicalHeight - safeInsets.top - safeInsets.bottom);
   const safeBounds = bounds(safeInsets.left, safeInsets.top, safeWidth, safeHeight);
-  const largestCssDimension = Math.max(cssWidth, cssHeight);
-  const phoneClass =
-    (measurement.coarsePointer || measurement.noHover) &&
-    largestCssDimension <= PHONE_MAX_LARGEST_DIMENSION;
-  const portraitGateActive = phoneClass && cssHeight > cssWidth;
+  const touchFirst = measurement.coarsePointer || measurement.noHover;
+  const portraitGateActive = touchFirst && cssHeight > cssWidth;
 
   let layoutClass: ResponsiveLayoutClass = 'standard';
   if (
@@ -118,7 +114,7 @@ export function calculateRuntimeViewport(
       REFERENCE_WIDTH,
       REFERENCE_HEIGHT,
     ),
-    phoneClass,
+    touchFirst,
     portraitGateActive,
   };
 }
