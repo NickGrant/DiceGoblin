@@ -1,59 +1,39 @@
 # Quality Gates
-----
 
-## Purpose
-Centralize verification and documentation-hygiene rules for the active vNext implementation.
+## Rule
+Use targeted checks during implementation; run the applicable package-level gates once the package is otherwise complete. Do not repeatedly run the full suite after routine edits.
 
-## Verification Matrix
-- Frontend/Phaser behavior changes:
-  - run relevant frontend tests/build;
-  - perform a brief UX sanity check;
-  - use deterministic Phaser scene/screen capture when visual evidence helps;
-  - verify Compact, 1600x900 reference, and Wide landscape behavior when layout is affected;
-  - verify the portrait rotate-device gate when game-host/orientation behavior is affected.
-- Backend/PHP API changes:
-  - run targeted command/query/endpoint tests;
-  - verify auth, CSRF, ownership, validation, and transaction failure paths where applicable.
-- Data/schema changes:
-  - prove a fresh vNext database can be created from the current clean baseline;
-  - do not require prototype migration history or SQL-authored gameplay catalogs.
-- Authored-content changes:
-  - validate JSON structure and cross-references;
-  - validate stable IDs;
-  - verify client projections contain only allowlisted fields and no known server-only information.
-- Spending/random/durable/gameplay commands:
-  - verify idempotent retries do not double-spend, duplicate assets, or reroll finalized results.
-- Documentation-only changes:
-  - run the repository documentation/context check when available;
-  - review references for deleted/superseded paths and conflicting authority.
+If a documented command is stale because the package intentionally replaces that infrastructure, update the command/script as part of the package rather than preserving compatibility solely for the gate.
 
-## Prototype Reuse Gate
-Before replacing a substantive prototype subsystem, inspect the implementation that currently provides the behavior and classify relevant source, tests, assets, and infrastructure as:
+## Core Commands
+- Agent/context integrity: `npm run llm:check`
+- Documentation headers: `npm run docs:lint`
+- Backend suite: `npm run test:backend` (Docker variant: `npm run test:backend:docker`)
+- Frontend suite: `npm run test:frontend`
+- Frontend production build: `npm run build:frontend`
+- Frontend bundle budget when bundle/runtime dependencies change: `npm run bundle:check`
+- Full cross-stack gate when warranted: `npm run verify:full`
+- Deterministic Phaser capture: `npm run capture:scene -- ...` using the relevant scene/fixture arguments
 
-- **Keep** — compatible with vNext boundaries and safe to retain substantially as-is.
-- **Adapt** — valuable implementation/algorithm, but it must move behind or conform to a vNext boundary.
-- **Rebuild** — behavior remains useful but the implementation shape conflicts with accepted vNext architecture strongly enough that reuse would preserve the wrong abstraction.
-- **Retire** — behavior/implementation is obsolete and should be deleted once its replacement no longer depends on it.
+Repository scripts in `package.json` are the executable source of truth when a specialized domain gate is needed.
 
-Accepted vNext decisions determine architecture; prototype source does not override them. Conversely, a rewrite must not discard working algorithms or tests merely because they originated in the prototype.
+## Package Gates by Change Type
+- **Backend/API:** targeted tests while editing; before completion run relevant backend suite. Verify auth, CSRF, ownership, validation, transaction rollback, and idempotency when applicable.
+- **Schema/data:** prove an empty database initializes via the current vNext baseline and relevant backend persistence tests pass. Prototype migration history and SQL-authored gameplay catalogs must not be required.
+- **Frontend/Phaser:** targeted tests while editing; before completion run frontend tests + production build. Run bundle check if dependencies/bundle composition changed.
+- **Visual/layout:** deterministic capture plus Compact landscape, 1600x900 reference, and Wide landscape review for affected screens. Verify portrait rotate-device behavior only when host/orientation/layout work can affect it.
+- **Authored content:** structural/reference/stable-ID validation plus client-projection allowlist/secrecy checks.
+- **Spending/random/durable gameplay commands:** prove retry idempotency: no double spend, duplicate durable assets, or reroll of finalized results.
+- **Combat/run generation:** retain deterministic regression/simulation coverage when migrating algorithms; use specialized `package.json` scripts only for the affected subsystem.
+- **Documentation/agent-only:** `npm run llm:check` and `npm run docs:lint` as applicable; inspect references changed by the edit.
 
-Do not maintain a permanent legacy-source archive inside the active branch. Git history is the archive. Keep still-needed prototype code in its existing location until the replacing slice is proven; then delete obsolete code in the same or immediately following scoped work.
+## Reuse Gate
+When replacing prototype behavior, follow `documentation/07-development-path/vnext-prototype-code-disposition.md` and inspect the current implementation/tests before deleting it. Do not rewrite a tested algorithm merely to fit new file organization, and do not preserve obsolete orchestration merely because its tests exist.
 
-## Minimum Mixed-Change Verification
-Use the current commands/scripts in the repository. At minimum, mixed frontend/backend work should run the applicable backend tests, frontend tests/build, and documentation/context checks. If a command has changed, update this file or `agent/QUALITY_GATES.md` references rather than preserving an obsolete command for documentation compatibility.
+## Failure Policy
+- A new failure caused by the package blocks completion.
+- A demonstrably pre-existing unrelated failure must be reported with evidence; do not expand package scope to repair it unless necessary.
+- Never report a gate as passed unless it was actually run successfully.
 
-## Failure Reporting
-If verification fails, report the failing check and actionable error. Distinguish known pre-existing failures from failures introduced by the current work when that can be established.
-
-## Documentation Hygiene
-- The active branch contains current guidance, not an in-tree historical archive.
-- Delete or rewrite superseded documentation when a vNext contract replaces it.
-- Git history is the archive.
-- Broken references to deleted documentation are defects.
-- Accepted vNext decision documents override prototype source shape.
-
-## Context Guardrails
-Load the smallest authoritative set needed for the task. Do not search deleted docs/Git history for design direction unless historical recovery is explicitly required. Current source/tests should be inspected when replacing a subsystem so useful algorithms or behavior are not lost, but source does not override accepted vNext architecture.
-
-## Feature Intake
-For new feature work, capture behavior, constraints, data/authority implications, UX, error handling, and verification needs. Place the feature within the accepted vNext architecture before implementation. Do not revive prototype patterns merely because they provide a nearby implementation example.
+## Completion Evidence
+Final report should name only the meaningful gates run and their result. Do not paste successful logs or provide a test-by-test narrative unless requested.
