@@ -63,7 +63,7 @@ final class AuthController
         return;
       }
 
-      $userId = $services['userRepo']->createLocalUser(
+      $userId = $services['accountCreationService']->createLocal(
         $email,
         password_hash($password, PASSWORD_DEFAULT),
         $displayName,
@@ -338,7 +338,8 @@ final class AuthController
     try {
       $services = $this->services();
 
-      $userId = $services['userRepo']->upsertUserByDiscordId($discordId, $displayName, $avatarUrl);
+      $providerEmail = isset($me['email']) && is_string($me['email']) ? $me['email'] : null;
+      $userId = $services['accountCreationService']->findOrCreateExternal('discord', $discordId, $displayName, $avatarUrl, $providerEmail);
       $this->regenerateActiveSessionId();
 
       // Establish minimal session (only user_id + rotated CSRF token)
@@ -395,7 +396,8 @@ final class AuthController
    *
    * @return array{
    *   userRepo: UserRepository,
-   *   sessionService: SessionService
+   *   sessionService: SessionService,
+   *   accountCreationService: \DiceGoblins\Services\AccountCreationService
    * }
    */
   private function services(): array
@@ -406,6 +408,7 @@ final class AuthController
     return [
       'userRepo' => $core['userRepo'],
       'sessionService' => $core['sessionService'],
+      'accountCreationService' => $core['accountCreationService'],
     ];
   }
 

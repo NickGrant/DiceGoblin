@@ -7,6 +7,7 @@ use DiceGoblins\Repositories\EnergyRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\CsrfService;
+use DiceGoblins\Services\AccountCreationService;
 use DiceGoblins\Services\PlayerBootstrapper;
 use DiceGoblins\Services\SessionService;
 use DiceGoblins\Services\StarterPackProvisioningService;
@@ -35,7 +36,8 @@ final class ControllerServiceFactory
     $csrfService = new CsrfService();
     $starterPackProvisioningService = new StarterPackProvisioningService();
     $bootstrapper = new PlayerBootstrapper($playerStateRepo, $energyRepo, $starterPackProvisioningService);
-    $sessionService = new SessionService($userRepo, $csrfService, $bootstrapper);
+    $accountCreationService = new AccountCreationService($pdo, $userRepo, $playerStateRepo);
+    $sessionService = new SessionService($userRepo, $csrfService);
 
     return [
       'userRepo' => $userRepo,
@@ -45,6 +47,7 @@ final class ControllerServiceFactory
       'starterPackProvisioningService' => $starterPackProvisioningService,
       'bootstrapper' => $bootstrapper,
       'sessionService' => $sessionService,
+      'accountCreationService' => $accountCreationService,
     ];
   }
 }

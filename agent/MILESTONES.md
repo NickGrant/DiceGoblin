@@ -20,14 +20,11 @@ Prove the smallest real vNext path:
 - Required backend/frontend/content/responsive gates pass.
 - Superseded prototype paths are removed only after replacements are proven; later reuse candidates remain until their owning package.
 
-### Related Issues
-- Establish the fresh vNext database baseline
-
 ### Package Queue
 Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 1. ~~Inventory/classify prototype code for vNext reuse.~~ Complete.
-2. **Fresh vNext database baseline.** Current.
-3. Authored content registry + client projection.
+2. ~~Fresh vNext database baseline.~~ Complete.
+3. **Authored content registry + client projection.** Next; not yet promoted.
 4. vNext game bootstrap query.
 5. Persistent Phaser runtime mounted at `/game`.
 6. Phaser startup state + content compatibility gate.

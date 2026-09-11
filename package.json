@@ -15,7 +15,7 @@
     "test:db:provision": "composer --working-dir=backend test:db:provision",
     "test:db:reset": "composer --working-dir=backend test:db:reset",
     "test:db:provision:docker": "docker compose exec -T db mysql -uroot -prootpass -e \"CREATE DATABASE IF NOT EXISTS goblin_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS 'dice_test'@'%' IDENTIFIED BY 'dicepass_test'; GRANT ALL PRIVILEGES ON goblin_test.* TO 'dice_test'@'%'; FLUSH PRIVILEGES;\"",
-    "test:db:reset:docker": "powershell -NoProfile -Command \"docker compose exec -T db mysql -uroot -prootpass -e \\\"DROP DATABASE IF EXISTS goblin_test; CREATE DATABASE goblin_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON goblin_test.* TO 'dice_test'@'%'; FLUSH PRIVILEGES;\\\"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Get-Content -Raw backend/migrations/schema_all.sql | docker compose exec -T db mysql -uroot -prootpass goblin_test\"",
+    "test:db:reset:docker": "powershell -NoProfile -Command \"docker compose exec -T db mysql -uroot -prootpass -e \\\"DROP DATABASE IF EXISTS goblin_test; CREATE DATABASE goblin_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON goblin_test.* TO 'dice_test'@'%'; FLUSH PRIVILEGES;\\\"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Get-Content -Raw backend/migrations/vnext_baseline.sql | docker compose exec -T db mysql -uroot -prootpass goblin_test\"",
     "docs:lint": "node scripts/lint-doc-headers.mjs",
     "release:check": "node scripts/release-readiness-check.mjs",
     "release:check:full": "node scripts/release-readiness-check.mjs --full",

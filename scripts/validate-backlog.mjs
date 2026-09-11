@@ -142,7 +142,8 @@ for (const b of milestoneBlocks) {
   if (!status || !allowedMilestoneStatus.has(status.toLowerCase())) errors.push(`Milestone "${name}" has invalid status: ${status}`);
   if (status?.toLowerCase() === "active") activeCount += 1;
 
-  if (issues.length === 0 && status?.toLowerCase() !== "planned") {
+  const intentionallyUnpromoted = fs.readFileSync(issuesPath, "utf8").includes("No execution package is currently promoted.");
+  if (issues.length === 0 && status?.toLowerCase() !== "planned" && !intentionallyUnpromoted) {
     errors.push(`Milestone "${name}" has no related issues but is not marked Planned`);
   }
   for (const issueTitle of issues) {

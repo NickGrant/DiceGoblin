@@ -2,8 +2,7 @@
 declare(strict_types=1);
 
 /**
- * Resets the TEST_DB_DSN database using versioned schema artifact:
- *   backend/migrations/schema_all.sql
+ * Resets the TEST_DB_DSN database using the fresh vNext baseline.
  *
  * Usage:
  *   composer --working-dir=backend test:db:reset
@@ -29,9 +28,9 @@ $host = (string)$matches[1];
 $port = (int)$matches[2];
 $dbName = (string)$matches[3];
 
-$schemaPath = realpath(__DIR__ . '/../migrations/schema_all.sql');
+$schemaPath = realpath(__DIR__ . '/../migrations/vnext_baseline.sql');
 if ($schemaPath === false || !is_file($schemaPath)) {
-  fwrite(STDERR, "schema_all.sql not found.\n");
+  fwrite(STDERR, "vnext_baseline.sql not found.\n");
   exit(1);
 }
 
@@ -87,13 +86,13 @@ if (!$mysqli->query('SET FOREIGN_KEY_CHECKS=1')) {
 
 $sql = (string)file_get_contents($schemaPath);
 if (trim($sql) === '') {
-  fwrite(STDERR, "schema_all.sql is empty.\n");
+  fwrite(STDERR, "vnext_baseline.sql is empty.\n");
   $mysqli->close();
   exit(1);
 }
 
 if (!$mysqli->multi_query($sql)) {
-  fwrite(STDERR, "Failed applying schema_all.sql: {$mysqli->error}\n");
+  fwrite(STDERR, "Failed applying vnext_baseline.sql: {$mysqli->error}\n");
   $mysqli->close();
   exit(1);
 }
@@ -112,5 +111,5 @@ if ($mysqli->errno !== 0) {
 }
 
 $mysqli->close();
-fwrite(STDOUT, "Test DB reset complete using migrations/schema_all.sql\n");
+fwrite(STDOUT, "Test DB reset complete using migrations/vnext_baseline.sql\n");
 exit(0);

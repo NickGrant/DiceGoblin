@@ -8,6 +8,11 @@ use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class AuthControllerLocalAuthTest extends IntegrationTestCase
 {
+  protected function supportsVnextBaseline(): bool
+  {
+    return true;
+  }
+
   protected function integrationSkipMessage(): string
   {
     return 'Set TEST_DB_DSN to run local auth integration tests.';
@@ -33,7 +38,8 @@ final class AuthControllerLocalAuthTest extends IntegrationTestCase
 
     $userId = (int)$_SESSION['user_id'];
     $this->trackUserId($userId);
-    $storedHash = (string)$this->scalar('SELECT `password_hash` FROM `users` WHERE `id` = ?', [$userId]);
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    $storedHash = (string)$this->scalar('SELECT `password_hash` FROM `user_local_credentials` WHERE `user_id` = ?', [$userId]);
     $this->assertNotSame('secret-pass', $storedHash);
     $this->assertTrue(password_verify('secret-pass', $storedHash));
   }
@@ -119,7 +125,7 @@ final class AuthControllerLocalAuthTest extends IntegrationTestCase
     $this->assertSame(true, $confirmResponse['body']['data']['authenticated'] ?? null);
     $this->assertSame($userId, (int)($_SESSION['user_id'] ?? 0));
 
-    $storedHash = (string)$this->scalar('SELECT `password_hash` FROM `users` WHERE `id` = ?', [$userId]);
+    $storedHash = (string)$this->scalar('SELECT `password_hash` FROM `user_local_credentials` WHERE `user_id` = ?', [$userId]);
     $this->assertFalse(password_verify('old-password', $storedHash));
     $this->assertTrue(password_verify('new-password', $storedHash));
   }
@@ -154,12 +160,12 @@ final class AuthControllerLocalAuthTest extends IntegrationTestCase
 
   private function insertLocalUser(string $email, string $password): int
   {
-    $stmt = $this->pdo?->prepare('
-      INSERT INTO `users` (`discord_id`, `local_email`, `password_hash`, `display_name`)
-      VALUES (NULL, ?, ?, ?)
-    ');
-    $stmt?->execute([strtolower($email), password_hash($password, PASSWORD_DEFAULT), 'Local User']);
+    $stmt = $this->pdo?->prepare('INSERT INTO `users` (`display_name`) VALUES (?)');
+    $stmt?->execute(['Local User']);
     $userId = (int)$this->pdo?->lastInsertId();
+    $credential = $this->pdo?->prepare('INSERT INTO `user_local_credentials` (`user_id`, `email`, `password_hash`) VALUES (?, ?, ?)');
+    $credential?->execute([$userId, strtolower($email), password_hash($password, PASSWORD_DEFAULT)]);
+    $this->pdo?->prepare('INSERT INTO `user_state` (`user_id`) VALUES (?)')->execute([$userId]);
     $this->trackUserId($userId);
     return $userId;
   }

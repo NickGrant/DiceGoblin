@@ -16,7 +16,6 @@ final class SessionService
   public function __construct(
     private readonly UserRepository $userRepo,
     private readonly CsrfService $csrfService,
-    private readonly PlayerBootstrapper $bootstrapper,
   ) {}
 
   /**
@@ -28,7 +27,7 @@ final class SessionService
    *
    * Notes:
    * - Validates that the user still exists.
-   * - Bootstraps baseline state (player_state, energy_state) for authenticated users.
+   * - Never provisions missing player state from this read path.
    */
   public function getSessionPayload(): array
   {
@@ -47,9 +46,6 @@ final class SessionService
       $this->clearAuthSession();
       return ['authenticated' => false];
     }
-
-    // Ensure the baseline state exists so /profile (and other reads) are safe.
-    $this->bootstrapper->ensureBaseline($userId);
 
     $csrf = $this->csrfService->getOrCreateToken();
 
@@ -93,8 +89,6 @@ final class SessionService
     // Rotate CSRF on login to reduce session fixation risk.
     $this->csrfService->rotateToken();
 
-    // Ensure baseline rows exist for first login.
-    $this->bootstrapper->ensureBaseline($userId);
   }
 
   /**

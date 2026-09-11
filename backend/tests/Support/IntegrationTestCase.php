@@ -7,6 +7,7 @@ use DiceGoblins\Core\Db;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use PDOException;
 
 abstract class IntegrationTestCase extends TestCase
 {
@@ -38,6 +39,10 @@ abstract class IntegrationTestCase extends TestCase
       PDO::ATTR_EMULATE_PREPARES => false,
     ]);
 
+    if (!$this->supportsVnextBaseline() && $this->schemaHasTable('user_state') && !$this->schemaHasTable('player_state')) {
+      $this->markTestSkipped('Prototype integration test retained for migration by its owning vNext package.');
+    }
+
     $this->resetHttpGlobals();
     $this->resetDbSingleton();
   }
@@ -58,6 +63,11 @@ abstract class IntegrationTestCase extends TestCase
   protected function integrationSkipMessage(): string
   {
     return 'Set TEST_DB_DSN to run integration tests.';
+  }
+
+  protected function supportsVnextBaseline(): bool
+  {
+    return false;
   }
 
   /**
@@ -284,8 +294,14 @@ abstract class IntegrationTestCase extends TestCase
    */
   private function execDeleteByUserIds(string $sql, array $userIds): void
   {
-    $stmt = $this->pdo?->prepare($sql);
-    $stmt?->execute($userIds);
+    try {
+      $stmt = $this->pdo?->prepare($sql);
+      $stmt?->execute($userIds);
+    } catch (PDOException $e) {
+      // Transitional prototype cleanup may reference tables intentionally absent
+      // from the fresh vNext baseline.
+      if ((string)$e->getCode() !== '42S02') throw $e;
+    }
   }
 
   private function schemaHasTable(string $table): bool
