@@ -4,41 +4,42 @@
 
 ## Milestone 1 - Walking Skeleton
 
-### Establish Phaser startup state and content compatibility gate
+### Render minimal authoritative Camp in `GameScene`
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Turn the approved persistent Phaser runtime into the authoritative vNext game-client startup boundary. Phaser must load the generated client-safe content projection and authenticated game bootstrap directly, establish minimal runtime-owned content/state caches, compare the client/server content revisions, and enter `GameScene` only when startup succeeds with compatible content. This package proves startup correctness without implementing Camp presentation or later gameplay domains.
+Replace the successful-startup `GameScene` placeholder with the first real vNext gameplay screen: a minimal Phaser Camp rendered entirely from the already-compatible runtime `GameStore` and client-safe content boundary. This package proves that authoritative bootstrap state can drive a game-like Phaser screen without Angular gameplay UI, prototype `/profile` state, new backend queries, or premature Warband/run systems.
 
 #### Required Context
-- `documentation/07-development-path/vnext-phaser-client-architecture.md` — Persistent Game Runtime, Client State Is a Cache, Client Authored Content Boundary, Content Version Compatibility
-- `documentation/07-development-path/vnext-api-contract-model.md` — Game Bootstrap and Player Revision
-- `documentation/07-development-path/vnext-endpoint-inventory.md` — `GET /api/v1/game/bootstrap`
-- `documentation/07-development-path/vnext-authored-content-model.md` — generated client projection and revision boundary
-- Current `frontend/src/app/game/` runtime/scenes/tests, generated `frontend/public/game-content.json`, framework-neutral runtime configuration, and approved bootstrap contract
+- `documentation/07-development-path/vnext-phaser-client-architecture.md` — Scene and Screen Model, Client State Is a Cache, Angular/Phaser Boundary Rule
+- `documentation/04-ux/01-visual-design-guide.md` — canonical visual direction and negative constraints
+- `documentation/07-development-path/vnext-game-overhaul.md` — Milestone 1 walking-skeleton outcome
+- `documentation/07-development-path/vnext-api-contract-model.md` — approved bootstrap/player revision semantics
+- Current `frontend/src/app/game/` runtime/startup/store/scenes/tests and relevant existing visual assets
+- `frontend/src/app/pages/home-page/` only as prototype migration evidence; it is not the vNext Camp specification
 
 Load other decision docs only if implementation reaches their domain.
 
 #### Acceptance Criteria
-- Keep Angular limited to authenticating/hosting `/game`; Angular services must not fetch bootstrap/content or relay gameplay state into Phaser. `GameRuntime` owns startup and communicates directly with the PHP API/browser content artifact.
-- Introduce a small runtime-owned gameplay API client that uses the established deployment API-base configuration and browser cookie/session credentials. Do not make Phaser depend on Angular `ApiHttpService`, Angular DI, profile services, or prototype auth-recovery orchestration. Reuse/extract framework-neutral configuration behavior where appropriate rather than creating a competing deployment-config convention.
-- Load the generated client projection from the packaged/public `game-content.json` artifact. Do not load canonical server JSON, duplicate authored content into TypeScript, or maintain a second manual client catalog.
-- Establish a `ClientContentRegistry` (or equivalently clear runtime-owned content boundary) that validates/normalizes the generated projection needed by the current client and provides stable-ID lookup over the allowlisted public content. It must retain the projection revision used for compatibility checking; it must not infer or recreate server-only fields.
-- Call authenticated `GET /api/v1/game/bootstrap` directly from runtime-owned client infrastructure and validate the Milestone 1 response shape sufficiently to fail startup safely on malformed/incomplete data. Preserve the approved bootstrap contract rather than introducing a parallel client-specific endpoint.
-- Establish a minimal runtime-owned `GameStore`/cache for the authoritative bootstrap state: account, player state/Energy, session/CSRF metadata, `player_revision`, progression summary, active squad, active run, server time/content revision as applicable. This store is a cache of server state, not an Angular state service and not local gameplay authority.
-- Compare the generated client projection revision with bootstrap `content_revision` before entering normal gameplay. Exact match is required for this package. A mismatch must block transition to `GameScene`; do not silently continue with inconsistent stable IDs/content.
-- Model startup state explicitly enough to distinguish at least loading, ready, content-mismatch, and general startup failure. Boot/Loading lifecycle presentation may communicate these states inside Phaser. Do not implement Camp as a loading/error screen.
-- On successful startup, the persistent runtime must retain the same API client, content registry, GameStore/cache, and startup state when transitioning from Boot/Loading into `GameScene`; scene transitions must not reconstruct/refetch application-level startup state.
-- Do not persist bootstrap data in browser storage in this package. Re-entering `/game` may perform a fresh startup; ordinary scene transitions within the mounted runtime must not rerun startup unless a later explicit refresh/recovery mechanism requires it.
-- Handle unauthorized/bootstrap HTTP failure, malformed client projection/bootstrap data, and content mismatch as controlled startup failures without leaking raw internal/server details to gameplay presentation. Do not invent a new authentication mechanism or Angular gameplay-state bridge to recover them.
-- Do not implement automatic content-update/version negotiation, service workers, cache busting, retry loops, reconnect/multi-tab synchronization, or production reload strategy beyond a minimal safe user-facing reload/update affordance if needed to make mismatch recoverable. The key requirement is to block incompatible gameplay.
-- Preserve the approved persistent-runtime scene boundaries. Successful startup enters the existing `GameScene`; `RunScene`/`BattleScene` remain placeholders. Do not create Camp/Warband/etc. as separate scenes.
-- Do not implement Camp UI, gameplay navigation, units/dice/squads/runs, lazy domain queries, mutations, battle playback, asset bundles, final audio migration, responsive layout modes, safe insets, or mobile portrait gating in this package.
-- Preserve the approved backend/bootstrap/content contracts unless a genuine blocking defect is discovered. Backend/schema/content-authoring changes are not expected for this package.
-- Add focused deterministic frontend coverage for successful startup, direct bootstrap/content requests, cookie credentials/API base behavior, projection/bootstrap shape failure, exact revision match, mismatch blocking, runtime cache hydration, no duplicate/refetched startup across scene transitions, and controlled HTTP/auth failure.
-- Ensure the normal frontend test/build/bundle path covers the new runtime client code and generated content contract.
+- On compatible successful startup, `GameScene` renders a real Camp screen/view instead of the current lifecycle placeholder. Camp remains a screen/view owned by `GameScene`; do not create a `CampScene`.
+- Establish a small screen/view composition boundary inside `GameScene` appropriate for future GameScene destinations. Camp rendering/lifecycle should not turn `GameScene` into a monolithic implementation, but do not build a generalized UI/navigation framework before it is needed.
+- Camp reads authoritative state from the existing runtime-owned `GameStore` populated by bootstrap. It must not fetch `/profile`, refetch bootstrap, call Angular services, create fallback gameplay state, or duplicate balances in local constants.
+- Render the Milestone 1 player-facing state that actually exists: account/display identity, Teeth, Raw Chaos, and Energy current/normal maximum. Preserve legitimate Energy overcap values exactly (for example `57 / 50`); do not clamp presentation to the normal maximum.
+- Use only bootstrap/content state that is actually authorized and available. `player_revision`, CSRF metadata, server time, and content revision may remain runtime/internal concerns rather than being exposed as ordinary Camp UI.
+- Do not invent squad, unit, dice, run, objective, Codex, Shop, Academy, Wrong Machine, reward, unlock, region-availability, or progression state to make the screen appear fuller. Bootstrap's null active squad/run and empty progression are not permission to build placeholder versions of those systems.
+- Do not infer that a region is unlocked/startable merely because its public definition exists in `ClientContentRegistry`. Region/run availability belongs to later authoritative progression/run work.
+- Camp presentation should follow the canonical visual guide: bright/saturated fantasy-adventure, cartoon/JRPG readability, tactile illustrated-game framing, and crisp status information. Avoid generic SaaS/dashboard cards and do not port prototype Angular page chrome one-for-one.
+- Prefer reuse of suitable existing game assets where they fit the accepted visual direction. Do not require new authored gameplay content or expose server-private content for this screen.
+- Camp must remain fully Phaser-owned. Angular `/game` host behavior stays mount/destroy only; do not reintroduce Angular command controls, status cards, router-driven gameplay UI, or Angular gameplay state into the game surface.
+- Preserve the approved startup gate. `GameScene`/Camp must remain unreachable until client content is valid, bootstrap is valid, and content revisions match. Camp must consume the already-hydrated runtime state rather than initiating startup itself.
+- Preserve application-lifetime `GameStore`, `ClientContentRegistry`, and API client across Camp creation/recreation within the mounted runtime. Rendering Camp must not trigger additional client-content or bootstrap requests.
+- Do not implement navigation to Warband or other future GameScene destinations in this package unless a tiny inert screen-boundary stub is required to prove Camp composition. Do not route back into prototype Angular gameplay pages from Phaser.
+- Do not add backend endpoints, schema, authored balance/content, player provisioning, or gameplay mutations for Camp. If Camp appears to need information not present in the approved bootstrap, keep that feature out of this minimal package rather than expanding the contract opportunistically.
+- Do not implement run creation/region selection, squad management, units/dice, Shop, Academy, Wrong Machine, Codex/objectives, battle/run flow, final audio migration, asset-bundle architecture, responsive Compact/Standard/Wide modes, safe insets, or the mobile portrait gate in this package.
+- Use enough logical layout structure that the screen is composed intentionally in Phaser, but defer final 1600x900/Compact/Wide responsive behavior and mobile orientation handling to the next package. Avoid hard-coding per-device/resolution layouts that conflict with the accepted responsive architecture.
+- Add focused deterministic frontend coverage proving Camp derives displayed identity/currency/Energy from `GameStore`, preserves overcap Energy, does not render before ready startup, does not refetch startup resources, and does not depend on Angular/prototype gameplay services.
 
 #### Completion
-Run applicable frontend/content/context/build gates from `agent/QUALITY_GATES.md`, including frontend tests, content validation/projection freshness, production frontend build, and bundle check. Leave this package active for architectural review; do not promote or begin the Minimal authoritative Camp package in the same change.
+Run applicable frontend/content/context/build gates from `agent/QUALITY_GATES.md`, including frontend tests and production build. Leave this package active for architectural/UX review; do not promote or begin responsive landscape host behavior in the same change.
