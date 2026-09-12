@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Establish authoritative Warband reads and controlled fixtures
+- Establish squad commands and active-squad bootstrap integration
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT. Its major visual-quality finding is intentionally deferred to the later game-wide visual/UI overhaul; Milestone 2 should prioritize functional clarity and consistency rather than final presentation fidelity.
 
@@ -37,8 +37,8 @@ Establish the durable player-owned combat-configuration domain and make it fully
 Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 1. ~~Warband persistence foundation.~~ Complete and architecturally approved.
 2. ~~Warband authored content + validation/projection.~~ Complete and architecturally approved.
-3. **Authoritative Warband read APIs + controlled development/UAT fixtures.** Current.
-4. Squad commands + active-squad bootstrap integration.
+3. ~~Authoritative Warband read APIs + controlled development/UAT fixtures.~~ Complete and architecturally approved.
+4. **Squad commands + active-squad bootstrap integration.** Current.
 5. Unit rename + atomic loadout/dice-binding command.
 6. Phaser Warband navigation + lazy read/cache surfaces.
 7. Phaser squad editor + activation/lifecycle flows.
