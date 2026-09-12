@@ -214,6 +214,24 @@ describe('RuntimeStartup', () => {
     });
   });
 
+  it('controls unexpected startup failures and never enters GameScene', async () => {
+    const unexpectedContent = harness();
+    unexpectedContent.contentLoader.loadProjection.and.rejectWith(new Error('unexpected content failure'));
+    expect(await unexpectedContent.startup.start()).toEqual({
+      status: 'failure',
+      reason: 'unexpected',
+    });
+    expect(nextSceneForStartup(unexpectedContent.startup.state)).toBeNull();
+
+    const unexpectedBootstrap = harness();
+    unexpectedBootstrap.apiClient.getBootstrap.and.rejectWith(new Error('unexpected bootstrap failure'));
+    expect(await unexpectedBootstrap.startup.start()).toEqual({
+      status: 'failure',
+      reason: 'unexpected',
+    });
+    expect(nextSceneForStartup(unexpectedBootstrap.startup.state)).toBeNull();
+  });
+
   it('performs at most one content and bootstrap request when startup is observed repeatedly', async () => {
     const { startup, apiClient, contentLoader } = harness();
 

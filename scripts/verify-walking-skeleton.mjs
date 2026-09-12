@@ -59,9 +59,9 @@ try {
     .getByLabel('Email or Username')
     .fill(`walking-skeleton-${Date.now()}@example.test`);
   await page.getByLabel('Password').fill('walking-skeleton-pass');
+  const gameNavigation = page.waitForURL('**/game', { timeout: 45_000 });
   await page.getByRole('button', { name: 'Claim Warband' }).click();
-
-  await page.waitForURL('**/game', { timeout: 45_000 });
+  await gameNavigation;
   await page.waitForSelector('[data-game-screen="camp"]', { timeout: 45_000 });
   await page.waitForSelector('.game-host__mount canvas', { timeout: 45_000 });
 
