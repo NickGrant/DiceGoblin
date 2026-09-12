@@ -2,48 +2,58 @@
 
 Read this for sequencing/planning or when closing/promoting an execution package. Normal implementation should use `agent/ISSUES.md` instead.
 
-## Milestone 1 - Walking Skeleton
+## Milestone 2 - Warband
 
-**Status:** Complete - UAT Passed
+**Status:** Active
+
+Milestone 1 - Walking Skeleton is complete and passed manual user UAT. Its major visual-quality finding is intentionally deferred to the later game-wide visual/UI overhaul; Milestone 2 should prioritize functional clarity and consistency rather than final presentation fidelity.
 
 ### Outcome
-Prove the smallest real vNext path:
+Establish the durable player-owned combat-configuration domain and make it fully usable through Phaser:
 
-`authenticated Angular host -> persistent Phaser runtime -> client-safe authored content -> PHP bootstrap -> MySQL player state -> minimal Phaser Camp`
+`authored unit/dice definitions -> owned unit/dice persistence -> saved squads -> authoritative lazy queries/commands -> Phaser Warband -> squad configuration -> unit loadout/dice configuration`
 
 ### Exit Criteria
-- Fresh vNext database works without prototype migration history or SQL-authored gameplay catalogs.
-- Server loads/validates canonical JSON; client receives only an allowlisted projection.
-- `/game` mounts one persistent Phaser runtime; Angular does not orchestrate gameplay.
-- Phaser startup verifies content compatibility, fetches authoritative bootstrap, and renders Camp.
-- 1600x900 reference layout, Compact/Wide landscape behavior, safe insets, and touch-first mobile portrait rotation gate work.
-- Authenticated default gameplay entry is `/game`; obsolete Angular gameplay routes/profile orchestration no longer operate as a parallel live game client while useful prototype source remains available for later migration work.
-- Required backend/frontend/content/responsive/full-stack gates pass with fresh-state evidence where supported by repository tooling.
-- Superseded prototype paths are removed only after replacements are proven; later reuse candidates remain until their owning package.
-
-### Related Issues
-None active. Milestone 2 - Warband is next, but its first execution package has not yet been promoted.
+- The fresh vNext baseline includes normalized owned-unit, owned-dice, squad, ability-loadout, and dice-binding persistence using authored stable IDs rather than SQL gameplay catalogs.
+- Canonical JSON/ContentRegistry includes the authored unit/kin/ability/dice definitions required by the Milestone 2 Warband slice with structural and semantic cross-reference validation and an explicit browser-exposure boundary.
+- Authoritative domain queries provide compact unit, dice, and squad collections plus full unit detail without reviving a catch-all profile payload.
+- A controlled development/UAT fixture path can create representative owned Warband state without adding production starter-pack provisioning; normal account creation remains unchanged until onboarding owns it in Milestone 12.
+- Squad commands create, atomically replace, activate, and delete saved squads with nine positions, ownership validation, authoritative responses, and `player_revision` updates.
+- Unit configuration commands support rename and atomic complete ability-order/dice-binding loadout replacement with ownership, ability, die, slot, and configuration validation. Promotion/progression transactions remain deferred to Milestone 8.
+- Bootstrap includes the active-squad state required for initial Camp presentation once an active squad exists, while complete collections remain lazy domains.
+- Phaser `GameScene` owns navigation between Camp and Warband without restoring Angular gameplay pages or remounting the persistent runtime.
+- GameStore/API client support lazy Warband domain loading and authoritative cache replacement after commands; no mutation relies on a global profile refresh.
+- Phaser Warband exposes the owned-unit roster, owned dice, saved squads, active-squad state, and drill-down to configuration surfaces with functional responsive behavior.
+- Phaser squad configuration supports the fixed 3x3/nine-position formation, saved squad lifecycle, membership/position editing, and active-squad switching using complete authoritative squad mutations.
+- Phaser unit configuration supports unit detail, rename, ordered equipped abilities, and exact owned-die bindings using an editable local draft whose committed state changes only after server acceptance.
+- Active-run mutation locking is not fabricated before run persistence exists. Milestone 2 command boundaries must permit Milestone 3 to add authoritative active-run checks without redesigning the Warband contracts.
+- Existing prototype Unit/Dice/Team repositories, Angular Warband pages, profile synchronization, and related tests are mined for useful behavior but are not target architecture. Retire only live/superseded paths whose vNext replacement is proven; preserve later reuse evidence until its owning package.
+- Milestone 2 passes fresh-database, authored-content, backend, frontend, production-build/bundle, responsive-capture, and real-stack verification appropriate to the completed Warband slice before manual user UAT.
 
 ### Package Queue
-1. ~~Inventory/classify prototype code for vNext reuse.~~ Complete.
-2. ~~Fresh vNext database baseline.~~ Complete and architecturally approved.
-3. ~~Authored content registry + client projection.~~ Complete and architecturally approved.
-4. ~~vNext game bootstrap query.~~ Complete and architecturally approved.
-5. ~~Persistent Phaser runtime mounted at `/game`.~~ Complete and architecturally approved.
-6. ~~Phaser startup state + content compatibility gate.~~ Complete and architecturally approved.
-7. ~~Minimal authoritative Camp.~~ Complete and architecturally approved.
-8. ~~Responsive landscape host behavior.~~ Complete and architecturally/UX approved.
-9. ~~Walking-skeleton end-to-end verification/closure.~~ Complete and architecturally approved.
+Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
+1. **Warband persistence foundation.** Current.
+2. Warband authored content + validation/projection.
+3. Authoritative Warband read APIs + controlled development/UAT fixtures.
+4. Squad commands + active-squad bootstrap integration.
+5. Unit rename + atomic loadout/dice-binding command.
+6. Phaser Warband navigation + lazy read/cache surfaces.
+7. Phaser squad editor + activation/lifecycle flows.
+8. Phaser unit detail + loadout/dice configuration flows.
+9. Warband integrated verification/closure.
 
-### Verification Closure
-Milestone 1 closure verified the fresh vNext database baseline, canonical authored-content projection, backend and frontend suites, production build, bundle budget, responsive captures, touch-first orientation behavior, startup negative paths, and a real browser -> PHP -> MySQL registration/bootstrap/Camp path with one gameplay bootstrap, one client-content load, matching content revisions, and no prototype `/profile` gameplay request.
+### Package Review Workflow
+For each package:
+1. coding agent implements only the current `agent/ISSUES.md` package and leaves it in review state;
+2. architectural review evaluates the pushed changes against accepted contracts and the package acceptance criteria;
+3. corrections are returned to the same package until approved;
+4. planning records the package complete and promotes exactly one next package.
 
-The aggregate `npm run verify:full` command could not invoke host PHP in the verification environment because PHP was absent from the Windows PATH. Its required constituents were run successfully through the repository-supported Docker/frontend paths instead; no required Milestone 1 verification check was skipped.
+Do not implement later packages early merely because their eventual shape is known.
 
-### UAT Result
-Manual user UAT passed with no functional defects identified in the Milestone 1 walking skeleton.
+### UAT Sequencing
+Manual user UAT occurs after package 9 is technically complete and passes final architectural review. UAT is milestone-level validation rather than an acceptance criterion inside packages 1-9.
 
-The one substantive finding was visual quality: the current Phaser presentation is not considered the intended final game UI. This does not reopen Milestone 1. Continue implementing gameplay surfaces with functional clarity and reasonable consistency, then perform a larger cross-cutting visual/UI overhaul once enough of the game exists to establish the final shared visual language efficiently.
+The deferred major visual/UI overhaul remains out of Milestone 2. Functional screens should be clear, responsive, and reasonably consistent, but do not spend package scope pursuing final production visual fidelity.
 
-## Next
-Milestone 2 - Warband is the next implementation milestone. Decompose and promote its first concrete package before coding begins; do not treat the entire milestone as one execution task.
+Do not begin Milestone 3 - Enter Farm until Milestone 2 UAT is complete and its findings are resolved or deliberately deferred.
