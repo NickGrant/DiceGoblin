@@ -4,8 +4,8 @@
 
 ## No active execution package
 
-Milestone 1 - Walking Skeleton is technically complete and has passed architectural/UX closure review.
+Milestone 1 - Walking Skeleton is complete, has passed architectural/UX closure review, and has passed manual user UAT.
 
-The current build is handed to the user for manual UAT. UAT is post-milestone validation and is not an active coding-agent package. Record any UAT findings before promoting implementation work to address them.
+UAT found no functional defects requiring Milestone 1 corrective work. The current Phaser presentation does not meet the intended final visual quality; that is a known deferred game-wide visual/UI overhaul, not a Milestone 1 blocker.
 
-Do not promote or begin Milestone 2 (Warband) until the user completes the Milestone 1 UAT handoff and explicitly proceeds to the next work.
+Milestone 2 - Warband is the next implementation milestone, but it has not yet been decomposed or promoted into an execution package. Do not begin Milestone 2 until its first concrete package is added here.
