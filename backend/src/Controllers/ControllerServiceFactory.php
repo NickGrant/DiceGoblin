@@ -3,11 +3,20 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Controllers;
 
+use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
+use DiceGoblins\Application\Queries\DiceCollectionQuery;
 use DiceGoblins\Application\Queries\GameBootstrapQuery;
+use DiceGoblins\Application\Queries\SquadCollectionQuery;
+use DiceGoblins\Application\Queries\UnitCollectionQuery;
+use DiceGoblins\Application\Queries\UnitDetailQuery;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Domain\Energy\EnergyCalculator;
 use DiceGoblins\Repositories\PlayerStateRepository;
+use DiceGoblins\Repositories\SquadRepository;
 use DiceGoblins\Repositories\UserRepository;
+use DiceGoblins\Repositories\WarbandDiceRepository;
+use DiceGoblins\Repositories\WarbandFixtureRepository;
+use DiceGoblins\Repositories\WarbandUnitRepository;
 use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\AccountCreationService;
 use DiceGoblins\Services\PasswordResetService;
@@ -55,9 +64,15 @@ final class ControllerServiceFactory
   {
     $core ??= self::buildCore($pdo);
     $content ??= ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $unitRepository = new WarbandUnitRepository($pdo);
+    $diceRepository = new WarbandDiceRepository($pdo);
+    $squadRepository = new SquadRepository($pdo);
 
     return array_merge($core, [
       'contentRegistry' => $content,
+      'warbandUnitRepository' => $unitRepository,
+      'warbandDiceRepository' => $diceRepository,
+      'squadRepository' => $squadRepository,
       'accountCreationService' => new AccountCreationService(
         $pdo,
         $core['userRepo'],
@@ -70,6 +85,15 @@ final class ControllerServiceFactory
         $content,
         $core['csrfService'],
         new EnergyCalculator(),
+      ),
+      'unitCollectionQuery' => new UnitCollectionQuery($unitRepository, $content),
+      'unitDetailQuery' => new UnitDetailQuery($unitRepository, $content),
+      'diceCollectionQuery' => new DiceCollectionQuery($diceRepository, $content),
+      'squadCollectionQuery' => new SquadCollectionQuery($squadRepository),
+      'provisionWarbandFixtureCommand' => new ProvisionWarbandFixtureCommand(
+        $pdo,
+        new WarbandFixtureRepository($pdo),
+        $content,
       ),
     ]);
   }

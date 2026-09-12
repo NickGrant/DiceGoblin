@@ -26,6 +26,8 @@ services:
       - ./backend:/app
     environment:
       # For later DB wiring
+      - APP_ENV=dev
+      - ENABLE_WARBAND_FIXTURES=1
       - DB_HOST=db
       - DB_PORT=3306
       - DB_NAME=dice_goblins

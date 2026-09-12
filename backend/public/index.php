@@ -12,6 +12,8 @@ use DiceGoblins\Core\Router;
 use DiceGoblins\Controllers\ApiController;
 use DiceGoblins\Controllers\AuthController;
 use DiceGoblins\Controllers\GameBootstrapController;
+use DiceGoblins\Controllers\WarbandController;
+use DiceGoblins\Controllers\WarbandFixtureController;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';
 Autoloader::register(__DIR__ . '/../src');
@@ -94,6 +96,8 @@ $router = new Router();
 $api = new ApiController();
 $auth = new AuthController();
 $gameBootstrap = new GameBootstrapController();
+$warband = new WarbandController();
+$warbandFixture = new WarbandFixtureController();
 
 // Auth
 $router->get('/auth/discord/start', [$auth, 'discordStart']);
@@ -108,6 +112,11 @@ $router->post('/api/v1/auth/logout', [$auth, 'logout']);
 $router->get('/api/v1/health', [$api, 'health']);
 $router->get('/api/v1/session', [$api, 'session']);
 $router->get('/api/v1/game/bootstrap', [$gameBootstrap, 'bootstrap']);
+$router->get('/api/v1/units', [$warband, 'units']);
+$router->get('/api/v1/units/:unitId', [$warband, 'unitDetail']);
+$router->get('/api/v1/dice', [$warband, 'dice']);
+$router->get('/api/v1/squads', [$warband, 'squads']);
+$router->post('/api/v1/debug/fixtures/warband', [$warbandFixture, 'replace']);
 
 // Prototype gameplay controllers remain in source as migration evidence, but their
 // routes are intentionally not registered against the fresh vNext schema. Each

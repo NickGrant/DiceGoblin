@@ -30,3 +30,16 @@
 - Use SQL fixtures under `backend/tests/Fixtures/`.
 - Reset the test database by loading `backend/migrations/vnext_baseline.sql` into the Docker `goblin_test` database.
 - The fresh baseline activates only vNext database/auth/session integration tests. Prototype gameplay integration tests are retained as migration evidence and report explicit skips until their owning milestones replace their schema and routes.
+
+## Controlled Warband fixture
+
+For development/UAT, an authenticated account can replace only its own Warband
+with representative canonical state by sending:
+
+`POST /api/v1/debug/fixtures/warband`
+
+The request uses the normal session cookie and `X-CSRF-Token`. It is enabled
+only when `ENABLE_WARBAND_FIXTURES=1` and `APP_ENV` is exactly `dev`, `test`,
+or `uat`; missing, differently cased, unexpected, and production values fail closed. Repeating the request
+replaces that account's units, dice, abilities, bindings, and squads in one
+transaction. It does not change registration or provision starter assets.

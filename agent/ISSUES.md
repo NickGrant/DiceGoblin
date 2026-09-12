@@ -6,7 +6,7 @@
 
 ### Establish authoritative Warband reads and controlled fixtures
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
