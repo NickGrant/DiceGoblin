@@ -56,7 +56,7 @@ Inspect prototype Team behavior only for useful edge cases. New code uses `squad
 - Return the resulting authoritative state from the command; do not require a follow-up profile/bootstrap refresh.
 
 #### Creation Idempotency
-`POST /api/v1/squads` creates a durable asset and therefore needs a retry/idempotency boundary under the accepted API rules. Implement the smallest vNext idempotency mechanism appropriate to this concrete command now; do not build a generic event-sourcing framework. Repeating the same accepted create request under the same idempotency key must not create duplicate squads or increment `player_revision` twice. Conflicting reuse of a key for a different create payload must fail safely. Add only the persistence needed for this concrete command and document/test its retention semantics at the level necessary for correctness.
+`POST /api/v1/squads` creates a durable asset and therefore requires the conventional `Idempotency-Key` request header under the accepted API rules. Validate the supplied key using a small bounded opaque-string contract and include `Idempotency-Key` in dev CORS allowed headers where cross-origin local development requires it. Implement the smallest vNext idempotency persistence/mechanism appropriate to this concrete command now; do not build a generic event-sourcing framework. Repeating the same accepted create request under the same authenticated user + idempotency key must return the previously created authoritative result without creating duplicate squads or incrementing `player_revision` twice. Reusing the same key for a different create payload must fail safely. Idempotency ownership is per authenticated user; one user's key must not collide with another user's key. Add only the persistence needed for this concrete command and document/test its retention semantics at the level necessary for correctness.
 
 #### Future Run Lock Boundary
 - Do not fabricate active-run persistence or locking before Milestone 3 creates runs.
@@ -82,7 +82,8 @@ Add focused real-MySQL integration coverage proving at minimum:
 - auth and CSRF rejection for every mutation;
 - create with exact nine-position normalization and owned active units;
 - first created squad becomes active; second create preserves current active squad;
-- create idempotency prevents duplicate assets/revision increments and rejects conflicting key reuse;
+- create idempotency prevents duplicate assets/revision increments, rejects conflicting key reuse, and scopes identical keys independently by authenticated user;
+- missing/malformed/oversized idempotency keys are rejected before mutation;
 - invalid/malformed formation/name is rejected atomically;
 - non-owned/terminal/missing units cannot be inserted and do not leak state;
 - PUT atomically replaces name + complete formation and rolls back on failure;
