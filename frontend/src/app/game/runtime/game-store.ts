@@ -14,6 +14,24 @@ export interface GameBootstrapEnergy {
   readonly fully_regenerated_at: string | null;
 }
 
+export interface GameBootstrapUnitSummary {
+  readonly id: string;
+  readonly display_name: string;
+  readonly unit_type_id: string;
+  readonly kin_id: string;
+  readonly level: number;
+  readonly xp: number;
+  readonly lifecycle_status: 'active';
+}
+
+export interface GameBootstrapActiveSquad {
+  readonly id: string;
+  readonly name: string;
+  readonly is_active: true;
+  readonly formation: readonly (string | null)[];
+  readonly units: readonly GameBootstrapUnitSummary[];
+}
+
 export interface GameBootstrapData {
   readonly account: GameBootstrapAccount;
   readonly player: {
@@ -31,7 +49,7 @@ export interface GameBootstrapData {
   readonly progression: {
     readonly unlock_ids: readonly string[];
   };
-  readonly active_squad: null;
+  readonly active_squad: GameBootstrapActiveSquad | null;
   readonly active_run: null;
 }
 
@@ -91,6 +109,53 @@ function nullableStringField(record: Record<string, unknown>, key: string): stri
   return value;
 }
 
+function hasExactKeys(record: Record<string, unknown>, keys: readonly string[]): boolean {
+  return Object.keys(record).sort().join('\0') === [...keys].sort().join('\0');
+}
+
+function positiveId(value: unknown): value is string {
+  return typeof value === 'string' && /^[1-9][0-9]*$/.test(value);
+}
+
+function parseActiveSquad(value: unknown): GameBootstrapActiveSquad | null {
+  if (value === null) return null;
+  if (!isRecord(value) || !hasExactKeys(value, ['id', 'name', 'is_active', 'formation', 'units'])) {
+    throw new BootstrapContractError("Bootstrap field 'active_squad' is malformed.");
+  }
+  const formation = value['formation'];
+  const units = value['units'];
+  if (!positiveId(value['id']) || typeof value['name'] !== 'string' || value['name'].trim() === ''
+    || Array.from(value['name'].trim()).length > 128 || value['is_active'] !== true
+    || !Array.isArray(formation) || formation.length !== 9 || !Array.isArray(units)) {
+    throw new BootstrapContractError("Bootstrap field 'active_squad' is malformed.");
+  }
+  const formationIds = new Set<string>();
+  const parsedFormation = formation.map((id) => {
+    if (id === null) return null;
+    if (!positiveId(id) || formationIds.has(id)) throw new BootstrapContractError('Active squad formation is malformed.');
+    formationIds.add(id);
+    return id;
+  });
+  const unitIds = new Set<string>();
+  const parsedUnits = units.map((unit): GameBootstrapUnitSummary => {
+    if (!isRecord(unit) || !hasExactKeys(unit, ['id', 'display_name', 'unit_type_id', 'kin_id', 'level', 'xp', 'lifecycle_status'])
+      || !positiveId(unit['id']) || unitIds.has(unit['id']) || !formationIds.has(unit['id'])
+      || typeof unit['display_name'] !== 'string' || unit['display_name'].trim() === ''
+      || typeof unit['unit_type_id'] !== 'string' || unit['unit_type_id'] === ''
+      || typeof unit['kin_id'] !== 'string' || unit['kin_id'] === ''
+      || typeof unit['level'] !== 'number' || !Number.isInteger(unit['level']) || unit['level'] < 1
+      || typeof unit['xp'] !== 'number' || !Number.isInteger(unit['xp']) || unit['xp'] < 0
+      || unit['lifecycle_status'] !== 'active') {
+      throw new BootstrapContractError('Active squad unit summary is malformed.');
+    }
+    unitIds.add(unit['id']);
+    return { id: unit['id'], display_name: unit['display_name'], unit_type_id: unit['unit_type_id'],
+      kin_id: unit['kin_id'], level: unit['level'], xp: unit['xp'], lifecycle_status: 'active' };
+  });
+  if (unitIds.size !== formationIds.size) throw new BootstrapContractError('Active squad unit summaries are incomplete.');
+  return { id: value['id'], name: value['name'].trim(), is_active: true, formation: parsedFormation, units: parsedUnits };
+}
+
 export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
   if (!isRecord(value) || value['ok'] !== true || !isRecord(value['data'])) {
     throw new BootstrapContractError('Bootstrap response must be a successful API envelope.');
@@ -140,13 +205,12 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
               );
             })(),
     },
-    active_squad: null,
+    active_squad: parseActiveSquad(data['active_squad']),
     active_run: null,
   };
 
   if (
     session['authenticated'] !== true ||
-    data['active_squad'] !== null ||
     data['active_run'] !== null
   ) {
     throw new BootstrapContractError(

@@ -4,14 +4,22 @@ declare(strict_types=1);
 namespace DiceGoblins\Controllers;
 
 use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
+use DiceGoblins\Application\Commands\ActivateSquadCommand;
+use DiceGoblins\Application\Commands\CreateSquadCommand;
+use DiceGoblins\Application\Commands\DeleteSquadCommand;
+use DiceGoblins\Application\Commands\SquadCommandSupport;
+use DiceGoblins\Application\Commands\UpdateSquadCommand;
+use DiceGoblins\Application\Queries\ActiveSquadQuery;
 use DiceGoblins\Application\Queries\DiceCollectionQuery;
 use DiceGoblins\Application\Queries\GameBootstrapQuery;
 use DiceGoblins\Application\Queries\SquadCollectionQuery;
 use DiceGoblins\Application\Queries\UnitCollectionQuery;
 use DiceGoblins\Application\Queries\UnitDetailQuery;
 use DiceGoblins\Content\ContentRegistry;
+use DiceGoblins\Application\UnitSummaryAssembler;
 use DiceGoblins\Domain\Energy\EnergyCalculator;
 use DiceGoblins\Repositories\PlayerStateRepository;
+use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\SquadRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
@@ -67,6 +75,9 @@ final class ControllerServiceFactory
     $unitRepository = new WarbandUnitRepository($pdo);
     $diceRepository = new WarbandDiceRepository($pdo);
     $squadRepository = new SquadRepository($pdo);
+    $unitSummaries = new UnitSummaryAssembler($content);
+    $activeSquadQuery = new ActiveSquadQuery($squadRepository, $unitSummaries);
+    $squadCommandSupport = new SquadCommandSupport($core['playerStateRepo'], $squadRepository, $unitRepository, $unitSummaries);
 
     return array_merge($core, [
       'contentRegistry' => $content,
@@ -85,11 +96,17 @@ final class ControllerServiceFactory
         $content,
         $core['csrfService'],
         new EnergyCalculator(),
+        $activeSquadQuery,
       ),
       'unitCollectionQuery' => new UnitCollectionQuery($unitRepository, $content),
       'unitDetailQuery' => new UnitDetailQuery($unitRepository, $content),
       'diceCollectionQuery' => new DiceCollectionQuery($diceRepository, $content),
       'squadCollectionQuery' => new SquadCollectionQuery($squadRepository),
+      'createSquadCommand' => new CreateSquadCommand($pdo, $core['playerStateRepo'], $squadRepository,
+        new IdempotencyRequestRepository($pdo), $squadCommandSupport),
+      'updateSquadCommand' => new UpdateSquadCommand($pdo, $core['playerStateRepo'], $squadRepository, $squadCommandSupport),
+      'activateSquadCommand' => new ActivateSquadCommand($pdo, $core['playerStateRepo'], $squadCommandSupport),
+      'deleteSquadCommand' => new DeleteSquadCommand($pdo, $core['playerStateRepo'], $squadRepository, $squadCommandSupport),
       'provisionWarbandFixtureCommand' => new ProvisionWarbandFixtureCommand(
         $pdo,
         new WarbandFixtureRepository($pdo),

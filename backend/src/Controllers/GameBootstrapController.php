@@ -6,6 +6,7 @@ namespace DiceGoblins\Controllers;
 use DateTimeImmutable;
 use DateTimeZone;
 use DiceGoblins\Application\Queries\GameBootstrapIntegrityException;
+use DiceGoblins\Application\WarbandIntegrityException;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
 use Throwable;
@@ -53,7 +54,7 @@ final class GameBootstrapController
         'ok' => true,
         'data' => $data,
       ]);
-    } catch (GameBootstrapIntegrityException) {
+    } catch (GameBootstrapIntegrityException|WarbandIntegrityException) {
       Response::json([
         'ok' => false,
         'error' => [

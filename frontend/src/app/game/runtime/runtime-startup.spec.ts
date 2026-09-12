@@ -57,6 +57,19 @@ describe('RuntimeStartup', () => {
     };
   }
 
+  function activeSquadBootstrap(): unknown {
+    const value = bootstrap() as { data: Record<string, unknown> };
+    value.data['active_squad'] = {
+      id: '17', name: 'Raiders', is_active: true,
+      formation: ['31', null, null, null, '32', null, null, null, null],
+      units: [
+        { id: '31', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 3, xp: 120, lifecycle_status: 'active' },
+        { id: '32', display_name: 'Moss', unit_type_id: 'unit_type.guardian', kin_id: 'kin.pig', level: 2, xp: 45, lifecycle_status: 'active' },
+      ],
+    };
+    return value;
+  }
+
   function harness(
     projectionResult: unknown = projection(),
     bootstrapResult: unknown = bootstrap(),
@@ -119,6 +132,44 @@ describe('RuntimeStartup', () => {
     expect(nextSceneForStartup(firstState)).toBe(GAME_SCENE_KEY);
     expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
     expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts and retains a strict authoritative active squad', async () => {
+    const { startup, store } = harness(projection(), activeSquadBootstrap());
+    expect(await startup.start()).toEqual({ status: 'ready' });
+    expect(store.bootstrap?.active_squad?.name).toBe('Raiders');
+    expect(store.bootstrap?.active_squad?.formation).toEqual(['31', null, null, null, '32', null, null, null, null]);
+    expect(store.bootstrap?.active_squad?.units.map((unit) => unit.id)).toEqual(['31', '32']);
+  });
+
+  it('rejects malformed active squad shapes without hydrating the store', async () => {
+    const malformedPayloads = [
+      (() => {
+        const value = activeSquadBootstrap() as { data: { active_squad: { formation: unknown[] } } };
+        value.data.active_squad.formation = ['31', '31', null, null, null, null, null, null, null];
+        return value;
+      })(),
+      (() => {
+        const value = activeSquadBootstrap() as { data: { active_squad: { formation: unknown[] } } };
+        value.data.active_squad.formation.pop();
+        return value;
+      })(),
+      (() => {
+        const value = activeSquadBootstrap() as { data: { active_squad: { units: unknown[] } } };
+        value.data.active_squad.units = [];
+        return value;
+      })(),
+      (() => {
+        const value = activeSquadBootstrap() as { data: { active_squad: Record<string, unknown> } };
+        value.data.active_squad['unexpected'] = true;
+        return value;
+      })(),
+    ];
+    for (const malformed of malformedPayloads) {
+      const { startup, store } = harness(projection(), malformed);
+      expect(await startup.start()).toEqual({ status: 'failure', reason: 'bootstrap-malformed' });
+      expect(store.bootstrap).toBeNull();
+    }
   });
 
   it('still rejects negative current Energy as malformed bootstrap', async () => {

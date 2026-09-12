@@ -77,7 +77,7 @@ if ($origin && in_array($origin, $allowedOrigins, true)) {
   header('Access-Control-Allow-Credentials: true');
 
   // Include X-CSRF-Token for CsrfService::extractProvidedToken()
-  header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
+  header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Idempotency-Key');
   header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
 }
 
@@ -116,6 +116,10 @@ $router->get('/api/v1/units', [$warband, 'units']);
 $router->get('/api/v1/units/:unitId', [$warband, 'unitDetail']);
 $router->get('/api/v1/dice', [$warband, 'dice']);
 $router->get('/api/v1/squads', [$warband, 'squads']);
+$router->post('/api/v1/squads', [$warband, 'createSquad']);
+$router->put('/api/v1/squads/:squadId', [$warband, 'updateSquad']);
+$router->post('/api/v1/squads/:squadId/activate', [$warband, 'activateSquad']);
+$router->delete('/api/v1/squads/:squadId', [$warband, 'deleteSquad']);
 $router->post('/api/v1/debug/fixtures/warband', [$warbandFixture, 'replace']);
 
 // Prototype gameplay controllers remain in source as migration evidence, but their

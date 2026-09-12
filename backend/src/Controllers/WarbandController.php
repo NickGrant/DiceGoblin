@@ -3,14 +3,23 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Controllers;
 
+use DiceGoblins\Application\Commands\IdempotencyConflictException;
+use DiceGoblins\Application\Commands\IdempotencyKeyException;
+use DiceGoblins\Application\Commands\SquadActiveDeletionException;
+use DiceGoblins\Application\Commands\SquadNotFoundException;
+use DiceGoblins\Application\Commands\SquadValidationException;
 use DiceGoblins\Application\Queries\UnitNotFoundException;
 use DiceGoblins\Application\WarbandIntegrityException;
+use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
+use DiceGoblins\Http\JsonRequestBody;
 use Throwable;
 
 final class WarbandController
 {
+  use RequiresCsrf;
+
   /** GET /api/v1/units */
   public function units(): void
   {
@@ -50,6 +59,57 @@ final class WarbandController
   public function squads(): void
   {
     $this->collection('squads', 'squadCollectionQuery');
+  }
+
+  /** POST /api/v1/squads */
+  public function createSquad(): void
+  {
+    $services = $this->mutationServices();
+    if ($services === null) return;
+    $body = JsonRequestBody::decode();
+    if ($body === null) {
+      $this->squadError('invalid_squad_configuration', 'Squad configuration is invalid.', 422);
+      return;
+    }
+    $this->runSquadCommand(fn(): array => $services['createSquadCommand']->execute(
+      $services['userId'], $body,
+      is_string($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? null) ? $_SERVER['HTTP_IDEMPOTENCY_KEY'] : null,
+    ));
+  }
+
+  /** PUT /api/v1/squads/:squadId */
+  public function updateSquad(?string $squadId): void
+  {
+    $services = $this->mutationServices();
+    if ($services === null) return;
+    $id = $this->squadId($squadId);
+    if ($id === null) return;
+    $body = JsonRequestBody::decode();
+    if ($body === null) {
+      $this->squadError('invalid_squad_configuration', 'Squad configuration is invalid.', 422);
+      return;
+    }
+    $this->runSquadCommand(fn(): array => $services['updateSquadCommand']->execute($services['userId'], $id, $body));
+  }
+
+  /** POST /api/v1/squads/:squadId/activate */
+  public function activateSquad(?string $squadId): void
+  {
+    $services = $this->mutationServices();
+    if ($services === null) return;
+    $id = $this->squadId($squadId);
+    if ($id === null) return;
+    $this->runSquadCommand(fn(): array => $services['activateSquadCommand']->execute($services['userId'], $id));
+  }
+
+  /** DELETE /api/v1/squads/:squadId */
+  public function deleteSquad(?string $squadId): void
+  {
+    $services = $this->mutationServices();
+    if ($services === null) return;
+    $id = $this->squadId($squadId);
+    if ($id === null) return;
+    $this->runSquadCommand(fn(): array => $services['deleteSquadCommand']->execute($services['userId'], $id));
   }
 
   private function collection(string $responseKey, string $queryKey): void
@@ -95,6 +155,50 @@ final class WarbandController
       $this->serverError();
       return null;
     }
+  }
+
+  /** @return array<string,mixed>|null */
+  private function mutationServices(): ?array
+  {
+    $services = $this->authenticatedServices();
+    if ($services === null || !$this->requireCsrf($services['csrfService'])) return null;
+    return $services;
+  }
+
+  /** @param callable():array<string,mixed> $command */
+  private function runSquadCommand(callable $command): void
+  {
+    try {
+      Response::json(['ok' => true, 'data' => $command()]);
+    } catch (SquadValidationException) {
+      $this->squadError('invalid_squad_configuration', 'Squad configuration is invalid.', 422);
+    } catch (IdempotencyKeyException) {
+      $this->squadError('idempotency_key_invalid', 'Idempotency-Key is invalid.', 400);
+    } catch (IdempotencyConflictException) {
+      $this->squadError('idempotency_conflict', 'Idempotency-Key conflicts with an earlier request.', 409);
+    } catch (SquadNotFoundException) {
+      $this->squadError('squad_not_found', 'Squad is unavailable.', 404);
+    } catch (SquadActiveDeletionException) {
+      $this->squadError('active_squad_delete_forbidden', 'Activate another squad before deleting the active squad.', 409);
+    } catch (WarbandIntegrityException) {
+      $this->integrityError();
+    } catch (Throwable) {
+      $this->serverError();
+    }
+  }
+
+  private function squadId(?string $value): ?int
+  {
+    if ($value === null || !preg_match('/^[1-9][0-9]*$/D', $value) || (int)$value <= 0 || (string)(int)$value !== $value) {
+      $this->squadError('squad_not_found', 'Squad is unavailable.', 404);
+      return null;
+    }
+    return (int)$value;
+  }
+
+  private function squadError(string $code, string $message, int $status): void
+  {
+    Response::json(['ok' => false, 'error' => ['code' => $code, 'message' => $message]], $status);
   }
 
   private function unitNotFound(): void

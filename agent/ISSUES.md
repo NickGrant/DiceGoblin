@@ -6,7 +6,7 @@
 
 ### Establish squad commands and active-squad bootstrap integration
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

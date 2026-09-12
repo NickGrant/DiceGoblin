@@ -64,6 +64,18 @@ CREATE TABLE `user_state` (
   CONSTRAINT `fk_user_state_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `idempotency_requests` (
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `idempotency_key` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `operation_type` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `request_hash` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `result_json` JSON NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`, `idempotency_key`),
+  KEY `ix_idempotency_requests_created` (`created_at`),
+  CONSTRAINT `fk_idempotency_requests_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `unit_instances` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` BIGINT UNSIGNED NOT NULL,

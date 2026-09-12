@@ -1,7 +1,7 @@
 ---
 Title: "vNext API Contract Model"
 Status: Accepted
-Last Updated: 2026-09-10
+Last Updated: 2026-09-12
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/vnext-game-overhaul.md
@@ -254,7 +254,9 @@ This includes at least:
 - consumable use when inventory is spent
 - other commands that create unit/die/item instances or finalize randomized results
 
-The backend retains the finalized request/result record for the operational retry window. Repeating the same idempotency key returns the original result without spending again, rerolling, or creating duplicate assets.
+The backend retains the finalized request/result record for the operational retry window. Repeating the same idempotency key returns the original result without spending again, rerolling, or creating duplicate assets. Keys are scoped to the authenticated user; reusing a key for a different normalized request is a conflict.
+
+Squad creation is the first concrete vNext use of this contract. `POST /api/v1/squads` requires an `Idempotency-Key` containing 8-128 case-sensitive ASCII characters from letters, digits, `.`, `_`, `:`, and `-`. Its finalized record is retained until a future scheduled operational cleanup policy is introduced; requests must not depend on an exact cleanup duration.
 
 These records are operational correctness data rather than permanent player-visible history and are eligible for scheduled cleanup under the storage model.
 

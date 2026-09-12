@@ -1,7 +1,7 @@
 ---
 Title: "vNext Storage Model"
 Status: Accepted
-Last Updated: 2026-09-09
+Last Updated: 2026-09-12
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/vnext-game-overhaul.md
@@ -359,6 +359,12 @@ Constraints:
 - the same unit should not occupy multiple positions in the same squad
 
 The active squad reference lives on `user_state`.
+
+The first saved squad becomes active atomically. Later creation preserves the current active squad. Deleting the active squad is permitted only when it is the sole saved squad, leaving the reference null; otherwise the player must activate a replacement first.
+
+### `idempotency_requests`
+
+Stores finalized retry receipts for concrete idempotent commands. The current key is `(user_id, idempotency_key)` and the row records the operation type, normalized request hash, finalized result JSON, and creation timestamp. These operational rows are retained until scheduled cleanup is introduced; they are not player-visible history.
 
 ## Active-Run Configuration Lock
 

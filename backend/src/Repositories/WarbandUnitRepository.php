@@ -22,6 +22,24 @@ final class WarbandUnitRepository
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
   }
 
+  /** @param array<int,int> $unitIds
+   *  @return array<int,array<string,mixed>>
+   */
+  public function listActiveByIdsForUser(int $userId, array $unitIds, bool $forUpdate = false): array
+  {
+    $unitIds = array_values(array_unique($unitIds));
+    if ($unitIds === []) return [];
+    $placeholders = implode(',', array_fill(0, count($unitIds), '?'));
+    $stmt = $this->pdo->prepare("
+      SELECT `id`, `user_id`, `unit_type_id`, `kin_id`, `display_name`, `level`, `xp`, `lifecycle_status`
+      FROM `unit_instances`
+      WHERE `user_id` = ? AND `lifecycle_status` = 'active' AND `id` IN ($placeholders)
+      ORDER BY `id` ASC" . ($forUpdate ? ' FOR UPDATE' : '')
+    );
+    $stmt->execute(array_merge([$userId], $unitIds));
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+  }
+
   /** @return array<string,mixed>|null */
   public function getActiveForUser(int $userId, int $unitId): ?array
   {

@@ -25,6 +25,7 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $tables = $this->pdo?->query('SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME')->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame([
       'dice_instances',
+      'idempotency_requests',
       'password_reset_tokens',
       'squad_units',
       'squads',

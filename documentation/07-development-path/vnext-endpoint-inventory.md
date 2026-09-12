@@ -1,7 +1,7 @@
 ---
 Title: "vNext Endpoint Inventory"
 Status: Accepted
-Last Updated: 2026-09-10
+Last Updated: 2026-09-12
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/vnext-api-contract-model.md
@@ -164,9 +164,12 @@ The request identifies the applicable owned consumable/item. Additional contextu
 
 - `POST /api/v1/squads`
   - Creates a saved squad.
+  - Requires `Idempotency-Key`.
+  - Accepts exactly `name` plus a nine-element `formation`; each position is a canonical positive unit-instance ID string or `null`.
 
 - `PUT /api/v1/squads/:squadId`
   - Replaces the complete squad configuration atomically.
+  - Uses the same complete `name` and nine-element `formation` body as creation.
   - Configuration uses positions `0` through `8`.
   - A unit may belong to multiple different saved squads.
   - A position may contain at most one unit in a squad.
