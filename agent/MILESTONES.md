@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Establish Phaser Warband navigation and lazy read/cache surfaces
+- Establish Phaser squad editor and saved-squad lifecycle flows
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT. Its major visual-quality finding is intentionally deferred to the later game-wide visual/UI overhaul; Milestone 2 should prioritize functional clarity and consistency rather than final presentation fidelity.
 
@@ -40,8 +40,8 @@ Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 3. ~~Authoritative Warband read APIs + controlled development/UAT fixtures.~~ Complete and architecturally approved.
 4. ~~Squad commands + active-squad bootstrap integration.~~ Complete and architecturally approved.
 5. ~~Unit rename + atomic loadout/dice-binding command.~~ Complete and architecturally approved.
-6. **Phaser Warband navigation + lazy read/cache surfaces.** Current.
-7. Phaser squad editor + activation/lifecycle flows.
+6. ~~Phaser Warband navigation + lazy read/cache surfaces.~~ Complete and architecturally approved.
+7. **Phaser squad editor + activation/lifecycle flows.** Current.
 8. Phaser unit detail + loadout/dice configuration flows.
 9. Warband integrated verification/closure.
 
