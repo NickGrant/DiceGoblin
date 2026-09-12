@@ -104,7 +104,7 @@ final class VnextWarbandPersistenceTest extends IntegrationTestCase
     $this->assertSame('3', (string)$this->scalar('SELECT COUNT(*) FROM `squad_units` WHERE `unit_id` = ?', [$units[0]]));
   }
 
-  public function testPromotionAbilityLoadoutAndExactDiceBindingsRemainNormalized(): void
+  public function testPromotionAbilityLoadoutAndExactDiceBindingsRemainNormalizedAndGloballyUnique(): void
   {
     $userId = $this->createUser();
     $unitId = $this->createUnit($userId, 'unit_type.raider', 'kin.basic', 'Gnash');
@@ -124,12 +124,14 @@ final class VnextWarbandPersistenceTest extends IntegrationTestCase
       'INSERT INTO `unit_ability_dice` (`unit_id`, `ability_id`, `slot_index`, `dice_instance_id`) VALUES (?, ?, ?, ?)',
     );
     $binding?->execute([$unitId, 'ability.slash', 0, $dieId]);
-    $binding?->execute([$unitId, 'ability.taunt', 1, $dieId]);
+    $otherUnitId = $this->createUnit($userId, 'unit_type.guardian', 'kin.basic', 'Other Unit');
+    $this->pdo?->prepare('INSERT INTO `unit_abilities` (`unit_id`, `ability_id`) VALUES (?, ?)')->execute([$otherUnitId, 'ability.slash']);
+    $this->assertConstraintViolation(fn() => $binding?->execute([$otherUnitId, 'ability.slash', 0, $dieId]));
 
     $loadout = $this->pdo?->prepare('SELECT `ability_id` FROM `unit_ability_loadout` WHERE `unit_id` = ? ORDER BY `equip_order`');
     $loadout?->execute([$unitId]);
     $this->assertSame(['ability.taunt', 'ability.slash'], $loadout?->fetchAll(PDO::FETCH_COLUMN));
-    $this->assertSame('2', (string)$this->scalar('SELECT COUNT(*) FROM `unit_ability_dice` WHERE `dice_instance_id` = ?', [$dieId]));
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `unit_ability_dice` WHERE `dice_instance_id` = ?', [$dieId]));
     $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `unit_promotions` WHERE `unit_id` = ?', [$unitId]));
 
     $this->assertConstraintViolation(

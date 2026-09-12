@@ -6,7 +6,7 @@
 
 ### Establish unit rename and atomic loadout/dice-binding commands
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

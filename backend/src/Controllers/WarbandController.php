@@ -8,6 +8,7 @@ use DiceGoblins\Application\Commands\IdempotencyKeyException;
 use DiceGoblins\Application\Commands\SquadActiveDeletionException;
 use DiceGoblins\Application\Commands\SquadNotFoundException;
 use DiceGoblins\Application\Commands\SquadValidationException;
+use DiceGoblins\Application\Commands\UnitConfigurationValidationException;
 use DiceGoblins\Application\Queries\UnitNotFoundException;
 use DiceGoblins\Application\WarbandIntegrityException;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
@@ -53,6 +54,36 @@ final class WarbandController
   public function dice(): void
   {
     $this->collection('dice', 'diceCollectionQuery');
+  }
+
+  /** PATCH /api/v1/units/:unitId/name */
+  public function renameUnit(?string $unitId): void
+  {
+    $services = $this->mutationServices();
+    if ($services === null) return;
+    $id = $this->unitId($unitId);
+    if ($id === null) return;
+    $body = JsonRequestBody::decode();
+    if ($body === null) {
+      $this->unitConfigurationError();
+      return;
+    }
+    $this->runUnitCommand(fn(): array => $services['renameUnitCommand']->execute($services['userId'], $id, $body));
+  }
+
+  /** PUT /api/v1/units/:unitId/loadout */
+  public function replaceUnitLoadout(?string $unitId): void
+  {
+    $services = $this->mutationServices();
+    if ($services === null) return;
+    $id = $this->unitId($unitId);
+    if ($id === null) return;
+    $body = JsonRequestBody::decode();
+    if ($body === null) {
+      $this->unitConfigurationError();
+      return;
+    }
+    $this->runUnitCommand(fn(): array => $services['replaceUnitLoadoutCommand']->execute($services['userId'], $id, $body));
   }
 
   /** GET /api/v1/squads */
@@ -187,6 +218,22 @@ final class WarbandController
     }
   }
 
+  /** @param callable():array<string,mixed> $command */
+  private function runUnitCommand(callable $command): void
+  {
+    try {
+      Response::json(['ok' => true, 'data' => $command()]);
+    } catch (UnitConfigurationValidationException) {
+      $this->unitConfigurationError();
+    } catch (UnitNotFoundException) {
+      $this->unitNotFound();
+    } catch (WarbandIntegrityException) {
+      $this->integrityError();
+    } catch (Throwable) {
+      $this->serverError();
+    }
+  }
+
   private function squadId(?string $value): ?int
   {
     if ($value === null || !preg_match('/^[1-9][0-9]*$/D', $value) || (int)$value <= 0 || (string)(int)$value !== $value) {
@@ -194,6 +241,20 @@ final class WarbandController
       return null;
     }
     return (int)$value;
+  }
+
+  private function unitId(?string $value): ?int
+  {
+    if ($value === null || !preg_match('/^[1-9][0-9]*$/D', $value) || (int)$value <= 0 || (string)(int)$value !== $value) {
+      $this->unitNotFound();
+      return null;
+    }
+    return (int)$value;
+  }
+
+  private function unitConfigurationError(): void
+  {
+    Response::json(['ok' => false, 'error' => ['code' => 'invalid_unit_configuration', 'message' => 'Unit configuration is invalid.']], 422);
   }
 
   private function squadError(string $code, string $message, int $status): void

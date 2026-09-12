@@ -20,9 +20,9 @@ final class UnitDetailQuery
   }
 
   /** @return array<string,mixed> */
-  public function execute(int $userId, int $unitId): array
+  public function execute(int $userId, int $unitId, bool $forUpdate = false): array
   {
-    $unit = $this->units->getActiveForUser($userId, $unitId);
+    $unit = $this->units->getActiveForUser($userId, $unitId, $forUpdate);
     if ($unit === null) {
       throw new UnitNotFoundException('Unit is unavailable.');
     }
@@ -33,7 +33,7 @@ final class UnitDetailQuery
     $this->content->kin($kinId);
 
     $promotionHistory = [];
-    foreach ($this->units->listPromotions($unitId) as $promotion) {
+    foreach ($this->units->listPromotions($unitId, $forUpdate) as $promotion) {
       $from = (string)$promotion['from_unit_type_id'];
       $to = (string)$promotion['to_unit_type_id'];
       $this->content->unitType($from);
@@ -47,7 +47,7 @@ final class UnitDetailQuery
 
     $ownedAbilityIds = [];
     $ownedAbilitySet = [];
-    foreach ($this->units->listOwnedAbilities($unitId) as $owned) {
+    foreach ($this->units->listOwnedAbilities($unitId, $forUpdate) as $owned) {
       $abilityId = (string)$owned['ability_id'];
       $this->content->ability($abilityId);
       $ownedAbilityIds[] = $abilityId;
@@ -56,10 +56,15 @@ final class UnitDetailQuery
 
     $loadout = [];
     $loadoutSet = [];
-    foreach ($this->units->listLoadout($unitId) as $equipped) {
+    foreach ($this->units->listLoadout($unitId, $forUpdate) as $equipped) {
       $abilityId = (string)$equipped['ability_id'];
       $ability = $this->content->ability($abilityId);
-      if (!isset($ownedAbilitySet[$abilityId]) || ($ability['kind'] ?? null) !== 'active') {
+      if (
+        !isset($ownedAbilitySet[$abilityId])
+        || isset($loadoutSet[$abilityId])
+        || ($ability['kind'] ?? null) !== 'active'
+        || (int)$equipped['equip_order'] !== count($loadout)
+      ) {
         throw new WarbandIntegrityException('Persisted unit loadout is invalid.');
       }
       $loadout[] = [
@@ -70,7 +75,9 @@ final class UnitDetailQuery
     }
 
     $bindings = [];
-    foreach ($this->units->listDiceBindings($unitId) as $binding) {
+    $boundSlots = [];
+    $boundDice = [];
+    foreach ($this->units->listDiceBindings($unitId, $forUpdate) as $binding) {
       $abilityId = (string)$binding['ability_id'];
       $ability = $this->content->ability($abilityId);
       $profile = $this->content->diceProfile((string)$binding['profile_id']);
@@ -87,6 +94,8 @@ final class UnitDetailQuery
         || (int)$binding['die_user_id'] !== $userId
         || (string)$binding['die_lifecycle_status'] !== 'active'
         || !in_array($size, $allowedSizes, true)
+        || isset($boundSlots[$abilityId . ':' . $slotIndex])
+        || isset($boundDice[(string)$binding['dice_instance_id']])
       ) {
         throw new WarbandIntegrityException('Persisted unit dice binding is invalid.');
       }
@@ -96,6 +105,18 @@ final class UnitDetailQuery
         'slot_index' => $slotIndex,
         'dice_instance_id' => (string)$binding['dice_instance_id'],
       ];
+      $boundSlots[$abilityId . ':' . $slotIndex] = true;
+      $boundDice[(string)$binding['dice_instance_id']] = true;
+    }
+
+    foreach ($loadout as $equipped) {
+      $abilityId = $equipped['ability_id'];
+      $slotCount = (int)$this->content->ability($abilityId)['dice_slot_count'];
+      for ($slotIndex = 0; $slotIndex < $slotCount; $slotIndex++) {
+        if (!isset($boundSlots[$abilityId . ':' . $slotIndex])) {
+          throw new WarbandIntegrityException('Persisted unit dice binding is incomplete.');
+        }
+      }
     }
 
     usort($bindings, static function(array $a, array $b) use ($loadout): int {

@@ -1,7 +1,7 @@
 ---
 Title: "Ability Loadouts and Dice Binding"
 Status: Canonical
-Last Updated: 2026-09-10
+Last Updated: 2026-09-12
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/02-systems/combat-resolution.md
@@ -21,6 +21,8 @@ A unit's durable combat configuration has distinct concerns:
 Ability order matters to server-side combat scheduling. Authored ability definitions determine their timing/behavior; the player controls the valid ordered configuration offered by the game.
 
 Dice are not a generic unit pool. The durable binding answers: **when Unit A uses Ability X, which exact owned die instance is rolled in each slot?** Conceptually this is persisted by unit + ability + slot -> dice instance.
+
+One physical die instance may be bound to only one ability slot across the player's entire Warband. A complete replacement may move a die between slots on the unit being configured, but it must reject a die bound to another unit rather than stealing or implicitly reassigning it.
 
 A complete loadout update should be submitted and validated atomically rather than assembled through a sequence of partially valid per-slot mutations.
 

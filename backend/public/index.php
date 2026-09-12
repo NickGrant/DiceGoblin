@@ -114,6 +114,8 @@ $router->get('/api/v1/session', [$api, 'session']);
 $router->get('/api/v1/game/bootstrap', [$gameBootstrap, 'bootstrap']);
 $router->get('/api/v1/units', [$warband, 'units']);
 $router->get('/api/v1/units/:unitId', [$warband, 'unitDetail']);
+$router->patch('/api/v1/units/:unitId/name', [$warband, 'renameUnit']);
+$router->put('/api/v1/units/:unitId/loadout', [$warband, 'replaceUnitLoadout']);
 $router->get('/api/v1/dice', [$warband, 'dice']);
 $router->get('/api/v1/squads', [$warband, 'squads']);
 $router->post('/api/v1/squads', [$warband, 'createSquad']);

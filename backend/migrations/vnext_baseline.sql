@@ -148,7 +148,7 @@ CREATE TABLE `unit_ability_dice` (
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`unit_id`, `ability_id`, `slot_index`),
-  KEY `ix_unit_ability_dice_die` (`dice_instance_id`),
+  UNIQUE KEY `uq_unit_ability_dice_die` (`dice_instance_id`),
   CONSTRAINT `fk_unit_ability_dice_owned_ability`
     FOREIGN KEY (`unit_id`, `ability_id`) REFERENCES `unit_abilities` (`unit_id`, `ability_id`) ON DELETE CASCADE,
   CONSTRAINT `fk_unit_ability_dice_die`

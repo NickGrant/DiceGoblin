@@ -47,6 +47,8 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $this->assertSame('NULL', (string)$energyDefault);
     $roleChecks = $this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND CONSTRAINT_TYPE = 'CHECK'", []);
     $this->assertSame('0', (string)$roleChecks);
+    $dieBindingUniqueness = $this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'unit_ability_dice' AND INDEX_NAME = 'uq_unit_ability_dice_die' AND NON_UNIQUE = 0", []);
+    $this->assertSame('1', (string)$dieBindingUniqueness);
   }
 
   public function testActiveCoreCompositionExcludesDormantPrototypeServices(): void

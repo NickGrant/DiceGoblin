@@ -119,7 +119,7 @@ Typical summary concerns include instance ID, name, unit type ID, kin ID, level,
 - `PUT /api/v1/units/:unitId/loadout`
   - Replaces the unit's complete player-controlled combat configuration atomically.
   - The submitted configuration covers equipped/unlocked action selection as applicable, action ordering, and all dice bindings to abilities/actions.
-  - The backend validates ownership, ability unlocks, ordering, die ownership, slot legality, duplicate-use restrictions, and active-run configuration locks before committing.
+  - The backend validates ownership, ability unlocks, ordering, die ownership, slot legality, and global physical-die uniqueness before committing. A die may move within the configured unit's atomic replacement, but a die bound to another unit is rejected rather than reassigned.
 
 Capstone-specific mutation is not required. Capstone choices resolve into ability grants and are represented by normal ability ownership.
 

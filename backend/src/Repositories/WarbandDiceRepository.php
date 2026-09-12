@@ -48,4 +48,38 @@ final class WarbandDiceRepository
     $stmt->execute([$userId, $userId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
   }
+
+  /** @param list<int> $diceIds @return array<int,array<string,mixed>> */
+  public function listActiveByIdsForUser(int $userId, array $diceIds, bool $forUpdate = false): array
+  {
+    $diceIds = array_values(array_unique($diceIds));
+    if ($diceIds === []) return [];
+    sort($diceIds, SORT_NUMERIC);
+    $placeholders = implode(',', array_fill(0, count($diceIds), '?'));
+    $stmt = $this->pdo->prepare("
+      SELECT `id`, `user_id`, `size`, `profile_id`, `lifecycle_status`
+      FROM `dice_instances`
+      WHERE `user_id` = ? AND `lifecycle_status` = 'active' AND `id` IN ($placeholders)
+      ORDER BY `id` ASC" . ($forUpdate ? ' FOR UPDATE' : '')
+    );
+    $stmt->execute(array_merge([$userId], $diceIds));
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+  }
+
+  /** @param list<int> $diceIds @return array<int,array<string,mixed>> */
+  public function listBindingsForDiceIds(array $diceIds, bool $forUpdate = false): array
+  {
+    $diceIds = array_values(array_unique($diceIds));
+    if ($diceIds === []) return [];
+    sort($diceIds, SORT_NUMERIC);
+    $placeholders = implode(',', array_fill(0, count($diceIds), '?'));
+    $stmt = $this->pdo->prepare("
+      SELECT `unit_id`, `ability_id`, `slot_index`, `dice_instance_id`
+      FROM `unit_ability_dice`
+      WHERE `dice_instance_id` IN ($placeholders)
+      ORDER BY `dice_instance_id` ASC, `unit_id` ASC, `ability_id` ASC, `slot_index` ASC" . ($forUpdate ? ' FOR UPDATE' : '')
+    );
+    $stmt->execute($diceIds);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+  }
 }

@@ -289,6 +289,7 @@ Representative fields:
 Constraint:
 
 - unique (`unit_id`, `ability_id`, `slot_index`)
+- unique (`dice_instance_id`), so one physical die is bound to at most one ability slot across the Warband
 
 This relationship is the authoritative answer to: "When Unit A uses Ability 1, which die does it roll?"
 

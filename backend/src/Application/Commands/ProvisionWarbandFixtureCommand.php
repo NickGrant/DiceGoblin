@@ -182,6 +182,7 @@ final class ProvisionWarbandFixtureCommand
       $allowed = array_map('intval', is_array($profile['allowed_sizes'] ?? null) ? $profile['allowed_sizes'] : []);
       if (!in_array($die['size'], $allowed, true)) throw new WarbandIntegrityException('Fixture die size is invalid.');
     }
+    $boundDice = [];
     foreach ($units as $unit) {
       $this->content->unitType($unit['unit_type_id']);
       $this->content->kin($unit['kin_id']);
@@ -197,10 +198,12 @@ final class ProvisionWarbandFixtureCommand
       foreach ($unit['bindings'] as $binding) {
         $ability = $this->content->ability($binding[0]);
         $slotKey = $binding[0] . ':' . $binding[1];
-        if (!isset($loaded[$binding[0]]) || isset($boundSlots[$slotKey]) || $binding[1] < 0 || $binding[1] >= (int)($ability['dice_slot_count'] ?? 0) || !isset($dice[$binding[2]])) {
+        if (!isset($loaded[$binding[0]]) || isset($boundSlots[$slotKey]) || isset($boundDice[$binding[2]])
+          || $binding[1] < 0 || $binding[1] >= (int)($ability['dice_slot_count'] ?? 0) || !isset($dice[$binding[2]])) {
           throw new WarbandIntegrityException('Fixture dice binding is invalid.');
         }
         $boundSlots[$slotKey] = true;
+        $boundDice[$binding[2]] = true;
       }
       foreach (array_keys($loaded) as $abilityId) {
         $slotCount = (int)$this->content->ability($abilityId)['dice_slot_count'];
