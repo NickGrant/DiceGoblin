@@ -4,7 +4,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 
 ## Milestone 1 - Walking Skeleton
 
-**Status:** Complete - User UAT Handoff
+**Status:** Complete - UAT Passed
 
 ### Outcome
 Prove the smallest real vNext path:
@@ -22,7 +22,7 @@ Prove the smallest real vNext path:
 - Superseded prototype paths are removed only after replacements are proven; later reuse candidates remain until their owning package.
 
 ### Related Issues
-None active. The Milestone 1 implementation is handed to the user for manual UAT.
+None active. Milestone 2 - Warband is next, but its first execution package has not yet been promoted.
 
 ### Package Queue
 1. ~~Inventory/classify prototype code for vNext reuse.~~ Complete.
@@ -40,7 +40,10 @@ Milestone 1 closure verified the fresh vNext database baseline, canonical author
 
 The aggregate `npm run verify:full` command could not invoke host PHP in the verification environment because PHP was absent from the Windows PATH. Its required constituents were run successfully through the repository-supported Docker/frontend paths instead; no required Milestone 1 verification check was skipped.
 
-### UAT Handoff
-Milestone 1 is technically complete. Manual user UAT is the next activity and is post-milestone validation rather than an execution package.
+### UAT Result
+Manual user UAT passed with no functional defects identified in the Milestone 1 walking skeleton.
 
-Record UAT findings before promoting corrective work. Do not begin Milestone 2 (Warband) until the user completes this UAT handoff and explicitly proceeds to the next work.
+The one substantive finding was visual quality: the current Phaser presentation is not considered the intended final game UI. This does not reopen Milestone 1. Continue implementing gameplay surfaces with functional clarity and reasonable consistency, then perform a larger cross-cutting visual/UI overhaul once enough of the game exists to establish the final shared visual language efficiently.
+
+## Next
+Milestone 2 - Warband is the next implementation milestone. Decompose and promote its first concrete package before coding begins; do not treat the entire milestone as one execution task.
