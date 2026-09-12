@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
+import { readDebugCaptureRequest } from '../../core/debug/debug-capture';
 import { GameStore } from '../runtime/game-store';
 import { RuntimeStartup, RuntimeStartupSnapshot } from '../runtime/runtime-startup';
 import { RuntimeViewport } from '../runtime/runtime-viewport';
-import { CampScreen, GameSceneScreen } from '../screens/camp-screen';
+import { CampScreen } from '../screens/camp-screen';
+import { GameSceneScreen, GameScreenKey, GameScreenNavigator } from '../screens/game-screen-navigation';
+import { WarbandScreen, WarbandTab } from '../screens/warband-screen';
 
 export const BOOT_SCENE_KEY = 'BootScene';
 export const GAME_SCENE_KEY = 'GameScene';
@@ -124,6 +127,8 @@ export class BootScene extends Phaser.Scene {
 export class GameScene extends RuntimeScene {
   private activeScreen: GameSceneScreen | null = null;
   private unsubscribeViewport: (() => void) | null = null;
+  private readonly navigator = new GameScreenNavigator();
+  private escapeKey: Phaser.Input.Keyboard.Key | null = null;
 
   constructor(
     runtimeState: RuntimeLifecycleState,
@@ -133,7 +138,17 @@ export class GameScene extends RuntimeScene {
       scene: Phaser.Scene,
       store: GameStore,
       viewport: RuntimeViewport,
-    ) => GameSceneScreen = (scene, store, viewport) => new CampScreen(scene, store, viewport),
+      openWarband: () => void,
+    ) => GameSceneScreen = (scene, store, viewport, openWarband) => new CampScreen(scene, store, viewport, openWarband),
+    private readonly createWarbandScreen: (
+      scene: Phaser.Scene,
+      startup: RuntimeStartup,
+      viewport: RuntimeViewport,
+      returnToCamp: () => void,
+      initialTab: WarbandTab,
+    ) => GameSceneScreen = (scene, startup, viewport, returnToCamp, initialTab) => new WarbandScreen(
+      scene, startup.store, startup.apiClient, startup.contentRegistry!, viewport, returnToCamp, initialTab,
+    ),
   ) {
     super(GAME_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
   }
@@ -148,27 +163,40 @@ export class GameScene extends RuntimeScene {
       return;
     }
 
-    (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
-      ?.setAttribute('data-game-screen', 'camp');
-    this.showCamp();
+    const debug = readDebugCaptureRequest();
+    const debugScene = debug?.scene ?? window.__DG_DEBUG__?.requestedScene ?? '';
+    const debugTab = debug?.initialTab ?? window.__DG_DEBUG__?.initialTab ?? '';
+    const initialScreen: GameScreenKey = debugScene.toLowerCase() === 'warband' ? 'warband' : 'camp';
+    this.navigator.start(initialScreen);
+    this.activateScreen(initialScreen, debugTab === 'units' || debugTab === 'dice' ? debugTab : 'squads');
     this.unsubscribeViewport = this.runtimeViewport.subscribe((snapshot) => {
       this.activeScreen?.reflow(snapshot);
     });
+    this.escapeKey = (this.input as Phaser.Input.InputPlugin | undefined)?.keyboard
+      ?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC) ?? null;
+    this.escapeKey?.on('down', this.handleBackInput, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeViewport?.();
       this.unsubscribeViewport = null;
+      this.escapeKey?.off('down', this.handleBackInput, this);
+      this.escapeKey = null;
       this.destroyActiveScreen();
     });
   }
 
   showCamp(): void {
-    this.destroyActiveScreen();
-    this.activeScreen = this.createCampScreen(
-      this,
-      this.runtimeStartup.store,
-      this.runtimeViewport,
-    );
-    this.activeScreen.create();
+    this.navigator.navigate('camp');
+    this.activateScreen('camp');
+  }
+
+  showWarband(): void {
+    this.navigator.navigate('warband');
+    this.activateScreen('warband');
+  }
+
+  goBack(): void {
+    if (this.activeScreen?.key !== 'warband') return;
+    this.activateScreen(this.navigator.back('camp'));
   }
 
   get activeScreenKey(): GameSceneScreen['key'] | null {
@@ -178,6 +206,30 @@ export class GameScene extends RuntimeScene {
   private destroyActiveScreen(): void {
     this.activeScreen?.destroy();
     this.activeScreen = null;
+  }
+
+  private activateScreen(screen: GameScreenKey, initialTab: WarbandTab = 'squads'): void {
+    this.destroyActiveScreen();
+    if (screen === 'warband') {
+      if (!this.runtimeStartup.contentRegistry) {
+        this.scene.start(BOOT_SCENE_KEY);
+        return;
+      }
+      this.activeScreen = this.createWarbandScreen(
+        this, this.runtimeStartup, this.runtimeViewport, () => this.goBack(), initialTab,
+      );
+    } else {
+      this.activeScreen = this.createCampScreen(
+        this, this.runtimeStartup.store, this.runtimeViewport, () => this.showWarband(),
+      );
+    }
+    (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
+      ?.setAttribute('data-game-screen', screen);
+    this.activeScreen.create();
+  }
+
+  private handleBackInput(): void {
+    this.goBack();
   }
 }
 

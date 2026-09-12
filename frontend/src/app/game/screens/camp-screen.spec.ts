@@ -142,7 +142,7 @@ describe('CampScreen', () => {
 
     for (const snapshot of snapshots) {
       const layout = createCampLayout(snapshot);
-      for (const region of [layout.panel, ...layout.resourcePlaques]) {
+      for (const region of [layout.panel, layout.warbandButton, ...layout.resourcePlaques]) {
         expect(region.x).toBeGreaterThanOrEqual(snapshot.safeBounds.x);
         expect(region.y).toBeGreaterThanOrEqual(snapshot.safeBounds.y);
         expect(region.right).toBeLessThanOrEqual(snapshot.safeBounds.right);
@@ -325,6 +325,80 @@ describe('CampScreen', () => {
     expect(startup.store).toBe(store);
     expect(startup.store.bootstrap?.player.energy.current).toBe(57);
     expect(startup.store.bootstrap?.player.energy.normal_max).toBe(50);
+    expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+    expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
+  });
+
+  it('navigates Camp to Warband and back inside one persistent GameScene without startup refetches', async () => {
+    const revision = 'a'.repeat(64);
+    const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
+    apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
+    const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
+    contentLoader.loadProjection.and.resolveTo({ revision, content: {
+      regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {},
+    } });
+    const startup = new RuntimeStartup(apiClient, contentLoader);
+    await startup.start();
+    const viewport = new RuntimeViewport();
+    const campScreens: jasmine.SpyObj<GameSceneScreen>[] = [];
+    const campFactory = jasmine.createSpy('campFactory').and.callFake(() => {
+      const screen = jasmine.createSpyObj<GameSceneScreen>('camp', ['create', 'reflow', 'destroy'], { key: 'camp' });
+      campScreens.push(screen);
+      return screen;
+    });
+    const warbandScreen = jasmine.createSpyObj<GameSceneScreen>('warband', ['create', 'reflow', 'destroy'], { key: 'warband' });
+    const warbandFactory = jasmine.createSpy('warbandFactory').and.returnValue(warbandScreen);
+    const scene = new GameScene(new RuntimeLifecycleState(), startup, viewport, campFactory, warbandFactory);
+    (scene as unknown as { events: unknown }).events = { once: jasmine.createSpy('once') };
+
+    scene.create();
+    expect(scene.activeScreenKey).toBe('camp');
+    scene.showWarband();
+    expect(scene.activeScreenKey).toBe('warband');
+    (scene as unknown as { handleBackInput(): void }).handleBackInput();
+
+    expect(scene.activeScreenKey).toBe('camp');
+    expect(campFactory).toHaveBeenCalledTimes(2);
+    expect(warbandFactory).toHaveBeenCalledTimes(1);
+    expect(warbandScreen.create).toHaveBeenCalledTimes(1);
+    expect(warbandScreen.destroy).toHaveBeenCalledTimes(1);
+    expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+    expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the active Warband screen across resize and portrait-gate snapshot changes', async () => {
+    const revision = 'a'.repeat(64);
+    const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
+    apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
+    const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
+    contentLoader.loadProjection.and.resolveTo({ revision, content: {
+      regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {},
+    } });
+    let measurement: ViewportMeasurement = { cssWidth: 1600, cssHeight: 900, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true };
+    let resize: (() => void) | null = null;
+    const viewport = new RuntimeViewport({
+      measure: () => measurement,
+      listen: (_parent, listener) => { resize = listener; return () => undefined; },
+    });
+    viewport.mount(document.createElement('div'));
+    const startup = new RuntimeStartup(apiClient, contentLoader);
+    await startup.start();
+    const camp = jasmine.createSpyObj<GameSceneScreen>('camp', ['create', 'reflow', 'destroy'], { key: 'camp' });
+    const warband = jasmine.createSpyObj<GameSceneScreen>('warband', ['create', 'reflow', 'destroy'], { key: 'warband' });
+    const scene = new GameScene(new RuntimeLifecycleState(), startup, viewport, () => camp, () => warband);
+    (scene as unknown as { events: unknown }).events = { once: jasmine.createSpy('once') };
+    scene.create();
+    scene.showWarband();
+
+    measurement = { ...measurement, cssWidth: 768, cssHeight: 1024 };
+    (resize as unknown as () => void)();
+    measurement = { ...measurement, cssWidth: 1024, cssHeight: 768 };
+    (resize as unknown as () => void)();
+
+    expect(scene.activeScreenKey).toBe('warband');
+    expect(warband.reflow).toHaveBeenCalledTimes(2);
+    expect(warband.reflow.calls.argsFor(0)[0].portraitGateActive).toBeTrue();
+    expect(warband.reflow.calls.argsFor(1)[0].portraitGateActive).toBeFalse();
     expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
     expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
   });

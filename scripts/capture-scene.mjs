@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
@@ -154,31 +154,29 @@ Options:
 }
 
 async function installGameFixtureRoutes(page, options) {
-  if (!['camp', 'camp-portrait'].includes(options.scene.trim().toLowerCase())) return;
+  const scene = options.scene.trim().toLowerCase();
+  if (!['camp', 'camp-portrait', 'warband'].includes(scene)) return;
 
-  const revision = 'a'.repeat(64);
+  const projection = JSON.parse(await readFile(path.resolve(process.cwd(), 'frontend/public/game-content.json'), 'utf8'));
+  const revision = projection.revision;
   await page.route('**/game-content.json', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
-    body: JSON.stringify({
-      revision,
-      content: {
-        regions: {
-          'region.the_farm': {
-            id: 'region.the_farm',
-            display_name: 'The Farm',
-            art_key: 'farm',
-          },
-        },
-        kin: {},
-        unit_types: {},
-        abilities: {},
-        dice_materials: {},
-        dice_aspects: {},
-        dice_profiles: {},
-      },
-    }),
+    body: JSON.stringify(projection),
   }));
+  const unitRows = [
+    ['101', 'Ashback', 'unit_type.bruiser', 'kin.goblin', 5],
+    ['102', 'Bogwort', 'unit_type.guardian', 'kin.pig', 4],
+    ['103', 'Stitch', 'unit_type.marksman', 'kin.goblin', 4],
+    ['104', 'Knuckles', 'unit_type.bannerbearer', 'kin.goblin', 3],
+    ['105', 'Murk', 'unit_type.saboteur', 'kin.pig', 3],
+    ['106', 'Rattle', 'unit_type.enforcer', 'kin.goblin', 6],
+    ['107', 'Splint', 'unit_type.trapper', 'kin.goblin', 5],
+    ['108', 'Nib', 'unit_type.mascot', 'kin.pig', 2],
+  ].map(([id, display_name, unit_type_id, kin_id, level]) => ({
+    id, display_name, unit_type_id, kin_id, level, xp: Number(level) * 37, lifecycle_status: 'active',
+  }));
+  const activeFormation = ['101', '102', null, '103', '104', null, '105', null, null];
   await page.route('**/api/v1/game/bootstrap', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -204,10 +202,34 @@ async function installGameFixtureRoutes(page, options) {
         server_time: '2026-09-11T00:00:00Z',
         content_revision: revision,
         progression: { unlock_ids: [] },
-        active_squad: null,
+        active_squad: scene === 'warband' ? {
+          id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation,
+          units: unitRows.filter((unit) => activeFormation.includes(unit.id)),
+        } : null,
         active_run: null,
       },
     }),
+  }));
+  if (scene !== 'warband') return;
+  await page.route('**/api/v1/units', (route) => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ ok: true, data: { units: unitRows } }),
+  }));
+  await page.route('**/api/v1/dice', (route) => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ ok: true, data: { dice: [
+      { id: '201', size: 8, profile_id: 'dice_profile.bone_executioner', lifecycle_status: 'active', bindings: [{ unit_id: '101', ability_id: 'ability.heavy_strike', slot_index: 0 }] },
+      { id: '202', size: 6, profile_id: 'dice_profile.wood_precise', lifecycle_status: 'active', bindings: [{ unit_id: '103', ability_id: 'ability.aimed_shot', slot_index: 0 }] },
+      { id: '203', size: 10, profile_id: 'dice_profile.metal_plain', lifecycle_status: 'active', bindings: [] },
+      { id: '204', size: 4, profile_id: 'dice_profile.cardboard_guarding', lifecycle_status: 'active', bindings: [] },
+    ] } }),
+  }));
+  await page.route('**/api/v1/squads', (route) => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ ok: true, data: { squads: [
+      { id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation },
+      { id: '302', name: 'Night Scavengers', is_active: false, formation: ['106', null, null, null, '107', null, null, null, '108'] },
+    ] } }),
   }));
 }
 
@@ -387,9 +409,13 @@ async function captureScene(options) {
             { timeout: options.timeoutMs },
           );
         }
-        if (['camp', 'camp-portrait'].includes(options.scene.trim().toLowerCase())) {
+        if (['camp', 'camp-portrait', 'warband'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
-          await page.waitForSelector('[data-game-screen="camp"]', { timeout: options.timeoutMs });
+          const gameScreen = options.scene.trim().toLowerCase() === 'warband' ? 'warband' : 'camp';
+          await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
+          if (gameScreen === 'warband') {
+            await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });
+          }
           const runtimeMetrics = await page.evaluate(() => {
             const host = document.querySelector('.game-host__mount');
             const canvas = host?.querySelector('canvas');
@@ -404,6 +430,7 @@ async function captureScene(options) {
               layout: host?.getAttribute('data-game-layout'),
               gate: host?.getAttribute('data-game-orientation-gate'),
               screen: host?.getAttribute('data-game-screen'),
+              warbandReady: host?.getAttribute('data-warband-ready'),
             };
           });
           console.log(`Runtime metrics: ${JSON.stringify(runtimeMetrics)}`);

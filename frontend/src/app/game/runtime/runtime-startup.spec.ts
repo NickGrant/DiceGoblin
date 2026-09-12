@@ -79,7 +79,7 @@ describe('RuntimeStartup', () => {
     contentLoader: jasmine.SpyObj<ClientContentLoader>;
     store: GameStore;
   } {
-    const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
+    const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getDice', 'getSquads']);
     apiClient.getBootstrap.and.resolveTo(bootstrapResult);
     const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', [
       'loadProjection',
@@ -132,6 +132,9 @@ describe('RuntimeStartup', () => {
     expect(nextSceneForStartup(firstState)).toBe(GAME_SCENE_KEY);
     expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
     expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+    expect(apiClient.getUnits).not.toHaveBeenCalled();
+    expect(apiClient.getDice).not.toHaveBeenCalled();
+    expect(apiClient.getSquads).not.toHaveBeenCalled();
   });
 
   it('accepts and retains a strict authoritative active squad', async () => {

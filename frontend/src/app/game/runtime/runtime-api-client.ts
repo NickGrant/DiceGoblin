@@ -28,10 +28,26 @@ export class RuntimeApiClient {
   }
 
   async getBootstrap(): Promise<unknown> {
+    return this.get('/api/v1/game/bootstrap');
+  }
+
+  async getUnits(): Promise<unknown> {
+    return this.get('/api/v1/units');
+  }
+
+  async getDice(): Promise<unknown> {
+    return this.get('/api/v1/dice');
+  }
+
+  async getSquads(): Promise<unknown> {
+    return this.get('/api/v1/squads');
+  }
+
+  private async get(path: string): Promise<unknown> {
     let response: Response;
 
     try {
-      response = await this.fetchRequest(`${this.baseUrl}/api/v1/game/bootstrap`, {
+      response = await this.fetchRequest(`${this.baseUrl}${path}`, {
         method: 'GET',
         credentials: 'include',
         headers: { Accept: 'application/json' },

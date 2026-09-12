@@ -60,6 +60,34 @@ export class BootstrapContractError extends Error {
   }
 }
 
+export type WarbandDomainName = 'units' | 'dice' | 'squads';
+export type WarbandDomainStatus = 'not-loaded' | 'loading' | 'fresh' | 'stale' | 'error';
+export type WarbandDomainErrorKind = RuntimeApiErrorKind | 'integrity' | 'unexpected';
+
+export interface WarbandDomainState<T> {
+  readonly status: WarbandDomainStatus;
+  readonly data: readonly T[] | null;
+  readonly error: WarbandDomainErrorKind | null;
+}
+
+export interface WarbandCacheSnapshot {
+  readonly units: WarbandDomainState<WarbandUnitSummary>;
+  readonly dice: WarbandDomainState<WarbandDieSummary>;
+  readonly squads: WarbandDomainState<WarbandSquadSummary>;
+}
+
+type WarbandCollectionItem = WarbandUnitSummary | WarbandDieSummary | WarbandSquadSummary;
+
+function emptyDomain<T>(): WarbandDomainState<T> {
+  return Object.freeze({ status: 'not-loaded', data: null, error: null });
+}
+
+function domainErrorKind(error: unknown): WarbandDomainErrorKind {
+  if (error instanceof RuntimeApiError) return error.kind;
+  if (error instanceof WarbandContractError) return 'integrity';
+  return 'unexpected';
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -224,6 +252,10 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
 /** Application-lifetime cache of the latest authoritative bootstrap response. */
 export class GameStore {
   private cachedBootstrap: GameBootstrapData | null = null;
+  private warbandCache: WarbandCacheSnapshot = this.emptyWarbandCache();
+  private readonly inFlight: Partial<Record<WarbandDomainName, Promise<void>>> = {};
+  private readonly listeners = new Set<(cache: WarbandCacheSnapshot) => void>();
+  private cacheGeneration = 0;
 
   get bootstrap(): GameBootstrapData | null {
     return this.cachedBootstrap;
@@ -233,11 +265,135 @@ export class GameStore {
     return this.cachedBootstrap?.player.player_revision ?? null;
   }
 
+  get warband(): WarbandCacheSnapshot {
+    return this.warbandCache;
+  }
+
   hydrateBootstrap(bootstrap: GameBootstrapData): void {
     this.cachedBootstrap = bootstrap;
   }
 
+  subscribeWarband(listener: (cache: WarbandCacheSnapshot) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  loadWarbandDomains(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void[]> {
+    return Promise.all([
+      this.loadUnits(api, content),
+      this.loadDice(api, content),
+      this.loadSquads(api),
+    ]);
+  }
+
+  loadUnits(api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
+    return this.loadDomain('units', () => api.getUnits().then((value) => parseUnitCollectionEnvelope(value, content)), reload);
+  }
+
+  loadDice(api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
+    return this.loadDomain('dice', () => api.getDice().then((value) => parseDiceCollectionEnvelope(value, content)), reload);
+  }
+
+  loadSquads(api: RuntimeApiClient, reload = false): Promise<void> {
+    return this.loadDomain('squads', async () => {
+      const squads = parseSquadCollectionEnvelope(await api.getSquads());
+      requireActiveSquadAgreement(squads, this.cachedBootstrap?.active_squad?.id ?? null);
+      return squads;
+    }, reload);
+  }
+
+  retryWarbandDomain(
+    domain: WarbandDomainName,
+    api: RuntimeApiClient,
+    content: ClientContentRegistry,
+  ): Promise<void> {
+    if (domain === 'units') return this.loadUnits(api, content, true);
+    if (domain === 'dice') return this.loadDice(api, content, true);
+    return this.loadSquads(api, true);
+  }
+
+  markWarbandDomainStale(domain: WarbandDomainName): void {
+    const state = this.warbandCache[domain];
+    if (state.status !== 'fresh') return;
+    this.setDomain(domain, { status: 'stale', data: state.data, error: null });
+  }
+
   clear(): void {
     this.cachedBootstrap = null;
+    this.cacheGeneration += 1;
+    this.warbandCache = this.emptyWarbandCache();
+    for (const key of Object.keys(this.inFlight) as WarbandDomainName[]) delete this.inFlight[key];
+    this.emit();
+  }
+
+  private loadDomain(
+    domain: WarbandDomainName,
+    request: () => Promise<readonly WarbandCollectionItem[]>,
+    reload: boolean,
+  ): Promise<void> {
+    const state = this.warbandCache[domain];
+    if (!reload && state.status === 'fresh') return Promise.resolve();
+    const existing = this.inFlight[domain];
+    if (existing) return existing;
+    const generation = this.cacheGeneration;
+    this.setDomain(domain, { status: 'loading', data: state.data, error: null });
+    const promise = request()
+      .then((data) => {
+        if (generation === this.cacheGeneration) this.setDomain(domain, { status: 'fresh', data, error: null });
+      })
+      .catch((error: unknown) => {
+        if (generation === this.cacheGeneration) {
+          this.setDomain(domain, { status: 'error', data: state.data, error: domainErrorKind(error) });
+        }
+      })
+      .finally(() => {
+        if (this.inFlight[domain] === promise) delete this.inFlight[domain];
+      });
+    this.inFlight[domain] = promise;
+    return promise;
+  }
+
+  private setDomain(domain: WarbandDomainName, state: WarbandDomainState<WarbandCollectionItem>): void {
+    if (domain === 'units') {
+      this.warbandCache = Object.freeze({
+        ...this.warbandCache,
+        units: Object.freeze(state as WarbandDomainState<WarbandUnitSummary>),
+      });
+    } else if (domain === 'dice') {
+      this.warbandCache = Object.freeze({
+        ...this.warbandCache,
+        dice: Object.freeze(state as WarbandDomainState<WarbandDieSummary>),
+      });
+    } else {
+      this.warbandCache = Object.freeze({
+        ...this.warbandCache,
+        squads: Object.freeze(state as WarbandDomainState<WarbandSquadSummary>),
+      });
+    }
+    this.emit();
+  }
+
+  private emptyWarbandCache(): WarbandCacheSnapshot {
+    return Object.freeze({
+      units: emptyDomain<WarbandUnitSummary>(),
+      dice: emptyDomain<WarbandDieSummary>(),
+      squads: emptyDomain<WarbandSquadSummary>(),
+    });
+  }
+
+  private emit(): void {
+    for (const listener of this.listeners) listener(this.warbandCache);
   }
 }
+import { ClientContentRegistry } from './client-content-registry';
+import { RuntimeApiClient, RuntimeApiError, RuntimeApiErrorKind } from './runtime-api-client';
+import {
+  WarbandContractError,
+  WarbandDieSummary,
+  WarbandSquadSummary,
+  WarbandUnitSummary,
+  parseDiceCollectionEnvelope,
+  parseSquadCollectionEnvelope,
+  parseUnitCollectionEnvelope,
+  requireActiveSquadAgreement,
+} from './warband-contracts';

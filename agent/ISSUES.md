@@ -6,7 +6,7 @@
 
 ### Establish Phaser Warband navigation and lazy read/cache surfaces
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

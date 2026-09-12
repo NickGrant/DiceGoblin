@@ -5,6 +5,8 @@ import {
   RuntimeViewport,
   RuntimeViewportSnapshot,
 } from '../runtime/runtime-viewport';
+import { GameSceneScreen } from './game-screen-navigation';
+export type { GameSceneScreen } from './game-screen-navigation';
 
 const CAMP_BANNER_KEY = 'camp-banner-cloth';
 const TEETH_ICON_KEY = 'camp-teeth-icon';
@@ -28,6 +30,7 @@ export interface CampLayout {
   readonly banner: Bounds;
   readonly panel: Bounds;
   readonly resourcePlaques: readonly [Bounds, Bounds, Bounds];
+  readonly warbandButton: Bounds;
   readonly headingY: number;
   readonly welcomeY: number;
   readonly eyebrowY: number;
@@ -38,13 +41,6 @@ export interface CampLayout {
   readonly welcomeFontSize: number;
   readonly resourceLabelFontSize: number;
   readonly resourceValueFontSize: number;
-}
-
-export interface GameSceneScreen {
-  readonly key: 'camp';
-  create(): void;
-  reflow(snapshot: RuntimeViewportSnapshot): void;
-  destroy(): void;
 }
 
 export class CampStateUnavailableError extends Error {
@@ -113,6 +109,12 @@ export function createCampLayout(snapshot: RuntimeViewportSnapshot): CampLayout 
     ),
     panel,
     resourcePlaques: resources,
+    warbandButton: box(
+      panel.right - (mode === 'compact' ? 250 : 220) - 38,
+      panel.y + 40,
+      mode === 'compact' ? 250 : 220,
+      mode === 'compact' ? 92 : 58,
+    ),
     headingY: mode === 'compact' ? 43 : 50,
     welcomeY: mode === 'compact' ? 94 : 101,
     eyebrowY: panel.y + (mode === 'compact' ? 62 : 76),
@@ -137,6 +139,7 @@ export class CampScreen implements GameSceneScreen {
     private readonly scene: Phaser.Scene,
     private readonly store: GameStore,
     private readonly viewport: RuntimeViewport,
+    private readonly openWarband: () => void = () => undefined,
   ) {}
 
   static preload(scene: Phaser.Scene): void {
@@ -231,6 +234,7 @@ export class CampScreen implements GameSceneScreen {
     root.add([heading, welcome]);
 
     this.addPanel(root, layout.panel);
+    this.addWarbandButton(root, layout);
     const eyebrow = this.scene.add
       .text(layout.centerX, layout.eyebrowY, 'THE GOBLINS ARE PLOTTING', {
         color: '#d65a43', fontFamily: 'system-ui, sans-serif',
@@ -264,6 +268,22 @@ export class CampScreen implements GameSceneScreen {
       root, energy, view.isEnergyOvercap ? 'ENERGY · OVERCHARGED' : 'ENERGY',
       view.energyText, view.isEnergyOvercap ? 0xf2c14e : 0x8db341, ENERGY_ICON_KEY, layout,
     );
+  }
+
+  private addWarbandButton(root: Phaser.GameObjects.Container, layout: CampLayout): void {
+    const { x, y, width, height } = layout.warbandButton;
+    const button = this.scene.add.graphics();
+    button.fillStyle(0x244b3d, 1);
+    button.fillRoundedRect(x, y, width, height, 14);
+    button.lineStyle(4, 0xc9972b, 1);
+    button.strokeRoundedRect(x, y, width, height, 14);
+    button.setInteractive(new Phaser.Geom.Rectangle(x, y, width, height), Phaser.Geom.Rectangle.Contains);
+    button.on('pointerup', this.openWarband);
+    const label = this.scene.add.text(x + width / 2, y + height / 2, 'OPEN WARBAND  ›', {
+      color: '#fff4d3', fontFamily: 'system-ui, sans-serif',
+      fontSize: layout.mode === 'compact' ? '30px' : '17px', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    root.add([button, label]);
   }
 
   private addPanel(root: Phaser.GameObjects.Container, region: Bounds): void {

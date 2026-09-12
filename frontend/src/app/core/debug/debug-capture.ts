@@ -16,6 +16,7 @@ type DebugState = {
   readyScene: string | null;
   ready: boolean;
   route: string | null;
+  initialTab: string;
 };
 
 const DEFAULT_DISPLAY_NAME = 'Debug Goblin';
@@ -24,6 +25,7 @@ const DEFAULT_USER_ID = 'debug-user';
 const DEBUG_SCENE_ROUTE_ALIASES: Record<string, string> = {
   camp: '/game',
   'camp-portrait': '/game',
+  warband: '/game',
   login: '/login',
   guide: '/guide',
 };
@@ -79,6 +81,7 @@ export function publishDebugCaptureState(request: DebugCaptureRequest, route: st
     readyScene: ready ? request.scene : null,
     ready,
     route,
+    initialTab: request.initialTab,
   };
 }
 
