@@ -4,31 +4,16 @@ import { provideRouter } from '@angular/router';
 import { App } from './app';
 import { AudioDirectorService } from './core/services/audio/audio-director.service';
 import { SessionService } from './core/services/session/session.service';
-import { ViewportOrientationService } from './core/services/viewport/viewport-orientation.service';
 
 class SessionServiceStub {
   readonly isLoading = signal(false);
   readonly error = signal<string | null>(null);
   readonly initialize = jasmine.createSpy('initialize').and.resolveTo();
-  readonly session = signal({ isAuthenticated: false, displayName: 'Visitor' });
-  readonly profile = signal({ energyCurrent: 0, energyMax: 0, softCurrency: 0 });
-  readonly hasActiveRun = signal(false);
-  readonly featureUnlocks = signal<string[]>([]);
 }
 
 class AudioDirectorServiceStub {
   readonly initialize = jasmine.createSpy('initialize');
   readonly setRouteContext = jasmine.createSpy('setRouteContext');
-  readonly isEnabled = signal(true);
-  readonly isUnlocked = signal(false);
-  readonly isMuted = signal(false);
-  readonly enableSound = jasmine.createSpy('enableSound').and.resolveTo();
-  readonly toggleMute = jasmine.createSpy('toggleMute');
-}
-
-class ViewportOrientationServiceStub {
-  readonly initialize = jasmine.createSpy('initialize');
-  readonly isLandscapeGateActive = signal(false);
 }
 
 describe('App', () => {
@@ -39,7 +24,6 @@ describe('App', () => {
         provideRouter([]),
         { provide: SessionService, useClass: SessionServiceStub },
         { provide: AudioDirectorService, useClass: AudioDirectorServiceStub },
-        { provide: ViewportOrientationService, useClass: ViewportOrientationServiceStub },
       ],
     });
   });
@@ -53,7 +37,7 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('hides command controls for unauthenticated users', async () => {
+  it('does not mount prototype gameplay chrome', async () => {
     await TestBed.compileComponents();
 
     const fixture = TestBed.createComponent(App);
@@ -61,45 +45,14 @@ describe('App', () => {
 
     const host = fixture.nativeElement as HTMLElement;
     expect(host.querySelector('app-command-controls')).toBeNull();
-    expect(host.querySelector('.app-shell--guest')).not.toBeNull();
+    expect(host.querySelector('.orientation-gate')).toBeNull();
   });
 
-  it('shows command controls for authenticated users', async () => {
+  it('gives /game a clean shell without Angular status UI', async () => {
     await TestBed.compileComponents();
 
     const session = TestBed.inject(SessionService) as unknown as SessionServiceStub;
-    session.session.set({ isAuthenticated: true, displayName: 'Goblin' });
-
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-
-    const host = fixture.nativeElement as HTMLElement;
-    expect(host.querySelector('app-command-controls')).not.toBeNull();
-  });
-
-  it('shows the rotate prompt instead of the shell when phone portrait mode is blocked', async () => {
-    await TestBed.compileComponents();
-
-    const viewportOrientation = TestBed.inject(ViewportOrientationService) as unknown as ViewportOrientationServiceStub;
-    viewportOrientation.isLandscapeGateActive.set(true);
-
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
-
-    const host = fixture.nativeElement as HTMLElement;
-    expect(host.textContent).toContain('Landscape Required');
-    expect(host.querySelector('app-command-controls')).toBeNull();
-    expect(host.querySelector('.orientation-gate')).not.toBeNull();
-  });
-
-  it('gives /game a clean shell without prototype chrome or orientation gating', async () => {
-    await TestBed.compileComponents();
-
-    const session = TestBed.inject(SessionService) as unknown as SessionServiceStub;
-    const viewportOrientation = TestBed.inject(ViewportOrientationService) as unknown as ViewportOrientationServiceStub;
-    session.session.set({ isAuthenticated: true, displayName: 'Goblin' });
     session.isLoading.set(true);
-    viewportOrientation.isLandscapeGateActive.set(true);
 
     const fixture = TestBed.createComponent(App);
     fixture.componentInstance.isGameRoute.set(true);
@@ -108,8 +61,6 @@ describe('App', () => {
     const host = fixture.nativeElement as HTMLElement;
     expect(host.querySelector('.app-shell--game')).not.toBeNull();
     expect(host.querySelector('router-outlet')).not.toBeNull();
-    expect(host.querySelector('app-command-controls')).toBeNull();
     expect(host.querySelector('.status-card')).toBeNull();
-    expect(host.querySelector('.orientation-gate')).toBeNull();
   });
 });

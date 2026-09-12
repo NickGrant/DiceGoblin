@@ -53,6 +53,7 @@
     "run-patterns:compare:swamps:v2:docker": "docker compose exec -T backend sh -lc \"DB_HOST=db DB_NAME=goblin_test DB_USER=dice_test DB_PASS=dicepass_test php bin/sync-run-patterns.php --format=json >/tmp/run-pattern-sync.json && DB_HOST=db DB_NAME=goblin_test DB_USER=dice_test DB_PASS=dicepass_test php bin/compare-run-generators.php --region=swamps --baseline=pattern-v1 --candidate=pattern-v2 --runs=25 --seed=swamps-v2-compare --format=text\"",
     "run-patterns:gate:v2-uat:docker": "powershell -NoProfile -Command \"npm.cmd run run-patterns:gate:mountains:v2:docker; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm.cmd run run-patterns:compare:mountains:v2:docker; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm.cmd run run-patterns:gate:swamps:v2:docker; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm.cmd run run-patterns:compare:swamps:v2:docker\"",
     "verify:full": "npm run llm:check && npm run docs:lint && npm run content:validate && npm run test:backend && npm run test:frontend && npm run build:frontend && npm run bundle:check",
+    "verify:walking-skeleton": "node scripts/verify-walking-skeleton.mjs",
     "startup:check": "node scripts/startup-check.mjs",
     "llm:check": "npm run startup:check && npm run backlog:validate"
   },

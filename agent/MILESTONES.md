@@ -4,7 +4,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 
 ## Milestone 1 - Walking Skeleton
 
-**Status:** Active - Final Closure Package
+**Status:** Active
 
 ### Outcome
 Prove the smallest real vNext path:

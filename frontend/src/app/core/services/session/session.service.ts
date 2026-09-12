@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, Injector, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   ProfileData,
@@ -14,7 +14,6 @@ import {
 } from '../../models/api.models';
 import { ApiHttpService } from '../api-http/api-http.service';
 import {
-  createDebugCaptureProfile,
   createDebugCaptureSession,
   isDebugCaptureAuthenticated,
   isDebugCaptureGuest,
@@ -42,6 +41,7 @@ const DEFAULT_PROFILE: ProfileViewModel = {
 @Injectable({ providedIn: 'root' })
 export class SessionService {
   private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
   private readonly sessionState = signal(DEFAULT_SESSION);
   private readonly profileState = signal(DEFAULT_PROFILE);
   private readonly profileDataState = signal<ProfileData | null>(null);
@@ -71,10 +71,7 @@ export class SessionService {
   readonly dice = computed<DiceRecord[]>(() => this.profileDataState()?.dice ?? []);
   private readonly debugCaptureRequest = readDebugCaptureRequest();
 
-  constructor(
-    private readonly apiHttp: ApiHttpService,
-    private readonly profileService: ProfileService,
-  ) {
+  constructor(private readonly apiHttp: ApiHttpService) {
     this.apiHttp.registerAuthRecovery({
       refreshSession: (failingPath) => this.refreshAfterUnauthorized(failingPath),
       handleSessionExpired: () => this.handleExpiredSession(),
@@ -128,7 +125,7 @@ export class SessionService {
       { skipAuthRecovery: true },
     );
     await this.refresh();
-    await this.router.navigateByUrl('/');
+    await this.router.navigateByUrl('/game');
   }
 
   async registerWithLocalCredentials(email: string, password: string, displayName: string): Promise<void> {
@@ -138,7 +135,7 @@ export class SessionService {
       { skipAuthRecovery: true },
     );
     await this.refresh();
-    await this.router.navigateByUrl('/');
+    await this.router.navigateByUrl('/game');
   }
 
   async requestPasswordReset(email: string): Promise<PasswordResetRequestData> {
@@ -162,7 +159,7 @@ export class SessionService {
       { skipAuthRecovery: true },
     );
     await this.refresh();
-    await this.router.navigateByUrl('/');
+    await this.router.navigateByUrl('/game');
   }
 
   async refreshProfile(options?: { force?: boolean }): Promise<void> {
@@ -189,6 +186,11 @@ export class SessionService {
     this.profileService.invalidateProfileCache();
   }
 
+  /** Retained only for disconnected prototype gameplay helpers. */
+  private get profileService(): ProfileService {
+    return this.injector.get(ProfileService);
+  }
+
   private async refreshInternal(options?: { skipAuthRecovery?: boolean; suppressErrors?: boolean }): Promise<void> {
     this.loadingState.set(true);
     if (!options?.suppressErrors) {
@@ -203,11 +205,7 @@ export class SessionService {
       const mappedSession = this.mapSession(session);
       this.sessionState.set(mappedSession);
 
-      if (mappedSession.isAuthenticated) {
-        const profile = await this.profileService.getProfile();
-        this.profileDataState.set(profile.ok ? profile.data : null);
-        this.profileState.set(this.mapProfile(profile));
-      } else {
+      if (!mappedSession.isAuthenticated) {
         this.profileDataState.set(null);
         this.profileState.set(DEFAULT_PROFILE);
       }
@@ -284,18 +282,9 @@ export class SessionService {
       return false;
     }
 
-    const profileData = createDebugCaptureProfile(this.debugCaptureRequest);
     this.sessionState.set(createDebugCaptureSession(this.debugCaptureRequest));
-    this.profileDataState.set(profileData);
-    this.profileState.set({
-      energyCurrent: profileData.energy.current,
-      energyMax: profileData.energy.max,
-      softCurrency: profileData.currency.soft,
-      activeRunId: profileData.active_run?.run_id ?? null,
-      squadCount: profileData.squads.length,
-      unitCount: profileData.units.length,
-      activeSquadName: profileData.squads.find((squad) => squad.is_active)?.name ?? null,
-    });
+    this.profileDataState.set(null);
+    this.profileState.set(DEFAULT_PROFILE);
     this.loadingState.set(false);
     this.errorState.set(null);
     return true;

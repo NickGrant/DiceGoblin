@@ -14,6 +14,15 @@ describe('SessionService', () => {
     handleSessionExpired: () => Promise<void>;
   };
 
+  const authenticatedSession = {
+    ok: true,
+    data: {
+      authenticated: true,
+      csrf_token: 'csrf',
+      user: { id: 4, display_name: 'Nick' },
+    },
+  } as any;
+
   beforeEach(() => {
     apiHttp = jasmine.createSpyObj<ApiHttpService>('ApiHttpService', ['get', 'post', 'registerAuthRecovery']);
     apiHttp.registerAuthRecovery.and.callFake((handlers) => {
@@ -35,40 +44,14 @@ describe('SessionService', () => {
     service = TestBed.inject(SessionService);
   });
 
-  it('hydrates session and profile state for authenticated users', async () => {
-    apiHttp.get.and.resolveTo({
-      ok: true,
-      data: {
-        authenticated: true,
-        csrf_token: 'csrf',
-        user: { id: 4, display_name: 'Nick' },
-      },
-    } as any);
-    profileService.getProfile.and.resolveTo({
-      ok: true,
-      data: {
-        energy: { current: 5, max: 10 },
-        currency: { soft: 40 },
-        active_run: { run_id: 12 },
-        squad_unit_cap: 4,
-        feature_unlocks: [],
-        unit_type_unlocks: ['support_banner_t1'],
-        lineage_unlocks: [{ lineage_slug: 'basic_goblin', kin_slug: 'basic_goblin', name: 'Basic Goblin', description: '', is_default: true, is_implicit: true, unlocked_at: null }],
-        squads: [{ id: '1', name: 'Alpha', is_active: true }],
-        units: [{ id: 'u1' }],
-        dice: [{ id: 'd1' }],
-      },
-    } as any);
+  it('hydrates only shell identity for authenticated users', async () => {
+    apiHttp.get.and.resolveTo(authenticatedSession);
 
     await service.refresh();
 
     expect(service.session().displayName).toBe('Nick');
-    expect(service.profile().activeRunId).toBe('12');
-    expect(service.profile().activeSquadName).toBe('Alpha');
-    expect(service.squadUnitCap()).toBe(4);
-    expect(service.unitTypeUnlocks()).toEqual(['support_banner_t1']);
-    expect(service.lineageUnlocks().map((lineage) => lineage.lineage_slug)).toEqual(['basic_goblin']);
-    expect(service.hasActiveRun()).toBeTrue();
+    expect(service.profile().activeRunId).toBeNull();
+    expect(profileService.getProfile).not.toHaveBeenCalled();
   });
 
   it('resets to defaults for unauthenticated sessions', async () => {
@@ -81,12 +64,7 @@ describe('SessionService', () => {
   });
 
   it('treats ok session responses with authenticated false as anonymous', async () => {
-    apiHttp.get.and.resolveTo({
-      ok: true,
-      data: {
-        authenticated: false,
-      },
-    } as any);
+    apiHttp.get.and.resolveTo({ ok: true, data: { authenticated: false } } as any);
 
     await service.refresh();
 
@@ -102,25 +80,16 @@ describe('SessionService', () => {
         resolveSession = resolve;
       }) as any,
     );
-    profileService.getProfile.and.resolveTo({ ok: true, data: { squads: [], units: [], dice: [], energy: { current: 0, max: 0 }, currency: { soft: 0 }, feature_unlocks: [], unit_type_unlocks: [], active_run: null } } as any);
 
     const first = service.initialize();
     const second = service.initialize();
 
     expect(apiHttp.get).toHaveBeenCalledTimes(1);
-
-    resolveSession!({
-      ok: true,
-      data: {
-        authenticated: true,
-        csrf_token: 'csrf',
-        user: { id: 4, display_name: 'Nick' },
-      },
-    });
-
+    resolveSession!(authenticatedSession);
     await Promise.all([first, second]);
 
     expect(apiHttp.get).toHaveBeenCalledTimes(1);
+    expect(profileService.getProfile).not.toHaveBeenCalled();
   });
 
   it('stores a readable error when refresh throws', async () => {
@@ -142,30 +111,9 @@ describe('SessionService', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
   });
 
-  it('logs in with local credentials and refreshes session state', async () => {
+  it('logs in using auth-only refresh and enters /game', async () => {
     apiHttp.post.and.resolveTo({ ok: true, data: { authenticated: true } } as any);
-    apiHttp.get.and.resolveTo({
-      ok: true,
-      data: {
-        authenticated: true,
-        csrf_token: 'csrf',
-        user: { id: 4, display_name: 'Nick' },
-      },
-    } as any);
-    profileService.getProfile.and.resolveTo({
-      ok: true,
-      data: {
-        energy: { current: 0, max: 10 },
-        currency: { soft: 0 },
-        active_run: null,
-        squad_unit_cap: 4,
-        feature_unlocks: [],
-        unit_type_unlocks: [],
-        squads: [],
-        units: [],
-        dice: [],
-      },
-    } as any);
+    apiHttp.get.and.resolveTo(authenticatedSession);
 
     await service.loginWithLocalCredentials('player@example.test', 'secret-pass');
 
@@ -175,7 +123,23 @@ describe('SessionService', () => {
       { skipAuthRecovery: true },
     );
     expect(service.session().isAuthenticated).toBeTrue();
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/');
+    expect(profileService.getProfile).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/game');
+  });
+
+  it('registers using auth-only refresh and enters /game', async () => {
+    apiHttp.post.and.resolveTo({ ok: true, data: { authenticated: true } } as any);
+    apiHttp.get.and.resolveTo(authenticatedSession);
+
+    await service.registerWithLocalCredentials('player@example.test', 'secret-pass', 'Nick');
+
+    expect(apiHttp.post).toHaveBeenCalledWith(
+      '/api/v1/auth/local/register',
+      { email: 'player@example.test', password: 'secret-pass', display_name: 'Nick' },
+      { skipAuthRecovery: true },
+    );
+    expect(profileService.getProfile).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/game');
   });
 
   it('requests a local password reset token', async () => {
@@ -197,30 +161,9 @@ describe('SessionService', () => {
     expect(response.reset_token).toBe('token');
   });
 
-  it('confirms a local password reset and refreshes session state', async () => {
+  it('confirms a password reset using auth-only refresh and enters /game', async () => {
     apiHttp.post.and.resolveTo({ ok: true, data: { authenticated: true } } as any);
-    apiHttp.get.and.resolveTo({
-      ok: true,
-      data: {
-        authenticated: true,
-        csrf_token: 'csrf',
-        user: { id: 4, display_name: 'Nick' },
-      },
-    } as any);
-    profileService.getProfile.and.resolveTo({
-      ok: true,
-      data: {
-        energy: { current: 0, max: 10 },
-        currency: { soft: 0 },
-        active_run: null,
-        squad_unit_cap: 4,
-        feature_unlocks: [],
-        unit_type_unlocks: [],
-        squads: [],
-        units: [],
-        dice: [],
-      },
-    } as any);
+    apiHttp.get.and.resolveTo(authenticatedSession);
 
     await service.confirmPasswordReset('token', 'new-password');
 
@@ -229,49 +172,24 @@ describe('SessionService', () => {
       { token: 'token', password: 'new-password' },
       { skipAuthRecovery: true },
     );
-    expect(service.session().isAuthenticated).toBeTrue();
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/');
+    expect(profileService.getProfile).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/game');
   });
 
-  it('registers auth recovery and can silently confirm a still-authenticated session', async () => {
-    apiHttp.get.and.resolveTo({
-      ok: true,
-      data: {
-        authenticated: true,
-        csrf_token: 'csrf',
-        user: { id: 4, display_name: 'Nick' },
-      },
-    } as any);
-    profileService.getProfile.and.resolveTo({
-      ok: true,
-      data: {
-        energy: { current: 5, max: 10 },
-        currency: { soft: 40 },
-        active_run: null,
-        squad_unit_cap: 4,
-        feature_unlocks: [],
-        unit_type_unlocks: [],
-        squads: [],
-        units: [],
-        dice: [],
-      },
-    } as any);
+  it('registers auth recovery and silently checks only the session endpoint', async () => {
+    apiHttp.get.and.resolveTo(authenticatedSession);
 
-    const recovered = await registeredAuthRecovery.refreshSession('/api/v1/profile');
+    const recovered = await registeredAuthRecovery.refreshSession('/api/v1/game/bootstrap');
 
     expect(recovered).toBeTrue();
     expect(apiHttp.get).toHaveBeenCalledWith('/api/v1/session', { skipAuthRecovery: true });
+    expect(profileService.getProfile).not.toHaveBeenCalled();
   });
 
   it('clears session state when auth recovery confirms expiry', async () => {
-    apiHttp.get.and.resolveTo({
-      ok: true,
-      data: {
-        authenticated: false,
-      },
-    } as any);
+    apiHttp.get.and.resolveTo({ ok: true, data: { authenticated: false } } as any);
 
-    const recovered = await registeredAuthRecovery.refreshSession('/api/v1/profile');
+    const recovered = await registeredAuthRecovery.refreshSession('/api/v1/game/bootstrap');
 
     expect(recovered).toBeFalse();
     await registeredAuthRecovery.handleSessionExpired();

@@ -26,18 +26,6 @@ const DEBUG_SCENE_ROUTE_ALIASES: Record<string, string> = {
   'camp-portrait': '/game',
   login: '/login',
   guide: '/guide',
-  codex: '/codex',
-  home: '/home',
-  'field-guide': '/codex',
-  regions: '/regions',
-  warband: '/warband',
-  dice: '/dice',
-  shop: '/shop',
-  academy: '/academy',
-  'run-map': '/run/map',
-  'run-node': '/run/node/n1',
-  'run-summary': '/run/summary',
-  debug: '/debug',
 };
 
 declare global {

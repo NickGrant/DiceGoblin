@@ -6,7 +6,7 @@
 
 ### Verify and close the vNext walking skeleton
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

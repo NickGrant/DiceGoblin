@@ -1,33 +1,12 @@
-<div
-  class="app-shell"
-  [class.app-shell--guest]="!isAuthenticated()"
-  [class.app-shell--game]="isGameRoute()"
->
-  @if (!isGameRoute() && isLandscapeGateActive()) {
-    <section class="orientation-gate" aria-live="polite" aria-label="Rotate device prompt">
-      <div class="orientation-gate__panel dg-card">
-        <div class="orientation-gate__icon" aria-hidden="true">
-          <span class="orientation-gate__phone"></span>
-          <span class="orientation-gate__arrow"></span>
-        </div>
-        <strong class="dg-stencil">Landscape Required</strong>
-        <p>Turn your phone sideways to continue. Dice Goblins is tuned for landscape on phones.</p>
-      </div>
-    </section>
-  } @else {
+<div class="app-shell" [class.app-shell--game]="isGameRoute()">
   <div class="app-shell__frame">
-    @if (isAuthenticated() && !isGameRoute()) {
-      <app-command-controls></app-command-controls>
-    }
-
     @if (!isGameRoute() && (isLoading() || error())) {
       <div class="dg-card status-card" [class.status-card--error]="!!error()">
-        <strong class="dg-stencil">{{ error() ? 'Comms Disrupted' : 'Loading Registry Data' }}</strong>
-        <span>{{ error() || 'Syncing camp records.' }}</span>
+        <strong class="dg-stencil">{{ error() ? 'Comms Disrupted' : 'Checking Session' }}</strong>
+        <span>{{ error() || 'Connecting to the account service.' }}</span>
       </div>
     }
 
     <router-outlet></router-outlet>
   </div>
-  }
 </div>

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
@@ -10,33 +10,27 @@ import {
 } from './core/debug/debug-capture';
 import { AudioDirectorService } from './core/services/audio/audio-director.service';
 import { SessionService } from './core/services/session/session.service';
-import { ViewportOrientationService } from './core/services/viewport/viewport-orientation.service';
-import { CommandControlsComponent } from './layout/command-controls/command-controls.component';
 
 @Component({
   selector: 'app-root',
-  imports: [CommandControlsComponent, RouterOutlet],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
 export class App implements OnInit {
   private readonly sessionService = inject(SessionService);
   private readonly audioDirector = inject(AudioDirectorService);
-  private readonly viewportOrientation = inject(ViewportOrientationService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly debugCaptureRequest = readDebugCaptureRequest();
 
   readonly isLoading = this.sessionService.isLoading;
   readonly error = this.sessionService.error;
-  readonly isAuthenticated = computed(() => this.sessionService.session().isAuthenticated);
-  readonly isLandscapeGateActive = this.viewportOrientation.isLandscapeGateActive;
   readonly isGameRoute = signal(this.matchesGameRoute(this.router.url));
 
   ngOnInit(): void {
     this.initializeDebugCaptureState();
     this.audioDirector.initialize();
-    this.viewportOrientation.initialize();
     this.audioDirector.setRouteContext(resolveRouteAudioContext(this.router.routerState.snapshot.root));
     this.router.events
       .pipe(
