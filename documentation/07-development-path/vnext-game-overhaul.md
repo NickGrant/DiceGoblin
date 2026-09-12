@@ -1,7 +1,7 @@
 ---
 Title: "Dice Goblins vNext Game Overhaul"
 Status: Active Implementation Plan
-Last Updated: 2026-09-10
+Last Updated: 2026-09-12
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/README.md
@@ -23,18 +23,24 @@ Use walking slices rather than completing frontend/backend/database layers in is
 
 Prototype source may be mined for useful algorithms and game behavior, but compatibility with prototype APIs, schema, Angular gameplay pages, migration history, or outdated docs is not a requirement.
 
+Build gameplay functionality and interaction structure before spending heavily on final visual fidelity. New Phaser surfaces should remain clear, usable, and reasonably consistent with the visual guide, but the current UI is not the final presentation target. A larger cross-cutting visual/UI overhaul is intentionally deferred until enough gameplay surfaces exist to establish and apply the final shared visual language coherently.
+
 ## Status
 **Milestone 0 - Reconcile and Clean vNext Context: Complete.**
 
 Milestone 0 reconciled the architecture decisions, replaced the horizontal rewrite roadmap, removed conflicting/historical documentation from the active branch, and redirected coding-agent context to current vNext sources. Git history is the archive for removed material.
 
-**Next: Milestone 1 - Walking Skeleton.**
+**Milestone 1 - Walking Skeleton: Complete; manual UAT passed.**
+
+Milestone 1 proved the real authenticated Angular -> persistent Phaser -> authored content -> PHP bootstrap -> MySQL player state -> responsive Camp path. Closure verification passed through the supported Docker/frontend environment, including a real browser/PHP/MySQL registration-to-Camp check. Manual UAT identified no functional defects; final visual quality remains intentionally deferred to the later game-wide visual/UI overhaul.
+
+**Next: Milestone 2 - Warband.** Decompose its first concrete execution package before implementation begins.
 
 ## Milestones
 | # | Milestone | Exit criterion |
 | ---: | --- | --- |
 | 0 | Reconcile and clean vNext context | One coherent implementation plan and current-only documentation/agent context. **Complete.** |
-| 1 | Walking skeleton | Authenticated Angular `/game` -> Phaser boot -> safe content projection -> real PHP bootstrap/MySQL state -> minimal responsive Camp. |
+| 1 | Walking skeleton | Authenticated Angular `/game` -> Phaser boot -> safe content projection -> real PHP bootstrap/MySQL state -> minimal responsive Camp. **Complete; UAT passed.** |
 | 2 | Warband | Real units/dice/squads, lazy cache/detail queries, persistent squad and unit-loadout configuration. |
 | 3 | Enter Farm | Energy + region/run creation, persistent generated Farm run, `RunScene`, resume/abandon/map. |
 | 4 | Combat | Authoritative combat adaptation, run HP/state, persisted playback, `BattleScene`, reconnect-safe result. |
@@ -64,7 +70,9 @@ Every applicable milestone maintains:
 - documentation/reference consistency.
 
 ## Deferred Until Needed
-Do not block Milestone 1 on exact later-system details such as Rest/Chaos sub-route payloads, final responsive breakpoint thresholds, all battle-playback fields, later economy tuning, later kin recipes, or onboarding dialogue. Resolve them in the milestone that needs them and update the relevant accepted decision if the architecture changes.
+Do not block the next gameplay milestone on final visual polish or on exact later-system details such as Rest/Chaos sub-route payloads, all battle-playback fields, later economy tuning, later kin recipes, or onboarding dialogue. Resolve them in the milestone that needs them and update the relevant accepted decision if the architecture changes.
+
+The cross-cutting visual/UI overhaul is intentionally deferred until core gameplay surfaces and interaction patterns are established. Until then, visual work should support clarity, usability, responsive correctness, and basic cohesion rather than attempt final production fidelity screen by screen.
 
 ## Scope Boundaries
 - No current player/runtime-data migration.
