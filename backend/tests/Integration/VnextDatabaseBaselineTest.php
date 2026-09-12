@@ -23,10 +23,24 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
   public function testBaselineContainsOnlyAcceptedPackageTablesAndColumns(): void
   {
     $tables = $this->pdo?->query('SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME')->fetchAll(\PDO::FETCH_COLUMN);
-    $this->assertSame(['password_reset_tokens', 'user_external_identities', 'user_local_credentials', 'user_state', 'users'], $tables);
+    $this->assertSame([
+      'dice_instances',
+      'password_reset_tokens',
+      'squad_units',
+      'squads',
+      'unit_abilities',
+      'unit_ability_dice',
+      'unit_ability_loadout',
+      'unit_instances',
+      'unit_promotions',
+      'user_external_identities',
+      'user_local_credentials',
+      'user_state',
+      'users',
+    ], $tables);
 
     $columns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_state' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
-    $this->assertSame(['user_id', 'teeth', 'raw_chaos', 'energy_current', 'energy_last_regen_at', 'player_revision', 'created_at', 'updated_at'], $columns);
+    $this->assertSame(['user_id', 'teeth', 'raw_chaos', 'energy_current', 'energy_last_regen_at', 'active_squad_id', 'player_revision', 'created_at', 'updated_at'], $columns);
     $this->assertNotContains('energy_max', $columns);
     $energyDefault = $this->scalar("SELECT COALESCE(COLUMN_DEFAULT, 'NULL') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_state' AND COLUMN_NAME = 'energy_current'", []);
     $this->assertSame('NULL', (string)$energyDefault);
@@ -69,6 +83,10 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $this->assertSame(0, $state['raw_chaos'] ?? null);
     $this->assertSame($this->contentRegistry()->startingEnergy(), $state['energy_current'] ?? null);
     $this->assertSame(1, $state['player_revision'] ?? null);
+    $this->assertSame('', (string)$this->scalar('SELECT COALESCE(`active_squad_id`, \'\') FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    foreach (['unit_instances', 'dice_instances', 'squads'] as $table) {
+      $this->assertSame('0', (string)$this->scalar("SELECT COUNT(*) FROM `$table` WHERE `user_id` = ?", [$userId]));
+    }
   }
 
   public function testExternalAuthenticationCreatesOnceAndUpdatesExistingProfile(): void

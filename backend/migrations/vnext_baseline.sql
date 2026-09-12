@@ -55,9 +55,118 @@ CREATE TABLE `user_state` (
   `raw_chaos` BIGINT UNSIGNED NOT NULL DEFAULT 0,
   `energy_current` INT UNSIGNED NOT NULL,
   `energy_last_regen_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `active_squad_id` BIGINT UNSIGNED NULL,
   `player_revision` BIGINT UNSIGNED NOT NULL DEFAULT 1,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`),
+  KEY `ix_user_state_active_squad` (`active_squad_id`),
   CONSTRAINT `fk_user_state_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `unit_instances` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `unit_type_id` VARCHAR(128) NOT NULL,
+  `kin_id` VARCHAR(128) NOT NULL,
+  `display_name` VARCHAR(128) NOT NULL,
+  `level` INT UNSIGNED NOT NULL DEFAULT 1,
+  `xp` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  `lifecycle_status` VARCHAR(32) NOT NULL DEFAULT 'active',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `ix_unit_instances_user_status` (`user_id`, `lifecycle_status`),
+  KEY `ix_unit_instances_user_type` (`user_id`, `unit_type_id`),
+  CONSTRAINT `chk_unit_instances_level` CHECK (`level` >= 1),
+  CONSTRAINT `fk_unit_instances_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `unit_promotions` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `unit_id` BIGINT UNSIGNED NOT NULL,
+  `from_unit_type_id` VARCHAR(128) NOT NULL,
+  `to_unit_type_id` VARCHAR(128) NOT NULL,
+  `promoted_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `ix_unit_promotions_unit_time` (`unit_id`, `promoted_at`, `id`),
+  CONSTRAINT `fk_unit_promotions_unit` FOREIGN KEY (`unit_id`) REFERENCES `unit_instances` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `unit_abilities` (
+  `unit_id` BIGINT UNSIGNED NOT NULL,
+  `ability_id` VARCHAR(128) NOT NULL,
+  `unlocked_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`unit_id`, `ability_id`),
+  CONSTRAINT `fk_unit_abilities_unit` FOREIGN KEY (`unit_id`) REFERENCES `unit_instances` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `unit_ability_loadout` (
+  `unit_id` BIGINT UNSIGNED NOT NULL,
+  `ability_id` VARCHAR(128) NOT NULL,
+  `equip_order` SMALLINT UNSIGNED NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`unit_id`, `equip_order`),
+  KEY `ix_unit_ability_loadout_owned_ability` (`unit_id`, `ability_id`),
+  CONSTRAINT `fk_unit_ability_loadout_owned_ability`
+    FOREIGN KEY (`unit_id`, `ability_id`) REFERENCES `unit_abilities` (`unit_id`, `ability_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `dice_instances` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `size` SMALLINT UNSIGNED NOT NULL,
+  `profile_id` VARCHAR(128) NOT NULL,
+  `lifecycle_status` VARCHAR(32) NOT NULL DEFAULT 'active',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `ix_dice_instances_user_status` (`user_id`, `lifecycle_status`),
+  KEY `ix_dice_instances_user_profile` (`user_id`, `profile_id`),
+  CONSTRAINT `chk_dice_instances_size` CHECK (`size` >= 1),
+  CONSTRAINT `fk_dice_instances_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `unit_ability_dice` (
+  `unit_id` BIGINT UNSIGNED NOT NULL,
+  `ability_id` VARCHAR(128) NOT NULL,
+  `slot_index` SMALLINT UNSIGNED NOT NULL,
+  `dice_instance_id` BIGINT UNSIGNED NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`unit_id`, `ability_id`, `slot_index`),
+  KEY `ix_unit_ability_dice_die` (`dice_instance_id`),
+  CONSTRAINT `fk_unit_ability_dice_owned_ability`
+    FOREIGN KEY (`unit_id`, `ability_id`) REFERENCES `unit_abilities` (`unit_id`, `ability_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_unit_ability_dice_die`
+    FOREIGN KEY (`dice_instance_id`) REFERENCES `dice_instances` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `squads` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `name` VARCHAR(128) NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `ix_squads_user` (`user_id`),
+  CONSTRAINT `fk_squads_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `squad_units` (
+  `squad_id` BIGINT UNSIGNED NOT NULL,
+  `unit_id` BIGINT UNSIGNED NOT NULL,
+  `position` TINYINT UNSIGNED NOT NULL,
+  `added_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`squad_id`, `position`),
+  UNIQUE KEY `uq_squad_units_squad_unit` (`squad_id`, `unit_id`),
+  KEY `ix_squad_units_unit` (`unit_id`),
+  CONSTRAINT `chk_squad_units_position` CHECK (`position` BETWEEN 0 AND 8),
+  CONSTRAINT `fk_squad_units_squad` FOREIGN KEY (`squad_id`) REFERENCES `squads` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_squad_units_unit` FOREIGN KEY (`unit_id`) REFERENCES `unit_instances` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `user_state`
+  ADD CONSTRAINT `fk_user_state_active_squad`
+    FOREIGN KEY (`active_squad_id`) REFERENCES `squads` (`id`) ON DELETE SET NULL;

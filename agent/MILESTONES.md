@@ -6,6 +6,9 @@ Read this for sequencing/planning or when closing/promoting an execution package
 
 **Status:** Active
 
+### Related Issues
+- Establish Warband persistence foundation
+
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT. Its major visual-quality finding is intentionally deferred to the later game-wide visual/UI overhaul; Milestone 2 should prioritize functional clarity and consistency rather than final presentation fidelity.
 
 ### Outcome

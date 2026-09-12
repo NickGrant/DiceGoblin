@@ -6,7 +6,7 @@
 
 ### Establish Warband persistence foundation
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
