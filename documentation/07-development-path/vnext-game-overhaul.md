@@ -34,14 +34,14 @@ Milestone 0 reconciled the architecture decisions, replaced the horizontal rewri
 
 Milestone 1 proved the real authenticated Angular -> persistent Phaser -> authored content -> PHP bootstrap -> MySQL player state -> responsive Camp path. Closure verification passed through the supported Docker/frontend environment, including a real browser/PHP/MySQL registration-to-Camp check. Manual UAT identified no functional defects; final visual quality remains intentionally deferred to the later game-wide visual/UI overhaul.
 
-**Next: Milestone 2 - Warband.** Decompose its first concrete execution package before implementation begins.
+**Milestone 2 - Warband: Active.** Implementation is decomposed into reviewed execution packages covering Warband persistence, authored content, authoritative reads and mutations, Phaser Warband/squad/unit configuration flows, and integrated closure before milestone UAT.
 
 ## Milestones
 | # | Milestone | Exit criterion |
 | ---: | --- | --- |
 | 0 | Reconcile and clean vNext context | One coherent implementation plan and current-only documentation/agent context. **Complete.** |
 | 1 | Walking skeleton | Authenticated Angular `/game` -> Phaser boot -> safe content projection -> real PHP bootstrap/MySQL state -> minimal responsive Camp. **Complete; UAT passed.** |
-| 2 | Warband | Real units/dice/squads, lazy cache/detail queries, persistent squad and unit-loadout configuration. |
+| 2 | Warband | Real units/dice/squads, lazy cache/detail queries, persistent squad and unit-loadout configuration. **Active.** |
 | 3 | Enter Farm | Energy + region/run creation, persistent generated Farm run, `RunScene`, resume/abandon/map. |
 | 4 | Combat | Authoritative combat adaptation, run HP/state, persisted playback, `BattleScene`, reconnect-safe result. |
 | 5 | Complete Farm | Event/reward pipeline, XP/progression, Mudking, terminal run flow, Mountains unlock; no claim/reroll/double-grant path. |
