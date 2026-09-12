@@ -4,73 +4,110 @@
 
 ## Milestone 2 - Warband
 
-### Establish authoritative Warband reads and controlled fixtures
+### Establish squad commands and active-squad bootstrap integration
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Warband persistence and canonical authored definitions are now approved, but there is no live vNext domain boundary that reads a player's owned units, dice, or saved squads. Establish the authoritative lazy read APIs that Phaser will consume later and a controlled development/UAT fixture path that creates representative real MySQL Warband state using canonical authored IDs. Keep production registration empty; this package is not onboarding, squad mutation, or Phaser UI.
+Warband persistence, canonical authored content, and authoritative read APIs are now approved. Players still cannot create, edit, activate, or delete saved squads through the vNext command boundary, and bootstrap still reports `active_squad: null` even when authoritative state contains an active squad. Implement complete authoritative squad mutations plus bootstrap hydration without starting Phaser squad UI or unit/loadout mutation.
 
 #### Required Context
-- `documentation/07-development-path/vnext-api-contract-model.md` — query/command boundary, lazy domains, authoritative state
-- `documentation/07-development-path/vnext-endpoint-inventory.md` — accepted unit/dice/squad query contracts
-- `documentation/07-development-path/vnext-backend-internal-architecture.md` — controller/application/repository responsibilities
-- `documentation/07-development-path/vnext-storage-model.md` — approved Warband persistence
-- `documentation/07-development-path/vnext-authored-content-model.md` — ContentRegistry/stable-ID authority
-- `documentation/02-systems/warband-and-formation.md`
-- `documentation/02-systems/ability-loadouts-and-dice-binding.md`
-- `documentation/02-systems/unit-stat-advancement.md`
-- `documentation/07-development-path/vnext-prototype-code-disposition.md`
-- Current `GameBootstrapController`/query/service-factory patterns, router, auth/session/CSRF infrastructure, Warband baseline tables, canonical Warband content, and relevant tests
+- `documentation/07-development-path/vnext-api-contract-model.md` — command/query authority, mutation responses, `player_revision`, CSRF/idempotency rules
+- `documentation/07-development-path/vnext-endpoint-inventory.md` — accepted squad endpoints and whole-aggregate replacement
+- `documentation/07-development-path/vnext-backend-internal-architecture.md` — controller/application/repository boundaries and transaction ownership
+- `documentation/07-development-path/vnext-storage-model.md` — squads, `squad_units`, nullable `user_state.active_squad_id`
+- `documentation/02-systems/warband-and-formation.md` — nine positions, multiple saved squads, active-squad semantics, future run lock
+- Current Package 3 Warband read repositories/queries/controllers and controlled fixture
+- Current `GameBootstrapQuery`, runtime bootstrap parser/GameStore tests, and Milestone 1 startup contract
 
-Inspect prototype Unit/Dice/Team repositories and old API behavior only for useful query/ownership edge cases. Do not adapt their catch-all/profile/team contracts into vNext.
+Inspect prototype Team behavior only for useful edge cases. New code uses `squad` terminology and vNext contracts exclusively.
 
-#### Acceptance Criteria
-- Add authenticated, read-only vNext query endpoints for `GET /api/v1/units`, `GET /api/v1/units/:unitId`, `GET /api/v1/dice`, and `GET /api/v1/squads` using the accepted vNext `squad` terminology.
-- Keep controllers thin. Queries/application services assemble authoritative responses; repositories perform persistence only. Do not rebuild a catch-all gameplay service or profile payload.
-- Query endpoints are read-only: no provisioning, repair, starter grants, profile synchronization, or mutation on GET.
-- All collection/detail reads are scoped to the authenticated `users.id`. A player cannot discover another player's unit detail by guessing an ID.
-- `GET /api/v1/units` returns compact owned-unit summaries appropriate for a roster/selector, referencing canonical authored IDs rather than duplicating authored catalogs. Include instance identity/name/current unit type/kin/level/XP or other small mutable fields actually needed by the Warband roster; lifecycle policy should prevent terminal/non-owned instances from masquerading as usable units.
-- `GET /api/v1/units/:unitId` returns the full current mutable detail needed by the eventual unit-configuration screen: instance identity/current type/kin/name/level/XP/lifecycle, promotion history, permanently owned abilities, committed ordered ability loadout, and exact ability-slot -> die-instance bindings. Do not expose server-only authored handler/effect configuration in this response; static authored presentation remains resolved through the client projection.
-- Do not invent promotion eligibility/options in this package. `GET /units/:unitId/promotion-options` remains deferred with Milestone 8 unless a minimal explicit empty contract is already required by accepted current consumers; do not add it merely for symmetry.
-- `GET /api/v1/dice` returns compact active owned die instances including instance ID, size, profile ID, lifecycle state, and only the small mutable/equipment summary that is genuinely useful for configuration. Material/rarity/aspects come from the authored profile projection rather than being duplicated from MySQL/API.
-- If dice read responses report equipment usage, derive it authoritatively from current bindings and keep the shape useful for later loadout validation; do not invent a separate mutable equipped flag.
-- `GET /api/v1/squads` returns all saved squads owned by the player with squad identity/name and normalized positions `0-8` in a stable response shape. Empty positions should be represented deliberately and consistently. The response may indicate which squad ID matches `user_state.active_squad_id`, but this package does not implement activation/mutation or bootstrap active-squad hydration.
-- Queries that encounter persisted authored IDs missing from the current ContentRegistry should fail as an integrity problem rather than silently fabricate definitions. Choose a narrow consistent error contract and test it; do not repair rows on read.
-- Keep authored static definitions out of API payloads where the browser-safe projection already owns them. API state should reference stable IDs plus mutable player-instance state.
-- Do not increment `player_revision` for reads.
-- Preserve current bootstrap behavior for this package. Package 4 owns active-squad bootstrap integration.
+#### Accepted Command Surface
+- `POST /api/v1/squads` creates one saved squad from a complete submitted configuration.
+- `PUT /api/v1/squads/:squadId` atomically replaces that owned squad's complete editable configuration.
+- `POST /api/v1/squads/:squadId/activate` sets an owned saved squad active.
+- `DELETE /api/v1/squads/:squadId` deletes an owned saved squad subject to active-squad validation.
+- All mutations require authenticated session + normal CSRF protection.
+- Commands return the authoritative affected squad/active-squad state and current `player_revision`; no command performs a global profile refresh.
 
-#### Controlled development/UAT fixture
-- Add one controlled development/test-only path capable of creating representative real Warband state for the authenticated test/UAT user using the canonical IDs established in Package 2.
-- Prefer a narrow authenticated debug/fixture operation or equally practical repository-supported development command that can be exercised by real-stack automated verification and manual UAT without editing production account-creation behavior.
-- If implemented as an HTTP mutation, it must be environment-gated so it is unavailable in production, require the normal authenticated session, and use normal mutation/CSRF protections. It is an operational fixture surface, not a public gameplay endpoint.
-- The fixture creation must be one explicit transaction and deterministic/repeat-safe. Re-running it must not accumulate arbitrary duplicate units/dice/squads. A deliberate replace/reset-to-known-fixture behavior is acceptable when clearly restricted to dev/test.
-- Fixture state should be representative enough to exercise all Package 3 reads and later Milestone 2 configuration UI: multiple units using real canonical unit/kin/ability IDs, multiple dice using real canonical profiles/sizes, permanent ability ownership, representative ordered loadouts/dice bindings, and at least one saved squad with several occupied formation positions.
-- Use the five established tier-one Warband families where useful for breadth rather than fabricating new authored types specifically for fixtures.
-- Do not make fixture creation the production starter-pack implementation. Normal registration must still create no units, dice, or squads. Production onboarding/provisioning remains Milestone 12.
-- Fixture tooling must not become available merely because `APP_ENV` is mis-capitalized or omitted; use an explicit safe environment policy and cover production rejection.
+#### Squad Configuration Contract
+- Use one explicit complete request shape for create/update. Prefer the already-established nine-position read shape: `name` plus `formation` containing exactly positions `0` through `8`, each `null` or one unit instance ID.
+- Validate request shape strictly. Reject missing/extra positions, positions outside `0-8`, malformed/non-positive unit IDs, duplicate unit IDs within one squad, empty/blank names, and names exceeding the accepted persistence length.
+- Empty positions and a completely empty squad are valid unless an already-accepted product rule says otherwise.
+- Every occupied unit must be an active unit owned by the authenticated player. Non-owned, missing, or terminal units are invalid and must not leak foreign state.
+- A unit may appear in multiple different saved squads.
+- Replace the whole formation transactionally rather than exposing per-position patch endpoints.
 
-#### Ownership and integrity
-- Repositories/query code must enforce ownership by user scope, not trust client-supplied IDs.
-- Preserve the Package 1 choice that MySQL stores authored IDs without SQL catalogs. Validate fixture-created authored IDs through ContentRegistry/application logic rather than adding SQL catalog foreign keys.
-- Do not add cross-user relationship constraints by denormalizing ownership into every relation merely for these reads; command-layer ownership validation remains Packages 4/5.
-- Treat dangling/cross-inconsistent persisted data encountered by a query as an integrity failure where it would otherwise leak or misrepresent another user's state.
-- Do not expose another user's die identity through a malformed cross-owner binding. Query assembly must remain scoped and integrity-safe even if bad data exists.
+#### Active Squad Semantics
+- `user_state.active_squad_id` is nullable only while the player has no saved squad.
+- Creating the player's first squad must make it active in the same transaction. Creating additional squads must not silently change the existing active squad.
+- Activation is explicit and idempotent: activating the already-active squad returns authoritative current state without creating another logical change/revision bump.
+- Do not permit deleting the active squad while another saved squad remains; require the player to activate a replacement first. Deleting the only remaining active squad is allowed and leaves `active_squad_id = null` because no squad remains.
+- Editing an active squad keeps it active.
+- Deleting a non-active squad does not change the active squad.
+- Cross-owner/corrupt active-squad state is an integrity failure, not a state the command silently repairs.
+
+#### Transaction and Revision Rules
+- Each command owns exactly one application-level transaction covering validation that must be protected from races, durable mutation, active-squad changes where applicable, and `player_revision` increment.
+- Lock the relevant player state/squad rows as needed so complete replacement/activation/deletion cannot interleave into invalid state.
+- Increment `player_revision` exactly once for each successful command that changes durable player state.
+- Do not increment on rejected commands, rolled-back commands, GETs, or genuine no-op activation.
+- Return the resulting authoritative state from the command; do not require a follow-up profile/bootstrap refresh.
+
+#### Creation Idempotency
+`POST /api/v1/squads` creates a durable asset and therefore needs a retry/idempotency boundary under the accepted API rules. Implement the smallest vNext idempotency mechanism appropriate to this concrete command now; do not build a generic event-sourcing framework. Repeating the same accepted create request under the same idempotency key must not create duplicate squads or increment `player_revision` twice. Conflicting reuse of a key for a different create payload must fail safely. Add only the persistence needed for this concrete command and document/test its retention semantics at the level necessary for correctness.
+
+#### Future Run Lock Boundary
+- Do not fabricate active-run persistence or locking before Milestone 3 creates runs.
+- Structure the squad command/application boundary so a future run-lock policy can be inserted before mutation without redesigning endpoint contracts or putting rules in controllers/repositories.
+- Do not add placeholder run tables or fake `hasActiveRun=false` services merely to claim support.
+
+#### Bootstrap Integration
+- `GET /api/v1/game/bootstrap` must hydrate `active_squad` from authoritative persisted state when `user_state.active_squad_id` is non-null.
+- The active squad payload should contain squad ID/name, normalized nine-position formation, and compact active unit summaries sufficient for initial Camp/game state. Reuse the same summary semantics as the approved unit/squad reads rather than creating a second inconsistent model.
+- `active_squad` remains `null` for a fresh account with no squads.
+- A missing, non-owned, terminal-unit, malformed-position, or otherwise corrupt active squad is a bootstrap integrity failure. Bootstrap must not repair it on GET.
+- Bootstrap remains read-only and must not increment `player_revision`.
+- Update the framework-neutral frontend bootstrap contract/parser/GameStore startup tests so a valid non-null active squad is accepted and retained. Do not build or visually render the squad in Phaser yet; Package 6 owns Warband UI/read integration.
+
+#### Error and Ownership Behavior
+- Non-owned/missing squad IDs must use a non-disclosing not-found response.
+- Invalid configuration uses a narrow validation/domain error; persisted corruption uses the existing narrow Warband integrity behavior or an equally consistent bootstrap-integrity mapping.
+- Do not return another player's unit/squad identity in error payloads.
+- Do not expose raw SQL/exception text.
 
 #### Tests
-- Add focused repository/query/controller/integration coverage for successful empty and populated collection reads; full unit detail; stable squad position ordering/empty-position representation; dice binding/equipment summary where present; auth rejection; guessed cross-user unit IDs; terminal lifecycle filtering/representation; dangling authored-ID integrity failures; and no read-side writes or `player_revision` changes.
-- Add fixture tests proving environment gating, authentication/CSRF if HTTP-based, deterministic/repeat-safe behavior, canonical-ID usage, transaction rollback on failure, and that ordinary registration remains empty.
-- Add a real MySQL/Docker integration path for representative persisted Warband data. Do not satisfy this package exclusively with mocked repositories.
-- Preserve Milestone 1 bootstrap/auth/content tests.
+Add focused real-MySQL integration coverage proving at minimum:
+- auth and CSRF rejection for every mutation;
+- create with exact nine-position normalization and owned active units;
+- first created squad becomes active; second create preserves current active squad;
+- create idempotency prevents duplicate assets/revision increments and rejects conflicting key reuse;
+- invalid/malformed formation/name is rejected atomically;
+- non-owned/terminal/missing units cannot be inserted and do not leak state;
+- PUT atomically replaces name + complete formation and rolls back on failure;
+- activation changes active squad and increments revision once; repeated activation is a no-op for revision;
+- non-owned squad mutation/activation/deletion is non-disclosing;
+- deleting a non-active squad preserves active squad;
+- deleting the only active squad leaves null;
+- deleting an active squad while another squad remains is rejected until another is activated;
+- player revision changes exactly once per real mutation and not on failure/no-op;
+- cross-owner/corrupt persisted active state fails safely;
+- bootstrap returns null for fresh accounts and the normalized authoritative active squad for populated state;
+- bootstrap active squad includes only owned active units and fails safely on corrupt state;
+- frontend bootstrap parsing accepts valid non-null active squad and rejects malformed shapes without changing startup revision/content compatibility behavior;
+- existing Package 3 reads and fixture behavior remain valid.
+
+Use the repository-supported real MySQL/Docker path; do not satisfy command behavior exclusively with mocked repositories.
 
 #### Explicitly Out of Scope
-- Squad create/update/activate/delete commands or bootstrap active-squad hydration — Package 4.
-- Unit rename or loadout mutation — Package 5.
-- Phaser/API-client/GameStore Warband UI/read integration — Package 6.
-- Promotion options/transactions, Academy, XP tuning, starter onboarding, Shop, sale/salvage, Wrong Machine, run locks, combat, rewards, or Milestone 3.
-- Production registration grants.
+- Unit rename or loadout/dice-binding mutation — Package 5.
+- Phaser Warband navigation/read UI — Package 6.
+- Phaser squad editor — Package 7.
+- Promotion/progression, production starter onboarding, Shop, Academy, Wrong Machine, run persistence/locks, combat, rewards, or Milestone 3.
+- Final visual/UI overhaul.
 
 #### Completion
-Run applicable context/docs/content checks plus focused backend unit/integration tests and the repository-supported Docker/MySQL path. Exercise the live HTTP reads against fixture-populated real state where practical. Report the exact endpoint shapes, fixture invocation/gating semantics, canonical fixture IDs used, verification commands/results, and any integrity behavior chosen. Leave this package **In Progress** for architectural review. Do not promote or begin Package 4 in the same coding-agent change.
+Run applicable context/docs checks, focused backend unit/integration tests, Docker/MySQL backend verification, frontend bootstrap/runtime tests, content validation where required, and production frontend build if the bootstrap contract changes compiled client code. Exercise the real HTTP command/bootstrap path where practical. Report exact request/response shapes, idempotency semantics, revision behavior, bootstrap shape, verification results, and any unresolved concern.
+
+Leave this package **In Progress** for architectural review. Do not promote or begin Package 5 in the same coding-agent change.
