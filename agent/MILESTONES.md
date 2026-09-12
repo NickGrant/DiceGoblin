@@ -4,7 +4,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 
 ## Milestone 1 - Walking Skeleton
 
-**Status:** Active
+**Status:** Complete - User UAT Handoff
 
 ### Outcome
 Prove the smallest real vNext path:
@@ -22,10 +22,9 @@ Prove the smallest real vNext path:
 - Superseded prototype paths are removed only after replacements are proven; later reuse candidates remain until their owning package.
 
 ### Related Issues
-- Verify and close the vNext walking skeleton
+None active. The Milestone 1 implementation is handed to the user for manual UAT.
 
 ### Package Queue
-Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 1. ~~Inventory/classify prototype code for vNext reuse.~~ Complete.
 2. ~~Fresh vNext database baseline.~~ Complete and architecturally approved.
 3. ~~Authored content registry + client projection.~~ Complete and architecturally approved.
@@ -34,9 +33,14 @@ Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 6. ~~Phaser startup state + content compatibility gate.~~ Complete and architecturally approved.
 7. ~~Minimal authoritative Camp.~~ Complete and architecturally approved.
 8. ~~Responsive landscape host behavior.~~ Complete and architecturally/UX approved.
-9. **Walking-skeleton end-to-end verification/closure.** Current.
+9. ~~Walking-skeleton end-to-end verification/closure.~~ Complete and architecturally approved.
 
-### UAT Sequencing
-Manual user UAT is deferred until Milestone 1 is technically complete. Package 9 must first prove the integrated walking skeleton, retire only conclusively superseded live prototype wiring, and pass final architectural review. After package 9 is approved, planning will mark Milestone 1 complete and hand the resulting build to the user for UAT. UAT findings may create follow-up work; they do not belong inside the coding-agent closure package itself.
+### Verification Closure
+Milestone 1 closure verified the fresh vNext database baseline, canonical authored-content projection, backend and frontend suites, production build, bundle budget, responsive captures, touch-first orientation behavior, startup negative paths, and a real browser -> PHP -> MySQL registration/bootstrap/Camp path with one gameplay bootstrap, one client-content load, matching content revisions, and no prototype `/profile` gameplay request.
 
-Do not begin Milestone 2 (Warband) or later gameplay while Milestone 1 is active.
+The aggregate `npm run verify:full` command could not invoke host PHP in the verification environment because PHP was absent from the Windows PATH. Its required constituents were run successfully through the repository-supported Docker/frontend paths instead; no required Milestone 1 verification check was skipped.
+
+### UAT Handoff
+Milestone 1 is technically complete. Manual user UAT is the next activity and is post-milestone validation rather than an execution package.
+
+Record UAT findings before promoting corrective work. Do not begin Milestone 2 (Warband) until the user completes this UAT handoff and explicitly proceeds to the next work.
