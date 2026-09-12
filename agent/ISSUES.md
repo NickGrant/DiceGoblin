@@ -6,7 +6,7 @@
 
 ### Establish Warband authored content and client projection
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

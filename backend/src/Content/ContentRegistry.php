@@ -86,6 +86,52 @@ final class ContentRegistry
     return (float)$this->definition('config.gameplay')['energy_regeneration_per_hour'];
   }
 
+  /** @return array<string, mixed> */
+  public function kin(string $id): array
+  {
+    return $this->definitionOfType($id, 'kin');
+  }
+
+  /** @return array<string, mixed> */
+  public function unitType(string $id): array
+  {
+    return $this->definitionOfType($id, 'unit_type');
+  }
+
+  /** @return array<string, mixed> */
+  public function ability(string $id): array
+  {
+    return $this->definitionOfType($id, 'ability');
+  }
+
+  /** @return array<string, mixed> */
+  public function diceMaterial(string $id): array
+  {
+    return $this->definitionOfType($id, 'dice_material');
+  }
+
+  /** @return array<string, mixed> */
+  public function diceAspect(string $id): array
+  {
+    return $this->definitionOfType($id, 'dice_aspect');
+  }
+
+  /** @return array<string, mixed> */
+  public function diceProfile(string $id): array
+  {
+    return $this->definitionOfType($id, 'dice_profile');
+  }
+
+  /** @return array<string, mixed> */
+  private function definitionOfType(string $id, string $type): array
+  {
+    $definition = $this->definition($id);
+    if (($definition['type'] ?? null) !== $type) {
+      throw new ContentValidationException("Authored content id '{$id}' is not type '{$type}'.");
+    }
+    return $definition;
+  }
+
   /** @param array<string, array<string, mixed>> $definitions */
   private static function revisionFor(array $definitions): string
   {

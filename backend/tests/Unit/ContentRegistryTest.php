@@ -31,6 +31,15 @@ final class ContentRegistryTest extends TestCase
       'display_name' => 'The Farm',
       'art_key' => 'farm',
     ], $registry->definition('region.the_farm'));
+    $this->assertCount(2, $registry->definitionsOfType('kin'));
+    $this->assertCount(20, $registry->definitionsOfType('unit_type'));
+    $this->assertCount(29, $registry->definitionsOfType('ability'));
+    $this->assertCount(5, $registry->definitionsOfType('dice_material'));
+    $this->assertCount(6, $registry->definitionsOfType('dice_aspect'));
+    $this->assertCount(11, $registry->definitionsOfType('dice_profile'));
+    $this->assertSame('Pig Kin', $registry->kin('kin.pig')['display_name']);
+    $this->assertSame(2, $registry->ability('ability.sleep_dart')['dice_slot_count']);
+    $this->assertSame('dice_material.cardboard', $registry->diceProfile('dice_profile.cardboard_plain')['material_id']);
     $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $registry->revision());
   }
 
@@ -101,10 +110,15 @@ final class ContentRegistryTest extends TestCase
   public function testProjectionIsAllowlistedAndSharesRevision(): void
   {
     $root = $this->copyCanonicalContent();
-    $regionPath = $root . '/regions/the-farm.json';
-    $document = json_decode((string)file_get_contents($regionPath), true, 512, JSON_THROW_ON_ERROR);
-    $document['definitions'][0]['new_private_field'] = 'must not leak';
-    file_put_contents($regionPath, json_encode($document, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+    $contentPath = $root . '/everything.json';
+    $document = json_decode((string)file_get_contents($contentPath), true, 512, JSON_THROW_ON_ERROR);
+    foreach ($document['definitions'] as &$definition) {
+      if (($definition['id'] ?? null) === 'ability.basic_attack_melee') {
+        $definition['handler_config']['power_ratio'] = 1.01;
+      }
+    }
+    unset($definition);
+    file_put_contents($contentPath, json_encode($document, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 
     $registry = ContentRegistry::load($root);
     $projection = (new ClientContentProjector())->project($registry);
@@ -116,27 +130,40 @@ final class ContentRegistryTest extends TestCase
       'display_name' => 'The Farm',
       'art_key' => 'farm',
     ], $projection['content']['regions']['region.the_farm']);
+    $this->assertSame([
+      'id' => 'ability.sleep_dart',
+      'kind' => 'active',
+      'display_name' => 'Sleep Dart',
+      'description' => 'Puts an enemy to sleep until damaged.',
+      'icon_key' => 'icon_ability_sleep_dart',
+      'dice_slot_count' => 2,
+    ], $projection['content']['abilities']['ability.sleep_dart']);
+    $this->assertSame('dice_material.bone', $projection['content']['dice_profiles']['dice_profile.bone_explosive']['material_id']);
     $this->assertStringNotContainsString('starting_energy', $encoded);
     $this->assertStringNotContainsString('starting_region_id', $encoded);
-    $this->assertStringNotContainsString('new_private_field', $encoded);
+    foreach (['handler_id', 'handler_config', 'action_delay', 'resolution_priority', 'target_rule', 'effect_id', 'effect_config'] as $privateField) {
+      $this->assertStringNotContainsString($privateField, $encoded);
+    }
   }
 
   public function testRevisionIsIndependentOfFileOrganizationAndChangesWithCanonicalContent(): void
   {
     $canonical = ContentRegistry::load($this->canonicalRoot());
+    $definitions = $this->canonicalDefinitions($canonical);
     $reorganized = $this->rootWithFiles([
-      'everything.json' => ['definitions' => [
-        $canonical->definition('region.the_farm'),
-        $canonical->definition('config.gameplay'),
-      ]],
+      'everything.json' => ['definitions' => array_reverse($definitions)],
     ]);
     $this->assertSame($canonical->revision(), ContentRegistry::load($reorganized)->revision());
 
+    $changedDefinitions = $definitions;
+    foreach ($changedDefinitions as &$definition) {
+      if (($definition['id'] ?? null) === 'ability.basic_attack_melee') {
+        $definition['handler_config']['power_ratio'] = 1.01;
+      }
+    }
+    unset($definition);
     $changed = $this->rootWithFiles([
-      'everything.json' => ['definitions' => [
-        array_merge($canonical->definition('config.gameplay'), ['starting_energy' => 11]),
-        $canonical->definition('region.the_farm'),
-      ]],
+      'everything.json' => ['definitions' => $changedDefinitions],
     ]);
     $this->assertNotSame($canonical->revision(), ContentRegistry::load($changed)->revision());
   }
@@ -150,9 +177,18 @@ final class ContentRegistryTest extends TestCase
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
     return $this->rootWithFiles([
-      'config/gameplay.json' => ['definitions' => [$registry->definition('config.gameplay')]],
-      'regions/the-farm.json' => ['definitions' => [$registry->definition('region.the_farm')]],
+      'everything.json' => ['definitions' => $this->canonicalDefinitions($registry)],
     ]);
+  }
+
+  /** @return list<array<string,mixed>> */
+  private function canonicalDefinitions(ContentRegistry $registry): array
+  {
+    $definitions = [];
+    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'ability', 'dice_material', 'dice_aspect', 'dice_profile'] as $type) {
+      foreach ($registry->definitionsOfType($type) as $definition) $definitions[] = $definition;
+    }
+    return $definitions;
   }
 
   /** @param array<string, array<mixed>|string> $files */

@@ -170,6 +170,12 @@ async function installGameFixtureRoutes(page, options) {
             art_key: 'farm',
           },
         },
+        kin: {},
+        unit_types: {},
+        abilities: {},
+        dice_materials: {},
+        dice_aspects: {},
+        dice_profiles: {},
       },
     }),
   }));

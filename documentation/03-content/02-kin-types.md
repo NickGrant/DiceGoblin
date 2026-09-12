@@ -1,7 +1,7 @@
 ---
 Title: "Kin Type Design Reference"
 Status: Transitional vNext Reference
-Last Updated: 2026-09-10
+Last Updated: 2026-09-12
 Owner: Content Design
 Depends On:
   - documentation/07-development-path/vnext-progression-state-model.md
@@ -14,11 +14,16 @@ Tags: [content, kin, vnext]
 
 Kin are restored goblin forms associated with creature families. The durable account concept is a unique kin unlock; individual owned units also carry their kin identity.
 
-## Opening Roster
-- Basic Goblin - neutral/default goblin identity.
-- Pig Kin - associated with the Farm/pigs.
-- Lizard Kin - associated with Mountains/kobolds.
-- Frog Kin - associated with Swamps/frogmen.
+## Implemented Definitions
+
+Basic Goblin and Pig Kin are implemented in `backend/content/kin/goblins.json`. That JSON owns their stable IDs, presentation, traits, and exact stat modifiers.
+
+## Planned Opening Allocation
+
+- Basic Goblin - neutral/default goblin identity (implemented).
+- Pig Kin - associated with the Farm/pigs (implemented).
+- Lizard Kin - associated with Mountains/kobolds (planned).
+- Frog Kin - associated with Swamps/frogmen (planned).
 
 The complete planned base-game family/kin allocation is in `07-development-path/01-base-game-content-roster.md`. Later entries are planning allocation, not automatically implemented content.
 
@@ -27,4 +32,4 @@ When the Wrong Machine targets a kin not yet unlocked, successful reconstruction
 
 There is no generic "first kin" flag and no separate first-ownership progression record. Kin unlock ownership is the durable capability truth.
 
-Exact stat modifiers, recipes/costs, presentation, and reward eligibility must be authored in canonical JSON when each kin enters implementation. Prototype Pig Kin recipes and first-ownership behavior are not automatically carried forward.
+Exact recipes/costs and reward eligibility must be authored in canonical JSON when those systems enter implementation. Prototype Pig Kin recipes and first-ownership behavior are not automatically carried forward.

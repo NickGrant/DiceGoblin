@@ -1,0 +1,34 @@
+{
+  "definitions": [
+    {
+      "id": "kin.goblin",
+      "type": "kin",
+      "display_name": "Basic Goblin",
+      "description": "Baseline goblin stock with no reconstructed kin tendency.",
+      "art_key": "goblin_primordial",
+      "trait_summary": "No kin modifier.",
+      "stat_modifiers": {
+        "hp": 0,
+        "attack": 0,
+        "defense": 0,
+        "precision": 0,
+        "resolve": 0
+      }
+    },
+    {
+      "id": "kin.pig",
+      "type": "kin",
+      "display_name": "Pig Kin",
+      "description": "Stubborn farmyard goblin-kin with thicker hide and a slightly less precise hand.",
+      "art_key": "goblin_pig",
+      "trait_summary": "+2 HP, +1 Defense, +1 Resolve, -1 Precision.",
+      "stat_modifiers": {
+        "hp": 2,
+        "attack": 0,
+        "defense": 1,
+        "precision": -1,
+        "resolve": 1
+      }
+    }
+  ]
+}

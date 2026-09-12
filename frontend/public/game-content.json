@@ -1,11 +1,1170 @@
 {
-    "revision": "243cb78538886f9693ab781d4c39b27498074e0204b32b6d148fc1cb65306605",
+    "revision": "f1a64c25281ebe576969e6fad144b00ff612c88a1e042f12675a1a1c7c2718c0",
     "content": {
         "regions": {
             "region.the_farm": {
                 "id": "region.the_farm",
                 "display_name": "The Farm",
                 "art_key": "farm"
+            }
+        },
+        "kin": {
+            "kin.goblin": {
+                "id": "kin.goblin",
+                "display_name": "Basic Goblin",
+                "description": "Baseline goblin stock with no reconstructed kin tendency.",
+                "art_key": "goblin_primordial",
+                "trait_summary": "No kin modifier.",
+                "stat_modifiers": {
+                    "hp": 0,
+                    "attack": 0,
+                    "defense": 0,
+                    "precision": 0,
+                    "resolve": 0
+                }
+            },
+            "kin.pig": {
+                "id": "kin.pig",
+                "display_name": "Pig Kin",
+                "description": "Stubborn farmyard goblin-kin with thicker hide and a slightly less precise hand.",
+                "art_key": "goblin_pig",
+                "trait_summary": "+2 HP, +1 Defense, +1 Resolve, -1 Precision.",
+                "stat_modifiers": {
+                    "hp": 2,
+                    "attack": 0,
+                    "defense": 1,
+                    "precision": -1,
+                    "resolve": 1
+                }
+            }
+        },
+        "unit_types": {
+            "unit_type.bannerbearer": {
+                "id": "unit_type.bannerbearer",
+                "display_name": "Bannerbearer",
+                "description": "A support specialist that reinforces allies and helps the squad endure longer fights.",
+                "art_key": "goblin_bannerbearer",
+                "role": "support",
+                "tier": 1,
+                "base_stats": {
+                    "hp": 20,
+                    "attack": 2,
+                    "defense": 4,
+                    "precision": 5,
+                    "resolve": 6
+                },
+                "growth_per_level": {
+                    "hp": 2,
+                    "attack": 1,
+                    "defense": 2,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_melee",
+                    "ability.bolster_ally"
+                ]
+            },
+            "unit_type.bruiser": {
+                "id": "unit_type.bruiser",
+                "display_name": "Bruiser",
+                "description": "A durable frontliner built to absorb hits and keep pressure on the enemy line.",
+                "art_key": "goblin_bruiser",
+                "role": "frontline",
+                "tier": 1,
+                "base_stats": {
+                    "hp": 22,
+                    "attack": 5,
+                    "defense": 3,
+                    "precision": 5,
+                    "resolve": 5
+                },
+                "growth_per_level": {
+                    "hp": 2,
+                    "attack": 1,
+                    "defense": 1,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_melee",
+                    "ability.heavy_strike",
+                    "ability.thick_hide"
+                ]
+            },
+            "unit_type.bulwark": {
+                "id": "unit_type.bulwark",
+                "display_name": "Bulwark",
+                "description": "A fortified guardian branch specializing in tanking, guard conversion, and line-holding.",
+                "art_key": "goblin_bulwark",
+                "role": "frontline",
+                "tier": 2,
+                "base_stats": {
+                    "hp": 32,
+                    "attack": 4,
+                    "defense": 7,
+                    "precision": 4,
+                    "resolve": 7
+                },
+                "growth_per_level": {
+                    "hp": 3,
+                    "attack": 1,
+                    "defense": 2,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_melee",
+                    "ability.shield_up",
+                    "ability.thick_hide",
+                    "ability.taunting_guard",
+                    "ability.shield_set"
+                ]
+            },
+            "unit_type.deadeye": {
+                "id": "unit_type.deadeye",
+                "display_name": "Deadeye",
+                "description": "A precision ranged branch focused on single-target removal and armor-piercing shots.",
+                "art_key": "goblin_deadeye",
+                "role": "backline",
+                "tier": 2,
+                "base_stats": {
+                    "hp": 24,
+                    "attack": 8,
+                    "defense": 3,
+                    "precision": 7,
+                    "resolve": 4
+                },
+                "growth_per_level": {
+                    "hp": 2,
+                    "attack": 2,
+                    "defense": 1,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_ranged",
+                    "ability.aimed_shot",
+                    "ability.sharpshooter",
+                    "ability.piercing_shot",
+                    "ability.vantage_point"
+                ]
+            },
+            "unit_type.enforcer": {
+                "id": "unit_type.enforcer",
+                "display_name": "Enforcer",
+                "description": "An upgraded bruiser branch that leans into heavier execution damage and frontline pressure.",
+                "art_key": "goblin_enforcer",
+                "role": "frontline",
+                "tier": 2,
+                "base_stats": {
+                    "hp": 30,
+                    "attack": 7,
+                    "defense": 5,
+                    "precision": 5,
+                    "resolve": 6
+                },
+                "growth_per_level": {
+                    "hp": 3,
+                    "attack": 1,
+                    "defense": 1,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_melee",
+                    "ability.heavy_strike",
+                    "ability.thick_hide",
+                    "ability.skullcrack",
+                    "ability.menacing_follow_through"
+                ]
+            },
+            "unit_type.guardian": {
+                "id": "unit_type.guardian",
+                "display_name": "Guardian",
+                "description": "A shield-first defender that trades damage for stronger protection and staying power.",
+                "art_key": "goblin_guardian",
+                "role": "frontline",
+                "tier": 1,
+                "base_stats": {
+                    "hp": 24,
+                    "attack": 3,
+                    "defense": 5,
+                    "precision": 4,
+                    "resolve": 6
+                },
+                "growth_per_level": {
+                    "hp": 2,
+                    "attack": 1,
+                    "defense": 2,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_melee",
+                    "ability.shield_up",
+                    "ability.thick_hide"
+                ]
+            },
+            "unit_type.ironwall": {
+                "id": "unit_type.ironwall",
+                "display_name": "Ironwall",
+                "description": "A deep guardian promotion built around maximum line control and defensive staying power.",
+                "art_key": "goblin_ironwall",
+                "role": "frontline",
+                "tier": 3,
+                "base_stats": {
+                    "hp": 44,
+                    "attack": 5,
+                    "defense": 10,
+                    "precision": 3,
+                    "resolve": 8
+                },
+                "growth_per_level": {
+                    "hp": 3,
+                    "attack": 1,
+                    "defense": 3,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_melee",
+                    "ability.shield_up",
+                    "ability.thick_hide",
+                    "ability.taunting_guard",
+                    "ability.shield_set"
+                ]
+            },
+            "unit_type.juggernaut": {
+                "id": "unit_type.juggernaut",
+                "display_name": "Juggernaut",
+                "description": "A deep bruiser promotion committed to punishing pressure and frontline dominance.",
+                "art_key": "goblin_juggernaut",
+                "role": "frontline",
+                "tier": 3,
+                "base_stats": {
+                    "hp": 40,
+                    "attack": 9,
+                    "defense": 7,
+                    "precision": 4,
+                    "resolve": 7
+                },
+                "growth_per_level": {
+                    "hp": 4,
+                    "attack": 1,
+                    "defense": 2,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_melee",
+                    "ability.heavy_strike",
+                    "ability.thick_hide",
+                    "ability.skullcrack",
+                    "ability.menacing_follow_through"
+                ]
+            },
+            "unit_type.marksman": {
+                "id": "unit_type.marksman",
+                "display_name": "Marksman",
+                "description": "A ranged damage dealer that thrives from the back row with steady offensive pressure.",
+                "art_key": "goblin_marksman",
+                "role": "backline",
+                "tier": 1,
+                "base_stats": {
+                    "hp": 18,
+                    "attack": 6,
+                    "defense": 2,
+                    "precision": 6,
+                    "resolve": 4
+                },
+                "growth_per_level": {
+                    "hp": 2,
+                    "attack": 2,
+                    "defense": 1,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_ranged",
+                    "ability.aimed_shot",
+                    "ability.sharpshooter"
+                ]
+            },
+            "unit_type.mascot": {
+                "id": "unit_type.mascot",
+                "display_name": "Mascot",
+                "description": "A chaotic support branch that spreads luck, morale swings, and scrappy clutch bonuses.",
+                "art_key": "goblin_mascot",
+                "role": "support",
+                "tier": 2,
+                "base_stats": {
+                    "hp": 28,
+                    "attack": 2,
+                    "defense": 5,
+                    "precision": 5,
+                    "resolve": 6
+                },
+                "growth_per_level": {
+                    "hp": 3,
+                    "attack": 1,
+                    "defense": 2,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_melee",
+                    "ability.bolster_ally",
+                    "ability.lucky_chant",
+                    "ability.attention_hog"
+                ]
+            },
+            "unit_type.pit_fighter": {
+                "id": "unit_type.pit_fighter",
+                "display_name": "Pit Fighter",
+                "description": "A risky brawler branch that cashes in on wounded states, counters, and comeback turns.",
+                "art_key": "goblin_pit_fighter",
+                "role": "frontline",
+                "tier": 2,
+                "base_stats": {
+                    "hp": 28,
+                    "attack": 8,
+                    "defense": 4,
+                    "precision": 5,
+                    "resolve": 6
+                },
+                "growth_per_level": {
+                    "hp": 3,
+                    "attack": 2,
+                    "defense": 1,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_melee",
+                    "ability.heavy_strike",
+                    "ability.thick_hide",
+                    "ability.desperate_swing",
+                    "ability.counterpunch"
+                ]
+            },
+            "unit_type.plaguehand": {
+                "id": "unit_type.plaguehand",
+                "display_name": "Plaguehand",
+                "description": "A poison-heavy control branch that spreads weakness and softens multiple targets at once.",
+                "art_key": "goblin_plaguehand",
+                "role": "utility",
+                "tier": 2,
+                "base_stats": {
+                    "hp": 24,
+                    "attack": 5,
+                    "defense": 4,
+                    "precision": 6,
+                    "resolve": 4
+                },
+                "growth_per_level": {
+                    "hp": 2,
+                    "attack": 2,
+                    "defense": 1,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_ranged",
+                    "ability.sleep_dart",
+                    "ability.poison_cloud",
+                    "ability.nerve_toxin"
+                ]
+            },
+            "unit_type.saboteur": {
+                "id": "unit_type.saboteur",
+                "display_name": "Saboteur",
+                "description": "A disruptive skirmisher focused on control and breaking enemy momentum.",
+                "art_key": "goblin_saboteur",
+                "role": "utility",
+                "tier": 1,
+                "base_stats": {
+                    "hp": 18,
+                    "attack": 4,
+                    "defense": 3,
+                    "precision": 6,
+                    "resolve": 4
+                },
+                "growth_per_level": {
+                    "hp": 2,
+                    "attack": 2,
+                    "defense": 1,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_ranged",
+                    "ability.sleep_dart"
+                ]
+            },
+            "unit_type.sharpshot": {
+                "id": "unit_type.sharpshot",
+                "display_name": "Sharpshot",
+                "description": "A deep marksman promotion that turns backline pressure into lethal precision.",
+                "art_key": "goblin_sharpshot",
+                "role": "backline",
+                "tier": 3,
+                "base_stats": {
+                    "hp": 32,
+                    "attack": 11,
+                    "defense": 4,
+                    "precision": 8,
+                    "resolve": 4
+                },
+                "growth_per_level": {
+                    "hp": 2,
+                    "attack": 3,
+                    "defense": 1,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_ranged",
+                    "ability.aimed_shot",
+                    "ability.sharpshooter",
+                    "ability.piercing_shot",
+                    "ability.vantage_point"
+                ]
+            },
+            "unit_type.shieldbreaker": {
+                "id": "unit_type.shieldbreaker",
+                "display_name": "Shieldbreaker",
+                "description": "An anti-armor frontline branch built to crack defenses open for the squad.",
+                "art_key": "goblin_shieldbreaker",
+                "role": "frontline",
+                "tier": 2,
+                "base_stats": {
+                    "hp": 30,
+                    "attack": 6,
+                    "defense": 6,
+                    "precision": 5,
+                    "resolve": 6
+                },
+                "growth_per_level": {
+                    "hp": 3,
+                    "attack": 1,
+                    "defense": 2,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_melee",
+                    "ability.shield_up",
+                    "ability.thick_hide",
+                    "ability.crack_armor",
+                    "ability.find_the_gap"
+                ]
+            },
+            "unit_type.trapper": {
+                "id": "unit_type.trapper",
+                "display_name": "Trapper",
+                "description": "A utility archer branch built around marks, setup tools, and treasure sense.",
+                "art_key": "goblin_trapper",
+                "role": "backline",
+                "tier": 2,
+                "base_stats": {
+                    "hp": 24,
+                    "attack": 7,
+                    "defense": 3,
+                    "precision": 7,
+                    "resolve": 4
+                },
+                "growth_per_level": {
+                    "hp": 2,
+                    "attack": 2,
+                    "defense": 1,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_ranged",
+                    "ability.aimed_shot",
+                    "ability.sharpshooter",
+                    "ability.mark_target",
+                    "ability.treasure_sense"
+                ]
+            },
+            "unit_type.trickshot": {
+                "id": "unit_type.trickshot",
+                "display_name": "Trickshot",
+                "description": "A sharper control branch that punishes compromised enemies with precise follow-up pressure.",
+                "art_key": "goblin_trickshot",
+                "role": "utility",
+                "tier": 2,
+                "base_stats": {
+                    "hp": 26,
+                    "attack": 6,
+                    "defense": 4,
+                    "precision": 7,
+                    "resolve": 4
+                },
+                "growth_per_level": {
+                    "hp": 3,
+                    "attack": 2,
+                    "defense": 1,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_ranged",
+                    "ability.sleep_dart",
+                    "ability.disarming_shot",
+                    "ability.opportunist"
+                ]
+            },
+            "unit_type.venomwright": {
+                "id": "unit_type.venomwright",
+                "display_name": "Venomwright",
+                "description": "A deep saboteur promotion that turns disruption and poison setup into late-game control.",
+                "art_key": "goblin_trickshot",
+                "role": "utility",
+                "tier": 3,
+                "base_stats": {
+                    "hp": 32,
+                    "attack": 8,
+                    "defense": 5,
+                    "precision": 7,
+                    "resolve": 6
+                },
+                "growth_per_level": {
+                    "hp": 2,
+                    "attack": 2,
+                    "defense": 1,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_ranged",
+                    "ability.sleep_dart",
+                    "ability.disarming_shot",
+                    "ability.opportunist"
+                ]
+            },
+            "unit_type.warcaller": {
+                "id": "unit_type.warcaller",
+                "display_name": "Warcaller",
+                "description": "An offensive support branch that turns team tempo and buffs into aggressive momentum.",
+                "art_key": "goblin_warcaller",
+                "role": "support",
+                "tier": 2,
+                "base_stats": {
+                    "hp": 30,
+                    "attack": 3,
+                    "defense": 6,
+                    "precision": 5,
+                    "resolve": 7
+                },
+                "growth_per_level": {
+                    "hp": 3,
+                    "attack": 1,
+                    "defense": 2,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_melee",
+                    "ability.bolster_ally",
+                    "ability.warcry",
+                    "ability.battle_tempo"
+                ]
+            },
+            "unit_type.warchanter": {
+                "id": "unit_type.warchanter",
+                "display_name": "Warchanter",
+                "description": "A deep banner promotion that makes sustained buffs and squad tempo central to the fight.",
+                "art_key": "goblin_warcaller",
+                "role": "support",
+                "tier": 3,
+                "base_stats": {
+                    "hp": 38,
+                    "attack": 4,
+                    "defense": 8,
+                    "precision": 5,
+                    "resolve": 8
+                },
+                "growth_per_level": {
+                    "hp": 3,
+                    "attack": 1,
+                    "defense": 2,
+                    "precision": 1,
+                    "resolve": 1
+                },
+                "ability_ids": [
+                    "ability.basic_attack_melee",
+                    "ability.bolster_ally",
+                    "ability.warcry",
+                    "ability.battle_tempo"
+                ]
+            }
+        },
+        "abilities": {
+            "ability.aimed_shot": {
+                "id": "ability.aimed_shot",
+                "kind": "active",
+                "display_name": "Aimed Shot",
+                "description": "A slower, harder-hitting ranged attack.",
+                "icon_key": "icon_ability_aimed_shot",
+                "dice_slot_count": 1
+            },
+            "ability.attention_hog": {
+                "id": "ability.attention_hog",
+                "kind": "passive",
+                "display_name": "Attention Hog",
+                "description": "Support effects on this unit spill to one ally.",
+                "icon_key": "icon_passive_attention_hog",
+                "dice_slot_count": 0
+            },
+            "ability.basic_attack_melee": {
+                "id": "ability.basic_attack_melee",
+                "kind": "active",
+                "display_name": "Basic Attack (Melee)",
+                "description": "Deals standard damage to a front enemy.",
+                "icon_key": "icon_ability_basic_attack_melee",
+                "dice_slot_count": 1
+            },
+            "ability.basic_attack_ranged": {
+                "id": "ability.basic_attack_ranged",
+                "kind": "active",
+                "display_name": "Basic Attack (Ranged)",
+                "description": "Deals standard damage to a back enemy.",
+                "icon_key": "icon_ability_basic_attack_ranged",
+                "dice_slot_count": 1
+            },
+            "ability.battle_tempo": {
+                "id": "ability.battle_tempo",
+                "kind": "passive",
+                "display_name": "Battle Tempo",
+                "description": "Defeats while buffed spread momentum to allies.",
+                "icon_key": "icon_passive_battle_tempo",
+                "dice_slot_count": 0
+            },
+            "ability.bolster_ally": {
+                "id": "ability.bolster_ally",
+                "kind": "active",
+                "display_name": "Bolster Ally",
+                "description": "Bolsters an ally's defenses for a short time.",
+                "icon_key": "icon_ability_bolster_ally",
+                "dice_slot_count": 1
+            },
+            "ability.counterpunch": {
+                "id": "ability.counterpunch",
+                "kind": "passive",
+                "display_name": "Counterpunch",
+                "description": "Once per round, retaliate after a melee hit.",
+                "icon_key": "icon_passive_counterpunch",
+                "dice_slot_count": 0
+            },
+            "ability.crack_armor": {
+                "id": "ability.crack_armor",
+                "kind": "active",
+                "display_name": "Crack Armor",
+                "description": "A melee hit that lowers Defense.",
+                "icon_key": "icon_ability_crack_armor",
+                "dice_slot_count": 1
+            },
+            "ability.desperate_swing": {
+                "id": "ability.desperate_swing",
+                "kind": "active",
+                "display_name": "Desperate Swing",
+                "description": "A melee strike that hits harder when wounded.",
+                "icon_key": "icon_ability_desperate_swing",
+                "dice_slot_count": 1
+            },
+            "ability.disarming_shot": {
+                "id": "ability.disarming_shot",
+                "kind": "active",
+                "display_name": "Disarming Shot",
+                "description": "A ranged attack that lowers enemy Attack.",
+                "icon_key": "icon_ability_disarming_shot",
+                "dice_slot_count": 1
+            },
+            "ability.find_the_gap": {
+                "id": "ability.find_the_gap",
+                "kind": "passive",
+                "display_name": "Find the Gap",
+                "description": "Ignore a small amount of Defense on attacks.",
+                "icon_key": "icon_passive_find_the_gap",
+                "dice_slot_count": 0
+            },
+            "ability.heavy_strike": {
+                "id": "ability.heavy_strike",
+                "kind": "active",
+                "display_name": "Heavy Strike",
+                "description": "A slower, harder-hitting melee attack.",
+                "icon_key": "icon_ability_heavy_strike",
+                "dice_slot_count": 1
+            },
+            "ability.lucky_chant": {
+                "id": "ability.lucky_chant",
+                "kind": "active",
+                "display_name": "Lucky Chant",
+                "description": "Gives an ally a lucky boost to its next action.",
+                "icon_key": "icon_ability_lucky_chant",
+                "dice_slot_count": 1
+            },
+            "ability.mark_target": {
+                "id": "ability.mark_target",
+                "kind": "active",
+                "display_name": "Mark Target",
+                "description": "Applies Marked with a light ranged hit.",
+                "icon_key": "icon_ability_mark_target",
+                "dice_slot_count": 1
+            },
+            "ability.menacing_follow_through": {
+                "id": "ability.menacing_follow_through",
+                "kind": "passive",
+                "display_name": "Menacing Follow-Through",
+                "description": "Active hits leave enemies vulnerable to melee damage.",
+                "icon_key": "icon_passive_menacing_follow_through",
+                "dice_slot_count": 0
+            },
+            "ability.nerve_toxin": {
+                "id": "ability.nerve_toxin",
+                "kind": "passive",
+                "display_name": "Nerve Toxin",
+                "description": "Poisoned enemies deal less damage.",
+                "icon_key": "icon_passive_nerve_toxin",
+                "dice_slot_count": 0
+            },
+            "ability.opportunist": {
+                "id": "ability.opportunist",
+                "kind": "passive",
+                "display_name": "Opportunist",
+                "description": "Deal more damage to debuffed enemies.",
+                "icon_key": "icon_passive_opportunist",
+                "dice_slot_count": 0
+            },
+            "ability.piercing_shot": {
+                "id": "ability.piercing_shot",
+                "kind": "active",
+                "display_name": "Piercing Shot",
+                "description": "A ranged shot that ignores some Defense.",
+                "icon_key": "icon_ability_piercing_shot",
+                "dice_slot_count": 1
+            },
+            "ability.poison_cloud": {
+                "id": "ability.poison_cloud",
+                "kind": "active",
+                "display_name": "Poison Cloud",
+                "description": "Poisons multiple enemies.",
+                "icon_key": "icon_ability_poison_cloud",
+                "dice_slot_count": 1
+            },
+            "ability.sharpshooter": {
+                "id": "ability.sharpshooter",
+                "kind": "passive",
+                "display_name": "Sharpshooter",
+                "description": "Deal increased damage with ranged attacks.",
+                "icon_key": "icon_passive_sharpshooter",
+                "dice_slot_count": 0
+            },
+            "ability.shield_set": {
+                "id": "ability.shield_set",
+                "kind": "passive",
+                "display_name": "Shield Set",
+                "description": "Gain Defense stacks each time this unit is attacked.",
+                "icon_key": "icon_passive_shield_set",
+                "dice_slot_count": 0
+            },
+            "ability.shield_up": {
+                "id": "ability.shield_up",
+                "kind": "active",
+                "display_name": "Shield Up",
+                "description": "Bolsters the user's defenses for a short time.",
+                "icon_key": "icon_ability_shield_up",
+                "dice_slot_count": 1
+            },
+            "ability.skullcrack": {
+                "id": "ability.skullcrack",
+                "kind": "active",
+                "display_name": "Skullcrack",
+                "description": "A heavy melee strike that weakens the target.",
+                "icon_key": "icon_ability_skullcrack",
+                "dice_slot_count": 1
+            },
+            "ability.sleep_dart": {
+                "id": "ability.sleep_dart",
+                "kind": "active",
+                "display_name": "Sleep Dart",
+                "description": "Puts an enemy to sleep until damaged.",
+                "icon_key": "icon_ability_sleep_dart",
+                "dice_slot_count": 2
+            },
+            "ability.taunting_guard": {
+                "id": "ability.taunting_guard",
+                "kind": "active",
+                "display_name": "Taunting Guard",
+                "description": "Taunts enemies and grants guard stacks.",
+                "icon_key": "icon_ability_taunting_guard",
+                "dice_slot_count": 1
+            },
+            "ability.thick_hide": {
+                "id": "ability.thick_hide",
+                "kind": "passive",
+                "display_name": "Thick Hide",
+                "description": "Gain a flat Defense bonus.",
+                "icon_key": "icon_passive_thick_hide",
+                "dice_slot_count": 0
+            },
+            "ability.treasure_sense": {
+                "id": "ability.treasure_sense",
+                "kind": "passive",
+                "display_name": "Treasure Sense",
+                "description": "Can reveal a hidden treasure node during a run.",
+                "icon_key": "icon_passive_treasure_sense",
+                "dice_slot_count": 0
+            },
+            "ability.vantage_point": {
+                "id": "ability.vantage_point",
+                "kind": "passive",
+                "display_name": "Vantage Point",
+                "description": "Deal more ranged damage from safer backline positions.",
+                "icon_key": "icon_passive_vantage_point",
+                "dice_slot_count": 0
+            },
+            "ability.warcry": {
+                "id": "ability.warcry",
+                "kind": "active",
+                "display_name": "Warcry",
+                "description": "Bolsters an ally's Attack.",
+                "icon_key": "icon_ability_warcry",
+                "dice_slot_count": 1
+            }
+        },
+        "dice_materials": {
+            "dice_material.bone": {
+                "id": "dice_material.bone",
+                "display_name": "Bone",
+                "description": "A pale die carved from something best left unidentified.",
+                "art_key": "bone",
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_material.cardboard": {
+                "id": "dice_material.cardboard",
+                "display_name": "Cardboard",
+                "description": "A humble die cut from layered card and stubborn optimism.",
+                "art_key": "cardboard",
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_material.gemstone": {
+                "id": "dice_material.gemstone",
+                "display_name": "Gemstone",
+                "description": "A brilliant cut-stone die coveted by serious goblin rollers.",
+                "art_key": "gemstone",
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_material.metal": {
+                "id": "dice_material.metal",
+                "display_name": "Metal",
+                "description": "A heavy die that lands with an authoritative clunk.",
+                "art_key": "metal",
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_material.wood": {
+                "id": "dice_material.wood",
+                "display_name": "Wood",
+                "description": "A dependable carved die with a warm, worn finish.",
+                "art_key": "wood",
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            }
+        },
+        "dice_aspects": {
+            "dice_aspect.bulwark": {
+                "id": "dice_aspect.bulwark",
+                "display_name": "Bulwark",
+                "description": "+10% Defense while this die is equipped.",
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_aspect.executioner": {
+                "id": "dice_aspect.executioner",
+                "display_name": "Executioner",
+                "description": "Deal 15% more damage when the target is below half health.",
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_aspect.explosive": {
+                "id": "dice_aspect.explosive",
+                "display_name": "Explosive",
+                "description": "When this die rolls its maximum, roll it again once and combine the results.",
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_aspect.guarding": {
+                "id": "dice_aspect.guarding",
+                "display_name": "Guarding",
+                "description": "+1 Defense while this die is equipped.",
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_aspect.precise": {
+                "id": "dice_aspect.precise",
+                "display_name": "Precise",
+                "description": "+10% Attack while this die is equipped.",
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_aspect.striking": {
+                "id": "dice_aspect.striking",
+                "display_name": "Striking",
+                "description": "+1 damage on attack rolls.",
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            }
+        },
+        "dice_profiles": {
+            "dice_profile.bone_executioner": {
+                "id": "dice_profile.bone_executioner",
+                "display_name": "Executioner Bone",
+                "material_id": "dice_material.bone",
+                "rarity": "rare",
+                "aspect_ids": [
+                    "dice_aspect.executioner"
+                ],
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_profile.bone_explosive": {
+                "id": "dice_profile.bone_explosive",
+                "display_name": "Explosive Bone",
+                "material_id": "dice_material.bone",
+                "rarity": "rare",
+                "aspect_ids": [
+                    "dice_aspect.explosive"
+                ],
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_profile.bone_plain": {
+                "id": "dice_profile.bone_plain",
+                "display_name": "Plain Bone",
+                "material_id": "dice_material.bone",
+                "rarity": "rare",
+                "aspect_ids": [],
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_profile.cardboard_guarding": {
+                "id": "dice_profile.cardboard_guarding",
+                "display_name": "Guarding Cardboard",
+                "material_id": "dice_material.cardboard",
+                "rarity": "common",
+                "aspect_ids": [
+                    "dice_aspect.guarding"
+                ],
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_profile.cardboard_plain": {
+                "id": "dice_profile.cardboard_plain",
+                "display_name": "Plain Cardboard",
+                "material_id": "dice_material.cardboard",
+                "rarity": "common",
+                "aspect_ids": [],
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_profile.cardboard_striking": {
+                "id": "dice_profile.cardboard_striking",
+                "display_name": "Striking Cardboard",
+                "material_id": "dice_material.cardboard",
+                "rarity": "common",
+                "aspect_ids": [
+                    "dice_aspect.striking"
+                ],
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_profile.gemstone_plain": {
+                "id": "dice_profile.gemstone_plain",
+                "display_name": "Plain Gemstone",
+                "material_id": "dice_material.gemstone",
+                "rarity": "legendary",
+                "aspect_ids": [],
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_profile.metal_plain": {
+                "id": "dice_profile.metal_plain",
+                "display_name": "Plain Metal",
+                "material_id": "dice_material.metal",
+                "rarity": "epic",
+                "aspect_ids": [],
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_profile.wood_bulwark": {
+                "id": "dice_profile.wood_bulwark",
+                "display_name": "Bulwark Wood",
+                "material_id": "dice_material.wood",
+                "rarity": "uncommon",
+                "aspect_ids": [
+                    "dice_aspect.bulwark"
+                ],
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_profile.wood_plain": {
+                "id": "dice_profile.wood_plain",
+                "display_name": "Plain Wood",
+                "material_id": "dice_material.wood",
+                "rarity": "uncommon",
+                "aspect_ids": [],
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
+            },
+            "dice_profile.wood_precise": {
+                "id": "dice_profile.wood_precise",
+                "display_name": "Precise Wood",
+                "material_id": "dice_material.wood",
+                "rarity": "uncommon",
+                "aspect_ids": [
+                    "dice_aspect.precise"
+                ],
+                "allowed_sizes": [
+                    4,
+                    6,
+                    8,
+                    10,
+                    12,
+                    20
+                ]
             }
         }
     }

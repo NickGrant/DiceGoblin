@@ -143,6 +143,12 @@ describe('GameRuntime', () => {
         regions: {
           'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
         },
+        kin: {},
+        unit_types: {},
+        abilities: {},
+        dice_materials: {},
+        dice_aspects: {},
+        dice_profiles: {},
       },
     });
     const startup = new RuntimeStartup(apiClient, contentLoader);
@@ -205,6 +211,12 @@ describe('GameRuntime', () => {
           regions: {
             'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
           },
+          kin: {},
+          unit_types: {},
+          abilities: {},
+          dice_materials: {},
+          dice_aspects: {},
+          dice_profiles: {},
         },
       });
       return new RuntimeStartup(apiClient, contentLoader);
@@ -266,7 +278,15 @@ describe('GameRuntime', () => {
     const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
     contentLoader.loadProjection.and.resolveTo({
       revision,
-      content: { regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } } },
+      content: {
+        regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
+        kin: {},
+        unit_types: {},
+        abilities: {},
+        dice_materials: {},
+        dice_aspects: {},
+        dice_profiles: {},
+      },
     });
     const startup = new RuntimeStartup(apiClient, contentLoader);
     let measurement: ViewportMeasurement = {

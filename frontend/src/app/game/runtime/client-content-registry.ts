@@ -1,15 +1,92 @@
 import { RuntimeFetch } from './runtime-api-client';
 
-export interface ClientRegionDefinition extends Readonly<Record<string, unknown>> {
+export interface ClientStatBlock {
+  readonly hp: number;
+  readonly attack: number;
+  readonly defense: number;
+  readonly precision: number;
+  readonly resolve: number;
+}
+
+export interface ClientRegionDefinition {
   readonly id: string;
   readonly display_name: string;
   readonly art_key: string;
 }
 
+export interface ClientKinDefinition {
+  readonly id: string;
+  readonly display_name: string;
+  readonly description: string;
+  readonly art_key: string;
+  readonly trait_summary: string;
+  readonly stat_modifiers: ClientStatBlock;
+}
+
+export interface ClientUnitTypeDefinition {
+  readonly id: string;
+  readonly display_name: string;
+  readonly description: string;
+  readonly art_key: string;
+  readonly role: 'frontline' | 'backline' | 'support' | 'utility';
+  readonly tier: number;
+  readonly base_stats: ClientStatBlock;
+  readonly growth_per_level: ClientStatBlock;
+  readonly ability_ids: readonly string[];
+}
+
+export interface ClientAbilityDefinition {
+  readonly id: string;
+  readonly kind: 'active' | 'passive';
+  readonly display_name: string;
+  readonly description: string;
+  readonly icon_key: string;
+  readonly dice_slot_count: number;
+}
+
+export interface ClientDiceMaterialDefinition {
+  readonly id: string;
+  readonly display_name: string;
+  readonly description: string;
+  readonly art_key: string;
+  readonly allowed_sizes: readonly number[];
+}
+
+export interface ClientDiceAspectDefinition {
+  readonly id: string;
+  readonly display_name: string;
+  readonly description: string;
+  readonly allowed_sizes: readonly number[];
+}
+
+export interface ClientDiceProfileDefinition {
+  readonly id: string;
+  readonly display_name: string;
+  readonly material_id: string;
+  readonly rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  readonly aspect_ids: readonly string[];
+  readonly allowed_sizes: readonly number[];
+}
+
+export type ClientContentDefinition =
+  | ClientRegionDefinition
+  | ClientKinDefinition
+  | ClientUnitTypeDefinition
+  | ClientAbilityDefinition
+  | ClientDiceMaterialDefinition
+  | ClientDiceAspectDefinition
+  | ClientDiceProfileDefinition;
+
 export interface ClientContentProjection {
   readonly revision: string;
   readonly content: {
     readonly regions: Readonly<Record<string, ClientRegionDefinition>>;
+    readonly kin: Readonly<Record<string, ClientKinDefinition>>;
+    readonly unit_types: Readonly<Record<string, ClientUnitTypeDefinition>>;
+    readonly abilities: Readonly<Record<string, ClientAbilityDefinition>>;
+    readonly dice_materials: Readonly<Record<string, ClientDiceMaterialDefinition>>;
+    readonly dice_aspects: Readonly<Record<string, ClientDiceAspectDefinition>>;
+    readonly dice_profiles: Readonly<Record<string, ClientDiceProfileDefinition>>;
   };
 }
 
@@ -29,11 +106,37 @@ export class ClientContentLoadError extends Error {
   }
 }
 
-const stableIdPattern = /^[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+$/;
+const stableIdPattern = /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/;
 const revisionPattern = /^[a-f0-9]{64}$/;
+const supportedDieSizes = new Set([4, 6, 8, 10, 12, 20]);
+const statFields = ['hp', 'attack', 'defense', 'precision', 'resolve'] as const;
+const catalogFields = [
+  'regions',
+  'kin',
+  'unit_types',
+  'abilities',
+  'dice_materials',
+  'dice_aspects',
+  'dice_profiles',
+] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function requireExactFields(
+  record: Record<string, unknown>,
+  expected: readonly string[],
+  context: string,
+): void {
+  const actual = Object.keys(record).sort();
+  const required = [...expected].sort();
+  if (
+    actual.length !== required.length ||
+    actual.some((field, index) => field !== required[index])
+  ) {
+    throw new ClientContentError(`${context} has an invalid field set.`);
+  }
 }
 
 function requireNonEmptyString(record: Record<string, unknown>, key: string): string {
@@ -41,63 +144,399 @@ function requireNonEmptyString(record: Record<string, unknown>, key: string): st
   if (typeof value !== 'string' || value.trim() === '') {
     throw new ClientContentError(`Client content field '${key}' must be a non-empty string.`);
   }
-
   return value;
+}
+
+function requireInteger(
+  record: Record<string, unknown>,
+  key: string,
+  minimum: number,
+  maximum: number,
+): number {
+  const value = record[key];
+  if (!Number.isInteger(value) || (value as number) < minimum || (value as number) > maximum) {
+    throw new ClientContentError(
+      `Client content field '${key}' must be an integer from ${minimum} to ${maximum}.`,
+    );
+  }
+  return value as number;
+}
+
+function requireIdentity(
+  record: Record<string, unknown>,
+  catalogId: string,
+  namespace: string,
+  kind: string,
+): string {
+  const id = requireNonEmptyString(record, 'id');
+  if (id !== catalogId || !stableIdPattern.test(id) || !id.startsWith(namespace)) {
+    throw new ClientContentError(`Client content ${kind} '${catalogId}' has an invalid identity.`);
+  }
+  return id;
+}
+
+function requireStatBlock(
+  value: unknown,
+  context: string,
+  minimum: number,
+  positiveHp = false,
+): ClientStatBlock {
+  if (!isRecord(value)) throw new ClientContentError(`${context} must be a stat object.`);
+  requireExactFields(value, statFields, context);
+  return Object.freeze({
+    hp: requireInteger(value, 'hp', positiveHp ? 1 : minimum, 1000000),
+    attack: requireInteger(value, 'attack', minimum, 1000000),
+    defense: requireInteger(value, 'defense', minimum, 1000000),
+    precision: requireInteger(value, 'precision', minimum, 1000000),
+    resolve: requireInteger(value, 'resolve', minimum, 1000000),
+  });
+}
+
+function requireStringList(
+  record: Record<string, unknown>,
+  key: string,
+  namespace: string,
+  allowEmpty: boolean,
+): readonly string[] {
+  const value = record[key];
+  if (!Array.isArray(value) || (!allowEmpty && value.length === 0)) {
+    throw new ClientContentError(
+      `Client content field '${key}' must be a ${allowEmpty ? '' : 'non-empty '}list.`,
+    );
+  }
+  const ids: string[] = [];
+  for (const candidate of value) {
+    if (
+      typeof candidate !== 'string' ||
+      !stableIdPattern.test(candidate) ||
+      !candidate.startsWith(namespace)
+    ) {
+      throw new ClientContentError(`Client content field '${key}' contains an invalid reference.`);
+    }
+    if (ids.includes(candidate))
+      throw new ClientContentError(`Client content field '${key}' contains a duplicate reference.`);
+    ids.push(candidate);
+  }
+  return Object.freeze(ids);
+}
+
+function requireDieSizes(record: Record<string, unknown>): readonly number[] {
+  const value = record['allowed_sizes'];
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new ClientContentError("Client content field 'allowed_sizes' must be a non-empty list.");
+  }
+  const sizes: number[] = [];
+  for (const candidate of value) {
+    if (!Number.isInteger(candidate) || !supportedDieSizes.has(candidate as number)) {
+      throw new ClientContentError(
+        "Client content field 'allowed_sizes' contains an unsupported die size.",
+      );
+    }
+    if (sizes.includes(candidate as number))
+      throw new ClientContentError(
+        "Client content field 'allowed_sizes' contains a duplicate die size.",
+      );
+    sizes.push(candidate as number);
+  }
+  return Object.freeze(sizes);
 }
 
 /** Validated, indexed view of the generated browser-safe content projection. */
 export class ClientContentRegistry {
   readonly revision: string;
-  private readonly definitionsById = new Map<string, ClientRegionDefinition>();
+  private readonly definitionsById = new Map<string, ClientContentDefinition>();
+  private readonly regions = new Map<string, ClientRegionDefinition>();
+  private readonly kinDefinitions = new Map<string, ClientKinDefinition>();
+  private readonly unitTypes = new Map<string, ClientUnitTypeDefinition>();
+  private readonly abilities = new Map<string, ClientAbilityDefinition>();
+  private readonly diceMaterials = new Map<string, ClientDiceMaterialDefinition>();
+  private readonly diceAspects = new Map<string, ClientDiceAspectDefinition>();
+  private readonly diceProfiles = new Map<string, ClientDiceProfileDefinition>();
 
   constructor(projection: unknown) {
-    if (!isRecord(projection)) {
+    if (!isRecord(projection))
       throw new ClientContentError('Client content projection must be an object.');
-    }
-
+    requireExactFields(projection, ['revision', 'content'], 'Client content projection');
     const revision = requireNonEmptyString(projection, 'revision');
-    if (!revisionPattern.test(revision)) {
+    if (!revisionPattern.test(revision))
       throw new ClientContentError('Client content revision must be a SHA-256 hash.');
-    }
 
     const content = projection['content'];
-    if (!isRecord(content) || !isRecord(content['regions'])) {
-      throw new ClientContentError('Client content projection must contain a regions catalog.');
-    }
+    if (!isRecord(content))
+      throw new ClientContentError('Client content projection must contain content catalogs.');
+    requireExactFields(content, catalogFields, 'Client content catalogs');
+    const catalogs = Object.fromEntries(
+      catalogFields.map((name) => {
+        const catalog = content[name];
+        if (!isRecord(catalog))
+          throw new ClientContentError(`Client content catalog '${name}' must be an object.`);
+        return [name, catalog];
+      }),
+    ) as Record<(typeof catalogFields)[number], Record<string, unknown>>;
 
-    for (const [catalogId, candidate] of Object.entries(content['regions'])) {
-      if (!stableIdPattern.test(catalogId) || !isRecord(candidate)) {
-        throw new ClientContentError('Client content contains an invalid region definition.');
-      }
-
-      const id = requireNonEmptyString(candidate, 'id');
-      const displayName = requireNonEmptyString(candidate, 'display_name');
-      const artKey = requireNonEmptyString(candidate, 'art_key');
-      if (id !== catalogId || !stableIdPattern.test(id) || !id.startsWith('region.')) {
-        throw new ClientContentError(
-          `Client content region '${catalogId}' has an invalid identity.`,
-        );
-      }
-
-      if (this.definitionsById.has(id)) {
-        throw new ClientContentError(`Client content contains duplicate stable ID '${id}'.`);
-      }
-
-      this.definitionsById.set(
-        id,
-        Object.freeze({ ...candidate, id, display_name: displayName, art_key: artKey }),
-      );
-    }
-
+    this.loadCatalog(catalogs.regions, this.regions, (id, value) =>
+      this.regionDefinition(id, value),
+    );
+    this.loadCatalog(catalogs.kin, this.kinDefinitions, (id, value) =>
+      this.kinDefinition(id, value),
+    );
+    this.loadCatalog(catalogs.abilities, this.abilities, (id, value) =>
+      this.abilityDefinition(id, value),
+    );
+    this.loadCatalog(catalogs.unit_types, this.unitTypes, (id, value) =>
+      this.unitTypeDefinition(id, value),
+    );
+    this.loadCatalog(catalogs.dice_materials, this.diceMaterials, (id, value) =>
+      this.diceMaterialDefinition(id, value),
+    );
+    this.loadCatalog(catalogs.dice_aspects, this.diceAspects, (id, value) =>
+      this.diceAspectDefinition(id, value),
+    );
+    this.loadCatalog(catalogs.dice_profiles, this.diceProfiles, (id, value) =>
+      this.diceProfileDefinition(id, value),
+    );
+    this.validateReferences();
     this.revision = revision;
   }
 
-  get(stableId: string): ClientRegionDefinition | undefined {
+  get(stableId: string): ClientContentDefinition | undefined {
     return this.definitionsById.get(stableId);
   }
-
   has(stableId: string): boolean {
     return this.definitionsById.has(stableId);
+  }
+  getKin(stableId: string): ClientKinDefinition | undefined {
+    return this.kinDefinitions.get(stableId);
+  }
+  getUnitType(stableId: string): ClientUnitTypeDefinition | undefined {
+    return this.unitTypes.get(stableId);
+  }
+  getAbility(stableId: string): ClientAbilityDefinition | undefined {
+    return this.abilities.get(stableId);
+  }
+  getDiceMaterial(stableId: string): ClientDiceMaterialDefinition | undefined {
+    return this.diceMaterials.get(stableId);
+  }
+  getDiceAspect(stableId: string): ClientDiceAspectDefinition | undefined {
+    return this.diceAspects.get(stableId);
+  }
+  getDiceProfile(stableId: string): ClientDiceProfileDefinition | undefined {
+    return this.diceProfiles.get(stableId);
+  }
+
+  private loadCatalog<T extends ClientContentDefinition>(
+    catalog: Record<string, unknown>,
+    target: Map<string, T>,
+    validator: (id: string, value: unknown) => T,
+  ): void {
+    for (const [id, candidate] of Object.entries(catalog)) {
+      const definition = validator(id, candidate);
+      if (this.definitionsById.has(id))
+        throw new ClientContentError(`Client content contains duplicate stable ID '${id}'.`);
+      target.set(id, definition);
+      this.definitionsById.set(id, definition);
+    }
+  }
+
+  private regionDefinition(catalogId: string, value: unknown): ClientRegionDefinition {
+    if (!isRecord(value))
+      throw new ClientContentError('Client content contains an invalid region definition.');
+    requireExactFields(value, ['id', 'display_name', 'art_key'], `Region '${catalogId}'`);
+    return Object.freeze({
+      id: requireIdentity(value, catalogId, 'region.', 'region'),
+      display_name: requireNonEmptyString(value, 'display_name'),
+      art_key: requireNonEmptyString(value, 'art_key'),
+    });
+  }
+
+  private kinDefinition(catalogId: string, value: unknown): ClientKinDefinition {
+    if (!isRecord(value))
+      throw new ClientContentError('Client content contains an invalid kin definition.');
+    requireExactFields(
+      value,
+      ['id', 'display_name', 'description', 'art_key', 'trait_summary', 'stat_modifiers'],
+      `Kin '${catalogId}'`,
+    );
+    return Object.freeze({
+      id: requireIdentity(value, catalogId, 'kin.', 'kin'),
+      display_name: requireNonEmptyString(value, 'display_name'),
+      description: requireNonEmptyString(value, 'description'),
+      art_key: requireNonEmptyString(value, 'art_key'),
+      trait_summary: requireNonEmptyString(value, 'trait_summary'),
+      stat_modifiers: requireStatBlock(
+        value['stat_modifiers'],
+        `Kin '${catalogId}' stat_modifiers`,
+        -1000,
+      ),
+    });
+  }
+
+  private unitTypeDefinition(catalogId: string, value: unknown): ClientUnitTypeDefinition {
+    if (!isRecord(value))
+      throw new ClientContentError('Client content contains an invalid unit type definition.');
+    requireExactFields(
+      value,
+      [
+        'id',
+        'display_name',
+        'description',
+        'art_key',
+        'role',
+        'tier',
+        'base_stats',
+        'growth_per_level',
+        'ability_ids',
+      ],
+      `Unit type '${catalogId}'`,
+    );
+    const role = requireNonEmptyString(value, 'role');
+    if (!['frontline', 'backline', 'support', 'utility'].includes(role))
+      throw new ClientContentError(`Unit type '${catalogId}' has an invalid role.`);
+    return Object.freeze({
+      id: requireIdentity(value, catalogId, 'unit_type.', 'unit type'),
+      display_name: requireNonEmptyString(value, 'display_name'),
+      description: requireNonEmptyString(value, 'description'),
+      art_key: requireNonEmptyString(value, 'art_key'),
+      role: role as ClientUnitTypeDefinition['role'],
+      tier: requireInteger(value, 'tier', 1, 100),
+      base_stats: requireStatBlock(
+        value['base_stats'],
+        `Unit type '${catalogId}' base_stats`,
+        0,
+        true,
+      ),
+      growth_per_level: requireStatBlock(
+        value['growth_per_level'],
+        `Unit type '${catalogId}' growth_per_level`,
+        0,
+      ),
+      ability_ids: requireStringList(value, 'ability_ids', 'ability.', false),
+    });
+  }
+
+  private abilityDefinition(catalogId: string, value: unknown): ClientAbilityDefinition {
+    if (!isRecord(value))
+      throw new ClientContentError('Client content contains an invalid ability definition.');
+    requireExactFields(
+      value,
+      ['id', 'kind', 'display_name', 'description', 'icon_key', 'dice_slot_count'],
+      `Ability '${catalogId}'`,
+    );
+    const kind = requireNonEmptyString(value, 'kind');
+    if (kind !== 'active' && kind !== 'passive')
+      throw new ClientContentError(`Ability '${catalogId}' has an invalid kind.`);
+    return Object.freeze({
+      id: requireIdentity(value, catalogId, 'ability.', 'ability'),
+      kind,
+      display_name: requireNonEmptyString(value, 'display_name'),
+      description: requireNonEmptyString(value, 'description'),
+      icon_key: requireNonEmptyString(value, 'icon_key'),
+      dice_slot_count: requireInteger(
+        value,
+        'dice_slot_count',
+        kind === 'active' ? 1 : 0,
+        kind === 'active' ? 8 : 0,
+      ),
+    });
+  }
+
+  private diceMaterialDefinition(catalogId: string, value: unknown): ClientDiceMaterialDefinition {
+    if (!isRecord(value))
+      throw new ClientContentError('Client content contains an invalid dice material definition.');
+    requireExactFields(
+      value,
+      ['id', 'display_name', 'description', 'art_key', 'allowed_sizes'],
+      `Dice material '${catalogId}'`,
+    );
+    return Object.freeze({
+      id: requireIdentity(value, catalogId, 'dice_material.', 'dice material'),
+      display_name: requireNonEmptyString(value, 'display_name'),
+      description: requireNonEmptyString(value, 'description'),
+      art_key: requireNonEmptyString(value, 'art_key'),
+      allowed_sizes: requireDieSizes(value),
+    });
+  }
+
+  private diceAspectDefinition(catalogId: string, value: unknown): ClientDiceAspectDefinition {
+    if (!isRecord(value))
+      throw new ClientContentError('Client content contains an invalid dice aspect definition.');
+    requireExactFields(
+      value,
+      ['id', 'display_name', 'description', 'allowed_sizes'],
+      `Dice aspect '${catalogId}'`,
+    );
+    return Object.freeze({
+      id: requireIdentity(value, catalogId, 'dice_aspect.', 'dice aspect'),
+      display_name: requireNonEmptyString(value, 'display_name'),
+      description: requireNonEmptyString(value, 'description'),
+      allowed_sizes: requireDieSizes(value),
+    });
+  }
+
+  private diceProfileDefinition(catalogId: string, value: unknown): ClientDiceProfileDefinition {
+    if (!isRecord(value))
+      throw new ClientContentError('Client content contains an invalid dice profile definition.');
+    requireExactFields(
+      value,
+      ['id', 'display_name', 'material_id', 'rarity', 'aspect_ids', 'allowed_sizes'],
+      `Dice profile '${catalogId}'`,
+    );
+    const rarity = requireNonEmptyString(value, 'rarity');
+    if (!['common', 'uncommon', 'rare', 'epic', 'legendary'].includes(rarity))
+      throw new ClientContentError(`Dice profile '${catalogId}' has an invalid rarity.`);
+    const materialId = value['material_id'];
+    if (
+      typeof materialId !== 'string' ||
+      !stableIdPattern.test(materialId) ||
+      !materialId.startsWith('dice_material.')
+    )
+      throw new ClientContentError(
+        `Dice profile '${catalogId}' has an invalid material reference.`,
+      );
+    return Object.freeze({
+      id: requireIdentity(value, catalogId, 'dice_profile.', 'dice profile'),
+      display_name: requireNonEmptyString(value, 'display_name'),
+      material_id: materialId,
+      rarity: rarity as ClientDiceProfileDefinition['rarity'],
+      aspect_ids: requireStringList(value, 'aspect_ids', 'dice_aspect.', true),
+      allowed_sizes: requireDieSizes(value),
+    });
+  }
+
+  private validateReferences(): void {
+    for (const unitType of this.unitTypes.values()) {
+      for (const abilityId of unitType.ability_ids) {
+        if (!this.abilities.has(abilityId))
+          throw new ClientContentError(
+            `Unit type '${unitType.id}' references missing ability '${abilityId}'.`,
+          );
+      }
+    }
+    for (const profile of this.diceProfiles.values()) {
+      const material = this.diceMaterials.get(profile.material_id);
+      if (!material)
+        throw new ClientContentError(
+          `Dice profile '${profile.id}' references missing material '${profile.material_id}'.`,
+        );
+      const aspects = profile.aspect_ids.map((id) => {
+        const aspect = this.diceAspects.get(id);
+        if (!aspect)
+          throw new ClientContentError(
+            `Dice profile '${profile.id}' references missing aspect '${id}'.`,
+          );
+        return aspect;
+      });
+      for (const size of profile.allowed_sizes) {
+        if (
+          !material.allowed_sizes.includes(size) ||
+          aspects.some((aspect) => !aspect.allowed_sizes.includes(size))
+        ) {
+          throw new ClientContentError(
+            `Dice profile '${profile.id}' declares an incompatible die size.`,
+          );
+        }
+      }
+    }
   }
 }
 
@@ -125,9 +564,7 @@ export class ClientContentLoader {
       throw new ClientContentLoadError('request');
     }
 
-    if (!response.ok) {
-      throw new ClientContentLoadError('request');
-    }
+    if (!response.ok) throw new ClientContentLoadError('request');
 
     try {
       return await response.json();
