@@ -1,7 +1,7 @@
 ---
 Title: "vNext Prototype Code Disposition"
 Status: Active Migration Guide
-Last Updated: 2026-09-10
+Last Updated: 2026-09-13
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/vnext-game-overhaul.md
@@ -234,6 +234,8 @@ Preserve/adapt:
 ### Retire progressively
 
 Existing Angular gameplay routes/pages are not the vNext game client. Academy, Codex, Dice, Regions, Warband, Unit Detail, Squad Detail, Shop, Wrong Machine, run pages, battle-oriented page flows, and similar gameplay components should be removed after the corresponding Phaser capability replaces them.
+
+Milestone 2 verification retired the unrouted Angular Warband, Dice, Unit Detail, and Squad Detail pages, together with the page-only `DiceService` and `SquadService`. Prototype Unit/Profile services and later gameplay pages remain only where they still provide evidence for unimplemented milestones; they are not part of the live `/game` composition.
 
 Do not mechanically port component/service structure into Phaser. Existing pages may be inspected for useful copy, art references, interaction lessons, accessibility considerations, or edge cases.
 
