@@ -4,231 +4,309 @@
 
 ## Milestone 3 - Enter Farm
 
-### Establish active-run persistence foundation
+### Establish Farm authored run content and deterministic generator adaptation
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Milestone 2 is complete and passed manual user UAT. The vNext baseline now has authoritative player/Warband state but no run persistence. Milestone 3 needs a fresh, normalized persistence foundation capable of owning one resumable generated Farm run without importing the prototype run schema/catalog model or beginning generation/API/Phaser work early.
+Package 1 established normalized active-run persistence without allowing the retained prototype generator or SQL-authored catalogs to shape the vNext schema.
 
-This package establishes only the durable relational boundary required by later Milestone 3 packages.
+Before the run-start transaction can consume that persistence, vNext needs a canonical authored definition of the Farm map/generation inputs and a deterministic generator boundary that reproduces the useful Farm graph behavior without retaining prototype HTTP, PDO, SQL catalog, player-state, transaction, reward, or combat ownership.
+
+This package owns canonical static Farm run-generation content, its validation/projection boundary, and pure deterministic graph generation only. It does not create runs, spend Energy, mutate players, expose run APIs, or render Phaser run UI.
 
 #### Required Context
 Read before implementation:
+- `documentation/07-development-path/vnext-authored-content-model.md`
 - `documentation/07-development-path/vnext-storage-model.md`
 - `documentation/07-development-path/vnext-endpoint-inventory.md`
-- `documentation/07-development-path/vnext-energy-model.md`
-- `documentation/07-development-path/vnext-authored-content-model.md`
 - `documentation/07-development-path/vnext-backend-internal-architecture.md`
+- `documentation/07-development-path/vnext-phaser-client-architecture.md`
 - `documentation/02-systems/run-node-generation.md`
-- `documentation/02-systems/warband-and-formation.md`
 - `documentation/07-development-path/vnext-prototype-code-disposition.md`
-- current `backend/migrations/vnext_baseline.sql`
-- current fresh-database/integration tests
+- current `backend/content/**`
+- current `ContentRegistry`, `ContentValidator`, `ClientContentProjector`, content tests, generated client projection, and frontend `ClientContentRegistry`
+- retained prototype `backend/src/Services/RunGraphGenerator.php` and focused generator tests only as behavior evidence
+- Package 1 run persistence and tests
 
-Inspect retained prototype run schema/repositories/generator only as evidence for runtime facts that a resumable graph genuinely requires. Do not port its SQL-authored catalogs or service boundaries.
+Do not treat prototype SQL encounter/run-pattern catalogs or old Angular run APIs as authority.
 
-#### Architectural Boundary
-Extend the single fresh vNext baseline. Do not create a prototype migration chain or migrate existing runtime/player data.
+#### Canonical content domains
+Extend the existing unified Git-backed ContentRegistry rather than creating a second run-content loader.
 
-Add the concrete run-owned persistence required now:
-- `runs`
-- `run_nodes`
-- `run_edges`
-- `run_unit_state`
+Add only the static run-generation domains required by the current Farm map slice.
 
-Do **not** add tables merely because they appear in the long-term conceptual inventory when Milestone 3 does not yet use them. In particular defer:
-- `run_modifiers` until temporary run modifiers are implemented;
-- `battles` and `battle_playback` until Milestone 4;
-- `resolved_events` until reward-bearing resolution requires it.
+The intended vNext concepts are:
+- player-visible run node-type presentation definitions, using stable IDs such as `run_node_type.*`;
+- a server-owned Farm generation definition, using a stable ID such as `run_generation.*`;
+- a server-owned relationship from `region.the_farm` to its generation definition.
 
-`idempotency_requests` already exists and is reused later by run creation; do not create a second run-idempotency table in this package.
+Exact filenames may follow the existing hybrid content organization, but all definitions remain normal canonical JSON read by the same ContentRegistry.
 
-#### `runs`
-Persist the authoritative run root with enough identity/lifecycle information to support later create/current/abandon commands.
+Do not introduce:
+- SQL region catalogs;
+- SQL node-type catalogs;
+- SQL encounter-template catalogs;
+- SQL run-pattern catalogs;
+- another editable YAML/PHP generation source.
 
-At minimum the model must represent:
-- run ID;
-- owning user ID;
-- authored `region_id` stable string ID;
-- participating/saved `squad_id` reference;
-- lifecycle `status`;
-- created/start timestamp;
-- terminal timestamp when applicable.
+#### Farm scope
+Reconcile the retained prototype Farm graph into canonical vNext content deliberately rather than bulk-copying the prototype generator.
 
-Ordinary operational fields are acceptable when they have a concrete resumability/debugging purpose, for example a generation seed/version or authored-content revision that later generation/start packages will genuinely consume.
+For this milestone, preserve the useful established Farm map behavior:
+- one deterministic linear Farm path;
+- combat -> loot -> rest -> boss -> exit;
+- stable authored node-type identities;
+- generated/map placement sufficient to reproduce the familiar left-to-right Farm layout;
+- first/root node initially available and downstream nodes initially locked;
+- deterministic connectivity and ordering.
 
-Do not add authored region catalog FKs/tables. Region IDs remain JSON-authored stable strings.
+The generation definition should describe authored/static inputs. The generator should derive runtime graph state such as indexes/connectivity output/initial availability where that is more appropriately computational than authored duplication.
 
-Design for **at most one active run per user**. Prefer a real database invariant when it can be expressed cleanly in MySQL 8 without preventing multiple historical terminal runs. Do not use `UNIQUE(user_id, status)`, because that would incorrectly permit only one historical run for each terminal status.
+Do not add combat, loot, rest, boss, reward, or exit resolution behavior in this package.
 
-The application layer will still validate active-run eligibility later even when a DB guard exists.
+#### Encounter references
+Package 1 persistence can store an optional authored encounter reference, but Milestone 3 does not resolve encounters.
 
-#### Squad relationship
-A run identifies the squad participating in it.
+Do not fabricate canonical combat encounter definitions merely to populate `run_nodes.encounter_id` early.
 
-The eventual application layer will forbid editing/deleting participating configuration while the run is active.
+It is acceptable for the current Farm Milestone 3 graph output to have no encounter reference until the combat/node-resolution milestone owns the canonical encounter model.
 
-Choose FK/delete behavior deliberately so historical/terminal run retention does not permanently make a saved squad undeletable, while an accidental delete does not become the intended way to terminate an active run.
+Do not migrate prototype numeric encounter-template IDs.
 
-Do not duplicate the entire squad configuration into the run root solely for lock enforcement.
+#### Node-type authored content
+Add the node types required by the Farm map, expected to include the semantic equivalents of:
+- combat;
+- loot;
+- rest;
+- boss;
+- exit.
 
-#### `run_nodes`
-Persist generated node instances as run-owned runtime state.
+They need enough safe presentation metadata for a later Phaser map to label/render the node type without hard-coding player-facing strings in the scene.
 
-The table must support later representation of:
-- stable run-local node identity/order/index;
-- authored node/type/encounter references as stable strings where applicable;
-- runtime node status/availability/completion state;
-- nullable completion timestamp;
-- generated placement/render/path metadata needed to reproduce the same map after reload.
+Prefer a small public shape such as:
+- stable ID;
+- display name;
+- description when useful;
+- icon/art key.
 
-A JSON column for genuinely generated per-node metadata is acceptable when the alternative would be speculative columns for every future node mechanic.
+Do not put server-only resolution handlers, rewards, encounter payloads, combat rules, or hidden generation topology in the public node-type definitions.
 
-Do not use JSON as an arbitrary replacement for the node's core relational identity/lifecycle fields.
+#### Farm generation definition
+The canonical server-owned Farm generation definition must provide enough static input for a pure generator to produce the intended graph deterministically.
 
-Do not add SQL-authored node/encounter/template catalogs.
+A reasonable definition may contain:
+- generation stable ID;
+- generator/algorithm identifier;
+- authored node specifications with local authoring keys and node-type references;
+- authored placement coordinates/metadata where the layout itself is content;
+- authored edge relationships when using a fixed graph.
 
-#### `run_edges`
-Persist generated graph connectivity.
+Keep the model declarative.
 
-Each edge must belong to one run and identify its from/to run-node endpoints.
+Do not embed executable scripts, PHP class names, arbitrary expressions, SQL IDs, or player-state conditions in JSON.
 
-Enforce that the persisted edge cannot point at arbitrary nonexistent nodes.
+Do not generalize the schema around Mountains/Swamps before those milestones need it.
 
-Prevent duplicate logical edges within one run where appropriate.
+#### Region relationship
+`region.the_farm` should identify its server-owned run-generation definition using a stable authored reference.
 
-Generated rendering/path metadata is acceptable only when needed to reproduce generated map geometry; it must not become an authored path catalog.
+This relationship must be semantically validated.
 
-#### `run_unit_state`
-Persist participation/run-scoped unit state separately from permanent `unit_instances`.
+The generation ID is server orchestration information and should remain outside the existing public Region projection unless a later client requirement specifically needs it.
 
-At this stage the table must at least establish:
-- run ID;
-- participating unit ID;
-- one row per participating unit.
+The public region shape should remain presentation-oriented.
 
-Do not invent final combat-stat or progression formulas in this package.
+#### Structural validation
+Extend `ContentValidator` for the new concrete definition types.
 
-The accepted unit-stat contract says exact resolved combat-stat formulas are deliberately reconciled when progression/combat owns them. Therefore it is acceptable for `current_hp` to be nullable/deferred during Milestone 3 persistence if no canonical resolver currently exists. Do not fake max/current HP from incomplete math merely to make the column non-null.
+Validate at minimum:
+- stable namespaces;
+- expected field types;
+- bounded non-empty display/presentation strings;
+- generator identifier vocabulary actually supported now;
+- non-empty authored node list;
+- unique local node keys;
+- valid node-type stable IDs;
+- sane integer placement coordinates/metadata used by the current layout;
+- edge shape;
+- no self edge;
+- no duplicate logical edge;
+- edge endpoints use existing local node keys.
 
-Milestone 4 may tighten/initialize combat HP once the authoritative stat resolver is deliberately established.
+Do not accept arbitrary unvalidated generation blobs merely because the generator can inspect them.
 
-Do not persist Attack/Defense/Precision/Resolve snapshots just to anticipate combat.
+#### Semantic validation
+Cross-reference validation must prove at minimum:
+- Farm region -> generation definition exists and is the correct type;
+- generation node -> node-type references exist and are the correct type;
+- every edge endpoint resolves to a node in the same generation definition;
+- the authored fixed Farm graph has a valid start/root and exit path;
+- the exit is reachable;
+- the graph contains the required Farm boss/exit structure needed by the current fixed slice;
+- impossible/disconnected authored graphs fail content validation rather than being discovered only at runtime.
 
-#### Authored references
-MySQL must not recreate authored catalogs or add FKs to content that lives in JSON.
+Keep validation generic where naturally reusable, but do not build a universal graph DSL.
 
-Stable string IDs may be persisted for authored concepts such as:
-- region;
-- node definition/type;
-- encounter reference where the generated graph needs one.
+#### Client projection boundary
+Maintain explicit allowlists.
 
-Semantic authored-reference validation belongs to the later generation/start/query application layers and ContentRegistry.
+Public projection should expose the safe node-type presentation definitions needed by the future run map.
 
-#### Ownership and integrity
-Use normal relational integrity for actual persisted entities:
-- user;
-- squad;
-- run;
-- unit;
-- run-node endpoints.
+Do **not** expose the full Farm generation definition or hidden topology through `game-content.json`.
 
-Cross-owner relationships that cannot be elegantly encoded without denormalizing ownership remain application-level validation, consistent with the Warband architecture.
+Do not expose the region's server-only generation-definition reference if the client does not need it.
 
-Do not denormalize `user_id` into every child table just to construct composite ownership FKs unless a concrete integrity need justifies it.
+Remember: anything in `game-content.json` is assumed readable by the player.
 
-#### Lifecycle/status
-Keep status representation simple and server-owned.
+The deterministic global content revision still includes the complete canonical source, including server-private generation fields/definitions.
 
-The schema must support at least an active run and terminal abandonment. Do not pre-design every Milestone 4/5 completion/failure/reward state as separate tables or transitions.
+Update the generated frontend content artifact and strict `ClientContentRegistry` parsing/indexing for any newly projected public domain.
 
-Plain bounded strings plus application validation are acceptable and consistent with current vNext lifecycle fields.
+Preserve all existing Milestone 1/2 projection behavior.
 
-#### Indexes
-Add indexes supporting concrete upcoming operations such as:
-- find active run by user;
-- load all nodes for a run in stable order;
-- load run edges;
-- determine whether a unit participates in an active run;
-- find run membership by squad as required for configuration locking.
+#### Deterministic generator boundary
+Create/adapt a vNext generator in the accepted backend/domain boundary.
 
-Avoid speculative analytics indexes.
+The generator must be deterministic and side-effect free with respect to infrastructure.
 
-#### Fresh registration
-Normal registration remains unchanged.
+It must not own or depend on:
+- PDO;
+- SQL repositories/catalogs;
+- HTTP/request objects;
+- authenticated player/session state;
+- Energy;
+- database transactions;
+- reward application;
+- ContentRegistry lookups from inside the core computational algorithm.
 
-A new account must create:
-- no run;
-- no run nodes;
-- no run edges;
-- no run-unit rows.
+The application layer in Package 3 will load validated authored definitions and pass the required deterministic inputs into the generator.
 
-Do not add starter/onboarding behavior.
+A thin content-to-generator adapter/factory outside the computational core is acceptable when useful.
+
+#### Generator output
+Return an in-memory generated graph suitable for Package 3 to persist.
+
+The output must contain enough deterministic information for persistence, including semantic equivalents of:
+- stable sequential/run-local node index;
+- node-type stable ID;
+- optional encounter ID when genuinely present;
+- initial runtime status;
+- generated placement metadata;
+- edge connectivity expressed using generated/run-local node identity;
+- optional generated edge/path metadata when required by the fixed layout.
+
+Do not return database IDs.
+
+Do not persist anything in this package.
+
+#### Farm determinism
+For the same validated Farm generation definition and deterministic inputs, output must be identical.
+
+Because the current Farm graph is fixed, a seed may legitimately have no visible effect. Do not add fake randomness just to make a seed appear meaningful.
+
+Do not prematurely migrate the full Mountains/Swamps pattern generator.
+
+#### Graph validation
+The vNext computational boundary should reject impossible output/invariants rather than assuming authored input can never be wrong.
+
+At minimum verify:
+- non-empty nodes;
+- unique sequential indexes;
+- all edges resolve;
+- no self/duplicate edges;
+- start availability is coherent;
+- required exit is reachable;
+- all nodes required by the fixed Farm graph are reachable from the start.
+
+Content validation catches authored errors; generator/output validation protects the runtime boundary. These responsibilities may share a small pure graph validator if that keeps ownership clear.
+
+#### Prototype disposition
+Mine only useful Farm behavior from the retained `Services\RunGraphGenerator`.
+
+Do not route vNext through that service merely because it already exists: it currently mixes generation with PDO and prototype authored catalogs.
+
+Do not bulk-refactor or delete it yet if Mountains/Swamps/later mechanics still contain useful evidence.
+
+If this package proves the Farm-specific fixed-graph portion is fully superseded, update `vnext-prototype-code-disposition.md` narrowly to record that fact while retaining other prototype generator evidence until its owning milestone.
+
+Do not create an archive directory.
 
 #### Tests
-Add focused real-MySQL baseline/integration coverage proving at minimum:
-- fresh baseline provisions the new run tables successfully;
-- expected Milestone 3 table inventory exists and no SQL gameplay catalogs are introduced;
-- multiple users may each own an active run;
-- one user cannot persist two simultaneous active runs when using the intended DB invariant;
-- the same user may retain multiple terminal historical runs if terminal rows are retained;
-- run user FK behavior;
-- squad relationship/delete behavior matches the chosen contract;
-- node ownership and run-local identity constraints;
-- edge endpoints and duplicate-edge constraints;
-- deleting/cleaning a run removes its nodes/edges/run-unit rows appropriately;
-- one run has at most one row for a participating unit;
-- unit FK behavior is deliberate;
-- nullable/deferred `current_hp` behavior if used;
-- representative authored stable string IDs persist without SQL catalog FKs;
-- ordinary registration still produces zero run-owned records;
-- existing Milestone 1/2 baseline/Warband tests remain green.
+Add focused coverage at the owning layers.
 
-Test actual MySQL 8 behavior, especially any generated-column/functional uniqueness technique used to enforce one active run.
+At minimum prove:
+- representative valid Farm canonical content passes;
+- malformed node-type definitions fail;
+- missing/wrong-type generation references fail;
+- duplicate local node keys fail;
+- invalid edge endpoints fail;
+- self/duplicate edges fail;
+- disconnected/unreachable exit fails;
+- wrong/missing required Farm structure fails when required by the accepted fixed model;
+- server-private generation data is absent from client projection;
+- safe node-type presentation is projected;
+- generated frontend content exactly matches the projector output;
+- frontend strict content parser rejects malformed projected node types;
+- deterministic Farm generator returns the expected five-node linear graph;
+- first node is available and downstream nodes locked;
+- repeated generation with identical input is identical;
+- generator output contains no database IDs and performs no persistence;
+- graph-output validation rejects malformed graph state;
+- existing region/Warband authored content and projection tests remain green;
+- Package 1 run-persistence tests remain green.
 
-Do not rely on SQLite assumptions.
+Prefer behavior tests over snapshots of large JSON blobs.
 
-#### Prototype boundary
-Do not modify/adapt the retained `RunGraphGenerator`, prototype run repositories, run-pattern catalogs, Angular run pages, or run API controllers in this package except for a genuinely necessary test/build correction caused by the baseline extension.
+#### Documentation
+Update existing active documentation only where the accepted current truth changes, especially:
+- authored-content source ownership;
+- run-node generation boundary;
+- prototype disposition when Farm behavior has been conclusively mined.
 
-Package 2 owns generator/content adaptation.
-
-Do not delete prototype run evidence yet; its useful behavior has not been mined into vNext.
+Do not create a package completion report or legacy copy.
 
 #### Explicitly Out of Scope
 Do not implement:
-- Farm authored generation content;
-- generation algorithm adaptation;
-- run-start API/command;
-- Energy spending/regeneration mutation;
-- run creation idempotency behavior;
-- `GET /runs/current`;
-- abandon command;
-- bootstrap active-run hydration;
-- active-run Warband configuration locking;
+- run creation persistence command;
+- `POST /api/v1/runs`;
+- run creation idempotency;
+- Energy spending or Energy-anchor mutation;
+- current-run query/API;
+- abandon;
+- bootstrap active-run summary;
+- active-run Warband locks;
 - RunScene;
-- run map;
-- node resolution;
+- Phaser Farm map;
+- encounter resolution;
 - combat;
-- rewards;
-- Rest/Chaos interactions;
+- loot/reward application;
+- Rest/Chaos interaction;
+- boss/exit resolution;
+- Mountains/Swamps generation migration;
 - run modifiers;
 - battles/playback;
 - Milestone 4.
+
+Do not alter Package 1 persistence unless this package uncovers a concrete blocking defect in that contract; report any such defect rather than casually expanding schema scope.
 
 #### Verification
 Run applicable gates from `agent/QUALITY_GATES.md`.
 
 At minimum run:
-- fresh DB reset/provision against MySQL;
-- focused run-persistence integration tests;
-- existing Warband/baseline integration regressions;
-- Docker backend suite;
-- docs/context checks if architecture docs change.
+- authored-content validation/generation;
+- focused backend ContentValidator/ContentRegistry/projector tests;
+- focused pure generator tests;
+- frontend client-content parser/registry tests;
+- Package 1 run-persistence integration regression;
+- existing Warband content regressions;
+- full backend Docker suite if backend runtime/content code changed;
+- full frontend suite and production build because `game-content.json`/client content contracts change;
+- bundle check;
+- context/docs checks when documentation changes.
 
-Frontend/build/capture work is not required because this package should not alter the client.
+No Phaser screenshot capture is required because this package does not add presentation.
 
 Do not claim a command passed unless it actually ran.
 
@@ -237,22 +315,24 @@ When complete:
 - set this issue to `In Progress` if needed;
 - leave it `In Progress`;
 - do not mark it complete;
-- do not promote Package 2;
-- do not begin generator/content adaptation.
+- do not promote Package 3;
+- do not begin the run-start transaction/API.
 
 Architectural review decides completion.
 
 #### Final Report
 Report:
 1. resulting commit SHA;
-2. exact tables/columns/indexes/constraints added;
-3. one-active-run DB invariant and why it does not block historical terminal runs;
-4. squad FK/delete behavior;
-5. node/edge integrity model;
-6. run-unit-state shape and current-HP decision;
-7. authored-ID persistence behavior;
-8. fresh-registration impact;
-9. focused/MySQL/Docker verification actually run and results;
-10. any unresolved persistence concern.
+2. canonical content files/types added or changed;
+3. exact Farm generation definition shape;
+4. node-type public projection shape;
+5. server-private fields/definitions intentionally withheld;
+6. structural/semantic validation rules;
+7. generator class/boundary and dependencies;
+8. exact deterministic Farm graph output;
+9. prototype generator behavior mined/retained;
+10. generated content revision;
+11. backend/frontend/content verification actually run and results;
+12. any unresolved generation/content concern.
 
 Do not begin another package.
