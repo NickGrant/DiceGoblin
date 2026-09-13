@@ -1,7 +1,7 @@
 ---
 Title: "Ability Loadouts and Dice Binding"
 Status: Canonical
-Last Updated: 2026-09-12
+Last Updated: 2026-09-13
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/02-systems/combat-resolution.md
@@ -26,6 +26,6 @@ One physical die instance may be bound to only one ability slot across the playe
 
 A complete loadout update should be submitted and validated atomically rather than assembled through a sequence of partially valid per-slot mutations.
 
-The backend validates ownership, ability availability, slot eligibility, die ownership/eligibility, and active-run locks. Once a run begins, participating units' relevant loadout/order/dice configuration cannot be changed until the run terminates.
+The backend validates ownership, ability availability, slot eligibility, die ownership/eligibility, and active-run locks. Once a run begins, participating units' relevant loadout/order/dice configuration cannot be changed until the run terminates. Non-participating unit loadouts and participating unit display names remain editable.
 
 Phaser may maintain an editable local draft while the player configures a unit, but the committed GameStore state changes only after the server accepts the complete configuration.

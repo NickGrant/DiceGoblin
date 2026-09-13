@@ -5,6 +5,7 @@ namespace DiceGoblins\Controllers;
 
 use DiceGoblins\Application\Commands\IdempotencyConflictException;
 use DiceGoblins\Application\Commands\IdempotencyKeyException;
+use DiceGoblins\Application\Commands\ActiveRunConfigurationLockedException;
 use DiceGoblins\Application\Commands\SquadActiveDeletionException;
 use DiceGoblins\Application\Commands\SquadNotFoundException;
 use DiceGoblins\Application\Commands\SquadValidationException;
@@ -211,6 +212,8 @@ final class WarbandController
       $this->squadError('squad_not_found', 'Squad is unavailable.', 404);
     } catch (SquadActiveDeletionException) {
       $this->squadError('active_squad_delete_forbidden', 'Activate another squad before deleting the active squad.', 409);
+    } catch (ActiveRunConfigurationLockedException) {
+      $this->squadError('active_run_configuration_locked', 'Active run configuration is locked.', 409);
     } catch (WarbandIntegrityException) {
       $this->integrityError();
     } catch (Throwable) {
@@ -227,6 +230,8 @@ final class WarbandController
       $this->unitConfigurationError();
     } catch (UnitNotFoundException) {
       $this->unitNotFound();
+    } catch (ActiveRunConfigurationLockedException) {
+      $this->squadError('active_run_configuration_locked', 'Active run configuration is locked.', 409);
     } catch (WarbandIntegrityException) {
       $this->integrityError();
     } catch (Throwable) {

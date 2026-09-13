@@ -7,6 +7,9 @@ use DiceGoblins\Application\Commands\IdempotencyConflictException;
 use DiceGoblins\Application\Commands\IdempotencyKeyException;
 use DiceGoblins\Application\Commands\RunStartException;
 use DiceGoblins\Application\Commands\RunStartIntegrityException;
+use DiceGoblins\Application\Commands\RunNotFoundException;
+use DiceGoblins\Application\Commands\RunLifecycleConflictException;
+use DiceGoblins\Application\Queries\CurrentRunIntegrityException;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
@@ -16,6 +19,40 @@ use Throwable;
 final class RunController
 {
   use RequiresCsrf;
+
+  /** GET /api/v1/runs/current */
+  public function current(): void
+  {
+    $services = $this->authenticatedServices();
+    if ($services === null) return;
+    try {
+      Response::json(['ok' => true, 'data' => $services['currentRunQuery']->execute($services['userId'])]);
+    } catch (CurrentRunIntegrityException) {
+      $this->error('run_data_integrity_error', 'Run data is unavailable.', 500);
+    } catch (Throwable) {
+      $this->error('server_error', 'Unexpected error.', 500);
+    }
+  }
+
+  /** POST /api/v1/runs/:runId/abandon */
+  public function abandon(?string $runId): void
+  {
+    $id = $this->runId($runId);
+    if ($id === null) return;
+    $services = $this->mutationServices();
+    if ($services === null) return;
+    try {
+      Response::json(['ok' => true, 'data' => $services['abandonRunCommand']->execute($services['userId'], $id)]);
+    } catch (RunNotFoundException) {
+      $this->notFound();
+    } catch (RunLifecycleConflictException) {
+      $this->error('run_lifecycle_conflict', 'Run cannot be abandoned from its current state.', 409);
+    } catch (CurrentRunIntegrityException) {
+      $this->error('run_data_integrity_error', 'Run data is unavailable.', 500);
+    } catch (Throwable) {
+      $this->error('server_error', 'Unexpected error.', 500);
+    }
+  }
 
   /** POST /api/v1/runs */
   public function start(): void
@@ -51,6 +88,14 @@ final class RunController
   /** @return array<string,mixed>|null */
   private function mutationServices(): ?array
   {
+    $services = $this->authenticatedServices();
+    if ($services === null || !$this->requireCsrf($services['csrfService'])) return null;
+    return $services;
+  }
+
+  /** @return array<string,mixed>|null */
+  private function authenticatedServices(): ?array
+  {
     try {
       $pdo = Db::pdo();
       $core = ControllerServiceFactory::buildCore($pdo);
@@ -64,8 +109,6 @@ final class RunController
       $this->error('unauthorized', 'No active session.', 401);
       return null;
     }
-    if (!$this->requireCsrf($core['csrfService'])) return null;
-
     try {
       $services = ControllerServiceFactory::buildContentAware($pdo, $core);
       $services['userId'] = $userId;
@@ -74,6 +117,20 @@ final class RunController
       $this->error('server_error', 'Unexpected error.', 500);
       return null;
     }
+  }
+
+  private function runId(?string $value): ?int
+  {
+    if ($value === null || !preg_match('/^[1-9][0-9]*$/D', $value) || (int)$value <= 0 || (string)(int)$value !== $value) {
+      $this->notFound();
+      return null;
+    }
+    return (int)$value;
+  }
+
+  private function notFound(): void
+  {
+    $this->error('run_not_found', 'Run is unavailable.', 404);
   }
 
   private function error(string $code, string $message, int $status): void

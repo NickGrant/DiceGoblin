@@ -20,6 +20,7 @@ final class GameBootstrapQuery
     private readonly CsrfService $csrf,
     private readonly EnergyCalculator $energyCalculator,
     private readonly ActiveSquadQuery $activeSquad,
+    private readonly ActiveRunSummaryQuery $activeRun,
   ) {}
 
   /** @return array<string,mixed> */
@@ -72,7 +73,7 @@ final class GameBootstrapQuery
         $userId,
         $state['active_squad_id'] !== null ? (int)$state['active_squad_id'] : null,
       ),
-      'active_run' => null,
+      'active_run' => $this->activeRun->execute($userId),
     ];
   }
 }

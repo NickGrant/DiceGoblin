@@ -6,7 +6,7 @@
 
 ### Establish current-run lifecycle, bootstrap summary, and active-run Warband locks
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

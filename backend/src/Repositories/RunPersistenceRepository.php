@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Repositories;
 
+use DateTimeImmutable;
 use JsonException;
 use PDO;
 use RuntimeException;
@@ -17,6 +18,66 @@ final class RunPersistenceRepository
     $stmt->execute([$userId]);
     $id = $stmt->fetchColumn();
     return $id === false ? null : (int)$id;
+  }
+
+  /** @return array<string,mixed>|null */
+  public function findActiveRunForUser(int $userId): ?array
+  {
+    $stmt = $this->pdo->prepare("SELECT r.`id`, r.`user_id`, r.`region_id`, r.`squad_id`, r.`status`,
+        r.`created_at`, r.`ended_at`, s.`user_id` AS `squad_user_id`
+      FROM `runs` r LEFT JOIN `squads` s ON s.`id` = r.`squad_id`
+      WHERE r.`user_id` = ? AND r.`status` = 'active' LIMIT 1");
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return is_array($row) ? $row : null;
+  }
+
+  /** @return array<string,mixed>|null */
+  public function findOwnedRunForUpdate(int $userId, int $runId): ?array
+  {
+    $stmt = $this->pdo->prepare('SELECT r.`id`, r.`user_id`, r.`region_id`, r.`squad_id`, r.`status`,
+        r.`created_at`, r.`ended_at`, s.`user_id` AS `squad_user_id`
+      FROM `runs` r LEFT JOIN `squads` s ON s.`id` = r.`squad_id`
+      WHERE r.`id` = ? AND r.`user_id` = ? LIMIT 1 FOR UPDATE');
+    $stmt->execute([$runId, $userId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return is_array($row) ? $row : null;
+  }
+
+  /** @return list<array<string,mixed>> */
+  public function listNodes(int $runId): array
+  {
+    $stmt = $this->pdo->prepare('SELECT `id`, `run_id`, `node_index`, `node_type_id`, `status`, `completed_at`,
+        `generated_metadata` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index` ASC, `id` ASC');
+    $stmt->execute([$runId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+  }
+
+  /** @return list<array<string,mixed>> */
+  public function listEdges(int $runId): array
+  {
+    $stmt = $this->pdo->prepare('SELECT `run_id`, `from_node_id`, `to_node_id` FROM `run_edges`
+      WHERE `run_id` = ? ORDER BY `from_node_id` ASC, `to_node_id` ASC');
+    $stmt->execute([$runId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+  }
+
+  /** @return list<array<string,mixed>> */
+  public function listParticipatingUnits(int $runId): array
+  {
+    $stmt = $this->pdo->prepare('SELECT rus.`run_id`, rus.`unit_id`, rus.`current_hp`, ui.`user_id` AS `unit_user_id`
+      FROM `run_unit_state` rus LEFT JOIN `unit_instances` ui ON ui.`id` = rus.`unit_id`
+      WHERE rus.`run_id` = ? ORDER BY rus.`unit_id` ASC');
+    $stmt->execute([$runId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+  }
+
+  public function abandon(int $userId, int $runId, DateTimeImmutable $endedAt): void
+  {
+    $stmt = $this->pdo->prepare("UPDATE `runs` SET `status` = 'abandoned', `ended_at` = ?
+      WHERE `id` = ? AND `user_id` = ? AND `status` = 'active'");
+    $stmt->execute([$endedAt->format('Y-m-d H:i:s'), $runId, $userId]);
+    if ($stmt->rowCount() !== 1) throw new RuntimeException('Active run could not be abandoned.');
   }
 
   public function createRun(int $userId, string $regionId, int $squadId): int

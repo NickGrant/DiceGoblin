@@ -5,6 +5,7 @@ namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
 use DiceGoblins\Application\Commands\ReplaceUnitLoadoutCommand;
+use DiceGoblins\Application\Commands\ActiveRunConfigurationPolicy;
 use DiceGoblins\Application\Commands\UnitConfigurationSupport;
 use DiceGoblins\Application\Queries\UnitDetailQuery;
 use DiceGoblins\Content\ContentRegistry;
@@ -222,6 +223,7 @@ final class UnitConfigurationControllerTest extends IntegrationTestCase
     $playerState = new PlayerStateRepository($this->pdo);
     $support = new UnitConfigurationSupport($playerState, $dice, new UnitDetailQuery($units, $content), $content);
     $command = new ReplaceUnitLoadoutCommand($this->pdo, $playerState, $units, $support,
+      new ActiveRunConfigurationPolicy(new \DiceGoblins\Repositories\RunPersistenceRepository($this->pdo)),
       static function(): void { throw new RuntimeException('Injected rollback.'); });
     $before = $this->configurationSnapshot((string)$unitId, $userId);
 

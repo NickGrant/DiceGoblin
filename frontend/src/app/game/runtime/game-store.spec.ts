@@ -1,5 +1,5 @@
 import { ClientContentRegistry } from './client-content-registry';
-import { GameBootstrapData, GameStore } from './game-store';
+import { BootstrapContractError, GameBootstrapData, GameStore, parseGameBootstrapEnvelope } from './game-store';
 import { RuntimeApiClient, RuntimeApiError } from './runtime-api-client';
 
 describe('GameStore Warband cache', () => {
@@ -45,6 +45,31 @@ describe('GameStore Warband cache', () => {
     } } });
     return result;
   }
+
+  it('strictly parses and retains the compact active-run bootstrap summary', () => {
+    const data = { ...bootstrap(), active_run: {
+      id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active',
+    } };
+    const parsed = parseGameBootstrapEnvelope({ ok: true, data });
+    const store = new GameStore();
+    store.hydrateBootstrap(parsed);
+    expect(store.bootstrap?.active_run).toEqual({
+      id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active',
+    });
+
+    const invalid = [
+      { id: '0', region_id: 'region.the_farm', squad_id: '31', status: 'active' },
+      { id: '01', region_id: 'region.the_farm', squad_id: '31', status: 'active' },
+      { id: '41', region_id: 'the_farm', squad_id: '31', status: 'active' },
+      { id: '41', region_id: 'region.the_farm', squad_id: '0', status: 'active' },
+      { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'abandoned' },
+      { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active', nodes: [] },
+    ];
+    for (const activeRun of invalid) {
+      expect(() => parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(), active_run: activeRun } }))
+        .toThrowError(BootstrapContractError);
+    }
+  });
 
   it('begins not-loaded after bootstrap and lazily loads each domain once while fresh', async () => {
     const store = new GameStore();

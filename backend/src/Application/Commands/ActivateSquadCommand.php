@@ -10,7 +10,7 @@ use Throwable;
 final class ActivateSquadCommand
 {
   public function __construct(private readonly PDO $pdo, private readonly PlayerStateRepository $playerState,
-    private readonly SquadCommandSupport $support) {}
+    private readonly SquadCommandSupport $support, private readonly ActiveRunConfigurationPolicy $activeRunPolicy) {}
 
   /** @return array<string,mixed> */
   public function execute(int $userId, int $squadId): array
@@ -19,6 +19,7 @@ final class ActivateSquadCommand
       $this->pdo->beginTransaction();
       $context = $this->support->lockPlayer($userId);
       $this->support->requireOwned($userId, $squadId);
+      $this->activeRunPolicy->assertSquadActivationAllowed($userId, $squadId);
       $squad = $this->support->squadView($userId, $squadId, $squadId);
       if ($context['active_squad_id'] === $squadId) {
         $revision = $context['player_revision'];

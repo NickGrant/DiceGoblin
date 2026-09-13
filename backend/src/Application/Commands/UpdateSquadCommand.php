@@ -11,7 +11,8 @@ use Throwable;
 final class UpdateSquadCommand
 {
   public function __construct(private readonly PDO $pdo, private readonly PlayerStateRepository $playerState,
-    private readonly SquadRepository $squads, private readonly SquadCommandSupport $support) {}
+    private readonly SquadRepository $squads, private readonly SquadCommandSupport $support,
+    private readonly ActiveRunConfigurationPolicy $activeRunPolicy) {}
 
   /** @param array<string,mixed> $request @return array<string,mixed> */
   public function execute(int $userId, int $squadId, array $request): array
@@ -21,6 +22,12 @@ final class UpdateSquadCommand
       $this->pdo->beginTransaction();
       $context = $this->support->lockPlayer($userId);
       $this->support->requireOwned($userId, $squadId);
+      $current = $this->support->squadView($userId, $squadId, $context['active_squad_id'], true);
+      $this->activeRunPolicy->assertSquadFormationAllowed(
+        $userId,
+        $squadId,
+        $current['formation'] !== $configuration->canonicalRequest()['formation'],
+      );
       $this->support->validateUnits($userId, $configuration);
       $this->squads->updateName($userId, $squadId, $configuration->name);
       $this->squads->replaceFormation($squadId, $configuration->formation);

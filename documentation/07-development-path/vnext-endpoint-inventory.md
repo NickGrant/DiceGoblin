@@ -256,16 +256,18 @@ There is no generic dialogue-seen mutation. Important learned knowledge is repre
 ### Query
 
 - `GET /api/v1/runs/current`
-  - Returns the complete active-run aggregate required to resume gameplay.
+  - Authenticated read returning `{ run: null, player_revision }` when no active run exists.
+  - Otherwise returns the persisted active run root plus ordered nodes, safe Farm positions, edges, participating unit IDs/nullable current HP, and `player_revision`.
+  - Does not regenerate or repair topology, materialize Energy, increment revision, or expose private generation configuration/metadata.
 
-Expected run state includes:
+The currently implemented Farm run state includes:
 
 - run ID, region ID, status
 - generated nodes and node completion/availability state
 - generated edges/connectivity
 - participating unit run state including current HP
-- active run modifiers, including authored modifier IDs and optional mutable scalar values
-- current/pending encounter state when required to resume an interactive node
+
+Run modifiers and current/pending encounter state remain deferred until their owning mechanics require them.
 
 The run payload references authored IDs rather than duplicating static node/region definitions.
 
@@ -281,7 +283,9 @@ The run payload references authored IDs rather than duplicating static node/regi
   - Returns the created run summary, authoritative Energy view, and resulting `player_revision`; the private generated topology remains outside this response.
 
 - `POST /api/v1/runs/:runId/abandon`
-  - Ends the run unsuccessfully and moves it to a terminal state.
+  - Requires authentication and CSRF, but no idempotency key.
+  - Transitions an owned active run to `abandoned`, retains its graph/participation history, changes no Energy state, and increments `player_revision` once.
+  - Retrying an already-abandoned owned run succeeds without changing its terminal timestamp or revision. Missing and foreign run IDs share one non-disclosing not-found response.
 
 - `POST /api/v1/runs/:runId/nodes/:nodeId/resolve`
   - Resolves a node that can be completed as one authoritative operation.

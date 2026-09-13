@@ -16,6 +16,7 @@ final class ReplaceUnitLoadoutCommand
     private readonly PlayerStateRepository $playerState,
     private readonly WarbandUnitRepository $units,
     private readonly UnitConfigurationSupport $support,
+    private readonly ActiveRunConfigurationPolicy $activeRunPolicy,
     private readonly ?Closure $beforeCommit = null,
   ) {}
 
@@ -27,6 +28,7 @@ final class ReplaceUnitLoadoutCommand
       $this->pdo->beginTransaction();
       $context = $this->support->lockPlayer($userId);
       $unit = $this->support->lockValidUnit($userId, $unitId);
+      $this->activeRunPolicy->assertUnitLoadoutAllowed($userId, $unitId);
       $this->support->validateProposal($userId, $unitId, $unit, $configuration);
       if ($this->support->isIdentical($unit, $configuration)) {
         $this->pdo->commit();

@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace DiceGoblins\Controllers;
 
 use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
+use DiceGoblins\Application\Commands\AbandonRunCommand;
+use DiceGoblins\Application\Commands\ActiveRunConfigurationPolicy;
 use DiceGoblins\Application\Commands\ActivateSquadCommand;
 use DiceGoblins\Application\Commands\CreateSquadCommand;
 use DiceGoblins\Application\Commands\DeleteSquadCommand;
@@ -15,6 +17,8 @@ use DiceGoblins\Application\Commands\StartRunCommand;
 use DiceGoblins\Application\Commands\UnitConfigurationSupport;
 use DiceGoblins\Application\Commands\UpdateSquadCommand;
 use DiceGoblins\Application\Queries\ActiveSquadQuery;
+use DiceGoblins\Application\Queries\ActiveRunSummaryQuery;
+use DiceGoblins\Application\Queries\CurrentRunQuery;
 use DiceGoblins\Application\Queries\DiceCollectionQuery;
 use DiceGoblins\Application\Queries\GameBootstrapQuery;
 use DiceGoblins\Application\Queries\SquadCollectionQuery;
@@ -96,6 +100,8 @@ final class ControllerServiceFactory
     );
     $idempotencyRepository = new IdempotencyRequestRepository($pdo);
     $runRepository = new RunPersistenceRepository($pdo);
+    $activeRunPolicy = new ActiveRunConfigurationPolicy($runRepository);
+    $activeRunSummary = new ActiveRunSummaryQuery($runRepository, $content);
 
     return array_merge($core, [
       'contentRegistry' => $content,
@@ -115,6 +121,7 @@ final class ControllerServiceFactory
         $core['csrfService'],
         new EnergyCalculator(),
         $activeSquadQuery,
+        $activeRunSummary,
       ),
       'unitCollectionQuery' => new UnitCollectionQuery($unitRepository, $content),
       'unitDetailQuery' => $unitDetailQuery,
@@ -122,11 +129,13 @@ final class ControllerServiceFactory
       'squadCollectionQuery' => new SquadCollectionQuery($squadRepository),
       'createSquadCommand' => new CreateSquadCommand($pdo, $core['playerStateRepo'], $squadRepository,
         $idempotencyRepository, $squadCommandSupport),
-      'updateSquadCommand' => new UpdateSquadCommand($pdo, $core['playerStateRepo'], $squadRepository, $squadCommandSupport),
-      'activateSquadCommand' => new ActivateSquadCommand($pdo, $core['playerStateRepo'], $squadCommandSupport),
-      'deleteSquadCommand' => new DeleteSquadCommand($pdo, $core['playerStateRepo'], $squadRepository, $squadCommandSupport),
+      'updateSquadCommand' => new UpdateSquadCommand($pdo, $core['playerStateRepo'], $squadRepository, $squadCommandSupport, $activeRunPolicy),
+      'activateSquadCommand' => new ActivateSquadCommand($pdo, $core['playerStateRepo'], $squadCommandSupport, $activeRunPolicy),
+      'deleteSquadCommand' => new DeleteSquadCommand($pdo, $core['playerStateRepo'], $squadRepository, $squadCommandSupport, $activeRunPolicy),
       'renameUnitCommand' => new RenameUnitCommand($pdo, $core['playerStateRepo'], $unitRepository, $unitConfigurationSupport),
-      'replaceUnitLoadoutCommand' => new ReplaceUnitLoadoutCommand($pdo, $core['playerStateRepo'], $unitRepository, $unitConfigurationSupport),
+      'replaceUnitLoadoutCommand' => new ReplaceUnitLoadoutCommand($pdo, $core['playerStateRepo'], $unitRepository, $unitConfigurationSupport, $activeRunPolicy),
+      'currentRunQuery' => new CurrentRunQuery($runRepository, $core['playerStateRepo'], $content),
+      'abandonRunCommand' => new AbandonRunCommand($pdo, $core['playerStateRepo'], $runRepository, $content, new SystemClock()),
       'startRunCommand' => new StartRunCommand(
         $pdo,
         $core['playerStateRepo'],

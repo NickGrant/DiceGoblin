@@ -32,6 +32,13 @@ export interface GameBootstrapActiveSquad {
   readonly units: readonly GameBootstrapUnitSummary[];
 }
 
+export interface GameBootstrapActiveRun {
+  readonly id: string;
+  readonly region_id: string;
+  readonly squad_id: string;
+  readonly status: 'active';
+}
+
 export interface GameBootstrapData {
   readonly account: GameBootstrapAccount;
   readonly player: {
@@ -50,7 +57,7 @@ export interface GameBootstrapData {
     readonly unlock_ids: readonly string[];
   };
   readonly active_squad: GameBootstrapActiveSquad | null;
-  readonly active_run: null;
+  readonly active_run: GameBootstrapActiveRun | null;
 }
 
 export class BootstrapContractError extends Error {
@@ -192,6 +199,17 @@ function parseActiveSquad(value: unknown): GameBootstrapActiveSquad | null {
   return { id: value['id'], name: value['name'].trim(), is_active: true, formation: parsedFormation, units: parsedUnits };
 }
 
+function parseActiveRun(value: unknown): GameBootstrapActiveRun | null {
+  if (value === null) return null;
+  if (!isRecord(value) || !hasExactKeys(value, ['id', 'region_id', 'squad_id', 'status'])
+    || !positiveId(value['id']) || !positiveId(value['squad_id'])
+    || typeof value['region_id'] !== 'string' || !/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(value['region_id'])
+    || value['status'] !== 'active') {
+    throw new BootstrapContractError("Bootstrap field 'active_run' is malformed.");
+  }
+  return { id: value['id'], region_id: value['region_id'], squad_id: value['squad_id'], status: 'active' };
+}
+
 export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
   if (!isRecord(value) || value['ok'] !== true || !isRecord(value['data'])) {
     throw new BootstrapContractError('Bootstrap response must be a successful API envelope.');
@@ -242,12 +260,11 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
             })(),
     },
     active_squad: parseActiveSquad(data['active_squad']),
-    active_run: null,
+    active_run: parseActiveRun(data['active_run']),
   };
 
   if (
-    session['authenticated'] !== true ||
-    data['active_run'] !== null
+    session['authenticated'] !== true
   ) {
     throw new BootstrapContractError(
       'Bootstrap contains invalid Milestone 1 session or active state.',
