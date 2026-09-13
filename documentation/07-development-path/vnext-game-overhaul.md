@@ -1,7 +1,7 @@
 ---
 Title: "Dice Goblins vNext Game Overhaul"
 Status: Active Implementation Plan
-Last Updated: 2026-09-12
+Last Updated: 2026-09-13
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/README.md
@@ -34,14 +34,16 @@ Milestone 0 reconciled the architecture decisions, replaced the horizontal rewri
 
 Milestone 1 proved the real authenticated Angular -> persistent Phaser -> authored content -> PHP bootstrap -> MySQL player state -> responsive Camp path. Closure verification passed through the supported Docker/frontend environment, including a real browser/PHP/MySQL registration-to-Camp check. Manual UAT identified no functional defects; final visual quality remains intentionally deferred to the later game-wide visual/UI overhaul.
 
-**Milestone 2 - Warband: Active.** Implementation is decomposed into reviewed execution packages covering Warband persistence, authored content, authoritative reads and mutations, Phaser Warband/squad/unit configuration flows, and integrated closure before milestone UAT.
+**Milestone 2 - Warband: Technically complete; awaiting manual UAT.**
+
+All nine implementation/closure packages have passed architectural review. Integrated closure at `c72c2611d7e14d1d3151f42c05f791e4f1405c2d` proved the fresh-database/authored-content/PHP/MySQL/Phaser Warband slice end to end, including lazy collections/detail, squad lifecycle, unit rename/loadout/exact-die configuration, authoritative client reconciliation, persistence after reload, cross-player security, responsive presentation, and narrow retirement of superseded Angular Warband surfaces. No automated/integrated Milestone 2 defect remains open. Milestone 3 stays blocked until user UAT passes or its findings are resolved/deferred.
 
 ## Milestones
 | # | Milestone | Exit criterion |
 | ---: | --- | --- |
 | 0 | Reconcile and clean vNext context | One coherent implementation plan and current-only documentation/agent context. **Complete.** |
 | 1 | Walking skeleton | Authenticated Angular `/game` -> Phaser boot -> safe content projection -> real PHP bootstrap/MySQL state -> minimal responsive Camp. **Complete; UAT passed.** |
-| 2 | Warband | Real units/dice/squads, lazy cache/detail queries, persistent squad and unit-loadout configuration. **Active.** |
+| 2 | Warband | Real units/dice/squads, lazy cache/detail queries, persistent squad and unit-loadout configuration. **Technical complete; awaiting UAT.** |
 | 3 | Enter Farm | Energy + region/run creation, persistent generated Farm run, `RunScene`, resume/abandon/map. |
 | 4 | Combat | Authoritative combat adaptation, run HP/state, persisted playback, `BattleScene`, reconnect-safe result. |
 | 5 | Complete Farm | Event/reward pipeline, XP/progression, Mudking, terminal run flow, Mountains unlock; no claim/reroll/double-grant path. |
