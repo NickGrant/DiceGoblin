@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Establish current-run lifecycle, bootstrap summary, and active-run Warband locks
+- Establish Phaser RunScene lifecycle and Camp start/resume navigation
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -45,8 +45,8 @@ Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 1. ~~Active-run persistence foundation.~~ Complete and architecturally approved at `0ea5f652af397061190f9cb11c71cb1f6d1d1bb7`.
 2. ~~Farm authored run content + deterministic generator adaptation.~~ Complete and architecturally approved at `e5429bb29f2ed23c4a31d5a7e077dfa2ec123d02`.
 3. ~~Authoritative run start + Energy spend + idempotency.~~ Complete and architecturally approved at `056c4171e2b060c36351d086e57d59b44f371cd9`.
-4. **Current-run query + abandon + bootstrap summary + Warband active-run locks.** Current.
-5. Phaser RunScene lifecycle + Camp start/resume navigation.
+4. ~~Current-run query + abandon + bootstrap summary + Warband active-run locks.~~ Complete and architecturally approved at `265e1557d21117f281a6d0dca525cde1bbf43802`.
+5. **Phaser RunScene lifecycle + Camp start/resume navigation.** Current.
 6. Phaser Farm map + abandon/resume UX.
 7. Enter Farm integrated verification/closure.
 
@@ -60,11 +60,12 @@ For each package:
 Do not implement later packages early merely because their eventual shape is known.
 
 ### Sequencing Decisions
-- Package 1 established only the normalized run persistence boundary. Cross-owner squad/unit relationships remain application-level validation, consistent with Warband; run application commands and queries must reject foreign participation and treat corrupt cross-owner relationships as integrity errors.
-- Package 2 moved the Farm fixed graph into private canonical JSON and a pure `FixedGraphRunGenerator`; only safe `run_node_type.*` presentation reaches the client. The generation validator's initial-availability rule belongs to freshly generated graphs and must not be reused as a validator for mutable progressed run state.
+- Package 1 established only the normalized run persistence boundary. Cross-owner squad/unit relationships remain application-level validation, consistent with Warband; run application commands and queries reject foreign participation and treat corrupt cross-owner relationships as integrity errors.
+- Package 2 moved the Farm fixed graph into private canonical JSON and a pure `FixedGraphRunGenerator`; only safe `run_node_type.*` presentation reaches the client. The generation validator's initial-availability rule belongs to freshly generated graphs and is not reused as a validator for mutable progressed run state.
 - Package 3 established the atomic run-start transaction. The client submits only the region; the server selects and validates the active squad/configuration, spends canonical 10 Energy exactly once, persists the generated graph/participation, increments revision once, and finalizes an idempotency receipt in the same transaction.
-- Package 4 introduces the authoritative current-run read/lifecycle boundary and active-run configuration lock now that real run state exists. The current-run query must validate persisted runtime state without applying the fresh-generation availability invariant. Abandon is naturally retry-safe: abandoning an owned active run mutates once; repeating abandon against that same already-abandoned owned run is a successful no-op with no second revision increment. Foreign/non-owned IDs remain non-disclosing not-found.
-- During an active run, activating a different squad is locked; re-activating the already active participating squad remains a no-op. Participating squad formation changes and deletion are locked. A name-only participating-squad update may remain legal because squad display name is not combat configuration. Participating unit loadout/dice mutation is locked; unit rename is not combat configuration and remains legal.
+- Package 4 established authoritative current-run reads, natural retry-safe abandon, compact bootstrap active-run state, and server-side locks around participating squad formation/deletion/switching and unit loadout/dice configuration. Cosmetic squad/unit names remain mutable during a run. All affected mutations share the player-row-first serialization boundary.
+- Package 5 wires the already-mounted Phaser runtime to run lifecycle. Returning startup with `active_run` routes into the existing `RunScene`; Camp can start or resume; `RunScene` loads/caches the authoritative current aggregate but deliberately does not render the Farm graph yet. Package 6 owns map/abandon presentation.
+- Package 5 may expose canonical `run_energy_cost` through an explicit safe client-content projection because Camp needs to present the Start Farm cost. The server remains authoritative and still reads the private canonical config directly; the client value is presentation/affordance only.
 - Exact resolved combat-stat formulas remain deferred. Milestone 3 must not invent progression/stat math merely to pre-stage Milestone 4 combat. Persist only run-unit participation/state that can be represented honestly at this stage; finalize combat HP initialization when the combat milestone owns the required stat resolver unless an already-canonical resolver is deliberately established.
 - `run_modifiers`, battles/playback, reward resolution, interactive Rest/Chaos state, and node completion mechanics are added only when their owning milestones concretely require them.
 
