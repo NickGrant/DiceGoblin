@@ -25,7 +25,7 @@ describe('WarbandScreen', () => {
   }
 
   function api(): jasmine.SpyObj<RuntimeApiClient> {
-    const api = jasmine.createSpyObj<RuntimeApiClient>('api', ['getBootstrap', 'getUnits', 'getDice', 'getSquads']);
+    const api = jasmine.createSpyObj<RuntimeApiClient>('api', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads']);
     api.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 2, xp: 4, lifecycle_status: 'active' }] } });
     api.getDice.and.resolveTo({ ok: true, data: { dice: [{ id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '11', ability_id: 'ability.bash', slot_index: 0 }] }] } });
     api.getSquads.and.resolveTo({ ok: true, data: { squads: [{ id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null] }] } });
@@ -131,5 +131,18 @@ describe('WarbandScreen', () => {
     expect(client.getUnits).toHaveBeenCalledTimes(1);
     expect(client.getDice).toHaveBeenCalledTimes(1);
     expect(client.getSquads).toHaveBeenCalledTimes(1);
+  });
+
+  it('forwards a roster unit to configuration without eagerly loading full detail', async () => {
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap());
+    const client = api(); const registry = content();
+    await store.loadWarbandDomains(client, registry);
+    const openUnit = jasmine.createSpy('openUnit');
+    const screen = new WarbandScreen(sceneHarness().scene, store, client, registry, new RuntimeViewport(), () => undefined, () => undefined, 'units', openUnit);
+    screen.create();
+    expect(client.getUnitDetail).not.toHaveBeenCalled();
+    screen.openUnit('11');
+    expect(openUnit).toHaveBeenCalledOnceWith('11');
+    expect(client.getUnitDetail).not.toHaveBeenCalled();
   });
 });

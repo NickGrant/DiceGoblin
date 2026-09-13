@@ -1,0 +1,150 @@
+import Phaser from 'phaser';
+import { ClientContentRegistry } from '../runtime/client-content-registry';
+import { GameBootstrapData, GameStore } from '../runtime/game-store';
+import { RuntimeApiClient, RuntimeApiError } from '../runtime/runtime-api-client';
+import { RuntimeViewport, calculateRuntimeViewport } from '../runtime/runtime-viewport';
+import { UnitConfigurationScreen, createUnitConfigurationLayout } from './unit-configuration-screen';
+
+describe('UnitConfigurationScreen', () => {
+  function bootstrap(): GameBootstrapData {
+    return {
+      account: { id: '1', display_name: 'Goblin', role: 'user' },
+      player: { teeth: 0, raw_chaos: 0, player_revision: 7, energy: { current: 5, normal_max: 50, regeneration_per_hour: 12, regeneration_interval_seconds: 300, last_regeneration_at: '2026-01-01T00:00:00Z', next_regeneration_at: null, fully_regenerated_at: null } },
+      session: { authenticated: true, csrf_token: 'csrf-authoritative' }, server_time: '2026-01-01T00:00:00Z', content_revision: 'a'.repeat(64), progression: { unlock_ids: [] },
+      active_squad: { id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null], units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] }, active_run: null,
+    };
+  }
+
+  function content(): ClientContentRegistry {
+    const stat = { hp: 1, attack: 1, defense: 1, precision: 1, resolve: 1 };
+    return new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
+      regions: {}, kin: { 'kin.goblin': { id: 'kin.goblin', display_name: 'Goblin', description: 'Goblin.', art_key: 'goblin', trait_summary: 'Quick.', stat_modifiers: { hp: 0, attack: 0, defense: 0, precision: 0, resolve: 0 } } },
+      unit_types: { 'unit_type.bruiser': { id: 'unit_type.bruiser', display_name: 'Bruiser', description: 'Bruiser detail.', art_key: 'bruiser', role: 'frontline', tier: 1, base_stats: stat, growth_per_level: stat, ability_ids: ['ability.bash'] } },
+      abilities: {
+        'ability.bash': { id: 'ability.bash', kind: 'active', display_name: 'Bash', description: 'Bash.', icon_key: 'bash', dice_slot_count: 1 },
+        'ability.smash': { id: 'ability.smash', kind: 'active', display_name: 'Smash', description: 'Smash.', icon_key: 'smash', dice_slot_count: 1 },
+        'ability.thick': { id: 'ability.thick', kind: 'passive', display_name: 'Thick Hide', description: 'Thick.', icon_key: 'thick', dice_slot_count: 0 },
+      },
+      dice_materials: { 'dice_material.bone': { id: 'dice_material.bone', display_name: 'Bone', description: 'Bone.', art_key: 'bone', allowed_sizes: [6] } }, dice_aspects: {},
+      dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
+    } });
+  }
+
+  function api(): jasmine.SpyObj<RuntimeApiClient> {
+    const client = jasmine.createSpyObj<RuntimeApiClient>('api', ['getUnits', 'getDice', 'getSquads', 'getUnitDetail', 'renameUnit', 'replaceUnitLoadout']);
+    client.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] } });
+    client.getDice.and.resolveTo({ ok: true, data: { dice: [
+      { id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '11', ability_id: 'ability.bash', slot_index: 0 }] },
+      { id: '22', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [] },
+      { id: '23', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '99', ability_id: 'ability.smash', slot_index: 0 }] },
+    ] } });
+    client.getSquads.and.resolveTo({ ok: true, data: { squads: [{ id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null] }] } });
+    client.getUnitDetail.and.resolveTo({ ok: true, data: { unit: {
+      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active', promotion_history: [], owned_ability_ids: ['ability.bash', 'ability.smash', 'ability.thick'], ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }], dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '21' }],
+    } } });
+    return client;
+  }
+
+  function sceneHarness(): Phaser.Scene {
+    const chain = (): Record<string, jasmine.Spy> => {
+      const value: Record<string, jasmine.Spy> = {};
+      for (const method of ['setScale', 'destroy', 'fillGradientStyle', 'fillRect', 'fillStyle', 'fillRoundedRect', 'lineStyle', 'strokeRoundedRect', 'setInteractive', 'on', 'setOrigin']) value[method] = jasmine.createSpy(method).and.returnValue(value);
+      value['add'] = jasmine.createSpy('add').and.returnValue(value);
+      return value;
+    };
+    const parent = document.createElement('div'); const canvas = document.createElement('canvas'); parent.appendChild(canvas);
+    return { add: { container: () => chain(), graphics: () => chain(), text: () => chain() }, sys: { game: { canvas } } } as unknown as Phaser.Scene;
+  }
+
+  async function readyHarness() {
+    const registry = content(); const client = api(); const store = new GameStore(); store.hydrateBootstrap(bootstrap());
+    await store.loadWarbandDomains(client, registry); await store.loadUnitDetail('11', client, registry);
+    const scene = sceneHarness(); const parent = (scene.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game!.canvas.parentElement!;
+    document.body.appendChild(parent);
+    const viewport = new RuntimeViewport(); const returned = jasmine.createSpy('returned');
+    const screen = new UnitConfigurationScreen(scene, store, client, registry, viewport, '11', returned);
+    screen.create();
+    return { screen, store, client, registry, viewport, returned, parent, input: parent.querySelector<HTMLInputElement>('[data-unit-name-input="true"]')! };
+  }
+
+  it('keeps every major region inside Compact, Standard, and Wide safe bounds', () => {
+    for (const [width, height] of [[844, 390], [1600, 900], [2560, 1080]]) {
+      const snapshot = calculateRuntimeViewport({ cssWidth: width, cssHeight: height, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true });
+      const layout = createUnitConfigurationLayout(snapshot);
+      for (const region of [layout.header, layout.back, layout.name, layout.identity, layout.configuration, layout.actions]) {
+        expect(region.x).toBeGreaterThanOrEqual(snapshot.safeBounds.x);
+        expect(region.y).toBeGreaterThanOrEqual(snapshot.safeBounds.y);
+        expect(region.right).toBeLessThanOrEqual(snapshot.safeBounds.right);
+        expect(region.bottom).toBeLessThanOrEqual(snapshot.safeBounds.bottom);
+      }
+    }
+  });
+
+  it('preserves detail, rename/loadout drafts, slot selection, and dirty state across reflow', async () => {
+    const { screen, parent } = await readyHarness();
+    screen.draft!.setName('Responsive Grub'); screen.addAbility('ability.smash'); screen.selectSlot('ability.smash', 0); screen.assignDie('22');
+    const compact = calculateRuntimeViewport({ cssWidth: 844, cssHeight: 390, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true });
+    const wide = calculateRuntimeViewport({ cssWidth: 2560, cssHeight: 1080, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: false, noHover: false });
+    screen.reflow(compact); screen.reflow(wide);
+    expect(screen.draft!.name).toBe('Responsive Grub');
+    expect(screen.draft!.loadout.map((entry) => entry.ability.id)).toEqual(['ability.bash', 'ability.smash']);
+    expect(screen.draft!.selectedSlot).toEqual({ abilityId: 'ability.smash', slotIndex: 0 });
+    expect(screen.draft!.dirty).toBeTrue();
+    screen.destroy(); parent.remove();
+  });
+
+  it('requires explicit discard for dirty navigation and blocks/hides the native input during confirmation', async () => {
+    const { screen, returned, input, parent } = await readyHarness();
+    input.value = 'Dirty Grub'; input.dispatchEvent(new Event('input')); screen.requestBack();
+    expect(returned).not.toHaveBeenCalled();
+    expect(input.disabled).toBeTrue(); expect(input.readOnly).toBeTrue(); expect(input.style.display).toBe('none');
+    input.value = 'Mutation under overlay'; input.dispatchEvent(new Event('input'));
+    expect(screen.draft!.name).toBe('Dirty Grub');
+    screen.cancelConfirmation(); expect(input.disabled).toBeFalse(); expect(input.value).toBe('Dirty Grub');
+    screen.requestBack(); screen.confirmDiscard(); expect(returned).toHaveBeenCalledTimes(1);
+    screen.destroy(); parent.remove();
+  });
+
+  it('gates focused rename input during a command and restores the preserved local draft after failure', async () => {
+    const { screen, client, store, input, parent } = await readyHarness();
+    let reject!: (reason: unknown) => void;
+    client.renameUnit.and.returnValue(new Promise((_resolve, rejectPromise) => { reject = rejectPromise; }));
+    input.value = 'Submitted Grub'; input.dispatchEvent(new Event('input')); input.focus();
+    const committed = store.unitDetail('11').data;
+    const pending = screen.saveRename();
+    expect(input.disabled).toBeTrue(); expect(input.readOnly).toBeTrue(); expect(document.activeElement).not.toBe(input);
+    input.value = 'Late mutation'; input.dispatchEvent(new Event('input'));
+    expect(screen.draft!.name).toBe('Submitted Grub'); expect(store.unitDetail('11').data).toBe(committed);
+    reject(new RuntimeApiError('network')); await pending;
+    expect(input.disabled).toBeFalse(); expect(input.readOnly).toBeFalse(); expect(screen.draft!.name).toBe('Submitted Grub');
+    screen.destroy(); parent.remove();
+  });
+
+  it('preserves committed state and the complete local draft when loadout save fails', async () => {
+    const { screen, client, store, parent } = await readyHarness();
+    screen.addAbility('ability.smash'); screen.selectSlot('ability.smash', 0); screen.assignDie('22');
+    let reject!: (reason: unknown) => void;
+    client.replaceUnitLoadout.and.returnValue(new Promise((_resolve, rejectPromise) => { reject = rejectPromise; }));
+    const committed = store.unitDetail('11').data;
+    const pending = screen.saveLoadout(); void screen.saveLoadout();
+    expect(client.replaceUnitLoadout).toHaveBeenCalledTimes(1);
+    expect(store.unitDetail('11').data).toBe(committed);
+    reject(new RuntimeApiError('http', 422, 'invalid_unit_configuration')); await pending;
+    expect(screen.draft!.loadout.map((entry) => entry.diceInstanceIds)).toEqual([['21'], ['22']]);
+    expect(store.unitDetail('11').data).toBe(committed);
+    screen.destroy(); parent.remove();
+  });
+
+  it('blocks the same native input in touch portrait and restores landscape editing without replacing draft/input', async () => {
+    const { screen, input, parent } = await readyHarness();
+    screen.draft!.setName('Rotation Grub'); screen.addAbility('ability.smash'); screen.selectSlot('ability.smash', 0); screen.assignDie('22');
+    const portrait = calculateRuntimeViewport({ cssWidth: 390, cssHeight: 844, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true });
+    const landscape = calculateRuntimeViewport({ cssWidth: 844, cssHeight: 390, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true });
+    screen.reflow(portrait); expect(input.disabled).toBeTrue();
+    input.value = 'Portrait mutation'; input.dispatchEvent(new Event('input')); expect(screen.draft!.name).toBe('Rotation Grub');
+    screen.reflow(landscape);
+    expect(parent.querySelector('[data-unit-name-input="true"]')).toBe(input); expect(input.disabled).toBeFalse(); expect(input.value).toBe('Rotation Grub');
+    expect(screen.draft!.loadout[1].diceInstanceIds).toEqual(['22']); expect(screen.draft!.selectedSlot).toEqual({ abilityId: 'ability.smash', slotIndex: 0 });
+    screen.destroy(); parent.remove();
+  });
+});

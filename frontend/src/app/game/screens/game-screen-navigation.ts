@@ -1,6 +1,6 @@
 import { RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 
-export type GameScreenKey = 'camp' | 'warband' | 'squad-editor';
+export type GameScreenKey = 'camp' | 'warband' | 'squad-editor' | 'unit-configuration';
 
 export interface GameSceneScreen {
   readonly key: GameScreenKey;

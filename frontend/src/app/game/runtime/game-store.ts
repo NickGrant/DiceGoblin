@@ -76,6 +76,14 @@ export interface WarbandCacheSnapshot {
   readonly squads: WarbandDomainState<WarbandSquadSummary>;
 }
 
+export type UnitDetailStatus = WarbandDomainStatus;
+
+export interface UnitDetailState {
+  readonly status: UnitDetailStatus;
+  readonly data: UnitDetail | null;
+  readonly error: WarbandDomainErrorKind | null;
+}
+
 type WarbandCollectionItem = WarbandUnitSummary | WarbandDieSummary | WarbandSquadSummary;
 
 function emptyDomain<T>(): WarbandDomainState<T> {
@@ -254,6 +262,8 @@ export class GameStore {
   private cachedBootstrap: GameBootstrapData | null = null;
   private warbandCache: WarbandCacheSnapshot = this.emptyWarbandCache();
   private readonly inFlight: Partial<Record<WarbandDomainName, Promise<void>>> = {};
+  private readonly unitDetailCache = new Map<string, UnitDetailState>();
+  private readonly unitDetailInFlight = new Map<string, Promise<void>>();
   private readonly listeners = new Set<(cache: WarbandCacheSnapshot) => void>();
   private cacheGeneration = 0;
 
@@ -267,6 +277,10 @@ export class GameStore {
 
   get warband(): WarbandCacheSnapshot {
     return this.warbandCache;
+  }
+
+  unitDetail(unitId: string): UnitDetailState {
+    return this.unitDetailCache.get(unitId) ?? Object.freeze({ status: 'not-loaded', data: null, error: null });
   }
 
   hydrateBootstrap(bootstrap: GameBootstrapData): void {
@@ -312,6 +326,51 @@ export class GameStore {
     return this.loadSquads(api, true);
   }
 
+  loadUnitDetail(
+    unitId: string,
+    api: RuntimeApiClient,
+    content: ClientContentRegistry,
+    reload = false,
+  ): Promise<void> {
+    const state = this.unitDetail(unitId);
+    if (!reload && state.status === 'fresh') return Promise.resolve();
+    const existing = this.unitDetailInFlight.get(unitId);
+    if (existing) return existing;
+    const units = this.warbandCache.units;
+    const dice = this.warbandCache.dice;
+    const summary = units.status === 'fresh' ? units.data?.find((unit) => unit.id === unitId) : undefined;
+    if (!summary || dice.status !== 'fresh' || !dice.data) {
+      this.setUnitDetail(unitId, { status: 'error', data: state.data, error: 'integrity' });
+      return Promise.resolve();
+    }
+    const generation = this.cacheGeneration;
+    this.setUnitDetail(unitId, { status: 'loading', data: state.data, error: null });
+    const promise = api.getUnitDetail(unitId)
+      .then((value) => parseUnitDetailEnvelope(value, content, dice.data!, summary))
+      .then((data) => {
+        if (generation === this.cacheGeneration) this.setUnitDetail(unitId, { status: 'fresh', data, error: null });
+      })
+      .catch((error: unknown) => {
+        if (generation === this.cacheGeneration) {
+          this.setUnitDetail(unitId, { status: 'error', data: state.data, error: unitDetailErrorKind(error) });
+        }
+      })
+      .finally(() => {
+        if (this.unitDetailInFlight.get(unitId) === promise) this.unitDetailInFlight.delete(unitId);
+      });
+    this.unitDetailInFlight.set(unitId, promise);
+    return promise;
+  }
+
+  retryUnitDetail(unitId: string, api: RuntimeApiClient, content: ClientContentRegistry): Promise<void> {
+    return this.loadUnitDetail(unitId, api, content, true);
+  }
+
+  markUnitDetailStale(unitId: string): void {
+    const state = this.unitDetail(unitId);
+    if (state.status === 'fresh') this.setUnitDetail(unitId, { status: 'stale', data: state.data, error: null });
+  }
+
   markWarbandDomainStale(domain: WarbandDomainName): void {
     const state = this.warbandCache[domain];
     if (state.status !== 'fresh') return;
@@ -353,10 +412,97 @@ export class GameStore {
     }
   }
 
+  reconcileUnitRename(result: UnitMutationResult): void {
+    const current = this.requireUnitReconciliationContext(result, 'rename');
+    try {
+      if (!sameUnitState(current.detail, result.unit, false, true)) {
+        throw new UnitDetailContractError('Rename response changed unrelated unit state.');
+      }
+      const nextUnits = Object.freeze(current.units.map((unit) => unit.id === result.unit.id
+        ? Object.freeze({ ...unit, displayName: result.unit.displayName }) : unit));
+      const bootstrap = this.cachedBootstrap!;
+      const activeSquad = bootstrap.active_squad ? Object.freeze({
+        ...bootstrap.active_squad,
+        units: Object.freeze(bootstrap.active_squad.units.map((unit) => unit.id === result.unit.id
+          ? Object.freeze({ ...unit, display_name: result.unit.displayName }) : unit)),
+      }) : null;
+      this.cachedBootstrap = Object.freeze({
+        ...bootstrap,
+        player: Object.freeze({ ...bootstrap.player, player_revision: result.playerRevision }),
+        active_squad: activeSquad,
+      });
+      this.warbandCache = Object.freeze({
+        ...this.warbandCache,
+        units: Object.freeze({ status: 'fresh', data: nextUnits, error: null }),
+      });
+      this.unitDetailCache.set(result.unit.id, Object.freeze({ status: 'fresh', data: result.unit, error: null }));
+      this.emit();
+    } catch (error) {
+      this.failUnitReconciliation(result.unit.id, 'rename');
+      throw error;
+    }
+  }
+
+  reconcileUnitLoadout(result: UnitMutationResult): void {
+    const current = this.requireUnitReconciliationContext(result, 'loadout');
+    try {
+      if (!sameUnitState(current.detail, result.unit, true, false)) {
+        throw new UnitDetailContractError('Loadout response changed unrelated unit state.');
+      }
+      const newBindings = new Map(result.unit.diceBindings.map((binding) => [binding.die.id, binding]));
+      const nextDice = Object.freeze(current.dice.map((die) => {
+        const replacement = newBindings.get(die.id);
+        if (replacement) {
+          const otherBinding = die.bindings[0];
+          if (otherBinding && otherBinding.unitId !== result.unit.id) {
+            throw new UnitDetailContractError('Loadout response conflicts with another unit binding.');
+          }
+          return Object.freeze({
+            ...die,
+            bindings: Object.freeze([Object.freeze({
+              unitId: result.unit.id, ability: replacement.ability, slotIndex: replacement.slotIndex,
+            })]),
+          });
+        }
+        if (die.bindings[0]?.unitId === result.unit.id) {
+          return Object.freeze({ ...die, bindings: Object.freeze([]) });
+        }
+        return die;
+      }));
+      if (newBindings.size !== result.unit.diceBindings.length
+        || result.unit.diceBindings.some((binding) => !current.dice.some((die) => die.id === binding.die.id))) {
+        throw new UnitDetailContractError('Loadout response references unavailable dice.');
+      }
+      const nextDiceById = new Map(nextDice.map((die) => [die.id, die]));
+      const reconciledDetail = Object.freeze({
+        ...result.unit,
+        diceBindings: Object.freeze(result.unit.diceBindings.map((binding) => Object.freeze({
+          ...binding, die: nextDiceById.get(binding.die.id)!,
+        }))),
+      });
+      const bootstrap = this.cachedBootstrap!;
+      this.cachedBootstrap = Object.freeze({
+        ...bootstrap,
+        player: Object.freeze({ ...bootstrap.player, player_revision: result.playerRevision }),
+      });
+      this.warbandCache = Object.freeze({
+        ...this.warbandCache,
+        dice: Object.freeze({ status: 'fresh', data: nextDice, error: null }),
+      });
+      this.unitDetailCache.set(result.unit.id, Object.freeze({ status: 'fresh', data: reconciledDetail, error: null }));
+      this.emit();
+    } catch (error) {
+      this.failUnitReconciliation(result.unit.id, 'loadout');
+      throw error;
+    }
+  }
+
   clear(): void {
     this.cachedBootstrap = null;
     this.cacheGeneration += 1;
     this.warbandCache = this.emptyWarbandCache();
+    this.unitDetailCache.clear();
+    this.unitDetailInFlight.clear();
     for (const key of Object.keys(this.inFlight) as WarbandDomainName[]) delete this.inFlight[key];
     this.emit();
   }
@@ -448,6 +594,47 @@ export class GameStore {
     this.setDomain('squads', { status: 'error', data: state.data, error: 'integrity' });
   }
 
+  private requireUnitReconciliationContext(
+    result: UnitMutationResult,
+    operation: 'rename' | 'loadout',
+  ): { detail: UnitDetail; units: readonly WarbandUnitSummary[]; dice: readonly WarbandDieSummary[] } {
+    try {
+      if (!this.cachedBootstrap || result.playerRevision < this.cachedBootstrap.player.player_revision) {
+        throw new UnitDetailContractError('Authoritative player revision regressed.');
+      }
+      const detail = this.unitDetail(result.unit.id);
+      if (detail.status !== 'fresh' || !detail.data || this.warbandCache.units.status !== 'fresh'
+        || !this.warbandCache.units.data || this.warbandCache.dice.status !== 'fresh' || !this.warbandCache.dice.data) {
+        throw new UnitDetailContractError('Fresh unit detail, roster, and dice caches are required.');
+      }
+      if (!this.warbandCache.units.data.some((unit) => unit.id === result.unit.id)) {
+        throw new UnitDetailContractError('Unit is absent from the roster cache.');
+      }
+      return { detail: detail.data, units: this.warbandCache.units.data, dice: this.warbandCache.dice.data };
+    } catch (error) {
+      this.failUnitReconciliation(result.unit.id, operation);
+      throw error;
+    }
+  }
+
+  private failUnitReconciliation(unitId: string, operation: 'rename' | 'loadout'): void {
+    const detail = this.unitDetail(unitId);
+    this.unitDetailCache.set(unitId, Object.freeze({ status: 'error', data: detail.data, error: 'integrity' }));
+    if (operation === 'rename') {
+      const units = this.warbandCache.units;
+      this.warbandCache = Object.freeze({ ...this.warbandCache, units: Object.freeze({ status: 'stale', data: units.data, error: 'integrity' }) });
+    } else {
+      const dice = this.warbandCache.dice;
+      this.warbandCache = Object.freeze({ ...this.warbandCache, dice: Object.freeze({ status: 'stale', data: dice.data, error: 'integrity' }) });
+    }
+    this.emit();
+  }
+
+  private setUnitDetail(unitId: string, state: UnitDetailState): void {
+    this.unitDetailCache.set(unitId, Object.freeze(state));
+    this.emit();
+  }
+
   private setDomain(domain: WarbandDomainName, state: WarbandDomainState<WarbandCollectionItem>): void {
     if (domain === 'units') {
       this.warbandCache = Object.freeze({
@@ -494,3 +681,36 @@ import {
   parseUnitCollectionEnvelope,
   requireActiveSquadAgreement,
 } from './warband-contracts';
+import {
+  UnitDetail,
+  UnitDetailContractError,
+  UnitMutationResult,
+  parseUnitDetailEnvelope,
+} from './unit-detail-contracts';
+
+function unitDetailErrorKind(error: unknown): WarbandDomainErrorKind {
+  if (error instanceof RuntimeApiError) return error.kind;
+  if (error instanceof UnitDetailContractError) return 'integrity';
+  return 'unexpected';
+}
+
+function sameUnitState(
+  current: UnitDetail,
+  next: UnitDetail,
+  allowLoadoutChange: boolean,
+  allowNameChange: boolean,
+): boolean {
+  if (current.id !== next.id || (!allowNameChange && current.displayName !== next.displayName)
+    || current.unitType.id !== next.unitType.id || current.kin.id !== next.kin.id
+    || current.level !== next.level || current.xp !== next.xp || current.lifecycleStatus !== next.lifecycleStatus
+    || current.ownedAbilities.map((ability) => ability.id).join('\0') !== next.ownedAbilities.map((ability) => ability.id).join('\0')
+    || JSON.stringify(current.promotionHistory.map((entry) => [entry.fromUnitType.id, entry.toUnitType.id, entry.promotedAt]))
+      !== JSON.stringify(next.promotionHistory.map((entry) => [entry.fromUnitType.id, entry.toUnitType.id, entry.promotedAt]))) {
+    return false;
+  }
+  if (allowLoadoutChange) return true;
+  return JSON.stringify(current.abilityLoadout.map((entry) => entry.ability.id))
+      === JSON.stringify(next.abilityLoadout.map((entry) => entry.ability.id))
+    && JSON.stringify(current.diceBindings.map((entry) => [entry.ability.id, entry.slotIndex, entry.die.id]))
+      === JSON.stringify(next.diceBindings.map((entry) => [entry.ability.id, entry.slotIndex, entry.die.id]));
+}

@@ -18,7 +18,10 @@ describe('GameStore Warband cache', () => {
       regions: {},
       kin: { 'kin.goblin': { id: 'kin.goblin', display_name: 'Goblin', description: 'Goblin.', art_key: 'goblin', trait_summary: 'Quick.', stat_modifiers: { hp: 0, attack: 0, defense: 0, precision: 0, resolve: 0 } } },
       unit_types: { 'unit_type.bruiser': { id: 'unit_type.bruiser', display_name: 'Bruiser', description: 'Bruiser.', art_key: 'bruiser', role: 'frontline', tier: 1, base_stats: { hp: 1, attack: 1, defense: 1, precision: 1, resolve: 1 }, growth_per_level: { hp: 1, attack: 1, defense: 1, precision: 1, resolve: 1 }, ability_ids: ['ability.bash'] } },
-      abilities: { 'ability.bash': { id: 'ability.bash', kind: 'active', display_name: 'Bash', description: 'Bash.', icon_key: 'bash', dice_slot_count: 1 } },
+      abilities: {
+        'ability.bash': { id: 'ability.bash', kind: 'active', display_name: 'Bash', description: 'Bash.', icon_key: 'bash', dice_slot_count: 1 },
+        'ability.smash': { id: 'ability.smash', kind: 'active', display_name: 'Smash', description: 'Smash.', icon_key: 'smash', dice_slot_count: 1 },
+      },
       dice_materials: { 'dice_material.bone': { id: 'dice_material.bone', display_name: 'Bone', description: 'Bone.', art_key: 'bone', allowed_sizes: [6] } },
       dice_aspects: {},
       dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
@@ -26,10 +29,19 @@ describe('GameStore Warband cache', () => {
   }
 
   function api(): jasmine.SpyObj<RuntimeApiClient> {
-    const result = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getDice', 'getSquads']);
+    const result = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads', 'renameUnit', 'replaceUnitLoadout']);
     result.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] } });
-    result.getDice.and.resolveTo({ ok: true, data: { dice: [{ id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [] }] } });
+    result.getDice.and.resolveTo({ ok: true, data: { dice: [
+      { id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '11', ability_id: 'ability.bash', slot_index: 0 }] },
+      { id: '22', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [] },
+      { id: '23', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '99', ability_id: 'ability.smash', slot_index: 0 }] },
+    ] } });
     result.getSquads.and.resolveTo({ ok: true, data: { squads: [{ id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null] }] } });
+    result.getUnitDetail.and.resolveTo({ ok: true, data: { unit: {
+      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active', promotion_history: [],
+      owned_ability_ids: ['ability.bash', 'ability.smash'], ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }],
+      dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '21' }],
+    } } });
     return result;
   }
 
@@ -71,6 +83,44 @@ describe('GameStore Warband cache', () => {
     resolve({ ok: true, data: { units: [] } });
     await first;
     expect(store.warband.units.status).toBe('fresh');
+  });
+
+  it('keeps full unit detail lazy, deduplicates first open, reuses fresh cache, and clears it', async () => {
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap());
+    const client = api(); const registry = content();
+    await store.loadWarbandDomains(client, registry);
+    expect(client.getUnitDetail).not.toHaveBeenCalled();
+    let resolve!: (value: unknown) => void;
+    client.getUnitDetail.and.returnValue(new Promise((done) => { resolve = done; }));
+    const first = store.loadUnitDetail('11', client, registry);
+    const second = store.loadUnitDetail('11', client, registry);
+    expect(first).toBe(second);
+    expect(store.unitDetail('11').status).toBe('loading');
+    expect(client.getUnitDetail).toHaveBeenCalledTimes(1);
+    resolve({ ok: true, data: { unit: {
+      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active', promotion_history: [], owned_ability_ids: ['ability.bash', 'ability.smash'], ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }], dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '21' }],
+    } } });
+    await first;
+    await store.loadUnitDetail('11', client, registry);
+    expect(client.getUnitDetail).toHaveBeenCalledTimes(1);
+    expect(store.unitDetail('11').status).toBe('fresh');
+    store.clear();
+    expect(store.unitDetail('11').status).toBe('not-loaded');
+  });
+
+  it('isolates detail parser and dice-integrity failures without erasing collection caches', async () => {
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap());
+    const client = api(); const registry = content();
+    await store.loadWarbandDomains(client, registry);
+    const units = store.warband.units.data;
+    client.getUnitDetail.and.resolveTo({ ok: true, data: { unit: {
+      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active', promotion_history: [], owned_ability_ids: ['ability.bash'], ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }], dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '22' }],
+    } } });
+    await store.loadUnitDetail('11', client, registry);
+    expect(store.unitDetail('11')).toEqual(jasmine.objectContaining({ status: 'error', error: 'integrity' }));
+    expect(store.warband.units.data).toBe(units);
+    expect(store.warband.dice.status).toBe('fresh');
+    expect(store.warband.squads.status).toBe('fresh');
   });
 
   it('isolates failures and deliberately retries only the errored domain', async () => {
@@ -139,6 +189,74 @@ describe('GameStore Warband cache', () => {
     store.reconcileSquadDelete({ deletedSquadId: '31', activeSquadId: '32', playerRevision: 9 });
     expect(store.warband.squads.data?.map((squad) => squad.id)).toEqual(['32']);
     expect(store.bootstrap?.active_squad?.id).toBe('32');
+  });
+
+  it('reconciles rename into detail, roster, active-squad copy, and revision without disturbing dice or squads', async () => {
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap());
+    const client = api(); const registry = content();
+    await store.loadWarbandDomains(client, registry);
+    await store.loadUnitDetail('11', client, registry);
+    const current = store.unitDetail('11').data!;
+    const diceBefore = store.warband.dice;
+    const squadsBefore = store.warband.squads;
+
+    store.reconcileUnitRename({ unit: Object.freeze({ ...current, displayName: 'New Grub' }), playerRevision: 8 });
+
+    expect(store.unitDetail('11').data?.displayName).toBe('New Grub');
+    expect(store.warband.units.data?.[0].displayName).toBe('New Grub');
+    expect(store.bootstrap?.active_squad?.units[0].display_name).toBe('New Grub');
+    expect(store.playerRevision).toBe(8);
+    expect(store.warband.dice).toBe(diceBefore);
+    expect(store.warband.squads).toBe(squadsBefore);
+    store.reconcileUnitRename({ unit: Object.freeze({ ...store.unitDetail('11').data! }), playerRevision: 8 });
+    expect(store.playerRevision).toBe(8);
+  });
+
+  it('atomically reconciles a complete loadout into exact dice summaries while preserving other domains', async () => {
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap());
+    const client = api(); const registry = content();
+    await store.loadWarbandDomains(client, registry);
+    await store.loadUnitDetail('11', client, registry);
+    const current = store.unitDetail('11').data!;
+    const smash = registry.getAbility('ability.smash')!;
+    const die22 = store.warband.dice.data!.find((die) => die.id === '22')!;
+    const unitsBefore = store.warband.units;
+    const squadsBefore = store.warband.squads;
+    const resultUnit = Object.freeze({
+      ...current,
+      abilityLoadout: Object.freeze([{ ability: smash, equipOrder: 0 }]),
+      diceBindings: Object.freeze([{ ability: smash, slotIndex: 0, die: die22 }]),
+    });
+
+    store.reconcileUnitLoadout({ unit: resultUnit, playerRevision: 8 });
+
+    expect(store.playerRevision).toBe(8);
+    expect(store.unitDetail('11').data?.abilityLoadout[0].ability.id).toBe('ability.smash');
+    expect(store.warband.dice.data?.find((die) => die.id === '21')?.bindings).toEqual([]);
+    expect(store.warband.dice.data?.find((die) => die.id === '22')?.bindings[0]).toEqual(jasmine.objectContaining({ unitId: '11', ability: smash, slotIndex: 0 }));
+    expect(store.warband.dice.data?.find((die) => die.id === '23')?.bindings[0].unitId).toBe('99');
+    expect(store.warband.units).toBe(unitsBefore);
+    expect(store.warband.squads).toBe(squadsBefore);
+  });
+
+  it('rejects impossible unit reconciliation and marks affected caches instead of fabricating bindings', async () => {
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap());
+    const client = api(); const registry = content();
+    await store.loadWarbandDomains(client, registry);
+    await store.loadUnitDetail('11', client, registry);
+    const current = store.unitDetail('11').data!;
+    const smash = registry.getAbility('ability.smash')!;
+    const occupied = store.warband.dice.data!.find((die) => die.id === '23')!;
+    const diceBefore = store.warband.dice.data;
+    expect(() => store.reconcileUnitLoadout({ unit: Object.freeze({
+      ...current,
+      abilityLoadout: Object.freeze([{ ability: smash, equipOrder: 0 }]),
+      diceBindings: Object.freeze([{ ability: smash, slotIndex: 0, die: occupied }]),
+    }), playerRevision: 8 })).toThrow();
+    expect(store.playerRevision).toBe(7);
+    expect(store.warband.dice.data).toBe(diceBefore);
+    expect(store.warband.dice.status).toBe('stale');
+    expect(store.unitDetail('11')).toEqual(jasmine.objectContaining({ status: 'error', error: 'integrity' }));
   });
 
   it('appends first create and removes non-active or last-active squads from authoritative results', async () => {

@@ -155,7 +155,7 @@ Options:
 
 async function installGameFixtureRoutes(page, options) {
   const scene = options.scene.trim().toLowerCase();
-  if (!['camp', 'camp-portrait', 'warband', 'squad-editor'].includes(scene)) return;
+  if (!['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration'].includes(scene)) return;
 
   const projection = JSON.parse(await readFile(path.resolve(process.cwd(), 'frontend/public/game-content.json'), 'utf8'));
   const revision = projection.revision;
@@ -202,7 +202,7 @@ async function installGameFixtureRoutes(page, options) {
         server_time: '2026-09-11T00:00:00Z',
         content_revision: revision,
         progression: { unlock_ids: [] },
-        active_squad: ['warband', 'squad-editor'].includes(scene) ? {
+        active_squad: ['warband', 'squad-editor', 'unit-configuration'].includes(scene) ? {
           id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation,
           units: unitRows.filter((unit) => activeFormation.includes(unit.id)),
         } : null,
@@ -210,7 +210,7 @@ async function installGameFixtureRoutes(page, options) {
       },
     }),
   }));
-  if (!['warband', 'squad-editor'].includes(scene)) return;
+  if (!['warband', 'squad-editor', 'unit-configuration'].includes(scene)) return;
   await page.route('**/api/v1/units', (route) => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ ok: true, data: { units: unitRows } }),
@@ -220,7 +220,7 @@ async function installGameFixtureRoutes(page, options) {
     body: JSON.stringify({ ok: true, data: { dice: [
       { id: '201', size: 8, profile_id: 'dice_profile.bone_executioner', lifecycle_status: 'active', bindings: [{ unit_id: '101', ability_id: 'ability.heavy_strike', slot_index: 0 }] },
       { id: '202', size: 6, profile_id: 'dice_profile.wood_precise', lifecycle_status: 'active', bindings: [{ unit_id: '103', ability_id: 'ability.aimed_shot', slot_index: 0 }] },
-      { id: '203', size: 10, profile_id: 'dice_profile.metal_plain', lifecycle_status: 'active', bindings: [] },
+      { id: '203', size: 10, profile_id: 'dice_profile.metal_plain', lifecycle_status: 'active', bindings: [{ unit_id: '101', ability_id: 'ability.basic_attack_melee', slot_index: 0 }] },
       { id: '204', size: 4, profile_id: 'dice_profile.cardboard_guarding', lifecycle_status: 'active', bindings: [] },
     ] } }),
   }));
@@ -230,6 +230,23 @@ async function installGameFixtureRoutes(page, options) {
       { id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation },
       { id: '302', name: 'Night Scavengers', is_active: false, formation: ['106', null, null, null, '107', null, null, null, '108'] },
     ] } }),
+  }));
+  await page.route('**/api/v1/units/101', (route) => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ ok: true, data: { unit: {
+      id: '101', display_name: 'Ashback', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin',
+      level: 5, xp: 185, lifecycle_status: 'active',
+      promotion_history: [],
+      owned_ability_ids: ['ability.basic_attack_melee', 'ability.heavy_strike', 'ability.thick_hide', 'ability.menacing_follow_through'],
+      ability_loadout: [
+        { ability_id: 'ability.heavy_strike', equip_order: 0 },
+        { ability_id: 'ability.basic_attack_melee', equip_order: 1 },
+      ],
+      dice_bindings: [
+        { ability_id: 'ability.heavy_strike', slot_index: 0, dice_instance_id: '201' },
+        { ability_id: 'ability.basic_attack_melee', slot_index: 0, dice_instance_id: '203' },
+      ],
+    } } }),
   }));
 }
 
@@ -409,16 +426,19 @@ async function captureScene(options) {
             { timeout: options.timeoutMs },
           );
         }
-        if (['camp', 'camp-portrait', 'warband', 'squad-editor'].includes(options.scene.trim().toLowerCase())) {
+        if (['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
           const requestedGameScreen = options.scene.trim().toLowerCase();
-          const gameScreen = requestedGameScreen === 'warband' || requestedGameScreen === 'squad-editor' ? requestedGameScreen : 'camp';
+          const gameScreen = ['warband', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen) ? requestedGameScreen : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {
             await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });
           }
           if (gameScreen === 'squad-editor') {
             await page.waitForSelector('[data-squad-editor-ready="true"]', { timeout: options.timeoutMs });
+          }
+          if (gameScreen === 'unit-configuration') {
+            await page.waitForSelector('[data-unit-configuration-ready="true"]', { timeout: options.timeoutMs });
           }
           const runtimeMetrics = await page.evaluate(() => {
             const host = document.querySelector('.game-host__mount');

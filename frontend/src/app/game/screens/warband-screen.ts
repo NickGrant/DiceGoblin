@@ -88,6 +88,7 @@ export class WarbandScreen implements GameSceneScreen {
     private readonly returnToCamp: () => void,
     private readonly openSquadEditor: (squad: WarbandSquadSummary | null, action?: SquadEditorInitialAction) => void,
     initialTab: WarbandTab = 'squads',
+    private readonly openUnitConfiguration: (unitId: string) => void = () => undefined,
   ) {
     this.activeTab = initialTab;
   }
@@ -144,6 +145,10 @@ export class WarbandScreen implements GameSceneScreen {
 
   deleteSelectedSquad(): void {
     this.openSelectedSquad('delete');
+  }
+
+  openUnit(unitId: string): void {
+    this.openUnitConfiguration(unitId);
   }
 
   private render(snapshot: RuntimeViewportSnapshot, layout: WarbandLayout, cache: WarbandCacheSnapshot): void {
@@ -210,8 +215,11 @@ export class WarbandScreen implements GameSceneScreen {
     this.renderRows(root, layout, items.map((unit) => ({
       title: unit.displayName,
       detail: `${unit.unitType.display_name} · ${unit.kin.display_name} · Level ${unit.level}`,
-      badge: unit.unitType.role.toUpperCase(),
-    })), (state.data?.length ?? 0) > layout.pageSize);
+      badge: 'CONFIGURE',
+    })), (state.data?.length ?? 0) > layout.pageSize, (index) => {
+      const unit = items[index];
+      if (unit) this.openUnit(unit.id);
+    });
     this.renderPager(root, layout, 'units', state.data?.length ?? 0);
   }
 

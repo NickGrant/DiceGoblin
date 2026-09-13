@@ -1,4 +1,6 @@
 import { RuntimeApiClient, RuntimeApiError, RuntimeFetch } from './runtime-api-client';
+import { ClientContentRegistry } from './client-content-registry';
+import { parseDiceCollectionEnvelope } from './warband-contracts';
 
 describe('RuntimeApiClient', () => {
   const originalConfig = window.__DICE_GOBLIN_CONFIG__;
@@ -45,13 +47,42 @@ describe('RuntimeApiClient', () => {
     await client.getUnits();
     await client.getDice();
     await client.getSquads();
+    await client.getUnitDetail('11/unsafe');
 
     expect(fetchRequest.calls.allArgs().map(([url]) => url)).toEqual([
-      '/root/api/v1/units', '/root/api/v1/dice', '/root/api/v1/squads',
+      '/root/api/v1/units', '/root/api/v1/dice', '/root/api/v1/squads', '/root/api/v1/units/11%2Funsafe',
     ]);
     for (const [, init] of fetchRequest.calls.allArgs()) {
       expect(init).toEqual(jasmine.objectContaining({ method: 'GET', credentials: 'include', headers: { Accept: 'application/json' } }));
     }
+  });
+
+  it('sends independent unit rename and complete loadout commands with strict authoritative parsing', async () => {
+    const stat = { hp: 1, attack: 1, defense: 1, precision: 1, resolve: 1 };
+    const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
+      regions: {}, kin: { 'kin.goblin': { id: 'kin.goblin', display_name: 'Goblin', description: 'Goblin.', art_key: 'goblin', trait_summary: 'Quick.', stat_modifiers: { hp: 0, attack: 0, defense: 0, precision: 0, resolve: 0 } } },
+      unit_types: { 'unit_type.bruiser': { id: 'unit_type.bruiser', display_name: 'Bruiser', description: 'Bruiser.', art_key: 'bruiser', role: 'frontline', tier: 1, base_stats: stat, growth_per_level: stat, ability_ids: ['ability.bash'] } },
+      abilities: { 'ability.bash': { id: 'ability.bash', kind: 'active', display_name: 'Bash', description: 'Bash.', icon_key: 'bash', dice_slot_count: 1 } },
+      dice_materials: { 'dice_material.bone': { id: 'dice_material.bone', display_name: 'Bone', description: 'Bone.', art_key: 'bone', allowed_sizes: [6] } }, dice_aspects: {},
+      dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
+    } });
+    const dice = parseDiceCollectionEnvelope({ ok: true, data: { dice: [
+      { id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '11', ability_id: 'ability.bash', slot_index: 0 }] },
+    ] } }, content);
+    const unit = { id: '11', display_name: 'New Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active', promotion_history: [], owned_ability_ids: ['ability.bash'], ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }], dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '21' }] };
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.callFake(async () => new Response(JSON.stringify({ ok: true, data: { unit, player_revision: 8 } }), { status: 200 }));
+    const client = new RuntimeApiClient(fetchRequest, '/root');
+    const loadout = { abilities: [{ ability_id: 'ability.bash', dice_instance_ids: ['21'] }] };
+
+    expect((await client.renameUnit('11', 'New Grub', 'csrf', content, dice)).playerRevision).toBe(8);
+    expect((await client.replaceUnitLoadout('11', loadout, 'csrf', content, dice)).unit.displayName).toBe('New Grub');
+
+    const calls = fetchRequest.calls.allArgs();
+    expect(calls.map(([url]) => url)).toEqual(['/root/api/v1/units/11/name', '/root/api/v1/units/11/loadout']);
+    expect(calls.map(([, init]) => init?.method)).toEqual(['PATCH', 'PUT']);
+    expect(calls[0][1]).toEqual(jasmine.objectContaining({ credentials: 'include', body: JSON.stringify({ name: 'New Grub' }) }));
+    expect(calls[0][1]?.headers).toEqual(jasmine.objectContaining({ 'X-CSRF-Token': 'csrf', 'Content-Type': 'application/json' }));
+    expect(calls[1][1]?.body).toBe(JSON.stringify(loadout));
   });
 
   it('preserves network, HTTP, and malformed-response distinctions for lazy queries', async () => {

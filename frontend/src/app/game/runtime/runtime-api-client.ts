@@ -7,6 +7,14 @@ import {
   parseSquadDeleteEnvelope,
   parseSquadMutationEnvelope,
 } from './warband-contracts';
+import { ClientContentRegistry } from './client-content-registry';
+import {
+  UnitDetailContractError,
+  UnitLoadoutPayload,
+  UnitMutationResult,
+  parseUnitMutationEnvelope,
+} from './unit-detail-contracts';
+import { WarbandDieSummary } from './warband-contracts';
 
 export type RuntimeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -44,6 +52,10 @@ export class RuntimeApiClient {
     return this.get('/api/v1/units');
   }
 
+  async getUnitDetail(unitId: string): Promise<unknown> {
+    return this.get(`/api/v1/units/${encodeURIComponent(unitId)}`);
+  }
+
   async getDice(): Promise<unknown> {
     return this.get('/api/v1/dice');
   }
@@ -76,6 +88,32 @@ export class RuntimeApiClient {
     return this.mutate(`/api/v1/squads/${encodeURIComponent(squadId)}`, 'DELETE', csrfToken, undefined, null, parseSquadDeleteEnvelope);
   }
 
+  async renameUnit(
+    unitId: string,
+    name: string,
+    csrfToken: string,
+    content: ClientContentRegistry,
+    dice: readonly WarbandDieSummary[],
+  ): Promise<UnitMutationResult> {
+    return this.mutate(
+      `/api/v1/units/${encodeURIComponent(unitId)}/name`, 'PATCH', csrfToken, { name }, null,
+      (value) => parseUnitMutationEnvelope(value, content, dice, false),
+    );
+  }
+
+  async replaceUnitLoadout(
+    unitId: string,
+    configuration: UnitLoadoutPayload,
+    csrfToken: string,
+    content: ClientContentRegistry,
+    dice: readonly WarbandDieSummary[],
+  ): Promise<UnitMutationResult> {
+    return this.mutate(
+      `/api/v1/units/${encodeURIComponent(unitId)}/loadout`, 'PUT', csrfToken, configuration, null,
+      (value) => parseUnitMutationEnvelope(value, content, dice),
+    );
+  }
+
   private async get(path: string): Promise<unknown> {
     let response: Response;
 
@@ -102,9 +140,9 @@ export class RuntimeApiClient {
 
   private async mutate<T>(
     path: string,
-    method: 'POST' | 'PUT' | 'DELETE',
+    method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     csrfToken: string,
-    body: SquadConfigurationPayload | undefined,
+    body: unknown | undefined,
     idempotencyKey: string | null,
     parse: (value: unknown) => T,
   ): Promise<T> {
@@ -132,7 +170,7 @@ export class RuntimeApiClient {
     try {
       return parse(value);
     } catch (error) {
-      if (error instanceof WarbandContractError) {
+      if (error instanceof WarbandContractError || error instanceof UnitDetailContractError) {
         throw new RuntimeApiError('malformed-response', response.status);
       }
       throw error;
