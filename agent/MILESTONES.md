@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Establish active-run persistence foundation
+- Establish Farm authored run content and deterministic generator adaptation
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -42,8 +42,8 @@ Combat and node resolution are deliberately not part of this milestone. They beg
 
 ### Package Queue
 Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
-1. **Active-run persistence foundation.** Current.
-2. Farm authored run content + deterministic generator adaptation.
+1. ~~Active-run persistence foundation.~~ Complete and architecturally approved at `0ea5f652af397061190f9cb11c71cb1f6d1d1bb7`.
+2. **Farm authored run content + deterministic generator adaptation.** Current.
 3. Authoritative run start + Energy spend + idempotency.
 4. Current-run query + abandon + bootstrap summary + Warband active-run locks.
 5. Phaser RunScene lifecycle + Camp start/resume navigation.
@@ -60,8 +60,8 @@ For each package:
 Do not implement later packages early merely because their eventual shape is known.
 
 ### Sequencing Decisions
-- Package 1 is persistence only. The retained prototype `RunGraphGenerator` still owns PDO/catalog concerns and must not shape the vNext schema by accident.
-- Package 2 adapts useful deterministic generation behavior and authored Farm definitions before run start begins consuming them.
+- Package 1 established only the normalized run persistence boundary. Cross-owner squad/unit relationships remain application-level validation, consistent with Warband; Package 3 must reject foreign participation before persistence and later reads must treat corrupt cross-owner relationships as integrity errors.
+- Package 2 adapts useful deterministic Farm generation behavior and authored Farm definitions before run start begins consuming them. The retained prototype `RunGraphGenerator` is evidence only because it still owns PDO/catalog concerns.
 - Package 3 is the first run-creation transaction and owns Energy/idempotency semantics.
 - Package 4 introduces the authoritative active-run configuration lock now that real run state exists. Earlier Warband commands were intentionally structured to accept this policy without redesign.
 - Exact resolved combat-stat formulas remain deferred. Milestone 3 must not invent progression/stat math merely to pre-stage Milestone 4 combat. Persist only run-unit participation/state that can be represented honestly at this stage; finalize combat HP initialization when the combat milestone owns the required stat resolver unless an already-canonical resolver is deliberately established.
