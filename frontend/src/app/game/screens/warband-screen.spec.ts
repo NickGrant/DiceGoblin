@@ -109,4 +109,27 @@ describe('WarbandScreen', () => {
     expect(harness.textValues).toContain('No goblins have joined your warband yet.');
     expect(harness.textValues).not.toContain('Loading warband records…');
   });
+
+  it('forwards New, Edit, Activate, and Delete intent without issuing mutations itself', async () => {
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap());
+    const client = api(); const registry = content();
+    await store.loadWarbandDomains(client, registry);
+    const openEditor = jasmine.createSpy('openEditor');
+    const screen = new WarbandScreen(sceneHarness().scene, store, client, registry, new RuntimeViewport(), () => undefined, openEditor, 'squads');
+    screen.create();
+
+    screen.editSelectedSquad();
+    screen.activateSelectedSquad();
+    screen.deleteSelectedSquad();
+    screen.createSquad();
+
+    const squad = store.warband.squads.data?.[0];
+    expect(openEditor.calls.argsFor(0)).toEqual([squad]);
+    expect(openEditor.calls.argsFor(1)).toEqual([squad, 'activate']);
+    expect(openEditor.calls.argsFor(2)).toEqual([squad, 'delete']);
+    expect(openEditor.calls.argsFor(3)).toEqual([null]);
+    expect(client.getUnits).toHaveBeenCalledTimes(1);
+    expect(client.getDice).toHaveBeenCalledTimes(1);
+    expect(client.getSquads).toHaveBeenCalledTimes(1);
+  });
 });

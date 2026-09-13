@@ -40,6 +40,19 @@ describe('SquadEditorScreen', () => {
     return { add: { container: () => chain(), graphics: () => chain(), text: () => chain() }, sys: { game: { canvas } } } as unknown as Phaser.Scene;
   }
 
+  function domHarness(draft: SquadEditorDraft, client: jasmine.SpyObj<RuntimeApiClient>) {
+    const scene = sceneHarness();
+    const canvas = (scene.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game!.canvas;
+    const parent = canvas.parentElement!;
+    document.body.appendChild(parent);
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap());
+    const viewport = new RuntimeViewport();
+    const screen = new SquadEditorScreen(scene, store, client, viewport, draft, () => undefined);
+    screen.create();
+    const input = parent.querySelector<HTMLInputElement>('[data-squad-name-input="true"]')!;
+    return { screen, store, viewport, parent, input };
+  }
+
   it('keeps editor regions and actions inside Compact, Standard, and Wide safe bounds', () => {
     for (const [width, height] of [[844, 390], [1600, 900], [2560, 1080]]) {
       const snapshot = calculateRuntimeViewport({ cssWidth: width, cssHeight: height, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true });
@@ -116,6 +129,79 @@ describe('SquadEditorScreen', () => {
     expect(client.createSquad).toHaveBeenCalledTimes(1);
     resolve({ squad: { id: '41', name: 'Only Once', isActive: true, formation: Array(9).fill(null) }, activeSquadId: '41', playerRevision: 8 });
     await pending;
+  });
+
+  it('blocks focused native name editing during save and restores it after failure without losing the draft', async () => {
+    const client = api();
+    let reject!: (reason: unknown) => void;
+    client.updateSquad.and.returnValue(new Promise((_resolve, rejectPromise) => { reject = rejectPromise; }));
+    const draft = SquadEditorDraft.edit({ id: '31', name: 'Raiders', isActive: false, formation: Array(9).fill(null) });
+    const { screen, parent, input } = domHarness(draft, client);
+    input.value = 'Submitted Raiders'; input.dispatchEvent(new Event('input'));
+    input.focus();
+
+    const pending = screen.save();
+    expect(input.disabled).toBeTrue();
+    expect(input.readOnly).toBeTrue();
+    expect(document.activeElement).not.toBe(input);
+    input.value = 'Changed while saving'; input.dispatchEvent(new Event('input'));
+    expect(draft.name).toBe('Submitted Raiders');
+    expect(input.value).toBe('Submitted Raiders');
+
+    reject(new RuntimeApiError('network'));
+    await pending;
+    expect(input.disabled).toBeFalse();
+    expect(input.readOnly).toBeFalse();
+    expect(draft.name).toBe('Submitted Raiders');
+    input.value = 'Editable after failure'; input.dispatchEvent(new Event('input'));
+    expect(draft.name).toBe('Editable after failure');
+    screen.destroy(); parent.remove();
+  });
+
+  it('blocks and hides native name input during confirmation', () => {
+    const draft = SquadEditorDraft.edit({ id: '31', name: 'Raiders', isActive: false, formation: Array(9).fill(null) });
+    draft.setName('Dirty Raiders');
+    const { screen, parent, input } = domHarness(draft, api());
+    screen.requestBack();
+    expect(input.disabled).toBeTrue();
+    expect(input.readOnly).toBeTrue();
+    expect(input.style.display).toBe('none');
+    input.value = 'Changed under confirmation'; input.dispatchEvent(new Event('input'));
+    expect(draft.name).toBe('Dirty Raiders');
+    screen.cancelConfirmation();
+    expect(input.disabled).toBeFalse();
+    expect(input.readOnly).toBeFalse();
+    expect(input.style.display).toBe('block');
+    expect(input.value).toBe('Dirty Raiders');
+    screen.destroy(); parent.remove();
+  });
+
+  it('gates the same native input in touch portrait and restores landscape editing with the full draft intact', () => {
+    const draft = SquadEditorDraft.edit({ id: '31', name: 'Raiders', isActive: false, formation: Array(9).fill(null) });
+    draft.setName('Rotation Raiders'); draft.selectUnit('11'); draft.placeSelected(8);
+    const { screen, parent, input } = domHarness(draft, api());
+    const portrait = calculateRuntimeViewport({ cssWidth: 390, cssHeight: 844, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true });
+    const landscape = calculateRuntimeViewport({ cssWidth: 844, cssHeight: 390, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true });
+
+    screen.reflow(portrait);
+    expect(portrait.portraitGateActive).toBeTrue();
+    expect(input.disabled).toBeTrue();
+    input.value = 'Portrait mutation'; input.dispatchEvent(new Event('input'));
+    expect(draft.name).toBe('Rotation Raiders');
+    expect(draft.formation[8]).toBe('11');
+    expect(draft.selectedUnitId).toBe('11');
+
+    screen.reflow(landscape);
+    expect(parent.querySelector('[data-squad-name-input="true"]')).toBe(input);
+    expect(input.disabled).toBeFalse();
+    expect(input.readOnly).toBeFalse();
+    expect(input.value).toBe('Rotation Raiders');
+    input.value = 'Landscape restored'; input.dispatchEvent(new Event('input'));
+    expect(draft.name).toBe('Landscape restored');
+    expect(draft.formation[8]).toBe('11');
+    expect(draft.selectedUnitId).toBe('11');
+    expect(draft.dirty).toBeTrue();
+    screen.destroy(); parent.remove();
   });
 
   it('requires explicit discard and delete confirmation and preserves state on active-delete conflict', async () => {

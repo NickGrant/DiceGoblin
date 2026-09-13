@@ -57,6 +57,7 @@ export class SquadEditorScreen implements GameSceneScreen {
   private confirmation: EditorConfirmation = null;
   private message = '';
   private integrityBlocked = false;
+  private portraitGateActive = false;
   private readonly idempotency = new CreateSquadIdempotency();
 
   constructor(
@@ -77,6 +78,7 @@ export class SquadEditorScreen implements GameSceneScreen {
   }
 
   reflow(snapshot: RuntimeViewportSnapshot): void {
+    this.portraitGateActive = snapshot.portraitGateActive;
     this.root?.destroy(true);
     this.root = null;
     this.layout = createSquadEditorLayout(snapshot);
@@ -105,6 +107,12 @@ export class SquadEditorScreen implements GameSceneScreen {
 
   confirmDiscard(): void {
     if (this.confirmation === 'discard') this.returnToWarband();
+  }
+
+  cancelConfirmation(): void {
+    if (!this.confirmation) return;
+    this.confirmation = null;
+    this.reflow(this.viewport.snapshot);
   }
 
   async save(): Promise<void> {
@@ -312,7 +320,7 @@ export class SquadEditorScreen implements GameSceneScreen {
     const deleting = this.confirmation === 'delete';
     root.add(this.scene.add.text(region.x + region.width / 2, region.y + 45, deleting ? 'DELETE THIS SQUAD?' : 'DISCARD UNSAVED CHANGES?', { color: '#5b351f', fontFamily: 'Georgia, serif', fontSize: '27px', fontStyle: 'bold' }).setOrigin(0.5));
     root.add(this.scene.add.text(region.x + region.width / 2, region.y + 91, deleting ? 'The backend will enforce active-squad rules.' : 'Your local draft will be destroyed.', { color: '#74664b', fontFamily: 'system-ui', fontSize: '16px' }).setOrigin(0.5));
-    this.addButton(root, box(region.x + 42, region.bottom - 82, 220, 54), 'KEEP EDITING', () => { this.confirmation = null; this.reflow(this.viewport.snapshot); }, false);
+    this.addButton(root, box(region.x + 42, region.bottom - 82, 220, 54), 'KEEP EDITING', () => this.cancelConfirmation(), false);
     this.addButton(root, box(region.right - 262, region.bottom - 82, 220, 54), deleting ? 'CONFIRM DELETE' : 'DISCARD', () => {
       if (deleting) void this.confirmDelete(); else this.confirmDiscard();
     }, true);
@@ -326,7 +334,14 @@ export class SquadEditorScreen implements GameSceneScreen {
     input.type = 'text'; input.value = this.draft.name; input.autocomplete = 'off'; input.spellcheck = false;
     input.setAttribute('aria-label', 'Squad name'); input.dataset['squadNameInput'] = 'true';
     Object.assign(input.style, { position: 'absolute', zIndex: '4', boxSizing: 'border-box', border: '3px solid #b69a65', borderRadius: '10px', background: '#f2e4c1', color: '#3a2a1a', fontFamily: 'Georgia, serif', fontWeight: '700', outline: 'none' });
-    input.addEventListener('input', () => { this.draft.setName(input.value); this.message = ''; });
+    input.addEventListener('input', () => {
+      if (this.nameInputBlocked) {
+        input.value = this.draft.name;
+        return;
+      }
+      this.draft.setName(input.value);
+      this.message = '';
+    });
     parent.appendChild(input);
     this.nameInput = input;
   }
@@ -334,12 +349,23 @@ export class SquadEditorScreen implements GameSceneScreen {
   private positionNameInput(snapshot: RuntimeViewportSnapshot, layout: SquadEditorLayout): void {
     if (!this.nameInput) return;
     const top = layout.name.y + 26;
+    const blocked = this.nameInputBlocked;
+    this.nameInput.disabled = blocked;
+    this.nameInput.readOnly = blocked;
+    this.nameInput.tabIndex = blocked ? -1 : 0;
+    this.nameInput.setAttribute('aria-disabled', blocked ? 'true' : 'false');
+    if (blocked && document.activeElement === this.nameInput) this.nameInput.blur();
     Object.assign(this.nameInput.style, {
       left: `${(layout.name.x * snapshot.gameScale)}px`, top: `${(top * snapshot.gameScale)}px`,
       width: `${layout.name.width * snapshot.gameScale}px`, height: `${(layout.name.bottom - top) * snapshot.gameScale}px`,
       padding: `0 ${18 * snapshot.gameScale}px`, fontSize: `${Math.max(16, 24 * snapshot.gameScale)}px`,
-      display: this.confirmation ? 'none' : 'block', pointerEvents: this.command === 'idle' ? 'auto' : 'none',
+      display: this.confirmation ? 'none' : 'block', pointerEvents: blocked ? 'none' : 'auto',
     });
+  }
+
+  private get nameInputBlocked(): boolean {
+    return this.command !== 'idle' || this.confirmation !== null
+      || this.portraitGateActive || this.integrityBlocked;
   }
 
   private changeRosterPage(direction: -1 | 1, pages: number): void {

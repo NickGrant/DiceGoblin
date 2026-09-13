@@ -247,7 +247,8 @@ export class GameScene extends RuntimeScene {
         return;
       }
       this.activeScreen = this.createWarbandScreen(
-        this, this.runtimeStartup, this.runtimeViewport, () => this.goBack(), (squad) => this.showSquadEditor(squad), initialTab,
+        this, this.runtimeStartup, this.runtimeViewport, () => this.goBack(),
+        (squad, action) => this.showSquadEditor(squad, action), initialTab,
       );
     } else {
       this.activeScreen = this.createCampScreen(

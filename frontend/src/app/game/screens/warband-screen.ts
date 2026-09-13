@@ -130,6 +130,22 @@ export class WarbandScreen implements GameSceneScreen {
     this.reflow(this.viewport.snapshot);
   }
 
+  createSquad(): void {
+    this.openSquadEditor(null);
+  }
+
+  editSelectedSquad(): void {
+    this.openSelectedSquad();
+  }
+
+  activateSelectedSquad(): void {
+    this.openSelectedSquad('activate');
+  }
+
+  deleteSelectedSquad(): void {
+    this.openSelectedSquad('delete');
+  }
+
   private render(snapshot: RuntimeViewportSnapshot, layout: WarbandLayout, cache: WarbandCacheSnapshot): void {
     const root = this.scene.add.container(0, 0).setScale(snapshot.gameScale);
     this.root = root;
@@ -228,7 +244,7 @@ export class WarbandScreen implements GameSceneScreen {
   ): void {
     if (!this.renderDomainState(root, layout, 'squads', state, 'No saved squads are assembled yet.')) {
       if (state.status === 'fresh') {
-        this.addButton(root, box(layout.content.x + layout.content.width / 2 - 100, layout.content.y + layout.content.height / 2 + 55, 200, 58), 'CREATE SQUAD', () => this.openSquadEditor(null), true);
+        this.addButton(root, box(layout.content.x + layout.content.width / 2 - 100, layout.content.y + layout.content.height / 2 + 55, 200, 58), 'CREATE SQUAD', () => this.createSquad(), true);
       }
       return;
     }
@@ -254,16 +270,10 @@ export class WarbandScreen implements GameSceneScreen {
     const actionWidth = layout.mode === 'compact' ? 112 : 104;
     const actionGap = 8;
     let actionX = layout.content.right - (actionWidth * 4 + actionGap * 3) - 14;
-    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'NEW', () => this.openSquadEditor(null), true); actionX += actionWidth + actionGap;
-    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'EDIT', () => {
-      if (selected) this.openSquadEditor(selected);
-    }, false); actionX += actionWidth + actionGap;
-    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'ACTIVATE', () => {
-      if (selected) this.openSquadEditor(selected, 'activate');
-    }, selected?.isActive ?? false); actionX += actionWidth + actionGap;
-    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'DELETE', () => {
-      if (selected) this.openSquadEditor(selected, 'delete');
-    }, false);
+    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'NEW', () => this.createSquad(), true); actionX += actionWidth + actionGap;
+    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'EDIT', () => this.editSelectedSquad(), false); actionX += actionWidth + actionGap;
+    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'ACTIVATE', () => this.activateSelectedSquad(), selected?.isActive ?? false); actionX += actionWidth + actionGap;
+    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'DELETE', () => this.deleteSelectedSquad(), false);
     this.renderPager(root, layout, 'squads', state.data?.length ?? 0, Math.min(3, layout.pageSize));
   }
 
@@ -400,6 +410,15 @@ export class WarbandScreen implements GameSceneScreen {
     this.pages[tab] = Math.min(this.pages[tab], pages - 1);
     const start = this.pages[tab] * pageSize;
     return items.slice(start, start + pageSize);
+  }
+
+  private openSelectedSquad(action?: SquadEditorInitialAction): void {
+    const squads = this.store.warband.squads.data ?? [];
+    const selected = squads.find((squad) => squad.id === this.selectedSquadId)
+      ?? squads.find((squad) => squad.isActive) ?? squads[0];
+    if (!selected) return;
+    if (action) this.openSquadEditor(selected, action);
+    else this.openSquadEditor(selected);
   }
 
   private changePage(tab: WarbandTab, direction: -1 | 1, pages: number): void {

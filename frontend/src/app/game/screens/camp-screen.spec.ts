@@ -366,7 +366,7 @@ describe('CampScreen', () => {
     expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
   });
 
-  it('navigates Warband to squad editor and back inside the same GameScene/runtime', async () => {
+  it('preserves Edit, Activate, Delete, and New intent across Warband navigation inside the same GameScene/runtime', async () => {
     const revision = 'a'.repeat(64);
     const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
     apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
@@ -379,18 +379,29 @@ describe('CampScreen', () => {
     const camp = jasmine.createSpyObj<GameSceneScreen>('camp', ['create', 'reflow', 'destroy'], { key: 'camp' });
     const warband = jasmine.createSpyObj<GameSceneScreen>('warband', ['create', 'reflow', 'destroy'], { key: 'warband' });
     const editor = jasmine.createSpyObj<GameSceneScreen>('editor', ['create', 'reflow', 'destroy'], { key: 'squad-editor' });
+    let openSquadEditor!: (squad: { id: string; name: string; isActive: boolean; formation: readonly (string | null)[] } | null, action?: 'none' | 'activate' | 'delete') => void;
     let returnToWarband!: () => void;
+    const warbandFactory = jasmine.createSpy('warbandFactory').and.callFake((_scene, _startup, _viewport, _returnAction, openAction) => {
+      openSquadEditor = openAction; return warband;
+    });
     const squadFactory = jasmine.createSpy('squadFactory').and.callFake((_scene, _startup, _viewport, _draft, returnAction) => {
       returnToWarband = returnAction; return editor;
     });
-    const scene = new GameScene(new RuntimeLifecycleState(), startup, viewport, () => camp, () => warband, squadFactory);
+    const scene = new GameScene(new RuntimeLifecycleState(), startup, viewport, () => camp, warbandFactory, squadFactory);
     (scene as unknown as { events: unknown }).events = { once: jasmine.createSpy('once') };
 
+    const squad = { id: '31', name: 'Raiders', isActive: false, formation: Array<string | null>(9).fill(null) };
     scene.create(); scene.showWarband();
-    scene.showSquadEditor({ id: '31', name: 'Raiders', isActive: false, formation: Array(9).fill(null) });
+    for (const action of [undefined, 'activate', 'delete'] as const) {
+      openSquadEditor(squad, action);
+      expect(scene.activeScreenKey).toBe('squad-editor');
+      returnToWarband();
+      expect(scene.activeScreenKey).toBe('warband');
+    }
+    openSquadEditor(null);
     expect(scene.activeScreenKey).toBe('squad-editor');
-    returnToWarband();
-    expect(scene.activeScreenKey).toBe('warband');
+    expect(squadFactory.calls.allArgs().map((args) => args[5])).toEqual(['none', 'activate', 'delete', 'none']);
+    expect(squadFactory.calls.allArgs().map((args) => (args[3] as { mode: string }).mode)).toEqual(['edit', 'edit', 'edit', 'create']);
     expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
     expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
   });
