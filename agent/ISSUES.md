@@ -4,269 +4,377 @@
 
 ## Milestone 2 - Warband
 
-### Establish Phaser squad editor and saved-squad lifecycle flows
+### Establish Phaser unit detail, rename, loadout, and dice-binding flows
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-The authoritative squad backend and the read-only Phaser Warband are approved. Players can inspect units, dice, saved squads, and the active formation, but cannot yet configure squads through the vNext client. Implement a Phaser-owned squad editor that uses the complete authoritative Package 4 squad commands, keeps edits local until server acceptance, and reconciles GameStore from mutation responses without a global bootstrap/profile refresh.
+Packages 1-7 now provide authoritative owned unit/dice persistence and content, complete unit-detail/read APIs, atomic rename/loadout commands, lazy Warband collections, and a functional Phaser squad editor. Players can manage squads but cannot yet open an individual goblin and configure the durable per-unit combat setup. Implement the Phaser-owned unit detail/configuration flow that consumes the already-approved Package 3/5 contracts without restoring Angular Warband pages, per-slot mutations, or profile refresh behavior.
 
 #### Required Context
-- `documentation/07-development-path/vnext-phaser-client-architecture.md` — GameScene screens/navigation, client cache authority, responsive/safe-area rules
-- `documentation/07-development-path/vnext-api-contract-model.md` — mutation authority, CSRF, idempotency, `player_revision`
-- `documentation/07-development-path/vnext-endpoint-inventory.md` — accepted squad command contracts
-- `documentation/02-systems/warband-and-formation.md` — multiple saved squads, nine positions, active-squad semantics
-- approved Package 4 squad commands/bootstrap integration
-- approved Package 6 `RuntimeApiClient`, Warband domain cache, parsers, navigation, and `WarbandScreen`
+- `documentation/07-development-path/vnext-phaser-client-architecture.md` — persistent GameScene screen model, lazy authoritative cache, responsive/orientation rules
+- `documentation/07-development-path/vnext-api-contract-model.md` — query/mutation authority and `player_revision`
+- `documentation/07-development-path/vnext-endpoint-inventory.md` — unit detail, rename, and complete loadout endpoints
+- `documentation/02-systems/ability-loadouts-and-dice-binding.md` — per-instance owned abilities, ordered active loadout, exact physical die bindings
+- `documentation/02-systems/dice-profiles-and-aspects.md` — profile/material/aspect presentation and size eligibility
+- `documentation/02-systems/unit-stat-advancement.md` — level/XP and the fact that final resolved stat formulas are not yet canonical
+- approved Package 3 unit-detail and dice collection contracts
+- approved Package 5 rename/loadout command semantics
+- approved Package 6 GameStore lazy Warband domains/navigation
+- approved Package 7 local-draft, native-input, mutation-reconciliation, and GameScene editor patterns
 
-Do not restore prototype Team APIs or Angular Warband ownership.
+Inspect current `UnitDetailQuery`, `RenameUnitCommand`, `ReplaceUnitLoadoutCommand`, `RuntimeApiClient`, `GameStore`, `WarbandScreen`, and squad-editor patterns before implementation.
+
+Do not restore prototype Angular unit/loadout ownership or prototype per-slot APIs.
 
 #### Architectural Boundary
-- Squad configuration is gameplay and remains inside Phaser under the persistent `GameScene`.
-- Do not create a new Phaser Scene or Angular route/component for the editor.
-- Extend the existing GameScene screen/navigation model only as needed for the concrete squad editor flow.
-- Camp, Warband, and squad editing must share the existing `GameRuntime`, `RuntimeStartup`, `RuntimeApiClient`, `GameStore`, `ClientContentRegistry`, Phaser canvas, and viewport/orientation infrastructure.
-- Do not refetch bootstrap or `game-content.json` to commit a squad mutation.
+- Unit detail/configuration is gameplay and remains inside Phaser under the persistent `GameScene`.
+- Do not create another Phaser Scene or Angular route/component.
+- Extend the concrete GameScene screen/navigation model only for the unit detail/configuration flow.
+- Camp, Warband, squad editor, and unit configuration share the existing runtime, startup, API client, GameStore, content registry, canvas, and viewport/orientation infrastructure.
+- Do not refetch bootstrap or `game-content.json` to open or save a unit.
 - Do not use `/profile`.
+- Do not implement promotion/progression transactions in this package.
 
 #### Player Flow
-From the Warband squad experience, the player must be able to:
-- create a new saved squad;
-- open an existing saved squad for editing;
-- edit its name;
-- assign/remove/reposition owned active units across the fixed nine formation positions;
-- save the complete configuration;
-- activate a non-active squad;
-- delete a squad subject to the Package 4 active-squad rules;
-- return to Warband without losing authoritative cache state.
+From the Warband Unit Roster, the player must be able to:
+- select/open an owned unit;
+- view its authoritative individual detail;
+- understand its unit type, kin, level/XP, durable owned abilities, equipped active ability order, and exact dice assignments;
+- rename it;
+- build a local draft of the complete active ability loadout;
+- add/remove owned active abilities from the draft subject to the backend contract;
+- reorder equipped active abilities;
+- assign an exact owned physical die to every required ability slot;
+- move a die between slots on the same unit without creating duplicates;
+- save the complete loadout atomically;
+- return to Warband with authoritative updated state immediately reflected.
 
-Use a concrete GameScene screen/subscreen such as a squad editor rather than embedding mutation orchestration into unrelated Camp/runtime code.
+Use one coherent unit-detail/configuration screen or a small set of subsurfaces inside the same GameScene screen model. Do not create separate Phaser Scenes for rename, abilities, and dice.
 
-#### Local Draft Rule
-Editing is local draft state until PHP accepts the complete command.
+#### Lazy Unit Detail Cache
+Add a narrow per-unit detail cache to GameStore.
 
 Requirements:
-- Opening an existing squad clones its authoritative name/formation into an editor draft.
-- Creating starts a local unsaved draft; no squad exists server-side until create succeeds.
-- Formation/name changes update only the draft.
-- Do not optimistically modify `GameStore` committed squads, bootstrap active squad, or `player_revision` while a command is pending.
-- On command failure, preserve the draft and authoritative cache unchanged so the player can retry or revise it.
-- On success, replace/reconcile committed cache only from the authoritative response.
-- Back/Cancel with a dirty draft must not silently discard changes. Provide an explicit discard confirmation flow owned by Phaser.
-- Prevent duplicate submissions while a mutation is in flight.
+- unit collection summaries remain the Package 6 roster authority;
+- full detail is fetched only when a unit is opened or deliberately refreshed;
+- detail cache is keyed by unit instance ID;
+- distinguish not-loaded/loading/fresh/stale/error semantics consistent with the existing Warband cache style;
+- duplicate concurrent detail requests for the same unit are deduplicated;
+- a failure for one unit does not erase the roster, dice, squads, or another valid detail entry;
+- `GameStore.clear()` clears unit-detail caches;
+- returning to a unit whose detail remains fresh uses cache rather than refetching;
+- do not eagerly fetch every unit detail when Warband opens.
 
-#### Squad Name Entry
-Squad names are part of this editor and must support the accepted backend contract: normalized nonblank names up to 128 Unicode characters.
+Validate a loaded detail against the already-known unit summary when available. Identity/type/kin/level/XP/lifecycle disagreement at the same known client state is an integrity/stale condition, not something to silently merge.
 
-Provide a usable text-entry interaction for both keyboard and touch-first gameplay.
+#### Runtime API Client
+Extend the framework-neutral runtime API client for:
+- `GET /api/v1/units/:unitId`
+- `PATCH /api/v1/units/:unitId/name`
+- `PUT /api/v1/units/:unitId/loadout`
 
-If native browser text input is used to obtain mobile virtual-keyboard behavior, it must be created/positioned/destroyed by the Phaser gameplay screen/runtime, remain scoped to the game host, respect orientation/responsive lifecycle, and not move gameplay ownership into Angular.
+Mutations use:
+- `credentials: include`;
+- authoritative bootstrap CSRF token;
+- JSON body;
+- existing safe error parsing.
 
-Do not use Angular forms or a separate page.
+Do not add per-ability, reorder, per-die assign, or clear endpoints.
 
-#### Formation Editing
-Render the fixed 3x3 / positions `0-8` model explicitly.
+If the current mutation helper is squad-specific, generalize only enough to support these concrete unit commands without weakening existing squad behavior or creating a speculative command framework.
 
-Provide a simple touch-friendly placement interaction. Drag-and-drop is not required. A select-unit-then-select-position interaction is acceptable and may be preferable.
+#### Strict Unit Detail Contract
+Parse the existing authoritative unit detail exactly rather than casting `unknown`.
+
+Current detail contains:
+- `id`
+- `display_name`
+- `unit_type_id`
+- `kin_id`
+- `level`
+- `xp`
+- active lifecycle state
+- `promotion_history`
+- `owned_ability_ids`
+- `ability_loadout`
+- `dice_bindings`
+
+Validate:
+- canonical positive unit/die IDs;
+- bounded nonblank display name;
+- projected unit type and kin references;
+- valid promotion-history authored type references;
+- unique durable owned ability IDs that exist in projected content;
+- loadout abilities are unique, active, durably owned, and have contiguous `equip_order` starting at zero;
+- every dice binding points to an equipped active ability and a valid slot;
+- each required slot for every equipped ability has exactly one binding;
+- no physical die appears twice in one detail;
+- every bound die exists in the currently fresh owned-dice collection, belongs to the player by virtue of that collection, has a profile/size compatible with current client content, and its dice-summary binding agrees with the unit detail;
+- a die summary bound to this unit must agree with the detail's exact ability/slot assignment.
+
+Do not invent placeholders for malformed/missing authored content.
+
+If the dice collection is required for complete detail integrity, ensure it is fresh before the editor becomes ready. Do not fetch bootstrap/profile.
+
+#### Unit Detail Presentation
+Present player-readable authored information rather than raw stable IDs.
+
+At minimum show:
+- unit display name;
+- authored unit type name;
+- authored kin name;
+- level and XP;
+- owned abilities, distinguishing active vs passive;
+- currently equipped ordered active abilities;
+- exact die assigned to every equipped ability slot;
+- useful die presentation from profile/material/aspects/rarity/size.
+
+Promotion history may be shown compactly if it improves comprehension, but do not create promotion controls.
+
+Do **not** invent resolved combat-stat formulas. The canonical stat-advancement document explicitly defers exact resolved stat calculation until progression is reconciled. Authored base/growth information may only be presented if clearly labeled as authored/base information and not represented as a final current combat value. Omitting unresolved calculated stats is preferable to inventing them.
+
+#### Rename Draft and Native Input
+Rename is local draft state until the rename command succeeds.
+
+Use the Package 7 native-input lessons:
+- scope any HTML input to the game host;
+- support keyboard and touch virtual keyboard;
+- preserve draft through resize/orientation;
+- block/blur native input while a command, confirmation, portrait gate, or integrity-blocking state owns interaction;
+- remove the input when the screen is destroyed.
+
+Backend contract is normalized nonblank Unicode name up to 128 characters.
+
+A same-name rename is a legitimate authoritative no-op and may return the same revision.
+
+On rename failure, preserve the local name draft and committed cache.
+
+#### Loadout Draft
+The active loadout editor uses an independent local draft until PHP accepts the complete configuration.
+
+The submitted body is exactly:
+
+`{ abilities: [{ ability_id, dice_instance_ids }, ...] }`
+
+Array order is authoritative ability/equip order.
+
+Array order inside `dice_instance_ids` is authoritative slot order.
 
 Rules:
-- each position is `null` or one owned active unit ID;
-- the same unit may occupy at most one position in the draft;
-- moving an already-placed unit to another position must produce one final occurrence rather than duplicating it;
-- removing a unit leaves the position empty;
-- an entirely empty squad is valid;
-- units may still belong to other saved squads; this editor changes only the selected squad;
-- use authored unit/kin presentation from `ClientContentRegistry`, not stable IDs as primary labels.
+- loadout is a non-empty ordered list;
+- only durable per-instance `owned_ability_ids` are candidates;
+- only authored `kind: active` abilities may be equipped;
+- passive owned abilities are visible/readable but never placed in the scheduled active loadout;
+- an active ability appears at most once;
+- each equipped ability has exactly its authored `dice_slot_count` physical dice;
+- the same physical die appears at most once in the entire draft;
+- moving a die within this unit removes its prior draft occurrence;
+- a die currently bound to another unit is unavailable and clearly identified, not silently stolen;
+- a die currently bound to this unit may be moved because the eventual save is one atomic whole-unit replacement;
+- only active owned dice with client-valid profile/size may be selected.
 
-Do not fetch full unit detail merely to place a unit. Package 6 summaries are sufficient.
+Do not restore the rejected Speed/equipment-budget mechanic.
 
-#### Squad Mutations
-Extend `RuntimeApiClient` for the approved Package 4 endpoints:
-- create squad;
-- replace complete squad configuration;
-- activate squad;
-- delete squad.
+Do not infer individual ability ownership solely from the unit type's authored `ability_ids`.
 
-All mutation requests must:
-- send credentials;
-- send JSON where applicable;
-- send the authoritative bootstrap CSRF token;
-- use the accepted complete `{name, formation}` configuration;
-- preserve existing runtime API error behavior without exposing server exception text.
+#### Touch-Friendly Editing
+Use straightforward explicit controls rather than requiring drag-and-drop.
 
-Do not add per-slot mutation calls.
+A suitable interaction may include:
+- available active ability list;
+- equipped ordered ability list;
+- add/remove controls;
+- move up/down controls;
+- select an ability slot then select an available die.
 
-#### Create Idempotency
-Create must send `Idempotency-Key`.
+Exact visual composition is implementation-level, but all operations must work on Compact touch landscape as well as desktop.
 
-Client behavior must be safe when the network outcome is unknown:
-- generate one opaque valid key for a create submission;
-- if that exact pending create is retried because the response was lost/failed ambiguously, reuse the same key;
-- once the create receives a definitive authoritative success, abandon that key;
-- if the player materially changes the unsaved create draft after a failed attempt, use a new key for the new payload;
-- repeated button presses must not generate concurrent creates.
+Do not add dead promotion controls.
 
-Do not use idempotency keys for commands that do not require them.
+#### Command Separation
+Rename and loadout are two existing authoritative commands and should remain independent.
 
-#### Active Squad Lifecycle
-Represent the accepted Package 4 behavior accurately:
-- first created squad becomes active automatically;
-- later creates preserve the existing active squad;
-- activation is explicit;
-- activating the already-active squad is a successful no-op and may return the same revision;
-- deleting a non-active squad preserves the active squad;
-- deleting the only active/remaining squad is allowed and leaves no active squad;
-- deleting the active squad while another saved squad remains is forbidden until another squad is activated.
+Do not fabricate a combined `save unit` endpoint.
 
-The UI should make this understandable and should avoid encouraging an obviously invalid active-squad deletion, but the backend remains authority and the client must still handle a server-side conflict safely.
+UI may provide separate rename and loadout save actions or another clear interaction that still issues the correct independent commands.
 
-Require an explicit deletion confirmation before issuing DELETE.
+Do not optimistically mutate GameStore before either response succeeds.
 
-#### Authoritative Mutation Response Contract
-Add strict client parsing for the existing Package 4 mutation responses rather than casting unknown JSON.
+#### Mutation Response Contract
+Both Package 5 mutation endpoints return:
+- full authoritative `unit` detail;
+- current `player_revision`.
 
-Validate at least:
-- returned squad shape where present;
-- normalized nine-position formation;
-- returned active-squad ID/null;
-- returned `player_revision`;
-- deleted-squad ID for delete;
-- consistency between the returned affected squad and active ID.
+Add strict parsing using the same unit-detail parser/invariants.
 
-Malformed success responses are integrity failures and must not mutate committed GameStore state.
+Malformed success responses are integrity failures and must not modify committed cache.
 
-#### GameStore Reconciliation
-Add narrow squad-mutation reconciliation methods; do not build a general Redux/event system.
+Do not increment revision locally.
 
-After a valid authoritative response:
-- update the cached `player_revision` to the server-returned revision;
-- reject/regard as integrity failure an impossible revision regression;
-- replace/append/remove the affected squad in a fresh squads cache as appropriate;
-- update `isActive` flags from `active_squad_id`;
-- keep the squads domain fresh when reconciliation is complete;
-- preserve unrelated units/dice cache slices;
-- synchronize the cached bootstrap `active_squad` snapshot so Camp/current state does not disagree with the freshly committed squad authority.
+Reject impossible revision regression.
 
-The squad editor is entered from a successfully loaded Warband, so fresh unit summaries are available. Use them to rebuild the compact bootstrap active-squad summary from the authoritative active formation when needed.
+Same-name rename and identical complete loadout may legitimately return the existing revision.
 
-If an authoritative response cannot be reconciled safely against the current cache, do not invent missing state. Mark the appropriate domain stale/error and require a deliberate domain reload rather than silently fabricating data.
+#### Rename Reconciliation
+After an authoritative rename response:
+- replace the per-unit cached detail;
+- update that unit's compact entry in the fresh unit-summary domain;
+- if the unit appears in cached bootstrap `active_squad.units`, update that compact copied display name there as well;
+- adopt the returned `player_revision`;
+- preserve dice and squads caches;
+- preserve static authored content.
 
-Do not perform a global profile refresh.
+Do not refetch bootstrap/profile.
 
-#### Revision Semantics
-Use the response revision as the latest authoritative player revision.
+If the response cannot be reconciled safely against current state, mark the affected domain/detail stale/error and deliberately recover instead of inventing state.
 
-Expected behavior from the approved backend:
-- real create/update/activate/delete mutation advances revision exactly once;
-- already-active activation may return the existing revision;
-- failed mutation does not change the client revision;
-- client must not increment revisions locally.
+#### Loadout Reconciliation
+After an authoritative loadout response:
+- replace the unit's cached detail;
+- adopt returned `player_revision`;
+- rebuild this unit's die binding summaries in the fresh dice domain from the authoritative returned exact bindings;
+- clear prior dice-summary bindings for this unit that are no longer present;
+- preserve bindings belonging to other units;
+- reject reconciliation if the response references a die absent from the fresh owned-dice cache or creates an impossible conflict with another unit's binding;
+- keep the dice domain fresh only when complete reconciliation succeeds;
+- preserve unit summary identity, squads, and bootstrap active formation except for revision.
 
-Do not introduce optimistic locking.
+Do not refetch the entire dice collection solely because a normal accepted loadout changed.
 
-#### Warband Integration
-Upgrade the existing Squads/Formation Warband surface with concrete controls to:
-- create a squad;
-- edit a selected saved squad;
-- activate a selected non-active squad;
-- delete where valid.
+If safe local reconciliation is impossible, mark the affected cache state stale/error and provide deliberate recovery.
 
-Do not add dead controls for Package 8 unit configuration.
+#### Navigation and Dirty State
+Warband Unit Roster rows become the concrete entry point to unit detail/configuration.
 
-Returning from a successful squad edit should show the authoritative updated squad state immediately from GameStore without refetching all Warband domains.
+Expected flow:
 
-#### Failure/Submission States
-Provide clear functional states for:
-- saving/creating;
-- activating;
-- deleting;
-- validation failure;
-- network/HTTP failure;
-- active-delete conflict;
-- malformed/integrity response.
+Camp -> Warband -> Unit Detail/Configuration -> Warband
 
-Do not translate server errors into a false successful local state.
+Requirements:
+- same persistent GameScene/runtime;
+- no bootstrap/content refetch;
+- Back/Escape from a clean unit screen returns normally;
+- if rename and/or loadout draft differs from committed state, Back/Cancel requires explicit discard confirmation;
+- command-in-flight input is deduplicated/blocked;
+- successful rename may keep the screen open so the player can continue configuration;
+- successful loadout should present the authoritative committed state immediately.
 
-Unauthorized mutation behavior should remain consistent with current runtime session handling and must not expose server messages.
+Do not route through Angular.
 
-#### Responsive Behavior
-The editor must be usable at:
+#### Failure States
+Provide functional handling for:
+- detail loading;
+- detail not-found/unavailable;
+- detail integrity failure;
+- rename validation failure;
+- rename network/HTTP/malformed response failure;
+- loadout locally incomplete/invalid state;
+- backend configuration rejection;
+- another-unit die conflict returned by backend;
+- unauthorized session;
+- mutation reconciliation failure.
+
+Failures must preserve committed cache. Mutation failures preserve the applicable local draft so the player can revise/retry.
+
+Do not display raw server exception text.
+
+#### Responsive/Orientation Behavior
+Unit detail/configuration must remain usable at:
 - Compact `844 x 390` touch/mobile;
 - Standard `1600 x 900`;
 - Wide `2560 x 1080`.
 
-Requirements:
-- 3x3 formation remains understandable and tappable;
-- roster selection remains reachable with more units than fit at once via Phaser-owned paging/scrolling;
-- Save/Cancel/Activate/Delete controls remain inside safe bounds;
-- name editing remains usable in Compact/touch-first mode;
-- no browser-page scrolling;
-- resize/reflow preserves the local draft and selected squad/unit;
-- portrait gate obscures gameplay without destroying draft or cache, and returning to landscape restores the editor.
+Long ability/dice collections require Phaser-owned paging/scrolling/section switching as needed.
+
+Important controls and every active dice slot must remain reachable.
+
+Resize/reflow and touch-first portrait gating must preserve:
+- loaded unit detail;
+- rename draft;
+- loadout draft;
+- current ability/die selection;
+- dirty state;
+- current logical unit screen.
+
+Portrait gate must block native text entry and Phaser input without destroying draft/cache; landscape restoration resumes the same state.
 
 #### Visual Posture
 Do not perform the deferred game-wide visual overhaul.
 
-Match current Warband enough for functional consistency. Prioritize interaction clarity, readable state, active/draft distinction, and responsive safety.
+Prioritize:
+- clear distinction among unit identity, owned abilities, equipped actions, and dice slots;
+- obvious draft/dirty state;
+- clear unavailable-die explanation;
+- touch-safe controls;
+- responsive safety;
+- consistency with current Warband/squad editor.
 
 #### Deterministic Capture
-Extend deterministic capture/debug support to render a representative populated squad-editor state.
+Extend deterministic capture/debug support with a representative populated unit-configuration state.
 
-Capture and visually inspect at least:
-- Compact squad editor;
-- Standard squad editor;
-- Wide squad editor.
+Generate and visually inspect:
+- Compact unit configuration;
+- Standard unit configuration;
+- Wide unit configuration.
 
-Use contract-valid deterministic fixture data. Do not create another gameplay model.
+Fixture data must conform to the real Package 3/5 contracts and current generated content.
+
+Do not create a second gameplay model.
 
 #### Tests
 Add focused frontend tests proving at minimum:
-- squad mutation API methods use direct runtime fetch, credentials, CSRF, and create idempotency key;
-- strict mutation-response parsing rejects malformed responses;
-- opening existing squad creates a draft without mutating cache;
-- local name/formation edits do not alter committed GameStore;
-- placement/move/removal preserves one-unit-per-position/one-position-per-unit draft semantics;
-- Save issues one complete PUT and updates cache only after success;
-- create issues one complete POST and first-create active response reconciles correctly;
-- ambiguous create retry reuses the same idempotency key; changed create payload uses a new key;
-- duplicate submission is blocked while pending;
-- activation updates active flags/bootstrap snapshot/revision from response;
-- already-active activation preserves revision correctly;
-- delete updates cache correctly for non-active and last-active cases;
-- active-delete conflict preserves cache/draft and is presented safely;
-- server/network/parse failure preserves committed cache;
-- dirty Back/Cancel requires explicit discard;
-- GameStore reconciliation preserves units/dice caches;
-- no bootstrap, game-content, or `/profile` refetch is used as mutation reconciliation;
-- Warband -> squad editor -> Warband remains inside the same GameScene/runtime;
-- resize/orientation changes preserve draft/editor state;
-- existing Package 6 lazy cache/navigation tests remain green.
+- unit detail is lazy and not fetched during Warband bootstrap/collection loading;
+- first unit open fetches detail; fresh reopen uses cache;
+- concurrent detail requests deduplicate;
+- detail parser rejects malformed IDs, unknown content, unowned/passive loadout entries, non-contiguous order, incomplete/duplicate slots, duplicate dice, dice-summary disagreement, and invalid bound dice;
+- opening a unit does not mutate committed data;
+- rename edits remain local until success;
+- rename uses PATCH + credentials + CSRF and strict response parsing;
+- rename no-op revision is accepted;
+- rename reconciliation updates detail, roster summary, bootstrap active-squad copy when applicable, and revision without disturbing dice/squads;
+- loadout draft add/remove/reorder behavior is deterministic;
+- passive abilities cannot be equipped;
+- duplicate abilities/dice cannot exist in the draft;
+- exact authored slot counts are required before save;
+- die currently bound to another unit is unavailable;
+- same-unit die movement is allowed in draft;
+- complete PUT body preserves ability and slot order;
+- no optimistic committed-state mutation occurs while PUT is pending;
+- failed loadout preserves committed state and draft;
+- successful loadout reconciliation replaces detail and exact dice binding summaries and adopts server revision;
+- impossible reconciliation marks state stale/error rather than fabricating state;
+- dirty Back requires discard confirmation;
+- native rename input is gated during command/confirmation/portrait state;
+- Warband -> unit screen -> Warband stays in one GameScene/runtime with no bootstrap/content/profile refetch;
+- responsive/orientation changes preserve detail/drafts/selections;
+- Package 6/7 navigation, lazy cache, and squad editor regressions remain green.
 
-Prefer framework-neutral tests for API parsing/reconciliation/draft behavior plus focused Phaser interaction/reflow tests.
+Prefer framework-neutral parser/cache/draft tests plus focused Phaser screen/navigation/reflow tests.
 
 #### Real-Stack Verification
-Where practical, use the controlled Package 3 fixture against real PHP/MySQL and exercise:
+Where practical, use the controlled Warband fixture against real PHP/MySQL and exercise:
 
-Warband -> edit squad -> save -> activate another squad -> create/delete a squad -> return to Warband
+Warband -> unit detail -> rename -> reorder/configure active abilities -> move/assign exact dice -> save -> return Warband
 
-Confirm authoritative results are reflected without bootstrap/profile refetch.
+Confirm authoritative unit/dice state is reflected without bootstrap/profile refresh.
 
-This is useful verification but do not block completion solely on an unavailable optional local environment if the required repository quality gates and deterministic browser tests pass.
+This is useful verification but should not block completion solely on unavailable optional local infrastructure if required repository quality gates and deterministic browser tests pass.
 
 #### Explicitly Out of Scope
-- Unit-detail fetching/navigation, rename UI, ability-order editing, or dice-binding UI — Package 8.
-- New backend squad rules unless a real Package 4 contract defect is found.
-- Promotion/progression.
-- Production onboarding.
+- Promotion options/transactions and Academy progression — Milestone 8.
+- Resolved current-stat formula invention.
+- New backend unit/configuration rules unless a genuine Package 3/5 contract defect is discovered.
+- Production starter onboarding.
 - Shop, Academy, Wrong Machine, Regions, Codex, Objectives.
 - RunScene/BattleScene functionality.
 - Milestone 3.
 - Final visual/UI overhaul.
 
 #### Completion
-Run applicable quality gates from `agent/QUALITY_GATES.md`, including focused API/parser/store/editor tests, existing Package 6 navigation/cache regressions, full frontend suite, production frontend build/bundle check, and Compact/Standard/Wide deterministic editor captures with visual inspection.
+Run applicable quality gates from `agent/QUALITY_GATES.md`, including focused unit detail/API/parser/cache/draft/editor tests, Package 6/7 frontend regressions, full frontend suite, production frontend build/bundle check, and Compact/Standard/Wide deterministic unit-editor captures with visual inspection.
 
-Run backend tests only if backend code changes because this package should primarily consume already-approved Package 4 contracts.
+Run backend/content tests only if backend/content files unexpectedly change.
 
-Leave Package 7 **In Progress** for architectural review. Do not mark it complete, promote Package 8, or begin unit-detail/loadout UI in the same coding-agent change.
+Leave Package 8 **In Progress** for architectural review. Do not mark it complete, promote Package 9, or begin closure cleanup in the same coding-agent change.
