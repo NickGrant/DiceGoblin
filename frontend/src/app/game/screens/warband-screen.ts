@@ -10,6 +10,7 @@ import { RuntimeApiClient } from '../runtime/runtime-api-client';
 import { Bounds, RuntimeViewport, RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 import { WarbandDieSummary, WarbandSquadSummary, WarbandUnitSummary } from '../runtime/warband-contracts';
 import { GameSceneScreen } from './game-screen-navigation';
+import type { SquadEditorInitialAction } from './squad-editor-screen';
 
 export type WarbandTab = 'units' | 'dice' | 'squads';
 
@@ -68,7 +69,7 @@ function statusLabel(state: { readonly status: WarbandDomainState<unknown>['stat
   return 'NOT LOADED';
 }
 
-/** Read-only Warband view backed by the runtime-lifetime lazy cache. */
+/** Warband collection view backed by the runtime-lifetime authoritative cache. */
 export class WarbandScreen implements GameSceneScreen {
   readonly key = 'warband' as const;
   private root: Phaser.GameObjects.Container | null = null;
@@ -76,6 +77,7 @@ export class WarbandScreen implements GameSceneScreen {
   private unsubscribeStore: (() => void) | null = null;
   private activeTab: WarbandTab;
   private readonly pages: Record<WarbandTab, number> = { units: 0, dice: 0, squads: 0 };
+  private selectedSquadId: string | null = null;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -84,6 +86,7 @@ export class WarbandScreen implements GameSceneScreen {
     private readonly content: ClientContentRegistry,
     private readonly viewport: RuntimeViewport,
     private readonly returnToCamp: () => void,
+    private readonly openSquadEditor: (squad: WarbandSquadSummary | null, action?: SquadEditorInitialAction) => void,
     initialTab: WarbandTab = 'squads',
   ) {
     this.activeTab = initialTab;
@@ -223,10 +226,18 @@ export class WarbandScreen implements GameSceneScreen {
     state: WarbandDomainState<WarbandSquadSummary>,
     units: WarbandDomainState<WarbandUnitSummary>,
   ): void {
-    if (!this.renderDomainState(root, layout, 'squads', state, 'No saved squads are assembled yet.')) return;
+    if (!this.renderDomainState(root, layout, 'squads', state, 'No saved squads are assembled yet.')) {
+      if (state.status === 'fresh') {
+        this.addButton(root, box(layout.content.x + layout.content.width / 2 - 100, layout.content.y + layout.content.height / 2 + 55, 200, 58), 'CREATE SQUAD', () => this.openSquadEditor(null), true);
+      }
+      return;
+    }
     const squads = this.pageItems('squads', state.data ?? [], Math.min(3, layout.pageSize));
     const unitNames = new Map((units.data ?? []).map((unit) => [unit.id, unit.displayName]));
-    const active = (state.data ?? []).find((squad) => squad.isActive) ?? squads[0];
+    if (!this.selectedSquadId || !(state.data ?? []).some((squad) => squad.id === this.selectedSquadId)) {
+      this.selectedSquadId = (state.data ?? []).find((squad) => squad.isActive)?.id ?? squads[0]?.id ?? null;
+    }
+    const selected = (state.data ?? []).find((squad) => squad.id === this.selectedSquadId) ?? squads[0];
     const split = layout.mode === 'compact' ? 0.38 : 0.34;
     const listWidth = layout.content.width * split;
     const rowsLayout = { ...layout, content: box(layout.content.x, layout.content.y, listWidth, layout.content.height) };
@@ -234,8 +245,25 @@ export class WarbandScreen implements GameSceneScreen {
       title: squad.name,
       detail: `${squad.formation.filter(Boolean).length} of 9 positions filled`,
       badge: squad.isActive ? 'ACTIVE' : 'SAVED',
-    })), (state.data?.length ?? 0) > Math.min(3, layout.pageSize));
-    if (active) this.renderFormation(root, layout, active, unitNames, listWidth);
+    })), (state.data?.length ?? 0) > Math.min(3, layout.pageSize), (index) => {
+      this.selectedSquadId = squads[index]?.id ?? null;
+      this.reflow(this.viewport.snapshot);
+    }, squads.findIndex((squad) => squad.id === this.selectedSquadId));
+    if (selected) this.renderFormation(root, layout, selected, unitNames, listWidth);
+    const actionY = layout.content.y + 12;
+    const actionWidth = layout.mode === 'compact' ? 112 : 104;
+    const actionGap = 8;
+    let actionX = layout.content.right - (actionWidth * 4 + actionGap * 3) - 14;
+    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'NEW', () => this.openSquadEditor(null), true); actionX += actionWidth + actionGap;
+    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'EDIT', () => {
+      if (selected) this.openSquadEditor(selected);
+    }, false); actionX += actionWidth + actionGap;
+    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'ACTIVATE', () => {
+      if (selected) this.openSquadEditor(selected, 'activate');
+    }, selected?.isActive ?? false); actionX += actionWidth + actionGap;
+    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'DELETE', () => {
+      if (selected) this.openSquadEditor(selected, 'delete');
+    }, false);
     this.renderPager(root, layout, 'squads', state.data?.length ?? 0, Math.min(3, layout.pageSize));
   }
 
@@ -317,6 +345,8 @@ export class WarbandScreen implements GameSceneScreen {
     layout: WarbandLayout,
     rows: readonly { title: string; detail: string; badge: string }[],
     reservePager = false,
+    onSelect?: (index: number) => void,
+    selectedIndex = -1,
   ): void {
     const gap = layout.mode === 'compact' ? 8 : 11;
     const top = layout.content.y + 18;
@@ -325,10 +355,14 @@ export class WarbandScreen implements GameSceneScreen {
       const y = top + index * (rowHeight + gap);
       const width = layout.content.width - 36;
       const card = this.scene.add.graphics();
-      card.fillStyle(index % 2 === 0 ? 0xe2d2ab : 0xeadcba, 1);
+      card.fillStyle(index === selectedIndex ? 0xcfb77e : index % 2 === 0 ? 0xe2d2ab : 0xeadcba, 1);
       card.fillRoundedRect(layout.content.x + 18, y, width, rowHeight, 10);
       card.lineStyle(2, 0xb69a65, 0.8);
       card.strokeRoundedRect(layout.content.x + 19, y + 1, width - 2, rowHeight - 2, 10);
+      if (onSelect) {
+        card.setInteractive(new Phaser.Geom.Rectangle(layout.content.x + 18, y, width, rowHeight), Phaser.Geom.Rectangle.Contains);
+        card.on('pointerup', () => onSelect(index));
+      }
       root.add(card);
       root.add(this.scene.add.text(layout.content.x + 34, y + 10, row.title, {
         color: '#3a2a1a', fontFamily: 'Georgia, serif', fontSize: layout.mode === 'compact' ? '28px' : '21px', fontStyle: 'bold',

@@ -3,6 +3,8 @@ import {
   WarbandContractError,
   parseDiceCollectionEnvelope,
   parseSquadCollectionEnvelope,
+  parseSquadDeleteEnvelope,
+  parseSquadMutationEnvelope,
   parseUnitCollectionEnvelope,
   requireActiveSquadAgreement,
 } from './warband-contracts';
@@ -80,5 +82,31 @@ describe('Warband collection contracts', () => {
       { id: '1', name: 'One', is_active: true, formation: Array(9).fill(null) },
     ] } });
     expect(() => requireActiveSquadAgreement(squads, '2')).toThrowError(WarbandContractError);
+  });
+
+  it('strictly parses squad mutation and delete responses', () => {
+    const mutation = parseSquadMutationEnvelope({ ok: true, data: {
+      squad: { id: '31', name: ' Raiders ', is_active: true, formation: ['11', null, null, null, null, null, null, null, null] },
+      active_squad_id: '31', player_revision: 8,
+    } });
+    expect(mutation.squad.name).toBe('Raiders');
+    expect(mutation.playerRevision).toBe(8);
+    expect(parseSquadDeleteEnvelope({ ok: true, data: {
+      deleted_squad_id: '31', active_squad_id: null, player_revision: 9,
+    } }).deletedSquadId).toBe('31');
+  });
+
+  it('rejects inconsistent or structurally malformed mutation success responses', () => {
+    expect(() => parseSquadMutationEnvelope({ ok: true, data: {
+      squad: { id: '31', name: 'Raiders', is_active: false, formation: Array(9).fill(null) },
+      active_squad_id: '31', player_revision: 8,
+    } })).toThrowError(WarbandContractError);
+    expect(() => parseSquadMutationEnvelope({ ok: true, data: {
+      squad: { id: '31', name: 'Raiders', is_active: true, formation: Array(8).fill(null) },
+      active_squad_id: '31', player_revision: 8,
+    } })).toThrowError(WarbandContractError);
+    expect(() => parseSquadDeleteEnvelope({ ok: true, data: {
+      deleted_squad_id: '31', active_squad_id: '31', player_revision: 9,
+    } })).toThrowError(WarbandContractError);
   });
 });

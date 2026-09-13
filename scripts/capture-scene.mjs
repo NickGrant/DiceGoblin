@@ -155,7 +155,7 @@ Options:
 
 async function installGameFixtureRoutes(page, options) {
   const scene = options.scene.trim().toLowerCase();
-  if (!['camp', 'camp-portrait', 'warband'].includes(scene)) return;
+  if (!['camp', 'camp-portrait', 'warband', 'squad-editor'].includes(scene)) return;
 
   const projection = JSON.parse(await readFile(path.resolve(process.cwd(), 'frontend/public/game-content.json'), 'utf8'));
   const revision = projection.revision;
@@ -202,7 +202,7 @@ async function installGameFixtureRoutes(page, options) {
         server_time: '2026-09-11T00:00:00Z',
         content_revision: revision,
         progression: { unlock_ids: [] },
-        active_squad: scene === 'warband' ? {
+        active_squad: ['warband', 'squad-editor'].includes(scene) ? {
           id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation,
           units: unitRows.filter((unit) => activeFormation.includes(unit.id)),
         } : null,
@@ -210,7 +210,7 @@ async function installGameFixtureRoutes(page, options) {
       },
     }),
   }));
-  if (scene !== 'warband') return;
+  if (!['warband', 'squad-editor'].includes(scene)) return;
   await page.route('**/api/v1/units', (route) => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ ok: true, data: { units: unitRows } }),
@@ -409,12 +409,16 @@ async function captureScene(options) {
             { timeout: options.timeoutMs },
           );
         }
-        if (['camp', 'camp-portrait', 'warband'].includes(options.scene.trim().toLowerCase())) {
+        if (['camp', 'camp-portrait', 'warband', 'squad-editor'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
-          const gameScreen = options.scene.trim().toLowerCase() === 'warband' ? 'warband' : 'camp';
+          const requestedGameScreen = options.scene.trim().toLowerCase();
+          const gameScreen = requestedGameScreen === 'warband' || requestedGameScreen === 'squad-editor' ? requestedGameScreen : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {
             await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });
+          }
+          if (gameScreen === 'squad-editor') {
+            await page.waitForSelector('[data-squad-editor-ready="true"]', { timeout: options.timeoutMs });
           }
           const runtimeMetrics = await page.evaluate(() => {
             const host = document.querySelector('.game-host__mount');

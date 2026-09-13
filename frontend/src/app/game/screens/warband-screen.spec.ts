@@ -78,7 +78,7 @@ describe('WarbandScreen', () => {
     await store.loadWarbandDomains(client, registry);
     const harness = sceneHarness();
     const viewport = new RuntimeViewport();
-    const screen = new WarbandScreen(harness.scene, store, client, registry, viewport, () => undefined, 'squads');
+    const screen = new WarbandScreen(harness.scene, store, client, registry, viewport, () => undefined, () => undefined, 'squads');
 
     screen.create();
 
@@ -103,7 +103,7 @@ describe('WarbandScreen', () => {
     client.getSquads.and.resolveTo({ ok: true, data: { squads: [] } });
     await store.loadWarbandDomains(client, content());
     const harness = sceneHarness();
-    const screen = new WarbandScreen(harness.scene, store, client, content(), new RuntimeViewport(), () => undefined, 'units');
+    const screen = new WarbandScreen(harness.scene, store, client, content(), new RuntimeViewport(), () => undefined, () => undefined, 'units');
     screen.create();
     expect(harness.textValues).toContain('Nothing here yet');
     expect(harness.textValues).toContain('No goblins have joined your warband yet.');

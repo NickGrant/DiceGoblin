@@ -41,6 +41,23 @@ export interface WarbandSquadSummary {
   readonly formation: readonly (string | null)[];
 }
 
+export interface SquadConfigurationPayload {
+  readonly name: string;
+  readonly formation: readonly (string | null)[];
+}
+
+export interface SquadMutationResult {
+  readonly squad: WarbandSquadSummary;
+  readonly activeSquadId: string | null;
+  readonly playerRevision: number;
+}
+
+export interface SquadDeleteResult {
+  readonly deletedSquadId: string;
+  readonly activeSquadId: string | null;
+  readonly playerRevision: number;
+}
+
 export class WarbandContractError extends Error {
   constructor(message: string) {
     super(message);
@@ -77,6 +94,28 @@ function nonEmptyString(value: unknown, maximum = Number.POSITIVE_INFINITY): val
 
 function nonNegativeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+function parseSquad(candidate: unknown): WarbandSquadSummary {
+  if (!isRecord(candidate) || !hasExactKeys(candidate, ['id', 'name', 'is_active', 'formation'])
+    || !positiveId(candidate['id']) || !nonEmptyString(candidate['name'], 128)
+    || typeof candidate['is_active'] !== 'boolean'
+    || !Array.isArray(candidate['formation']) || candidate['formation'].length !== 9) {
+    throw new WarbandContractError('Squad summary is malformed.');
+  }
+  const formationIds = new Set<string>();
+  const formation = candidate['formation'].map((unitId) => {
+    if (unitId === null) return null;
+    if (!positiveId(unitId) || formationIds.has(unitId)) {
+      throw new WarbandContractError('Squad formation is malformed.');
+    }
+    formationIds.add(unitId);
+    return unitId;
+  });
+  return Object.freeze({
+    id: candidate['id'], name: candidate['name'].trim(), isActive: candidate['is_active'],
+    formation: Object.freeze(formation),
+  });
 }
 
 export function parseUnitCollectionEnvelope(
@@ -157,30 +196,46 @@ export function parseSquadCollectionEnvelope(value: unknown): readonly WarbandSq
   const ids = new Set<string>();
   let activeCount = 0;
   const squads = collection(value, 'squads').map((candidate): WarbandSquadSummary => {
-    if (!isRecord(candidate) || !hasExactKeys(candidate, ['id', 'name', 'is_active', 'formation'])
-      || !positiveId(candidate['id']) || ids.has(candidate['id'])
-      || !nonEmptyString(candidate['name'], 128) || typeof candidate['is_active'] !== 'boolean'
-      || !Array.isArray(candidate['formation']) || candidate['formation'].length !== 9) {
-      throw new WarbandContractError('Squad summary is malformed.');
-    }
-    const formationIds = new Set<string>();
-    const formation = candidate['formation'].map((unitId) => {
-      if (unitId === null) return null;
-      if (!positiveId(unitId) || formationIds.has(unitId)) {
-        throw new WarbandContractError('Squad formation is malformed.');
-      }
-      formationIds.add(unitId);
-      return unitId;
-    });
-    if (candidate['is_active']) activeCount += 1;
-    ids.add(candidate['id']);
-    return Object.freeze({
-      id: candidate['id'], name: candidate['name'].trim(), isActive: candidate['is_active'],
-      formation: Object.freeze(formation),
-    });
+    const squad = parseSquad(candidate);
+    if (ids.has(squad.id)) throw new WarbandContractError('Squad summary is malformed.');
+    if (squad.isActive) activeCount += 1;
+    ids.add(squad.id);
+    return squad;
   });
   if (activeCount > 1) throw new WarbandContractError('Squad collection has multiple active squads.');
   return Object.freeze(squads);
+}
+
+function mutationData(value: unknown, keys: readonly string[]): Record<string, unknown> {
+  if (!isRecord(value) || !hasExactKeys(value, ['ok', 'data']) || value['ok'] !== true
+    || !isRecord(value['data']) || !hasExactKeys(value['data'], keys)) {
+    throw new WarbandContractError('Squad mutation response is malformed.');
+  }
+  return value['data'];
+}
+
+export function parseSquadMutationEnvelope(value: unknown): SquadMutationResult {
+  const data = mutationData(value, ['squad', 'active_squad_id', 'player_revision']);
+  const squad = parseSquad(data['squad']);
+  const activeSquadId = data['active_squad_id'];
+  const playerRevision = data['player_revision'];
+  if ((activeSquadId !== null && !positiveId(activeSquadId)) || !nonNegativeInteger(playerRevision)
+    || squad.isActive !== (squad.id === activeSquadId)) {
+    throw new WarbandContractError('Squad mutation response is inconsistent.');
+  }
+  return Object.freeze({ squad, activeSquadId, playerRevision });
+}
+
+export function parseSquadDeleteEnvelope(value: unknown): SquadDeleteResult {
+  const data = mutationData(value, ['deleted_squad_id', 'active_squad_id', 'player_revision']);
+  const deletedSquadId = data['deleted_squad_id'];
+  const activeSquadId = data['active_squad_id'];
+  const playerRevision = data['player_revision'];
+  if (!positiveId(deletedSquadId) || (activeSquadId !== null && !positiveId(activeSquadId))
+    || deletedSquadId === activeSquadId || !nonNegativeInteger(playerRevision)) {
+    throw new WarbandContractError('Squad deletion response is malformed.');
+  }
+  return Object.freeze({ deletedSquadId, activeSquadId, playerRevision });
 }
 
 export function requireActiveSquadAgreement(

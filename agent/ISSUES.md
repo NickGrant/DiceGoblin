@@ -6,7 +6,7 @@
 
 ### Establish Phaser squad editor and saved-squad lifecycle flows
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

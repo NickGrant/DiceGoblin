@@ -6,6 +6,9 @@ import { RuntimeViewport } from '../runtime/runtime-viewport';
 import { CampScreen } from '../screens/camp-screen';
 import { GameSceneScreen, GameScreenKey, GameScreenNavigator } from '../screens/game-screen-navigation';
 import { WarbandScreen, WarbandTab } from '../screens/warband-screen';
+import { SquadEditorDraft } from '../screens/squad-editor-model';
+import { SquadEditorInitialAction, SquadEditorScreen } from '../screens/squad-editor-screen';
+import { WarbandSquadSummary } from '../runtime/warband-contracts';
 
 export const BOOT_SCENE_KEY = 'BootScene';
 export const GAME_SCENE_KEY = 'GameScene';
@@ -145,9 +148,20 @@ export class GameScene extends RuntimeScene {
       startup: RuntimeStartup,
       viewport: RuntimeViewport,
       returnToCamp: () => void,
+      openSquadEditor: (squad: WarbandSquadSummary | null, action?: SquadEditorInitialAction) => void,
       initialTab: WarbandTab,
-    ) => GameSceneScreen = (scene, startup, viewport, returnToCamp, initialTab) => new WarbandScreen(
-      scene, startup.store, startup.apiClient, startup.contentRegistry!, viewport, returnToCamp, initialTab,
+    ) => GameSceneScreen = (scene, startup, viewport, returnToCamp, openSquadEditor, initialTab) => new WarbandScreen(
+      scene, startup.store, startup.apiClient, startup.contentRegistry!, viewport, returnToCamp, openSquadEditor, initialTab,
+    ),
+    private readonly createSquadEditorScreen: (
+      scene: Phaser.Scene,
+      startup: RuntimeStartup,
+      viewport: RuntimeViewport,
+      draft: SquadEditorDraft,
+      returnToWarband: () => void,
+      initialAction: SquadEditorInitialAction,
+    ) => GameSceneScreen = (scene, startup, viewport, draft, returnToWarband, initialAction) => new SquadEditorScreen(
+      scene, startup.store, startup.apiClient, viewport, draft, returnToWarband, initialAction,
     ),
   ) {
     super(GAME_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
@@ -166,9 +180,17 @@ export class GameScene extends RuntimeScene {
     const debug = readDebugCaptureRequest();
     const debugScene = debug?.scene ?? window.__DG_DEBUG__?.requestedScene ?? '';
     const debugTab = debug?.initialTab ?? window.__DG_DEBUG__?.initialTab ?? '';
-    const initialScreen: GameScreenKey = debugScene.toLowerCase() === 'warband' ? 'warband' : 'camp';
+    const wantsEditor = debugScene.toLowerCase() === 'squad-editor';
+    const initialScreen: GameScreenKey = debugScene.toLowerCase() === 'warband' || wantsEditor ? 'warband' : 'camp';
     this.navigator.start(initialScreen);
     this.activateScreen(initialScreen, debugTab === 'units' || debugTab === 'dice' ? debugTab : 'squads');
+    if (wantsEditor && this.runtimeStartup.contentRegistry) {
+      void this.runtimeStartup.store.loadWarbandDomains(this.runtimeStartup.apiClient, this.runtimeStartup.contentRegistry)
+        .then(() => {
+          const squad = this.runtimeStartup.store.warband.squads.data?.[0];
+          if (squad && this.scene.isActive(GAME_SCENE_KEY)) this.showSquadEditor(squad);
+        });
+    }
     this.unsubscribeViewport = this.runtimeViewport.subscribe((snapshot) => {
       this.activeScreen?.reflow(snapshot);
     });
@@ -194,7 +216,16 @@ export class GameScene extends RuntimeScene {
     this.activateScreen('warband');
   }
 
+  showSquadEditor(squad: WarbandSquadSummary | null, initialAction: SquadEditorInitialAction = 'none'): void {
+    this.navigator.navigate('squad-editor');
+    this.activateSquadEditor(squad ? SquadEditorDraft.edit(squad) : SquadEditorDraft.create(), initialAction);
+  }
+
   goBack(): void {
+    if (this.activeScreen?.requestBack) {
+      this.activeScreen.requestBack();
+      return;
+    }
     if (this.activeScreen?.key !== 'warband') return;
     this.activateScreen(this.navigator.back('camp'));
   }
@@ -216,7 +247,7 @@ export class GameScene extends RuntimeScene {
         return;
       }
       this.activeScreen = this.createWarbandScreen(
-        this, this.runtimeStartup, this.runtimeViewport, () => this.goBack(), initialTab,
+        this, this.runtimeStartup, this.runtimeViewport, () => this.goBack(), (squad) => this.showSquadEditor(squad), initialTab,
       );
     } else {
       this.activeScreen = this.createCampScreen(
@@ -225,6 +256,18 @@ export class GameScene extends RuntimeScene {
     }
     (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
       ?.setAttribute('data-game-screen', screen);
+    this.activeScreen.create();
+  }
+
+  private activateSquadEditor(draft: SquadEditorDraft, initialAction: SquadEditorInitialAction = 'none'): void {
+    this.destroyActiveScreen();
+    this.activeScreen = this.createSquadEditorScreen(
+      this, this.runtimeStartup, this.runtimeViewport, draft,
+      () => this.activateScreen(this.navigator.back('warband')),
+      initialAction,
+    );
+    (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
+      ?.setAttribute('data-game-screen', 'squad-editor');
     this.activeScreen.create();
   }
 

@@ -318,6 +318,41 @@ export class GameStore {
     this.setDomain(domain, { status: 'stale', data: state.data, error: null });
   }
 
+  reconcileSquadMutation(result: SquadMutationResult, operation: 'create' | 'update' | 'activate'): void {
+    try {
+      const context = this.requireSquadReconciliationContext(result.playerRevision);
+      const existingIndex = context.squads.findIndex((squad) => squad.id === result.squad.id);
+      if ((operation === 'create' && existingIndex >= 0) || (operation !== 'create' && existingIndex < 0)) {
+        throw new WarbandContractError('Affected squad does not agree with the current cache.');
+      }
+      const nextSquads = [...context.squads];
+      if (existingIndex >= 0) nextSquads[existingIndex] = result.squad;
+      else nextSquads.push(result.squad);
+      this.commitSquadReconciliation(nextSquads, result.activeSquadId, result.playerRevision, context.units);
+    } catch (error) {
+      this.failSquadReconciliation();
+      throw error;
+    }
+  }
+
+  reconcileSquadDelete(result: SquadDeleteResult): void {
+    try {
+      const context = this.requireSquadReconciliationContext(result.playerRevision);
+      if (!context.squads.some((squad) => squad.id === result.deletedSquadId)) {
+        throw new WarbandContractError('Deleted squad does not agree with the current cache.');
+      }
+      this.commitSquadReconciliation(
+        context.squads.filter((squad) => squad.id !== result.deletedSquadId),
+        result.activeSquadId,
+        result.playerRevision,
+        context.units,
+      );
+    } catch (error) {
+      this.failSquadReconciliation();
+      throw error;
+    }
+  }
+
   clear(): void {
     this.cachedBootstrap = null;
     this.cacheGeneration += 1;
@@ -351,6 +386,66 @@ export class GameStore {
       });
     this.inFlight[domain] = promise;
     return promise;
+  }
+
+  private requireSquadReconciliationContext(playerRevision: number): {
+    squads: readonly WarbandSquadSummary[];
+    units: readonly WarbandUnitSummary[];
+  } {
+    if (!this.cachedBootstrap || playerRevision < this.cachedBootstrap.player.player_revision) {
+      throw new WarbandContractError('Authoritative player revision regressed.');
+    }
+    if (this.warbandCache.squads.status !== 'fresh' || !this.warbandCache.squads.data
+      || this.warbandCache.units.status !== 'fresh' || !this.warbandCache.units.data) {
+      throw new WarbandContractError('Fresh squad and unit caches are required for reconciliation.');
+    }
+    return { squads: this.warbandCache.squads.data, units: this.warbandCache.units.data };
+  }
+
+  private commitSquadReconciliation(
+    squads: readonly WarbandSquadSummary[],
+    activeSquadId: string | null,
+    playerRevision: number,
+    units: readonly WarbandUnitSummary[],
+  ): void {
+    const active = activeSquadId === null ? null : squads.find((squad) => squad.id === activeSquadId);
+    if (activeSquadId !== null && !active) throw new WarbandContractError('Active squad is absent from the cache.');
+    const unitById = new Map(units.map((unit) => [unit.id, unit]));
+    for (const squad of squads) {
+      for (const unitId of squad.formation) {
+        if (unitId !== null && !unitById.has(unitId)) {
+          throw new WarbandContractError('Squad formation references an unavailable unit summary.');
+        }
+      }
+    }
+    const reconciled = Object.freeze(squads.map((squad) => Object.freeze({
+      ...squad, isActive: squad.id === activeSquadId,
+    })));
+    const bootstrapActive: GameBootstrapActiveSquad | null = active ? {
+      id: active.id,
+      name: active.name,
+      is_active: true,
+      formation: Object.freeze([...active.formation]),
+      units: Object.freeze(active.formation.filter((id): id is string => id !== null).map((id) => {
+        const unit = unitById.get(id)!;
+        return Object.freeze({
+          id: unit.id, display_name: unit.displayName, unit_type_id: unit.unitType.id,
+          kin_id: unit.kin.id, level: unit.level, xp: unit.xp, lifecycle_status: 'active' as const,
+        });
+      })),
+    } : null;
+    const bootstrap = this.cachedBootstrap!;
+    this.cachedBootstrap = Object.freeze({
+      ...bootstrap,
+      player: Object.freeze({ ...bootstrap.player, player_revision: playerRevision }),
+      active_squad: bootstrapActive,
+    });
+    this.setDomain('squads', { status: 'fresh', data: reconciled, error: null });
+  }
+
+  private failSquadReconciliation(): void {
+    const state = this.warbandCache.squads;
+    this.setDomain('squads', { status: 'error', data: state.data, error: 'integrity' });
   }
 
   private setDomain(domain: WarbandDomainName, state: WarbandDomainState<WarbandCollectionItem>): void {
@@ -388,6 +483,8 @@ export class GameStore {
 import { ClientContentRegistry } from './client-content-registry';
 import { RuntimeApiClient, RuntimeApiError, RuntimeApiErrorKind } from './runtime-api-client';
 import {
+  SquadDeleteResult,
+  SquadMutationResult,
   WarbandContractError,
   WarbandDieSummary,
   WarbandSquadSummary,

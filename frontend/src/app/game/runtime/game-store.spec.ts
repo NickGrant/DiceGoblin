@@ -105,4 +105,71 @@ describe('GameStore Warband cache', () => {
     expect(store.warband.dice.status).toBe('not-loaded');
     expect(store.warband.squads.status).toBe('not-loaded');
   });
+
+  it('reconciles authoritative squad replacement, active state, revision, and bootstrap without disturbing units or dice', async () => {
+    const store = new GameStore();
+    store.hydrateBootstrap(bootstrap());
+    const client = api();
+    client.getSquads.and.resolveTo({ ok: true, data: { squads: [
+      { id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null] },
+      { id: '32', name: 'Scouts', is_active: false, formation: Array(9).fill(null) },
+    ] } });
+    await store.loadWarbandDomains(client, content());
+    const unitsBefore = store.warband.units;
+    const diceBefore = store.warband.dice;
+
+    store.reconcileSquadMutation({
+      squad: { id: '32', name: 'Night Scouts', isActive: true, formation: ['11', null, null, null, null, null, null, null, null] },
+      activeSquadId: '32', playerRevision: 8,
+    }, 'activate');
+
+    expect(store.playerRevision).toBe(8);
+    expect(store.warband.squads.data?.map((squad) => [squad.id, squad.isActive])).toEqual([['31', false], ['32', true]]);
+    expect(store.bootstrap?.active_squad).toEqual(jasmine.objectContaining({ id: '32', name: 'Night Scouts' }));
+    expect(store.bootstrap?.active_squad?.units[0]).toEqual(jasmine.objectContaining({ id: '11', display_name: 'Grub' }));
+    expect(store.warband.units).toBe(unitsBefore);
+    expect(store.warband.dice).toBe(diceBefore);
+
+    store.reconcileSquadMutation({
+      squad: { id: '32', name: 'Night Scouts', isActive: true, formation: ['11', null, null, null, null, null, null, null, null] },
+      activeSquadId: '32', playerRevision: 8,
+    }, 'activate');
+    expect(store.playerRevision).toBe(8);
+
+    store.reconcileSquadDelete({ deletedSquadId: '31', activeSquadId: '32', playerRevision: 9 });
+    expect(store.warband.squads.data?.map((squad) => squad.id)).toEqual(['32']);
+    expect(store.bootstrap?.active_squad?.id).toBe('32');
+  });
+
+  it('appends first create and removes non-active or last-active squads from authoritative results', async () => {
+    const store = new GameStore();
+    store.hydrateBootstrap(bootstrap(null));
+    const client = api();
+    client.getSquads.and.resolveTo({ ok: true, data: { squads: [] } });
+    await store.loadWarbandDomains(client, content());
+    store.reconcileSquadMutation({
+      squad: { id: '40', name: 'First', isActive: true, formation: Array(9).fill(null) },
+      activeSquadId: '40', playerRevision: 8,
+    }, 'create');
+    expect(store.bootstrap?.active_squad?.id).toBe('40');
+
+    store.reconcileSquadDelete({ deletedSquadId: '40', activeSquadId: null, playerRevision: 9 });
+    expect(store.warband.squads.data).toEqual([]);
+    expect(store.bootstrap?.active_squad).toBeNull();
+    expect(store.playerRevision).toBe(9);
+  });
+
+  it('rejects revision regression and unreconcilable unit references without changing committed bootstrap', async () => {
+    const store = new GameStore();
+    store.hydrateBootstrap(bootstrap());
+    const client = api();
+    await store.loadWarbandDomains(client, content());
+    const before = store.bootstrap;
+    expect(() => store.reconcileSquadMutation({
+      squad: { id: '31', name: 'Regressed', isActive: true, formation: Array(9).fill(null) },
+      activeSquadId: '31', playerRevision: 6,
+    }, 'update')).toThrow();
+    expect(store.bootstrap).toBe(before);
+    expect(store.warband.squads).toEqual(jasmine.objectContaining({ status: 'error', error: 'integrity' }));
+  });
 });

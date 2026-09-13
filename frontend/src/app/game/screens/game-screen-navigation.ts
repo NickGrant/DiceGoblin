@@ -1,12 +1,13 @@
 import { RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 
-export type GameScreenKey = 'camp' | 'warband';
+export type GameScreenKey = 'camp' | 'warband' | 'squad-editor';
 
 export interface GameSceneScreen {
   readonly key: GameScreenKey;
   create(): void;
   reflow(snapshot: RuntimeViewportSnapshot): void;
   destroy(): void;
+  requestBack?(): void;
 }
 
 /** Small history model for destinations rendered inside the persistent GameScene. */
