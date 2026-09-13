@@ -154,6 +154,7 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
           'starting_energy' => 50,
           'energy_normal_max' => $normalMaximum,
           'energy_regeneration_per_hour' => $regenerationPerHour,
+          'run_energy_cost' => 10,
           'starting_region_id' => 'region.the_farm',
         ],
         [

@@ -5,6 +5,7 @@ namespace DiceGoblins\Repositories;
 
 use PDO;
 use RuntimeException;
+use DateTimeImmutable;
 
 final class PlayerStateRepository
 {
@@ -63,6 +64,19 @@ final class PlayerStateRepository
   {
     $stmt = $this->pdo->prepare('UPDATE `user_state` SET `active_squad_id` = ?, `player_revision` = `player_revision` + 1 WHERE `user_id` = ?');
     $stmt->execute([$squadId, $userId]);
+    if ($stmt->rowCount() !== 1) throw new RuntimeException('Required player state is unavailable.');
+    return $this->revisionForUser($userId);
+  }
+
+  public function persistEnergyAndIncrementRevision(
+    int $userId,
+    int $energyCurrent,
+    DateTimeImmutable $lastRegenerationAt,
+  ): int {
+    $stmt = $this->pdo->prepare('UPDATE `user_state`
+      SET `energy_current` = ?, `energy_last_regen_at` = ?, `player_revision` = `player_revision` + 1
+      WHERE `user_id` = ?');
+    $stmt->execute([$energyCurrent, $lastRegenerationAt->format('Y-m-d H:i:s'), $userId]);
     if ($stmt->rowCount() !== 1) throw new RuntimeException('Required player state is unavailable.');
     return $this->revisionForUser($userId);
   }

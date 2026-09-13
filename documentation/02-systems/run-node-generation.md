@@ -43,4 +43,6 @@ Specific Farm/Mountains topology and tuning are implemented in their milestones.
 
 `FixedGraphRunGenerator` receives the already-validated generation definition and returns only an in-memory graph with sequential run-local indexes, initial status, placement metadata, nullable encounter references, and index-based edges. It does not load content, use PDO, assign database IDs, or persist state. `GeneratedRunGraphValidator` checks the generated boundary again for sequential identity, endpoint integrity, coherent initial availability, connectivity, and a reachable exit.
 
+`POST /api/v1/runs` now supplies that definition to the generator after locking the player's `user_state` and validating the server-selected active squad. The same transaction persists the run root, maps generated indexes to relational node IDs, persists edges and participating units, spends Energy, increments `player_revision` once, and finalizes the idempotency receipt.
+
 Only `run_node_type.*` presentation fields are projected to the browser. The generation definition, fixed topology, and region-to-generation relationship remain server-private even though they participate in the global content revision.

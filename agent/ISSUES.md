@@ -6,7 +6,7 @@
 
 ### Establish authoritative run start, Energy spend, and idempotency
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

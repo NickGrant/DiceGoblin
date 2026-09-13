@@ -5,7 +5,7 @@ namespace DiceGoblins\RunGeneration;
 
 use InvalidArgumentException;
 
-final class FixedGraphRunGenerator
+final class FixedGraphRunGenerator implements RunGraphGenerator
 {
   public function __construct(
     private readonly GeneratedRunGraphValidator $validator = new GeneratedRunGraphValidator(),

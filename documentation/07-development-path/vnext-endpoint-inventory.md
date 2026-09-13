@@ -1,7 +1,7 @@
 ---
 Title: "vNext Endpoint Inventory"
 Status: Accepted
-Last Updated: 2026-09-12
+Last Updated: 2026-09-13
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/vnext-api-contract-model.md
@@ -273,9 +273,12 @@ The run payload references authored IDs rather than duplicating static node/regi
 
 - `POST /api/v1/runs`
   - Starts a new run.
+  - Requires authentication, CSRF, and `Idempotency-Key`.
+  - Accepts exactly `{ "region_id": "region.the_farm" }`; the server selects `user_state.active_squad_id` and its committed unit/loadout/dice state.
   - Validates the active squad and run eligibility.
   - Consumes Energy exactly once when run creation commits successfully.
   - Generates/persists run topology and run-specific mutable state.
+  - Returns the created run summary, authoritative Energy view, and resulting `player_revision`; the private generated topology remains outside this response.
 
 - `POST /api/v1/runs/:runId/abandon`
   - Ends the run unsuccessfully and moves it to a terminal state.

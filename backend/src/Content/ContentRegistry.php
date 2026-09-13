@@ -86,6 +86,16 @@ final class ContentRegistry
     return (float)$this->definition('config.gameplay')['energy_regeneration_per_hour'];
   }
 
+  public function runEnergyCost(): int
+  {
+    return (int)$this->definition('config.gameplay')['run_energy_cost'];
+  }
+
+  public function startingRegionId(): string
+  {
+    return (string)$this->definition('config.gameplay')['starting_region_id'];
+  }
+
   /** @return array<string, mixed> */
   public function kin(string $id): array
   {

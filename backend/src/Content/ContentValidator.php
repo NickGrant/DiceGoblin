@@ -128,6 +128,7 @@ final class ContentValidator
     $this->requireIntegerInRange($definition, 'starting_energy', 0, 1000000, $location);
     $this->requireIntegerInRange($definition, 'energy_normal_max', 1, 1000000, $location);
     $this->requirePositiveNumber($definition, 'energy_regeneration_per_hour', $location);
+    $this->requireIntegerInRange($definition, 'run_energy_cost', 1, 1000000, $location);
     $this->requireStableId($definition, 'starting_region_id', $location);
   }
 

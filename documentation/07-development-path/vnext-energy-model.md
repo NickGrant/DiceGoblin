@@ -1,7 +1,7 @@
 ---
 Title: "vNext Energy Model"
 Status: Accepted
-Last Updated: 2026-09-09
+Last Updated: 2026-09-13
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/vnext-game-overhaul.md
@@ -42,6 +42,8 @@ If run creation itself fails before the run exists, the Energy spend must not be
 
 All ordinary runs should initially use the same Energy cost. Different regional or difficulty-specific Energy costs are deferred unless later balance testing demonstrates a clear need.
 
+The canonical ordinary-run cost is currently `10`, authored as `config.gameplay.run_energy_cost` in Git-tracked JSON. The run-start command reads that value through the validated content registry; it is not a controller or command constant.
+
 ## Regeneration
 
 Energy regenerates automatically over real time up to the player's normal maximum Energy.
@@ -56,6 +58,8 @@ Energy regeneration is time-based state and should track the information require
 - last regeneration timestamp or equivalent authoritative timing state
 
 The exact maximum, regeneration rate, and run cost are balance values rather than architectural rules.
+
+On a successful spend below the normal maximum, whole elapsed regeneration ticks are materialized while fractional progress is preserved by advancing the prior regeneration anchor only by the earned whole intervals. If Energy was already full/over-cap, or elapsed regeneration reached the cap before the spend, the post-spend anchor becomes the spend time. This prevents time spent capped from becoming retroactive regeneration after the balance drops below maximum. Failed eligibility checks do not materialize regeneration into storage.
 
 ## Recharge Consumables
 

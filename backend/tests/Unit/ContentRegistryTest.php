@@ -24,6 +24,7 @@ final class ContentRegistryTest extends TestCase
 
     $this->assertSame(50, $registry->startingEnergy());
     $this->assertSame(50, $registry->energyNormalMaximum());
+    $this->assertSame(10, $registry->runEnergyCost());
     $this->assertSame(12.0, $registry->energyRegenerationPerHour());
     $this->assertSame([
       'id' => 'region.the_farm',
@@ -71,6 +72,7 @@ final class ContentRegistryTest extends TestCase
       'starting_energy' => 10,
       'energy_normal_max' => 20,
       'energy_regeneration_per_hour' => 12,
+      'run_energy_cost' => 10,
       'starting_region_id' => $region,
     ];
     $region = ['id' => 'region.test', 'type' => 'region', 'display_name' => 'Test', 'art_key' => 'test', 'run_generation_id' => 'run_generation.test'];
@@ -86,6 +88,8 @@ final class ContentRegistryTest extends TestCase
       'normal max range' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_normal_max' => 0]), $region, ...$runContent]]], 'energy_normal_max'],
       'zero regen rate' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_regeneration_per_hour' => 0]), $region, ...$runContent]]], 'positive number'],
       'negative regen rate' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_regeneration_per_hour' => -2.5]), $region, ...$runContent]]], 'positive number'],
+      'zero run cost' => [['one.json' => ['definitions' => [array_merge($config(), ['run_energy_cost' => 0]), $region, ...$runContent]]], 'run_energy_cost'],
+      'fractional run cost' => [['one.json' => ['definitions' => [array_merge($config(), ['run_energy_cost' => 1.5]), $region, ...$runContent]]], 'run_energy_cost'],
       'broken reference' => [['one.json' => ['definitions' => [$config('config.gameplay', 'region.missing'), $region, ...$runContent]]], 'references missing region'],
     ];
   }
@@ -101,6 +105,7 @@ final class ContentRegistryTest extends TestCase
             'starting_energy' => 50,
             'energy_normal_max' => 50,
             'energy_regeneration_per_hour' => $rate,
+            'run_energy_cost' => 10,
             'starting_region_id' => 'region.test',
           ],
           ['id' => 'region.test', 'type' => 'region', 'display_name' => 'Test', 'art_key' => 'test', 'run_generation_id' => 'run_generation.test'],

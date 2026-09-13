@@ -30,7 +30,7 @@ final class SquadRepository
       SELECT su.`squad_id`, su.`unit_id`, su.`position`, ui.`user_id` AS `unit_user_id`, ui.`lifecycle_status`
       FROM `squad_units` su
       JOIN `squads` s ON s.`id` = su.`squad_id`
-      JOIN `unit_instances` ui ON ui.`id` = su.`unit_id`
+      LEFT JOIN `unit_instances` ui ON ui.`id` = su.`unit_id`
       WHERE s.`user_id` = ?
       ORDER BY su.`squad_id` ASC, su.`position` ASC
     ');
@@ -79,7 +79,7 @@ final class SquadRepository
     $stmt = $this->pdo->prepare('SELECT su.`unit_id`, su.`position`, ui.`user_id` AS `unit_user_id`,
         ui.`unit_type_id`, ui.`kin_id`, ui.`display_name`, ui.`level`, ui.`xp`, ui.`lifecycle_status`
       FROM `squad_units` su
-      JOIN `unit_instances` ui ON ui.`id` = su.`unit_id`
+      LEFT JOIN `unit_instances` ui ON ui.`id` = su.`unit_id`
       WHERE su.`squad_id` = ? ORDER BY su.`position` ASC' . ($forUpdate ? ' FOR UPDATE' : ''));
     $stmt->execute([$squadId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);

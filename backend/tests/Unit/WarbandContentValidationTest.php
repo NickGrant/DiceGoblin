@@ -107,7 +107,7 @@ final class WarbandContentValidationTest extends TestCase
   private function baseDefinitions(): array
   {
     return [
-      ['id' => 'config.gameplay', 'type' => 'gameplay_config', 'starting_energy' => 10, 'energy_normal_max' => 10, 'energy_regeneration_per_hour' => 1, 'starting_region_id' => 'region.farm'],
+      ['id' => 'config.gameplay', 'type' => 'gameplay_config', 'starting_energy' => 10, 'energy_normal_max' => 10, 'energy_regeneration_per_hour' => 1, 'run_energy_cost' => 10, 'starting_region_id' => 'region.farm'],
       ['id' => 'region.farm', 'type' => 'region', 'display_name' => 'Farm', 'art_key' => 'farm', 'run_generation_id' => 'run_generation.test'],
       ['id' => 'run_node_type.test_start', 'type' => 'run_node_type', 'display_name' => 'Start', 'description' => 'Start.', 'icon_key' => 'start'],
       ['id' => 'run_node_type.exit', 'type' => 'run_node_type', 'display_name' => 'Exit', 'description' => 'Exit.', 'icon_key' => 'exit'],
