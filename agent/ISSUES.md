@@ -4,335 +4,534 @@
 
 ## Milestone 3 - Enter Farm
 
-### Establish Farm authored run content and deterministic generator adaptation
+### Establish authoritative run start, Energy spend, and idempotency
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Package 1 established normalized active-run persistence without allowing the retained prototype generator or SQL-authored catalogs to shape the vNext schema.
+Packages 1 and 2 established the normalized run persistence boundary plus canonical private Farm generation content and a pure deterministic `FixedGraphRunGenerator`. No authoritative player command yet turns those pieces into a real run.
 
-Before the run-start transaction can consume that persistence, vNext needs a canonical authored definition of the Farm map/generation inputs and a deterministic generator boundary that reproduces the useful Farm graph behavior without retaining prototype HTTP, PDO, SQL catalog, player-state, transaction, reward, or combat ownership.
+This package implements the first vNext run-creation mutation. Starting a run must be one idempotent transaction that validates current authoritative player/Warband state, materializes and spends Energy correctly, generates and persists the exact Farm graph, records participating units, increments `player_revision` once, and returns the finalized result.
 
-This package owns canonical static Farm run-generation content, its validation/projection boundary, and pure deterministic graph generation only. It does not create runs, spend Energy, mutate players, expose run APIs, or render Phaser run UI.
+This package is backend/API only. Current-run reads, abandonment, bootstrap active-run hydration, Warband active-run locks, `RunScene`, and the Phaser map belong to later packages.
 
 #### Required Context
 Read before implementation:
-- `documentation/07-development-path/vnext-authored-content-model.md`
-- `documentation/07-development-path/vnext-storage-model.md`
+- `documentation/07-development-path/vnext-energy-model.md`
+- `documentation/07-development-path/vnext-api-contract-model.md`
 - `documentation/07-development-path/vnext-endpoint-inventory.md`
 - `documentation/07-development-path/vnext-backend-internal-architecture.md`
-- `documentation/07-development-path/vnext-phaser-client-architecture.md`
+- `documentation/07-development-path/vnext-storage-model.md`
+- `documentation/07-development-path/vnext-authored-content-model.md`
 - `documentation/02-systems/run-node-generation.md`
+- `documentation/02-systems/warband-and-formation.md`
+- `documentation/02-systems/ability-loadouts-and-dice-binding.md`
 - `documentation/07-development-path/vnext-prototype-code-disposition.md`
-- current `backend/content/**`
-- current `ContentRegistry`, `ContentValidator`, `ClientContentProjector`, content tests, generated client projection, and frontend `ClientContentRegistry`
-- retained prototype `backend/src/Services/RunGraphGenerator.php` and focused generator tests only as behavior evidence
-- Package 1 run persistence and tests
+- Package 1 run persistence/tests
+- Package 2 canonical Farm content, `FixedGraphRunGenerator`, and graph tests
+- current `EnergyCalculator` / `EnergyView`
+- current `PlayerStateRepository`
+- current Squad/Unit/Dice repositories and Warband integrity helpers
+- current `IdempotencyRequestRepository`, `IdempotencyKey`, and create-squad idempotency pattern
+- current controllers/router/CSRF/service composition
 
-Do not treat prototype SQL encounter/run-pattern catalogs or old Angular run APIs as authority.
+Prototype run lifecycle/start services are evidence only. Do not route vNext through prototype `/profile`, region repositories, SQL encounter catalogs, or prototype `RunGraphGenerator`.
 
-#### Canonical content domains
-Extend the existing unified Git-backed ContentRegistry rather than creating a second run-content loader.
+#### HTTP Contract
+Implement:
 
-Add only the static run-generation domains required by the current Farm map slice.
+`POST /api/v1/runs`
 
-The intended vNext concepts are:
-- player-visible run node-type presentation definitions, using stable IDs such as `run_node_type.*`;
-- a server-owned Farm generation definition, using a stable ID such as `run_generation.*`;
-- a server-owned relationship from `region.the_farm` to its generation definition.
+This is an authenticated player command.
 
-Exact filenames may follow the existing hybrid content organization, but all definitions remain normal canonical JSON read by the same ContentRegistry.
+Require:
+- authenticated session;
+- normal CSRF protection;
+- `Idempotency-Key` header using the established bounded opaque-key contract.
 
-Do not introduce:
-- SQL region catalogs;
-- SQL node-type catalogs;
-- SQL encounter-template catalogs;
-- SQL run-pattern catalogs;
-- another editable YAML/PHP generation source.
+Request body is exactly:
 
-#### Farm scope
-Reconcile the retained prototype Farm graph into canonical vNext content deliberately rather than bulk-copying the prototype generator.
+```json
+{
+  "region_id": "region.the_farm"
+}
+```
 
-For this milestone, preserve the useful established Farm map behavior:
-- one deterministic linear Farm path;
-- combat -> loot -> rest -> boss -> exit;
-- stable authored node-type identities;
-- generated/map placement sufficient to reproduce the familiar left-to-right Farm layout;
-- first/root node initially available and downstream nodes initially locked;
-- deterministic connectivity and ordering.
+Reject missing/extra fields and malformed stable IDs.
 
-The generation definition should describe authored/static inputs. The generator should derive runtime graph state such as indexes/connectivity output/initial availability where that is more appropriately computational than authored duplication.
+The client does **not** submit:
+- squad ID;
+- unit IDs;
+- loadouts;
+- dice bindings;
+- Energy amount/cost;
+- generated graph;
+- seed/topology.
 
-Do not add combat, loot, rest, boss, reward, or exit resolution behavior in this package.
+All of those are server authority.
 
-#### Encounter references
-Package 1 persistence can store an optional authored encounter reference, but Milestone 3 does not resolve encounters.
+#### Region Eligibility
+Milestone 3 currently supports only the authored starting Farm region.
 
-Do not fabricate canonical combat encounter definitions merely to populate `run_nodes.encounter_id` early.
+Resolve the requested region through `ContentRegistry` and require it to be the current `config.gameplay.starting_region_id` / `region.the_farm` slice.
 
-It is acceptable for the current Farm Milestone 3 graph output to have no encounter reference until the combat/node-resolution milestone owns the canonical encounter model.
+Do not invent generic region unlock persistence before the progression/unlock milestone owns it.
 
-Do not migrate prototype numeric encounter-template IDs.
+Unknown, wrong-type, or currently unsupported regions must fail before mutation.
 
-#### Node-type authored content
-Add the node types required by the Farm map, expected to include the semantic equivalents of:
-- combat;
-- loot;
-- rest;
-- boss;
-- exit.
+Do not use prototype `RegionRepository` or SQL region catalogs.
 
-They need enough safe presentation metadata for a later Phaser map to label/render the node type without hard-coding player-facing strings in the scene.
+#### Canonical Run Energy Cost
+Add an authored gameplay balance value to canonical `config.gameplay`:
 
-Prefer a small public shape such as:
-- stable ID;
-- display name;
-- description when useful;
-- icon/art key.
+```text
+run_energy_cost = 10
+```
 
-Do not put server-only resolution handlers, rewards, encounter payloads, combat rules, or hidden generation topology in the public node-type definitions.
+This is the initial ordinary-run cost for vNext.
 
-#### Farm generation definition
-The canonical server-owned Farm generation definition must provide enough static input for a pure generator to produce the intended graph deterministically.
+With the already accepted baseline:
+- starting Energy: 50;
+- normal maximum: 50;
+- regeneration: 12/hour;
 
-A reasonable definition may contain:
-- generation stable ID;
-- generator/algorithm identifier;
-- authored node specifications with local authoring keys and node-type references;
-- authored placement coordinates/metadata where the layout itself is content;
-- authored edge relationships when using a fixed graph.
+this currently means five ordinary runs from a full bar and 50 minutes of natural regeneration per run. This is balance tuning, not architecture, and must remain easy to change in canonical JSON.
 
-Keep the model declarative.
+Requirements:
+- structurally validate the value as a positive integer;
+- expose it through a typed `ContentRegistry` accessor used by the command;
+- include it in the deterministic global content revision;
+- do not hard-code `10` inside the run-start application command;
+- do not expose it in `game-content.json` in this package merely because it exists. Package 5 may deliberately surface cost to Camp UI through the appropriate authoritative/public contract.
 
-Do not embed executable scripts, PHP class names, arbitrary expressions, SQL IDs, or player-state conditions in JSON.
+Update existing Energy/run documentation only if needed to identify canonical JSON as the tuning authority; do not create a new balance document.
 
-Do not generalize the schema around Mountains/Swamps before those milestones need it.
+#### Transaction Ownership
+Run start owns one application-level database transaction.
 
-#### Region relationship
-`region.the_farm` should identify its server-owned run-generation definition using a stable authored reference.
+The command should follow the established mutation pattern:
 
-This relationship must be semantically validated.
+1. parse/validate request and idempotency key;
+2. begin transaction;
+3. lock the player's `user_state` row first;
+4. check finalized idempotency receipt;
+5. validate current run eligibility and authoritative Warband configuration;
+6. calculate/materialize effective Energy at the command time;
+7. require enough effective Energy;
+8. load validated private Farm generation definition;
+9. generate the in-memory Farm graph;
+10. persist run root, nodes, edges, and participating unit rows;
+11. persist post-spend Energy + regeneration anchor;
+12. increment `player_revision` exactly once as part of the authoritative mutation;
+13. persist finalized idempotency receipt;
+14. commit;
+15. return finalized authoritative result.
 
-The generation ID is server orchestration information and should remain outside the existing public Region projection unless a later client requirement specifically needs it.
+If any step fails, roll back everything.
 
-The public region shape should remain presentation-oriented.
+Do not let a repository independently commit/roll back.
 
-#### Structural validation
-Extend `ContentValidator` for the new concrete definition types.
+#### Concurrency
+Use the locked `user_state` row as the primary per-player mutation serialization boundary, consistent with Milestone 2 commands.
 
-Validate at minimum:
-- stable namespaces;
-- expected field types;
-- bounded non-empty display/presentation strings;
-- generator identifier vocabulary actually supported now;
-- non-empty authored node list;
-- unique local node keys;
-- valid node-type stable IDs;
-- sane integer placement coordinates/metadata used by the current layout;
-- edge shape;
-- no self edge;
-- no duplicate logical edge;
-- edge endpoints use existing local node keys.
+This must make concurrent starts safe even when they use different idempotency keys:
+- one command may create the active run;
+- the later command observes that authoritative active run and fails without another Energy spend or revision increment.
 
-Do not accept arbitrary unvalidated generation blobs merely because the generator can inspect them.
+The Package 1 unique active-run invariant remains the database backstop, not the normal domain error mechanism.
 
-#### Semantic validation
-Cross-reference validation must prove at minimum:
-- Farm region -> generation definition exists and is the correct type;
-- generation node -> node-type references exist and are the correct type;
-- every edge endpoint resolves to a node in the same generation definition;
-- the authored fixed Farm graph has a valid start/root and exit path;
-- the exit is reachable;
-- the graph contains the required Farm boss/exit structure needed by the current fixed slice;
-- impossible/disconnected authored graphs fail content validation rather than being discovered only at runtime.
+#### Idempotency
+Reuse the existing `idempotency_requests` persistence.
 
-Keep validation generic where naturally reusable, but do not build a universal graph DSL.
+Use a concrete operation identity such as:
 
-#### Client projection boundary
-Maintain explicit allowlists.
+`start_run`
 
-Public projection should expose the safe node-type presentation definitions needed by the future run map.
+Canonical request hashing should depend on the normalized run-start request, currently the requested region ID.
 
-Do **not** expose the full Farm generation definition or hidden topology through `game-content.json`.
+Same user + same key + same accepted request:
+- return the original finalized result exactly;
+- do not generate another run;
+- do not spend Energy again;
+- do not increment revision again.
 
-Do not expose the region's server-only generation-definition reference if the client does not need it.
+Same user + same key + different request/operation:
+- return an idempotency conflict;
+- mutate nothing.
 
-Remember: anything in `game-content.json` is assumed readable by the player.
+Same key used by different users remains independent.
 
-The deterministic global content revision still includes the complete canonical source, including server-private generation fields/definitions.
+Missing/malformed/oversized key fails before mutation.
 
-Update the generated frontend content artifact and strict `ClientContentRegistry` parsing/indexing for any newly projected public domain.
+#### Active-Run Eligibility
+After locking the player, verify there is no existing active run owned by that player.
 
-Preserve all existing Milestone 1/2 projection behavior.
+Do not rely only on catching the database uniqueness exception.
 
-#### Deterministic generator boundary
-Create/adapt a vNext generator in the accepted backend/domain boundary.
+If an active run already exists:
+- fail with a narrow conflict/domain error;
+- do not spend Energy;
+- do not generate/persist another graph;
+- do not increment revision.
 
-The generator must be deterministic and side-effect free with respect to infrastructure.
+Do not implement resume behavior here. Package 4 owns current-run reads.
 
-It must not own or depend on:
-- PDO;
-- SQL repositories/catalogs;
-- HTTP/request objects;
-- authenticated player/session state;
-- Energy;
-- database transactions;
-- reward application;
-- ContentRegistry lookups from inside the core computational algorithm.
+#### Active Squad Selection
+The run always uses the server-authoritative `user_state.active_squad_id`.
 
-The application layer in Package 3 will load validated authored definitions and pass the required deterministic inputs into the generator.
+Do not accept a squad ID from the client.
 
-A thin content-to-generator adapter/factory outside the computational core is acceptable when useful.
+Require:
+- active squad is non-null;
+- squad exists;
+- squad belongs to the authenticated user;
+- persisted active-squad relationship is not corrupt.
 
-#### Generator output
-Return an in-memory generated graph suitable for Package 3 to persist.
+If no active squad exists, fail run creation without mutation.
 
-The output must contain enough deterministic information for persistence, including semantic equivalents of:
-- stable sequential/run-local node index;
-- node-type stable ID;
-- optional encounter ID when genuinely present;
-- initial runtime status;
-- generated placement metadata;
-- edge connectivity expressed using generated/run-local node identity;
-- optional generated edge/path metadata when required by the fixed layout.
+#### Participating Formation
+Load the active squad's persisted formation after the player row is locked.
 
-Do not return database IDs.
+Require at least one participating unit.
 
-Do not persist anything in this package.
+For every occupied position validate:
+- unit exists;
+- unit belongs to the authenticated player;
+- unit lifecycle is `active`;
+- no duplicate unit identity;
+- persisted squad relationship is internally coherent.
 
-#### Farm determinism
-For the same validated Farm generation definition and deterministic inputs, output must be identical.
+Cross-owner squad/unit corruption must be treated as a server/data-integrity failure rather than returned to the player as usable state.
 
-Because the current Farm graph is fixed, a seed may legitimately have no visible effect. Do not add fake randomness just to make a seed appear meaningful.
+Do not copy the complete squad formation into the run root merely for lock enforcement.
 
-Do not prematurely migrate the full Mountains/Swamps pattern generator.
+Persist one `run_unit_state` row for each participating unit. `current_hp` remains `NULL` in Milestone 3 because the authoritative combat-stat/HP resolver remains deferred to Milestone 4.
 
-#### Graph validation
-The vNext computational boundary should reject impossible output/invariants rather than assuming authored input can never be wrong.
+#### Participating Unit Configuration
+A unit entering a run must have a valid committed combat configuration.
 
-At minimum verify:
-- non-empty nodes;
-- unique sequential indexes;
-- all edges resolve;
-- no self/duplicate edges;
-- start availability is coherent;
-- required exit is reachable;
-- all nodes required by the fixed Farm graph are reachable from the start.
+For every participating unit validate the same core invariants established by the authoritative unit-detail/loadout slice:
+- authored unit type exists and is correct type;
+- authored kin exists and is correct type;
+- durable `unit_abilities` relationships are valid;
+- committed loadout is non-empty;
+- committed equip order is contiguous and deterministic;
+- every equipped ability is durably owned by that unit;
+- equipped abilities are authored active abilities;
+- every authored required dice slot is filled exactly once;
+- each bound die exists, is active, belongs to the user, references a valid canonical profile, and uses an allowed size;
+- physical die uniqueness is coherent;
+- foreign/corrupt bindings fail safely.
 
-Content validation catches authored errors; generator/output validation protects the runtime boundary. These responsibilities may share a small pure graph validator if that keeps ownership clear.
+Do not infer instance ability ownership from current unit type.
 
-#### Prototype disposition
-Mine only useful Farm behavior from the retained `Services\RunGraphGenerator`.
+Do not automatically repair or provision missing loadouts/dice during run start.
 
-Do not route vNext through that service merely because it already exists: it currently mixes generation with PDO and prototype authored catalogs.
+Reuse existing narrow validation/assembly logic where ownership is already correct rather than implementing a second subtly different definition of a valid unit configuration.
 
-Do not bulk-refactor or delete it yet if Mountains/Swamps/later mechanics still contain useful evidence.
+#### Energy Calculation
+Energy remains an authoritative pacing resource, not currency.
 
-If this package proves the Farm-specific fixed-graph portion is fully superseded, update `vnext-prototype-code-disposition.md` narrowly to record that fact while retaining other prototype generator evidence until its owning milestone.
+Use the accepted deterministic Energy arithmetic rather than prototype `EnergyService` transaction ownership.
 
-Do not create an archive directory.
+At command time, calculate effective Energy from:
+- persisted current;
+- persisted regeneration anchor;
+- authored normal maximum;
+- authored regeneration rate;
+- authoritative current UTC time.
+
+Do not mutate Energy merely to read/check it.
+
+If effective Energy is less than `run_energy_cost`:
+- fail with an `insufficient_energy`-style domain error;
+- persist no regeneration materialization;
+- create no run;
+- change no revision.
+
+A later bootstrap/read can still derive the same effective Energy from the untouched persisted state.
+
+#### Energy Anchor Semantics
+A successful spend must persist both the post-spend Energy and the correct regeneration anchor without losing fractional regeneration progress or granting regeneration for time spent capped.
+
+Preserve these rules explicitly.
+
+##### Below maximum and not yet capped
+If persisted Energy was below the normal maximum and elapsed regeneration raises it but **does not reach the maximum** before the spend:
+- materialize the earned whole ticks;
+- preserve fractional progress toward the next tick;
+- advance the anchor by the number of whole earned tick intervals, rather than resetting it blindly to `now`.
+
+Example at 12/hour:
+- anchor 12:00;
+- persisted 40;
+- command 12:27;
+- effective before spend 45;
+- five whole ticks earned with two minutes of fractional progress remaining;
+- post-materialization anchor is equivalent to 12:25, not 12:27.
+
+##### Reached/full/over-cap before spend
+If Energy is at/above normal maximum before the spend, or regeneration would have reached the maximum before `now`, natural regeneration has been paused while capped.
+
+If the successful spend leaves Energy below the normal maximum, regeneration resumes from the spend time, so persist the anchor as `now` rather than granting stale capped elapsed time.
+
+This also applies when an over-cap balance such as 57/50 is spent down below maximum.
+
+##### Still at/above maximum after spend
+Natural regeneration remains paused. Persist a coherent anchor that cannot later turn capped elapsed time into retroactive Energy when a future spend drops below maximum.
+
+Prefer a small deterministic Energy mutation/calculation helper over scattering timestamp arithmetic through controller/repository code.
+
+Test these cases directly with controlled timestamps.
+
+#### Graph Generation
+Load:
+- the validated requested region;
+- its private `run_generation` definition;
+
+from the canonical `ContentRegistry`.
+
+Invoke the pure Package 2 generator.
+
+Do not call the prototype `Services\RunGraphGenerator`.
+
+The generated Farm graph must be the exact validated five-node fixed graph currently produced by `FixedGraphRunGenerator`.
+
+Do not regenerate after persistence merely to construct the response.
+
+#### Graph Persistence
+Persist the generated graph from Package 2 into the Package 1 tables.
+
+Expected mapping:
+- create the `runs` root with authenticated user, authored region ID, active squad, and active status;
+- insert generated nodes preserving deterministic `node_index`, stable node-type ID, nullable encounter ID, initial status, and generated metadata;
+- map generated node indexes to newly persisted node IDs;
+- insert edges using those persisted node IDs while retaining run ownership;
+- insert each participating unit into `run_unit_state` with deferred/null HP.
+
+No SQL-authored content catalogs.
+
+No prototype numeric encounter IDs.
+
+No combat/reward/run-modifier state.
+
+#### Run Repository Boundary
+Introduce/adapt a narrow vNext run-persistence repository boundary as needed.
+
+Repositories may:
+- find active run identity/eligibility state;
+- insert run root;
+- insert generated nodes and return persisted IDs;
+- insert edges;
+- insert run-unit participation.
+
+Repositories must not:
+- load authored generation rules;
+- calculate Energy;
+- own the transaction;
+- generate the graph;
+- map HTTP responses;
+- resolve combat/rewards.
+
+Do not make the command depend on prototype Run/Node/Edge repositories if their row contracts still target the old schema.
+
+#### Player State Persistence
+Add only the narrow `PlayerStateRepository` mutation needed to atomically persist:
+- Energy current;
+- Energy regeneration anchor;
+- one `player_revision` increment.
+
+Do not increment revision in a separate unrelated transaction.
+
+A real successful run creation increments exactly once.
+
+Idempotent replay returns the original revision.
+
+Failures and rollbacks do not increment.
+
+#### Success Result
+The command/HTTP response must return enough authoritative affected state for future client reconciliation without becoming the full Package 4 current-run payload.
+
+Return a shape equivalent to:
+
+```text
+run:
+  id
+  region_id
+  squad_id
+  status
+energy:
+  current
+  normal_maximum
+  regeneration_per_hour
+  regeneration_interval_seconds
+  last_regeneration_at
+  next_regeneration_at
+  fully_regenerated_at
+player_revision
+```
+
+Use the same Energy semantic shape as bootstrap so the later client can replace its cached Energy authoritatively.
+
+Do not include hidden Farm generation topology merely because the command generated it.
+
+Package 4 owns the complete current-run aggregate.
+
+#### HTTP Errors
+Follow existing vNext envelopes/conventions.
+
+Provide narrow non-sensitive domain errors for at least:
+- malformed request;
+- missing/invalid idempotency key;
+- idempotency conflict;
+- unsupported/invalid region;
+- no active squad;
+- empty active squad;
+- invalid/corrupt participating configuration;
+- insufficient Energy;
+- active run already exists;
+- authentication/CSRF failure;
+- internal persisted/content integrity failure.
+
+Do not expose SQL exceptions, foreign asset identity, or internal configuration details to the player.
+
+#### Security / Ownership
+Be adversarial.
+
+The command must not allow a player to create a run using:
+- another player's squad;
+- another player's unit;
+- another player's die;
+- corrupt cross-owner persisted relationships.
+
+Because the client cannot submit squad/unit/die IDs, ordinary user input should not be able to select these assets at all. Persisted corruption must fail safely.
+
+Do not leak foreign IDs/names in error output.
+
+#### Existing Fixture
+The controlled Package 3/Milestone 2 Warband fixture should remain a practical development/test source of an active configured squad for run-start tests.
+
+Do not change normal production registration to provision starter Warband assets.
+
+Do not make run start secretly invoke the fixture or onboarding provisioning.
 
 #### Tests
-Add focused coverage at the owning layers.
+Use real MySQL integration coverage for transaction behavior.
 
 At minimum prove:
-- representative valid Farm canonical content passes;
-- malformed node-type definitions fail;
-- missing/wrong-type generation references fail;
-- duplicate local node keys fail;
-- invalid edge endpoints fail;
-- self/duplicate edges fail;
-- disconnected/unreachable exit fails;
-- wrong/missing required Farm structure fails when required by the accepted fixed model;
-- server-private generation data is absent from client projection;
-- safe node-type presentation is projected;
-- generated frontend content exactly matches the projector output;
-- frontend strict content parser rejects malformed projected node types;
-- deterministic Farm generator returns the expected five-node linear graph;
-- first node is available and downstream nodes locked;
-- repeated generation with identical input is identical;
-- generator output contains no database IDs and performs no persistence;
-- graph-output validation rejects malformed graph state;
-- existing region/Warband authored content and projection tests remain green;
-- Package 1 run-persistence tests remain green.
+- route authentication;
+- CSRF required;
+- exact request shape;
+- valid `Idempotency-Key` required;
+- canonical `run_energy_cost` is validated/read from content;
+- successful Farm start uses the server active squad;
+- no squad/unit/dice IDs accepted from client;
+- empty/no active squad rejected;
+- foreign/corrupt active squad rejected safely;
+- foreign/corrupt participating unit relationship rejected safely;
+- inactive/terminal unit rejected;
+- invalid authored unit/kin rejected as integrity failure;
+- empty/incomplete/passive/corrupt loadout rejected;
+- missing/foreign/terminal/profile-invalid die rejected;
+- existing active run rejected before spend;
+- insufficient effective Energy rejected without state mutation;
+- elapsed Energy regeneration is counted for eligibility;
+- fractional regen progress is preserved after successful spend when below cap;
+- time spent capped does not become retroactive regen after spend;
+- over-cap spend semantics are correct;
+- exact cost is spent once;
+- run root persists correct region/squad;
+- exact five nodes/edges persist and match generated graph;
+- participating unit rows persist with null/deferred HP;
+- generated graph is not regenerated into a different persisted topology;
+- same idempotency key + same request replays original result with no second spend/run/revision;
+- same key + different request/operation conflicts;
+- identical keys for different users are independent;
+- different concurrent/sequential keys cannot create two active runs for one user;
+- generation failure rolls back run/Energy/revision/idempotency receipt;
+- persistence failure rolls back run/Energy/revision/idempotency receipt;
+- successful mutation increments revision exactly once;
+- failed/replayed mutation does not increment;
+- response contains authoritative Energy and run summary but no private generation topology;
+- fresh registration remains run-empty;
+- Package 1 persistence and Package 2 content/generator regressions remain green;
+- Milestone 2 Warband commands/reads remain green.
 
-Prefer behavior tests over snapshots of large JSON blobs.
+Where concurrency is hard to induce deterministically, prove row-lock ordering/application behavior plus the database active-run uniqueness backstop with real MySQL coverage.
 
 #### Documentation
-Update existing active documentation only where the accepted current truth changes, especially:
-- authored-content source ownership;
-- run-node generation boundary;
-- prototype disposition when Farm behavior has been conclusively mined.
+Update current accepted documentation in place when this package makes a durable rule concrete, especially:
+- canonical `run_energy_cost` tuning ownership;
+- successful Energy spend/anchor materialization semantics;
+- run-start request/response details if the endpoint inventory needs refinement.
 
-Do not create a package completion report or legacy copy.
+Do not create package completion reports or legacy snapshots.
 
 #### Explicitly Out of Scope
 Do not implement:
-- run creation persistence command;
-- `POST /api/v1/runs`;
-- run creation idempotency;
-- Energy spending or Energy-anchor mutation;
-- current-run query/API;
+- `GET /api/v1/runs/current`;
 - abandon;
-- bootstrap active-run summary;
-- active-run Warband locks;
+- bootstrap active-run hydration;
+- Warband active-run configuration locks;
+- frontend RuntimeApiClient run start;
+- Camp start button behavior;
 - RunScene;
-- Phaser Farm map;
-- encounter resolution;
+- run map;
+- node selection/resolution;
 - combat;
-- loot/reward application;
-- Rest/Chaos interaction;
-- boss/exit resolution;
-- Mountains/Swamps generation migration;
+- rewards;
+- Rest/Chaos;
+- current HP/stat resolution;
 - run modifiers;
 - battles/playback;
+- Mountains/Swamps generation;
 - Milestone 4.
 
-Do not alter Package 1 persistence unless this package uncovers a concrete blocking defect in that contract; report any such defect rather than casually expanding schema scope.
+Do not clean up prototype run code yet beyond a narrow documentation update. Package 4+ still need to mine lifecycle/read/locking edge cases.
 
 #### Verification
 Run applicable gates from `agent/QUALITY_GATES.md`.
 
-At minimum run:
-- authored-content validation/generation;
-- focused backend ContentValidator/ContentRegistry/projector tests;
-- focused pure generator tests;
-- frontend client-content parser/registry tests;
-- Package 1 run-persistence integration regression;
-- existing Warband content regressions;
-- full backend Docker suite if backend runtime/content code changed;
-- full frontend suite and production build because `game-content.json`/client content contracts change;
-- bundle check;
-- context/docs checks when documentation changes.
+At minimum:
+- content validation/generation after adding run Energy cost;
+- focused Energy arithmetic tests;
+- focused run-start command/controller tests;
+- real MySQL run-start transaction/idempotency tests;
+- Package 1 run persistence regression;
+- Package 2 content/generator regression;
+- full backend Docker suite;
+- existing Warband backend regressions;
+- docs/context checks where changed.
 
-No Phaser screenshot capture is required because this package does not add presentation.
+Frontend tests/build are only required if generated content/client contracts unexpectedly change. `run_energy_cost` should remain server-side in this package, so no frontend contract change is expected.
 
-Do not claim a command passed unless it actually ran.
+No screenshot capture is required.
 
 #### Review State
 When complete:
 - set this issue to `In Progress` if needed;
 - leave it `In Progress`;
 - do not mark it complete;
-- do not promote Package 3;
-- do not begin the run-start transaction/API.
+- do not promote Package 4;
+- do not begin current-run/abandon/locking work.
 
 Architectural review decides completion.
 
 #### Final Report
 Report:
 1. resulting commit SHA;
-2. canonical content files/types added or changed;
-3. exact Farm generation definition shape;
-4. node-type public projection shape;
-5. server-private fields/definitions intentionally withheld;
-6. structural/semantic validation rules;
-7. generator class/boundary and dependencies;
-8. exact deterministic Farm graph output;
-9. prototype generator behavior mined/retained;
-10. generated content revision;
-11. backend/frontend/content verification actually run and results;
-12. any unresolved generation/content concern.
+2. canonical Energy-cost definition/accessor;
+3. run-start request and response contract;
+4. eligibility/Warband integrity rules;
+5. Energy materialization/spend/anchor algorithm;
+6. transaction and locking order;
+7. idempotency semantics;
+8. graph persistence mapping;
+9. run-unit-state behavior;
+10. revision behavior;
+11. error/security behavior;
+12. tests/verification actually run and results;
+13. unresolved concern, if any.
 
 Do not begin another package.
