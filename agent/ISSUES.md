@@ -4,469 +4,426 @@
 
 ## Milestone 3 - Enter Farm
 
-### Establish current-run lifecycle, bootstrap summary, and active-run Warband locks
+### Establish Phaser RunScene lifecycle and Camp start/resume navigation
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Packages 1-3 now establish normalized run persistence, canonical/private Farm generation, and an authoritative transactional run-start command. A created run still cannot be queried/resumed or abandoned through vNext, bootstrap still reports no active-run state, and Milestone 2 Warband commands do not yet protect participating configuration from mutation while a run is active.
+Packages 1-4 now provide the complete server-side Milestone 3 run lifecycle needed by the client: transactional Farm start, Energy/idempotency, persisted current-run aggregate, compact bootstrap active-run summary, abandonment, and active-run Warband configuration locks.
 
-This package establishes the authoritative server-side active-run lifecycle boundary before any Phaser `RunScene` work begins.
+The mounted Phaser runtime still always enters `GameScene`, Camp has no run start/resume affordance, `RunScene` remains only a placeholder, and the framework-neutral runtime client/store do not yet consume the run endpoints.
+
+This package wires authoritative run lifecycle into the existing persistent Phaser runtime without implementing the Farm map itself.
 
 It owns:
-- `GET /api/v1/runs/current`;
-- `POST /api/v1/runs/:runId/abandon`;
-- bootstrap active-run summary hydration;
-- backend active-run configuration locks for existing Warband mutations;
-- strict frontend bootstrap parsing/storage for a non-null active-run summary only.
+- safe public presentation of canonical ordinary-run Energy cost;
+- strict frontend contracts for run start/current responses;
+- RuntimeApiClient run start/current methods;
+- GameStore active-run/current-run cache/reconciliation;
+- Camp Start Farm / Resume Farm controls;
+- startup routing to `RunScene` when bootstrap reports an active run;
+- functional persistent `RunScene` lifecycle/loading/error/leave-to-Camp behavior;
+- deterministic lifecycle verification.
 
-It does not implement run navigation, rendering, node resolution, combat, or rewards.
+Package 6 owns actual Farm graph/map rendering and abandon UI.
 
 #### Required Context
 Read before implementation:
+- `documentation/07-development-path/vnext-phaser-client-architecture.md`
 - `documentation/07-development-path/vnext-api-contract-model.md`
 - `documentation/07-development-path/vnext-endpoint-inventory.md`
-- `documentation/07-development-path/vnext-storage-model.md`
-- `documentation/07-development-path/vnext-energy-model.md`
 - `documentation/07-development-path/vnext-authored-content-model.md`
-- `documentation/07-development-path/vnext-backend-internal-architecture.md`
-- `documentation/07-development-path/vnext-phaser-client-architecture.md`
+- `documentation/07-development-path/vnext-energy-model.md`
 - `documentation/02-systems/run-node-generation.md`
-- `documentation/02-systems/warband-and-formation.md`
-- `documentation/02-systems/ability-loadouts-and-dice-binding.md`
-- `documentation/07-development-path/vnext-prototype-code-disposition.md`
-- Package 1 run schema/tests
-- Package 2 canonical run content/generator
-- Package 3 run-start command/controller/tests
-- current `GameBootstrapController` and frontend bootstrap parser/store
-- current squad/unit mutation commands and their transaction/locking order
+- Package 2 client-safe `run_node_type` content projection
+- Package 3 `POST /api/v1/runs` response contract
+- Package 4 bootstrap active-run summary and `GET /api/v1/runs/current` contract
+- current `RuntimeStartup`, `RuntimeApiClient`, `GameStore`, `RuntimeViewport`
+- current `BootScene`, `GameScene`, placeholder `RunScene`, and runtime scene tests
+- current `CampScreen`
+- existing deterministic capture/debug infrastructure
 
-Do not route vNext through prototype run/profile/team controllers or services.
+Do not use Angular gameplay routing/services or prototype Angular run pages.
 
-#### Current-run query
-Implement:
+#### Public run-cost presentation
+Camp needs to communicate the ordinary Farm start cost before submitting the command.
 
-`GET /api/v1/runs/current`
+Expose the canonical `config.gameplay.run_energy_cost` through the existing client content projection using an explicit allowlist.
 
-This is an authenticated read and must not mutate state, materialize Energy, increment revision, regenerate topology, or repair persisted run state.
+Prefer one small safe presentation domain/shape, for example:
 
-Contract:
-- when the player has no active run, return success with `run: null`;
-- when an active run exists, return the authoritative persisted active-run aggregate needed by the later Farm map;
-- return only the authenticated player's active run;
-- persisted cross-owner/corrupt relationships fail as a narrow non-disclosing integrity error.
+```text
+gameplay:
+  run_energy_cost: 10
+```
 
-Do not return a foreign run or allow a run ID parameter for this query.
+Requirements:
+- it is generated from the same canonical Git JSON used by the backend;
+- `ClientContentProjector` explicitly allowlists the field;
+- `ClientContentRegistry` strictly validates it as a positive integer;
+- no other server-private gameplay config becomes public accidentally;
+- private generation topology remains private;
+- server run-start validation remains authoritative and does not trust the client value.
 
-#### Current-run public shape
-For the current Milestone 3 Farm slice, return a deliberate client-safe shape equivalent to:
+Do not hard-code `10` in Camp or RunScene.
+
+#### Frontend run contracts
+Add a narrow framework-neutral run contract module rather than mixing large parsing logic into Phaser scenes.
+
+Strictly parse the Package 3 start response:
 
 ```text
 run:
   id
   region_id
   squad_id
-  status
+  status: active
+energy:
+  current
+  normal_max
+  regeneration_per_hour
+  regeneration_interval_seconds
+  last_regeneration_at
+  next_regeneration_at
+  fully_regenerated_at
+player_revision
+```
+
+Strictly parse Package 4 current-run response:
+
+```text
+run: null | {
+  id
+  region_id
+  squad_id
+  status: active
   created_at
-  nodes:
-    - id
-      node_index
-      node_type_id
-      status
-      completed_at
-      position:
-        column
-        row
-  edges:
-    - from_node_id
-      to_node_id
-  units:
-    - unit_id
-      current_hp
+  nodes[]
+  edges[]
+  units[]
+}
 player_revision
 ```
 
-`current_hp` remains nullable during Milestone 3.
-
-The exact envelope should follow existing vNext conventions.
-
-Do not expose raw `generated_metadata` objects. Explicitly map only the safe Farm position metadata needed by the client.
-
-Do not expose:
-- `run_generation_id`;
-- generator algorithm;
-- authored local node keys;
-- private generation definition/topology source;
-- prototype encounter-template IDs;
-- server-only encounter information not yet observable/required;
-- SQL/internal IDs beyond the durable run/node/unit identities actually needed by gameplay.
-
-The player may know the generated Farm map once the run exists. Returning persisted node type, position, status, and connectivity is therefore appropriate for this slice; do not expose the private authored generation source used to create it.
-
-#### Persisted-run validation
-Current-run assembly must validate persisted state independently of the fresh graph generator.
-
-Do **not** call `GeneratedRunGraphValidator` against mutable persisted state because its `index 0 available / all later nodes locked` invariant is specifically a fresh-generation invariant.
-
-Validate what the persisted active aggregate actually requires:
-- active run belongs to authenticated user;
-- `region_id` resolves to the expected authored region type;
-- active run has a non-null participating squad;
-- participating squad still exists and belongs to the user;
-- nodes belong to this run;
-- node indexes are unique, contiguous, deterministic, and start at zero;
-- every node type resolves to authored `run_node_type` content;
-- node status uses the persisted runtime vocabulary currently supported by the schema;
-- completion timestamp/status relationship is coherent where applicable;
-- Farm position metadata has the expected safe integer `{column,row}` shape;
-- edges connect persisted nodes in this same run;
-- no self/duplicate edge is returned;
-- persisted graph remains connected/reachable enough to represent a coherent run;
-- run-unit rows belong to this run;
-- each participating unit exists and belongs to the run owner;
-- duplicate participating units are impossible/rejected;
-- current HP may be null in Milestone 3.
-
-Do not invent future node-resolution state rules beyond what the current schema can honestly represent.
-
-#### Current-run repository/query boundary
-Add/adapt narrow vNext repository methods needed to read:
-- active run root by user;
-- run root by owner/id where needed for abandon;
-- run nodes;
-- run edges;
-- run-unit participation.
-
-Application query/lifecycle code owns:
-- authored-content validation;
-- ownership/cross-aggregate integrity;
-- DTO/public projection;
-- lifecycle rules.
-
-Repositories remain persistence-only.
-
-Do not use prototype `RunRepository`, `RunNodeRepository`, or `RunEdgeRepository` if their row contracts still target the old schema.
-
-#### Abandon command
-Implement:
-
-`POST /api/v1/runs/:runId/abandon`
-
-Require:
-- authenticated session;
-- CSRF;
-- canonical positive run ID.
-
-No `Idempotency-Key` is required because the command has a naturally idempotent retry contract and performs no randomness/resource refund.
-
-Transaction/locking order:
-1. parse route ID;
-2. begin transaction;
-3. lock `user_state` first;
-4. load/lock the target run through an owner-scoped lookup;
-5. apply lifecycle rule;
-6. persist terminal state when required;
-7. increment `player_revision` exactly once for the real transition;
-8. commit;
-9. return authoritative result.
+Validate exact known shapes/fields and canonical positive ID strings.
+
+For current run validate at minimum:
+- stable region/node-type IDs;
+- contiguous unique `node_index` starting at zero;
+- unique positive node IDs;
+- allowed runtime statuses currently returned by the backend;
+- completion timestamp/status coherence;
+- safe integer position column/row;
+- edge endpoints exist in returned nodes;
+- no self/duplicate edge;
+- every returned node is reachable from node index 0;
+- unit IDs unique/positive;
+- `current_hp` null or non-negative integer.
+
+Resolve `region_id` and every `node_type_id` through `ClientContentRegistry`. Unknown projected authored references are integrity/contract failure.
+
+Do not apply Package 2 fresh-generation availability rules to current runtime state.
+
+#### Runtime API
+Extend `RuntimeApiClient` with:
+
+- start Farm run through `POST /api/v1/runs`;
+- current run through `GET /api/v1/runs/current`.
+
+Start requirements:
+- credentials include;
+- bootstrap CSRF token;
+- `Idempotency-Key`;
+- exact `{ region_id }` body;
+- strict success parsing.
 
-Every Warband mutation lock introduced by this package must use the same player-first serialization order so abandon and configuration commands cannot race inconsistently.
+Current query:
+- credentials include;
+- no mutation/CSRF;
+- strict success parsing.
+
+Do not add frontend abandon yet; Package 6 owns the abandon interaction.
+
+#### Run-start idempotency in the client
+Use the same deliberate ambiguous-retry discipline established by squad creation.
+
+For one Start Farm attempt:
+- generate one valid opaque idempotency key;
+- submit the exact Farm region request;
+- while a request is in flight, prevent duplicate starts;
+- if the request fails ambiguously at the network/transport level, retry of that unchanged attempt must reuse the same key;
+- after definitive success, discard the key;
+- after a definitive server rejection, a later deliberate new attempt may use a new key.
 
-#### Abandon lifecycle contract
-For an owned **active** run:
-- set status to `abandoned`;
-- set terminal `ended_at` using authoritative UTC time;
-- retain run graph and run-unit history;
-- do not refund Energy;
-- do not modify Energy or its regeneration anchor;
-- increment `player_revision` exactly once.
+Do not repeatedly create new keys while retrying an ambiguous request because that could convert a lost success response into an `active_run_exists` conflict instead of an idempotent replay.
 
-For the same owned run already in `abandoned` state:
-- return successful authoritative no-op;
-- do not change `ended_at`;
-- do not increment revision again.
+#### GameStore run state
+Add a narrow active/current-run state model to the existing GameStore.
 
-This makes ordinary retry safe without a separate receipt.
+Do not introduce another state-management framework.
 
-For a missing or foreign run ID:
-- return the same non-disclosing not-found behavior.
+The full current-run aggregate should support states equivalent to:
+- not loaded;
+- loading;
+- fresh;
+- stale;
+- error.
 
-If future persisted terminal statuses somehow reach this command, do not rewrite them to abandoned. Return a narrow invalid-state/conflict response.
+Requirements:
+- bootstrap active-run summary remains the startup routing signal;
+- current-run detail loads lazily when entering/resuming `RunScene`;
+- concurrent current-run loads deduplicate;
+- fresh current-run state is reused while authoritative revision has not invalidated it;
+- `GameStore.clear()` clears current-run state/in-flight requests;
+- stale/error recovery is deliberate;
+- ordinary scene switching does not clear it.
 
-Do not delete run history on abandon.
+#### Reconcile successful start
+After a strictly valid successful run-start response:
+- adopt the authoritative `player_revision`;
+- replace bootstrap/player Energy with the returned authoritative Energy view;
+- set bootstrap `active_run` from the returned run summary;
+- ensure returned run `squad_id` agrees with the current authoritative bootstrap active squad;
+- do not change Warband units/dice/squads caches merely because the run started;
+- do not fabricate the full run graph from the known private/static Farm definition.
 
-#### Abandon response
-Return affected authoritative state suitable for later client reconciliation, for example:
+Then enter `RunScene`, which loads `GET /api/v1/runs/current` to obtain the persisted aggregate.
 
-```text
-run:
-  id
-  region_id
-  squad_id
-  status: abandoned
-  ended_at
-active_run: null
-player_revision
-```
+Never regenerate topology in the browser.
 
-Do not return/refund Energy because abandonment does not mutate Energy.
+Reject revision regression or impossible summary disagreement as integrity failure rather than silently accepting it.
 
-A repeated already-abandoned no-op returns the existing terminal state and current revision.
+#### Reconcile current-run query
+A successful current-run response is authoritative at its returned revision.
 
-#### Bootstrap active-run summary
-Upgrade:
+If it returns an active run:
+- it must agree with the bootstrap active-run summary on ID/region/squad when both refer to the same current authoritative revision;
+- adopt the full aggregate as fresh;
+- adopt a newer/equal valid `player_revision` according to existing stale-cache rules.
 
-`GET /api/v1/game/bootstrap`
+If it returns `run: null`:
+- this may legitimately mean another tab/session abandoned the run after bootstrap;
+- if its revision is newer than the cached bootstrap state, clear `active_run`, adopt the newer revision, and route/recover to Camp;
+- do not pretend an active run still exists.
 
-Fresh/no active run:
-- `active_run: null`.
+If the response revision regresses or an equal-revision response contradicts bootstrap active-run summary, treat it as integrity/stale state and do not invent a winner.
 
-Active run:
-- return only a compact authoritative summary sufficient for startup routing:
-  - run ID;
-  - region ID;
-  - squad ID;
-  - status.
+#### Startup routing
+Once RuntimeStartup is `ready`:
+- bootstrap `active_run === null` routes to `GameScene`/Camp as today;
+- bootstrap `active_run !== null` routes directly to the existing `RunScene`.
 
-Do not put nodes/edges/run-unit state into bootstrap.
+Do not fetch the full current-run aggregate before the one-shot bootstrap/content startup completes.
 
-Bootstrap remains read-only.
+Do not refetch bootstrap just to choose the scene.
 
-Bootstrap must validate the active-run root/ownership/content relationship enough to fail safely on corrupt state rather than silently reporting a bad run.
+Do not create a new Phaser runtime/canvas.
 
-Do not regenerate topology during bootstrap.
+#### Camp controls
+Extend the Phaser-owned Camp screen.
 
-#### Frontend bootstrap contract
-Update the framework-neutral frontend bootstrap parser/state to strictly accept:
-- `active_run: null`; or
-- the exact compact active-run summary above.
+When there is no active run:
+- present a clear **Start Farm** / **Enter Farm** control;
+- present the canonical Energy cost from client content;
+- show enough Energy context for the player to understand the spend;
+- do not expose private generation information.
 
-Validate:
-- positive canonical IDs;
-- stable region ID;
-- `status === 'active'` for a bootstrap active run;
-- no extra fields.
+When there is an active run:
+- present **Resume Farm** instead of another start control;
+- do not issue another run-start request.
 
-Retain this summary in GameStore/bootstrap state for Package 5.
+Starting requires an active squad server-side. Client presentation may disable the start control when bootstrap clearly has no active squad or clearly lacks effective displayed Energy, but those client checks are usability only. The backend remains authoritative and server errors must still be handled.
 
-Do not implement frontend current-run requests, run-start requests, abandon requests, Camp buttons, or RunScene yet.
+The Camp screen must not fetch Warband collections simply to start a run.
 
-#### Active-run lock policy
-Introduce one narrow reusable backend policy/service over authoritative persisted active-run state.
+#### Start success and failure UX
+Start Farm needs intentional states:
+- ready;
+- submitting;
+- ambiguous/network failure with retry;
+- authoritative rejection such as insufficient Energy or invalid configuration;
+- malformed/integrity response.
 
-The policy answers concrete questions such as:
-- does this user currently have an active run?;
-- what squad participates?;
-- does this unit participate?;
+Prevent double submission.
 
-It must not become a generic workflow/event service.
+On successful start, transition to `RunScene` only after authoritative store reconciliation succeeds.
 
-It must validate ownership/corruption safely and must participate in the caller's existing transaction rather than creating its own transaction.
+Do not optimistically subtract Energy or set an active run before the response succeeds.
 
-#### Squad activation lock
-While a run is active:
-- activating a **different** squad is rejected with a narrow configuration-locked conflict;
-- re-activating the already-active participating squad remains the existing successful no-op and does not increment revision.
+Use concise player-facing error text; do not display raw server exception content.
 
-Do not silently switch the run's squad.
+#### RunScene lifecycle
+Replace the current placeholder with a functional lifecycle shell only.
 
-#### Participating squad update lock
-The active run locks participating **formation membership/positions**, not cosmetic squad naming.
+On entry:
+- verify bootstrap/store believes there is an active run;
+- load/deduplicate `GET /api/v1/runs/current` when the full aggregate is not already fresh;
+- show loading/error/retry state as appropriate;
+- once loaded, present a minimal run shell identifying the authored region and that the run is active;
+- do not render the five-node Farm graph yet.
 
-For `PUT /api/v1/squads/:squadId` when that squad is the active run's participating squad:
-- if the submitted nine-position formation differs from the persisted committed formation, reject with the configuration-locked conflict and mutate nothing;
-- if formation is identical but only the squad name changes, allow the normal rename/update mutation;
-- an exactly identical name+formation remains the existing no-op behavior if already supported.
+Resolve region presentation through `ClientContentRegistry`.
 
-Updates to other saved squads remain legal.
+Provide a clear **Return to Camp** / leave-run-screen control that switches back to `GameScene` without abandoning the run.
 
-Do not copy squad formation into the run merely to enforce this. Compare against the authoritative persisted squad configuration.
+The active run remains authoritative and resumable.
 
-#### Participating squad delete lock
-While a run is active:
-- deleting the participating squad is rejected regardless of whether it is the only saved squad or another squad exists;
-- deleting a non-participating squad remains subject to the existing normal squad rules.
+Package 6 will replace/extend this shell with the actual map and abandon interaction.
 
-Abandon the run first if the player wants to delete its participating squad.
-
-#### Unit loadout/dice lock
-While a run is active:
-- `PUT /api/v1/units/:unitId/loadout` is rejected if that unit participates in the active run;
-- loadout changes for non-participating units remain legal.
-
-The error is server-authoritative even if the later client disables controls.
-
-Do not snapshot/copy the loadout into the run in this package.
-
-#### Unit rename
-`PATCH /api/v1/units/:unitId/name` remains legal during an active run, including for participating units.
-
-A display name is not combat configuration.
-
-Do not over-lock harmless identity/presentation changes.
-
-#### Other Warband commands
-Creating a new squad remains legal during a run.
-
-This package does not implement promotion, die sale/salvage, Academy, Shop, or other future commands. Their owning milestones must consult the same active-run configuration rules when they can mutate participating combat state.
-
-#### Lock error contract
-Use one narrow non-sensitive error code for active-run configuration protection, such as:
-
-`active_run_configuration_locked`
-
-Use conflict semantics (`409`) unless an established convention strongly requires an equivalent status.
-
-Do not expose foreign run/unit/squad IDs in error details.
-
-#### Concurrency requirements
-Be deliberate about races between:
-- abandon and squad activation/update/delete;
-- abandon and unit loadout replacement;
-- run start and Warband mutations.
-
-All these mutations already or should lock `user_state` first. After that lock is held, inspect active-run state and then target configuration rows.
+#### RunScene navigation
+`GameScene` and `RunScene` are real Phaser scenes inside the same already-mounted Phaser game.
 
 Required behavior:
-- if configuration mutation obtains player lock before run start, it may complete before the run is created and run start must validate the resulting committed configuration;
-- if run start commits first, subsequent participating configuration mutation observes the active run and is rejected;
-- if abandon commits first, subsequent configuration mutation may proceed;
-- if configuration mutation sees the still-active run first, it is rejected and does not race abandonment into an inconsistent partial state.
+- Camp Start success -> `RunScene`;
+- Camp Resume -> `RunScene` without starting another run;
+- RunScene Return to Camp -> `GameScene` Camp;
+- Camp then shows Resume because active-run state persists;
+- a browser reload with bootstrap active run enters `RunScene` directly;
+- runtime-lifetime `RuntimeStartup`, GameStore, ClientContentRegistry, viewport, Phaser game, and canvas remain the same objects across scene changes.
 
-Do not introduce another locking order that creates avoidable deadlock risk.
+Do not use the GameScene screen navigator to fake RunScene as another Camp/Warband screen.
 
-#### Player revision
-Current-run GET/bootstrap reads do not increment revision.
+Do not use Angular routing.
 
-Real abandon transition increments once.
+#### Orientation/responsive behavior
+Reuse existing RuntimeViewport and touch-first portrait gate behavior.
 
-Repeated already-abandoned abandon does not increment.
+RunScene lifecycle UI must be functional at:
+- Compact `844x390`;
+- Standard `1600x900`;
+- Wide `2560x1080`.
 
-Blocked active-run configuration commands do not increment.
+Portrait gate should suspend RunScene interaction just as it does other gameplay without clearing run cache/state.
 
-Allowed real Warband mutations retain their existing exactly-once/no-op revision behavior.
+Returning to landscape resumes the same RunScene/run state.
 
-#### Energy
-Abandon does not refund or otherwise mutate Energy.
+Keep presentation simple; Package 6 owns the actual map visual composition.
 
-Current-run GET and bootstrap derive/read state only; they do not materialize Energy.
+#### Deterministic debug/capture support
+Extend the existing debug/capture infrastructure only enough to deterministically enter the RunScene lifecycle shell with contract-valid bootstrap/current-run data.
 
-Do not change Package 3 Energy behavior in this package unless a concrete defect is discovered.
+Generate and visually inspect lifecycle-shell captures at Compact, Standard, and Wide if the existing capture workflow makes that inexpensive. These captures are useful but should not become Farm-map design work.
+
+Do not create a second fake run data model for screenshots; use the real frontend run contracts/store shape.
+
+#### Existing Warband behavior
+Starting an active run will make certain Warband commands server-locked by Package 4.
+
+Package 5 does not need to redesign the Warband editor UI to proactively disable all locked operations; server rejection remains authoritative. If a small existing error-message mapping is needed so a 409 lock response is understandable when the player returns to Warband during an active run, that narrow adjustment is allowed.
+
+Do not expand this into a new Warband package.
 
 #### Tests
-Use real MySQL integration coverage for lifecycle/locking behavior.
-
 At minimum prove:
-- unauthenticated current-run query rejected;
-- no active run returns successful `run: null`;
-- current-run query returns the exact persisted five-node/four-edge Farm graph from Package 3 without regenerating it;
-- current-run response exposes safe position/node presentation references but not private generation source fields;
-- query is read-only and does not change revision/Energy/timestamps;
-- invalid authored region/node-type persisted references fail as integrity errors;
-- corrupt cross-owner run squad fails safely;
-- corrupt cross-owner run-unit relationship fails safely;
-- malformed/cross-run graph relationship fails safely where application validation can observe it;
-- current-run validation accepts legitimate future mutable status arrangements allowed by schema rather than applying the fresh-generation availability rule;
-- abandon requires auth + CSRF;
-- missing/foreign abandon ID is non-disclosing not-found;
-- active owned run becomes abandoned with terminal timestamp;
-- abandon retains nodes/edges/run-unit rows;
-- abandon refunds no Energy and does not alter Energy anchor;
-- real abandon increments revision once;
-- repeated abandon is successful no-op with same terminal timestamp and no second revision;
-- bootstrap fresh account still has `active_run: null`;
-- bootstrap active run returns only compact summary;
-- bootstrap does not return graph topology;
-- frontend parser accepts valid active summary and rejects malformed/extra-field variants;
-- activating another squad during active run is rejected;
-- activating participating/current squad remains no-op;
-- participating formation change rejected;
-- participating squad name-only change allowed when formation unchanged;
-- participating squad delete rejected, including last-squad case;
-- non-participating squad update/delete follows existing rules;
-- participating unit loadout replacement rejected;
-- non-participating unit loadout replacement remains legal;
-- participating unit rename remains legal;
-- blocked lock commands do not change `player_revision`;
-- abandon followed by the previously blocked configuration mutation succeeds;
-- Package 3 run-start regression remains green;
-- Milestone 2 squad/unit configuration regression remains green.
+- public content contains only explicit `run_energy_cost` gameplay presentation and does not leak other private gameplay/generation fields;
+- client content parser rejects malformed/non-positive run cost;
+- run-start API uses credentials, CSRF, exact body, and Idempotency-Key;
+- current-run API uses authenticated GET;
+- strict start parser rejects malformed/private/unexpected shapes;
+- strict current parser validates IDs, authored references, graph connectivity, position/status/completion/unit state;
+- current parser accepts legitimate progressed node statuses rather than requiring fresh-generation statuses;
+- start mutation does not alter committed GameStore before success;
+- start reconciliation updates Energy, revision, and active-run summary only;
+- start rejects revision regression/squad disagreement;
+- ambiguous retry reuses idempotency key;
+- duplicate input while starting cannot issue duplicate requests;
+- bootstrap without active run starts in GameScene;
+- bootstrap with active run starts in RunScene;
+- RunScene lazily loads current run once;
+- concurrent/current repeated loads deduplicate/use fresh cache;
+- current-run `null` at newer revision clears stale active-run summary and returns/recover to Camp;
+- equal-revision contradictory current state fails safely;
+- Camp Resume issues no start request;
+- RunScene Return to Camp preserves active run and full current-run cache;
+- Camp after return presents Resume;
+- navigation does not refetch bootstrap or game-content;
+- same Phaser runtime/canvas/startup/store survives GameScene <-> RunScene transitions;
+- resize/orientation changes preserve run lifecycle state;
+- existing Camp/Warband navigation remains green.
 
-Where practical, add transaction-order/concurrency characterization proving the shared player-row lock gives deterministic start/abandon/configuration behavior.
+#### Real-stack verification
+Where practical use the controlled Warband fixture against real PHP/MySQL and browser runtime:
+
+fresh/authenticated `/game`
+-> Camp
+-> Start Farm
+-> authoritative Energy drop
+-> RunScene current-run load
+-> Return to Camp
+-> Resume Run
+-> browser reload
+-> bootstrap routes directly back into the same run.
+
+Verify only one run was created and only one Energy spend/revision occurred for the start.
+
+Do not abandon or resolve nodes in this package.
 
 #### Documentation
-Update existing canonical docs only where this package finalizes current-run/abandon/lock behavior.
+Update existing canonical docs only when the client lifecycle boundary changes accepted current truth.
 
-Do not create package-report/history/UAT documents.
+Do not create package report/UAT-history documents.
 
 #### Explicitly Out of Scope
 Do not implement:
-- Phaser run-start UI;
-- frontend run-start mutation;
-- frontend current-run query;
-- frontend abandon mutation;
-- Camp Start/Resume controls;
-- `RunScene`;
-- Farm map rendering;
-- node selection/resolution;
+- Farm graph/node rendering;
+- clickable/selectable nodes;
+- abandon UI/API client call;
+- node resolution;
 - combat;
 - rewards;
-- Rest/Loot/Boss/Exit resolution;
-- run modifiers;
+- Rest/Loot/Boss/Exit mechanics;
 - current HP calculation;
-- battle persistence/playback;
-- promotion;
-- Shop/Academy/Wrong Machine;
+- battle playback;
+- final visual overhaul;
 - Milestone 4.
 
-Do not use this package as an excuse to migrate prototype run UI or lifecycle services wholesale.
+Do not migrate prototype Angular run pages.
 
 #### Verification
 Run applicable gates from `agent/QUALITY_GATES.md`.
 
 At minimum:
-- focused current-run query tests;
-- abandon lifecycle/transaction tests;
-- active-run lock tests across squad/unit commands;
-- bootstrap backend tests;
-- frontend bootstrap parser/store tests;
-- Package 3 run-start integration regression;
-- Milestone 2 Warband regression;
-- full Docker backend suite;
-- full frontend suite because bootstrap client contract changes;
+- content validation/generation because public projection changes;
+- focused run contract/API/store tests;
+- runtime scene/startup navigation tests;
+- Camp tests;
+- orientation/responsive lifecycle tests;
+- existing Warband regressions;
+- full frontend suite;
 - production frontend build;
 - bundle check;
+- backend content/projector tests if projection code changes;
+- Package 3/4 backend regressions if any backend contract files change;
 - docs/context checks when documentation changes.
 
-No Phaser screenshots are required because this package must not alter presentation.
+Use deterministic lifecycle captures if implemented.
 
 Do not claim a gate passed unless it actually ran.
 
 #### Review State
 When complete:
-- leave Package 4 **In Progress**;
+- leave Package 5 **In Progress**;
 - do not mark it complete;
-- do not promote Package 5;
-- do not begin RunScene or Camp run navigation.
+- do not promote Package 6;
+- do not begin Farm-map/abandon UX work.
 
 Architectural review decides completion.
 
 #### Final Report
 Report:
 1. commit SHA;
-2. exact `GET /runs/current` response shape and no-run behavior;
-3. persisted aggregate validation/integrity behavior;
-4. abandon transaction and retry contract;
-5. bootstrap active-run summary shape;
-6. frontend bootstrap parser/store changes;
-7. active-run lock policy and affected commands;
-8. participating-squad name-only behavior;
-9. unit rename/loadout behavior while active;
-10. concurrency/locking order;
-11. exact `player_revision` behavior;
-12. Energy behavior on abandon/read;
-13. tests/gates actually run;
-14. unresolved concern, if any.
+2. public run-cost projection shape;
+3. strict run start/current contracts;
+4. RuntimeApiClient methods and idempotency retry behavior;
+5. GameStore run state/reconciliation behavior;
+6. startup scene-routing rule;
+7. Camp Start/Resume interaction;
+8. RunScene lifecycle/loading/error/return behavior;
+9. responsive/orientation behavior;
+10. deterministic capture results if run;
+11. real-stack verification if run;
+12. quality gates actually executed/results;
+13. unresolved concern, if any.
 
 Do not begin another package.
