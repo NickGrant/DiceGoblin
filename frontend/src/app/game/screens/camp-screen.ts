@@ -145,7 +145,7 @@ export class CampScreen implements GameSceneScreen {
   private root: Phaser.GameObjects.Container | null = null;
   private view: CampViewModel | null = null;
   private activeLayout: CampLayout | null = null;
-  private startState: 'ready' | 'submitting' | 'retryable' | 'rejected' | 'integrity' = 'ready';
+  private startState: 'ready' | 'submitting' | 'retryable' | 'rejected' | 'recovery-required' = 'ready';
   private startMessage = '';
   private startAttemptKey: string | null = null;
 
@@ -297,7 +297,8 @@ export class CampScreen implements GameSceneScreen {
   }
 
   async startFarm(): Promise<void> {
-    if (this.startState === 'submitting' || this.store.bootstrap?.active_run || !this.api || !this.content) return;
+    if (this.startState === 'submitting' || this.startState === 'recovery-required'
+      || this.store.bootstrap?.active_run || !this.api || !this.content) return;
     const bootstrap = this.store.bootstrap;
     if (!bootstrap?.active_squad) {
       this.startState = 'rejected'; this.startMessage = 'Choose an active squad before entering the Farm.';
@@ -306,28 +307,41 @@ export class CampScreen implements GameSceneScreen {
     this.startAttemptKey ??= this.createIdempotencyKey();
     this.startState = 'submitting'; this.startMessage = 'Preparing the Farm run…';
     this.reflow(this.viewport.snapshot);
+    let result: Awaited<ReturnType<RuntimeApiClient['startRun']>>;
     try {
-      const result = await this.api.startRun('region.the_farm', bootstrap.session.csrf_token, this.startAttemptKey, this.content);
-      this.store.reconcileRunStart(result);
-      this.startAttemptKey = null;
-      this.enterRun();
+      result = await this.api.startRun('region.the_farm', bootstrap.session.csrf_token, this.startAttemptKey, this.content);
     } catch (error) {
-      if (error instanceof RuntimeApiError && error.kind === 'network') {
+      if (this.isDefinitiveStartRejection(error)) {
+        this.startAttemptKey = null;
+        this.startState = 'rejected';
+        this.startMessage = this.startErrorMessage(error);
+      } else {
         this.startState = 'retryable';
         this.startMessage = 'The result is uncertain. Retry this same start attempt.';
-      } else {
-        this.startAttemptKey = null;
-        this.startState = error instanceof RuntimeApiError && error.kind === 'http' ? 'rejected' : 'integrity';
-        this.startMessage = this.startErrorMessage(error);
       }
       this.reflow(this.viewport.snapshot);
+      return;
     }
+
+    try {
+      this.store.reconcileRunStart(result);
+    } catch {
+      this.startAttemptKey = null;
+      this.startState = 'recovery-required';
+      this.startMessage = 'The run started, but local state disagrees. Reload to recover it.';
+      this.reflow(this.viewport.snapshot);
+      return;
+    }
+
+    this.startAttemptKey = null;
+    this.enterRun();
   }
 
   private addRunButton(root: Phaser.GameObjects.Container, layout: CampLayout, view: CampViewModel): void {
     const region = layout.runButton;
     const button = this.scene.add.graphics();
-    const disabled = !view.hasActiveRun && (!view.hasActiveSquad || this.startState === 'submitting');
+    const disabled = !view.hasActiveRun && (!view.hasActiveSquad
+      || this.startState === 'submitting' || this.startState === 'recovery-required');
     button.fillStyle(disabled ? 0x6c6658 : 0x8f3e2e, 1);
     button.fillRoundedRect(region.x, region.y, region.width, region.height, 16);
     button.lineStyle(4, 0xc9972b, 1);
@@ -337,7 +351,9 @@ export class CampScreen implements GameSceneScreen {
       button.on('pointerup', () => view.hasActiveRun ? this.resumeFarm() : void this.startFarm());
     }
     const retry = this.startState === 'retryable';
-    const label = view.hasActiveRun ? 'RESUME FARM  ›' : retry ? 'RETRY START FARM' : this.startState === 'submitting' ? 'STARTING…' : 'START FARM  ›';
+    const label = view.hasActiveRun ? 'RESUME FARM  ›' : retry ? 'RETRY START FARM'
+      : this.startState === 'submitting' ? 'STARTING…'
+      : this.startState === 'recovery-required' ? 'RELOAD TO RECOVER' : 'START FARM  ›';
     const action = this.scene.add.text(region.x + region.width / 2, region.y + region.height * 0.38, label, {
       color: '#fff4d3', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '30px' : '22px', fontStyle: 'bold',
     }).setOrigin(0.5);
@@ -357,6 +373,12 @@ export class CampScreen implements GameSceneScreen {
       if (error.kind === 'http') return 'The Farm cannot be entered right now.';
     }
     return 'The run response could not be verified safely.';
+  }
+
+  private isDefinitiveStartRejection(error: unknown): boolean {
+    return error instanceof RuntimeApiError
+      && (error.kind === 'unauthorized'
+        || (error.kind === 'http' && error.status !== null && error.status >= 400 && error.status < 500));
   }
 
   private addWarbandButton(root: Phaser.GameObjects.Container, layout: CampLayout): void {

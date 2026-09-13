@@ -150,6 +150,26 @@ describe('RuntimeApiClient', () => {
     expect(current[1]).toEqual(jasmine.objectContaining({ method: 'GET', credentials: 'include', headers: { Accept: 'application/json' } }));
   });
 
+  it('preserves malformed and HTTP 5xx run-start outcomes for ambiguous retry handling', async () => {
+    const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
+      gameplay: { run_energy_cost: 10 }, regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
+      kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {},
+    } });
+    const malformed = jasmine.createSpy<RuntimeFetch>('malformed').and.resolveTo(
+      new Response(JSON.stringify({ ok: true, data: {} }), { status: 200 }),
+    );
+    await expectAsync(new RuntimeApiClient(malformed, '').startRun(
+      'region.the_farm', 'csrf', 'run:start:12345678', content,
+    )).toBeRejectedWith(jasmine.objectContaining({ kind: 'malformed-response', status: 200 }));
+
+    const unavailable = jasmine.createSpy<RuntimeFetch>('unavailable').and.resolveTo(new Response(JSON.stringify({
+      ok: false, error: { code: 'server_error' },
+    }), { status: 503 }));
+    await expectAsync(new RuntimeApiClient(unavailable, '').startRun(
+      'region.the_farm', 'csrf', 'run:start:12345678', content,
+    )).toBeRejectedWith(jasmine.objectContaining({ kind: 'http', status: 503, code: 'server_error' }));
+  });
+
   it('turns malformed mutation success into an integrity-safe API failure and retains safe error codes', async () => {
     const malformed = jasmine.createSpy<RuntimeFetch>('malformed').and.resolveTo(new Response(JSON.stringify({ ok: true, data: {} }), { status: 200 }));
     await expectAsync(new RuntimeApiClient(malformed, '').activateSquad('31', 'csrf')).toBeRejectedWith(

@@ -24,9 +24,13 @@ describe('Camp run lifecycle', () => {
     const store = new GameStore(); store.hydrateBootstrap(bootstrap(active));
     const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['startRun']);
     const enterRun = jasmine.createSpy('enterRun');
-    const screen = new CampScreen({} as Phaser.Scene, store, new RuntimeViewport(), () => undefined, enterRun, api, content(), () => 'run:start:one-attempt');
+    let keyNumber = 0;
+    const createKey = jasmine.createSpy('createIdempotencyKey').and.callFake(
+      () => `run:start:${++keyNumber === 1 ? 'one-attempt' : `attempt-${keyNumber}`}`,
+    );
+    const screen = new CampScreen({} as Phaser.Scene, store, new RuntimeViewport(), () => undefined, enterRun, api, content(), createKey);
     spyOn(screen, 'reflow').and.stub();
-    return { store, api, enterRun, screen };
+    return { store, api, enterRun, screen, createKey };
   }
   const success = { run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const },
     energy: { ...bootstrap().player.energy, current: 40 }, playerRevision: 8 };
@@ -45,6 +49,78 @@ describe('Camp run lifecycle', () => {
     api.startRun.and.resolveTo(success); await screen.startFarm();
     expect(api.startRun.calls.allArgs().map((args) => args[2])).toEqual(['run:start:one-attempt', 'run:start:one-attempt']);
     expect(store.bootstrap?.player.energy.current).toBe(40); expect(enterRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses one key after a malformed response', async () => {
+    const { api, screen, createKey } = harness();
+    api.startRun.and.rejectWith(new RuntimeApiError('malformed-response', 200));
+    await screen.startFarm(); await screen.startFarm();
+    expect(screen.runActionState).toBe('retryable');
+    expect(api.startRun.calls.allArgs().map((args) => args[2])).toEqual([
+      'run:start:one-attempt', 'run:start:one-attempt',
+    ]);
+    expect(createKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses one key after an HTTP 5xx response', async () => {
+    const { api, screen, createKey } = harness();
+    api.startRun.and.rejectWith(new RuntimeApiError('http', 503));
+    await screen.startFarm(); await screen.startFarm();
+    expect(screen.runActionState).toBe('retryable');
+    expect(api.startRun.calls.allArgs().map((args) => args[2])).toEqual([
+      'run:start:one-attempt', 'run:start:one-attempt',
+    ]);
+    expect(createKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('never rotates the key through repeated ambiguous failures and reconciles once after success', async () => {
+    const { store, api, enterRun, screen, createKey } = harness();
+    const reconcile = spyOn(store, 'reconcileRunStart').and.callThrough();
+    api.startRun.and.returnValues(
+      Promise.reject(new RuntimeApiError('network')),
+      Promise.reject(new RuntimeApiError('malformed-response', 200)),
+      Promise.reject(new RuntimeApiError('http', 500)),
+      Promise.resolve(success),
+    );
+
+    await screen.startFarm(); await screen.startFarm(); await screen.startFarm();
+    expect(store.bootstrap?.active_run).toBeNull();
+    expect(store.bootstrap?.player.energy.current).toBe(50);
+    await screen.startFarm();
+
+    expect(api.startRun.calls.allArgs().map((args) => args[2])).toEqual([
+      'run:start:one-attempt', 'run:start:one-attempt', 'run:start:one-attempt', 'run:start:one-attempt',
+    ]);
+    expect(createKey).toHaveBeenCalledTimes(1);
+    expect(reconcile).toHaveBeenCalledTimes(1);
+    expect(enterRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats a deliberate 4xx rejection as definitive and permits a later new attempt', async () => {
+    const { api, screen, createKey } = harness();
+    api.startRun.and.rejectWith(new RuntimeApiError('http', 422, 'insufficient_energy'));
+    await screen.startFarm();
+    expect(screen.runActionState).toBe('rejected');
+    await screen.startFarm();
+    expect(api.startRun.calls.allArgs().map((args) => args[2])).toEqual([
+      'run:start:one-attempt', 'run:start:attempt-2',
+    ]);
+    expect(createKey).toHaveBeenCalledTimes(2);
+  });
+
+  it('requires reload after valid server success fails local reconciliation and blocks another POST', async () => {
+    const { store, api, enterRun, screen, createKey } = harness();
+    api.startRun.and.resolveTo({ ...success, run: { ...success.run, squad_id: '99' } });
+
+    await screen.startFarm();
+    expect(screen.runActionState).toBe('recovery-required');
+    expect(store.bootstrap?.active_run).toBeNull();
+    expect(store.bootstrap?.player.energy.current).toBe(50);
+    expect(enterRun).not.toHaveBeenCalled();
+    await screen.startFarm();
+
+    expect(api.startRun).toHaveBeenCalledTimes(1);
+    expect(createKey).toHaveBeenCalledTimes(1);
   });
 
   it('prevents duplicate submission while a start is in flight', async () => {
