@@ -27,6 +27,10 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
       'dice_instances',
       'idempotency_requests',
       'password_reset_tokens',
+      'run_edges',
+      'run_nodes',
+      'run_unit_state',
+      'runs',
       'squad_units',
       'squads',
       'unit_abilities',
@@ -87,8 +91,11 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $this->assertSame($this->contentRegistry()->startingEnergy(), $state['energy_current'] ?? null);
     $this->assertSame(1, $state['player_revision'] ?? null);
     $this->assertSame('', (string)$this->scalar('SELECT COALESCE(`active_squad_id`, \'\') FROM `user_state` WHERE `user_id` = ?', [$userId]));
-    foreach (['unit_instances', 'dice_instances', 'squads'] as $table) {
+    foreach (['unit_instances', 'dice_instances', 'squads', 'runs'] as $table) {
       $this->assertSame('0', (string)$this->scalar("SELECT COUNT(*) FROM `$table` WHERE `user_id` = ?", [$userId]));
+    }
+    foreach (['run_nodes', 'run_edges', 'run_unit_state'] as $table) {
+      $this->assertSame('0', (string)$this->scalar("SELECT COUNT(*) FROM `$table`", []));
     }
   }
 

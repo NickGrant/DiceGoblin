@@ -238,6 +238,9 @@ abstract class IntegrationTestCase extends TestCase
     $placeholders = implode(',', array_fill(0, count($userIds), '?'));
 
     if ($this->schemaHasTable('user_state') && !$this->schemaHasTable('player_state')) {
+      if ($this->schemaHasTable('runs')) {
+        $this->execDeleteByUserIds("DELETE FROM `runs` WHERE `user_id` IN ($placeholders)", $userIds);
+      }
       $this->execDeleteByUserIds("DELETE FROM `users` WHERE `id` IN ($placeholders)", $userIds);
       return;
     }

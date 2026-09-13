@@ -6,7 +6,7 @@
 
 ### Establish active-run persistence foundation
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

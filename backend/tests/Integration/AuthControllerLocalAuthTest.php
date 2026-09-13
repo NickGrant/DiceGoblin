@@ -42,6 +42,10 @@ final class AuthControllerLocalAuthTest extends IntegrationTestCase
     $storedHash = (string)$this->scalar('SELECT `password_hash` FROM `user_local_credentials` WHERE `user_id` = ?', [$userId]);
     $this->assertNotSame('secret-pass', $storedHash);
     $this->assertTrue(password_verify('secret-pass', $storedHash));
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `runs` WHERE `user_id` = ?', [$userId]));
+    foreach (['run_nodes', 'run_edges', 'run_unit_state'] as $table) {
+      $this->assertSame('0', (string)$this->scalar("SELECT COUNT(*) FROM `$table`", []));
+    }
   }
 
   public function testLocalLoginRejectsInvalidPassword(): void

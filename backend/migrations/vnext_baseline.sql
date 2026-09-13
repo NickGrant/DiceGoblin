@@ -179,6 +179,71 @@ CREATE TABLE `squad_units` (
   CONSTRAINT `fk_squad_units_unit` FOREIGN KEY (`unit_id`) REFERENCES `unit_instances` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `runs` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `region_id` VARCHAR(128) NOT NULL,
+  `squad_id` BIGINT UNSIGNED NULL,
+  `status` VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'active',
+  `active_user_id` BIGINT UNSIGNED GENERATED ALWAYS AS (
+    CASE WHEN `status` = 'active' THEN `user_id` ELSE NULL END
+  ) STORED,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ended_at` TIMESTAMP NULL DEFAULT NULL,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_runs_one_active_per_user` (`active_user_id`),
+  KEY `ix_runs_user_status_created` (`user_id`, `status`, `created_at`, `id`),
+  KEY `ix_runs_squad_status` (`squad_id`, `status`),
+  CONSTRAINT `fk_runs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_runs_squad` FOREIGN KEY (`squad_id`) REFERENCES `squads` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `run_nodes` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `run_id` BIGINT UNSIGNED NOT NULL,
+  `node_index` INT UNSIGNED NOT NULL,
+  `node_type_id` VARCHAR(128) NOT NULL,
+  `encounter_id` VARCHAR(128) NULL,
+  `status` VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'locked',
+  `completed_at` TIMESTAMP NULL DEFAULT NULL,
+  `generated_metadata` JSON NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_run_nodes_run_index` (`run_id`, `node_index`),
+  UNIQUE KEY `uq_run_nodes_run_id` (`run_id`, `id`),
+  CONSTRAINT `fk_run_nodes_run` FOREIGN KEY (`run_id`) REFERENCES `runs` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `run_edges` (
+  `run_id` BIGINT UNSIGNED NOT NULL,
+  `from_node_id` BIGINT UNSIGNED NOT NULL,
+  `to_node_id` BIGINT UNSIGNED NOT NULL,
+  `generated_metadata` JSON NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`run_id`, `from_node_id`, `to_node_id`),
+  KEY `ix_run_edges_to_node` (`run_id`, `to_node_id`),
+  CONSTRAINT `chk_run_edges_distinct_endpoints` CHECK (`from_node_id` <> `to_node_id`),
+  CONSTRAINT `fk_run_edges_run` FOREIGN KEY (`run_id`) REFERENCES `runs` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_run_edges_from_node`
+    FOREIGN KEY (`run_id`, `from_node_id`) REFERENCES `run_nodes` (`run_id`, `id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_run_edges_to_node`
+    FOREIGN KEY (`run_id`, `to_node_id`) REFERENCES `run_nodes` (`run_id`, `id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `run_unit_state` (
+  `run_id` BIGINT UNSIGNED NOT NULL,
+  `unit_id` BIGINT UNSIGNED NOT NULL,
+  `current_hp` INT UNSIGNED NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`run_id`, `unit_id`),
+  KEY `ix_run_unit_state_unit_run` (`unit_id`, `run_id`),
+  CONSTRAINT `fk_run_unit_state_run` FOREIGN KEY (`run_id`) REFERENCES `runs` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_run_unit_state_unit` FOREIGN KEY (`unit_id`) REFERENCES `unit_instances` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 ALTER TABLE `user_state`
   ADD CONSTRAINT `fk_user_state_active_squad`
     FOREIGN KEY (`active_squad_id`) REFERENCES `squads` (`id`) ON DELETE SET NULL;
