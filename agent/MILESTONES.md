@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Establish Phaser unit detail, rename, loadout, and dice-binding flows
+- Complete Warband integrated verification and closure
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT. Its major visual-quality finding is intentionally deferred to the later game-wide visual/UI overhaul; Milestone 2 should prioritize functional clarity and consistency rather than final presentation fidelity.
 
@@ -42,8 +42,8 @@ Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 5. ~~Unit rename + atomic loadout/dice-binding command.~~ Complete and architecturally approved.
 6. ~~Phaser Warband navigation + lazy read/cache surfaces.~~ Complete and architecturally approved.
 7. ~~Phaser squad editor + activation/lifecycle flows.~~ Complete and architecturally approved after correction pass `a8dc9448adece3a3da1251842fcbdefcd5f89f95`.
-8. **Phaser unit detail + loadout/dice configuration flows.** Current.
-9. Warband integrated verification/closure.
+8. ~~Phaser unit detail + loadout/dice configuration flows.~~ Complete and architecturally approved at `f65356bf16854c334415ba14e964d11f6c45cd0e`. The coding-agent session ended before its final verification narrative; Package 9 owns integrated verification of the committed slice.
+9. **Warband integrated verification/closure.** Current.
 
 ### Package Review Workflow
 For each package:
