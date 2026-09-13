@@ -4,12 +4,12 @@ Read this for sequencing/planning or when closing/promoting an execution package
 
 ## Milestone 2 - Warband
 
-**Status:** Active
+**Status:** Technical Complete - Awaiting Manual UAT
 
 ### Related Issues
-- Complete Warband integrated verification and closure
+- None active. Package implementation and integrated technical closure are complete.
 
-Milestone 1 - Walking Skeleton is complete and passed manual user UAT. Its major visual-quality finding is intentionally deferred to the later game-wide visual/UI overhaul; Milestone 2 should prioritize functional clarity and consistency rather than final presentation fidelity.
+Milestone 1 - Walking Skeleton is complete and passed manual user UAT. Its major visual-quality finding is intentionally deferred to the later game-wide visual/UI overhaul; Milestone 2 likewise prioritizes functional clarity and consistency rather than final presentation fidelity.
 
 ### Outcome
 Establish the durable player-owned combat-configuration domain and make it fully usable through Phaser:
@@ -29,12 +29,11 @@ Establish the durable player-owned combat-configuration domain and make it fully
 - Phaser Warband exposes the owned-unit roster, owned dice, saved squads, active-squad state, and drill-down to configuration surfaces with functional responsive behavior.
 - Phaser squad configuration supports the fixed 3x3/nine-position formation, saved squad lifecycle, membership/position editing, and active-squad switching using complete authoritative squad mutations.
 - Phaser unit configuration supports unit detail, rename, ordered equipped abilities, and exact owned-die bindings using an editable local draft whose committed state changes only after server acceptance.
-- Active-run mutation locking is not fabricated before run persistence exists. Milestone 2 command boundaries must permit Milestone 3 to add authoritative active-run checks without redesigning the Warband contracts.
-- Existing prototype Unit/Dice/Team repositories, Angular Warband pages, profile synchronization, and related tests are mined for useful behavior but are not target architecture. Retire only live/superseded paths whose vNext replacement is proven; preserve later reuse evidence until its owning package.
-- Milestone 2 passes fresh-database, authored-content, backend, frontend, production-build/bundle, responsive-capture, and real-stack verification appropriate to the completed Warband slice before manual user UAT.
+- Active-run mutation locking is not fabricated before run persistence exists. Milestone 2 command boundaries permit Milestone 3 to add authoritative active-run checks without redesigning the Warband contracts.
+- Superseded unrouted Angular Warband, Dice, Unit Detail, and Squad Detail pages and their page-only Dice/Squad services are retired; prototype evidence needed by later milestones remains unregistered/unreachable from live vNext gameplay composition.
+- Milestone 2 passes fresh-database, authored-content, backend, frontend, production-build/bundle, responsive-capture, security, and real-stack verification appropriate to the completed Warband slice before manual user UAT.
 
 ### Package Queue
-Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 1. ~~Warband persistence foundation.~~ Complete and architecturally approved.
 2. ~~Warband authored content + validation/projection.~~ Complete and architecturally approved.
 3. ~~Authoritative Warband read APIs + controlled development/UAT fixtures.~~ Complete and architecturally approved.
@@ -42,21 +41,19 @@ Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 5. ~~Unit rename + atomic loadout/dice-binding command.~~ Complete and architecturally approved.
 6. ~~Phaser Warband navigation + lazy read/cache surfaces.~~ Complete and architecturally approved.
 7. ~~Phaser squad editor + activation/lifecycle flows.~~ Complete and architecturally approved after correction pass `a8dc9448adece3a3da1251842fcbdefcd5f89f95`.
-8. ~~Phaser unit detail + loadout/dice configuration flows.~~ Complete and architecturally approved at `f65356bf16854c334415ba14e964d11f6c45cd0e`. The coding-agent session ended before its final verification narrative; Package 9 owns integrated verification of the committed slice.
-9. **Warband integrated verification/closure.** Current.
+8. ~~Phaser unit detail + loadout/dice configuration flows.~~ Complete and architecturally approved at `f65356bf16854c334415ba14e964d11f6c45cd0e`.
+9. ~~Warband integrated verification/closure.~~ Complete and architecturally approved at `c72c2611d7e14d1d3151f42c05f791e4f1405c2d`.
 
-### Package Review Workflow
-For each package:
-1. coding agent implements only the current `agent/ISSUES.md` package and leaves it in review state;
-2. architectural review evaluates the pushed changes against accepted contracts and the package acceptance criteria;
-3. corrections are returned to the same package until approved;
-4. planning records the package complete and promotes exactly one next package.
+### Technical Closure Evidence
+Package 9 verified the complete Milestone 2 slice from fresh database/account through controlled Warband fixture, real `/game` startup, lazy Warband reads, squad lifecycle, unit detail/rename/loadout/exact-die configuration, authoritative cache reconciliation, and deliberate reload/re-read through real PHP/MySQL.
 
-Do not implement later packages early merely because their eventual shape is known.
+The closure matrix included fresh DB/schema validation, deterministic authored-content revision/projection checks, 242 backend tests / 1309 assertions with 75 intentionally skipped prototype-schema tests, 53 focused Warband backend tests / 555 assertions, 347 frontend tests, 60 focused Package 8 tests, production build and bundle check, cross-player security checks, `player_revision` behavior, stale/integrity recovery, and Compact/Standard/Wide capture inspection plus touch portrait gating.
+
+The aggregate `verify:full` command remains host-limited because PHP is absent from the host `PATH`; its required constituents were executed separately using supported Docker/root-mounted paths. This is an environment limitation rather than a Milestone 2 product defect.
 
 ### UAT Sequencing
-Manual user UAT occurs after package 9 is technically complete and passes final architectural review. UAT is milestone-level validation rather than an acceptance criterion inside packages 1-9.
+Manual user UAT is now the only remaining Milestone 2 gate.
 
-The deferred major visual/UI overhaul remains out of Milestone 2. Functional screens should be clear, responsive, and reasonably consistent, but do not spend package scope pursuing final production visual fidelity.
+The deferred major visual/UI overhaul remains out of Milestone 2. Functional screens should be clear, responsive, and reasonably consistent, but final production visual fidelity remains deliberately deferred.
 
-Do not begin Milestone 3 - Enter Farm until Milestone 2 UAT is complete and its findings are resolved or deliberately deferred.
+Do not begin Milestone 3 - Enter Farm until Milestone 2 UAT is complete and its findings are resolved or deliberately deferred. After UAT passes, mark Milestone 2 complete/UAT passed and only then decompose/promote the first Milestone 3 execution package.
