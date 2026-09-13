@@ -1,5 +1,5 @@
 {
-    "revision": "f1a64c25281ebe576969e6fad144b00ff612c88a1e042f12675a1a1c7c2718c0",
+    "revision": "6ae943aef7149ac05c411cd24b20dd20105543883556e6762945162349423e3f",
     "content": {
         "regions": {
             "region.the_farm": {
@@ -1165,6 +1165,38 @@
                     12,
                     20
                 ]
+            }
+        },
+        "run_node_types": {
+            "run_node_type.boss": {
+                "id": "run_node_type.boss",
+                "display_name": "Boss",
+                "description": "Face the Farm's strongest guardian.",
+                "icon_key": "icon_encounter_boss"
+            },
+            "run_node_type.combat": {
+                "id": "run_node_type.combat",
+                "display_name": "Combat",
+                "description": "Fight enemies guarding the path.",
+                "icon_key": "icon_encounter_combat"
+            },
+            "run_node_type.exit": {
+                "id": "run_node_type.exit",
+                "display_name": "Exit",
+                "description": "Leave the Farm and end the run.",
+                "icon_key": "icon_home"
+            },
+            "run_node_type.loot": {
+                "id": "run_node_type.loot",
+                "display_name": "Loot",
+                "description": "Discover supplies and valuables.",
+                "icon_key": "icon_encounter_loot"
+            },
+            "run_node_type.rest": {
+                "id": "run_node_type.rest",
+                "display_name": "Rest",
+                "description": "Pause to recover before pressing onward.",
+                "icon_key": "icon_encounter_rest"
             }
         }
     }

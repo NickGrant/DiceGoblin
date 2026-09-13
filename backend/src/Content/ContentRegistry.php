@@ -123,6 +123,31 @@ final class ContentRegistry
   }
 
   /** @return array<string, mixed> */
+  public function region(string $id): array
+  {
+    return $this->definitionOfType($id, 'region');
+  }
+
+  /** @return array<string, mixed> */
+  public function runNodeType(string $id): array
+  {
+    return $this->definitionOfType($id, 'run_node_type');
+  }
+
+  /** @return array<string, mixed> */
+  public function runGeneration(string $id): array
+  {
+    return $this->definitionOfType($id, 'run_generation');
+  }
+
+  /** @return array<string, mixed> */
+  public function runGenerationForRegion(string $regionId): array
+  {
+    $region = $this->region($regionId);
+    return $this->runGeneration((string)$region['run_generation_id']);
+  }
+
+  /** @return array<string, mixed> */
   private function definitionOfType(string $id, string $type): array
   {
     $definition = $this->definition($id);

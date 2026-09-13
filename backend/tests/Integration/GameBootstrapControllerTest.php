@@ -161,6 +161,25 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
           'type' => 'region',
           'display_name' => 'The Farm',
           'art_key' => 'farm',
+          'run_generation_id' => 'run_generation.the_farm',
+        ],
+        ['id' => 'run_node_type.combat', 'type' => 'run_node_type', 'display_name' => 'Combat', 'description' => 'Fight.', 'icon_key' => 'combat'],
+        ['id' => 'run_node_type.loot', 'type' => 'run_node_type', 'display_name' => 'Loot', 'description' => 'Loot.', 'icon_key' => 'loot'],
+        ['id' => 'run_node_type.rest', 'type' => 'run_node_type', 'display_name' => 'Rest', 'description' => 'Rest.', 'icon_key' => 'rest'],
+        ['id' => 'run_node_type.boss', 'type' => 'run_node_type', 'display_name' => 'Boss', 'description' => 'Boss.', 'icon_key' => 'boss'],
+        ['id' => 'run_node_type.exit', 'type' => 'run_node_type', 'display_name' => 'Exit', 'description' => 'Exit.', 'icon_key' => 'exit'],
+        [
+          'id' => 'run_generation.the_farm', 'type' => 'run_generation', 'algorithm' => 'fixed_graph_v1', 'start_node_key' => 'combat',
+          'nodes' => [
+            ['key' => 'combat', 'node_type_id' => 'run_node_type.combat', 'position' => ['column' => 0, 'row' => 1]],
+            ['key' => 'loot', 'node_type_id' => 'run_node_type.loot', 'position' => ['column' => 1, 'row' => 1]],
+            ['key' => 'rest', 'node_type_id' => 'run_node_type.rest', 'position' => ['column' => 2, 'row' => 1]],
+            ['key' => 'boss', 'node_type_id' => 'run_node_type.boss', 'position' => ['column' => 3, 'row' => 1]],
+            ['key' => 'exit', 'node_type_id' => 'run_node_type.exit', 'position' => ['column' => 4, 'row' => 1]],
+          ],
+          'edges' => [
+            ['from' => 'combat', 'to' => 'loot'], ['from' => 'loot', 'to' => 'rest'], ['from' => 'rest', 'to' => 'boss'], ['from' => 'boss', 'to' => 'exit'],
+          ],
         ],
       ],
     ];

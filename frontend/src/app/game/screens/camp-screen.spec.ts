@@ -221,6 +221,7 @@ describe('CampScreen', () => {
         dice_materials: {},
         dice_aspects: {},
         dice_profiles: {},
+        run_node_types: {},
       },
     });
     const startup = new RuntimeStartup(apiClient, contentLoader);
@@ -273,6 +274,7 @@ describe('CampScreen', () => {
         dice_materials: {},
         dice_aspects: {},
         dice_profiles: {},
+        run_node_types: {},
       },
     });
     let currentMeasurement: ViewportMeasurement = {
@@ -335,7 +337,7 @@ describe('CampScreen', () => {
     apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
     const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
     contentLoader.loadProjection.and.resolveTo({ revision, content: {
-      regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {},
+      regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {},
     } });
     const startup = new RuntimeStartup(apiClient, contentLoader);
     await startup.start();
@@ -372,7 +374,7 @@ describe('CampScreen', () => {
     apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
     const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
     contentLoader.loadProjection.and.resolveTo({ revision, content: {
-      regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {},
+      regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {},
     } });
     const startup = new RuntimeStartup(apiClient, contentLoader); await startup.start();
     const viewport = new RuntimeViewport();
@@ -411,7 +413,7 @@ describe('CampScreen', () => {
     const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
     apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
     const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
-    contentLoader.loadProjection.and.resolveTo({ revision, content: { regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {} } });
+    contentLoader.loadProjection.and.resolveTo({ revision, content: { regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {} } });
     const startup = new RuntimeStartup(apiClient, contentLoader); await startup.start();
     const viewport = new RuntimeViewport();
     const camp = jasmine.createSpyObj<GameSceneScreen>('camp', ['create', 'reflow', 'destroy'], { key: 'camp' });
@@ -445,7 +447,7 @@ describe('CampScreen', () => {
     apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
     const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
     contentLoader.loadProjection.and.resolveTo({ revision, content: {
-      regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {},
+      regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {},
     } });
     let measurement: ViewportMeasurement = { cssWidth: 1600, cssHeight: 900, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true };
     let resize: (() => void) | null = null;

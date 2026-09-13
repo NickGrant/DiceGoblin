@@ -30,6 +30,7 @@ final class ContentRegistryTest extends TestCase
       'type' => 'region',
       'display_name' => 'The Farm',
       'art_key' => 'farm',
+      'run_generation_id' => 'run_generation.the_farm',
     ], $registry->definition('region.the_farm'));
     $this->assertCount(2, $registry->definitionsOfType('kin'));
     $this->assertCount(20, $registry->definitionsOfType('unit_type'));
@@ -37,6 +38,8 @@ final class ContentRegistryTest extends TestCase
     $this->assertCount(5, $registry->definitionsOfType('dice_material'));
     $this->assertCount(6, $registry->definitionsOfType('dice_aspect'));
     $this->assertCount(11, $registry->definitionsOfType('dice_profile'));
+    $this->assertCount(5, $registry->definitionsOfType('run_node_type'));
+    $this->assertCount(1, $registry->definitionsOfType('run_generation'));
     $this->assertSame('Pig Kin', $registry->kin('kin.pig')['display_name']);
     $this->assertSame(2, $registry->ability('ability.sleep_dart')['dice_slot_count']);
     $this->assertSame('dice_material.cardboard', $registry->diceProfile('dice_profile.cardboard_plain')['material_id']);
@@ -62,7 +65,7 @@ final class ContentRegistryTest extends TestCase
 
   public function invalidContentProvider(): array
   {
-    $config = fn(string $id = 'config.gameplay', string $region = 'region.the_farm'): array => [
+    $config = fn(string $id = 'config.gameplay', string $region = 'region.test'): array => [
       'id' => $id,
       'type' => 'gameplay_config',
       'starting_energy' => 10,
@@ -70,19 +73,20 @@ final class ContentRegistryTest extends TestCase
       'energy_regeneration_per_hour' => 12,
       'starting_region_id' => $region,
     ];
-    $region = ['id' => 'region.the_farm', 'type' => 'region', 'display_name' => 'Farm', 'art_key' => 'farm'];
+    $region = ['id' => 'region.test', 'type' => 'region', 'display_name' => 'Test', 'art_key' => 'test', 'run_generation_id' => 'run_generation.test'];
+    $runContent = $this->minimalRunDefinitions();
     return [
       'shape' => [['one.json' => ['definitions' => 'nope']], 'definitions array'],
-      'invalid id' => [['one.json' => ['definitions' => [$config('Bad ID')]]], 'invalid stable id'],
+      'invalid id' => [['one.json' => ['definitions' => [$config('Bad ID'), $region, ...$runContent]]], 'invalid stable id'],
       'duplicate id' => [[
-        'a.json' => ['definitions' => [$config(), $region]],
+        'a.json' => ['definitions' => [$config(), $region, ...$runContent]],
         'b.json' => ['definitions' => [$region]],
-      ], "Duplicate stable id 'region.the_farm'"],
-      'range' => [['one.json' => ['definitions' => [array_merge($config(), ['starting_energy' => -1]), $region]]], 'starting_energy'],
-      'normal max range' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_normal_max' => 0]), $region]]], 'energy_normal_max'],
-      'zero regen rate' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_regeneration_per_hour' => 0]), $region]]], 'positive number'],
-      'negative regen rate' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_regeneration_per_hour' => -2.5]), $region]]], 'positive number'],
-      'broken reference' => [['one.json' => ['definitions' => [$config('config.gameplay', 'region.missing'), $region]]], 'references missing region'],
+      ], "Duplicate stable id 'region.test'"],
+      'range' => [['one.json' => ['definitions' => [array_merge($config(), ['starting_energy' => -1]), $region, ...$runContent]]], 'starting_energy'],
+      'normal max range' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_normal_max' => 0]), $region, ...$runContent]]], 'energy_normal_max'],
+      'zero regen rate' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_regeneration_per_hour' => 0]), $region, ...$runContent]]], 'positive number'],
+      'negative regen rate' => [['one.json' => ['definitions' => [array_merge($config(), ['energy_regeneration_per_hour' => -2.5]), $region, ...$runContent]]], 'positive number'],
+      'broken reference' => [['one.json' => ['definitions' => [$config('config.gameplay', 'region.missing'), $region, ...$runContent]]], 'references missing region'],
     ];
   }
 
@@ -97,9 +101,10 @@ final class ContentRegistryTest extends TestCase
             'starting_energy' => 50,
             'energy_normal_max' => 50,
             'energy_regeneration_per_hour' => $rate,
-            'starting_region_id' => 'region.the_farm',
+            'starting_region_id' => 'region.test',
           ],
-          ['id' => 'region.the_farm', 'type' => 'region', 'display_name' => 'Farm', 'art_key' => 'farm'],
+          ['id' => 'region.test', 'type' => 'region', 'display_name' => 'Test', 'art_key' => 'test', 'run_generation_id' => 'run_generation.test'],
+          ...$this->minimalRunDefinitions(),
         ]],
       ]);
 
@@ -185,10 +190,30 @@ final class ContentRegistryTest extends TestCase
   private function canonicalDefinitions(ContentRegistry $registry): array
   {
     $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'ability', 'dice_material', 'dice_aspect', 'dice_profile'] as $type) {
+    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation'] as $type) {
       foreach ($registry->definitionsOfType($type) as $definition) $definitions[] = $definition;
     }
     return $definitions;
+  }
+
+  /** @return list<array<string,mixed>> */
+  private function minimalRunDefinitions(): array
+  {
+    return [
+      ['id' => 'run_node_type.combat', 'type' => 'run_node_type', 'display_name' => 'Combat', 'description' => 'Fight.', 'icon_key' => 'combat'],
+      ['id' => 'run_node_type.exit', 'type' => 'run_node_type', 'display_name' => 'Exit', 'description' => 'Leave.', 'icon_key' => 'exit'],
+      [
+        'id' => 'run_generation.test',
+        'type' => 'run_generation',
+        'algorithm' => 'fixed_graph_v1',
+        'start_node_key' => 'start',
+        'nodes' => [
+          ['key' => 'start', 'node_type_id' => 'run_node_type.combat', 'position' => ['column' => 0, 'row' => 0]],
+          ['key' => 'exit', 'node_type_id' => 'run_node_type.exit', 'position' => ['column' => 1, 'row' => 0]],
+        ],
+        'edges' => [['from' => 'start', 'to' => 'exit']],
+      ],
+    ];
   }
 
   /** @param array<string, array<mixed>|string> $files */

@@ -149,6 +149,7 @@ describe('GameRuntime', () => {
         dice_materials: {},
         dice_aspects: {},
         dice_profiles: {},
+        run_node_types: {},
       },
     });
     const startup = new RuntimeStartup(apiClient, contentLoader);
@@ -217,6 +218,7 @@ describe('GameRuntime', () => {
           dice_materials: {},
           dice_aspects: {},
           dice_profiles: {},
+          run_node_types: {},
         },
       });
       return new RuntimeStartup(apiClient, contentLoader);
@@ -286,6 +288,7 @@ describe('GameRuntime', () => {
         dice_materials: {},
         dice_aspects: {},
         dice_profiles: {},
+        run_node_types: {},
       },
     });
     const startup = new RuntimeStartup(apiClient, contentLoader);

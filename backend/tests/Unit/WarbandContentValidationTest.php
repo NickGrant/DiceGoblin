@@ -108,7 +108,17 @@ final class WarbandContentValidationTest extends TestCase
   {
     return [
       ['id' => 'config.gameplay', 'type' => 'gameplay_config', 'starting_energy' => 10, 'energy_normal_max' => 10, 'energy_regeneration_per_hour' => 1, 'starting_region_id' => 'region.farm'],
-      ['id' => 'region.farm', 'type' => 'region', 'display_name' => 'Farm', 'art_key' => 'farm'],
+      ['id' => 'region.farm', 'type' => 'region', 'display_name' => 'Farm', 'art_key' => 'farm', 'run_generation_id' => 'run_generation.test'],
+      ['id' => 'run_node_type.test_start', 'type' => 'run_node_type', 'display_name' => 'Start', 'description' => 'Start.', 'icon_key' => 'start'],
+      ['id' => 'run_node_type.exit', 'type' => 'run_node_type', 'display_name' => 'Exit', 'description' => 'Exit.', 'icon_key' => 'exit'],
+      [
+        'id' => 'run_generation.test', 'type' => 'run_generation', 'algorithm' => 'fixed_graph_v1', 'start_node_key' => 'start',
+        'nodes' => [
+          ['key' => 'start', 'node_type_id' => 'run_node_type.test_start', 'position' => ['column' => 0, 'row' => 0]],
+          ['key' => 'exit', 'node_type_id' => 'run_node_type.exit', 'position' => ['column' => 1, 'row' => 0]],
+        ],
+        'edges' => [['from' => 'start', 'to' => 'exit']],
+      ],
     ];
   }
 

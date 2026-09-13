@@ -4,7 +4,8 @@
       "id": "region.the_farm",
       "type": "region",
       "display_name": "The Farm",
-      "art_key": "farm"
+      "art_key": "farm",
+      "run_generation_id": "run_generation.the_farm"
     }
   ]
 }

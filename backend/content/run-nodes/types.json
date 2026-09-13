@@ -1,0 +1,39 @@
+{
+  "definitions": [
+    {
+      "id": "run_node_type.combat",
+      "type": "run_node_type",
+      "display_name": "Combat",
+      "description": "Fight enemies guarding the path.",
+      "icon_key": "icon_encounter_combat"
+    },
+    {
+      "id": "run_node_type.loot",
+      "type": "run_node_type",
+      "display_name": "Loot",
+      "description": "Discover supplies and valuables.",
+      "icon_key": "icon_encounter_loot"
+    },
+    {
+      "id": "run_node_type.rest",
+      "type": "run_node_type",
+      "display_name": "Rest",
+      "description": "Pause to recover before pressing onward.",
+      "icon_key": "icon_encounter_rest"
+    },
+    {
+      "id": "run_node_type.boss",
+      "type": "run_node_type",
+      "display_name": "Boss",
+      "description": "Face the Farm's strongest guardian.",
+      "icon_key": "icon_encounter_boss"
+    },
+    {
+      "id": "run_node_type.exit",
+      "type": "run_node_type",
+      "display_name": "Exit",
+      "description": "Leave the Farm and end the run.",
+      "icon_key": "icon_home"
+    }
+  ]
+}

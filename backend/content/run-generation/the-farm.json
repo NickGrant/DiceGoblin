@@ -1,0 +1,43 @@
+{
+  "definitions": [
+    {
+      "id": "run_generation.the_farm",
+      "type": "run_generation",
+      "algorithm": "fixed_graph_v1",
+      "start_node_key": "combat",
+      "nodes": [
+        {
+          "key": "combat",
+          "node_type_id": "run_node_type.combat",
+          "position": { "column": 0, "row": 1 }
+        },
+        {
+          "key": "loot",
+          "node_type_id": "run_node_type.loot",
+          "position": { "column": 1, "row": 1 }
+        },
+        {
+          "key": "rest",
+          "node_type_id": "run_node_type.rest",
+          "position": { "column": 2, "row": 1 }
+        },
+        {
+          "key": "boss",
+          "node_type_id": "run_node_type.boss",
+          "position": { "column": 3, "row": 1 }
+        },
+        {
+          "key": "exit",
+          "node_type_id": "run_node_type.exit",
+          "position": { "column": 4, "row": 1 }
+        }
+      ],
+      "edges": [
+        { "from": "combat", "to": "loot" },
+        { "from": "loot", "to": "rest" },
+        { "from": "rest", "to": "boss" },
+        { "from": "boss", "to": "exit" }
+      ]
+    }
+  ]
+}

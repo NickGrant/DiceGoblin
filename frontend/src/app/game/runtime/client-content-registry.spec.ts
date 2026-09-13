@@ -32,6 +32,7 @@ describe('ClientContentRegistry', () => {
     expect(registry.getDiceMaterial('dice_material.cardboard')?.allowed_sizes).toEqual([4, 6]);
     expect(registry.getDiceAspect('dice_aspect.striking')?.display_name).toBe('Striking');
     expect(registry.getDiceProfile('dice_profile.cardboard_striking')?.rarity).toBe('common');
+    expect(registry.getRunNodeType('run_node_type.combat')?.icon_key).toBe('icon_encounter_combat');
     expect(registry.has('region.missing')).toBeFalse();
   });
 
@@ -69,6 +70,24 @@ describe('ClientContentRegistry', () => {
     const incompatible = validProjection();
     incompatible.content.dice_profiles['dice_profile.cardboard_striking'].allowed_sizes = [8];
     expect(() => new ClientContentRegistry(incompatible)).toThrowError(ClientContentError);
+  });
+
+  it('strictly rejects malformed projected run node types', () => {
+    const missingDescription = validProjection();
+    delete (
+      missingDescription.content.run_node_types['run_node_type.combat'] as Partial<Record<string, unknown>>
+    )['description'];
+    expect(() => new ClientContentRegistry(missingDescription)).toThrowError(ClientContentError);
+
+    const privateTopology = validProjection();
+    (
+      privateTopology.content.run_node_types['run_node_type.combat'] as Record<string, unknown>
+    )['edges'] = [{ from: 'combat', to: 'loot' }];
+    expect(() => new ClientContentRegistry(privateTopology)).toThrowError(ClientContentError);
+
+    const wrongIdentity = validProjection();
+    wrongIdentity.content.run_node_types['run_node_type.combat'].id = 'run_node_type.loot';
+    expect(() => new ClientContentRegistry(wrongIdentity)).toThrowError(ClientContentError);
   });
 });
 
@@ -137,6 +156,14 @@ function validProjection() {
           rarity: 'common',
           aspect_ids: ['dice_aspect.striking'],
           allowed_sizes: [4, 6],
+        },
+      },
+      run_node_types: {
+        'run_node_type.combat': {
+          id: 'run_node_type.combat',
+          display_name: 'Combat',
+          description: 'Fight enemies guarding the path.',
+          icon_key: 'icon_encounter_combat',
         },
       },
     },

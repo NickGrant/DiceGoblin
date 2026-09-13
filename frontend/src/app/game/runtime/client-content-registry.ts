@@ -14,6 +14,13 @@ export interface ClientRegionDefinition {
   readonly art_key: string;
 }
 
+export interface ClientRunNodeTypeDefinition {
+  readonly id: string;
+  readonly display_name: string;
+  readonly description: string;
+  readonly icon_key: string;
+}
+
 export interface ClientKinDefinition {
   readonly id: string;
   readonly display_name: string;
@@ -75,7 +82,8 @@ export type ClientContentDefinition =
   | ClientAbilityDefinition
   | ClientDiceMaterialDefinition
   | ClientDiceAspectDefinition
-  | ClientDiceProfileDefinition;
+  | ClientDiceProfileDefinition
+  | ClientRunNodeTypeDefinition;
 
 export interface ClientContentProjection {
   readonly revision: string;
@@ -87,6 +95,7 @@ export interface ClientContentProjection {
     readonly dice_materials: Readonly<Record<string, ClientDiceMaterialDefinition>>;
     readonly dice_aspects: Readonly<Record<string, ClientDiceAspectDefinition>>;
     readonly dice_profiles: Readonly<Record<string, ClientDiceProfileDefinition>>;
+    readonly run_node_types: Readonly<Record<string, ClientRunNodeTypeDefinition>>;
   };
 }
 
@@ -118,6 +127,7 @@ const catalogFields = [
   'dice_materials',
   'dice_aspects',
   'dice_profiles',
+  'run_node_types',
 ] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -252,6 +262,7 @@ export class ClientContentRegistry {
   private readonly diceMaterials = new Map<string, ClientDiceMaterialDefinition>();
   private readonly diceAspects = new Map<string, ClientDiceAspectDefinition>();
   private readonly diceProfiles = new Map<string, ClientDiceProfileDefinition>();
+  private readonly runNodeTypes = new Map<string, ClientRunNodeTypeDefinition>();
 
   constructor(projection: unknown) {
     if (!isRecord(projection))
@@ -295,6 +306,9 @@ export class ClientContentRegistry {
     this.loadCatalog(catalogs.dice_profiles, this.diceProfiles, (id, value) =>
       this.diceProfileDefinition(id, value),
     );
+    this.loadCatalog(catalogs.run_node_types, this.runNodeTypes, (id, value) =>
+      this.runNodeTypeDefinition(id, value),
+    );
     this.validateReferences();
     this.revision = revision;
   }
@@ -322,6 +336,9 @@ export class ClientContentRegistry {
   }
   getDiceProfile(stableId: string): ClientDiceProfileDefinition | undefined {
     return this.diceProfiles.get(stableId);
+  }
+  getRunNodeType(stableId: string): ClientRunNodeTypeDefinition | undefined {
+    return this.runNodeTypes.get(stableId);
   }
 
   private loadCatalog<T extends ClientContentDefinition>(
@@ -500,6 +517,22 @@ export class ClientContentRegistry {
       rarity: rarity as ClientDiceProfileDefinition['rarity'],
       aspect_ids: requireStringList(value, 'aspect_ids', 'dice_aspect.', true),
       allowed_sizes: requireDieSizes(value),
+    });
+  }
+
+  private runNodeTypeDefinition(catalogId: string, value: unknown): ClientRunNodeTypeDefinition {
+    if (!isRecord(value))
+      throw new ClientContentError('Client content contains an invalid run node type definition.');
+    requireExactFields(
+      value,
+      ['id', 'display_name', 'description', 'icon_key'],
+      `Run node type '${catalogId}'`,
+    );
+    return Object.freeze({
+      id: requireIdentity(value, catalogId, 'run_node_type.', 'run node type'),
+      display_name: requireNonEmptyString(value, 'display_name'),
+      description: requireNonEmptyString(value, 'description'),
+      icon_key: requireNonEmptyString(value, 'icon_key'),
     });
   }
 

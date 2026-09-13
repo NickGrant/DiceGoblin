@@ -174,6 +174,8 @@ Remove from the generator:
 - hardcoded dialogue/story placement definitions that belong in authored content;
 - historical generator-version compatibility that lacks a concrete vNext requirement.
 
+The Farm fixed-graph slice has now been mined into canonical JSON plus the pure vNext `FixedGraphRunGenerator`. Its useful five-node order, placement, availability, and connectivity are covered at the new boundary. The retained prototype generator is no longer authority for Farm generation, but remains in place as evidence for Mountains/Swamps pattern algorithms, dialogue placement, and other later mechanics until their owning packages reconcile them.
+
 ### Pattern toolchain
 
 `RunGraphValidationService`, grid/pattern validators, compilers, tile composers and variant compilers are **Keep / Adapt** candidates when they are deterministic and storage-independent.

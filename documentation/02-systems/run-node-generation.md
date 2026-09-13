@@ -1,7 +1,7 @@
 ---
 Title: "Run Node Generation"
 Status: Canonical
-Last Updated: 2026-09-10
+Last Updated: 2026-09-13
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/07-development-path/vnext-authored-content-model.md
@@ -37,3 +37,10 @@ Region rules, generation configuration, patterns/definitions, encounter referenc
 Given the same intended generation inputs, generation should be reproducible enough for testing/debugging. Generated graphs must be validated for required connectivity, valid authored references, terminal/boss reachability, and other region invariants before persistence.
 
 Specific Farm/Mountains topology and tuning are implemented in their milestones. The architecture must make adding Mountains primarily a content/configuration exercise rather than a second region-specific persistence/API design.
+
+## Farm Fixed Graph
+`region.the_farm` references the server-owned `run_generation.the_farm` canonical definition. That definition uses the supported `fixed_graph_v1` algorithm and authors one left-to-right path: combat, loot, rest, boss, exit. Its local node keys, node-type references, placement coordinates, and edges are validated before entering the registry.
+
+`FixedGraphRunGenerator` receives the already-validated generation definition and returns only an in-memory graph with sequential run-local indexes, initial status, placement metadata, nullable encounter references, and index-based edges. It does not load content, use PDO, assign database IDs, or persist state. `GeneratedRunGraphValidator` checks the generated boundary again for sequential identity, endpoint integrity, coherent initial availability, connectivity, and a reachable exit.
+
+Only `run_node_type.*` presentation fields are projected to the browser. The generation definition, fixed topology, and region-to-generation relationship remain server-private even though they participate in the global content revision.

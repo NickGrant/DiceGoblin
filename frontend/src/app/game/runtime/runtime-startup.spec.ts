@@ -24,6 +24,7 @@ describe('RuntimeStartup', () => {
         dice_materials: {},
         dice_aspects: {},
         dice_profiles: {},
+        run_node_types: {},
       },
     };
   }

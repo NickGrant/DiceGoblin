@@ -10,6 +10,8 @@ final class ContentValidator
   private const STAT_FIELDS = ['hp', 'attack', 'defense', 'precision', 'resolve'];
   private const SUPPORTED_DIE_SIZES = [4, 6, 8, 10, 12, 20];
   private const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+  private const RUN_GENERATION_ALGORITHMS = ['fixed_graph_v1'];
+  private const LOCAL_NODE_KEY_PATTERN = '/^[a-z][a-z0-9_]*$/';
 
   /** @param list<array{path: string, document: mixed}> $documents
    *  @return array<string, array<string, mixed>>
@@ -66,6 +68,8 @@ final class ContentValidator
       'dice_material' => $this->validateDiceMaterial($definition, $location),
       'dice_aspect' => $this->validateDiceAspect($definition, $location),
       'dice_profile' => $this->validateDiceProfile($definition, $location),
+      'run_node_type' => $this->validateRunNodeType($definition, $location),
+      'run_generation' => $this->validateRunGeneration($definition, $location),
       default => throw new ContentValidationException("{$location} has unsupported type '{$type}'."),
     };
   }
@@ -83,6 +87,10 @@ final class ContentValidator
     }
 
     foreach ($definitions as $id => $definition) {
+      if (($definition['type'] ?? null) === 'region') {
+        $this->requireReferenceType($definitions, $id, 'run_generation_id', $definition['run_generation_id'], 'run_generation');
+      }
+
       if (($definition['type'] ?? null) === 'unit_type') {
         foreach ($definition['ability_ids'] as $abilityId) {
           $this->requireReferenceType($definitions, $id, 'ability_ids', $abilityId, 'ability');
@@ -98,6 +106,18 @@ final class ContentValidator
         }
         $this->validateProfileSizes($id, $definition, $material, $aspects);
       }
+
+      if (($definition['type'] ?? null) === 'run_generation') {
+        foreach ($definition['nodes'] as $node) {
+          $this->requireReferenceType($definitions, $id, 'nodes.node_type_id', $node['node_type_id'], 'run_node_type');
+        }
+        $this->validateRunGenerationConnectivity($id, $definition);
+      }
+    }
+
+    $farm = $definitions['region.the_farm'] ?? null;
+    if (is_array($farm)) {
+      $this->validateFarmGenerationStructure($definitions[(string)$farm['run_generation_id']]);
     }
   }
 
@@ -117,6 +137,81 @@ final class ContentValidator
     $this->requireNamespace($definition, 'region.', $location);
     $this->requireNonEmptyString($definition, 'display_name', $location);
     $this->requireNonEmptyString($definition, 'art_key', $location);
+    $this->requireStableIdWithNamespace($definition, 'run_generation_id', 'run_generation.', $location);
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function validateRunNodeType(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'display_name', 'description', 'icon_key'], [], $location);
+    $this->requireNamespace($definition, 'run_node_type.', $location);
+    $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
+    $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
+    $this->requireBoundedNonEmptyString($definition, 'icon_key', 128, $location);
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function validateRunGeneration(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'algorithm', 'start_node_key', 'nodes', 'edges'], [], $location);
+    $this->requireNamespace($definition, 'run_generation.', $location);
+    $this->requireAllowedString($definition, 'algorithm', self::RUN_GENERATION_ALGORITHMS, $location);
+    $this->requireLocalNodeKey($definition, 'start_node_key', $location);
+
+    $nodes = $definition['nodes'] ?? null;
+    if (!is_array($nodes) || !array_is_list($nodes) || $nodes === []) {
+      throw new ContentValidationException("{$location} field 'nodes' must be a non-empty list.");
+    }
+    $nodeKeys = [];
+    foreach ($nodes as $offset => $node) {
+      $nodeLocation = "{$location} field 'nodes[{$offset}]'";
+      if (!is_array($node) || array_is_list($node)) {
+        throw new ContentValidationException("{$nodeLocation} must be an object.");
+      }
+      $this->requireExactFieldSet($node, ['key', 'node_type_id', 'position'], ['encounter_id'], $nodeLocation);
+      $key = $this->requireLocalNodeKey($node, 'key', $nodeLocation);
+      if (isset($nodeKeys[$key])) {
+        throw new ContentValidationException("{$location} contains duplicate local node key '{$key}'.");
+      }
+      $nodeKeys[$key] = true;
+      $this->requireStableIdWithNamespace($node, 'node_type_id', 'run_node_type.', $nodeLocation);
+      if (array_key_exists('encounter_id', $node) && $node['encounter_id'] !== null) {
+        $this->requireStableIdWithNamespace($node, 'encounter_id', 'encounter.', $nodeLocation);
+      }
+      $position = $node['position'] ?? null;
+      if (!is_array($position) || array_is_list($position)) {
+        throw new ContentValidationException("{$nodeLocation} field 'position' must be an object.");
+      }
+      $this->requireExactFieldSet($position, ['column', 'row'], [], "{$nodeLocation} field 'position'");
+      $this->requireIntegerValueInRange($position['column'] ?? null, -1000, 1000, "{$nodeLocation} field 'position.column'");
+      $this->requireIntegerValueInRange($position['row'] ?? null, -1000, 1000, "{$nodeLocation} field 'position.row'");
+    }
+
+    $edges = $definition['edges'] ?? null;
+    if (!is_array($edges) || !array_is_list($edges) || $edges === []) {
+      throw new ContentValidationException("{$location} field 'edges' must be a non-empty list.");
+    }
+    $seenEdges = [];
+    foreach ($edges as $offset => $edge) {
+      $edgeLocation = "{$location} field 'edges[{$offset}]'";
+      if (!is_array($edge) || array_is_list($edge)) {
+        throw new ContentValidationException("{$edgeLocation} must be an object.");
+      }
+      $this->requireExactFieldSet($edge, ['from', 'to'], [], $edgeLocation);
+      $from = $this->requireLocalNodeKey($edge, 'from', $edgeLocation);
+      $to = $this->requireLocalNodeKey($edge, 'to', $edgeLocation);
+      if ($from === $to) {
+        throw new ContentValidationException("{$location} edge '{$from}' -> '{$to}' must not be a self edge.");
+      }
+      $edgeKey = $from . "\0" . $to;
+      if (isset($seenEdges[$edgeKey])) {
+        throw new ContentValidationException("{$location} contains duplicate edge '{$from}' -> '{$to}'.");
+      }
+      $seenEdges[$edgeKey] = true;
+      if (!isset($nodeKeys[$from]) || !isset($nodeKeys[$to])) {
+        throw new ContentValidationException("{$location} edge '{$from}' -> '{$to}' references an unknown local node key.");
+      }
+    }
   }
 
   /** @param array<string, mixed> $definition */
@@ -363,6 +458,77 @@ final class ContentValidator
   }
 
   /** @param array<string, mixed> $definition */
+  private function validateRunGenerationConnectivity(string $id, array $definition): void
+  {
+    $nodesByKey = [];
+    $adjacency = [];
+    foreach ($definition['nodes'] as $node) {
+      $key = (string)$node['key'];
+      $nodesByKey[$key] = $node;
+      $adjacency[$key] = [];
+    }
+    foreach ($definition['edges'] as $edge) {
+      $adjacency[(string)$edge['from']][] = (string)$edge['to'];
+    }
+
+    $start = (string)$definition['start_node_key'];
+    if (!isset($nodesByKey[$start])) {
+      throw new ContentValidationException("{$id} start_node_key references missing local node '{$start}'.");
+    }
+
+    $reachable = [];
+    $pending = [$start];
+    while ($pending !== []) {
+      $key = array_shift($pending);
+      if (isset($reachable[$key])) continue;
+      $reachable[$key] = true;
+      foreach ($adjacency[$key] as $next) $pending[] = $next;
+    }
+
+    $exitKeys = [];
+    foreach ($nodesByKey as $key => $node) {
+      if (($node['node_type_id'] ?? null) === 'run_node_type.exit') $exitKeys[] = $key;
+      if (!isset($reachable[$key])) {
+        throw new ContentValidationException("{$id} required node '{$key}' is disconnected from start '{$start}'.");
+      }
+    }
+    if (count($exitKeys) !== 1) {
+      throw new ContentValidationException("{$id} must contain exactly one run_node_type.exit node.");
+    }
+    if (!isset($reachable[$exitKeys[0]])) {
+      throw new ContentValidationException("{$id} exit node '{$exitKeys[0]}' is unreachable from start '{$start}'.");
+    }
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function validateFarmGenerationStructure(array $definition): void
+  {
+    $expectedTypes = [
+      'run_node_type.combat',
+      'run_node_type.loot',
+      'run_node_type.rest',
+      'run_node_type.boss',
+      'run_node_type.exit',
+    ];
+    $nodes = $definition['nodes'];
+    $actualTypes = array_map(static fn(array $node): string => (string)$node['node_type_id'], $nodes);
+    if ($actualTypes !== $expectedTypes) {
+      throw new ContentValidationException('region.the_farm generation must use the ordered combat, loot, rest, boss, exit structure.');
+    }
+    if ((string)$definition['start_node_key'] !== (string)$nodes[0]['key']) {
+      throw new ContentValidationException('region.the_farm generation must start at its combat node.');
+    }
+
+    $expectedEdges = [];
+    for ($index = 0; $index < count($nodes) - 1; $index++) {
+      $expectedEdges[] = ['from' => (string)$nodes[$index]['key'], 'to' => (string)$nodes[$index + 1]['key']];
+    }
+    if ($definition['edges'] !== $expectedEdges) {
+      throw new ContentValidationException('region.the_farm generation must be one connected linear path through boss to exit.');
+    }
+  }
+
+  /** @param array<string, mixed> $definition */
   private function requireExactId(array $definition, string $id, string $location): void
   {
     if ($definition['id'] !== $id) {
@@ -376,6 +542,47 @@ final class ContentValidator
     $value = $definition[$field] ?? null;
     if (!is_string($value) || preg_match(self::ID_PATTERN, $value) !== 1) {
       throw new ContentValidationException("{$location} field '{$field}' must be a stable id.");
+    }
+  }
+
+  /** @param array<string, mixed> $definition
+   *  @param list<string> $required
+   *  @param list<string> $optional
+   */
+  private function requireExactFieldSet(array $definition, array $required, array $optional, string $location): void
+  {
+    $actual = array_keys($definition);
+    $missing = array_values(array_diff($required, $actual));
+    $unexpected = array_values(array_diff($actual, [...$required, ...$optional]));
+    if ($missing !== [] || $unexpected !== []) {
+      throw new ContentValidationException("{$location} has an invalid field set.");
+    }
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function requireLocalNodeKey(array $definition, string $field, string $location): string
+  {
+    $value = $definition[$field] ?? null;
+    if (!is_string($value) || strlen($value) > 64 || preg_match(self::LOCAL_NODE_KEY_PATTERN, $value) !== 1) {
+      throw new ContentValidationException("{$location} field '{$field}' must be a snake-case local node key of at most 64 characters.");
+    }
+    return $value;
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function requireBoundedNonEmptyString(array $definition, string $field, int $maximumLength, string $location): string
+  {
+    $value = $this->requireNonEmptyString($definition, $field, $location);
+    if (strlen($value) > $maximumLength) {
+      throw new ContentValidationException("{$location} field '{$field}' must be at most {$maximumLength} characters.");
+    }
+    return $value;
+  }
+
+  private function requireIntegerValueInRange(mixed $value, int $minimum, int $maximum, string $location): void
+  {
+    if (!is_int($value) || $value < $minimum || $value > $maximum) {
+      throw new ContentValidationException("{$location} must be an integer from {$minimum} to {$maximum}.");
     }
   }
 
