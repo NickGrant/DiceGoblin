@@ -4,377 +4,379 @@
 
 ## Milestone 2 - Warband
 
-### Establish Phaser unit detail, rename, loadout, and dice-binding flows
+### Complete Warband integrated verification and closure
 
 **Status:** Open
 **Priority:** High
 
 #### Problem
-Packages 1-7 now provide authoritative owned unit/dice persistence and content, complete unit-detail/read APIs, atomic rename/loadout commands, lazy Warband collections, and a functional Phaser squad editor. Players can manage squads but cannot yet open an individual goblin and configure the durable per-unit combat setup. Implement the Phaser-owned unit detail/configuration flow that consumes the already-approved Package 3/5 contracts without restoring Angular Warband pages, per-slot mutations, or profile refresh behavior.
+Milestone 2 implementation is complete through Package 8: the fresh vNext persistence model, canonical Warband content, authoritative reads/commands, controlled development fixtures, persistent Phaser Warband, squad editing, and individual unit/loadout/dice configuration have all passed package-level architectural review. The coding-agent session that implemented Package 8 ended before producing its final verification narrative, and the milestone has not yet been proven as one integrated fresh-database/browser-to-PHP-to-MySQL slice.
+
+Close Milestone 2 by running the complete verification matrix, exercising the real authoritative Warband flow end to end, correcting only defects discovered by that verification, retiring only live prototype pathways that are now conclusively superseded, and leaving the repository ready for manual user UAT.
+
+This is a closure package, not a new feature package.
 
 #### Required Context
-- `documentation/07-development-path/vnext-phaser-client-architecture.md` — persistent GameScene screen model, lazy authoritative cache, responsive/orientation rules
-- `documentation/07-development-path/vnext-api-contract-model.md` — query/mutation authority and `player_revision`
-- `documentation/07-development-path/vnext-endpoint-inventory.md` — unit detail, rename, and complete loadout endpoints
-- `documentation/02-systems/ability-loadouts-and-dice-binding.md` — per-instance owned abilities, ordered active loadout, exact physical die bindings
-- `documentation/02-systems/dice-profiles-and-aspects.md` — profile/material/aspect presentation and size eligibility
-- `documentation/02-systems/unit-stat-advancement.md` — level/XP and the fact that final resolved stat formulas are not yet canonical
-- approved Package 3 unit-detail and dice collection contracts
-- approved Package 5 rename/loadout command semantics
-- approved Package 6 GameStore lazy Warband domains/navigation
-- approved Package 7 local-draft, native-input, mutation-reconciliation, and GameScene editor patterns
+- `AGENTS.md`
+- `agent/QUALITY_GATES.md`
+- `agent/MILESTONES.md`
+- `documentation/07-development-path/vnext-game-overhaul.md`
+- `documentation/07-development-path/vnext-prototype-code-disposition.md`
+- `documentation/07-development-path/vnext-storage-model.md`
+- `documentation/07-development-path/vnext-authored-content-model.md`
+- `documentation/07-development-path/vnext-api-contract-model.md`
+- `documentation/07-development-path/vnext-endpoint-inventory.md`
+- `documentation/07-development-path/vnext-backend-internal-architecture.md`
+- `documentation/07-development-path/vnext-phaser-client-architecture.md`
+- `documentation/02-systems/warband-and-formation.md`
+- `documentation/02-systems/ability-loadouts-and-dice-binding.md`
+- `documentation/02-systems/dice-profiles-and-aspects.md`
+- `documentation/02-systems/unit-stat-advancement.md`
 
-Inspect current `UnitDetailQuery`, `RenameUnitCommand`, `ReplaceUnitLoadoutCommand`, `RuntimeApiClient`, `GameStore`, `WarbandScreen`, and squad-editor patterns before implementation.
+Inspect the approved Milestone 2 implementation as one system rather than re-implementing earlier packages.
 
-Do not restore prototype Angular unit/loadout ownership or prototype per-slot APIs.
+#### Approved Package State
+The following are already architecturally approved and should be treated as the intended design unless integrated verification proves a concrete defect:
 
-#### Architectural Boundary
-- Unit detail/configuration is gameplay and remains inside Phaser under the persistent `GameScene`.
-- Do not create another Phaser Scene or Angular route/component.
-- Extend the concrete GameScene screen/navigation model only for the unit detail/configuration flow.
-- Camp, Warband, squad editor, and unit configuration share the existing runtime, startup, API client, GameStore, content registry, canvas, and viewport/orientation infrastructure.
-- Do not refetch bootstrap or `game-content.json` to open or save a unit.
-- Do not use `/profile`.
-- Do not implement promotion/progression transactions in this package.
+1. Warband persistence foundation.
+2. Warband authored content + validation/projection.
+3. Authoritative Warband read APIs + controlled development/UAT fixtures.
+4. Squad commands + active-squad bootstrap integration.
+5. Unit rename + atomic loadout/dice-binding command.
+6. Phaser Warband navigation + lazy read/cache surfaces.
+7. Phaser squad editor + activation/lifecycle flows.
+8. Phaser unit detail + rename/loadout/dice configuration flows at `f65356bf16854c334415ba14e964d11f6c45cd0e`.
 
-#### Player Flow
-From the Warband Unit Roster, the player must be able to:
-- select/open an owned unit;
-- view its authoritative individual detail;
-- understand its unit type, kin, level/XP, durable owned abilities, equipped active ability order, and exact dice assignments;
-- rename it;
-- build a local draft of the complete active ability loadout;
-- add/remove owned active abilities from the draft subject to the backend contract;
-- reorder equipped active abilities;
-- assign an exact owned physical die to every required ability slot;
-- move a die between slots on the same unit without creating duplicates;
-- save the complete loadout atomically;
-- return to Warband with authoritative updated state immediately reflected.
+Do not redesign these packages during closure merely because another design is possible.
 
-Use one coherent unit-detail/configuration screen or a small set of subsurfaces inside the same GameScene screen model. Do not create separate Phaser Scenes for rename, abilities, and dice.
+#### Closure Goals
+Prove the complete authoritative path:
 
-#### Lazy Unit Detail Cache
-Add a narrow per-unit detail cache to GameStore.
+fresh vNext database
+→ account/authentication
+→ controlled Warband fixture
+→ `/game` startup/bootstrap/content revision
+→ Camp
+→ lazy Warband collections
+→ squad lifecycle/configuration
+→ unit detail
+→ rename
+→ whole loadout + exact die configuration
+→ authoritative cache reconciliation
+→ persisted state survives deliberate reload/re-read
 
-Requirements:
-- unit collection summaries remain the Package 6 roster authority;
-- full detail is fetched only when a unit is opened or deliberately refreshed;
-- detail cache is keyed by unit instance ID;
-- distinguish not-loaded/loading/fresh/stale/error semantics consistent with the existing Warband cache style;
-- duplicate concurrent detail requests for the same unit are deduplicated;
-- a failure for one unit does not erase the roster, dice, squads, or another valid detail entry;
-- `GameStore.clear()` clears unit-detail caches;
-- returning to a unit whose detail remains fresh uses cache rather than refetching;
-- do not eagerly fetch every unit detail when Warband opens.
+while maintaining:
+- one persistent Phaser runtime;
+- no live Angular gameplay ownership;
+- no `/profile` refresh;
+- no `/teams` compatibility flow;
+- no SQL gameplay catalogs;
+- no production starter provisioning;
+- no client-authoritative durable gameplay state.
 
-Validate a loaded detail against the already-known unit summary when available. Identity/type/kin/level/XP/lifecycle disagreement at the same known client state is an integrity/stale condition, not something to silently merge.
+#### Fresh Database Verification
+Start from the repository-supported fresh vNext database baseline.
 
-#### Runtime API Client
-Extend the framework-neutral runtime API client for:
-- `GET /api/v1/units/:unitId`
-- `PATCH /api/v1/units/:unitId/name`
-- `PUT /api/v1/units/:unitId/loadout`
+Verify the schema contains the approved account and Warband storage through Milestone 2, including:
+- account/auth tables;
+- `user_state` with nullable active squad;
+- owned unit instances;
+- promotion history;
+- durable unit ability ownership;
+- ordered ability loadout;
+- owned dice instances;
+- exact unit/ability/slot dice binding;
+- saved squads and fixed formation membership;
+- command idempotency persistence required by squad creation.
 
-Mutations use:
-- `credentials: include`;
-- authoritative bootstrap CSRF token;
-- JSON body;
-- existing safe error parsing.
+Verify the Package 5 global physical-die uniqueness invariant is present.
 
-Do not add per-ability, reorder, per-die assign, or clear endpoints.
+Normal fresh account registration must still create no units, dice, squads, or production starter pack.
 
-If the current mutation helper is squad-specific, generalize only enough to support these concrete unit commands without weakening existing squad behavior or creating a speculative command framework.
+Do not add migrations for prototype runtime/player data.
 
-#### Strict Unit Detail Contract
-Parse the existing authoritative unit detail exactly rather than casting `unknown`.
+#### Authored Content Verification
+Run canonical authored-content validation and generation from the Git-tracked JSON authority.
 
-Current detail contains:
-- `id`
-- `display_name`
-- `unit_type_id`
-- `kin_id`
-- `level`
-- `xp`
-- active lifecycle state
-- `promotion_history`
-- `owned_ability_ids`
-- `ability_loadout`
-- `dice_bindings`
+Verify:
+- all Warband stable IDs referenced by the controlled fixture resolve;
+- unit type, kin, ability, dice material, dice aspect, and dice profile references are valid;
+- material/aspect/profile size constraints remain coherent;
+- client projection remains allowlisted and does not leak server-private handler/targeting/configuration fields;
+- generated `frontend/public/game-content.json` exactly matches current canonical content/projector output;
+- client/server content revision compatibility is exact and deterministic.
 
-Validate:
-- canonical positive unit/die IDs;
-- bounded nonblank display name;
-- projected unit type and kin references;
-- valid promotion-history authored type references;
-- unique durable owned ability IDs that exist in projected content;
-- loadout abilities are unique, active, durably owned, and have contiguous `equip_order` starting at zero;
-- every dice binding points to an equipped active ability and a valid slot;
-- each required slot for every equipped ability has exactly one binding;
-- no physical die appears twice in one detail;
-- every bound die exists in the currently fresh owned-dice collection, belongs to the player by virtue of that collection, has a profile/size compatible with current client content, and its dice-summary binding agrees with the unit detail;
-- a die summary bound to this unit must agree with the detail's exact ability/slot assignment.
+Do not create a second editable content source during closure.
 
-Do not invent placeholders for malformed/missing authored content.
+#### Controlled Fixture Verification
+Use the Package 3 controlled fixture mechanism against a real authenticated development/UAT account.
 
-If the dice collection is required for complete detail integrity, ensure it is fresh before the editor becomes ready. Do not fetch bootstrap/profile.
+Verify:
+- production remains unable to invoke it;
+- explicit environment/enablement checks still apply;
+- authentication and CSRF still apply when HTTP-based;
+- repeat invocation replaces/recreates known logical Warband state rather than accumulating duplicates;
+- fixture mutation is transactional;
+- unrelated account/currency/Energy state is preserved;
+- the fixture uses real canonical authored IDs.
 
-#### Unit Detail Presentation
-Present player-readable authored information rather than raw stable IDs.
+The fixture is UAT/development support, not production onboarding.
 
-At minimum show:
-- unit display name;
-- authored unit type name;
-- authored kin name;
-- level and XP;
-- owned abilities, distinguishing active vs passive;
-- currently equipped ordered active abilities;
-- exact die assigned to every equipped ability slot;
-- useful die presentation from profile/material/aspects/rarity/size.
+#### Real HTTP + Browser Integration
+Exercise the real PHP/MySQL stack through a browser where repository-supported tooling permits it.
 
-Promotion history may be shown compactly if it improves comprehension, but do not create promotion controls.
+Use a fresh or deliberately reset test database and an authenticated fixture-populated account.
 
-Do **not** invent resolved combat-stat formulas. The canonical stat-advancement document explicitly defers exact resolved stat calculation until progression is reconciled. Authored base/growth information may only be presented if clearly labeled as authored/base information and not represented as a final current combat value. Omitting unresolved calculated stats is preferable to inventing them.
+At minimum prove this flow:
 
-#### Rename Draft and Native Input
-Rename is local draft state until the rename command succeeds.
+1. Load `/game` and reach Camp through the normal real bootstrap path.
+2. Open Warband.
+3. Observe authoritative lazy `GET /units`, `GET /dice`, and `GET /squads` data.
+4. Return to Camp and reopen Warband while caches remain fresh; verify ordinary navigation does not refetch bootstrap/content or duplicate fresh collection requests.
+5. Create a saved squad through the real command path.
+6. Edit its name and complete nine-position formation.
+7. Activate another saved squad.
+8. Delete an allowed saved squad and exercise/verify the active-squad deletion rule.
+9. Open a real owned unit from the roster.
+10. Confirm unit detail loads lazily.
+11. Rename the unit.
+12. Modify the ordered active loadout using only durable owned active abilities.
+13. Move an existing same-unit die and/or assign another available exact physical die.
+14. Save the complete loadout atomically.
+15. Return to Warband and verify authoritative roster/dice/squad presentation reflects committed results without bootstrap/profile refresh.
+16. Deliberately reload/reopen/re-query authoritative state and confirm the server/database state matches what the prior client reconciliation displayed.
 
-Use the Package 7 native-input lessons:
-- scope any HTML input to the game host;
-- support keyboard and touch virtual keyboard;
-- preserve draft through resize/orientation;
-- block/blur native input while a command, confirmation, portrait gate, or integrity-blocking state owns interaction;
-- remove the input when the screen is destroyed.
+The test may use direct Playwright interaction, a dedicated verification script, or another repository-supported deterministic browser path.
 
-Backend contract is normalized nonblank Unicode name up to 128 characters.
+Do not mock PHP/MySQL for the primary integrated proof.
 
-A same-name rename is a legitimate authoritative no-op and may return the same revision.
+#### Network/Runtime Assertions
+During the integrated browser flow verify as practical:
+- no `/api/v1/profile` requests;
+- no `/teams` requests;
+- initial bootstrap occurs once for ordinary in-runtime navigation;
+- `game-content.json` is not refetched for each gameplay screen;
+- Warband collections are lazy rather than startup payloads;
+- fresh caches avoid duplicate collection requests;
+- unit detail is lazy and per-instance cached;
+- squad/unit mutations use the approved narrow endpoints;
+- CSRF is present on mutations;
+- squad create uses `Idempotency-Key`;
+- the same Phaser canvas/runtime persists through Camp, Warband, squad editor, and unit configuration;
+- Angular routing is not used for gameplay-screen navigation.
 
-On rename failure, preserve the local name draft and committed cache.
+Do not weaken the implementation solely to make a verification script easier to write.
 
-#### Loadout Draft
-The active loadout editor uses an independent local draft until PHP accepts the complete configuration.
+#### Authoritative Mutation Verification
+Re-prove the important mutation invariants in the integrated system:
 
-The submitted body is exactly:
+##### Squads
+- first saved squad activation semantics;
+- additional create preserves existing active selection;
+- whole-formation update is atomic;
+- activation adopts authoritative revision;
+- already-active activation is a valid no-op;
+- active squad cannot be deleted while other saved squads remain;
+- deleting the last active squad leaves no active squad;
+- create idempotent replay does not duplicate a squad or revision;
+- same idempotency key + different request conflicts safely.
 
-`{ abilities: [{ ability_id, dice_instance_ids }, ...] }`
+##### Units
+- rename changes only name and revision as appropriate;
+- same normalized name is a valid no-op;
+- loadout is complete/non-empty and ordered;
+- only durable per-instance owned active abilities may be equipped;
+- passive abilities cannot be scheduled;
+- every authored slot has exactly one die;
+- one physical die appears at most once globally;
+- a die bound to another unit cannot be stolen;
+- same-unit die movement is allowed in one atomic replacement;
+- failed commands leave previous committed configuration intact.
 
-Array order is authoritative ability/equip order.
+#### Cross-Player Security Regression
+Re-run focused adversarial integration coverage with at least two users.
 
-Array order inside `dice_instance_ids` is authoritative slot order.
+Verify one player cannot:
+- fetch another player's unit detail;
+- infer foreign unit existence through distinguishable detail responses;
+- place another player's unit into a squad;
+- edit/activate/delete another player's squad;
+- equip another player's die;
+- leak foreign identity through intentionally corrupt persisted relationships.
 
-Rules:
-- loadout is a non-empty ordered list;
-- only durable per-instance `owned_ability_ids` are candidates;
-- only authored `kind: active` abilities may be equipped;
-- passive owned abilities are visible/readable but never placed in the scheduled active loadout;
-- an active ability appears at most once;
-- each equipped ability has exactly its authored `dice_slot_count` physical dice;
-- the same physical die appears at most once in the entire draft;
-- moving a die within this unit removes its prior draft occurrence;
-- a die currently bound to another unit is unavailable and clearly identified, not silently stolen;
-- a die currently bound to this unit may be moved because the eventual save is one atomic whole-unit replacement;
-- only active owned dice with client-valid profile/size may be selected.
+Persisted cross-owner corruption must continue failing as an integrity error rather than leaking another player's IDs/state.
 
-Do not restore the rejected Speed/equipment-budget mechanic.
+#### Player Revision
+Exercise `player_revision` across the complete slice.
 
-Do not infer individual ability ownership solely from the unit type's authored `ability_ids`.
+Verify:
+- queries do not increment it;
+- real squad/unit mutations increment exactly once;
+- accepted no-op commands retain the current revision;
+- failed/rolled-back commands do not increment it;
+- client reconciliation adopts server revision rather than incrementing locally;
+- impossible revision regression is rejected/treated as integrity failure.
 
-#### Touch-Friendly Editing
-Use straightforward explicit controls rather than requiring drag-and-drop.
+#### Client Cache Recovery
+Exercise at least representative stale/integrity recovery paths.
 
-A suitable interaction may include:
-- available active ability list;
-- equipped ordered ability list;
-- add/remove controls;
-- move up/down controls;
-- select an ability slot then select an available die.
+Verify:
+- a failed Warband domain does not destroy unrelated fresh domains;
+- squad reconciliation failure does not fabricate missing state;
+- unit rename reconciliation failure marks detail/roster state for deliberate recovery;
+- loadout reconciliation failure marks detail/dice state for deliberate recovery;
+- returning through Warband can refresh stale lazy domains before reopening the editor;
+- `GameStore.clear()` clears bootstrap, Warband lazy domains, and per-unit detail caches.
 
-Exact visual composition is implementation-level, but all operations must work on Compact touch landscape as well as desktop.
+Do not add a global profile/bootstrap refresh as a recovery shortcut.
 
-Do not add dead promotion controls.
+#### Responsive and Visual Verification
+Run deterministic presentation capture for the completed Milestone 2 gameplay surfaces.
 
-#### Command Separation
-Rename and loadout are two existing authoritative commands and should remain independent.
+At minimum capture and inspect:
 
-Do not fabricate a combined `save unit` endpoint.
-
-UI may provide separate rename and loadout save actions or another clear interaction that still issues the correct independent commands.
-
-Do not optimistically mutate GameStore before either response succeeds.
-
-#### Mutation Response Contract
-Both Package 5 mutation endpoints return:
-- full authoritative `unit` detail;
-- current `player_revision`.
-
-Add strict parsing using the same unit-detail parser/invariants.
-
-Malformed success responses are integrity failures and must not modify committed cache.
-
-Do not increment revision locally.
-
-Reject impossible revision regression.
-
-Same-name rename and identical complete loadout may legitimately return the existing revision.
-
-#### Rename Reconciliation
-After an authoritative rename response:
-- replace the per-unit cached detail;
-- update that unit's compact entry in the fresh unit-summary domain;
-- if the unit appears in cached bootstrap `active_squad.units`, update that compact copied display name there as well;
-- adopt the returned `player_revision`;
-- preserve dice and squads caches;
-- preserve static authored content.
-
-Do not refetch bootstrap/profile.
-
-If the response cannot be reconciled safely against current state, mark the affected domain/detail stale/error and deliberately recover instead of inventing state.
-
-#### Loadout Reconciliation
-After an authoritative loadout response:
-- replace the unit's cached detail;
-- adopt returned `player_revision`;
-- rebuild this unit's die binding summaries in the fresh dice domain from the authoritative returned exact bindings;
-- clear prior dice-summary bindings for this unit that are no longer present;
-- preserve bindings belonging to other units;
-- reject reconciliation if the response references a die absent from the fresh owned-dice cache or creates an impossible conflict with another unit's binding;
-- keep the dice domain fresh only when complete reconciliation succeeds;
-- preserve unit summary identity, squads, and bootstrap active formation except for revision.
-
-Do not refetch the entire dice collection solely because a normal accepted loadout changed.
-
-If safe local reconciliation is impossible, mark the affected cache state stale/error and provide deliberate recovery.
-
-#### Navigation and Dirty State
-Warband Unit Roster rows become the concrete entry point to unit detail/configuration.
-
-Expected flow:
-
-Camp -> Warband -> Unit Detail/Configuration -> Warband
-
-Requirements:
-- same persistent GameScene/runtime;
-- no bootstrap/content refetch;
-- Back/Escape from a clean unit screen returns normally;
-- if rename and/or loadout draft differs from committed state, Back/Cancel requires explicit discard confirmation;
-- command-in-flight input is deduplicated/blocked;
-- successful rename may keep the screen open so the player can continue configuration;
-- successful loadout should present the authoritative committed state immediately.
-
-Do not route through Angular.
-
-#### Failure States
-Provide functional handling for:
-- detail loading;
-- detail not-found/unavailable;
-- detail integrity failure;
-- rename validation failure;
-- rename network/HTTP/malformed response failure;
-- loadout locally incomplete/invalid state;
-- backend configuration rejection;
-- another-unit die conflict returned by backend;
-- unauthorized session;
-- mutation reconciliation failure.
-
-Failures must preserve committed cache. Mutation failures preserve the applicable local draft so the player can revise/retry.
-
-Do not display raw server exception text.
-
-#### Responsive/Orientation Behavior
-Unit detail/configuration must remain usable at:
+Warband:
 - Compact `844 x 390` touch/mobile;
 - Standard `1600 x 900`;
 - Wide `2560 x 1080`.
 
-Long ability/dice collections require Phaser-owned paging/scrolling/section switching as needed.
+Squad editor:
+- Compact;
+- Standard;
+- Wide.
 
-Important controls and every active dice slot must remain reachable.
+Unit configuration:
+- Compact;
+- Standard;
+- Wide.
 
-Resize/reflow and touch-first portrait gating must preserve:
-- loaded unit detail;
-- rename draft;
-- loadout draft;
-- current ability/die selection;
-- dirty state;
-- current logical unit screen.
+Also run the existing touch-first portrait-gate regression.
 
-Portrait gate must block native text entry and Phaser input without destroying draft/cache; landscape restoration resumes the same state.
+Inspect for:
+- clipping/overlap;
+- controls outside safe bounds;
+- inaccessible paged content;
+- unreadable labels;
+- broken 3x3 formation;
+- unreachable ability/die slots;
+- raw stable IDs dominating player-facing presentation;
+- native text inputs misaligned or usable underneath command/confirmation/portrait gating;
+- obvious scaling failures.
 
-#### Visual Posture
-Do not perform the deferred game-wide visual overhaul.
+Do not reopen the deferred game-wide visual overhaul. Functional clarity is the Milestone 2 bar.
 
-Prioritize:
-- clear distinction among unit identity, owned abilities, equipped actions, and dice slots;
-- obvious draft/dirty state;
-- clear unavailable-die explanation;
-- touch-safe controls;
-- responsive safety;
-- consistency with current Warband/squad editor.
+#### Required Quality Gates
+Run the applicable repository gates in `agent/QUALITY_GATES.md` and report their actual results.
 
-#### Deterministic Capture
-Extend deterministic capture/debug support with a representative populated unit-configuration state.
+The closure should cover, as supported by the environment:
+- `npm run llm:check`
+- `npm run docs:lint`
+- `npm run content:validate`
+- fresh DB provision/reset verification
+- backend test suite through the supported Docker path
+- focused Warband database/integration tests
+- full frontend test suite
+- frontend production build
+- bundle check
+- deterministic capture commands
+- `npm run verify:full` where the host environment supports all of its prerequisites.
 
-Generate and visually inspect:
-- Compact unit configuration;
-- Standard unit configuration;
-- Wide unit configuration.
+If the aggregate full-verification command stops because the host still lacks PHP or another known host dependency, run its required constituent gates through supported environments and report that limitation precisely. Do not call a host-PATH limitation a product failure, and do not claim an aggregate command passed if it did not.
 
-Fixture data must conform to the real Package 3/5 contracts and current generated content.
+Package 8 ended before its coding-agent final verification narrative. Explicitly rerun/cover its relevant frontend tests/build/captures here rather than assuming they passed.
 
-Do not create a second gameplay model.
+#### Prototype Disposition / Cleanup
+After the integrated vNext Warband slice is proven, inspect the retained prototype unit/dice/team/Angular Warband pathways against:
 
-#### Tests
-Add focused frontend tests proving at minimum:
-- unit detail is lazy and not fetched during Warband bootstrap/collection loading;
-- first unit open fetches detail; fresh reopen uses cache;
-- concurrent detail requests deduplicate;
-- detail parser rejects malformed IDs, unknown content, unowned/passive loadout entries, non-contiguous order, incomplete/duplicate slots, duplicate dice, dice-summary disagreement, and invalid bound dice;
-- opening a unit does not mutate committed data;
-- rename edits remain local until success;
-- rename uses PATCH + credentials + CSRF and strict response parsing;
-- rename no-op revision is accepted;
-- rename reconciliation updates detail, roster summary, bootstrap active-squad copy when applicable, and revision without disturbing dice/squads;
-- loadout draft add/remove/reorder behavior is deterministic;
-- passive abilities cannot be equipped;
-- duplicate abilities/dice cannot exist in the draft;
-- exact authored slot counts are required before save;
-- die currently bound to another unit is unavailable;
-- same-unit die movement is allowed in draft;
-- complete PUT body preserves ability and slot order;
-- no optimistic committed-state mutation occurs while PUT is pending;
-- failed loadout preserves committed state and draft;
-- successful loadout reconciliation replaces detail and exact dice binding summaries and adopts server revision;
-- impossible reconciliation marks state stale/error rather than fabricating state;
-- dirty Back requires discard confirmation;
-- native rename input is gated during command/confirmation/portrait state;
-- Warband -> unit screen -> Warband stays in one GameScene/runtime with no bootstrap/content/profile refetch;
-- responsive/orientation changes preserve detail/drafts/selections;
-- Package 6/7 navigation, lazy cache, and squad editor regressions remain green.
+`documentation/07-development-path/vnext-prototype-code-disposition.md`
 
-Prefer framework-neutral parser/cache/draft tests plus focused Phaser screen/navigation/reflow tests.
+Delete only implementation that is now conclusively:
+- unreachable from live routing/composition;
+- superseded by the approved vNext Warband slice;
+- no longer needed as reuse evidence for a later unimplemented milestone.
 
-#### Real-Stack Verification
-Where practical, use the controlled Warband fixture against real PHP/MySQL and exercise:
+Do not preserve dead compatibility code merely as an archive; Git history is the archive.
 
-Warband -> unit detail -> rename -> reorder/configure active abilities -> move/assign exact dice -> save -> return Warband
+Also do not delete useful retained algorithms/tests/evidence whose actual replacement belongs to a later milestone.
 
-Confirm authoritative unit/dice state is reflected without bootstrap/profile refresh.
+In particular verify there is no live vNext dependency on:
+- prototype `/teams` compatibility;
+- Angular Warband/unit/dice gameplay pages or orchestration;
+- prototype catch-all `/profile` synchronization;
+- per-slot die assignment/clear mutation APIs;
+- SQL-authored unit/dice catalogs;
+- old loadout Speed/equipment-budget rules.
 
-This is useful verification but should not block completion solely on unavailable optional local infrastructure if required repository quality gates and deterministic browser tests pass.
+Keep cleanup narrow and evidence-based. Do not perform unrelated repository modernization.
+
+#### Documentation Closure
+Update active documentation only when verification/cleanup changes current truth.
+
+Appropriate updates may include:
+- prototype disposition if specific source is retired;
+- source maps if a competing static source is removed;
+- current architecture/roadmap wording if an accepted implementation detail is now durable.
+
+Do not create:
+- package completion reports in the documentation tree;
+- UAT history documents;
+- archive folders;
+- legacy snapshots.
+
+Git history remains the archive.
+
+Do not mark Milestone 2 UAT passed. Manual UAT is performed by the user after architectural closure review.
+
+#### UAT Handoff Readiness
+Leave the repository in a state where the user can manually exercise Warband using a practical controlled fixture path in an appropriate development/UAT environment.
+
+Do not implement production starter provisioning to make UAT convenient.
+
+The architectural reviewer will produce the final manual UAT checklist after Package 9 passes review.
 
 #### Explicitly Out of Scope
-- Promotion options/transactions and Academy progression — Milestone 8.
-- Resolved current-stat formula invention.
-- New backend unit/configuration rules unless a genuine Package 3/5 contract defect is discovered.
-- Production starter onboarding.
-- Shop, Academy, Wrong Machine, Regions, Codex, Objectives.
-- RunScene/BattleScene functionality.
-- Milestone 3.
-- Final visual/UI overhaul.
+Do not implement:
+- promotion/progression or Academy transactions;
+- Shop;
+- Wrong Machine;
+- production onboarding/starter provisioning;
+- run persistence or Enter Farm functionality;
+- BattleScene functionality;
+- Milestone 3;
+- final game-wide visual/UI overhaul;
+- speculative active-run locks before Milestone 3 creates authoritative run state.
 
-#### Completion
-Run applicable quality gates from `agent/QUALITY_GATES.md`, including focused unit detail/API/parser/cache/draft/editor tests, Package 6/7 frontend regressions, full frontend suite, production frontend build/bundle check, and Compact/Standard/Wide deterministic unit-editor captures with visual inspection.
+Defects in the already-approved Milestone 2 slice may be fixed when verification demonstrates them. Do not use closure as permission for feature expansion.
 
-Run backend/content tests only if backend/content files unexpectedly change.
+#### Completion State
+When technical verification and any required corrections/cleanup are complete:
+- leave this Package 9 issue **In Progress**;
+- do not mark Milestone 2 complete/UAT passed;
+- do not promote Milestone 3;
+- do not begin Farm work.
 
-Leave Package 8 **In Progress** for architectural review. Do not mark it complete, promote Package 9, or begin closure cleanup in the same coding-agent change.
+Architectural review will decide Package 9 closure and prepare the user UAT checklist.
+
+#### Final Report
+Report:
+1. resulting commit SHA(s);
+2. fresh-database verification and exact baseline outcome;
+3. authored-content validation/revision outcome;
+4. fixture verification;
+5. real PHP/MySQL/browser flow actually exercised;
+6. network/request assertions including bootstrap/content/profile behavior;
+7. squad lifecycle/idempotency results;
+8. unit rename/loadout/dice results;
+9. cross-player security results;
+10. `player_revision` results;
+11. stale/integrity recovery results;
+12. frontend/backend/database/content quality-gate commands and results;
+13. production build/bundle results;
+14. each responsive capture path and visual inspection findings;
+15. prototype source/wiring retired, with reason;
+16. retained prototype evidence intentionally left for later milestones;
+17. any environment limitation or skipped optional verification;
+18. unresolved Milestone 2 concern, if any;
+19. whether the slice is `READY FOR ARCHITECTURAL CLOSURE REVIEW`.
+
+Do not begin another milestone.
