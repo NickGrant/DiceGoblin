@@ -26,6 +26,8 @@ const DEBUG_SCENE_ROUTE_ALIASES: Record<string, string> = {
   camp: '/game',
   'camp-portrait': '/game',
   warband: '/game',
+  run: '/game',
+  'run-portrait': '/game',
   'unit-configuration': '/game',
   login: '/login',
   guide: '/guide',

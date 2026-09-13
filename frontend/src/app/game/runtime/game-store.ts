@@ -91,6 +91,13 @@ export interface UnitDetailState {
   readonly error: WarbandDomainErrorKind | null;
 }
 
+export type CurrentRunStatus = WarbandDomainStatus;
+export interface CurrentRunState {
+  readonly status: CurrentRunStatus;
+  readonly data: CurrentRun | null;
+  readonly error: WarbandDomainErrorKind | null;
+}
+
 type WarbandCollectionItem = WarbandUnitSummary | WarbandDieSummary | WarbandSquadSummary;
 
 function emptyDomain<T>(): WarbandDomainState<T> {
@@ -282,6 +289,9 @@ export class GameStore {
   private readonly unitDetailCache = new Map<string, UnitDetailState>();
   private readonly unitDetailInFlight = new Map<string, Promise<void>>();
   private readonly listeners = new Set<(cache: WarbandCacheSnapshot) => void>();
+  private readonly runListeners = new Set<(state: CurrentRunState) => void>();
+  private currentRunState: CurrentRunState = Object.freeze({ status: 'not-loaded', data: null, error: null });
+  private currentRunInFlight: Promise<void> | null = null;
   private cacheGeneration = 0;
 
   get bootstrap(): GameBootstrapData | null {
@@ -296,6 +306,10 @@ export class GameStore {
     return this.warbandCache;
   }
 
+  get currentRun(): CurrentRunState {
+    return this.currentRunState;
+  }
+
   unitDetail(unitId: string): UnitDetailState {
     return this.unitDetailCache.get(unitId) ?? Object.freeze({ status: 'not-loaded', data: null, error: null });
   }
@@ -307,6 +321,52 @@ export class GameStore {
   subscribeWarband(listener: (cache: WarbandCacheSnapshot) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  subscribeCurrentRun(listener: (state: CurrentRunState) => void): () => void {
+    this.runListeners.add(listener);
+    return () => this.runListeners.delete(listener);
+  }
+
+  reconcileRunStart(result: RunStartResult): void {
+    const bootstrap = this.cachedBootstrap;
+    if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)
+      throw new RunContractError('Authoritative player revision regressed.');
+    if (!bootstrap.active_squad || bootstrap.active_squad.id !== result.run.squad_id)
+      throw new RunContractError('Started run squad disagrees with the authoritative active squad.');
+    if (bootstrap.active_run && (bootstrap.active_run.id !== result.run.id
+      || bootstrap.active_run.region_id !== result.run.region_id || bootstrap.active_run.squad_id !== result.run.squad_id))
+      throw new RunContractError('Started run disagrees with the authoritative active run.');
+    this.cachedBootstrap = Object.freeze({
+      ...bootstrap,
+      player: Object.freeze({ ...bootstrap.player, energy: result.energy, player_revision: result.playerRevision }),
+      active_run: result.run,
+    });
+    this.setCurrentRun({ status: 'stale', data: null, error: null });
+  }
+
+  loadCurrentRun(api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
+    if (!reload && this.currentRunState.status === 'fresh') return Promise.resolve();
+    if (this.currentRunInFlight) return this.currentRunInFlight;
+    const generation = this.cacheGeneration;
+    const prior = this.currentRunState;
+    this.setCurrentRun({ status: 'loading', data: prior.data, error: null });
+    const promise = api.getCurrentRun(content)
+      .then((result) => {
+        if (generation !== this.cacheGeneration) return;
+        this.reconcileCurrentRun(result);
+      })
+      .catch((error: unknown) => {
+        if (generation === this.cacheGeneration)
+          this.setCurrentRun({ status: 'error', data: prior.data, error: runErrorKind(error) });
+      })
+      .finally(() => { if (this.currentRunInFlight === promise) this.currentRunInFlight = null; });
+    this.currentRunInFlight = promise;
+    return promise;
+  }
+
+  retryCurrentRun(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void> {
+    return this.loadCurrentRun(api, content, true);
   }
 
   loadWarbandDomains(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void[]> {
@@ -520,8 +580,48 @@ export class GameStore {
     this.warbandCache = this.emptyWarbandCache();
     this.unitDetailCache.clear();
     this.unitDetailInFlight.clear();
+    this.currentRunState = Object.freeze({ status: 'not-loaded', data: null, error: null });
+    this.currentRunInFlight = null;
     for (const key of Object.keys(this.inFlight) as WarbandDomainName[]) delete this.inFlight[key];
     this.emit();
+    this.emitRun();
+  }
+
+  private reconcileCurrentRun(result: CurrentRunResult): void {
+    const bootstrap = this.cachedBootstrap;
+    if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)
+      throw new RunContractError('Authoritative player revision regressed.');
+    const summary = bootstrap.active_run;
+    if (result.run === null) {
+      if (summary && result.playerRevision === bootstrap.player.player_revision)
+        throw new RunContractError('Equal-revision current run contradicts bootstrap.');
+      this.cachedBootstrap = Object.freeze({ ...bootstrap,
+        player: Object.freeze({ ...bootstrap.player, player_revision: result.playerRevision }), active_run: null });
+      this.setCurrentRun({ status: 'fresh', data: null, error: null });
+      return;
+    }
+    if (bootstrap.active_squad && bootstrap.active_squad.id !== result.run.squadId)
+      throw new RunContractError('Current run squad disagrees with the authoritative active squad.');
+    const returnedSummary: GameBootstrapActiveRun = Object.freeze({ id: result.run.id,
+      region_id: result.run.regionId, squad_id: result.run.squadId, status: 'active' });
+    if (!summary && result.playerRevision === bootstrap.player.player_revision)
+      throw new RunContractError('Equal-revision current run contradicts bootstrap.');
+    if (summary && result.playerRevision === bootstrap.player.player_revision
+      && (summary.id !== returnedSummary.id || summary.region_id !== returnedSummary.region_id
+        || summary.squad_id !== returnedSummary.squad_id))
+      throw new RunContractError('Equal-revision current run contradicts bootstrap.');
+    this.cachedBootstrap = Object.freeze({ ...bootstrap,
+      player: Object.freeze({ ...bootstrap.player, player_revision: result.playerRevision }), active_run: returnedSummary });
+    this.setCurrentRun({ status: 'fresh', data: result.run, error: null });
+  }
+
+  private setCurrentRun(state: CurrentRunState): void {
+    this.currentRunState = Object.freeze(state);
+    this.emitRun();
+  }
+
+  private emitRun(): void {
+    for (const listener of this.runListeners) listener(this.currentRunState);
   }
 
   private loadDomain(
@@ -704,10 +804,17 @@ import {
   UnitMutationResult,
   parseUnitDetailEnvelope,
 } from './unit-detail-contracts';
+import { CurrentRun, CurrentRunResult, RunContractError, RunStartResult } from './run-contracts';
 
 function unitDetailErrorKind(error: unknown): WarbandDomainErrorKind {
   if (error instanceof RuntimeApiError) return error.kind;
   if (error instanceof UnitDetailContractError) return 'integrity';
+  return 'unexpected';
+}
+
+function runErrorKind(error: unknown): WarbandDomainErrorKind {
+  if (error instanceof RuntimeApiError) return error.kind;
+  if (error instanceof RunContractError) return 'integrity';
   return 'unexpected';
 }
 

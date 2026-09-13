@@ -2,15 +2,20 @@ import { ClientContentLoadError, ClientContentLoader } from './client-content-re
 import { GameStore } from './game-store';
 import { RuntimeApiClient, RuntimeApiError } from './runtime-api-client';
 import { RuntimeStartup } from './runtime-startup';
-import { GAME_SCENE_KEY, nextSceneForStartup, startupMessage } from '../scenes/runtime-scenes';
+import { GAME_SCENE_KEY, RUN_SCENE_KEY, nextSceneForStartup, startupMessage } from '../scenes/runtime-scenes';
 
 describe('RuntimeStartup', () => {
+  it('routes ready startup directly to RunScene only when bootstrap reports an active run', () => {
+    expect(nextSceneForStartup({ status: 'ready' }, false)).toBe(GAME_SCENE_KEY);
+    expect(nextSceneForStartup({ status: 'ready' }, true)).toBe(RUN_SCENE_KEY);
+  });
   const revision = 'a'.repeat(64);
 
   function projection(contentRevision = revision): unknown {
     return {
       revision: contentRevision,
       content: {
+        gameplay: { run_energy_cost: 10 },
         regions: {
           'region.the_farm': {
             id: 'region.the_farm',

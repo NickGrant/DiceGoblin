@@ -140,6 +140,7 @@ describe('GameRuntime', () => {
     contentLoader.loadProjection.and.resolveTo({
       revision,
       content: {
+        gameplay: { run_energy_cost: 10 },
         regions: {
           'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
         },
@@ -209,6 +210,7 @@ describe('GameRuntime', () => {
       contentLoader.loadProjection.and.resolveTo({
         revision,
         content: {
+          gameplay: { run_energy_cost: 10 },
           regions: {
             'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
           },
@@ -281,6 +283,7 @@ describe('GameRuntime', () => {
     contentLoader.loadProjection.and.resolveTo({
       revision,
       content: {
+        gameplay: { run_energy_cost: 10 },
         regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
         kin: {},
         unit_types: {},

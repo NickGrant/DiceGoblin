@@ -88,6 +88,9 @@ export type ClientContentDefinition =
 export interface ClientContentProjection {
   readonly revision: string;
   readonly content: {
+    readonly gameplay: {
+      readonly run_energy_cost: number;
+    };
     readonly regions: Readonly<Record<string, ClientRegionDefinition>>;
     readonly kin: Readonly<Record<string, ClientKinDefinition>>;
     readonly unit_types: Readonly<Record<string, ClientUnitTypeDefinition>>;
@@ -129,6 +132,7 @@ const catalogFields = [
   'dice_profiles',
   'run_node_types',
 ] as const;
+const contentFields = ['gameplay', ...catalogFields] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -254,6 +258,7 @@ function requireDieSizes(record: Record<string, unknown>): readonly number[] {
 /** Validated, indexed view of the generated browser-safe content projection. */
 export class ClientContentRegistry {
   readonly revision: string;
+  readonly runEnergyCost: number;
   private readonly definitionsById = new Map<string, ClientContentDefinition>();
   private readonly regions = new Map<string, ClientRegionDefinition>();
   private readonly kinDefinitions = new Map<string, ClientKinDefinition>();
@@ -275,7 +280,12 @@ export class ClientContentRegistry {
     const content = projection['content'];
     if (!isRecord(content))
       throw new ClientContentError('Client content projection must contain content catalogs.');
-    requireExactFields(content, catalogFields, 'Client content catalogs');
+    requireExactFields(content, contentFields, 'Client content catalogs');
+    const gameplay = content['gameplay'];
+    if (!isRecord(gameplay))
+      throw new ClientContentError("Client content 'gameplay' must be an object.");
+    requireExactFields(gameplay, ['run_energy_cost'], 'Client gameplay presentation');
+    this.runEnergyCost = requireInteger(gameplay, 'run_energy_cost', 1, 1000000);
     const catalogs = Object.fromEntries(
       catalogFields.map((name) => {
         const catalog = content[name];
@@ -318,6 +328,9 @@ export class ClientContentRegistry {
   }
   has(stableId: string): boolean {
     return this.definitionsById.has(stableId);
+  }
+  getRegion(stableId: string): ClientRegionDefinition | undefined {
+    return this.regions.get(stableId);
   }
   getKin(stableId: string): ClientKinDefinition | undefined {
     return this.kinDefinitions.get(stableId);

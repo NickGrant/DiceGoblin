@@ -6,7 +6,7 @@ import {
   RuntimeLifecycleState,
   nextSceneForStartup,
 } from '../scenes/runtime-scenes';
-import { ClientContentLoader } from '../runtime/client-content-registry';
+import { ClientContentLoader, ClientContentRegistry } from '../runtime/client-content-registry';
 import { GameBootstrapData, GameStore } from '../runtime/game-store';
 import { RuntimeApiClient } from '../runtime/runtime-api-client';
 import { RuntimeStartup } from '../runtime/runtime-startup';
@@ -63,6 +63,11 @@ describe('CampScreen', () => {
     return store;
   }
 
+  function content(): ClientContentRegistry {
+    return new ClientContentRegistry({ revision: 'a'.repeat(64), content: { gameplay: { run_energy_cost: 10 },
+      regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {} } });
+  }
+
   function viewportSnapshot(width: number, height: number) {
     return calculateRuntimeViewport({
       cssWidth: width,
@@ -74,7 +79,7 @@ describe('CampScreen', () => {
   }
 
   it('derives identity, Teeth, Raw Chaos, and Energy only from authoritative bootstrap state', () => {
-    const view = createCampViewModel(storeWith(bootstrap()));
+    const view = createCampViewModel(storeWith(bootstrap()), content());
 
     expect(view.displayName).toBe('Grizzlewick');
     expect(view.teeth).toBe(1234);
@@ -88,7 +93,7 @@ describe('CampScreen', () => {
   });
 
   it('preserves overcap Energy in Camp presentation state', () => {
-    const view = createCampViewModel(storeWith(bootstrap('Grizzlewick', 80, 9, 57, 50)));
+    const view = createCampViewModel(storeWith(bootstrap('Grizzlewick', 80, 9, 57, 50)), content());
 
     expect(view.energyCurrent).toBe(57);
     expect(view.energyNormalMaximum).toBe(50);
@@ -97,8 +102,8 @@ describe('CampScreen', () => {
   });
 
   it('changes Camp output when authoritative fixture values change', () => {
-    const first = createCampViewModel(storeWith(bootstrap('Ashback', 4, 2, 12, 50)));
-    const second = createCampViewModel(storeWith(bootstrap('Bogwort', 999, 31, 68, 60)));
+    const first = createCampViewModel(storeWith(bootstrap('Ashback', 4, 2, 12, 50)), content());
+    const second = createCampViewModel(storeWith(bootstrap('Bogwort', 999, 31, 68, 60)), content());
 
     expect(first).not.toEqual(second);
     expect(second).toEqual(
@@ -112,7 +117,7 @@ describe('CampScreen', () => {
   });
 
   it('fails visibly instead of fabricating Camp state when bootstrap is absent', () => {
-    expect(() => createCampViewModel(new GameStore())).toThrowError(CampStateUnavailableError);
+    expect(() => createCampViewModel(new GameStore(), content())).toThrowError(CampStateUnavailableError);
   });
 
   it('is a GameScene-owned screen boundary rather than another Phaser Scene', () => {
@@ -120,6 +125,10 @@ describe('CampScreen', () => {
       {} as Phaser.Scene,
       storeWith(bootstrap()),
       new RuntimeViewport(),
+      undefined,
+      undefined,
+      undefined,
+      content(),
     );
 
     expect(screen.key).toBe('camp');
@@ -142,7 +151,7 @@ describe('CampScreen', () => {
 
     for (const snapshot of snapshots) {
       const layout = createCampLayout(snapshot);
-      for (const region of [layout.panel, layout.warbandButton, ...layout.resourcePlaques]) {
+      for (const region of [layout.panel, layout.warbandButton, layout.runButton, ...layout.resourcePlaques]) {
         expect(region.x).toBeGreaterThanOrEqual(snapshot.safeBounds.x);
         expect(region.y).toBeGreaterThanOrEqual(snapshot.safeBounds.y);
         expect(region.right).toBeLessThanOrEqual(snapshot.safeBounds.right);
@@ -167,13 +176,13 @@ describe('CampScreen', () => {
 
   it('does not transform authoritative values when layout mode changes', () => {
     const store = storeWith(bootstrap('Grizzlewick', 80, 9, 57, 50));
-    const before = createCampViewModel(store);
+    const before = createCampViewModel(store, content());
 
     createCampLayout(viewportSnapshot(844, 390));
     createCampLayout(viewportSnapshot(1600, 900));
     createCampLayout(viewportSnapshot(2560, 1080));
 
-    const after = createCampViewModel(store);
+    const after = createCampViewModel(store, content());
     expect(after).toEqual(before);
     expect(after.energyText).toBe('57 / 50');
     expect(after.isEnergyOvercap).toBeTrue();
@@ -212,6 +221,7 @@ describe('CampScreen', () => {
     contentLoader.loadProjection.and.resolveTo({
       revision,
       content: {
+        gameplay: { run_energy_cost: 10 },
         regions: {
           'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
         },
@@ -267,6 +277,7 @@ describe('CampScreen', () => {
     contentLoader.loadProjection.and.resolveTo({
       revision,
       content: {
+        gameplay: { run_energy_cost: 10 },
         regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
         kin: {},
         unit_types: {},
@@ -337,6 +348,7 @@ describe('CampScreen', () => {
     apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
     const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
     contentLoader.loadProjection.and.resolveTo({ revision, content: {
+      gameplay: { run_energy_cost: 10 },
       regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {},
     } });
     const startup = new RuntimeStartup(apiClient, contentLoader);
@@ -374,6 +386,7 @@ describe('CampScreen', () => {
     apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
     const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
     contentLoader.loadProjection.and.resolveTo({ revision, content: {
+      gameplay: { run_energy_cost: 10 },
       regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {},
     } });
     const startup = new RuntimeStartup(apiClient, contentLoader); await startup.start();
@@ -413,7 +426,7 @@ describe('CampScreen', () => {
     const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
     apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
     const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
-    contentLoader.loadProjection.and.resolveTo({ revision, content: { regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {} } });
+    contentLoader.loadProjection.and.resolveTo({ revision, content: { gameplay: { run_energy_cost: 10 }, regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {} } });
     const startup = new RuntimeStartup(apiClient, contentLoader); await startup.start();
     const viewport = new RuntimeViewport();
     const camp = jasmine.createSpyObj<GameSceneScreen>('camp', ['create', 'reflow', 'destroy'], { key: 'camp' });
@@ -447,6 +460,7 @@ describe('CampScreen', () => {
     apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
     const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
     contentLoader.loadProjection.and.resolveTo({ revision, content: {
+      gameplay: { run_energy_cost: 10 },
       regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {},
     } });
     let measurement: ViewportMeasurement = { cssWidth: 1600, cssHeight: 900, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true };

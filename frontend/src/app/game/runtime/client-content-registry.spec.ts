@@ -25,6 +25,7 @@ describe('ClientContentRegistry', () => {
       jasmine.objectContaining({ method: 'GET' }),
     );
     expect(registry.revision).toBe(revision);
+    expect(registry.runEnergyCost).toBe(10);
     expect(registry.get('region.the_farm')).toEqual(projection.content.regions['region.the_farm']);
     expect(registry.getKin('kin.goblin')?.display_name).toBe('Basic Goblin');
     expect(registry.getUnitType('unit_type.bruiser')?.base_stats.hp).toBe(22);
@@ -89,12 +90,21 @@ describe('ClientContentRegistry', () => {
     wrongIdentity.content.run_node_types['run_node_type.combat'].id = 'run_node_type.loot';
     expect(() => new ClientContentRegistry(wrongIdentity)).toThrowError(ClientContentError);
   });
+
+  it('strictly rejects missing, non-positive, or expanded gameplay presentation', () => {
+    const invalid = validProjection(); invalid.content.gameplay.run_energy_cost = 0;
+    expect(() => new ClientContentRegistry(invalid)).toThrowError(ClientContentError);
+    const expanded = validProjection();
+    (expanded.content.gameplay as Record<string, unknown>)['starting_energy'] = 50;
+    expect(() => new ClientContentRegistry(expanded)).toThrowError(ClientContentError);
+  });
 });
 
 function validProjection() {
   return {
     revision: 'a'.repeat(64),
     content: {
+      gameplay: { run_energy_cost: 10 },
       regions: {
         'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
       },

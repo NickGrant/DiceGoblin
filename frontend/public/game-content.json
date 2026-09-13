@@ -1,6 +1,9 @@
 {
     "revision": "4e3fed98c16ad796f76e046b6dfb0d2a39ac9c43b42c4061a1a183acafa81df0",
     "content": {
+        "gameplay": {
+            "run_energy_cost": 10
+        },
         "regions": {
             "region.the_farm": {
                 "id": "region.the_farm",

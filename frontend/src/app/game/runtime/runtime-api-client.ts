@@ -15,6 +15,13 @@ import {
   parseUnitMutationEnvelope,
 } from './unit-detail-contracts';
 import { WarbandDieSummary } from './warband-contracts';
+import {
+  CurrentRunResult,
+  RunContractError,
+  RunStartResult,
+  parseCurrentRunEnvelope,
+  parseRunStartEnvelope,
+} from './run-contracts';
 
 export type RuntimeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -62,6 +69,26 @@ export class RuntimeApiClient {
 
   async getSquads(): Promise<unknown> {
     return this.get('/api/v1/squads');
+  }
+
+  async getCurrentRun(content: ClientContentRegistry): Promise<CurrentRunResult> {
+    const value = await this.get('/api/v1/runs/current');
+    try {
+      return parseCurrentRunEnvelope(value, content);
+    } catch (error) {
+      if (error instanceof RunContractError) throw new RuntimeApiError('malformed-response', 200);
+      throw error;
+    }
+  }
+
+  async startRun(
+    regionId: string,
+    csrfToken: string,
+    idempotencyKey: string,
+    content: ClientContentRegistry,
+  ): Promise<RunStartResult> {
+    return this.mutate('/api/v1/runs', 'POST', csrfToken, { region_id: regionId }, idempotencyKey,
+      (value) => parseRunStartEnvelope(value, content));
   }
 
   async createSquad(
@@ -170,7 +197,7 @@ export class RuntimeApiClient {
     try {
       return parse(value);
     } catch (error) {
-      if (error instanceof WarbandContractError || error instanceof UnitDetailContractError) {
+      if (error instanceof WarbandContractError || error instanceof UnitDetailContractError || error instanceof RunContractError) {
         throw new RuntimeApiError('malformed-response', response.status);
       }
       throw error;

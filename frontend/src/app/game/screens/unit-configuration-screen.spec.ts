@@ -17,7 +17,7 @@ describe('UnitConfigurationScreen', () => {
 
   function content(): ClientContentRegistry {
     const stat = { hp: 1, attack: 1, defense: 1, precision: 1, resolve: 1 };
-    return new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
+    return new ClientContentRegistry({ revision: 'a'.repeat(64), content: { gameplay: { run_energy_cost: 10 },
       regions: {}, kin: { 'kin.goblin': { id: 'kin.goblin', display_name: 'Goblin', description: 'Goblin.', art_key: 'goblin', trait_summary: 'Quick.', stat_modifiers: { hp: 0, attack: 0, defense: 0, precision: 0, resolve: 0 } } },
       unit_types: { 'unit_type.bruiser': { id: 'unit_type.bruiser', display_name: 'Bruiser', description: 'Bruiser detail.', art_key: 'bruiser', role: 'frontline', tier: 1, base_stats: stat, growth_per_level: stat, ability_ids: ['ability.bash'] } },
       abilities: {

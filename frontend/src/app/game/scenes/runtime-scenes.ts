@@ -10,6 +10,7 @@ import { SquadEditorDraft } from '../screens/squad-editor-model';
 import { SquadEditorInitialAction, SquadEditorScreen } from '../screens/squad-editor-screen';
 import { WarbandSquadSummary } from '../runtime/warband-contracts';
 import { UnitConfigurationScreen } from '../screens/unit-configuration-screen';
+import { RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 
 export const BOOT_SCENE_KEY = 'BootScene';
 export const GAME_SCENE_KEY = 'GameScene';
@@ -113,8 +114,9 @@ export class BootScene extends Phaser.Scene {
     const state = await this.runtimeStartup.start();
     if (!this.scene.isActive(BOOT_SCENE_KEY)) return;
 
-    if (nextSceneForStartup(state) === GAME_SCENE_KEY) {
-      this.scene.start(GAME_SCENE_KEY);
+    const next = nextSceneForStartup(state, this.runtimeStartup.store.bootstrap?.active_run !== null);
+    if (next) {
+      this.scene.start(next);
       return;
     }
 
@@ -143,7 +145,11 @@ export class GameScene extends RuntimeScene {
       store: GameStore,
       viewport: RuntimeViewport,
       openWarband: () => void,
-    ) => GameSceneScreen = (scene, store, viewport, openWarband) => new CampScreen(scene, store, viewport, openWarband),
+      enterRun: () => void,
+      startup: RuntimeStartup,
+    ) => GameSceneScreen = (scene, store, viewport, openWarband, enterRun, startup) => new CampScreen(
+      scene, store, viewport, openWarband, enterRun, startup.apiClient, startup.contentRegistry,
+    ),
     private readonly createWarbandScreen: (
       scene: Phaser.Scene,
       startup: RuntimeStartup,
@@ -277,6 +283,7 @@ export class GameScene extends RuntimeScene {
     } else {
       this.activeScreen = this.createCampScreen(
         this, this.runtimeStartup.store, this.runtimeViewport, () => this.showWarband(),
+        () => this.scene.start(RUN_SCENE_KEY), this.runtimeStartup,
       );
     }
     (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
@@ -317,6 +324,9 @@ export class GameScene extends RuntimeScene {
 }
 
 export class RunScene extends RuntimeScene {
+  private root: Phaser.GameObjects.Container | null = null;
+  private unsubscribeViewport: (() => void) | null = null;
+  private unsubscribeRun: (() => void) | null = null;
   constructor(
     runtimeState: RuntimeLifecycleState,
     runtimeStartup: RuntimeStartup,
@@ -326,8 +336,95 @@ export class RunScene extends RuntimeScene {
   }
 
   create(): void {
-    this.renderPlaceholder('Run', 'RunScene lifecycle placeholder');
+    if (this.runtimeStartup.state.status !== 'ready' || !this.runtimeStartup.contentRegistry) {
+      this.scene.start(BOOT_SCENE_KEY); return;
+    }
+    if (!this.runtimeStartup.store.bootstrap?.active_run) {
+      this.scene.start(GAME_SCENE_KEY); return;
+    }
+    (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
+      ?.setAttribute('data-game-screen', 'run');
+    this.unsubscribeViewport = this.runtimeViewport.subscribe(() => this.render());
+    this.unsubscribeRun = this.runtimeStartup.store.subscribeCurrentRun(() => this.handleRunState());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.unsubscribeViewport?.(); this.unsubscribeViewport = null;
+      this.unsubscribeRun?.(); this.unsubscribeRun = null;
+      this.root?.destroy(true); this.root = null;
+    });
+    this.render();
+    void this.runtimeStartup.store.loadCurrentRun(this.runtimeStartup.apiClient, this.runtimeStartup.contentRegistry);
   }
+
+  retry(): void {
+    const content = this.runtimeStartup.contentRegistry;
+    if (content) void this.runtimeStartup.store.retryCurrentRun(this.runtimeStartup.apiClient, content);
+  }
+
+  returnToCamp(): void { this.scene.start(GAME_SCENE_KEY); }
+
+  private handleRunState(): void {
+    const state = this.runtimeStartup.store.currentRun;
+    if (state.status === 'fresh' && state.data === null && !this.runtimeStartup.store.bootstrap?.active_run) {
+      this.scene.start(GAME_SCENE_KEY); return;
+    }
+    this.render();
+  }
+
+  private render(): void {
+    const content = this.runtimeStartup.contentRegistry;
+    if (!content) return;
+    this.root?.destroy(true);
+    const snapshot = this.runtimeViewport.snapshot;
+    const state = this.runtimeStartup.store.currentRun;
+    const root = this.add.container(0, 0).setScale(snapshot.gameScale);
+    this.root = root;
+    const background = this.add.graphics();
+    background.fillGradientStyle(0x0b211b, 0x173d31, 0x071414, 0x102827, 1);
+    background.fillRect(0, 0, snapshot.logicalWidth, snapshot.logicalHeight);
+    root.add(background);
+    const layout = runShellLayout(snapshot);
+    const panel = this.add.graphics();
+    panel.fillStyle(0x342418, 0.97); panel.fillRoundedRect(layout.x, layout.y, layout.width, layout.height, 24);
+    panel.lineStyle(5, 0xc9972b, 1); panel.strokeRoundedRect(layout.x, layout.y, layout.width, layout.height, 24);
+    root.add(panel);
+    const run = state.data;
+    const region = run ? content.getRegion(run.regionId) : null;
+    const title = this.add.text(layout.centerX, layout.y + 70, region?.display_name ?? 'THE FARM', {
+      color: '#f5e8c8', fontFamily: 'Georgia, serif', fontSize: snapshot.layoutClass === 'compact' ? '48px' : '44px', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    let detail = 'Loading your persisted run…';
+    if (state.status === 'error') detail = state.error === 'network' ? 'The run could not be reached. Your progress is safe.' : 'The run state could not be verified safely.';
+    else if (run) detail = `Run #${run.id} · Active · Squad #${run.squadId}`;
+    const status = this.add.text(layout.centerX, layout.y + 155, detail, {
+      color: '#d9c9a5', fontFamily: 'system-ui, sans-serif', fontSize: snapshot.layoutClass === 'compact' ? '32px' : '20px', align: 'center',
+      wordWrap: { width: layout.width - 100 },
+    }).setOrigin(0.5);
+    const note = this.add.text(layout.centerX, layout.y + 225,
+      run ? 'The route is persisted on the server. Farm navigation arrives next.' : '', {
+        color: '#98b79b', fontFamily: 'system-ui, sans-serif', fontSize: snapshot.layoutClass === 'compact' ? '26px' : '17px', align: 'center',
+      }).setOrigin(0.5);
+    root.add([title, status, note]);
+    if (state.status === 'error') this.addShellButton(root, layout.centerX, layout.y + layout.height - 155, 'RETRY', () => this.retry());
+    this.addShellButton(root, layout.centerX, layout.y + layout.height - 70, 'RETURN TO CAMP', () => this.returnToCamp());
+  }
+
+  private addShellButton(root: Phaser.GameObjects.Container, centerX: number, centerY: number, label: string, action: () => void): void {
+    const width = 310, height = 58, x = centerX - width / 2, y = centerY - height / 2;
+    const button = this.add.graphics(); button.fillStyle(0x244b3d, 1); button.fillRoundedRect(x, y, width, height, 12);
+    button.lineStyle(3, 0xc9972b, 1); button.strokeRoundedRect(x, y, width, height, 12);
+    button.setInteractive(new Phaser.Geom.Rectangle(x, y, width, height), Phaser.Geom.Rectangle.Contains).on('pointerup', action);
+    const text = this.add.text(centerX, centerY, label, { color: '#fff4d3', fontFamily: 'system-ui, sans-serif', fontSize: this.runtimeViewport.snapshot.layoutClass === 'compact' ? '28px' : '19px', fontStyle: 'bold' }).setOrigin(0.5);
+    root.add([button, text]);
+  }
+}
+
+export function runShellLayout(snapshot: RuntimeViewportSnapshot): { x: number; y: number; width: number; height: number; centerX: number } {
+  const margin = snapshot.layoutClass === 'compact' ? 28 : 56;
+  const width = Math.min(snapshot.layoutClass === 'wide' ? 1120 : 980, snapshot.safeBounds.width - margin * 2);
+  const height = Math.min(snapshot.layoutClass === 'compact' ? 590 : 560, snapshot.safeBounds.height - margin * 2);
+  return { x: snapshot.safeBounds.x + (snapshot.safeBounds.width - width) / 2,
+    y: snapshot.safeBounds.y + (snapshot.safeBounds.height - height) / 2, width, height,
+    centerX: snapshot.safeBounds.x + snapshot.safeBounds.width / 2 };
 }
 
 export class BattleScene extends RuntimeScene {
@@ -344,8 +441,11 @@ export class BattleScene extends RuntimeScene {
   }
 }
 
-export function nextSceneForStartup(state: RuntimeStartupSnapshot): typeof GAME_SCENE_KEY | null {
-  return state.status === 'ready' ? GAME_SCENE_KEY : null;
+export function nextSceneForStartup(
+  state: RuntimeStartupSnapshot,
+  hasActiveRun = false,
+): typeof GAME_SCENE_KEY | typeof RUN_SCENE_KEY | null {
+  return state.status === 'ready' ? (hasActiveRun ? RUN_SCENE_KEY : GAME_SCENE_KEY) : null;
 }
 
 export function startupMessage(state: RuntimeStartupSnapshot): string {

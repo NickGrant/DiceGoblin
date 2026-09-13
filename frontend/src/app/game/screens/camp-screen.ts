@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { GameStore } from '../runtime/game-store';
+import { ClientContentRegistry } from '../runtime/client-content-registry';
+import { RuntimeApiClient, RuntimeApiError } from '../runtime/runtime-api-client';
 import {
   Bounds,
   RuntimeViewport,
@@ -22,6 +24,9 @@ export interface CampViewModel {
   readonly energyNormalMaximum: number;
   readonly energyText: string;
   readonly isEnergyOvercap: boolean;
+  readonly runEnergyCost: number;
+  readonly hasActiveRun: boolean;
+  readonly hasActiveSquad: boolean;
 }
 
 export interface CampLayout {
@@ -31,6 +36,7 @@ export interface CampLayout {
   readonly panel: Bounds;
   readonly resourcePlaques: readonly [Bounds, Bounds, Bounds];
   readonly warbandButton: Bounds;
+  readonly runButton: Bounds;
   readonly headingY: number;
   readonly welcomeY: number;
   readonly eyebrowY: number;
@@ -50,7 +56,7 @@ export class CampStateUnavailableError extends Error {
   }
 }
 
-export function createCampViewModel(store: GameStore): CampViewModel {
+export function createCampViewModel(store: GameStore, content: ClientContentRegistry): CampViewModel {
   const bootstrap = store.bootstrap;
   if (!bootstrap) throw new CampStateUnavailableError();
 
@@ -65,6 +71,9 @@ export function createCampViewModel(store: GameStore): CampViewModel {
     energyNormalMaximum: normalMaximum,
     energyText: `${current} / ${normalMaximum}`,
     isEnergyOvercap: current > normalMaximum,
+    runEnergyCost: content.runEnergyCost,
+    hasActiveRun: bootstrap.active_run !== null,
+    hasActiveSquad: bootstrap.active_squad !== null,
   };
 }
 
@@ -115,12 +124,14 @@ export function createCampLayout(snapshot: RuntimeViewportSnapshot): CampLayout 
       mode === 'compact' ? 250 : 220,
       mode === 'compact' ? 92 : 58,
     ),
+    runButton: box(centerX - (mode === 'compact' ? 230 : 190), panel.y + (mode === 'compact' ? 205 : 215),
+      mode === 'compact' ? 460 : 380, mode === 'compact' ? 92 : 72),
     headingY: mode === 'compact' ? 43 : 50,
     welcomeY: mode === 'compact' ? 94 : 101,
     eyebrowY: panel.y + (mode === 'compact' ? 62 : 76),
     statusY: panel.y + (mode === 'compact' ? 101 : 118),
     dividerY: panel.y + (mode === 'compact' ? 145 : 170),
-    showCampfire: true,
+    showCampfire: false,
     headingFontSize: mode === 'compact' ? 48 : mode === 'wide' ? 44 : 42,
     welcomeFontSize: mode === 'compact' ? 22 : 18,
     resourceLabelFontSize: mode === 'compact' ? 20 : 13,
@@ -134,12 +145,19 @@ export class CampScreen implements GameSceneScreen {
   private root: Phaser.GameObjects.Container | null = null;
   private view: CampViewModel | null = null;
   private activeLayout: CampLayout | null = null;
+  private startState: 'ready' | 'submitting' | 'retryable' | 'rejected' | 'integrity' = 'ready';
+  private startMessage = '';
+  private startAttemptKey: string | null = null;
 
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly store: GameStore,
     private readonly viewport: RuntimeViewport,
     private readonly openWarband: () => void = () => undefined,
+    private readonly enterRun: () => void = () => undefined,
+    private readonly api: RuntimeApiClient | null = null,
+    private readonly content: ClientContentRegistry | null = null,
+    private readonly createIdempotencyKey: () => string = () => crypto.randomUUID(),
   ) {}
 
   static preload(scene: Phaser.Scene): void {
@@ -163,7 +181,8 @@ export class CampScreen implements GameSceneScreen {
   }
 
   create(): void {
-    this.view = createCampViewModel(this.store);
+    if (!this.content) throw new CampStateUnavailableError();
+    this.view = createCampViewModel(this.store, this.content);
     this.reflow(this.viewport.snapshot);
   }
 
@@ -235,6 +254,7 @@ export class CampScreen implements GameSceneScreen {
 
     this.addPanel(root, layout.panel);
     this.addWarbandButton(root, layout);
+    this.addRunButton(root, layout, view);
     const eyebrow = this.scene.add
       .text(layout.centerX, layout.eyebrowY, 'THE GOBLINS ARE PLOTTING', {
         color: '#d65a43', fontFamily: 'system-ui, sans-serif',
@@ -268,6 +288,75 @@ export class CampScreen implements GameSceneScreen {
       root, energy, view.isEnergyOvercap ? 'ENERGY · OVERCHARGED' : 'ENERGY',
       view.energyText, view.isEnergyOvercap ? 0xf2c14e : 0x8db341, ENERGY_ICON_KEY, layout,
     );
+  }
+
+  get runActionState(): string { return this.startState; }
+
+  resumeFarm(): void {
+    if (this.store.bootstrap?.active_run) this.enterRun();
+  }
+
+  async startFarm(): Promise<void> {
+    if (this.startState === 'submitting' || this.store.bootstrap?.active_run || !this.api || !this.content) return;
+    const bootstrap = this.store.bootstrap;
+    if (!bootstrap?.active_squad) {
+      this.startState = 'rejected'; this.startMessage = 'Choose an active squad before entering the Farm.';
+      this.reflow(this.viewport.snapshot); return;
+    }
+    this.startAttemptKey ??= this.createIdempotencyKey();
+    this.startState = 'submitting'; this.startMessage = 'Preparing the Farm run…';
+    this.reflow(this.viewport.snapshot);
+    try {
+      const result = await this.api.startRun('region.the_farm', bootstrap.session.csrf_token, this.startAttemptKey, this.content);
+      this.store.reconcileRunStart(result);
+      this.startAttemptKey = null;
+      this.enterRun();
+    } catch (error) {
+      if (error instanceof RuntimeApiError && error.kind === 'network') {
+        this.startState = 'retryable';
+        this.startMessage = 'The result is uncertain. Retry this same start attempt.';
+      } else {
+        this.startAttemptKey = null;
+        this.startState = error instanceof RuntimeApiError && error.kind === 'http' ? 'rejected' : 'integrity';
+        this.startMessage = this.startErrorMessage(error);
+      }
+      this.reflow(this.viewport.snapshot);
+    }
+  }
+
+  private addRunButton(root: Phaser.GameObjects.Container, layout: CampLayout, view: CampViewModel): void {
+    const region = layout.runButton;
+    const button = this.scene.add.graphics();
+    const disabled = !view.hasActiveRun && (!view.hasActiveSquad || this.startState === 'submitting');
+    button.fillStyle(disabled ? 0x6c6658 : 0x8f3e2e, 1);
+    button.fillRoundedRect(region.x, region.y, region.width, region.height, 16);
+    button.lineStyle(4, 0xc9972b, 1);
+    button.strokeRoundedRect(region.x, region.y, region.width, region.height, 16);
+    if (!disabled) {
+      button.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains);
+      button.on('pointerup', () => view.hasActiveRun ? this.resumeFarm() : void this.startFarm());
+    }
+    const retry = this.startState === 'retryable';
+    const label = view.hasActiveRun ? 'RESUME FARM  ›' : retry ? 'RETRY START FARM' : this.startState === 'submitting' ? 'STARTING…' : 'START FARM  ›';
+    const action = this.scene.add.text(region.x + region.width / 2, region.y + region.height * 0.38, label, {
+      color: '#fff4d3', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '30px' : '22px', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    const detail = this.scene.add.text(region.x + region.width / 2, region.y + region.height * 0.73,
+      view.hasActiveRun ? 'Your active run is waiting.' : this.startMessage || `Costs ${view.runEnergyCost} Energy · ${view.energyText} available`, {
+        color: '#f5dca4', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '18px' : '14px',
+      }).setOrigin(0.5);
+    root.add([button, action, detail]);
+  }
+
+  private startErrorMessage(error: unknown): string {
+    if (error instanceof RuntimeApiError) {
+      if (error.code === 'insufficient_energy') return 'Not enough Energy to enter the Farm.';
+      if (error.code === 'active_squad_required' || error.code === 'active_squad_empty') return 'Choose a ready active squad first.';
+      if (error.code === 'active_run_exists') return 'A run already exists. Reload to resume it.';
+      if (error.kind === 'unauthorized') return 'Your session expired. Reload and sign in again.';
+      if (error.kind === 'http') return 'The Farm cannot be entered right now.';
+    }
+    return 'The run response could not be verified safely.';
   }
 
   private addWarbandButton(root: Phaser.GameObjects.Container, layout: CampLayout): void {

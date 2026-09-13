@@ -14,6 +14,7 @@ describe('Warband collection contracts', () => {
     return new ClientContentRegistry({
       revision: 'a'.repeat(64),
       content: {
+        gameplay: { run_energy_cost: 10 },
         regions: {},
         kin: {
           'kin.goblin': { id: 'kin.goblin', display_name: 'Cave Goblin', description: 'Scrappy.', art_key: 'goblin', trait_summary: 'Quick.', stat_modifiers: { hp: 0, attack: 0, defense: 0, precision: 0, resolve: 0 } },

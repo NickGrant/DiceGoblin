@@ -55,6 +55,7 @@
     "verify:full": "npm run llm:check && npm run docs:lint && npm run content:validate && npm run test:backend && npm run test:frontend && npm run build:frontend && npm run bundle:check",
     "verify:warband:browser": "node scripts/verify-warband-closure.mjs",
     "verify:walking-skeleton": "node scripts/verify-walking-skeleton.mjs",
+    "verify:run-lifecycle": "node scripts/verify-run-lifecycle.mjs",
     "startup:check": "node scripts/startup-check.mjs",
     "llm:check": "npm run startup:check && npm run backlog:validate"
   },

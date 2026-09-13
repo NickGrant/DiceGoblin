@@ -59,7 +59,7 @@ describe('RuntimeApiClient', () => {
 
   it('sends independent unit rename and complete loadout commands with strict authoritative parsing', async () => {
     const stat = { hp: 1, attack: 1, defense: 1, precision: 1, resolve: 1 };
-    const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
+    const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: { gameplay: { run_energy_cost: 10 },
       regions: {}, kin: { 'kin.goblin': { id: 'kin.goblin', display_name: 'Goblin', description: 'Goblin.', art_key: 'goblin', trait_summary: 'Quick.', stat_modifiers: { hp: 0, attack: 0, defense: 0, precision: 0, resolve: 0 } } },
       unit_types: { 'unit_type.bruiser': { id: 'unit_type.bruiser', display_name: 'Bruiser', description: 'Bruiser.', art_key: 'bruiser', role: 'frontline', tier: 1, base_stats: stat, growth_per_level: stat, ability_ids: ['ability.bash'] } },
       abilities: { 'ability.bash': { id: 'ability.bash', kind: 'active', display_name: 'Bash', description: 'Bash.', icon_key: 'bash', dice_slot_count: 1 } },
@@ -124,6 +124,30 @@ describe('RuntimeApiClient', () => {
     expect(calls[1][1]?.headers).not.toEqual(jasmine.objectContaining({ 'Idempotency-Key': jasmine.anything() }));
     expect(calls[2][1]?.body).toBeUndefined();
     expect(calls[3][1]?.body).toBeUndefined();
+  });
+
+  it('sends strict run start and current requests with the required security boundaries', async () => {
+    const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
+      gameplay: { run_energy_cost: 10 }, regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
+      kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {},
+    } });
+    const energy = { current: 40, normal_max: 50, regeneration_per_hour: 12, regeneration_interval_seconds: 300,
+      last_regeneration_at: '2026-09-13T12:00:00Z', next_regeneration_at: null, fully_regenerated_at: null };
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.callFake(async (_url, init) =>
+      new Response(JSON.stringify(init?.method === 'POST'
+        ? { ok: true, data: { run: { id: '7', region_id: 'region.the_farm', squad_id: '3', status: 'active' }, energy, player_revision: 8 } }
+        : { ok: true, data: { run: null, player_revision: 8 } }), { status: 200 }));
+    const client = new RuntimeApiClient(fetchRequest, '/root');
+
+    await client.startRun('region.the_farm', 'csrf-token', 'run:start:12345678', content);
+    await client.getCurrentRun(content);
+
+    const [start, current] = fetchRequest.calls.allArgs();
+    expect(start[0]).toBe('/root/api/v1/runs');
+    expect(start[1]).toEqual(jasmine.objectContaining({ method: 'POST', credentials: 'include', body: JSON.stringify({ region_id: 'region.the_farm' }) }));
+    expect(start[1]?.headers).toEqual(jasmine.objectContaining({ 'X-CSRF-Token': 'csrf-token', 'Idempotency-Key': 'run:start:12345678' }));
+    expect(current[0]).toBe('/root/api/v1/runs/current');
+    expect(current[1]).toEqual(jasmine.objectContaining({ method: 'GET', credentials: 'include', headers: { Accept: 'application/json' } }));
   });
 
   it('turns malformed mutation success into an integrity-safe API failure and retains safe error codes', async () => {

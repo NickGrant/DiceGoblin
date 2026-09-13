@@ -14,8 +14,8 @@ describe('GameStore Warband cache', () => {
   }
 
   function content(): ClientContentRegistry {
-    return new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
-      regions: {},
+    return new ClientContentRegistry({ revision: 'a'.repeat(64), content: { gameplay: { run_energy_cost: 10 },
+      regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
       kin: { 'kin.goblin': { id: 'kin.goblin', display_name: 'Goblin', description: 'Goblin.', art_key: 'goblin', trait_summary: 'Quick.', stat_modifiers: { hp: 0, attack: 0, defense: 0, precision: 0, resolve: 0 } } },
       unit_types: { 'unit_type.bruiser': { id: 'unit_type.bruiser', display_name: 'Bruiser', description: 'Bruiser.', art_key: 'bruiser', role: 'frontline', tier: 1, base_stats: { hp: 1, attack: 1, defense: 1, precision: 1, resolve: 1 }, growth_per_level: { hp: 1, attack: 1, defense: 1, precision: 1, resolve: 1 }, ability_ids: ['ability.bash'] } },
       abilities: {
@@ -25,12 +25,12 @@ describe('GameStore Warband cache', () => {
       dice_materials: { 'dice_material.bone': { id: 'dice_material.bone', display_name: 'Bone', description: 'Bone.', art_key: 'bone', allowed_sizes: [6] } },
       dice_aspects: {},
       dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
-      run_node_types: {},
+      run_node_types: { 'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' } },
     } });
   }
 
   function api(): jasmine.SpyObj<RuntimeApiClient> {
-    const result = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads', 'renameUnit', 'replaceUnitLoadout']);
+    const result = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads', 'getCurrentRun', 'startRun', 'renameUnit', 'replaceUnitLoadout']);
     result.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] } });
     result.getDice.and.resolveTo({ ok: true, data: { dice: [
       { id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '11', ability_id: 'ability.bash', slot_index: 0 }] },
@@ -315,5 +315,47 @@ describe('GameStore Warband cache', () => {
     }, 'update')).toThrow();
     expect(store.bootstrap).toBe(before);
     expect(store.warband.squads).toEqual(jasmine.objectContaining({ status: 'error', error: 'integrity' }));
+  });
+
+  it('reconciles start authority without changing loaded Warband collections', async () => {
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap());
+    const client = api(); await store.loadWarbandDomains(client, content());
+    const warband = store.warband;
+    store.reconcileRunStart({ run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' },
+      energy: { ...bootstrap().player.energy, current: 40 }, playerRevision: 8 });
+    expect(store.bootstrap?.active_run?.id).toBe('41');
+    expect(store.bootstrap?.player.energy.current).toBe(40);
+    expect(store.playerRevision).toBe(8);
+    expect(store.warband).toBe(warband);
+    expect(store.currentRun.status).toBe('stale');
+    expect(() => store.reconcileRunStart({ run: { id: '42', region_id: 'region.the_farm', squad_id: '99', status: 'active' },
+      energy: bootstrap().player.energy, playerRevision: 9 })).toThrow();
+  });
+
+  it('lazily deduplicates current-run loads and reuses a fresh persisted aggregate', async () => {
+    const store = new GameStore(); const data = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
+    store.hydrateBootstrap(data); const client = api();
+    let resolve!: (value: any) => void;
+    client.getCurrentRun.and.returnValue(new Promise((done) => { resolve = done; }));
+    const first = store.loadCurrentRun(client, content()); const second = store.loadCurrentRun(client, content());
+    expect(first).toBe(second); expect(store.currentRun.status).toBe('loading');
+    resolve({ run: { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active', createdAt: '2026-09-13T12:00:00Z',
+      nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat', status: 'available', completedAt: null, position: { column: 0, row: 1 } }],
+      edges: [], units: [{ unitId: '11', currentHp: null }] }, playerRevision: 7 });
+    await first; await store.loadCurrentRun(client, content());
+    expect(store.currentRun.status).toBe('fresh'); expect(store.currentRun.data?.id).toBe('41');
+    expect(client.getCurrentRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears a stale summary only for newer null authority and rejects equal-revision contradiction', async () => {
+    const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
+    const store = new GameStore(); store.hydrateBootstrap(active); const client = api();
+    client.getCurrentRun.and.resolveTo({ run: null, playerRevision: 7 });
+    await store.loadCurrentRun(client, content());
+    expect(store.currentRun).toEqual(jasmine.objectContaining({ status: 'error', error: 'integrity' }));
+    client.getCurrentRun.and.resolveTo({ run: null, playerRevision: 8 });
+    await store.retryCurrentRun(client, content());
+    expect(store.bootstrap?.active_run).toBeNull(); expect(store.playerRevision).toBe(8);
+    expect(store.currentRun).toEqual({ status: 'fresh', data: null, error: null });
   });
 });

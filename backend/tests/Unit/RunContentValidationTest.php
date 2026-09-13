@@ -32,6 +32,7 @@ final class RunContentValidationTest extends TestCase
     $projection = (new ClientContentProjector())->project($registry);
     $encoded = json_encode($projection, JSON_THROW_ON_ERROR);
 
+    $this->assertSame(['run_energy_cost' => 10], $projection['content']['gameplay']);
     $this->assertSame([
       'id' => 'run_node_type.combat',
       'display_name' => 'Combat',
@@ -42,6 +43,10 @@ final class RunContentValidationTest extends TestCase
     $this->assertStringNotContainsString('fixed_graph_v1', $encoded);
     $this->assertStringNotContainsString('start_node_key', $encoded);
     $this->assertStringNotContainsString('run_generation_id', $encoded);
+    $this->assertStringNotContainsString('starting_energy', $encoded);
+    $this->assertStringNotContainsString('energy_normal_max', $encoded);
+    $this->assertStringNotContainsString('energy_regeneration_per_hour', $encoded);
+    $this->assertStringNotContainsString('starting_region_id', $encoded);
   }
 
   public function testPrivateGenerationChangesAffectTheGlobalRevisionWithoutLeakingTopology(): void

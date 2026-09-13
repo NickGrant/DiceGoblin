@@ -14,12 +14,13 @@ final class ClientContentProjector
   private const DICE_PROFILE_FIELDS = ['id', 'display_name', 'material_id', 'rarity', 'aspect_ids', 'allowed_sizes'];
   private const RUN_NODE_TYPE_FIELDS = ['id', 'display_name', 'description', 'icon_key'];
 
-  /** @return array{revision: string, content: array<string, array<string, array<string, mixed>>>} */
+  /** @return array{revision:string,content:array<string,mixed>} */
   public function project(ContentRegistry $registry): array
   {
     return [
       'revision' => $registry->revision(),
       'content' => [
+        'gameplay' => $this->projectGameplay($registry),
         'regions' => $this->projectType($registry, 'region', self::REGION_FIELDS),
         'kin' => $this->projectType($registry, 'kin', self::KIN_FIELDS),
         'unit_types' => $this->projectType($registry, 'unit_type', self::UNIT_TYPE_FIELDS),
@@ -30,6 +31,12 @@ final class ClientContentProjector
         'run_node_types' => $this->projectType($registry, 'run_node_type', self::RUN_NODE_TYPE_FIELDS),
       ],
     ];
+  }
+
+  /** @return array{run_energy_cost:int} */
+  private function projectGameplay(ContentRegistry $registry): array
+  {
+    return ['run_energy_cost' => $registry->runEnergyCost()];
   }
 
   /** @param list<string> $fields

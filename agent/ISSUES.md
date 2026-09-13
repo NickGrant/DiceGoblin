@@ -6,7 +6,7 @@
 
 ### Establish Phaser RunScene lifecycle and Camp start/resume navigation
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
