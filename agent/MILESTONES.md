@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Establish authoritative run start, Energy spend, and idempotency
+- Establish current-run lifecycle, bootstrap summary, and active-run Warband locks
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -32,7 +32,7 @@ Combat and node resolution are deliberately not part of this milestone. They beg
 - Failed generation/validation/persistence spends no Energy, creates no partial run, and does not change revision.
 - The run captures/retains enough generated state to resume the same graph after reload without regenerating a different map.
 - `GET /api/v1/runs/current` returns the authoritative active-run aggregate required by the current Farm map without leaking hidden generated information the player is not yet entitled to know.
-- `POST /api/v1/runs/:runId/abandon` authoritatively terminates the owned active run with no Energy refund; repeat/foreign/stale attempts fail or no-op according to one deliberate contract without leaking another player's state.
+- `POST /api/v1/runs/:runId/abandon` authoritatively terminates the owned active run with no Energy refund; repeat/foreign/stale attempts follow one deliberate non-disclosing contract.
 - Bootstrap exposes enough active-run summary state to route a returning player correctly without turning bootstrap into the complete run payload.
 - While a run is active, server-side Warband commands prevent active-squad switching, participating squad membership/position changes, and participating unit loadout/dice changes. The backend owns this lock; the client is not the authority.
 - Phaser adds a persistent `RunScene` owned by the existing runtime. Camp can start/resume a run; leaving/reloading `/game` resumes the same active run without Angular gameplay routing or Phaser remount architecture regressions.
@@ -44,8 +44,8 @@ Combat and node resolution are deliberately not part of this milestone. They beg
 Promote/decompose only the first unfinished package into `agent/ISSUES.md`:
 1. ~~Active-run persistence foundation.~~ Complete and architecturally approved at `0ea5f652af397061190f9cb11c71cb1f6d1d1bb7`.
 2. ~~Farm authored run content + deterministic generator adaptation.~~ Complete and architecturally approved at `e5429bb29f2ed23c4a31d5a7e077dfa2ec123d02`.
-3. **Authoritative run start + Energy spend + idempotency.** Current.
-4. Current-run query + abandon + bootstrap summary + Warband active-run locks.
+3. ~~Authoritative run start + Energy spend + idempotency.~~ Complete and architecturally approved at `056c4171e2b060c36351d086e57d59b44f371cd9`.
+4. **Current-run query + abandon + bootstrap summary + Warband active-run locks.** Current.
 5. Phaser RunScene lifecycle + Camp start/resume navigation.
 6. Phaser Farm map + abandon/resume UX.
 7. Enter Farm integrated verification/closure.
@@ -60,10 +60,11 @@ For each package:
 Do not implement later packages early merely because their eventual shape is known.
 
 ### Sequencing Decisions
-- Package 1 established only the normalized run persistence boundary. Cross-owner squad/unit relationships remain application-level validation, consistent with Warband; Package 3 must reject foreign participation before persistence and later reads must treat corrupt cross-owner relationships as integrity errors.
-- Package 2 moved the Farm fixed graph into private canonical JSON and a pure `FixedGraphRunGenerator`; only safe `run_node_type.*` presentation reaches the client. The generation validator's initial-availability rule belongs to freshly generated graphs and must not later be reused as a validator for mutable progressed run state.
-- Package 3 is the first run-creation transaction and owns Energy/idempotency semantics. The client submits a region, while the server selects/validates the player's active squad and its participating units/configuration. Initial ordinary-run Energy cost is canonical gameplay tuning, not command code.
-- Package 4 introduces the authoritative active-run configuration lock now that real run state exists. Earlier Warband commands were intentionally structured to accept this policy without redesign.
+- Package 1 established only the normalized run persistence boundary. Cross-owner squad/unit relationships remain application-level validation, consistent with Warband; run application commands and queries must reject foreign participation and treat corrupt cross-owner relationships as integrity errors.
+- Package 2 moved the Farm fixed graph into private canonical JSON and a pure `FixedGraphRunGenerator`; only safe `run_node_type.*` presentation reaches the client. The generation validator's initial-availability rule belongs to freshly generated graphs and must not be reused as a validator for mutable progressed run state.
+- Package 3 established the atomic run-start transaction. The client submits only the region; the server selects and validates the active squad/configuration, spends canonical 10 Energy exactly once, persists the generated graph/participation, increments revision once, and finalizes an idempotency receipt in the same transaction.
+- Package 4 introduces the authoritative current-run read/lifecycle boundary and active-run configuration lock now that real run state exists. The current-run query must validate persisted runtime state without applying the fresh-generation availability invariant. Abandon is naturally retry-safe: abandoning an owned active run mutates once; repeating abandon against that same already-abandoned owned run is a successful no-op with no second revision increment. Foreign/non-owned IDs remain non-disclosing not-found.
+- During an active run, activating a different squad is locked; re-activating the already active participating squad remains a no-op. Participating squad formation changes and deletion are locked. A name-only participating-squad update may remain legal because squad display name is not combat configuration. Participating unit loadout/dice mutation is locked; unit rename is not combat configuration and remains legal.
 - Exact resolved combat-stat formulas remain deferred. Milestone 3 must not invent progression/stat math merely to pre-stage Milestone 4 combat. Persist only run-unit participation/state that can be represented honestly at this stage; finalize combat HP initialization when the combat milestone owns the required stat resolver unless an already-canonical resolver is deliberately established.
 - `run_modifiers`, battles/playback, reward resolution, interactive Rest/Chaos state, and node completion mechanics are added only when their owning milestones concretely require them.
 
