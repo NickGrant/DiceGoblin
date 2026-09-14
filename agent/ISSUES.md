@@ -6,7 +6,7 @@
 
 ### Complete Enter Farm integrated verification and closure
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
