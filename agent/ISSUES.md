@@ -4,412 +4,350 @@
 
 ## Milestone 3 - Enter Farm
 
-### Establish Phaser Farm map and abandon/resume UX
+### Complete Enter Farm integrated verification and closure
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Packages 1-5 now provide the complete authoritative lifecycle needed to enter and resume a Farm run:
-- normalized persisted run graph/participants;
-- canonical private Farm generation;
-- transactional idempotent start with Energy spend;
-- current-run read and retry-safe abandon backend;
-- active-run Warband locks;
-- bootstrap startup summary;
-- persistent Phaser `RunScene` lifecycle with Camp Start/Resume and reload/resume.
+Packages 1-6 now implement the complete Milestone 3 Enter Farm slice:
+- normalized active-run persistence;
+- canonical/private Farm generation content;
+- pure deterministic graph generation;
+- transactional idempotent run start and Energy spend;
+- authoritative current-run and abandon lifecycle;
+- active-run Warband configuration locks;
+- bootstrap run summary;
+- mounted Phaser Camp/RunScene start/resume/reload lifecycle;
+- persisted Farm-map rendering;
+- explicit abandon confirmation/reconciliation.
 
-`RunScene` still renders only a lifecycle shell. The player cannot see the persisted Farm graph or intentionally abandon the run from gameplay.
+Before manual UAT, verify this as one integrated authoritative system, fix concrete Milestone 3 defects discovered by verification, and remove only conclusively superseded prototype run UI/lifecycle code that no longer serves later milestones.
 
-This package renders the authoritative current-run graph and adds the client-side abandon interaction/reconciliation. It does **not** resolve nodes or begin combat.
+This is a closure/verification package, not a new feature package.
 
 #### Required Context
 Read before implementation:
-- `documentation/07-development-path/vnext-phaser-client-architecture.md`
+- `AGENTS.md`
+- `agent/QUALITY_GATES.md`
+- `documentation/07-development-path/vnext-prototype-code-disposition.md`
+- `documentation/07-development-path/vnext-storage-model.md`
 - `documentation/07-development-path/vnext-api-contract-model.md`
 - `documentation/07-development-path/vnext-endpoint-inventory.md`
 - `documentation/07-development-path/vnext-authored-content-model.md`
+- `documentation/07-development-path/vnext-energy-model.md`
+- `documentation/07-development-path/vnext-phaser-client-architecture.md`
 - `documentation/02-systems/run-node-generation.md`
-- current Package 4 `GET /api/v1/runs/current` and abandon contracts
-- current Package 5 `run-contracts.ts`, `RuntimeApiClient`, `GameStore`, `CampScreen`, `RunScene`
-- `ClientContentRegistry` projected regions and `run_node_type.*` definitions
-- `RuntimeViewport` and portrait-gate behavior
-- deterministic capture/debug infrastructure
+- `documentation/02-systems/warband-and-formation.md`
+- Package 1-6 implementation/tests
+- current deterministic capture and real-stack verification scripts
 
-Do not use prototype Angular run pages, prototype map services, or private generation JSON in the browser.
+#### Primary closure proof
+Exercise the real vNext slice against real PHP/MySQL and the browser runtime, preferably from a freshly reset/provisioned database.
 
-#### Core outcome
-A player with an active Farm run can:
-1. enter/resume `RunScene`;
-2. see the exact persisted Farm nodes and edges returned by `GET /api/v1/runs/current`;
-3. understand each node's authored type/presentation and authoritative runtime status;
-4. return to Camp without abandoning;
-5. resume the same run/map;
-6. explicitly abandon with confirmation;
-7. return to Camp with the run cleared locally only after authoritative abandon success.
+Use controlled development/UAT fixture support for Warband setup; do not add production starter provisioning.
 
-The five-node graph currently appears as the persisted Farm path:
+Prove this player flow:
+1. authenticate with a fresh account;
+2. `/game` loads Camp with no active run;
+3. controlled fixture establishes a valid active Warband squad;
+4. Camp shows canonical Farm Energy cost and current effective Energy;
+5. Start Farm submits one idempotent authoritative start;
+6. Energy decreases exactly once by canonical cost;
+7. `player_revision` increments exactly once;
+8. RunScene loads the persisted current run;
+9. Farm map shows the exact persisted graph;
+10. Return to Camp does not abandon;
+11. Camp shows Resume and sends no second run-start mutation;
+12. Resume returns to the same run/map;
+13. browser reload bootstraps directly back to the same RunScene/run ID;
+14. abandon confirmation Cancel leaves the run active;
+15. abandon Confirm terminalizes the run authoritatively;
+16. abandon increments revision exactly once and refunds no Energy;
+17. Camp returns to Start Farm state;
+18. current-run read returns null;
+19. the terminal run row, persisted nodes/edges, and participating-unit history remain stored.
 
-`Combat -> Loot -> Rest -> Boss -> Exit`
+Do not mock PHP/MySQL for this primary closure proof.
 
-but the client must render the returned graph rather than reconstructing this sequence from knowledge of canonical generation content.
+#### Fresh database and storage
+Reset/provision the fresh vNext baseline and verify the Milestone 3 schema/invariants together with Milestone 2 state.
 
-#### Authoritative map source
-The only map authority is `GameStore.currentRun.data`, populated through the strict Package 5 `/runs/current` contract.
+At minimum verify:
+- expected vNext table inventory;
+- one active run per user;
+- separate users may each have active runs;
+- multiple terminal historical runs remain legal;
+- active run references a participating saved squad without terminal history permanently preventing later squad deletion;
+- run-local node identity/order;
+- relational edge endpoint integrity;
+- duplicate/self/cross-run edge protection as designed;
+- run graph/unit-state cascade behavior when a run is deliberately removed in tests;
+- one run-unit row per participating unit;
+- authored region/node IDs remain strings rather than SQL catalogs;
+- `current_hp` remains intentionally nullable/deferred;
+- fresh registration creates no units/dice/squads/runs;
+- no new SQL gameplay catalogs were introduced.
 
-Do not:
-- regenerate the Farm graph;
-- import/read private `run_generation.*` content;
-- infer missing nodes/edges;
-- synthesize IDs;
-- assume the graph will always remain exactly five nodes in the rendering architecture.
+#### Authored content and generation
+Re-run canonical generation/validation and exact client-projection comparison.
 
-Use the returned:
-- node IDs;
-- node indexes;
-- node type IDs;
-- status;
-- completed timestamp;
-- safe `{column,row}` positions;
-- edge endpoint IDs.
+Prove:
+- Farm generation definition is canonical server-owned JSON;
+- region → generation references validate;
+- malformed/disconnected graph definitions fail validation;
+- browser projection contains safe `run_node_type.*` presentation and `gameplay.run_energy_cost` only as explicitly allowlisted run presentation;
+- private generation topology/algorithm/reference and other private gameplay config remain absent from browser content;
+- global content revision includes private canonical content;
+- `FixedGraphRunGenerator` remains infrastructure-free;
+- same definition generates the exact deterministic Farm graph;
+- generator output contains no DB IDs;
+- runtime generated-graph validation remains independent of persisted current-run validation.
 
-Resolve presentation through projected authored `run_node_type.*` and region definitions.
+#### Run-start authority, Energy, and idempotency
+Re-run focused and integrated Package 3 coverage.
 
-#### Farm map presentation
-Replace/extend the lifecycle shell with a functional map view.
+Verify:
+- auth + CSRF + `Idempotency-Key` required;
+- exact `{region_id}` request contract;
+- server chooses active squad;
+- missing/empty/foreign/corrupt squad/unit/loadout/dice state rejected safely;
+- existing active run rejected before Energy spend;
+- canonical Energy cost is server-authored;
+- below-cap fractional regeneration anchor behavior remains correct;
+- reaching cap/full/over-cap behavior prevents banked capped regeneration;
+- insufficient Energy creates no run/receipt/revision mutation;
+- successful start writes run/nodes/edges/unit state + Energy + revision + idempotency receipt in one transaction;
+- exact replay creates/spends/increments only once;
+- same key with different request conflicts;
+- injected generation/persistence failure rolls back all state.
 
-At minimum show:
-- authored Farm region name;
-- visible graph edges;
-- one visual node for every returned persisted node;
-- authored node-type display name;
-- authored icon/art presentation where practical from the safe `icon_key` contract;
-- clear visual distinction between `locked`, `available`, and `completed`;
-- run-level controls for Return to Camp and Abandon Run;
-- useful run identity/status presentation without making raw database IDs the primary UX.
+#### Current-run and abandon authority
+Verify Package 4 lifecycle behavior:
+- current run `run:null` with no active run;
+- active read returns persisted graph rather than regenerating;
+- read is non-mutating;
+- mutable progressed node states are accepted without fresh-generation availability assumptions;
+- private generated metadata/topology source is not exposed;
+- corrupt authored/cross-owner relationships fail as integrity/non-disclosure errors;
+- abandon auth/CSRF and owned-run behavior;
+- foreign/missing IDs non-disclosing;
+- active → abandoned terminal timestamp/revision exactly once;
+- repeated owned already-abandoned attempt is successful no-op;
+- no Energy refund or Energy-anchor mutation;
+- graph/unit history retained.
 
-The visual implementation may remain deliberately simple. Final game-wide art direction is still deferred.
+#### Active-run Warband locks
+With an active run, verify the authoritative backend lock matrix:
+- switching to a different squad blocked;
+- re-activating participating active squad remains no-op;
+- participating formation/membership/position change blocked;
+- participating squad deletion blocked, including only-squad case;
+- participating squad name-only change allowed if formation identical;
+- participating unit loadout/dice replacement blocked;
+- participating unit rename allowed;
+- non-participating squad/unit configuration follows normal rules;
+- blocked commands do not increment revision;
+- after abandon, previously blocked legitimate configuration succeeds.
 
-Do not hard-code primary labels such as COMBAT/LOOT/REST/BOSS/EXIT from node indexes. Resolve them from authored projected node types.
+Where practical characterize the shared `user_state`-first transaction order for start/abandon/configuration races.
 
-#### Layout
-Use returned node positions to place nodes in a logical map coordinate system.
+#### Client start/resume lifecycle
+Re-run the Package 5 client contracts and integrated browser behavior.
 
-For the current Farm graph the authored columns produce a left-to-right path. Scale/translate that logical map into the current safe viewport.
+Verify:
+- public run cost is read from generated client content, never hard-coded in Camp;
+- start request uses credentials/CSRF/exact body/idempotency key;
+- one logical start attempt retains one key across network, malformed-response, HTTP 5xx, and repeated mixed ambiguous failures;
+- definitive auth/4xx failure may begin a later new attempt with a new key;
+- successful server response that cannot reconcile enters reload-required recovery and cannot issue another POST;
+- no optimistic Energy or active-run mutation;
+- startup bootstrap active run routes directly to RunScene without another bootstrap/content load;
+- `/runs/current` is lazy/deduplicated and fresh state is reused;
+- Return to Camp is non-mutating;
+- Resume issues no start POST;
+- browser reload resumes the same persisted run;
+- newer `run:null` clears stale cross-tab active-run state; equal-revision contradictions fail safely;
+- one RuntimeStartup/GameStore/ClientContentRegistry/RuntimeViewport/Phaser game/canvas survives GameScene ↔ RunScene switching.
 
-Requirements:
-- Compact `844x390` remains fully usable;
-- Standard `1600x900` remains fully usable;
-- Wide `2560x1080` remains fully usable;
-- edges connect the visual node centers/endpoints coherently;
-- controls do not overlap map nodes;
-- all graph content remains reachable/visible for the current Farm graph;
-- viewport reflow does not alter authoritative map state.
+#### Farm map authority
+Verify Package 6 map behavior as a projection of authoritative persisted state.
 
-Do not create CSS/browser scrolling for the Phaser map.
+Required proof:
+- map model receives only the strict current-run aggregate + ClientContentRegistry;
+- returned node positions determine node placement;
+- returned edges determine edge rendering;
+- a non-linear/non-five-node valid test graph demonstrates no hidden fixed Farm sequence assumption;
+- node names/descriptions/icons come from authored projected node types rather than index-based labels;
+- locked/available/completed remain visually/model-distinct;
+- legitimate progressed persisted state renders;
+- local node selection is presentation-only and does not mutate GameStore, POST, unlock/complete nodes, reward, or enter BattleScene;
+- no `current_node_id` is invented;
+- no private run-generation JSON is imported into the browser.
 
-A future larger graph may need pan/zoom, but do not build speculative map navigation unless the current returned graph cannot be presented safely without it.
+#### Abandon client reconciliation
+Verify:
+- exact POST route, credentials and CSRF;
+- no body and no Idempotency-Key;
+- strict abandon response rejects Energy/additional/malformed state;
+- explicit confirmation states no Energy refund;
+- Cancel performs no mutation;
+- duplicate submission prevented;
+- network/malformed/5xx ambiguity preserves active cached run and retries the same run ID;
+- definitive rejection preserves active state;
+- valid success reconciles revision and clears active/current run only after success;
+- Energy object/value remains unchanged;
+- active squad and Warband caches remain unchanged;
+- reconciliation disagreement requires reload and blocks further abandon mutation;
+- successful abandon returns to Camp without global bootstrap/profile/Warband refresh.
 
-#### Node interaction boundary
-Milestone 3 does not resolve nodes.
+#### Cross-player/security verification
+Use at least two users where practical.
 
-Nodes may be selectable/focusable for presentation only if that improves clarity. If selection exists, it may show:
-- authored node type name;
-- authored description;
-- authoritative status such as Locked / Ready / Completed.
+Verify player A cannot:
+- query B's run through any exposed vNext route;
+- abandon B's run;
+- start using B's squad/unit/die state;
+- mutate B's Warband while B's run exists;
+- learn foreign persisted IDs/details through unsafe error differences.
 
-Selection must remain local presentation state and survive ordinary reflow while `RunScene` remains active.
+Persisted corrupt cross-owner run-squad/run-unit relationships must fail as integrity errors without leaking foreign state.
 
-Do not:
-- POST a node action;
-- change node status locally;
-- mark nodes completed;
-- unlock downstream nodes;
-- start BattleScene;
-- award loot/rewards;
-- heal at Rest;
-- execute Boss/Exit behavior;
-- pretend an available node has been entered.
+#### Network/runtime assertions
+During real browser verification capture/inspect requests and prove:
+- no `/api/v1/profile`;
+- no `/api/v1/teams`;
+- no prototype run endpoint family;
+- no Angular gameplay routes/services owning run flow;
+- no bootstrap refresh used for normal start/abandon reconciliation;
+- no `game-content.json` refetch per screen transition;
+- Resume sends no `POST /api/v1/runs`;
+- Return to Camp sends no abandon request;
+- Start sends exactly one mutation for a successful attempt;
+- same Phaser canvas persists across GameScene/RunScene transitions.
 
-An available node should look ready, but there is no resolution action in this package.
+#### Responsive captures
+Generate and visually inspect deterministic captures for the final Package 6 state:
+- Farm Compact `844x390`;
+- Farm Standard `1600x900`;
+- Farm Wide `2560x1080`;
+- abandon confirmation at a representative landscape size;
+- touch-first portrait gate.
 
-Do not surface internal milestone/developer terminology to players as primary UX.
+Also re-check Camp Start/Resume presentation where inexpensive.
 
-#### Progress/current-position semantics
-There is currently no canonical separate `current_node_id` persisted by Milestone 3.
-
-Do not invent one.
-
-Represent progression only from the authoritative node statuses actually returned:
-- completed nodes are completed;
-- available nodes are ready;
-- locked nodes are locked.
-
-Do not call a node "current" unless the server contract later introduces that concept.
-
-#### Abandon RuntimeApiClient contract
-Add:
-
-`POST /api/v1/runs/:runId/abandon`
-
-Requirements:
-- credentials include;
-- bootstrap CSRF token;
-- no request body;
-- no `Idempotency-Key`;
-- canonical positive run ID;
-- strict success parsing.
-
-Parse the Package 4 authoritative response exactly:
-
-```text
-run:
-  id
-  region_id
-  squad_id
-  status: abandoned
-  ended_at
-active_run: null
-player_revision
-```
-
-Validate:
-- exact known fields;
-- positive IDs;
-- projected authored region;
-- terminal abandoned status;
-- valid UTC `ended_at`;
-- `active_run` exactly null;
-- non-negative revision.
-
-Do not accept Energy in the abandon response; abandonment does not refund or mutate Energy.
-
-#### Abandon retry behavior
-The backend abandon transition is naturally idempotent for the same owned run ID.
-
-Client behavior:
-- one in-flight abandon at a time;
-- network/malformed/5xx ambiguity may retry the same abandon endpoint/run ID;
-- no new idempotency key is generated or required;
-- do not optimistically clear active-run state while the result is ambiguous;
-- a valid success may be either the real transition or the backend's already-abandoned no-op retry result.
-
-A deliberate 4xx/unauthorized failure should display safe failure/recovery messaging and preserve the cached active run unless/until authoritative current-run state later proves otherwise.
-
-Do not display raw server exception text.
-
-#### Abandon confirmation
-Abandon must require explicit confirmation.
-
-The confirmation should communicate that:
-- the active run will end;
-- spent Energy is not refunded.
-
-It must provide clear Confirm and Cancel actions.
-
-While confirmation or submission owns interaction:
-- prevent duplicate abandon submissions;
-- block accidental node/Return-to-Camp actions behind the confirmation;
-- preserve current-run/map state.
-
-Touch-first interaction must be usable without relying on hover.
-
-#### GameStore abandon reconciliation
-Add a narrow authoritative reconciliation method for a valid abandon result.
-
-Before mutation, committed state remains unchanged.
-
-On valid success:
-- reject revision regression;
-- verify returned run ID/region/squad agrees with the cached active/current run when those states are at the same authoritative revision;
-- adopt returned `player_revision`;
-- set bootstrap `active_run` to null;
-- set current-run cache to fresh `data: null`;
-- preserve bootstrap Energy exactly as cached before abandon;
-- preserve Warband units/dice/squads caches;
-- preserve active squad;
-- do not globally refetch bootstrap/profile/Warband.
-
-After successful reconciliation, transition to `GameScene`/Camp.
-
-If a strictly valid abandon response cannot reconcile with local authoritative state, enter a safe reload/recovery state. Do not clear the run optimistically and do not issue another unrelated mutation.
-
-#### Stale other-tab/session behavior
-Package 5 already supports `/runs/current -> run:null` at a newer revision clearing a stale bootstrap active-run summary.
-
-Preserve that behavior.
-
-If another tab abandons while this RunScene is open, an explicit retry/refresh/current-run reload that receives the newer `run:null` must recover to Camp.
-
-Do not add polling merely for this package.
-
-#### Return to Camp / Resume
-Preserve the Package 5 distinction:
-- Return to Camp does **not** abandon;
-- Camp displays Resume while bootstrap has an active run;
-- Resume issues no `POST /runs`;
-- re-entering RunScene reuses fresh current-run cache when still authoritative;
-- browser reload uses bootstrap active-run summary and then reloads the persisted current aggregate.
-
-Adding map presentation must not regress this lifecycle.
-
-#### Portrait gate
-The existing touch-first portrait gate must suspend RunScene map interaction and confirmations without destroying:
-- current-run cache;
-- local node selection/presentation state;
-- abandon confirmation state where practical and safe.
-
-Return to landscape should reflow the same map/run rather than reload/regenerate it.
-
-#### Error/loading states
-Retain and refine clear RunScene states for:
-- current-run loading;
-- current-run request failure with Retry;
-- current-run integrity/malformed failure;
-- stale active-run recovery to Camp;
-- abandon confirmation;
-- abandon submitting;
-- abandon retryable ambiguous failure;
-- abandon authoritative rejection/recovery required.
-
-Do not hide a failed run query behind an empty/generated map.
-
-#### Debug/capture support
-Extend deterministic capture support for the actual Farm map using contract-valid current-run fixture data.
-
-Add captures for:
-- Farm map Compact `844x390`;
-- Farm map Standard `1600x900`;
-- Farm map Wide `2560x1080`;
-- touch-first portrait gate if the existing capture flow supports it cheaply;
-- abandon confirmation at at least one representative landscape size.
-
-Use the same frontend run contracts/store shape as production. Do not create a second map model just for screenshots.
-
-Visually inspect captures for:
+Inspect for:
 - clipped nodes/labels;
-- edges missing node centers;
-- status distinction;
-- control overlap;
-- unreadable node details;
+- edges that do not visually meet their nodes;
+- status differentiation;
+- unreachable/tiny touch targets;
+- overlap between map, detail text, Return, and Abandon;
 - unsafe confirmation controls;
 - raw IDs dominating UX;
-- portrait interaction leaking through gate.
+- portrait interaction leaking through the gate;
+- broken reflow or state loss.
 
-#### Tests
-At minimum prove:
-- map model/layout consumes returned node positions/edges rather than fixed five-node indexes;
-- authored node presentation comes from ClientContentRegistry;
-- locked/available/completed states are visually/model-distinct;
-- legitimate completed/progressed persisted graph still renders;
-- local selection does not mutate GameStore/current-run authority;
-- map reflow preserves local selection and current-run cache;
-- node interaction issues no mutation and does not start BattleScene;
-- abandon API uses POST, credentials, CSRF, exact route, no body, no Idempotency-Key;
-- strict abandon parser rejects malformed/additional/Energy-bearing responses;
-- opening abandon confirmation does not mutate state;
-- Cancel preserves the active run;
-- Confirm prevents duplicate submissions;
-- ambiguous abandon failure preserves active run and permits retry of the same run ID;
-- successful abandon reconciliation adopts revision, clears active-run/current-run state, preserves Energy and Warband caches, and enters Camp;
-- revision regression or response identity disagreement fails safely;
-- Return to Camp remains non-abandoning;
-- Camp Resume still issues no run-start mutation;
-- fresh current-run cache is reused on Resume;
-- newer `run:null` recovery still routes to Camp;
-- Package 5 run-start ambiguous-idempotency tests remain green;
-- GameScene/RunScene still share one mounted Phaser runtime/store/canvas;
-- responsive map layouts fit Compact/Standard/Wide safe bounds;
-- portrait gate preserves authoritative/local presentation state.
+Final visual polish remains deferred; functional clarity is the bar.
 
-#### Real-stack verification
-Where practical, use controlled fixture + real PHP/MySQL/browser runtime:
+#### Quality gates
+Run all applicable commands in `agent/QUALITY_GATES.md`.
 
-fresh/authenticated Camp
--> Start Farm
--> persisted Farm map appears
--> Return to Camp
--> Resume same map/run ID
--> reload -> same persisted map/run ID
--> open Abandon confirmation -> Cancel -> run remains active
--> open confirmation -> Confirm
--> authoritative abandon
--> Camp with Start Farm available again
--> verify Energy was not refunded
--> verify persisted run row is terminal/history retained.
+Closure should substantiate, not assume, Package 1-6 verification.
 
-Do not resolve any node.
-
-#### Documentation
-Update existing canonical docs only where this package changes accepted map/abandon client truth.
-
-Do not create package-report/history/UAT documents.
-
-#### Explicitly Out of Scope
-Do not implement:
-- node resolution API/client mutation;
-- combat;
-- `BattleScene` entry;
-- enemy encounters;
-- loot/reward claims;
-- Rest mechanics;
-- Boss mechanics;
-- Exit/completion mechanics;
-- unlocking/completing nodes;
-- current HP calculation;
-- run modifiers;
-- battle playback;
-- final visual overhaul;
-- Milestone 4.
-
-Do not modify backend run lifecycle contracts unless a concrete Package 6 blocker/defect is discovered.
-
-#### Verification
-Run applicable gates from `agent/QUALITY_GATES.md`.
-
-At minimum:
-- focused abandon contract/API/store tests;
-- Farm map model/layout/render tests;
-- RunScene interaction tests;
-- Package 5 lifecycle/start-idempotency regressions;
-- Camp Resume regressions;
-- runtime/orientation tests;
+At minimum run/report:
+- `npm run llm:check`;
+- `npm run docs:lint`;
+- canonical content generation/validation/exact projection check;
+- fresh vNext DB reset/provision;
+- focused run persistence/generator/start/current/abandon/lock backend integration suites;
+- full backend Docker suite;
+- focused run frontend contract/store/map/scene/Camp suites;
 - full frontend suite;
 - production frontend build;
 - bundle check;
-- deterministic Compact/Standard/Wide Farm captures and visual inspection;
-- abandon-confirmation capture;
-- relevant backend Package 4 abandon regression if backend files change;
-- docs/context checks when applicable.
+- deterministic captures listed above;
+- real PHP/MySQL/browser run-lifecycle verifier;
+- `git diff --check`;
+- `npm run verify:full` when host prerequisites permit.
 
-Real-stack verification is strongly useful when practical.
+If aggregate `verify:full` cannot execute because host PHP or another host-only prerequisite is missing, run all required constituents through their supported paths and report the limitation exactly. Do not claim aggregate success when it did not run.
 
-Do not claim a gate passed unless it actually ran.
+#### Prototype disposition/cleanup
+Inspect retained prototype run code against `vnext-prototype-code-disposition.md` only after the vNext slice is proven.
+
+Delete only code that is conclusively:
+- unreachable from live composition;
+- fully superseded by the now-proven vNext Enter Farm slice;
+- not useful evidence for later unimplemented Mountains/Swamps, node-resolution, combat, rewards, Rest/Chaos, or progression work.
+
+Likely cleanup candidates include unreachable prototype Angular run/map lifecycle pages/services whose vNext presentation and lifecycle are now proven.
+
+Retain prototype generator/algorithm evidence still needed for later regions/mechanics. Retain combat/node-resolution/reward evidence still needed by later milestones even when its old orchestration wrapper is obsolete.
+
+Do not create an archive. Git history is the archive.
+
+Do not perform unrelated cleanup.
+
+#### Documentation
+Update existing active documentation only where integrated verification/cleanup changes current truth.
+
+Do not create completion-report or UAT-history documents.
+
+Do not mark Milestone 3 complete/UAT-passed in this package. Architectural review will mark technical completion and prepare manual UAT.
+
+#### Explicitly Out of Scope
+Do not implement:
+- node resolution;
+- node completion/unlocking;
+- combat or BattleScene entry;
+- enemies/encounters;
+- loot/reward application or claims;
+- Rest behavior;
+- Boss behavior;
+- Exit/run-completion behavior;
+- resolved combat HP/stat formulas;
+- run modifiers;
+- battle playback;
+- promotion/Academy;
+- Shop;
+- Wrong Machine;
+- production starter onboarding;
+- Milestone 4;
+- final game-wide visual overhaul.
+
+Fix concrete Milestone 3 defects discovered by verification, but do not expand product scope.
 
 #### Review State
 When complete:
-- leave Package 6 **In Progress**;
-- do not mark it complete;
-- do not promote Package 7;
-- do not begin integrated closure or Milestone 4.
+- leave Package 7 **In Progress**;
+- do not mark Milestone 3 complete;
+- do not promote Milestone 4;
+- do not begin combat work.
 
-Architectural review decides completion.
+After architectural closure review passes, manual user UAT will run before Milestone 4 begins.
 
 #### Final Report
 Report:
-1. commit SHA;
-2. map presentation/layout approach;
-3. proof that authoritative persisted graph drives rendering;
-4. node presentation/status behavior;
-5. confirmation interaction;
-6. abandon API/strict response contract;
-7. ambiguous abandon retry behavior;
-8. GameStore abandon reconciliation and Energy/cache preservation;
-9. Return/Resume/reload behavior;
-10. responsive/orientation behavior;
-11. capture paths and visual inspection findings;
-12. real-stack verification if run;
-13. quality gates actually executed/results;
-14. unresolved concern, if any.
+1. resulting commit SHA(s);
+2. fresh DB/schema/invariant verification;
+3. authored content revision and projection/privacy verification;
+4. generator verification;
+5. exact real PHP/MySQL/browser flow exercised;
+6. network/runtime request assertions;
+7. Energy/idempotency results;
+8. current-run/abandon results;
+9. active-run Warband-lock results;
+10. cross-player/security results;
+11. client start/retry/recovery results;
+12. map-authority/node-interaction results;
+13. abandon client reconciliation results;
+14. `player_revision` results;
+15. responsive capture paths and visual findings;
+16. every quality-gate command and actual result;
+17. prototype code removed;
+18. intentionally retained prototype evidence and why;
+19. environment limitations/skipped optional checks;
+20. unresolved Milestone 3 concerns;
+21. whether the milestone is `READY FOR ARCHITECTURAL CLOSURE REVIEW`.
 
-Do not begin another package.
+Do not begin another milestone.
