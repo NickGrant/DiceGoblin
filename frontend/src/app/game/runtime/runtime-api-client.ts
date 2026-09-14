@@ -18,8 +18,10 @@ import { WarbandDieSummary } from './warband-contracts';
 import {
   CurrentRunResult,
   RunContractError,
+  RunAbandonResult,
   RunStartResult,
   parseCurrentRunEnvelope,
+  parseRunAbandonEnvelope,
   parseRunStartEnvelope,
 } from './run-contracts';
 
@@ -89,6 +91,16 @@ export class RuntimeApiClient {
   ): Promise<RunStartResult> {
     return this.mutate('/api/v1/runs', 'POST', csrfToken, { region_id: regionId }, idempotencyKey,
       (value) => parseRunStartEnvelope(value, content));
+  }
+
+  async abandonRun(
+    runId: string,
+    csrfToken: string,
+    content: ClientContentRegistry,
+  ): Promise<RunAbandonResult> {
+    if (!/^[1-9][0-9]*$/.test(runId)) throw new RuntimeApiError('malformed-response');
+    return this.mutate(`/api/v1/runs/${runId}/abandon`, 'POST', csrfToken, undefined, null,
+      (value) => parseRunAbandonEnvelope(value, content));
   }
 
   async createSquad(

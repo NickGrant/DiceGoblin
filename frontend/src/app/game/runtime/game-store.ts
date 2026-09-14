@@ -345,6 +345,25 @@ export class GameStore {
     this.setCurrentRun({ status: 'stale', data: null, error: null });
   }
 
+  reconcileRunAbandon(result: RunAbandonResult): void {
+    const bootstrap = this.cachedBootstrap;
+    if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)
+      throw new RunContractError('Authoritative player revision regressed.');
+    const summary = bootstrap.active_run;
+    if (!summary || summary.id !== result.run.id || summary.region_id !== result.run.regionId
+      || summary.squad_id !== result.run.squadId)
+      throw new RunContractError('Abandoned run disagrees with the authoritative active run.');
+    if (bootstrap.active_squad && bootstrap.active_squad.id !== result.run.squadId)
+      throw new RunContractError('Abandoned run squad disagrees with the authoritative active squad.');
+    const current = this.currentRunState.data;
+    if (current && (current.id !== result.run.id || current.regionId !== result.run.regionId
+      || current.squadId !== result.run.squadId))
+      throw new RunContractError('Abandoned run disagrees with the cached current run.');
+    this.cachedBootstrap = Object.freeze({ ...bootstrap,
+      player: Object.freeze({ ...bootstrap.player, player_revision: result.playerRevision }), active_run: null });
+    this.setCurrentRun({ status: 'fresh', data: null, error: null });
+  }
+
   loadCurrentRun(api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
     if (!reload && this.currentRunState.status === 'fresh') return Promise.resolve();
     if (this.currentRunInFlight) return this.currentRunInFlight;
@@ -804,7 +823,7 @@ import {
   UnitMutationResult,
   parseUnitDetailEnvelope,
 } from './unit-detail-contracts';
-import { CurrentRun, CurrentRunResult, RunContractError, RunStartResult } from './run-contracts';
+import { CurrentRun, CurrentRunResult, RunAbandonResult, RunContractError, RunStartResult } from './run-contracts';
 
 function unitDetailErrorKind(error: unknown): WarbandDomainErrorKind {
   if (error instanceof RuntimeApiError) return error.kind;

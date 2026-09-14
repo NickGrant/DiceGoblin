@@ -133,21 +133,36 @@ describe('RuntimeApiClient', () => {
     } });
     const energy = { current: 40, normal_max: 50, regeneration_per_hour: 12, regeneration_interval_seconds: 300,
       last_regeneration_at: '2026-09-13T12:00:00Z', next_regeneration_at: null, fully_regenerated_at: null };
-    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.callFake(async (_url, init) =>
-      new Response(JSON.stringify(init?.method === 'POST'
-        ? { ok: true, data: { run: { id: '7', region_id: 'region.the_farm', squad_id: '3', status: 'active' }, energy, player_revision: 8 } }
-        : { ok: true, data: { run: null, player_revision: 8 } }), { status: 200 }));
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.callFake(async (url, init) =>
+      new Response(JSON.stringify(String(url).endsWith('/abandon')
+        ? { ok: true, data: { run: { id: '7', region_id: 'region.the_farm', squad_id: '3', status: 'abandoned', ended_at: '2026-09-13T12:02:00Z' }, active_run: null, player_revision: 9 } }
+        : init?.method === 'POST'
+          ? { ok: true, data: { run: { id: '7', region_id: 'region.the_farm', squad_id: '3', status: 'active' }, energy, player_revision: 8 } }
+          : { ok: true, data: { run: null, player_revision: 8 } }), { status: 200 }));
     const client = new RuntimeApiClient(fetchRequest, '/root');
 
     await client.startRun('region.the_farm', 'csrf-token', 'run:start:12345678', content);
     await client.getCurrentRun(content);
+    await client.abandonRun('7', 'csrf-token', content);
 
-    const [start, current] = fetchRequest.calls.allArgs();
+    const [start, current, abandon] = fetchRequest.calls.allArgs();
     expect(start[0]).toBe('/root/api/v1/runs');
     expect(start[1]).toEqual(jasmine.objectContaining({ method: 'POST', credentials: 'include', body: JSON.stringify({ region_id: 'region.the_farm' }) }));
     expect(start[1]?.headers).toEqual(jasmine.objectContaining({ 'X-CSRF-Token': 'csrf-token', 'Idempotency-Key': 'run:start:12345678' }));
     expect(current[0]).toBe('/root/api/v1/runs/current');
     expect(current[1]).toEqual(jasmine.objectContaining({ method: 'GET', credentials: 'include', headers: { Accept: 'application/json' } }));
+    expect(abandon[0]).toBe('/root/api/v1/runs/7/abandon');
+    expect(abandon[1]).toEqual(jasmine.objectContaining({ method: 'POST', credentials: 'include' }));
+    expect(abandon[1]?.body).toBeUndefined();
+    expect(abandon[1]?.headers).toEqual({ Accept: 'application/json', 'X-CSRF-Token': 'csrf-token' });
+  });
+
+  it('rejects a non-canonical abandon run ID before sending a request', async () => {
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest');
+    const client = new RuntimeApiClient(fetchRequest, '');
+    await expectAsync(client.abandonRun('01', 'csrf', {} as ClientContentRegistry))
+      .toBeRejectedWith(jasmine.objectContaining({ kind: 'malformed-response' }));
+    expect(fetchRequest).not.toHaveBeenCalled();
   });
 
   it('preserves malformed and HTTP 5xx run-start outcomes for ambiguous retry handling', async () => {

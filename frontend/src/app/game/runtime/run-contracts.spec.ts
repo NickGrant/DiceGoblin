@@ -1,5 +1,5 @@
 import { ClientContentRegistry } from './client-content-registry';
-import { RunContractError, parseCurrentRunEnvelope, parseRunStartEnvelope } from './run-contracts';
+import { RunContractError, parseCurrentRunEnvelope, parseRunAbandonEnvelope, parseRunStartEnvelope } from './run-contracts';
 
 describe('run contracts', () => {
   function content(): ClientContentRegistry {
@@ -63,5 +63,23 @@ describe('run contracts', () => {
   it('strictly accepts the no-current-run response', () => {
     expect(parseCurrentRunEnvelope({ ok: true, data: { run: null, player_revision: 9 } }, content()))
       .toEqual({ run: null, playerRevision: 9 });
+  });
+
+  it('strictly parses authoritative abandon without accepting Energy or extra state', () => {
+    const valid: any = { ok: true, data: { run: { id: '7', region_id: 'region.the_farm', squad_id: '3',
+      status: 'abandoned', ended_at: '2026-09-13T12:04:00Z' }, active_run: null, player_revision: 9 } };
+    expect(parseRunAbandonEnvelope(valid, content())).toEqual({ run: { id: '7', regionId: 'region.the_farm',
+      squadId: '3', status: 'abandoned', endedAt: '2026-09-13T12:04:00Z' }, activeRun: null, playerRevision: 9 });
+    for (const mutate of [
+      (value: any) => value.data.energy = energy(),
+      (value: any) => value.data.run.extra = true,
+      (value: any) => value.data.run.status = 'active',
+      (value: any) => value.data.run.ended_at = 'not-a-time',
+      (value: any) => value.data.active_run = {},
+      (value: any) => value.data.run.region_id = 'region.missing',
+    ]) {
+      const candidate = structuredClone(valid); mutate(candidate);
+      expect(() => parseRunAbandonEnvelope(candidate, content())).toThrowError(RunContractError);
+    }
   });
 });

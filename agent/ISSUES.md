@@ -6,7 +6,7 @@
 
 ### Establish Phaser Farm map and abandon/resume UX
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

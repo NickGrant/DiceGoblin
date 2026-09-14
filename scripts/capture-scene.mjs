@@ -155,7 +155,7 @@ Options:
 
 async function installGameFixtureRoutes(page, options) {
   const scene = options.scene.trim().toLowerCase();
-  if (!['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', 'run', 'run-portrait'].includes(scene)) return;
+  if (!['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait'].includes(scene)) return;
 
   const projection = JSON.parse(await readFile(path.resolve(process.cwd(), 'frontend/public/game-content.json'), 'utf8'));
   const revision = projection.revision;
@@ -206,18 +206,27 @@ async function installGameFixtureRoutes(page, options) {
           id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation,
           units: unitRows.filter((unit) => activeFormation.includes(unit.id)),
         },
-        active_run: ['run', 'run-portrait'].includes(scene)
+        active_run: ['run', 'run-abandon', 'run-portrait'].includes(scene)
           ? { id: '401', region_id: 'region.the_farm', squad_id: '301', status: 'active' }
           : null,
       },
     }),
   }));
-  if (['run', 'run-portrait'].includes(scene)) {
+  if (['run', 'run-abandon', 'run-portrait'].includes(scene)) {
     await page.route('**/api/v1/runs/current', (route) => route.fulfill({
       status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data: {
         run: { id: '401', region_id: 'region.the_farm', squad_id: '301', status: 'active', created_at: '2026-09-13T12:00:00Z',
-          nodes: [{ id: '501', node_index: 0, node_type_id: 'run_node_type.combat', status: 'available', completed_at: null, position: { column: 0, row: 1 } }],
-          edges: [], units: activeFormation.filter(Boolean).map((unit_id) => ({ unit_id, current_hp: null })) }, player_revision: 3,
+          nodes: [
+            { id: '501', node_index: 0, node_type_id: 'run_node_type.combat', status: 'completed', completed_at: '2026-09-13T12:02:00Z', position: { column: 0, row: 1 } },
+            { id: '502', node_index: 1, node_type_id: 'run_node_type.loot', status: 'available', completed_at: null, position: { column: 1, row: 1 } },
+            { id: '503', node_index: 2, node_type_id: 'run_node_type.rest', status: 'locked', completed_at: null, position: { column: 2, row: 1 } },
+            { id: '504', node_index: 3, node_type_id: 'run_node_type.boss', status: 'locked', completed_at: null, position: { column: 3, row: 1 } },
+            { id: '505', node_index: 4, node_type_id: 'run_node_type.exit', status: 'locked', completed_at: null, position: { column: 4, row: 1 } },
+          ],
+          edges: [
+            { from_node_id: '501', to_node_id: '502' }, { from_node_id: '502', to_node_id: '503' },
+            { from_node_id: '503', to_node_id: '504' }, { from_node_id: '504', to_node_id: '505' },
+          ], units: activeFormation.filter(Boolean).map((unit_id) => ({ unit_id, current_hp: null })) }, player_revision: 3,
       } }),
     }));
     return;
@@ -438,11 +447,11 @@ async function captureScene(options) {
             { timeout: options.timeoutMs },
           );
         }
-        if (['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', 'run', 'run-portrait'].includes(options.scene.trim().toLowerCase())) {
+        if (['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
           const requestedGameScreen = options.scene.trim().toLowerCase();
           const gameScreen = ['warband', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
-            ? requestedGameScreen : ['run', 'run-portrait'].includes(requestedGameScreen) ? 'run' : 'camp';
+            ? requestedGameScreen : ['run', 'run-abandon', 'run-portrait'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {
             await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });
@@ -452,6 +461,12 @@ async function captureScene(options) {
           }
           if (gameScreen === 'unit-configuration') {
             await page.waitForSelector('[data-unit-configuration-ready="true"]', { timeout: options.timeoutMs });
+          }
+          if (gameScreen === 'run') {
+            await page.waitForSelector('[data-run-map-ready="true"]', { state: 'attached', timeout: options.timeoutMs });
+          }
+          if (requestedGameScreen === 'run-abandon') {
+            await page.waitForSelector('[data-run-abandon-confirmation="true"]', { state: 'attached', timeout: options.timeoutMs });
           }
           const runtimeMetrics = await page.evaluate(() => {
             const host = document.querySelector('.game-host__mount');
@@ -474,9 +489,14 @@ async function captureScene(options) {
         }
       } catch (error) {
         const debugState = await readDebugState(page);
+        const gameHostState = await page.evaluate(() => {
+          const host = document.querySelector('.game-host__mount');
+          return host ? Object.fromEntries(Array.from(host.attributes).map((attribute) => [attribute.name, attribute.value])) : null;
+        }).catch(() => null);
         const diagnostics = [
           `Capture URL: ${captureUrl}`,
           `Debug state: ${JSON.stringify(debugState)}`,
+          `Game host state: ${JSON.stringify(gameHostState)}`,
         ];
         if (pageErrors.length > 0) {
           diagnostics.push(`Page errors: ${pageErrors.join(" | ")}`);

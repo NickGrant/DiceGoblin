@@ -41,6 +41,18 @@ export interface CurrentRunResult {
   readonly playerRevision: number;
 }
 
+export interface RunAbandonResult {
+  readonly run: {
+    readonly id: string;
+    readonly regionId: string;
+    readonly squadId: string;
+    readonly status: 'abandoned';
+    readonly endedAt: string;
+  };
+  readonly activeRun: null;
+  readonly playerRevision: number;
+}
+
 const stableIdPattern = /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/;
 const positiveIdPattern = /^[1-9][0-9]*$/;
 const utcTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
@@ -208,5 +220,25 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
       squadId: positiveId(raw['squad_id'], 'Run squad_id'), status: 'active', createdAt: timestamp(raw['created_at'], 'Run created_at'),
       nodes: Object.freeze(nodes), edges: Object.freeze(edges), units: Object.freeze(units) }),
     playerRevision,
+  });
+}
+
+export function parseRunAbandonEnvelope(value: unknown, content: ClientContentRegistry): RunAbandonResult {
+  const data = envelope(value);
+  exact(data, ['run', 'active_run', 'player_revision'], 'Run abandon data');
+  if (data['active_run'] !== null) throw new RunContractError('Abandon active_run must be null.');
+  const run = record(data['run'], 'Abandoned run');
+  exact(run, ['id', 'region_id', 'squad_id', 'status', 'ended_at'], 'Abandoned run');
+  if (run['status'] !== 'abandoned') throw new RunContractError('Abandoned run must be terminal.');
+  return Object.freeze({
+    run: Object.freeze({
+      id: positiveId(run['id'], 'Run id'),
+      regionId: regionId(run['region_id'], content),
+      squadId: positiveId(run['squad_id'], 'Run squad_id'),
+      status: 'abandoned',
+      endedAt: timestamp(run['ended_at'], 'Run ended_at'),
+    }),
+    activeRun: null,
+    playerRevision: nonNegativeInteger(data['player_revision'], 'Run player_revision'),
   });
 }

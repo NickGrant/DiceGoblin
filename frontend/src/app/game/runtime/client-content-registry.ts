@@ -353,6 +353,9 @@ export class ClientContentRegistry {
   getRunNodeType(stableId: string): ClientRunNodeTypeDefinition | undefined {
     return this.runNodeTypes.get(stableId);
   }
+  listRunNodeTypes(): readonly ClientRunNodeTypeDefinition[] {
+    return Object.freeze([...this.runNodeTypes.values()]);
+  }
 
   private loadCatalog<T extends ClientContentDefinition>(
     catalog: Record<string, unknown>,

@@ -11,6 +11,9 @@ import { SquadEditorInitialAction, SquadEditorScreen } from '../screens/squad-ed
 import { WarbandSquadSummary } from '../runtime/warband-contracts';
 import { UnitConfigurationScreen } from '../screens/unit-configuration-screen';
 import { RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
+import { RuntimeApiError } from '../runtime/runtime-api-client';
+import { createRunMapLayout, createRunMapPresentation, runNodeColors } from '../runtime/run-map-model';
+import { Bounds } from '../runtime/runtime-viewport';
 
 export const BOOT_SCENE_KEY = 'BootScene';
 export const GAME_SCENE_KEY = 'GameScene';
@@ -327,12 +330,23 @@ export class RunScene extends RuntimeScene {
   private root: Phaser.GameObjects.Container | null = null;
   private unsubscribeViewport: (() => void) | null = null;
   private unsubscribeRun: (() => void) | null = null;
+  private selectedNodeId: string | null = null;
+  private abandonState: 'idle' | 'confirming' | 'submitting' | 'retryable' | 'rejected' | 'recovery-required' = 'idle';
+  private abandonRunId: string | null = null;
+  private abandonMessage = '';
   constructor(
     runtimeState: RuntimeLifecycleState,
     runtimeStartup: RuntimeStartup,
     runtimeViewport: RuntimeViewport,
   ) {
     super(RUN_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
+  }
+
+  preload(): void {
+    for (const nodeType of this.runtimeStartup.contentRegistry?.listRunNodeTypes() ?? []) {
+      const textureKey = `run-node-icon:${nodeType.icon_key}`;
+      if (!this.textures.exists(textureKey)) this.load.image(textureKey, `assets/ui/icons/${nodeType.icon_key}.png`);
+    }
   }
 
   create(): void {
@@ -344,7 +358,7 @@ export class RunScene extends RuntimeScene {
     }
     (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
       ?.setAttribute('data-game-screen', 'run');
-    this.unsubscribeViewport = this.runtimeViewport.subscribe(() => this.render());
+    this.unsubscribeViewport = this.runtimeViewport.subscribe(() => this.reflow());
     this.unsubscribeRun = this.runtimeStartup.store.subscribeCurrentRun(() => this.handleRunState());
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeViewport?.(); this.unsubscribeViewport = null;
@@ -360,12 +374,86 @@ export class RunScene extends RuntimeScene {
     if (content) void this.runtimeStartup.store.retryCurrentRun(this.runtimeStartup.apiClient, content);
   }
 
-  returnToCamp(): void { this.scene.start(GAME_SCENE_KEY); }
+  get selectedMapNodeId(): string | null { return this.selectedNodeId; }
+
+  get abandonActionState(): string { return this.abandonState; }
+
+  reflow(): void { this.render(); }
+
+  selectNode(nodeId: string): void {
+    if (this.abandonState !== 'idle' || !this.runtimeStartup.store.currentRun.data?.nodes.some((node) => node.id === nodeId)) return;
+    this.selectedNodeId = nodeId;
+    this.render();
+  }
+
+  returnToCamp(): void {
+    if (this.abandonState === 'idle') this.scene.start(GAME_SCENE_KEY);
+  }
+
+  openAbandonConfirmation(): void {
+    const run = this.runtimeStartup.store.currentRun.data;
+    if (this.abandonState !== 'idle' || !run) return;
+    this.abandonRunId = run.id;
+    this.abandonState = 'confirming';
+    this.abandonMessage = 'This run will end. The Energy spent to enter will not be refunded.';
+    this.render();
+  }
+
+  cancelAbandon(): void {
+    if (this.abandonState !== 'confirming' && this.abandonState !== 'rejected') return;
+    this.abandonState = 'idle';
+    this.abandonRunId = null;
+    this.abandonMessage = '';
+    this.render();
+  }
+
+  async confirmAbandon(): Promise<void> {
+    if ((this.abandonState !== 'confirming' && this.abandonState !== 'retryable') || !this.abandonRunId) return;
+    const content = this.runtimeStartup.contentRegistry;
+    const bootstrap = this.runtimeStartup.store.bootstrap;
+    if (!content || !bootstrap) return;
+    const runId = this.abandonRunId;
+    this.abandonState = 'submitting';
+    this.abandonMessage = 'Ending the run safely…';
+    this.render();
+    let result: Awaited<ReturnType<RuntimeStartup['apiClient']['abandonRun']>>;
+    try {
+      result = await this.runtimeStartup.apiClient.abandonRun(runId, bootstrap.session.csrf_token, content);
+    } catch (error) {
+      if (this.isDefinitiveAbandonRejection(error)) {
+        this.abandonState = 'rejected';
+        this.abandonMessage = error instanceof RuntimeApiError && error.kind === 'unauthorized'
+          ? 'Your session expired. Reload and sign in again.'
+          : 'The run could not be abandoned. Its cached state has been preserved.';
+      } else {
+        this.abandonState = 'retryable';
+        this.abandonMessage = 'The result is uncertain. Retry abandonment for this same run.';
+      }
+      this.render();
+      return;
+    }
+    try {
+      this.runtimeStartup.store.reconcileRunAbandon(result);
+    } catch {
+      this.abandonState = 'recovery-required';
+      this.abandonMessage = 'The server ended the run, but local state disagrees. Reload to recover.';
+      this.render();
+      return;
+    }
+    this.abandonState = 'idle';
+    this.abandonRunId = null;
+    this.scene.start(GAME_SCENE_KEY);
+  }
 
   private handleRunState(): void {
     const state = this.runtimeStartup.store.currentRun;
     if (state.status === 'fresh' && state.data === null && !this.runtimeStartup.store.bootstrap?.active_run) {
       this.scene.start(GAME_SCENE_KEY); return;
+    }
+    const debugScene = (readDebugCaptureRequest()?.scene ?? window.__DG_DEBUG__?.requestedScene ?? '').toLowerCase();
+    if (debugScene === 'run-abandon' && state.status === 'fresh' && state.data && this.abandonState === 'idle') {
+      this.openAbandonConfirmation();
+      return;
     }
     this.render();
   }
@@ -382,39 +470,146 @@ export class RunScene extends RuntimeScene {
     background.fillGradientStyle(0x0b211b, 0x173d31, 0x071414, 0x102827, 1);
     background.fillRect(0, 0, snapshot.logicalWidth, snapshot.logicalHeight);
     root.add(background);
-    const layout = runShellLayout(snapshot);
-    const panel = this.add.graphics();
-    panel.fillStyle(0x342418, 0.97); panel.fillRoundedRect(layout.x, layout.y, layout.width, layout.height, 24);
-    panel.lineStyle(5, 0xc9972b, 1); panel.strokeRoundedRect(layout.x, layout.y, layout.width, layout.height, 24);
-    root.add(panel);
     const run = state.data;
-    const region = run ? content.getRegion(run.regionId) : null;
-    const title = this.add.text(layout.centerX, layout.y + 70, region?.display_name ?? 'THE FARM', {
-      color: '#f5e8c8', fontFamily: 'Georgia, serif', fontSize: snapshot.layoutClass === 'compact' ? '48px' : '44px', fontStyle: 'bold',
-    }).setOrigin(0.5);
-    let detail = 'Loading your persisted run…';
-    if (state.status === 'error') detail = state.error === 'network' ? 'The run could not be reached. Your progress is safe.' : 'The run state could not be verified safely.';
-    else if (run) detail = `Run #${run.id} · Active · Squad #${run.squadId}`;
-    const status = this.add.text(layout.centerX, layout.y + 155, detail, {
-      color: '#d9c9a5', fontFamily: 'system-ui, sans-serif', fontSize: snapshot.layoutClass === 'compact' ? '32px' : '20px', align: 'center',
-      wordWrap: { width: layout.width - 100 },
-    }).setOrigin(0.5);
-    const note = this.add.text(layout.centerX, layout.y + 225,
-      run ? 'The route is persisted on the server. Farm navigation arrives next.' : '', {
-        color: '#98b79b', fontFamily: 'system-ui, sans-serif', fontSize: snapshot.layoutClass === 'compact' ? '26px' : '17px', align: 'center',
-      }).setOrigin(0.5);
-    root.add([title, status, note]);
-    if (state.status === 'error') this.addShellButton(root, layout.centerX, layout.y + layout.height - 155, 'RETRY', () => this.retry());
-    this.addShellButton(root, layout.centerX, layout.y + layout.height - 70, 'RETURN TO CAMP', () => this.returnToCamp());
+    this.host()?.setAttribute('data-run-map-ready', run && state.status === 'fresh' ? 'true' : 'false');
+    this.host()?.setAttribute('data-run-abandon-confirmation', this.abandonState === 'idle' ? 'false' : 'true');
+    if (!run) {
+      const shell = runShellLayout(snapshot);
+      const panel = this.add.graphics();
+      panel.fillStyle(0x342418, 0.97); panel.fillRoundedRect(shell.x, shell.y, shell.width, shell.height, 24);
+      panel.lineStyle(5, 0xc9972b, 1); panel.strokeRoundedRect(shell.x, shell.y, shell.width, shell.height, 24);
+      root.add(panel);
+      const title = this.add.text(shell.centerX, shell.y + 95, 'THE FARM', { color: '#f5e8c8', fontFamily: 'Georgia, serif',
+        fontSize: snapshot.layoutClass === 'compact' ? '48px' : '44px', fontStyle: 'bold' }).setOrigin(0.5);
+      let detail = 'Loading your persisted run…';
+      if (state.status === 'error') detail = state.error === 'network'
+        ? 'The run could not be reached. Your progress is safe.' : 'The run state could not be verified safely.';
+      const status = this.add.text(shell.centerX, shell.y + 190, detail, { color: '#d9c9a5', fontFamily: 'system-ui, sans-serif',
+        fontSize: snapshot.layoutClass === 'compact' ? '32px' : '20px', align: 'center', wordWrap: { width: shell.width - 100 } }).setOrigin(0.5);
+      root.add([title, status]);
+      if (state.status === 'error') this.addButton(root, { x: shell.centerX - 155, y: shell.y + shell.height - 190,
+        width: 310, height: 58, right: shell.centerX + 155, bottom: shell.y + shell.height - 132 }, 'RETRY', () => this.retry());
+      this.addButton(root, { x: shell.centerX - 155, y: shell.y + shell.height - 100,
+        width: 310, height: 58, right: shell.centerX + 155, bottom: shell.y + shell.height - 42 }, 'RETURN TO CAMP', () => this.returnToCamp());
+      return;
+    }
+
+    const presentation = createRunMapPresentation(run, content);
+    const layout = createRunMapLayout(snapshot, presentation);
+    this.renderMap(root, layout, presentation.regionName);
+    if (this.abandonState !== 'idle') this.renderAbandonConfirmation(root, layout.confirmation);
   }
 
-  private addShellButton(root: Phaser.GameObjects.Container, centerX: number, centerY: number, label: string, action: () => void): void {
-    const width = 310, height = 58, x = centerX - width / 2, y = centerY - height / 2;
-    const button = this.add.graphics(); button.fillStyle(0x244b3d, 1); button.fillRoundedRect(x, y, width, height, 12);
-    button.lineStyle(3, 0xc9972b, 1); button.strokeRoundedRect(x, y, width, height, 12);
-    button.setInteractive(new Phaser.Geom.Rectangle(x, y, width, height), Phaser.Geom.Rectangle.Contains).on('pointerup', action);
-    const text = this.add.text(centerX, centerY, label, { color: '#fff4d3', fontFamily: 'system-ui, sans-serif', fontSize: this.runtimeViewport.snapshot.layoutClass === 'compact' ? '28px' : '19px', fontStyle: 'bold' }).setOrigin(0.5);
+  private renderMap(root: Phaser.GameObjects.Container, layout: ReturnType<typeof createRunMapLayout>, regionName: string): void {
+    const compact = this.runtimeViewport.snapshot.layoutClass === 'compact';
+    const mapPanel = this.add.graphics();
+    mapPanel.fillStyle(0x342418, 1); mapPanel.fillRoundedRect(layout.panel.x, layout.panel.y, layout.panel.width, layout.panel.height, 24);
+    mapPanel.lineStyle(5, 0xc9972b, 1); mapPanel.strokeRoundedRect(layout.panel.x, layout.panel.y, layout.panel.width, layout.panel.height, 24);
+    const title = this.add.text(layout.panel.x + layout.panel.width / 2, layout.titleY, regionName, {
+      color: '#f5e8c8', fontFamily: 'Georgia, serif', fontSize: compact ? '46px' : '40px', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    const identity = this.add.text(layout.panel.x + layout.panel.width / 2, layout.identityY,
+      `Active run · ${layout.nodes.length} locations`, { color: '#d9c9a5', fontFamily: 'system-ui, sans-serif',
+        fontSize: compact ? '25px' : '17px' }).setOrigin(0.5);
+    root.add([mapPanel, title, identity]);
+    const edgeGraphics = this.add.graphics();
+    for (const edge of layout.edges) {
+      edgeGraphics.lineStyle(compact ? 9 : 7, 0xb18a42, 0.85);
+      edgeGraphics.lineBetween(edge.startX, edge.startY, edge.endX, edge.endY);
+      const angle = Math.atan2(edge.endY - edge.startY, edge.endX - edge.startX);
+      const arrow = compact ? 18 : 14;
+      edgeGraphics.fillStyle(0xd5b45f, 1);
+      edgeGraphics.fillTriangle(edge.endX, edge.endY,
+        edge.endX - Math.cos(angle - 0.55) * arrow, edge.endY - Math.sin(angle - 0.55) * arrow,
+        edge.endX - Math.cos(angle + 0.55) * arrow, edge.endY - Math.sin(angle + 0.55) * arrow);
+    }
+    root.add(edgeGraphics);
+    for (const node of layout.nodes) {
+      const colors = runNodeColors[node.status];
+      const graphic = this.add.graphics();
+      graphic.fillStyle(colors.fill, 1); graphic.fillCircle(node.centerX, node.centerY, node.radius);
+      graphic.lineStyle(this.selectedNodeId === node.id ? 7 : 5,
+        this.selectedNodeId === node.id ? 0xffffff : colors.border, 1);
+      graphic.strokeCircle(node.centerX, node.centerY, node.radius);
+      if (this.abandonState === 'idle') {
+        graphic.setInteractive(new Phaser.Geom.Circle(node.centerX, node.centerY, node.radius), Phaser.Geom.Circle.Contains)
+          .on('pointerup', () => this.selectNode(node.id));
+      }
+      const textureKey = `run-node-icon:${node.iconKey}`;
+      const icon = this.textures.exists(textureKey)
+        ? this.add.image(node.centerX, node.centerY - 7, textureKey).setDisplaySize(node.radius * 1.05, node.radius * 1.05)
+        : this.add.text(node.centerX, node.centerY - 7, node.name.slice(0, 1).toUpperCase(), {
+          color: colors.text, fontFamily: 'Georgia, serif', fontSize: compact ? '42px' : '36px', fontStyle: 'bold',
+        }).setOrigin(0.5);
+      const name = this.add.text(node.centerX, node.centerY + node.radius + 15, node.name, { color: '#f5e8c8',
+        fontFamily: 'system-ui, sans-serif', fontSize: compact ? '26px' : '18px', fontStyle: 'bold' }).setOrigin(0.5);
+      const status = this.add.text(node.centerX, node.centerY + node.radius + (compact ? 43 : 38), node.statusLabel.toUpperCase(), {
+        color: colors.text, fontFamily: 'system-ui, sans-serif', fontSize: compact ? '22px' : '13px', fontStyle: 'bold',
+      }).setOrigin(0.5);
+      root.add([graphic, icon, name, status]);
+    }
+    const selected = layout.nodes.find((node) => node.id === this.selectedNodeId);
+    const detail = this.add.text(layout.panel.x + layout.panel.width / 2, layout.detailY,
+      selected ? `${selected.name} · ${selected.statusLabel} — ${selected.description}`
+        : 'Select a location for details. Ready locations are not entered yet.', {
+        color: '#b9d3bb', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '26px' : '16px',
+        align: 'center', wordWrap: { width: layout.panel.width - 160 },
+      }).setOrigin(0.5);
+    root.add(detail);
+    this.addButton(root, layout.returnButton, 'RETURN TO CAMP', () => this.returnToCamp());
+    this.addButton(root, layout.abandonButton, 'ABANDON RUN', () => this.openAbandonConfirmation(), 0x7a302b);
+  }
+
+  private renderAbandonConfirmation(root: Phaser.GameObjects.Container, region: Bounds): void {
+    const compact = this.runtimeViewport.snapshot.layoutClass === 'compact';
+    const shade = this.add.graphics(); shade.fillStyle(0x06100e, 0.78);
+    const snapshot = this.runtimeViewport.snapshot; shade.fillRect(0, 0, snapshot.logicalWidth, snapshot.logicalHeight);
+    const panel = this.add.graphics(); panel.fillStyle(0x392219, 1); panel.fillRoundedRect(region.x, region.y, region.width, region.height, 22);
+    panel.lineStyle(5, 0xd15a47, 1); panel.strokeRoundedRect(region.x, region.y, region.width, region.height, 22);
+    const titleText = this.abandonState === 'recovery-required' ? 'RELOAD REQUIRED'
+      : this.abandonState === 'retryable' ? 'RESULT UNCERTAIN'
+      : this.abandonState === 'rejected' ? 'RUN PRESERVED'
+      : this.abandonState === 'submitting' ? 'ENDING RUN…' : 'ABANDON THIS RUN?';
+    const title = this.add.text(region.x + region.width / 2, region.y + 70, titleText, { color: '#fff0d0',
+      fontFamily: 'Georgia, serif', fontSize: compact ? '38px' : '32px', fontStyle: 'bold' }).setOrigin(0.5);
+    const message = this.add.text(region.x + region.width / 2, region.y + 155, this.abandonMessage, { color: '#efd6b0',
+      fontFamily: 'system-ui, sans-serif', fontSize: compact ? '25px' : '19px', align: 'center',
+      wordWrap: { width: region.width - 100 } }).setOrigin(0.5);
+    root.add([shade, panel, title, message]);
+    const buttonWidth = 260, buttonHeight = compact ? 92 : 56, buttonY = region.bottom - buttonHeight - 30;
+    if (this.abandonState === 'confirming') {
+      this.addButton(root, this.box(region.x + 55, buttonY, buttonWidth, buttonHeight), 'KEEP RUN', () => this.cancelAbandon());
+      this.addButton(root, this.box(region.right - buttonWidth - 55, buttonY, buttonWidth, buttonHeight), 'CONFIRM ABANDON', () => void this.confirmAbandon(), 0x8a342c);
+    } else if (this.abandonState === 'retryable') {
+      this.addButton(root, this.box(region.x + (region.width - buttonWidth) / 2, buttonY, buttonWidth, buttonHeight), 'RETRY ABANDON', () => void this.confirmAbandon(), 0x8a342c);
+    } else if (this.abandonState === 'rejected') {
+      this.addButton(root, this.box(region.x + 55, buttonY, buttonWidth, buttonHeight), 'RETURN TO MAP', () => this.cancelAbandon());
+      this.addButton(root, this.box(region.right - buttonWidth - 55, buttonY, buttonWidth, buttonHeight), 'RELOAD', () => window.location.reload());
+    } else if (this.abandonState === 'recovery-required') {
+      this.addButton(root, this.box(region.x + (region.width - buttonWidth) / 2, buttonY, buttonWidth, buttonHeight), 'RELOAD', () => window.location.reload());
+    }
+  }
+
+  private addButton(root: Phaser.GameObjects.Container, region: Bounds, label: string, action: () => void, fill = 0x244b3d): void {
+    const button = this.add.graphics(); button.fillStyle(fill, 1); button.fillRoundedRect(region.x, region.y, region.width, region.height, 12);
+    button.lineStyle(3, 0xc9972b, 1); button.strokeRoundedRect(region.x, region.y, region.width, region.height, 12);
+    button.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains).on('pointerup', action);
+    const text = this.add.text(region.x + region.width / 2, region.y + region.height / 2, label, { color: '#fff4d3',
+      fontFamily: 'system-ui, sans-serif', fontSize: this.runtimeViewport.snapshot.layoutClass === 'compact' ? '30px' : '17px', fontStyle: 'bold' }).setOrigin(0.5);
     root.add([button, text]);
+  }
+
+  private isDefinitiveAbandonRejection(error: unknown): boolean {
+    return error instanceof RuntimeApiError && (error.kind === 'unauthorized'
+      || (error.kind === 'http' && error.status !== null && error.status >= 400 && error.status < 500));
+  }
+
+  private host(): HTMLElement | null {
+    return (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement ?? null;
+  }
+
+  private box(x: number, y: number, width: number, height: number): Bounds {
+    return { x, y, width, height, right: x + width, bottom: y + height };
   }
 }
 
