@@ -4,10 +4,10 @@ Read this for sequencing/planning or when closing/promoting an execution package
 
 ## Milestone 3 - Enter Farm
 
-**Status:** Technically complete; awaiting manual UAT
+**Status:** UAT corrections in progress
 
 ### Related Issues
-- None. No coding package is active while Milestone 3 awaits manual UAT.
+- Address Milestone 3 UAT interaction affordances and active-run lock presentation
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -41,6 +41,13 @@ The verified slice includes:
 
 The aggregate `npm run verify:full` could not complete on the Windows host because host PHP is unavailable. Its required constituents were run successfully through their supported host or Docker paths. GitHub has no attached CI status for the closure commit, so the architectural approval is based on the committed implementation/verification coverage plus the reported executed gates, without representing the unavailable aggregate as passed.
 
+### Manual UAT Findings
+Manual UAT identified two usability defects that must be corrected before the milestone is closed:
+- interactive Phaser controls do not consistently change the desktop cursor to indicate clickability;
+- active-run Warband configuration locks are enforced correctly by the backend, but the client allows the player to begin known-invalid squad/unit configuration actions and only explains the lock after a server error.
+
+These are client affordance/presentation corrections. The Package 4 backend lock policy remains authoritative and must not be weakened or replaced by client checks.
+
 ### Exit Criteria
 - The fresh vNext baseline includes normalized run persistence using authored stable IDs rather than SQL gameplay catalogs.
 - Farm generation content is canonical Git JSON with semantic validation and an explicit client-exposure boundary.
@@ -56,7 +63,9 @@ The aggregate `npm run verify:full` could not complete on the Windows host becau
 - Node selection remains presentation-only; node resolution/combat/rewards are not fabricated.
 - Abandon confirmation/reconciliation preserves Energy/Warband state and returns to Camp only after authoritative success.
 - Responsive and touch portrait-gate behavior remains usable.
-- Technical verification is complete. Manual UAT is the only remaining Milestone 3 exit criterion.
+- Interactive Phaser controls provide a consistent pointer affordance on fine-pointer/desktop input when they are actionable.
+- During an active run, Warband proactively communicates and disables known-invalid participating squad/unit configuration actions while preserving allowed name-only/rename behavior; backend lock errors remain understandable fallback protection.
+- Technical verification is complete and UAT findings are resolved. Manual UAT must be rechecked before final closure.
 
 ### Package Queue
 1. ~~Active-run persistence foundation.~~ Complete and architecturally approved at `0ea5f652af397061190f9cb11c71cb1f6d1d1bb7`.
@@ -66,8 +75,9 @@ The aggregate `npm run verify:full` could not complete on the Windows host becau
 5. ~~Phaser RunScene lifecycle + Camp start/resume navigation.~~ Complete and architecturally approved after implementation `bd97d496434a41d32d84b9bbf93f7b8f1806e353` and correction `af3cbb972a6e3cfbb0bfba20cea27cc0a8c175c8`.
 6. ~~Phaser Farm map + abandon/resume UX.~~ Complete and architecturally approved at `496f2b90cd8be264f39ba676373846bf18c249eb`.
 7. ~~Enter Farm integrated verification/closure.~~ Complete and architecturally approved at `c456d983b1afaf36c0dc9e069b3e35cfcdf6957f`.
+8. **UAT interaction affordances + active-run lock presentation.** Current corrective package.
 
 ### UAT Sequencing
-Manual user UAT is now the active Milestone 3 activity.
+Manual user UAT is still the active Milestone 3 activity. Package 8 addresses concrete findings from that UAT and must pass architectural review before the user rechecks the affected flows.
 
 Do not promote or begin Milestone 4 - Combat until Milestone 3 UAT is complete and its findings are resolved or deliberately deferred.
