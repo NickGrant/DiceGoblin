@@ -1,353 +1,241 @@
 # Active Execution Issue
 
-`ISSUES.md` contains only the current execution-ready package. Future packages stay summarized in `agent/MILESTONES.md` and the roadmap until promoted. Do not implement them early.
+`ISSUES.md` contains only the current execution-ready package. Future work remains in `agent/MILESTONES.md` and the roadmap until promoted.
 
 ## Milestone 3 - Enter Farm
 
-### Complete Enter Farm integrated verification and closure
+### Address UAT interaction affordances and active-run lock presentation
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Packages 1-6 now implement the complete Milestone 3 Enter Farm slice:
-- normalized active-run persistence;
-- canonical/private Farm generation content;
-- pure deterministic graph generation;
-- transactional idempotent run start and Energy spend;
-- authoritative current-run and abandon lifecycle;
-- active-run Warband configuration locks;
-- bootstrap run summary;
-- mounted Phaser Camp/RunScene start/resume/reload lifecycle;
-- persisted Farm-map rendering;
-- explicit abandon confirmation/reconciliation.
+Milestone 3 passed technical closure, but manual UAT identified two concrete usability defects:
 
-Before manual UAT, verify this as one integrated authoritative system, fix concrete Milestone 3 defects discovered by verification, and remove only conclusively superseded prototype run UI/lifecycle code that no longer serves later milestones.
+1. Clickable Phaser controls do not consistently change the desktop/fine-pointer cursor, so actionable UI does not reliably advertise clickability.
+2. During an active run, the backend correctly rejects participating squad/unit combat-configuration changes, but the Warband UI still lets the player enter or attempt known-invalid configuration and only surfaces a generic command error after submission.
 
-This is a closure/verification package, not a new feature package.
+This corrective package fixes those affordances without changing server authority or expanding Milestone 3 gameplay scope.
 
 #### Required Context
-Read before implementation:
+Read:
 - `AGENTS.md`
-- `agent/QUALITY_GATES.md`
-- `documentation/07-development-path/vnext-prototype-code-disposition.md`
-- `documentation/07-development-path/vnext-storage-model.md`
-- `documentation/07-development-path/vnext-api-contract-model.md`
-- `documentation/07-development-path/vnext-endpoint-inventory.md`
-- `documentation/07-development-path/vnext-authored-content-model.md`
-- `documentation/07-development-path/vnext-energy-model.md`
-- `documentation/07-development-path/vnext-phaser-client-architecture.md`
-- `documentation/02-systems/run-node-generation.md`
-- `documentation/02-systems/warband-and-formation.md`
-- Package 1-6 implementation/tests
-- current deterministic capture and real-stack verification scripts
+- `agent/MILESTONES.md`
+- Package 4 active-run lock implementation/contracts
+- Package 6/7 RunScene and closure verification
+- `frontend/src/app/game/screens/warband-screen.ts`
+- `frontend/src/app/game/screens/squad-editor-screen.ts`
+- `frontend/src/app/game/screens/unit-configuration-screen.ts`
+- `frontend/src/app/game/screens/camp-screen.ts`
+- `frontend/src/app/game/scenes/runtime-scenes.ts`
+- other current Phaser-owned screens/helpers containing `setInteractive`
+- current `GameStore` bootstrap/run state
 
-#### Primary closure proof
-Exercise the real vNext slice against real PHP/MySQL and the browser runtime, preferably from a freshly reset/provisioned database.
+Do not change backend lock semantics unless a concrete defect is discovered. Client lock state is a usability hint and proactive affordance; backend Package 4 validation remains authoritative for stale-tab/race cases.
 
-Use controlled development/UAT fixture support for Warband setup; do not add production starter provisioning.
+#### UAT Finding 1: interactive cursor convention
+Establish a consistent current-vNext Phaser interaction convention:
+- every genuinely actionable button/control/row/node/pager/confirmation action should use a pointer/hand cursor on fine-pointer desktop input;
+- purely informational graphics/text must not advertise clickability;
+- controls that are intentionally disabled because of active-run lock or other blocked state must not advertise themselves as actionable;
+- using a clear disabled/not-allowed cursor for visibly disabled controls is acceptable if consistent;
+- touch behavior must not depend on hover/cursor and must remain unchanged.
 
-Prove this player flow:
-1. authenticate with a fresh account;
-2. `/game` loads Camp with no active run;
-3. controlled fixture establishes a valid active Warband squad;
-4. Camp shows canonical Farm Energy cost and current effective Energy;
-5. Start Farm submits one idempotent authoritative start;
-6. Energy decreases exactly once by canonical cost;
-7. `player_revision` increments exactly once;
-8. RunScene loads the persisted current run;
-9. Farm map shows the exact persisted graph;
-10. Return to Camp does not abandon;
-11. Camp shows Resume and sends no second run-start mutation;
-12. Resume returns to the same run/map;
-13. browser reload bootstraps directly back to the same RunScene/run ID;
-14. abandon confirmation Cancel leaves the run active;
-15. abandon Confirm terminalizes the run authoritatively;
-16. abandon increments revision exactly once and refunds no Energy;
-17. Camp returns to Start Farm state;
-18. current-run read returns null;
-19. the terminal run row, persisted nodes/edges, and participating-unit history remain stored.
+Audit current live vNext Phaser surfaces rather than fixing one screen only. At minimum inspect:
+- Camp;
+- Warband tabs/rows/actions/pagers;
+- squad editor formation/roster/actions/confirmations;
+- unit configuration tabs/loadout/dice/actions/confirmations;
+- RunScene nodes/Return/Abandon/confirmation/retry;
+- other live GameScene controls reachable in Milestones 1-3.
 
-Do not mock PHP/MySQL for this primary closure proof.
+Prefer a small shared helper/convention where it removes repeated cursor wiring without introducing a UI framework rewrite.
 
-#### Fresh database and storage
-Reset/provision the fresh vNext baseline and verify the Milestone 3 schema/invariants together with Milestone 2 state.
+Do not make non-actionable decorative graphics interactive merely to gain a cursor.
 
-At minimum verify:
-- expected vNext table inventory;
-- one active run per user;
-- separate users may each have active runs;
-- multiple terminal historical runs remain legal;
-- active run references a participating saved squad without terminal history permanently preventing later squad deletion;
-- run-local node identity/order;
-- relational edge endpoint integrity;
-- duplicate/self/cross-run edge protection as designed;
-- run graph/unit-state cascade behavior when a run is deliberately removed in tests;
-- one run-unit row per participating unit;
-- authored region/node IDs remain strings rather than SQL catalogs;
-- `current_hp` remains intentionally nullable/deferred;
-- fresh registration creates no units/dice/squads/runs;
-- no new SQL gameplay catalogs were introduced.
+#### UAT Finding 2: derive active-run presentation lock
+Use already-authoritative client state to derive a narrow presentation lock hint.
 
-#### Authored content and generation
-Re-run canonical generation/validation and exact client-projection comparison.
+Bootstrap provides:
+- `active_run` including participating `squad_id`;
+- `active_squad` including formation/unit summaries.
 
-Prove:
-- Farm generation definition is canonical server-owned JSON;
-- region → generation references validate;
-- malformed/disconnected graph definitions fail validation;
-- browser projection contains safe `run_node_type.*` presentation and `gameplay.run_energy_cost` only as explicitly allowlisted run presentation;
-- private generation topology/algorithm/reference and other private gameplay config remain absent from browser content;
-- global content revision includes private canonical content;
-- `FixedGraphRunGenerator` remains infrastructure-free;
-- same definition generates the exact deterministic Farm graph;
-- generator output contains no DB IDs;
-- runtime generated-graph validation remains independent of persisted current-run validation.
+For normal coherent state, this is sufficient to identify:
+- the participating squad;
+- participating unit IDs.
 
-#### Run-start authority, Energy, and idempotency
-Re-run focused and integrated Package 3 coverage.
+Do not add a new API request merely to determine known lock state.
 
-Verify:
-- auth + CSRF + `Idempotency-Key` required;
-- exact `{region_id}` request contract;
-- server chooses active squad;
-- missing/empty/foreign/corrupt squad/unit/loadout/dice state rejected safely;
-- existing active run rejected before Energy spend;
-- canonical Energy cost is server-authored;
-- below-cap fractional regeneration anchor behavior remains correct;
-- reaching cap/full/over-cap behavior prevents banked capped regeneration;
-- insufficient Energy creates no run/receipt/revision mutation;
-- successful start writes run/nodes/edges/unit state + Energy + revision + idempotency receipt in one transaction;
-- exact replay creates/spends/increments only once;
-- same key with different request conflicts;
-- injected generation/persistence failure rolls back all state.
+A small pure helper or narrow GameStore-derived view is appropriate so Warband, squad editor, and unit configuration do not each invent different lock rules.
 
-#### Current-run and abandon authority
-Verify Package 4 lifecycle behavior:
-- current run `run:null` with no active run;
-- active read returns persisted graph rather than regenerating;
-- read is non-mutating;
-- mutable progressed node states are accepted without fresh-generation availability assumptions;
-- private generated metadata/topology source is not exposed;
-- corrupt authored/cross-owner relationships fail as integrity/non-disclosure errors;
-- abandon auth/CSRF and owned-run behavior;
-- foreign/missing IDs non-disclosing;
-- active → abandoned terminal timestamp/revision exactly once;
-- repeated owned already-abandoned attempt is successful no-op;
-- no Energy refund or Energy-anchor mutation;
-- graph/unit history retained.
+The client-derived lock is not security/authority. If local state is stale or another tab changes lifecycle state, backend `active_run_configuration_locked` remains the final authority.
 
-#### Active-run Warband locks
-With an active run, verify the authoritative backend lock matrix:
-- switching to a different squad blocked;
-- re-activating participating active squad remains no-op;
-- participating formation/membership/position change blocked;
-- participating squad deletion blocked, including only-squad case;
-- participating squad name-only change allowed if formation identical;
-- participating unit loadout/dice replacement blocked;
-- participating unit rename allowed;
-- non-participating squad/unit configuration follows normal rules;
-- blocked commands do not increment revision;
-- after abandon, previously blocked legitimate configuration succeeds.
+If bootstrap active-run/squad state is internally contradictory, do not guess. Preserve existing integrity/recovery behavior.
 
-Where practical characterize the shared `user_state`-first transaction order for start/abandon/configuration races.
+#### Warband overview presentation
+When an active run exists:
+- clearly identify the participating squad as currently in the run / configuration locked;
+- participating units should be visibly identifiable as in the active run;
+- do not represent participating squad/unit combat configuration as freely editable.
 
-#### Client start/resume lifecycle
-Re-run the Package 5 client contracts and integrated browser behavior.
+Keep useful read/detail access where allowed behavior exists.
 
-Verify:
-- public run cost is read from generated client content, never hard-coded in Camp;
-- start request uses credentials/CSRF/exact body/idempotency key;
-- one logical start attempt retains one key across network, malformed-response, HTTP 5xx, and repeated mixed ambiguous failures;
-- definitive auth/4xx failure may begin a later new attempt with a new key;
-- successful server response that cannot reconcile enters reload-required recovery and cannot issue another POST;
-- no optimistic Energy or active-run mutation;
-- startup bootstrap active run routes directly to RunScene without another bootstrap/content load;
-- `/runs/current` is lazy/deduplicated and fresh state is reused;
-- Return to Camp is non-mutating;
-- Resume issues no start POST;
-- browser reload resumes the same persisted run;
-- newer `run:null` clears stale cross-tab active-run state; equal-revision contradictions fail safely;
-- one RuntimeStartup/GameStore/ClientContentRegistry/RuntimeViewport/Phaser game/canvas survives GameScene ↔ RunScene switching.
+Recommended behavior:
+- participating unit row remains openable because unit detail and rename are still useful, but its action label should communicate `VIEW / RENAME`, `IN RUN`, or equivalent rather than implying unrestricted configuration;
+- participating squad Edit may remain available because name-only editing is legal, but the UI should make the formation lock clear before entry;
+- activating a different squad while a run is active should be visibly unavailable before a request is sent;
+- deleting the participating squad should be visibly unavailable before a request is sent;
+- creating a new squad remains allowed;
+- non-participating squad/unit editing remains available under existing rules.
 
-#### Farm map authority
-Verify Package 6 map behavior as a projection of authoritative persisted state.
+Do not disable all Warband functionality simply because a run exists.
 
-Required proof:
-- map model receives only the strict current-run aggregate + ClientContentRegistry;
-- returned node positions determine node placement;
-- returned edges determine edge rendering;
-- a non-linear/non-five-node valid test graph demonstrates no hidden fixed Farm sequence assumption;
-- node names/descriptions/icons come from authored projected node types rather than index-based labels;
-- locked/available/completed remain visually/model-distinct;
-- legitimate progressed persisted state renders;
-- local node selection is presentation-only and does not mutate GameStore, POST, unlock/complete nodes, reward, or enter BattleScene;
-- no `current_node_id` is invented;
-- no private run-generation JSON is imported into the browser.
+#### Participating squad editor
+When editing the active run's participating squad:
+- show a prominent player-facing explanation such as: `This squad is in an active Farm run. Its formation is locked until the run ends. You can still rename the squad.`;
+- formation cells must not change placement/clearing;
+- roster selection used to change formation must be disabled/non-actionable;
+- name input remains editable;
+- Save remains available for a genuine name-only change with unchanged formation;
+- deleting the participating squad is disabled/prevented before confirmation/API call;
+- activating it is already the active-squad no-op and should not imply a meaningful mutation;
+- dirty/discard behavior must still work for allowed name changes;
+- responsive/orientation behavior must preserve the same lock state.
 
-#### Abandon client reconciliation
-Verify:
-- exact POST route, credentials and CSRF;
-- no body and no Idempotency-Key;
-- strict abandon response rejects Energy/additional/malformed state;
-- explicit confirmation states no Energy refund;
-- Cancel performs no mutation;
-- duplicate submission prevented;
-- network/malformed/5xx ambiguity preserves active cached run and retries the same run ID;
-- definitive rejection preserves active state;
-- valid success reconciles revision and clears active/current run only after success;
-- Energy object/value remains unchanged;
-- active squad and Warband caches remain unchanged;
-- reconciliation disagreement requires reload and blocks further abandon mutation;
-- successful abandon returns to Camp without global bootstrap/profile/Warband refresh.
+When editing a non-participating saved squad during an active run:
+- formation editing remains legal;
+- delete remains subject to existing normal rules;
+- activation to replace the participating active squad is proactively disabled because Package 4 will reject it.
 
-#### Cross-player/security verification
-Use at least two users where practical.
+Do not alter the draft's committed formation behind the scenes to enforce the lock. Prevent local formation mutation when known locked and let the server remain the final validation layer.
 
-Verify player A cannot:
-- query B's run through any exposed vNext route;
-- abandon B's run;
-- start using B's squad/unit/die state;
-- mutate B's Warband while B's run exists;
-- learn foreign persisted IDs/details through unsafe error differences.
+#### Participating unit configuration
+When viewing a unit that participates in the active run:
+- show a prominent player-facing explanation such as: `This goblin is in an active Farm run. Loadout and dice are locked until the run ends. You can still rename the goblin.`;
+- unit detail remains readable;
+- name input and rename save remain usable;
+- loadout mutation controls are disabled/non-actionable, including add/remove, move order, die-slot selection/assignment where those actions imply configuration changes, and Save Loadout;
+- passive/ability/dice information may remain browsable as read-only presentation;
+- do not destroy or falsify committed loadout state;
+- do not POST a loadout mutation when the known client lock is active.
 
-Persisted corrupt cross-owner run-squad/run-unit relationships must fail as integrity errors without leaking foreign state.
+Non-participating units remain fully configurable.
 
-#### Network/runtime assertions
-During real browser verification capture/inspect requests and prove:
-- no `/api/v1/profile`;
-- no `/api/v1/teams`;
-- no prototype run endpoint family;
-- no Angular gameplay routes/services owning run flow;
-- no bootstrap refresh used for normal start/abandon reconciliation;
-- no `game-content.json` refetch per screen transition;
-- Resume sends no `POST /api/v1/runs`;
-- Return to Camp sends no abandon request;
-- Start sends exactly one mutation for a successful attempt;
-- same Phaser canvas persists across GameScene/RunScene transitions.
+#### Backend lock error fallback
+Improve player-facing handling of backend:
 
-#### Responsive captures
-Generate and visually inspect deterministic captures for the final Package 6 state:
-- Farm Compact `844x390`;
-- Farm Standard `1600x900`;
-- Farm Wide `2560x1080`;
-- abandon confirmation at a representative landscape size;
-- touch-first portrait gate.
+`active_run_configuration_locked`
 
-Also re-check Camp Start/Resume presentation where inexpensive.
+This error can still legitimately occur because:
+- another tab started a run after this screen loaded;
+- local bootstrap state is stale;
+- a race resolves on the server first.
 
-Inspect for:
-- clipped nodes/labels;
-- edges that do not visually meet their nodes;
-- status differentiation;
-- unreachable/tiny touch targets;
-- overlap between map, detail text, Return, and Abandon;
-- unsafe confirmation controls;
-- raw IDs dominating UX;
-- portrait interaction leaking through the gate;
-- broken reflow or state loss.
+Map it to understandable text, for example:
+- squad: `This squad's formation is locked while it is being used in an active run.`
+- unit: `This goblin's loadout and dice are locked while it is participating in an active run.`
 
-Final visual polish remains deferred; functional clarity is the bar.
+Preserve local drafts where appropriate.
 
-#### Quality gates
-Run all applicable commands in `agent/QUALITY_GATES.md`.
+Do not expose the raw error code or generic `command failed` text as the primary message.
 
-Closure should substantiate, not assume, Package 1-6 verification.
+Do not weaken/remove the backend 409.
 
-At minimum run/report:
-- `npm run llm:check`;
-- `npm run docs:lint`;
-- canonical content generation/validation/exact projection check;
-- fresh vNext DB reset/provision;
-- focused run persistence/generator/start/current/abandon/lock backend integration suites;
-- full backend Docker suite;
-- focused run frontend contract/store/map/scene/Camp suites;
+#### Allowed naming behavior
+Preserve the accepted server contract:
+- participating squad **name-only** changes are legal when formation is unchanged;
+- participating unit rename is legal.
+
+The proactive client lock must therefore be granular. A blanket disabled editor is incorrect.
+
+#### Start/abandon lifecycle
+Lock presentation must respond to authoritative lifecycle state:
+- after successful Start, participating squad/unit presentation becomes locked;
+- Return/Resume keeps it locked while the run remains active;
+- after successful Abandon reconciliation, the client clears active-run state and the same squad/unit configuration becomes editable again without requiring a global profile/bootstrap refresh;
+- browser reload while active derives the lock from bootstrap immediately.
+
+Do not add polling.
+
+#### Tests
+Add focused coverage proving at minimum:
+- actionable live Phaser controls use pointer/hand cursor convention;
+- informational/disabled controls do not falsely advertise clickability;
+- participating squad is identified from bootstrap active-run/active-squad state;
+- participating unit IDs are derived from the participating active formation/state;
+- no additional API request is required to derive the lock;
+- Warband proactively distinguishes participating locked squad/unit presentation;
+- different-squad Activate sends no request when active-run lock is already known;
+- participating-squad Delete sends no request when lock is known;
+- participating squad editor prevents formation mutation but permits name-only change/save;
+- participating squad editor preserves discard/dirty behavior for name edits;
+- non-participating squad formation remains editable;
+- participating unit configuration prevents loadout/dice draft mutation/submission but permits rename;
+- non-participating unit remains configurable;
+- `active_run_configuration_locked` fallback produces player-facing lock text and preserves appropriate draft state;
+- successful abandon reconciliation removes the proactive lock using existing reconciled state;
+- Return/Resume does not remove the lock;
+- Compact/Standard/Wide and portrait-gate behavior do not re-enable locked controls accidentally.
+
+Retain all Milestone 2/3 backend lock and lifecycle regressions.
+
+#### Captures / UAT evidence
+Generate deterministic captures where useful for:
+- Warband during an active run;
+- participating squad editor locked formation state;
+- participating unit configuration locked loadout state.
+
+Inspect that the player can understand **why** controls are locked and **what remains editable** without first causing a server error.
+
+This is functional UX correction, not the deferred visual overhaul.
+
+#### Scope guard
+Do not implement:
+- node resolution;
+- combat/BattleScene entry;
+- rewards;
+- Rest/Loot/Boss/Exit mechanics;
+- new backend lifecycle rules;
+- new API endpoints solely for lock presentation;
+- polling/live synchronization;
+- final visual overhaul;
+- Milestone 4.
+
+Do not broadly redesign Warband.
+
+#### Verification
+Run applicable frontend gates, including:
+- focused Warband/squad-editor/unit-configuration/RunScene interaction tests;
+- existing active-run lock backend regression if backend files are touched;
 - full frontend suite;
 - production frontend build;
 - bundle check;
-- deterministic captures listed above;
-- real PHP/MySQL/browser run-lifecycle verifier;
-- `git diff --check`;
-- `npm run verify:full` when host prerequisites permit.
+- deterministic affected-screen captures;
+- `npm run llm:check` / docs checks if planning/docs change;
+- `git diff --check`.
 
-If aggregate `verify:full` cannot execute because host PHP or another host-only prerequisite is missing, run all required constituents through their supported paths and report the limitation exactly. Do not claim aggregate success when it did not run.
+Real-stack verification should at least prove that proactive UI prevention and the existing backend lock agree for an active run, and that abandon re-enables the controls.
 
-#### Prototype disposition/cleanup
-Inspect retained prototype run code against `vnext-prototype-code-disposition.md` only after the vNext slice is proven.
-
-Delete only code that is conclusively:
-- unreachable from live composition;
-- fully superseded by the now-proven vNext Enter Farm slice;
-- not useful evidence for later unimplemented Mountains/Swamps, node-resolution, combat, rewards, Rest/Chaos, or progression work.
-
-Likely cleanup candidates include unreachable prototype Angular run/map lifecycle pages/services whose vNext presentation and lifecycle are now proven.
-
-Retain prototype generator/algorithm evidence still needed for later regions/mechanics. Retain combat/node-resolution/reward evidence still needed by later milestones even when its old orchestration wrapper is obsolete.
-
-Do not create an archive. Git history is the archive.
-
-Do not perform unrelated cleanup.
-
-#### Documentation
-Update existing active documentation only where integrated verification/cleanup changes current truth.
-
-Do not create completion-report or UAT-history documents.
-
-Do not mark Milestone 3 complete/UAT-passed in this package. Architectural review will mark technical completion and prepare manual UAT.
-
-#### Explicitly Out of Scope
-Do not implement:
-- node resolution;
-- node completion/unlocking;
-- combat or BattleScene entry;
-- enemies/encounters;
-- loot/reward application or claims;
-- Rest behavior;
-- Boss behavior;
-- Exit/run-completion behavior;
-- resolved combat HP/stat formulas;
-- run modifiers;
-- battle playback;
-- promotion/Academy;
-- Shop;
-- Wrong Machine;
-- production starter onboarding;
-- Milestone 4;
-- final game-wide visual overhaul.
-
-Fix concrete Milestone 3 defects discovered by verification, but do not expand product scope.
+Do not claim an unexecuted gate passed.
 
 #### Review State
 When complete:
-- leave Package 7 **In Progress**;
-- do not mark Milestone 3 complete;
-- do not promote Milestone 4;
-- do not begin combat work.
+- leave this corrective package **In Progress**;
+- do not mark Milestone 3 UAT passed;
+- do not promote Milestone 4.
 
-After architectural closure review passes, manual user UAT will run before Milestone 4 begins.
+Architectural review will determine whether the correction is ready for the user's focused UAT recheck.
 
 #### Final Report
 Report:
-1. resulting commit SHA(s);
-2. fresh DB/schema/invariant verification;
-3. authored content revision and projection/privacy verification;
-4. generator verification;
-5. exact real PHP/MySQL/browser flow exercised;
-6. network/runtime request assertions;
-7. Energy/idempotency results;
-8. current-run/abandon results;
-9. active-run Warband-lock results;
-10. cross-player/security results;
-11. client start/retry/recovery results;
-12. map-authority/node-interaction results;
-13. abandon client reconciliation results;
-14. `player_revision` results;
-15. responsive capture paths and visual findings;
-16. every quality-gate command and actual result;
-17. prototype code removed;
-18. intentionally retained prototype evidence and why;
-19. environment limitations/skipped optional checks;
-20. unresolved Milestone 3 concerns;
-21. whether the milestone is `READY FOR ARCHITECTURAL CLOSURE REVIEW`.
-
-Do not begin another milestone.
+1. commit SHA;
+2. cursor convention/helper and audited live surfaces;
+3. client lock derivation;
+4. Warband overview lock presentation;
+5. participating squad editor behavior;
+6. participating unit configuration behavior;
+7. backend lock-error fallback messaging;
+8. post-abandon unlock behavior;
+9. tests/gates run;
+10. capture paths/visual findings;
+11. unresolved concern, if any.
