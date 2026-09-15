@@ -25,7 +25,7 @@ final class ProvisionWarbandFixtureCommand
   }
 
   /** @return array<string,mixed> */
-  public function execute(int $userId): array
+  public function execute(int $userId, bool $seedOnly = false): array
   {
     $units = $this->unitDefinitions();
     $dice = $this->diceDefinitions();
@@ -37,6 +37,20 @@ final class ProvisionWarbandFixtureCommand
       $this->repository->lockUserState($userId);
       if ($this->repository->hasCrossOwnerRelationships($userId)) {
         throw new WarbandIntegrityException('Fixture replacement found cross-owner Warband state.');
+      }
+      if ($seedOnly) {
+        $state = $this->repository->seedState($userId);
+        if ($state['active_runs'] !== 0) throw new WarbandIntegrityException('Cannot seed while a run is active.');
+        if ($state['units'] !== 0 || $state['dice'] !== 0 || $state['squads'] !== 0) {
+          if ($state['units'] === 0 || $state['dice'] === 0 || $state['squads'] === 0
+            || $state['active_squad_id'] === null || $state['active_members'] === 0) {
+            throw new WarbandIntegrityException('Existing Warband is incomplete; seeding will not overwrite it.');
+          }
+          $this->pdo->commit();
+          return ['mode' => 'already_present', 'unit_count' => $state['units'],
+            'dice_count' => $state['dice'], 'squad_count' => $state['squads'],
+            'active_squad_id' => (string)$state['active_squad_id'], 'player_revision' => $state['player_revision']];
+        }
       }
       $this->repository->replaceOwnedWarband($userId);
 

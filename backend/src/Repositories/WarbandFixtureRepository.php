@@ -19,6 +19,29 @@ final class WarbandFixtureRepository
     }
   }
 
+  /** @return array{units:int,dice:int,squads:int,active_squad_id:?int,active_members:int,active_runs:int,player_revision:int} */
+  public function seedState(int $userId): array
+  {
+    $stmt = $this->pdo->prepare('SELECT
+      (SELECT COUNT(*) FROM `unit_instances` WHERE `user_id` = ?) AS `units`,
+      (SELECT COUNT(*) FROM `dice_instances` WHERE `user_id` = ?) AS `dice`,
+      (SELECT COUNT(*) FROM `squads` WHERE `user_id` = ?) AS `squads`,
+      us.`active_squad_id`, us.`player_revision`,
+      (SELECT COUNT(*) FROM `squad_units` su JOIN `squads` s ON s.`id` = su.`squad_id`
+        WHERE s.`id` = us.`active_squad_id` AND s.`user_id` = ?) AS `active_members`,
+      (SELECT COUNT(*) FROM `runs` WHERE `user_id` = ? AND `status` = \'active\') AS `active_runs`
+      FROM `user_state` us WHERE us.`user_id` = ?');
+    $stmt->execute([$userId, $userId, $userId, $userId, $userId, $userId]);
+    $row = $stmt->fetch();
+    if (!$row) throw new RuntimeException('Fixture user state is unavailable.');
+    return [
+      'units' => (int)$row['units'], 'dice' => (int)$row['dice'], 'squads' => (int)$row['squads'],
+      'active_squad_id' => $row['active_squad_id'] === null ? null : (int)$row['active_squad_id'],
+      'active_members' => (int)$row['active_members'], 'active_runs' => (int)$row['active_runs'],
+      'player_revision' => (int)$row['player_revision'],
+    ];
+  }
+
   public function hasCrossOwnerRelationships(int $userId): bool
   {
     $bindings = $this->pdo->prepare('

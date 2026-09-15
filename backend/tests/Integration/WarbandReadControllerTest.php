@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
+use DiceGoblins\Application\WarbandIntegrityException;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\AuthController;
 use DiceGoblins\Controllers\ControllerServiceFactory;
@@ -322,6 +323,64 @@ final class WarbandReadControllerTest extends IntegrationTestCase
       $this->assertSame('Injected rollback check.', $e->getMessage());
     }
     $this->assertSame($before, $this->warbandSnapshot($userId));
+  }
+
+  public function testUatSeedOnlyDoesNotReplaceWarbandOrTerminalRunHistory(): void
+  {
+    $userId = $this->createAccount('uat-seed@example.test', 'UAT Seed');
+    $otherId = $this->createAccount('uat-other@example.test', 'Untouched');
+    $foreignUnit = $this->insertUnit($otherId, 'unit_type.guardian', 'kin.goblin', 'Other Unit');
+    $command = new ProvisionWarbandFixtureCommand($this->pdo, new WarbandFixtureRepository($this->pdo),
+      ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+
+    $first = $command->execute($userId, seedOnly: true);
+    $this->assertSame('replace_owned_warband', $first['mode']);
+    $this->assertSame([6, 14, 2], $this->assetCounts($userId));
+    $this->assertSame(2, $first['player_revision']);
+    $before = $this->warbandSnapshot($userId);
+
+    $this->pdo?->prepare('INSERT INTO `runs` (`user_id`, `region_id`, `squad_id`, `status`, `ended_at`)
+      VALUES (?, ?, ?, \'abandoned\', CURRENT_TIMESTAMP)')
+      ->execute([$userId, 'region.the_farm', (int)$first['active_squad_id']]);
+    $runId = (int)$this->pdo?->lastInsertId();
+    $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, NULL)')
+      ->execute([$runId, (int)$first['unit_ids']['bruiser']]);
+
+    $second = $command->execute($userId, seedOnly: true);
+    $this->assertSame('already_present', $second['mode']);
+    $this->assertSame([6, 14, 2], [$second['unit_count'], $second['dice_count'], $second['squad_count']]);
+    $this->assertSame(2, $second['player_revision']);
+    $this->assertSame($before, $this->warbandSnapshot($userId));
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `run_unit_state` WHERE `run_id` = ?', [$runId]));
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `unit_instances` WHERE `id` = ? AND `user_id` = ?',
+      [$foreignUnit, $otherId]));
+
+    $this->pdo?->prepare('INSERT INTO `runs` (`user_id`, `region_id`, `squad_id`)
+      VALUES (?, ?, ?)')->execute([$userId, 'region.the_farm', (int)$first['active_squad_id']]);
+    try {
+      $command->execute($userId, seedOnly: true);
+      $this->fail('Expected active-run seeding refusal.');
+    } catch (WarbandIntegrityException $error) {
+      $this->assertStringContainsString('active', $error->getMessage());
+    }
+    $this->assertSame($before, $this->warbandSnapshot($userId));
+  }
+
+  public function testUatSeedOnlyRefusesIncompleteWarbandWithoutOverwriting(): void
+  {
+    $userId = $this->createAccount('uat-partial@example.test', 'UAT Partial');
+    $unitId = $this->insertUnit($userId, 'unit_type.bruiser', 'kin.goblin', 'Existing');
+    $command = new ProvisionWarbandFixtureCommand($this->pdo, new WarbandFixtureRepository($this->pdo),
+      ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+    try {
+      $command->execute($userId, seedOnly: true);
+      $this->fail('Expected incomplete-Warband seeding refusal.');
+    } catch (WarbandIntegrityException $error) {
+      $this->assertStringContainsString('incomplete', $error->getMessage());
+    }
+    $this->assertSame([1, 0, 0], $this->assetCounts($userId));
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `unit_instances` WHERE `id` = ?', [$unitId]));
+    $this->assertSame('1', (string)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]));
   }
 
   public function testOrdinaryRegistrationCreatesNoWarbandAssets(): void

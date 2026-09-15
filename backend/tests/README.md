@@ -43,3 +43,12 @@ only when `ENABLE_WARBAND_FIXTURES=1` and `APP_ENV` is exactly `dev`, `test`,
 or `uat`; missing, differently cased, unexpected, and production values fail closed. Repeating the request
 replaces that account's units, dice, abilities, bindings, and squads in one
 transaction. It does not change registration or provision starter assets.
+
+For a repeatable, non-replacing account seed on the Docker development backend,
+run `npm run uat:warband:seed -- --display-name=Nick` (or use
+`--user-id=<id>` when names are ambiguous). This command uses the same canonical
+fixture only when the selected account owns no Warband assets. Repeating it for
+an account with a complete Warband is a no-op, preserving IDs, revision, and
+terminal run history. It refuses partial Warband state or an active run instead
+of overwriting player data. It has the same explicit environment opt-in and
+non-production restriction as the HTTP fixture.
