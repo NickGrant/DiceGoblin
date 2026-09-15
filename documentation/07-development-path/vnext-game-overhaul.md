@@ -38,11 +38,9 @@ Milestone 1 proved the real authenticated Angular -> persistent Phaser -> author
 
 All nine implementation/closure packages passed architectural review. Integrated closure at `c72c2611d7e14d1d3151f42c05f791e4f1405c2d` proved the fresh-database/authored-content/PHP/MySQL/Phaser Warband slice end to end, including lazy collections/detail, squad lifecycle, unit rename/loadout/exact-die configuration, authoritative client reconciliation, persistence after reload, cross-player security, responsive presentation, and narrow retirement of superseded Angular Warband surfaces. Manual user UAT passed on 2026-09-13 with no blocking findings.
 
-**Milestone 3 - Enter Farm: UAT corrections in progress.**
+**Milestone 3 - Enter Farm: UAT corrections implemented; focused manual recheck pending.**
 
-All seven implementation/closure packages passed architectural review. Integrated closure at `c456d983b1afaf36c0dc9e069b3e35cfcdf6957f` proved the fresh-database/authored-content/PHP/MySQL/Phaser Enter Farm slice end to end: authoritative Energy-backed run start, deterministic private Farm generation, persisted/resumable graph state, active-run Warband locks, Camp/RunScene lifecycle, persisted graph-driven map presentation, retry-safe abandon with no Energy refund, cross-player isolation, and responsive presentation.
-
-Manual UAT identified two client usability corrections before final closure: actionable Phaser UI needs consistent pointer-cursor affordance, and Warband should proactively communicate/disable known active-run configuration locks rather than relying on a post-submit backend error. The backend remains authoritative; these corrections are presentation/usability safeguards. Milestone 4 remains unpromoted until the corrected UAT passes.
+The seven implementation/closure packages passed architectural review, with integrated closure at `c456d983b1afaf36c0dc9e069b3e35cfcdf6957f`. Manual UAT then identified inconsistent clickable cursor affordances and reactive-only presentation of active-run Warband locks. Package 8 at `038a6ce081fa3b735f627095db372db24b39f79e` corrected both by adding shared actionable cursor presentation and proactive client lock hints while retaining backend authority and legal squad/unit naming. Only the user's focused recheck of those corrections remains before Milestone 3 closes and Milestone 4 may be promoted.
 
 ## Milestones
 | # | Milestone | Exit criterion |
@@ -50,7 +48,7 @@ Manual UAT identified two client usability corrections before final closure: act
 | 0 | Reconcile and clean vNext context | One coherent implementation plan and current-only documentation/agent context. **Complete.** |
 | 1 | Walking skeleton | Authenticated Angular `/game` -> Phaser boot -> safe content projection -> real PHP bootstrap/MySQL state -> minimal responsive Camp. **Complete; UAT passed.** |
 | 2 | Warband | Real units/dice/squads, lazy cache/detail queries, persistent squad and unit-loadout configuration. **Complete; UAT passed.** |
-| 3 | Enter Farm | Energy + region/run creation, persistent generated Farm run, `RunScene`, resume/abandon/map. **Technical closure passed; UAT corrections in progress.** |
+| 3 | Enter Farm | Energy + region/run creation, persistent generated Farm run, `RunScene`, resume/abandon/map. **UAT corrections implemented; focused recheck pending.** |
 | 4 | Combat | Authoritative combat adaptation, run HP/state, persisted playback, `BattleScene`, reconnect-safe result. **Not promoted.** |
 | 5 | Complete Farm | Event/reward pipeline, XP/progression, Mudking, terminal run flow, Mountains unlock; no claim/reroll/double-grant path. |
 | 6 | Prove region generalization | Mountains/kobolds operate through the same region/run architecture without Farm-specific duplication. |
