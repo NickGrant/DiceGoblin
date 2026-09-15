@@ -69,6 +69,9 @@ describe('GameStore Warband cache', () => {
       expect(() => parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(), active_run: activeRun } }))
         .toThrowError(BootstrapContractError);
     }
+    expect(() => parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(),
+      active_run: { id: '41', region_id: 'region.the_farm', squad_id: '99', status: 'active' } } }))
+      .toThrowError(BootstrapContractError);
   });
 
   it('begins not-loaded after bootstrap and lazily loads each domain once while fresh', async () => {
@@ -324,6 +327,8 @@ describe('GameStore Warband cache', () => {
     store.reconcileRunStart({ run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' },
       energy: { ...bootstrap().player.energy, current: 40 }, playerRevision: 8 });
     expect(store.bootstrap?.active_run?.id).toBe('41');
+    expect(store.activeRunLock?.squadId).toBe('31');
+    expect([...store.activeRunLock!.unitIds]).toEqual(['11']);
     expect(store.bootstrap?.player.energy.current).toBe(40);
     expect(store.playerRevision).toBe(8);
     expect(store.warband).toBe(warband);
@@ -377,6 +382,7 @@ describe('GameStore Warband cache', () => {
 
     expect(store.playerRevision).toBe(8);
     expect(store.bootstrap?.active_run).toBeNull();
+    expect(store.activeRunLock).toBeNull();
     expect(store.currentRun).toEqual({ status: 'fresh', data: null, error: null });
     expect(store.bootstrap?.player.energy).toBe(energy);
     expect(store.bootstrap?.active_squad).toBe(activeSquad);

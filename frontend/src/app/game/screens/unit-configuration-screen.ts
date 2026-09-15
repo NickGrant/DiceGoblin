@@ -5,6 +5,7 @@ import { ClientContentRegistry } from '../runtime/client-content-registry';
 import { Bounds, RuntimeViewport, RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 import { WarbandDieSummary } from '../runtime/warband-contracts';
 import { GameSceneScreen } from './game-screen-navigation';
+import { actionCursor } from './action-cursor';
 import { UnitConfigurationDraft } from './unit-configuration-model';
 
 export type UnitConfigurationSection = 'loadout' | 'abilities' | 'dice';
@@ -131,32 +132,32 @@ export class UnitConfigurationScreen implements GameSceneScreen {
   }
 
   addAbility(abilityId: string): void {
-    if (!this.interactionBlocked && this.draftValue?.addAbility(abilityId)) {
+    if (!this.interactionBlocked && !this.loadoutLocked && this.draftValue?.addAbility(abilityId)) {
       this.activeSection = 'loadout'; this.message = ''; this.reflow(this.viewport.snapshot);
     }
   }
 
   removeAbility(abilityId: string): void {
-    if (!this.interactionBlocked && this.draftValue?.removeAbility(abilityId)) {
+    if (!this.interactionBlocked && !this.loadoutLocked && this.draftValue?.removeAbility(abilityId)) {
       this.message = ''; this.reflow(this.viewport.snapshot);
     }
   }
 
   moveAbility(abilityId: string, direction: -1 | 1): void {
-    if (!this.interactionBlocked && this.draftValue?.moveAbility(abilityId, direction)) {
+    if (!this.interactionBlocked && !this.loadoutLocked && this.draftValue?.moveAbility(abilityId, direction)) {
       this.message = ''; this.reflow(this.viewport.snapshot);
     }
   }
 
   selectSlot(abilityId: string, slotIndex: number): void {
-    if (!this.interactionBlocked && this.draftValue?.selectSlot(abilityId, slotIndex)) {
+    if (!this.interactionBlocked && !this.loadoutLocked && this.draftValue?.selectSlot(abilityId, slotIndex)) {
       this.activeSection = 'dice'; this.pages.dice = 0; this.reflow(this.viewport.snapshot);
     }
   }
 
   assignDie(dieId: string): void {
     const dice = this.store.warband.dice.data ?? [];
-    if (!this.interactionBlocked && this.draftValue?.assignSelectedDie(dieId, dice)) {
+    if (!this.interactionBlocked && !this.loadoutLocked && this.draftValue?.assignSelectedDie(dieId, dice)) {
       this.message = ''; this.reflow(this.viewport.snapshot);
     }
   }
@@ -182,7 +183,7 @@ export class UnitConfigurationScreen implements GameSceneScreen {
 
   async saveLoadout(): Promise<void> {
     const draft = this.draftValue;
-    if (!draft || this.interactionBlocked || !draft.loadoutDirty) return;
+    if (!draft || this.interactionBlocked || this.loadoutLocked || !draft.loadoutDirty) return;
     const validation = draft.loadoutValidationError;
     if (validation) { this.message = validation; this.reflow(this.viewport.snapshot); return; }
     const bootstrap = this.store.bootstrap;
@@ -201,7 +202,8 @@ export class UnitConfigurationScreen implements GameSceneScreen {
   private showFailure(error: unknown, operation: 'rename' | 'loadout'): void {
     this.command = 'idle';
     if (error instanceof RuntimeApiError) {
-      if (error.kind === 'unauthorized') this.message = 'Your session expired. Your local draft is preserved.';
+      if (error.code === 'active_run_configuration_locked') this.message = 'This goblin\'s loadout and dice are locked while it participates in an active Farm run. Your draft is preserved.';
+      else if (error.kind === 'unauthorized') this.message = 'Your session expired. Your local draft is preserved.';
       else if (error.kind === 'malformed-response') this.message = 'The response failed an integrity check. Nothing was committed locally.';
       else if (error.status === 404) this.message = 'This goblin is no longer available.';
       else if (error.status === 422) this.message = operation === 'rename'
@@ -223,7 +225,7 @@ export class UnitConfigurationScreen implements GameSceneScreen {
     background.fillRect(0, 0, snapshot.logicalWidth, snapshot.logicalHeight);
     root.add(background);
     this.addButton(root, layout.back, 'BACK TO WARBAND', () => this.requestBack(), false);
-    root.add(this.scene.add.text(layout.back.right + 28, layout.header.y + 4, 'GOBLIN CONFIGURATION', {
+    root.add(this.scene.add.text(layout.back.right + 28, layout.header.y + 4, this.loadoutLocked ? 'GOBLIN DETAIL / RENAME' : 'GOBLIN CONFIGURATION', {
       color: '#f5e8c8', fontFamily: 'Georgia, serif', fontSize: layout.mode === 'compact' ? '42px' : '44px',
       fontStyle: 'bold', stroke: '#302015', strokeThickness: 5,
     }));
@@ -231,6 +233,11 @@ export class UnitConfigurationScreen implements GameSceneScreen {
       this.renderState(root, snapshot, state);
       return;
     }
+    if (this.loadoutLocked) root.add(this.scene.add.text(layout.back.right + 28, layout.header.y + 64,
+      'IN FARM RUN · Loadout and dice locked until it ends. You can still rename.', {
+        color: '#ffd69b', fontFamily: 'system-ui', fontSize: layout.mode === 'compact' ? '17px' : '15px', fontStyle: 'bold',
+        wordWrap: { width: Math.max(300, layout.name.x - layout.back.right - 48) },
+      }));
     root.add(this.scene.add.text(layout.name.x, layout.name.y, `NAME${this.draftValue.renameDirty ? ' - UNSAVED' : ''}`, {
       color: '#c8b98f', fontFamily: 'system-ui', fontSize: '15px', fontStyle: 'bold',
     }));
@@ -278,7 +285,7 @@ export class UnitConfigurationScreen implements GameSceneScreen {
     const tabGap = 10;
     const tabWidth = (layout.configuration.width - 40 - tabGap * 2) / 3;
     const tabHeight = layout.mode === 'compact' ? 80 : 48;
-    tabs.forEach(([section, label], index) => this.addButton(root, box(layout.configuration.x + 20 + index * (tabWidth + tabGap), layout.configuration.y + 18, tabWidth, tabHeight), label, () => this.selectSection(section), this.activeSection === section));
+    tabs.forEach(([section, label], index) => this.addButton(root, box(layout.configuration.x + 20 + index * (tabWidth + tabGap), layout.configuration.y + 18, tabWidth, tabHeight), label, () => this.selectSection(section), this.activeSection === section, !this.interactionBlocked && this.activeSection !== section));
     if (this.activeSection === 'loadout') this.renderLoadout(root, layout);
     else if (this.activeSection === 'abilities') this.renderAbilities(root, layout);
     else this.renderDice(root, layout);
@@ -299,15 +306,15 @@ export class UnitConfigurationScreen implements GameSceneScreen {
       const moveWidth = layout.mode === 'compact' ? 60 : 40;
       const removeWidth = layout.mode === 'compact' ? 105 : 70;
       let x = region.right - 12;
-      this.addButton(root, box(x - removeWidth, region.y + 8, removeWidth, actionHeight), 'REMOVE', () => this.removeAbility(entry.ability.id), false); x -= removeWidth + 8;
-      this.addButton(root, box(x - moveWidth, region.y + 8, moveWidth, actionHeight), '▼', () => this.moveAbility(entry.ability.id, 1), false); x -= moveWidth + 8;
-      this.addButton(root, box(x - moveWidth, region.y + 8, moveWidth, actionHeight), '▲', () => this.moveAbility(entry.ability.id, -1), false);
+      this.addButton(root, box(x - removeWidth, region.y + 8, removeWidth, actionHeight), 'REMOVE', () => this.removeAbility(entry.ability.id), false, !this.loadoutLocked && !this.interactionBlocked); x -= removeWidth + 8;
+      this.addButton(root, box(x - moveWidth, region.y + 8, moveWidth, actionHeight), '▼', () => this.moveAbility(entry.ability.id, 1), false, !this.loadoutLocked && !this.interactionBlocked); x -= moveWidth + 8;
+      this.addButton(root, box(x - moveWidth, region.y + 8, moveWidth, actionHeight), '▲', () => this.moveAbility(entry.ability.id, -1), false, !this.loadoutLocked && !this.interactionBlocked);
       const slotWidth = Math.min(104, Math.max(64, (region.width - 36) / Math.max(1, entry.diceInstanceIds.length + 2)));
       entry.diceInstanceIds.forEach((dieId, slotIndex) => {
         const die = (this.store.warband.dice.data ?? []).find((candidate) => candidate.id === dieId);
         const label = die ? `S${slotIndex + 1} · d${die.size}` : `S${slotIndex + 1} · EMPTY`;
         const slotHeight = layout.mode === 'compact' ? 64 : 34;
-        this.addButton(root, box(region.x + 16 + slotIndex * (slotWidth + 8), region.bottom - slotHeight - 8, slotWidth, slotHeight), label, () => this.selectSlot(entry.ability.id, slotIndex), draft.selectedSlot?.abilityId === entry.ability.id && draft.selectedSlot.slotIndex === slotIndex);
+        this.addButton(root, box(region.x + 16 + slotIndex * (slotWidth + 8), region.bottom - slotHeight - 8, slotWidth, slotHeight), label, () => this.selectSlot(entry.ability.id, slotIndex), draft.selectedSlot?.abilityId === entry.ability.id && draft.selectedSlot.slotIndex === slotIndex, !this.loadoutLocked && !this.interactionBlocked);
       });
     });
     this.renderPager(root, layout, 'loadout', draft.loadout.length);
@@ -327,7 +334,7 @@ export class UnitConfigurationScreen implements GameSceneScreen {
       this.addRow(root, region, ability.display_name, `${ability.kind.toUpperCase()} · ${ability.kind === 'active' ? `${ability.dice_slot_count} die slot${ability.dice_slot_count === 1 ? '' : 's'}` : 'Always visible, never scheduled'} · ${ability.description}`, ability.kind === 'passive');
       if (ability.kind === 'active' && !equipped) {
         const buttonHeight = layout.mode === 'compact' ? 64 : 42;
-        this.addButton(root, box(region.right - (layout.mode === 'compact' ? 142 : 112), region.y + region.height / 2 - buttonHeight / 2, layout.mode === 'compact' ? 124 : 94, buttonHeight), 'ADD', () => this.addAbility(ability.id), true);
+        this.addButton(root, box(region.right - (layout.mode === 'compact' ? 142 : 112), region.y + region.height / 2 - buttonHeight / 2, layout.mode === 'compact' ? 124 : 94, buttonHeight), 'ADD', () => this.addAbility(ability.id), true, !this.loadoutLocked && !this.interactionBlocked);
       }
       else root.add(this.scene.add.text(region.right - 22, region.y + region.height / 2, ability.kind === 'passive' ? 'PASSIVE' : 'EQUIPPED', { color: ability.kind === 'passive' ? '#6d4a85' : '#356b43', fontFamily: 'system-ui', fontSize: '13px', fontStyle: 'bold' }).setOrigin(1, 0.5));
     });
@@ -338,7 +345,7 @@ export class UnitConfigurationScreen implements GameSceneScreen {
     const draft = this.draftValue!;
     const selected = draft.selectedSlot;
     if (!selected) {
-      root.add(this.scene.add.text(layout.configuration.x + layout.configuration.width / 2, layout.configuration.y + layout.configuration.height / 2, 'SELECT AN ABILITY SLOT\nChoose a slot in Ordered Loadout, then assign one exact physical die.', { color: '#5b351f', fontFamily: 'Georgia, serif', fontSize: '24px', align: 'center', lineSpacing: 10 }).setOrigin(0.5));
+      root.add(this.scene.add.text(layout.configuration.x + layout.configuration.width / 2, layout.configuration.y + layout.configuration.height / 2, this.loadoutLocked ? 'DICE ARE LOCKED\nCommitted dice remain visible in Ordered Loadout.' : 'SELECT AN ABILITY SLOT\nChoose a slot in Ordered Loadout, then assign one exact physical die.', { color: '#5b351f', fontFamily: 'Georgia, serif', fontSize: '24px', align: 'center', lineSpacing: 10 }).setOrigin(0.5));
       return;
     }
     const dice = this.store.warband.dice.data ?? [];
@@ -357,7 +364,7 @@ export class UnitConfigurationScreen implements GameSceneScreen {
       this.addRow(root, region, `d${die.size} ${die.profile.display_name}`, `${die.material.display_name} · ${aspect} · ${die.profile.rarity.toUpperCase()} · ${availability === 'other-unit' ? 'BOUND TO ANOTHER GOBLIN' : availability === 'this-unit' ? 'MOVABLE ON THIS GOBLIN' : 'AVAILABLE'}`, availability === 'other-unit');
       if (availability !== 'other-unit') {
         const buttonHeight = layout.mode === 'compact' ? 64 : 42;
-        this.addButton(root, box(region.right - (layout.mode === 'compact' ? 142 : 112), region.y + region.height / 2 - buttonHeight / 2, layout.mode === 'compact' ? 124 : 94, buttonHeight), 'ASSIGN', () => this.assignDie(die.id), true);
+        this.addButton(root, box(region.right - (layout.mode === 'compact' ? 142 : 112), region.y + region.height / 2 - buttonHeight / 2, layout.mode === 'compact' ? 124 : 94, buttonHeight), 'ASSIGN', () => this.assignDie(die.id), true, !this.loadoutLocked && !this.interactionBlocked);
       }
     });
     this.renderPager(root, layout, 'dice', dice.length);
@@ -367,9 +374,9 @@ export class UnitConfigurationScreen implements GameSceneScreen {
     const draft = this.draftValue!;
     const gap = 12;
     const width = 190;
-    this.addButton(root, box(layout.actions.x, layout.actions.y, width, layout.actions.height), 'CANCEL', () => this.requestBack(), false);
-    this.addButton(root, box(layout.actions.x + width + gap, layout.actions.y, width, layout.actions.height), this.command === 'renaming' ? 'RENAMING...' : 'SAVE NAME', () => { void this.saveRename(); }, draft.renameDirty);
-    this.addButton(root, box(layout.actions.x + (width + gap) * 2, layout.actions.y, width + 30, layout.actions.height), this.command === 'saving-loadout' ? 'SAVING...' : 'SAVE LOADOUT', () => { void this.saveLoadout(); }, draft.loadoutDirty);
+    this.addButton(root, box(layout.actions.x, layout.actions.y, width, layout.actions.height), 'CANCEL', () => this.requestBack(), false, !this.interactionBlocked);
+    this.addButton(root, box(layout.actions.x + width + gap, layout.actions.y, width, layout.actions.height), this.command === 'renaming' ? 'RENAMING...' : 'SAVE NAME', () => { void this.saveRename(); }, draft.renameDirty, draft.renameDirty && !this.interactionBlocked);
+    this.addButton(root, box(layout.actions.x + (width + gap) * 2, layout.actions.y, width + 30, layout.actions.height), this.command === 'saving-loadout' ? 'SAVING...' : 'SAVE LOADOUT', () => { void this.saveLoadout(); }, draft.loadoutDirty, draft.loadoutDirty && !this.loadoutLocked && !this.interactionBlocked);
     const status = this.integrityBlocked ? 'STATE INTEGRITY BLOCK' : draft.loadoutValidationError ?? this.message;
     if (status) root.add(this.scene.add.text(layout.actions.right, layout.actions.y + layout.actions.height / 2, status, { color: this.integrityBlocked || draft.loadoutValidationError ? '#ffd09b' : '#d8e6bd', fontFamily: 'system-ui', fontSize: '15px', fontStyle: 'bold', wordWrap: { width: Math.max(280, layout.actions.width - 640) }, align: 'right' }).setOrigin(1, 0.5));
   }
@@ -398,6 +405,7 @@ export class UnitConfigurationScreen implements GameSceneScreen {
     input.addEventListener('input', () => {
       if (this.nativeInputBlocked || !this.draftValue) { input.value = this.draftValue?.name ?? ''; return; }
       this.draftValue.setName(input.value); this.message = '';
+      this.reflow(this.viewport.snapshot);
     });
     parent.appendChild(input); this.nameInput = input;
   }
@@ -419,6 +427,7 @@ export class UnitConfigurationScreen implements GameSceneScreen {
   private get interactionBlocked(): boolean {
     return this.command !== 'idle' || this.confirmation || this.portraitGateActive || this.integrityBlocked;
   }
+  private get loadoutLocked(): boolean { return this.store.activeRunLock?.unitIds.has(this.unitId) ?? false; }
   private get nativeInputBlocked(): boolean { return this.interactionBlocked || !this.draftValue; }
 
   private page<T>(section: UnitConfigurationSection, items: readonly T[], size: number): readonly T[] {
@@ -433,8 +442,8 @@ export class UnitConfigurationScreen implements GameSceneScreen {
     const height = layout.mode === 'compact' ? 60 : 38;
     const width = layout.mode === 'compact' ? 122 : 92;
     const y = layout.configuration.bottom - height - 10;
-    this.addButton(root, box(layout.configuration.right - (width * 2 + 64), y, width, height), '< PREV', () => this.changePage(section, -1, pages), false);
-    this.addButton(root, box(layout.configuration.right - width - 20, y, width, height), 'NEXT >', () => this.changePage(section, 1, pages), false);
+    this.addButton(root, box(layout.configuration.right - (width * 2 + 64), y, width, height), '< PREV', () => this.changePage(section, -1, pages), false, !this.interactionBlocked);
+    this.addButton(root, box(layout.configuration.right - width - 20, y, width, height), 'NEXT >', () => this.changePage(section, 1, pages), false, !this.interactionBlocked);
     root.add(this.scene.add.text(layout.configuration.right - width - 42, y + height / 2, `${this.pages[section] + 1} / ${pages}`, { color: '#5b351f', fontFamily: 'system-ui', fontSize: layout.mode === 'compact' ? '17px' : '13px', fontStyle: 'bold' }).setOrigin(1, 0.5));
   }
 
@@ -457,12 +466,17 @@ export class UnitConfigurationScreen implements GameSceneScreen {
     root.add(this.scene.add.text(region.x + 16, region.y + (compact ? 43 : 36), detail, { color: unavailable ? '#766b5b' : '#74664b', fontFamily: 'system-ui', fontSize: compact ? '18px' : '13px', wordWrap: { width: region.width - 150 } }));
   }
 
-  private addButton(root: Phaser.GameObjects.Container, region: Bounds, label: string, action: () => void, active: boolean): void {
+  private addButton(root: Phaser.GameObjects.Container, region: Bounds, label: string, action: () => void, active: boolean, enabled = true): void {
     const compact = this.activeLayout?.mode === 'compact';
-    const button = this.scene.add.graphics(); button.fillStyle(active ? 0x8a5a34 : 0x273e35, 1); button.fillRoundedRect(region.x, region.y, region.width, region.height, 10);
+    const button = this.scene.add.graphics(); button.fillStyle(!enabled ? 0x6c6658 : active ? 0x8a5a34 : 0x273e35, 1); button.fillRoundedRect(region.x, region.y, region.width, region.height, 10);
     button.lineStyle(2, active ? 0xf2c14e : 0x8a6a45, 1); button.strokeRoundedRect(region.x + 1, region.y + 1, region.width - 2, region.height - 2, 10);
-    button.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains); button.on('pointerup', action); root.add(button);
-    root.add(this.scene.add.text(region.x + region.width / 2, region.y + region.height / 2, label, { color: '#fff4d3', fontFamily: 'system-ui', fontSize: compact ? (region.height > 60 ? '19px' : '17px') : (region.height > 60 ? '16px' : '13px'), fontStyle: 'bold', align: 'center' }).setOrigin(0.5));
+    if (enabled) {
+      button.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains);
+      actionCursor(button);
+      button.on('pointerup', action);
+    }
+    root.add(button);
+    root.add(this.scene.add.text(region.x + region.width / 2, region.y + region.height / 2, label, { color: enabled ? '#fff4d3' : '#d4c8ae', fontFamily: 'system-ui', fontSize: compact ? (region.height > 60 ? '19px' : '17px') : (region.height > 60 ? '16px' : '13px'), fontStyle: 'bold', align: 'center' }).setOrigin(0.5));
   }
 
   private publishReadyState(ready: boolean): void {

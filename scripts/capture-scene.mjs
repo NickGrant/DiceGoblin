@@ -22,6 +22,7 @@ function parseArgs(argv) {
     userId: "debug-user",
     sceneData: "{}",
     initialTab: "",
+    activeRun: false,
     settleMs: DEFAULT_SETTLE_MS,
     timeoutMs: DEFAULT_WAIT_TIMEOUT_MS,
     useExistingServer: false,
@@ -77,6 +78,9 @@ function parseArgs(argv) {
       case "--initial-tab":
         options.initialTab = next ?? "";
         index += 1;
+        break;
+      case "--active-run":
+        options.activeRun = true;
         break;
       case "--settle-ms":
         options.settleMs = Number.parseInt(next ?? `${DEFAULT_SETTLE_MS}`, 10);
@@ -142,6 +146,7 @@ Options:
   --user-id <id>            Debug user id for authenticated mode
   --scene-data <json>       JSON object passed to scene init/create
   --initial-tab <tab>       Optional debugInitialTab query value for tabbed scenes
+  --active-run              Preview Warband/squad/unit with a coherent active Farm run
   --settle-ms <ms>          Extra wait after the scene signals ready (default: ${DEFAULT_SETTLE_MS})
   --timeout-ms <ms>         Overall timeout waiting for app and scene readiness
   --full-page               Capture full page instead of viewport only
@@ -206,7 +211,7 @@ async function installGameFixtureRoutes(page, options) {
           id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation,
           units: unitRows.filter((unit) => activeFormation.includes(unit.id)),
         },
-        active_run: ['run', 'run-abandon', 'run-portrait'].includes(scene)
+        active_run: options.activeRun || ['run', 'run-abandon', 'run-portrait'].includes(scene)
           ? { id: '401', region_id: 'region.the_farm', squad_id: '301', status: 'active' }
           : null,
       },

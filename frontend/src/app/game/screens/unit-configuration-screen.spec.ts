@@ -47,14 +47,22 @@ describe('UnitConfigurationScreen', () => {
   }
 
   function sceneHarness(): Phaser.Scene {
+    const graphics: Array<{ hit: Phaser.Geom.Rectangle | null; input: { cursor: string } | null }> = [];
     const chain = (): Record<string, jasmine.Spy> => {
       const value: Record<string, jasmine.Spy> = {};
-      for (const method of ['setScale', 'destroy', 'fillGradientStyle', 'fillRect', 'fillStyle', 'fillRoundedRect', 'lineStyle', 'strokeRoundedRect', 'setInteractive', 'on', 'setOrigin']) value[method] = jasmine.createSpy(method).and.returnValue(value);
+      for (const method of ['setScale', 'destroy', 'fillGradientStyle', 'fillRect', 'fillStyle', 'fillRoundedRect', 'lineStyle', 'strokeRoundedRect', 'on', 'setOrigin']) value[method] = jasmine.createSpy(method).and.returnValue(value);
+      value['setInteractive'] = jasmine.createSpy('setInteractive').and.callFake((hit: Phaser.Geom.Rectangle) => {
+        (value as unknown as { hit: Phaser.Geom.Rectangle; input: { cursor: string } }).hit = hit;
+        (value as unknown as { input: { cursor: string } }).input = { cursor: '' };
+        return value;
+      });
       value['add'] = jasmine.createSpy('add').and.returnValue(value);
       return value;
     };
     const parent = document.createElement('div'); const canvas = document.createElement('canvas'); parent.appendChild(canvas);
-    return { add: { container: () => chain(), graphics: () => chain(), text: () => chain() }, sys: { game: { canvas } } } as unknown as Phaser.Scene;
+    return { add: { container: () => chain(), graphics: () => {
+      const graphic = chain(); graphics.push(graphic as unknown as typeof graphics[number]); return graphic;
+    }, text: () => chain() }, sys: { game: { canvas } }, graphics } as unknown as Phaser.Scene;
   }
 
   async function readyHarness() {
@@ -65,7 +73,7 @@ describe('UnitConfigurationScreen', () => {
     const viewport = new RuntimeViewport(); const returned = jasmine.createSpy('returned');
     const screen = new UnitConfigurationScreen(scene, store, client, registry, viewport, '11', returned);
     screen.create();
-    return { screen, store, client, registry, viewport, returned, parent, input: parent.querySelector<HTMLInputElement>('[data-unit-name-input="true"]')! };
+    return { screen, store, client, registry, viewport, returned, parent, scene, input: parent.querySelector<HTMLInputElement>('[data-unit-name-input="true"]')! };
   }
 
   it('keeps every major region inside Compact, Standard, and Wide safe bounds', () => {
@@ -146,6 +154,41 @@ describe('UnitConfigurationScreen', () => {
     screen.reflow(landscape);
     expect(parent.querySelector('[data-unit-name-input="true"]')).toBe(input); expect(input.disabled).toBeFalse(); expect(input.value).toBe('Rotation Grub');
     expect(screen.draft!.loadout[1].diceInstanceIds).toEqual(['22']); expect(screen.draft!.selectedSlot).toEqual({ abilityId: 'ability.smash', slotIndex: 0 });
+    screen.destroy(); parent.remove();
+  });
+
+  it('keeps participating loadout/dice committed and non-mutable while allowing rename', async () => {
+    const { screen, store, client, input, parent, scene } = await readyHarness();
+    store.hydrateBootstrap({ ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } });
+    screen.reflow(new RuntimeViewport().snapshot);
+    const original = screen.draft!.loadout.map((entry) => [entry.ability.id, [...entry.diceInstanceIds]]);
+    screen.addAbility('ability.smash'); screen.removeAbility('ability.bash'); screen.moveAbility('ability.bash', 1);
+    screen.selectSlot('ability.bash', 0); screen.assignDie('22');
+    const portrait = calculateRuntimeViewport({ cssWidth: 390, cssHeight: 844, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true });
+    const compact = calculateRuntimeViewport({ cssWidth: 844, cssHeight: 390, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true });
+    screen.reflow(portrait); screen.addAbility('ability.smash'); screen.reflow(compact); screen.addAbility('ability.smash');
+    expect(screen.draft!.loadout.map((entry) => [entry.ability.id, [...entry.diceInstanceIds]])).toEqual(original);
+    expect(screen.draft!.selectedSlot).toBeNull();
+    await screen.saveLoadout(); expect(client.replaceUnitLoadout).not.toHaveBeenCalled();
+    input.value = 'Farm Grub'; input.dispatchEvent(new Event('input'));
+    const graphics = (scene as unknown as { graphics: Array<{ hit: Phaser.Geom.Rectangle | null; input: { cursor: string } | null }> }).graphics;
+    const saveNameX = createUnitConfigurationLayout(new RuntimeViewport().snapshot).actions.x + 202;
+    expect(graphics.some((graphic) => graphic.hit?.x === saveNameX && graphic.input?.cursor === 'pointer')).toBeTrue();
+    const current = store.unitDetail('11').data!;
+    client.renameUnit.and.resolveTo({ unit: { ...current, displayName: 'Farm Grub' }, playerRevision: 8 });
+    await screen.saveRename();
+    expect(client.renameUnit).toHaveBeenCalledTimes(1);
+    expect(screen.draft!.name).toBe('Farm Grub');
+    screen.destroy(); parent.remove();
+  });
+
+  it('shows understandable active-run 409 fallback and preserves a stale-tab loadout draft', async () => {
+    const { screen, client, parent } = await readyHarness();
+    screen.addAbility('ability.smash'); screen.selectSlot('ability.smash', 0); screen.assignDie('22');
+    client.replaceUnitLoadout.and.rejectWith(new RuntimeApiError('http', 409, 'active_run_configuration_locked'));
+    await screen.saveLoadout();
+    expect((screen as unknown as { message: string }).message).toContain('loadout and dice are locked');
+    expect(screen.draft!.loadout[1].diceInstanceIds).toEqual(['22']);
     screen.destroy(); parent.remove();
   });
 });

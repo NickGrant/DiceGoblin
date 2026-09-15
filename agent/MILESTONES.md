@@ -4,10 +4,12 @@ Read this for sequencing/planning or when closing/promoting an execution package
 
 ## Milestone 3 - Enter Farm
 
-**Status:** UAT corrections in progress
+**Status:** Active
+
+Manual UAT corrections are in progress; UAT has not passed.
 
 ### Related Issues
-- Address Milestone 3 UAT interaction affordances and active-run lock presentation
+- Address UAT interaction affordances and active-run lock presentation
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 

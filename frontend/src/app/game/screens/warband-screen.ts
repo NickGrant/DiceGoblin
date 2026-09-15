@@ -11,6 +11,7 @@ import { Bounds, RuntimeViewport, RuntimeViewportSnapshot } from '../runtime/run
 import { WarbandDieSummary, WarbandSquadSummary, WarbandUnitSummary } from '../runtime/warband-contracts';
 import { GameSceneScreen } from './game-screen-navigation';
 import type { SquadEditorInitialAction } from './squad-editor-screen';
+import { actionCursor } from './action-cursor';
 
 export type WarbandTab = 'units' | 'dice' | 'squads';
 
@@ -140,10 +141,12 @@ export class WarbandScreen implements GameSceneScreen {
   }
 
   activateSelectedSquad(): void {
+    if (this.store.activeRunLock) return;
     this.openSelectedSquad('activate');
   }
 
   deleteSelectedSquad(): void {
+    if (this.store.activeRunLock?.squadId === this.selectedSquadId) return;
     this.openSelectedSquad('delete');
   }
 
@@ -195,7 +198,7 @@ export class WarbandScreen implements GameSceneScreen {
     const tabLabels: readonly [string, string, string] = ['UNIT ROSTER', 'DICE INVENTORY', 'SQUADS & FORMATION'];
     layout.tabs.forEach((region, index) => {
       const tab = domains[index];
-      this.addButton(root, region, tabLabels[index], () => this.selectTab(tab), this.activeTab === tab);
+      this.addButton(root, region, tabLabels[index], () => this.selectTab(tab), this.activeTab === tab, this.activeTab !== tab);
     });
 
     const panel = this.scene.add.graphics();
@@ -214,8 +217,8 @@ export class WarbandScreen implements GameSceneScreen {
     const items = this.pageItems('units', state.data ?? [], layout.pageSize);
     this.renderRows(root, layout, items.map((unit) => ({
       title: unit.displayName,
-      detail: `${unit.unitType.display_name} · ${unit.kin.display_name} · Level ${unit.level}`,
-      badge: 'CONFIGURE',
+      detail: `${unit.unitType.display_name} · ${unit.kin.display_name} · Level ${unit.level}${this.store.activeRunLock?.unitIds.has(unit.id) ? ' · IN FARM RUN: LOADOUT LOCKED' : ''}`,
+      badge: this.store.activeRunLock?.unitIds.has(unit.id) ? 'VIEW / RENAME' : 'CONFIGURE',
     })), (state.data?.length ?? 0) > layout.pageSize, (index) => {
       const unit = items[index];
       if (unit) this.openUnit(unit.id);
@@ -267,8 +270,8 @@ export class WarbandScreen implements GameSceneScreen {
     const rowsLayout = { ...layout, content: box(layout.content.x, layout.content.y, listWidth, layout.content.height) };
     this.renderRows(root, rowsLayout, squads.map((squad) => ({
       title: squad.name,
-      detail: `${squad.formation.filter(Boolean).length} of 9 positions filled`,
-      badge: squad.isActive ? 'ACTIVE' : 'SAVED',
+      detail: `${squad.formation.filter(Boolean).length} of 9 positions filled${this.store.activeRunLock?.squadId === squad.id ? ' · IN FARM RUN: FORMATION LOCKED' : ''}`,
+      badge: this.store.activeRunLock?.squadId === squad.id ? 'IN RUN' : squad.isActive ? 'ACTIVE' : 'SAVED',
     })), (state.data?.length ?? 0) > Math.min(3, layout.pageSize), (index) => {
       this.selectedSquadId = squads[index]?.id ?? null;
       this.reflow(this.viewport.snapshot);
@@ -280,8 +283,8 @@ export class WarbandScreen implements GameSceneScreen {
     let actionX = layout.content.right - (actionWidth * 4 + actionGap * 3) - 14;
     this.addButton(root, box(actionX, actionY, actionWidth, 44), 'NEW', () => this.createSquad(), true); actionX += actionWidth + actionGap;
     this.addButton(root, box(actionX, actionY, actionWidth, 44), 'EDIT', () => this.editSelectedSquad(), false); actionX += actionWidth + actionGap;
-    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'ACTIVATE', () => this.activateSelectedSquad(), selected?.isActive ?? false); actionX += actionWidth + actionGap;
-    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'DELETE', () => this.deleteSelectedSquad(), false);
+    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'ACTIVATE', () => this.activateSelectedSquad(), selected?.isActive ?? false, !this.store.activeRunLock && !selected?.isActive); actionX += actionWidth + actionGap;
+    this.addButton(root, box(actionX, actionY, actionWidth, 44), 'DELETE', () => this.deleteSelectedSquad(), false, this.store.activeRunLock?.squadId !== selected?.id);
     this.renderPager(root, layout, 'squads', state.data?.length ?? 0, Math.min(3, layout.pageSize));
   }
 
@@ -294,7 +297,7 @@ export class WarbandScreen implements GameSceneScreen {
   ): void {
     const x = layout.content.x + listWidth + 28;
     const availableWidth = layout.content.right - x - 28;
-    const label = this.scene.add.text(x, layout.content.y + 22, `${squad.isActive ? 'ACTIVE FORMATION' : 'FORMATION'} · ${squad.name}`, {
+    const label = this.scene.add.text(x, layout.content.y + 22, `${this.store.activeRunLock?.squadId === squad.id ? 'IN FARM RUN · FORMATION LOCKED' : squad.isActive ? 'ACTIVE FORMATION' : 'FORMATION'} · ${squad.name}`, {
       color: '#6a321f', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '23px' : '18px', fontStyle: 'bold',
     });
     root.add(label);
@@ -379,6 +382,7 @@ export class WarbandScreen implements GameSceneScreen {
       card.strokeRoundedRect(layout.content.x + 19, y + 1, width - 2, rowHeight - 2, 10);
       if (onSelect) {
         card.setInteractive(new Phaser.Geom.Rectangle(layout.content.x + 18, y, width, rowHeight), Phaser.Geom.Rectangle.Contains);
+        actionCursor(card);
         card.on('pointerup', () => onSelect(index));
       }
       root.add(card);
@@ -440,16 +444,20 @@ export class WarbandScreen implements GameSceneScreen {
     label: string,
     action: () => void,
     active: boolean,
+    enabled = true,
   ): void {
     const button = this.scene.add.graphics();
-    button.fillStyle(active ? 0x8a5a34 : 0x273e35, 1);
+    button.fillStyle(!enabled ? 0x6c6658 : active ? 0x8a5a34 : 0x273e35, 1);
     button.fillRoundedRect(region.x, region.y, region.width, region.height, 12);
     button.lineStyle(3, active ? 0xf2c14e : 0x8a6a45, 1);
     button.strokeRoundedRect(region.x + 1, region.y + 1, region.width - 2, region.height - 2, 12);
-    button.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains);
-    button.on('pointerup', action);
+    if (enabled) {
+      button.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains);
+      actionCursor(button);
+      button.on('pointerup', action);
+    }
     const text = this.scene.add.text(region.x + region.width / 2, region.y + region.height / 2, label, {
-      align: 'center', color: '#fff4d3', fontFamily: 'system-ui, sans-serif',
+      align: 'center', color: enabled ? '#fff4d3' : '#d4c8ae', fontFamily: 'system-ui, sans-serif',
       fontSize: region.height >= 80 ? '24px' : region.height >= 60 ? '18px' : '14px', fontStyle: 'bold',
     }).setOrigin(0.5);
     root.add([button, text]);

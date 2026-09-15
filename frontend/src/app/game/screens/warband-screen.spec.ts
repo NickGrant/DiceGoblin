@@ -146,4 +146,41 @@ describe('WarbandScreen', () => {
     expect(openUnit).toHaveBeenCalledOnceWith('11');
     expect(client.getUnitDetail).not.toHaveBeenCalled();
   });
+
+  it('marks the participating squad/unit and blocks known-invalid squad actions without another request', async () => {
+    const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
+    const store = new GameStore(); store.hydrateBootstrap(active);
+    const client = api(); const registry = content(); await store.loadWarbandDomains(client, registry);
+    const harness = sceneHarness(); const openEditor = jasmine.createSpy('openEditor');
+    const screen = new WarbandScreen(harness.scene, store, client, registry, new RuntimeViewport(), () => undefined, openEditor, 'squads');
+    screen.create();
+    expect(harness.textValues.some((text) => text.includes('IN FARM RUN: FORMATION LOCKED'))).toBeTrue();
+    expect(harness.textValues).toContain('IN RUN');
+    screen.activateSelectedSquad(); screen.deleteSelectedSquad();
+    expect(openEditor).not.toHaveBeenCalled();
+    screen.editSelectedSquad(); screen.createSquad();
+    expect(openEditor).toHaveBeenCalledTimes(2);
+    screen.selectTab('units');
+    expect(harness.textValues.some((text) => text.includes('IN FARM RUN: LOADOUT LOCKED'))).toBeTrue();
+    expect(harness.textValues).toContain('VIEW / RENAME');
+    expect(client.getUnitDetail).not.toHaveBeenCalled();
+  });
+
+  it('keeps another squad edit/delete available but prevents switching active squad during a run', async () => {
+    const store = new GameStore(); store.hydrateBootstrap({ ...bootstrap(),
+      active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } });
+    const client = api(); client.getSquads.and.resolveTo({ ok: true, data: { squads: [
+      { id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null] },
+      { id: '32', name: 'Brawlers', is_active: false, formation: [null, null, null, null, null, null, null, null, null] },
+    ] } });
+    const registry = content(); await store.loadWarbandDomains(client, registry);
+    const openEditor = jasmine.createSpy('openEditor');
+    const screen = new WarbandScreen(sceneHarness().scene, store, client, registry, new RuntimeViewport(), () => undefined, openEditor, 'squads');
+    screen.create();
+    (screen as unknown as { selectedSquadId: string }).selectedSquadId = '32'; screen.reflow(new RuntimeViewport().snapshot);
+    screen.activateSelectedSquad(); expect(openEditor).not.toHaveBeenCalled();
+    screen.editSelectedSquad(); screen.deleteSelectedSquad();
+    expect(openEditor.calls.argsFor(0)[0].id).toBe('32');
+    expect(openEditor.calls.argsFor(1)).toEqual([jasmine.objectContaining({ id: '32' }), 'delete']);
+  });
 });

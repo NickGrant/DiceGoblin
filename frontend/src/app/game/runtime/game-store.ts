@@ -270,6 +270,10 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
     active_run: parseActiveRun(data['active_run']),
   };
 
+  if (parsed.active_run && (!parsed.active_squad || parsed.active_squad.id !== parsed.active_run.squad_id)) {
+    throw new BootstrapContractError('Active run and active squad disagree. Reload authoritative state.');
+  }
+
   if (
     session['authenticated'] !== true
   ) {
@@ -308,6 +312,10 @@ export class GameStore {
 
   get currentRun(): CurrentRunState {
     return this.currentRunState;
+  }
+
+  get activeRunLock(): ActiveRunLock | null {
+    return activeRunLock(this.cachedBootstrap);
   }
 
   unitDetail(unitId: string): UnitDetailState {
@@ -824,6 +832,7 @@ import {
   parseUnitDetailEnvelope,
 } from './unit-detail-contracts';
 import { CurrentRun, CurrentRunResult, RunAbandonResult, RunContractError, RunStartResult } from './run-contracts';
+import { activeRunLock, ActiveRunLock } from './active-run-lock';
 
 function unitDetailErrorKind(error: unknown): WarbandDomainErrorKind {
   if (error instanceof RuntimeApiError) return error.kind;

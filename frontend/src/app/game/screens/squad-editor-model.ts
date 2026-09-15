@@ -45,7 +45,11 @@ export class SquadEditorDraft {
 
   get dirty(): boolean {
     return this.currentName !== this.originalName
-      || this.currentFormation.some((unitId, index) => unitId !== this.originalFormation[index]);
+      || this.formationDirty;
+  }
+
+  get formationDirty(): boolean {
+    return this.currentFormation.some((unitId, index) => unitId !== this.originalFormation[index]);
   }
 
   get validationError(): string | null {

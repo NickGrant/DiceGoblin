@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { actionCursor } from '../screens/action-cursor';
 import { readDebugCaptureRequest } from '../../core/debug/debug-capture';
 import { GameStore } from '../runtime/game-store';
 import { RuntimeStartup, RuntimeStartupSnapshot } from '../runtime/runtime-startup';
@@ -119,7 +120,10 @@ export class BootScene extends Phaser.Scene {
 
     const next = nextSceneForStartup(state, this.runtimeStartup.store.bootstrap?.active_run !== null);
     if (next) {
-      this.scene.start(next);
+      const preview = (readDebugCaptureRequest()?.scene ?? window.__DG_DEBUG__?.requestedScene ?? '').toLowerCase();
+      // Capture-only navigation can inspect Warband lock presentation while real startup still routes to RunScene.
+      this.scene.start(next === RUN_SCENE_KEY && ['warband', 'squad-editor', 'unit-configuration'].includes(preview ?? '')
+        ? GAME_SCENE_KEY : next);
       return;
     }
 
@@ -534,6 +538,7 @@ export class RunScene extends RuntimeScene {
       if (this.abandonState === 'idle') {
         graphic.setInteractive(new Phaser.Geom.Circle(node.centerX, node.centerY, node.radius), Phaser.Geom.Circle.Contains)
           .on('pointerup', () => this.selectNode(node.id));
+        actionCursor(graphic);
       }
       const textureKey = `run-node-icon:${node.iconKey}`;
       const icon = this.textures.exists(textureKey)
@@ -556,8 +561,8 @@ export class RunScene extends RuntimeScene {
         align: 'center', wordWrap: { width: layout.panel.width - 160 },
       }).setOrigin(0.5);
     root.add(detail);
-    this.addButton(root, layout.returnButton, 'RETURN TO CAMP', () => this.returnToCamp());
-    this.addButton(root, layout.abandonButton, 'ABANDON RUN', () => this.openAbandonConfirmation(), 0x7a302b);
+    this.addButton(root, layout.returnButton, 'RETURN TO CAMP', () => this.returnToCamp(), 0x244b3d, this.abandonState === 'idle');
+    this.addButton(root, layout.abandonButton, 'ABANDON RUN', () => this.openAbandonConfirmation(), 0x7a302b, this.abandonState === 'idle');
   }
 
   private renderAbandonConfirmation(root: Phaser.GameObjects.Container, region: Bounds): void {
@@ -590,11 +595,14 @@ export class RunScene extends RuntimeScene {
     }
   }
 
-  private addButton(root: Phaser.GameObjects.Container, region: Bounds, label: string, action: () => void, fill = 0x244b3d): void {
-    const button = this.add.graphics(); button.fillStyle(fill, 1); button.fillRoundedRect(region.x, region.y, region.width, region.height, 12);
+  private addButton(root: Phaser.GameObjects.Container, region: Bounds, label: string, action: () => void, fill = 0x244b3d, enabled = true): void {
+    const button = this.add.graphics(); button.fillStyle(enabled ? fill : 0x6c6658, 1); button.fillRoundedRect(region.x, region.y, region.width, region.height, 12);
     button.lineStyle(3, 0xc9972b, 1); button.strokeRoundedRect(region.x, region.y, region.width, region.height, 12);
-    button.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains).on('pointerup', action);
-    const text = this.add.text(region.x + region.width / 2, region.y + region.height / 2, label, { color: '#fff4d3',
+    if (enabled) {
+      button.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains).on('pointerup', action);
+      actionCursor(button);
+    }
+    const text = this.add.text(region.x + region.width / 2, region.y + region.height / 2, label, { color: enabled ? '#fff4d3' : '#d4c8ae',
       fontFamily: 'system-ui, sans-serif', fontSize: this.runtimeViewport.snapshot.layoutClass === 'compact' ? '30px' : '17px', fontStyle: 'bold' }).setOrigin(0.5);
     root.add([button, text]);
   }

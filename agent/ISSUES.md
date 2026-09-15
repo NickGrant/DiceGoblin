@@ -6,7 +6,7 @@
 
 ### Address UAT interaction affordances and active-run lock presentation
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

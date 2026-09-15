@@ -40,6 +40,32 @@ describe('SquadEditorScreen', () => {
     return { add: { container: () => chain(), graphics: () => chain(), text: () => chain() }, sys: { game: { canvas } } } as unknown as Phaser.Scene;
   }
 
+  function interactionHarness() {
+    const graphics: Array<{ input: { cursor: string } | null; hit: Phaser.Geom.Rectangle | null; pointerUp: (() => void) | null }> = [];
+    const textValues: string[] = [];
+    const chain = () => {
+      const value = { input: null as { cursor: string } | null, hit: null as Phaser.Geom.Rectangle | null,
+        pointerUp: null as (() => void) | null } as Record<string, unknown>;
+      for (const method of ['setScale', 'destroy', 'fillGradientStyle', 'fillRect', 'fillStyle', 'fillRoundedRect', 'lineStyle', 'strokeRoundedRect', 'setOrigin']) {
+        value[method] = jasmine.createSpy(method).and.returnValue(value);
+      }
+      value['setInteractive'] = jasmine.createSpy('setInteractive').and.callFake((hit: Phaser.Geom.Rectangle) => {
+        value['hit'] = hit; value['input'] = { cursor: '' }; return value;
+      });
+      value['on'] = jasmine.createSpy('on').and.callFake((event: string, action: () => void) => {
+        if (event === 'pointerup') value['pointerUp'] = action; return value;
+      });
+      value['add'] = jasmine.createSpy('add').and.returnValue(value);
+      return value;
+    };
+    const parent = document.createElement('div'); const canvas = document.createElement('canvas'); parent.appendChild(canvas);
+    const scene = { add: { container: () => chain(), graphics: () => {
+      const graphic = chain(); graphics.push(graphic as typeof graphics[number]); return graphic;
+    }, text: (_x: number, _y: number, text: string) => { textValues.push(text); return chain(); } },
+      sys: { game: { canvas } } } as unknown as Phaser.Scene;
+    return { scene, graphics, textValues };
+  }
+
   function domHarness(draft: SquadEditorDraft, client: jasmine.SpyObj<RuntimeApiClient>) {
     const scene = sceneHarness();
     const canvas = (scene.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game!.canvas;
@@ -174,6 +200,106 @@ describe('SquadEditorScreen', () => {
     expect(input.style.display).toBe('block');
     expect(input.value).toBe('Dirty Raiders');
     screen.destroy(); parent.remove();
+  });
+
+  it('locks participating formation/delete but allows name-only save and dirty discard', async () => {
+    const client = api();
+    const formation = ['11', null, null, null, null, null, null, null, null];
+    const draft = SquadEditorDraft.edit({ id: '31', name: 'Raiders', isActive: true, formation });
+    const { screen, store, returned } = harness(draft, client);
+    store.hydrateBootstrap({ ...bootstrap(), active_squad: { id: '31', name: 'Raiders', is_active: true,
+      formation, units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] },
+      active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } });
+    screen.requestDelete(); await screen.confirmDelete(); await screen.activate();
+    expect(client.deleteSquad).not.toHaveBeenCalled(); expect(client.activateSquad).not.toHaveBeenCalled();
+    draft.setName('Renamed Raiders');
+    screen.requestBack(); expect(returned).not.toHaveBeenCalled(); screen.cancelConfirmation();
+    client.updateSquad.and.resolveTo({ squad: { id: '31', name: 'Renamed Raiders', isActive: true, formation }, activeSquadId: '31', playerRevision: 8 });
+    spyOn(store, 'reconcileSquadMutation');
+    await screen.save();
+    expect(client.updateSquad).toHaveBeenCalledOnceWith('31', { name: 'Renamed Raiders', formation }, 'csrf-authoritative');
+    expect(returned).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders participating formation cells/roster as informational while leaving naming actions clickable', () => {
+    const formation = ['11', null, null, null, null, null, null, null, null];
+    const draft = SquadEditorDraft.edit({ id: '31', name: 'Raiders', isActive: true, formation });
+    const store = new GameStore(); store.hydrateBootstrap({ ...bootstrap(), active_squad: { id: '31', name: 'Raiders', is_active: true,
+      formation, units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] },
+      active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } });
+    const viewport = new RuntimeViewport(); const harness = interactionHarness();
+    const screen = new SquadEditorScreen(harness.scene, store, api(), viewport, draft, () => undefined);
+    screen.reflow(viewport.snapshot);
+    const layout = createSquadEditorLayout(viewport.snapshot);
+    const formationControls = harness.graphics.filter((graphic) => graphic.hit && graphic.hit.x >= layout.formation.x
+      && graphic.hit.x < layout.formation.right && graphic.hit.y >= layout.formation.y && graphic.hit.y < layout.formation.bottom);
+    expect(formationControls.length).toBe(0);
+    expect(harness.textValues.some((text) => text.includes('You can still rename this squad'))).toBeTrue();
+    expect(harness.graphics.some((graphic) => graphic.input?.cursor === 'pointer')).toBeTrue();
+    expect(draft.formation).toEqual(formation);
+    for (const [width, height] of [[844, 390], [2560, 1080], [390, 844]]) {
+      harness.graphics.length = 0;
+      const responsive = calculateRuntimeViewport({ cssWidth: width, cssHeight: height, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: width === 390, noHover: width === 390 });
+      screen.reflow(responsive);
+      const responsiveLayout = createSquadEditorLayout(responsive);
+      expect(harness.graphics.some((graphic) => graphic.hit && graphic.hit.x >= responsiveLayout.formation.x
+        && graphic.hit.x < responsiveLayout.formation.right && graphic.hit.y >= responsiveLayout.formation.y
+        && graphic.hit.y < responsiveLayout.formation.bottom)).toBeFalse();
+    }
+  });
+
+  it('makes participating-squad Save actionable as soon as the editable name changes', () => {
+    const formation = ['11', null, null, null, null, null, null, null, null];
+    const draft = SquadEditorDraft.edit({ id: '31', name: 'Raiders', isActive: true, formation });
+    const store = new GameStore(); store.hydrateBootstrap({ ...bootstrap(), active_squad: { id: '31', name: 'Raiders', is_active: true,
+      formation, units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] },
+      active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } });
+    const viewport = new RuntimeViewport(); const harness = interactionHarness();
+    const parent = (harness.scene.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game!.canvas.parentElement!;
+    document.body.appendChild(parent);
+    const screen = new SquadEditorScreen(harness.scene, store, api(), viewport, draft, () => undefined);
+    screen.create();
+    const input = parent.querySelector<HTMLInputElement>('[data-squad-name-input="true"]')!;
+    const layout = createSquadEditorLayout(viewport.snapshot);
+    const saveX = layout.actions.x + Math.min(190, (layout.actions.width - 48) / 5) + 12;
+    expect(harness.graphics.some((graphic) => graphic.hit?.x === saveX)).toBeFalse();
+    input.value = 'Renamed Raiders'; input.dispatchEvent(new Event('input'));
+    expect(harness.graphics.some((graphic) => graphic.hit?.x === saveX && graphic.input?.cursor === 'pointer')).toBeTrue();
+    expect(input.disabled).toBeFalse();
+    screen.destroy(); parent.remove();
+  });
+
+  it('keeps a different saved squad formation actionable during an active run', () => {
+    const draft = SquadEditorDraft.edit({ id: '32', name: 'Brawlers', isActive: false, formation: Array(9).fill(null) });
+    const store = new GameStore(); store.hydrateBootstrap({ ...bootstrap(), active_squad: { id: '31', name: 'Raiders', is_active: true,
+      formation: ['11', null, null, null, null, null, null, null, null],
+      units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] },
+      active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } });
+    const viewport = new RuntimeViewport(); const harness = interactionHarness();
+    const screen = new SquadEditorScreen(harness.scene, store, api(), viewport, draft, () => undefined);
+    screen.reflow(viewport.snapshot);
+    const layout = createSquadEditorLayout(viewport.snapshot);
+    const cell = harness.graphics.find((graphic) => graphic.hit && graphic.hit.x >= layout.formation.x
+      && graphic.hit.x < layout.formation.right && graphic.hit.y >= layout.formation.y && graphic.hit.y < layout.formation.bottom);
+    expect(cell?.input?.cursor).toBe('pointer');
+    draft.selectUnit('12'); cell?.pointerUp?.();
+    expect(draft.formation[0]).toBe('12');
+  });
+
+  it('blocks known different-squad activation but retains normal formation editing and 409 fallback text', async () => {
+    const client = api();
+    const draft = SquadEditorDraft.edit({ id: '32', name: 'Brawlers', isActive: false, formation: Array(9).fill(null) });
+    const { screen, store } = harness(draft, client);
+    store.hydrateBootstrap({ ...bootstrap(), active_squad: { id: '31', name: 'Raiders', is_active: true,
+      formation: ['11', null, null, null, null, null, null, null, null, null],
+      units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] },
+      active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } });
+    await screen.activate(); expect(client.activateSquad).not.toHaveBeenCalled();
+    draft.selectUnit('12'); draft.placeSelected(4); expect(draft.formation[4]).toBe('12');
+    client.updateSquad.and.rejectWith(new RuntimeApiError('http', 409, 'active_run_configuration_locked'));
+    await screen.save();
+    expect((screen as unknown as { message: string }).message).toContain('formation is locked');
+    expect(draft.formation[4]).toBe('12');
   });
 
   it('gates the same native input in touch portrait and restores landscape editing with the full draft intact', () => {

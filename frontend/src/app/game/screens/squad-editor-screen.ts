@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GameStore } from '../runtime/game-store';
 import { RuntimeApiClient, RuntimeApiError } from '../runtime/runtime-api-client';
+import { actionCursor } from './action-cursor';
 import { Bounds, RuntimeViewport, RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 import { WarbandUnitSummary } from '../runtime/warband-contracts';
 import { GameSceneScreen } from './game-screen-navigation';
@@ -117,6 +118,11 @@ export class SquadEditorScreen implements GameSceneScreen {
 
   async save(): Promise<void> {
     if (this.command !== 'idle' || this.integrityBlocked) return;
+    if (this.formationLocked && this.draft.formationDirty) {
+      this.message = 'This squad is in an active Farm run. Discard formation edits before saving its name.';
+      this.reflow(this.viewport.snapshot);
+      return;
+    }
     const validation = this.draft.validationError;
     if (validation) {
       this.message = validation;
@@ -144,6 +150,7 @@ export class SquadEditorScreen implements GameSceneScreen {
 
   async activate(): Promise<void> {
     if (this.command !== 'idle' || this.integrityBlocked || !this.draft.squadId) return;
+    if (this.store.activeRunLock) return;
     const bootstrap = this.store.bootstrap;
     if (!bootstrap) return;
     this.command = 'activating';
@@ -160,12 +167,14 @@ export class SquadEditorScreen implements GameSceneScreen {
 
   requestDelete(): void {
     if (this.command !== 'idle' || this.integrityBlocked || !this.draft.squadId) return;
+    if (this.formationLocked) return;
     this.confirmation = 'delete';
     this.reflow(this.viewport.snapshot);
   }
 
   async confirmDelete(): Promise<void> {
     if (this.command !== 'idle' || this.integrityBlocked || this.confirmation !== 'delete' || !this.draft.squadId) return;
+    if (this.formationLocked) return;
     const bootstrap = this.store.bootstrap;
     if (!bootstrap) return;
     this.confirmation = null;
@@ -186,6 +195,8 @@ export class SquadEditorScreen implements GameSceneScreen {
     if (error instanceof RuntimeApiError) {
       if (error.code === 'active_squad_delete_forbidden') {
         this.message = 'Activate another squad before deleting this active squad.';
+      } else if (error.code === 'active_run_configuration_locked') {
+        this.message = 'This squad\'s formation is locked while it is being used in an active Farm run. Your draft is preserved.';
       } else if (error.kind === 'unauthorized') {
         this.message = 'Your session expired. Your draft is still here.';
       } else if (error.kind === 'malformed-response') {
@@ -215,6 +226,16 @@ export class SquadEditorScreen implements GameSceneScreen {
     root.add(this.scene.add.text(layout.title.right, layout.title.y + 14, this.draft.isActive ? 'ACTIVE SQUAD' : this.draft.mode === 'create' ? 'UNSAVED DRAFT' : 'SAVED SQUAD', {
       color: this.draft.isActive ? '#f2c14e' : '#c8b98f', fontFamily: 'system-ui, sans-serif', fontSize: '17px', fontStyle: 'bold',
     }).setOrigin(1, 0));
+    if (this.formationLocked) root.add(this.scene.add.text(layout.title.x, layout.title.y + 58,
+      'IN ACTIVE FARM RUN · Formation locked until the run ends. You can still rename this squad.', {
+        color: '#ffd69b', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '19px' : '16px', fontStyle: 'bold',
+        wordWrap: { width: layout.title.width },
+      }));
+    else if (this.store.activeRunLock && this.draft.mode === 'edit') root.add(this.scene.add.text(layout.title.x, layout.title.y + 58,
+      'Another squad is in a Farm run. This formation is editable, but activation is unavailable.', {
+        color: '#ffd69b', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '19px' : '16px', fontStyle: 'bold',
+        wordWrap: { width: layout.title.width },
+      }));
     root.add(this.scene.add.text(layout.name.x, layout.name.y, `NAME${this.draft.dirty ? ' - UNSAVED CHANGES' : ''}`, {
       color: '#c8b98f', fontFamily: 'system-ui, sans-serif', fontSize: '15px', fontStyle: 'bold',
     }));
@@ -226,7 +247,7 @@ export class SquadEditorScreen implements GameSceneScreen {
 
   private renderFormation(root: Phaser.GameObjects.Container, layout: SquadEditorLayout): void {
     this.addPanel(root, layout.formation);
-    root.add(this.scene.add.text(layout.formation.x + 20, layout.formation.y + 15, '3 x 3 FORMATION', {
+    root.add(this.scene.add.text(layout.formation.x + 20, layout.formation.y + 15, this.formationLocked ? '3 x 3 FORMATION · LOCKED' : '3 x 3 FORMATION', {
       color: '#6a321f', fontFamily: 'system-ui, sans-serif', fontSize: '18px', fontStyle: 'bold',
     }));
     const gap = layout.mode === 'compact' ? 12 : 16;
@@ -239,18 +260,21 @@ export class SquadEditorScreen implements GameSceneScreen {
       const region = box(layout.formation.x + inset + (index % 3) * (cellWidth + gap), top + Math.floor(index / 3) * (cellHeight + gap), cellWidth, cellHeight);
       const selected = unitId !== null && unitId === this.draft.selectedUnitId;
       const graphic = this.scene.add.graphics();
-      graphic.fillStyle(unitId ? 0x315947 : 0xd7c7a3, 1);
+      graphic.fillStyle(this.formationLocked ? (unitId ? 0x65766b : 0xcdbfa4) : unitId ? 0x315947 : 0xd7c7a3, 1);
       graphic.fillRoundedRect(region.x, region.y, region.width, region.height, 12);
       graphic.lineStyle(selected ? 5 : 2, selected ? 0xf2c14e : unitId ? 0xc9972b : 0xaa9670, 1);
       graphic.strokeRoundedRect(region.x + 1, region.y + 1, region.width - 2, region.height - 2, 12);
-      graphic.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains);
-      graphic.on('pointerup', () => {
-        if (this.command !== 'idle' || this.confirmation) return;
-        if (this.draft.selectedUnitId !== null && this.draft.selectedUnitId !== unitId) this.draft.placeSelected(index);
-        else this.draft.clearPosition(index);
-        this.message = '';
-        this.reflow(this.viewport.snapshot);
-      });
+      if (!this.formationLocked && !this.nameInputBlocked) {
+        graphic.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains);
+        actionCursor(graphic);
+        graphic.on('pointerup', () => {
+          if (this.command !== 'idle' || this.confirmation || this.formationLocked) return;
+          if (this.draft.selectedUnitId !== null && this.draft.selectedUnitId !== unitId) this.draft.placeSelected(index);
+          else this.draft.clearPosition(index);
+          this.message = '';
+          this.reflow(this.viewport.snapshot);
+        });
+      }
       root.add(graphic);
       root.add(this.scene.add.text(region.x + region.width / 2, region.y + region.height / 2, unitId ? (names.get(unitId) ?? 'Unknown unit') : `${index + 1}\nOPEN`, {
         align: 'center', color: unitId ? '#fff4d3' : '#74664b', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '21px' : '17px', fontStyle: unitId ? 'bold' : 'normal', wordWrap: { width: region.width - 10 },
@@ -260,7 +284,7 @@ export class SquadEditorScreen implements GameSceneScreen {
 
   private renderRoster(root: Phaser.GameObjects.Container, layout: SquadEditorLayout): void {
     this.addPanel(root, layout.roster);
-    root.add(this.scene.add.text(layout.roster.x + 20, layout.roster.y + 15, 'SELECT A GOBLIN', {
+    root.add(this.scene.add.text(layout.roster.x + 20, layout.roster.y + 15, this.formationLocked ? 'FORMATION ROSTER · VIEW ONLY' : 'SELECT A GOBLIN', {
       color: '#6a321f', fontFamily: 'system-ui, sans-serif', fontSize: '18px', fontStyle: 'bold',
     }));
     const units = this.store.warband.units.data ?? [];
@@ -273,8 +297,8 @@ export class SquadEditorScreen implements GameSceneScreen {
     const height = Math.max(44, (layout.roster.bottom - top - footer - gap * Math.max(0, visible.length - 1)) / Math.max(visible.length, 1));
     visible.forEach((unit, index) => this.renderRosterUnit(root, layout, unit, box(layout.roster.x + 14, top + index * (height + gap), layout.roster.width - 28, height)));
     if (pages > 1) {
-      this.addButton(root, box(layout.roster.x + 14, layout.roster.bottom - 52, 94, 40), '< PREV', () => this.changeRosterPage(-1, pages), false);
-      this.addButton(root, box(layout.roster.right - 108, layout.roster.bottom - 52, 94, 40), 'NEXT >', () => this.changeRosterPage(1, pages), false);
+      this.addButton(root, box(layout.roster.x + 14, layout.roster.bottom - 52, 94, 40), '< PREV', () => this.changeRosterPage(-1, pages), false, !this.nameInputBlocked);
+      this.addButton(root, box(layout.roster.right - 108, layout.roster.bottom - 52, 94, 40), 'NEXT >', () => this.changeRosterPage(1, pages), false, !this.nameInputBlocked);
       root.add(this.scene.add.text(layout.roster.x + layout.roster.width / 2, layout.roster.bottom - 32, `${this.rosterPage + 1} / ${pages}`, { color: '#5b351f', fontFamily: 'system-ui', fontSize: '14px', fontStyle: 'bold' }).setOrigin(0.5));
     }
   }
@@ -282,16 +306,19 @@ export class SquadEditorScreen implements GameSceneScreen {
   private renderRosterUnit(root: Phaser.GameObjects.Container, layout: SquadEditorLayout, unit: WarbandUnitSummary, region: Bounds): void {
     const selected = unit.id === this.draft.selectedUnitId;
     const card = this.scene.add.graphics();
-    card.fillStyle(selected ? 0x315947 : 0xe2d2ab, 1);
+    card.fillStyle(this.formationLocked ? 0xcdbfa4 : selected ? 0x315947 : 0xe2d2ab, 1);
     card.fillRoundedRect(region.x, region.y, region.width, region.height, 10);
     card.lineStyle(selected ? 4 : 2, selected ? 0xf2c14e : 0xb69a65, 1);
     card.strokeRoundedRect(region.x + 1, region.y + 1, region.width - 2, region.height - 2, 10);
-    card.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains);
-    card.on('pointerup', () => {
-      if (this.command !== 'idle' || this.confirmation) return;
-      this.draft.selectUnit(selected ? null : unit.id);
-      this.reflow(this.viewport.snapshot);
-    });
+    if (!this.formationLocked && !this.nameInputBlocked) {
+      card.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains);
+      actionCursor(card);
+      card.on('pointerup', () => {
+        if (this.command !== 'idle' || this.confirmation || this.formationLocked) return;
+        this.draft.selectUnit(selected ? null : unit.id);
+        this.reflow(this.viewport.snapshot);
+      });
+    }
     root.add(card);
     root.add(this.scene.add.text(region.x + 14, region.y + (region.height < 58 ? 5 : 10), unit.displayName, { color: selected ? '#fff4d3' : '#3a2a1a', fontFamily: 'Georgia, serif', fontSize: layout.mode === 'compact' ? '25px' : '20px', fontStyle: 'bold' }));
     root.add(this.scene.add.text(region.x + 14, region.y + (region.height < 58 ? 27 : 38), `${unit.unitType.display_name} - ${unit.kin.display_name} - L${unit.level}`, { color: selected ? '#dfd1aa' : '#74664b', fontFamily: 'system-ui', fontSize: layout.mode === 'compact' ? '17px' : '13px' }));
@@ -301,11 +328,12 @@ export class SquadEditorScreen implements GameSceneScreen {
     const gap = 12;
     const buttonWidth = Math.min(190, (layout.actions.width - gap * 4) / 5);
     let x = layout.actions.x;
-    this.addButton(root, box(x, layout.actions.y, buttonWidth, layout.actions.height), 'CANCEL', () => this.requestBack(), false); x += buttonWidth + gap;
-    this.addButton(root, box(x, layout.actions.y, buttonWidth, layout.actions.height), this.integrityBlocked ? 'STATE ERROR' : this.command === 'saving' ? 'SAVING...' : 'SAVE', () => { void this.save(); }, !this.integrityBlocked); x += buttonWidth + gap;
+    this.addButton(root, box(x, layout.actions.y, buttonWidth, layout.actions.height), 'CANCEL', () => this.requestBack(), false, !this.nameInputBlocked); x += buttonWidth + gap;
+    this.addButton(root, box(x, layout.actions.y, buttonWidth, layout.actions.height), this.integrityBlocked ? 'STATE ERROR' : this.command === 'saving' ? 'SAVING...' : 'SAVE', () => { void this.save(); }, !this.integrityBlocked,
+      !this.nameInputBlocked && (!this.formationLocked || (this.draft.dirty && !this.draft.formationDirty))); x += buttonWidth + gap;
     if (this.draft.mode === 'edit') {
-      this.addButton(root, box(x, layout.actions.y, buttonWidth, layout.actions.height), this.command === 'activating' ? 'ACTIVATING...' : this.draft.isActive ? 'ACTIVE' : 'ACTIVATE', () => { void this.activate(); }, this.draft.isActive); x += buttonWidth + gap;
-      this.addButton(root, box(x, layout.actions.y, buttonWidth, layout.actions.height), this.command === 'deleting' ? 'DELETING...' : 'DELETE', () => this.requestDelete(), false);
+      this.addButton(root, box(x, layout.actions.y, buttonWidth, layout.actions.height), this.command === 'activating' ? 'ACTIVATING...' : this.draft.isActive ? 'ACTIVE' : 'ACTIVATE', () => { void this.activate(); }, this.draft.isActive, !this.nameInputBlocked && !this.store.activeRunLock && !this.draft.isActive); x += buttonWidth + gap;
+      this.addButton(root, box(x, layout.actions.y, buttonWidth, layout.actions.height), this.command === 'deleting' ? 'DELETING...' : 'DELETE', () => this.requestDelete(), false, !this.nameInputBlocked && !this.formationLocked);
     }
     if (this.message) root.add(this.scene.add.text(layout.actions.right, layout.actions.y - 11, this.message, { color: '#ffd69b', fontFamily: 'system-ui', fontSize: '15px', fontStyle: 'bold' }).setOrigin(1, 1));
   }
@@ -341,6 +369,7 @@ export class SquadEditorScreen implements GameSceneScreen {
       }
       this.draft.setName(input.value);
       this.message = '';
+      this.reflow(this.viewport.snapshot);
     });
     parent.appendChild(input);
     this.nameInput = input;
@@ -368,6 +397,10 @@ export class SquadEditorScreen implements GameSceneScreen {
       || this.portraitGateActive || this.integrityBlocked;
   }
 
+  private get formationLocked(): boolean {
+    return this.draft.squadId !== null && this.store.activeRunLock?.squadId === this.draft.squadId;
+  }
+
   private changeRosterPage(direction: -1 | 1, pages: number): void {
     this.rosterPage = (this.rosterPage + direction + pages) % pages;
     this.reflow(this.viewport.snapshot);
@@ -380,13 +413,16 @@ export class SquadEditorScreen implements GameSceneScreen {
     root.add(panel);
   }
 
-  private addButton(root: Phaser.GameObjects.Container, region: Bounds, label: string, action: () => void, active: boolean): void {
+  private addButton(root: Phaser.GameObjects.Container, region: Bounds, label: string, action: () => void, active: boolean, enabled = true): void {
     const button = this.scene.add.graphics();
-    button.fillStyle(active ? 0x8a5a34 : 0x273e35, 1); button.fillRoundedRect(region.x, region.y, region.width, region.height, 12);
+    button.fillStyle(!enabled ? 0x6c6658 : active ? 0x8a5a34 : 0x273e35, 1); button.fillRoundedRect(region.x, region.y, region.width, region.height, 12);
     button.lineStyle(3, active ? 0xf2c14e : 0x8a6a45, 1); button.strokeRoundedRect(region.x + 1, region.y + 1, region.width - 2, region.height - 2, 12);
-    button.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains);
-    button.on('pointerup', action);
-    root.add([button, this.scene.add.text(region.x + region.width / 2, region.y + region.height / 2, label, { align: 'center', color: '#fff4d3', fontFamily: 'system-ui', fontSize: region.height >= 80 ? '20px' : '14px', fontStyle: 'bold' }).setOrigin(0.5)]);
+    if (enabled) {
+      button.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains);
+      actionCursor(button);
+      button.on('pointerup', action);
+    }
+    root.add([button, this.scene.add.text(region.x + region.width / 2, region.y + region.height / 2, label, { align: 'center', color: enabled ? '#fff4d3' : '#d4c8ae', fontFamily: 'system-ui', fontSize: region.height >= 80 ? '20px' : '14px', fontStyle: 'bold' }).setOrigin(0.5)]);
   }
 
   private publishReadyState(ready: boolean): void {

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { actionCursor } from './action-cursor';
 import { GameStore } from '../runtime/game-store';
 import { ClientContentRegistry } from '../runtime/client-content-registry';
 import { RuntimeApiClient, RuntimeApiError } from '../runtime/runtime-api-client';
@@ -348,6 +349,7 @@ export class CampScreen implements GameSceneScreen {
     button.strokeRoundedRect(region.x, region.y, region.width, region.height, 16);
     if (!disabled) {
       button.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains);
+      actionCursor(button);
       button.on('pointerup', () => view.hasActiveRun ? this.resumeFarm() : void this.startFarm());
     }
     const retry = this.startState === 'retryable';
@@ -389,6 +391,7 @@ export class CampScreen implements GameSceneScreen {
     button.lineStyle(4, 0xc9972b, 1);
     button.strokeRoundedRect(x, y, width, height, 14);
     button.setInteractive(new Phaser.Geom.Rectangle(x, y, width, height), Phaser.Geom.Rectangle.Contains);
+    actionCursor(button);
     button.on('pointerup', this.openWarband);
     const label = this.scene.add.text(x + width / 2, y + height / 2, 'OPEN WARBAND  ›', {
       color: '#fff4d3', fontFamily: 'system-ui, sans-serif',

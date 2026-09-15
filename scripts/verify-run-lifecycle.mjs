@@ -47,6 +47,13 @@ async function click(page, x, y) {
   assert(bounds); await canvas.click({ position: { x: x * bounds.width / 1600, y: y * bounds.height / 900 }, force: true });
 }
 
+async function cursorAt(page, x, y) {
+  const canvas = page.locator('.game-host__mount canvas'); const bounds = await canvas.boundingBox();
+  assert(bounds); await page.mouse.move(bounds.x + x * bounds.width / 1600, bounds.y + y * bounds.height / 900);
+  await page.waitForTimeout(80);
+  return canvas.evaluate((element) => element.style.cursor);
+}
+
 const browser = await chromium.launch();
 try {
   const requests = [];
@@ -97,6 +104,38 @@ try {
   await click(page, 220, 800); await screen(page, 'camp');
   assert.equal(await page.evaluate(() => window.__runCanvas === document.querySelector('.game-host__mount canvas')), true);
   assert.equal(countApp('POST', `/api/v1/runs/${runId}/abandon`), 0);
+  const participatingSquadId = fixture.body.data.fixture.active_squad_id;
+  const participantUnitId = fixture.body.data.fixture.unit_ids.bruiser;
+  const squadRead = await api(page, '/api/v1/squads');
+  const participating = squadRead.body.data.squads.find((squad) => squad.id === participatingSquadId);
+  assert(participating);
+  const lockedSquad = await api(page, `/api/v1/squads/${participatingSquadId}`, { method: 'PUT', csrf,
+    body: { name: participating.name, formation: [...participating.formation].reverse() } });
+  const lockedUnit = await api(page, `/api/v1/units/${participantUnitId}/loadout`, { method: 'PUT', csrf,
+    body: { abilities: [{ ability_id: 'ability.basic_attack_melee', dice_instance_ids: [fixture.body.data.fixture.dice_ids.bruiser_basic] }] } });
+  assert.equal(lockedSquad.status, 409); assert.equal(lockedSquad.body.error.code, 'active_run_configuration_locked');
+  assert.equal(lockedUnit.status, 409); assert.equal(lockedUnit.body.error.code, 'active_run_configuration_locked');
+  await click(page, 1212, 219); await screen(page, 'warband');
+  await page.waitForSelector('.game-host__mount[data-warband-ready="true"]');
+  assert.equal(await cursorAt(page, 1265, 378), 'pointer', 'allowed Edit needs hand cursor');
+  assert.notEqual(await cursorAt(page, 1490, 378), 'pointer', 'run-locked Delete must not advertise action');
+  await click(page, 1378, 378); await click(page, 1490, 378); await screen(page, 'warband');
+  assert.equal(countApp('POST', `/api/v1/squads/${participatingSquadId}/activate`), 0);
+  assert.equal(countApp('DELETE', `/api/v1/squads/${participatingSquadId}`), 0);
+  await click(page, 1265, 378); await screen(page, 'squad-editor');
+  assert.equal(await page.locator('input[data-squad-name-input="true"]').isEnabled(), true);
+  assert.notEqual(await cursorAt(page, 168, 355), 'pointer', 'locked formation cell must not advertise action');
+  await click(page, 168, 355); await click(page, 340, 825);
+  assert.equal(countApp('PUT', `/api/v1/squads/${participatingSquadId}`), 0);
+  await click(page, 120, 825); await screen(page, 'warband');
+  await click(page, 290, 297); await click(page, 300, 405); await screen(page, 'unit-configuration');
+  assert.equal(await page.locator('input[data-unit-name-input="true"]').isEnabled(), true);
+  assert.notEqual(await cursorAt(page, 1490, 286), 'pointer', 'locked loadout Remove must not advertise action');
+  await click(page, 1490, 286); await click(page, 558, 827);
+  assert.equal(countApp('PUT', `/api/v1/units/${participantUnitId}/loadout`), 0);
+  await click(page, 120, 75); await screen(page, 'warband');
+  await click(page, 120, 79); await screen(page, 'camp');
+  stage('active-run-warband-lock-agrees-with-backend');
   const postsBeforeResume = countApp('POST', '/api/v1/runs');
   await click(page, 800, 400); await screen(page, 'run'); await runMap(page);
   assert.equal(countApp('POST', '/api/v1/runs'), postsBeforeResume);
@@ -158,7 +197,12 @@ try {
   assert.equal(abandonRequests.length, 1); assert.equal(abandonRequests[0].body, null); assert.equal(abandonRequests[0].idempotencyKey, null);
   const appBootstrapBeforeProbe = countApp('GET', '/api/v1/game/bootstrap');
   const afterAbandon = (await api(page, '/api/v1/game/bootstrap')).body.data;
-  assert.equal(afterAbandon.active_run, null); assert.equal(afterAbandon.player.energy.current, started.energy.current);
+  assert.equal(afterAbandon.active_run, null);
+  const regenerationTicks = Math.max(0, Math.floor((Date.parse(afterAbandon.server_time)
+    - Date.parse(started.energy.last_regeneration_at)) / (started.energy.regeneration_interval_seconds * 1000)));
+  assert(afterAbandon.player.energy.current >= started.energy.current);
+  assert(afterAbandon.player.energy.current <= started.energy.current + regenerationTicks,
+    'Abandon must not refund Energy beyond ordinary elapsed regeneration');
   assert.equal((await api(page, '/api/v1/runs/current')).body.data.run, null);
   assert.equal(countApp('GET', '/api/v1/game/bootstrap'), appBootstrapBeforeProbe);
   const forbidden = appRequests().filter((request) => request.path === '/api/v1/profile' || request.path.startsWith('/api/v1/teams')
@@ -168,6 +212,22 @@ try {
     .map((request) => `${request.method} ${request.path}`))].sort();
   stage('network-assertions', { apiPaths, bootstrapRequests: countApp('GET', '/api/v1/game/bootstrap'),
     contentRequests: appRequests().filter((request) => request.path === '/game-content.json').length });
+  await click(page, 1212, 219); await screen(page, 'warband');
+  await page.waitForSelector('.game-host__mount[data-warband-ready="true"]');
+  await click(page, 1265, 378); await screen(page, 'squad-editor');
+  assert.equal(await cursorAt(page, 168, 355), 'pointer', 'formation must unlock after Abandon');
+  await click(page, 168, 355);
+  const squadSave = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/v1/squads/${participatingSquadId}`
+    && response.request().method() === 'PUT');
+  await click(page, 340, 825); assert.equal((await squadSave).status(), 200); await screen(page, 'warband');
+  await click(page, 290, 297); await click(page, 300, 405); await screen(page, 'unit-configuration');
+  assert.equal(await cursorAt(page, 1490, 286), 'pointer', 'loadout must unlock after Abandon');
+  await click(page, 1490, 286);
+  const loadoutSave = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/v1/units/${participantUnitId}/loadout`
+    && response.request().method() === 'PUT');
+  await click(page, 558, 827); assert.equal((await loadoutSave).status(), 200);
+  assert.equal(countApp('GET', '/api/v1/game/bootstrap'), appBootstrapBeforeProbe);
+  stage('abandon-reenabled-warband-editing');
   console.log(JSON.stringify({ result: 'passed', runId, secondPlayerRunId: runIdB, beforeEnergy, afterEnergy: started.energy.current,
     startRevision: started.player_revision, abandonRevision: abandoned.player_revision,
     startPosts: postsBeforeResume, reloadScene: 'RunScene', abandonStatus: abandoned.run.status,
