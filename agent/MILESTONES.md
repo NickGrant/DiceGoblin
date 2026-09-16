@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 4 Package 6 - Phaser BattleScene playback lifecycle
+- Milestone 4 Package 7 - Battle result + authoritative return-to-run reconciliation
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -20,7 +20,7 @@ The major game-wide visual/UI overhaul remains intentionally deferred. Milestone
 ### Outcome
 Allow a persisted Farm combat node to resolve through authoritative PHP combat, preserve resulting run HP and battle history, and replay the persisted battle in Phaser without client-side simulation:
 
-`RunScene combat node -> authoritative resolve -> persisted battle/result/playback + run HP -> BattleScene playback -> result -> RunScene`
+`RunScene combat node -> authoritative resolve -> persisted battle/result/playback + run HP -> BattleScene playback -> result -> authoritative reconciliation -> RunScene/Camp`
 
 Rewards, XP/progression grants, boss/run completion, Mountains unlock, and the complete Farm terminal flow remain Milestone 5 unless a minimal lifecycle fact is required to make the Milestone 4 combat slice internally coherent.
 
@@ -35,6 +35,7 @@ Rewards, XP/progression grants, boss/run completion, Mountains unlock, and the c
 - Package 3 established a single immutable finalized `battles` record per run node containing the exact normalized input, participant identity/presentation manifest, and exact versioned result/playback. Historical playback must never be reconstructed from later Warband/content state.
 - Package 4 established the authoritative node-resolution transaction. It serializes through `user_state`, assembles combat from locked run/Warband state, invokes the kernel once, persists battle + terminal player HP + node/run lifecycle + revision + idempotency receipt atomically, and never spends/refunds Energy.
 - Package 5 established the retained-battle playback read contract. Playback ownership is battle -> run -> user, remains readable after run failure/abandonment, and is projected only from immutable persisted battle evidence. Active current-run nodes expose only nullable finalized `battle_id` discovery.
+- Package 6 established the browser resolution/playback bridge and real persistent `BattleScene`. One logical Fight preserves its idempotency key across ambiguity; Replay never resolves again; a session-scoped identity marker supports reload/terminal-run playback; and Phaser consumes only persisted semantic facts. Battle presentation mirrors front/middle/back formation correctly for opposing sides and uses persisted historical art identity where supported.
 - Run loss is a real terminal state. A combat node is resolved once regardless of battle outcome; only victory unlocks direct outgoing nodes. Defeat/stalemate complete the node and terminate the run as `failed`.
 
 ### Exit Criteria
@@ -57,17 +58,17 @@ Rewards, XP/progression grants, boss/run completion, Mountains unlock, and the c
 3. ~~Battle persistence + playback boundary.~~ Complete and architecturally approved at `833bd7dda53ffc1dbe88b085f55e42922280f979`.
 4. ~~Authoritative combat-node resolution + persisted run/battle state.~~ Complete and architecturally approved at `8b87ca535c3c9c8dee58516898b28cdc081e4cda`.
 5. ~~Battle/result/playback query and reconnect contracts.~~ Complete and architecturally approved at `a447f71c625009c5b54779f7cc28211527553e26`.
-6. **Phaser `BattleScene` playback lifecycle.** Current.
-7. Battle result + authoritative return-to-run reconciliation.
+6. ~~Phaser `BattleScene` playback lifecycle.~~ Complete and architecturally approved after focused correction at `cb04896d5a01d04694cb15101038c75b90ff24b4` (base implementation `edd7b0a71c99c00d3cad3894679b8418c896cf7a`).
+7. **Battle result + authoritative return-to-run reconciliation.** Current.
 8. Combat integrated verification/closure.
 
 ### Sequencing Notes
-- Packages 1-5 now establish the complete backend combat authority and immutable read path: canonical stats/content/kernel, atomic node resolution, durable historical battle evidence, and ownership-safe playback reads. Phaser must consume those facts rather than simulate or reconstruct combat.
+- Packages 1-5 establish the complete backend combat authority and immutable read path: canonical stats/content/kernel, atomic node resolution, durable historical battle evidence, and ownership-safe playback reads. Phaser consumes those facts rather than simulating or reconstructing combat.
 - Package 4's exact replay is checked after the player lock and before ordinary run/node lifecycle rejection. A different key cannot reroll a completed combat node. Victory unlocks direct persisted graph children only; defeat/stalemate complete the combat node and terminate the run as `failed` without Energy mutation.
 - Package 5 fixed the malformed persisted encounter-ID classification identified during Package 4 review: malformed/missing persisted encounter references now fail through the non-disclosing combat integrity boundary without mutation.
 - Package 5 playback composition is deliberately content-independent: historical participant identity/presentation comes from the persisted manifest, initial facts from the persisted input, and terminal/event facts from the persisted result. It remains readable after failure/abandonment and does not require an active run.
 - For an active run, current-run exposes only nullable finalized `battle_id` on nodes. It does not embed playback or create a server-side pending-playback lifecycle.
-- Package 6 owns the browser mutation/read/presentation bridge: initiate an available combat node, preserve one logical idempotent resolution attempt, fetch the finalized playback, enter the real persistent `BattleScene`, and replay server events without deriving gameplay authority. A session-scoped presentation marker may retain only enough battle identity to safely restart/resume presentation after reload; it is never server gameplay state.
-- Package 6 may restart playback from the beginning after a reload rather than persisting animation progress. It must never rerun combat to recover presentation.
-- Package 7 owns the post-playback result/Continue behavior and authoritative return-to-RunScene/Camp reconciliation; Phaser never becomes combat authority.
+- Package 6 owns combat initiation and presentation only. It marks the current-run cache stale after a successful resolution rather than guessing post-combat graph/HP state, and it deliberately retains the presentation marker through playback completion.
+- Package 7 must force an authoritative current-run read before leaving the completed battle presentation. That read, through existing GameStore reconciliation, owns the post-battle cache/bootstrap revision and active-run truth. Clear the presentation marker only after successful reconciliation; failures remain retryable without rerunning combat.
+- A reconciled active run returns to RunScene. A reconciled null current run returns to Camp. This naturally handles defeat/stalemate, reload after terminal combat, and a newer cross-tab run without inventing client lifecycle state.
 - Package 8 is technical closure. Manual UAT follows; do not begin Milestone 5 until it passes.
