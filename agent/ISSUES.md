@@ -2,388 +2,287 @@
 
 ## Milestone 4 - Combat
 
-### Milestone 4 Package 6 - Phaser BattleScene playback lifecycle
+### Milestone 4 Package 7 - Battle result + authoritative return-to-run reconciliation
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Packages 1-5 now establish the complete authoritative backend combat path and immutable playback read contract. A Farm combat node can be resolved exactly once, its finalized battle and post-combat run state are persisted atomically, and the browser can retrieve a presentation-safe historical playback derived only from that immutable battle record.
+Packages 1-6 now provide the complete authoritative combat mutation, immutable battle history/read path, idempotent browser combat initiation, and reload-safe Phaser playback. When `battle_ended` is consumed, `BattleScene` intentionally stops in a local playback-complete state. The presentation marker remains retained and the current-run cache may still be stale from the pre-combat map.
 
-The remaining gap is client gameplay presentation. The Farm map still treats combat-node selection as informational only, `BattleScene` is still a placeholder, and the browser has no idempotent node-resolution mutation flow or reload-safe way to continue presenting a just-finalized battle.
+The remaining gameplay gap is leaving that result safely.
 
-This package establishes the **combat initiation + persisted playback presentation lifecycle**. It does not make Phaser a combat authority and does not own the final post-playback Continue/reconciliation flow; that remains Package 7.
+Package 7 adds the result/Continue boundary and reconciles browser runtime state from the existing authoritative `GET /api/v1/runs/current` read before navigating away from the retained battle. It must not infer the post-combat graph, HP, run status, or locks from playback animation state.
 
 #### Core outcome
-Implement this browser lifecycle:
+Implement:
 
-`RunScene available Combat -> Resolve Combat -> authoritative battle ID -> fetch persisted playback -> BattleScene -> autoplay exact semantic playback -> playback-complete presentation state`
+`BattleScene playback complete -> result presentation -> Continue -> authoritative current-run read -> GameStore reconciliation -> clear retained presentation -> RunScene or Camp`
 
-Also support:
-- watching an already-completed active-run combat node through its persisted `battle_id` without resolving it again;
-- browser reload during/after playback safely returning to the same retained battle presentation without rerunning combat;
-- retrying ambiguous node-resolution transport failures with the same logical idempotency key;
-- retrying playback reads without another node-resolution POST.
+Destination after successful reconciliation:
+- authoritative current run exists -> `RunScene`;
+- authoritative current run is null -> `GameScene` / Camp.
 
-Package 7 will add the final result/Continue behavior and authoritative return to RunScene/Camp.
+This naturally covers:
+- ordinary Farm combat victory -> same active Farm run with completed Combat, persisted terminal HP, and direct child availability;
+- defeat/stalemate -> terminal failed run, no current run, Camp;
+- reload after playback -> same reconciliation behavior even though the in-memory Package 4 resolution response is absent;
+- cross-tab changes -> the newest authoritative current-run read wins rather than stale presentation assumptions.
+
+Do not begin Milestone 5 systems.
 
 #### Required context
 Read before implementation:
-- `documentation/07-development-path/vnext-phaser-client-architecture.md`
-- `documentation/07-development-path/vnext-api-contract-model.md`
-- `documentation/07-development-path/vnext-endpoint-inventory.md`
-- `documentation/02-systems/combat-resolution.md`
-- `documentation/02-systems/target-resolution.md`
-- current `RunScene`/run-map model;
-- current `BattleScene` placeholder and Phaser scene registration;
-- `RuntimeStartup`, `GameStore`, `RuntimeApiClient`, `RuntimeViewport`;
-- Package 4 node-resolution response contract;
-- Package 5 battle-playback/current-run contracts.
+- `documentation/07-development-path/vnext-phaser-client-architecture.md`;
+- `documentation/07-development-path/vnext-api-contract-model.md`;
+- `documentation/07-development-path/vnext-endpoint-inventory.md`;
+- current `GameStore` current-run reconciliation;
+- current `BattlePresentationState`;
+- current `BattleScene`/`BattlePlaybackController`;
+- Package 4 node-resolution result contract;
+- Package 5 current-run/playback contracts;
+- Package 6 Fight/Replay/reload lifecycle and verifier.
 
-Do not use prototype Angular battle/run pages or prototype battle log/claim services as runtime architecture.
+The existing `GET /api/v1/runs/current` and `GameStore.reconcileCurrentRun` behavior is the intended authority path. Do not add a battle claim/acknowledgement/complete endpoint just to leave presentation.
 
-#### Node-resolution frontend contract
-Add a strict framework-neutral parser/type for Package 4's successful node-resolution response.
+#### Result presentation
+When persisted `battle_ended` has been consumed, replace the temporary playback-complete-only presentation with a small deliberate result state.
 
-Validate exactly the accepted response facts:
-- battle ID;
-- outcome;
-- engine/playback versions;
-- ending round/tick;
-- resolved node ID/status/completed timestamp;
-- newly available node IDs;
-- terminal player HP keyed by canonical owned unit ID;
-- resulting run ID/status/terminal timestamp;
-- `player_revision`.
+At minimum show:
+- authoritative persisted outcome: Victory / Defeat / Stalemate;
+- historical participating player combatants with terminal HP/defeated state where useful;
+- a clear `CONTINUE` action;
+- reconciliation/loading/error feedback when Continue is used.
 
-Reject:
-- missing/extra fields;
-- malformed IDs/timestamps;
-- unsupported versions/outcomes;
-- duplicate newly available IDs;
-- invalid/non-integer HP;
-- `run.status = active` with an `ended_at` value;
-- `run.status = failed` without an `ended_at` value;
-- node status other than `completed`;
-- impossible revision values.
+The result screen is presentation only.
 
-This is transport/coherence validation only. Do not recompute combat outcome, HP, graph unlocks, or battle mechanics in TypeScript.
+Do not show or invent:
+- XP gained;
+- Teeth/rewards;
+- objective progress;
+- loot;
+- unlock grants;
+- claim state;
+- a Mudking/Farm-complete result.
 
-#### Runtime API node resolution
-Add:
+Those remain Milestone 5.
 
-`POST /api/v1/runs/:runId/nodes/:nodeId/resolve`
+Do not automatically leave `BattleScene` when `battle_ended` occurs. The player must explicitly Continue.
 
-through `RuntimeApiClient`.
+#### Continue authority boundary
+`CONTINUE` must force an authoritative `GET /api/v1/runs/current` reconciliation before navigating away.
 
-Requirements:
-- canonical run/node IDs;
-- credentials;
-- current bootstrap CSRF token;
-- `Idempotency-Key`;
-- **no request body**;
-- strict response parsing through the new contract.
+Use the existing runtime API/current-run parser and GameStore reconciliation rather than creating a parallel battle-result state model.
 
-Do not add another battle-resolution endpoint.
+Important:
+- force the read even if the current-run cache was previously `fresh` (Replay path) or contains stale pre-combat data (Fight path);
+- do not call bootstrap merely to determine the destination;
+- do not reload Warband, units, dice, squads, or authored content merely to Continue;
+- do not send another combat-resolution POST;
+- do not fetch playback again merely to Continue from an already loaded completed result.
 
-#### One logical combat attempt
-One user action to resolve one combat node owns one idempotency key and exact run/node identity.
+The authoritative current-run response's `player_revision` must be adopted through the normal GameStore reconciliation path.
 
-Prevent simultaneous duplicate submissions.
+That reconciliation must also update the bootstrap-derived active-run truth already owned by GameStore:
+- active current run -> canonical active-run summary remains/updates;
+- null current run -> bootstrap `active_run` becomes null.
 
-Ambiguous outcomes must retain that same logical attempt/key:
+This is required so active-run Warband presentation locks disappear after terminal defeat/stalemate without a global bootstrap refresh.
+
+#### Active-run victory reconciliation
+When the authoritative current-run read returns an active run:
+- GameStore current-run becomes `fresh` from that returned aggregate;
+- terminal player HP comes from returned `run_unit_state` projection, not playback-derived client mutation;
+- the completed Combat node and its persisted `battle_id` come from the returned aggregate;
+- direct child availability comes from the returned graph state;
+- the returned `player_revision` becomes authoritative;
+- navigate to the persistent `RunScene` only after successful reconciliation.
+
+For the ordinary just-resolved Farm victory, verify the selected Combat node is completed with the retained battle ID and Loot is available while Rest/Boss/Exit remain locked.
+
+Do not patch the old cached graph using Package 4's `newly_available_node_ids` or playback events.
+
+The Package 4 resolution response may be retained as a consistency aid within the same runtime, but it is not a substitute for the current-run GET and must not be required after reload/Replay.
+
+If an active authoritative run exists but it is a newer/different run because another tab changed lifecycle state, treat the freshly read run as current truth. Do not resurrect the historical battle's run from the marker.
+
+#### Terminal defeat/stalemate reconciliation
+When authoritative current-run returns `run: null`:
+- GameStore current-run becomes fresh/null through the existing reconciliation path;
+- bootstrap active-run summary becomes null;
+- authoritative revision is adopted;
+- active-run Warband lock derivation must therefore disappear;
+- clear the battle presentation marker/resolution context;
+- navigate to Camp.
+
+This must work both:
+- immediately after a just-resolved defeat/stalemate where the in-memory bootstrap still contains the old pre-combat active-run summary;
+- after a browser reload where bootstrap already reports no active run and only the retained presentation marker caused BattleScene startup.
+
+Do not refund Energy or mutate Energy timestamps during result reconciliation.
+
+#### Presentation marker clearing
+Do **not** clear the retained battle marker merely because the playback reached `complete` or the player first pressed Continue.
+
+Clear marker + in-memory retained resolution only **after** the authoritative current-run read has parsed and reconciled successfully.
+
+Why:
+- if current-run GET has a transient failure, reload must still rediscover the same retained battle/result;
+- a failed Continue must never strand the player between scenes with no recovery identity.
+
+After successful reconciliation and immediately before/with navigation:
+- clear `BattlePresentationState` completely;
+- subsequent reload follows normal bootstrap/current-run startup rather than returning to the old battle.
+
+#### Reconciliation failures
+Continue must be retry-safe and must not rerun combat.
+
+If current-run GET fails because of:
 - network failure;
-- malformed success response;
 - HTTP 5xx;
-- other transport state where the server may have committed but the client cannot safely know the result.
+- malformed/integrity response;
+- another read failure;
 
-Retry submits the exact same run/node with the same key.
+then:
+- remain on the completed battle result;
+- retain the presentation marker;
+- do not clear terminal presentation;
+- show understandable retry/recovery feedback;
+- Retry Continue sends only another current-run GET;
+- no resolve POST;
+- no new playback GET unless the user actually reloads the page;
+- no bootstrap/Warband refetch.
 
-Definitive domain/auth 4xx rejection may release the attempt when appropriate.
+Prevent concurrent duplicate Continue submissions.
 
-If the server reports the node already resolved under another attempt, do **not** blindly create another POST loop. Refresh authoritative current-run state when available and use its `battle_id` discovery if it identifies the finalized battle; otherwise require recovery/reload.
+If GameStore reports reconciliation integrity failure, do not guess a destination from the old bootstrap or playback; remain recoverable and require retry/reload.
 
-Never manufacture terminal HP/node/run state after an ambiguous result.
+#### Revision/coherence expectations
+The current-run read is allowed to return a `player_revision` equal to or greater than the Package 4 resolution result because another authoritative action may have happened after combat in another tab.
 
-#### Farm-map combat affordance
-Retain node selection as presentation behavior, but add a deliberate action in the selected-node detail area.
+Never accept a regressed revision; existing GameStore reconciliation should continue rejecting it.
 
-For an **available** `run_node_type.combat` node with `battle_id = null`:
-- show an action such as `ENTER COMBAT` / `FIGHT`;
-- make clear that selecting/entering combat will resolve the fight authoritatively;
-- action is disabled while submitting;
-- use the shared pointer-cursor convention only when actionable.
+When the freshly returned active run is the same run/node as the retained battle, require ordinary current-run integrity guarantees already established by Package 5:
+- completed Combat carries a non-null battle ID;
+- the retained battle/node relationship is not contradicted.
 
-For a **completed** combat node with a non-null `battle_id`:
-- expose `WATCH BATTLE` / `REPLAY BATTLE`;
-- this must issue **no** node-resolution POST;
-- it sets the presentation target and reads the persisted playback directly.
+Do not over-constrain a genuinely newer active run belonging to the same player merely because the presentation marker refers to historical combat from an older run.
 
-Locked combat nodes remain non-resolvable.
+#### Replay behavior
+A completed Combat node can already enter BattleScene through Replay without a resolution POST.
 
-Non-combat nodes remain Milestone 5+ and must not gain fake resolution actions.
+After replay completes, Continue follows the same forced authoritative current-run reconciliation path.
 
-Do not locally complete/unlock nodes when the user presses Fight. The Package 4 server response is authoritative gameplay state; Package 7 owns final run-cache reconciliation after playback.
+Do not special-case Replay by trusting the current cache without revalidation.
 
-#### Battle presentation marker
-Add a deliberately **ephemeral client-only presentation marker** for a retained battle that should be watched.
+Replay -> Continue must therefore produce:
+- zero node-resolution POSTs;
+- one forced current-run GET per Continue attempt;
+- marker clear only after success;
+- return to the authoritative active run or Camp.
 
-Session-scoped browser storage is appropriate because it survives an ordinary reload while remaining presentation state rather than durable gameplay authority.
+#### Reload behavior
+A retained marker currently routes startup to BattleScene and restarts immutable playback from event zero.
 
-Store only enough identity to safely rediscover presentation, for example:
-- authenticated account/user identity from bootstrap;
-- battle ID;
-- run ID;
-- run-node ID.
+Preserve that behavior until Continue reconciliation succeeds.
 
-Do not store:
-- playback events;
-- combat seed;
-- computed HP/status state;
-- node completion authority;
-- rewards;
-- a server-style `pending`/`claimed` flag.
+After successful Continue:
+- marker is cleared;
+- reload no longer returns to BattleScene;
+- victory reload/startup follows active-run behavior;
+- defeat/stalemate reload/startup follows Camp behavior.
 
-Treat the marker as untrusted navigation/presentation state:
-- only honor it after bootstrap identifies the same account;
-- the owned playback GET remains the authorization source;
-- verify returned battle run/node identity matches the marker;
-- stale/corrupt/foreign marker data must not expose data or mutate gameplay;
-- clear incompatible marker state and recover safely.
+Do not add persistent animation/result acknowledgement state.
 
-Do not add any server-side playback-progress, acknowledgement, claim, or pending-presentation table/API.
+#### GameStore boundary
+Prefer to keep authoritative lifecycle reconciliation inside GameStore rather than directly mutating bootstrap/current-run objects from BattleScene.
 
-#### Startup/reload behavior
-Extend startup routing carefully.
+A small explicit public method/helper may be added if needed to express post-battle reconciliation cleanly, but it must consume the existing strict `CurrentRunResult` semantics and preserve revision/coherence checks.
 
-Normal Package 5 behavior remains:
-- no marker + no active run -> Camp;
-- no marker + active run -> RunScene.
+Do not expose setters that allow scenes to assign arbitrary active-run summaries, player revisions, node status, HP, or graph state.
 
-When a valid presentation marker for the currently authenticated account exists:
-- route to the real persistent `BattleScene`;
-- `BattleScene` fetches the persisted playback by battle ID;
-- it verifies battle/run/node identity against the marker before presentation.
+Warband caches should not be globally invalidated simply because combat ended; the active-run lock derives from reconciled bootstrap/current-run truth. Only mark/reload domains if a concrete current contract requires it.
 
-This must also work when the battle outcome was defeat/stalemate and bootstrap correctly has `active_run: null`, because retained playback remains readable after terminal run failure.
+#### BattleScene result interaction
+The result/Continue controls must follow existing interaction conventions:
+- pointer cursor only when actionable;
+- disabled while reconciliation request is in flight;
+- visible retry action after failed reconciliation;
+- portrait gate blocks interaction and maintains the completed local result state;
+- returning to landscape restores the same result/Continue state.
 
-If the marker is stale/missing/foreign for the current account:
-- do not issue a combat resolve request;
-- clear the unusable marker as appropriate;
-- recover to the normal bootstrap-derived Camp/RunScene route.
-
-A reload does **not** need to remember the exact animation frame/event index. Restarting the same immutable playback from the beginning is acceptable and preferred over inventing authoritative playback-progress state.
-
-#### BattleScene authority boundary
-Replace the placeholder with a functional Phaser playback scene.
-
-`BattleScene` consumes only the strict Package 5 `BattlePlaybackResult`.
-
-It must never:
-- call CombatEngine logic;
-- roll dice;
-- choose targets;
-- calculate hit chance;
-- calculate damage/healing;
-- decide status application/resistance;
-- decide deaths/outcome;
-- modify authoritative run/node/HP state.
-
-The scene may maintain **ephemeral presentation state** by applying facts already contained in persisted events, for example:
-- `damage_dealt.hp_after` updates the displayed target HP;
-- `death` marks a combatant visually defeated;
-- status applied/removed events alter displayed status badges;
-- dice events show the persisted rolls;
-- action/hit/damage events drive captions/highlights.
-
-Do not derive missing gameplay facts. If a required presentation fact is unavailable/incoherent despite the strict parser, fail presentation safely rather than simulate it.
-
-#### Initial battle presentation
-Use persisted playback participants for all combatant presentation:
-- historical display name;
-- historical art key;
-- side;
-- persisted battle-start position;
-- initial/max HP;
-- terminal facts only for end/result presentation.
-
-Do not look up current unit names/types/content as a replacement for historical identity.
-
-Asset resolution may use the persisted `art_key` against existing static assets. If an asset is unavailable, use a bounded neutral fallback without changing combat facts.
-
-Do not expose raw internal IDs as the main player-facing combatant label.
-
-#### Playback scheduler
-Create a small presentation-only playback controller/model independent of Phaser drawing where practical.
-
-It should:
-- start at the first persisted event;
-- advance events in exact sequence order;
-- use event type/facts to choose presentation timing only;
-- never reorder or skip authoritative events internally;
-- support deterministic tests with a fake/controlled clock or explicit advance calls;
-- expose a clean `playing`, `paused` if needed, `complete`, and error state appropriate to the implementation.
-
-Do not map server `tick` directly to real wall-clock duration as if it were a physics simulation. Server ticks are semantic ordering facts. Use client presentation durations appropriate to event classes.
-
-A modest default pace is sufficient. Optional minimal speed-up/skip-to-end presentation control is acceptable only if it consumes the same recorded event sequence and does not alter gameplay authority.
-
-#### Minimum visible playback behavior
-This package does not need final combat art polish, but playback must be understandable.
-
-At minimum present:
-- both sides positioned coherently from persisted `{x,y}`;
-- names and HP bars/values;
-- current acting combatant/action;
-- target highlighting where event facts provide it;
-- persisted dice roll facts when present;
-- hit/miss/critical indication;
-- recorded damage and HP change;
-- death/defeated indication;
-- recorded status applied/resisted/removed feedback;
-- battle outcome when `battle_ended` is reached.
-
-A compact event caption/log area is appropriate.
-
-Do not reconstruct a prose combat log server-side.
-
-#### Playback completion boundary
-When the `battle_ended` event is consumed:
-- enter a clear local `playback-complete` presentation state;
-- show the authoritative outcome;
-- do not automatically mutate/reload RunScene state;
-- do not award rewards or mark anything claimed;
-- do not clear the presentation marker yet if doing so would make reload-after-playback lose the retained result presentation before Package 7 can reconcile it.
-
-Package 7 owns final result UX, marker clearing policy, authoritative current-run reconciliation, and Continue destination.
-
-A temporary non-authoritative label such as `Playback complete` is acceptable for this package. Do not build the final Milestone 4 result screen early.
-
-#### Current-run cache handling after resolution
-After a valid node-resolution response:
-- do not optimistically edit node statuses/HP/edges in the cached `CurrentRun`;
-- retain the authoritative resolution response for BattleScene/Package 7 as presentation/reconciliation context if useful;
-- mark the current-run cache stale rather than pretending the old pre-combat graph remains fresh;
-- do not refetch bootstrap/profile/Warband merely to enter BattleScene.
-
-Package 7 will reconcile the post-battle authoritative run state before leaving the result flow.
-
-#### Playback fetch/retry
-Once a battle ID is known, playback fetch is a GET and must be independent of node-resolution retry state.
-
-If playback GET has a network/5xx failure:
-- keep the presentation marker;
-- show retry;
-- retry the GET only;
-- never issue another node-resolution POST just because playback could not be loaded.
-
-If playback is malformed:
-- treat it as presentation integrity failure;
-- do not simulate/reconstruct it;
-- keep enough recovery information for reload/retry.
-
-If playback is non-disclosing not-found after a supposedly successful resolution:
-- do not rerun combat;
-- enter recovery/integrity handling.
-
-#### Defeat/stalemate lifecycle
-A failed combat may already have made the server run terminal before BattleScene starts.
-
-BattleScene must still play the retained defeat/stalemate battle through the Package 5 read contract.
-
-Do not require an active-run GameStore object to render BattleScene.
-
-Do not redirect to Camp merely because bootstrap/current-run says there is no active run while a valid retained-battle presentation marker exists.
-
-Package 7 owns the eventual Continue -> Camp behavior after terminal battle playback.
-
-#### Viewport/orientation
-Use the existing persistent RuntimeViewport and orientation gate.
-
-Verify BattleScene at:
-- Compact `844×390`;
-- Standard `1600×900`;
-- Wide `2560×1080`.
-
-Touch-first portrait gate must block interaction and **pause/suspend presentation advancement** so the player does not miss playback behind the gate. Returning to landscape continues safely from the same local presentation state.
-
-Desktop/fine-pointer portrait remains subject to the existing viewport policy rather than a new BattleScene-specific rule.
-
-Do not remount Phaser or create a second canvas.
+Do not remount Phaser or create another canvas during Continue navigation.
 
 #### Tests
 At minimum prove:
-- strict node-resolution parser accepts a real Package 4 response and rejects malformed/extra fields, IDs, lifecycle/HP/version/outcome/revision incoherence;
-- RuntimeApiClient node resolve sends exact URL/method, CSRF, idempotency key, credentials, and **no request body**;
-- one logical resolution attempt preserves the same key/run/node across network, malformed-response, and 5xx ambiguity;
-- simultaneous Fight submissions are prevented;
-- definitive rejection does not masquerade as an ambiguous committed battle;
-- successful resolution records the battle presentation marker before playback navigation/fetch;
-- ambiguous resolution never optimistically changes Energy, HP, node status, or unlocks;
-- already-completed combat with `battle_id` uses Watch/Replay and sends no resolution POST;
-- playback GET retry never sends resolution POST;
-- marker is scoped to authenticated account identity and rejects stale/mismatched identity;
-- reload with valid marker routes to BattleScene for both active-run victory and terminal-run defeat/stalemate scenarios;
-- reload restarts or safely resumes presentation from persisted playback without combat rerun;
-- BattleScene initial participants come from playback projection, not current Warband/content state;
-- playback events are consumed exactly in persisted sequence order;
-- presentation state uses recorded event facts rather than recalculating hit/damage/target/status/outcome;
-- `battle_ended` produces playback-complete state with the persisted outcome;
-- portrait gate suspends playback advancement and landscape resume continues correctly;
-- current-run cache becomes stale after resolution but is not locally rewritten with guessed combat state;
-- scene transition does not refetch bootstrap/game-content or remount Phaser;
-- existing RunScene Return/Resume and M3 interaction behavior remain intact.
+- `battle_ended` enters result/playback-complete state without automatic scene navigation;
+- result uses persisted outcome/terminal participant facts and invents no reward/progression facts;
+- Continue forces `GET /api/v1/runs/current` even if the old cache was fresh;
+- Continue from stale pre-combat cache does not locally patch node/HP/unlocks before the GET succeeds;
+- successful victory reconciliation replaces cache with authoritative completed Combat/battle ID/terminal HP/direct-node availability and adopts revision;
+- successful victory clears presentation marker/context and navigates to RunScene;
+- successful defeat/stalemate reconciliation accepts `run:null`, clears bootstrap active run/Warband lock, adopts revision, clears marker/context, and navigates to Camp;
+- immediate terminal reconciliation works when in-memory bootstrap still says the old run is active;
+- reload-style terminal reconciliation works when bootstrap already has `active_run:null`;
+- Replay -> Continue issues zero resolve POSTs and still forces current-run GET;
+- network/5xx/malformed/integrity failure during Continue retains marker and result state;
+- Retry Continue issues another current-run GET only;
+- simultaneous Continue clicks do not create overlapping reads/navigation;
+- regressed revision or contradictory current-run data cannot silently navigate;
+- a newer/different authoritative active run can become the destination without reviving the historical marker run;
+- marker is cleared only after successful GameStore reconciliation;
+- after successful Continue, startup routing no longer prefers BattleScene;
+- portrait gating cannot accidentally fire Continue;
+- same Phaser canvas/runtime persists through BattleScene -> RunScene/GameScene.
 
 #### Captures / visual verification
 Produce deterministic captures for at least:
-- BattleScene initial/early playback at Standard;
-- mid-combat event at Standard;
-- playback-complete victory state;
-- Compact battle playback;
-- Wide battle playback;
-- portrait gate while BattleScene has loaded playback.
+- victory result at Standard;
+- defeat result at Standard;
+- result at Compact;
+- result at Wide;
+- Continue reconciliation error/retry state;
+- portrait-gated completed result if capture infrastructure supports it.
 
-Where practical also capture defeat playback-complete using a deterministic fixture/test harness.
+Visually inspect that:
+- outcome and Continue are clear;
+- terminal HP/defeat state remains readable;
+- no fake rewards/XP appear;
+- error state communicates that the battle is already safe/finalized and only return synchronization needs retrying;
+- Compact has no overlapping result controls.
 
-Visually inspect:
-- combatants fit and are distinguishable;
-- HP is readable;
-- action/dice/damage feedback is understandable;
-- event captions do not dominate the screen;
-- Compact does not overlap controls/combatants;
-- portrait gate hides/blocks combat controls and advancement;
-- raw IDs do not dominate presentation.
-
-Final combat art/animation polish remains deferred.
+Final art/animation polish remains deferred.
 
 #### Real-stack verification
-Where practical run a controlled real PHP/MySQL/browser path:
+Where practical extend the controlled browser/PHP/MySQL verifier to exercise:
 
-`Start Farm -> select Combat -> Fight -> one resolve POST -> playback GET -> BattleScene -> playback complete -> reload -> same retained battle presentation`
+`Start Farm -> Fight -> one resolve POST -> playback complete -> Continue -> GET current run -> RunScene or Camp`
 
-For the real Farm victory path verify:
-- exactly one node-resolution POST for the logical attempt;
-- persisted battle ID from resolution equals playback battle ID;
-- no client combat simulation/network chatter per event;
-- no bootstrap/content/Warband refetch merely to enter BattleScene;
-- same Phaser canvas/runtime/store survives RunScene -> BattleScene;
-- server state is already finalized before/during playback.
+For a victory verify:
+- exactly one resolve POST total;
+- Continue causes current-run GET and no new playback/resolve/bootstrap/Warband request;
+- RunScene shows the authoritative completed combat/battle ID and next-node availability;
+- authoritative persisted HP matches returned RunScene current HP;
+- presentation marker is gone;
+- reload goes to RunScene, not BattleScene;
+- same Phaser canvas/runtime survives BattleScene -> RunScene.
 
-A deterministic frontend fixture may cover defeat/stalemate BattleScene presentation in this package; Package 8 integrated closure will re-prove full server outcomes as needed.
+Use deterministic frontend fixtures for defeat/stalemate result UX if forcing those real-stack outcomes is awkward. Package 8 integrated closure will exercise terminal outcomes again.
 
 #### Verification gates
 Run applicable gates from `agent/QUALITY_GATES.md`.
 
 At minimum report actual results for:
-- focused node-resolution frontend contract/API tests;
-- focused BattleScene/playback-controller tests;
-- existing playback parser/current-run tests;
+- focused BattleScene result/Continue tests;
+- GameStore current-run reconciliation tests;
+- RunScene/Camp destination tests;
+- Package 6 playback/marker regression tests;
 - full frontend suite;
 - production frontend build;
 - bundle check;
-- deterministic BattleScene captures;
-- relevant backend regression if backend contract fixtures are exercised;
-- real-stack verifier when environment permits;
+- deterministic result captures;
+- real-stack Continue verifier when environment permits;
+- relevant backend/current-run regressions if fixture contracts change;
 - `npm run llm:check` and docs/context checks when applicable;
 - `git diff --check`.
 
@@ -392,46 +291,23 @@ Do not claim absent GitHub CI or an unavailable host-only aggregate passed.
 #### Explicitly out of scope
 Do not implement or scaffold:
 - rewards, XP, objectives, Teeth/currency grants;
-- server/client battle claim lifecycle;
-- final post-battle result/Continue reconciliation back to RunScene/Camp;
-- authoritative run-cache replacement after playback;
-- loot/rest/boss/exit resolution;
-- Mudking/boss combat;
-- Farm completion/Mountains unlock;
-- server-side playback progress/acknowledgement/pending flags;
-- event-sourcing/playback-progress tables;
-- new combat mechanics;
-- final combat visual overhaul;
-- Milestone 5.
+- battle claim/acknowledgement server lifecycle;
+- reward/claim idempotency;
+- Loot/Rest/Boss/Exit resolution;
+- Mudking boss combat;
+- Farm completion or Mountains unlock;
+- run-history/replay browser beyond the current active-run completed-node Replay affordance;
+- permanent playback-progress state;
+- final game-wide battle visual overhaul;
+- Milestone 5 work;
+- Package 8 closure work beyond tests directly needed by this package.
 
-#### Review state
-When complete:
-- leave Package 6 **In Progress**;
-- do not mark it complete;
-- do not promote Package 7;
-- do not begin the final result/return reconciliation package.
-
-Architectural review decides completion.
-
-#### Final report
-Report:
-1. exact implementation commit SHA;
-2. strict node-resolution client contract;
-3. RuntimeApiClient mutation behavior;
-4. idempotent resolution-attempt state machine;
-5. Farm-map Fight vs Watch/Replay behavior;
-6. presentation-marker shape/storage/account scoping;
-7. startup/reload routing behavior;
-8. BattleScene playback model and confirmation it derives no combat mechanics;
-9. persisted event -> presentation behavior;
-10. playback completion state;
-11. current-run cache behavior after resolution;
-12. playback GET retry/recovery behavior;
-13. defeat/stalemate presentation behavior;
-14. responsive/orientation behavior;
-15. deterministic captures and visual inspection;
-16. real-stack verification results;
-17. exact test/build/gate results and environment limitations;
-18. unresolved concern, if any.
-
-Do not begin another package.
+#### Completion requirements
+Before review:
+1. implement only this package;
+2. add/update focused tests and deterministic captures;
+3. run/report the applicable gates honestly;
+4. update only current canonical docs if this package materially changes a documented accepted behavior;
+5. leave this issue **In Progress**;
+6. do not promote Package 8;
+7. report the exact implementation commit SHA, Continue/reconciliation state machine, GameStore changes, marker-clearing policy, active-vs-null destination behavior, failure/retry behavior, tests/captures, real-stack evidence, and unresolved concerns.
